@@ -242,7 +242,7 @@ export class RepositoryHealthView {
               ${this.scanning ? 'Scanning…' : 'Run consolidation scan'}
             </button>
             <a class="btn btn-secondary btn-sm" href="/api/optimization/compliance?format=html" target="_blank" rel="noopener">Compliance report</a>
-            <a class="btn btn-ghost btn-sm" href="#/trust">Trust dashboard</a>
+            <a class="btn btn-ghost btn-sm" href="/dashboard/trust">Trust dashboard</a>
             <button type="button" class="btn btn-ghost btn-sm" id="send-health-ai-btn" title="Send repository health data to AI coding agent">🤖 Send to AI Agent</button>
           </div>
         </div>

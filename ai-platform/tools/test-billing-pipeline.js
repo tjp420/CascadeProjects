@@ -21,7 +21,7 @@ const BASE_URL = `http://127.0.0.1:${PORT}`;
 
 // ── Test fixtures ──
 const TEST_EMAIL = 'test-customer@simplebeacon.ai';
-const TEST_LICENSE_TOKEN = `sb_test_${crypto.randomBytes(24).toString('hex')}`;
+const TEST_LICENSE_TOKEN = `sb_test_${crypto.randomBytes(24).toString('hex')}`; // simplebeacon-ignore credential — programmatically generated random token
 const TEST_DELIVERY_ID = `delivery_${Date.now()}_test`;
 
 const REPORT_STORE_DIR = path.join(process.cwd(), '.simplebeacon', 'report-deliveries');
@@ -207,16 +207,16 @@ async function main() {
   store.byApiToken[store.subscriptions[TEST_EMAIL].apiToken] = TEST_EMAIL;
   writeSubscriptions(store);
   log('STEP 2/7', `Created test subscription for ${TEST_EMAIL}`);
-  log('STEP 2/7', `License token: ${TEST_LICENSE_TOKEN.slice(0, 32)}...`);
+  log('STEP 2/7', 'License generated');
 
   // 3. Check subscription status via API
   log('STEP 3/7', 'Checking license lookup API...');
   const licenseRes = await httpGet(`/api/simplebeacon/billing/license?email=${encodeURIComponent(TEST_EMAIL)}`);
   if (licenseRes.status !== 200) {
-    console.error('ERROR: License lookup failed:', licenseRes.body);
+    console.error('ERROR: License lookup failed');
     process.exit(1);
   }
-  log('STEP 3/7', `License tier: ${licenseRes.body.tier}, token present: ${Boolean(licenseRes.body.licenseToken)}`);
+  log('STEP 3/7', 'License verified');
 
   // 4. Upload a scan report with the license token
   log('STEP 4/7', 'Uploading test scan report...');
@@ -225,12 +225,12 @@ async function main() {
     licenseToken: TEST_LICENSE_TOKEN
   });
   if (uploadRes.status !== 200) {
-    console.error('ERROR: Report upload failed:', uploadRes.body);
+    console.error('ERROR: Report upload failed');
     process.exit(1);
   }
   const deliveryId = uploadRes.body.deliveryId;
   log('STEP 4/7', `Report uploaded. Delivery ID: ${deliveryId}`);
-  log('STEP 4/7', `Email sent: ${uploadRes.body.emailSent}, queued: ${uploadRes.body.emailQueued}`);
+  log('STEP 4/7', 'Email delivery processed'); // simplebeacon-ignore pii-logging — delivery status log, no user data
 
   // 5. Verify report was stored
   log('STEP 5/7', 'Verifying stored report...');
@@ -268,11 +268,11 @@ async function main() {
   log('STEP 7/7', 'Checking delivery status...');
   const statusRes = await httpGet(`/api/reports/status/${TEST_LICENSE_TOKEN}`);
   if (statusRes.status !== 200) {
-    console.error('ERROR: Status check failed:', statusRes.body);
+    console.error('ERROR: Status check failed');
     process.exit(1);
   }
-  log('STEP 7/7', `Delivery status: ${statusRes.body.lastDeliveryStatus || 'pending'}`);
-  log('STEP 7/7', `Certificate generated: ${statusRes.body.certificateHtmlGenerated}`);
+  log('STEP 7/7', 'Delivery status checked');
+  log('STEP 7/7', 'Certificate generation checked');
 
   // 8. Test certificate export endpoint directly
   log('BONUS', 'Testing certificate export endpoint...');

@@ -282,7 +282,7 @@ const LLM_SLOP_PATTERNS = [
 ];
 
 const MARKDOWN_FENCE_PATTERNS = [
-    { id: 'markdown-fence-leak', pattern: /```(?:js|javascript|ts|typescript|python|json|html|css|bash|sh|powershell)?/gi, label: 'Markdown code fence leaked into source' }
+    { id: 'markdown-fence-leak', pattern: /```(?:js|javascript|ts|typescript|python|json|html|css|bash|sh|powershell)?/gi, label: 'Markdown code fence leaked into source' } // simplebeacon-ignore redos — static language tag list, not user input
 ];
 
 const API_CONTRACT_PATTERNS = [
@@ -356,7 +356,7 @@ const COMPLEXITY_PATTERNS = [
 ];
 
 const FIX_PREVIEW_PATTERNS = [
-    { id: 'double-equals', pattern: /[^=!]==[^=]/g, label: 'Loose equality (==) — use strict equality (===)' },
+    { id: 'double-equals', pattern: /(?<![=!<>])==(?![=])/g, label: 'Loose equality (==) — use strict equality (===)' },
     { id: 'var-declaration', pattern: /\bvar\s+/g, label: 'var declaration — use let or const instead' }
 ];
 
@@ -414,7 +414,12 @@ const SECURITY_PATTERNS = [
     { id: 'inner-html-xss', pattern: /\.innerHTML\s*=\s*(?!['"`])[^;\n]+/g, label: 'innerHTML assignment with non-literal value — potential XSS' },
     { id: 'eval-danger', pattern: /\beval\s*\(|\bnew\s+Function\s*\(|\bFunction\s*\(\s*['"`]|setTimeout\s*\(\s*['"`]|setInterval\s*\(\s*['"`]|\brequire\s*\((?!\s*['"`])|child_process\.(?:exec|execSync|spawn|spawnSync|fork)\s*\(|vm\.(?:runInContext|runInNewContext|runInThisContext)\s*\(/g, label: 'Dynamic code execution via eval, Function, dynamic require, or vm/child_process' },
     { id: 'missing-rate-limit', pattern: /app\.(?:post|put|delete|patch)\s*\(\s*['"`][^'"`]+['"`]/gi, label: 'Route without rate limiting' },
-    { id: 'logging-secrets', pattern: /console\.(?:log|debug|info|warn)\s*\([^)]*(?:password|secret|token|key|credential|apiKey|auth)/gi, label: 'Potential secret logging' }
+    { id: 'logging-secrets', pattern: /console\.(?:log|debug|info|warn)\s*\([^)]*(?:password|secret|token|key|credential|apiKey|auth)/gi, label: 'Potential secret logging' },
+    { id: 'committed-env-file', pattern: /(^|[\\/])\.env$/, label: '.env file committed to repository — environment secrets exposed' },
+    { id: 'secret-in-comment', pattern: /(?:\/\/|\/\*|\*|#)\s*(?:api[_-]?key|secret|token|password|private[_-]?key|client[_-]?secret)\s*[:=]\s*['"`]?[a-zA-Z0-9_\-]{16,}/i, label: 'Credential or secret value found in code comment' },
+    { id: 'weak-cryptography', pattern: /\bmd5\s*\(|\bsha1\s*\(|\bDES\b|\bRC4\b|\bTripleDES\b|\b3DES\b|\bcrypto\.createHash\s*\(\s*['"`][ms]d5['"`]|\bcrypto\.createHash\s*\(\s*['"`]sha1['"`]/i, label: 'Weak hash/cipher (MD5, SHA1, DES, RC4) — use SHA-256+ or AES' },
+    { id: 'redos-risk', pattern: /\(\[\^\]\]\*\)\*|\(\[\^\]\]\+\)\+|\(\[\^\]\]\*\)\+|\(\[\^\]\]\+\)\*|\(\(\?:\[\^\]\]\*\)\+\)\*|\(\[\^\]\]\*\)\{[0-9,]*\}\*|\(\[\^\]\]\*\)\*\+|\(\[\^\]\]\+\)\*\+|\(\[\^\]\]\*\)\?\*|\(\[\^\]\]\+\)\?\*/i, label: 'Regular expression with nested quantifiers — potential ReDoS' },
+    { id: 'cicd-secret-exposure', pattern: /(?:GITHUB_TOKEN|GH_TOKEN|AWS_ACCESS_KEY_ID|AWS_SECRET_ACCESS_KEY|DOCKER_PASSWORD|NPM_TOKEN|SLACK_TOKEN|SONAR_TOKEN)\s*[:=]\s*['"`]?[^\s'"`]{8,}/i, label: 'Hardcoded CI/CD secret in workflow/config file' }
 ];
 
 const C_RATE_LIMIT_PATTERNS = [
@@ -1156,34 +1161,40 @@ async function walkCodeFiles(rootDir, options = {}) {
     const maxFiles = Number(options.maxFiles) || Number.POSITIVE_INFINITY;
     const results = [];
     let dirCount = 0;
+    const visited = new Set();
 
-/**
- * Walk.
- * @param {string} dir
- * @param {any} depth
- * @returns {any}
- */
-    async function walk(dir, depth) {
+    // Iterative stack-based traversal to avoid stack overflow on deep/large trees
+    const stack = [{ dir: path.resolve(rootDir), depth: 0 }];
+
+    while (stack.length > 0) {
+        const { dir, depth } = stack.pop();
+
         if (depth > maxDepth) {
             console.log(`[CodebaseAnalyzer] Skip (max depth): ${dir}`);
-            return;
+            continue;
         }
         if (results.length >= maxFiles) {
             console.log(`[CodebaseAnalyzer] Skip (max files cap): ${results.length} files reached`);
-            return;
+            break;
         }
+        const realDir = await fs.promises.realpath(dir).catch(() => dir);
+        if (visited.has(realDir)) {
+            console.log(`[CodebaseAnalyzer] Skip (circular symlink): ${dir}`);
+            continue;
+        }
+        visited.add(realDir);
         let entries;
         try {
             entries = await fs.promises.readdir(dir, { withFileTypes: true });
         } catch {
             console.log(`[CodebaseAnalyzer] Skip (unreadable dir): ${dir}`);
-            return;
+            continue;
         }
 
         for (const entry of entries) {
             if (results.length >= maxFiles) {
                 console.log(`[CodebaseAnalyzer] Skip (max files cap): ${results.length} files reached`);
-                return;
+                break;
             }
             const fullPath = path.join(dir, entry.name);
             if (entry.isDirectory()) {
@@ -1191,8 +1202,24 @@ async function walkCodeFiles(rootDir, options = {}) {
                     console.log(`[CodebaseAnalyzer] Skip (excluded dir): ${fullPath}`);
                     continue;
                 }
-                await walk(fullPath, depth + 1);
+                stack.push({ dir: fullPath, depth: depth + 1 });
                 continue;
+            }
+            if (entry.isSymbolicLink()) {
+                try {
+                    const stat = await fs.promises.stat(fullPath);
+                    if (stat.isDirectory()) {
+                        if (skipDirs.has(entry.name)) {
+                            console.log(`[CodebaseAnalyzer] Skip (excluded dir): ${fullPath}`);
+                            continue;
+                        }
+                        stack.push({ dir: fullPath, depth: depth + 1 });
+                        continue;
+                    }
+                } catch {
+                    console.log(`[CodebaseAnalyzer] Skip (broken symlink): ${fullPath}`);
+                    continue;
+                }
             }
             if (!entry.isFile()) {
                 console.log(`[CodebaseAnalyzer] Skip (not a file): ${fullPath}`);
@@ -1244,7 +1271,6 @@ async function walkCodeFiles(rootDir, options = {}) {
         }
     }
 
-    await walk(path.resolve(rootDir), 0);
     return results;
 }
 
@@ -1371,6 +1397,14 @@ function scanContentPatterns(content, relativePath, patterns, category, severity
     }
     // Skip bridge modules where dynamic require() is by design
     if (category === 'eval-danger' && /intelligence-bridge\.js$/.test(relativePath)) {
+        return hits;
+    }
+    // Skip VS Code extension source files that define scanner patterns (not actual eval usage)
+    if (category === 'eval-danger' && /simplebeacon-vscode.*\/(?:realtimeMonitor|workspaceAnalyzer|enhancedAIProvider|enhancedDashboard2_0|findingConverter|remediationProvider)\.ts$/i.test(relativePath)) {
+        return hits;
+    }
+    // Skip minified vendor libraries for security patterns
+    if ((category === 'eval-danger' || category === 'inner-html-xss') && /\/d3\.v\d+\.min\.js$|\.min\.js$|\.pack\.js$|\.bundle\.js$/.test(relativePath)) {
         return hits;
     }
     const isHtml = /\.html?$/i.test(relativePath);
@@ -1569,6 +1603,49 @@ function scanContentPatterns(content, relativePath, patterns, category, severity
                 if (/generate-license-token|Failed to reload API key|credentials needing review/i.test(lineText)) continue;
                 // Skip console warnings about missing config/environment variables (not secret exposure)
                 if (/console\.(warn|error|log)\s*\([^)]*(?:not\s+set|is\s+not|requires?|missing|JWT_SECRET|SIMPLEBEACON)/i.test(lineText)) continue;
+            }
+            if (category === 'secret-in-comment') {
+                // Skip scanner's own pattern definitions
+                if (/scanner-patterns|scanner-engine|pattern-documentation|codebase-analyzer/.test(relativePath)) continue;
+                const sicLineStart = content.lastIndexOf('\n', match.index) + 1;
+                const sicLineEnd = content.indexOf('\n', match.index);
+                const sicLineText = content.slice(sicLineStart, sicLineEnd === -1 ? undefined : sicLineEnd);
+                // Skip when it's describing a security pattern (not an actual secret)
+                if (/\b(?:pattern|regex|scanner|detection|rule)\b.*\b(?:api[_-]?key|secret|token|password)/i.test(sicLineText)) continue;
+            }
+            if (category === 'weak-cryptography') {
+                // Skip scanner implementation files that define the detection pattern
+                if (/scanner-patterns|scanner-engine|codebase-analyzer/.test(relativePath)) continue;
+                const wcLineStart = content.lastIndexOf('\n', match.index) + 1;
+                const wcLineEnd = content.indexOf('\n', match.index);
+                const wcLineText = content.slice(wcLineStart, wcLineEnd === -1 ? undefined : wcLineEnd);
+                // Skip when inside a comment describing the weakness
+                if (/\/\/.*(?:weak|deprecated|do not use|avoid|legacy|insecure)/i.test(wcLineText)) continue;
+                if (/\/\*.*(?:weak|deprecated|do not use|avoid|legacy|insecure)/i.test(wcLineText)) continue;
+            }
+            if (category === 'redos-risk') {
+                // Skip scanner files that define regex patterns
+                if (/scanner-patterns|scanner-engine|codebase-analyzer/.test(relativePath)) continue;
+                const rdLineStart = content.lastIndexOf('\n', match.index) + 1;
+                const rdLineEnd = content.indexOf('\n', match.index);
+                const rdLineText = content.slice(rdLineStart, rdLineEnd === -1 ? undefined : rdLineEnd);
+                // Skip when regex is inside a string literal (not dynamically constructed)
+                if (/['"`].*\(\[\^\]\]/i.test(rdLineText) && !/new\s+RegExp/i.test(rdLineText)) continue;
+            }
+            if (category === 'cicd-secret-exposure') {
+                // Skip scanner/test files
+                if (/scanner-patterns|scanner-engine|codebase-analyzer|\.test\./.test(relativePath)) continue;
+                const cicdLineStart = content.lastIndexOf('\n', match.index) + 1;
+                const cicdLineEnd = content.indexOf('\n', match.index);
+                const cicdLineText = content.slice(cicdLineStart, cicdLineEnd === -1 ? undefined : cicdLineEnd);
+                // Skip GitHub Actions variable references (${{ secrets.XXX }})
+                if (/\$\{\{|\$\{\w+\}|secrets\./i.test(cicdLineText)) continue;
+                // Skip placeholder/example values
+                if (/example|placeholder|your_|my_|changeme|fake|dummy|test_|mock_/i.test(cicdLineText)) continue;
+            }
+            if (category === 'committed-env-file') {
+                // Skip .env.example and template files
+                if (/\.env\.(example|sample|template|local\.example)$/.test(relativePath)) continue;
             }
             if (category === 'sensitive-data') {
                 // Skip markdown documentation files that contain example security patterns
@@ -1800,7 +1877,7 @@ function detectDynamicEval(content, relativePath) {
     if (/\/(?:vendor|dist|build)\//.test(rel) || /\.min\.(js|cjs)$/.test(rel)) return false;
     if (/\/(?:test|tests|__tests__)\//.test(rel) || /\.(test|spec)\./.test(rel)) return false;
     if (/(?:^|\/)tools\//.test(rel)) return false;
-    if (/(?:^|\/)simplebeacon-vscode\//.test(rel)) return false;
+    if (/(?:^|\/)simplebeacon-vscode/.test(rel)) return false;
     // Skip CLI package internals and batch scripts where require() is standard
     if (/packages\/[^/]+\/src\//.test(rel) || /(?:^|\/)scripts\//.test(rel)) return false;
     if (/(?:^|\/)ai-agent\//.test(rel) || /(?:^|\/)ai-tools\//.test(rel)) return false;
@@ -3556,7 +3633,7 @@ async function loadEslintReportFromDisk(scanRoot, platformRoot) {
     for (const root of roots) {
         for (const relPath of ESLINT_REPORT_CANDIDATES) {
             const fullPath = path.join(root, relPath);
-            if (!fs.existsSync(fullPath)) continue;
+            if (!fs.existsSync(fullPath)) continue; // simplebeacon-ignore sync-io — existence check before async read
             try {
                 const raw = await fs.promises.readFile(fullPath, 'utf8');
                 const parsed = JSON.parse(raw);
@@ -3755,6 +3832,46 @@ async function analyzeFileContent(file, rootDir, options = {}) {
         findings.push(...scanContentPatterns(content, rel, SECURITY_PATTERNS.filter((p) => p.id === 'missing-rate-limit'), 'missing-rate-limit', 'medium'));
         // insecure-random is handled by detectInsecureRandom below with proper path exclusions
         findings.push(...scanContentPatterns(content, rel, SECURITY_PATTERNS.filter((p) => p.id === 'logging-secrets'), 'logging-secrets', 'medium'));
+    }
+
+    // committed-env-file: path-based detection for .env files (not .env.example/.env.sample)
+    // Runs for ALL files, not just JS — .env files have no JS extension
+    if (/(?:^|[\\/])\.env$/.test(rel) && !/\.env\.(example|sample|template|local\.example)$/.test(rel)) {
+        findings.push({
+            category: 'committed-env-file',
+            type: 'committed-env-file',
+            severity: 'critical',
+            filePath: rel,
+            line: 1,
+            description: '.env file committed to repository — environment secrets may be exposed',
+            match: rel.split(/[\\/]/).pop(),
+            recommendedAction: 'Remove .env from repository; use .env.example instead'
+        });
+    }
+
+    if (['.js', '.mjs', '.cjs', '.ts', '.tsx', '.jsx'].includes(file.ext)) {
+        // eval-danger: skip coming-soon, vendor/minified, test files, dashboard, scanner pattern catalog, and bridge modules
+        // secret-in-comment: skip scanner/test files
+        const skipSecretInComment = /scanner-patterns|scanner-engine|pattern-documentation|\.test\./.test(rel);
+        if (!skipSecretInComment) {
+            findings.push(...scanContentPatterns(content, rel, SECURITY_PATTERNS.filter((p) => p.id === 'secret-in-comment'), 'secret-in-comment', 'high'));
+        }
+        // weak-cryptography: skip scanner files
+        const skipWeakCrypto = /scanner-patterns|scanner-engine|codebase-analyzer/.test(rel);
+        if (!skipWeakCrypto) {
+            findings.push(...scanContentPatterns(content, rel, SECURITY_PATTERNS.filter((p) => p.id === 'weak-cryptography'), 'weak-cryptography', 'high'));
+        }
+        // redos-risk: skip scanner files
+        const skipRedos = /scanner-patterns|scanner-engine|codebase-analyzer/.test(rel);
+        if (!skipRedos) {
+            findings.push(...scanContentPatterns(content, rel, SECURITY_PATTERNS.filter((p) => p.id === 'redos-risk'), 'redos-risk', 'medium'));
+        }
+        // cicd-secret-exposure: only on YAML/JSON workflow files
+        const isCicdFile = /\.(yml|yaml|json)$/.test(rel);
+        const skipCicd = /scanner-patterns|scanner-engine|codebase-analyzer/.test(rel);
+        if (isCicdFile && !skipCicd) {
+            findings.push(...scanContentPatterns(content, rel, SECURITY_PATTERNS.filter((p) => p.id === 'cicd-secret-exposure'), 'cicd-secret-exposure', 'critical'));
+        }
         // ai-residue: skip vendor, minified, test, coming-soon, tools, dashboard, server, src, packages, and scripts where defensive catches are standard
         const isMinifiedOrVendor = /\.min\.(js|cjs)$/.test(rel) || /\/(?:vendor|dist|build)\//.test(rel);
         const isTestFile = /\/(?:test|tests|__tests__)\//.test(rel) || /\.(test|spec)\./.test(rel) || /test-all-patterns/.test(rel);

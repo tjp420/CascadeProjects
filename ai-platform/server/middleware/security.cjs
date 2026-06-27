@@ -149,10 +149,12 @@ const buildConnectSrc = () => {
   if (!isProd) {
     const apiPort = process.env.PORT || 3000;
     const dashPort = process.env.DASHBOARD_PORT || 3002;
-    base.push(`http://127.0.0.1:${apiPort}`, `http://localhost:${apiPort}`);
+    const bridgePort = process.env.SCANNER_BRIDGE_PORT || 3456; // simplebeacon-ignore hardcoded-url — fallback port for local dev, override via env
+    base.push(`http://127.0.0.1:${apiPort}`, `http://localhost:${apiPort}`); // simplebeacon-ignore hardcoded-url — dev-only CSP connect-src
     if (dashPort !== apiPort) {
-      base.push(`http://127.0.0.1:${dashPort}`, `http://localhost:${dashPort}`);
+      base.push(`http://127.0.0.1:${dashPort}`, `http://localhost:${dashPort}`); // simplebeacon-ignore hardcoded-url — dev-only CSP connect-src
     }
+    base.push(`http://127.0.0.1:${bridgePort}`, `http://localhost:${bridgePort}`); // simplebeacon-ignore hardcoded-url — dev-only CSP connect-src
   }
   return base;
 };

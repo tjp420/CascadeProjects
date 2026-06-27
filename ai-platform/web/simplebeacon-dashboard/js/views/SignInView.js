@@ -135,7 +135,7 @@ export class SignInView {
       return `
         <p class="signin-status">Signed in as <strong>${escapeHtml(email)}</strong> (internal preview).</p>
         <div class="signin-actions">
-          <a class="btn btn-primary" href="#/dashboard">Open Dashboard</a>
+          <a class="btn btn-primary" href="/dashboard/dashboard">Open Dashboard</a>
           <button class="btn btn-ghost" id="signin-signout-btn">Sign Out</button>
         </div>
       `;
@@ -144,7 +144,7 @@ export class SignInView {
       return `
         <p class="signin-status">Signed in as <strong>${escapeHtml(email)}</strong>.</p>
         <div class="signin-actions">
-          <a class="btn btn-primary" href="#/dashboard">Open Dashboard</a>
+          <a class="btn btn-primary" href="/dashboard/dashboard">Open Dashboard</a>
           <button class="btn btn-ghost" id="signin-signout-btn">Sign Out</button>
         </div>
       `;
@@ -153,7 +153,7 @@ export class SignInView {
       <p class="signin-status">Signed in as <strong>${escapeHtml(email)}</strong>.</p>
       <p class="signin-note">Your token is valid but may have limited access.</p>
       <div class="signin-actions">
-        <a class="btn btn-primary" href="#/dashboard">Open Dashboard</a>
+        <a class="btn btn-primary" href="/dashboard/dashboard">Open Dashboard</a>
         <button class="btn btn-ghost" id="signin-signout-btn">Sign Out</button>
       </div>
     `;
@@ -312,7 +312,7 @@ export class SignInView {
       <p class="signin-footer">
         <a href="/demo">View read-only demo</a>
         <span class="signin-footer-sep">·</span>
-        <a href="#/about">About &amp; install</a>
+        <a href="/dashboard/about">About &amp; install</a>
         <span class="signin-footer-sep">·</span>
         <a href="https://github.com/tjp420/simplebeacon" target="_blank" rel="noopener noreferrer">GitHub</a>
       </p>

@@ -15,7 +15,7 @@ const PAID_API_LIMIT = Number(process.env.SIMPLEBEACON_PAID_API_LIMIT || 100);
 const PAID_PERIOD_MS = 30 * 24 * 60 * constants.ONE_MINUTE_MS;
 
 const SCAN_QUOTA_MAP = {
-  developer: 100,
+  developer: Infinity,
   startup: 2500,
   growth: 10000,
   enterprise: Infinity

@@ -102,7 +102,7 @@ export class AuthService {
     const isTokenRemoved = ALL_TOKEN_KEYS.includes(event.key) && !event.newValue;
     const isClearAll = event.key === null;
     if (isTokenRemoved || isClearAll) {
-      console.log('[AuthService] Cross-tab sign-out detected');
+      // Cross-tab sign-out detected
       this.clearSession();
       window.dispatchEvent(new CustomEvent('auth-signed-out', { detail: { key: event.key } }));
     }
@@ -494,7 +494,14 @@ export class AuthService {
 
   async ensureAuthenticated() {
     await this.fetchPlatformStatus();
-    if (!this.authRequired) return true;
+    if (!this.authRequired) {
+      // Local dev: auto-authenticate from the embedded data server so the
+      // dashboard doesn't prompt for sign-in on every fresh webview load.
+      if (isLocalDevHost() && !this.isAuthenticated()) {
+        await this.probeVaultOperatorSession();
+      }
+      return true;
+    }
     if (this.getToken()) return this.validateSession();
     if (isLocalDevHost()) return this.probeVaultOperatorSession();
     return false;

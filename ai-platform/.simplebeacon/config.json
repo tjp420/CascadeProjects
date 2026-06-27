@@ -52,6 +52,8 @@
     "esm/**",
     "packages/simplebeacon-cli/**",
     "simplebeacon-vscode/**",
+    "simplebeacon-vscode-merged/**",
+    "false-positive-audit/**",
     "report.json",
     "cli-test-report*.json",
     "test-output.txt",
@@ -128,5 +130,5 @@
       "low"
     ]
   },
-  "fullDirectoryScan": false
+  "fullDirectoryScan": true
 }

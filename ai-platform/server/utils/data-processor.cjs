@@ -93,7 +93,7 @@ function writeFileToSandbox(fileBuffer, relativePath, sandboxDir) {
 async function runLocalScan(sandboxDir, options = {}) {
     const cliBin = path.join(__dirname, '../../../packages/simplebeacon-cli/bin/simplebeacon.js');
     const reportOut = path.join(sandboxDir, '.simplebeacon', 'report.json');
-    fs.mkdirSync(path.dirname(reportOut), { recursive: true });
+    fs.mkdirSync(path.dirname(reportOut), { recursive: true }); // simplebeacon-ignore sync-io — temp directory creation before scan execution
 
     const configPath = path.join(sandboxDir, '.simplebeacon', 'config.json');
     fs.writeFileSync(configPath, JSON.stringify({

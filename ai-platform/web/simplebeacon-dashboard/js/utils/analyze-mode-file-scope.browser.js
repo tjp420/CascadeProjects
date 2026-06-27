@@ -410,7 +410,7 @@ export function renderModeFileScopePanel(modeValue, context = {}) {
         ${sections.map(renderSection).join('')}
       </div>
       <p style="font-size:0.7rem;color:var(--text-muted);margin:0.75rem 0 0;text-align:right;">
-        Config: <code style="font-size:0.7rem;">.simplebeacon/config.json</code> · <a href="#/settings" style="color:var(--primary);">Edit paths</a>
+        Config: <code style="font-size:0.7rem;">.simplebeacon/config.json</code> · <a href="/dashboard/settings" style="color:var(--primary);">Edit paths</a>
       </p>
     </div>
   `;

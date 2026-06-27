@@ -134,7 +134,7 @@ function lineHashJaccardSimilarity(a, b) {
             .split(/\r?\n/)
             .map((line) => line.trim())
             .filter(Boolean)
-            .map((line) => crypto.createHash('sha1').update(line).digest('hex').slice(0, 12))
+            .map((line) => crypto.createHash('sha256').update(line).digest('hex').slice(0, 12))
     );
     const linesA = hashLines(a);
     const linesB = hashLines(b);

@@ -508,7 +508,7 @@ function buildStructuredChanges(kind, snippet, rule, location, fallbackRemediati
         });
         changes.push({
             type: 'manual',
-            instruction: 'Use your project logger (or add one under lib/logger.js). Never log tokens, API keys, or session identifiers.'
+            instruction: 'Use your project logger (or add one under lib/logger.js). Never log tokens, API keys, or session identifiers.' // simplebeacon-ignore pii-logging — remediation instruction text
         });
         return changes;
     }

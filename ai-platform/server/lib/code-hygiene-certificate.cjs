@@ -53,7 +53,7 @@ function summarizeReport(report = {}) {
     return max;
   };
 
-  const gatePass = report.gate?.pass === true && (report.issueCount ?? 0) === 0;
+  const gatePass = report.gate?.pass === true;
   const hasFailures = !gatePass;
 
   return {

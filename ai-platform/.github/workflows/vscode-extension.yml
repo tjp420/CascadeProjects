@@ -4,11 +4,11 @@ on:
   push:
     branches: [main, master]
     paths:
-      - 'simplebeacon-vscode/**'
+      - 'simplebeacon-vscode-merged/**'
   pull_request:
     branches: [main, master]
     paths:
-      - 'simplebeacon-vscode/**'
+      - 'simplebeacon-vscode-merged/**'
   workflow_dispatch:
 
 jobs:
@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: simplebeacon-vscode
+        working-directory: simplebeacon-vscode-merged
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -26,7 +26,7 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: simplebeacon-vscode/package-lock.json
+          cache-dependency-path: simplebeacon-vscode-merged/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -41,7 +41,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: simplebeacon-vsix
-          path: simplebeacon-vscode/simplebeacon.vsix
+          path: simplebeacon-vscode-merged/simplebeacon.vsix
 
   publish:
     needs: build
@@ -49,7 +49,7 @@ jobs:
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
     defaults:
       run:
-        working-directory: simplebeacon-vscode
+        working-directory: simplebeacon-vscode-merged
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -59,7 +59,7 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: simplebeacon-vscode/package-lock.json
+          cache-dependency-path: simplebeacon-vscode-merged/package-lock.json
 
       - name: Install dependencies
         run: npm ci

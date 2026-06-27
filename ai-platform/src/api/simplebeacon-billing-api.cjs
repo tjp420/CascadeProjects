@@ -624,7 +624,7 @@ function setupSimplebeaconBillingWebhook(app) {
                   html: emailPayload.html,
                   text: emailPayload.text
                 }).catch((err) => {
-                  console.error('[Simplebeacon billing] Failed to send welcome email:', err.message);
+                  console.error('[Simplebeacon billing] Failed to send welcome email');
                 });
               } else {
                 // Fallback to plain text if template is missing
@@ -633,11 +633,11 @@ function setupSimplebeaconBillingWebhook(app) {
                   subject: 'Your SimpleBeacon Purchase — ' + product,
                   text: `Thank you for your purchase.\n\nLicense token: ${licenseToken}\n\nUpload URL: ${certUploadUrl}`
                 }).catch((err) => {
-                  console.error('[Simplebeacon billing] Failed to send fallback email:', err.message);
+                  console.error('[Simplebeacon billing] Failed to send fallback email');
                 });
               }
 
-              console.log(`[Simplebeacon billing] Executive license generated for ${email}: ${licenseToken.slice(0, 24)}...`);
+              console.log('[Simplebeacon billing] Executive license generated');
             } else if (session.mode === 'subscription') {
               const isContinuousShield = product === 'continuous_shield';
               const isRuntimeShield = product === 'runtime_shield';
@@ -689,7 +689,7 @@ function setupSimplebeaconBillingWebhook(app) {
                   html: emailPayload.html,
                   text: emailPayload.text
                 }).catch((err) => {
-                  console.error('[Simplebeacon billing] Failed to send subscription welcome email:', err.message);
+                  console.error('[Simplebeacon billing] Failed to send subscription welcome email');
                 });
               }
 
@@ -1481,7 +1481,7 @@ Upload your scan at: ${certUploadUrl}
 
       res.json({ success: true, message: 'Token resent to ' + email });
     } catch (err) {
-      console.error('[Simplebeacon billing] Resend token failed:', err.message);
+      console.error('[Simplebeacon billing] Resend token failed');
       res.status(500).json({ success: false, error: 'Failed to resend token' });
     }
   });

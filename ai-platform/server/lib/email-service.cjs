@@ -182,7 +182,7 @@ async function sendEmail(options = {}) {
       const result = await sendViaResend({ to, from: cfg.from, subject, text, html, attachments });
       return { sent: true, queued: false, id: result.id };
     } catch (err) {
-      console.error('[Email] Resend API failed:', err.message);
+      console.error('[Email] Resend API failed'); // simplebeacon-ignore pii-logging — error detail removed
       // fall through to SMTP
     }
   }

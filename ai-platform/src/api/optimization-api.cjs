@@ -4,7 +4,6 @@ const logger = require('../lib/production-logger.cjs');
  */
 
 const path = require('path');
-const _fs = require('fs');
 const { scanFileMergerReduction } = require('../../server/lib/file-merger-reduction-scanner.cjs');
 const {
     buildRepositoryHealthPayload,

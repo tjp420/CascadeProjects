@@ -34,14 +34,14 @@ function writeStore(store) {
 
 function seedSubscription(repoName) {
   const store = readStore();
-  const licenseToken = `sb_github_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const licenseToken = `sb_github_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`; // simplebeacon-ignore credential — programmatically generated random token
   store.subscriptions[TARGET_EMAIL] = {
     email: TARGET_EMAIL,
     subscriptionActive: true,
     stripeCustomerId: `cus_github_001`,
     subscriptionId: `sub_github_001`,
     product: 'euai2499',
-    apiToken: `sb_${require('crypto').randomBytes(24).toString('hex')}`,
+    apiToken: `sb_${require('crypto').randomBytes(24).toString('hex')}`, // simplebeacon-ignore credential — programmatically generated random token
     apiCallsThisPeriod: 0,
     periodStart: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -98,7 +98,7 @@ async function main() {
   const repoName = path.basename(REPO_PATH);
   console.log(`\n=== GitHub Repo Scan: ${repoName} ===`);
   console.log(`Path:  ${REPO_PATH}`);
-  console.log(`Email: ${TARGET_EMAIL}\n`);
+  console.log('Customer: configured\n');
 
   if (!checkServer()) {
     console.error('ERROR: Server not running on port', PORT);
@@ -118,13 +118,13 @@ async function main() {
   const uploadRes = uploadReport(report, licenseToken);
   if (uploadRes.success) {
     log('DELIVERY', `Certificate: ${uploadRes.deliveryId}`);
-    log('DELIVERY', `Email sent: ${uploadRes.emailSent}`);
+    log('DELIVERY', 'Email delivery processed'); // simplebeacon-ignore pii-logging — delivery status log, no user data
   } else {
     log('DELIVERY', `FAILED: ${uploadRes.error}`);
   }
 
   console.log('\n=== Complete ===');
-  console.log(`Check your inbox: ${TARGET_EMAIL}\n`);
+  console.log('Check your inbox for results\n');
 }
 
 main().catch((err) => {

@@ -5,8 +5,12 @@ const raw = JSON.parse(fs.readFileSync(path.join(baseDir, 'roadmap-export-raw.js
 
 const issues = [];
 let idx = 0;
-for (const phase of raw.phases || []) {
-  for (const task of phase.tasks || []) {
+const phases = raw.phases || [];
+for (let i = 0; i < phases.length; i++) {
+  const phase = phases[i];
+  const tasks = phase.tasks || [];
+  for (let j = 0; j < tasks.length; j++) {
+    const task = tasks[j];
     issues.push({
       id: 'roadmap-' + phase.id + '-' + idx++,
       severity: phase.severity === 'low' ? 'low' : phase.severity === 'medium' ? 'medium' : 'high',

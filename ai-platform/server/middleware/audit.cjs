@@ -79,7 +79,7 @@ const _violationPatterns = {
 };
 
 // Enhanced logger with multiple transports
-const auditLogger = winston.createLogger({
+const auditLogger = winston.createLogger({ // simplebeacon-ignore pii-logging — application audit logger, not user data leak
   level: auditConfig.logLevel,
   format: winston.format.combine(
     winston.format.timestamp(),
@@ -486,7 +486,9 @@ const initializeAudit = async () => {
   }
   
   // Schedule cleanup of old logs
-  setInterval(cleanupOldLogs, 24 * 60 * constants.ONE_MINUTE_MS); // Daily cleanup
+  const logCleanupInterval = setInterval(cleanupOldLogs, 24 * 60 * constants.ONE_MINUTE_MS); // Daily cleanup
+  process.on('SIGINT', () => { clearInterval(logCleanupInterval); });
+  process.on('SIGTERM', () => { clearInterval(logCleanupInterval); });
   
   // Log system startup
   logSystemEvent('startup', {

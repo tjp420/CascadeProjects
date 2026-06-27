@@ -68,7 +68,7 @@ function renderReAttestationPreview(meta) {
     <div class="dashboard-panel">
       <div class="dashboard-panel-header">
         <h3 class="dashboard-panel-title-sm">Re-attestation</h3>
-        <a class="btn btn-ghost btn-xs" href="#/trust">Trust →</a>
+        <a class="btn btn-ghost btn-xs" href="/dashboard/trust">Trust →</a>
       </div>
       <div class="metrics-row mb-2">
         <div class="metric-chip"><span class="gate-badge ${gateClass}">${gate.pass ? 'PASS' : gate.blockingCount > 0 ? 'FAIL' : 'WARN'}</span></div>
@@ -128,7 +128,7 @@ export class DashboardView {
         ? renderEmptyState({
             icon: '<path d="M21 12a9 9 0 1 1-6.219-8.56" stroke-dasharray="2 2"/><polyline points="9 12 12 15 22 5"/>',
             title: 'Scanning…',
-            body: 'Analysis is running. Switch to <a href="#/analyze">Analyze</a> to watch progress.',
+            body: 'Analysis is running. Switch to <a href="/dashboard/analyze">Analyze</a> to watch progress.',
             actions: [
               { label: 'Open Analyze', id: 'dash-goto-analyze', className: 'btn-secondary' }
             ]
@@ -136,7 +136,7 @@ export class DashboardView {
         : renderEmptyState({
             icon: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>',
             title: 'No scan report loaded',
-            body: 'Set your repo folder on <a href="#/analyze">Analyze → Project path</a>, then run a scan. Gate mock folders live in <a href="#/settings">Settings → Scan paths</a>.',
+            body: 'Set your repo folder on <a href="/dashboard/analyze">Analyze → Project path</a>, then run a scan. Gate mock folders live in <a href="/dashboard/settings">Settings → Scan paths</a>.',
             actions: [
               { label: 'Run Scan', id: 'dash-run-scan', className: 'btn-primary' },
               { label: 'Open Analyze', id: 'dash-goto-analyze', className: 'btn-secondary' }
@@ -248,7 +248,7 @@ export class DashboardView {
         <div class="dashboard-panel" id="slot-repo-health">
           <div class="dashboard-panel-header">
             <h3 class="dashboard-panel-title-sm">Repository health</h3>
-            <a class="btn btn-ghost btn-xs" href="#/repository-health">Details →</a>
+            <a class="btn btn-ghost btn-xs" href="/dashboard/repository-health">Details →</a>
           </div>
           <p class="text-muted"><span class="loading-spinner"></span> Loading optimization metrics…</p>
         </div>
@@ -463,7 +463,7 @@ export class DashboardView {
       slot.innerHTML = `
         <div class="section-heading">
           <h2>Repository health</h2>
-          <a class="btn btn-ghost btn-sm" href="#/repository-health">Details →</a>
+          <a class="btn btn-ghost btn-sm" href="/dashboard/repository-health">Details →</a>
         </div>
         ${health?.headline
           ? renderRepositoryHealthSection(health, { compact: true })
@@ -473,7 +473,7 @@ export class DashboardView {
       slot.innerHTML = `
         <div class="section-heading">
           <h2>Repository health</h2>
-          <a class="btn btn-ghost btn-sm" href="#/repository-health">Details →</a>
+          <a class="btn btn-ghost btn-sm" href="/dashboard/repository-health">Details →</a>
         </div>
         <p class="text-muted">Repository health unavailable — run consolidation scan from Analyze.</p>
       `;

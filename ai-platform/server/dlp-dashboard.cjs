@@ -386,7 +386,8 @@ class DLPDashboard {
       renderViolations(data);
     }
     refresh();
-    setInterval(refresh, constants.TIMEOUT_30S);
+    const refreshInterval = setInterval(refresh, constants.TIMEOUT_30S);
+    window.addEventListener('beforeunload', () => clearInterval(refreshInterval));
   </script>
 </body>
 </html>`;

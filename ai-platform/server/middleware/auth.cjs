@@ -149,7 +149,7 @@ function getSandboxLimitHeaders(jti) {
 }
 
 // Periodic cleanup of stale sandbox usage records
-setInterval(() => {
+const sandboxCleanupInterval = setInterval(() => {
     const cutoff = Date.now() - SANDBOX_WINDOW_MS;
     for (const [jti, entry] of sandboxTokenUsage) {
         if (entry.windowStart < cutoff) {
@@ -157,6 +157,8 @@ setInterval(() => {
         }
     }
 }, 60 * constants.ONE_MINUTE_MS);
+process.on('SIGINT', () => { clearInterval(sandboxCleanupInterval); });
+process.on('SIGTERM', () => { clearInterval(sandboxCleanupInterval); });
 
 /**
  * Record token first use.
@@ -258,7 +260,8 @@ const generateToken = (user) => {
   return jwt.sign(payload, jwtConfig.secret, {
     algorithm: jwtConfig.algorithm,
     issuer: jwtConfig.issuer,
-    audience: jwtConfig.audience
+    audience: jwtConfig.audience,
+    expiresIn: jwtConfig.expiresIn
   });
 };
 
@@ -345,7 +348,7 @@ const authenticate = async (req, res, next) => {
     };
 
     // Log only when LOG_AUTH=true — per-request success logs flood the console during SPA loads
-    authLog(`[AUTH] User authenticated - ID: ${decoded.sub} - Email: ${decoded.email} - Trust: ${decoded.trustLevel}`);
+    authLog('[AUTH] User authenticated');
 
     next();
   } catch (error) {
@@ -728,12 +731,10 @@ const handleLogin = async (req, res, next) => {
       return res.status(401).json({ error: 'Authentication failed', message: 'Invalid email or password' });
     }
 
-    // Check password
+    // Check password — only hashed passwords are accepted
     let valid = false;
     if (match.passwordHash) {
       valid = await bcrypt.compare(password, match.passwordHash);
-    } else if (match.password) {
-      valid = match.password === password;
     }
     if (!valid) {
       auditAuth('login_failed', { email }, req);

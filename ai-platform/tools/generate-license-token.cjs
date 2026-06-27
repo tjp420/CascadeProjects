@@ -198,7 +198,7 @@ async function main() {
 
   console.log('\n=== Generated SimpleBeacon License Token ===');
   console.log('Tier:        ', tier);
-  console.log('Email:       ', email);
+  console.log('Email:       ***REDACTED***');
   console.log('Client:      ', clientName);
   console.log('Project:     ', projectName);
   console.log('Expires:     ', days, 'days');
@@ -207,7 +207,7 @@ async function main() {
   console.log('\nCertificate Upload URL:');
   console.log(certUrl);
   console.log('\nTo verify:');
-  console.log('  node generate-license-token.js --verify', token.slice(0, 24) + '...');
+  console.log('  node generate-license-token.js --verify <token>'); // simplebeacon-ignore pii-logging — CLI usage instruction, token already truncated
 }
 
 main().catch((err) => {

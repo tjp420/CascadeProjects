@@ -281,7 +281,7 @@ export class TrustView {
         <div class="card mb-4">
           <div class="section-heading mb-2">
             <h3 style="margin:0;font-size:var(--font-size-base);">Repository optimization</h3>
-            <a class="btn btn-secondary btn-sm" href="#/repository-health">Full health report →</a>
+            <a class="btn btn-secondary btn-sm" href="/dashboard/repository-health">Full health report →</a>
           </div>
           ${live?.repositoryHealth?.headline
             ? renderRepositoryHealthSection(live.repositoryHealth, { compact: true })

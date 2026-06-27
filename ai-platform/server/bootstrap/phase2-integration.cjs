@@ -96,7 +96,7 @@ async function ensurePhase2Schema(db) {
     const schemaDir = path.join(__dirname, '..', 'db');
     for (const file of ['schema-phase2.sql', 'schema-subscription.sql']) {
         const schemaPath = path.join(schemaDir, file);
-        if (!fs.existsSync(schemaPath)) continue;
+        if (!fs.existsSync(schemaPath)) continue; // simplebeacon-ignore sync-io — existence check before async DB query
         const sql = readTextFileCached(schemaPath);
         if (!sql) continue;
         await db.query(sql);

@@ -7,19 +7,92 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
+  
+  <style id="ide-preview-hide">
+    /* Auto-hide sidebar + top bar when loaded inside IDE browser preview */
+    html[data-ide-preview="true"] .app-nav { display: none !important; }
+    html[data-ide-preview="true"] .mobile-nav-overlay { display: none !important; }
+    html[data-ide-preview="true"] .app-body { flex-direction: column; }
+    html[data-ide-preview="true"] .mobile-nav-toggle { display: none !important; }
+    html[data-ide-preview="true"] .app-header { display: none !important; }
+    html[data-ide-preview="true"] .sandbox-banner { display: none !important; }
+    html[data-ide-preview="true"] .app-shell { --header-height: 0px; }
+    html[data-ide-preview="true"] #app-main { height: 100vh; }
+  </style>
+  <style>
+    /* Labeled action buttons */
+    .app-header-actions .icon-btn { display: inline-flex; align-items: center; gap: 6px; width: auto; padding: 0 10px; font-size: 13px; font-weight: 500; color: var(--text-secondary); }
+    .app-header-actions .icon-btn:hover { color: var(--text-primary); }
+    .app-header-actions .icon-btn[hidden] { display: none !important; }
+    .app-header-actions .offline-status-icon { display: inline-flex; align-items: center; gap: 6px; padding: 0 8px; font-size: 13px; color: var(--text-secondary); }
+    .btn-label { white-space: nowrap; }
+    /* Sidebar auth toggle */
+    .sidebar-auth-btn { display: flex; align-items: center; gap: 10px; padding: 10px 14px; margin: 8px 12px; border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--text-secondary); background: var(--surface); border: 1px solid var(--border); cursor: pointer; transition: all .15s; }
+    .sidebar-auth-btn:hover { background: var(--surface-hover); color: var(--text-primary); }
+    .sidebar-auth-btn[hidden] { display: none !important; }
+  </style>
   <script>
     (function() {
-      try {
-        var key = 'sb_dash_v20260613g';
-        if (localStorage && !localStorage.getItem(key)) {
-          localStorage.setItem(key, '1');
-          var url = location.protocol + '//' + location.host + location.pathname;
-          var sep = url.indexOf('?') === -1 ? '?' : '&';
-          location.replace(url + sep + '_=' + Date.now() + location.hash);
-        }
-      } catch (e) {
-        // localStorage may be unavailable in sandboxed previews (Windsurf, VS Code webview)
-        console.warn('[Simplebeacon] localStorage unavailable, skipping cache bust');
+      function detectIdePreview() {
+        var ua = (navigator.userAgent || '').toLowerCase();
+        var href = (window.location.href || '').toLowerCase();
+        var search = (window.location.search || '').toLowerCase();
+        var name = (window.name || '').toLowerCase();
+        if (window.self !== window.top) { return true; }
+        if (/cascade|windsurf|codeium|browser[-_]?preview|vscode[-_]?webview|vscode-resource|__cascade__|__windsurf__|__codeium__|__browser[-_]?preview__/.test(ua)) { return true; }
+        if (/cascade|windsurf|codeium|browser[-_]?preview|vscode[-_]?webview|vscode-resource/.test(name)) { return true; }
+        if (/[?&](__ide=|ide=|extensionid=|extension-id=|vscode-webview|origin=vscode-file)/.test(search)) { return true; }
+        if (/vscode-webview|vscode-resource|__ide=|ide=|extensionid=|extension-id=/.test(href)) { return true; }
+        if (window.__wind_surf__ || window.__windsurf__ || window.__cascade__ || window.__vscode__ || window.__codeium__ || window.__browser_preview__ || window.__browserPreview__ || window.__ide__) { return true; }
+        if (window.opener && window.opener !== window) { return true; }
+        try {
+          if (window.top && window.top !== window && window.top.location && window.top.location.href) { return true; }
+        } catch (e) { return true; }
+        return false;
+      }
+      function setIdePreview() {
+        document.documentElement.setAttribute('data-ide-preview', 'true');
+        console.info('[Simplebeacon] IDE preview detected: sidebar hidden');
+      }
+      if (detectIdePreview()) {
+        setIdePreview();
+      } else {
+        try {
+          if (localStorage && localStorage.getItem('sb_ide_preview') === '1') {
+            setIdePreview();
+          }
+        } catch (e) {}
+        window.addEventListener('message', function(e) {
+          if (e && e.data && (e.data.type === 'ide-preview' || e.data.idePreview === true)) {
+            setIdePreview();
+            try { localStorage.setItem('sb_ide_preview', '1'); } catch (e) {}
+          }
+        });
+        var lateCheck = setInterval(function() {
+          if (detectIdePreview()) {
+            clearInterval(lateCheck);
+            setIdePreview();
+          }
+        }, 500);
+        setTimeout(function() { clearInterval(lateCheck); }, 5000);
+        try {
+          var xhr = new XMLHttpRequest();
+          xhr.open('GET', 'api/simplebeacon/config', true);
+          xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4 && xhr.status === 200) {
+              try {
+                var cfg = JSON.parse(xhr.responseText);
+                var serverPort = parseInt(cfg && (cfg.dataServerPort || cfg.relayPort || cfg.dataPort), 10);
+                var currentPort = parseInt(window.location.port, 10);
+                console.log('[Simplebeacon] IDE port check:', { serverPort: serverPort, currentPort: currentPort });
+                if (serverPort && currentPort && serverPort !== currentPort) {
+                  setIdePreview();
+                }
+              } catch (e) {}
+            }
+          };
+          xhr.send();
+        } catch (e) {}
       }
     })();
   </script>
@@ -81,7 +154,8 @@
       }
 
       // Suppress browser extension fetch noise (coupon finders, ad blockers, etc.)
-      const extPatterns = /free-token|provision sandbox|sandbox|config\/pricing/i;
+      // Note: keep this specific; do not block legitimate dashboard endpoints like /api/tokens/sandbox.
+      const extPatterns = /free-token|provision sandbox|config\/pricing/i;
       const _origFetch = window.fetch;
       window.fetch = function(...args) {
         const url = String(args[0] || '');
@@ -120,12 +194,26 @@
       window.__sbErrors.push({type:'error', message:e.message, file:e.filename, line:e.lineno});
     });
     window.addEventListener('unhandledrejection', function(e) {
-      window.__sbErrors.push({type:'promise', message:e.reason?.message || String(e.reason)});
+      window.__sbErrors.push({type:'promise', message:(e.reason && e.reason.message) || String(e.reason)});
     });
     setTimeout(function(){
       var main=document.getElementById('app-main');
       if(main && window.__sbErrors.length){
-        main.innerHTML='<div style="padding:24px;color:#ef4444;background:#1a0a0a;border-radius:8px;font-family:monospace;white-space:pre-wrap">JS ERRORS:<br>'+window.__sbErrors.map(function(e){return e.type+": "+e.message+(e.file?" ("+e.file+":"+e.line+")":"");}).join('<br>')+'</div>';
+        var box=document.createElement('div');
+        box.style.padding='24px';
+        box.style.color='#ef4444';
+        box.style.background='#1a0a0a';
+        box.style.borderRadius='8px';
+        box.style.fontFamily='monospace';
+        box.style.whiteSpace='pre-wrap';
+        box.appendChild(document.createTextNode('JS ERRORS:'));
+        window.__sbErrors.forEach(function(e){
+          box.appendChild(document.createElement('br'));
+          var msg=e.type+': '+e.message+(e.file?' ('+e.file+':'+e.line+')':'');
+          box.appendChild(document.createTextNode(msg));
+        });
+        while (main.firstChild) main.removeChild(main.firstChild);
+        main.appendChild(box);
       }
     },3000);
   </script>
@@ -133,7 +221,7 @@
   <div class="app-shell">
     <header class="app-header">
       <button class="icon-btn mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Open navigation"><i data-lucide="menu" class="icon-20"></i></button>
-      <a href="#/dashboard" class="app-brand">
+      <a href="/dashboard/dashboard" class="app-brand">
         <span class="app-brand-icon"><i data-lucide="shield-check" class="icon-20"></i></span>
         <span>Simplebeacon</span>
       </a>
@@ -142,17 +230,17 @@
         <input type="search" id="global-search" placeholder="Search issues… (Ctrl+K)" aria-label="Search issues">
       </div>
       <div class="app-header-actions">
-        <span class="offline-status-icon" id="offline-toggle" title="Network status"><i data-lucide="wifi" class="icon-16"></i></span>
-        <button class="icon-btn" id="theme-toggle" aria-label="Toggle theme"><i data-lucide="sun" class="icon-20"></i></button>
-        <button class="icon-btn" id="profile-btn" aria-label="Profile" hidden><i data-lucide="user" class="icon-20"></i></button>
-        <button class="icon-btn" id="signin-btn" aria-label="Sign in" hidden><i data-lucide="log-in" class="icon-20"></i></button>
-        <button class="icon-btn" id="signout-btn" aria-label="Sign out" hidden><i data-lucide="log-out" class="icon-20"></i></button>
+        <span class="offline-status-icon" id="offline-toggle" title="Network status"><i data-lucide="wifi" class="icon-16"></i><span class="btn-label">Online</span></span>
+        <button class="icon-btn" id="theme-toggle" aria-label="Toggle theme"><i data-lucide="sun" class="icon-20"></i><span class="btn-label">Theme</span></button>
+        <button class="icon-btn" id="profile-btn" aria-label="Profile" hidden><i data-lucide="user" class="icon-20"></i><span class="btn-label">Profile</span></button>
+        <button class="icon-btn" id="signin-btn" aria-label="Sign in" hidden><i data-lucide="log-in" class="icon-20"></i><span class="btn-label">Sign In</span></button>
+        <button class="icon-btn" id="signout-btn" aria-label="Sign out" hidden><i data-lucide="log-out" class="icon-20"></i><span class="btn-label">Sign Out</span></button>
       </div>
     </header>
 
     <div class="sandbox-banner" id="sandbox-banner" hidden>
       <i data-lucide="flask-conical" class="icon-16"></i>
-      <span><strong>Developer Sandbox</strong> — 100 requests/day limit. <a href="#/signin">Upgrade</a></span>
+      <span><strong>Developer Sandbox</strong> — 100 requests/day limit. <a href="/dashboard/signin">Upgrade</a></span>
     </div>
 
     <div class="mobile-nav-overlay" id="mobile-nav-overlay"></div>
@@ -165,19 +253,19 @@
             <i data-lucide="chevron-down" class="nav-group-chevron icon-16"></i>
           </button>
           <div class="nav-group-items" id="nav-group-scan">
-            <a href="#/dashboard" class="nav-link active" data-view="dashboard">
+            <a href="/dashboard/dashboard" class="nav-link active" data-view="dashboard">
               <i data-lucide="layout-dashboard" class="nav-link-icon icon-18"></i>
               <span>Dashboard</span>
             </a>
-            <a href="#/analyze" class="nav-link" data-view="analyze">
+            <a href="/dashboard/analyze" class="nav-link" data-view="analyze">
               <i data-lucide="folder-search" class="nav-link-icon icon-18"></i>
               <span>Analyze</span>
             </a>
-            <a href="#/results" class="nav-link" data-view="results">
+            <a href="/dashboard/results" class="nav-link" data-view="results">
               <i data-lucide="clipboard-list" class="nav-link-icon icon-18"></i>
               <span>Results</span>
             </a>
-            <a href="#/repository-health" class="nav-link" data-view="repository-health">
+            <a href="/dashboard/repository-health" class="nav-link" data-view="repository-health">
               <i data-lucide="package" class="nav-link-icon icon-18"></i>
               <span>Repo health</span>
             </a>
@@ -190,19 +278,19 @@
             <i data-lucide="chevron-down" class="nav-group-chevron icon-16"></i>
           </button>
           <div class="nav-group-items" id="nav-group-compliance">
-            <a href="#/audit" class="nav-link" data-view="audit">
+            <a href="/dashboard/audit" class="nav-link" data-view="audit">
               <i data-lucide="shield-check" class="nav-link-icon icon-18"></i>
               <span>Audit</span>
             </a>
-            <a href="#/security" class="nav-link" data-view="security">
+            <a href="/dashboard/security" class="nav-link" data-view="security">
               <i data-lucide="lock" class="nav-link-icon icon-18"></i>
               <span>Security</span>
             </a>
-            <a href="#/quality" class="nav-link" data-view="quality">
+            <a href="/dashboard/quality" class="nav-link" data-view="quality">
               <i data-lucide="award" class="nav-link-icon icon-18"></i>
               <span>Quality</span>
             </a>
-            <a href="#/trust" class="nav-link" data-view="trust">
+            <a href="/dashboard/trust" class="nav-link" data-view="trust">
               <i data-lucide="badge-check" class="nav-link-icon icon-18"></i>
               <span>Trust</span>
             </a>
@@ -215,19 +303,19 @@
             <i data-lucide="chevron-down" class="nav-group-chevron icon-16"></i>
           </button>
           <div class="nav-group-items" id="nav-group-operations">
-            <a href="#/assessments" class="nav-link" data-view="assessments">
+            <a href="/dashboard/assessments" class="nav-link" data-view="assessments">
               <i data-lucide="file-text" class="nav-link-icon icon-18"></i>
               <span>Assessments</span>
             </a>
-            <a href="#/remediation" class="nav-link" data-view="remediation">
+            <a href="/dashboard/remediation" class="nav-link" data-view="remediation">
               <i data-lucide="map" class="nav-link-icon icon-18"></i>
               <span>Roadmap</span>
             </a>
-            <a href="#/platform" class="nav-link" data-view="platform">
+            <a href="/dashboard/platform" class="nav-link" data-view="platform">
               <i data-lucide="bar-chart-3" class="nav-link-icon icon-18"></i>
               <span>Platform</span>
             </a>
-            <a href="#/profile" class="nav-link" data-view="profile">
+            <a href="/dashboard/profile" class="nav-link" data-view="profile">
               <i data-lucide="user" class="nav-link-icon icon-18"></i>
               <span>Profile</span>
             </a>
@@ -240,24 +328,33 @@
             <i data-lucide="chevron-down" class="nav-group-chevron icon-16"></i>
           </button>
           <div class="nav-group-items" id="nav-group-system">
-            <a href="#/tools" class="nav-link" data-view="tools">
+            <a href="/dashboard/tools" class="nav-link" data-view="tools">
               <i data-lucide="wrench" class="nav-link-icon icon-18"></i>
               <span>Tools</span>
             </a>
-            <a href="#/settings" class="nav-link" data-view="settings">
+            <a href="/dashboard/settings" class="nav-link" data-view="settings">
               <i data-lucide="settings" class="nav-link-icon icon-18"></i>
               <span>Settings</span>
             </a>
-            <a href="#/help" class="nav-link" data-view="help">
+            <a href="/dashboard/help" class="nav-link" data-view="help">
               <i data-lucide="help-circle" class="nav-link-icon icon-18"></i>
               <span>Help</span>
             </a>
-            <a href="#/chatbot" class="nav-link" data-view="chatbot">
+            <a href="/dashboard/chatbot" class="nav-link" data-view="chatbot">
               <i data-lucide="bot" class="nav-link-icon icon-18"></i>
               <span>Chatbot</span>
             </a>
           </div>
         </div>
+
+        <button type="button" class="sidebar-auth-btn" id="sidebar-signin-btn" hidden>
+          <i data-lucide="log-in" class="icon-18"></i>
+          <span>Sign In</span>
+        </button>
+        <button type="button" class="sidebar-auth-btn" id="sidebar-signout-btn" hidden>
+          <i data-lucide="log-out" class="icon-18"></i>
+          <span>Sign Out</span>
+        </button>
 
         <div class="nav-footer">
           <a href="https://github.com/tjp420/simplebeacon" class="nav-footer-link" target="_blank" rel="noopener noreferrer" title="GitHub">
@@ -266,10 +363,13 @@
           <a href="https://github.com/tjp420/simplebeacon/blob/main/docs/ANTI-BLOAT-MANIFESTO.md" class="nav-footer-link" target="_blank" rel="noopener noreferrer" title="Docs">
             <i data-lucide="book-open" class="icon-16"></i>
           </a>
-          <a href="#/about" class="nav-footer-link" data-view="about" title="About">
+          <button type="button" class="nav-footer-link" id="sidebar-export-btn" title="Export current scan report">
+            <i data-lucide="download" class="icon-16"></i>
+          </button>
+          <a href="/dashboard/about" class="nav-footer-link" data-view="about" title="About">
             <i data-lucide="info" class="icon-16"></i>
           </a>
-          <a href="#/audit" class="nav-footer-link" data-view="audit" title="Audit Report">
+          <a href="/dashboard/audit" class="nav-footer-link" data-view="audit" title="Audit Report">
             <i data-lucide="clipboard-check" class="icon-16"></i>
           </a>
         </div>
@@ -330,7 +430,14 @@
         svg.setAttribute('stroke-linecap', 'round');
         svg.setAttribute('stroke-linejoin', 'round');
         var pathHtml = ICON_PATHS[name] || '<circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/>';
-        svg.innerHTML = '<title>' + name + '</title>' + pathHtml;
+        var title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+        title.textContent = name;
+        svg.appendChild(title);
+        var parser = new DOMParser();
+        var parsed = parser.parseFromString('<svg xmlns="http://www.w3.org/2000/svg">' + pathHtml + '</svg>', 'image/svg+xml');
+        Array.prototype.forEach.call(parsed.documentElement.childNodes, function(child) {
+          svg.appendChild(document.importNode(child, true));
+        });
         el.parentNode.replaceChild(svg, el);
       });
     }
@@ -342,12 +449,13 @@
       var nav = document.createElement('nav');
       nav.className = 'app-header-links';
       nav.setAttribute('aria-label', 'External tools');
-      var baseUrl = location.protocol + '//' + location.host;
+      var isFile = location.protocol === 'file:';
+      var basePath = isFile ? '../../../coming-soon/' : '/coming-soon/';
       var links = [
-        { href: baseUrl + '/roadmap.html', icon: 'map', label: 'Roadmap' },
-        { href: baseUrl + '/audit.html', icon: 'clipboard-check', label: 'Audit' },
-        { href: baseUrl + '/pricing.html', icon: 'tag', label: 'Pricing', id: 'header-pricing-link' },
-        { href: baseUrl + '/#/dashboard', icon: 'layout-dashboard', label: 'Teams Dashboard', id: 'vaultLink' }
+        { href: basePath + 'roadmap.html', icon: 'map', label: 'Roadmap' },
+        { href: basePath + 'audit.html', icon: 'clipboard-check', label: 'Audit' },
+        { href: basePath + 'pricing.html', icon: 'tag', label: 'Pricing', id: 'header-pricing-link' },
+        { href: basePath + 'index.html', icon: 'layout-dashboard', label: 'Teams Dashboard', id: 'vaultLink' }
       ];
       links.forEach(function(link) {
         var a = document.createElement('a');
@@ -377,9 +485,12 @@
       if (!icon) return;
       function updateOfflineUi() {
         var isOnline = navigator.onLine;
-        icon.innerHTML = isOnline
-          ? '<i data-lucide="wifi" class="icon-16" style="color:var(--success);"></i>'
-          : '<i data-lucide="wifi-off" class="icon-16" style="color:var(--error);"></i>';
+        while (icon.firstChild) icon.removeChild(icon.firstChild);
+        var i = document.createElement('i');
+        i.setAttribute('data-lucide', isOnline ? 'wifi' : 'wifi-off');
+        i.className = 'icon-16';
+        i.style.color = isOnline ? 'var(--success)' : 'var(--error)';
+        icon.appendChild(i);
         icon.title = isOnline ? 'Online' : 'Offline';
         if (typeof lucide !== 'undefined') lucide.createIcons();
       }
@@ -443,6 +554,6 @@
       }
     })();
   </script>
-  <script type="module" src="js/main.js?v=20260616fixexport2"></script>
+  <script type="module" src="js-es2018/main.js?v=20260626navfix5"></script>
 </body>
 </html>

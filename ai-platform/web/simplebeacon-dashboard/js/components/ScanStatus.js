@@ -150,8 +150,8 @@ function renderScanPathControls(report, options = {}) {
         </button>
       </div>
       <p class="scan-status-scope-hint text-muted">
-        Deep analysis → <a href="#/analyze" class="scan-status-link">Analyze</a> ·
-        Mock folders → <a href="#/settings" class="scan-status-link">Settings → Scan paths</a>${pathCount ? ` (${pathCount})` : ''}
+        Deep analysis → <a href="/dashboard/analyze" class="scan-status-link">Analyze</a> ·
+        Mock folders → <a href="/dashboard/settings" class="scan-status-link">Settings → Scan paths</a>${pathCount ? ` (${pathCount})` : ''}
       </p>
     </div>
   `;

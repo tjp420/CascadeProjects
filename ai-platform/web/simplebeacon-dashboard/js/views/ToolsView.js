@@ -311,7 +311,7 @@ export class ToolsView {
         showToast(msg, s.vulnerabilityTotal ? 'info' : 'success');
         this.setOutput(el, `
           <p class="text-success">${escapeHtml(msg)}</p>
-          <p class="text-muted text-sm mt-2">View full details on <a href="#/quality">Quality & Security</a>.</p>
+          <p class="text-muted text-sm mt-2">View full details on <a href="/dashboard/quality">Quality & Security</a>.</p>
         `);
         return;
       }

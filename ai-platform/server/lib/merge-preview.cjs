@@ -46,7 +46,7 @@ function pickCanonicalFile(files, keepFile) {
  * @returns {any}
  */
 async function readFileSnapshot(absPath) {
-    if (!fs.existsSync(absPath)) {
+    if (!fs.existsSync(absPath)) { // simplebeacon-ignore sync-io — existence check before async stat/read
         return { exists: false, absPath };
     }
     const stat = await fs.promises.stat(absPath);

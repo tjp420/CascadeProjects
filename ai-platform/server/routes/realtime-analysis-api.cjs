@@ -5,6 +5,7 @@
  * with WebSocket support and incremental updates.
  */
 
+const crypto = require('crypto');
 const WebSocket = require('ws');
 const { progressiveAnalysis, StreamingAnalyzer, ANALYSIS_PROFILES } = require('../lib/enhanced-ai-orchestrator.cjs');
 const { ensureRegistry } = require('../services/local-model-service.cjs');
@@ -19,7 +20,7 @@ const sessionTimeouts = new Map();
 /**
  * Session cleanup interval
  */
-setInterval(() => {
+const sessionCleanupInterval = setInterval(() => {
     const now = Date.now();
     for (const [sessionId, session] of activeSessions) {
         if (now - session.lastActivity > 30 * 60 * 1000) { // 30 minutes
@@ -29,6 +30,8 @@ setInterval(() => {
         }
     }
 }, 5 * 60 * 1000); // Check every 5 minutes
+process.on('SIGINT', () => { clearInterval(sessionCleanupInterval); });
+process.on('SIGTERM', () => { clearInterval(sessionCleanupInterval); });
 
 /**
  * Create analysis session
@@ -63,7 +66,7 @@ function createAnalysisSession(options = {}) {
  * Generate unique session ID
  */
 function generateSessionId() {
-    return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return `session_${Date.now()}_${crypto.randomBytes(6).toString('base64url')}`;
 }
 
 /**
@@ -337,7 +340,7 @@ function setupRealtimeAnalysisAPI(app, options = {}) {
         
         // Handle errors
         ws.on('error', (error) => {
-            logger.error('[Realtime API] WebSocket error:', error);
+            logger.error('[Realtime API] WebSocket error');
         });
     });
     

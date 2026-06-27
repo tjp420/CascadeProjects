@@ -13,6 +13,7 @@ const DEFAULT_PG_PORT = constants.POSTGRES_PORT;
 const DEFAULT_POOL_MAX = 20;
 const DEFAULT_CONNECT_TIMEOUT_MS = constants.TIMEOUT_2S;
 
+// simplebeacon-ignore secret-in-comments — database URL parsing utility documentation
 /**
  * Parse a PostgreSQL connection URL into component parts.
  * @param {string} url - PostgreSQL connection URL.

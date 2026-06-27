@@ -233,8 +233,8 @@ describe('secret-config', () => {
 
     test('enables ephemeral when JWT secrets are placeholders', () => {
       process.env.REQUIRE_AUTH = 'true';
-      process.env.JWT_SECRET = 'placeholder-secret';
-      process.env.JWT_REFRESH_SECRET = 'placeholder-secret';
+      process.env.JWT_SECRET = 'placeholder-secret'; // simplebeacon-ignore credential-pattern — test fixture for placeholder detection
+      process.env.JWT_REFRESH_SECRET = 'placeholder-secret'; // simplebeacon-ignore credential-pattern — test fixture for placeholder detection
       expect(applyLocalV1InternalDevProfile()).toBe(true);
       expect(process.env.ALLOW_DEV_EPHEMERAL_SECRETS).toBe('true');
     });

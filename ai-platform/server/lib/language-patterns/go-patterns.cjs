@@ -14,7 +14,7 @@ module.exports = {
     ],
     debug: [
         ...baseline.debug,
-        { id: 'go-log-print', pattern: /\blog\.Print(?:ln|f)?\s*\(/g, label: 'Go log.Print* call' }
+        { id: 'go-log-print', pattern: /\blog\.Print(?:ln|f)?\s*\(/g, label: 'Go log.Print* call' } // simplebeacon-ignore redos — language pattern definition, not user input
     ],
     placeholders: [...baseline.placeholders],
     bestPractices: [

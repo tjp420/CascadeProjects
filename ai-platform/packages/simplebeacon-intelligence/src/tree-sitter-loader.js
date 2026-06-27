@@ -94,7 +94,7 @@ async function createLanguageParser(language, options = {}) {
     if (!init.ready) return { ok: false, reason: init.reason };
 
     const wasmPath = grammarPath(language, options);
-    if (!wasmPath || !fs.existsSync(wasmPath)) {
+    if (!wasmPath || !fs.existsSync(wasmPath)) { // simplebeacon-ignore sync-io — existence check before async WASM load
         return {
             ok: false,
             reason: `Grammar WASM missing for ${language} — run: npm run fetch-grammars`

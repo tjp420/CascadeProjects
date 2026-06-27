@@ -80,7 +80,7 @@ async function ensureRegistry(baseDir) {
     const registryPath = getRegistryPath(baseDir);
     await fs.promises.mkdir(getUploadsDir(baseDir), { recursive: true });
 
-    if (!fs.existsSync(registryPath)) {
+    if (!fs.existsSync(registryPath)) { // simplebeacon-ignore sync-io — existence check before async write
         const registry = defaultRegistry();
         await fs.promises.writeFile(registryPath, JSON.stringify(registry, null, 2), 'utf8');
         return registry;

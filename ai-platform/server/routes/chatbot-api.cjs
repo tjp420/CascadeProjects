@@ -244,7 +244,7 @@ function setupChatbotAPI(app) {
           const custom = svc.loadPrompts()[userEmail];
           if (custom?.prompt) {
             effectiveSystemPrompt = custom.prompt + '\n\n' + effectiveSystemPrompt;
-            logger.info('[Chatbot API] Custom config loaded for user:', userEmail);
+            logger.info('[Chatbot API] Custom config loaded');
           }
         } catch (e) {
           logger.warn('[Chatbot API] Failed to load custom config:', e.message);

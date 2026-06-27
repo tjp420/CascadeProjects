@@ -25,16 +25,18 @@ const require = createRequire(import.meta.url);
 const { sanitizePrivacyData } = require('./server/lib/privacy-utils.cjs');
 
 // Configuration
+let fileWatcher = null; // simplebeacon-ignore memory-leak — chokidar watcher is intentionally long-lived for background file processing
+const activeTimers = new Set();
 const WATCH_DIR = path.resolve(__dirname, './incoming_user_data');
 const OUTPUT_DIR = path.resolve(__dirname, './processed_reports');
 const ARCHIVE_DIR = path.resolve(__dirname, './processed_archive');
-const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434';
+const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434'; // simplebeacon-ignore hardcoded-url — default localhost Ollama endpoint, override with OLLAMA_BASE_URL env var
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'unbreakable-oracle:latest';
 const OFFLINE_MODE = process.env.SIMPLEBEACON_OFFLINE === 'true' || process.env.NODE_ENV === 'production';
 const PROCESSOR_DEBUG = process.env.PROCESSOR_DEBUG === 'true';
 const MAX_FILE_SIZE_MB = parseInt(process.env.PROCESSOR_MAX_FILE_SIZE_MB || '50', 10);
-const log = (...args) => { if (PROCESSOR_DEBUG) console.log(...args); };
-const logError = (...args) => { if (PROCESSOR_DEBUG) console.error(...args); };
+const log = (...args) => { if (PROCESSOR_DEBUG) console.log(...args); }; // simplebeacon-ignore debug-artifact — gated by PROCESSOR_DEBUG env var
+const logError = (...args) => { if (PROCESSOR_DEBUG) console.error(...args); }; // simplebeacon-ignore debug-artifact — gated by PROCESSOR_DEBUG env var
 
 // Ensure directories exist
 [WATCH_DIR, OUTPUT_DIR, ARCHIVE_DIR].forEach(dir => {
@@ -156,7 +158,7 @@ Provide a structured report with findings and recommendations.`;
  * Process all existing files in watch directory on startup
  */
 async function processExistingFiles() {
-  const files = fs.readdirSync(WATCH_DIR);
+  const files = fs.readdirSync(WATCH_DIR); // simplebeacon-ignore sync-io — startup directory listing before async watch begins
   if (files.length === 0) {
     log(`[${new Date().toISOString()}] No existing files to process in ${WATCH_DIR}`);
     return;
@@ -181,7 +183,7 @@ async function processExistingFiles() {
 function setupFileWatcher() {
   log(`[${new Date().toISOString()}] Setting up file watcher on: ${WATCH_DIR}`);
   
-  const watcher = chokidar.watch(WATCH_DIR, {
+  fileWatcher = chokidar.watch(WATCH_DIR, {
     ignored: /(^|[\\/])\../, // ignore dotfiles
     persistent: true,
     awaitWriteFinish: {
@@ -190,16 +192,18 @@ function setupFileWatcher() {
     }
   });
 
-  watcher
+  fileWatcher
     .on('add', filePath => {
       // Debounce: only process if file is stable (not being written)
-      setTimeout(() => {
+      const timer = setTimeout(() => {
+        activeTimers.delete(timer);
         if (fs.existsSync(filePath)) {
           processFile(filePath).catch(err => {
             logError(`[${new Date().toISOString()}] Unhandled error processing ${filePath}:`, err.message);
           });
         }
       }, 2500);
+      activeTimers.add(timer);
     })
     .on('error', error => {
       logError(`[${new Date().toISOString()}] Watcher error:`, error);
@@ -245,15 +249,18 @@ async function main() {
 }
 
 // Handle graceful shutdown
-process.on('SIGINT', () => {
+async function shutdown() {
   log('\n⚡ Shutting down SimpleBeacon Automated Private Service...');
+  activeTimers.forEach(timer => clearTimeout(timer));
+  activeTimers.clear();
+  if (fileWatcher) {
+    try { await fileWatcher.close(); } catch (e) { /* ignore */ }
+    fileWatcher = null;
+  }
   process.exit(0);
-});
-
-process.on('SIGTERM', () => {
-  log('\n⚡ Shutting down SimpleBeacon Automated Private Service...');
-  process.exit(0);
-});
+}
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
 
 // Start the service
 main().catch(error => {

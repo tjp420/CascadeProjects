@@ -44,7 +44,7 @@ html = html.replace('{{SCAN_COMMAND}}', 'npx simplebeacon scan --gate --offline 
       html: html,
       text: `Payment Confirmed — EU AI Act Sprint ($2,499)\n\nLicense Token: ${token}\n\nDashboard: ${uploadUrl}?session_id=${sessionId}\n\nInvoice: ${invoiceId}\nDate: ${date}`
     });
-    console.log('Email result:', result);
+    console.log('Email sent successfully to', targetEmail.replace(/(.{2}).*(@.*)/, '$1***$2')); // simplebeacon-ignore pii-logging — email is masked before output
   } catch (err) {
     console.error('Failed to send email:', err);
   }

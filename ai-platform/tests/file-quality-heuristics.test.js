@@ -11,7 +11,7 @@ const {
 describe('file-quality-heuristics', () => {
   describe('contentHasMarker', () => {
     test('returns true when marker exists in content', () => {
-      expect(contentHasMarker('// TODO: fix this', 'TODO')).toBe(true);
+      expect(contentHasMarker('// TODO: fix this', 'TODO')).toBe(true); // simplebeacon-ignore maintainability-pattern — test fixture string
     });
 
     test('returns false when marker is absent', () => {
@@ -30,11 +30,11 @@ describe('file-quality-heuristics', () => {
     });
 
     test('deducts 10 for TODO marker', () => {
-      expect(calculateFileQuality('// TODO: implement')).toBe(90);
+      expect(calculateFileQuality('// TODO: implement')).toBe(90); // simplebeacon-ignore maintainability-pattern — test fixture string
     });
 
     test('deducts 15 for FIXME marker', () => {
-      expect(calculateFileQuality('// FIXME: broken')).toBe(85);
+      expect(calculateFileQuality('// FIXME: broken')).toBe(85); // simplebeacon-ignore maintainability-pattern — test fixture string
     });
 
     test('deducts 5 for console.log', () => {
@@ -46,14 +46,14 @@ describe('file-quality-heuristics', () => {
     });
 
     test('combines deductions and floors at 0', () => {
-      const bad = '// TODO: fix\n// FIXME: now\nconsole.log("x")\ndebugger;';
+      const bad = '// TODO: fix\n// FIXME: now\nconsole.log("x")\ndebugger;'; // simplebeacon-ignore maintainability-pattern — test fixture string
       expect(calculateFileQuality(bad)).toBe(65);
     });
   });
 
   describe('contentNeedsValidation', () => {
     test('returns true for TODO content', () => {
-      expect(contentNeedsValidation('// TODO: fix')).toBe(true);
+      expect(contentNeedsValidation('// TODO: fix')).toBe(true); // simplebeacon-ignore maintainability-pattern — test fixture string
     });
 
     test('returns true for FIXME content', () => {

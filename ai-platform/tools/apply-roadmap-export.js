@@ -19,7 +19,6 @@ const DYNAMIC_ARCHIVE = path.join(ROADMAP_DIR, 'dynamic-roadmap-last-scan.json')
 
 function toAiRoadmapReportModel(roadmap) {
     const rec = roadmap.recommendations || {};
-    const insights = roadmap.strategicInsights || {};
     return {
         type: 'ai-roadmap-report-model',
         dataSource: 'repository-audit',

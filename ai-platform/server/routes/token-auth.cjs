@@ -92,7 +92,7 @@ function generateOpaqueToken() {
 }
 
 // Helper: hash opaque token
-async function hashToken(token) {
+function hashToken(token) {
     return crypto.createHash('sha256').update(token).digest('hex');
 }
 
@@ -172,11 +172,19 @@ router.post('/device-challenge', async (req, res) => {
         const challenge = crypto.randomBytes(32).toString('hex');
         const challengeId = crypto.randomUUID();
 
-        await getRedis().setEx(
-            `challenge:${challengeId}`,
-            CHALLENGE_TTL_SECONDS,
-            JSON.stringify({ device_key_id, challenge, account_id: deviceKey.account_id })
-        );
+        const redis = getRedis();
+        if (redis) {
+            await redis.setEx(
+                `challenge:${challengeId}`,
+                CHALLENGE_TTL_SECONDS,
+                JSON.stringify({ device_key_id, challenge, account_id: deviceKey.account_id })
+            );
+        } else {
+            // Fallback: in-memory challenge store (single-process only)
+            if (!global._challengeStore) global._challengeStore = new Map();
+            global._challengeStore.set(challengeId, JSON.stringify({ device_key_id, challenge, account_id: deviceKey.account_id }));
+            setTimeout(() => global._challengeStore.delete(challengeId), CHALLENGE_TTL_SECONDS * 1000);
+        }
 
         res.json({ success: true, challenge_id: challengeId, challenge });
     } catch (err) {
@@ -195,7 +203,13 @@ router.post('/device-verify', async (req, res) => {
             return res.status(400).json({ success: false, error: 'challenge_id, signature, and device_key_id are required' });
         }
 
-        const challengeRaw = await getRedis().get(`challenge:${challenge_id}`);
+        const redis = getRedis();
+        let challengeRaw;
+        if (redis) {
+            challengeRaw = await redis.get(`challenge:${challenge_id}`);
+        } else {
+            challengeRaw = global._challengeStore ? global._challengeStore.get(challenge_id) : null;
+        }
         if (!challengeRaw) {
             return res.status(400).json({ success: false, error: 'Challenge expired or invalid' });
         }
@@ -203,6 +217,13 @@ router.post('/device-verify', async (req, res) => {
         const challengeData = JSON.parse(challengeRaw);
         if (challengeData.device_key_id !== device_key_id) {
             return res.status(403).json({ success: false, error: 'Challenge device mismatch' });
+        }
+
+        // Consume challenge to prevent replay
+        if (redis) {
+            await redis.del(`challenge:${challenge_id}`);
+        } else if (global._challengeStore) {
+            global._challengeStore.delete(challenge_id);
         }
 
         const deviceKey = await db.getDeviceKey(device_key_id);
@@ -326,10 +347,10 @@ router.post('/recover-init', async (req, res) => {
         let challengePayload = { account_id, factor_type: recovery_factor_type, challenge_id: challengeId };
 
         if (recovery_factor_type === 'email_otp') {
-            const otp = Math.floor(100000 + Math.random() * 900000).toString();
+            const otp = crypto.randomInt(100000, 999999).toString();
             challengePayload.otp_hash = await hashToken(otp);
             // In production: send email via email-service.cjs
-            logger.info('[recover-init] Email OTP generated for', account_id);
+            logger.info('[recover-init] Email OTP generated');
         } else if (recovery_factor_type === 'totp') {
             const { speakeasy } = require('speakeasy');
             const secret = activeFactor.factor_data; // decrypted in production
@@ -337,7 +358,14 @@ router.post('/recover-init', async (req, res) => {
             challengePayload.expected_token = token;
         }
 
-        await getRedis().setEx(`recover:${challengeId}`, 600, JSON.stringify(challengePayload));
+        const redis = getRedis();
+        if (redis) {
+            await redis.setEx(`recover:${challengeId}`, 600, JSON.stringify(challengePayload));
+        } else {
+            if (!global._recoveryStore) global._recoveryStore = new Map();
+            global._recoveryStore.set(challengeId, JSON.stringify(challengePayload));
+            setTimeout(() => global._recoveryStore.delete(challengeId), 600000);
+        }
 
         auditEvent(account_id, 'recovery_initiated', 'system', { factor_type: recovery_factor_type, challenge_id: challengeId }, req);
 
@@ -362,7 +390,13 @@ router.post('/recover-verify', async (req, res) => {
             return res.status(400).json({ success: false, error: 'challenge_id, otp, and factor_type are required' });
         }
 
-        const challengeRaw = await getRedis().get(`recover:${challenge_id}`);
+        const redis = getRedis();
+        let challengeRaw;
+        if (redis) {
+            challengeRaw = await redis.get(`recover:${challenge_id}`);
+        } else {
+            challengeRaw = global._recoveryStore ? global._recoveryStore.get(challenge_id) : null;
+        }
         if (!challengeRaw) {
             return res.status(400).json({ success: false, error: 'Challenge expired' });
         }
@@ -383,14 +417,27 @@ router.post('/recover-verify', async (req, res) => {
             return res.status(403).json({ success: false, error: 'Verification failed' });
         }
 
+        // Consume recovery challenge to prevent replay
+        if (redis) {
+            await redis.del(`recover:${challenge_id}`);
+        } else if (global._recoveryStore) {
+            global._recoveryStore.delete(challenge_id);
+        }
+
         // Issue enrollment ticket (1-hour TTL, recovery scope)
         const enrollmentTicket = generateOpaqueToken();
         const ticketHash = await hashToken(enrollmentTicket);
-        await getRedis().setEx(
-            `enroll:${ticketHash}`,
-            3600,
-            JSON.stringify({ account_id: accountId, scope: 'recovery', created_at: Date.now() })
-        );
+        if (redis) {
+            await redis.setEx(
+                `enroll:${ticketHash}`,
+                3600,
+                JSON.stringify({ account_id: accountId, scope: 'recovery', created_at: Date.now() })
+            );
+        } else {
+            if (!global._enrollStore) global._enrollStore = new Map();
+            global._enrollStore.set(ticketHash, JSON.stringify({ account_id: accountId, scope: 'recovery', created_at: Date.now() }));
+            setTimeout(() => global._enrollStore.delete(ticketHash), 3600000);
+        }
 
         auditEvent(accountId, 'recovery_verified', 'system', { factor_type, challenge_id }, req);
 
@@ -420,13 +467,26 @@ router.post('/enroll-device', optionalAuthenticate, async (req, res) => {
         } else if (enrollment_ticket) {
             // Recovery-based enrollment
             const ticketHash = await hashToken(enrollment_ticket);
-            const ticketRaw = await getRedis().get(`enroll:${ticketHash}`);
+            const redis = getRedis();
+            let ticketRaw;
+            if (redis) {
+                ticketRaw = await redis.get(`enroll:${ticketHash}`);
+            } else {
+                ticketRaw = global._enrollStore ? global._enrollStore.get(ticketHash) : null;
+            }
             if (!ticketRaw) {
                 return res.status(403).json({ success: false, error: 'Invalid or expired enrollment ticket' });
             }
             const ticketData = JSON.parse(ticketRaw);
             accountId = ticketData.account_id;
             trustLevel = 'untrusted'; // Recovery-enrolled devices start untrusted
+
+            // Consume enrollment ticket to prevent replay
+            if (redis) {
+                await redis.del(`enroll:${ticketHash}`);
+            } else if (global._enrollStore) {
+                global._enrollStore.delete(ticketHash);
+            }
         } else {
             return res.status(401).json({ success: false, error: 'Authentication or enrollment ticket required' });
         }
@@ -488,8 +548,20 @@ router.post('/refresh', async (req, res) => {
             return res.status(403).json({ success: false, error: 'Refresh token expired' });
         }
 
-        // Mark old refresh token as used
-        await db.updateRefreshToken(refreshRecord.id, { used_at: new Date().toISOString() });
+        // In-process race guard: prevent concurrent reuse in the same process
+        const raceKey = `refresh_used:${refreshRecord.id}`;
+        if (global._refreshRaceGuard && global._refreshRaceGuard.has(raceKey)) {
+            return res.status(403).json({ success: false, error: 'Refresh token already being processed' });
+        }
+        if (!global._refreshRaceGuard) global._refreshRaceGuard = new Set();
+        global._refreshRaceGuard.add(raceKey);
+
+        try {
+            // Mark old refresh token as used
+            await db.updateRefreshToken(refreshRecord.id, { used_at: new Date().toISOString() });
+        } finally {
+            global._refreshRaceGuard.delete(raceKey);
+        }
 
         // Blocklist old Access Token
         const session = await db.getSessionToken(refreshRecord.session_token_id);
@@ -531,6 +603,7 @@ router.post('/refresh', async (req, res) => {
         const sessionExpires = new Date(now.getTime() + SESSION_TTL_SECONDS * 1000);
         await db.insertSessionToken({
             id: newSessionId,
+            account_id: account.id,
             access_token_jti: newAccessTokenJti,
             scope: 'read',
             ip_address: req.ip,
@@ -579,6 +652,11 @@ router.post('/logout', optionalAuthenticate, async (req, res) => {
         const session = await db.getSessionToken(session_token);
         if (!session) {
             return res.json({ success: true, message: 'Session already expired or invalid' });
+        }
+
+        // Ownership check: authenticated user can only revoke their own sessions
+        if (req.user && session.account_id !== req.user.sub) {
+            return res.status(403).json({ success: false, error: 'You can only revoke your own sessions' });
         }
 
         // Revoke session
@@ -674,7 +752,7 @@ router.post('/register', async (req, res) => {
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
         };
-        db.insertAccount(account);
+        await db.insertAccount(account);
 
         // Register email as recovery factor
         const recoveryFactor = {
@@ -686,7 +764,7 @@ router.post('/register', async (req, res) => {
             enabled: true,
             created_at: new Date().toISOString()
         };
-        db.insertRecoveryFactor(recoveryFactor);
+        await db.insertRecoveryFactor(recoveryFactor);
 
         // Store password hash in legacy users table for backward compat
         const userRecord = {
@@ -703,7 +781,9 @@ router.post('/register', async (req, res) => {
         };
         // Legacy users.json append (or DB insert)
         const usersDbPath = require('path').join(__dirname, '../db/demo-users.json');
-        const usersDb = JSON.parse(require('fs').readFileSync(usersDbPath, 'utf8'));
+        const usersDb = require('fs').existsSync(usersDbPath)
+            ? JSON.parse(require('fs').readFileSync(usersDbPath, 'utf8'))
+            : { users: [] };
         usersDb.users = usersDb.users || [];
         usersDb.users.push(userRecord);
         require('fs').writeFileSync(usersDbPath, JSON.stringify(usersDb, null, 2));

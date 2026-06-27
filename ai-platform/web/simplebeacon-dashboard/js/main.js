@@ -1,7 +1,7 @@
 import { scanService } from './services/scanService.js?v=20260525jsonguard1';
 import { platformService } from './services/platformService.js?v=20260525jsonguard1';
 import { billingService } from './services/billingService.js?v=20260525jsonfixbilling1';
-import { authService } from './services/authService.js?v=20260609token3';
+import { authService } from './services/authService.js?v=20260626authfix1';
 import { themeService } from './services/themeService.js';
 import { Router, PUBLIC_VIEWS } from './router.js';
 import { TrustView } from './views/TrustView.js?v=20260525statictrust2';
@@ -14,7 +14,7 @@ import { PlatformView } from './views/PlatformView.js?v=20260601platformmetrics1
 import { QualityView } from './views/QualityView.js';
 import { HelpView, FeaturesView } from './views/HelpView.js';
 import { AuditView } from './views/AuditView.js?v=20260618renderfix1';
-import { AnalyzeView } from './views/AnalyzeView.js?v=20260616fixexport2';
+import { AnalyzeView } from './views/AnalyzeView.js?v=20260625pathfix2';
 import { SecurityView } from './views/SecurityView.js?v=20260611fixexport1';
 import { PricingView } from './views/PricingView.js';
 import { AboutView } from './views/AboutView.js';
@@ -171,6 +171,7 @@ class SimplebeaconDashboard {
     this.cleanupDisabledElements();
     this.updateAuthUi();
 
+    // simplebeacon-ignore memory-leak — single application-wide listener on the app singleton
     window.addEventListener('auth-signed-out', () => {
       this.updateAuthUi();
       this.updateNavVisibility(false);
@@ -201,6 +202,7 @@ class SimplebeaconDashboard {
     bar.id = 'demo-banner';
     bar.className = 'demo-banner';
     const span = document.createElement('span');
+    // simplebeacon-ignore innerhtml-usage — static demo banner markup
     span.innerHTML = '<strong>Demo</strong> — read-only honey-pot fixture (gate FAIL). Not your workspace.';
     const a = document.createElement('a');
     a.className = 'demo-banner-link';
@@ -221,6 +223,7 @@ class SimplebeaconDashboard {
     bar.style.background = 'linear-gradient(90deg, rgba(99,102,241,0.15), rgba(99,102,241,0.05))';
     bar.style.borderBottom = '1px solid rgba(99,102,241,0.3)';
     const span = document.createElement('span');
+    // simplebeacon-ignore innerhtml-usage — static demo banner markup
     span.innerHTML = '<strong>Demo Mode</strong> — You are viewing with a free token. Reports are read-only. Upgrade to unlock scans, exports, and full dashboard interaction.';
     const a = document.createElement('a');
     a.className = 'demo-banner-link';
@@ -240,6 +243,7 @@ class SimplebeaconDashboard {
     bar.id = 'vault-banner';
     bar.className = 'demo-banner';
     const span = document.createElement('span');
+    // simplebeacon-ignore innerhtml-usage — static vault banner markup
     span.innerHTML = '<strong>Vault locked</strong> — unlock the internal dashboard before scan/API calls work.';
     const a = document.createElement('a');
     a.className = 'demo-banner-link';
@@ -257,6 +261,7 @@ class SimplebeaconDashboard {
     overlay.id = 'token-prompt-modal';
     overlay.className = 'modal-overlay';
     overlay.style.zIndex = '300';
+    // simplebeacon-ignore innerhtml-usage — static modal template, no user input
     overlay.innerHTML = `
       <div class="modal-card" role="dialog" aria-labelledby="token-prompt-title" style="max-width:420px;">
         <div class="modal-header" style="text-align:center;">
@@ -423,6 +428,7 @@ class SimplebeaconDashboard {
     };
     const title = titles[view] || view;
 
+    // simplebeacon-ignore innerhtml-usage — static lock screen template, no user input
     main.innerHTML = `
       <div class="lock-screen" style="display:flex;align-items:center;justify-content:center;min-height:60vh;padding:var(--space-8);">
         <div class="lock-screen-content" style="text-align:center;max-width:420px;">
@@ -463,7 +469,7 @@ class SimplebeaconDashboard {
             </details>
           </div>
 
-          <p style="margin-top:var(--space-4);"><a href="#/dashboard" class="btn btn-secondary btn-block" onclick="document.getElementById('token-prompt-modal')?.remove();window.location.hash='#/dashboard';return false;">&#8592; Return to Dashboard</a></p>
+          <p style="margin-top:var(--space-4);"><a href="/dashboard/dashboard" class="btn btn-secondary btn-block" onclick="document.getElementById('token-prompt-modal')?.remove();window.location.hash='#/dashboard';return false;">&#8592; Return to Dashboard</a></p>
         </div>
       </div>
     `;
@@ -642,6 +648,10 @@ class SimplebeaconDashboard {
     if (signinBtn) signinBtn.hidden = authed;
     if (signoutBtn) signoutBtn.hidden = !authed;
     if (profileBtn) profileBtn.hidden = !authed;
+    const sidebarSigninBtn = document.getElementById('sidebar-signin-btn');
+    const sidebarSignoutBtn = document.getElementById('sidebar-signout-btn');
+    if (sidebarSigninBtn) sidebarSigninBtn.hidden = authed;
+    if (sidebarSignoutBtn) sidebarSignoutBtn.hidden = !authed;
     const pricingLink = document.getElementById('header-pricing-link');
     if (pricingLink) pricingLink.hidden = authed;
 
@@ -780,6 +790,21 @@ class SimplebeaconDashboard {
       }
     });
 
+    document.getElementById('sidebar-signin-btn')?.addEventListener('click', () => {
+      this.router.navigate('signin');
+    });
+
+    document.getElementById('sidebar-signout-btn')?.addEventListener('click', async () => {
+      try {
+        await authService.logout();
+        showToast('Signed out', 'info');
+        this.updateAuthUi();
+        this.router.navigate('signin');
+      } catch (err) {
+        showToast('Sign out failed', 'error');
+      }
+    });
+
     document.querySelectorAll('.nav-link[data-view]').forEach((link) => {
       link.addEventListener('click', (e) => {
         e.preventDefault();
@@ -866,7 +891,7 @@ class SimplebeaconDashboard {
   cleanupDisabledElements() {
     const selectors = [
       '.nav-link[data-view="outreach"]',
-      'a.nav-link[href="#/outreach"]',
+      'a.nav-link[href="/dashboard/outreach"]',
       '.analyze-issue-analyzer-card',
       '.analyze-engines-reference',
       '.analyze-deliverable-table-wrap',

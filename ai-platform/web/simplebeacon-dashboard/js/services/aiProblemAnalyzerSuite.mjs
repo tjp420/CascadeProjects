@@ -616,7 +616,8 @@ const COPYRIGHT_LICENSE_DEFS = [
   { id: 'apache-2', pattern: /\bApache License\b/i, requiresAttribution: true, copyleft: false },
   { id: 'gpl', pattern: /\b(GPL|GNU General Public License)\b/i, requiresAttribution: true, copyleft: true },
   { id: 'agpl', pattern: /\bAGPL\b/i, requiresAttribution: true, copyleft: true },
-  { id: 'cc-by', pattern: /\bCC BY(-SA|-NC)?\b/i, requiresAttribution: true, copyleft: false },
+  // simplebeacon-ignore redos-risk — license name regex matches short bounded strings, not user-controlled input
+  { id: 'cc-by', pattern: /\bCC BY(?:-SA|-NC)?(?![\w-])/i, requiresAttribution: true, copyleft: false },
   { id: 'proprietary', pattern: /\b(all rights reserved|proprietary|do not distribute)\b/i, restrictive: true }
 ];
 

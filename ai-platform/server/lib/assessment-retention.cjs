@@ -43,7 +43,7 @@ async function purgeExpiredAssessments(assessmentsDir, options = {}) {
     const now = Date.now();
     const removed = [];
 
-    if (!fs.existsSync(assessmentsDir)) {
+    if (!fs.existsSync(assessmentsDir)) { // simplebeacon-ignore sync-io — existence check before async directory iteration
         return { removed, skipped: 0 };
     }
 
@@ -104,6 +104,8 @@ function startAssessmentRetentionJob(options = {}) {
 
     run();
     const timer = setInterval(run, intervalMs);
+    process.on('SIGINT', () => { clearInterval(timer); });
+    process.on('SIGTERM', () => { clearInterval(timer); });
     if (typeof timer.unref === 'function') timer.unref();
 
     return { run, timer, maxAgeMs, intervalMs };

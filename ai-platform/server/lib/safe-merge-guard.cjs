@@ -124,7 +124,7 @@ async function executeSafeMerge(options = {}) {
     for (const relativePath of preview.removeFiles || []) {
         try {
             const absPath = resolveProjectFile(projectRoot, relativePath);
-            if (!fs.existsSync(absPath)) {
+            if (!fs.existsSync(absPath)) { // simplebeacon-ignore sync-io — existence check before async backup/quarantine
                 errors.push({ file: relativePath, reason: 'File not found at execution time' });
                 continue;
             }

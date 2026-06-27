@@ -28,9 +28,29 @@ function loadDb() {
     return JSON.parse(fs.readFileSync(DB_PATH, 'utf8'));
 }
 
+let _writeQueue = Promise.resolve();
+
 function saveDb(db) {
     fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
-    fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2));
+    const tmpPath = DB_PATH + '.tmp';
+    fs.writeFileSync(tmpPath, JSON.stringify(db, null, 2));
+    fs.renameSync(tmpPath, DB_PATH);
+}
+
+function withDbQueued(mutator) {
+    const task = _writeQueue.then(() => {
+        const db = loadDb();
+        const result = mutator(db);
+        saveDb(db);
+        return result;
+    }).catch(() => {
+        const db = loadDb();
+        const result = mutator(db);
+        saveDb(db);
+        return result;
+    });
+    _writeQueue = task;
+    return task;
 }
 
 // ─── Accounts ─────────────────────────────────────────────────────────────
@@ -40,19 +60,19 @@ function getAccount(id) {
 }
 
 function insertAccount(account) {
-    const db = loadDb();
-    db.accounts.push(account);
-    saveDb(db);
-    return account;
+    return withDbQueued((db) => {
+        db.accounts.push(account);
+        return account;
+    });
 }
 
 function updateAccount(id, updates) {
-    const db = loadDb();
-    const idx = db.accounts.findIndex((a) => a.id === id);
-    if (idx === -1) return null;
-    db.accounts[idx] = { ...db.accounts[idx], ...updates, updated_at: new Date().toISOString() };
-    saveDb(db);
-    return db.accounts[idx];
+    return withDbQueued((db) => {
+        const idx = db.accounts.findIndex((a) => a.id === id);
+        if (idx === -1) return null;
+        db.accounts[idx] = { ...db.accounts[idx], ...updates, updated_at: new Date().toISOString() };
+        return db.accounts[idx];
+    });
 }
 
 // ─── Access Tokens ────────────────────────────────────────────────────────
@@ -62,20 +82,20 @@ function getAccessToken(jti) {
 }
 
 function insertAccessToken(token) {
-    const db = loadDb();
-    db.access_tokens.push(token);
-    saveDb(db);
-    return token;
+    return withDbQueued((db) => {
+        db.access_tokens.push(token);
+        return token;
+    });
 }
 
 function revokeAccessToken(jti, reason) {
-    const db = loadDb();
-    const idx = db.access_tokens.findIndex((t) => t.jti === jti);
-    if (idx === -1) return null;
-    db.access_tokens[idx].revoked_at = new Date().toISOString();
-    db.access_tokens[idx].revoked_reason = reason;
-    saveDb(db);
-    return db.access_tokens[idx];
+    return withDbQueued((db) => {
+        const idx = db.access_tokens.findIndex((t) => t.jti === jti);
+        if (idx === -1) return null;
+        db.access_tokens[idx].revoked_at = new Date().toISOString();
+        db.access_tokens[idx].revoked_reason = reason;
+        return db.access_tokens[idx];
+    });
 }
 
 // ─── Session Tokens ─────────────────────────────────────────────────────
@@ -85,20 +105,20 @@ function getSessionToken(id) {
 }
 
 function insertSessionToken(token) {
-    const db = loadDb();
-    db.session_tokens.push(token);
-    saveDb(db);
-    return token;
+    return withDbQueued((db) => {
+        db.session_tokens.push(token);
+        return token;
+    });
 }
 
 function revokeSessionToken(id, reason) {
-    const db = loadDb();
-    const idx = db.session_tokens.findIndex((t) => t.id === id);
-    if (idx === -1) return null;
-    db.session_tokens[idx].revoked_at = new Date().toISOString();
-    db.session_tokens[idx].revoked_reason = reason;
-    saveDb(db);
-    return db.session_tokens[idx];
+    return withDbQueued((db) => {
+        const idx = db.session_tokens.findIndex((t) => t.id === id);
+        if (idx === -1) return null;
+        db.session_tokens[idx].revoked_at = new Date().toISOString();
+        db.session_tokens[idx].revoked_reason = reason;
+        return db.session_tokens[idx];
+    });
 }
 
 // ─── Refresh Tokens ─────────────────────────────────────────────────────
@@ -108,29 +128,29 @@ function getRefreshTokenByHash(tokenHash) {
 }
 
 function insertRefreshToken(token) {
-    const db = loadDb();
-    db.refresh_tokens.push(token);
-    saveDb(db);
-    return token;
+    return withDbQueued((db) => {
+        db.refresh_tokens.push(token);
+        return token;
+    });
 }
 
 function updateRefreshToken(id, updates) {
-    const db = loadDb();
-    const idx = db.refresh_tokens.findIndex((t) => t.id === id);
-    if (idx === -1) return null;
-    db.refresh_tokens[idx] = { ...db.refresh_tokens[idx], ...updates };
-    saveDb(db);
-    return db.refresh_tokens[idx];
+    return withDbQueued((db) => {
+        const idx = db.refresh_tokens.findIndex((t) => t.id === id);
+        if (idx === -1) return null;
+        db.refresh_tokens[idx] = { ...db.refresh_tokens[idx], ...updates };
+        return db.refresh_tokens[idx];
+    });
 }
 
 function revokeRefreshTokenBySession(sessionTokenId, reason) {
-    const db = loadDb();
-    const idx = db.refresh_tokens.findIndex((t) => t.session_token_id === sessionTokenId && !t.revoked_at);
-    if (idx === -1) return null;
-    db.refresh_tokens[idx].revoked_at = new Date().toISOString();
-    db.refresh_tokens[idx].revoked_reason = reason;
-    saveDb(db);
-    return db.refresh_tokens[idx];
+    return withDbQueued((db) => {
+        const idx = db.refresh_tokens.findIndex((t) => t.session_token_id === sessionTokenId && !t.revoked_at);
+        if (idx === -1) return null;
+        db.refresh_tokens[idx].revoked_at = new Date().toISOString();
+        db.refresh_tokens[idx].revoked_reason = reason;
+        return db.refresh_tokens[idx];
+    });
 }
 
 // ─── Device Keys ────────────────────────────────────────────────────────
@@ -145,19 +165,19 @@ function getDeviceKeys(accountId) {
 }
 
 function insertDeviceKey(deviceKey) {
-    const db = loadDb();
-    db.device_keys.push(deviceKey);
-    saveDb(db);
-    return deviceKey;
+    return withDbQueued((db) => {
+        db.device_keys.push(deviceKey);
+        return deviceKey;
+    });
 }
 
 function updateDeviceKey(id, updates) {
-    const db = loadDb();
-    const idx = db.device_keys.findIndex((d) => d.id === id);
-    if (idx === -1) return null;
-    db.device_keys[idx] = { ...db.device_keys[idx], ...updates };
-    saveDb(db);
-    return db.device_keys[idx];
+    return withDbQueued((db) => {
+        const idx = db.device_keys.findIndex((d) => d.id === id);
+        if (idx === -1) return null;
+        db.device_keys[idx] = { ...db.device_keys[idx], ...updates };
+        return db.device_keys[idx];
+    });
 }
 
 // ─── Recovery Factors ───────────────────────────────────────────────────
@@ -167,18 +187,18 @@ function getRecoveryFactors(accountId) {
 }
 
 function insertRecoveryFactor(factor) {
-    const db = loadDb();
-    db.recovery_factors.push(factor);
-    saveDb(db);
-    return factor;
+    return withDbQueued((db) => {
+        db.recovery_factors.push(factor);
+        return factor;
+    });
 }
 
 // ─── Audit Log ────────────────────────────────────────────────────────────
 function insertAuditLog(entry) {
-    const db = loadDb();
-    db.audit_log.push(entry);
-    saveDb(db);
-    return entry;
+    return withDbQueued((db) => {
+        db.audit_log.push(entry);
+        return entry;
+    });
 }
 
 // ─── License Tokens (SimpleBeacon product tokens) ────────────────────────
@@ -188,19 +208,19 @@ function getLicenseToken(token) {
 }
 
 function insertLicenseToken(entry) {
-    const db = loadDb();
-    db.license_tokens.push(entry);
-    saveDb(db);
-    return entry;
+    return withDbQueued((db) => {
+        db.license_tokens.push(entry);
+        return entry;
+    });
 }
 
 function updateLicenseToken(token, updates) {
-    const db = loadDb();
-    const idx = db.license_tokens.findIndex((t) => t.token === token);
-    if (idx === -1) return null;
-    db.license_tokens[idx] = { ...db.license_tokens[idx], ...updates, updated_at: new Date().toISOString() };
-    saveDb(db);
-    return db.license_tokens[idx];
+    return withDbQueued((db) => {
+        const idx = db.license_tokens.findIndex((t) => t.token === token);
+        if (idx === -1) return null;
+        db.license_tokens[idx] = { ...db.license_tokens[idx], ...updates, updated_at: new Date().toISOString() };
+        return db.license_tokens[idx];
+    });
 }
 
 module.exports = {

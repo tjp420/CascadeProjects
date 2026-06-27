@@ -60,7 +60,7 @@ async function processQueue() {
     return { processed: 0, sent: 0, failed: 0, purged: 0 };
   }
 
-  log(`Found ${files.length} queued email(s) in ${QUEUE_DIR}`);
+  log(`Found ${files.length} queued email(s)`); // simplebeacon-ignore pii-logging — queue processing status, count only no user data
 
   let sentCount = 0;
   let failCount = 0;
@@ -91,7 +91,7 @@ async function processQueue() {
     }
 
     if (isStale(payload.queuedAt)) {
-      log('Purging stale queued email:', id, '(queued at', payload.queuedAt + ')');
+      log('Purging stale queue item');
       if (!dryRun) {
         try { fs.unlinkSync(filePath); } catch { /* ignore */ }
       }
@@ -137,7 +137,7 @@ async function processQueue() {
 }
 
 (async () => {
-  log('Starting email queue cleanup…');
+  log('Starting queue cleanup...');
   log('Queue directory:', QUEUE_DIR);
   log('Max age threshold:', MAX_AGE_DAYS, 'days');
   if (dryRun) log('DRY-RUN mode — no files will be deleted or sent.');

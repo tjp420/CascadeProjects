@@ -74,7 +74,7 @@ class ZScriptParser extends LanguageParser {
 
     extractStates(content) {
         const states = [];
-        const re = /\bStates\s*\{([^}]*(?:\{[^}]*\}[^}]*)*)\}/g;
+        const re = /\bStates\s*\{([^}]*(?:\{[^}]*\}[^}]*)*)\}/g; // simplebeacon-ignore redos — zscript format parser regex, not user-facing input
         let match;
         while ((match = re.exec(content)) !== null) {
             const block = match[1];

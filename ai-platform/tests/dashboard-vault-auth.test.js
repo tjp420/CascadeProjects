@@ -12,7 +12,7 @@ const {
 } = require('../server/lib/dashboard-vault-auth.cjs');
 
 describe('dashboard-vault-auth', () => {
-  const TEST_SECRET = 'test-vault-password-32chars-long';
+  const TEST_SECRET = require('crypto').randomBytes(16).toString('hex');
   const ORIGINAL_ENV = process.env.DASHBOARD_VAULT_PASSWORD;
 
   beforeEach(() => {

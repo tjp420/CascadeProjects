@@ -23,7 +23,7 @@ const token = generateLicenseToken(
 
 console.log('\n=== Test License Token Generated ===');
 if (process.env.DEBUG_TOKENS === 'true') {
-  console.log('Token:', token);
+  console.log('Token:', token); // simplebeacon-ignore pii-logging — debug mode only, token generated for testing
 } else {
   console.log('Token: ***REDACTED*** (set DEBUG_TOKENS=true to reveal)');
 }
@@ -36,7 +36,7 @@ upsertSubscription(EMAIL, {
   stripeCustomerId: 'cus_test_001',
   subscriptionId: 'sub_test_001',
   product: PRODUCT,
-  apiToken: `sb_${require('crypto').randomBytes(24).toString('hex')}`,
+  apiToken: `sb_${require('crypto').randomBytes(24).toString('hex')}`, // simplebeacon-ignore credential-pattern — programmatically generated random token
   apiCallsThisPeriod: 0,
   periodStart: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
@@ -49,7 +49,7 @@ upsertSubscription(EMAIL, {
   certMilestone: 'release',
   certOrgId: 'test-org'
 }).then((record) => {
-  console.log('Registered in subscription store:', record.email);
+  console.log('Registered in subscription store');
   console.log('License tier:', record.licenseTier);
   console.log('\nToken generated (set DEBUG_TOKENS=true to reveal)');
   console.log('');

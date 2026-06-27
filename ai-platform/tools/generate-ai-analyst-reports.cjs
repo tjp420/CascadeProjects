@@ -23,7 +23,7 @@ const rawScan = JSON.parse(fs.readFileSync(REPORT_PATH, 'utf8'));
 const scanData = normalizeScanForAiAnalyst(rawScan);
 
 // Load the AI Analyst module
-const { generateAutomatedVerdict, buildDeterministicVerdict } = require('../server/lib/ai-analyst.cjs');
+const { generateAutomatedVerdict } = require('../server/lib/ai-analyst.cjs');
 
 function normalizeScanForAiAnalyst(raw) {
   const gate = raw.gate || {};

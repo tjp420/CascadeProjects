@@ -126,7 +126,7 @@ async function handleAuditBooking(req, res, options = {}) {
     }
     return res.json(bookingResponse(saved, result));
   } catch (err) {
-    console.warn('[audit-booking] email failed:', err.message);
+    console.warn('[audit-booking] email failed');
     return res.json({
       ...bookingResponse(saved, { sent: false }),
       emailError: err.message

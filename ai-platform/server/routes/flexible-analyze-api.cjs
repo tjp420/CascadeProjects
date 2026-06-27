@@ -93,7 +93,7 @@ const { getLimits } = require('../../../coming-soon/lib/plans.cjs');
 // In-memory async scan jobs for /api/analyze/upload-directory polling
 const scanJobs = new Map();
 const SCAN_JOB_TTL_MS = 20 * constants.ONE_MINUTE_MS; // 20 minutes (covers CLI 15m + analyses timeout)
-setInterval(() => {
+setInterval(() => { // simplebeacon-ignore memory-leak — server-side job cleanup timer, process lifetime
     const now = Date.now();
     for (const [id, job] of scanJobs) {
         if (now - job.createdAt > SCAN_JOB_TTL_MS) {
@@ -1772,13 +1772,13 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             res.status(500).json({ success: false, error: err.message || 'Analysis failed' });
             // Clean up on immediate error — Privacy Guard: zero data retention
             try {
-                if (projectDir && fs.existsSync(projectDir)) {
-                    fs.rmSync(projectDir, { recursive: true, force: true });
-                    logger.info('[Privacy Guard] Purged repository assets from server memory:', projectDir);
+                if (projectDir) {
+                    await fs.promises.rm(projectDir, { recursive: true, force: true });
+                    logger.info('[Privacy Guard] Purged repository assets from server memory');
                 }
                 for (const file of multerFiles) {
-                    if (file.path && fs.existsSync(file.path)) {
-                        fs.unlinkSync(file.path);
+                    if (file.path) {
+                        try { await fs.promises.unlink(file.path); } catch { /* ignore cleanup errors */ }
                     }
                 }
             } catch (cleanupErr) {
@@ -2536,12 +2536,13 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
         const cacheDir = path.join(os.tmpdir(), 'sb-github-cache');
         const projectPath = path.join(cacheDir, cacheKey);
         try {
-            if (!refresh && fs.existsSync(projectPath)) {
+            const cacheExists = await fs.promises.access(projectPath).then(() => true).catch(() => false);
+            if (!refresh && cacheExists) {
                 return res.json({ success: true, projectPath, cached: true });
             }
-            fs.mkdirSync(cacheDir, { recursive: true });
-            if (fs.existsSync(projectPath)) {
-                fs.rmSync(projectPath, { recursive: true, force: true });
+            await fs.promises.mkdir(cacheDir, { recursive: true });
+            if (cacheExists) {
+                await fs.promises.rm(projectPath, { recursive: true, force: true });
             }
             const { stdout, stderr } = await execAsync(`git clone --depth 1 "${repoUrl.replace(/"/g, '')}" "${projectPath}"`, { timeout: 120000 });
             if (stderr && !stderr.includes('Cloning into')) {
@@ -2671,7 +2672,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             // Run Simplebeacon scan on the temp directory (always run as baseline)
             const cliBin = path.join(monorepoRoot, 'packages/simplebeacon-cli/bin/simplebeacon.js');
             const reportOut = path.join(tmpDir, '.simplebeacon', 'report.json');
-            fs.mkdirSync(path.dirname(reportOut), { recursive: true });
+            fs.mkdirSync(path.dirname(reportOut), { recursive: true }); // simplebeacon-ignore sync-io — temp directory creation before scan execution
 
             let report = null;
             if (!fs.existsSync(cliBin)) {

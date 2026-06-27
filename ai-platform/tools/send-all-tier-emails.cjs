@@ -234,7 +234,7 @@ const TIERS = {
 
 async function sendAll() {
   for (const [tier, config] of Object.entries(TIERS)) {
-    console.log(`\n--- Building ${tier} email ---`);
+    console.log(`\n--- Building tier message ---`);
     const email = buildEmail(tier, config);
     
     try {

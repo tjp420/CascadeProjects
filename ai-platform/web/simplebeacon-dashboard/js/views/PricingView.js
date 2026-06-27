@@ -59,7 +59,7 @@ export class PricingView {
           <strong>Radical honesty:</strong> this dashboard is optional tooling around the same scan engine.
           I am not selling you a required SaaS subscription to use the CLI.
           For the full story — including what Simplebeacon is <em>bad</em> at — see
-          <a href="#/about">About the project</a>.
+          <a href="/dashboard/about">About the project</a>.
         </p>
       </div>
     `;

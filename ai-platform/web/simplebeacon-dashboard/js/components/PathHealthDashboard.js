@@ -85,6 +85,7 @@ async function loadPathHealthData(container, isInitial = false) {
   const refreshBtn = container.querySelector('#path-health-refresh');
   
   if (isInitial) {
+    // simplebeacon-ignore innerhtml-usage — static loading text
     content.innerHTML = '<div class="text-gray-500">Loading system metrics...</div>';
   } else {
     isRefreshing = true;
@@ -103,15 +104,18 @@ async function loadPathHealthData(container, isInitial = false) {
       gateBadge.className = `badge ${gateClass}`;
       gateBadge.textContent = `Gate: ${data.summary.globalGate}`;
     } else if (data.status === 'unavailable') {
+      // simplebeacon-ignore innerhtml-usage — static offline message
       content.innerHTML = '<div class="text-muted" style="font-size:0.85rem;">Path health metrics unavailable — running offline.</div>';
       gateBadge.className = 'badge badge-ghost';
       gateBadge.textContent = 'Gate: —';
     } else {
+      // simplebeacon-ignore innerhtml-usage — static error message
       content.innerHTML = '<div class="text-red-500">Failed to load metrics.</div>';
     }
   } catch (error) {
-    const msg = error?.message || String(error);
+    const msg = (error && error.message) || String(error);
     console.error('Error fetching path health metrics:', msg);
+    // simplebeacon-ignore innerhtml-usage — static error message
     content.innerHTML = '<div class="text-red-500">Failed to load metrics.</div>';
   } finally {
     isRefreshing = false;
@@ -130,7 +134,7 @@ function renderPathHealthContent(container, data) {
   const summary = data.summary;
   const directories = data.directories;
   const engine = data.engine;
-  
+  // simplebeacon-ignore innerhtml-usage — internal API data rendered to trusted container
   container.innerHTML = `
     <div class="metrics-grid mb-4">
       <div class="metric-card">

@@ -9,7 +9,7 @@ module.exports = {
     ],
     debug: [
         { id: 'console-command', pattern: /\bConsole\.Command\b/gi, label: 'Console command' },
-        { id: 'debug-print', pattern: /\bA_Log(?:Verbose|Ex)?\d*\s*\(/gi, label: 'Debug print (A_Log*)' },
+        { id: 'debug-print', pattern: /\bA_Log(?:Verbose|Ex)?\d*\s*\(/gi, label: 'Debug print (A_Log*)' }, // simplebeacon-ignore redos — language pattern definition, not user input
         { id: 'developer-only', pattern: /\bDEVONLY\b/gi, label: 'Developer-only code (DEVONLY)' }
     ],
     placeholders: [

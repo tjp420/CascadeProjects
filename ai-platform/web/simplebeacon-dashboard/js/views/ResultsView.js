@@ -117,7 +117,7 @@ export class ResultsView {
           <p style="margin:0">
             Opened from Compliance Audit.
             ${totalIssues === 0 && report.gate?.pass
-    ? 'The gate passed with <strong>0 blocking issues</strong> — that is a successful result. Browse sample files below or return to <a href="#/audit">Compliance Audit</a> for layer breakdown.'
+    ? 'The gate passed with <strong>0 blocking issues</strong> — that is a successful result. Browse sample files below or return to <a href="/dashboard/audit">Compliance Audit</a> for layer breakdown.'
     : `Showing ${totalIssues} issue group(s) from the latest scan.`}
           </p>
         </div>

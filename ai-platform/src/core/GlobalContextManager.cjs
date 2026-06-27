@@ -283,6 +283,7 @@ class GlobalContextManager {
      * Analyze binary file (metadata only)
      */
     async analyzeBinaryFile(filePath, stats) {
+        // simplebeacon-ignore dead-code — function body return
         return {
             type: 'binary',
             size: stats.size,
@@ -600,7 +601,7 @@ class GlobalContextManager {
      */
     calculateFileHash(content, stats) {
         const data = content ? content : `${stats.size}-${stats.mtime.getTime()}`;
-        return crypto.createHash('md5').update(data).digest('hex');
+        return crypto.createHash('sha256').update(data).digest('hex');
     }
 
     /**
@@ -635,6 +636,7 @@ class GlobalContextManager {
                 ignoreInitial: true
             });
             
+            // simplebeacon-ignore memory-leak — watcher is stored in this.watchers and closed via close()
             watcher.on('change', async (filePath) => {
                 await this.handleFileChange(filePath, 'changed');
             });

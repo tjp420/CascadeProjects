@@ -6,7 +6,6 @@ const logger = require('../lib/production-logger.cjs');
 
 const fs = require('fs').promises;
 const path = require('path');
-const _crypto = require('crypto');
 const {
     generateCodeRoadmap,
     resolvePlatformRoot,

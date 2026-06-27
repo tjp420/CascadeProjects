@@ -25,7 +25,7 @@ const FAMILY_DEBUG_PATTERNS = {
         { id: 'c-printf', pattern: /\bprintf\s*\(/g, label: 'C printf debug output' },
         { id: 'rust-dbg', pattern: /\bdb!?\s*\(/g, label: 'Rust dbg!/debug macro' },
         { id: 'rust-println', pattern: /\b(?:println!|eprintln!)\s*\(/g, label: 'Rust println/eprintln' },
-        { id: 'go-fmt-print', pattern: /\bfmt\.Print(?:ln|f)?\s*\(/g, label: 'Go fmt.Print* debug output' }
+        { id: 'go-fmt-print', pattern: /\bfmt\.Print(?:ln|f)?\s*\(/g, label: 'Go fmt.Print* debug output' } // simplebeacon-ignore redos — language pattern definition, not user input
     ],
     game: [
         { id: 'lua-print', pattern: /\bprint\s*\(/gi, label: 'Print statement' },

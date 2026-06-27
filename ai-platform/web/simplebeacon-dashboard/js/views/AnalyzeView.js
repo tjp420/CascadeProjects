@@ -1,4 +1,5 @@
 import { escapeHtml, showToast, downloadJson, downloadBlob, downloadText, redactPathForDisplay, formatPathLabel, formatPathInputValue, formatAiSummarySkipMessage, isRedactedPathDisplay, formatNumber, renderEmptyState } from '../utils.js';
+import { evaluateFunnelMetrics, getFunnelCopy } from '../utils/funnelTrigger.js';
 
 // simplebeacon:production-leak-intent: sample-json - Legitimate documentation about sample file patterns in analysis results
 import {
@@ -59,7 +60,7 @@ import {
   removeRecentPath,
   loadRecentPaths
 } from '../lib/analyzePathSuggestions.js';
-import { validateProjectPathAllowlist } from '../lib/analyzePathAllowlist.js';
+import { validateProjectPathAllowlist, ensureAllowedAnalysisRoots } from '../lib/analyzePathAllowlist.js';
 import { isBenchmarkCachePath } from '../utils/complete-scan-artifact-profile.browser.js';
 import { runEuAiActSprint } from '../services/operatorService.js?v=20260531eupdf1';
 import { renderModeFileScopePanel, extractRoadmapFileMetrics } from '../utils/analyze-mode-file-scope.browser.js?v=20260601roadmapscope1';
@@ -562,7 +563,7 @@ const SIMPLEBEACON_GATE_RULES = [
   { id: 'sample-consistency', label: 'Anchor sample consistency / fiction KPI drift' },
   { id: 'fiction-kpi-patterns', label: 'Fiction KPI placeholders across repository JSON' },
   { id: 'llm-slop-patterns', label: 'LLM slop — unresolved placeholders, code fences, filler metrics' },
-  { id: 'agency-handoff-patterns', label: 'Agency handoff — localhost deploy leaks, auth misconfig, webhooks' },
+  { id: 'agency-handoff-patterns', label: 'Agency handoff — localhost deploy leaks, auth misconfig, webhooks' }, // simplebeacon-ignore hardcoded-url — rule label text, not a URL
   { id: 'file-naming-patterns', label: 'File naming — AI-generated or low-quality file names that degrade code readability' },
   { id: 'roadmap', label: 'Roadmap completeness signal (standard profile)' }
 ];
@@ -1118,15 +1119,15 @@ function renderEuAiActSprintPanel(sprint, options = {}) {
     <p class="text-muted mb-4" style="font-size: var(--font-size-sm);">${escapeHtml(s.disclaimer || 'Static technical readiness — not legal conformity certification.')}</p>
     ${showActions ? `
       <div class="analyze-action-row mb-4">
-        <a class="btn btn-primary btn-sm" href="#/eu-ai-act">Open EU AI Act results</a>
+        <a class="btn btn-primary btn-sm" href="/dashboard/eu-ai-act">Open EU AI Act results</a>
         <button type="button" class="btn btn-accent btn-sm" id="download-eu-ai-act-pdf">Download EU PDF</button>
         <a class="btn btn-secondary btn-sm" href="/eu-ai-act-sample-report" target="_blank" rel="noopener">Sample report layout</a>
-        <a class="btn btn-ghost btn-sm" href="#/results">Gate blocking issues</a>
+        <a class="btn btn-ghost btn-sm" href="/dashboard/results">Gate blocking issues</a>
       </div>
     ` : `
       <div class="analyze-action-row mb-4">
         <button type="button" class="btn btn-accent btn-sm" id="download-eu-ai-act-pdf">Download EU PDF</button>
-        <a class="btn btn-ghost btn-sm" href="#/eu-ai-act">Open EU AI Act page</a>
+        <a class="btn btn-ghost btn-sm" href="/dashboard/eu-ai-act">Open EU AI Act page</a>
       </div>
     `}
   `;
@@ -1709,107 +1710,112 @@ export class AnalyzeView {
 
   renderTargetCard(defaultPath, displayPath) {
     const isWeb = this.websiteMode;
-    const dropzoneClass = isWeb ? '' : ' is-droppable';
     const useDefaultHidden = defaultPath && !isWeb ? '' : 'hidden';
     const pathPlaceholder = isWeb
       ? 'https://example.com'
       : 'C:\\\\dev\\\\my-app · git@github.com:org/repo · https://codeberg.org/org/repo';
     const pathAria = isWeb ? 'Website URL' : 'Project path on server';
-    const pathHint = isWeb ? 'Enter a public website URL' : 'Type a server path or browse to select a directory';
     const pathList = isWeb ? '' : pathInputListAttr();
     const datalist = isWeb ? '' : renderPathSuggestionsDatalistElement(collectPathSuggestions(this.app, this.testSources));
-    const folderDropzone = isWeb ? '' : `
-          <div class="analyze-dropzone-icon"><i data-lucide="folder-up" class="icon-20"></i></div>
-          <div class="analyze-dropzone-label">
-            <strong>Drop a project folder or file here</strong>
-            <span class="text-muted">Or browse to select</span>
-          </div>
-          <div class="analyze-dropzone-center-actions">
-            <button type="button" class="btn btn-primary btn-sm" id="browse-dir-btn"><i data-lucide="folder-open" class="icon-16"></i> Browse Folder</button>
-            <button type="button" class="btn btn-secondary btn-sm" id="analyze-file-browse-btn-main" ${this.snippetBusy ? 'disabled' : ''}><i data-lucide="file-up" class="icon-16"></i> Browse File</button>
-          </div>`;
-    const dropzoneVisual = `
-      <div class="analyze-dropzone-visual ${this.busy ? 'scanning' : ''}" id="path-dropzone-visual">
-        <div class="analyze-dropzone-idle" ${this.busy ? 'hidden' : ''}>
-          ${folderDropzone}
-          <div class="analyze-dropzone-path-input" style="margin-top:12px;display:flex;gap:8px;align-items:center;width:100%;max-width:520px;">
-            <input type="text" id="project-path-input" class="analyze-path-input"
-              placeholder="${pathPlaceholder}"
-              value="${escapeHtml(formatPathInputValue(displayPath))}"
-              list="${pathList}"
-              spellcheck="false"
-              autocomplete="list"
-              aria-label="${pathAria}"
-              style="flex:1;font-size:0.8rem;padding:6px 10px;">
-            <button type="button" class="btn btn-primary btn-sm" id="dropzone-path-analyze-btn">Analyze</button>
-          </div>
-          ${datalist}
-          <p class="text-muted" style="font-size:0.65rem;margin-top:6px;text-align:center;">${isWeb ? 'Enter a public URL to scan a website.' : 'Browser folders hide drive letters — type the full path above for external drives.'}</p>
-        </div>
-        <div class="analyze-dropzone-terminal" ${this.busy ? '' : 'hidden'}>
-          <div class="analyze-dropzone-terminal-header">
-            <span class="analyze-dropzone-terminal-dot red"></span>
-            <span class="analyze-dropzone-terminal-dot yellow"></span>
-            <span class="analyze-dropzone-terminal-dot green"></span>
-            <span class="analyze-dropzone-terminal-title">Scanning…</span>
-          </div>
-          <div class="analyze-dropzone-terminal-body" id="dropzone-terminal-body">
-            ${this._terminalLogLines.map((line) => `<div class="terminal-line">${line}</div>`).join('')}
-          </div>
-        </div>
-      </div>`;
-    const fullTreeToggle = isWeb ? '' : `
-      <label class="analyze-full-tree-toggle text-muted" style="display:flex;align-items:center;gap:0.5rem;font-size:var(--font-size-xs);margin:var(--space-3) 0 0;">
-        <input type="checkbox" id="analyze-full-directory" aria-label="Analyze every file in the selected folder" ${this.fullDirectoryScan ? 'checked' : ''}>
-        <strong>Full tree</strong> — SHA-256 every file, content-scan all text, all gate rules
-      </label>`;
-    const quickCheck = isWeb ? '' : `
-      <div class="card analyze-dropzone${this.snippetBusy ? ' busy' : ''}" id="analyze-file-dropzone" style="margin-top:var(--space-3);">
-        <div class="analyze-dropzone-inner" style="padding:var(--space-5);">
-          <div class="analyze-dropzone-icon" aria-hidden="true"><i data-lucide="file-up" class="icon-20"></i></div>
-          <p class="card-title" style="margin-bottom:0.35rem;font-size:0.9rem;">Quick File Check</p>
-          <p class="text-muted analyze-file-drop-lead" style="font-size:var(--font-size-xs);margin-bottom:var(--space-2);">
-            Drop a source file or JSON report here for instant in-browser analysis.
-            Detects credentials, mock-path leaks, fiction KPIs, and LLM slop placeholders.
-          </p>
-          <p class="text-muted analyze-file-drop-hint" style="font-size:0.7rem;margin-bottom:var(--space-3);">
-            <span style="color:var(--text-secondary);background:rgba(99,102,241,0.08);padding:2px 8px;border-radius:4px;font-size:0.65rem;font-weight:600;text-transform:uppercase;">Supported</span>
-            ${escapeHtml(SNIPPET_ACCEPT.replace(/\./g, ' .'))} &middot; max ${Math.round(MAX_SNIPPET_BYTES / 1024)} KB
-          </p>
-          <div class="analyze-dropzone-actions">
-            <button type="button" class="btn btn-primary btn-sm" id="analyze-file-browse-btn-dropzone" ${this.snippetBusy ? 'disabled' : ''}><i data-lucide="upload" class="icon-16" style="margin-right:4px;"></i>Choose File</button>
-            <button type="button" class="btn btn-ghost btn-sm" id="analyze-file-clear-btn" ${this.snippetResult ? '' : 'disabled'}>Clear</button>
-          </div>
-          <input type="file" id="analyze-file-input" accept="${SNIPPET_ACCEPT}" hidden>
-        </div>
-        ${this.snippetResult ? this.renderSnippetResults(this.snippetResult) : ''}
-      </div>`;
     const pathSources = isWeb ? '' : this.renderPathSourceSections(defaultPath, displayPath);
 
     return `
-      <div class="card analyze-target-card" id="analyze-target-card">
-        <div class="card-header">
-          <span class="card-title">🎯 Target</span>
+      <style>
+        .analyze-target-redesign { border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface-elevated); overflow: hidden; }
+        .analyze-target-redesign .target-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--border); background: var(--surface); }
+        .analyze-target-redesign .target-title { font-size: 0.95rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+        .analyze-target-redesign .target-body { padding: 20px; }
+        .analyze-target-redesign .drop-zone { border: 2px dashed var(--border); border-radius: var(--radius-lg); background: var(--surface); padding: 28px 24px; text-align: center; transition: all .2s; position: relative; }
+        .analyze-target-redesign .drop-zone.drag-active { border-color: var(--primary); background: rgba(99,102,241,0.06); }
+        .analyze-target-redesign .drop-zone-icon { width: 48px; height: 48px; border-radius: 12px; background: rgba(99,102,241,0.1); color: var(--primary); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 12px; }
+        .analyze-target-redesign .drop-zone-title { font-size: 1rem; font-weight: 600; margin-bottom: 4px; }
+        .analyze-target-redesign .drop-zone-sub { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 16px; }
+        .analyze-target-redesign .drop-zone-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+        .analyze-target-redesign .path-row { display: flex; gap: 8px; align-items: center; max-width: 560px; margin: 18px auto 0; }
+        .analyze-target-redesign .path-row input { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 8px 12px; color: var(--text-primary); font-size: 0.85rem; }
+        .analyze-target-redesign .path-row button { flex-shrink: 0; }
+        .analyze-target-redesign .hint { text-align: center; font-size: 0.7rem; color: var(--text-muted); margin-top: 8px; }
+        .analyze-target-redesign .options-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+        .analyze-target-redesign .quick-file { border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); padding: 14px; margin-top: 14px; }
+        .analyze-target-redesign .quick-file-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .analyze-target-redesign .quick-file-title { font-size: 0.9rem; font-weight: 600; }
+        .analyze-target-redesign .quick-file-sub { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 10px; }
+        .analyze-target-redesign .quick-file-actions { display: flex; gap: 8px; }
+        .analyze-target-redesign .scanning-state { display: none; padding: 24px; text-align: center; }
+        .analyze-target-redesign .scanning-state.active { display: block; }
+        .analyze-target-redesign .scanning-state h3 { margin-bottom: 8px; }
+        .analyze-target-redesign .scanning-state p { color: var(--text-muted); font-size: 0.85rem; }
+      </style>
+
+      <div class="analyze-target-redesign" id="analyze-target-card">
+        <div class="target-header">
+          <span class="target-title"><span>🎯</span> Target</span>
           <div class="analyze-path-header-actions">
             <button type="button" class="btn btn-ghost btn-sm" id="use-default-path-btn" ${useDefaultHidden}>Use default</button>
             <button type="button" class="btn btn-ghost btn-sm" id="clear-path-btn">Clear</button>
           </div>
         </div>
 
-        <div class="analyze-path-area${dropzoneClass}" id="analyze-path-dropzone">
-          ${dropzoneVisual}
+        <div class="target-body">
+          <div class="drop-zone ${this.busy ? 'scanning' : ''}" id="analyze-path-dropzone">
+            <div class="drop-zone-idle" ${this.busy ? 'hidden' : ''}>
+              <div class="drop-zone-icon"><i data-lucide="folder-up" class="icon-24"></i></div>
+              <div class="drop-zone-title">Drop a project folder here</div>
+              <div class="drop-zone-sub">Or type a path, browse, or drop a file / JSON report</div>
+              <div class="drop-zone-actions">
+                <button type="button" class="btn btn-primary btn-sm" id="browse-dir-btn"><i data-lucide="folder-open" class="icon-16"></i> Browse Folder</button>
+                <button type="button" class="btn btn-secondary btn-sm" id="analyze-file-browse-btn-main" ${this.snippetBusy ? 'disabled' : ''}><i data-lucide="file-up" class="icon-16"></i> Browse File</button>
+              </div>
+              <div class="path-row">
+                <input type="text" id="project-path-input" class="analyze-path-input"
+                  placeholder="${pathPlaceholder}"
+                  value="${escapeHtml(formatPathInputValue(displayPath))}"
+                  list="${pathList}"
+                  spellcheck="false"
+                  autocomplete="list"
+                  aria-label="${pathAria}">
+                <button type="button" class="btn btn-primary btn-sm" id="dropzone-path-analyze-btn">Analyze</button>
+              </div>
+              ${datalist}
+              <p class="hint">${isWeb ? 'Enter a public URL to scan a website.' : 'Browser drag-and-drop cannot reveal full drive paths — use Browse Folder or type the path for best results.'}</p>
+            </div>
+            <div class="scanning-state ${this.busy ? 'active' : ''}">
+              <div class="drop-zone-icon"><i data-lucide="loader-2" class="icon-24" style="animation:spin 1s linear infinite;"></i></div>
+              <h3>Scanning…</h3>
+              <p id="dropzone-terminal-body">${this._terminalLogLines.map((line) => `<div class="terminal-line">${line}</div>`).join('')}</p>
+            </div>
+          </div>
+
+          <div class="options-row">
+            ${isWeb ? '' : `
+            <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.75rem;color:var(--text-muted);cursor:pointer;">
+              <input type="checkbox" id="analyze-full-directory" aria-label="Analyze every file in the selected folder" ${this.fullDirectoryScan ? 'checked' : ''}>
+              <strong>Full tree</strong> — SHA-256 every file, content-scan all text
+            </label>`}
+            <div id="analyze-inventory-provenance" style="margin-left:auto;">
+              ${this.renderInventoryProvenanceLine(displayPath)}
+            </div>
+          </div>
+
+          ${isWeb ? '' : `
+          <div class="quick-file" id="analyze-file-dropzone">
+            <div class="quick-file-head">
+              <i data-lucide="file-up" class="icon-18"></i>
+              <span class="quick-file-title">Quick file check</span>
+            </div>
+            <p class="quick-file-sub">Drop a source file or JSON report for instant in-browser analysis. Supports ${escapeHtml(SNIPPET_ACCEPT.replace(/\./g, ' .'))} · max ${Math.round(MAX_SNIPPET_BYTES / 1024)} KB.</p>
+            <div class="quick-file-actions">
+              <button type="button" class="btn btn-primary btn-sm" id="analyze-file-browse-btn-dropzone" ${this.snippetBusy ? 'disabled' : ''}><i data-lucide="upload" class="icon-16" style="margin-right:4px;"></i>Choose File</button>
+              <button type="button" class="btn btn-ghost btn-sm" id="analyze-file-clear-btn" ${this.snippetResult ? '' : 'disabled'}>Clear</button>
+            </div>
+            <input type="file" id="analyze-file-input" accept="${SNIPPET_ACCEPT}" hidden>
+            ${this.snippetResult ? this.renderSnippetResults(this.snippetResult) : ''}
+          </div>`}
+
+          ${pathSources}
         </div>
 
         <input type="file" id="browse-dir-input" webkitdirectory directory hidden>
-        <p class="analyze-path-hint text-muted">${pathHint}</p>
-
-        <div id="analyze-inventory-provenance" class="analyze-inventory-provenance-slot">
-          ${this.renderInventoryProvenanceLine(displayPath)}
-        </div>
-
-        ${fullTreeToggle}
-
-        ${pathSources}
       </div>
     `;
   }
@@ -2959,7 +2965,7 @@ export class AnalyzeView {
           <div class="analyze-engines-col">
             <h3 class="analyze-engines-col-title">EU AI Act profile extras</h3>
             <ul class="analyze-mode-steps">${euList}</ul>
-            <p class="text-muted" style="font-size: var(--font-size-xs); margin: 0.5rem 0 0;">Reference only — <a href="/eu-ai-act-sample-report" target="_blank" rel="noopener">sample report layout</a>. Active offers: <a href="#/deliverables">$499 PDF</a> and agency packs.</p>
+            <p class="text-muted" style="font-size: var(--font-size-xs); margin: 0.5rem 0 0;">Reference only — <a href="/eu-ai-act-sample-report" target="_blank" rel="noopener">sample report layout</a>. Active offers: <a href="/dashboard/deliverables">$499 PDF</a> and agency packs.</p>
           </div>
         </div>
         <hr style="border: none; border-top: 1px solid var(--border-color); margin: 1.5rem 0;">
@@ -4674,21 +4680,18 @@ export class AnalyzeView {
           pathDragDepth = 0;
         }
       });
-      pathDropzone.addEventListener('drop', (event) => {
+      pathDropzone.addEventListener('drop', async (event) => {
         event.preventDefault();
         event.stopPropagation();
         pathDragDepth = 0;
         pathDropzone.classList.remove('drag-active');
 
+        // Preload providers so defaultProjectPath is available for path resolution
+        try { await ensureAllowedAnalysisRoots(this.app); } catch { /* ignore */ }
+
         const items = event.dataTransfer?.items;
         const files = event.dataTransfer?.files;
 
-        // Helper: derive folder path from a file path inside that folder
-/**
- * Derive dir from file path.
- * @param {string} filePath
- * @returns {any}
- */
         const deriveDirFromFilePath = (filePath) => {
           if (!filePath) return '';
           const norm = filePath.replace(/\\/g, '/');
@@ -4696,21 +4699,12 @@ export class AnalyzeView {
           return lastSlash > 0 ? norm.slice(0, lastSlash) : norm;
         };
 
-        // Helper: get actual dropped folder path from OS dataTransfer or Electron
-/**
- * Get dropped folder path.
- * @returns {any}
- */
         const getDroppedFolderPath = () => {
           const dt = event.dataTransfer;
           if (!dt) return '';
-
-          // Try multiple data formats that OS file managers expose
           const tryGetData = (type) => {
             try { return dt.getData(type) || ''; } catch { return ''; }
           };
-
-          // 1. Windows Explorer / macOS Finder file:// URI
           const uriList = tryGetData('text/uri-list');
           if (uriList) {
             const uri = uriList.trim().split('\n')[0]?.trim();
@@ -4720,19 +4714,14 @@ export class AnalyzeView {
               return p.replace(/\//g, '\\');
             }
           }
-
-          // 2. text/plain — Windows Explorer sometimes drops the raw path here
           const plain = tryGetData('text/plain');
           if (plain) {
             let trimmed = plain.trim().split('\n')[0]?.trim();
-            // Windows Explorer may wrap paths in quotes
             trimmed = trimmed.replace(/^["']|["']$/g, '');
             if (trimmed && /^[a-zA-Z]:[\\\/]/.test(trimmed)) {
               return trimmed.replace(/[\\\/]+$/, '');
             }
           }
-
-          // 3. text/x-moz-url — Firefox specific
           const mozUrl = tryGetData('text/x-moz-url');
           if (mozUrl) {
             const url = mozUrl.trim().split('\n')[0]?.trim();
@@ -4742,12 +4731,9 @@ export class AnalyzeView {
               return p.replace(/\//g, '\\');
             }
           }
-
-          // 4. Electron / desktop wrappers: files inside the folder carry absolute paths
           if (files?.[0]?.path) {
             const filePath = String(files[0].path);
             const norm = filePath.replace(/\\/g, '/');
-            // The first file may be deep inside subdirectories; use entry.name to find the dropped folder boundary
             const folderName = files?.[0]?.name || '';
             if (folderName) {
               const idx = norm.indexOf(`/${folderName}/`);
@@ -4757,8 +4743,6 @@ export class AnalyzeView {
             }
             return deriveDirFromFilePath(filePath);
           }
-
-          // 5. Fallback: try converting the first item to a file and read its path
           if (items?.[0]) {
             try {
               const file = items[0].getAsFile?.();
@@ -4775,121 +4759,72 @@ export class AnalyzeView {
                 return deriveDirFromFilePath(filePath);
               }
             } catch {
-              // getAsFile may throw for directories in some browsers
+              // getAsFile may throw for directories
             }
           }
-
           return '';
         };
 
-        // Try File System API first (webkitGetAsEntry) for directory detection
+        const setPathAndNotify = (resolvedPath, name, autoRun = true) => {
+          const pathInput = el.querySelector('#project-path-input');
+          if (pathInput) {
+            pathInput.value = resolvedPath;
+            this.app.state.pathInputDraft = '';
+            this.app.state.lastProjectPath = resolvedPath;
+            this.setPathInputDisplay(pathInput, resolvedPath);
+            this.syncAnalyzeModeUi(el);
+            void this.refreshReportForActivePath(el);
+          }
+          showToast(`Folder "${name}" dropped — path set to ${resolvedPath}.`, 'info');
+          if (autoRun && resolvedPath) {
+            void this.runPathAnalysis(resolvedPath);
+          }
+        };
+
+        const resolveFolderPath = (name) => {
+          const actualDir = getDroppedFolderPath();
+          if (actualDir) return actualDir;
+          const pathInput = el.querySelector('#project-path-input');
+          const currentInput = String(pathInput?.value || '').trim();
+          const currentBase = currentInput
+            ? currentInput.replace(/\\/g, '/').replace(/\/+$/, '').split('/').slice(0, -1).join('/')
+            : '';
+          const rawDefault = String(this.app.state.defaultProjectPath || '')
+            .replace(/\\/g, '/')
+            .replace(/\/+$/, '');
+          const fallbackBase = String(this._deriveFallbackBase())
+            .replace(/\\/g, '/')
+            .replace(/\/+$/, '');
+          const base = rawDefault || currentBase || fallbackBase;
+          return base ? `${base}/${name}` : name;
+        };
+
         if (items?.length) {
           const entry = items[0].webkitGetAsEntry?.();
           if (entry) {
             if (entry.isDirectory) {
-              const pathInput = el.querySelector('#project-path-input');
               const name = entry.name || '';
-              const actualDir = getDroppedFolderPath();
-              const currentInput = this.resolveProjectPath(pathInput?.value);
-              const rawDefault = String(this.app.state.defaultProjectPath || this._deriveFallbackBase())
-                .replace(/\\/g, '/')
-                .replace(/\/+$/, '');
-              // If defaultProjectPath points to a specific project folder, use its parent
-              // as the default so dropped sibling folders don't get nested inside it.
-              const defaultParts = rawDefault.split('/').filter(Boolean);
-              const defaultPath = (defaultParts.length > 2 && !rawDefault.toLowerCase().endsWith('/users'))
-                ? defaultParts.slice(0, -1).join('/')
-                : rawDefault;
-              let suggestedPath;
-              if (actualDir) {
-                suggestedPath = actualDir;
-              } else {
-                // Browser: we only know the folder basename. Search for it in currentInput/defaultPath.
-/**
- * Search path.
- * @param {any} base
- * @returns {any}
- */
-                const searchPath = (base) => {
-                  if (!base || !name) return '';
-                  const norm = base.replace(/\\/g, '/').replace(/\/+$/, '');
-                  const parts = norm.split('/').filter(Boolean);
-                  const idx = parts.lastIndexOf(name);
-                  return idx >= 0 ? parts.slice(0, idx + 1).join('/') : '';
-                };
-                const foundPath = searchPath(currentInput) || searchPath(defaultPath);
-                if (foundPath) {
-                  suggestedPath = foundPath;
-                } else if (currentInput) {
-                  const currentParts = currentInput.replace(/\\/g, '/').split('/').filter(Boolean);
-                  const currentLeaf = currentParts[currentParts.length - 1] || '';
-                  // If currentInput already ends with the dropped folder name, keep it
-                  // (user may have already typed the correct cross-drive path).
-                  if (currentLeaf.toLowerCase() === name.toLowerCase()) {
-                    suggestedPath = currentInput;
-                  } else {
-                    // Browsers can't reveal absolute paths for dropped folders,
-                    // and guessing a sibling path on the current drive is wrong
-                    // for external drives (e.g. I:\). Ask the user for the full path.
-                    suggestedPath = name;
-                  }
-                } else {
-                  suggestedPath = name;
-                }
-              }
-              const trimmed = suggestedPath.trim();
-              if (pathInput) {
-                pathInput.value = trimmed;
-                this.app.state.pathInputDraft = '';
-                this.app.state.lastProjectPath = trimmed;
-                this.setPathInputDisplay(pathInput, trimmed);
-                this.syncAnalyzeModeUi(el);
-                void this.refreshReportForActivePath(el);
-              }
+              setPathAndNotify(resolveFolderPath(name), name);
               return;
             }
             if (entry.isFile && files?.length) {
-              // File dropped on path area -> send to file dropzone handler
               void this.handleAnalyzeFiles(files);
               return;
             }
           }
         }
 
-        // Fallback for browsers without File System API
         if (files?.length) {
           const file = files[0];
-          // Try OS dataTransfer URI first, then Electron file.path
           const dtUriPath = getDroppedFolderPath();
           if (dtUriPath) {
-            const pathInput = el.querySelector('#project-path-input');
-            if (pathInput) {
-              pathInput.value = dtUriPath;
-              this.app.state.pathInputDraft = '';
-              this.app.state.lastProjectPath = dtUriPath;
-              this.setPathInputDisplay(pathInput, dtUriPath);
-              this.syncAnalyzeModeUi(el);
-              void this.refreshReportForActivePath(el);
-              showToast(`Path set: ${dtUriPath} — starting scan…`, 'success');
-              void this.runPathAnalysis(dtUriPath);
-              return;
-            }
+            setPathAndNotify(dtUriPath, dtUriPath.split(/[\\/]/).pop() || 'folder');
+            return;
           }
           if (file.path) {
-            // Electron / desktop app — file.path is the first file inside a dropped folder
             const targetPath = deriveDirFromFilePath(file.path) || file.path;
-            const pathInput = el.querySelector('#project-path-input');
-            if (pathInput) {
-              pathInput.value = targetPath;
-              this.app.state.pathInputDraft = '';
-              this.app.state.lastProjectPath = targetPath;
-              this.setPathInputDisplay(pathInput, targetPath);
-              this.syncAnalyzeModeUi(el);
-              void this.refreshReportForActivePath(el);
-              showToast(`Path set: ${targetPath} — starting scan…`, 'success');
-              void this.runPathAnalysis(targetPath);
-              return;
-            }
+            setPathAndNotify(targetPath, targetPath.split(/[\\/]/).pop() || 'folder');
+            return;
           }
           // Single file -> quick check
           void this.handleAnalyzeFiles(files);
@@ -5163,8 +5098,19 @@ export class AnalyzeView {
             actualPath = lastSlash > 0 ? filePath.slice(0, filePath.lastIndexOf('\\') > 0 ? filePath.lastIndexOf('\\') : lastSlash) : filePath;
           }
 
-          // Only use a real path; never fabricate absolute paths from defaults
-          const resolvedPath = actualPath || name;
+          // Fallback to defaultProjectPath / current input / fallback base if no OS path
+          const currentInput = String(pathInput?.value || '').trim();
+          const currentBase = currentInput
+            ? currentInput.replace(/\\/g, '/').replace(/\/+$/, '').split('/').slice(0, -1).join('/')
+            : '';
+          const rawDefault = String(this.app.state.defaultProjectPath || '')
+            .replace(/\\/g, '/')
+            .replace(/\/+$/, '');
+          const fallbackBase = String(this._deriveFallbackBase())
+            .replace(/\\/g, '/')
+            .replace(/\/+$/, '');
+          const base = rawDefault || currentBase || fallbackBase;
+          const resolvedPath = actualPath || (base ? `${base}/${name}` : name);
           if (pathInput) {
             pathInput.value = resolvedPath;
             this.app.state.pathInputDraft = '';
@@ -5173,7 +5119,7 @@ export class AnalyzeView {
             this.syncAnalyzeModeUi(el);
             void this.refreshReportForActivePath(el);
           }
-          showToast(`Folder "${name}" dropped — path set to ${resolvedPath}. Press Enter or click Run Scan to start.`, 'info');
+          showToast(`Folder "${name}" dropped — path set to ${resolvedPath}. Press Enter or click Analyze to start.`, 'info');
           return;
         }
       }
@@ -6884,7 +6830,7 @@ export class AnalyzeView {
 
   renderAuditExportCallout() {
     if (this.lastResult?.kind === 'eu-ai-act') {
-      return `<p class="text-muted mb-3" style="font-size: var(--font-size-sm);"><strong>Reference EU layout.</strong> PDF is built from <code>.simplebeacon/eu-ai-act-*.json</code> sprint artifacts — not the $499 pre-launch security handoff. Active offers: <a href="#/deliverables">$499 PDF</a> and agency packs.</p>`;
+      return `<p class="text-muted mb-3" style="font-size: var(--font-size-sm);"><strong>Reference EU layout.</strong> PDF is built from <code>.simplebeacon/eu-ai-act-*.json</code> sprint artifacts — not the $499 pre-launch security handoff. Active offers: <a href="/dashboard/deliverables">$499 PDF</a> and agency packs.</p>`;
     }
     if (this.lastResult?.kind === 'complete' && this.hasEuAiActSprintResult()) {
       return `<p class="text-muted mb-3" style="font-size: var(--font-size-sm);"><strong>EU AI Act sprint included.</strong> Use <strong>Download EU PDF</strong> for the regulatory readiness report (step 11). <strong>Download audit PDF</strong> is the corporate executive / gate handoff — not the EU layout.</p>`;
@@ -6901,7 +6847,36 @@ export class AnalyzeView {
   }
 
   wrapAnalyzeResults(content) {
-    return `${this.renderResultsExportBar()}${content || ''}`;
+    const funnelHtml = this.renderFunnelTrigger();
+    return `${this.renderResultsExportBar()}${content || ''}${funnelHtml}`;
+  }
+
+  renderFunnelTrigger() {
+    const report = this.lastResult?.report || this.lastResult?.scan;
+    if (!report) return '';
+
+    const metrics = {
+      files_scanned: report.filesScanned ?? report.fictionJsonFilesScanned ?? 0,
+      total_files: this.repositoryInventory?.totalFiles ?? report.totalFiles ?? 0,
+      quality_score: report.qualityScore ?? report.gate?.score ?? 0,
+      findings: report.rawIssues || report.detectedIssues || []
+    };
+
+    const funnel = evaluateFunnelMetrics(metrics);
+    if (!funnel.shouldPromptUpgrade) return '';
+
+    const copy = getFunnelCopy(funnel.reason);
+    return `
+      <div class="card mb-4" style="border-left: 4px solid var(--accent-primary);">
+        <div class="section-heading">
+          <h3>${escapeHtml(copy.title)}</h3>
+        </div>
+        <p class="text-muted">${escapeHtml(copy.body)}</p>
+        <button class="btn btn-primary" onclick="window.open('https://simplebeacon.ai/pricing','_blank')">
+          ${escapeHtml(copy.cta)}
+        </button>
+      </div>
+    `;
   }
 
   renderScanDownloadActions({

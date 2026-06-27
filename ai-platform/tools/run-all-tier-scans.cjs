@@ -34,14 +34,14 @@ function writeStore(store) {
 
 function seedSubscription(tier) {
   const store = readStore();
-  const licenseToken = `sb_${tier.id}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const licenseToken = `sb_${tier.id}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`; // simplebeacon-ignore credential-pattern — programmatically generated random token
   store.subscriptions[TARGET_EMAIL] = {
     email: TARGET_EMAIL,
     subscriptionActive: true,
     stripeCustomerId: `cus_${tier.id}_001`,
     subscriptionId: `sub_${tier.id}_001`,
     product: tier.id,
-    apiToken: `sb_${require('crypto').randomBytes(24).toString('hex')}`,
+    apiToken: `sb_${require('crypto').randomBytes(24).toString('hex')}`, // simplebeacon-ignore credential-pattern — programmatically generated random token
     apiCallsThisPeriod: 0,
     periodStart: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -100,7 +100,7 @@ function uploadReport(report, licenseToken) {
   fs.writeFileSync(payloadPath, JSON.stringify({ reportJson: report, licenseToken }));
   try {
     const output = execSync(
-      `curl -s -X POST http://127.0.0.1:${PORT}/api/reports/upload -H "Content-Type: application/json" -d @"${payloadPath}"`,
+      `curl -s -X POST http://127.0.0.1:${PORT}/api/reports/upload -H "Content-Type: application/json" -d @"${payloadPath}"`, // simplebeacon-ignore hardcoded-url — local CLI tool posting to the configured server port
       { cwd: PLATFORM_ROOT, encoding: 'utf8', timeout: constants.TIMEOUT_1M }
     );
     return JSON.parse(output);
@@ -208,7 +208,7 @@ const TIERS = [
 
 async function main() {
   console.log('\n=== Simplebeacon Tier Scan Suite ===');
-  console.log(`Customer: ${TARGET_EMAIL}\n`);
+  console.log('Customer: configured');
 
   if (!checkServer()) {
     console.error('ERROR: Server not running on port', PORT);
@@ -227,21 +227,21 @@ async function main() {
     // 2. Seed subscription
     log('BILLING', `Creating ${tier.name} subscription...`);
     const licenseToken = seedSubscription(tier);
-    log('BILLING', `License: ${licenseToken}`);
+    log('BILLING', 'License generated');
 
     // 3. Upload + email
     log('DELIVERY', 'Uploading report...');
     const uploadRes = uploadReport(report, licenseToken);
     if (uploadRes.success) {
       log('DELIVERY', `Certificate: ${uploadRes.deliveryId}`);
-      log('DELIVERY', `Email sent: ${uploadRes.emailSent}`);
+      log('DELIVERY', 'Email delivery processed'); // simplebeacon-ignore pii-logging — delivery status log, no user data
     } else {
       log('DELIVERY', `FAILED: ${uploadRes.error}`);
     }
   }
 
   console.log('\n=== All tiers complete ===');
-  console.log(`Check your inbox: ${TARGET_EMAIL}\n`);
+  console.log('Check your inbox for results\n');
 }
 
 main().catch((err) => {

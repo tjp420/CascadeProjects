@@ -165,7 +165,6 @@ async function attachUnderstandingToCodebaseReport(report, projectPath, options 
 
     for (const rel of topFiles) {
         const abs = path.join(analysisRoot, rel);
-        if (!fs.existsSync(abs)) continue;
         try {
             const content = await fs.promises.readFile(abs, 'utf8');
             const understanding = await understandCodeSnippet(content, {

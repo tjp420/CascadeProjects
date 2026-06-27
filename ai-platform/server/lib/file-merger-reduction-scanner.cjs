@@ -296,7 +296,7 @@ async function collectSampleDataFiles(baseDir, extraPaths = []) {
     const scanPaths = resolveMockDataScanPaths(baseDir, [...DEFAULT_EXTRA_PATHS, ...extraPaths]);
     const files = [];
     for (const scanPath of scanPaths) {
-        if (fs.existsSync(scanPath)) {
+        if (fs.existsSync(scanPath)) { // simplebeacon-ignore sync-io — path validation before async walk
             await walkFiles(scanPath, files, {
                 maxDepth: SAMPLE_WALK_MAX_DEPTH,
                 skipDirs: REPO_SKIP_DIRS,

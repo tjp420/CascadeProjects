@@ -98,8 +98,8 @@ if (require.main === module && process.argv.includes('--manual')) {
         model: 'gpt-4',
         messages: [{ role: 'user', content: 'My SSN is 123-45-6789 and card 4111-1111-1111-1111' }]
     }).then((response) => {
-        logger.info('Status:', response.status);
-        logger.info('Body:', response.body);
+        logger.info('Status received');
+        logger.info('Body received');
     }).catch((error) => {
         logger.error('Gateway test failed. Start with: npm run dlp:start');
         logger.error(error.message);

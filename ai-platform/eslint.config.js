@@ -17,7 +17,11 @@ export default [
       globals: {
         ...globals.node,
         ...globals.browser,
-        ...globals.jest
+        ...globals.jest,
+        escapeHtml: 'readonly',
+        formatPercent: 'readonly',
+        formatNumber: 'readonly',
+        pass: 'readonly'
       }
     },
     rules: {

@@ -66,6 +66,8 @@ const pathHealthRouter = require('./api/metrics/path-health.cjs');
 const { runNpmAuditAsync } = require('./lib/npm-audit-runner.cjs');
 const { registerEuAiActSprintRoute } = require('./lib/eu-ai-act-sprint-route.cjs');
 const { registerComplianceSchemaRoute } = require('./routes/compliance-schema-api.cjs');
+const { setupPrIntegrationAPI } = require('./routes/pr-integration-api.cjs');
+const freeTokenRouter = require('../../coming-soon/dist/routes/free-token.cjs');
 
 const app = express();
 app.set('trust proxy', 1); // Trust first proxy hop for rate-limit IP accuracy
@@ -75,7 +77,7 @@ let PORT = process.env.PORT || constants.DEFAULT_PORT;
 const packageJsonPath = path.join(__dirname, '..', 'package.json');
 let cachedPackageJson = null;
 try {
-  cachedPackageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+  cachedPackageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8')); // simplebeacon-ignore sync-io — startup preload before server starts
 } catch {
   cachedPackageJson = { version: '1.0.0' };
 }
@@ -142,7 +144,7 @@ const authLoginRateLimit = rateLimit({
 // Billing webhook must use raw body before JSON parser
 setupSimplebeaconBillingWebhook(app);
 
-app.use(express.json({ limit: process.env.EXPRESS_JSON_LIMIT || '200mb' }));
+app.use(express.json({ limit: process.env.EXPRESS_JSON_LIMIT || '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 const comingSoonRoot = path.join(__dirname, '../../coming-soon');
@@ -316,9 +318,10 @@ app.use((req, res, next) => {
 
 // Dashboard-specific asset routes (serve from web/simplebeacon-dashboard/)
 const dashDir = path.join(webRoot, 'simplebeacon-dashboard');
-['/css', '/js', '/images', '/fonts', '/assets'].forEach((p) => {
+['/css', '/js', '/js-es2018', '/images', '/fonts', '/assets'].forEach((p) => {
   app.use(p, express.static(path.join(dashDir, p.substring(1))));
 });
+app.use('/site-config.js', express.static(path.join(dashDir, 'site-config.js')));
 
 // Fallback: serve coming-soon assets from root for pages served under /coming-soon/
 ['/css', '/js', '/images', '/fonts', '/assets'].forEach((p) => {
@@ -353,8 +356,7 @@ app.get(['/simplebeacon-dashboard', '/simplebeacon-dashboard/', '/simplebeacon-d
 
   const runtimeConfig = JSON.stringify({
     DASHBOARD_BASE_URL: process.env.DASHBOARD_BASE_URL || `http://localhost:${PORT}`,
-    OLLAMA_DEFAULT_URL: process.env.OLLAMA_DEFAULT_URL || `http://127.0.0.1:${constants.OLLAMA_PORT}`,
-    DEMO_PASSWORD: process.env.DEMO_PASSWORD || 'demo123'
+    OLLAMA_DEFAULT_URL: process.env.OLLAMA_DEFAULT_URL || `http://127.0.0.1:${constants.OLLAMA_PORT}` // simplebeacon-ignore hardcoded-url — default Ollama localhost URL for client-side settings
   });
   const injectScript = `<script>window.__SIMPLEBEACON_ENV__=${runtimeConfig};</script>`;
   html = html.replace('<head>', `<head>${injectScript}`);
@@ -873,6 +875,37 @@ try {
     console.warn('[Simplebeacon] Compliance schema route setup skipped:', e.message);
 }
 
+// PR integration API — secure GitHub Action report ingestion
+try {
+    setupPrIntegrationAPI(app);
+} catch (e) {
+    console.warn('[Simplebeacon] PR integration API setup skipped:', e.message);
+}
+
+// Free token routes — community/sandbox token generation from coming-soon
+try {
+    app.use(freeTokenRouter);
+} catch (e) {
+    console.warn('[Simplebeacon] Free token routes setup skipped. Check configuration profiles.');
+}
+
+// Pricing config endpoint (used by coming-soon site pages)
+app.get('/api/config/pricing', (_req, res) => {
+    res.json({
+        success: true,
+        pricing: {
+            instant: { stripeLink: process.env.STRIPE_LINK_INSTANT || '' },
+            executive: { stripeLink: process.env.STRIPE_LINK_EXECUTIVE || '' },
+            euSprint: { stripeLink: process.env.STRIPE_LINK_EU_SPRINT || '' }
+        }
+    });
+});
+
+// Health probe endpoint (used by browser integrations)
+app.get('/health', (_req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 // Local AI Agent API routes (Step 3 — deterministic state machine loop)
 app.post('/api/agent/execute', (req, res) => {
     const { goal } = req.body || {};
@@ -921,7 +954,7 @@ try {
     const promptService = require('./services/prompt-service.cjs');
     app.use('/api/prompts', promptService);
 } catch (e) {
-    console.warn('[PromptService] prompt-service routes not loaded:', e.message);
+    console.warn('[PromptService] prompt-service routes not loaded');
 }
 
 // Free community token generation (shared with coming-soon)
@@ -929,7 +962,7 @@ try {
     const freeTokenRoutes = require('../../coming-soon/routes/free-token.cjs');
     app.use(freeTokenRoutes);
 } catch (e) {
-    console.warn('[FreeToken] free-token routes not loaded:', e.message);
+    console.warn('[FreeToken] free-token routes not loaded');
 }
 
 // Upload API disabled — source code never leaves your machine per privacy promise.

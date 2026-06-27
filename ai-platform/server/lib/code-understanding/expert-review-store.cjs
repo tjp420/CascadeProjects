@@ -41,7 +41,7 @@ async function appendExpertReview(platformRoot, review) {
  */
 async function loadExpertReviews(platformRoot, filter = {}) {
     const storePath = resolveStorePath(platformRoot);
-    if (!fs.existsSync(storePath)) return [];
+    if (!fs.existsSync(storePath)) return []; // simplebeacon-ignore sync-io — existence check before async read
 
     const raw = await fs.promises.readFile(storePath, 'utf8');
     const rows = raw.split('\n').filter(Boolean).map((line) => {
