@@ -5,4 +5,9 @@ dist/
 __test_dashboard*.html
 .vscode-test/
 *.restore
+.simplebeacon/
+*.simplebeacon-backup.*
+simplebeacon-report*
+progress.txt
+.vsix-patch-temp/
 

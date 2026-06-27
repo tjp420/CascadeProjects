@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SimpleBeacon Dashboard</title>
+<style>
+:root{
+  --bg: var(--vscode-editor-background, #1e1e1e);
+  --fg: var(--vscode-foreground, #cccccc);
+  --panel: var(--vscode-panel-background, #252526);
+  --border: var(--vscode-panel-border, #3c3c3c);
+  --accent: var(--vscode-focusBorder, #007acc);
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --info: #75beff;
+  --muted: var(--vscode-descriptionForeground, #858585);
+  --font: var(--vscode-font-family, -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--fg);font-family:var(--font);font-size:13px;overflow:hidden}
+#app{height:100vh;display:flex;flex-direction:column}
+
+/* Header */
+header{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:1px solid var(--border);background:var(--panel);flex-shrink:0}
+header h1{font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px}
+header h1 .logo{width:22px;height:22px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff}
+.badge{font-size:11px;font-weight:600;padding:3px 10px;border-radius:999px;background:rgba(99,102,241,0.12);color:var(--accent);border:1px solid rgba(99,102,241,0.2)}
+
+/* Layout */
+main{flex:1;display:grid;grid-template-columns:260px 1fr;overflow:hidden}
+.sidebar{padding:16px;border-right:1px solid var(--border);overflow-y:auto;flex-shrink:0}
+.content{padding:20px;overflow-y:auto;flex:1}
+
+/* Sidebar Nav */
+.nav-group{margin-bottom:16px}
+.nav-title{font-size:10px;font-weight:700;text-transform:uppercase;color:var(--muted);letter-spacing:0.5px;margin-bottom:8px;padding:0 8px}
+.nav-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;color:var(--fg);text-decoration:none;font-size:12px;cursor:pointer;border:none;background:transparent;width:100%;text-align:left}
+.nav-item:hover{background:rgba(255,255,255,0.04)}
+.nav-item.active{background:rgba(99,102,241,0.12);color:var(--accent);font-weight:600}
+.nav-item .icon{font-size:14px}
+
+/* Cards */
+.card{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:16px}
+.card-title{font-size:13px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+.card-subtitle{font-size:11px;color:var(--muted);margin-top:-8px;margin-bottom:12px}
+
+/* Metrics Grid */
+.metrics-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:16px}
+.metric-card{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center;transition:transform 0.15s}
+.metric-card:hover{transform:translateY(-2px)}
+.metric-value{font-size:26px;font-weight:700;line-height:1}
+.metric-label{font-size:11px;color:var(--muted);margin-top:6px;text-transform:uppercase;letter-spacing:0.3px}
+.metric-delta{font-size:11px;margin-top:4px;font-weight:600}
+
+/* Gate Banner */
+.gate-banner{padding:12px 16px;border-radius:8px;margin-bottom:16px;display:flex;align-items:center;gap:12px;font-size:13px;font-weight:600}
+.gate-pass{background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);color:var(--success)}
+.gate-fail{background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);color:var(--danger)}
+.gate-na{background:rgba(255,255,255,0.03);border:1px solid var(--border);color:var(--muted)}
+
+/* Chart Bars */
+.chart{display:flex;align-items:flex-end;gap:4px;height:80px;padding:8px 0}
+.chart-bar{flex:1;border-radius:4px 4px 0 0;min-height:4px;position:relative;transition:height 0.5s ease}
+.chart-bar:hover{opacity:0.85}
+.chart-labels{display:flex;justify-content:space-between;margin-top:4px;font-size:10px;color:var(--muted)}
+
+/* Issue List */
+.issue-list{list-style:none}
+.issue-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.03)}
+.issue-item:last-child{border-bottom:none}
+.issue-sev{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.issue-sev.critical{background:var(--danger)}
+.issue-sev.high{background:var(--warning)}
+.issue-sev.medium{background:#d18616}
+.issue-sev.low{background:var(--info)}
+.issue-text{flex:1;min-width:0}
+.issue-type{font-size:12px;font-weight:500}
+.issue-file{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.issue-empty{text-align:center;padding:24px;color:var(--muted);font-size:13px}
+
+/* Buttons */
+.btn{padding:6px 12px;border-radius:6px;border:1px solid var(--border);background:var(--panel);color:var(--fg);font-size:12px;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{background:rgba(255,255,255,0.04)}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-primary:hover{opacity:0.9;background:var(--accent)}
+.btn-sm{padding:4px 8px;font-size:11px}
+
+/* Empty State */
+.empty-state{text-align:center;padding:40px 20px}
+.empty-state .icon{font-size:40px;margin-bottom:12px;opacity:0.3}
+.empty-state p{color:var(--muted);font-size:13px}
+.empty-state .btn{margin-top:12px}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1><span class="logo">&#x1F6E1;</span> SimpleBeacon Dashboard</h1>
+    <span class="badge" id="gateBadge">Loading...</span>
+  </header>
+  <main>
+    <aside class="sidebar">
+      <div class="nav-group">
+        <div class="nav-title">Overview</div>
+        <button type="button" class="nav-item active" data-page="overview"><span class="icon">&#x1F4CA;</span> Overview</button>
+        <button type="button" class="nav-item" data-page="issues"><span class="icon">&#x1F4CB;</span> Issues</button>
+        <button type="button" class="nav-item" data-page="files"><span class="icon">&#x1F4C1;</span> Files</button>
+      </div>
+      <div class="nav-group">
+        <div class="nav-title">Actions</div>
+        <button type="button" class="nav-item" id="actionScan"><span class="icon">&#x1F50D;</span> Scan Workspace</button>
+        <div style="padding:0 8px;margin-bottom:4px;">
+          <select id="dashboardExportFormat" style="width:100%;padding:4px 6px;border-radius:4px;border:1px solid var(--border);background:var(--panel);color:var(--fg);font-size:11px;cursor:pointer;margin-bottom:4px;">
+            <option value="csv">CSV</option>
+            <option value="json">JSON</option>
+            <option value="txt">TXT</option>
+          </select>
+        </div>
+        <button type="button" class="nav-item" id="actionExport"><span class="icon">&#x1F4E4;</span> Export Report</button>
+        <button type="button" class="nav-item" id="actionSettings"><span class="icon">&#x2699;</span> Settings</button>
+      </div>
+    </aside>
+    <section class="content" id="mainContent">
+      <!-- Dynamic content injected here -->
+    </section>
+  </main>
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  // --- State ---
+  var report = window.__SB_INITIAL_DATA__ || {};
+  var currentPage = 'overview';
+
+  // --- Helpers ---
+  function $(id){ return document.getElementById(id); }
+  function ce(tag, cls){ var el = document.createElement(tag); if(cls) el.className = cls; return el; }
+
+  function renderOverview(){
+    var sc = report.severityCounts || report.severity_count || {};
+    var score = report.qualityScore !== undefined ? report.qualityScore : 'N/A';
+    var gate = report.gate || {};
+    var files = report.totalFiles || report.total_files || report.filesAnalyzed || 0;
+    var issues = report.detectedIssues || report.rawIssues || report.issues || [];
+    var critical = sc.critical || 0, high = sc.high || 0, medium = sc.medium || 0, low = sc.low || 0;
+
+    // Gate banner
+    var gateClass = gate.pass === true ? 'gate-pass' : (gate.pass === false ? 'gate-fail' : 'gate-na');
+    var gateText = gate.pass === true ? 'Gate: PASS' : (gate.pass === false ? 'Gate: FAIL' : 'Gate: N/A');
+    var gateIcon = gate.pass === true ? '&#x2714;' : (gate.pass === false ? '&#x2718;' : '&#x25CF;');
+
+    // Build severity bar chart
+    var maxVal = Math.max(critical, high, medium, low, 1);
+    var barHtml = '<div class="chart">' +
+      '<div class="chart-bar" style="height:' + (critical/maxVal*100) + '%;background:var(--danger)"></div>' +
+      '<div class="chart-bar" style="height:' + (high/maxVal*100) + '%;background:var(--warning)"></div>' +
+      '<div class="chart-bar" style="height:' + (medium/maxVal*100) + '%;background:#d18616"></div>' +
+      '<div class="chart-bar" style="height:' + (low/maxVal*100) + '%;background:var(--info)"></div>' +
+      '</div><div class="chart-labels"><span>Critical</span><span>High</span><span>Medium</span><span>Low</span></div>';
+
+    var html = '';
+    html += '<div class="gate-banner ' + gateClass + '"><span>' + gateIcon + '</span> ' + gateText + '</div>';
+    html += '<div class="metrics-grid">' +
+      '<div class="metric-card"><div class="metric-value" style="color:' + (typeof score==='number'?(score>=80?'var(--success)':score>=50?'var(--warning)':'var(--danger)'):'var(--muted)') + '">' + score + '</div><div class="metric-label">Quality Score</div></div>' +
+      '<div class="metric-card"><div class="metric-value" style="color:var(--danger)">' + critical + '</div><div class="metric-label">Critical</div></div>' +
+      '<div class="metric-card"><div class="metric-value" style="color:var(--warning)">' + high + '</div><div class="metric-label">High</div></div>' +
+      '<div class="metric-card"><div class="metric-value" style="color:#d18616">' + medium + '</div><div class="metric-label">Medium</div></div>' +
+      '<div class="metric-card"><div class="metric-value" style="color:var(--info)">' + low + '</div><div class="metric-label">Low</div></div>' +
+      '<div class="metric-card"><div class="metric-value">' + files + '</div><div class="metric-label">Files</div></div>' +
+      '</div>';
+
+    html += '<div class="card"><div class="card-title">Severity Breakdown</div>' + barHtml + '</div>';
+
+    html += '<div class="card"><div class="card-title">Recent Issues <span style="color:var(--muted);font-weight:400">(' + issues.length + ')</span></div>';
+    if (issues.length === 0) {
+      html += '<div class="issue-empty">No issues found. Run a scan to see results.</div>';
+    } else {
+      html += '<ul class="issue-list">';
+      var shown = issues.slice(0, 8);
+      for (var i = 0; i < shown.length; i++) {
+        var iss = shown[i];
+        var sev = (iss.severity || 'low').toLowerCase();
+        html += '<li class="issue-item"><span class="issue-sev ' + sev + '"></span><div class="issue-text"><div class="issue-type">' + (iss.type || iss.category || 'Unknown') + '</div><div class="issue-file">' + (iss.file || iss.filePath || iss.path || '-') + '</div></div></li>';
+      }
+      if (issues.length > 8) {
+        html += '<li class="issue-item" style="justify-content:center"><button type="button" class="btn btn-sm" id="viewAllIssues">View all ' + issues.length + ' issues</button></li>';
+      }
+      html += '</ul>';
+    }
+    html += '</div>';
+
+    $('mainContent').innerHTML = html;
+
+    // Bind view all
+    var va = $('viewAllIssues');
+    if (va) va.addEventListener('click', function(){ switchPage('issues'); });
+
+    // Update gate badge in header
+    $('gateBadge').textContent = gateText;
+    $('gateBadge').style.color = gate.pass === true ? 'var(--success)' : (gate.pass === false ? 'var(--danger)' : 'var(--muted)');
+    $('gateBadge').style.background = gate.pass === true ? 'rgba(16,185,129,0.12)' : (gate.pass === false ? 'rgba(239,68,68,0.12)' : 'rgba(255,255,255,0.03)');
+    $('gateBadge').style.border = '1px solid ' + (gate.pass === true ? 'rgba(16,185,129,0.2)' : (gate.pass === false ? 'rgba(239,68,68,0.2)' : 'var(--border)'));
+  }
+
+  function renderIssues(){
+    var issues = report.detectedIssues || report.rawIssues || report.issues || [];
+    var html = '<div class="card"><div class="card-title">All Issues <span style="color:var(--muted);font-weight:400">(' + issues.length + ')</span></div>';
+    if (issues.length === 0) {
+      html += '<div class="empty-state"><div class="icon">&#x1F4CB;</div><p>No issues found. Run a scan to detect issues.</p><button type="button" class="btn btn-primary" id="scanFromIssues">Run Scan</button></div>';
+    } else {
+      html += '<ul class="issue-list">';
+      for (var i = 0; i < issues.length; i++) {
+        var iss = issues[i];
+        var sev = (iss.severity || 'low').toLowerCase();
+        html += '<li class="issue-item"><span class="issue-sev ' + sev + '"></span><div class="issue-text"><div class="issue-type">' + (iss.type || iss.category || 'Unknown') + '</div><div class="issue-file">' + (iss.file || iss.filePath || iss.path || '-') + ' — ' + (iss.description || iss.message || '') + '</div></div></li>';
+      }
+      html += '</ul>';
+    }
+    html += '</div>';
+    $('mainContent').innerHTML = html;
+    var sfi = $('scanFromIssues');
+    if (sfi) sfi.addEventListener('click', function(){ sendCommand('scan'); });
+  }
+
+  function renderFiles(){
+    var files = report.totalFiles || report.total_files || report.filesAnalyzed || 0;
+    var html = '<div class="card"><div class="card-title">Files Scanned</div>' +
+      '<div class="metric-card" style="margin:0 auto;max-width:200px"><div class="metric-value">' + files + '</div><div class="metric-label">Total Files</div></div>' +
+      '</div>';
+    $('mainContent').innerHTML = html;
+  }
+
+  function switchPage(page){
+    currentPage = page;
+    document.querySelectorAll('.nav-item[data-page]').forEach(function(el){
+      el.classList.toggle('active', el.getAttribute('data-page') === page);
+    });
+    if (page === 'overview') renderOverview();
+    else if (page === 'issues') renderIssues();
+    else if (page === 'files') renderFiles();
+  }
+
+  function sendCommand(cmd){
+    // VS Code: webview: use acquireVsCodeApi directly (window.vscode is not set in standalone dashboard)
+    if (typeof acquireVsCodeApi === 'function') {
+      try { acquireVsCodeApi().postMessage({command: cmd}); return; } catch(e) { console.error('[SB Dashboard] acquireVsCodeApi failed:', e); }
+    }
+    if (window.vscode) {
+      try { window.vscode.postMessage({command: cmd}); } catch(e) { console.error('[SB Dashboard] vscode.postMessage failed:', e); }
+      return;
+    }
+    if (window.parent && window.parent !== window) {
+      try { window.parent.postMessage({command: cmd}, '*'); } catch(e) { console.error('[SB Dashboard] parent.postMessage failed:', e); }
+      return;
+    }
+    // Browser fallback: use relay server
+    var rp = window._relayPort || 3001;
+    if (cmd === 'scan' || cmd === 'scanWorkspace') {
+      fetch('http://localhost:'+rp+'/api/trigger-scan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({command:'scanWorkspace',source:'dashboard'})}).catch(function(){});
+      setTimeout(function(){window.location.reload();},3000);
+    } else if (cmd === 'export') {
+      exportDashboardReport();
+    } else if (cmd === 'openSettings') {
+      window.location.href = 'http://localhost:'+rp+'/settings';
+    }
+  }
+
+  function exportDashboardReport(){
+    var issues = report.detectedIssues || report.rawIssues || report.issues || [];
+    if (!issues.length) { alert('No findings to export.'); return; }
+    var fmtEl = document.getElementById('dashboardExportFormat');
+    var fmt = fmtEl ? fmtEl.value : 'csv';
+    var date = new Date().toISOString().slice(0,10);
+    var fname = 'simplebeacon-dashboard-' + date;
+    if (fmt === 'json') {
+      var content = JSON.stringify({exportDate: date, findings: issues}, null, 2);
+      var blob = new Blob([content], {type: 'application/json'});
+      downloadBlob(blob, fname + '.json');
+      return;
+    }
+    if (fmt === 'txt') {
+      var txt = 'SimpleBeacon Report\nDate: ' + date + '\nFindings: ' + issues.length + '\n\n';
+      for (var i = 0; i < issues.length; i++) {
+        var iss = issues[i];
+        txt += (i+1) + '. [' + (iss.severity||'low').toUpperCase() + '] ' + (iss.type||iss.category||'Issue') + ': ' + (iss.description||iss.message||'') + '\n  File: ' + (iss.file||iss.filePath||iss.path||'-') + '\n';
+      }
+      var blob2 = new Blob([txt], {type: 'text/plain'});
+      downloadBlob(blob2, fname + '.txt');
+      return;
+    }
+    var csv = 'Severity,Type,Description,File\n';
+    for (var i = 0; i < issues.length; i++) {
+      var iss = issues[i];
+      csv += '"'+(iss.severity||'low')+'","'+(iss.type||iss.category||'Issue')+'","'+((iss.description||iss.message||'').replace(/"/g,'""'))+'","'+(iss.file||iss.filePath||iss.path||'-')+'"\n';
+    }
+    var blob3 = new Blob([csv], {type: 'text/csv'});
+    downloadBlob(blob3, fname + '.csv');
+  }
+  function downloadBlob(blob, filename){
+    // VS Code: webview: read blob and post to extension host
+    if (typeof acquireVsCodeApi === 'function') {
+      var reader = new FileReader();
+      reader.onload = function() {
+        try {
+          acquireVsCodeApi().postMessage({ command: 'downloadFile', filename: filename, content: reader.result, mimeType: blob.type || 'application/octet-stream' });
+        } catch(e) { console.error('[SB Dashboard] downloadFile post failed:', e); }
+      };
+      reader.readAsText(blob);
+      return;
+    }
+    // Browser
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  // --- Event Bindings ---
+  document.querySelectorAll('.nav-item[data-page]').forEach(function(el){
+    el.addEventListener('click', function(){ switchPage(el.getAttribute('data-page')); });
+  });
+
+  var actionScan = $('actionScan');
+  if (actionScan) actionScan.addEventListener('click', function(){ sendCommand('scan'); });
+
+  var actionExport = $('actionExport');
+  if (actionExport) actionExport.addEventListener('click', function(){ sendCommand('export'); });
+
+  var actionSettings = $('actionSettings');
+  if (actionSettings) actionSettings.addEventListener('click', function(){ sendCommand('openSettings'); });
+
+  // --- Message Handling ---
+  window.addEventListener('message', function(e){
+    var msg = e.data;
+    if (!msg) return;
+    if (msg.command === 'updateReport' && msg.report) {
+      report = msg.report;
+      switchPage(currentPage);
+    }
+    if (msg.command === 'updateStatus') {
+      // Could show toast here
+    }
+  });
+
+  // --- Init ---
+  renderOverview();
+})();
+</script>
+</body>
+</html>

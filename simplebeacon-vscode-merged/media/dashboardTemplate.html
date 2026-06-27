@@ -154,11 +154,11 @@
 
   <!-- Actions -->
   <div class="actions anim anim-d1">
-    <button class="btn btn-primary" data-cmd="scanWorkspace">&#128256; Scan Workspace</button>
-    <button class="btn" data-cmd="exportReport">&#128196; Export</button>
-    <button class="btn" data-cmd="exportAIReport">&#129302; Export for AI</button>
-    <button class="btn" data-cmd="showRemediationGuide">&#128214; Fix Guide</button>
-    <button class="btn" data-cmd="generateCertificate">&#9989; Certificate</button>
+    <button type="button" class="btn btn-primary" data-cmd="scanWorkspace">&#128256; Scan Workspace</button>
+    <button type="button" class="btn" data-cmd="exportReport">&#128196; Export</button>
+    <button type="button" class="btn" data-cmd="exportAIReport">&#129302; Export for AI</button>
+    <button type="button" class="btn" data-cmd="showRemediationGuide">&#128214; Fix Guide</button>
+    <button type="button" class="btn" data-cmd="generateCertificate">&#9989; Certificate</button>
   </div>
 
   <!-- Metrics -->
@@ -278,7 +278,7 @@ function render(findings){
       '<td><span class="badge '+sevBadges[f.sev]+'">'+f.sev+'</span></td>'+
       '<td>'+esc(f.desc)+'</td>'+
       '<td><span class="f-link" data-file="'+esc(f.file)+'" data-line="'+(f.line||1)+'">'+(f.file?f.file.split(/[\\/]/).pop()+(f.line?':'+f.line:'') :'—')+'</span></td>'+
-      '<td>'+(f.patternId&&['debugArtifacts','innerHtmlXss','unhandledPromise','dbAntiPattern','typeSafetyAny','insecureRandom'].includes(f.patternId)?'<button class="fix-btn" data-pid="'+f.patternId+'" data-file="'+esc(f.file)+'" data-line="'+(f.line||1)+'">Suggest Fix</button>':'—')+'</td>';
+      '<td>'+(f.patternId&&['debugArtifacts','innerHtmlXss','unhandledPromise','dbAntiPattern','typeSafetyAny','insecureRandom'].includes(f.patternId)?'<button type="button" class="fix-btn" data-pid="'+f.patternId+'" data-file="'+esc(f.file)+'" data-line="'+(f.line||1)+'">Suggest Fix</button>':'—')+'</td>';
     findingsBody.appendChild(tr);
   });
   findingsBody.querySelectorAll('.f-link').forEach(l=>l.addEventListener('click',()=>{const f=l.dataset.file,ln=Number(l.dataset.line)||1;if(f)vscode.postMessage({command:'openFile',file:f,line:ln})}));

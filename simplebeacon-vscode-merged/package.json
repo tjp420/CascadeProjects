@@ -7,18 +7,11 @@
     "type": "git",
     "url": "https://github.com/simplebeacon/simplebeacon-vscode.git"
   },
-  "version": "3.0.22",
+  "version": "3.0.309",
   "publisher": "simplebeacon",
   "engines": {
     "vscode": "^1.84.0"
   },
-  "files": [
-    "out/",
-    "media/",
-    "README.md",
-    "CHANGELOG.md",
-    "LICENSE"
-  ],
   "categories": [
     "Testing",
     "Machine Learning",
@@ -50,6 +43,12 @@
         "icon": "$(search)"
       },
       {
+        "command": "simplebeacon.setScanPath",
+        "title": "Set Default Scan Path",
+        "category": "SimpleBeacon",
+        "icon": "$(folder-opened)"
+      },
+      {
         "command": "simplebeacon.clearResults",
         "title": "Clear Results",
         "category": "SimpleBeacon",
@@ -60,6 +59,12 @@
         "title": "Open Settings Panel",
         "category": "SimpleBeacon",
         "icon": "$(gear)"
+      },
+      {
+        "command": "simplebeacon.refreshRelayPort",
+        "title": "Refresh Relay Port",
+        "category": "SimpleBeacon",
+        "icon": "$(extensions-refresh)"
       },
       {
         "command": "simplebeacon.showReport",
@@ -98,6 +103,12 @@
         "icon": "$(export)"
       },
       {
+        "command": "simplebeacon.loadReport",
+        "title": "Load Report (JSON)",
+        "category": "SimpleBeacon",
+        "icon": "$(file-add)"
+      },
+      {
         "command": "simplebeacon.enhancedAnalysis",
         "title": "Enhanced AI Analysis",
         "category": "SimpleBeacon",
@@ -120,12 +131,6 @@
         "title": "Model Health Status",
         "category": "SimpleBeacon",
         "icon": "$(heart)"
-      },
-      {
-        "command": "simplebeacon.showCodeMap",
-        "title": "Show Code Map",
-        "category": "SimpleBeacon",
-        "icon": "$(map)"
       },
       {
         "command": "simplebeacon.showRemediationGuide",
@@ -182,10 +187,28 @@
         "icon": "$(globe)"
       },
       {
+        "command": "simplebeacon.openGitHub",
+        "title": "Open GitHub Repository",
+        "category": "SimpleBeacon",
+        "icon": "$(github)"
+      },
+      {
+        "command": "simplebeacon.openDocs",
+        "title": "Open Documentation",
+        "category": "SimpleBeacon",
+        "icon": "$(book)"
+      },
+      {
         "command": "simplebeacon.openInternalDashboard",
         "title": "Open Dashboard in IDE",
         "category": "SimpleBeacon",
         "icon": "$(screen-full)"
+      },
+      {
+        "command": "simplebeacon.openDashboard40",
+        "title": "Open Dashboard 4.0",
+        "category": "SimpleBeacon",
+        "icon": "$(layout)"
       },
       {
         "command": "simplebeacon.scanFolder",
@@ -229,6 +252,24 @@
         "icon": "$(browser)"
       },
       {
+        "command": "simplebeacon.openDashboardPreview",
+        "title": "Open Dashboard Preview",
+        "category": "SimpleBeacon",
+        "icon": "$(browser)"
+      },
+      {
+        "command": "simplebeacon.sendSelectionToSidebar",
+        "title": "Scan Selected Code",
+        "category": "SimpleBeacon",
+        "icon": "$(code)"
+      },
+      {
+        "command": "simplebeacon.openUrlInPreview",
+        "title": "Open URL in Preview",
+        "category": "SimpleBeacon",
+        "icon": "$(browser)"
+      },
+      {
         "command": "simplebeacon.openAiContext",
         "title": "Open AI Context File",
         "category": "SimpleBeacon",
@@ -239,6 +280,12 @@
         "title": "Send Scan to AI Agent",
         "category": "SimpleBeacon",
         "icon": "$(robot)"
+      },
+      {
+        "command": "simplebeacon.openAIChatbot",
+        "title": "Open AI Coding Agent",
+        "category": "SimpleBeacon",
+        "icon": "$(comment-discussion)"
       },
       {
         "command": "simplebeacon.refreshDashboard",
@@ -258,40 +305,67 @@
         "icon": "$(tools)"
       },
       {
+        "command": "simplebeacon.shareCleanBadge",
+        "title": "SimpleBeacon: Copy 'AI Slop Cop Clean' Repository Badge",
+        "category": "SimpleBeacon",
+        "icon": "$(copy)"
+      },
+      {
         "command": "simplebeacon.openStandaloneDebug",
         "title": "Open Standalone Debug",
         "category": "SimpleBeacon",
         "icon": "$(debug)"
+      },
+      {
+        "command": "simplebeacon.refreshRelayPort",
+        "title": "Refresh Relay Port",
+        "category": "SimpleBeacon",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "simplebeacon.showWelcome",
+        "title": "Show Welcome Dashboard",
+        "category": "SimpleBeacon",
+        "icon": "$(home)"
       }
     ],
+    "views": {
+      "simplebeacon-sidebar": [
+        {
+          "type": "webview",
+          "id": "simplebeacon-modern",
+          "name": "SimpleBeacon",
+          "icon": "$(shield)",
+          "contextualTitle": "SimpleBeacon"
+        }
+      ],
+      "explorer": [
+        {
+          "type": "webview",
+          "id": "simplebeacon-modern-explorer",
+          "name": "SimpleBeacon",
+          "icon": "$(shield)",
+          "contextualTitle": "SimpleBeacon",
+          "when": "true"
+        }
+      ],
+      "secondarySidebar": [
+        {
+          "type": "webview",
+          "id": "simplebeacon-ai-chatbot",
+          "name": "AI Coding Agent",
+          "icon": "$(comment-discussion)",
+          "contextualTitle": "AI Coding Agent",
+          "when": "true"
+        }
+      ]
+    },
     "viewsContainers": {
       "activitybar": [
         {
           "id": "simplebeacon-sidebar",
           "title": "SimpleBeacon",
           "icon": "$(shield)"
-        }
-      ]
-    },
-    "views": {
-      "simplebeacon-sidebar": [
-        {
-          "id": "simplebeacon-modern",
-          "name": "SimpleBeacon",
-          "type": "webview",
-          "icon": "$(shield)"
-        }
-      ],
-      "explorer": [
-        {
-          "id": "simplebeacon-summary",
-          "name": "SimpleBeacon",
-          "icon": "$(shield)"
-        },
-        {
-          "id": "simplebeacon-roadmap",
-          "name": "Roadmap",
-          "icon": "$(tasklist)"
         }
       ]
     },
@@ -324,34 +398,38 @@
         {
           "command": "simplebeacon.setServerUrl",
           "when": "true"
+        },
+        {
+          "command": "simplebeacon.openAIChatbot",
+          "when": "true"
         }
       ],
-      "activitybar/context": [
+      "editor/context": [
         {
-          "command": "simplebeacon.openSettings",
-          "when": "view == simplebeacon-sidebar",
-          "group": "navigation"
+          "command": "simplebeacon.sendSelectionToSidebar",
+          "when": "editorHasSelection",
+          "group": "simplebeacon@1"
         }
       ],
       "view/title": [
         {
           "command": "simplebeacon.scanWorkspace",
-          "when": "view == simplebeacon-modern || view == simplebeacon-summary || view == simplebeacon-roadmap",
+          "when": "view == simplebeacon-modern",
           "group": "navigation@1"
         },
         {
           "command": "simplebeacon.clearResults",
-          "when": "view == simplebeacon-modern || view == simplebeacon-summary || view == simplebeacon-roadmap",
+          "when": "view == simplebeacon-modern",
           "group": "navigation@2"
         },
         {
           "command": "simplebeacon.showReport",
-          "when": "view == simplebeacon-modern || view == simplebeacon-summary || view == simplebeacon-roadmap",
+          "when": "view == simplebeacon-modern",
           "group": "navigation@3"
         },
         {
           "command": "simplebeacon.setApiToken",
-          "when": "view == simplebeacon-modern || view == simplebeacon-summary || view == simplebeacon-roadmap",
+          "when": "view == simplebeacon-modern",
           "group": "navigation@4"
         }
       ],
@@ -371,10 +449,35 @@
           "default": false,
           "description": "Automatically scan workspace when opening VS Code"
         },
-        "simplebeacon.autoOpenPreviewPanel": {
+        "simplebeacon.showWelcomeOnLoad": {
           "type": "boolean",
           "default": false,
+          "description": "Show the Welcome dashboard every time the AI Slop Cop extension loads"
+        },
+        "simplebeacon.displayMode": {
+          "type": "string",
+          "enum": [
+            "mainWindow",
+            "sidebar"
+          ],
+          "default": "sidebar",
+          "description": "Where to display SimpleBeacon tabs: mainWindow = VS Code panel with tabs, sidebar = activity bar sidebar"
+        },
+        "simplebeacon.autoOpenPreviewPanel": {
+          "type": "boolean",
+          "default": true,
           "description": "Automatically open the standalone preview panel when the sidebar loads"
+        },
+        "simplebeacon.afterAnalysisAction": {
+          "type": "string",
+          "enum": [
+            "none",
+            "notify",
+            "sidebar",
+            "panel"
+          ],
+          "default": "notify",
+          "description": "What to display after an analysis completes: none, notify, sidebar dashboard, or main window panel"
         },
         "simplebeacon.browserOpenMode": {
           "type": "string",
@@ -406,6 +509,11 @@
           "type": "number",
           "default": 5000,
           "description": "Maximum number of files to scan"
+        },
+        "simplebeacon.scanIncludeAllFiles": {
+          "type": "boolean",
+          "default": false,
+          "description": "When true, scan all files in the selected path (disable built-in exclusions like test files and scripts)."
         },
         "simplebeacon.excludePatterns": {
           "type": "array",
@@ -440,6 +548,43 @@
           "type": "boolean",
           "default": false,
           "description": "Enable real-time code monitoring"
+        },
+        "simplebeacon.preset": {
+          "type": "string",
+          "default": "default",
+          "enum": [
+            "default",
+            "ai-only",
+            "low-noise"
+          ],
+          "enumDescriptions": [
+            "Default sensitivity — all realtime rule engines enabled",
+            "AI slop patterns only — suppress security/code-quality noise",
+            "High-confidence only — suppress stylistic and low-confidence matches"
+          ],
+          "description": "Select the scanning sensitivity rule preset."
+        },
+        "simplebeacon.confidenceThreshold": {
+          "type": "string",
+          "default": "medium",
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ],
+          "enumDescriptions": [
+            "0.4 floor — include exploratory/low-confidence matches",
+            "0.6 floor — balanced noise/accuracy (default)",
+            "0.85 floor — only explicit, high-confidence signatures"
+          ],
+          "description": "Minimum confidence level required to report an AI slop finding."
+        },
+        "simplebeacon.minConfidence": {
+          "type": "number",
+          "default": 0.6,
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Minimum confidence threshold for AI slop detection alerts (0.0 = all patterns, 1.0 = only explicit signatures). Overridden by confidenceThreshold when set."
         },
         "simplebeacon.realtimeFileTypes": {
           "type": "array",
@@ -565,7 +710,7 @@
           "default": 55444,
           "minimum": 1024,
           "maximum": 65535,
-          "description": "Port for the browser preview relay server. Change if port 55444 is unavailable."
+          "description": "Port for the browser preview relay server (default 55444)."
         },
         "simplebeacon.dataServerPort": {
           "type": "number",
@@ -573,6 +718,36 @@
           "minimum": 1024,
           "maximum": 65535,
           "description": "Port for the remote data API server. Exposes all extension data via HTTP/SSE on this port."
+        },
+        "simplebeacon.deepScan": {
+          "type": "boolean",
+          "default": false,
+          "description": "Deep scan mode — bypass docs/vendor/cache filters (only .simplebeaconignore + 500MB limit applies)"
+        },
+        "simplebeacon.includeDeps": {
+          "type": "boolean",
+          "default": false,
+          "description": "Include node_modules and .git in scan (slower, more noise)"
+        },
+        "simplebeacon.scanMode": {
+          "type": "string",
+          "default": "full",
+          "enum": [
+            "full",
+            "gate",
+            "quick"
+          ],
+          "enumDescriptions": [
+            "Full scan — all rule engines, full directory walk",
+            "Gate scan — production paths only, fast quality gate check",
+            "Quick scan — skip heavy AST engines, fastest feedback"
+          ],
+          "description": "Scan mode controlling depth and rule coverage"
+        },
+        "simplebeacon.enableReferralPrompts": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show a subtle success prompt when a repository achieves a perfect 100/100 quality score."
         }
       }
     }
@@ -583,23 +758,31 @@
     "watch": "tsc -watch -p ./",
     "test": "jest",
     "test:coverage": "jest --coverage",
+    "test:vscode": "npm run compile && node ./out/test/runTest.js",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\"",
     "verify:scan": "node ../scripts/verify-scan.js",
-    "verify:all": "npm run compile && node ../scripts/verify-scan.js && npx @vscode/vsce package --out simplebeacon-test.vsix"
+    "verify:all": "npm run compile && node ../scripts/verify-scan.js && npx @vscode/vsce package --out simplebeacon-test.vsix",
+    "package:vsix": "npm run compile && npx @vscode/vsce package --out simplebeacon-3.0.309.vsix",
+    "test:dashboard": "node ./__extract_html.cjs && node ./__test_server.cjs"
   },
   "devDependencies": {
+    "@types/glob": "^8.1.0",
     "@types/jest": "^30.0.0",
+    "@types/mocha": "^10.0.10",
     "@types/node": "^20.0.0",
     "@types/vscode": "^1.84.0",
     "@typescript-eslint/eslint-plugin": "^8.61.1",
     "@typescript-eslint/parser": "^8.61.1",
+    "@vscode/test-electron": "^3.0.0",
     "eslint": "^10.5.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.6",
+    "glob": "^13.0.6",
     "jest": "^30.4.2",
+    "mocha": "^11.7.6",
     "prettier": "^3.8.4",
     "ts-jest": "^29.4.11",
     "typescript": "^5.3.0"

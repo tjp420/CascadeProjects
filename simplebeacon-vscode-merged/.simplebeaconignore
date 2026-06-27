@@ -19,12 +19,24 @@ node_modules/
 out/
 dist/
 *.vsix
+releases/
+.vscode-test/
+
+# Archived code — legacy, not part of active codebase
+archive/
+../coming-soon/archive/
 
 # SimpleBeacon artifacts
 .simplebeacon/
 
 # Markdown docs — code fence syntax is not a leak
 *.md
+
+# Third-party vendored libraries
+media/d3.v7.min.js
+
+# VS Code: extension panel — localhost URLs are intentional relay server communication
+media/panel.js
 
 # Dev scripts
 build-extension.js
@@ -33,6 +45,42 @@ replace-dashboard.js
 # Test fixtures and logs
 *.log
 coverage/
+simplebeacon-rule-tests/
+
+# CLI scripts — console.log is expected output mechanism
+scripts/
+
+# Internal tools — debug logging is expected behavior
+ai-agent/
+
+# Frameworkless app
+simplebeacon-frameworkless/
+
+# Archive files
+../coming-soon/archive/
+
+# Pattern documentation — contains example credential strings for documentation
+coming-soon/js/dashboard/pattern-documentation.js
+coming-soon/js/dashboard/quick-actions.js
+coming-soon/public/js/dashboard/pattern-documentation.js
+coming-soon/public/js/dashboard/quick-actions.js
+
+# LocalStorage key name (not a real credential)
+coming-soon/js/dashboard/main.js
+coming-soon/public/js/dashboard/main.js
 
 # Lockfile
 package-lock.json
+
+# Test files — console.log is expected in test/debug scripts
+test_*.js
+test_*.py
+
+# Build-time validation script — brace balance checker (false positive for eval)
+validate-html.js
+
+# Standard MIT license headers (not governance violations)
+src/enhancedScanProvider.ts
+
+# UI data labels containing "EU AI Act" (not governance violations)
+src/dashboardDataExtractor.ts

@@ -1,0 +1,457 @@
+{
+  "files": [
+    {
+      "id": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+      "name": "modernSidebarProvider.ts",
+      "path": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+      "size": 139143,
+      "lines": 2755,
+      "language": "typescript",
+      "complexity": 2755,
+      "issues": [
+        {
+          "type": "var-declaration",
+          "severity": "low",
+          "description": "var declaration found",
+          "filePath": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+          "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+          "line": 1187,
+          "message": "var declaration found",
+          "patternId": "var-declaration"
+        },
+        {
+          "type": "var-declaration",
+          "severity": "low",
+          "description": "var declaration found",
+          "filePath": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+          "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+          "line": 1187,
+          "message": "var declaration found",
+          "patternId": "var-declaration"
+        },
+        {
+          "type": "var-declaration",
+          "severity": "low",
+          "description": "var declaration found",
+          "filePath": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+          "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+          "line": 1421,
+          "message": "var declaration found",
+          "patternId": "var-declaration"
+        },
+        {
+          "type": "var-declaration",
+          "severity": "low",
+          "description": "var declaration found",
+          "filePath": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+          "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+          "line": 1429,
+          "message": "var declaration found",
+          "patternId": "var-declaration"
+        },
+        {
+          "type": "var-declaration",
+          "severity": "low",
+          "description": "var declaration found",
+          "filePath": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+          "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+          "line": 1429,
+          "message": "var declaration found",
+          "patternId": "var-declaration"
+        },
+        {
+          "type": "var-declaration",
+          "severity": "low",
+          "description": "var declaration found",
+          "filePath": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+          "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+          "line": 1516,
+          "message": "var declaration found",
+          "patternId": "var-declaration"
+        },
+        {
+          "type": "innerhtml-usage",
+          "severity": "medium",
+          "description": "innerHTML usage detected",
+          "filePath": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+          "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+          "line": 2707,
+          "message": "innerHTML usage detected",
+          "patternId": "innerhtml-usage"
+        },
+        {
+          "type": "innerhtml-usage",
+          "severity": "medium",
+          "description": "innerHTML usage detected",
+          "filePath": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+          "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+          "line": 2716,
+          "message": "innerHTML usage detected",
+          "patternId": "innerhtml-usage"
+        },
+        {
+          "type": "innerhtml-usage",
+          "severity": "medium",
+          "description": "innerHTML usage detected",
+          "filePath": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+          "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+          "line": 2728,
+          "message": "innerHTML usage detected",
+          "patternId": "innerhtml-usage"
+        },
+        {
+          "type": "innerhtml-usage",
+          "severity": "medium",
+          "description": "innerHTML usage detected",
+          "filePath": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+          "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+          "line": 2741,
+          "message": "innerHTML usage detected",
+          "patternId": "innerhtml-usage"
+        },
+        {
+          "type": "import-blocks",
+          "severity": "low",
+          "description": "Large import block (possibly AI-generated)",
+          "filePath": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+          "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+          "line": 1,
+          "message": "Large import block (possibly AI-generated)",
+          "patternId": "import-blocks"
+        }
+      ],
+      "patterns": [],
+      "metrics": {}
+    },
+    {
+      "id": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\simplebeacon-3.0.22.vsix",
+      "name": "simplebeacon-3.0.22.vsix",
+      "path": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\simplebeacon-3.0.22.vsix",
+      "size": 564327,
+      "lines": 2341,
+      "language": "unknown",
+      "complexity": 2341,
+      "issues": [
+        {
+          "type": "encoding-issue",
+          "severity": "medium",
+          "description": "Character encoding issue detected",
+          "filePath": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\simplebeacon-3.0.22.vsix",
+          "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\simplebeacon-3.0.22.vsix",
+          "line": 1,
+          "message": "Character encoding issue detected",
+          "patternId": "encoding-issue"
+        }
+      ],
+      "patterns": [],
+      "metrics": {}
+    }
+  ],
+  "dependencies": [],
+  "patterns": [],
+  "issues": [
+    {
+      "id": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts-1187",
+      "type": "var-declaration",
+      "severity": "low",
+      "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+      "line": 1187,
+      "description": "var declaration found",
+      "category": "general",
+      "patternId": "var-declaration"
+    },
+    {
+      "id": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts-1187",
+      "type": "var-declaration",
+      "severity": "low",
+      "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+      "line": 1187,
+      "description": "var declaration found",
+      "category": "general",
+      "patternId": "var-declaration"
+    },
+    {
+      "id": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts-1421",
+      "type": "var-declaration",
+      "severity": "low",
+      "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+      "line": 1421,
+      "description": "var declaration found",
+      "category": "general",
+      "patternId": "var-declaration"
+    },
+    {
+      "id": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts-1429",
+      "type": "var-declaration",
+      "severity": "low",
+      "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+      "line": 1429,
+      "description": "var declaration found",
+      "category": "general",
+      "patternId": "var-declaration"
+    },
+    {
+      "id": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts-1429",
+      "type": "var-declaration",
+      "severity": "low",
+      "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+      "line": 1429,
+      "description": "var declaration found",
+      "category": "general",
+      "patternId": "var-declaration"
+    },
+    {
+      "id": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts-1516",
+      "type": "var-declaration",
+      "severity": "low",
+      "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+      "line": 1516,
+      "description": "var declaration found",
+      "category": "general",
+      "patternId": "var-declaration"
+    },
+    {
+      "id": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts-2707",
+      "type": "innerhtml-usage",
+      "severity": "medium",
+      "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+      "line": 2707,
+      "description": "innerHTML usage detected",
+      "category": "general",
+      "patternId": "innerhtml-usage"
+    },
+    {
+      "id": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts-2716",
+      "type": "innerhtml-usage",
+      "severity": "medium",
+      "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+      "line": 2716,
+      "description": "innerHTML usage detected",
+      "category": "general",
+      "patternId": "innerhtml-usage"
+    },
+    {
+      "id": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts-2728",
+      "type": "innerhtml-usage",
+      "severity": "medium",
+      "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+      "line": 2728,
+      "description": "innerHTML usage detected",
+      "category": "general",
+      "patternId": "innerhtml-usage"
+    },
+    {
+      "id": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts-2741",
+      "type": "innerhtml-usage",
+      "severity": "medium",
+      "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+      "line": 2741,
+      "description": "innerHTML usage detected",
+      "category": "general",
+      "patternId": "innerhtml-usage"
+    },
+    {
+      "id": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts-1",
+      "type": "import-blocks",
+      "severity": "low",
+      "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+      "line": 1,
+      "description": "Large import block (possibly AI-generated)",
+      "category": "general",
+      "patternId": "import-blocks"
+    },
+    {
+      "id": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\simplebeacon-3.0.22.vsix-1",
+      "type": "encoding-issue",
+      "severity": "medium",
+      "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\simplebeacon-3.0.22.vsix",
+      "line": 1,
+      "description": "Character encoding issue detected",
+      "category": "general",
+      "patternId": "encoding-issue"
+    }
+  ],
+  "metrics": {
+    "totalFiles": 2,
+    "totalIssues": 12,
+    "totalPatterns": 0,
+    "totalDependencies": 0,
+    "severityCounts": {
+      "low": 7,
+      "medium": 5
+    },
+    "languageCounts": {
+      "typescript": 1,
+      "unknown": 1
+    },
+    "avgComplexity": 2548,
+    "healthScore": 0
+  },
+  "layout": {
+    "nodes": [
+      {
+        "id": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+        "label": "modernSidebarProvider.ts",
+        "x": -25,
+        "y": 315,
+        "size": 40,
+        "color": "#F44336",
+        "data": {
+          "id": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+          "name": "modernSidebarProvider.ts",
+          "path": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+          "size": 139143,
+          "lines": 2755,
+          "language": "typescript",
+          "complexity": 2755,
+          "issues": [
+            {
+              "type": "var-declaration",
+              "severity": "low",
+              "description": "var declaration found",
+              "filePath": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+              "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+              "line": 1187,
+              "message": "var declaration found",
+              "patternId": "var-declaration"
+            },
+            {
+              "type": "var-declaration",
+              "severity": "low",
+              "description": "var declaration found",
+              "filePath": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+              "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+              "line": 1187,
+              "message": "var declaration found",
+              "patternId": "var-declaration"
+            },
+            {
+              "type": "var-declaration",
+              "severity": "low",
+              "description": "var declaration found",
+              "filePath": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+              "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+              "line": 1421,
+              "message": "var declaration found",
+              "patternId": "var-declaration"
+            },
+            {
+              "type": "var-declaration",
+              "severity": "low",
+              "description": "var declaration found",
+              "filePath": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+              "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+              "line": 1429,
+              "message": "var declaration found",
+              "patternId": "var-declaration"
+            },
+            {
+              "type": "var-declaration",
+              "severity": "low",
+              "description": "var declaration found",
+              "filePath": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+              "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+              "line": 1429,
+              "message": "var declaration found",
+              "patternId": "var-declaration"
+            },
+            {
+              "type": "var-declaration",
+              "severity": "low",
+              "description": "var declaration found",
+              "filePath": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+              "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+              "line": 1516,
+              "message": "var declaration found",
+              "patternId": "var-declaration"
+            },
+            {
+              "type": "innerhtml-usage",
+              "severity": "medium",
+              "description": "innerHTML usage detected",
+              "filePath": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+              "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+              "line": 2707,
+              "message": "innerHTML usage detected",
+              "patternId": "innerhtml-usage"
+            },
+            {
+              "type": "innerhtml-usage",
+              "severity": "medium",
+              "description": "innerHTML usage detected",
+              "filePath": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+              "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+              "line": 2716,
+              "message": "innerHTML usage detected",
+              "patternId": "innerhtml-usage"
+            },
+            {
+              "type": "innerhtml-usage",
+              "severity": "medium",
+              "description": "innerHTML usage detected",
+              "filePath": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+              "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+              "line": 2728,
+              "message": "innerHTML usage detected",
+              "patternId": "innerhtml-usage"
+            },
+            {
+              "type": "innerhtml-usage",
+              "severity": "medium",
+              "description": "innerHTML usage detected",
+              "filePath": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+              "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+              "line": 2741,
+              "message": "innerHTML usage detected",
+              "patternId": "innerhtml-usage"
+            },
+            {
+              "type": "import-blocks",
+              "severity": "low",
+              "description": "Large import block (possibly AI-generated)",
+              "filePath": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+              "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\modernSidebarProvider.ts",
+              "line": 1,
+              "message": "Large import block (possibly AI-generated)",
+              "patternId": "import-blocks"
+            }
+          ],
+          "patterns": [],
+          "metrics": {}
+        }
+      },
+      {
+        "id": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\simplebeacon-3.0.22.vsix",
+        "label": "simplebeacon-3.0.22.vsix",
+        "x": 434,
+        "y": 374,
+        "size": 40,
+        "color": "#FFC107",
+        "data": {
+          "id": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\simplebeacon-3.0.22.vsix",
+          "name": "simplebeacon-3.0.22.vsix",
+          "path": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\simplebeacon-3.0.22.vsix",
+          "size": 564327,
+          "lines": 2341,
+          "language": "unknown",
+          "complexity": 2341,
+          "issues": [
+            {
+              "type": "encoding-issue",
+              "severity": "medium",
+              "description": "Character encoding issue detected",
+              "filePath": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\simplebeacon-3.0.22.vsix",
+              "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\simplebeacon-3.0.22.vsix",
+              "line": 1,
+              "message": "Character encoding issue detected",
+              "patternId": "encoding-issue"
+            }
+          ],
+          "patterns": [],
+          "metrics": {}
+        }
+      }
+    ],
+    "edges": []
+  }
+}
