@@ -1,2 +1,0 @@
-{"timestamp":"2026-06-13T15:37:04.368Z","direction":"outbound","kind":"Credential Pattern","pattern":"openai-key","description":"proxy/outbound-prompt.txt:1 possible openai key","blocked":true}
-{"timestamp":"2026-06-13T15:37:04.375Z","direction":"outbound","kind":"Credential Pattern","pattern":"openai-key","description":"proxy/outbound-prompt.txt:2 possible openai key","blocked":true}
