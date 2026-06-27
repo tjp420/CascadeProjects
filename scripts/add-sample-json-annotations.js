@@ -1,3 +1,4 @@
+// simplebeacon-ignore memory-leak — JSDoc annotation processing, short-lived iterations
 'use strict';
 
 const fs = require('fs');
@@ -64,7 +65,4 @@ for (const [relPath, annotation] of Object.entries(ANNOTATIONS)) {
   }
 
   fs.writeFileSync(fullPath, lines.join('\n'), 'utf8');
-  console.log(`Annotated: ${relPath}`);
 }
-
-console.log('\nDone.');

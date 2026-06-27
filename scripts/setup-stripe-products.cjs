@@ -13,7 +13,7 @@ const Stripe = require('stripe');
 
 const secretKey = process.env.STRIPE_SECRET_KEY;
 if (!secretKey) {
-    console.error('Set STRIPE_SECRET_KEY env var first.');
+    console.error('Set STRIPE_SECRET_KEY env var first.'); // simplebeacon-ignore pii-logging — CLI usage message, not data logging
     process.exit(1);
 }
 

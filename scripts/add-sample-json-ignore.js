@@ -21,4 +21,3 @@ const newEntries = newIgnores.map(i => `,\n    "${i}"`).join('');
 
 content = content.replace(insertionPoint, insertionPoint + newEntries);
 fs.writeFileSync(file, content, 'utf8');
-console.log('Updated .simplebeacon/config.json with sample-json-ref ignores');

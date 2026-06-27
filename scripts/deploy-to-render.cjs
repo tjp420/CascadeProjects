@@ -21,7 +21,7 @@ const RENDER_YAML = path.join(ROOT, 'render.yaml');
 
 function checkFile(filePath, label) {
   if (!fs.existsSync(filePath)) {
-    console.error(`❌ Missing ${label}: ${filePath}`);
+    console.error(`❌ Missing ${label}: ${filePath}`); // simplebeacon-ignore debug-artifact — intentional CLI error reporting
     process.exit(1);
   }
   console.log(`✅ ${label} found`);

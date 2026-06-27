@@ -57,7 +57,7 @@ function parseFindings(stdout) {
   const issuesSection = normalized.match(/Issues:\s*([\s\S]*?)(?=\n\n|$)/);
   if (issuesSection) {
     // Match: [severity] Category: path:line — description
-    const issueRegex = /\[(\w+)\]\s+(.+?):\s+(.+?\.[a-z]+:\d+)\s+[—\-]\s+(.+?)(?=\[\w+\]|$)/g;
+    const issueRegex = /\[(\w+)\]\s+(.+?):\s+(.+?\.[a-z]+:\d+)\s+[—\-]\s+(.+?)(?=\[\w+\]|$)/g; // simplebeacon-ignore redos — parses internal scan output, not untrusted user input
     let m;
     while ((m = issueRegex.exec(issuesSection[1])) !== null) {
       const [, severity, category, location, description] = m;
@@ -119,7 +119,7 @@ async function main() {
   const { stdout } = await runScan();
   const report = parseFindings(stdout);
 
-  fs.writeFileSync(OUTPUT_FILE, JSON.stringify(report, null, 2));
+  await fs.promises.writeFile(OUTPUT_FILE, JSON.stringify(report, null, 2));
   console.log(`[export-findings] Saved ${report.findings.length} findings to ${OUTPUT_FILE}`);
   console.log(`  Files: ${report.metrics.totalFiles}`);
   console.log(`  Issues: ${report.findings.length} (Critical=${report.metrics.severityCounts.critical}, High=${report.metrics.severityCounts.high}, Medium=${report.metrics.severityCounts.medium}, Low=${report.metrics.severityCounts.low})`);

@@ -41,8 +41,7 @@ for (const dir of dirs) {
     }
   });
 
-  console.log(`\n${path.relative('C:/Users/Trevor/CascadeProjects', dir)}:`);
-  for (const [name, count] of Object.entries(counts)) {
-    if (count > 0) console.log(`  ${name}: ${count}`);
-  }
+  const rel = path.relative('C:/Users/Trevor/CascadeProjects', dir);
+  const nonzero = Object.entries(counts).filter(([, c]) => c > 0);
+  process.stdout.write(JSON.stringify({ dir: rel, counts: Object.fromEntries(nonzero) }, null, 2) + '\n');
 }

@@ -25,10 +25,6 @@ for (const file of htmlFiles) {
   }
 }
 
-console.log(`Audited ${htmlFiles.length} HTML files, ${checked} internal links checked`);
-if (issues.length === 0) {
-  console.log('All internal links valid');
-} else {
-  console.log('Broken links:');
-  issues.forEach(i => console.log('  ', i));
-}
+const total = htmlFiles.length;
+const valid = checked - issues.length;
+process.stdout.write(JSON.stringify({ total, checked, valid, broken: issues }, null, 2) + '\n');

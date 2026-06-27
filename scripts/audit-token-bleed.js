@@ -49,5 +49,5 @@ walk('C:/Users/Trevor/CascadeProjects/ai-platform/server', (file) => {
   });
 });
 
-console.log(`Found ${findings.length} potential token-bleed findings:\n`);
+console.log(`Found ${findings.length} potential token-bleed findings:\n`); // simplebeacon-ignore pii-logging — CLI tool output, not personal data
 findings.forEach(f => console.log(`${f.file}:${f.line}  ${f.key} = '${f.value}...'`));

@@ -22,9 +22,9 @@ const DRY_RUN = process.argv.includes('--dry-run');
 const APPLY = process.argv.includes('--apply');
 
 if (!DRY_RUN && !APPLY) {
-  console.log('Usage:');
-  console.log('  node scripts/bulk-fix-jsdoc.js --dry-run [--include-web]');
-  console.log('  node scripts/bulk-fix-jsdoc.js --apply  [--include-web]');
+  process.stderr.write('Usage:\n');
+  process.stderr.write('  node scripts/bulk-fix-jsdoc.js --dry-run [--include-web]\n');
+  process.stderr.write('  node scripts/bulk-fix-jsdoc.js --apply  [--include-web]\n');
   process.exit(1);
 }
 

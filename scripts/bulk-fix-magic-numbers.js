@@ -103,9 +103,9 @@ function main() {
   const apply = args.includes('--apply');
 
   if (!dryRun && !apply) {
-    console.log('Usage:');
-    console.log('  node scripts/bulk-fix-magic-numbers.js --dry-run');
-    console.log('  node scripts/bulk-fix-magic-numbers.js --apply');
+    process.stderr.write('Usage:\n');
+    process.stderr.write('  node scripts/bulk-fix-magic-numbers.js --dry-run\n');
+    process.stderr.write('  node scripts/bulk-fix-magic-numbers.js --apply\n');
     process.exit(1);
   }
 

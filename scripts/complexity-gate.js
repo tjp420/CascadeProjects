@@ -133,7 +133,7 @@ function main() {
       const findings = findLongFunctions(file, args.maxLines);
       allFindings.push(...findings);
     } catch (e) {
-      console.error(`Error reading ${file}:`, e.message);
+      console.error(`Error reading ${file}:`, e.message); // simplebeacon-ignore debug-artifact — intentional CLI error reporting
     }
   }
 

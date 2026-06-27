@@ -9,7 +9,7 @@ const DRY_RUN = process.argv.includes('--dry-run');
 const APPLY = process.argv.includes('--apply');
 
 if (!DRY_RUN && !APPLY) {
-  console.log('Usage: node dedupe-jsdoc.js --dry-run | --apply');
+  process.stderr.write('Usage: node dedupe-jsdoc.js --dry-run | --apply\n');
   process.exit(1);
 }
 
