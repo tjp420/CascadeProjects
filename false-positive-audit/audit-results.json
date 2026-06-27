@@ -1,0 +1,145 @@
+{
+  "generatedAt": "2026-06-27T00:05:43.100Z",
+  "targets": [
+    {
+      "name": "lodash",
+      "dir": "C:\\Users\\Trevor\\CascadeProjects\\false-positive-audit\\lodash",
+      "llmSlop": {
+        "scanned": 22,
+        "findings": 0,
+        "issues": []
+      },
+      "tokenBleed": {
+        "scanned": 21,
+        "findings": 0,
+        "issues": []
+      }
+    },
+    {
+      "name": "express",
+      "dir": "C:\\Users\\Trevor\\CascadeProjects\\false-positive-audit\\express",
+      "llmSlop": {
+        "scanned": 108,
+        "findings": 0,
+        "issues": []
+      },
+      "tokenBleed": {
+        "scanned": 107,
+        "findings": 0,
+        "issues": []
+      }
+    },
+    {
+      "name": "ai-generated",
+      "dir": "C:\\Users\\Trevor\\CascadeProjects\\false-positive-audit\\ai-generated",
+      "llmSlop": {
+        "scanned": 3,
+        "findings": 6,
+        "issues": [
+          {
+            "id": "llm-slop-SB-FICTION-002-src/chat-service.js-240",
+            "pattern": "SB-FICTION-002",
+            "severity": "high",
+            "file": "src/chat-service.js",
+            "line": 10,
+            "match": "```javascript"
+          },
+          {
+            "id": "llm-slop-SB-FICTION-002-src/chat-service.js-280",
+            "pattern": "SB-FICTION-002",
+            "severity": "high",
+            "file": "src/chat-service.js",
+            "line": 12,
+            "match": "```\n"
+          },
+          {
+            "id": "llm-slop-SB-FICTION-001-src/config.js-30",
+            "pattern": "SB-FICTION-001",
+            "severity": "high",
+            "file": "src/config.js",
+            "line": 2,
+            "match": "YOUR_API_KEY_HERE"
+          },
+          {
+            "id": "llm-slop-SB-FICTION-001-src/config.js-61",
+            "pattern": "SB-FICTION-001",
+            "severity": "high",
+            "file": "src/config.js",
+            "line": 3,
+            "match": "INSERT_SECRET_HERE"
+          },
+          {
+            "id": "llm-slop-SB-FICTION-004-src/config.js-110",
+            "pattern": "SB-FICTION-004",
+            "severity": "medium",
+            "file": "src/config.js",
+            "line": 5,
+            "match": "99.99% Uptime"
+          },
+          {
+            "id": "llm-slop-SB-FICTION-004-src/config.js-138",
+            "pattern": "SB-FICTION-004",
+            "severity": "medium",
+            "file": "src/config.js",
+            "line": 6,
+            "match": "9,999 Users"
+          }
+        ]
+      },
+      "tokenBleed": {
+        "scanned": 3,
+        "findings": 6,
+        "issues": [
+          {
+            "id": "token-bleed-SB-TB-001-src/chat-service.js-14",
+            "pattern": "SB-TB-001",
+            "severity": "medium",
+            "file": "src/chat-service.js",
+            "line": 14,
+            "match": "  const context = fs.readFileSync('./context.md');"
+          },
+          {
+            "id": "token-bleed-SB-TB-004-src/chat-service.js-8",
+            "pattern": "SB-TB-004",
+            "severity": "medium",
+            "file": "src/chat-service.js",
+            "line": 8,
+            "match": "  const context = fs.readFileSync('./context.md');"
+          },
+          {
+            "id": "token-bleed-SB-TB-005-src/chat-service.js-14",
+            "pattern": "SB-TB-005",
+            "severity": "medium",
+            "file": "src/chat-service.js",
+            "line": 14,
+            "match": "const response = await openai.chat.completions.create({"
+          },
+          {
+            "id": "token-bleed-SB-TB-001-src/stream-handler.js-8",
+            "pattern": "SB-TB-001",
+            "severity": "medium",
+            "file": "src/stream-handler.js",
+            "line": 8,
+            "match": "  const doc = fs.readFileSync(path, 'utf8');"
+          },
+          {
+            "id": "token-bleed-SB-TB-004-src/stream-handler.js-6",
+            "pattern": "SB-TB-004",
+            "severity": "medium",
+            "file": "src/stream-handler.js",
+            "line": 6,
+            "match": "  const doc = fs.readFileSync(path, 'utf8');"
+          },
+          {
+            "id": "token-bleed-SB-TB-005-src/stream-handler.js-8",
+            "pattern": "SB-TB-005",
+            "severity": "medium",
+            "file": "src/stream-handler.js",
+            "line": 8,
+            "match": "const result = await streamText({"
+          }
+        ]
+      }
+    }
+  ]
+}
