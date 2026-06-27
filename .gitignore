@@ -122,3 +122,20 @@ test_script_*.js
 server.log
 dashboard-server.log
 audit-redirect.log
+
+# Backup directories
+CascadeProjects/
+CascadeProjects_BACKUP_20260521/
+
+# Loose utility scripts (keep in repo but ignore from git status clutter)
+check-js.ps1
+extract.ps1
+fix-sidebar.ps1
+list-vsix.ps1
+list-vsix2.ps1
+simplebeacon-workflow.ps1
+
+# Simplebeacon cleanup scripts
+.simplebeacon/rotate-secrets.js
+.simplebeacon/run-bfg-cleanup.ps1
+.simplebeacon/sync-ai-context.js
