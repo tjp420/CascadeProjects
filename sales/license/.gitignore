@@ -1,0 +1,2 @@
+# Never commit the private signing key to source control
+simplebeacon-private-live.pem

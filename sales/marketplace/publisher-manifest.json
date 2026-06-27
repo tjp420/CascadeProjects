@@ -1,0 +1,10 @@
+{
+  "$schema": "https://aka.ms/vscode-publisher-manifest-schema",
+  "publisher": {
+    "id": "simplebeacon",
+    "displayName": "SimpleBeacon LLC",
+    "description": "Enterprise Release-Hygiene and AI-Slop Detection Monitoring Systems",
+    "verifiedDomain": "https://simplebeacon.ai",
+    "supportUrl": "https://simplebeacon.ai"
+  }
+}
