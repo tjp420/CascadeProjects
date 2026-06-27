@@ -6,7 +6,6 @@
 const fs = require('fs');
 const path = require('path');
 const { globMatch } = require('./production-leak');
-const { lineHasLlmInvocation: guardrailLineHasLlmInvocation, TOKEN_CAP_RE: guardrailTokenCapRe } = require('./enterprise-guardrail-patterns');
 const {
     DEFAULT_PRODUCTION_PATHS,
     SCANNABLE_EXTENSIONS,
@@ -89,8 +88,23 @@ const RULE_CATALOG = [
     }
 ];
 
-const TOKEN_LIMIT_REGEX = /\bmax_tokens\b|\bmax_completion_tokens\b|\bmaxOutputTokens\b|\bmax_tokens_to_sample\b/;
+const TOKEN_LIMIT_REGEX = /\bmax_(?:completion_)?tokens\b|\bmaxOutputTokens\b|\bmax_tokens_to_sample\b/i;
 const UNBOUNDED_CALL_WINDOW = 12;
+
+const LLM_CONTEXT_RE = /\b(openai|anthropic|claude|gpt|llm|langchain|chain|model|agent|retriever|prompt|tool|embedding|ai-sdk|vercel|messages|completions|chat|completion|generateText|streamText|useChat|useCompletion)\b/i;
+const GENERIC_INVOKE_RE = /\.invoke\s*\(/;
+const GENERIC_STREAM_RE = /\.stream\s*\(/;
+const GENERIC_BATCH_RE = /\.batch\s*\(/;
+
+function filterApiLines(lines, indexes) {
+    return indexes.filter((idx) => {
+        const line = lines[idx] || '';
+        if (GENERIC_INVOKE_RE.test(line) || GENERIC_STREAM_RE.test(line) || GENERIC_BATCH_RE.test(line)) {
+            return LLM_CONTEXT_RE.test(line);
+        }
+        return true;
+    });
+}
 
 const LONG_SINGLE_QUOTED = /'(?:[^'\\]|\\.){2000,}'/;
 const LONG_DOUBLE_QUOTED = /"(?:[^"\\]|\\.){2000,}"/;
@@ -108,7 +122,7 @@ function scanProximityBleed(relativePath, content, ext, options = {}) {
     }
 
     const lines = splitLines(content);
-    const apiLines = lineIndexesMatching(lines, API_LINE_REGEX);
+    const apiLines = filterApiLines(lines, lineIndexesMatching(lines, API_LINE_REGEX));
     if (!apiLines.length) return findings;
 
     const fileIoLines = lineIndexesMatching(lines, FILE_IO_LINE_REGEX);
@@ -200,7 +214,7 @@ function scanUnboundedLlmCalls(relativePath, content, ext, options = {}) {
     }
 
     const lines = splitLines(content);
-    const apiLines = lineIndexesMatching(lines, API_LINE_REGEX);
+    const apiLines = filterApiLines(lines, lineIndexesMatching(lines, API_LINE_REGEX));
     if (!apiLines.length) return findings;
 
     for (const apiIdx of apiLines) {
@@ -209,8 +223,8 @@ function scanUnboundedLlmCalls(relativePath, content, ext, options = {}) {
         if (isAllowlistedMatch(lineText, lineText)) continue;
 
         const windowText = sliceCallWindow(lines, apiIdx);
-        // Delegate to enterprise guardrail for canonical token-cap detection
-        if (guardrailTokenCapRe.test(windowText)) continue;
+        // Check if the call window has any token-cap parameter
+        if (TOKEN_LIMIT_REGEX.test(windowText)) continue;
 
         pushFinding(findings, seen, makeFinding(
             relativePath,

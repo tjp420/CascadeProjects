@@ -7,14 +7,21 @@ const path = require('path');
 const { resolvePlatformRoot } = require('./project-detect');
 
 function loadRemediationModule(platformRoot) {
-    const modulePath = path.join(platformRoot, 'server', 'lib', 'audit-remediation-recipes.js');
-    if (!fs.existsSync(modulePath)) {
-        throw new Error(
-            'Structured fix specs require the Simplebeacon platform (server/lib/audit-remediation-recipes.js). '
-            + 'Run from a repo that includes ai-platform.'
-        );
+    const candidates = [
+        path.join(platformRoot, 'server', 'lib', 'audit-remediation-recipes.js'),
+        path.join(platformRoot, 'server', 'lib', 'audit-remediation-recipes.cjs'),
+        path.join(platformRoot, 'ai-platform', 'server', 'lib', 'audit-remediation-recipes.js'),
+        path.join(platformRoot, 'ai-platform', 'server', 'lib', 'audit-remediation-recipes.cjs')
+    ];
+    for (const modulePath of candidates) {
+        if (fs.existsSync(modulePath)) {
+            return require(modulePath);
+        }
     }
-    return require(modulePath);
+    throw new Error(
+        'Structured fix specs require the Simplebeacon platform (server/lib/audit-remediation-recipes.js). '
+        + 'Run from a repo that includes ai-platform.'
+    );
 }
 
 function loadScanPayload(reportPath, platformRoot) {

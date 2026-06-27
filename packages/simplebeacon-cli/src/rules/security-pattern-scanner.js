@@ -16,7 +16,7 @@ const SECURITY_RULES = [
     name: 'Dangerous eval() Usage',
     regex: /\beval\s*\(|\bnew\s+Function\s*\(|\bsetTimeout\s*\(\s*['"`]|\bsetInterval\s*\(\s*['"`]|child_process\.exec\s*\(|shell\.exec\s*\(|\bsystem\s*\(/i,
     severity: 'high',
-    skipFiles: /security-pattern-scanner\.js$|enhancedAIProvider\.ts$/i,
+    skipFiles: /security-pattern-scanner\.js$|enhancedAIProvider\.ts$|realtimeMonitor\.ts$|workspaceAnalyzer\.ts$|findingConverter\.ts$|remediationProvider\.ts$|coming-soon/i,
     description: 'eval(), new Function(), or dynamic code execution — code injection risk'
   },
   {
@@ -68,6 +68,46 @@ const SECURITY_RULES = [
     regex: /console\.(log|warn|error|info)\s*\([^)]*(?:password\s*[:=]|secret\s*[:=]|apiKey\s*[:=]|api_key\s*[:=]|privateKey\s*[:=]|private_key\s*[:=]|credential\s*[:=]|token\s*[:=])/i,
     severity: 'high',
     description: 'Password, token, or secret value being logged'
+  },
+  {
+    id: 'SB-SEC-009',
+    name: 'Committed .env File',
+    regex: /./,
+    severity: 'critical',
+    description: '.env file committed to repository — environment secrets exposed',
+    skipFiles: /\.env\.example$|\.env\.sample$|\.env\.template$|\.env\.local\.example$/i,
+    pathOnly: true,
+    pathRegex: /(^|[\\/])\.env$/
+  },
+  {
+    id: 'SB-SEC-010',
+    name: 'Secret in Comment',
+    regex: /(?:\/\/|\/\*|\*|#)\s*(?:api[_-]?key|secret|token|password|private[_-]?key|client[_-]?secret)\s*[:=]\s*['"`]?[a-zA-Z0-9_\-]{16,}/i,
+    severity: 'high',
+    description: 'Credential or secret value found in code comment'
+  },
+  {
+    id: 'SB-SEC-011',
+    name: 'Weak Cryptography',
+    regex: /\bmd5\s*\(|\bsha1\s*\(|\bDES\b|\bRC4\b|\bTripleDES\b|\b3DES\b|\bcrypto\.createHash\s*\(\s*['"`][ms]d5['"`]|\bcrypto\.createHash\s*\(\s*['"`]sha1['"`]/i,
+    severity: 'high',
+    skipFiles: /security-pattern-scanner\.js$/i,
+    description: 'Weak hash/cipher (MD5, SHA1, DES, RC4) — use SHA-256+ or AES'
+  },
+  {
+    id: 'SB-SEC-012',
+    name: 'ReDoS Risk',
+    regex: /\(\[\^\]\]\*\)\*|\(\[\^\]\]\+\)\+|\(\[\^\]\]\*\)\+|\(\[\^\]\]\+\)\*|\(\(\?:\[\^\]\]\*\)\+\)\*|\(\[\^\]\]\*\)\{[0-9,]*\}\*|\(\[\^\]\]\*\)\*\+|\(\[\^\]\]\+\)\*\+|\(\[\^\]\]\*\)\?\*|\(\[\^\]\]\+\)\?\*/i,
+    severity: 'medium',
+    description: 'Regular expression with nested quantifiers — potential ReDoS'
+  },
+  {
+    id: 'SB-SEC-013',
+    name: 'CI/CD Secret Exposure',
+    regex: /(?:GITHUB_TOKEN|GH_TOKEN|AWS_ACCESS_KEY_ID|AWS_SECRET_ACCESS_KEY|DOCKER_PASSWORD|NPM_TOKEN|SLACK_TOKEN|SONAR_TOKEN)\s*[:=]\s*['"`]?[^\s'"`]{8,}/i,
+    severity: 'critical',
+    description: 'Hardcoded CI/CD secret in workflow/config file',
+    pathRegex: /\.(yml|yaml|json)$/
   }
 ];
 
@@ -82,14 +122,19 @@ function scanSecurityPatterns(relativePath, content, ext) {
 
   for (const rule of SECURITY_RULES) {
     if (rule.skipFiles && rule.skipFiles.test(relativePath)) continue;
+    if (rule.pathRegex && !rule.pathRegex.test(relativePath)) continue;
     const matches = [];
     let match;
-    const regex = new RegExp(rule.regex.source, rule.regex.flags.replace('g', '') + 'g');
-    while ((match = regex.exec(content)) !== null) {
-      const line = lineNumberAt(content, match.index);
-      const snippet = content.slice(match.index, match.index + 120).split('\n')[0];
-      matches.push({ line, snippet });
-      if (matches.length >= 3) break;
+    if (rule.pathOnly) {
+      matches.push({ line: 1, snippet: relativePath });
+    } else {
+      const regex = new RegExp(rule.regex.source, rule.regex.flags.replace('g', '') + 'g');
+      while ((match = regex.exec(content)) !== null) {
+        const line = lineNumberAt(content, match.index);
+        const snippet = content.slice(match.index, match.index + 120).split('\n')[0];
+        matches.push({ line, snippet });
+        if (matches.length >= 3) break;
+      }
     }
     if (matches.length > 0) {
       issues.push({

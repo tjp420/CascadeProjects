@@ -46,13 +46,15 @@ function resolveBaselineStatus(report = {}, baseline = {}) {
 }
 
 function resolveFilesAnalyzed(report = {}) {
-    if (report.repositoryFilesTotal != null) return report.repositoryFilesTotal;
-    if (report.repositoryInventory?.totalFiles != null) return report.repositoryInventory.totalFiles;
-    return report.ruleScopedFilesAnalyzed ?? report.filesAnalyzed ?? Math.max(
-        report.totalFiles ?? 0,
-        report.credentialScanned ?? 0,
-        report.productionLeakScanned ?? 0
-    );
+    // Prefer actual content-scanned counts over inventory totals
+    return report.filesAnalyzed
+        ?? report.ruleScopedFilesAnalyzed
+        ?? report.totalFiles
+        ?? report.credentialScanned
+        ?? report.productionLeakScanned
+        ?? report.repositoryFilesTotal
+        ?? report.repositoryInventory?.totalFiles
+        ?? 0;
 }
 
 function overlayAuditPageSamples(samples = {}, report = {}, baseline = {}) {

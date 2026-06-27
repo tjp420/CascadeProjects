@@ -214,6 +214,7 @@ class ConfigManagementAnalyzer {
     findEnvInconsistencies(envFiles) {
         const keyValues = new Map();
         const findings = [];
+        const BUCKET_SEP = '\x00';
 
         for (const file of envFiles) {
             let content = '';
@@ -225,7 +226,7 @@ class ConfigManagementAnalyzer {
             const profileGroup = resolveEnvProfileGroup(file.relativePath);
             const entries = parseEnvFile(content);
             for (const [key, meta] of entries.entries()) {
-                const bucketKey = `${profileGroup}::${key}`;
+                const bucketKey = `${profileGroup}${BUCKET_SEP}${key}`;
                 const bucket = keyValues.get(bucketKey) || [];
                 bucket.push({ file: file.relativePath, value: meta.value });
                 keyValues.set(bucketKey, bucket);
@@ -233,7 +234,8 @@ class ConfigManagementAnalyzer {
         }
 
         for (const [bucketKey, values] of keyValues.entries()) {
-            const key = bucketKey.split('::').slice(1).join('::');
+            const sepIndex = bucketKey.indexOf(BUCKET_SEP);
+            const key = sepIndex >= 0 ? bucketKey.slice(sepIndex + 1) : bucketKey;
             const unique = [...new Set(values.map((entry) => entry.value))];
             if (unique.length <= 1 || values.length <= 1) continue;
             if (shouldSkipEnvInconsistency(key, values)) continue;

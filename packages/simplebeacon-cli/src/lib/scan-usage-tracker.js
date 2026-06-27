@@ -70,25 +70,16 @@ function isPipelineScan() {
 
 function checkLocalScanQuota(tierLimits) {
     const usage = resetPeriodIfNeeded(readUsage());
-    const quota = tierLimits.maxScansPerPeriod || 100;
-
-    if (quota !== Infinity && usage.localScans >= quota) {
-        return {
-            allowed: false,
-            reason: 'scan_quota_exceeded',
-            scansUsed: usage.localScans,
-            scansRemaining: 0,
-            quota,
-            periodStart: usage.periodStart
-        };
-    }
+    const quota = tierLimits.maxScansPerPeriod || Infinity;
+    const allowed = quota === Infinity || usage.localScans < quota;
 
     return {
-        allowed: true,
+        allowed,
         scansUsed: usage.localScans,
         scansRemaining: quota === Infinity ? Infinity : Math.max(0, quota - usage.localScans),
         quota,
-        periodStart: usage.periodStart
+        periodStart: usage.periodStart,
+        reason: allowed ? undefined : 'scan_quota_exceeded'
     };
 }
 

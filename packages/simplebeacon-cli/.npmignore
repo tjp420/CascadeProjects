@@ -1,14 +1,69 @@
-# Operator-only — not shipped to npm consumers (mirrors tools/sync-github-public-cli.js)
+# ==============================================================================
+# SimpleBeacon CLI Registry Distribution Exclusions
+# ==============================================================================
+
+# Local Environment Secret Vaults
+.env
+.env.*
+*.local
+*.secret
+
+# Internal Project Automation & Compliance Baselines
+.simplebeacon/
+.cascade/
+.github/
+.vscode/
+
+# Build Artefacts, Dependency Trees & Diagnostic Logs
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm/
+
+# Comprehensive System Testing Suites & Mock Repositories
+tests/
+test/
+__tests__/
+fixtures/
+mocks/
+coverage/
+.nyc_output/
+**/*.test.js
+**/*.test.cjs
+**/*.test.mjs
+**/*.test.ts
+**/*.spec.js
+**/*.spec.cjs
+**/*.spec.mjs
+**/*.spec.ts
+src/**/*.test.js
+src/**/*.test.cjs
+src/**/*.test.mjs
+src/**/*.test.ts
+src/**/*.spec.js
+src/**/*.spec.cjs
+src/**/*.spec.mjs
+src/**/*.spec.ts
+
+# Workspace Project Management Documents & Guides
+*.md
+LICENSE
+CHANGELOG.md
+ROADMAP.md
+LAUNCH-CHECKLIST.md
+
+# OS / IDE Structural Metadatas
+.DS_Store
+Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+
+# Operator-only scripts and leftover tgz bundles
 PUBLISH.md
 publish.ps1
 scripts/
-docs/OUTREACH.md
-docs/NPM-PUBLISH.md
-docs/examples/outreach-tracker.md
-tests/
-.simplebeacon/
 *.jsonl
 simplebeacon-*.tgz
-
-# Test certification artifacts (not shipped to npm consumers)
 test-cert/

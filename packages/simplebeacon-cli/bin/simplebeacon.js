@@ -49,7 +49,7 @@ const { runFileReductionScan } = require('../src/lib/file-reduction-orchestrator
 const { generateFileReductionReport } = require('../src/reporters/file-reduction-report');
 const { readGateStatus } = require('../src/lib/snippet-scanner');
 const { installDeveloperStack } = require('../src/lib/developer-onboarding');
-const VALID_COMMANDS = new Set(['scan', 'init', 'comment', 'baseline-sync', 'assess', 'compliance', 'report', 'hook-install', 'reduce', 'gate-status', 'pdf', 'buy-clearance', 'mcp', 'ai-plan']);
+const VALID_COMMANDS = new Set(['scan', 'init', 'comment', 'baseline-sync', 'assess', 'compliance', 'report', 'hook-install', 'reduce', 'gate-status', 'pdf', 'buy-clearance', 'mcp', 'ai-plan', 'doctor']);
 
 function writeStdoutLine(message = '') {
     process.stdout.write(`${message}\n`);
@@ -133,7 +133,10 @@ function parseArgs(argv) {
         version: false,
         complete: false,
         watch: false,
-        exclude: null
+        exclude: null,
+        deepScan: false,
+        includeDeps: false,
+        minConfidence: 0.5
     };
 
     const knownFlags = new Set([
@@ -147,7 +150,8 @@ function parseArgs(argv) {
         '--fix', '--fix-provider', '--fix-dry-run', '--with-analyzer-suite',
         '--fullDirectoryScan', '--full', '--email', '--server', '--poll-seconds',
         '--max-polls', '--max-fixes', '--mcp-mode', '--help', '-h', '--version',
-        '-V', '--complete', '--watch', '--tier', '--exclude'
+        '-V', '--complete', '--watch', '--tier', '--exclude', '--deep-scan', '--include-deps',
+        '--min-confidence'
     ]);
 
     for (let i = flagStart; i < args.length; i += 1) {
@@ -289,6 +293,12 @@ function parseArgs(argv) {
         } else if (arg === '--exclude') {
             const val = requireNext('--exclude');
             options.exclude = val.split(',').map((s) => s.trim()).filter(Boolean);
+        } else if (arg === '--deep-scan') {
+            options.deepScan = true;
+        } else if (arg === '--include-deps') {
+            options.includeDeps = true;
+        } else if (arg === '--min-confidence') {
+            options.minConfidence = Number(requireNext('--min-confidence')) || 0.5;
         }
     }
 
@@ -346,6 +356,7 @@ Usage:
   simplebeacon pdf [options]        Generate Executive Risk Certificate (requires license token)
   simplebeacon buy-clearance        Purchase executive clearance and receive license token
   simplebeacon ai-plan [options]   Generate AI-friendly remediation plan from scan results
+  simplebeacon doctor              Runs integrity diagnostics, applies auto-fixes, and generates triage packages
 
 buy-clearance options:
   --email <addr>      Email address for checkout (required)
@@ -386,6 +397,9 @@ Scan options:
   --max-fixes <n>     Limit number of auto-fix attempts (default: 10)
   --complete          Run all 11 analyzers (gate + consolidation + mock data + roadmap + codebase + file reduction + data quality + cleanup + npm audit + compliance + EU AI Act)
   --watch             Watch project files and re-run scan on changes (ctrl+c to stop)
+  --deep-scan         Bypass docs/vendor/cache filters (only .simplebeaconignore + 500MB limit applies)
+  --include-deps      Include node_modules and .git in scan (slower, more noise)
+  --min-confidence n  Minimum rule confidence threshold 0.0–1.0 (default: 0.5)
   --offline           Fail if any outbound network activity occurs during scan
   --no-trust-banner   Suppress read-only / local-only trust confirmation lines
   --api-token <tok>   Paid tier API token (required with --upload)
@@ -546,15 +560,27 @@ async function executeOneScan(options, networkGuard) {
     spinner.start();
     try {
         const sanitizedScanRoot = sanitizePath(scanRoot);
+        // Deep scan: bypass docs/vendor/cache filters (but still respect .simplebeaconignore)
+        if (options.deepScan) {
+            config.fullDirectoryScan = true;
+            config.scanAllFiles = true;
+        }
+        // Include deps: remove node_modules/.git from exclusions
+        if (options.includeDeps && options.exclude) {
+            options.exclude = options.exclude.filter((p) => p !== 'node_modules' && p !== '.git');
+        }
         const report = await runScan(sanitizedScanRoot, {
             config,
             configPath: options.config,
             withJest: options.withJest,
-            fullDirectoryScan: options.fullDirectoryScan,
+            fullDirectoryScan: options.fullDirectoryScan || options.deepScan,
             ci: options.withCi,
             tier: options.tier || 'developer',
             tierLimits: options.tierLimits || undefined,
-            exclude: options.exclude
+            exclude: options.exclude,
+            deepScan: options.deepScan,
+            includeDeps: options.includeDeps,
+            minConfidence: options.minConfidence
         });
         networkGuard.assertOfflineClean();
         printTrustCompletion({
@@ -566,18 +592,6 @@ async function executeOneScan(options, networkGuard) {
         const gateResult = evaluateGate(report, config.gate);
         const jsonReport = formatJsonReport(report, gateResult);
         spinner.stop();
-
-        // Developer tier: text output only
-        if ((options.tier || 'developer') === 'developer') {
-            if (options.format === 'json') {
-                console.error('[Developer] JSON export requires Startup+. Upgrade at https://simplebeacon.ai/pricing');
-                options.format = 'text';
-            }
-            if (options.output) {
-                console.error('[Developer] File output requires Startup+. Printing to stdout instead.');
-                options.output = null;
-            }
-        }
 
         if (options.anonymize) {
             options.format = 'json';
@@ -1141,7 +1155,7 @@ async function runBuyClearanceCommand(options) {
     const server = options.server || 'https://simplebeacon.ai';
     const checkoutUrl = `${server}/api/simplebeacon/billing/checkout`;
 
-    console.error(`[buy-clearance] Initiating checkout for ${email}...`);
+    console.error('[buy-clearance] Initiating checkout...');
     const response = await fetch(checkoutUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1182,7 +1196,7 @@ async function runBuyClearanceCommand(options) {
                     fs.mkdirSync(licenseDir, { recursive: true });
                     const licensePath = path.join(licenseDir, 'license.jwt');
                     fs.writeFileSync(licensePath, `${pollData.licenseToken}\n`, 'utf8');
-                    console.error(`[buy-clearance] License token saved to ${licensePath}`);
+                    console.error('[buy-clearance] License token saved');
                     writeStdoutLine(JSON.stringify({ success: true, licensePath, email: pollData.email }, null, 2));
                     return;
                 }
@@ -1289,6 +1303,16 @@ async function main() {
         await runBuyClearanceCommand(options);
         return;
     }
+
+    if (options.command === 'doctor') {
+        runDoctorCommand();
+        return;
+    }
+}
+
+function runDoctorCommand() {
+    const { runDoctor } = require('../src/doctor');
+    runDoctor();
 }
 
 async function runAiPlanCommand(options) {
@@ -1349,7 +1373,8 @@ function generateAIIssueList(report) {
         const severity = issue.severity || 'medium';
         
         if (!acc[category]) acc[category] = { high: [], medium: [], low: [], critical: [] };
-        
+        if (!acc[category][severity]) acc[category][severity] = [];
+
         acc[category][severity].push(issue);
         return acc;
     }, {});

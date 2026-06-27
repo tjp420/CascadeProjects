@@ -20,7 +20,16 @@ const VALID_RULES = new Set([
     'debug_artifacts',
     'eu_ai_act',
     'token-bleed-patterns',
-    'architecture-drift-patterns'
+    'architecture-drift-patterns',
+    'hardcoded-url',
+    'weak-crypto',
+    'secret-in-comments',
+    'sync-io-async-path',
+    'env-in-git',
+    'redos-risk',
+    'pii-logging',
+    'dead-code',
+    'memory-leak'
 ]);
 
 const VALID_SCANNER_ACTIONS = new Set(['BLOCK', 'WARN', 'SKIP']);

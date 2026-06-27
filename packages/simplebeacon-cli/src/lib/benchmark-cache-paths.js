@@ -84,7 +84,8 @@ const MOCK_WALK_SKIP_DIRS = new Set([
     '.next',
     '.cache',
     '.simplebeacon',
-    'security-reports'
+    'security-reports',
+    '.vscode-test'
 ]);
 
 const FULL_SCAN_SKIP_DIRS = new Set([

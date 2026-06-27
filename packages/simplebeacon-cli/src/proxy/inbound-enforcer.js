@@ -58,7 +58,7 @@ function extractAssistantText(responseBody) {
         }
         if (typeof payload.output_text === 'string') return payload.output_text;
     } catch (err) {
-        console.warn('[inbound-enforcer] Response is not valid JSON, returning raw body:', err.message);
+        console.warn('[inbound-enforcer] Response is not valid JSON, returning raw body');
     }
 
     return responseBody;
@@ -144,7 +144,7 @@ function buildSafeFallback(originalBody, violations) {
             });
         }
     } catch (err) {
-        console.warn('[inbound-enforcer] Failed to parse originalBody for fallback:', err.message);
+        console.warn('[inbound-enforcer] Failed to parse originalBody for fallback');
     }
 
     return JSON.stringify({

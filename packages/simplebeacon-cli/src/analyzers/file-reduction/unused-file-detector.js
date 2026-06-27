@@ -169,7 +169,8 @@ const PROTECTED_RUNTIME_BASENAMES = new Set([
     'full-tree-rule-worker.js',
     'scan-orchestrator.js',
     // Pipeline module — referenced dynamically via server route wiring
-    'data-processor.cjs'
+    'data-processor.cjs',
+    'export-system.js'
 ]);
 
 const SCRIPT_ENTRY_EXTENSIONS = new Set(['.js', '.mjs', '.cjs', '.ts', '.py']);

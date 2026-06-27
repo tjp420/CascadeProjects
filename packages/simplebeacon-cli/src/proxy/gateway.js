@@ -6,6 +6,7 @@
 
 const http = require('http');
 const https = require('https');
+const { URL } = require('url');
 /* URL is a Node.js global (v10+); do not re-import from 'url' (no-redeclare). */
 const { scanOutboundText, extractPromptText } = require('./outbound-scanner');
 const { enforceInboundResponse } = require('./inbound-enforcer');

@@ -66,9 +66,8 @@ function shouldSkipEnvInconsistency(key, values) {
     if (!values || values.length <= 1) return true;
 
     const files = values.map((entry) => entry.file);
-    if (files.some((file) => isTemplateEnvFile(file) || isExampleEnvFile(file))) {
-        return true;
-    }
+    const allExample = files.every((file) => isExampleEnvFile(file) || isTemplateEnvFile(file));
+    if (allExample) return true;
 
     const hasExample = files.some((file) => isExampleEnvFile(file));
     const hasLive = files.some((file) => !isExampleEnvFile(file));

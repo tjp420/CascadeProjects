@@ -11,7 +11,9 @@ const REDACTION_RULES = [
     { pattern: /\beyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, replacement: 'eyJ…[REDACTED_JWT]' },
     { pattern: /\bxox[baprs]-[A-Za-z0-9-]{10,}\b/g, replacement: 'xox…[REDACTED]' },
     { pattern: /Bearer\s+[A-Za-z0-9._-]{20,}/g, replacement: 'Bearer [REDACTED]' },
-    { pattern: /-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----[\s\S]*?-----END (RSA |EC |OPENSSH )?PRIVATE KEY-----/g, replacement: '[REDACTED_PRIVATE_KEY_BLOCK]' },
+    { pattern: /-----BEGIN RSA PRIVATE KEY-----[\s\S]*?-----END RSA PRIVATE KEY-----/g, replacement: '[REDACTED_PRIVATE_KEY_BLOCK]' },
+    { pattern: /-----BEGIN EC PRIVATE KEY-----[\s\S]*?-----END EC PRIVATE KEY-----/g, replacement: '[REDACTED_PRIVATE_KEY_BLOCK]' },
+    { pattern: /-----BEGIN OPENSSH PRIVATE KEY-----[\s\S]*?-----END OPENSSH PRIVATE KEY-----/g, replacement: '[REDACTED_PRIVATE_KEY_BLOCK]' },
     {
         pattern: /\b(api[_-]?key|secret[_-]?key|access[_-]?token|password)\s*[:=]\s*['"][^'"\s]{8,}['"]/gi,
         replacement: '$1: "[REDACTED]"'

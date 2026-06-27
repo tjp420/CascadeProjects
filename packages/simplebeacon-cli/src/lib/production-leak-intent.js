@@ -14,10 +14,12 @@ const REPOSITORY_AUDIT_INFRA_FILES = new Set([
     'sample-path-resolver.js',
     'code-roadmap-generator.js',
     'mock-data-scanner.js',
-    'dev-tools-workflows.js'
+    'dev-tools-workflows.js',
+    'mock-data-helpers.cjs',
+    'mock-data-helpers.js'
 ]);
 
-const SCANNER_IMPL_PATH_RE = /(?:^|\/)packages\/simplebeacon-cli\/src\/(?:rules|reporters|analyzers|lib|proxy|mcp)(?:\/|$)|(?:^|\/)src\/(?:rules|reporters|analyzers|lib|proxy|mcp)(?:\/|$)|(?:^|\/)ai-platform\/packages\/simplebeacon-cli\/src\/(?:rules|reporters|analyzers|lib|proxy|mcp)(?:\/|$)|(?:^|\/)server\/lib\/(?:codebase-analyzer|production-leak|fiction-kpi|mock-data-scanner|simplebeacon-report|scan-orchestr|secret-config|audit-remediation-recipes|sample-path-resolver|code-roadmap-generator|dashboard-vault-auth|eu-ai-act-sprint-route)(?:\.|$)|(?:^|\/)server\/routes\/flexible-analyze-api(?:\.|$)/;
+const SCANNER_IMPL_PATH_RE = /(?:^|\/)packages\/simplebeacon-cli\/src\/(?:rules|reporters|analyzers|lib|proxy|mcp)(?:\/|$)|(?:^|\/)src\/(?:rules|reporters|analyzers|lib|proxy|mcp)(?:\/|$)|(?:^|\/)ai-platform\/packages\/simplebeacon-cli\/src\/(?:rules|reporters|analyzers|lib|proxy|mcp)(?:\/|$)|(?:^|\/)server\/lib\/(?:codebase-analyzer|production-leak|fiction-kpi|mock-data-scanner|simplebeacon-report|scan-orchestr|secret-config|audit-remediation-recipes|sample-path-resolver|code-roadmap-generator|dashboard-vault-auth|eu-ai-act-sprint-route|simplebeacon-proxy|mock-data-helpers)(?:\.|$)|(?:^|\/)server\/routes\/flexible-analyze-api(?:\.|$)/;
 
 const OSS_SCANNER_ROOT_FILES = new Set([
     'src/scan.js',
@@ -113,7 +115,9 @@ const DEMO_TOOL_PATH_SEGMENTS = [
     '/tools/',
     '/applets/',
     '/demos/',
-    '/demo/'
+    '/demo/',
+    '/coming-soon/',
+    '/coming-soon-dev/'
 ];
 
 function isDemoToolSamplePath(relativePath) {

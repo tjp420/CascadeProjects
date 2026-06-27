@@ -409,7 +409,13 @@ test('runFileReductionAnalysis aggregates scanner summaries', async () => {
         'unused.js': 'module.exports = 2;\n'
     });
 
-    const report = await runFileReductionAnalysis(root);
+    const report = await runFileReductionAnalysis(root, {
+        scanners: {
+            'build-artifacts': { enabled: true },
+            'asset-consolidation': { enabled: true },
+            'unused-files': { enabled: true }
+        }
+    });
     assert.ok(report.summary.totalFindings > 0);
     assert.ok(report.findings.buildArtifacts.length > 0);
     assert.ok(report.findings.assetConsolidation.length > 0);

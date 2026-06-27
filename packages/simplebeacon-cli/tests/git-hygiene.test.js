@@ -68,7 +68,7 @@ test('GitHygieneScanner detects suspicious commit messages', async () => {
 
     fs.writeFileSync(path.join(root, 'new.txt'), 'hello');
     execSync('git add .', { cwd: root, stdio: 'ignore' });
-    execSync('git commit -m "add token ghp_abcdefghijklmnopqrstuvwxyz1234"', { cwd: root, stdio: 'ignore' });
+    execSync('git commit -m "add token ghp_abcdefghijklmnopqrstuvwxyz1234567890"', { cwd: root, stdio: 'ignore' });
 
     const scanner = new GitHygieneScanner();
     const result = await scanner.scan(root);

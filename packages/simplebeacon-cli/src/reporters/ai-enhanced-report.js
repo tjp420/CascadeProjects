@@ -145,9 +145,9 @@ function main() {
   const apiKey = args[4] || process.env.OPENAI_API_KEY;
 
   if (!apiKey) {
-    console.error('❌ Error: OPENAI_API_KEY environment variable or 4th argument required');
-    console.error('Usage: node ai-enhanced-report.js "Client" "Assessor" input.json output.md API_KEY');
-    console.error('Or set OPENAI_API_KEY environment variable');
+    console.error('❌ Error: OPENAI_API_KEY environment variable or 4th argument required'); // simplebeacon-ignore pii-logging — CLI usage message, not personal data
+    console.error('Usage: node ai-enhanced-report.js "Client" "Assessor" input.json output.md API_KEY'); // simplebeacon-ignore pii-logging — CLI usage message
+    console.error('Or set OPENAI_API_KEY environment variable'); // simplebeacon-ignore pii-logging — CLI usage message
     process.exit(1);
   }
 

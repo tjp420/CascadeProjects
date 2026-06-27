@@ -2,3 +2,4 @@ node_modules/
 .simplebeacon/
 *.log
 .DS_Store
+simplebeacon-*.tgz

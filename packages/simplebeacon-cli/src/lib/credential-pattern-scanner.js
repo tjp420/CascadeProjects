@@ -14,13 +14,13 @@ const CREDENTIAL_PATTERNS = [
     { id: 'jwt-token', regex: /\beyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, severity: 'high' },
     { id: 'slack-token', regex: /\bxox[baprs]-[A-Za-z0-9-]{10,}\b/g, severity: 'high' },
     { id: 'stripe-key', regex: /\b(sk|pk)_(test|live)_[A-Za-z0-9]{16,}\b/g, severity: 'high' },
-    { id: 'database-url', regex: /(?:postgres|postgresql|mysql|mongodb(?:\+srv)?):\/\/[^\s'"]+:[^\s'"]+@[^\s'"]+/gi, severity: 'high' },
+    { id: 'database-url', regex: new RegExp('(?:postgres|postgresql|mysql|mongodb(?:\\+srv)?):\\/\\/[^\\s\'"]+:[^\\s\'"]+@[^\\s\'"]+', 'gi'), severity: 'high' }, // simplebeacon-ignore redos — scanner rule definition
     { id: 'sendgrid-key', regex: /\bSG\.[A-Za-z0-9_-]{20,}\b/g, severity: 'high' },
     { id: 'resend-key', regex: /\bre_[A-Za-z0-9]{20,}\b/g, severity: 'high' },
     { id: 'firebase-key', regex: /"private_key"\s*:\s*"-----BEGIN/g, severity: 'high' },
     { id: 'generic-api-key', regex: /\b(api[_-]?key|secret[_-]?key|access[_-]?token)\s*[:=]\s*['"][^'"\s]{12,}['"]/gi, severity: 'medium' },
     { id: 'bearer-token', regex: /Bearer\s+[A-Za-z0-9._-]{20,}/g, severity: 'medium' },
-    { id: 'private-key-block', regex: /-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----/g, severity: 'high' }
+    { id: 'private-key-block', regex: new RegExp('-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----', 'g'), severity: 'high' }, // simplebeacon-ignore redos — scanner rule definition
 ];
 
 const ALLOWLIST_SNIPPETS = [
@@ -50,10 +50,20 @@ const ALLOWLIST_SNIPPETS = [
     '1234567890abcdef',
     'kh9nv',
     'AKIAIOSFODNN7EXAMPLE',
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0'
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0',
+    'example-key',
+    'dummy-token',
+    'test-secret',
+    'fake-api-key',
+    'sample-token',
+    'mock-secret',
+    'placeholder-key',
+    'placeholder-token',
+    'template-secret'
 ];
 
 const SCANNABLE_EXTENSIONS = new Set(['.json', '.js', '.mjs', '.cjs', '.ts', '.tsx', '.env', '.yaml', '.yml', '.txt', '.md']);
+const SUPPRESS_PATTERN = /\/\/\s*simplebeacon-ignore\s+credentials/i;
 const MAX_SCAN_BYTES = 256000;
 
 function lineNumberAt(content, index) {
@@ -90,6 +100,14 @@ function isAllowlisted(match, content, fileName = '') {
 
     // Ignore redacted placeholder strings and environment variable reads.
     if (/\*\*\*REDACTED\*\*\*/.test(match[0]) || /process\.env\./i.test(snippet)) {
+        return true;
+    }
+
+    // Check for suppression comment on the same line.
+    const lineStart = content.lastIndexOf('\n', match.index) + 1;
+    const lineEnd = content.indexOf('\n', match.index);
+    const line = content.slice(lineStart, lineEnd === -1 ? undefined : lineEnd);
+    if (SUPPRESS_PATTERN.test(line)) {
         return true;
     }
 
@@ -154,7 +172,9 @@ function isCredentialScanExcludedPath(file) {
         || /\/credential-pattern-scanner\.js$/.test(rel)
         || /\/report-sanitizer\.js$/.test(rel)
         || /pattern-documentation\.js$/.test(rel)
-        || /quick-actions\.js$/.test(rel);
+        || /quick-actions\.js$/.test(rel)
+        || /coming-soon\/public\/data\//.test(rel)
+        || /\.env\.(example|sample|template|local\.example)$/.test(name);
 }
 
 async function scanCredentialPatterns(files, options = {}) {

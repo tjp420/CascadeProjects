@@ -24,17 +24,23 @@ const DEFAULT_IGNORE_GLOBS = [
     'github-cache/**',
     '**/*.log',
     '**/*-report*.json',
-    '**/test*'
+    '**/test*',
+    'archive/**',
+    '**/archive/**',
+    'simplebeacon-rule-tests/**',
+    '**/simplebeacon-rule-tests/**',
+    'scripts/**',
+    '**/scripts/**'
 ];
 
 const LEAK_PATTERNS = [
-    { id: 'sample-json', regex: /['"`][^'"`]*-sample\.json['"`]/gi },
+    { id: 'sample-json', regex: /['"`][^'"`]*(?:[\/\\][^'"`]+)?-sample\.json['"`]/gi },
     { id: 'mock-path', regex: /['"`][^'"`]*(?:\/|\\)mock(?:\/|\\)[^'"`]+['"`]/gi },
     { id: 'fixtures-path', regex: /['"`][^'"`]*(?:\/|\\)fixtures(?:\/|\\)[^'"`]+['"`]/gi },
-    { id: 'web-data-sample', regex: /['"`][^'"`]*web(?:\/|\\)data[^'"`]*['"`]/gi },
+    { id: 'web-data-sample', regex: /['"`][^'"`]*(?:[\/\\]|(?<![a-zA-Z0-9_-]))web(?:\/|\\)data[^'"`]*['"`]/gi },
     {
         id: 'template-sample',
-        regex: /`[^`\n]*(?:-sample\.json|(?:\/|\\)mock(?:\/|\\)[^`\n]+|(?:\/|\\)fixtures(?:\/|\\)[^`\n]+|web(?:\/|\\)data)[^`\n]*`/gi
+        regex: /`[^`\n]*[\/\\](?:-sample\.json|mock(?:\/|\\)[^`\n]+|fixtures(?:\/|\\)[^`\n]+|web(?:\/|\\)data)[^`\n]*`/gi
     }
 ];
 
@@ -157,6 +163,15 @@ function isMockDataFilenameGenerator(line) {
     return /\bfilePath\s*[:=]\s*[`'][^`']*mock_data_/.test(String(line || ''));
 }
 
+function isJoiSchemaName(line) {
+    return /\b(mockDataAnalysis|mockData|sampleData|fixtureData|demoData|testData)\s*:\s*Joi\./.test(String(line || ''));
+}
+
+function isIntentionalWebDataRoute(line) {
+    return /\bexpress\.static\s*\(\s*[^)]+web[/\\]data/.test(String(line || ''))
+        || /\bjoin\s*\(\s*__dirname\s*,\s*['"]\.\.\/web\/data['"]/.test(String(line || ''));
+}
+
 function hasProductionLeakIntentAnnotation(content) {
     return /simplebeacon:production-leak-intent/i.test(content);
 }
@@ -245,6 +260,8 @@ function scanFileContent(relativePath, content, options = {}) {
             if (isInstructionalTemplateReference(match[0])) continue;
             if (isExpressStaticWebData(line)) continue;
             if (isMockDataFilenameGenerator(line)) continue;
+            if (isJoiSchemaName(line)) continue;
+            if (isIntentionalWebDataRoute(line)) continue;
 
             let intentResult = null;
             if (intentClassification) {

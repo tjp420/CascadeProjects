@@ -21,11 +21,11 @@ function makeTempProject(structure) {
 
 test('ConfigManagementAnalyzer flags env sprawl and profile-local inconsistencies', async () => {
     const root = makeTempProject({
-        '.env': 'PORT=3000\nAPI_URL=http://localhost\n',
-        '.env.example': 'PORT=4000\nAPI_URL=http://localhost\n',
-        '.env.production': 'PORT=8080\nAPI_URL=https://prod.example\n',
-        '.env.development': 'PORT=3000\n',
-        '.env.local': 'PORT=3001\n',
+        '.env': 'DB_HOST=localhost\nAPI_URL=http://localhost\n',
+        '.env.example': 'DB_HOST=template-db\nAPI_URL=http://localhost\n',
+        '.env.production': 'DB_HOST=prod-db\nAPI_URL=https://prod.example\n',
+        '.env.development': 'DB_HOST=dev-db\n',
+        '.env.local': 'DB_HOST=local-db\n',
         'webpack.config.js': 'module.exports = {};\n',
         'vite.config.js': 'export default {};\n'
     });
@@ -33,7 +33,7 @@ test('ConfigManagementAnalyzer flags env sprawl and profile-local inconsistencie
     const scanner = new ConfigManagementAnalyzer();
     const result = await scanner.scan(root, { inventory });
     assert.ok(result.findings.some((f) => f.type === 'config-sprawl'));
-    assert.ok(result.findings.some((f) => f.type === 'env-inconsistency' && f.metadata.key === 'PORT'));
+    assert.ok(result.findings.some((f) => f.type === 'env-inconsistency' && f.metadata.key === 'DB_HOST'));
     assert.ok(!result.findings.some((f) =>
         f.type === 'env-inconsistency'
         && f.metadata.key === 'API_URL'
@@ -51,7 +51,7 @@ test('DependencyHealthAnalyzer detects duplicate sections and version drift', as
         }),
         'apps/a/index.js': "const express = require('express');\n",
         'apps/b/package.json': JSON.stringify({
-            dependencies: { lodash: '^4.18.0' }
+            dependencies: { lodash: '^5.0.0' }
         }),
         'apps/b/index.js': "const _ = require('lodash');\n"
     });

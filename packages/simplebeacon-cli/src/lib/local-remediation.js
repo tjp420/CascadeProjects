@@ -60,7 +60,7 @@ function extractSnippet(filePath, lineHint, contextLines = 8) {
 // Call the local Ollama generate endpoint.
 // ---------------------------------------------------------------------------
 async function callLocalModel(prompt, model = DEFAULT_LOCAL_MODEL) {
-    const response = await fetch(`${OLLAMA_URL}/api/generate`, {
+    const response = await globalThis.fetch(`${OLLAMA_URL}/api/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

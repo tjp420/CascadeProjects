@@ -242,7 +242,8 @@ async function scanFileNamingPatterns(baseDir, options = {}) {
     const files = [];
     for (const sp of sourcePaths) {
         const abs = path.resolve(baseDir, sp);
-        if (!fs.existsSync(abs) || !fs.statSync(abs).isDirectory()) continue;
+        const stat = await fs.promises.stat(abs).catch(() => null);
+        if (!stat || !stat.isDirectory()) continue;
 
         const walked = await walk(abs);
         for (const item of walked) {

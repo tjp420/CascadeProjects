@@ -102,7 +102,7 @@ async function postGithubComment(reportPath, options = {}) {
     const body = formatGithubComment(report, report.gate || null);
 
     const url = `https://api.github.com/repos/${repo}/issues/${issueNumber}/comments`;
-    const response = await fetch(url, {
+    const response = await globalThis.fetch(url, {
         method: 'POST',
         headers: {
             Authorization: `Bearer ${token}`,

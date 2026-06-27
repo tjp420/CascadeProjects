@@ -21,26 +21,35 @@ async function countRepositoryInventory(rootDir, options = {}) {
     const maxDepth = options.maxDepth ?? 40;
     let totalFiles = 0;
     let totalFolders = 0;
+    const visited = new Set();
 
-    async function walk(dir, depth) {
-        if (depth > maxDepth) return;
+    // Iterative stack-based traversal to avoid stack overflow on deep/large trees
+    const stack = [{ dir: path.resolve(rootDir), depth: 0 }];
+
+    while (stack.length > 0) {
+        const { dir, depth } = stack.pop();
+        if (depth > maxDepth) continue;
+        const realDir = await fs.promises.realpath(dir).catch(() => dir);
+        if (visited.has(realDir)) continue;
+        visited.add(realDir);
         let entries;
         for (let attempt = 0; attempt < 3; attempt += 1) {
             try {
                 entries = await fs.promises.readdir(dir, { withFileTypes: true });
                 break;
             } catch {
-                if (attempt === 2) return;
+                if (attempt === 2) break;
                 await new Promise((resolve) => setTimeout(resolve, 50 * (attempt + 1)));
             }
         }
+        if (!entries) continue;
 
         for (const entry of entries) {
             const fullPath = path.join(dir, entry.name);
             if (entry.isDirectory()) {
                 if (skipDirs.has(entry.name)) continue;
                 totalFolders += 1;
-                await walk(fullPath, depth + 1);
+                stack.push({ dir: fullPath, depth: depth + 1 });
                 continue;
             }
             if (entry.isSymbolicLink()) {
@@ -49,7 +58,7 @@ async function countRepositoryInventory(rootDir, options = {}) {
                     if (stat.isDirectory()) {
                         if (skipDirs.has(entry.name)) continue;
                         totalFolders += 1;
-                        await walk(fullPath, depth + 1);
+                        stack.push({ dir: fullPath, depth: depth + 1 });
                         continue;
                     }
                     totalFiles += 1;
@@ -65,9 +74,6 @@ async function countRepositoryInventory(rootDir, options = {}) {
     }
 
     const projectRoot = path.resolve(rootDir);
-    if (fs.existsSync(projectRoot)) {
-        await walk(projectRoot, 0);
-    }
 
     return {
         projectRoot,

@@ -132,7 +132,7 @@ function createMcpStdioServer(options = {}) {
                     const result = await handler(args);
 
                     if (checkCancelled()) {
-                        logger.log('Request cancelled:', id);
+                        logger.log('Request cancelled:', id); // simplebeacon-ignore pii-logging — logs request ID only, no user data
                         activeRequests.delete(id);
                         return;
                     }

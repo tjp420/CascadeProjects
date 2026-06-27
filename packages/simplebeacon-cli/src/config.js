@@ -72,6 +72,7 @@ const PROFILE_RULES = {
         'llm-slop-patterns': { enabled: true, severity: 'medium', registryCheck: false },
         'token-bleed-patterns': { enabled: true, severity: 'medium' },
         'architecture-drift-patterns': { enabled: true, severity: 'medium' },
+        'security-patterns': { enabled: true, severity: 'high' },
         'file-reduction': { enabled: true, dryRun: true }
     },
     'eu-ai-act': {
@@ -87,6 +88,7 @@ const PROFILE_RULES = {
         'jest-baseline': { enabled: false, runTests: false },
         'token-bleed-patterns': { enabled: true, severity: 'medium' },
         'architecture-drift-patterns': { enabled: true, severity: 'medium' },
+        'security-patterns': { enabled: true, severity: 'high' },
         'file-reduction': { enabled: true, dryRun: true }
     },
     cascade: {
@@ -117,6 +119,7 @@ const PROFILE_RULES = {
         'agency-handoff-patterns': { enabled: true, severity: 'medium' },
         'token-bleed-patterns': { enabled: true, severity: 'medium' },
         'architecture-drift-patterns': { enabled: true, severity: 'medium' },
+        'security-patterns': { enabled: true, severity: 'high' },
         'file-reduction': { enabled: true, dryRun: true }
     }
 };
@@ -312,7 +315,9 @@ function loadSimplebeaconConfig(baseDir, configPath = null) {
     const simplebeaconDir = resolveSimplebeaconDir(root);
     const explicitConfig = configPath != null && String(configPath).trim() !== '';
     const resolvedConfigPath = explicitConfig
-        ? path.resolve(sanitizeFilePath(configPath))
+        ? (path.isAbsolute(sanitizeFilePath(configPath))
+            ? path.resolve(sanitizeFilePath(configPath))
+            : path.join(root, sanitizeFilePath(configPath)))
         : path.join(simplebeaconDir, 'config.json');
     const baselinePath = path.join(simplebeaconDir, 'baseline.json');
 
@@ -394,6 +399,7 @@ function sanitizeConfigForTier(config, tier) {
         delete sanitized.allowlist;
         const profile = sanitized.profile || 'standard';
         sanitized.rules = { ...PROFILE_RULES[profile] || PROFILE_RULES.standard };
+    } else {
         // Preserve user-disabled rules so they can suppress false positives
         if (config.rules) {
             for (const [ruleName, userRule] of Object.entries(config.rules)) {
@@ -402,8 +408,9 @@ function sanitizeConfigForTier(config, tier) {
                 }
             }
         }
-    } else if (!limits.allowlist) {
-        delete sanitized.allowlist;
+        if (!limits.allowlist) {
+            delete sanitized.allowlist;
+        }
     }
 
     return sanitized;

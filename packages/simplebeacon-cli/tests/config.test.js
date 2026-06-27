@@ -13,7 +13,7 @@ const { validateConfig } = require('../src/config-schema');
 const { detectProjectProfile, resolvePlatformRoot } = require('../src/project-detect');
 const { initSimplebeacon } = require('../src/index');
 
-const AI_PLATFORM = path.join(__dirname, '../../..');
+const AI_PLATFORM = path.join(__dirname, '../../../ai-platform');
 
 test('validateConfig rejects invalid scanPaths type', () => {
     const result = validateConfig({ scanPaths: 'bad' });

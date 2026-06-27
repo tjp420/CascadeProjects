@@ -293,7 +293,8 @@ async function analyzeFullDirectory(rootDir, options = {}) {
 
         if (file.ext === '.json' || file.name.endsWith('.json')) {
             const isNodeModules = file.relativePath.includes('node_modules');
-            if (!isNodeModules) {
+            const isStdoutCapture = /-stdout\.json$/i.test(file.name) || /report-stdout\.json$/i.test(file.name);
+            if (!isNodeModules && !isStdoutCapture) {
                 try {
                     JSON.parse(content);
                     jsonValid += 1;

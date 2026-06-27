@@ -50,7 +50,8 @@ const HIGH_RISK_CATALOG = [
         type: 'EU AI Act — High-Risk Indicator',
         regex: /\b(?:resume|curriculum\s+vitae|cv)\s*(?:screen|scor|rank|filter|match)|(?:candidate|applicant)\s*(?:scor|rank|filter|screen)|(?:hiring|recruitment|employment)\s*(?:decision|ai|model|automated)/gi,
         severity: 'high',
-        description: 'Employment or recruitment AI decision pattern (Annex III area)'
+        description: 'Employment or recruitment AI decision pattern (Annex III area)',
+        fixTemplate: 'Implement human-in-the-loop review before any automated hiring decision. Add an appeal mechanism and document the FRIA (Fundamental Rights Impact Assessment). Ensure candidates are notified of AI screening.'
     },
     {
         id: 'EUAI-HR-002',
@@ -59,7 +60,8 @@ const HIGH_RISK_CATALOG = [
         type: 'EU AI Act — High-Risk Indicator',
         regex: /\b(?:credit\s*score|creditworthiness|loan\s*approv|lending\s*decision|underwriting\s*model|default\s*risk\s*model)/gi,
         severity: 'high',
-        description: 'Credit or lending AI decision pattern (Annex III area)'
+        description: 'Credit or lending AI decision pattern (Annex III area)',
+        fixTemplate: 'Add explainability logging for every credit decision. Implement a human override mechanism and provide applicants with a right-to-explanation. Document the model risk assessment.'
     },
     {
         id: 'EUAI-HR-003',
@@ -68,7 +70,8 @@ const HIGH_RISK_CATALOG = [
         type: 'EU AI Act — High-Risk Indicator',
         regex: /\b(?:biometric\s*identif|facial\s*recognition|face\s*match|emotion\s*detect|gait\s*recognition)/gi,
         severity: 'high',
-        description: 'Biometric identification or categorisation pattern (Annex III area)'
+        description: 'Biometric identification or categorisation pattern (Annex III area)',
+        fixTemplate: 'Biometric AI is classified as unacceptable or high-risk under EU AI Act. Remove real-time biometric identification in public spaces, or seek explicit regulatory approval and implement strict data retention limits.'
     },
     {
         id: 'EUAI-HR-004',
@@ -77,7 +80,8 @@ const HIGH_RISK_CATALOG = [
         type: 'EU AI Act — High-Risk Indicator',
         regex: /\b(?:exam\s*grad|student\s*assessment\s*automated|admission\s*decision\s*ai|education\s*ai\s*score)/gi,
         severity: 'high',
-        description: 'Education or vocational training AI assessment pattern (Annex III area)'
+        description: 'Education or vocational training AI assessment pattern (Annex III area)',
+        fixTemplate: 'Ensure educators can override AI-generated scores. Provide students with transparent scoring criteria and an appeal process. Document how the model was trained and validated.'
     },
     {
         id: 'EUAI-HR-005',
@@ -86,7 +90,8 @@ const HIGH_RISK_CATALOG = [
         type: 'EU AI Act — High-Risk Indicator',
         regex: /\b(?:insurance\s*premium\s*ai|insurance\s*underwriting\s*model|claims\s*automated\s*decision)/gi,
         severity: 'high',
-        description: 'Insurance pricing or claims AI pattern (Annex III area)'
+        description: 'Insurance pricing or claims AI pattern (Annex III area)',
+        fixTemplate: 'Disclose to policyholders when AI contributes to premium or claim decisions. Maintain an audit trail of model inputs/outputs. Implement a human review process for denied claims.'
     },
     {
         id: 'EUAI-HR-006',
@@ -95,7 +100,8 @@ const HIGH_RISK_CATALOG = [
         type: 'EU AI Act — High-Risk Indicator',
         regex: /\b(?:predictive\s*policing|criminal\s*risk\s*score|recidivism\s*model|law\s*enforcement\s*ai)/gi,
         severity: 'high',
-        description: 'Law enforcement risk assessment AI pattern (Annex III area)'
+        description: 'Law enforcement risk assessment AI pattern (Annex III area)',
+        fixTemplate: 'Law enforcement risk-scoring AI requires strict human oversight. Ensure every automated risk score is reviewed by an officer before action. Document bias testing and accuracy metrics.'
     },
     {
         id: 'EUAI-HR-007',
@@ -104,7 +110,8 @@ const HIGH_RISK_CATALOG = [
         type: 'EU AI Act — High-Risk Indicator',
         regex: /\b(?:migration\s*screen|asylum\s*decision\s*ai|border\s*control\s*ai|visa\s*automated\s*decision)/gi,
         severity: 'high',
-        description: 'Migration, asylum, or border control AI pattern (Annex III area)'
+        description: 'Migration, asylum, or border control AI pattern (Annex III area)',
+        fixTemplate: 'Migration AI decisions must preserve due process. Add a mandatory human review before any adverse decision. Provide applicants with a right to contest and explain the automated reasoning.'
     }
 ];
 
@@ -115,7 +122,8 @@ const AI_SYSTEM_INDICATORS = [
         type: 'EU AI Act — AI System Indicator',
         regex: /\b(?:openai|anthropic|claude|gpt-[\d.o]|chatgpt|llm\.|large\s*language\s*model|generative\s*ai|text-generation|chat\.completions|embeddings\.create)/gi,
         severity: 'medium',
-        description: 'Generative AI or LLM integration detected'
+        description: 'Generative AI or LLM integration detected',
+        fixTemplate: 'Add transparency disclosure in the UI (Article 50). Log all AI-generated content with a traceable ID. Document the model version, training data cutoff, and known limitations in your model-card.md.'
     },
     {
         id: 'EUAI-AI-002',
@@ -123,7 +131,8 @@ const AI_SYSTEM_INDICATORS = [
         type: 'EU AI Act — AI System Indicator',
         regex: /\b(?:machine\s*learning|ml\.predict|model\.predict|inference\s*endpoint|tensorflow|pytorch|onnxruntime|huggingface)/gi,
         severity: 'medium',
-        description: 'Machine learning inference or model runtime detected'
+        description: 'Machine learning inference or model runtime detected',
+        fixTemplate: 'Document the ML model purpose, performance metrics, and bias test results. Add input validation and confidence thresholds before returning predictions to users.'
     }
 ];
 
@@ -160,6 +169,32 @@ function normalizeRel(baseDir, filePath) {
 
 function lineNumberAt(content, index) {
     return content.slice(0, Math.max(0, index)).split('\n').length;
+}
+
+function extractLineAt(content, index) {
+    const lines = content.split('\n');
+    let pos = 0;
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (index >= pos && index < pos + line.length + 1) {
+            return { line: i + 1, text: line.trim(), start: pos };
+        }
+        pos += line.length + 1;
+    }
+    return { line: content.slice(0, Math.max(0, index)).split('\n').length, text: '', start: 0 };
+}
+
+function buildEvidence(rule, lineText, match) {
+    const snippet = lineText.slice(0, 120) || match[0].slice(0, 120);
+    return `Matched "${rule.id}" in code: "${snippet}" — ${rule.description}`;
+}
+
+function buildFix(rule, relativePath, lineNumber, lineText) {
+    if (rule.fixTemplate) return rule.fixTemplate;
+    if (rule.category === 'high-risk') {
+        return `Document Annex III classification for ${path.basename(relativePath)} at line ${lineNumber}. Conduct a FRIA and implement high-risk system requirements before August 2026.`;
+    }
+    return `Review EU AI Act transparency and documentation obligations for the AI integration in ${path.basename(relativePath)}:${lineNumber}.`;
 }
 
 function isExcludedPath(relativePath) {
@@ -199,7 +234,6 @@ function isExcludedPath(relativePath) {
 async function walkSourceFiles(baseDir, sourcePaths, results = []) {
     for (const rel of sourcePaths) {
         const abs = path.join(baseDir, ...String(rel).replace(/\/$/, '').split('/'));
-        if (!fs.existsSync(abs)) continue;
         const stat = await fs.promises.stat(abs).catch(() => null);
         if (!stat) continue;
         if (stat.isFile()) {
@@ -241,6 +275,7 @@ function collapsePatternIssuesByFile(issues, relativePath) {
     if (!issues.length) return [];
     const patternId = issues[0].metadata?.patternId || issues[0].type;
     const matches = [...new Set(issues.map((i) => i.metadata?.match).filter(Boolean))];
+    const lines = issues.map((i) => i.metadata?.lineNumber).filter(Boolean);
     return [{
         ...issues[0],
         id: `${patternId}-${relativePath}`,
@@ -253,7 +288,8 @@ function collapsePatternIssuesByFile(issues, relativePath) {
         metadata: {
             ...(issues[0].metadata || {}),
             matchCount: issues.length,
-            matches: matches.slice(0, 8)
+            matches: matches.slice(0, 8),
+            lines: lines.length ? lines : undefined
         }
     }];
 }
@@ -264,22 +300,27 @@ function scanCatalogPatterns(relativePath, content, catalog, severityDefault) {
         rule.regex.lastIndex = 0;
         let match;
         while ((match = rule.regex.exec(content)) !== null) {
+            const { line, text } = extractLineAt(content, match.index);
+            const evidence = buildEvidence(rule, text, match);
+            const fix = buildFix(rule, relativePath, line, text);
             issues.push({
                 id: `${rule.id}-${relativePath}-${match.index}`,
                 severity: rule.severity || severityDefault,
                 type: rule.type,
                 filePath: relativePath,
+                lineNumber: line,
                 count: 1,
                 description: rule.description,
-                recommendedAction: rule.category === 'high-risk'
-                    ? 'Document Annex III classification, conduct FRIA, and implement high-risk system requirements before August 2026'
-                    : 'Review EU AI Act transparency and documentation obligations for this AI integration',
+                recommendedAction: fix,
+                evidence,
                 affectedFiles: [relativePath],
                 metadata: {
                     patternId: rule.id,
                     category: rule.category,
                     annex: rule.annex || null,
-                    match: match[0].slice(0, 80)
+                    match: match[0].slice(0, 80),
+                    lineNumber: line,
+                    codeLine: text.slice(0, 120)
                 }
             });
         }
@@ -295,15 +336,25 @@ function scanTransparencyGaps(relativePath, content, severityDefault) {
     const issues = [];
     const normalized = String(relativePath || '').toLowerCase().replace(/\\/g, '/');
 
-    // Skip backend routes, services, env files, docs, and outreach templates — not user-facing AI output
     if (/\.(?:env|env\.example)$/.test(normalized)) return issues;
     if (/(?:^|\/)server\/(?:routes|services|lib)\//.test(normalized)) return issues;
     if (/(?:^|\/)packages\/simplebeacon-cli\/docs\//.test(normalized)) return issues;
     if (/(?:^|\/)outreach/.test(normalized)) return issues;
 
+    let firstAiLine = 0;
+    let firstAiLineText = '';
     const hasAiIndicator = AI_SYSTEM_INDICATORS.some((rule) => {
         rule.regex.lastIndex = 0;
-        return rule.regex.test(content);
+        let m;
+        while ((m = rule.regex.exec(content)) !== null) {
+            if (!firstAiLine) {
+                const loc = extractLineAt(content, m.index);
+                firstAiLine = loc.line;
+                firstAiLineText = loc.text;
+            }
+            return true;
+        }
+        return false;
     });
     if (!hasAiIndicator) return issues;
 
@@ -312,16 +363,21 @@ function scanTransparencyGaps(relativePath, content, severityDefault) {
     if (!isUiFacing) return issues;
 
     if (!hasTransparencyDisclosure(content)) {
+        const evidence = firstAiLine
+            ? `AI integration detected at line ${firstAiLine}: "${firstAiLineText.slice(0, 100)}" — no Article 50 disclosure found in this file.`
+            : 'AI system integration in user-facing code without transparency/disclosure markers';
         issues.push({
             id: `EUAI-T50-001-${relativePath}`,
             severity: severityDefault,
             type: 'EU AI Act — Transparency Gap (Art. 50)',
             filePath: relativePath,
+            lineNumber: firstAiLine || undefined,
             count: 1,
             description: 'AI system integration in user-facing code without transparency/disclosure markers',
-            recommendedAction: 'Add Article 50 disclosure — inform users they interact with AI or that content is AI-generated',
+            recommendedAction: `Add an Article 50 disclosure in ${path.basename(relativePath)} near line ${firstAiLine || '—'} — e.g., a visible banner or label stating "This content is AI-generated" or "You are interacting with an AI system".`,
+            evidence,
             affectedFiles: [relativePath],
-            metadata: { patternId: 'EUAI-T50-001', category: 'transparency', article: '50' }
+            metadata: { patternId: 'EUAI-T50-001', category: 'transparency', article: '50', lineNumber: firstAiLine || undefined }
         });
     }
     return issues;
@@ -330,16 +386,39 @@ function scanTransparencyGaps(relativePath, content, severityDefault) {
 function scanHumanOversightGaps(relativePath, content, hasHighRiskInFile, severityDefault) {
     if (!hasHighRiskInFile) return [];
     if (HUMAN_OVERSIGHT_PATTERNS.some((pattern) => pattern.test(content))) return [];
+
+    let hrLine = 0;
+    let hrLineText = '';
+    for (const rule of HIGH_RISK_CATALOG) {
+        rule.regex.lastIndex = 0;
+        let m;
+        while ((m = rule.regex.exec(content)) !== null) {
+            if (!hrLine) {
+                const loc = extractLineAt(content, m.index);
+                hrLine = loc.line;
+                hrLineText = loc.text;
+            }
+            break;
+        }
+        if (hrLine) break;
+    }
+
+    const evidence = hrLine
+        ? `High-risk pattern at line ${hrLine}: "${hrLineText.slice(0, 100)}" — no human oversight signals found in this file.`
+        : 'High-risk AI pattern without human oversight or appeal signals in same file';
+
     return [{
         id: `EUAI-HO-001-${relativePath}`,
         severity: severityDefault,
         type: 'EU AI Act — Human Oversight Gap',
         filePath: relativePath,
+        lineNumber: hrLine || undefined,
         count: 1,
         description: 'High-risk AI pattern without human oversight or appeal signals in same file',
-        recommendedAction: 'Implement human-in-the-loop review, manual override, or appeal mechanism for high-risk AI decisions',
+        recommendedAction: `In ${path.basename(relativePath)} near line ${hrLine || '—'}, add a human-in-the-loop checkpoint — e.g., a function that requires manual approval before the AI decision is finalized. Implement an appeal mechanism.`,
+        evidence,
         affectedFiles: [relativePath],
-        metadata: { patternId: 'EUAI-HO-001', category: 'human-oversight' }
+        metadata: { patternId: 'EUAI-HO-001', category: 'human-oversight', lineNumber: hrLine || undefined }
     }];
 }
 
@@ -348,16 +427,39 @@ function scanLoggingGaps(relativePath, content, hasAiInFile, severityDefault) {
     if (LOGGING_PATTERNS.some((pattern) => pattern.test(content))) return [];
     const isDecisionPath = /(?:route|controller|service|handler|api)/i.test(relativePath);
     if (!isDecisionPath) return [];
+
+    let aiLine = 0;
+    let aiLineText = '';
+    for (const rule of AI_SYSTEM_INDICATORS) {
+        rule.regex.lastIndex = 0;
+        let m;
+        while ((m = rule.regex.exec(content)) !== null) {
+            if (!aiLine) {
+                const loc = extractLineAt(content, m.index);
+                aiLine = loc.line;
+                aiLineText = loc.text;
+            }
+            break;
+        }
+        if (aiLine) break;
+    }
+
+    const evidence = aiLine
+        ? `AI decision path at line ${aiLine}: "${aiLineText.slice(0, 100)}" — no audit or inference logging found in this file.`
+        : 'AI decision path without audit or inference logging signals';
+
     return [{
         id: `EUAI-LOG-001-${relativePath}`,
         severity: 'low',
         type: 'EU AI Act — Logging Gap',
         filePath: relativePath,
+        lineNumber: aiLine || undefined,
         count: 1,
         description: 'AI decision path without audit or inference logging signals',
-        recommendedAction: 'Add automatic logging of AI system inputs, outputs, and decision rationale for accountability',
+        recommendedAction: `In ${path.basename(relativePath)} near line ${aiLine || '—'}, wrap the AI call with an audit logger — e.g., \`logDecision({input, output, modelVersion, timestamp})\` — to record inputs, outputs, and decision rationale for EU AI Act accountability.`,
+        evidence,
         affectedFiles: [relativePath],
-        metadata: { patternId: 'EUAI-LOG-001', category: 'logging' }
+        metadata: { patternId: 'EUAI-LOG-001', category: 'logging', lineNumber: aiLine || undefined }
     }];
 }
 

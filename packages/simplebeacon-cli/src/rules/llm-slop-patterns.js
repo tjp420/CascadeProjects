@@ -17,36 +17,17 @@ const SKIP_DIRS = new Set([
     'node_modules', '.git', 'coverage', 'dist', 'build', 'archive',
     '.simplebeacon', 'tests', 'test', '__tests__', 'fixtures', 'docs', 'deliverables',
     'coming-soon', 'reports', 'security-reports', 'templates', 'data-central',
-    'deployments', 'public', 'functions', 'cloudflare-deploy', 'temp', 'tests-legacy',
+    'deployments', 'functions', 'cloudflare-deploy', 'temp', 'tests-legacy',
     '.github-sync', '.cursor', '.vscode', 'downloads', 'findings',
     'simplebeacon-rule-tests', 'simplebeacon-toxic-fixtures'
 ]);
 const MAX_SCAN_BYTES = 512000;
 
-// Split so the rule source does not match its own lorem-ipsum detector pattern.
-const LOREM_IPSUM_SLOP = 'Lorem' + '\\s+' + 'Ipsum' + '\\s+Dolor';
-
-const RULE_CATALOG = [
-    {
-        id: 'SB-FICTION-001',
-        regex: /(?:YOUR_[A-Z0-9_]+_HERE|INSERT_[A-Z0-9_]+_HERE|\[Insert\s[^\]]+\]|\/\/\s*Handle\s+this\s+later|\/\/\s*AI\s+Generated\s+Placeholder)/gi,
-        severity: 'high',
-        description: 'Unresolved LLM placeholder or conversational debris'
-    },
-    {
-        id: 'SB-FICTION-002',
-        regex: /(```javascript|```typescript|```python|```json|```\s?$)/gm,
-        severity: 'high',
-        description: 'Raw markdown code fence leaked into source/config'
-    },
-    {
-        id: 'SB-FICTION-004',
-        regex: new RegExp(`(?:99\\.99\\s*%\\s*Uptime|100\\s*%\\s*Secure|${LOREM_IPSUM_SLOP}|9,999\\s*Users)`, 'gi'),
-        severity: 'medium',
-        description: 'Hardcoded AI-default UI metric or placeholder Latin filler copy'
-    }
-];
-
+const RULE_CATALOG_RAW = require('./llm-slop-catalog.json');
+const RULE_CATALOG = RULE_CATALOG_RAW.map((r) => ({
+    ...r,
+    regex: new RegExp(r.regexSource, r.regexFlags)
+}));
 const SUSPICIOUS_DEP_NAME = /^(fake-|mock-|test-api-package)/i;
 
 const ALLOWLIST_SNIPPETS = [
@@ -82,7 +63,6 @@ function isExcludedPath(relativePath) {
     if (/(?:^|\/)templates\//.test(normalized)) return true;
     if (/(?:^|\/)data-central\//.test(normalized)) return true;
     if (/(?:^|\/)deployments\//.test(normalized)) return true;
-    if (/(?:^|\/)public\//.test(normalized)) return true;
     if (/(?:^|\/)functions\//.test(normalized)) return true;
     if (/(?:^|\/)cloudflare-deploy\//.test(normalized)) return true;
     if (/(?:^|\/)archive\//.test(normalized)) return true;
@@ -96,7 +76,8 @@ function isExcludedPath(relativePath) {
 }
 
 function isAllowlistedMatch(line, matchText) {
-    const snippet = `${line} ${matchText}`.toLowerCase();
+    const strippedLine = String(line || '').replace(/\/\/.*$/, '').replace(/\/\*[\s\S]*?\*\//, '');
+    const snippet = `${strippedLine} ${matchText}`.toLowerCase();
     return ALLOWLIST_SNIPPETS.some((token) => snippet.includes(token));
 }
 
@@ -160,11 +141,29 @@ async function walkFiles(dir, results = [], options = {}, depth = 0) {
     return results;
 }
 
-function scanTextPatterns(relativePath, content, ext) {
+function scanTextPatterns(relativePath, content, ext, options = {}) {
+    if (isExcludedPath(relativePath)) {
+        return [];
+    }
     const findings = [];
     const lines = content.split('\n');
+    const minConfidence = options.minConfidence ?? 0.5;
 
     for (const rule of RULE_CATALOG) {
+        // Skip patterns below confidence threshold
+        if ((rule.confidence ?? 0) < minConfidence) {
+            continue;
+        }
+
+        // Respect context exclusions from catalog
+        const exclusions = rule.contextExclusions;
+        if (exclusions && exclusions.ext && exclusions.ext.length > 0) {
+            const fileExt = ext || ('.' + path.extname(relativePath));
+            if (exclusions.ext.some((e) => relativePath.endsWith(e) || fileExt === e)) {
+                continue;
+            }
+        }
+
         if (rule.id === 'SB-FICTION-002' && ext === '.md') continue;
 
         rule.regex.lastIndex = 0;
@@ -172,6 +171,15 @@ function scanTextPatterns(relativePath, content, ext) {
         while ((match = rule.regex.exec(content)) !== null) {
             const lineIndex = content.slice(0, match.index).split('\n').length - 1;
             const line = lines[lineIndex] || '';
+
+            // Skip excluded line prefixes
+            if (exclusions && exclusions.linePrefixes && exclusions.linePrefixes.length > 0) {
+                const trimmed = line.trim();
+                if (exclusions.linePrefixes.some((prefix) => trimmed.startsWith(prefix))) {
+                    continue;
+                }
+            }
+
             if (isAllowlistedMatch(line, match[0])) continue;
             if (isFenceDetectorMetaLine(line, relativePath, rule.id)) continue;
             if (isCommentLine(line, ext) && rule.id !== 'SB-FICTION-002') continue;
@@ -190,7 +198,8 @@ function scanTextPatterns(relativePath, content, ext) {
                 affectedFiles: [path.basename(relativePath)],
                 metadata: {
                     ruleId: rule.id,
-                    match: match[0].slice(0, 120)
+                    match: match[0].slice(0, 120),
+                    confidence: rule.confidence
                 }
             });
         }
@@ -339,7 +348,7 @@ async function scanLlmSlopPatterns(baseDir, options = {}) {
         } catch {
             continue;
         }
-        issues.push(...scanTextPatterns(file.relativePath, content, file.ext));
+        issues.push(...scanTextPatterns(file.relativePath, content, file.ext, { minConfidence: options.minConfidence }));
         issues.push(...scanSuspiciousDependencies(file.relativePath, content));
         if (options.registryCheck === true) {
             issues.push(...await scanUnknownNpmDependencies(file.relativePath, content, options));

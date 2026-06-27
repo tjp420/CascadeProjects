@@ -49,9 +49,9 @@ function generateToken(tier) {
 const tier = process.argv[2] || 'pro';
 
 if (!['pro', 'enterprise'].includes(tier)) {
-  console.error('Usage: node generate-license-token.cjs [pro|enterprise]');
+  console.error('Usage: node generate-license-token.cjs [pro|enterprise]'); // simplebeacon-ignore pii-logging — CLI usage string, no user data
   process.exit(1);
 }
 
 const token = generateToken(tier);
-console.log(token);
+console.log(token); // simplebeacon-ignore pii-logging — CLI tool outputs generated JWT to stdout for piping

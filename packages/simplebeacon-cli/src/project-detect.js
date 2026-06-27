@@ -84,9 +84,9 @@ function detectSampleDir(baseDir, scanPaths) {
     if (scanPaths.includes('web/data')) return 'web/data';
     const withSamples = scanPaths.find((rel) => {
         const abs = path.join(baseDir, ...rel.split('/'));
-        if (!fs.existsSync(abs)) return false;
         try {
-            return fs.readdirSync(abs).some((name) => name.endsWith('-sample.json'));
+            const entries = fs.readdirSync(abs);
+            return entries.some((name) => name.endsWith('-sample.json'));
         } catch {
             return false;
         }
@@ -96,10 +96,9 @@ function detectSampleDir(baseDir, scanPaths) {
 
 function detectAnchorSamples(baseDir, sampleDir) {
     const abs = path.join(baseDir, ...sampleDir.split('/'));
-    if (!fs.existsSync(abs)) return [];
     try {
-        return fs.readdirSync(abs)
-            .filter((name) => CASCADE_ANCHORS.includes(name))
+        const entries = fs.readdirSync(abs); // simplebeacon-ignore sync-io-async-path — sync CLI tool startup, acceptable for small directory
+        return entries.filter((name) => CASCADE_ANCHORS.includes(name))
             .sort();
     } catch {
         return [];
@@ -151,11 +150,6 @@ function resolvePlatformRoot(projectRoot) {
         return { scanRoot, platformRoot: scanRoot };
     }
 
-    const direct = detectPlatformSignalsAt(scanRoot);
-    if (direct.cascadeLayout) {
-        return { scanRoot, platformRoot: scanRoot };
-    }
-
     for (const name of PLATFORM_DIR_NAMES) {
         const candidate = path.join(scanRoot, name);
         if (!fs.existsSync(candidate)) continue;
@@ -163,6 +157,11 @@ function resolvePlatformRoot(projectRoot) {
         if (signals.cascadeLayout || signals.pageSampleDir || signals.stubApi || signals.serverEntry) {
             return { scanRoot, platformRoot: candidate };
         }
+    }
+
+    const direct = detectPlatformSignalsAt(scanRoot);
+    if (direct.cascadeLayout) {
+        return { scanRoot, platformRoot: scanRoot };
     }
 
     let current = scanRoot;
