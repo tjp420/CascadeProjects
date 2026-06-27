@@ -1,0 +1,51 @@
+name: SimpleBeacon Monorepo CI Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  verify:
+    name: Build & Quality Gates
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [22.x]
+
+    steps:
+      - name: Checkout Code Repository
+        uses: actions/checkout@v4
+
+      - name: Set Up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install Root Dependencies
+        run: npm ci
+
+      - name: Install Package Dependencies
+        run: |
+          cd packages/simplebeacon-cli && npm ci
+          cd ../../ai-platform && npm ci
+          cd ../../coming-soon && npm ci
+
+      - name: Verify Monorepo Build
+        run: npm run build
+
+      - name: Verify VS Code Extension Types
+        run: |
+          cd simplebeacon-vscode-merged
+          node node_modules/typescript/bin/tsc --noEmit
+
+      - name: Run Global Code Quality Check
+        run: npm run quality:check
+
+      - name: Stress Test CLI Distribution Package
+        run: |
+          cd packages/simplebeacon-cli
+          npm pack --dry-run

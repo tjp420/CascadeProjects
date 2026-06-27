@@ -1,0 +1,143 @@
+# SimpleBeacon GitLab CI/CD Template
+# Add this to your .gitlab-ci.yml to block AI slop, credential leaks,
+# and unapproved AI integrations before they reach production.
+#
+# Usage:
+#   include:
+#     - remote: 'https://simplebeacon.ai/gitlab-ci-simplebeacon.yml'
+#   or copy this file into your repo as .gitlab-ci.yml
+
+stages:
+  - test
+  - security
+
+variables:
+  SIMPLEBEACON_SCAN_ARGS: "--full --gate"
+  SIMPLEBEACON_FAIL_ON: "high"  # critical | high | medium | low | never
+  SIMPLEBEACON_OUTPUT_FORMAT: "json"
+  SIMPLEBEACON_REPORT_PATH: ".simplebeacon/report.json"
+
+# Cache the CLI install between jobs
+.simplebeacon_base:
+  image: node:22-alpine
+  before_script:
+    - npm install -g simplebeacon-cli
+    - mkdir -p .simplebeacon
+  artifacts:
+    when: always
+    paths:
+      - .simplebeacon/report.json
+    reports:
+      junit: .simplebeacon/junit.xml
+  cache:
+    key: simplebeacon-cli
+    paths:
+      - /usr/local/lib/node_modules/simplebeacon-cli/
+
+# ───────────────────────────────────────────────
+# Main scan job — runs on every commit / MR
+# ───────────────────────────────────────────────
+simplebeacon-scan:
+  stage: security
+  extends: .simplebeacon_base
+  script:
+    - |
+      echo "🔦 Running SimpleBeacon scan..."
+      npx simplebeacon scan $SIMPLEBEACON_SCAN_ARGS \
+        --format $SIMPLEBEACON_OUTPUT_FORMAT \
+        --output $SIMPLEBEACON_REPORT_PATH
+
+    - |
+      # Convert JSON report to JUnit XML for GitLab merge request widgets
+      node -e "
+        const fs = require('fs');
+        const report = JSON.parse(fs.readFileSync('$SIMPLEBEACON_REPORT_PATH', 'utf8'));
+        const issues = report.issues || report.detectedIssues || [];
+        const gate = report.gate || {};
+        let xml = '<?xml version=\"1.0\" encoding=\"UTF-8\"?>';
+        xml += '<testsuites name=\"SimpleBeacon\">';
+        xml += '<testsuite name=\"Security Scan\" tests=\"' + issues.length + '\">';
+        for (const issue of issues) {
+          const sev = (issue.severity || 'medium').toLowerCase();
+          const file = issue.filePath || issue.file || 'unknown';
+          const line = issue.line || 1;
+          const msg = (issue.description || issue.message || 'Issue detected').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+          xml += '<testcase name=\"' + (issue.pattern || 'finding') + '\" classname=\"' + file + '\">';
+          if (sev === 'critical' || sev === 'high') {
+            xml += '<failure type=\"' + sev + '\">' + msg + ' (' + file + ':' + line + ')</failure>';
+          }
+          xml += '</testcase>';
+        }
+        xml += '</testsuite></testsuites>';
+        fs.writeFileSync('.simplebeacon/junit.xml', xml);
+      "
+
+    - |
+      # Print human-readable summary
+      node -e "
+        const fs = require('fs');
+        const r = JSON.parse(fs.readFileSync('$SIMPLEBEACON_REPORT_PATH', 'utf8'));
+        const gate = r.gate || {};
+        console.log('');
+        console.log('╔═══════════════════════════════════════════╗');
+        console.log('║        SimpleBeacon Scan Results          ║');
+        console.log('╠═══════════════════════════════════════════╣');
+        console.log('║ Gate Status : ' + (gate.pass ? 'PASS' : 'FAIL').padEnd(28) + '║');
+        console.log('║ Quality     : ' + String(r.qualityScore || 'N/A').padEnd(28) + '║');
+        console.log('║ Blocking    : ' + String(gate.blockingCount || 0).padEnd(28) + '║');
+        console.log('║ Warnings    : ' + String(gate.warningCount || 0).padEnd(28) + '║');
+        console.log('║ Files       : ' + String(r.totalFiles || r.filesScanned || 'N/A').padEnd(28) + '║');
+        console.log('╚═══════════════════════════════════════════╝');
+      "
+
+    - |
+      # Fail the pipeline if gate threshold is exceeded
+      node -e "
+        const fs = require('fs');
+        const r = JSON.parse(fs.readFileSync('$SIMPLEBEACON_REPORT_PATH', 'utf8'));
+        const gate = r.gate || {};
+        const failOn = '$SIMPLEBEACON_FAIL_ON'.toLowerCase();
+        if (failOn === 'never') process.exit(0);
+        const severityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
+        const issues = r.issues || r.detectedIssues || [];
+        const threshold = severityOrder[failOn] || 3;
+        const blocking = issues.filter(i => (severityOrder[(i.severity || '').toLowerCase()] || 0) >= threshold);
+        if (blocking.length > 0) {
+          console.error('❌ SimpleBeacon gate failed: ' + blocking.length + ' issue(s) ≥ ' + failOn + ' severity');
+          process.exit(1);
+        }
+        console.log('✅ SimpleBeacon gate passed');
+      "
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_TAG
+
+# ───────────────────────────────────────────────
+# Optional: lightweight scan on feature branches
+# ───────────────────────────────────────────────
+simplebeacon-quick:
+  stage: security
+  extends: .simplebeacon_base
+  variables:
+    SIMPLEBEACON_SCAN_ARGS: "--gate"
+  script:
+    - npx simplebeacon scan $SIMPLEBEACON_SCAN_ARGS --format json --output $SIMPLEBEACON_REPORT_PATH
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH && $CI_COMMIT_BRANCH !~ /^release\// && $CI_COMMIT_BRANCH !~ /^v\d+/
+  allow_failure: true
+
+# ───────────────────────────────────────────────
+# Optional: nightly deep scan with full report
+# ───────────────────────────────────────────────
+simplebeacon-nightly:
+  stage: security
+  extends: .simplebeacon_base
+  variables:
+    SIMPLEBEACON_SCAN_ARGS: "--full --gate"
+  script:
+    - npx simplebeacon scan $SIMPLEBEACON_SCAN_ARGS --format json --output $SIMPLEBEACON_REPORT_PATH
+    - echo "📊 Upload full report to dashboard (Team/Enterprise tier)"
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+  allow_failure: true
