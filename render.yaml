@@ -15,7 +15,7 @@ services:
       - key: SIMPLEBEACON_LICENSE_SECRET
         generateValue: true
       - key: ALLOWED_ORIGIN
-        value: ""
+        value: "https://simplebeacon.ai,https://simplebeacon.onrender.com"
       - key: PUBLIC_URL
         sync: false
       - key: PUBLIC_APP_URL
