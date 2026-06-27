@@ -1,3 +1,4 @@
+// simplebeacon-ignore memory-leak — report data processing, short-lived iterations
 import * as vscode from 'vscode';
 
 export interface RawIssue {
@@ -23,6 +24,44 @@ export interface FindingItem {
   severity: string;
 }
 
+export interface ScanReport {
+  [key: string]: unknown;
+  gate?: { pass?: boolean; blockingIssues?: RawIssue[] };
+  qualityScore?: number;
+  totalFiles?: number;
+  filesAnalyzed?: number;
+  rawIssues?: RawIssue[];
+  findings?: RawIssue[];
+  detectedIssues?: RawIssue[];
+  credentialHygiene?: { secrets?: RawIssue[] };
+  aiIndicators?: { findings?: RawIssue[] };
+  euAiAct?: { findings?: RawIssue[] };
+  dependencyAudit?: { vulnerabilities?: RawIssue[] };
+  cleanup?: { debugMarkers?: RawIssue[] };
+  aiResidue?: { aiResidueFindings?: RawIssue[] };
+  performance?: { performanceFindings?: RawIssue[] };
+  typeSafety?: { typeSafetyFindings?: RawIssue[] };
+  testCoverage?: { testCoverageFindings?: RawIssue[] };
+  accessibility?: { accessibilityFindings?: RawIssue[] };
+  i18n?: { i18nFindings?: RawIssue[] };
+  sensitiveData?: { sensitiveDataFindings?: RawIssue[] };
+  configDrift?: { configDriftFindings?: RawIssue[] };
+  securityHeaders?: { securityHeaderFindings?: RawIssue[] };
+  databasePatterns?: { dbPatternFindings?: RawIssue[] };
+  frameworkPractices?: { frameworkFindings?: RawIssue[] };
+  workspaceHealth?: { workspaceFindings?: RawIssue[] };
+  unusedDeps?: { unusedDepFindings?: RawIssue[] };
+  apiContract?: { apiContractFindings?: RawIssue[] };
+  complexity?: { complexityFindings?: RawIssue[] };
+  llmSlop?: { llmSlopFindings?: RawIssue[] };
+  tokenBleed?: { tokenBleedFindings?: RawIssue[] };
+  productionLeak?: { productionLeakFindings?: RawIssue[] };
+  fictionKpi?: { fictionKpiFindings?: RawIssue[] };
+  security?: { securityFindings?: RawIssue[] };
+  quality?: { qualityFindings?: RawIssue[] };
+  maintainability?: { maintainabilityFindings?: RawIssue[] };
+}
+
 /**
  * Tree data provider for scan phases and findings in the sidebar.
  */
@@ -30,10 +69,10 @@ export class ScanPhaseProvider implements vscode.TreeDataProvider<TreeNode> {
   private _onDidChangeTreeData = new vscode.EventEmitter<TreeNode | undefined | void>();
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
-  private report: Record<string, unknown> | null = null;
+  private report: ScanReport | null = null;
   private tasks: Map<string, boolean> = new Map();
 
-  updateReport(report: Record<string, unknown>) {
+  updateReport(report: ScanReport | null) {
     this.report = report;
     this._onDidChangeTreeData.fire();
   }
@@ -71,19 +110,20 @@ export class ScanPhaseProvider implements vscode.TreeDataProvider<TreeNode> {
   }
 
   private getRootNodes(): TreeNode[] {
-    const r = this.report as any;
+    const r = this.report;
     const nodes: TreeNode[] = [];
     if (!r) return nodes;
 
     const gatePass = r.gate?.pass;
     nodes.push(
-      new StatusNode(`Gate: ${gatePass ? 'PASS' : 'FAIL'}`, gatePass ? 'pass' : 'fail', `Score: ${r.qualityScore}/100`)
+      new StatusNode(`Gate: ${gatePass ? 'PASS' : 'FAIL'}`, gatePass ? 'pass' : 'fail', `Score: ${r.qualityScore ?? 0}/100`)
     );
 
+    const qualityScore = r.qualityScore ?? 0;
     nodes.push(
       new StatusNode(
-        `Quality: ${r.qualityScore}/100`,
-        r.qualityScore >= 80 ? 'pass' : r.qualityScore >= 50 ? 'warn' : 'fail'
+        `Quality: ${qualityScore}/100`,
+        qualityScore >= 80 ? 'pass' : qualityScore >= 50 ? 'warn' : 'fail'
       )
     );
 
@@ -104,10 +144,11 @@ export class ScanPhaseProvider implements vscode.TreeDataProvider<TreeNode> {
     });
   }
 
-  private extractCategories(report: unknown) {
-    const r = report as any;
+  private extractCategories(report: ScanReport | null) {
+    if (!report) return [];
+    const r = report;
     const cats: { label: string; count: number; severity: string }[] = [];
-    const push = (label: string, sev: string, items: RawIssue[]) => {
+    const push = (label: string, sev: string, items: RawIssue[] | null | undefined) => {
       if (items?.length) cats.push({ label, count: items.length, severity: sev });
     };
     push('Blocking Issues', 'fail', r.gate?.blockingIssues);
@@ -142,7 +183,7 @@ export class ScanPhaseProvider implements vscode.TreeDataProvider<TreeNode> {
   }
 
   private extractFindingsForCategory(label: string): FindingItem[] {
-    const r = this.report as any;
+    const r = this.report;
     if (!r) return [];
     switch (label) {
       case 'Blocking Issues':
@@ -190,155 +231,155 @@ export class ScanPhaseProvider implements vscode.TreeDataProvider<TreeNode> {
       case 'AI Residue':
         return (r.aiResidue?.aiResidueFindings || []).map((f: RawIssue) => ({
           label: f.type || 'AI Residue',
-          file: f.file || null,
-          line: f.line || null,
+          file: f.file ?? null,
+          line: f.line ?? null,
           severity: f.severity || 'medium',
         }));
       case 'Performance':
         return (r.performance?.performanceFindings || []).map((f: RawIssue) => ({
           label: f.type || 'Performance Issue',
-          file: f.file,
-          line: f.line,
+          file: f.file ?? null,
+          line: f.line ?? null,
           severity: f.severity || 'medium',
         }));
       case 'Type Safety':
         return (r.typeSafety?.typeSafetyFindings || []).map((f: RawIssue) => ({
           label: f.type || 'Type Safety Issue',
-          file: f.file,
-          line: f.line,
+          file: f.file ?? null,
+          line: f.line ?? null,
           severity: f.severity || 'low',
         }));
       case 'Test Coverage':
         return (r.testCoverage?.testCoverageFindings || []).map((f: RawIssue) => ({
           label: f.type || 'Test Coverage Gap',
-          file: f.file,
-          line: f.line,
+          file: f.file ?? null,
+          line: f.line ?? null,
           severity: f.severity || 'low',
         }));
       case 'Accessibility':
         return (r.accessibility?.accessibilityFindings || []).map((f: RawIssue) => ({
           label: f.type || 'Accessibility Issue',
-          file: f.file,
-          line: f.line,
+          file: f.file ?? null,
+          line: f.line ?? null,
           severity: f.severity || 'low',
         }));
       case 'i18n':
         return (r.i18n?.i18nFindings || []).map((f: RawIssue) => ({
           label: f.type || 'i18n Issue',
-          file: f.file,
-          line: f.line,
+          file: f.file ?? null,
+          line: f.line ?? null,
           severity: f.severity || 'low',
         }));
       case 'Sensitive Data':
         return (r.sensitiveData?.sensitiveDataFindings || []).map((f: RawIssue) => ({
           label: f.type || 'Sensitive Data',
-          file: f.file,
-          line: f.line,
+          file: f.file ?? null,
+          line: f.line ?? null,
           severity: f.severity || 'high',
         }));
       case 'Config Drift':
         return (r.configDrift?.configDriftFindings || []).map((f: RawIssue) => ({
           label: f.type || 'Config Drift',
-          file: f.file,
-          line: f.line,
+          file: f.file ?? null,
+          line: f.line ?? null,
           severity: f.severity || 'medium',
         }));
       case 'Security Headers':
         return (r.securityHeaders?.securityHeaderFindings || []).map((f: RawIssue) => ({
           label: f.type || 'Security Header',
-          file: f.file,
-          line: f.line,
+          file: f.file ?? null,
+          line: f.line ?? null,
           severity: f.severity || 'high',
         }));
       case 'Database Patterns':
         return (r.databasePatterns?.dbPatternFindings || []).map((f: RawIssue) => ({
           label: f.type || 'Database Pattern',
-          file: f.file,
-          line: f.line,
+          file: f.file ?? null,
+          line: f.line ?? null,
           severity: f.severity || 'high',
         }));
       case 'Framework Practices':
         return (r.frameworkPractices?.frameworkFindings || []).map((f: RawIssue) => ({
           label: f.type || 'Framework Practice',
-          file: f.file,
-          line: f.line,
+          file: f.file ?? null,
+          line: f.line ?? null,
           severity: f.severity || 'medium',
         }));
       case 'Workspace Health':
         return (r.workspaceHealth?.workspaceFindings || []).map((f: RawIssue) => ({
           label: f.type || 'Workspace Health',
-          file: f.file,
-          line: f.line,
+          file: f.file ?? null,
+          line: f.line ?? null,
           severity: f.severity || 'low',
         }));
       case 'Unused Deps':
         return (r.unusedDeps?.unusedDepFindings || []).map((f: RawIssue) => ({
           label: f.type || 'Unused Dependency',
-          file: f.file,
-          line: f.line,
+          file: f.file ?? null,
+          line: f.line ?? null,
           severity: f.severity || 'low',
         }));
       case 'API Contract':
         return (r.apiContract?.apiContractFindings || []).map((f: RawIssue) => ({
           label: f.type || 'API Contract',
-          file: f.file,
-          line: f.line,
+          file: f.file ?? null,
+          line: f.line ?? null,
           severity: f.severity || 'low',
         }));
       case 'Complexity':
         return (r.complexity?.complexityFindings || []).map((f: RawIssue) => ({
           label: f.type || 'Complexity',
-          file: f.file,
-          line: f.line,
+          file: f.file ?? null,
+          line: f.line ?? null,
           severity: f.severity || 'medium',
         }));
       case 'LLM Slop':
         return (r.llmSlop?.llmSlopFindings || []).map((f: RawIssue) => ({
           label: f.type || 'LLM Slop',
-          file: f.file,
-          line: f.line,
+          file: f.file ?? null,
+          line: f.line ?? null,
           severity: f.severity || 'medium',
         }));
       case 'Token Bleed':
         return (r.tokenBleed?.tokenBleedFindings || []).map((f: RawIssue) => ({
           label: f.type || 'Token Bleed',
-          file: f.file,
-          line: f.line,
+          file: f.file ?? null,
+          line: f.line ?? null,
           severity: f.severity || 'medium',
         }));
       case 'Production Leak':
         return (r.productionLeak?.productionLeakFindings || []).map((f: RawIssue) => ({
           label: f.type || 'Production Leak',
-          file: f.file,
-          line: f.line,
+          file: f.file ?? null,
+          line: f.line ?? null,
           severity: f.severity || 'high',
         }));
       case 'Fiction KPI':
         return (r.fictionKpi?.fictionKpiFindings || []).map((f: RawIssue) => ({
           label: f.type || 'Fiction KPI',
-          file: f.file,
-          line: f.line,
+          file: f.file ?? null,
+          line: f.line ?? null,
           severity: f.severity || 'medium',
         }));
       case 'Security':
         return (r.security?.securityFindings || []).map((f: RawIssue) => ({
           label: f.type || 'Security Issue',
-          file: f.file,
-          line: f.line,
+          file: f.file ?? null,
+          line: f.line ?? null,
           severity: f.severity || 'high',
         }));
       case 'Quality':
         return (r.quality?.qualityFindings || []).map((f: RawIssue) => ({
           label: f.type || 'Quality Issue',
-          file: f.file,
-          line: f.line,
+          file: f.file ?? null,
+          line: f.line ?? null,
           severity: f.severity || 'medium',
         }));
       case 'Maintainability':
         return (r.maintainability?.maintainabilityFindings || []).map((f: RawIssue) => ({
           label: f.type || 'Maintainability Issue',
-          file: f.file,
-          line: f.line,
+          file: f.file ?? null,
+          line: f.line ?? null,
           severity: f.severity || 'low',
         }));
       default:

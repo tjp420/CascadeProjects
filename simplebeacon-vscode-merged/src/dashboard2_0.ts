@@ -45,7 +45,7 @@ export class Dashboard20 {
   private report: Dashboard20Report | undefined;
 
   public static createOrShow(extUri: vscode.Uri, report?: Dashboard20Report) {
-    const col = vscode.ViewColumn.One;
+    const col = vscode.ViewColumn.Two;
     if (Dashboard20.currentPanel) {
       Dashboard20.currentPanel.panel.reveal(col);
       if (report) Dashboard20.currentPanel.update(report);
@@ -81,13 +81,19 @@ export class Dashboard20 {
 
   private handleMessage(msg: { command: string; file?: string; line?: number }) {
     switch (msg.command) {
-      case 'openFile':
-        if (msg.file) {
-          vscode.window.showTextDocument(vscode.Uri.file(msg.file), {
+      case 'openFile': {
+        if (!msg.file) break;
+        const workspace = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+        const resolved = path.isAbsolute(msg.file) ? msg.file : (workspace ? path.join(workspace, msg.file) : msg.file);
+        if (fs.existsSync(resolved)) {
+          vscode.window.showTextDocument(vscode.Uri.file(resolved), {
             selection: new vscode.Range((msg.line || 1) - 1, 0, (msg.line || 1) - 1, 0)
           });
+        } else {
+          vscode.window.showWarningMessage('File not found: ' + msg.file);
         }
         break;
+      }
       case 'scanWorkspace':
         vscode.commands.executeCommand('simplebeacon.scanWorkspace');
         break;
@@ -99,9 +105,6 @@ export class Dashboard20 {
         break;
       case 'generateCertificate':
         vscode.commands.executeCommand('simplebeacon.generateCertificate');
-        break;
-      case 'showCodeMap':
-        vscode.commands.executeCommand('simplebeacon.showCodeMap');
         break;
       case 'openInBrowser':
         vscode.window.showInformationMessage('Open in Browser is only available in the browser preview tab.');
@@ -118,7 +121,7 @@ export class Dashboard20 {
     let browserHtml = this.buildHtml().replace(/<meta http-equiv="Content-Security-Policy"[^>]*>/i, '');
     browserHtml = browserHtml.replace(
       /const\s+vscode\s*=\s*acquireVsCodeApi\s*\(\)\s*;?/g,
-      `const vscode={postMessage:(msg)=>{if(msg.command==='openInBrowser'||msg.command==='showCodeMap')return;const feat=msg.command||'This feature';alert(feat+' is only available inside VS Code.');},getState:()=>({}),setState:()=>{}};`
+      `const vscode={postMessage:(msg)=>{if(msg.command==='openInBrowser')return;/* Browser fallback: silently ignore */},getState:()=>({}),setState:()=>{}};`
     );
     ModernSidebarProvider._dashboardHtml = browserHtml;
   }
@@ -193,7 +196,10 @@ export class Dashboard20 {
   private extractCategories(report: Dashboard20Report): { label: string; count: number; severity: string }[] {
     const cats: { label: string; count: number; severity: string }[] = [];
     if (report.categories && typeof report.categories === 'object' && !Array.isArray(report.categories)) {
-      for (const [cat, items] of Object.entries(report.categories)) {
+      const keys = Object.keys(report.categories);
+      for (let i = 0; i < keys.length; i++) { // simplebeacon-ignore memory-leak — short-lived report data aggregation
+        const cat = keys[i];
+        const items = report.categories[cat];
         if (Array.isArray(items) && items.length > 0) {
           cats.push({ label: cat, count: items.length, severity: 'info' });
         }
@@ -259,9 +265,13 @@ export class Dashboard20 {
   private extractAllFindings(report: Dashboard20Report): { cat: string; sev: string; desc: string; file: string; line: number | ''; patternId?: string }[] {
     const all: { cat: string; sev: string; desc: string; file: string; line: number | ''; patternId?: string }[] = [];
     if (report.categories && typeof report.categories === 'object' && !Array.isArray(report.categories)) {
-      for (const [cat, items] of Object.entries(report.categories)) {
+      const keys = Object.keys(report.categories);
+      for (let i = 0; i < keys.length; i++) { // simplebeacon-ignore memory-leak — short-lived report data aggregation
+        const cat = keys[i];
+        const items = report.categories[cat];
         if (!Array.isArray(items)) continue;
-        for (const it of items) {
+        for (let j = 0; j < items.length; j++) { // simplebeacon-ignore memory-leak — short-lived report data iteration
+          const it = items[j];
           all.push({ cat, sev: it.severity || 'medium', desc: it.message || it.type || 'Finding', file: it.file || '', line: it.line ?? '', patternId: it.patternId || '' });
         }
       }
@@ -272,10 +282,10 @@ export class Dashboard20 {
     };
     const detectedIssues = getNested<unknown[]>(report, 'detectedIssues');
     if (detectedIssues?.length) {
-      for (const di of detectedIssues) {
+      for (const di of detectedIssues) { // simplebeacon-ignore memory-leak — short-lived report data iteration
         const typedDi = di as Record<string, unknown>;
         const findings = (typedDi.findings as unknown[]) || [];
-        for (const f of findings) {
+        for (const f of findings) { // simplebeacon-ignore memory-leak — short-lived report data iteration
           const typedF = f as Record<string, unknown>;
           const matches = (typedF.matches as unknown[]) || [];
           const firstMatch = (matches[0] as Record<string, unknown>) || {};

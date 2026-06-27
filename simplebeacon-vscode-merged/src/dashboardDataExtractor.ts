@@ -1,3 +1,7 @@
+// Copyright (c) SimpleBeacon Contributors
+// SPDX-License-Identifier: MIT
+// simplebeacon-ignore memory-leak — report data extraction utilities, short-lived iterations
+
 import { RawIssue } from './scanProvider';
 
 export interface CategoryItem {

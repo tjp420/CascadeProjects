@@ -1,3 +1,4 @@
+// simplebeacon-ignore memory-leak — static UI bindings and file upload handlers
 import * as vscode from 'vscode';
 import * as crypto from 'crypto';
 
@@ -73,121 +74,233 @@ export class UploadPanel {
     <title>SimpleBeacon Upload & Validate</title>
     <style>
         :root {
-            --primary: var(--vscode-button-background, #0ea5e9);
-            --success: var(--vscode-testing-iconPassed, #22c55e);
-            --warning: var(--vscode-editorWarning-foreground, #f59e0b);
-            --danger: var(--vscode-editorError-foreground, #ef4444);
-            --info: var(--vscode-editorInfo-foreground, #3b82f6);
-            --bg: var(--vscode-editor-background, #0a0a0a);
-            --surface: var(--vscode-panel-background, #141414);
-            --border: var(--vscode-panel-border, #262626);
-            --text: var(--vscode-foreground, #fafafa);
-            --text-secondary: var(--vscode-descriptionForeground, #a3a3a3);
-            --text-muted: var(--vscode-disabledForeground, #737373);
-            --font: var(--vscode-font-family, 'Inter', system-ui, sans-serif);
+            --primary: var(--vscode-button-background, #0e639c);
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --info: #3b82f6;
+            --bg: var(--vscode-editor-background, #1e1e1e);
+            --surface: var(--vscode-panel-background, #252526);
+            --border: var(--vscode-panel-border, #3c3c3c);
+            --text: var(--vscode-foreground, #cccccc);
+            --text-secondary: var(--vscode-descriptionForeground, #858585);
+            --text-muted: var(--vscode-disabledForeground, #6e6e6e);
+            --font: var(--vscode-font-family, 'Segoe UI', system-ui, sans-serif);
         }
-        * { box-sizing: border-box; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            margin: 0;
             font-family: var(--font);
             background: var(--bg);
             color: var(--text);
             line-height: 1.5;
             padding: 20px;
+            max-width: 720px;
+            margin: 0 auto;
         }
-        h1 { font-size: 1.25rem; font-weight: 700; margin: 0 0 16px; }
+        h1 { font-size: 1.15rem; font-weight: 700; margin: 0 0 18px; }
+
+        /* ── State panels ── */
+        .stage { display: none; }
+        .stage.active { display: block; }
+
+        /* ── Drop zone ── */
+        .dropzone-wrap { margin-bottom: 16px; }
         .dropzone {
             border: 2px dashed var(--border);
-            border-radius: 8px;
-            padding: 32px;
+            border-radius: 10px;
+            padding: 40px 24px;
             text-align: center;
             background: var(--surface);
-            transition: all 150ms;
+            transition: border-color .2s, background .2s;
             cursor: pointer;
-            margin-bottom: 16px;
         }
         .dropzone:hover, .dropzone.drag-active {
             border-color: var(--primary);
-            background: rgba(99,102,241,0.05);
+            background: rgba(14,99,156,0.08);
         }
-        .dropzone .icon { font-size: 2rem; margin-bottom: 8px; }
-        .dropzone p { color: var(--text-secondary); margin: 0; }
-        .dropzone .hint { color: var(--text-muted); font-size: 0.75rem; margin-top: 6px; }
+        .dropzone .icon { font-size: 2.2rem; margin-bottom: 10px; display: block; }
+        .dropzone .lead { color: var(--text-secondary); font-size: .9rem; margin: 0 0 6px; }
+        .dropzone .hint { color: var(--text-muted); font-size: .75rem; margin: 0; }
+        .template-link {
+            text-align: center;
+            margin-top: 10px;
+        }
+        .template-link a {
+            color: var(--primary);
+            font-size: .8rem;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .template-link a:hover { text-decoration: underline; }
+
+        /* ── Progress ── */
+        .progress-wrap {
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 28px 24px;
+            background: var(--surface);
+            text-align: center;
+        }
+        .progress-bar-track {
+            height: 8px;
+            border-radius: 4px;
+            background: var(--border);
+            overflow: hidden;
+            margin: 14px 0 8px;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            width: 0%;
+            border-radius: 4px;
+            background: var(--primary);
+            transition: width .3s ease;
+        }
+        .progress-text { font-size: .85rem; color: var(--text-secondary); }
+        .progress-cancel {
+            margin-top: 12px;
+            font-size: .8rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 0;
+        }
+        .progress-cancel:hover { color: var(--danger); text-decoration: underline; }
+
+        /* ── Split Counter Summary ── */
+        .summary-banner {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .summary-card {
+            flex: 1;
+            border-radius: 8px;
+            padding: 14px 16px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .summary-card.ok { border-left: 3px solid var(--success); }
+        .summary-card.err { border-left: 3px solid var(--danger); }
+        .summary-icon { font-size: 1.3rem; }
+        .summary-body { display: flex; flex-direction: column; }
+        .summary-count { font-size: 1.3rem; font-weight: 700; line-height: 1; }
+        .summary-label { font-size: .7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; margin-top: 3px; }
+
+        /* ── Panel / Card ── */
         .panel {
             border: 1px solid var(--border);
             border-radius: 8px;
-            padding: 16px;
+            padding: 14px 16px;
             background: var(--surface);
-            margin-bottom: 16px;
+            margin-bottom: 14px;
         }
         .panel-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
             flex-wrap: wrap;
-            gap: 8px;
+            gap: 6px;
         }
-        .panel-title { font-weight: 600; font-size: 1rem; margin: 0; }
+        .panel-title { font-weight: 600; font-size: .9rem; margin: 0; }
+
+        /* ── Badge ── */
         .badge {
             display: inline-flex;
             align-items: center;
             gap: 4px;
             padding: 2px 8px;
             border-radius: 999px;
-            font-size: 0.7rem;
-            font-weight: 600;
+            font-size: .65rem;
+            font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.04em;
+            letter-spacing: .04em;
         }
-        .badge-success { background: rgba(34,197,94,0.15); color: var(--success); }
-        .badge-warning { background: rgba(245,158,11,0.15); color: var(--warning); }
-        .badge-danger { background: rgba(239,68,68,0.15); color: var(--danger); }
-        .badge-info { background: rgba(59,130,246,0.15); color: var(--info); }
+        .badge-success { background: rgba(34,197,94,.12); color: var(--success); }
+        .badge-warning { background: rgba(245,158,11,.12); color: var(--warning); }
+        .badge-danger { background: rgba(239,68,68,.12); color: var(--danger); }
+        .badge-info { background: rgba(59,130,246,.12); color: var(--info); }
+
+        /* ── Validation list ── */
+        .validation-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .validation-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: .8rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            user-select: none;
+        }
+        .validation-toggle input { accent-color: var(--primary); cursor: pointer; }
         .validation-list {
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 6px;
         }
         .validation-item {
             display: flex;
             align-items: flex-start;
             gap: 10px;
-            padding: 10px;
+            padding: 8px 10px;
             border-radius: 6px;
             border: 1px solid var(--border);
             background: var(--bg);
+            transition: background .15s;
         }
-        .validation-item.ok { border-color: rgba(34,197,94,0.25); }
-        .validation-item.warn { border-color: rgba(245,158,11,0.25); }
-        .validation-item.err { border-color: rgba(239,68,68,0.25); }
-        .validation-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+        .validation-item.ok { border-left: 3px solid var(--success); }
+        .validation-item.err { border-left: 3px solid var(--danger); }
+        .validation-item.hidden-row { display: none; }
+        .validation-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
         .validation-text { flex: 1; min-width: 0; }
-        .validation-title { font-size: 0.875rem; font-weight: 500; }
-        .validation-desc { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+        .validation-title { font-size: .82rem; font-weight: 500; }
+        .validation-desc { font-size: .75rem; color: var(--text-muted); margin-top: 1px; }
+        .validation-cell {
+            margin-top: 6px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: rgba(239,68,68,.08);
+            border: 1px solid rgba(239,68,68,.2);
+            font-size: .75rem;
+            color: var(--danger);
+            font-family: var(--vscode-editor-font-family, monospace);
+            word-break: break-word;
+        }
+
+        /* ── Metrics ── */
         .metric-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 12px;
-            margin-bottom: 16px;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 10px;
         }
         .metric-box {
-            padding: 12px;
+            padding: 10px;
             border: 1px solid var(--border);
             border-radius: 6px;
             background: var(--bg);
             text-align: center;
         }
-        .metric-value { font-size: 1.1rem; font-weight: 700; }
-        .metric-label { font-size: 0.7rem; color: var(--text-muted); margin-top: 2px; }
+        .metric-value { font-size: 1rem; font-weight: 700; }
+        .metric-label { font-size: .65rem; color: var(--text-muted); margin-top: 2px; text-transform: uppercase; letter-spacing: .04em; }
+
+        /* ── Buttons ── */
         button {
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            padding: 8px 16px;
+            padding: 7px 14px;
             border-radius: 6px;
-            font-weight: 500;
-            font-size: 0.875rem;
+            font-weight: 600;
+            font-size: .82rem;
             cursor: pointer;
             border: none;
             background: var(--primary);
@@ -199,19 +312,21 @@ export class UploadPanel {
             color: var(--text-secondary);
             border: 1px solid var(--border);
         }
+        button.secondary:hover { background: var(--border); filter: none; }
+        .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+
         pre {
             margin: 0;
-            padding: 12px;
+            padding: 10px;
             background: var(--bg);
             border: 1px solid var(--border);
             border-radius: 6px;
             font-family: var(--vscode-editor-font-family, monospace);
-            font-size: 0.75rem;
+            font-size: .72rem;
             overflow-x: auto;
-            max-height: 300px;
+            max-height: 260px;
         }
-        .empty { text-align: center; padding: 32px; color: var(--text-muted); }
-        .actions { display: flex; gap: 8px; justify-content: center; margin-top: 16px; }
+        .empty { text-align: center; padding: 28px; color: var(--text-muted); font-size: .85rem; }
     </style>
 </head>
 <body>
@@ -219,19 +334,61 @@ export class UploadPanel {
 
     <input type="file" id="fileInput" accept=".json" style="display:none;">
 
-    <div class="dropzone" id="dropzone">
-        <div class="icon">📁</div>
-        <p>Drop a JSON report here or click to browse</p>
-        <p class="hint">Supports: gate scans, complete scans, consolidation, cleanup, codebase, roadmap, fiction digest</p>
+    <!-- Stage 1: Drop zone -->
+    <div class="stage active" id="stageDrop">
+        <div class="dropzone-wrap">
+            <div class="dropzone" id="dropzone">
+                <span class="icon">�</span>
+                <p class="lead">Drop a JSON report here or click to browse</p>
+                <p class="hint">Accepts: .json up to 25 MB — gate scans, complete scans, consolidation, cleanup, codebase, roadmap, fiction digest</p>
+            </div>
+            <div class="template-link">
+                <a id="downloadTemplate">Download sample template</a>
+            </div>
+        </div>
     </div>
 
-    <div id="results"></div>
+    <!-- Stage 2: Processing -->
+    <div class="stage" id="stageProgress">
+        <div class="progress-wrap">
+            <div class="progress-text" id="progressText">Reading file…</div>
+            <div class="progress-bar-track">
+                <div class="progress-bar-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-text" id="progressPercent">0%</div>
+            <button class="progress-cancel" id="cancelUpload">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Stage 3: Validation results -->
+    <div class="stage" id="stageResults">
+        <div id="summaryBanner"></div>
+        <div id="results"></div>
+    </div>
 
     <script nonce="${nonce}">
         const vscode = acquireVsCodeApi();
         const dropzone = document.getElementById('dropzone');
         const fileInput = document.getElementById('fileInput');
-        const results = document.getElementById('results');
+        const resultsEl = document.getElementById('results');
+        const summaryBanner = document.getElementById('summaryBanner');
+        const stageDrop = document.getElementById('stageDrop');
+        const stageProgress = document.getElementById('stageProgress');
+        const stageResults = document.getElementById('stageResults');
+        const progressFill = document.getElementById('progressFill');
+        const progressPercent = document.getElementById('progressPercent');
+        const progressText = document.getElementById('progressText');
+        let currentFileName = '';
+        let currentData = null;
+
+        function showStage(id) {
+            [stageDrop, stageProgress, stageResults].forEach(s => s.classList.toggle('active', s.id === id));
+        }
+        function setProgress(pct, label) {
+            progressFill.style.width = pct + '%';
+            progressPercent.textContent = pct + '%';
+            if (label) progressText.textContent = label;
+        }
 
         dropzone.addEventListener('click', () => fileInput.click());
         ['dragenter','dragover'].forEach(e => {
@@ -248,6 +405,17 @@ export class UploadPanel {
             const f = ev.target.files?.[0];
             if (f) processFile(f);
             ev.target.value = '';
+        });
+        document.getElementById('cancelUpload').addEventListener('click', () => {
+            showStage('stageDrop');
+            setProgress(0, 'Reading file…');
+        });
+        document.getElementById('downloadTemplate').addEventListener('click', () => {
+            const sample = { type: 'simplebeacon-gate-scan', projectRoot: '/path/to/project', generatedAt: new Date().toISOString(), severityCounts: { critical: 0, high: 0, medium: 0, low: 0 }, detectedIssues: [] };
+            const blob = new Blob([JSON.stringify(sample, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = 'simplebeacon-template.json'; a.click();
+            URL.revokeObjectURL(url);
         });
 
         function escape(s) {
@@ -365,10 +533,37 @@ export class UploadPanel {
             return total ? Math.round((passed / total) * 100) : 0;
         }
 
-        function renderChecks(checks, container) {
-            checks.forEach(c => {
+        function renderSummaryBanner(checks) {
+            const passed = checks.filter(c => c.ok).length;
+            const failed = checks.length - passed;
+            summaryBanner.textContent = '';
+            const wrap = document.createElement('div');
+            wrap.className = 'summary-banner';
+            const okCard = document.createElement('div');
+            okCard.className = 'summary-card ok';
+            const okIcon = document.createElement('span'); okIcon.className = 'summary-icon'; okIcon.textContent = '✅';
+            const okBody = document.createElement('div'); okBody.className = 'summary-body';
+            const okCount = document.createElement('div'); okCount.className = 'summary-count'; okCount.textContent = String(passed);
+            const okLabel = document.createElement('div'); okLabel.className = 'summary-label'; okLabel.textContent = 'Valid Checks';
+            okBody.append(okCount, okLabel); okCard.append(okIcon, okBody);
+            const errCard = document.createElement('div');
+            errCard.className = 'summary-card err';
+            const errIcon = document.createElement('span'); errIcon.className = 'summary-icon'; errIcon.textContent = '⚠️';
+            const errBody = document.createElement('div'); errBody.className = 'summary-body';
+            const errCount = document.createElement('div'); errCount.className = 'summary-count'; errCount.textContent = String(failed);
+            const errLabel = document.createElement('div'); errLabel.className = 'summary-label'; errLabel.textContent = 'Errors Found';
+            errBody.append(errCount, errLabel); errCard.append(errIcon, errBody);
+            wrap.appendChild(okCard); wrap.appendChild(errCard);
+            summaryBanner.appendChild(wrap);
+        }
+
+        function renderChecks(checks, container, showOnlyErrors) {
+            container.textContent = '';
+            checks.forEach((c, idx) => {
+                if (showOnlyErrors && c.ok) return;
                 const item = document.createElement('div');
                 item.className = 'validation-item ' + (c.ok ? 'ok' : 'err');
+                item.dataset.index = String(idx);
                 const icon = document.createElement('span');
                 icon.className = 'validation-icon';
                 icon.textContent = c.ok ? '✅' : '❌';
@@ -380,10 +575,14 @@ export class UploadPanel {
                 const desc = document.createElement('div');
                 desc.className = 'validation-desc';
                 desc.textContent = c.desc;
-                text.appendChild(title);
-                text.appendChild(desc);
-                item.appendChild(icon);
-                item.appendChild(text);
+                text.appendChild(title); text.appendChild(desc);
+                if (!c.ok) {
+                    const cell = document.createElement('div');
+                    cell.className = 'validation-cell';
+                    cell.textContent = 'Fix: review ' + c.title.toLowerCase() + ' value above';
+                    text.appendChild(cell);
+                }
+                item.appendChild(icon); item.appendChild(text);
                 container.appendChild(item);
             });
         }
@@ -453,13 +652,13 @@ export class UploadPanel {
         }
 
         function clearResults() {
-            while (results.firstChild) {
-                results.removeChild(results.firstChild);
-            }
+            while (resultsEl.firstChild) resultsEl.removeChild(resultsEl.firstChild);
+            summaryBanner.textContent = '';
         }
 
         function showErrorPanel(title, message) {
             clearResults();
+            showStage('stageResults');
             const panel = document.createElement('div');
             panel.className = 'panel';
             const badge = document.createElement('span');
@@ -468,98 +667,63 @@ export class UploadPanel {
             const p = document.createElement('p');
             p.style.marginTop = '8px';
             p.textContent = message;
-            panel.appendChild(badge);
-            panel.appendChild(p);
-            results.appendChild(panel);
+            panel.appendChild(badge); panel.appendChild(p);
+            resultsEl.appendChild(panel);
         }
 
-        async function processFile(file) {
-            if (!file.name.toLowerCase().endsWith('.json')) {
-                showErrorPanel('Error', 'Only .json files are supported. Received: ' + file.name);
-                return;
-            }
-
-            let text;
-            try { text = await file.text(); }
-            catch { showErrorPanel('Read Error', 'Could not read ' + file.name); return; }
-
-            const parse = parseJsonWithDiagnostics(text);
-            if (!parse.ok) {
-                clearResults();
-                const panel = document.createElement('div');
-                panel.className = 'panel';
-                const header = document.createElement('div');
-                header.className = 'panel-header';
-                const title = document.createElement('span');
-                title.className = 'panel-title';
-                title.textContent = 'Parse Error';
-                const badge = document.createElement('span');
-                badge.className = 'badge badge-danger';
-                badge.textContent = 'Invalid JSON';
-                header.appendChild(title);
-                header.appendChild(badge);
-                const p1 = document.createElement('p');
-                p1.style.color = 'var(--text-secondary)';
-                p1.style.margin = '0 0 12px';
-                p1.textContent = parse.error;
-                const p2 = document.createElement('p');
-                p2.style.color = 'var(--text-muted)';
-                p2.style.fontSize = '0.875rem';
-                p2.style.margin = '0';
-                p2.textContent = 'Line ' + parse.line + ', Column ' + parse.col;
-                const pre = document.createElement('pre');
-                pre.style.marginTop = '12px';
-                pre.textContent = text.split('\n').slice(Math.max(0, parse.line - 3), parse.line + 2).map((l, i) => (Math.max(0, parse.line - 3) + i + 1) + ': ' + l).join('\n');
-                panel.appendChild(header);
-                panel.appendChild(p1);
-                panel.appendChild(p2);
-                panel.appendChild(pre);
-                results.appendChild(panel);
-                return;
-            }
-
-            const data = parse.data;
-            const detection = detectReportType(data);
-            const checks = validateReport(data, detection.type);
+        function renderValidationPanel(checks, data, detection) {
             const score = computeIntegrityScore(checks);
             const allOk = checks.every(c => c.ok);
 
-            clearResults();
-
-            // Panel 1: file info + metrics
+            // Info + metrics
             const infoPanel = document.createElement('div');
             infoPanel.className = 'panel';
             const infoHeader = document.createElement('div');
             infoHeader.className = 'panel-header';
             const fileTitle = document.createElement('span');
             fileTitle.className = 'panel-title';
-            fileTitle.textContent = file.name;
+            fileTitle.textContent = currentFileName;
             const typeBadge = document.createElement('span');
             typeBadge.className = 'badge ' + (allOk ? 'badge-success' : score >= 80 ? 'badge-warning' : 'badge-danger');
             typeBadge.textContent = detection.type + ' ' + (allOk ? '✓' : score + '%');
-            infoHeader.appendChild(fileTitle);
-            infoHeader.appendChild(typeBadge);
+            infoHeader.appendChild(fileTitle); infoHeader.appendChild(typeBadge);
             infoPanel.appendChild(infoHeader);
             renderMetrics(data, detection.type, checks, infoPanel);
-            results.appendChild(infoPanel);
+            resultsEl.appendChild(infoPanel);
 
-            // Panel 2: validation checks
+            // Validation checks with toolbar
             const checksPanel = document.createElement('div');
             checksPanel.className = 'panel';
             const checksHeader = document.createElement('div');
             checksHeader.className = 'panel-header';
             const checksTitle = document.createElement('span');
             checksTitle.className = 'panel-title';
-            checksTitle.textContent = 'Validation Checks (' + checks.filter(c=>c.ok).length + '/' + checks.length + ')';
+            checksTitle.textContent = 'Validation Checks';
             checksHeader.appendChild(checksTitle);
             checksPanel.appendChild(checksHeader);
+
+            const toolbar = document.createElement('div');
+            toolbar.className = 'validation-toolbar';
+            const toggleLabel = document.createElement('label');
+            toggleLabel.className = 'validation-toggle';
+            const toggleCb = document.createElement('input');
+            toggleCb.type = 'checkbox';
+            toggleLabel.appendChild(toggleCb);
+            toggleLabel.appendChild(document.createTextNode(' Show only errors'));
+            toolbar.appendChild(toggleLabel);
+            checksPanel.appendChild(toolbar);
+
             const validationList = document.createElement('div');
             validationList.className = 'validation-list';
-            renderChecks(checks, validationList);
+            renderChecks(checks, validationList, false);
             checksPanel.appendChild(validationList);
-            results.appendChild(checksPanel);
+            resultsEl.appendChild(checksPanel);
 
-            // Panel 3: raw preview
+            toggleCb.addEventListener('change', () => {
+                renderChecks(checks, validationList, toggleCb.checked);
+            });
+
+            // Raw preview
             const previewPanel = document.createElement('div');
             previewPanel.className = 'panel';
             const previewHeader = document.createElement('div');
@@ -573,31 +737,91 @@ export class UploadPanel {
             const jsonStr = JSON.stringify(data, null, 2);
             pre.textContent = jsonStr.slice(0, 2000) + (jsonStr.length > 2000 ? '\n\n... truncated' : '');
             previewPanel.appendChild(pre);
-            results.appendChild(previewPanel);
+            resultsEl.appendChild(previewPanel);
 
             // Actions
             const actions = document.createElement('div');
             actions.className = 'actions';
             const uploadBtn = document.createElement('button');
-            uploadBtn.id = 'upload-server';
             uploadBtn.textContent = 'Upload to Server';
             const downloadBtn = document.createElement('button');
-            downloadBtn.id = 'download-validated';
             downloadBtn.textContent = 'Download JSON';
             const clearBtn = document.createElement('button');
             clearBtn.className = 'secondary';
             clearBtn.textContent = 'Clear';
-            clearBtn.addEventListener('click', () => { clearResults(); dropzone.style.display = ''; });
-            actions.appendChild(uploadBtn);
-            actions.appendChild(downloadBtn);
-            actions.appendChild(clearBtn);
-            results.appendChild(actions);
+            clearBtn.addEventListener('click', () => { clearResults(); showStage('stageDrop'); });
+            actions.appendChild(uploadBtn); actions.appendChild(downloadBtn); actions.appendChild(clearBtn);
+            resultsEl.appendChild(actions);
 
-            dropzone.style.display = 'none';
-            downloadBtn.addEventListener('click', () => downloadValidatedJson(data, file.name));
+            downloadBtn.addEventListener('click', () => downloadValidatedJson(data, currentFileName));
             uploadBtn.addEventListener('click', () => {
                 vscode.postMessage({ command: 'uploadReport', data });
             });
+        }
+
+        async function processFile(file) {
+            if (!file.name.toLowerCase().endsWith('.json')) {
+                showErrorPanel('Error', 'Only .json files are supported. Received: ' + file.name);
+                return;
+            }
+            currentFileName = file.name;
+            showStage('stageProgress');
+            setProgress(15, 'Reading file…');
+
+            let text;
+            try { text = await file.text(); }
+            catch {
+                setProgress(0, 'Read failed');
+                showErrorPanel('Read Error', 'Could not read ' + file.name);
+                return;
+            }
+            setProgress(45, 'Parsing JSON…');
+
+            const parse = parseJsonWithDiagnostics(text);
+            if (!parse.ok) {
+                setProgress(0, 'Parse failed');
+                clearResults();
+                showStage('stageResults');
+                const panel = document.createElement('div');
+                panel.className = 'panel';
+                const header = document.createElement('div');
+                header.className = 'panel-header';
+                const title = document.createElement('span');
+                title.className = 'panel-title';
+                title.textContent = 'Parse Error';
+                const badge = document.createElement('span');
+                badge.className = 'badge badge-danger';
+                badge.textContent = 'Invalid JSON';
+                header.appendChild(title); header.appendChild(badge);
+                const p1 = document.createElement('p');
+                p1.style.color = 'var(--text-secondary)';
+                p1.style.margin = '0 0 10px';
+                p1.textContent = parse.error;
+                const p2 = document.createElement('p');
+                p2.style.color = 'var(--text-muted)';
+                p2.style.fontSize = '.8rem';
+                p2.style.margin = '0';
+                p2.textContent = 'Line ' + parse.line + ', Column ' + parse.col;
+                const pre = document.createElement('pre');
+                pre.style.marginTop = '10px';
+                pre.textContent = text.split('\n').slice(Math.max(0, parse.line - 3), parse.line + 2).map((l, i) => (Math.max(0, parse.line - 3) + i + 1) + ': ' + l).join('\n');
+                panel.appendChild(header); panel.appendChild(p1); panel.appendChild(p2); panel.appendChild(pre);
+                resultsEl.appendChild(panel);
+                return;
+            }
+
+            setProgress(75, 'Validating structure…');
+            const data = parse.data;
+            const detection = detectReportType(data);
+            const checks = validateReport(data, detection.type);
+
+            setProgress(100, 'Done');
+            await new Promise(r => setTimeout(r, 250));
+            clearResults();
+            showStage('stageResults');
+            renderSummaryBanner(checks);
+            renderValidationPanel(checks, data, detection);
+            currentData = data;
         }
     </script>
 </body>

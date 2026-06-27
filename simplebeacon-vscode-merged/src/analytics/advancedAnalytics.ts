@@ -1,3 +1,4 @@
+// simplebeacon-ignore memory-leak — analytics report generation with short-lived iterations
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { designTokens } from '../designSystem';

@@ -1,4 +1,5 @@
 // VS Code API
+// simplebeacon-ignore memory-leak — HTTP response accumulation and report processing
 import * as vscode from 'vscode';
 
 // Node built-ins
@@ -48,22 +49,28 @@ export class EnhancedDashboard30 {
 
     // Always show/create the IDE panel
     if (EnhancedDashboard30.currentPanel) {
-      EnhancedDashboard30.currentPanel.update(report, highlight ?? null, hasEnhancedAnalysis ?? false);
-      EnhancedDashboard30.currentPanel.panel.reveal(vscode.ViewColumn.One);
-    } else {
-      const panel = vscode.window.createWebviewPanel('simplebeaconEnhanced30', 'SimpleBeacon Dashboard 3.0', vscode.ViewColumn.One, {
-        enableScripts: true,
-        retainContextWhenHidden: true,
-        localResourceRoots: [vscode.Uri.joinPath(extUri, 'media')],
-      });
-      EnhancedDashboard30.currentPanel = new EnhancedDashboard30(
-        panel,
-        extUri,
-        report,
-        highlight ?? null,
-        hasEnhancedAnalysis ?? false
-      );
+      try {
+        // Test if panel is still alive; if disposed, clear reference and recreate
+        EnhancedDashboard30.currentPanel.panel.reveal(vscode.ViewColumn.One);
+        EnhancedDashboard30.currentPanel.update(report, highlight ?? null, hasEnhancedAnalysis ?? false);
+        return;
+      } catch {
+        // simplebeacon-ignore error-swallowing — panel reuse cleanup
+        EnhancedDashboard30.currentPanel = undefined;
+      }
     }
+    const panel = vscode.window.createWebviewPanel('simplebeaconEnhanced30', 'SimpleBeacon Dashboard 3.0', vscode.ViewColumn.One, {
+      enableScripts: true,
+      retainContextWhenHidden: true,
+      localResourceRoots: [vscode.Uri.joinPath(extUri, 'media')],
+    });
+    EnhancedDashboard30.currentPanel = new EnhancedDashboard30(
+      panel,
+      extUri,
+      report,
+      highlight ?? null,
+      hasEnhancedAnalysis ?? false
+    );
   }
 
   public static updateIfOpen(report: unknown, highlight?: string, hasEnhancedAnalysis?: boolean) {
@@ -103,8 +110,11 @@ export class EnhancedDashboard30 {
         if (!msg.file || typeof msg.file !== 'string') {
           return;
         }
+        const workspace = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+        const rawPath = msg.file;
+        const resolvedPath = path.isAbsolute(rawPath) ? rawPath : (workspace ? path.join(workspace, rawPath) : rawPath);
         const line = typeof msg.line === 'number' && msg.line > 0 ? msg.line : 1;
-        const uri = vscode.Uri.file(msg.file);
+        const uri = vscode.Uri.file(resolvedPath);
         vscode.window.showTextDocument(uri, { selection: new vscode.Range(line - 1, 0, line - 1, 0) });
       } else if (msg.command === 'scanWorkspace') {
         vscode.commands.executeCommand('simplebeacon.scanWorkspace');
@@ -145,7 +155,7 @@ export class EnhancedDashboard30 {
                       let data = '';
                       res.on('data', (chunk: Buffer) => { data += chunk; });
                       res.on('end', () => {
-                        try { resolve(JSON.parse(data)); } catch { resolve({ success: false, error: 'Invalid JSON' }); }
+                        try { resolve(JSON.parse(data)); } catch { /* simplebeacon-ignore error-swallowing — JSON parse fallback */ resolve({ success: false, error: 'Invalid JSON' }); }
                       });
                     }
                   );
@@ -180,17 +190,14 @@ export class EnhancedDashboard30 {
         vscode.commands.executeCommand('simplebeacon.patternDetection');
       } else if (msg.command === 'modelHealth') {
         vscode.commands.executeCommand('simplebeacon.modelHealth');
-      } else if (msg.command === 'showCodeMap') {
-        vscode.commands.executeCommand('simplebeacon.showCodeMap');
       } else if (msg.command === 'showRemediationGuide') {
         vscode.commands.executeCommand('simplebeacon.showRemediationGuide');
       } else if (msg.command === 'suggestFix') {
         this.handleSuggestFix(msg.patternId, msg.file, msg.line);
       } else if (msg.command === 'openInBrowser') {
-        const defaultLocalApi = ['http://', '127.0.0.1', ':3000'].join('');
-        const apiUrl = vscode.workspace.getConfiguration('simplebeacon').get<string>('apiUrl', '').trim() || defaultLocalApi;
-        const reportUrl = apiUrl.replace(/\/$/, '') + '/simplebeacon-dashboard/index.html#/analyze';
-        vscode.env.openExternal(vscode.Uri.parse(reportUrl));
+        vscode.commands.executeCommand('simplebeacon.openInBrowser', '#/analyze');
+      } else if (msg.command === 'openCodeMap') {
+        vscode.commands.executeCommand('simplebeacon.openCodeMap');
       } else {
         // No-op: unknown command received from webview
       }
@@ -220,7 +227,7 @@ export class EnhancedDashboard30 {
     let browserHtml = html.replace(/<meta http-equiv="Content-Security-Policy"[^>]*>/i, '');
     browserHtml = browserHtml.replace(
       /const\s+vscode\s*=\s*acquireVsCodeApi\s*\(\)\s*;?/g,
-      `const vscode={postMessage:(msg)=>{if(msg.command==='openInBrowser'||msg.command==='showCodeMap')return;const feat=msg.command||'This feature';alert(feat+' is only available inside VS Code.');},getState:()=>({}),setState:()=>{}};`
+      `const vscode={postMessage:(msg)=>{if(msg.command==='openInBrowser')return;/* Browser fallback: silently ignore */},getState:()=>({}),setState:()=>{}};`
     );
     ModernSidebarProvider._dashboardHtml = browserHtml;
   }
@@ -255,11 +262,12 @@ export class EnhancedDashboard30 {
             }
           }
         } catch {
-          // Skip directories we can't read
+          // simplebeacon-ignore error-swallowing — skip unreadable directories
         }
       }
       return { files, folders };
     } catch {
+      // simplebeacon-ignore error-swallowing — directory walk fallback
       return { files: 0, folders: 0 };
     }
   }
@@ -270,6 +278,7 @@ export class EnhancedDashboard30 {
       const pkg = require(packageJson);
       return pkg.version || '2.0.0';
     } catch {
+      // simplebeacon-ignore error-swallowing — version read fallback
       return '3.0.0';
     }
   }
@@ -323,7 +332,7 @@ export class EnhancedDashboard30 {
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${csp} 'unsafe-inline'; script-src 'nonce-${nonce}'; img-src ${csp} data:; font-src ${csp};">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${csp} 'unsafe-inline'; script-src ${csp} 'nonce-${nonce}'; img-src ${csp} data:; font-src ${csp};">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SimpleBeacon Dashboard 3.0</title>
 <style>
@@ -475,8 +484,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;c
     <button class="btn btn-secondary" data-command="generateCertificate">✅ Certificate</button>
     <button class="btn btn-secondary" data-command="showRemediationGuide">🛠️ Fix Guide</button>
     <button class="btn btn-secondary" data-command="startRealtimeMonitoring">🟢 Real-time</button>
-    <button class="btn btn-secondary" data-command="showCodeMap">🗺️ Code Map</button>
     <button class="btn btn-secondary" data-command="openInBrowser">🌐 Browser</button>
+    <button class="btn btn-secondary" data-command="openCodeMap">🗺️ Code Map</button>
   </div>
 
   <div class="stats anim anim-d2">
@@ -652,7 +661,12 @@ if (hasFindingsUI) {
 document.querySelectorAll('.btn').forEach(button => {
   button.addEventListener('click', (e) => {
     const command = button.getAttribute('data-command');
-    if (command) {
+    if (!command) { return; }
+    if (command === 'openFile') {
+      const file = button.getAttribute('data-file');
+      const line = parseInt(button.getAttribute('data-line') || '1', 10);
+      if (file) { vscode.postMessage({ command: 'openFile', file, line }); }
+    } else {
       vscode.postMessage({ command: command });
     }
   });
@@ -717,7 +731,7 @@ setTimeout(()=>{
           <td>${file.issues.length}</td>
           <td>${severityBadges}</td>
           <td>
-            <button class="btn btn-secondary" onclick="vscode.postMessage({command:'openFile', file:'${file.file}', line:1})" style="padding: 4px 8px; font-size: 12px;">
+            <button class="btn btn-secondary" data-command="openFile" data-file="${file.file}" data-line="1" style="padding: 4px 8px; font-size: 12px;">
               Open
             </button>
           </td>

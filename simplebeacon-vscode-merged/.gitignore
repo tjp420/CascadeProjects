@@ -1,0 +1,8 @@
+node_modules/
+out/
+dist/
+*.vsix
+__test_dashboard*.html
+.vscode-test/
+*.restore
+

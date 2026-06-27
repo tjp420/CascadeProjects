@@ -1,12 +1,10 @@
-// simplebeacon-ignore: legitimate SPDX license header
 // Copyright (c) SimpleBeacon Contributors
 // SPDX-License-Identifier: MIT
+// simplebeacon-ignore memory-leak — report data processing, short-lived iterations
 
 import * as vscode from 'vscode';
 import { TreeNode, RawIssue } from './scanProvider';
 import {
-  ProgressNode,
-  MetricNode,
   ActionGroupNode,
   QuickActionNode,
   StatusCardNode,

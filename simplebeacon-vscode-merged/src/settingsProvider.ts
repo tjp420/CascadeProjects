@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { ScanReport } from './scanProvider';
 
 /**
  * Tree data provider for SimpleBeacon settings and configuration nodes.
@@ -6,7 +7,7 @@ import * as vscode from 'vscode';
 export class SettingsProvider implements vscode.TreeDataProvider<SidebarNode> {
   private _onDidChangeTreeData = new vscode.EventEmitter<SidebarNode | undefined | void>();
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
-  private lastReport: unknown = null;
+  private lastReport: ScanReport | null = null;
   private version: string;
 
   constructor(version?: string) {
@@ -33,7 +34,7 @@ export class SettingsProvider implements vscode.TreeDataProvider<SidebarNode> {
     this._onDidChangeTreeData.fire();
   }
 
-  updateReport(report: unknown) {
+  updateReport(report: ScanReport | null) {
     this.lastReport = report;
     this.refresh();
   }
@@ -66,7 +67,7 @@ export class SettingsProvider implements vscode.TreeDataProvider<SidebarNode> {
     );
 
     if (this.lastReport) {
-      const lr = this.lastReport as any;
+      const lr = this.lastReport;
       const score = lr.qualityScore ?? 0;
       const gatePass = lr.gate?.pass ?? false;
       const files = lr.totalFiles || lr.filesAnalyzed || 0;

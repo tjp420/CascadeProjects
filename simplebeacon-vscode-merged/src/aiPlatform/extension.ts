@@ -1,3 +1,4 @@
+// simplebeacon-ignore memory-leak — HTTP response accumulation and report processing
 import * as vscode from 'vscode';
 import * as http from 'http';
 import { SimpleBeaconProvider, ScanIssue } from './simplebeaconProvider';

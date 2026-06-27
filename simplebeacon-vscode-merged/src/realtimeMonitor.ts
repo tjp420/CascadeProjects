@@ -1,7 +1,60 @@
+// simplebeacon-ignore memory-leak — real-time pattern matching, short-lived iterations
 import * as vscode from 'vscode';
 import { spawn } from 'child_process';
 import { existsSync } from 'fs';
 import { join } from 'path';
+import { validateLicenseLocally } from './licenseManager';
+import { evaluateReferralPrompt } from './referralEngine';
+
+// Embedded production public verification key
+const PUBLIC_KEY_PEM = `-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuVRzrbVu/Fvld1/OWHw7
+uwdQD/tLQGndxuFC1uFUFj9QxG4ZvULWJKje0i8sJ2W1tk5GxU9B1ZbtDDS1KLS1
+9rgZ1/6/qPWXdUP70Qf6WM4b73sF6UQus245xdkuGZzP+76VCy3LBs0yTujjCfRr
+xjKdT979yXVgdTLcuWrQYZTA0vfMBMLNJ0mk8lZH1+zjIXqpy7W5iOIRYH4sD0KP
+yFkCwDqx5Ppf70QwghRybe91CNIGifh3HWyjnzegTbI42frN4TgHSASU4Yxv5uNJ
+FPGYCihIRyB/9GSONoi1UaWSPgoapRwRG9p2T95AWqkRbcZBmC8gaEAEN9Iaw7uv
+JQIDAQAB
+-----END PUBLIC KEY-----`;
+
+// Shared SB-FICTION rule catalog — kept in sync with CLI packages/simplebeacon-cli/src/rules/llm-slop-catalog.json
+const slopCatalog = require('./rules/llm-slop-catalog.json') as Array<{
+  id: string;
+  regexSource: string;
+  regexFlags: string;
+  severity: 'error' | 'warning' | 'info';
+  confidence: number;
+  type: string;
+  message: string;
+  suggestion: string;
+  contextExclusions?: { ext?: string[]; linePrefixes?: string[] };
+}>;
+
+export function getAuthorizedRulePresets(document: vscode.TextDocument): string[] {
+  const config = vscode.workspace.getConfiguration('simplebeacon');
+  const userLicenseToken = config.get<string>('licenseKey', '');
+  const selectedPreset = config.get<string>('preset', 'default');
+
+  // Core foundational rules available to all free users
+  const activeRules = ['llm-slop', 'ai-residue'];
+
+  if (!userLicenseToken) {
+    return activeRules;
+  }
+
+  // Verify the license token completely offline with zero server API hits
+  const activeLicense = validateLicenseLocally(userLicenseToken, PUBLIC_KEY_PEM);
+
+  if (activeLicense && (activeLicense.tier === 'team' || activeLicense.tier === 'enterprise')) {
+    if (selectedPreset === 'complete' || selectedPreset === 'fiction-kpi') {
+      activeRules.push('fiction-kpi', 'ai-indicators', 'enterprise-compliance');
+    }
+  } else if (userLicenseToken) {
+    vscode.window.showWarningMessage('⚠️ SimpleBeacon: Invalid or expired corporate license token.');
+  }
+
+  return activeRules;
+}
 
 export interface RealtimeIssue {
   file: string;
@@ -17,9 +70,11 @@ export interface RealtimeIssue {
 interface AISlopPattern {
   regex: RegExp;
   severity: 'error' | 'warning' | 'info';
+  confidence?: number;
   type: string;
   message: string;
   suggestion: string;
+  contextExclusions?: { ext?: string[]; linePrefixes?: string[] };
 }
 
 interface FileMonitor {
@@ -49,11 +104,31 @@ export class RealtimeMonitor {
   private aiSessionTimer: NodeJS.Timeout | null = null;
   private aiEditedFiles: Set<string> = new Set();
   private onAiSessionEndCallback?: (files: string[]) => void;
+  private dismissedSignatures: Set<string> = new Set();
 
   // AI session metrics
   private aiSessionCount: number = 0;
   private aiSessionStartTime: number = 0;
   private aiTotalFilesEdited: number = 0;
+
+  private getEffectiveMinConfidence(): number {
+    const config = vscode.workspace.getConfiguration('simplebeacon');
+    const preset = config.get<string>('preset', 'default');
+    const threshold = config.get<string>('confidenceThreshold', 'medium');
+
+    const thresholdMap: Record<string, number> = {
+      low: 0.4,
+      medium: 0.6,
+      high: 0.85,
+    };
+
+    // Low-noise preset forces high-confidence floor regardless of user threshold
+    if (preset === 'low-noise') {
+      return 0.85;
+    }
+
+    return thresholdMap[threshold] ?? config.get<number>('minConfidence', 0.6);
+  }
 
   private constructor() {
     this.outputChannel = vscode.window.createOutputChannel('SimpleBeacon Real-time Monitor');
@@ -75,6 +150,7 @@ export class RealtimeMonitor {
         regex:
           /\b(Here is the implementation|In summary|As an AI|As a language model|I cannot|I apologise|I apologize|As requested|As per your request|Below is the|Please let me know if you need|Feel free to ask|I hope this helps|Let me know if you have any questions)\b/gi,
         severity: 'warning',
+        confidence: 0.85,
         type: 'ai-boilerplate',
         message: 'AI boilerplate text detected in code',
         suggestion: 'Remove conversational AI artifacts from source code',
@@ -83,6 +159,7 @@ export class RealtimeMonitor {
       {
         regex: /\/\*\*\s*\n(?:\s*\*\s+.+\n){8,}\s*\*\//g,
         severity: 'info',
+        confidence: 0.60,
         type: 'verbose-comment',
         message: 'Excessively verbose comment block',
         suggestion: 'Keep comments concise and meaningful',
@@ -92,6 +169,7 @@ export class RealtimeMonitor {
         regex:
           /\b(const|let|var)\s+(temp|tmp|dat|itm|val|num|str|bool|func|fn)\d*\s*[:=]/gi,
         severity: 'info',
+        confidence: 0.55,
         type: 'generic-variable',
         message: 'Generic AI-style variable name',
         suggestion: 'Use descriptive, domain-specific variable names',
@@ -101,14 +179,16 @@ export class RealtimeMonitor {
         regex:
           /(\/\/\s*(This function|This method|This class|This module|This component|This variable|This is used to|This will))\b/gi,
         severity: 'info',
+        confidence: 0.65,
         type: 'repetitive-comment',
         message: 'Repetitive AI-style comment pattern',
         suggestion: 'Write comments that explain why, not what',
       },
-      // TODO with overly detailed explanation
+      // TODO with overly detailed explanation // simplebeacon-ignore maintainability-pattern — rule definition describing the pattern it detects
       {
         regex: /\/\/\s*TODO[\s:]*.{30,200}/gi,
         severity: 'warning',
+        confidence: 0.70,
         type: 'ai-todo',
         message: 'Overly detailed TODO comment (AI artifact)',
         suggestion: 'Keep TODOs short and actionable',
@@ -117,6 +197,7 @@ export class RealtimeMonitor {
       {
         regex: /^(\s{4}|\t)\1{15,}\S/gm,
         severity: 'info',
+        confidence: 0.50,
         type: 'uniform-indent',
         message: 'Suspiciously uniform code structure',
         suggestion: 'Refactor repeated patterns into reusable functions',
@@ -125,6 +206,7 @@ export class RealtimeMonitor {
       {
         regex: /\/\/\s*.+\n.*\/\/\s*.+\n.*\/\/\s*.+/g,
         severity: 'info',
+        confidence: 0.55,
         type: 'comment-spam',
         message: 'Excessive inline comments on consecutive lines',
         suggestion: 'Self-documenting code > comments',
@@ -134,6 +216,7 @@ export class RealtimeMonitor {
         regex:
           /\b(helper|util|utility|manager|handler|service|factory|provider|controller|middleware)\d*\s*(=|:|\(|<)/gi,
         severity: 'info',
+        confidence: 0.60,
         type: 'generic-naming',
         message: 'Generic suffix pattern common in AI-generated code',
         suggestion: 'Use names that describe the actual behavior',
@@ -143,6 +226,7 @@ export class RealtimeMonitor {
         regex:
           /\b(processData|handleRequest|manageState|updateUI|renderComponent|fetchData|sendRequest|getData|setData|createItem|deleteItem|updateItem)\s*\(/gi,
         severity: 'info',
+        confidence: 0.55,
         type: 'crud-generic',
         message: 'Generic CRUD function names typical of AI',
         suggestion: 'Use business-domain terminology in function names',
@@ -151,6 +235,7 @@ export class RealtimeMonitor {
       {
         regex: /^(import\s+.+from\s+['"][^'"]+['"];\n){5,}/gm,
         severity: 'info',
+        confidence: 0.50,
         type: 'import-blocks',
         message: 'Large import block (possibly AI-generated)',
         suggestion: 'Organize imports logically, not by length',
@@ -159,6 +244,7 @@ export class RealtimeMonitor {
       {
         regex: /function\s+\w+\s*\([^)]{80,}\)/g,
         severity: 'warning',
+        confidence: 0.75,
         type: 'mega-params',
         message: 'Function with excessive parameters',
         suggestion: 'Use an options object or destructure parameters',
@@ -167,10 +253,21 @@ export class RealtimeMonitor {
       {
         regex: /\/\*\s*\n\s*\*\s+Copyright \(c\)\s+\d{4}\s+\[Your Name\]|\[Company Name\]|\[Author\]/gi,
         severity: 'error',
+        confidence: 0.90,
         type: 'placeholder-copyright',
         message: 'Placeholder copyright header not filled in',
         suggestion: 'Replace placeholder with actual copyright info',
       },
+      // SB-FICTION rules loaded from shared CLI catalog
+      ...slopCatalog.map((rule) => ({
+        regex: new RegExp(rule.regexSource, rule.regexFlags),
+        severity: rule.severity,
+        confidence: rule.confidence ?? 0.5,
+        type: rule.type,
+        message: rule.message,
+        suggestion: rule.suggestion,
+        contextExclusions: rule.contextExclusions,
+      })),
     ];
   }
 
@@ -398,8 +495,12 @@ export class RealtimeMonitor {
   }
 
   private handleTextDocumentChange(event: vscode.TextDocumentChangeEvent): void {
-    const filePath = event.document.uri.fsPath;
-    this.debounceFileAnalysis(filePath);
+    const document = event.document;
+    // Skip non-code windows, output channels, or diff views
+    if (document.uri.scheme !== 'file') {
+      return;
+    }
+    this.debounceFileAnalysis(document.uri.fsPath);
   }
 
   private handleActiveEditorChange(editor: vscode.TextEditor): void {
@@ -415,11 +516,11 @@ export class RealtimeMonitor {
       clearTimeout(existingTimer);
     }
 
-    // Set new timer (debounce for 1 second)
+    // Set new timer (debounce for 500 ms)
     const timer = setTimeout(() => {
       this.analyzeFile(filePath);
       this.debounceTimers.delete(filePath);
-    }, 1000);
+    }, 500);
 
     this.debounceTimers.set(filePath, timer);
   }
@@ -457,8 +558,16 @@ export class RealtimeMonitor {
       // Detect file type
       const fileExtension = filePath.split('.').pop()?.toLowerCase() || '';
 
-      // Run appropriate analysis based on file type
-      const issues = await this.detectIssues(filePath, content, fileExtension);
+      const config = vscode.workspace.getConfiguration('simplebeacon');
+      const preset = config.get<string>('preset', 'default');
+
+      const issues: RealtimeIssue[] = [];
+
+      // Run security / code-quality patterns unless the user wants AI slop only
+      if (preset !== 'ai-only') {
+        const detectedIssues = await this.detectIssues(filePath, content, fileExtension);
+        issues.push(...detectedIssues);
+      }
 
       // Run AI slop detection on all text/code files
       const aiSlopIssues = this.detectAISlop(filePath, content);
@@ -473,6 +582,8 @@ export class RealtimeMonitor {
         this.activeIssues.delete(filePath);
         this.clearIssues(filePath);
         this.updateStatusBar(0);
+        // File is clean — offer the shareable badge viral referral prompt
+        evaluateReferralPrompt(100);
       }
     } catch (error) {
       this.outputChannel.appendLine(`❌ Error analyzing ${filePath}: ${error}`);
@@ -515,6 +626,14 @@ export class RealtimeMonitor {
           // Skip matches inside string literals for patterns that commonly produce false positives in rule definitions
           if (['eval-usage', 'innerhtml-usage', 'console-log', 'todo-comment'].includes(pattern.type)) {
             if (this.isInsideStringLiteral(line, match.index || 0)) continue;
+          }
+          // Respect simplebeacon-ignore annotations on the same line
+          if (/\/\/\s*simplebeacon-ignore\s+/.test(line) && line.includes(pattern.type)) {
+            continue;
+          }
+          // Respect line-above ignore comment
+          if (lineNumber > 1 && lines[lineNumber - 2]?.toLowerCase().includes('slop-cop-disable-next-line')) {
+            continue;
           }
           const column = match.index ? match.index + 1 : 1;
 
@@ -746,7 +865,23 @@ export class RealtimeMonitor {
     const issues: RealtimeIssue[] = [];
     const lines = content.split('\n');
 
+    const minConfidence = this.getEffectiveMinConfidence();
+
     for (const pattern of this.aiSlopPatterns) {
+      // Skip patterns below confidence threshold
+      if ((pattern.confidence ?? 0) < minConfidence) {
+        continue;
+      }
+
+      // Skip excluded file extensions for this pattern
+      const extExclusions = pattern.contextExclusions?.ext ?? [];
+      if (extExclusions.length > 0) {
+        const fileExt = '.' + (filePath.split('.').pop() ?? '');
+        if (extExclusions.some((ex) => filePath.endsWith(ex) || fileExt === ex)) {
+          continue;
+        }
+      }
+
       const matches = content.matchAll(pattern.regex);
       for (const match of matches) {
         // Find the line number for this match
@@ -760,6 +895,22 @@ export class RealtimeMonitor {
             break;
           }
         }
+
+        // Skip excluded line prefixes for this pattern
+        const linePrefixes = pattern.contextExclusions?.linePrefixes ?? [];
+        if (linePrefixes.length > 0) {
+          const lineText = lines[lineNumber - 1] ?? '';
+          const trimmed = lineText.trim();
+          if (linePrefixes.some((prefix) => trimmed.startsWith(prefix))) {
+            continue;
+          }
+        }
+
+        // Respect line-above ignore comment
+        if (lineNumber > 1 && lines[lineNumber - 2]?.toLowerCase().includes('slop-cop-disable-next-line')) {
+          continue;
+        }
+
         const column = match.index ? match.index - content.lastIndexOf('\n', match.index - 1) - 1 : 1;
 
         issues.push({
@@ -782,6 +933,12 @@ export class RealtimeMonitor {
     const diagnosticsMap = new Map<string, vscode.Diagnostic[]>();
 
     for (const issue of issues) {
+      // Skip user-dismissed signatures to suppress repeated false positives
+      const signature = `${issue.file}:${issue.line}:${issue.type}`;
+      if (this.dismissedSignatures.has(signature)) {
+        continue;
+      }
+
       const fileName = issue.file.split(/[/\\]/).pop() || issue.file;
       const severityIcon = issue.severity === 'error' ? '❌' : issue.severity === 'warning' ? '⚠️' : 'ℹ️';
 
@@ -816,6 +973,17 @@ export class RealtimeMonitor {
     for (const [file, fileDiagnostics] of diagnosticsMap) {
       this.diagnosticsCollection.set(vscode.Uri.file(file), fileDiagnostics);
     }
+  }
+
+  public dismissIssue(filePath: string, line: number, type: string): void {
+    const signature = `${filePath}:${line}:${type}`;
+    this.dismissedSignatures.add(signature);
+    this.outputChannel.appendLine(`🚫 Dismissed ${type} at ${filePath}:${line} (will not re-alert until session resets)`);
+  }
+
+  public resetDismissedIssues(): void {
+    this.dismissedSignatures.clear();
+    this.outputChannel.appendLine('🔄 Reset all dismissed AI slop issues');
   }
 
   private clearIssues(filePath: string): void {
@@ -875,6 +1043,10 @@ export class RealtimeMonitor {
     this.onLiveFindingsCallback = callback;
   }
 
+  public getIsMonitoring(): boolean {
+    return this.isMonitoring;
+  }
+
   public getActiveIssues(): RealtimeIssue[] {
     const allIssues: RealtimeIssue[] = [];
     for (const issues of this.activeIssues.values()) {
@@ -887,5 +1059,23 @@ export class RealtimeMonitor {
     this.stop();
     this.outputChannel.dispose();
     this.statusBarItem.dispose();
+  }
+}
+
+export function handleScanSuccessNotification(qualityScore: number, repositoryId: string) {
+  // Only trigger the referral sharing loop if the project clears all slop rules perfectly
+  if (qualityScore === 100) {
+    vscode.window.showInformationMessage(
+      '🎉 100/100 Quality Score! This workspace is officially free of AI Slop.',
+      'Share Clean Badge'
+    ).then(selection => {
+      if (selection === 'Share Clean Badge') {
+        const markdownBadge = `[![AI Slop Cop Protected](https://shields.io)](https://simplebeacon.ai${repositoryId})`;
+
+        // Copy the viral markdown badge token directly to the developer's system clipboard
+        vscode.env.clipboard.writeText(markdownBadge);
+        vscode.window.showInformationMessage('🚀 Protected repository markdown badge copied to your clipboard!');
+      }
+    });
   }
 }

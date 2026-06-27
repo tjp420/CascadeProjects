@@ -15,6 +15,13 @@ export class DashboardPanel implements vscode.WebviewViewProvider {
   private _pollTimer?: NodeJS.Timeout;
   private _lastLocalReportTime?: number;
 
+  public dispose() {
+    if (this._pollTimer) {
+      clearInterval(this._pollTimer);
+      this._pollTimer = undefined;
+    }
+  }
+
   public resolveWebviewView(
     webviewView: vscode.WebviewView,
     _context: vscode.WebviewViewResolveContext,
@@ -161,6 +168,7 @@ export class DashboardPanel implements vscode.WebviewViewProvider {
 
     // Poll immediately, then every 15 seconds
     void poll();
+    // simplebeacon-ignore memory-leak — dashboard polling timer, cleared on dispose
     this._pollTimer = setInterval(poll, 15000);
   }
 
@@ -527,6 +535,19 @@ export class DashboardPanel implements vscode.WebviewViewProvider {
             }
             if (msg.command === 'clearStats') {
                 if (aiBtn) aiBtn.classList.remove('active');
+                const statCritical = document.getElementById('statCritical');
+                const statHigh = document.getElementById('statHigh');
+                const statIssues = document.getElementById('statIssues');
+                const scoreRing = document.getElementById('scoreRing');
+                const scoreValue = document.getElementById('scoreValue');
+                const scoreLabel = document.getElementById('scoreLabel');
+                if (statCritical) statCritical.textContent = '0';
+                if (statHigh) statHigh.textContent = '0';
+                if (statIssues) statIssues.textContent = '0';
+                if (scoreRing) scoreRing.style.setProperty('--score', '0');
+                if (scoreValue) scoreValue.textContent = '0%';
+                if (scoreLabel) scoreLabel.textContent = 'No data';
+                window.__simplebeaconLastReport = null;
             }
             if (msg.command === 'updateReport') {
                 window.__simplebeaconLastReport = msg.report || null;

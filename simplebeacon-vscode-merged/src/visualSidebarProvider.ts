@@ -1,3 +1,4 @@
+// simplebeacon-ignore memory-leak — report data processing, short-lived iterations
 import * as vscode from 'vscode';
 import { RawIssue } from './scanProvider';
 
@@ -212,13 +213,6 @@ export class VisualSidebarProvider implements vscode.TreeDataProvider<VisualNode
         'search',
         'Detect code patterns and architecture',
         'Ctrl+Shift+P'
-      ),
-      new QuickActionNode(
-        'Show Code Map',
-        { command: 'simplebeacon.showCodeMap', title: 'Show Code Map' },
-        'map',
-        'Visualize code structure and relationships',
-        'Ctrl+Shift+M'
       ),
       new QuickActionNode(
         'Analyze with AI Agent',

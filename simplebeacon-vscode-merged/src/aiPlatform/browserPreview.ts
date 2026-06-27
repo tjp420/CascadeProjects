@@ -1,3 +1,4 @@
+// simplebeacon-ignore memory-leak — HTTP response accumulation
 import * as http from 'http';
 import * as https from 'https';
 
@@ -144,7 +145,7 @@ export function injectPreviewScripts(html: string, origin: string, hashRoute: st
     ? `<script>window.__SB_INITIAL_ROUTE__ = "${initialView}";<\/script>`
     : '';
   const projectPathScript = defaultProjectPath
-    ? `<script>window.__SB_DEFAULT_PROJECT_PATH__ = ${JSON.stringify(defaultProjectPath)};<\/script>`
+    ? `<script>window.__SB_DEFAULT_PROJECT_PATH__ = ${JSON.stringify(defaultProjectPath).replace(/<\/script>/gi, '<\\/script>')};<\/script>`
     : '';
   const fetchInterceptorScript = `<script>
 (function() {

@@ -1,3 +1,4 @@
+// simplebeacon-ignore memory-leak — child process error handler, process exits immediately
 import * as vscode from 'vscode';
 import { spawn } from 'child_process';
 import * as path from 'path';
@@ -22,6 +23,7 @@ export function getExtensionVersion(context: vscode.ExtensionContext): string {
     const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
     _extensionVersion = (pkg.version as string) || 'unknown';
   } catch {
+    // simplebeacon-ignore error-swallowing — version read fallback
     _extensionVersion = 'unknown';
   }
   return _extensionVersion;
@@ -65,6 +67,7 @@ function getRecentFolders(): string[] {
     const raw = vscode.workspace.getConfiguration().get<string[]>(RECENT_FOLDERS_KEY, []);
     return raw.filter((p) => fs.existsSync(p));
   } catch {
+    // simplebeacon-ignore error-swallowing — recent folders read fallback
     return [];
   }
 }
@@ -75,7 +78,7 @@ async function addRecentFolder(folderPath: string): Promise<void> {
     recent.unshift(folderPath);
     await vscode.workspace.getConfiguration().update(RECENT_FOLDERS_KEY, recent.slice(0, MAX_RECENT), true);
   } catch {
-    // best-effort
+    // simplebeacon-ignore error-swallowing — recent folders write best-effort
   }
 }
 

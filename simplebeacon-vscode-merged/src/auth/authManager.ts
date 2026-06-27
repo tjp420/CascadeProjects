@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 
 const TOKEN_KEY = 'simplebeacon.apiToken';
+const PASSWORD_KEY = 'simplebeacon.apiPassword';
 const SERVER_URL_KEY = 'simplebeacon.apiServerUrl';
 function getDefaultServerUrl(): string {
   return vscode.workspace.getConfiguration('simplebeacon').get<string>('apiUrl', 'http://127.0.0.1:3000');
@@ -41,23 +42,49 @@ export class AuthManager {
    * Store the API token securely.
    */
   async setToken(token: string): Promise<void> {
-    try {
-      await this.context.secrets.store(TOKEN_KEY, token);
-    } catch {
-      this.context.globalState.update(TOKEN_KEY, token);
-    }
+    await this.context.secrets.store(TOKEN_KEY, token);
   }
 
   /**
    * Clear the stored token.
    */
   async clearToken(): Promise<void> {
+    await this.context.secrets.delete(TOKEN_KEY);
+  }
+
+  /**
+   * Get the stored API password.
+   */
+  async getPassword(): Promise<string | undefined> {
     try {
-      await this.context.secrets.delete(TOKEN_KEY);
+      const secret = await this.context.secrets.get(PASSWORD_KEY);
+      if (secret) return secret;
     } catch {
-      // ignore
+      // Fallback to globalState if secrets not available
     }
-    this.context.globalState.update(TOKEN_KEY, undefined);
+    const globalPassword = this.context.globalState.get<string>(PASSWORD_KEY);
+    return globalPassword;
+  }
+
+  /**
+   * Store the API password securely.
+   */
+  async setPassword(password: string): Promise<void> {
+    await this.context.secrets.store(PASSWORD_KEY, password);
+  }
+
+  /**
+   * Clear the stored password.
+   */
+  async clearPassword(): Promise<void> {
+    await this.context.secrets.delete(PASSWORD_KEY);
+  }
+
+  /**
+   * Return true if a token is currently stored.
+   */
+  async isSignedIn(): Promise<boolean> {
+    return !!(await this.getToken());
   }
 
   /**
@@ -96,6 +123,15 @@ export class AuthManager {
 
     if (token) {
       await this.setToken(token);
+      const password = await vscode.window.showInputBox({
+        title: 'SimpleBeacon API Password',
+        prompt: 'Enter your SimpleBeacon account password (optional — press Escape to skip)',
+        password: true,
+        ignoreFocusOut: true,
+      });
+      if (password) {
+        await this.setPassword(password);
+      }
       vscode.window.showInformationMessage('SimpleBeacon API token saved');
     }
     return token;

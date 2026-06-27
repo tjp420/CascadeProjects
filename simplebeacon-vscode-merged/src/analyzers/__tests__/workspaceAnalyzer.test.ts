@@ -1,3 +1,6 @@
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
 import {
   isBuildArtifact,
   getBuildArtifactPatterns,
@@ -6,6 +9,7 @@ import {
   exportScanResultToJson,
   ScanResult,
   ANALYZER_PRESETS,
+  analyzeWorkspace,
 } from '../workspaceAnalyzer';
 
 describe('ANALYZER_PRESETS', () => {
@@ -145,5 +149,36 @@ describe('exportScanResultToJson', () => {
     expect(parsed.summary.selectedModules).toContain('credentials');
     expect(parsed.qualityScore).toBe(100);
     expect(parsed.gate.pass).toBe(true);
+  });
+});
+
+describe('analyzeWorkspace integration', () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sb-wa-test-'));
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('finds files and reports at least one file analyzed', async () => {
+    fs.mkdirSync(path.join(tmpDir, 'src'), { recursive: true });
+    fs.writeFileSync(
+      path.join(tmpDir, 'src', 'app.js'),
+      "const apiKey = 'abc123456789';\n// simplebeacon-ignore logging-secrets — test fixture, not production code\n",
+      'utf8'
+    );
+
+    const result = await analyzeWorkspace(undefined, undefined, 'complete', [], tmpDir);
+    expect(result.summary?.totalFiles).toBeGreaterThan(0);
+    expect(result.summary?.filesAnalyzed).toBeGreaterThan(0);
+  });
+
+  it('reports zero files and zero findings when the target directory is empty', async () => {
+    const result = await analyzeWorkspace(undefined, undefined, 'complete', [], tmpDir);
+    expect(result.summary?.totalFiles).toBe(0);
+    expect(result.summary?.filesAnalyzed).toBe(0);
   });
 });

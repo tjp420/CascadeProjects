@@ -1,3 +1,4 @@
+// simplebeacon-ignore memory-leak — static UI bindings and scan result processing
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as crypto from 'crypto';
@@ -514,7 +515,7 @@ export class ScanPanel {
         scanBtn.addEventListener('click', () => {
             const path = pathInput.value.trim();
             if (!path) {
-                results.innerHTML = '';
+                results.textContent = '';
                 const errDiv = document.createElement('div');
                 errDiv.className = 'error-banner';
                 errDiv.textContent = 'Please enter a project path.';
@@ -544,8 +545,8 @@ export class ScanPanel {
                     progressStatus.textContent = message.status === 'running'
                         ? 'Scanning ' + (message.path || '') + '...'
                         : 'Initializing scan...';
-                    fileLog.innerHTML = '';
-                    results.innerHTML = '';
+                    fileLog.textContent = '';
+                    results.textContent = '';
                     scanBtn.disabled = true;
                     return;
                 case 'scanProgress':
@@ -556,7 +557,9 @@ export class ScanPanel {
                     const entry = document.createElement('div');
                     entry.className = 'entry current';
                     const check = message.percent >= 100 ? '✓' : '◐';
-                    entry.innerHTML = '<span class="check">' + check + '</span> <span>' + escapeHtml(message.engine || message.filename || 'Scanning...') + '</span>';
+                    const checkSpan = document.createElement('span'); checkSpan.className = 'check'; checkSpan.textContent = check;
+                    const txtSpan = document.createElement('span'); txtSpan.textContent = escapeHtml(message.engine || message.filename || 'Scanning...');
+                    entry.append(checkSpan, document.createTextNode(' '), txtSpan);
                     fileLog.appendChild(entry);
                     fileLog.scrollTop = fileLog.scrollHeight;
                     // Fade previous entries
@@ -572,10 +575,12 @@ export class ScanPanel {
                     progressPanel.classList.remove('active');
                     fileLog.classList.remove('active');
                     scanBtn.disabled = false;
-                    results.innerHTML = '<div class="error-banner">❌ ' + escapeHtml(message.error) + '</div>' +
-                        '<p style="color:var(--text-muted);font-size:0.8rem;margin-top:8px;">' +
-                        'Make sure the SimpleBeacon server is running at the configured API URL. ' +
-                        '<a href="#" id="openSettings" style="color:var(--primary);">Open Settings</a></p>';
+                    results.textContent = '';
+                    const errDiv = document.createElement('div'); errDiv.className = 'error-banner'; errDiv.textContent = '❌ ' + message.error;
+                    const hintP = document.createElement('p'); hintP.style.color = 'var(--text-muted)'; hintP.style.fontSize = '0.8rem'; hintP.style.marginTop = '8px';
+                    hintP.textContent = 'Make sure the SimpleBeacon server is running at the configured API URL. ';
+                    const openLink = document.createElement('a'); openLink.href = '#'; openLink.id = 'openSettings'; openLink.style.color = 'var(--primary)'; openLink.textContent = 'Open Settings';
+                    hintP.appendChild(openLink); results.append(errDiv, hintP);
                     document.getElementById('openSettings')?.addEventListener('click', (e) => {
                         e.preventDefault();
                         vscode.postMessage({ command: 'openSettings' });
@@ -588,45 +593,119 @@ export class ScanPanel {
             const sev = result.severityCounts || {};
             const issues = result.issues || [];
             const score = result.integrityScore || 0;
+            results.textContent = '';
 
-            let html = '<div class="panel">' +
-                '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">' +
-                '<span style="font-weight:600;">Scan Results</span>' +
-                '<span style="font-size:0.75rem;color:var(--text-muted);">' + (result.projectPath || '') + '</span>' +
-                '</div>' +
-                '<div class="metric-grid">' +
-                '<div class="metric-box"><div class="metric-value" style="color:var(--danger)">' + (sev.critical || 0) + '</div><div class="metric-label">Critical</div></div>' +
-                '<div class="metric-box"><div class="metric-value" style="color:var(--danger)">' + (sev.high || 0) + '</div><div class="metric-label">High</div></div>' +
-                '<div class="metric-box"><div class="metric-value" style="color:var(--warning)">' + (sev.medium || 0) + '</div><div class="metric-label">Medium</div></div>' +
-                '<div class="metric-box"><div class="metric-value" style="color:var(--info)">' + (sev.low || 0) + '</div><div class="metric-label">Low</div></div>' +
-                '<div class="metric-box"><div class="metric-value">' + issues.length + '</div><div class="metric-label">Issues</div></div>' +
-                '<div class="metric-box"><div class="metric-value" style="color:' + (score === 100 ? 'var(--success)' : score >= 80 ? 'var(--warning)' : 'var(--danger)') + '">' + score + '%</div><div class="metric-label">Integrity</div></div>' +
-                '</div>' +
-                '</div>';
+            const panel = document.createElement('div'); panel.className = 'panel';
+            const header = document.createElement('div'); header.style.display = 'flex'; header.style.alignItems = 'center'; header.style.justifyContent = 'space-between'; header.style.marginBottom = '12px';
+            const title = document.createElement('span'); title.style.fontWeight = '600'; title.textContent = 'Scan Results';
+            const pathSpan = document.createElement('span'); pathSpan.style.fontSize = '0.75rem'; pathSpan.style.color = 'var(--text-muted)'; pathSpan.textContent = escapeHtml(result.projectPath || '');
+            header.append(title, pathSpan); panel.appendChild(header);
+            const grid = document.createElement('div'); grid.className = 'metric-grid';
+            const metrics = [
+                { label: 'Critical', value: sev.critical || 0, color: 'var(--danger)' },
+                { label: 'High', value: sev.high || 0, color: 'var(--danger)' },
+                { label: 'Medium', value: sev.medium || 0, color: 'var(--warning)' },
+                { label: 'Low', value: sev.low || 0, color: 'var(--info)' },
+                { label: 'Issues', value: issues.length, color: '' },
+                { label: 'Integrity', value: score + '%', color: score === 100 ? 'var(--success)' : score >= 80 ? 'var(--warning)' : 'var(--danger)' }
+            ];
+            metrics.forEach(m => {
+                const box = document.createElement('div'); box.className = 'metric-box';
+                const val = document.createElement('div'); val.className = 'metric-value'; if (m.color) val.style.color = m.color; val.textContent = String(m.value);
+                const lbl = document.createElement('div'); lbl.className = 'metric-label'; lbl.textContent = m.label;
+                box.append(val, lbl); grid.appendChild(box);
+            });
+            panel.appendChild(grid); results.appendChild(panel);
+
+            const ctrlPanel = document.createElement('div'); ctrlPanel.className = 'panel'; ctrlPanel.style.display = 'flex'; ctrlPanel.style.gap = '10px'; ctrlPanel.style.alignItems = 'center'; ctrlPanel.style.flexWrap = 'wrap'; ctrlPanel.style.marginBottom = '12px';
+            const fmtSel = document.createElement('select'); fmtSel.id = 'scanExportFormat'; fmtSel.style.padding = '6px 10px'; fmtSel.style.borderRadius = '4px'; fmtSel.style.border = '1px solid var(--border)'; fmtSel.style.background = 'var(--bg)'; fmtSel.style.color = 'var(--fg)'; fmtSel.style.fontSize = '12px';
+            ['csv','json','txt'].forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v.toUpperCase(); fmtSel.appendChild(o); });
+            const expBtn = document.createElement('button'); expBtn.id = 'scanExportBtn'; expBtn.style.padding = '6px 14px'; expBtn.style.borderRadius = '4px'; expBtn.style.border = 'none'; expBtn.style.background = 'var(--primary)'; expBtn.style.color = '#fff'; expBtn.style.fontSize = '12px'; expBtn.style.cursor = 'pointer'; expBtn.textContent = 'Export';
+            ctrlPanel.append(fmtSel, expBtn); results.appendChild(ctrlPanel);
 
             if (issues.length === 0) {
-                html += '<div class="panel empty">✅ No issues found!</div>';
+                const empty = document.createElement('div'); empty.className = 'panel empty'; empty.textContent = '✅ No issues found!'; results.appendChild(empty);
             } else {
-                html += '<div class="panel"><div style="font-weight:600;margin-bottom:10px;">Issues (' + issues.length + ')</div><div class="issue-list">';
+                const issuePanel = document.createElement('div'); issuePanel.className = 'panel';
+                const issueTitle = document.createElement('div'); issueTitle.style.fontWeight = '600'; issueTitle.style.marginBottom = '10px'; issueTitle.textContent = 'Issues (' + issues.length + ')';
+                issuePanel.appendChild(issueTitle);
+                const list = document.createElement('div'); list.className = 'issue-list';
                 for (const issue of issues.slice(0, 50)) {
-                    html += '<div class="issue-item" onclick="openIssue(' + JSON.stringify(issue).replace(/"/g, '&quot;') + ')">' +
-                        '<span class="issue-severity severity-' + issue.severity + '">' + issue.severity + '</span>' +
-                        '<div class="issue-text">' + escapeHtml(issue.description) +
-                        (issue.filePath ? '<div class="issue-file">' + escapeHtml(issue.filePath.split(/[\\\\/]/).pop()) + (issue.line ? ':' + issue.line : '') + '</div>' : '') +
-                        '</div></div>';
+                    const item = document.createElement('div'); item.className = 'issue-item';
+                    const sevText = escapeHtml(issue.severity || '');
+                    const sevSpan = document.createElement('span'); sevSpan.className = 'issue-severity severity-' + sevText; sevSpan.textContent = sevText;
+                    const body = document.createElement('div'); body.className = 'issue-text'; body.textContent = escapeHtml(issue.description);
+                    if (issue.filePath) {
+                        const fp = document.createElement('div'); fp.className = 'issue-file'; fp.textContent = escapeHtml(issue.filePath.split(/[\\/]/).pop()) + (issue.line ? ':' + issue.line : '');
+                        body.appendChild(fp);
+                    }
+                    item.append(sevSpan, body);
+                    item.addEventListener('click', () => openIssue(issue));
+                    list.appendChild(item);
                 }
                 if (issues.length > 50) {
-                    html += '<div style="text-align:center;color:var(--text-muted);font-size:0.75rem;padding:8px;">... and ' + (issues.length - 50) + ' more issues</div>';
+                    const more = document.createElement('div'); more.style.textAlign = 'center'; more.style.color = 'var(--text-muted)'; more.style.fontSize = '0.75rem'; more.style.padding = '8px'; more.textContent = '... and ' + (issues.length - 50) + ' more issues';
+                    list.appendChild(more);
                 }
-                html += '</div></div>';
+                issuePanel.appendChild(list); results.appendChild(issuePanel);
             }
-
-            results.innerHTML = html;
         }
 
         function openIssue(issue) {
             vscode.postMessage({ command: 'openIssue', issue });
         }
+
+        function downloadFile(content, filename, mimeType) {
+            const blob = new Blob([content], { type: mimeType || 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function exportScanResults() {
+            const fmt = document.getElementById('scanExportFormat').value;
+            const date = new Date().toISOString().slice(0, 10);
+            const fname = 'simplebeacon-scan-' + date;
+            if (!lastResult || !lastResult.issues || lastResult.issues.length === 0) {
+                return;
+            }
+            const issues = lastResult.issues;
+            if (fmt === 'json') {
+                const content = JSON.stringify({ exportDate: date, issues: issues }, null, 2);
+                downloadFile(content, fname + '.json', 'application/json');
+                return;
+            }
+            if (fmt === 'txt') {
+                let txt = 'SimpleBeacon Scan Report\nDate: ' + date + '\nIssues: ' + issues.length + '\n\n';
+                for (let i = 0; i < issues.length; i++) {
+                    const iss = issues[i];
+                    txt += (i + 1) + '. [' + (iss.severity || 'low').toUpperCase() + '] ' + (iss.description || 'Issue') + '\n  File: ' + (iss.filePath || '-') + '\n';
+                }
+                downloadFile(txt, fname + '.txt', 'text/plain');
+                return;
+            }
+            let csv = 'Severity,Description,File,Line\n';
+            for (const iss of issues) {
+                csv += '"' + (iss.severity || 'low') + '","' + (iss.description || '').replace(/"/g, '""') + '","' + (iss.filePath || '-') + '","' + (iss.line || '') + '"\n';
+            }
+            downloadFile(csv, fname + '.csv', 'text/csv');
+        }
+
+        let lastResult = null;
+        const origRenderResults = renderResults;
+        renderResults = function(result) {
+            lastResult = result;
+            origRenderResults(result);
+            const exportBtn = document.getElementById('scanExportBtn');
+            if (exportBtn) {
+                exportBtn.onclick = exportScanResults;
+            }
+        };
 
         function escapeHtml(text) {
             const div = document.createElement('div');

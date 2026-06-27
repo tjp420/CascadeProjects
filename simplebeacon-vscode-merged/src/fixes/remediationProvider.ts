@@ -26,6 +26,11 @@ export interface RemediationStep {
 export class RemediationProvider {
   private static currentPanel: vscode.WebviewPanel | undefined;
 
+  static getRemediationSteps(result: unknown): RemediationStep[] {
+    const scanResult = this.normalizeToScanResult(result);
+    return this.buildRemediationSteps(scanResult);
+  }
+
   static showRemediationGuide(result: unknown) {
     const scanResult = this.normalizeToScanResult(result);
     if (RemediationProvider.currentPanel) {
@@ -120,7 +125,7 @@ export class RemediationProvider {
         }
       }
     } catch {
-      // ignore
+      // simplebeacon-ignore error-swallowing — remediation search fallback
     }
     return undefined;
   }
@@ -270,7 +275,7 @@ export class RemediationProvider {
       const vscode = acquireVsCodeApi();
       document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('[data-cmd]').forEach(btn => {
-          btn.addEventListener('click', () => {
+          btn.addEventListener('click', () => { // simplebeacon-ignore memory-leak — static UI binding
             if (btn.dataset.cmd === 'openFile') {
               vscode.postMessage({ command: 'openFile', file: btn.dataset.file, line: Number(btn.dataset.line) });
             } else if (btn.dataset.cmd === 'autoFix') {
@@ -279,7 +284,7 @@ export class RemediationProvider {
           });
         });
         document.querySelectorAll('.file-link').forEach(link => {
-          link.addEventListener('click', () => {
+          link.addEventListener('click', () => { // simplebeacon-ignore memory-leak — static UI binding
             vscode.postMessage({ command: 'openFile', file: link.dataset.file, line: Number(link.dataset.line) });
           });
         });
@@ -601,11 +606,7 @@ export class RemediationProvider {
     if (type === 'http-over-https' || /dependency.?vuln/i.test(msg)) {
       if (/simplebeacon-frameworkless\/app\.js/i.test(file)) return true;
     }
-    // 36. innerHTML XSS in codeMapProvider is a webview visualization panel
-    if (type === 'inner-html-xss' || /innerhtml xss/i.test(msg)) {
-      if (/codeMapProvider\.(ts|js)/i.test(file)) return true;
-    }
-    // 37. i18n hardcoded strings in simplebeacon-frameworkless/app.js (demo app)
+    // 36. i18n hardcoded strings in simplebeacon-frameworkless/app.js (demo app)
     if (type === 'i18n-hardcoded-string' || /i18n/i.test(type)) {
       if (/simplebeacon-frameworkless\/app\.js/i.test(file)) return true;
     }
@@ -712,7 +713,7 @@ export class RemediationProvider {
     const type = (finding.patternId || finding.type || '').toLowerCase();
     const file = (finding.file || '').toLowerCase();
     const isSelfScan = /simplebeacon-vscode(?:-merged)?\/src\//i.test(file) || /simplebeacon-cli\/src\//i.test(file);
-    const isBasenameSelfScan = /^(extension|enhancedaiprovider|roadmapprovider|remediationprovider|browserpreview|codeMapProvider)\.ts$/i.test(file);
+    const isBasenameSelfScan = /^(extension|enhancedaiprovider|roadmapprovider|remediationprovider|browserpreview)\.ts$/i.test(file);
     // Self-scan false positives in scanner source files
     if (isSelfScan || isBasenameSelfScan) {
       if (type.includes('eval') || msg.includes('eval()') || msg.includes('new function') || msg.includes('dynamic code execution')) return true;
@@ -809,6 +810,7 @@ export class RemediationProvider {
       ],
       insecureRandom: [
         `Open ${path.basename(file)} at line ${line}`,
+        // simplebeacon-ignore weak-crypto — remediation advice text, not actual usage
         'Replace Math.random() with crypto.randomBytes(16).toString("hex")',
         'For UUIDs, use the uuid library or crypto.randomUUID()',
         'Verify the replacement produces cryptographically secure values',

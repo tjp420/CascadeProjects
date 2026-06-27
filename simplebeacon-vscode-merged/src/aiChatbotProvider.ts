@@ -1,0 +1,184 @@
+import * as vscode from 'vscode';
+import { getDataServerPort } from './dataServer';
+
+export class AiChatbotProvider implements vscode.WebviewViewProvider {
+  public static readonly viewType = 'simplebeacon-ai-chatbot';
+  private _view?: vscode.WebviewView;
+
+  constructor(private readonly _extensionUri: vscode.Uri) {}
+
+  public resolveWebviewView(
+    webviewView: vscode.WebviewView,
+    context: vscode.WebviewViewResolveContext,
+    _token: vscode.CancellationToken
+  ): void {
+    this._view = webviewView;
+    webviewView.webview.options = {
+      enableScripts: true,
+      localResourceRoots: [this._extensionUri],
+    };
+    webviewView.webview.html = this._getHtml(webviewView.webview);
+
+    webviewView.webview.onDidReceiveMessage(async (message) => {
+      if (message.command === 'copy') {
+        await vscode.env.clipboard.writeText(message.text || '');
+        vscode.window.showInformationMessage('AI context copied to clipboard');
+      } else if (message.command === 'openContext') {
+        const ws = vscode.workspace.workspaceFolders?.[0];
+        if (ws) {
+          const contextPath = vscode.Uri.joinPath(ws.uri, '.simplebeacon', 'ai-context.md');
+          await vscode.commands.executeCommand('vscode.open', contextPath);
+        }
+      }
+    });
+  }
+
+  private _getHtml(webview: vscode.Webview): string {
+    const port = getDataServerPort();
+    const csp = webview.cspSource;
+    const nonce = this._getNonce();
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; connect-src http://127.0.0.1:${port} ${csp}; script-src 'nonce-${nonce}'; style-src ${csp} 'unsafe-inline'; img-src ${csp} data:;">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+    color: var(--vscode-foreground, #ccc);
+    background: var(--vscode-editor-background, #1e1e1e);
+    margin: 0; padding: 12px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px; padding-bottom: 8px;
+    border-bottom: 1px solid var(--vscode-panel-border, #3c3c3c);
+  }
+  .title { font-weight: 600; font-size: 14px; }
+  .status { font-size: 11px; color: var(--vscode-descriptionForeground, #858585); }
+  .empty {
+    padding: 20px 12px; text-align: center; color: var(--vscode-descriptionForeground, #858585);
+    border: 1px dashed var(--vscode-panel-border, #3c3c3c); border-radius: 6px;
+  }
+  .content {
+    white-space: pre-wrap; font-family: var(--vscode-editor-font-family, 'Consolas', monospace);
+    font-size: 12px; padding: 12px; border-radius: 6px;
+    background: var(--vscode-panel-background, #252526);
+    border: 1px solid var(--vscode-panel-border, #3c3c3c);
+    max-height: calc(100vh - 140px); overflow-y: auto;
+  }
+  .actions {
+    display: flex; gap: 8px; margin-top: 12px;
+  }
+  button {
+    flex: 1; padding: 6px 10px; border-radius: 4px; border: 1px solid var(--vscode-button-border, transparent);
+    background: var(--vscode-button-background, #0e639c);
+    color: var(--vscode-button-foreground, #fff);
+    cursor: pointer; font-size: 12px;
+  }
+  button:hover { background: var(--vscode-button-hoverBackground, #1177bb); }
+  button.secondary {
+    background: var(--vscode-button-secondaryBackground, #3c3c3c);
+    color: var(--vscode-button-secondaryForeground, #ccc);
+  }
+  button.secondary:hover { background: var(--vscode-button-secondaryHoverBackground, #4a4a4a); }
+  .toast {
+    position: fixed; bottom: 12px; left: 12px; right: 12px;
+    padding: 8px 12px; border-radius: 4px; font-size: 12px;
+    background: var(--vscode-notifications-background, #252526);
+    color: var(--vscode-notifications-foreground, #ccc);
+    border: 1px solid var(--vscode-notifications-border, #3c3c3c);
+    display: none; z-index: 10;
+  }
+  .toast.show { display: block; }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="title">AI Coding Agent</div>
+    <div class="status" id="status">Waiting for context…</div>
+  </div>
+  <div class="empty" id="empty">No context sent yet.<br>Click “Send to AI” in the dashboard to populate this panel.</div>
+  <div class="content" id="content" style="display:none;"></div>
+  <div class="actions" id="actions" style="display:none;">
+    <button id="copyBtn">Copy to Clipboard</button>
+    <button id="openBtn" class="secondary">Open as File</button>
+  </div>
+  <div class="toast" id="toast"></div>
+  <script nonce="${nonce}">
+    const vscode = acquireVsCodeApi();
+    const port = ${port};
+    const statusEl = document.getElementById('status');
+    const emptyEl = document.getElementById('empty');
+    const contentEl = document.getElementById('content');
+    const actionsEl = document.getElementById('actions');
+    const copyBtn = document.getElementById('copyBtn');
+    const openBtn = document.getElementById('openBtn');
+    const toastEl = document.getElementById('toast');
+
+    let currentMarkdown = '';
+
+    function showToast(message) {
+      toastEl.textContent = message;
+      toastEl.classList.add('show');
+      setTimeout(() => toastEl.classList.remove('show'), 2500);
+    }
+
+    function renderContext(data) {
+      if (!data || !data.context) {
+        emptyEl.style.display = 'block';
+        contentEl.style.display = 'none';
+        actionsEl.style.display = 'none';
+        statusEl.textContent = 'Waiting for context…';
+        return;
+      }
+      emptyEl.style.display = 'none';
+      contentEl.style.display = 'block';
+      actionsEl.style.display = 'flex';
+      currentMarkdown = data.content || '';
+      contentEl.textContent = currentMarkdown;
+      const reportType = data.context.reportType || 'scan-summary';
+      const issueCount = Array.isArray(data.context.issues) ? data.context.issues.length : 0;
+      statusEl.textContent = 'Received: ' + reportType + (issueCount ? ' (' + issueCount + ' findings)' : '');
+      showToast('New AI context received');
+    }
+
+    async function loadContext() {
+      try {
+        const res = await fetch('http://127.0.0.1:' + port + '/api/ai-context');
+        const json = await res.json();
+        renderContext(json);
+      } catch (err) {
+        statusEl.textContent = 'Data server unavailable';
+      }
+    }
+
+    copyBtn.addEventListener('click', () => {
+      vscode.postMessage({ command: 'copy', text: currentMarkdown });
+    });
+
+    openBtn.addEventListener('click', () => {
+      vscode.postMessage({ command: 'openContext' });
+    });
+
+    // Poll for updates every 2 seconds
+    loadContext();
+    setInterval(loadContext, 2000);
+  </script>
+</body>
+</html>`;
+  }
+
+  private _getNonce(): string {
+    let text = '';
+    const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    for (let i = 0; i < 32; i++) {
+      text += possible.charAt(Math.floor(Math.random() * possible.length));
+    }
+    return text;
+  }
+}

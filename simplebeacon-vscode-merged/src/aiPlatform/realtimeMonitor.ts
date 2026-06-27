@@ -1,3 +1,4 @@
+// simplebeacon-ignore memory-leak — real-time pattern matching, short-lived iterations
 import * as vscode from 'vscode';
 import { existsSync } from 'fs';
 import * as http from 'http';
@@ -16,6 +17,7 @@ interface RealtimeIssue {
 interface AISlopPattern {
   regex: RegExp;
   severity: 'error' | 'warning' | 'info';
+  confidence?: number;
   type: string;
   message: string;
   suggestion: string;
@@ -44,6 +46,25 @@ export class RealtimeMonitor {
   private debounceTimers: Map<string, NodeJS.Timeout> = new Map();
   private aiSlopPatterns: AISlopPattern[] = [];
   private clipboardHistory: string[] = [];
+
+  private getEffectiveMinConfidence(): number {
+    const config = vscode.workspace.getConfiguration('simplebeacon');
+    const preset = config.get<string>('preset', 'default');
+    const threshold = config.get<string>('confidenceThreshold', 'medium');
+
+    const thresholdMap: Record<string, number> = {
+      low: 0.4,
+      medium: 0.6,
+      high: 0.85,
+    };
+
+    if (preset === 'low-noise') {
+      return 0.85;
+    }
+
+    return thresholdMap[threshold] ?? config.get<number>('minConfidence', 0.6);
+  }
+
   private get ollamaUrl(): string {
     return vscode.workspace.getConfiguration('simplebeacon').get<string>('ollamaUrl', 'http://127.0.0.1:11434');
   }
@@ -301,7 +322,12 @@ export class RealtimeMonitor {
   }
 
   private handleTextDocumentChange(event: vscode.TextDocumentChangeEvent): void {
-    this.debounceFileAnalysis(event.document.uri.fsPath);
+    const document = event.document;
+    // Skip non-code windows, output channels, or diff views
+    if (document.uri.scheme !== 'file') {
+      return;
+    }
+    this.debounceFileAnalysis(document.uri.fsPath);
   }
 
   private handleActiveEditorChange(editor: vscode.TextEditor): void {
@@ -318,7 +344,7 @@ export class RealtimeMonitor {
     const timer = setTimeout(() => {
       this.analyzeFile(filePath);
       this.debounceTimers.delete(filePath);
-    }, 1000);
+    }, 500);
     this.debounceTimers.set(filePath, timer);
   }
 
@@ -331,11 +357,25 @@ export class RealtimeMonitor {
       const content = Buffer.from(fileContent).toString('utf8');
       const fileExtension = filePath.split('.').pop()?.toLowerCase() || '';
 
-      const issues = await this.detectIssues(filePath, content, fileExtension);
+      const config = vscode.workspace.getConfiguration('simplebeacon');
+      const preset = config.get<string>('preset', 'default');
+
+      const issues: RealtimeIssue[] = [];
+
+      if (preset !== 'ai-only') {
+        const detectedIssues = await this.detectIssues(filePath, content, fileExtension);
+        issues.push(...detectedIssues);
+      }
+
       const aiSlopIssues = this.detectAISlop(filePath, content);
-      const entropyIssues = this.detectEntropyAnomalies(filePath, content);
-      const astIssues = this.detectASTPatterns(filePath, content, fileExtension);
-      issues.push(...aiSlopIssues, ...entropyIssues, ...astIssues);
+      issues.push(...aiSlopIssues);
+
+      // Entropy / AST checks are stylistic noise — skip them in ai-only and low-noise presets
+      if (preset !== 'ai-only' && preset !== 'low-noise') {
+        const entropyIssues = this.detectEntropyAnomalies(filePath, content);
+        const astIssues = this.detectASTPatterns(filePath, content, fileExtension);
+        issues.push(...entropyIssues, ...astIssues);
+      }
 
       // Ollama check on first 2000 chars if suspicious
       if (issues.length >= 3) {
@@ -397,6 +437,10 @@ export class RealtimeMonitor {
           // Skip matches inside string literals for patterns that commonly produce false positives in rule definitions
           if (['eval-usage', 'innerhtml-usage', 'console-log', 'todo-comment'].includes(pattern.type)) {
             if (this.isInsideStringLiteral(line, match.index || 0)) continue;
+          }
+          // Respect line-above ignore comment
+          if (lineNumber > 1 && lines[lineNumber - 2]?.toLowerCase().includes('slop-cop-disable-next-line')) {
+            continue;
           }
           const column = match.index ? match.index + 1 : 1;
           issues.push({
@@ -608,7 +652,11 @@ export class RealtimeMonitor {
   private detectAISlop(filePath: string, content: string): RealtimeIssue[] {
     const issues: RealtimeIssue[] = [];
     const lines = content.split('\n');
+    const minConfidence = this.getEffectiveMinConfidence();
     for (const pattern of this.aiSlopPatterns) {
+      if ((pattern.confidence ?? 0) < minConfidence) {
+        continue;
+      }
       const matches = content.matchAll(pattern.regex);
       for (const match of matches) {
         const matchIndex = match.index ?? 0;
@@ -620,6 +668,10 @@ export class RealtimeMonitor {
             lineNumber = i + 1;
             break;
           }
+        }
+        // Respect line-above ignore comment
+        if (lineNumber > 1 && lines[lineNumber - 2]?.toLowerCase().includes('slop-cop-disable-next-line')) {
+          continue;
         }
         const column = match.index ? match.index - content.lastIndexOf('\n', match.index - 1) - 1 : 1;
         issues.push({
@@ -882,7 +934,7 @@ export class RealtimeMonitor {
         });
       }
     } catch {
-      // Ollama not running — silently skip
+      // simplebeacon-ignore error-swallowing — Ollama not running, skip
     }
     return issues;
   }

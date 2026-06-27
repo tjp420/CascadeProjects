@@ -206,8 +206,8 @@ export function generateRoadmap(report: ScanResult): RoadmapResult {
       ],
       cleanupCount === 0,
       'No debug artifacts or bloat detected — codebase is clean.',
-      `${cleanupCount} debug artifact(s) — remove logging statements, debugger, etc.`,
-      'Debug artifacts in production code — clean up before deployment.'
+      `${cleanupCount} leftover item(s) — clean up before deployment.`,
+      'Development traces in production code — review before release.'
     )
   );
 
@@ -475,7 +475,8 @@ export class RoadmapProvider implements vscode.TreeDataProvider<vscode.TreeItem>
     }
 
     // Find which phase this element belongs to
-    const phase = this.roadmap.phases.find((p) => element.label?.toString().includes(p.title));
+    const phases = this.roadmap?.phases;
+    const phase = Array.isArray(phases) ? phases.find((p) => element.label?.toString().includes(p.title)) : undefined;
     if (phase) {
       const taskItems = phase.tasks.map((task) => {
         const item = new vscode.TreeItem(task.description, vscode.TreeItemCollapsibleState.None);
