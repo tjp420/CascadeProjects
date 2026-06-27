@@ -134,6 +134,7 @@ fix-sidebar.ps1
 list-vsix.ps1
 list-vsix2.ps1
 simplebeacon-workflow.ps1
+simplebeacon.sh
 
 # Simplebeacon cleanup scripts
 .simplebeacon/rotate-secrets.js
