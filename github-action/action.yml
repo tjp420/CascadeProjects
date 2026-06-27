@@ -81,6 +81,73 @@ runs:
           https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments \
           -d "{\"body\":$(echo "$BODY" | jq -R -s .)}"
 
+    - name: Annotate Changed Files
+      if: github.event_name == 'pull_request'
+      shell: bash
+      run: |
+        REPORT=.simplebeacon/report.json
+        if [ ! -f "$REPORT" ]; then exit 0; fi
+        node -e "
+          const fs = require('fs');
+          const report = JSON.parse(fs.readFileSync('./$REPORT', 'utf8'));
+          const issues = report.issues || report.detectedIssues || [];
+          for (const issue of issues) {
+            const file = issue.filePath || issue.file;
+            const line = issue.line || 1;
+            const sev = (issue.severity || 'medium').toLowerCase();
+            const msg = issue.description || issue.message || 'Issue detected';
+            const type = sev === 'critical' ? 'error' : sev === 'high' ? 'warning' : 'notice';
+            console.log('::' + type + ' file=' + file + ',line=' + line + '::[' + issue.pattern + '] ' + msg);
+          }
+        "
+
+    - name: Write Job Summary
+      shell: bash
+      run: |
+        REPORT=.simplebeacon/report.json
+        if [ ! -f "$REPORT" ]; then
+          echo "# SimpleBeacon Scan" >> $GITHUB_STEP_SUMMARY
+          echo "Report not found." >> $GITHUB_STEP_SUMMARY
+          exit 0
+        fi
+        node -e "
+          const fs = require('fs');
+          const r = JSON.parse(fs.readFileSync('./$REPORT', 'utf8'));
+          const gate = r.gate || {};
+          const score = r.qualityScore || 'N/A';
+          const blocking = gate.blockingCount || 0;
+          const warnings = gate.warningCount || 0;
+          const pass = gate.pass || false;
+          const tier = r.tier || 'free';
+          const summary = [
+            '# 🔦 SimpleBeacon Scan Results',
+            '',
+            '| Metric | Value |',
+            '|--------|-------|',
+            '| Gate Status | ' + (pass ? '✅ Pass' : '❌ Fail') + ' |',
+            '| Quality Score | ' + score + ' |',
+            '| Blocking Issues | ' + blocking + ' |',
+            '| Warnings | ' + warnings + ' |',
+            '| Tier | ' + tier + ' |',
+            ''
+          ];
+          if (!pass && blocking > 0) {
+            summary.push('## Blocking Issues');
+            summary.push('');
+            const issues = (r.issues || r.detectedIssues || []).filter(i => (i.severity || '').toLowerCase() === 'critical' || (i.severity || '').toLowerCase() === 'high');
+            issues.slice(0, 20).forEach(i => {
+              const file = i.filePath || i.file || 'unknown';
+              const line = i.line || '';
+              summary.push('- **' + (i.pattern || i.type) + '** — `' + file + (line ? ':' + line : '') + '`  ');
+              summary.push('  ' + (i.description || i.message || ''));
+            });
+            summary.push('');
+          }
+          summary.push('---');
+          summary.push('> [View full report](https://simplebeacon.ai/audit) · [Team Dashboard](https://simplebeacon.ai/pricing)');
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary.join('\n') + '\n');
+        "
+
     - name: Evaluate Gate
       shell: bash
       run: |

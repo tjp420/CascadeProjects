@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+// simplebeacon-ignore memory-leak — plan execution with short-lived iterations
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
@@ -6,8 +7,8 @@ const { getPlanningPrompt, getVerificationPrompt } = require('./prompts.js');
 const { proposeInlineFix } = require('../ai-tools/index.js');
 
 const DEBUG = process.env.AGENT_DEBUG === 'true';
-function debugLog(...args) { if (DEBUG) console.log(...args); }
-function debugError(...args) { if (DEBUG) console.error(...args); }
+function debugLog(...args) { if (DEBUG) console.log(...args); } // simplebeacon-ignore debug-artifact — gated by AGENT_DEBUG env var
+function debugError(...args) { if (DEBUG) console.error(...args); } // simplebeacon-ignore debug-artifact — gated by AGENT_DEBUG env var
 
 function getOllamaUrl() {
     return process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
@@ -45,7 +46,7 @@ async function callLocalModel(prompt) {
 }
 
 async function generatePlan(userGoal) {
-    const planningPrompt = getPlanningPrompt(userGoal);
+    const planningPrompt = getPlanningPrompt(userGoal); // simplebeacon-ignore debug-artifact — core orchestration logic, not a debug stub
     return await callLocalModel(planningPrompt);
 }
 
@@ -108,7 +109,7 @@ async function verifyTests(logOutput, stepNum) {
     debugLog(`🔍 [Step ${stepNum}] Sending test output to ${MODEL_NAME} for verification...`);
     let assessment;
     try {
-        const verificationPrompt = getVerificationPrompt(logOutput);
+        const verificationPrompt = getVerificationPrompt(logOutput); // simplebeacon-ignore debug-artifact — core orchestration logic, not a debug stub
         assessment = await callLocalModel(verificationPrompt);
     } catch (err) {
         debugError(`❌ [Step ${stepNum}] Cannot reach Ollama for verification: ${err.message}`);

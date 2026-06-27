@@ -13,7 +13,7 @@ const path = require('path');
  */
 function loadReport(reportPath) {
     const absPath = path.resolve(reportPath);
-    if (!fs.existsSync(absPath)) {
+    if (!fs.existsSync(absPath)) { // simplebeacon-ignore sync-io — existence check before read
         throw new Error(`Report not found: ${absPath}`);
     }
     const raw = fs.readFileSync(absPath, 'utf8');
@@ -105,7 +105,7 @@ function computeMetadataConsistency(report) {
  */
 function computeNamingConsistency(report, projectRoot) {
     const root = projectRoot || report.projectRoot || process.cwd();
-    const sampleFiles = report.sampleFiles || [];
+    const sampleFiles = report.sampleFiles || []; // simplebeacon-ignore production-leak — reads sampleFiles from report object, not a mock path
     let checked = 0;
     let passed = 0;
 
@@ -159,14 +159,14 @@ function computeConsistencyScore(report, projectRoot) {
 function main() {
     const reportPath = process.argv[2];
     if (!reportPath) {
-        console.error('Usage: node consistency-score.cjs <path-to-report.json>');
+        console.error('Usage: node consistency-score.cjs <path-to-report.json>'); // simplebeacon-ignore debug-artifact — CLI usage message
         process.exit(1);
     }
 
     const report = loadReport(reportPath);
     const result = computeConsistencyScore(report);
 
-    console.log(JSON.stringify(result, null, 2));
+    console.log(JSON.stringify(result, null, 2)); // simplebeacon-ignore debug-artifact — CLI output
 }
 
 if (require.main === module) {

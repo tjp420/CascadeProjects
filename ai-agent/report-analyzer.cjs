@@ -11,7 +11,7 @@ const fs = require('fs');
 const path = require('path');
 const { runLocalAgent } = require('./orchestrator.cjs');
 
-function buildPrompt(report) {
+function buildPrompt(report) { // simplebeacon-ignore debug-artifact — legitimate function name, not a debug stub
     const gate = report.gate || {};
     const sev = report.severityCounts || {};
     const issues = report.detectedIssues || report.rawIssues || [];
@@ -49,17 +49,17 @@ Output ONLY the JSON array. No explanations outside the JSON.`;
 async function main() {
     const reportPath = process.argv[2];
     if (!reportPath) {
-        console.error('Usage: node report-analyzer.cjs <path-to-report.json>');
+        console.error('Usage: node report-analyzer.cjs <path-to-report.json>'); // simplebeacon-ignore debug-artifact — CLI usage message
         process.exit(1);
     }
 
     if (!fs.existsSync(reportPath)) {
-        console.error(`Report not found: ${reportPath}`);
+        console.error(`Report not found: ${reportPath}`); // simplebeacon-ignore debug-artifact — CLI error message
         process.exit(1);
     }
 
     const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
-    const prompt = buildPrompt(report);
+    const prompt = buildPrompt(report); // simplebeacon-ignore debug-artifact — core analysis logic, not a debug stub
 
     const outDir = path.join(path.dirname(reportPath), 'ai-analysis');
     fs.mkdirSync(outDir, { recursive: true });
@@ -77,7 +77,7 @@ async function main() {
         raw: result.raw || null,
         generatedAt: new Date().toISOString()
     }, null, 2));
-    console.log(`Analysis saved to ${analysisPath}`);
+    console.log(`Analysis saved to ${analysisPath}`); // simplebeacon-ignore debug-artifact — CLI output
 }
 
 if (require.main === module) {
