@@ -487,10 +487,57 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       return;
     }
 
-    // AI keys save stub
+    // AI keys local storage — persists in VS Code settings for the extension dashboard
     if (parsed.pathname === '/api/simplebeacon/user/ai-keys') {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: true, saved: false, message: 'AI key storage not implemented in local server' }));
+      const cfg = vscode.workspace.getConfiguration('simplebeacon');
+      const normalizeKeys = (raw: any) => ({
+        email: '',
+        providers: {},
+        ollamaBaseUrl: '',
+        ollamaModel: '',
+        updatedAt: null,
+        ...raw
+      });
+      if (req.method === 'GET') {
+        const stored = cfg.get<any>('aiKeys') || {};
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, ...normalizeKeys(stored) }));
+        return;
+      }
+      if (req.method === 'PUT') {
+        let body = '';
+        req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+        req.on('end', async () => {
+          try {
+            const payload = body ? JSON.parse(body) : {};
+            const stored = normalizeKeys(cfg.get<any>('aiKeys') || {});
+            const updated = {
+              ...stored,
+              providers: payload.providers || {},
+              ollamaBaseUrl: payload.ollamaBaseUrl || '',
+              ollamaModel: payload.ollamaModel || '',
+              updatedAt: new Date().toISOString()
+            };
+            await cfg.update('aiKeys', updated, true);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: true, ...updated }));
+          } catch (e) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: 'Invalid request' }));
+          }
+        });
+        return;
+      }
+      if (req.method === 'DELETE') {
+        const empty = normalizeKeys({});
+        cfg.update('aiKeys', empty, true).then(() => {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, ...empty }));
+        });
+        return;
+      }
+      res.writeHead(405, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, error: 'Method not allowed' }));
       return;
     }
 
