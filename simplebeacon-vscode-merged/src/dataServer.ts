@@ -1089,7 +1089,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
 })();
 </script>`;
         html = html.replace('</head>', envScript + downloadNotifyScript + '</head>');
-        const themeScript = `<script>(function(){var h=document.documentElement;if(!h)return;function s(t){h.setAttribute('data-theme',t);}function p(){if(typeof fetch!=='function')return;fetch('/api/theme').then(function(r){return r.json();}).then(function(d){if(d&&d.theme)s(d.theme);}).catch(function(){});}p();setInterval(p,500);})();</script>`;
+        const themeScript = `<script>(function(){var h=document.documentElement;if(!h)return;function s(t){h.setAttribute('data-theme',t);}function p(){if(typeof fetch!=='function')return;fetch('/api/theme').then(function(r){return r.json();}).then(function(d){if(d&&d.theme)s(d.theme);}).catch(function(){});}p();setInterval(p,5000);})();</script>`;
         const bodyClose = html.lastIndexOf('</body>');
         if (bodyClose > 0) {
           html = html.slice(0, bodyClose) + themeScript + html.slice(bodyClose);
@@ -1176,7 +1176,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
   });
 })();
 </script>`;
-          const themeScript = `<script>(function(){var h=document.documentElement;if(!h)return;function s(t){h.setAttribute('data-theme',t);}function p(){if(typeof fetch!=='function')return;fetch('/api/theme').then(function(r){return r.json();}).then(function(d){if(d&&d.theme)s(d.theme);}).catch(function(){});}p();setInterval(p,500);})();</script>`;
+          const themeScript = `<script>(function(){var h=document.documentElement;if(!h)return;function s(t){h.setAttribute('data-theme',t);}function p(){if(typeof fetch!=='function')return;fetch('/api/theme').then(function(r){return r.json();}).then(function(d){if(d&&d.theme)s(d.theme);}).catch(function(){});}p();setInterval(p,5000);})();</script>`;
           const html = content.toString('utf8');
           const bodyClose = html.lastIndexOf('</body>');
           if (bodyClose > 0) {
@@ -1248,7 +1248,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
   });
 })();
 </script>`;
-        const themeScript = `<script>(function(){var h=document.documentElement;if(!h)return;function s(t){h.setAttribute('data-theme',t);}function p(){if(typeof fetch!=='function')return;fetch('/api/theme').then(function(r){return r.json();}).then(function(d){if(d&&d.theme)s(d.theme);}).catch(function(){});}p();setInterval(p,500);})();</script>`;
+        const themeScript = `<script>(function(){var h=document.documentElement;if(!h)return;function s(t){h.setAttribute('data-theme',t);}function p(){if(typeof fetch!=='function')return;fetch('/api/theme').then(function(r){return r.json();}).then(function(d){if(d&&d.theme)s(d.theme);}).catch(function(){});}p();setInterval(p,5000);})();</script>`;
         const html = content.toString('utf8');
         const bodyClose = html.lastIndexOf('</body>');
         if (bodyClose > 0) {
