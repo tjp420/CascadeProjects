@@ -4170,33 +4170,22 @@ export class AnalyzeView {
         // Path area drag/drop — uses file.path in desktop/Electron, falls back to browse hint
         const pathDropzone = el.querySelector('#analyze-path-dropzone');
         if (pathDropzone && !this.websiteMode) {
-            let pathDragDepth = 0;
             ['dragenter', 'dragover'].forEach((eventName) => {
                 pathDropzone.addEventListener(eventName, (event) => {
                     event.preventDefault();
-                    event.stopPropagation();
-                    if (eventName === 'dragenter') {
-                        pathDragDepth++;
-                    }
                     pathDropzone.classList.add('drag-active');
                     if (event.dataTransfer)
                         event.dataTransfer.dropEffect = 'copy';
                 });
             });
             pathDropzone.addEventListener('dragleave', (event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                pathDragDepth--;
-                if (pathDragDepth <= 0) {
-                    pathDropzone.classList.remove('drag-active');
-                    pathDragDepth = 0;
-                }
+                if (event.relatedTarget && pathDropzone.contains(event.relatedTarget)) return;
+                pathDropzone.classList.remove('drag-active');
             });
             pathDropzone.addEventListener('drop', async (event) => {
                 var _a, _b, _c, _d;
                 event.preventDefault();
                 event.stopPropagation();
-                pathDragDepth = 0;
                 pathDropzone.classList.remove('drag-active');
                 // Preload providers so defaultProjectPath is available for path resolution
                 try {
@@ -4583,32 +4572,22 @@ export class AnalyzeView {
             void this.runSnippetUnderstanding();
         });
         // Robust dragleave with depth counter to prevent flicker over child elements
-        let fileDragDepth = 0;
         ['dragenter', 'dragover'].forEach((eventName) => {
             dropzone.addEventListener(eventName, (event) => {
                 event.preventDefault();
-                event.stopPropagation();
-                if (eventName === 'dragenter')
-                    fileDragDepth++;
                 dropzone.classList.add('drag-active');
                 if (event.dataTransfer)
                     event.dataTransfer.dropEffect = 'copy';
             });
         });
         dropzone.addEventListener('dragleave', (event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            fileDragDepth--;
-            if (fileDragDepth <= 0) {
-                dropzone.classList.remove('drag-active');
-                fileDragDepth = 0;
-            }
+            if (event.relatedTarget && dropzone.contains(event.relatedTarget)) return;
+            dropzone.classList.remove('drag-active');
         });
         dropzone.addEventListener('drop', (event) => {
             var _a, _b, _c, _d, _e, _f, _g, _h;
             event.preventDefault();
             event.stopPropagation();
-            fileDragDepth = 0;
             dropzone.classList.remove('drag-active');
             const items = (_a = event.dataTransfer) === null || _a === void 0 ? void 0 : _a.items;
             const files = (_b = event.dataTransfer) === null || _b === void 0 ? void 0 : _b.files;

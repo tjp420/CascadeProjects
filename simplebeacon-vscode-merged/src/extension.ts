@@ -1250,9 +1250,9 @@ export function activate(context: vscode.ExtensionContext) {
       }
     }),
     registerCmd('simplebeacon.restartDataServer', async () => {
-      restartDataServer(context, outputChannel);
+      await restartDataServer(context, outputChannel);
       vscode.window.showInformationMessage('SimpleBeacon data server restarted');
-      setTimeout(updateServerStatus, 500);
+      updateServerStatus();
     }),
     registerCmd('simplebeacon.openBrowser', async () => {
       const url = await vscode.window.showInputBox({

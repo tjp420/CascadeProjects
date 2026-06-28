@@ -2870,7 +2870,7 @@ body.detail-panel-open #tabAdvanced {
     </div>
   </div>
 </div>
-<div id="auditDetailPanel" style="display:none;">
+<div id="auditDetailPanel" data-sidebar-tab="advanced" style="display:none;">
   <div class="diag-back-bar" id="auditDetailBackBtn" role="button" tabindex="0">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
     <span>Back</span>

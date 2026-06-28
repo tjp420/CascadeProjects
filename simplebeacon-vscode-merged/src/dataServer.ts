@@ -174,7 +174,13 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
   }
 
   const config = vscode.workspace.getConfiguration('simplebeacon');
-  const requestedPort = config.get<number>('dataServerPort', 54358);
+  let requestedPort = config.get<number>('dataServerPort', 54358);
+  if (typeof requestedPort !== 'number' || requestedPort < 1 || requestedPort > 65535) {
+    if (outputChannel) {
+      outputChannel.appendLine(`[SimpleBeacon DataServer] Invalid port ${requestedPort}, falling back to default 54358`);
+    }
+    requestedPort = 54358;
+  }
   dataServerPort = requestedPort;
   serverState.extensionVersion = context.extension.packageJSON?.version || 'unknown';
 
@@ -1582,21 +1588,33 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       dataServer = null;
       dataServerPort = 0;
       // Recreate server on random port with full handler
-      dataServer = http.createServer((req, res) => handleRequest(req, res));
-      dataServer.listen(0, '127.0.0.1', () => {
-        const addr = dataServer?.address();
+      const fallbackServer = http.createServer((req, res) => handleRequest(req, res));
+      fallbackServer.on('error', (fbErr: NodeJS.ErrnoException) => {
+        if (outputChannel) {
+          outputChannel.appendLine(`[SimpleBeacon DataServer] Fallback server error: ${fbErr.message}`);
+        }
+        dataServer = null;
+        dataServerPort = 0;
+      });
+      fallbackServer.on('listening', () => {
+        const addr = fallbackServer.address();
         const actualPort = addr && typeof addr === 'object' ? addr.port : 0;
         dataServerPort = actualPort;
+        dataServer = fallbackServer;
         if (outputChannel) {
-          outputChannel.appendLine(`[SimpleBeacon DataServer] Fallback server on port ${actualPort}`);
+          outputChannel.appendLine(`[SimpleBeacon DataServer] Fallback server listening on http://127.0.0.1:${actualPort}`);
         }
         vscode.window.showInformationMessage(`SimpleBeacon data server running at http://127.0.0.1:${actualPort}`);
       });
+      fallbackServer.listen(0, '127.0.0.1');
     } else {
       if (outputChannel) {
         outputChannel.appendLine(`[SimpleBeacon DataServer] ERROR: ${err.message}`);
       }
       vscode.window.showErrorMessage(`SimpleBeacon data server error: ${err.message}`);
+      try { dataServer?.close(); } catch { /* ignore */ }
+      dataServer = null;
+      dataServerPort = 0;
     }
   });
 
@@ -1610,26 +1628,41 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     vscode.window.showInformationMessage(`SimpleBeacon data server running at http://127.0.0.1:${actualPort}`);
   });
 
-  dataServer.listen(dataServerPort, '127.0.0.1', () => {
+  try {
+    dataServer.listen(dataServerPort, '127.0.0.1', () => {
+      if (outputChannel) {
+        outputChannel.appendLine(`[SimpleBeacon DataServer] listen() callback fired`);
+      }
+    });
+  } catch (listenErr: any) {
     if (outputChannel) {
-      outputChannel.appendLine(`[SimpleBeacon DataServer] listen() callback fired`);
+      outputChannel.appendLine(`[SimpleBeacon DataServer] listen() threw: ${listenErr.message || listenErr}`);
     }
-  });
+    vscode.window.showErrorMessage(`SimpleBeacon data server failed to start: ${listenErr.message || listenErr}`);
+    dataServer = null;
+    dataServerPort = 0;
+  }
 }
 
-export function restartDataServer(context: vscode.ExtensionContext, outputChannel?: vscode.OutputChannel): void {
-  if (dataServer) {
-    dataServer.close(() => {
-      sseClients.forEach((c) => {
-        try { c.res.end(); } catch { /* simplebeacon-ignore error-swallowing — SSE cleanup best-effort */ }
+export function restartDataServer(context: vscode.ExtensionContext, outputChannel?: vscode.OutputChannel): Promise<void> {
+  return new Promise((resolve) => {
+    if (dataServer) {
+      const oldServer = dataServer;
+      dataServer = null;
+      dataServerPort = 0;
+      oldServer.close(() => {
+        sseClients.forEach((c) => {
+          try { c.res.end(); } catch { /* simplebeacon-ignore error-swallowing — SSE cleanup best-effort */ }
+        });
+        sseClients.length = 0;
+        startDataServer(context, outputChannel);
+        resolve();
       });
-      sseClients.length = 0;
-      startDataServer(context, outputChannel);
-    });
-    dataServer = null;
-    return;
-  }
-  startDataServer(context, outputChannel);
+      return;
+    }
+    startDataServer(context, outputChannel);
+    resolve();
+  });
 }
 
 export function isDataServerRunning(): boolean {
