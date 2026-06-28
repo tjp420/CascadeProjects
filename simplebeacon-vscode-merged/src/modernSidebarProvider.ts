@@ -1575,6 +1575,7 @@ body::-webkit-scrollbar-thumb:hover { background: rgba(128,128,128,0.6); }
 body.detail-panel-open .settings-dropdown-header,
 body.detail-panel-open .settings-dropdown-body,
 body.detail-panel-open #openAuditFromSidebar,
+body.detail-panel-open #analyzeDropdownHeader,
 body.detail-panel-open #securityDropdownHeader,
 body.detail-panel-open #trustDropdownHeader,
 body.detail-panel-open #assessmentsDropdownHeader,
