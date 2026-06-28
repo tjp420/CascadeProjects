@@ -27,9 +27,9 @@ function getEffectiveMinConfidence(preset, manualThreshold = 'medium', fallbackM
 /**
  * Filters a list of rules to those meeting or exceeding the confidence floor.
  *
- * @param {Array<{confidence?: number}>} rules
+ * @param {Array<{id: string, confidence?: number}>} rules
  * @param {number} minConfidence
- * @returns {Array<{confidence?: number}>}
+ * @returns {Array<{id: string, confidence?: number}>}
  */
 function filterRulesByConfidence(rules, minConfidence) {
   return rules.filter((rule) => (rule.confidence ?? 0) >= minConfidence);
