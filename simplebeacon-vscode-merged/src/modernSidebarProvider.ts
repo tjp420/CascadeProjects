@@ -2391,9 +2391,12 @@ body.detail-panel-open #tabAdvanced {
   <span>Open Analyze</span>
 </div>
 <div id="analyzeDetailPanel" data-sidebar-tab="advanced" style="display:none;">
-  <div class="diag-back-bar" id="analyzeDetailBackBtn" role="button" tabindex="0">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-    <span>Back</span>
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;">
+    <div class="diag-back-bar" id="analyzeDetailBackBtn" role="button" tabindex="0" style="margin-bottom:0;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      <span>Back</span>
+    </div>
+    <button class="btn btn-ghost btn-xs" id="openAnalyzeInMainWindowBtn" style="font-size:0.72rem;padding:3px 8px;">Open in Main Window</button>
   </div>
   <div class="settings-header">
     <div class="settings-title">Analysis</div>
@@ -3122,9 +3125,12 @@ body.detail-panel-open #tabAdvanced {
   <span>Profile</span>
 </div>
 <div id="profileDetailPanel" data-sidebar-tab="advanced" style="display:none;">
-  <div class="diag-back-bar" id="profileDetailBackBtn" role="button" tabindex="0">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-    <span>Back</span>
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;">
+    <div class="diag-back-bar" id="profileDetailBackBtn" role="button" tabindex="0" style="margin-bottom:0;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      <span>Back</span>
+    </div>
+    <button class="btn btn-ghost btn-xs" id="openProfileDetailInMainWindowBtn" style="font-size:0.72rem;padding:3px 8px;">Open in Main Window</button>
   </div>
   <div class="settings-header">
     <div class="settings-title">Profile</div>
@@ -3767,6 +3773,7 @@ body.detail-panel-open #tabAdvanced {
   let _analyzeDropdownHeader=document.getElementById('analyzeDropdownHeader');if(_analyzeDropdownHeader){_analyzeDropdownHeader.addEventListener('click', function() { const header=document.getElementById('analyzeDropdownHeader'); const detail=document.getElementById('analyzeDetailPanel'); _closeDetailPanels(); if(header){header.style.display='none';} if(detail){detail.classList.remove('hidden');detail.classList.add('detail-active');detail.style.display='block';} document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');p.classList.add('hidden');}); document.body.classList.add('detail-panel-open'); });}
   let _analyzeDetailBackBtn=document.getElementById('analyzeDetailBackBtn');if(_analyzeDetailBackBtn){_analyzeDetailBackBtn.addEventListener('click', function() { _switchSidebarTab('advanced'); });}
   let _runAnalysisBtn=document.getElementById('runAnalysisBtn');if(_runAnalysisBtn){_runAnalysisBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'analyze'}); });}
+  let _openAnalyzeInMainWindowBtn=document.getElementById('openAnalyzeInMainWindowBtn');if(_openAnalyzeInMainWindowBtn){_openAnalyzeInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openAnalyze'}); });}
   let _scanWorkspaceBtn=document.getElementById('scanWorkspaceBtn');if(_scanWorkspaceBtn){_scanWorkspaceBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'scan'}); });}
   let _exportJsonBtn=document.getElementById('exportJsonBtn');if(_exportJsonBtn){_exportJsonBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'exportReport'}); });}
   let _enhancedAnalysisBtn=document.getElementById('enhancedAnalysisBtn');if(_enhancedAnalysisBtn){_enhancedAnalysisBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openEnhancedAnalysis'}); });}
@@ -3879,6 +3886,7 @@ body.detail-panel-open #tabAdvanced {
   let _platformCard=document.getElementById('platformCard');if(_platformCard){_platformCard.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openPlatform'}); });}
   let _profileDropdownHeader=document.getElementById('profileDropdownHeader');if(_profileDropdownHeader){_profileDropdownHeader.addEventListener('click', function() { const header=document.getElementById('profileDropdownHeader'); const detail=document.getElementById('profileDetailPanel'); _closeDetailPanels(); if(header){header.style.display='none';} if(detail){detail.classList.remove('hidden');detail.classList.add('detail-active');detail.style.display='block';} document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');p.classList.add('hidden');}); document.body.classList.add('detail-panel-open'); if (window.vscode) window.vscode.postMessage({command: 'getAuditData'}); });}
   let _profileDetailBackBtn=document.getElementById('profileDetailBackBtn');if(_profileDetailBackBtn){_profileDetailBackBtn.addEventListener('click', function() { _switchSidebarTab('advanced'); });}
+  let _openProfileDetailInMainWindowBtn=document.getElementById('openProfileDetailInMainWindowBtn');if(_openProfileDetailInMainWindowBtn){_openProfileDetailInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openProfile'}); });}
   let _profileSaveBtn=document.getElementById('profileSaveBtn');if(_profileSaveBtn){_profileSaveBtn.addEventListener('click', function() { const displayName=document.getElementById('profileDisplayName'); const email=document.getElementById('profileEmail'); const role=document.getElementById('profileRole'); const organization=document.getElementById('profileOrganization'); const autoScan=document.getElementById('profileAutoScan'); const notifications=document.getElementById('profileNotifications'); const darkMode=document.getElementById('profileDarkMode'); if (window.vscode) window.vscode.postMessage({command: 'saveProfile', profile: { displayName: displayName ? displayName.value : '', email: email ? email.value : '', role: role ? role.value : '', organization: organization ? organization.value : '', autoScan: autoScan ? autoScan.checked : false, notifications: notifications ? notifications.checked : false, darkMode: darkMode ? darkMode.checked : false }}); });}
   let _profileClearBtn=document.getElementById('profileClearBtn');if(_profileClearBtn){_profileClearBtn.addEventListener('click', function() { const displayName=document.getElementById('profileDisplayName'); const email=document.getElementById('profileEmail'); const role=document.getElementById('profileRole'); const organization=document.getElementById('profileOrganization'); const autoScan=document.getElementById('profileAutoScan'); const notifications=document.getElementById('profileNotifications'); const darkMode=document.getElementById('profileDarkMode'); if(displayName) displayName.value=''; if(email) email.value=''; if(role) role.value=''; if(organization) organization.value=''; if(autoScan) autoScan.checked=false; if(notifications) notifications.checked=false; if(darkMode) darkMode.checked=true; });}
   let _profileCard=document.getElementById('profileCard');if(_profileCard){_profileCard.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openProfile'}); });}
