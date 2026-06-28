@@ -82,7 +82,7 @@ async function issueRefreshToken(userId, options = {}) {
         [userId, tokenHash, family, parentId, options.deviceFingerprint || null, options.ipAddress || null, expiresAt]
       );
     } catch (err) {
-      logger.warn('[token-service] DB insert failed, falling back to memory:', err.message);
+      logger.warn('[token-service] DB insert failed, falling back to memory');
       _refreshStore.set(tokenHash, {
         userId, tokenHash, tokenFamily: family, parentTokenId: parentId,
         deviceFingerprint: options.deviceFingerprint, ipAddress: options.ipAddress,
@@ -121,7 +121,7 @@ async function rotateRefreshToken(refreshToken, options = {}) {
       );
       record = result.rows[0] || null;
     } catch (err) {
-      logger.warn('[token-service] DB lookup failed, falling back to memory:', err.message);
+      logger.warn('[token-service] DB lookup failed, falling back to memory');
       record = _refreshStore.get(tokenHash) || null;
     }
   } else {
@@ -145,7 +145,7 @@ async function rotateRefreshToken(refreshToken, options = {}) {
 
   // Reuse detection: if already consumed, revoke entire family
   if (record.consumed_at || record.consumedAt) {
-    logger.warn('[token-service] Reuse detected — revoking entire family', { family, userId: record.user_id || record.userId });
+    logger.warn('[token-service] Reuse detected — revoking entire family');
     await revokeTokenFamily(family, 'reuse_detected');
     throw Object.assign(new Error('Token reuse detected — session terminated'), { statusCode: 401, code: 'TOKEN_REUSE' });
   }
@@ -159,7 +159,7 @@ async function rotateRefreshToken(refreshToken, options = {}) {
         [tokenHash]
       );
     } catch (err) {
-      logger.warn('[token-service] DB consume failed, updating memory:', err.message);
+      logger.warn('[token-service] DB consume failed, updating memory');
       const mem = _refreshStore.get(tokenHash);
       if (mem) mem.consumedAt = now;
     }
@@ -203,7 +203,7 @@ async function revokeTokenFamily(family, reason = 'manual_revoke') {
         [family, reason]
       );
     } catch (err) {
-      logger.warn('[token-service] DB family revoke failed, updating memory:', err.message);
+      logger.warn('[token-service] DB family revoke failed, updating memory');
       for (const [, rec] of _refreshStore) {
         if (rec.tokenFamily === family) { rec.revoked = true; rec.revokedReason = reason; }
       }
@@ -230,7 +230,7 @@ async function revokeRefreshToken(tokenHash, reason = 'logout') {
         [tokenHash, reason]
       );
     } catch (err) {
-      logger.warn('[token-service] DB single revoke failed, updating memory:', err.message);
+      logger.warn('[token-service] DB single revoke failed, updating memory');
       const mem = _refreshStore.get(tokenHash);
       if (mem) { mem.revoked = true; mem.revokedReason = reason; }
     }
@@ -268,7 +268,7 @@ async function blacklistAccessToken(accessToken, reason = 'logout') {
         [tokenHash, decoded.jti || null, decoded.userId || decoded.sub || null, expiresAt, reason]
       );
     } catch (err) {
-      logger.warn('[token-service] DB blacklist failed, updating memory:', err.message);
+      logger.warn('[token-service] DB blacklist failed, updating memory');
       _blacklistStore.set(tokenHash, expiresAt);
     }
   } else {
@@ -293,7 +293,7 @@ async function isAccessTokenBlacklisted(accessToken) {
       );
       return result.rows.length > 0;
     } catch (err) {
-      logger.warn('[token-service] DB blacklist check failed, checking memory:', err.message);
+      logger.warn('[token-service] DB blacklist check failed, checking memory');
       return _blacklistStore.has(tokenHash);
     }
   }
