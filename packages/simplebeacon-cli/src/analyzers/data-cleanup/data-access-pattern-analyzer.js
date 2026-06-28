@@ -73,6 +73,113 @@ function isAsyncReadPattern(content, matchIndex) {
         || /\bawait\s+readFile\b/.test(snippet);
 }
 
+// AST-based SQL injection / raw query detection
+let babelParser = null;
+function loadBabelParser() {
+    if (babelParser) return babelParser;
+    try {
+        babelParser = require('@babel/parser');
+        return babelParser;
+    } catch {
+        return null;
+    }
+}
+
+let _traverse = null;
+function getTraverse() {
+    if (_traverse) return _traverse;
+    try {
+        _traverse = require('@babel/traverse').default;
+        return _traverse;
+    } catch {
+        return null;
+    }
+}
+
+function parserPlugins(ext) {
+    const plugins = [];
+    if (ext === '.ts' || ext === '.tsx') plugins.push('typescript');
+    if (ext === '.tsx' || ext === '.jsx') plugins.push('jsx');
+    return plugins;
+}
+
+const SQL_KEYWORDS = /\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|TRUNCATE|GRANT|REVOKE|FROM|WHERE|JOIN|TABLE)\b/i;
+const DB_CALLEE_NAMES = /\b(query|execute|exec|run|all|prepare|raw|queryRow|queryRows|statement|sql|get|each)\b/i;
+
+function isSqlString(value) {
+    return typeof value === 'string' && SQL_KEYWORDS.test(value);
+}
+
+function looksLikeDbCall(callee) {
+    if (callee.type === 'Identifier') return DB_CALLEE_NAMES.test(callee.name);
+    if (callee.type === 'MemberExpression' && callee.property?.type === 'Identifier') {
+        return DB_CALLEE_NAMES.test(callee.property.name);
+    }
+    return false;
+}
+
+function scanSqlAst(relativePath, content, ext) {
+    const findings = [];
+    const parser = loadBabelParser();
+    const traverse = getTraverse();
+    if (!parser || !traverse) return findings;
+
+    let ast;
+    try {
+        ast = parser.parse(content, {
+            sourceFilename: relativePath,
+            sourceType: 'module',
+            plugins: parserPlugins(ext),
+            errorRecovery: false
+        });
+    } catch {
+        return findings;
+    }
+
+    const push = (line, reason) => {
+        findings.push({
+            type: 'data-access-pattern',
+            path: relativePath,
+            reason,
+            severity: 'medium',
+            confidence: 'medium',
+            action: 'use-parameterized-queries',
+            metadata: { patternId: 'raw-sql-ast' },
+            line
+        });
+    };
+
+    const isDynamicSql = (node) => {
+        if (node.type === 'TemplateLiteral' && node.expressions.length > 0) {
+            const quasiText = node.quasis.map((q) => q.value.raw).join('__EXPR__');
+            return isSqlString(quasiText);
+        }
+        if (node.type === 'BinaryExpression' && node.operator === '+') {
+            const left = node.left;
+            const right = node.right;
+            if ((left.type === 'StringLiteral' && isSqlString(left.value) && right.type !== 'StringLiteral') ||
+                (right.type === 'StringLiteral' && isSqlString(right.value) && left.type !== 'StringLiteral')) {
+                return true;
+            }
+            return isDynamicSql(left) || isDynamicSql(right);
+        }
+        return false;
+    };
+
+    traverse(ast, {
+        CallExpression(pathNode) {
+            if (!looksLikeDbCall(pathNode.node.callee)) return;
+            const firstArg = pathNode.node.arguments[0];
+            if (!firstArg) return;
+            if (isDynamicSql(firstArg)) {
+                push(pathNode.node.loc?.start?.line || 1, 'Dynamic SQL passed to database query method — use parameterized queries');
+            }
+        }
+    });
+
+    return findings;
+}
+
 const ACCESS_PATTERNS = [
     {
         id: 'sync-read-in-iteration',
@@ -145,6 +252,9 @@ class DataAccessPatternAnalyzer {
                 });
                 break;
             }
+
+            const sqlFindings = scanSqlAst(file.relativePath, content, file.ext);
+            findings.push(...sqlFindings);
         }
 
         return {

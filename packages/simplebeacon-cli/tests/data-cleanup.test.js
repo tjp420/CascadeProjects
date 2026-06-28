@@ -360,6 +360,16 @@ test('DataAccessPatternAnalyzer flags sync reads in route handlers', async () =>
     assert.ok(result.findings.some((f) => f.type === 'data-access-pattern'));
 });
 
+test('DataAccessPatternAnalyzer flags raw SQL via AST', async () => {
+    const root = makeTempProject({
+        'server/routes/users.js': "router.get('/:id', (req,res)=>{ db.query('SELECT * FROM users WHERE id = ' + req.params.id); });\n"
+    });
+    const inventory = await walkProjectFiles(root);
+    const scanner = new (require('../src/analyzers/data-cleanup/data-access-pattern-analyzer').DataAccessPatternAnalyzer)();
+    const result = await scanner.scan(root, { inventory });
+    assert.ok(result.findings.some((f) => f.type === 'data-access-pattern' && f.metadata?.patternId === 'raw-sql-ast'));
+});
+
 test('DataPrivacyAnalyzer skips protected web/data sample paths', async () => {
     const root = makeTempProject({
         'web/data/billing-system-sample.json': '{"email":"dev@cascade.ai"}\n'
