@@ -1601,12 +1601,7 @@ body.detail-panel-open #serverCard,
 body.detail-panel-open #settingsServerCard,
 body.detail-panel-open #settingsMenuTab,
 body.detail-panel-open #scanTargetLabel,
-body.detail-panel-open #sidebarScanToggleLabel,
-body.detail-panel-open .quick-links,
-body.detail-panel-open #qlDashboardBtn,
-body.detail-panel-open #qlReportBtn,
-body.detail-panel-open #qlBrowserBtn,
-body.detail-panel-open #qlPreviewBtn {
+body.detail-panel-open #sidebarScanToggleLabel {
   display: none !important;
 }
 body.detail-panel-open #mainTabBar,
@@ -1811,15 +1806,15 @@ body[data-active-tab="advanced"] #sendToAIAgentDropdownHeader {
     </div>
   </div>
 </div>
-<div class="tab-section">Quick Links</div>
-<div class="quick-links">
+</div>
+<div class="tab-pane" id="tabUpload">
+<div class="tab-section" data-sidebar-tab="scan">Quick Links</div>
+<div class="quick-links" data-sidebar-tab="scan">
   <div class="ql-btn" id="qlDashboardBtn"><span>&#x1F4CA;</span> Dashboard</div>
   <div class="ql-btn" id="qlReportBtn"><span>&#x1F4C4;</span> Report</div>
   <div class="ql-btn" id="qlBrowserBtn"><span>&#x1F5A5;</span> Browser</div>
   <div class="ql-btn" id="qlPreviewBtn"><span>&#x1F310;</span> Preview</div>
 </div>
-</div>
-<div class="tab-pane" id="tabUpload">
   <div class="upload-header">
     <div class="upload-title">Upload & Validate</div>
   </div>
