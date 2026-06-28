@@ -480,6 +480,37 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       return;
     }
 
+    // SimpleBeacon config presets endpoint
+    if (parsed.pathname === '/api/simplebeacon/config/presets') {
+      const baseScanPaths = ['server/', 'src/', 'lib/', 'packages/', 'web/', 'app/', 'api/', 'components/', 'utils/', 'config/', 'shared/'];
+      const makeRules = (profile: 'minimal' | 'standard' | 'cascade') => {
+        const minimalIds = ['credentials', 'production-leak', 'fiction-kpi-patterns', 'web-security-risk', 'debugger-statement', 'console-log', 'eval-usage'];
+        const standardIds = [...minimalIds, 'missing-rate-limit', 'inner-html-xss', 'insecure-random', 'logging-secrets', 'prototype-pollution', 'unvalidated-redirect', 'llm-slop-patterns'];
+        const cascadeIds = [...standardIds, 'agency-handoff-patterns', 'token-bleed-patterns', 'data-access-pattern', 'json-report-drift', 'build-artifact-leak', 'unused-dependency', 'duplicate-code'];
+        const ids = profile === 'minimal' ? minimalIds : profile === 'cascade' ? cascadeIds : standardIds;
+        const rules: Record<string, any> = {};
+        for (const id of ids) {
+          rules[id] = { enabled: true };
+        }
+        return rules;
+      };
+      const presets: Record<string, any> = {};
+      for (const profile of ['minimal', 'standard', 'cascade']) {
+        const p = profile as 'minimal' | 'standard' | 'cascade';
+        presets[profile] = {
+          profile: p,
+          scanPaths: [...baseScanPaths],
+          productionPaths: p === 'minimal' ? ['server/', 'src/'] : [...baseScanPaths],
+          sampleDir: 'web/data',
+          rules: makeRules(p),
+          gate: { failOn: ['high'], warnOn: ['medium', 'low'] }
+        };
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, presets }));
+      return;
+    }
+
     // Ollama model test stub
     if (parsed.pathname === '/api/models/test-ollama') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
