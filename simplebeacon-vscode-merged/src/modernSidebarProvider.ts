@@ -942,19 +942,9 @@ body::-webkit-scrollbar-thumb:hover { background: rgba(128,128,128,0.6); }
 .tab-item{position:relative;display:flex;align-items:center;gap:6px;padding:10px 14px;font-size:12px;font-weight:600;color:var(--vscode-descriptionForeground,#858585);cursor:pointer;white-space:nowrap;user-select:none;transition:color .2s,border-color .2s;border:none;background:transparent;border-bottom:2px solid transparent;}
 .tab-item:hover{color:var(--vscode-foreground,#ccc);border-bottom-color:var(--vscode-panel-border, rgba(255,255,255,0.08));}
 .tab-item.active{color:var(--vscode-foreground,#fff);border-bottom-color:var(--vscode-button-background,#0e639c);}
-.tab-item.tab-more{margin-left:auto;gap:4px;padding:10px 12px;border-bottom-color:transparent;}
 .tab-action{display:flex;align-items:center;gap:6px;padding:8px 12px;border-radius:6px;font-size:11px;font-weight:600;color:var(--vscode-foreground,#ccc);cursor:pointer;white-space:nowrap;user-select:none;background:var(--vscode-button-secondaryBackground,#2d2d30);border:1px solid var(--vscode-panel-border,#3c3c3c);transition:all .15s;}
 .tab-action:hover{background:var(--vscode-button-hoverBackground,#3c3c3c);border-color:var(--vscode-focusBorder,#007acc);transform:translateY(-1px);}
 .tab-action .icon{font-size:14px;}
-.tab-more-arrow{font-size:9px;transition:transform .2s;}
-.tab-item.tab-more.open .tab-more-arrow{transform:rotate(180deg);}
-.tab-more-dropdown{display:none;position:absolute;top:46px;right:12px;min-width:180px;max-height:calc(100vh - 100px);overflow-y:auto;background:var(--vscode-editor-background,#1e1e1e);border:1px solid var(--vscode-panel-border, rgba(255,255,255,0.08));border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.15);z-index:100;padding:6px;}
-.tab-more-dropdown.open{display:block;}
-.tab-more-section{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--vscode-descriptionForeground,#858585);padding:6px 8px 4px;}
-.tab-more-divider{height:1px;margin:4px 8px;background:var(--vscode-panel-border, rgba(255,255,255,0.08));}
-.tab-more-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;font-size:12px;color:var(--vscode-foreground,#ccc);cursor:pointer;transition:background .15s;}
-.tab-more-item:hover{background:var(--vscode-list-hoverBackground, rgba(255,255,255,0.06));}
-.tab-more-item.active{background:rgba(14,165,233,0.15);color:#38bdf8;}
 .tab-pane{display:none;}
 .tab-pane.active{display:block;overflow-y:auto;max-height:calc(100vh - 90px);padding-bottom:12px;}
 .hidden{display:none !important;}
@@ -967,8 +957,6 @@ body::-webkit-scrollbar-thumb:hover { background: rgba(128,128,128,0.6); }
 .sidebar-tab-item:hover{color:var(--vscode-foreground,#ccc);border-bottom-color:var(--vscode-panel-border, rgba(255,255,255,0.08));}
 .sidebar-tab-item.active{color:var(--vscode-foreground,#fff);border-bottom-color:var(--vscode-button-background,#0e639c);}
 .sidebar-tab-icon{font-size:14px;line-height:1;}
-.sidebar-tab-item.sidebar-tab-more{margin-left:auto;flex:0;min-width:auto;padding:8px 10px;border-bottom-color:transparent;}
-.sidebar-tab-item.sidebar-tab-more:hover{color:var(--vscode-foreground,#ccc);}
 [data-sidebar-tab]{transition:opacity 0.15s ease;}
 [data-sidebar-tab].hidden{display:none !important;}
 .sidebar-tab-pane{display:none;}
@@ -1616,6 +1604,10 @@ body.detail-panel-open #tabAdvanced .tab-section,
 body.detail-panel-open #tabAdvanced .settings-btn-card {
   display: none !important;
 }
+body[data-active-tab="advanced"] #tabAdvanced .tab-section,
+body[data-active-tab="advanced"] #tabAdvanced .settings-btn-card {
+  display: none !important;
+}
 </style>
 </head>
 <body>
@@ -1635,29 +1627,21 @@ body.detail-panel-open #tabAdvanced .settings-btn-card {
   <div class="tab-item active" data-tab="dashboard">Dashboard</div>
   <div class="tab-item" data-tab="scan">Scan</div>
   <div class="tab-item" data-tab="analyze">Analyze</div>
+  <div class="tab-item" data-tab="audit">Audit</div>
+  <div class="tab-item" data-tab="upload">Upload</div>
   <div class="tab-item" data-tab="advanced">Advanced</div>
   <div class="tab-item" data-tab="settings">Settings</div>
   <div class="tab-item" data-tab="team">Team Dashboard</div>
-  <div class="tab-item tab-more" id="mainTabMore" data-tab="more">
-    More <span class="tab-more-arrow">&#x25BC;</span>
-    <div class="tab-more-dropdown" id="mainTabMoreDropdown">
-      <div class="tab-more-item" data-tab="audit">Audit</div>
-      <div class="tab-more-item" data-tab="upload">Upload</div>
-    </div>
-  </div>
 </div>
 <div class="sidebar-tab-bar ${displayMode === 'sidebar' ? '' : 'hidden'}" id="sidebarTabBar">
   <div class="sidebar-tab-item active" data-tab="dashboard"><span class="sidebar-tab-icon">&#x1F3E0;</span>Dashboard</div>
   <div class="sidebar-tab-item" data-tab="scan"><span class="sidebar-tab-icon">&#x1F50D;</span>Scan</div>
   <div class="sidebar-tab-item" data-tab="analyze"><span class="sidebar-tab-icon">&#x1F4C8;</span>Analyze</div>
+  <div class="sidebar-tab-item" data-tab="audit"><span class="sidebar-tab-icon">&#x1F4CB;</span>Audit</div>
+  <div class="sidebar-tab-item" data-tab="upload"><span class="sidebar-tab-icon">&#x1F4E4;</span>Upload</div>
   <div class="sidebar-tab-item" data-tab="advanced"><span class="sidebar-tab-icon">&#x2699;</span>Advanced</div>
   <div class="sidebar-tab-item" data-tab="settings"><span class="sidebar-tab-icon">&#x1F527;</span>Settings</div>
   <div class="sidebar-tab-item" data-tab="team"><span class="sidebar-tab-icon">&#x1F465;</span>Team</div>
-  <div class="sidebar-tab-item sidebar-tab-more" id="sidebarTabMore" data-tab="more"><span class="sidebar-tab-icon">&#x22EE;</span>More</div>
-</div>
-<div class="tab-more-dropdown" id="sidebarTabMoreDropdown">
-  <div class="tab-more-item" data-tab="audit">Audit</div>
-  <div class="tab-more-item" data-tab="upload">Upload</div>
 </div>
 <div class="tab-pane active" id="tabDashboard" data-sidebar-tab="dashboard">
   <div class="sidebar-dashboard-back" id="dashboardBackBtn" style="display:none;"><span>&#x25C0;</span> Back to Sidebar</div>
@@ -3796,7 +3780,7 @@ body.detail-panel-open #tabAdvanced .settings-btn-card {
     _hideDiagnoseResults();
     document.querySelectorAll('[id$="DetailPanel"]').forEach(function(el){el.classList.add('hidden');el.style.display='none';el.classList.remove('detail-active');});
   }
-  document.querySelectorAll('#sidebarTabBar .sidebar-tab-item').forEach(function(t){t.addEventListener('click', function(){let tab=t.getAttribute('data-tab');if(tab==='more')return;_switchSidebarTab(tab);});});
+  document.querySelectorAll('#sidebarTabBar .sidebar-tab-item').forEach(function(t){t.addEventListener('click', function(){_switchSidebarTab(t.getAttribute('data-tab'));});});
   _switchSidebarTab('dashboard');
   let _statusCard=document.getElementById('statusCard');if(_statusCard){_statusCard.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'diagnose'}); });}
   let _serverCard=document.getElementById('serverCard');if(_serverCard){_serverCard.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openCloudInBrowser'}); });}
@@ -4086,12 +4070,8 @@ body.detail-panel-open #tabAdvanced .settings-btn-card {
     }
     document.body.classList.remove('detail-panel-open');
   }
-  function _switchTab(tab){if(!tab)return;document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');p.classList.add('hidden');});let pane=document.getElementById('tab'+tab.charAt(0).toUpperCase()+tab.slice(1));if(pane){pane.classList.remove('hidden');pane.classList.add('active');}document.querySelectorAll('.tab-item').forEach(function(t){t.classList.remove('active');});let coreTab=document.querySelector('.tab-item[data-tab="'+tab+'"]');if(coreTab){coreTab.classList.add('active');}document.querySelectorAll('.tab-more-item').forEach(function(m){m.classList.remove('active');if(m.getAttribute('data-tab')===tab)m.classList.add('active');});_hideDiagnoseResults();_closeDetailPanels();_switchSidebarTab(tab);}
-  _tabItems.forEach(function(item){item.addEventListener('click',function(){let tab=item.getAttribute('data-tab');if(tab==='more')return;_switchTab(tab);});});
-  let _mainTabMore=document.getElementById('mainTabMore');if(_mainTabMore){_mainTabMore.addEventListener('click',function(e){e.stopPropagation();let dd=document.getElementById('mainTabMoreDropdown');if(dd){dd.classList.toggle('open');_mainTabMore.classList.toggle('open');}document.querySelectorAll('.tab-more-dropdown').forEach(function(d){if(d.id!=='mainTabMoreDropdown')d.classList.remove('open');});});}
-  let _sidebarTabMore=document.getElementById('sidebarTabMore');if(_sidebarTabMore){_sidebarTabMore.addEventListener('click',function(e){e.stopPropagation();let dd=document.getElementById('sidebarTabMoreDropdown');if(dd){dd.classList.toggle('open');}document.querySelectorAll('.tab-more-dropdown').forEach(function(d){if(d.id!=='sidebarTabMoreDropdown')d.classList.remove('open');});});}
-  document.querySelectorAll('.tab-more-item').forEach(function(item){item.addEventListener('click',function(e){e.stopPropagation();let tab=item.getAttribute('data-tab');_switchTab(tab);document.querySelectorAll('.tab-more-dropdown').forEach(function(d){d.classList.remove('open');});document.querySelectorAll('.tab-item.tab-more, .sidebar-tab-item.sidebar-tab-more').forEach(function(m){m.classList.remove('open');});});});
-  document.addEventListener('click',function(){document.querySelectorAll('.tab-more-dropdown').forEach(function(d){d.classList.remove('open');});document.querySelectorAll('.tab-item.tab-more').forEach(function(m){m.classList.remove('open');});});
+  function _switchTab(tab){if(!tab)return;document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');p.classList.add('hidden');});let pane=document.getElementById('tab'+tab.charAt(0).toUpperCase()+tab.slice(1));if(pane){pane.classList.remove('hidden');pane.classList.add('active');}document.querySelectorAll('.tab-item').forEach(function(t){t.classList.remove('active');});let coreTab=document.querySelector('.tab-item[data-tab="'+tab+'"]');if(coreTab){coreTab.classList.add('active');}_hideDiagnoseResults();_closeDetailPanels();_switchSidebarTab(tab);}
+  _tabItems.forEach(function(item){item.addEventListener('click',function(){let tab=item.getAttribute('data-tab');_switchTab(tab);});});
   let _settingsDropdownHeader=document.getElementById('settingsDropdownHeader');if(_settingsDropdownHeader){_settingsDropdownHeader.addEventListener('click', function() { let body=document.getElementById('settingsDropdownBody'); if(body){body.classList.toggle('open'); _settingsDropdownHeader.classList.toggle('open');} });}
   let _dashGateCard=document.getElementById('dashGateCard');if(_dashGateCard){_dashGateCard.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'dashboard'}); });}
   let _dashIssuesCard=document.getElementById('dashIssuesCard');if(_dashIssuesCard){_dashIssuesCard.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'dashboard'}); });}
