@@ -3770,7 +3770,10 @@ body[data-active-tab="advanced"] #sendToAIAgentDropdownHeader {
     let settingsDetail=document.getElementById('settingsDetailPanelTab'); if(settingsDetail){settingsDetail.style.display='none';}
     let diagnoseBtn=document.getElementById('openDiagnoseFromSettingsTab'); if(diagnoseBtn){diagnoseBtn.style.display='block';}
     let diagnoseDetail=document.getElementById('diagnoseDetailPanel'); if(diagnoseDetail){diagnoseDetail.style.display='none';}
-    let dashboardPane=document.getElementById('tabDashboard'); if(dashboardPane){dashboardPane.classList.add('active');dashboardPane.classList.remove('hidden');}
+    let activeTab=document.body.getAttribute('data-active-tab') || 'dashboard';
+    let activePane=document.getElementById('tab'+activeTab.charAt(0).toUpperCase()+activeTab.slice(1));
+    if(activePane){activePane.classList.add('active');activePane.classList.remove('hidden');}
+    let dashboardPane=document.getElementById('tabDashboard'); if(dashboardPane && activeTab !== 'dashboard'){dashboardPane.classList.remove('active');dashboardPane.classList.add('hidden');}
   }
   function _openSidebarMenu(containerId, detailPanelId, mainWindowCommand){
     if (mainWindowCommand && window._displayMode === 'mainWindow' && window.vscode) {
