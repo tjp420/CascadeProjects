@@ -572,6 +572,132 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       return;
     }
 
+    // Chatbot provider list — local extension has no AI backend, so return hardcoded providers disabled
+    if (parsed.pathname === '/api/chatbot/providers') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        success: true,
+        providers: [
+          { id: 'ollama', label: 'Ollama', available: false },
+          { id: 'openai', label: 'OpenAI', available: false },
+          { id: 'anthropic', label: 'Anthropic', available: false }
+        ]
+      }));
+      return;
+    }
+
+    // Custom prompt storage — persist in VS Code settings
+    if (parsed.pathname === '/api/prompts/get') {
+      const cfg = vscode.workspace.getConfiguration('simplebeacon');
+      const prompt = cfg.get<string>('chatbotCustomPrompt', '');
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, prompt }));
+      return;
+    }
+    if (parsed.pathname === '/api/prompts/set' && req.method === 'POST') {
+      let body = '';
+      req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+      req.on('end', async () => {
+        try {
+          const data = body ? JSON.parse(body) : {};
+          const cfg = vscode.workspace.getConfiguration('simplebeacon');
+          await cfg.update('chatbotCustomPrompt', String(data.prompt || ''), true);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true }));
+        } catch (e) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: 'Invalid request' }));
+        }
+      });
+      return;
+    }
+
+    // Trust verification stub — enough to render the Trust dashboard without errors
+    if (parsed.pathname === '/api/trust/verification') {
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300' });
+      res.end(JSON.stringify({
+        success: true,
+        live: {
+          verificationId: 'sb-local-gate',
+          score: 100,
+          gatePass: true,
+          generatedAt: new Date().toISOString(),
+          platform: null,
+          monorepo: null,
+          headline: { primary: null, source: null, reason: 'No trust snapshots available in local extension mode.' },
+          disclaimers: ['Local extension dashboard does not publish trust snapshots.'],
+          methodology: ['Run Simplebeacon scan from the VS Code: command palette to generate a real trust snapshot.'],
+          fictionScope: null
+        },
+        publishedAt: null
+      }));
+      return;
+    }
+    if (parsed.pathname === '/api/trust/verify') {
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300' });
+      res.end(JSON.stringify({
+        success: true,
+        verified: true,
+        verificationId: 'sb-local-gate',
+        score: 100,
+        gatePass: true,
+        generatedAt: new Date().toISOString()
+      }));
+      return;
+    }
+    if (parsed.pathname === '/api/trust/badge.svg') {
+      const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="310" height="42" viewBox="0 0 310 42">
+  <rect width="308" height="40" x="1" y="1" rx="6" fill="rgba(15,23,42,0.6)" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+  <circle cx="22" cy="21" r="7" fill="#10b981"/>
+  <text x="38" y="25" fill="#fff" font-family="system-ui, sans-serif" font-size="12" font-weight="bold">SimpleBeacon Verified</text>
+  <text x="235" y="24" fill="rgba(156,163,175,0.9)" font-family="monospace" font-size="10">[local]</text>
+</svg>`;
+      res.writeHead(200, { 'Content-Type': 'image/svg+xml; charset=utf-8', 'Cache-Control': 'public, max-age=300' });
+      res.end(svg);
+      return;
+    }
+
+    // Security / npm audit stub
+    if (parsed.pathname === '/api/security/npm-audit') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        success: true,
+        summary: { total: 0, critical: 0, high: 0, moderate: 0, low: 0, info: 0 },
+        advisories: [],
+        message: 'npm audit is not available in local extension mode.'
+      }));
+      return;
+    }
+
+    // Optimization / compliance and candidates stubs
+    if (parsed.pathname === '/api/optimization/compliance') {
+      if (String(parsed.searchParams.get('format') || '').toLowerCase() === 'html') {
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end('<!DOCTYPE html><html><body><h1>Compliance report</h1><p>Compliance reporting is not available in local extension mode.</p></body></html>');
+        return;
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        success: true,
+        score: 100,
+        checks: [],
+        generatedAt: new Date().toISOString()
+      }));
+      return;
+    }
+    if (parsed.pathname === '/api/optimization/candidates') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        success: true,
+        projectRoot: parsed.searchParams.get('projectPath') || serverState.workspacePath || '',
+        generatedAt: null,
+        candidates: [],
+        exclusionsNote: null
+      }));
+      return;
+    }
+
     // Sandbox token generation for local dashboard sign-in
     if (parsed.pathname === '/api/tokens/sandbox' && req.method === 'POST') {
       const now = Math.floor(Date.now() / 1000);

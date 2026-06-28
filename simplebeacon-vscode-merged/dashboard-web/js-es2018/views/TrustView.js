@@ -504,7 +504,7 @@ export class TrustView {
         </svg>
       `;
         }
-        const activeTab = card.querySelector('.snippet-tab-btn.is-active');
+        const activeTab = document.querySelector('.badge-configurator-card .snippet-tab-btn.is-active');
         const tabType = activeTab ? activeTab.getAttribute('data-target') : 'markdown';
         const codeBlock = document.getElementById('badge-snippet-code-block');
         if (codeBlock) {
