@@ -4692,6 +4692,21 @@ export class AnalyzeView {
         const items = event.dataTransfer?.items;
         const files = event.dataTransfer?.files;
 
+        // Modern browsers: detect directory drops via File System Access API
+        if (items?.[0]?.kind === 'file') {
+          try {
+            const handle = await items[0].getAsFileSystemHandle?.();
+            if (handle && handle.kind === 'directory') {
+              // Browser sandbox prevents revealing full OS path.
+              // Prompt user to type path or use Browse Folder instead.
+              showToast('Directory drop detected. Use Browse Folder or type the full path for best results.', 'warning');
+              return;
+            }
+          } catch {
+            // getAsFileSystemHandle not supported — fall through to legacy logic
+          }
+        }
+
         const deriveDirFromFilePath = (filePath) => {
           if (!filePath) return '';
           const norm = filePath.replace(/\\/g, '/');
@@ -4731,6 +4746,7 @@ export class AnalyzeView {
               return p.replace(/\//g, '\\');
             }
           }
+          // Electron / VS Code extension: file.path contains native absolute path
           if (files?.[0]?.path) {
             const filePath = String(files[0].path);
             const norm = filePath.replace(/\\/g, '/');
@@ -5042,7 +5058,7 @@ export class AnalyzeView {
       }
     });
 
-    dropzone.addEventListener('drop', (event) => {
+    dropzone.addEventListener('drop', async (event) => {
       event.preventDefault();
       event.stopPropagation();
       fileDragDepth = 0;
@@ -5052,7 +5068,17 @@ export class AnalyzeView {
       const files = event.dataTransfer?.files;
 
       // Handle folder drops on file dropzone -> route to path dropzone logic
-      if (items?.length) {
+      if (items?.length && items[0].kind === 'file') {
+        try {
+          const handle = await items[0].getAsFileSystemHandle?.();
+          if (handle && handle.kind === 'directory') {
+            showToast('Directory drop detected. Use Browse Folder or type the full path for best results.', 'warning');
+            return;
+          }
+        } catch {
+          // getAsFileSystemHandle not supported — fall through to legacy logic
+        }
+
         const entry = items[0].webkitGetAsEntry?.();
         if (entry?.isDirectory) {
           const pathInput = el.querySelector('#project-path-input');

@@ -4490,7 +4490,7 @@ export class AnalyzeView {
                 }
             });
             pathDropzone.addEventListener('drop', async (event) => {
-                var _a, _b, _c, _d;
+                var _a, _b, _c, _d, _e, _f, _g;
                 event.preventDefault();
                 event.stopPropagation();
                 pathDragDepth = 0;
@@ -4499,9 +4499,24 @@ export class AnalyzeView {
                 try {
                     await ensureAllowedAnalysisRoots(this.app);
                 }
-                catch ( /* ignore */_e) { /* ignore */ }
+                catch ( /* ignore */_h) { /* ignore */ }
                 const items = (_a = event.dataTransfer) === null || _a === void 0 ? void 0 : _a.items;
                 const files = (_b = event.dataTransfer) === null || _b === void 0 ? void 0 : _b.files;
+                // Modern browsers: detect directory drops via File System Access API
+                if (((_c = items === null || items === void 0 ? void 0 : items[0]) === null || _c === void 0 ? void 0 : _c.kind) === 'file') {
+                    try {
+                        const handle = await ((_e = (_d = items[0]).getAsFileSystemHandle) === null || _e === void 0 ? void 0 : _e.call(_d));
+                        if (handle && handle.kind === 'directory') {
+                            // Browser sandbox prevents revealing full OS path.
+                            // Prompt user to type path or use Browse Folder instead.
+                            showToast('Directory drop detected. Use Browse Folder or type the full path for best results.', 'warning');
+                            return;
+                        }
+                    }
+                    catch (_j) {
+                        // getAsFileSystemHandle not supported — fall through to legacy logic
+                    }
+                }
                 const deriveDirFromFilePath = (filePath) => {
                     if (!filePath)
                         return '';
@@ -4554,6 +4569,7 @@ export class AnalyzeView {
                             return p.replace(/\//g, '\\');
                         }
                     }
+                    // Electron / VS Code extension: file.path contains native absolute path
                     if ((_d = files === null || files === void 0 ? void 0 : files[0]) === null || _d === void 0 ? void 0 : _d.path) {
                         const filePath = String(files[0].path);
                         const norm = filePath.replace(/\\/g, '/');
@@ -4622,7 +4638,7 @@ export class AnalyzeView {
                     return base ? `${base}/${name}` : name;
                 };
                 if (items === null || items === void 0 ? void 0 : items.length) {
-                    const entry = (_d = (_c = items[0]).webkitGetAsEntry) === null || _d === void 0 ? void 0 : _d.call(_c);
+                    const entry = (_g = (_f = items[0]).webkitGetAsEntry) === null || _g === void 0 ? void 0 : _g.call(_f);
                     if (entry) {
                         if (entry.isDirectory) {
                             const name = entry.name || '';
@@ -4855,8 +4871,8 @@ export class AnalyzeView {
                 fileDragDepth = 0;
             }
         });
-        dropzone.addEventListener('drop', (event) => {
-            var _a, _b, _c, _d, _e, _f, _g, _h;
+        dropzone.addEventListener('drop', async (event) => {
+            var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
             event.preventDefault();
             event.stopPropagation();
             fileDragDepth = 0;
@@ -4864,8 +4880,18 @@ export class AnalyzeView {
             const items = (_a = event.dataTransfer) === null || _a === void 0 ? void 0 : _a.items;
             const files = (_b = event.dataTransfer) === null || _b === void 0 ? void 0 : _b.files;
             // Handle folder drops on file dropzone -> route to path dropzone logic
-            if (items === null || items === void 0 ? void 0 : items.length) {
-                const entry = (_d = (_c = items[0]).webkitGetAsEntry) === null || _d === void 0 ? void 0 : _d.call(_c);
+            if ((items === null || items === void 0 ? void 0 : items.length) && items[0].kind === 'file') {
+                try {
+                    const handle = await ((_d = (_c = items[0]).getAsFileSystemHandle) === null || _d === void 0 ? void 0 : _d.call(_c));
+                    if (handle && handle.kind === 'directory') {
+                        showToast('Directory drop detected. Use Browse Folder or type the full path for best results.', 'warning');
+                        return;
+                    }
+                }
+                catch (_l) {
+                    // getAsFileSystemHandle not supported — fall through to legacy logic
+                }
+                const entry = (_f = (_e = items[0]).webkitGetAsEntry) === null || _f === void 0 ? void 0 : _f.call(_e);
                 if (entry === null || entry === void 0 ? void 0 : entry.isDirectory) {
                     const pathInput = el.querySelector('#project-path-input');
                     const name = entry.name || '';
@@ -4880,20 +4906,20 @@ export class AnalyzeView {
                     let actualPath = '';
                     const uriList = tryGetData('text/uri-list');
                     if (uriList) {
-                        const uri = (_e = uriList.trim().split('\n')[0]) === null || _e === void 0 ? void 0 : _e.trim();
+                        const uri = (_g = uriList.trim().split('\n')[0]) === null || _g === void 0 ? void 0 : _g.trim();
                         if (uri && uri.startsWith('file:///')) {
                             let p = uri.slice(8).replace(/\/$/, '');
                             try {
                                 p = decodeURIComponent(p);
                             }
-                            catch ( /* ignore */_j) { /* ignore */ }
+                            catch ( /* ignore */_m) { /* ignore */ }
                             actualPath = p.replace(/\//g, '\\');
                         }
                     }
                     if (!actualPath) {
                         const plain = tryGetData('text/plain');
                         if (plain) {
-                            let trimmed = (_f = plain.trim().split('\n')[0]) === null || _f === void 0 ? void 0 : _f.trim().replace(/^["']|["']$/g, '');
+                            let trimmed = (_h = plain.trim().split('\n')[0]) === null || _h === void 0 ? void 0 : _h.trim().replace(/^["']|["']$/g, '');
                             if (trimmed && /^[a-zA-Z]:[\\\/]/.test(trimmed)) {
                                 actualPath = trimmed.replace(/[\\\/]+$/, '');
                             }
@@ -4902,18 +4928,18 @@ export class AnalyzeView {
                     if (!actualPath) {
                         const mozUrl = tryGetData('text/x-moz-url');
                         if (mozUrl) {
-                            const url = (_g = mozUrl.trim().split('\n')[0]) === null || _g === void 0 ? void 0 : _g.trim();
+                            const url = (_j = mozUrl.trim().split('\n')[0]) === null || _j === void 0 ? void 0 : _j.trim();
                             if (url && url.startsWith('file:///')) {
                                 let p = url.slice(8).replace(/\/$/, '');
                                 try {
                                     p = decodeURIComponent(p);
                                 }
-                                catch ( /* ignore */_k) { /* ignore */ }
+                                catch ( /* ignore */_o) { /* ignore */ }
                                 actualPath = p.replace(/\//g, '\\');
                             }
                         }
                     }
-                    if (!actualPath && ((_h = files === null || files === void 0 ? void 0 : files[0]) === null || _h === void 0 ? void 0 : _h.path)) {
+                    if (!actualPath && ((_k = files === null || files === void 0 ? void 0 : files[0]) === null || _k === void 0 ? void 0 : _k.path)) {
                         const filePath = String(files[0].path);
                         const norm = filePath.replace(/\\/g, '/');
                         const lastSlash = norm.lastIndexOf('/');
