@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const { checkExpiringLicenses } = require('../../../sales/license/renewal-tracker.js');
 
 /**
@@ -33,7 +34,8 @@ async function dispatchAutomatedRenewalEmails(databaseRecords) {
                 })
             });
         } catch (err) {
-            console.error(`[Renewal Alert] Failed to send email for ${alert.companyId}: ${err.message}`);
+            const companyHash = crypto.createHash('sha256').update(alert.companyId).digest('hex').slice(0, 8);
+            console.error(`[Renewal Alert] Failed to send email for company ${companyHash}: ${err.message}`);
         }
     }
 }

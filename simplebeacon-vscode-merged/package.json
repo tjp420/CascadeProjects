@@ -1,5 +1,5 @@
 {
-  "name": "simplebeacon",
+  "name": "simplebeacon-vscode",
   "displayName": "SimpleBeacon AI Slop Cop",
   "description": "Privacy-first source code scanner with modern GUI sidebar interface. Analyze your repository for security, compliance, and quality issues with intelligent pattern detection, real-time analysis, and interactive visual controls.",
   "homepage": "https://simplebeacon.ai",
@@ -754,7 +754,7 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
+    "compile": "node -e \"const fs=require('fs'); fs.mkdirSync('src/rules',{recursive:true}); fs.copyFileSync('../packages/simplebeacon-cli/src/rules/llm-slop-catalog.json','src/rules/llm-slop-catalog.json');\" && tsc -p ./ && node -e \"const fs=require('fs'); fs.mkdirSync('out/rules',{recursive:true}); fs.copyFileSync('src/rules/llm-slop-catalog.json','out/rules/llm-slop-catalog.json');\"",
     "watch": "tsc -watch -p ./",
     "test": "jest",
     "test:coverage": "jest --coverage",

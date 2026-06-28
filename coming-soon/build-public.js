@@ -45,7 +45,7 @@ for (const f of files) {
 }
 
 // Copy directories
-const dirs = ['css', 'js', 'downloads', 'data', 'content', 'blog'];
+const dirs = ['css', 'js/vendor', 'js-es2018', 'downloads', 'data', 'content', 'blog'];
 for (const d of dirs) {
   const sp = path.join(src, d);
   const dp = path.join(dst, d);

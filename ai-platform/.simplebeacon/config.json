@@ -57,7 +57,10 @@
     "report.json",
     "cli-test-report*.json",
     "test-output.txt",
-    "server/db/token-registry.json"
+    "server/db/token-registry.json",
+    "C:/Users/Trevor/CascadeProjects/.github/workflows/simplebeacon-action-stress-test.yml",
+    "C:/Users/Trevor/CascadeProjects/simplebeacon-vscode-merged/src/rules/llm-slop-catalog.json",
+    "C:/Users/Trevor/CascadeProjects/simplebeacon-vscode-merged/.vsix-patch-temp/**"
   ],
   "rules": {
     "credentials": {
@@ -112,7 +115,14 @@
     },
     "file-reduction": {
       "enabled": true,
-      "dryRun": true
+      "dryRun": true,
+      "suppressions": [
+        {
+          "type": "duplicate-data",
+          "path": "C:/Users/Trevor/CascadeProjects/simplebeacon-vscode-merged/src/rules/llm-slop-catalog.json",
+          "reason": "Generated copy of CLI rule catalog — single source of truth in packages/simplebeacon-cli"
+        }
+      ]
     },
     "javascript-ast-patterns": {
       "enabled": true

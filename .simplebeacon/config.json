@@ -64,6 +64,9 @@
     "**/scripts/**",
     "ai-agent/**",
     "java-ai-vulnerable/**",
+    ".github/workflows/simplebeacon-action-stress-test.yml",
+    "simplebeacon-vscode-merged/src/rules/llm-slop-catalog.json",
+    "**/.vsix-patch-temp/**",
     "report.json",
     "**/report.json",
     "coming-soon/public/data/**",
@@ -98,7 +101,8 @@
       "ignoreGlobs": [
         "**/coming-soon/archive/**",
         "**/simplebeacon-rule-tests/**",
-        "**/ai-platform/tests/**"
+        "**/ai-platform/tests/**",
+        ".github/workflows/simplebeacon-action-stress-test.yml"
       ]
     },
     "json-schema": {
@@ -252,6 +256,11 @@
           "type": "duplicate-data",
           "path": "simplebeacon-vscode-OLD/",
           "reason": "Legacy backup extension — duplicate configs expected"
+        },
+        {
+          "type": "duplicate-data",
+          "path": "simplebeacon-vscode-merged/src/rules/llm-slop-catalog.json",
+          "reason": "Generated copy of CLI rule catalog — single source of truth in packages/simplebeacon-cli"
         },
         {
           "type": "synchronous-file-operation",

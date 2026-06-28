@@ -10,4 +10,5 @@ __test_dashboard*.html
 simplebeacon-report*
 progress.txt
 .vsix-patch-temp/
+src/rules/llm-slop-catalog.json
 

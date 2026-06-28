@@ -16,11 +16,12 @@
     "quality:check": "npm run quality:check --workspaces --if-present",
     "test": "npm test --workspaces --if-present",
     "test:coverage": "npx jest --config jest.config.js --coverage --watchAll=false",
-    "quality:monthly": "cd packages/simplebeacon-cli && node bin/simplebeacon.js scan --path ../.. --gate --full --format json --output .simplebeacon/monthly-quality-report.json && npm audit && cd ../ai-platform && npm audit && cd ../coming-soon && npm audit",
-    "ai:check": "node scripts/ai-check.js"
+    "quality:monthly": "cd packages/simplebeacon-cli && node bin/simplebeacon.js scan --path ../.. --gate --full --format json --output .simplebeacon/monthly-quality-report.json && npm audit && cd ../../ai-platform && npm audit && cd ../coming-soon && npm audit",
+    "ai:check": "node scripts/ai-check.js",
+    "sb:hook:pre-commit": "npx simplebeacon scan --gate --fail-on high"
   },
   "dependencies": {
-    "archiver": "^6.0.2",
+    "archiver": "^8.0.0",
     "express-rate-limit": "^8.5.2",
     "nodemailer": "^8.0.10",
     "resend": "^3.2.0",

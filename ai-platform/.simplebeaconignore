@@ -123,3 +123,9 @@ simplebeacon-vscode-merged/src/fixes/remediationProvider.ts
 # Type Safety Gap: VS Code extension adapter code using `any` for API boundary types (acceptable)
 simplebeacon-vscode/src/extension.ts
 simplebeacon-vscode-merged/src/aiPlatform/extension.ts
+
+# Stress-test workflow — intentionally generates fake credentials in synthetic repos
+../.github/workflows/simplebeacon-action-stress-test.yml
+
+# Generated copy of CLI rule catalog in VS Code extension (single source of truth in packages/simplebeacon-cli)
+../simplebeacon-vscode-merged/src/rules/llm-slop-catalog.json

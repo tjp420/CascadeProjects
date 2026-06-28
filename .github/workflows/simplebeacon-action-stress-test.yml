@@ -1,0 +1,223 @@
+# SimpleBeacon GitHub Action Stress Test Matrix v2
+# Tests the composite action against clean, dirty, and large synthetic repositories.
+# Validates: gate logic, performance, memory stability, action I/O.
+# Trigger: workflow_dispatch (manual), PRs touching action.yml, or weekly cron.
+
+name: SimpleBeacon Action Stress Test
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'github-action/action.yml'
+      - 'packages/simplebeacon-cli/**'
+  schedule:
+    - cron: '0 6 * * 1'  # Every Monday 06:00 UTC
+
+permissions:
+  contents: read
+
+env:
+  SCAN_TIMEOUT_SECONDS: 120
+
+jobs:
+  stress-test-matrix:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        profile:
+          - name: clean-repo
+            description: 'Clean repository — gate should pass'
+            files: 100
+            expect-gate: pass
+          - name: dirty-repo
+            description: 'Dirty repository with AI slop, credentials, debug artifacts — gate should fail'
+            files: 50
+            expect-gate: fail
+          - name: large-repo
+            description: 'Large repository (2,000 files) — performance & memory stability'
+            files: 2000
+            expect-gate: pass
+    steps:
+      - name: Checkout SimpleBeacon
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Build local SimpleBeacon CLI
+        run: |
+          cd packages/simplebeacon-cli
+          npm ci --ignore-scripts
+          npm run build
+          echo "LOCAL_CLI=$(pwd)/bin/simplebeacon.js" >> "$GITHUB_ENV"
+
+      # ── Clean Repo ────────────────────────────────────────────────────────────
+      - name: Generate clean repository
+        if: matrix.profile.name == 'clean-repo'
+        run: |
+          mkdir -p /tmp/stress-test-repo/src/utils /tmp/stress-test-repo/src/api
+          cd /tmp/stress-test-repo
+          git init
+          for i in $(seq 1 ${{ matrix.profile.files }}); do
+            cat > "src/file-${i}.js" <<EOF
+          const utils${i} = require('./utils/helper${i}');
+          const result${i} = utils${i}.process(${i});
+          module.exports = { result${i} };
+          EOF
+            cat > "src/utils/helper${i}.js" <<EOF
+          exports.process = (x) => x * ${i};
+          EOF
+          done
+          cat > package.json <<'EOF'
+          {"name":"clean-test","version":"1.0.0","main":"src/file-1.js"}
+          EOF
+          git add .
+          git commit -m "clean: ${MATRIX_PROFILE_FILES} files"
+        env:
+          MATRIX_PROFILE_FILES: ${{ matrix.profile.files }}
+
+      # ── Dirty Repo ────────────────────────────────────────────────────────────
+      - name: Generate dirty repository
+        if: matrix.profile.name == 'dirty-repo'
+        run: |
+          mkdir -p /tmp/stress-test-repo/src /tmp/stress-test-repo/config
+          cd /tmp/stress-test-repo
+          git init
+          for i in $(seq 1 ${{ matrix.profile.files }}); do
+            cat > "src/file-${i}.js" <<EOF
+          // TODO: implement this function
+          function helper${i}() {
+            return ${i};
+          }
+          module.exports = { helper${i} };
+          EOF
+          done
+          # Credential leaks
+          cat > config/secrets.js <<'EOF'
+          const AWS_KEY = 'AKIAIOSFAKEEXAMPLE0000';
+          const stripeKey = 'sk_test_placeholder_not_real';
+          const dbPassword = 'FAKE_PASSWORD_PLACEHOLDER';
+          module.exports = { AWS_KEY, stripeKey, dbPassword };
+          EOF
+          # AI slop patterns
+          cat > src/ai-generated.js <<'EOF'
+          // As an AI language model, I have generated this function
+          function calculate() {
+            // TODO: fill in implementation
+            return 42;
+          }
+          /* filler block start */
+          /* filler block end */
+          console.log("debug output");
+          debugger;
+          EOF
+          # Markdown fence leak
+          cat > src/README.md <<'EOF'
+          # README
+          ```javascript
+          const apiKey = "sk-placeholder-fake-key";
+          ```
+          EOF
+          # Empty stub
+          cat > src/stub.js <<'EOF'
+          const placeholder = () => {};
+          const todo = function() { /* TODO */ };
+          EOF
+          git add .
+          git commit -m "dirty: secrets + slop + debug"
+
+      # ── Large Repo ────────────────────────────────────────────────────────────
+      - name: Generate large repository
+        if: matrix.profile.name == 'large-repo'
+        run: |
+          mkdir -p /tmp/stress-test-repo/src
+          cd /tmp/stress-test-repo
+          git init
+          for i in $(seq 1 ${{ matrix.profile.files }}); do
+            cat > "src/file-${i}.js" <<EOF
+          const m${i} = require('./module-${i}');
+          exports.run = () => m${i}.process(Math.random());
+          EOF
+            cat > "src/module-${i}.js" <<EOF
+          exports.process = (x) => x * ${i} + ${i % 100};
+          EOF
+          done
+          git add .
+          git commit -m "large: ${MATRIX_PROFILE_FILES} files"
+        env:
+          MATRIX_PROFILE_FILES: ${{ matrix.profile.files }}
+
+      # ── Run the actual composite action ─────────────────────────────────────
+      - name: Run SimpleBeacon Action (local composite)
+        id: action
+        uses: ./github-action
+        with:
+          scan-args: '--path /tmp/stress-test-repo --gate --offline'
+        continue-on-error: true
+
+      # ── Validate gate expectation ────────────────────────────────────────────
+      - name: Validate gate expectation
+        run: |
+          REPORT=.simplebeacon/report.json
+          if [ ! -f "$REPORT" ]; then
+            echo "❌ No report generated by action"
+            exit 1
+          fi
+          GATE_PASS=$(node -e "const r=require('./$REPORT'); const pass=r.summary?.gatePass ?? r.gate?.pass ?? 'unknown'; console.log(pass);")
+          echo "Gate result: $GATE_PASS (expected: ${{ matrix.profile.expect-gate }})"
+          if [ "$GATE_PASS" != "${{ matrix.profile.expect-gate }}" ]; then
+            echo "❌ Gate mismatch for ${{ matrix.profile.name }}"
+            exit 1
+          fi
+          echo "✅ Gate matched expectation for ${{ matrix.profile.name }}"
+
+      # ── Performance check (large repo only) ────────────────────────────────────
+      - name: Check large-repo performance
+        if: matrix.profile.name == 'large-repo'
+        run: |
+          REPORT=.simplebeacon/report.json
+          SCAN_TIME=$(node -e "const r=require('./$REPORT'); console.log(r.scanDurationMs || r.durationMs || 0);")
+          FILES=$(node -e "const r=require('./$REPORT'); console.log(r.scannedFiles || r.totalFilesScanned || 0);")
+          echo "Files scanned: $FILES"
+          echo "Duration (ms): $SCAN_TIME"
+          if [ "$SCAN_TIME" -gt 60000 ]; then
+            echo "❌ Large-repo scan took >60s ($SCAN_TIME ms)"
+            exit 1
+          fi
+          if [ "$FILES" -lt 1000 ]; then
+            echo "❌ Only $FILES files scanned — expected >1000"
+            exit 1
+          fi
+          echo "✅ Performance acceptable"
+
+      # ── Upload report artifact ────────────────────────────────────────────────
+      - name: Upload report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stress-test-report-${{ matrix.profile.name }}
+          path: .simplebeacon/report.json
+
+      # ── Job summary ───────────────────────────────────────────────────────────
+      - name: Summary
+        if: always()
+        run: |
+          REPORT=.simplebeacon/report.json
+          echo "## ${{ matrix.profile.description }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Files: ${{ matrix.profile.files }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Expected gate: ${{ matrix.profile.expect-gate }}" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f "$REPORT" ]; then
+            SCORE=$(node -e "const r=require('./$REPORT'); console.log(r.qualityScore || 'N/A');")
+            BLOCKING=$(node -e "const r=require('./$REPORT'); console.log(r.gate?.blockingCount || 0);")
+            echo "- Quality Score: $SCORE" >> "$GITHUB_STEP_SUMMARY"
+            echo "- Blocking Issues: $BLOCKING" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ "${{ steps.action.outcome }}" = "success" ]; then
+            echo "- ✅ Action step succeeded" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "- ⚠️ Action step outcome: ${{ steps.action.outcome }}" >> "$GITHUB_STEP_SUMMARY"
+          fi

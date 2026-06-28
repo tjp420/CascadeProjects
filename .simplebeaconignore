@@ -230,8 +230,9 @@ scan-latest.json
 simplebeacon-full-scan.json
 simplebeacon-latest-scan.json
 simplebeacon-report.json
-New folder/
+scan-exports/
 simplebeacon-export-operator
+false-positive-audit/
 
 # Ignore CI ingest false positive
 packages/simplebeacon-cli/src/api/ci-ingest.js
@@ -267,6 +268,10 @@ simplebeacon-vscode/src/extension.ts
 
 # VS Code extension build output
 simplebeacon-vscode/out/
+
+# VS Code extension patch temp directory (contains duplicate code-map.json)
+.vsix-patch-temp/
+**/.vsix-patch-temp/
 
 # Replay tool references exports by string literal (dynamic usage)
 ai-platform/tools/replay-scope-patches.js
