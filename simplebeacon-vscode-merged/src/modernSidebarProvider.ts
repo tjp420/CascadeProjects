@@ -1564,7 +1564,7 @@ body::-webkit-scrollbar-thumb:hover { background: rgba(128,128,128,0.6); }
 .settings-kpi-value.blue { color:#60a5fa; }
 body.detail-panel-open .settings-dropdown-header,
 body.detail-panel-open .settings-dropdown-body,
-body.detail-panel-open #openAuditFromSidebar,
+body.detail-panel-open #auditDropdownHeader,
 body.detail-panel-open #openDiagnoseFromSettingsTab,
 body.detail-panel-open #openRefreshRelayFromSettingsTab,
 body.detail-panel-open #openSettingsFromSettingsTab,
@@ -1627,8 +1627,6 @@ body[data-active-tab="advanced"] #tabAdvanced .settings-btn-card {
   <div class="tab-item active" data-tab="dashboard">Dashboard</div>
   <div class="tab-item" data-tab="scan">Scan</div>
   <div class="tab-item" data-tab="analyze">Analyze</div>
-  <div class="tab-item" data-tab="audit">Audit</div>
-  <div class="tab-item" data-tab="upload">Upload</div>
   <div class="tab-item" data-tab="advanced">Advanced</div>
   <div class="tab-item" data-tab="settings">Settings</div>
   <div class="tab-item" data-tab="team">Team Dashboard</div>
@@ -1637,8 +1635,6 @@ body[data-active-tab="advanced"] #tabAdvanced .settings-btn-card {
   <div class="sidebar-tab-item active" data-tab="dashboard"><span class="sidebar-tab-icon">&#x1F3E0;</span>Dashboard</div>
   <div class="sidebar-tab-item" data-tab="scan"><span class="sidebar-tab-icon">&#x1F50D;</span>Scan</div>
   <div class="sidebar-tab-item" data-tab="analyze"><span class="sidebar-tab-icon">&#x1F4C8;</span>Analyze</div>
-  <div class="sidebar-tab-item" data-tab="audit"><span class="sidebar-tab-icon">&#x1F4CB;</span>Audit</div>
-  <div class="sidebar-tab-item" data-tab="upload"><span class="sidebar-tab-icon">&#x1F4E4;</span>Upload</div>
   <div class="sidebar-tab-item" data-tab="advanced"><span class="sidebar-tab-icon">&#x2699;</span>Advanced</div>
   <div class="sidebar-tab-item" data-tab="settings"><span class="sidebar-tab-icon">&#x1F527;</span>Settings</div>
   <div class="sidebar-tab-item" data-tab="team"><span class="sidebar-tab-icon">&#x1F465;</span>Team</div>
@@ -1650,7 +1646,6 @@ body[data-active-tab="advanced"] #tabAdvanced .settings-btn-card {
     <div class="db-actions">
       <div class="db-badge" id="dbGateBadge">GATE: <span id="dbGateVal">Pending</span></div>
       <div class="db-btn" id="dbExportBtn">Export</div>
-      <button class="btn btn-ghost btn-xs" id="openDashboardInMainWindowBtn" style="font-size:0.72rem;padding:3px 8px;">Open in Main Window</button>
     </div>
   </div>
   <div class="db-summary-cards">
@@ -1756,7 +1751,6 @@ body[data-active-tab="advanced"] #tabAdvanced .settings-btn-card {
 <div class="tab-pane" id="tabScan">
 <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;">
   <div class="db-title">Scan</div>
-  <button class="btn btn-ghost btn-xs" id="openScanInMainWindowBtn" style="font-size:0.72rem;padding:3px 8px;">Open in Main Window</button>
 </div>
 <div style="margin:0 0 10px 0;">
   <div style="display:flex;align-items:center;justify-content:space-between;width:100%;margin-bottom:4px;">
@@ -1860,7 +1854,6 @@ body[data-active-tab="advanced"] #tabAdvanced .settings-btn-card {
 <div class="tab-pane" id="tabAnalyze">
 <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;">
   <div class="db-title">Analyze</div>
-  <button class="btn btn-ghost btn-xs" id="openAnalyzeInMainWindowBtn" style="font-size:0.72rem;padding:3px 8px;">Open in Main Window</button>
 </div>
 <div class="tab-section">ANALYSIS</div>
 <div class="settings-btn-card" id="analyzeRunCard" style="margin-bottom:0;background:linear-gradient(135deg,rgba(16,185,129,0.15) 0%,rgba(52,211,153,0.08) 100%);border-color:rgba(16,185,129,0.25);">
@@ -1992,7 +1985,6 @@ body[data-active-tab="advanced"] #tabAdvanced .settings-btn-card {
 <div class="tab-pane" id="tabTeam">
 <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;">
   <div class="db-title">Team Dashboard</div>
-  <button class="btn btn-ghost btn-xs" id="openTeamInMainWindowBtn" style="font-size:0.72rem;padding:3px 8px;">Open in Main Window</button>
 </div>
 <div class="tab-section">Quick Links</div>
 <div class="tc-list" style="gap:8px;">
@@ -2245,7 +2237,6 @@ body[data-active-tab="advanced"] #tabAdvanced .settings-btn-card {
 <div class="tab-pane" id="tabSettings">
 <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;">
   <div class="db-title">Settings</div>
-  <button class="btn btn-ghost btn-xs" id="openSettingsInMainWindowBtnTop" style="font-size:0.72rem;padding:3px 8px;">Open in Main Window</button>
 </div>
 <div id="settingsMenuTab">
   <div class="tab-section">TOOLS</div>
@@ -2766,7 +2757,7 @@ body[data-active-tab="advanced"] #tabAdvanced .settings-btn-card {
     </div>
   </div>
 </div>
-<div class="settings-btn-card ${displayMode === 'sidebar' ? '' : 'hidden'}" id="openAuditFromSidebar" data-sidebar-tab="scan" style="background:linear-gradient(135deg,rgba(239,68,68,0.15) 0%,rgba(248,113,113,0.08) 100%);border-color:rgba(239,68,68,0.25);">
+<div class="settings-btn-card ${displayMode === 'sidebar' ? '' : 'hidden'}" id="auditDropdownHeader" data-sidebar-tab="advanced" style="background:linear-gradient(135deg,rgba(239,68,68,0.15) 0%,rgba(248,113,113,0.08) 100%);border-color:rgba(239,68,68,0.25);">
   <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span>
   <span>Audit</span>
 </div>
@@ -3676,7 +3667,7 @@ body[data-active-tab="advanced"] #tabAdvanced .settings-btn-card {
     'codeMapDropdownHeader': 'openCodeMap',
     'aiContextDropdownHeader': 'openAiContext',
     'uploadDropdownHeader': 'openUpload',
-    'openAuditFromSidebar': 'openAudit'
+    'auditDropdownHeader': 'openAudit'
   };
   document.addEventListener('click', function(e) {
     let header = e.target.closest('.settings-btn-card, .settings-dropdown-header');
@@ -3689,8 +3680,7 @@ body[data-active-tab="advanced"] #tabAdvanced .settings-btn-card {
       return;
     }
     let detailId = null;
-    if (id === 'openAuditFromSidebar') detailId = 'auditDetailPanel';
-    else if (id.indexOf('DropdownHeader') > -1) detailId = id.replace('DropdownHeader', 'DetailPanel');
+    if (id.indexOf('DropdownHeader') > -1) detailId = id.replace('DropdownHeader', 'DetailPanel');
     if (!detailId) return;
     let detail = document.getElementById(detailId);
     if (!detail) return;
@@ -3707,7 +3697,7 @@ body[data-active-tab="advanced"] #tabAdvanced .settings-btn-card {
     document.querySelectorAll('[id$="DetailPanel"]').forEach(function(el){el.style.display='none'; el.classList.remove('detail-active');});
     let analyzeBtn=document.getElementById('analyzeDropdownHeader'); if(analyzeBtn){analyzeBtn.style.display='block';}
     let analyzeDetail=document.getElementById('analyzeDetailPanel'); if(analyzeDetail){analyzeDetail.style.display='none';}
-    let auditBtn=document.getElementById('openAuditFromSidebar'); if(auditBtn){auditBtn.style.display='block';}
+    let auditBtn=document.getElementById('auditDropdownHeader'); if(auditBtn){auditBtn.style.display='block';}
     let auditDetail=document.getElementById('auditDetailPanel'); if(auditDetail){auditDetail.style.display='none';}
     let securityBtn=document.getElementById('securityDropdownHeader'); if(securityBtn){securityBtn.style.display='block';}
     let securityDetail=document.getElementById('securityDetailPanel'); if(securityDetail){securityDetail.style.display='none';}
@@ -3800,8 +3790,8 @@ body[data-active-tab="advanced"] #tabAdvanced .settings-btn-card {
   let _openCodeMapBtn=document.getElementById('openCodeMapBtn');if(_openCodeMapBtn){_openCodeMapBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openCodeMap'}); });}
   let _openRoadmapBtn=document.getElementById('openRoadmapBtn');if(_openRoadmapBtn){_openRoadmapBtn.addEventListener('click', function() { _switchSidebarTab('roadmap'); });}
   let _openAiContextBtn=document.getElementById('openAiContextBtn');if(_openAiContextBtn){_openAiContextBtn.addEventListener('click', function() { _switchSidebarTab('aicontext'); });}
-  let _openUploadBtn=document.getElementById('openUploadBtn');if(_openUploadBtn){_openUploadBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openUpload'}); });}
-  let _openAuditBtnMain=document.getElementById('openAuditBtnMain');if(_openAuditBtnMain){_openAuditBtnMain.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openAudit'}); });}
+  let _openUploadBtn=document.getElementById('openUploadBtn');if(_openUploadBtn){_openUploadBtn.addEventListener('click', function() { _switchTab('upload'); });}
+  let _openAuditBtnMain=document.getElementById('openAuditBtnMain');if(_openAuditBtnMain){_openAuditBtnMain.addEventListener('click', function() { _switchTab('audit'); });}
   let _openSecurityBtnMain=document.getElementById('openSecurityBtnMain');if(_openSecurityBtnMain){_openSecurityBtnMain.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openSecurity'}); });}
   let _openTrustBtn=document.getElementById('openTrustBtn');if(_openTrustBtn){_openTrustBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openTrust'}); });}
   let _openQualityBtn=document.getElementById('openQualityBtn');if(_openQualityBtn){_openQualityBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openQuality'}); });}
@@ -3821,11 +3811,6 @@ body[data-active-tab="advanced"] #tabAdvanced .settings-btn-card {
   let _openRoadmapInMainWindowBtn=document.getElementById('openRoadmapInMainWindowBtn');if(_openRoadmapInMainWindowBtn){_openRoadmapInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openRoadmap'}); });}
   let _aiContextBackBtn=document.getElementById('aiContextBackBtn');if(_aiContextBackBtn){_aiContextBackBtn.addEventListener('click', function() { _switchSidebarTab('advanced'); });}
   let _openAiContextInMainWindowBtn=document.getElementById('openAiContextInMainWindowBtn');if(_openAiContextInMainWindowBtn){_openAiContextInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openAiContext'}); });}
-  let _openDashboardInMainWindowBtn=document.getElementById('openDashboardInMainWindowBtn');if(_openDashboardInMainWindowBtn){_openDashboardInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openDashboard'}); });}
-  let _openScanInMainWindowBtn=document.getElementById('openScanInMainWindowBtn');if(_openScanInMainWindowBtn){_openScanInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openScan'}); });}
-  let _openAnalyzeInMainWindowBtn=document.getElementById('openAnalyzeInMainWindowBtn');if(_openAnalyzeInMainWindowBtn){_openAnalyzeInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openAnalyze'}); });}
-  let _openSettingsInMainWindowBtnTop=document.getElementById('openSettingsInMainWindowBtnTop');if(_openSettingsInMainWindowBtnTop){_openSettingsInMainWindowBtnTop.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'settings'}); });}
-  let _openTeamInMainWindowBtn=document.getElementById('openTeamInMainWindowBtn');if(_openTeamInMainWindowBtn){_openTeamInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openTeam'}); });}
   let _openPreviewBtn=document.getElementById('openPreviewBtn');if(_openPreviewBtn){_openPreviewBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openPreview'}); });}
   let _scanStartBtn=document.getElementById('scanStartBtn');if(_scanStartBtn){_scanStartBtn.addEventListener('click', function() { let toggle=document.getElementById('sidebarScanWorkspaceToggle'); let pathInput=document.getElementById('sidebarScanPathInput'); let isWorkspace=toggle?toggle.checked:true; let path=pathInput?pathInput.value:''; if (window.vscode) window.vscode.postMessage({command: 'scan', mode: isWorkspace?'workspace':'custom', path: isWorkspace?'':path}); });}
   let _openToggleMonitorBtn=document.getElementById('openToggleMonitorBtn');if(_openToggleMonitorBtn){_openToggleMonitorBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openToggleMonitor'}); });}
@@ -3935,7 +3920,7 @@ body[data-active-tab="advanced"] #tabAdvanced .settings-btn-card {
   let _uploadDetailBackBtn=document.getElementById('uploadDetailBackBtn');if(_uploadDetailBackBtn){_uploadDetailBackBtn.addEventListener('click', function() { const header=document.getElementById('uploadDropdownHeader'); const detail=document.getElementById('uploadDetailPanel'); if(header){header.style.display='block';} if(detail){detail.style.display='none';} document.body.classList.remove('detail-panel-open'); });}
   let _uploadBrowseBtn=document.getElementById('uploadBrowseBtn');if(_uploadBrowseBtn){_uploadBrowseBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openUpload'}); });}
   let _openUploadInMainWindowBtn=document.getElementById('openUploadInMainWindowBtn');if(_openUploadInMainWindowBtn){_openUploadInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openUpload'}); });}
-  let _openAuditFromSidebar=document.getElementById('openAuditFromSidebar');if(_openAuditFromSidebar){_openAuditFromSidebar.addEventListener('click', function() { const btn=document.getElementById('openAuditFromSidebar'); const detail=document.getElementById('auditDetailPanel'); _closeDetailPanels(); if(btn){btn.style.display='none';} if(detail){detail.classList.remove('hidden');detail.classList.add('detail-active');detail.style.display='block';} document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');p.classList.add('hidden');}); document.body.classList.add('detail-panel-open'); if (window.vscode) window.vscode.postMessage({command: 'getAuditData'}); });}
+  let _auditDropdownHeader=document.getElementById('auditDropdownHeader');if(_auditDropdownHeader){_auditDropdownHeader.addEventListener('click', function() { const btn=document.getElementById('auditDropdownHeader'); const detail=document.getElementById('auditDetailPanel'); _closeDetailPanels(); if(btn){btn.style.display='none';} if(detail){detail.classList.remove('hidden');detail.classList.add('detail-active');detail.style.display='block';} document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');p.classList.add('hidden');}); document.body.classList.add('detail-panel-open'); if (window.vscode) window.vscode.postMessage({command: 'getAuditData'}); });}
   let _auditDetailBackBtn=document.getElementById('auditDetailBackBtn');if(_auditDetailBackBtn){_auditDetailBackBtn.addEventListener('click', function() { _closeDetailPanels(); });}
   let _openAuditBtn2=document.getElementById('openAuditBtn2');if(_openAuditBtn2){_openAuditBtn2.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'runAudit'}); });}
   let _openAuditReportBtn2=document.getElementById('openAuditReportBtn2');if(_openAuditReportBtn2){_openAuditReportBtn2.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openAuditReport'}); });}
