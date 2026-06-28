@@ -967,6 +967,8 @@ body::-webkit-scrollbar-thumb:hover { background: rgba(128,128,128,0.6); }
 .sidebar-tab-item:hover{color:var(--vscode-foreground,#ccc);border-bottom-color:var(--vscode-panel-border, rgba(255,255,255,0.08));}
 .sidebar-tab-item.active{color:var(--vscode-foreground,#fff);border-bottom-color:var(--vscode-button-background,#0e639c);}
 .sidebar-tab-icon{font-size:14px;line-height:1;}
+.sidebar-tab-item.sidebar-tab-more{margin-left:auto;flex:0;min-width:auto;padding:8px 10px;border-bottom-color:transparent;}
+.sidebar-tab-item.sidebar-tab-more:hover{color:var(--vscode-foreground,#ccc);}
 [data-sidebar-tab]{transition:opacity 0.15s ease;}
 [data-sidebar-tab].hidden{display:none !important;}
 .sidebar-tab-pane{display:none;}
@@ -1614,19 +1616,6 @@ body.detail-panel-open #tabAdvanced .tab-section,
 body.detail-panel-open #tabAdvanced .settings-btn-card {
   display: none !important;
 }
-body[data-active-tab="advanced"] #analyzeDropdownHeader,
-body[data-active-tab="advanced"] #certificateDropdownHeader,
-body[data-active-tab="advanced"] #codeMapDropdownHeader,
-body[data-active-tab="advanced"] #roadmapDropdownHeader,
-body[data-active-tab="advanced"] #aiContextDropdownHeader,
-body[data-active-tab="advanced"] #uploadDropdownHeader,
-body[data-active-tab="advanced"] #profileDropdownHeader,
-body[data-active-tab="advanced"] #repoHealthDropdownHeader,
-body[data-active-tab="advanced"] #analyticsDropdownHeader,
-body[data-active-tab="advanced"] #teamDropdownHeader,
-body[data-active-tab="advanced"] #sendToAIAgentDropdownHeader {
-  display: none !important;
-}
 </style>
 </head>
 <body>
@@ -1646,21 +1635,29 @@ body[data-active-tab="advanced"] #sendToAIAgentDropdownHeader {
   <div class="tab-item active" data-tab="dashboard">Dashboard</div>
   <div class="tab-item" data-tab="scan">Scan</div>
   <div class="tab-item" data-tab="analyze">Analyze</div>
-  <div class="tab-item" data-tab="audit">Audit</div>
-  <div class="tab-item" data-tab="upload">Upload</div>
   <div class="tab-item" data-tab="advanced">Advanced</div>
   <div class="tab-item" data-tab="settings">Settings</div>
   <div class="tab-item" data-tab="team">Team Dashboard</div>
+  <div class="tab-item tab-more" id="mainTabMore" data-tab="more">
+    More <span class="tab-more-arrow">&#x25BC;</span>
+    <div class="tab-more-dropdown" id="mainTabMoreDropdown">
+      <div class="tab-more-item" data-tab="audit">Audit</div>
+      <div class="tab-more-item" data-tab="upload">Upload</div>
+    </div>
+  </div>
 </div>
 <div class="sidebar-tab-bar ${displayMode === 'sidebar' ? '' : 'hidden'}" id="sidebarTabBar">
   <div class="sidebar-tab-item active" data-tab="dashboard"><span class="sidebar-tab-icon">&#x1F3E0;</span>Dashboard</div>
   <div class="sidebar-tab-item" data-tab="scan"><span class="sidebar-tab-icon">&#x1F50D;</span>Scan</div>
   <div class="sidebar-tab-item" data-tab="analyze"><span class="sidebar-tab-icon">&#x1F4C8;</span>Analyze</div>
-  <div class="sidebar-tab-item" data-tab="audit"><span class="sidebar-tab-icon">&#x1F4CB;</span>Audit</div>
-  <div class="sidebar-tab-item" data-tab="upload"><span class="sidebar-tab-icon">&#x1F4E4;</span>Upload</div>
   <div class="sidebar-tab-item" data-tab="advanced"><span class="sidebar-tab-icon">&#x2699;</span>Advanced</div>
   <div class="sidebar-tab-item" data-tab="settings"><span class="sidebar-tab-icon">&#x1F527;</span>Settings</div>
   <div class="sidebar-tab-item" data-tab="team"><span class="sidebar-tab-icon">&#x1F465;</span>Team</div>
+  <div class="sidebar-tab-item sidebar-tab-more" id="sidebarTabMore" data-tab="more"><span class="sidebar-tab-icon">&#x22EE;</span>More</div>
+</div>
+<div class="tab-more-dropdown" id="sidebarTabMoreDropdown">
+  <div class="tab-more-item" data-tab="audit">Audit</div>
+  <div class="tab-more-item" data-tab="upload">Upload</div>
 </div>
 <div class="tab-pane active" id="tabDashboard" data-sidebar-tab="dashboard">
   <div class="sidebar-dashboard-back" id="dashboardBackBtn" style="display:none;"><span>&#x25C0;</span> Back to Sidebar</div>
@@ -1807,7 +1804,6 @@ body[data-active-tab="advanced"] #sendToAIAgentDropdownHeader {
   </div>
 </div>
 </div>
-<div class="tab-pane" id="tabUpload">
 <div class="tab-section" data-sidebar-tab="scan">Quick Links</div>
 <div class="quick-links" data-sidebar-tab="scan">
   <div class="ql-btn" id="qlDashboardBtn"><span>&#x1F4CA;</span> Dashboard</div>
@@ -1815,6 +1811,7 @@ body[data-active-tab="advanced"] #sendToAIAgentDropdownHeader {
   <div class="ql-btn" id="qlBrowserBtn"><span>&#x1F5A5;</span> Browser</div>
   <div class="ql-btn" id="qlPreviewBtn"><span>&#x1F310;</span> Preview</div>
 </div>
+<div class="tab-pane" id="tabUpload">
   <div class="upload-header">
     <div class="upload-title">Upload & Validate</div>
   </div>
@@ -3799,7 +3796,7 @@ body[data-active-tab="advanced"] #sendToAIAgentDropdownHeader {
     _hideDiagnoseResults();
     document.querySelectorAll('[id$="DetailPanel"]').forEach(function(el){el.classList.add('hidden');el.style.display='none';el.classList.remove('detail-active');});
   }
-  document.querySelectorAll('#sidebarTabBar .sidebar-tab-item').forEach(function(t){t.addEventListener('click', function(){_switchSidebarTab(t.getAttribute('data-tab'));});});
+  document.querySelectorAll('#sidebarTabBar .sidebar-tab-item').forEach(function(t){t.addEventListener('click', function(){let tab=t.getAttribute('data-tab');if(tab==='more')return;_switchSidebarTab(tab);});});
   _switchSidebarTab('dashboard');
   let _statusCard=document.getElementById('statusCard');if(_statusCard){_statusCard.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'diagnose'}); });}
   let _serverCard=document.getElementById('serverCard');if(_serverCard){_serverCard.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openCloudInBrowser'}); });}
@@ -4090,7 +4087,11 @@ body[data-active-tab="advanced"] #sendToAIAgentDropdownHeader {
     document.body.classList.remove('detail-panel-open');
   }
   function _switchTab(tab){if(!tab)return;document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');p.classList.add('hidden');});let pane=document.getElementById('tab'+tab.charAt(0).toUpperCase()+tab.slice(1));if(pane){pane.classList.remove('hidden');pane.classList.add('active');}document.querySelectorAll('.tab-item').forEach(function(t){t.classList.remove('active');});let coreTab=document.querySelector('.tab-item[data-tab="'+tab+'"]');if(coreTab){coreTab.classList.add('active');}document.querySelectorAll('.tab-more-item').forEach(function(m){m.classList.remove('active');if(m.getAttribute('data-tab')===tab)m.classList.add('active');});_hideDiagnoseResults();_closeDetailPanels();_switchSidebarTab(tab);}
-  _tabItems.forEach(function(item){item.addEventListener('click',function(){let tab=item.getAttribute('data-tab');_switchTab(tab);});});
+  _tabItems.forEach(function(item){item.addEventListener('click',function(){let tab=item.getAttribute('data-tab');if(tab==='more')return;_switchTab(tab);});});
+  let _mainTabMore=document.getElementById('mainTabMore');if(_mainTabMore){_mainTabMore.addEventListener('click',function(e){e.stopPropagation();let dd=document.getElementById('mainTabMoreDropdown');if(dd){dd.classList.toggle('open');_mainTabMore.classList.toggle('open');}document.querySelectorAll('.tab-more-dropdown').forEach(function(d){if(d.id!=='mainTabMoreDropdown')d.classList.remove('open');});});}
+  let _sidebarTabMore=document.getElementById('sidebarTabMore');if(_sidebarTabMore){_sidebarTabMore.addEventListener('click',function(e){e.stopPropagation();let dd=document.getElementById('sidebarTabMoreDropdown');if(dd){dd.classList.toggle('open');}document.querySelectorAll('.tab-more-dropdown').forEach(function(d){if(d.id!=='sidebarTabMoreDropdown')d.classList.remove('open');});});}
+  document.querySelectorAll('.tab-more-item').forEach(function(item){item.addEventListener('click',function(e){e.stopPropagation();let tab=item.getAttribute('data-tab');_switchTab(tab);document.querySelectorAll('.tab-more-dropdown').forEach(function(d){d.classList.remove('open');});document.querySelectorAll('.tab-item.tab-more, .sidebar-tab-item.sidebar-tab-more').forEach(function(m){m.classList.remove('open');});});});
+  document.addEventListener('click',function(){document.querySelectorAll('.tab-more-dropdown').forEach(function(d){d.classList.remove('open');});document.querySelectorAll('.tab-item.tab-more').forEach(function(m){m.classList.remove('open');});});
   let _settingsDropdownHeader=document.getElementById('settingsDropdownHeader');if(_settingsDropdownHeader){_settingsDropdownHeader.addEventListener('click', function() { let body=document.getElementById('settingsDropdownBody'); if(body){body.classList.toggle('open'); _settingsDropdownHeader.classList.toggle('open');} });}
   let _dashGateCard=document.getElementById('dashGateCard');if(_dashGateCard){_dashGateCard.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'dashboard'}); });}
   let _dashIssuesCard=document.getElementById('dashIssuesCard');if(_dashIssuesCard){_dashIssuesCard.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'dashboard'}); });}
