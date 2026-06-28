@@ -313,6 +313,8 @@ export function activate(context: vscode.ExtensionContext) {
   }
   updateServerStatus();
   serverStatusItem.show();
+  const serverStatusInterval = setInterval(updateServerStatus, 2000);
+  context.subscriptions.push({ dispose: () => clearInterval(serverStatusInterval) });
   context.subscriptions.push(serverStatusItem);
 
   authManager = new AuthManager(context);
@@ -1250,7 +1252,7 @@ export function activate(context: vscode.ExtensionContext) {
     registerCmd('simplebeacon.restartDataServer', async () => {
       restartDataServer(context, outputChannel);
       vscode.window.showInformationMessage('SimpleBeacon data server restarted');
-      updateServerStatus();
+      setTimeout(updateServerStatus, 500);
     }),
     registerCmd('simplebeacon.openBrowser', async () => {
       const url = await vscode.window.showInputBox({
