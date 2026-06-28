@@ -1623,6 +1623,7 @@ body.detail-panel-open #tabAdvanced {
   <div class="tab-item active" data-tab="dashboard">Dashboard</div>
   <div class="tab-item" data-tab="scan">Scan</div>
   <div class="tab-item" data-tab="analyze">Analyze</div>
+  <div class="tab-item" data-tab="report">Report</div>
   <div class="tab-item" data-tab="advanced">Advanced</div>
   <div class="tab-item" data-tab="settings">Settings</div>
   <div class="tab-item" data-tab="team">Team Dashboard</div>
@@ -1631,6 +1632,7 @@ body.detail-panel-open #tabAdvanced {
   <div class="sidebar-tab-item active" data-tab="dashboard"><span class="sidebar-tab-icon">&#x1F3E0;</span>Dashboard</div>
   <div class="sidebar-tab-item" data-tab="scan"><span class="sidebar-tab-icon">&#x1F50D;</span>Scan</div>
   <div class="sidebar-tab-item" data-tab="analyze"><span class="sidebar-tab-icon">&#x1F4C8;</span>Analyze</div>
+  <div class="sidebar-tab-item" data-tab="report"><span class="sidebar-tab-icon">&#x1F4C4;</span>Report</div>
   <div class="sidebar-tab-item" data-tab="advanced"><span class="sidebar-tab-icon">&#x2699;</span>Advanced</div>
   <div class="sidebar-tab-item" data-tab="settings"><span class="sidebar-tab-icon">&#x1F527;</span>Settings</div>
   <div class="sidebar-tab-item" data-tab="team"><span class="sidebar-tab-icon">&#x1F465;</span>Team</div>
@@ -1886,7 +1888,7 @@ body.detail-panel-open #tabAdvanced {
   <span>Toggle AI Slop Monitor</span>
 </div>
 </div>
-<div class="tab-pane" id="tabReport">
+<div class="tab-pane" id="tabReport" data-sidebar-tab="report">
 <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;">
   <div class="diag-back-bar" id="reportBackBtn" role="button" tabindex="0" style="margin-bottom:0;">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
@@ -2102,6 +2104,7 @@ body.detail-panel-open #tabAdvanced {
 </div>
 </div>
 <div class="tab-pane" id="tabAdvanced">
+<div class="tab-section">Advanced Menu</div>
 <div class="tab-section">Analysis</div>
 <div class="settings-btn-card" id="openReportBtn" style="margin-bottom:0;background:linear-gradient(135deg,rgba(245,158,11,0.15) 0%,rgba(217,119,6,0.08) 100%);border-color:rgba(245,158,11,0.25);">
   <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></span>
