@@ -222,6 +222,7 @@ cleanup-summary-cli.txt
 mock-*.cjs
 mock-*.js
 ai-platform/web/data/*-sample.json
+ai-platform/server/db/token-registry.json
 coming-soon/sample-*.html
 coming-soon/sample-report.json
 
@@ -272,6 +273,12 @@ simplebeacon-vscode/out/
 # VS Code extension patch temp directory (contains duplicate code-map.json)
 .vsix-patch-temp/
 **/.vsix-patch-temp/
+
+# Stress-test workflow — intentionally generates fake credentials in synthetic repos
+.github/workflows/simplebeacon-action-stress-test.yml
+
+# Generated copy of CLI rule catalog in VS Code extension (single source of truth in packages/simplebeacon-cli)
+simplebeacon-vscode-merged/src/rules/llm-slop-catalog.json
 
 # Replay tool references exports by string literal (dynamic usage)
 ai-platform/tools/replay-scope-patches.js

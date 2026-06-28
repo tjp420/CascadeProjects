@@ -3,5 +3,5 @@
 # https://www.npmjs.com/package/simplebeacon
 set -e
 echo "Simplebeacon pre-commit..."
-npx simplebeacon scan --gate --fail-on high
+npx simplebeacon scan --gate --fail-on high --config ai-platform/.simplebeacon/config.json
 echo "Simplebeacon pre-commit passed"

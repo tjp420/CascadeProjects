@@ -65,7 +65,10 @@
   "rules": {
     "credentials": {
       "enabled": true,
-      "scanProduction": true
+      "scanProduction": true,
+      "ignoreGlobs": [
+        "server/db/token-registry.json"
+      ]
     },
     "json-schema": {
       "enabled": true

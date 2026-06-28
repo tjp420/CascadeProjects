@@ -14,7 +14,7 @@ import { PlatformView } from './views/PlatformView.js?v=20260601platformmetrics1
 import { QualityView } from './views/QualityView.js';
 import { HelpView, FeaturesView } from './views/HelpView.js';
 import { AuditView } from './views/AuditView.js?v=20260618renderfix1';
-import { AnalyzeView } from './views/AnalyzeView.js?v=20260625pathfix2';
+import { AnalyzeView } from './views/AnalyzeView.js?v=20260628dragfix1';
 import { SecurityView } from './views/SecurityView.js?v=20260611fixexport1';
 import { PricingView } from './views/PricingView.js';
 import { AboutView } from './views/AboutView.js';
@@ -644,14 +644,10 @@ class SimplebeaconDashboard {
     const authed = authService.isAuthenticated();
     const signinBtn = document.getElementById('signin-btn');
     const signoutBtn = document.getElementById('signout-btn');
-    const profileBtn = document.getElementById('profile-btn');
     if (signinBtn) signinBtn.hidden = authed;
     if (signoutBtn) signoutBtn.hidden = !authed;
-    if (profileBtn) profileBtn.hidden = !authed;
     const sidebarSigninBtn = document.getElementById('sidebar-signin-btn');
-    const sidebarSignoutBtn = document.getElementById('sidebar-signout-btn');
     if (sidebarSigninBtn) sidebarSigninBtn.hidden = authed;
-    if (sidebarSignoutBtn) sidebarSignoutBtn.hidden = !authed;
     const pricingLink = document.getElementById('header-pricing-link');
     if (pricingLink) pricingLink.hidden = authed;
 
@@ -775,10 +771,6 @@ class SimplebeaconDashboard {
       this.router.navigate('signin');
     });
 
-    document.getElementById('profile-btn')?.addEventListener('click', () => {
-      this.router.navigate('profile');
-    });
-
     document.getElementById('signout-btn')?.addEventListener('click', async () => {
       try {
         await authService.logout();
@@ -792,17 +784,6 @@ class SimplebeaconDashboard {
 
     document.getElementById('sidebar-signin-btn')?.addEventListener('click', () => {
       this.router.navigate('signin');
-    });
-
-    document.getElementById('sidebar-signout-btn')?.addEventListener('click', async () => {
-      try {
-        await authService.logout();
-        showToast('Signed out', 'info');
-        this.updateAuthUi();
-        this.router.navigate('signin');
-      } catch (err) {
-        showToast('Sign out failed', 'error');
-      }
     });
 
     document.querySelectorAll('.nav-link[data-view]').forEach((link) => {

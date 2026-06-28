@@ -112,7 +112,7 @@ if (
   );
 }
 const webRoot = path.join(__dirname, 'web');
-const landingRoot = path.join(__dirname, '../coming-soon');
+const landingRoot = path.join(__dirname, '../coming-soon/public');
 const landingEnabled = process.env.SIMPLEBEACON_LANDING === 'true';
 const landingRootExists = fs.existsSync(landingRoot);
 
@@ -329,6 +329,14 @@ app.get('/', async (req, res) => {
 });
 
 app.get(['/dashboard', '/dashboard/'], async (req, res) => {
+  if (internalDashboard && !isVaultAuthenticated(req)) {
+    return res.redirect(302, '/');
+  }
+  return sendSimplebeaconDashboard(res);
+});
+
+// SPA sub-routes (e.g. /dashboard/analyze) — let the client router handle the path
+app.get('/dashboard/*', async (req, res) => {
   if (internalDashboard && !isVaultAuthenticated(req)) {
     return res.redirect(302, '/');
   }

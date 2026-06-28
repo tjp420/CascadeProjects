@@ -1,10 +1,11 @@
 import { escapeHtml, showToast, downloadJson, downloadBlob, downloadText, redactPathForDisplay, formatPathLabel, formatPathInputValue, formatAiSummarySkipMessage, isRedactedPathDisplay, formatNumber, renderEmptyState } from '../utils.js';
+import { evaluateFunnelMetrics, getFunnelCopy } from '../utils/funnelTrigger.js';
 // simplebeacon:production-leak-intent: sample-json - Legitimate documentation about sample file patterns in analysis results
 import { analyzePath, scanPath, summarizeReport, fetchAnalyzeProviders, fetchRepositoryInventory, fetchCodebaseAnalysis, enrichScanReport, fetchZscriptModReport, shouldFetchZscriptReport, isLegacyScanReport, buildMonorepoScopeNote, buildPathInventoryProvenance, renderInventoryProvenanceHtml, refreshPathInventory, liveInventoryForPath, renderScanScopePanel, isSimplebeaconReport, aiProviderSupportsSummary, getScanFileMetrics, resolveAutoAnalysisMode, buildScanConclusion, buildConsolidationConclusion, buildFictionDigestPayload, sanitizeFictionDigestExport, resolveCompleteScanTargetPath, normalizeProjectPath, filterIssuesByKind, preparePlatformResultsReport, fetchCompleteAuditReport, fetchAnalyzeExportBundleZip, fetchEuAiActAuditReport, openAuditReportPrintWindow, previewAuditExportTier, auditExportButtonLabel, fetchDataCleanupScan, ensureDashboardApiReady, assertCompleteScanComplianceFresh, assertCompleteScanFileReductionFresh, fetchUnderstandSnippet, isCodebaseReport, fetchComplianceChecklist, fetchProjectNpmAudit, prepareGithubRepo, fetchAnalyzeTestSources, isAnalyzeProviderConfigured } from '../services/analyzeService.js?v=20260531pathfix1';
 import { isRemoteRepoUrl, sourceChipTitle } from '../lib/analyzePathSources.js';
 import { reportMatchesPagePath, resolvePageProjectPath, getPathInputDisplayValue } from '../lib/pageRepoScan.js';
 import { collectPathSuggestions, refreshPathSuggestionsDatalist, pathInputListAttr, renderPathSuggestionsDatalistElement, saveRecentPath, removeRecentPath, loadRecentPaths } from '../lib/analyzePathSuggestions.js';
-import { validateProjectPathAllowlist } from '../lib/analyzePathAllowlist.js';
+import { validateProjectPathAllowlist, ensureAllowedAnalysisRoots } from '../lib/analyzePathAllowlist.js';
 import { isBenchmarkCachePath } from '../utils/complete-scan-artifact-profile.browser.js';
 import { runEuAiActSprint } from '../services/operatorService.js?v=20260531eupdf1';
 import { renderModeFileScopePanel, extractRoadmapFileMetrics } from '../utils/analyze-mode-file-scope.browser.js?v=20260601roadmapscope1';
@@ -185,7 +186,7 @@ const SCAN_PRESETS = [
 /** Group engines by their category field */
 function groupEnginesByCategory(engineIds) {
     const groups = new Map();
-    for (const id of engineIds) { // simplebeacon-ignore memory-leak — pure function with bounded Map, returns immediately
+    for (const id of engineIds) {
         const step = COMPLETE_STEPS.find((s) => s.id === id);
         const opt = OPTIONAL_COMPLETE_ENGINES.find((s) => s.id === id);
         const category = (step === null || step === void 0 ? void 0 : step.category) || (opt === null || opt === void 0 ? void 0 : opt.category) || 'Other';
@@ -1360,116 +1361,87 @@ export class AnalyzeView {
         const defaultPath = this.app.state.defaultProjectPath || '';
         const displayPath = this.getPathInputDisplayValue();
         const el = document.createElement('div');
-        el.className = 'fade-in analyze-redesign';
+        el.className = 'fade-in';
         el.innerHTML = `
-      <style>
-        .analyze-redesign .analyze-hero-v2 { text-align: center; margin: var(--space-6) 0 var(--space-5); }
-        .analyze-redesign .analyze-hero-v2 h1 { font-size: 1.75rem; font-weight: 800; margin-bottom: 0.5rem; letter-spacing: -0.02em; }
-        .analyze-redesign .analyze-hero-v2 p { color: var(--text-muted); font-size: 0.95rem; max-width: 560px; margin: 0 auto; }
-        .analyze-redesign .analyze-steps { display: flex; align-items: center; justify-content: center; gap: var(--space-2); margin-bottom: var(--space-5); }
-        .analyze-redesign .analyze-step { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; color: var(--text-muted); padding: 6px 12px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); }
-        .analyze-redesign .analyze-step.active { background: rgba(99,102,241,0.12); color: var(--primary); border-color: rgba(99,102,241,0.35); font-weight: 600; }
-        .analyze-redesign .analyze-step .step-num { width: 20px; height: 20px; border-radius: 50%; background: var(--border); color: var(--text-muted); display: inline-flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700; }
-        .analyze-redesign .analyze-step.active .step-num { background: var(--primary); color: #fff; }
-        .analyze-redesign .analyze-main-grid-v2 { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: var(--space-4); }
-        @media (max-width: 900px) { .analyze-redesign .analyze-main-grid-v2 { grid-template-columns: 1fr; } }
-        .analyze-redesign .analyze-col-title { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: var(--space-2); display: flex; align-items: center; gap: 6px; }
-        .analyze-redesign .analyze-actions-v2 { display: flex; gap: var(--space-2); flex-wrap: wrap; align-items: center; justify-content: space-between; margin-top: var(--space-4); padding: var(--space-3); background: var(--surface-elevated); border: 1px solid var(--border); border-radius: var(--radius-lg); }
-        .analyze-redesign .analyze-options-v2 { border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface-elevated); overflow: hidden; margin-top: var(--space-3); }
-        .analyze-redesign .analyze-options-v2 summary { padding: 12px 16px; cursor: pointer; font-size: 0.85rem; font-weight: 600; display: flex; align-items: center; justify-content: space-between; list-style: none; }
-        .analyze-redesign .analyze-options-v2 summary::-webkit-details-marker { display: none; }
-        .analyze-redesign .analyze-options-v2 .options-body { padding: 16px; border-top: 1px solid var(--border); display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--space-3); }
-        .analyze-redesign .analyze-options-v2 label { display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; }
-        .analyze-redesign .analyze-options-v2 .analyze-select { width: 100%; }
-        .analyze-redesign .analyze-vscode-pill { display: flex; align-items: center; gap: 8px; margin-top: var(--space-3); padding: 10px 14px; background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(139,92,246,0.05)); border: 1px solid rgba(99,102,241,0.2); border-radius: var(--radius-lg); font-size: 0.8rem; color: var(--text-muted); }
-        .analyze-redesign .analyze-vscode-pill strong { color: var(--text-primary); }
-      </style>
-
       <!-- Hero header -->
-      <div class="analyze-hero-v2">
-        <h1>Code Analysis</h1>
-        <p>Pick a target, choose a scan mix, and run. Get deterministic findings plus an optional AI narrative.</p>
-      </div>
-
-      <!-- Process steps -->
-      <div class="analyze-steps">
-        <div class="analyze-step active"><span class="step-num">1</span> Target</div>
-        <span style="color:var(--border);">→</span>
-        <div class="analyze-step"><span class="step-num">2</span> Mode</div>
-        <span style="color:var(--border);">→</span>
-        <div class="analyze-step"><span class="step-num">3</span> Run</div>
+      <div class="analyze-hero">
+        <div class="analyze-hero-main">
+          <h1 class="page-title">Analyze</h1>
+          <span class="analyze-build-badge">${escapeHtml(String(window.__SIMPLEBEACON_DASHBOARD_BUILD__ || 'dev'))}</span>
+        </div>
+        <p class="text-muted analyze-hero-sub">Scan a repo folder, drop a file, or paste a URL. Pick your scan mix and run.</p>
       </div>
 
       <!-- Two-column layout: Target + Scan Config -->
-      <div class="analyze-main-grid-v2">
+      <div class="grid-2 analyze-main-grid">
         <!-- Left: Target -->
         <div class="analyze-col">
-          <div class="analyze-col-title"><span>🎯</span> 1. Choose target</div>
           ${this.renderTargetCard(defaultPath, displayPath)}
+
+          <!-- Quick Actions -->
+          ${this.renderQuickActionsCard()}
 
           <!-- VS Code Extension Integration -->
           ${this.renderVscodeExtensionCard()}
 
           <!-- Advanced Options -->
-          <div class="analyze-options-v2">
-            <details ${this.showAiProviderSelect() || this.analysisType === 'complete' ? 'open' : ''}>
-              <summary>
-                <span>Advanced options</span>
-                <span style="font-size:0.75rem;color:var(--text-muted);">AI provider, understanding, roadmap insights</span>
+          <div class="card analyze-options-card">
+            <details class="analyze-options-details" ${this.showAiProviderSelect() || this.analysisType === 'complete' ? 'open' : ''}>
+              <summary class="analyze-options-summary">
+                <span class="analyze-options-summary-label">Advanced options</span>
+                <span class="text-muted" style="font-size:var(--font-size-xs);">AI provider, understanding mode, roadmap insights</span>
               </summary>
-              <div class="options-body">
-                <div id="analyze-ai-provider-wrap" class="${this.showAiProviderSelect() ? '' : 'is-hidden'}">
-                  <label for="ai-provider-select">AI narrative</label>
-                  <select id="ai-provider-select" class="analyze-select" aria-label="AI provider">
-                    <option value="demo">Filesystem scan (no AI)</option>
-                    <option value="active">Active model</option>
-                    <option value="ollama">Ollama</option>
-                    <option value="openai">OpenAI</option>
-                    <option value="anthropic">Anthropic</option>
-                  </select>
-                  <p id="analyze-ai-provider-note" class="text-muted analyze-roadmap-note" style="font-size: 0.75rem; margin: 0.25rem 0 0;"></p>
-                  <button type="button" class="btn btn-ghost btn-sm" id="refresh-analyze-providers-btn" style="margin-top: 0.25rem;">Refresh providers</button>
+              <div class="analyze-options-body">
+                <div class="analyze-options-grid">
+                  <div id="analyze-ai-provider-wrap" class="analyze-ai-provider-wrap${this.showAiProviderSelect() ? '' : ' is-hidden'}">
+                    <label for="ai-provider-select" class="text-muted" style="font-size: var(--font-size-xs);">AI narrative</label>
+                    <select id="ai-provider-select" class="analyze-select" aria-label="AI provider">
+                      <option value="demo">Filesystem scan (no AI)</option>
+                      <option value="active">Active model</option>
+                      <option value="ollama">Ollama</option>
+                      <option value="openai">OpenAI</option>
+                      <option value="anthropic">Anthropic</option>
+                    </select>
+                    <p id="analyze-ai-provider-note" class="text-muted analyze-roadmap-note" style="font-size: var(--font-size-xs); margin: 0.25rem 0 0;"></p>
+                    <button type="button" class="btn btn-ghost btn-sm" id="refresh-analyze-providers-btn" style="margin-top: 0.25rem;">Refresh providers</button>
+                  </div>
+                  <div id="analyze-understanding-wrap" class="analyze-roadmap-insights-wrap${analysisTypeSupportsUnderstanding(this.analysisType) ? '' : ' is-hidden'}">
+                    <label for="understanding-mode-select" class="text-muted" style="font-size: var(--font-size-xs);">Code understanding</label>
+                    <select id="understanding-mode-select" class="analyze-select" aria-label="Code understanding mode">
+                      <option value="off" ${this.understandingMode === 'off' ? 'selected' : ''}>Static scan only</option>
+                      <option value="deterministic" ${this.understandingMode === 'deterministic' ? 'selected' : ''}>Semantic + context</option>
+                      <option value="llm" ${this.understandingMode === 'llm' ? 'selected' : ''}>+ LLM explanation</option>
+                    </select>
+                  </div>
+                  <div id="analyze-roadmap-insights-wrap" class="analyze-roadmap-insights-wrap${analysisTypeSupportsRoadmapInsights(this.analysisType) ? '' : ' is-hidden'}">
+                    <label for="roadmap-insights-select" class="text-muted" style="font-size: var(--font-size-xs);">Roadmap insights</label>
+                    <select id="roadmap-insights-select" class="analyze-select" aria-label="Roadmap insights mode">
+                      <option value="off" ${this.roadmapInsightsMode === 'off' ? 'selected' : ''}>Filesystem only</option>
+                      <option value="deterministic" ${this.roadmapInsightsMode === 'deterministic' ? 'selected' : ''}>Deterministic (no LLM)</option>
+                      <option value="llm" ${this.roadmapInsightsMode === 'llm' ? 'selected' : ''}>+ LLM strategic layer</option>
+                    </select>
+                  </div>
+                  <div class="analyze-realtime-monitor-wrap">
+                    <label class="text-muted" style="font-size: var(--font-size-xs);">Real-time monitoring</label>
+                    <label style="display:flex;align-items:center;gap:0.5rem;font-size:var(--font-size-xs);color:var(--text-muted);cursor:pointer;margin-top:0.25rem;">
+                      <input type="checkbox" id="analyze-realtime-monitor" aria-label="Enable real-time file monitoring" ${this.realtimeMonitorEnabled ? 'checked' : ''}>
+                      <span>Watch filesystem changes and auto-rescan (requires VS Code extension or server watcher)</span>
+                    </label>
+                  </div>
                 </div>
-                <div id="analyze-understanding-wrap" class="${analysisTypeSupportsUnderstanding(this.analysisType) ? '' : 'is-hidden'}">
-                  <label for="understanding-mode-select">Code understanding</label>
-                  <select id="understanding-mode-select" class="analyze-select" aria-label="Code understanding mode">
-                    <option value="off" ${this.understandingMode === 'off' ? 'selected' : ''}>Static scan only</option>
-                    <option value="deterministic" ${this.understandingMode === 'deterministic' ? 'selected' : ''}>Semantic + context</option>
-                    <option value="llm" ${this.understandingMode === 'llm' ? 'selected' : ''}>+ LLM explanation</option>
-                  </select>
-                </div>
-                <div id="analyze-roadmap-insights-wrap" class="${analysisTypeSupportsRoadmapInsights(this.analysisType) ? '' : 'is-hidden'}">
-                  <label for="roadmap-insights-select">Roadmap insights</label>
-                  <select id="roadmap-insights-select" class="analyze-select" aria-label="Roadmap insights mode">
-                    <option value="off" ${this.roadmapInsightsMode === 'off' ? 'selected' : ''}>Filesystem only</option>
-                    <option value="deterministic" ${this.roadmapInsightsMode === 'deterministic' ? 'selected' : ''}>Deterministic (no LLM)</option>
-                    <option value="llm" ${this.roadmapInsightsMode === 'llm' ? 'selected' : ''}>+ LLM strategic layer</option>
-                  </select>
-                </div>
-                <div class="analyze-realtime-monitor-wrap">
-                  <label>Real-time monitoring</label>
-                  <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.75rem;color:var(--text-muted);cursor:pointer;margin-top:0.25rem;">
-                    <input type="checkbox" id="analyze-realtime-monitor" aria-label="Enable real-time file monitoring" ${this.realtimeMonitorEnabled ? 'checked' : ''}>
-                    <span>Watch filesystem changes and auto-rescan</span>
-                  </label>
-                </div>
+                <p id="analyze-roadmap-no-ai-note" class="text-muted analyze-roadmap-note${this.showRoadmapInsightsNote() ? '' : ' is-hidden'}" style="font-size: var(--font-size-xs); margin: var(--space-2) 0 0;">
+                  Roadmap data is always from <code>code-roadmap-generator</code>. Insights layer adds executive summary + risk.
+                </p>
               </div>
-              <p id="analyze-roadmap-no-ai-note" class="text-muted analyze-roadmap-note${this.showRoadmapInsightsNote() ? '' : ' is-hidden'}" style="font-size: 0.75rem; padding: 0 16px 12px; margin: 0;">
-                Roadmap data is always from <code>code-roadmap-generator</code>. Insights layer adds executive summary + risk.
-              </p>
             </details>
           </div>
         </div>
 
         <!-- Right: Scan Configuration -->
         <div class="analyze-col">
-          <div class="analyze-col-title"><span>⚙️</span> 2. Configure scan</div>
           ${this.renderSelectedModeDetail()}
         </div>
       </div>
-
-      <!-- Run action bar -->
-      ${this.renderQuickActionsCard()}
 
       ${this.busy ? this.renderProgress() : ''}
 
@@ -1523,17 +1495,14 @@ export class AnalyzeView {
         const projectPath = this.getActiveProjectPath(pathInput === null || pathInput === void 0 ? void 0 : pathInput.value);
         const canRun = Boolean(projectPath) && !this.busy;
         return `
-      <div class="analyze-actions-v2" id="analyze-actions-bar">
+      <div class="card analyze-quick-actions-card" style="margin-top:var(--space-3);padding:var(--space-3);">
         <div style="display:flex;gap:var(--space-2);flex-wrap:wrap;align-items:center;">
-          <span class="analyze-col-title" style="margin:0;"><span>▶️</span> 3. Run</span>
           <button type="button" class="btn btn-primary btn-sm" id="quick-action-run-btn" ${canRun ? '' : 'disabled'} title="Run analysis on the current path">
             <i data-lucide="play" class="icon-16" style="margin-right:4px;"></i> Run Scan
           </button>
           <button type="button" class="btn btn-secondary btn-sm" id="quick-action-results-btn" ${hasResult ? '' : 'disabled'} title="Open results view">
             <i data-lucide="bar-chart-2" class="icon-16" style="margin-right:4px;"></i> Results
           </button>
-        </div>
-        <div style="display:flex;gap:var(--space-2);flex-wrap:wrap;align-items:center;">
           <button type="button" class="btn btn-secondary btn-sm" id="quick-action-export-btn" ${hasResult ? '' : 'disabled'} title="Export scan report">
             <i data-lucide="download" class="icon-16" style="margin-right:4px;"></i> Export
           </button>
@@ -1549,125 +1518,148 @@ export class AnalyzeView {
         const inVsCodeHost = typeof window !== 'undefined' && (/vscode|electron/i.test(navigator.userAgent) ||
             /vscode-webview/i.test(navigator.userAgent));
         const inVsCode = hasVsCodeApi || inVsCodeHost;
-        const status = inVsCode ? 'Active' : 'Not connected';
-        const statusColor = inVsCode ? 'var(--success)' : 'var(--warning)';
+        const badge = inVsCode
+            ? `<span class="ti-badge" style="background:rgba(16,185,129,0.15);color:var(--success);font-size:0.75rem;">● Active</span>`
+            : `<a href="https://marketplace.visualstudio.com/items?itemName=SimpleBeacon.simplebeacon-vscode" target="_blank" rel="noopener" class="btn btn-primary btn-sm" style="flex-shrink:0;">Install</a>`;
+        const subtitle = inVsCode
+            ? (hasVsCodeApi
+                ? 'Extension is running in this editor. Enhanced analysis active: full-directory scan, real-time monitoring, and deep code insights.'
+                : 'Extension is running in this editor. Real-time monitoring, AI analysis, code map, and remediation guide are active.')
+            : 'Real-time file monitoring, enhanced AI analysis, code map, and remediation guide — directly in your editor.';
+        const sendToVscodeBtn = (!inVsCode && this.projectPath)
+            ? `<a href="vscode://simplebeacon.fix?projectPath=${encodeURIComponent(this.projectPath)}&scanId=${encodeURIComponent(this.lastScanId || '')}" class="btn btn-primary btn-sm" style="flex-shrink:0;margin-left:8px;">Open in VS Code</a>`
+            : '';
+        // Only show sync button when acquireVsCodeApi is available (true webview panel)
+        // Simple Browser has no API access, so sync is not available there
         const syncBtn = hasVsCodeApi
-            ? `<button type="button" class="btn btn-ghost btn-sm" id="vscode-sync-report-btn" style="margin-left:auto;font-size:0.75rem;" title="Push current scan report to the sidebar">🔄 Sync</button>`
+            ? `<button type="button" class="btn btn-ghost btn-sm" id="vscode-sync-report-btn" style="flex-shrink:0;margin-left:8px;font-size:0.75rem;" title="Push current scan report to the sidebar">🔄 Sync</button>`
             : '';
         return `
-      <div class="analyze-vscode-pill">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--primary);"><path d="m4 4 16 16"/><path d="m20 4-16 16"/></svg>
-        <span>
-          <strong>VS Code Extension</strong>
-          <span style="color:${statusColor};font-weight:600;">● ${status}</span>
-          ${inVsCode ? '— Enhanced scan, real-time monitoring, and sidebar sync available.' : '— Install the extension for enhanced scans and real-time monitoring.'}
-        </span>
-        ${syncBtn}
+      <div class="card analyze-vscode-card" style="margin-top:var(--space-3);padding:var(--space-3);background:linear-gradient(135deg,rgba(99,102,241,0.06) 0%,rgba(139,92,246,0.04) 100%);border-color:rgba(99,102,241,0.15);">
+        <div style="display:flex;align-items:flex-start;gap:var(--space-3);">
+          <div style="flex-shrink:0;width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.25rem;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m4 4 16 16"/><path d="m20 4-16 16"/></svg>
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--space-2);">
+              <p class="card-title" style="margin:0;font-size:0.95rem;">VS Code Extension</p>
+              <div style="display:flex;align-items:center;">${badge}${syncBtn}${sendToVscodeBtn}</div>
+            </div>
+            <p class="text-muted" style="font-size:var(--font-size-xs);margin:var(--space-1) 0 0;">
+              ${escapeHtml(subtitle)}
+            </p>
+          </div>
+        </div>
       </div>
     `;
     }
     renderTargetCard(defaultPath, displayPath) {
         const isWeb = this.websiteMode;
-        const dropzoneClass = isWeb ? '' : ' is-droppable';
         const useDefaultHidden = defaultPath && !isWeb ? '' : 'hidden';
         const pathPlaceholder = isWeb
             ? 'https://example.com'
             : 'C:\\\\dev\\\\my-app · git@github.com:org/repo · https://codeberg.org/org/repo';
         const pathAria = isWeb ? 'Website URL' : 'Project path on server';
-        const pathHint = isWeb ? 'Enter a public website URL' : 'Type a server path or browse to select a directory';
         const pathList = isWeb ? '' : pathInputListAttr();
         const datalist = isWeb ? '' : renderPathSuggestionsDatalistElement(collectPathSuggestions(this.app, this.testSources));
-        const folderDropzone = isWeb ? '' : `
-          <div class="analyze-dropzone-icon"><i data-lucide="folder-up" class="icon-20"></i></div>
-          <div class="analyze-dropzone-label">
-            <strong>Drop a project folder or file here</strong>
-            <span class="text-muted">Or browse to select</span>
-          </div>
-          <div class="analyze-dropzone-center-actions">
-            <button type="button" class="btn btn-primary btn-sm" id="browse-dir-btn"><i data-lucide="folder-open" class="icon-16"></i> Browse Folder</button>
-            <button type="button" class="btn btn-secondary btn-sm" id="analyze-file-browse-btn-main" ${this.snippetBusy ? 'disabled' : ''}><i data-lucide="file-up" class="icon-16"></i> Browse File</button>
-          </div>`;
-        const dropzoneVisual = `
-      <div class="analyze-dropzone-visual ${this.busy ? 'scanning' : ''}" id="path-dropzone-visual">
-        <div class="analyze-dropzone-idle" ${this.busy ? 'hidden' : ''}>
-          ${folderDropzone}
-          <div class="analyze-dropzone-path-input" style="margin-top:12px;display:flex;gap:8px;align-items:center;width:100%;max-width:520px;">
-            <input type="text" id="project-path-input" class="analyze-path-input"
-              placeholder="${pathPlaceholder}"
-              value="${escapeHtml(formatPathInputValue(displayPath))}"
-              list="${pathList}"
-              spellcheck="false"
-              autocomplete="list"
-              aria-label="${pathAria}"
-              style="flex:1;font-size:0.8rem;padding:6px 10px;">
-            <button type="button" class="btn btn-primary btn-sm" id="dropzone-path-analyze-btn">Analyze</button>
-          </div>
-          ${datalist}
-          <p class="text-muted" style="font-size:0.65rem;margin-top:6px;text-align:center;">${isWeb ? 'Enter a public URL to scan a website.' : 'Browser folders hide drive letters — type the full path above for external drives.'}</p>
-        </div>
-        <div class="analyze-dropzone-terminal" ${this.busy ? '' : 'hidden'}>
-          <div class="analyze-dropzone-terminal-header">
-            <span class="analyze-dropzone-terminal-dot red"></span>
-            <span class="analyze-dropzone-terminal-dot yellow"></span>
-            <span class="analyze-dropzone-terminal-dot green"></span>
-            <span class="analyze-dropzone-terminal-title">Scanning…</span>
-          </div>
-          <div class="analyze-dropzone-terminal-body" id="dropzone-terminal-body">
-            ${this._terminalLogLines.map((line) => `<div class="terminal-line">${line}</div>`).join('')}
-          </div>
-        </div>
-      </div>`;
-        const fullTreeToggle = isWeb ? '' : `
-      <label class="analyze-full-tree-toggle text-muted" style="display:flex;align-items:center;gap:0.5rem;font-size:var(--font-size-xs);margin:var(--space-3) 0 0;">
-        <input type="checkbox" id="analyze-full-directory" aria-label="Analyze every file in the selected folder" ${this.fullDirectoryScan ? 'checked' : ''}>
-        <strong>Full tree</strong> — SHA-256 every file, content-scan all text, all gate rules
-      </label>`;
-        const quickCheck = isWeb ? '' : `
-      <div class="card analyze-dropzone${this.snippetBusy ? ' busy' : ''}" id="analyze-file-dropzone" style="margin-top:var(--space-3);">
-        <div class="analyze-dropzone-inner" style="padding:var(--space-5);">
-          <div class="analyze-dropzone-icon" aria-hidden="true"><i data-lucide="file-up" class="icon-20"></i></div>
-          <p class="card-title" style="margin-bottom:0.35rem;font-size:0.9rem;">Quick File Check</p>
-          <p class="text-muted analyze-file-drop-lead" style="font-size:var(--font-size-xs);margin-bottom:var(--space-2);">
-            Drop a source file or JSON report here for instant in-browser analysis.
-            Detects credentials, mock-path leaks, fiction KPIs, and LLM slop placeholders.
-          </p>
-          <p class="text-muted analyze-file-drop-hint" style="font-size:0.7rem;margin-bottom:var(--space-3);">
-            <span style="color:var(--text-secondary);background:rgba(99,102,241,0.08);padding:2px 8px;border-radius:4px;font-size:0.65rem;font-weight:600;text-transform:uppercase;">Supported</span>
-            ${escapeHtml(SNIPPET_ACCEPT.replace(/\./g, ' .'))} &middot; max ${Math.round(MAX_SNIPPET_BYTES / 1024)} KB
-          </p>
-          <div class="analyze-dropzone-actions">
-            <button type="button" class="btn btn-primary btn-sm" id="analyze-file-browse-btn-dropzone" ${this.snippetBusy ? 'disabled' : ''}><i data-lucide="upload" class="icon-16" style="margin-right:4px;"></i>Choose File</button>
-            <button type="button" class="btn btn-ghost btn-sm" id="analyze-file-clear-btn" ${this.snippetResult ? '' : 'disabled'}>Clear</button>
-          </div>
-          <input type="file" id="analyze-file-input" accept="${SNIPPET_ACCEPT}" hidden>
-        </div>
-        ${this.snippetResult ? this.renderSnippetResults(this.snippetResult) : ''}
-      </div>`;
         const pathSources = isWeb ? '' : this.renderPathSourceSections(defaultPath, displayPath);
         return `
-      <div class="card analyze-target-card" id="analyze-target-card">
-        <div class="card-header">
-          <span class="card-title">🎯 Target</span>
+      <style>
+        .analyze-target-redesign { border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface-elevated); overflow: hidden; }
+        .analyze-target-redesign .target-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--border); background: var(--surface); }
+        .analyze-target-redesign .target-title { font-size: 0.95rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+        .analyze-target-redesign .target-body { padding: 20px; }
+        .analyze-target-redesign .drop-zone { border: 2px dashed var(--border); border-radius: var(--radius-lg); background: var(--surface); padding: 28px 24px; text-align: center; transition: all .2s; position: relative; }
+        .analyze-target-redesign .drop-zone.drag-active { border-color: var(--primary); background: rgba(99,102,241,0.06); }
+        .analyze-target-redesign .drop-zone-icon { width: 48px; height: 48px; border-radius: 12px; background: rgba(99,102,241,0.1); color: var(--primary); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 12px; }
+        .analyze-target-redesign .drop-zone-title { font-size: 1rem; font-weight: 600; margin-bottom: 4px; }
+        .analyze-target-redesign .drop-zone-sub { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 16px; }
+        .analyze-target-redesign .drop-zone-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+        .analyze-target-redesign .path-row { display: flex; gap: 8px; align-items: center; max-width: 560px; margin: 18px auto 0; }
+        .analyze-target-redesign .path-row input { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 8px 12px; color: var(--text-primary); font-size: 0.85rem; }
+        .analyze-target-redesign .path-row button { flex-shrink: 0; }
+        .analyze-target-redesign .hint { text-align: center; font-size: 0.7rem; color: var(--text-muted); margin-top: 8px; }
+        .analyze-target-redesign .options-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+        .analyze-target-redesign .quick-file { border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); padding: 14px; margin-top: 14px; }
+        .analyze-target-redesign .quick-file-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .analyze-target-redesign .quick-file-title { font-size: 0.9rem; font-weight: 600; }
+        .analyze-target-redesign .quick-file-sub { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 10px; }
+        .analyze-target-redesign .quick-file-actions { display: flex; gap: 8px; }
+        .analyze-target-redesign .scanning-state { display: none; padding: 24px; text-align: center; }
+        .analyze-target-redesign .scanning-state.active { display: block; }
+        .analyze-target-redesign .scanning-state h3 { margin-bottom: 8px; }
+        .analyze-target-redesign .scanning-state p { color: var(--text-muted); font-size: 0.85rem; }
+      </style>
+
+      <div class="analyze-target-redesign" id="analyze-target-card">
+        <div class="target-header">
+          <span class="target-title"><span>🎯</span> Target</span>
           <div class="analyze-path-header-actions">
             <button type="button" class="btn btn-ghost btn-sm" id="use-default-path-btn" ${useDefaultHidden}>Use default</button>
             <button type="button" class="btn btn-ghost btn-sm" id="clear-path-btn">Clear</button>
           </div>
         </div>
 
-        <div class="analyze-path-area${dropzoneClass}" id="analyze-path-dropzone">
-          ${dropzoneVisual}
+        <div class="target-body">
+          <div class="drop-zone ${this.busy ? 'scanning' : ''}" id="analyze-path-dropzone">
+            <div class="drop-zone-idle" ${this.busy ? 'hidden' : ''}>
+              <div class="drop-zone-icon"><i data-lucide="folder-up" class="icon-24"></i></div>
+              <div class="drop-zone-title">Drop a project folder here</div>
+              <div class="drop-zone-sub">Or type a path, browse, or drop a file / JSON report</div>
+              <div class="drop-zone-actions">
+                <button type="button" class="btn btn-primary btn-sm" id="browse-dir-btn"><i data-lucide="folder-open" class="icon-16"></i> Browse Folder</button>
+                <button type="button" class="btn btn-secondary btn-sm" id="analyze-file-browse-btn-main" ${this.snippetBusy ? 'disabled' : ''}><i data-lucide="file-up" class="icon-16"></i> Browse File</button>
+              </div>
+              <div class="path-row">
+                <input type="text" id="project-path-input" class="analyze-path-input"
+                  placeholder="${pathPlaceholder}"
+                  value="${escapeHtml(formatPathInputValue(displayPath))}"
+                  list="${pathList}"
+                  spellcheck="false"
+                  autocomplete="list"
+                  aria-label="${pathAria}">
+                <button type="button" class="btn btn-primary btn-sm" id="dropzone-path-analyze-btn">Analyze</button>
+              </div>
+              ${datalist}
+              <p class="hint">${isWeb ? 'Enter a public URL to scan a website.' : 'Browser drag-and-drop cannot reveal full drive paths — use Browse Folder or type the path for best results.'}</p>
+            </div>
+            <div class="scanning-state ${this.busy ? 'active' : ''}">
+              <div class="drop-zone-icon"><i data-lucide="loader-2" class="icon-24" style="animation:spin 1s linear infinite;"></i></div>
+              <h3>Scanning…</h3>
+              <p id="dropzone-terminal-body">${this._terminalLogLines.map((line) => `<div class="terminal-line">${line}</div>`).join('')}</p>
+            </div>
+          </div>
+
+          <div class="options-row">
+            ${isWeb ? '' : `
+            <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.75rem;color:var(--text-muted);cursor:pointer;">
+              <input type="checkbox" id="analyze-full-directory" aria-label="Analyze every file in the selected folder" ${this.fullDirectoryScan ? 'checked' : ''}>
+              <strong>Full tree</strong> — SHA-256 every file, content-scan all text
+            </label>`}
+            <div id="analyze-inventory-provenance" style="margin-left:auto;">
+              ${this.renderInventoryProvenanceLine(displayPath)}
+            </div>
+          </div>
+
+          ${isWeb ? '' : `
+          <div class="quick-file" id="analyze-file-dropzone">
+            <div class="quick-file-head">
+              <i data-lucide="file-up" class="icon-18"></i>
+              <span class="quick-file-title">Quick file check</span>
+            </div>
+            <p class="quick-file-sub">Drop a source file or JSON report for instant in-browser analysis. Supports ${escapeHtml(SNIPPET_ACCEPT.replace(/\./g, ' .'))} · max ${Math.round(MAX_SNIPPET_BYTES / 1024)} KB.</p>
+            <div class="quick-file-actions">
+              <button type="button" class="btn btn-primary btn-sm" id="analyze-file-browse-btn-dropzone" ${this.snippetBusy ? 'disabled' : ''}><i data-lucide="upload" class="icon-16" style="margin-right:4px;"></i>Choose File</button>
+              <button type="button" class="btn btn-ghost btn-sm" id="analyze-file-clear-btn" ${this.snippetResult ? '' : 'disabled'}>Clear</button>
+            </div>
+            <input type="file" id="analyze-file-input" accept="${SNIPPET_ACCEPT}" hidden>
+            ${this.snippetResult ? this.renderSnippetResults(this.snippetResult) : ''}
+          </div>`}
+
+          ${pathSources}
         </div>
 
         <input type="file" id="browse-dir-input" webkitdirectory directory hidden>
-        <p class="analyze-path-hint text-muted">${pathHint}</p>
-
-        <div id="analyze-inventory-provenance" class="analyze-inventory-provenance-slot">
-          ${this.renderInventoryProvenanceLine(displayPath)}
-        </div>
-
-        ${fullTreeToggle}
-
-        ${pathSources}
       </div>
     `;
     }
@@ -4497,20 +4489,19 @@ export class AnalyzeView {
                     pathDragDepth = 0;
                 }
             });
-            pathDropzone.addEventListener('drop', (event) => {
+            pathDropzone.addEventListener('drop', async (event) => {
                 var _a, _b, _c, _d;
                 event.preventDefault();
                 event.stopPropagation();
                 pathDragDepth = 0;
                 pathDropzone.classList.remove('drag-active');
+                // Preload providers so defaultProjectPath is available for path resolution
+                try {
+                    await ensureAllowedAnalysisRoots(this.app);
+                }
+                catch ( /* ignore */_e) { /* ignore */ }
                 const items = (_a = event.dataTransfer) === null || _a === void 0 ? void 0 : _a.items;
                 const files = (_b = event.dataTransfer) === null || _b === void 0 ? void 0 : _b.files;
-                // Helper: derive folder path from a file path inside that folder
-                /**
-                 * Derive dir from file path.
-                 * @param {string} filePath
-                 * @returns {any}
-                 */
                 const deriveDirFromFilePath = (filePath) => {
                     if (!filePath)
                         return '';
@@ -4518,17 +4509,11 @@ export class AnalyzeView {
                     const lastSlash = norm.lastIndexOf('/');
                     return lastSlash > 0 ? norm.slice(0, lastSlash) : norm;
                 };
-                // Helper: get actual dropped folder path from OS dataTransfer or Electron
-                /**
-                 * Get dropped folder path.
-                 * @returns {any}
-                 */
                 const getDroppedFolderPath = () => {
                     var _a, _b, _c, _d, _e, _f, _g, _h;
                     const dt = event.dataTransfer;
                     if (!dt)
                         return '';
-                    // Try multiple data formats that OS file managers expose
                     const tryGetData = (type) => {
                         try {
                             return dt.getData(type) || '';
@@ -4537,7 +4522,6 @@ export class AnalyzeView {
                             return '';
                         }
                     };
-                    // 1. Windows Explorer / macOS Finder file:// URI
                     const uriList = tryGetData('text/uri-list');
                     if (uriList) {
                         const uri = (_a = uriList.trim().split('\n')[0]) === null || _a === void 0 ? void 0 : _a.trim();
@@ -4550,17 +4534,14 @@ export class AnalyzeView {
                             return p.replace(/\//g, '\\');
                         }
                     }
-                    // 2. text/plain — Windows Explorer sometimes drops the raw path here
                     const plain = tryGetData('text/plain');
                     if (plain) {
                         let trimmed = (_b = plain.trim().split('\n')[0]) === null || _b === void 0 ? void 0 : _b.trim();
-                        // Windows Explorer may wrap paths in quotes
                         trimmed = trimmed.replace(/^["']|["']$/g, '');
                         if (trimmed && /^[a-zA-Z]:[\\\/]/.test(trimmed)) {
                             return trimmed.replace(/[\\\/]+$/, '');
                         }
                     }
-                    // 3. text/x-moz-url — Firefox specific
                     const mozUrl = tryGetData('text/x-moz-url');
                     if (mozUrl) {
                         const url = (_c = mozUrl.trim().split('\n')[0]) === null || _c === void 0 ? void 0 : _c.trim();
@@ -4573,11 +4554,9 @@ export class AnalyzeView {
                             return p.replace(/\//g, '\\');
                         }
                     }
-                    // 4. Electron / desktop wrappers: files inside the folder carry absolute paths
                     if ((_d = files === null || files === void 0 ? void 0 : files[0]) === null || _d === void 0 ? void 0 : _d.path) {
                         const filePath = String(files[0].path);
                         const norm = filePath.replace(/\\/g, '/');
-                        // The first file may be deep inside subdirectories; use entry.name to find the dropped folder boundary
                         const folderName = ((_e = files === null || files === void 0 ? void 0 : files[0]) === null || _e === void 0 ? void 0 : _e.name) || '';
                         if (folderName) {
                             const idx = norm.indexOf(`/${folderName}/`);
@@ -4587,7 +4566,6 @@ export class AnalyzeView {
                         }
                         return deriveDirFromFilePath(filePath);
                     }
-                    // 5. Fallback: try converting the first item to a file and read its path
                     if (items === null || items === void 0 ? void 0 : items[0]) {
                         try {
                             const file = (_g = (_f = items[0]).getAsFile) === null || _g === void 0 ? void 0 : _g.call(_f);
@@ -4605,123 +4583,69 @@ export class AnalyzeView {
                             }
                         }
                         catch (_l) {
-                            // getAsFile may throw for directories in some browsers
+                            // getAsFile may throw for directories
                         }
                     }
                     return '';
                 };
-                // Try File System API first (webkitGetAsEntry) for directory detection
+                const setPathAndNotify = (resolvedPath, name, autoRun = true) => {
+                    const pathInput = el.querySelector('#project-path-input');
+                    if (pathInput) {
+                        pathInput.value = resolvedPath;
+                        this.app.state.pathInputDraft = '';
+                        this.app.state.lastProjectPath = resolvedPath;
+                        this.setPathInputDisplay(pathInput, resolvedPath);
+                        this.syncAnalyzeModeUi(el);
+                        void this.refreshReportForActivePath(el);
+                    }
+                    showToast(`Folder "${name}" dropped — path set to ${resolvedPath}.`, 'info');
+                    if (autoRun && resolvedPath) {
+                        void this.runPathAnalysis(resolvedPath);
+                    }
+                };
+                const resolveFolderPath = (name) => {
+                    const actualDir = getDroppedFolderPath();
+                    if (actualDir)
+                        return actualDir;
+                    const pathInput = el.querySelector('#project-path-input');
+                    const currentInput = String((pathInput === null || pathInput === void 0 ? void 0 : pathInput.value) || '').trim();
+                    const currentBase = currentInput
+                        ? currentInput.replace(/\\/g, '/').replace(/\/+$/, '').split('/').slice(0, -1).join('/')
+                        : '';
+                    const rawDefault = String(this.app.state.defaultProjectPath || '')
+                        .replace(/\\/g, '/')
+                        .replace(/\/+$/, '');
+                    const fallbackBase = String(this._deriveFallbackBase())
+                        .replace(/\\/g, '/')
+                        .replace(/\/+$/, '');
+                    const base = rawDefault || currentBase || fallbackBase;
+                    return base ? `${base}/${name}` : name;
+                };
                 if (items === null || items === void 0 ? void 0 : items.length) {
                     const entry = (_d = (_c = items[0]).webkitGetAsEntry) === null || _d === void 0 ? void 0 : _d.call(_c);
                     if (entry) {
                         if (entry.isDirectory) {
-                            const pathInput = el.querySelector('#project-path-input');
                             const name = entry.name || '';
-                            const actualDir = getDroppedFolderPath();
-                            const currentInput = this.resolveProjectPath(pathInput === null || pathInput === void 0 ? void 0 : pathInput.value);
-                            const rawDefault = String(this.app.state.defaultProjectPath || this._deriveFallbackBase())
-                                .replace(/\\/g, '/')
-                                .replace(/\/+$/, '');
-                            // If defaultProjectPath points to a specific project folder, use its parent
-                            // as the default so dropped sibling folders don't get nested inside it.
-                            const defaultParts = rawDefault.split('/').filter(Boolean);
-                            const defaultPath = (defaultParts.length > 2 && !rawDefault.toLowerCase().endsWith('/users'))
-                                ? defaultParts.slice(0, -1).join('/')
-                                : rawDefault;
-                            let suggestedPath;
-                            if (actualDir) {
-                                suggestedPath = actualDir;
-                            }
-                            else {
-                                // Browser: we only know the folder basename. Search for it in currentInput/defaultPath.
-                                /**
-                                 * Search path.
-                                 * @param {any} base
-                                 * @returns {any}
-                                 */
-                                const searchPath = (base) => {
-                                    if (!base || !name)
-                                        return '';
-                                    const norm = base.replace(/\\/g, '/').replace(/\/+$/, '');
-                                    const parts = norm.split('/').filter(Boolean);
-                                    const idx = parts.lastIndexOf(name);
-                                    return idx >= 0 ? parts.slice(0, idx + 1).join('/') : '';
-                                };
-                                const foundPath = searchPath(currentInput) || searchPath(defaultPath);
-                                if (foundPath) {
-                                    suggestedPath = foundPath;
-                                }
-                                else if (currentInput) {
-                                    const currentParts = currentInput.replace(/\\/g, '/').split('/').filter(Boolean);
-                                    const currentLeaf = currentParts[currentParts.length - 1] || '';
-                                    // If currentInput already ends with the dropped folder name, keep it
-                                    // (user may have already typed the correct cross-drive path).
-                                    if (currentLeaf.toLowerCase() === name.toLowerCase()) {
-                                        suggestedPath = currentInput;
-                                    }
-                                    else {
-                                        // Browsers can't reveal absolute paths for dropped folders,
-                                        // and guessing a sibling path on the current drive is wrong
-                                        // for external drives (e.g. I:\). Ask the user for the full path.
-                                        suggestedPath = name;
-                                    }
-                                }
-                                else {
-                                    suggestedPath = name;
-                                }
-                            }
-                            const trimmed = suggestedPath.trim();
-                            if (pathInput) {
-                                pathInput.value = trimmed;
-                                this.app.state.pathInputDraft = '';
-                                this.app.state.lastProjectPath = trimmed;
-                                this.setPathInputDisplay(pathInput, trimmed);
-                                this.syncAnalyzeModeUi(el);
-                                void this.refreshReportForActivePath(el);
-                            }
+                            setPathAndNotify(resolveFolderPath(name), name);
                             return;
                         }
                         if (entry.isFile && (files === null || files === void 0 ? void 0 : files.length)) {
-                            // File dropped on path area -> send to file dropzone handler
                             void this.handleAnalyzeFiles(files);
                             return;
                         }
                     }
                 }
-                // Fallback for browsers without File System API
                 if (files === null || files === void 0 ? void 0 : files.length) {
                     const file = files[0];
-                    // Try OS dataTransfer URI first, then Electron file.path
                     const dtUriPath = getDroppedFolderPath();
                     if (dtUriPath) {
-                        const pathInput = el.querySelector('#project-path-input');
-                        if (pathInput) {
-                            pathInput.value = dtUriPath;
-                            this.app.state.pathInputDraft = '';
-                            this.app.state.lastProjectPath = dtUriPath;
-                            this.setPathInputDisplay(pathInput, dtUriPath);
-                            this.syncAnalyzeModeUi(el);
-                            void this.refreshReportForActivePath(el);
-                            showToast(`Path set: ${dtUriPath} — starting scan…`, 'success');
-                            void this.runPathAnalysis(dtUriPath);
-                            return;
-                        }
+                        setPathAndNotify(dtUriPath, dtUriPath.split(/[\\/]/).pop() || 'folder');
+                        return;
                     }
                     if (file.path) {
-                        // Electron / desktop app — file.path is the first file inside a dropped folder
                         const targetPath = deriveDirFromFilePath(file.path) || file.path;
-                        const pathInput = el.querySelector('#project-path-input');
-                        if (pathInput) {
-                            pathInput.value = targetPath;
-                            this.app.state.pathInputDraft = '';
-                            this.app.state.lastProjectPath = targetPath;
-                            this.setPathInputDisplay(pathInput, targetPath);
-                            this.syncAnalyzeModeUi(el);
-                            void this.refreshReportForActivePath(el);
-                            showToast(`Path set: ${targetPath} — starting scan…`, 'success');
-                            void this.runPathAnalysis(targetPath);
-                            return;
-                        }
+                        setPathAndNotify(targetPath, targetPath.split(/[\\/]/).pop() || 'folder');
+                        return;
                     }
                     // Single file -> quick check
                     void this.handleAnalyzeFiles(files);
@@ -4995,8 +4919,19 @@ export class AnalyzeView {
                         const lastSlash = norm.lastIndexOf('/');
                         actualPath = lastSlash > 0 ? filePath.slice(0, filePath.lastIndexOf('\\') > 0 ? filePath.lastIndexOf('\\') : lastSlash) : filePath;
                     }
-                    // Only use a real path; never fabricate absolute paths from defaults
-                    const resolvedPath = actualPath || name;
+                    // Fallback to defaultProjectPath / current input / fallback base if no OS path
+                    const currentInput = String((pathInput === null || pathInput === void 0 ? void 0 : pathInput.value) || '').trim();
+                    const currentBase = currentInput
+                        ? currentInput.replace(/\\/g, '/').replace(/\/+$/, '').split('/').slice(0, -1).join('/')
+                        : '';
+                    const rawDefault = String(this.app.state.defaultProjectPath || '')
+                        .replace(/\\/g, '/')
+                        .replace(/\/+$/, '');
+                    const fallbackBase = String(this._deriveFallbackBase())
+                        .replace(/\\/g, '/')
+                        .replace(/\/+$/, '');
+                    const base = rawDefault || currentBase || fallbackBase;
+                    const resolvedPath = actualPath || (base ? `${base}/${name}` : name);
                     if (pathInput) {
                         pathInput.value = resolvedPath;
                         this.app.state.pathInputDraft = '';
@@ -5005,7 +4940,7 @@ export class AnalyzeView {
                         this.syncAnalyzeModeUi(el);
                         void this.refreshReportForActivePath(el);
                     }
-                    showToast(`Folder "${name}" dropped — path set to ${resolvedPath}. Press Enter or click Run Scan to start.`, 'info');
+                    showToast(`Folder "${name}" dropped — path set to ${resolvedPath}. Press Enter or click Analyze to start.`, 'info');
                     return;
                 }
             }
@@ -5624,7 +5559,7 @@ export class AnalyzeView {
             this.busy = false;
             this.refresh();
             showToast('Session expired — sign in again before running analysis', 'error');
-            if (window.__SB_DASHBOARD_APP__) { window.__SB_DASHBOARD_APP__.navigate('signin'); }
+            window.location.hash = '#/signin';
             return;
         }
         try {
@@ -6701,7 +6636,35 @@ export class AnalyzeView {
         return `<p class="text-muted mb-3" style="font-size: var(--font-size-sm);"><strong>Supplementary deliverable (${escapeHtml(preview.label)}).</strong> ${escapeHtml(gateNote)} ${escapeHtml(missing)}</p>`;
     }
     wrapAnalyzeResults(content) {
-        return `${this.renderResultsExportBar()}${content || ''}`;
+        const funnelHtml = this.renderFunnelTrigger();
+        return `${this.renderResultsExportBar()}${content || ''}${funnelHtml}`;
+    }
+    renderFunnelTrigger() {
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
+        const report = ((_a = this.lastResult) === null || _a === void 0 ? void 0 : _a.report) || ((_b = this.lastResult) === null || _b === void 0 ? void 0 : _b.scan);
+        if (!report)
+            return '';
+        const metrics = {
+            files_scanned: (_d = (_c = report.filesScanned) !== null && _c !== void 0 ? _c : report.fictionJsonFilesScanned) !== null && _d !== void 0 ? _d : 0,
+            total_files: (_g = (_f = (_e = this.repositoryInventory) === null || _e === void 0 ? void 0 : _e.totalFiles) !== null && _f !== void 0 ? _f : report.totalFiles) !== null && _g !== void 0 ? _g : 0,
+            quality_score: (_k = (_h = report.qualityScore) !== null && _h !== void 0 ? _h : (_j = report.gate) === null || _j === void 0 ? void 0 : _j.score) !== null && _k !== void 0 ? _k : 0,
+            findings: report.rawIssues || report.detectedIssues || []
+        };
+        const funnel = evaluateFunnelMetrics(metrics);
+        if (!funnel.shouldPromptUpgrade)
+            return '';
+        const copy = getFunnelCopy(funnel.reason);
+        return `
+      <div class="card mb-4" style="border-left: 4px solid var(--accent-primary);">
+        <div class="section-heading">
+          <h3>${escapeHtml(copy.title)}</h3>
+        </div>
+        <p class="text-muted">${escapeHtml(copy.body)}</p>
+        <button class="btn btn-primary" onclick="window.open('https://simplebeacon.ai/pricing','_blank')">
+          ${escapeHtml(copy.cta)}
+        </button>
+      </div>
+    `;
     }
     renderScanDownloadActions({ isComplete = false, showGotoResults = false, gotoLabel = 'Open Simplebeacon Results →', extraButtons = '', auditButtonLabel = 'Download audit PDF' } = {}) {
         var _a, _b, _c, _d;

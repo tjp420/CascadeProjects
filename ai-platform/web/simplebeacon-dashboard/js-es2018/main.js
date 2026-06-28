@@ -14,7 +14,7 @@ import { PlatformView } from './views/PlatformView.js?v=20260601platformmetrics1
 import { QualityView } from './views/QualityView.js';
 import { HelpView, FeaturesView } from './views/HelpView.js';
 import { AuditView } from './views/AuditView.js?v=20260618renderfix1';
-import { AnalyzeView } from './views/AnalyzeView.js?v=20260616fixexport2';
+import { AnalyzeView } from './views/AnalyzeView.js?v=20260628dragfix1';
 import { SecurityView } from './views/SecurityView.js?v=20260611fixexport1';
 import { PricingView } from './views/PricingView.js';
 import { AboutView } from './views/AboutView.js';
@@ -161,10 +161,11 @@ class SimplebeaconDashboard {
         this.setupMobileNav();
         this.cleanupDisabledElements();
         this.updateAuthUi();
-        window.addEventListener('auth-signed-out', () => { // simplebeacon-ignore memory-leak — SPA-lifetime auth listener, removed on page unload
+        // simplebeacon-ignore memory-leak — single application-wide listener on the app singleton
+        window.addEventListener('auth-signed-out', () => {
             this.updateAuthUi();
             this.updateNavVisibility(false);
-            this.router.navigate('signin');
+            window.location.hash = '#/signin';
         });
         if (isDemoMode()) {
             document.title = 'SimpleBeacon Demo — Honey-pot Gate';
@@ -224,7 +225,7 @@ class SimplebeaconDashboard {
     showVaultBanner() {
         if (document.getElementById('vault-banner'))
             return;
-        const returnPath = `${window.location.pathname}${window.location.search}`;
+        const returnPath = `${window.location.pathname}${window.location.hash || '#/dashboard'}`;
         const bar = document.createElement('div');
         bar.id = 'vault-banner';
         bar.className = 'demo-banner';
@@ -467,7 +468,7 @@ class SimplebeaconDashboard {
             </details>
           </div>
 
-          <p style="margin-top:var(--space-4);"><a href="/dashboard/dashboard" class="btn btn-secondary btn-block" onclick="document.getElementById('token-prompt-modal')?.remove();window.__SB_DASHBOARD_APP__?.navigate('dashboard');return false;">&#8592; Return to Dashboard</a></p>
+          <p style="margin-top:var(--space-4);"><a href="/dashboard/dashboard" class="btn btn-secondary btn-block" onclick="document.getElementById('token-prompt-modal')?.remove();window.location.hash='#/dashboard';return false;">&#8592; Return to Dashboard</a></p>
         </div>
       </div>
     `;
@@ -620,21 +621,21 @@ class SimplebeaconDashboard {
     }
     async ensureVaultSession() {
         var _a;
-        if (!isDemoMode() && isLocalSelfHosted()) {
-            try { // simplebeacon-ignore dead-code — async function body is reachable
-                const res = await fetch('/api/auth/me', { credentials: 'same-origin' });
-                const data = await res.json().catch(() => ({}));
-                if (res.status === 403 && data.error === 'vault_required') {
-                    this.showVaultBanner();
-                    return false;
-                }
-                (_a = document.getElementById('vault-banner')) === null || _a === void 0 ? void 0 : _a.remove();
+        if (isDemoMode() || !isLocalSelfHosted())
+            return true;
+        try {
+            const res = await fetch('/api/auth/me', { credentials: 'same-origin' });
+            const data = await res.json().catch(() => ({}));
+            if (res.status === 403 && data.error === 'vault_required') {
+                this.showVaultBanner();
+                return false;
             }
-            catch (_b) {
-                /* ignore network errors */
-            }
+            (_a = document.getElementById('vault-banner')) === null || _a === void 0 ? void 0 : _a.remove();
+            return true;
         }
-        return true;
+        catch (_b) {
+            return true;
+        }
     }
     bootstrapAfterAuth() {
         this.updateAuthUi();
@@ -657,36 +658,41 @@ class SimplebeaconDashboard {
         const authed = authService.isAuthenticated();
         const signinBtn = document.getElementById('signin-btn');
         const signoutBtn = document.getElementById('signout-btn');
-        const profileBtn = document.getElementById('profile-btn');
         if (signinBtn)
             signinBtn.hidden = authed;
         if (signoutBtn)
             signoutBtn.hidden = !authed;
-        if (profileBtn)
-            profileBtn.hidden = !authed;
+        const sidebarSigninBtn = document.getElementById('sidebar-signin-btn');
+        if (sidebarSigninBtn)
+            sidebarSigninBtn.hidden = authed;
         const pricingLink = document.getElementById('header-pricing-link');
         if (pricingLink)
             pricingLink.hidden = authed;
         const token = authService.getToken();
         const sandboxBanner = document.getElementById('sandbox-banner');
         if (sandboxBanner) {
-            sandboxBanner.hidden = !this._isSandboxTier(token);
-        }
-    }
-    _isSandboxTier(token) {
-        if (!token)
-            return false; // simplebeacon-ignore dead-code — guard return for missing token
-        try {
-            const payload = token.split('.')[1];
-            if (!payload)
-                return false; // simplebeacon-ignore dead-code — guard return for malformed token
-            const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
-            const data = JSON.parse(json);
-            const tier = data.tier || data.plan || '';
-            return tier === 'sandbox' || tier === 'developer';
-        }
-        catch (_a) {
-            return false; // simplebeacon-ignore dead-code — fallback return on parse error
+            /**
+             * Is sandbox.
+             * @param {any} (
+             * @returns {any}
+             */
+            const isSandbox = (() => {
+                if (!token)
+                    return false;
+                try {
+                    const payload = token.split('.')[1];
+                    if (!payload)
+                        return false;
+                    const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+                    const data = JSON.parse(json);
+                    const tier = data.tier || data.plan || '';
+                    return tier === 'sandbox' || tier === 'developer';
+                }
+                catch (_a) {
+                    return false;
+                }
+            })();
+            sandboxBanner.hidden = !isSandbox;
         }
     }
     async loadBillingContext() {
@@ -708,8 +714,9 @@ class SimplebeaconDashboard {
         }
     }
     async handleCheckoutReturn() {
-        const search = window.location.search;
-        const params = new URLSearchParams(search);
+        const hash = window.location.hash;
+        const query = hash.includes('?') ? hash.split('?')[1] : '';
+        const params = new URLSearchParams(query);
         if (params.get('success') === 'true' && params.get('session_id')) {
             try {
                 await billingService.confirmSession(params.get('session_id'));
@@ -792,10 +799,7 @@ class SimplebeaconDashboard {
         (_b = document.getElementById('signin-btn')) === null || _b === void 0 ? void 0 : _b.addEventListener('click', () => {
             this.router.navigate('signin');
         });
-        (_c = document.getElementById('profile-btn')) === null || _c === void 0 ? void 0 : _c.addEventListener('click', () => {
-            this.router.navigate('profile');
-        });
-        (_d = document.getElementById('signout-btn')) === null || _d === void 0 ? void 0 : _d.addEventListener('click', async () => {
+        (_c = document.getElementById('signout-btn')) === null || _c === void 0 ? void 0 : _c.addEventListener('click', async () => {
             try {
                 await authService.logout();
                 showToast('Signed out', 'info');
@@ -805,6 +809,9 @@ class SimplebeaconDashboard {
             catch (err) {
                 showToast('Sign out failed', 'error');
             }
+        });
+        (_d = document.getElementById('sidebar-signin-btn')) === null || _d === void 0 ? void 0 : _d.addEventListener('click', () => {
+            this.router.navigate('signin');
         });
         document.querySelectorAll('.nav-link[data-view]').forEach((link) => {
             link.addEventListener('click', (e) => {
@@ -831,18 +838,6 @@ class SimplebeaconDashboard {
             catch (navErr) {
                 console.error('Sidebar delegation navigate error:', navErr);
             }
-        });
-        document.addEventListener('click', (e) => {
-            const link = e.target.closest('a[href^="/dashboard/"]');
-            if (!link) { return; }
-            try {
-                const url = new URL(link.href);
-                if (url.origin !== window.location.origin) { return; }
-                e.preventDefault();
-                const route = url.pathname.replace(/^\/dashboard\/?/, '').replace(/\/$/, '') || 'dashboard';
-                this.navigate(route);
-            }
-            catch (navErr) { /* ignore */ }
         });
         const searchInput = document.getElementById('global-search');
         searchInput === null || searchInput === void 0 ? void 0 : searchInput.addEventListener('keydown', (e) => {
@@ -1019,11 +1014,11 @@ class SimplebeaconDashboard {
                 if (!allowed && !isFreeTier) {
                     if (isLocalSelfHosted() || requiresAuthGate()) {
                         showToast('Sign in with a local account or use npm run dashboard:v1-internal', 'info');
-                        this.router.navigate('signin');
+                        window.location.hash = '#/signin';
                     }
                     else {
                         showToast('Use the free CLI — see About for install', 'info');
-                        this.router.navigate('about');
+                        window.location.hash = '#/about';
                     }
                     return;
                 }
