@@ -1,8 +1,0 @@
-{
-  "id": "email_1780521069690_ez4x8t",
-  "to": "Trevor_punt@live.com",
-  "subject": "Your SimpleBeacon Enterprise Setup",
-  "text": "Thank you for your Enterprise Setup purchase (Custom).\n\nYour license token: eyJlbWFpbCI6IlRyZXZvcl9wdW50QGxpdmUuY29tIiwidGllciI6ImVudGVycHJpc2UiLCJmZWF0dXJlcyI6WyJlbnRlcnByaXNlIiwicGRmLWdlbmVyYXRpb24iXSwiaWF0IjoxNzgwNTIxMDY5NjkwLCJleHAiOjE3ODA1MjQ2Njk2OTB9.Aom2i-u1yk_DMUQEQFZcNfLkrTBM45uTaEYuheznMwE\n\nA compliance analyst will contact you within 24 hours to schedule onboarding.\n\n---\nToken tier: enterprise\nToken expires: 60 minutes from generation (for testing)\nProduct: enterprise_setup\nFeatures: enterprise, pdf-generation\n\nKeep this token safe — you'll need it to upload your scan report.",
-  "attachments": [],
-  "queuedAt": "2026-06-03T21:11:09.691Z"
-}

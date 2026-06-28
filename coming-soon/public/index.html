@@ -598,8 +598,8 @@
             <p>Local, zero-upload scans for AI-generated slop, exposed credentials, and unapproved AI integrations. Runs completely offline using deterministic regex patterns and local AST parsing via the <code>npx simplebeacon</code> CLI — no code ever leaves your machine. Get a board-ready Executive Risk Certificate with an A–F grade and estimated financial liability.</p>
 
             <div style="display:flex;flex-direction:column;gap:10px;max-width:440px;margin:0 auto;">
-                <a href="/pricing.html" id="link-pricing" class="btn btn-primary">View Pricing — Start Free</a>
-                <a href="/audit.html" id="link-upload" class="btn btn-success">&#128209; Generate Certificate</a>
+                <a href="#demo" class="btn btn-primary">See it in action</a>
+                <a href="/pricing.html" id="link-pricing" class="btn btn-success">View Pricing — Start Free</a>
                 <a href="/community.html" id="link-community" class="btn btn-ghost">Free CLI &amp; MCP tools</a>
             </div>
             <div style="margin-top:18px;">
@@ -625,57 +625,24 @@
         </div>
     </section>
 
-    <!-- TERMINAL DEMO -->
-    <section class="section" style="background: linear-gradient(180deg, var(--bg-main), #0a0e18);">
+    <!-- INTERACTIVE TERMINAL WALKTHROUGH -->
+    <section class="section" id="demo" style="background: linear-gradient(180deg, var(--bg-main), #0a0e18);">
         <div class="container">
-            <h2>How It Works</h2>
-            <p class="section-subtitle">One command. Zero uploads. Instant results.</p>
-            <div class="terminal">
-                <div class="terminal-header">
-                    <span class="terminal-dot red"></span>
-                    <span class="terminal-dot yellow"></span>
-                    <span class="terminal-dot green"></span>
-                    <span class="terminal-title">bash — simplebeacon</span>
-                </div>
-                <div class="terminal-body" id="termBody">
-                    <span class="prompt">$</span> <span class="cmd" id="termCmd"></span><span class="cursor" id="termCursor"></span>
-                    <div id="termOutput" style="margin-top:4px;opacity:0;transition:opacity 0.4s;"></div>
-                </div>
+            <h2>See It In Action</h2>
+            <p class="section-subtitle">Watch SimpleBeacon detect AI slop, credential leaks, and placeholder secrets in real time — no download required.</p>
+            <div class="terminal-frame" style="background: #0d1117; border-radius: 12px; overflow: hidden; box-shadow: 0 24px 80px rgba(0,0,0,0.5); border: 1px solid #30363d;">
+                <iframe
+                    src="terminal-walkthrough.html"
+                    title="SimpleBeacon Terminal Walkthrough"
+                    loading="lazy"
+                    allow="fullscreen"
+                    sandbox="allow-scripts allow-same-origin"
+                    style="width: 100%; height: 520px; border: none; display: block;"
+                ></iframe>
             </div>
-            <script>
-            (function(){
-                var cmd = "npx simplebeacon scan --full --gate";
-                var cmdEl = document.getElementById('termCmd');
-                var cursor = document.getElementById('termCursor');
-                var outEl = document.getElementById('termOutput');
-                var i = 0;
-                function type() {
-                    if (i < cmd.length) {
-                        cmdEl.textContent += cmd.charAt(i);
-                        i++;
-                        setTimeout(type, 40 + Math.random() * 40);
-                    } else {
-                        cursor.style.display = 'none';
-                        setTimeout(showOutput, 400);
-                    }
-                }
-                function showOutput() {
-                    // simplebeacon-ignore: innerhtml-usage — static demo terminal output
-                    outEl.innerHTML =
-                        '<div class="output">Scanning 1,247 files across 18 languages...</div>' +
-                        '<div class="output">Detecting AI-generated slop, credential leaks, shadow AI integrations...</div>' +
-                        '<div class="output" style="margin-top:8px;">Results:</div>' +
-                        '<div class="success">&#10003; 0 Critical vulnerabilities</div>' +
-                        '<div class="warn">&#9888; 3 High-severity findings (remediation guide generated)</div>' +
-                        '<div class="error">&#10007; 12 Low-severity style issues</div>' +
-                        '<div class="output" style="margin-top:8px;">Executive Risk Certificate: <span class="success" style="font-weight:700;">Grade B+</span></div>' +
-                        '<div class="output">Estimated financial liability: <span class="warn">$124,000</span></div>' +
-                        '<div class="output" style="margin-top:8px;color:#58A6FF;">Report saved to ./simplebeacon-report.json</div>';
-                    outEl.style.opacity = '1';
-                }
-                setTimeout(type, 600);
-            })();
-            </script>
+            <p style="text-align:center;margin-top:20px;font-size:14px;color:var(--text-muted);">
+                Want to run it on your own code? <a href="/community.html" style="color:#60A5FA;text-decoration:none;">Install the free CLI</a> or <a href="https://marketplace.visualstudio.com/items?itemName=simplebeacon.ai-slop-cop" style="color:#60A5FA;text-decoration:none;">get the VS Code extension</a>.
+            </p>
         </div>
     </section>
 

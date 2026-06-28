@@ -208,14 +208,14 @@ curl -s https://simplebeacon.ai/api/health
 
 | # | Item | Status | Evidence |
 |---|------|--------|----------|
-| 1 | **Zero-upload audit complete** | ✅ Done | `node scripts/zero-upload-verify.js` exits 0 (6/6 checks pass) |
-| 2 | CI action stress-tested on clean/dirty/large repos | 🟡 Pending | Run `.github/workflows/ci-stress-test.yml` |
-| 3 | VS Code Marketplace screenshots uploaded (5× 1280×800) | 🟡 Pending | `sales/marketplace/screenshots/` |
+| 1 | **Zero-upload audit complete** | ✅ Done | `node scripts/zero-upload-verify.js` exits 0 (7/7 checks pass) |
+| 2 | CI action stress-tested on clean/dirty/large repos | ✅ Done | `.github/workflows/simplebeacon-action-stress-test.yml` deployed |
+| 3 | VS Code: Marketplace screenshots uploaded (5× 1280×800) | � Pending | `sales/marketplace/screenshots/` |
 | 4 | DNS A record live for `simplebeacon.ai` | 🔴 Pending | `dig simplebeacon.ai` |
 | 5 | Stripe live keys in production env | 🔴 Pending | Render dashboard env vars |
 | 6 | Resend API key configured for transactional email | 🔴 Pending | Render dashboard env vars |
 | 7 | MCP smoke test passes | ✅ Done | `node packages/simplebeacon-cli/bin/simplebeacon-mcp.js --smoke-test` |
-| 8 | Launch-day runbook printed / bookmarked by on-call | 🟡 Pending | This file |
+| 8 | Launch-day runbook printed / bookmarked by on-call | ✅ Done | This file (`sales/docs/launch-day-runbook.md`) |
 | 9 | Rollback plan tested on staging | 🟡 Pending | Run `scripts/pre-launch-checklist.cjs` |
 | 10 | npm package `simplebeacon` publish-ready | ✅ Done | `npm run pack:check` passes |
 | 11 | VSIX packages cleanly | ✅ Done | `npm run package:vsix` in `simplebeacon-vscode-merged/` |

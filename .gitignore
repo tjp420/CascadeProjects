@@ -9,6 +9,7 @@ backups/
 .cursor/
 .vscode/
 .idea/
+.vscode-test/
 
 # Simplebeacon scan artifacts
 .simplebeacon/*.json
@@ -86,6 +87,7 @@ ai-platform/data/.dev-jwt-secrets.json
 *.vsix
 vscode-extension/*.vsix
 vscode-extension/out/
+.vsix-patch-temp/
 
 # Generated report artifacts
 vscode-extension/*-report.json
@@ -140,3 +142,12 @@ simplebeacon.sh
 .simplebeacon/rotate-secrets.js
 .simplebeacon/run-bfg-cleanup.ps1
 .simplebeacon/sync-ai-context.js
+
+# SQLite database files
+*.db
+
+# Stress test artifacts
+.simplebeacon-stress-test/
+
+# Root-level backup JSON reports
+*.simplebeacon-backup.*

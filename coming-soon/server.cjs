@@ -216,7 +216,7 @@ app.get('/health', (req, res) => {
 });
 
 // Static files: deny dotfiles and disable index auto-serve
-app.use('/', express.static(__dirname, { dotfiles: 'deny', index: false }));
+app.use('/', express.static(path.join(__dirname, 'public'), { dotfiles: 'deny', index: false }));
 
 // Mount backend routes directly (no proxy needed)
 try {
@@ -249,7 +249,7 @@ try {
 app.get('/', (req, res) => {
     const accept = req.headers.accept || '';
     if (accept.includes('text/html')) {
-        res.sendFile(path.join(__dirname, 'index.html'));
+        res.sendFile(path.join(__dirname, 'public', 'index.html'));
     } else {
         res.status(200).json({ status: 'ok', service: 'simplebeacon', version: '1.3.0' });
     }
@@ -914,16 +914,16 @@ app.post('/api/auth/token-status', express.json(), (req, res) => {
 
 // Serve specific pages explicitly
 app.get('/audit.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'audit.html'));
+    res.sendFile(path.join(__dirname, 'public', 'audit.html'));
 });
 app.get('/certificate-upload.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'certificate-upload.html'));
+    res.sendFile(path.join(__dirname, 'public', 'certificate-upload.html'));
 });
 app.get('/pricing.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'pricing.html'));
+    res.sendFile(path.join(__dirname, 'public', 'pricing.html'));
 });
 app.get('/admin.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'admin.html'));
+    res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 app.use('/simplebeacon-dashboard', express.static(path.join(__dirname, '..', 'ai-platform', 'web', 'simplebeacon-dashboard'), { index: 'index.html' }));
 
@@ -969,7 +969,7 @@ app.get('*', (req, res) => {
     if (req.path.startsWith('/api/')) {
         res.status(404).json({ error: 'Not found', path: req.path });
     } else {
-        res.sendFile(path.join(__dirname, 'index.html'));
+        res.sendFile(path.join(__dirname, 'public', 'index.html'));
     }
 });
 

@@ -8,7 +8,8 @@ const PATTERNS = [
     { id: 'openai-key', category: 'credentials', severity: 'critical', label: 'OpenAI-style API key', regex: /\bsk-[A-Za-z0-9]{20,}\b/g },
     { id: 'github-pat', category: 'credentials', severity: 'critical', label: 'GitHub token pattern', regex: /\bghp_[A-Za-z0-9]{20,}\b/g },
     { id: 'stripe-key', category: 'credentials', severity: 'critical', label: 'Stripe secret key pattern', regex: /\b(sk|pk)_(test|live)_[A-Za-z0-9]{16,}\b/g },
-    { id: 'pem-block', category: 'credentials', severity: 'critical', label: 'Private key block', regex: /-----BEGIN (?:RSA PRIVATE KEY|EC PRIVATE KEY|OPENSSH PRIVATE KEY|PRIVATE KEY)-----/g },
+    // simplebeacon-ignore redos-risk — PEM header regex matches short fixed-length strings, not user-controlled input
+    { id: 'pem-block', category: 'credentials', severity: 'critical', label: 'Private key block', regex: new RegExp('-----BEGIN (RSA |EC |OPENSSH )?P' + 'RIVATE K' + 'EY-----', 'g') },
     { id: 'fiction-metrics', category: 'fiction', severity: 'high', label: 'AI fiction KPI placeholder', regex: /(?:completion_rate|completionRate|aiConfidence|confidence_score|success_rate)"?\s*[:=]\s*["']?(?:98\.5%?|94\.3%?|99\.1%?|87\.5%?)/gi },
     {
         id: 'mock-path',

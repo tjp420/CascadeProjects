@@ -203,7 +203,6 @@ export class CodeMapView {
         this.bindEvents();
     }
     bindEvents() {
-        // simplebeacon-ignore memory-leak — listeners are bound to DOM elements inside the container; no long-lived detached references
         const treeEl = this.container.querySelector('#codemap-tree');
         if (!treeEl)
             return;

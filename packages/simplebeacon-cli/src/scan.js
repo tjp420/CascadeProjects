@@ -91,6 +91,26 @@ function clearFileContentCache() {
     currentCacheBytes = 0;
 }
 
+const BINARY_EXTENSIONS = new Set([
+    '.png', '.jpg', '.jpeg', '.gif', '.bmp', '.ico', '.svg', '.webp', '.avif',
+    '.pdf', '.zip', '.tar', '.gz', '.rar', '.7z', '.bz2',
+    '.exe', '.dll', '.so', '.dylib', '.bin',
+    '.mp3', '.mp4', '.wav', '.avi', '.mov', '.mkv',
+    '.woff', '.woff2', '.ttf', '.otf', '.eot',
+    '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
+    '.sqlite', '.db', '.lock'
+]);
+
+async function countFileLines(filePath, ext) {
+    if (BINARY_EXTENSIONS.has(ext)) return 0;
+    try {
+        const content = await readFileCachedAsync(filePath);
+        return content.split(/\r?\n/).length;
+    } catch {
+        return 0;
+    }
+}
+
 const EXT_CATEGORIES = {
     '.json': 'JSON Files',
     '.csv': 'CSV Files',
@@ -1163,6 +1183,9 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
     const scoringIssues = platformIssues;
 
     const totalSize = uniqueFiles.reduce((sum, file) => sum + file.size, 0);
+    const totalLines = (await Promise.all(
+        uniqueFiles.map((f) => countFileLines(f.path, f.ext))
+    )).reduce((sum, lines) => sum + lines, 0);
     const issueCount = scoringIssues
         .filter(isBlockingIssue)
         .reduce((sum, issue) => sum + (issue.count || 1), 0);
@@ -1286,6 +1309,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
             );
         }).length,
         totalFiles: uniqueFiles.length,
+        totalLines,
         ruleScopedFilesAnalyzed,
         repositoryFilesTotal,
         repositoryFoldersTotal,

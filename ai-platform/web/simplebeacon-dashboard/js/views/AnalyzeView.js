@@ -1745,6 +1745,12 @@ export class AnalyzeView {
         .analyze-target-redesign .scanning-state.active { display: block; }
         .analyze-target-redesign .scanning-state h3 { margin-bottom: 8px; }
         .analyze-target-redesign .scanning-state p { color: var(--text-muted); font-size: 0.85rem; }
+        .an-tgt-drop { border: 2px dashed var(--border); border-radius: var(--radius-lg); background: var(--surface); padding: 28px 24px; text-align: center; transition: all .2s; }
+        .an-tgt-drop.drag-active { border-color: var(--primary); background: rgba(99,102,241,0.06); }
+        .an-tgt-drop-icon { font-size: 2.5rem; margin-bottom: 12px; }
+        .an-tgt-drop h4 { font-size: 1rem; font-weight: 600; margin-bottom: 4px; }
+        .an-tgt-drop p { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 16px; }
+        .an-tgt-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
       </style>
 
       <div class="analyze-target-redesign" id="analyze-target-card">
@@ -1775,7 +1781,9 @@ export class AnalyzeView {
                   autocomplete="list"
                   aria-label="${pathAria}">
                 <button type="button" class="btn btn-primary btn-sm" id="dropzone-path-analyze-btn">Analyze</button>
+                <button type="button" class="btn btn-primary" id="analyze-path-run-btn">Run</button>
               </div>
+
               ${datalist}
               <p class="hint">${isWeb ? 'Enter a public URL to scan a website.' : 'Browser drag-and-drop cannot reveal full drive paths — use Browse Folder or type the path for best results.'}</p>
             </div>
@@ -1783,6 +1791,16 @@ export class AnalyzeView {
               <div class="drop-zone-icon"><i data-lucide="loader-2" class="icon-24" style="animation:spin 1s linear infinite;"></i></div>
               <h3>Scanning…</h3>
               <p id="dropzone-terminal-body">${this._terminalLogLines.map((line) => `<div class="terminal-line">${line}</div>`).join('')}</p>
+            </div>
+          </div>
+
+          <div class="an-tgt-drop" id="analyze-drop-zone">
+            <div class="an-tgt-drop-icon">📁</div>
+            <h4>Drop a scan report or source file</h4>
+            <p>JSON reports, ZIP bundles, or individual source files</p>
+            <div class="an-tgt-actions">
+              <button type="button" class="btn btn-primary btn-sm" id="analyze-select-file-btn">Select File</button>
+              <button type="button" class="btn btn-secondary btn-sm" id="quick-file-scan-btn">Quick Scan</button>
             </div>
           </div>
 
@@ -4382,6 +4400,113 @@ export class AnalyzeView {
       }
     });
 
+    // Analyze drop zone — drag-and-drop for scan reports / source files
+    const analyzeDropZone = el.querySelector('#analyze-drop-zone');
+    if (analyzeDropZone) {
+      let dropDragDepth = 0;
+      ['dragenter', 'dragover'].forEach((eventName) => {
+        analyzeDropZone.addEventListener(eventName, (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          dropDragDepth++;
+          analyzeDropZone.classList.add('drag-active');
+        });
+      });
+      analyzeDropZone.addEventListener('dragleave', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        dropDragDepth--;
+        if (dropDragDepth <= 0) {
+          analyzeDropZone.classList.remove('drag-active');
+          dropDragDepth = 0;
+        }
+      });
+      analyzeDropZone.addEventListener('drop', async (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        dropDragDepth = 0;
+        analyzeDropZone.classList.remove('drag-active');
+
+        const dt = event.dataTransfer;
+        const files = dt?.files;
+
+        // Directory drop detection via File System Access API
+        if (dt?.items && dt.items.length > 0) {
+          const entry = dt.items[0].webkitGetAsEntry?.();
+          if (entry?.isDirectory) {
+            const folderName = entry.name || '';
+            showToast(`Directory "${folderName}" detected. Use Browse Folder or type the full path for best results.`, 'warning');
+            return;
+          }
+        }
+
+        if (!files?.length) return;
+
+        const file = files[0];
+        const isJson = file.name.endsWith('.json');
+        const isZip = file.name.endsWith('.zip');
+
+        if (isJson || isZip) {
+          // Scan report import
+          try {
+            const text = await file.text();
+            const report = JSON.parse(text);
+            this.lastResult = report;
+            this.lastScanId = report.scanId || report.id || Date.now().toString();
+            this.projectPath = report.projectPath || report.projectRoot || '';
+            showToast(`Report "${file.name}" loaded`, 'success');
+            this.refresh();
+          } catch {
+            showToast('Failed to parse report JSON', 'error');
+          }
+          return;
+        }
+
+        // Single source file scan
+        void this.handleAnalyzeFiles(files);
+      });
+    }
+
+    // Run button (analyze-path-run-btn) triggers path analysis
+    el.querySelector('#analyze-path-run-btn')?.addEventListener('click', () => {
+      const raw = pathInput?.value?.trim();
+      if (!raw) { showToast('Enter a project path first', 'error'); return; }
+      const resolvedPath = this.resolveProjectPath(raw);
+      if (!resolvedPath) { showToast('Invalid path', 'error'); return; }
+      this.app.state.pathInputDraft = '';
+      this.app.state.lastProjectPath = resolvedPath;
+      this.setPathInputDisplay(pathInput, resolvedPath);
+      void this.refreshReportForActivePath(el);
+      void this.runPathAnalysis(resolvedPath);
+    });
+
+    // Select File button triggers hidden file input
+    el.querySelector('#analyze-select-file-btn')?.addEventListener('click', () => {
+      let input = el.querySelector('#analyze-file-input');
+      if (!input) {
+        input = document.createElement('input');
+        input.type = 'file';
+        input.id = 'analyze-file-input-fallback';
+        input.accept = SNIPPET_ACCEPT;
+        input.hidden = true;
+        el.appendChild(input);
+      }
+      input.click();
+    });
+
+    // Quick Scan button triggers a quick scan on the current path
+    el.querySelector('#quick-file-scan-btn')?.addEventListener('click', () => {
+      const raw = pathInput?.value?.trim();
+      if (!raw) { showToast('Enter a project path first', 'error'); return; }
+      const resolvedPath = this.resolveProjectPath(raw);
+      if (!resolvedPath) { showToast('Invalid path', 'error'); return; }
+      this.analysisType = 'quick';
+      this.app.state.pathInputDraft = '';
+      this.app.state.lastProjectPath = resolvedPath;
+      this.setPathInputDisplay(pathInput, resolvedPath);
+      void this.runPathAnalysis(resolvedPath);
+    });
+
     // Dropzone Analyze button triggers the same analysis as Enter on project-path-input
     const dropzoneAnalyzeBtn = el.querySelector('#dropzone-path-analyze-btn');
     dropzoneAnalyzeBtn?.addEventListener('click', () => {
@@ -4714,7 +4839,9 @@ export class AnalyzeView {
           return lastSlash > 0 ? norm.slice(0, lastSlash) : norm;
         };
 
-        const getDroppedFolderPath = () => {
+        // Resolve dropped folder path using the ACTUAL folder name from entry
+        // (not files[0].name which is the first file inside the folder)
+        const getDroppedFolderPath = (folderName) => {
           const dt = event.dataTransfer;
           if (!dt) return '';
           const tryGetData = (type) => {
@@ -4746,33 +4873,35 @@ export class AnalyzeView {
               return p.replace(/\//g, '\\');
             }
           }
-          // Electron / VS Code extension: file.path contains native absolute path
-          if (files?.[0]?.path) {
-            const filePath = String(files[0].path);
+          // Electron / VS Code extension: file.path contains native absolute path.
+          // items[0].getAsFile() gives first file INSIDE folder, so we MUST use
+          // the actual folderName (from webkitGetAsEntry) to find correct boundary.
+          const tryExtractFromPath = (filePath) => {
+            if (!filePath) return '';
             const norm = filePath.replace(/\\/g, '/');
-            const folderName = files?.[0]?.name || '';
             if (folderName) {
+              // Search for /folderName/ in path — this gives us the actual dropped folder
               const idx = norm.indexOf(`/${folderName}/`);
               if (idx >= 0) {
                 return norm.slice(0, idx + folderName.length + 1);
               }
+              // Handle case where folderName is at the end: .../folderName
+              const endIdx = norm.lastIndexOf(`/${folderName}`);
+              if (endIdx >= 0) {
+                return norm.slice(0, endIdx + folderName.length + 1);
+              }
             }
+            // Fallback: parent directory of the first file (may be subfolder — marked for review)
             return deriveDirFromFilePath(filePath);
+          };
+          if (files?.[0]?.path) {
+            return tryExtractFromPath(String(files[0].path));
           }
           if (items?.[0]) {
             try {
               const file = items[0].getAsFile?.();
               if (file?.path) {
-                const filePath = String(file.path);
-                const norm = filePath.replace(/\\/g, '/');
-                const folderName = files?.[0]?.name || '';
-                if (folderName) {
-                  const idx = norm.indexOf(`/${folderName}/`);
-                  if (idx >= 0) {
-                    return norm.slice(0, idx + folderName.length + 1);
-                  }
-                }
-                return deriveDirFromFilePath(filePath);
+                return tryExtractFromPath(String(file.path));
               }
             } catch {
               // getAsFile may throw for directories
@@ -4798,7 +4927,7 @@ export class AnalyzeView {
         };
 
         const resolveFolderPath = (name) => {
-          const actualDir = getDroppedFolderPath();
+          const actualDir = getDroppedFolderPath(name);
           if (actualDir) return actualDir;
           const pathInput = el.querySelector('#project-path-input');
           const currentInput = String(pathInput?.value || '').trim();
@@ -5120,8 +5249,23 @@ export class AnalyzeView {
           if (!actualPath && files?.[0]?.path) {
             const filePath = String(files[0].path);
             const norm = filePath.replace(/\\/g, '/');
-            const lastSlash = norm.lastIndexOf('/');
-            actualPath = lastSlash > 0 ? filePath.slice(0, filePath.lastIndexOf('\\') > 0 ? filePath.lastIndexOf('\\') : lastSlash) : filePath;
+            // Use entry.name (actual folder name) to find correct boundary, not first file name
+            if (name) {
+              const idx = norm.indexOf(`/${name}/`);
+              if (idx >= 0) {
+                actualPath = norm.slice(0, idx + name.length + 1);
+              } else {
+                const endIdx = norm.lastIndexOf(`/${name}`);
+                if (endIdx >= 0) {
+                  actualPath = norm.slice(0, endIdx + name.length + 1);
+                }
+              }
+            }
+            if (!actualPath) {
+              // Last resort: parent of first file (likely a subfolder — will show for review)
+              const lastSlash = norm.lastIndexOf('/');
+              actualPath = lastSlash > 0 ? filePath.slice(0, filePath.lastIndexOf('\\') > 0 ? filePath.lastIndexOf('\\') : lastSlash) : filePath;
+            }
           }
 
           // Fallback to defaultProjectPath / current input / fallback base if no OS path

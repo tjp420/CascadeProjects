@@ -35,13 +35,13 @@ function main() {
   // ── Phase 1: Product Artifacts ──
   section('Phase 1: Product Artifacts');
 
-  const vsixPath = path.join(ROOT, 'vscode-extension', 'ai-slop-cop-0.5.44.vsix');
+  const vsixPath = path.join(ROOT, 'simplebeacon-vscode-merged', 'simplebeacon-3.0.310.vsix');
   check('Extension .vsix exists', fs.existsSync(vsixPath), vsixPath);
 
-  const iconPng = path.join(ROOT, 'vscode-extension', 'resources', 'icon.png');
-  check('Marketplace icon (PNG) exists', fs.existsSync(iconPng));
+  const iconSvg = path.join(ROOT, 'simplebeacon-vscode-merged', 'media', 'icon.svg');
+  check('Marketplace icon (SVG) exists', fs.existsSync(iconSvg));
 
-  const iconStats = fs.existsSync(iconPng) ? fs.statSync(iconPng) : null;
+  const iconStats = fs.existsSync(iconSvg) ? fs.statSync(iconSvg) : null;
   check('Icon is > 1KB (not empty)', iconStats && iconStats.size > 1024);
 
   const screenshotsDir = path.join(ROOT, 'sales', 'marketplace', 'screenshots');
@@ -54,7 +54,7 @@ function main() {
     `${screenshotPngs.length} found — need 5 for marketplace`);
 
   check('Extension README exists',
-    fs.existsSync(path.join(ROOT, 'vscode-extension', 'README.md')));
+    fs.existsSync(path.join(ROOT, 'simplebeacon-vscode-merged', 'README.md')));
 
   // ── Phase 2: Code Quality ──
   section('Phase 2: Code Quality');

@@ -1,7 +1,7 @@
 import { authService } from '../services/authService.js';
 import { billingService } from '../services/billingService.js';
 import { showToast } from '../utils.js';
-// simplebeacon-ignore dead-code — JSDoc comment block before exported function
+import { COMING_SOON_URL } from '../config.js';
 /**
  * Decode email from token.
  * @param {string} token

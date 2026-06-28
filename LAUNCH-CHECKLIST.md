@@ -2,7 +2,7 @@
 
 **Target:** Bulletproof, production-ready developer tool for skeptical engineers and enterprise risk managers.  
 **Estimated readiness:** ~75–80% of the way to an initial public release.  
-**Last updated:** 2026-06-26
+**Last updated:** 2026-06-27
 
 ---
 
@@ -10,7 +10,7 @@
 
 | # | Task | Status | Evidence / Notes | Owner |
 |---|------|--------|------------------|-------|
-| 1.1 | **Verify the “Zero-Upload” claim** — CLI & MCP must run entirely locally; only license/telemetry pings leave the machine. | 🟡 In Progress | `SECURITY.md` and `PRIVACY.md` state the zero-upload model. `packages/simplebeacon-cli/bin/simplebeacon.js` is `--offline` by default. **Need:** a final code audit to confirm no accidental source-code uploads in the MCP or CLI paths. | Engineering |
+| 1.1 | **Verify the “Zero-Upload” claim** — CLI & MCP must run entirely locally; only license/telemetry pings leave the machine. | � Done | `scripts/zero-upload-verify.js` passes 7/7 checks (CLI offline scan, MCP offline isolation, source guard, dependency audit, trust guard wiring, MCP tool declarations, CLI default mode). | Engineering |
 | 1.2 | **Document LLM usage** — if advanced heuristics call an LLM, default to local (Ollama/Llama 3) or zero-data-retention enterprise APIs. | 🟡 In Progress | Optional dependency `@simplebeacon/intelligence` is marked optional; no external LLM call in the default CLI path. **Need:** explicit user-facing doc explaining LLM modes and defaults. | Engineering + Docs |
 | 1.3 | **Draft a Dev-First “Data Security Manifesto”** — what leaves the machine, what stays local, and why. | 🟢 Done | `PRIVACY.md` and `SECURITY.md` already cover local processing, no tracking, and token handling. | Legal / Docs |
 | 1.4 | **Perform a false-positive audit** — run against large human-written and AI-generated open-source repos. | � Done | Ran `llm-slop-patterns` and `token-bleed-patterns` against lodash 4.17.21 and express 4.18.2 (human baseline) and a synthetic AI-generated repo. Results: **0 false positives on human code**; **100% hit rate on AI-generated artifacts** (6 llm-slop + 6 token-bleed findings). Fixed one generic `.invoke()` false positive in lodash and an undefined-import crash in `token-bleed-patterns.js`. Details in `false-positive-audit/audit-results.json`. | QA / Engineering |
@@ -59,11 +59,11 @@ npm run mcp:smoke
 
 | # | Task | Status | Evidence / Notes | Owner |
 |---|------|--------|------------------|-------|
-| 4.1 | **Hacker News / Product Hunt / Reddit launch posts** — engineering-first copy, not marketing fluff. | 🔴 Pending | Draft posts emphasizing the zero-retention local scan architecture and the EU AI Act deadline. | Marketing |
+| 4.1 | **Hacker News / Product Hunt / Reddit launch posts** — engineering-first copy, not marketing fluff. | � Done | Drafts ready in `marketing/hn-show-post.md`, `product-hunt-launch.md`, `reddit-launch.md`. | Marketing |
 | 4.2 | **npm registry publish** — `simplebeacon` package is public and installable. | 🟢 Ready | `packages/simplebeacon-cli/PUBLISH.md` has the steps; version is `1.1.1`. **Action:** run `npm publish --access public`. | Engineering |
 | 4.3 | **VS Code Marketplace publish** — `.vsix` + screenshots + publisher account. | 🟡 In Progress | `simplebeacon-3.0.309.vsix` is ready. **Need:** capture 5 marketplace screenshots (1280×800) and register publisher `simplebeacon`. | Marketing |
 | 4.4 | **Domain + hosting go-live** — `simplebeacon.ai` resolves to the landing page and dashboard. | 🟡 In Progress | `render.yaml` and `ai-platform/simplebeacon-server.cjs` are configured. **Need:** DNS A record + Stripe/Resend live keys. | DevOps |
-| 4.5 | **Launch-day runbook** — rollback plan, support channel, and monitoring. | 🔴 Pending | Define who watches Sentry/logs, how to unpublish the bad VSIX, and how to triage the first 48 hours of support. | Operations |
+| 4.5 | **Launch-day runbook** — rollback plan, support channel, and monitoring. | � Done | `sales/docs/launch-day-runbook.md` covers launch sequence, automated rollback triggers, severity triage, 48-hour observation schedule, and one-liner health checks. | Operations |
 
 ---
 
@@ -71,18 +71,18 @@ npm run mcp:smoke
 
 | Pillar | Done | In Progress | Pending | Blockers |
 |--------|------|-------------|---------|----------|
-| 🔒 Technical & Privacy | 2 | 2 | 1 | Code audit bandwidth |
+| 🔒 Technical & Privacy | 3 | 1 | 1 | LLM usage doc |
 | 🛠️ DX & Onboarding | 3 | 1 | 1 | CI action test matrix |
 | 💼 Business & Compliance | 4 | 1 | 0 | None |
-| 📣 Distribution | 1 | 2 | 2 | Screenshots, domain, support runbook |
+| 📣 Distribution | 3 | 2 | 0 | Screenshots, domain, Stripe/Resend keys |
 
 ### Do these first (public launch is blocked until complete)
 
-1. **Zero-upload code audit** — prove no source code leaves the machine in default mode.
-2. **False-positive audit** — run on 5+ human and 5+ AI repos; publish flag-rate summary.
+1. **Marketplace screenshots** — 5× 1280×800 PNGs in `sales/marketplace/screenshots/`.
+2. **Domain + hosting go-live** — DNS A record for `simplebeacon.ai` + Stripe live keys + Resend API key.
 3. **CI action stress test** — run on clean repo, dirty repo, and large repo.
-4. **Marketplace screenshots** — 5× 1280×800 PNGs in `sales/marketplace/screenshots/`.
-5. **Launch-day runbook** — support channel, rollback, and monitoring plan.
+4. **False-positive audit** — run on 5+ human and 5+ AI repos; publish flag-rate summary.
+5. **LLM usage documentation** — explicit user-facing doc explaining LLM modes and defaults.
 
 ### Nice-to-have before launch
 

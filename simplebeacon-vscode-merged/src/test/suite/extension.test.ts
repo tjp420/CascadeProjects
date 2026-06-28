@@ -81,12 +81,12 @@ suite('SimpleBeacon Extension Test Suite', () => {
     };
 
     // Ensure the extension is activated
-    const ext = vscode.extensions.getExtension('simplebeacon.simplebeacon');
+    const ext = vscode.extensions.getExtension('simplebeacon.simplebeacon-vscode');
     if (!ext) {
       const allExts = vscode.extensions.all.map(e => e.id).sort();
       console.warn('[SB Test] Available extensions:', allExts.join(', '));
     }
-    assert.ok(ext, 'Extension simplebeacon.simplebeacon should be installed');
+    assert.ok(ext, 'Extension simplebeacon.simplebeacon-vscode should be installed');
     if (!ext.isActive) {
       try {
         await ext.activate();

@@ -40,18 +40,19 @@ Existing tools (Snyk, SonarQube) catch security bugs and code smells. None of th
 
 ## Free tier
 
-- 5 findings per scan
-- Quality score hidden
-- Upgrade CTA in output
+- 50 files per scan
+- All rule engines enabled
+- Quality score + gate status
+- No upload required, no signup
 
-Paid tiers unlock unlimited findings, quality score, PDF certificates, and team dashboard.
+Paid tiers ($19–$2,499) unlock unlimited files, executive PDF certificates, EU AI Act compliance packs, and team dashboards.
 
 ## Links
 
 - Website: https://simplebeacon.ai
-- CLI: `npm install -g simplebeacon-cli`
+- CLI: `npm install -g simplebeacon`
 - GitHub Action: `simplebeacon/guardrails`
-- VS Code Extension: Marketplace link (coming)
+- VS Code Extension: Search "SimpleBeacon" in VS Code: Marketplace
 
 ## Ask me anything
 

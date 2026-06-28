@@ -919,6 +919,12 @@ export function activate(context: vscode.ExtensionContext) {
   updateStatusBar();
 
   const debugReporter = DebugReporter.getInstance();
+  function isCancellationError(err: unknown): boolean {
+    if (!(err instanceof Error)) return false;
+    const msg = err.message.toLowerCase();
+    return msg === 'canceled' || msg === 'cancelled' || msg.includes('cancellation') || err.name === 'CanceledError' || err.name === 'CancellationError';
+  }
+
   function registerCmd(command: string, callback: (...args: any[]) => unknown) {
     try {
       return vscode.commands.registerCommand(command, (...args: any[]) => {
@@ -926,10 +932,20 @@ export function activate(context: vscode.ExtensionContext) {
         try {
           const result = callback(...args);
           if (result instanceof Promise) {
-            result.catch((err: unknown) => debugReporter.logError(err instanceof Error ? err : new Error(String(err)), `command:${command}`));
+            result.catch((err: unknown) => {
+              if (isCancellationError(err)) {
+                outputChannel.appendLine(`[SimpleBeacon] Command ${command} cancelled by user`);
+                return;
+              }
+              debugReporter.logError(err instanceof Error ? err : new Error(String(err)), `command:${command}`);
+            });
           }
           return result;
         } catch (err) {
+          if (isCancellationError(err)) {
+            outputChannel.appendLine(`[SimpleBeacon] Command ${command} cancelled by user`);
+            return;
+          }
           debugReporter.logError(err instanceof Error ? err : new Error(String(err)), `command:${command}`);
           throw err;
         }
@@ -3148,14 +3164,14 @@ async function runScan(context: vscode.ExtensionContext, projectPath?: string, o
   const args = ['scan', '--format', 'json', '--output', '.simplebeacon/report.json'];
 
   if (scanMode === 'full' || scanMode === 'security' || scanMode === 'quality') {
-    args.push('--full');
+    args.push('--complete');
   } else if (scanMode === 'gate') {
     args.push('--gate');
   }
   if (options?.fullDirectory) {
-    args.push('--full');
+    args.push('--complete');
   }
-  // quick mode: no --full flag, uses productionPaths only (fastest)
+  // quick mode: no --complete flag, uses productionPaths only (fastest)
 
   const configPath = path.join(projectPath, '.simplebeacon', 'config.json');
   try {

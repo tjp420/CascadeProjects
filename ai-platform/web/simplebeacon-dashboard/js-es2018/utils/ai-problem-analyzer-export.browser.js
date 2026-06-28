@@ -484,13 +484,10 @@ export function aiProblemAnalyzerExportFilename(projectPath, date = new Date()) 
  * @param {number} exportPayload
  * @returns {any}
  */
-// simplebeacon-ignore memory-leak
 export function buildAiProblemAnalyzerCsv(exportPayload) {
     var _a, _b, _c;
     const rows = [['id', 'analyzerId', 'title', 'status', 'severity', 'metricScore', 'riskScore', 'scoringDirection', 'riskBand', 'evidenceStatus', 'countsTowardRiskSummary']];
-    const results = (exportPayload === null || exportPayload === void 0 ? void 0 : exportPayload.analyzerResults) || [];
-    for (let i = 0; i < results.length; i++) {
-        const result = results[i];
+    for (const result of (exportPayload === null || exportPayload === void 0 ? void 0 : exportPayload.analyzerResults) || []) {
         rows.push([
             result.id || '',
             result.analyzerId || '',

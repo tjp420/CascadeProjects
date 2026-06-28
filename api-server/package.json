@@ -1,0 +1,39 @@
+{
+  "name": "simplebeacon-api",
+  "version": "1.0.0",
+  "description": "SimpleBeacon API server — backend for file uploads, scan engine, certificate generation, billing, and email queue",
+  "main": "server.cjs",
+  "scripts": {
+    "start": "node server.cjs",
+    "dev": "nodemon server.cjs",
+    "build": "node -c server.cjs && echo 'Server syntax OK'",
+    "lint": "npx eslint .",
+    "format": "npx prettier --write '**/*.cjs'",
+    "quality:check": "npm run build && npm run lint"
+  },
+  "dependencies": {
+    "express": "^4.22.2",
+    "cors": "^2.8.6",
+    "helmet": "^7.0.0",
+    "express-rate-limit": "^8.5.2",
+    "multer": "^1.4.5-lts.1",
+    "dotenv": "^16.3.1",
+    "stripe": "^22.1.1",
+    "nodemailer": "^8.0.10",
+    "pg": "^8.21.0",
+    "redis": "^4.7.1",
+    "jsonwebtoken": "^9.0.3",
+    "bcryptjs": "^3.0.3",
+    "winston": "^3.8.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1",
+    "eslint": "^9.39.4",
+    "prettier": "^3.8.4"
+  },
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
+  },
+  "license": "MIT"
+}

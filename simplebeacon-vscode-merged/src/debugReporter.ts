@@ -121,7 +121,7 @@ export class DebugReporter {
   public dumpReport(): string {
     return JSON.stringify({
       generatedAt: new Date().toISOString(),
-      extensionVersion: vscode.extensions.getExtension('simplebeacon.simplebeacon')?.packageJSON?.version ?? 'unknown',
+      extensionVersion: vscode.extensions.getExtension('simplebeacon.simplebeacon-vscode')?.packageJSON?.version ?? 'unknown',
       vscodeVersion: vscode.version,
       entryCount: this._entries.length,
       entries: this._entries

@@ -25,6 +25,31 @@ class DatabaseAdapter {
     return this.pool.query(sql, params);
   }
 
+  /**
+   * Acquire a client, begin a transaction, set RLS workspace context,
+   * yield the client for route operations, then commit/rollback and release.
+   * @param {string} workspaceId - Workspace or organization ID for RLS scoping.
+   * @param {Function} callback - Async callback receiving the scoped client.
+   * @returns {Promise<any>} Result of the callback.
+   */
+  async transaction(workspaceId, callback) {
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      if (workspaceId) {
+        await client.query('SET LOCAL app.current_workspace_id = $1', [workspaceId]);
+      }
+      const result = await callback(client);
+      await client.query('COMMIT');
+      return result;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
   async healthCheck() {
     try {
       await this.query('SELECT 1 AS health');

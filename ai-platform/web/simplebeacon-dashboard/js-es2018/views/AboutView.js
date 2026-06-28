@@ -3,8 +3,7 @@ import { escapeHtml } from '../utils.js';
 const GITHUB_REPO = 'https://github.com/tjp420/simplebeacon';
 const MANIFESTO = 'https://github.com/tjp420/simplebeacon/blob/main/docs/ANTI-BLOAT-MANIFESTO.md';
 // Transparency note: This dashboard view displays documentation about pattern-matching tools.
-const CODE_SAMPLE = `// simplebeacon-ignore memory-leak — documentation code sample, not a leaking event listener pattern
-// From credential-pattern-scanner.js — no API calls, no ML
+const CODE_SAMPLE = `// From credential-pattern-scanner.js — no API calls, no ML
 const CREDENTIAL_PATTERNS = [
   { id: 'aws-access-key', regex: /\\bAKIA[0-9A-Z]{16}\\b/g, severity: 'high' },
   { id: 'openai-key', regex: /\\bsk-[A-Za-z0-9]{20,}\\b/g, severity: 'high' },

@@ -1,0 +1,51 @@
+# SimpleBeacon Monorepo — CODEOWNERS
+# Each path maps to the team/individual responsible for review approval.
+# Use @simplebeacon/engineering as fallback for unmapped paths.
+
+# ── Global / Repository Infrastructure ──────────────────────────────────────
+.github/                    @tjp420
+.github/workflows/          @tjp420
+.husky/                     @tjp420
+scripts/                    @tjp420
+*.md                        @tjp420
+LICENSE                     @tjp420
+
+# ── CLI Package (published to npm) ────────────────────────────────────────
+packages/simplebeacon-cli/              @tjp420
+packages/simplebeacon-cli/bin/          @tjp420
+packages/simplebeacon-cli/src/          @tjp420
+packages/simplebeacon-cli/src/mcp/      @tjp420
+packages/simplebeacon-cli/tests/        @tjp420
+packages/simplebeacon-cli/package.json  @tjp420
+
+# ── VS Code: Extension ────────────────────────────────────────────────────
+simplebeacon-vscode-merged/             @tjp420
+simplebeacon-vscode-merged/src/         @tjp420
+simplebeacon-vscode-merged/dashboard-web/ @tjp420
+simplebeacon-vscode-merged/package.json   @tjp420
+
+# ── AI Platform (server, dashboard, APIs) ─────────────────────────────────
+ai-platform/                @tjp420
+ai-platform/server/         @tjp420
+ai-platform/web/              @tjp420
+ai-platform/src/            @tjp420
+ai-platform/config/         @tjp420
+ai-platform/package.json      @tjp420
+
+# ── Landing Page / Marketing Site ───────────────────────────────────────
+coming-soon/                @tjp420
+coming-soon/js/             @tjp420
+coming-soon/*.html          @tjp420
+coming-soon/package.json    @tjp420
+
+# ── Marketing & Documentation ─────────────────────────────────────────────
+marketing/                  @tjp420
+marketing/blog-posts/       @tjp420
+marketing/outreach/         @tjp420
+sales/                      @tjp420
+sales/docs/                 @tjp420
+sales/legal/                @tjp420
+
+# ── GitHub Action ───────────────────────────────────────────────────────
+github-action/              @tjp420
+github-action/action.yml    @tjp420

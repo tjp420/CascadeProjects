@@ -11,7 +11,6 @@ export class AssessmentView {
         this.busy = false;
         this.report = null;
         this.recent = assessmentService.getRecentAssessments();
-        this._submitHandler = null;
         this.form = {
             company: '',
             email: '',
@@ -19,15 +18,6 @@ export class AssessmentView {
             projectPath: '',
             assessmentType: 'mna-audit'
         };
-    }
-    destroy() {
-        if (this._submitHandler) {
-            const form = document.querySelector('#assessment-form');
-            if (form) {
-                form.removeEventListener('submit', this._submitHandler);
-            }
-            this._submitHandler = null;
-        }
     }
     renderRuleRow(rule) {
         const icon = rule.status === 'pass' ? '✓' : rule.status === 'fail' ? '✗' : '○';
@@ -137,12 +127,7 @@ export class AssessmentView {
 
       <div id="assessment-detail">${this.report ? this.renderReportDetail(this.report) : ''}</div>
     `;
-        const form = el.querySelector('#assessment-form');
-        if (form) {
-            this.destroy();
-            this._submitHandler = (e) => this.onSubmit(e);
-            form.addEventListener('submit', this._submitHandler);
-        }
+        (_b = el.querySelector('#assessment-form')) === null || _b === void 0 ? void 0 : _b.addEventListener('submit', (e) => this.onSubmit(e));
         el.querySelectorAll('[data-open-assessment]').forEach((btn) => {
             btn.addEventListener('click', () => {
                 this.app.navigate('assessments', { id: btn.dataset.openAssessment });

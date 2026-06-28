@@ -1,4 +1,3 @@
-# Simplebeacon Platform
 
 [![CI Status](https://github.com/tjp420/simplebeacon/workflows/Simplebeacon%20AI%20Hygiene%20Gate/badge.svg)](https://github.com/tjp420/simplebeacon/actions)
 [![Coverage](https://codecov.io/gh/tjp420/simplebeacon/branch/main/graph/badge.svg)](https://codecov.io/gh/tjp420/simplebeacon)

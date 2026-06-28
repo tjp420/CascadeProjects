@@ -66,6 +66,12 @@ function isLazyCachedSyncRead(content, matchIndex) {
         || /\blet\s+cached[A-Za-z0-9_]*\s*=\s*null/.test(snippet);
 }
 
+function isSimplebeaconIgnored(content, matchIndex) {
+    const windowStart = Math.max(0, matchIndex - 200);
+    const snippet = String(content || '').slice(windowStart, matchIndex + 200);
+    return /simplebeacon-ignore/.test(snippet);
+}
+
 function isAsyncReadPattern(content, matchIndex) {
     const windowStart = Math.max(0, matchIndex - 200);
     const snippet = String(content || '').slice(windowStart, matchIndex);
@@ -240,6 +246,7 @@ class DataAccessPatternAnalyzer {
                 pattern.regex.lastIndex = 0;
                 const match = pattern.regex.exec(content);
                 if (!match) continue;
+                if (isSimplebeaconIgnored(content, match.index)) continue;
                 if (pattern.id === 'parse-sync-read' && (isLazyCachedSyncRead(content, match.index) || isAsyncReadPattern(content, match.index))) continue;
                 findings.push({
                     type: 'data-access-pattern',
@@ -272,5 +279,6 @@ module.exports = {
     DataAccessPatternAnalyzer,
     ACCESS_PATTERNS,
     shouldSkipDataAccessScan,
-    isLazyCachedSyncRead
+    isLazyCachedSyncRead,
+    isSimplebeaconIgnored
 };

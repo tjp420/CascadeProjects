@@ -30,18 +30,90 @@ This is the mode used by:
 
 ### 2. Optional: Local LLM (Ollama)
 
-You can enable LLM-enhanced remediation suggestions using a local Ollama instance:
+You can enable LLM-enhanced remediation suggestions using a local Ollama instance. This is entirely optional — the default deterministic scan works without it.
+
+**Privacy:** The LLM runs entirely on your machine. No data leaves your network.
+
+#### Quick Start
 
 ```bash
-# Configure your local model
+# 1. Install Ollama (macOS/Linux/Windows WSL)
+curl -fsSL https://ollama.com/install.sh | sh
+
+# 2. Pull a recommended model
+ollama pull llama3.2:latest
+
+# 3. Verify it works
+ollama run llama3.2:latest "Hello"
+
+# 4. Configure SimpleBeacon
 export SIMPLEBEACON_FIX_MODEL=llama3.2:latest
 export OLLAMA_BASE_URL=http://localhost:11434
 
-# Run with local AI remediation
+# 5. Run with local AI remediation
 simplebeacon scan --fix --fix-provider ollama
 ```
 
-**Privacy:** The LLM runs entirely on your machine. No data leaves your network.
+#### Recommended Models
+
+| Model | Size | Speed | Quality | Best For |
+|-------|------|-------|---------|----------|
+| **llama3.2:latest** | 3B | Very Fast | Good | Default recommendation; balances speed and quality |
+| **llama3.1:8b** | 8B | Fast | Very Good | Larger codebase analysis; better reasoning |
+| **codellama:7b** | 7B | Fast | Good | Code-specific remediation suggestions |
+| **mistral:7b** | 7B | Fast | Very Good | General remediation; good instruction following |
+| **qwen2.5:7b** | 7B | Fast | Excellent | Multilingual codebases; strong reasoning |
+
+**Minimum recommended:** 3B parameter model (llama3.2). Anything smaller produces unreliable remediation suggestions.
+
+#### Context Window Configuration
+
+SimpleBeacon sends file snippets and rule context to the LLM. Default context is conservative to fit within most model limits:
+
+```json
+// .simplebeacon/config.json
+{
+  "ollama": {
+    "model": "llama3.2:latest",
+    "baseUrl": "http://localhost:11434",
+    "contextWindow": 4096,
+    "temperature": 0.2,
+    "maxTokens": 1024
+  }
+}
+```
+
+| Setting | Default | Range | Effect |
+|---------|---------|-------|--------|
+| `contextWindow` | 4096 | 2048–32768 | Larger = more file context per suggestion; requires more RAM |
+| `temperature` | 0.2 | 0.0–1.0 | Lower = more deterministic, focused suggestions |
+| `maxTokens` | 1024 | 256–2048 | Longer = more detailed remediation steps |
+
+**RAM guidance:**
+- 3B model: ~4 GB RAM total (including OS overhead)
+- 7B model: ~8 GB RAM total
+- 13B model: ~16 GB RAM total
+
+#### VS Code: Extension Settings
+
+```json
+// settings.json
+{
+  "simplebeacon.preferredAIProvider": "ollama",
+  "simplebeacon.ollamaUrl": "http://localhost:11434",
+  "simplebeacon.agentModel": "llama3.2:latest"
+}
+```
+
+#### Troubleshooting
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| "Ollama connection refused" | Ollama not running | `ollama serve` or restart Ollama app |
+| "Model not found" | Model not pulled | `ollama pull <model>` |
+| Slow remediation (>5s per finding) | Model too large or CPU-only | Use smaller model (3B) or GPU-accelerated Ollama |
+| Generic/irrelevant suggestions | Temperature too high or model too small | Lower temperature to 0.1; use 7B+ model |
+| High RAM usage | Multiple models loaded | `ollama ps` to see active models; `ollama stop <model>` to free RAM |
 
 ### 3. Optional: Enterprise API (Zero-Data-Retention)
 

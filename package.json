@@ -35,6 +35,7 @@
   },
   "devDependencies": {
     "jest": "^29.7.0",
+    "playwright": "^1.61.1",
     "vite": "^8.0.16"
   }
 }

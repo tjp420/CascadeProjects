@@ -73,6 +73,7 @@ const PROFILE_RULES = {
         'token-bleed-patterns': { enabled: true, severity: 'medium' },
         'architecture-drift-patterns': { enabled: true, severity: 'medium' },
         'security-patterns': { enabled: true, severity: 'high' },
+        'javascript-ast-patterns': { enabled: true, severity: 'critical' },
         'file-reduction': { enabled: true, dryRun: true }
     },
     'eu-ai-act': {
@@ -89,6 +90,7 @@ const PROFILE_RULES = {
         'token-bleed-patterns': { enabled: true, severity: 'medium' },
         'architecture-drift-patterns': { enabled: true, severity: 'medium' },
         'security-patterns': { enabled: true, severity: 'high' },
+        'javascript-ast-patterns': { enabled: true, severity: 'critical' },
         'file-reduction': { enabled: true, dryRun: true }
     },
     cascade: {
@@ -120,6 +122,7 @@ const PROFILE_RULES = {
         'token-bleed-patterns': { enabled: true, severity: 'medium' },
         'architecture-drift-patterns': { enabled: true, severity: 'medium' },
         'security-patterns': { enabled: true, severity: 'high' },
+        'javascript-ast-patterns': { enabled: true, severity: 'critical' },
         'file-reduction': { enabled: true, dryRun: true }
     }
 };

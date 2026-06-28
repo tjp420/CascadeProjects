@@ -11,7 +11,6 @@ export class Router {
     constructor(onNavigate) {
         this.onNavigate = onNavigate;
         window.addEventListener('popstate', () => this.handlePath());
-        // Keep hashchange support so any remaining inline hash navigation still works
         window.addEventListener('hashchange', () => this.handleHash());
     }
     init() {
@@ -35,7 +34,9 @@ export class Router {
         return '/dashboard/signin';
     }
     getDashboardBase() {
-        if (window.location.pathname.startsWith('/dashboard')) { return '/dashboard'; }
+        if (window.location.pathname.startsWith('/dashboard')) {
+            return '/dashboard';
+        }
         return '';
     }
     parsePath() {

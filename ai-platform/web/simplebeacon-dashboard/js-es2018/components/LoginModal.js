@@ -93,7 +93,7 @@ export function showLoginModal({ onSuccess } = {}) {
             const emailHint = (binding === null || binding === void 0 ? void 0 : binding.email) ? ` (${binding.email})` : '';
             overlay.remove();
             showToast(`This token is registered to an account${emailHint}. Redirecting to email sign-in.`, 'info');
-            if (window.__SB_DASHBOARD_APP__) { window.__SB_DASHBOARD_APP__.navigate('signin'); }
+            window.location.hash = '#/signin';
             return;
         }
         try {

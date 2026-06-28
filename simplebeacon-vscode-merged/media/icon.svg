@@ -1,1 +1,21 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L3 6v5.5c0 4.5 3.8 8.5 9 10.5 5.2-2 9-6 9-10.5V6l-9-4zm0 2.3L19 7.5v3.8c0 3.5-2.7 6.7-7 8.7-4.3-2-7-5.2-7-8.7V7.5l7-3.2z"/><path d="M12 8c-2.2 0-4 1.8-4 4s1.8 4 4 4 4-1.8 4-4-1.8-4-4-4zm0 1.8c1.2 0 2.2 1 2.2 2.2s-1 2.2-2.2 2.2-2.2-1-2.2-2.2 1-2.2 2.2-2.2z"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="shieldGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#1e3a8a"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000000" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+  <path d="M64 8 L16 28 L16 60 C16 92 36 116 64 120 C92 116 112 92 112 60 L112 28 L64 8Z" fill="url(#shieldGrad)" filter="url(#shadow)" stroke="#1d4ed8" stroke-width="2"/>
+  <path d="M64 18 L28 34 L28 60 C28 84 44 104 64 108 C84 104 100 84 100 60 L100 34 L64 18Z" fill="none" stroke="#60a5fa" stroke-width="2" opacity="0.6"/>
+  <g transform="translate(34, 34)" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="22" cy="22" r="14"/>
+    <path d="M32 32 L44 44"/>
+    <path d="M22 14 L22 22 L30 22" stroke-width="2"/>
+    <circle cx="22" cy="22" r="4" fill="#ffffff" stroke="none"/>
+  </g>
+  <path d="M52 88 L76 88" stroke="#fbbf24" stroke-width="4" stroke-linecap="round"/>
+  <path d="M44 96 L84 96" stroke="#fbbf24" stroke-width="4" stroke-linecap="round" opacity="0.7"/>
+</svg>

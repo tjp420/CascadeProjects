@@ -67,6 +67,12 @@ const { runNpmAuditAsync } = require('./lib/npm-audit-runner.cjs');
 const { registerEuAiActSprintRoute } = require('./lib/eu-ai-act-sprint-route.cjs');
 const { registerComplianceSchemaRoute } = require('./routes/compliance-schema-api.cjs');
 const { setupPrIntegrationAPI } = require('./routes/pr-integration-api.cjs');
+const fixOrchestratorRouter = require('./routes/fix-orchestrator-api.cjs');
+const ssoRoutes = require('./routes/sso-routes.cjs');
+const { setupWorkspaceRoutes, requirePermission, setWorkspaceRlsContext } = require('./lib/rbac.cjs');
+const auditLogRouter = require('./routes/audit.cjs');
+const authRoutes = require('./routes/auth-routes.cjs');
+const DatabaseAdapter = require('./lib/database-adapter.cjs');
 const freeTokenRouter = require('../../coming-soon/dist/routes/free-token.cjs');
 
 const app = express();
@@ -199,7 +205,11 @@ try {
  * @returns {any}
  */
 function loadDashboardHtml() {
-  return cachedDashboardHtml;
+  try {
+    return fs.readFileSync(dashboardPath, 'utf8');
+  } catch {
+    return cachedDashboardHtml;
+  }
 }
 
 /**
@@ -321,6 +331,11 @@ const dashDir = path.join(webRoot, 'simplebeacon-dashboard');
 ['/css', '/js', '/js-es2018', '/images', '/fonts', '/assets'].forEach((p) => {
   app.use(p, express.static(path.join(dashDir, p.substring(1))));
 });
+// Also serve under /dashboard/ prefix so relative paths work for /dashboard/* routes
+['/dashboard/css', '/dashboard/js', '/dashboard/js-es2018', '/dashboard/images', '/dashboard/fonts', '/dashboard/assets'].forEach((p) => {
+  const sub = p.replace('/dashboard/', '');
+  app.use(p, express.static(path.join(dashDir, sub)));
+});
 app.use('/site-config.js', express.static(path.join(dashDir, 'site-config.js')));
 
 // Fallback: serve coming-soon assets from root for pages served under /coming-soon/
@@ -328,23 +343,8 @@ app.use('/site-config.js', express.static(path.join(dashDir, 'site-config.js')))
   app.use(p, express.static(path.join(comingSoonRoot, p.substring(1))));
 });
 
-// Dashboard assets served under /simplebeacon-dashboard/ prefix
-app.use('/simplebeacon-dashboard', express.static(dashDir));
-
-// Dashboard / web assets (vault-gated when DASHBOARD_VAULT_PASSWORD is set)
-app.use((req, res, next) => {
-  const skipVault = !process.env.DASHBOARD_VAULT_PASSWORD || process.env.NODE_ENV === 'development';
-  if (skipVault) {
-    return express.static(webRoot, { index: false })(req, res, next);
-  }
-  if (isProtectedDashboardPath(req.path) && !isVaultAuthenticated(req)) {
-    return res.redirect(302, '/');
-  }
-  return express.static(webRoot, { index: false })(req, res, next);
-});
-app.use('/assets', express.static(path.join(webRoot, 'assets')));
-
 // Inject runtime configuration into dashboard HTML
+// This route MUST come before catch-all static middleware
 app.get(['/simplebeacon-dashboard', '/simplebeacon-dashboard/', '/simplebeacon-dashboard/index.html'], async (req, res) => {
   const indexPath = path.join(webRoot, 'simplebeacon-dashboard', 'index.html');
   let html;
@@ -364,6 +364,20 @@ app.get(['/simplebeacon-dashboard', '/simplebeacon-dashboard/', '/simplebeacon-d
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
   res.send(html);
 });
+
+// Dashboard / web assets (vault-gated when DASHBOARD_VAULT_PASSWORD is set)
+// Must come AFTER specific routes so it only serves unmatched paths
+app.use((req, res, next) => {
+  const skipVault = !process.env.DASHBOARD_VAULT_PASSWORD || process.env.NODE_ENV === 'development';
+  if (skipVault) {
+    return express.static(webRoot, { index: false })(req, res, next);
+  }
+  if (isProtectedDashboardPath(req.path) && !isVaultAuthenticated(req)) {
+    return res.redirect(302, '/');
+  }
+  return express.static(webRoot, { index: false })(req, res, next);
+});
+app.use('/assets', express.static(path.join(webRoot, 'assets')));
 
 // API Routes
 app.get('/api/health', (req, res) => {
@@ -743,19 +757,6 @@ app.post('/api/security/npm-audit', async (req, res) => {
 });
 
 // Enhanced API routes with authentication
-app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'healthy', 
-    timestamp: new Date().toISOString(),
-    platform: 'Simplebeacon',
-    version: '1.0.0',
-    security: {
-      rateLimiting: 'enabled',
-      authentication: 'enabled',
-      auditLogging: 'enabled'
-    }
-  });
-});
 
 app.get('/api/status', authenticate, (req, res) => {
   res.json({
@@ -822,6 +823,30 @@ setupLocalModelsAPI(app, {
     baseDir: platformRoot
 });
 
+// Workspace API — multi-tenant with RLS transaction guardrails
+// Only mount if database is configured; otherwise skip gracefully
+const { isDatabaseEnabled, getDatabaseConfig } = require('./config/database.cjs');
+if (isDatabaseEnabled()) {
+    try {
+        const dbAdapter = new DatabaseAdapter(getDatabaseConfig());
+        app.use('/api/workspaces', authenticate, setupWorkspaceRoutes(dbAdapter));
+        logger.info('[Workspaces] RLS workspace routes mounted at /api/workspaces');
+    } catch (e) {
+        logger.warn('[Workspaces] Database not configured — workspace routes skipped:', e.message);
+    }
+} else {
+    logger.info('[Workspaces] Database disabled — workspace routes not mounted');
+}
+
+// FixOrchestrator 2.0 — auto-remediation preview / apply
+// Mounted with auth + RBAC + RLS transaction guardrails
+const fixoDbAdapter = isDatabaseEnabled() ? new DatabaseAdapter(getDatabaseConfig()) : null;
+app.use('/api/v2/fixes', authenticate, requirePermission('remediation:write'), (req, res, next) => {
+    if (fixoDbAdapter) req.db = fixoDbAdapter;
+    next();
+}, setWorkspaceRlsContext, fixOrchestratorRouter);
+logger.info('[FixOrchestrator] RLS-scoped routes mounted at /api/v2/fixes');
+
 // Simplebeacon dashboard API — scan report, baseline, config, history
 // Authenticate vault sessions for user routes so req.user is populated
 app.use('/api/simplebeacon/user', authenticate);
@@ -830,6 +855,16 @@ try {
 } catch (e) {
     console.warn('[Simplebeacon] simplebeacon-api setup skipped:', e.message);
 }
+
+// Audit log retrieval API — paginated, strict memory limits (default LIMIT 50, max 200)
+app.use('/api/v2/audit', auditLogRouter);
+
+// Auth rotation & blocklist routes
+app.use('/api/v2/auth', authRoutes);
+
+// Enterprise SSO — SAML + OIDC callbacks
+app.use('/api/v2/auth/sso', ssoRoutes);
+logger.info('[SSO] Enterprise SSO routes mounted at /api/v2/auth/sso');
 
 // Dashboard stub APIs — dashboard-home, dev-tools, coverage-reports, security, quality, help
 try {

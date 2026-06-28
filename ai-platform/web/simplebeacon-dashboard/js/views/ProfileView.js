@@ -97,7 +97,7 @@ export class ProfileView {
       <style>
         .profile-page { max-width: 720px; margin: 0 auto; padding: 24px 16px 48px; }
         .profile-hero { text-align: center; margin-bottom: 32px; }
-        .profile-hero h1 { font-size: 1.75rem; font-weight: 700; margin: 0 0 8px; background: linear-gradient(135deg, var(--accent), var(--accent-secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .profile-hero h1 { font-size: 1.75rem; font-weight: 700; margin: 0 0 8px; color: var(--text-primary); background: linear-gradient(135deg, var(--accent), var(--accent-secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .profile-hero p { color: var(--text-muted); font-size: 0.9rem; margin: 0; }
         .profile-avatar { width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-secondary)); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin: 0 auto 16px; color: #fff; font-weight: 600; }
         .profile-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; margin-bottom: 20px; overflow: hidden; }
@@ -265,6 +265,7 @@ export class ProfileView {
       </div>
 
     `);
+    container.innerHTML = '';
     container.appendChild(fragment);
 
     // Style active login method

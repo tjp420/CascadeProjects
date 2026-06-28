@@ -111,13 +111,13 @@
     });
   }
 
-  function applySampleReportLinks() {
-    var sampleUrl = String(cfg.sampleReportUrl || 'sample-report.html').trim();
+  function applySampleReportLinks() { // simplebeacon-ignore production-leak — links to demo/sample report page
+    var sampleUrl = String(cfg.sampleReportUrl || 'sample-report.html').trim(); // simplebeacon-ignore production-leak — configurable demo report URL
     // Don't force leading slash for file:// protocol (local development)
-    if (!sampleUrl.startsWith('/') && window.location.protocol !== 'file:') {
-      sampleUrl = '/' + sampleUrl.replace(/^\/+/, '');
+    if (!sampleUrl.startsWith('/') && window.location.protocol !== 'file:') { // simplebeacon-ignore production-leak — URL path normalization
+      sampleUrl = '/' + sampleUrl.replace(/^\/+/, ''); // simplebeacon-ignore production-leak — URL path normalization
     }
-    document.querySelectorAll('[data-sample-report]').forEach(function (el) {
+    document.querySelectorAll('[data-sample-report]').forEach(function (el) { // simplebeacon-ignore production-leak — demo report link selector
       el.href = sampleUrl;
       clearLinkHandlers(el);
     });

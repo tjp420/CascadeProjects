@@ -1,0 +1,2879 @@
+{
+  "type": "simplebeacon-report",
+  "reportVersion": 2,
+  "scan_summary": {
+    "status": "FAILED",
+    "block_merge": true,
+    "total_risks_found": 27,
+    "high_severity_count": 14,
+    "medium_severity_count": 13,
+    "low_severity_count": 0,
+    "estimated_incident_cost_saved": "$135,000",
+    "scan_id": "sb_scan_8d9518dd17d6",
+    "timestamp": "2026-06-28T03:49:08.115Z",
+    "tier": "developer",
+    "scans_remaining": 17,
+    "pipeline_scan": false
+  },
+  "generatedAt": "2026-06-28T03:49:08.115Z",
+  "generatedBy": "Simplebeacon",
+  "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\server",
+  "configPath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\server\\.simplebeacon\\config.json",
+  "scanPaths": [
+    "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\server"
+  ],
+  "repositoryInventory": {
+    "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\server",
+    "totalFiles": 175,
+    "totalFolders": 21,
+    "profile": "all"
+  },
+  "mockSampleFiles": 1,
+  "totalFiles": 175,
+  "totalLines": 49204,
+  "ruleScopedFilesAnalyzed": 283,
+  "repositoryFilesTotal": 175,
+  "repositoryFoldersTotal": 21,
+  "filesAnalyzed": 175,
+  "totalSizeBytes": 1852018,
+  "totalSizeLabel": "1.8MB",
+  "issueCount": 27,
+  "invalidJson": 0,
+  "emptyFiles": 0,
+  "qualityScore": 16,
+  "schemaCompliance": null,
+  "schemaChecked": 0,
+  "schemaPassed": 0,
+  "pageSampleSchemaChecked": 0,
+  "pageSampleSchemaPassed": 0,
+  "duplicateGroups": 0,
+  "roadmapSchemaChecked": 0,
+  "roadmapSchemaPassed": 0,
+  "consistencyChecked": 3,
+  "consistencyPassed": 3,
+  "consistencyScore": 100,
+  "fictionJsonFilesScanned": 3,
+  "fictionSampleFilesScanned": 0,
+  "fictionScope": "repository-json",
+  "credentialScanned": 283,
+  "credentialFindings": 0,
+  "productionLeakScanned": 114,
+  "productionLeakFindings": 13,
+  "productionLeakSuppressedIntent": 0,
+  "sourceCodeFilesScanned": 108,
+  "sourceFictionPatternHits": 0,
+  "llmSlopFilesScanned": 228,
+  "llmSlopPatternHits": 0,
+  "euAiActScanned": 123,
+  "euAiActFindings": 7,
+  "euAiActSummary": {
+    "highRiskIndicators": 0,
+    "aiSystemIndicators": 7,
+    "transparencyGaps": 0,
+    "documentationArtifacts": 4,
+    "documentationFound": [
+      "ai-proxy-gateway.cjs",
+      "dlp-dashboard.cjs",
+      "index.cjs",
+      "README-DLP.md"
+    ],
+    "deadlineNote": "High-risk AI systems must comply with EU AI Act requirements by August 2026"
+  },
+  "securityPatternFilesScanned": 115,
+  "securityPatternFindings": 0,
+  "hardcodedUrlFilesScanned": 7,
+  "hardcodedUrlFindings": 9,
+  "weakCryptoFilesScanned": 0,
+  "weakCryptoFindings": 0,
+  "secretInCommentsFilesScanned": 0,
+  "secretInCommentsFindings": 0,
+  "syncIoFilesScanned": 0,
+  "syncIoFindings": 0,
+  "envInGitFilesScanned": 0,
+  "envInGitFindings": 0,
+  "redosFilesScanned": 0,
+  "redosFindings": 0,
+  "piiLoggingFilesScanned": 0,
+  "piiLoggingFindings": 0,
+  "deadCodeFilesScanned": 116,
+  "deadCodeFindings": 577,
+  "memoryLeakFilesScanned": 51,
+  "memoryLeakFindings": 150,
+  "typeSafetyFilesScanned": 230,
+  "typeSafetyFindings": 2,
+  "hallucinatedImportFilesScanned": 230,
+  "hallucinatedImportFindings": 16,
+  "astStructuralFilesScanned": 230,
+  "astStructuralFindings": 452,
+  "astAvailable": true,
+  "jestBaselineChecked": false,
+  "jestBaselinePassed": true,
+  "jestSummary": null,
+  "severityCounts": {
+    "critical": 0,
+    "high": 14,
+    "medium": 13,
+    "low": 0
+  },
+  "mockDataCategories": [
+    {
+      "category": "Stale inventory (full-tree scan)",
+      "fileCount": 1,
+      "totalSize": "1.8MB",
+      "qualityScore": null,
+      "issues": null,
+      "confidence": null,
+      "description": "Re-run scan to refresh — current categories reflect an outdated full-repo walk, not web/data samples."
+    }
+  ],
+  "compliance": {
+    "licenseCount": 1,
+    "securityCount": 1,
+    "summary": "1 license file, 1 security/governance file detected.",
+    "remediation": "Verify license compatibility with your distribution model.",
+    "governanceScore": 2,
+    "complianceHealth": "fair",
+    "recommendations": []
+  },
+  "detectedIssues": [
+    {
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Production Leak",
+      "count": 1,
+      "description": "lib/codebase-analyzer.cjs:410 references mock/sample path (mock-path)",
+      "pattern": "mock-path",
+      "line": 410,
+      "recommendation": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
+      "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
+      "affectedFiles": [
+        "codebase-analyzer.cjs"
+      ],
+      "filePaths": [
+        "lib/codebase-analyzer.cjs"
+      ],
+      "file": "lib/codebase-analyzer.cjs"
+    },
+    {
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Production Leak",
+      "count": 1,
+      "description": "lib/codebase-analyzer.cjs:482 references mock/sample path (mock-path)",
+      "pattern": "mock-path",
+      "line": 482,
+      "recommendation": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
+      "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
+      "affectedFiles": [
+        "codebase-analyzer.cjs"
+      ],
+      "filePaths": [
+        "lib/codebase-analyzer.cjs"
+      ],
+      "file": "lib/codebase-analyzer.cjs"
+    },
+    {
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Production Leak",
+      "count": 1,
+      "description": "lib/codebase-analyzer.cjs:1708 references mock/sample path (mock-path)",
+      "pattern": "mock-path",
+      "line": 1708,
+      "recommendation": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
+      "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
+      "affectedFiles": [
+        "codebase-analyzer.cjs"
+      ],
+      "filePaths": [
+        "lib/codebase-analyzer.cjs"
+      ],
+      "file": "lib/codebase-analyzer.cjs"
+    },
+    {
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Production Leak",
+      "count": 1,
+      "description": "lib/codebase-analyzer.cjs:410 references mock/sample path (fixtures-path)",
+      "pattern": "fixtures-path",
+      "line": 410,
+      "recommendation": "Audit fixture usage and remove mock references from production-bound modules",
+      "recommendedAction": "Audit fixture usage and remove mock references from production-bound modules",
+      "affectedFiles": [
+        "codebase-analyzer.cjs"
+      ],
+      "filePaths": [
+        "lib/codebase-analyzer.cjs"
+      ],
+      "file": "lib/codebase-analyzer.cjs"
+    },
+    {
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Production Leak",
+      "count": 1,
+      "description": "lib/codebase-analyzer.cjs:1467 references mock/sample path (web-data-sample)",
+      "pattern": "web-data-sample",
+      "line": 1467,
+      "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+      "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+      "affectedFiles": [
+        "codebase-analyzer.cjs"
+      ],
+      "filePaths": [
+        "lib/codebase-analyzer.cjs"
+      ],
+      "file": "lib/codebase-analyzer.cjs"
+    },
+    {
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Production Leak",
+      "count": 1,
+      "description": "lib/codebase-analyzer.cjs:1477 references mock/sample path (web-data-sample)",
+      "pattern": "web-data-sample",
+      "line": 1477,
+      "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+      "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+      "affectedFiles": [
+        "codebase-analyzer.cjs"
+      ],
+      "filePaths": [
+        "lib/codebase-analyzer.cjs"
+      ],
+      "file": "lib/codebase-analyzer.cjs"
+    },
+    {
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Production Leak",
+      "count": 1,
+      "description": "lib/codebase-analyzer.cjs:1537 references mock/sample path (web-data-sample)",
+      "pattern": "web-data-sample",
+      "line": 1537,
+      "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+      "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+      "affectedFiles": [
+        "codebase-analyzer.cjs"
+      ],
+      "filePaths": [
+        "lib/codebase-analyzer.cjs"
+      ],
+      "file": "lib/codebase-analyzer.cjs"
+    },
+    {
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Production Leak",
+      "count": 1,
+      "description": "lib/codebase-analyzer.cjs:2418 references mock/sample path (web-data-sample)",
+      "pattern": "web-data-sample",
+      "line": 2418,
+      "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+      "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+      "affectedFiles": [
+        "codebase-analyzer.cjs"
+      ],
+      "filePaths": [
+        "lib/codebase-analyzer.cjs"
+      ],
+      "file": "lib/codebase-analyzer.cjs"
+    },
+    {
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Production Leak",
+      "count": 1,
+      "description": "lib/codebase-analyzer.cjs:2801 references mock/sample path (web-data-sample)",
+      "pattern": "web-data-sample",
+      "line": 2801,
+      "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+      "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+      "affectedFiles": [
+        "codebase-analyzer.cjs"
+      ],
+      "filePaths": [
+        "lib/codebase-analyzer.cjs"
+      ],
+      "file": "lib/codebase-analyzer.cjs"
+    },
+    {
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Production Leak",
+      "count": 1,
+      "description": "lib/codebase-analyzer.cjs:3097 references mock/sample path (web-data-sample)",
+      "pattern": "web-data-sample",
+      "line": 3097,
+      "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+      "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+      "affectedFiles": [
+        "codebase-analyzer.cjs"
+      ],
+      "filePaths": [
+        "lib/codebase-analyzer.cjs"
+      ],
+      "file": "lib/codebase-analyzer.cjs"
+    },
+    {
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Production Leak",
+      "count": 1,
+      "description": "lib/codebase-analyzer.cjs:4073 references mock/sample path (web-data-sample)",
+      "pattern": "web-data-sample",
+      "line": 4073,
+      "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+      "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+      "affectedFiles": [
+        "codebase-analyzer.cjs"
+      ],
+      "filePaths": [
+        "lib/codebase-analyzer.cjs"
+      ],
+      "file": "lib/codebase-analyzer.cjs"
+    },
+    {
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Production Leak",
+      "count": 1,
+      "description": "lib/codebase-analyzer.cjs:410 references mock/sample path (template-sample)",
+      "pattern": "template-sample",
+      "line": 410,
+      "recommendation": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
+      "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
+      "affectedFiles": [
+        "codebase-analyzer.cjs"
+      ],
+      "filePaths": [
+        "lib/codebase-analyzer.cjs"
+      ],
+      "file": "lib/codebase-analyzer.cjs"
+    }
+  ],
+  "rawIssues": [
+    {
+      "id": "production-leak-mock-path-lib/codebase-analyzer.cjs-25904",
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Production Leak",
+      "filePath": "lib/codebase-analyzer.cjs",
+      "file": "lib/codebase-analyzer.cjs",
+      "line": 410,
+      "pattern": "mock-path",
+      "count": 1,
+      "description": "lib/codebase-analyzer.cjs:410 references mock/sample path (mock-path)",
+      "recommendation": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
+      "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
+      "affectedFiles": [
+        "codebase-analyzer.cjs"
+      ],
+      "metadata": {
+        "patternId": "mock-path",
+        "offset": 25904,
+        "match": "`]*(?:\\/mock\\/|\\/mocks\\/|\\/fixture\\/|\\/fixtures\\/|\\/test-data\\/|\\/testdata\\/)[^'",
+        "intent": "unclassified",
+        "intentReason": "Mock/sample path reference in production-eligible code",
+        "findingPayload": {
+          "file": "lib/codebase-analyzer.cjs",
+          "line": 410,
+          "pattern": "mock-path",
+          "recommendation": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources"
+        }
+      }
+    },
+    {
+      "id": "production-leak-mock-path-lib/codebase-analyzer.cjs-33411",
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Production Leak",
+      "filePath": "lib/codebase-analyzer.cjs",
+      "file": "lib/codebase-analyzer.cjs",
+      "line": 482,
+      "pattern": "mock-path",
+      "count": 1,
+      "description": "lib/codebase-analyzer.cjs:482 references mock/sample path (mock-path)",
+      "recommendation": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
+      "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
+      "affectedFiles": [
+        "codebase-analyzer.cjs"
+      ],
+      "metadata": {
+        "patternId": "mock-path",
+        "offset": 33411,
+        "match": "`]*\\/mock\\/[^'",
+        "intent": "unclassified",
+        "intentReason": "Mock/sample path reference in production-eligible code",
+        "findingPayload": {
+          "file": "lib/codebase-analyzer.cjs",
+          "line": 482,
+          "pattern": "mock-path",
+          "recommendation": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources"
+        }
+      }
+    },
+    {
+      "id": "production-leak-mock-path-lib/codebase-analyzer.cjs-100881",
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Production Leak",
+      "filePath": "lib/codebase-analyzer.cjs",
+      "file": "lib/codebase-analyzer.cjs",
+      "line": 1708,
+      "pattern": "mock-path",
+      "count": 1,
+      "description": "lib/codebase-analyzer.cjs:1708 references mock/sample path (mock-path)",
+      "recommendation": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
+      "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
+      "affectedFiles": [
+        "codebase-analyzer.cjs"
+      ],
+      "metadata": {
+        "patternId": "mock-path",
+        "offset": 100881,
+        "match": "', match.index);\n                const lineText = content.slice(lineStart, lineEnd === -1 ? undefined : lineEnd);\n                if (/Mock\\/fixture\\/sample data paths|mock\\/fixture\\/sample data references|mock\\/fixture\\/sample path references|development-only data paths|Blocks API keys/i.test(lineText)) continue;\n            }\n            if (category === '",
+        "intent": "unclassified",
+        "intentReason": "Mock/sample path reference in production-eligible code",
+        "findingPayload": {
+          "file": "lib/codebase-analyzer.cjs",
+          "line": 1708,
+          "pattern": "mock-path",
+          "recommendation": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources"
+        }
+      }
+    },
+    {
+      "id": "production-leak-fixtures-path-lib/codebase-analyzer.cjs-25904",
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Production Leak",
+      "filePath": "lib/codebase-analyzer.cjs",
+      "file": "lib/codebase-analyzer.cjs",
+      "line": 410,
+      "pattern": "fixtures-path",
+      "count": 1,
+      "description": "lib/codebase-analyzer.cjs:410 references mock/sample path (fixtures-path)",
+      "recommendation": "Audit fixture usage and remove mock references from production-bound modules",
+      "recommendedAction": "Audit fixture usage and remove mock references from production-bound modules",
+      "affectedFiles": [
+        "codebase-analyzer.cjs"
+      ],
+      "metadata": {
+        "patternId": "fixtures-path",
+        "offset": 25904,
+        "match": "`]*(?:\\/mock\\/|\\/mocks\\/|\\/fixture\\/|\\/fixtures\\/|\\/test-data\\/|\\/testdata\\/)[^'",
+        "intent": "unclassified",
+        "intentReason": "Mock/sample path reference in production-eligible code",
+        "findingPayload": {
+          "file": "lib/codebase-analyzer.cjs",
+          "line": 410,
+          "pattern": "fixtures-path",
+          "recommendation": "Audit fixture usage and remove mock references from production-bound modules"
+        }
+      }
+    },
+    {
+      "id": "production-leak-web-data-sample-lib/codebase-analyzer.cjs-80481",
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Production Leak",
+      "filePath": "lib/codebase-analyzer.cjs",
+      "file": "lib/codebase-analyzer.cjs",
+      "line": 1467,
+      "pattern": "web-data-sample",
+      "count": 1,
+      "description": "lib/codebase-analyzer.cjs:1467 references mock/sample path (web-data-sample)",
+      "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+      "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+      "affectedFiles": [
+        "codebase-analyzer.cjs"
+      ],
+      "metadata": {
+        "patternId": "web-data-sample",
+        "offset": 80481,
+        "match": "') {\n                // Skip scanner/build tools where for...of loops are standard for batch processing\n                if (/server\\/lib\\//.test(relativePath) || /(?:^|\\/)tools\\//.test(relativePath)) continue;\n                // Skip web/data and dashboard files where loops are standard for transforms\n                if (/web\\/data\\//.test(relativePath) || /simplebeacon-dashboard/.test(relativePath)) continue;\n            }\n            if (category === '",
+        "intent": "unclassified",
+        "intentReason": "Mock/sample path reference in production-eligible code",
+        "findingPayload": {
+          "file": "lib/codebase-analyzer.cjs",
+          "line": 1467,
+          "pattern": "web-data-sample",
+          "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        }
+      }
+    },
+    {
+      "id": "production-leak-web-data-sample-lib/codebase-analyzer.cjs-81271",
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Production Leak",
+      "filePath": "lib/codebase-analyzer.cjs",
+      "file": "lib/codebase-analyzer.cjs",
+      "line": 1477,
+      "pattern": "web-data-sample",
+      "count": 1,
+      "description": "lib/codebase-analyzer.cjs:1477 references mock/sample path (web-data-sample)",
+      "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+      "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+      "affectedFiles": [
+        "codebase-analyzer.cjs"
+      ],
+      "metadata": {
+        "patternId": "web-data-sample",
+        "offset": 81271,
+        "match": "') {\n                // Skip config, package source, bootstrap, and server files where numeric constants are standard\n                if (/server\\/config\\/constants\\.cjs$/.test(relativePath) || /server\\/bootstrap\\//.test(relativePath)) continue;\n                if (/packages\\/[^/]+\\/src\\//.test(relativePath) || /server\\/ai-proxy-gateway\\.cjs$/.test(relativePath)) continue;\n                if (/server\\/index\\.cjs$/.test(relativePath)) continue;\n                // Skip VS Code extension files where numeric literals are standard in configuration and UI\n                if (/(?:^|\\/)simplebeacon-vscode\\/src\\//.test(relativePath)) continue;\n                // Skip server routes where status codes and timeouts are standard\n                if (/server\\/routes\\//.test(relativePath)) continue;\n                // Skip dashboard and API files where numbers are standard UI/config values\n                if (/simplebeacon-dashboard/.test(relativePath) || /src\\/api\\//.test(relativePath)) continue;\n                // Skip server/lib/ files where numbers are standard for pattern definitions and configs\n                if (/server\\/lib\\//.test(relativePath)) continue;\n                // Skip web/data, server, src/, test, coming-soon, vendor, and tools files where numbers are standard\n                if (/web\\/data\\//.test(relativePath) || /^server\\//.test(relativePath) || /^src\\//.test(relativePath)) continue;\n                if (/tests\\//.test(relativePath) || /(?:^|\\/)tools\\//.test(relativePath)) continue;\n                if (/(?:^|\\/)coming-soon\\//.test(relativePath) || /(?:^|\\/)vendor\\//.test(relativePath)) continue;\n                if (/\\btest-[\\w-]+\\.(js|cjs|mjs)$/.test(relativePath) || /[\\w-]-test\\.(js|cjs|mjs)$/.test(relativePath)) continue;\n                if (/vite\\.config\\.js$/.test(relativePath)) continue;\n                // Skip docs, auto-processor, and simplebeacon-server files where numbers are standard\n                if (/^docs\\//.test(relativePath) || /auto-processor\\.js$/.test(relativePath) || /^simplebeacon-server\\.cjs$/.test(relativePath)) continue;\n                // Skip well-known safe constants (ports, timeouts, byte sizes, years, prices, test cards)\n                if (isWellKnownConstant(match[0])) continue;\n                // Skip lines that are constant declarations (e.g., const FOO = 123)\n                const mnLineStart = content.lastIndexOf('",
+        "intent": "unclassified",
+        "intentReason": "Mock/sample path reference in production-eligible code",
+        "findingPayload": {
+          "file": "lib/codebase-analyzer.cjs",
+          "line": 1477,
+          "pattern": "web-data-sample",
+          "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        }
+      }
+    },
+    {
+      "id": "production-leak-web-data-sample-lib/codebase-analyzer.cjs-86772",
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Production Leak",
+      "filePath": "lib/codebase-analyzer.cjs",
+      "file": "lib/codebase-analyzer.cjs",
+      "line": 1537,
+      "pattern": "web-data-sample",
+      "count": 1,
+      "description": "lib/codebase-analyzer.cjs:1537 references mock/sample path (web-data-sample)",
+      "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+      "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+      "affectedFiles": [
+        "codebase-analyzer.cjs"
+      ],
+      "metadata": {
+        "patternId": "web-data-sample",
+        "offset": 86772,
+        "match": "') {\n                // Skip package, server API, server lib, and server entry files where deep imports and paths are standard\n                if (/packages\\/[^/]+\\/src\\//.test(relativePath) || /server\\/api\\//.test(relativePath) || /server\\/lib\\//.test(relativePath)) continue;\n                if (/server\\/index\\.cjs$/.test(relativePath) || /server\\/routes\\//.test(relativePath) || /server\\/services\\//.test(relativePath)) continue;\n                // Skip web/data, server, src/, test, and dashboard files where paths are standard\n                if (/web\\/data\\//.test(relativePath) || /^server\\//.test(relativePath) || /^src\\//.test(relativePath)) continue;\n                if (/src\\/api\\//.test(relativePath) || /src\\/core\\//.test(relativePath) || /src\\/lib\\//.test(relativePath)) continue;\n                if (/tests\\//.test(relativePath)) continue;\n                if (/simplebeacon-dashboard/.test(relativePath)) continue;\n                // Skip utility scripts that intentionally reach into project structure\n                if (/(?:^|\\/)scripts\\//.test(relativePath)) continue;\n            }\n            if (category === '",
+        "intent": "unclassified",
+        "intentReason": "Mock/sample path reference in production-eligible code",
+        "findingPayload": {
+          "file": "lib/codebase-analyzer.cjs",
+          "line": 1537,
+          "pattern": "web-data-sample",
+          "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        }
+      }
+    },
+    {
+      "id": "production-leak-web-data-sample-lib/codebase-analyzer.cjs-135851",
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Production Leak",
+      "filePath": "lib/codebase-analyzer.cjs",
+      "file": "lib/codebase-analyzer.cjs",
+      "line": 2418,
+      "pattern": "web-data-sample",
+      "count": 1,
+      "description": "lib/codebase-analyzer.cjs:2418 references mock/sample path (web-data-sample)",
+      "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+      "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+      "affectedFiles": [
+        "codebase-analyzer.cjs"
+      ],
+      "metadata": {
+        "patternId": "web-data-sample",
+        "offset": 135851,
+        "match": "'\n    }];\n}\n\n/**\n * Detect performance issues.\n * @param {any} content\n * @param {string} relativePath\n * @returns {any}\n */\nfunction detectPerformanceIssues(content, relativePath) {\n    const isJsLike = /\\.(js|mjs|cjs|ts|tsx|jsx)$/i.test(relativePath);\n    if (!isJsLike) return [];\n    const rel = normalizedAuditPath(relativePath);\n    // Skip scanner/build tools where for...of loops are standard for batch processing\n    if (/server\\/lib\\//.test(rel) || /(?:^|\\/)tools\\//.test(rel)) return [];\n    // Skip vendor/minified files (compression algorithms have many nested loops)\n    if (/vendor\\//.test(rel) || /\\.min\\.js$/i.test(rel)) return [];\n    // Skip legacy coming-soon and CLI tools\n    if (/^coming-soon\\//.test(rel) || /\\btools\\//.test(rel)) return [];\n    // Skip dashboard files where loops are standard for UI rendering\n    if (/simplebeacon-dashboard/.test(rel)) return [];\n    // Skip DLP dashboard and web/data files where loops are standard\n    if (/server\\/dlp-dashboard\\.cjs$/.test(rel) || /web\\/data\\//.test(rel)) return [];\n    // Skip CLI package source, analyzers, rules, and lib files where scanning logic is standard\n    if (/packages\\/[^/]+\\/src\\//.test(rel) || /(?:^|\\/)scripts\\//.test(rel)) return [];\n    // Skip VS Code extension files where nested loops are standard for UI rendering and data processing\n    if (/(?:^|\\/)simplebeacon-vscode\\/src\\//.test(rel)) return [];\n    const hits = [];\n    const seen = new Set();\n    for (const item of PERFORMANCE_PATTERNS) {\n        const pattern = new RegExp(item.pattern.source, ensureGlobalPatternFlags(item.pattern.flags));\n        let match;\n        while ((match = pattern.exec(content)) !== null) {\n            if (isExcludedPatternCatalogLine(content, match.index)) continue;\n            const matchText = match[0];\n            // Skip nested-loop if the inner construct is just a property access check, not iteration\n            if (item.id === '",
+        "intent": "unclassified",
+        "intentReason": "Mock/sample path reference in production-eligible code",
+        "findingPayload": {
+          "file": "lib/codebase-analyzer.cjs",
+          "line": 2418,
+          "pattern": "web-data-sample",
+          "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        }
+      }
+    },
+    {
+      "id": "production-leak-web-data-sample-lib/codebase-analyzer.cjs-155971",
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Production Leak",
+      "filePath": "lib/codebase-analyzer.cjs",
+      "file": "lib/codebase-analyzer.cjs",
+      "line": 2801,
+      "pattern": "web-data-sample",
+      "count": 1,
+      "description": "lib/codebase-analyzer.cjs:2801 references mock/sample path (web-data-sample)",
+      "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+      "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+      "affectedFiles": [
+        "codebase-analyzer.cjs"
+      ],
+      "metadata": {
+        "patternId": "web-data-sample",
+        "offset": 155971,
+        "match": "'\n    }];\n}\n\n/**\n * Detect token bleed.\n * @param {any} content\n * @param {string} relativePath\n * @returns {any}\n */\nfunction detectTokenBleed(content, relativePath) {\n    const isJsLike = /\\.(js|mjs|cjs|ts|tsx|jsx)$/i.test(relativePath);\n    const isJson = /\\.json$/i.test(relativePath);\n    if (!isJsLike && !isJson) return [];\n    const rel = normalizedAuditPath(relativePath);\n    // Skip scanner catalog, route, and service files where long strings are standard\n    if (/server\\/lib\\//.test(rel) || /server\\/routes\\//.test(rel) || /server\\/services\\//.test(rel)) return [];\n    // Skip dashboard files where long strings are often HTML templates or bundled data\n    if (/simplebeacon-dashboard/.test(rel)) return [];\n    // Skip tools where long strings are generation outputs\n    if (/(?:^|\\/)tools\\//.test(rel)) return [];\n    // Skip API and web/data files where long strings are often configuration or data\n    if (/src\\/api\\//.test(rel) || /web\\/data\\//.test(rel)) return [];\n    // Skip non-production subprojects and package source files\n    if (/(?:^|\\/)coming-soon\\//.test(rel) || /(?:^|\\/)simplebeacon-frameworkless\\//.test(rel)) return [];\n    if (/packages\\/[^/]+\\/src\\//.test(rel)) return [];\n    if (/packages\\/[^/]+\\/bin\\//.test(rel)) return [];\n    if (/packages\\/[^/]+\\/tests\\//.test(rel) || /\\.(test|spec)\\./.test(rel)) return [];\n    if (/\\.min\\.(js|cjs|mjs)$/.test(rel)) return [];\n    // Skip VS Code extension files where long CSS/SVG data URIs are standard in webview HTML\n    if (/(?:^|\\/)simplebeacon-vscode\\/src\\//.test(rel)) return [];\n    const hits = [];\n    const seen = new Set();\n    for (const item of TOKEN_BLEED_PATTERNS) {\n        const pattern = new RegExp(item.pattern.source, ensureGlobalPatternFlags(item.pattern.flags));\n        let match;\n        while ((match = pattern.exec(content)) !== null) {\n            if (isExcludedPatternCatalogLine(content, match.index)) continue;\n            const matchText = match[0];\n            // Skip template literals — they are code blocks / HTML templates, not leaked LLM prompt strings\n            if (matchText.startsWith('",
+        "intent": "unclassified",
+        "intentReason": "Mock/sample path reference in production-eligible code",
+        "findingPayload": {
+          "file": "lib/codebase-analyzer.cjs",
+          "line": 2801,
+          "pattern": "web-data-sample",
+          "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        }
+      }
+    },
+    {
+      "id": "production-leak-web-data-sample-lib/codebase-analyzer.cjs-170174",
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Production Leak",
+      "filePath": "lib/codebase-analyzer.cjs",
+      "file": "lib/codebase-analyzer.cjs",
+      "line": 3097,
+      "pattern": "web-data-sample",
+      "count": 1,
+      "description": "lib/codebase-analyzer.cjs:3097 references mock/sample path (web-data-sample)",
+      "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+      "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+      "affectedFiles": [
+        "codebase-analyzer.cjs"
+      ],
+      "metadata": {
+        "patternId": "web-data-sample",
+        "offset": 170174,
+        "match": "'\n            });\n        }\n    }\n    return hits;\n}\n\n/**\n * Detect complexity issues.\n * @param {any} content\n * @param {string} relativePath\n * @returns {any}\n */\nfunction detectComplexityIssues(content, relativePath) {\n    const isJsLike = /\\.(js|mjs|cjs|ts|tsx|jsx)$/i.test(relativePath);\n    const isPy = /\\.py$/i.test(relativePath);\n    if (!isJsLike && !isPy) return [];\n    if (isNonProductionAuditContentPath(relativePath)) return [];\n    const rel = normalizedAuditPath(relativePath);\n    // Skip vendor/minified, dashboard, test, package source, and server infrastructure files\n    if (/vendor\\//.test(rel) || /\\.min\\.(js|cjs|mjs)$/.test(rel)) return [];\n    if (/simplebeacon-dashboard/.test(rel) || /(?:^|\\/)coming-soon\\//.test(rel)) return [];\n    if (/\\/(?:test|tests|__tests__)\\//.test(rel) || /\\.(test|spec)\\./.test(rel)) return [];\n    if (/packages\\/[^/]+\\/src\\//.test(rel) || /^server\\//.test(rel) || /^src\\//.test(rel)) return [];\n    if (/packages\\/[^/]+\\/bin\\//.test(rel)) return [];\n    if (/(?:^|\\/)simplebeacon-frameworkless\\//.test(rel)) return [];\n    if (/(?:^|\\/)simplebeacon-vscode\\//.test(rel)) return [];\n    // Skip web/data, auto-processor, and simplebeacon-server files where complexity is standard\n    if (/web\\/data\\//.test(rel) || /auto-processor\\.js$/.test(rel) || /^simplebeacon-server\\./.test(rel)) return [];\n    const hits = [];\n    const seen = new Set();\n    for (const item of COMPLEXITY_PATTERNS) {\n        const pattern = new RegExp(item.pattern.source, ensureGlobalPatternFlags(item.pattern.flags));\n        let match;\n        while ((match = pattern.exec(content)) !== null) {\n            if (isExcludedPatternCatalogLine(content, match.index)) continue;\n            const line = lineNumberAt(content, match.index);\n            const matchText = match[0].slice(0, 80);\n            const dedupeKey = line + '",
+        "intent": "unclassified",
+        "intentReason": "Mock/sample path reference in production-eligible code",
+        "findingPayload": {
+          "file": "lib/codebase-analyzer.cjs",
+          "line": 3097,
+          "pattern": "web-data-sample",
+          "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        }
+      }
+    },
+    {
+      "id": "production-leak-web-data-sample-lib/codebase-analyzer.cjs-218033",
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Production Leak",
+      "filePath": "lib/codebase-analyzer.cjs",
+      "file": "lib/codebase-analyzer.cjs",
+      "line": 4073,
+      "pattern": "web-data-sample",
+      "count": 1,
+      "description": "lib/codebase-analyzer.cjs:4073 references mock/sample path (web-data-sample)",
+      "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+      "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+      "affectedFiles": [
+        "codebase-analyzer.cjs"
+      ],
+      "metadata": {
+        "patternId": "web-data-sample",
+        "offset": 218033,
+        "match": "'].includes(name)) continue;\n        // Skip dashboard/browser utilities, config files, and non-production paths from test-coverage checks\n        if (/simplebeacon-dashboard/.test(rel) || /\\/js\\/(utils|components|views)\\//.test(rel)) continue;\n        if (/\\.(config|test|spec)\\./.test(name) || /jest\\.config|eslint\\.config|babel\\.config|webpack\\.config/.test(name)) continue;\n        if (/(?:^|\\/)(?:docs|templates|scripts|tools|fixtures|mocks|samples|config|bootstrap|bin)\\//.test(rel)) continue;\n        if (/\\/(?:api|routes|middleware)\\//.test(rel)) continue;\n        if (/\\.browser\\.(js|cjs)$/.test(name)) continue;\n        if (/^\\./.test(name)) continue;\n        // Skip dashboard, gateway, DLP, and enterprise orchestration files that are integration-tested, not unit-tested\n        if (/-dashboard\\./.test(name) || /[-_]gateway\\./.test(name) || /enterprise[-_]/.test(name)) continue;\n        if (/orchestrator\\./.test(name) || /auto[-_]processor\\./.test(name)) continue;\n            // Skip package source, src/, server/lib/, server/services/, and server/utils/ files where tests are managed separately\n        if (/packages\\/[^/]+\\/src\\//.test(rel) || /^src\\//.test(rel) || /^server\\/lib\\//.test(rel) || /^server\\/services\\//.test(rel) || /^server\\/utils\\//.test(rel)) continue;\n        // Skip docs, tools, simplebeacon-server, web/data, and auto-processor files\n        if (/^docs\\//.test(rel) || /(?:^|\\/)tools\\//.test(rel) || /^simplebeacon-server\\./.test(rel) || /auto-processor\\.js$/.test(rel)) continue;\n        if (/web\\/data\\//.test(rel)) continue;\n        if (/^server\\/index\\.cjs$/.test(rel)) continue;\n        if (/(?:^|\\/)coming-soon\\//.test(rel) || /(?:^|\\/)simplebeacon-rule-tests\\//.test(rel) || /(?:^|\\/)ai-agent\\//.test(rel) || /(?:^|\\/)ai-tools\\//.test(rel) || /(?:^|\\/)simplebeacon-frameworkless\\//.test(rel)) continue;\n        // Skip VS Code extension files — mocks and API wrappers don'",
+        "intent": "unclassified",
+        "intentReason": "Mock/sample path reference in production-eligible code",
+        "findingPayload": {
+          "file": "lib/codebase-analyzer.cjs",
+          "line": 4073,
+          "pattern": "web-data-sample",
+          "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+        }
+      }
+    },
+    {
+      "id": "production-leak-template-sample-lib/codebase-analyzer.cjs-25904",
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Production Leak",
+      "filePath": "lib/codebase-analyzer.cjs",
+      "file": "lib/codebase-analyzer.cjs",
+      "line": 410,
+      "pattern": "template-sample",
+      "count": 1,
+      "description": "lib/codebase-analyzer.cjs:410 references mock/sample path (template-sample)",
+      "recommendation": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
+      "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
+      "affectedFiles": [
+        "codebase-analyzer.cjs"
+      ],
+      "metadata": {
+        "patternId": "template-sample",
+        "offset": 25904,
+        "match": "`]*(?:\\/mock\\/|\\/mocks\\/|\\/fixture\\/|\\/fixtures\\/|\\/test-data\\/|\\/testdata\\/)[^'\"`",
+        "intent": "unclassified",
+        "intentReason": "Mock/sample path reference in production-eligible code",
+        "findingPayload": {
+          "file": "lib/codebase-analyzer.cjs",
+          "line": 410,
+          "pattern": "template-sample",
+          "recommendation": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources"
+        }
+      }
+    },
+    {
+      "id": "production-leak-template-sample-lib/codebase-analyzer.cjs-33411",
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Production Leak",
+      "filePath": "lib/codebase-analyzer.cjs",
+      "file": "lib/codebase-analyzer.cjs",
+      "line": 482,
+      "pattern": "template-sample",
+      "count": 1,
+      "description": "lib/codebase-analyzer.cjs:482 references mock/sample path (template-sample)",
+      "recommendation": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
+      "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
+      "affectedFiles": [
+        "codebase-analyzer.cjs"
+      ],
+      "metadata": {
+        "patternId": "template-sample",
+        "offset": 33411,
+        "match": "`]*\\/mock\\/[^'\"`",
+        "intent": "unclassified",
+        "intentReason": "Mock/sample path reference in production-eligible code",
+        "findingPayload": {
+          "file": "lib/codebase-analyzer.cjs",
+          "line": 482,
+          "pattern": "template-sample",
+          "recommendation": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources"
+        }
+      }
+    },
+    {
+      "id": "agency-handoff-SB-SEC-001-lib/fix-orchestrator/patch-strategies.test.cjs-8874",
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Web Security Risk",
+      "category": "web-security",
+      "filePath": "lib/fix-orchestrator/patch-strategies.test.cjs",
+      "file": "lib/fix-orchestrator/patch-strategies.test.cjs",
+      "line": 245,
+      "pattern": "SB-SEC-001",
+      "count": 1,
+      "description": "lib/fix-orchestrator/patch-strategies.test.cjs:245 — Dynamic code execution or unsanitized HTML injection API",
+      "recommendation": "Replace eval/dynamic HTML with safe alternatives; validate redirect targets.",
+      "recommendedAction": "Replace eval/dynamic HTML with safe alternatives; validate redirect targets.",
+      "affectedFiles": [
+        "patch-strategies.test.cjs"
+      ],
+      "metadata": {
+        "patternId": "SB-SEC-001",
+        "category": "web-security",
+        "offset": 8874,
+        "match": "eval("
+      }
+    },
+    {
+      "id": "EUAI-AI-001-lib/ai-analyst.cjs",
+      "severity": "medium",
+      "type": "EU AI Act — AI System Indicator",
+      "filePath": "lib/ai-analyst.cjs",
+      "lineNumber": 7,
+      "count": 1,
+      "description": "Generative AI or LLM integration detected (5 matches in file)",
+      "recommendedAction": "Add transparency disclosure in the UI (Article 50). Log all AI-generated content with a traceable ID. Document the model version, training data cutoff, and known limitations in your model-card.md.",
+      "evidence": "Matched \"EUAI-AI-001\" in code: \"* Env: OPENAI_API_KEY or ANTHROPIC_API_KEY (optional — falls back to demo mode)\" — Generative AI or LLM integration detected",
+      "affectedFiles": [
+        "lib/ai-analyst.cjs"
+      ],
+      "metadata": {
+        "patternId": "EUAI-AI-001",
+        "category": "ai-system",
+        "annex": null,
+        "match": "OPENAI",
+        "lineNumber": 7,
+        "codeLine": "* Env: OPENAI_API_KEY or ANTHROPIC_API_KEY (optional — falls back to demo mode)",
+        "matchCount": 5,
+        "matches": [
+          "OPENAI",
+          "ANTHROPIC",
+          "openai",
+          "anthropic"
+        ],
+        "lines": [
+          7,
+          7,
+          35,
+          35,
+          39
+        ]
+      }
+    },
+    {
+      "id": "EUAI-AI-002-lib/code-understanding/ml-pattern-detector.cjs",
+      "severity": "medium",
+      "type": "EU AI Act — AI System Indicator",
+      "filePath": "lib/code-understanding/ml-pattern-detector.cjs",
+      "lineNumber": 5,
+      "count": 1,
+      "description": "Machine learning inference or model runtime detected",
+      "recommendedAction": "Document the ML model purpose, performance metrics, and bias test results. Add input validation and confidence thresholds before returning predictions to users.",
+      "evidence": "Matched \"EUAI-AI-002\" in code: \"* Machine learning-inspired pattern detection for code analysis\" — Machine learning inference or model runtime detected",
+      "affectedFiles": [
+        "lib/code-understanding/ml-pattern-detector.cjs"
+      ],
+      "metadata": {
+        "patternId": "EUAI-AI-002",
+        "category": "ai-system",
+        "annex": null,
+        "match": "Machine learning",
+        "lineNumber": 5,
+        "codeLine": "* Machine learning-inspired pattern detection for code analysis",
+        "matchCount": 1,
+        "matches": [
+          "Machine learning"
+        ],
+        "lines": [
+          5
+        ]
+      }
+    },
+    {
+      "id": "EUAI-AI-001-lib/codebase-analyzer.cjs",
+      "severity": "medium",
+      "type": "EU AI Act — AI System Indicator",
+      "filePath": "lib/codebase-analyzer.cjs",
+      "lineNumber": 271,
+      "count": 1,
+      "description": "Generative AI or LLM integration detected (21 matches in file)",
+      "recommendedAction": "Add transparency disclosure in the UI (Article 50). Log all AI-generated content with a traceable ID. Document the model version, training data cutoff, and known limitations in your model-card.md.",
+      "evidence": "Matched \"EUAI-AI-001\" in code: \"{ id: 'hallucinated-import', pattern: /import\\s+\\w+\\s+from\\s+['\"`](?:ai-|llm-|gpt-|openai-|anthropic-|claude-|vertex-|pa\" — Generative AI or LLM integration detected",
+      "affectedFiles": [
+        "lib/codebase-analyzer.cjs"
+      ],
+      "metadata": {
+        "patternId": "EUAI-AI-001",
+        "category": "ai-system",
+        "annex": null,
+        "match": "openai",
+        "lineNumber": 271,
+        "codeLine": "{ id: 'hallucinated-import', pattern: /import\\s+\\w+\\s+from\\s+['\"`](?:ai-|llm-|gpt-|openai-|anthropic-|claude-|vertex-|pa",
+        "matchCount": 21,
+        "matches": [
+          "openai",
+          "anthropic",
+          "claude",
+          "ChatGPT",
+          "Claude",
+          "OpenAI",
+          "Anthropic",
+          "huggingface"
+        ],
+        "lines": [
+          271,
+          271,
+          271,
+          271,
+          271,
+          271,
+          275,
+          275,
+          460,
+          460,
+          460,
+          460,
+          1509,
+          2964,
+          2964,
+          2964,
+          271,
+          271,
+          460,
+          460,
+          2964
+        ]
+      }
+    },
+    {
+      "id": "EUAI-AI-001-lib/compliance-rules.cjs",
+      "severity": "medium",
+      "type": "EU AI Act — AI System Indicator",
+      "filePath": "lib/compliance-rules.cjs",
+      "lineNumber": 8,
+      "count": 1,
+      "description": "Generative AI or LLM integration detected (5 matches in file)",
+      "recommendedAction": "Add transparency disclosure in the UI (Article 50). Log all AI-generated content with a traceable ID. Document the model version, training data cutoff, and known limitations in your model-card.md.",
+      "evidence": "Matched \"EUAI-AI-001\" in code: \"* Env: OPENAI_API_KEY or ANTHROPIC_API_KEY (optional — deterministic fallback)\" — Generative AI or LLM integration detected",
+      "affectedFiles": [
+        "lib/compliance-rules.cjs"
+      ],
+      "metadata": {
+        "patternId": "EUAI-AI-001",
+        "category": "ai-system",
+        "annex": null,
+        "match": "OPENAI",
+        "lineNumber": 8,
+        "codeLine": "* Env: OPENAI_API_KEY or ANTHROPIC_API_KEY (optional — deterministic fallback)",
+        "matchCount": 5,
+        "matches": [
+          "OPENAI",
+          "ANTHROPIC",
+          "openai",
+          "anthropic"
+        ],
+        "lines": [
+          8,
+          8,
+          43,
+          43,
+          47
+        ]
+      }
+    },
+    {
+      "id": "EUAI-AI-001-lib/enhanced-ai-orchestrator.cjs",
+      "severity": "medium",
+      "type": "EU AI Act — AI System Indicator",
+      "filePath": "lib/enhanced-ai-orchestrator.cjs",
+      "lineNumber": 75,
+      "count": 1,
+      "description": "Generative AI or LLM integration detected (2 matches in file)",
+      "recommendedAction": "Add transparency disclosure in the UI (Article 50). Log all AI-generated content with a traceable ID. Document the model version, training data cutoff, and known limitations in your model-card.md.",
+      "evidence": "Matched \"EUAI-AI-001\" in code: \"if (modelPreference === 'cloud' && (model.provider === 'openai' || model.provider === 'anthropic')) score += 3;\" — Generative AI or LLM integration detected",
+      "affectedFiles": [
+        "lib/enhanced-ai-orchestrator.cjs"
+      ],
+      "metadata": {
+        "patternId": "EUAI-AI-001",
+        "category": "ai-system",
+        "annex": null,
+        "match": "openai",
+        "lineNumber": 75,
+        "codeLine": "if (modelPreference === 'cloud' && (model.provider === 'openai' || model.provider === 'anthropic')) score += 3;",
+        "matchCount": 2,
+        "matches": [
+          "openai",
+          "anthropic"
+        ],
+        "lines": [
+          75,
+          75
+        ]
+      }
+    },
+    {
+      "id": "EUAI-AI-001-lib/operator-deliverable-service.cjs",
+      "severity": "medium",
+      "type": "EU AI Act — AI System Indicator",
+      "filePath": "lib/operator-deliverable-service.cjs",
+      "lineNumber": 5,
+      "count": 1,
+      "description": "Generative AI or LLM integration detected (2 matches in file)",
+      "recommendedAction": "Add transparency disclosure in the UI (Article 50). Log all AI-generated content with a traceable ID. Document the model version, training data cutoff, and known limitations in your model-card.md.",
+      "evidence": "Matched \"EUAI-AI-001\" in code: \"* - This service integrates with artificial intelligence providers for report generation (OpenAI API).\" — Generative AI or LLM integration detected",
+      "affectedFiles": [
+        "lib/operator-deliverable-service.cjs"
+      ],
+      "metadata": {
+        "patternId": "EUAI-AI-001",
+        "category": "ai-system",
+        "annex": null,
+        "match": "OpenAI",
+        "lineNumber": 5,
+        "codeLine": "* - This service integrates with artificial intelligence providers for report generation (OpenAI API).",
+        "matchCount": 2,
+        "matches": [
+          "OpenAI"
+        ],
+        "lines": [
+          5,
+          27
+        ]
+      }
+    },
+    {
+      "id": "EUAI-AI-001-lib/user-ai-keys-store.cjs",
+      "severity": "medium",
+      "type": "EU AI Act — AI System Indicator",
+      "filePath": "lib/user-ai-keys-store.cjs",
+      "lineNumber": 20,
+      "count": 1,
+      "description": "Generative AI or LLM integration detected (4 matches in file)",
+      "recommendedAction": "Add transparency disclosure in the UI (Article 50). Log all AI-generated content with a traceable ID. Document the model version, training data cutoff, and known limitations in your model-card.md.",
+      "evidence": "Matched \"EUAI-AI-001\" in code: \"const PROVIDERS = ['openai', 'anthropic'];\" — Generative AI or LLM integration detected",
+      "affectedFiles": [
+        "lib/user-ai-keys-store.cjs"
+      ],
+      "metadata": {
+        "patternId": "EUAI-AI-001",
+        "category": "ai-system",
+        "annex": null,
+        "match": "openai",
+        "lineNumber": 20,
+        "codeLine": "const PROVIDERS = ['openai', 'anthropic'];",
+        "matchCount": 4,
+        "matches": [
+          "openai",
+          "anthropic"
+        ],
+        "lines": [
+          20,
+          20,
+          128,
+          129
+        ]
+      }
+    },
+    {
+      "id": "file-reduction-data-access-pattern-5888c5",
+      "severity": "medium",
+      "type": "data-access-pattern",
+      "filePath": "lib/code-roadmap-generator.cjs",
+      "count": 1,
+      "description": "data-access-pattern finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "lib/code-roadmap-generator.cjs"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "patternId": "sync-read-in-iteration"
+      }
+    },
+    {
+      "id": "file-reduction-data-access-pattern-892767",
+      "severity": "medium",
+      "type": "data-access-pattern",
+      "filePath": "lib/code-roadmap-phase2.cjs",
+      "count": 1,
+      "description": "data-access-pattern finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "lib/code-roadmap-phase2.cjs"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "patternId": "sync-read-in-iteration"
+      }
+    },
+    {
+      "id": "file-reduction-data-access-pattern-38aed7",
+      "severity": "medium",
+      "type": "data-access-pattern",
+      "filePath": "lib/code-understanding/code-understanding-engine.cjs",
+      "count": 1,
+      "description": "data-access-pattern finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "lib/code-understanding/code-understanding-engine.cjs"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "patternId": "sync-read-in-iteration"
+      }
+    },
+    {
+      "id": "file-reduction-data-access-pattern-ed5882",
+      "severity": "medium",
+      "type": "data-access-pattern",
+      "filePath": "lib/codebase-analyzer.cjs",
+      "count": 1,
+      "description": "data-access-pattern finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "lib/codebase-analyzer.cjs"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "patternId": "sync-read-in-iteration"
+      }
+    },
+    {
+      "id": "file-reduction-data-access-pattern-a6e565",
+      "severity": "medium",
+      "type": "data-access-pattern",
+      "filePath": "lib/json-file-cache.cjs",
+      "count": 1,
+      "description": "data-access-pattern finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "lib/json-file-cache.cjs"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "patternId": "parse-sync-read"
+      }
+    },
+    {
+      "id": "file-reduction-data-access-pattern-480885",
+      "severity": "medium",
+      "type": "data-access-pattern",
+      "filePath": "lib/token-db.cjs",
+      "count": 1,
+      "description": "data-access-pattern finding",
+      "recommendedAction": "Review file-reduction report",
+      "affectedFiles": [
+        "lib/token-db.cjs"
+      ],
+      "metadata": {
+        "scanner": "file-reduction",
+        "reclaimableBytes": 0,
+        "patternId": "parse-sync-read"
+      }
+    }
+  ],
+  "benchmarkCacheIssues": [],
+  "sampleFiles": [
+    "ai-proxy-gateway.cjs",
+    "AssessmentController.cjs",
+    "index.cjs",
+    "routes.cjs",
+    "path-health.cjs",
+    "phase2-integration.cjs",
+    "public-api-routes.cjs",
+    "constants.cjs",
+    "database.cjs",
+    "redis.cjs",
+    "stripe.cjs",
+    "cookies.txt",
+    "renewals.cjs",
+    "demo-users.json",
+    "01-create-database.sql",
+    "001_init_licensing.sql",
+    "schema-phase2.sql",
+    "schema-subscription.sql",
+    "schema-token-rotation.sql",
+    "schema-token-system.sql",
+    "token-registry.json",
+    "dlp-dashboard.cjs",
+    "enterprise-dlp.js",
+    "enterprise-patterns.cjs",
+    "index.cjs",
+    "agency-branding-store.cjs",
+    "ai-analyst.cjs",
+    "ai-inference-audit-logger.cjs",
+    "analytics-builder.cjs",
+    "analyze-deliverable-access.cjs",
+    "analyze-export-bundle.cjs",
+    "analyze-test-sources.cjs",
+    "app-logger.cjs",
+    "assessment-retention.cjs",
+    "audit-booking-mail.cjs",
+    "audit-booking-route.cjs",
+    "audit-export-tier.cjs",
+    "audit-remediation-recipes.cjs",
+    "canonical-roadmap-files.cjs",
+    "central-data-config.cjs",
+    "client-error.cjs",
+    "code-hygiene-certificate.cjs",
+    "code-roadmap-export.cjs",
+    "code-roadmap-generator.cjs",
+    "code-roadmap-phase2.cjs",
+    "business-logic-patterns.cjs",
+    "code-understanding-engine.cjs",
+    "contextual-analyzer.cjs",
+    "expert-review-store.cjs",
+    "index.cjs",
+    "ml-pattern-detector.cjs",
+    "semantic-analyzer.cjs",
+    "zscript-cvar-analyzer.cjs",
+    "zscript-mod-report.cjs",
+    "zscript-structure-analyzer.cjs",
+    "codebase-analyzer.cjs",
+    "complete-scan-audit-report.cjs",
+    "compliance-rules.cjs",
+    "cors-config.cjs",
+    "coverage-reports-builder.cjs",
+    "dashboard-home-builder.cjs",
+    "dashboard-vault-auth.cjs",
+    "data-cleanup-scan.cjs",
+    "database-adapter.cjs",
+    "devsecops-compliance-payload.cjs",
+    "directory-bloat-scanner.cjs",
+    "email-service.cjs",
+    "enhanced-ai-orchestrator.cjs",
+    "eu-ai-act-audit-report.cjs",
+    "eu-ai-act-export.cjs",
+    "eu-ai-act-sprint-route.cjs",
+    "eu-ai-act-sprint-service.cjs",
+    "file-audit-context.cjs",
+    "file-merger-reduction-scanner.cjs",
+    "file-quality-heuristics.cjs",
+    "patch-strategies.cjs",
+    "patch-strategies.test.cjs",
+    "sample-audit-report-data.cjs",
+    "fuzzy-content-matcher.cjs",
+    "istanbul-telemetry-merge.cjs",
+    "jest-coverage-reader.cjs",
+    "json-file-cache.cjs",
+    "go-patterns.cjs",
+    "python-patterns.cjs",
+    "rust-patterns.cjs",
+    "sql-patterns.cjs",
+    "universal-baseline-patterns.cjs",
+    "zscript-patterns.cjs",
+    "legacy-page-redirects.cjs",
+    "llama-cpp-hints.cjs",
+    "merge-preview.cjs",
+    "mock-data-file-scanner.cjs",
+    "mock-data-helpers.cjs",
+    "mock-data-scanner.cjs",
+    "mock-data-schema-validator.cjs",
+    "npm-audit-runner.cjs",
+    "operator-deliverable-route.cjs",
+    "operator-deliverable-service.cjs",
+    "outreach-mail.cjs",
+    "outreach-resend-webhook.cjs",
+    "outreach-route.cjs",
+    "page-sample-specs.cjs",
+    "language-parser-base.cjs",
+    "zscript-parser.cjs",
+    "path-safety.cjs",
+    "builtin-plugins.cjs",
+    "generic-structure-hints.cjs",
+    "index.cjs",
+    "language-plugin.cjs",
+    "plugin-manager.cjs",
+    "register-generic-fallback-plugins.cjs",
+    "privacy-utils.cjs",
+    "rbac.cjs",
+    "recoverable-io.cjs",
+    "redis-cache.cjs",
+    "register-operator-routes.cjs",
+    "removable-files-scanner.cjs",
+    "repository-audit-baseline.cjs",
+    "repository-health-payload.cjs",
+    "roadmap-history-metrics.cjs",
+    "safe-merge-guard.cjs",
+    "sample-overrides.json",
+    "sample-path-resolver.cjs",
+    "scan-report-patch.cjs",
+    "secret-config.cjs",
+    "security-dashboard-builder.cjs",
+    "simplebeacon-proxy.cjs",
+    "simplebeacon-subscription-store.cjs",
+    "snapshot-resolver.cjs",
+    "snapshot-seeds.cjs",
+    "sso-service.cjs",
+    "strategic-insights-engine.cjs",
+    "token-db.cjs",
+    "token-service.cjs",
+    "trust-history-store.cjs",
+    "trust-verification-payload.cjs",
+    "universal-language-config.cjs",
+    "universal-language-detector.cjs",
+    "universal-language-registry.cjs",
+    "user-ai-keys-store.cjs",
+    "audit.cjs",
+    "auth.cjs",
+    "security.cjs",
+    "simplebeacon-subscription.cjs",
+    "siem-transport.cjs",
+    "upload-security.cjs",
+    "README-DLP.md",
+    "audit.cjs",
+    "auth-routes.cjs",
+    "auth.cjs",
+    "chatbot-api.cjs",
+    "compliance-schema-api.cjs",
+    "eu-ai-act-audit-route.cjs",
+    "fix-orchestrator-api.cjs",
+    "flexible-analyze-api.cjs",
+    "local-models-api.cjs",
+    "mock-data-api.cjs",
+    "pr-integration-api.cjs",
+    "realtime-analysis-api.cjs",
+    "repository-scanner-api.cjs",
+    "sso-routes.cjs",
+    "token-auth.cjs",
+    "upload.cjs",
+    "workspaces.cjs",
+    "cloud-inference-service.cjs",
+    "enhanced-model-manager.cjs",
+    "local-model-service.cjs",
+    "model-inference-service.cjs",
+    "ollama-client.cjs",
+    "phase2-auth-handlers.cjs",
+    "prompt-service.cjs",
+    "user-service.cjs",
+    "test-gateway.js",
+    "data-processor.cjs",
+    "webhooks.cjs"
+  ],
+  "scanScope": {
+    "profile": "standard",
+    "scannerVersion": "1.0.0",
+    "rulesEnabled": [
+      "credentials",
+      "json-schema",
+      "sample-consistency",
+      "roadmap",
+      "production-leak",
+      "agency-handoff-patterns",
+      "fiction-kpi-patterns",
+      "llm-slop-patterns",
+      "token-bleed-patterns",
+      "architecture-drift-patterns",
+      "security-patterns",
+      "javascript-ast-patterns",
+      "file-reduction"
+    ],
+    "gatePolicy": {
+      "failOn": [
+        "high"
+      ],
+      "warnOn": [
+        "medium",
+        "low"
+      ]
+    },
+    "mockSampleFilesInScanPaths": 175,
+    "pageSpecCatalogSize": 50,
+    "pageSpecsValidated": 0,
+    "pageSpecsFromScanPaths": 0,
+    "pageSpecsFromAliasPaths": 0,
+    "productionDirsScanned": 114,
+    "productionPaths": [
+      "server/",
+      "src/",
+      "app/",
+      "lib/"
+    ],
+    "sourceCodeScanPaths": [],
+    "sourceCodeFilesScanned": 108,
+    "sourceFictionPatternHits": 0,
+    "llmSlopFilesScanned": 228,
+    "llmSlopPatternHits": 0,
+    "euAiActFilesScanned": 123,
+    "euAiActPatternHits": 7,
+    "euAiActHighRiskIndicators": 0,
+    "jestExecutedDuringScan": false,
+    "consistencyAnchorCount": 0,
+    "fictionScope": "repository-json",
+    "fictionJsonFilesScanned": 3,
+    "fictionSampleFilesScanned": 0,
+    "ruleScopedFilesAnalyzed": 283,
+    "repositoryFilesTotal": 175,
+    "repositoryFoldersTotal": 21,
+    "benchmarkCacheIssuesExcluded": 0,
+    "excludedPathsNote": null,
+    "limitations": [
+      "Repository inventory: 175 files — gate rules checked 283 (mock paths, credentials, server/ leaks).",
+      "Pattern matching on JSON samples and server/ production paths — not LLM semantic review.",
+      "Fiction/KPI rules scan repository JSON (3) plus source code (108 files in configured paths).",
+      "Jest was not executed during this scan — use npm test or simplebeacon:full for live test verification.",
+      "This report used a full-repo walk (69k+ files) — re-run scan after updating Simplebeacon to scope mock paths to web/data only.",
+      "github-cache/ OSS benchmark clones are excluded from platform gate scoring (not your product code)."
+    ],
+    "resultsViewScope": "platform-only",
+    "reportHealth": "stale-full-tree-scan",
+    "rescanRecommended": true,
+    "inventoryMetricsStale": true
+  },
+  "gate": {
+    "pass": false,
+    "failOn": [
+      "high"
+    ],
+    "warnOn": [
+      "medium",
+      "low"
+    ],
+    "blockingCount": 14,
+    "warningCount": 13,
+    "blockingIssues": [
+      {
+        "id": "production-leak-mock-path-lib/codebase-analyzer.cjs-25904",
+        "severity": "high",
+        "severityBand": "high",
+        "type": "Production Leak",
+        "filePath": "lib/codebase-analyzer.cjs",
+        "file": "lib/codebase-analyzer.cjs",
+        "line": 410,
+        "pattern": "mock-path",
+        "count": 1,
+        "description": "lib/codebase-analyzer.cjs:410 references mock/sample path (mock-path)",
+        "recommendation": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
+        "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
+        "affectedFiles": [
+          "codebase-analyzer.cjs"
+        ],
+        "metadata": {
+          "patternId": "mock-path",
+          "offset": 25904,
+          "match": "`]*(?:\\/mock\\/|\\/mocks\\/|\\/fixture\\/|\\/fixtures\\/|\\/test-data\\/|\\/testdata\\/)[^'",
+          "intent": "unclassified",
+          "intentReason": "Mock/sample path reference in production-eligible code",
+          "findingPayload": {
+            "file": "lib/codebase-analyzer.cjs",
+            "line": 410,
+            "pattern": "mock-path",
+            "recommendation": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources"
+          }
+        }
+      },
+      {
+        "id": "production-leak-mock-path-lib/codebase-analyzer.cjs-33411",
+        "severity": "high",
+        "severityBand": "high",
+        "type": "Production Leak",
+        "filePath": "lib/codebase-analyzer.cjs",
+        "file": "lib/codebase-analyzer.cjs",
+        "line": 482,
+        "pattern": "mock-path",
+        "count": 1,
+        "description": "lib/codebase-analyzer.cjs:482 references mock/sample path (mock-path)",
+        "recommendation": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
+        "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
+        "affectedFiles": [
+          "codebase-analyzer.cjs"
+        ],
+        "metadata": {
+          "patternId": "mock-path",
+          "offset": 33411,
+          "match": "`]*\\/mock\\/[^'",
+          "intent": "unclassified",
+          "intentReason": "Mock/sample path reference in production-eligible code",
+          "findingPayload": {
+            "file": "lib/codebase-analyzer.cjs",
+            "line": 482,
+            "pattern": "mock-path",
+            "recommendation": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources"
+          }
+        }
+      },
+      {
+        "id": "production-leak-mock-path-lib/codebase-analyzer.cjs-100881",
+        "severity": "high",
+        "severityBand": "high",
+        "type": "Production Leak",
+        "filePath": "lib/codebase-analyzer.cjs",
+        "file": "lib/codebase-analyzer.cjs",
+        "line": 1708,
+        "pattern": "mock-path",
+        "count": 1,
+        "description": "lib/codebase-analyzer.cjs:1708 references mock/sample path (mock-path)",
+        "recommendation": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
+        "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
+        "affectedFiles": [
+          "codebase-analyzer.cjs"
+        ],
+        "metadata": {
+          "patternId": "mock-path",
+          "offset": 100881,
+          "match": "', match.index);\n                const lineText = content.slice(lineStart, lineEnd === -1 ? undefined : lineEnd);\n                if (/Mock\\/fixture\\/sample data paths|mock\\/fixture\\/sample data references|mock\\/fixture\\/sample path references|development-only data paths|Blocks API keys/i.test(lineText)) continue;\n            }\n            if (category === '",
+          "intent": "unclassified",
+          "intentReason": "Mock/sample path reference in production-eligible code",
+          "findingPayload": {
+            "file": "lib/codebase-analyzer.cjs",
+            "line": 1708,
+            "pattern": "mock-path",
+            "recommendation": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources"
+          }
+        }
+      },
+      {
+        "id": "production-leak-fixtures-path-lib/codebase-analyzer.cjs-25904",
+        "severity": "high",
+        "severityBand": "high",
+        "type": "Production Leak",
+        "filePath": "lib/codebase-analyzer.cjs",
+        "file": "lib/codebase-analyzer.cjs",
+        "line": 410,
+        "pattern": "fixtures-path",
+        "count": 1,
+        "description": "lib/codebase-analyzer.cjs:410 references mock/sample path (fixtures-path)",
+        "recommendation": "Audit fixture usage and remove mock references from production-bound modules",
+        "recommendedAction": "Audit fixture usage and remove mock references from production-bound modules",
+        "affectedFiles": [
+          "codebase-analyzer.cjs"
+        ],
+        "metadata": {
+          "patternId": "fixtures-path",
+          "offset": 25904,
+          "match": "`]*(?:\\/mock\\/|\\/mocks\\/|\\/fixture\\/|\\/fixtures\\/|\\/test-data\\/|\\/testdata\\/)[^'",
+          "intent": "unclassified",
+          "intentReason": "Mock/sample path reference in production-eligible code",
+          "findingPayload": {
+            "file": "lib/codebase-analyzer.cjs",
+            "line": 410,
+            "pattern": "fixtures-path",
+            "recommendation": "Audit fixture usage and remove mock references from production-bound modules"
+          }
+        }
+      },
+      {
+        "id": "production-leak-web-data-sample-lib/codebase-analyzer.cjs-80481",
+        "severity": "high",
+        "severityBand": "high",
+        "type": "Production Leak",
+        "filePath": "lib/codebase-analyzer.cjs",
+        "file": "lib/codebase-analyzer.cjs",
+        "line": 1467,
+        "pattern": "web-data-sample",
+        "count": 1,
+        "description": "lib/codebase-analyzer.cjs:1467 references mock/sample path (web-data-sample)",
+        "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+        "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+        "affectedFiles": [
+          "codebase-analyzer.cjs"
+        ],
+        "metadata": {
+          "patternId": "web-data-sample",
+          "offset": 80481,
+          "match": "') {\n                // Skip scanner/build tools where for...of loops are standard for batch processing\n                if (/server\\/lib\\//.test(relativePath) || /(?:^|\\/)tools\\//.test(relativePath)) continue;\n                // Skip web/data and dashboard files where loops are standard for transforms\n                if (/web\\/data\\//.test(relativePath) || /simplebeacon-dashboard/.test(relativePath)) continue;\n            }\n            if (category === '",
+          "intent": "unclassified",
+          "intentReason": "Mock/sample path reference in production-eligible code",
+          "findingPayload": {
+            "file": "lib/codebase-analyzer.cjs",
+            "line": 1467,
+            "pattern": "web-data-sample",
+            "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+          }
+        }
+      },
+      {
+        "id": "production-leak-web-data-sample-lib/codebase-analyzer.cjs-81271",
+        "severity": "high",
+        "severityBand": "high",
+        "type": "Production Leak",
+        "filePath": "lib/codebase-analyzer.cjs",
+        "file": "lib/codebase-analyzer.cjs",
+        "line": 1477,
+        "pattern": "web-data-sample",
+        "count": 1,
+        "description": "lib/codebase-analyzer.cjs:1477 references mock/sample path (web-data-sample)",
+        "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+        "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+        "affectedFiles": [
+          "codebase-analyzer.cjs"
+        ],
+        "metadata": {
+          "patternId": "web-data-sample",
+          "offset": 81271,
+          "match": "') {\n                // Skip config, package source, bootstrap, and server files where numeric constants are standard\n                if (/server\\/config\\/constants\\.cjs$/.test(relativePath) || /server\\/bootstrap\\//.test(relativePath)) continue;\n                if (/packages\\/[^/]+\\/src\\//.test(relativePath) || /server\\/ai-proxy-gateway\\.cjs$/.test(relativePath)) continue;\n                if (/server\\/index\\.cjs$/.test(relativePath)) continue;\n                // Skip VS Code extension files where numeric literals are standard in configuration and UI\n                if (/(?:^|\\/)simplebeacon-vscode\\/src\\//.test(relativePath)) continue;\n                // Skip server routes where status codes and timeouts are standard\n                if (/server\\/routes\\//.test(relativePath)) continue;\n                // Skip dashboard and API files where numbers are standard UI/config values\n                if (/simplebeacon-dashboard/.test(relativePath) || /src\\/api\\//.test(relativePath)) continue;\n                // Skip server/lib/ files where numbers are standard for pattern definitions and configs\n                if (/server\\/lib\\//.test(relativePath)) continue;\n                // Skip web/data, server, src/, test, coming-soon, vendor, and tools files where numbers are standard\n                if (/web\\/data\\//.test(relativePath) || /^server\\//.test(relativePath) || /^src\\//.test(relativePath)) continue;\n                if (/tests\\//.test(relativePath) || /(?:^|\\/)tools\\//.test(relativePath)) continue;\n                if (/(?:^|\\/)coming-soon\\//.test(relativePath) || /(?:^|\\/)vendor\\//.test(relativePath)) continue;\n                if (/\\btest-[\\w-]+\\.(js|cjs|mjs)$/.test(relativePath) || /[\\w-]-test\\.(js|cjs|mjs)$/.test(relativePath)) continue;\n                if (/vite\\.config\\.js$/.test(relativePath)) continue;\n                // Skip docs, auto-processor, and simplebeacon-server files where numbers are standard\n                if (/^docs\\//.test(relativePath) || /auto-processor\\.js$/.test(relativePath) || /^simplebeacon-server\\.cjs$/.test(relativePath)) continue;\n                // Skip well-known safe constants (ports, timeouts, byte sizes, years, prices, test cards)\n                if (isWellKnownConstant(match[0])) continue;\n                // Skip lines that are constant declarations (e.g., const FOO = 123)\n                const mnLineStart = content.lastIndexOf('",
+          "intent": "unclassified",
+          "intentReason": "Mock/sample path reference in production-eligible code",
+          "findingPayload": {
+            "file": "lib/codebase-analyzer.cjs",
+            "line": 1477,
+            "pattern": "web-data-sample",
+            "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+          }
+        }
+      },
+      {
+        "id": "production-leak-web-data-sample-lib/codebase-analyzer.cjs-86772",
+        "severity": "high",
+        "severityBand": "high",
+        "type": "Production Leak",
+        "filePath": "lib/codebase-analyzer.cjs",
+        "file": "lib/codebase-analyzer.cjs",
+        "line": 1537,
+        "pattern": "web-data-sample",
+        "count": 1,
+        "description": "lib/codebase-analyzer.cjs:1537 references mock/sample path (web-data-sample)",
+        "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+        "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+        "affectedFiles": [
+          "codebase-analyzer.cjs"
+        ],
+        "metadata": {
+          "patternId": "web-data-sample",
+          "offset": 86772,
+          "match": "') {\n                // Skip package, server API, server lib, and server entry files where deep imports and paths are standard\n                if (/packages\\/[^/]+\\/src\\//.test(relativePath) || /server\\/api\\//.test(relativePath) || /server\\/lib\\//.test(relativePath)) continue;\n                if (/server\\/index\\.cjs$/.test(relativePath) || /server\\/routes\\//.test(relativePath) || /server\\/services\\//.test(relativePath)) continue;\n                // Skip web/data, server, src/, test, and dashboard files where paths are standard\n                if (/web\\/data\\//.test(relativePath) || /^server\\//.test(relativePath) || /^src\\//.test(relativePath)) continue;\n                if (/src\\/api\\//.test(relativePath) || /src\\/core\\//.test(relativePath) || /src\\/lib\\//.test(relativePath)) continue;\n                if (/tests\\//.test(relativePath)) continue;\n                if (/simplebeacon-dashboard/.test(relativePath)) continue;\n                // Skip utility scripts that intentionally reach into project structure\n                if (/(?:^|\\/)scripts\\//.test(relativePath)) continue;\n            }\n            if (category === '",
+          "intent": "unclassified",
+          "intentReason": "Mock/sample path reference in production-eligible code",
+          "findingPayload": {
+            "file": "lib/codebase-analyzer.cjs",
+            "line": 1537,
+            "pattern": "web-data-sample",
+            "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+          }
+        }
+      },
+      {
+        "id": "production-leak-web-data-sample-lib/codebase-analyzer.cjs-135851",
+        "severity": "high",
+        "severityBand": "high",
+        "type": "Production Leak",
+        "filePath": "lib/codebase-analyzer.cjs",
+        "file": "lib/codebase-analyzer.cjs",
+        "line": 2418,
+        "pattern": "web-data-sample",
+        "count": 1,
+        "description": "lib/codebase-analyzer.cjs:2418 references mock/sample path (web-data-sample)",
+        "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+        "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+        "affectedFiles": [
+          "codebase-analyzer.cjs"
+        ],
+        "metadata": {
+          "patternId": "web-data-sample",
+          "offset": 135851,
+          "match": "'\n    }];\n}\n\n/**\n * Detect performance issues.\n * @param {any} content\n * @param {string} relativePath\n * @returns {any}\n */\nfunction detectPerformanceIssues(content, relativePath) {\n    const isJsLike = /\\.(js|mjs|cjs|ts|tsx|jsx)$/i.test(relativePath);\n    if (!isJsLike) return [];\n    const rel = normalizedAuditPath(relativePath);\n    // Skip scanner/build tools where for...of loops are standard for batch processing\n    if (/server\\/lib\\//.test(rel) || /(?:^|\\/)tools\\//.test(rel)) return [];\n    // Skip vendor/minified files (compression algorithms have many nested loops)\n    if (/vendor\\//.test(rel) || /\\.min\\.js$/i.test(rel)) return [];\n    // Skip legacy coming-soon and CLI tools\n    if (/^coming-soon\\//.test(rel) || /\\btools\\//.test(rel)) return [];\n    // Skip dashboard files where loops are standard for UI rendering\n    if (/simplebeacon-dashboard/.test(rel)) return [];\n    // Skip DLP dashboard and web/data files where loops are standard\n    if (/server\\/dlp-dashboard\\.cjs$/.test(rel) || /web\\/data\\//.test(rel)) return [];\n    // Skip CLI package source, analyzers, rules, and lib files where scanning logic is standard\n    if (/packages\\/[^/]+\\/src\\//.test(rel) || /(?:^|\\/)scripts\\//.test(rel)) return [];\n    // Skip VS Code extension files where nested loops are standard for UI rendering and data processing\n    if (/(?:^|\\/)simplebeacon-vscode\\/src\\//.test(rel)) return [];\n    const hits = [];\n    const seen = new Set();\n    for (const item of PERFORMANCE_PATTERNS) {\n        const pattern = new RegExp(item.pattern.source, ensureGlobalPatternFlags(item.pattern.flags));\n        let match;\n        while ((match = pattern.exec(content)) !== null) {\n            if (isExcludedPatternCatalogLine(content, match.index)) continue;\n            const matchText = match[0];\n            // Skip nested-loop if the inner construct is just a property access check, not iteration\n            if (item.id === '",
+          "intent": "unclassified",
+          "intentReason": "Mock/sample path reference in production-eligible code",
+          "findingPayload": {
+            "file": "lib/codebase-analyzer.cjs",
+            "line": 2418,
+            "pattern": "web-data-sample",
+            "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+          }
+        }
+      },
+      {
+        "id": "production-leak-web-data-sample-lib/codebase-analyzer.cjs-155971",
+        "severity": "high",
+        "severityBand": "high",
+        "type": "Production Leak",
+        "filePath": "lib/codebase-analyzer.cjs",
+        "file": "lib/codebase-analyzer.cjs",
+        "line": 2801,
+        "pattern": "web-data-sample",
+        "count": 1,
+        "description": "lib/codebase-analyzer.cjs:2801 references mock/sample path (web-data-sample)",
+        "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+        "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+        "affectedFiles": [
+          "codebase-analyzer.cjs"
+        ],
+        "metadata": {
+          "patternId": "web-data-sample",
+          "offset": 155971,
+          "match": "'\n    }];\n}\n\n/**\n * Detect token bleed.\n * @param {any} content\n * @param {string} relativePath\n * @returns {any}\n */\nfunction detectTokenBleed(content, relativePath) {\n    const isJsLike = /\\.(js|mjs|cjs|ts|tsx|jsx)$/i.test(relativePath);\n    const isJson = /\\.json$/i.test(relativePath);\n    if (!isJsLike && !isJson) return [];\n    const rel = normalizedAuditPath(relativePath);\n    // Skip scanner catalog, route, and service files where long strings are standard\n    if (/server\\/lib\\//.test(rel) || /server\\/routes\\//.test(rel) || /server\\/services\\//.test(rel)) return [];\n    // Skip dashboard files where long strings are often HTML templates or bundled data\n    if (/simplebeacon-dashboard/.test(rel)) return [];\n    // Skip tools where long strings are generation outputs\n    if (/(?:^|\\/)tools\\//.test(rel)) return [];\n    // Skip API and web/data files where long strings are often configuration or data\n    if (/src\\/api\\//.test(rel) || /web\\/data\\//.test(rel)) return [];\n    // Skip non-production subprojects and package source files\n    if (/(?:^|\\/)coming-soon\\//.test(rel) || /(?:^|\\/)simplebeacon-frameworkless\\//.test(rel)) return [];\n    if (/packages\\/[^/]+\\/src\\//.test(rel)) return [];\n    if (/packages\\/[^/]+\\/bin\\//.test(rel)) return [];\n    if (/packages\\/[^/]+\\/tests\\//.test(rel) || /\\.(test|spec)\\./.test(rel)) return [];\n    if (/\\.min\\.(js|cjs|mjs)$/.test(rel)) return [];\n    // Skip VS Code extension files where long CSS/SVG data URIs are standard in webview HTML\n    if (/(?:^|\\/)simplebeacon-vscode\\/src\\//.test(rel)) return [];\n    const hits = [];\n    const seen = new Set();\n    for (const item of TOKEN_BLEED_PATTERNS) {\n        const pattern = new RegExp(item.pattern.source, ensureGlobalPatternFlags(item.pattern.flags));\n        let match;\n        while ((match = pattern.exec(content)) !== null) {\n            if (isExcludedPatternCatalogLine(content, match.index)) continue;\n            const matchText = match[0];\n            // Skip template literals — they are code blocks / HTML templates, not leaked LLM prompt strings\n            if (matchText.startsWith('",
+          "intent": "unclassified",
+          "intentReason": "Mock/sample path reference in production-eligible code",
+          "findingPayload": {
+            "file": "lib/codebase-analyzer.cjs",
+            "line": 2801,
+            "pattern": "web-data-sample",
+            "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+          }
+        }
+      },
+      {
+        "id": "production-leak-web-data-sample-lib/codebase-analyzer.cjs-170174",
+        "severity": "high",
+        "severityBand": "high",
+        "type": "Production Leak",
+        "filePath": "lib/codebase-analyzer.cjs",
+        "file": "lib/codebase-analyzer.cjs",
+        "line": 3097,
+        "pattern": "web-data-sample",
+        "count": 1,
+        "description": "lib/codebase-analyzer.cjs:3097 references mock/sample path (web-data-sample)",
+        "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+        "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+        "affectedFiles": [
+          "codebase-analyzer.cjs"
+        ],
+        "metadata": {
+          "patternId": "web-data-sample",
+          "offset": 170174,
+          "match": "'\n            });\n        }\n    }\n    return hits;\n}\n\n/**\n * Detect complexity issues.\n * @param {any} content\n * @param {string} relativePath\n * @returns {any}\n */\nfunction detectComplexityIssues(content, relativePath) {\n    const isJsLike = /\\.(js|mjs|cjs|ts|tsx|jsx)$/i.test(relativePath);\n    const isPy = /\\.py$/i.test(relativePath);\n    if (!isJsLike && !isPy) return [];\n    if (isNonProductionAuditContentPath(relativePath)) return [];\n    const rel = normalizedAuditPath(relativePath);\n    // Skip vendor/minified, dashboard, test, package source, and server infrastructure files\n    if (/vendor\\//.test(rel) || /\\.min\\.(js|cjs|mjs)$/.test(rel)) return [];\n    if (/simplebeacon-dashboard/.test(rel) || /(?:^|\\/)coming-soon\\//.test(rel)) return [];\n    if (/\\/(?:test|tests|__tests__)\\//.test(rel) || /\\.(test|spec)\\./.test(rel)) return [];\n    if (/packages\\/[^/]+\\/src\\//.test(rel) || /^server\\//.test(rel) || /^src\\//.test(rel)) return [];\n    if (/packages\\/[^/]+\\/bin\\//.test(rel)) return [];\n    if (/(?:^|\\/)simplebeacon-frameworkless\\//.test(rel)) return [];\n    if (/(?:^|\\/)simplebeacon-vscode\\//.test(rel)) return [];\n    // Skip web/data, auto-processor, and simplebeacon-server files where complexity is standard\n    if (/web\\/data\\//.test(rel) || /auto-processor\\.js$/.test(rel) || /^simplebeacon-server\\./.test(rel)) return [];\n    const hits = [];\n    const seen = new Set();\n    for (const item of COMPLEXITY_PATTERNS) {\n        const pattern = new RegExp(item.pattern.source, ensureGlobalPatternFlags(item.pattern.flags));\n        let match;\n        while ((match = pattern.exec(content)) !== null) {\n            if (isExcludedPatternCatalogLine(content, match.index)) continue;\n            const line = lineNumberAt(content, match.index);\n            const matchText = match[0].slice(0, 80);\n            const dedupeKey = line + '",
+          "intent": "unclassified",
+          "intentReason": "Mock/sample path reference in production-eligible code",
+          "findingPayload": {
+            "file": "lib/codebase-analyzer.cjs",
+            "line": 3097,
+            "pattern": "web-data-sample",
+            "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+          }
+        }
+      },
+      {
+        "id": "production-leak-web-data-sample-lib/codebase-analyzer.cjs-218033",
+        "severity": "high",
+        "severityBand": "high",
+        "type": "Production Leak",
+        "filePath": "lib/codebase-analyzer.cjs",
+        "file": "lib/codebase-analyzer.cjs",
+        "line": 4073,
+        "pattern": "web-data-sample",
+        "count": 1,
+        "description": "lib/codebase-analyzer.cjs:4073 references mock/sample path (web-data-sample)",
+        "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+        "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
+        "affectedFiles": [
+          "codebase-analyzer.cjs"
+        ],
+        "metadata": {
+          "patternId": "web-data-sample",
+          "offset": 218033,
+          "match": "'].includes(name)) continue;\n        // Skip dashboard/browser utilities, config files, and non-production paths from test-coverage checks\n        if (/simplebeacon-dashboard/.test(rel) || /\\/js\\/(utils|components|views)\\//.test(rel)) continue;\n        if (/\\.(config|test|spec)\\./.test(name) || /jest\\.config|eslint\\.config|babel\\.config|webpack\\.config/.test(name)) continue;\n        if (/(?:^|\\/)(?:docs|templates|scripts|tools|fixtures|mocks|samples|config|bootstrap|bin)\\//.test(rel)) continue;\n        if (/\\/(?:api|routes|middleware)\\//.test(rel)) continue;\n        if (/\\.browser\\.(js|cjs)$/.test(name)) continue;\n        if (/^\\./.test(name)) continue;\n        // Skip dashboard, gateway, DLP, and enterprise orchestration files that are integration-tested, not unit-tested\n        if (/-dashboard\\./.test(name) || /[-_]gateway\\./.test(name) || /enterprise[-_]/.test(name)) continue;\n        if (/orchestrator\\./.test(name) || /auto[-_]processor\\./.test(name)) continue;\n            // Skip package source, src/, server/lib/, server/services/, and server/utils/ files where tests are managed separately\n        if (/packages\\/[^/]+\\/src\\//.test(rel) || /^src\\//.test(rel) || /^server\\/lib\\//.test(rel) || /^server\\/services\\//.test(rel) || /^server\\/utils\\//.test(rel)) continue;\n        // Skip docs, tools, simplebeacon-server, web/data, and auto-processor files\n        if (/^docs\\//.test(rel) || /(?:^|\\/)tools\\//.test(rel) || /^simplebeacon-server\\./.test(rel) || /auto-processor\\.js$/.test(rel)) continue;\n        if (/web\\/data\\//.test(rel)) continue;\n        if (/^server\\/index\\.cjs$/.test(rel)) continue;\n        if (/(?:^|\\/)coming-soon\\//.test(rel) || /(?:^|\\/)simplebeacon-rule-tests\\//.test(rel) || /(?:^|\\/)ai-agent\\//.test(rel) || /(?:^|\\/)ai-tools\\//.test(rel) || /(?:^|\\/)simplebeacon-frameworkless\\//.test(rel)) continue;\n        // Skip VS Code extension files — mocks and API wrappers don'",
+          "intent": "unclassified",
+          "intentReason": "Mock/sample path reference in production-eligible code",
+          "findingPayload": {
+            "file": "lib/codebase-analyzer.cjs",
+            "line": 4073,
+            "pattern": "web-data-sample",
+            "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release"
+          }
+        }
+      },
+      {
+        "id": "production-leak-template-sample-lib/codebase-analyzer.cjs-25904",
+        "severity": "high",
+        "severityBand": "high",
+        "type": "Production Leak",
+        "filePath": "lib/codebase-analyzer.cjs",
+        "file": "lib/codebase-analyzer.cjs",
+        "line": 410,
+        "pattern": "template-sample",
+        "count": 1,
+        "description": "lib/codebase-analyzer.cjs:410 references mock/sample path (template-sample)",
+        "recommendation": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
+        "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
+        "affectedFiles": [
+          "codebase-analyzer.cjs"
+        ],
+        "metadata": {
+          "patternId": "template-sample",
+          "offset": 25904,
+          "match": "`]*(?:\\/mock\\/|\\/mocks\\/|\\/fixture\\/|\\/fixtures\\/|\\/test-data\\/|\\/testdata\\/)[^'\"`",
+          "intent": "unclassified",
+          "intentReason": "Mock/sample path reference in production-eligible code",
+          "findingPayload": {
+            "file": "lib/codebase-analyzer.cjs",
+            "line": 410,
+            "pattern": "template-sample",
+            "recommendation": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources"
+          }
+        }
+      },
+      {
+        "id": "production-leak-template-sample-lib/codebase-analyzer.cjs-33411",
+        "severity": "high",
+        "severityBand": "high",
+        "type": "Production Leak",
+        "filePath": "lib/codebase-analyzer.cjs",
+        "file": "lib/codebase-analyzer.cjs",
+        "line": 482,
+        "pattern": "template-sample",
+        "count": 1,
+        "description": "lib/codebase-analyzer.cjs:482 references mock/sample path (template-sample)",
+        "recommendation": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
+        "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
+        "affectedFiles": [
+          "codebase-analyzer.cjs"
+        ],
+        "metadata": {
+          "patternId": "template-sample",
+          "offset": 33411,
+          "match": "`]*\\/mock\\/[^'\"`",
+          "intent": "unclassified",
+          "intentReason": "Mock/sample path reference in production-eligible code",
+          "findingPayload": {
+            "file": "lib/codebase-analyzer.cjs",
+            "line": 482,
+            "pattern": "template-sample",
+            "recommendation": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources"
+          }
+        }
+      },
+      {
+        "id": "agency-handoff-SB-SEC-001-lib/fix-orchestrator/patch-strategies.test.cjs-8874",
+        "severity": "high",
+        "severityBand": "high",
+        "type": "Web Security Risk",
+        "category": "web-security",
+        "filePath": "lib/fix-orchestrator/patch-strategies.test.cjs",
+        "file": "lib/fix-orchestrator/patch-strategies.test.cjs",
+        "line": 245,
+        "pattern": "SB-SEC-001",
+        "count": 1,
+        "description": "lib/fix-orchestrator/patch-strategies.test.cjs:245 — Dynamic code execution or unsanitized HTML injection API",
+        "recommendation": "Replace eval/dynamic HTML with safe alternatives; validate redirect targets.",
+        "recommendedAction": "Replace eval/dynamic HTML with safe alternatives; validate redirect targets.",
+        "affectedFiles": [
+          "patch-strategies.test.cjs"
+        ],
+        "metadata": {
+          "patternId": "SB-SEC-001",
+          "category": "web-security",
+          "offset": 8874,
+          "match": "eval("
+        }
+      }
+    ],
+    "warningIssues": [
+      {
+        "id": "EUAI-AI-001-lib/ai-analyst.cjs",
+        "severity": "medium",
+        "type": "EU AI Act — AI System Indicator",
+        "filePath": "lib/ai-analyst.cjs",
+        "lineNumber": 7,
+        "count": 1,
+        "description": "Generative AI or LLM integration detected (5 matches in file)",
+        "recommendedAction": "Add transparency disclosure in the UI (Article 50). Log all AI-generated content with a traceable ID. Document the model version, training data cutoff, and known limitations in your model-card.md.",
+        "evidence": "Matched \"EUAI-AI-001\" in code: \"* Env: OPENAI_API_KEY or ANTHROPIC_API_KEY (optional — falls back to demo mode)\" — Generative AI or LLM integration detected",
+        "affectedFiles": [
+          "lib/ai-analyst.cjs"
+        ],
+        "metadata": {
+          "patternId": "EUAI-AI-001",
+          "category": "ai-system",
+          "annex": null,
+          "match": "OPENAI",
+          "lineNumber": 7,
+          "codeLine": "* Env: OPENAI_API_KEY or ANTHROPIC_API_KEY (optional — falls back to demo mode)",
+          "matchCount": 5,
+          "matches": [
+            "OPENAI",
+            "ANTHROPIC",
+            "openai",
+            "anthropic"
+          ],
+          "lines": [
+            7,
+            7,
+            35,
+            35,
+            39
+          ]
+        }
+      },
+      {
+        "id": "EUAI-AI-002-lib/code-understanding/ml-pattern-detector.cjs",
+        "severity": "medium",
+        "type": "EU AI Act — AI System Indicator",
+        "filePath": "lib/code-understanding/ml-pattern-detector.cjs",
+        "lineNumber": 5,
+        "count": 1,
+        "description": "Machine learning inference or model runtime detected",
+        "recommendedAction": "Document the ML model purpose, performance metrics, and bias test results. Add input validation and confidence thresholds before returning predictions to users.",
+        "evidence": "Matched \"EUAI-AI-002\" in code: \"* Machine learning-inspired pattern detection for code analysis\" — Machine learning inference or model runtime detected",
+        "affectedFiles": [
+          "lib/code-understanding/ml-pattern-detector.cjs"
+        ],
+        "metadata": {
+          "patternId": "EUAI-AI-002",
+          "category": "ai-system",
+          "annex": null,
+          "match": "Machine learning",
+          "lineNumber": 5,
+          "codeLine": "* Machine learning-inspired pattern detection for code analysis",
+          "matchCount": 1,
+          "matches": [
+            "Machine learning"
+          ],
+          "lines": [
+            5
+          ]
+        }
+      },
+      {
+        "id": "EUAI-AI-001-lib/codebase-analyzer.cjs",
+        "severity": "medium",
+        "type": "EU AI Act — AI System Indicator",
+        "filePath": "lib/codebase-analyzer.cjs",
+        "lineNumber": 271,
+        "count": 1,
+        "description": "Generative AI or LLM integration detected (21 matches in file)",
+        "recommendedAction": "Add transparency disclosure in the UI (Article 50). Log all AI-generated content with a traceable ID. Document the model version, training data cutoff, and known limitations in your model-card.md.",
+        "evidence": "Matched \"EUAI-AI-001\" in code: \"{ id: 'hallucinated-import', pattern: /import\\s+\\w+\\s+from\\s+['\"`](?:ai-|llm-|gpt-|openai-|anthropic-|claude-|vertex-|pa\" — Generative AI or LLM integration detected",
+        "affectedFiles": [
+          "lib/codebase-analyzer.cjs"
+        ],
+        "metadata": {
+          "patternId": "EUAI-AI-001",
+          "category": "ai-system",
+          "annex": null,
+          "match": "openai",
+          "lineNumber": 271,
+          "codeLine": "{ id: 'hallucinated-import', pattern: /import\\s+\\w+\\s+from\\s+['\"`](?:ai-|llm-|gpt-|openai-|anthropic-|claude-|vertex-|pa",
+          "matchCount": 21,
+          "matches": [
+            "openai",
+            "anthropic",
+            "claude",
+            "ChatGPT",
+            "Claude",
+            "OpenAI",
+            "Anthropic",
+            "huggingface"
+          ],
+          "lines": [
+            271,
+            271,
+            271,
+            271,
+            271,
+            271,
+            275,
+            275,
+            460,
+            460,
+            460,
+            460,
+            1509,
+            2964,
+            2964,
+            2964,
+            271,
+            271,
+            460,
+            460,
+            2964
+          ]
+        }
+      },
+      {
+        "id": "EUAI-AI-001-lib/compliance-rules.cjs",
+        "severity": "medium",
+        "type": "EU AI Act — AI System Indicator",
+        "filePath": "lib/compliance-rules.cjs",
+        "lineNumber": 8,
+        "count": 1,
+        "description": "Generative AI or LLM integration detected (5 matches in file)",
+        "recommendedAction": "Add transparency disclosure in the UI (Article 50). Log all AI-generated content with a traceable ID. Document the model version, training data cutoff, and known limitations in your model-card.md.",
+        "evidence": "Matched \"EUAI-AI-001\" in code: \"* Env: OPENAI_API_KEY or ANTHROPIC_API_KEY (optional — deterministic fallback)\" — Generative AI or LLM integration detected",
+        "affectedFiles": [
+          "lib/compliance-rules.cjs"
+        ],
+        "metadata": {
+          "patternId": "EUAI-AI-001",
+          "category": "ai-system",
+          "annex": null,
+          "match": "OPENAI",
+          "lineNumber": 8,
+          "codeLine": "* Env: OPENAI_API_KEY or ANTHROPIC_API_KEY (optional — deterministic fallback)",
+          "matchCount": 5,
+          "matches": [
+            "OPENAI",
+            "ANTHROPIC",
+            "openai",
+            "anthropic"
+          ],
+          "lines": [
+            8,
+            8,
+            43,
+            43,
+            47
+          ]
+        }
+      },
+      {
+        "id": "EUAI-AI-001-lib/enhanced-ai-orchestrator.cjs",
+        "severity": "medium",
+        "type": "EU AI Act — AI System Indicator",
+        "filePath": "lib/enhanced-ai-orchestrator.cjs",
+        "lineNumber": 75,
+        "count": 1,
+        "description": "Generative AI or LLM integration detected (2 matches in file)",
+        "recommendedAction": "Add transparency disclosure in the UI (Article 50). Log all AI-generated content with a traceable ID. Document the model version, training data cutoff, and known limitations in your model-card.md.",
+        "evidence": "Matched \"EUAI-AI-001\" in code: \"if (modelPreference === 'cloud' && (model.provider === 'openai' || model.provider === 'anthropic')) score += 3;\" — Generative AI or LLM integration detected",
+        "affectedFiles": [
+          "lib/enhanced-ai-orchestrator.cjs"
+        ],
+        "metadata": {
+          "patternId": "EUAI-AI-001",
+          "category": "ai-system",
+          "annex": null,
+          "match": "openai",
+          "lineNumber": 75,
+          "codeLine": "if (modelPreference === 'cloud' && (model.provider === 'openai' || model.provider === 'anthropic')) score += 3;",
+          "matchCount": 2,
+          "matches": [
+            "openai",
+            "anthropic"
+          ],
+          "lines": [
+            75,
+            75
+          ]
+        }
+      },
+      {
+        "id": "EUAI-AI-001-lib/operator-deliverable-service.cjs",
+        "severity": "medium",
+        "type": "EU AI Act — AI System Indicator",
+        "filePath": "lib/operator-deliverable-service.cjs",
+        "lineNumber": 5,
+        "count": 1,
+        "description": "Generative AI or LLM integration detected (2 matches in file)",
+        "recommendedAction": "Add transparency disclosure in the UI (Article 50). Log all AI-generated content with a traceable ID. Document the model version, training data cutoff, and known limitations in your model-card.md.",
+        "evidence": "Matched \"EUAI-AI-001\" in code: \"* - This service integrates with artificial intelligence providers for report generation (OpenAI API).\" — Generative AI or LLM integration detected",
+        "affectedFiles": [
+          "lib/operator-deliverable-service.cjs"
+        ],
+        "metadata": {
+          "patternId": "EUAI-AI-001",
+          "category": "ai-system",
+          "annex": null,
+          "match": "OpenAI",
+          "lineNumber": 5,
+          "codeLine": "* - This service integrates with artificial intelligence providers for report generation (OpenAI API).",
+          "matchCount": 2,
+          "matches": [
+            "OpenAI"
+          ],
+          "lines": [
+            5,
+            27
+          ]
+        }
+      },
+      {
+        "id": "EUAI-AI-001-lib/user-ai-keys-store.cjs",
+        "severity": "medium",
+        "type": "EU AI Act — AI System Indicator",
+        "filePath": "lib/user-ai-keys-store.cjs",
+        "lineNumber": 20,
+        "count": 1,
+        "description": "Generative AI or LLM integration detected (4 matches in file)",
+        "recommendedAction": "Add transparency disclosure in the UI (Article 50). Log all AI-generated content with a traceable ID. Document the model version, training data cutoff, and known limitations in your model-card.md.",
+        "evidence": "Matched \"EUAI-AI-001\" in code: \"const PROVIDERS = ['openai', 'anthropic'];\" — Generative AI or LLM integration detected",
+        "affectedFiles": [
+          "lib/user-ai-keys-store.cjs"
+        ],
+        "metadata": {
+          "patternId": "EUAI-AI-001",
+          "category": "ai-system",
+          "annex": null,
+          "match": "openai",
+          "lineNumber": 20,
+          "codeLine": "const PROVIDERS = ['openai', 'anthropic'];",
+          "matchCount": 4,
+          "matches": [
+            "openai",
+            "anthropic"
+          ],
+          "lines": [
+            20,
+            20,
+            128,
+            129
+          ]
+        }
+      },
+      {
+        "id": "file-reduction-data-access-pattern-5888c5",
+        "severity": "medium",
+        "type": "data-access-pattern",
+        "filePath": "lib/code-roadmap-generator.cjs",
+        "count": 1,
+        "description": "data-access-pattern finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "lib/code-roadmap-generator.cjs"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0,
+          "patternId": "sync-read-in-iteration"
+        }
+      },
+      {
+        "id": "file-reduction-data-access-pattern-892767",
+        "severity": "medium",
+        "type": "data-access-pattern",
+        "filePath": "lib/code-roadmap-phase2.cjs",
+        "count": 1,
+        "description": "data-access-pattern finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "lib/code-roadmap-phase2.cjs"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0,
+          "patternId": "sync-read-in-iteration"
+        }
+      },
+      {
+        "id": "file-reduction-data-access-pattern-38aed7",
+        "severity": "medium",
+        "type": "data-access-pattern",
+        "filePath": "lib/code-understanding/code-understanding-engine.cjs",
+        "count": 1,
+        "description": "data-access-pattern finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "lib/code-understanding/code-understanding-engine.cjs"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0,
+          "patternId": "sync-read-in-iteration"
+        }
+      },
+      {
+        "id": "file-reduction-data-access-pattern-ed5882",
+        "severity": "medium",
+        "type": "data-access-pattern",
+        "filePath": "lib/codebase-analyzer.cjs",
+        "count": 1,
+        "description": "data-access-pattern finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "lib/codebase-analyzer.cjs"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0,
+          "patternId": "sync-read-in-iteration"
+        }
+      },
+      {
+        "id": "file-reduction-data-access-pattern-a6e565",
+        "severity": "medium",
+        "type": "data-access-pattern",
+        "filePath": "lib/json-file-cache.cjs",
+        "count": 1,
+        "description": "data-access-pattern finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "lib/json-file-cache.cjs"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0,
+          "patternId": "parse-sync-read"
+        }
+      },
+      {
+        "id": "file-reduction-data-access-pattern-480885",
+        "severity": "medium",
+        "type": "data-access-pattern",
+        "filePath": "lib/token-db.cjs",
+        "count": 1,
+        "description": "data-access-pattern finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "lib/token-db.cjs"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0,
+          "patternId": "parse-sync-read"
+        }
+      }
+    ],
+    "allIssues": [
+      {
+        "id": "EUAI-AI-001-lib/ai-analyst.cjs",
+        "severity": "medium",
+        "type": "EU AI Act — AI System Indicator",
+        "filePath": "lib/ai-analyst.cjs",
+        "lineNumber": 7,
+        "count": 1,
+        "description": "Generative AI or LLM integration detected (5 matches in file)",
+        "recommendedAction": "Add transparency disclosure in the UI (Article 50). Log all AI-generated content with a traceable ID. Document the model version, training data cutoff, and known limitations in your model-card.md.",
+        "evidence": "Matched \"EUAI-AI-001\" in code: \"* Env: OPENAI_API_KEY or ANTHROPIC_API_KEY (optional — falls back to demo mode)\" — Generative AI or LLM integration detected",
+        "affectedFiles": [
+          "lib/ai-analyst.cjs"
+        ],
+        "metadata": {
+          "patternId": "EUAI-AI-001",
+          "category": "ai-system",
+          "annex": null,
+          "match": "OPENAI",
+          "lineNumber": 7,
+          "codeLine": "* Env: OPENAI_API_KEY or ANTHROPIC_API_KEY (optional — falls back to demo mode)",
+          "matchCount": 5,
+          "matches": [
+            "OPENAI",
+            "ANTHROPIC",
+            "openai",
+            "anthropic"
+          ],
+          "lines": [
+            7,
+            7,
+            35,
+            35,
+            39
+          ]
+        }
+      },
+      {
+        "id": "EUAI-AI-002-lib/code-understanding/ml-pattern-detector.cjs",
+        "severity": "medium",
+        "type": "EU AI Act — AI System Indicator",
+        "filePath": "lib/code-understanding/ml-pattern-detector.cjs",
+        "lineNumber": 5,
+        "count": 1,
+        "description": "Machine learning inference or model runtime detected",
+        "recommendedAction": "Document the ML model purpose, performance metrics, and bias test results. Add input validation and confidence thresholds before returning predictions to users.",
+        "evidence": "Matched \"EUAI-AI-002\" in code: \"* Machine learning-inspired pattern detection for code analysis\" — Machine learning inference or model runtime detected",
+        "affectedFiles": [
+          "lib/code-understanding/ml-pattern-detector.cjs"
+        ],
+        "metadata": {
+          "patternId": "EUAI-AI-002",
+          "category": "ai-system",
+          "annex": null,
+          "match": "Machine learning",
+          "lineNumber": 5,
+          "codeLine": "* Machine learning-inspired pattern detection for code analysis",
+          "matchCount": 1,
+          "matches": [
+            "Machine learning"
+          ],
+          "lines": [
+            5
+          ]
+        }
+      },
+      {
+        "id": "EUAI-AI-001-lib/codebase-analyzer.cjs",
+        "severity": "medium",
+        "type": "EU AI Act — AI System Indicator",
+        "filePath": "lib/codebase-analyzer.cjs",
+        "lineNumber": 271,
+        "count": 1,
+        "description": "Generative AI or LLM integration detected (21 matches in file)",
+        "recommendedAction": "Add transparency disclosure in the UI (Article 50). Log all AI-generated content with a traceable ID. Document the model version, training data cutoff, and known limitations in your model-card.md.",
+        "evidence": "Matched \"EUAI-AI-001\" in code: \"{ id: 'hallucinated-import', pattern: /import\\s+\\w+\\s+from\\s+['\"`](?:ai-|llm-|gpt-|openai-|anthropic-|claude-|vertex-|pa\" — Generative AI or LLM integration detected",
+        "affectedFiles": [
+          "lib/codebase-analyzer.cjs"
+        ],
+        "metadata": {
+          "patternId": "EUAI-AI-001",
+          "category": "ai-system",
+          "annex": null,
+          "match": "openai",
+          "lineNumber": 271,
+          "codeLine": "{ id: 'hallucinated-import', pattern: /import\\s+\\w+\\s+from\\s+['\"`](?:ai-|llm-|gpt-|openai-|anthropic-|claude-|vertex-|pa",
+          "matchCount": 21,
+          "matches": [
+            "openai",
+            "anthropic",
+            "claude",
+            "ChatGPT",
+            "Claude",
+            "OpenAI",
+            "Anthropic",
+            "huggingface"
+          ],
+          "lines": [
+            271,
+            271,
+            271,
+            271,
+            271,
+            271,
+            275,
+            275,
+            460,
+            460,
+            460,
+            460,
+            1509,
+            2964,
+            2964,
+            2964,
+            271,
+            271,
+            460,
+            460,
+            2964
+          ]
+        }
+      },
+      {
+        "id": "EUAI-AI-001-lib/compliance-rules.cjs",
+        "severity": "medium",
+        "type": "EU AI Act — AI System Indicator",
+        "filePath": "lib/compliance-rules.cjs",
+        "lineNumber": 8,
+        "count": 1,
+        "description": "Generative AI or LLM integration detected (5 matches in file)",
+        "recommendedAction": "Add transparency disclosure in the UI (Article 50). Log all AI-generated content with a traceable ID. Document the model version, training data cutoff, and known limitations in your model-card.md.",
+        "evidence": "Matched \"EUAI-AI-001\" in code: \"* Env: OPENAI_API_KEY or ANTHROPIC_API_KEY (optional — deterministic fallback)\" — Generative AI or LLM integration detected",
+        "affectedFiles": [
+          "lib/compliance-rules.cjs"
+        ],
+        "metadata": {
+          "patternId": "EUAI-AI-001",
+          "category": "ai-system",
+          "annex": null,
+          "match": "OPENAI",
+          "lineNumber": 8,
+          "codeLine": "* Env: OPENAI_API_KEY or ANTHROPIC_API_KEY (optional — deterministic fallback)",
+          "matchCount": 5,
+          "matches": [
+            "OPENAI",
+            "ANTHROPIC",
+            "openai",
+            "anthropic"
+          ],
+          "lines": [
+            8,
+            8,
+            43,
+            43,
+            47
+          ]
+        }
+      },
+      {
+        "id": "EUAI-AI-001-lib/enhanced-ai-orchestrator.cjs",
+        "severity": "medium",
+        "type": "EU AI Act — AI System Indicator",
+        "filePath": "lib/enhanced-ai-orchestrator.cjs",
+        "lineNumber": 75,
+        "count": 1,
+        "description": "Generative AI or LLM integration detected (2 matches in file)",
+        "recommendedAction": "Add transparency disclosure in the UI (Article 50). Log all AI-generated content with a traceable ID. Document the model version, training data cutoff, and known limitations in your model-card.md.",
+        "evidence": "Matched \"EUAI-AI-001\" in code: \"if (modelPreference === 'cloud' && (model.provider === 'openai' || model.provider === 'anthropic')) score += 3;\" — Generative AI or LLM integration detected",
+        "affectedFiles": [
+          "lib/enhanced-ai-orchestrator.cjs"
+        ],
+        "metadata": {
+          "patternId": "EUAI-AI-001",
+          "category": "ai-system",
+          "annex": null,
+          "match": "openai",
+          "lineNumber": 75,
+          "codeLine": "if (modelPreference === 'cloud' && (model.provider === 'openai' || model.provider === 'anthropic')) score += 3;",
+          "matchCount": 2,
+          "matches": [
+            "openai",
+            "anthropic"
+          ],
+          "lines": [
+            75,
+            75
+          ]
+        }
+      },
+      {
+        "id": "EUAI-AI-001-lib/operator-deliverable-service.cjs",
+        "severity": "medium",
+        "type": "EU AI Act — AI System Indicator",
+        "filePath": "lib/operator-deliverable-service.cjs",
+        "lineNumber": 5,
+        "count": 1,
+        "description": "Generative AI or LLM integration detected (2 matches in file)",
+        "recommendedAction": "Add transparency disclosure in the UI (Article 50). Log all AI-generated content with a traceable ID. Document the model version, training data cutoff, and known limitations in your model-card.md.",
+        "evidence": "Matched \"EUAI-AI-001\" in code: \"* - This service integrates with artificial intelligence providers for report generation (OpenAI API).\" — Generative AI or LLM integration detected",
+        "affectedFiles": [
+          "lib/operator-deliverable-service.cjs"
+        ],
+        "metadata": {
+          "patternId": "EUAI-AI-001",
+          "category": "ai-system",
+          "annex": null,
+          "match": "OpenAI",
+          "lineNumber": 5,
+          "codeLine": "* - This service integrates with artificial intelligence providers for report generation (OpenAI API).",
+          "matchCount": 2,
+          "matches": [
+            "OpenAI"
+          ],
+          "lines": [
+            5,
+            27
+          ]
+        }
+      },
+      {
+        "id": "EUAI-AI-001-lib/user-ai-keys-store.cjs",
+        "severity": "medium",
+        "type": "EU AI Act — AI System Indicator",
+        "filePath": "lib/user-ai-keys-store.cjs",
+        "lineNumber": 20,
+        "count": 1,
+        "description": "Generative AI or LLM integration detected (4 matches in file)",
+        "recommendedAction": "Add transparency disclosure in the UI (Article 50). Log all AI-generated content with a traceable ID. Document the model version, training data cutoff, and known limitations in your model-card.md.",
+        "evidence": "Matched \"EUAI-AI-001\" in code: \"const PROVIDERS = ['openai', 'anthropic'];\" — Generative AI or LLM integration detected",
+        "affectedFiles": [
+          "lib/user-ai-keys-store.cjs"
+        ],
+        "metadata": {
+          "patternId": "EUAI-AI-001",
+          "category": "ai-system",
+          "annex": null,
+          "match": "openai",
+          "lineNumber": 20,
+          "codeLine": "const PROVIDERS = ['openai', 'anthropic'];",
+          "matchCount": 4,
+          "matches": [
+            "openai",
+            "anthropic"
+          ],
+          "lines": [
+            20,
+            20,
+            128,
+            129
+          ]
+        }
+      },
+      {
+        "id": "file-reduction-data-access-pattern-5888c5",
+        "severity": "medium",
+        "type": "data-access-pattern",
+        "filePath": "lib/code-roadmap-generator.cjs",
+        "count": 1,
+        "description": "data-access-pattern finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "lib/code-roadmap-generator.cjs"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0,
+          "patternId": "sync-read-in-iteration"
+        }
+      },
+      {
+        "id": "file-reduction-data-access-pattern-892767",
+        "severity": "medium",
+        "type": "data-access-pattern",
+        "filePath": "lib/code-roadmap-phase2.cjs",
+        "count": 1,
+        "description": "data-access-pattern finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "lib/code-roadmap-phase2.cjs"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0,
+          "patternId": "sync-read-in-iteration"
+        }
+      },
+      {
+        "id": "file-reduction-data-access-pattern-38aed7",
+        "severity": "medium",
+        "type": "data-access-pattern",
+        "filePath": "lib/code-understanding/code-understanding-engine.cjs",
+        "count": 1,
+        "description": "data-access-pattern finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "lib/code-understanding/code-understanding-engine.cjs"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0,
+          "patternId": "sync-read-in-iteration"
+        }
+      },
+      {
+        "id": "file-reduction-data-access-pattern-ed5882",
+        "severity": "medium",
+        "type": "data-access-pattern",
+        "filePath": "lib/codebase-analyzer.cjs",
+        "count": 1,
+        "description": "data-access-pattern finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "lib/codebase-analyzer.cjs"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0,
+          "patternId": "sync-read-in-iteration"
+        }
+      },
+      {
+        "id": "file-reduction-data-access-pattern-a6e565",
+        "severity": "medium",
+        "type": "data-access-pattern",
+        "filePath": "lib/json-file-cache.cjs",
+        "count": 1,
+        "description": "data-access-pattern finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "lib/json-file-cache.cjs"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0,
+          "patternId": "parse-sync-read"
+        }
+      },
+      {
+        "id": "file-reduction-data-access-pattern-480885",
+        "severity": "medium",
+        "type": "data-access-pattern",
+        "filePath": "lib/token-db.cjs",
+        "count": 1,
+        "description": "data-access-pattern finding",
+        "recommendedAction": "Review file-reduction report",
+        "affectedFiles": [
+          "lib/token-db.cjs"
+        ],
+        "metadata": {
+          "scanner": "file-reduction",
+          "reclaimableBytes": 0,
+          "patternId": "parse-sync-read"
+        }
+      }
+    ],
+    "status": "BLOCKED",
+    "severityColor": "#EF4444",
+    "summary": "Gate blocked — 14 blocking issues detected. Review before release.",
+    "blockingFindings": [
+      {
+        "severity": "high",
+        "type": "Production Leak",
+        "count": 1,
+        "filePath": "lib/codebase-analyzer.cjs"
+      },
+      {
+        "severity": "high",
+        "type": "Production Leak",
+        "count": 1,
+        "filePath": "lib/codebase-analyzer.cjs"
+      },
+      {
+        "severity": "high",
+        "type": "Production Leak",
+        "count": 1,
+        "filePath": "lib/codebase-analyzer.cjs"
+      },
+      {
+        "severity": "high",
+        "type": "Production Leak",
+        "count": 1,
+        "filePath": "lib/codebase-analyzer.cjs"
+      },
+      {
+        "severity": "high",
+        "type": "Production Leak",
+        "count": 1,
+        "filePath": "lib/codebase-analyzer.cjs"
+      },
+      {
+        "severity": "high",
+        "type": "Production Leak",
+        "count": 1,
+        "filePath": "lib/codebase-analyzer.cjs"
+      },
+      {
+        "severity": "high",
+        "type": "Production Leak",
+        "count": 1,
+        "filePath": "lib/codebase-analyzer.cjs"
+      },
+      {
+        "severity": "high",
+        "type": "Production Leak",
+        "count": 1,
+        "filePath": "lib/codebase-analyzer.cjs"
+      },
+      {
+        "severity": "high",
+        "type": "Production Leak",
+        "count": 1,
+        "filePath": "lib/codebase-analyzer.cjs"
+      },
+      {
+        "severity": "high",
+        "type": "Production Leak",
+        "count": 1,
+        "filePath": "lib/codebase-analyzer.cjs"
+      }
+    ],
+    "remediation": []
+  },
+  "tier": "developer",
+  "consolidation": {
+    "monorepoMarkers": 0,
+    "duplicateGroups": 0,
+    "summary": "No duplicate files detected.",
+    "remediation": null
+  },
+  "codebase": {
+    "totalFiles": 175,
+    "totalLines": 49204,
+    "averageLinesPerFile": 281,
+    "summary": "175 files analyzed, 49,204 lines of code."
+  },
+  "dataQuality": {
+    "emptyJsonCount": 0,
+    "invalidJsonCount": 0,
+    "severity": "low",
+    "severityColor": "#34D399",
+    "summary": "No data quality issues.",
+    "remediation": null
+  },
+  "cleanup": {
+    "debugArtifactCount": 0,
+    "severity": "low",
+    "severityColor": "#34D399",
+    "summary": "No cleanup issues.",
+    "remediation": null
+  },
+  "fileReduction": {
+    "duplicateGroups": 0,
+    "summary": "No file reduction opportunities.",
+    "remediation": null
+  },
+  "npmAudit": {
+    "packageJsonCount": 0,
+    "dependencyCount": 0,
+    "summary": "No package.json files found."
+  },
+  "roadmap": {
+    "todoCount": 0,
+    "summary": "No roadmap markers found."
+  },
+  "mockData": {
+    "fileCount": 1,
+    "summary": "1 mock/fixture file detected."
+  },
+  "euAiAct": {
+    "aiSystemIndicators": 7,
+    "highRiskIndicators": 0,
+    "transparencyGaps": 0,
+    "documentationArtifacts": 0,
+    "documentationFound": [],
+    "controls": [],
+    "deadlineNote": "7 AI system indicators detected; review EU AI Act applicability.",
+    "summary": "7 AI system indicators detected; 0 high-risk, 0 transparency gaps."
+  },
+  "dependencyAudit": {
+    "vulnerabilityCount": 0,
+    "critical": 0,
+    "high": 0,
+    "moderate": 0,
+    "low": 0,
+    "affectedPackages": [],
+    "outdatedPackages": [],
+    "summary": "No dependency vulnerabilities found."
+  },
+  "buildReadiness": {
+    "readinessScore": 100,
+    "readinessStatus": "READY",
+    "checklist": [
+      {
+        "name": "package.json",
+        "found": true,
+        "critical": true
+      },
+      {
+        "name": "README",
+        "found": true,
+        "critical": true
+      },
+      {
+        "name": "CHANGELOG",
+        "found": true,
+        "critical": false
+      },
+      {
+        "name": "Tests",
+        "found": true,
+        "critical": true
+      },
+      {
+        "name": "CI/CD",
+        "found": true,
+        "critical": true
+      },
+      {
+        "name": "Docker",
+        "found": true,
+        "critical": false
+      },
+      {
+        "name": "Linting/Formatting",
+        "found": true,
+        "critical": false
+      },
+      {
+        "name": "TypeScript Config",
+        "found": true,
+        "critical": false
+      },
+      {
+        "name": "Build Tool Config",
+        "found": true,
+        "critical": false
+      },
+      {
+        "name": ".env.example",
+        "found": true,
+        "critical": true
+      },
+      {
+        "name": ".gitignore",
+        "found": true,
+        "critical": true
+      },
+      {
+        "name": ".npmignore",
+        "found": true,
+        "critical": false
+      }
+    ],
+    "missingCritical": [],
+    "missingRecommended": [],
+    "totalChecks": 12,
+    "passedChecks": 12,
+    "summary": "READY — 12 of 12 checklist items present.",
+    "recommendations": [
+      "Project is fully ready for production. All checklist items present."
+    ],
+    "remediation": "No remediation needed."
+  },
+  "remediationPhases": [
+    {
+      "id": "integrity",
+      "title": "Phase 1: Data Integrity",
+      "severity": "medium",
+      "effort": "2–4 days",
+      "description": "Data integrity verified — no structural issues detected.",
+      "tasks": [
+        {
+          "description": "Validate all JSON",
+          "type": "verify",
+          "done": true,
+          "isStructured": true
+        },
+        {
+          "description": "Re-run scan",
+          "type": "verify",
+          "done": true,
+          "isStructured": true
+        }
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "consistency",
+      "title": "Phase 2: Consistency & Deduplication",
+      "severity": "medium",
+      "effort": "3–5 days",
+      "description": "Consistency verified — no duplicates or naming drift.",
+      "tasks": [
+        {
+          "description": "Standardize naming conventions",
+          "type": "doc",
+          "done": true,
+          "isStructured": true
+        },
+        {
+          "description": "Document canonical file locations",
+          "type": "doc",
+          "done": true,
+          "isStructured": true
+        }
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "compliance",
+      "title": "Phase 3: Governance & Compliance",
+      "severity": "medium",
+      "effort": "2–3 days",
+      "description": "1 license file, 1 security file. Governance score: 2.",
+      "tasks": [
+        {
+          "description": "Audit 1 open-source license file",
+          "type": "review",
+          "done": true,
+          "isStructured": true
+        },
+        {
+          "description": "Review 1 security/governance file",
+          "type": "review",
+          "done": true,
+          "isStructured": true
+        },
+        {
+          "description": "Verify license compatibility with distribution model",
+          "type": "verify",
+          "done": true,
+          "isStructured": true
+        },
+        {
+          "description": "Add LICENSE and SECURITY.md if missing",
+          "type": "fix",
+          "done": true,
+          "isStructured": true
+        },
+        {
+          "description": "Document governance policies",
+          "type": "doc",
+          "done": true,
+          "isStructured": true
+        }
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "euaiact",
+      "title": "Phase 4: EU AI Act Compliance",
+      "severity": "medium",
+      "effort": "5–10 days",
+      "description": "Regulatory readiness: 0 AI indicators, 0 high-risk, 0 transparency gaps, 0 artifacts.",
+      "tasks": [
+        {
+          "description": "Generate documentation artifacts",
+          "type": "doc",
+          "done": true,
+          "isStructured": true
+        },
+        {
+          "description": "Review AI system classification (Art. 6)",
+          "type": "review",
+          "done": true,
+          "isStructured": true
+        },
+        {
+          "description": "Schedule legal review",
+          "type": "review",
+          "done": true,
+          "isStructured": true
+        }
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "optimization",
+      "title": "Phase 5: Quality Optimization",
+      "severity": "high",
+      "effort": "Ongoing",
+      "description": "Drive quality score from 16/100 toward 95+.",
+      "tasks": [
+        {
+          "description": "Refactor low-quality modules (quality score < 85)",
+          "type": "fix",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Add test coverage for uncovered modules",
+          "type": "fix",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Install pre-commit hooks for automated scanning",
+          "type": "fix",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Schedule monthly quality gate reviews",
+          "type": "review",
+          "done": false,
+          "isStructured": true
+        }
+      ],
+      "progress": 16,
+      "status": "in-progress"
+    }
+  ],
+  "summary": {
+    "gatePass": false,
+    "qualityScore": 16,
+    "totalFiles": 175,
+    "totalLines": 49204
+  },
+  "sanitized": true,
+  "sanitizedAt": "2026-06-28T03:49:08.129Z"
+}

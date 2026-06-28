@@ -542,15 +542,19 @@ const queryAuditLogs = async (filters = {}) => {
     
     // Sort by timestamp (newest first)
     entries.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-    
-    // Limit results
-    const limit = filters.limit || 100;
-    entries = entries.slice(0, limit);
-    
-    return entries;
+
+    // Enforce strict pagination boundaries (default LIMIT 50, max 200)
+    const MAX_PAGE_SIZE = 200;
+    const DEFAULT_PAGE_SIZE = 50;
+    const limit = Math.min(Math.max(parseInt(filters.limit, 10) || DEFAULT_PAGE_SIZE, 1), MAX_PAGE_SIZE);
+    const offset = Math.max(parseInt(filters.offset, 10) || 0, 0);
+    const total = entries.length;
+    entries = entries.slice(offset, offset + limit);
+
+    return { entries, total, limit, offset };
   } catch (error) {
     console.error('[AUDIT] Failed to query audit logs:', error.message);
-    return [];
+    return { entries: [], total: 0, limit: 50, offset: 0 };
   }
 };
 

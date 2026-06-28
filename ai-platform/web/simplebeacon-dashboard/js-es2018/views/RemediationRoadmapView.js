@@ -1,5 +1,4 @@
 import { escapeHtml, formatNumber, showToast, renderEmptyState } from '../utils.js';
-// simplebeacon-ignore dead-code — resolveDisplayScore was previously imported here
 const SEVERITY_ORDER = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
 /**
  * Get remediation plan.
@@ -62,11 +61,9 @@ function getRemediationPlan(issue) {
  * @param {Array} issues
  * @returns {any}
  */
-// simplebeacon-ignore memory-leak
 function groupIssuesByCategory(issues) {
     const groups = {};
-    for (let i = 0; i < issues.length; i++) {
-        const issue = issues[i];
+    for (const issue of issues) {
         const plan = getRemediationPlan(issue);
         const cat = plan.category;
         if (!groups[cat])

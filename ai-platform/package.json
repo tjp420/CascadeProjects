@@ -142,7 +142,7 @@
   "license": "MIT",
   "dependencies": {
     "adm-zip": "^0.5.17",
-    "archiver": "^6.0.1",
+    "archiver": "^8.0.0",
     "bcryptjs": "^3.0.3",
     "chokidar": "^3.5.3",
     "cors": "^2.8.6",
@@ -175,7 +175,7 @@
     "webpack-cli": "^5.1.4"
   },
   "engines": {
-    "node": ">=16.0.0",
-    "npm": ">=8.0.0"
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
   }
 }

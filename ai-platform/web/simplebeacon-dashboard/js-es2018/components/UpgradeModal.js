@@ -70,7 +70,7 @@ export function renderUpgradeModal({ onDismiss } = {}) {
     (_b = overlay.querySelector('.upgrade-dismiss')) === null || _b === void 0 ? void 0 : _b.addEventListener('click', () => close('dismiss'));
     (_c = overlay.querySelector('.upgrade-about')) === null || _c === void 0 ? void 0 : _c.addEventListener('click', () => {
         close();
-        if (window.__SB_DASHBOARD_APP__) { window.__SB_DASHBOARD_APP__.navigate('about'); }
+        window.location.hash = '#/about';
     });
     overlay.addEventListener('click', (e) => {
         if (e.target === overlay)

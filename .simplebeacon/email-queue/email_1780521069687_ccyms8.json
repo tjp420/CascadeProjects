@@ -1,8 +1,0 @@
-{
-  "id": "email_1780521069687_ccyms8",
-  "to": "Trevor_punt@live.com",
-  "subject": "Your SimpleBeacon EU AI Act Sprint — Upload Instructions",
-  "text": "Thank you for your EU AI Act Sprint purchase ($2,499).\n\nYour license token: eyJlbWFpbCI6IlRyZXZvcl9wdW50QGxpdmUuY29tIiwidGllciI6ImV1YWkiLCJmZWF0dXJlcyI6WyJldS1haS1hY3QiLCJwZGYtZ2VuZXJhdGlvbiIsImNlcnRpZmljYXRlIl0sImlhdCI6MTc4MDUyMTA2OTY4NywiZXhwIjoxNzgwNTI0NjY5Njg3fQ.QPRqtb0A9Q5T7Hxvs6FnY1rpwMtMwbVsYFa0Ago2r0c\n\nNext steps:\n1. Run the EU AI Act scan locally: npx simplebeacon scan --gate --offline --config .simplebeacon/config-full-coverage.json\n2. Upload your report JSON at: https://simplebeacon.ai/coming-soon/certificate-upload.html\n3. We will generate your EU AI Act Readiness Report within 48 hours.\n\n---\nToken tier: euai\nToken expires: 60 minutes from generation (for testing)\nProduct: eu_ai_act_sprint\nFeatures: eu-ai-act, pdf-generation, certificate\n\nKeep this token safe — you'll need it to upload your scan report.",
-  "attachments": [],
-  "queuedAt": "2026-06-03T21:11:09.687Z"
-}

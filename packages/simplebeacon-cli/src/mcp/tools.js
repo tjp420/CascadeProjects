@@ -105,7 +105,7 @@ const TOOL_DEFINITIONS = [
     },
     {
         name: 'scan_file',
-        description: 'Scan one file on disk within the project root using the same rules as scan_snippet.',
+        description: 'Scan one file on disk within the project root using the same rules as scan_snippet. Runs locally — no upload.',
         inputSchema: {
             type: 'object',
             properties: {

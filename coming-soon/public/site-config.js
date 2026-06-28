@@ -2,7 +2,8 @@
 window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
   env: 'production',
   githubUrl: 'https://github.com/tjp420/simplebeacon',
-  // Intentional demo content URLs — sample pages for the marketing site, not mock data. simplebeacon-ignore
+  // Intentional demo content URLs — these are sample pages for the marketing site,
+  // not mock/fixture data embedded in production application code. simplebeacon-ignore
   sampleReportUrl: 'sample-report.html', // simplebeacon:production-leak-intent: demo-content - sample URL for marketing site, not production fixture
   sampleCertificateUrl: 'sample-certificate.html', // simplebeacon-ignore
   sampleEuAiActReportUrl: null,
@@ -257,13 +258,13 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
 // Override Stripe links from server environment configuration (falls back to hardcoded values above)
 (function () {
   try {
-    var apiBase = window.SIMPLEBEACON_SITE.apiBase || '';
+    const apiBase = window.SIMPLEBEACON_SITE.apiBase || '';
     fetch(apiBase + '/api/config/pricing')
       .then(function (res) { if (!res.ok) return null; return res.json(); })
       .then(function (data) {
         if (!data || !data.success || !data.pricing) return;
-        var cfg = window.SIMPLEBEACON_SITE;
-        var p = data.pricing;
+        const cfg = window.SIMPLEBEACON_SITE;
+        const p = data.pricing;
         if (p.instant && p.instant.stripeLink) {
           cfg.pricing.instant.stripeLink = p.instant.stripeLink;
           cfg.instantReportLink = p.instant.stripeLink;

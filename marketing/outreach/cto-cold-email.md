@@ -1,4 +1,4 @@
-# Enterprise CTO Outreach Template: AI Compliance Risk Mitigation
+# Enterprise CTO Outreach Template: Managing Generative AI Software Liability
 
 **Subject:** Code hygiene audit: Managing [Company]'s AI code-gen liability
 
@@ -16,9 +16,9 @@ When engineering teams copy-paste or auto-generate code via LLMs, they inadverte
 2. **Conversational Code Debris:** Raw markdown fences, unfinished AI placeholders, and verbose boilerplate code slipping past standard code reviews.
 3. **Intellectual Property Contamination:** Inadvertently checking in open-source licensed blocks that break corporate compliance guardrails.
 
-We built **SimpleBeacon** as an offline, local-first linting firewall to detect and catch these specific machine artifacts before code hits your production pipeline.
+We built **SimpleBeacon** as an offline, local-first linting firewall to detect and catch these machine artifacts before code hits your production pipeline.
 
-We recently completed a release hygiene audit for an enterprise FinTech platform that identified and cleared several critical compliance anomalies in their monorepo before a major release.
+We recently completed a release hygiene audit for an enterprise FinTech platform that identified and cleared several compliance anomalies in their monorepo before a major release.
 
 The scanner runs completely on-device, meaning your source code never leaves your secure local infrastructure.
 

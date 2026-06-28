@@ -616,6 +616,9 @@ export class WelcomeDashboard {
         case 'openDashboardInBrowser':
           this.showDashboardPane();
           break;
+        case 'openMainWindow':
+          WelcomeDashboard.createOrShow(this.extUri, true)?.showDashboardPane();
+          break;
         case 'openTeamDashboard':
           this.showTeamPane();
           break;
@@ -2092,6 +2095,7 @@ body{font-family:var(--vscode-font-family,'Segoe UI',sans-serif);background:var(
       <button id="openTeam"><span class="btn-icon">&#128101;</span><span class="btn-label">Team</span></button>
       <button id="openScan"><span class="btn-icon">&#128269;</span><span class="btn-label">Scan</span></button>
       <button id="openSettings"><span class="btn-icon">&#9881;</span><span class="btn-label">Settings</span></button>
+      <button id="openMainWindow"><span class="btn-icon">&#8599;</span><span class="btn-label">Open in Main Window</span></button>
       <button id="openTeamDashboard"><span class="btn-icon">&#128101;</span><span class="btn-label">Team Dashboard</span></button>
       <button id="openPreviewWindow"><span class="btn-icon">&#127760;</span><span class="btn-label">Preview</span></button>
     </div>
@@ -4807,6 +4811,7 @@ if (teamInviteBtn) teamInviteBtn.addEventListener('click', () => {
 });
 bindBtn('openScan','scanPane','openScan');
 bindBtn('openSettings','settingsPane','openSettings');
+bindBtn('openMainWindow','dashboardPane','openMainWindow');
 const teamDashboardBtn = document.getElementById('openTeamDashboard');
 if (teamDashboardBtn) teamDashboardBtn.addEventListener('click', () => vscode.postMessage({ command: 'openTeamDashboard' }));
 const previewWindowBtn = document.getElementById('openPreviewWindow');

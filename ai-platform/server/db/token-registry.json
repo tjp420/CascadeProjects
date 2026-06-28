@@ -7,6 +7,13 @@
   "recovery_factors": [],
   "recovery_attempts": [],
   "token_blocklist": [],
-  "license_tokens": [],
+  "license_tokens": [
+    {
+      "token": "<replace-with-env-var-or-generate-at-runtime>",
+      "email": "sandbox@local.dev",
+      "tier": "community",
+      "registered_at": "2026-06-28T01:33:05.598Z"
+    }
+  ],
   "audit_log": []
 }

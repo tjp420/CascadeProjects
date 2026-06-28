@@ -1,3 +1,3 @@
 @echo off
-npx simplebeacon scan --gate --fail-on high
+npm run sb:hook:pre-commit
 if errorlevel 1 exit /b 1

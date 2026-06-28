@@ -1,0 +1,19 @@
+[
+  {
+    "scanId": "178be2d1-3955-4a42-9af4-0e4b8467ea66",
+    "date": "2026-06-28T03:49:08.115Z",
+    "issueCount": 27,
+    "warningCount": 13,
+    "blockingCount": 14,
+    "qualityScore": 16,
+    "gatePass": false,
+    "severityCounts": {
+      "critical": 0,
+      "high": 14,
+      "medium": 13,
+      "low": 0
+    },
+    "fictionPatternsFound": 0,
+    "totalFilesScanned": 175
+  }
+]

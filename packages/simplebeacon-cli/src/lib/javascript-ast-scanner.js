@@ -46,6 +46,20 @@ const JAVASCRIPT_AST_RULE_CATALOG = [
         type: 'EU AI Act — High-Risk Indicator',
         severity: 'high',
         description: 'Identifier or string matches Annex III high-risk term (JavaScript AST)'
+    },
+    {
+        id: 'SB-JS-SQL-001',
+        category: 'security-patterns',
+        type: 'SQL Injection — Dynamic Concatenation',
+        severity: 'critical',
+        description: 'SQL string built via template literal or concat inside query executor (JavaScript AST)'
+    },
+    {
+        id: 'SB-JS-SQL-002',
+        category: 'security-patterns',
+        type: 'SQL Injection — Unparameterized Query',
+        severity: 'critical',
+        description: 'Non-literal SQL argument passed to query executor without placeholder array (JavaScript AST)'
     }
 ];
 
@@ -53,7 +67,9 @@ const RECOMMENDATIONS = {
     'SB-JS-FICTION-001': 'Replace mock/sample strings with runtime config or test-scoped fixtures.',
     'SB-JS-FICTION-002': 'Implement the function or remove the AI-generated stub before merge.',
     'SB-JS-TB-001': 'Pass max_tokens, max_completion_tokens, or maxOutputTokens on LLM client calls.',
-    'SB-JS-EU-001': 'Document Annex III classification, transparency, and human oversight for this flow.'
+    'SB-JS-EU-001': 'Document Annex III classification, transparency, and human oversight for this flow.',
+    'SB-JS-SQL-001': 'Use parameterized queries with placeholder arrays. Never concatenate variables into SQL strings.',
+    'SB-JS-SQL-002': 'Pass query parameters as a separate array to the driver. Do not interpolate user input into SQL.'
 };
 
 let babelParser = null;
@@ -144,6 +160,48 @@ function isLlmCall(node) {
     return LLM_CALLEE_TAIL.has(prop);
 }
 
+const SQL_KEYWORDS = /\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|EXECUTE|UNION|WHERE|FROM|JOIN|TABLE)\b/i;
+const QUERY_EXECUTOR_NAMES = new Set(['query', 'execute', 'run', 'all', 'get', 'exec']);
+
+function isQueryExecutor(node) {
+    if (node.type === 'Identifier' && QUERY_EXECUTOR_NAMES.has(node.name)) return true;
+    if (node.type === 'MemberExpression') {
+        const prop = node.property.type === 'Identifier' ? node.property.name : '';
+        return QUERY_EXECUTOR_NAMES.has(prop);
+    }
+    return false;
+}
+
+function hasSqlKeywords(node) {
+    if (node.type === 'TemplateLiteral') return true; // any template literal in SQL context is suspicious
+    if (node.type === 'StringLiteral' && SQL_KEYWORDS.test(node.value)) return true;
+    if (node.type === 'BinaryExpression' && node.operator === '+') return true;
+    if (node.type === 'Identifier') return true; // variable reference in query executor context
+    if (node.type === 'MemberExpression') return true; // object property holding SQL
+    return false;
+}
+
+function isDynamicSqlArg(node) {
+    // Template literal with expressions (e.g., `SELECT ${col}`)
+    if (node.type === 'TemplateLiteral' && node.expressions && node.expressions.length > 0) return true;
+    // String concatenation (e.g., "SELECT " + col)
+    if (node.type === 'BinaryExpression' && node.operator === '+') return true;
+    // Identifier or member expression (variable holding SQL)
+    if (node.type === 'Identifier' || node.type === 'MemberExpression') return true;
+    // Call expression returning SQL string
+    if (node.type === 'CallExpression') return true;
+    return false;
+}
+
+function hasParameterArray(args) {
+    // Look for a second argument that is an array (parameter placeholders)
+    if (args.length < 2) return false;
+    const second = args[1];
+    if (second.type === 'ArrayExpression') return true;
+    if (second.type === 'Identifier') return true; // assume external array var is params
+    return false;
+}
+
 function hasTokenLimit(args) {
     for (const arg of args) {
         if (arg.type === 'ObjectExpression') {
@@ -224,10 +282,33 @@ function scanSourceAst(relativePath, content, ext) {
             }
         },
         CallExpression(pathNode) {
-            if (!isLlmCall(pathNode.node.callee)) return;
-            if (!hasTokenLimit(pathNode.node.arguments)) {
-                push(JAVASCRIPT_AST_RULE_CATALOG[2], pathNode.node.loc?.start?.line || 1,
-                    `Unbounded LLM call via '${calleeLabel(pathNode.node.callee)}' — missing token limit.`);
+            const callee = pathNode.node.callee;
+            const args = pathNode.node.arguments || [];
+            const line = pathNode.node.loc?.start?.line || 1;
+
+            // LLM token bleed check
+            if (isLlmCall(callee)) {
+                if (!hasTokenLimit(args)) {
+                    push(JAVASCRIPT_AST_RULE_CATALOG[2], line,
+                        `Unbounded LLM call via '${calleeLabel(callee)}' — missing token limit.`);
+                }
+            }
+
+            // SQL injection checks
+            if (!isQueryExecutor(callee)) return;
+            const firstArg = args[0];
+            if (!firstArg) return;
+
+            // SB-JS-SQL-001: Dynamic SQL concatenation
+            if (isDynamicSqlArg(firstArg) && hasSqlKeywords(firstArg)) {
+                push(JAVASCRIPT_AST_RULE_CATALOG[4], line,
+                    `Dynamic SQL in '${calleeLabel(callee)}' — string built via concat/template/interpolation.`);
+            }
+
+            // SB-JS-SQL-002: Unparameterized query (non-literal first arg without param array)
+            if (firstArg.type !== 'StringLiteral' && !hasParameterArray(args)) {
+                push(JAVASCRIPT_AST_RULE_CATALOG[5], line,
+                    `Unparameterized query in '${calleeLabel(callee)}' — variable SQL without placeholder array.`);
             }
         }
     });

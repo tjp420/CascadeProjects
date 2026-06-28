@@ -740,11 +740,7 @@
             btn.disabled = true;
             btn.textContent = 'Generating...';
             try {
-                const response = await fetch(API_BASE + '/api/free-token', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: 'guest@simplebeacon.ai' })
-                });
+                const response = await fetch(API_BASE + '/api/free-token');
                 const data = await response.json();
                 if (data.success && data.token) {
                     licenseInput.value = data.token;

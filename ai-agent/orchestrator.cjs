@@ -59,12 +59,21 @@ function parsePlan(planResponse) {
     return plan;
 }
 
+function looksLikeHallucinatedPath(pathStr) {
+    const base = path.basename(pathStr, path.extname(pathStr));
+    return /^[A-Z\s]+$/.test(base);
+}
+
 function validateStep(step, stepNum) {
     if (!step || typeof step.op !== 'string') {
         debugError(`❌ [Step ${stepNum}] Invalid step structure: missing "op" field`);
         return { valid: false, error: `Invalid step ${stepNum}` };
     }
     if (step.path) {
+        if (looksLikeHallucinatedPath(step.path)) {
+            debugError(`🛡️ [Safety Block] Step ${stepNum} tried to reference hallucinated path: ${step.path}`);
+            return { valid: false, error: `Ghost file safety violation: ${step.path}` };
+        }
         const fullPath = path.resolve(process.cwd(), step.path);
         if (!fs.existsSync(fullPath)) {
             debugError(`🛡️ [Safety Block] Step ${stepNum} tried to reference ghost file: ${step.path}`);

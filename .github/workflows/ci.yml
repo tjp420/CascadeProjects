@@ -14,6 +14,7 @@ jobs:
     strategy:
       matrix:
         node-version: [22.x]
+        environment-profile: [clean, testing-fixtures]
 
     steps:
       - name: Checkout Code Repository
@@ -25,25 +26,19 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
 
-      - name: Install Root Dependencies
+      - name: Install Monorepo Dependencies
         run: npm ci
-
-      - name: Install Package Dependencies
-        run: |
-          cd packages/simplebeacon-cli && npm ci
-          cd ../../ai-platform && npm ci
-          cd ../../coming-soon && npm ci
 
       - name: Verify Monorepo Build
         run: npm run build
 
-      - name: Verify VS Code Extension Types
-        run: |
-          cd simplebeacon-vscode-merged
-          node node_modules/typescript/bin/tsc --noEmit
-
       - name: Run Global Code Quality Check
         run: npm run quality:check
+
+      - name: Validate Local Extension Compilation
+        run: |
+          cd simplebeacon-vscode-merged
+          npm run compile --if-present
 
       - name: Stress Test CLI Distribution Package
         run: |

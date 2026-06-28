@@ -99,16 +99,6 @@ export class AuditView {
         this._fetchPromise = null;
         this._animatedOnce = false;
         this.assessmentHighlight = false;
-        this._retryHandler = null;
-    }
-    _cleanupRetryListener() {
-        if (this._retryHandler) {
-            const btn = document.querySelector('#audit-retry');
-            if (btn) {
-                btn.removeEventListener('click', this._retryHandler);
-            }
-            this._retryHandler = null;
-        }
     }
     _getVscodeApi() {
         if (this._vscodeApiCached)
@@ -304,12 +294,7 @@ export class AuditView {
                 actions: [{ label: 'Retry', id: 'audit-retry', className: 'btn-primary' }]
             })}
       `;
-            this._cleanupRetryListener();
-            const retryBtn = el.querySelector('#audit-retry');
-            if (retryBtn) {
-                this._retryHandler = () => this.reload(el.parentElement);
-                retryBtn.addEventListener('click', this._retryHandler);
-            }
+            (_a = el.querySelector('#audit-retry')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => this.reload(el.parentElement));
             return el;
         }
         const audit = this.audit || {};
