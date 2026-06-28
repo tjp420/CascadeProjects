@@ -1605,7 +1605,10 @@ body.detail-panel-open #mainTabBar,
 body.detail-panel-open #sidebarTabBar {
   display: none !important;
 }
-body.detail-panel-open .tab-pane {
+body.detail-panel-open .tab-pane,
+body.detail-panel-open #tabAdvanced,
+body.detail-panel-open #tabAdvanced .tab-section,
+body.detail-panel-open #tabAdvanced .settings-btn-card {
   display: none !important;
 }
 body[data-active-tab="advanced"] #analyzeDropdownHeader {
