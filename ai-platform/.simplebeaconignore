@@ -127,5 +127,9 @@ simplebeacon-vscode-merged/src/aiPlatform/extension.ts
 # Stress-test workflow — intentionally generates fake credentials in synthetic repos
 ../.github/workflows/simplebeacon-action-stress-test.yml
 
-# Generated copy of CLI rule catalog in VS Code extension (single source of truth in packages/simplebeacon-cli)
+# Generated copies of CLI rule catalog in VS Code extension (single source of truth in packages/simplebeacon-cli)
 ../simplebeacon-vscode-merged/src/rules/llm-slop-catalog.json
+../simplebeacon-vscode-merged/out/rules/llm-slop-catalog.json
+
+# Fix orchestrator test fixtures — contains literal eval/unsafe strings as test data
+server/lib/fix-orchestrator/patch-strategies.test.cjs

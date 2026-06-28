@@ -7,10 +7,12 @@
     "type": "git",
     "url": "https://github.com/simplebeacon/simplebeacon-vscode.git"
   },
-  "version": "3.0.309",
+  "version": "3.0.310",
   "publisher": "simplebeacon",
   "engines": {
-    "vscode": "^1.84.0"
+    "vscode": "^1.84.0",
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
   },
   "categories": [
     "Testing",
@@ -765,8 +767,9 @@
     "format:check": "prettier --check \"src/**/*.ts\"",
     "verify:scan": "node ../scripts/verify-scan.js",
     "verify:all": "npm run compile && node ../scripts/verify-scan.js && npx @vscode/vsce package --out simplebeacon-test.vsix",
-    "package:vsix": "npm run compile && npx @vscode/vsce package --out simplebeacon-3.0.309.vsix",
-    "test:dashboard": "node ./__extract_html.cjs && node ./__test_server.cjs"
+    "package:vsix": "npm run compile && npx @vscode/vsce package --no-dependencies --out simplebeacon-3.0.310.vsix",
+    "test:dashboard": "node ./__extract_html.cjs && node ./__test_server.cjs",
+    "quality:check": "npm run lint && npm run compile && npm run test"
   },
   "devDependencies": {
     "@types/glob": "^8.1.0",

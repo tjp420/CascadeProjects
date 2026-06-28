@@ -3,6 +3,7 @@
 .simplebeacon/**
 .github/**
 node_modules/**
+../**
 src/**
 out/test/**
 out/**/*.map
@@ -20,3 +21,4 @@ ai-context.md
 progress.txt
 simplebeacon-report.json
 simplebeacon-*.json
+.clinerules
