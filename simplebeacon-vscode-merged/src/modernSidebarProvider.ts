@@ -3472,6 +3472,39 @@ body.detail-panel-open #sidebarTabBar {
   <div id="diagnoseStatusBadge" class="diag-status" style="display:none;"></div>
   <div id="diagnoseResults" class="diag-results"></div>
 </div>
+<div id="diagnoseDetailPanel" data-sidebar-tab="settings" style="display:none;">
+  <div class="diag-back-bar" id="diagnoseDetailBackBtn" role="button" tabindex="0">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    <span>Back</span>
+  </div>
+  <div class="settings-header">
+    <div class="settings-title">Diagnose</div>
+    <div class="settings-badge" id="diagnoseDetailBadge" style="background:rgba(34,197,94,0.18);color:#4ade80;">All Clear</div>
+  </div>
+  <div class="settings-section-subtitle">Runtime diagnostics and health checks.</div>
+  <div class="settings-kpi-grid" style="grid-template-columns:repeat(2,1fr);">
+    <div class="settings-kpi-card">
+      <div class="settings-kpi-value green" id="diagnoseDetailRelay">--</div>
+      <div class="settings-kpi-label">Relay Port</div>
+    </div>
+    <div class="settings-kpi-card">
+      <div class="settings-kpi-value blue" id="diagnoseDetailServer">--</div>
+      <div class="settings-kpi-label">Data Server</div>
+    </div>
+    <div class="settings-kpi-card">
+      <div class="settings-kpi-value green" id="diagnoseDetailApi">--</div>
+      <div class="settings-kpi-label">API Status</div>
+    </div>
+    <div class="settings-kpi-card">
+      <div class="settings-kpi-value amber" id="diagnoseDetailSidebar">--</div>
+      <div class="settings-kpi-label">Sidebar HTML</div>
+    </div>
+  </div>
+  <div class="settings-section-card">
+    <div class="settings-section-title">Results</div>
+    <div id="diagnoseDetailResults" class="diag-results" style="padding:0;"></div>
+  </div>
+</div>
 <div class="settings-dropdown-header ${displayMode === 'sidebar' ? '' : 'hidden'}" id="settingsDropdownHeader" data-sidebar-tab="settings">
   <span>Settings</span>
   <span class="arrow">&#x25BC;</span>
@@ -3496,7 +3529,6 @@ body.detail-panel-open #sidebarTabBar {
   </div>
 </div>
 <script nonce="${nonce}">
-// simplebeacon-ignore var-declaration — webview event-handler bindings; all var declarations converted to let/const
 (function(){
   window._displayMode = '${displayMode}';
   const vscode = (typeof acquireVsCodeApi === 'function') ? acquireVsCodeApi() : null;
@@ -3813,6 +3845,7 @@ body.detail-panel-open #sidebarTabBar {
   let _openAssessmentsInMainWindowBtn=document.getElementById('openAssessmentsInMainWindowBtn');if(_openAssessmentsInMainWindowBtn){_openAssessmentsInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openAssessments'}); });}
   let _platformDropdownHeader=document.getElementById('platformDropdownHeader');if(_platformDropdownHeader){_platformDropdownHeader.addEventListener('click', function() { const header=document.getElementById('platformDropdownHeader'); const detail=document.getElementById('platformDetailPanel'); _closeDetailPanels(); if(header){header.style.display='none';} if(detail){detail.classList.remove('hidden');detail.classList.add('detail-active');detail.style.display='block';} document.body.classList.add('detail-panel-open'); if (window.vscode) window.vscode.postMessage({command: 'getAuditData'}); });}
   let _platformDetailBackBtn=document.getElementById('platformDetailBackBtn');if(_platformDetailBackBtn){_platformDetailBackBtn.addEventListener('click', function() { _closeDetailPanels(); });}
+  let _diagnoseDetailBackBtn=document.getElementById('diagnoseDetailBackBtn');if(_diagnoseDetailBackBtn){_diagnoseDetailBackBtn.addEventListener('click', function() { _closeDetailPanels(); });}
   let _platformRefreshBtn=document.getElementById('platformRefreshBtn');if(_platformRefreshBtn){_platformRefreshBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'getAuditData'}); });}
   let _platformExportBtn=document.getElementById('platformExportBtn');if(_platformExportBtn){_platformExportBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'exportReport'}); });}
   let _platformDocsBtn=document.getElementById('platformDocsBtn');if(_platformDocsBtn){_platformDocsBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openDocs'}); });}
@@ -3905,7 +3938,7 @@ body.detail-panel-open #sidebarTabBar {
   let _openComplianceFromTools=document.getElementById('openComplianceFromTools');if(_openComplianceFromTools){_openComplianceFromTools.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openCompliance'}); });}
   let _openProfileFromTools=document.getElementById('openProfileFromTools');if(_openProfileFromTools){_openProfileFromTools.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openProfile'}); });}
   let _openSettingsFromSettings=document.getElementById('openSettingsFromSettings');if(_openSettingsFromSettings){_openSettingsFromSettings.addEventListener('click', function() { _switchTab('settings'); _openSidebarMenu('settingsMenuTab', 'settingsDetailPanelTab', 'settings'); });}
-  let _openDiagnoseFromSettingsTab=document.getElementById('openDiagnoseFromSettingsTab');if(_openDiagnoseFromSettingsTab){_openDiagnoseFromSettingsTab.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'diagnose'}); });}
+  let _openDiagnoseFromSettingsTab=document.getElementById('openDiagnoseFromSettingsTab');if(_openDiagnoseFromSettingsTab){_openDiagnoseFromSettingsTab.addEventListener('click', function() { if (window._displayMode === 'mainWindow' && window.vscode) { window.vscode.postMessage({command: 'diagnose'}); return; } _openSidebarMenu('settingsMenuTab', 'diagnoseDetailPanel', null); if (window.vscode) window.vscode.postMessage({command: 'diagnose'}); });}
   let _openRefreshRelayFromSettingsTab=document.getElementById('openRefreshRelayFromSettingsTab');if(_openRefreshRelayFromSettingsTab){_openRefreshRelayFromSettingsTab.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openRefreshRelayPort'}); });}
   let _openSettingsFromSettingsTab=document.getElementById('openSettingsFromSettingsTab');if(_openSettingsFromSettingsTab){_openSettingsFromSettingsTab.addEventListener('click', function() { _openSidebarMenu('settingsMenuTab', 'settingsDetailPanelTab', 'settings'); });}
   let _openPlatformFromSettingsTab=document.getElementById('openPlatformFromSettingsTab');if(_openPlatformFromSettingsTab){_openPlatformFromSettingsTab.addEventListener('click', function() { _openSidebarMenu('settingsMenuTab', 'platformDetailPanel', 'openPlatform'); });}
@@ -4719,93 +4752,41 @@ body.detail-panel-open #sidebarTabBar {
       if (dlList) { dlList.textContent = ''; const emptyDiv = document.createElement('div'); emptyDiv.className = 'dl-empty'; emptyDiv.textContent = 'No downloads yet'; dlList.appendChild(emptyDiv); }
     }
     if (msg.command === 'diagnoseResult') {
-      const container = document.getElementById('diagnoseResultsContainer');
-      const resultsEl = document.getElementById('diagnoseResults');
-      const badgeEl = document.getElementById('diagnoseStatusBadge');
-      const backBtn = document.getElementById('diagnoseBackBtn');
-      const mainContent = document.getElementById('mainContent') || document.querySelector('.content');
-      if (container) {
-        container.style.display = 'block';
-        container.dataset.wasOpen = 'true';
+      const detailPanel = document.getElementById('diagnoseDetailPanel');
+      const detailResults = document.getElementById('diagnoseDetailResults');
+      const detailBadge = document.getElementById('diagnoseDetailBadge');
+      const detailRelay = document.getElementById('diagnoseDetailRelay');
+      const detailServer = document.getElementById('diagnoseDetailServer');
+      const detailApi = document.getElementById('diagnoseDetailApi');
+      const detailSidebar = document.getElementById('diagnoseDetailSidebar');
+      if (detailPanel) {
+        detailPanel.classList.remove('hidden');
+        detailPanel.classList.add('detail-active');
+        detailPanel.style.display = 'block';
       }
       document.body.classList.add('detail-panel-open');
-      if (mainContent && mainContent !== container) {
-        mainContent.style.display = 'none';
-      } else if (container && container.parentNode) {
-        const siblings = container.parentNode.children;
-        for (let i = 0; i < siblings.length; i++) {
-          const sib = siblings[i];
-          if (sib === container) continue;
-          if (sib.classList.contains('header')) continue;
-          if (sib.id === 'statusCard') continue;
-          if (sib.id === 'serverCard') continue;
-          if (sib.id === 'sidebarTabBar') continue;
-          if (sib.id === 'mainTabBar') continue;
-          sib.style.display = 'none';
-        }
+      const hasErr = msg.lines && msg.lines.some(function(l){ return /FAIL|ERROR|UNREACHABLE|MISSING|TIMEOUT/.test(String(l)); });
+      const hasWarn = msg.lines && msg.lines.some(function(l){ return /WARN|PENDING|UNKNOWN/.test(String(l)); });
+      if (detailBadge) {
+        if (hasErr) { detailBadge.style.background = 'rgba(239,68,68,0.18)'; detailBadge.style.color = '#f87171'; detailBadge.textContent = 'Issues Found'; }
+        else if (hasWarn) { detailBadge.style.background = 'rgba(245,158,11,0.18)'; detailBadge.style.color = '#fbbf24'; detailBadge.textContent = 'Warnings'; }
+        else { detailBadge.style.background = 'rgba(34,197,94,0.18)'; detailBadge.style.color = '#4ade80'; detailBadge.textContent = 'All Clear'; }
       }
-      if (backBtn) {
-        backBtn.style.display = 'flex';
-        if (!backBtn._hasListener) {
-          backBtn._hasListener = true;
-          backBtn.addEventListener('click', function() {
-            const _container = document.getElementById('diagnoseResultsContainer');
-            if (_container) { _container.style.display = 'none'; _container.dataset.wasOpen = 'false'; }
-            const _mainContent = document.getElementById('mainContent') || document.querySelector('.content');
-            if (_mainContent) { _mainContent.style.display = ''; }
-            if (_container && _container.parentNode) {
-              const siblings = _container.parentNode.children;
-              for (let i = 0; i < siblings.length; i++) {
-                if (siblings[i] === _container) continue;
-                siblings[i].style.display = '';
-              }
-            }
-            document.body.classList.remove('detail-panel-open');
-          });
-          backBtn.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              const _container = document.getElementById('diagnoseResultsContainer');
-              if (_container) { _container.style.display = 'none'; _container.dataset.wasOpen = 'false'; }
-              const _mainContent = document.getElementById('mainContent') || document.querySelector('.content');
-              if (_mainContent) { _mainContent.style.display = ''; }
-              if (_container && _container.parentNode) {
-                const siblings = _container.parentNode.children;
-                for (let i = 0; i < siblings.length; i++) {
-                  if (siblings[i] === _container) continue;
-                  siblings[i].style.display = '';
-                }
-              }
-              document.body.classList.remove('detail-panel-open');
-            }
-          });
-        }
-      }
-      // Populate summary cards from diagnostic lines
+      function setKpi(el, line, pattern) { if (!el || !line) return; const val = String(line).replace(pattern, '').trim(); el.textContent = val || '--'; if (/FAIL|ERROR|UNREACHABLE|MISSING|TIMEOUT/.test(val)) el.className = 'settings-kpi-value red'; else if (/WARN|PENDING|UNKNOWN/.test(val)) el.className = 'settings-kpi-value amber'; else el.className = 'settings-kpi-value green'; }
       if (msg.lines && Array.isArray(msg.lines)) {
-        const statusLine = msg.lines.find(function(l){ return /Relay port:/i.test(String(l)); });
+        const relayLine = msg.lines.find(function(l){ return /Relay port:/i.test(String(l)); });
         const serverLine = msg.lines.find(function(l){ return /Data server:/i.test(String(l)); });
         const apiLine = msg.lines.find(function(l){ return /API status:/i.test(String(l)); });
         const dashHtmlLine = msg.lines.find(function(l){ return /Dashboard HTML:/i.test(String(l)); });
         const sideHtmlLine = msg.lines.find(function(l){ return /Sidebar HTML:/i.test(String(l)); });
-        const diagStatusText = document.getElementById('diagStatusText');
-        const diagStatusIcon = document.getElementById('diagStatusIcon');
-        const diagServerText = document.getElementById('diagServerText');
-        function setDiagIcon(svgContent) { if (!diagStatusIcon) return; diagStatusIcon.textContent = ''; const ns = 'http://www.w3.org/2000/svg'; const s = document.createElementNS(ns, 'svg'); s.setAttribute('width', '14'); s.setAttribute('height', '14'); s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('fill', 'none'); s.setAttribute('stroke', 'currentColor'); s.setAttribute('stroke-width', '2.5'); s.setAttribute('stroke-linecap', 'round'); s.setAttribute('stroke-linejoin', 'round'); const parser = new DOMParser(); const doc = parser.parseFromString('<svg xmlns="'+ns+'">'+svgContent+'</svg>', 'image/svg+xml'); const children = doc.documentElement.childNodes; for (let i=0;i<children.length;i++){ s.appendChild(children[i].cloneNode(true)); } diagStatusIcon.appendChild(s); }
-        if (diagStatusText) {
-          const hasErr = msg.lines.some(function(l){ return /FAIL|ERROR|UNREACHABLE|MISSING|TIMEOUT/.test(String(l)); });
-          const hasWarn = msg.lines.some(function(l){ return /WARN|PENDING|UNKNOWN/.test(String(l)); });
-          if (hasErr) { diagStatusText.textContent = 'Issues found'; diagStatusText.style.color = '#f87171'; if (diagStatusIcon) { diagStatusIcon.className = 'diag-summary-icon err'; setDiagIcon('<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>'); } }
-          else if (hasWarn) { diagStatusText.textContent = 'Warnings'; diagStatusText.style.color = '#fbbf24'; if (diagStatusIcon) { diagStatusIcon.className = 'diag-summary-icon warn'; setDiagIcon('<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>'); } }
-          else { diagStatusText.textContent = 'All clear'; diagStatusText.style.color = '#34d399'; if (diagStatusIcon) { diagStatusIcon.className = 'diag-summary-icon ok'; setDiagIcon('<polyline points="20 6 9 17 4 12"/>'); } }
-        }
-        if (diagServerText && serverLine) {
-          const val = String(serverLine).replace(/^Data server:\s*/i, '');
-          diagServerText.textContent = val || '--';
-        }
+        setKpi(detailRelay, relayLine, /^Relay port:\s*/i);
+        setKpi(detailServer, serverLine, /^Data server:\s*/i);
+        setKpi(detailApi, apiLine, /^API status:\s*/i);
+        setKpi(detailSidebar, sideHtmlLine, /^Sidebar HTML:\s*/i);
+        if (!sideHtmlLine && dashHtmlLine) setKpi(detailSidebar, dashHtmlLine, /^Dashboard HTML:\s*/i);
       }
-      if (resultsEl) {
-        resultsEl.textContent = '';
+      if (detailResults) {
+        detailResults.textContent = '';
         if (msg.lines && Array.isArray(msg.lines)) {
           msg.lines.forEach(function(line) {
             const text = String(line);
@@ -4831,7 +4812,7 @@ body.detail-panel-open #sidebarTabBar {
             val.className = 'diag-card-value';
             val.textContent = value;
             card.appendChild(val);
-            resultsEl.appendChild(card);
+            detailResults.appendChild(card);
           });
         } else if (msg.text) {
           const card = document.createElement('div');
@@ -4840,16 +4821,8 @@ body.detail-panel-open #sidebarTabBar {
           val.className = 'diag-card-value';
           val.textContent = String(msg.text);
           card.appendChild(val);
-          resultsEl.appendChild(card);
+          detailResults.appendChild(card);
         }
-      }
-      if (badgeEl) {
-        badgeEl.style.display = 'inline-block';
-        const hasErr = msg.lines && msg.lines.some(function(l){ return /FAIL|ERROR|UNREACHABLE|MISSING|TIMEOUT/.test(String(l)); });
-        const hasWarn = msg.lines && msg.lines.some(function(l){ return /WARN|PENDING|UNKNOWN/.test(String(l)); });
-        if (hasErr) { badgeEl.className = 'diag-status err'; badgeEl.textContent = 'Issues Found'; }
-        else if (hasWarn) { badgeEl.className = 'diag-status warn'; badgeEl.textContent = 'Warnings'; }
-        else { badgeEl.className = 'diag-status ok'; badgeEl.textContent = 'All Clear'; }
       }
     }
     if (msg.command === 'showDashboard') {
