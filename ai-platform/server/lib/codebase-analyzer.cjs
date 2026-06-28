@@ -1,6 +1,7 @@
 /**
  * Codebase analyzer — filesystem audit for technical debt, broken files,
  * debug artifacts, and meaningless placeholder data across the repo tree.
+ * simplebeacon:production-leak-intent — pattern definitions intentionally reference mock/sample/fixture paths for detection.
  */
 
 // DIAGNOSTIC: patched version v2.1 — excludes scanner implementation files
