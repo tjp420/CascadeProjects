@@ -1207,6 +1207,7 @@ body::-webkit-scrollbar-thumb:hover { background: rgba(128,128,128,0.6); }
 .sidebar-dashboard-back { position: sticky; top: 0; z-index: 101; display: flex; align-items: center; gap: 6px; padding: 8px 12px; margin: -12px -12px 8px; background: var(--vscode-editor-background, #1e1e1e); border-bottom: 1px solid var(--vscode-panel-border, rgba(255,255,255,0.06)); font-size: 12px; font-weight: 600; color: var(--vscode-foreground, #ccc); cursor: pointer; }
 .sidebar-tab-bar:not(.hidden) ~ #tabDashboard.active { display: block !important; position: relative; top: auto; left: auto; right: auto; bottom: auto; z-index: auto; padding: 0; }
 .sidebar-tab-bar:not(.hidden) ~ #tabDashboard.active .sidebar-dashboard-back { display: none !important; }
+.sidebar-tab-bar:not(.hidden) ~ #tabAdvanced.active { display: none !important; }
 .sidebar-dashboard-back:hover { color: var(--vscode-button-background, #0e639c); }
 /* Diagnose results */
 .diag-results { padding: 8px 4px; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; }
@@ -1601,9 +1602,7 @@ body.detail-panel-open #sidebarTabBar {
   display: none !important;
 }
 body.detail-panel-open .tab-pane,
-body.detail-panel-open #tabAdvanced,
-body.detail-panel-open #tabAdvanced .tab-section,
-body.detail-panel-open #tabAdvanced .settings-btn-card {
+body.detail-panel-open #tabAdvanced {
   display: none !important;
 }
 </style>
@@ -1625,6 +1624,8 @@ body.detail-panel-open #tabAdvanced .settings-btn-card {
   <div class="tab-item active" data-tab="dashboard">Dashboard</div>
   <div class="tab-item" data-tab="scan">Scan</div>
   <div class="tab-item" data-tab="analyze">Analyze</div>
+  <div class="tab-item" data-tab="audit">Audit</div>
+  <div class="tab-item" data-tab="upload">Upload</div>
   <div class="tab-item" data-tab="advanced">Advanced</div>
   <div class="tab-item" data-tab="settings">Settings</div>
   <div class="tab-item" data-tab="team">Team Dashboard</div>
@@ -1633,6 +1634,8 @@ body.detail-panel-open #tabAdvanced .settings-btn-card {
   <div class="sidebar-tab-item active" data-tab="dashboard"><span class="sidebar-tab-icon">&#x1F3E0;</span>Dashboard</div>
   <div class="sidebar-tab-item" data-tab="scan"><span class="sidebar-tab-icon">&#x1F50D;</span>Scan</div>
   <div class="sidebar-tab-item" data-tab="analyze"><span class="sidebar-tab-icon">&#x1F4C8;</span>Analyze</div>
+  <div class="sidebar-tab-item" data-tab="audit"><span class="sidebar-tab-icon">&#x1F4CB;</span>Audit</div>
+  <div class="sidebar-tab-item" data-tab="upload"><span class="sidebar-tab-icon">&#x1F4E4;</span>Upload</div>
   <div class="sidebar-tab-item" data-tab="advanced"><span class="sidebar-tab-icon">&#x2699;</span>Advanced</div>
   <div class="sidebar-tab-item" data-tab="settings"><span class="sidebar-tab-icon">&#x1F527;</span>Settings</div>
   <div class="sidebar-tab-item" data-tab="team"><span class="sidebar-tab-icon">&#x1F465;</span>Team</div>
@@ -2867,7 +2870,7 @@ body.detail-panel-open #tabAdvanced .settings-btn-card {
     </div>
   </div>
 </div>
-<div id="auditDetailPanel" data-sidebar-tab="scan" style="display:none;">
+<div id="auditDetailPanel" style="display:none;">
   <div class="diag-back-bar" id="auditDetailBackBtn" role="button" tabindex="0">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
     <span>Back</span>
