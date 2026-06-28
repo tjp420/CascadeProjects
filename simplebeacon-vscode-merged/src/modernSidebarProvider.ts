@@ -1576,6 +1576,8 @@ body.detail-panel-open .settings-dropdown-header,
 body.detail-panel-open .settings-dropdown-body,
 body.detail-panel-open #openAuditFromSidebar,
 body.detail-panel-open #openDiagnoseFromSettingsTab,
+body.detail-panel-open #openRefreshRelayFromSettingsTab,
+body.detail-panel-open #openSettingsFromSettingsTab,
 body.detail-panel-open #analyzeDropdownHeader,
 body.detail-panel-open #securityDropdownHeader,
 body.detail-panel-open #trustDropdownHeader,
@@ -1593,7 +1595,10 @@ body.detail-panel-open #analyticsDropdownHeader,
 body.detail-panel-open #teamDropdownHeader,
 body.detail-panel-open #platformDropdownHeader,
 body.detail-panel-open #sendToAIAgentDropdownHeader,
-body.detail-panel-open #uploadDropdownHeader {
+body.detail-panel-open #uploadDropdownHeader,
+body.detail-panel-open #statusCard,
+body.detail-panel-open #serverCard,
+body.detail-panel-open #settingsServerCard {
   display: none !important;
 }
 body.detail-panel-open #mainTabBar,
@@ -2143,6 +2148,102 @@ body[data-active-tab="advanced"] #analyzeDropdownHeader {
   <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
   <span>Send Scan to AI Agent</span>
 </div>
+</div>
+<div class="tab-pane" id="tabAudit" data-sidebar-tab="audit">
+<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;">
+  <div class="db-title">Audit</div>
+  <div class="db-badge" id="auditBadge" style="background:rgba(245,158,11,0.18);color:#fbbf24;">PENDING</div>
+</div>
+<div class="settings-section-subtitle" style="margin:0 0 12px;">Security audit results and vulnerability assessment.</div>
+<div class="settings-kpi-grid">
+  <div class="settings-kpi-card">
+    <div class="settings-kpi-value red" id="tabAuditVulnerabilities">0</div>
+    <div class="settings-kpi-label">Vulnerabilities</div>
+  </div>
+  <div class="settings-kpi-card">
+    <div class="settings-kpi-value amber" id="tabAuditSecrets">0</div>
+    <div class="settings-kpi-label">Secrets Found</div>
+  </div>
+  <div class="settings-kpi-card">
+    <div class="settings-kpi-value green" id="tabAuditChecks">0</div>
+    <div class="settings-kpi-label">Checks Passed</div>
+  </div>
+  <div class="settings-kpi-card">
+    <div class="settings-kpi-value" id="tabAuditScore">--</div>
+    <div class="settings-kpi-label">Audit Score</div>
+  </div>
+</div>
+<div class="settings-section-card">
+  <div class="settings-section-title">Actions</div>
+  <div class="settings-actions" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+    <button class="settings-btn-primary" id="tabAuditRunBtn">Run Audit</button>
+    <button class="settings-btn-secondary" id="tabAuditExportBtn">Export</button>
+    <button class="settings-btn-secondary" id="tabAuditViewBtn">View Report</button>
+    <button class="settings-btn-secondary" id="tabAuditSettingsBtn">Settings</button>
+  </div>
+</div>
+<div class="severity-bar">
+  <div class="severity-item"><span class="severity-dot critical"></span><span id="tabAuditCritical">0</span> Critical</div>
+  <div class="severity-item"><span class="severity-dot high"></span><span id="tabAuditHigh">0</span> High</div>
+  <div class="severity-item"><span class="severity-dot medium"></span><span id="tabAuditMedium">0</span> Med</div>
+  <div class="severity-item"><span class="severity-dot low"></span><span id="tabAuditLow">0</span> Low</div>
+</div>
+<div class="settings-section-card">
+  <div class="settings-section-title">Recent Findings</div>
+  <div id="tabAuditFindings" style="display:flex;flex-direction:column;gap:8px;">
+    <div class="tc-list-item"><span class="tc-list-name" style="color:var(--vscode-descriptionForeground);">No audit data available</span></div>
+  </div>
+</div>
+<div class="settings-section-card" style="background:transparent;border:none;padding:0;">
+  <div class="settings-section-title">Finding Categories</div>
+  <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">
+    <div class="settings-kpi-card" style="text-align:center;"><div class="settings-kpi-value" style="font-size:20px;">&#x1F4AC;</div><div class="settings-kpi-label">Secrets</div></div>
+    <div class="settings-kpi-card" style="text-align:center;"><div class="settings-kpi-value" style="font-size:20px;">&#x1F512;</div><div class="settings-kpi-label">Vulnerabilities</div></div>
+    <div class="settings-kpi-card" style="text-align:center;"><div class="settings-kpi-value" style="font-size:20px;">&#x1F527;</div><div class="settings-kpi-label">Code Smells</div></div>
+    <div class="settings-kpi-card" style="text-align:center;"><div class="settings-kpi-value" style="font-size:20px;">&#x1F6E1;</div><div class="settings-kpi-label">Compliance</div></div>
+  </div>
+</div>
+</div>
+<div class="tab-pane" id="tabUpload" data-sidebar-tab="upload">
+<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;">
+  <div class="db-title">Upload</div>
+  <div class="db-badge" id="uploadBadge" style="background:rgba(34,197,94,0.18);color:#4ade80;">READY</div>
+</div>
+<div class="settings-section-subtitle" style="margin:0 0 12px;">Upload and validate files for scanning.</div>
+<div class="settings-kpi-grid">
+  <div class="settings-kpi-card">
+    <div class="settings-kpi-value" id="tabUploadTotal">0</div>
+    <div class="settings-kpi-label">Total Files</div>
+  </div>
+  <div class="settings-kpi-card">
+    <div class="settings-kpi-value green" id="tabUploadValid">0</div>
+    <div class="settings-kpi-label">Valid</div>
+  </div>
+  <div class="settings-kpi-card">
+    <div class="settings-kpi-value red" id="tabUploadErrors">0</div>
+    <div class="settings-kpi-label">Errors</div>
+  </div>
+  <div class="settings-kpi-card">
+    <div class="settings-kpi-value" id="tabUploadScore">--</div>
+    <div class="settings-kpi-label">Quality Score</div>
+  </div>
+</div>
+<div class="settings-section-card">
+  <div class="settings-section-title">Actions</div>
+  <div class="settings-actions" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+    <button class="settings-btn-primary" id="tabUploadBrowseBtn">Browse</button>
+    <button class="settings-btn-secondary" id="tabUploadValidateBtn">Validate</button>
+    <button class="settings-btn-secondary" id="tabUploadScanBtn">Scan</button>
+    <button class="settings-btn-secondary" id="tabUploadClearBtn">Clear</button>
+  </div>
+</div>
+<div class="upload-dropzone" id="tabUploadDropzone">
+  <div class="upload-dropzone-icon">&#x1F4E4;</div>
+  <div class="upload-dropzone-title">Drop files here or click to browse</div>
+  <div class="upload-dropzone-subtitle">Supports .js, .ts, .json, and more</div>
+</div>
+<input type="file" class="upload-file-input" id="tabUploadFileInput" multiple>
+<div id="tabUploadFileList" style="display:flex;flex-direction:column;gap:6px;margin-top:12px;"></div>
 </div>
 <div class="tab-pane" id="tabSettings">
 <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;">
@@ -3784,6 +3885,18 @@ body[data-active-tab="advanced"] #analyzeDropdownHeader {
   if(_uploadValidateBtn){_uploadValidateBtn.addEventListener('click',function(){_uploadValidateAll();});}
   if(_uploadClearBtn){_uploadClearBtn.addEventListener('click',function(){_uploadFiles=[];_uploadBase64={};_uploadRender();if(_uploadDetail)_uploadDetail.style.display='none';if(_uploadResultBox)_uploadResultBox.style.display='none';_uploadHideProgress();});}
   _uploadRender();
+  let _tabAuditRunBtn=document.getElementById('tabAuditRunBtn');if(_tabAuditRunBtn){_tabAuditRunBtn.addEventListener('click',function(){if(window.vscode)window.vscode.postMessage({command:'runAudit'});});}
+  let _tabAuditExportBtn=document.getElementById('tabAuditExportBtn');if(_tabAuditExportBtn){_tabAuditExportBtn.addEventListener('click',function(){if(window.vscode)window.vscode.postMessage({command:'exportReport'});});}
+  let _tabAuditViewBtn=document.getElementById('tabAuditViewBtn');if(_tabAuditViewBtn){_tabAuditViewBtn.addEventListener('click',function(){if(window.vscode)window.vscode.postMessage({command:'openAudit'});});}
+  let _tabAuditSettingsBtn=document.getElementById('tabAuditSettingsBtn');if(_tabAuditSettingsBtn){_tabAuditSettingsBtn.addEventListener('click',function(){if(window.vscode)window.vscode.postMessage({command:'settings'});});}
+  let _tabUploadDropzone=document.getElementById('tabUploadDropzone');let _tabUploadFileInput=document.getElementById('tabUploadFileInput');let _tabUploadFiles=[];
+  function _tabUploadFormatSize(b){if(b<1024)return b+' B';if(b<1024*1024)return (b/1024).toFixed(1)+' KB';return (b/(1024*1024)).toFixed(1)+' MB';}
+  function _tabUploadRender(){let list=document.getElementById('tabUploadFileList');if(!list)return;while(list.firstChild){list.removeChild(list.firstChild);}if(_tabUploadFiles.length===0){let empty=document.createElement('div');empty.className='upload-empty';empty.textContent='No files selected. Drop files above or click to browse.';list.appendChild(empty);}else{_tabUploadFiles.forEach(function(f,index){let item=document.createElement('div');item.className='upload-item';let icon=document.createElement('div');icon.className='upload-item-icon';icon.textContent='\u{1F4C4}';let text=document.createElement('div');text.className='upload-item-text';let name=document.createElement('div');name.className='upload-item-name';name.textContent=f.name;let meta=document.createElement('div');meta.className='upload-item-meta';meta.textContent=_tabUploadFormatSize(f.size);text.appendChild(name);text.appendChild(meta);let actions=document.createElement('div');actions.className='upload-item-actions';let removeBtn=document.createElement('button');removeBtn.className='upload-item-action';removeBtn.textContent='\u2715';removeBtn.title='Remove';removeBtn.addEventListener('click',function(e){e.stopPropagation();_tabUploadFiles.splice(index,1);_tabUploadRender();});actions.appendChild(removeBtn);item.appendChild(icon);item.appendChild(text);item.appendChild(actions);list.appendChild(item);});}let total=document.getElementById('tabUploadTotal');if(total)total.textContent=_tabUploadFiles.length;let valid=document.getElementById('tabUploadValid');let err=document.getElementById('tabUploadErrors');if(valid&&err){let v=_tabUploadFiles.filter(function(f){return f.status==='valid';}).length;let iv=_tabUploadFiles.filter(function(f){return f.status==='invalid';}).length;valid.textContent=v;err.textContent=iv;}}
+  function _tabUploadAddFiles(fileList){if(!fileList)return;for(let i=0;i<fileList.length;i++){let file=fileList[i];_tabUploadFiles.push({name:file.name,size:file.size,status:'ready'});}_tabUploadRender();}
+  if(_tabUploadDropzone&&_tabUploadFileInput){_tabUploadDropzone.addEventListener('click',function(){_tabUploadFileInput.click();});_tabUploadDropzone.addEventListener('dragover',function(e){e.preventDefault();_tabUploadDropzone.classList.add('dragover');});_tabUploadDropzone.addEventListener('dragleave',function(e){e.preventDefault();_tabUploadDropzone.classList.remove('dragover');});_tabUploadDropzone.addEventListener('drop',function(e){e.preventDefault();_tabUploadDropzone.classList.remove('dragover');_tabUploadAddFiles(e.dataTransfer.files);});_tabUploadFileInput.addEventListener('change',function(){_tabUploadAddFiles(_tabUploadFileInput.files);_tabUploadFileInput.value='';});}
+  let _tabUploadValidateBtn=document.getElementById('tabUploadValidateBtn');if(_tabUploadValidateBtn){_tabUploadValidateBtn.addEventListener('click',function(){let allowed=['zip','js','ts','json','md','txt','csv','xml','html','css','yml','yaml'];_tabUploadFiles.forEach(function(f){let ext=(f.name.split('.').pop()||'').toLowerCase();f.status=allowed.indexOf(ext)>=0?'valid':'invalid';});_tabUploadRender();});}
+  let _tabUploadScanBtn=document.getElementById('tabUploadScanBtn');if(_tabUploadScanBtn){_tabUploadScanBtn.addEventListener('click',function(){if(window.vscode)window.vscode.postMessage({command:'scan'});});}
+  let _tabUploadClearBtn=document.getElementById('tabUploadClearBtn');if(_tabUploadClearBtn){_tabUploadClearBtn.addEventListener('click',function(){_tabUploadFiles=[];_tabUploadRender();});}
   let _analyzeRunCard=document.getElementById('analyzeRunCard');if(_analyzeRunCard){_analyzeRunCard.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'analyze'}); });}
   let _analyzeScanWorkspaceCard=document.getElementById('analyzeScanWorkspaceCard');if(_analyzeScanWorkspaceCard){_analyzeScanWorkspaceCard.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'scan'}); });}
   let _analyzeExportJsonCard=document.getElementById('analyzeExportJsonCard');if(_analyzeExportJsonCard){_analyzeExportJsonCard.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'exportReport'}); });}
