@@ -1598,7 +1598,14 @@ body.detail-panel-open #sendToAIAgentDropdownHeader,
 body.detail-panel-open #uploadDropdownHeader,
 body.detail-panel-open #statusCard,
 body.detail-panel-open #serverCard,
-body.detail-panel-open #settingsServerCard {
+body.detail-panel-open #settingsServerCard,
+body.detail-panel-open #scanTargetLabel,
+body.detail-panel-open #sidebarScanToggleLabel,
+body.detail-panel-open .quick-links,
+body.detail-panel-open #qlDashboardBtn,
+body.detail-panel-open #qlReportBtn,
+body.detail-panel-open #qlBrowserBtn,
+body.detail-panel-open #qlPreviewBtn {
   display: none !important;
 }
 body.detail-panel-open #mainTabBar,
@@ -1611,7 +1618,17 @@ body.detail-panel-open #tabAdvanced .tab-section,
 body.detail-panel-open #tabAdvanced .settings-btn-card {
   display: none !important;
 }
-body[data-active-tab="advanced"] #analyzeDropdownHeader {
+body[data-active-tab="advanced"] #analyzeDropdownHeader,
+body[data-active-tab="advanced"] #certificateDropdownHeader,
+body[data-active-tab="advanced"] #codeMapDropdownHeader,
+body[data-active-tab="advanced"] #roadmapDropdownHeader,
+body[data-active-tab="advanced"] #aiContextDropdownHeader,
+body[data-active-tab="advanced"] #uploadDropdownHeader,
+body[data-active-tab="advanced"] #profileDropdownHeader,
+body[data-active-tab="advanced"] #repoHealthDropdownHeader,
+body[data-active-tab="advanced"] #analyticsDropdownHeader,
+body[data-active-tab="advanced"] #teamDropdownHeader,
+body[data-active-tab="advanced"] #sendToAIAgentDropdownHeader {
   display: none !important;
 }
 </style>
@@ -1629,7 +1646,7 @@ body[data-active-tab="advanced"] #analyzeDropdownHeader {
     </button>
   </div>
 </div>
-<div class="tab-bar" id="mainTabBar">
+<div class="tab-bar ${displayMode === 'sidebar' ? 'hidden' : ''}" id="mainTabBar">
   <div class="tab-item active" data-tab="dashboard">Dashboard</div>
   <div class="tab-item" data-tab="scan">Scan</div>
   <div class="tab-item" data-tab="analyze">Analyze</div>
@@ -1639,7 +1656,7 @@ body[data-active-tab="advanced"] #analyzeDropdownHeader {
   <div class="tab-item" data-tab="settings">Settings</div>
   <div class="tab-item" data-tab="team">Team Dashboard</div>
 </div>
-<div class="sidebar-tab-bar hidden" id="sidebarTabBar">
+<div class="sidebar-tab-bar ${displayMode === 'sidebar' ? '' : 'hidden'}" id="sidebarTabBar">
   <div class="sidebar-tab-item active" data-tab="dashboard"><span class="sidebar-tab-icon">&#x1F3E0;</span>Dashboard</div>
   <div class="sidebar-tab-item" data-tab="scan"><span class="sidebar-tab-icon">&#x1F50D;</span>Scan</div>
   <div class="sidebar-tab-item" data-tab="analyze"><span class="sidebar-tab-icon">&#x1F4C8;</span>Analyze</div>
@@ -1766,7 +1783,7 @@ body[data-active-tab="advanced"] #analyzeDropdownHeader {
 </div>
 <div style="margin:0 0 10px 0;">
   <div style="display:flex;align-items:center;justify-content:space-between;width:100%;margin-bottom:4px;">
-    <div class="db-info-label">Scan Target</div>
+    <div class="db-info-label" id="scanTargetLabel">Scan Target</div>
     <label class="toggle-switch" style="flex-shrink:0;margin-left:8px;">
       <input type="checkbox" id="sidebarScanWorkspaceToggle" checked />
       <span class="toggle-slider"></span>
