@@ -4945,6 +4945,9 @@ function renderCodeMapGraph(canvas, graph, style = 'force') {
   resize();
   const resizeObserver = wrap ? new ResizeObserver(resize) : null;
   if (resizeObserver && wrap) resizeObserver.observe(wrap);
+  // Ensure the canvas is resized once it becomes visible (e.g., when the Code Map tab is opened after data arrives)
+  const intersectionObserver = wrap && typeof IntersectionObserver === 'function' ? new IntersectionObserver((entries) => { if (entries.some(e => e.isIntersecting)) resize(); }, { threshold: 0 }) : null;
+  if (intersectionObserver && wrap) intersectionObserver.observe(wrap);
   // Fallback: if the pane was hidden when the graph was first created, resize after it becomes visible
   setTimeout(resize, 0);
   setTimeout(resize, 100);
@@ -5165,7 +5168,7 @@ function renderCodeMapGraph(canvas, graph, style = 'force') {
     else animId = requestAnimationFrame(step);
   }
   animId = requestAnimationFrame(step);
-  canvas._graphCleanup = () => { if (resizeObserver && wrap) resizeObserver.disconnect(); if (animId) cancelAnimationFrame(animId); if (timeoutId) clearTimeout(timeoutId); };
+  canvas._graphCleanup = () => { if (resizeObserver && wrap) resizeObserver.disconnect(); if (intersectionObserver && wrap) intersectionObserver.disconnect(); if (animId) cancelAnimationFrame(animId); if (timeoutId) clearTimeout(timeoutId); };
   return {
     resetView() { scale = 1; pan = {x: 0, y: 0}; applyLayout(false); },
     zoomIn() { scale = Math.min(4, scale * 1.2); },
