@@ -1575,6 +1575,7 @@ body::-webkit-scrollbar-thumb:hover { background: rgba(128,128,128,0.6); }
 body.detail-panel-open .settings-dropdown-header,
 body.detail-panel-open .settings-dropdown-body,
 body.detail-panel-open #openAuditFromSidebar,
+body.detail-panel-open #openDiagnoseFromSettingsTab,
 body.detail-panel-open #analyzeDropdownHeader,
 body.detail-panel-open #securityDropdownHeader,
 body.detail-panel-open #trustDropdownHeader,
@@ -3899,6 +3900,7 @@ body.detail-panel-open #sidebarTabBar {
       var siblings=container.parentNode.children;
       for(var i=0;i<siblings.length;i++){if(siblings[i]===container)continue;if(siblings[i].classList.contains('header'))continue;siblings[i].style.display='';}
     }
+    document.body.classList.remove('detail-panel-open');
   }
   function _switchTab(tab){if(!tab)return;document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');p.classList.add('hidden');});var pane=document.getElementById('tab'+tab.charAt(0).toUpperCase()+tab.slice(1));if(pane){pane.classList.remove('hidden');pane.classList.add('active');}document.querySelectorAll('.tab-item').forEach(function(t){t.classList.remove('active');});var coreTab=document.querySelector('.tab-item[data-tab="'+tab+'"]');if(coreTab){coreTab.classList.add('active');}document.querySelectorAll('.tab-more-item').forEach(function(m){m.classList.remove('active');if(m.getAttribute('data-tab')===tab)m.classList.add('active');});_hideDiagnoseResults();_closeDetailPanels();_switchSidebarTab(tab);}
   _tabItems.forEach(function(item){item.addEventListener('click',function(){var tab=item.getAttribute('data-tab');_switchTab(tab);});});
@@ -4704,6 +4706,7 @@ body.detail-panel-open #sidebarTabBar {
         container.style.display = 'block';
         container.dataset.wasOpen = 'true';
       }
+      document.body.classList.add('detail-panel-open');
       if (mainContent && mainContent !== container) {
         mainContent.style.display = 'none';
       } else if (container && container.parentNode) {
@@ -4735,6 +4738,7 @@ body.detail-panel-open #sidebarTabBar {
                 siblings[i].style.display = '';
               }
             }
+            document.body.classList.remove('detail-panel-open');
           });
           backBtn.addEventListener('keydown', function(e) {
             if (e.key === 'Enter' || e.key === ' ') {
@@ -4750,6 +4754,7 @@ body.detail-panel-open #sidebarTabBar {
                   siblings[i].style.display = '';
                 }
               }
+              document.body.classList.remove('detail-panel-open');
             }
           });
         }
