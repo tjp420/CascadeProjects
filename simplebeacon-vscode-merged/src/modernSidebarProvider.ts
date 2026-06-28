@@ -1591,7 +1591,9 @@ body.detail-panel-open #serverCard,
 body.detail-panel-open #settingsServerCard,
 body.detail-panel-open #settingsMenuTab,
 body.detail-panel-open #scanTargetLabel,
-body.detail-panel-open #sidebarScanToggleLabel {
+body.detail-panel-open #sidebarScanToggleLabel,
+body.detail-panel-open #quickLinksHeader,
+body.detail-panel-open .quick-links {
   display: none !important;
 }
 body.detail-panel-open #mainTabBar,
@@ -1602,10 +1604,6 @@ body.detail-panel-open .tab-pane,
 body.detail-panel-open #tabAdvanced,
 body.detail-panel-open #tabAdvanced .tab-section,
 body.detail-panel-open #tabAdvanced .settings-btn-card {
-  display: none !important;
-}
-body[data-active-tab="advanced"] #tabAdvanced .tab-section,
-body[data-active-tab="advanced"] #tabAdvanced .settings-btn-card {
   display: none !important;
 }
 </style>
@@ -1782,7 +1780,7 @@ body[data-active-tab="advanced"] #tabAdvanced .settings-btn-card {
   </div>
 </div>
 </div>
-<div class="tab-section" data-sidebar-tab="scan">Quick Links</div>
+<div class="tab-section" id="quickLinksHeader" data-sidebar-tab="scan">Quick Links</div>
 <div class="quick-links" data-sidebar-tab="scan">
   <div class="ql-btn" id="qlDashboardBtn"><span>&#x1F4CA;</span> Dashboard</div>
   <div class="ql-btn" id="qlReportBtn"><span>&#x1F4C4;</span> Report</div>
