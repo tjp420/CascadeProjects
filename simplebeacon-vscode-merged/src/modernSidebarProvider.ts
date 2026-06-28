@@ -1624,8 +1624,6 @@ body.detail-panel-open #tabAdvanced {
   <div class="tab-item active" data-tab="dashboard">Dashboard</div>
   <div class="tab-item" data-tab="scan">Scan</div>
   <div class="tab-item" data-tab="analyze">Analyze</div>
-  <div class="tab-item" data-tab="audit">Audit</div>
-  <div class="tab-item" data-tab="upload">Upload</div>
   <div class="tab-item" data-tab="advanced">Advanced</div>
   <div class="tab-item" data-tab="settings">Settings</div>
   <div class="tab-item" data-tab="team">Team Dashboard</div>
@@ -1634,8 +1632,6 @@ body.detail-panel-open #tabAdvanced {
   <div class="sidebar-tab-item active" data-tab="dashboard"><span class="sidebar-tab-icon">&#x1F3E0;</span>Dashboard</div>
   <div class="sidebar-tab-item" data-tab="scan"><span class="sidebar-tab-icon">&#x1F50D;</span>Scan</div>
   <div class="sidebar-tab-item" data-tab="analyze"><span class="sidebar-tab-icon">&#x1F4C8;</span>Analyze</div>
-  <div class="sidebar-tab-item" data-tab="audit"><span class="sidebar-tab-icon">&#x1F4CB;</span>Audit</div>
-  <div class="sidebar-tab-item" data-tab="upload"><span class="sidebar-tab-icon">&#x1F4E4;</span>Upload</div>
   <div class="sidebar-tab-item" data-tab="advanced"><span class="sidebar-tab-icon">&#x2699;</span>Advanced</div>
   <div class="sidebar-tab-item" data-tab="settings"><span class="sidebar-tab-icon">&#x1F527;</span>Settings</div>
   <div class="sidebar-tab-item" data-tab="team"><span class="sidebar-tab-icon">&#x1F465;</span>Team</div>
@@ -2133,10 +2129,6 @@ body.detail-panel-open #tabAdvanced {
 <div class="settings-btn-card" id="openAuditBtnMain" style="margin-bottom:0;background:linear-gradient(135deg,rgba(239,68,68,0.15) 0%,rgba(248,113,113,0.08) 100%);border-color:rgba(239,68,68,0.25);">
   <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span>
   <span>Audit</span>
-</div>
-<div class="settings-btn-card" id="openSendToAIAgentBtn" style="margin-bottom:0;background:linear-gradient(135deg,rgba(236,72,153,0.15) 0%,rgba(244,114,182,0.08) 100%);border-color:rgba(236,72,153,0.25);">
-  <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
-  <span>Send Scan to AI Agent</span>
 </div>
 </div>
 <div class="tab-pane" id="tabAudit" data-sidebar-tab="audit">
@@ -3178,7 +3170,7 @@ body.detail-panel-open #tabAdvanced {
         <select class="profile-form-select" id="profileRole">
           <option value="">Select a role</option>
           <option value="developer">Developer</option>
-          <option value="manager">Manager</option> <!-- simplebeacon-ignore generic-naming — UI role label, not a generic suffix variable name -->
+          <option value="teamLead">Team Lead</option>
           <option value="security">Security Engineer</option>
           <option value="auditor">Auditor</option>
         </select>
@@ -3791,8 +3783,8 @@ body.detail-panel-open #tabAdvanced {
   let _openCodeMapBtn=document.getElementById('openCodeMapBtn');if(_openCodeMapBtn){_openCodeMapBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openCodeMap'}); });}
   let _openRoadmapBtn=document.getElementById('openRoadmapBtn');if(_openRoadmapBtn){_openRoadmapBtn.addEventListener('click', function() { _switchSidebarTab('roadmap'); });}
   let _openAiContextBtn=document.getElementById('openAiContextBtn');if(_openAiContextBtn){_openAiContextBtn.addEventListener('click', function() { _switchSidebarTab('aicontext'); });}
-  let _openUploadBtn=document.getElementById('openUploadBtn');if(_openUploadBtn){_openUploadBtn.addEventListener('click', function() { _switchTab('upload'); });}
-  let _openAuditBtnMain=document.getElementById('openAuditBtnMain');if(_openAuditBtnMain){_openAuditBtnMain.addEventListener('click', function() { _switchTab('audit'); });}
+  let _openUploadBtn=document.getElementById('openUploadBtn');if(_openUploadBtn){_openUploadBtn.addEventListener('click', function() { _switchSidebarTab('upload'); });}
+  let _openAuditBtnMain=document.getElementById('openAuditBtnMain');if(_openAuditBtnMain){_openAuditBtnMain.addEventListener('click', function() { _switchSidebarTab('audit'); });}
   let _openSecurityBtnMain=document.getElementById('openSecurityBtnMain');if(_openSecurityBtnMain){_openSecurityBtnMain.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openSecurity'}); });}
   let _openTrustBtn=document.getElementById('openTrustBtn');if(_openTrustBtn){_openTrustBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openTrust'}); });}
   let _openQualityBtn=document.getElementById('openQualityBtn');if(_openQualityBtn){_openQualityBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openQuality'}); });}
@@ -3815,7 +3807,6 @@ body.detail-panel-open #tabAdvanced {
   let _openPreviewBtn=document.getElementById('openPreviewBtn');if(_openPreviewBtn){_openPreviewBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openPreview'}); });}
   let _scanStartBtn=document.getElementById('scanStartBtn');if(_scanStartBtn){_scanStartBtn.addEventListener('click', function() { let toggle=document.getElementById('sidebarScanWorkspaceToggle'); let pathInput=document.getElementById('sidebarScanPathInput'); let isWorkspace=toggle?toggle.checked:true; let path=pathInput?pathInput.value:''; if (window.vscode) window.vscode.postMessage({command: 'scan', mode: isWorkspace?'workspace':'custom', path: isWorkspace?'':path}); });}
   let _openToggleMonitorBtn=document.getElementById('openToggleMonitorBtn');if(_openToggleMonitorBtn){_openToggleMonitorBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openToggleMonitor'}); });}
-  let _openSendToAIAgentBtn=document.getElementById('openSendToAIAgentBtn');if(_openSendToAIAgentBtn){_openSendToAIAgentBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openSendToAIAgent'}); });}
   let _openEnhancedAnalysisBtn=document.getElementById('openEnhancedAnalysisBtn');if(_openEnhancedAnalysisBtn){_openEnhancedAnalysisBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openEnhancedAnalysis'}); });}
   let _openRealtimeAnalysisBtn=document.getElementById('openRealtimeAnalysisBtn');if(_openRealtimeAnalysisBtn){_openRealtimeAnalysisBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openRealtimeAnalysis'}); });}
   let _openPatternDetectionBtn=document.getElementById('openPatternDetectionBtn');if(_openPatternDetectionBtn){_openPatternDetectionBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openPatternDetection'}); });}
@@ -4036,7 +4027,7 @@ body.detail-panel-open #tabAdvanced {
   let _openPlatformFromTools=document.getElementById('openPlatformFromTools');if(_openPlatformFromTools){_openPlatformFromTools.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openPlatform'}); });}
   let _openComplianceFromTools=document.getElementById('openComplianceFromTools');if(_openComplianceFromTools){_openComplianceFromTools.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openCompliance'}); });}
   let _openProfileFromTools=document.getElementById('openProfileFromTools');if(_openProfileFromTools){_openProfileFromTools.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openProfile'}); });}
-  let _openSettingsFromSettings=document.getElementById('openSettingsFromSettings');if(_openSettingsFromSettings){_openSettingsFromSettings.addEventListener('click', function() { _switchTab('settings'); _openSidebarMenu('settingsMenuTab', 'settingsDetailPanelTab', 'settings'); });}
+  let _openSettingsFromSettings=document.getElementById('openSettingsFromSettings');if(_openSettingsFromSettings){_openSettingsFromSettings.addEventListener('click', function() { _switchSidebarTab('settings'); _openSidebarMenu('settingsMenuTab', 'settingsDetailPanelTab', 'settings'); });}
   let _openDiagnoseFromSettingsTab=document.getElementById('openDiagnoseFromSettingsTab');if(_openDiagnoseFromSettingsTab){_openDiagnoseFromSettingsTab.addEventListener('click', function() { if (window._displayMode === 'mainWindow' && window.vscode) { window.vscode.postMessage({command: 'diagnose'}); return; } _openSidebarMenu('settingsMenuTab', 'diagnoseDetailPanel', null); if (window.vscode) window.vscode.postMessage({command: 'diagnose'}); });}
   let _openRefreshRelayFromSettingsTab=document.getElementById('openRefreshRelayFromSettingsTab');if(_openRefreshRelayFromSettingsTab){_openRefreshRelayFromSettingsTab.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openRefreshRelayPort'}); });}
   let _openSettingsFromSettingsTab=document.getElementById('openSettingsFromSettingsTab');if(_openSettingsFromSettingsTab){_openSettingsFromSettingsTab.addEventListener('click', function() { _openSidebarMenu('settingsMenuTab', 'settingsDetailPanelTab', 'settings'); });}
@@ -4056,8 +4047,7 @@ body.detail-panel-open #tabAdvanced {
     }
     document.body.classList.remove('detail-panel-open');
   }
-  function _switchTab(tab){if(!tab)return;document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');p.classList.add('hidden');});let pane=document.getElementById('tab'+tab.charAt(0).toUpperCase()+tab.slice(1));if(pane){pane.classList.remove('hidden');pane.classList.add('active');}document.querySelectorAll('.tab-item').forEach(function(t){t.classList.remove('active');});let coreTab=document.querySelector('.tab-item[data-tab="'+tab+'"]');if(coreTab){coreTab.classList.add('active');}_hideDiagnoseResults();_closeDetailPanels();_switchSidebarTab(tab);}
-  _tabItems.forEach(function(item){item.addEventListener('click',function(){let tab=item.getAttribute('data-tab');_switchTab(tab);});});
+  _tabItems.forEach(function(item){item.addEventListener('click',function(){let tab=item.getAttribute('data-tab');_switchSidebarTab(tab);});});
   let _settingsDropdownHeader=document.getElementById('settingsDropdownHeader');if(_settingsDropdownHeader){_settingsDropdownHeader.addEventListener('click', function() { let body=document.getElementById('settingsDropdownBody'); if(body){body.classList.toggle('open'); _settingsDropdownHeader.classList.toggle('open');} });}
   let _dashGateCard=document.getElementById('dashGateCard');if(_dashGateCard){_dashGateCard.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'dashboard'}); });}
   let _dashIssuesCard=document.getElementById('dashIssuesCard');if(_dashIssuesCard){_dashIssuesCard.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'dashboard'}); });}
