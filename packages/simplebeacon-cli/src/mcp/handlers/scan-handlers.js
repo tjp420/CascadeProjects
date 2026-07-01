@@ -39,7 +39,7 @@ function createScanHandlers({ withGuard, resolveProjectRoot, formatToolResult, c
         scan_project: withGuard(async (args) => {
             const root = resolveProjectRoot(args.projectRoot);
             const { runScan } = require('../../scan');
-            const { loadSimplebeaconConfig } = require('../../index');
+            const { loadSimplebeaconConfig } = require('../../config');
             const fs = require('fs');
             const path = require('path');
             try {

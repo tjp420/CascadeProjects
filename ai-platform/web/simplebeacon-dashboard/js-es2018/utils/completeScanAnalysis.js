@@ -1,7 +1,7 @@
 /**
  * Build top-level complete scan analysis for dashboard display and export.
  */
-import { escapeHtml } from '../utils.js';
+import { escapeHtml, formatBytes } from '../utils.js';
 import { classifyRegenerableArtifacts, softenPriorityActions, partitionArtifactDirectoryEntries, isBenchmarkCachePath } from './complete-scan-artifact-profile.browser.js';
 import { sanitizeCleanupBriefExport } from './cleanup-brief-export.browser.js?v=20260601cleanupbrief9';
 import { sanitizeDataCleanupReportExport } from './data-cleanup-export.browser.js?v=20260601datacleanup8';
@@ -11,25 +11,6 @@ import { sanitizeConsolidationExport as sanitizeConsolidationExportCore } from '
 import { sanitizeNpmAuditExport } from './npm-audit-export.browser.js?v=20260601npmaudit5';
 import { sanitizeComplianceBundleExport } from './compliance-export.browser.js?v=20260601complianceexport7';
 import { sanitizeSimplebeaconReportExport } from './simplebeacon-report-export.browser.js?v=20260601gateexport17';
-/**
- * Format bytes.
- * @param {Array} bytes
- * @returns {any}
- */
-function formatBytes(bytes) {
-    if (bytes == null || Number.isNaN(Number(bytes)))
-        return '—';
-    const n = Number(bytes);
-    if (n === 0)
-        return '0 B';
-    if (n < 1024)
-        return `${n} B`;
-    if (n < 1024 * 1024)
-        return `${(n / 1024).toFixed(1)} KB`;
-    if (n < 1024 * 1024 * 1024)
-        return `${(n / (1024 * 1024)).toFixed(1)} MB`;
-    return `${(n / (1024 * 1024 * 1024)).toFixed(2)} GB`;
-}
 export { classifyRegenerableArtifacts, softenPriorityActions } from './complete-scan-artifact-profile.browser.js';
 /**
  * Build complete scan analysis.

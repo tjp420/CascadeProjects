@@ -328,7 +328,7 @@ export function slimReportForSummary(report) {
       }))
     };
   }
-  return report;
+  return { ...report };
 }
 
 /**
@@ -867,8 +867,8 @@ export async function fetchAnalyzeExportBundleZip(completeScan, options = {}) {
  * @returns {any}
  */
 export function downloadAuditReportHtml(html, filename = 'simplebeacon-audit.html') {
-  if (typeof document === 'undefined' || !html) {
-    throw new Error('Audit report HTML is empty.');
+  if (typeof document === 'undefined' || !document.body || !html) {
+    throw new Error('Audit report HTML is empty or download unavailable.');
   }
   const safeName = filename.endsWith('.html') ? filename : `${filename}.html`;
   const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
@@ -878,9 +878,12 @@ export function downloadAuditReportHtml(html, filename = 'simplebeacon-audit.htm
   link.download = safeName;
   link.rel = 'noopener';
   document.body.appendChild(link);
-  link.click();
-  link.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  try {
+    link.click();
+  } finally {
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  }
   return safeName;
 }
 
@@ -1282,9 +1285,14 @@ export async function fetchScanReport(projectPath) {
     throw new Error('Enter a folder path (not a file like .bat or .json) or a supported public repo URL');
   }
   const params = `?projectPath=${encodeURIComponent(path)}`;
-  const res = await fetch(`/api/simplebeacon/report${params}`, {
-    headers: authService.getAuthHeaders()
-  });
+  let res;
+  try {
+    res = await fetchWithTimeout(`/api/simplebeacon/report${params}`, {
+      headers: authService.getAuthHeaders()
+    }, 30000);
+  } catch {
+    return null;
+  }
   if (res.status === 404) return null;
   if (!res.ok) return null;
   const data = await parseJsonSafe(res);
@@ -2308,8 +2316,17 @@ export function normalizeImportedReport(payload) {
  * @returns {any}
  */
 export async function readFileAsJson(file) {
-  const text = await file.text();
-  return JSON.parse(text);
+  let text;
+  try {
+    text = await file.text();
+  } catch (err) {
+    throw new Error(`Failed to read file: ${err.message}`);
+  }
+  try {
+    return JSON.parse(text);
+  } catch (err) {
+    throw new Error(`Failed to parse JSON: ${err.message}`);
+  }
 }
 
 /**

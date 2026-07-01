@@ -39,23 +39,6 @@ function isBenchmarkPath(projectPath) {
   return /\/github-cache\//i.test(String(projectPath || '').replace(/\\/g, '/'));
 }
 
-/**
- * Redact path for export.
- * @param {string} rawPath
- * @param {any} projectLabel
- * @returns {any}
- */
-function redactPathForExport(rawPath, projectLabel = 'ai-platform') {
-  if (rawPath == null || rawPath === '') return rawPath;
-  const normalized = String(rawPath).replace(/\\/g, '/');
-  if (/^[a-zA-Z]:\//.test(normalized)
-    || normalized.startsWith('/Users/')
-    || normalized.startsWith('/home/')
-    || normalized.includes('CascadeProjects')) {
-    return projectLabel;
-  }
-  return normalized;
-}
 
 /**
  * Normalize simple beacon branding.

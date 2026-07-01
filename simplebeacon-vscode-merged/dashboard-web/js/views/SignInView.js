@@ -16,7 +16,7 @@ function decodeEmailFromToken(token) {
     if (!payload) return '';
     const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
     const data = JSON.parse(json);
-    return data.email || '';
+    return data.email || data.sub || data.username || data.preferred_username || data.name || '';
   } catch {
     return '';
   }
@@ -178,10 +178,13 @@ export class SignInView {
     if (this.handleIncomingUrlToken()) { return; }
 
     const authed = authService.isAuthenticated();
-    const email = authService.getUser()?.email || decodeEmailFromToken(authService.getToken()) || '';
+    const token = authService.getToken();
+    const userEmail = authService.getUser()?.email || decodeEmailFromToken(token);
+    const email = userEmail || (token ? 'License key' : '');
+    const hasEmail = Boolean(userEmail);
     let entitlement = { allowed: false, plan: {}, status: {} };
 
-    if (authed && email) {
+    if (authed && hasEmail) {
       entitlement = await billingService.resolveEntitlement(email);
       this.app.state.billingPlan = entitlement.plan;
       this.app.state.billingStatus = entitlement.status;
@@ -474,7 +477,9 @@ export class SignInView {
         if (!token) { showError('Please enter a license token.'); return; }
         clearError();
 
-        // Blocked tier: show action vectors instead of dead-end error
+        // Always prompt for password after token entry
+        const profile = JSON.parse(localStorage.getItem('sb_profile') || '{}');
+        const storedPassword = profile.tokenPassword || profile.emailPassword || '';
         if (!isPaidToken(token)) {
           showError('Free / sandbox tokens have limited dashboard access.');
           if (tierActionsEl) {
@@ -506,6 +511,16 @@ export class SignInView {
         const password = inlinePassword?.value || '';
         if (!password) { showError('Please enter a password.'); return; }
         clearError();
+
+        // Client-side password check against stored profile
+        const savedProfile = JSON.parse(localStorage.getItem('sb_profile') || '{}');
+        const expectedPassword = savedProfile.tokenPassword || savedProfile.emailPassword || '';
+        if (expectedPassword && password !== expectedPassword) {
+          showError('Incorrect password. Please try again.');
+          showToast('Password mismatch — access denied.', 'error');
+          return;
+        }
+
         try {
           authService.setSession(token, { token, source: 'manual', password });
           const valid = await authService.validateSession(password ? { password } : undefined);
@@ -583,6 +598,9 @@ export class SignInView {
       if (data.success && data.token) {
         authService.setSession(data.token, { token: data.token, tier: 'sandbox', source: 'sandbox' });
         this.app.updateAuthUi();
+        // Explicitly mark sandbox mode so features are limited even on localhost
+        this.app.state.readOnly = true;
+        this.app.state.sandboxMode = true;
         showToast('Sandbox token active — limited to 100 requests/day', 'info');
         this.app.bootstrapAfterAuth?.();
         this.app.navigate('dashboard');

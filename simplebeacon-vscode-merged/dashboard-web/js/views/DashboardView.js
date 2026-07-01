@@ -167,7 +167,8 @@ export class DashboardView {
               { label: 'Configure Project', id: 'dash-goto-analyze', className: 'btn-secondary' }
             ]
           });
-      el.innerHTML = `<div class="db-empty-v4"><h1>Dashboard</h1>${emptyState}</div>`;
+      el.textContent = '';
+      el.insertAdjacentHTML('beforeend', `<div class="db-empty-v4"><h1>Dashboard</h1>${emptyState}</div>`);
       return el;
     }
 
@@ -182,7 +183,8 @@ export class DashboardView {
     const qualityScore = resolveDisplayScore(report);
 
     const sevTotal = (sev.critical || 0) + (sev.high || 0) + (sev.medium || 0) + (sev.low || 0);
-    el.innerHTML = `
+    el.textContent = '';
+    el.insertAdjacentHTML('beforeend', `
       <style>
         @keyframes db-fade-up { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
         @keyframes db-pulse { 0%,100% { box-shadow:0 0 0 0 rgba(99,102,241,0.4); } 50% { box-shadow:0 0 0 10px rgba(99,102,241,0); } }
@@ -431,7 +433,7 @@ export class DashboardView {
           </div>
         </div>
       </div>
-    `;
+    `);
 
     const scanSlot = el.querySelector('#slot-scan-status');
     const scanHandlers = {
@@ -443,17 +445,19 @@ export class DashboardView {
     // Use surgical DOM update if card already exists to prevent flicker
     const updated = updateScanStatusDom(scanSlot, report);
     if (!updated) {
-      scanSlot.innerHTML = renderScanStatus(report, {
+      scanSlot.textContent = '';
+      scanSlot.insertAdjacentHTML('beforeend', renderScanStatus(report, {
         scanning,
         config: this.app.state.config,
         lastProjectPath: this.app.state.lastProjectPath,
         defaultProjectPath: this.app.state.defaultProjectPath
-      });
+      }));
       bindScanStatus(scanSlot, scanHandlers);
     }
 
     const actionsSlot = el.querySelector('#slot-quick-actions');
-    actionsSlot.innerHTML = renderQuickActions({ showSendAi: true });
+    actionsSlot.textContent = '';
+    actionsSlot.insertAdjacentHTML('beforeend', renderQuickActions({ showSendAi: true }));
     bindQuickActions(actionsSlot, {
       onRunScan: () => runDashboardScanFromInput(
         scanSlot.querySelector('#scan-root-input'),
@@ -554,8 +558,22 @@ export class DashboardView {
       this.app.navigate('analyze');
     });
 
+    el.querySelector('.db-v3-kpi.kpi-gate')?.addEventListener('click', () => {
+      this.app.navigate('results');
+    });
+    el.querySelector('.db-v3-kpi.kpi-health')?.addEventListener('click', () => {
+      this.app.navigate('results');
+    });
+    el.querySelector('.db-v3-kpi.kpi-quality')?.addEventListener('click', () => {
+      this.app.navigate('quality');
+    });
+    el.querySelector('.db-v3-kpi.kpi-tests')?.addEventListener('click', () => {
+      this.app.navigate('quality');
+    });
+
     const trendSlot = el.querySelector('#slot-trend');
-    trendSlot.innerHTML = renderTrendSection(history);
+    trendSlot.textContent = '';
+    trendSlot.insertAdjacentHTML('beforeend', renderTrendSection(history));
 
     return el;
   }
@@ -592,7 +610,7 @@ export class DashboardView {
   clearSeverityFilter() {
     this.activeSeverityFilter = null;
     this._updateSeverityBarVisuals();
-    if (this._filterStatusSlot) this._filterStatusSlot.innerHTML = '';
+    if (this._filterStatusSlot) this._filterStatusSlot.textContent = '';
     this._renderIssueListSlot(this._allCategories);
   }
 
@@ -610,12 +628,13 @@ export class DashboardView {
     const label = this.activeSeverityFilter
       ? this.activeSeverityFilter.charAt(0).toUpperCase() + this.activeSeverityFilter.slice(1)
       : '';
-    this._filterStatusSlot.innerHTML = `
+    this._filterStatusSlot.textContent = '';
+    this._filterStatusSlot.insertAdjacentHTML('beforeend', `
       <div class="clear-filter-pill">
         <span>Showing only: <strong>${escapeHtml(label)}</strong></span>
         <button type="button" class="pill-close-btn" aria-label="Clear filter">&times;</button>
       </div>
-    `;
+    `);
   }
 
   _renderIssueListSlot(categories) {
@@ -624,14 +643,15 @@ export class DashboardView {
       : categories;
 
     if (this._issueSlot) {
-      this._issueSlot.innerHTML = '';
+      this._issueSlot.textContent = '';
       if (!filtered || filtered.length === 0) {
-        this._issueSlot.innerHTML = `
+        this._issueSlot.textContent = '';
+        this._issueSlot.insertAdjacentHTML('beforeend', `
           <div class="empty-state" style="padding:32px 16px; color:var(--text-muted); font-size:0.9rem; text-align:center;">
             <p>No issues match the current filter.</p>
             <button type="button" class="btn btn-ghost btn-sm" id="dash-clear-filter-btn">Clear filter</button>
           </div>
-        `;
+        `);
         this._issueSlot.querySelector('#dash-clear-filter-btn')?.addEventListener('click', () => this.clearSeverityFilter());
       } else {
         this._issueSlot.appendChild(renderIssueList(filtered, {
@@ -682,7 +702,8 @@ export class DashboardView {
           ? '<span class="loading-spinner"></span> Scanning…'
           : '<i data-lucide="play" class="icon-16"></i> Scan';
         if (rescanBtn.innerHTML !== expectedHtml) {
-          rescanBtn.innerHTML = expectedHtml;
+          rescanBtn.textContent = '';
+          rescanBtn.insertAdjacentHTML('beforeend', expectedHtml);
         }
         if (rescanBtn.disabled !== scanning) {
           rescanBtn.disabled = scanning;
@@ -694,7 +715,7 @@ export class DashboardView {
 
   mount(container) {
     if (this._trendCleanup) this._trendCleanup();
-    container.innerHTML = '';
+    container.textContent = '';
     const view = this.render();
     container.appendChild(view);
 
@@ -720,7 +741,8 @@ export class DashboardView {
     if (!slot) return;
     try {
       const health = await fetchRepositoryHealth();
-      slot.innerHTML = `
+      slot.textContent = '';
+      slot.insertAdjacentHTML('beforeend', `
         <div class="section-heading">
           <h2>Repository health</h2>
           <a class="btn btn-ghost btn-sm" href="/dashboard/repository-health">Details →</a>
@@ -728,15 +750,16 @@ export class DashboardView {
         ${health?.headline
           ? renderRepositoryHealthSection(health, { compact: true })
           : '<p class="text-muted">No consolidation scan yet — run Analyze → Consolidation.</p>'}
-      `;
+      `);
     } catch {
-      slot.innerHTML = `
+      slot.textContent = '';
+      slot.insertAdjacentHTML('beforeend', `
         <div class="section-heading">
           <h2>Repository health</h2>
           <a class="btn btn-ghost btn-sm" href="/dashboard/repository-health">Details →</a>
         </div>
         <p class="text-muted">Repository health unavailable — run consolidation scan from Analyze.</p>
-      `;
+      `);
     }
   }
 
@@ -744,12 +767,13 @@ export class DashboardView {
     const slot = view.querySelector('#slot-path-health');
     if (!slot) return;
     try {
-      slot.innerHTML = '';
+      slot.textContent = '';
       const pathHealthComponent = renderPathHealthDashboard();
       slot.appendChild(pathHealthComponent);
     } catch (error) {
       console.error('Error loading path health dashboard:', error);
-      slot.innerHTML = '<p class="text-muted">Path health metrics unavailable.</p>';
+      slot.textContent = '';
+      slot.insertAdjacentHTML('beforeend', '<p class="text-muted">Path health metrics unavailable.</p>');
     }
   }
 

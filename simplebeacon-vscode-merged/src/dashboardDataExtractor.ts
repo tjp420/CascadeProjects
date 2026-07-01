@@ -258,15 +258,3 @@ export function extractFailingFiles(report: unknown): FailingFileItem[] {
     .slice(0, 20);
 }
 
-export function escapeHtml(text: string): string {
-  return text.replace(/[&<>"']/g, (match) => {
-    const escapeMap: Record<string, string> = {
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#39;',
-    };
-    return escapeMap[match] || match;
-  });
-}

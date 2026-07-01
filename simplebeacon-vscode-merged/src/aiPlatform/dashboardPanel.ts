@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as http from 'http';
-import * as crypto from 'crypto';
+import { getSbConfig, getNonce } from '../utils';
 import { provider, diagnosticsManager } from '../extension';
 
 /**
@@ -107,7 +107,7 @@ export class DashboardPanel implements vscode.WebviewViewProvider {
   }
 
   private _startReportPolling() {
-    const config = vscode.workspace.getConfiguration('simplebeacon');
+    const config = getSbConfig();
     const apiUrl = (config.get<string>('apiServerUrl') || config.get<string>('apiUrl', '')).trim();
     const apiKey = config.get<string>('apiKey', '');
     if (!apiUrl) { return; }
@@ -174,7 +174,7 @@ export class DashboardPanel implements vscode.WebviewViewProvider {
 
   private _getHtml(webview: vscode.Webview): string {
     const nonce = getNonce();
-    const config = vscode.workspace.getConfiguration('simplebeacon');
+    const config = getSbConfig();
     const apiUrl = (config.get<string>('apiServerUrl') || config.get<string>('apiUrl', '')).trim();
     return `<!DOCTYPE html>
 <html lang="en">
@@ -568,10 +568,6 @@ export class DashboardPanel implements vscode.WebviewViewProvider {
 </body>
 </html>`;
   }
-}
-
-function getNonce(): string {
-  return crypto.randomBytes(16).toString('hex');
 }
 
 function getJson(url: string, apiKey?: string): Promise<any> {

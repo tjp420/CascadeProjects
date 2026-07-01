@@ -1,18 +1,26 @@
 /**
  * Evaluate declarative corporate safety rules against a Simplebeacon scan report.
+ *
+ * REFACTORED: Previously 540 lines with a massive switch statement.
+ * Now a thin facade over focused sub-modules:
+ *   - compliance-rules/      — pluggable rule registry (one file per check)
+ *   - compliance-checklist/detectors.js — npm audit + auth profile detection
  */
 
 const fs = require('fs');
 const path = require('path');
-const constants = require('../../../ai-platform/server/config/constants.cjs');
 const DEFAULT_CHECKLIST = require('./compliance-checklist.defaults.json');
 const EU_AI_ACT_CHECKLIST = require('./compliance-checklist.eu-ai-act.defaults.json');
+const { evaluateRule } = require('./compliance-rules');
+const { detectNpmAuditSummary, detectProductionAuthProfile } = require('./compliance-checklist/detectors');
 
 const CHECKLIST_PROFILES = {
     default: DEFAULT_CHECKLIST,
     corporate: DEFAULT_CHECKLIST,
     'eu-ai-act': EU_AI_ACT_CHECKLIST
 };
+
+/* ── Checklist loading ──────────────────────────────────────────────── */
 
 function isEvaluatedChecklistOutput(custom) {
     const customRules = Array.isArray(custom?.rules) ? custom.rules : [];
@@ -30,11 +38,7 @@ function mergeChecklistRules(customRules, defaultRules) {
     const result = new Map(defaultsById);
     for (const rule of customRules) {
         const base = result.get(rule.id) || {};
-        const merged = {
-            ...base,
-            ...rule,
-            check: rule.check || base.check
-        };
+        const merged = { ...base, ...rule, check: rule.check || base.check };
         delete merged.status;
         delete merged.evidence;
         result.set(rule.id, merged);
@@ -59,145 +63,13 @@ function loadComplianceChecklist(projectRoot, options = {}) {
         const rules = isEvaluatedChecklistOutput(custom)
             ? defaultRules
             : mergeChecklistRules(customRules, defaultRules);
-        return {
-            ...baseChecklist,
-            ...custom,
-            rules: rules.length ? rules : defaultRules
-        };
+        return { ...baseChecklist, ...custom, rules: rules.length ? rules : defaultRules };
     } catch {
         return baseChecklist;
     }
 }
 
-function readJsonSafe(filePath) {
-    try {
-        return JSON.parse(fs.readFileSync(filePath, 'utf8'));
-    } catch {
-        return null;
-    }
-}
-
-function detectNpmAuditSummary(projectRoot) {
-    if (!projectRoot) return null;
-    const root = path.resolve(projectRoot);
-    const pkgPath = path.join(root, 'package.json');
-    if (!fs.existsSync(pkgPath)) return null;
-
-    try {
-        const auditRunnerPath = path.join(root, 'server', 'lib', 'npm-audit-runner.js');
-        if (fs.existsSync(auditRunnerPath)) {
-            const { runNpmAudit } = require(auditRunnerPath);
-            const audit = runNpmAudit(root, { force: false });
-            if (audit?.summary && !audit.error) {
-                const summary = audit.summary;
-                return {
-                    source: 'npm-audit',
-                    summary: {
-                        critical: summary.critical || 0,
-                        high: summary.high || 0,
-                        moderate: summary.moderate ?? summary.medium ?? 0,
-                        low: summary.low || 0,
-                        info: summary.info || 0,
-                        total: summary.total ?? summary.vulnerabilityTotal ?? 0
-                    },
-                    note: 'Real npm audit from project root'
-                };
-            }
-        }
-    } catch {
-        /* fall through to lockfile heuristic */
-    }
-
-    const lock = readJsonSafe(path.join(root, 'package-lock.json'));
-    const pkg = readJsonSafe(pkgPath);
-    const naturalVer = lock?.packages?.['node_modules/natural']?.version
-        || String(pkg?.dependencies?.natural || pkg?.devDependencies?.natural || '')
-            .replace(/^[\^~>=<]+/, '');
-    const naturalMajor = parseInt(String(naturalVer).split('.')[0], 10);
-
-    if (!naturalVer) {
-        return {
-            source: 'lockfile-heuristic',
-            summary: {
-                critical: 0,
-                high: 0,
-                moderate: 0,
-                low: 0,
-                info: 0,
-                total: 0
-            },
-            note: 'natural not in dependency tree — run npm audit on CI for full CVE coverage'
-        };
-    }
-
-    return {
-        source: 'lockfile-heuristic',
-        summary: {
-            critical: 0,
-            high: 0,
-            moderate: Number.isFinite(naturalMajor) && naturalMajor >= 8 ? 0 : 1,
-            low: 0,
-            info: 0,
-            total: Number.isFinite(naturalMajor) && naturalMajor >= 8 ? 0 : 1
-        },
-        note: Number.isFinite(naturalMajor) && naturalMajor >= 8
-            ? 'Lockfile heuristic clean (natural≥8) — run npm audit on CI for full CVE coverage'
-            : 'Run npm audit for full dependency posture'
-    };
-}
-
-function detectProductionAuthProfile(projectRoot) {
-    if (!projectRoot) return null;
-    const envPath = path.join(path.resolve(projectRoot), '.env.production');
-    if (!fs.existsSync(envPath)) {
-        return { configured: false, requireAuth: false, reason: '.env.production not present' };
-    }
-
-    const text = fs.readFileSync(envPath, 'utf8');
-    const parseEnvMap = (envText) => {
-        const map = Object.create(null);
-        for (const rawLine of String(envText).split(/\r?\n/)) {
-            const line = rawLine.trim();
-            if (!line || line.startsWith('#')) continue;
-            const idx = line.indexOf('=');
-            if (idx <= 0) continue;
-            const key = line.slice(0, idx).trim();
-            let value = line.slice(idx + 1).trim();
-            if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith('\'') && value.endsWith('\''))) {
-                value = value.slice(1, -1);
-            }
-            map[key] = value;
-        }
-        return map;
-    };
-    const isPlaceholderSecret = (value) => {
-        const normalized = String(value || '').trim();
-        if (!normalized) return true;
-        return /^(REPLACE_ON_HOST|changeme|your-secret|replace-me|example|placeholder)/i.test(normalized);
-    };
-
-    const env = parseEnvMap(text);
-    const requireAuth = String(env.REQUIRE_AUTH || '').toLowerCase() === 'true';
-    const jwtSecretSet = !isPlaceholderSecret(env.JWT_SECRET);
-    const hasRefreshSecret = Object.prototype.hasOwnProperty.call(env, 'JWT_REFRESH_SECRET');
-    const jwtRefreshSecretSet = hasRefreshSecret ? !isPlaceholderSecret(env.JWT_REFRESH_SECRET) : true;
-    const jwtSet = jwtSecretSet && jwtRefreshSecretSet;
-
-    return {
-        configured: requireAuth && jwtSet,
-        requireAuth,
-        jwtConfigured: jwtSet,
-        jwtSecretConfigured: jwtSecretSet,
-        jwtRefreshConfigured: jwtRefreshSecretSet,
-        reason: requireAuth && jwtSet
-            ? 'REQUIRE_AUTH=true with non-placeholder JWT'
-            : !requireAuth
-                ? 'Set REQUIRE_AUTH=true in .env.production'
-                : !jwtSecretSet
-                    ? 'Set a non-placeholder JWT_SECRET in .env.production'
-                    : 'Set a non-placeholder JWT_REFRESH_SECRET in .env.production'
-    };
-}
+/* ── Evaluation context ──────────────────────────────────────────── */
 
 function buildEvaluationContext(report, options = {}) {
     const projectRoot = options.projectRoot || report.projectRoot || '';
@@ -209,276 +81,17 @@ function buildEvaluationContext(report, options = {}) {
     };
 }
 
-function evaluateRule(rule, context) {
-    const { report, npmAudit, productionProfile, dataCleanup } = context;
-    const base = {
-        id: rule.id,
-        title: rule.title,
-        category: rule.category,
-        severity: rule.severity,
-        remediation: rule.remediation || null
-    };
-
-    switch (rule.check) {
-        case 'gate-pass': {
-            const pass = Boolean(report.gate?.pass);
-            return {
-                ...base,
-                status: pass ? 'pass' : 'fail',
-                evidence: pass
-                    ? 'Gate pass — no blocking issues at configured severities'
-                    : `Gate fail — ${report.gate?.blockingCount ?? report.severityCounts?.high ?? '?'} blocking issue(s)`
-            };
-        }
-        case 'zero-credential-findings': {
-            const findings = report.credentialFindings ?? 0;
-            return {
-                ...base,
-                status: findings === 0 ? 'pass' : 'fail',
-                evidence: findings === 0
-                    ? `Scanned ${report.credentialScanned ?? 0} path(s) — no credential patterns`
-                    : `${findings} credential pattern(s) detected`
-            };
-        }
-        case 'zero-production-leaks': {
-            const findings = report.productionLeakFindings ?? 0;
-            return {
-                ...base,
-                status: findings === 0 ? 'pass' : 'fail',
-                evidence: findings === 0
-                    ? `Scanned ${report.productionLeakScanned ?? 0} production file(s) — no sample-path leaks`
-                    : `${findings} production leak(s) — mock/sample paths in prod code`
-            };
-        }
-        case 'schema-compliance': {
-            const checked = report.schemaChecked ?? 0;
-            if (!checked) {
-                return { ...base, status: 'skip', evidence: 'No registered page samples in this project' };
-            }
-            const passed = report.schemaPassed ?? 0;
-            const ok = passed === checked;
-            return {
-                ...base,
-                status: ok ? 'pass' : 'fail',
-                evidence: ok
-                    ? `${passed}/${checked} samples match schema specs`
-                    : `${passed}/${checked} samples pass schema — fix violations in report`
-            };
-        }
-        case 'consistency-pass': {
-            if (report.consistencyChecked == null || report.consistencyChecked === 0) {
-                return { ...base, status: 'skip', evidence: 'Consistency anchors not configured for this profile' };
-            }
-            const ok = report.consistencyPassed === true || report.consistencyScore >= 95;
-            return {
-                ...base,
-                status: ok ? 'pass' : 'fail',
-                evidence: ok
-                    ? `Consistency score ${report.consistencyScore ?? '—'}% — no fiction KPI drift`
-                    : `Consistency score ${report.consistencyScore ?? '—'}% — fiction or baseline drift detected`
-            };
-        }
-        case 'npm-no-critical-high': {
-            if (!npmAudit?.summary) {
-                return { ...base, status: 'skip', evidence: 'No package.json — npm audit not applicable' };
-            }
-            const critical = npmAudit.summary.critical || 0;
-            const high = npmAudit.summary.high || 0;
-            const ok = critical === 0 && high === 0;
-            return {
-                ...base,
-                status: ok ? 'pass' : 'fail',
-                evidence: ok
-                    ? `npm audit: 0 critical, 0 high (${npmAudit.source || 'scan'})`
-                    : `npm audit: ${critical} critical, ${high} high — upgrade dependencies`
-            };
-        }
-        case 'npm-moderate-limit': {
-            if (!npmAudit?.summary) {
-                return { ...base, status: 'skip', evidence: 'No package.json — npm audit not applicable' };
-            }
-            const limit = rule.maxModerate ?? 0;
-            const moderate = npmAudit.summary.moderate || npmAudit.summary.medium || 0;
-            const ok = moderate <= limit;
-            return {
-                ...base,
-                status: ok ? 'pass' : 'fail',
-                evidence: ok
-                    ? `${moderate} moderate (limit ${limit})`
-                    : `${moderate} moderate exceeds policy limit of ${limit}`
-            };
-        }
-        case 'production-auth-profile': {
-            if (!productionProfile) {
-                return { ...base, status: 'skip', evidence: 'Production profile not evaluated' };
-            }
-            if (!fs.existsSync(path.join(path.resolve(report.projectRoot || ''), '.env.production'))) {
-                return { ...base, status: 'skip', evidence: '.env.production not present (local/dev repo)' };
-            }
-            return {
-                ...base,
-                status: productionProfile.configured ? 'pass' : 'fail',
-                evidence: productionProfile.reason
-            };
-        }
-        case 'eu-ai-act-high-risk-reviewed': {
-            const summary = report.euAiActSummary;
-            if (report.euAiActScanned == null && !summary) {
-                return { ...base, status: 'skip', evidence: 'EU AI Act scan not run — enable eu-ai-act-patterns rule' };
-            }
-            const highRisk = summary?.highRiskIndicators ?? 0;
-            const docs = summary?.documentationArtifacts ?? 0;
-            if (highRisk === 0) {
-                return { ...base, status: 'pass', evidence: 'No Annex III high-risk AI patterns detected in scanned paths' };
-            }
-            const ok = docs > 0;
-            return {
-                ...base,
-                status: ok ? 'pass' : 'fail',
-                evidence: ok
-                    ? `${highRisk} high-risk indicator(s) with ${docs} documentation artifact(s) — review classification`
-                    : `${highRisk} high-risk indicator(s) without documentation — add risk-assessment and conformity docs`
-            };
-        }
-        case 'eu-ai-act-transparency': {
-            const summary = report.euAiActSummary;
-            if (report.euAiActScanned == null && !summary) {
-                return { ...base, status: 'skip', evidence: 'EU AI Act scan not run — enable eu-ai-act-patterns rule' };
-            }
-            const gaps = summary?.transparencyGaps ?? 0;
-            const aiHits = summary?.aiSystemIndicators ?? 0;
-            if (aiHits === 0 && gaps === 0) {
-                return { ...base, status: 'pass', evidence: 'No generative AI integrations detected in user-facing paths' };
-            }
-            const ok = gaps === 0;
-            return {
-                ...base,
-                status: ok ? 'pass' : 'fail',
-                evidence: ok
-                    ? `${aiHits} AI integration(s) with Article 50 disclosure markers present`
-                    : `${gaps} transparency gap(s) — add AI-generated / AI interaction disclosure in UI`
-            };
-        }
-        case 'eu-ai-act-documentation': {
-            const summary = report.euAiActSummary;
-            if (report.euAiActScanned == null && !summary) {
-                return { ...base, status: 'skip', evidence: 'EU AI Act scan not run — enable eu-ai-act-patterns rule' };
-            }
-            const aiHits = (summary?.aiSystemIndicators ?? 0) + (summary?.highRiskIndicators ?? 0);
-            const docs = summary?.documentationArtifacts ?? 0;
-            if (aiHits === 0) {
-                return { ...base, status: 'pass', evidence: 'No AI system indicators — documentation not required by scan' };
-            }
-            const ok = docs >= 2;
-            return {
-                ...base,
-                status: ok ? 'pass' : 'fail',
-                evidence: ok
-                    ? `${docs} documentation artifact(s) found for ${aiHits} AI indicator(s)`
-                    : `${aiHits} AI indicator(s) but only ${docs} doc artifact(s) — add model-card and technical documentation`
-            };
-        }
-        case 'eu-ai-act-human-oversight': {
-            const gaps = (report.rawIssues || []).filter((issue) =>
-                /human oversight gap/i.test(String(issue.type || ''))
-            ).length;
-            const highRisk = report.euAiActSummary?.highRiskIndicators ?? 0;
-            if (highRisk === 0) {
-                return { ...base, status: 'pass', evidence: 'No high-risk AI patterns — human oversight rule not applicable' };
-            }
-            const ok = gaps === 0;
-            return {
-                ...base,
-                status: ok ? 'pass' : 'fail',
-                evidence: ok
-                    ? `${highRisk} high-risk indicator(s) with human oversight signals in code`
-                    : `${gaps} file(s) with high-risk AI but no human oversight markers`
-            };
-        }
-        case 'eu-ai-act-logging': {
-            const gaps = (report.rawIssues || []).filter((issue) =>
-                /logging gap/i.test(String(issue.type || ''))
-            ).length;
-            const aiHits = (report.euAiActSummary?.aiSystemIndicators ?? 0)
-                + (report.euAiActSummary?.highRiskIndicators ?? 0);
-            if (aiHits === 0) {
-                return { ...base, status: 'pass', evidence: 'No AI decision paths detected' };
-            }
-            const ok = gaps === 0;
-            return {
-                ...base,
-                status: ok ? 'pass' : 'fail',
-                evidence: ok
-                    ? 'AI decision paths include audit/logging signals'
-                    : `${gaps} AI decision path(s) without logging markers — add inference audit trail`
-            };
-        }
-        case 'cleanup-bloat-reviewed': {
-            const detailedFindings = dataCleanup?.findings?.directoryBloat || [];
-            const bloatCount = detailedFindings.length || (dataCleanup?.summary?.directoryBloatFindings ?? 0);
-            const reclaimableBytes = dataCleanup?.summary?.reclaimableBytes
-                ?? dataCleanup?.summary?.directoryBloatReclaimableBytes
-                ?? 0;
-            if (bloatCount === 0) {
-                return { ...base, status: 'pass', evidence: 'No directory bloat detected — codebase is clean' };
-            }
-            const safeToDelete = detailedFindings.filter((f) => f.action === 'safe-to-delete').length;
-            return {
-                ...base,
-                status: safeToDelete > 0 ? 'pass' : 'review',
-                evidence: safeToDelete > 0
-                    ? `${bloatCount} bloat item(s) found (${formatBytes(reclaimableBytes)} reclaimable) — ${safeToDelete} marked safe-to-delete`
-                    : `${bloatCount} bloat item(s) found (${formatBytes(reclaimableBytes)} reclaimable) — review before cleanup`
-            };
-        }
-        case 'cleanup-empty-dirs': {
-            const detailedFindings = dataCleanup?.findings?.directoryBloat || [];
-            const emptyDirs = detailedFindings.filter((f) => f.category === 'Empty directory');
-            const bloatCount = detailedFindings.length || (dataCleanup?.summary?.directoryBloatFindings ?? 0);
-            if (emptyDirs.length === 0 && bloatCount === 0) {
-                return { ...base, status: 'pass', evidence: 'No empty directories detected' };
-            }
-            if (emptyDirs.length > 0) {
-                return {
-                    ...base,
-                    status: 'pass',
-                    evidence: `${emptyDirs.length} empty director(ies) detected — safe to remove`
-                };
-            }
-            return {
-                ...base,
-                status: 'pass',
-                evidence: `${bloatCount} bloat item(s) detected — review for empty directories`
-            };
-        }
-        case 'file-reduction-reviewed': {
-            const totalFindings = dataCleanup?.summary?.totalFindings
-                ?? dataCleanup?.summary?.directoryBloatFindings
-                ?? 0;
-            if (totalFindings === 0) {
-                return { ...base, status: 'pass', evidence: 'No file reduction findings — no cleanup needed' };
-            }
-            const reclaimable = dataCleanup?.summary?.reclaimableBytes
-                ?? dataCleanup?.summary?.directoryBloatReclaimableBytes
-                ?? 0;
-            return {
-                ...base,
-                status: 'pass',
-                evidence: `${totalFindings} finding(s) reviewed (${formatBytes(reclaimable)} reclaimable)`
-            };
-        }
-        default:
-            return { ...base, status: 'skip', evidence: `Unknown check: ${rule.check}` };
-    }
-}
+/* ── Formatting ────────────────────────────────────────────────────── */
 
 function formatBytes(bytes) {
     if (bytes === 0) return '0 B';
-    const k = constants.BYTES_PER_KB;
+    const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 }
+
+/* ── Main evaluator ────────────────────────────────────────────────── */
 
 function evaluateComplianceChecklist(report, options = {}) {
     const projectRoot = options.projectRoot || report.projectRoot || '';
@@ -494,6 +107,8 @@ function evaluateComplianceChecklist(report, options = {}) {
     const scored = passed + failed;
     const score = scored ? Math.round((passed / scored) * 100) : null;
 
+    const isEuAiAct = checklist.extends === 'corporate-safety' || options.checklistProfile === 'eu-ai-act';
+
     return {
         type: 'simplebeacon-compliance-checklist',
         version: checklist.version || '1.0.0',
@@ -508,16 +123,15 @@ function evaluateComplianceChecklist(report, options = {}) {
             total: rules.length,
             score,
             readyForAutomation: failed === 0 && passed > 0,
-            checklistProfile: options.checklistProfile
-                || (checklist.extends === 'corporate-safety' ? 'eu-ai-act' : 'default'),
+            checklistProfile: options.checklistProfile || (isEuAiAct ? 'eu-ai-act' : 'default'),
             headline: failed === 0 && passed > 0
-                ? checklist.extends === 'corporate-safety' || options.checklistProfile === 'eu-ai-act'
+                ? (isEuAiAct
                     ? `${passed}/${scored} EU AI Act readiness rules pass — review legal classification before August 2026`
-                    : `${passed}/${scored} applicable rules pass — safe to enable automated AI deploy gates`
+                    : `${passed}/${scored} applicable rules pass — safe to enable automated AI deploy gates`)
                 : failed > 0
-                    ? options.checklistProfile === 'eu-ai-act' || checklist.extends === 'corporate-safety'
+                    ? (isEuAiAct
                         ? `${failed} EU AI Act rule(s) fail — address before August 2026 deadline`
-                        : `${failed} rule(s) fail — fix before handing operations to AI-generated code`
+                        : `${failed} rule(s) fail — fix before handing operations to AI-generated code`)
                     : skipped === rules.length
                         ? 'Checklist not evaluated — stale compliance output was ignored; re-run assess or compliance'
                         : 'No scored rules — review scan report manually'
@@ -525,6 +139,8 @@ function evaluateComplianceChecklist(report, options = {}) {
         rules
     };
 }
+
+/* ── Re-exports ────────────────────────────────────────────────────── */
 
 module.exports = {
     loadComplianceChecklist,

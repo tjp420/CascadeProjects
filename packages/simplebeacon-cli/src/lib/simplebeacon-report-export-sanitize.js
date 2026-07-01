@@ -21,12 +21,8 @@ const DEFAULT_FALLBACK_MOCK_PATHS = new Set(['fixtures', '__mocks__', 'data']);
 
 function redactProjectPathForExport(value, projectLabel = 'ai-platform') {
     if (value == null || value === '') return value;
-    const normalized = String(value).replace(/\\/g, '/');
-    if (/^[a-zA-Z]:\//.test(normalized) || normalized.startsWith('/Users/')
-        || normalized.startsWith('/home/') || normalized.includes('CascadeProjects')) {
-        return projectLabel;
-    }
-    return normalized;
+    if (isAbsoluteHostPath(value)) return projectLabel;
+    return String(value).replace(/\\/g, '/');
 }
 
 function projectLabelFromPath(projectPath) {
@@ -99,44 +95,40 @@ function filterStaleGateExportNotes(notes = []) {
     });
 }
 
+/** Map of regex → deduplication key for export-note classification.
+ * @type {Array<[RegExp, string]>}
+ */
+const NOTE_SCOPE_PATTERNS = [
+    [/gate export scoped to github-cache/i, 'benchmark-gate-scope-note'],
+    [/gate pass on clone reflects oss hygiene/i, 'benchmark-gate-pass-note'],
+    [/re-run gate scan on ai-platform root/i, 'benchmark-rerun-platform-note'],
+    [/product mock\/sample scan paths/i, 'benchmark-mock-path-note'],
+    [/llm slop file count reconciled/i, 'benchmark-llm-reconcile-note'],
+    [/documentation path\(s\) under \.simplebeacon\//i, 'simplebeacon-docs-note'],
+    [/scan pattern match\(es\) outside docs\//i, 'eu-scan-non-docs-note'],
+    [/credential\/production-leak rules scanned/i, 'credential-scope-note'],
+    [/content-scanned;/i, 'content-scanned-note'],
+    [/fiction kpi rules evaluated/i, 'fiction-json-note'],
+    [/llm-slop pattern match/i, 'llm-slop-info-note'],
+    [/production-leak pattern hit/i, 'production-leak-info-note'],
+    [/scanscope\.profile eu-ai-act/i, 'eu-act-profile-note'],
+    [/filesanalyzed matches repository inventory/i, 'files-analyzed-note'],
+    [/repository inventory/i, 'repo-inventory-note'],
+    [/gate pass on configured severities/i, 'gate-pass-note'],
+];
+
 function dedupeExportNotes(notes = []) {
     const seen = new Set();
     const out = [];
     for (const note of notes) {
         const normalized = String(note).replace(/\s+/g, ' ').trim().toLowerCase();
-        const scopeKey = /gate export scoped to github-cache/i.test(normalized)
-            ? 'benchmark-gate-scope-note'
-            : /gate pass on clone reflects oss hygiene/i.test(normalized)
-                ? 'benchmark-gate-pass-note'
-                : /re-run gate scan on ai-platform root/i.test(normalized)
-                    ? 'benchmark-rerun-platform-note'
-                    : /product mock\/sample scan paths/i.test(normalized)
-                        ? 'benchmark-mock-path-note'
-                        : /llm slop file count reconciled/i.test(normalized)
-                            ? 'benchmark-llm-reconcile-note'
-                            : /documentation path\(s\) under \.simplebeacon\//i.test(normalized)
-                        ? 'simplebeacon-docs-note'
-                            : /scan pattern match\(es\) outside docs\//i.test(normalized)
-                            ? 'eu-scan-non-docs-note'
-                            : /credential\/production-leak rules scanned/i.test(normalized)
-                                ? 'credential-scope-note'
-                                : /content-scanned;/i.test(normalized)
-                                    ? 'content-scanned-note'
-                                    : /fiction kpi rules evaluated/i.test(normalized)
-                                        ? 'fiction-json-note'
-                                        : /llm-slop pattern match/i.test(normalized)
-                                            ? 'llm-slop-info-note'
-                                            : /production-leak pattern hit/i.test(normalized)
-                                                ? 'production-leak-info-note'
-                                                : /scanscope\.profile eu-ai-act/i.test(normalized)
-                                                    ? 'eu-act-profile-note'
-                            : /filesanalyzed matches repository inventory/i.test(normalized)
-                                ? 'files-analyzed-note'
-                                : /repository inventory/i.test(normalized)
-                                    ? 'repo-inventory-note'
-                                    : /gate pass on configured severities/i.test(normalized)
-                                        ? 'gate-pass-note'
-                                        : normalized;
+        let scopeKey = normalized;
+        for (const [re, key] of NOTE_SCOPE_PATTERNS) {
+            if (re.test(normalized)) {
+                scopeKey = key;
+                break;
+            }
+        }
         if (seen.has(scopeKey)) continue;
         seen.add(scopeKey);
         out.push(String(note));
@@ -663,9 +655,15 @@ function applyBenchmarkGateExportFields(next, report, context = {}) {
 }
 
 /**
- * @param {object} report simplebeacon-report
+ * Sanitize a Simplebeacon report for external export — redacts paths, strips
+ * internal fields, builds attestation notes, and reconciles benchmark metrics.
+ * @param {object} report - Raw simplebeacon-report object.
  * @param {object} [options]
- * @returns {object}
+ * @param {string} [options.projectPath] - Explicit project path override.
+ * @param {string} [options.gateConfig] - Gate configuration override.
+ * @param {boolean} [options.benchmarkScan] - Force benchmark-scan mode.
+ * @param {string} [options.productPlatformRoot] - Root of the product platform.
+ * @returns {object} Sanitized report ready for export.
  */
 function sanitizeSimplebeaconReportExport(report, options = {}) {
     if (!report || report.type !== 'simplebeacon-report') return report;

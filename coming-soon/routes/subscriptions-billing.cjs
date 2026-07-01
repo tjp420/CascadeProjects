@@ -271,29 +271,48 @@ function setupSubscriptionWebhook(app) {
                     const interval = sub.items?.data?.[0]?.price?.recurring?.interval || 'month';
                     const ttlMinutes = interval === 'year' ? 60 * 24 * 365 : 60 * 24 * 30;
                     const ttlLabel = interval === 'year' ? '1 year' : '30 days';
+
+                    // Look up existing free token for this customer
+                    const dbInstance = db.getDb();
+                    const freeTokenRecord = dbInstance.prepare('SELECT * FROM free_tokens WHERE email = ?').get(customer.email.trim().toLowerCase());
+                    const previousToken = freeTokenRecord ? freeTokenRecord.token : null;
+
                     const tokenPayload = {
                         email: customer.email,
                         tier: finalTier,
                         projectName: customer.email,
                         clientName: customer.email,
-                        features: features
+                        features: features,
+                        previousToken: previousToken || undefined
                     };
                     const token = generateLicenseToken(tokenPayload, licenseSecret, ttlMinutes);
                     // Register subscription token in chain registry
                     try {
-                        const { createTokenChain } = require('../lib/token-chain-store.cjs');
+                        const { createTokenChain, activateToken, hashToken } = require('../lib/token-chain-store.cjs');
                         createTokenChain(customer.email, tokenPayload, token, ttlMinutes);
+                        activateToken(hashToken(token), ttlMinutes);
+                        // Revoke the old free token so it can no longer be used
+                        if (freeTokenRecord) {
+                            dbInstance.prepare("UPDATE free_tokens SET revoked = 1 WHERE email = ?").run(customer.email.trim().toLowerCase());
+                        }
                     } catch (chainErr) {
                         logger.error('[SubscriptionWebhook] Chain creation failed:', chainErr.message);
                     }
                     try {
                         const { sendEmail } = require('../services/email.cjs');
-                        await sendEmail({
+                        const emailResult = await sendEmail({
                             to: customer.email,
                             subject: 'Your ' + tierLabel + ' License Token',
                             text: `Your ${tierLabel} subscription is active.\n\nLicense Token: ${token}\n\nThis token is valid for ${ttlLabel} and unlocks the team dashboard + CI integration.\n\nAPI Key: ${customer.api_key}\n\nUse this API key in your GitHub Action to post scan results to your team dashboard.`,
                             html: `<p>Your <strong>${tierLabel}</strong> subscription is active.</p><p>License Token: <code>${token}</code></p><p>API Key: <code>${customer.api_key}</code></p><p>Use the API key in your GitHub Action to post scan results to your team dashboard.</p>`
                         });
+                        if (!emailResult.sent && !emailResult.queued) {
+                            logger.error('[SubscriptionWebhook] Email could not be sent or queued:', emailResult.error);
+                        } else if (!emailResult.sent) {
+                            logger.warn('[SubscriptionWebhook] Email queued for retry. queueId:', emailResult.queueId);
+                        } else {
+                            logger.info('[SubscriptionWebhook] Email sent via', emailResult.provider, 'queueId:', emailResult.queueId);
+                        }
                     } catch (emailErr) {
                         logger.error('[SubscriptionWebhook] Email failed:', emailErr.message);
                     }

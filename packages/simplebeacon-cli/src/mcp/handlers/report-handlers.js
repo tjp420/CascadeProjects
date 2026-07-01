@@ -59,7 +59,7 @@ function createReportHandlers({ withGuard, resolveProjectRoot, formatToolResult,
             }
             const { formatActionPlanReport } = require('../../reporters/text');
             const { evaluateGate } = require('../../gate');
-            const { loadSimplebeaconConfig } = require('../../index');
+            const { loadSimplebeaconConfig } = require('../../config');
             let gateResult = null;
             try {
                 const config = loadSimplebeaconConfig(root);

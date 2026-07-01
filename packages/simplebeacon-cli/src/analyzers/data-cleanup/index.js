@@ -1,5 +1,19 @@
+'use strict';
+
 /**
- * Data cleanup + data quality analyzers.
+ * @module data-cleanup
+ * Data cleanup and data quality analyzers.
+ *
+ * Re-exports scanner classes for config management, dependency health,
+ * environment variables, data freshness, access patterns, privacy, lineage,
+ * and consistency.
+ *
+ * ```js
+ * const { DATA_CLEANUP_SCANNERS, DataPrivacyAnalyzer } = require('./data-cleanup');
+ * const scanner = new DataPrivacyAnalyzer();
+ * ```
+ *
+ * @file packages/simplebeacon-cli/src/analyzers/data-cleanup/index.js
  */
 
 const { ConfigManagementAnalyzer } = require('./config-management-analyzer');
@@ -22,7 +36,7 @@ const DATA_CLEANUP_SCANNERS = [
     { id: 'data-consistency', Scanner: DataConsistencyAnalyzer, enabled: true, priority: 11 }
 ];
 
-module.exports = {
+module.exports = Object.freeze({
     DATA_CLEANUP_SCANNERS,
     ConfigManagementAnalyzer,
     DependencyHealthAnalyzer,
@@ -32,4 +46,4 @@ module.exports = {
     DataPrivacyAnalyzer,
     DataLineageAnalyzer,
     DataConsistencyAnalyzer
-};
+});

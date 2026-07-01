@@ -1,204 +1,269 @@
-// simplebeacon-ignore memory-leak — child process error handler, process exits immediately
-import * as vscode from 'vscode';
-import { spawn } from 'child_process';
-import * as path from 'path';
-import * as fs from 'fs';
+// simplebeacon-ignore memory-leak — utils facade re-exporting sub-modules
+// All utilities have been split into focused sub-modules under src/utils/.
+// This file re-exports everything for backward compatibility.
 
-const RECENT_FOLDERS_KEY = 'simplebeacon.recentScanFolders';
-const MAX_RECENT = 5;
+// ── VS Code helpers ──────────────────────────────────────────────
+export {
+  getNonce,
+  showQuietMessage,
+  getSbConfig,
+  getExtensionVersion,
+  checkCliAvailable,
+  getCurrentFileDir,
+  browseForFolder,
+  PickerItem,
+  PathMapping,
+  getRecentFolders,
+  addRecentFolder,
+  removeRecentFolder,
+  pickWorkspaceFolder,
+  getWorkspaceRoot,
+  isWorkspaceOpen,
+  getWorkspaceFolderForFile,
+  getWorkspaceFolderForUri,
+  formatRelativePath,
+  isInsideWorkspace,
+  correctScanPath,
+  runWithProgress,
+  createDisposableStack,
+} from './utils/vscode';
 
-let _extensionVersion: string | undefined;
+// ── String helpers ───────────────────────────────────────────────
+export {
+  escapeHtml,
+  escapeRegExp,
+  truncate,
+  capitalize,
+  stripHtml,
+  kebabCase,
+  camelCase,
+  snakeCase,
+  padStart,
+  padEnd,
+  pluralize,
+  formatPercent,
+  formatDate,
+  relativeTime,
+  formatDuration,
+  titleCase,
+  reverse,
+  slugify,
+  repeat,
+  startsWith,
+  endsWith,
+  trim,
+  splitLines,
+  stripAnsi,
+  wordCount,
+} from './utils/string';
 
+// ── Number helpers ─────────────────────────────────────────────
+export {
+  clamp,
+  formatBytes,
+  formatNumber,
+  safeParseInt,
+  safeParseFloat,
+  roundTo,
+  toFixedNumber,
+  isNumeric,
+  randomInt,
+  sum,
+  mean,
+  min,
+  max,
+  sumBy,
+  meanBy,
+} from './utils/number';
+
+// ── Object helpers ───────────────────────────────────────────────
+export {
+  deepClone,
+  clone,
+  isDefined,
+  pick,
+  omit,
+  isEmpty,
+  ensureArray,
+  deepEqual,
+  defaults,
+  merge,
+  has,
+  get,
+  set,
+  mapKeys,
+  mapValues,
+  at,
+  unset,
+  defaultsDeep,
+  invert,
+  values,
+  keys,
+  freezeDeep,
+} from './utils/object';
+
+// ── Array helpers ────────────────────────────────────────────────
+export {
+  unique,
+  compact,
+  flatten,
+  range,
+  sortBy,
+  keyBy,
+  chunk,
+  times,
+  randomChoice,
+  intersection,
+  difference,
+  union,
+  groupBy,
+  partition,
+  sample,
+  shuffle,
+  zip,
+  head,
+  tail,
+  flattenDeep,
+  take,
+  drop,
+  last,
+  initial,
+  findIndex,
+  maxBy,
+  minBy,
+  countBy,
+} from './utils/array';
+
+// ── Async helpers ──────────────────────────────────────────────
+export {
+  sleep,
+  delay,
+  debounce,
+  debounceLeading,
+  debounceAsync,
+  once,
+  memoize,
+  throttle,
+  throttleAsync,
+  withTimeout,
+  waitFor,
+  poll,
+  waitForAsync,
+  memoizeAsync,
+  retry,
+  parallel,
+  series,
+  waterfall,
+  timeout,
+  retryWithBackoff,
+} from './utils/async';
+
+// ── FS helpers ───────────────────────────────────────────────────
+export {
+  sha256,
+  getFileHash,
+  getFileHashAsync,
+  readJsonFile,
+  readTextFile,
+  readJsonFileAsync,
+  readTextFileAsync,
+  writeJsonFile,
+  writeTextFile,
+  ensureDir,
+  sanitizeFilename,
+} from './utils/fs';
+
+// ── Network helpers ──────────────────────────────────────────────
+export {
+  isValidUrl,
+  parseQueryString,
+  stringifyQueryString,
+  buildUrl,
+  resolveUrl,
+} from './utils/network';
+
+// ── Path helpers ─────────────────────────────────────────────────
+export {
+  normalizeScanPath,
+  relativePath,
+  isSubPath,
+  getExt,
+  ensureExt,
+} from './utils/path';
+
+// ── Type guards ──────────────────────────────────────────────────
+export {
+  isString,
+  isNumber,
+  isBoolean,
+  isFunction,
+  isArray,
+  isObject,
+  isDate,
+  isRegExp,
+  isPromise,
+  isError,
+  isNull,
+  isUndefined,
+  isNil,
+  isSymbol,
+  isMap,
+  isSet,
+} from './utils/type-guards';
+
+// ── Misc helpers ─────────────────────────────────────────────────
+export {
+  assertNever,
+  noop,
+  isBlank,
+  hash,
+  tryFn,
+  pMap,
+  randomId,
+  uid,
+  seq,
+  flow,
+  negate,
+  identity,
+  constant,
+} from './utils/misc';
+
+// ── JSON helpers ─────────────────────────────────────────────────
+export {
+  parseJsonSafe,
+  stringifySafe,
+  isJson,
+} from './utils/json';
+
+// ── Namespace for grouped access ─────────────────────────────────
 /**
- * Retrieve the extension version from package.json, cached after first read.
- * @param context - VS Code extension context.
- * @returns Extension version string.
+ * Re-export all utilities under a single namespace for convenient
+ * IDE autocompletion and `Utils.*` style usage.
  */
-export function getExtensionVersion(context: vscode.ExtensionContext): string {
-  if (_extensionVersion) {
-    return _extensionVersion;
-  }
-  try {
-    const pkgPath = path.join(context.extensionPath, 'package.json');
-    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
-    _extensionVersion = (pkg.version as string) || 'unknown';
-  } catch {
-    // simplebeacon-ignore error-swallowing — version read fallback
-    _extensionVersion = 'unknown';
-  }
-  return _extensionVersion;
-}
+import * as VSCode from './utils/vscode';
+import * as StringUtils from './utils/string';
+import * as NumberUtils from './utils/number';
+import * as ObjectUtils from './utils/object';
+import * as ArrayUtils from './utils/array';
+import * as AsyncUtils from './utils/async';
+import * as FsUtils from './utils/fs';
+import * as NetworkUtils from './utils/network';
+import * as PathUtils from './utils/path';
+import * as MiscUtils from './utils/misc';
+import * as JsonUtils from './utils/json';
+import * as TypeGuardUtils from './utils/type-guards';
 
-/**
- * Check whether the SimpleBeacon CLI is available in the environment.
- * @returns True if the CLI is installed and accessible.
- */
-export async function checkCliAvailable(): Promise<boolean> {
-  return new Promise((resolve) => {
-    const child = spawn('npx', ['simplebeacon', '--version'], { shell: true, timeout: 8000 });
-    let found = false;
-    child.on('error', () => resolve(false));
-    child.on('close', (code) => resolve(found || code === 0));
-    child.stdout.on('data', () => {
-      found = true;
-    });
-    child.stderr.on('data', () => {
-      found = true;
-    });
-  });
-}
-
-/**
- * Open a file dialog to let the user select a folder to scan.
- * @returns Selected folder path, or undefined if cancelled.
- */
-export async function browseForFolder(): Promise<string | undefined> {
-  const uri = await vscode.window.showOpenDialog({
-    canSelectFolders: true,
-    canSelectFiles: false,
-    canSelectMany: false,
-    openLabel: 'Scan Folder',
-  });
-  return uri && uri[0] ? uri[0].fsPath : undefined;
-}
-
-function getRecentFolders(): string[] {
-  try {
-    const raw = vscode.workspace.getConfiguration().get<string[]>(RECENT_FOLDERS_KEY, []);
-    return raw.filter((p) => fs.existsSync(p));
-  } catch {
-    // simplebeacon-ignore error-swallowing — recent folders read fallback
-    return [];
-  }
-}
-
-async function addRecentFolder(folderPath: string): Promise<void> {
-  try {
-    const recent = getRecentFolders().filter((p) => p !== folderPath);
-    recent.unshift(folderPath);
-    await vscode.workspace.getConfiguration().update(RECENT_FOLDERS_KEY, recent.slice(0, MAX_RECENT), true);
-  } catch {
-    // simplebeacon-ignore error-swallowing — recent folders write best-effort
-  }
-}
-
-function getCurrentFileDir(): string | undefined {
-  const editor = vscode.window.activeTextEditor;
-  if (editor) {
-    return path.dirname(editor.document.uri.fsPath);
-  }
-  return undefined;
-}
-
-/**
- * Prompt the user to pick a folder to scan.
- * Supports workspace folders, recent folders, current file's directory,
- * or browsing any folder on the system.
- * @returns Selected folder path, or undefined if cancelled.
- */
-export async function pickWorkspaceFolder(): Promise<string | undefined> {
-  const BROWSE = '__browse__';
-  const CURRENT_FILE = '__current_file__';
-
-  // Check for configured projectPath setting first
-  const config = vscode.workspace.getConfiguration('simplebeacon');
-  const configuredPath = config.get<string>('projectPath', '');
-  if (configuredPath && fs.existsSync(configuredPath)) {
-    const stats = fs.statSync(configuredPath);
-    if (stats.isDirectory()) {
-      return configuredPath;
-    }
-  }
-
-  type PickerItem = { label: string; description: string; value: string; kind?: vscode.QuickPickItemKind };
-  const items: PickerItem[] = [];
-
-  // Workspace folders
-  const folders = vscode.workspace.workspaceFolders;
-  if (folders && folders.length > 0) {
-    items.push({
-      label: 'Workspace Folders',
-      description: '',
-      value: '',
-      kind: vscode.QuickPickItemKind.Separator,
-    });
-    for (const wf of folders) {
-      items.push({
-        label: `$(folder) ${wf.name}`,
-        description: wf.uri.fsPath,
-        value: wf.uri.fsPath,
-      });
-    }
-  }
-
-  // Current file's directory
-  const currentFileDir = getCurrentFileDir();
-  if (currentFileDir) {
-    items.push({
-      label: 'Current File',
-      description: '',
-      value: '',
-      kind: vscode.QuickPickItemKind.Separator,
-    });
-    items.push({
-      label: '$(file) Current file\'s directory',
-      description: currentFileDir,
-      value: CURRENT_FILE,
-    });
-  }
-
-  // Recent folders
-  const recent = getRecentFolders();
-  if (recent.length > 0) {
-    items.push({
-      label: 'Recent Folders',
-      description: '',
-      value: '',
-      kind: vscode.QuickPickItemKind.Separator,
-    });
-    for (const folderPath of recent) {
-      items.push({
-        label: `$(history) ${path.basename(folderPath)}`,
-        description: folderPath,
-        value: folderPath,
-      });
-    }
-  }
-
-  // Browse option
-  items.push({
-    label: 'Browse',
-    description: '',
-    value: '',
-    kind: vscode.QuickPickItemKind.Separator,
-  });
-  items.push({
-    label: '$(folder-opened) Browse for any folder...',
-    description: 'Select any folder on your system',
-    value: BROWSE,
-  });
-
-  const choice = await vscode.window.showQuickPick(items, {
-    placeHolder: 'Choose a folder to scan with SimpleBeacon',
-    title: 'Scan Folder',
-    ignoreFocusOut: true,
-  });
-
-  if (!choice) {
-    return undefined;
-  }
-
-  let result: string | undefined;
-  if (choice.value === BROWSE) {
-    result = await browseForFolder();
-  } else if (choice.value === CURRENT_FILE) {
-    result = currentFileDir;
-  } else {
-    result = choice.value;
-  }
-
-  if (result) {
-    await addRecentFolder(result);
-  }
-  return result;
+export namespace Utils {
+  export const vscode = VSCode;
+  export const string = StringUtils;
+  export const number = NumberUtils;
+  export const object = ObjectUtils;
+  export const array = ArrayUtils;
+  export const async = AsyncUtils;
+  export const fs = FsUtils;
+  export const network = NetworkUtils;
+  export const path = PathUtils;
+  export const misc = MiscUtils;
+  export const json = JsonUtils;
+  export const typeGuards = TypeGuardUtils;
 }

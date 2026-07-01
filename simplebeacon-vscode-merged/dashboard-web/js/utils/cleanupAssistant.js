@@ -2,7 +2,7 @@
  * Cleanup assistant — tier scan results for safe deletion and agent handoff.
  */
 
-import { escapeHtml, formatNumber } from '../utils.js';
+import { escapeHtml, formatNumber, normalizeSlashes } from '../utils.js';
 import { buildCompleteScanAnalysis } from './completeScanAnalysis.js?v=20260527cleanup1';
 
 /**
@@ -30,12 +30,12 @@ const DEFAULT_POLICY = {
 };
 
 /**
- * Normalize path.
+ * Normalize path for cleanup comparisons.
  * @param {any} value
- * @returns {any}
+ * @returns {string}
  */
 function normalizePath(value) {
-  return String(value || '').replace(/\\/g, '/').replace(/^\.\//, '').toLowerCase();
+  return normalizeSlashes(value, { stripLeadingDot: true, lowercase: true });
 }
 
 /**

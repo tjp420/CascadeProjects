@@ -13,10 +13,13 @@ const express = require('express');
 const {
   authenticate,
   optionalAuthenticate,
-  handleLogin,
-  handleTokenRefresh,
   generateToken
 } = require('../middleware/auth.cjs');
+
+const {
+  handleLogin,
+  handleTokenRefresh
+} = require('../lib/auth/login-service.cjs');
 
 const router = express.Router();
 

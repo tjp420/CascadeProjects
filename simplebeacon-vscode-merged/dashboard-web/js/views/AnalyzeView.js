@@ -273,7 +273,7 @@ const CLIENT_DELIVERABLE_PLANS = [
     tagline: 'Full complete scan plus co-branded milestone certificates',
     engines: defaultSelectedEngines(),
     analysisType: 'complete',
-    scans: ['Complete scan (10 engines)', 'Certificates']
+    scans: [`Complete scan (${COMPLETE_STEPS.length} engines)`, 'Certificates']
   },
   {
     sku: 'agency1499',
@@ -1219,6 +1219,8 @@ export class AnalyzeView {
     this.app = app;
     this.busy = false;
     const prefs = loadAnalyzePrefs();
+    const tier = authService.getTier?.() || 'guest';
+    const isSandboxTier = tier === 'sandbox' || tier === 'developer';
     this.aiProvider = prefs.aiProvider || 'demo';
     this.roadmapInsightsMode = prefs.roadmapInsightsMode || 'deterministic';
     this.understandingMode = prefs.understandingMode || 'deterministic';
@@ -1249,14 +1251,14 @@ export class AnalyzeView {
     this._euAiActRefreshTimer = null;
     this._lastEuAiActScanAt = null;
     this.fullDirectoryScan = true;
-    this.selectedEngines = Array.isArray(prefs.selectedEngines)
+    this.selectedEngines = (!isSandboxTier && Array.isArray(prefs.selectedEngines))
       ? normalizeSelectedEngines(prefs.selectedEngines, { allowEmpty: true })
       : defaultSelectedEngines();
     this.selectedDeliverableSku = prefs.selectedDeliverableSku
       || inferDeliverableSku(this.selectedEngines);
     const savedPlan = getClientDeliverablePlan(this.selectedDeliverableSku);
     const savedPlanEngines = getDeliverablePlanEngines(savedPlan);
-    if (!Array.isArray(prefs.selectedEngines) && savedPlanEngines) {
+    if (!isSandboxTier && !Array.isArray(prefs.selectedEngines) && savedPlanEngines) {
       this.selectedEngines = [...savedPlanEngines];
     }
     const standaloneEngine = modeToEngineId(this.analysisType);
@@ -1359,16 +1361,31 @@ export class AnalyzeView {
         else selected.delete(engineId);
         this.selectedEngines = Array.from(selected);
         this.savePrefs();
+        this.syncEngineSelectionHighlights();
+        this.syncRunAnalyzeButtonLabel();
+        this.syncSelectedEnginesDetail();
+        this.syncZipExportButtonLabel();
+        this.syncAuditButtonLabel();
         break;
       }
       case 'SELECT_ALL_ENGINES': {
         this.selectedEngines = this._engineGrid?.getAllEngineIds?.() || [];
         this.savePrefs();
+        this.syncEngineSelectionHighlights();
+        this.syncRunAnalyzeButtonLabel();
+        this.syncSelectedEnginesDetail();
+        this.syncZipExportButtonLabel();
+        this.syncAuditButtonLabel();
         break;
       }
       case 'CLEAR_ENGINES': {
         this.selectedEngines = [];
         this.savePrefs();
+        this.syncEngineSelectionHighlights();
+        this.syncRunAnalyzeButtonLabel();
+        this.syncSelectedEnginesDetail();
+        this.syncZipExportButtonLabel();
+        this.syncAuditButtonLabel();
         break;
       }
       case 'EXPORT_RESULTS': {
@@ -2367,7 +2384,7 @@ export class AnalyzeView {
   }
 
   renderSelectedEnginesQueuePanel() {
-    return this._engineGrid.renderTabbedConfigurator();
+    return `<div id="analyze-engine-queue-panel">${this._engineGrid.renderTabbedConfigurator()}</div>`;
   }
 
   renderSelectedModeDetail() {
@@ -3790,6 +3807,31 @@ export class AnalyzeView {
     `;
   }
 
+  /**
+   * Renders a warning when a scan report covers an empty or near-empty directory
+   * so the user can correct the target path instead of interpreting 0 files as a pass.
+   */
+  renderEmptyReportWarning(report, projectPath) {
+    const totalFiles = report?.totalFiles ?? report?.filesAnalyzed ?? report?.repositoryInventory?.totalFiles ?? null;
+    if (totalFiles === null || totalFiles > 0) return '';
+    const root = report?.projectRoot || report?.projectPath || projectPath || '';
+    const defaultPath = this.app?.state?.defaultProjectPath || '';
+    const suggestion = defaultPath && normalizeProjectPath(root) !== normalizeProjectPath(defaultPath)
+      ? `The default workspace path is <code>${escapeHtml(formatPathInputValue(defaultPath))}</code>. Try clicking <strong>Use default</strong> above and analyzing again.`
+      : `Try clicking <strong>Browse Folder</strong> above and selecting a folder that contains files.`;
+    return `
+      <div class="card mb-4" style="border-color: var(--warning-color, #f59e0b); background: rgba(245, 158, 11, 0.06);">
+        <p style="margin: 0 0 6px; font-size: var(--font-size-sm); color: var(--warning-color, #f59e0b); font-weight: 600;">
+          ⚠️ Empty scan result
+        </p>
+        <p style="margin: 0; font-size: var(--font-size-sm);">
+          The scanned path <code>${escapeHtml(formatPathInputValue(root))}</code> contains no files.
+          ${suggestion}
+        </p>
+      </div>
+    `;
+  }
+
   renderRoadmapProvenance(roadmap) {
     if (!roadmap) return '';
     const generatedBy = roadmap.generatedBy || 'code-roadmap-generator';
@@ -4140,8 +4182,15 @@ export class AnalyzeView {
         showToast('No scan results to export', 'error');
         return;
       }
-      downloadJson(payload, this.resolveScanExportFilename());
-      showToast('Scan report exported', 'success');
+      try {
+        const filename = this.resolveScanExportFilename();
+        downloadJson(payload, filename);
+        void this.notifyServerDownload(payload, filename);
+        showToast('Scan report exported', 'success');
+      } catch (err) {
+        console.error('[export] download failed:', err);
+        showToast('Export failed: ' + (err instanceof Error ? err.message : String(err)), 'error');
+      }
     });
     el.querySelector('#quick-action-remediation-btn')?.addEventListener('click', () => {
       const payload = this.buildRemediationExport();
@@ -4192,12 +4241,8 @@ export class AnalyzeView {
       showToast(this.realtimeMonitorEnabled ? 'Real-time monitoring enabled' : 'Real-time monitoring disabled', 'info');
     });
 
-    el.querySelector('#browse-dir-btn')?.addEventListener('click', async () => {
-      const picked = await this.pickFolderViaBrowser(el);
-      if (!picked) {
-        const dirInput = el.querySelector('#browse-dir-input');
-        if (dirInput) dirInput.click();
-      }
+    el.querySelector('#browse-dir-btn')?.addEventListener('click', () => {
+      this.openDirBrowser(el);
     });
 
     // Dropzone Analyze button triggers the same analysis as Enter on project-path-input
@@ -4554,6 +4599,10 @@ export class AnalyzeView {
             const norm = filePath.replace(/\\/g, '/');
             const folderName = files?.[0]?.name || '';
             if (folderName) {
+              // If the path itself IS the folder (ends with folder name), return as-is
+              if (norm.endsWith(`/${folderName}`) || norm === folderName) {
+                return filePath;
+              }
               const idx = norm.indexOf(`/${folderName}/`);
               if (idx >= 0) {
                 return norm.slice(0, idx + folderName.length + 1);
@@ -4569,6 +4618,10 @@ export class AnalyzeView {
                 const norm = filePath.replace(/\\/g, '/');
                 const folderName = files?.[0]?.name || '';
                 if (folderName) {
+                  // If the path itself IS the folder (ends with folder name), return as-is
+                  if (norm.endsWith(`/${folderName}`) || norm === folderName) {
+                    return filePath;
+                  }
                   const idx = norm.indexOf(`/${folderName}/`);
                   if (idx >= 0) {
                     return norm.slice(0, idx + folderName.length + 1);
@@ -4627,6 +4680,14 @@ export class AnalyzeView {
           if (entry) {
             if (entry.isDirectory) {
               const name = entry.name || '';
+              // Try backend-assisted path resolution via VS Code extension
+              const vscode = this._getVscodeApi();
+              if (vscode && name) {
+                vscode.postMessage({ command: 'resolveDroppedTarget', name });
+                showToast('Resolving absolute path for "' + name + '" via VS Code...', 'info');
+                return;
+              }
+              // Fallback to client-side estimation
               const resolved = resolveFolderPath(name);
               setPathAndNotify(resolved.path, name, true, resolved.isEstimated);
               return;
@@ -4646,7 +4707,16 @@ export class AnalyzeView {
             return;
           }
           if (file.path) {
-            const targetPath = deriveDirFromFilePath(file.path) || file.path;
+            // If path ends with folder/file name, it may already be the folder path
+            const filePath = String(file.path);
+            const norm = filePath.replace(/\\/g, '/');
+            const fileName = file.name || '';
+            let targetPath;
+            if (fileName && (norm.endsWith(`/${fileName}`) || norm === fileName)) {
+              targetPath = filePath;
+            } else {
+              targetPath = deriveDirFromFilePath(file.path) || file.path;
+            }
             setPathAndNotify(targetPath, targetPath.split(/[\\/]/).pop() || 'folder');
             return;
           }
@@ -4683,13 +4753,16 @@ export class AnalyzeView {
     return 'C:/';
   }
 
-  openDirBrowser(el) {
+  openDirBrowser(el, startPath) {
     const modal = el.querySelector('#dir-browser-modal');
     if (!modal) return;
     const pathInput = el.querySelector('#project-path-input');
-    const currentPath = this.resolveProjectPath(pathInput?.value) || this.app.state.defaultProjectPath || this._deriveFallbackBase();
+    const currentPath = startPath !== undefined
+      ? startPath
+      : (this.resolveProjectPath(pathInput?.value) || this.app.state.defaultProjectPath || '');
     modal.classList.remove('hidden');
     modal.setAttribute('aria-hidden', 'false');
+    // Start from the current path if it is a valid directory; otherwise show the drives/root list.
     this._dirBrowserPath = currentPath;
     this.loadDirBrowser(el, currentPath);
   }
@@ -4707,7 +4780,8 @@ export class AnalyzeView {
     const pathEl = el.querySelector('#dir-browser-current-path');
     if (!listEl || !pathEl) return;
     listEl.innerHTML = '<div class="dir-browser-empty">Loading directories…</div>';
-    pathEl.textContent = dirPath;
+    const displayPath = dirPath || 'Computer';
+    pathEl.textContent = displayPath;
     this._dirBrowserPath = dirPath;
     try {
       const res = await fetch(apiUrl(`/api/analyze/list-directories?path=${encodeURIComponent(dirPath)}`), { cache: 'no-store' });
@@ -4716,8 +4790,9 @@ export class AnalyzeView {
         listEl.innerHTML = `<div class="dir-browser-empty">Error: ${escapeHtml(data.error || 'Failed to load directories')}</div>`;
         return;
       }
-      pathEl.textContent = data.current;
-      this._dirBrowserPath = data.current;
+      const current = data.current || dirPath;
+      pathEl.textContent = current || 'Computer';
+      this._dirBrowserPath = current;
       if (!data.directories || data.directories.length === 0) {
         listEl.innerHTML = '<div class="dir-browser-empty">No subdirectories</div>';
         return;
@@ -4725,8 +4800,10 @@ export class AnalyzeView {
       const parentItem = data.parent
         ? `<div class="dir-browser-item" data-path="${escapeHtml(data.parent)}"><span class="dir-icon">⬆️</span> <strong>..</strong></div>`
         : '';
+      const isDriveList = !current;
+      const icon = isDriveList ? '💾' : '📁';
       const items = data.directories.map((dir) =>
-        `<div class="dir-browser-item" data-path="${escapeHtml(dir.path)}"><span class="dir-icon">📁</span> ${escapeHtml(dir.name)}</div>`
+        `<div class="dir-browser-item" data-path="${escapeHtml(dir.path)}"><span class="dir-icon">${icon}</span> ${escapeHtml(dir.name)}</div>`
       ).join('');
       listEl.innerHTML = parentItem + items;
     } catch (err) {
@@ -4736,17 +4813,17 @@ export class AnalyzeView {
 
   dirBrowserGoUp(el) {
     if (!this._dirBrowserPath) return;
-    const parts = this._dirBrowserPath.replace(/\\/g, '/').split('/').filter(Boolean);
+    const normalized = this._dirBrowserPath.replace(/\\/g, '/');
+    const parts = normalized.split('/').filter(Boolean);
     if (parts.length === 0) return;
     if (parts.length === 1 && /^[a-zA-Z]:$/.test(parts[0])) {
-      // At a Windows drive root (e.g. D:/). Attempt to load the platform root
-      // so the server can respond with available drives or the root listing.
+      // At a Windows drive root (e.g. D:/). Show the drives list.
       this.loadDirBrowser(el, '');
       return;
     }
     parts.pop();
     const parent = parts.join('/');
-    const parentPath = this._dirBrowserPath.startsWith('/') ? '/' + parent : parent;
+    const parentPath = normalized.startsWith('/') ? '/' + parent : parent;
     this.loadDirBrowser(el, parentPath);
   }
 
@@ -4918,10 +4995,16 @@ export class AnalyzeView {
       if (items?.length) {
         const entry = items[0].webkitGetAsEntry?.();
         if (entry?.isDirectory) {
-          const pathInput = el.querySelector('#project-path-input');
           const name = entry.name || '';
-
-          // Try to extract the real absolute path from OS dataTransfer (same logic as path dropzone)
+          // Try backend-assisted path resolution via VS Code extension first
+          const vscode = this._getVscodeApi();
+          if (vscode && name) {
+            vscode.postMessage({ command: 'resolveDroppedTarget', name });
+            showToast('Resolving absolute path for "' + name + '" via VS Code...', 'info');
+            return;
+          }
+          // Fallback: client-side path extraction (same logic as path dropzone)
+          const pathInput = el.querySelector('#project-path-input');
           const dt = event.dataTransfer;
           const tryGetData = (type) => { try { return dt.getData(type) || ''; } catch { return ''; } };
           let actualPath = '';
@@ -4957,10 +5040,15 @@ export class AnalyzeView {
           if (!actualPath && files?.[0]?.path) {
             const filePath = String(files[0].path);
             const norm = filePath.replace(/\\/g, '/');
-            const lastSlash = norm.lastIndexOf('/');
-            actualPath = lastSlash > 0 ? filePath.slice(0, filePath.lastIndexOf('\\') > 0 ? filePath.lastIndexOf('\\') : lastSlash) : filePath;
+            const folderName = files?.[0]?.name || '';
+            // If the path itself IS the folder (ends with folder name), return as-is
+            if (folderName && (norm.endsWith(`/${folderName}`) || norm === folderName)) {
+              actualPath = filePath;
+            } else {
+              const lastSlash = norm.lastIndexOf('/');
+              actualPath = lastSlash > 0 ? filePath.slice(0, filePath.lastIndexOf('\\') > 0 ? filePath.lastIndexOf('\\') : lastSlash) : filePath;
+            }
           }
-
           // Fallback to defaultProjectPath / current input / fallback base if no OS path
           const currentInput = String(pathInput?.value || '').trim();
           const currentBase = currentInput
@@ -6912,6 +7000,34 @@ export class AnalyzeView {
     }
   }
 
+  /**
+   * Posts exported JSON directly to the data server's download notification endpoint
+   * as a fallback when the browser's native download is blocked or hidden.
+   */
+  async notifyServerDownload(payload, filename) {
+    try {
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result).split(',')[1]);
+        reader.onerror = () => reject(new Error('Failed to read export blob'));
+        reader.readAsDataURL(blob);
+      });
+      const res = await fetch('/api/download/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: filename || 'report.json', content: base64 })
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.ok && data.path) {
+        showToast(`Report saved to ${data.path}`, 'success');
+      }
+    } catch (err) {
+      console.error('[notifyServerDownload] failed:', err);
+    }
+  }
+
   loadDownloadSettings() {
     try {
       const raw = localStorage.getItem('sb-download-settings');
@@ -7596,6 +7712,7 @@ export class AnalyzeView {
             <h2>${escapeHtml(label || 'Scan results')}</h2>
           </div>
           ${this.renderScanScopeBanner(r, projectPath)}
+          ${this.renderEmptyReportWarning(r, projectPath)}
           ${this.renderScanSummary(r, conclusion || buildScanConclusion(r))}
           <div class="metrics-row mb-4">
             <div class="metric-chip"><strong>${r.qualityScore ?? '—'}%</strong> quality</div>
@@ -8242,11 +8359,18 @@ export class AnalyzeView {
         showToast('No scan results to download yet', 'error');
         return;
       }
-      downloadJson(payload, this.resolveScanExportFilename());
-      showToast(
-        this.lastResult?.kind === 'complete' ? 'Complete scan bundle downloaded' : 'Scan result downloaded',
-        'success'
-      );
+      try {
+        const filename = this.resolveScanExportFilename();
+        downloadJson(payload, filename);
+        void this.notifyServerDownload(payload, filename);
+        showToast(
+          this.lastResult?.kind === 'complete' ? 'Complete scan bundle downloaded' : 'Scan result downloaded',
+          'success'
+        );
+      } catch (err) {
+        console.error('[download-scan-result] download failed:', err);
+        showToast('Download failed: ' + (err instanceof Error ? err.message : String(err)), 'error');
+      }
     });
 
     view.querySelector('#export-for-remediation')?.addEventListener('click', () => {

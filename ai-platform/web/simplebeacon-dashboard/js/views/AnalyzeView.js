@@ -4392,12 +4392,8 @@ export class AnalyzeView {
       showToast(this.realtimeMonitorEnabled ? 'Real-time monitoring enabled' : 'Real-time monitoring disabled', 'info');
     });
 
-    el.querySelector('#browse-dir-btn')?.addEventListener('click', async () => {
-      const picked = await this.pickFolderViaBrowser(el);
-      if (!picked) {
-        const dirInput = el.querySelector('#browse-dir-input');
-        if (dirInput) dirInput.click();
-      }
+    el.querySelector('#browse-dir-btn')?.addEventListener('click', () => {
+      this.openDirBrowser(el);
     });
 
     // Analyze drop zone — drag-and-drop for scan reports / source files
@@ -4998,9 +4994,10 @@ export class AnalyzeView {
     const modal = el.querySelector('#dir-browser-modal');
     if (!modal) return;
     const pathInput = el.querySelector('#project-path-input');
-    const currentPath = this.resolveProjectPath(pathInput?.value) || this.app.state.defaultProjectPath || this._deriveFallbackBase();
+    const currentPath = this.resolveProjectPath(pathInput?.value) || this.app.state.defaultProjectPath || '';
     modal.classList.remove('hidden');
     modal.setAttribute('aria-hidden', 'false');
+    // Start from the current path if it is a valid directory; otherwise show the drives/root list.
     this._dirBrowserPath = currentPath;
     this.loadDirBrowser(el, currentPath);
   }
@@ -5018,7 +5015,8 @@ export class AnalyzeView {
     const pathEl = el.querySelector('#dir-browser-current-path');
     if (!listEl || !pathEl) return;
     listEl.innerHTML = '<div class="dir-browser-empty">Loading directories…</div>';
-    pathEl.textContent = dirPath;
+    const displayPath = dirPath || 'Computer';
+    pathEl.textContent = displayPath;
     this._dirBrowserPath = dirPath;
     try {
       const res = await fetch(`/api/analyze/list-directories?path=${encodeURIComponent(dirPath)}`, { cache: 'no-store' });
@@ -5027,8 +5025,9 @@ export class AnalyzeView {
         listEl.innerHTML = `<div class="dir-browser-empty">Error: ${escapeHtml(data.error || 'Failed to load directories')}</div>`;
         return;
       }
-      pathEl.textContent = data.current;
-      this._dirBrowserPath = data.current;
+      const current = data.current || dirPath;
+      pathEl.textContent = current || 'Computer';
+      this._dirBrowserPath = current;
       if (!data.directories || data.directories.length === 0) {
         listEl.innerHTML = '<div class="dir-browser-empty">No subdirectories</div>';
         return;
@@ -5036,8 +5035,10 @@ export class AnalyzeView {
       const parentItem = data.parent
         ? `<div class="dir-browser-item" data-path="${escapeHtml(data.parent)}"><span class="dir-icon">⬆️</span> <strong>..</strong></div>`
         : '';
+      const isDriveList = !current;
+      const icon = isDriveList ? '💾' : '📁';
       const items = data.directories.map((dir) =>
-        `<div class="dir-browser-item" data-path="${escapeHtml(dir.path)}"><span class="dir-icon">📁</span> ${escapeHtml(dir.name)}</div>`
+        `<div class="dir-browser-item" data-path="${escapeHtml(dir.path)}"><span class="dir-icon">${icon}</span> ${escapeHtml(dir.name)}</div>`
       ).join('');
       listEl.innerHTML = parentItem + items;
     } catch (err) {
@@ -5047,17 +5048,17 @@ export class AnalyzeView {
 
   dirBrowserGoUp(el) {
     if (!this._dirBrowserPath) return;
-    const parts = this._dirBrowserPath.replace(/\\/g, '/').split('/').filter(Boolean);
+    const normalized = this._dirBrowserPath.replace(/\\/g, '/');
+    const parts = normalized.split('/').filter(Boolean);
     if (parts.length === 0) return;
     if (parts.length === 1 && /^[a-zA-Z]:$/.test(parts[0])) {
-      // At a Windows drive root (e.g. D:/). Attempt to load the platform root
-      // so the server can respond with available drives or the root listing.
+      // At a Windows drive root (e.g. D:/). Show the drives list.
       this.loadDirBrowser(el, '');
       return;
     }
     parts.pop();
     const parent = parts.join('/');
-    const parentPath = this._dirBrowserPath.startsWith('/') ? '/' + parent : parent;
+    const parentPath = normalized.startsWith('/') ? '/' + parent : parent;
     this.loadDirBrowser(el, parentPath);
   }
 

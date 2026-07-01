@@ -45,10 +45,6 @@ function getDefaultIntelligenceConfig() {
     };
 }
 
-function isIntelligenceEnabled(config) {
-    return config?.intelligence?.enabled === true;
-}
-
 function getIntelligenceOptions(config) {
     const defaults = getDefaultIntelligenceConfig();
     const intel = config?.intelligence || {};
@@ -133,19 +129,9 @@ function runLocalSlmReview(content, options = {}) {
     });
 }
 
-function resetIntelligenceCacheForTests() {
-    cachedModule = null;
-    loadAttempted = false;
-}
-
 module.exports = {
-    loadIntelligenceModule,
     isIntelligenceAvailable,
-    isIntelligenceEnabled,
     getIntelligenceOptions,
-    getDefaultIntelligenceConfig,
-    scanIntelligenceLayer,
     scanIntelligenceLayerAsync,
-    runLocalSlmReview,
-    resetIntelligenceCacheForTests
+    runLocalSlmReview
 };

@@ -1,5 +1,11 @@
 /**
  * Simplebeacon Stripe billing — Cloud Teams, Enterprise setup/retainer, webhooks.
+ *
+ * REFACTORED: Inline utilities/templates extracted to billing/ sub-modules:
+ *   - billing-utils.cjs        — safeStringify, formatCurrency, pick, omit, groupBy, etc.
+ *   - email-templates.cjs      — TIER_EMAIL_CONFIG, buildTierEmail
+ *   - license-utils.cjs        — resolvePriceId, getStripeClient, validation helpers
+ *   - validate-project-token.cjs — validateProjectToken middleware
  */
 
 const express = require('express');
@@ -32,466 +38,47 @@ const { getTierConfigByPriceId, getTierConfigByProduct } = require('../../server
 const archiver = require('archiver');
 const { PassThrough } = require('stream');
 
-/**
- * Safe stringify.
- * @param {any} obj
- * @param {any} space
- * @returns {any}
- */
-function safeStringify(obj, space = 2) {
-  const seen = new WeakSet();
-  return JSON.stringify(obj, (key, value) => {
-    if (typeof value === 'object' && value !== null) {
-      if (seen.has(value)) return '[Circular]';
-      seen.add(value);
-    }
-    return value;
-  }, space);
-}
+// ── Extracted billing sub-modules ──
+const {
+  safeStringify,
+  safeJsonParse,
+  safeAsync,
+  formatCurrency,
+  formatDateISO,
+  generateInvoiceId,
+  maskEmail,
+  sanitizeFilename,
+  pick,
+  omit,
+  pluck,
+  groupBy,
+  ensureReportDir,
+  streamToBuffer,
+  logBilling,
+  REPORT_STORE_DIR
+} = require('./billing/billing-utils.cjs');
 
-const REPORT_STORE_DIR = process.env.REPORT_STORE_DIR
-  || path.join(process.cwd(), '.simplebeacon', 'report-deliveries');
+const {
+  TIER_EMAIL_CONFIG,
+  buildTierEmail
+} = require('./billing/email-templates.cjs');
 
-// Load universal email template once at startup
-const EMAIL_TEMPLATE_PATH = path.join(__dirname, '..', '..', '..', 'coming-soon', 'email-template-universal.html');
-let emailTemplateHtml = null;
-try {
-  emailTemplateHtml = require('fs').readFileSync(EMAIL_TEMPLATE_PATH, 'utf8');
-} catch {
-  emailTemplateHtml = null;
-}
+const {
+  getAppBaseUrl,
+  getStripeClient,
+  resolvePriceId,
+  isValidPriceId,
+  isValidProductKey,
+  isValidEmail,
+  isValidLicenseTier,
+  VALID_LICENSE_TIERS,
+  checkoutModeForProduct
+} = require('./billing/license-utils.cjs');
 
-const TIER_EMAIL_CONFIG = {
-  instant_report: {
-    headline: 'Your Report is Ready',
-    productName: 'Website Security Report',
-    price: '$19.00',
-    paymentMethod: 'Paid via Stripe',
-    receiptClass: '',
-    primaryCta: 'Download Report →',
-    stepsTitle: "What you get",
-    stepsList: `<li>SEO, SSL, mobile, speed, accessibility, headers audit</li>
-      <li>PDF report delivered instantly — download now</li>
-      <li>No account, no subscription, no recurring fees</li>`,
-    featuresList: `<li>Full website security scan (10+ checks)</li>
-      <li>Executive PDF report</li>
-      <li>Remediation checklist</li>
-      <li>Zero-retention guarantee</li>`,
-    privacyText: 'Your domain and report only exist in server RAM during processing. After download, data is explicitly deleted. We do not store or log it.',
-    supportText: 'Questions about your report? Email',
-    tokenVisible: false,
-    featuresVisible: true,
-    deliveryVisible: false,
-    secondaryVisible: false
-  },
-  executive_clearance: {
-    headline: 'Payment Confirmed',
-    productName: 'Executive Risk Certificate',
-    price: '$499.00',
-    paymentMethod: 'Paid via Stripe',
-    receiptClass: '',
-    primaryCta: 'Upload Report & Generate Certificate →',
-    stepsTitle: 'Next steps',
-    stepsList: `<li>Run <code>npx simplebeacon scan --gate --offline</code> locally</li>
-      <li>Upload the generated <code>.simplebeacon/report.json</code></li>
-      <li>Our analyst reviews and generates your signed certificate</li>
-      <li>Receive your Executive Risk Certificate within 48 hours</li>`,
-    privacyText: 'Your source code never leaves your machine. Only the scan report JSON (findings summary, no code) is uploaded for certificate generation.',
-    supportText: 'Lost your token? Email',
-    tokenVisible: true,
-    featuresVisible: false,
-    deliveryVisible: true,
-    deliveryHeadline: '48-Hour Delivery',
-    deliveryDetail: 'A compliance analyst will review your scan and generate your signed certificate within 2 business days.',
-    secondaryVisible: false
-  },
-  eu_ai_act_sprint: {
-    headline: 'Payment Confirmed',
-    productName: 'EU AI Act Sprint',
-    price: '$2,499.00',
-    paymentMethod: 'Paid via Stripe',
-    receiptClass: '',
-    primaryCta: 'Launch Dashboard →',
-    stepsTitle: 'Self-service workflow',
-    stepsList: `<li>Click the dashboard link above</li>
-      <li>Paste your license token (already filled if you use the link)</li>
-      <li>Upload source code zip or select a local directory</li>
-      <li>The scan runs locally — no code leaves your machine</li>
-      <li>Download your EU AI Act Readiness PDF instantly</li>`,
-    privacyText: 'Your source code never leaves your machine. The scan runs entirely locally in your browser and Node.js process. Only anonymized findings are uploaded for PDF generation.',
-    supportText: 'EU AI Act questions? Email',
-    tokenVisible: true,
-    featuresVisible: false,
-    deliveryVisible: false,
-    secondaryVisible: false
-  },
-  startup_shield: {
-    headline: 'Subscription Active',
-    productName: 'Startup Shield',
-    price: '$49.00 / month',
-    paymentMethod: 'Paid via Stripe',
-    receiptClass: '',
-    primaryCta: 'Upload Report & Generate Certificate →',
-    stepsTitle: 'Getting started',
-    stepsList: `<li>Run <code>npx simplebeacon scan --gate --offline</code> locally</li>
-      <li>Upload the generated <code>.simplebeacon/report.json</code></li>
-      <li>Up to 2,500 pipeline scans per month</li>
-      <li>Install the GitHub Action for automatic PR gating</li>`,
-    privacyText: 'Your source code never leaves your machine. Only the scan report JSON (findings summary, no code) is uploaded for certificate generation.',
-    supportText: 'Questions about your subscription? Email',
-    tokenVisible: true,
-    featuresVisible: false,
-    deliveryVisible: false,
-    secondaryVisible: false
-  },
-  growth_shield: {
-    headline: 'Subscription Active',
-    productName: 'Growth Shield',
-    price: '$149.00 / month',
-    paymentMethod: 'Paid via Stripe',
-    receiptClass: '',
-    primaryCta: 'Upload Report & Generate Certificate →',
-    stepsTitle: 'Getting started',
-    stepsList: `<li>Run <code>npx simplebeacon scan --gate --offline</code> locally</li>
-      <li>Upload the generated <code>.simplebeacon/report.json</code></li>
-      <li>Up to 10,000 pipeline scans per month</li>
-      <li>Configure URL allowlists and EU AI Act rules</li>`,
-    privacyText: 'Your source code never leaves your machine. Only the scan report JSON (findings summary, no code) is uploaded for certificate generation.',
-    supportText: 'Questions about your subscription? Email',
-    tokenVisible: true,
-    featuresVisible: false,
-    deliveryVisible: false,
-    secondaryVisible: false
-  },
-  continuous_shield: {
-    headline: 'Subscription Active',
-    productName: 'Continuous Shield',
-    price: '$1,499.00 / month',
-    paymentMethod: 'Paid via Stripe',
-    receiptClass: 'enterprise',
-    primaryCta: 'Upload Report & Generate Certificate →',
-    stepsTitle: 'Getting started',
-    stepsList: `<li>Run <code>npx simplebeacon scan --gate --offline</code> locally</li>
-      <li>Upload the generated <code>.simplebeacon/report.json</code></li>
-      <li>Generate certificates up to 3 times per month</li>
-      <li>Install the GitHub Action for automatic PR gating</li>`,
-    privacyText: 'Your source code never leaves your machine. Only the scan report JSON (findings summary, no code) is uploaded for certificate generation.',
-    supportText: 'Questions about your subscription? Email',
-    tokenVisible: true,
-    featuresVisible: false,
-    deliveryVisible: false,
-    secondaryVisible: false
-  },
-  runtime_shield: {
-    headline: 'Subscription Active',
-    productName: 'Runtime Shield',
-    price: '$2,999.00 / month',
-    paymentMethod: 'Paid via Stripe',
-    receiptClass: 'enterprise',
-    primaryCta: 'Upload Report & Generate Certificate →',
-    stepsTitle: 'Getting started',
-    stepsList: `<li>Run <code>npx simplebeacon scan --gate --offline</code> locally</li>
-      <li>Upload the generated <code>.simplebeacon/report.json</code></li>
-      <li>Generate certificates up to 5 times per month</li>
-      <li>Install the Runtime Sentinel for live monitoring</li>`,
-    privacyText: 'Your source code never leaves your machine. Only the scan report JSON (findings summary, no code) is uploaded for certificate generation.',
-    supportText: 'Questions about your subscription? Email',
-    tokenVisible: true,
-    featuresVisible: false,
-    deliveryVisible: false,
-    secondaryVisible: false
-  }
-};
+const { validateProjectToken } = require('./billing/validate-project-token.cjs');
 
-/**
- * Build tier email.
- * @param {any} product
- * @param {string} licenseToken
- * @param {string} certUploadUrl
- * @param {string} sessionId
- * @returns {any}
- */
-function buildTierEmail(product, licenseToken, certUploadUrl, sessionId) {
-  if (!emailTemplateHtml) return null;
-  const cfg = TIER_EMAIL_CONFIG[product] || TIER_EMAIL_CONFIG.executive_clearance;
-  const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  const invoiceId = 'INV-' + Math.random().toString(36).substr(2, 9).toUpperCase();
-  const baseUrl = getAppBaseUrl();
 
-  let html = emailTemplateHtml;
-/**
- * R.
- * @param {any} placeholder
- * @param {any} value
- * @returns {any}
- */
-  const r = (placeholder, value) => {
-    html = html.replace(new RegExp(placeholder, 'g'), value || '');
-  };
 
-  r('{{HEADLINE}}', cfg.headline);
-  r('{{PRODUCT_NAME}}', cfg.productName);
-  r('{{PRICE}}', cfg.price);
-  r('{{PAYMENT_METHOD}}', cfg.paymentMethod);
-  r('{{DATE}}', date);
-  r('{{INVOICE_LINE}}', cfg.price === 'Free' ? 'Community Access' : `Invoice #${invoiceId}`);
-  r('{{RECEIPT_CLASS}}', cfg.receiptClass);
-  r('{{LICENSE_TOKEN}}', licenseToken || '');
-  r('{{PRIMARY_URL}}', `${certUploadUrl}?session_id=${sessionId}`);
-  r('{{PRIMARY_CTA}}', cfg.primaryCta);
-  r('{{SECONDARY_URL}}', 'https://github.com/tjp420/simplebeacon/blob/main/docs/ANTI-BLOAT-MANIFESTO.md');
-  r('{{SECONDARY_CTA}}', cfg.secondaryCta || '');
-  r('{{STEPS_TITLE}}', cfg.stepsTitle);
-  r('{{STEPS_LIST}}', cfg.stepsList);
-  r('{{FEATURES_LIST}}', cfg.featuresList || '');
-  r('{{PRIVACY_TEXT}}', cfg.privacyText);
-  r('{{SUPPORT_TEXT}}', cfg.supportText);
-  r('{{DELIVERY_HEADLINE}}', cfg.deliveryHeadline || '');
-  r('{{DELIVERY_DETAIL}}', cfg.deliveryDetail || '');
-
-  // Show/hide sections via CSS class
-  r('{{TOKEN_VISIBLE}}', cfg.tokenVisible ? 'visible' : '');
-  r('{{SECONDARY_VISIBLE}}', cfg.secondaryVisible ? 'visible' : '');
-  r('{{FEATURES_VISIBLE}}', cfg.featuresVisible ? 'visible' : '');
-  r('{{DELIVERY_VISIBLE}}', cfg.deliveryVisible ? 'visible' : '');
-
-  const textLines = [
-    `${cfg.headline} — ${cfg.productName}`,
-    '',
-    `Price: ${cfg.price}`,
-    cfg.tokenVisible ? `Token: ${licenseToken}` : '',
-    '',
-    `${cfg.stepsTitle}:`,
-    cfg.stepsList.replace(/<[^>]*>/g, ''),
-    '',
-    `Dashboard: ${certUploadUrl}?session_id=${sessionId}`,
-    '',
-    cfg.privacyText
-  ].filter(Boolean).join('\n');
-
-  return { html, text: textLines };
-}
-
-/**
- * Ensure report dir.
- * @returns {any}
- */
-function ensureReportDir() {
-  const fs = require('fs');
-  if (!fs.existsSync(REPORT_STORE_DIR)) {
-    fs.mkdirSync(REPORT_STORE_DIR, { recursive: true });
-  }
-}
-
-/**
- * Stream to buffer.
- * @param {string} stream
- * @returns {any}
- */
-function streamToBuffer(stream) {
-  return new Promise((resolve, reject) => {
-    const chunks = [];
-    stream.on('data', (chunk) => chunks.push(chunk));
-    stream.on('end', () => resolve(Buffer.concat(chunks)));
-    stream.on('error', reject);
-  });
-}
-
-const TEAMS_MONTHLY_LABEL = '$49/month';
-const TEAMS_ANNUAL_LABEL = '$390/year';
-
-/**
- * Get app base url.
- * @returns {any}
- */
-function getAppBaseUrl() {
-  return (
-    process.env.SIMPLEBEACON_APP_URL ||
-    process.env.PUBLIC_APP_URL ||
-    `http://localhost:${process.env.PORT || 54355}`
-  ).replace(/\/$/, '');
-}
-
-/**
- * Get stripe client.
- * @returns {any}
- */
-function getStripeClient() {
-  const secret = process.env.STRIPE_SECRET_KEY;
-  if (!secret) return null;
-  return Stripe(secret);
-}
-
-/**
- * Resolve price id.
- * @param {any} product
- * @returns {any}
- */
-function resolvePriceId(product) {
-  const map = {
-    // --- New 4-tier model ---
-    startup_monthly:
-      process.env.STRIPE_PRICE_ID_STARTUP_MONTHLY ||
-      process.env.SIMPLEBEACON_STARTUP_PRICE_ID,
-    startup_annual:
-      process.env.STRIPE_PRICE_ID_STARTUP_ANNUAL ||
-      process.env.SIMPLEBEACON_STARTUP_ANNUAL_PRICE_ID,
-    growth_monthly:
-      process.env.STRIPE_PRICE_ID_GROWTH_MONTHLY ||
-      process.env.SIMPLEBEACON_GROWTH_PRICE_ID,
-    growth_annual:
-      process.env.STRIPE_PRICE_ID_GROWTH_ANNUAL ||
-      process.env.SIMPLEBEACON_GROWTH_ANNUAL_PRICE_ID,
-    // --- Legacy mappings ---
-    teams_monthly:
-      process.env.STRIPE_PRICE_ID_TEAMS_MONTHLY ||
-      process.env.STRIPE_PRICE_ID ||
-      process.env.SIMPLEBEACON_PRO_PRICE_ID,
-    teams_annual:
-      process.env.STRIPE_PRICE_ID_TEAMS_ANNUAL ||
-      process.env.STRIPE_ANNUAL_PRICE_ID ||
-      process.env.SIMPLEBEACON_ANNUAL_PROMOTION_ID,
-    executive_clearance:
-      process.env.STRIPE_PRICE_ID_EXECUTIVE_CLEARANCE ||
-      process.env.SIMPLEBEACON_EXECUTIVE_CLEARANCE_ID,
-    instant_report:
-      process.env.STRIPE_PRICE_ID_INSTANT_REPORT ||
-      process.env.SIMPLEBEACON_INSTANT_REPORT_ID,
-    eu_ai_act_sprint:
-      process.env.STRIPE_PRICE_ID_EU_AI_ACT_SPRINT ||
-      process.env.SIMPLEBEACON_EU_AI_ACT_SPRINT_ID,
-    continuous_shield:
-      process.env.STRIPE_PRICE_ID_CONTINUOUS_SHIELD ||
-      process.env.SIMPLEBEACON_CONTINUOUS_SHIELD_ID,
-    runtime_shield:
-      process.env.STRIPE_PRICE_ID_RUNTIME_SHIELD ||
-      process.env.SIMPLEBEACON_RUNTIME_SHIELD_ID
-  };
-  return map[product] || null;
-}
-
-/**
- * Checkout mode for product.
- * @param {any} product
- * @returns {any}
- */
-function checkoutModeForProduct(product) {
-  const oneTimeProducts = ['executive_clearance', 'instant_report', 'eu_ai_act_sprint'];
-  return oneTimeProducts.includes(product) ? 'payment' : 'subscription';
-}
-
-/**
- * Billing disabled response.
- * @param {Array} res
- * @returns {any}
- */
-function billingDisabledResponse(res) {
-  return res.status(503).json({
-    error: 'billing_unavailable',
-    message: 'Monetization is disabled or Stripe is not configured.',
-    enabled: isMonetizationEnabled()
-  });
-}
-
-/**
- * Build plan payload.
- * @returns {any}
- */
-function buildPlanPayload() {
-  const startupMonthlyId = resolvePriceId('startup_monthly');
-  const growthMonthlyId = resolvePriceId('growth_monthly');
-
-  return {
-    enabled: isMonetizationEnabled(),
-    internalDashboard: process.env.SIMPLEBEACON_INTERNAL_DASHBOARD === 'true',
-    calendlyUrl: process.env.SIMPLEBEACON_CALENDLY_URL || '',
-    foundingMember: {
-      slots: Number(process.env.SIMPLEBEACON_FOUNDING_SLOTS || 50),
-      label: 'Founding Member Launch',
-      active: process.env.SIMPLEBEACON_FOUNDING_LAUNCH !== 'false'
-    },
-    tiers: {
-      developer: {
-        price: '$0',
-        name: 'Developer',
-        model: 'Free / Open Source',
-        audience: 'Individual Developers',
-        features: [
-          'Simplebeacon CLI (local scanning)',
-          'Up to 100 local scans per month',
-          'Up to 50 files per scan',
-          '24 IDE rules (real-time)',
-          'Text output only',
-          'Privacy-blind --anonymize mode'
-        ]
-      },
-      startup: {
-        name: 'Startup Shield',
-        priceLabel: '$49 / month',
-        model: 'Subscription (Metered)',
-        audience: 'Small Teams (1-10 devs)',
-        checkoutProduct: 'startup_shield',
-        configured: Boolean(startupMonthlyId),
-        features: [
-          'Up to 2,500 pipeline scans per month',
-          'Unlimited files per scan',
-          '38 IDE rules + 38 CLI modules',
-          'Custom scanner toggles (config-as-code)',
-          'GitHub Action CI gate',
-          'JSON + Markdown exports with actionable summary',
-          'Priority email support'
-        ]
-      },
-      growth: {
-        name: 'Growth Shield',
-        priceLabel: '$149 / month',
-        model: 'Subscription (Metered)',
-        audience: 'Scaling Engineering Teams',
-        checkoutProduct: 'growth_shield',
-        configured: Boolean(growthMonthlyId),
-        features: [
-          'Up to 10,000 pipeline scans per month',
-          'Everything in Startup',
-          'URL allowlist for internal APIs',
-          'EU AI Act compliance rules',
-          'Advanced JSON export with actionable summary',
-          'Priority support + Slack channel'
-        ]
-      },
-      enterprise: {
-        name: 'Enterprise Compliance Suite',
-        priceLabel: 'Custom',
-        model: 'Annual Contract',
-        audience: 'Large Corporations',
-        checkoutProduct: 'compliance_suite',
-        configured: Boolean(resolvePriceId('price_enterprise_annual')),
-        features: [
-          'Unlimited scans',
-          'Everything in Growth',
-          '60+ analyzer engines (full suite)',
-          'Team management (5+ seats)',
-          'SSO / SAML authentication',
-          'Custom rule development',
-          'Self-hosted / air-gapped option',
-          'Dedicated support + SLA'
-        ]
-      }
-    },
-    // Legacy fields consumed by older clients
-    priceLabel: TEAMS_MONTHLY_LABEL,
-    tiersLegacy: {
-      paid: {
-        price: TEAMS_MONTHLY_LABEL,
-        features: [
-          'Dashboard + scan history',
-          'Compliance Audit dashboard',
-          'Analyze dashboard + assessments UI',
-          'JSON exports + API quota'
-        ]
-      }
-    }
-  };
-}
 
 /**
  * Setup simplebeacon billing webhook.
@@ -745,10 +332,6 @@ function setupSimplebeaconBillingWebhook(app) {
  * @returns {any}
  */
 function setupSimplebeaconBillingRoutes(app) {
-  app.get('/api/simplebeacon/billing/plan', (_req, res) => {
-    res.json(buildPlanPayload());
-  });
-
   app.get('/api/simplebeacon/billing/status', async (req, res) => {
     const email = normalizeEmail(req.query.email);
     if (!email) {
@@ -1563,43 +1146,10 @@ Upload your scan at: ${certUploadUrl}
   });
 }
 
-/**
- * Middleware: validates a SimpleBeacon license token (project-bound, time-bound).
- * Checks token signature, expiry, and attaches project context to req.
- */
-function validateProjectToken(req, res, next) {
-    const authHeader = String(req.headers.authorization || '');
-  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : (req.body?.licenseToken || req.query?.licenseToken || '');
-
-  if (!token) {
-    return res.status(401).json({ error: 'missing_token', message: 'License token required. Paste the token from your payment email.' });
-  }
-
-  const payload = verifyLicenseToken(token, process.env.SIMPLEBEACON_LICENSE_SECRET || 'simplebeacon-dev-insecure');
-  if (!payload) {
-    return res.status(403).json({ error: 'invalid_token', message: 'License token is invalid or expired.' });
-  }
-
-  // Attach project context for downstream handlers
-  req.licensePayload = payload;
-  req.projectContext = {
-    email: payload.email,
-    tier: payload.tier,
-    product: payload.product,
-    features: payload.features || [],
-    projectName: payload.projectName || 'default-project',
-    clientName: payload.clientName || payload.email,
-    issuedAt: payload.iat,
-    expiresAt: payload.exp
-  };
-
-  next();
-}
 
 module.exports = {
   setupSimplebeaconBillingWebhook,
   setupSimplebeaconBillingRoutes,
-  buildPlanPayload,
   resolvePriceId,
   validateProjectToken
 };

@@ -16,6 +16,7 @@ const fs = require('fs');
 const path = require('path');
 const { validateLicenseToken, resolveLicenseToken } = require('./license-token');
 
+// Local development fallback only — never used in production
 const SECRET = process.env.SIMPLEBEACON_LICENSE_SECRET || 'simplebeacon-dev-insecure';
 
 /* ────────────────────────────────────────────────────────────────────────── */
@@ -55,6 +56,11 @@ const PILLARS = {
 
 const SEVERITY_MULTIPLIERS = { critical: 4.0, high: 2.5, medium: 1.0, low: 0.25 };
 
+/**
+ * Classify a scan issue into one of the four compliance pillars.
+ * @param {Object} issue
+ * @returns {string} pillar key (slop | leak | shadowAi | licensing)
+ */
 function classifyIssue(issue) {
     const type = (issue.type || '').toLowerCase();
     const desc = (issue.description || '').toLowerCase();
@@ -72,6 +78,11 @@ function classifyIssue(issue) {
     return 'slop';
 }
 
+/**
+ * Build a risk profile aggregating findings by pillar and severity.
+ * @param {Object} report
+ * @returns {Object}
+ */
 function buildRiskProfile(report) {
     const detectedIssues = report.detectedIssues || [];
     const profile = {
@@ -91,6 +102,11 @@ function buildRiskProfile(report) {
     return profile;
 }
 
+/**
+ * Compute estimated financial liability from a risk profile.
+ * @param {Object} profile
+ * @returns {{total:number, breakdown:Array<{pillar:string, amount:number, count:number}>}}
+ */
 function computeFinancialLiability(profile) {
     let total = 0;
     const breakdown = [];
@@ -108,6 +124,11 @@ function computeFinancialLiability(profile) {
     return { total, breakdown };
 }
 
+/**
+ * Compute a compliance grade (A–F) from a risk profile.
+ * @param {Object} profile
+ * @returns {{score:number, grade:string, tier:string, color:string, totalFindings:number}}
+ */
 function computeComplianceGrade(profile) {
     let totalFindings = 0;
     let weightedScore = 100;
@@ -143,6 +164,12 @@ function validateLicense() {
 /*  HTML Builder — CCO-grade Executive Risk Certificate                      */
 /* ────────────────────────────────────────────────────────────────────────── */
 
+/**
+ * Build the CCO-grade Executive Risk Certificate HTML.
+ * @param {Object} report
+ * @param {Object} licenseClaims
+ * @returns {string} HTML string
+ */
 function buildExecutiveHtml(report, licenseClaims) {
     const profile = buildRiskProfile(report);
     const liability = computeFinancialLiability(profile);
@@ -254,7 +281,7 @@ function buildExecutiveHtml(report, licenseClaims) {
             Compliance Score: ${grade.score}%
         </div>
     </div>
-    <div class="score-card"><h3>Files Scanned</h3><p>${report.repositoryFilesTotal || '—'}</p></div>
+    <div class="score-card"><h3>Files Scanned</h3><p>${report.repositoryFilesTotal ?? '—'}</p></div>
     <div class="score-card"><h3>Total Findings</h3><p>${grade.totalFindings}</p></div>
     <div class="score-card"><h3>Gate Status</h3><p style="color:${gate.pass ? '#0f5132' : '#842029'}">${gate.pass ? 'PASS' : 'FAIL'}</p></div>
 </div>
@@ -291,6 +318,12 @@ ${remediationSteps.length > 0 ? remediationSteps.join('') : '<p>No remediation r
 /*  Public API                                                                */
 /* ────────────────────────────────────────────────────────────────────────── */
 
+/**
+ * Generate an Executive Risk Certificate from a scan report.
+ * @param {string} reportPath
+ * @param {string} outputPath
+ * @returns {Promise<{ok:boolean, htmlPath?:string, message?:string, error?:string}>}
+ */
 async function generateExecutivePdf(reportPath, outputPath) {
     const license = validateLicense();
     if (!license.valid) {
@@ -312,7 +345,11 @@ async function generateExecutivePdf(reportPath, outputPath) {
 
     const html = buildExecutiveHtml(report, license.claims);
     const resolvedOutput = path.resolve(outputPath || 'simplebeacon-executive-risk-certificate.html');
-    await fs.promises.writeFile(resolvedOutput, html, 'utf8');
+    try {
+        await fs.promises.writeFile(resolvedOutput, html, 'utf8');
+    } catch (err) {
+        return { ok: false, error: `Failed to write output: ${err.message}` };
+    }
 
     return {
         ok: true,

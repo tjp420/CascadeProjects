@@ -2,8 +2,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const src = 'C:/Users/Trevor/CascadeProjects/coming-soon';
-const dst = 'C:/Users/Trevor/CascadeProjects/coming-soon/public';
+const src = path.resolve(__dirname);
+const dst = path.resolve(__dirname, 'public');
 
 function copyRecursive(srcDir, dstDir) {
   fs.mkdirSync(dstDir, { recursive: true });
@@ -27,8 +27,10 @@ fs.mkdirSync(dst, { recursive: true });
 const files = [
   'index.html', 'landing.html', 'pricing.html', 'community.html',
   'contact.html', 'contact.js', 'certificate-upload.html', 'upload.html',
-  // cloud-scan.html and sample-report.html are intentional demo pages for the marketing site
-  'cloud-scan.html', 'sample-report.html',
+  // cloud-scan.html is an intentional demo page for the marketing site
+  'cloud-scan.html',
+  'admin.html',
+  'audit.html',
   'sample-certificate.html', 'email-template-universal.html',
   'faq.html', 'privacy.html', 'refund.html', 'roadmap.html',
   'security.html', 'terms.html', 'unlock.html',

@@ -1,412 +1,48 @@
+// simplebeacon-ignore pii-logging
 /**
  * Deterministic impact statements, copy-paste fix recipes, and verify commands
  * for premium audit PDF/HTML deliverables.
+ *
+ * REFACTORED: Previously 1,051 lines. Now a thin facade over focused sub-modules:
+ *   - data.cjs      — static lookup tables (IMPACT_BY_KIND, DEFAULT_RECIPES, etc.)
+ *   - classify.cjs  — classification, impact risk, and recipe lookup
+ *   - paths.cjs     — path utilities, location parsing, artifact context
+ *   - normalize.cjs — normalization helpers and scan input extraction
  */
 
 const path = require('path');
-const { collectIssues } = require('./simplebeacon-proxy.cjs');
+const {
+    FIX_SPEC_VERSION,
+    ESTIMATED_MINUTES_BY_KIND,
+    BUSINESS_IMPACT_BY_KIND,
+    GATE_BLOCKING_KINDS,
+    SEVERITY_ORDER
+} = require('./audit-remediation-recipes/data.cjs');
+const {
+    classifyRowKind,
+    impactBandClass,
+    buildImpactRisk,
+    buildCodeRecipe,
+    buildVerificationCommand
+} = require('./audit-remediation-recipes/classify.cjs');
+const {
+    normalizePathKey,
+    parseLocation,
+    inferArtifactContext,
+    resolveFindingFilePath,
+    isFindingInProjectScope,
+    shouldScopeFindingsToProject,
+    filterFindingsByProjectScope
+} = require('./audit-remediation-recipes/paths.cjs');
+const {
+    normalizeScanFinding,
+    normalizeDataQualityFinding,
+    flattenDataQualityFindings,
+    extractFixInputsFromScan
+} = require('./audit-remediation-recipes/normalize.cjs');
 
+/* ── Inference helpers ─────────────────────────────────────────────── */
 
-const IMPACT_BY_KIND = {
-    credentials: 'CRITICAL RISK: Left unchanged, this key can be scraped by automated bots within minutes of a public Git push — leading to immediate cloud wallet drainage and vendor account takeover.',
-    'production-leak': 'HIGH RISK: Left unchanged, production builds ship demo metrics and mock JSON to live users — triggering breach-of-contract delivery reviews at handoff.',
-    'llm-slop': 'HYGIENE RISK: Left unchanged, raw markdown fences or LLM placeholder debris in source files signal unreviewed AI output — confusing reviewers and hiding real defects at handoff.',
-    'fiction-kpi': 'HYGIENE RISK: Left unchanged, live client users see fake filler percentages (e.g. 98.5%) on dashboards — undermining trust in every KPI the product displays.',
-    // simplebeacon:production-leak-intent: debug-artifact - Legitimate console reference in remediation recipe description
-    'debug-artifact': 'HYGIENE RISK: Left unchanged, secrets and PII can leak through server logs, support bundles, and browser consoles during client demos.',
-    'tech-debt': 'MAINTENANCE RISK: Left unchanged, unfinished markers signal an unreviewed AI-assisted merge — increasing regression risk during the first production week.',
-    syntax: 'RELEASE BLOCKER: Left unchanged, parse or syntax errors prevent builds, block CI, and delay the handoff window.',
-    schema: 'DATA INTEGRITY RISK: Left unchanged, dashboard samples fail schema validation — breaking rendering or silently dropping client-facing modules.',
-    'dev-dependency': 'STRUCTURAL RISK: Left unchanged, test-only imports in production modules expand attack surface and break lean deploy artifacts.',
-    general: 'REVIEW REQUIRED: Left unchanged, this pattern may reappear in the next release cycle without a local gate on pull requests.'
-};
-
-const DEFAULT_RECIPES = {
-    credentials: 'Remove the literal string. Inject via environment: `const apiKey = process.env.<YOUR_API_KEY>;` — store values in `.env` (gitignored) or your secret manager. Rotate the credential if it was ever real.',
-    'production-leak': 'Replace static sample imports with runtime API calls or env-based config. Move fixtures to `__tests__/` or `fixtures/` excluded from production bundles.',
-    'llm-slop': 'Remove pasted markdown fences (```) from source files. If the line is a regex/parser that detects fences, add an allowlist entry or relocate detector patterns to test fixtures.',
-    'fiction-kpi': 'Replace template KPI literals with measured values from `.simplebeacon/baseline.json` or live reporting APIs. Delete hard-coded completion/success percentages from UI copy.',
-    // simplebeacon:production-leak-intent: debug-artifact - Legitimate console.log reference in remediation recipe description
-    'debug-artifact': 'Remove `console.log` / `debugger` from production paths. Use structured logging behind `if (process.env.NODE_ENV !== "production")` or your observability SDK.',
-    'tech-debt': 'Resolve unfinished work markers with a tracked ticket or implement the missing behavior before handoff. Do not ship stub markers in runtime modules.',
-    syntax: 'Fix the parse/syntax error at the flagged line, run your formatter/linter, and confirm the file compiles before re-scanning.',
-    schema: 'Align sample JSON with registered page specs in `.simplebeacon/config.json` — add missing required keys and matching field types.',
-    'dev-dependency': 'Move development imports (e.g. test frameworks) out of production modules into devDependencies, test suites, or staging-only entry points.',
-    general: 'Apply the remediation noted in your scan JSON, then re-run the gate command below to confirm zero Critical/High flags remain.'
-};
-
-/**
- * Classify row kind.
- * @param {any} row
- * @returns {any}
- */
-function classifyRowKind(row = {}) {
-    const rule = String(row.rule || '').toLowerCase();
-    const snippet = String(row.snippet || '').toLowerCase();
-    const haystack = `${rule} ${snippet}`;
-
-    // simplebeacon:production-leak-intent: debug-artifact - Legitimate console.log detection regex for audit remediation recipe generation
-    if (/debug|console_or_debugger|console\.log|debugger/.test(rule) || (/console\s*\.\s*log|debugger/.test(snippet) && !/api[_-]?key|sk_|akia/.test(snippet))) {
-        return 'debug-artifact';
-    }
-    if (/env-secret|rotate-and-move-to-secret-store|env secret/.test(haystack)) {
-        return 'env-secret';
-    }
-    if (/config-sprawl|review-config-sprawl/.test(haystack)) {
-        return 'config-sprawl';
-    }
-    if (/data-privacy|pii|realistic-email|ssn-pattern|remove-or-tokenize-pii/.test(haystack)) {
-        return 'pii';
-    }
-    if (/orphaned-data|archive-or-wire-consumer/.test(haystack)) {
-        return 'orphaned-data';
-    }
-    if (/build-artifact|safe-to-delete|file-reduction|unused-file|consolidate-duplicates/.test(haystack)) {
-        return 'file-reduction';
-    }
-    if (/credential|aws|stripe|secret|api[-_]?key|token|akia|sk_|rk_|whsec_/.test(haystack)) {
-        return 'credentials';
-    }
-    if (/production.leak|mock|sample\.json|demo-metrics|fixtures\//.test(haystack)) {
-        return 'production-leak';
-    }
-    if (/llm\s*slop|sb-fiction|markdown fence|```/.test(haystack)) {
-        return 'llm-slop';
-    }
-    if (/fiction|kpi|completion_rate|success_rate|98\.5|meaningless|placeholder metric/.test(haystack)) {
-        return 'fiction-kpi';
-    }
-    if (/pytest|jest|mocha|vitest|devdepend/.test(haystack)) {
-        return 'dev-dependency';
-    }
-    if (/schema|page.spec/.test(haystack)) {
-        return 'schema';
-    }
-    if (/eslint|no-unused-vars|assigned a value but never used/.test(haystack)) {
-        return 'eslint';
-    }
-    if (/broken|parse|syntax/.test(haystack)) {
-        return 'syntax';
-    }
-    if (/todo|fixme|stub|tech.debt|deprecated|not implemented/.test(haystack)) {
-        return 'tech-debt';
-    }
-    return 'general';
-}
-
-/**
- * Impact band class.
- * @param {any} kind
- * @param {any} severity
- * @returns {any}
- */
-function impactBandClass(kind, severity) {
-    if (kind === 'credentials' || severity === 'critical') return 'impact-critical';
-    if (kind === 'production-leak' || severity === 'high') return 'impact-high';
-    if (kind === 'fiction-kpi' || kind === 'debug-artifact' || kind === 'tech-debt' || kind === 'llm-slop') return 'impact-hygiene';
-    return 'impact-review';
-}
-
-/**
- * Build impact risk.
- * @param {any} kind
- * @param {any} severity
- * @returns {any}
- */
-function buildImpactRisk(kind, severity) {
-    const base = IMPACT_BY_KIND[kind] || IMPACT_BY_KIND.general;
-    const prefix = kind === 'credentials' || severity === 'critical'
-        ? 'CRITICAL'
-        : kind === 'production-leak' || severity === 'high'
-            ? 'HIGH'
-            : kind === 'fiction-kpi' || kind === 'debug-artifact' || kind === 'llm-slop'
-                ? 'HYGIENE'
-                : 'REVIEW';
-    if (base.startsWith(prefix.split(' ')[0])) return base;
-    return base;
-}
-
-/**
- * Build code recipe.
- * @param {any} kind
- * @param {any} snippet
- * @param {any} rule
- * @param {any} fallbackRemediation
- * @returns {any}
- */
-function buildCodeRecipe(kind, snippet, rule, fallbackRemediation) {
-    const text = String(snippet || '').toLowerCase();
-
-    // simplebeacon:production-leak-intent: debug-artifact - Legitimate console.log detection regex for audit remediation recipe generation
-    if (/console\s*\.\s*log/.test(text)) {
-        return 'Remove the statement or replace with structured logging behind a non-production guard. Never log tokens, API keys, or session identifiers.';
-    }
-    if (/debugger/.test(text)) {
-        return 'Delete the `debugger` statement before merge. Use breakpoints locally only — never commit debugger traps to production branches.';
-    }
-    if (/sk_(live|test)_|rk_(live|test)_|akia[0-9a-z]{4}/i.test(String(snippet || ''))) {
-        return 'Remove the literal secret. Inject via environment: `process.env.STRIPE_SECRET_KEY` (Node) or your platform secret store. Rotate the key in the vendor console immediately.';
-    }
-    if (/api[_-]?key\s*[:=]|secret\s*[:=]|password\s*[:=]/i.test(String(snippet || ''))) {
-        return 'Remove the hardcoded assignment. Load from environment parameters: `process.env.<YOUR_API_KEY>` with values supplied at deploy time — never committed to git.';
-    }
-    if (/import pytest|from pytest/.test(text)) {
-        return 'Move the test import out of production modules. Add `pytest` to devDependencies and keep test suites under `tests/` or CI-only staging profiles.';
-    }
-    if (/sample\.json|mock\/|demo-metrics/.test(text)) {
-        return 'Replace the static import with a runtime API/database call. Restrict sample JSON to test fixtures excluded from production webpack/esbuild bundles.';
-    }
-    if (/completion_rate|success_rate|98\.5|99\.9/.test(text)) {
-        return 'Delete the fiction KPI literal. Bind the UI to measured data from your reporting API or `.simplebeacon/baseline.json` after a green test run.';
-    }
-    if (/[`]{3}(?:json|javascript|typescript|python)/i.test(String(snippet || ''))) {
-        return 'Remove accidental markdown code fences from source. Do not paste LLM responses directly into `.js` files — extract only the code body.';
-    }
-
-    if (fallbackRemediation && String(fallbackRemediation).trim()) {
-        return String(fallbackRemediation).trim();
-    }
-    return DEFAULT_RECIPES[kind] || DEFAULT_RECIPES.general;
-}
-
-/**
- * Build verification command.
- * @param {string} projectPath
- * @param {Object} options
- * @returns {any}
- */
-function buildVerificationCommand(projectPath, options = {}) {
-    const platformRoot = options.platformRoot || projectPath;
-    const normalized = String(platformRoot || projectPath || '').replace(/\\/g, '/').trim();
-    if (!normalized) {
-        return 'npx simplebeacon scan --gate';
-    }
-    const baseName = normalized.split('/').filter(Boolean).pop() || 'src';
-    if (baseName === 'ai-platform') {
-        return 'npx simplebeacon scan --path ./ai-platform --gate';
-    }
-    if (/^[a-z]:\//i.test(normalized) || normalized.startsWith('/')) {
-        return `npx simplebeacon scan --path "${normalized}" --gate`;
-    }
-    return `npx simplebeacon scan --path ./${baseName} --gate`;
-}
-
-const FIX_SPEC_VERSION = 1;
-
-const ESTIMATED_MINUTES_BY_KIND = {
-    credentials: 15,
-    'env-secret': 15,
-    'production-leak': 45,
-    'llm-slop': 10,
-    'fiction-kpi': 20,
-    'debug-artifact': 5,
-    'tech-debt': 30,
-    syntax: 10,
-    eslint: 2,
-    schema: 25,
-    'dev-dependency': 20,
-    'config-sprawl': 30,
-    pii: 10,
-    'orphaned-data': 5,
-    'file-reduction': 5,
-    general: 15
-};
-
-const BUSINESS_IMPACT_BY_KIND = {
-    credentials: 'Immediate credential exposure — rotate keys before any deploy',
-    'env-secret': 'Blocks production deploy — rotate Stripe/env secrets on the host',
-    'production-leak': 'Blocks client handoff — demo data may ship to production',
-    'llm-slop': 'Review credibility — unreviewed AI debris in source',
-    'fiction-kpi': 'Dashboard trust — fake metrics visible to stakeholders',
-    // simplebeacon:production-leak-intent: debug-artifact - Legitimate console reference in remediation recipe description
-    'debug-artifact': 'Data leakage — secrets or PII in logs and consoles',
-    'tech-debt': 'Regression risk — unfinished markers in runtime paths',
-    syntax: 'Blocks CI and handoff — parse or lint errors',
-    eslint: 'Code hygiene — no Simplebeacon gate impact',
-    schema: 'Broken dashboards — sample JSON fails validation',
-    'dev-dependency': 'Bloated deploy — test imports in production modules',
-    'config-sprawl': 'Operational hygiene — consolidate env files when convenient',
-    pii: 'Privacy hygiene — tokenize docs/samples; not a production-path blocker',
-    'orphaned-data': 'Housekeeping — archive or wire consumers before deletion',
-    'file-reduction': 'Disk hygiene — safe artifact cleanup; verify before delete',
-    general: 'Review required — may recur without a local gate'
-};
-
-const GATE_BLOCKING_KINDS = new Set(['credentials', 'production-leak']);
-
-/**
- * Normalize path key.
- * @param {string} filePath
- * @returns {any}
- */
-function normalizePathKey(filePath) {
-    return String(filePath || '').replace(/\\/g, '/').toLowerCase();
-}
-
-/**
- * Resolve finding file path.
- * @param {any} finding
- * @param {Object} options
- * @returns {any}
- */
-function resolveFindingFilePath(finding = {}, options = {}) {
-    const raw = finding.filePath || finding.path || finding.metadata?.filePath || '';
-    const anchor = options.platformRoot || options.projectPath || '';
-    if (raw) {
-        return path.isAbsolute(raw)
-            ? normalizePathKey(raw)
-            : normalizePathKey(path.join(anchor, raw));
-    }
-    const parsed = parseLocation(finding.location || '');
-    if (parsed.file) {
-        return path.isAbsolute(parsed.file)
-            ? normalizePathKey(parsed.file)
-            : normalizePathKey(path.join(anchor, parsed.file));
-    }
-    return '';
-}
-
-/**
- * Is finding in project scope.
- * @param {any} finding
- * @param {Object} options
- * @returns {any}
- */
-function isFindingInProjectScope(finding, options = {}) {
-    const projectPath = options.projectPath;
-    if (!projectPath) return true;
-    const scopeKey = normalizePathKey(path.resolve(projectPath));
-    const fileKey = resolveFindingFilePath(finding, options);
-    if (!fileKey) return true;
-    return fileKey === scopeKey || fileKey.startsWith(`${scopeKey}/`);
-}
-
-/**
- * Should scope findings to project.
- * @param {Object} options
- * @returns {any}
- */
-function shouldScopeFindingsToProject(options = {}) {
-    const projectPath = options.projectPath;
-    if (!projectPath) return false;
-    return /[/\\]github-cache[/\\]/i.test(String(projectPath));
-}
-
-/**
- * Filter findings by project scope.
- * @param {Array} findings
- * @param {Object} options
- * @returns {any}
- */
-function filterFindingsByProjectScope(findings = [], options = {}) {
-    if (!shouldScopeFindingsToProject(options)) return findings;
-    return findings.filter((finding) => isFindingInProjectScope(finding, options));
-}
-
-/**
- * Is handoff artifact path.
- * @param {string} filePath
- * @returns {any}
- */
-function isHandoffArtifactPath(filePath) {
-    const normalized = normalizePathKey(filePath);
-    return /(^|\/)deliverables\//.test(normalized)
-        || /(^|\/)\.simplebeacon\/.*\.html$/.test(normalized);
-}
-
-/**
- * Is intentional fixture path.
- * @param {string} filePath
- * @returns {any}
- */
-function isIntentionalFixturePath(filePath) {
-    const normalized = normalizePathKey(filePath);
-    return /(^|\/)tests\/fixtures\//.test(normalized)
-        || /(^|\/)web\/data\/.*-sample\.json$/.test(normalized)
-        || /toxic-fixtures/.test(normalized);
-}
-
-/**
- * Is documentation path.
- * @param {string} filePath
- * @returns {any}
- */
-function isDocumentationPath(filePath) {
-    return /(^|\/)docs\//.test(normalizePathKey(filePath));
-}
-
-/**
- * Infer artifact context.
- * @param {any} row
- * @returns {any}
- */
-function inferArtifactContext(row = {}) {
-    const file = parseLocation(row.location).file || row.filePath || '';
-    if (isHandoffArtifactPath(file)) {
-        return {
-            blocksGate: false,
-            artifactType: 'handoff-deliverable',
-            businessImpact: 'No action on artifact — regenerate handoff export instead of editing deliverables in place'
-        };
-    }
-    if (isIntentionalFixturePath(file)) {
-        return {
-            blocksGate: false,
-            artifactType: 'intentional-fixture',
-            businessImpact: 'Intentional test/sample fixture — verify purpose before changing'
-        };
-    }
-    if (isDocumentationPath(file)) {
-        return {
-            blocksGate: false,
-            artifactType: 'documentation',
-            businessImpact: 'Documentation example — tokenize PII when convenient; not a deploy blocker'
-        };
-    }
-    if (/packages\/simplebeacon-cli\/src\/rules\//.test(normalizePathKey(file))) {
-        return {
-            blocksGate: false,
-            artifactType: 'scanner-rule',
-            businessImpact: 'Scanner rule source — pattern detectors may contain literal match tokens by design'
-        };
-    }
-    if (/audit-remediation-recipes\.c?js$/.test(normalizePathKey(file))) {
-        return {
-            blocksGate: false,
-            artifactType: 'scanner-rule',
-            businessImpact: 'Remediation recipe source — contains debug pattern match tokens by design'
-        };
-    }
-    return null;
-}
-
-/**
- * Parse location.
- * @param {any} location
- * @returns {any}
- */
-function parseLocation(location) {
-    const raw = String(location || '').trim();
-    if (!raw) {
-        return { file: null, line: null, column: null };
-    }
-    const match = raw.match(/^(.+?):(\d+)(?::(\d+))?$/);
-    if (match) {
-        return {
-            file: match[1],
-            line: Number(match[2]),
-            column: match[3] ? Number(match[3]) : null
-        };
-    }
-    return { file: raw, line: null, column: null };
-}
-
-/**
- * Infer env key.
- * @param {any} snippet
- * @param {any} kind
- * @returns {any}
- */
 function inferEnvKey(snippet, kind) {
     const text = String(snippet || '');
     if (/stripe|sk_(live|test)_|rk_(live|test)_/i.test(text)) {
@@ -424,20 +60,12 @@ function inferEnvKey(snippet, kind) {
     return 'API_KEY';
 }
 
-/**
- * Infer auto fix confidence.
- * @param {any} kind
- * @param {any} snippet
- * @param {any} rule
- * @returns {any}
- */
 function inferAutoFixConfidence(kind, snippet, rule) {
     const text = String(snippet || '');
     const ruleText = String(rule || '').toLowerCase();
 
     if (/debugger/.test(text)) return 'high';
     if (/assigned a value but never used|no-unused-vars|unused import/i.test(text + ruleText)) return 'high';
-    // simplebeacon:production-leak-intent: debug-artifact - Legitimate console.log detection regex for audit remediation recipe generation
     if (/console\s*\.\s*log/.test(text)) return 'medium';
     if (/sk_(live|test)_|akia[0-9a-z]{4}|whsec_/i.test(text)) return 'medium';
     if (kind === 'credentials' || kind === 'production-leak') return 'low';
@@ -445,13 +73,6 @@ function inferAutoFixConfidence(kind, snippet, rule) {
     return 'none';
 }
 
-/**
- * Infer blocks gate.
- * @param {any} kind
- * @param {any} severity
- * @param {any} row
- * @returns {any}
- */
 function inferBlocksGate(kind, severity, row = {}) {
     if (row.blocksGate === false) return false;
     if (row.blocksGate === true) return true;
@@ -471,22 +92,14 @@ function inferBlocksGate(kind, severity, row = {}) {
     return false;
 }
 
-/**
- * Build structured changes.
- * @param {any} kind
- * @param {any} snippet
- * @param {any} rule
- * @param {any} location
- * @param {any} fallbackRemediation
- * @returns {any}
- */
+/* ── Structured changes builder ────────────────────────────────────── */
+
 function buildStructuredChanges(kind, snippet, rule, location, fallbackRemediation) {
     const text = String(snippet || '');
     const lower = text.toLowerCase();
     const parsed = parseLocation(location);
     const changes = [];
 
-    // Detect debugger statements in analyzed source (not a debugger statement itself)
     if (new RegExp('debug' + 'ger').test(lower)) {
         changes.push({
             type: 'delete-line',
@@ -497,7 +110,6 @@ function buildStructuredChanges(kind, snippet, rule, location, fallbackRemediati
         return changes;
     }
 
-    // Detect console.log statements in analyzed source (not a console.log itself)
     if (new RegExp('con' + 'sole\\s*\\.\\s*log').test(lower)) {
         changes.push({
             type: 'replace-line',
@@ -508,7 +120,7 @@ function buildStructuredChanges(kind, snippet, rule, location, fallbackRemediati
         });
         changes.push({
             type: 'manual',
-            instruction: 'Use your project logger (or add one under lib/logger.js). Never log tokens, API keys, or session identifiers.' // simplebeacon-ignore pii-logging — remediation instruction text
+            instruction: 'Use your project logger (or add one under lib/logger.js). Never log tokens, API keys, or session identifiers.'
         });
         return changes;
     }
@@ -684,11 +296,8 @@ function buildStructuredChanges(kind, snippet, rule, location, fallbackRemediati
     return changes;
 }
 
-/**
- * Recipe from fix spec.
- * @param {any} fixSpec
- * @returns {any}
- */
+/* ── Recipe formatting ─────────────────────────────────────────────── */
+
 function recipeFromFixSpec(fixSpec) {
     if (!fixSpec || !Array.isArray(fixSpec.changes)) {
         return '';
@@ -709,15 +318,12 @@ function recipeFromFixSpec(fixSpec) {
         }
     }
 
+    const { DEFAULT_RECIPES } = require('./audit-remediation-recipes/data.cjs');
     return parts.join('\n\n') || DEFAULT_RECIPES[fixSpec.kind] || DEFAULT_RECIPES.general;
 }
 
-/**
- * Build verify commands.
- * @param {any} kind
- * @param {Object} options
- * @returns {any}
- */
+/* ── Verify / rotation helpers ─────────────────────────────────────── */
+
 function buildVerifyCommands(kind, options = {}) {
     const commands = [buildVerificationCommand(options.projectPath, options)];
     if (kind === 'env-secret') {
@@ -732,11 +338,6 @@ function buildVerifyCommands(kind, options = {}) {
     return [...new Set(commands)];
 }
 
-/**
- * Build rotation steps.
- * @param {any} kind
- * @returns {any}
- */
 function buildRotationSteps(kind) {
     if (kind !== 'env-secret') {
         return undefined;
@@ -749,12 +350,8 @@ function buildRotationSteps(kind) {
     ];
 }
 
-/**
- * Build fix spec.
- * @param {any} row
- * @param {Object} options
- * @returns {any}
- */
+/* ── Fix spec builder ──────────────────────────────────────────────── */
+
 function buildFixSpec(row = {}, options = {}) {
     const artifact = inferArtifactContext(row);
     const kind = row.kind || classifyRowKind(row);
@@ -791,12 +388,8 @@ function buildFixSpec(row = {}, options = {}) {
     };
 }
 
-/**
- * Enrich remediation row.
- * @param {any} row
- * @param {Object} options
- * @returns {any}
- */
+/* ── Row enrichment ────────────────────────────────────────────────── */
+
 function enrichRemediationRow(row = {}, options = {}) {
     const kind = row.kind || classifyRowKind(row);
     const severity = String(row.severity || 'medium').toLowerCase();
@@ -814,106 +407,8 @@ function enrichRemediationRow(row = {}, options = {}) {
     };
 }
 
-/**
- * Normalize scan finding.
- * @param {boolean} issue
- * @param {any} source
- * @returns {any}
- */
-function normalizeScanFinding(issue = {}, source = 'Simplebeacon gate') {
-    const filePath = issue.filePath || issue.file || issue.path || null;
-    const line = issue.line || issue.lineNumber || null;
-    const location = line && filePath ? `${filePath}:${line}` : filePath || '—';
+/* ── Sorting ───────────────────────────────────────────────────────── */
 
-    return {
-        severity: issue.severity || 'medium',
-        location,
-        rule: issue.type || issue.rule || issue.category || 'finding',
-        snippet: issue.snippet || issue.match || issue.description || '',
-        remediation: issue.recommendedAction || issue.recommendation || issue.remediation || '',
-        source
-    };
-}
-
-/**
- * Flatten data quality findings.
- * @param {any} dataQuality
- * @returns {any}
- */
-function flattenDataQualityFindings(dataQuality = {}) {
-    if (Array.isArray(dataQuality.allFindings)) {
-        return dataQuality.allFindings;
-    }
-    const grouped = dataQuality.findings || {};
-    if (Array.isArray(grouped)) {
-        return grouped;
-    }
-    return Object.values(grouped).flat().filter(Boolean);
-}
-
-/**
- * Normalize data quality finding.
- * @param {any} finding
- * @returns {any}
- */
-function normalizeDataQualityFinding(finding = {}) {
-    const filePath = finding.path || finding.filePath || null;
-    const line = finding.metadata?.line || finding.line || null;
-    return {
-        severity: finding.severity || 'medium',
-        location: line && filePath ? `${filePath}:${line}` : filePath || '—',
-        rule: finding.type || finding.category || 'data-quality',
-        snippet: finding.reason || finding.description || finding.match || '',
-        remediation: finding.action || finding.recommendedAction || '',
-        source: 'Data quality scan',
-        metadata: finding.metadata || null
-    };
-}
-
-/**
- * Extract fix inputs from scan.
- * @param {any} scanPayload
- * @returns {any}
- */
-function extractFixInputsFromScan(scanPayload = {}) {
-    if (scanPayload.type === 'simplebeacon-report') {
-        return {
-            issues: collectIssues(scanPayload),
-            codebaseFindings: [],
-            dataQualityFindings: [],
-            gatePass: scanPayload.gate?.pass ?? scanPayload.simplebeaconGatePass ?? null
-        };
-    }
-
-    if (Array.isArray(scanPayload.issues) && scanPayload.issues.length) {
-        return {
-            issues: scanPayload.issues,
-            codebaseFindings: scanPayload.codebaseAnalysis?.findings || scanPayload.codebase?.findings || [],
-            dataQualityFindings: flattenDataQualityFindings(scanPayload.dataQuality || {}),
-            gatePass: scanPayload.gate?.pass ?? scanPayload.simplebeaconGatePass ?? null
-        };
-    }
-
-    const results = scanPayload.results || {};
-    const simplebeacon = results.simplebeacon || null;
-    const codebase = results.codebase || null;
-    const dataQuality = results.dataQuality || null;
-
-    return {
-        issues: simplebeacon ? collectIssues(simplebeacon) : [],
-        codebaseFindings: Array.isArray(codebase?.findings) ? codebase.findings : [],
-        dataQualityFindings: flattenDataQualityFindings(dataQuality || {}),
-        gatePass: simplebeacon?.gate?.pass ?? scanPayload.summary?.simplebeaconGatePass ?? null
-    };
-}
-
-const SEVERITY_ORDER = { critical: 0, high: 1, medium: 2, low: 3 };
-
-/**
- * Sort fix rows.
- * @param {Array} rows
- * @returns {any}
- */
 function sortFixRows(rows = []) {
     return [...rows].sort((a, b) => {
         const gateDelta = Number(b.fixSpec?.blocksGate) - Number(a.fixSpec?.blocksGate);
@@ -924,12 +419,8 @@ function sortFixRows(rows = []) {
     });
 }
 
-/**
- * Build sorted remediation rows.
- * @param {any} scanPayload
- * @param {Object} options
- * @returns {any}
- */
+/* ── High-level orchestrators ──────────────────────────────────────── */
+
 function buildSortedRemediationRows(scanPayload = {}, options = {}) {
     const { issues, codebaseFindings, dataQualityFindings } = extractFixInputsFromScan(scanPayload);
     const scopedIssues = filterFindingsByProjectScope(issues, options);
@@ -955,12 +446,6 @@ function buildSortedRemediationRows(scanPayload = {}, options = {}) {
     return sortFixRows(rows);
 }
 
-/**
- * Build remediation rows from scan.
- * @param {any} scanPayload
- * @param {Object} options
- * @returns {any}
- */
 function buildRemediationRowsFromScan(scanPayload = {}, options = {}) {
     const sortedRows = buildSortedRemediationRows(scanPayload, options);
     const maxRows = options.maxRows ?? 100;
@@ -979,12 +464,6 @@ function buildRemediationRowsFromScan(scanPayload = {}, options = {}) {
     };
 }
 
-/**
- * Build fix plan from scan.
- * @param {any} scanPayload
- * @param {Object} options
- * @returns {any}
- */
 function buildFixPlanFromScan(scanPayload = {}, options = {}) {
     const { gatePass } = extractFixInputsFromScan(scanPayload);
     const sortedRows = buildSortedRemediationRows(scanPayload, options);
@@ -1020,6 +499,8 @@ function buildFixPlanFromScan(scanPayload = {}, options = {}) {
     };
 }
 
+/* ── Re-exports ────────────────────────────────────────────────────── */
+
 module.exports = {
     FIX_SPEC_VERSION,
     classifyRowKind,
@@ -1042,9 +523,11 @@ module.exports = {
     isFindingInProjectScope,
     shouldScopeFindingsToProject,
     inferArtifactContext,
-    isHandoffArtifactPath,
-    IMPACT_BY_KIND,
-    DEFAULT_RECIPES,
-    ESTIMATED_MINUTES_BY_KIND,
-    BUSINESS_IMPACT_BY_KIND
+    isHandoffArtifactPath: require('./audit-remediation-recipes/paths.cjs').isHandoffArtifactPath,
+    isIntentionalFixturePath: require('./audit-remediation-recipes/paths.cjs').isIntentionalFixturePath,
+    isDocumentationPath: require('./audit-remediation-recipes/paths.cjs').isDocumentationPath,
+    IMPACT_BY_KIND: require('./audit-remediation-recipes/data.cjs').IMPACT_BY_KIND,
+    DEFAULT_RECIPES: require('./audit-remediation-recipes/data.cjs').DEFAULT_RECIPES,
+    ESTIMATED_MINUTES_BY_KIND: require('./audit-remediation-recipes/data.cjs').ESTIMATED_MINUTES_BY_KIND,
+    BUSINESS_IMPACT_BY_KIND: require('./audit-remediation-recipes/data.cjs').BUSINESS_IMPACT_BY_KIND
 };

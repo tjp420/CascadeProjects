@@ -1,7 +1,7 @@
 const { sendEmail } = require('../server/lib/email-service.cjs');
 const fs = require('fs');
 const path = require('path');
-const { generateLicenseToken } = require('../server/lib/simplebeacon-proxy.cjs');
+const { generateLicenseToken } = require('../../packages/simplebeacon-cli/src/lib/license-token.js');
 
 
 // Generate a license token for EU AI Act Sprint ($2,499)

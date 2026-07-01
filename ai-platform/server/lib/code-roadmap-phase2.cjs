@@ -10,6 +10,8 @@ const constants = require('../config/constants.cjs');
 const FUZZY_THRESHOLD = 0.92;
 const MAX_FUZZY_PAIRS = 12;
 const MAX_GRAPH_FILES = 300;
+const FUZZY_MAX_CONTENT_LENGTH = 8000;
+const MAX_CYCLE_DEPTH = 300;
 
 /**
  * Resolve relative import.
@@ -22,7 +24,14 @@ function resolveRelativeImport(fromRelativePath, dep, projectRoot) {
     if (!dep.startsWith('.')) return null;
     const fromAbs = path.join(projectRoot, fromRelativePath);
     const base = path.resolve(path.dirname(fromAbs), dep);
-    const candidates = [base, `${base}.js`, path.join(base, 'index.js')];
+    const candidates = [
+        base,
+        `${base}.js`, `${base}.cjs`, `${base}.mjs`,
+        `${base}.ts`, `${base}.tsx`, `${base}.jsx`,
+        path.join(base, 'index.js'),
+        path.join(base, 'index.cjs'),
+        path.join(base, 'index.mjs')
+    ];
     for (const candidate of candidates) {
         if (!fs.existsSync(candidate)) continue;
         const rel = path.relative(projectRoot, candidate).replace(/\\/g, '/');
@@ -65,15 +74,21 @@ function buildInternalDependencyGraph(files, projectRoot) {
         } catch {
             continue;
         }
-        const pattern = /require\(['"]([^'"]+)['"]\)/g;
-        let match;
-        while ((match = pattern.exec(content)) !== null) {
-            const dep = match[1];
-            const resolved = resolveRelativeImport(file.relativePath, dep, projectRoot);
-            if (!resolved || resolved === file.relativePath) continue;
-            graph.get(file.relativePath).add(resolved);
-            edges.push({ from: file.relativePath, to: resolved, type: 'require' });
-            if (!graph.has(resolved)) graph.set(resolved, new Set());
+        const patterns = [
+            /require\(['"]([^'"]+)['"]\)/g,
+            /import\s+.*?\s+from\s+['"]([^'"]+)['"]/g,
+            /import\s*\(['"]([^'"]+)['"]\)/g
+        ];
+        for (const pattern of patterns) {
+            let match;
+            while ((match = pattern.exec(content)) !== null) {
+                const dep = match[1];
+                const resolved = resolveRelativeImport(file.relativePath, dep, projectRoot);
+                if (!resolved || resolved === file.relativePath) continue;
+                graph.get(file.relativePath).add(resolved);
+                edges.push({ from: file.relativePath, to: resolved, type: 'import' });
+                if (!graph.has(resolved)) graph.set(resolved, new Set());
+            }
         }
     }
 
@@ -105,12 +120,13 @@ function detectCircularDependencies(graph) {
  * @param {string} pathStack
  * @returns {any}
  */
-    const dfs = (node, pathStack) => {
+    const dfs = (node, pathStack, depth) => {
+        if (depth > MAX_CYCLE_DEPTH) return;
         visited.add(node);
         stack.add(node);
         for (const neighbor of adjacency[node] || []) {
             if (!visited.has(neighbor)) {
-                dfs(neighbor, [...pathStack, neighbor]);
+                dfs(neighbor, [...pathStack, neighbor], depth + 1);
             } else if (stack.has(neighbor)) {
                 const start = pathStack.indexOf(neighbor);
                 const cyclePath = start >= 0 ? [...pathStack.slice(start), neighbor] : [...pathStack, neighbor];
@@ -118,7 +134,7 @@ function detectCircularDependencies(graph) {
                     path: cyclePath,
                     length: cyclePath.length,
                     impact: cyclePath.length > 4 ? 'medium' : 'low',
-                    description: `${cyclePath.length}-node require cycle`
+                    description: `${cyclePath.length}-node import cycle`
                 });
             }
         }
@@ -126,7 +142,7 @@ function detectCircularDependencies(graph) {
     };
 
     for (const node of nodes) {
-        if (!visited.has(node)) dfs(node, [node]);
+        if (!visited.has(node)) dfs(node, [node], 1);
     }
 
     const unique = [];
@@ -152,7 +168,7 @@ function normalizeForFuzzy(content) {
         .replace(/\/\*[\s\S]*?\*\//g, '')
         .replace(/\s+/g, ' ')
         .trim()
-        .slice(0, constants.TIMEOUT_8S);
+        .slice(0, FUZZY_MAX_CONTENT_LENGTH);
 }
 
 /**
@@ -207,7 +223,7 @@ function findFuzzySimilarPairs(files, _projectRoot) {
                 pairs.push({
                     fileA: loaded[i].file.relativePath,
                     fileB: loaded[j].file.relativePath,
-                    similarity: Math.round(similarity * 1000) / constants.MS_PER_SECOND,
+                    similarity: Math.round(similarity * 1000) / 1000,
                     method: 'token-jaccard',
                     recommendation: 'Review for merge/refactor — not identical duplicates'
                 });

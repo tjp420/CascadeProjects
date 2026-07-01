@@ -9,6 +9,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>SimpleBeacon — Audit</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <script src="site-config.js?h=1781475000000" defer></script>
     <script src="js-es2018/scan-utils.js?h=1781475000001" defer></script>
     <script src="js-es2018/dashboard/utils.js?h=1781475000000" defer></script>
@@ -24,18 +25,24 @@
     <script src="js/vendor/jszip.min.js?h=1781475000000" defer></script>
     <script src="js/vendor/html2canvas.min.js?h=1781475000000" defer></script>
     <link rel="stylesheet" href="css/dashboard.css?h=1781475000000">
-    <style>
-    </style>
+    <script src="js/auth.js" defer></script>
 </head>
 <body>
-    <div id="debug-errors" style="position:fixed;top:0;left:0;width:100%;max-height:200px;overflow:auto;background:#000;color:#0f0;z-index:10000;font-family:monospace;font-size:12px;padding:8px;display:none;pointer-events:none;"></div>
-    <script>(function(){var d=document.getElementById('debug-errors'),errs=[];function show(e){if(!d)return;errs.push(e);d.style.display='block';d.innerHTML=errs.map(function(x){return '<div style=\'border-bottom:1px solid #333;padding:2px 0;\'>'+x+'</div>';}).join('');}window.addEventListener('error',function(e){show('ERROR: '+e.message+' @ '+e.filename+':'+e.lineno);});window.addEventListener('unhandledrejection',function(e){show('REJECTION: '+(e.reason&&e.reason.message?e.reason.message:String(e.reason)));});})();</script>
     <div id="loader" style="position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg-main);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;transition:opacity .6s ease,visibility .6s ease;pointer-events:none;">
         <div style="width:48px;height:48px;border-radius:50%;border:3px solid rgba(99,102,241,.2);border-top-color:var(--accent);animation:spin 1s linear infinite;margin-bottom:20px;"></div>
         <div style="color:var(--text-secondary);font-size:14px;letter-spacing:.05em;">SimpleBeacon</div>
         <style>@keyframes spin{to{transform:rotate(360deg)}}body.loaded #loader{opacity:0;visibility:hidden;pointer-events:none}</style>
     </div>
     <script>window.addEventListener('DOMContentLoaded',function(){document.body.classList.add('loaded')});setTimeout(function(){document.body.classList.add('loaded')},3000)</script>
+    <script>
+        if (window.self !== window.top) {
+            document.documentElement.classList.add('iframe-embed');
+        }
+    </script>
+    <style>
+        .iframe-embed .top-nav { display: none !important; }
+        .iframe-embed .container { padding-top: 20px; }
+    </style>
     <div class="container">
         <nav class="top-nav">
             <a href="index.html" class="brand">SimpleBeacon</a>
@@ -43,22 +50,10 @@
                 <a href="roadmap.html">Roadmap</a>
                 <a href="audit.html">Audit</a>
                 <a href="pricing.html">Pricing</a>
-                <a href="/dashboard/dashboard" id="vaultLink">Team Dashboard</a>
-                <script>
-                (function() {
-                    var params = new URLSearchParams(window.location.search);
-                    var token = params.get('token');
-                    if (token) {
-                        document.querySelectorAll('.nav-links a').forEach(function(a) {
-                            if (a.href.indexOf('#') === -1 && a.href.indexOf('http') !== 0) {
-                                a.href += (a.href.indexOf('?') === -1 ? '?' : '&') + 'token=' + encodeURIComponent(token);
-                            }
-                        });
-                    }
-                })();
-                </script>
+                <a href="/dashboard/#/dashboard" id="vaultLink">Team Dashboard</a>
+                <script>window.addEventListener('DOMContentLoaded', function() { if (window.SbAuth) window.SbAuth.propagateTokenToLinks(); });</script>
                 <button type="button" id="nav-signin-btn" style="display:none;margin-left:8px;padding:4px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text-muted);font-size:0.8rem;cursor:pointer;">Sign in</button>
-                <button type="button" id="nav-signout-btn" onclick="(function(){var keys=['cascadeAuthToken','cascadeAuthUser','access_token','token','authToken','simplebeacon_token','sb-token-vault'];keys.forEach(function(k){localStorage.removeItem(k);});keys.forEach(function(k){document.cookie=k+'=;path=/;max-age=0;SameSite=Lax;'});sessionStorage.clear();window.location.reload();})()" style="margin-left:8px;padding:4px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text-muted);font-size:0.8rem;cursor:pointer;">Sign out</button>
+                <button type="button" id="nav-signout-btn" onclick="window.SbAuth.signOut()" style="margin-left:8px;padding:4px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text-muted);font-size:0.8rem;cursor:pointer;">Sign out</button>
             </div>
         </nav>
         <header>
@@ -66,7 +61,7 @@
                 <span id="productLabel">Certificate Generation</span>
             </div>
             <h1 id="pageTitle">Audit Your Scan Reports</h1>
-            <p id="pageSubtitle">100% private. Your source code never leaves your browser. <span style="color:var(--warning);font-weight:500;">Browser scans</span> use a lightweight heuristic engine (no npm audit, no AST). For full analysis, run the <a href="#" id="serverDashboardLinkTrigger" style="color:var(--accent-hover);">server dashboard</a>, <a href="http://127.0.0.1:54800/simplebeacon-dashboard/#/analyze" target="_blank" style="color:var(--accent-hover);">open analyzer (port 54800)</a>, or upload a CLI report JSON.</p>
+            <p id="pageSubtitle">100% private. Your source code never leaves your browser. <span style="color:var(--warning);font-weight:500;">Browser scans</span> use a lightweight heuristic engine (no npm audit, no AST). For full analysis, run the <a href="#" id="serverDashboardLinkTrigger" style="color:var(--accent-hover);">server dashboard</a>, <a href="http://127.0.0.1:54800/simplebeacon-dashboard/#/analyze" target="_blank" style="color:var(--accent-hover);">open analyzer (auto-detected port)</a>, or upload a CLI report JSON.</p>
         </header>
 
         <div id="serverDetectedBanner" style="display:none;background:linear-gradient(135deg,rgba(5,150,105,0.12),rgba(99,102,241,0.08));border:1px solid rgba(5,150,105,0.3);border-radius:12px;padding:14px 20px;margin-bottom:20px;text-align:center;font-size:0.85rem;color:var(--text-secondary);display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;">
@@ -641,7 +636,7 @@
                 <div id="certEmptyState" class="empty-state" style="padding:40px 24px;">
                     <div class="empty-state-icon">&#128451;</div>
                     <h4 style="margin:0 0 8px;font-size:1.05rem;color:var(--text-main);">No Scan Report Loaded</h4>
-                    <p style="margin:0 0 20px;max-width:420px;text-align:center;">Upload a JSON report from the CLI, paste one directly, or scan a folder in the Browser Sandbox.</p>
+                    <p style="margin:0 auto 20px;max-width:420px;text-align:center;">Upload a JSON report from the CLI, paste one directly, or scan a folder in the Browser Sandbox.</p>
                     <div class="quick-actions" style="justify-content:center;">
                         <span class="quick-action-chip" id="scanFolderChip">&#128451; Scan Folder</span>
                         <a href="sample-report.html" class="quick-action-chip" style="text-decoration:none;">&#128196; View Sample Report</a>
@@ -670,15 +665,6 @@
 
                 <div class="status" id="status"></div>
             </div>
-        </div>
-
-        <div class="card" style="padding:20px 24px;margin-bottom:20px;">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-                <span style="font-size:1.2rem;">&#129302;</span>
-                <h3 style="margin:0;font-size:1rem;color:var(--text-main);">Switching AI Assistants?</h3>
-            </div>
-            <p style="margin:0 0 14px;font-size:0.85rem;color:var(--text-muted);">Generate a structured handoff report with session context, files touched, and pending tasks so your next session picks up exactly where this one left off.</p>
-            <a href="contact.html#handoff" class="btn btn-secondary" style="display:inline-block;text-decoration:none;">Create AI Session Handoff &rarr;</a>
         </div>
 
         <!-- VS Code Extension Card (replaces banner when active) -->
@@ -804,7 +790,7 @@
                 var uploadAiBtn = document.getElementById('upload-send-ai-btn');
                 if (uploadAiBtn) uploadAiBtn.style.display = 'none';
                 if (badgeWrap) badgeWrap.innerHTML = '<a href="https://marketplace.visualstudio.com/items?itemName=simplebeacon.ai-slop-cop" target="_blank" rel="noopener" style="padding:6px 14px;border-radius:8px;background:var(--accent);color:#fff;font-size:0.8rem;text-decoration:none;font-weight:600;">Install</a>';
-                if (subtitle) subtitle.textContent = 'Real-time file monitoring, enhanced AI analysis, code map, and remediation guide &#8212; directly in your editor.';
+                if (subtitle) subtitle.textContent = 'Real-time file monitoring, enhanced AI analysis, code map, and remediation guide \u2014 directly in your editor.';
             }
         })();
         // Global VS Code bridge: callable from any script (including main.js)
@@ -947,7 +933,7 @@
         (function() {
             const signoutBtn = document.getElementById('nav-signout-btn');
             const signinBtn = document.getElementById('nav-signin-btn');
-            const TOKEN_KEYS = ['cascadeAuthToken','access_token','token','authToken','simplebeacon_token'];
+            const TOKEN_KEYS = ['cascadeAuthToken','cascadeAuthUser','access_token','token','authToken','simplebeacon_token','sb-token','sb_token'];
             const COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
             function setCookie(name, value) {
                 document.cookie = name + '=' + encodeURIComponent(value) + ';path=/;max-age=' + COOKIE_MAX_AGE + ';SameSite=Lax';
@@ -994,7 +980,16 @@
             if (signoutBtn) {
                 signoutBtn.addEventListener('click', function() {
                     for (const key of TOKEN_KEYS) { localStorage.removeItem(key); clearCookie(key); }
+                    localStorage.removeItem('sb-user');
+                    localStorage.removeItem('sb_user');
+                    clearCookie('sb-user');
+                    clearCookie('sb_user');
                     updateAuthNav();
+                    try {
+                        const bc = new BroadcastChannel('simplebeacon-auth');
+                        bc.postMessage({type:'signed-out'});
+                        bc.close();
+                    } catch(e) {}
                     const toast = document.createElement('div');
                     toast.textContent = 'Signed out successfully';
                     toast.style.cssText = 'position:fixed;bottom:24px;right:24px;padding:10px 16px;border-radius:8px;background:var(--success);color:#fff;font-size:0.875rem;z-index:9999;transition:opacity 300ms;';
@@ -1002,6 +997,21 @@
                     setTimeout(function(){ toast.style.opacity='0'; setTimeout(function(){ toast.remove(); }, 300); }, 2000);
                 });
             }
+            // BroadcastChannel for real-time cross-page auth sync
+            try {
+                const authBC = new BroadcastChannel('simplebeacon-auth');
+                authBC.onmessage = function(e) {
+                    if (e.data && e.data.type === 'signed-out') {
+                        for (const key of TOKEN_KEYS) { localStorage.removeItem(key); clearCookie(key); }
+                        updateAuthNav();
+                    }
+                    if (e.data && e.data.type === 'signed-in') {
+                        updateAuthNav();
+                    }
+                };
+            } catch(e) {}
+            // Periodic check for auth state changes (storage events don't fire in same tab)
+            setInterval(updateAuthNav, 2000);
             const signinOverlay = document.getElementById('signinOverlay');
             const signinCloseBtn = document.getElementById('signinCloseBtn');
             const signinSubmitBtn = document.getElementById('signinSubmitBtn');

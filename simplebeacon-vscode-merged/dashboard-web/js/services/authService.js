@@ -147,6 +147,11 @@ export class AuthService {
         window.parent.postMessage({command: 'setAuthState', signedIn: true}, '*');
       }
     } catch (e) {}
+    try {
+      const bc = new BroadcastChannel('simplebeacon-auth');
+      bc.postMessage({type: 'signed-in'});
+      bc.close();
+    } catch (e) {}
   }
 
   clearSession() {
@@ -165,6 +170,11 @@ export class AuthService {
       if (window.parent && window.parent !== window) {
         window.parent.postMessage({command: 'setAuthState', signedIn: false}, '*');
       }
+    } catch (e) {}
+    try {
+      const bc = new BroadcastChannel('simplebeacon-auth');
+      bc.postMessage({type: 'signed-out'});
+      bc.close();
     } catch (e) {}
   }
 
@@ -215,6 +225,11 @@ export class AuthService {
     const res = await fetch(apiUrl('/api/platform/status'));
     if (!res.ok) {
       // If the status endpoint is unavailable, fail closed to signin-first.
+      // On local dev the data server may not have this stub — bypass auth.
+      if (isLocalDevHost()) {
+        this.authRequired = false;
+        return { authRequired: false };
+      }
       this.authRequired = true;
       return null;
     }

@@ -19,14 +19,17 @@ const DEFAULT_LOCAL_MODEL = process.env.SIMPLEBEACON_FIX_MODEL || 'llama3.2:late
 // We never send the full file — only the snippet around the finding.
 // ---------------------------------------------------------------------------
 function buildFixPrompt(issue, snippet, filePath) {
+    if (!issue || typeof issue !== 'object') issue = {};
+    if (typeof snippet !== 'string') snippet = String(snippet ?? '');
     const type = issue.type || 'issue';
     const severity = issue.severity || 'medium';
     const recommendation = issue.recommendedAction || issue.recommendation || 'Fix the issue';
+    const safeFileName = typeof filePath === 'string' ? path.basename(filePath) : 'unknown';
 
     return `You are a deterministic code-fixing assistant. Your task is to fix ONE specific issue in the provided code snippet.
 
 Issue: ${type} (${severity})
-File: ${path.basename(filePath)}
+File: ${safeFileName}
 Recommendation: ${recommendation}
 
 Rules:
@@ -46,13 +49,16 @@ JSON response:`;
 // Extract a small context window around a finding line.
 // ---------------------------------------------------------------------------
 function extractSnippet(filePath, lineHint, contextLines = 8) {
+    if (typeof filePath !== 'string' || !filePath) return null;
     const fullPath = path.resolve(filePath);
     if (!fs.existsSync(fullPath)) return null;
     const content = fs.readFileSync(fullPath, 'utf8');
     const lines = content.split('\n');
-    const targetLine = Math.max(0, (lineHint || 1) - 1);
-    const start = Math.max(0, targetLine - contextLines);
-    const end = Math.min(lines.length, targetLine + contextLines + 1);
+    const hint = Number.isFinite(lineHint) ? lineHint : 1;
+    const ctx = Number.isFinite(contextLines) && contextLines > 0 ? contextLines : 8;
+    const targetLine = Math.max(0, hint - 1);
+    const start = Math.max(0, targetLine - ctx);
+    const end = Math.min(lines.length, targetLine + ctx + 1);
     return lines.slice(start, end).join('\n');
 }
 
@@ -60,11 +66,15 @@ function extractSnippet(filePath, lineHint, contextLines = 8) {
 // Call the local Ollama generate endpoint.
 // ---------------------------------------------------------------------------
 async function callLocalModel(prompt, model = DEFAULT_LOCAL_MODEL) {
+    if (typeof prompt !== 'string') {
+        throw new TypeError('callLocalModel requires a string prompt');
+    }
+    const safeModel = typeof model === 'string' && model ? model : DEFAULT_LOCAL_MODEL;
     const response = await globalThis.fetch(`${OLLAMA_URL}/api/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-            model,
+            model: safeModel,
             prompt,
             stream: false,
             options: { temperature: 0.0 }
@@ -101,9 +111,12 @@ function parseFixResponse(raw) {
 // Generate a unified-diff-style string for terminal display.
 // ---------------------------------------------------------------------------
 function makeDiff(search, replace, fileName) {
-    const out = [`--- ${fileName}`, `+++ ${fileName}`];
-    out.push(`- ${search.split('\n')[0]}${search.includes('\n') ? '...' : ''}`);
-    out.push(`+ ${replace.split('\n')[0]}${replace.includes('\n') ? '...' : ''}`);
+    const s = typeof search === 'string' ? search : String(search ?? '');
+    const r = typeof replace === 'string' ? replace : String(replace ?? '');
+    const name = typeof fileName === 'string' ? fileName : 'unknown';
+    const out = [`--- ${name}`, `+++ ${name}`];
+    out.push(`- ${s.split('\n')[0]}${s.includes('\n') ? '...' : ''}`);
+    out.push(`+ ${r.split('\n')[0]}${r.includes('\n') ? '...' : ''}`);
     return out.join('\n');
 }
 
@@ -111,6 +124,10 @@ function makeDiff(search, replace, fileName) {
 // Main remediation loop for a single finding.
 // ---------------------------------------------------------------------------
 async function remediateFinding(issue, options = {}) {
+    if (!issue || typeof issue !== 'object') {
+        return { applied: false, reason: 'Invalid issue object' };
+    }
+    const opts = (options && typeof options === 'object' && !Array.isArray(options)) ? options : {};
     const filePath = issue.filePath || (issue.affectedFiles && issue.affectedFiles[0]);
     if (!filePath) {
         return { applied: false, reason: 'No filePath in issue' };
@@ -156,13 +173,17 @@ async function remediateFinding(issue, options = {}) {
 // Batch remediation across multiple findings.
 // ---------------------------------------------------------------------------
 async function runLocalRemediation(findings, options = {}) {
+    if (!Array.isArray(findings)) {
+        return { total: 0, applied: 0, failed: 0, results: [], reason: 'findings must be an array' };
+    }
+    const opts = (options && typeof options === 'object' && !Array.isArray(options)) ? options : {};
     const results = [];
-    const maxFixes = options.maxFixes || 10;
+    const maxFixes = Number.isFinite(opts.maxFixes) && opts.maxFixes > 0 ? opts.maxFixes : 10;
 
     for (let i = 0; i < Math.min(findings.length, maxFixes); i++) {
         const issue = findings[i];
-        const result = await remediateFinding(issue, options);
-        results.push({ issue: issue.type || 'unknown', ...result });
+        const result = await remediateFinding(issue, opts);
+        results.push({ issue: (issue && issue.type) || 'unknown', ...result });
     }
 
     const applied = results.filter((r) => r.applied);

@@ -52,10 +52,11 @@ const { installDeveloperStack } = require('../src/lib/developer-onboarding');
 const VALID_COMMANDS = new Set(['scan', 'init', 'comment', 'baseline-sync', 'assess', 'compliance', 'report', 'hook-install', 'reduce', 'gate-status', 'pdf', 'buy-clearance', 'mcp', 'ai-plan', 'doctor']);
 
 function writeStdoutLine(message = '') {
-    process.stdout.write(`${message}\n`);
+    process.stdout.write(`${message == null ? '' : String(message)}\n`);
 }
 
 function parseArgs(argv) {
+    if (!Array.isArray(argv)) argv = [];
     const args = argv.slice(2);
     let command = args[0] || 'scan';
     let flagStart = 1;
@@ -136,7 +137,14 @@ function parseArgs(argv) {
         exclude: null,
         deepScan: false,
         includeDeps: false,
-        minConfidence: 0.5
+        minConfidence: 0.5,
+        fullDirectoryScan: false,
+        server: null,
+        pollSeconds: 5,
+        maxPolls: 60,
+        email: null,
+        tier: null,
+        forceNpmAudit: false
     };
 
     const knownFlags = new Set([
@@ -151,7 +159,7 @@ function parseArgs(argv) {
         '--fullDirectoryScan', '--full', '--email', '--server', '--poll-seconds',
         '--max-polls', '--max-fixes', '--mcp-mode', '--help', '-h', '--version',
         '-V', '--complete', '--watch', '--tier', '--exclude', '--deep-scan', '--include-deps',
-        '--min-confidence'
+        '--min-confidence', '--tier-limits', '--force-npm-audit'
     ]);
 
     for (let i = flagStart; i < args.length; i += 1) {
@@ -273,9 +281,11 @@ function parseArgs(argv) {
         } else if (arg === '--server') {
             options.server = requireNext('--server');
         } else if (arg === '--poll-seconds') {
-            options.pollSeconds = Number(requireNext('--poll-seconds')) || 5;
+            const n = Number(requireNext('--poll-seconds'));
+            options.pollSeconds = Number.isFinite(n) && n > 0 ? n : 5;
         } else if (arg === '--max-polls') {
-            options.maxPolls = Number(requireNext('--max-polls')) || 60;
+            const n = Number(requireNext('--max-polls'));
+            options.maxPolls = Number.isFinite(n) && n > 0 ? n : 60;
         } else if (arg === '--max-fixes') {
             options.maxFixes = Number(requireNext('--max-fixes')) || 10;
         } else if (arg === '--mcp-mode') {
@@ -299,6 +309,10 @@ function parseArgs(argv) {
             options.includeDeps = true;
         } else if (arg === '--min-confidence') {
             options.minConfidence = Number(requireNext('--min-confidence')) || 0.5;
+        } else if (arg === '--tier-limits') {
+            options.tierLimits = requireNext('--tier-limits');
+        } else if (arg === '--force-npm-audit') {
+            options.forceNpmAudit = true;
         }
     }
 
@@ -306,6 +320,7 @@ function parseArgs(argv) {
 }
 
 function applyCliPathSafety(options) {
+    if (!options || typeof options !== 'object') options = {};
     const sanitized = sanitizeCliPathOptions(options);
     Object.assign(options, sanitized);
 
@@ -331,6 +346,7 @@ function applyCliPathSafety(options) {
 }
 
 function formatCliError(error) {
+    if (error == null) return String(error);
     if (error instanceof SimplebeaconError && error.code) {
         return `[${error.code}] ${error.message}`;
     }
@@ -487,6 +503,7 @@ Examples:
 }
 
 function printConfigWarnings(config, verbose) {
+    if (!config || typeof config !== 'object') return;
     if (!verbose || !config.configWarnings?.length) return;
     for (const warning of config.configWarnings) {
         console.error(paint(`Warning: ${warning}`, 'yellow'));
@@ -494,48 +511,64 @@ function printConfigWarnings(config, verbose) {
 }
 
 async function uploadReportToCloud(uploadUrl, apiToken, report) {
-    if (!apiToken) {
+    if (typeof uploadUrl !== 'string' || !uploadUrl) {
+        throw new ConfigError('uploadUrl must be a non-empty string', { uploadUrl });
+    }
+    if (typeof apiToken !== 'string' || !apiToken) {
         throw new ConfigError('--api-token is required when using --upload', { uploadUrl });
     }
-
-    const response = await fetch(uploadUrl, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Simplebeacon-Token': apiToken
-        },
-        body: JSON.stringify({ report: sanitizeReportForCloudUpload(report) })
-    });
-
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) {
-        throw new Error(data.message || data.error || `Cloud upload failed (${response.status})`);
+    if (!report || typeof report !== 'object') {
+        throw new ConfigError('report must be an object', { report });
     }
 
-    return data;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 60000);
+    try {
+        const response = await fetch(uploadUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Simplebeacon-Token': apiToken
+            },
+            body: JSON.stringify({ report: sanitizeReportForCloudUpload(report) }),
+            signal: controller.signal
+        });
+
+        /** @type {Record<string, any>} */
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            throw new Error(data.message || data.error || `Cloud upload failed (${response.status})`);
+        }
+
+        return data;
+    } finally {
+        clearTimeout(timer);
+    }
 }
 
 function createScanSpinner(label) {
+    const text = label == null ? '' : String(label);
     if (!process.stderr.isTTY) return { start() {}, stop() {} };
     const chars = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
     let i = 0;
     let timer = null;
     return {
         start() {
-            process.stderr.write(`\r${paint(chars[0], 'cyan')} ${label}...`);
+            process.stderr.write(`\r${paint(chars[0], 'cyan')} ${text}...`);
             timer = setInterval(() => {
                 i = (i + 1) % chars.length;
-                process.stderr.write(`\r${paint(chars[i], 'cyan')} ${label}...`);
+                process.stderr.write(`\r${paint(chars[i], 'cyan')} ${text}...`);
             }, 80);
         },
         stop() {
-            if (timer) clearInterval(timer);
-            process.stderr.write('\r'.padEnd(label.length + 10, ' ') + '\r');
+            if (timer) { clearInterval(timer); timer = null; }
+            process.stderr.write(' '.repeat(text.length + 10) + '\r');
         }
     };
 }
 
 async function executeOneScan(options, networkGuard) {
+    if (!options || typeof options !== 'object') throw new TypeError('executeOneScan requires an options object');
     const scanRoot = options.path;
     const { platformRoot } = resolvePlatformRoot(scanRoot);
     const config = loadSimplebeaconConfig(platformRoot, options.config);
@@ -544,7 +577,7 @@ async function executeOneScan(options, networkGuard) {
         if (options.verbose) console.error('[scan] --complete enabled: full directory scan + all analyzers');
     }
     if (options.failOn) {
-        config.gate.failOn = options.failOn;
+        config.gate = { ...config.gate, failOn: options.failOn };
     }
 
     printConfigWarnings(config, options.verbose);
@@ -566,7 +599,7 @@ async function executeOneScan(options, networkGuard) {
             config.scanAllFiles = true;
         }
         // Include deps: remove node_modules/.git from exclusions
-        if (options.includeDeps && options.exclude) {
+        if (options.includeDeps && Array.isArray(options.exclude)) {
             options.exclude = options.exclude.filter((p) => p !== 'node_modules' && p !== '.git');
         }
         const report = await runScan(sanitizedScanRoot, {
@@ -593,17 +626,19 @@ async function executeOneScan(options, networkGuard) {
         const jsonReport = formatJsonReport(report, gateResult);
         spinner.stop();
 
+        let outputFormat = options.format;
         if (options.anonymize) {
-            options.format = 'json';
+            outputFormat = 'json';
         }
-
-        if (options.fix && options.format !== 'json') {
-            options.format = 'text';
+        if (options.fix && outputFormat !== 'json') {
+            outputFormat = 'text';
         }
 
         if (options.upload) {
             const uploadResult = await uploadReportToCloud(options.upload, options.apiToken, jsonReport);
-            console.error(`Cloud upload complete${uploadResult.scanId ? `: ${uploadResult.scanId}` : ''}`);
+            /** @type {string|undefined} */
+            const scanId = uploadResult.scanId;
+            console.error(`Cloud upload complete${scanId ? `: ${scanId}` : ''}`);
         }
 
         let payload;
@@ -612,7 +647,7 @@ async function executeOneScan(options, networkGuard) {
             const signed = signAnonymizedExport(anon);
             payload = JSON.stringify(signed, null, 2);
         } else {
-            payload = selectPayload(report, gateResult, jsonReport, options.format);
+            payload = selectPayload(report, gateResult, jsonReport, outputFormat);
         }
 
         if (options.output) {
@@ -629,7 +664,7 @@ async function executeOneScan(options, networkGuard) {
         }
 
         if (options.fix) {
-            const fixableIssues = gateResult.blockingIssues.length > 0
+            const fixableIssues = gateResult.blockingIssues?.length > 0
                 ? gateResult.blockingIssues
                 : (report.rawIssues || []).filter((i) => i.severity === 'high' || i.severity === 'critical');
             if (fixableIssues.length > 0) {
@@ -663,6 +698,7 @@ async function executeOneScan(options, networkGuard) {
 }
 
 async function runScanCommand(options) {
+    if (!options || typeof options !== 'object') throw new TypeError('runScanCommand requires an options object');
     const networkGuard = createNetworkGuard({ offline: options.offline });
     printTrustBanner({ quiet: options.noTrustBanner, offline: options.offline }, paint);
 
@@ -688,26 +724,42 @@ async function runScanCommand(options) {
 
             await run();
 
-            const watchers = watchedPaths.map((p) => fs.watch(p, { recursive: true }, (eventType, filename) => {
-                if (!filename || /node_modules|\.git|\.simplebeacon\/report/.test(filename)) return;
-                if (debounceTimer) clearTimeout(debounceTimer);
-                debounceTimer = setTimeout(() => {
-                    console.error(paint(`[watch] Change detected: ${filename}`, 'yellow'));
-                    run();
-                }, 500);
-            }));
+            const watchers = watchedPaths.map((p) => {
+                try {
+                    return fs.watch(p, { recursive: true }, (eventType, filename) => {
+                        if (!filename || /node_modules|\.git|\.simplebeacon\/report/.test(filename)) return;
+                        if (debounceTimer) clearTimeout(debounceTimer);
+                        debounceTimer = setTimeout(() => {
+                            console.error(paint(`[watch] Change detected: ${filename}`, 'yellow'));
+                            run();
+                        }, 500);
+                    });
+                } catch (err) {
+                    console.error(paint(`[watch] Failed to watch ${p}: ${err.message}`, 'yellow'));
+                    return null;
+                }
+            }).filter(Boolean);
 
-            return new Promise(() => {}); // Keep alive
+            // Keep alive until Ctrl+C
+            let watchResolve;
+            const keepAlive = new Promise((resolve) => { watchResolve = resolve; });
+            process.once('SIGINT', () => {
+                if (debounceTimer) { clearTimeout(debounceTimer); debounceTimer = null; }
+                for (const w of watchers) w?.close?.();
+                watchResolve(0);
+            });
+            return keepAlive;
         }
 
         const exitCode = await executeOneScan(options, networkGuard);
-        if (exitCode === 1) process.exit(1);
+        return exitCode;
     } finally {
         networkGuard.dispose();
     }
 }
 
 async function runBaselineSyncCommand(options) {
+    if (!options || typeof options !== 'object') throw new TypeError('runBaselineSyncCommand requires an options object');
     const root = sanitizePath(options.path);
     if (options.dryRun) {
         writeStdoutLine('DRY RUN — baseline sync requires a test run; use without --dry-run to execute.');
@@ -720,6 +772,7 @@ async function runBaselineSyncCommand(options) {
 }
 
 async function runCommentCommand(options) {
+    if (!options || typeof options !== 'object') throw new TypeError('runCommentCommand requires an options object');
     const reportPath = path.resolve(options.report || '.simplebeacon/report.json');
     if (!fs.existsSync(reportPath)) {
         throw new Error(`Report not found: ${reportPath}`);
@@ -745,22 +798,23 @@ async function runCommentCommand(options) {
         return;
     }
 
+    /** @type {Record<string, any>} */
     const result = await postGithubComment(reportPath, {
         token: process.env.GITHUB_TOKEN,
         repo: options.repo,
         issueNumber: options.issueNumber
     });
 
-    writeStdoutLine(`Posted comment: ${result.html_url || result.url || 'ok'}`);
+    /** @type {string|undefined} */
+    const commentUrl = result.html_url || result.url;
+    writeStdoutLine(`Posted comment: ${commentUrl || 'ok'}`);
 }
 
 async function loadOrRunReport(options) {
+    if (!options || typeof options !== 'object') throw new TypeError('loadOrRunReport requires an options object');
     const reportPath = path.resolve(options.report || '.simplebeacon/report.json');
-    if (options.report) {
-        if (!fs.existsSync(reportPath)) {
-            throw new Error(`Report not found: ${reportPath}`);
-        }
-        return JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+    if (options.report && !fs.existsSync(reportPath)) {
+        throw new Error(`Report not found: ${reportPath}`);
     }
     if (fs.existsSync(reportPath)) {
         return JSON.parse(fs.readFileSync(reportPath, 'utf8'));
@@ -775,6 +829,7 @@ async function loadOrRunReport(options) {
 }
 
 async function runAssessCommand(options) {
+    if (!options || typeof options !== 'object') throw new TypeError('runAssessCommand requires an options object');
     const root = sanitizePath(options.path);
     const report = await loadOrRunReport(options);
     const assessment = buildAssessmentReport(report, {
@@ -795,9 +850,11 @@ async function runAssessCommand(options) {
     });
 
     writeStdoutLine(`Assessment written to ${outputPath}`);
-    writeStdoutLine(`Gate: ${assessment.executiveSummary.gateResult}`);
-    writeStdoutLine(`Compliance: ${assessment.complianceChecklist.summary.passed}/${assessment.complianceChecklist.summary.passed + assessment.complianceChecklist.summary.failed} rules pass (score ${assessment.executiveSummary.complianceScore ?? '—'})`);
-    writeStdoutLine(`Headline: ${assessment.executiveSummary.headline}`);
+    const execSummary = assessment?.executiveSummary ?? {};
+    const complianceSummary = assessment?.complianceChecklist?.summary ?? {};
+    writeStdoutLine(`Gate: ${execSummary.gateResult ?? '—'}`);
+    writeStdoutLine(`Compliance: ${complianceSummary.passed ?? 0}/${(complianceSummary.passed ?? 0) + (complianceSummary.failed ?? 0)} rules pass (score ${execSummary.complianceScore ?? '—'})`);
+    writeStdoutLine(`Headline: ${execSummary.headline ?? '—'}`);
 
     if (options.withAnalyzerSuite) {
         const { buildAiSystemsIssueAnalysis } = require('../src/lib/ai-problem-analyzer-suite');
@@ -828,6 +885,7 @@ async function runAssessCommand(options) {
 }
 
 async function runReportCommand(options) {
+    if (!options || typeof options !== 'object') throw new TypeError('runReportCommand requires an options object');
     const root = sanitizePath(options.path);
     const reportPath = path.resolve(options.report || '.simplebeacon/report.json');
     if (!fs.existsSync(reportPath)) {
@@ -902,6 +960,7 @@ async function runReportCommand(options) {
 }
 
 async function runComplianceCommand(options) {
+    if (!options || typeof options !== 'object') throw new TypeError('runComplianceCommand requires an options object');
     const root = sanitizePath(options.path);
     const report = await loadOrRunReport(options);
     let npmAudit = null;
@@ -926,18 +985,22 @@ async function runComplianceCommand(options) {
         writeStdoutLine(`Compliance checklist written to ${outputPath}`);
     }
 
-    writeStdoutLine(`${checklist.summary.headline}`);
-    for (const rule of checklist.rules) {
+    /** @type {Record<string, any>} */
+    const summary = checklist?.summary ?? {};
+    writeStdoutLine(`${summary.headline ?? 'Compliance check complete'}`);
+    for (const rule of checklist?.rules ?? []) {
         const icon = rule.status === 'pass' ? '✓' : rule.status === 'fail' ? '✗' : '○';
-        writeStdoutLine(`  ${icon} ${rule.id} ${rule.title} — ${rule.evidence}`);
+        writeStdoutLine(`  ${icon} ${rule.id ?? '—'} ${rule.title ?? '—'} — ${rule.evidence ?? ''}`);
     }
 
-    if (options.gate && checklist.summary.failed > 0) {
-        process.exit(1);
+    if (options.gate && (summary.failed ?? 0) > 0) {
+        return 1;
     }
+    return 0;
 }
 
 function runInitCommand(options) {
+    if (!options || typeof options !== 'object') throw new TypeError('runInitCommand requires an options object');
     const root = sanitizePath(options.path);
     const created = initSimplebeacon(root, {
         profile: options.profile,
@@ -1034,6 +1097,7 @@ function runInitCommand(options) {
 }
 
 function runHookInstallCommand(options) {
+    if (!options || typeof options !== 'object') throw new TypeError('runHookInstallCommand requires an options object');
     const result = installSimplebeaconHook(sanitizePath(options.path), {
         type: options.hookType,
         failOn: options.failOn || 'high',
@@ -1062,6 +1126,7 @@ function runHookInstallCommand(options) {
 }
 
 async function runReduceCommand(options) {
+    if (!options || typeof options !== 'object') throw new TypeError('runReduceCommand requires an options object');
     const root = sanitizePath(options.path);
     const scannerFilter = options.scanner;
     const scannerOptions = scannerFilter
@@ -1107,6 +1172,7 @@ async function runReduceCommand(options) {
 }
 
 function runGateStatusCommand(options) {
+    if (!options || typeof options !== 'object') throw new TypeError('runGateStatusCommand requires an options object');
     const root = resolveCliProjectRoot(options.path);
     const status = readGateStatus(root, {
         reportPath: options.report ? path.relative(root, path.resolve(root, options.report)) : undefined
@@ -1138,6 +1204,7 @@ function runGateStatusCommand(options) {
 }
 
 async function runPdfCommand(options) {
+    if (!options || typeof options !== 'object') throw new TypeError('runPdfCommand requires an options object');
     const reportPath = path.resolve(options.report || '.simplebeacon/report.json');
     const outputPath = options.output || 'simplebeacon-executive-risk-certificate.html';
     const result = await generateExecutivePdf(reportPath, outputPath);
@@ -1148,6 +1215,7 @@ async function runPdfCommand(options) {
 }
 
 async function runBuyClearanceCommand(options) {
+    if (!options || typeof options !== 'object') throw new TypeError('runBuyClearanceCommand requires an options object');
     const email = options.email;
     if (!email) {
         throw new Error('--email is required for buy-clearance');
@@ -1156,11 +1224,20 @@ async function runBuyClearanceCommand(options) {
     const checkoutUrl = `${server}/api/simplebeacon/billing/checkout`;
 
     console.error('[buy-clearance] Initiating checkout...');
-    const response = await fetch(checkoutUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, product: 'executive_clearance' })
-    });
+    const checkoutController = new AbortController();
+    const checkoutTimer = setTimeout(() => checkoutController.abort(), 30000);
+    let response;
+    try {
+        response = await fetch(checkoutUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, product: 'executive_clearance' }),
+            signal: checkoutController.signal
+        });
+    } finally {
+        clearTimeout(checkoutTimer);
+    }
+    /** @type {Record<string, any>} */
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
         throw new Error(data.message || data.error || `Checkout failed (${response.status})`);
@@ -1168,34 +1245,49 @@ async function runBuyClearanceCommand(options) {
     if (!data.url) {
         throw new Error('Checkout URL not returned from server');
     }
+    if (!/^https?:\/\//i.test(String(data.url))) {
+        throw new Error('Invalid checkout URL received from server');
+    }
 
     console.error(`[buy-clearance] Opening browser: ${data.url}`);
-    const { exec } = require('child_process');
+    const { execFile } = require('child_process');
     const platform = process.platform;
-    const cmd = platform === 'win32' ? `start "" "${data.url}"`
-        : platform === 'darwin' ? `open "${data.url}"`
-        : `xdg-open "${data.url}"`;
-    exec(cmd, (err) => {
+    const url = String(data.url);
+    const [cmd, cmdArgs] = platform === 'win32'
+        ? ['cmd', ['/c', 'start', '', url]]
+        : platform === 'darwin'
+            ? ['open', [url]]
+            : ['xdg-open', [url]];
+    execFile(cmd, cmdArgs, (err) => {
         if (err) console.error('[buy-clearance] Could not open browser automatically. Please open the URL manually.');
     });
 
     const sessionUrl = `${server}/api/simplebeacon/billing/session?session_id=${data.sessionId}`;
-    const pollSeconds = options.pollSeconds || 5;
-    const maxPolls = options.maxPolls || 60;
+    const pollSeconds = Number.isFinite(options.pollSeconds) && options.pollSeconds > 0 ? options.pollSeconds : 5;
+    const maxPolls = Number.isFinite(options.maxPolls) && options.maxPolls > 0 ? options.maxPolls : 60;
 
     console.error(`[buy-clearance] Polling for payment completion (max ${maxPolls} attempts, ${pollSeconds}s interval)...`);
+    const os = require('os');
     for (let i = 0; i < maxPolls; i++) {
         await new Promise((r) => setTimeout(r, pollSeconds * 1000));
         try {
             const poll = await fetch(sessionUrl);
+            /** @type {Record<string, any>} */
             const pollData = await poll.json().catch(() => ({}));
             if (pollData.paymentStatus === 'paid') {
                 if (pollData.licenseToken) {
-                    const os = require('os');
                     const licenseDir = path.join(os.homedir(), '.simplebeacon');
-                    fs.mkdirSync(licenseDir, { recursive: true });
+                    try {
+                        fs.mkdirSync(licenseDir, { recursive: true });
+                    } catch (mkdirErr) {
+                        throw new Error(`Cannot create license directory ${licenseDir}: ${mkdirErr.message}`);
+                    }
                     const licensePath = path.join(licenseDir, 'license.jwt');
-                    fs.writeFileSync(licensePath, `${pollData.licenseToken}\n`, 'utf8');
+                    try {
+                        fs.writeFileSync(licensePath, `${pollData.licenseToken}\n`, 'utf8');
+                    } catch (writeErr) {
+                        throw new Error(`Cannot write license token to ${licensePath}: ${writeErr.message}`);
+                    }
                     console.error('[buy-clearance] License token saved');
                     writeStdoutLine(JSON.stringify({ success: true, licensePath, email: pollData.email }, null, 2));
                     return;
@@ -1214,8 +1306,12 @@ async function main() {
     const options = parseArgs(process.argv);
 
     if (options.version) {
-        const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'));
-        writeStdoutLine(`simplebeacon ${pkg.version}`);
+        try {
+            const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'));
+            writeStdoutLine(`simplebeacon ${pkg.version}`);
+        } catch {
+            writeStdoutLine('simplebeacon (version unknown)');
+        }
         process.exit(0);
     }
 
@@ -1308,6 +1404,9 @@ async function main() {
         runDoctorCommand();
         return;
     }
+
+    console.error(`Command "${options.command}" is not yet implemented.`);
+    process.exit(2);
 }
 
 function runDoctorCommand() {
@@ -1316,6 +1415,7 @@ function runDoctorCommand() {
 }
 
 async function runAiPlanCommand(options) {
+    if (!options || typeof options !== 'object') throw new TypeError('runAiPlanCommand requires an options object');
     const root = sanitizePath(options.path);
     const config = loadSimplebeaconConfig(root, options.config);
     
@@ -1365,8 +1465,9 @@ async function runAiPlanCommand(options) {
 }
 
 function generateAIIssueList(report) {
-    const issues = report.rawIssues || [];
-    
+    if (!report || typeof report !== 'object') return '';
+    const issues = Array.isArray(report.rawIssues) ? report.rawIssues : [];
+
     // Group issues by category and severity
     const groupedIssues = issues.reduce((acc, issue) => {
         const category = issue.type || 'General';
@@ -1406,10 +1507,10 @@ function generateAIIssueList(report) {
         
         // Sort issues by severity within each category
         const allIssues = [
+            ...(severityGroups.critical || []),
             ...(severityGroups.high || []),
             ...(severityGroups.medium || []),
-            ...(severityGroups.low || []),
-            ...(severityGroups.critical || [])
+            ...(severityGroups.low || [])
         ].sort((a, b) => {
             const severityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
             const aOrder = severityOrder[a.severity] ?? 4;
@@ -1425,7 +1526,7 @@ function generateAIIssueList(report) {
             const severity = issue.severity || 'medium';
             
             plan += `#### ${severity.toUpperCase()}: ${description}\n`;
-            plan += `   **File**: \`${fileName}:${lineNumber}\n`;
+            plan += `   **File**: \`${fileName}:${lineNumber}\`\n`;
             plan += `   **Recommendation**: ${recommendation}\n`;
             plan += `   **Context**: ${issue.context || 'No context available'}\n\n`;
         }
@@ -1452,6 +1553,7 @@ function generateAIIssueList(report) {
 }
 
 function generateRecommendation(issue) {
+    if (!issue || typeof issue !== 'object') return 'Review and address this issue according to best practices';
     const type = issue.type || 'unknown';
     const description = issue.description || issue.message || 'No description available';
     

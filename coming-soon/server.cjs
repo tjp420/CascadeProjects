@@ -20,6 +20,9 @@ try {
 // Ensure critical env vars have fallbacks for local dev
 if (!process.env.SIMPLEBEACON_LICENSE_SECRET) {
     console.error('[Env] FATAL: SIMPLEBEACON_LICENSE_SECRET not set. Server requires a secure secret.'); // simplebeacon-ignore debug-artifact — intentional startup diagnostic
+    if (process.env.NODE_ENV === 'production') {
+        process.exit(1);
+    }
     console.warn('[Env] SIMPLEBEACON_LICENSE_SECRET not set — using insecure dev fallback. DO NOT USE IN PRODUCTION.'); // simplebeacon-ignore debug-artifact — intentional startup diagnostic
 }
 if (!process.env.PUBLIC_URL) {
@@ -170,6 +173,7 @@ try {
 
 // Middleware
 app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Request logging
 app.use((req, res, next) => {
@@ -210,10 +214,6 @@ app.use((req, res, next) => {
     next();
 });
 
-// Health check endpoint (used by monitoring and local dev)
-app.get('/health', (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
 
 // Static files: deny dotfiles and disable index auto-serve
 app.use('/', express.static(path.join(__dirname, 'public'), { dotfiles: 'deny', index: false }));
@@ -244,6 +244,24 @@ try {
 } catch (err) {
     logger.warn('[Billing] Subscription billing routes not loaded:', err.message);
 }
+
+// Fallback: local dev convenience when billing API isn't loaded
+app.post('/api/simplebeacon/billing/resend-token', express.json({ limit: '1mb' }), (req, res) => {
+    const email = (req.body?.email || '').trim();
+    if (!email || !email.includes('@')) {
+        return res.status(400).json({ error: 'Valid email required' });
+    }
+    const secret = process.env.SIMPLEBEACON_LICENSE_SECRET;
+    if (!secret) {
+        return res.status(500).json({ error: 'Server misconfigured' });
+    }
+    const token = jwt.sign(
+        { email: email.toLowerCase(), tier: 'community', features: [], clientName: 'Community User', projectName: 'Free-Demo' },
+        secret,
+        { expiresIn: '7d' }
+    );
+    res.json({ success: true, token, message: 'Free token generated (billing API offline)' });
+});
 
 // Health / base route for API namespace
 app.get('/', (req, res) => {
@@ -382,12 +400,29 @@ app.get('/api/analyze/wiring', async (_req, res) => {
     });
 });
 
+const ALLOWED_SCAN_ROOTS = [
+    process.cwd(),
+    path.join(__dirname, '..'),
+    path.join(require('os').homedir(), 'CascadeProjects'),
+    path.join(require('os').homedir(), 'projects'),
+    path.join(require('os').homedir(), 'dev'),
+    require('os').homedir()
+].map((r) => path.resolve(r));
+
+function isPathAllowed(targetPath, allowedRoots = ALLOWED_SCAN_ROOTS) {
+    const resolved = path.resolve(targetPath);
+    return allowedRoots.some((root) => resolved === root || resolved.startsWith(root + path.sep));
+}
+
 // ── Server-side directory scan — bypasses browser webkitdirectory limits ──
 app.post('/api/scan-directory', express.json({ limit: '1mb' }), (req, res) => {
     try {
         const projectPath = req.body.projectPath;
         if (!projectPath || !fsSync.existsSync(projectPath)) {
             return res.status(400).json({ error: 'Invalid or missing projectPath' });
+        }
+        if (!isPathAllowed(projectPath)) {
+            return res.status(403).json({ error: 'Project path is outside allowed scan roots' });
         }
 
         // Walk all files but skip dependency/build/cache dirs and binaries
@@ -457,7 +492,7 @@ app.post('/api/scan-directory', express.json({ limit: '1mb' }), (req, res) => {
             const lower = value.toLowerCase();
             // Skip obvious demo/example/test/placeholder values
             const DEMO_PATTERNS = ['demo', 'example', 'test', 'sample', 'placeholder', 'your_', 'my_', 'change', 'replace', 'xxxx', '0000', '1111', '12345678', 'abcdefgh', 'qwerty', 'password', 'secret', 'token', 'key', 'admin', 'root', 'user'];
-            if (new RegExp(DEMO_PATTERNS.join('|')).test(lower)) return false;
+            if (new RegExp('\\b(' + DEMO_PATTERNS.map(p => p.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')).join('|') + ')\\b').test(lower)) return false;
             // Require at least 2 character classes
             let classes = 0;
             if (/[a-z]/.test(value)) classes++;
@@ -488,7 +523,7 @@ app.post('/api/scan-directory', express.json({ limit: '1mb' }), (req, res) => {
             let text;
             try { text = fsSync.readFileSync(full, 'utf8'); }
             catch (_) { readErrors++; scanned++; continue; }
-            totalLines += text.split('\n').length;
+            totalLines += (text.match(/\n/g) || []).length + (text.length > 0 ? 1 : 0);
             // Skip regex on files >5MB to avoid stack overflow on minified bundles
             if (text.length < 5 * 1024 * 1024) {
                 for (const [key, regex] of Object.entries(PATTERNS)) {
@@ -560,7 +595,7 @@ app.post('/api/scan-directory', express.json({ limit: '1mb' }), (req, res) => {
     } catch (err) {
         logger.error('[Scan Directory] Error:', err.message);
         logger.error(err.stack);
-        res.status(500).json({ error: err.message, stack: err.stack });
+        res.status(500).json({ error: err.message });
     }
 });
 
@@ -623,6 +658,9 @@ app.post('/api/analyze-directory', express.json({ limit: '1mb' }), (req, res) =>
         if (!projectPath || !fsSync.existsSync(projectPath)) {
             return res.status(400).json({ error: 'Invalid or missing projectPath' });
         }
+        if (!isPathAllowed(projectPath)) {
+            return res.status(403).json({ error: 'Project path is outside allowed scan roots' });
+        }
 
         const SKIP_DIRS_ANALYZE = /[\\/]node_modules[\\/]|[\\/][.]git[\\/]|[\\/][.]github[\\/]|[\\/][.]husky[\\/]|[\\/]dist[\\/]|[\\/]build[\\/]|[\\/][.]next[\\/]|[\\/]out[\\/]|[\\/]coverage[\\/]|[\\/]frontend-build[\\/]|[\\/][.]github-sync[\\/]|[\\/]github-cache[\\/]|[\\/][.]simplebeacon[\\/]|[\\/][.]cursor[\\/]|[\\/][.]windsurf[\\/]|[\\/]deployments[\\/]|[\\/]backups[\\/]|[\\/]coming-soon-dev[\\/]/i;
         const BINARY_EXTS_ANALYZE = /\.(png|jpe?g|gif|webp|ico|bmp|tiff?|psd|ai|eps|sketch|mp3|mp4|avi|mov|wav|flac|ogg|webm|mkv|zip|tar|gz|bz2|xz|lz|7z|rar|exe|dll|so|dylib|bin|o|obj|class|woff2?|ttf|otf|eot|pdf|doc|docx|xls|xlsx|ppt|pptx|odt|ods|odp|db|sqlite3?|wasm|dat|pkl|npy|h5|pb|pt|onnx|tflite|parquet|pcap|cap|jar|war|ear|apk|aab|ipa|dmg|pkg|msi|iso|img|vmdk|ova|tgz|rpm|deb)$/i;
@@ -677,7 +715,10 @@ app.post('/api/analyze-directory', express.json({ limit: '1mb' }), (req, res) =>
                     }
                     const isTextLike = /\.(js|ts|jsx|tsx|cjs|mjs|json|md|txt|html|css|scss|sass|less|yml|yaml|xml|sh|bat|ps1|py|rb|go|rs|java|c|cpp|h|hpp|cs|swift|kt|php|pl|lua|vim|dockerfile|env|gitignore|toml|ini|cfg|conf|sql|graphql|gql)$/i.test(full);
                     if (isTextLike && size < 5 * 1024 * 1024) {
-                        try { totalLines += fsSync.readFileSync(full, 'utf8').split('\n').length; } catch (_) { readErrors++; }
+                        try {
+                            const text = fsSync.readFileSync(full, 'utf8');
+                            totalLines += (text.match(/\n/g) || []).length + (text.length > 0 ? 1 : 0);
+                        } catch (_) { readErrors++; }
                     }
                 }
             }
@@ -732,6 +773,24 @@ app.use(checkoutRoutes);
 
 const freeTokenRoutes = require('./routes/free-token.cjs');
 app.use(freeTokenRoutes);
+
+// Auth routes — email/password registration and login
+try {
+    const authRoutes = require('./routes/auth.cjs');
+    app.use(authRoutes);
+    logger.info('[Auth] Authentication routes mounted');
+} catch (err) {
+    logger.warn('[Auth] Auth routes not loaded:', err.message);
+}
+
+// Email management routes — retry worker, resend, webhooks
+try {
+    const emailRoutes = require('./routes/email.cjs');
+    app.use(emailRoutes);
+    logger.info('[Email] Email management routes mounted');
+} catch (err) {
+    logger.warn('[Email] Email routes not loaded:', err.message);
+}
 
 const certificateRoutes = require('./routes/certificates.cjs');
 app.use(certificateRoutes);
@@ -993,10 +1052,68 @@ process.on('unhandledRejection', (reason, promise) => {
     logger.error('[FATAL] Unhandled rejection at:', promise, 'reason:', reason);
 });
 
+// Graceful shutdown handlers
+function gracefulShutdown(signal) {
+    logger.info('[Shutdown] Received ' + signal + '. Closing server...');
+    server.close(() => {
+        logger.info('[Shutdown] Server closed.');
+        process.exit(0);
+    });
+    setTimeout(() => {
+        logger.error('[Shutdown] Forced exit after timeout.');
+        process.exit(1);
+    }, 10000);
+}
+
+// ── Background email retry worker ───────────────────────────────────────────
+// Polls email_queue for pending emails and retries delivery every 5 minutes.
+try {
+    const emailDb = require('./lib/db.cjs');
+    const { sendEmail: retrySendEmail } = require('./services/email.cjs');
+
+    async function retryPendingEmails() {
+        const pending = emailDb.getEmailsForRetry(100);
+        if (!pending || pending.length === 0) return;
+        for (const email of pending) {
+            try {
+                emailDb.incrementEmailAttempts(email.id);
+                const result = await retrySendEmail({
+                    to: email.recipient,
+                    subject: email.subject,
+                    text: email.body_text,
+                    html: email.body_html,
+                    queueId: email.id
+                });
+                if (result.sent) {
+                    logger.info(`[EmailRetry] Sent ${email.id} via ${result.provider}`);
+                } else if (result.queued && (email.attempts + 1) >= 3) {
+                    emailDb.updateEmailStatus(email.id, 'failed', result.error || 'Max retries exceeded');
+                    logger.error(`[EmailRetry] Email ${email.id} permanently failed after max retries.`);
+                }
+            } catch (err) {
+                emailDb.updateEmailStatus(email.id, 'failed', err.message);
+                logger.error(`[EmailRetry] Unexpected error for ${email.id}:`, err.message);
+            }
+        }
+    }
+
+    retryPendingEmails().catch(err => logger.error('[EmailRetry] Startup error:', err.message));
+    setInterval(() => {
+        retryPendingEmails().catch(err => logger.error('[EmailRetry] Cycle error:', err.message));
+    }, 5 * 60 * 1000);
+
+    logger.info('[EmailRetry] Background retry worker started (5 min interval).');
+} catch (err) {
+    logger.warn('[EmailRetry] Failed to start retry worker:', err.message);
+}
+
+let server;
 if (require.main === module) {
-    app.listen(PORT, () => {
+    server = app.listen(PORT, () => {
         logger.info(`Server listening on port ${PORT}`);
     });
+    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 }
 
 module.exports = app;

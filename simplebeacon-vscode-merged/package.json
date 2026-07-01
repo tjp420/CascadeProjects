@@ -7,7 +7,7 @@
     "type": "git",
     "url": "https://github.com/simplebeacon/simplebeacon-vscode.git"
   },
-  "version": "3.0.315",
+  "version": "3.0.347",
   "publisher": "simplebeacon",
   "engines": {
     "vscode": "^1.84.0",
@@ -32,6 +32,29 @@
     "GUI sidebar",
     "visual interface"
   ],
+  "icon": "resources/icon.png",
+  "screenshots": [
+    {
+      "path": "resources/screenshots/screenshot1.png",
+      "label": "AI Slop Cop sidebar with scan results and gate status"
+    },
+    {
+      "path": "resources/screenshots/screenshot2.png",
+      "label": "Detailed findings with file locations and fix suggestions"
+    },
+    {
+      "path": "resources/screenshots/screenshot3.png",
+      "label": "Configuration options in VSCode settings"
+    },
+    {
+      "path": "resources/screenshots/screenshot4.png",
+      "label": "Full scan mode for comprehensive coverage"
+    },
+    {
+      "path": "resources/screenshots/screenshot5.png",
+      "label": "Exported scan report in JSON format"
+    }
+  ],
   "activationEvents": [
     "onStartupFinished"
   ],
@@ -55,6 +78,18 @@
         "title": "Clear Results",
         "category": "SimpleBeacon",
         "icon": "$(clear-all)"
+      },
+      {
+        "command": "simplebeacon.resetScanQuota",
+        "title": "Reset Scan Quota",
+        "category": "SimpleBeacon",
+        "icon": "$(debug-restart)"
+      },
+      {
+        "command": "simplebeacon.restartDataServer",
+        "title": "Restart Data Server",
+        "category": "SimpleBeacon",
+        "icon": "$(debug-restart)"
       },
       {
         "command": "simplebeacon.openSettings",
@@ -329,6 +364,12 @@
         "title": "Show Welcome Dashboard",
         "category": "SimpleBeacon",
         "icon": "$(home)"
+      },
+      {
+        "command": "simplebeacon.importCodeMapGraph",
+        "title": "Import Code Map Graph",
+        "category": "SimpleBeacon",
+        "icon": "$(file-add)"
       }
     ],
     "views": {
@@ -339,6 +380,14 @@
           "name": "SimpleBeacon",
           "icon": "$(shield)",
           "contextualTitle": "SimpleBeacon"
+        },
+        {
+          "type": "webview",
+          "id": "simplebeacon-ai-chatbot",
+          "name": "AI Coding Agent",
+          "icon": "$(comment-discussion)",
+          "contextualTitle": "AI Coding Agent",
+          "when": "true"
         }
       ],
       "explorer": [
@@ -348,16 +397,6 @@
           "name": "SimpleBeacon",
           "icon": "$(shield)",
           "contextualTitle": "SimpleBeacon",
-          "when": "true"
-        }
-      ],
-      "secondarySidebar": [
-        {
-          "type": "webview",
-          "id": "simplebeacon-ai-chatbot",
-          "name": "AI Coding Agent",
-          "icon": "$(comment-discussion)",
-          "contextualTitle": "AI Coding Agent",
           "when": "true"
         }
       ]
@@ -450,6 +489,11 @@
           "type": "boolean",
           "default": false,
           "description": "Automatically scan workspace when opening VS Code"
+        },
+        "simplebeacon.offlineMode": {
+          "type": "boolean",
+          "default": false,
+          "description": "Run SimpleBeacon in offline mode without external services"
         },
         "simplebeacon.showWelcomeOnLoad": {
           "type": "boolean",
@@ -584,8 +628,8 @@
         "simplebeacon.minConfidence": {
           "type": "number",
           "default": 0.6,
-          "minimum": 0.0,
-          "maximum": 1.0,
+          "minimum": 0,
+          "maximum": 1,
           "description": "Minimum confidence threshold for AI slop detection alerts (0.0 = all patterns, 1.0 = only explicit signatures). Overridden by confidenceThreshold when set."
         },
         "simplebeacon.realtimeFileTypes": {
@@ -707,6 +751,24 @@
           "default": "",
           "description": "Custom project path to scan. Leave empty to use the active workspace folder."
         },
+        "simplebeacon.pathMappings": {
+          "type": "array",
+          "default": [],
+          "description": "Path mappings to reroute virtual/aliased directories to real hardware locations.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "prefix": {
+                "type": "string",
+                "description": "The aliased path prefix to match (e.g. C:\\Virtual\\Projects)."
+              },
+              "replacement": {
+                "type": "string",
+                "description": "The real hardware path to substitute (e.g. J:\\Real\\Projects)."
+              }
+            }
+          }
+        },
         "simplebeacon.relayPort": {
           "type": "number",
           "default": 55444,
@@ -767,9 +829,12 @@
     "format:check": "prettier --check \"src/**/*.ts\"",
     "verify:scan": "node ../scripts/verify-scan.js",
     "verify:all": "npm run compile && node ../scripts/verify-scan.js && npx @vscode/vsce package --out simplebeacon-test.vsix",
-    "package:vsix": "npm run compile && npx @vscode/vsce package --no-dependencies --out simplebeacon-3.0.315.vsix",
+    "package:vsix": "npm run compile && npx @vscode/vsce package --no-dependencies --out simplebeacon-3.0.347.vsix",
     "test:dashboard": "node ./__extract_html.cjs && node ./__test_server.cjs",
-    "quality:check": "npm run lint && npm run compile && npm run test"
+    "arch": "depcruise src --config .dependency-cruiser.js",
+    "arch:validate": "depcruise src --config .dependency-cruiser.js --output-type err",
+    "arch:graph": "depcruise src --config .dependency-cruiser.js --output-type dot | dot -T svg > architecture.svg",
+    "quality:check": "npm run lint && npm run compile && npm run arch:validate && npm run test"
   },
   "devDependencies": {
     "@types/glob": "^8.1.0",
@@ -780,6 +845,7 @@
     "@typescript-eslint/eslint-plugin": "^8.61.1",
     "@typescript-eslint/parser": "^8.61.1",
     "@vscode/test-electron": "^3.0.0",
+    "dependency-cruiser": "^18.0.0",
     "eslint": "^10.5.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.6",

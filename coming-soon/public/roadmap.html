@@ -110,7 +110,7 @@
         <a href="roadmap.html">Roadmap</a>
         <a href="audit.html">Audit</a>
         <a href="pricing.html">Pricing</a>
-        <a href="/dashboard/dashboard" id="vaultLink">Team Dashboard</a>
+        <a href="/dashboard/#/dashboard" id="vaultLink">Team Dashboard</a>
         <script>
         (function() {
           var params = new URLSearchParams(window.location.search);
@@ -132,6 +132,14 @@
       <div class="hero-badge">Data-Quality Driven</div>
       <h1>Remediation Roadmap Generator</h1>
       <p>Drop a SimpleBeacon scan report to generate a prioritized, phased remediation plan.</p>
+    </div>
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin-bottom:20px;">
+      <label style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">&#128203; Load Report from URL or Path</label>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button type="button" id="browseReportBtn" class="btn btn-secondary" style="white-space:nowrap;">&#128194; Browse</button>
+        <input type="text" id="reportUrlInput" placeholder="https://example.com/simplebeacon-report.json  or  C:/path/to/report.json" style="flex:1;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-input);color:var(--text-main);font-family:inherit;font-size:0.9rem;outline:none;transition:border-color 0.2s,box-shadow 0.2s;">
+        <button type="button" id="analyzeReportBtn" class="btn btn-primary" style="white-space:nowrap;">&#9889; Analyze</button>
+      </div>
     </div>
     <div class="dropzone" id="dropzone">
       <div class="icon">&#128206;</div>
@@ -255,6 +263,36 @@
     dropzone.addEventListener('dragleave',()=>dropzone.classList.remove('dragover'));
     dropzone.addEventListener('drop',e=>{e.preventDefault();dropzone.classList.remove('dragover');const f=e.dataTransfer.files[0];if(f)loadFile(f);});
     fileInput.addEventListener('change',e=>{if(e.target.files[0])loadFile(e.target.files[0]);});
+
+    // Address bar handlers
+    const browseReportBtn=document.getElementById('browseReportBtn');
+    const reportUrlInput=document.getElementById('reportUrlInput');
+    const analyzeReportBtn=document.getElementById('analyzeReportBtn');
+    if(browseReportBtn&&fileInput){
+      browseReportBtn.addEventListener('click',()=>fileInput.click());
+    }
+    if(analyzeReportBtn&&reportUrlInput){
+      analyzeReportBtn.addEventListener('click',async()=>{
+        const url=reportUrlInput.value.trim();
+        if(!url){showToast('Enter a URL or file path first','error');return;}
+        try{
+          let json;
+          if(url.startsWith('http://')||url.startsWith('https://')){
+            const res=await fetch(url);
+            if(!res.ok){showToast('Failed to fetch: '+res.status,'error');return;}
+            json=await res.json();
+          }else{
+            const res=await fetch('/api/file/read?path='+encodeURIComponent(url));
+            const data=await res.json();
+            if(!data.success){showToast('Failed to read file: '+(data.error||res.status),'error');return;}
+            json=JSON.parse(data.content);
+          }
+          if(json&&json.type==='simplebeacon-report'){loadReport(json);}
+          else{showToast('Invalid SimpleBeacon report format','error');}
+        }catch(err){showToast('Error loading report: '+err.message,'error');}
+      });
+      reportUrlInput.addEventListener('keydown',e=>{if(e.key==='Enter')analyzeReportBtn.click();});
+    }
 
     // Paste JSON handler
     const jsonPasteInput=document.getElementById('jsonPasteInput'),jsonPasteBtn=document.getElementById('jsonPasteBtn');
@@ -2282,9 +2320,19 @@
     (function() {
       var signoutBtn = document.getElementById('nav-signout-btn');
       var signinBtn = document.getElementById('nav-signin-btn');
-      var TOKEN_KEYS = ['cascadeAuthToken','access_token','token','authToken','simplebeacon_token'];
+      var TOKEN_KEYS = ['cascadeAuthToken','cascadeAuthUser','access_token','token','authToken','simplebeacon_token','sb-token','sb_token'];
+      function getCookie(name) {
+        var m = document.cookie.match('(?:^|; )' + name.replace(/[-\/\^$*+?.()|[\]{}]/g, '\\$&') + '=([^;]*)');
+        return m ? decodeURIComponent(m[1]) : '';
+      }
+      function clearCookie(name) {
+        document.cookie = name + '=;path=/;max-age=0;SameSite=Lax';
+      }
       function hasAnyToken() {
-        return TOKEN_KEYS.some(function(k) { var v = localStorage.getItem(k); return v && v.length > 10; });
+        return TOKEN_KEYS.some(function(k) {
+          var v = localStorage.getItem(k) || getCookie(k);
+          return v && v.length > 10;
+        });
       }
       function updateAuthNav() {
         var authed = hasAnyToken();
@@ -2302,8 +2350,15 @@
       } catch(e) {}
       if (signoutBtn) {
         signoutBtn.addEventListener('click', function() {
-          for (var i = 0; i < TOKEN_KEYS.length; i++) localStorage.removeItem(TOKEN_KEYS[i]);
+          for (var i = 0; i < TOKEN_KEYS.length; i++) { localStorage.removeItem(TOKEN_KEYS[i]); clearCookie(TOKEN_KEYS[i]); }
+          localStorage.removeItem('sb-user'); localStorage.removeItem('sb_user');
+          clearCookie('sb-user'); clearCookie('sb_user');
           updateAuthNav();
+          try {
+            var bc = new BroadcastChannel('simplebeacon-auth');
+            bc.postMessage({type:'signed-out'});
+            bc.close();
+          } catch(e) {}
           var toast = document.createElement('div');
           toast.textContent = 'Signed out successfully';
           toast.style.cssText = 'position:fixed;bottom:24px;right:24px;padding:10px 16px;border-radius:8px;background:var(--success);color:#fff;font-size:0.875rem;z-index:9999;transition:opacity 300ms;';
@@ -2311,6 +2366,19 @@
           setTimeout(function(){ toast.style.opacity='0'; setTimeout(function(){ toast.remove(); }, 300); }, 2000);
         });
       }
+      // BroadcastChannel for real-time cross-page auth sync
+      try {
+        var authBC = new BroadcastChannel('simplebeacon-auth');
+        authBC.onmessage = function(e) {
+          if (e.data && e.data.type === 'signed-out') {
+            for (var i = 0; i < TOKEN_KEYS.length; i++) { localStorage.removeItem(TOKEN_KEYS[i]); clearCookie(TOKEN_KEYS[i]); }
+            updateAuthNav();
+          }
+          if (e.data && e.data.type === 'signed-in') { updateAuthNav(); }
+        };
+      } catch(e) {}
+      // Periodic check for auth state changes
+      setInterval(updateAuthNav, 2000);
       var signinOverlay = document.getElementById('signinOverlay');
       var signinCloseBtn = document.getElementById('signinCloseBtn');
       var signinSubmitBtn = document.getElementById('signinSubmitBtn');

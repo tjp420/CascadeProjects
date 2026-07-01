@@ -1,0 +1,18 @@
+(node:347144) Warning: Failed to load the ES module: C:\Users\Trevor\CascadeProjects\simplebeacon-vscode-merged\dashboard-web\js-es2018\__extract-utils.cjs. Make sure to set "type": "module" in the nearest package.json file or use the .mjs extension.
+(Use `node --trace-warnings ...` to show where the warning was created)
+C:\Users\Trevor\CascadeProjects\simplebeacon-vscode-merged\dashboard-web\js-es2018\__extract-utils.cjs:17
+const exports = [];
+      ^
+
+SyntaxError: Identifier 'exports' has already been declared
+    at wrapSafe (node:internal/modules/cjs/loader:1691:18)
+    at Module._compile (node:internal/modules/cjs/loader:1734:20)
+    at Object..js (node:internal/modules/cjs/loader:1893:10)
+    at Module.load (node:internal/modules/cjs/loader:1480:32)
+    at Module._load (node:internal/modules/cjs/loader:1299:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:244:24)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+
+Node.js v24.9.0

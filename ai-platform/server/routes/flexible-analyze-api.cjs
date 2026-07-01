@@ -14,6 +14,9 @@ const os = require('os');
 const crypto = require('crypto');
 const util = require('util');
 const { exec } = require('child_process');
+const https = require('https');
+const http = require('http');
+const { URL } = require('url');
 const constants = require('../config/constants.cjs');
 const execAsync = util.promisify(exec);
 const multer = require('multer');
@@ -30,6 +33,9 @@ function getAnalyzeCodebase() {
     }
     delete require.cache[modulePath];
     const analyzer = require('../lib/codebase-analyzer.cjs');
+    if (!analyzer || typeof analyzer.analyzeCodebase !== 'function') {
+        throw new Error('codebase-analyzer module did not export a valid analyzeCodebase function');
+    }
     return analyzer.analyzeCodebase;
 }
 const { resolveScanProfile } = require('../lib/universal-language-config.cjs');
@@ -43,18 +49,41 @@ const {
     formatAllowedRootsSummary
 } = require('../lib/path-safety.cjs');
 const { toClientError } = require('../lib/client-error.cjs');
-
-/**
- * Sanitize http header value.
- * @param {any} value
- * @returns {any}
- */
-function sanitizeHttpHeaderValue(value) {
-    return String(value ?? '')
-        .replace(/[\r\n]+/g, ' ')
-        .replace(/[^\t\x20-\x7e]/g, '')
-        .slice(0, 4096);
-}
+const {
+    sanitizeHttpHeaderValue,
+    shouldLogRuntimeInfo,
+    withTimeout,
+    safeBasename,
+    normalizeStringList,
+    resolveProjectPath,
+    isSameResolvedPath,
+    deriveSeverityCounts,
+    resolveModelId,
+    normalizeReportForSummary,
+    safeString,
+    safeErrorMessage,
+    countFiles,
+    sanitizeUploadPath,
+    sanitizeReportForAi,
+    isPrivateHostname,
+    cleanupWebsiteTemp,
+    sendAnalyzeJson,
+    rejectPaidDeliverable,
+    buildSuccessResponse,
+    buildErrorResponse,
+    pickBodyField,
+    coerceBoolean,
+    limitValue,
+    requireIfExists,
+    sanitizeUrl,
+    loadUserCredentials,
+    resolveMockScanPaths,
+    pathLooksLikeMockScan,
+    resolveAnalysisType,
+    resolveOllamaSummaryProvider,
+    resolveSummaryProvider,
+    fetchWebsiteToTemp
+} = require('../lib/flexible-analyze-utils.cjs');
 const { logInferenceEvent } = require('../lib/ai-inference-audit-logger.cjs');
 const { getUserAiCredentials } = require('../lib/user-ai-keys-store.cjs');
 const {
@@ -89,22 +118,28 @@ const {
 const { listAnalyzeTestSources } = require('../lib/analyze-test-sources.cjs');
 const { scanMockFiles } = require('../routes/repository-scanner-api.cjs');
 const { getLimits } = require('../../../coming-soon/lib/plans.cjs');
+const { buildRoadmapFromPath } = require('./lib/flexible-analyze-roadmap.cjs');
 
 // In-memory async scan jobs for /api/analyze/upload-directory polling
 const scanJobs = new Map();
 const SCAN_JOB_TTL_MS = 20 * constants.ONE_MINUTE_MS; // 20 minutes (covers CLI 15m + analyses timeout)
-setInterval(() => { // simplebeacon-ignore memory-leak — server-side job cleanup timer, process lifetime
+const _scanJobCleanupInterval = setInterval(() => { // simplebeacon-ignore memory-leak — server-side job cleanup timer, process lifetime
     const now = Date.now();
     for (const [id, job] of scanJobs) {
         if (now - job.createdAt > SCAN_JOB_TTL_MS) {
             if (job.status === 'scanning') {
                 scanJobs.set(id, { ...job, status: 'error', error: 'Scan timed out after 20 minutes' });
+                try { fs.rmSync(job.tmpDir, { recursive: true, force: true }); } catch { /* ignore cleanup errors */ }
+                // Keep the entry for one more TTL cycle so polling clients can see the error state
+                continue;
             }
             try { fs.rmSync(job.tmpDir, { recursive: true, force: true }); } catch { /* ignore cleanup errors */ }
             scanJobs.delete(id);
         }
     }
 }, constants.ONE_MINUTE_MS);
+// Allow tests and graceful shutdown to stop the background timer
+if (_scanJobCleanupInterval && _scanJobCleanupInterval.unref) _scanJobCleanupInterval.unref();
 const {
     loadAgencyBranding,
     saveAgencyBranding
@@ -122,331 +157,43 @@ const { progressiveAnalysis, ANALYSIS_PROFILES, StreamingAnalyzer } = require('.
 const { getModelManager } = require('../services/enhanced-model-manager.cjs');
 const { detectMLPatterns } = require('../lib/code-understanding/ml-pattern-detector.cjs');
 
-/**
- * Should log runtime info.
- * @returns {any}
- */
-function shouldLogRuntimeInfo() {
-    return process.env.LOG_RUNTIME_INFO === 'true' || process.env.RUNTIME_DEBUG === 'true';
-}
 
 /**
- * With timeout.
- * @param {any} promise
- * @param {Array} ms
- * @param {any} label
- * @returns {any}
- */
-function withTimeout(promise, ms, label) {
-    return new Promise((resolve, reject) => {
-        const timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
-        Promise.resolve(promise).then(
-            (val) => { clearTimeout(timer); resolve(val); },
-            (err) => { clearTimeout(timer); reject(err); }
-        );
-    });
-}
-
-/**
- * Load user credentials.
- * @param {any} req
- * @returns {any}
- */
-async function loadUserCredentials(req) {
-    const email = req.user?.email;
-    if (!email) return null;
-    try {
-        return await getUserAiCredentials(email);
-    } catch {
-        return null;
-    }
-}
-
-/**
- * Normalize string list.
- * @param {any} value
- * @returns {any}
- */
-function normalizeStringList(value) {
-    if (!Array.isArray(value)) return [];
-    return value.map((item) => String(item || '').trim()).filter(Boolean);
-}
-
-/**
- * Resolve project path.
- * @param {string} baseDir
- * @param {string} rawPath
- * @returns {any}
- */
-function resolveProjectPath(baseDir, rawPath, monorepoRoot) {
-    const trimmedPath = String(rawPath || '').trim();
-    if (!trimmedPath) return null;
-    if (/^https?:\/\//i.test(trimmedPath)) {
-        throw new Error(
-            'projectPath must be a local folder path, not a web URL. '
-            + 'If you want to analyze a remote repository, use a git clone URL from GitHub, GitLab, Bitbucket, or Codeberg. '
-            + `Received: ${trimmedPath.slice(0, 120)}`
-        );
-    }
-    if (path.isAbsolute(trimmedPath)) return path.normalize(trimmedPath);
-    const fromBase = path.normalize(path.join(baseDir, trimmedPath));
-    if (fs.existsSync(fromBase)) return fromBase;
-    if (monorepoRoot) {
-        const fromMono = path.normalize(path.join(monorepoRoot, trimmedPath));
-        if (fs.existsSync(fromMono)) return fromMono;
-    }
-    return fromBase;
-}
-
-/**
- * Is same resolved path.
- * @param {any} a
- * @param {any} b
- * @returns {any}
- */
-function isSameResolvedPath(a, b) {
-    return path.resolve(a).replace(/\\/g, '/').toLowerCase()
-        === path.resolve(b).replace(/\\/g, '/').toLowerCase();
-}
-
-/**
- * Resolve mock scan paths.
- * @param {string} baseDir
- * @param {string} projectPath
- * @returns {any}
- */
-function resolveMockScanPaths(baseDir, projectPath) {
-    if (!projectPath || isSameResolvedPath(projectPath, baseDir)) {
-        return [];
-    }
-
-    const { scanRoot, platformRoot } = resolvePlatformRoot(projectPath);
-    const projectKey = path.resolve(projectPath).replace(/\\/g, '/').toLowerCase();
-    const platformKey = path.resolve(platformRoot).replace(/\\/g, '/').toLowerCase();
-    const baseKey = path.resolve(baseDir).replace(/\\/g, '/').toLowerCase();
-
-    if (projectKey === platformKey || projectKey === baseKey) {
-        return [];
-    }
-    // Monorepo parent or other ancestor — configured scan paths already cover platform mock data.
-    if (platformKey.startsWith(`${projectKey}/`)) {
-        return [];
-    }
-    if (projectKey === path.resolve(scanRoot).replace(/\\/g, '/').toLowerCase() && scanRoot !== platformRoot) {
-        return [];
-    }
-
-    return [projectPath];
-}
-
-/**
- * Path looks like mock scan.
- * @param {string} targetPath
- * @returns {any}
- */
-async function pathLooksLikeMockScan(targetPath) {
-    try {
-        const stat = await fs.promises.stat(targetPath);
-        if (!stat.isDirectory()) return false;
-        const entries = await fs.promises.readdir(targetPath, { withFileTypes: true });
-        const files = entries.filter((e) => e.isFile()).map((e) => e.name);
-        const jsonCount = files.filter((n) => n.endsWith('.json')).length;
-        const sourceCount = files.filter((n) => /\.(js|ts|jsx|tsx|py|cjs|mjs)$/.test(n)).length;
-        // Only a mock-scan directory if it has JSON files but no source code,
-        // or if JSON files dominate and have mock/sample/demo in their names.
-        if (jsonCount === 0) return false;
-        if (sourceCount > 0) return false;
-        const mockNamedCount = files.filter((n) => /mock|sample|demo|fixture/i.test(n)).length;
-        return mockNamedCount > 0 || (jsonCount / files.length) > 0.7;
-    } catch {
-        return false;
-    }
-}
-
-/**
- * Derive severity counts from an array of findings so the flat response stays consistent.
- * @param {Array} findings
- * @returns {Object}
- */
-function deriveSeverityCounts(findings) {
-    const counts = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
-    if (!Array.isArray(findings)) return counts;
-    for (const issue of findings) {
-        const band = String(issue.severity || issue.severityBand || 'low').toLowerCase();
-        const increment = typeof issue.count === 'number' && issue.count > 0 ? issue.count : 1;
-        if (counts[band] !== undefined) counts[band] += increment;
-    }
-    return counts;
-}
-
-/**
- * Resolve analysis type.
- * @param {any} requestedType
- * @param {string} targetPath
- * @returns {any}
- */
-async function resolveAnalysisType(requestedType, targetPath) {
-    const type = String(requestedType || 'auto').toLowerCase();
-    const knownTypes = [
-        'roadmap', 'mock-scan', 'codebase', 'complete',
-        'npm-audit', 'compliance', 'data-cleanup', 'data-quality',
-        'cleanup-assistant', 'file-reduction', 'consolidation', 'eu-ai-act'
-    ];
-    if (knownTypes.includes(type)) return type;
-    return (await pathLooksLikeMockScan(targetPath)) ? 'mock-scan' : 'roadmap';
-}
-
-/**
- * Resolve model id.
- * @param {string} registry
- * @param {string} aiProvider
- * @returns {any}
- */
-function resolveModelId(registry, aiProvider) {
-    const provider = String(aiProvider || 'active').toLowerCase();
-    if (provider === 'demo') {
-        return registry.models.find((m) => m.provider === 'demo')?.id || registry.activeModelId;
-    }
-    if (provider === 'active') {
-        return registry.activeModelId;
-    }
-    if (provider === 'ollama') {
-        return registry.models.find((m) => m.provider === 'ollama')?.id || registry.activeModelId;
-    }
-    return registry.activeModelId;
-}
-
-/**
- * Build roadmap from path.
- * @param {string} projectPath
- * @param {Object} options
- * @returns {any}
- */
-async function buildRoadmapFromPath(projectPath, options = {}) {
-    const GlobalContextManager = require('../../src/core/GlobalContextManager.cjs');
-    const RoadmapDataAnalyzer = require('../../src/core/RoadmapDataAnalyzer.cjs');
-    const { buildHistoryEntryFromRoadmap } = require('../lib/roadmap-history-metrics.cjs');
-
-    const resolvedPath = path.resolve(projectPath);
-    const stat = await fs.promises.stat(resolvedPath);
-    if (!stat.isDirectory()) {
-        throw new Error('Path must be an existing directory');
-    }
-
-    const includePaths = normalizeStringList(options.includePaths);
-    const excludePatterns = normalizeStringList(options.excludePatterns);
-
-    const contextManager = new GlobalContextManager(resolvedPath);
-    await contextManager.initialize({ watch: false });
-
-    const analyzer = new RoadmapDataAnalyzer(contextManager, {
-        projectRoot: resolvedPath,
-        includePaths,
-        excludePatterns
-    });
-    analyzer.analysisCache.clear();
-    analyzer.lastAnalysisTime = null;
-
-    const roadmap = await analyzer.analyzeProjectForRoadmap();
-    if (options.title) roadmap.projectTitle = options.title;
-    if (options.description) roadmap.projectDescription = options.description;
-    roadmap.sourceProjectPath = resolvedPath;
-    roadmap.dataSource = 'filesystem-scan';
-    roadmap.scanOptions = { includePaths, excludePatterns };
-
-    const historyEntry = buildHistoryEntryFromRoadmap(roadmap, {
-        projectPath: resolvedPath,
-        title: options.title || roadmap.projectTitle || path.basename(resolvedPath),
-        scanOptions: { includePaths, excludePatterns }
-    });
-
-    const insightsMode = String(options.roadmapInsightsMode || 'off').toLowerCase();
-    if (insightsMode !== 'off' && insightsMode !== 'none') {
-        const userCredentials = options.userCredentials || null;
-        const registry = options.registry || null;
-        roadmap.strategicInsights = await analyzeStrategicInsights({
-            roadmap,
-            mode: insightsMode === 'llm' ? 'llm' : 'deterministic',
-            aiProvider: options.aiProvider,
-            projectPath: resolvedPath,
-            registry,
-            userCredentials
-        });
-        if (roadmap.strategicInsights?.mode === 'llm' && roadmap.strategicInsights.llmProvider) {
-            roadmap.inferenceMode = `${roadmap.inferenceMode || 'filesystem'} + strategic-insights-llm`;
-        } else if (roadmap.strategicInsights) {
-            roadmap.inferenceMode = `${roadmap.inferenceMode || 'filesystem'} + strategic-insights-rules`;
-        }
-    }
-
-    return { roadmap, projectPath: resolvedPath, historyEntry };
-}
-
-/**
- * Resolve analyze allowed roots.
+ * Resolve the list of filesystem roots that analysis requests are allowed to access.
  * @param {string} baseDir
  * @param {Object} options
- * @returns {any}
+ * @returns {string[]}
  */
 function resolveAnalyzeAllowedRoots(baseDir, options = {}) {
-    const monorepoRoot = options.monorepoRoot
+    if (typeof baseDir !== 'string') return [];
+    const opts = (options && typeof options === 'object' && !Array.isArray(options)) ? options : {};
+    const monorepoRoot = opts.monorepoRoot
         || path.resolve(path.join(baseDir, '..'));
     return resolveDefaultAllowedRoots(baseDir, { monorepoRoot });
 }
 
 /**
- * Setup flexible analyze a p i.
- * @param {any} app
+ * Setup flexible analyze API.
+ * @param {import('express').Application} app
  * @param {Object} options
- * @returns {any}
+ * @returns {void}
  */
 function setupFlexibleAnalyzeAPI(app, options = {}) {
-    const baseDir = options.baseDir || path.join(__dirname, '..', '..');
-    const monorepoRoot = options.monorepoRoot || path.resolve(path.join(baseDir, '..'));
-    const publicGateEnabled = options.publicGateEnabled === true
-        || (options.publicGateEnabled !== false && process.env.SIMPLEBEACON_PUBLIC_GATE === 'true');
-    const closedVaultMode = options.closedVaultMode === true
+    if (!app || typeof app.use !== 'function') {
+        throw new TypeError('setupFlexibleAnalyzeAPI requires a valid Express app instance');
+    }
+    const opts = (options && typeof options === 'object' && !Array.isArray(options)) ? options : {};
+    const baseDir = opts.baseDir || path.join(__dirname, '..', '..');
+    const monorepoRoot = opts.monorepoRoot || path.resolve(path.join(baseDir, '..'));
+    const publicGateEnabled = opts.publicGateEnabled === true
+        || (opts.publicGateEnabled !== false && process.env.SIMPLEBEACON_PUBLIC_GATE === 'true');
+    const closedVaultMode = opts.closedVaultMode === true
         || process.env.SIMPLEBEACON_CLOSED_VAULT === 'true';
-    const auditCheckoutUrl = options.auditCheckoutUrl
+    const auditCheckoutUrl = opts.auditCheckoutUrl
         || process.env.SIMPLEBEACON_AUDIT_CHECKOUT_URL
         || 'mailto:audit@simplebeacon.ai?subject=Unlock%20Pre-Launch%20Audit%20Report';
 
-/**
- * Send analyze json.
- * @param {Array} res
- * @param {any} payload
- * @param {any} statusCode
- * @returns {any}
- */
-    function sendAnalyzeJson(res, payload, statusCode = 200) {
-        const stripped = { ...payload };
-        delete stripped.projectPath;
-        if (stripped.data && typeof stripped.data === 'object') {
-            delete stripped.data.projectPath;
-            delete stripped.data.sourceProjectPath;
-        }
-        if (stripped.report && typeof stripped.report === 'object') {
-            delete stripped.report.projectPath;
-            delete stripped.report.sourceProjectPath;
-        }
-        const body = publicGateEnabled ? applyPublicGateToAnalyzeResponse(stripped) : stripped;
-        return res.status(statusCode).json(body);
-    }
-
-/**
- * Reject paid deliverable.
- * @param {Array} res
- * @returns {any}
- */
-    function rejectPaidDeliverable(res) {
-        return res.status(402).json({
-            success: false,
-            publicGateLocked: true,
-            error: 'Pre-Launch Audit PDF is a paid deliverable ($499). Unlock the full remediation log and executive PDF.',
-            checkoutUrl: auditCheckoutUrl,
-            auditPriceLabel: '$499'
-        });
-    }
+    const sendAnalyzeJsonOpts = { publicGateEnabled, applyPublicGateToAnalyzeResponse };
 
     app.get('/api/simplebeacon/entitlements', (req, res) => {
         res.json({
@@ -499,6 +246,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
  * @returns {any}
  */
     function resolveSafeProjectPath(rawPath) {
+        if (typeof rawPath !== 'string') return null;
         const candidate = resolveProjectPath(baseDir, rawPath, monorepoRoot);
         if (!candidate) return null;
         return assertSafeProjectPath(candidate, getAllowedRoots());
@@ -507,7 +255,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
     app.get('/api/analyze/providers', async (req, res) => {
         try {
             const registry = await ensureRegistry(baseDir);
-            const userCredentials = await loadUserCredentials(req);
+            const userCredentials = await loadUserCredentials(req, getUserAiCredentials);
             const allowedRoots = getAllowedRoots();
             res.json({
                 success: true,
@@ -593,103 +341,25 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
         }
     });
 
-/**
- * Fetch website to temp.
- * @param {string} rawUrl
- * @returns {any}
- */
-    async function fetchWebsiteToTemp(rawUrl) {
-        const url = String(rawUrl || '').trim();
-        if (!url) throw new Error('URL is required');
-        const https = require('https');
-        const http = require('http');
-        const { URL } = require('url');
-        const parsed = new URL(url);
-
-        const tempDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'sb-web-'));
-        const domain = parsed.hostname.replace(/[^a-z0-9.-]/gi, '_');
-        const fetchDir = path.join(tempDir, domain);
-        await fs.promises.mkdir(fetchDir, { recursive: true });
-
-        const indexPath = path.join(fetchDir, 'index.html');
-        await new Promise((resolve, reject) => {
-            const client = parsed.protocol === 'https:' ? https : http;
-            const request = client.get(url, { timeout: constants.TIMEOUT_30S, headers: { 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36' } }, (response) => {
-                if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
-                    const redirectUrl = response.headers.location.startsWith('http')
-                        ? response.headers.location
-                        : new URL(response.headers.location, url).href;
-                    return fetchWebsiteToTemp(redirectUrl).then(resolve).catch(reject);
-                }
-                if (response.statusCode !== 200) {
-                    return reject(new Error(`HTTP ${response.statusCode}`));
-                }
-                const stream = fs.createWriteStream(indexPath);
-                response.pipe(stream);
-                stream.on('finish', () => resolve(fetchDir));
-                stream.on('error', reject);
-            });
-            request.on('error', reject);
-            request.on('timeout', () => {
-                request.destroy();
-                reject(new Error('Request timeout'));
-            });
-        });
-
-        // Extract and fetch linked CSS/JS assets
-        try {
-            const html = await fs.promises.readFile(indexPath, 'utf8');
-            const assetMatches = html.matchAll(/(href|src)="([^"]+\.(css|js))"/gi);
-            const seen = new Set();
-            for (const match of assetMatches) {
-                const asset = match[2];
-                if (seen.has(asset)) continue;
-                seen.add(asset);
-                if (asset.startsWith('data:') || asset.startsWith('//')) continue;
-                let assetUrl;
-                try {
-                    assetUrl = new URL(asset, url).href;
-                } catch {
-                    continue;
-                }
-                const assetFile = path.basename(asset.replace(/[?#].*$/, ''));
-                if (!assetFile) continue;
-                const outPath = path.join(fetchDir, assetFile);
-                try {
-                    const client2 = new URL(assetUrl).protocol === 'https:' ? https : http;
-                    await new Promise((res2) => {
-                        const req2 = client2.get(assetUrl, { timeout: constants.TIMEOUT_15S, headers: { 'User-Agent': 'Mozilla/5.0' } }, (resp2) => {
-                            if (resp2.statusCode !== 200) return res2();
-                            const s2 = fs.createWriteStream(outPath);
-                            resp2.pipe(s2);
-                            s2.on('finish', res2);
-                            s2.on('error', () => res2());
-                        });
-                        req2.on('error', () => res2());
-                        req2.on('timeout', () => { req2.destroy(); res2(); });
-                    });
-                } catch {
-                    // ignore asset fetch failures
-                }
-            }
-        } catch {
-            // ignore parse failures
+    /**
+     * Resolve a project path from request body — supports local directories and website URLs.
+     * @param {string} rawPath
+     * @returns {Promise<{projectPath:string, tempFetchDir:string|null, isWebsite:boolean}>}
+     */
+    async function resolveAnalyzeProjectPath(rawPath) {
+        const trimmed = String(rawPath || '').trim();
+        if (!trimmed) {
+            throw new Error('projectPath is required');
         }
-
-        return fetchDir;
-    }
-
-/**
- * Cleanup website temp.
- * @param {string} tempDir
- * @returns {any}
- */
-    async function cleanupWebsiteTemp(tempDir) {
-        try {
-            await fs.promises.rm(tempDir, { recursive: true, force: true });
-        } catch {
-            // ignore cleanup failures
+        if (/^https?:\/\//i.test(trimmed)) {
+            const tempFetchDir = await fetchWebsiteToTemp(trimmed);
+            return { projectPath: tempFetchDir, tempFetchDir, isWebsite: true };
         }
+        const projectPath = resolveSafeProjectPath(trimmed);
+        if (!projectPath) {
+            throw new Error('projectPath is required');
+        }
+        return { projectPath, tempFetchDir: null, isWebsite: false };
     }
 
     app.post('/api/analyze/flexible', async (req, res) => {
@@ -700,32 +370,21 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             let projectPath;
             let isWebsite = false;
 
-            // Detect website URL
-            if (/^https?:\/\//i.test(rawPath)) {
-                isWebsite = true;
-                try {
-                    tempFetchDir = await fetchWebsiteToTemp(rawPath);
-                    projectPath = tempFetchDir;
-                } catch (error) {
-                    return res.status(400).json({ success: false, error: toClientError(error, 'Failed to fetch website') });
-                }
-            } else {
-                try {
-                    projectPath = resolveSafeProjectPath(rawPath);
-                } catch (error) {
-                    return res.status(400).json({ success: false, error: toClientError(error, 'Invalid projectPath') });
-                }
-            }
-            if (!projectPath) {
-                return res.status(400).json({ success: false, error: 'projectPath is required' });
+            try {
+                const resolved = await resolveAnalyzeProjectPath(rawPath);
+                projectPath = resolved.projectPath;
+                tempFetchDir = resolved.tempFetchDir;
+                isWebsite = resolved.isWebsite;
+            } catch (error) {
+                return res.status(400).json({ success: false, error: toClientError(error, 'Invalid projectPath') });
             }
 
             const aiProvider = String(body.aiProvider || 'active').toLowerCase();
-            const analysisType = isWebsite ? 'mock-scan' : await resolveAnalysisType(body.analysisType, projectPath);
+            const analysisType = isWebsite ? 'mock-scan' : await resolveAnalysisType(body.analysisType, projectPath, pathLooksLikeMockScan);
             const registry = await ensureRegistry(baseDir);
 
             if (analysisType === 'roadmap') {
-                const userCredentials = await loadUserCredentials(req);
+                const userCredentials = await loadUserCredentials(req, getUserAiCredentials);
                 const result = await buildRoadmapFromPath(projectPath, {
                     ...body,
                     userCredentials,
@@ -764,7 +423,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 );
                 if (understandingMode !== 'off') {
                     const registry = await ensureRegistry(baseDir);
-                    const userCredentials = await loadUserCredentials(req);
+                    const userCredentials = await loadUserCredentials(req, getUserAiCredentials);
                     report = await attachUnderstandingToCodebaseReport(report, projectPath, {
                         platformRoot: baseDir,
                         understandingMode,
@@ -781,7 +440,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                     understandingMode,
                     scanProfile,
                     report
-                });
+                }, 200, sendAnalyzeJsonOpts);
             }
 
             if (analysisType === 'complete') {
@@ -803,7 +462,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                     results.simplebeacon = scanRes.report || null;
                     if (scanRes.report) enginesRun.push('simplebeacon');
                 } catch (scanErr) {
-                    logger.warn('[Complete] simplebeacon scan failed:', scanErr.message);
+                    logger.warn('[Complete] simplebeacon scan failed:', safeErrorMessage(scanErr));
                 }
 
                 // Derive codebase report from simplebeacon scan to avoid double file walk
@@ -837,7 +496,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                         );
                         enginesRun.push('codebase');
                     } catch (cbErr) {
-                        logger.warn('[Complete] codebase analysis failed:', cbErr.message);
+                        logger.warn('[Complete] codebase analysis failed:', safeErrorMessage(cbErr));
                     }
                 }
 
@@ -852,21 +511,21 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                     results.fileReduction = fileReductionResult.value;
                     enginesRun.push('file-reduction');
                 } else {
-                    logger.warn('[Complete] file reduction failed:', fileReductionResult.reason?.message);
+                    logger.warn('[Complete] file reduction failed:', safeErrorMessage(fileReductionResult.reason));
                 }
 
                 if (removableFilesResult.status === 'fulfilled') {
                     results.removableFiles = removableFilesResult.value;
                     enginesRun.push('removable-files');
                 } else {
-                    logger.warn('[Complete] removable files scan failed:', removableFilesResult.reason?.message);
+                    logger.warn('[Complete] removable files scan failed:', safeErrorMessage(removableFilesResult.reason));
                 }
 
                 if (npmAuditResult.status === 'fulfilled') {
                     results.npmAudit = npmAuditResult.value;
                     enginesRun.push('npm-audit');
                 } else {
-                    logger.warn('[Complete] npm audit failed:', npmAuditResult.reason?.message);
+                    logger.warn('[Complete] npm audit failed:', safeErrorMessage(npmAuditResult.reason));
                 }
 
                 // Run data-cleanup scan so compliance can reference cleanup findings
@@ -874,7 +533,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                     results.dataCleanup = await runDataCleanupScan(projectPath, { profile: 'all' });
                     enginesRun.push('data-cleanup');
                 } catch (cleanupErr) {
-                    logger.warn('[Complete] data-cleanup failed:', cleanupErr.message);
+                    logger.warn('[Complete] data-cleanup failed:', safeErrorMessage(cleanupErr));
                 }
 
                 // Run compliance checklist after cleanup
@@ -887,7 +546,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                     });
                     enginesRun.push('compliance');
                 } catch (complianceErr) {
-                    logger.warn('[Complete] compliance failed:', complianceErr.message);
+                    logger.warn('[Complete] compliance failed:', safeErrorMessage(complianceErr));
                 }
 
                 // Build summary
@@ -930,22 +589,22 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                         summary,
                         results
                     }
-                });
+                }, 200, sendAnalyzeJsonOpts);
             }
 
             const modelId = resolveModelId(registry, aiProvider);
             const scanResult = await analyzeWithModel(baseDir, modelId, {
-                scanPaths: resolveMockScanPaths(baseDir, projectPath),
+                scanPaths: resolveMockScanPaths(baseDir, projectPath, { isSameResolvedPath, resolvePlatformRoot }),
                 aiProvider,
                 projectPath
             });
 
             let cloudSummary = null;
-            const userCredentials = await loadUserCredentials(req);
+            const userCredentials = await loadUserCredentials(req, getUserAiCredentials);
             if (['openai', 'anthropic', 'ollama'].includes(aiProvider)
                 && providerConfigured(aiProvider, registry, userCredentials)) {
                 try {
-                    const providerOpts = resolveSummaryProvider(aiProvider, registry, userCredentials);
+                    const providerOpts = resolveSummaryProvider(aiProvider, registry, userCredentials, DEFAULT_OLLAMA_URL);
                     const enhanced = await summarizeScanWithProvider(
                         providerOpts?.providerId || aiProvider,
                         scanResult.report,
@@ -978,7 +637,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                     }
                 } catch (error) {
                     scanResult.report.inferenceMeta = scanResult.report.inferenceMeta || {};
-                    scanResult.report.inferenceMeta.cloudError = error.message;
+                    scanResult.report.inferenceMeta.cloudError = safeErrorMessage(error);
                 }
             }
 
@@ -988,7 +647,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 aiProvider,
                 cloudSummary,
                 ...scanResult
-            });
+            }, 200, sendAnalyzeJsonOpts);
         } catch (error) {
             res.status(400).json({ success: false, error: toClientError(error, 'Analysis request failed') });
         } finally {
@@ -997,29 +656,6 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             }
         }
     });
-
-    /**
-     * Recursively count files in a directory (for progress tracking).
-     */
-    async function countFiles(dirPath, max = Number.MAX_SAFE_INTEGER) {
-        let count = 0;
-        const queue = [dirPath];
-        const skip = new Set(['node_modules', '.git', 'dist', 'build', 'coverage', '.next', '.cache']);
-        while (queue.length && count < max) {
-            const cur = queue.pop();
-            try {
-                const entries = await fs.promises.readdir(cur, { withFileTypes: true });
-                for (const ent of entries) {
-                    if (ent.isDirectory()) {
-                        if (!skip.has(ent.name)) queue.push(path.join(cur, ent.name));
-                    } else {
-                        count++;
-                    }
-                }
-            } catch { /* ignore permission errors */ }
-        }
-        return Math.min(count, max);
-    }
 
     /**
      * Async scan endpoint — creates a scan job and returns scanId immediately.
@@ -1033,23 +669,13 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             let isWebsite = false;
             let tempFetchDir = null;
 
-            if (/^https?:\/\//i.test(rawPath)) {
-                isWebsite = true;
-                try {
-                    tempFetchDir = await fetchWebsiteToTemp(rawPath);
-                    projectPath = tempFetchDir;
-                } catch (error) {
-                    return res.status(400).json({ success: false, error: toClientError(error, 'Failed to fetch website') });
-                }
-            } else {
-                try {
-                    projectPath = resolveSafeProjectPath(rawPath);
-                } catch (error) {
-                    return res.status(400).json({ success: false, error: toClientError(error, 'Invalid projectPath') });
-                }
-            }
-            if (!projectPath) {
-                return res.status(400).json({ success: false, error: 'projectPath is required' });
+            try {
+                const resolved = await resolveAnalyzeProjectPath(rawPath);
+                projectPath = resolved.projectPath;
+                tempFetchDir = resolved.tempFetchDir;
+                isWebsite = resolved.isWebsite;
+            } catch (error) {
+                return res.status(400).json({ success: false, error: toClientError(error, 'Invalid projectPath') });
             }
 
             const scanId = crypto.randomUUID();
@@ -1073,8 +699,9 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
 
                 const updateProgress = (engineName, detail = '') => {
                     step++;
+                    const job = scanJobs.get(scanId);
                     scanJobs.set(scanId, {
-                        ...scanJobs.get(scanId),
+                        ...(job || {}),
                         current: Math.round((step / totalSteps) * fileCount),
                         percent: Math.round((step / totalSteps) * 100),
                         filename: detail || `Running ${engineName}…`,
@@ -1095,7 +722,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                         results.simplebeacon = scanRes.report || null;
                         if (scanRes.report) engines.push('simplebeacon');
                     } catch (err) {
-                        logger.warn('[Async Scan] simplebeacon failed:', err.message);
+                        logger.warn('[Async Scan] simplebeacon failed:', safeErrorMessage(err));
                     }
 
                     // 2. Codebase analysis (if simplebeacon didn't already do it)
@@ -1109,7 +736,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                             );
                             engines.push('codebase');
                         } catch (err) {
-                            logger.warn('[Async Scan] codebase failed:', err.message);
+                            logger.warn('[Async Scan] codebase failed:', safeErrorMessage(err));
                         }
                     } else {
                         const findings = results.simplebeacon.findings || results.simplebeacon.rawIssues || [];
@@ -1138,7 +765,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                         results.fileReduction = await scanFileMergerReduction(projectPath, { includeRepositoryInventory: true });
                         engines.push('file-reduction');
                     } catch (err) {
-                        logger.warn('[Async Scan] file-reduction failed:', err.message);
+                        logger.warn('[Async Scan] file-reduction failed:', safeErrorMessage(err));
                     }
 
                     // 4. Removable files scan
@@ -1147,7 +774,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                         results.removableFiles = await scanRemovableFiles(projectPath);
                         engines.push('removable-files');
                     } catch (err) {
-                        logger.warn('[Async Scan] removable-files failed:', err.message);
+                        logger.warn('[Async Scan] removable-files failed:', safeErrorMessage(err));
                     }
 
                     // 5. NPM audit
@@ -1156,7 +783,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                         results.npmAudit = await runNpmAuditAsync(projectPath, { force: false });
                         engines.push('npm-audit');
                     } catch (err) {
-                        logger.warn('[Async Scan] npm-audit failed:', err.message);
+                        logger.warn('[Async Scan] npm-audit failed:', safeErrorMessage(err));
                     }
 
                     // 6. Compliance
@@ -1165,7 +792,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                         results.dataCleanup = await runDataCleanupScan(projectPath, { profile: 'all' });
                         engines.push('data-cleanup');
                     } catch (err) {
-                        logger.warn('[Async Scan] data-cleanup failed:', err.message);
+                        logger.warn('[Async Scan] data-cleanup failed:', safeErrorMessage(err));
                     }
                     try {
                         results.compliance = evaluateComplianceChecklist(results.simplebeacon || {}, {
@@ -1175,7 +802,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                         });
                         engines.push('compliance');
                     } catch (err) {
-                        logger.warn('[Async Scan] compliance failed:', err.message);
+                        logger.warn('[Async Scan] compliance failed:', safeErrorMessage(err));
                     }
 
                     // Build final report matching the flexible endpoint's complete-scan format
@@ -1232,18 +859,18 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                     });
                     logger.info(`[Async Scan] ${scanId} completed in ${Date.now() - startedAt}ms, engines=[${engines.join(',')}]`);
                 } catch (err) {
-                    logger.error('[Async Scan] fatal error:', err.message);
+                    logger.error('[Async Scan] fatal error:', safeErrorMessage(err));
                     scanJobs.set(scanId, {
                         ...scanJobs.get(scanId),
                         status: 'error',
-                        error: err.message || 'Scan failed'
+                        error: safeErrorMessage(err) || 'Scan failed'
                     });
                 } finally {
                     if (tempFetchDir) {
                         await cleanupWebsiteTemp(tempFetchDir);
                     }
                 }
-            })();
+            })().catch((err) => logger.error('[Async Scan] unhandled background error:', safeErrorMessage(err)));
 
             return res.json({ success: true, scanId, status: 'scanning' });
         } catch (error) {
@@ -1258,67 +885,15 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
         limits: { files: 100000, fileSize: 5 * constants.BYTES_PER_KB * constants.BYTES_PER_KB * constants.BYTES_PER_KB, fieldSize: 50 * constants.BYTES_PER_KB * constants.BYTES_PER_KB }
     });
 
-/**
- * Sanitize upload path.
- * @param {string} rawPath
- * @returns {any}
- */
-    function sanitizeUploadPath(rawPath) {
-        return String(rawPath || '')
-            .replace(/^[/\\]+/, '')
-            .replace(/\.\.[/\\]/g, '')
-            .replace(/[^a-zA-Z0-9_\-./\\]/g, '_');
-    }
-
     /**
-     * Sanitize scan report JSON before sending to AI analyst APIs.
-     * Strips local system paths, email addresses, and user-identifying metadata
-     * to enforce zero-retention privacy (Pillar 3 of privacy architecture).
+     * Verify a license token against the subscription store or cryptographic fallback.
+     * @param {string} token
+     * @returns {Promise<Object|null>} Subscription record if valid, otherwise null.
      */
-    function sanitizeReportForAi(report) {
-        if (!report || typeof report !== 'object') return report;
-        const clone = JSON.parse(JSON.stringify(report));
-        const pathRegex = /[A-Z]:\\Users\\[^\\]+|\\home\\[^/]+|C:\\\\Users\\\\[^\\\\]+/gi;
-        const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
-
-/**
- * Scrub.
- * @param {any} obj
- * @returns {any}
- */
-        function scrub(obj) {
-            if (typeof obj === 'string') {
-                return obj
-                    .replace(pathRegex, '<local-path-redacted>')
-                    .replace(emailRegex, '<email-redacted>');
-            }
-            if (Array.isArray(obj)) {
-                return obj.map(scrub);
-            }
-            if (obj && typeof obj === 'object') {
-                const out = {};
-                for (const key of Object.keys(obj)) {
-                    if (['projectRoot', 'scanTargetRoot', 'configPath'].includes(key)) {
-                        out[key] = '<path-redacted>';
-                    } else {
-                        out[key] = scrub(obj[key]);
-                    }
-                }
-                return out;
-            }
-            return obj;
-        }
-        return scrub(clone);
-    }
-
-/**
- * Validate license token.
- * @param {string} token
- * @returns {any}
- */
     async function validateLicenseToken(token) {
+        if (typeof token !== 'string' || !token) return null;
         const { readStore } = require('../../server/lib/simplebeacon-subscription-store.cjs');
-                const store = await readStore();
+        const store = await readStore();
         const record = Object.values(store.subscriptions || {}).find(
             (s) => s.licenseToken === token
         );
@@ -1374,7 +949,10 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
 
             // Reconstruct directory structure using filePaths from frontend
             let filePaths = [];
-            try { filePaths = JSON.parse(req.body?.filePaths || '[]'); } catch (e) { filePaths = []; }
+            try {
+                const parsed = JSON.parse(req.body?.filePaths || '[]');
+                if (Array.isArray(parsed)) filePaths = parsed;
+            } catch (e) { filePaths = []; }
             for (let i = 0; i < req.files.length; i++) {
                 const relPath = filePaths[i] || req.files[i].originalname || req.files[i].fieldname;
                 const safePath = sanitizeUploadPath(relPath);
@@ -1401,10 +979,10 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                         const copiedZip = path.join(projectDir, safeRel);
                         if (fs.existsSync(copiedZip)) fs.unlinkSync(copiedZip);
                     } catch (cleanupErr) {
-                        logger.warn(`[Upload Directory] ZIP cleanup skipped: ${cleanupErr.message}`);
+                        logger.warn(`[Upload Directory] ZIP cleanup skipped: ${safeErrorMessage(cleanupErr)}`);
                     }
                 } catch (zipErr) {
-                    logger.warn(`[Upload Directory] ZIP extraction failed: ${zipErr.message}. Proceeding with raw upload.`);
+                    logger.warn(`[Upload Directory] ZIP extraction failed: ${safeErrorMessage(zipErr)}. Proceeding with raw upload.`);
                 }
             }
 
@@ -1465,11 +1043,14 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 const scanStart = Date.now();
                 logger.info(`[Upload Directory] Starting scan ${scanId} for ${analysisType}, ${req.files.length} files`);
                 const scanTimeoutMs = 18 * constants.ONE_MINUTE_MS; // 18 min hard cap for entire scan + analyses
-                const scanTimer = setTimeout(() => {
+                let scanTimer = null;
+                const clearScanTimer = () => { if (scanTimer) { clearTimeout(scanTimer); scanTimer = null; } };
+                scanTimer = setTimeout(() => {
                     const job = scanJobs.get(scanId);
                     if (job && job.status === 'scanning') {
                         logger.error(`[Upload Directory] Scan ${scanId} timed out after ${scanTimeoutMs}ms`);
                         scanJobs.set(scanId, { ...job, status: 'error', error: `Scan timed out after ${scanTimeoutMs / constants.MS_PER_SECOND}s` });
+                        try { fs.rmSync(projectDir, { recursive: true, force: true }); } catch { /* ignore cleanup errors */ }
                     }
                 }, scanTimeoutMs);
                 let report = null;
@@ -1496,8 +1077,9 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                         };
                         logger.info(`[Upload Directory] Programmatic scan completed for ${scanId}, health=${report.gate.score}`);
                     } catch (progErr) {
-                        logger.error('[Upload Directory] Programmatic fallback failed:', progErr.message);
-                        scanJobs.set(scanId, { ...scanJobs.get(scanId), status: 'error', error: progErr.message || 'Analysis failed' });
+                        clearScanTimer();
+                        logger.error('[Upload Directory] Programmatic fallback failed:', safeErrorMessage(progErr));
+                        scanJobs.set(scanId, { ...scanJobs.get(scanId), status: 'error', error: safeErrorMessage(progErr) || 'Analysis failed' });
                         return;
                     }
                 } else {
@@ -1513,23 +1095,24 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                         try {
                             report = JSON.parse(stdout);
                         } catch (parseErr) {
-                            logger.error('[Upload Directory] Failed to parse scan output:', parseErr.message);
+                            logger.error('[Upload Directory] Failed to parse scan output:', safeErrorMessage(parseErr));
                             scanJobs.set(scanId, { ...scanJobs.get(scanId), status: 'error', error: 'Scan completed but output parsing failed' });
                             return;
                         }
                     } catch (err) {
                         cliFailed = true;
-                        logger.warn(`[Upload Directory] CLI scan exited non-zero for ${scanId}:`, err.message);
+                        logger.warn(`[Upload Directory] CLI scan exited non-zero for ${scanId}:`, safeErrorMessage(err));
                         if (err.stdout) {
                             try {
                                 report = JSON.parse(err.stdout);
                                 logger.info(`[Upload Directory] Parsed gate-fail report for ${scanId}, issues=${report.issueCount || report.gate?.blockingCount || 'n/a'}`);
                             } catch (parseErr) {
-                                logger.error('[Upload Directory] Failed to parse gate-fail output:', parseErr.message);
+                                logger.error('[Upload Directory] Failed to parse gate-fail output:', safeErrorMessage(parseErr));
                             }
                         }
                         if (!report) {
-                            scanJobs.set(scanId, { ...scanJobs.get(scanId), status: 'error', error: err.message || 'Analysis failed' });
+                            clearScanTimer();
+                            scanJobs.set(scanId, { ...scanJobs.get(scanId), status: 'error', error: safeErrorMessage(err) || 'Analysis failed' });
                             return;
                         }
                     }
@@ -1545,17 +1128,20 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
  * @param {any} analyzer
  * @returns {any}
  */
-                const tierAllowed = (analyzer) => !instantTierLimited || ['simplebeacon', 'mock-scan', 'codebase'].includes(analyzer);
+                const tierAllowed = (analyzer) => typeof analyzer === 'string' && (!instantTierLimited || ['simplebeacon', 'mock-scan', 'codebase'].includes(analyzer));
                 const ANALYZER_TIMEOUT = constants.TIMEOUT_10M; // 10 min per analyzer (codebase can be slow)
                 const ANALYZER_TIMEOUT_FAST = constants.TIMEOUT_1M; // 1 min for lightweight analyzers
-/**
- * Run analyzer.
- * @param {any} label
- * @param {Function} fn
- * @param {Array} timeoutMs
- * @returns {any}
- */
+                /**
+                 * Run an analyzer with a timeout, logging start/finish.
+                 * @param {string} label Analyzer name for logging.
+                 * @param {Function} fn Analyzer function to execute.
+                 * @param {number} [timeoutMs] Timeout in milliseconds.
+                 * @returns {Promise<any>}
+                 */
                 const runAnalyzer = async (label, fn, timeoutMs = ANALYZER_TIMEOUT) => {
+                    if (typeof fn !== 'function') {
+                        throw new TypeError(`Analyzer ${label} requires a function, received ${typeof fn}`);
+                    }
                     const t0 = Date.now();
                     logger.info(`[Upload Directory] Starting analyzer: ${label} (timeout ${timeoutMs}ms)`);
                     try {
@@ -1720,7 +1306,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                     reportJson.projectName = originalDirName;
                 }
 
-                clearTimeout(scanTimer);
+                clearScanTimer();
                 logger.info(`[Upload Directory] Scan ${scanId} completed successfully in ${(Date.now() - scanStart) / constants.MS_PER_SECOND}s`);
                 scanJobs.set(scanId, {
                     ...scanJobs.get(scanId),
@@ -1750,9 +1336,9 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                             });
                         }
                     } catch (aiErr) {
-                        logger.warn('[Upload Directory] AI Analyst autopilot error:', aiErr.message);
+                        logger.warn('[Upload Directory] AI Analyst autopilot error:', safeErrorMessage(aiErr));
                     }
-                })();
+                })().catch((err) => logger.warn('[Upload Directory] AI Analyst unhandled error:', safeErrorMessage(err)));
 
                 // --- EU AI Act Article 14 Human Oversight Evaluator (fire-and-forget) ---
                 (async () => {
@@ -1761,15 +1347,15 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                         const jobMeta = scanJobs.get(scanId) || {};
                         scanJobs.set(scanId, { ...jobMeta, euCompliance });
                     } catch (euErr) {
-                        logger.warn('[Upload Directory] EU Article 14 evaluator error:', euErr.message);
+                        logger.warn('[Upload Directory] EU Article 14 evaluator error:', safeErrorMessage(euErr));
                     }
-                })();
+                })().catch((err) => logger.warn('[Upload Directory] EU evaluator unhandled error:', safeErrorMessage(err)));
             })();
 
             res.json({ success: true, scanId });
         } catch (err) {
-            logger.error('[Upload Directory] Error:', err.message);
-            res.status(500).json({ success: false, error: err.message || 'Analysis failed' });
+            logger.error('[Upload Directory] Error:', safeErrorMessage(err));
+            res.status(500).json({ success: false, error: safeErrorMessage(err) || 'Analysis failed' });
             // Clean up on immediate error — Privacy Guard: zero data retention
             try {
                 if (projectDir) {
@@ -1852,7 +1438,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             logger.info(`[analyze] codebase done path=${projectPath} context=${scanContext} ms=${Date.now() - startedAt} analyzed=${report.summary?.codeFilesAnalyzed ?? '—'}/${report.summary?.codeFilesDiscovered ?? '—'}`);
             if (understandingMode !== 'off') {
                 const registry = await ensureRegistry(baseDir);
-                const userCredentials = await loadUserCredentials(req);
+                const userCredentials = await loadUserCredentials(req, getUserAiCredentials);
                 report = await attachUnderstandingToCodebaseReport(report, projectPath, {
                     platformRoot: baseDir,
                     understandingMode,
@@ -1863,7 +1449,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 });
             }
             res.set('Cache-Control', 'no-store');
-            return sendAnalyzeJson(res, { success: true, data: report, scanProfile, scanContext, understandingMode });
+            return sendAnalyzeJson(res, { success: true, data: report, scanProfile, scanContext, understandingMode }, 200, sendAnalyzeJsonOpts);
         } catch (error) {
             return res.status(400).json({ success: false, error: toClientError(error, 'Codebase analysis failed') });
         }
@@ -1903,7 +1489,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             const understandingMode = String(body.understandingMode || 'deterministic').toLowerCase();
             const aiProvider = String(body.aiProvider || 'demo').toLowerCase();
             const registry = await ensureRegistry(baseDir);
-            const userCredentials = await loadUserCredentials(req);
+            const userCredentials = await loadUserCredentials(req, getUserAiCredentials);
 
             let report;
             // Dropped-file / paste flows send inline code — prefer that over disk lookup even
@@ -2042,7 +1628,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
     });
 
     app.post('/api/analyze/export-bundle', async (req, res) => {
-        console.log('[DEBUG] /api/analyze/export-bundle route entered');
+        logger.debug('[export-bundle] route entered');
         try {
             const body = req.body || {};
             const {
@@ -2052,14 +1638,14 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             const rawScan = body.completeScan || body.report;
             const completeScan = normalizeCompleteScanInput(rawScan) || rawScan;
             if (!completeScan || typeof completeScan !== 'object') {
-                console.log('[DEBUG] export-bundle: missing completeScan');
+                logger.debug('[export-bundle] missing completeScan');
                 return res.status(400).json({
                     success: false,
                     error: 'completeScan payload is required — run Complete scan first, then export ZIP.'
                 });
             }
             if (!completeScanHasExportableResults(completeScan)) {
-                console.log('[DEBUG] export-bundle: no exportable results');
+                logger.debug('[export-bundle] no exportable results');
                 return res.status(400).json({
                     success: false,
                     error: 'Export bundle requires at least one completed scan step with results.'
@@ -2069,7 +1655,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             const internalDashboard = process.env.SIMPLEBEACON_INTERNAL_DASHBOARD === 'true'
                 || body.internalDashboard === true;
 
-            console.log('[DEBUG] export-bundle: calling buildAnalyzeExportZipStream');
+            logger.debug('[export-bundle] calling buildAnalyzeExportZipStream');
             const { buildAnalyzeExportZipStream } = require('../lib/analyze-export-bundle.cjs');
             let zipResult;
             try {
@@ -2097,29 +1683,29 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                         res.set('Content-Disposition', 'attachment; filename="simplebeacon-export.zip"');
                     }
                 });
-                console.log('[DEBUG] export-bundle: ZIP streamed, filename', zipResult.filename);
+                logger.debug(`[export-bundle] ZIP streamed, filename=${zipResult.filename}`);
             } catch (error) {
-                console.log('[DEBUG] export-bundle: error during ZIP generation:', error.message);
+                logger.debug(`[export-bundle] error during ZIP generation: ${safeErrorMessage(error)}`);
                 if (error.code === 'export_paywall') {
                     return res.status(402).json({
                         success: false,
-                        error: error.message,
+                        error: safeErrorMessage(error),
                         checkoutUrl: auditCheckoutUrl
                     });
                 }
                 if (error.code === 'export_empty' || error.code === 'tier_scan_mismatch') {
                     return res.status(422).json({
                         success: false,
-                        error: error.message,
+                        error: safeErrorMessage(error),
                         warnings: error.warnings || []
                     });
                 }
                 throw error;
             }
             // Headers already sent; archive was piped to res by buildAnalyzeExportZipStream
-            console.log('[DEBUG] export-bundle: response streamed');
+            logger.debug('[export-bundle] response streamed');
         } catch (error) {
-            logger.warn('[export-bundle] generation failed', { error: error.message });
+            logger.warn('[export-bundle] generation failed', { error: safeErrorMessage(error) });
             return res.status(400).json({ success: false, error: toClientError(error, 'Export bundle generation failed') });
         }
     });
@@ -2246,7 +1832,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 error: `Unsupported format: ${format}. Use html, zip, or email.`
             });
         } catch (error) {
-            logger.warn('[certificate-export] failed', { error: error.message });
+            logger.warn('[certificate-export] failed', { error: safeErrorMessage(error) });
             return res.status(400).json({ success: false, error: toClientError(error, 'Certificate export failed') });
         }
     });
@@ -2261,12 +1847,12 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 return res.status(400).json({ success: false, error: 'completeScan payload is required' });
             }
             if (publicGateEnabled) {
-                return rejectPaidDeliverable(res);
+                return rejectPaidDeliverable(res, auditCheckoutUrl);
             }
             const aiProvider = String(body.aiProvider || 'demo').toLowerCase();
             const registry = await ensureRegistry(baseDir);
-            const userCredentials = await loadUserCredentials(req);
-            const providerOpts = resolveSummaryProvider(aiProvider, registry, userCredentials);
+            const userCredentials = await loadUserCredentials(req, getUserAiCredentials);
+            const providerOpts = resolveSummaryProvider(aiProvider, registry, userCredentials, DEFAULT_OLLAMA_URL);
             const reportModulePath = require.resolve('../lib/complete-scan-audit-report.cjs');
             if (process.env.SIMPLEBEACON_INTERNAL_DASHBOARD === 'true') {
                 delete require.cache[reportModulePath];
@@ -2327,7 +1913,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 missingForHandoff: report.missingForHandoff
             });
         } catch (error) {
-            logger.warn('[complete-audit-report] generation failed', { error: error.message });
+            logger.warn('[complete-audit-report] generation failed', { error: safeErrorMessage(error) });
             return res.status(400).json({ success: false, error: toClientError(error, 'Audit report generation failed') });
         }
     });
@@ -2335,10 +1921,35 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
     app.get('/api/analyze/list-directories', async (req, res) => {
         try {
             const rawPath = String(req.query.path || '');
-            if (!rawPath) {
-                return res.status(400).json({ success: false, error: 'path query parameter is required' });
-            }
             const allowedRoots = resolveDefaultAllowedRoots(baseDir, { monorepoRoot });
+
+            // Empty path => list all local drives (Windows) or the platform root (Unix-like)
+            if (!rawPath) {
+                const drives = [];
+                for (let i = 65; i <= 90; i++) {
+                    const letter = String.fromCharCode(i);
+                    const drive = `${letter}:/`;
+                    try {
+                        if (fs.existsSync(drive)) {
+                            drives.push({ name: `${letter}:\\`, path: drive });
+                        }
+                    }
+                    catch (e) { /* skip inaccessible drives */ }
+                }
+                if (drives.length > 0) {
+                    return res.json({ success: true, current: '', parent: null, directories: drives });
+                }
+                return res.json({
+                    success: true,
+                    current: '/',
+                    parent: null,
+                    directories: (await fs.promises.readdir('/', { withFileTypes: true }))
+                        .filter((entry) => entry.isDirectory() && !entry.name.startsWith('.'))
+                        .map((entry) => ({ name: entry.name, path: path.join('/', entry.name) }))
+                        .sort((a, b) => a.name.localeCompare(b.name))
+                });
+            }
+
             const candidate = resolveProjectPath(baseDir, rawPath, monorepoRoot);
             let targetPath;
             try {
@@ -2367,7 +1978,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 directories: dirs
             });
         } catch (error) {
-            logger.warn('[list-directories] failed', { error: error.message });
+            logger.warn('[list-directories] failed', { error: safeErrorMessage(error) });
             return res.status(400).json({ success: false, error: toClientError(error, 'Directory listing failed') });
         }
     });
@@ -2403,9 +2014,9 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             }
 
             const registry = await ensureRegistry(baseDir);
-            const userCredentials = await loadUserCredentials(req);
+            const userCredentials = await loadUserCredentials(req, getUserAiCredentials);
             const payload = normalizeReportForSummary(report, body.reportType || report.type);
-            const providerOpts = resolveSummaryProvider(aiProvider, registry, userCredentials);
+            const providerOpts = resolveSummaryProvider(aiProvider, registry, userCredentials, DEFAULT_OLLAMA_URL);
 
             if (!providerOpts) {
                 return res.json({
@@ -2446,8 +2057,8 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 success: true,
                 aiProvider: String(req.body?.aiProvider || 'demo').toLowerCase(),
                 enhanced: false,
-                error: error.message,
-                message: error.message
+                error: safeErrorMessage(error),
+                message: safeErrorMessage(error)
             });
         }
     });
@@ -2465,7 +2076,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 try {
                     projectPath = resolveSafeProjectPath(body.projectPath);
                 } catch (err) {
-                    return res.status(400).json({ success: false, error: err.message });
+                    return res.status(400).json({ success: false, error: safeErrorMessage(err) });
                 }
             }
 
@@ -2516,7 +2127,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 complianceExport,
                 dataCleanup,
                 npmAuditSource: npmAudit?.dataSource || npmAudit?.source || null
-            });
+            }, 200, sendAnalyzeJsonOpts);
         } catch (error) {
             return res.status(400).json({
                 success: false,
@@ -2544,14 +2155,18 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             if (cacheExists) {
                 await fs.promises.rm(projectPath, { recursive: true, force: true });
             }
-            const { stdout, stderr } = await execAsync(`git clone --depth 1 "${repoUrl.replace(/"/g, '')}" "${projectPath}"`, { timeout: 120000 });
+            const safeRepoUrl = repoUrl.replace(/["';`$|&<>(){}[\]\n\r]/g, '');
+            const { stdout, stderr } = await execAsync(
+                `git clone --depth 1 "${safeRepoUrl}" "${projectPath}"`,
+                { timeout: 120000, maxBuffer: 1024 * 1024 }
+            );
             if (stderr && !stderr.includes('Cloning into')) {
                 logger.warn('[GitHub Clone] stderr:', stderr);
             }
             return res.json({ success: true, projectPath, cached: false });
         } catch (err) {
-            logger.error('[GitHub Clone] failed:', err.message);
-            return res.status(500).json({ success: false, error: err.message || 'Git clone failed' });
+            logger.error('[GitHub Clone] failed:', safeErrorMessage(err));
+            return res.status(500).json({ success: false, error: safeErrorMessage(err) || 'Git clone failed' });
         }
     });
 
@@ -2562,7 +2177,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 try {
                     projectPath = resolveSafeProjectPath(req.query.projectPath || req.query.path);
                 } catch (err) {
-                    return res.status(400).json({ success: false, error: err.message });
+                    return res.status(400).json({ success: false, error: safeErrorMessage(err) });
                 }
             }
 
@@ -2574,7 +2189,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 ...npmAudit,
                 projectPath,
                 auditRoot: projectPath
-            });
+            }, 200, sendAnalyzeJsonOpts);
         } catch (error) {
             return res.status(500).json({
                 success: false,
@@ -2635,10 +2250,14 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             // Write uploaded files to temp directory preserving paths
             fs.mkdirSync(tmpDir, { recursive: true });
             let filePaths2 = [];
-            try { filePaths2 = JSON.parse(req.body?.filePaths || '[]'); } catch (e) { filePaths2 = []; }
+            try {
+                const parsed = JSON.parse(req.body?.filePaths || '[]');
+                if (Array.isArray(parsed)) filePaths2 = parsed;
+            } catch (e) { filePaths2 = []; }
             for (let i = 0; i < req.files.length; i++) {
                 const relPath = filePaths2[i] || req.files[i].originalname || req.files[i].fieldname;
-                const outPath = path.join(tmpDir, relPath);
+                const safeRel = sanitizeUploadPath(relPath);
+                const outPath = path.join(tmpDir, safeRel);
                 fs.mkdirSync(path.dirname(outPath), { recursive: true });
                 fs.writeFileSync(outPath, req.files[i].buffer);
             }
@@ -2646,7 +2265,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             // If a single ZIP file was uploaded, stream-extract it to get all files past browser webkitdirectory limits
             if (req.files.length === 1 && req.files[0].originalname.toLowerCase().endsWith('.zip')) {
                 const zipRel = filePaths2[0] || req.files[0].originalname || req.files[0].fieldname;
-                const zipPath = path.join(tmpDir, zipRel);
+                const zipPath = path.join(tmpDir, sanitizeUploadPath(zipRel));
                 logger.info(`[Upload Directory] Detected ZIP archive. Streaming extract to ${tmpDir}...`);
                 try {
                     await new Promise((resolve, reject) => {
@@ -2660,10 +2279,10 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                     try {
                         if (fs.existsSync(zipPath)) fs.unlinkSync(zipPath);
                     } catch (cleanupErr) {
-                        logger.warn(`[Upload Directory] ZIP cleanup skipped: ${cleanupErr.message}`);
+                        logger.warn(`[Upload Directory] ZIP cleanup skipped: ${safeErrorMessage(cleanupErr)}`);
                     }
                 } catch (zipErr) {
-                    logger.warn(`[Upload Directory] ZIP extraction failed: ${zipErr.message}. Proceeding with raw upload.`);
+                    logger.warn(`[Upload Directory] ZIP extraction failed: ${safeErrorMessage(zipErr)}. Proceeding with raw upload.`);
                 }
             }
 
@@ -2750,14 +2369,17 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             // Run additional analyses based on selected analysis type
             const runComplete = analysisType === 'complete';
             const ANALYZER_TIMEOUT = constants.TIMEOUT_10M; // 10 min per analyzer
-/**
- * Run analyzer.
- * @param {any} label
- * @param {Function} fn
- * @param {Array} timeoutMs
- * @returns {any}
- */
+            /**
+             * Run an analyzer with a timeout, logging start/finish.
+             * @param {string} label Analyzer name for logging.
+             * @param {Function} fn Analyzer function to execute.
+             * @param {number} [timeoutMs] Timeout in milliseconds.
+             * @returns {Promise<any>}
+             */
             const runAnalyzer = async (label, fn, timeoutMs = ANALYZER_TIMEOUT) => {
+                if (typeof fn !== 'function') {
+                    throw new TypeError(`Analyzer ${label} requires a function, received ${typeof fn}`);
+                }
                 const t0 = Date.now();
                 logger.info(`[Upload Directory] Starting analyzer: ${label} (timeout ${timeoutMs}ms)`);
                 try {
@@ -3021,7 +2643,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 }
             });
         } catch (error) {
-            logger.error('[Upload Directory] Scan failed:', error.message);
+            logger.error('[Upload Directory] Scan failed:', safeErrorMessage(error));
             res.status(500).json({ success: false, error: toClientError(error, 'scan failed') });
         } finally {
             // Clean up temp directory after a short delay
@@ -3029,7 +2651,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 try {
                     fs.rmSync(tmpDir, { recursive: true, force: true });
                 } catch (e) {
-                    logger.warn('[Upload Directory] Cleanup failed:', e.message);
+                    logger.warn('[Upload Directory] Cleanup failed:', safeErrorMessage(e));
                 }
             }, constants.TIMEOUT_5S);
         }
@@ -3040,215 +2662,8 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
     }
 }
 
-/**
- * Count issues by kind.
- * @param {Array} issues
- * @param {any} pattern
- * @returns {any}
- */
-function countIssuesByKind(issues, pattern) {
-    return (issues || [])
-        .filter((item) => pattern.test(String(item.type || '')))
-        .reduce((sum, item) => sum + (item.count || 1), 0);
-}
-
-/**
- * Issue breakdown from list.
- * @param {Array} issues
- * @returns {any}
- */
-function issueBreakdownFromList(issues) {
-    return {
-        productionLeaks: countIssuesByKind(issues, /production leak/i),
-        credentials: countIssuesByKind(issues, /credential/i),
-        schema: countIssuesByKind(issues, /schema/i),
-        fiction: countIssuesByKind(issues, /fiction|fictional|consistency|kpi/i)
-    };
-}
-
-/**
- * Normalize report for summary.
- * @param {number} report
- * @param {number} reportType
- * @returns {any}
- */
-function normalizeReportForSummary(report, reportType = '') {
-    const type = reportType || report.type || '';
-
-    if (type === 'codebase-analyzer-report') {
-        const summary = report.summary || {};
-        return {
-            reportKind: type,
-            repositoryInventory: report.repositoryInventory || null,
-            scanScope: report.scanScope || null,
-            codebaseSummary: summary,
-            analysisOverview: {
-                repositoryFilesTotal: summary.repositoryFilesTotal ?? report.repositoryInventory?.totalFiles,
-                codeFilesAnalyzed: summary.codeFilesAnalyzed,
-                dataQualityScore: summary.healthScore,
-                issuesDetected: summary.findingsTotal,
-                eslintErrors: summary.eslintErrors,
-                eslintWarnings: summary.eslintWarnings
-            },
-            detectedIssues: (report.findings || []).slice(0, 12).map((item) => ({
-                type: item.category || item.type,
-                severity: item.severity,
-                description: item.description
-            }))
-        };
-    }
-
-    if (type === 'file-merger-reduction-report') {
-        return {
-            reportKind: type,
-            scanPaths: report.scanPaths || [],
-            repositoryInventory: report.repositoryInventory || null,
-            scanScope: report.scanScope || null,
-            mergerSummary: {
-                filesAnalyzed: report.summary?.filesAnalyzed,
-                sampleDataFilesAnalyzed: report.summary?.sampleDataFilesAnalyzed ?? report.summary?.filesAnalyzed,
-                jsonFilesAnalyzed: report.summary?.jsonFilesAnalyzed,
-                repositoryFilesTotal: report.summary?.repositoryFilesTotal ?? report.repositoryInventory?.totalFiles,
-                repositoryFoldersTotal: report.summary?.repositoryFoldersTotal ?? report.repositoryInventory?.totalFolders,
-                totalSizeLabel: report.summary?.totalSizeLabel,
-                mergeCandidates: report.summary?.mergeCandidates,
-                exactDuplicateGroups: report.summary?.exactDuplicateGroups,
-                potentialSavingsLabel: report.summary?.potentialSavingsLabel,
-                oversizedFiles: report.summary?.oversizedFiles
-            },
-            analysisOverview: {
-                totalMockFiles: report.summary?.filesAnalyzed,
-                dataQualityScore: null,
-                issuesDetected: (report.summary?.mergeCandidates || 0)
-                    + (report.summary?.reductionOpportunities || 0)
-            },
-            detectedIssues: [
-                ...(report.mergeCandidates || []),
-                ...(report.reductionOpportunities || [])
-            ].slice(0, 8).map((item) => ({
-                type: item.mergeType || item.type || 'consolidation',
-                description: item.description || item.id
-            }))
-        };
-    }
-
-    if (type === 'data-cleanup-report') {
-        const summary = report.summary || {};
-        const inv = report.inventory || {};
-        const exec = report.executiveSummary || {};
-        return {
-            reportKind: type,
-            scanProfile: report.scanProfile || '',
-            repositoryInventory: inv,
-            dataCleanupSummary: {
-                totalFindings: summary.totalFindings,
-                reclaimableBytes: summary.reclaimableBytes,
-                configFindings: summary.configFindings,
-                dependencyFindings: summary.dependencyFindings,
-                environmentFindings: summary.environmentFindings,
-                dataPrivacyFindings: summary.dataPrivacyFindings,
-                dataLineageFindings: summary.dataLineageFindings,
-                dataAccessFindings: summary.dataAccessFindings,
-                buildArtifactFindings: summary.buildArtifactFindings,
-                unusedFileCandidates: summary.unusedFileCandidates
-            },
-            executiveSummary: {
-                priorityActions: exec.priorityActions || [],
-                workspace: exec.workspace || null,
-                security: exec.security || null,
-                data: exec.data || null
-            },
-            aggregation: report.aggregation || null,
-            analysisOverview: {
-                repositoryFilesTotal: inv.totalFiles,
-                repositoryFoldersTotal: inv.totalDirectories,
-                issuesDetected: summary.totalFindings
-            },
-            detectedIssues: (report.allFindings || []).slice(0, 12).map((item) => ({
-                type: item.type,
-                severity: item.severity,
-                description: item.reason || item.path
-            }))
-        };
-    }
-
-    const rawIssues = report.rawIssues || report.detectedIssues || [];
-    return {
-        reportKind: type || report.type || 'simplebeacon-report',
-        gatePass: report.gate?.pass,
-        issueBreakdown: issueBreakdownFromList(rawIssues),
-        analysisOverview: {
-            totalMockFiles: report.mockSampleFiles ?? report.totalFiles ?? report.summary?.filesAnalyzed,
-            repositoryFilesTotal: report.repositoryFilesTotal ?? report.repositoryInventory?.totalFiles,
-            ruleScopedFilesAnalyzed: report.ruleScopedFilesAnalyzed
-                ?? (report.filesAnalyzed !== report.repositoryFilesTotal ? report.filesAnalyzed : null)
-                ?? Math.max(report.mockSampleFiles ?? 0, report.credentialScanned ?? 0),
-            fictionJsonFilesScanned: report.fictionJsonFilesScanned ?? report.scanScope?.fictionJsonFilesScanned,
-            fictionSampleFilesScanned: report.fictionSampleFilesScanned ?? report.scanScope?.fictionSampleFilesScanned,
-            dataQualityScore: report.qualityScore,
-            issuesDetected: report.issueCount ?? rawIssues.length,
-            schemaFilesPassed: report.schemaPassed,
-            schemaFilesChecked: report.schemaChecked
-        },
-        detectedIssues: rawIssues.slice(0, 12)
-    };
-}
-
-/**
- * Resolve ollama summary provider.
- * @param {string} registry
- * @param {Array} userCredentials
- * @returns {any}
- */
-function resolveOllamaSummaryProvider(registry, userCredentials = null) {
-    const ollamaModel = userCredentials?.ollamaModel
-        || process.env.OLLAMA_MODEL
-        || registry?.models?.find((m) => m.id === registry.activeModelId && m.provider === 'ollama')?.ollamaModel
-        || registry?.models?.find((m) => m.provider === 'ollama' && m.ollamaModel)?.ollamaModel
-        || null;
-    const baseUrl = userCredentials?.ollamaBaseUrl
-        || registry?.ollamaBaseUrl
-        || process.env.OLLAMA_BASE_URL
-        || DEFAULT_OLLAMA_URL;
-    if (!baseUrl) return null;
-    return ollamaModel
-        ? { providerId: 'ollama', ollamaModel }
-        : { providerId: 'ollama' };
-}
-
-/**
- * Resolve summary provider.
- * @param {string} aiProvider
- * @param {string} registry
- * @param {Array} userCredentials
- * @returns {any}
- */
-function resolveSummaryProvider(aiProvider, registry, userCredentials = null) {
-    if (aiProvider === 'demo') return null;
-
-    if (aiProvider === 'active') {
-        const model = registry.models?.find((m) => m.id === registry.activeModelId);
-        if (model?.provider === 'ollama' && model.ollamaModel) {
-            return { providerId: 'ollama', ollamaModel: model.ollamaModel };
-        }
-        // Active registry model is often demo/GGUF — fall back to Settings/env Ollama for narrative.
-        return resolveOllamaSummaryProvider(registry, userCredentials);
-    }
-
-    if (aiProvider === 'ollama') {
-        return resolveOllamaSummaryProvider(registry, userCredentials);
-    }
-
-    return { providerId: aiProvider };
-}
 
 module.exports = {
     setupFlexibleAnalyzeAPI,
-    resolveProjectPath,
-    resolveAnalysisType,
-    resolveMockScanPaths,
-    buildRoadmapFromPath,
-    normalizeReportForSummary,
-    resolveSummaryProvider,
-    analyzeCodebase: getAnalyzeCodebase
+    buildRoadmapFromPath
 };

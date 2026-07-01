@@ -108,13 +108,14 @@ function recomputeSummaryFromFindings(report, findings) {
     }
 
     const codeFilesAnalyzed = report.summary?.codeFilesAnalyzed ?? 0;
-    const healthScore = findings.length === 0
+    const rawHealthScore = findings.length === 0
         ? 100
         : Math.max(0, Math.round(100 - (
             severityCounts.high * 8
             + severityCounts.medium * 3
             + severityCounts.low * 0.5
         ) / Math.max(codeFilesAnalyzed, 1) * 100));
+    const healthScore = Math.min(rawHealthScore, 100);
 
     return {
         ...report.summary,
@@ -183,19 +184,20 @@ function dedupeCodebaseExportNotes(notes = []) {
     const out = [];
     for (const note of notes) {
         const normalized = String(note).replace(/\s+/g, ' ').trim().toLowerCase();
-        const scopeKey = /benchmark clone codebase export/i.test(normalized)
-            ? 'benchmark-codebase-scope-note'
-            : /mis-scoped complete-scan export/i.test(normalized)
-                ? 'benchmark-misscope-note'
-                : /eslint style-tier warnings only/i.test(normalized)
-                    ? 'eslint-style-note'
-                    : /jest was not run during the paired gate/i.test(normalized)
-                        ? 'jest-gate-note'
-                : /eslint/i.test(normalized)
-                    ? 'eslint-note'
-                    : /code-like file\(s\) deep-scanned/i.test(normalized)
-                        ? 'code-files-scope-note'
-                        : normalized;
+        let scopeKey = normalized;
+        if (/benchmark clone codebase export/i.test(normalized)) {
+            scopeKey = 'benchmark-codebase-scope-note';
+        } else if (/mis-scoped complete-scan export/i.test(normalized)) {
+            scopeKey = 'benchmark-misscope-note';
+        } else if (/eslint style-tier warnings only/i.test(normalized)) {
+            scopeKey = 'eslint-style-note';
+        } else if (/jest was not run during the paired gate/i.test(normalized)) {
+            scopeKey = 'jest-gate-note';
+        } else if (/eslint/i.test(normalized)) {
+            scopeKey = 'eslint-note';
+        } else if (/code-like file\(s\) deep-scanned/i.test(normalized)) {
+            scopeKey = 'code-files-scope-note';
+        }
         if (seen.has(scopeKey)) continue;
         seen.add(scopeKey);
         out.push(String(note));
@@ -221,7 +223,7 @@ function dedupeLimitationNotes(lines = []) {
 }
 
 function redactCodebasePathForExport(value, options = {}) {
-    if (value == null || value === '') return value;
+    if (value == null || value === '') return '';
     const normalized = normalizeExportPath(value);
     const lower = normalized.toLowerCase();
     const githubIdx = lower.indexOf('/github-cache/');
@@ -544,7 +546,7 @@ function annotateStructureInsights(structureInsights) {
 function sanitizeCodebaseReportExport(report, options = {}) {
     if (!report || report.type !== 'codebase-analyzer-report') return report;
 
-    let next = filterKnownFalsePositiveFindings(report);
+    let next = { ...filterKnownFalsePositiveFindings(report) };
 
     const exportContext = resolveCodebaseExportContext(next, options);
     const {

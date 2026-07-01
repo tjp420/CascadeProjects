@@ -21,11 +21,13 @@ function parseRedisUrl(url) {
     if (!url) return null;
     try {
         const parsed = new URL(url);
+        const rawPort = parsed.port || DEFAULT_REDIS_PORT;
+        const rawDb = parsed.pathname ? parsed.pathname.replace('/', '') || '0' : '0';
         return {
             url,
             host: parsed.hostname,
-            port: Number(parsed.port || DEFAULT_REDIS_PORT),
-            db: parsed.pathname ? Number(parsed.pathname.replace('/', '') || 0) : 0
+            port: Number.isFinite(Number(rawPort)) ? Number(rawPort) : DEFAULT_REDIS_PORT,
+            db: Number.isFinite(Number(rawDb)) ? Number(rawDb) : 0
         };
     } catch (error) {
         logger.warn('[Redis] Invalid REDIS_URL:', error.message);
@@ -43,10 +45,11 @@ function getRedisConfig(overrides = {}) {
     if (!url) {
         logger.warn('[Redis] REDIS_URL is not set — snapshot caching disabled. Set REDIS_URL or ENABLE_REDIS=false to suppress this warning.');
     }
+    const rawTtl = process.env.REDIS_SNAPSHOT_TTL_SECONDS || DEFAULT_TTL_SECONDS;
     return {
         url: url || '',
         keyPrefix: process.env.REDIS_KEY_PREFIX || DEFAULT_KEY_PREFIX,
-        defaultTtlSeconds: Number(process.env.REDIS_SNAPSHOT_TTL_SECONDS || DEFAULT_TTL_SECONDS)
+        defaultTtlSeconds: Number.isFinite(Number(rawTtl)) ? Number(rawTtl) : DEFAULT_TTL_SECONDS
     };
 }
 

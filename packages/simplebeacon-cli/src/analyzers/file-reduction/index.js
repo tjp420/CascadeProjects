@@ -1,5 +1,20 @@
+'use strict';
+
 /**
- * File reduction + data cleanup analyzers.
+ * @module file-reduction
+ * File reduction and data cleanup analyzers.
+ *
+ * Walks a project tree, runs configured scanners (build artifacts, unused files,
+ * dead code, etc.), aggregates findings, and produces a structured report with
+ * an executive summary and file-reduction plan.
+ *
+ * ```js
+ * const { runFileReductionAnalysis } = require('./analyzers/file-reduction');
+ * const report = await runFileReductionAnalysis('/path/to/project', { dryRun: true });
+ * console.log(report.summary.totalFindings);
+ * ```
+ *
+ * @file packages/simplebeacon-cli/src/analyzers/file-reduction/index.js
  */
 
 const { walkProjectFiles } = require('./utils/project-walker');
@@ -18,6 +33,15 @@ const DEFAULT_SCANNERS = fileReductionRules.scanners.map((entry) => ({
     priority: entry.priority
 }));
 
+/**
+ * Run the full file-reduction analysis pipeline.
+ *
+ * @param {string} projectRoot - Absolute path to the project directory.
+ * @param {Object} [options] - Analysis options.
+ * @param {boolean} [options.dryRun=true] - When true, only report findings without deleting.
+ * @param {Object} [options.scanners] - Per-scanner overrides.
+ * @returns {Promise<Object>} Structured report with findings, summary, and plan.
+ */
 async function runFileReductionAnalysis(projectRoot, options = {}) {
     const startedAt = Date.now();
     const inventory = await walkProjectFiles(projectRoot, options);
@@ -133,7 +157,7 @@ async function runFileReductionAnalysis(projectRoot, options = {}) {
     return report;
 }
 
-module.exports = {
+module.exports = Object.freeze({
     runFileReductionAnalysis,
     DEFAULT_SCANNERS,
     fileReductionRules,
@@ -141,4 +165,4 @@ module.exports = {
     AssetConsolidationScanner: fileReductionRules.scanners.find((s) => s.id === 'asset-consolidation').class,
     UnusedFileDetector: fileReductionRules.scanners.find((s) => s.id === 'unused-files').class,
     walkProjectFiles
-};
+});

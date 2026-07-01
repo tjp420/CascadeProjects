@@ -1,12 +1,29 @@
 // SPDX-License-Identifier: MIT
+'use strict';
+
 /**
- * Assessment API routes — mounted at /api/assessment
+ * @module assessment
+ * Assessment API routes — mounted at /api/assessment.
  *
- * POST /api/assessment/scan          → clone (optional) + simplebeacon scan + assessment
- * GET  /api/assessment/report/:id    → full assessment JSON
- * GET  /api/assessment/report/:id/download/:format → attachment download
- * GET  /api/assessment/health        → route health
+ * Provides endpoints to trigger a SimpleBeacon scan, retrieve the full
+ * assessment report, and download reports in various formats.
  *
+ * @example <caption>API usage</caption>
+ * // Health check
+ * curl http://localhost:3000/api/assessment/health
+ *
+ * // Trigger a scan
+ * curl -X POST http://localhost:3000/api/assessment/scan \
+ *   -H "Content-Type: application/json" \
+ *   -d '{"repoUrl":"https://github.com/org/repo"}'
+ *
+ * // Get report
+ * curl http://localhost:3000/api/assessment/report/<id>
+ *
+ * // Download PDF
+ * curl -O http://localhost:3000/api/assessment/report/<id>/download/pdf
+ *
+ * @file server/api/assessment/index.cjs
  * @license MIT
  */
 

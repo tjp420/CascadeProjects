@@ -204,6 +204,7 @@ function resolveScanPaths(baseDir, config, extraPaths = []) {
         .filter(Boolean);
 
     const extras = (extraPaths || [])
+        .filter((p) => p != null && typeof p === 'string')
         .map((p) => (path.isAbsolute(p) ? p : resolvePathFromBase(baseDir, p)))
         .filter(Boolean)
         .filter((extra) => {
@@ -317,14 +318,15 @@ function loadSimplebeaconConfig(baseDir, configPath = null) {
     const root = path.resolve(baseDir);
     const simplebeaconDir = resolveSimplebeaconDir(root);
     const explicitConfig = configPath != null && String(configPath).trim() !== '';
+    const sanitizedConfigPath = explicitConfig ? sanitizeFilePath(configPath) : '';
     const resolvedConfigPath = explicitConfig
-        ? (path.isAbsolute(sanitizeFilePath(configPath))
-            ? path.resolve(sanitizeFilePath(configPath))
-            : path.join(root, sanitizeFilePath(configPath)))
+        ? (path.isAbsolute(sanitizedConfigPath)
+            ? path.resolve(sanitizedConfigPath)
+            : path.join(root, sanitizedConfigPath))
         : path.join(simplebeaconDir, 'config.json');
     const baselinePath = path.join(simplebeaconDir, 'baseline.json');
 
-    if (explicitConfig && !path.isAbsolute(sanitizeFilePath(configPath))) {
+    if (explicitConfig && !path.isAbsolute(sanitizedConfigPath)) {
         assertPathWithinRoot(resolvedConfigPath, root, { configPath: resolvedConfigPath });
     }
 
@@ -394,7 +396,7 @@ function getRuleOptions(config, ruleName) {
 }
 
 function sanitizeConfigForTier(config, tier) {
-    const limits = getTierLimits(tier);
+    const limits = getTierLimits(tier) || {};
     const sanitized = { ...config };
 
     if (!limits.customConfig) {

@@ -1,50 +1,8 @@
-import { formatNumber } from '../utils.js';
+import { formatNumber, normalizeSlashes } from '../utils.js';
 
 /**
  * Browser mirror of cleanup-brief export sanitization (packages/simplebeacon-cli).
  */
-
-/**
- * Redact project path for export.
- * @param {string} rawPath
- * @param {any} projectLabel
- * @returns {any}
- */
-function redactProjectPathForExport(rawPath, projectLabel = 'ai-platform') {
-  if (rawPath == null || rawPath === '') return rawPath;
-  const normalized = String(rawPath).replace(/\\/g, '/');
-  if (/^[a-zA-Z]:\//.test(normalized) || normalized.startsWith('/Users/')
-    || normalized.startsWith('/home/') || normalized.includes('CascadeProjects')) {
-    return projectLabel;
-  }
-  return normalized;
-}
-
-/**
- * Project label from path.
- * @param {string} projectPath
- * @returns {any}
- */
-function projectLabelFromPath(projectPath) {
-  const normalized = String(projectPath || 'ai-platform').replace(/\\/g, '/');
-  const parts = normalized.split('/').filter(Boolean);
-  return parts[parts.length - 1] || 'ai-platform';
-}
-
-/**
- * Resolve redacted brief project path.
- * @param {any} brief
- * @param {Object} options
- * @returns {any}
- */
-function resolveRedactedBriefProjectPath(brief, options = {}) {
-  const rawPath = options.projectPath || brief.projectPath || brief.scanAnalysis?.projectPath || '';
-  const label = projectLabelFromPath(rawPath);
-  return {
-    label,
-    projectPath: redactProjectPathForExport(rawPath, label)
-  };
-}
 
 /**
  * Is benchmark cache project path.
@@ -52,7 +10,7 @@ function resolveRedactedBriefProjectPath(brief, options = {}) {
  * @returns {any}
  */
 function isBenchmarkCacheProjectPath(projectPath) {
-  const rel = String(projectPath || '').replace(/\\/g, '/').toLowerCase();
+  const rel = normalizeSlashes(projectPath, { lowercase: true });
   return rel.includes('/github-cache/') || rel.startsWith('github-cache/');
 }
 
@@ -62,26 +20,13 @@ function isBenchmarkCacheProjectPath(projectPath) {
  * @returns {any}
  */
 function resolveProductPlatformRoot(projectPath) {
-  const normalized = String(projectPath || '').replace(/\\/g, '/');
+  const normalized = normalizeSlashes(projectPath);
   const idx = normalized.toLowerCase().indexOf('/github-cache/');
   if (idx <= 0) return null;
   return normalized.slice(0, idx);
 }
 
 const BENCHMARK_PROTECTED_PATHS = ['.git', '.simplebeacon', 'docs', 'LICENSE'];
-
-/**
- * Format bytes.
- * @param {Array} bytes
- * @returns {any}
- */
-function formatBytes(bytes) {
-  const n = Number(bytes) || 0;
-  if (n < 1024) return `${n} B`;
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
-  if (n < 1024 * 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`;
-  return `${(n / (1024 * 1024 * 1024)).toFixed(2)} GB`;
-}
 
 /**
  * Resolve projected inventory note.

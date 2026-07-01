@@ -31,10 +31,10 @@ const constants = require('../config/constants.cjs');
 
 /**
  * Apply api security headers.
- * @param {any} req
- * @param {Array} res
- * @param {any} next
- * @returns {any}
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ * @returns {void}
  */
 function applyApiSecurityHeaders(req, res, next) {
     res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -65,10 +65,10 @@ const {
 
 /**
  * Validate phase2 login request.
- * @param {any} req
- * @param {Array} res
- * @param {any} next
- * @returns {any}
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ * @returns {void}
  */
 function validatePhase2LoginRequest(req, res, next) {
     const { email, password } = req.body || {};
@@ -108,10 +108,11 @@ async function ensurePhase2Schema(db) {
  * @param {any} db
  * @param {any} key
  * @param {any} payload
- * @param {Array} redis
+ * @param {any} redis
  * @returns {any}
  */
 async function seedDashboardSnapshot(db, key, payload, redis = null) {
+    if (!db) return;
     await db.query(
         `INSERT INTO dashboard_snapshots (key, payload, updated_at)
          VALUES ($1, $2::jsonb, NOW())
@@ -127,7 +128,7 @@ async function seedDashboardSnapshot(db, key, payload, redis = null) {
  * Seed dashboard snapshots from samples.
  * @param {any} db
  * @param {any} webRoot
- * @param {Array} redis
+ * @param {any} redis
  * @returns {any}
  */
 async function seedDashboardSnapshotsFromSamples(db, webRoot, redis = null) {
@@ -217,10 +218,15 @@ function installOptionalApiAuth(app) {
  * @returns {any}
  */
 function createRateLimiters() {
-    const authWindowMs = Number(process.env.AUTH_LOGIN_RATE_LIMIT_WINDOW_MS || constants.RATE_LIMIT_WINDOW_MS);
+    const rawAuthWindowMs = Number(process.env.AUTH_LOGIN_RATE_LIMIT_WINDOW_MS || constants.RATE_LIMIT_WINDOW_MS);
+    const authWindowMs = Number.isFinite(rawAuthWindowMs) && rawAuthWindowMs > 0 ? rawAuthWindowMs : constants.RATE_LIMIT_WINDOW_MS;
+    const rawAuthMax = Number(process.env.AUTH_LOGIN_RATE_LIMIT_MAX || constants.AUTH_RATE_LIMIT);
+    const authMax = Number.isFinite(rawAuthMax) && rawAuthMax > 0 ? rawAuthMax : constants.AUTH_RATE_LIMIT;
+    const rawRefreshMax = Number(process.env.AUTH_REFRESH_RATE_LIMIT_MAX || 30);
+    const refreshMax = Number.isFinite(rawRefreshMax) && rawRefreshMax > 0 ? rawRefreshMax : 30;
     const authRateLimit = rateLimit({
         windowMs: authWindowMs,
-        max: Number(process.env.AUTH_LOGIN_RATE_LIMIT_MAX || constants.AUTH_RATE_LIMIT),
+        max: authMax,
         standardHeaders: true,
         legacyHeaders: false,
         message: {
@@ -230,7 +236,7 @@ function createRateLimiters() {
     });
     const refreshRateLimit = rateLimit({
         windowMs: authWindowMs,
-        max: Number(process.env.AUTH_REFRESH_RATE_LIMIT_MAX || 30),
+        max: refreshMax,
         standardHeaders: true,
         legacyHeaders: false,
         message: {
@@ -245,7 +251,7 @@ function createRateLimiters() {
  * Setup health routes.
  * @param {any} app
  * @param {any} db
- * @param {Array} redis
+ * @param {any} redis
  * @param {any} dbError
  * @param {any} redisError
  * @returns {any}

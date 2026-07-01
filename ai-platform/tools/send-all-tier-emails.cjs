@@ -1,7 +1,7 @@
 const { sendEmail } = require('../server/lib/email-service.cjs');
 const fs = require('fs');
 const path = require('path');
-const { generateLicenseToken } = require('../server/lib/simplebeacon-proxy.cjs');
+const { generateLicenseToken } = require('../../packages/simplebeacon-cli/src/lib/license-token.js');
 
 
 const templatePath = path.join(__dirname, '../../coming-soon/email-template-universal.html');

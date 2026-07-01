@@ -11,7 +11,7 @@ const {
     findDuplicateContentGroups
 } = require('./mock-data-schema-validator.cjs');
 const { resolveMockDataScanPaths } = require('./central-data-config.cjs');
-const { formatBytes } = require('./mock-data-scanner.cjs');
+const { formatBytes } = require('./format-bytes.cjs');
 const { SAMPLE_FILE_OVERRIDES } = require('./sample-path-resolver.cjs');
 const {
     buildAdvancedAnalysis,
@@ -36,6 +36,7 @@ const REPO_SKIP_DIRS = new Set([
  * @returns {any}
  */
 function isExcludedConsolidationPath(filePath) {
+    if (typeof filePath !== 'string') return true;
     const rel = normalizeRelativePath(filePath);
     if (isExternalBenchmarkCachePath(rel)) return true;
     if (rel.startsWith('node_modules/') || rel.includes('/node_modules/')) return true;
@@ -53,7 +54,7 @@ function isExcludedConsolidationPath(filePath) {
  * @returns {any}
  */
 function isIntentionalMirrorDuplicateGroup(group) {
-    if (!group || group.length < 2) return false;
+    if (!Array.isArray(group) || group.length < 2) return false;
     const paths = group.map((entry) => entry.relativePath || entry.path);
     for (let i = 0; i < paths.length; i++) {
         for (let j = i + 1; j < paths.length; j++) {
@@ -69,13 +70,9 @@ function isIntentionalMirrorDuplicateGroup(group) {
  * @returns {any}
  */
 function candidateTouchesExcludedPath(candidate) {
+    if (!candidate || typeof candidate !== 'object') return true;
     if (consolidationCandidateTouchesExcluded(candidate)) return true;
-/**
- * Paths.
- * @param {string} candidate?.files || []
- * @returns {any}
- */
-    const paths = (candidate?.files || []).map((file) => file.path || file.relativePath || file.name);
+    const paths = (candidate.files || []).map((file) => file.path || file.relativePath || file.name);
     return paths.some(isExcludedConsolidationPath);
 }
 
@@ -85,7 +82,7 @@ function candidateTouchesExcludedPath(candidate) {
  * @returns {any}
  */
 function filterAdvancedAnalysis(analysis) {
-    if (!analysis) return analysis;
+    if (!analysis || typeof analysis !== 'object') return analysis;
     const fuzzyPairs = (analysis.fuzzyNearDuplicates?.pairs || [])
         .filter((pair) => !isExcludedConsolidationPath(pair.fileA) && !isExcludedConsolidationPath(pair.fileB));
     const patternGroups = (analysis.patternConsolidation?.recommendations || [])
@@ -138,7 +135,8 @@ const SIGNIN_SITE_CANONICAL_DUPE_PAIRS = [
  * @returns {any}
  */
 function normalizeRelativePath(relativePath) {
-    return String(relativePath || '').replace(/\\/g, '/');
+    if (relativePath == null) return '';
+    return String(relativePath).replace(/\\/g, '/');
 }
 
 /**
@@ -148,6 +146,7 @@ function normalizeRelativePath(relativePath) {
  * @returns {any}
  */
 function isKnownSampleAliasPair(fileA, fileB) {
+    if (!fileA || typeof fileA !== 'object' || !fileB || typeof fileB !== 'object') return false;
     const nameA = fileA.name;
     const nameB = fileB.name;
     const canonicalA = SAMPLE_FILE_OVERRIDES[nameA];
@@ -180,6 +179,7 @@ function isDashboardSample(name) {
  * @returns {any}
  */
 function isEligibleStructurePair(fileA, fileB) {
+    if (!fileA || typeof fileA !== 'object' || !fileB || typeof fileB !== 'object') return false;
     if (fileA.path === fileB.path) return false;
     if (isDashboardSample(fileA.name) && isDashboardSample(fileB.name)) return false;
     const dirA = path.dirname(fileA.relativePath || fileA.path);
@@ -194,6 +194,7 @@ function isEligibleStructurePair(fileA, fileB) {
  * @returns {any}
  */
 function isKnownCanonicalLinkPair(pathA, pathB) {
+    if (typeof pathA !== 'string' || typeof pathB !== 'string') return false;
     const sorted = [normalizeRelativePath(pathA), normalizeRelativePath(pathB)].sort();
     return SIGNIN_SITE_CANONICAL_DUPE_PAIRS.some((pair) => {
         const pairSorted = [...pair].sort();
@@ -208,6 +209,7 @@ function isKnownCanonicalLinkPair(pathA, pathB) {
  * @returns {any}
  */
 async function sharesFilesystemLink(pathA, pathB) {
+    if (typeof pathA !== 'string' || typeof pathB !== 'string') return false;
     try {
         const statA = await fs.promises.stat(pathA);
         const statB = await fs.promises.stat(pathB);
@@ -223,6 +225,7 @@ async function sharesFilesystemLink(pathA, pathB) {
  * @returns {any}
  */
 async function filterResolvedDuplicateGroups(groups) {
+    if (!Array.isArray(groups)) return [];
     const kept = [];
     for (const group of groups) {
         if (isIntentionalMirrorDuplicateGroup(group)) continue;
@@ -246,6 +249,7 @@ async function filterResolvedDuplicateGroups(groups) {
  * @returns {any}
  */
 async function walkFiles(dir, results, options = {}) {
+    if (typeof dir !== 'string' || !dir) return results;
     const {
         depth = 0,
         maxDepth = SAMPLE_WALK_MAX_DEPTH,
@@ -293,6 +297,7 @@ async function walkFiles(dir, results, options = {}) {
  * @returns {any}
  */
 async function collectSampleDataFiles(baseDir, extraPaths = []) {
+    if (typeof baseDir !== 'string' || !baseDir) return { scanPaths: [], files: [] };
     const scanPaths = resolveMockDataScanPaths(baseDir, [...DEFAULT_EXTRA_PATHS, ...extraPaths]);
     const files = [];
     for (const scanPath of scanPaths) {
@@ -313,6 +318,7 @@ async function collectSampleDataFiles(baseDir, extraPaths = []) {
  * @returns {any}
  */
 async function collectRepositoryFiles(baseDir) {
+    if (typeof baseDir !== 'string' || !baseDir) return [];
     const files = [];
     if (fs.existsSync(baseDir)) {
         await walkFiles(baseDir, files, {
@@ -331,7 +337,8 @@ async function collectRepositoryFiles(baseDir) {
  * @returns {any}
  */
 function extractJsonStructure(node, depth = 0) {
-    if (depth > 6 || node == null) return typeof node;
+    const d = Number.isFinite(depth) ? depth : 0;
+    if (d > 6 || node == null) return typeof node;
     if (Array.isArray(node)) {
         return node.length ? ['array', extractJsonStructure(node[0], depth + 1)] : ['array', 'empty'];
     }
@@ -359,8 +366,8 @@ function structureSignature(structure) {
 function compareStructureSignatures(sig1, sig2) {
     if (sig1 === sig2) return 1;
     try {
-        const keys1 = new Set(JSON.stringify(structureKeys(sig1)));
-        const keys2 = new Set(JSON.stringify(structureKeys(sig2)));
+        const keys1 = new Set(structureKeys(sig1));
+        const keys2 = new Set(structureKeys(sig2));
         const intersection = [...keys1].filter((k) => keys2.has(k));
         const union = new Set([...keys1, ...keys2]);
         return union.size ? intersection.length / union.size : 0;
@@ -376,14 +383,15 @@ function compareStructureSignatures(sig1, sig2) {
  * @returns {any}
  */
 function structureKeys(structure, prefix = '') {
-    if (!Array.isArray(structure)) return [prefix || 'leaf'];
+    const safePrefix = typeof prefix === 'string' ? prefix : '';
+    if (!Array.isArray(structure)) return [safePrefix || 'leaf'];
     if (structure[0] === 'array') {
         return structureKeys(structure[1], prefix ? `${prefix}[]` : '[]');
     }
     const keys = [];
     for (const entry of structure) {
         if (!Array.isArray(entry) || entry.length < 2) continue;
-        const key = prefix ? `${prefix}.${entry[0]}` : entry[0];
+        const key = safePrefix ? `${safePrefix}.${entry[0]}` : entry[0];
         keys.push(key);
         keys.push(...structureKeys(entry[1], key));
     }
@@ -396,15 +404,17 @@ function structureKeys(structure, prefix = '') {
  * @returns {any}
  */
 async function loadJsonStructure(file) {
+    if (!file || typeof file !== 'object') return null;
     if (file.ext !== '.json' || file.size > JSON_MAX_BYTES) return null;
     try {
         const raw = await fs.promises.readFile(file.path, 'utf8');
         const payload = JSON.parse(raw);
+        const structure = extractJsonStructure(payload);
         return {
             raw,
             contentHash: hashFileContent(raw),
-            structure: extractJsonStructure(payload),
-            signature: structureSignature(extractJsonStructure(payload))
+            structure,
+            signature: structureSignature(structure)
         };
     } catch {
         return null;
@@ -417,6 +427,7 @@ async function loadJsonStructure(file) {
  * @returns {any}
  */
 function buildExactDuplicateCandidates(groups) {
+    if (!Array.isArray(groups)) return [];
     return groups.map((group, index) => {
         const savingsBytes = group.slice(1).reduce((sum, entry) => sum + (entry.size || 0), 0);
         return {
@@ -446,6 +457,7 @@ function buildExactDuplicateCandidates(groups) {
  * @returns {any}
  */
 function buildOversizedOpportunities(files) {
+    if (!Array.isArray(files)) return [];
     return files
         .filter((file) => {
             if (file.size < OVERSIZED_THRESHOLD_BYTES) return false;
@@ -483,6 +495,7 @@ function buildOversizedOpportunities(files) {
  * @returns {any}
  */
 async function findStructureSimilarPairs(jsonFiles) {
+    if (!Array.isArray(jsonFiles)) return [];
     const loaded = [];
     for (const file of jsonFiles) {
         const parsed = await loadJsonStructure(file);
@@ -538,6 +551,8 @@ async function findStructureSimilarPairs(jsonFiles) {
  * @returns {any}
  */
 function buildScanScope(scope, scanPaths, counts) {
+    if (!Array.isArray(scanPaths)) scanPaths = [];
+    if (!counts || typeof counts !== 'object') counts = {};
     const relativePaths = scanPaths.map((p) => normalizeRelativePath(p));
     const isRepository = scope === 'repository';
     return {
@@ -576,6 +591,7 @@ function buildScanScope(scope, scanPaths, counts) {
  * @returns {any}
  */
 async function buildHashEntries(jsonFiles) {
+    if (!Array.isArray(jsonFiles)) return [];
     const hashEntries = [];
     for (const file of jsonFiles) {
         if (file.ext !== '.json' || file.size > JSON_MAX_BYTES) continue;
@@ -603,6 +619,9 @@ async function buildHashEntries(jsonFiles) {
  * @returns {any}
  */
 async function scanFileMergerReduction(baseDir, options = {}) {
+    if (typeof baseDir !== 'string' || !baseDir) {
+        throw new TypeError('scanFileMergerReduction requires a valid baseDir string');
+    }
     const resolvedBase = path.resolve(baseDir);
     const scope = options.scope === 'sample-data-only' ? 'sample-data-only' : 'repository';
     const includeRepositoryInventory = options.includeRepositoryInventory !== false;
@@ -663,9 +682,7 @@ async function scanFileMergerReduction(baseDir, options = {}) {
     );
     const benchmarkCacheCandidatesExcluded = (duplicateGroups.length - platformDuplicateGroups.length)
         + ((rawAdvancedAnalysis.fuzzyNearDuplicates?.pairs?.length || 0)
-            - (advancedAnalysis.fuzzyNearDuplicates?.pairs?.length || 0))
-        + ((rawAdvancedAnalysis.patternConsolidation?.recommendations?.length || 0)
-            - (advancedAnalysis.patternConsolidation?.recommendations?.length || 0));
+            - (advancedAnalysis.fuzzyNearDuplicates?.pairs?.length || 0));
 
     const exactMergeCandidates = buildExactDuplicateCandidates(platformDuplicateGroups);
     const intentionalPairExclusions = countIntentionalPairExclusions([
@@ -827,6 +844,8 @@ async function scanFileMergerReduction(baseDir, options = {}) {
  * @returns {any}
  */
 function buildRecommendations(mergeCandidates, reductionOpportunities) {
+    if (!Array.isArray(mergeCandidates)) mergeCandidates = [];
+    if (!Array.isArray(reductionOpportunities)) reductionOpportunities = [];
     const items = [];
 
     for (const candidate of mergeCandidates.slice(0, 5)) {
@@ -862,7 +881,8 @@ function buildRecommendations(mergeCandidates, reductionOpportunities) {
  * @returns {any}
  */
 function buildPatternRecommendations(advancedAnalysis) {
-    return (advancedAnalysis?.patternConsolidation?.recommendations || []).slice(0, 5);
+    if (!advancedAnalysis || typeof advancedAnalysis !== 'object') return [];
+    return (advancedAnalysis.patternConsolidation?.recommendations || []).slice(0, 5);
 }
 
 /**
@@ -871,7 +891,7 @@ function buildPatternRecommendations(advancedAnalysis) {
  * @returns {any}
  */
 function buildConsolidationConclusion(report) {
-    if (!report?.summary) {
+    if (!report || typeof report !== 'object' || !report.summary) {
         return 'No consolidation scan available.';
     }
     const s = report.summary;

@@ -4,13 +4,14 @@
 
 const { describe, it } = require('node:test');
 const assert = require('node:assert');
-const constants = require('../../../../ai-platform/server/config/constants.cjs');
 const {
     scanHighMaxTokens,
     scanUnboundedLoops,
     scanMissingRetryConfig,
     scanUnsafeStreamCalls,
-    scanTokenBudgetLines
+    scanTokenBudgetLines,
+    scanDataLeakLines,
+    scanEnterpriseGuardrailContent
 } = require('./enterprise-guardrail-patterns');
 
 describe('SB-ENT-002b — High max_tokens threshold', () => {
@@ -80,7 +81,7 @@ describe('SB-ENT-004 — Missing retry config on LLM clients', () => {
         assert.strictEqual(findings.length, 0);
     });
 
-    it('flags new Anthropic without timeout', () => {
+    it('flags new Anthropic without maxRetries', () => {
         const content = `const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });`;
         const findings = scanMissingRetryConfig('test.js', content);
         assert.strictEqual(findings.length, 1);
@@ -121,8 +122,60 @@ describe('SB-ENT-002 — Token budget bleed (original)', () => {
     });
 
     it('ignores call with max_completion_tokens', () => {
-        const content = `const res = await openai.chat.completions.create({ model: 'gpt-4', messages: [], max_completion_tokens: constants.MS_PER_SECOND });`;
+        const content = `const res = await openai.chat.completions.create({ model: 'gpt-4', messages: [], max_completion_tokens: 64000 });`;
         const findings = scanTokenBudgetLines('test.js', content);
+        assert.strictEqual(findings.length, 0);
+    });
+});
+
+describe('SB-ENT-001 — Data leakage in LLM-bound strings', () => {
+    it('flags hardcoded leak token in string context', () => {
+        const content = `const payload = { secret: 'internal_db_password' };`;
+        const findings = scanDataLeakLines('test.js', content, /\b(?:internal_db_password|prod_api_secret|customer_ssn|pii_payload|auth_token)\b/gi);
+        assert.strictEqual(findings.length, 1);
+        assert.strictEqual(findings[0].pattern, 'SB-ENT-001');
+    });
+
+    it('ignores allowlisted snippet', () => {
+        const content = `// allow: internal_db_password`;
+        const findings = scanDataLeakLines('test.js', content, /\b(?:internal_db_password)\b/gi);
+        assert.strictEqual(findings.length, 0);
+    });
+
+    it('ignores token in non-string context', () => {
+        const content = `const x = internal_db_password;`;
+        const findings = scanDataLeakLines('test.js', content, /\b(?:internal_db_password)\b/gi);
+        assert.strictEqual(findings.length, 0);
+    });
+
+    it('ignores safe content', () => {
+        const content = `const greeting = 'Hello world';`;
+        const findings = scanDataLeakLines('test.js', content, /\b(?:internal_db_password)\b/gi);
+        assert.strictEqual(findings.length, 0);
+    });
+});
+
+describe('scanEnterpriseGuardrailContent — orchestrator', () => {
+    it('returns findings from multiple sub-scanners in one pass', () => {
+        const content = `
+const payload = { secret: 'internal_db_password' };
+const res = await openai.chat.completions.create({ model: 'gpt-4', messages: [] });
+        `;
+        const findings = scanEnterpriseGuardrailContent('src/app.js', content);
+        const patterns = findings.map((f) => f.pattern);
+        assert.ok(patterns.includes('SB-ENT-001'), 'expected SB-ENT-001 (data leak)');
+        assert.ok(patterns.includes('SB-ENT-002'), 'expected SB-ENT-002 (token budget)');
+    });
+
+    it('returns empty array for safe content', () => {
+        const content = `const greeting = 'Hello world';`;
+        const findings = scanEnterpriseGuardrailContent('src/app.js', content);
+        assert.strictEqual(findings.length, 0);
+    });
+
+    it('respects excluded paths', () => {
+        const content = `const res = await openai.chat.completions.create({ model: 'gpt-4', messages: [] });`;
+        const findings = scanEnterpriseGuardrailContent('simplebeacon-rule-tests/test.js', content);
         assert.strictEqual(findings.length, 0);
     });
 });

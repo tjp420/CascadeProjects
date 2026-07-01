@@ -44,6 +44,13 @@ function resolveMaxFiles(options = {}) {
 }
 
 function categoryForExt(ext) {
+    if (!ext) return 'Other Files';
+    const lower = ext.toLowerCase();
+    // Use constants when available for rich categorization
+    if (constants && constants.getExtensionCategory) {
+        const cat = constants.getExtensionCategory(lower);
+        if (cat) return cat;
+    }
     const map = {
         '.json': 'JSON Files',
         '.js': 'JavaScript',
@@ -51,7 +58,7 @@ function categoryForExt(ext) {
         '.py': 'Python',
         '.md': 'Documentation'
     };
-    return map[ext] || 'Other Files';
+    return map[lower] || 'Other Files';
 }
 
 function normalizeSkipDirs(skipDirs) {
@@ -233,9 +240,10 @@ async function analyzeFullDirectory(rootDir, options = {}) {
         }
 
         let buf;
+        let fileHash = null;
         try {
             if (Number.isFinite(maxContentBytes) && file.size > maxContentBytes) {
-                await hashFileStream(file.path);
+                fileHash = await hashFileStream(file.path);
                 filesLargeHashed += 1;
                 filesHashed += 1;
                 continue;
@@ -247,15 +255,17 @@ async function analyzeFullDirectory(rootDir, options = {}) {
         }
 
         filesHashed += 1;
-        hashBuffer(buf);
+        fileHash = hashBuffer(buf);
 
         if (isBinaryBuffer(buf)) {
             filesBinaryHashed += 1;
+            file.hash = fileHash;
             continue;
         }
 
         const content = buf.toString('utf8');
         filesContentScanned += 1;
+        file.hash = fileHash;
 
         if (isIgnoredRelativePath(file.relativePath, config.ignore || [])) {
             continue;
@@ -307,7 +317,7 @@ async function analyzeFullDirectory(rootDir, options = {}) {
                         type: 'Invalid JSON',
                         filePath: file.path,
                         count: 1,
-                        description: `${file.relativePath}: ${error.message}`,
+                        description: `${file.relativePath}: ${error?.message || String(error)}`,
                         recommendedAction: 'Fix JSON syntax errors',
                         affectedFiles: [file.relativePath]
                     });
@@ -362,7 +372,6 @@ async function analyzeFullDirectory(rootDir, options = {}) {
         stats: {
             filesAnalyzed,
             filesHashed,
-            contentScanned: filesContentScanned,
             filesContentScanned,
             filesBinaryHashed,
             filesLargeHashed,

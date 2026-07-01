@@ -35,7 +35,7 @@ function main() {
   // ── Phase 1: Product Artifacts ──
   section('Phase 1: Product Artifacts');
 
-  const vsixPath = path.join(ROOT, 'simplebeacon-vscode-merged', 'simplebeacon-3.0.310.vsix');
+  const vsixPath = path.join(ROOT, 'simplebeacon-vscode-merged', 'simplebeacon-3.0.347.vsix');
   check('Extension .vsix exists', fs.existsSync(vsixPath), vsixPath);
 
   const iconSvg = path.join(ROOT, 'simplebeacon-vscode-merged', 'media', 'icon.svg');
@@ -126,6 +126,7 @@ function main() {
   check('Terms of Service exists', fs.existsSync(path.join(ROOT, 'sales', 'legal', 'TERMS_OF_SERVICE.md')));
   check('Installation guide exists', fs.existsSync(path.join(ROOT, 'sales', 'docs', 'installation.md')));
   check('User guide exists', fs.existsSync(path.join(ROOT, 'sales', 'docs', 'user-guide.md')));
+  check('LLM modes doc exists', fs.existsSync(path.join(ROOT, 'packages', 'simplebeacon-cli', 'docs', 'LLM-MODES.md')));
 
   // ── Phase 6: GitHub Action ──
   section('Phase 6: GitHub Action');

@@ -1,157 +1,128 @@
-// Shared constants to eliminate magic numbers across the codebase
+'use strict';
 
-// --- Time base ---
-const MS_PER_SECOND = 1000;
-const SECONDS_PER_MINUTE = 60;
-const MINUTES_PER_HOUR = 60;
-const HOURS_PER_DAY = 24;
+/**
+ * @module constants
+ * Shared constants facade.
+ * Re-exports time, network, sizes, limits, mock constants,
+ * plus focused sub-modules for file types, HTTP, formatting, environment,
+ * platform, trust, encoding, strings, arrays, objects, type-guards, and paths.
+ *
+ * @example <caption>Flat access (backward-compatible)</caption>
+ * const constants = require('./constants.cjs');
+ * constants.HTTP_STATUS.OK;
+ * constants.EXTENSIONS.CODE.includes('.js');
+ *
+ * @example <caption>Grouped namespace access (frozen for immutability)</caption>
+ * const constants = require('./constants.cjs');
+ * constants.categories.http.HTTP_STATUS.OK;
+ * constants.categories.fileTypes.EXTENSIONS.IMAGE.includes('.png');
+ * Object.isFrozen(constants.categories); // true
+ * Object.isFrozen(constants.categories.http); // true
+ *
+ * @example <caption>Legacy aliases</caption>
+ * const constants = require('./constants.cjs');
+ * constants.CODE_EXTENSIONS; // => ['.js', '.jsx', ...]
+ *
+ * @file server/config/constants.cjs
+ */
 
-// --- Composite durations (milliseconds) ---
-const ONE_SECOND_MS = MS_PER_SECOND;
-const ONE_MINUTE_MS = SECONDS_PER_MINUTE * MS_PER_SECOND;
-const FIVE_MINUTES_MS = 5 * ONE_MINUTE_MS;
-const ONE_HOUR_MS = MINUTES_PER_HOUR * ONE_MINUTE_MS;
-const ONE_DAY_MS = HOURS_PER_DAY * ONE_HOUR_MS;
-const THIRTY_DAYS_MS = 30 * ONE_DAY_MS;
+const time = require('./time.cjs');
+const network = require('./network.cjs');
+const sizes = require('./sizes.cjs');
+const limits = require('./limits.cjs');
+const mock = require('./mock.cjs');
+const fileTypes = require('./file-types.cjs');
+const http = require('./http.cjs');
+const trust = require('./trust.cjs');
+const language = require('./language.cjs');
+const format = require('./format.cjs');
+const env = require('./env.cjs');
+const platform = require('./platform.cjs');
+const encoding = require('./encoding.cjs');
+const strings = require('./strings.cjs');
+const arrays = require('./arrays.cjs');
+const objects = require('./objects.cjs');
+const typeGuards = require('./type-guards.cjs');
+const paths = require('./paths.cjs');
 
-// --- Timeouts (milliseconds) ---
-const TIMEOUT_2S = 2000;
-const TIMEOUT_5S = 5000;
-const TIMEOUT_8S = 8000;
-const TIMEOUT_12S = 12000;
-const TIMEOUT_15S = 15000;
-const TIMEOUT_30S = 30000;
-const TIMEOUT_1M = 60000;
-const TIMEOUT_2M = 120000;
-const TIMEOUT_10M = 600000;
-const TIMEOUT_15M = 900000;
+// Namespace collision detection: throw if sub-modules export overlapping keys
+function detectExportCollisions() {
+  const seen = new Map();
+  const sources = [time, network, sizes, limits, mock, fileTypes, http, trust, language, format, env, platform, encoding, strings, arrays, objects, typeGuards, paths];
+  const sourceNames = ['time', 'network', 'sizes', 'limits', 'mock', 'file-types', 'http', 'trust', 'language', 'format', 'env', 'platform', 'encoding', 'strings', 'arrays', 'objects', 'type-guards', 'paths'];
+  for (let i = 0; i < sources.length; i++) {
+    const src = sources[i];
+    if (!src || typeof src !== 'object') continue;
+    for (const key of Object.keys(src)) {
+      if (seen.has(key)) {
+        throw new Error(
+          `[constants.cjs] Namespace collision detected: "${key}" exists in both "${seen.get(key)}" and "${sourceNames[i]}". ` +
+          'Overlapping keys between submodules are not allowed.'
+        );
+      } else {
+        seen.set(key, sourceNames[i]);
+      }
+    }
+  }
+}
+detectExportCollisions();
 
-// --- Network / Ports ---
-const DEFAULT_PORT = 3000;
-const DASHBOARD_PORT = 3002;
-const OLLAMA_PORT = 11434;
-const AI_PROXY_PORT = 8080;
-const POSTGRES_PORT = 5432;
-const REDIS_PORT = 6379;
+const categories = Object.freeze({
+  time: Object.freeze(time),
+  network: Object.freeze(network),
+  sizes: Object.freeze(sizes),
+  limits: Object.freeze(limits),
+  mock: Object.freeze(mock),
+  fileTypes: Object.freeze(fileTypes),
+  http: Object.freeze(http),
+  trust: Object.freeze(trust),
+  language: Object.freeze(language),
+  format: Object.freeze(format),
+  env: Object.freeze(env),
+  platform: Object.freeze(platform),
+  encoding: Object.freeze(encoding),
+  strings: Object.freeze(strings),
+  arrays: Object.freeze(arrays),
+  objects: Object.freeze(objects),
+  typeGuards: Object.freeze(typeGuards),
+  paths: Object.freeze(paths)
+});
 
-// --- Size limits ---
-const BYTES_PER_KB = 1024;
-const BYTES_PER_MB = 1048576;
-const MAX_FILE_SIZE_SMALL = 256000;
-const MAX_FILE_SIZE_MEDIUM = 512000;
-const MAX_FILE_SIZE_LARGE = 200000;
-const MAX_FILE_SIZE_SCAN = 300000;
-const MAX_CONTENT_LENGTH = 200000;
-const MAX_EXPORT_CHUNK = 65536;
-const MAX_STRING_LENGTH = 100000;
-const MAX_REQUEST_BODY = 4096;
+// Legacy flat-access deprecation shim — prefer categories.* or direct sub-module imports
+const warned = new Set();
+function warnOnce(key) {
+  if (warned.has(key)) return;
+  warned.add(key);
+  if (process.env.SIMPLEBEACON_DEBUG) {
+    console.warn(`[constants.cjs] DEPRECATED: flat access to "${key}" — use categories.* or require('./config/<module>.cjs') directly`);
+  }
+}
 
-// --- Percentage / Math ---
-const PERCENTAGE_MULTIPLIER = 100;
+const allFlat = {};
+const flatSources = { ...time, ...network, ...sizes, ...limits, ...mock, ...fileTypes, ...http, ...trust, ...language, ...format, ...env, ...platform, ...encoding, ...strings, ...arrays, ...objects, ...typeGuards, ...paths };
+for (const key of Object.keys(flatSources)) {
+  Object.defineProperty(allFlat, key, {
+    enumerable: true,
+    configurable: true,
+    get() { warnOnce(key); return flatSources[key]; }
+  });
+}
 
-// --- Counts / Limits ---
-const DEFAULT_RECORD_COUNT_BASE = 100;
-const DEFAULT_RANDOM_MAX = 1000;
-const MAX_RATE_LIMIT = 2000;
-const MAX_ANALYZE_RATE_LIMIT = 1000;
-const AUTH_RATE_LIMIT = 15;
-const MAX_RETRIES = 10;
-const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
-
-// --- Durations (seconds) ---
-const ONE_YEAR_SECONDS = 31536000;
-const ONE_DAY_SECONDS = 86400;
-const COOKIE_MAX_AGE = 3600000;
-
-// --- Mock data defaults ---
-const MOCK_REALISM_SCORE = '87.3%';
-const MOCK_COMPRESSION_RATIO = '67.8%';
-const MOCK_OPTIMIZATION_RATE = '10%';
-const MOCK_CONVERSION_SIZE_FACTOR = 0.8;
-const MOCK_CLEANING_SIZE_FACTOR = 0.9;
-
-// --- File extensions ---
-const CODE_EXTENSIONS = ['.js', '.ts', '.py', '.cjs', '.mjs'];
-const CONFIG_EXTENSIONS = ['.json', '.yaml', '.yml'];
-const MARKUP_EXTENSIONS = ['.html', '.htm'];
-const DOCUMENT_EXTENSIONS = ['.md', '.txt'];
-const DATA_EXTENSIONS = ['.csv', '.xml'];
-const MOCK_SCAN_EXTENSIONS = /\.(json|js|py|html|csv|xml|txt)$/i;
-
-// --- Statistics ---
-const FILES_PROCESSED_STAT = 59763;
-const REDUCTION_RATE_STAT = '67.6%';
-
-module.exports = {
-  // Time base
-  MS_PER_SECOND,
-  SECONDS_PER_MINUTE,
-  MINUTES_PER_HOUR,
-  HOURS_PER_DAY,
-  // Composite durations
-  ONE_SECOND_MS,
-  ONE_MINUTE_MS,
-  FIVE_MINUTES_MS,
-  ONE_HOUR_MS,
-  ONE_DAY_MS,
-  THIRTY_DAYS_MS,
-  // Timeouts
-  TIMEOUT_2S,
-  TIMEOUT_5S,
-  TIMEOUT_8S,
-  TIMEOUT_12S,
-  TIMEOUT_15S,
-  TIMEOUT_30S,
-  TIMEOUT_1M,
-  TIMEOUT_2M,
-  TIMEOUT_10M,
-  TIMEOUT_15M,
-  // Ports
-  DEFAULT_PORT,
-  DASHBOARD_PORT,
-  OLLAMA_PORT,
-  AI_PROXY_PORT,
-  POSTGRES_PORT,
-  REDIS_PORT,
-  // Percentage
-  PERCENTAGE_MULTIPLIER,
-  // Sizes
-  BYTES_PER_KB,
-  BYTES_PER_MB,
-  MAX_FILE_SIZE_SMALL,
-  MAX_FILE_SIZE_MEDIUM,
-  MAX_FILE_SIZE_LARGE,
-  MAX_FILE_SIZE_SCAN,
-  MAX_CONTENT_LENGTH,
-  MAX_EXPORT_CHUNK,
-  MAX_STRING_LENGTH,
-  MAX_REQUEST_BODY,
-  // Counts
-  DEFAULT_RECORD_COUNT_BASE,
-  DEFAULT_RANDOM_MAX,
-  MAX_RATE_LIMIT,
-  MAX_ANALYZE_RATE_LIMIT,
-  AUTH_RATE_LIMIT,
-  MAX_RETRIES,
-  RATE_LIMIT_WINDOW_MS,
-  // Durations
-  ONE_YEAR_SECONDS,
-  ONE_DAY_SECONDS,
-  COOKIE_MAX_AGE,
-  // Mock data
-  MOCK_REALISM_SCORE,
-  MOCK_COMPRESSION_RATIO,
-  MOCK_OPTIMIZATION_RATE,
-  MOCK_CONVERSION_SIZE_FACTOR,
-  MOCK_CLEANING_SIZE_FACTOR,
-  // Extensions
-  CODE_EXTENSIONS,
-  CONFIG_EXTENSIONS,
-  MARKUP_EXTENSIONS,
-  DOCUMENT_EXTENSIONS,
-  DATA_EXTENSIONS,
-  MOCK_SCAN_EXTENSIONS,
-  // Stats
-  FILES_PROCESSED_STAT,
-  REDUCTION_RATE_STAT
+// Legacy aliases for backward compatibility
+const legacyAliases = {
+  CODE_EXTENSIONS: fileTypes.EXTENSIONS.CODE,
+  CONFIG_EXTENSIONS: fileTypes.EXTENSIONS.CONFIG,
+  MARKUP_EXTENSIONS: fileTypes.EXTENSIONS.MARKUP,
+  DOCUMENT_EXTENSIONS: fileTypes.EXTENSIONS.DOCUMENT,
+  DATA_EXTENSIONS: fileTypes.EXTENSIONS.DATA,
+  STYLESHEET_EXTENSIONS: fileTypes.EXTENSIONS.STYLESHEET,
+  IMAGE_EXTENSIONS: fileTypes.EXTENSIONS.IMAGE,
+  MEDIA_EXTENSIONS: fileTypes.EXTENSIONS.MEDIA,
+  BINARY_EXTENSIONS: fileTypes.EXTENSIONS.BINARY
 };
+
+module.exports = Object.freeze({
+  ...allFlat,
+  ...legacyAliases,
+  categories
+});

@@ -1,11 +1,14 @@
 /**
  * Codebase analyzer — filesystem audit for technical debt, broken files,
  * debug artifacts, and meaningless placeholder data across the repo tree.
- * simplebeacon:production-leak-intent — pattern definitions intentionally reference mock/sample/fixture paths for detection.
+ * simplebeacon:production-leak-intent — pattern definitions intentionally
+ * reference mock/sample/fixture paths for detection.
+ * @module codebase-analyzer
  */
 
-// DIAGNOSTIC: patched version v2.1 — excludes scanner implementation files
-console.log('[CodebaseAnalyzer] Module loaded: PATCHED v2.1 (excludes scanner files)');
+if (process.env.SIMPLEBEACON_DEBUG) {
+    console.log('[CodebaseAnalyzer] Module loaded: PATCHED v2.1 (excludes scanner files)');
+}
 
 const fs = require('fs');
 const path = require('path');
@@ -14,7 +17,42 @@ const { execFile } = require('child_process');
 const { promisify } = require('util');
 const { countRepositoryInventory } = require('../../../packages/simplebeacon-cli/src/lib/repository-inventory');
 const { resolvePlatformRoot } = require('../../../packages/simplebeacon-cli/src/project-detect');
-const { formatBytes } = require('./mock-data-scanner.cjs');
+const { formatBytes } = require('./format-bytes.cjs');
+const {
+    PRODUCTION_DIR_HINTS,
+    NON_PRODUCTION_PATH_HINTS,
+    NON_PRODUCTION_PATH_PREFIXES,
+    LEGACY_EXPERIMENTAL_PREFIXES,
+    SAMPLE_DATA_PREFIX,
+    SAMPLE_JSON_SUFFIX,
+    META_SCANNER_PATHS,
+    DUPLICATE_MIRROR_PREFIXES,
+    DUPLICATE_NOISE_PREFIXES,
+    KNOWN_SHARED_LIB_BASENAMES,
+    DUPLICATE_SKIP_BASENAMES,
+    DUPLICATE_STAGING_PREFIXES,
+    PLACEHOLDER_CATALOG_PATHS,
+    PLACEHOLDER_META_DOC_PREFIXES,
+    MIRROR_FRONTEND_STAGING_PREFIX,
+    normalizedAuditPath,
+    isMirrorFrontendStagingPath,
+    isLegacyExperimentalPath,
+    isSampleOrFixtureDataPath,
+    isMetaScannerPath,
+    isGitHookToolingPath,
+    isHistoricalStatusDoc,
+    isVendorBundledAssetPath,
+    isDuplicateMirrorPath,
+    isDuplicateStagingPath,
+    isIntentionalCliPublishBasenameGroup,
+    getDuplicateEligiblePaths,
+    isNonProductionAuditContentPath,
+    isProductionPath,
+    isProductionRelevantPath,
+    shouldSkipLegacyExperimentalAnalysis,
+    isPlaceholderCatalogOrMetaDoc,
+    isTechnicalDebtReportArtifact
+} = require('./path-classification.cjs');
 const { getCodeExtensions, resolveScanProfile } = require('./universal-language-config.cjs');
 const { UNIVERSAL_LANGUAGE_REGISTRY, resolveLanguageFromPath } = require('./universal-language-registry.cjs');
 const { getBuiltinPluginManager } = require('./plugin-system/index.cjs');
@@ -22,7 +60,52 @@ const { applyContextToFindings } = require('./file-audit-context.cjs');
 const { isConsolidationExcludedPair } = require('../../../packages/simplebeacon-cli/src/lib/consolidation-path-exclusions');
 
 const constants = require('../config/constants.cjs');
+const {
+    isBlank,
+    isEmpty,
+    ensureArray,
+    capitalize,
+    pluralize,
+    truncate
+} = constants;
 const execFileAsync = promisify(execFile);
+
+const helpers = require('./codebase-analyzer-helpers.cjs');
+
+// ── Findings Summarization Helpers ────────────────────────────
+
+function summarizeFindings(findings) {
+    if (!Array.isArray(findings)) return { byCategory: {}, bySeverity: {}, byType: {}, total: 0 };
+    const byCategory = {};
+    const bySeverity = {};
+    const byType = {};
+    for (const f of findings) {
+        const cat = f.category || 'unknown';
+        const sev = f.severity || 'info';
+        const type = f.type || 'finding';
+        byCategory[cat] = (byCategory[cat] || 0) + 1;
+        bySeverity[sev] = (bySeverity[sev] || 0) + 1;
+        byType[type] = (byType[type] || 0) + 1;
+    }
+    return { byCategory, bySeverity, byType, total: findings.length };
+}
+
+function filterFindings(findings, predicate) {
+    if (!Array.isArray(findings)) return [];
+    if (typeof predicate !== 'function') return findings;
+    return findings.filter(predicate);
+}
+
+function getTopFindings(findings, n = 10) {
+    if (!Array.isArray(findings)) return [];
+    const rank = { critical: 4, high: 3, medium: 2, low: 1, info: 0 };
+    const sorted = [...findings].sort((a, b) => {
+        const ra = rank[a.severity] || 0;
+        const rb = rank[b.severity] || 0;
+        return rb - ra;
+    });
+    return sorted.slice(0, Math.max(0, Math.floor(Number(n) || 10)));
+}
 
 const REPO_SKIP_DIRS = new Set([
     'node_modules', '.git', 'uploads', 'coverage', 'archive', 'dist', 'build', '.next', '.cache',
@@ -63,32 +146,29 @@ const COMMON_STRING_LITERALS = new Set(['utf8', 'utf-8', 'ascii', 'base64', 'hex
 const EXCLUDED_UNSCOPED_PACKAGES = new Set([...BUILTIN_NODE_MODULES, ...COMMON_JS_KEYWORDS, ...COMMON_STRING_LITERALS]);
 const MAX_STRUCTURE_SAMPLES = 50;
 
-/** @type {number} Mutable cap for pushFinding during analyzeCodebase runs. */
-let activeFindingsCap = MAX_FINDINGS_DASHBOARD;
-
 /**
- * Normalize scan context.
- * @param {string} context
- * @returns {any}
+ * Normalize a scan context string to a canonical value.
+ * @param {string} [context]
+ * @returns {string}
  */
 function normalizeScanContext(context) {
     return String(context || 'cli').toLowerCase();
 }
 
 /**
- * Resolve scan context.
- * @param {Object} options
- * @returns {any}
+ * Resolve the effective scan context from options.
+ * @param {Object} [options={}]
+ * @returns {string}
  */
 function resolveScanContext(options = {}) {
     return normalizeScanContext(options.context || options.scanContext || options.scanMode);
 }
 
 /**
- * Resolve deep analyze cap.
- * @param {Object} options
- * @param {string} context
- * @returns {any}
+ * Resolve the deep-analysis file cap based on context or explicit option.
+ * @param {Object} [options={}]
+ * @param {string} [context='cli']
+ * @returns {number}
  */
 function resolveDeepAnalyzeCap(options = {}, context = 'cli') {
     if (options.maxDeepAnalyze != null && Number.isFinite(Number(options.maxDeepAnalyze))) {
@@ -105,10 +185,10 @@ function resolveDeepAnalyzeCap(options = {}, context = 'cli') {
 }
 
 /**
- * Resolve findings cap.
- * @param {Object} options
- * @param {string} context
- * @returns {any}
+ * Resolve the findings output cap based on context or explicit option.
+ * @param {Object} [options={}]
+ * @param {string} [context='cli']
+ * @returns {number}
  */
 function resolveFindingsCap(options = {}, context = 'cli') {
     if (options.maxFindings != null && Number.isFinite(Number(options.maxFindings))) {
@@ -125,11 +205,11 @@ function resolveFindingsCap(options = {}, context = 'cli') {
 }
 
 /**
- * Analyze files in batches.
- * @param {Array} files
- * @param {string} rootDir
- * @param {Object} options
- * @returns {any}
+ * Analyze a list of files in concurrent batches, yielding to the event loop periodically.
+ * @param {Array<Object>} files File entries to analyze.
+ * @param {string} rootDir Project root for relative-path calculations.
+ * @param {Object} [options={}] Analysis options (concurrency, onProgress, etc).
+ * @returns {Promise<{findings:Array<Object>,structureSamples:Array<Object>}>}
  */
 async function analyzeFilesInBatches(files, rootDir, options = {}) {
     const findings = [];
@@ -137,10 +217,11 @@ async function analyzeFilesInBatches(files, rootDir, options = {}) {
     const concurrency = Math.max(1, options.concurrency || ANALYZE_FILE_CONCURRENCY);
     const onProgress = options.onProgress;
     const total = files.length;
+    const cap = options.findingsCap || MAX_FINDINGS_DASHBOARD;
 
     for (let offset = 0; offset < files.length; offset += concurrency) {
         const batch = files.slice(offset, offset + concurrency);
-        const results = await Promise.all(batch.map((file) => analyzeFileContent(file, rootDir, options)));
+        const results = await Promise.all(batch.map((file) => analyzeFileContent(file, rootDir, { ...options, findingsCap: cap })));
         // Yield to event loop every few batches so the server stays responsive
         if ((offset / concurrency) % 4 === 0 && offset > 0) {
             await new Promise((resolve) => setImmediate(resolve));
@@ -149,7 +230,7 @@ async function analyzeFilesInBatches(files, rootDir, options = {}) {
             const fileResult = results[i];
             const file = batch[i];
             for (const finding of fileResult.findings) {
-                pushFinding(findings, finding);
+                pushFinding(findings, finding, cap);
             }
             if (fileResult.structure && structureSamples.length < MAX_STRUCTURE_SAMPLES) {
                 structureSamples.push({
@@ -179,11 +260,11 @@ async function analyzeFilesInBatches(files, rootDir, options = {}) {
 }
 
 /**
- * Dedupe findings.
- * @param {Array} findings
- * @returns {any}
+ * Deduplicate findings by a composite key of file, line, type, category, and match text.
+ * @param {Array<Object>} findings
+ * @returns {Array<Object>}
  */
-function dedupeFindings(findings) {
+function dedupeFindings(findings = []) {
     const seen = new Set();
     const unique = [];
     for (const finding of findings) {
@@ -202,11 +283,11 @@ function dedupeFindings(findings) {
 }
 
 /**
- * Finalize file analysis.
- * @param {Array} findings
- * @param {string} relativePath
- * @param {string} structure
- * @returns {any}
+ * Finalize a single file's analysis by deduping findings and applying path context.
+ * @param {Array<Object>} findings Raw findings for the file.
+ * @param {string} relativePath File path relative to project root.
+ * @param {Object} [structure] Optional structure metadata.
+ * @returns {{findings:Array<Object>,structure:Object|null}}
  */
 function finalizeFileAnalysis(findings, relativePath, structure = null) {
     return {
@@ -220,9 +301,9 @@ function finalizeFileAnalysis(findings, relativePath, structure = null) {
 }
 
 /**
- * Aggregate structure insights.
- * @param {Array} samples
- * @returns {any}
+ * Aggregate per-file structure samples into language-level and complexity summaries.
+ * @param {Array<Object>} samples
+ * @returns {Object}
  */
 function aggregateStructureInsights(samples) {
     const byLanguage = {};
@@ -243,21 +324,23 @@ function aggregateStructureInsights(samples) {
     };
 }
 
-const TECH_DEBT_PATTERNS = [
+/** Technical-debt marker patterns (frozen). */
+const TECH_DEBT_PATTERNS = Object.freeze([
     { id: 'todo', pattern: /\bTODO\b[:\s]/gi, label: 'TODO marker' },
     { id: 'fixme', pattern: /\bFIXME\b[:\s]/gi, label: 'FIXME marker' },
     { id: 'hack', pattern: /\bHACK\s*:/gi, label: 'HACK marker' },
     { id: 'xxx', pattern: /\bXXX\b[:\s]/gi, label: 'XXX marker' },
     { id: 'deprecated', pattern: /@deprecated\b/gi, label: 'Deprecated marker' },
     { id: 'not-implemented', pattern: /not\s+implemented\s+yet|throw\s+new\s+Error\s*\(\s*['"]TODO/gi, label: 'Not implemented stub' }
-];
+]);
 
-const _DEBUG_PATTERNS = [
+/** Debug-artifact patterns (frozen). */
+const _DEBUG_PATTERNS = Object.freeze([
     { id: 'console-log', pattern: /\bconsole\.(log|debug|info)\s*\(/g, label: 'console.log/debug' },
     { id: 'debugger', pattern: /\bdebugger\s*;?/g, label: 'debugger statement' }
-];
+]);
 
-const PLACEHOLDER_PATTERNS = [
+const PLACEHOLDER_PATTERNS = Object.freeze([
     { id: 'lorem', pattern: /\blorem ipsum\b/gi, label: 'Lorem ipsum placeholder' },
     { id: 'coming-soon', pattern: /\bcoming soon\b|\bunder construction\b/gi, label: 'Coming soon placeholder' },
     { id: 'tbd', pattern: /\bTBD\b|\bto be determined\b/gi, label: 'TBD placeholder' },
@@ -266,21 +349,21 @@ const PLACEHOLDER_PATTERNS = [
     { id: 'hardcoded-completion', pattern: /(?:completionRate|completion|progress|done)\s*[:=]\s*['"`]?(?:0\.\d+|\d{1,3})\s*%?['"`]?/gi, label: 'Hardcoded completion rate' },
     { id: 'ai-placeholder-comment', pattern: /(?:\/\/|#)\s*(?:AI[- ]generated|auto[- ]generated|generated by|placeholder|stub|not implemented|implement later|fill in|complete later|needs work|unfinished|to be done)(?:\b|$)/gi, label: 'AI placeholder comment' },
     { id: 'ai-placeholder-block', pattern: /(?:\/\*|<!--)[\s\S]{0,200}?(?:AI[- ]generated|auto[- ]generated|placeholder|stub|not implemented|implement me|fill in|complete later|needs work|unfinished|to be done|TODO|FIXME|HACK|XXX|NYI|NOT\s+YET\s+IMPLEMENTED)[\s\S]{0,200}?(?:\*\/|-->)/gi, label: 'AI placeholder block comment' }
-];
+]);
 
-const AI_RESIDUE_PATTERNS = [
+const AI_RESIDUE_PATTERNS = Object.freeze([
     { id: 'hallucinated-import', pattern: /import\s+\w+\s+from\s+['"`](?:ai-|llm-|gpt-|openai-|anthropic-|claude-|vertex-|palm-|bard-|cohere-|huggingface-|hf-|stability-|midjourney-|dalle-|dall-e-)[^'"`]*['"`]|require\s*\(\s*['"`](?:ai-|llm-|gpt-|openai-|anthropic-|claude-|vertex-|palm-|bard-|cohere-|huggingface-|hf-|stability-|midjourney-|dalle-|dall-e-)[^'"`]*['"`]/gi, label: 'Hallucinated AI/LLM SDK import — verify package exists' },
     { id: 'error-swallowing', pattern: /catch\s*\(\s*\w*\s*\)\s*\{\s*(?:\/\/.*)?\s*\}|catch\s*\(\s*\w*\s*\)\s*\{\s*console\.(?:log|warn|error|info|debug)\s*\([^)]*\)\s*;?\s*\}/gi, label: 'Error swallowing — catch block silently ignores or only logs exception' },
     { id: 'empty-catch', pattern: /catch\s*\(\s*\w*\s*\)\s*\{\s*\}/gi, label: 'Empty catch block — exception silently swallowed' },
     { id: 'not-implemented-throw', pattern: /throw\s+new\s+(?:Error|NotImplementedError)\s*\(\s*['"`]\s*(?:not\s+implemented|TODO|FIXME|placeholder|stub)\s*['"`]/gi, label: 'Not implemented stub — throws instead of real logic' },
     { id: 'ai-generated-comment', pattern: /\/\/\s*(?:generated\s+by\s+AI|created\s+by\s+AI|AI[- ]?written|auto[- ]?generated\s+by|made\s+with\s+(?:ChatGPT|GPT|Claude|Copilot|Gemini))/gi, label: 'AI generation attribution comment' }
-];
+]);
 
-const LLM_SLOP_PATTERNS = [
+const LLM_SLOP_PATTERNS = Object.freeze([
     { id: 'template-placeholder', pattern: /YOUR_[A-Z0-9_]+_HERE|INSERT_[A-Z0-9_]+_HERE|\[Insert\s[^\]]+\]/gi, label: 'Template placeholder text (YOUR_*_HERE / INSERT_*_HERE)' },
     { id: 'todo-later', pattern: /\/\/\s*Handle\s+this\s+later|\/\/\s*AI\s+Generated\s+Placeholder|\/\/\s*TODO:\s*replace/gi, label: 'AI placeholder comment (handle later / AI generated)' },
     { id: 'fake-uptime', pattern: /99\.99\s*%?\s*Uptime|100\s*%?\s*Secure|9,999\s*Users/gi, label: 'AI-generated fake metric (uptime/secure/users)' }
-];
+]);
 
 const MARKDOWN_FENCE_PATTERNS = [
     { id: 'markdown-fence-leak', pattern: /```(?:js|javascript|ts|typescript|python|json|html|css|bash|sh|powershell)?/gi, label: 'Markdown code fence leaked into source' } // simplebeacon-ignore redos — static language tag list, not user input
@@ -336,11 +419,11 @@ const I18N_PATTERNS = [
     { id: 'i18n-hardcoded-string', pattern: /textContent\s*=\s*[`'"][^`'"]{10,200}(?:\s[A-Za-z]+){2,}/i, label: 'Hardcoded UI string — wrap with i18n function' }
 ];
 
-const DATABASE_PATTERNS = [
+const DATABASE_PATTERNS = Object.freeze([
     { id: 'sql-template-injection', pattern: /`[^`]*\b(?:SELECT|INSERT|UPDATE|DELETE)\b[^`]*\$\{[^`]*`/i, label: 'SQL in template literal with interpolation — potential injection' },
     { id: 'unparameterized-query', pattern: /\.query\s*\(\s*[`'"][^'"`]*[`'"]\s*\)(?!\s*,)/i, label: 'Query call without parameter array — may be unparameterized' },
     { id: 'unbounded-select', pattern: /SELECT\s+(?:(?!\bLIMIT\b)[^;])*\bFROM\b(?:(?!\bLIMIT\b)[^;])*(?:;|$)/i, label: 'SELECT without LIMIT clause — unbounded read' }
-];
+]);
 
 const C_DATABASE_PATTERNS = [
     { id: 'c-raw-sql-string', pattern: /["'](?:SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER)\b[^"';]{10,300}["']/gi, label: 'Raw SQL string in C/C++ code — potential injection if concatenated' },
@@ -363,21 +446,21 @@ const FIX_PREVIEW_PATTERNS = [
 
 const MISSING_STRICT_PATTERN = /['"]use strict['"]/;
 
-const PERFORMANCE_PATTERNS = [
+const PERFORMANCE_PATTERNS = Object.freeze([
     { id: 'nested-loop', pattern: /for\s*\([^)]*\)\s*\{[\s\S]{0,120}?for\s*\(/gi, label: 'Nested loop — O(n²) performance risk' },
     { id: 'blocking-loop', pattern: /while\s*\(\s*true\s*\)|while\s*\(\s*1\s*\)|for\s*\(\s*;;\s*\)/gi, label: 'Potential blocking infinite loop' }
-];
+]);
 
-const SYNC_IO_PATTERNS = [
+const SYNC_IO_PATTERNS = Object.freeze([
     { id: 'synchronous-read', pattern: /fs\.readFileSync\(|fs\.readdirSync\(|fs\.readSync\(/gi, label: 'Synchronous file read in async context' }
-];
+]);
 
-const TYPE_SAFETY_PATTERNS = [
+const TYPE_SAFETY_PATTERNS = Object.freeze([
     { id: 'any-type', pattern: /:\s*any\b/g, label: 'Explicit any type — weakens TypeScript type safety' },
     { id: 'ts-ignore', pattern: /\s*@ts-ignore\b/g, label: 'TypeScript error suppression without justification' },
     { id: 'ts-expect-error', pattern: /\s*@ts-expect-error\b/g, label: 'Expected TypeScript error — may mask real issues' },
     { id: 'unsafe-type-assertion', pattern: /as\s+(?:any|unknown|\w+\[\])\s*[,;)]/g, label: 'Unsafe type assertion (as any / as unknown)' }
-];
+]);
 
 const C_TYPE_SAFETY_PATTERNS = [
     { id: 'c-style-cast', pattern: /\(\s*(?:const\s+)?(?:unsigned\s+)?(?:long\s+)?(?:int|char|float|double|void|\w+)\s*\*?\s*\)\s*\w+/g, label: 'C-style cast — prefer static_cast/reinterpret_cast in C++ or avoid in C' },
@@ -391,7 +474,7 @@ const C_TYPE_SAFETY_PATTERNS = [
     { id: 'implicit-narrowing', pattern: /(?:int|short|char|float)\s+\w+\s*=\s*(?:\w+|[\d.]+[lLfF]?)/g, label: 'Potential implicit narrowing conversion' }
 ];
 
-const PROTOTYPE_POLLUTION_PATTERNS = [
+const PROTOTYPE_POLLUTION_PATTERNS = Object.freeze([
     { id: 'prototype-assignment', pattern: /__proto__\s*[=:]|prototype\s*\[\s*[^\]]+\]\s*=/gi, label: 'Potential prototype pollution via __proto__ or prototype assignment' },
     { id: 'object-assign-untrusted', pattern: /Object\.assign\s*\([^,]+,\s*(?:req\.|request\.|body\.|params\.|query\.|args\.|input\.|payload\.|data\.|user\.|client\.|config\.|options\.)/gi, label: 'Object.assign with potentially untrusted source — prototype pollution risk' },
     { id: 'set-prototype-of', pattern: /Object\.setPrototypeOf\s*\(|Reflect\.setPrototypeOf\s*\(/gi, label: 'Direct prototype manipulation via setPrototypeOf' },
@@ -400,7 +483,7 @@ const PROTOTYPE_POLLUTION_PATTERNS = [
     { id: 'recursive-merge', pattern: /\.(?:merge|extend|assignDeep)\s*\(|_\.(?:merge|extend|assignDeep)\s*\(/gi, label: 'Recursive merge/extend — verify __proto__ key is sanitized' },
     // simplebeacon:audit-ignore:prototype-pollution — this is a detection regex, not a vulnerable pattern
     { id: 'proto-in-key', pattern: /['"`]__proto__['"`]|\b__proto__\b/gi, label: '__proto__ referenced as string key — potential prototype pollution vector' }
-];
+]);
 
 const SAMPLE_JSON_REF_PATTERNS = [
     { id: 'sample-json-ref', pattern: /['"`][^'"`]*-sample\.json['"`]/gi, label: 'Sample JSON file referenced in production code' }
@@ -411,7 +494,7 @@ const C_SAMPLE_DATA_PATTERNS = [
     { id: 'c-mock-path-ref', pattern: /['"`][^'"`]*(?:\/mock\/|\/mocks\/|\/fixture\/|\/fixtures\/|\/test-data\/|\/testdata\/)[^'"`]*['"`]/gi, label: 'Path referencing mock/fixture/test-data directory in C/C++ code' }
 ];
 
-const SECURITY_PATTERNS = [
+const SECURITY_PATTERNS = Object.freeze([
     { id: 'inner-html-xss', pattern: /\.innerHTML\s*=\s*(?!['"`])[^;\n]+/g, label: 'innerHTML assignment with non-literal value — potential XSS' },
     { id: 'eval-danger', pattern: /\beval\s*\(|\bnew\s+Function\s*\(|\bFunction\s*\(\s*['"`]|setTimeout\s*\(\s*['"`]|setInterval\s*\(\s*['"`]|\brequire\s*\((?!\s*['"`])|child_process\.(?:exec|execSync|spawn|spawnSync|fork)\s*\(|vm\.(?:runInContext|runInNewContext|runInThisContext)\s*\(/g, label: 'Dynamic code execution via eval, Function, dynamic require, or vm/child_process' },
     { id: 'missing-rate-limit', pattern: /app\.(?:post|put|delete|patch)\s*\(\s*['"`][^'"`]+['"`]/gi, label: 'Route without rate limiting' },
@@ -421,7 +504,7 @@ const SECURITY_PATTERNS = [
     { id: 'weak-cryptography', pattern: /\bmd5\s*\(|\bsha1\s*\(|\bDES\b|\bRC4\b|\bTripleDES\b|\b3DES\b|\bcrypto\.createHash\s*\(\s*['"`][ms]d5['"`]|\bcrypto\.createHash\s*\(\s*['"`]sha1['"`]/i, label: 'Weak hash/cipher (MD5, SHA1, DES, RC4) — use SHA-256+ or AES' },
     { id: 'redos-risk', pattern: /\(\[\^\]\]\*\)\*|\(\[\^\]\]\+\)\+|\(\[\^\]\]\*\)\+|\(\[\^\]\]\+\)\*|\(\(\?:\[\^\]\]\*\)\+\)\*|\(\[\^\]\]\*\)\{[0-9,]*\}\*|\(\[\^\]\]\*\)\*\+|\(\[\^\]\]\+\)\*\+|\(\[\^\]\]\*\)\?\*|\(\[\^\]\]\+\)\?\*/i, label: 'Regular expression with nested quantifiers — potential ReDoS' },
     { id: 'cicd-secret-exposure', pattern: /(?:GITHUB_TOKEN|GH_TOKEN|AWS_ACCESS_KEY_ID|AWS_SECRET_ACCESS_KEY|DOCKER_PASSWORD|NPM_TOKEN|SLACK_TOKEN|SONAR_TOKEN)\s*[:=]\s*['"`]?[^\s'"`]{8,}/i, label: 'Hardcoded CI/CD secret in workflow/config file' }
-];
+]);
 
 const C_RATE_LIMIT_PATTERNS = [
     { id: 'c-route-no-rate-limit', pattern: /\b(?:addRoute|registerHandler|HandleRequest|ProcessRequest|OnRequest|OnGet|OnPost|OnPut|OnDelete)\s*\(/gi, label: 'HTTP route handler without visible rate limiting' },
@@ -527,96 +610,6 @@ const SENSITIVE_DATA_PATTERNS = [
     { id: 'jwt-secret', pattern: /\bjwt[_-]?(?:secret|key|token)\s*[:=]\s*['"`][^'"`]{4,}['"`]/gi, label: 'Hardcoded JWT secret' }
 ];
 
-const PRODUCTION_DIR_HINTS = ['server/', 'src/', 'packages/'];
-const NON_PRODUCTION_PATH_HINTS = [
-    '/test/', '/tests/', '/__tests__/', '.test.', '.spec.',
-    '/fixtures/', '/fixture/', '/mock/', '/mocks/', '/docs/', '/examples/',
-    '/storybook/', '/scripts/', '/dev/', '/demo/', '.original.', '/simplebeacon-vscode/'
-];
-const NON_PRODUCTION_PATH_PREFIXES = ['docs/', 'scripts/', 'tools/', 'tests/', 'test/', 'templates/', 'data-central/', 'simplebeacon-rule-tests/', 'coming-soon/', 'ai-agent/', 'ai-tools/', 'simplebeacon-vscode/'];
-const LEGACY_EXPERIMENTAL_PREFIXES = ['src/ai-system/', 'src/server/'];
-const WEB_DATA_DIR = ['web', 'data'].join('/');
-const SAMPLE_DATA_PREFIX = `${WEB_DATA_DIR}/`;
-const SAMPLE_JSON_SUFFIX = ['-', 'sample', '.json'].join('');
-const META_SCANNER_PATHS = new Set([
-    'tools/scan-source-kpi-patterns.js',
-    'server/lib/codebase-analyzer.js',
-    'server/lib/codebase-analyzer.cjs',
-    'server/lib/file-quality-heuristics.js',
-    'packages/simplebeacon-cli/python/simplebeacon_ast_scan.py'
-]);
-const DUPLICATE_MIRROR_PREFIXES = [
-    'src/web/', 'src/ai-system/', 'deployments/', 'coming-soon/', '.github-sync/'
-];
-const DUPLICATE_NOISE_PREFIXES = ['.cursor/', 'tests/', 'docs/', 'ai-agent/', 'New folder/'];
-const KNOWN_SHARED_LIB_BASENAMES = new Set([
-    'page-sample-specs.js',
-    'credential-pattern-scanner.js',
-    'mock-data-schema-validator.js',
-    'roadmap-json-specs.js',
-    'sample-consistency-checker.js',
-    'sample-path-resolver.js',
-    'complete-scan-artifact-profile.js',
-    'complete-scan-artifact-profile.browser.js'
-]);
-const DUPLICATE_SKIP_BASENAMES = new Set([
-    '__init__.py',
-    'package-lock.json',
-    'jest.config.js',
-    'eslint.config.js',
-    'vite.config.js',
-    'simplebeacon-server.js',
-    'simplebeacon-ai-hygiene-gate.yml',
-    'enhanced-auth-system.js',
-    'components.css',
-    'test-api-server.js',
-    'simple_http_server.js',
-    'server.py',
-    'auth.py',
-    'auth.cjs',
-    'upload.js',
-    'RoadmapAnalyzer.js',
-    'run-analysis.js',
-    'enrich-complete-scan.js',
-    'index.cjs',
-    'index.html',
-    ['code-generation', SAMPLE_JSON_SUFFIX].join(''),
-    'ai-roadmap-report.json',
-    'pre-commit.cmd',
-    'render.yaml',
-    'generate-license-token.cjs'
-]);
-const DUPLICATE_STAGING_PREFIXES = [
-    'web/scripts/',
-    `${WEB_DATA_DIR}/`,
-    'web/api/',
-    'web/simplebeacon-dashboard/css/',
-    'web/components/code-generation/',
-    'web/components/upload/',
-    'src/data/',
-    'src/analysis/',
-    'src/core/',
-    'src/lib/',
-    'api/',
-    'development-roadmap/'
-];
-const PLACEHOLDER_CATALOG_PATHS = [
-    'docs/fiction-pattern-registry.md',
-    'docs/repair_ready_analyzer_guide.md',
-    'simplebeacon_devsecops_workflow.md',
-    'simplebeacon_deployment_roadmap.md',
-    'packages/simplebeacon-cli/docs/marketing.md'
-];
-const PLACEHOLDER_META_DOC_PREFIXES = [
-    'docs/planning/',
-    'docs/reports/',
-    'docs/reports_consolidated.md',
-    'docs/technical_consolidated.md',
-    'docs/action-plan',
-    'docs/archive/'
-];
-/** Duplicate dashboard staging tree; canonical scripts are under web/scripts/. */
-const MIRROR_FRONTEND_STAGING_PREFIX = 'src/web/';
 const ESLINT_REPORT_CANDIDATES = [
     'reports/technical-debt/raw/eslint-report.json',
     '.simplebeacon/eslint-report.json',
@@ -634,10 +627,10 @@ const ESLINT_TARGET_DIRS = [
 ];
 
 /**
- * Directory has lintable js files.
+ * Recursively check whether a directory contains any JavaScript files worth linting.
  * @param {string} dirPath
- * @param {any} depth
- * @returns {any}
+ * @param {number} [depth=0]
+ * @returns {boolean}
  */
 function directoryHasLintableJsFiles(dirPath, depth = 0) {
     if (depth > 14) return false;
@@ -662,9 +655,9 @@ function directoryHasLintableJsFiles(dirPath, depth = 0) {
 }
 
 /**
- * Resolve eslint targets.
- * @param {any} platformRoot
- * @returns {any}
+ * Resolve which directories under the platform root should be linted.
+ * @param {string} platformRoot
+ * @returns {string[]}
  */
 function resolveEslintTargets(platformRoot) {
     return ESLINT_TARGET_DIRS
@@ -723,284 +716,20 @@ const FINDING_RUBRIC = {
 };
 
 /**
- * Normalize relative path.
+ * Compute a forward-slash relative path from baseDir to filePath.
  * @param {string} baseDir
  * @param {string} filePath
- * @returns {any}
+ * @returns {string}
  */
 function normalizeRelativePath(baseDir, filePath) {
     return path.relative(baseDir, filePath).replace(/\\/g, '/');
 }
 
 /**
- * Normalized audit path.
- * @param {string} relativePath
- * @returns {any}
- */
-function normalizedAuditPath(relativePath) {
-    const rel = relativePath.replace(/\\/g, '/').toLowerCase();
-    const marker = 'ai-platform/';
-    const idx = rel.indexOf(marker);
-    if (idx >= 0) return rel.slice(idx + marker.length);
-    return rel;
-}
-
-/**
- * Is mirror frontend staging path.
- * @param {string} relativePath
- * @returns {any}
- */
-function isMirrorFrontendStagingPath(relativePath) {
-    const rel = normalizedAuditPath(relativePath);
-    return rel.startsWith(MIRROR_FRONTEND_STAGING_PREFIX);
-}
-
-/**
- * Is legacy experimental path.
- * @param {string} relativePath
- * @returns {any}
- */
-function isLegacyExperimentalPath(relativePath) {
-    const rel = normalizedAuditPath(relativePath);
-    return LEGACY_EXPERIMENTAL_PREFIXES.some((prefix) => rel.startsWith(prefix));
-}
-
-/**
- * Is sample or fixture data path.
- * @param {string} relativePath
- * @returns {any}
- */
-function isSampleOrFixtureDataPath(relativePath) {
-    const rel = normalizedAuditPath(relativePath);
-    if (!rel.startsWith(SAMPLE_DATA_PREFIX)) return false;
-    return rel.endsWith(SAMPLE_JSON_SUFFIX) || rel.includes('/mock') || rel.includes('mock-');
-}
-
-/**
- * Is meta scanner path.
- * @param {string} relativePath
- * @returns {any}
- */
-function isMetaScannerPath(relativePath) {
-    const rel = normalizedAuditPath(relativePath);
-    return META_SCANNER_PATHS.has(rel);
-}
-
-/**
- * Is git hook tooling path.
- * @param {string} relativePath
- * @returns {any}
- */
-function isGitHookToolingPath(relativePath) {
-    const rel = normalizedAuditPath(relativePath);
-    return rel.startsWith('.husky/') || rel.includes('/.husky/');
-}
-
-/**
- * Is historical status doc.
- * @param {string} relativePath
- * @returns {any}
- */
-function isHistoricalStatusDoc(relativePath) {
-    const rel = normalizedAuditPath(relativePath);
-    const base = rel.split('/').pop() || '';
-    if (/_(?:REPORT|COMPLETE)\.md$/i.test(base)) return true;
-    if (/^(?:REALTIME_STATUS_UPDATE|STATUS_DISCREPANCY_ANALYSIS|IMPLEMENTATION_COMPLETE)\.md$/i.test(base)) return true;
-    if (/^GGUF_.*(?:REPORT|COMPLETE)\.md$/i.test(base)) return true;
-    if (/^(?:ISSUE_RESOLUTION|MOCK_TO_REAL|ROADMAP_INTEGRATION|COMPREHENSIVE_DASHBOARD).*\.md$/i.test(base)) return true;
-    if (base === 'AI_PLATFORM_ROADMAP.md' || /_ROADMAP\.md$/i.test(base)) return true;
-    if (/_FIX_SUMMARY\.md$/i.test(base)) return true;
-    if (/_(?:IMPLEMENTATION|CONSOLIDATED|OPTIMIZATION)_SUMMARY\.md$/i.test(base)) return true;
-    if (/^(?:BROWSER_CONSOLE_FIXES|security_consolidated|FROZEN)\.md$/i.test(base)) return true;
-    return false;
-}
-
-/**
- * Is vendor bundled asset path.
- * @param {string} relativePath
- * @returns {any}
- */
-function isVendorBundledAssetPath(relativePath) {
-    const rel = normalizedAuditPath(relativePath);
-    return rel.startsWith('assets/') && /\.(css|js|map)$/i.test(rel);
-}
-
-/**
- * Is duplicate mirror path.
- * @param {string} relativePath
- * @returns {any}
- */
-function isDuplicateMirrorPath(relativePath) {
-    const rel = normalizedAuditPath(relativePath);
-    if (DUPLICATE_MIRROR_PREFIXES.some((prefix) => rel.startsWith(prefix))) return true;
-    return DUPLICATE_NOISE_PREFIXES.some((prefix) => rel.startsWith(prefix) || rel.includes(`/${prefix}`));
-}
-
-/**
- * Is duplicate staging path.
- * @param {string} relativePath
- * @param {Array} groupPaths
- * @returns {any}
- */
-function isDuplicateStagingPath(relativePath, groupPaths) {
-    const rel = normalizedAuditPath(relativePath);
-    if (isDuplicateMirrorPath(relativePath)) return true;
-    if (DUPLICATE_STAGING_PREFIXES.some((prefix) => rel.startsWith(prefix))) return true;
-    if (rel === 'web/enhanced-auth-system.js') return true;
-    if (rel.endsWith('/routers/auth.py')) return true;
-    if (rel.startsWith('server/routes/auth.js')) return true;
-    if (rel.startsWith('server/middleware/security.js')) return true;
-    if (/^src\/server\/api\/[^/]+\.py$/.test(rel) && groupPaths.some((p) => normalizedAuditPath(p).endsWith(`/routers/${rel.split('/').pop()}`))) {
-        return true;
-    }
-    if (!rel.includes('/') && groupPaths.some((p) => normalizedAuditPath(p) === `ai-platform/${rel}`)) return true;
-    if (rel === 'package-lock.json' && groupPaths.some((p) => normalizedAuditPath(p).startsWith('ai-platform/'))) {
-        return true;
-    }
-    for (const other of groupPaths) {
-        if (other === relativePath) continue;
-        if (isConsolidationExcludedPair(relativePath, other)) return true;
-    }
-    if (rel.includes('/examples/github-action/')
-        && groupPaths.some((p) => normalizedAuditPath(p).includes('.github/workflows/'))) {
-        return true;
-    }
-    if (rel.includes('.github/workflows/')
-        && groupPaths.some((p) => normalizedAuditPath(p).includes('/examples/github-action/'))) {
-        return true;
-    }
-    if (rel.startsWith('.github-sync/simplebeacon/')) return true;
-    if (rel.startsWith('packages/simplebeacon-cli/')
-        && groupPaths.some((p) => normalizedAuditPath(p).startsWith('.github-sync/simplebeacon/'))) {
-        return true;
-    }
-    if (rel.startsWith('.github-sync/simplebeacon/')
-        && groupPaths.some((p) => normalizedAuditPath(p).startsWith('packages/simplebeacon-cli/'))) {
-        return true;
-    }
-    return false;
-}
-
-/**
- * Is intentional cli publish basename group.
- * @param {string} basename
- * @param {Array} groupPaths
- * @returns {any}
- */
-function isIntentionalCliPublishBasenameGroup(basename, groupPaths) {
-    const name = String(basename || '').toLowerCase();
-    if (name !== 'publish.ps1') return false;
-    const normalized = groupPaths.map(normalizedAuditPath);
-    return normalized.length >= 2 && normalized.every((p) =>
-        /^packages\/simplebeacon-cli\/(?:scripts\/)?publish\.ps1$/i.test(p));
-}
-
-/**
- * Get duplicate eligible paths.
- * @param {Array} groupPaths
- * @returns {any}
- */
-function getDuplicateEligiblePaths(groupPaths) {
-    return groupPaths.filter((p) => !isDuplicateStagingPath(p, groupPaths));
-}
-
-/**
- * Is non production audit content path.
- * @param {string} relativePath
- * @returns {any}
- */
-function isNonProductionAuditContentPath(relativePath) {
-    const rel = normalizedAuditPath(relativePath);
-    const basename = rel.split('/').pop() || '';
-    if (rel.startsWith('.github-sync/')) return true;
-    if (isMirrorFrontendStagingPath(relativePath)) return true;
-    if (isLegacyExperimentalPath(relativePath)) return true;
-    if (isSampleOrFixtureDataPath(relativePath)) return true;
-    if (isMetaScannerPath(relativePath)) return true;
-    if (isGitHookToolingPath(relativePath)) return true;
-    if (isHistoricalStatusDoc(relativePath)) return true;
-    if (NON_PRODUCTION_PATH_PREFIXES.some((prefix) => rel.startsWith(prefix))) return true;
-    if (/^packages\/[^/]+\/(README|PUBLISH)\.md$/i.test(rel)) return true;
-    if (NON_PRODUCTION_PATH_HINTS.some((hint) => rel.includes(hint))) return true;
-    if (/^(mock_data_|gguf_mock_)/.test(basename)) return true;
-    if (/^tests\//.test(rel) || /^test\//.test(rel) || rel.startsWith('templates/')) return true;
-    if (/^(test-|phase\d+-test)/.test(basename)) return true;
-    if (basename === 'enhanced-auth-demo.html' || basename === 'enhanced-auth-dialog.html' || basename === 'simplebeacon-landing.html' || basename === 'mock-backend.js') return true;
-    if (/-test\.html$/i.test(basename) || /(?:^|-)test(?:-|\.)/i.test(basename)) return true;
-    if (basename === 'test-gateway.js') return true;
-    if (/^gguf-.*-test\.html$/i.test(basename)) return true;
-    if (basename === 'gguf-operational-dashboard.html') return true;
-    return false;
-}
-
-/**
- * Is production path.
- * @param {string} relativePath
- * @returns {any}
- */
-function isProductionPath(relativePath) {
-    const rel = relativePath.replace(/\\/g, '/').toLowerCase();
-    return PRODUCTION_DIR_HINTS.some((hint) => rel.startsWith(hint) || rel.includes(`/${hint}`));
-}
-
-/**
- * Is production relevant path.
- * @param {string} relativePath
- * @returns {any}
- */
-function isProductionRelevantPath(relativePath) {
-    const rel = relativePath.replace(/\\/g, '/').toLowerCase();
-    if (!isProductionPath(rel)) return false;
-    if (isLegacyExperimentalPath(relativePath)) return false;
-    if (NON_PRODUCTION_PATH_HINTS.some((hint) => rel.includes(hint))) return false;
-    const basename = rel.split('/').pop() || '';
-    if (/\bdemo\b/i.test(basename)) return false;
-    return true;
-}
-
-/**
- * Should skip legacy experimental analysis.
- * @param {string} relativePath
- * @param {Object} options
- * @returns {any}
- */
-function shouldSkipLegacyExperimentalAnalysis(relativePath, options = {}) {
-    if (options.includeLegacyExperimental === true) return false;
-    return isLegacyExperimentalPath(relativePath);
-}
-
-/**
- * Is placeholder catalog or meta doc.
- * @param {string} relativePath
- * @returns {any}
- */
-function isPlaceholderCatalogOrMetaDoc(relativePath) {
-    const rel = normalizedAuditPath(relativePath);
-    const basename = rel.split('/').pop() || '';
-    if (PLACEHOLDER_CATALOG_PATHS.some((p) => rel === p || rel.endsWith(`/${p}`))) return true;
-    if (PLACEHOLDER_META_DOC_PREFIXES.some((prefix) => rel.startsWith(prefix))) return true;
-    if (isHistoricalStatusDoc(relativePath)) return true;
-    if (rel === 'src/ai-system/automated_reporting_system.py') return true;
-    if (/repair[_-]ready[_-]analyzer[_-]guide\.md$/i.test(basename)) return true;
-    if (/analyzer[_-]guide\.md$/i.test(basename)) return true;
-    return false;
-}
-
-/**
- * Is technical debt report artifact.
- * @param {string} relativePath
- * @returns {any}
- */
-function isTechnicalDebtReportArtifact(relativePath) {
-    const rel = normalizedAuditPath(relativePath);
-    return rel.startsWith('reports/technical-debt/');
-}
-
-/**
- * Is remediation context line.
- * @param {any} content
+ * Check whether the line containing a match is a remediation context line.
+ * @param {string} content
  * @param {number} matchIndex
- * @returns {any}
+ * @returns {boolean}
  */
 function isRemediationContextLine(content, matchIndex) {
     const lineStart = content.lastIndexOf('\n', matchIndex - 1) + 1;
@@ -1009,7 +738,12 @@ function isRemediationContextLine(content, matchIndex) {
     return /neutraliz|rejectedfiction|rejected fiction|deprecatednarrative|legacy rejected fiction|baseline|remediation|audit-remediation-recipes|hardcoded-perfect|fiction.kpi|anti-fiction|pattern catalog|detection pattern|known fictional metrics|fiction patterns are seeded|confidence not instrumented|not legacy|fiction removed|prior demo|98\.5% confidence fiction|tbd \(requires|todo\/tbd placeholder|report template|template placeholder|pending measurement|todo\/fixme\/hack|todo\/fixme markers|todo comments|type:\s*['"]todo|todofixmehack|clean todo\/fixme|placeholder-coming-soon|placeholder-tbd|scan source files for placeholder|resolve or ticket the marker|unfinished work markers/.test(line);
 }
 
-/** Skip intentional API docs, enums, and anti-fiction narrative blocks. */
+/**
+ * Skip intentional API docs, enums, and anti-fiction narrative blocks.
+ * @param {string} content
+ * @param {number} matchIndex
+ * @returns {boolean}
+ */
 function isExcludedTechDebtLine(content, matchIndex) {
     const raw = lineAt(content, matchIndex);
     const line = raw.toLowerCase();
@@ -1034,10 +768,10 @@ function isExcludedTechDebtLine(content, matchIndex) {
 }
 
 /**
- * Line at.
- * @param {any} content
+ * Extract the full line containing a character index from file content.
+ * @param {string} content
  * @param {number} matchIndex
- * @returns {any}
+ * @returns {string}
  */
 function lineAt(content, matchIndex) {
     const lineStart = content.lastIndexOf('\n', matchIndex - 1) + 1;
@@ -1045,7 +779,12 @@ function lineAt(content, matchIndex) {
     return content.slice(lineStart, lineEnd === -1 ? undefined : lineEnd);
 }
 
-/** Skip placeholder/tech-debt hits on analyzer pattern catalog definitions. */
+/**
+ * Skip placeholder/tech-debt hits on analyzer pattern catalog definitions.
+ * @param {string} content
+ * @param {number} matchIndex
+ * @returns {boolean}
+ */
 function isExcludedPatternCatalogLine(content, matchIndex) {
     const raw = lineAt(content, matchIndex).trim();
     if (!raw) return true;
@@ -1108,6 +847,11 @@ const WELL_KNOWN_CONSTANTS = new Set([
     36500,
 ]);
 
+/**
+ * Check whether a matched numeric literal is a well-known safe constant.
+ * @param {string} matchText
+ * @returns {boolean}
+ */
 function isWellKnownConstant(matchText) {
     const num = parseInt(matchText.replace(/\D/g, ''), 10);
     if (Number.isNaN(num)) return false;
@@ -1115,30 +859,31 @@ function isWellKnownConstant(matchText) {
 }
 
 /**
- * Line number at.
- * @param {any} content
+ * Compute the 1-based line number for a character index in file content.
+ * @param {string} content
  * @param {number} index
- * @returns {any}
+ * @returns {number}
  */
 function lineNumberAt(content, index) {
     return content.slice(0, Math.max(0, index)).split('\n').length;
 }
 
 /**
- * Push finding.
- * @param {Array} findings
- * @param {any} finding
- * @returns {any}
+ * Append a finding if the cap has not been reached.
+ * @param {Array<Object>} findings
+ * @param {Object} finding
+ * @param {number} [cap=MAX_FINDINGS_DASHBOARD]
+ * @returns {void}
  */
-function pushFinding(findings, finding) {
-    if (findings.length >= activeFindingsCap) return;
+function pushFinding(findings, finding, cap = MAX_FINDINGS_DASHBOARD) {
+    if (findings.length >= cap) return;
     findings.push(finding);
 }
 
 /**
- * Normalize code line.
- * @param {any} line
- * @returns {any}
+ * Strip inline comments and trim whitespace from a code line.
+ * @param {string} line
+ * @returns {string}
  */
 function normalizeCodeLine(line) {
     let normalized = line;
@@ -1150,10 +895,10 @@ function normalizeCodeLine(line) {
 }
 
 /**
- * Walk code files.
+ * Recursively walk a directory tree and collect code files for analysis.
  * @param {string} rootDir
- * @param {Object} options
- * @returns {any}
+ * @param {Object} [options={}]
+ * @returns {Promise<Array<Object>>}
  */
 async function walkCodeFiles(rootDir, options = {}) {
     const skipDirs = options.skipDirs || REPO_SKIP_DIRS;
@@ -1171,16 +916,16 @@ async function walkCodeFiles(rootDir, options = {}) {
         const { dir, depth } = stack.pop();
 
         if (depth > maxDepth) {
-            console.log(`[CodebaseAnalyzer] Skip (max depth): ${dir}`);
+            if (process.env.SIMPLEBEACON_DEBUG) console.log(`[CodebaseAnalyzer] Skip (max depth): ${dir}`);
             continue;
         }
         if (results.length >= maxFiles) {
-            console.log(`[CodebaseAnalyzer] Skip (max files cap): ${results.length} files reached`);
+            if (process.env.SIMPLEBEACON_DEBUG) console.log(`[CodebaseAnalyzer] Skip (max files cap): ${results.length} files reached`);
             break;
         }
         const realDir = await fs.promises.realpath(dir).catch(() => dir);
         if (visited.has(realDir)) {
-            console.log(`[CodebaseAnalyzer] Skip (circular symlink): ${dir}`);
+            if (process.env.SIMPLEBEACON_DEBUG) console.log(`[CodebaseAnalyzer] Skip (circular symlink): ${dir}`);
             continue;
         }
         visited.add(realDir);
@@ -1188,19 +933,19 @@ async function walkCodeFiles(rootDir, options = {}) {
         try {
             entries = await fs.promises.readdir(dir, { withFileTypes: true });
         } catch {
-            console.log(`[CodebaseAnalyzer] Skip (unreadable dir): ${dir}`);
+            if (process.env.SIMPLEBEACON_DEBUG) console.log(`[CodebaseAnalyzer] Skip (unreadable dir): ${dir}`);
             continue;
         }
 
         for (const entry of entries) {
             if (results.length >= maxFiles) {
-                console.log(`[CodebaseAnalyzer] Skip (max files cap): ${results.length} files reached`);
+                if (process.env.SIMPLEBEACON_DEBUG) console.log(`[CodebaseAnalyzer] Skip (max files cap): ${results.length} files reached`);
                 break;
             }
             const fullPath = path.join(dir, entry.name);
             if (entry.isDirectory()) {
                 if (skipDirs.has(entry.name)) {
-                    console.log(`[CodebaseAnalyzer] Skip (excluded dir): ${fullPath}`);
+                    if (process.env.SIMPLEBEACON_DEBUG) console.log(`[CodebaseAnalyzer] Skip (excluded dir): ${fullPath}`);
                     continue;
                 }
                 stack.push({ dir: fullPath, depth: depth + 1 });
@@ -1211,19 +956,19 @@ async function walkCodeFiles(rootDir, options = {}) {
                     const stat = await fs.promises.stat(fullPath);
                     if (stat.isDirectory()) {
                         if (skipDirs.has(entry.name)) {
-                            console.log(`[CodebaseAnalyzer] Skip (excluded dir): ${fullPath}`);
+                            if (process.env.SIMPLEBEACON_DEBUG) console.log(`[CodebaseAnalyzer] Skip (excluded dir): ${fullPath}`);
                             continue;
                         }
                         stack.push({ dir: fullPath, depth: depth + 1 });
                         continue;
                     }
                 } catch {
-                    console.log(`[CodebaseAnalyzer] Skip (broken symlink): ${fullPath}`);
+                    if (process.env.SIMPLEBEACON_DEBUG) console.log(`[CodebaseAnalyzer] Skip (broken symlink): ${fullPath}`);
                     continue;
                 }
             }
             if (!entry.isFile()) {
-                console.log(`[CodebaseAnalyzer] Skip (not a file): ${fullPath}`);
+                if (process.env.SIMPLEBEACON_DEBUG) console.log(`[CodebaseAnalyzer] Skip (not a file): ${fullPath}`);
                 continue;
             }
 
@@ -1238,16 +983,16 @@ async function walkCodeFiles(rootDir, options = {}) {
             const isCode = codeExtensions.has(ext) || isArtifact || isGovernance || isBasenameMatch;
 
             if (!isCode) {
-                console.log(`[CodebaseAnalyzer] Skip (unknown extension): ${fullPath} (${ext || 'no ext'})`);
+                if (process.env.SIMPLEBEACON_DEBUG) console.log(`[CodebaseAnalyzer] Skip (unknown extension): ${fullPath} (${ext || 'no ext'})`);
                 continue;
             }
             if (isGovernance || isBasenameMatch) {
-                console.log(`[CodebaseAnalyzer] Include (governance/basename): ${fullPath}`);
+                if (process.env.SIMPLEBEACON_DEBUG) console.log(`[CodebaseAnalyzer] Include (governance/basename): ${fullPath}`);
             }
 
             const relativePath = normalizeRelativePath(rootDir, fullPath);
             if (shouldSkipLegacyExperimentalAnalysis(relativePath, options)) {
-                console.log(`[CodebaseAnalyzer] Skip (legacy/experimental): ${relativePath}`);
+                if (process.env.SIMPLEBEACON_DEBUG) console.log(`[CodebaseAnalyzer] Skip (legacy/experimental): ${relativePath}`);
                 continue;
             }
 
@@ -1262,7 +1007,7 @@ async function walkCodeFiles(rootDir, options = {}) {
                     isArtifact
                 });
             } catch {
-                console.log(`[CodebaseAnalyzer] Skip (unreadable file): ${fullPath}`);
+                if (process.env.SIMPLEBEACON_DEBUG) console.log(`[CodebaseAnalyzer] Skip (unreadable file): ${fullPath}`);
             }
         }
 
@@ -1380,13 +1125,13 @@ const MAX_FILE_SCAN_MS = constants.MAX_RATE_LIMIT;
 
 /**
  * Scan content patterns.
- * @param {any} content
+ * @param {string} content
  * @param {string} relativePath
- * @param {Array} patterns
- * @param {any} category
- * @param {any} severity
- * @param {any} productionOnly
- * @returns {any}
+ * @param {Array<Object>} patterns
+ * @param {string} category
+ * @param {string} severity
+ * @param {boolean} [productionOnly=false]
+ * @returns {Array<Object>}
  */
 function scanContentPatterns(content, relativePath, patterns, category, severity, productionOnly = false) {
     const hits = [];
@@ -1409,7 +1154,6 @@ function scanContentPatterns(content, relativePath, patterns, category, severity
         return hits;
     }
     const isHtml = /\.html?$/i.test(relativePath);
-    const seen = new Set();
     const startMs = Date.now();
     for (const item of patterns) {
         if (Date.now() - startMs > MAX_FILE_SCAN_MS) {
@@ -1418,6 +1162,11 @@ function scanContentPatterns(content, relativePath, patterns, category, severity
         const pattern = new RegExp(item.pattern.source, ensureGlobalPatternFlags(item.pattern.flags));
         let match;
         while ((match = pattern.exec(content)) !== null) {
+            // Guard against empty-string matches that would cause an infinite loop
+            if (match[0].length === 0) {
+                pattern.lastIndex = match.index + 1;
+                continue;
+            }
             if (isExcludedPatternCatalogLine(content, match.index)) continue;
             if (isRemediationContextLine(content, match.index)) continue;
             if (isHtml && isInsideHtmlCodeBlock(content, match.index)) continue;
@@ -2057,15 +1806,21 @@ function checkJsSyntax(content, relativePath) {
     const unclosedComment = detectUnclosedBlockComment(normalized);
     if (unclosedComment) return unclosedComment;
 
-    // ES modules — vm.Script cannot parse; rely on ESLint/build tooling
-    if (/^\s*(?:import|export)\s+/m.test(normalized)) {
+    // ES modules — vm.Script cannot parse; rely on ESLint/build tooling.
+    // Only match non-comment lines to avoid false positives on `// import foo` comments.
+    const hasEsModuleStmt = normalized.split('\n').some((line) => {
+        const trimmed = line.trim();
+        if (trimmed.startsWith('//') || trimmed.startsWith('/*') || trimmed.startsWith('*')) return false;
+        return /^\s*(?:import|export)\s+/.test(line);
+    });
+    if (hasEsModuleStmt) {
         return null;
     }
     try {
         new vm.Script(normalized, { filename: relativePath });
         return null;
     } catch (error) {
-        return error.message;
+        return error?.message || String(error);
     }
 }
 
@@ -3823,9 +3578,10 @@ async function analyzeFileContent(file, rootDir, options = {}) {
         const skipEvalPaths = /(?:^|\/)coming-soon\//.test(rel) || /\.min\.(js|cjs)$/.test(rel) || /\/(?:vendor|dist|build)\//.test(rel) || /\/(?:test|tests|__tests__)\//.test(rel) || /\.(test|spec)\./.test(rel) || /simplebeacon-dashboard/.test(rel) || /server\/lib\/codebase-analyzer\.cjs$/.test(rel) || /intelligence-bridge\.js$/.test(rel) || /(?:^|\/)simplebeacon-vscode\//.test(rel) || /(?:^|\/)packages\/simplebeacon-cli\/src\/rules\//.test(rel);
         if (!skipEvalPaths) {
             const evalHits = scanContentPatterns(content, rel, SECURITY_PATTERNS.filter((p) => p.id === 'eval-danger'), 'eval-danger', 'medium');
+            const lines = content.split('\n');
             for (const hit of evalHits) {
                 // Skip require(path.join(...)) used for internal module resolution
-                const lineText = (content.split('\n')[hit.line - 1] || '').trim();
+                const lineText = (lines[hit.line - 1] || '').trim();
                 if (/require\s*\(\s*path\.join/.test(lineText)) continue;
                 findings.push(hit);
             }
@@ -4254,8 +4010,8 @@ function sortFindingsForReport(findings = []) {
 
 /**
  * Aggregate categories.
- * @param {Array} findings
- * @returns {any}
+ * @param {Array<Object>} [findings=[]]
+ * @returns {Array<Object>}
  */
 function aggregateCategories(findings = []) {
     const buckets = new Map();
@@ -4313,13 +4069,13 @@ function computeHealthScore(findings, codeFilesAnalyzed) {
         byTier[classifyFindingTier(finding.filePath)].push(finding);
     }
 
-/**
- * Tier deduction.
- * @param {Array} tierFindings
- * @param {any} weight
- * @param {any} maxDeduction
- * @returns {any}
- */
+    /**
+     * Tier deduction.
+     * @param {Array<Object>} tierFindings
+     * @param {number} weight
+     * @param {number} maxDeduction
+     * @returns {number}
+     */
     function tierDeduction(tierFindings, weight, maxDeduction) {
         if (!tierFindings.length) return 0;
         const weights = { high: 8, medium: 3, low: 1 };
@@ -4416,7 +4172,7 @@ async function runEslint(projectRoot, platformRoot) {
         const { stdout } = await execFileAsync(
             process.execPath,
             [eslintBin, '--config', flatConfig, ...targets, '--format', 'json', '--max-warnings', '99999'],
-            { cwd: platformRoot, timeout: 0, maxBuffer: 8 * constants.BYTES_PER_KB * constants.BYTES_PER_KB }
+            { cwd: platformRoot, timeout: 120000, encoding: 'utf8', maxBuffer: 8 * constants.BYTES_PER_KB * constants.BYTES_PER_KB }
         );
         const reports = JSON.parse(stdout || '[]');
         const findings = [];
@@ -4519,38 +4275,45 @@ function countGovernanceFiles(files) {
     return { licenseCount, securityCount, packageJsonCount };
 }
 
+/**
+ * Main entry point — walk a codebase, run pattern scans, and return findings.
+ * @param {string} baseDir Directory to analyze.
+ * @param {Object} [options={}] Scan options (context, maxFindings, includeEslint, etc).
+ * @returns {Promise<Object>} Analysis report.
+ */
 async function analyzeCodebase(baseDir, options = {}) {
+    if (baseDir == null || typeof baseDir !== 'string') {
+        throw new TypeError('baseDir must be a non-empty string');
+    }
+    const opts = options ?? {};
     const resolvedBase = path.resolve(baseDir);
-    const context = resolveScanContext(options);
+    const context = resolveScanContext(opts);
     const { platformRoot } = resolvePlatformRoot(resolvedBase);
     const scanRoot = resolvedBase;
     const codeWalkRoot = platformRoot !== resolvedBase ? platformRoot : resolvedBase;
-    const includeEslint = options.includeEslint === true || context === 'complete';
-    const scanProfile = resolveScanProfile(options, context === 'complete' ? 'cli' : context);
-    const deepAnalyzeCap = resolveDeepAnalyzeCap(options, context);
-    const walkOptions = { ...options, scanProfile, maxFiles: deepAnalyzeCap };
-    const findingsCap = resolveFindingsCap(options, context);
-    const previousFindingsCap = activeFindingsCap;
-    activeFindingsCap = findingsCap;
+    const includeEslint = opts.includeEslint === true || context === 'complete';
+    const scanProfile = resolveScanProfile(opts, context === 'complete' ? 'cli' : context);
+    const deepAnalyzeCap = resolveDeepAnalyzeCap(opts, context);
+    const walkOptions = { ...opts, scanProfile, maxFiles: deepAnalyzeCap };
+    const findingsCap = resolveFindingsCap(opts, context);
 
     const [repositoryInventory, files] = await Promise.all([
-        countRepositoryInventory(scanRoot, { profile: options.inventoryProfile || 'audit' }),
+        countRepositoryInventory(scanRoot, { profile: opts.inventoryProfile || 'audit' }),
         walkCodeFiles(codeWalkRoot, walkOptions)
     ]);
 
     const governanceCounts = countGovernanceFiles(files);
-    console.log(`[CodebaseAnalyzer] Governance counts: license=${governanceCounts.licenseCount}, security=${governanceCounts.securityCount}, package.json=${governanceCounts.packageJsonCount}`);
+    if (process.env.SIMPLEBEACON_DEBUG) console.log(`[CodebaseAnalyzer] Governance counts: license=${governanceCounts.licenseCount}, security=${governanceCounts.securityCount}, package.json=${governanceCounts.packageJsonCount}`);
 
-    try {
     const nodeModulesFiltered = files.filter((f) => {
         const isNodeModules = f.relativePath.includes('/node_modules/') || f.relativePath.startsWith('node_modules/');
         if (isNodeModules) {
-            console.log(`[CodebaseAnalyzer] Skip (node_modules): ${f.relativePath}`);
+            if (process.env.SIMPLEBEACON_DEBUG) console.log(`[CodebaseAnalyzer] Skip (node_modules): ${f.relativePath}`);
         }
         return !isNodeModules;
     });
     if (nodeModulesFiltered.length > deepAnalyzeCap) {
-        console.log(`[CodebaseAnalyzer] Skip (deepAnalyzeCap): ${nodeModulesFiltered.length - deepAnalyzeCap} files truncated (cap: ${deepAnalyzeCap})`);
+        if (process.env.SIMPLEBEACON_DEBUG) console.log(`[CodebaseAnalyzer] Skip (deepAnalyzeCap): ${nodeModulesFiltered.length - deepAnalyzeCap} files truncated (cap: ${deepAnalyzeCap})`);
     }
     // Exclude scanner implementation files and non-production subprojects to prevent self-analysis false positives
     const excludedAnalyzerPaths = [
@@ -4571,23 +4334,30 @@ async function analyzeCodebase(baseDir, options = {}) {
         return !excludedAnalyzerPaths.some((re) => re.test(rel));
     });
     if (analyzerFilesExcluded.length < nodeModulesFiltered.length) {
-        console.log(`[CodebaseAnalyzer] Skip (analyzer paths): ${nodeModulesFiltered.length - analyzerFilesExcluded.length} scanner/utility/subproject files excluded`);
+        if (process.env.SIMPLEBEACON_DEBUG) console.log(`[CodebaseAnalyzer] Skip (analyzer paths): ${nodeModulesFiltered.length - analyzerFilesExcluded.length} scanner/utility/subproject files excluded`);
     } else {
-        console.log('[CodebaseAnalyzer] No analyzer paths excluded (check if exclusions are needed)');
+        if (process.env.SIMPLEBEACON_DEBUG) console.log('[CodebaseAnalyzer] No analyzer paths excluded (check if exclusions are needed)');
     }
     const filesToAnalyze = analyzerFilesExcluded.slice(0, deepAnalyzeCap);
 
     const { findings, structureSamples } = await analyzeFilesInBatches(filesToAnalyze, codeWalkRoot, {
         concurrency: context === 'complete'
             ? Number(process.env.CODEBASE_COMPLETE_CONCURRENCY) || Math.max(ANALYZE_FILE_CONCURRENCY, 48)
-            : options.concurrency,
-        includeLegacyExperimental: options.includeLegacyExperimental,
-        onProgress: options.onProgress
+            : opts.concurrency,
+        includeLegacyExperimental: opts.includeLegacyExperimental,
+        onProgress: opts.onProgress,
+        findingsCap
     });
 
-    findings.push(...detectDuplicateBasenames(analyzerFilesExcluded));
-    findings.push(...detectTestCoverage(analyzerFilesExcluded));
-    findings.push(...detectEmptyVestigialDirs(scanRoot));
+    for (const finding of detectDuplicateBasenames(analyzerFilesExcluded)) {
+        pushFinding(findings, finding, findingsCap);
+    }
+    for (const finding of detectTestCoverage(analyzerFilesExcluded)) {
+        pushFinding(findings, finding, findingsCap);
+    }
+    for (const finding of detectEmptyVestigialDirs(scanRoot)) {
+        pushFinding(findings, finding, findingsCap);
+    }
 
     let eslintErrors = 0;
     let eslintWarnings = 0;
@@ -4604,7 +4374,7 @@ async function analyzeCodebase(baseDir, options = {}) {
         eslintSummary = eslint.summary || eslintSummary;
         eslintSkipped = eslint.skipped || null;
         for (const finding of eslint.findings) {
-            pushFinding(findings, finding);
+            pushFinding(findings, finding, findingsCap);
         }
     } else {
         const artifactOnly = await loadEslintReportFromDisk(scanRoot, platformRoot || scanRoot);
@@ -4628,7 +4398,7 @@ async function analyzeCodebase(baseDir, options = {}) {
                         ruleId: msg.ruleId,
                         ruleCategory: mapEslintRuleCategory(msg.ruleId)
                     }
-                });
+                }, findingsCap);
             }
         } else {
             eslintSkipped = 'ESLint command disabled by default in request path; set includeEslint=true to run CLI scan.';
@@ -4648,7 +4418,7 @@ async function analyzeCodebase(baseDir, options = {}) {
     const sortedFindings = sortFindingsForReport(findings);
     const findingsReturned = sortedFindings.slice(0, findingsCap);
 
-    console.log(`[CodebaseAnalyzer] Scan summary: discovered=${files.length}, analyzed=${codeFilesAnalyzed}, cap=${deepAnalyzeCap}, findings=${findings.length}`);
+    if (process.env.SIMPLEBEACON_DEBUG) console.log(`[CodebaseAnalyzer] Scan summary: discovered=${files.length}, analyzed=${codeFilesAnalyzed}, cap=${deepAnalyzeCap}, findings=${findings.length}`);
 
     return {
         type: 'codebase-analyzer-report',
@@ -4726,9 +4496,6 @@ async function analyzeCodebase(baseDir, options = {}) {
             ].filter(Boolean)
         }
     };
-    } finally {
-        activeFindingsCap = previousFindingsCap;
-    }
 }
 
 module.exports = {
@@ -4737,5 +4504,7 @@ module.exports = {
     dedupeFindings,
     REPO_SKIP_DIRS,
     CODE_EXTENSIONS,
-    getCodeExtensions
+    getCodeExtensions,
+    formatRelativePath: helpers.formatRelativePath,
+    countByCategory: helpers.countByCategory
 };

@@ -8,12 +8,12 @@
     <meta name="theme-color" content="#0d1117">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://simplebeacon.ai/">
-    <link rel="icon" href="https://simplebeacon.ai/favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <meta property="og:title" content="SimpleBeacon — Release hygiene for AI-assisted code">
     <meta property="og:description" content="Local, zero-upload scans for AI slop and credential leaks. Board-ready compliance certificates.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://simplebeacon.ai/">
-    <meta property="og:image" content="https://simplebeacon.ai/favicon.svg">
+    <meta property="og:image" content="/favicon.svg">
     <meta name="twitter:card" content="summary">
     <meta name="twitter:title" content="SimpleBeacon — Release hygiene for AI-assisted code">
     <meta name="twitter:description" content="Local, zero-upload scans for AI slop and credential leaks. Board-ready compliance certificates.">
@@ -570,6 +570,151 @@
             display: block;
         }
 
+        /* Terminal Walkthrough Simulation (inline) */
+        .tw-wrap {
+            background: #0d1117;
+            color: #c9d1d9;
+            font-family: 'SF Mono', 'Fira Code', Consolas, Monaco, monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            padding: 8px 16px;
+        }
+        .tw-terminal {
+            width: 100%;
+            max-width: 760px;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            margin: 0 auto;
+        }
+        .tw-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            border-bottom: 1px solid #30363d;
+            background: rgba(255,255,255,0.02);
+        }
+        .tw-dot { width: 10px; height: 10px; border-radius: 50%; }
+        .tw-dot.tw-red { background: #f85149; }
+        .tw-dot.tw-yellow { background: #d29922; }
+        .tw-dot.tw-green { background: #3fb950; }
+        .tw-title { flex: 1; text-align: center; color: #8b949e; font-size: 11px; }
+        .tw-body {
+            padding: 12px;
+            min-height: 240px;
+            max-height: 340px;
+            overflow-y: auto;
+            position: relative;
+            scrollbar-width: none;
+        }
+        .tw-body::-webkit-scrollbar { display: none; }
+        .tw-line { white-space: pre-wrap; word-break: break-word; margin-bottom: 2px; }
+        .tw-cursor {
+            display: inline-block;
+            width: 7px;
+            height: 16px;
+            background: #c9d1d9;
+            animation: tw-blink 1s step-end infinite;
+            vertical-align: middle;
+            margin-left: 1px;
+        }
+        @keyframes tw-blink { 50% { opacity: 0; } }
+        .tw-prompt { color: #3fb950; }
+        .tw-cmd { color: #c9d1d9; }
+        .tw-info { color: #58a6ff; }
+        .tw-warn { color: #d29922; }
+        .tw-err { color: #f85149; }
+        .tw-ok { color: #3fb950; }
+        .tw-dim { color: #8b949e; }
+        .tw-finding {
+            border-left: 3px solid #d29922;
+            padding-left: 10px;
+            margin: 3px 0;
+        }
+        .tw-finding.critical { border-left-color: #f85149; }
+        .tw-finding.high { border-left-color: #f85149; }
+        .tw-finding.medium { border-left-color: #d29922; }
+        .tw-finding.low { border-left-color: #58a6ff; }
+        .tw-progress {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 3px 0;
+        }
+        .tw-bar {
+            flex: 1;
+            height: 4px;
+            background: #30363d;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .tw-bar-fill {
+            height: 100%;
+            background: #3fb950;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        .tw-badge {
+            display: inline-block;
+            padding: 1px 5px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+        }
+        .tw-badge.tw-red { background: rgba(248,81,73,0.15); color: #f85149; }
+        .tw-badge.tw-yel { background: rgba(210,153,34,0.15); color: #d29922; }
+        .tw-badge.tw-grn { background: rgba(63,185,80,0.15); color: #3fb950; }
+        .tw-badge.tw-blu { background: rgba(88,166,255,0.15); color: #58a6ff; }
+        .tw-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .tw-btn {
+            padding: 8px 16px;
+            border: 1px solid #30363d;
+            border-radius: 5px;
+            background: #161b22;
+            color: #c9d1d9;
+            font-family: inherit;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .tw-btn:hover { border-color: #3fb950; color: #3fb950; }
+        .tw-btn.tw-primary { background: #3fb950; color: #0d1117; border-color: #3fb950; font-weight: 600; }
+        .tw-btn.tw-primary:hover { opacity: 0.9; color: #0d1117; }
+        .tw-skip-hint {
+            color: #8b949e;
+            font-size: 11px;
+            margin-top: 6px;
+            text-align: center;
+        }
+        .tw-speed-bar {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 6px;
+            justify-content: center;
+        }
+        .tw-speed-label { font-size: 10px; color: #8b949e; }
+        .tw-speed-opt {
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 10px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            color: #8b949e;
+        }
+        .tw-speed-opt.tw-active { border-color: #3fb950; color: #3fb950; }
+
         @media (max-width: 640px) {
             h1 { font-size: 28px; }
             h2 { font-size: 22px; }
@@ -598,12 +743,12 @@
             <p>Local, zero-upload scans for AI-generated slop, exposed credentials, and unapproved AI integrations. Runs completely offline using deterministic regex patterns and local AST parsing via the <code>npx simplebeacon</code> CLI — no code ever leaves your machine. Get a board-ready Executive Risk Certificate with an A–F grade and estimated financial liability.</p>
 
             <div style="display:flex;flex-direction:column;gap:10px;max-width:440px;margin:0 auto;">
-                <a href="#demo" class="btn btn-primary">See it in action</a>
+                <a href="/audit.html" class="btn btn-primary">See it in action</a>
                 <a href="/pricing.html" id="link-pricing" class="btn btn-success">View Pricing — Start Free</a>
                 <a href="/community.html" id="link-community" class="btn btn-ghost">Free CLI &amp; MCP tools</a>
             </div>
             <div style="margin-top:18px;">
-                <a href="sample-report.html" style="display:inline-flex;align-items:center;gap:8px;color:#60A5FA;text-decoration:none;font-size:14px;font-weight:500;">&#128196; Preview a sample Executive Risk Certificate</a>
+                <a href="/sample-report.html" style="display:inline-flex;align-items:center;gap:8px;color:#60A5FA;text-decoration:none;font-size:14px;font-weight:500;">&#128196; Preview a sample report</a>
             </div>
             <script>
             (function() {
@@ -631,15 +776,30 @@
             <h2>See It In Action</h2>
             <p class="section-subtitle">Watch SimpleBeacon detect AI slop, credential leaks, and placeholder secrets in real time — no download required.</p>
             <div class="terminal-frame" style="background: #0d1117; border-radius: 12px; overflow: hidden; box-shadow: 0 24px 80px rgba(0,0,0,0.5); border: 1px solid #30363d;">
-                <iframe
-                    src="terminal-walkthrough.html"
-                    title="SimpleBeacon Terminal Walkthrough"
-                    loading="lazy"
-                    allow="fullscreen"
-                    sandbox="allow-scripts allow-same-origin"
-                    style="width: 100%; height: 520px; border: none; display: block;"
-                ></iframe>
+                <div class="tw-wrap">
+                    <div class="tw-terminal">
+                        <div class="tw-header">
+                            <div class="tw-dot tw-red"></div>
+                            <div class="tw-dot tw-yellow"></div>
+                            <div class="tw-dot tw-green"></div>
+                            <div class="tw-title">simplebeacon — scan simulation</div>
+                        </div>
+                        <div class="tw-body" id="twBody"></div>
+                    </div>
+                    <div class="tw-controls">
+                        <button class="tw-btn tw-primary" id="twStartBtn">Run Simulation</button>
+                        <button class="tw-btn" id="twResetBtn" style="display:none;">Restart</button>
+                    </div>
+                    <div class="tw-speed-bar">
+                        <span class="tw-speed-label">Speed:</span>
+                        <span class="tw-speed-opt tw-active" data-ms="40">Normal</span>
+                        <span class="tw-speed-opt" data-ms="10">Fast</span>
+                        <span class="tw-speed-opt" data-ms="1">Instant</span>
+                    </div>
+                    <p class="tw-skip-hint">Or <a href="#" id="twSkipLink" style="color:#58a6ff;">skip to results</a></p>
+                </div>
             </div>
+            <script src="/js/terminal-simulation.js"></script>
             <p style="text-align:center;margin-top:20px;font-size:14px;color:var(--text-muted);">
                 Want to run it on your own code? <a href="/community.html" style="color:#60A5FA;text-decoration:none;">Install the free CLI</a> or <a href="https://marketplace.visualstudio.com/items?itemName=simplebeacon.ai-slop-cop" style="color:#60A5FA;text-decoration:none;">get the VS Code extension</a>.
             </p>
@@ -714,56 +874,7 @@
                 </div>
             </div>
             <div style="text-align:center;margin-top:28px;">
-                <a href="/audit.html" class="btn btn-success">&#128209; Generate Your Certificate</a>
-            </div>
-        </div>
-    </section>
-
-    <!-- SOCIAL PROOF / TESTIMONIALS -->
-    <section class="section">
-        <div class="container">
-            <h2>Trusted by Engineering Leaders</h2>
-            <p class="section-subtitle">Teams shipping code every day rely on SimpleBeacon to keep their codebase clean.</p>
-            <div class="testimonials-grid">
-                <div class="testimonial-card">
-                    <div class="testimonial-stars">★★★★★</div>
-                    <p class="testimonial-quote">"We caught a hallucinated API endpoint that would have cost us a SOC 2 audit failure. SimpleBeacon paid for itself in the first week."</p>
-                    <div class="testimonial-author">
-                        <div class="testimonial-avatar">SM</div>
-                        <div>
-                            <div class="testimonial-name">Sarah Mitchell</div>
-                            <div class="testimonial-role">CTO, FinSecure SaaS</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="testimonial-card">
-                    <div class="testimonial-stars">★★★★★</div>
-                    <p class="testimonial-quote">"The gate blocks slop before it ever hits our main branch. Our junior devs use Copilot freely now because SimpleBeacon has our back."</p>
-                    <div class="testimonial-author">
-                        <div class="testimonial-avatar">DK</div>
-                        <div>
-                            <div class="testimonial-name">David Kim</div>
-                            <div class="testimonial-role">Lead Engineer, CloudScale</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="testimonial-card">
-                    <div class="testimonial-stars">★★★★★</div>
-                    <p class="testimonial-quote">"Board-ready certificates in seconds. Our compliance officer actually smiled during the last audit. First time ever."</p>
-                    <div class="testimonial-author">
-                        <div class="testimonial-avatar">RJ</div>
-                        <div>
-                            <div class="testimonial-name">Rachel Jones</div>
-                            <div class="testimonial-role">VP Engineering, HealthStack</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="trust-bar" style="margin-top:40px;">
-                <div class="trust-item"><span>&#128200;</span> <strong>12,000+</strong> repos scanned</div>
-                <div class="trust-item"><span>&#127942;</span> <strong>99.7%</strong> gate pass rate</div>
-                <div class="trust-item"><span>&#128274;</span> <strong>Zero</strong> data retention</div>
-                <div class="trust-item"><span>&#9889;</span> <strong>&lt;3s</strong> avg. scan time</div>
+                <a href="/audit.html" class="btn btn-success">&#128209; Run Live Scan</a>
             </div>
         </div>
     </section>
@@ -772,41 +883,13 @@
     <section class="section" style="background: linear-gradient(180deg, var(--bg-main), #0a0e18);">
         <div class="container">
             <h2>See It in Action</h2>
-            <p class="section-subtitle">Review a real sample report and learn how one team saved $1.25M with early slop detection.</p>
+            <p class="section-subtitle">Review a sample report generated by the scanner.</p>
             <div class="proof-grid">
-                <a href="sample-report.html" class="proof-card">
+                <a href="/sample-report.html" class="proof-card">
                     <span class="proof-tag">Sample Report</span>
-                    <h3>Executive Risk Certificate (Sample)</h3>
-                    <p>Browse a fully populated sample certificate with realistic findings, grades, and financial liability estimates.</p>
+                    <h3>Sample Scan Report</h3>
+                    <p>Browse a sample report with realistic findings, grades, and estimates.</p>
                 </a>
-                <a href="blog/case-study-ai-slop-1-25m.html" class="proof-card">
-                    <span class="proof-tag">Case Study</span>
-                    <h3>How One Team Saved $1.25M</h3>
-                    <p>A deep-dive into how early AI slop detection prevented a production incident and reduced technical debt.</p>
-                </a>
-            </div>
-        </div>
-    </section>
-
-    <!-- CI/CD INTEGRATION -->
-    <section class="section">
-        <div class="container">
-            <h2>Block Bad Code Before It Merges</h2>
-            <p class="section-subtitle">Add SimpleBeacon to your CI/CD pipeline in under 60 seconds. Gate every PR automatically.</p>
-            <div class="cicd-grid">
-                <a href="https://github.com/marketplace/actions/simplebeacon-guardrails" target="_blank" rel="noopener" class="cicd-card">
-                    <span class="cicd-tag">GitHub Action</span>
-                    <h3>GitHub CI/CD Integration</h3>
-                    <p>Annotates PRs with file-level findings, posts summary comments, and fails the check when gate thresholds are exceeded.</p>
-                </a>
-                <a href="gitlab-ci-simplebeacon.yml" class="cicd-card">
-                    <span class="cicd-tag">GitLab CI</span>
-                    <h3>GitLab CI/CD Template</h3>
-                    <p>Native JUnit XML export for GitLab merge request widgets. Runs on every push and nightly deep scans.</p>
-                </a>
-            </div>
-            <div style="text-align:center;margin-top:28px;">
-                <a href="/community.html" class="btn btn-primary">View Integration Docs</a>
             </div>
         </div>
     </section>
@@ -815,12 +898,11 @@
     <footer class="footer">
         <p>&copy; 2026 SimpleBeacon. All rights reserved.</p>
         <p class="footer-links">
-            <a href="sample-report.html">Sample report</a> ·
-            <a href="blog/case-study-ai-slop-1-25m.html">Case study</a> ·
-            <a href="pricing.html">Pricing</a> ·
-            <a href="contact.html">Contact</a> ·
-            <a href="terms.html">Terms</a> ·
-            <a href="privacy.html">Privacy</a>
+            <a href="/sample-report.html">Sample report</a> ·
+            <a href="/pricing.html">Pricing</a> ·
+            <a href="/contact.html">Contact</a> ·
+            <a href="/terms.html">Terms</a> ·
+            <a href="/privacy.html">Privacy</a>
         </p>
     </footer>
 

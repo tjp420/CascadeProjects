@@ -102,11 +102,7 @@ async function handleStripeWebhook(req, res) {
     }
 
     case 'customer.subscription.deleted': {
-      const subscription = event.data.object;
-      console.warn('[stripe-webhook] subscription-cancelled', {
-        subscriptionId: subscription.id,
-        customer: subscription.customer
-      });
+      console.warn('[stripe-webhook] subscription-cancelled');
       // TODO: downgrade user to free/community tier
       break;
     }

@@ -22,8 +22,8 @@ const TARGETS = [
     {
         name: 'express',
         dir: path.join(AUDIT_ROOT, 'express'),
-        sourcePaths: ['lib', 'test'],
-        productionPaths: ['lib', 'test']
+        sourcePaths: ['.', 'lib', 'test'],
+        productionPaths: ['.', 'lib', 'test']
     },
     {
         name: 'ai-generated',

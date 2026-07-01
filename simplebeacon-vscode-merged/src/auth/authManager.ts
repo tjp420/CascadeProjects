@@ -1,10 +1,11 @@
 import * as vscode from 'vscode';
+import { getSbConfig } from '../utils';
 
 const TOKEN_KEY = 'simplebeacon.apiToken';
 const PASSWORD_KEY = 'simplebeacon.apiPassword';
 const SERVER_URL_KEY = 'simplebeacon.apiServerUrl';
 function getDefaultServerUrl(): string {
-  return vscode.workspace.getConfiguration('simplebeacon').get<string>('apiUrl', 'http://127.0.0.1:3000');
+  return getSbConfig().get<string>('apiUrl', 'http://127.0.0.1:3000');
 }
 
 /**
@@ -30,7 +31,7 @@ export class AuthManager {
       // Fallback to globalState if secrets not available
     }
 
-    const config = vscode.workspace.getConfiguration('simplebeacon');
+    const config = getSbConfig();
     const settingsToken = config.get<string>('apiToken', '');
     if (settingsToken) return settingsToken;
 
@@ -91,7 +92,7 @@ export class AuthManager {
    * Get the configured API server URL.
    */
   getServerUrl(): string {
-    const config = vscode.workspace.getConfiguration('simplebeacon');
+    const config = getSbConfig();
     return config.get<string>('apiServerUrl', getDefaultServerUrl()).replace(/\/$/, '');
   }
 
@@ -169,7 +170,7 @@ export class AuthManager {
         normalized = 'http://' + normalized;
       }
       normalized = normalized.replace(/\/$/, '');
-      const config = vscode.workspace.getConfiguration('simplebeacon');
+      const config = getSbConfig();
       await config.update('apiServerUrl', normalized, true);
       vscode.window.showInformationMessage(`SimpleBeacon server URL set to ${normalized}`);
       return normalized;

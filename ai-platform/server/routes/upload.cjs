@@ -97,23 +97,12 @@ const upload = multer({
     storage,
     fileFilter,
     limits: {
-        fileSize: parseSize(uploadConfig.maxFileSize),
+        fileSize: constants.parseSize(uploadConfig.maxFileSize),
         files: 50 // Maximum 50 files per upload
     }
 });
 
-// Parse size string to bytes
-/**
- * Parse size.
- * @param {number} sizeStr
- * @returns {any}
- */
-function parseSize(sizeStr) {
-    const units = { B: 1, KB: constants.BYTES_PER_KB, MB: constants.BYTES_PER_KB * constants.BYTES_PER_KB, GB: constants.BYTES_PER_KB * constants.BYTES_PER_KB * constants.BYTES_PER_KB };
-    const match = sizeStr.match(/^(\d+(?:\.\d+)?)\s*(B|KB|MB|GB)$/i);
-    if (!match) throw new Error('Invalid size format');
-    return parseFloat(match[1]) * units[match[2].toUpperCase()];
-}
+// Use centralized parseSize from constants.cjs
 
 // Generate unique upload ID
 /**
@@ -608,7 +597,7 @@ async function analyzeGitRepository(tempDir, repoInfo, _user) {
         analysis.fileTypes[ext] = (analysis.fileTypes[ext] || 0) + 1;
         
         // Language detection
-        const language = detectLanguage(ext);
+        const language = constants.getLanguageName(ext);
         analysis.languages[language] = (analysis.languages[language] || 0) + 1;
     });
 
@@ -642,7 +631,7 @@ async function analyzeFile(filePath, _user) {
             file: filePath,
             size: stats.size,
             lines: content.split('\n').length,
-            language: detectLanguage(path.extname(filePath)),
+            language: constants.getLanguageName(path.extname(filePath)),
             lastModified: stats.mtime,
             issues: [
                 { type: 'info', message: 'File analyzed successfully' }
@@ -665,8 +654,7 @@ async function analyzeFile(filePath, _user) {
  * @returns {any}
  */
 function shouldWatchFile(filePath) {
-    const ext = path.extname(filePath).toLowerCase();
-    return uploadConfig.allowedTypes.includes(ext.substring(1));
+    return constants.hasAnyExtension(filePath, ['CODE', 'CONFIG', 'MARKUP', 'DOCUMENT', 'DATA', 'STYLESHEET']);
 }
 
 /**
@@ -719,45 +707,7 @@ async function getDirectorySize(dirPath) {
     return totalSize;
 }
 
-/**
- * Detect language.
- * @param {any} ext
- * @returns {any}
- */
-function detectLanguage(ext) {
-    const languageMap = {
-        '.js': 'JavaScript',
-        '.ts': 'TypeScript',
-        '.jsx': 'JavaScript',
-        '.tsx': 'TypeScript',
-        '.py': 'Python',
-        '.html': 'HTML',
-        '.json': 'JSON',
-        '.md': 'Markdown',
-        '.txt': 'Text',
-        '.css': 'CSS',
-        '.scss': 'SCSS',
-        '.less': 'Less',
-        '.xml': 'XML',
-        '.yaml': 'YAML',
-        '.yml': 'YAML',
-        '.sql': 'SQL',
-        '.sh': 'Shell',
-        '.bat': 'Batch',
-        '.java': 'Java',
-        '.cpp': 'C++',
-        '.c': 'C',
-        '.cs': 'C#',
-        '.php': 'PHP',
-        '.rb': 'Ruby',
-        '.go': 'Go',
-        '.rs': 'Rust',
-        '.swift': 'Swift',
-        '.kt': 'Kotlin'
-    };
-    
-    return languageMap[ext] || 'Unknown';
-}
+// Use centralized getLanguageName from constants.cjs
 
 // API Integration Handlers (placeholders for now)
 /**

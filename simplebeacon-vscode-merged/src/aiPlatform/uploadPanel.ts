@@ -1,6 +1,6 @@
 // simplebeacon-ignore memory-leak — static UI bindings and file upload handlers
 import * as vscode from 'vscode';
-import * as crypto from 'crypto';
+import { getSbConfig, getNonce } from '../utils';
 
 /**
  * Webview panel for uploading scan reports to the SimpleBeacon platform.
@@ -829,7 +829,7 @@ export class UploadPanel {
   }
 
   private async _uploadReport(data: Record<string, unknown>) {
-    const config = vscode.workspace.getConfiguration('simplebeacon');
+    const config = getSbConfig();
     const apiUrl = (config.get<string>('apiServerUrl') || config.get<string>('apiUrl', '')).trim();
     const apiKey = config.get<string>('apiKey', '');
     if (!apiUrl) {
@@ -866,6 +866,3 @@ export class UploadPanel {
   }
 }
 
-function getNonce(): string {
-  return crypto.randomBytes(16).toString('hex');
-}

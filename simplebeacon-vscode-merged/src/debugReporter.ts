@@ -1,7 +1,9 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as os from 'os';
 import * as crypto from 'crypto';
+import { getSbConfig } from './utils';
 
 interface DebugEntry {
   timestamp: string;
@@ -35,9 +37,9 @@ export class DebugReporter {
       if (!fs.existsSync(dir)) { fs.mkdirSync(dir, { recursive: true }); }
       this._outputPath = path.join(dir, 'debug-report.json');
     } else {
-      this._outputPath = path.join(require('os').tmpdir(), 'simplebeacon-debug-report.json');
+      this._outputPath = path.join(os.tmpdir(), 'simplebeacon-debug-report.json');
     }
-    this._enabled = vscode.workspace.getConfiguration('simplebeacon').get<boolean>('enableDebugReporter', true);
+    this._enabled = getSbConfig().get<boolean>('enableDebugReporter', true);
   }
 
   public static getInstance(): DebugReporter {
@@ -114,7 +116,7 @@ export class DebugReporter {
 
   public snapshotWebviewHtml(webviewId: string, html: string) {
     // Store a truncated hash + length so we can detect changes without bloating the file
-    const hash = require('crypto').createHash('sha256').update(html).digest('hex').substring(0, 8);
+    const hash = crypto.createHash('sha256').update(html).digest('hex').substring(0, 8);
     this.log('state', 'webview-html', { webviewId, htmlLength: html.length, htmlHash: hash });
   }
 

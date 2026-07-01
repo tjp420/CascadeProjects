@@ -70,6 +70,45 @@ export class ChatbotView {
       }));
   }
 
+  _addMention(path) {
+    if (!path) return;
+    if (!this._mentions.some((m) => m.filePath === path)) {
+      this._mentions.push({ filePath: path, content: '' });
+    }
+  }
+
+  _removeMention(path) {
+    this._mentions = this._mentions.filter((m) => m.filePath !== path);
+    this._renderInputChips();
+  }
+
+  _removeFinding(id) {
+    this._attachedFindings = this._attachedFindings.filter((f) => f.id !== id);
+    this._renderInputChips();
+  }
+
+  _renderInputChips() {
+    const container = document.getElementById('cb-input-chips');
+    if (!container) return;
+    const chips = [];
+    container.style.display = 'none';
+    this._mentions.forEach((m) => {
+      const name = m.filePath.split('/').pop() || m.filePath;
+      chips.push(`<span class="cb-v3-mention-chip" title="${escapeHtml(m.filePath)}">📎 ${escapeHtml(name)}<button type="button" class="cb-v3-chip-remove" data-remove-mention="${escapeHtml(m.filePath)}" aria-label="Remove mention">×</button></span>`);
+    });
+    this._attachedFindings.forEach((f) => {
+      chips.push(`<span class="cb-v3-mention-chip" style="background:rgba(239,68,68,0.12);color:#f87171;" title="${escapeHtml(f.filePath)}">🐛 ${escapeHtml(f.type)}<button type="button" class="cb-v3-chip-remove" data-remove-finding="${escapeHtml(f.id)}" aria-label="Remove finding">×</button></span>`);
+    });
+    container.innerHTML = chips.join('');
+    container.style.display = chips.length ? 'flex' : 'none';
+    container.querySelectorAll('[data-remove-mention]').forEach((btn) => {
+      btn.addEventListener('click', () => this._removeMention(btn.dataset.removeMention));
+    });
+    container.querySelectorAll('[data-remove-finding]').forEach((btn) => {
+      btn.addEventListener('click', () => this._removeFinding(btn.dataset.removeFinding));
+    });
+  }
+
   mount(container) {
     container.innerHTML = `
       <style>
@@ -78,8 +117,14 @@ export class ChatbotView {
         .cb-v3-header { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:20px; }
         .cb-v3-header h1 { font-size:2.2rem; font-weight:800; margin:0; letter-spacing:-0.03em; background:linear-gradient(135deg,var(--text-primary) 0%,var(--accent) 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
         .cb-v3-header p { color:var(--text-muted); font-size:0.9rem; margin:6px 0 0; }
-        .cb-v3-card { background:linear-gradient(145deg, rgba(30,41,59,0.7), rgba(15,23,42,0.6)); border:1px solid rgba(148,163,184,0.08); border-radius:20px; overflow:hidden; backdrop-filter:blur(12px); transition:box-shadow .3s ease; display:flex; flex-direction:column; height:calc(100vh - 180px); min-height:500px; }
+        .cb-v3-card { background:linear-gradient(145deg, rgba(30,41,59,0.7), rgba(15,23,42,0.6)); border:1px solid rgba(148,163,184,0.08); border-radius:20px; overflow:hidden; backdrop-filter:blur(12px); transition:box-shadow .3s ease; display:flex; flex-direction:column; height:calc(100vh - 140px); min-height:420px; }
         [data-theme='light'] .cb-v3-card { background:linear-gradient(145deg, rgba(255,255,255,0.85), rgba(248,250,252,0.9)); border-color:rgba(148,163,184,0.15); }
+        @media (max-width: 768px) {
+          .cb-v3-card { height:calc(100vh - 120px); min-height:360px; border-radius:14px; }
+          .cb-v3-header h1 { font-size:1.6rem; }
+          .cb-v3-toolbar { padding:10px 12px; }
+          .cb-v3-msg { max-width:95%; }
+        }
         .cb-v3-card:hover { box-shadow:0 8px 32px rgba(2,8,20,0.35); }
         [data-theme='light'] .cb-v3-card:hover { box-shadow:0 8px 32px rgba(0,0,0,0.08); }
         .cb-v3-toolbar { display:flex; align-items:center; gap:8px; padding:12px 18px; border-bottom:1px solid rgba(148,163,184,0.08); flex-wrap:wrap; }
@@ -104,7 +149,7 @@ export class ChatbotView {
         .cb-v3-bubble pre code { font-size:0.78rem; }
         .cb-v3-inline-code { background:rgba(148,163,184,0.12); padding:2px 6px; border-radius:4px; font-size:0.8rem; }
         .cb-v3-input-area { padding:14px 18px; border-top:1px solid rgba(148,163,184,0.08); display:flex; gap:10px; align-items:flex-end; }
-        .cb-v3-textarea { flex:1; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:12px 16px; font-size:0.85rem; color:var(--text-primary); resize:none; min-height:44px; max-height:120px; transition:border-color .2s,box-shadow .2s; }
+        .cb-v3-textarea { flex:1; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:12px 16px; font-size:0.85rem; color:var(--text-primary); resize:none; min-height:44px; max-height:200px; overflow-y:auto; transition:border-color .2s,box-shadow .2s; line-height:1.5; }
         .cb-v3-textarea:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(99,102,241,0.15); }
         .cb-v3-send { background:var(--accent); color:#fff; border:none; border-radius:14px; padding:12px 22px; font-size:0.85rem; font-weight:700; cursor:pointer; transition:transform .2s,box-shadow .2s; }
         .cb-v3-send:hover:not(:disabled) { transform:translateY(-2px); box-shadow:0 4px 16px rgba(99,102,241,0.3); }
@@ -129,7 +174,9 @@ export class ChatbotView {
         .cb-v3-mentions-dropdown { position:absolute; bottom:100%; left:0; right:0; margin-bottom:6px; max-height:180px; overflow:auto; background:var(--surface-elevated); border:1px solid var(--border); border-radius:12px; padding:6px; box-shadow:0 8px 32px rgba(0,0,0,0.2); z-index:10; }
         .cb-v3-mention-item { padding:8px 12px; border-radius:8px; cursor:pointer; font-size:0.8rem; color:var(--text-secondary); display:flex; align-items:center; gap:8px; transition:background .15s; }
         .cb-v3-mention-item:hover { background:rgba(99,102,241,0.08); color:var(--text-primary); }
-        .cb-v3-mention-chip { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:999px; background:rgba(99,102,241,0.15); color:var(--accent); font-size:0.78rem; font-weight:600; margin:0 2px; }
+        .cb-v3-mention-chip { display:inline-flex; align-items:center; gap:4px; padding:2px 6px 2px 8px; border-radius:999px; background:rgba(99,102,241,0.15); color:var(--accent); font-size:0.78rem; font-weight:600; margin:0 2px; }
+        .cb-v3-chip-remove { display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; border-radius:50%; border:none; background:rgba(148,163,184,0.15); color:var(--text-secondary); font-size:0.75rem; line-height:1; cursor:pointer; margin-left:2px; transition:all .15s; }
+        .cb-v3-chip-remove:hover { background:rgba(239,68,68,0.2); color:#ef4444; }
         .cb-v3-finding-dropdown { position:absolute; bottom:100%; left:auto; right:0; margin-bottom:6px; max-height:220px; overflow:auto; width:320px; background:var(--surface-elevated); border:1px solid var(--border); border-radius:12px; padding:8px; box-shadow:0 8px 32px rgba(0,0,0,0.2); z-index:10; }
         .cb-v3-finding-item { padding:8px 10px; border-radius:8px; cursor:pointer; font-size:0.78rem; margin-bottom:4px; border-left:3px solid transparent; transition:background .15s; }
         .cb-v3-finding-item:hover { background:rgba(148,163,184,0.06); }
@@ -216,8 +263,7 @@ export class ChatbotView {
             <textarea id="chatbot-input" class="cb-v3-textarea" placeholder="Ask about your codebase... Type @ to mention a file" rows="1"></textarea>
             <div id="cb-mentions-dropdown" class="cb-v3-mentions-dropdown" style="display:none;"></div>
             <div id="cb-findings-dropdown" class="cb-v3-finding-dropdown" style="display:none;"></div>
-            ${this._mentions.length ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;">${this._mentions.map((m) => `<span class="cb-v3-mention-chip">📎 ${escapeHtml(m.filePath.split('/').pop())}</span>`).join('')}</div>` : ''}
-            ${this._attachedFindings.length ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;">${this._attachedFindings.map((f) => `<span class="cb-v3-mention-chip" style="background:rgba(239,68,68,0.12);color:#f87171;">🐛 ${escapeHtml(f.type)}</span>`).join('')}</div>` : ''}
+            <div id="cb-input-chips" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;"></div>
           </div>
           <button id="chatbot-send" class="cb-v3-send" ${this.isLoading ? 'disabled' : ''}>
             ${this.isLoading ? '⏳' : 'Send'}
@@ -229,6 +275,9 @@ export class ChatbotView {
     this.bindEvents();
     this.loadProviders();
     this.renderMessages();
+    this._renderInputChips();
+    const input = document.getElementById('chatbot-input');
+    if (input) this.autoResizeTextarea(input);
 
     return container;
   }
@@ -245,6 +294,7 @@ export class ChatbotView {
     const mentionDropdown = document.getElementById('cb-mentions-dropdown');
     const findingDropdown = document.getElementById('cb-findings-dropdown');
     input.addEventListener('input', (e) => {
+      this.autoResizeTextarea(input);
       const val = input.value;
       const lastAt = val.lastIndexOf('@');
       if (lastAt >= 0 && (lastAt === val.length - 1 || /[@a-zA-Z0-9_.\/\-]/.test(val.slice(lastAt + 1, lastAt + 2)))) {
@@ -260,8 +310,10 @@ export class ChatbotView {
               const path = item.dataset.mentionPath;
               const before = val.slice(0, lastAt);
               input.value = before + '@' + path + ' ';
+              this._addMention(path);
               mentionDropdown.style.display = 'none';
               input.focus();
+              this._renderInputChips();
             });
           });
         } else if (mentionDropdown) {
@@ -296,12 +348,16 @@ export class ChatbotView {
 
     clearBtn.addEventListener('click', () => {
       this.conversationHistory = [];
+      this._mentions = [];
+      this._attachedFindings = [];
       this.saveConversationHistory();
       this.renderMessages();
+      this._renderInputChips();
     });
 
     providerSelect.addEventListener('change', (e) => {
       this.selectedProvider = e.target.value;
+      this.saveSettings();
     });
 
     // Attach finding dropdown
@@ -330,8 +386,7 @@ export class ChatbotView {
               this.showPromptToast(`Attached ${finding.severity} finding: ${finding.type}`);
             }
             findingDropdown.style.display = 'none';
-            this.renderMessages(); // re-render to show chips
-            this.mount(this.app.container); // refresh input chips
+            this._renderInputChips();
           });
         });
       });
@@ -469,6 +524,15 @@ export class ChatbotView {
         select.value = firstAvailable.id;
         this.selectedProvider = firstAvailable.id;
       }
+
+      // Restore saved provider selection if it is still available
+      if (this.selectedProvider) {
+        const saved = data.providers.find(p => p.id === this.selectedProvider && p.available);
+        if (saved) {
+          select.value = saved.id;
+          this.selectedProvider = saved.id;
+        }
+      }
     } catch (error) {
       console.error('Failed to load providers:', error);
     }
@@ -489,8 +553,11 @@ export class ChatbotView {
     this.saveConversationHistory();
     
     input.value = '';
+    const mentionsToSend = this._mentions.map((m) => ({ filePath: m.filePath, content: m.content }));
+    const findingsToSend = this._attachedFindings.map((f) => ({ id: f.id, severity: f.severity, type: f.type, filePath: f.filePath, description: f.description, snippet: f.snippet }));
     this._mentions = [];
     this._attachedFindings = [];
+    this._renderInputChips();
     this.isLoading = true;
     this.updateSendButton();
 
@@ -509,8 +576,8 @@ export class ChatbotView {
           userId: this.app?.state?.user?.email || localStorage.getItem('simplebeacon_user_id') || 'anonymous',
           personality: this.personality,
           removeFilters: this.removeFilters,
-          mentions: this._mentions.map((m) => ({ filePath: m.filePath, content: m.content })),
-          findings: this._attachedFindings.map((f) => ({ id: f.id, severity: f.severity, type: f.type, filePath: f.filePath, description: f.description, snippet: f.snippet }))
+          mentions: mentionsToSend,
+          findings: findingsToSend
         })
       });
 
@@ -527,8 +594,8 @@ export class ChatbotView {
       
       // Get the message container for streaming updates
       const container = document.getElementById('chatbot-messages');
-      const messageElements = container.querySelectorAll('.chatbot-message');
-      const targetBubble = messageElements[assistantMessageIndex]?.querySelector('.chatbot-message-text');
+      const messageElements = container.querySelectorAll('.cb-v3-msg');
+      const targetBubble = messageElements[assistantMessageIndex]?.querySelector('.cb-v3-bubble');
       
       if (targetBubble) {
         // Consume streaming response
@@ -912,6 +979,7 @@ export class ChatbotView {
         const settings = JSON.parse(stored);
         this.personality = settings.personality || 'helpful';
         this.removeFilters = settings.removeFilters || false;
+        this.selectedProvider = settings.selectedProvider || this.selectedProvider || 'ollama';
       }
     } catch (error) {
       console.error('Failed to load settings:', error);
@@ -922,7 +990,8 @@ export class ChatbotView {
     try {
       localStorage.setItem(this.SETTINGS_KEY, JSON.stringify({
         personality: this.personality,
-        removeFilters: this.removeFilters
+        removeFilters: this.removeFilters,
+        selectedProvider: this.selectedProvider
       }));
     } catch (error) {
       console.error('Failed to save settings:', error);
@@ -948,6 +1017,13 @@ export class ChatbotView {
     }).catch(err => {
       console.error('Failed to copy message:', err);
     });
+  }
+
+  autoResizeTextarea(textarea) {
+    if (!textarea) return;
+    textarea.style.height = 'auto';
+    const newHeight = Math.min(Math.max(textarea.scrollHeight, 44), 200);
+    textarea.style.height = `${newHeight}px`;
   }
 
   destroy() {

@@ -5,7 +5,7 @@ import * as fs from 'fs';
 import * as crypto from 'crypto';
 import { analyzeWorkspace, ScanResult, Finding, ScanProfile, ANALYZER_PRESETS } from './analyzers/workspaceAnalyzer';
 import { RawIssue } from './scanProvider';
-import { pickWorkspaceFolder } from './utils';
+import { pickWorkspaceFolder, showQuietMessage, getSbConfig } from './utils';
 
 interface LooseScanReport {
   findings?: Finding[];
@@ -670,7 +670,7 @@ export class EnhancedAIProvider implements vscode.TreeDataProvider<EnhancedAINod
   // Enhanced Analysis Methods
   async startEnhancedAnalysis(options?: { profile?: ScanProfile; path?: string; selectedModules?: string[]; minSeverity?: string; silent?: boolean; includeDeps?: boolean }): Promise<void> {
     if (this.isAnalyzing) {
-      vscode.window.showInformationMessage('Enhanced analysis is already running. Please wait for it to complete.');
+      showQuietMessage('Enhanced analysis is already running. Please wait for it to complete.');
       return;
     }
     this.isAnalyzing = true;
@@ -699,10 +699,20 @@ export class EnhancedAIProvider implements vscode.TreeDataProvider<EnhancedAINod
       // Prompt for scan location if not provided
       let scanPath = options?.path;
       if (!scanPath) {
+        const config = getSbConfig();
+        const scanModeSetting = config.get<string>('scanMode', 'workspace');
+        if (scanModeSetting === 'workspace') {
+          const ws = vscode.workspace.workspaceFolders;
+          if (ws && ws.length > 0) {
+            scanPath = ws[0].uri.fsPath;
+          }
+        }
+      }
+      if (!scanPath) {
         scanPath = await pickWorkspaceFolder();
       }
       if (!scanPath) {
-        vscode.window.showInformationMessage('No scan location selected. Enhanced Analysis cancelled.');
+        showQuietMessage('No scan location selected. Enhanced Analysis cancelled.');
         this.isAnalyzing = false;
         this.refresh();
         return;
@@ -712,7 +722,7 @@ export class EnhancedAIProvider implements vscode.TreeDataProvider<EnhancedAINod
       this.outputChannel.appendLine(`[EnhancedAI] Starting analysis of ${scanPath} with profile: ${selectedProfile}`);
       result = await vscode.window.withProgress(
         {
-          location: vscode.ProgressLocation.Notification,
+          location: vscode.ProgressLocation.Window,
           title: `SimpleBeacon Analysis (${selectedProfile})`,
           cancellable: true,
         },
@@ -722,7 +732,7 @@ export class EnhancedAIProvider implements vscode.TreeDataProvider<EnhancedAINod
       );
       this.setScanResult(result);
       if (!options?.silent) {
-        vscode.window.showInformationMessage(
+        showQuietMessage(
           `Analysis complete: ${result?.summary?.totalFindings ?? 0} issues found across ${result?.summary?.filesAnalyzed ?? 0} files`
         );
       }
@@ -879,28 +889,39 @@ export class EnhancedAIProvider implements vscode.TreeDataProvider<EnhancedAINod
 
   async detectPatterns(): Promise<void> {
     try {
-      const editor = vscode.window.activeTextEditor;
-      let content: string;
-      let filePath: string;
-      if (!editor) {
-        const ws = vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0];
-        if (!ws) {
-          vscode.window.showWarningMessage('No active editor or workspace found');
-          return;
-        }
-        filePath = ws.uri.fsPath;
-        content = '';
-        vscode.window.showInformationMessage('No active editor — running workspace pattern detection');
-      } else {
-        content = editor.document.getText();
-        filePath = editor.document.uri.fsPath;
+      const ws = vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0];
+      if (!ws) {
+        vscode.window.showWarningMessage('No workspace folder open');
+        return;
       }
-
-      const patterns = await this.callPatternDetectionAPI(content, filePath);
+      showQuietMessage('Scanning workspace for patterns...');
+      const result = await analyzeWorkspace(undefined, undefined, 'complete', undefined, ws.uri.fsPath);
+      const findings = result.findings || [];
+      const patterns: PatternResult[] = findings.map((f: Finding) => ({
+        category: ((f as any).category || f.type || 'general').toLowerCase(),
+        type: (f.patternId || f.type || 'finding').toLowerCase(),
+        description: f.message || (f as any).description || 'Pattern detected',
+        confidence: f.severity === 'critical' ? 0.95 : f.severity === 'high' ? 0.8 : f.severity === 'medium' ? 0.6 : 0.4,
+        location: f.file || ws.uri.fsPath,
+      }));
+      // Add structural patterns from scan metadata
+      if (result.categories) {
+        for (const [cat, catFindings] of Object.entries(result.categories)) {
+          if (Array.isArray(catFindings) && catFindings.length > 0) {
+            patterns.push({
+              category: cat.toLowerCase(),
+              type: `${cat}-cluster`,
+              description: `${catFindings.length} ${cat} patterns detected in workspace`,
+              confidence: 0.75,
+              location: ws.uri.fsPath,
+            });
+          }
+        }
+      }
       this.patterns = patterns;
+      this.scanResult = result;
       this.refresh();
-
-      vscode.window.showInformationMessage(`Detected ${patterns.length} patterns`);
+      showQuietMessage(`Detected ${patterns.length} patterns`);
     } catch (error) {
       vscode.window.showErrorMessage(`Pattern detection failed: ${error}`);
     }
@@ -913,7 +934,7 @@ export class EnhancedAIProvider implements vscode.TreeDataProvider<EnhancedAINod
       this.refresh();
 
       const healthyCount = health.models.filter((m) => m.available).length;
-      vscode.window.showInformationMessage(`Model health: ${healthyCount}/${health.models.length} models available`);
+      showQuietMessage(`Model health: ${healthyCount}/${health.models.length} models available`);
     } catch (error) {
       vscode.window.showErrorMessage(`Model health check failed: ${error}`);
     }
@@ -921,7 +942,7 @@ export class EnhancedAIProvider implements vscode.TreeDataProvider<EnhancedAINod
 
   // API Methods — wired to local AI agent / CLI where possible
   private getOllamaConfig(): { url: string | undefined; model: string } {
-    const config = vscode.workspace.getConfiguration('simplebeacon');
+    const config = getSbConfig();
     const url = config.get<string>('ollamaUrl') || process.env.OLLAMA_BASE_URL || process.env.LOCAL_AI_URL || 'http://localhost:11434';
     const model = config.get<string>('agentModel') || process.env.AGENT_MODEL || 'llama3.2:latest';
     return { url, model };
@@ -1108,7 +1129,7 @@ export class EnhancedAIProvider implements vscode.TreeDataProvider<EnhancedAINod
         vscode.window.showSaveDialog({ defaultUri: vscode.Uri.file(filename) }).then(uri => {
           if (uri) {
             vscode.workspace.fs.writeFile(uri, Buffer.from(content, 'utf8')).then(() => {
-              vscode.window.showInformationMessage('Saved ' + filename);
+              showQuietMessage('Saved ' + filename);
             }, (err: any) => {
               vscode.window.showErrorMessage('Save failed: ' + (err.message || err));
             });

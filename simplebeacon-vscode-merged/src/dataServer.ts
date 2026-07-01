@@ -3,7 +3,10 @@ import * as vscode from 'vscode';
 import * as http from 'http';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as os from 'os';
+import * as child_process from 'child_process';
 import { ScanReport } from './scanProvider';
+import { correctScanPath, getSbConfig } from './utils';
 
 interface ServerState {
   currentReport: ScanReport | null;
@@ -13,6 +16,7 @@ interface ServerState {
   workspaceName: string;
   workspacePath: string;
   extensionVersion: string;
+  lastTrustData: any;
 }
 
 let serverState: ServerState = {
@@ -23,6 +27,7 @@ let serverState: ServerState = {
   workspaceName: '',
   workspacePath: '',
   extensionVersion: '',
+  lastTrustData: null,
 };
 
 const sseClients: { res: http.ServerResponse; id: number }[] = [];
@@ -31,6 +36,60 @@ let getSidebarHtml: (() => string | undefined) | null = null;
 let latestAiContext: unknown = null;
 let aiContextCallback: ((context: unknown) => void) | null = null;
 let currentTheme: 'light' | 'dark' = 'light';
+
+// --- Module-level constants for repeated inline scripts ---
+const DOWNLOAD_NOTIFY_SCRIPT = `<script>
+(function() {
+  function sbNotifyDownload(name, path, content) {
+    const body = { name: name || 'download', path: path || '' };
+    if (content) body.content = content;
+    fetch('/api/download/notify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    }).catch(() => {});
+  }
+  function sbNotifyBlob(name, blobUrl) {
+    fetch(blobUrl).then(r => r.blob()).then(blob => {
+      const reader = new FileReader();
+      reader.onload = () => sbNotifyDownload(name, blobUrl, reader.result.split(',')[1]);
+      reader.readAsDataURL(blob);
+    }).catch(() => sbNotifyDownload(name, blobUrl));
+  }
+  window.sbNotifyDownload = sbNotifyDownload;
+  document.addEventListener('click', e => {
+    const el = e.target.closest('a[download], a[href$=".json"], a[href$=".pdf"], a[href$=".zip"], a[href$=".html"], button[download]');
+    if (!el) return;
+    const href = el.getAttribute('href') || '';
+    const downloadName = el.getAttribute('download') || href.split('/').pop() || el.textContent || 'download';
+    if (href.startsWith('blob:')) {
+      sbNotifyBlob(downloadName, href);
+    } else {
+      sbNotifyDownload(downloadName, href);
+    }
+  });
+})();
+</script>`;
+
+const THEME_SCRIPT = `<script>(function(){const h=document.documentElement;if(!h)return;function s(t){h.setAttribute('data-theme',t);}function p(){if(typeof fetch!=='function')return;fetch('/api/theme').then(r=>r.json()).then(d=>{if(d&&d.theme)s(d.theme);}).catch(()=>{});}p();setInterval(p,5000);})();</script>`;
+
+const HIDE_PRICING_SCRIPT = `<script>
+(function() {
+  const TOKEN_KEYS = ['cascadeAuthToken','access_token','token','authToken','simplebeacon_token'];
+  function hasAnyToken() {
+    return TOKEN_KEYS.some(k => { const v = localStorage.getItem(k); return v && v.length > 10; });
+  }
+  function hidePricingIfAuthed() {
+    if (!hasAnyToken()) return;
+    document.querySelectorAll('a[href*="pricing.html"]').forEach(function(el) { el.style.display = 'none'; });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', hidePricingIfAuthed);
+  } else {
+    hidePricingIfAuthed();
+  }
+})();
+</script>`;
 
 function getMimeType(filePath: string): string {
   const ext = path.extname(filePath).toLowerCase();
@@ -53,11 +112,186 @@ function getMimeType(filePath: string): string {
   return mimeTypes[ext] || 'application/octet-stream';
 }
 
+const DASHBOARD_ASSET_EXTENSIONS = /\.(js|mjs|css|png|jpg|jpeg|gif|svg|ico|woff2|woff|ttf|otf|json|map)$/i;
+
+function isDashboardStaticAsset(pathname: string): boolean {
+  return DASHBOARD_ASSET_EXTENSIONS.test(pathname);
+}
+
+function getAuthToken(req: http.IncomingMessage): string | undefined {
+  const authHeader = req.headers.authorization || req.headers.Authorization;
+  if (authHeader && typeof authHeader === 'string') {
+    const m = authHeader.match(/^Bearer\s+(\S+)$/i);
+    if (m) return m[1];
+  }
+  const cookieHeader = req.headers.cookie;
+  if (cookieHeader) {
+    const m = cookieHeader.match(/(?:^|; )cascadeAuthToken=([^;]*)/);
+    if (m) return decodeURIComponent(m[1]);
+  }
+  return undefined;
+}
+
+function isValidToken(token: string): boolean {
+  const parts = token.split('.');
+  if (parts.length !== 3) {
+    // Accept raw license keys / opaque tokens as well
+    return token.length > 0;
+  }
+  return parts[2] === 'free-token' || parts[2] === 'sandbox';
+}
+
+function isAuthenticated(req: http.IncomingMessage): boolean {
+  const token = getAuthToken(req);
+  return !!token && isValidToken(token);
+}
+
+function getWindowsDrives(): string[] {
+  try {
+    const out = child_process.execSync('wmic logicaldisk get name', { encoding: 'utf8' });
+    return out.split('\n').map(line => line.trim()).filter(line => /^[A-Za-z]:$/.test(line));
+  } catch {
+    return [];
+  }
+}
+
+function normalizeDirPath(input: string): string {
+  if (!input) { return ''; }
+  return input.replace(/\//g, '\\').replace(/\\+$/, '');
+}
+
+function resolveRealPath(inputPath: string): string {
+  if (!inputPath) { return inputPath; }
+  const corrected = correctScanPath(inputPath);
+  try {
+    return fs.realpathSync(corrected);
+  } catch {
+    return corrected;
+  }
+}
+
+function resolveFolderNameToPath(folderName: string, hintPath?: string): string | null {
+  if (!folderName) { return null; }
+  const roots: string[] = [];
+  if (hintPath) {
+    roots.push(resolveRealPath(hintPath));
+  }
+  if (serverState.workspacePath) {
+    roots.push(resolveRealPath(serverState.workspacePath));
+  }
+  const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath;
+  if (workspaceRoot) {
+    roots.push(resolveRealPath(workspaceRoot));
+  }
+  if (os.platform() === 'win32') {
+    roots.push(...getWindowsDrives().map(d => d + '\\'));
+  } else {
+    roots.push('/');
+  }
+  // Deduplicate roots.
+  const seenRoots = new Set<string>();
+  const uniqueRoots = roots.filter(r => {
+    const key = r.toLowerCase();
+    if (seenRoots.has(key)) { return false; }
+    seenRoots.add(key);
+    return true;
+  });
+
+  function searchRecursive(dir: string, depth: number): string | null {
+    if (depth <= 0) { return null; }
+    if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) { return null; }
+    try {
+      const entries = fs.readdirSync(dir, { withFileTypes: true });
+      for (const entry of entries) {
+        if (!entry.isDirectory()) { continue; }
+        const candidate = path.join(dir, entry.name);
+        if (entry.name.toLowerCase() === folderName.toLowerCase()) {
+          return resolveRealPath(candidate);
+        }
+        const deeper = searchRecursive(candidate, depth - 1);
+        if (deeper) { return deeper; }
+      }
+    } catch {
+      // ignore unreadable directories
+    }
+    return null;
+  }
+
+  for (const root of uniqueRoots) {
+    const exact = path.join(root, folderName);
+    if (fs.existsSync(exact) && fs.statSync(exact).isDirectory()) {
+      return resolveRealPath(exact);
+    }
+    const found = searchRecursive(root, 3);
+    if (found) { return found; }
+  }
+  return null;
+}
+
+function parentDirPath(dirPath: string): string {
+  if (!dirPath) { return ''; }
+  const normalized = dirPath.replace(/\\/g, '/').replace(/\/+$/, '');
+  const parts = normalized.split('/').filter(Boolean);
+  if (parts.length === 0) { return ''; }
+  if (parts.length === 1 && /^[A-Za-z]:$/.test(parts[0])) { return ''; }
+  parts.pop();
+  const parent = parts.join('/');
+  const withSlash = normalized.startsWith('/') ? '/' + parent : parent;
+  if (/^[A-Za-z]:$/.test(parts[parts.length - 1] || '')) {
+    return withSlash + '\\';
+  }
+  return withSlash;
+}
+
+function listDirectories(dirPath: string): { success: boolean; current?: string; parent?: string; directories?: { name: string; path: string }[]; error?: string } {
+  try {
+    const current = normalizeDirPath(dirPath);
+    if (!current) {
+      if (os.platform() === 'win32') {
+        const drives = getWindowsDrives();
+        return {
+          success: true,
+          current: '',
+          parent: '',
+          directories: drives.map(d => ({ name: d + '\\', path: d + '\\' })),
+        };
+      }
+      const root = '/';
+      const entries = fs.readdirSync(root, { withFileTypes: true });
+      return {
+        success: true,
+        current: root,
+        parent: '',
+        directories: entries.filter(e => e.isDirectory()).map(e => ({
+          name: e.name,
+          path: path.join(root, e.name),
+        })),
+      };
+    }
+    const resolved = path.resolve(current);
+    if (!fs.existsSync(resolved) || !fs.statSync(resolved).isDirectory()) {
+      return { success: false, error: 'Not a directory' };
+    }
+    const entries = fs.readdirSync(resolved, { withFileTypes: true });
+    return {
+      success: true,
+      current: resolved,
+      parent: parentDirPath(resolved),
+      directories: entries.filter(e => e.isDirectory()).map(e => ({
+        name: e.name,
+        path: path.join(resolved, e.name),
+      })),
+    };
+  } catch (err) {
+    return { success: false, error: (err as Error).message || 'Failed to list directories' };
+  }
+}
+
 export function setAiContextCallback(fn: ((context: unknown) => void) | null): void {
   aiContextCallback = fn;
 }
 
-function buildAiContextMarkdown(context: any): string {
+export function buildAiContextMarkdown(context: any): string {
   const projectPath = context?.projectPath || context?.reportSummary?.projectPath || 'unknown';
   const reportType = context?.reportType || 'scan-summary';
   const notes = context?.notes || '';
@@ -91,6 +325,37 @@ function buildAiContextMarkdown(context: any): string {
   return lines.join('\n');
 }
 
+function buildChatbotPrompt(message: string, conversationHistory: any[], data: any): string {
+  const contextParts: string[] = [];
+  if (data.projectPath) {
+    contextParts.push(`Project path: ${data.projectPath}`);
+  }
+  if (Array.isArray(data.mentions) && data.mentions.length > 0) {
+    contextParts.push('Attached files:\n' + data.mentions.map((m: any) => `- ${m.filePath}`).join('\n'));
+  }
+  if (Array.isArray(data.findings) && data.findings.length > 0) {
+    contextParts.push('Attached findings:\n' + data.findings.map((f: any) => `- [${f.severity || 'unknown'}] ${f.type || 'issue'}: ${f.description || 'No description'}`).join('\n'));
+  }
+  const personality = data.personality || 'helpful';
+  const systemPrompt = `You are SimpleBeacon AI, a ${personality} coding assistant. ${contextParts.length > 0 ? '\n' + contextParts.join('\n\n') : ''}`;
+  const historyText = Array.isArray(conversationHistory)
+    ? conversationHistory.map((h: any) => `${h.role}: ${h.content}`).join('\n')
+    : '';
+  return `${systemPrompt}\n\n${historyText}\n\nuser: ${message}\nassistant:`;
+}
+
+function streamChatbotStub(res: http.ServerResponse, message: string, note: string): void {
+  const response = `${note}\n\nYou asked: "${message}"\n\nIn local extension mode, the chatbot can respond through Ollama if it is running at the configured URL.`;
+  res.writeHead(200, {
+    'Content-Type': 'application/json',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+    'Transfer-Encoding': 'chunked'
+  });
+  res.write(JSON.stringify({ response }) + '\n');
+  res.end();
+}
+
 export function getLatestAiContext(): unknown {
   return latestAiContext;
 }
@@ -117,6 +382,46 @@ export function updateServerState(partial: Partial<ServerState>) {
 
 export function getServerState(): ServerState {
   return serverState;
+}
+
+/** Returns true if targetPath is inside rootPath (prevents directory traversal). */
+function isPathWithinRoot(targetPath: string, rootPath: string): boolean {
+  const resolvedTarget = path.resolve(targetPath);
+  const resolvedRoot = path.resolve(rootPath);
+  return resolvedTarget === resolvedRoot || resolvedTarget.startsWith(resolvedRoot + path.sep);
+}
+
+let cachedDashboardRoot: string | null = null;
+let cachedDashboardRootTime = 0;
+const DASHBOARD_ROOT_CACHE_TTL = 30000; // 30 seconds
+
+/** Resolve dashboard-web directory with simple fs-cache to avoid repeated scans. */
+function resolveDashboardRoot(context: vscode.ExtensionContext): string {
+  if (cachedDashboardRoot && Date.now() - cachedDashboardRootTime < DASHBOARD_ROOT_CACHE_TTL) {
+    if (fs.existsSync(cachedDashboardRoot)) {
+      return cachedDashboardRoot;
+    }
+  }
+  const workspacePath = (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0]?.uri.fsPath) || '';
+  const candidates = [
+    path.join(context.extensionPath, '..', 'simplebeacon-vscode-merged', 'dashboard-web'),
+    path.join(context.extensionPath, '..', '..', 'simplebeacon-vscode-merged', 'dashboard-web'),
+    path.join(workspacePath, 'simplebeacon-vscode-merged', 'dashboard-web'),
+    path.join(context.extensionPath, 'dashboard-web'),
+    path.join(__dirname, '..', 'dashboard-web'),
+    path.join(__dirname, '..', '..', 'dashboard-web'),
+    path.join(context.extensionPath, '..', 'ai-platform', 'web', 'simplebeacon-dashboard'),
+  ];
+  const found = candidates.find((p) => fs.existsSync(p)) || candidates[0];
+  cachedDashboardRoot = found;
+  cachedDashboardRootTime = Date.now();
+  return found;
+}
+
+/** Invalidate dashboard root cache (call when workspace changes). */
+export function invalidateDashboardRootCache(): void {
+  cachedDashboardRoot = null;
+  cachedDashboardRootTime = 0;
 }
 
 let dataServer: http.Server | null = null;
@@ -173,7 +478,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     return; // already running
   }
 
-  const config = vscode.workspace.getConfiguration('simplebeacon');
+  const config = getSbConfig();
   let requestedPort = config.get<number>('dataServerPort', 54358);
   if (typeof requestedPort !== 'number' || requestedPort < 1 || requestedPort > 65535) {
     if (outputChannel) {
@@ -194,8 +499,9 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     outputChannel.appendLine(`[SimpleBeacon DataServer] Starting on port ${dataServerPort}...`);
   }
 
-  function handleRequest(req: http.IncomingMessage, res: http.ServerResponse): void {
-    const parsed = new URL(req.url || '', `http://${req.headers.host}`);
+  async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
+    const host = req.headers.host || `127.0.0.1:${dataServerPort}`;
+    const parsed = new URL(req.url || '', `http://${host}`);
 
     // CORS
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -225,6 +531,12 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       req.on('close', () => {
         const idx = sseClients.findIndex((c) => c.id === cid);
         if (idx >= 0) { sseClients.splice(idx, 1); }
+        try { res.end(); } catch { /* ignore */ }
+      });
+      req.on('error', () => {
+        const idx = sseClients.findIndex((c) => c.id === cid);
+        if (idx >= 0) { sseClients.splice(idx, 1); }
+        try { res.end(); } catch { /* ignore */ }
       });
       return;
     }
@@ -328,7 +640,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
 
     // Extension config (sanitized)
     if (parsed.pathname === '/api/config') {
-      const cfg = vscode.workspace.getConfiguration('simplebeacon');
+      const cfg = getSbConfig();
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({
         apiUrl: cfg.get<string>('apiUrl', ''),
@@ -386,6 +698,74 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       return;
     }
 
+    // Directory browser listing for the analyze page
+    if (parsed.pathname === '/api/analyze/list-directories') {
+      const dirPath = parsed.searchParams.get('path') || '';
+      const result = listDirectories(dirPath);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(result));
+      return;
+    }
+
+    // Native OS folder picker for the dashboard/analyze page
+    if (parsed.pathname === '/api/analyze/pick-folder' && req.method === 'POST') {
+      try {
+        const fileUris = await vscode.window.showOpenDialog({
+          canSelectMany: false,
+          canSelectFolders: true,
+          canSelectFiles: false,
+          openLabel: 'Select folder to scan',
+        });
+        const pickedPath = fileUris && fileUris[0] ? fileUris[0].fsPath : '';
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, path: pickedPath }));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: (err as Error).message || 'Failed to open folder picker' }));
+      }
+      return;
+    }
+
+    // Read local file contents for the roadmap / report pages
+    if (parsed.pathname === '/api/file/read') {
+      const filePath = resolveRealPath(parsed.searchParams.get('path') || '');
+      if (!filePath) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: 'Missing path' }));
+        return;
+      }
+      try {
+        const resolved = path.resolve(filePath);
+        if (!fs.existsSync(resolved) || !fs.statSync(resolved).isFile()) {
+          res.writeHead(404, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: 'File not found' }));
+          return;
+        }
+        const content = fs.readFileSync(resolved, 'utf8');
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, content }));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: (err as Error).message || 'Failed to read file' }));
+      }
+      return;
+    }
+
+    // Resolve a dropped folder name to its true absolute path
+    if (parsed.pathname === '/api/analyze/resolve-folder-name') {
+      const folderName = parsed.searchParams.get('folderName') || '';
+      const hintPath = parsed.searchParams.get('hintPath') || '';
+      const resolved = resolveFolderNameToPath(folderName, hintPath || undefined);
+      if (resolved) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, path: resolved }));
+      } else {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: 'Could not locate folder' }));
+      }
+      return;
+    }
+
     // Platform status stub
     if (parsed.pathname === '/api/platform/status') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -431,8 +811,9 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       req.on('end', () => {
         try {
           const data = JSON.parse(body);
+          let resolvedPath: string | undefined;
           if (data.name && (data.path || data.content)) {
-            let resolvedPath = data.path;
+            resolvedPath = data.path;
             if (data.content) {
               const downloadsDir = path.join(context.extensionPath, 'downloads');
               if (!fs.existsSync(downloadsDir)) {
@@ -447,7 +828,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
             modernSidebarProviderRef?.addDownloadedFile(data.name, resolvedPath);
           }
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ ok: true }));
+          res.end(JSON.stringify({ ok: true, path: resolvedPath }));
         } catch (e) {
           res.writeHead(400, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ ok: false, error: 'Invalid JSON' }));
@@ -472,7 +853,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
 
     // SimpleBeacon config endpoint
     if (parsed.pathname === '/api/simplebeacon/config') {
-      const cfg = vscode.workspace.getConfiguration('simplebeacon');
+      const cfg = getSbConfig();
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({
         apiUrl: cfg.get<string>('apiUrl', ''),
@@ -526,7 +907,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
 
     // AI keys local storage — persists in VS Code settings for the extension dashboard
     if (parsed.pathname === '/api/simplebeacon/user/ai-keys') {
-      const cfg = vscode.workspace.getConfiguration('simplebeacon');
+      const cfg = getSbConfig();
       const normalizeKeys = (raw: any) => ({
         email: '',
         providers: {},
@@ -578,13 +959,22 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       return;
     }
 
-    // Chatbot provider list — local extension has no AI backend, so return hardcoded providers disabled
+    // Chatbot provider list — Ollama is available when configured; other providers require API keys
     if (parsed.pathname === '/api/chatbot/providers') {
+      const cfg = getSbConfig();
+      const ollamaUrl = cfg.get<string>('ollamaUrl') || process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
+      let ollamaAvailable = false;
+      try {
+        const ollamaRes = await fetch(`${ollamaUrl}/api/tags`, { method: 'GET' });
+        ollamaAvailable = ollamaRes.ok;
+      } catch {
+        ollamaAvailable = false;
+      }
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({
         success: true,
         providers: [
-          { id: 'ollama', label: 'Ollama', available: false },
+          { id: 'ollama', label: 'Ollama', available: ollamaAvailable },
           { id: 'openai', label: 'OpenAI', available: false },
           { id: 'anthropic', label: 'Anthropic', available: false }
         ]
@@ -592,9 +982,79 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       return;
     }
 
+    // Chatbot message endpoint — proxy to Ollama when configured, otherwise stream a local stub
+    if (parsed.pathname === '/api/chatbot/message' && req.method === 'POST') {
+      let body = '';
+      req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+      req.on('end', async () => {
+        try {
+          const data = body ? JSON.parse(body) : {};
+          const provider = data.provider || 'ollama';
+          const message = String(data.message || '');
+          const cfg = getSbConfig();
+
+          if (provider === 'ollama') {
+            const ollamaUrl = cfg.get<string>('ollamaUrl') || process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
+            const modelName = cfg.get<string>('ollamaModel') || process.env.AGENT_MODEL || 'llama3.2:latest';
+            const prompt = buildChatbotPrompt(message, data.conversationHistory, data);
+
+            try {
+              const ollamaRes = await fetch(`${ollamaUrl}/api/generate`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  model: modelName,
+                  prompt,
+                  stream: true,
+                  options: { temperature: 0.7 }
+                })
+              });
+
+              if (!ollamaRes.ok) {
+                throw new Error(`Ollama HTTP ${ollamaRes.status}: ${ollamaRes.statusText}`);
+              }
+
+              res.writeHead(200, {
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache',
+                'Connection': 'keep-alive',
+                'Transfer-Encoding': 'chunked'
+              });
+
+              const reader = ollamaRes.body?.getReader();
+              if (!reader) {
+                throw new Error('No response body from Ollama');
+              }
+
+              const decoder = new TextDecoder('utf-8');
+              let done = false;
+              while (!done) {
+                const { value, done: readerDone } = await reader.read();
+                done = readerDone;
+                if (value) {
+                  res.write(decoder.decode(value, { stream: true }));
+                }
+              }
+              res.end();
+              return;
+            } catch (ollamaError) {
+              streamChatbotStub(res, message, `Ollama is not reachable (${(ollamaError as Error).message}). Falling back to local mode.`);
+              return;
+            }
+          }
+
+          streamChatbotStub(res, message, `Provider "${provider}" is not configured in local extension mode. Configure Ollama in VS Code: settings to enable chat.`);
+        } catch (e) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: 'Invalid request' }));
+        }
+      });
+      return;
+    }
+
     // Custom prompt storage — persist in VS Code settings
     if (parsed.pathname === '/api/prompts/get') {
-      const cfg = vscode.workspace.getConfiguration('simplebeacon');
+      const cfg = getSbConfig();
       const prompt = cfg.get<string>('chatbotCustomPrompt', '');
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: true, prompt }));
@@ -606,7 +1066,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       req.on('end', async () => {
         try {
           const data = body ? JSON.parse(body) : {};
-          const cfg = vscode.workspace.getConfiguration('simplebeacon');
+          const cfg = getSbConfig();
           await cfg.update('chatbotCustomPrompt', String(data.prompt || ''), true);
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ success: true }));
@@ -618,8 +1078,48 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       return;
     }
 
-    // Trust verification stub — enough to render the Trust dashboard without errors
+    // Trust verification — serve real scan data when available, fallback to stub
     if (parsed.pathname === '/api/trust/verification') {
+      const realTrust = serverState.lastTrustData;
+      if (realTrust && (realTrust.trustScore || realTrust.gate)) {
+        const trustScoreNum = parseInt(String(realTrust.trustScore), 10) || 0;
+        const gatePass = realTrust.gate === 'PASS';
+        res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300' });
+        res.end(JSON.stringify({
+          success: true,
+          live: {
+            verificationId: `sb-local-${realTrust.gate?.toLowerCase() || 'gate'}`,
+            score: trustScoreNum,
+            gatePass,
+            generatedAt: new Date().toISOString(),
+            platform: {
+              qualityScore: trustScoreNum,
+              securityScore: parseInt(String(realTrust.security), 10) || trustScoreNum,
+              complianceScore: parseInt(String(realTrust.compliance), 10) || trustScoreNum,
+              dependenciesScore: parseInt(String(realTrust.dependencies), 10) || trustScoreNum,
+              gate: realTrust.gate || 'UNKNOWN',
+              scannedAt: realTrust.lastAudit || new Date().toISOString(),
+              fileCount: realTrust.files || '--',
+              issueCounts: realTrust.severity || {}
+            },
+            monorepo: null,
+            headline: {
+              primary: gatePass ? 'All configured quality gates passed.' : 'Quality gate failed.',
+              source: 'local-extension-scan',
+              reason: gatePass
+                ? `Scan passed with trust score ${trustScoreNum}.`
+                : `Scan failed with trust score ${trustScoreNum}. Review findings in the dashboard.`
+            },
+            disclaimers: ['Trust snapshot generated from local VS Code: extension scan.'],
+            methodology: ['Run Simplebeacon scan from the VS Code: command palette to refresh.'],
+            fictionScope: null,
+            factors: realTrust.factors || [],
+            badges: realTrust.badges || []
+          },
+          publishedAt: null
+        }));
+        return;
+      }
       res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300' });
       res.end(JSON.stringify({
         success: true,
@@ -838,8 +1338,9 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       req.on('end', async () => {
         try {
           const payload = body ? JSON.parse(body) : {};
+          let rawProjectPath = payload.projectPath || serverState.workspacePath || undefined;
           const args = {
-            projectPath: payload.projectPath || serverState.workspacePath || undefined,
+            projectPath: rawProjectPath ? resolveRealPath(rawProjectPath) : undefined,
             fullDirectory: payload.fullDirectoryScan !== false,
           };
           const report = await vscode.commands.executeCommand('simplebeacon.scanWorkspace', args);
@@ -1055,10 +1556,17 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       return;
     }
 
-    // Dashboard home page stubs — prevent 404 cascades on dashboard load
+    // Dashboard home page stubs — prevent 404/401 cascades on dashboard load.
+    // The embedded data server is the local auth boundary; always present a
+    // valid local user so the dashboard skips the sign-in loop in VS Code.
     if (parsed.pathname === '/api/auth/me') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: true, user: { id: 'local', email: 'local@simplebeacon.ai', trustLevel: 'gold' } }));
+      return;
+    }
+    if (parsed.pathname === '/api/platform/status') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, authRequired: false, mode: 'vscode-extension', user: { id: 'local', email: 'local@simplebeacon.ai' } }));
       return;
     }
     if (parsed.pathname === '/api/analyze/test-sources' || parsed.pathname === '/api/analyze/providers') {
@@ -1226,22 +1734,31 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       return;
     }
 
+    // Redirect /simplebeacon-dashboard (ai-platform canonical path) to /dashboard (extension canonical path)
+    if (parsed.pathname === '/simplebeacon-dashboard' || parsed.pathname === '/simplebeacon-dashboard/' || parsed.pathname.startsWith('/simplebeacon-dashboard/')) {
+      const remaining = parsed.pathname === '/simplebeacon-dashboard' || parsed.pathname === '/simplebeacon-dashboard/' ? '' : parsed.pathname.slice('/simplebeacon-dashboard'.length);
+      res.writeHead(302, { 'Location': '/dashboard' + remaining + (parsed.search || '') + (parsed.hash || '') });
+      res.end();
+      return;
+    }
+
     // Dashboard route (Open Browser button navigates here)
     if (parsed.pathname === '/dashboard' || parsed.pathname.startsWith('/dashboard/')) {
-      const workspacePath = (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0]?.uri.fsPath) || '';
-      const dashboardCandidates = [
-        // Prefer the workspace dev copy (actively edited) over the bundled copy
-        path.join(context.extensionPath, '..', 'simplebeacon-vscode-merged', 'dashboard-web'),
-        path.join(context.extensionPath, '..', '..', 'simplebeacon-vscode-merged', 'dashboard-web'),
-        path.join(workspacePath, 'simplebeacon-vscode-merged', 'dashboard-web'),
-        path.join(context.extensionPath, 'dashboard-web'),
-        path.join(__dirname, '..', 'dashboard-web'),
-        path.join(__dirname, '..', '..', 'dashboard-web'),
-        path.join(context.extensionPath, '..', 'ai-platform', 'web', 'simplebeacon-dashboard'),
-      ];
-      const dashboardRoot = dashboardCandidates.find((p) => fs.existsSync(p)) || dashboardCandidates[0];
+      const isPublicDashboardPath = parsed.pathname === '/dashboard/signin' || parsed.pathname === '/dashboard/signup';
+      if (!isPublicDashboardPath && !isDashboardStaticAsset(parsed.pathname) && !isAuthenticated(req)) {
+        res.writeHead(302, { 'Location': '/dashboard/signin' + (parsed.search || '') + (parsed.hash || '') });
+        res.end();
+        return;
+      }
+      const dashboardRoot = resolveDashboardRoot(context);
       const relativePath = parsed.pathname === '/dashboard' ? '' : parsed.pathname.slice('/dashboard/'.length);
       const requestedPath = path.join(dashboardRoot, relativePath);
+      // Path traversal guard: reject paths that escape dashboard root
+      if (!isPathWithinRoot(requestedPath, dashboardRoot)) {
+        res.writeHead(403, { 'Content-Type': 'text/plain' });
+        res.end('Forbidden');
+        return;
+      }
       if (fs.existsSync(requestedPath) && fs.statSync(requestedPath).isFile()) {
         res.writeHead(200, {
           'Content-Type': getMimeType(requestedPath),
@@ -1266,45 +1783,12 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
         // Inject env flag so client knows it's being served by the real data server
         const dataPort = getDataServerPort();
         const envScript = '<script>window.__SIMPLEBEACON_ENV__={DASHBOARD_BASE_URL:"http://127.0.0.1:' + dataPort + '",API_BASE_URL:"http://127.0.0.1:' + dataPort + '/api",DATA_SERVER_PORT:' + dataPort + '};<\/script>';
-        const downloadNotifyScript = `<script>
-(function() {
-  function sbNotifyDownload(name, path, content) {
-    var body = { name: name || 'download', path: path || '' };
-    if (content) body.content = content;
-    fetch('/api/download/notify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    }).catch(function() {});
-  }
-  function sbNotifyBlob(name, blobUrl) {
-    fetch(blobUrl).then(function(r) { return r.blob(); }).then(function(blob) {
-      var reader = new FileReader();
-      reader.onload = function() { sbNotifyDownload(name, blobUrl, reader.result.split(',')[1]); };
-      reader.readAsDataURL(blob);
-    }).catch(function() { sbNotifyDownload(name, blobUrl); });
-  }
-  window.sbNotifyDownload = sbNotifyDownload;
-  document.addEventListener('click', function(e) {
-    var el = e.target.closest('a[download], a[href$=".json"], a[href$=".pdf"], a[href$=".zip"], a[href$=".html"], button[download]');
-    if (!el) return;
-    var href = el.getAttribute('href') || '';
-    var downloadName = el.getAttribute('download') || href.split('/').pop() || el.textContent || 'download';
-    if (href.indexOf('blob:') === 0) {
-      sbNotifyBlob(downloadName, href);
-    } else {
-      sbNotifyDownload(downloadName, href);
-    }
-  });
-})();
-</script>`;
-        html = html.replace('</head>', envScript + downloadNotifyScript + '</head>');
-        const themeScript = `<script>(function(){var h=document.documentElement;if(!h)return;function s(t){h.setAttribute('data-theme',t);}function p(){if(typeof fetch!=='function')return;fetch('/api/theme').then(function(r){return r.json();}).then(function(d){if(d&&d.theme)s(d.theme);}).catch(function(){});}p();setInterval(p,5000);})();</script>`;
+        html = html.replace('</head>', envScript + DOWNLOAD_NOTIFY_SCRIPT + '</head>');
         const bodyClose = html.lastIndexOf('</body>');
         if (bodyClose > 0) {
-          html = html.slice(0, bodyClose) + themeScript + html.slice(bodyClose);
+          html = html.slice(0, bodyClose) + THEME_SCRIPT + html.slice(bodyClose);
         } else {
-          html += themeScript;
+          html += THEME_SCRIPT;
         }
         res.end(html);
         return;
@@ -1337,62 +1821,12 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
         });
         let content = fs.readFileSync(filePath);
         if (getMimeType(filePath) === 'text/html') {
-          const hidePricingScript = `<script>
-(function() {
-  const TOKEN_KEYS = ['cascadeAuthToken','access_token','token','authToken','simplebeacon_token'];
-  function hasAnyToken() {
-    return TOKEN_KEYS.some(function(k) { var v = localStorage.getItem(k); return v && v.length > 10; });
-  }
-  function hidePricingIfAuthed() {
-    if (!hasAnyToken()) return;
-    document.querySelectorAll('a[href*="pricing.html"]').forEach(function(el) { el.style.display = 'none'; });
-  }
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', hidePricingIfAuthed);
-  } else {
-    hidePricingIfAuthed();
-  }
-})();
-</script>`;
-          const downloadNotifyScript = `<script>
-(function() {
-  function sbNotifyDownload(name, path, content) {
-    var body = { name: name || 'download', path: path || '' };
-    if (content) body.content = content;
-    fetch('/api/download/notify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    }).catch(function() {});
-  }
-  function sbNotifyBlob(name, blobUrl) {
-    fetch(blobUrl).then(function(r) { return r.blob(); }).then(function(blob) {
-      var reader = new FileReader();
-      reader.onload = function() { sbNotifyDownload(name, blobUrl, reader.result.split(',')[1]); };
-      reader.readAsDataURL(blob);
-    }).catch(function() { sbNotifyDownload(name, blobUrl); });
-  }
-  window.sbNotifyDownload = sbNotifyDownload;
-  document.addEventListener('click', function(e) {
-    var el = e.target.closest('a[download], a[href$=".json"], a[href$=".pdf"], a[href$=".zip"], a[href$=".html"]');
-    if (!el) return;
-    var href = el.getAttribute('href') || '';
-    var downloadName = el.getAttribute('download') || href.split('/').pop() || 'download';
-    if (href.indexOf('blob:') === 0) {
-      sbNotifyBlob(downloadName, href);
-    } else {
-      sbNotifyDownload(downloadName, href);
-    }
-  });
-})();
-</script>`;
-          const themeScript = `<script>(function(){var h=document.documentElement;if(!h)return;function s(t){h.setAttribute('data-theme',t);}function p(){if(typeof fetch!=='function')return;fetch('/api/theme').then(function(r){return r.json();}).then(function(d){if(d&&d.theme)s(d.theme);}).catch(function(){});}p();setInterval(p,5000);})();</script>`;
           const html = content.toString('utf8');
           const bodyClose = html.lastIndexOf('</body>');
           if (bodyClose > 0) {
-            content = Buffer.from(html.slice(0, bodyClose) + hidePricingScript + downloadNotifyScript + themeScript + html.slice(bodyClose), 'utf8');
+            content = Buffer.from(html.slice(0, bodyClose) + HIDE_PRICING_SCRIPT + DOWNLOAD_NOTIFY_SCRIPT + THEME_SCRIPT + html.slice(bodyClose), 'utf8');
           } else {
-            content = Buffer.from(html + hidePricingScript + downloadNotifyScript + themeScript, 'utf8');
+            content = Buffer.from(html + HIDE_PRICING_SCRIPT + DOWNLOAD_NOTIFY_SCRIPT + THEME_SCRIPT, 'utf8');
           }
         }
         res.end(content);
@@ -1426,45 +1860,12 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       });
       let content = fs.readFileSync(filePath);
       if (getMimeType(filePath) === 'text/html') {
-        const downloadNotifyScript = `<script>
-(function() {
-  function sbNotifyDownload(name, path, content) {
-    var body = { name: name || 'download', path: path || '' };
-    if (content) body.content = content;
-    fetch('/api/download/notify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    }).catch(function() {});
-  }
-  function sbNotifyBlob(name, blobUrl) {
-    fetch(blobUrl).then(function(r) { return r.blob(); }).then(function(blob) {
-      var reader = new FileReader();
-      reader.onload = function() { sbNotifyDownload(name, blobUrl, reader.result.split(',')[1]); };
-      reader.readAsDataURL(blob);
-    }).catch(function() { sbNotifyDownload(name, blobUrl); });
-  }
-  window.sbNotifyDownload = sbNotifyDownload;
-  document.addEventListener('click', function(e) {
-    var el = e.target.closest('a[download], a[href$=".json"], a[href$=".pdf"], a[href$=".zip"], a[href$=".html"]');
-    if (!el) return;
-    var href = el.getAttribute('href') || '';
-    var downloadName = el.getAttribute('download') || href.split('/').pop() || 'download';
-    if (href.indexOf('blob:') === 0) {
-      sbNotifyBlob(downloadName, href);
-    } else {
-      sbNotifyDownload(downloadName, href);
-    }
-  });
-})();
-</script>`;
-        const themeScript = `<script>(function(){var h=document.documentElement;if(!h)return;function s(t){h.setAttribute('data-theme',t);}function p(){if(typeof fetch!=='function')return;fetch('/api/theme').then(function(r){return r.json();}).then(function(d){if(d&&d.theme)s(d.theme);}).catch(function(){});}p();setInterval(p,5000);})();</script>`;
         const html = content.toString('utf8');
         const bodyClose = html.lastIndexOf('</body>');
         if (bodyClose > 0) {
-          content = Buffer.from(html.slice(0, bodyClose) + downloadNotifyScript + themeScript + html.slice(bodyClose), 'utf8');
+          content = Buffer.from(html.slice(0, bodyClose) + DOWNLOAD_NOTIFY_SCRIPT + THEME_SCRIPT + html.slice(bodyClose), 'utf8');
         } else {
-          content = Buffer.from(html + downloadNotifyScript + themeScript, 'utf8');
+          content = Buffer.from(html + DOWNLOAD_NOTIFY_SCRIPT + THEME_SCRIPT, 'utf8');
         }
       }
       res.end(content);
@@ -1681,7 +2082,13 @@ export function stopDataServer(): void {
 }
 
 export function getDataServerPort(): number {
-  return dataServerPort;
+  if (dataServer && dataServer.listening) {
+    const addr = dataServer.address();
+    if (addr && typeof addr === 'object') {
+      return addr.port;
+    }
+  }
+  return dataServerPort || 54358;
 }
 
 export function getTheme(): 'light' | 'dark' {

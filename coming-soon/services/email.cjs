@@ -69,20 +69,32 @@ async function sendViaSmtp({ to, from, subject, text, html }) {
 }
 
 async function sendEmail(options) {
-    const { to, subject, text, html } = options;
+    const { to, subject, text, html, queueId: existingQueueId } = options;
     if (!to || !subject) return { sent: false, queued: false, error: 'to and subject required' };
+
+    let queueId = existingQueueId;
+    if (!queueId) {
+        queueId = 'email_' + Date.now() + '_' + crypto.randomBytes(4).toString('hex');
+        db.queueEmail({ id: queueId, to, subject, text, html });
+    }
 
     try {
         const result = await sendViaResend({ to, from: process.env.RESEND_FROM || 'certificates@simplebeacon.ai', subject, text, html });
-        return { sent: true, queued: false, id: result.id };
-    } catch (err) { /* Resend failed */ }
+        db.markEmailSent(queueId, 'resend', result.id);
+        return { sent: true, queued: false, queueId, provider: 'resend', providerMessageId: result.id };
+    } catch (err) {
+        db.updateEmailStatus(queueId, 'pending', err.message);
+    }
 
     try {
         await sendViaSmtp({ to, subject, text, html });
-        return { sent: true, queued: false };
-    } catch (err) { /* SMTP failed */ }
+        db.markEmailSent(queueId, 'smtp', null);
+        return { sent: true, queued: false, queueId, provider: 'smtp' };
+    } catch (err) {
+        db.updateEmailStatus(queueId, 'pending', err.message);
+    }
 
-    return queueEmailToDisk({ to, subject, text, html });
+    return { sent: false, queued: true, queueId, error: 'Both Resend and SMTP failed. Email queued for retry.' };
 }
 
 module.exports = {

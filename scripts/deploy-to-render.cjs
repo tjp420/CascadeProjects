@@ -49,7 +49,7 @@ function main() {
   // 2. Verify TypeScript compilation
   console.log('\n📦 Verifying extension build...');
   try {
-    execSync('npm run compile', { cwd: path.join(ROOT, 'vscode-extension'), stdio: 'pipe' });
+    execSync('npm run compile', { cwd: path.join(ROOT, 'simplebeacon-vscode-merged'), stdio: 'pipe' });
     console.log('✅ Extension compiled');
   } catch {
     console.error('❌ Extension compilation failed');

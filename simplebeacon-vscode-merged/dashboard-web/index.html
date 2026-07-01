@@ -7,6 +7,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <style id="ide-preview-hide">
     /* Auto-hide sidebar + top bar when loaded inside IDE browser preview */
     html[data-ide-preview="true"] .app-nav { display: none !important; }
@@ -20,8 +21,8 @@
   </style>
   <style>
     /* Labeled action buttons */
-    .app-header-actions .icon-btn { display: inline-flex; align-items: center; gap: 6px; width: auto; padding: 0 10px; font-size: 13px; font-weight: 500; color: var(--text-secondary); }
-    .app-header-actions .icon-btn:hover { color: var(--text-primary); }
+    .app-header-actions .icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border-radius: 10px; font-size: 13px; font-weight: 500; color: var(--text-secondary); background: transparent; border: none; cursor: pointer; }
+    .app-header-actions .icon-btn:hover { color: var(--text-primary); background: var(--surface-hover); }
     .app-header-actions .icon-btn[hidden] { display: none !important; }
     .app-header-actions .offline-status-icon { display: inline-flex; align-items: center; gap: 6px; padding: 0 8px; font-size: 13px; color: var(--text-secondary); }
     .btn-label { white-space: nowrap; }
@@ -98,7 +99,6 @@
                 var cfg = JSON.parse(xhr.responseText);
                 var serverPort = parseInt(cfg && (cfg.dataServerPort || cfg.relayPort || cfg.dataPort), 10);
                 var currentPort = parseInt(window.location.port, 10);
-                console.log('[Simplebeacon] Port check:', { serverPort: serverPort, currentPort: currentPort });
               } catch (e) {}
             }
           };
@@ -110,7 +110,6 @@
   <!-- Offline-ready: allow browser + SW caching -->
   <meta name="theme-color" content="#0f172a">
   <title>Simplebeacon Dashboard</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🛡️%3C/text%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" onerror="this.rel='';document.documentElement.style.fontFamily='system-ui,-apple-system,sans-serif'">
@@ -120,35 +119,7 @@
   <link rel="stylesheet" href="css/components.css?v=20260626jsonreport1">
   <link rel="stylesheet" href="css/utilities.css">
   <link rel="stylesheet" href="css/disable-elements.css">
-  <style>
-    /* Fallback layout when the full dashboard assets are not built */
-    html,body{height:100%;font-family:Inter,system-ui,-apple-system,sans-serif;background:#0b0f19;color:#e2e8f0}
-    .app-shell{display:flex;flex-direction:column;height:100vh}
-    .app-header{height:56px;display:flex;align-items:center;gap:12px;padding:0 16px;border-bottom:1px solid #1e293b;background:#0f172a}
-    .app-brand{display:flex;align-items:center;gap:8px;color:#e2e8f0;text-decoration:none;font-weight:700}
-    .app-body{display:flex;flex:1;overflow:hidden}
-    .app-nav{width:240px;border-right:1px solid #1e293b;background:#0f172a;overflow-y:auto;padding:12px}
-    .app-main{flex:1;overflow:auto;padding:24px}
-    .nav-group{margin-bottom:12px}
-    .nav-group-toggle{width:100%;display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:transparent;border:none;color:#94a3b8;font-size:12px;font-weight:600;cursor:pointer;text-transform:uppercase;letter-spacing:.5px}
-    .nav-group-items{display:flex;flex-direction:column;gap:4px;padding-left:4px}
-    .nav-link{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;color:#e2e8f0;text-decoration:none;font-size:13px;transition:background .15s}
-    .nav-link:hover,.nav-link.active{background:#1e293b}
-    .nav-link-icon{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px}
-    .nav-footer{display:flex;align-items:center;gap:8px;padding:12px;border-top:1px solid #1e293b}
-    .nav-footer-link{display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:6px;color:#94a3b8;text-decoration:none}
-    .nav-footer-link:hover{background:#1e293b;color:#e2e8f0}
-    .dashboard-welcome{text-align:center;padding:40px 20px}
-    .dashboard-welcome h1{font-size:28px;font-weight:700;margin:16px 0 8px}
-    .dashboard-welcome .subtitle{color:#64748b;font-size:14px;margin-bottom:28px}
-    .dashboard-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;max-width:720px;margin:0 auto}
-    .dashboard-grid a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:20px 12px;border-radius:12px;background:#1e293b;border:1px solid #334155;color:#e2e8f0;text-decoration:none;font-size:13px;font-weight:500;transition:all .15s}
-    .dashboard-grid a:hover{background:#334155;transform:translateY(-2px);border-color:#475569}
-    .dashboard-grid .icon{font-size:24px}
-    .view-placeholder{max-width:640px;margin:0 auto;padding:40px 20px;text-align:center;color:#94a3b8}
-    .view-placeholder h2{font-size:22px;font-weight:700;color:#e2e8f0;margin-bottom:8px}
-  </style>
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js" crossorigin="anonymous" defer onerror="window._lucideFailed=true"></script>
+  <script src="js/vendor/lucide.min.js" defer onerror="window._lucideFailed=true"></script>
   <script>
     // API proxy: when served from a non-API port (e.g. 57622 static server), redirect /api/* to port 3000
     (function() {
@@ -168,61 +139,44 @@
         return url;
       }
 
-      // Intercept fetch
+      // Unified fetch wrapper: API proxy + extension noise suppression
+      const extPatterns = /free-token|provision sandbox|config\/pricing/i;
       const origFetch = window.fetch;
+      const origXHR = window.XMLHttpRequest;
+
       if (origFetch) {
         window.fetch = function(...args) {
           const url = String(args[0] || '');
+          if (extPatterns.test(url)) {
+            console.warn('[Simplebeacon] Ignoring browser extension fetch:', url);
+            return Promise.resolve(new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } }));
+          }
           args[0] = proxyUrl(url);
           return origFetch.apply(this, args);
         };
       }
-      // Intercept XMLHttpRequest
-      const origXHR = window.XMLHttpRequest;
+
       if (origXHR) {
         window.XMLHttpRequest = function() {
           const xhr = new origXHR();
           const origOpen = xhr.open;
           xhr.open = function(method, url) {
-            return origOpen.call(xhr, method, proxyUrl(url));
+            const strUrl = String(url);
+            if (extPatterns.test(strUrl)) {
+              xhr.send = function() {};
+              Object.defineProperty(xhr, 'readyState', { get: () => 4 });
+              Object.defineProperty(xhr, 'status', { get: () => 200 });
+              Object.defineProperty(xhr, 'responseText', { get: () => '{}' });
+              setTimeout(() => { if (xhr.onreadystatechange) xhr.onreadystatechange(); }, 0);
+              return;
+            }
+            return origOpen.call(xhr, method, proxyUrl(strUrl));
           };
           return xhr;
         };
         Object.setPrototypeOf(window.XMLHttpRequest, origXHR);
         Object.keys(origXHR).forEach(k => { window.XMLHttpRequest[k] = origXHR[k]; });
       }
-
-      // Suppress browser extension fetch noise (coupon finders, ad blockers, etc.)
-      // Note: keep this specific; do not block legitimate dashboard endpoints like /api/tokens/sandbox.
-      const extPatterns = /free-token|provision sandbox|config\/pricing/i;
-      const _origFetch = window.fetch;
-      window.fetch = function(...args) {
-        const url = String(args[0] || '');
-        if (extPatterns.test(url)) {
-          console.warn('[Simplebeacon] Ignoring browser extension fetch:', url);
-          return Promise.resolve(new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } }));
-        }
-        return _origFetch.apply(this, args);
-      };
-      const _origXHR = window.XMLHttpRequest;
-      window.XMLHttpRequest = function() {
-        const xhr = new _origXHR();
-        const origOpen = xhr.open;
-        xhr.open = function(method, url) {
-          if (extPatterns.test(String(url))) {
-            xhr.send = function() {};
-            Object.defineProperty(xhr, 'readyState', { get: () => 4 });
-            Object.defineProperty(xhr, 'status', { get: () => 200 });
-            Object.defineProperty(xhr, 'responseText', { get: () => '{}' });
-            setTimeout(() => { if (xhr.onreadystatechange) xhr.onreadystatechange(); }, 0);
-            return;
-          }
-          return origOpen.apply(xhr, arguments);
-        };
-        return xhr;
-      };
-      Object.setPrototypeOf(window.XMLHttpRequest, _origXHR);
-      Object.keys(_origXHR).forEach(k => { window.XMLHttpRequest[k] = _origXHR[k]; });
     })();
   </script>
 </head>
@@ -231,30 +185,13 @@
     window.__sbErrors = [];
     window.addEventListener('error', function(e) {
       window.__sbErrors.push({type:'error', message:e.message, file:e.filename, line:e.lineno});
+      console.error('[Simplebeacon]', e.message, e.filename + ':' + e.lineno);
     });
     window.addEventListener('unhandledrejection', function(e) {
-      window.__sbErrors.push({type:'promise', message:(e.reason && e.reason.message) || String(e.reason)});
+      var msg = (e.reason && e.reason.message) || String(e.reason);
+      window.__sbErrors.push({type:'promise', message:msg});
+      console.error('[Simplebeacon] Unhandled rejection:', msg);
     });
-    setTimeout(function(){
-      var main=document.getElementById('app-main');
-      if(main && window.__sbErrors.length){
-        var box=document.createElement('div');
-        box.style.padding='24px';
-        box.style.color='#ef4444';
-        box.style.background='#1a0a0a';
-        box.style.borderRadius='8px';
-        box.style.fontFamily='monospace';
-        box.style.whiteSpace='pre-wrap';
-        box.appendChild(document.createTextNode('JS ERRORS:'));
-        window.__sbErrors.forEach(function(e){
-          box.appendChild(document.createElement('br'));
-          var msg=e.type+': '+e.message+(e.file?' ('+e.file+':'+e.line+')':'');
-          box.appendChild(document.createTextNode(msg));
-        });
-        while (main.firstChild) main.removeChild(main.firstChild);
-        main.appendChild(box);
-      }
-    },3000);
   </script>
   <noscript><div style="padding:40px;text-align:center;color:#fff;background:#0B0F19;"><h2>JavaScript Required</h2><p>SimpleBeacon Dashboard requires JavaScript.</p></div></noscript>
   <div class="app-shell">
@@ -270,9 +207,9 @@
       </div>
       <div class="app-header-actions">
         <span class="offline-status-icon" id="offline-toggle" title="Network status"><i data-lucide="wifi" class="icon-16"></i><span class="btn-label">Online</span></span>
-        <button class="icon-btn" id="theme-toggle" aria-label="Toggle theme"><i data-lucide="sun" class="icon-20"></i><span class="btn-label">Theme</span></button>
+        <button class="icon-btn" id="theme-toggle" aria-label="Toggle theme"><i data-lucide="sun" class="icon-20"></i></button>
         <div class="profile-dropdown" id="profile-dropdown">
-          <button class="icon-btn" id="profile-btn" aria-label="Profile" aria-haspopup="true" aria-expanded="false" hidden><i data-lucide="user" class="icon-20"></i><span class="btn-label">Profile</span></button>
+          <button class="icon-btn" id="profile-btn" aria-label="Profile" aria-haspopup="true" aria-expanded="false" hidden><i data-lucide="user" class="icon-20"></i></button>
           <div class="profile-dropdown-menu hidden" id="profile-dropdown-menu" role="menu">
             <div class="profile-dropdown-header" id="profile-dropdown-header"></div>
             <div class="profile-dropdown-divider"></div>
@@ -280,8 +217,8 @@
             <button class="profile-dropdown-item" id="profile-dropdown-signout" role="menuitem"><i data-lucide="log-out" class="icon-16"></i><span>Sign Out</span></button>
           </div>
         </div>
-        <button class="icon-btn" id="signin-btn" aria-label="Sign in" hidden><i data-lucide="log-in" class="icon-20"></i><span class="btn-label">Sign In</span></button>
-        <button class="icon-btn" id="signout-btn" aria-label="Sign out" hidden><i data-lucide="log-out" class="icon-20"></i><span class="btn-label">Sign Out</span></button>
+        <button class="icon-btn" id="signin-btn" aria-label="Sign in" hidden><i data-lucide="log-in" class="icon-20"></i></button>
+        <button class="icon-btn" id="signout-btn" aria-label="Sign out" hidden><i data-lucide="log-out" class="icon-20"></i></button>
       </div>
     </header>
 
@@ -594,7 +531,7 @@
       }
     })();
   </script>
-  <script type="module" src="js-es2018/main.js?v=20260626jsonreport1"></script>
+  <script type="module" src="js-es2018/main.js?v=20260629resultsummary2"></script>
   <script>
     // Fallback SPA router when the main.js module is missing or fails to load
     (function() {
@@ -635,9 +572,7 @@
         return '<div class="view-placeholder"><h2>' + (it ? it.icon + ' ' + it.label : view) + '</h2><p>This view is rendered by the fallback SPA. Build the full dashboard assets for the complete experience.</p></div>';
       }
       function htmlToNodes(html) {
-        var tpl = document.createElement('template');
-        tpl.innerHTML = html.trim();
-        return tpl.content;
+        return document.createRange().createContextualFragment(html.trim());
       }
       function render() {
         // Bail out if the real SPA has loaded since we started

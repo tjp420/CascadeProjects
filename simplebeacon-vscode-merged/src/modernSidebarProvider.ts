@@ -9,6 +9,24 @@ import * as os from 'os';
 import * as path from 'path';
 import { WelcomeDashboard } from './welcomeDashboard';
 import { getDataServerPort, getTheme, setTheme } from './dataServer';
+import { getAuthManager } from './auth/authContext';
+import { showQuietMessage, escapeHtml, getSbConfig } from './utils';
+
+/** Typed shape for messages received from the sidebar webview. */
+interface SidebarMessage {
+  command: string;
+  mode?: string;
+  path?: string;
+  value?: string | boolean;
+  url?: string;
+  token?: string;
+  data?: Record<string, unknown>;
+  analyzers?: string[];
+  minSeverity?: string;
+  file?: string;
+  line?: number;
+  report?: Record<string, unknown>;
+}
 
 /**
  * Modern sidebar webview view provider for the SimpleBeacon extension.
@@ -18,8 +36,11 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
   private static browserPanel: vscode.WebviewPanel | undefined;
   private static teamDashboardPanel: vscode.WebviewPanel | undefined;
   private static relayOutputChannel?: vscode.OutputChannel;
+  private static _relayPort?: number;
+  private static _relayServer?: http.Server;
   public static _dashboardHtml: string | undefined;
   public static _sidebarHtml: string | undefined;
+  public static _welcomeBrowserHtml: string | undefined;
   private static _instance?: ModernSidebarProvider;
 
   public static getBrowserPanel(): vscode.WebviewPanel | undefined {
@@ -34,9 +55,15 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
   public static async refreshAuthState() {
     const inst = ModernSidebarProvider._instance;
     if (!inst || !inst._view) { return; }
+    let signedIn = false;
     try {
-      const { authManager } = require('./extension');
-      const signedIn = authManager && typeof authManager.isSignedIn === 'function' ? await authManager.isSignedIn() : false;
+      const authManager = getAuthManager();
+      if (authManager && typeof authManager.isSignedIn === 'function') {
+        signedIn = await authManager.isSignedIn();
+      }
+      // Note: Node.js fetch cannot access browser cookies, so server session
+      // check from the extension host always returns 401. Webview-side polling
+      // in sidebar-main.js handles browser session detection.
       inst._view.webview.postMessage({ command: 'setAuthState', signedIn });
     } catch (e) {
       inst._view.webview.postMessage({ command: 'setAuthState', signedIn: false });
@@ -49,19 +76,14 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
     inst._view.webview.postMessage({ command: 'setAuthState', signedIn });
   }
 
+  private static _safePost(target: { webview: vscode.Webview } | undefined, message: unknown) {
+    if (!target) { return; }
+    try { target.webview.postMessage(message); } catch { /* target disposed */ }
+  }
+
   public static postThemeToTeamDashboard(theme: string) {
-    const panel = ModernSidebarProvider.teamDashboardPanel;
-    if (panel) {
-      try {
-        panel.webview.postMessage({ command: 'setTheme', theme });
-      } catch (e) { /* ignore closed panels */ }
-    }
-    const inst = ModernSidebarProvider._instance;
-    if (inst && inst._view) {
-      try {
-        inst._view.webview.postMessage({ command: 'setTheme', theme });
-      } catch (e) { /* ignore closed webview */ }
-    }
+    ModernSidebarProvider._safePost(ModernSidebarProvider.teamDashboardPanel, { command: 'setTheme', theme });
+    ModernSidebarProvider._safePost(ModernSidebarProvider._instance?._view, { command: 'setTheme', theme });
   }
 
   public static showDashboardInSidebar() {
@@ -86,7 +108,7 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
    */
   public static async rehydrateWebviewSession(webview: vscode.Webview) {
     try {
-      const { authManager } = require('./extension');
+      const authManager = getAuthManager();
       const storedToken = authManager && typeof authManager.getToken === 'function' ? await authManager.getToken() : undefined;
       if (storedToken) {
         webview.postMessage({ command: 'rehydrateCachedSession', token: storedToken });
@@ -117,7 +139,19 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
     ModernSidebarProvider.relayOutputChannel.appendLine(msg);
   }
 
-  private static showDashboardRoute(extUri: vscode.Uri, route: string) {
+  private static relayCommand(cmd: string) {
+    const relayPort = ModernSidebarProvider._relayPort;
+    if (!relayPort) { return; }
+    try {
+      const payload = JSON.stringify({ command: cmd, source: 'ide' });
+      const req = http.request({ hostname: '127.0.0.1', port: relayPort, path: '/api/command', method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) } }, () => {});
+      req.on('error', () => {});
+      req.write(payload);
+      req.end();
+    } catch (e) { ModernSidebarProvider.logRelay('Relay command error: ' + (e instanceof Error ? e.message : String(e))); }
+  }
+
+  public static showDashboardRoute(extUri: vscode.Uri, route: string) {
     const panel = WelcomeDashboard.createOrShow(extUri, true);
     if (panel) {
       WelcomeDashboard.showPaneIfOpen(route);
@@ -128,7 +162,31 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
     const dataPort = getDataServerPort();
     const baseUrl = `http://127.0.0.1:${dataPort}`;
     const dashboardUrl = baseUrl + '/dashboard#' + route;
-    await vscode.commands.executeCommand('simpleBrowser.show', dashboardUrl);
+    const iframeHtml = `<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; frame-src http://127.0.0.1:*; style-src 'unsafe-inline';">
+<style>body{margin:0;padding:0;height:100vh;overflow:hidden;}iframe{width:100%;height:100%;border:none;}</style>
+</head>
+<body>
+<iframe src="${dashboardUrl}" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+</body>
+</html>`;
+    let panel = ModernSidebarProvider.teamDashboardPanel;
+    if (panel) {
+      panel.reveal(vscode.ViewColumn.Two);
+      panel.webview.html = iframeHtml;
+      return;
+    }
+    panel = vscode.window.createWebviewPanel(
+      'simplebeaconTeamDashboard',
+      panelTitle,
+      vscode.ViewColumn.Two,
+      { enableScripts: true, retainContextWhenHidden: true }
+    );
+    ModernSidebarProvider.teamDashboardPanel = panel;
+    panel.webview.html = iframeHtml;
+    panel.onDidDispose(() => { ModernSidebarProvider.teamDashboardPanel = undefined; });
   }
 
   private resolveWorkspacePath(targetPath: string): string {
@@ -140,6 +198,25 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
       return path.join(workspace, targetPath);
     }
     return targetPath;
+  }
+
+  /**
+   * Detects and corrects suspicious nested duplicate paths such as
+   * C:/Users/.../CascadeProjects/CascadeProjects and returns the workspace root.
+   */
+  private normalizeScanPath(candidatePath: string): string {
+    if (!candidatePath) return candidatePath;
+    const workspace = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    if (!workspace) return candidatePath;
+    const normalizedCandidate = path.normalize(candidatePath).toLowerCase();
+    const normalizedWorkspace = path.normalize(workspace).toLowerCase();
+    if (normalizedCandidate === normalizedWorkspace) return candidatePath;
+    const candidateBase = path.basename(normalizedCandidate);
+    const workspaceBase = path.basename(normalizedWorkspace);
+    if (candidateBase === workspaceBase && normalizedCandidate.startsWith(normalizedWorkspace + path.sep)) {
+      return workspace;
+    }
+    return candidatePath;
   }
 
   public resolveWebviewView(
@@ -164,17 +241,22 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
       webviewView.webview.html = `<!DOCTYPE html><html><body style="font-family:sans-serif;padding:20px;color:#c00">
         <h2>SimpleBeacon Sidebar Error</h2>
         <p>Failed to load sidebar content:</p>
-        <pre style="background:#f5f5f5;padding:10px;border-radius:4px">${msg.replace(/</g, '&lt;')}</pre>
+        <pre style="background:#f5f5f5;padding:10px;border-radius:4px">${escapeHtml(msg)}</pre>
         <p>Try reloading the window (Ctrl+Shift+P → Developer: Reload Window).</p>
       </body></html>`;
     }
 
-    // Keep sidebar displayMode in sync when the setting is changed outside the webview
+    // Keep sidebar displayMode and scanMode in sync when settings change outside the webview
     const configChangeDisposable = vscode.workspace.onDidChangeConfiguration((e) => {
       if (e.affectsConfiguration('simplebeacon.displayMode') && this._view) {
-        const cfg = vscode.workspace.getConfiguration('simplebeacon');
+        const cfg = getSbConfig();
         const currentDisplayMode = cfg.get<string>('displayMode', 'sidebar');
         this._view.webview.postMessage({ command: 'setDisplayMode', value: currentDisplayMode });
+      }
+      if (e.affectsConfiguration('simplebeacon.scanMode') && this._view) {
+        const cfg = getSbConfig();
+        const currentScanMode = cfg.get<string>('scanMode', 'workspace');
+        this._view.webview.postMessage({ command: 'setScanMode', mode: currentScanMode });
       }
     });
     webviewView.onDidDispose(() => {
@@ -188,13 +270,14 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
 
     // Phase 3: Rehydrate cached license token from secure storage into the webview on boot
     ModernSidebarProvider.rehydrateWebviewSession(webviewView.webview);
+    ModernSidebarProvider.refreshAuthState();
 
     // Auto-open welcome screen panel if showWelcomeOnLoad is enabled
-    const autoOpen = vscode.workspace.getConfiguration('simplebeacon').get<boolean>('showWelcomeOnLoad', false);
+    const autoOpen = getSbConfig().get<boolean>('showWelcomeOnLoad', false);
     if (autoOpen) {
       // Defer panel creation so it doesn't race with webview view resolution
       setTimeout(() => {
-        try { WelcomeDashboard.createOrShow(this._extensionUri, true); } catch(e) { ModernSidebarProvider.logRelay('Auto open dashboard error: ' + (e as any).message); }
+        try { WelcomeDashboard.createOrShow(this._extensionUri, true); } catch(e) { ModernSidebarProvider.logRelay('Auto open dashboard error: ' + (e instanceof Error ? e.message : String(e))); }
       }, 50);
     }
 
@@ -207,7 +290,7 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
 
     // Start the relay server in the background so external browser preview is ready
     setTimeout(() => {
-      if (!(ModernSidebarProvider as any)._relayServer) {
+      if (!ModernSidebarProvider._relayServer) {
         try {
           this.openSidebarInBrowser(false);
         } catch (e) {
@@ -216,16 +299,15 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
       }
     }, 100);
 
-    webviewView.webview.onDidReceiveMessage(async (message) => {
+    webviewView.webview.onDidReceiveMessage(async (message: SidebarMessage) => {
       ModernSidebarProvider.logRelay(`Sidebar received message: command="${message.command}"`);
       // Forward sidebar commands to browser preview relay server only if it is running
-      const relayPort = (ModernSidebarProvider as any)._relayPort;
+      const relayPort = ModernSidebarProvider._relayPort;
       if (relayPort) {
         try {
           ModernSidebarProvider.logRelay(`Sidebar POST command="${message.command}" to port=${relayPort}`);
           const payload = JSON.stringify({command: message.command, source: 'ide'});
-          const httpMod = require('http');
-          const req = httpMod.request({hostname: '127.0.0.1', port: relayPort, path: '/api/command', method: 'POST', headers: {'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload)}}, (res: http.IncomingMessage) => {
+          const req = http.request({hostname: '127.0.0.1', port: relayPort, path: '/api/command', method: 'POST', headers: {'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload)}}, (res: http.IncomingMessage) => {
             ModernSidebarProvider.logRelay(`Sidebar POST response status=${res.statusCode}`);
           });
           req.on('error', (err: NodeJS.ErrnoException) => {
@@ -238,17 +320,6 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
           ModernSidebarProvider.logRelay(`Sidebar POST exception: ${msg}`);
         }
       }
-      const relayCommand = (cmd: string) => {
-        if (!relayPort) return;
-        try {
-          const httpMod = require('http');
-          const payload = JSON.stringify({ command: cmd, source: 'ide' });
-          const req = httpMod.request({ hostname: '127.0.0.1', port: relayPort, path: '/api/command', method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) } }, () => {});
-          req.on('error', () => {});
-          req.write(payload);
-          req.end();
-        } catch (e) { ModernSidebarProvider.logRelay('Relay command error: ' + (e instanceof Error ? e.message : String(e))); }
-      };
       try {
         switch (message.command) {
           case 'scan': {
@@ -256,20 +327,26 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
             if (isWorkspaceScan) {
               const ws = vscode.workspace.workspaceFolders;
               if (ws && ws.length > 0) {
-                vscode.commands.executeCommand('simplebeacon.scanWorkspace', { projectPath: ws[0].uri.fsPath });
+                // Prefer the active editor's workspace folder over workspaceFolders[0]
+                const activeEditor = vscode.window.activeTextEditor;
+                const activeWs = activeEditor ? vscode.workspace.getWorkspaceFolder(activeEditor.document.uri) : undefined;
+                const targetPath = activeWs ? activeWs.uri.fsPath : ws[0].uri.fsPath;
+                vscode.commands.executeCommand('simplebeacon.scanWorkspace', { projectPath: targetPath });
               } else {
                 vscode.commands.executeCommand('simplebeacon.scanWorkspace');
               }
-            } else {
-              vscode.commands.executeCommand('simplebeacon.scanWorkspace', { projectPath: message.path });
+            } else if (message.path) {
+              const correctedPath = this.normalizeScanPath(message.path);
+              vscode.commands.executeCommand('simplebeacon.scanWorkspace', { projectPath: correctedPath });
             }
-            relayCommand('scan');
+            ModernSidebarProvider.relayCommand('scan');
             break;
           }
           case 'browseSidebarScanPath': {
             const uris = await vscode.window.showOpenDialog({ canSelectFiles: false, canSelectFolders: true, canSelectMany: false, openLabel: 'Select Project Folder' });
             if (uris && uris.length > 0) {
-              webviewView.webview.postMessage({ command: 'setSidebarScanPath', path: uris[0].fsPath });
+              const correctedPath = this.normalizeScanPath(uris[0].fsPath);
+              webviewView.webview.postMessage({ command: 'setSidebarScanPath', path: correctedPath });
             }
             break;
           }
@@ -292,12 +369,19 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
             break;
           }
           case 'updateSidebarScanPath': {
-            await vscode.workspace.getConfiguration('simplebeacon').update('projectPath', message.path, true);
+            if (message.path) {
+              const correctedPath = this.normalizeScanPath(message.path);
+              await getSbConfig().update('projectPath', correctedPath, true);
+            }
+            break;
+          }
+          case 'updateSidebarScanMode': {
+            await getSbConfig().update('scanMode', message.mode, true);
             break;
           }
           case 'clear':
             vscode.commands.executeCommand('simplebeacon.clearResults');
-            relayCommand('clear');
+            ModernSidebarProvider.relayCommand('clear');
             break;
           case 'showDashboard':
             ModernSidebarProvider.showDashboardRoute(this._extensionUri, '/dashboard');
@@ -327,11 +411,11 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
             break;
           case 'settings':
             WelcomeDashboard.createOrShow(this._extensionUri, true)?.showSettingsPane();
-            relayCommand('settings');
+            ModernSidebarProvider.relayCommand('settings');
             break;
           case 'openSettings':
             vscode.commands.executeCommand('simplebeacon.openSettings');
-            relayCommand('openSettings');
+            ModernSidebarProvider.relayCommand('openSettings');
             break;
           case 'setServerUrl':
             vscode.commands.executeCommand('simplebeacon.setServerUrl');
@@ -344,12 +428,12 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
           }
           case 'report':
             vscode.commands.executeCommand('simplebeacon.showReport');
-            relayCommand('showReport');
+            ModernSidebarProvider.relayCommand('showReport');
             break;
           case 'cert':
           case 'certificate':
             vscode.commands.executeCommand('simplebeacon.generateCertificate');
-            relayCommand('generateCertificate');
+            ModernSidebarProvider.relayCommand('generateCertificate');
             break;
           case 'enhanced':
           case 'analyze':
@@ -358,87 +442,108 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
               selectedModules: message.analyzers,
               minSeverity: message.minSeverity
             });
-            relayCommand('enhancedAnalysis');
+            ModernSidebarProvider.relayCommand('enhancedAnalysis');
             break;
           case 'realtime':
             vscode.commands.executeCommand('simplebeacon.realtimeAnalysis');
-            relayCommand('realtimeAnalysis');
+            ModernSidebarProvider.relayCommand('realtimeAnalysis');
             break;
           case 'pattern':
             vscode.commands.executeCommand('simplebeacon.patternDetection');
-            relayCommand('patternDetection');
+            ModernSidebarProvider.relayCommand('patternDetection');
             break;
           case 'health':
             vscode.commands.executeCommand('simplebeacon.modelHealth');
-            relayCommand('modelHealth');
+            ModernSidebarProvider.relayCommand('modelHealth');
             break;
           case 'codemap':
           case 'codeMap':
             vscode.commands.executeCommand('simplebeacon.showCodeMap');
-            relayCommand('showCodeMap');
+            ModernSidebarProvider.relayCommand('showCodeMap');
             break;
           case 'dashboard':
           case 'openDashboard':
             WelcomeDashboard.createOrShow(this._extensionUri, true)?.showDashboardPane();
-            relayCommand('dashboard');
+            ModernSidebarProvider.relayCommand('dashboard');
             break;
           case 'openReport':
             WelcomeDashboard.createOrShow(this._extensionUri, true)?.showReportPane();
-            relayCommand('report');
-            break;
-          case 'certificate':
-            ModernSidebarProvider.showDashboardRoute(this._extensionUri, '/certificate');
-            relayCommand('certificate');
+            ModernSidebarProvider.relayCommand('report');
             break;
           case 'analytics':
             vscode.commands.executeCommand('simplebeacon.runAdvancedAnalytics');
-            relayCommand('runAdvancedAnalytics');
+            ModernSidebarProvider.relayCommand('runAdvancedAnalytics');
             break;
           case 'team':
           case 'openTeamDashboard': {
             WelcomeDashboard.createOrShow(this._extensionUri, true)?.showTeamPane();
-            relayCommand('showTeamDashboard');
+            ModernSidebarProvider.relayCommand('showTeamDashboard');
             break;
           }
           case 'toggleRealtime':
             vscode.commands.executeCommand('simplebeacon.toggleRealtimeMonitoring');
-            relayCommand('toggleRealtimeMonitoring');
+            ModernSidebarProvider.relayCommand('toggleRealtimeMonitoring');
             break;
           case 'openBrowser': {
             const brPort = getDataServerPort();
             vscode.commands.executeCommand('simpleBrowser.show', `http://127.0.0.1:${brPort}/dashboard/dashboard`);
-            relayCommand('openBrowser');
+            ModernSidebarProvider.relayCommand('openBrowser');
             break;
           }
           case 'upload':
           case 'openUpload':
             ModernSidebarProvider.showDashboardRoute(this._extensionUri, '/upload');
-            relayCommand('upload');
-            break;
-          case 'analyze':
-            vscode.commands.executeCommand('simplebeacon.enhancedAnalysis');
-            relayCommand('analyze');
+            ModernSidebarProvider.relayCommand('upload');
             break;
           case 'roadmap':
           case 'openRoadmap':
             vscode.commands.executeCommand('simplebeacon.showRemediationGuide');
-            relayCommand('showRemediationGuide');
+            ModernSidebarProvider.relayCommand('showRemediationGuide');
+            break;
+          case 'generateRoadmap':
+            vscode.commands.executeCommand('simplebeacon.generateRoadmap');
+            ModernSidebarProvider.relayCommand('generateRoadmap');
+            break;
+          case 'exportRoadmap':
+            vscode.commands.executeCommand('simplebeacon.exportRoadmap');
+            ModernSidebarProvider.relayCommand('exportRoadmap');
+            break;
+          case 'openRoadmapHtml':
+            vscode.commands.executeCommand('simplebeacon.openRoadmapHtml');
+            ModernSidebarProvider.relayCommand('openRoadmapHtml');
             break;
           case 'sendToAi':
             vscode.commands.executeCommand('simplebeacon.sendToAi');
-            relayCommand('sendToAi');
+            ModernSidebarProvider.relayCommand('sendToAi');
             break;
-          case 'openUpload':
-            vscode.commands.executeCommand('simplebeacon.uploadReport');
-            relayCommand('openUpload');
+          case 'sendToAI':
+            {
+              const dataPort = getDataServerPort();
+              const body = JSON.stringify(message.data || {});
+              const req = http.request(
+                {
+                  hostname: '127.0.0.1',
+                  port: dataPort,
+                  path: '/api/ai-context',
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
+                },
+                (res: http.IncomingMessage) => {
+                  res.on('data', () => { /* drain response */ });
+                  res.on('end', () => { /* data server callback will focus AI Coding Agent panel */ });
+                }
+              );
+              req.on('error', (err) => {
+                vscode.window.showErrorMessage('Failed to send to AI Coding Agent: ' + err.message);
+              });
+              req.write(body);
+              req.end();
+              ModernSidebarProvider.relayCommand('sendToAI');
+            }
             break;
           case 'preview':
           case 'openPreview':
             ModernSidebarProvider.openSidebarInBrowserStatic('/');
-            break;
-          case 'openSidebarDebug':
-            vscode.commands.executeCommand('simplebeacon.openPreview');
-            relayCommand('openPreview');
             break;
           case 'sendSidebarToAi':
             vscode.commands.executeCommand('simplebeacon.sendSidebarToAi', message.report);
@@ -452,11 +557,14 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
               const resolvedPath = this.resolveWorkspacePath(targetPath);
               if (fs.existsSync(resolvedPath)) {
                 const line = typeof message.line === 'number' && message.line > 0 ? message.line : 1;
-                vscode.workspace.openTextDocument(resolvedPath).then(doc => {
+                Promise.resolve(vscode.workspace.openTextDocument(resolvedPath)).then(doc => {
                   vscode.window.showTextDocument(doc, {
                     preview: true,
                     selection: new vscode.Range(line - 1, 0, line - 1, 0)
                   });
+                }).catch((err: unknown) => {
+                  const errMsg = err instanceof Error ? err.message : String(err);
+                  vscode.window.showErrorMessage('Unable to open file: ' + errMsg);
                 });
               } else {
                 vscode.window.showWarningMessage('File not found: ' + targetPath);
@@ -467,7 +575,7 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
           case 'copyPath':
             if (message.path) {
               vscode.env.clipboard.writeText(message.path);
-              vscode.window.showInformationMessage('Path copied to clipboard');
+              showQuietMessage('Path copied to clipboard');
             }
             break;
           case 'exportReport':
@@ -477,57 +585,51 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
               vscode.window.showErrorMessage('Export failed: ' + msg);
             });
             break;
-          case 'updateDisplayMode': {
-            const cfg = vscode.workspace.getConfiguration('simplebeacon');
-            cfg.update('displayMode', message.value, true);
-            webviewView.webview.postMessage({ command: 'setDisplayMode', value: message.value });
+          case 'updateDisplayMode':
+          case 'updateShowWelcome':
+          case 'updateAutoScan':
+          case 'updateApiUrl':
+          case 'updateBrowserMode': {
+            const settingMap: Record<string, { key: string; msgCmd: string; msgField: string }> = {
+              updateDisplayMode: { key: 'displayMode', msgCmd: 'setDisplayMode', msgField: 'value' },
+              updateShowWelcome: { key: 'showWelcomeOnLoad', msgCmd: 'setShowWelcome', msgField: 'value' },
+              updateAutoScan: { key: 'autoScanOnOpen', msgCmd: 'setAutoScan', msgField: 'value' },
+              updateApiUrl: { key: 'apiServerUrl', msgCmd: 'updateServerUrl', msgField: 'url' },
+              updateBrowserMode: { key: 'browserMode', msgCmd: 'setBrowserMode', msgField: 'value' }
+            };
+            const meta = settingMap[message.command];
+            if (meta) {
+              const cfg = getSbConfig();
+              cfg.update(meta.key, message.value, true);
+              webviewView.webview.postMessage({ command: meta.msgCmd, [meta.msgField]: message.value });
+            }
             break;
           }
           case 'refreshSettings': {
-            const cfg = vscode.workspace.getConfiguration('simplebeacon');
+            const cfg = getSbConfig();
             const currentDisplayMode = cfg.get<string>('displayMode', 'sidebar');
+            const currentScanMode = cfg.get<string>('scanMode', 'workspace');
+            const currentProjectPath = this.normalizeScanPath(cfg.get<string>('projectPath', ''));
             webviewView.webview.postMessage({ command: 'setDisplayMode', value: currentDisplayMode });
+            webviewView.webview.postMessage({ command: 'setScanMode', mode: currentScanMode });
+            webviewView.webview.postMessage({ command: 'setSidebarScanPath', path: currentProjectPath });
             break;
           }
-          case 'updateShowWelcome': {
-            const cfg = vscode.workspace.getConfiguration('simplebeacon');
-            cfg.update('showWelcomeOnLoad', message.value, true);
-            webviewView.webview.postMessage({ command: 'setShowWelcome', value: message.value });
-            break;
-          }
-          case 'updateAutoScan': {
-            const cfg = vscode.workspace.getConfiguration('simplebeacon');
-            cfg.update('autoScanOnOpen', message.value, true);
-            webviewView.webview.postMessage({ command: 'setAutoScan', value: message.value });
-            break;
-          }
-          case 'updateApiUrl': {
-            const cfg = vscode.workspace.getConfiguration('simplebeacon');
-            cfg.update('apiServerUrl', message.value, true);
-            webviewView.webview.postMessage({ command: 'updateServerUrl', url: message.value });
-            break;
-          }
-          case 'updateBrowserMode': {
-            const cfg = vscode.workspace.getConfiguration('simplebeacon');
-            cfg.update('browserMode', message.value, true);
-            webviewView.webview.postMessage({ command: 'setBrowserMode', value: message.value });
-            break;
-          }
-          case 'updateNotifyScan': {
-            const cfg = vscode.workspace.getConfiguration('simplebeacon');
-            cfg.update('notifyOnScanComplete', message.value, true);
-            break;
-          }
+          case 'updateNotifyScan':
           case 'updateNotifyGate': {
-            const cfg = vscode.workspace.getConfiguration('simplebeacon');
-            cfg.update('notifyOnGateFailure', message.value, true);
+            const keyMap: Record<string, string> = {
+              updateNotifyScan: 'notifyOnScanComplete',
+              updateNotifyGate: 'notifyOnGateFailure'
+            };
+            const key = keyMap[message.command];
+            if (key) { getSbConfig().update(key, message.value, true); }
             break;
           }
           case 'testConnection': {
-            const cfg = vscode.workspace.getConfiguration('simplebeacon');
+            const cfg = getSbConfig();
             const url = cfg.get<string>('apiServerUrl') || 'http://127.0.0.1:55000';
             fetch(url + '/api/health').then(() => {
-              vscode.window.showInformationMessage('Connection successful: ' + url);
+              showQuietMessage('Connection successful: ' + url);
             }).catch(() => {
               vscode.window.showErrorMessage('Connection failed: ' + url);
             });
@@ -546,10 +648,10 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
             ModernSidebarProvider.refreshAuthState();
             break;
           case 'toggleOffline': {
-            const cfg = vscode.workspace.getConfiguration('simplebeacon');
+            const cfg = getSbConfig();
             const current = cfg.get<boolean>('offlineMode', false);
             cfg.update('offlineMode', !current, true);
-            vscode.window.showInformationMessage('Offline mode: ' + (!current ? 'ON' : 'OFF'));
+            showQuietMessage('Offline mode: ' + (!current ? 'ON' : 'OFF'));
             break;
           }
           case 'openHelp':
@@ -588,7 +690,7 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
             // Show "Running..." immediately
             webviewView.webview.postMessage({ command: 'diagnoseResult', lines: ['Running diagnostics...'], text: 'Running diagnostics...' });
 
-            const relayPort = (ModernSidebarProvider as any)._relayPort;
+            const relayPort = ModernSidebarProvider._relayPort;
             results.push(`Relay port: ${relayPort || 'NOT STARTED'}`);
             const dataPort = getDataServerPort();
             results.push(`Data server: http://127.0.0.1:${dataPort}`);
@@ -598,7 +700,7 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
             results.push(`Webview view: ${this._view ? 'ACTIVE' : 'NOT SET'}`);
 
             // Dashboard health checks
-            const cfg = vscode.workspace.getConfiguration('simplebeacon');
+            const cfg = getSbConfig();
             const displayMode = cfg.get<string>('displayMode', 'sidebar');
             results.push(`Display mode: ${displayMode}`);
             if (displayMode === 'sidebar') {
@@ -620,8 +722,7 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
             results.push(`API URL: ${actualApiUrl}`);
 
             // Test API connectivity to actual data server
-            const httpMod = require('http');
-            const req = httpMod.request({ hostname: '127.0.0.1', port: String(dataPort), path: '/api/simplebeacon/status', method: 'GET', timeout: 3000 }, (res: http.IncomingMessage) => {
+            const req = http.request({ hostname: '127.0.0.1', port: String(dataPort), path: '/api/simplebeacon/status', method: 'GET', timeout: 3000 }, (res: http.IncomingMessage) => {
               results.push(`API status: HTTP ${res.statusCode}`);
               webviewView.webview.postMessage({ command: 'diagnoseResult', lines: results });
             });
@@ -649,165 +750,175 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
           }
           case 'navDashboard':
             ModernSidebarProvider.showDashboardRoute(this._extensionUri, '/dashboard');
-            relayCommand('navDashboard');
+            ModernSidebarProvider.relayCommand('navDashboard');
             break;
-          case 'navAnalyze':
-            ModernSidebarProvider.showDashboardRoute(this._extensionUri, '/analyze');
-            relayCommand('navAnalyze');
+          case 'navAnalyze': {
+            const dataPort = getDataServerPort();
+            const analyzeUrl = `http://127.0.0.1:${dataPort}/dashboard/analyze`;
+            vscode.commands.executeCommand('simplebeacon.openInPreview', analyzeUrl);
+            ModernSidebarProvider.relayCommand('navAnalyze');
             break;
+          }
           case 'navResults':
-            ModernSidebarProvider.showDashboardRoute(this._extensionUri, '/results');
-            relayCommand('navResults');
-            break;
           case 'navRepoHealth':
-            ModernSidebarProvider.showDashboardRoute(this._extensionUri, '/repository-health');
-            relayCommand('navRepoHealth');
-            break;
           case 'navAudit':
-            ModernSidebarProvider.showDashboardRoute(this._extensionUri, '/audit');
-            relayCommand('navAudit');
-            break;
           case 'navSecurity':
-            ModernSidebarProvider.showDashboardRoute(this._extensionUri, '/security');
-            relayCommand('navSecurity');
-            break;
           case 'navQuality':
-            ModernSidebarProvider.showDashboardRoute(this._extensionUri, '/quality');
-            relayCommand('navQuality');
-            break;
           case 'navTrust':
-            ModernSidebarProvider.showDashboardRoute(this._extensionUri, '/trust');
-            relayCommand('navTrust');
-            break;
           case 'navAssessments':
-            ModernSidebarProvider.showDashboardRoute(this._extensionUri, '/assessments');
-            relayCommand('navAssessments');
-            break;
           case 'navRoadmap':
-            ModernSidebarProvider.showDashboardRoute(this._extensionUri, '/remediation');
-            relayCommand('navRoadmap');
-            break;
           case 'navPlatform':
-            ModernSidebarProvider.showDashboardRoute(this._extensionUri, '/platform');
-            relayCommand('navPlatform');
+          case 'navProfile': {
+            const navRouteMap: Record<string, string> = {
+              navResults: '/results',
+              navRepoHealth: '/repository-health',
+              navAudit: '/audit',
+              navSecurity: '/security',
+              navQuality: '/quality',
+              navTrust: '/trust',
+              navAssessments: '/assessments',
+              navRoadmap: '/remediation',
+              navPlatform: '/platform',
+              navProfile: '/profile'
+            };
+            const route = navRouteMap[message.command];
+            if (route) {
+              ModernSidebarProvider.showDashboardRoute(this._extensionUri, route);
+              ModernSidebarProvider.relayCommand(message.command);
+            }
             break;
-          case 'navProfile':
-            ModernSidebarProvider.showDashboardRoute(this._extensionUri, '/profile');
-            relayCommand('navProfile');
-            break;
+          }
           case 'openAnalyze':
-            WelcomeDashboard.createOrShow(this._extensionUri, true)?.showAnalyzePane();
-            break;
-          case 'openReport':
-            WelcomeDashboard.createOrShow(this._extensionUri, true)?.showReportPane();
-            break;
           case 'openCertificate':
-            WelcomeDashboard.createOrShow(this._extensionUri, true)?.showCertificatePane();
+          case 'openAiContext':
+          case 'openAudit':
+          case 'openSecurity':
+          case 'openTrust':
+          case 'openQuality':
+          case 'openAssessments':
+          case 'openPlatform':
+          case 'openDiagnose':
+          case 'openProfile':
+          case 'openAbout':
+          case 'openRepoHealth':
+          case 'openAnalytics':
+          case 'openTeam':
+          case 'openScan': {
+            const paneMap: Record<string, string> = {
+              openAnalyze: 'showAnalyzePane',
+              openCertificate: 'showCertificatePane',
+              openAiContext: 'showAiContextPane',
+              openAudit: 'showAuditPane',
+              openSecurity: 'showSecurityPane',
+              openTrust: 'showTrustPane',
+              openQuality: 'showQualityPane',
+              openAssessments: 'showAssessmentsPane',
+              openPlatform: 'showPlatformPane',
+              openDiagnose: 'showScanPane',
+              openProfile: 'showProfilePane',
+              openAbout: 'showDashboardPane',
+              openRepoHealth: 'showRepoHealthPane',
+              openAnalytics: 'showAnalyticsPane',
+              openTeam: 'showTeamPane',
+              openScan: 'showScanPane'
+            };
+            const pane = paneMap[message.command];
+            if (pane) {
+              (WelcomeDashboard.createOrShow(this._extensionUri, true) as any)?.[pane]();
+            }
             break;
+          }
+          case 'openReportHtml':
+          case 'generateCertificate':
+          case 'exportCertificatePdf':
+          case 'openCertificateHtml':
+          case 'generateCodeMap':
+          case 'openCodeMapHtml':
+          case 'exportCodeMap': {
+            const cmdMap: Record<string, string> = {
+              openReportHtml: 'simplebeacon.openReportHtml',
+              generateCertificate: 'simplebeacon.generateCertificate',
+              exportCertificatePdf: 'simplebeacon.exportCertificatePdf',
+              openCertificateHtml: 'simplebeacon.openCertificateHtml',
+              generateCodeMap: 'simplebeacon.generateCodeMap',
+              openCodeMapHtml: 'simplebeacon.openCodeMapHtml',
+              exportCodeMap: 'simplebeacon.exportCodeMap'
+            };
+            const cmd = cmdMap[message.command];
+            if (cmd) { vscode.commands.executeCommand(cmd); }
+            break;
+          }
           case 'openCodeMap':
             vscode.commands.executeCommand('simplebeacon-modern.focus');
             WelcomeDashboard.createOrShow(this._extensionUri, true)?.showCodeMapPane();
             break;
-          case 'openRoadmap':
-            vscode.commands.executeCommand('simplebeacon.showRemediationGuide');
+          case 'refreshCodeMap':
+            showQuietMessage('Refreshing code map data…');
+            vscode.commands.executeCommand('simplebeacon.generateCodeMap');
             break;
           case 'openRoadmapUrl':
-            if (message.url) { vscode.commands.executeCommand('simplebeacon.openUrlInPreview', message.url, 'Roadmap'); }
-            break;
           case 'openAuditUrl':
-            if (message.url) { vscode.commands.executeCommand('simplebeacon.openUrlInPreview', message.url, 'Audit'); }
+          case 'openPricingUrl': {
+            if (message.url) {
+              const labelMap: Record<string, string> = {
+                openRoadmapUrl: 'Roadmap',
+                openAuditUrl: 'Audit',
+                openPricingUrl: 'Pricing'
+              };
+              vscode.commands.executeCommand('simplebeacon.openUrlInPreview', message.url, labelMap[message.command] || '');
+            }
             break;
-          case 'openPricingUrl':
-            if (message.url) { vscode.commands.executeCommand('simplebeacon.openUrlInPreview', message.url, 'Pricing'); }
-            break;
-          case 'openAiContext':
-            WelcomeDashboard.createOrShow(this._extensionUri, true)?.showAiContextPane();
-            break;
-          case 'openUpload':
-            WelcomeDashboard.createOrShow(this._extensionUri, true)?.showUploadPane();
-            break;
-          case 'openAudit':
-            WelcomeDashboard.createOrShow(this._extensionUri, true)?.showAuditPane();
-            break;
+          }
           case 'runAudit':
+          case 'runSecurity':
+          case 'runTrust':
+          case 'runQuality':
             vscode.commands.executeCommand('simplebeacon.scanWorkspace');
-            relayCommand('runAudit');
+            ModernSidebarProvider.relayCommand(message.command);
             break;
           case 'getAuditData':
             {
-              const { WelcomeDashboard } = require('./welcomeDashboard');
               const data = WelcomeDashboard.getLastReportData ? WelcomeDashboard.getLastReportData() : null;
               if (data && this._view) {
                 this._view.webview.postMessage({ command: 'updateAuditData', ...data });
               }
             }
             break;
-          case 'openSecurity':
-            WelcomeDashboard.createOrShow(this._extensionUri, true)?.showSecurityPane();
+          case 'openSecurityAuditPage':
+          case 'openTrustPage': {
+            const cmdMap: Record<string, string> = {
+              openSecurityAuditPage: 'simplebeacon.openSecurityAuditPage',
+              openTrustPage: 'simplebeacon.openTrustPage'
+            };
+            const cmd = cmdMap[message.command];
+            if (cmd) { vscode.commands.executeCommand(cmd); }
             break;
-          case 'openTrust':
-            WelcomeDashboard.createOrShow(this._extensionUri, true)?.showTrustPane();
-            break;
-          case 'openQuality':
-            WelcomeDashboard.createOrShow(this._extensionUri, true)?.showQualityPane();
-            break;
-          case 'openAssessments':
-            WelcomeDashboard.createOrShow(this._extensionUri, true)?.showAssessmentsPane();
-            break;
-          case 'openPlatform':
-            WelcomeDashboard.createOrShow(this._extensionUri, true)?.showPlatformPane();
-            break;
-          case 'openDiagnose':
-            WelcomeDashboard.createOrShow(this._extensionUri, true)?.showScanPane();
-            break;
-          case 'openProfile':
-            WelcomeDashboard.createOrShow(this._extensionUri, true)?.showProfilePane();
-            break;
-          case 'openAbout':
-            WelcomeDashboard.createOrShow(this._extensionUri, true)?.showDashboardPane();
-            break;
+          }
           case 'openCompliance':
             ModernSidebarProvider.showDashboardRoute(this._extensionUri, '/compliance');
             break;
-          case 'openRepoHealth':
-            WelcomeDashboard.createOrShow(this._extensionUri, true)?.showRepoHealthPane();
-            break;
-          case 'openAnalytics':
-            WelcomeDashboard.createOrShow(this._extensionUri, true)?.showAnalyticsPane();
-            break;
-          case 'openTeam':
-            WelcomeDashboard.createOrShow(this._extensionUri, true)?.showTeamPane();
-            break;
-          case 'openScan':
-            WelcomeDashboard.createOrShow(this._extensionUri, true)?.showScanPane();
-            break;
-          case 'openSettings':
-            WelcomeDashboard.createOrShow(this._extensionUri, true)?.showSettingsPane();
-            break;
           case 'openClear':
-            vscode.commands.executeCommand('simplebeacon.clearResults');
-            break;
           case 'openToggleMonitor':
-            vscode.commands.executeCommand('simplebeacon.toggleRealtimeMonitoring');
-            break;
           case 'openSendToAIAgent':
-            vscode.commands.executeCommand('simplebeacon.sendToAi');
-            break;
           case 'openEnhancedAnalysis':
-            vscode.commands.executeCommand('simplebeacon.enhancedAnalysis');
-            break;
           case 'openRealtimeAnalysis':
-            vscode.commands.executeCommand('simplebeacon.realtimeAnalysis');
-            break;
           case 'openPatternDetection':
-            vscode.commands.executeCommand('simplebeacon.patternDetection');
-            break;
           case 'openModelHealth':
-            vscode.commands.executeCommand('simplebeacon.modelHealth');
+          case 'openScanWorkspace': {
+            const cmdMap: Record<string, string> = {
+              openClear: 'simplebeacon.clearResults',
+              openToggleMonitor: 'simplebeacon.toggleRealtimeMonitoring',
+              openSendToAIAgent: 'simplebeacon.sendToAi',
+              openEnhancedAnalysis: 'simplebeacon.enhancedAnalysis',
+              openRealtimeAnalysis: 'simplebeacon.realtimeAnalysis',
+              openPatternDetection: 'simplebeacon.patternDetection',
+              openModelHealth: 'simplebeacon.modelHealth',
+              openScanWorkspace: 'simplebeacon.scanWorkspace'
+            };
+            const cmd = cmdMap[message.command];
+            if (cmd) { vscode.commands.executeCommand(cmd); }
             break;
-          case 'openScanWorkspace':
-            vscode.commands.executeCommand('simplebeacon.scanWorkspace');
-            break;
+          }
         }
       } catch (err) {
         vscode.window.showErrorMessage('SimpleBeacon sidebar error: ' + (err instanceof Error ? err.message : String(err)));
@@ -818,16 +929,24 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
   private _getHtmlForWebview(webview: vscode.Webview) {
     const nonce = crypto.randomBytes(16).toString('base64');
     const csp = webview.cspSource;
-    const sbConfig = vscode.workspace.getConfiguration('simplebeacon');
+    const sidebarMainJsUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'sidebar-main.js')).toString();
+    const sbConfig = getSbConfig();
     const showWelcome = sbConfig.get('showWelcomeOnLoad', false);
     const displayMode = sbConfig.get('displayMode', 'sidebar') as string;
     const autoScan = sbConfig.get('autoScanOnOpen', false);
     const apiUrl = sbConfig.get('apiServerUrl', '');
+    const savedScanMode = sbConfig.get<string>('scanMode', 'workspace');
+    const savedProjectPath = sbConfig.get<string>('projectPath', '');
+    const isWorkspaceMode = savedScanMode === 'workspace';
+    const dataServerUrl = `http://127.0.0.1:${getDataServerPort()}`;
+    const apiUrlScript = apiUrl ? `<script nonce="${nonce}">window.__SB_API_URL__='${escapeHtml(apiUrl)}';</script>` : '';
+    const dataServerUrlScript = `<script nonce="${nonce}">window.__SB_DATA_SERVER_URL__='${dataServerUrl}';</script>`;
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${csp} 'unsafe-inline'; script-src 'nonce-${nonce}'; img-src ${csp} data:; font-src ${csp}; frame-src ${csp};">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${csp} 'unsafe-inline'; script-src 'nonce-${nonce}'; img-src ${csp} data:; font-src ${csp}; frame-src ${csp}; connect-src ${csp} http://127.0.0.1:*;">
+${dataServerUrlScript}${apiUrlScript}
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -1061,6 +1180,102 @@ body::-webkit-scrollbar-thumb:hover { background: rgba(128,128,128,0.6); }
 .quick-links{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 12px 12px;}
 .ql-btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);color:var(--vscode-foreground,#ccc);font-size:12px;cursor:pointer;transition:all .2s;}
 .ql-btn:hover{background:rgba(255,255,255,0.06);}
+/* Analysis tab redesign */
+.analyze-header{display:flex;align-items:center;justify-content:space-between;padding:12px 12px 0;}
+.analyze-title{font-size:16px;font-weight:700;color:var(--vscode-foreground,#fff);}
+.analyze-subtitle{font-size:11px;color:var(--vscode-descriptionForeground,#858585);margin-top:2px;}
+.analyze-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 12px 12px;}
+.analyze-card{display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:14px;border-radius:10px;background:var(--vscode-input-background,rgba(255,255,255,0.03));border:1px solid var(--vscode-panel-border,rgba(255,255,255,0.06));cursor:pointer;transition:all .2s;position:relative;overflow:hidden;}
+.analyze-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#6366f1,#818cf8);border-radius:10px 10px 0 0;}
+.analyze-card.accent-green::before{background:linear-gradient(90deg,#22c55e,#4ade80);}
+.analyze-card.accent-amber::before{background:linear-gradient(90deg,#f59e0b,#fbbf24);}
+.analyze-card.accent-purple::before{background:linear-gradient(90deg,#a855f7,#c084fc);}
+.analyze-card.accent-blue::before{background:linear-gradient(90deg,#3b82f6,#60a5fa);}
+.analyze-card.accent-red::before{background:linear-gradient(90deg,#ef4444,#f87171);}
+.analyze-card:hover{background:var(--vscode-list-hoverBackground,rgba(255,255,255,0.06));transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,0.15);}
+.analyze-card:active{transform:translateY(0);}
+.analyze-card-icon{width:32px;height:32px;border-radius:8px;background:rgba(99,102,241,0.12);display:flex;align-items:center;justify-content:center;color:#818cf8;}
+.analyze-card.accent-green .analyze-card-icon{background:rgba(34,197,94,0.12);color:#4ade80;}
+.analyze-card.accent-amber .analyze-card-icon{background:rgba(245,158,11,0.12);color:#fbbf24;}
+.analyze-card.accent-purple .analyze-card-icon{background:rgba(168,85,247,0.12);color:#c084fc;}
+.analyze-card.accent-blue .analyze-card-icon{background:rgba(59,130,246,0.12);color:#60a5fa;}
+.analyze-card.accent-red .analyze-card-icon{background:rgba(239,68,68,0.12);color:#f87171;}
+.analyze-card-label{font-size:12px;font-weight:600;color:var(--vscode-foreground,#fff);}
+.analyze-card-desc{font-size:10px;color:var(--vscode-descriptionForeground,#858585);line-height:1.4;}
+.analyze-section-title{display:flex;align-items:center;gap:6px;padding:8px 12px 6px;font-size:10px;font-weight:700;color:var(--vscode-descriptionForeground,#858585);text-transform:uppercase;letter-spacing:0.8px;}
+.analyze-section-title svg{color:var(--vscode-descriptionForeground,#858585);}
+.analyze-list{padding:0 12px 12px;display:flex;flex-direction:column;gap:6px;}
+.analyze-list-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;background:var(--vscode-input-background,rgba(255,255,255,0.03));border:1px solid var(--vscode-panel-border,rgba(255,255,255,0.06));cursor:pointer;transition:all .2s;}
+.analyze-list-item:hover{background:var(--vscode-list-hoverBackground,rgba(255,255,255,0.06));}
+.analyze-list-item:active{transform:translateY(1px);}
+.analyze-list-item-icon{width:28px;height:28px;border-radius:6px;background:rgba(99,102,241,0.1);display:flex;align-items:center;justify-content:center;color:#818cf8;flex-shrink:0;}
+.analyze-list-item-text{flex:1;}
+.analyze-list-item-label{font-size:12px;font-weight:500;color:var(--vscode-foreground,#ccc);}
+.analyze-list-item-desc{font-size:10px;color:var(--vscode-descriptionForeground,#858585);}
+/* Report tab redesign */
+.report-header{display:flex;align-items:center;justify-content:space-between;padding:12px 12px 0;}
+.report-title{font-size:16px;font-weight:700;color:var(--vscode-foreground,#fff);}
+.report-subtitle{font-size:11px;color:var(--vscode-descriptionForeground,#858585);margin-top:2px;}
+.report-badge{font-size:10px;font-weight:700;padding:3px 10px;border-radius:12px;background:rgba(34,197,94,0.18);color:#4ade80;}
+.report-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 12px 12px;}
+.report-card{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px;border-radius:10px;background:var(--vscode-input-background,rgba(255,255,255,0.03));border:1px solid var(--vscode-panel-border,rgba(255,255,255,0.06));cursor:default;transition:all .2s;position:relative;overflow:hidden;text-align:center;}
+.report-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#3b82f6,#60a5fa);border-radius:10px 10px 0 0;}
+.report-card.accent-green::before{background:linear-gradient(90deg,#22c55e,#4ade80);}
+.report-card.accent-amber::before{background:linear-gradient(90deg,#f59e0b,#fbbf24);}
+.report-card.accent-red::before{background:linear-gradient(90deg,#ef4444,#f87171);}
+.report-card.accent-purple::before{background:linear-gradient(90deg,#a855f7,#c084fc);}
+.report-card-icon{width:28px;height:28px;border-radius:6px;background:rgba(59,130,246,0.12);display:flex;align-items:center;justify-content:center;color:#60a5fa;}
+.report-card.accent-green .report-card-icon{background:rgba(34,197,94,0.12);color:#4ade80;}
+.report-card.accent-amber .report-card-icon{background:rgba(245,158,11,0.12);color:#fbbf24;}
+.report-card.accent-red .report-card-icon{background:rgba(239,68,68,0.12);color:#f87171;}
+.report-card.accent-purple .report-card-icon{background:rgba(168,85,247,0.12);color:#c084fc;}
+.report-card-value{font-size:22px;font-weight:800;line-height:1;}
+.report-card-value.blue{color:#60a5fa;}
+.report-card-value.green{color:#4ade80;}
+.report-card-value.amber{color:#fbbf24;}
+.report-card-value.red{color:#f87171;}
+.report-card-value.purple{color:#c084fc;}
+.report-card-label{font-size:9px;color:var(--vscode-descriptionForeground,#858585);text-transform:uppercase;letter-spacing:0.5px;}
+.report-sev-row{display:flex;align-items:center;gap:8px;padding:0 12px 8px;}
+.report-sev-label{width:50px;font-size:10px;color:var(--vscode-descriptionForeground,#858585);text-align:right;text-transform:uppercase;}
+.report-sev-bar-wrap{flex:1;height:8px;background:var(--vscode-input-background,rgba(255,255,255,0.03));border-radius:4px;overflow:hidden;}
+.report-sev-bar{height:100%;border-radius:4px;transition:width .4s ease;}
+.report-sev-bar.critical{background:linear-gradient(90deg,#ef4444,#f87171);}
+.report-sev-bar.high{background:linear-gradient(90deg,#f59e0b,#fbbf24);}
+.report-sev-bar.medium{background:linear-gradient(90deg,#3b82f6,#60a5fa);}
+.report-sev-bar.low{background:linear-gradient(90deg,#22c55e,#4ade80);}
+.report-sev-val{width:24px;font-size:10px;font-weight:600;text-align:right;}
+.report-sev-val.critical{color:#f87171;}
+.report-sev-val.high{color:#fbbf24;}
+.report-sev-val.medium{color:#60a5fa;}
+.report-sev-val.low{color:#4ade80;}
+.report-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 12px 12px;}
+.report-action-btn{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px;border-radius:8px;background:var(--vscode-input-background,rgba(255,255,255,0.03));border:1px solid var(--vscode-panel-border,rgba(255,255,255,0.06));color:var(--vscode-foreground,#ccc);font-size:11px;cursor:pointer;transition:all .2s;}
+.report-action-btn:hover{background:var(--vscode-list-hoverBackground,rgba(255,255,255,0.06));transform:translateY(-1px);}
+.report-action-btn:active{transform:translateY(0);}
+.report-action-icon{width:24px;height:24px;display:flex;align-items:center;justify-content:center;}
+.report-info{padding:0 12px 12px;display:flex;flex-direction:column;gap:6px;}
+.report-info-row{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-radius:6px;background:var(--vscode-input-background,rgba(255,255,255,0.03));border:1px solid var(--vscode-panel-border,rgba(255,255,255,0.06));}
+.report-info-label{font-size:10px;color:var(--vscode-descriptionForeground,#858585);}
+.report-info-value{font-size:11px;color:var(--vscode-foreground,#ccc);font-weight:500;}
+/* Menu list items (Analyze tab, etc) */
+.menu-list-item{display:flex;align-items:center;gap:6px;width:100%;padding:10px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);color:var(--vscode-foreground,#ccc);font-size:12px;cursor:pointer;transition:all .2s;}
+.menu-list-item:hover{background:rgba(255,255,255,0.06);}
+.menu-list-item:active{transform:translateY(1px);}
+.menu-list-item svg{flex-shrink:0;color:var(--vscode-foreground,#ccc);}
+/* Team detail panel buttons */
+#teamDetailPanel button:hover{filter:brightness(1.15);transform:translateY(-1px);}
+#teamDetailPanel button:active{transform:translateY(0);}
+/* Trust detail panel buttons */
+#trustDetailPanel button:hover{filter:brightness(1.15);transform:translateY(-1px);}
+#trustDetailPanel button:active{transform:translateY(0);}
+/* Profile severity bar (Team, Profile, Repo Health, Analytics, Platform panels) */
+.profile-severity-bar{display:flex;flex-wrap:wrap;gap:10px 16px;padding:10px 12px;margin:0 12px 12px;border-radius:8px;background:var(--vscode-input-background,rgba(255,255,255,0.03));border:1px solid var(--vscode-panel-border,rgba(255,255,255,0.06));font-size:11px;color:var(--vscode-foreground,#ccc);}
+.profile-severity-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.profile-severity-dot.red{background:#ef4444;}
+.profile-severity-dot.amber{background:#f59e0b;}
+.profile-severity-dot.blue{background:#60a5fa;}
+.profile-severity-dot.green{background:#34d399;}
 /* Scan form */
 .scan-form{padding:0 12px 12px;}
 .scan-label{font-size:11px;color:var(--vscode-descriptionForeground,#858585);margin-bottom:4px;display:block;}
@@ -1614,7 +1829,7 @@ body.detail-panel-open #tabAdvanced {
     <div class="header-subtitle">AI Slop Cop</div>
   </div>
   <div class="header-actions">
-    <button class="header-theme-toggle" id="tdThemeToggleSidebar" title="Toggle Theme" aria-label="Toggle Theme">
+    <button type="button" class="header-theme-toggle" id="tdThemeToggleSidebar" title="Toggle Theme" aria-label="Toggle Theme">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
     </button>
   </div>
@@ -1623,7 +1838,6 @@ body.detail-panel-open #tabAdvanced {
   <div class="tab-item active" data-tab="dashboard">Dashboard</div>
   <div class="tab-item" data-tab="scan">Scan</div>
   <div class="tab-item" data-tab="analyze">Analyze</div>
-  <div class="tab-item" data-tab="report">Report</div>
   <div class="tab-item" data-tab="advanced">Advanced</div>
   <div class="tab-item" data-tab="settings">Settings</div>
   <div class="tab-item" data-tab="team">Team Dashboard</div>
@@ -1632,7 +1846,6 @@ body.detail-panel-open #tabAdvanced {
   <div class="sidebar-tab-item active" data-tab="dashboard"><span class="sidebar-tab-icon">&#x1F3E0;</span>Dashboard</div>
   <div class="sidebar-tab-item" data-tab="scan"><span class="sidebar-tab-icon">&#x1F50D;</span>Scan</div>
   <div class="sidebar-tab-item" data-tab="analyze"><span class="sidebar-tab-icon">&#x1F4C8;</span>Analyze</div>
-  <div class="sidebar-tab-item" data-tab="report"><span class="sidebar-tab-icon">&#x1F4C4;</span>Report</div>
   <div class="sidebar-tab-item" data-tab="advanced"><span class="sidebar-tab-icon">&#x2699;</span>Advanced</div>
   <div class="sidebar-tab-item" data-tab="settings"><span class="sidebar-tab-icon">&#x1F527;</span>Settings</div>
   <div class="sidebar-tab-item" data-tab="team"><span class="sidebar-tab-icon">&#x1F465;</span>Team</div>
@@ -1707,27 +1920,27 @@ body.detail-panel-open #tabAdvanced {
     <div class="db-info-row"><div class="db-info-label">Repository Files</div><div class="db-info-val" id="dbRepoFiles">--</div></div>
     <div class="db-info-row"><div class="db-info-label">Gate Checked</div><div class="db-info-val" id="dbGateChecked">--</div></div>
   </div>
-  <div class="settings-btn-card ${displayMode === 'sidebar' ? '' : 'hidden'}" id="scanWorkspaceDropdownHeader" data-sidebar-tab="dashboard" style="margin-bottom:0;background:linear-gradient(135deg,rgba(99,102,241,0.15) 0%,rgba(129,140,248,0.08) 100%);border-color:rgba(99,102,241,0.25);cursor:pointer;">
-    <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></span>
-    <span>Workspace</span>
-  </div>
-  <div class="db-actions-row" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0;">
-    <div class="settings-btn-card" id="dashPreviewBtn" style="margin-bottom:0;background:linear-gradient(135deg,rgba(99,102,241,0.15) 0%,rgba(165,180,252,0.08) 100%);border-color:rgba(99,102,241,0.25);cursor:pointer;">
-      <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span>
-      <span>Preview</span>
-    </div>
-    <div class="settings-btn-card" id="dashBrowserBtn" style="margin-bottom:0;background:linear-gradient(135deg,rgba(59,130,246,0.15) 0%,rgba(96,165,250,0.08) 100%);border-color:rgba(59,130,246,0.25);cursor:pointer;">
-      <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></span>
-      <span>Browser</span>
-    </div>
-    <div class="settings-btn-card" id="dashExportReportBtn" style="margin-bottom:0;background:linear-gradient(135deg,rgba(245,158,11,0.15) 0%,rgba(217,119,6,0.08) 100%);border-color:rgba(245,158,11,0.25);cursor:pointer;">
-      <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span>
-      <span>Export Report</span>
-    </div>
-    <div class="settings-btn-card" id="dashClearResultsBtn" style="margin-bottom:0;background:linear-gradient(135deg,rgba(107,114,128,0.15) 0%,rgba(156,163,175,0.08) 100%);border-color:rgba(107,114,128,0.25);cursor:pointer;">
-      <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span>
-      <span>Clear Results</span>
-    </div>
+  <div class="menu-list" style="padding:0 12px 12px;display:flex;flex-direction:column;gap:6px;">
+    <button type="button" id="scanWorkspaceDropdownHeader" class="menu-list-item ${displayMode === 'sidebar' ? '' : 'hidden'}">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      Workspace
+    </button>
+    <button type="button" id="dashPreviewBtn" class="menu-list-item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      Preview
+    </button>
+    <button type="button" id="dashBrowserBtn" class="menu-list-item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+      Browser
+    </button>
+    <button type="button" id="dashExportReportBtn" class="menu-list-item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Export Report
+    </button>
+    <button type="button" id="dashClearResultsBtn" class="menu-list-item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+      Clear Results
+    </button>
   </div>
   <div class="dl-section">
     <div class="dl-header">
@@ -1754,24 +1967,24 @@ body.detail-panel-open #tabAdvanced {
   <div style="display:flex;align-items:center;justify-content:space-between;width:100%;margin-bottom:4px;">
     <div class="db-info-label" id="scanTargetLabel">Scan Target</div>
     <label class="toggle-switch" style="flex-shrink:0;margin-left:8px;">
-      <input type="checkbox" id="sidebarScanWorkspaceToggle" checked />
+      <input type="checkbox" id="sidebarScanWorkspaceToggle" ${isWorkspaceMode ? 'checked' : ''} />
       <span class="toggle-slider"></span>
     </label>
   </div>
-  <div id="sidebarScanToggleLabel" style="font-size:11px;color:var(--vscode-descriptionForeground,#858585);margin-bottom:8px;">Current Workspace</div>
-  <div id="sidebarScanCustomWrap" style="display:none;flex-direction:column;gap:6px;margin-bottom:8px;">
+  <div id="sidebarScanToggleLabel" style="font-size:11px;color:var(--vscode-descriptionForeground,#858585);margin-bottom:8px;">${isWorkspaceMode ? 'Current Workspace' : 'Custom Location'}</div>
+  <div id="sidebarScanCustomWrap" style="display:${isWorkspaceMode ? 'none' : 'flex'};flex-direction:column;gap:6px;margin-bottom:8px;">
     <div style="display:flex;align-items:center;justify-content:space-between;width:100%;">
       <div class="db-info-label">Custom Location</div>
       <div style="display:flex;gap:6px;">
-        <button class="btn btn-ghost btn-xs" id="sidebarScanBrowseBtn" style="font-size:0.72rem;padding:3px 8px;">Browse</button>
-        <button class="btn btn-ghost btn-xs" id="sidebarScanDetectBtn" style="font-size:0.72rem;padding:3px 8px;">Detect</button>
+        <button type="button" id="sidebarScanBrowseBtn" class="menu-list-item" style="padding:6px 10px;font-size:11px;width:auto;flex:0;">Browse</button>
+        <button type="button" id="sidebarScanDetectBtn" class="menu-list-item" style="padding:6px 10px;font-size:11px;width:auto;flex:0;">Detect</button>
       </div>
     </div>
-    <input type="text" class="settings-input" id="sidebarScanPathInput" placeholder="Project path..." value="" style="margin-top:0;" />
+    <input type="text" class="settings-input" id="sidebarScanPathInput" placeholder="Project path..." value="${escapeHtml(savedProjectPath)}" style="margin-top:0;" />
   </div>
-  <div id="scanActionRow" style="display:none;flex-direction:column;gap:8px;">
+  <div id="scanActionRow" style="display:${isWorkspaceMode ? 'none' : 'flex'};flex-direction:column;gap:8px;">
     <div style="display:flex;align-items:center;gap:8px;">
-      <button class="btn btn-primary btn-xs" id="scanStartBtn" style="font-size:0.72rem;padding:3px 10px;white-space:nowrap;">Scan</button>
+      <button type="button" id="scanStartBtn" class="menu-list-item" style="padding:6px 10px;font-size:11px;width:auto;flex:0;">Scan</button>
       <div class="scan-progress-wrap" style="flex:1;height:8px;background:rgba(99,102,241,0.15);border-radius:4px;overflow:hidden;">
         <div id="scanProgressBar" style="width:0%;height:100%;background:linear-gradient(90deg,rgba(99,102,241,0.8),rgba(129,140,248,0.8));border-radius:4px;transition:width 0.3s ease;"></div>
       </div>
@@ -1782,10 +1995,10 @@ body.detail-panel-open #tabAdvanced {
 </div>
 <div class="tab-section" id="quickLinksHeader" data-sidebar-tab="scan">Quick Links</div>
 <div class="quick-links" data-sidebar-tab="scan">
-  <div class="ql-btn" id="qlDashboardBtn"><span>&#x1F4CA;</span> Dashboard</div>
-  <div class="ql-btn" id="qlReportBtn"><span>&#x1F4C4;</span> Report</div>
-  <div class="ql-btn" id="qlBrowserBtn"><span>&#x1F5A5;</span> Browser</div>
-  <div class="ql-btn" id="qlPreviewBtn"><span>&#x1F310;</span> Preview</div>
+  <button type="button" id="qlDashboardBtn" class="ql-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg>Dashboard</button>
+  <button type="button" id="qlReportBtn" class="ql-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><line x1="10" y1="9" x2="8" y2="9"></line></svg>Report</button>
+  <button type="button" id="qlBrowserBtn" class="ql-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>Browser</button>
+  <button type="button" id="qlPreviewBtn" class="ql-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>Preview</button>
 </div>
 <div class="tab-pane" id="tabUpload">
   <div class="upload-header">
@@ -1817,9 +2030,9 @@ body.detail-panel-open #tabAdvanced {
     <div class="upload-type">&#x1F4C4; .json report</div>
     <div class="upload-type">&#x1F4C4; .md / .txt</div>
   </div>
-  <div class="upload-actions">
-    <button class="upload-btn" id="uploadValidateBtn">&#x2713; Validate All</button>
-    <button class="upload-btn secondary" id="uploadClearBtn">Clear</button>
+  <div class="upload-actions" style="display:flex;gap:8px;">
+    <button type="button" id="uploadValidateBtn" class="menu-list-item" style="flex:1;justify-content:center;">Validate All</button>
+    <button type="button" id="uploadClearBtn" class="menu-list-item" style="flex:1;justify-content:center;">Clear</button>
   </div>
   <div class="upload-progress" id="uploadProgress" style="display:none;">
     <div class="upload-progress-bar"><div class="upload-progress-fill" id="uploadProgressFill"></div></div>
@@ -1840,73 +2053,167 @@ body.detail-panel-open #tabAdvanced {
 </div>
 <div class="tab-pane" id="tabCodemap">
 <div class="tab-section">Code Map</div>
-<div class="settings-btn-card ${displayMode === 'mainWindow' ? '' : 'hidden'}" data-display-mode="mainWindow" id="openCodeMapBtn" style="margin-bottom:0;background:linear-gradient(135deg,rgba(6,182,212,0.15) 0%,rgba(8,145,178,0.08) 100%);border-color:rgba(6,182,212,0.25);">
-  <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg></span>
-  <span>Open Code Map</span>
-</div>
-<div class="settings-btn-card ${displayMode === 'mainWindow' ? '' : 'hidden'}" data-display-mode="mainWindow" id="openCertificateBtn" style="margin-bottom:0;background:linear-gradient(135deg,rgba(236,72,153,0.15) 0%,rgba(219,39,119,0.08) 100%);border-color:rgba(236,72,153,0.25);">
-  <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
-  <span>Open Certificate</span>
+<div class="menu-list" style="padding:0 12px 12px;display:flex;flex-direction:column;gap:6px;">
+  <button type="button" id="openCodeMapTabInMainWindowBtn" class="menu-list-item">Open in Main Window</button>
+  <button type="button" id="openCodeMapBtn" class="menu-list-item ${displayMode === 'mainWindow' ? '' : 'hidden'}" data-display-mode="mainWindow">Open Code Map</button>
+  <button type="button" id="openCertificateBtn" class="menu-list-item ${displayMode === 'mainWindow' ? '' : 'hidden'}" data-display-mode="mainWindow">Open Certificate</button>
 </div>
 </div>
 <div class="tab-pane" id="tabAnalyze">
-<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;">
-  <div class="db-title">Analyze</div>
+<div class="analyze-header">
+  <div>
+    <div class="analyze-title">Analysis</div>
+    <div class="analyze-subtitle">Scan, analyze & export results</div>
+  </div>
 </div>
-<div class="tab-section">ANALYSIS</div>
-<div class="settings-btn-card" id="analyzeRunCard" style="margin-bottom:0;background:linear-gradient(135deg,rgba(16,185,129,0.15) 0%,rgba(52,211,153,0.08) 100%);border-color:rgba(16,185,129,0.25);">
-  <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg></span>
-  <span>Run Analysis</span>
+<div class="analyze-grid">
+  <button type="button" id="analyzeRunCard" class="analyze-card accent-green">
+    <div class="analyze-card-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4"/><path d="M12 18v4"/><path d="M4.93 4.93l2.83 2.83"/><path d="M16.24 16.24l2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h4"/><path d="M4.93 19.07l2.83-2.83"/><path d="M16.24 7.76l2.83-2.83"/></svg></div>
+    <div class="analyze-card-label">Run Analysis</div>
+    <div class="analyze-card-desc">Start a full workspace scan</div>
+  </button>
+  <button type="button" id="analyzeScanWorkspaceCard" class="analyze-card accent-blue">
+    <div class="analyze-card-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+    <div class="analyze-card-label">Enhanced Scan</div>
+    <div class="analyze-card-desc">In-JS analyzer with profile picker</div>
+  </button>
+  <button type="button" id="analyzeExportJsonCard" class="analyze-card accent-amber">
+    <div class="analyze-card-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></div>
+    <div class="analyze-card-label">Export JSON</div>
+    <div class="analyze-card-desc">Download report as JSON</div>
+  </button>
 </div>
-<div class="settings-btn-card" id="analyzeScanWorkspaceCard" style="margin-bottom:0;background:linear-gradient(135deg,rgba(59,130,246,0.15) 0%,rgba(96,165,250,0.08) 100%);border-color:rgba(59,130,246,0.25);">
-  <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>
-  <span>Scan Workspace</span>
+<div class="analyze-section-title">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+  AI Analysis Tools
 </div>
-<div class="settings-btn-card" id="analyzeExportJsonCard" style="margin-bottom:0;background:linear-gradient(135deg,rgba(245,158,11,0.15) 0%,rgba(251,191,36,0.08) 100%);border-color:rgba(245,158,11,0.25);">
-  <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></span>
-  <span>Export JSON</span>
-</div>
-<div class="tab-section">AI ANALYSIS TOOLS</div>
-<div class="settings-btn-card" id="openEnhancedAnalysisBtn" style="margin-bottom:0;background:linear-gradient(135deg,rgba(139,92,246,0.15) 0%,rgba(167,139,250,0.08) 100%);border-color:rgba(139,92,246,0.25);">
-  <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></span>
-  <span>Enhanced Analysis</span>
-</div>
-<div class="settings-btn-card" id="openRealtimeAnalysisBtn" style="margin-bottom:0;background:linear-gradient(135deg,rgba(245,158,11,0.15) 0%,rgba(251,191,36,0.08) 100%);border-color:rgba(245,158,11,0.25);">
-  <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span>
-  <span>Real-Time Analysis</span>
-</div>
-<div class="settings-btn-card" id="openPatternDetectionBtn" style="margin-bottom:0;background:linear-gradient(135deg,rgba(14,165,233,0.15) 0%,rgba(56,189,248,0.08) 100%);border-color:rgba(14,165,233,0.25);">
-  <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></span>
-  <span>Pattern Detection</span>
-</div>
-<div class="settings-btn-card" id="openModelHealthBtn" style="margin-bottom:0;background:linear-gradient(135deg,rgba(239,68,68,0.15) 0%,rgba(248,113,113,0.08) 100%);border-color:rgba(239,68,68,0.25);">
-  <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span>
-  <span>Model Health</span>
-</div>
-<div class="settings-btn-card" id="openToggleMonitorBtn" style="margin-bottom:0;background:linear-gradient(135deg,rgba(16,185,129,0.15) 0%,rgba(52,211,153,0.08) 100%);border-color:rgba(16,185,129,0.25);">
-  <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
-  <span>Toggle AI Slop Monitor</span>
+<div class="analyze-list">
+  <button type="button" id="openEnhancedAnalysisBtn" class="analyze-list-item">
+    <div class="analyze-list-item-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div>
+    <div class="analyze-list-item-text">
+      <div class="analyze-list-item-label">Enhanced Analysis</div>
+      <div class="analyze-list-item-desc">Deep-dive AI-powered insights</div>
+    </div>
+  </button>
+  <button type="button" id="openRealtimeAnalysisBtn" class="analyze-list-item">
+    <div class="analyze-list-item-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+    <div class="analyze-list-item-text">
+      <div class="analyze-list-item-label">Real-Time Analysis</div>
+      <div class="analyze-list-item-desc">Live monitoring as you code</div>
+    </div>
+  </button>
+  <button type="button" id="openPatternDetectionBtn" class="analyze-list-item">
+    <div class="analyze-list-item-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></div>
+    <div class="analyze-list-item-text">
+      <div class="analyze-list-item-label">Pattern Detection</div>
+      <div class="analyze-list-item-desc">Find anti-patterns & smells</div>
+    </div>
+  </button>
+  <button type="button" id="openModelHealthBtn" class="analyze-list-item">
+    <div class="analyze-list-item-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div>
+    <div class="analyze-list-item-text">
+      <div class="analyze-list-item-label">Model Health</div>
+      <div class="analyze-list-item-desc">Check AI model performance</div>
+    </div>
+  </button>
+  <button type="button" id="openToggleMonitorBtn" class="analyze-list-item">
+    <div class="analyze-list-item-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+    <div class="analyze-list-item-text">
+      <div class="analyze-list-item-label">Toggle AI Slop Monitor</div>
+      <div class="analyze-list-item-desc">Enable/disable quality guard</div>
+    </div>
+  </button>
 </div>
 </div>
 <div class="tab-pane" id="tabReport" data-sidebar-tab="report">
-<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;">
-  <div class="diag-back-bar" id="reportBackBtn" role="button" tabindex="0" style="margin-bottom:0;">
+<div style="padding:6px 0;">
+  <div class="diag-back-bar" id="reportTopBackBtn" role="button" tabindex="0" style="margin:0;">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
     <span>Back</span>
   </div>
-  <button class="btn btn-ghost btn-xs" id="openReportInMainWindowBtn" style="font-size:0.72rem;padding:3px 8px;">Open in Main Window</button>
 </div>
-<div class="tab-section">Report</div>
-<div class="tc-grid">
-  <div class="tc-card"><div class="tc-card-val blue" id="reportScoreCard">--</div><div class="tc-card-label">Score</div></div>
-  <div class="tc-card"><div class="tc-card-val green" id="reportGateCard">--</div><div class="tc-card-label">Gate</div></div>
-  <div class="tc-card"><div class="tc-card-val orange" id="reportIssuesCard">--</div><div class="tc-card-label">Issues</div></div>
-  <div class="tc-card"><div class="tc-card-val purple" id="reportFilesCard">--</div><div class="tc-card-label">Files</div></div>
+<div class="report-grid">
+  <div class="report-card accent-green">
+    <div class="report-card-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+    <div class="report-card-value green" id="reportScoreCard">--</div>
+    <div class="report-card-label">Quality Score</div>
+  </div>
+  <div class="report-card accent-blue">
+    <div class="report-card-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></div>
+    <div class="report-card-value blue" id="reportGateCard">--</div>
+    <div class="report-card-label">Gate Status</div>
+  </div>
+  <div class="report-card accent-red">
+    <div class="report-card-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+    <div class="report-card-value red" id="reportIssuesCard">--</div>
+    <div class="report-card-label">Total Issues</div>
+  </div>
+  <div class="report-card accent-purple">
+    <div class="report-card-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
+    <div class="report-card-value purple" id="reportFilesCard">--</div>
+    <div class="report-card-label">Files Scanned</div>
+  </div>
+</div>
+<div class="tab-section">Severity Breakdown</div>
+<div style="padding-bottom:8px;">
+  <div class="report-sev-row">
+    <div class="report-sev-label">Critical</div>
+    <div class="report-sev-bar-wrap"><div id="reportCritBar" class="report-sev-bar critical" style="width:0%"></div></div>
+    <div class="report-sev-val critical" id="reportCritVal">0</div>
+  </div>
+  <div class="report-sev-row">
+    <div class="report-sev-label">High</div>
+    <div class="report-sev-bar-wrap"><div id="reportHighBar" class="report-sev-bar high" style="width:0%"></div></div>
+    <div class="report-sev-val high" id="reportHighVal">0</div>
+  </div>
+  <div class="report-sev-row">
+    <div class="report-sev-label">Medium</div>
+    <div class="report-sev-bar-wrap"><div id="reportMedBar" class="report-sev-bar medium" style="width:0%"></div></div>
+    <div class="report-sev-val medium" id="reportMedVal">0</div>
+  </div>
+  <div class="report-sev-row">
+    <div class="report-sev-label">Low</div>
+    <div class="report-sev-bar-wrap"><div id="reportLowBar" class="report-sev-bar low" style="width:0%"></div></div>
+    <div class="report-sev-val low" id="reportLowVal">0</div>
+  </div>
 </div>
 <div class="tab-section">Actions</div>
-<div class="tc-list">
-  <div class="tc-list-item"><div class="tc-list-item-left"><span class="tc-list-dot blue"></span><span class="tc-list-name">View Full Report</span></div><span class="tc-list-meta">Web dashboard</span></div>
-  <div class="tc-list-item"><div class="tc-list-item-left"><span class="tc-list-dot green"></span><span class="tc-list-name">Export JSON</span></div><span class="tc-list-meta">Download</span></div>
+<div class="report-actions">
+  <button type="button" id="reportViewFullBtn" class="report-action-btn">
+    <div class="report-action-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
+    <span>View Full</span>
+  </button>
+  <button type="button" id="reportExportJsonBtn" class="report-action-btn">
+    <div class="report-action-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>
+    <span>Export JSON</span>
+  </button>
+  <button type="button" id="openReportInMainWindowBtn" class="report-action-btn">
+    <div class="report-action-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/></svg></div>
+    <span>Open Main</span>
+  </button>
+  <button type="button" id="reportNewScanBtn" class="report-action-btn">
+    <div class="report-action-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4"/><path d="M12 18v4"/><path d="M4.93 4.93l2.83 2.83"/><path d="M16.24 16.24l2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h4"/><path d="M4.93 19.07l2.83-2.83"/><path d="M16.24 7.76l2.83-2.83"/></svg></div>
+    <span>New Scan</span>
+  </button>
+</div>
+<div class="tab-section">Scan Info</div>
+<div class="report-info">
+  <div class="report-info-row">
+    <span class="report-info-label">Last Scan</span>
+    <span class="report-info-value" id="reportLastScan">--</span>
+  </div>
+  <div class="report-info-row">
+    <span class="report-info-label">Duration</span>
+    <span class="report-info-value" id="reportDuration">--</span>
+  </div>
+  <div class="report-info-row">
+    <span class="report-info-label">Repository Files</span>
+    <span class="report-info-value" id="reportRepoFiles">--</span>
+  </div>
+  <div class="report-info-row">
+    <span class="report-info-label">Gate Checked</span>
+    <span class="report-info-value" id="reportGateChecked">--</span>
+  </div>
 </div>
 </div>
 <div class="tab-pane" id="tabRoadmap">
@@ -1915,7 +2222,7 @@ body.detail-panel-open #tabAdvanced {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
     <span>Back</span>
   </div>
-  <button class="btn btn-ghost btn-xs" id="openRoadmapInMainWindowBtn" style="font-size:0.72rem;padding:3px 8px;">Open in Main Window</button>
+  <button type="button" id="openRoadmapInMainWindowBtn" class="menu-list-item" style="padding:6px 10px;font-size:11px;width:auto;flex:0;">Open in Main Window</button>
 </div>
 <div class="tab-section">Roadmap</div>
 <div class="tc-status" style="padding:12px;"><span class="tc-status-badge">Roadmap view</span></div>
@@ -1930,7 +2237,7 @@ body.detail-panel-open #tabAdvanced {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
     <span>Back</span>
   </div>
-  <button class="btn btn-ghost btn-xs" id="openAiContextInMainWindowBtn" style="font-size:0.72rem;padding:3px 8px;">Open in Main Window</button>
+  <button type="button" id="openAiContextInMainWindowBtn" class="menu-list-item" style="padding:6px 10px;font-size:11px;width:auto;flex:0;">Open in Main Window</button>
 </div>
 <div class="tab-section">AI Context</div>
 <div class="tc-status" style="padding:12px;"><span class="tc-status-badge">AI analysis context</span></div>
@@ -1940,7 +2247,10 @@ body.detail-panel-open #tabAdvanced {
 </div>
 </div>
 <div class="tab-pane" id="tabRepohealth">
-<div class="tab-section">Repository Health</div>
+<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;">
+  <div class="db-title">Repository Health</div>
+  <button type="button" id="openRepoHealthInMainWindowBtn" class="menu-list-item" style="padding:6px 10px;font-size:11px;width:auto;flex:0;">Open in Main Window</button>
+</div>
 <div class="tc-grid">
   <div class="tc-card"><div class="tc-card-val green" id="rhScore">--</div><div class="tc-card-label">Health Score</div></div>
   <div class="tc-card"><div class="tc-card-val blue" id="rhFiles">--</div><div class="tc-card-label">Files</div></div>
@@ -1953,16 +2263,16 @@ body.detail-panel-open #tabAdvanced {
   <div class="tc-list-item"><div class="tc-list-item-left"><span class="tc-list-dot amber"></span><span class="tc-list-name">Test Coverage</span></div><span class="tc-list-meta" id="rhTests">--</span></div>
   <div class="tc-list-item"><div class="tc-list-item-left"><span class="tc-list-dot blue"></span><span class="tc-list-name">Outdated Deps</span></div><span class="tc-list-meta" id="rhOutdated">--</span></div>
 </div>
-<div class="tc-actions">
-  <div class="tc-action-btn" id="openRepoHealthBtn"><span class="icon">&#x1F4CA;</span> Open Full Report</div>
-  <div class="tc-action-btn" id="refreshRepoHealthBtn"><span class="icon">&#x1F504;</span> Refresh Health Check</div>
-</div>
-<div class="settings-actions" style="margin-top:8px;">
-  <button class="settings-btn-secondary" id="openRepoHealthInMainWindowBtn">Open in Main Window</button>
+<div class="menu-list" style="padding:0 12px 12px;display:flex;flex-direction:column;gap:6px;">
+  <button type="button" id="openRepoHealthBtn" class="menu-list-item">Open Full Report</button>
+  <button type="button" id="refreshRepoHealthBtn" class="menu-list-item">Refresh Health Check</button>
 </div>
 </div>
 <div class="tab-pane" id="tabAnalytics">
-<div class="tab-section">Analytics</div>
+<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;">
+  <div class="db-title">Analytics</div>
+  <button type="button" id="openAnalyticsInMainWindowBtn" class="menu-list-item" style="padding:6px 10px;font-size:11px;width:auto;flex:0;">Open in Main Window</button>
+</div>
 <div class="tc-grid">
   <div class="tc-card"><div class="tc-card-val purple" id="anScore">--</div><div class="tc-card-label">Quality Score</div></div>
   <div class="tc-card"><div class="tc-card-val blue" id="anTrend">--</div><div class="tc-card-label">Trend</div></div>
@@ -1973,11 +2283,8 @@ body.detail-panel-open #tabAdvanced {
   <div class="tc-list-item"><div class="tc-list-item-left"><span class="tc-list-dot amber"></span><span class="tc-list-name">High</span></div><span class="tc-list-meta" id="anHigh">--</span></div>
   <div class="tc-list-item"><div class="tc-list-item-left"><span class="tc-list-dot blue"></span><span class="tc-list-name">Medium</span></div><span class="tc-list-meta" id="anMed">--</span></div>
 </div>
-<div class="tc-actions">
-  <div class="tc-action-btn" id="openAnalyticsBtn"><span class="icon">&#x1F4CA;</span> Open Full Analytics</div>
-</div>
-<div class="settings-actions" style="margin-top:8px;">
-  <button class="settings-btn-secondary" id="openAnalyticsInMainWindowBtn">Open in Main Window</button>
+<div class="menu-list" style="padding:0 12px 12px;display:flex;flex-direction:column;gap:6px;">
+  <button type="button" id="openAnalyticsBtn" class="menu-list-item">Open Full Analytics</button>
 </div>
 </div>
 <div class="tab-pane" id="tabTeam">
@@ -2032,8 +2339,9 @@ body.detail-panel-open #tabAdvanced {
   <div class="tc-list-item"><div class="tc-list-item-left"><span class="tc-list-dot green"></span><span class="tc-list-name">Audit Trail</span></div><span class="tc-list-meta" id="trAudit">Active</span></div>
   <div class="tc-list-item"><div class="tc-list-item-left"><span class="tc-list-dot amber"></span><span class="tc-list-name">AI Review</span></div><span class="tc-list-meta" id="trAi">Pending</span></div>
 </div>
-<div class="tc-actions">
-  <div class="tc-action-btn" id="openTrustBtn"><span class="icon">&#x1F6E1;</span> Open Trust Center</div>
+<div class="menu-list" style="padding:0 12px 12px;display:flex;flex-direction:column;gap:6px;">
+  <button type="button" id="openTrustBtn" class="menu-list-item">Open Trust Center</button>
+  <button type="button" id="openTrustTabInMainWindowBtn" class="menu-list-item">Open in Main Window</button>
 </div>
 </div>
 <div class="tab-pane" id="tabAssessments">
@@ -2048,8 +2356,9 @@ body.detail-panel-open #tabAdvanced {
   <div class="tc-list-item"><div class="tc-list-item-left"><span class="tc-list-dot green"></span><span class="tc-list-name">Secrets Scan</span></div><span class="tc-list-meta" id="asSecrets">--</span></div>
   <div class="tc-list-item"><div class="tc-list-item-left"><span class="tc-list-dot amber"></span><span class="tc-list-name">License Check</span></div><span class="tc-list-meta" id="asLic">--</span></div>
 </div>
-<div class="tc-actions">
-  <div class="tc-action-btn" id="openAssessmentsBtn"><span class="icon">&#x1F4CB;</span> Run Assessment</div>
+<div class="menu-list" style="padding:0 12px 12px;display:flex;flex-direction:column;gap:6px;">
+  <button type="button" id="openAssessmentsBtn" class="menu-list-item">Run Assessment</button>
+  <button type="button" id="openAssessmentsTabInMainWindowBtn" class="menu-list-item">Open in Main Window</button>
 </div>
 </div>
 <div class="tab-pane" id="tabPlatform">
@@ -2064,8 +2373,9 @@ body.detail-panel-open #tabAdvanced {
   <div class="tc-list-item"><div class="tc-list-item-left"><span class="tc-list-dot green"></span><span class="tc-list-name">Relay</span></div><span class="tc-list-meta" id="plRelay">--</span></div>
   <div class="tc-list-item"><div class="tc-list-item-left"><span class="tc-list-dot blue"></span><span class="tc-list-name">API</span></div><span class="tc-list-meta" id="plApi">127.0.0.1:54358</span></div>
 </div>
-<div class="tc-actions">
-  <div class="tc-action-btn" id="openPlatformBtn"><span class="icon">&#x1F4BB;</span> Open Platform Details</div>
+<div class="menu-list" style="padding:0 12px 12px;display:flex;flex-direction:column;gap:6px;">
+  <button type="button" id="openPlatformBtn" class="menu-list-item">Open Platform Details</button>
+  <button type="button" id="openPlatformTabInMainWindowBtn" class="menu-list-item">Open in Main Window</button>
 </div>
 </div>
 <div class="tab-pane" id="tabCompliance">
@@ -2080,8 +2390,9 @@ body.detail-panel-open #tabAdvanced {
   <div class="tc-list-item"><div class="tc-list-item-left"><span class="tc-list-dot green"></span><span class="tc-list-name">ISO 27001</span></div><span class="tc-list-meta" id="cpIso">--</span></div>
   <div class="tc-list-item"><div class="tc-list-item-left"><span class="tc-list-dot amber"></span><span class="tc-list-name">GDPR</span></div><span class="tc-list-meta" id="cpGdpr">--</span></div>
 </div>
-<div class="tc-actions">
-  <div class="tc-action-btn" id="openComplianceBtn"><span class="icon">&#x2705;</span> Open Compliance Report</div>
+<div class="menu-list" style="padding:0 12px 12px;display:flex;flex-direction:column;gap:6px;">
+  <button type="button" id="openComplianceBtn" class="menu-list-item">Open Compliance Report</button>
+  <button type="button" id="openComplianceTabInMainWindowBtn" class="menu-list-item">Open in Main Window</button>
 </div>
 </div>
 <div class="tab-pane" id="tabProfile">
@@ -2096,47 +2407,33 @@ body.detail-panel-open #tabAdvanced {
   <div class="tc-list-item"><div class="tc-list-item-left"><span class="tc-list-dot green"></span><span class="tc-list-name">Auto Scan</span></div><span class="tc-list-meta" id="prAuto">Off</span></div>
   <div class="tc-list-item"><div class="tc-list-item-left"><span class="tc-list-dot blue"></span><span class="tc-list-name">Server URL</span></div><span class="tc-list-meta" id="prUrl">127.0.0.1:54358</span></div>
 </div>
-<div class="tc-actions">
-  <div class="tc-action-btn" id="openProfileBtn"><span class="icon">&#x1F464;</span> Open Profile</div>
-</div>
-<div class="settings-actions" style="margin-top:8px;">
-  <button class="settings-btn-secondary" id="openProfileInMainWindowBtn">Open in Main Window</button>
+<div class="menu-list" style="padding:0 12px 12px;display:flex;flex-direction:column;gap:6px;">
+  <button type="button" id="openProfileBtn" class="menu-list-item">Open Profile</button>
+  <button type="button" id="openProfileInMainWindowBtn" class="menu-list-item" style="padding:6px 10px;font-size:11px;width:auto;flex:0;">Open in Main Window</button>
 </div>
 </div>
 <div class="tab-pane" id="tabAdvanced">
 <div class="tab-section">Advanced Menu</div>
 <div class="tab-section">Analysis</div>
-<div class="settings-btn-card" id="openReportBtn" style="margin-bottom:0;background:linear-gradient(135deg,rgba(245,158,11,0.15) 0%,rgba(217,119,6,0.08) 100%);border-color:rgba(245,158,11,0.25);">
-  <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></span>
-  <span>Open Report</span>
-</div>
-<div class="settings-btn-card" id="openRoadmapBtn" style="margin-bottom:0;background:linear-gradient(135deg,rgba(139,92,246,0.15) 0%,rgba(167,139,250,0.08) 100%);border-color:rgba(139,92,246,0.25);">
-  <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span>
-  <span>Open Roadmap</span>
-</div>
-<div class="settings-btn-card" id="openAiContextBtn" style="margin-bottom:0;background:linear-gradient(135deg,rgba(249,115,22,0.15) 0%,rgba(251,146,60,0.08) 100%);border-color:rgba(249,115,22,0.25);">
-  <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></span>
-  <span>Open AI Context</span>
-</div>
-<div class="tab-section ${displayMode === 'mainWindow' ? '' : 'hidden'}" data-display-mode="mainWindow">Local</div>
-<div class="settings-btn-card ${displayMode === 'mainWindow' ? '' : 'hidden'}" data-display-mode="mainWindow" id="openSecurityBtnMain" style="margin-bottom:0;background:linear-gradient(135deg,rgba(59,130,246,0.15) 0%,rgba(96,165,250,0.08) 100%);border-color:rgba(59,130,246,0.25);">
-  <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
-  <span>Security</span>
+<div class="menu-list" style="padding:0 12px 12px;display:flex;flex-direction:column;gap:6px;">
+  <button type="button" id="openReportBtn" class="menu-list-item">Open Report</button>
+  <button type="button" id="openRoadmapBtn" class="menu-list-item">Open Roadmap</button>
+  <button type="button" id="openAiContextBtn" class="menu-list-item">Open AI Context</button>
+  <button type="button" id="openSecurityBtnMain" class="menu-list-item ${displayMode === 'mainWindow' ? '' : 'hidden'}" data-display-mode="mainWindow">Security</button>
 </div>
 <div class="tab-section">Cloud &amp; AI Tools</div>
-<div class="settings-btn-card" id="openUploadBtn" style="margin-bottom:0;background:linear-gradient(135deg,rgba(16,185,129,0.15) 0%,rgba(52,211,153,0.08) 100%);border-color:rgba(16,185,129,0.25);">
-  <span class="icon">&#x1F4E4;</span>
-  <span>Upload &amp; Validate</span>
-</div>
-<div class="settings-btn-card" id="openAuditBtnMain" style="margin-bottom:0;background:linear-gradient(135deg,rgba(239,68,68,0.15) 0%,rgba(248,113,113,0.08) 100%);border-color:rgba(239,68,68,0.25);">
-  <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span>
-  <span>Audit</span>
+<div class="menu-list" style="padding:0 12px 12px;display:flex;flex-direction:column;gap:6px;">
+  <button type="button" id="openUploadBtn" class="menu-list-item">Upload &amp; Validate</button>
+  <button type="button" id="openAuditBtnMain" class="menu-list-item">Audit</button>
 </div>
 </div>
 <div class="tab-pane" id="tabAudit" data-sidebar-tab="audit">
 <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;">
   <div class="db-title">Audit</div>
-  <div class="db-badge" id="auditBadge" style="background:rgba(245,158,11,0.18);color:#fbbf24;">PENDING</div>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <div class="db-badge" id="auditBadge" style="background:rgba(245,158,11,0.18);color:#fbbf24;">PENDING</div>
+    <button type="button" id="openAuditTabInMainWindowBtn" class="menu-list-item" style="padding:6px 10px;font-size:11px;width:auto;flex:0;">Open in Main Window</button>
+  </div>
 </div>
 <div class="settings-section-subtitle" style="margin:0 0 12px;">Security audit results and vulnerability assessment.</div>
 <div class="settings-kpi-grid">
@@ -2159,11 +2456,11 @@ body.detail-panel-open #tabAdvanced {
 </div>
 <div class="settings-section-card">
   <div class="settings-section-title">Actions</div>
-  <div class="settings-actions" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-    <button class="settings-btn-primary" id="tabAuditRunBtn">Run Audit</button>
-    <button class="settings-btn-secondary" id="tabAuditExportBtn">Export</button>
-    <button class="settings-btn-secondary" id="tabAuditViewBtn">View Report</button>
-    <button class="settings-btn-secondary" id="tabAuditSettingsBtn">Settings</button>
+  <div class="menu-list" style="display:flex;flex-direction:column;gap:6px;">
+    <button type="button" id="tabAuditRunBtn" class="menu-list-item">Run Audit</button>
+    <button type="button" id="tabAuditExportBtn" class="menu-list-item">Export</button>
+    <button type="button" id="tabAuditViewBtn" class="menu-list-item">View Report</button>
+    <button type="button" id="tabAuditSettingsBtn" class="menu-list-item">Settings</button>
   </div>
 </div>
 <div class="severity-bar">
@@ -2191,7 +2488,10 @@ body.detail-panel-open #tabAdvanced {
 <div class="tab-pane" id="tabUpload" data-sidebar-tab="upload">
 <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;">
   <div class="db-title">Upload</div>
-  <div class="db-badge" id="uploadBadge" style="background:rgba(34,197,94,0.18);color:#4ade80;">READY</div>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <div class="db-badge" id="uploadBadge" style="background:rgba(34,197,94,0.18);color:#4ade80;">READY</div>
+    <button type="button" id="openUploadTabInMainWindowBtn" class="menu-list-item" style="padding:6px 10px;font-size:11px;width:auto;flex:0;">Open in Main Window</button>
+  </div>
 </div>
 <div class="settings-section-subtitle" style="margin:0 0 12px;">Upload and validate files for scanning.</div>
 <div class="settings-kpi-grid">
@@ -2214,11 +2514,11 @@ body.detail-panel-open #tabAdvanced {
 </div>
 <div class="settings-section-card">
   <div class="settings-section-title">Actions</div>
-  <div class="settings-actions" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-    <button class="settings-btn-primary" id="tabUploadBrowseBtn">Browse</button>
-    <button class="settings-btn-secondary" id="tabUploadValidateBtn">Validate</button>
-    <button class="settings-btn-secondary" id="tabUploadScanBtn">Scan</button>
-    <button class="settings-btn-secondary" id="tabUploadClearBtn">Clear</button>
+  <div class="menu-list" style="display:flex;flex-direction:column;gap:6px;">
+    <button type="button" id="tabUploadBrowseBtn" class="menu-list-item">Browse</button>
+    <button type="button" id="tabUploadValidateBtn" class="menu-list-item">Validate</button>
+    <button type="button" id="tabUploadScanBtn" class="menu-list-item">Scan</button>
+    <button type="button" id="tabUploadClearBtn" class="menu-list-item">Clear</button>
   </div>
 </div>
 <div class="upload-dropzone" id="tabUploadDropzone">
@@ -2235,21 +2535,11 @@ body.detail-panel-open #tabAdvanced {
 </div>
 <div id="settingsMenuTab">
   <div class="tab-section">TOOLS</div>
-  <div class="settings-btn-card" id="openDiagnoseFromSettingsTab" style="margin-bottom:0;background:linear-gradient(135deg,rgba(6,182,212,0.15) 0%,rgba(8,145,178,0.08) 100%);border-color:rgba(6,182,212,0.25);">
-    <span class="icon">&#x26A0;</span>
-    <span>Diagnose</span>
-  </div>
-  <div class="settings-btn-card" id="openRefreshRelayFromSettingsTab" style="margin-bottom:0;background:linear-gradient(135deg,rgba(16,185,129,0.15) 0%,rgba(5,150,105,0.08) 100%);border-color:rgba(16,185,129,0.25);">
-    <span class="icon">&#x1F504;</span>
-    <span>Refresh Relay Port</span>
-  </div>
-  <div class="settings-btn-card" id="openSettingsFromSettingsTab" style="margin-bottom:0;background:linear-gradient(135deg,rgba(107,114,128,0.15) 0%,rgba(156,163,175,0.08) 100%);border-color:rgba(107,114,128,0.25);">
-    <span class="icon">&#x2699;</span>
-    <span>Open Settings</span>
-  </div>
-  <div class="settings-btn-card" id="openPlatformFromSettingsTab" style="margin-bottom:0;background:linear-gradient(135deg,rgba(99,102,241,0.15) 0%,rgba(129,140,248,0.08) 100%);border-color:rgba(99,102,241,0.25);">
-    <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></span>
-    <span>Platform</span>
+  <div class="menu-list" style="padding:0 12px 12px;display:flex;flex-direction:column;gap:6px;">
+    <button type="button" id="openDiagnoseFromSettingsTab" class="menu-list-item">Diagnose</button>
+    <button type="button" id="openRefreshRelayFromSettingsTab" class="menu-list-item">Refresh Relay Port</button>
+    <button type="button" id="openSettingsFromSettingsTab" class="menu-list-item">Open Settings</button>
+    <button type="button" id="openPlatformFromSettingsTab" class="menu-list-item">Platform</button>
   </div>
   <div class="tab-section" style="margin-top:16px;">SERVER INFO</div>
   <div class="card" id="statusCard">
@@ -2266,6 +2556,7 @@ body.detail-panel-open #tabAdvanced {
       <div class="card-value" id="serverUrlText">http://127.0.0.1:54358</div> <!-- simplebeacon-ignore config-drift — placeholder replaced by updateServerUrl -->
     </div>
   </div>
+</div>
 </div>
 <div id="settingsDetailPanelTab" style="display:none;">
   <div class="diag-back-bar" id="settingsDetailBackBtnTab" role="button" tabindex="0">
@@ -2340,13 +2631,13 @@ body.detail-panel-open #tabAdvanced {
       <div class="settings-row-desc" style="margin-bottom:6px;">Endpoint for scan and report data</div>
       <input type="text" class="settings-input" id="settingsApiInputTab" value="http://127.0.0.1:54358">
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 8px;">
-        <button type="button" class="btn btn-ghost btn-xs" id="apiPresetLocal" style="font-size:0.72rem;padding:3px 8px;">Local (54358)</button>
-        <button type="button" class="btn btn-ghost btn-xs" id="apiPresetSlopCop" style="font-size:0.72rem;padding:3px 8px;">AI Slop Cop (3001)</button>
-        <button type="button" class="btn btn-ghost btn-xs" id="apiPresetRemote" style="font-size:0.72rem;padding:3px 8px;">Remote (30011)</button>
+        <button type="button" id="apiPresetLocal" class="menu-list-item" style="padding:6px 10px;font-size:11px;width:auto;flex:0;">Local (54358)</button>
+        <button type="button" id="apiPresetSlopCop" class="menu-list-item" style="padding:6px 10px;font-size:11px;width:auto;flex:0;">AI Slop Cop (3001)</button>
+        <button type="button" id="apiPresetRemote" class="menu-list-item" style="padding:6px 10px;font-size:11px;width:auto;flex:0;">Remote (30011)</button>
       </div>
-      <div class="settings-actions">
-        <button class="settings-btn-primary" id="settingsSaveBtnTab">Save</button>
-        <button class="settings-btn-secondary" id="settingsTestBtnTab">Test Connection</button>
+      <div class="menu-list" style="display:flex;flex-direction:column;gap:6px;">
+        <button type="button" id="settingsSaveBtnTab" class="menu-list-item">Save</button>
+        <button type="button" id="settingsTestBtnTab" class="menu-list-item">Test Connection</button>
       </div>
     </div>
   </div>
@@ -2375,61 +2666,99 @@ body.detail-panel-open #tabAdvanced {
   </div>
   <div class="settings-section-card">
     <div class="settings-section-title">Actions</div>
-    <div class="settings-actions">
-      <button class="settings-btn-primary" id="openDiagnoseBtnTab">Diagnose</button>
-      <button class="settings-btn-secondary" id="openRefreshRelayPortBtnTab">Refresh Relay</button>
-    </div>
-    <div class="settings-actions" style="margin-top:8px;">
-      <button class="settings-btn-secondary" id="openSettingsInMainWindowBtnTab">Open in Main Window</button>
-      <button class="settings-btn-secondary" id="refreshSettingsBtnTab">Refresh Settings</button>
+    <div class="menu-list" style="display:flex;flex-direction:column;gap:6px;">
+      <button type="button" id="openDiagnoseBtnTab" class="menu-list-item">Diagnose</button>
+      <button type="button" id="openRefreshRelayPortBtnTab" class="menu-list-item">Refresh Relay</button>
+      <button type="button" id="openSettingsInMainWindowBtnTab" class="menu-list-item">Open in Main Window</button>
+      <button type="button" id="refreshSettingsBtnTab" class="menu-list-item">Refresh Settings</button>
     </div>
   </div>
 </div>
-</div>
-<div class="settings-btn-card ${displayMode === 'sidebar' ? '' : 'hidden'}" id="analyzeDropdownHeader" data-sidebar-tab="advanced" style="background:linear-gradient(135deg,rgba(16,185,129,0.15) 0%,rgba(5,150,105,0.08) 100%);border-color:rgba(16,185,129,0.25);">
-  <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg></span>
-  <span>Open Analyze</span>
-</div>
+<button type="button" id="analyzeDropdownHeader" data-sidebar-tab="advanced" class="menu-list-item ${displayMode === 'sidebar' ? '' : 'hidden'}">Analyze</button>
 <div id="analyzeDetailPanel" data-sidebar-tab="advanced" style="display:none;">
   <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;">
     <div class="diag-back-bar" id="analyzeDetailBackBtn" role="button" tabindex="0" style="margin-bottom:0;">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
       <span>Back</span>
     </div>
-    <button class="btn btn-ghost btn-xs" id="openAnalyzeInMainWindowBtn" style="font-size:0.72rem;padding:3px 8px;">Open in Main Window</button>
   </div>
   <div class="settings-header">
-    <div class="settings-title">Analysis</div>
+    <div class="settings-title">Analyze</div>
+    <div class="settings-badge" id="analyzeBadge" style="background:rgba(99,102,241,0.18);color:#818cf8;">READY</div>
   </div>
+  <div class="settings-section-subtitle">Scan a repo folder, pick your analyzer mix, and run a full code quality &amp; security analysis.</div>
+
   <div class="settings-section-card">
-    <div class="settings-section-title">Actions</div>
-    <div class="settings-actions">
-      <button class="settings-btn-primary" id="runAnalysisBtn">Run Analysis</button>
-      <button class="settings-btn-secondary" id="scanWorkspaceBtn">Scan Workspace</button>
+    <div class="settings-section-title">Target</div>
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+      <input type="text" class="settings-input" id="sidebarAnalyzePathInput" placeholder="Project path..." value="${escapeHtml(savedProjectPath)}" style="flex:1;margin:0;" />
+      <button type="button" id="sidebarAnalyzeBrowseBtn" class="menu-list-item" style="padding:6px 10px;font-size:11px;width:auto;flex:0;">Browse</button>
+      <button type="button" id="sidebarAnalyzeDetectBtn" class="menu-list-item" style="padding:6px 10px;font-size:11px;width:auto;flex:0;">Detect</button>
     </div>
-    <div class="settings-actions" style="margin-top:8px;">
-      <button class="settings-btn-secondary" id="exportJsonBtn">Export JSON</button>
+    <div style="margin-bottom:8px;">
+      <div style="font-size:10px;color:var(--vscode-descriptionForeground,#858585);margin-bottom:4px;">Analysis Type</div>
+      <select class="settings-select" id="sidebarAnalyzeType">
+        <option value="complete">Complete Scan — full analyzer suite</option>
+        <option value="quick">Quick Scan — core checks only</option>
+        <option value="security">Security Focus — vulnerabilities only</option>
+        <option value="quality">Quality Focus — code quality only</option>
+      </select>
+    </div>
+    <div>
+      <div style="font-size:10px;color:var(--vscode-descriptionForeground,#858585);margin-bottom:4px;">Minimum Severity</div>
+      <select class="settings-select" id="sidebarAnalyzeSeverity">
+        <option value="low">Low &amp; above</option>
+        <option value="medium" selected>Medium &amp; above</option>
+        <option value="high">High &amp; above</option>
+        <option value="critical">Critical only</option>
+      </select>
     </div>
   </div>
+
+  <div class="settings-section-card">
+    <div class="settings-section-title">Quick Actions</div>
+    <div class="menu-list" style="display:flex;flex-direction:column;gap:6px;">
+      <button type="button" id="runAnalysisBtn" class="menu-list-item" style="background:linear-gradient(135deg,rgba(139,92,246,0.15),rgba(99,102,241,0.15));border-color:rgba(139,92,246,0.3);"><span style="margin-right:6px;">&#x25B6;</span> Run Analysis</button>
+      <button type="button" id="scanWorkspaceBtn" class="menu-list-item">Enhanced Scan</button>
+      <button type="button" id="exportJsonBtn" class="menu-list-item">Export JSON</button>
+      <button type="button" id="openAnalyzeInMainWindowBtn" class="menu-list-item" style="text-align:left;display:flex;align-items:center;gap:8px;"><span style="opacity:0.6;">&#x2197;</span> Open in Main Window</button>
+    </div>
+  </div>
+
+  <div class="settings-section-card">
+    <div class="settings-section-title">Analysis Results</div>
+    <div class="settings-kpi-grid" style="grid-template-columns:1fr 1fr;gap:8px;">
+      <div class="settings-kpi-card">
+        <div class="settings-kpi-value green" id="sidebarAnalyzeScore">--</div>
+        <div class="settings-kpi-label">Quality Score</div>
+      </div>
+      <div class="settings-kpi-card">
+        <div class="settings-kpi-value" id="sidebarAnalyzeGate">--</div>
+        <div class="settings-kpi-label">Gate Status</div>
+      </div>
+      <div class="settings-kpi-card">
+        <div class="settings-kpi-value red" id="sidebarAnalyzeIssues">--</div>
+        <div class="settings-kpi-label">Issues Found</div>
+      </div>
+      <div class="settings-kpi-card">
+        <div class="settings-kpi-value blue" id="sidebarAnalyzeFiles">--</div>
+        <div class="settings-kpi-label">Files Scanned</div>
+      </div>
+    </div>
+  </div>
+
   <div class="settings-section-card">
     <div class="settings-section-title">AI Analysis Tools</div>
-    <div class="settings-actions">
-      <button class="settings-btn-secondary" id="enhancedAnalysisBtn">Enhanced Analysis</button>
-      <button class="settings-btn-secondary" id="realtimeAnalysisBtn">Real-Time Analysis</button>
-    </div>
-    <div class="settings-actions" style="margin-top:8px;">
-      <button class="settings-btn-secondary" id="patternDetectionBtn">Pattern Detection</button>
-      <button class="settings-btn-secondary" id="modelHealthBtn">Model Health</button>
-    </div>
-    <div class="settings-actions" style="margin-top:8px;">
-      <button class="settings-btn-secondary" id="toggleMonitorBtn">Toggle AI Slop Monitor</button>
+    <div class="menu-list" style="display:flex;flex-direction:column;gap:6px;">
+      <button type="button" id="enhancedAnalysisBtn" class="menu-list-item">Enhanced Analysis</button>
+      <button type="button" id="realtimeAnalysisBtn" class="menu-list-item">Real-Time Analysis</button>
+      <button type="button" id="patternDetectionBtn" class="menu-list-item">Pattern Detection</button>
+      <button type="button" id="modelHealthBtn" class="menu-list-item">Model Health</button>
+      <button type="button" id="toggleMonitorBtn" class="menu-list-item">Toggle AI Slop Monitor</button>
     </div>
   </div>
 </div>
-<div class="settings-btn-card ${displayMode === 'sidebar' ? '' : 'hidden'}" id="certificateDropdownHeader" data-sidebar-tab="advanced" style="background:linear-gradient(135deg,rgba(236,72,153,0.15) 0%,rgba(244,114,182,0.08) 100%);border-color:rgba(236,72,153,0.25);">
-  <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
-  <span>Certificate</span>
-</div>
+<button type="button" id="certificateDropdownHeader" data-sidebar-tab="advanced" class="menu-list-item ${displayMode === 'sidebar' ? '' : 'hidden'}">Certificate</button>
 <div id="certificateDetailPanel" data-sidebar-tab="advanced" style="display:none;">
   <div class="diag-back-bar" id="certificateDetailBackBtn" role="button" tabindex="0">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
@@ -2492,13 +2821,11 @@ body.detail-panel-open #tabAdvanced {
   </div>
   <div class="settings-section-card">
     <div class="settings-section-title">Actions</div>
-    <div class="settings-actions">
-      <button class="settings-btn-primary" id="generateCertificateBtn">Generate</button>
-      <button class="settings-btn-secondary" id="exportCertificatePdfBtn">Export PDF</button>
-      <button class="settings-btn-secondary" id="viewCertificateReportBtn">View Report</button>
-    </div>
-    <div class="settings-actions" style="margin-top:8px;">
-      <button class="settings-btn-secondary" id="openCertificateInMainWindowBtn">Open in Main Window</button>
+    <div class="menu-list" style="display:flex;flex-direction:column;gap:6px;">
+      <button type="button" id="generateCertificateBtn" class="menu-list-item">Generate</button>
+      <button type="button" id="exportCertificatePdfBtn" class="menu-list-item">Export PDF</button>
+      <button type="button" id="viewCertificateReportBtn" class="menu-list-item">View Report</button>
+      <button type="button" id="openCertificateInMainWindowBtn" class="menu-list-item">Open in Main Window</button>
     </div>
   </div>
   <div class="settings-section-card">
@@ -2512,10 +2839,7 @@ body.detail-panel-open #tabAdvanced {
     </div>
   </div>
 </div>
-<div class="settings-btn-card ${displayMode === 'sidebar' ? '' : 'hidden'}" id="codeMapDropdownHeader" data-sidebar-tab="advanced" style="background:linear-gradient(135deg,rgba(6,182,212,0.15) 0%,rgba(34,211,238,0.08) 100%);border-color:rgba(6,182,212,0.25);">
-  <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg></span>
-  <span>Code Map</span>
-</div>
+<button type="button" id="codeMapDropdownHeader" data-sidebar-tab="advanced" class="menu-list-item ${displayMode === 'sidebar' ? '' : 'hidden'}">Code Map</button>
 <div id="codeMapDetailPanel" data-sidebar-tab="advanced" style="display:none;">
   <div class="diag-back-bar" id="codeMapDetailBackBtn" role="button" tabindex="0">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
@@ -2560,21 +2884,16 @@ body.detail-panel-open #tabAdvanced {
   </div>
   <div class="settings-section-card">
     <div class="settings-section-title">Actions</div>
-    <div class="settings-actions">
-      <button class="settings-btn-primary" id="generateCodeMapBtn">Generate</button>
-      <button class="settings-btn-secondary" id="openCodeMapHtmlBtn">Open HTML</button>
-      <button class="settings-btn-secondary" id="exportCodeMapBtn">Export</button>
-    </div>
-    <div class="settings-actions" style="margin-top:8px;">
-      <button class="settings-btn-secondary" id="refreshCodeMapBtn">Refresh</button>
-      <button class="settings-btn-secondary" id="openCodeMapInMainWindowBtn">Open in Main Window</button>
+    <div class="menu-list" style="display:flex;flex-direction:column;gap:6px;">
+      <button type="button" id="generateCodeMapBtn" class="menu-list-item">Generate</button>
+      <button type="button" id="openCodeMapHtmlBtn" class="menu-list-item">Open HTML</button>
+      <button type="button" id="exportCodeMapBtn" class="menu-list-item">Export</button>
+      <button type="button" id="refreshCodeMapBtn" class="menu-list-item">Refresh</button>
+      <button type="button" id="openCodeMapInMainWindowBtn" class="menu-list-item">Open in Main Window</button>
     </div>
   </div>
 </div>
-<div class="settings-btn-card ${displayMode === 'sidebar' ? '' : 'hidden'}" id="roadmapDropdownHeader" data-sidebar-tab="advanced" style="background:linear-gradient(135deg,rgba(139,92,246,0.15) 0%,rgba(167,139,250,0.08) 100%);border-color:rgba(139,92,246,0.25);">
-  <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span>
-  <span>Roadmap</span>
-</div>
+<button type="button" id="roadmapDropdownHeader" data-sidebar-tab="advanced" class="menu-list-item ${displayMode === 'sidebar' ? '' : 'hidden'}">Roadmap</button>
 <div id="roadmapDetailPanel" data-sidebar-tab="advanced" style="display:none;">
   <div class="diag-back-bar" id="roadmapDetailBackBtn" role="button" tabindex="0">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
@@ -2619,20 +2938,15 @@ body.detail-panel-open #tabAdvanced {
   </div>
   <div class="settings-section-card">
     <div class="settings-section-title">Actions</div>
-    <div class="settings-actions">
-      <button class="settings-btn-primary" id="openRoadmapBtn">Open Roadmap</button>
-      <button class="settings-btn-secondary" id="generateRoadmapBtn">Generate</button>
-      <button class="settings-btn-secondary" id="exportRoadmapBtn">Export</button>
-    </div>
-    <div class="settings-actions" style="margin-top:8px;">
-      <button class="settings-btn-secondary" id="openRoadmapInMainWindowBtn">Open in Main Window</button>
+    <div class="menu-list" style="display:flex;flex-direction:column;gap:6px;">
+      <button type="button" id="openRoadmapBtn2" class="menu-list-item">Open Roadmap</button>
+      <button type="button" id="generateRoadmapBtn" class="menu-list-item">Generate</button>
+      <button type="button" id="exportRoadmapBtn" class="menu-list-item">Export</button>
+      <button type="button" id="openRoadmapInMainWindowBtn2" class="menu-list-item">Open in Main Window</button>
     </div>
   </div>
 </div>
-<div class="settings-btn-card ${displayMode === 'sidebar' ? '' : 'hidden'}" id="aiContextDropdownHeader" data-sidebar-tab="advanced" style="background:linear-gradient(135deg,rgba(249,115,22,0.15) 0%,rgba(253,186,116,0.08) 100%);border-color:rgba(249,115,22,0.25);">
-  <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></span>
-  <span>AI Context</span>
-</div>
+<button type="button" id="aiContextDropdownHeader" data-sidebar-tab="advanced" class="menu-list-item ${displayMode === 'sidebar' ? '' : 'hidden'}">AI Context</button>
 <div id="aiContextDetailPanel" data-sidebar-tab="advanced" style="display:none;">
   <div class="diag-back-bar" id="aiContextDetailBackBtn" role="button" tabindex="0">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
@@ -2687,13 +3001,11 @@ body.detail-panel-open #tabAdvanced {
   </div>
   <div class="settings-section-card">
     <div class="settings-section-title">Actions</div>
-    <div class="settings-actions">
-      <button class="settings-btn-primary" id="scanAiContextBtn">Scan</button>
-      <button class="settings-btn-secondary" id="exportAiContextBtn">Export</button>
-      <button class="settings-btn-secondary" id="viewAiContextReportBtn">View Report</button>
-    </div>
-    <div class="settings-actions" style="margin-top:8px;">
-      <button class="settings-btn-secondary" id="openAiContextInMainWindowBtn">Open in Main Window</button>
+    <div class="menu-list" style="display:flex;flex-direction:column;gap:6px;">
+      <button type="button" id="scanAiContextBtn" class="menu-list-item">Scan</button>
+      <button type="button" id="exportAiContextBtn" class="menu-list-item">Export</button>
+      <button type="button" id="viewAiContextReportBtn" class="menu-list-item">View Report</button>
+      <button type="button" id="openAiContextInMainWindowBtn2" class="menu-list-item">Open in Main Window</button>
     </div>
   </div>
   <div class="settings-section-card">
@@ -2705,10 +3017,7 @@ body.detail-panel-open #tabAdvanced {
     </div>
   </div>
 </div>
-<div class="settings-btn-card ${displayMode === 'sidebar' ? '' : 'hidden'}" id="uploadDropdownHeader" data-sidebar-tab="advanced" style="background:linear-gradient(135deg,rgba(16,185,129,0.15) 0%,rgba(52,211,153,0.08) 100%);border-color:rgba(16,185,129,0.25);">
-  <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span>
-  <span>Upload</span>
-</div>
+<button type="button" id="uploadDropdownHeader" data-sidebar-tab="advanced" class="menu-list-item ${displayMode === 'sidebar' ? '' : 'hidden'}">Upload</button>
 <div id="uploadDetailPanel" data-sidebar-tab="advanced" style="display:none;">
   <div class="diag-back-bar" id="uploadDetailBackBtn" role="button" tabindex="0">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
@@ -2738,31 +3047,35 @@ body.detail-panel-open #tabAdvanced {
   </div>
   <div class="settings-section-card">
     <div class="settings-section-title">Actions</div>
-    <div class="settings-actions">
-      <button class="settings-btn-primary" id="uploadBrowseBtn">Browse Files</button>
-      <button class="settings-btn-secondary" id="uploadValidateBtn">Validate</button>
+    <div class="menu-list" style="display:flex;flex-direction:column;gap:6px;">
+      <button type="button" id="sidebarUploadBrowseBtn" class="menu-list-item">Browse Files</button>
+      <button type="button" id="sidebarUploadValidateBtn" class="menu-list-item">Validate</button>
+      <button type="button" id="sidebarUploadClearBtn" class="menu-list-item">Clear</button>
+      <button type="button" id="sidebarUploadScanBtn" class="menu-list-item">Scan</button>
     </div>
-    <div class="settings-actions" style="margin-top:8px;">
-      <button class="settings-btn-secondary" id="openUploadInMainWindowBtn">Open in Main Window</button>
+    <input type="file" class="upload-file-input" id="sidebarUploadFileInput" multiple style="display:none;">
+    <div class="upload-dropzone" id="sidebarUploadDropzone" style="margin-top:12px;">
+      <div class="upload-dropzone-icon">&#x1F4E4;</div>
+      <div class="upload-dropzone-title">Drop files here or click to browse</div>
+      <div class="upload-dropzone-subtitle">Supports .js, .ts, .json, .zip, .md, .txt, .csv, .xml, .html, .css, .yml, .yaml</div>
+    </div>
+    <div id="sidebarUploadList" style="display:flex;flex-direction:column;gap:6px;margin-top:12px;"></div>
+    <div class="upload-result-box" id="sidebarUploadResultBox" style="display:none;margin-top:12px;">
+      <div class="upload-result-title" id="sidebarUploadResultTitle"></div>
+      <div class="upload-result-list" id="sidebarUploadResultList"></div>
     </div>
   </div>
   <div class="settings-section-card">
     <div class="settings-section-title">Configuration</div>
     <div class="tc-list" id="uploadConfigList">
       <div class="tc-list-item"><div class="tc-list-item-left"><span class="tc-list-dot blue"></span><span class="tc-list-name">Supported Formats</span></div><span class="tc-list-meta" id="uploadFormats">js, ts, json</span></div>
-      <div class="tc-list-item"><div class="tc-list-item-left"><span class="tc-list-dot green"></span><span class="tc-list-name">Max File Size</span></div><span class="tc-list-meta" id="uploadMaxSize">10MB</span></div>
+      <div class="tc-list-item"><div class="tc-list-item-left"><span class="tc-list-dot green"></span><span class="tc-list-name">Max File Size</span></div><span class="tc-list-meta" id="uploadMaxSize">50MB</span></div>
       <div class="tc-list-item"><div class="tc-list-item-left"><span class="tc-list-dot blue"></span><span class="tc-list-name">Auto Scan</span></div><span class="tc-list-meta" id="uploadAutoScan">Off</span></div>
     </div>
   </div>
 </div>
-<div class="settings-btn-card ${displayMode === 'sidebar' ? '' : 'hidden'}" id="auditDropdownHeader" data-sidebar-tab="advanced" style="background:linear-gradient(135deg,rgba(245,158,11,0.15) 0%,rgba(217,119,6,0.08) 100%);border-color:rgba(245,158,11,0.25);">
-  <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></span>
-  <span>Report</span>
-</div>
-<div class="settings-btn-card ${displayMode === 'sidebar' ? '' : 'hidden'}" id="securityDropdownHeader" data-sidebar-tab="scan" style="background:linear-gradient(135deg,rgba(59,130,246,0.15) 0%,rgba(96,165,250,0.08) 100%);border-color:rgba(59,130,246,0.25);">
-  <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
-  <span>Security</span>
-</div>
+<button type="button" id="auditDropdownHeader" data-sidebar-tab="advanced" class="menu-list-item ${displayMode === 'sidebar' ? '' : 'hidden'}">Report</button>
+<button type="button" id="securityDropdownHeader" data-sidebar-tab="scan" class="menu-list-item ${displayMode === 'sidebar' ? '' : 'hidden'}">Security</button>
 <div id="securityDetailPanel" data-sidebar-tab="scan" style="display:none;">
   <div class="diag-back-bar" id="securityDetailBackBtn" role="button" tabindex="0">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
@@ -2790,20 +3103,31 @@ body.detail-panel-open #tabAdvanced {
       <div class="settings-kpi-label">Security Score</div>
     </div>
   </div>
-  <div class="severity-bar">
-    <div class="severity-item"><span class="severity-dot critical"></span><span id="securityCritical2">0</span> Critical</div>
-    <div class="severity-item"><span class="severity-dot high"></span><span id="securityHigh2">0</span> High</div>
-    <div class="severity-item"><span class="severity-dot medium"></span><span id="securityMedium2">0</span> Med</div>
-    <div class="severity-item"><span class="severity-dot low"></span><span id="securityLow2">0</span> Low</div>
+  <div class="settings-section-card">
+    <div class="settings-section-title">Severity Breakdown</div>
+    <div style="display:flex;align-items:center;gap:10px;margin:10px 0 8px;">
+      <span id="securitySeverityTotal" style="font-size:20px;font-weight:700;">0</span>
+      <span style="font-size:12px;color:var(--vscode-descriptionForeground);">total issues</span>
+    </div>
+    <div class="security-severity-stack" style="display:flex;height:10px;border-radius:5px;overflow:hidden;background:rgba(255,255,255,0.06);">
+      <div id="securityStackCritical" style="width:0%;background:#ef4444;transition:width 0.3s ease;"></div>
+      <div id="securityStackHigh" style="width:0%;background:#f97316;transition:width 0.3s ease;"></div>
+      <div id="securityStackMedium" style="width:0%;background:#3b82f6;transition:width 0.3s ease;"></div>
+      <div id="securityStackLow" style="width:0%;background:#22c55e;transition:width 0.3s ease;"></div>
+    </div>
+    <div class="severity-bar" style="margin-top:10px;">
+      <div class="severity-item"><span class="severity-dot critical"></span><span id="securityCritical2">0</span> Critical</div>
+      <div class="severity-item"><span class="severity-dot high"></span><span id="securityHigh2">0</span> High</div>
+      <div class="severity-item"><span class="severity-dot medium"></span><span id="securityMedium2">0</span> Med</div>
+      <div class="severity-item"><span class="severity-dot low"></span><span id="securityLow2">0</span> Low</div>
+    </div>
   </div>
   <div class="settings-section-card">
     <div class="settings-section-title">Actions</div>
-    <div class="settings-actions">
-      <button class="settings-btn-primary" id="runSecurityScanBtn">Scan</button>
-      <button class="settings-btn-secondary" id="openSecurityReportBtn">View Report</button>
-    </div>
-    <div class="settings-actions" style="margin-top:8px;">
-      <button class="settings-btn-secondary" id="openSecurityInMainWindowBtn">Open in Main Window</button>
+    <div class="menu-list" style="display:flex;flex-direction:column;gap:6px;">
+      <button type="button" id="runSecurityScanBtn" class="menu-list-item">Scan</button>
+      <button type="button" id="openSecurityReportBtn" class="menu-list-item">View Report</button>
+      <button type="button" id="openSecurityInMainWindowBtn" class="menu-list-item" style="width:100%;text-align:left;display:flex;align-items:center;gap:8px;"><span style="opacity:0.6;">&#x2197;</span> Open in Main Window</button>
     </div>
   </div>
   <div class="settings-section-card">
@@ -2813,10 +3137,7 @@ body.detail-panel-open #tabAdvanced {
     </div>
   </div>
 </div>
-<div class="settings-btn-card ${displayMode === 'sidebar' ? '' : 'hidden'}" id="trustDropdownHeader" data-sidebar-tab="scan" style="background:linear-gradient(135deg,rgba(168,85,247,0.15) 0%,rgba(192,132,252,0.08) 100%);border-color:rgba(168,85,247,0.25);">
-  <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><circle cx="12" cy="12" r="3"/></svg></span>
-  <span>Trust</span>
-</div>
+<button type="button" id="trustDropdownHeader" data-sidebar-tab="scan" class="menu-list-item ${displayMode === 'sidebar' ? '' : 'hidden'}">Trust</button>
 <div id="trustDetailPanel" data-sidebar-tab="scan" style="display:none;">
   <div class="diag-back-bar" id="trustDetailBackBtn" role="button" tabindex="0">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
@@ -2844,20 +3165,26 @@ body.detail-panel-open #tabAdvanced {
       <div class="settings-kpi-label">Last Audit</div>
     </div>
   </div>
-  <div class="severity-bar">
-    <div class="severity-item"><span class="severity-dot critical"></span><span id="trustCritical">0</span> Critical</div>
-    <div class="severity-item"><span class="severity-dot high"></span><span id="trustHigh">0</span> High</div>
-    <div class="severity-item"><span class="severity-dot medium"></span><span id="trustMedium">0</span> Med</div>
-    <div class="severity-item"><span class="severity-dot low"></span><span id="trustLow">0</span> Low</div>
+  <div class="profile-severity-bar">
+    <div style="display:flex;align-items:center;gap:6px;"><div class="profile-severity-dot red"></div><span id="trustCritical">0 Critical</span></div>
+    <div style="display:flex;align-items:center;gap:6px;"><div class="profile-severity-dot amber"></div><span id="trustHigh">0 High</span></div>
+    <div style="display:flex;align-items:center;gap:6px;"><div class="profile-severity-dot blue"></div><span id="trustMedium">0 Med</span></div>
+    <div style="display:flex;align-items:center;gap:6px;"><div class="profile-severity-dot green"></div><span id="trustLow">0 Low</span></div>
   </div>
   <div class="settings-section-card">
     <div class="settings-section-title">Actions</div>
-    <div class="settings-actions">
-      <button class="settings-btn-primary" id="verifyTrustBtn">Verify</button>
-      <button class="settings-btn-secondary" id="openTrustReportBtn">View Report</button>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <button type="button" id="verifyTrustBtn" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border-radius:8px;background:var(--vscode-button-background,#0e639c);color:var(--vscode-button-foreground,#fff);border:none;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        Verify
+      </button>
+      <button type="button" id="openTrustReportBtn" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border-radius:8px;background:var(--vscode-input-background,rgba(255,255,255,0.03));color:var(--vscode-foreground,#ccc);border:1px solid var(--vscode-panel-border,rgba(255,255,255,0.06));font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        View Report
+      </button>
     </div>
-    <div class="settings-actions" style="margin-top:8px;">
-      <button class="settings-btn-secondary" id="openTrustInMainWindowBtn">Open in Main Window</button>
+    <div style="margin-top:8px;">
+      <button type="button" id="openTrustInMainWindowBtn" class="menu-list-item" style="width:100%;text-align:left;display:flex;align-items:center;gap:8px;"><span style="opacity:0.6;">&#x2197;</span> Open in Main Window</button>
     </div>
   </div>
   <div class="settings-section-card">
@@ -2902,12 +3229,10 @@ body.detail-panel-open #tabAdvanced {
   </div>
   <div class="settings-section-card">
     <div class="settings-section-title">Actions</div>
-    <div class="settings-actions">
-      <button class="settings-btn-primary" id="openAuditBtn2">Run Audit</button>
-      <button class="settings-btn-secondary" id="openAuditReportBtn2">Audit Report</button>
-    </div>
-    <div class="settings-actions" style="margin-top:8px;">
-      <button class="settings-btn-secondary" id="openAuditInMainWindowBtn">Open in Main Window</button>
+    <div class="menu-list" style="display:flex;flex-direction:column;gap:6px;">
+      <button type="button" id="openAuditBtn2" class="menu-list-item">Run Audit</button>
+      <button type="button" id="openAuditReportBtn2" class="menu-list-item">Audit Report</button>
+      <button type="button" id="openAuditInMainWindowBtn" class="menu-list-item">Open in Main Window</button>
     </div>
   </div>
   <div class="settings-section-card">
@@ -2917,10 +3242,7 @@ body.detail-panel-open #tabAdvanced {
     </div>
   </div>
 </div>
-<div class="settings-btn-card ${displayMode === 'sidebar' ? '' : 'hidden'}" id="qualityDropdownHeader" data-sidebar-tab="scan" style="background:linear-gradient(135deg,rgba(20,184,166,0.15) 0%,rgba(45,212,191,0.08) 100%);border-color:rgba(20,184,166,0.25);">
-  <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></span>
-  <span>Quality</span>
-</div>
+<button type="button" id="qualityDropdownHeader" data-sidebar-tab="scan" class="menu-list-item ${displayMode === 'sidebar' ? '' : 'hidden'}">Quality</button>
 <div id="qualityDetailPanel" data-sidebar-tab="scan" style="display:none;">
   <div class="diag-back-bar" id="qualityDetailBackBtn" role="button" tabindex="0">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
@@ -2932,28 +3254,45 @@ body.detail-panel-open #tabAdvanced {
   </div>
   <div class="settings-section-subtitle">Code health, complexity, and maintainability.</div>
   <div class="settings-kpi-grid" style="grid-template-columns:repeat(2,1fr);align-items:stretch;">
-    <div class="settings-kpi-card" style="display:flex;flex-direction:column;justify-content:center;align-items:center;min-height:120px;">
-      <div id="qualityScoreRing" style="width:80px;height:80px;border-radius:50%;border:6px solid rgba(34,197,94,0.3);display:flex;align-items:center;justify-content:center;position:relative;">
-        <div style="font-size:24px;font-weight:800;color:#4ade80;" id="qualityScore">100</div>
+    <div class="settings-kpi-card" style="display:flex;flex-direction:column;justify-content:center;align-items:center;min-height:140px;">
+      <div id="qualityScoreRing" style="width:90px;height:90px;position:relative;display:flex;align-items:center;justify-content:center;">
+        <svg width="90" height="90" viewBox="0 0 100 100" style="position:absolute;transform:rotate(-90deg);">
+          <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="8"/>
+          <circle id="qualityScoreProgress" cx="50" cy="50" r="42" fill="none" stroke="#4ade80" stroke-width="8" stroke-linecap="round" stroke-dasharray="264" stroke-dashoffset="0"/>
+        </svg>
+        <div style="font-size:22px;font-weight:800;color:#4ade80;position:relative;z-index:1;" id="qualityScore">100</div>
       </div>
-      <div class="settings-kpi-label" style="margin-top:8px;">Score</div>
+      <div class="settings-kpi-label" style="margin-top:8px;">Quality Score</div>
     </div>
-    <div class="settings-kpi-card" style="display:flex;flex-direction:column;justify-content:space-between;min-height:120px;">
-      <div>
-        <div class="settings-kpi-value red" id="qualityIssues">0</div>
+    <div class="settings-kpi-card" style="display:flex;flex-direction:column;justify-content:center;gap:10px;min-height:140px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
         <div class="settings-kpi-label">Issues</div>
+        <div class="settings-kpi-value red" id="qualityIssues">0</div>
       </div>
-      <div>
-        <div class="settings-kpi-value" id="qualityFiles">0</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;">
         <div class="settings-kpi-label">Files</div>
+        <div class="settings-kpi-value blue" id="qualityFiles">0</div>
       </div>
     </div>
   </div>
-  <div class="severity-bar">
-    <div class="severity-item"><span class="severity-dot critical"></span><span id="qualityCritical">0</span> Critical</div>
-    <div class="severity-item"><span class="severity-dot high"></span><span id="qualityHigh">0</span> High</div>
-    <div class="severity-item"><span class="severity-dot medium"></span><span id="qualityMedium">0</span> Med</div>
-    <div class="severity-item"><span class="severity-dot low"></span><span id="qualityLow">0</span> Low</div>
+  <div class="settings-section-card">
+    <div class="settings-section-title">Severity Breakdown</div>
+    <div style="display:flex;align-items:center;gap:10px;margin:10px 0 8px;">
+      <span id="qualitySeverityTotal" style="font-size:20px;font-weight:700;">0</span>
+      <span style="font-size:12px;color:var(--vscode-descriptionForeground);">total issues</span>
+    </div>
+    <div class="quality-severity-stack" style="display:flex;height:10px;border-radius:5px;overflow:hidden;background:rgba(255,255,255,0.06);">
+      <div id="qualityStackCritical" style="width:0%;background:#ef4444;transition:width 0.3s ease;"></div>
+      <div id="qualityStackHigh" style="width:0%;background:#f97316;transition:width 0.3s ease;"></div>
+      <div id="qualityStackMedium" style="width:0%;background:#3b82f6;transition:width 0.3s ease;"></div>
+      <div id="qualityStackLow" style="width:0%;background:#22c55e;transition:width 0.3s ease;"></div>
+    </div>
+    <div class="severity-bar" style="margin-top:10px;">
+      <div class="severity-item"><span class="severity-dot critical"></span><span id="qualityCritical">0</span> Critical</div>
+      <div class="severity-item"><span class="severity-dot high"></span><span id="qualityHigh">0</span> High</div>
+      <div class="severity-item"><span class="severity-dot medium"></span><span id="qualityMedium">0</span> Med</div>
+      <div class="severity-item"><span class="severity-dot low"></span><span id="qualityLow">0</span> Low</div>
+    </div>
   </div>
   <div class="settings-section-card">
     <div class="settings-section-title">Quality Dimensions</div>
@@ -2970,20 +3309,15 @@ body.detail-panel-open #tabAdvanced {
   </div>
   <div class="settings-section-card">
     <div class="settings-section-title">Actions</div>
-    <div class="settings-actions">
-      <button class="settings-btn-primary" id="runQualityBtn">Analyze</button>
-      <button class="settings-btn-secondary" id="exportQualityBtn">Export</button>
-      <button class="settings-btn-secondary" id="viewQualityReportBtn">View Report</button>
-    </div>
-    <div class="settings-actions" style="margin-top:8px;">
-      <button class="settings-btn-secondary" id="openQualityInMainWindowBtn">Open in Main Window</button>
+    <div class="menu-list" style="display:flex;flex-direction:column;gap:6px;">
+      <button type="button" id="runQualityBtn" class="menu-list-item">Analyze</button>
+      <button type="button" id="exportQualityBtn" class="menu-list-item">Export</button>
+      <button type="button" id="viewQualityReportBtn" class="menu-list-item">View Report</button>
+      <button type="button" id="openQualityInMainWindowBtn" class="menu-list-item" style="width:100%;text-align:left;display:flex;align-items:center;gap:8px;"><span style="opacity:0.6;">&#x2197;</span> Open in Main Window</button>
     </div>
   </div>
 </div>
-<div class="settings-btn-card ${displayMode === 'sidebar' ? '' : 'hidden'}" id="assessmentsDropdownHeader" data-sidebar-tab="scan" style="background:linear-gradient(135deg,rgba(245,158,11,0.15) 0%,rgba(251,191,36,0.08) 100%);border-color:rgba(245,158,11,0.25);">
-  <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
-  <span>Assessments</span>
-</div>
+<button type="button" id="assessmentsDropdownHeader" data-sidebar-tab="scan" class="menu-list-item ${displayMode === 'sidebar' ? '' : 'hidden'}">Assessments</button>
 <div id="assessmentsDetailPanel" data-sidebar-tab="scan" style="display:none;">
   <div class="diag-back-bar" id="assessmentsDetailBackBtn" role="button" tabindex="0">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
@@ -3038,13 +3372,11 @@ body.detail-panel-open #tabAdvanced {
   </div>
   <div class="settings-section-card">
     <div class="settings-section-title">Actions</div>
-    <div class="settings-actions">
-      <button class="settings-btn-primary" id="runAssessmentsBtn">Run</button>
-      <button class="settings-btn-secondary" id="exportAssessmentsBtn">Export</button>
-      <button class="settings-btn-secondary" id="viewAssessmentsReportBtn">View Report</button>
-    </div>
-    <div class="settings-actions" style="margin-top:8px;">
-      <button class="settings-btn-secondary" id="openAssessmentsInMainWindowBtn">Open in Main Window</button>
+    <div class="menu-list" style="display:flex;flex-direction:column;gap:6px;">
+      <button type="button" id="runAssessmentsBtn" class="menu-list-item">Run</button>
+      <button type="button" id="exportAssessmentsBtn" class="menu-list-item">Export</button>
+      <button type="button" id="viewAssessmentsReportBtn" class="menu-list-item">View Report</button>
+      <button type="button" id="openAssessmentsInMainWindowBtn" class="menu-list-item">Open in Main Window</button>
     </div>
   </div>
   <div class="settings-section-card">
@@ -3088,12 +3420,12 @@ body.detail-panel-open #tabAdvanced {
   </div>
   <div class="settings-section-card">
     <div class="settings-section-title">Actions</div>
-    <div class="settings-actions" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-      <button class="settings-btn-primary" id="platformRefreshBtn"><span class="icon" style="margin-right:6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1 2.12-9.36L23 10"/></svg></span>Refresh</button>
-      <button class="settings-btn-secondary" id="platformExportBtn"><span class="icon" style="margin-right:6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span>Export</button>
-      <button class="settings-btn-secondary" id="platformDocsBtn"><span class="icon" style="margin-right:6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>Docs</button>
-      <button class="settings-btn-secondary" id="platformSettingsBtn"><span class="icon" style="margin-right:6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a-1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>Settings</button>
-      <button class="settings-btn-secondary" id="openPlatformInMainWindowBtn" style="grid-column:1 / -1;"><span class="icon" style="margin-right:6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span>Open in Main Window</button>
+    <div class="menu-list" style="display:flex;flex-direction:column;gap:6px;">
+      <button type="button" id="platformRefreshBtn" class="menu-list-item">Refresh</button>
+      <button type="button" id="platformExportBtn" class="menu-list-item">Export</button>
+      <button type="button" id="platformDocsBtn" class="menu-list-item">Docs</button>
+      <button type="button" id="platformSettingsBtn" class="menu-list-item">Settings</button>
+      <button type="button" id="openPlatformInMainWindowBtn" class="menu-list-item">Open in Main Window</button>
     </div>
   </div>
   <div class="profile-severity-bar">
@@ -3120,17 +3452,13 @@ body.detail-panel-open #tabAdvanced {
     </div>
   </div>
 </div>
-<div class="settings-btn-card ${displayMode === 'sidebar' ? '' : 'hidden'}" id="profileDropdownHeader" data-sidebar-tab="advanced" style="background:linear-gradient(135deg,rgba(236,72,153,0.15) 0%,rgba(244,114,182,0.08) 100%);border-color:rgba(236,72,153,0.25);">
-  <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
-  <span>Profile</span>
-</div>
+<button type="button" id="profileDropdownHeader" data-sidebar-tab="advanced" class="menu-list-item ${displayMode === 'sidebar' ? '' : 'hidden'}">Profile</button>
 <div id="profileDetailPanel" data-sidebar-tab="advanced" style="display:none;">
   <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;">
     <div class="diag-back-bar" id="profileDetailBackBtn" role="button" tabindex="0" style="margin-bottom:0;">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
       <span>Back</span>
     </div>
-    <button class="btn btn-ghost btn-xs" id="openProfileDetailInMainWindowBtn" style="font-size:0.72rem;padding:3px 8px;">Open in Main Window</button>
   </div>
   <div class="settings-header">
     <div class="settings-title">Profile</div>
@@ -3184,9 +3512,10 @@ body.detail-panel-open #tabAdvanced {
         </select>
         <label class="profile-form-label">Organization</label>
         <input type="text" class="profile-form-input" id="profileOrganization" placeholder="Company or team name" />
-        <div class="profile-form-actions">
-          <button class="profile-btn-primary" id="profileSaveBtn">Save Profile</button>
-          <button class="profile-btn-secondary" id="profileClearBtn">Clear</button>
+        <div class="profile-form-actions" style="display:flex;flex-direction:column;gap:6px;">
+          <button type="button" id="profileSaveBtn" class="menu-list-item">Save Profile</button>
+          <button type="button" id="profileClearBtn" class="menu-list-item">Clear</button>
+          <button type="button" id="openProfileDetailInMainWindowBtn" class="menu-list-item">Open in Main Window</button>
         </div>
       </div>
     </div>
@@ -3219,10 +3548,7 @@ body.detail-panel-open #tabAdvanced {
     </div>
   </div>
 </div>
-<div class="settings-btn-card ${displayMode === 'sidebar' ? '' : 'hidden'}" id="complianceDropdownHeader" data-sidebar-tab="scan" style="background:linear-gradient(135deg,rgba(34,197,94,0.15) 0%,rgba(74,222,128,0.08) 100%);border-color:rgba(34,197,94,0.25);">
-  <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg></span>
-  <span>Compliance</span>
-</div>
+<button type="button" id="complianceDropdownHeader" data-sidebar-tab="scan" class="menu-list-item ${displayMode === 'sidebar' ? '' : 'hidden'}">Compliance</button>
 <div id="complianceDetailPanel" data-sidebar-tab="scan" style="display:none;">
   <div class="diag-back-bar" id="complianceDetailBackBtn" role="button" tabindex="0">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
@@ -3277,13 +3603,11 @@ body.detail-panel-open #tabAdvanced {
   </div>
   <div class="settings-section-card">
     <div class="settings-section-title">Actions</div>
-    <div class="settings-actions">
-      <button class="settings-btn-primary" id="runComplianceBtn">Run Check</button>
-      <button class="settings-btn-secondary" id="exportComplianceBtn">Export</button>
-      <button class="settings-btn-secondary" id="viewComplianceReportBtn">View Report</button>
-    </div>
-    <div class="settings-actions" style="margin-top:8px;">
-      <button class="settings-btn-secondary" id="openComplianceInMainWindowBtn">Open in Main Window</button>
+    <div class="menu-list" style="display:flex;flex-direction:column;gap:6px;">
+      <button type="button" id="runComplianceBtn" class="menu-list-item">Run Check</button>
+      <button type="button" id="exportComplianceBtn" class="menu-list-item">Export</button>
+      <button type="button" id="viewComplianceReportBtn" class="menu-list-item">View Report</button>
+      <button type="button" id="openComplianceInMainWindowBtn" class="menu-list-item">Open in Main Window</button>
     </div>
   </div>
   <div class="settings-section-card">
@@ -3297,10 +3621,7 @@ body.detail-panel-open #tabAdvanced {
     </div>
   </div>
 </div>
-<div class="settings-btn-card ${displayMode === 'sidebar' ? '' : 'hidden'}" id="repoHealthDropdownHeader" data-sidebar-tab="advanced" style="background:linear-gradient(135deg,rgba(8,145,178,0.15) 0%,rgba(34,211,238,0.08) 100%);border-color:rgba(8,145,178,0.25);">
-  <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span>
-  <span>Repo Health</span>
-</div>
+<button type="button" id="repoHealthDropdownHeader" data-sidebar-tab="advanced" class="menu-list-item ${displayMode === 'sidebar' ? '' : 'hidden'}">Repo Health</button>
 <div id="repoHealthDetailPanel" data-sidebar-tab="advanced" style="display:none;">
   <div class="diag-back-bar" id="repoHealthDetailBackBtn" role="button" tabindex="0">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
@@ -3330,11 +3651,11 @@ body.detail-panel-open #tabAdvanced {
   </div>
   <div class="settings-section-card">
     <div class="settings-section-title">Actions</div>
-    <div class="settings-actions" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-      <button class="settings-btn-primary" id="repoHealthRunScanBtn"><span class="icon" style="margin-right:6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg></span>Run Scan</button>
-      <button class="settings-btn-secondary" id="repoHealthExportBtn"><span class="icon" style="margin-right:6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span>Export</button>
-      <button class="settings-btn-secondary" id="repoHealthViewReportBtn"><span class="icon" style="margin-right:6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></span>View Report</button>
-      <button class="settings-btn-secondary" id="repoHealthSettingsBtn"><span class="icon" style="margin-right:6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>Settings</button>
+    <div class="menu-list" style="display:flex;flex-direction:column;gap:6px;">
+      <button type="button" id="repoHealthRunScanBtn" class="menu-list-item">Run Scan</button>
+      <button type="button" id="repoHealthExportBtn" class="menu-list-item">Export</button>
+      <button type="button" id="repoHealthViewReportBtn" class="menu-list-item">View Report</button>
+      <button type="button" id="repoHealthSettingsBtn" class="menu-list-item">Settings</button>
     </div>
   </div>
   <div class="profile-severity-bar">
@@ -3365,10 +3686,7 @@ body.detail-panel-open #tabAdvanced {
     </div>
   </div>
 </div>
-<div class="settings-btn-card ${displayMode === 'sidebar' ? '' : 'hidden'}" id="analyticsDropdownHeader" data-sidebar-tab="advanced" style="background:linear-gradient(135deg,rgba(168,85,247,0.15) 0%,rgba(192,132,252,0.08) 100%);border-color:rgba(168,85,247,0.25);">
-  <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
-  <span>Analytics</span>
-</div>
+<button type="button" id="analyticsDropdownHeader" data-sidebar-tab="advanced" class="menu-list-item ${displayMode === 'sidebar' ? '' : 'hidden'}">Analytics</button>
 <div id="analyticsDetailPanel" data-sidebar-tab="advanced" style="display:none;">
   <div class="diag-back-bar" id="analyticsDetailBackBtn" role="button" tabindex="0">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
@@ -3388,52 +3706,52 @@ body.detail-panel-open #tabAdvanced {
       <div class="settings-kpi-label">Issues Found</div>
     </div>
     <div class="settings-kpi-card">
-      <div class="settings-kpi-value green" id="analyticsAvgScore">100</div>
+      <div class="settings-kpi-value green" id="analyticsAvgScore">--</div>
       <div class="settings-kpi-label">Avg Score</div>
     </div>
     <div class="settings-kpi-card">
-      <div class="settings-kpi-value amber" id="analyticsLastScan">--</div>
-      <div class="settings-kpi-label">Last Scan</div>
+      <div class="settings-kpi-value amber" id="analyticsFilesScanned">0</div>
+      <div class="settings-kpi-label">Files Scanned</div>
     </div>
   </div>
   <div class="settings-section-card">
     <div class="settings-section-title">Actions</div>
-    <div class="settings-actions" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-      <button class="settings-btn-primary" id="analyticsRefreshBtn"><span class="icon" style="margin-right:6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></span>Refresh</button>
-      <button class="settings-btn-secondary" id="analyticsExportBtn"><span class="icon" style="margin-right:6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span>Export</button>
-      <button class="settings-btn-secondary" id="analyticsViewReportBtn"><span class="icon" style="margin-right:6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></span>View Report</button>
-      <button class="settings-btn-secondary" id="analyticsSettingsBtn"><span class="icon" style="margin-right:6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>Settings</button>
+    <div class="menu-list" style="display:flex;flex-direction:column;gap:6px;">
+      <button type="button" id="analyticsRefreshBtn" class="menu-list-item">Refresh</button>
+      <button type="button" id="analyticsExportBtn" class="menu-list-item">Export</button>
+      <button type="button" id="analyticsViewReportBtn" class="menu-list-item">View Report</button>
+      <button type="button" id="analyticsSettingsBtn" class="menu-list-item">Settings</button>
     </div>
-  </div>
-  <div class="profile-severity-bar">
-    <div class="profile-severity-dot red"></div><span id="analyticsCritical">0 Critical</span>
-    <div class="profile-severity-dot amber"></div><span id="analyticsHigh">0 High</span>
-    <div class="profile-severity-dot blue"></div><span id="analyticsMedium">0 Med</span>
-    <div class="profile-severity-dot green"></div><span id="analyticsLow">0 Low</span>
   </div>
   <div class="settings-section-card">
-    <div class="settings-section-title">Scan Summary</div>
+    <div class="settings-section-title">Severity Breakdown</div>
+    <div style="display:flex;align-items:center;gap:10px;margin:10px 0 8px;">
+      <span id="analyticsSeverityTotal" style="font-size:20px;font-weight:700;">0</span>
+      <span style="font-size:12px;color:var(--vscode-descriptionForeground);">total issues</span>
+    </div>
+    <div class="analytics-severity-stack" style="display:flex;height:10px;border-radius:5px;overflow:hidden;background:rgba(255,255,255,0.06);">
+      <div id="analyticsStackCritical" style="width:0%;background:#ef4444;transition:width 0.3s ease;"></div>
+      <div id="analyticsStackHigh" style="width:0%;background:#f97316;transition:width 0.3s ease;"></div>
+      <div id="analyticsStackMedium" style="width:0%;background:#3b82f6;transition:width 0.3s ease;"></div>
+      <div id="analyticsStackLow" style="width:0%;background:#22c55e;transition:width 0.3s ease;"></div>
+    </div>
+    <div class="profile-severity-bar" style="margin-top:10px;">
+      <div class="profile-severity-dot red"></div><span id="analyticsCritical">0 Critical</span>
+      <div class="profile-severity-dot amber"></div><span id="analyticsHigh">0 High</span>
+      <div class="profile-severity-dot blue"></div><span id="analyticsMedium">0 Med</span>
+      <div class="profile-severity-dot green"></div><span id="analyticsLow">0 Low</span>
+    </div>
+  </div>
+  <div class="settings-section-card">
+    <div class="settings-section-title">Latest Scan</div>
     <div class="tc-list" style="gap:10px;">
-      <div class="tc-list-item"><div class="tc-list-item-left"><span class="tc-list-name">Total Scans</span></div><span class="tc-list-meta" id="analyticsSummaryTotalScans">0</span></div>
-      <div class="tc-list-item"><div class="tc-list-item-left"><span class="tc-list-name">Issues Found</span></div><span class="tc-list-meta" id="analyticsSummaryIssuesFound">0</span></div>
-      <div class="tc-list-item"><div class="tc-list-item-left"><span class="tc-list-name">Avg Score</span></div><span class="tc-list-meta" id="analyticsSummaryAvgScore">100</span></div>
-    </div>
-  </div>
-  <div class="settings-kpi-grid" style="grid-template-columns:1fr 1fr;">
-    <div class="settings-kpi-card">
-      <div class="settings-kpi-value green" id="analyticsScanTrend">+0</div>
-      <div class="settings-kpi-label">Scans This Week</div>
-    </div>
-    <div class="settings-kpi-card">
-      <div class="settings-kpi-value red" id="analyticsIssueTrend">0</div>
-      <div class="settings-kpi-label">Issues This Week</div>
+      <div class="tc-list-item"><div class="tc-list-item-left"><span class="tc-list-name">Last Scan</span></div><span class="tc-list-meta" id="analyticsLastScan">--</span></div>
+      <div class="tc-list-item"><div class="tc-list-item-left"><span class="tc-list-name">Files Scanned</span></div><span class="tc-list-meta" id="analyticsSummaryFilesScanned">0</span></div>
+      <div class="tc-list-item"><div class="tc-list-item-left"><span class="tc-list-name">Avg Score</span></div><span class="tc-list-meta" id="analyticsSummaryAvgScore">--</span></div>
     </div>
   </div>
 </div>
-<div class="settings-btn-card ${displayMode === 'sidebar' ? '' : 'hidden'}" id="teamDropdownHeader" data-sidebar-tab="advanced" style="background:linear-gradient(135deg,rgba(249,115,22,0.15) 0%,rgba(251,146,60,0.08) 100%);border-color:rgba(249,115,22,0.25);">
-  <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
-  <span>Team</span>
-</div>
+<button type="button" id="teamDropdownHeader" data-sidebar-tab="advanced" class="menu-list-item ${displayMode === 'sidebar' ? '' : 'hidden'}">Team</button>
 <div id="teamDetailPanel" data-sidebar-tab="advanced" style="display:none;">
   <div class="diag-back-bar" id="teamDetailBackBtn" role="button" tabindex="0">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
@@ -3461,20 +3779,35 @@ body.detail-panel-open #tabAdvanced {
       <div class="settings-kpi-label">Team Score</div>
     </div>
   </div>
+  <div class="profile-severity-bar">
+    <div style="display:flex;align-items:center;gap:6px;"><div class="profile-severity-dot red"></div><span id="teamCritical">0 Critical</span></div>
+    <div style="display:flex;align-items:center;gap:6px;"><div class="profile-severity-dot amber"></div><span id="teamHigh">0 High</span></div>
+    <div style="display:flex;align-items:center;gap:6px;"><div class="profile-severity-dot blue"></div><span id="teamMedium">0 Med</span></div>
+    <div style="display:flex;align-items:center;gap:6px;"><div class="profile-severity-dot green"></div><span id="teamLow">0 Low</span></div>
+  </div>
   <div class="settings-section-card">
     <div class="settings-section-title">Actions</div>
-    <div class="settings-actions" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-      <button class="settings-btn-primary" id="teamInviteBtn"><span class="icon" style="margin-right:6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg></span>Invite</button>
-      <button class="settings-btn-secondary" id="teamExportBtn"><span class="icon" style="margin-right:6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span>Export</button>
-      <button class="settings-btn-secondary" id="teamViewReportBtn"><span class="icon" style="margin-right:6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></span>View Report</button>
-      <button class="settings-btn-secondary" id="teamSettingsBtn"><span class="icon" style="margin-right:6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>Settings</button>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <button type="button" id="teamInviteBtn" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border-radius:8px;background:var(--vscode-button-background,#0e639c);color:var(--vscode-button-foreground,#fff);border:none;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+        Invite
+      </button>
+      <button type="button" id="teamExportBtn" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border-radius:8px;background:var(--vscode-input-background,rgba(255,255,255,0.03));color:var(--vscode-foreground,#ccc);border:1px solid var(--vscode-panel-border,rgba(255,255,255,0.06));font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export
+      </button>
+      <button type="button" id="teamViewReportBtn" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border-radius:8px;background:var(--vscode-input-background,rgba(255,255,255,0.03));color:var(--vscode-foreground,#ccc);border:1px solid var(--vscode-panel-border,rgba(255,255,255,0.06));font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        View Report
+      </button>
+      <button type="button" id="teamSettingsBtn" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border-radius:8px;background:var(--vscode-input-background,rgba(255,255,255,0.03));color:var(--vscode-foreground,#ccc);border:1px solid var(--vscode-panel-border,rgba(255,255,255,0.06));font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l-.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Settings
+      </button>
+      <button type="button" id="openTeamInMainWindowBtn" style="grid-column:1 / -1;display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border-radius:8px;background:var(--vscode-input-background,rgba(255,255,255,0.03));color:var(--vscode-foreground,#ccc);border:1px solid var(--vscode-panel-border,rgba(255,255,255,0.06));font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;">
+        <span style="opacity:0.6;">&#x2197;</span> Open in Main Window
+      </button>
     </div>
-  </div>
-  <div class="profile-severity-bar">
-    <div class="profile-severity-dot red"></div><span id="teamCritical">0 Critical</span>
-    <div class="profile-severity-dot amber"></div><span id="teamHigh">0 High</span>
-    <div class="profile-severity-dot blue"></div><span id="teamMedium">0 Med</span>
-    <div class="profile-severity-dot green"></div><span id="teamLow">0 Low</span>
   </div>
   <div class="settings-section-card">
     <div class="settings-section-title">Quality Summary</div>
@@ -3495,10 +3828,7 @@ body.detail-panel-open #tabAdvanced {
     </div>
   </div>
 </div>
-<div class="settings-btn-card ${displayMode === 'sidebar' ? '' : 'hidden'}" id="scanDropdownHeader" data-sidebar-tab="scan" style="background:linear-gradient(135deg,rgba(239,68,68,0.15) 0%,rgba(248,113,113,0.08) 100%);border-color:rgba(239,68,68,0.25);">
-  <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></span>
-  <span>Scan</span>
-</div>
+<button type="button" id="scanDropdownHeader" data-sidebar-tab="scan" class="menu-list-item ${displayMode === 'sidebar' ? '' : 'hidden'}">Scan</button>
 <div id="scanDetailPanel" data-sidebar-tab="scan" style="display:none;">
   <div class="diag-back-bar" id="scanDetailBackBtn" role="button" tabindex="0">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
@@ -3539,13 +3869,11 @@ body.detail-panel-open #tabAdvanced {
   </div>
   <div class="settings-section-card">
     <div class="settings-section-title">Actions</div>
-    <div class="settings-actions">
-      <button class="settings-btn-primary" id="runScanBtn">Start Scan</button>
-      <button class="settings-btn-secondary" id="exportScanBtn">Export</button>
-      <button class="settings-btn-secondary" id="viewScanReportBtn">View Report</button>
-    </div>
-    <div class="settings-actions" style="margin-top:8px;">
-      <button class="settings-btn-secondary" id="openScanInMainWindowBtn">Open in Main Window</button>
+    <div class="menu-list" style="display:flex;flex-direction:column;gap:6px;">
+      <button type="button" id="runScanBtn" class="menu-list-item">Start Scan</button>
+      <button type="button" id="exportScanBtn" class="menu-list-item">Export</button>
+      <button type="button" id="viewScanReportBtn" class="menu-list-item">View Report</button>
+      <button type="button" id="openScanInMainWindowBtn" class="menu-list-item">Open in Main Window</button>
     </div>
   </div>
   <div class="settings-section-card">
@@ -3555,10 +3883,7 @@ body.detail-panel-open #tabAdvanced {
     </div>
   </div>
 </div>
-<div class="settings-btn-card ${displayMode === 'sidebar' ? '' : 'hidden'}" id="toggleMonitorSidebarBtn" data-sidebar-tab="dashboard" style="background:linear-gradient(135deg,rgba(16,185,129,0.15) 0%,rgba(52,211,153,0.08) 100%);border-color:rgba(16,185,129,0.25);">
-  <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
-  <span>Toggle AI Slop Monitor</span>
-</div>
+<button type="button" id="toggleMonitorSidebarBtn" data-sidebar-tab="dashboard" class="menu-list-item ${displayMode === 'sidebar' ? '' : 'hidden'}">Toggle AI Slop Monitor</button>
 <div id="diagnoseResultsContainer" style="display:none; background: var(--vscode-editor-background, #1e1e1e); overflow-y: auto;">
   <div class="diag-back-bar" id="diagnoseBackBtn" role="button" tabindex="0">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
@@ -3607,14 +3932,8 @@ body.detail-panel-open #tabAdvanced {
 </div>
 <div class="settings-dropdown-body ${displayMode === 'sidebar' ? '' : 'hidden'}" id="settingsDropdownBody" data-sidebar-tab="settings">
   <div class="tab-section">TOOLS</div>
-  <div class="settings-btn-card" id="platformDropdownHeader" data-sidebar-tab="settings" style="margin-bottom:0;background:linear-gradient(135deg,rgba(99,102,241,0.15) 0%,rgba(129,140,248,0.08) 100%);border-color:rgba(99,102,241,0.25);">
-    <span class="icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></span>
-    <span>Platform</span>
-  </div>
-  <div class="settings-btn-card" id="openSettingsFromSettings" style="margin-bottom:0;background:linear-gradient(135deg,rgba(107,114,128,0.15) 0%,rgba(156,163,175,0.08) 100%);border-color:rgba(107,114,128,0.25);">
-    <span class="icon">&#x2699;</span>
-    <span>Open Settings</span>
-  </div>
+  <button type="button" id="platformDropdownHeader" data-sidebar-tab="settings" class="menu-list-item">Platform</button>
+  <button type="button" id="openSettingsFromSettings" class="menu-list-item">Open Settings</button>
   <div class="tab-section" style="margin-top:16px;">SERVER INFO</div>
   <div class="card" id="settingsServerCard">
     <div class="card-icon server"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div>
@@ -3625,1373 +3944,9 @@ body.detail-panel-open #tabAdvanced {
   </div>
 </div>
 <script nonce="${nonce}">
-(function(){
   window._displayMode = '${displayMode}';
-  const vscode = (typeof acquireVsCodeApi === 'function') ? acquireVsCodeApi() : null;
-  if (vscode) window.vscode = vscode;
-  // Generic dropdown toggle: works for every .settings-dropdown-header including duplicates
-  document.addEventListener('click', function(e) {
-    let header = e.target.closest('.settings-dropdown-header');
-    if (!header) return;
-    let body = header.nextElementSibling;
-    if (body && body.classList.contains('settings-dropdown-body')) {
-      let isOpen = body.classList.contains('open');
-      document.querySelectorAll('.settings-dropdown-body.open').forEach(function(b){b.classList.remove('open');});
-      document.querySelectorAll('.settings-dropdown-header.open').forEach(function(h){h.classList.remove('open');});
-      if (!isOpen) {
-        body.classList.add('open');
-        header.classList.add('open');
-      }
-    }
-    e.stopPropagation();
-  }, true);
-  // Safety net: ensure only one sidebar detail panel is open at a time
-  let HEADER_TO_MAIN_WINDOW_COMMAND = {
-    'scanDropdownHeader': 'openDiagnose',
-    'analyzeDropdownHeader': 'analyze',
-    'securityDropdownHeader': 'openSecurity',
-    'qualityDropdownHeader': 'openQuality',
-    'trustDropdownHeader': 'openTrust',
-    'assessmentsDropdownHeader': 'openAssessments',
-    'certificateDropdownHeader': 'openCertificate',
-    'repoHealthDropdownHeader': 'openRepoHealth',
-    'analyticsDropdownHeader': 'openAnalytics',
-    'platformDropdownHeader': 'openPlatform',
-    'profileDropdownHeader': 'openProfile',
-    'teamDropdownHeader': 'team',
-    'roadmapDropdownHeader': 'openRoadmap',
-    'complianceDropdownHeader': 'openCompliance',
-    'codeMapDropdownHeader': 'openCodeMap',
-    'aiContextDropdownHeader': 'openAiContext',
-    'uploadDropdownHeader': 'openUpload',
-    'auditDropdownHeader': 'openAudit'
-  };
-  document.addEventListener('click', function(e) {
-    let header = e.target.closest('.settings-btn-card, .settings-dropdown-header');
-    if (!header) return;
-    let id = header.id;
-    if (!id) return;
-    let mainCommand = HEADER_TO_MAIN_WINDOW_COMMAND[id];
-    if (window._displayMode === 'mainWindow' && mainCommand) {
-      if (window.vscode) window.vscode.postMessage({command: mainCommand});
-      return;
-    }
-    let detailId = null;
-    if (id.indexOf('DropdownHeader') > -1) detailId = id.replace('DropdownHeader', 'DetailPanel');
-    if (!detailId) return;
-    let detail = document.getElementById(detailId);
-    if (!detail) return;
-    _closeDetailPanels();
-    header.style.display = 'none';
-    detail.classList.remove('hidden');
-    detail.classList.add('detail-active');
-    detail.style.display = 'block';
-    document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');p.classList.add('hidden');});
-    document.body.classList.add('detail-panel-open');
-  }, true);
-  function _closeDetailPanels(){
-    document.body.classList.remove('detail-panel-open');
-    document.querySelectorAll('[id$="DetailPanel"]').forEach(function(el){el.style.display='none'; el.classList.remove('detail-active');});
-    let analyzeBtn=document.getElementById('analyzeDropdownHeader'); if(analyzeBtn){analyzeBtn.style.display='block';}
-    let analyzeDetail=document.getElementById('analyzeDetailPanel'); if(analyzeDetail){analyzeDetail.style.display='none';}
-    let auditBtn=document.getElementById('auditDropdownHeader'); if(auditBtn){auditBtn.style.display='block';}
-    let auditDetail=document.getElementById('auditDetailPanel'); if(auditDetail){auditDetail.style.display='none';}
-    let securityBtn=document.getElementById('securityDropdownHeader'); if(securityBtn){securityBtn.style.display='block';}
-    let securityDetail=document.getElementById('securityDetailPanel'); if(securityDetail){securityDetail.style.display='none';}
-    let qualityBtn=document.getElementById('qualityDropdownHeader'); if(qualityBtn){qualityBtn.style.display='block';}
-    let qualityDetail=document.getElementById('qualityDetailPanel'); if(qualityDetail){qualityDetail.style.display='none';}
-    let trustBtn=document.getElementById('trustDropdownHeader'); if(trustBtn){trustBtn.style.display='block';}
-    let trustDetail=document.getElementById('trustDetailPanel'); if(trustDetail){trustDetail.style.display='none';}
-    let assessmentsBtn=document.getElementById('assessmentsDropdownHeader'); if(assessmentsBtn){assessmentsBtn.style.display='block';}
-    let assessmentsDetail=document.getElementById('assessmentsDetailPanel'); if(assessmentsDetail){assessmentsDetail.style.display='none';}
-    let scanBtn=document.getElementById('scanDropdownHeader'); if(scanBtn){scanBtn.style.display='block';}
-    let scanDetail=document.getElementById('scanDetailPanel'); if(scanDetail){scanDetail.style.display='none';}
-    let aiContextBtn=document.getElementById('aiContextDropdownHeader'); if(aiContextBtn){aiContextBtn.style.display='block';}
-    let aiContextDetail=document.getElementById('aiContextDetailPanel'); if(aiContextDetail){aiContextDetail.style.display='none';}
-    let uploadBtn=document.getElementById('uploadDropdownHeader'); if(uploadBtn){uploadBtn.style.display='block';}
-    let uploadDetail=document.getElementById('uploadDetailPanel'); if(uploadDetail){uploadDetail.style.display='none';}
-    let repoHealthBtn=document.getElementById('repoHealthDropdownHeader'); if(repoHealthBtn){repoHealthBtn.style.display='block';}
-    let repoHealthDetail=document.getElementById('repoHealthDetailPanel'); if(repoHealthDetail){repoHealthDetail.style.display='none';}
-    let analyticsBtn=document.getElementById('analyticsDropdownHeader'); if(analyticsBtn){analyticsBtn.style.display='block';}
-    let analyticsDetail=document.getElementById('analyticsDetailPanel'); if(analyticsDetail){analyticsDetail.style.display='none';}
-    let platformBtn=document.getElementById('platformDropdownHeader'); if(platformBtn){platformBtn.style.display='block';}
-    let platformDetail=document.getElementById('platformDetailPanel'); if(platformDetail){platformDetail.style.display='none';}
-    let certBtn=document.getElementById('certificateDropdownHeader'); if(certBtn){certBtn.style.display='block';}
-    let certDetail=document.getElementById('certificateDetailPanel'); if(certDetail){certDetail.style.display='none';}
-    let codeMapBtn=document.getElementById('codeMapDropdownHeader'); if(codeMapBtn){codeMapBtn.style.display='block';}
-    let codeMapDetail=document.getElementById('codeMapDetailPanel'); if(codeMapDetail){codeMapDetail.style.display='none';}
-    let roadmapBtn=document.getElementById('roadmapDropdownHeader'); if(roadmapBtn){roadmapBtn.style.display='block';}
-    let roadmapDetail=document.getElementById('roadmapDetailPanel'); if(roadmapDetail){roadmapDetail.style.display='none';}
-    let profileBtn=document.getElementById('profileDropdownHeader'); if(profileBtn){profileBtn.style.display='block';}
-    let profileDetail=document.getElementById('profileDetailPanel'); if(profileDetail){profileDetail.style.display='none';}
-    let complianceBtn=document.getElementById('complianceDropdownHeader'); if(complianceBtn){complianceBtn.style.display='block';}
-    let complianceDetail=document.getElementById('complianceDetailPanel'); if(complianceDetail){complianceDetail.style.display='none';}
-    let teamBtn=document.getElementById('teamDropdownHeader'); if(teamBtn){teamBtn.style.display='block';}
-    let teamDetail=document.getElementById('teamDetailPanel'); if(teamDetail){teamDetail.style.display='none';}
-    let settingsMenu=document.getElementById('settingsMenuTab'); if(settingsMenu){settingsMenu.style.display='block';}
-    let settingsDetail=document.getElementById('settingsDetailPanelTab'); if(settingsDetail){settingsDetail.style.display='none';}
-    let diagnoseBtn=document.getElementById('openDiagnoseFromSettingsTab'); if(diagnoseBtn){diagnoseBtn.style.display='block';}
-    let diagnoseDetail=document.getElementById('diagnoseDetailPanel'); if(diagnoseDetail){diagnoseDetail.style.display='none';}
-    let activeTab=document.body.getAttribute('data-active-tab') || 'dashboard';
-    let activePane=document.getElementById('tab'+activeTab.charAt(0).toUpperCase()+activeTab.slice(1));
-    if(activePane){activePane.classList.add('active');activePane.classList.remove('hidden');}
-    let dashboardPane=document.getElementById('tabDashboard'); if(dashboardPane && activeTab !== 'dashboard'){dashboardPane.classList.remove('active');dashboardPane.classList.add('hidden');}
-  }
-  function _openSidebarMenu(containerId, detailPanelId, mainWindowCommand){
-    if (mainWindowCommand && window._displayMode === 'mainWindow' && window.vscode) {
-      window.vscode.postMessage({command: mainWindowCommand});
-      return;
-    }
-    _closeDetailPanels();
-    if(containerId){let container=document.getElementById(containerId); if(container){container.style.display='none';}}
-    let detail=document.getElementById(detailPanelId);
-    if(detail){detail.classList.remove('hidden'); detail.classList.add('detail-active'); detail.style.display='block';}
-    document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');p.classList.add('hidden');});
-    document.body.classList.add('detail-panel-open');
-  }
-  // Sidebar tab switching
-  function _switchSidebarTab(tab) {
-    _closeDetailPanels();
-    document.querySelectorAll('#sidebarTabBar .sidebar-tab-item').forEach(function(t){t.classList.toggle('active', t.getAttribute('data-tab') === tab);});
-    document.querySelectorAll('#mainTabBar .tab-item').forEach(function(t){t.classList.toggle('active', t.getAttribute('data-tab') === tab);});
-    document.querySelectorAll('[data-sidebar-tab]').forEach(function(el){let match=el.getAttribute('data-sidebar-tab')===tab; if(match){el.classList.remove('hidden');} else {el.classList.add('hidden');} });
-    document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');p.classList.add('hidden');});
-    let pane=document.getElementById('tab'+tab.charAt(0).toUpperCase()+tab.slice(1)); if(pane){ pane.classList.add('active'); pane.classList.remove('hidden'); }
-    document.body.setAttribute('data-active-tab', tab);
-    let td=document.getElementById('tabDashboard'); if(td){ if(tab==='dashboard'){ td.classList.add('active'); td.classList.remove('hidden'); } else { td.classList.remove('active'); td.classList.add('hidden'); } }
-    if (tab === 'settings') {
-      let setHeader=document.getElementById('settingsDropdownHeader'); if(setHeader){setHeader.classList.add('hidden');}
-      let setBody=document.getElementById('settingsDropdownBody'); if(setBody){setBody.classList.add('hidden');}
-    }
-    _hideDiagnoseResults();
-    document.querySelectorAll('[id$="DetailPanel"]').forEach(function(el){el.classList.add('hidden');el.style.display='none';el.classList.remove('detail-active');});
-  }
-  document.querySelectorAll('#sidebarTabBar .sidebar-tab-item').forEach(function(t){t.addEventListener('click', function(){_switchSidebarTab(t.getAttribute('data-tab'));});});
-  _switchSidebarTab('dashboard');
-  let _statusCard=document.getElementById('statusCard');if(_statusCard){_statusCard.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'diagnose'}); });}
-  let _serverCard=document.getElementById('serverCard');if(_serverCard){_serverCard.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openCloudInBrowser'}); });}
-  let _analyzeDropdownHeader=document.getElementById('analyzeDropdownHeader');if(_analyzeDropdownHeader){_analyzeDropdownHeader.addEventListener('click', function() { const header=document.getElementById('analyzeDropdownHeader'); const detail=document.getElementById('analyzeDetailPanel'); _closeDetailPanels(); if(header){header.style.display='none';} if(detail){detail.classList.remove('hidden');detail.classList.add('detail-active');detail.style.display='block';} document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');p.classList.add('hidden');}); document.body.classList.add('detail-panel-open'); });}
-  let _analyzeDetailBackBtn=document.getElementById('analyzeDetailBackBtn');if(_analyzeDetailBackBtn){_analyzeDetailBackBtn.addEventListener('click', function() { _switchSidebarTab('advanced'); });}
-  let _runAnalysisBtn=document.getElementById('runAnalysisBtn');if(_runAnalysisBtn){_runAnalysisBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'analyze'}); });}
-  let _openAnalyzeInMainWindowBtn=document.getElementById('openAnalyzeInMainWindowBtn');if(_openAnalyzeInMainWindowBtn){_openAnalyzeInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openAnalyze'}); });}
-  let _scanWorkspaceBtn=document.getElementById('scanWorkspaceBtn');if(_scanWorkspaceBtn){_scanWorkspaceBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'scan'}); });}
-  let _exportJsonBtn=document.getElementById('exportJsonBtn');if(_exportJsonBtn){_exportJsonBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'exportReport'}); });}
-  let _enhancedAnalysisBtn=document.getElementById('enhancedAnalysisBtn');if(_enhancedAnalysisBtn){_enhancedAnalysisBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openEnhancedAnalysis'}); });}
-  let _realtimeAnalysisBtn=document.getElementById('realtimeAnalysisBtn');if(_realtimeAnalysisBtn){_realtimeAnalysisBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openRealtimeAnalysis'}); });}
-  let _patternDetectionBtn=document.getElementById('patternDetectionBtn');if(_patternDetectionBtn){_patternDetectionBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openPatternDetection'}); });}
-  let _modelHealthBtn=document.getElementById('modelHealthBtn');if(_modelHealthBtn){_modelHealthBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openModelHealth'}); });}
-  let _toggleMonitorBtn=document.getElementById('toggleMonitorBtn');if(_toggleMonitorBtn){_toggleMonitorBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openToggleMonitor'}); });}
-  let _openDashboardBtn=document.getElementById('openDashboardBtn');if(_openDashboardBtn){_openDashboardBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openDashboard'}); });}
-  let _openReportBtn=document.getElementById('openReportBtn');if(_openReportBtn){_openReportBtn.addEventListener('click', function() { _switchSidebarTab('report'); });}
-  let _openCertificateBtn=document.getElementById('openCertificateBtn');if(_openCertificateBtn){_openCertificateBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openCertificate'}); });}
-  let _openCodeMapBtn=document.getElementById('openCodeMapBtn');if(_openCodeMapBtn){_openCodeMapBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openCodeMap'}); });}
-  let _openRoadmapBtn=document.getElementById('openRoadmapBtn');if(_openRoadmapBtn){_openRoadmapBtn.addEventListener('click', function() { _switchSidebarTab('roadmap'); });}
-  let _openAiContextBtn=document.getElementById('openAiContextBtn');if(_openAiContextBtn){_openAiContextBtn.addEventListener('click', function() { _switchSidebarTab('aicontext'); });}
-  let _openUploadBtn=document.getElementById('openUploadBtn');if(_openUploadBtn){_openUploadBtn.addEventListener('click', function() { _switchSidebarTab('upload'); });}
-  let _openAuditBtnMain=document.getElementById('openAuditBtnMain');if(_openAuditBtnMain){_openAuditBtnMain.addEventListener('click', function() { _switchSidebarTab('audit'); });}
-  let _openSecurityBtnMain=document.getElementById('openSecurityBtnMain');if(_openSecurityBtnMain){_openSecurityBtnMain.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openSecurity'}); });}
-  let _openTrustBtn=document.getElementById('openTrustBtn');if(_openTrustBtn){_openTrustBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openTrust'}); });}
-  let _openQualityBtn=document.getElementById('openQualityBtn');if(_openQualityBtn){_openQualityBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openQuality'}); });}
-  let _openAssessmentsBtn=document.getElementById('openAssessmentsBtn');if(_openAssessmentsBtn){_openAssessmentsBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openAssessments'}); });}
-  let _openPlatformBtn=document.getElementById('openPlatformBtn');if(_openPlatformBtn){_openPlatformBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openPlatform'}); });}
-  let _openProfileBtn=document.getElementById('openProfileBtn');if(_openProfileBtn){_openProfileBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openProfile'}); });}
-  let _openProfileInMainWindowBtn=document.getElementById('openProfileInMainWindowBtn');if(_openProfileInMainWindowBtn){_openProfileInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openProfile'}); });}
-  let _openComplianceBtn=document.getElementById('openComplianceBtn');if(_openComplianceBtn){_openComplianceBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openCompliance'}); });}
-  let _openRepoHealthBtn=document.getElementById('openRepoHealthBtn');if(_openRepoHealthBtn){_openRepoHealthBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openRepoHealth'}); });}
-  let _openRepoHealthInMainWindowBtn=document.getElementById('openRepoHealthInMainWindowBtn');if(_openRepoHealthInMainWindowBtn){_openRepoHealthInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openRepoHealth'}); });}
-  let _openAnalyticsBtn=document.getElementById('openAnalyticsBtn');if(_openAnalyticsBtn){_openAnalyticsBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openAnalytics'}); });}
-  let _openAnalyticsInMainWindowBtn=document.getElementById('openAnalyticsInMainWindowBtn');if(_openAnalyticsInMainWindowBtn){_openAnalyticsInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openAnalytics'}); });}
-  let _openScanBtn=document.getElementById('openScanBtn');if(_openScanBtn){_openScanBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openScan'}); });}
-  let _reportBackBtn=document.getElementById('reportBackBtn');if(_reportBackBtn){_reportBackBtn.addEventListener('click', function() { _switchSidebarTab('advanced'); });}
-  let _openReportInMainWindowBtn=document.getElementById('openReportInMainWindowBtn');if(_openReportInMainWindowBtn){_openReportInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openReport'}); });}
-  let _roadmapBackBtn=document.getElementById('roadmapBackBtn');if(_roadmapBackBtn){_roadmapBackBtn.addEventListener('click', function() { _switchSidebarTab('advanced'); });}
-  let _openRoadmapInMainWindowBtn=document.getElementById('openRoadmapInMainWindowBtn');if(_openRoadmapInMainWindowBtn){_openRoadmapInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openRoadmap'}); });}
-  let _aiContextBackBtn=document.getElementById('aiContextBackBtn');if(_aiContextBackBtn){_aiContextBackBtn.addEventListener('click', function() { _switchSidebarTab('advanced'); });}
-  let _openAiContextInMainWindowBtn=document.getElementById('openAiContextInMainWindowBtn');if(_openAiContextInMainWindowBtn){_openAiContextInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openAiContext'}); });}
-  let _openPreviewBtn=document.getElementById('openPreviewBtn');if(_openPreviewBtn){_openPreviewBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openPreview'}); });}
-  let _scanStartBtn=document.getElementById('scanStartBtn');if(_scanStartBtn){_scanStartBtn.addEventListener('click', function() { let toggle=document.getElementById('sidebarScanWorkspaceToggle'); let pathInput=document.getElementById('sidebarScanPathInput'); let isWorkspace=toggle?toggle.checked:true; let path=pathInput?pathInput.value:''; if (window.vscode) window.vscode.postMessage({command: 'scan', mode: isWorkspace?'workspace':'custom', path: isWorkspace?'':path}); });}
-  let _openToggleMonitorBtn=document.getElementById('openToggleMonitorBtn');if(_openToggleMonitorBtn){_openToggleMonitorBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openToggleMonitor'}); });}
-  let _openEnhancedAnalysisBtn=document.getElementById('openEnhancedAnalysisBtn');if(_openEnhancedAnalysisBtn){_openEnhancedAnalysisBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openEnhancedAnalysis'}); });}
-  let _openRealtimeAnalysisBtn=document.getElementById('openRealtimeAnalysisBtn');if(_openRealtimeAnalysisBtn){_openRealtimeAnalysisBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openRealtimeAnalysis'}); });}
-  let _openPatternDetectionBtn=document.getElementById('openPatternDetectionBtn');if(_openPatternDetectionBtn){_openPatternDetectionBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openPatternDetection'}); });}
-  let _openModelHealthBtn=document.getElementById('openModelHealthBtn');if(_openModelHealthBtn){_openModelHealthBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openModelHealth'}); });}
-  let _openTeamDashboardBtnMain=document.getElementById('openTeamDashboardBtnMain');if(_openTeamDashboardBtnMain){_openTeamDashboardBtnMain.addEventListener('click', function() { if(window.vscode) window.vscode.postMessage({command:'openTeamDashboard'}); });}
-  function _tdBind(id,cmd){let el=document.getElementById(id);if(el){el.addEventListener('click',function(){if(window.vscode)window.vscode.postMessage({command:cmd});});}}
-  _tdBind('tdRoadmap','openRoadmap');
-  let _tdAuditEl=document.getElementById('tdAudit');if(_tdAuditEl){_tdAuditEl.addEventListener('click',function(){if(window.vscode)window.vscode.postMessage({command:'openAuditUrl',url:'http://127.0.0.1:54358/coming-soon/roadmap.html?h=1782501104143'});});}
-  _tdPath('tdPricing','/coming-soon/pricing.html');
-  _tdBind('tdOpenSite','openTeamDashboard');
-  _tdBind('tdSignIn','signIn');
-  _tdBind('tdOfflineToggle','toggleOffline');
-  _tdBind('tdSignOut','signOut');
-  _tdBind('tdDashboard','dashboard');
-  _tdBind('tdAnalyze','openAnalyze');
-  _tdBind('tdResults','openReport');
-  _tdBind('tdRepoHealth','openRepoHealth');
-  _tdBind('tdSecurity','openSecurity');
-  _tdBind('tdQuality','openQuality');
-  _tdBind('tdTrust','openTrust');
-  _tdBind('tdAuditReport','openAudit');
-  _tdBind('tdAssessments','openAssessments');
-  _tdBind('tdRemediation','openRoadmap');
-  _tdBind('tdPlatform','openPlatform');
-  _tdBind('tdProfile','openProfile');
-  _tdBind('tdTools','openDiagnose');
-  _tdBind('tdSettings','settings');
-  _tdBind('tdHelp','openHelp');
-  _tdBind('tdChatbot','openChatbot');
-  _tdBind('tdAbout','openAbout');
-  _tdBind('tdGitHub','openGitHub');
-  _tdBind('tdDocs','openDocs');
-  // Analyze, Roadmap, and AI Context buttons already send open* commands above; do not switch sidebar tabs.
-  let _openSettingsBtn=document.getElementById('openSettingsBtn');if(_openSettingsBtn){_openSettingsBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openSettings'}); });}
-  let _uploadDropzone=document.getElementById('uploadDropzone');let _uploadFileInput=document.getElementById('uploadFileInput');let _uploadList=document.getElementById('uploadList');let _uploadStatPending=document.getElementById('uploadStatPending');let _uploadStatValid=document.getElementById('uploadStatValid');let _uploadStatInvalid=document.getElementById('uploadStatInvalid');let _uploadValidateBtn=document.getElementById('uploadValidateBtn');let _uploadClearBtn=document.getElementById('uploadClearBtn');let _uploadProgress=document.getElementById('uploadProgress');let _uploadProgressFill=document.getElementById('uploadProgressFill');let _uploadProgressText=document.getElementById('uploadProgressText');let _uploadDetail=document.getElementById('uploadDetail');let _uploadDetailList=document.getElementById('uploadDetailList');let _uploadResultBox=document.getElementById('uploadResultBox');let _uploadResultTitle=document.getElementById('uploadResultTitle');let _uploadResultList=document.getElementById('uploadResultList');
-  let _uploadFiles=[];
-  let _uploadBase64={};
-  function _uploadFormatSize(b){if(b<1024)return b+' B';if(b<1024*1024)return (b/1024).toFixed(1)+' KB';return (b/(1024*1024)).toFixed(1)+' MB';}
-  function _uploadAllowedExt(name){let ext=(name.split('.').pop()||'').toLowerCase();return ['zip','js','ts','json','md','txt','csv','xml','html','css','yml','yaml'].indexOf(ext)>=0;}
-  function _uploadFileDetail(f){let details=[];if(!_uploadAllowedExt(f.name)){details.push({ok:false,text:'Unsupported file extension'});}else{details.push({ok:true,text:'Supported file type'});}if(f.size>50*1024*1024){details.push({ok:false,text:'File exceeds 50 MB limit'});}else if(f.size>5*1024*1024){details.push({ok:false,text:'Large file (>5 MB), may be slow'});}else{details.push({ok:true,text:'Size OK'});}return details;}
-  function _uploadRender(){if(!_uploadList)return;while(_uploadList.firstChild){_uploadList.removeChild(_uploadList.firstChild);}if(_uploadFiles.length===0){let empty=document.createElement('div');empty.className='upload-empty';empty.textContent='No files selected. Drop files above or click to browse.';_uploadList.appendChild(empty);}else{_uploadFiles.forEach(function(f,index){let iconClass=f.status==='invalid'?'err':f.status==='valid'?'':'warn';let statusClass=f.status==='valid'?'valid':f.status==='invalid'?'invalid':'ready';let statusText=f.status==='valid'?'Valid':f.status==='invalid'?'Invalid':'Ready';let item=document.createElement('div');item.className='upload-item';let icon=document.createElement('div');icon.className='upload-item-icon '+iconClass;icon.textContent='\u{1F4C4}';let text=document.createElement('div');text.className='upload-item-text';let name=document.createElement('div');name.className='upload-item-name';name.textContent=f.name;let meta=document.createElement('div');meta.className='upload-item-meta';meta.textContent=_uploadFormatSize(f.size);text.appendChild(name);text.appendChild(meta);let actions=document.createElement('div');actions.className='upload-item-actions';let statusBadge=document.createElement('div');statusBadge.className='upload-item-status '+statusClass;statusBadge.textContent=statusText;actions.appendChild(statusBadge);let removeBtn=document.createElement('button');removeBtn.className='upload-item-action';removeBtn.textContent='\u2715';removeBtn.title='Remove';removeBtn.addEventListener('click',function(e){e.stopPropagation();_uploadFiles.splice(index,1);delete _uploadBase64[f.name];_uploadRender();});actions.appendChild(removeBtn);item.appendChild(icon);item.appendChild(text);item.appendChild(actions);_uploadList.appendChild(item);});}let v=_uploadFiles.filter(function(f){return f.status==='valid';}).length;let iv=_uploadFiles.filter(function(f){return f.status==='invalid';}).length;let p=_uploadFiles.length-v-iv;if(_uploadStatPending)_uploadStatPending.textContent=p;if(_uploadStatValid)_uploadStatValid.textContent=v;if(_uploadStatInvalid)_uploadStatInvalid.textContent=iv;}
-  function _uploadSetProgress(pct,text){if(!_uploadProgress||!_uploadProgressFill||!_uploadProgressText)return;_uploadProgress.style.display='block';_uploadProgressFill.style.width=pct+'%';_uploadProgressText.textContent=text||pct+'%';}
-  function _uploadHideProgress(){if(_uploadProgress)_uploadProgress.style.display='none';}
-  function _uploadShowDetails(){if(!_uploadDetail||!_uploadDetailList)return;_uploadDetail.style.display='block';while(_uploadDetailList.firstChild){_uploadDetailList.removeChild(_uploadDetailList.firstChild);}_uploadFiles.forEach(function(f){let details=_uploadFileDetail(f);let fileRow=document.createElement('div');fileRow.style.marginBottom='8px';let fileName=document.createElement('div');fileName.style.fontWeight='600';fileName.style.marginBottom='2px';fileName.textContent=f.name;fileRow.appendChild(fileName);details.forEach(function(d){let row=document.createElement('div');row.className='upload-detail-item '+(d.ok?'ok':'err');row.textContent=(d.ok?'\u2713 ':'\u2717 ')+d.text;fileRow.appendChild(row);});_uploadDetailList.appendChild(fileRow);});}
-  function _uploadShowResult(){if(!_uploadResultBox||!_uploadResultTitle||!_uploadResultList)return;let validCount=_uploadFiles.filter(function(f){return f.status==='valid';}).length;let invalidCount=_uploadFiles.filter(function(f){return f.status==='invalid';}).length;_uploadResultBox.style.display='block';if(invalidCount===0){_uploadResultTitle.className='upload-result-title ok';_uploadResultTitle.textContent='\u2713 All files passed validation';}else{_uploadResultTitle.className='upload-result-title err';_uploadResultTitle.textContent='\u2717 '+invalidCount+' file'+(invalidCount===1?'':'s')+' failed validation';}let list=[];if(validCount>0)list.push(validCount+' ready for upload');if(invalidCount>0)list.push(invalidCount+' need fixing');_uploadResultList.textContent=list.join(' \u2022 ')||'No files selected';}
-  function _uploadReadFile(file){return new Promise(function(resolve){let reader=new FileReader();reader.onload=function(e){resolve({name:file.name,size:file.size,data:e.target.result.split(',')[1]});};reader.readAsDataURL(file);});}
-  function _uploadValidateAll(){if(_uploadFiles.length===0){_uploadShowResult();return;}_uploadFiles.forEach(function(f){f.status=_uploadAllowedExt(f.name)?'valid':'invalid';});_uploadRender();_uploadShowDetails();_uploadShowResult();let validFiles=_uploadFiles.filter(function(f){return f.status==='valid';});if(validFiles.length===0){return;}_uploadSetProgress(0,'Reading files...');let done=0;let payloads=[];function onDone(){done++;let pct=Math.round((done/validFiles.length)*50);_uploadSetProgress(pct,'Reading files...');if(done===validFiles.length){_uploadSetProgress(75,'Sending to extension...');if(window.vscode)window.vscode.postMessage({command:'validateUpload',files:payloads});_uploadSetProgress(100,'Done');setTimeout(_uploadHideProgress,800);}}validFiles.forEach(function(f){_uploadReadFile(f).then(function(payload){payloads.push(payload);_uploadBase64[f.name]=payload.data;onDone();});});}
-  function _uploadAddFiles(fileList){if(!fileList)return;for(let i=0;i<fileList.length;i++){let file=fileList[i];_uploadFiles.push({name:file.name,size:file.size,status:'ready'});}_uploadRender();}
-  if(_uploadDropzone&&_uploadFileInput){_uploadDropzone.addEventListener('click',function(){_uploadFileInput.click();});_uploadDropzone.addEventListener('dragover',function(e){e.preventDefault();_uploadDropzone.classList.add('dragover');});_uploadDropzone.addEventListener('dragleave',function(e){e.preventDefault();_uploadDropzone.classList.remove('dragover');});_uploadDropzone.addEventListener('drop',function(e){e.preventDefault();_uploadDropzone.classList.remove('dragover');_uploadAddFiles(e.dataTransfer.files);});_uploadFileInput.addEventListener('change',function(){_uploadAddFiles(_uploadFileInput.files);_uploadFileInput.value='';});}
-  if(_uploadValidateBtn){_uploadValidateBtn.addEventListener('click',function(){_uploadValidateAll();});}
-  if(_uploadClearBtn){_uploadClearBtn.addEventListener('click',function(){_uploadFiles=[];_uploadBase64={};_uploadRender();if(_uploadDetail)_uploadDetail.style.display='none';if(_uploadResultBox)_uploadResultBox.style.display='none';_uploadHideProgress();});}
-  _uploadRender();
-  let _tabAuditRunBtn=document.getElementById('tabAuditRunBtn');if(_tabAuditRunBtn){_tabAuditRunBtn.addEventListener('click',function(){if(window.vscode)window.vscode.postMessage({command:'runAudit'});});}
-  let _tabAuditExportBtn=document.getElementById('tabAuditExportBtn');if(_tabAuditExportBtn){_tabAuditExportBtn.addEventListener('click',function(){if(window.vscode)window.vscode.postMessage({command:'exportReport'});});}
-  let _tabAuditViewBtn=document.getElementById('tabAuditViewBtn');if(_tabAuditViewBtn){_tabAuditViewBtn.addEventListener('click',function(){if(window.vscode)window.vscode.postMessage({command:'openAudit'});});}
-  let _tabAuditSettingsBtn=document.getElementById('tabAuditSettingsBtn');if(_tabAuditSettingsBtn){_tabAuditSettingsBtn.addEventListener('click',function(){if(window.vscode)window.vscode.postMessage({command:'settings'});});}
-  let _tabUploadDropzone=document.getElementById('tabUploadDropzone');let _tabUploadFileInput=document.getElementById('tabUploadFileInput');let _tabUploadFiles=[];
-  function _tabUploadFormatSize(b){if(b<1024)return b+' B';if(b<1024*1024)return (b/1024).toFixed(1)+' KB';return (b/(1024*1024)).toFixed(1)+' MB';}
-  function _tabUploadRender(){let list=document.getElementById('tabUploadFileList');if(!list)return;while(list.firstChild){list.removeChild(list.firstChild);}if(_tabUploadFiles.length===0){let empty=document.createElement('div');empty.className='upload-empty';empty.textContent='No files selected. Drop files above or click to browse.';list.appendChild(empty);}else{_tabUploadFiles.forEach(function(f,index){let item=document.createElement('div');item.className='upload-item';let icon=document.createElement('div');icon.className='upload-item-icon';icon.textContent='\u{1F4C4}';let text=document.createElement('div');text.className='upload-item-text';let name=document.createElement('div');name.className='upload-item-name';name.textContent=f.name;let meta=document.createElement('div');meta.className='upload-item-meta';meta.textContent=_tabUploadFormatSize(f.size);text.appendChild(name);text.appendChild(meta);let actions=document.createElement('div');actions.className='upload-item-actions';let removeBtn=document.createElement('button');removeBtn.className='upload-item-action';removeBtn.textContent='\u2715';removeBtn.title='Remove';removeBtn.addEventListener('click',function(e){e.stopPropagation();_tabUploadFiles.splice(index,1);_tabUploadRender();});actions.appendChild(removeBtn);item.appendChild(icon);item.appendChild(text);item.appendChild(actions);list.appendChild(item);});}let total=document.getElementById('tabUploadTotal');if(total)total.textContent=_tabUploadFiles.length;let valid=document.getElementById('tabUploadValid');let err=document.getElementById('tabUploadErrors');if(valid&&err){let v=_tabUploadFiles.filter(function(f){return f.status==='valid';}).length;let iv=_tabUploadFiles.filter(function(f){return f.status==='invalid';}).length;valid.textContent=v;err.textContent=iv;}}
-  function _tabUploadAddFiles(fileList){if(!fileList)return;for(let i=0;i<fileList.length;i++){let file=fileList[i];_tabUploadFiles.push({name:file.name,size:file.size,status:'ready'});}_tabUploadRender();}
-  if(_tabUploadDropzone&&_tabUploadFileInput){_tabUploadDropzone.addEventListener('click',function(){_tabUploadFileInput.click();});_tabUploadDropzone.addEventListener('dragover',function(e){e.preventDefault();_tabUploadDropzone.classList.add('dragover');});_tabUploadDropzone.addEventListener('dragleave',function(e){e.preventDefault();_tabUploadDropzone.classList.remove('dragover');});_tabUploadDropzone.addEventListener('drop',function(e){e.preventDefault();_tabUploadDropzone.classList.remove('dragover');_tabUploadAddFiles(e.dataTransfer.files);});_tabUploadFileInput.addEventListener('change',function(){_tabUploadAddFiles(_tabUploadFileInput.files);_tabUploadFileInput.value='';});}
-  let _tabUploadValidateBtn=document.getElementById('tabUploadValidateBtn');if(_tabUploadValidateBtn){_tabUploadValidateBtn.addEventListener('click',function(){let allowed=['zip','js','ts','json','md','txt','csv','xml','html','css','yml','yaml'];_tabUploadFiles.forEach(function(f){let ext=(f.name.split('.').pop()||'').toLowerCase();f.status=allowed.indexOf(ext)>=0?'valid':'invalid';});_tabUploadRender();});}
-  let _tabUploadScanBtn=document.getElementById('tabUploadScanBtn');if(_tabUploadScanBtn){_tabUploadScanBtn.addEventListener('click',function(){if(window.vscode)window.vscode.postMessage({command:'scan'});});}
-  let _tabUploadClearBtn=document.getElementById('tabUploadClearBtn');if(_tabUploadClearBtn){_tabUploadClearBtn.addEventListener('click',function(){_tabUploadFiles=[];_tabUploadRender();});}
-  let _analyzeRunCard=document.getElementById('analyzeRunCard');if(_analyzeRunCard){_analyzeRunCard.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'analyze'}); });}
-  let _analyzeScanWorkspaceCard=document.getElementById('analyzeScanWorkspaceCard');if(_analyzeScanWorkspaceCard){_analyzeScanWorkspaceCard.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'scan'}); });}
-  let _analyzeExportJsonCard=document.getElementById('analyzeExportJsonCard');if(_analyzeExportJsonCard){_analyzeExportJsonCard.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'exportReport'}); });}
-  let _repoHealthDropdownHeader=document.getElementById('repoHealthDropdownHeader');if(_repoHealthDropdownHeader){_repoHealthDropdownHeader.addEventListener('click', function() { const header=document.getElementById('repoHealthDropdownHeader'); const detail=document.getElementById('repoHealthDetailPanel'); _closeDetailPanels(); if(header){header.style.display='none';} if(detail){detail.classList.remove('hidden');detail.classList.add('detail-active');detail.style.display='block';} document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');p.classList.add('hidden');}); document.body.classList.add('detail-panel-open'); if (window.vscode) window.vscode.postMessage({command: 'getAuditData'}); });}
-  let _repoHealthDetailBackBtn=document.getElementById('repoHealthDetailBackBtn');if(_repoHealthDetailBackBtn){_repoHealthDetailBackBtn.addEventListener('click', function() { _switchSidebarTab('advanced'); });}
-  let _repoHealthCard=document.getElementById('repoHealthCard');if(_repoHealthCard){_repoHealthCard.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openRepoHealth'}); });}
-  let _assessmentsCard=document.getElementById('assessmentsCard');if(_assessmentsCard){_assessmentsCard.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openAssessments'}); });}
-  let _platformDropdownHeader=document.getElementById('platformDropdownHeader');if(_platformDropdownHeader){_platformDropdownHeader.addEventListener('click', function() { const header=document.getElementById('platformDropdownHeader'); const detail=document.getElementById('platformDetailPanel'); _closeDetailPanels(); if(header){header.style.display='none';} if(detail){detail.classList.remove('hidden');detail.classList.add('detail-active');detail.style.display='block';} document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');p.classList.add('hidden');}); document.body.classList.add('detail-panel-open'); });}
-  let _platformCard=document.getElementById('platformCard');if(_platformCard){_platformCard.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openPlatform'}); });}
-  let _profileDropdownHeader=document.getElementById('profileDropdownHeader');if(_profileDropdownHeader){_profileDropdownHeader.addEventListener('click', function() { const header=document.getElementById('profileDropdownHeader'); const detail=document.getElementById('profileDetailPanel'); _closeDetailPanels(); if(header){header.style.display='none';} if(detail){detail.classList.remove('hidden');detail.classList.add('detail-active');detail.style.display='block';} document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');p.classList.add('hidden');}); document.body.classList.add('detail-panel-open'); if (window.vscode) window.vscode.postMessage({command: 'getAuditData'}); });}
-  let _profileDetailBackBtn=document.getElementById('profileDetailBackBtn');if(_profileDetailBackBtn){_profileDetailBackBtn.addEventListener('click', function() { _switchSidebarTab('advanced'); });}
-  let _openProfileDetailInMainWindowBtn=document.getElementById('openProfileDetailInMainWindowBtn');if(_openProfileDetailInMainWindowBtn){_openProfileDetailInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openProfile'}); });}
-  let _profileSaveBtn=document.getElementById('profileSaveBtn');if(_profileSaveBtn){_profileSaveBtn.addEventListener('click', function() { const displayName=document.getElementById('profileDisplayName'); const email=document.getElementById('profileEmail'); const role=document.getElementById('profileRole'); const organization=document.getElementById('profileOrganization'); const autoScan=document.getElementById('profileAutoScan'); const notifications=document.getElementById('profileNotifications'); const darkMode=document.getElementById('profileDarkMode'); if (window.vscode) window.vscode.postMessage({command: 'saveProfile', profile: { displayName: displayName ? displayName.value : '', email: email ? email.value : '', role: role ? role.value : '', organization: organization ? organization.value : '', autoScan: autoScan ? autoScan.checked : false, notifications: notifications ? notifications.checked : false, darkMode: darkMode ? darkMode.checked : false }}); });}
-  let _profileClearBtn=document.getElementById('profileClearBtn');if(_profileClearBtn){_profileClearBtn.addEventListener('click', function() { const displayName=document.getElementById('profileDisplayName'); const email=document.getElementById('profileEmail'); const role=document.getElementById('profileRole'); const organization=document.getElementById('profileOrganization'); const autoScan=document.getElementById('profileAutoScan'); const notifications=document.getElementById('profileNotifications'); const darkMode=document.getElementById('profileDarkMode'); if(displayName) displayName.value=''; if(email) email.value=''; if(role) role.value=''; if(organization) organization.value=''; if(autoScan) autoScan.checked=false; if(notifications) notifications.checked=false; if(darkMode) darkMode.checked=true; });}
-  let _profileCard=document.getElementById('profileCard');if(_profileCard){_profileCard.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openProfile'}); });}
-  let _reportDropdownHeader=document.getElementById('reportDropdownHeader');if(_reportDropdownHeader){_reportDropdownHeader.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'exportReport'}); });}
-  let _certificateDropdownHeader=document.getElementById('certificateDropdownHeader');if(_certificateDropdownHeader){_certificateDropdownHeader.addEventListener('click', function() { const header=document.getElementById('certificateDropdownHeader'); const detail=document.getElementById('certificateDetailPanel'); _closeDetailPanels(); if(header){header.style.display='none';} if(detail){detail.classList.remove('hidden');detail.classList.add('detail-active');detail.style.display='block';} document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');p.classList.add('hidden');}); document.body.classList.add('detail-panel-open'); if (window.vscode) window.vscode.postMessage({command: 'getAuditData'}); });}
-  let _certificateDetailBackBtn=document.getElementById('certificateDetailBackBtn');if(_certificateDetailBackBtn){_certificateDetailBackBtn.addEventListener('click', function() { _switchSidebarTab('advanced'); });}
-  let _generateCertificateBtn=document.getElementById('generateCertificateBtn');if(_generateCertificateBtn){_generateCertificateBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'generateCertificate'}); });}
-  let _exportCertificatePdfBtn=document.getElementById('exportCertificatePdfBtn');if(_exportCertificatePdfBtn){_exportCertificatePdfBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'generateCertificate'}); });}
-  let _viewCertificateReportBtn=document.getElementById('viewCertificateReportBtn');if(_viewCertificateReportBtn){_viewCertificateReportBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openCertificate'}); });}
-  let _openCertificateInMainWindowBtn=document.getElementById('openCertificateInMainWindowBtn');if(_openCertificateInMainWindowBtn){_openCertificateInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openCertificate'}); });}
-  let _codeMapDropdownHeader=document.getElementById('codeMapDropdownHeader');if(_codeMapDropdownHeader){_codeMapDropdownHeader.addEventListener('click', function() { const header=document.getElementById('codeMapDropdownHeader'); const detail=document.getElementById('codeMapDetailPanel'); _closeDetailPanels(); if(header){header.style.display='none';} if(detail){detail.classList.remove('hidden');detail.classList.add('detail-active');detail.style.display='block';} document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');p.classList.add('hidden');}); document.body.classList.add('detail-panel-open'); if (window.vscode) window.vscode.postMessage({command: 'getAuditData'}); });}
-  let _codeMapDetailBackBtn=document.getElementById('codeMapDetailBackBtn');if(_codeMapDetailBackBtn){_codeMapDetailBackBtn.addEventListener('click', function() { _switchSidebarTab('advanced'); });}
-  let _generateCodeMapBtn=document.getElementById('generateCodeMapBtn');if(_generateCodeMapBtn){_generateCodeMapBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'generateCodeMap'}); });}
-  let _openCodeMapHtmlBtn=document.getElementById('openCodeMapHtmlBtn');if(_openCodeMapHtmlBtn){_openCodeMapHtmlBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openCodeMap'}); });}
-  let _exportCodeMapBtn=document.getElementById('exportCodeMapBtn');if(_exportCodeMapBtn){_exportCodeMapBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'exportCodeMap'}); });}
-  let _refreshCodeMapBtn=document.getElementById('refreshCodeMapBtn');if(_refreshCodeMapBtn){_refreshCodeMapBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'generateCodeMap'}); });}
-  let _openCodeMapInMainWindowBtn=document.getElementById('openCodeMapInMainWindowBtn');if(_openCodeMapInMainWindowBtn){_openCodeMapInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openCodeMap'}); });}
-  let _roadmapDropdownHeader=document.getElementById('roadmapDropdownHeader');if(_roadmapDropdownHeader){_roadmapDropdownHeader.addEventListener('click', function() { const header=document.getElementById('roadmapDropdownHeader'); const detail=document.getElementById('roadmapDetailPanel'); _closeDetailPanels(); if(header){header.style.display='none';} if(detail){detail.classList.remove('hidden');detail.classList.add('detail-active');detail.style.display='block';} document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');p.classList.add('hidden');}); document.body.classList.add('detail-panel-open'); if (window.vscode) window.vscode.postMessage({command: 'getAuditData'}); });}
-  let _roadmapDetailBackBtn=document.getElementById('roadmapDetailBackBtn');if(_roadmapDetailBackBtn){_roadmapDetailBackBtn.addEventListener('click', function() { _switchSidebarTab('advanced'); });}
-  let _generateRoadmapBtn=document.getElementById('generateRoadmapBtn');if(_generateRoadmapBtn){_generateRoadmapBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'generateRoadmap'}); });}
-  let _exportRoadmapBtn=document.getElementById('exportRoadmapBtn');if(_exportRoadmapBtn){_exportRoadmapBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'exportRoadmap'}); });}
-  let _aiContextDropdownHeader=document.getElementById('aiContextDropdownHeader');if(_aiContextDropdownHeader){_aiContextDropdownHeader.addEventListener('click', function() { const header=document.getElementById('aiContextDropdownHeader'); const detail=document.getElementById('aiContextDetailPanel'); _closeDetailPanels(); if(header){header.style.display='none';} if(detail){detail.classList.remove('hidden');detail.classList.add('detail-active');detail.style.display='block';} document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');p.classList.add('hidden');}); document.body.classList.add('detail-panel-open'); if (window.vscode) window.vscode.postMessage({command: 'getAuditData'}); });}
-  let _aiContextDetailBackBtn=document.getElementById('aiContextDetailBackBtn');if(_aiContextDetailBackBtn){_aiContextDetailBackBtn.addEventListener('click', function() { _switchSidebarTab('advanced'); });}
-  let _scanAiContextBtn=document.getElementById('scanAiContextBtn');if(_scanAiContextBtn){_scanAiContextBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openAiContext'}); });}
-  let _exportAiContextBtn=document.getElementById('exportAiContextBtn');if(_exportAiContextBtn){_exportAiContextBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'exportReport'}); });}
-  let _viewAiContextReportBtn=document.getElementById('viewAiContextReportBtn');if(_viewAiContextReportBtn){_viewAiContextReportBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openAiContext'}); });}
-  let _uploadDropdownHeader=document.getElementById('uploadDropdownHeader');if(_uploadDropdownHeader){_uploadDropdownHeader.addEventListener('click', function() { const header=document.getElementById('uploadDropdownHeader'); const detail=document.getElementById('uploadDetailPanel'); _closeDetailPanels(); if(header){header.style.display='none';} if(detail){detail.classList.remove('hidden');detail.classList.add('detail-active');detail.style.display='block';} document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');p.classList.add('hidden');}); document.body.classList.add('detail-panel-open'); if (window.vscode) window.vscode.postMessage({command: 'getAuditData'}); });}
-  let _uploadDetailBackBtn=document.getElementById('uploadDetailBackBtn');if(_uploadDetailBackBtn){_uploadDetailBackBtn.addEventListener('click', function() { _switchSidebarTab('advanced'); });}
-  let _uploadBrowseBtn=document.getElementById('uploadBrowseBtn');if(_uploadBrowseBtn){_uploadBrowseBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openUpload'}); });}
-  let _openUploadInMainWindowBtn=document.getElementById('openUploadInMainWindowBtn');if(_openUploadInMainWindowBtn){_openUploadInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openUpload'}); });}
-  let _auditDropdownHeader=document.getElementById('auditDropdownHeader');if(_auditDropdownHeader){_auditDropdownHeader.addEventListener('click', function() { _switchSidebarTab('report'); });}
-  let _auditDetailBackBtn=document.getElementById('auditDetailBackBtn');if(_auditDetailBackBtn){_auditDetailBackBtn.addEventListener('click', function() { _switchSidebarTab('advanced'); });}
-  let _openAuditBtn2=document.getElementById('openAuditBtn2');if(_openAuditBtn2){_openAuditBtn2.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'runAudit'}); });}
-  let _openAuditReportBtn2=document.getElementById('openAuditReportBtn2');if(_openAuditReportBtn2){_openAuditReportBtn2.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openAuditReport'}); });}
-  let _openAuditInMainWindowBtn=document.getElementById('openAuditInMainWindowBtn');if(_openAuditInMainWindowBtn){_openAuditInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openAudit'}); });}
-  let _securityDropdownHeader=document.getElementById('securityDropdownHeader');if(_securityDropdownHeader){_securityDropdownHeader.addEventListener('click', function() { const header=document.getElementById('securityDropdownHeader'); const detail=document.getElementById('securityDetailPanel'); _closeDetailPanels(); if(header){header.style.display='none';} if(detail){detail.classList.remove('hidden');detail.classList.add('detail-active');detail.style.display='block';} document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');p.classList.add('hidden');}); document.body.classList.add('detail-panel-open'); if (window.vscode) window.vscode.postMessage({command: 'getAuditData'}); });}
-  let _securityDetailBackBtn=document.getElementById('securityDetailBackBtn');if(_securityDetailBackBtn){_securityDetailBackBtn.addEventListener('click', function() { _switchSidebarTab('scan'); });}
-  let _runSecurityScanBtn=document.getElementById('runSecurityScanBtn');if(_runSecurityScanBtn){_runSecurityScanBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openSecurity'}); });}
-  let _openSecurityReportBtn=document.getElementById('openSecurityReportBtn');if(_openSecurityReportBtn){_openSecurityReportBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openSecurity'}); });}
-  let _openSecurityInMainWindowBtn=document.getElementById('openSecurityInMainWindowBtn');if(_openSecurityInMainWindowBtn){_openSecurityInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openSecurity'}); });}
-  let _trustDropdownHeader=document.getElementById('trustDropdownHeader');if(_trustDropdownHeader){_trustDropdownHeader.addEventListener('click', function() { const header=document.getElementById('trustDropdownHeader'); const detail=document.getElementById('trustDetailPanel'); _closeDetailPanels(); if(header){header.style.display='none';} if(detail){detail.classList.remove('hidden');detail.classList.add('detail-active');detail.style.display='block';} document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');p.classList.add('hidden');}); document.body.classList.add('detail-panel-open'); if (window.vscode) window.vscode.postMessage({command: 'getAuditData'}); });}
-  let _trustDetailBackBtn=document.getElementById('trustDetailBackBtn');if(_trustDetailBackBtn){_trustDetailBackBtn.addEventListener('click', function() { _switchSidebarTab('scan'); });}
-  let _verifyTrustBtn=document.getElementById('verifyTrustBtn');if(_verifyTrustBtn){_verifyTrustBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openTrust'}); });}
-  let _openTrustReportBtn=document.getElementById('openTrustReportBtn');if(_openTrustReportBtn){_openTrustReportBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openTrust'}); });}
-  let _openTrustInMainWindowBtn=document.getElementById('openTrustInMainWindowBtn');if(_openTrustInMainWindowBtn){_openTrustInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openTrust'}); });}
-  let _qualityDropdownHeader=document.getElementById('qualityDropdownHeader');if(_qualityDropdownHeader){_qualityDropdownHeader.addEventListener('click', function() { const header=document.getElementById('qualityDropdownHeader'); const detail=document.getElementById('qualityDetailPanel'); _closeDetailPanels(); if(header){header.style.display='none';} if(detail){detail.classList.remove('hidden');detail.classList.add('detail-active');detail.style.display='block';} document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');p.classList.add('hidden');}); document.body.classList.add('detail-panel-open'); if (window.vscode) window.vscode.postMessage({command: 'getAuditData'}); });}
-  let _qualityDetailBackBtn=document.getElementById('qualityDetailBackBtn');if(_qualityDetailBackBtn){_qualityDetailBackBtn.addEventListener('click', function() { _switchSidebarTab('scan'); });}
-  let _runQualityBtn=document.getElementById('runQualityBtn');if(_runQualityBtn){_runQualityBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openQuality'}); });}
-  let _exportQualityBtn=document.getElementById('exportQualityBtn');if(_exportQualityBtn){_exportQualityBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'exportReport'}); });}
-  let _viewQualityReportBtn=document.getElementById('viewQualityReportBtn');if(_viewQualityReportBtn){_viewQualityReportBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openQuality'}); });}
-  let _openQualityInMainWindowBtn=document.getElementById('openQualityInMainWindowBtn');if(_openQualityInMainWindowBtn){_openQualityInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openQuality'}); });}
-  let _assessmentsDropdownHeader=document.getElementById('assessmentsDropdownHeader');if(_assessmentsDropdownHeader){_assessmentsDropdownHeader.addEventListener('click', function() { const header=document.getElementById('assessmentsDropdownHeader'); const detail=document.getElementById('assessmentsDetailPanel'); _closeDetailPanels(); if(header){header.style.display='none';} if(detail){detail.classList.remove('hidden');detail.classList.add('detail-active');detail.style.display='block';} document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');p.classList.add('hidden');}); document.body.classList.add('detail-panel-open'); if (window.vscode) window.vscode.postMessage({command: 'getAuditData'}); });}
-  let _assessmentsDetailBackBtn=document.getElementById('assessmentsDetailBackBtn');if(_assessmentsDetailBackBtn){_assessmentsDetailBackBtn.addEventListener('click', function() { _switchSidebarTab('scan'); });}
-  let _runAssessmentsBtn=document.getElementById('runAssessmentsBtn');if(_runAssessmentsBtn){_runAssessmentsBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openAssessments'}); });}
-  let _exportAssessmentsBtn=document.getElementById('exportAssessmentsBtn');if(_exportAssessmentsBtn){_exportAssessmentsBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'exportReport'}); });}
-  let _viewAssessmentsReportBtn=document.getElementById('viewAssessmentsReportBtn');if(_viewAssessmentsReportBtn){_viewAssessmentsReportBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openAssessments'}); });}
-  let _openAssessmentsInMainWindowBtn=document.getElementById('openAssessmentsInMainWindowBtn');if(_openAssessmentsInMainWindowBtn){_openAssessmentsInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openAssessments'}); });}
-  let _platformDetailBackBtn=document.getElementById('platformDetailBackBtn');if(_platformDetailBackBtn){_platformDetailBackBtn.addEventListener('click', function() { _switchSidebarTab('settings'); });}
-  let _diagnoseDetailBackBtn=document.getElementById('diagnoseDetailBackBtn');if(_diagnoseDetailBackBtn){_diagnoseDetailBackBtn.addEventListener('click', function() { _switchSidebarTab('settings'); });}
-  let _platformRefreshBtn=document.getElementById('platformRefreshBtn');if(_platformRefreshBtn){_platformRefreshBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'getAuditData'}); });}
-  let _platformExportBtn=document.getElementById('platformExportBtn');if(_platformExportBtn){_platformExportBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'exportReport'}); });}
-  let _platformDocsBtn=document.getElementById('platformDocsBtn');if(_platformDocsBtn){_platformDocsBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openDocs'}); });}
-  let _platformSettingsBtn=document.getElementById('platformSettingsBtn');if(_platformSettingsBtn){_platformSettingsBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openSettings'}); });}
-  let _openPlatformInMainWindowBtn=document.getElementById('openPlatformInMainWindowBtn');if(_openPlatformInMainWindowBtn){_openPlatformInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openPlatform'}); });}
-  let _complianceDropdownHeader=document.getElementById('complianceDropdownHeader');if(_complianceDropdownHeader){_complianceDropdownHeader.addEventListener('click', function() { const header=document.getElementById('complianceDropdownHeader'); const detail=document.getElementById('complianceDetailPanel'); _closeDetailPanels(); if(header){header.style.display='none';} if(detail){detail.classList.remove('hidden');detail.classList.add('detail-active');detail.style.display='block';} document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');p.classList.add('hidden');}); document.body.classList.add('detail-panel-open'); if (window.vscode) window.vscode.postMessage({command: 'getAuditData'}); });}
-  let _complianceDetailBackBtn=document.getElementById('complianceDetailBackBtn');if(_complianceDetailBackBtn){_complianceDetailBackBtn.addEventListener('click', function() { _switchSidebarTab('scan'); });}
-  let _runComplianceBtn=document.getElementById('runComplianceBtn');if(_runComplianceBtn){_runComplianceBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openCompliance'}); });}
-  let _exportComplianceBtn=document.getElementById('exportComplianceBtn');if(_exportComplianceBtn){_exportComplianceBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'exportReport'}); });}
-  let _viewComplianceReportBtn=document.getElementById('viewComplianceReportBtn');if(_viewComplianceReportBtn){_viewComplianceReportBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openCompliance'}); });}
-  let _openComplianceInMainWindowBtn=document.getElementById('openComplianceInMainWindowBtn');if(_openComplianceInMainWindowBtn){_openComplianceInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openCompliance'}); });}
-  let _repoHealthRunScanBtn=document.getElementById('repoHealthRunScanBtn');if(_repoHealthRunScanBtn){_repoHealthRunScanBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'runAudit'}); });}
-  let _repoHealthExportBtn=document.getElementById('repoHealthExportBtn');if(_repoHealthExportBtn){_repoHealthExportBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'exportReport'}); });}
-  let _repoHealthViewReportBtn=document.getElementById('repoHealthViewReportBtn');if(_repoHealthViewReportBtn){_repoHealthViewReportBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openRepoHealth'}); });}
-  let _repoHealthSettingsBtn=document.getElementById('repoHealthSettingsBtn');if(_repoHealthSettingsBtn){_repoHealthSettingsBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openSettings'}); });}
-  let _analyticsDropdownHeader=document.getElementById('analyticsDropdownHeader');if(_analyticsDropdownHeader){_analyticsDropdownHeader.addEventListener('click', function() { const header=document.getElementById('analyticsDropdownHeader'); const detail=document.getElementById('analyticsDetailPanel'); _closeDetailPanels(); if(header){header.style.display='none';} if(detail){detail.classList.remove('hidden');detail.classList.add('detail-active');detail.style.display='block';} document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');p.classList.add('hidden');}); document.body.classList.add('detail-panel-open'); if (window.vscode) window.vscode.postMessage({command: 'getAuditData'}); });}
-  let _analyticsDetailBackBtn=document.getElementById('analyticsDetailBackBtn');if(_analyticsDetailBackBtn){_analyticsDetailBackBtn.addEventListener('click', function() { _switchSidebarTab('advanced'); });}
-  let _analyticsRefreshBtn=document.getElementById('analyticsRefreshBtn');if(_analyticsRefreshBtn){_analyticsRefreshBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'getAuditData'}); });}
-  let _analyticsExportBtn=document.getElementById('analyticsExportBtn');if(_analyticsExportBtn){_analyticsExportBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'exportReport'}); });}
-  let _analyticsViewReportBtn=document.getElementById('analyticsViewReportBtn');if(_analyticsViewReportBtn){_analyticsViewReportBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openAnalytics'}); });}
-  let _analyticsSettingsBtn=document.getElementById('analyticsSettingsBtn');if(_analyticsSettingsBtn){_analyticsSettingsBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openSettings'}); });}
-  let _teamDropdownHeader=document.getElementById('teamDropdownHeader');if(_teamDropdownHeader){_teamDropdownHeader.addEventListener('click', function() { const header=document.getElementById('teamDropdownHeader'); const detail=document.getElementById('teamDetailPanel'); _closeDetailPanels(); if(header){header.style.display='none';} if(detail){detail.classList.remove('hidden');detail.classList.add('detail-active');detail.style.display='block';} document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');p.classList.add('hidden');}); document.body.classList.add('detail-panel-open'); if (window.vscode) window.vscode.postMessage({command: 'getAuditData'}); });}
-  let _teamDetailBackBtn=document.getElementById('teamDetailBackBtn');if(_teamDetailBackBtn){_teamDetailBackBtn.addEventListener('click', function() { _switchSidebarTab('team'); });}
-  let _scanDropdownHeader=document.getElementById('scanDropdownHeader');if(_scanDropdownHeader){_scanDropdownHeader.addEventListener('click', function() { const header=document.getElementById('scanDropdownHeader'); const detail=document.getElementById('scanDetailPanel'); _closeDetailPanels(); if(header){header.style.display='none';} if(detail){detail.classList.remove('hidden');detail.classList.add('detail-active');detail.style.display='block';} document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');p.classList.add('hidden');}); document.body.classList.add('detail-panel-open'); if (window.vscode) window.vscode.postMessage({command: 'getAuditData'}); });}
-  let _scanDetailBackBtn=document.getElementById('scanDetailBackBtn');if(_scanDetailBackBtn){_scanDetailBackBtn.addEventListener('click', function() { _switchSidebarTab('scan'); });}
-  let _runScanBtn=document.getElementById('runScanBtn');if(_runScanBtn){_runScanBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'runAudit'}); });}
-  let _exportScanBtn=document.getElementById('exportScanBtn');if(_exportScanBtn){_exportScanBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'exportReport'}); });}
-  let _viewScanReportBtn=document.getElementById('viewScanReportBtn');if(_viewScanReportBtn){_viewScanReportBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openScan'}); });}
-  let _previewDropdownHeader=document.getElementById('previewDropdownHeader');if(_previewDropdownHeader){_previewDropdownHeader.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openPreview'}); });}
-  let _toggleMonitorSidebarBtn=document.getElementById('toggleMonitorSidebarBtn');if(_toggleMonitorSidebarBtn){_toggleMonitorSidebarBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openToggleMonitor'}); });}
-  let _browserDropdownHeader=document.getElementById('browserDropdownHeader');if(_browserDropdownHeader){_browserDropdownHeader.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openBrowser'}); });}
-  let _scanWorkspaceDropdownHeader=document.getElementById('scanWorkspaceDropdownHeader');if(_scanWorkspaceDropdownHeader){_scanWorkspaceDropdownHeader.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openScanWorkspace'}); });}
-  function _tdBind2(id,cmd){let el=document.getElementById(id);if(el){el.addEventListener('click',function(){if(window.vscode)window.vscode.postMessage({command:cmd});});}}
-  function _tdPath(id,path){let el=document.getElementById(id);if(el){el.addEventListener('click',function(){if(window.vscode)window.vscode.postMessage({command:'openDataServerPath',path:path});});}}
-  _tdPath('tdRoadmapSidebar','/coming-soon/roadmap.html');
-  _tdPath('tdAuditSidebar','/coming-soon/audit.html');
-  _tdPath('tdAuditReportSidebar','/dashboard/audit');
-  _tdPath('tdPricingSidebar','/coming-soon/pricing.html');
-  _tdPath('tdOpenSiteSidebar','/dashboard/dashboard');
-  _tdBind2('tdThemeToggleSidebar','toggleTheme');
-  _tdPath('tdSignInSidebar','/dashboard/signin');
-  _tdBind2('tdOfflineToggleSidebar','toggleOffline');
-  _tdPath('tdSignOutSidebar','/dashboard/signin');
-  _tdPath('tdDashboardSidebar','/dashboard/dashboard');
-  _tdPath('tdAnalyzeSidebar','/dashboard/analyze');
-  _tdPath('tdResultsSidebar','/dashboard/results');
-  _tdPath('tdRepoHealthSidebar','/dashboard/repository-health');
-  _tdPath('tdSecuritySidebar','/dashboard/security');
-  _tdPath('tdQualitySidebar','/dashboard/quality');
-  _tdPath('tdTrustSidebar','/dashboard/trust');
-  _tdPath('tdAssessmentsSidebar','/dashboard/assessments');
-  _tdPath('tdRemediationSidebar','/dashboard/remediation');
-  _tdPath('tdPlatformSidebar','/dashboard/platform');
-  _tdPath('tdProfileSidebar','/dashboard/profile');
-  _tdPath('tdToolsSidebar','/dashboard/tools');
-  _tdPath('tdSettingsSidebar','/dashboard/settings');
-  _tdPath('tdHelpSidebar','/dashboard/help');
-  _tdPath('tdChatbotSidebar','/dashboard/chatbot');
-  _tdPath('tdAboutSidebar','/dashboard/about');
-  _tdBind2('tdGitHubSidebar','openGitHub');
-  _tdBind2('tdDocsSidebar','openDocs');
-  let _dbExportBtn=document.getElementById('dbExportBtn');if(_dbExportBtn){_dbExportBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'exportReport'}); });}
-  let _dashPreviewBtn=document.getElementById('dashPreviewBtn');if(_dashPreviewBtn){_dashPreviewBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openPreviewInBrowser'}); });}
-  let _dashBrowserBtn=document.getElementById('dashBrowserBtn');if(_dashBrowserBtn){_dashBrowserBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openBrowser'}); });}
-  let _dashExportReportBtn=document.getElementById('dashExportReportBtn');if(_dashExportReportBtn){_dashExportReportBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'exportReport'}); });}
-  let _dashClearResultsBtn=document.getElementById('dashClearResultsBtn');if(_dashClearResultsBtn){_dashClearResultsBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openClear'}); });}
-  let _sidebarScanBrowseBtn=document.getElementById('sidebarScanBrowseBtn');if(_sidebarScanBrowseBtn){_sidebarScanBrowseBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'browseSidebarScanPath'}); });}
-  let _sidebarScanDetectBtn=document.getElementById('sidebarScanDetectBtn');if(_sidebarScanDetectBtn){_sidebarScanDetectBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'detectSidebarScanPath'}); });}
-  let _sidebarScanPathInput=document.getElementById('sidebarScanPathInput');if(_sidebarScanPathInput){_sidebarScanPathInput.addEventListener('change', function() { if (window.vscode) window.vscode.postMessage({command: 'updateSidebarScanPath', path: this.value}); });}
-  let _sidebarScanWorkspaceToggle=document.getElementById('sidebarScanWorkspaceToggle');if(_sidebarScanWorkspaceToggle){_sidebarScanWorkspaceToggle.addEventListener('change', function() { let label=document.getElementById('sidebarScanToggleLabel'); let wrap=document.getElementById('sidebarScanCustomWrap'); let actionRow=document.getElementById('scanActionRow'); let isWorkspace=this.checked; if(label){label.textContent=isWorkspace?'Current Workspace':'Custom Location';} if(wrap){wrap.style.display=isWorkspace?'none':'flex';} if(actionRow){actionRow.style.display=isWorkspace?'none':'flex';} if(window.vscode)window.vscode.postMessage({command:'updateSidebarScanMode',mode:isWorkspace?'workspace':'custom'}); });}
-  let _dlClearBtn=document.getElementById('dlClearBtn');if(_dlClearBtn){_dlClearBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'clearDownloads'}); });}
-  let _qlDashboardBtn=document.getElementById('qlDashboardBtn');if(_qlDashboardBtn){_qlDashboardBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openDashboard'}); });}
-  let _qlReportBtn=document.getElementById('qlReportBtn');if(_qlReportBtn){_qlReportBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'report'}); });}
-  let _qlBrowserBtn=document.getElementById('qlBrowserBtn');if(_qlBrowserBtn){_qlBrowserBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openBrowser'}); });}
-  let _qlPreviewBtn=document.getElementById('qlPreviewBtn');if(_qlPreviewBtn){_qlPreviewBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openPreviewInBrowser'}); });}
-  let _teamDashboardBtn=document.getElementById('teamDashboardBtn');if(_teamDashboardBtn){_teamDashboardBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openTeamDashboard'}); });}
-  let _previewBtn=document.getElementById('previewBtn');if(_previewBtn){_previewBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openPreviewInBrowser'}); });}
-  let _openCodeMapFromTools=document.getElementById('openCodeMapFromTools');if(_openCodeMapFromTools){_openCodeMapFromTools.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openCodeMap'}); });}
-  let _openRepoHealthFromTools=document.getElementById('openRepoHealthFromTools');if(_openRepoHealthFromTools){_openRepoHealthFromTools.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openRepoHealth'}); });}
-  let _openTeamFromTools=document.getElementById('openTeamFromTools');if(_openTeamFromTools){_openTeamFromTools.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openTeam'}); });}
-  let _openTrustFromTools=document.getElementById('openTrustFromTools');if(_openTrustFromTools){_openTrustFromTools.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openTrust'}); });}
-  let _openAssessmentsFromTools=document.getElementById('openAssessmentsFromTools');if(_openAssessmentsFromTools){_openAssessmentsFromTools.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openAssessments'}); });}
-  let _openPlatformFromTools=document.getElementById('openPlatformFromTools');if(_openPlatformFromTools){_openPlatformFromTools.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openPlatform'}); });}
-  let _openComplianceFromTools=document.getElementById('openComplianceFromTools');if(_openComplianceFromTools){_openComplianceFromTools.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openCompliance'}); });}
-  let _openProfileFromTools=document.getElementById('openProfileFromTools');if(_openProfileFromTools){_openProfileFromTools.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openProfile'}); });}
-  let _openSettingsFromSettings=document.getElementById('openSettingsFromSettings');if(_openSettingsFromSettings){_openSettingsFromSettings.addEventListener('click', function() { _switchSidebarTab('settings'); _openSidebarMenu('settingsMenuTab', 'settingsDetailPanelTab', 'settings'); });}
-  let _openDiagnoseFromSettingsTab=document.getElementById('openDiagnoseFromSettingsTab');if(_openDiagnoseFromSettingsTab){_openDiagnoseFromSettingsTab.addEventListener('click', function() { if (window._displayMode === 'mainWindow' && window.vscode) { window.vscode.postMessage({command: 'diagnose'}); return; } _openSidebarMenu('settingsMenuTab', 'diagnoseDetailPanel', null); if (window.vscode) window.vscode.postMessage({command: 'diagnose'}); });}
-  let _openRefreshRelayFromSettingsTab=document.getElementById('openRefreshRelayFromSettingsTab');if(_openRefreshRelayFromSettingsTab){_openRefreshRelayFromSettingsTab.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openRefreshRelayPort'}); });}
-  let _openSettingsFromSettingsTab=document.getElementById('openSettingsFromSettingsTab');if(_openSettingsFromSettingsTab){_openSettingsFromSettingsTab.addEventListener('click', function() { _openSidebarMenu('settingsMenuTab', 'settingsDetailPanelTab', 'settings'); });}
-  let _openPlatformFromSettingsTab=document.getElementById('openPlatformFromSettingsTab');if(_openPlatformFromSettingsTab){_openPlatformFromSettingsTab.addEventListener('click', function() { _openSidebarMenu('settingsMenuTab', 'platformDetailPanel', 'openPlatform'); });}
-  let _settingsDetailBackBtnTab=document.getElementById('settingsDetailBackBtnTab');if(_settingsDetailBackBtnTab){_settingsDetailBackBtnTab.addEventListener('click', function() { _closeDetailPanels(); });}
-  let _openSettingsInMainWindowBtnTab=document.getElementById('openSettingsInMainWindowBtnTab');if(_openSettingsInMainWindowBtnTab){_openSettingsInMainWindowBtnTab.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'settings'}); });}
-  let _refreshSettingsBtnTab=document.getElementById('refreshSettingsBtnTab');if(_refreshSettingsBtnTab){_refreshSettingsBtnTab.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'refreshSettings'}); });}
-  let _tabItems=document.querySelectorAll('.tab-item');
-  function _hideDiagnoseResults(){
-    let container=document.getElementById('diagnoseResultsContainer');
-    if(container){container.style.display='none';container.dataset.wasOpen='false';}
-    let mainContent=document.getElementById('mainContent')||document.querySelector('.content');
-    if(mainContent){mainContent.style.display='';}
-    if(container&&container.parentNode){
-      let siblings=container.parentNode.children;
-      for(let i=0;i<siblings.length;i++){if(siblings[i]===container)continue;if(siblings[i].classList.contains('header'))continue;siblings[i].style.display='';}
-    }
-    document.body.classList.remove('detail-panel-open');
-  }
-  _tabItems.forEach(function(item){item.addEventListener('click',function(){let tab=item.getAttribute('data-tab');_switchSidebarTab(tab);});});
-  let _settingsDropdownHeader=document.getElementById('settingsDropdownHeader');if(_settingsDropdownHeader){_settingsDropdownHeader.addEventListener('click', function() { let body=document.getElementById('settingsDropdownBody'); if(body){body.classList.toggle('open'); _settingsDropdownHeader.classList.toggle('open');} });}
-  let _dashGateCard=document.getElementById('dashGateCard');if(_dashGateCard){_dashGateCard.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'dashboard'}); });}
-  let _dashIssuesCard=document.getElementById('dashIssuesCard');if(_dashIssuesCard){_dashIssuesCard.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'dashboard'}); });}
-  let _dashScoreCard=document.getElementById('dashScoreCard');if(_dashScoreCard){_dashScoreCard.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'dashboard'}); });}
-  let _displayMode=document.getElementById('displayMode');if(_displayMode){_displayMode.addEventListener('change', function() { if (window.vscode) window.vscode.postMessage({command: 'updateDisplayMode', value: this.value}); });}
-  let _showWelcome=document.getElementById('showWelcome');if(_showWelcome){_showWelcome.addEventListener('change', function() { if (window.vscode) window.vscode.postMessage({command: 'updateShowWelcome', value: this.checked}); });}
-  let _autoScan=document.getElementById('autoScan');if(_autoScan){_autoScan.addEventListener('change', function() { if (window.vscode) window.vscode.postMessage({command: 'updateAutoScan', value: this.checked}); });}
-  let _apiUrl=document.getElementById('apiUrl');if(_apiUrl){_apiUrl.addEventListener('change', function() { if (window.vscode) window.vscode.postMessage({command: 'updateApiUrl', value: this.value}); });}
-  let _toggleAutoScanTab=document.getElementById('toggleAutoScanTab');if(_toggleAutoScanTab){_toggleAutoScanTab.addEventListener('change', function() { if (window.vscode) window.vscode.postMessage({command: 'updateAutoScan', value: this.checked}); });}
-  let _toggleDisplayModeTab=document.getElementById('toggleDisplayModeTab');if(_toggleDisplayModeTab){_toggleDisplayModeTab.addEventListener('change', function() { if (window.vscode) window.vscode.postMessage({command: 'updateDisplayMode', value: this.checked ? 'mainWindow' : 'sidebar'}); });}
-  let _displayModeSelectTab=document.getElementById('displayModeSelectTab');if(_displayModeSelectTab){_displayModeSelectTab.addEventListener('change', function() { if (window.vscode) window.vscode.postMessage({command: 'updateDisplayMode', value: this.value}); });}
-  let _toggleBrowserModeTab=document.getElementById('toggleBrowserModeTab');if(_toggleBrowserModeTab){_toggleBrowserModeTab.addEventListener('change', function() { if (window.vscode) window.vscode.postMessage({command: 'updateBrowserMode', value: this.checked}); });}
-  let _toggleNotifyScanTab=document.getElementById('toggleNotifyScanTab');if(_toggleNotifyScanTab){_toggleNotifyScanTab.addEventListener('change', function() { if (window.vscode) window.vscode.postMessage({command: 'updateNotifyScan', value: this.checked}); });}
-  let _toggleNotifyGateTab=document.getElementById('toggleNotifyGateTab');if(_toggleNotifyGateTab){_toggleNotifyGateTab.addEventListener('change', function() { if (window.vscode) window.vscode.postMessage({command: 'updateNotifyGate', value: this.checked}); });}
-  let _settingsSaveBtnTab=document.getElementById('settingsSaveBtnTab');if(_settingsSaveBtnTab){_settingsSaveBtnTab.addEventListener('click', function() { let val=document.getElementById('settingsApiInputTab'); if(window.vscode) window.vscode.postMessage({command: 'updateApiUrl', value: val ? val.value : ''}); let badge=document.getElementById('settingsSavedBadgeTab'); if(badge){badge.style.display='inline-flex'; setTimeout(function(){badge.style.display='none';}, 2000);} });}
-  let _apiPresetLocal=document.getElementById('apiPresetLocal');if(_apiPresetLocal){_apiPresetLocal.addEventListener('click', function() { let input=document.getElementById('settingsApiInputTab'); if(input){input.value='http://127.0.0.1:54358';} if(window.vscode) window.vscode.postMessage({command: 'updateApiUrl', value: 'http://127.0.0.1:54358'}); });}
-  let _apiPresetSlopCop=document.getElementById('apiPresetSlopCop');if(_apiPresetSlopCop){_apiPresetSlopCop.addEventListener('click', function() { let input=document.getElementById('settingsApiInputTab'); if(input){input.value='http://127.0.0.1:3001/';} if(window.vscode) window.vscode.postMessage({command: 'updateApiUrl', value: 'http://127.0.0.1:3001/'}); });}
-  let _apiPresetRemote=document.getElementById('apiPresetRemote');if(_apiPresetRemote){_apiPresetRemote.addEventListener('click', function() { let input=document.getElementById('settingsApiInputTab'); if(input){input.value='http://127.0.0.1:30011/';} if(window.vscode) window.vscode.postMessage({command: 'updateApiUrl', value: 'http://127.0.0.1:30011/'}); });}
-  let _settingsTestBtnTab=document.getElementById('settingsTestBtnTab');if(_settingsTestBtnTab){_settingsTestBtnTab.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'testConnection'}); });}
-  let _settingsApiInputTab=document.getElementById('settingsApiInputTab');if(_settingsApiInputTab){_settingsApiInputTab.addEventListener('keydown', function(e) { if(e.key==='Enter'){ let badge=document.getElementById('settingsSavedBadgeTab'); if(badge){badge.style.display='inline-flex'; setTimeout(function(){badge.style.display='none';}, 2000);} if(window.vscode) window.vscode.postMessage({command: 'updateApiUrl', value: this.value}); } });}
-  let _openDiagnoseBtnTab=document.getElementById('openDiagnoseBtnTab');if(_openDiagnoseBtnTab){_openDiagnoseBtnTab.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'diagnose'}); });}
-  let _openRefreshRelayPortBtnTab=document.getElementById('openRefreshRelayPortBtnTab');if(_openRefreshRelayPortBtnTab){_openRefreshRelayPortBtnTab.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openRefreshRelayPort'}); });}
-  let _dashboardBackBtn=document.getElementById('dashboardBackBtn');if(_dashboardBackBtn){_dashboardBackBtn.addEventListener('click', function() { document.body.classList.remove('sidebar-dashboard-mode'); let bb=document.getElementById('dashboardBackBtn'); if(bb) bb.style.display='none'; let td=document.getElementById('tabDashboard'); if(td){ td.classList.remove('active'); td.classList.add('hidden'); } });}
-  function _updateSidebarScanPanel(data) {
-    const sev = data.severity || data.severityCounts || {};
-    const crit = sev.critical || sev.Critical || 0;
-    const high = sev.high || sev.High || 0;
-    const med = sev.medium || sev.Medium || sev.med || 0;
-    const low = sev.low || sev.Low || 0;
-    const issues = data.issues || data.totalIssues || data.detectedIssues || (crit + high + med + low);
-    const gateRaw = data.gate;
-    const gate = typeof gateRaw === 'string' ? gateRaw : (gateRaw && gateRaw.pass != null ? (gateRaw.pass ? 'PASS' : 'FAIL') : 'Pending');
-    const score = data.qualityScore != null ? data.qualityScore : (data.score != null ? data.score : '--');
-    const totalScans = data.totalScans || data.scans || 0;
-    const fixed = data.fixed || 0;
-    const status = data.status || 'complete';
-    const statusText = status === 'scanning' ? 'Scanning' : status === 'complete' ? 'Complete' : (status === 'error' ? 'Error' : 'Ready');
-    const statusMeta = status === 'complete' ? 'Scan complete' : (status === 'scanning' ? 'In progress' : 'Ready');
-    const badge = document.getElementById('scanStatusBadge'); if (badge) { badge.textContent = status === 'complete' ? 'COMPLETE' : status === 'scanning' ? 'RUNNING' : status === 'error' ? 'ERROR' : 'READY'; badge.style.background = status === 'complete' ? 'rgba(34,197,94,0.18)' : status === 'scanning' ? 'rgba(59,130,246,0.18)' : status === 'error' ? 'rgba(239,68,68,0.18)' : 'rgba(100,116,139,0.18)'; badge.style.color = status === 'complete' ? '#4ade80' : status === 'scanning' ? '#60a5fa' : status === 'error' ? '#f87171' : '#94a3b8'; }
-    const dot = document.getElementById('scanStatusDot'); if (dot) { dot.className = 'tc-list-dot ' + (status === 'complete' ? 'green' : status === 'scanning' ? 'blue' : status === 'error' ? 'red' : 'gray'); }
-    const stText = document.getElementById('scanStatusText'); if (stText) stText.textContent = statusText;
-    const stMeta = document.getElementById('scanStatusMeta'); if (stMeta) stMeta.textContent = statusMeta;
-    const totalScansEl = document.getElementById('scanTotalScans'); if (totalScansEl) totalScansEl.textContent = totalScans;
-    const issuesEl = document.getElementById('scanIssues'); if (issuesEl) issuesEl.textContent = issues;
-    const fixedEl = document.getElementById('scanFixed'); if (fixedEl) fixedEl.textContent = fixed;
-    const scoreEl = document.getElementById('scanScore'); if (scoreEl) scoreEl.textContent = score;
-    const cEl = document.getElementById('scanCritical'); if (cEl) cEl.textContent = crit;
-    const hEl = document.getElementById('scanHigh'); if (hEl) hEl.textContent = high;
-    const mEl = document.getElementById('scanMedium'); if (mEl) mEl.textContent = med;
-    const lEl = document.getElementById('scanLow'); if (lEl) lEl.textContent = low;
-    const list = document.getElementById('scanResultsList'); if (list) {
-      list.textContent = '';
-      const findings = Array.isArray(data.findings) ? data.findings.slice(0, 5) : (Array.isArray(data.issuesList) ? data.issuesList.slice(0, 5) : []);
-      if (findings.length === 0) {
-        const row = document.createElement('div'); row.className = 'tc-list-item';
-        const left = document.createElement('div'); left.className = 'tc-list-item-left';
-        const dot = document.createElement('span'); dot.className = 'tc-list-dot green';
-        const name = document.createElement('span'); name.className = 'tc-list-name'; name.textContent = 'No results yet';
-        const meta = document.createElement('span'); meta.className = 'tc-list-meta'; meta.textContent = '--';
-        left.appendChild(dot); left.appendChild(name); row.appendChild(left); row.appendChild(meta); list.appendChild(row);
-      } else {
-        findings.forEach(function(f){
-          const row = document.createElement('div'); row.className = 'scan-result-row';
-          const left = document.createElement('div'); left.style.display = 'flex'; left.style.flexDirection = 'column'; left.style.gap = '2px'; left.style.minWidth = '0';
-          const title = document.createElement('div'); title.className = 'scan-result-title'; title.textContent = f.title || f.type || 'Finding'; title.style.overflow = 'hidden'; title.style.textOverflow = 'ellipsis'; title.style.whiteSpace = 'nowrap';
-          const file = document.createElement('div'); file.className = 'scan-result-file'; file.textContent = f.file || f.path || '--'; file.style.overflow = 'hidden'; file.style.textOverflow = 'ellipsis'; file.style.whiteSpace = 'nowrap';
-          left.appendChild(title); left.appendChild(file);
-          const sevBadge = document.createElement('span'); sevBadge.className = 'scan-result-severity ' + (f.severity || 'low'); sevBadge.textContent = (f.severity || 'low').toUpperCase();
-          row.appendChild(left); row.appendChild(sevBadge); list.appendChild(row);
-        });
-      }
-    }
-  }
-  function _updateSidebarAiContextPanel(data) {
-    const sev = data.severity || data.severityCounts || {};
-    const crit = sev.critical || sev.Critical || 0;
-    const high = sev.high || sev.High || 0;
-    const med = sev.medium || sev.Medium || sev.med || 0;
-    const low = sev.low || sev.Low || 0;
-    const issues = data.aiIssues || data.aiContextIssues || (crit + high + med + low);
-    const models = data.modelsDetected || data.detectedModels || 0;
-    const score = data.contextScore || data.qualityScore || data.score || 100;
-    const files = data.totalFiles || data.filesAnalyzed || data.filesScanned || 0;
-    const badge = document.getElementById('aiContextBadge'); if (badge) { badge.textContent = issues === 0 ? 'CLEAR' : (crit > 0 || high > 0 ? 'ISSUES' : 'OK'); badge.style.background = issues === 0 ? 'rgba(34,197,94,0.18)' : (crit > 0 || high > 0 ? 'rgba(239,68,68,0.18)' : 'rgba(245,158,11,0.18)'); badge.style.color = issues === 0 ? '#4ade80' : (crit > 0 || high > 0 ? '#f87171' : '#fbbf24'); }
-    const modelsEl = document.getElementById('aiContextModels'); if (modelsEl) modelsEl.textContent = models;
-    const issuesEl = document.getElementById('aiContextIssues'); if (issuesEl) issuesEl.textContent = issues;
-    const scoreEl = document.getElementById('aiContextScore'); if (scoreEl) { scoreEl.textContent = score; scoreEl.style.color = score >= 80 ? '#4ade80' : score >= 50 ? '#fbbf24' : '#f87171'; }
-    const filesEl = document.getElementById('aiContextFiles'); if (filesEl) filesEl.textContent = files;
-    const cEl = document.getElementById('aiContextCritical'); if (cEl) cEl.textContent = crit;
-    const hEl = document.getElementById('aiContextHigh'); if (hEl) hEl.textContent = high;
-    const mEl = document.getElementById('aiContextMedium'); if (mEl) mEl.textContent = med;
-    const lEl = document.getElementById('aiContextLow'); if (lEl) lEl.textContent = low;
-    const cEl2 = document.getElementById('aiContextCritical2'); if (cEl2) cEl2.textContent = crit;
-    const hEl2 = document.getElementById('aiContextHigh2'); if (hEl2) hEl2.textContent = high;
-    const mEl2 = document.getElementById('aiContextMedium2'); if (mEl2) mEl2.textContent = med;
-    const lEl2 = document.getElementById('aiContextLow2'); if (lEl2) lEl2.textContent = low;
-  }
-  function _updateSidebarUploadPanel(data) {
-    const sev = data.severity || data.severityCounts || {};
-    const crit = sev.critical || sev.Critical || 0;
-    const high = sev.high || sev.High || 0;
-    const med = sev.medium || sev.Medium || sev.med || 0;
-    const low = sev.low || sev.Low || 0;
-    const totalFiles = data.totalFiles || data.filesAnalyzed || data.filesScanned || 0;
-    const errors = crit + high;
-    const valid = Math.max(0, totalFiles - errors);
-    const score = data.qualityScore != null ? data.qualityScore : (data.score != null ? data.score : '--');
-    const autoScan = data.autoScan === true || data.autoScan === 'On' ? 'On' : 'Off';
-    const totalFilesEl = document.getElementById('uploadTotalFiles'); if (totalFilesEl) totalFilesEl.textContent = totalFiles;
-    const validEl = document.getElementById('uploadValid'); if (validEl) validEl.textContent = valid;
-    const errorsEl = document.getElementById('uploadErrors'); if (errorsEl) errorsEl.textContent = errors;
-    const scoreEl = document.getElementById('uploadScore'); if (scoreEl) { scoreEl.textContent = score; scoreEl.className = 'settings-kpi-value ' + (typeof score === 'number' && score >= 80 ? 'green' : typeof score === 'number' && score >= 50 ? 'amber' : 'red'); }
-    const autoScanEl = document.getElementById('uploadAutoScan'); if (autoScanEl) autoScanEl.textContent = autoScan;
-    const badge = document.getElementById('uploadStatusBadge'); if (badge) { badge.textContent = errors === 0 ? 'READY' : 'ISSUES'; badge.style.background = errors === 0 ? 'rgba(34,197,94,0.18)' : 'rgba(239,68,68,0.18)'; badge.style.color = errors === 0 ? '#4ade80' : '#f87171'; }
-  }
-  function _updateSidebarRepoHealthPanel(data) {
-    const sev = data.severity || data.severityCounts || {};
-    const crit = sev.critical || sev.Critical || 0;
-    const high = sev.high || sev.High || 0;
-    const med = sev.medium || sev.Medium || sev.med || 0;
-    const low = sev.low || sev.Low || 0;
-    const totalIssues = crit + high + med + low;
-    const score = data.qualityScore != null ? data.qualityScore : (data.score != null ? data.score : '--');
-    const files = data.totalFiles || data.filesScanned || data.filesAnalyzed || 0;
-    const gate = data.gate;
-    const gatePass = typeof gate === 'string' ? gate === 'PASS' : (gate && gate.pass != null ? gate.pass : true);
-    const scoreEl = document.getElementById('repoHealthScore'); if (scoreEl) { scoreEl.textContent = score; scoreEl.className = 'settings-kpi-value ' + (typeof score === 'number' && score >= 80 ? 'green' : typeof score === 'number' && score >= 50 ? 'amber' : 'red'); }
-    const gateEl = document.getElementById('repoHealthGate'); if (gateEl) { gateEl.textContent = gatePass ? 'PASS' : 'FAIL'; gateEl.className = 'settings-kpi-value ' + (gatePass ? 'green' : 'red'); }
-    const issuesEl = document.getElementById('repoHealthTotalIssues'); if (issuesEl) { issuesEl.textContent = totalIssues; issuesEl.className = 'settings-kpi-value ' + (totalIssues === 0 ? 'green' : totalIssues < 10 ? 'amber' : 'red'); }
-    const filesEl = document.getElementById('repoHealthFilesScanned'); if (filesEl) filesEl.textContent = files;
-    const critEl = document.getElementById('repoHealthCritical'); if (critEl) critEl.textContent = crit + ' Critical';
-    const highEl = document.getElementById('repoHealthHigh'); if (highEl) highEl.textContent = high + ' High';
-    const medEl = document.getElementById('repoHealthMedium'); if (medEl) medEl.textContent = med + ' Med';
-    const lowEl = document.getElementById('repoHealthLow'); if (lowEl) lowEl.textContent = low + ' Low';
-    const badge = document.getElementById('repoHealthStatusBadge'); if (badge) { const ok = totalIssues === 0; badge.textContent = ok ? 'Ready' : (crit > 0 ? 'Critical' : 'Needs Attention'); badge.style.background = ok ? 'rgba(34,197,94,0.18)' : (crit > 0 ? 'rgba(239,68,68,0.18)' : 'rgba(245,158,11,0.18)'); badge.style.color = ok ? '#4ade80' : (crit > 0 ? '#f87171' : '#fbbf24'); }
-    const maintainabilityEl = document.getElementById('repoHealthMaintainability'); if (maintainabilityEl) { maintainabilityEl.textContent = typeof score === 'number' ? (score >= 80 ? 'Good' : score >= 50 ? 'Fair' : 'Poor') : '--'; maintainabilityEl.style.color = score >= 80 ? '#4ade80' : score >= 50 ? '#fbbf24' : '#f87171'; }
-    const reliabilityEl = document.getElementById('repoHealthReliability'); if (reliabilityEl) { reliabilityEl.textContent = typeof score === 'number' ? (score >= 80 ? 'Stable' : score >= 50 ? 'Moderate' : 'At Risk') : '--'; reliabilityEl.style.color = score >= 80 ? '#4ade80' : score >= 50 ? '#fbbf24' : '#f87171'; }
-    const complexityEl = document.getElementById('repoHealthComplexity'); if (complexityEl) complexityEl.textContent = '--';
-    const duplicationEl = document.getElementById('repoHealthDuplication'); if (duplicationEl) duplicationEl.textContent = '--';
-    const findingsEl = document.getElementById('repoHealthFindings'); if (findingsEl) { while (findingsEl.firstChild) { findingsEl.removeChild(findingsEl.firstChild); } const row = document.createElement('div'); row.className = 'tc-list-item'; const span = document.createElement('span'); span.className = 'tc-list-name'; if (totalIssues === 0) { span.style.color = 'var(--vscode-descriptionForeground)'; span.textContent = 'No issues detected. Repository looks healthy.'; } else { span.textContent = crit + ' Critical, ' + high + ' High, ' + med + ' Medium, ' + low + ' Low issues detected.'; } row.appendChild(span); findingsEl.appendChild(row); }
-    const recEl = document.getElementById('repoHealthRecommendations'); if (recEl) { recEl.textContent = totalIssues === 0 ? 'No action needed. Keep monitoring repository health.' : 'Review ' + totalIssues + ' issue' + (totalIssues === 1 ? '' : 's') + ' to improve repository health.'; }
-  }
-  function _updateSidebarAnalyticsPanel(data) {
-    const sev = data.severity || data.severityCounts || {};
-    const crit = sev.critical || sev.Critical || 0;
-    const high = sev.high || sev.High || 0;
-    const med = sev.medium || sev.Medium || sev.med || 0;
-    const low = sev.low || sev.Low || 0;
-    const totalIssues = crit + high + med + low;
-    const score = data.qualityScore != null ? data.qualityScore : (data.score != null ? data.score : '--');
-    const files = data.totalFiles || data.filesScanned || data.filesAnalyzed || 0;
-    const scans = data.scans != null ? data.scans : (data.scanCount != null ? data.scanCount : 1);
-    const last = data.lastScan || data.lastAudit || data.date || '--';
-    const avgScore = typeof score === 'number' ? score : '--';
-    const totalScansEl = document.getElementById('analyticsTotalScans'); if (totalScansEl) totalScansEl.textContent = scans;
-    const issuesFoundEl = document.getElementById('analyticsIssuesFound'); if (issuesFoundEl) { issuesFoundEl.textContent = totalIssues; issuesFoundEl.className = 'settings-kpi-value ' + (totalIssues === 0 ? 'green' : totalIssues < 10 ? 'amber' : 'red'); }
-    const avgScoreEl = document.getElementById('analyticsAvgScore'); if (avgScoreEl) { avgScoreEl.textContent = avgScore; avgScoreEl.className = 'settings-kpi-value ' + (typeof avgScore === 'number' && avgScore >= 80 ? 'green' : typeof avgScore === 'number' && avgScore >= 50 ? 'amber' : 'red'); }
-    const lastScanEl = document.getElementById('analyticsLastScan'); if (lastScanEl) lastScanEl.textContent = last;
-    const badge = document.getElementById('analyticsStatusBadge'); if (badge) { badge.textContent = totalIssues === 0 ? 'Ready' : 'Needs Review'; badge.style.background = totalIssues === 0 ? 'rgba(34,197,94,0.18)' : 'rgba(239,68,68,0.18)'; badge.style.color = totalIssues === 0 ? '#4ade80' : '#f87171'; }
-    const critEl = document.getElementById('analyticsCritical'); if (critEl) critEl.textContent = crit + ' Critical';
-    const highEl = document.getElementById('analyticsHigh'); if (highEl) highEl.textContent = high + ' High';
-    const medEl = document.getElementById('analyticsMedium'); if (medEl) medEl.textContent = med + ' Med';
-    const lowEl = document.getElementById('analyticsLow'); if (lowEl) lowEl.textContent = low + ' Low';
-    const sumTotalScans = document.getElementById('analyticsSummaryTotalScans'); if (sumTotalScans) sumTotalScans.textContent = scans;
-    const sumIssues = document.getElementById('analyticsSummaryIssuesFound'); if (sumIssues) sumIssues.textContent = totalIssues;
-    const sumAvg = document.getElementById('analyticsSummaryAvgScore'); if (sumAvg) sumAvg.textContent = avgScore;
-    const scanTrend = document.getElementById('analyticsScanTrend'); if (scanTrend) scanTrend.textContent = '+' + scans;
-    const issueTrend = document.getElementById('analyticsIssueTrend'); if (issueTrend) { issueTrend.textContent = totalIssues; issueTrend.className = 'settings-kpi-value ' + (totalIssues === 0 ? 'green' : 'red'); }
-  }
-  function _updateSidebarTeamPanel(data) {
-    const sev = data.severity || data.severityCounts || {};
-    const crit = sev.critical || sev.Critical || 0;
-    const high = sev.high || sev.High || 0;
-    const med = sev.medium || sev.Medium || sev.med || 0;
-    const low = sev.low || sev.Low || 0;
-    const totalIssues = crit + high + med + low;
-    const score = data.qualityScore != null ? data.qualityScore : (data.score != null ? data.score : 100);
-    const gate = data.gate;
-    const gatePass = typeof gate === 'string' ? gate === 'PASS' : (gate && gate.pass != null ? gate.pass : true);
-    const scans = data.scans != null ? data.scans : (data.scanCount != null ? data.scanCount : 1);
-    const members = data.members != null ? data.members : 1;
-    const resolved = data.resolved != null ? data.resolved : 0;
-    const teamScore = typeof score === 'number' ? score : 100;
-    const membersEl = document.getElementById('teamMembers'); if (membersEl) membersEl.textContent = members;
-    const scansEl = document.getElementById('teamScans'); if (scansEl) scansEl.textContent = scans;
-    const resolvedEl = document.getElementById('teamResolved'); if (resolvedEl) { resolvedEl.textContent = resolved; resolvedEl.className = 'settings-kpi-value ' + (resolved > 0 ? 'green' : 'green'); }
-    const teamScoreEl = document.getElementById('teamScore'); if (teamScoreEl) { teamScoreEl.textContent = teamScore; teamScoreEl.className = 'settings-kpi-value ' + (teamScore >= 80 ? 'green' : teamScore >= 50 ? 'amber' : 'red'); }
-    const badge = document.getElementById('teamStatusBadge'); if (badge) { badge.textContent = 'Active'; badge.style.background = 'rgba(34,197,94,0.18)'; badge.style.color = '#4ade80'; }
-    const critEl = document.getElementById('teamCritical'); if (critEl) critEl.textContent = crit + ' Critical';
-    const highEl = document.getElementById('teamHigh'); if (highEl) highEl.textContent = high + ' High';
-    const medEl = document.getElementById('teamMedium'); if (medEl) medEl.textContent = med + ' Med';
-    const lowEl = document.getElementById('teamLow'); if (lowEl) lowEl.textContent = low + ' Low';
-    const qualityScore = document.getElementById('teamQualityScore'); if (qualityScore) qualityScore.textContent = teamScore;
-    const totalIssuesEl = document.getElementById('teamTotalIssues'); if (totalIssuesEl) totalIssuesEl.textContent = totalIssues;
-    const gateEl = document.getElementById('teamGateStatus'); if (gateEl) { gateEl.textContent = gatePass ? 'PASS' : 'FAIL'; gateEl.style.color = gatePass ? '#4ade80' : '#f87171'; }
-    const list = document.getElementById('teamMembersList'); if (list) { while (list.firstChild) { list.removeChild(list.firstChild); } const memberList = Array.isArray(data.teamMembers) ? data.teamMembers : [{ name: 'Admin', role: 'Project Owner', status: 'Active', initial: 'A' }]; memberList.forEach(function(m) { const row = document.createElement('div'); row.className = 'tc-list-item'; const avatar = document.createElement('div'); avatar.className = 'tc-list-avatar'; avatar.style.cssText = 'width:32px;height:32px;border-radius:50%;background:#0ea5e9;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:13px;'; avatar.textContent = (m.initial || m.name.charAt(0).toUpperCase()); row.appendChild(avatar); const left = document.createElement('div'); left.className = 'tc-list-item-left'; const name = document.createElement('span'); name.className = 'tc-list-name'; name.textContent = m.name; const sub = document.createElement('span'); sub.className = 'tc-list-sub'; sub.style.color = 'var(--vscode-descriptionForeground)'; sub.textContent = m.role; left.appendChild(name); left.appendChild(sub); row.appendChild(left); const meta = document.createElement('span'); meta.className = 'tc-list-meta'; meta.style.color = m.status === 'Active' ? '#4ade80' : 'var(--vscode-descriptionForeground)'; meta.textContent = m.status; row.appendChild(meta); list.appendChild(row); }); }
-  }
-  function _updateSidebarPlatformPanel(data) {
-    const sev = data.severity || data.severityCounts || {};
-    const crit = sev.critical || sev.Critical || 0;
-    const high = sev.high || sev.High || 0;
-    const med = sev.medium || sev.Medium || sev.med || 0;
-    const low = sev.low || sev.Low || 0;
-    const totalIssues = crit + high + med + low;
-    const score = data.qualityScore != null ? data.qualityScore : (data.score != null ? data.score : 100);
-    const gate = data.gate;
-    const gatePass = typeof gate === 'string' ? gate === 'PASS' : (gate && gate.pass != null ? gate.pass : true);
-    const platformData = data.platform || {};
-    const version = platformData.version || data.extensionVersion || '3.0.309';
-    const engine = platformData.engine || 'VS Code';
-    const uptime = platformData.uptime || 'Active';
-    const status = platformData.status || 'Connected';
-    const os = platformData.os || 'win32';
-    const node = platformData.node || 'v22.21.1';
-    const workspace = platformData.workspace || data.workspacePath || 'c:\\Users\\Trevor\\CascadeProjects';
-    const versionEl = document.getElementById('platformVersion'); if (versionEl) versionEl.textContent = version;
-    const engineEl = document.getElementById('platformEngine'); if (engineEl) engineEl.textContent = engine;
-    const uptimeEl = document.getElementById('platformUptime'); if (uptimeEl) uptimeEl.textContent = uptime;
-    const statusEl = document.getElementById('platformStatus'); if (statusEl) statusEl.textContent = status;
-    const badge = document.getElementById('platformStatusBadge'); if (badge) { badge.textContent = status === 'Connected' ? 'Online' : status; badge.style.background = status === 'Connected' ? 'rgba(34,197,94,0.18)' : 'rgba(245,158,11,0.18)'; badge.style.color = status === 'Connected' ? '#4ade80' : '#fbbf24'; }
-    const critEl = document.getElementById('platformCritical'); if (critEl) critEl.textContent = crit + ' Critical';
-    const highEl = document.getElementById('platformHigh'); if (highEl) highEl.textContent = high + ' High';
-    const medEl = document.getElementById('platformMedium'); if (medEl) medEl.textContent = med + ' Med';
-    const lowEl = document.getElementById('platformLow'); if (lowEl) lowEl.textContent = low + ' Low';
-    const qualityScore = document.getElementById('platformQualityScore'); if (qualityScore) qualityScore.textContent = score;
-    const totalIssuesEl = document.getElementById('platformTotalIssues'); if (totalIssuesEl) totalIssuesEl.textContent = totalIssues;
-    const gateEl = document.getElementById('platformGateStatus'); if (gateEl) { gateEl.textContent = gatePass ? 'PASS' : 'FAIL'; gateEl.style.color = gatePass ? '#4ade80' : '#f87171'; }
-    const osEl = document.getElementById('platformOs'); if (osEl) osEl.textContent = os;
-    const nodeEl = document.getElementById('platformNode'); if (nodeEl) nodeEl.textContent = node;
-    const extEl = document.getElementById('platformExtension'); if (extEl) extEl.textContent = version;
-    const wsEl = document.getElementById('platformWorkspace'); if (wsEl) wsEl.textContent = workspace;
-  }
-  function _updateSidebarCertificatePanel(data) {
-    const sev = data.severity || data.severityCounts || {};
-    const crit = sev.critical || sev.Critical || 0;
-    const high = sev.high || sev.High || 0;
-    const med = sev.medium || sev.Medium || sev.med || 0;
-    const low = sev.low || sev.Low || 0;
-    const gate = data.gate;
-    const gatePass = typeof gate === 'string' ? gate === 'PASS' : (gate && gate.pass != null ? gate.pass : true);
-    const score = data.qualityScore != null ? data.qualityScore : (data.score != null ? data.score : 100);
-    const files = data.totalFiles || data.filesScanned || data.filesAnalyzed || 0;
-    const modules = data.modulesPassed || data.certModulesPassed || 0;
-    const lastAudit = data.lastAudit || data.lastScan || data.date || '--';
-    const expiry = data.expiryDate || data.certificateExpiry || '--';
-    const badge = document.getElementById('certificateBadge'); if (badge) { badge.textContent = gatePass ? 'PASS' : 'FAIL'; badge.style.background = gatePass ? 'rgba(34,197,94,0.18)' : 'rgba(239,68,68,0.18)'; badge.style.color = gatePass ? '#4ade80' : '#f87171'; }
-    const scoreEl = document.getElementById('certificateComplianceScore'); if (scoreEl) { scoreEl.textContent = score; scoreEl.className = 'settings-kpi-value ' + (score >= 80 ? 'green' : score >= 50 ? 'amber' : 'red'); }
-    const modulesEl = document.getElementById('certificateModulesPassed'); if (modulesEl) modulesEl.textContent = modules;
-    const lastAuditEl = document.getElementById('certificateLastAudit'); if (lastAuditEl) lastAuditEl.textContent = lastAudit;
-    const expiryEl = document.getElementById('certificateExpiryDate'); if (expiryEl) expiryEl.textContent = expiry;
-    const cEl = document.getElementById('certificateCritical'); if (cEl) cEl.textContent = crit;
-    const hEl = document.getElementById('certificateHigh'); if (hEl) hEl.textContent = high;
-    const mEl = document.getElementById('certificateMedium'); if (mEl) mEl.textContent = med;
-    const lEl = document.getElementById('certificateLow'); if (lEl) lEl.textContent = low;
-    const cEl2 = document.getElementById('certificateCritical2'); if (cEl2) cEl2.textContent = crit;
-    const hEl2 = document.getElementById('certificateHigh2'); if (hEl2) hEl2.textContent = high;
-    const mEl2 = document.getElementById('certificateMedium2'); if (mEl2) mEl2.textContent = med;
-    const lEl2 = document.getElementById('certificateLow2'); if (lEl2) lEl2.textContent = low;
-    const filesEl = document.getElementById('certificateRepoFiles'); if (filesEl) filesEl.textContent = files;
-    const gateEl = document.getElementById('certificateGateChecked'); if (gateEl) gateEl.textContent = gatePass ? 'PASS' : 'FAIL';
-    const lastScanEl = document.getElementById('certificateLastScan'); if (lastScanEl) lastScanEl.textContent = lastAudit;
-  }
-  function _updateSidebarCodeMapPanel(data) {
-    const files = data.totalFiles || data.filesScanned || data.filesAnalyzed || 0;
-    const modules = data.totalModules || data.modules || 0;
-    const lines = data.totalLines || data.lines || 0;
-    const lastScan = data.lastScan || data.date || '--';
-    const generated = data.codeMapGenerated || data.generated || false;
-    const status = generated ? 'GENERATED' : (files > 0 ? 'PENDING' : 'NOT GENERATED');
-    const badge = document.getElementById('codeMapStatusBadge'); if (badge) { badge.textContent = status; badge.style.background = generated ? 'rgba(34,197,94,0.18)' : 'rgba(245,158,11,0.18)'; badge.style.color = generated ? '#4ade80' : '#fbbf24'; }
-    const filesEl = document.getElementById('codeMapFiles'); if (filesEl) filesEl.textContent = files;
-    const modulesEl = document.getElementById('codeMapModules'); if (modulesEl) modulesEl.textContent = modules;
-    const linesEl = document.getElementById('codeMapTotalLines'); if (linesEl) linesEl.textContent = lines;
-    const linesEl2 = document.getElementById('codeMapTotalLines2'); if (linesEl2) linesEl2.textContent = lines;
-    const lastScanEl = document.getElementById('codeMapLastScan'); if (lastScanEl) lastScanEl.textContent = lastScan;
-    const lastScanEl2 = document.getElementById('codeMapLastScan2'); if (lastScanEl2) lastScanEl2.textContent = lastScan;
-    const repoFilesEl = document.getElementById('codeMapRepoFiles'); if (repoFilesEl) repoFilesEl.textContent = files;
-    const list = document.getElementById('codeMapLanguagesList');
-    if (list && data.languages) {
-      const langs = Array.isArray(data.languages) ? data.languages : Object.entries(data.languages).map(function(e) { return { name: e[0], count: typeof e[1] === 'number' ? e[1] : e[1].count || 0 }; });
-      const max = Math.max(1, langs.reduce(function(m, l) { return Math.max(m, l.count || 0); }, 0));
-      const colors = ['#4ade80','#60a5fa','#a78bfa','#f87171','#fbbf24','#22d3ee','#f472b6','#fb923c'];
-      list.textContent = '';
-      langs.forEach(function(l, i) {
-        const pct = Math.round((l.count / max) * 100);
-        const color = colors[i % colors.length];
-        const row = document.createElement('div'); row.className = 'code-map-lang-row';
-        const name = document.createElement('span'); name.className = 'code-map-lang-name'; name.textContent = l.name;
-        const bar = document.createElement('div'); bar.className = 'code-map-lang-bar';
-        const fill = document.createElement('div'); fill.className = 'code-map-lang-fill'; fill.style.width = pct + '%'; fill.style.background = color;
-        bar.appendChild(fill);
-        const count = document.createElement('span'); count.className = 'code-map-lang-count'; count.textContent = l.count;
-        row.appendChild(name); row.appendChild(bar); row.appendChild(count);
-        list.appendChild(row);
-      });
-    }
-  }
-  function _updateSidebarRoadmapPanel(data) {
-    const sev = data.severity || data.severityCounts || {};
-    const crit = sev.critical || sev.Critical || 0;
-    const high = sev.high || sev.High || 0;
-    const med = sev.medium || sev.Medium || sev.med || 0;
-    const low = sev.low || sev.Low || 0;
-    const openVulns = data.openVulnerabilities || data.issues || (crit + high + med + low) || 0;
-    const riskScore = data.riskScore || data.risk || 0;
-    const completed = data.completedTasks || 0;
-    const targetDate = data.targetDate || '7/26/2026';
-    const phases = data.phases || [{ name: 'Phase 1: Triage & Assessment', completed: 0, total: 0 }, { name: 'Phase 2: Short-Term Fixes', completed: 0, total: 0 }, { name: 'Phase 3: Long-Term Architecture', completed: 0, total: 50 }];
-    const openVulnsEl = document.getElementById('roadmapOpenVulns'); if (openVulnsEl) openVulnsEl.textContent = openVulns;
-    const riskScoreEl = document.getElementById('roadmapRiskScore'); if (riskScoreEl) riskScoreEl.textContent = riskScore;
-    const completedEl = document.getElementById('roadmapCompleted'); if (completedEl) completedEl.textContent = completed;
-    const targetDateEl = document.getElementById('roadmapTargetDate'); if (targetDateEl) targetDateEl.textContent = targetDate;
-    const critEl = document.getElementById('roadmapCritical'); if (critEl) critEl.textContent = crit + ' Critical';
-    const highEl = document.getElementById('roadmapHigh'); if (highEl) highEl.textContent = high + ' High';
-    const medEl = document.getElementById('roadmapMedium'); if (medEl) medEl.textContent = med + ' Med';
-    const lowEl = document.getElementById('roadmapLow'); if (lowEl) lowEl.textContent = low + ' Low';
-    const phase1El = document.getElementById('roadmapPhase1Tasks'); if (phase1El && phases[0]) phase1El.textContent = phases[0].completed + ' / ' + phases[0].total + ' tasks';
-    const phase2El = document.getElementById('roadmapPhase2Tasks'); if (phase2El && phases[1]) phase2El.textContent = phases[1].completed + ' / ' + phases[1].total + ' tasks';
-    const phase3El = document.getElementById('roadmapPhase3Tasks'); if (phase3El && phases[2]) phase3El.textContent = phases[2].completed + ' / ' + phases[2].total + ' tasks';
-  }
-  function _updateSidebarProfilePanel(data) {
-    const sev = data.severity || data.severityCounts || {};
-    const crit = sev.critical || sev.Critical || 0;
-    const high = sev.high || sev.High || 0;
-    const med = sev.medium || sev.Medium || sev.med || 0;
-    const low = sev.low || sev.Low || 0;
-    const totalIssues = crit + high + med + low;
-    const gateRaw = data.gate;
-    const gate = typeof gateRaw === 'string' ? gateRaw : (gateRaw && gateRaw.pass != null ? (gateRaw.pass ? 'PASS' : 'FAIL') : 'Pending');
-    const score = data.qualityScore != null ? data.qualityScore : (data.score != null ? data.score : 100);
-    const scans = data.scans || data.totalScans || 1;
-    const reports = data.reports || data.totalReports || 1;
-    const avgScore = data.avgScore || score;
-    const critEl = document.getElementById('profileCritical'); if (critEl) critEl.textContent = crit + ' Critical';
-    const highEl = document.getElementById('profileHigh'); if (highEl) highEl.textContent = high + ' High';
-    const medEl = document.getElementById('profileMedium'); if (medEl) medEl.textContent = med + ' Med';
-    const lowEl = document.getElementById('profileLow'); if (lowEl) lowEl.textContent = low + ' Low';
-    const critCountEl = document.getElementById('profileCritCount'); if (critCountEl) critCountEl.textContent = crit;
-    const highCountEl = document.getElementById('profileHighCount'); if (highCountEl) highCountEl.textContent = high;
-    const medCountEl = document.getElementById('profileMedCount'); if (medCountEl) medCountEl.textContent = med;
-    const lowCountEl = document.getElementById('profileLowCount'); if (lowCountEl) lowCountEl.textContent = low;
-    const qualityScoreEl = document.getElementById('profileQualityScore'); if (qualityScoreEl) qualityScoreEl.textContent = score;
-    const issuesFoundEl = document.getElementById('profileIssuesFound'); if (issuesFoundEl) issuesFoundEl.textContent = totalIssues;
-    const gateStatusEl = document.getElementById('profileGateStatus'); if (gateStatusEl) { gateStatusEl.textContent = gate; gateStatusEl.style.color = gate === 'PASS' ? '#4ade80' : gate === 'FAIL' ? '#f87171' : '#fbbf24'; }
-    const scansRunEl = document.getElementById('profileScansRun'); if (scansRunEl) scansRunEl.textContent = scans;
-    const reportsEl = document.getElementById('profileReports'); if (reportsEl) reportsEl.textContent = reports;
-    const activityIssuesEl = document.getElementById('profileActivityIssues'); if (activityIssuesEl) activityIssuesEl.textContent = totalIssues;
-    const avgScoreEl = document.getElementById('profileAvgScore'); if (avgScoreEl) avgScoreEl.textContent = avgScore;
-  }
-  function _updateSidebarAuditPanel(data) {
-    const sev = data.severity || data.severityCounts || {};
-    const crit = sev.critical || sev.Critical || 0;
-    const high = sev.high || sev.High || 0;
-    const med = sev.medium || sev.Medium || sev.med || 0;
-    const low = sev.low || sev.Low || 0;
-    const gateRaw = data.gate;
-    const gate = typeof gateRaw === 'string' ? gateRaw : (gateRaw && gateRaw.pass != null ? (gateRaw.pass ? 'PASS' : 'FAIL') : 'Pending');
-    const score = data.qualityScore != null ? data.qualityScore : (data.score != null ? data.score : '--');
-    const badge = document.getElementById('auditPassBadge'); if (badge) { badge.textContent = gate === 'PASS' ? 'PASS' : gate === 'FAIL' ? 'FAIL' : 'PENDING'; badge.style.background = gate === 'PASS' ? 'rgba(34,197,94,0.18)' : gate === 'FAIL' ? 'rgba(239,68,68,0.18)' : 'rgba(245,158,11,0.18)'; badge.style.color = gate === 'PASS' ? '#4ade80' : gate === 'FAIL' ? '#f87171' : '#fbbf24'; }
-    const vuln = document.getElementById('auditVulnerabilities'); if (vuln) vuln.textContent = crit + high + med + low;
-    const secrets = document.getElementById('auditSecrets'); if (secrets) secrets.textContent = '0';
-    const checks = document.getElementById('auditChecksPassed'); if (checks) checks.textContent = gate === 'PASS' ? '100' : gate === 'FAIL' ? '0' : '--';
-    const auditScore = document.getElementById('auditScore'); if (auditScore) auditScore.textContent = score;
-    const cEl = document.getElementById('auditCritical'); if (cEl) cEl.textContent = crit;
-    const hEl = document.getElementById('auditHigh'); if (hEl) hEl.textContent = high;
-    const mEl = document.getElementById('auditMedium'); if (mEl) mEl.textContent = med;
-    const lEl = document.getElementById('auditLow'); if (lEl) lEl.textContent = low;
-    const findingsList = document.getElementById('auditFindingsList'); if (findingsList) {
-      findingsList.textContent = '';
-      const findings = data.detectedIssues || data.findings || [];
-      if (findings.length === 0) {
-        const row = document.createElement('div'); row.className = 'tc-list-item';
-        const left = document.createElement('div'); left.className = 'tc-list-item-left';
-        const dot = document.createElement('span'); dot.className = 'tc-list-dot green';
-        const name = document.createElement('span'); name.className = 'tc-list-name'; name.textContent = 'No new findings';
-        const meta = document.createElement('span'); meta.className = 'tc-list-meta'; meta.textContent = '0';
-        left.appendChild(dot); left.appendChild(name); row.appendChild(left); row.appendChild(meta); findingsList.appendChild(row);
-      } else {
-        findings.slice(0,5).forEach(function(f){
-          const row = document.createElement('div'); row.className = 'tc-list-item';
-          const left = document.createElement('div'); left.className = 'tc-list-item-left';
-          const dot = document.createElement('span'); dot.className = 'tc-list-dot ' + (f.severity === 'critical' ? 'red' : f.severity === 'high' ? 'amber' : f.severity === 'medium' ? 'blue' : 'green');
-          const name = document.createElement('span'); name.className = 'tc-list-name'; name.textContent = f.title || f.type || 'Finding';
-          const meta = document.createElement('span'); meta.className = 'tc-list-meta'; meta.textContent = f.severity || 'low';
-          left.appendChild(dot); left.appendChild(name); row.appendChild(left); row.appendChild(meta); findingsList.appendChild(row);
-        });
-      }
-    }
-  }
-  function _updateSidebarTrustPanel(data) {
-    const sev = data.severity || data.severityCounts || {};
-    const crit = sev.critical || sev.Critical || 0;
-    const high = sev.high || sev.High || 0;
-    const med = sev.medium || sev.Medium || sev.med || 0;
-    const low = sev.low || sev.Low || 0;
-    const gateRaw = data.gate;
-    const gate = typeof gateRaw === 'string' ? gateRaw : (gateRaw && gateRaw.pass != null ? (gateRaw.pass ? 'PASS' : 'FAIL') : 'Pending');
-    const score = data.qualityScore != null ? data.qualityScore : (data.score != null ? data.score : '--');
-    const badge = document.getElementById('trustVerifiedBadge'); if (badge) { badge.textContent = gate === 'PASS' ? 'VERIFIED' : gate === 'FAIL' ? 'FAILED' : 'PENDING'; badge.style.background = gate === 'PASS' ? 'rgba(34,197,94,0.18)' : gate === 'FAIL' ? 'rgba(239,68,68,0.18)' : 'rgba(245,158,11,0.18)'; badge.style.color = gate === 'PASS' ? '#4ade80' : gate === 'FAIL' ? '#f87171' : '#fbbf24'; }
-    const scoreEl = document.getElementById('trustScore'); if (scoreEl) scoreEl.textContent = score;
-    const verifiedEl = document.getElementById('trustVerified'); if (verifiedEl) verifiedEl.textContent = gate === 'PASS' ? 'Yes' : 'No';
-    const warningsEl = document.getElementById('trustWarnings'); if (warningsEl) warningsEl.textContent = crit + high + med;
-    const lastAuditEl = document.getElementById('trustLastAudit'); if (lastAuditEl) { const now = new Date(); lastAuditEl.textContent = (now.getMonth()+1) + '/' + now.getDate() + '/' + now.getFullYear(); }
-    const cEl = document.getElementById('trustCritical'); if (cEl) cEl.textContent = crit;
-    const hEl = document.getElementById('trustHigh'); if (hEl) hEl.textContent = high;
-    const mEl = document.getElementById('trustMedium'); if (mEl) mEl.textContent = med;
-    const lEl = document.getElementById('trustLow'); if (lEl) lEl.textContent = low;
-    const statusList = document.getElementById('trustStatusList'); if (statusList) {
-      statusList.textContent = '';
-      const findings = data.detectedIssues || data.findings || [];
-      if (findings.length === 0) {
-        const row = document.createElement('div'); row.className = 'tc-list-item';
-        const left = document.createElement('div'); left.className = 'tc-list-item-left';
-        const dot = document.createElement('span'); dot.className = 'tc-list-dot green';
-        const name = document.createElement('span'); name.className = 'tc-list-name'; name.textContent = 'All checks passed';
-        const meta = document.createElement('span'); meta.className = 'tc-list-meta'; meta.textContent = 'OK';
-        left.appendChild(dot); left.appendChild(name); row.appendChild(left); row.appendChild(meta); statusList.appendChild(row);
-      } else {
-        findings.slice(0,5).forEach(function(f){
-          const row = document.createElement('div'); row.className = 'tc-list-item';
-          const left = document.createElement('div'); left.className = 'tc-list-item-left';
-          const dot = document.createElement('span'); dot.className = 'tc-list-dot ' + (f.severity === 'critical' ? 'red' : f.severity === 'high' ? 'amber' : f.severity === 'medium' ? 'blue' : 'green');
-          const name = document.createElement('span'); name.className = 'tc-list-name'; name.textContent = f.title || f.type || 'Check';
-          const meta = document.createElement('span'); meta.className = 'tc-list-meta'; meta.textContent = f.severity || 'low';
-          left.appendChild(dot); left.appendChild(name); row.appendChild(left); row.appendChild(meta); statusList.appendChild(row);
-        });
-      }
-    }
-  }
-  function _updateSidebarCompliancePanel(data) {
-    const sev = data.severity || data.severityCounts || {};
-    const crit = sev.critical || sev.Critical || 0;
-    const high = sev.high || sev.High || 0;
-    const med = sev.medium || sev.Medium || sev.med || 0;
-    const low = sev.low || sev.Low || 0;
-    const gateRaw = data.gate;
-    const gate = typeof gateRaw === 'string' ? gateRaw : (gateRaw && gateRaw.pass != null ? (gateRaw.pass ? 'PASS' : 'FAIL') : 'Pending');
-    const badge = document.getElementById('complianceBadge'); if (badge) { badge.textContent = gate === 'PASS' ? 'PASS' : gate === 'FAIL' ? 'FAIL' : 'PENDING'; badge.style.background = gate === 'PASS' ? 'rgba(34,197,94,0.18)' : gate === 'FAIL' ? 'rgba(239,68,68,0.18)' : 'rgba(245,158,11,0.18)'; badge.style.color = gate === 'PASS' ? '#4ade80' : gate === 'FAIL' ? '#f87171' : '#fbbf24'; }
-    const passed = (crit + high + med === 0 ? 5 : Math.max(0, 5 - (crit + high)));
-    const failed = 5 - passed;
-    const progress = passed === 5 ? '100%' : (passed * 20) + '%';
-    const passedEl = document.getElementById('compliancePassed'); if (passedEl) passedEl.textContent = passed;
-    const failedEl = document.getElementById('complianceFailed'); if (failedEl) failedEl.textContent = failed;
-    const progressEl = document.getElementById('complianceProgress'); if (progressEl) progressEl.textContent = progress;
-    const totalEl = document.getElementById('complianceTotalRules'); if (totalEl) totalEl.textContent = '5';
-    const cEl = document.getElementById('complianceCritical'); if (cEl) cEl.textContent = crit;
-    const hEl = document.getElementById('complianceHigh'); if (hEl) hEl.textContent = high;
-    const mEl = document.getElementById('complianceMedium'); if (mEl) mEl.textContent = med;
-    const lEl = document.getElementById('complianceLow'); if (lEl) lEl.textContent = low;
-    const cEl2 = document.getElementById('complianceCritical2'); if (cEl2) cEl2.textContent = crit;
-    const hEl2 = document.getElementById('complianceHigh2'); if (hEl2) hEl2.textContent = high;
-    const mEl2 = document.getElementById('complianceMedium2'); if (mEl2) mEl2.textContent = med;
-    const lEl2 = document.getElementById('complianceLow2'); if (lEl2) lEl2.textContent = low;
-    const requirements = [
-      { name: 'No sensitive data in logs', severity: crit > 0 ? 'critical' : 'green' },
-      { name: 'Dependency license compliance', severity: med > 0 ? 'medium' : 'green' },
-      { name: 'Code of conduct present', severity: 'green' },
-      { name: 'Security policy defined', severity: high > 0 ? 'high' : 'green' },
-      { name: 'Contributing guidelines', severity: 'green' }
-    ];
-    const list = document.getElementById('complianceRequirementsList'); if (list) {
-      list.textContent = '';
-      requirements.forEach(function(r){
-        const row = document.createElement('div'); row.className = 'tc-list-item';
-        const left = document.createElement('div'); left.className = 'tc-list-item-left';
-        const dot = document.createElement('span'); dot.className = 'tc-list-dot ' + (r.severity === 'critical' ? 'red' : r.severity === 'high' ? 'amber' : r.severity === 'medium' ? 'blue' : 'green');
-        const name = document.createElement('span'); name.className = 'tc-list-name'; name.textContent = r.name;
-        const meta = document.createElement('span'); meta.className = 'tc-list-meta'; meta.textContent = r.severity === 'green' ? 'Pass' : 'Pending';
-        left.appendChild(dot); left.appendChild(name); row.appendChild(left); row.appendChild(meta); list.appendChild(row);
-      });
-    }
-  }
-  function _updateSidebarQualityPanel(data) {
-    const sev = data.severity || data.severityCounts || {};
-    const crit = sev.critical || sev.Critical || 0;
-    const high = sev.high || sev.High || 0;
-    const med = sev.medium || sev.Medium || sev.med || 0;
-    const low = sev.low || sev.Low || 0;
-    const issues = crit + high + med + low;
-    const gateRaw = data.gate;
-    const gate = typeof gateRaw === 'string' ? gateRaw : (gateRaw && gateRaw.pass != null ? (gateRaw.pass ? 'PASS' : 'FAIL') : 'Pending');
-    const score = data.qualityScore != null ? data.qualityScore : (data.score != null ? data.score : 100);
-    const badge = document.getElementById('qualityBadge'); if (badge) { badge.textContent = gate === 'PASS' ? 'PASS' : gate === 'FAIL' ? 'FAIL' : 'PENDING'; badge.style.background = gate === 'PASS' ? 'rgba(34,197,94,0.18)' : gate === 'FAIL' ? 'rgba(239,68,68,0.18)' : 'rgba(245,158,11,0.18)'; badge.style.color = gate === 'PASS' ? '#4ade80' : gate === 'FAIL' ? '#f87171' : '#fbbf24'; }
-    const scoreEl = document.getElementById('qualityScore'); if (scoreEl) { scoreEl.textContent = score; scoreEl.style.color = score >= 80 ? '#4ade80' : score >= 50 ? '#fbbf24' : '#f87171'; }
-    const ring = document.getElementById('qualityScoreRing'); if (ring) { ring.style.borderColor = score >= 80 ? 'rgba(74,222,128,0.4)' : score >= 50 ? 'rgba(251,191,36,0.4)' : 'rgba(248,113,113,0.4)'; }
-    const issuesEl = document.getElementById('qualityIssues'); if (issuesEl) issuesEl.textContent = issues;
-    const filesEl = document.getElementById('qualityFiles'); if (filesEl) filesEl.textContent = data.totalFiles || data.filesAnalyzed || 0;
-    const cEl = document.getElementById('qualityCritical'); if (cEl) cEl.textContent = crit;
-    const hEl = document.getElementById('qualityHigh'); if (hEl) hEl.textContent = high;
-    const mEl = document.getElementById('qualityMedium'); if (mEl) mEl.textContent = med;
-    const lEl = document.getElementById('qualityLow'); if (lEl) lEl.textContent = low;
-    const dims = [
-      { name: 'Maintainability', score: score, id: 'Maintainability' },
-      { name: 'Reliability', score: score >= 80 ? Math.max(80, score - 5) : score, id: 'Reliability' },
-      { name: 'Complexity', score: score >= 80 ? Math.max(80, score - 2) : score, id: 'Complexity' },
-      { name: 'Duplication', score: score >= 80 ? Math.max(80, score - 5) : score, id: 'Duplication' }
-    ];
-    dims.forEach(function(d){
-      const scoreE = document.getElementById('quality' + d.id); if (scoreE) { scoreE.textContent = d.score; scoreE.className = 'quality-dim-score ' + (d.score >= 80 ? 'green' : d.score >= 50 ? 'amber' : 'red'); }
-      const barE = document.getElementById('quality' + d.id + 'Bar'); if (barE) { barE.style.width = d.score + '%'; barE.style.background = d.score >= 80 ? '#4ade80' : d.score >= 50 ? '#fbbf24' : '#f87171'; }
-    });
-  }
-  function _updateSidebarAssessmentsPanel(data) {
-    const sev = data.severity || data.severityCounts || {};
-    const crit = sev.critical || sev.Critical || 0;
-    const high = sev.high || sev.High || 0;
-    const med = sev.medium || sev.Medium || sev.med || 0;
-    const low = sev.low || sev.Low || 0;
-    const gateRaw = data.gate;
-    const gate = typeof gateRaw === 'string' ? gateRaw : (gateRaw && gateRaw.pass != null ? (gateRaw.pass ? 'PASS' : 'FAIL') : 'Pending');
-    const score = data.qualityScore != null ? data.qualityScore : (data.score != null ? data.score : '--');
-    const badge = document.getElementById('assessmentsBadge'); if (badge) { badge.textContent = gate === 'PASS' ? 'PASS' : gate === 'FAIL' ? 'FAIL' : 'PENDING'; badge.style.background = gate === 'PASS' ? 'rgba(34,197,94,0.18)' : gate === 'FAIL' ? 'rgba(239,68,68,0.18)' : 'rgba(245,158,11,0.18)'; badge.style.color = gate === 'PASS' ? '#4ade80' : gate === 'FAIL' ? '#f87171' : '#fbbf24'; }
-    const completed = (gate === 'PASS' ? 2 : 0);
-    const pending = (gate === 'PASS' ? 0 : 2);
-    const total = 2;
-    const progress = gate === 'PASS' ? total : 0;
-    const completedEl = document.getElementById('assessmentsCompleted'); if (completedEl) completedEl.textContent = completed;
-    const pendingEl = document.getElementById('assessmentsPending'); if (pendingEl) pendingEl.textContent = pending;
-    const progressEl = document.getElementById('assessmentsProgress'); if (progressEl) progressEl.textContent = progress;
-    const totalEl = document.getElementById('assessmentsTotalChecks'); if (totalEl) totalEl.textContent = total;
-    const cEl = document.getElementById('assessmentsCritical'); if (cEl) cEl.textContent = crit;
-    const hEl = document.getElementById('assessmentsHigh'); if (hEl) hEl.textContent = high;
-    const mEl = document.getElementById('assessmentsMedium'); if (mEl) mEl.textContent = med;
-    const lEl = document.getElementById('assessmentsLow'); if (lEl) lEl.textContent = low;
-    const cEl2 = document.getElementById('assessmentsCritical2'); if (cEl2) cEl2.textContent = crit;
-    const hEl2 = document.getElementById('assessmentsHigh2'); if (hEl2) hEl2.textContent = high;
-    const mEl2 = document.getElementById('assessmentsMedium2'); if (mEl2) mEl2.textContent = med;
-    const lEl2 = document.getElementById('assessmentsLow2'); if (lEl2) lEl2.textContent = low;
-    const completionEl = document.getElementById('assessmentsCompletion'); if (completionEl) completionEl.textContent = (gate === 'PASS' ? '100' : '0') + '%';
-    const checklist = document.getElementById('assessmentsChecklist'); if (checklist) {
-      checklist.textContent = '';
-      const qualityRow = document.createElement('div'); qualityRow.className = 'tc-list-item';
-      const qualityLeft = document.createElement('div'); qualityLeft.className = 'tc-list-item-left';
-      const qualityDot = document.createElement('span'); qualityDot.className = 'tc-list-dot ' + (gate === 'PASS' ? 'green' : 'amber');
-      const qualityName = document.createElement('span'); qualityName.className = 'tc-list-name'; qualityName.textContent = 'Code quality gate passed';
-      const qualityMeta = document.createElement('span'); qualityMeta.className = 'tc-list-meta'; qualityMeta.textContent = gate === 'PASS' ? 'Done' : 'Pending';
-      qualityLeft.appendChild(qualityDot); qualityLeft.appendChild(qualityName); qualityRow.appendChild(qualityLeft); qualityRow.appendChild(qualityMeta); checklist.appendChild(qualityRow);
-      const securityRow = document.createElement('div'); securityRow.className = 'tc-list-item';
-      const securityLeft = document.createElement('div'); securityLeft.className = 'tc-list-item-left';
-      const securityDot = document.createElement('span'); securityDot.className = 'tc-list-dot ' + (crit + high + med === 0 ? 'green' : 'amber');
-      const securityName = document.createElement('span'); securityName.className = 'tc-list-name'; securityName.textContent = 'Security scan completed';
-      const securityMeta = document.createElement('span'); securityMeta.className = 'tc-list-meta'; securityMeta.textContent = crit + high + med === 0 ? 'Done' : 'Pending';
-      securityLeft.appendChild(securityDot); securityLeft.appendChild(securityName); securityRow.appendChild(securityLeft); securityRow.appendChild(securityMeta); checklist.appendChild(securityRow);
-    }
-  }
-  function _updateSidebarSecurityPanel(data) {
-    const sev = data.severity || data.severityCounts || {};
-    const crit = sev.critical || sev.Critical || 0;
-    const high = sev.high || sev.High || 0;
-    const med = sev.medium || sev.Medium || sev.med || 0;
-    const low = sev.low || sev.Low || 0;
-    const gateRaw = data.gate;
-    const gate = typeof gateRaw === 'string' ? gateRaw : (gateRaw && gateRaw.pass != null ? (gateRaw.pass ? 'PASS' : 'FAIL') : 'Pending');
-    const score = data.qualityScore != null ? data.qualityScore : (data.score != null ? data.score : '--');
-    const badge = document.getElementById('securityPassBadge'); if (badge) { badge.textContent = gate === 'PASS' ? 'PASS' : gate === 'FAIL' ? 'FAIL' : 'PENDING'; badge.style.background = gate === 'PASS' ? 'rgba(34,197,94,0.18)' : gate === 'FAIL' ? 'rgba(239,68,68,0.18)' : 'rgba(245,158,11,0.18)'; badge.style.color = gate === 'PASS' ? '#4ade80' : gate === 'FAIL' ? '#f87171' : '#fbbf24'; }
-    const cEl = document.getElementById('securityCritical'); if (cEl) cEl.textContent = crit;
-    const hEl = document.getElementById('securityHigh'); if (hEl) hEl.textContent = high;
-    const mEl = document.getElementById('securityMedium'); if (mEl) mEl.textContent = med;
-    const lEl = document.getElementById('securityLow2'); if (lEl) lEl.textContent = low;
-    const cEl2 = document.getElementById('securityCritical2'); if (cEl2) cEl2.textContent = crit;
-    const hEl2 = document.getElementById('securityHigh2'); if (hEl2) hEl2.textContent = high;
-    const mEl2 = document.getElementById('securityMedium2'); if (mEl2) mEl2.textContent = med;
-    const securityScore = document.getElementById('securityScore'); if (securityScore) securityScore.textContent = score;
-    const threatsList = document.getElementById('securityThreatsList'); if (threatsList) {
-      threatsList.textContent = '';
-      const findings = data.detectedIssues || data.findings || [];
-      if (findings.length === 0) {
-        const row = document.createElement('div'); row.className = 'tc-list-item';
-        const left = document.createElement('div'); left.className = 'tc-list-item-left';
-        const dot = document.createElement('span'); dot.className = 'tc-list-dot green';
-        const name = document.createElement('span'); name.className = 'tc-list-name'; name.textContent = 'No threats detected';
-        const meta = document.createElement('span'); meta.className = 'tc-list-meta'; meta.textContent = '0';
-        left.appendChild(dot); left.appendChild(name); row.appendChild(left); row.appendChild(meta); threatsList.appendChild(row);
-      } else {
-        findings.slice(0,5).forEach(function(f){
-          const row = document.createElement('div'); row.className = 'tc-list-item';
-          const left = document.createElement('div'); left.className = 'tc-list-item-left';
-          const dot = document.createElement('span'); dot.className = 'tc-list-dot ' + (f.severity === 'critical' ? 'red' : f.severity === 'high' ? 'amber' : f.severity === 'medium' ? 'blue' : 'green');
-          const name = document.createElement('span'); name.className = 'tc-list-name'; name.textContent = f.title || f.type || 'Threat';
-          const meta = document.createElement('span'); meta.className = 'tc-list-meta'; meta.textContent = f.severity || 'low';
-          left.appendChild(dot); left.appendChild(name); row.appendChild(left); row.appendChild(meta); threatsList.appendChild(row);
-        });
-      }
-    }
-  }
-  window.addEventListener('message', function(e) {
-    const msg = e.data; if (!msg) return;
-    if (msg.command === 'updateStatus') {
-      const st = document.getElementById('statusText');
-      const ic = document.getElementById('statusIcon');
-      if (st) st.textContent = msg.text || 'Ready';
-      if (ic) { ic.className = 'card-icon ' + (msg.status === 'error' ? 'error' : msg.status === 'scanning' ? 'scanning' : 'ok'); ic.textContent = msg.status === 'error' ? '\u2716' : msg.status === 'scanning' ? '\u26A0' : '\u2714'; }
-    }
-    if (msg.command === 'scanProgress') {
-      const bar = document.getElementById('scanProgressBar');
-      const pct = document.getElementById('scanProgressPct');
-      const val = Math.max(0, Math.min(100, msg.percentage || 0));
-      if (bar) bar.style.width = val + '%';
-      if (pct) pct.textContent = val + '%';
-    }
-    if (msg.command === 'updateAuditData') {
-      _updateSidebarAuditPanel(msg);
-      _updateSidebarSecurityPanel(msg);
-      _updateSidebarTrustPanel(msg);
-      _updateSidebarQualityPanel(msg);
-      _updateSidebarAssessmentsPanel(msg);
-      _updateSidebarCompliancePanel(msg);
-      _updateSidebarScanPanel(msg);
-      _updateSidebarAiContextPanel(msg);
-      _updateSidebarCertificatePanel(msg);
-      _updateSidebarCodeMapPanel(msg);
-      _updateSidebarRoadmapPanel(msg);
-      _updateSidebarProfilePanel(msg);
-      _updateSidebarUploadPanel(msg);
-      _updateSidebarRepoHealthPanel(msg);
-      _updateSidebarAnalyticsPanel(msg);
-      _updateSidebarTeamPanel(msg);
-      _updateSidebarPlatformPanel(msg);
-    }
-    if (msg.command === 'updateServerUrl') { const el = document.getElementById('serverUrlText'); if (el) el.textContent = msg.url || 'http://127.0.0.1:55000'; const setEl = document.getElementById('settingsServerUrl'); if (setEl) setEl.textContent = msg.url || 'http://127.0.0.1:55000'; const settingsDropdownUrl = document.getElementById('settingsServerUrlText'); if (settingsDropdownUrl) settingsDropdownUrl.textContent = msg.url || 'http://127.0.0.1:55000'; const settingsApiInputTab = document.getElementById('settingsApiInputTab'); if (settingsApiInputTab) settingsApiInputTab.value = msg.url || 'http://127.0.0.1:55000'; } // simplebeacon-ignore config-drift — fallback to default if not set
-    if (msg.command === 'updateDashboard') {
-      const gateEl = document.getElementById('dashGateText');
-      const issuesEl = document.getElementById('dashIssuesText');
-      const scoreEl = document.getElementById('dashScoreText');
-      const sidebarRepoFilesEl = document.getElementById('sidebarRepoFiles');
-      if (gateEl) gateEl.textContent = msg.gate || 'Pending';
-      if (issuesEl) issuesEl.textContent = msg.issues || '0';
-      if (scoreEl) scoreEl.textContent = msg.score || '--';
-      if (sidebarRepoFilesEl) sidebarRepoFilesEl.textContent = msg.repoFiles || '--';
-      const dbGate = document.getElementById('dbGateVal');
-      const dbScore = document.getElementById('dbScoreVal');
-      const dbIssues = document.getElementById('dbIssuesVal');
-      const dbCrit = document.getElementById('dbCritCount');
-      const dbHigh = document.getElementById('dbHighCount');
-      const dbMed = document.getElementById('dbMedCount');
-      const dbLow = document.getElementById('dbLowCount');
-      if (dbGate) dbGate.textContent = msg.gate || 'Pending';
-      if (dbScore) dbScore.textContent = msg.score || '--';
-      if (dbIssues) dbIssues.textContent = msg.issues || '0';
-      if (dbCrit) { dbCrit.textContent = msg.critical || '0'; document.getElementById('dbCritLabel').textContent = (msg.critical || '0') + ' Critical'; }
-      if (dbHigh) { dbHigh.textContent = msg.high || '0'; document.getElementById('dbHighLabel').textContent = (msg.high || '0') + ' High'; }
-      if (dbMed) { dbMed.textContent = msg.medium || '0'; document.getElementById('dbMedLabel').textContent = (msg.medium || '0') + ' Med'; }
-      if (dbLow) { dbLow.textContent = msg.low || '0'; document.getElementById('dbLowLabel').textContent = (msg.low || '0') + ' Low'; }
-    }
-    if (msg.command === 'updateReport' && !msg.report) {
-      const dbGate = document.getElementById('dbGateVal');
-      const dbScore = document.getElementById('dbScoreVal');
-      const dbIssues = document.getElementById('dbIssuesVal');
-      const dbCrit = document.getElementById('dbCritCount');
-      const dbHigh = document.getElementById('dbHighCount');
-      const dbMed = document.getElementById('dbMedCount');
-      const dbLow = document.getElementById('dbLowCount');
-      const dbRepo = document.getElementById('dbRepoFiles');
-      const dbGateChk = document.getElementById('dbGateChecked');
-      if (dbGate) dbGate.textContent = 'Pending';
-      if (dbScore) dbScore.textContent = '--';
-      if (dbIssues) dbIssues.textContent = '0';
-      if (dbCrit) { dbCrit.textContent = '0'; document.getElementById('dbCritLabel').textContent = '0 Critical'; }
-      if (dbHigh) { dbHigh.textContent = '0'; document.getElementById('dbHighLabel').textContent = '0 High'; }
-      if (dbMed) { dbMed.textContent = '0'; document.getElementById('dbMedLabel').textContent = '0 Med'; }
-      if (dbLow) { dbLow.textContent = '0'; document.getElementById('dbLowLabel').textContent = '0 Low'; }
-      if (dbRepo) dbRepo.textContent = '--';
-      if (dbGateChk) dbGateChk.textContent = '--';
-      const dashGate = document.getElementById('dashGateText');
-      const dashIssues = document.getElementById('dashIssuesText');
-      const dashScore = document.getElementById('dashScoreText');
-      if (dashGate) dashGate.textContent = 'Pending';
-      if (dashIssues) dashIssues.textContent = '0';
-      if (dashScore) dashScore.textContent = '--';
-      const sidebarRepoFiles = document.getElementById('sidebarRepoFiles');
-      if (sidebarRepoFiles) sidebarRepoFiles.textContent = '--';
-    }
-    if (msg.command === 'updateReport' && msg.report) {
-      const r = msg.report;
-      const dbScore = document.getElementById('dbScoreVal');
-      const dbIssues = document.getElementById('dbIssuesVal');
-      const dbGate = document.getElementById('dbGateVal');
-      const dbCrit = document.getElementById('dbCritCount');
-      const dbHigh = document.getElementById('dbHighCount');
-      const dbMed = document.getElementById('dbMedCount');
-      const dbLow = document.getElementById('dbLowCount');
-      const dbRepo = document.getElementById('dbRepoFiles');
-      const dbGateChk = document.getElementById('dbGateChecked');
-      if (dbScore) dbScore.textContent = (r.qualityScore != null ? r.qualityScore : r.score != null ? r.score : '--') + '';
-      const issueCount = (() => {
-        if (r.issueCount != null) return r.issueCount;
-        if (r.totalIssues != null) return r.totalIssues;
-        if (r.issues != null) {
-          if (typeof r.issues === 'number') return r.issues;
-          if (typeof r.issues === 'string' && r.issues !== '') return parseInt(r.issues, 10) || 0;
-          if (Array.isArray(r.issues)) return r.issues.length;
-        }
-        if (r.detectedIssues) return r.detectedIssues.length;
-        return '0';
-      })();
-      if (dbIssues) dbIssues.textContent = issueCount + '';
-      if (dbGate) dbGate.textContent = typeof r.gate === 'string' ? r.gate : (r.gate && r.gate.pass != null ? (r.gate.pass ? 'PASS' : 'FAIL') : 'Pending');
-      const sev = r.severityCounts || {};
-      if (dbCrit) { dbCrit.textContent = (sev.critical || sev.Critical || 0) + ''; document.getElementById('dbCritLabel').textContent = (sev.critical || sev.Critical || 0) + ' Critical'; }
-      if (dbHigh) { dbHigh.textContent = (sev.high || sev.High || 0) + ''; document.getElementById('dbHighLabel').textContent = (sev.high || sev.High || 0) + ' High'; }
-      if (dbMed) { dbMed.textContent = (sev.medium || sev.Medium || sev.med || 0) + ''; document.getElementById('dbMedLabel').textContent = (sev.medium || sev.Medium || sev.med || 0) + ' Med'; }
-      if (dbLow) { dbLow.textContent = (sev.low || sev.Low || 0) + ''; document.getElementById('dbLowLabel').textContent = (sev.low || sev.Low || 0) + ' Low'; }
-      if (dbRepo) dbRepo.textContent = (r.totalFiles || r.filesAnalyzed || '--') + '';
-      if (dbGateChk) dbGateChk.textContent = (r.totalFiles || r.filesAnalyzed || '--') + '';
-      // Populate new tab panes
-      const score = r.qualityScore != null ? r.qualityScore : r.score != null ? r.score : null;
-      const sevCounts = r.severityCounts || {};
-      const crit = sevCounts.critical || sevCounts.Critical || 0;
-      const high = sevCounts.high || sevCounts.High || 0;
-      const med = sevCounts.medium || sevCounts.Medium || 0;
-      const files = r.totalFiles || r.filesAnalyzed || '--';
-      // Repo Health
-      const rhScore = document.getElementById('rhScore');
-      const rhFiles = document.getElementById('rhFiles');
-      const rhStatus = document.getElementById('rhStatusBadge');
-      if (rhScore) rhScore.textContent = score != null ? score + '' : '--';
-      if (rhFiles) rhFiles.textContent = files + '';
-      if (rhStatus) { rhStatus.textContent = score != null && score >= 80 ? 'Healthy' : score != null && score >= 50 ? 'Needs Attention' : 'Critical'; rhStatus.className = 'tc-status-badge' + (score != null && score >= 80 ? '' : score != null && score >= 50 ? ' amber' : ' red'); }
-      // Analytics
-      const anScore = document.getElementById('anScore');
-      const anTrend = document.getElementById('anTrend');
-      const anCrit = document.getElementById('anCrit');
-      const anHigh = document.getElementById('anHigh');
-      const anMed = document.getElementById('anMed');
-      if (anScore) anScore.textContent = score != null ? score + '' : '--';
-      if (anTrend) anTrend.textContent = score != null && score >= 80 ? 'Good' : score != null && score >= 50 ? 'Fair' : 'Poor';
-      if (anCrit) anCrit.textContent = crit + '';
-      if (anHigh) anHigh.textContent = high + '';
-      if (anMed) anMed.textContent = med + '';
-      // Trust
-      const trScore = document.getElementById('trScore');
-      const trAlerts = document.getElementById('trAlerts');
-      if (trScore) trScore.textContent = score != null ? score + '' : '--';
-      if (trAlerts) trAlerts.textContent = (crit + high) + '';
-      // Assessments
-      const asPass = document.getElementById('asPass');
-      const asFail = document.getElementById('asFail');
-      const totalIssues = r.issueCount || r.totalIssues || (r.detectedIssues ? r.detectedIssues.length : 0);
-      if (asPass) asPass.textContent = score != null && score >= 50 ? (totalIssues > 0 ? Math.max(0, totalIssues - crit - high) : 0) + '' : '0';
-      if (asFail) asFail.textContent = (crit + high) + '';
-      // Compliance
-      const cpScore = document.getElementById('cpScore');
-      const cpPending = document.getElementById('cpPending');
-      if (cpScore) cpScore.textContent = score != null ? score + '' : '--';
-      if (cpPending) cpPending.textContent = (crit + high) + '';
-      // Profile
-      const prScore = document.getElementById('prScore');
-      const prScans = document.getElementById('prScans');
-      if (prScore) prScore.textContent = score != null ? score + '' : '--';
-      if (prScans) prScans.textContent = '1';
-      _updateSidebarAuditPanel(r);
-      _updateSidebarProfilePanel(r);
-      _updateSidebarUploadPanel(r);
-      _updateSidebarRepoHealthPanel(r);
-      _updateSidebarAnalyticsPanel(r);
-      _updateSidebarTeamPanel(r);
-      _updateSidebarPlatformPanel(r);
-    }
-    if (msg.command === 'setShowWelcome') {
-      const el = document.getElementById('showWelcome');
-      if (el) el.checked = !!msg.value;
-    }
-    if (msg.command === 'setAutoScan') {
-      const el = document.getElementById('autoScan');
-      const toggleEl = document.getElementById('toggleAutoScan');
-      const tabEl = document.getElementById('toggleAutoScanTab');
-      if (el) el.checked = !!msg.value;
-      if (toggleEl) toggleEl.checked = !!msg.value;
-      if (tabEl) tabEl.checked = !!msg.value;
-    }
-    if (msg.command === 'setBrowserMode') {
-      const el = document.getElementById('toggleBrowserMode');
-      const tabEl = document.getElementById('toggleBrowserModeTab');
-      if (el) el.checked = !!msg.value;
-      if (tabEl) tabEl.checked = !!msg.value;
-    }
-    if (msg.command === 'addDownloadedFile') {
-      const dlList = document.getElementById('dlList');
-      if (!dlList) return;
-      const dlEmpty = dlList.querySelector('.dl-empty'); if (dlEmpty) dlEmpty.remove();
-      const item = document.createElement('div');
-      item.className = 'dl-item';
-      item.dataset.filePath = msg.path || '';
-      const dlWrap = document.createElement('div'); dlWrap.style.overflow = 'hidden'; const dlName = document.createElement('div'); dlName.className = 'dl-item-name'; dlName.textContent = msg.name || 'File'; const dlPath = document.createElement('div'); dlPath.className = 'dl-item-path'; dlPath.textContent = msg.path || ''; dlWrap.appendChild(dlName); dlWrap.appendChild(dlPath); const dlActs = document.createElement('div'); dlActs.className = 'dl-actions'; const dlBtnOpen = document.createElement('button'); dlBtnOpen.className = 'dl-btn dl-open'; dlBtnOpen.textContent = 'Open'; const dlBtnCopy = document.createElement('button'); dlBtnCopy.className = 'dl-btn dl-copy'; dlBtnCopy.textContent = 'Copy'; dlActs.appendChild(dlBtnOpen); dlActs.appendChild(dlBtnCopy); item.appendChild(dlWrap); item.appendChild(dlActs);
-      dlList.insertBefore(item, dlList.firstChild);
-      item.querySelector('.dl-open').addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openFile', path: msg.path}); });
-      item.querySelector('.dl-copy').addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'copyPath', path: msg.path}); });
-    }
-    if (msg.command === 'clearDownloadedFiles') {
-      const dlList = document.getElementById('dlList');
-      if (dlList) { dlList.textContent = ''; const emptyDiv = document.createElement('div'); emptyDiv.className = 'dl-empty'; emptyDiv.textContent = 'No downloads yet'; dlList.appendChild(emptyDiv); }
-    }
-    if (msg.command === 'diagnoseResult') {
-      const detailPanel = document.getElementById('diagnoseDetailPanel');
-      const detailResults = document.getElementById('diagnoseDetailResults');
-      const detailBadge = document.getElementById('diagnoseDetailBadge');
-      const detailRelay = document.getElementById('diagnoseDetailRelay');
-      const detailServer = document.getElementById('diagnoseDetailServer');
-      const detailApi = document.getElementById('diagnoseDetailApi');
-      const detailSidebar = document.getElementById('diagnoseDetailSidebar');
-      if (detailPanel) {
-        detailPanel.classList.remove('hidden');
-        detailPanel.classList.add('detail-active');
-        detailPanel.style.display = 'block';
-      }
-      document.body.classList.add('detail-panel-open');
-      const hasErr = msg.lines && msg.lines.some(function(l){ return /FAIL|ERROR|UNREACHABLE|MISSING|TIMEOUT/.test(String(l)); });
-      const hasWarn = msg.lines && msg.lines.some(function(l){ return /WARN|PENDING|UNKNOWN/.test(String(l)); });
-      if (detailBadge) {
-        if (hasErr) { detailBadge.style.background = 'rgba(239,68,68,0.18)'; detailBadge.style.color = '#f87171'; detailBadge.textContent = 'Issues Found'; }
-        else if (hasWarn) { detailBadge.style.background = 'rgba(245,158,11,0.18)'; detailBadge.style.color = '#fbbf24'; detailBadge.textContent = 'Warnings'; }
-        else { detailBadge.style.background = 'rgba(34,197,94,0.18)'; detailBadge.style.color = '#4ade80'; detailBadge.textContent = 'All Clear'; }
-      }
-      function setKpi(el, line, pattern) { if (!el || !line) return; const val = String(line).replace(pattern, '').trim(); el.textContent = val || '--'; if (/FAIL|ERROR|UNREACHABLE|MISSING|TIMEOUT/.test(val)) el.className = 'settings-kpi-value red'; else if (/WARN|PENDING|UNKNOWN/.test(val)) el.className = 'settings-kpi-value amber'; else el.className = 'settings-kpi-value green'; }
-      if (msg.lines && Array.isArray(msg.lines)) {
-        const relayLine = msg.lines.find(function(l){ return /Relay port:/i.test(String(l)); });
-        const serverLine = msg.lines.find(function(l){ return /Data server:/i.test(String(l)); });
-        const apiLine = msg.lines.find(function(l){ return /API status:/i.test(String(l)); });
-        const dashHtmlLine = msg.lines.find(function(l){ return /Dashboard HTML:/i.test(String(l)); });
-        const sideHtmlLine = msg.lines.find(function(l){ return /Sidebar HTML:/i.test(String(l)); });
-        setKpi(detailRelay, relayLine, /^Relay port:\s*/i);
-        setKpi(detailServer, serverLine, /^Data server:\s*/i);
-        setKpi(detailApi, apiLine, /^API status:\s*/i);
-        setKpi(detailSidebar, sideHtmlLine, /^Sidebar HTML:\s*/i);
-        if (!sideHtmlLine && dashHtmlLine) setKpi(detailSidebar, dashHtmlLine, /^Dashboard HTML:\s*/i);
-      }
-      if (detailResults) {
-        detailResults.textContent = '';
-        if (msg.lines && Array.isArray(msg.lines)) {
-          msg.lines.forEach(function(line) {
-            const text = String(line);
-            const colonIdx = text.indexOf(':');
-            const label = colonIdx > 0 ? text.slice(0, colonIdx).trim() : '';
-            const value = colonIdx > 0 ? text.slice(colonIdx + 1).trim() : text;
-            const card = document.createElement('div');
-            card.className = 'diag-card';
-            if (text.indexOf('OK') !== -1 || text.indexOf('PASS') !== -1 || text.indexOf('YES') !== -1 || text.indexOf('ACTIVE') !== -1 || text.indexOf('LOADED') !== -1) {
-              card.className += ' ok';
-            } else if (text.indexOf('FAIL') !== -1 || text.indexOf('ERROR') !== -1 || text.indexOf('UNREACHABLE') !== -1 || text.indexOf('MISSING') !== -1 || text.indexOf('NOT') !== -1 || text.indexOf('TIMEOUT') !== -1) {
-              card.className += ' err';
-            } else if (text.indexOf('WARN') !== -1 || text.indexOf('UNKNOWN') !== -1 || text.indexOf('PENDING') !== -1) {
-              card.className += ' warn';
-            }
-            if (label) {
-              const lbl = document.createElement('div');
-              lbl.className = 'diag-card-label';
-              lbl.textContent = label;
-              card.appendChild(lbl);
-            }
-            const val = document.createElement('div');
-            val.className = 'diag-card-value';
-            val.textContent = value;
-            card.appendChild(val);
-            detailResults.appendChild(card);
-          });
-        } else if (msg.text) {
-          const card = document.createElement('div');
-          card.className = 'diag-card';
-          const val = document.createElement('div');
-          val.className = 'diag-card-value';
-          val.textContent = String(msg.text);
-          card.appendChild(val);
-          detailResults.appendChild(card);
-        }
-      }
-    }
-    if (msg.command === 'showDashboard') {
-      // Show dashboard inline without fullscreen mode
-      let backBtn = document.getElementById('dashboardBackBtn');
-      if (backBtn) backBtn.style.display = 'none';
-      let td = document.getElementById('tabDashboard');
-      if (td) { td.classList.remove('hidden'); td.classList.add('active'); }
-      document.querySelectorAll('.tab-pane').forEach(function(p) { if (p.id !== 'tabDashboard') p.classList.remove('active'); });
-    }
-    if (msg.command === 'hideDashboard') {
-      document.body.classList.remove('sidebar-dashboard-mode');
-      let backBtn2 = document.getElementById('dashboardBackBtn');
-      if (backBtn2) backBtn2.style.display = 'none';
-      let td2 = document.getElementById('tabDashboard');
-      if (td2) { td2.classList.remove('active'); td2.classList.add('hidden'); }
-    }
-    if (msg.command === 'setDisplayMode') {
-      window._displayMode = msg.value || 'sidebar';
-      const toggleDisplay = document.getElementById('toggleDisplayMode');
-      const toggleDisplayTab = document.getElementById('toggleDisplayModeTab');
-      const displayModeSelectTab = document.getElementById('displayModeSelectTab');
-      if (toggleDisplay) toggleDisplay.checked = msg.value === 'mainWindow';
-      if (toggleDisplayTab) toggleDisplayTab.checked = msg.value === 'mainWindow';
-      if (displayModeSelectTab) displayModeSelectTab.value = msg.value;
-      const isSidebar = msg.value === 'sidebar';
-      const sidebarTabBar = document.getElementById('sidebarTabBar');
-      if (sidebarTabBar) { sidebarTabBar.classList.toggle('hidden', !isSidebar); }
-      const mainTabBar = document.getElementById('mainTabBar');
-      if (mainTabBar) { mainTabBar.classList.toggle('hidden', isSidebar); }
-      const prDisplay=document.getElementById('prDisplay');if(prDisplay){prDisplay.textContent=isSidebar?'Sidebar':'Main Window';}
-      if (isSidebar) {
-        _switchSidebarTab('dashboard');
-      } else {
-        let activeTabItem = document.querySelector('.tab-item.active');
-        if (activeTabItem) {
-          let activeTab = activeTabItem.getAttribute('data-tab');
-          if (activeTab) {
-            document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.add('hidden');p.classList.remove('active');});
-            let pane = document.getElementById('tab'+activeTab.charAt(0).toUpperCase()+activeTab.slice(1));
-            if (pane) { pane.classList.remove('hidden'); pane.classList.add('active'); }
-          }
-        }
-      }
-    }
-  });
-  function _updateSidebarAuthState(signedIn) {
-    let signIn = document.getElementById('tdSignInSidebar');
-    let signOut = document.getElementById('tdSignOutSidebar');
-    let signInMenu = document.getElementById('tdSignIn');
-    let signOutMenu = document.getElementById('tdSignOut');
-    let pricing = document.getElementById('tdPricingSidebar');
-    let pricingMenu = document.getElementById('tdPricing');
-    if (signIn) signIn.style.display = signedIn ? 'none' : '';
-    if (signOut) signOut.style.display = signedIn ? '' : 'none';
-    if (signInMenu) signInMenu.style.display = signedIn ? 'none' : '';
-    if (signOutMenu) signOutMenu.style.display = signedIn ? '' : 'none';
-    if (pricing) pricing.style.display = signedIn ? 'none' : '';
-    if (pricingMenu) pricingMenu.style.display = signedIn ? 'none' : '';
-  }
-  window.addEventListener('message', function(e) {
-    let msg = e.data; if (!msg) return;
-    if (msg.command === 'setAuthState') {
-      _updateSidebarAuthState(msg.signedIn);
-    }
-    if (msg.command === 'setSidebarScanPath') {
-      let input = document.getElementById('sidebarScanPathInput');
-      if (input && msg.path) input.value = msg.path;
-    }
-    if (msg.command === 'setTheme' && msg.theme) {
-      document.documentElement.setAttribute('data-theme', msg.theme);
-    }
-  });
-  if (window.vscode) { window.vscode.postMessage({command: 'getAuthState'}); }
-})();
 </script>
+<script nonce="${nonce}" src="${sidebarMainJsUri}"></script>
 </body>
 </html>`;
     }
@@ -5000,12 +3955,11 @@ body.detail-panel-open #tabAdvanced {
     this._currentReport = report;
     this._view?.webview.postMessage({ command: 'updateReport', report });
     // Push report data to relay so browser dashboard can display it
-    const relayPort = (ModernSidebarProvider as any)._relayPort;
+    const relayPort = ModernSidebarProvider._relayPort;
     if (relayPort && report) {
       try {
-        const httpMod = require('http');
         const payload = JSON.stringify({ ...report, title: report.title || 'Scan Report' });
-        const req = httpMod.request({ hostname: '127.0.0.1', port: relayPort, path: '/api/data', method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) } }, () => {});
+        const req = http.request({ hostname: '127.0.0.1', port: relayPort, path: '/api/data', method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) } }, () => {});
         req.on('error', () => {});
         req.write(payload);
         req.end();
@@ -5020,17 +3974,20 @@ body.detail-panel-open #tabAdvanced {
   public updateStatus(status: string, text: string) {
     this._view?.webview.postMessage({ command: 'updateStatus', status, text });
     // Push status to relay so browser sidebar stays in sync
-    const relayPort = (ModernSidebarProvider as any)._relayPort;
+    const relayPort = ModernSidebarProvider._relayPort;
     if (relayPort) {
       try {
-        const httpMod = require('http');
         const payload = JSON.stringify({ status, text, title: 'Status Update' });
-        const req = httpMod.request({ hostname: '127.0.0.1', port: relayPort, path: '/api/data', method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) } }, () => {});
+        const req = http.request({ hostname: '127.0.0.1', port: relayPort, path: '/api/data', method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) } }, () => {});
         req.on('error', () => {});
         req.write(payload);
         req.end();
       } catch (e) { ModernSidebarProvider.logRelay('Relay status push error: ' + (e instanceof Error ? e.message : String(e))); }
     }
+  }
+
+  public updateCodeMap(data: Record<string, unknown>) {
+    this._view?.webview.postMessage({ command: 'updateCodeMap', ...data });
   }
 
   public updateServerUrl(url: string) {
@@ -5075,12 +4032,12 @@ body.detail-panel-open #tabAdvanced {
   public openStandaloneDebug() {
     const currentReport = this._currentReport;
     const html = this._getHtmlForWebview(this._view!.webview);
-    // Inline sidebar.js so it loads in the standalone panel (webview URIs are panel-specific)
-    const sidebarJsPath = path.join(this._extensionUri.fsPath, 'media', 'sidebar.js');
+    // Inline sidebar-main.js so it loads in the standalone panel (webview URIs are panel-specific)
+    const sidebarJsPath = path.join(this._extensionUri.fsPath, 'media', 'sidebar-main.js');
     let standaloneHtml = html;
     if (fs.existsSync(sidebarJsPath)) {
       const sidebarJs = fs.readFileSync(sidebarJsPath, 'utf8');
-      standaloneHtml = html.replace(/<script(?:\s+[^>]*)?\s+src="[^"]*sidebar\.js[^"]*"[^>]*><\/script>/, '<script>\n' + sidebarJs + '\n</script>');
+      standaloneHtml = html.replace(/<script(?:\s+[^>]*)?\s+src="[^"]*sidebar-main\.js[^"]*"[^>]*><\/script>/, '<script>\n' + sidebarJs + '\n</script>');
     }
     standaloneHtml = standaloneHtml.replace(/<meta http-equiv="Content-Security-Policy"[^>]*>/i, '');
     // Keep real acquireVsCodeApi() for panel message passing
@@ -5088,7 +4045,7 @@ body.detail-panel-open #tabAdvanced {
     const vscodeVars = `<style>:root{--vscode-editor-background:#1e1e1e;--vscode-sidebar-background:#252526;--vscode-foreground:#cccccc;--vscode-panel-background:#252526;--vscode-panel-border:#3c3c3c;--vscode-button-secondaryBackground:#2d2d30;--vscode-button-secondaryForeground:#cccccc;--vscode-button-hoverBackground:#3c3c3c;--vscode-descriptionForeground:#858585;--vscode-activityBar-background:#333333;--vscode-activityBar-foreground:#ffffff;--vscode-activityBar-inactiveForeground:#858585;--vscode-focusBorder:#007acc;--vscode-list-hoverBackground:#2a2d2e;--vscode-charts-green:#89d185;--vscode-charts-red:#f48771;--vscode-charts-orange:#d18616;--vscode-charts-blue:#75beff;--vscode-font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;}</style>`;
     standaloneHtml = standaloneHtml.replace('</head>', vscodeVars + '</head>');
     // Inject API URL
-    const sbConfig = vscode.workspace.getConfiguration('simplebeacon');
+    const sbConfig = getSbConfig();
     const apiUrl = (sbConfig.get<string>('apiServerUrl') || sbConfig.get<string>('apiUrl', 'http://127.0.0.1:55000') || 'http://127.0.0.1:55000') as string;
     const apiScript = `<script>window.__SB_API_URL__='${apiUrl}';</script>`;
     standaloneHtml = standaloneHtml.replace('</head>', apiScript + '</head>');
@@ -5169,7 +4126,6 @@ body.detail-panel-open #tabAdvanced {
           vscode.commands.executeCommand('simplebeacon.enhancedAnalysis');
           break;
         case 'navResults':
-        case 'report':
           vscode.commands.executeCommand('simplebeacon.showReport');
           break;
         case 'navRepoHealth':
@@ -5213,7 +4169,6 @@ body.detail-panel-open #tabAdvanced {
           vscode.commands.executeCommand('simplebeacon.showCodeMap');
           break;
         case 'navSettings':
-        case 'settings':
           vscode.commands.executeCommand('simplebeacon.openSettings');
           break;
         case 'navCertificate':
@@ -5230,6 +4185,30 @@ body.detail-panel-open #tabAdvanced {
           break;
         case 'sendToAi':
           vscode.commands.executeCommand('simplebeacon.sendToAi');
+          break;
+        case 'sendToAI':
+          {
+            const dataPort = getDataServerPort();
+            const body = JSON.stringify(message.data || {});
+            const req = http.request(
+              {
+                hostname: '127.0.0.1',
+                port: dataPort,
+                path: '/api/ai-context',
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
+              },
+              (res: http.IncomingMessage) => {
+                res.on('data', () => { /* drain response */ });
+                res.on('end', () => { /* data server callback will focus AI Coding Agent panel */ });
+              }
+            );
+            req.on('error', (err) => {
+              vscode.window.showErrorMessage('Failed to send to AI Coding Agent: ' + err.message);
+            });
+            req.write(body);
+            req.end();
+          }
           break;
         case 'openFile': {
           const targetPath = message.file || message.path;
@@ -5253,9 +4232,14 @@ body.detail-panel-open #tabAdvanced {
         }
         case 'navigateToPage':
           if (message.page) {
+            if (message.page === 'analyze') {
+              const dataPort = getDataServerPort();
+              const analyzeUrl = `http://127.0.0.1:${dataPort}/dashboard/analyze`;
+              vscode.commands.executeCommand('simplebeacon.openInPreview', analyzeUrl);
+              break;
+            }
             const pageMap: Record<string, string> = {
               dashboard: 'simplebeacon.showReport',
-              analyze: 'simplebeacon.enhancedAnalysis',
               report: 'simplebeacon.showReport',
               settings: 'simplebeacon.openSettings',
               certificate: 'simplebeacon.generateCertificate',
@@ -5288,12 +4272,12 @@ body.detail-panel-open #tabAdvanced {
           cspSource = '';
           asWebviewUri(uri: vscode.Uri) { return uri; }
         } as unknown as vscode.Webview);
-    // Inline sidebar.js so it loads in the browser panel (webview URIs are panel-specific)
-    const sidebarJsPath = path.join(extUri.fsPath, 'media', 'sidebar.js');
+    // Inline sidebar-main.js so it loads in the browser panel (webview URIs are panel-specific)
+    const sidebarJsPath = path.join(extUri.fsPath, 'media', 'sidebar-main.js');
     let browserHtml = html;
     if (fs.existsSync(sidebarJsPath)) {
       const sidebarJs = fs.readFileSync(sidebarJsPath, 'utf8');
-      browserHtml = html.replace(/<script(?:\s+[^>]*)?\s+src="[^"]*sidebar\.js[^"]*"[^>]*><\/script>/, '<script>\n' + sidebarJs + '\n</script>');
+      browserHtml = html.replace(/<script(?:\s+[^>]*)?\s+src="[^"]*sidebar-main\.js[^"]*"[^>]*><\/script>/, '<script>\n' + sidebarJs + '\n</script>');
     }
     const tmpFile = path.join(os.tmpdir(), 'simplebeacon-sidebar-preview.html');
     browserHtml = browserHtml.replace(/<meta http-equiv="Content-Security-Policy"[^>]*>/i, '');
@@ -5333,8 +4317,8 @@ body.detail-panel-open #tabAdvanced {
     );
     // In browser context, change Preview button to IDE button
     browserHtml = browserHtml.replace(
-      /<button class="btn btn-action btn-small" id="previewBtn">\s*<span class="btn-icon">[🌐\&#x1F310;]<\/span>\s*<span>Preview<\/span>\s*<\/button>/g,
-      `<button class="btn btn-action btn-small" id="previewBtn"><span class="btn-icon">&#x1F5A5;</span><span>IDE</span></button>`
+      /<button type="button" class="btn btn-action btn-small" id="previewBtn">\s*<span class="btn-icon">[🌐\&#x1F310;]<\/span>\s*<span>Preview<\/span>\s*<\/button>/g,
+      `<button type="button" class="btn btn-action btn-small" id="previewBtn"><span class="btn-icon">&#x1F5A5;</span><span>IDE</span></button>`
     );
     browserHtml = browserHtml.replace(
       /bindBtn\('previewBtn', 'openSidebarDebug'\);/g,
@@ -5342,9 +4326,9 @@ body.detail-panel-open #tabAdvanced {
     );
     // Inject VS Code dark theme CSS variables and API URL so sidebar renders correctly outside VS Code
     const vscodeVars = `<style>:root{--vscode-editor-background:#1e1e1e;--vscode-sidebar-background:#252526;--vscode-foreground:#cccccc;--vscode-panel-background:#252526;--vscode-panel-border:#3c3c3c;--vscode-button-secondaryBackground:#2d2d30;--vscode-button-secondaryForeground:#cccccc;--vscode-button-hoverBackground:#3c3c3c;--vscode-descriptionForeground:#858585;--vscode-activityBar-background:#333333;--vscode-activityBar-foreground:#ffffff;--vscode-activityBar-inactiveForeground:#858585;--vscode-focusBorder:#007acc;--vscode-list-hoverBackground:#2a2d2e;--vscode-charts-green:#89d185;--vscode-charts-red:#f48771;--vscode-charts-orange:#d18616;--vscode-charts-blue:#75beff;--vscode-font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;}</style>`;
-    const sbConfig = vscode.workspace.getConfiguration('simplebeacon');
+    const sbConfig = getSbConfig();
     const apiUrl = sbConfig.get<string>('apiServerUrl') || sbConfig.get<string>('apiUrl', 'http://127.0.0.1:55000') || 'http://127.0.0.1:55000';
-    const relayPort = (ModernSidebarProvider as any)._relayPort || sbConfig.get<number>('relayPort', 55444);
+    const relayPort = ModernSidebarProvider._relayPort || sbConfig.get<number>('relayPort', 55444);
     const injectScript = `<script nonce="${panelNonce}">window.__SB_API_URL__='${apiUrl}';window._relayPort=${relayPort};</script>`;
     browserHtml = browserHtml.replace('</head>', injectScript + vscodeVars + '</head>');
 
@@ -5367,29 +4351,26 @@ body.detail-panel-open #tabAdvanced {
   }
 
   public restartRelayServer() {
-    const existingServer = (ModernSidebarProvider as any)._relayServer;
+    const existingServer = ModernSidebarProvider._relayServer;
     if (existingServer) {
       try {
         existingServer.close();
       } catch (e) {
         ModernSidebarProvider.logRelay('Failed to close existing relay server: ' + (e instanceof Error ? e.message : String(e)));
       }
-      (ModernSidebarProvider as any)._relayServer = undefined;
-      (ModernSidebarProvider as any)._relayPort = undefined;
+      ModernSidebarProvider._relayServer = undefined;
+      ModernSidebarProvider._relayPort = undefined;
     }
     this.openSidebarInBrowser(false);
     const dataPort = getDataServerPort();
     const url = `http://127.0.0.1:${dataPort}`;
     this._view?.webview.postMessage({ command: 'updateServerUrl', url });
-    vscode.window.showInformationMessage(`SimpleBeacon relay server restarted. API: ${url}`);
+    showQuietMessage(`SimpleBeacon relay server restarted. API: ${url}`);
   }
 
-  public openSidebarInBrowser(openBrowser = true, path = '/') {
+  public openSidebarInBrowser(openBrowser = true, urlPath = '/') {
     const extUri = this._extensionUri;
-    const sbConfig = vscode.workspace.getConfiguration('simplebeacon');
-    const fsMod = require('fs');
-    const pathMod = require('path');
-    const osMod = require('os');
+    const sbConfig = getSbConfig();
 
     // Generate the same browser-ready sidebar HTML used by the IDE preview
     let browserHtml = '';
@@ -5408,44 +4389,42 @@ body.detail-panel-open #tabAdvanced {
 
     // Generate welcome window browser HTML for the relay preview
     try {
-      const { WelcomeDashboard } = require('./welcomeDashboard');
-      if (WelcomeDashboard && typeof WelcomeDashboard.buildBrowserHtml === 'function') {
-        (ModernSidebarProvider as any)._welcomeBrowserHtml = WelcomeDashboard.buildBrowserHtml(this._currentReport || undefined);
+      if (typeof WelcomeDashboard.buildBrowserHtml === 'function') {
+        ModernSidebarProvider._welcomeBrowserHtml = WelcomeDashboard.buildBrowserHtml(this._currentReport || undefined);
       }
     } catch (e) {
       ModernSidebarProvider.logRelay('Failed to build welcome browser HTML: ' + (e instanceof Error ? e.message : String(e)));
     }
 
     // Write to temp file so standalone relay-server.js can serve it
-    const tempFile = pathMod.join(osMod.tmpdir(), 'simplebeacon-sidebar-browser.html');
-    try { fsMod.writeFileSync(tempFile, browserHtml, 'utf8'); } catch (e) {
+    const tempFile = path.join(os.tmpdir(), 'simplebeacon-sidebar-browser.html');
+    try { fs.writeFileSync(tempFile, browserHtml, 'utf8'); } catch (e) {
       ModernSidebarProvider.logRelay('Failed to write temp sidebar file: ' + (e instanceof Error ? e.message : String(e)));
     }
 
     // Start minimal relay server if not already running
-    const httpMod = require('http');
     const RELAY_PORT = sbConfig.get<number>('relayPort', 55444);
-    if ((ModernSidebarProvider as any)._relayServer) {
-      const port = (ModernSidebarProvider as any)._relayPort || RELAY_PORT;
-      const url = `http://127.0.0.1:${port}${path}`;
+    if (ModernSidebarProvider._relayServer) {
+      const port = ModernSidebarProvider._relayPort || RELAY_PORT;
+      const url = `http://127.0.0.1:${port}${urlPath}`;
       if (openBrowser) {
         try {
           vscode.env.openExternal(vscode.Uri.parse(url));
         } catch {
           vscode.env.clipboard.writeText(url);
-          vscode.window.showInformationMessage(`Browser did not open. URL copied to clipboard: ${url}`);
+          showQuietMessage(`Browser did not open. URL copied to clipboard: ${url}`);
         }
       }
-      vscode.window.showInformationMessage(`Sidebar open at ${url}`);
+      showQuietMessage(`Sidebar open at ${url}`);
       return;
     }
 
     // Helper to read codeMapTemplate for /codemap fallback
     const getCodeMapHtml = () => {
       try {
-        const codeMapPath = pathMod.join(extUri.fsPath, 'media', 'codeMapTemplate.html');
-        if (fsMod.existsSync(codeMapPath)) {
-          let html = fsMod.readFileSync(codeMapPath, 'utf8');
+        const codeMapPath = path.join(extUri.fsPath, 'media', 'codeMapTemplate.html');
+        if (fs.existsSync(codeMapPath)) {
+          let html = fs.readFileSync(codeMapPath, 'utf8');
           return html.replace(/NONCE/g, 'browser-' + Date.now()).replace(/<meta http-equiv="Content-Security-Policy"[^>]*>/i, '');
         }
       } catch (e) {
@@ -5498,7 +4477,7 @@ iframe{width:100%;height:100%;border:none;display:block}
 </html>`;
     };
 
-    const server = httpMod.createServer((req: any, res: any) => {
+    const server = http.createServer((req: any, res: any) => {
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
       res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -5521,10 +4500,9 @@ iframe{width:100%;height:100%;border:none;display:block}
       }
       if (req.url === '/welcome') {
         try {
-          const { WelcomeDashboard } = require('./welcomeDashboard');
-          if (WelcomeDashboard && typeof WelcomeDashboard.buildBrowserHtml === 'function') {
+          if (typeof WelcomeDashboard.buildBrowserHtml === 'function') {
             const welcomeHtml = WelcomeDashboard.buildBrowserHtml(this._currentReport || undefined);
-            (ModernSidebarProvider as any)._welcomeBrowserHtml = welcomeHtml;
+            ModernSidebarProvider._welcomeBrowserHtml = welcomeHtml;
             res.writeHead(200, {'Content-Type': 'text/html'});
             res.end(welcomeHtml);
             return;
@@ -5541,7 +4519,7 @@ iframe{width:100%;height:100%;border:none;display:block}
       // Proxy API calls to the actual SimpleBeacon data server
       if (req.url && req.url.startsWith('/api/')) {
         const dataPort = getDataServerPort();
-        const proxyReq = httpMod.request(
+        const proxyReq = http.request(
           { hostname: '127.0.0.1', port: dataPort, path: req.url, method: req.method, headers: { ...req.headers, host: `127.0.0.1:${dataPort}` } },
           (proxyRes: any) => {
             res.writeHead(proxyRes.statusCode, proxyRes.headers);
@@ -5574,22 +4552,22 @@ iframe{width:100%;height:100%;border:none;display:block}
       server.once('listening', () => {
         const addr = server.address();
         const actualPort = addr ? (typeof addr === 'object' ? addr.port : addr) : port;
-        (ModernSidebarProvider as any)._relayPort = actualPort;
-        (ModernSidebarProvider as any)._relayServer = server;
-        const url = `http://127.0.0.1:${actualPort}${path}`;
+        ModernSidebarProvider._relayPort = typeof actualPort === 'number' ? actualPort : Number(actualPort);
+        ModernSidebarProvider._relayServer = server;
+        const url = `http://127.0.0.1:${actualPort}${urlPath}`;
         if (openBrowser) {
           try {
             vscode.env.openExternal(vscode.Uri.parse(url));
           } catch {
             vscode.env.clipboard.writeText(url);
-            vscode.window.showInformationMessage(`Browser did not open. URL copied to clipboard: ${url}`);
+            showQuietMessage(`Browser did not open. URL copied to clipboard: ${url}`);
           }
         }
-        vscode.window.showInformationMessage(`Sidebar server running at ${url}`);
+        showQuietMessage(`Sidebar server running at ${url}`);
       });
       server.on('close', () => {
-        (ModernSidebarProvider as any)._relayServer = undefined;
-        (ModernSidebarProvider as any)._relayPort = undefined;
+        ModernSidebarProvider._relayServer = undefined;
+        ModernSidebarProvider._relayPort = undefined;
         ModernSidebarProvider.logRelay('Relay server closed');
       });
       server.listen(port, '127.0.0.1');
@@ -5679,12 +4657,12 @@ footer{padding:10px 20px;border-top:1px solid var(--border);font-size:11px;color
     <h2 style="margin-top:20px">Actions</h2>
     <a class="cm-link" href="http://localhost:${port}/api/report" target="_blank">View Raw Report</a>
     <div style="margin-top:8px"><a class="cm-link" style="background:#22c55e" href="http://localhost:${port}/api/stream" target="_blank">Event Stream</a></div>
-    <div style="margin-top:8px"><button class="cm-link" style="background:#ef4444;border:none;width:100%" onclick="triggerAnalysis()">📊 Run Analysis</button></div>
+    <div style="margin-top:8px"><button type="button" class="cm-link" style="background:#ef4444;border:none;width:100%" data-action="trigger-analysis">📊 Run Analysis</button></div>
   </aside>
   <section class="content">
     <div class="tabs">
-      <button class="tab-btn active" data-tab="overview">Overview</button>
-      <button class="tab-btn" data-tab="findings">Findings</button>
+      <button type="button" class="tab-btn active" data-tab="overview">Overview</button>
+      <button type="button" class="tab-btn" data-tab="findings">Findings</button>
     </div>
     <div id="panel-overview" class="tab-panel active">
       <div class="sev-grid">
@@ -5767,6 +4745,7 @@ document.querySelectorAll('.tab-btn').forEach(b=>b.addEventListener('click',()=>
   document.querySelectorAll('.tab-panel').forEach(x=>x.classList.remove('active'));
   b.classList.add('active');document.getElementById('panel-'+b.dataset.tab).classList.add('active');
 }));
+document.querySelectorAll('[data-action="trigger-analysis"]').forEach(b=>b.addEventListener('click',triggerAnalysis));
 load();
 setInterval(load,5000);
 </script>

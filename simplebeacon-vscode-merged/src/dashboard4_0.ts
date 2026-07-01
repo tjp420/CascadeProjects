@@ -4,7 +4,8 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as crypto from 'crypto';
 import { themeColors } from './designSystem';
-import { extractCategories, extractAllFindings, extractFailingFiles, escapeHtml } from './dashboardDataExtractor';
+import { extractCategories, extractAllFindings, extractFailingFiles } from './dashboardDataExtractor';
+import { escapeHtml } from './utils';
 
 /** Safely read a nested property path from an unknown object. */
 function getNested<T>(obj: unknown, ...keys: string[]): T | undefined {

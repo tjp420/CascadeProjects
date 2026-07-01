@@ -1,4 +1,4 @@
-import { escapeHtml, formatNumber, showToast, renderEmptyState } from '../utils.js';
+import { escapeHtml, formatNumber, showToast, renderEmptyState } from '../utils.js?v=20260701nofreeze2';
 const SEVERITY_ORDER = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
 /**
  * Get remediation plan.

@@ -128,8 +128,13 @@ simplebeacon-vscode-merged/src/aiPlatform/extension.ts
 ../.github/workflows/simplebeacon-action-stress-test.yml
 
 # Generated copies of CLI rule catalog in VS Code extension (single source of truth in packages/simplebeacon-cli)
+../packages/simplebeacon-cli/src/rules/llm-slop-catalog.json
 ../simplebeacon-vscode-merged/src/rules/llm-slop-catalog.json
 ../simplebeacon-vscode-merged/out/rules/llm-slop-catalog.json
 
 # Fix orchestrator test fixtures — contains literal eval/unsafe strings as test data
 server/lib/fix-orchestrator/patch-strategies.test.cjs
+
+# Minified vendor bundles — SVG path coordinates trigger IP regex false positives
+**/*.min.js
+web/simplebeacon-dashboard/js/vendor/lucide.min.js

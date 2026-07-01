@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as http from 'http';
 import { getDataServerPort } from './dataServer';
 
 export class AiChatbotProvider implements vscode.WebviewViewProvider {
@@ -29,8 +30,36 @@ export class AiChatbotProvider implements vscode.WebviewViewProvider {
           const contextPath = vscode.Uri.joinPath(ws.uri, '.simplebeacon', 'ai-context.md');
           await vscode.commands.executeCommand('vscode.open', contextPath);
         }
+      } else if (message.command === 'requestContext') {
+        const port = getDataServerPort();
+        if (!port) {
+          this._view?.webview.postMessage({ command: 'setContext', context: null, content: '', error: 'Data server is not running' });
+          return;
+        }
+        const req = http.get(`http://127.0.0.1:${port}/api/ai-context`, (res) => {
+          let body = '';
+          res.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+          res.on('end', () => {
+            try {
+              const data = JSON.parse(body);
+              this._view?.webview.postMessage({ command: 'setContext', context: data.context, content: data.content, error: data.success ? undefined : data.error });
+            } catch (e) {
+              this._view?.webview.postMessage({ command: 'setContext', context: null, content: '', error: 'Invalid response from data server' });
+            }
+          });
+        });
+        req.on('error', (err) => {
+          this._view?.webview.postMessage({ command: 'setContext', context: null, content: '', error: err.message });
+        });
+        req.setTimeout(5000, () => {
+          req.destroy();
+          this._view?.webview.postMessage({ command: 'setContext', context: null, content: '', error: 'Request timed out' });
+        });
       }
     });
+
+    // Push the current data server port so the panel polls the correct endpoint
+    this.postPort(getDataServerPort());
   }
 
   private _getHtml(webview: vscode.Webview): string {
@@ -102,7 +131,11 @@ export class AiChatbotProvider implements vscode.WebviewViewProvider {
     <div class="title">AI Coding Agent</div>
     <div class="status" id="status">Waiting for context…</div>
   </div>
-  <div class="empty" id="empty">No context sent yet.<br>Click “Send to AI” in the dashboard to populate this panel.</div>
+  <div class="empty" id="empty">
+    <div>No AI context available yet.</div>
+    <div>Run a scan or analysis in the dashboard and click <strong>Send to AI</strong>, or click the button below.</div>
+    <button id="loadBtn" class="secondary" style="margin-top: 12px; max-width: 160px;">Load Context</button>
+  </div>
   <div class="content" id="content" style="display:none;"></div>
   <div class="actions" id="actions" style="display:none;">
     <button id="copyBtn">Copy to Clipboard</button>
@@ -111,13 +144,13 @@ export class AiChatbotProvider implements vscode.WebviewViewProvider {
   <div class="toast" id="toast"></div>
   <script nonce="${nonce}">
     const vscode = acquireVsCodeApi();
-    const port = ${port};
     const statusEl = document.getElementById('status');
     const emptyEl = document.getElementById('empty');
     const contentEl = document.getElementById('content');
     const actionsEl = document.getElementById('actions');
     const copyBtn = document.getElementById('copyBtn');
     const openBtn = document.getElementById('openBtn');
+    const loadBtn = document.getElementById('loadBtn');
     const toastEl = document.getElementById('toast');
 
     let currentMarkdown = '';
@@ -128,14 +161,42 @@ export class AiChatbotProvider implements vscode.WebviewViewProvider {
       setTimeout(() => toastEl.classList.remove('show'), 2500);
     }
 
+    function clearError() {
+      const errorEl = document.getElementById('errorDetail');
+      if (errorEl) errorEl.remove();
+    }
+
+    function showError(message) {
+      statusEl.textContent = 'Context load failed';
+      emptyEl.style.display = 'block';
+      contentEl.style.display = 'none';
+      actionsEl.style.display = 'none';
+      let errorEl = document.getElementById('errorDetail');
+      if (!errorEl) {
+        errorEl = document.createElement('div');
+        errorEl.id = 'errorDetail';
+        errorEl.style.color = 'var(--vscode-errorForeground, #f48771)';
+        errorEl.style.fontSize = '11px';
+        errorEl.style.marginTop = '8px';
+        emptyEl.appendChild(errorEl);
+      }
+      errorEl.textContent = message;
+    }
+
     function renderContext(data) {
+      if (data && data.error) {
+        showError(data.error);
+        return;
+      }
       if (!data || !data.context) {
+        clearError();
         emptyEl.style.display = 'block';
         contentEl.style.display = 'none';
         actionsEl.style.display = 'none';
         statusEl.textContent = 'Waiting for context…';
         return;
       }
+      clearError();
       emptyEl.style.display = 'none';
       contentEl.style.display = 'block';
       actionsEl.style.display = 'flex';
@@ -147,15 +208,19 @@ export class AiChatbotProvider implements vscode.WebviewViewProvider {
       showToast('New AI context received');
     }
 
-    async function loadContext() {
-      try {
-        const res = await fetch('http://127.0.0.1:' + port + '/api/ai-context');
-        const json = await res.json();
-        renderContext(json);
-      } catch (err) {
-        statusEl.textContent = 'Data server unavailable';
-      }
+    function loadContext() {
+      statusEl.textContent = 'Loading context…';
+      vscode.postMessage({ command: 'requestContext' });
     }
+
+    // Handle extension messages that push current context
+    window.addEventListener('message', (event) => {
+      const msg = event.data;
+      if (!msg || !msg.command) return;
+      if (msg.command === 'setContext') {
+        renderContext(msg);
+      }
+    });
 
     copyBtn.addEventListener('click', () => {
       vscode.postMessage({ command: 'copy', text: currentMarkdown });
@@ -165,12 +230,24 @@ export class AiChatbotProvider implements vscode.WebviewViewProvider {
       vscode.postMessage({ command: 'openContext' });
     });
 
+    loadBtn.addEventListener('click', () => {
+      loadContext();
+    });
+
     // Poll for updates every 2 seconds
     loadContext();
     setInterval(loadContext, 2000);
   </script>
 </body>
 </html>`;
+  }
+
+  public postPort(port: number): void {
+    this._view?.webview.postMessage({ command: 'setPort', port });
+  }
+
+  public postContext(context: unknown, content: string): void {
+    this._view?.webview.postMessage({ command: 'setContext', context, content });
   }
 
   private _getNonce(): string {

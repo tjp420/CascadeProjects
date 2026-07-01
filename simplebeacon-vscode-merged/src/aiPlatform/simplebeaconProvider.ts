@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { getSbConfig } from '../utils';
 
 export interface ScanIssue {
   id: string;
@@ -113,7 +114,7 @@ export class SimpleBeaconProvider implements vscode.TreeDataProvider<IssueItem |
     }
 
     if (element instanceof CategoryItem) {
-      const config = vscode.workspace.getConfiguration('simplebeacon');
+      const config = getSbConfig();
       const minSeverity = config.get<string>('severityFilter', 'medium');
       const severityOrder = ['critical', 'high', 'medium', 'low', 'info'];
       const minIndex = severityOrder.indexOf(minSeverity);

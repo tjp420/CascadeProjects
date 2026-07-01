@@ -2,6 +2,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
+import { getSbConfig } from '../utils';
 
 export interface MatchEntry {
   line: number;
@@ -248,7 +249,7 @@ function isTestFile(filePath: string): boolean {
 }
 
 function shouldSkipFile(filePath: string): boolean {
-  const includeAll = vscode.workspace.getConfiguration('simplebeacon').get<boolean>('scanIncludeAllFiles', false);
+  const includeAll = getSbConfig().get<boolean>('scanIncludeAllFiles', false);
   if (includeAll) { return false; }
   const normalized = filePath.replace(/\\/g, '/').toLowerCase();
   // Skip test files entirely
@@ -331,7 +332,7 @@ export const DEFAULT_BUILD_ARTIFACT_PATTERNS = [
  * @returns Array of exclusion pattern strings.
  */
 export function getBuildArtifactPatterns(): string[] {
-  const config = vscode.workspace.getConfiguration('simplebeacon');
+  const config = getSbConfig();
   const userPatterns: string[] = config.get('excludePatterns', []);
   return [...new Set([...DEFAULT_BUILD_ARTIFACT_PATTERNS, ...userPatterns])];
 }
@@ -1684,6 +1685,7 @@ export async function analyzeWorkspace(
   } else {
     const workspaceFolders = vscode.workspace.workspaceFolders;
     if (!workspaceFolders || workspaceFolders.length === 0) {
+      outputChannel.dispose();
       throw new Error('No workspace folder open');
     }
     rootPath = workspaceFolders[0].uri.fsPath;
@@ -1743,22 +1745,27 @@ export async function analyzeWorkspace(
       filesAnalyzed++;
       analyzedFilePaths.push(relativePath);
       totalBytes += content.byteLength;
-      totalLinesOfCode += text.split('\n').length;
+      totalLinesOfCode += (text.match(/\n/g) || []).length + (text.length > 0 ? 1 : 0);
 
       for (const [patternId, def] of Object.entries(PATTERN_REGISTRY)) {
         if (!activePatternIds.includes(patternId)) continue;
         if (!def.appliesTo.includes(lang)) continue;
 
-        const matches = extractMatches(text, def.pattern, def.maxMatches, def.redact, def.multiline);
+        let matches = extractMatches(text, def.pattern, def.maxMatches, def.redact, def.multiline);
         if (matches.length === 0) continue;
 
-        const firstMatch = matches[0];
-        if (def.selfReferenceFilter && def.selfReferenceFilter.test(firstMatch.snippet)) continue;
-        if (def.contextFilter && !def.contextFilter(firstMatch.snippet, relativePath)) continue;
+        if (def.selfReferenceFilter) {
+          matches = matches.filter((m) => !def.selfReferenceFilter!.test(m.snippet));
+        }
+        if (def.contextFilter) {
+          matches = matches.filter((m) => def.contextFilter!(m.snippet, relativePath));
+        }
+        if (matches.length === 0) continue;
 
         const category = ANALYZER_SCHEMA[patternId]?.category || 'other';
 
         // Compute dynamic severity based on context (comment, test file, literal vs tainted)
+        const firstMatch = matches[0];
         const dynamicSev = computeDynamicSeverity(def.severity, firstMatch.snippet, relativePath, lang);
 
         // Adjust confidence based on context clarity
@@ -1815,18 +1822,19 @@ export async function analyzeWorkspace(
     }
   }
 
-  // Group findings by category
+  // Group findings by category (O(n) via lookup map)
+  const typeToCategory = new Map<string, string>();
+  for (const [pid, schema] of Object.entries(ANALYZER_SCHEMA)) {
+    const pat = PATTERN_REGISTRY[pid];
+    if (pat) {
+      typeToCategory.set(pat.name, schema.category);
+    }
+  }
   const categories: Record<string, Finding[]> = {};
   for (const finding of findings) {
-    for (const [pid, schema] of Object.entries(ANALYZER_SCHEMA)) {
-      const pat = PATTERN_REGISTRY[pid];
-      if (pat && pat.name === finding.type) {
-        const cat = schema.category;
-        if (!categories[cat]) categories[cat] = [];
-        categories[cat].push(finding);
-        break;
-      }
-    }
+    const cat = typeToCategory.get(finding.type) || 'other';
+    if (!categories[cat]) categories[cat] = [];
+    categories[cat].push(finding);
   }
 
   outputChannel.appendLine(

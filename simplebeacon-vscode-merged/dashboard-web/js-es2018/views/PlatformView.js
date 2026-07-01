@@ -1,32 +1,35 @@
 import { escapeHtml, showToast } from '../utils.js';
-import { resolveJestTestsLabel, resolvePageSpecsLabel, hydrateDashboardHome } from '../services/analyzeService.js';
+import {
+  resolveJestTestsLabel,
+  resolvePageSpecsLabel,
+  hydrateDashboardHome
+} from '../services/analyzeService.js';
+
 /**
  * Format percent.
  * @param {any} value
  * @returns {any}
  */
 function formatPercent(value) {
-    if (value == null || value === '')
-        return '—';
-    const str = String(value).trim();
-    if (str.endsWith('%'))
-        return str;
-    const num = Number(str);
-    if (Number.isFinite(num))
-        return `${num}%`;
-    return str;
+  if (value == null || value === '') return '—';
+  const str = String(value).trim();
+  if (str.endsWith('%')) return str;
+  const num = Number(str);
+  if (Number.isFinite(num)) return `${num}%`;
+  return str;
 }
+
 /**
  * Parse numeric.
  * @param {any} value
  * @returns {any}
  */
 function parseNumeric(value) {
-    if (value == null)
-        return null;
-    const match = String(value).replace(/,/g, '').match(/-?\d+(?:\.\d+)?/);
-    return match ? Number(match[0]) : null;
+  if (value == null) return null;
+  const match = String(value).replace(/,/g, '').match(/-?\d+(?:\.\d+)?/);
+  return match ? Number(match[0]) : null;
 }
+
 /**
  * Format signed delta.
  * @param {any} delta
@@ -34,12 +37,12 @@ function parseNumeric(value) {
  * @returns {any}
  */
 function formatSignedDelta(delta, unit = '') {
-    if (!Number.isFinite(delta))
-        return '—';
-    const sign = delta > 0 ? '+' : delta < 0 ? '' : '';
-    const suffix = unit ? ` ${unit}` : '';
-    return `${sign}${delta}${suffix}`;
+  if (!Number.isFinite(delta)) return '—';
+  const sign = delta > 0 ? '+' : delta < 0 ? '' : '';
+  const suffix = unit ? ` ${unit}` : '';
+  return `${sign}${delta}${suffix}`;
 }
+
 /**
  * Build platform metrics.
  * @param {any} home
@@ -48,19 +51,19 @@ function formatSignedDelta(delta, unit = '') {
  * @returns {any}
  */
 function buildPlatformMetrics(home, report, baseline) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _j;
-    const overview = (home === null || home === void 0 ? void 0 : home.overview) || {};
-    return {
-        mockScanFiles: (_b = (_a = report === null || report === void 0 ? void 0 : report.mockSampleFiles) !== null && _a !== void 0 ? _a : report === null || report === void 0 ? void 0 : report.totalFiles) !== null && _b !== void 0 ? _b : overview.totalFiles,
-        qualityScore: (_c = report === null || report === void 0 ? void 0 : report.qualityScore) !== null && _c !== void 0 ? _c : parseNumeric(overview.codeQuality),
-        schemaPassRate: (_d = report === null || report === void 0 ? void 0 : report.schemaCompliance) !== null && _d !== void 0 ? _d : overview.schemaPassRate,
-        scannerIssues: (_e = report === null || report === void 0 ? void 0 : report.issueCount) !== null && _e !== void 0 ? _e : overview.scannerIssues,
-        securityScore: (_f = overview.securityScore) !== null && _f !== void 0 ? _f : '80/100',
-        jestTests: resolveJestTestsLabel(baseline, home, report),
-        pageSamples: (_g = resolvePageSpecsLabel(report, baseline)) !== null && _g !== void 0 ? _g : overview.pageSamplesLabel,
-        sampleJsonFiles: (_j = (_h = report === null || report === void 0 ? void 0 : report.mockSampleFiles) !== null && _h !== void 0 ? _h : report === null || report === void 0 ? void 0 : report.totalFiles) !== null && _j !== void 0 ? _j : overview.sampleJsonFiles
-    };
+  const overview = home?.overview || {};
+  return {
+    mockScanFiles: report?.mockSampleFiles ?? report?.totalFiles ?? overview.totalFiles,
+    qualityScore: report?.qualityScore ?? parseNumeric(overview.codeQuality),
+    schemaPassRate: report?.schemaCompliance ?? overview.schemaPassRate,
+    scannerIssues: report?.issueCount ?? overview.scannerIssues,
+    securityScore: overview.securityScore ?? '80/100',
+    jestTests: resolveJestTestsLabel(baseline, home, report),
+    pageSamples: resolvePageSpecsLabel(report, baseline) ?? overview.pageSamplesLabel,
+    sampleJsonFiles: report?.mockSampleFiles ?? report?.totalFiles ?? overview.sampleJsonFiles
+  };
 }
+
 /**
  * Build comparative rows.
  * @param {any} home
@@ -68,114 +71,115 @@ function buildPlatformMetrics(home, report, baseline) {
  * @returns {any}
  */
 function buildComparativeRows(home, metrics) {
-    var _a, _b;
-    const staticRows = (home === null || home === void 0 ? void 0 : home.comparativeAnalysis) || [];
-    const liveByMetric = {
-        'jest tests': {
-            current: (_b = parseNumeric((_a = metrics.jestTests) === null || _a === void 0 ? void 0 : _a.split('/')[0])) !== null && _b !== void 0 ? _b : parseNumeric(metrics.jestTests),
-            format: (v) => (v == null ? '—' : String(v)),
-            key: 'jestTests',
-            type: 'count'
-        },
-        'sample json files': {
-            current: metrics.sampleJsonFiles,
-            format: (v) => (v == null ? '—' : String(v)),
-            key: 'sampleJsonFiles',
-            type: 'count'
-        },
-        'mock / sample files': {
-            current: metrics.mockScanFiles,
-            format: (v) => (v == null ? '—' : String(v)),
-            key: 'mockSampleFiles',
-            type: 'count'
-        },
-        'schema pass rate': {
-            current: metrics.schemaPassRate,
-            format: (v) => (v == null ? '—' : `${v}%`),
-            key: 'schemaPass',
-            type: 'percentage'
-        },
-        'security posture': {
-            current: metrics.securityScore,
-            format: (v) => (v == null ? '—' : String(v)),
-            key: 'securityPosture',
-            type: 'count'
-        }
-    };
-    const lowerBadMetrics = ['jestTests', 'schemaPass', 'securityPosture'];
-    return staticRows.map((row) => {
-        const rowKey = String(row.metric || '').toLowerCase();
-        const live = liveByMetric[rowKey];
-        const previous = row.previous;
-        const current = (live === null || live === void 0 ? void 0 : live.current) != null ? live.format(live.current) : row.current;
-        const prevNum = parseNumeric(previous);
-        const curNum = (live === null || live === void 0 ? void 0 : live.current) != null ? live.current : parseNumeric(current);
-        let change = row.change;
-        if (prevNum != null && curNum != null && prevNum !== curNum) {
-            const unitMatch = String(row.change || '').match(/\s([a-z]+)$/i);
-            const unit = (unitMatch === null || unitMatch === void 0 ? void 0 : unitMatch[1]) || '';
-            if (String(row.metric).toLowerCase().includes('rate') || String(previous).includes('%')) {
-                change = formatSignedDelta(curNum - prevNum, '%');
-            }
-            else if (String(row.metric).toLowerCase().includes('security')) {
-                change = formatSignedDelta(curNum - prevNum, 'pts');
-            }
-            else {
-                change = formatSignedDelta(curNum - prevNum, unit);
-            }
-        }
-        const metricKey = (live === null || live === void 0 ? void 0 : live.key) || rowKey.replace(/\s+/g, '-');
-        const metricType = (live === null || live === void 0 ? void 0 : live.type) || 'count';
-        const delta = (curNum !== null && curNum !== void 0 ? curNum : 0) - (prevNum !== null && prevNum !== void 0 ? prevNum : 0);
-        const isLowerBad = lowerBadMetrics.includes(metricKey);
-        const isRegression = delta !== 0 && (isLowerBad ? delta < 0 : delta > 0);
-        // Build a minimal history for the sparkline (prev -> current)
-        const history = [prevNum !== null && prevNum !== void 0 ? prevNum : 0, curNum !== null && curNum !== void 0 ? curNum : 0];
-        return { ...row, current, change, key: metricKey, type: metricType, delta, isRegression, history };
-    });
+  const staticRows = home?.comparativeAnalysis || [];
+  const liveByMetric = {
+    'jest tests': {
+      current: parseNumeric(metrics.jestTests?.split('/')[0]) ?? parseNumeric(metrics.jestTests),
+      format: (v) => (v == null ? '—' : String(v)),
+      key: 'jestTests',
+      type: 'count'
+    },
+    'sample json files': {
+      current: metrics.sampleJsonFiles,
+      format: (v) => (v == null ? '—' : String(v)),
+      key: 'sampleJsonFiles',
+      type: 'count'
+    },
+    'mock / sample files': {
+      current: metrics.mockScanFiles,
+      format: (v) => (v == null ? '—' : String(v)),
+      key: 'mockSampleFiles',
+      type: 'count'
+    },
+    'schema pass rate': {
+      current: metrics.schemaPassRate,
+      format: (v) => (v == null ? '—' : `${v}%`),
+      key: 'schemaPass',
+      type: 'percentage'
+    },
+    'security posture': {
+      current: metrics.securityScore,
+      format: (v) => (v == null ? '—' : String(v)),
+      key: 'securityPosture',
+      type: 'count'
+    }
+  };
+
+  const lowerBadMetrics = ['jestTests', 'schemaPass', 'securityPosture'];
+
+  return staticRows.map((row) => {
+    const rowKey = String(row.metric || '').toLowerCase();
+    const live = liveByMetric[rowKey];
+    const previous = row.previous;
+    const current = live?.current != null ? live.format(live.current) : row.current;
+    const prevNum = parseNumeric(previous);
+    const curNum = live?.current != null ? live.current : parseNumeric(current);
+
+    let change = row.change;
+    if (prevNum != null && curNum != null && prevNum !== curNum) {
+      const unitMatch = String(row.change || '').match(/\s([a-z]+)$/i);
+      const unit = unitMatch?.[1] || '';
+      if (String(row.metric).toLowerCase().includes('rate') || String(previous).includes('%')) {
+        change = formatSignedDelta(curNum - prevNum, '%');
+      } else if (String(row.metric).toLowerCase().includes('security')) {
+        change = formatSignedDelta(curNum - prevNum, 'pts');
+      } else {
+        change = formatSignedDelta(curNum - prevNum, unit);
+      }
+    }
+
+    const metricKey = live?.key || rowKey.replace(/\s+/g, '-');
+    const metricType = live?.type || 'count';
+    const delta = (curNum ?? 0) - (prevNum ?? 0);
+    const isLowerBad = lowerBadMetrics.includes(metricKey);
+    const isRegression = delta !== 0 && (isLowerBad ? delta < 0 : delta > 0);
+
+    // Build a minimal history for the sparkline (prev -> current)
+    const history = [prevNum ?? 0, curNum ?? 0];
+
+    return { ...row, current, change, key: metricKey, type: metricType, delta, isRegression, history };
+  });
 }
+
 /**
  * Platform view.
  */
 export class PlatformView {
-    constructor(app) {
-        this.app = app;
+  constructor(app) {
+    this.app = app;
+  }
+
+  extractTimestamp(source) {
+    if (!source) return null;
+    const rawDate = source.generatedAt || source.lastScanTime || source.timestamp || source.meta?.timestamp || source.scannedAt;
+    if (!rawDate) return null;
+    const parsed = new Date(rawDate);
+    return isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  checkBaselineFreshness() {
+    const liveScanTime = this.extractTimestamp(this.app?.state?.report);
+    const baselineTime = this.extractTimestamp(this.app?.state?.baseline || this.app?.state?.dashboardHome);
+    if (!liveScanTime || !baselineTime) return;
+    const deltaMs = Math.abs(liveScanTime.getTime() - baselineTime.getTime());
+    const deltaHours = deltaMs / (1000 * 60 * 60);
+    const STALE_THRESHOLD_HOURS = 24;
+    if (deltaHours > STALE_THRESHOLD_HOURS) {
+      const daysPast = Math.floor(deltaHours / 24);
+      const displayTime = daysPast > 0 ? `${daysPast} day${daysPast > 1 ? 's' : ''}` : `${Math.round(deltaHours)} hours`;
+      this.renderFreshnessBanner(displayTime);
     }
-    extractTimestamp(source) {
-        var _a;
-        if (!source)
-            return null;
-        const rawDate = source.generatedAt || source.lastScanTime || source.timestamp || ((_a = source.meta) === null || _a === void 0 ? void 0 : _a.timestamp) || source.scannedAt;
-        if (!rawDate)
-            return null;
-        const parsed = new Date(rawDate);
-        return isNaN(parsed.getTime()) ? null : parsed;
-    }
-    checkBaselineFreshness() {
-        var _a, _b, _c, _d, _e, _f;
-        const liveScanTime = this.extractTimestamp((_b = (_a = this.app) === null || _a === void 0 ? void 0 : _a.state) === null || _b === void 0 ? void 0 : _b.report);
-        const baselineTime = this.extractTimestamp(((_d = (_c = this.app) === null || _c === void 0 ? void 0 : _c.state) === null || _d === void 0 ? void 0 : _d.baseline) || ((_f = (_e = this.app) === null || _e === void 0 ? void 0 : _e.state) === null || _f === void 0 ? void 0 : _f.dashboardHome));
-        if (!liveScanTime || !baselineTime)
-            return;
-        const deltaMs = Math.abs(liveScanTime.getTime() - baselineTime.getTime());
-        const deltaHours = deltaMs / (1000 * 60 * 60);
-        const STALE_THRESHOLD_HOURS = 24;
-        if (deltaHours > STALE_THRESHOLD_HOURS) {
-            const daysPast = Math.floor(deltaHours / 24);
-            const displayTime = daysPast > 0 ? `${daysPast} day${daysPast > 1 ? 's' : ''}` : `${Math.round(deltaHours)} hours`;
-            this.renderFreshnessBanner(displayTime);
-        }
-    }
-    renderFreshnessBanner(outOfSyncDuration) {
-        if (document.getElementById('sb-platform-freshness-banner'))
-            return;
-        const targetHeader = document.querySelector('.platform-redesign');
-        if (!targetHeader)
-            return;
-        const banner = document.createElement('div');
-        banner.id = 'sb-platform-freshness-banner';
-        banner.className = 'platform-alert-banner animation-slide-down';
-        banner.innerHTML = `
+  }
+
+  renderFreshnessBanner(outOfSyncDuration) {
+    if (document.getElementById('sb-platform-freshness-banner')) return;
+    const targetHeader = document.querySelector('.platform-redesign');
+    if (!targetHeader) return;
+
+    const banner = document.createElement('div');
+    banner.id = 'sb-platform-freshness-banner';
+    banner.className = 'platform-alert-banner animation-slide-down';
+    banner.innerHTML = `
       <div class="banner-body-message">
         <i data-lucide="alert-triangle" class="icon-18 warning-pulse-icon"></i>
         <p>
@@ -190,10 +194,11 @@ export class PlatformView {
         <button type="button" class="banner-close-icon-btn" aria-label="Dismiss alert" id="sb-dismiss-freshness-banner-btn">×</button>
       </div>
     `;
-        targetHeader.insertAdjacentElement('afterbegin', banner);
-    }
-    renderScanPathTrackerTemplate() {
-        return `
+    targetHeader.insertAdjacentElement('afterbegin', banner);
+  }
+
+  renderScanPathTrackerTemplate() {
+    return `
       <div class="platform-card scan-path-tracker-card">
         <div class="panel-header">
           <div class="panel-title-group">
@@ -217,50 +222,50 @@ export class PlatformView {
         </div>
       </div>
     `;
+  }
+
+  initPathTracingChart(pathsData) {
+    const normalizedData = (pathsData && pathsData.length) ? pathsData : this.normalizeScanPaths();
+    const container = document.getElementById('path-tracing-chart-container');
+    if (!container) return;
+    if (!normalizedData || normalizedData.length === 0) {
+      container.innerHTML = `<div class="chart-empty-state">No configured scan paths resolved for this workspace profile.</div>`;
+      return;
     }
-    initPathTracingChart(pathsData) {
-        const normalizedData = (pathsData && pathsData.length) ? pathsData : this.normalizeScanPaths();
-        const container = document.getElementById('path-tracing-chart-container');
-        if (!container)
-            return;
-        if (!normalizedData || normalizedData.length === 0) {
-            container.innerHTML = `<div class="chart-empty-state">No configured scan paths resolved for this workspace profile.</div>`;
-            return;
-        }
-        this.renderProportionalTreeGrid(normalizedData);
-        this.bindPathInspectorEvents(normalizedData);
+    this.renderProportionalTreeGrid(normalizedData);
+    this.bindPathInspectorEvents(normalizedData);
+  }
+
+  normalizeScanPaths() {
+    const report = this.app?.state?.report || {};
+    const categories = report.mockDataCategories || [];
+    const scanPaths = report.scanPaths || this.app?.state?.config?.scanPaths || [];
+    if (categories.length) {
+      return categories.map((c) => ({
+        path: c.category || 'unknown',
+        files: c.fileCount || 0,
+        size: c.totalSize || '—'
+      }));
     }
-    normalizeScanPaths() {
-        var _a, _b, _c, _d, _e;
-        const report = ((_b = (_a = this.app) === null || _a === void 0 ? void 0 : _a.state) === null || _b === void 0 ? void 0 : _b.report) || {};
-        const categories = report.mockDataCategories || [];
-        const scanPaths = report.scanPaths || ((_e = (_d = (_c = this.app) === null || _c === void 0 ? void 0 : _c.state) === null || _d === void 0 ? void 0 : _d.config) === null || _e === void 0 ? void 0 : _e.scanPaths) || [];
-        if (categories.length) {
-            return categories.map((c) => ({
-                path: c.category || 'unknown',
-                files: c.fileCount || 0,
-                size: c.totalSize || '—'
-            }));
-        }
-        const totalFiles = report.totalFiles || report.mockSampleFiles || scanPaths.length || 1;
-        const baseCount = Math.floor(totalFiles / scanPaths.length) || 1;
-        return scanPaths.map((p, idx) => ({
-            path: typeof p === 'string' ? p : String(p),
-            files: baseCount + (idx < (totalFiles % scanPaths.length) ? 1 : 0),
-            size: '—'
-        }));
-    }
-    renderProportionalTreeGrid(data) {
-        const container = document.getElementById('path-tracing-chart-container');
-        if (!container)
-            return;
-        const sortedPaths = [...data].sort((a, b) => b.files - a.files);
-        const totalFiles = sortedPaths.reduce((acc, item) => acc + item.files, 0);
-        const htmlGridBlocks = sortedPaths.map((item, index) => {
-            const proportionalWeight = totalFiles > 0 ? ((item.files / totalFiles) * 100).toFixed(1) : 0;
-            const opacityTier = Math.max(0.1, 0.4 - (index * 0.05));
-            const cleanPath = (item.path || '').replace(/^\/+|\/+$/g, '');
-            return `
+    const totalFiles = report.totalFiles || report.mockSampleFiles || scanPaths.length || 1;
+    const baseCount = Math.floor(totalFiles / scanPaths.length) || 1;
+    return scanPaths.map((p, idx) => ({
+      path: typeof p === 'string' ? p : String(p),
+      files: baseCount + (idx < (totalFiles % scanPaths.length) ? 1 : 0),
+      size: '—'
+    }));
+  }
+
+  renderProportionalTreeGrid(data) {
+    const container = document.getElementById('path-tracing-chart-container');
+    if (!container) return;
+    const sortedPaths = [...data].sort((a, b) => b.files - a.files);
+    const totalFiles = sortedPaths.reduce((acc, item) => acc + item.files, 0);
+    const htmlGridBlocks = sortedPaths.map((item, index) => {
+      const proportionalWeight = totalFiles > 0 ? ((item.files / totalFiles) * 100).toFixed(1) : 0;
+      const opacityTier = Math.max(0.1, 0.4 - (index * 0.05));
+      const cleanPath = (item.path || '').replace(/^\/+|\/+$/g, '');
+      return `
         <div class="trace-tree-block" data-index="${index}" style="flex-grow: ${item.files}; flex-basis: ${proportionalWeight}%;">
           <div class="block-inner-content">
             <span class="block-folder-name">${escapeHtml(cleanPath.split('/').pop() || 'root')}</span>
@@ -268,35 +273,36 @@ export class PlatformView {
           </div>
         </div>
       `;
-        }).join('');
-        container.innerHTML = `<div class="tree-grid-flex-canvas">${htmlGridBlocks}</div>`;
-    }
-    bindPathInspectorEvents(data) {
-        const container = document.getElementById('path-tracing-chart-container');
-        const inspectorCard = document.getElementById('path-inspector-live-card');
-        if (!container || !inspectorCard)
-            return;
-        container.addEventListener('mouseover', (e) => {
-            const block = e.target.closest('.trace-tree-block');
-            if (!block)
-                return;
-            const targetIndex = parseInt(block.getAttribute('data-index'), 10);
-            const targetData = data[targetIndex];
-            if (targetData)
-                this.updateInspectorCardUI(inspectorCard, targetData);
-        });
-        container.addEventListener('mouseleave', () => {
-            inspectorCard.innerHTML = `
+    }).join('');
+    container.innerHTML = `<div class="tree-grid-flex-canvas">${htmlGridBlocks}</div>`;
+  }
+
+  bindPathInspectorEvents(data) {
+    const container = document.getElementById('path-tracing-chart-container');
+    const inspectorCard = document.getElementById('path-inspector-live-card');
+    if (!container || !inspectorCard) return;
+
+    container.addEventListener('mouseover', (e) => {
+      const block = e.target.closest('.trace-tree-block');
+      if (!block) return;
+      const targetIndex = parseInt(block.getAttribute('data-index'), 10);
+      const targetData = data[targetIndex];
+      if (targetData) this.updateInspectorCardUI(inspectorCard, targetData);
+    });
+
+    container.addEventListener('mouseleave', () => {
+      inspectorCard.innerHTML = `
         <div class="empty-inspector-state">
           <i data-lucide="info" class="icon-18"></i>
           <p>Hover over or click a directory block in the map to audit specific file volumes and path boundaries.</p>
         </div>
       `;
-        });
-    }
-    updateInspectorCardUI(domElement, itemData) {
-        const cleanPath = itemData.path || 'Root Scope Workspace';
-        domElement.innerHTML = `
+    });
+  }
+
+  updateInspectorCardUI(domElement, itemData) {
+    const cleanPath = itemData.path || 'Root Scope Workspace';
+    domElement.innerHTML = `
       <div class="inspector-active-view">
         <div class="inspector-header-block">
           <i data-lucide="folder" class="icon-16"></i>
@@ -322,41 +328,43 @@ export class PlatformView {
         </div>
       </div>
     `;
+  }
+
+  generateMicroSparkline(historyArray, isRegression) {
+    if (!historyArray || historyArray.length < 2) {
+      return `<svg width="70" height="20" class="spark-empty"><line x1="0" y1="10" x2="70" y2="10" stroke="rgba(255,255,255,0.1)" stroke-dasharray="2"/></svg>`;
     }
-    generateMicroSparkline(historyArray, isRegression) {
-        if (!historyArray || historyArray.length < 2) {
-            return `<svg width="70" height="20" class="spark-empty"><line x1="0" y1="10" x2="70" y2="10" stroke="rgba(255,255,255,0.1)" stroke-dasharray="2"/></svg>`;
-        }
-        const width = 70;
-        const height = 18;
-        const padding = 2;
-        const min = Math.min(...historyArray);
-        const max = Math.max(...historyArray);
-        const range = max - min === 0 ? 1 : max - min;
-        const points = historyArray.map((val, index) => {
-            const x = (index / (historyArray.length - 1)) * (width - padding * 2) + padding;
-            const y = height - ((val - min) / range) * (height - padding * 2) - padding;
-            return `${x},${y}`;
-        }).join(' ');
-        const strokeColor = isRegression ? '#f87171' : '#34d399';
-        const lastPoint = points.split(' ').pop() || '0,0';
-        const lastY = lastPoint.split(',')[1];
-        return `
+    const width = 70;
+    const height = 18;
+    const padding = 2;
+    const min = Math.min(...historyArray);
+    const max = Math.max(...historyArray);
+    const range = max - min === 0 ? 1 : max - min;
+    const points = historyArray.map((val, index) => {
+      const x = (index / (historyArray.length - 1)) * (width - padding * 2) + padding;
+      const y = height - ((val - min) / range) * (height - padding * 2) - padding;
+      return `${x},${y}`;
+    }).join(' ');
+    const strokeColor = isRegression ? '#f87171' : '#34d399';
+    const lastPoint = points.split(' ').pop() || '0,0';
+    const lastY = lastPoint.split(',')[1];
+    return `
       <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" class="inline-sparkline-canvas">
         <polyline fill="none" stroke="${strokeColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" points="${points}"/>
         <circle cx="${width - padding}" cy="${lastY}" r="2" fill="${strokeColor}"/>
       </svg>
     `;
-    }
-    renderComparativeRows(rows) {
-        return rows.map((row) => {
-            const unit = row.type === 'percentage' ? '%' : '';
-            const deltaClass = row.delta === 0 ? 'delta-neutral' : (row.isRegression ? 'delta-danger' : 'delta-success');
-            const sparklineSvg = this.generateMicroSparkline(row.history, row.isRegression);
-            const rowClass = row.isRegression ? 'db-v3-platform-row has-regression' : 'db-v3-platform-row';
-            const rowInteractive = row.isRegression ? `data-metric-key="${escapeHtml(row.key)}" title="Click to pinpoint introduced regressions"` : '';
-            const chevron = row.isRegression ? '<span class="row-chevron"><i data-lucide="chevron-right" class="icon-14"></i></span>' : '';
-            const drawer = row.isRegression ? `
+  }
+
+  renderComparativeRows(rows) {
+    return rows.map((row) => {
+      const unit = row.type === 'percentage' ? '%' : '';
+      const deltaClass = row.delta === 0 ? 'delta-neutral' : (row.isRegression ? 'delta-danger' : 'delta-success');
+      const sparklineSvg = this.generateMicroSparkline(row.history, row.isRegression);
+      const rowClass = row.isRegression ? 'db-v3-platform-row has-regression' : 'db-v3-platform-row';
+      const rowInteractive = row.isRegression ? `data-metric-key="${escapeHtml(row.key)}" title="Click to pinpoint introduced regressions"` : '';
+      const chevron = row.isRegression ? '<span class="row-chevron"><i data-lucide="chevron-right" class="icon-14"></i></span>' : '';
+      const drawer = row.isRegression ? `
         <tr class="db-v3-regression-drawer-row" id="regression-drawer-${escapeHtml(row.key)}">
           <td colspan="6">
             <div class="regression-drawer-content">
@@ -368,7 +376,7 @@ export class PlatformView {
           </td>
         </tr>
       ` : '';
-            return `
+      return `
         <tr class="${rowClass}" ${rowInteractive}>
           <td>
             <div class="metric-name-cell">
@@ -384,34 +392,34 @@ export class PlatformView {
         </tr>
         ${drawer}
       `;
-        }).join('');
+    }).join('');
+  }
+
+  async resolveIntroducedRegressions(metricKey, report) {
+    const findings = report?.findings || report?.rawIssues || report?.detectedIssues || [];
+    if (metricKey === 'securityPosture') {
+      return findings.filter((f) => ['critical', 'high'].includes((f.severity || '').toLowerCase()));
     }
-    async resolveIntroducedRegressions(metricKey, report) {
-        const findings = (report === null || report === void 0 ? void 0 : report.findings) || (report === null || report === void 0 ? void 0 : report.rawIssues) || (report === null || report === void 0 ? void 0 : report.detectedIssues) || [];
-        if (metricKey === 'securityPosture') {
-            return findings.filter((f) => ['critical', 'high'].includes((f.severity || '').toLowerCase()));
-        }
-        if (metricKey === 'schemaPass') {
-            return findings.filter((f) => (f.category || '').toLowerCase() === 'schema' || (f.type || '').toLowerCase().includes('schema'));
-        }
-        if (metricKey === 'jestTests') {
-            return findings.filter((f) => (f.type || '').toLowerCase().includes('test') || (f.category || '').toLowerCase().includes('test'));
-        }
-        return findings.slice(0, 3);
+    if (metricKey === 'schemaPass') {
+      return findings.filter((f) => (f.category || '').toLowerCase() === 'schema' || (f.type || '').toLowerCase().includes('schema'));
     }
-    async populateRegressionFeed(metricKey) {
-        var _a, _b;
-        const feedContainer = document.getElementById(`regression-feed-${metricKey}`);
-        if (!feedContainer)
-            return;
-        try {
-            const reportData = ((_b = (_a = this.app) === null || _a === void 0 ? void 0 : _a.state) === null || _b === void 0 ? void 0 : _b.report) || {};
-            const regressionList = await this.resolveIntroducedRegressions(metricKey, reportData);
-            if (!regressionList || regressionList.length === 0) {
-                feedContainer.innerHTML = `<div class="feed-empty-state">No line-level regression mappings detected for this snapshot delta block.</div>`;
-                return;
-            }
-            feedContainer.innerHTML = regressionList.map((item) => `
+    if (metricKey === 'jestTests') {
+      return findings.filter((f) => (f.type || '').toLowerCase().includes('test') || (f.category || '').toLowerCase().includes('test'));
+    }
+    return findings.slice(0, 3);
+  }
+
+  async populateRegressionFeed(metricKey) {
+    const feedContainer = document.getElementById(`regression-feed-${metricKey}`);
+    if (!feedContainer) return;
+    try {
+      const reportData = this.app?.state?.report || {};
+      const regressionList = await this.resolveIntroducedRegressions(metricKey, reportData);
+      if (!regressionList || regressionList.length === 0) {
+        feedContainer.innerHTML = `<div class="feed-empty-state">No line-level regression mappings detected for this snapshot delta block.</div>`;
+        return;
+      }
+      feedContainer.innerHTML = regressionList.map((item) => `
         <div class="regression-finding-strip">
           <div class="strip-meta-block">
             <span class="strip-severity-tag high">NEW</span>
@@ -423,82 +431,79 @@ export class PlatformView {
           </button>
         </div>
       `).join('');
-        }
-        catch (err) {
-            feedContainer.innerHTML = `<div class="feed-error-state">Failed to track down regression coordinates: ${escapeHtml(err.message)}</div>`;
-        }
+    } catch (err) {
+      feedContainer.innerHTML = `<div class="feed-error-state">Failed to track down regression coordinates: ${escapeHtml(err.message)}</div>`;
     }
-    bindEvents(container) {
-        const viewContainer = container || document.querySelector('.platform-redesign') || document.body;
-        viewContainer.addEventListener('click', (e) => {
-            const syncBtn = e.target.closest('#sb-trigger-sync-baseline-btn');
-            if (syncBtn) {
-                e.preventDefault();
-                const vscode = typeof window !== 'undefined' && typeof window.acquireVsCodeApi === 'function' ? window.acquireVsCodeApi() : null;
-                if (vscode) {
-                    vscode.postMessage({ command: 'syncBaseline' });
-                }
-                else {
-                    showToast('Workspace bridge offline. Please run Tools → Baseline sync in the extension.', 'info');
-                }
-                return;
-            }
-            if (e.target.closest('#sb-dismiss-freshness-banner-btn')) {
-                const banner = document.getElementById('sb-platform-freshness-banner');
-                if (banner) {
-                    banner.classList.add('animation-fade-out');
-                    banner.addEventListener('animationend', () => banner.remove());
-                }
-                return;
-            }
-            const regressionRow = e.target.closest('.has-regression');
-            if (regressionRow && !e.target.closest('.regression-link-btn')) {
-                e.preventDefault();
-                const metricKey = regressionRow.getAttribute('data-metric-key');
-                const drawerRow = document.getElementById(`regression-drawer-${metricKey}`);
-                const chevron = regressionRow.querySelector('.row-chevron');
-                if (!drawerRow)
-                    return;
-                const isExpanded = drawerRow.classList.contains('is-expanded');
-                if (isExpanded) {
-                    drawerRow.classList.remove('is-expanded');
-                    regressionRow.classList.remove('drawer-active');
-                    if (chevron)
-                        chevron.style.transform = 'rotate(0deg)';
-                }
-                else {
-                    drawerRow.classList.add('is-expanded');
-                    regressionRow.classList.add('drawer-active');
-                    if (chevron)
-                        chevron.style.transform = 'rotate(90deg)';
-                    this.populateRegressionFeed(metricKey);
-                }
-                return;
-            }
-            const deepLinkBtn = e.target.closest('.regression-link-btn');
-            if (deepLinkBtn) {
-                const filePath = deepLinkBtn.getAttribute('data-file');
-                const line = parseInt(deepLinkBtn.getAttribute('data-line'), 10) || 1;
-                const vscode = typeof window !== 'undefined' && typeof window.acquireVsCodeApi === 'function' ? window.acquireVsCodeApi() : null;
-                if (vscode) {
-                    vscode.postMessage({ command: 'openFile', filePath, line });
-                }
-                else {
-                    showToast(`Open ${filePath}:${line} in the editor`, 'info');
-                }
-            }
-        });
-    }
-    render() {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o;
-        const home = hydrateDashboardHome(this.app.state.dashboardHome, this.app.state.baseline);
-        const report = this.app.state.report;
-        const baseline = this.app.state.baseline;
-        const metrics = buildPlatformMetrics(home, report, baseline);
-        const comparativeRows = buildComparativeRows(home, metrics);
-        const el = document.createElement('div');
-        el.className = 'fade-in platform-redesign';
-        el.innerHTML = `
+  }
+
+  bindEvents(container) {
+    const viewContainer = container || document.querySelector('.platform-redesign') || document.body;
+    viewContainer.addEventListener('click', (e) => {
+      const syncBtn = e.target.closest('#sb-trigger-sync-baseline-btn');
+      if (syncBtn) {
+        e.preventDefault();
+        const vscode = typeof window !== 'undefined' && typeof window.acquireVsCodeApi === 'function' ? window.acquireVsCodeApi() : null;
+        if (vscode) {
+          vscode.postMessage({ command: 'syncBaseline' });
+        } else {
+          showToast('Workspace bridge offline. Please run Tools → Baseline sync in the extension.', 'info');
+        }
+        return;
+      }
+      if (e.target.closest('#sb-dismiss-freshness-banner-btn')) {
+        const banner = document.getElementById('sb-platform-freshness-banner');
+        if (banner) {
+          banner.classList.add('animation-fade-out');
+          banner.addEventListener('animationend', () => banner.remove());
+        }
+        return;
+      }
+
+      const regressionRow = e.target.closest('.has-regression');
+      if (regressionRow && !e.target.closest('.regression-link-btn')) {
+        e.preventDefault();
+        const metricKey = regressionRow.getAttribute('data-metric-key');
+        const drawerRow = document.getElementById(`regression-drawer-${metricKey}`);
+        const chevron = regressionRow.querySelector('.row-chevron');
+        if (!drawerRow) return;
+        const isExpanded = drawerRow.classList.contains('is-expanded');
+        if (isExpanded) {
+          drawerRow.classList.remove('is-expanded');
+          regressionRow.classList.remove('drawer-active');
+          if (chevron) chevron.style.transform = 'rotate(0deg)';
+        } else {
+          drawerRow.classList.add('is-expanded');
+          regressionRow.classList.add('drawer-active');
+          if (chevron) chevron.style.transform = 'rotate(90deg)';
+          this.populateRegressionFeed(metricKey);
+        }
+        return;
+      }
+
+      const deepLinkBtn = e.target.closest('.regression-link-btn');
+      if (deepLinkBtn) {
+        const filePath = deepLinkBtn.getAttribute('data-file');
+        const line = parseInt(deepLinkBtn.getAttribute('data-line'), 10) || 1;
+        const vscode = typeof window !== 'undefined' && typeof window.acquireVsCodeApi === 'function' ? window.acquireVsCodeApi() : null;
+        if (vscode) {
+          vscode.postMessage({ command: 'openFile', filePath, line });
+        } else {
+          showToast(`Open ${filePath}:${line} in the editor`, 'info');
+        }
+      }
+    });
+  }
+
+  render() {
+    const home = hydrateDashboardHome(this.app.state.dashboardHome, this.app.state.baseline);
+    const report = this.app.state.report;
+    const baseline = this.app.state.baseline;
+    const metrics = buildPlatformMetrics(home, report, baseline);
+    const comparativeRows = buildComparativeRows(home, metrics);
+
+    const el = document.createElement('div');
+    el.className = 'fade-in platform-redesign';
+    el.innerHTML = `
       <style>
         .platform-redesign .platform-hero { text-align: center; margin: var(--space-6) 0 var(--space-5); }
         .platform-redesign .platform-hero h1 { font-size: 1.75rem; font-weight: 800; margin-bottom: 0.5rem; letter-spacing: -0.02em; }
@@ -600,31 +605,31 @@ export class PlatformView {
 
       <div class="platform-hero">
         <h1>Platform</h1>
-        <p>${escapeHtml((home === null || home === void 0 ? void 0 : home.subtitle) || 'Engineering baseline from repository audit + Simplebeacon scan')}</p>
+        <p>${escapeHtml(home?.subtitle || 'Engineering baseline from repository audit + Simplebeacon scan')}</p>
       </div>
 
       <div class="platform-stats">
         <div class="platform-stat">
-          <span class="psv-value">${(_a = metrics.mockScanFiles) !== null && _a !== void 0 ? _a : '—'}</span>
-          <span class="psv-label">${escapeHtml(((_c = (_b = home === null || home === void 0 ? void 0 : home.overview) === null || _b === void 0 ? void 0 : _b.statLabels) === null || _c === void 0 ? void 0 : _c.totalFiles) || 'Mock scan files')}</span>
+          <span class="psv-value">${metrics.mockScanFiles ?? '—'}</span>
+          <span class="psv-label">${escapeHtml(home?.overview?.statLabels?.totalFiles || 'Mock scan files')}</span>
         </div>
         <div class="platform-stat success">
           <span class="psv-value success">${formatPercent(metrics.qualityScore)}</span>
-          <span class="psv-label">${escapeHtml(((_e = (_d = home === null || home === void 0 ? void 0 : home.overview) === null || _d === void 0 ? void 0 : _d.statLabels) === null || _e === void 0 ? void 0 : _e.codeQuality) || 'Scan quality')}</span>
+          <span class="psv-label">${escapeHtml(home?.overview?.statLabels?.codeQuality || 'Scan quality')}</span>
         </div>
         <div class="platform-stat primary">
-          <span class="psv-value">${escapeHtml((_f = metrics.securityScore) !== null && _f !== void 0 ? _f : '—')}</span>
-          <span class="psv-label">${escapeHtml(((_h = (_g = home === null || home === void 0 ? void 0 : home.overview) === null || _g === void 0 ? void 0 : _g.statLabels) === null || _h === void 0 ? void 0 : _h.securityScore) || 'Security posture')}</span>
+          <span class="psv-value">${escapeHtml(metrics.securityScore ?? '—')}</span>
+          <span class="psv-label">${escapeHtml(home?.overview?.statLabels?.securityScore || 'Security posture')}</span>
         </div>
       </div>
 
       <div class="platform-grid">
         <div class="platform-card">
           <div class="platform-card-header"><i data-lucide="activity" class="icon-16"></i> Test Health</div>
-          <div class="platform-row"><span class="pr-label">Jest tests</span><span class="pr-value">${escapeHtml((_j = metrics.jestTests) !== null && _j !== void 0 ? _j : '—')}</span></div>
-          <div class="platform-row"><span class="pr-label">Page samples</span><span class="pr-value">${escapeHtml((_k = metrics.pageSamples) !== null && _k !== void 0 ? _k : '—')}</span></div>
+          <div class="platform-row"><span class="pr-label">Jest tests</span><span class="pr-value">${escapeHtml(metrics.jestTests ?? '—')}</span></div>
+          <div class="platform-row"><span class="pr-label">Page samples</span><span class="pr-value">${escapeHtml(metrics.pageSamples ?? '—')}</span></div>
           <div class="platform-row"><span class="pr-label">Schema pass</span><span class="pr-value">${formatPercent(metrics.schemaPassRate)}</span></div>
-          <div class="platform-row"><span class="pr-label">Scanner issues</span><span class="pr-value">${(_l = metrics.scannerIssues) !== null && _l !== void 0 ? _l : '—'}</span></div>
+          <div class="platform-row"><span class="pr-label">Scanner issues</span><span class="pr-value">${metrics.scannerIssues ?? '—'}</span></div>
           ${metrics.jestTests ? '' : '<p class="platform-hint">Run <strong>Tools → Baseline sync</strong> or enable <code>jest-baseline</code> in config.</p>'}
         </div>
         ${this.renderScanPathTrackerTemplate()}
@@ -644,7 +649,7 @@ export class PlatformView {
         </div>
       ` : ''}
 
-      ${((_m = home === null || home === void 0 ? void 0 : home.insights) === null || _m === void 0 ? void 0 : _m.length) ? `
+      ${home?.insights?.length ? `
         <div class="section-block">
           <div class="section-heading"><h2>Insights</h2></div>
           <div class="insight-list">
@@ -658,7 +663,7 @@ export class PlatformView {
         </div>
       ` : ''}
 
-      ${((_o = report === null || report === void 0 ? void 0 : report.mockDataCategories) === null || _o === void 0 ? void 0 : _o.length) ? `
+      ${report?.mockDataCategories?.length ? `
         <div class="section-block">
           <div class="section-heading"><h2>Mock Data Categories</h2></div>
           <div class="card" style="padding:0;overflow:hidden;">
@@ -680,13 +685,14 @@ export class PlatformView {
         </div>
       ` : ''}
     `;
-        return el;
-    }
-    mount(container) {
-        container.innerHTML = '';
-        container.appendChild(this.render());
-        this.checkBaselineFreshness();
-        this.bindEvents(container);
-        this.initPathTracingChart();
-    }
+    return el;
+  }
+
+  mount(container) {
+    container.innerHTML = '';
+    container.appendChild(this.render());
+    this.checkBaselineFreshness();
+    this.bindEvents(container);
+    this.initPathTracingChart();
+  }
 }

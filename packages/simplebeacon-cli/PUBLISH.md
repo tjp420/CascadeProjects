@@ -1,9 +1,9 @@
 # Publish simplebeacon to npm
 
 Package: **simplebeacon** · registry: https://www.npmjs.com/package/simplebeacon  
-Path: `ai-platform/packages/simplebeacon-cli`
+Path: `packages/simplebeacon-cli`
 
-**v1.0.0 is not on npm yet.** Publish steps below. After first publish, restore the npm version badge in README.
+**Current version: 1.1.1.** Publish steps below.
 
 ---
 
@@ -57,7 +57,7 @@ Should print: `tjp88`
 ## Publish a new version
 
 ```powershell
-cd C:\Users\Trevor\CascadeProjects\ai-platform\packages\simplebeacon-cli
+cd C:\Users\Trevor\CascadeProjects\packages\simplebeacon-cli
 npm version patch
 npm test
 npm publish --access public

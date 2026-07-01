@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+out/
+dist/
+
+# Packaged extension artifacts
+*.vsix
+
+# Test fixtures and generated test HTML
+__test_dashboard*.html
+.vscode-test/
+
+# Backup/restore files
+*.restore
+.simplebeacon/
+*.simplebeacon-backup.*
+
+# Generated reports
+simplebeacon-report*
+progress.txt
+
+# Patch/temp folders
+.vsix-patch-temp/
+
+# Copied CLI rule catalog (generated at compile time)
+src/rules/llm-slop-catalog.json
+
+# Git metadata
+.git/
+
+# Large media/test datasets
+*.mp4
+*.mov
+*.avi
+*.zip
+*.tar.gz
+*.tgz
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db

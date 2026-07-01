@@ -1,0 +1,100 @@
+'use strict';
+
+const fs = require('fs');
+const path = require('path');
+const bcrypt = require('bcryptjs');
+const createError = require('http-errors');
+const { toClientError } = require('../client-error.cjs');
+const { trustLevels } = require('./trust-levels.cjs');
+const { generateToken } = require('./token-service.cjs');
+const { auditAuth } = require('./audit-service.cjs');
+const { hashPassword, verifyPassword } = require('./password-service.cjs');
+const constants = require('../../config/constants.cjs');
+
+async function handleLogin(req, res, next) {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      throw createError(400, 'Email and password required');
+    }
+
+    const demoPath = path.join(__dirname, '..', '..', 'db', 'demo-users.json');
+    let demoUsers = [];
+    try {
+      const raw = await fs.promises.readFile(demoPath, 'utf8');
+      demoUsers = JSON.parse(raw);
+    } catch { /* no demo file */ }
+
+    const match = demoUsers.find((u) => u.email && u.email.toLowerCase() === email.toLowerCase());
+    if (!match) {
+      auditAuth('login_failed', { email }, req);
+      return res.status(401).json({ error: 'Authentication failed', message: 'Invalid email or password' });
+    }
+
+    let valid = false;
+    if (match.passwordHash) {
+      valid = await bcrypt.compare(password, match.passwordHash);
+    }
+    if (!valid) {
+      auditAuth('login_failed', { email }, req);
+      return res.status(401).json({ error: 'Authentication failed', message: 'Invalid email or password' });
+    }
+
+    const adminEmails = (process.env.SIMPLEBEACON_ADMIN_EMAILS || '').split(',').map(e => e.trim()).filter(Boolean);
+    const isAdmin = adminEmails.length > 0 ? adminEmails.includes(email) : false;
+    const trustLevel = isAdmin ? 'gold' : (match.trustLevel || 'bronze');
+
+    const user = {
+      id: match.id || (isAdmin ? 'admin-' + Date.now() : 'demo-user-' + Date.now()),
+      email: match.email,
+      name: match.name || email.split('@')[0],
+      trustLevel,
+      createdAt: match.createdAt || new Date(Date.now() - 30 * 24 * 60 * constants.ONE_MINUTE_MS).toISOString(),
+      successfulAnalyses: match.successfulAnalyses || (isAdmin ? 100 : 5),
+      securityIncidents: match.securityIncidents || 0,
+      communityContributions: match.communityContributions || (isAdmin ? 50 : 0),
+      verificationStatus: match.verificationStatus || (isAdmin ? 'verified' : 'email')
+    };
+
+    const token = generateToken(user);
+    auditAuth('login_success', user, req);
+
+    res.json({
+      message: 'Login successful',
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        trustLevel: user.trustLevel,
+        permissions: trustLevels[user.trustLevel].permissions
+      }
+    });
+  } catch (error) {
+    auditAuth('login_failed', { email: req.body?.email }, req);
+    next(error);
+  }
+}
+
+function handleTokenRefresh(req, res, next) {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        error: 'Authentication required',
+        message: 'Valid token required for refresh'
+      });
+    }
+    const newToken = generateToken(req.user);
+    auditAuth('token_refresh', req.user, req);
+
+    res.json({
+      message: 'Token refreshed successfully',
+      token: newToken
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+module.exports = { handleLogin, handleTokenRefresh };

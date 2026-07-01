@@ -23,7 +23,7 @@ export const COMPLETE_STEPS = [
   { id: 'sensitive-data', label: 'Sensitive Data', category: 'Security', desc: 'PII patterns, email/phone/SSN in source.', accent: '#ef4444' },
   { id: 'security-headers', label: 'Security Headers', category: 'Security', desc: 'Missing CSP, X-Frame-Options, HSTS, or Referrer-Policy in server configs.', accent: '#ef4444' },
   { id: 'config-drift', label: 'Config Drift', category: 'Security', desc: 'Committed .env files, hardcoded URLs, secrets in config, inconsistent env naming.', accent: '#ef4444' },
-  { id: 'eval-danger', label: 'Eval Danger', category: 'Security', desc: 'ev'+'al(), new Function(), dynamic code execution risks.', accent: '#ef4444' },
+  { id: 'eval-danger', label: 'Eval Danger', category: 'Security', desc: 'eval() and Function constructor, dynamic code execution risks.', accent: '#ef4444' },
   { id: 'inner-html-xss', label: 'innerHTML XSS', category: 'Security', desc: 'Unsanitized innerHTML assignments.', accent: '#ef4444' },
   { id: 'prototype-pollution', label: 'Prototype Pollution', category: 'Security', desc: 'Object.prototype or __proto__ modification risks.', accent: '#ef4444' },
   { id: 'unvalidated-redirect', label: 'Unvalidated Redirect', category: 'Security', desc: 'Open redirect vulnerabilities.', accent: '#ef4444' },
@@ -100,7 +100,7 @@ export const ENGINE_DEPENDENCIES = {
 export const SCAN_PRESETS = [
   { id: 'essential', label: 'Essential', icon: '⚡', engines: ['simplebeacon', 'consolidation', 'mock-scan', 'roadmap', 'codebase', 'file-reduction', 'data-quality', 'cleanup-assistant', 'npm-audit', 'compliance'] },
   { id: 'security', label: 'Security', icon: '🔒', engines: ['simplebeacon', 'consolidation', 'mock-scan', 'roadmap', 'codebase', 'file-reduction', 'data-quality', 'cleanup-assistant', 'npm-audit', 'compliance', 'dependency-vulns', 'sensitive-data', 'security-headers', 'config-drift', 'eval-danger', 'inner-html-xss', 'prototype-pollution', 'unvalidated-redirect', 'missing-rate-limit', 'insecure-random', 'logging-secrets'] },
-  { id: 'full', label: 'Full', icon: '🔬', engines: [...COMPLETE_ENGINE_ORDER] },
+  { id: 'full', label: `Full (${COMPLETE_STEPS.length})`, icon: '🔬', engines: [...COMPLETE_ENGINE_ORDER] },
   { id: 'custom', label: 'Custom', icon: '🔧', engines: [] }
 ];
 
@@ -131,6 +131,10 @@ export function groupEnginesByCategory(engineIds) {
 }
 
 export function defaultSelectedEngines() {
+  const tier = authService.getTier?.() || 'guest';
+  if (tier === 'sandbox' || tier === 'developer') {
+    return ['simplebeacon'];
+  }
   return COMPLETE_STEPS.map((step) => step.id);
 }
 

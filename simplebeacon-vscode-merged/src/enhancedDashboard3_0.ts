@@ -7,13 +7,16 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as http from 'http';
+import * as https from 'https';
 import * as crypto from 'crypto';
 
 // Local modules
 import { designTokens, themeColors } from './designSystem';
 import { RawIssue } from './scanProvider';
+import { getSbConfig } from './utils';
 import { ModernSidebarProvider } from './modernSidebarProvider';
-import { extractCategories, extractAllFindings, extractFailingFiles, escapeHtml } from './dashboardDataExtractor';
+import { extractCategories, extractAllFindings, extractFailingFiles } from './dashboardDataExtractor';
+import { escapeHtml } from './utils';
 
 /**
  * Enhanced dashboard webview panel (v2.0) with modern UI/UX for scan visualization.
@@ -128,19 +131,19 @@ export class EnhancedDashboard30 {
           vscode.window.showWarningMessage('No scan report available. Run a scan first.');
           return;
         }
-        const config = vscode.workspace.getConfiguration('simplebeacon');
+        const config = getSbConfig();
         const apiUrl = config.get<string>('apiUrl', '').trim();
         if (!apiUrl) {
           vscode.window.showWarningMessage('SimpleBeacon API URL not configured. Run "Set API Server URL" command first.');
           return;
         }
         vscode.window.withProgress(
-          { location: vscode.ProgressLocation.Notification, title: 'Sending scan data to AI...', cancellable: false },
+          { location: vscode.ProgressLocation.Window, title: 'Sending scan data to AI...', cancellable: false },
           async () => {
             try {
               const parsed = new URL(apiUrl.replace(/\/$/, '') + '/api/ai-context');
               const body = JSON.stringify({ report, source: 'vscode-dashboard' });
-              const client = parsed.protocol === 'https:' ? require('https') : require('http');
+              const client = parsed.protocol === 'https:' ? https : http;
               const postRes: { success?: boolean; content?: string; error?: string } = await new Promise(
                 (resolve, reject) => {
                   const req = client.request(
@@ -315,7 +318,7 @@ export class EnhancedDashboard30 {
     ).replace(/</g, '\\u003c');
 
     // Check API connectivity
-    const apiConfig = vscode.workspace.getConfiguration('simplebeacon');
+    const apiConfig = getSbConfig();
     const configuredUrl = apiConfig.get<string>('apiUrl', '').trim();
     const connectionStatus = configuredUrl ? 'connected' : 'disconnected';
     const connectionLabel = configuredUrl ? 'API Connected' : 'API Not Configured';

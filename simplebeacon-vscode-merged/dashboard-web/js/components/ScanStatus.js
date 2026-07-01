@@ -1,4 +1,4 @@
-import { escapeHtml, formatPercent, redactPathForDisplay } from '../utils.js';
+import { escapeHtml, formatPercent, redactPathForDisplay, showToast, apiUrl } from '../utils.js';
 import {
   resolveDisplayScore,
   formatScanScopeSummary,
@@ -401,36 +401,25 @@ export function bindScanStatus(container, options = {}) {
     (window.process?.versions?.electron || /Electron/.test(navigator.userAgent))
   );
 
-  // Browse button — use File System Access API when available, fall back to hidden file input
+  // Browse button — ask the extension server to open the native OS folder picker
   browseBtn?.addEventListener('click', async () => {
-    // In Electron-like environments skip showDirectoryPicker because it cannot
-    // reveal absolute paths; the webkitdirectory fallback gives files with .path.
-    if (window.showDirectoryPicker && !isElectronLike) {
-      try {
-        const dirHandle = await window.showDirectoryPicker();
-        const folderName = dirHandle.name || '';
-        const homePath = deriveUserHomeBase();
-        const fallbackPath = `${homePath}/${folderName}`;
+    try {
+      const res = await fetch(apiUrl('/api/analyze/pick-folder'), { method: 'POST' });
+      const data = await res.json();
+      if (data.success && data.path) {
         if (input) {
-          input.value = fallbackPath;
-          setLastProjectPath(fallbackPath);
+          input.value = data.path;
+          setLastProjectPath(data.path);
           if (clearBtn) clearBtn.disabled = false;
         }
-        const toast = document.getElementById('toast-container');
-        if (toast) {
-          const msg = document.createElement('div');
-          msg.className = 'toast toast-info';
-          msg.textContent = `Folder "${folderName}" selected. Path is estimated — please verify before scanning.`;
-          toast.appendChild(msg);
-          setTimeout(() => msg.remove(), 4000);
-        }
+        showToast(`Folder selected: ${data.path}`, 'info');
         return;
-      } catch (err) {
-        if (err.name !== 'AbortError') {
-          console.warn('[ScanStatus] Directory picker failed:', err);
-        }
-        // Fall through to file input fallback
       }
+      if (data.error) {
+        showToast(data.error, 'warning');
+      }
+    } catch (err) {
+      console.warn('[ScanStatus] Native folder picker failed:', err);
     }
     // Fallback: use hidden webkitdirectory input to open native folder picker
     if (browseInput) {

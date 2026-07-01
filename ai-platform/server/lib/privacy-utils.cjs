@@ -27,7 +27,7 @@ function sanitizePrivacyData(text) {
 
   // Redact IPv4 Addresses
   // Pattern: 0-255.0-255.0-255.0-255
-  cleaned = cleaned.replace(/\b(?:(?:25[0-5]|2[0-4][0-3]|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4][0-3]|[01]?\d\d?)\b/g, '[REDACTED_IP]');
+  cleaned = cleaned.replace(/\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?\d\d?)\b/g, '[REDACTED_IP]');
 
   // Redact Bearer Tokens / API Keys / Password assignments
   // Pattern: matches secret|token|key|pwd|password|auth followed by = or : and a quoted value

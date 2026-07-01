@@ -1,9 +1,29 @@
+'use strict';
+
 /**
- * simplebeacon — public API
+ * @module simplebeacon
+ * SimpleBeacon CLI public API facade.
+ *
+ * Re-exports every public function from 20+ core modules, organized as both
+ * a flat list (backward compatible) and a namespaced `Simplebeacon` object
+ * for IDE autocompletion and discoverability.
+ *
+ * Flat access (cherry-pick what you need):
+ * ```js
+ * const { runScan, evaluateGate, formatJsonReport } = require('simplebeacon-cli');
+ * const report = await runScan('/path/to/project');
+ * ```
+ *
+ * Namespaced access (frozen at runtime):
+ * ```js
+ * const { Simplebeacon } = require('simplebeacon-cli');
+ * Object.isFrozen(Simplebeacon); // true
+ * const report = await Simplebeacon.scan.runScan('/path/to/project');
+ * ```
+ *
+ * @file packages/simplebeacon-cli/src/index.js
  */
 
-const fs = require('fs');
-const path = require('path');
 const { detectProjectProfile, resolvePlatformRoot } = require('./project-detect');
 const {
     loadSimplebeaconConfig,
@@ -33,7 +53,13 @@ const { formatTextReport, formatActionPlanReport } = require('./reporters/text')
 const { formatJsonReport } = require('./reporters/json');
 const { formatGithubComment, formatGithubStepSummary, postGithubComment } = require('./reporters/github-comment');
 const { buildAssessmentReport } = require('./assessment');
-const { compileAuditReportMarkdown } = require('./reporters/audit-report');
+const {
+    compileAuditReportMarkdown,
+    formatReportDate,
+    capitalize: _capitalize,
+    pluralize: _pluralize,
+    truncate: _truncate
+} = require('./reporters/audit-report');
 const { buildFictionPatternCatalog, countFictionIssues } = require('./rules/ai-fiction-detection');
 const { startGateway, createGateway } = require('./proxy/gateway');
 const { evaluateComplianceChecklist, loadComplianceChecklist } = require('./compliance-checklist');
@@ -80,7 +106,6 @@ const {
 } = require('./lib/trust-guard');
 const { withTransactionSync } = require('./lib/transaction-manager');
 const { writeManagedFileSync } = require('./lib/safe-write');
-const { validateJSON, validateNotEmpty } = require('./lib/file-validator');
 const { sanitizePath, PathSanitizer } = require('./lib/path-sanitizer');
 const {
     SimplebeaconError,
@@ -97,109 +122,158 @@ const { sanitizeFilePath } = require('./lib/input-sanitizer');
 const { runFileReductionScan } = require('./lib/file-reduction-orchestrator');
 const { generateFileReductionReport } = require('./reporters/file-reduction-report');
 const { aggregateCleanupFindings } = require('./lib/result-aggregator');
+const { initSimplebeacon, buildInitDryRunPlan } = require('./lib/init-simplebeacon.cjs');
 const { countRepositoryInventory } = require('./lib/repository-inventory');
+const { createMcpToolHandlers, TOOL_DEFINITIONS } = require('./mcp/tools');
+const { createMcpStdioServer } = require('./mcp/stdio-server');
+const { scanSnippetContent, scanFileOnDisk, readGateStatus } = require('./lib/snippet-scanner');
+const { version } = require('../package.json');
+const { buildAnonymizedExport, signAnonymizedExport, verifyAnonymizedExport, validateAnonymizedSchema, attachAnalyzerSuiteToReport } = require('./lib/anonymized-export');
+const {
+    buildAiSystemsIssueAnalysis,
+    isEmpty: _isEmpty,
+    ensureArray: _ensureArray,
+    deepEqual: _deepEqual,
+    sortBy: _sortBy,
+    flatten: _flatten,
+    range: _range,
+    unique: _unique,
+    partition: _partition,
+    chunk: _chunk,
+    times: _times,
+    get: _get,
+    set: _set,
+    seq: _seq,
+    identity: _identity,
+    constant: _constant,
+    random: _random,
+    sleep: _sleep,
+    delay: _delay,
+    parseJsonSafe: _parseJsonSafe,
+    tryFn: _tryFn,
+    memoize: _memoize,
+    hash: _hash,
+    randomId: _randomId
+} = require('./lib/ai-problem-analyzer-suite');
+const { getCachedAnalysis, setCachedAnalysis, clearCache: clearAnalyzerCache } = require('./lib/ai-problem-analyzer-cache');
+const { sanitizeAiProblemAnalyzerExport } = require('./lib/ai-problem-analyzer-export-sanitize');
 
+// ── Inline utility helpers (extracted to sub-modules) ─────────────────────
+const {
+    withTimeout,
+    retry,
+    debounce,
+    once
+} = require('./utils/async');
+const {
+    pick,
+    omit,
+    compact,
+    groupBy: _groupBy,
+    keyBy: _keyBy,
+    zipObject
+} = require('./utils/object');
+const {
+    kebabCase,
+    camelCase,
+    snakeCase,
+    padStart,
+    padEnd,
+    escapeRegExp,
+    formatDuration,
+    formatNumber,
+    isBlank
+} = require('./utils/string');
+const {
+    noop,
+    assertNever
+} = require('./utils/functional');
+
+/**
+ * Resolve the set of mock-data directories to scan for a project.
+ * @param {string} baseDir
+ * @param {string[]} [extraPaths=[]]
+ * @returns {string[]}
+ */
 function resolveMockDataScanPaths(baseDir, extraPaths = []) {
-    const { platformRoot } = resolvePlatformRoot(baseDir);
-    const central = loadCentralDataConfig(platformRoot);
-    const mockPaths = central?.mockDataScan?.paths || DEFAULT_MOCK_SCAN_RELATIVE_PATHS;
-    return resolveScanPaths(platformRoot, { scanPaths: mockPaths }, extraPaths);
-}
-
-function getRepositoryAuditBaseline(baseDir) {
-    return loadSimplebeaconConfig(baseDir).baseline;
-}
-
-function getConsistencyAnchorSamples(baseDir) {
-    return loadSimplebeaconConfig(baseDir).consistencyAnchorSamples;
-}
-
-function buildInitDryRunPlan(root, templates, options = {}) {
-    const simplebeaconDir = path.join(root, '.simplebeacon');
-    const configPath = path.join(simplebeaconDir, 'config.json');
-    const baselinePath = path.join(simplebeaconDir, 'baseline.json');
-    const force = Boolean(options.force);
-
-    const plannedActions = [
-        { action: 'mkdir', path: simplebeaconDir }
-    ];
-
-    const configExists = fs.existsSync(configPath);
-    const baselineExists = fs.existsSync(baselinePath);
-
-    plannedActions.push({
-        action: configExists ? (force ? 'overwrite' : 'skip') : 'create',
-        path: configPath
-    });
-    plannedActions.push({
-        action: baselineExists ? (force ? 'overwrite' : 'skip') : 'create',
-        path: baselinePath
-    });
-
-    return {
-        dryRun: true,
-        configPath,
-        baselinePath,
-        simplebeaconDir,
-        profile: templates.profile,
-        detected: templates.detected,
-        plannedActions,
-        configCreated: !configExists || force,
-        configSkipped: configExists && !force,
-        baselineCreated: !baselineExists || force,
-        baselineSkipped: baselineExists && !force
-    };
-}
-
-function initSimplebeacon(baseDir, options = {}) {
-    const root = path.resolve(sanitizePath(baseDir));
-    const templates = getInitTemplates(root, options);
-    const force = Boolean(options.force);
-    const dryRun = Boolean(options.dryRun);
-
-    if (dryRun) {
-        return buildInitDryRunPlan(root, templates, options);
+    const safeBase = baseDir && typeof baseDir === 'string' ? baseDir : process.cwd();
+    const resolved = resolvePlatformRoot(safeBase);
+    if (!resolved || typeof resolved !== 'object') {
+        throw new PathError(`Could not resolve platform root object from: ${safeBase}`);
     }
-
-    return withTransactionSync((transaction) => {
-        const simplebeaconDir = path.join(root, '.simplebeacon');
-        fs.mkdirSync(simplebeaconDir, { recursive: true });
-
-        const configPath = path.join(simplebeaconDir, 'config.json');
-        const baselinePath = path.join(simplebeaconDir, 'baseline.json');
-        const configContent = `${JSON.stringify(templates.config, null, 2)}\n`;
-        const baselineContent = `${JSON.stringify(templates.baseline, null, 2)}\n`;
-
-        const configWrite = writeManagedFileSync(configPath, configContent, {
-            skipIfExists: !force,
-            force,
-            transaction,
-            validators: [validateJSON, validateNotEmpty]
-        });
-
-        const baselineWrite = writeManagedFileSync(baselinePath, baselineContent, {
-            skipIfExists: !force,
-            force,
-            transaction,
-            validators: [validateJSON, validateNotEmpty]
-        });
-
-        return {
-            configPath,
-            baselinePath,
-            simplebeaconDir,
-            profile: templates.profile,
-            detected: templates.detected,
-            configCreated: !configWrite.skipped,
-            configSkipped: Boolean(configWrite.skipped),
-            baselineCreated: !baselineWrite.skipped,
-            baselineSkipped: Boolean(baselineWrite.skipped),
-            backups: [configWrite.backupPath, baselineWrite.backupPath].filter(Boolean)
-        };
-    });
+    const { platformRoot } = resolved;
+    if (!platformRoot) {
+        throw new PathError(`Resolved platform root is empty for: ${safeBase}`);
+    }
+    let mockPaths;
+    try {
+        const central = loadCentralDataConfig(platformRoot);
+        const rawMockPaths = central?.mockDataScan?.paths;
+        mockPaths = Array.isArray(rawMockPaths) ? rawMockPaths : DEFAULT_MOCK_SCAN_RELATIVE_PATHS;
+    } catch {
+        mockPaths = DEFAULT_MOCK_SCAN_RELATIVE_PATHS;
+    }
+    const safeExtras = Array.isArray(extraPaths)
+        ? extraPaths.filter(p => typeof p === 'string' && p.length > 0)
+        : [];
+    try {
+        return resolveScanPaths(platformRoot, { scanPaths: mockPaths }, safeExtras);
+    } catch (err) {
+        throw new PathError(`Failed to resolve mock-data scan paths: ${err?.message || err}`);
+    }
 }
+
+/**
+ * Load a single key from simplebeacon config, falling back to a default.
+ * @param {string} baseDir
+ * @param {string} key
+ * @param {Object|Array|string|number|boolean|null} fallback
+ * @returns {Object|Array|string|number|boolean|null}
+ */
+function _loadConfigKey(baseDir, key, fallback) {
+    if (typeof key !== 'string' || key.length === 0) {
+        return fallback;
+    }
+    try {
+        const safeBase = (baseDir && typeof baseDir === 'string') ? baseDir : '.';
+        const config = loadSimplebeaconConfig(safeBase);
+        if (!config || typeof config !== 'object' || Array.isArray(config)) {
+            return fallback;
+        }
+        if (Object.prototype.hasOwnProperty.call(config, key)) {
+            return config[key];
+        }
+        return fallback;
+    } catch {
+        return fallback;
+    }
+}
+
+/**
+ * Load the repository audit baseline from simplebeacon config.
+ * @param {string} baseDir
+ * @returns {Object}
+ */
+function getRepositoryAuditBaseline(baseDir) {
+    return _loadConfigKey(baseDir, 'baseline', DEFAULT_BASELINE);
+}
+
+/**
+ * Load the consistency anchor samples from simplebeacon config.
+ * @param {string} baseDir
+ * @returns {Array<string>}
+ */
+function getConsistencyAnchorSamples(baseDir) {
+    return _loadConfigKey(baseDir, 'consistencyAnchorSamples', DEFAULT_CONSISTENCY_ANCHOR_SAMPLES);
+}
+
+// ── Flat exports (backward compatible) ───────────────────────────────────
 
 module.exports = {
+    // ── Metadata ──
+    version,
+
+    // ── Config ──
     loadSimplebeaconConfig,
     loadSamplebeaconConfig: loadSimplebeaconConfig,
     loadCentralDataConfig,
@@ -211,6 +285,7 @@ module.exports = {
     getInitTemplates,
     initSimplebeacon,
     initSamplebeacon: initSimplebeacon,
+    buildInitDryRunPlan,
     getRepositoryAuditBaseline,
     getConsistencyAnchorSamples,
     DEFAULT_MOCK_SCAN_RELATIVE_PATHS,
@@ -218,6 +293,9 @@ module.exports = {
     DEFAULT_BASELINE,
     DEFAULT_CONFIG,
     PROFILE_RULES,
+    validateConfig,
+
+    // ── Scan & Analysis ──
     runScan,
     scanMockDataDirectories,
     formatBytes,
@@ -226,7 +304,11 @@ module.exports = {
     groupIssues,
     isBlockingIssue,
     countBySeverity,
+
+    // ── Gate ──
     evaluateGate,
+
+    // ── Reporters ──
     formatTextReport,
     formatActionPlanReport,
     formatJsonReport,
@@ -235,24 +317,48 @@ module.exports = {
     postGithubComment,
     buildAssessmentReport,
     compileAuditReportMarkdown,
+    generateFileReductionReport,
+    aggregateCleanupFindings,
+    formatReportDate,
+    capitalize: _capitalize,
+    pluralize: _pluralize,
+    truncate: _truncate,
+
+    // ── Fiction Detection ──
     buildFictionPatternCatalog,
     countFictionIssues,
+
+    // ── Proxy / Gateway ──
     startGateway,
     createGateway,
+
+    // ── Compliance ──
     evaluateComplianceChecklist,
     loadComplianceChecklist,
+    DEFAULT_MAX_STALE_MS,
+    evaluateSprintFreshness,
+    evaluateEuExportEligibility,
+    isLegalReviewAttestation,
+
+    // ── Sanitizers ──
     redactSecretsInString,
     sanitizeScanReport,
     sanitizeAssessment,
     sanitizeReportForCloudUpload,
     sanitizePublicOutput,
     applyPublicGateToAnalyzeResponse,
+
+    // ── Baseline & Hooks ──
     syncJestBaseline,
     verifyJestBaseline,
     installSimplebeaconHook,
     buildHookScript,
+
+    // ── Project Detection ──
     detectProjectProfile,
     resolvePlatformRoot,
+
+    // ── Trust & Safety ──
     createNetworkGuard,
     snapshotFileState,
     assertFileUnchanged,
@@ -260,35 +366,43 @@ module.exports = {
     printTrustCompletion,
     writeManagedFileSync,
     withTransactionSync,
+
+    // ── Errors ──
     SimplebeaconError,
     ConfigError,
     ScanError,
     PathError,
+
+    // ── Path Utilities ──
     normalizePathKey,
     isPathWithinRoot,
     resolveCliProjectRoot,
     sanitizeFilePath,
     sanitizePath,
     PathSanitizer,
+
+    // ── File Reduction ──
     runFileReductionScan,
-    generateFileReductionReport,
-    aggregateCleanupFindings,
-    createMcpToolHandlers: require('./mcp/tools').createMcpToolHandlers,
-    TOOL_DEFINITIONS: require('./mcp/tools').TOOL_DEFINITIONS,
-    createMcpStdioServer: require('./mcp/stdio-server').createMcpStdioServer,
-    scanSnippetContent: require('./lib/snippet-scanner').scanSnippetContent,
-    scanFileOnDisk: require('./lib/snippet-scanner').scanFileOnDisk,
-    readGateStatus: require('./lib/snippet-scanner').readGateStatus,
-    buildAnonymizedExport: require('./lib/anonymized-export').buildAnonymizedExport,
-    signAnonymizedExport: require('./lib/anonymized-export').signAnonymizedExport,
-    verifyAnonymizedExport: require('./lib/anonymized-export').verifyAnonymizedExport,
-    validateAnonymizedSchema: require('./lib/anonymized-export').validateAnonymizedSchema,
-    attachAnalyzerSuiteToReport: require('./lib/anonymized-export').attachAnalyzerSuiteToReport,
-    buildAiSystemsIssueAnalysis: require('./lib/ai-problem-analyzer-suite').buildAiSystemsIssueAnalysis,
-    getCachedAnalysis: require('./lib/ai-problem-analyzer-cache').getCachedAnalysis,
-    setCachedAnalysis: require('./lib/ai-problem-analyzer-cache').setCachedAnalysis,
-    clearAnalyzerCache: require('./lib/ai-problem-analyzer-cache').clearCache,
-    sanitizeAiProblemAnalyzerExport: require('./lib/ai-problem-analyzer-export-sanitize').sanitizeAiProblemAnalyzerExport,
+
+    // ── MCP ──
+    createMcpToolHandlers,
+    TOOL_DEFINITIONS,
+    createMcpStdioServer,
+    scanSnippetContent,
+    scanFileOnDisk,
+    readGateStatus,
+
+    // ── Export Sanitizers ──
+    buildAnonymizedExport,
+    signAnonymizedExport,
+    verifyAnonymizedExport,
+    validateAnonymizedSchema,
+    attachAnalyzerSuiteToReport,
+    buildAiSystemsIssueAnalysis,
+    getCachedAnalysis,
+    setCachedAnalysis,
+    clearAnalyzerCache,
+    sanitizeAiProblemAnalyzerExport,
     sanitizeCompleteScanExport,
     sanitizeNpmAuditExport,
     sanitizeCleanupBriefExport,
@@ -305,13 +419,254 @@ module.exports = {
     buildReAttestationNoteArtifact,
     sanitizeRoadmapExport,
     sanitizeSimplebeaconReportExport,
-    validateConfig,
-    DEFAULT_MAX_STALE_MS,
-    evaluateSprintFreshness,
-    evaluateEuExportEligibility,
-    isLegalReviewAttestation,
     buildProductCompleteScanHygieneSummary,
     buildProductCompleteScanScanScope,
     hasHollowGateAttestation,
-    assembleBenchmarkCompleteScanExportNotes
+    assembleBenchmarkCompleteScanExportNotes,
+
+    // ── Re-exported ai-problem-analyzer-suite helpers ──
+    isEmpty: _isEmpty,
+    ensureArray: _ensureArray,
+    deepEqual: _deepEqual,
+    sortBy: _sortBy,
+    flatten: _flatten,
+    range: _range,
+    unique: _unique,
+    partition: _partition,
+    chunk: _chunk,
+    times: _times,
+    get: _get,
+    set: _set,
+    seq: _seq,
+    identity: _identity,
+    constant: _constant,
+    random: _random,
+    sleep: _sleep,
+    delay: _delay,
+    parseJsonSafe: _parseJsonSafe,
+    tryFn: _tryFn,
+    memoize: _memoize,
+    hash: _hash,
+    randomId: _randomId,
+
+    // ── Inline utility helpers ──
+    withTimeout,
+    retry,
+    pick,
+    omit,
+    compact,
+    groupBy: _groupBy,
+    keyBy: _keyBy,
+    zipObject,
+    kebabCase,
+    camelCase,
+    snakeCase,
+    padStart,
+    padEnd,
+    escapeRegExp,
+    formatDuration,
+    noop,
+    assertNever,
+    debounce,
+    once,
+    formatNumber,
+    isBlank
 };
+
+// ── Namespaced API for discoverability ────────────────────────────────────
+
+const Simplebeacon = {
+    version,
+    config: {
+        loadSimplebeaconConfig,
+        loadCentralDataConfig,
+        resolveScanPaths,
+        resolveMockDataScanPaths,
+        countRepositoryInventory,
+        resolvePathFromBase,
+        normalizeRelativePath,
+        getInitTemplates,
+        initSimplebeacon,
+        buildInitDryRunPlan,
+        getRepositoryAuditBaseline,
+        getConsistencyAnchorSamples,
+        DEFAULT_MOCK_SCAN_RELATIVE_PATHS,
+        DEFAULT_CONSISTENCY_ANCHOR_SAMPLES,
+        DEFAULT_BASELINE,
+        DEFAULT_CONFIG,
+        PROFILE_RULES,
+        validateConfig
+    },
+    scan: {
+        runScan,
+        scanMockDataDirectories,
+        formatBytes,
+        categoryForExt,
+        validateSampleSchema,
+        groupIssues,
+        isBlockingIssue,
+        countBySeverity
+    },
+    gate: {
+        evaluateGate
+    },
+    report: {
+        formatTextReport,
+        formatActionPlanReport,
+        formatJsonReport,
+        formatGithubComment,
+        formatGithubStepSummary,
+        postGithubComment,
+        buildAssessmentReport,
+        compileAuditReportMarkdown,
+        generateFileReductionReport,
+        aggregateCleanupFindings,
+        formatReportDate
+    },
+    fiction: {
+        buildFictionPatternCatalog,
+        countFictionIssues
+    },
+    proxy: {
+        startGateway,
+        createGateway
+    },
+    compliance: {
+        evaluateComplianceChecklist,
+        loadComplianceChecklist,
+        DEFAULT_MAX_STALE_MS,
+        evaluateSprintFreshness,
+        evaluateEuExportEligibility,
+        isLegalReviewAttestation
+    },
+    sanitize: {
+        redactSecretsInString,
+        sanitizeScanReport,
+        sanitizeAssessment,
+        sanitizeReportForCloudUpload,
+        sanitizePublicOutput,
+        applyPublicGateToAnalyzeResponse,
+        buildAnonymizedExport,
+        signAnonymizedExport,
+        verifyAnonymizedExport,
+        validateAnonymizedSchema,
+        attachAnalyzerSuiteToReport,
+        buildAiSystemsIssueAnalysis,
+        sanitizeAiProblemAnalyzerExport,
+        sanitizeCompleteScanExport,
+        sanitizeNpmAuditExport,
+        sanitizeCleanupBriefExport,
+        sanitizeDataCleanupReportExport,
+        sanitizeCodebaseReportExport,
+        sanitizeFictionDigestExport,
+        sanitizeConsolidationExport,
+        sanitizeComplianceChecklistArtifactExport,
+        sanitizeRoadmapForBenchmark,
+        sanitizeGateReportForComplianceExport,
+        sanitizePublicSummaryArtifactExport,
+        projectLabelFromPath,
+        redactProjectPathForExport,
+        buildReAttestationNoteArtifact,
+        sanitizeRoadmapExport,
+        sanitizeSimplebeaconReportExport,
+        buildProductCompleteScanHygieneSummary,
+        buildProductCompleteScanScanScope,
+        hasHollowGateAttestation,
+        assembleBenchmarkCompleteScanExportNotes
+    },
+    baseline: {
+        syncJestBaseline,
+        verifyJestBaseline
+    },
+    hooks: {
+        installSimplebeaconHook,
+        buildHookScript
+    },
+    project: {
+        detectProjectProfile,
+        resolvePlatformRoot
+    },
+    trust: {
+        createNetworkGuard,
+        snapshotFileState,
+        assertFileUnchanged,
+        printTrustBanner,
+        printTrustCompletion,
+        writeManagedFileSync,
+        withTransactionSync
+    },
+    errors: {
+        SimplebeaconError,
+        ConfigError,
+        ScanError,
+        PathError
+    },
+    path: {
+        normalizePathKey,
+        isPathWithinRoot,
+        resolveCliProjectRoot,
+        sanitizeFilePath,
+        sanitizePath,
+        PathSanitizer
+    },
+    mcp: {
+        createMcpToolHandlers,
+        TOOL_DEFINITIONS,
+        createMcpStdioServer,
+        scanSnippetContent,
+        scanFileOnDisk,
+        readGateStatus
+    },
+    utils: {
+        withTimeout,
+        retry,
+        pick,
+        omit,
+        compact,
+        groupBy: _groupBy,
+        keyBy: _keyBy,
+        zipObject,
+        kebabCase,
+        camelCase,
+        snakeCase,
+        padStart,
+        padEnd,
+        escapeRegExp,
+        formatDuration,
+        noop,
+        assertNever,
+        debounce,
+        once,
+        formatNumber,
+        isBlank,
+        isEmpty: _isEmpty,
+        ensureArray: _ensureArray,
+        deepEqual: _deepEqual,
+        sortBy: _sortBy,
+        flatten: _flatten,
+        range: _range,
+        unique: _unique,
+        partition: _partition,
+        chunk: _chunk,
+        times: _times,
+        get: _get,
+        set: _set,
+        seq: _seq,
+        identity: _identity,
+        constant: _constant,
+        random: _random,
+        sleep: _sleep,
+        delay: _delay,
+        parseJsonSafe: _parseJsonSafe,
+        tryFn: _tryFn,
+        memoize: _memoize,
+        hash: _hash,
+        randomId: _randomId,
+        capitalize: _capitalize,
+        pluralize: _pluralize,
+        truncate: _truncate
+    }
+};
+
+module.exports.Simplebeacon = Object.freeze(Simplebeacon);
+Object.freeze(module.exports);

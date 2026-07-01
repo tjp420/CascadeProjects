@@ -2,7 +2,7 @@
  * Generate a test license token for certificate-upload.html testing
  */
 const { upsertSubscription } = require('../server/lib/simplebeacon-subscription-store.cjs');
-const { generateLicenseToken } = require('../server/lib/simplebeacon-proxy.cjs');
+const { generateLicenseToken } = require('../../packages/simplebeacon-cli/src/lib/license-token.js');
 
 
 const EMAIL = process.env.SIMPLEBEACON_OWNER_EMAIL;

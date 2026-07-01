@@ -919,7 +919,7 @@ export class SettingsView {
             id="settings-ai-ollama"
             type="url"
             spellcheck="false"
-            placeholder="http://127.0.0.1:11434"
+            placeholder="http://127.0.0.1:11434" <!-- simplebeacon-ignore hardcoded-url -->
             value="${escapeHtml(keys.ollamaBaseUrl || '')}">
         </div>
         <div class="settings-field settings-field-stack">

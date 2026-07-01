@@ -1,16 +1,48 @@
-const { test } = require('node:test');
+/**
+ * @file Data-cleanup analyzer integration tests.
+ *
+ * Covers config management, dependency health, environment variables,
+ * data freshness, privacy, lineage, consistency, and access-pattern scanners.
+ * Each test creates a temporary project via {@link makeTempProject}, runs the
+ * relevant analyzer, and asserts on the returned findings structure.
+ *
+ * @module data-cleanup.test
+ */
+
+const { test, after } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+
 const { ConfigManagementAnalyzer } = require('../src/analyzers/data-cleanup/config-management-analyzer');
 const { DependencyHealthAnalyzer } = require('../src/analyzers/data-cleanup/dependency-health-analyzer');
 const { EnvironmentVariableAnalyzer } = require('../src/analyzers/data-cleanup/environment-variable-analyzer');
+const { DataFreshnessAnalyzer } = require('../src/analyzers/data-cleanup/data-freshness-analyzer');
+const { DataAccessPatternAnalyzer } = require('../src/analyzers/data-cleanup/data-access-pattern-analyzer');
+const { DataPrivacyAnalyzer, scanPiiContent } = require('../src/analyzers/data-cleanup/data-privacy-analyzer');
+const { DataLineageAnalyzer } = require('../src/analyzers/data-cleanup/data-lineage-analyzer');
+const { DataConsistencyAnalyzer } = require('../src/analyzers/data-cleanup/data-consistency-analyzer');
+const { BuildArtifactScanner } = require('../src/analyzers/file-reduction/build-artifact-scanner');
 const { aggregateCleanupFindings } = require('../src/lib/result-aggregator');
+const { buildExecutiveSummary } = require('../src/lib/executive-summary');
+const { buildScannerStatistics } = require('../src/lib/scanner-statistics');
+const { enrichCleanupReport } = require('../src/lib/enrich-cleanup-report');
+const { triagePrivacyFindings } = require('../src/lib/privacy-triage');
+const { crossReferenceScannerResults } = require('../src/lib/cross-analyzer-intelligence');
 const { walkProjectFiles } = require('../src/analyzers/file-reduction/utils/project-walker');
 
+const _tempRoots = [];
+
+/**
+ * Create a temporary project directory, write the given file tree,
+ * and register the root for automatic cleanup after tests finish.
+ * @param {Object<string,string>} structure Map of relative paths to file contents.
+ * @returns {string} Absolute path to the temporary project root.
+ */
 function makeTempProject(structure) {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sb-cleanup-'));
+    _tempRoots.push(root);
     for (const [relPath, content] of Object.entries(structure)) {
         const fullPath = path.join(root, relPath);
         fs.mkdirSync(path.dirname(fullPath), { recursive: true });
@@ -18,6 +50,20 @@ function makeTempProject(structure) {
     }
     return root;
 }
+
+/**
+ * Clean up all temporary project directories created during the test run.
+ */
+after(() => {
+    for (const root of _tempRoots) {
+        try {
+            fs.rmSync(root, { recursive: true, force: true });
+        } catch {
+            // Best-effort cleanup
+        }
+    }
+    _tempRoots.length = 0;
+});
 
 test('ConfigManagementAnalyzer flags env sprawl and profile-local inconsistencies', async () => {
     const root = makeTempProject({
@@ -39,8 +85,8 @@ test('ConfigManagementAnalyzer flags env sprawl and profile-local inconsistencie
         && f.metadata.key === 'API_URL'
         && f.metadata.values.some((entry) => entry.file === '.env.production')
         && f.metadata.values.some((entry) => entry.file === '.env')
-    ));
-    assert.ok(result.findings.some((f) => f.type === 'duplicate-config-type'));
+    ), 'API_URL should not be flagged when .env and .env.production both match localhost');
+    assert.ok(result.findings.some((f) => f.type === 'duplicate-config-type'), 'should detect duplicate config tools (webpack + vite)');
 });
 
 test('DependencyHealthAnalyzer detects duplicate sections and version drift', async () => {
@@ -58,8 +104,8 @@ test('DependencyHealthAnalyzer detects duplicate sections and version drift', as
     const inventory = await walkProjectFiles(root);
     const scanner = new DependencyHealthAnalyzer();
     const result = await scanner.scan(root, { inventory });
-    assert.ok(result.findings.some((f) => f.type === 'duplicate-dependency' && f.metadata.dependency === 'express'));
-    assert.ok(result.findings.some((f) => f.type === 'version-drift' && f.metadata.dependency === 'lodash'));
+    assert.ok(result.findings.some((f) => f.type === 'duplicate-dependency' && f.metadata.dependency === 'express'), 'should detect duplicate express dependency');
+    assert.ok(result.findings.some((f) => f.type === 'version-drift' && f.metadata.dependency === 'lodash'), 'should detect lodash version drift');
 });
 
 test('EnvironmentVariableAnalyzer detects missing and unused env keys', async () => {
@@ -70,8 +116,8 @@ test('EnvironmentVariableAnalyzer detects missing and unused env keys', async ()
     const inventory = await walkProjectFiles(root);
     const scanner = new EnvironmentVariableAnalyzer();
     const result = await scanner.scan(root, { inventory });
-    assert.ok(result.findings.some((f) => f.type === 'missing-env-key' && f.metadata.key === 'API_BASE'));
-    assert.ok(result.findings.some((f) => f.type === 'unused-env-key' && f.metadata.key === 'LEGACY_FLAG'));
+    assert.ok(result.findings.some((f) => f.type === 'missing-env-key' && f.metadata.key === 'API_BASE'), 'should flag API_BASE as missing');
+    assert.ok(result.findings.some((f) => f.type === 'unused-env-key' && f.metadata.key === 'LEGACY_FLAG'), 'should flag LEGACY_FLAG as unused');
 });
 
 test('EnvironmentVariableAnalyzer treats OS-injected env keys as runtime-provided', async () => {
@@ -81,7 +127,7 @@ test('EnvironmentVariableAnalyzer treats OS-injected env keys as runtime-provide
     const inventory = await walkProjectFiles(root);
     const scanner = new EnvironmentVariableAnalyzer();
     const result = await scanner.scan(root, { inventory });
-    assert.ok(!result.findings.some((f) => f.type === 'missing-env-key' && f.metadata.key === 'USERPROFILE'));
+    assert.ok(!result.findings.some((f) => f.type === 'missing-env-key' && f.metadata.key === 'USERPROFILE'), 'OS-injected keys should not be flagged');
 });
 
 test('EnvironmentVariableAnalyzer skips phase-2 SSO example keys', async () => {
@@ -93,8 +139,8 @@ test('EnvironmentVariableAnalyzer skips phase-2 SSO example keys', async () => {
     const inventory = await walkProjectFiles(root);
     const scanner = new EnvironmentVariableAnalyzer();
     const result = await scanner.scan(root, { inventory });
-    assert.ok(!result.findings.some((f) => f.type === 'unused-env-key' && f.metadata.key === 'SAML_ENABLED'));
-    assert.ok(!result.findings.some((f) => f.type === 'unused-env-key' && f.metadata.key === 'LDAP_URL'));
+    assert.ok(!result.findings.some((f) => f.type === 'unused-env-key' && f.metadata.key === 'SAML_ENABLED'), 'phase-2 SSO example keys should be skipped');
+    assert.ok(!result.findings.some((f) => f.type === 'unused-env-key' && f.metadata.key === 'LDAP_URL'), 'phase-2 SSO example keys should be skipped');
 });
 
 test('EnvironmentVariableAnalyzer skips optional store keys with code defaults', async () => {
@@ -107,7 +153,7 @@ test('EnvironmentVariableAnalyzer skips optional store keys with code defaults',
     const result = await scanner.scan(root, { inventory });
     assert.ok(!result.findings.some((f) =>
         f.type === 'missing-env-key' && f.metadata.key === 'SIMPLEBEACON_SALES_COMMISSIONS_STORE'
-    ));
+    ), 'optional store keys with code defaults should not be flagged');
 });
 
 test('ConfigManagementAnalyzer ignores example-vs-production feature flag drift', async () => {
@@ -120,7 +166,7 @@ test('ConfigManagementAnalyzer ignores example-vs-production feature flag drift'
     const result = await scanner.scan(root, { inventory });
     assert.ok(!result.findings.some((f) =>
         f.type === 'env-inconsistency' && f.metadata.key === 'SIMPLEBEACON_MONETIZATION_ENABLED'
-    ));
+    ), 'example-vs-production feature flag drift should be ignored');
 });
 
 test('EnvironmentVariableAnalyzer detects get() and resolveCredential env references', async () => {
@@ -131,7 +177,7 @@ test('EnvironmentVariableAnalyzer detects get() and resolveCredential env refere
     const inventory = await walkProjectFiles(root);
     const scanner = new EnvironmentVariableAnalyzer();
     const result = await scanner.scan(root, { inventory });
-    assert.ok(!result.findings.some((f) => f.type === 'unused-env-key' && f.metadata.key === 'STRIPE_PUBLISHABLE_KEY'));
+    assert.ok(!result.findings.some((f) => f.type === 'unused-env-key' && f.metadata.key === 'STRIPE_PUBLISHABLE_KEY'), 'get() / resolveCredential env references should count');
 });
 
 test('DependencyHealthAnalyzer detects tools/ requires before file cap', async () => {
@@ -145,7 +191,7 @@ test('DependencyHealthAnalyzer detects tools/ requires before file cap', async (
     const inventory = await walkProjectFiles(root);
     const scanner = new DependencyHealthAnalyzer();
     const result = await scanner.scan(root, { inventory });
-    assert.ok(!result.findings.some((f) => f.type === 'unused-dependency' && f.metadata.dependency === 'archiver'));
+    assert.ok(!result.findings.some((f) => f.type === 'unused-dependency' && f.metadata.dependency === 'archiver'), 'tools/ requires should count before file cap');
 });
 
 test('DependencyHealthAnalyzer ignores node_modules package manifests', async () => {
@@ -163,7 +209,7 @@ test('DependencyHealthAnalyzer ignores node_modules package manifests', async ()
     const scanner = new DependencyHealthAnalyzer();
     const result = await scanner.scan(root, { inventory });
     assert.equal(result.summary.packageJsonFiles, 1);
-    assert.ok(!result.findings.some((f) => String(f.path).includes('node_modules')));
+    assert.ok(!result.findings.some((f) => String(f.path).includes('node_modules')), 'node_modules should be ignored');
 });
 
 test('ConfigManagementAnalyzer ignores node_modules config files', async () => {
@@ -177,11 +223,10 @@ test('ConfigManagementAnalyzer ignores node_modules config files', async () => {
     const scanner = new ConfigManagementAnalyzer();
     const result = await scanner.scan(root, { inventory });
     assert.equal(result.summary.packageJsonFiles, 0);
-    assert.ok(result.summary.configFiles <= 2);
+    assert.ok(result.summary.configFiles <= 2, 'configFiles should only count root-level configs');
 });
 
 test('buildExecutiveSummary categorizes credential findings', () => {
-    const { buildExecutiveSummary } = require('../src/lib/executive-summary');
     const report = {
         generatedAt: new Date().toISOString(),
         scanProfile: 'data-quality',
@@ -214,11 +259,10 @@ test('buildExecutiveSummary categorizes credential findings', () => {
     assert.equal(summary.security.credentials.length, 1);
     assert.equal(summary.security.credentialsNeedingReview, 0);
     assert.equal(summary.security.piiNeedingReview, 0);
-    assert.ok(summary.notes.some((note) => note.includes('test fixtures') || note.includes('mock/sample')));
+    assert.ok(summary.notes.some((note) => note.includes('test fixtures') || note.includes('mock/sample')), 'summary should mention test fixture context');
 });
 
 test('buildScannerStatistics exposes workspace-scoped scanner counts', () => {
-    const { buildScannerStatistics } = require('../src/lib/scanner-statistics');
     const report = {
         projectRoot: '/tmp/project',
         durationMs: 1000,
@@ -256,7 +300,6 @@ test('buildScannerStatistics exposes workspace-scoped scanner counts', () => {
 });
 
 test('enrichCleanupReport preserves dependency-health stats when findings are clean', () => {
-    const { enrichCleanupReport } = require('../src/lib/enrich-cleanup-report');
     const enriched = enrichCleanupReport({
         projectRoot: '/tmp/project',
         durationMs: 500,
@@ -289,7 +332,6 @@ test('enrichCleanupReport preserves dependency-health stats when findings are cl
 });
 
 test('triagePrivacyFindings groups PII by category', () => {
-    const { triagePrivacyFindings } = require('../src/lib/privacy-triage');
     const triaged = triagePrivacyFindings([
         { path: 'docs/reports/MOCK_DATA_GUIDE.md', reason: 'Possible realistic email in data file', metadata: { line: 1 } },
         { path: 'web/data/users-sample.json', reason: 'Possible realistic email in data file', metadata: { line: 2 } },
@@ -319,9 +361,9 @@ test('DataFreshnessAnalyzer flags old mock data files', async () => {
     fs.utimesSync(filePath, oldDate, oldDate);
 
     const inventory = await walkProjectFiles(root);
-    const scanner = new (require('../src/analyzers/data-cleanup/data-freshness-analyzer').DataFreshnessAnalyzer)({ staleDays: 90 });
+    const scanner = new DataFreshnessAnalyzer({ staleDays: 90 });
     const result = await scanner.scan(root, { inventory });
-    assert.ok(result.findings.some((f) => f.type === 'stale-data'));
+    assert.ok(result.findings.some((f) => f.type === 'stale-data'), 'files older than staleDays should be flagged');
 });
 
 test('DataAccessPatternAnalyzer skips intentional CLI sync readers', async () => {
@@ -329,9 +371,9 @@ test('DataAccessPatternAnalyzer skips intentional CLI sync readers', async () =>
         'packages/simplebeacon-cli/src/lib/scan-history.js': 'const x = JSON.parse(fs.readFileSync(p));\n'
     });
     const inventory = await walkProjectFiles(root);
-    const scanner = new (require('../src/analyzers/data-cleanup/data-access-pattern-analyzer').DataAccessPatternAnalyzer)();
+    const scanner = new DataAccessPatternAnalyzer();
     const result = await scanner.scan(root, { inventory });
-    assert.equal(result.findings.length, 0);
+    assert.equal(result.findings.length, 0, 'CLI sync readers should be skipped as intentional');
 });
 
 test('DataPrivacyAnalyzer skips docker-compose comment placeholders', async () => {
@@ -345,9 +387,9 @@ test('DataPrivacyAnalyzer skips docker-compose comment placeholders', async () =
         ].join('\n') + '\n'
     });
     const inventory = await walkProjectFiles(root);
-    const scanner = new (require('../src/analyzers/data-cleanup/data-privacy-analyzer').DataPrivacyAnalyzer)({ useCache: false });
+    const scanner = new DataPrivacyAnalyzer();
     const result = await scanner.scan(root, { inventory, useCache: false });
-    assert.equal(result.findings.filter((f) => f.reason.includes('Credential')).length, 0);
+    assert.equal(result.findings.filter((f) => f.reason.includes('Credential')).length, 0, 'docker-compose comment placeholders should be skipped');
 });
 
 test('DataAccessPatternAnalyzer flags sync reads in route handlers', async () => {
@@ -355,9 +397,9 @@ test('DataAccessPatternAnalyzer flags sync reads in route handlers', async () =>
         'server/routes/data.js': "router.get('/x', (req,res)=>{ const x = JSON.parse(fs.readFileSync('data.json')); res.json(x); });\n"
     });
     const inventory = await walkProjectFiles(root);
-    const scanner = new (require('../src/analyzers/data-cleanup/data-access-pattern-analyzer').DataAccessPatternAnalyzer)();
+    const scanner = new DataAccessPatternAnalyzer();
     const result = await scanner.scan(root, { inventory });
-    assert.ok(result.findings.some((f) => f.type === 'data-access-pattern'));
+    assert.ok(result.findings.some((f) => f.type === 'data-access-pattern'), 'sync reads in route handlers should be flagged');
 });
 
 test('DataAccessPatternAnalyzer flags raw SQL via AST', async () => {
@@ -365,9 +407,9 @@ test('DataAccessPatternAnalyzer flags raw SQL via AST', async () => {
         'server/routes/users.js': "router.get('/:id', (req,res)=>{ db.query('SELECT * FROM users WHERE id = ' + req.params.id); });\n"
     });
     const inventory = await walkProjectFiles(root);
-    const scanner = new (require('../src/analyzers/data-cleanup/data-access-pattern-analyzer').DataAccessPatternAnalyzer)();
+    const scanner = new DataAccessPatternAnalyzer();
     const result = await scanner.scan(root, { inventory });
-    assert.ok(result.findings.some((f) => f.type === 'data-access-pattern' && f.metadata?.patternId === 'raw-sql-ast'));
+    assert.ok(result.findings.some((f) => f.type === 'data-access-pattern' && f.metadata?.patternId === 'raw-sql-ast'), 'raw SQL via AST should be flagged');
 });
 
 test('DataPrivacyAnalyzer skips protected web/data sample paths', async () => {
@@ -375,9 +417,9 @@ test('DataPrivacyAnalyzer skips protected web/data sample paths', async () => {
         'web/data/billing-system-sample.json': '{"email":"dev@cascade.ai"}\n'
     });
     const inventory = await walkProjectFiles(root);
-    const scanner = new (require('../src/analyzers/data-cleanup/data-privacy-analyzer').DataPrivacyAnalyzer)({ useCache: false });
+    const scanner = new DataPrivacyAnalyzer();
     const result = await scanner.scan(root, { inventory, useCache: false });
-    assert.equal(result.findings.length, 0);
+    assert.equal(result.findings.length, 0, 'protected web/data sample paths should be skipped');
 });
 
 test('BuildArtifactScanner ignores empty log files', async () => {
@@ -385,10 +427,10 @@ test('BuildArtifactScanner ignores empty log files', async () => {
         'logs/audit.log': '',
         'logs/runtime.log': 'entry\n'
     });
-    const scanner = new (require('../src/analyzers/file-reduction/build-artifact-scanner').BuildArtifactScanner)();
+    const scanner = new BuildArtifactScanner();
     const result = await scanner.scan(root);
-    assert.equal(result.findings.some((f) => f.path === 'logs/audit.log'), false);
-    assert.ok(result.findings.some((f) => f.path === 'logs/runtime.log'));
+    assert.equal(result.findings.some((f) => f.path === 'logs/audit.log'), false, 'empty log files should be ignored');
+    assert.ok(result.findings.some((f) => f.path === 'logs/runtime.log'), 'non-empty log files should be included');
 });
 
 test('DataPrivacyAnalyzer flags PII in non-protected mock data', async () => {
@@ -396,15 +438,14 @@ test('DataPrivacyAnalyzer flags PII in non-protected mock data', async () => {
         'reports/users-mock.json': '{"email":"john.doe@company.com"}\n'
     });
     const inventory = await walkProjectFiles(root);
-    const scanner = new (require('../src/analyzers/data-cleanup/data-privacy-analyzer').DataPrivacyAnalyzer)({ useCache: false });
+    const scanner = new DataPrivacyAnalyzer();
     const result = await scanner.scan(root, { inventory, useCache: false });
-    assert.ok(result.findings.some((f) => f.type === 'data-privacy'));
+    assert.ok(result.findings.some((f) => f.type === 'data-privacy'), 'PII in non-protected mock data should be flagged');
     const hit = result.findings.find((f) => f.metadata?.patternId === 'realistic-email');
-    assert.ok(hit.metadata.confidenceScore >= 0.3);
+    assert.ok(hit.metadata.confidenceScore >= 0.3, 'realistic-email hit should have confidence >= 0.3');
 });
 
 test('scanPiiContent skips comment and documentation example contexts', () => {
-    const { scanPiiContent } = require('../src/analyzers/data-cleanup/data-privacy-analyzer');
     const docFindings = scanPiiContent('docs/MOCK_DATA_GUIDE.md', [
         '// contact admin@example.com for help',
         'See admin@company.com in production only'
@@ -414,7 +455,7 @@ test('scanPiiContent skips comment and documentation example contexts', () => {
     const codeFindings = scanPiiContent('server/config.js', [
         "const owner = 'ops@company.com';"
     ].join('\n'));
-    assert.ok(codeFindings.some((f) => f.metadata.patternId === 'realistic-email'));
+    assert.ok(codeFindings.some((f) => f.metadata.patternId === 'realistic-email'), 'realistic emails in code should be flagged');
 });
 
 test('DataLineageAnalyzer detects runtime fetch references to data files', async () => {
@@ -423,16 +464,15 @@ test('DataLineageAnalyzer detects runtime fetch references to data files', async
         'server/routes/users.js': "fetch('web/data/users.json').then(r => r.json());\n"
     });
     const inventory = await walkProjectFiles(root);
-    const scanner = new (require('../src/analyzers/data-cleanup/data-lineage-analyzer').DataLineageAnalyzer)();
+    const scanner = new DataLineageAnalyzer();
     const result = await scanner.scan(root, { inventory });
-    assert.equal(result.findings.length, 0);
+    assert.equal(result.findings.length, 0, 'referenced data files should not produce lineage findings');
     assert.ok(result.metadata.lineage.some((entry) =>
         entry.path.includes('web/data/users.json') && entry.consumerCount >= 1
-    ));
+    ), 'lineage should record consumer references');
 });
 
 test('crossReferenceScannerResults boosts PII severity for orphaned data files', () => {
-    const { crossReferenceScannerResults } = require('../src/lib/cross-analyzer-intelligence');
     const results = crossReferenceScannerResults({
         'data-privacy': {
             findings: [{
@@ -463,7 +503,7 @@ test('ConfigManagementAnalyzer flags unreferenced non-root configs', async () =>
     const inventory = await walkProjectFiles(root);
     const scanner = new ConfigManagementAnalyzer();
     const result = await scanner.scan(root, { inventory });
-    assert.ok(result.findings.some((f) => f.type === 'unused-config' && f.path.includes('tools/vite.config.js')));
+    assert.ok(result.findings.some((f) => f.type === 'unused-config' && f.path.includes('tools/vite.config.js')), 'unreferenced non-root configs should be flagged');
 });
 
 test('DataLineageAnalyzer marks unreferenced mock json as orphaned', async () => {
@@ -472,9 +512,9 @@ test('DataLineageAnalyzer marks unreferenced mock json as orphaned', async () =>
         'server/index.js': "console.log('no data refs');\n"
     });
     const inventory = await walkProjectFiles(root);
-    const scanner = new (require('../src/analyzers/data-cleanup/data-lineage-analyzer').DataLineageAnalyzer)();
+    const scanner = new DataLineageAnalyzer();
     const result = await scanner.scan(root, { inventory });
-    assert.ok(result.findings.some((f) => f.path.includes('orphan-mock.json')));
+    assert.ok(result.findings.some((f) => f.path.includes('orphan-mock.json')), 'unreferenced mock json should be flagged as orphaned');
 });
 
 test('DataLineageAnalyzer skips allowlisted runtime sample paths', async () => {
@@ -484,10 +524,10 @@ test('DataLineageAnalyzer skips allowlisted runtime sample paths', async () => {
         'server/index.js': "console.log('no static refs');\n"
     });
     const inventory = await walkProjectFiles(root);
-    const scanner = new (require('../src/analyzers/data-cleanup/data-lineage-analyzer').DataLineageAnalyzer)();
+    const scanner = new DataLineageAnalyzer();
     const result = await scanner.scan(root, { inventory });
-    assert.equal(result.findings.length, 0);
-    assert.equal(result.summary.orphanedDataFiles, 0);
+    assert.equal(result.findings.length, 0, 'allowlisted runtime sample paths should be skipped');
+    assert.equal(result.summary.orphanedDataFiles, 0, 'allowlisted runtime sample paths should not count as orphaned');
 });
 
 test('DataLineageAnalyzer skips nested tests/fixtures paths (monorepo layout)', async () => {
@@ -496,10 +536,10 @@ test('DataLineageAnalyzer skips nested tests/fixtures paths (monorepo layout)', 
         'server/index.js': "console.log('no static refs');\n"
     });
     const inventory = await walkProjectFiles(root);
-    const scanner = new (require('../src/analyzers/data-cleanup/data-lineage-analyzer').DataLineageAnalyzer)();
+    const scanner = new DataLineageAnalyzer();
     const result = await scanner.scan(root, { inventory });
-    assert.equal(result.findings.length, 0);
-    assert.equal(result.summary.orphanedDataFiles, 0);
+    assert.equal(result.findings.length, 0, 'tests/fixtures paths should be skipped');
+    assert.equal(result.summary.orphanedDataFiles, 0, 'tests/fixtures paths should not count as orphaned');
 });
 
 test('DataConsistencyAnalyzer ignores intentional mock sample shape differences', async () => {
@@ -508,7 +548,69 @@ test('DataConsistencyAnalyzer ignores intentional mock sample shape differences'
         'web/data/b-sample.json': '{"type":"b","rows":[]}\n'
     });
     const inventory = await walkProjectFiles(root);
-    const scanner = new (require('../src/analyzers/data-cleanup/data-consistency-analyzer').DataConsistencyAnalyzer)();
+    const scanner = new DataConsistencyAnalyzer();
     const result = await scanner.scan(root, { inventory });
-    assert.ok(!result.findings.some((f) => f.type === 'data-shape-drift'));
+    assert.ok(!result.findings.some((f) => f.type === 'data-shape-drift'), 'intentional mock sample shape differences should be ignored');
+});
+
+test('aggregateCleanupFindings handles empty array', () => {
+    const aggregated = aggregateCleanupFindings([]);
+    assert.equal(aggregated.findings.length, 0);
+    assert.deepStrictEqual(aggregated.bySeverity, { critical: [], high: [], medium: [], low: [] });
+});
+
+test('buildExecutiveSummary handles minimal empty report', () => {
+    const summary = buildExecutiveSummary({
+        generatedAt: new Date().toISOString(),
+        scanProfile: 'data-quality',
+        scanners: {},
+        findings: {},
+        summary: { reclaimableBytes: 0 }
+    });
+    assert.equal(summary.security.credentials.length, 0);
+    assert.equal(summary.security.piiNeedingReview, 0);
+});
+
+test('DataConsistencyAnalyzer topLevelKeys returns null for invalid JSON', () => {
+    const { topLevelKeys } = require('../src/analyzers/data-cleanup/data-consistency-analyzer');
+    assert.strictEqual(topLevelKeys('not json'), null);
+    assert.deepStrictEqual(topLevelKeys('{"a":1}'), ['a']);
+    assert.deepStrictEqual(topLevelKeys('[1,2,3]'), []);
+});
+
+test('DataLineageAnalyzer tracks referenced data files without findings', async () => {
+    const root = makeTempProject({
+        'web/data/users.json': '{"users":[]}\n',
+        'server/routes/users.js': "const data = require('../../web/data/users.json');\n"
+    });
+    const inventory = await walkProjectFiles(root);
+    const scanner = new DataLineageAnalyzer();
+    const result = await scanner.scan(root, { inventory });
+    assert.equal(result.findings.length, 0, 'referenced data files should not produce findings');
+    assert.ok(result.metadata.lineage.some((e) => e.path.includes('web/data/users.json')), 'lineage should include referenced file');
+});
+
+test('scanPiiContent flags realistic credit card numbers in code', () => {
+    const findings = scanPiiContent('server/payment.js', [
+        "const card = '5555555555554444';"
+    ].join('\n'));
+    assert.ok(findings.some((f) => f.metadata.patternId === 'credit-card'), 'realistic credit card numbers should be flagged');
+});
+
+test('crossReferenceScannerResults leaves clean findings unchanged', () => {
+    const results = crossReferenceScannerResults({
+        'data-privacy': {
+            findings: [{
+                type: 'data-privacy',
+                path: 'reports/users.json',
+                severity: 'medium',
+                metadata: { patternId: 'realistic-email', line: 1 }
+            }]
+        },
+        'data-lineage': {
+            findings: []
+        }
+    });
+    assert.equal(results['data-privacy'].findings[0].severity, 'medium');
+    assert.equal(results['data-privacy'].findings[0].metadata.crossAnalyzerBoost, undefined);
 });

@@ -11,4 +11,36 @@ simplebeacon-report*
 progress.txt
 .vsix-patch-temp/
 src/rules/llm-slop-catalog.json
+.env
+.env.local
+.env.production
+.env.*
 
+# Temp / debug / test files
+__*.js
+__*.ts
+_test_*.js
+_test_*.html
+_tmp_*.js
+_tmp_*.ts
+_tmp_*.cjs
+check-*.js
+check-*.cjs
+extract-*.js
+extract-*.cjs
+find-*.js
+find-*.cjs
+debug-*.html
+debug-*.cjs
+inspect-*.cjs
+test-*.cjs
+test-*.ts
+ts-prune-report*.txt
+scan-codemap-js.cjs
+simplebeacon-codemap.html
+simplebeacon-vscode-merged - Shortcut.lnk
+index.html
+_tmp_inline.js
+
+# Backup / generated files
+dashboard-web/js/views/AnalyzeView.js.bak

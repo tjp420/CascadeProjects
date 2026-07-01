@@ -64,6 +64,22 @@ export function readProjectPathInput(root) {
  * (no silent upgrade to the server default / nested ai-platform folder).
  */
 /**
+ * Detects a suspicious nested duplicate path such as /foo/foo inside /foo.
+ * These often occur when the user accidentally selects a duplicate folder.
+ * @param {string} candidate
+ * @param {string} defaultPath
+ * @returns {boolean}
+ */
+function isSuspiciousNestedPath(candidate, defaultPath) {
+  const c = String(candidate || '').replace(/\\/g, '/').replace(/\/+$/, '');
+  const d = String(defaultPath || '').replace(/\\/g, '/').replace(/\/+$/, '');
+  if (!c || !d || c === d) return false;
+  const candidateBasename = c.split('/').pop();
+  const defaultBasename = d.split('/').pop();
+  return Boolean(candidateBasename && defaultBasename && candidateBasename === defaultBasename && c.startsWith(d + '/'));
+}
+
+/**
  * Resolve page project path.
  * @param {any} inputValue
  * @param {any} app
@@ -87,7 +103,7 @@ export function resolvePageProjectPath(inputValue, app) {
   }
 
   const cleanedLast = stripArtifactSuffixes(app.state.lastProjectPath || '');
-  if (cleanedLast && isPlausibleProjectPath(cleanedLast)) {
+  if (cleanedLast && isPlausibleProjectPath(cleanedLast) && !isSuspiciousNestedPath(cleanedLast, defaultPath)) {
     return cleanedLast;
   }
   if (trimmed.startsWith('…')) {
@@ -100,6 +116,10 @@ export function resolvePageProjectPath(inputValue, app) {
 export function getPathInputDisplayValue(app) {
   if (!app || !app.state) return '';
   const candidate = app.state.pathInputDraft || app.state.lastProjectPath || '';
+  const defaultPath = String(app.state.defaultProjectPath || '').trim();
+  if (defaultPath && isSuspiciousNestedPath(candidate, defaultPath)) {
+    return defaultPath;
+  }
   return stripArtifactSuffixes(candidate);
 }
 

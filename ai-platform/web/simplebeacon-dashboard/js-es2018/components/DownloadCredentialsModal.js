@@ -100,12 +100,3 @@ export function showDownloadCredentialsModal({ title = 'Edit Report Credentials'
     });
     (_a = overlay.querySelector('#dc-project-name')) === null || _a === void 0 ? void 0 : _a.focus();
 }
-function escapeHtml(str) {
-    if (!str)
-        return '';
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
-}

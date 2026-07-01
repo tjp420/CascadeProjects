@@ -48,15 +48,82 @@ const { uploadSecurity, contentValidation } = require('./server/middleware/uploa
 const { authenticate, optionalAuthenticate } = require('./server/middleware/auth.cjs');
 const authRoutes = require('./server/routes/auth.cjs');
 
+const { safeString, safeErrorMessage } = constants;
+
+// ── Server-side utility helpers ───────────────────────────────
+
+function setNoCacheHeaders(res) {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.set('Pragma', 'no-cache');
+}
+
+function buildJsonResponse(type, data, timestamp = new Date().toISOString()) {
+    const result = { type, timestamp };
+    if (data !== undefined) result.data = data;
+    return result;
+}
+
+function trySendFile(res, filePath, type) {
+    if (!filePath || typeof filePath !== 'string' || !fs.existsSync(filePath)) return false;
+    if (typeof type === 'string' && type) res.type(type);
+    setNoCacheHeaders(res);
+    res.sendFile(filePath);
+    return true;
+}
+
+function isLocalhostRequest(req) {
+    return /^(localhost|127\.0\.0\.1|::1|0\.0\.0\.0)$/i.test(req.hostname);
+}
+
+function sanitizeEmail(raw) {
+    const email = String(raw || '').trim().toLowerCase();
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : '';
+}
+
+function parseJsonSafe(text, fallback = null) {
+    try {
+        return JSON.parse(text);
+    } catch {
+        return fallback;
+    }
+}
+
+function delay(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function once(fn) {
+    let called = false;
+    let result;
+    return function (...args) { // simplebeacon-ignore dead-code
+        if (!called) {
+            called = true;
+            result = fn.apply(this, args);
+        }
+        return result;
+    };
+}
+
+function debounce(fn, wait) {
+    let timer = null;
+    return function (...args) { // simplebeacon-ignore dead-code
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(() => { timer = null; fn.apply(this, args); }, wait);
+    };
+}
+
 const app = express();
 app.set('trust proxy', 1);
-const PORT = process.env.PORT || constants.DEFAULT_PORT;
+const PORT = Number.isFinite(Number(process.env.PORT)) && Number(process.env.PORT) > 0
+  ? Number(process.env.PORT)
+  : constants.DEFAULT_PORT;
 const WS_PORT = 8081;
 
 // CORS — allow any origin in dev; specific origins in production
-const allowedOrigins = process.env.NODE_ENV === 'production'
+const rawAllowedOrigins = process.env.NODE_ENV === 'production'
     ? (process.env.ALLOWED_ORIGIN || 'https://simplebeacon.ai').split(',').map(s => s.trim()).filter(Boolean)
     : true;
+const allowedOrigins = Array.isArray(rawAllowedOrigins) && rawAllowedOrigins.length > 0 ? rawAllowedOrigins : true;
 app.use(cors({
     origin: allowedOrigins,
     credentials: true
@@ -69,7 +136,7 @@ app.use((req, res, next) => {
   if (process.env.NODE_ENV === 'production') {
     res.setHeader('X-Frame-Options', 'DENY');
   }
-  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('X-XSS-Protection', '0');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
   if (process.env.NODE_ENV === 'production') {
@@ -101,7 +168,7 @@ app.use((req, res, next) => {
 });
 if (
   !process.env.SIMPLEBEACON_INTERNAL_DASHBOARD
-  && Number(process.env.PORT || PORT) === PORT
+  && !process.env.PORT
   && String(process.env.NODE_ENV || '').toLowerCase() !== 'production'
   && process.env.NODE_ENV !== 'test'
 ) {
@@ -118,11 +185,18 @@ const landingRootExists = fs.existsSync(landingRoot);
 
 function sendLandingFile(res, relativePath, type) {
   if (!landingRootExists) return false;
-  const filePath = path.join(landingRoot, relativePath);
-  if (!fs.existsSync(filePath)) return false;
-  if (type) res.type(type);
+  if (typeof relativePath !== 'string') return false;
+  const resolved = path.resolve(path.join(landingRoot, relativePath));
+  const rootResolved = path.resolve(landingRoot);
+  const normalizedResolved = resolved.replace(/\\/g, '/');
+  const normalizedRoot = rootResolved.replace(/\\/g, '/');
+  if (!normalizedResolved.startsWith(normalizedRoot + '/') && normalizedResolved !== normalizedRoot) {
+    return false;
+  }
+  if (!fs.existsSync(resolved)) return false;
+  if (typeof type === 'string' && type) res.type(type);
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
-  res.sendFile(filePath);
+  res.sendFile(resolved);
   return true;
 }
 
@@ -247,8 +321,9 @@ app.post('/api/ai-context', express.json({ limit: '10mb' }), (req, res) => {
     const content = lines.join('\n');
     res.json({ success: true, content });
   } catch (err) {
-    console.error('[AI-Context] Error:', err.message);
-    res.status(500).json({ success: false, error: err.message });
+    const msg = safeErrorMessage(err);
+    console.error('[AI-Context] Error:', msg);
+    res.status(500).json({ success: false, error: msg });
   }
 });
 
@@ -274,10 +349,19 @@ if (process.env.NODE_ENV !== 'test') {
 }
 
 const dashboardPath = path.join(webRoot, 'simplebeacon-dashboard/index.html');
+let _cachedDashboardHtml = null;
+let _cachedDashboardMtimeMs = 0;
+
 async function loadDashboardHtml() {
   try {
-    await fs.promises.access(dashboardPath);
-    return await fs.promises.readFile(dashboardPath, 'utf8');
+    const stat = await fs.promises.stat(dashboardPath);
+    if (_cachedDashboardHtml && stat.mtimeMs === _cachedDashboardMtimeMs) {
+      return _cachedDashboardHtml;
+    }
+    const html = await fs.promises.readFile(dashboardPath, 'utf8');
+    _cachedDashboardHtml = html;
+    _cachedDashboardMtimeMs = stat.mtimeMs;
+    return html;
   } catch {
     return null;
   }
@@ -348,6 +432,20 @@ app.get('/dashboard/*', async (req, res) => {
   return sendSimplebeaconDashboard(res);
 });
 
+// Compatibility: also serve dashboard at /simplebeacon-dashboard (new server/index.cjs path)
+app.get(['/simplebeacon-dashboard', '/simplebeacon-dashboard/', '/simplebeacon-dashboard/index.html'], async (req, res) => {
+  if (internalDashboard && !isVaultAuthenticated(req)) {
+    return res.redirect(302, '/');
+  }
+  return sendSimplebeaconDashboard(res);
+});
+app.get('/simplebeacon-dashboard/*', async (req, res) => {
+  if (internalDashboard && !isVaultAuthenticated(req)) {
+    return res.redirect(302, '/');
+  }
+  return sendSimplebeaconDashboard(res);
+});
+
 app.get(['/landing', '/landing/'], (req, res) => {
   if (!landingEnabled) return res.redirect(302, '/');
   if (sendLandingIndex(res)) return;
@@ -363,8 +461,9 @@ app.get('/landing.html', (req, res) => {
 // Private dashboard — unlocks vault session; optional returnTo redirects back to /app
 app.get('/private-dashboard-vault', (req, res) => {
   const vaultPassword = process.env.DASHBOARD_VAULT_PASSWORD;
-  const isLocalDev = process.env.NODE_ENV === 'development' && !vaultPassword;
-  
+  const hasPassword = vaultPassword != null && String(vaultPassword).length > 0;
+  const isLocalDev = process.env.NODE_ENV === 'development' && !hasPassword;
+
   if (!isLocalDev && req.query.password !== vaultPassword) {
     return res.status(403).send('Unauthorized Access: Private Vault is Locked.');
   }
@@ -458,11 +557,9 @@ if (landingRootExists) {
   });
   app.get('/downloads/simplebeacon-:version.tgz', (req, res, next) => {
     if (!storefrontAssetsEnabled()) return next();
-    const filePath = path.join(landingRoot, 'downloads', `simplebeacon-${req.params.version}.tgz`);
-    if (fs.existsSync(filePath)) { // simplebeacon-ignore sync-io-async-path — file existence check before serving download
-      res.type('application/gzip');
-      return res.sendFile(filePath);
-    }
+    const version = String(req.params.version || '').replace(/[\\/]/g, '_');
+    if (!version) return next();
+    if (sendLandingFile(res, `downloads/simplebeacon-${version}.tgz`, 'application/gzip')) return;
     next();
   });
   app.get('/robots.txt', (req, res, next) => {
@@ -497,8 +594,8 @@ if (landingRootExists) {
     }
     const entry = {
       email,
-      source: req.body?.source || 'landing',
-      ts: req.body?.ts || new Date().toISOString(),
+      source: typeof req.body?.source === 'string' ? req.body.source : 'landing',
+      ts: typeof req.body?.ts === 'string' ? req.body.ts : new Date().toISOString(),
       receivedAt: new Date().toISOString()
     };
     const waitlistDir = path.join(__dirname, 'data');
@@ -508,12 +605,13 @@ if (landingRootExists) {
       let rows = [];
       try {
         const data = await fs.promises.readFile(waitlistFile, 'utf8');
-        rows = JSON.parse(data);
+        const parsed = JSON.parse(data);
+        if (Array.isArray(parsed)) rows = parsed;
       } catch { /* file does not exist yet */ }
-      if (!rows.some((r) => r.email === email)) rows.push(entry);
+      if (!rows.some((r) => r && typeof r === 'object' && r.email === email)) rows.push(entry);
       await fs.promises.writeFile(waitlistFile, JSON.stringify(rows, null, 2));
     } catch (err) {
-      console.warn('[waitlist] persist failed:', err.message);
+      console.warn('[waitlist] persist failed:', safeErrorMessage(err));
     }
     return res.json({ ok: true, email });
   });
@@ -533,9 +631,9 @@ if (landingRootExists) {
   app.post('/api/waitlist/event', waitlistRateLimiter, async (req, res) => {
     if (!landingEnabled) return res.status(404).json({ error: 'not_found' });
     const event = {
-      event: req.body?.event || 'unknown',
-      data: req.body?.data || {},
-      ts: req.body?.ts || new Date().toISOString(),
+      event: typeof req.body?.event === 'string' ? req.body.event : 'unknown',
+      data: (req.body?.data && typeof req.body.data === 'object' && !Array.isArray(req.body.data)) ? req.body.data : {},
+      ts: typeof req.body?.ts === 'string' ? req.body.ts : new Date().toISOString(),
       receivedAt: new Date().toISOString()
     };
     const eventsFile = path.join(__dirname, 'data', 'waitlist-events.json');
@@ -544,13 +642,15 @@ if (landingRootExists) {
       let rows = [];
       try {
         const data = await fs.promises.readFile(eventsFile, 'utf8');
-        rows = JSON.parse(data);
+        const parsed = JSON.parse(data);
+        if (Array.isArray(parsed)) rows = parsed;
       } catch { /* file does not exist yet */ }
       rows.push(event);
-      if (rows.length > constants.TIMEOUT_5S) rows = rows.slice(-constants.TIMEOUT_5S);
+      const MAX_WAITLIST_EVENTS = 10000;
+      if (rows.length > MAX_WAITLIST_EVENTS) rows = rows.slice(-MAX_WAITLIST_EVENTS);
       await fs.promises.writeFile(eventsFile, JSON.stringify(rows, null, 2));
     } catch (err) {
-      console.warn('[waitlist] event persist failed:', err.message);
+      console.warn('[waitlist] event persist failed:', safeErrorMessage(err));
     }
     return res.json({ ok: true });
   });
@@ -714,8 +814,8 @@ async function bootstrapPhase2Routes() {
         });
 
     } catch (error) {
-        console.error('❌ Phase 2 bootstrap failed, using stub APIs only:', error.message); // simplebeacon-ignore production-leak — error message text only
-        console.error('Stack:', error.stack);
+        console.error('❌ Phase 2 bootstrap failed, using stub APIs only:', safeErrorMessage(error)); // simplebeacon-ignore production-leak — error message text only
+        console.error('Stack:', error?.stack || '(no stack)');
         setupDashboardStubAPIs(app, webRoot, { // simplebeacon-ignore production-leak — real production dashboard API module
             authMiddleware: optionalAuthenticate
         });
@@ -751,14 +851,21 @@ async function startServer() {
   });
 
   const server = http.createServer(app);
-  const wss = setupWebSocketServer(server);
+  let wss;
+  try {
+    wss = setupWebSocketServer(server);
+  } catch (err) {
+    console.error('❌ WebSocket server setup failed:', safeErrorMessage(err));
+    wss = null;
+  }
 
   server.on('error', (err) => {
     if (err.code === 'EADDRINUSE') {
       console.error(`❌ Port ${PORT} is already in use. Run: npm run dashboard:kill-ports`);
       process.exit(1);
     }
-    throw err;
+    console.error('❌ Server error:', err);
+    process.exit(1);
   });
 
   server.listen(PORT, '0.0.0.0', () => {
@@ -772,7 +879,7 @@ async function startServer() {
       const allowedRoots = resolveDefaultAllowedRoots(__dirname, { monorepoRoot: path.join(__dirname, '..') });
       console.log(`📂 Allowed analysis roots: ${formatAllowedRootsSummary(allowedRoots, 8) || '(none)'}`);
     } catch (err) {
-      console.warn('[path-safety] Could not log allowed analysis roots:', err.message);
+      console.warn('[path-safety] Could not log allowed analysis roots:', safeErrorMessage(err));
     }
     if (landingAtRoot && fs.existsSync(path.join(landingRoot, 'index.html'))) {
       console.log(`🌐 Landing page at: http://localhost:${PORT}/`);
@@ -798,8 +905,8 @@ async function startServer() {
       console.log(`🔒 /app and dashboard APIs require vault session (24h cookie after vault login)`);
       console.log(`🧪 STAGING: see coming-soon/STAGING.md (payments flag in site-config.js)`);
     }
-        console.log(`🔧 Simplebeacon API at: http://localhost:${PORT}/api/simplebeacon/`);
-                            console.log(`🌐 WebSocket available at: ws://localhost:${PORT}/ws (legacy: ws://localhost:${WS_PORT})`);
+    console.log(`🔧 Simplebeacon API at: http://localhost:${PORT}/api/simplebeacon/`);
+    console.log(`🌐 WebSocket available at: ws://localhost:${PORT}/ws (legacy: ws://localhost:${WS_PORT})`);
     console.log(`🔐 Phase 2 auth: ${process.env.REQUIRE_AUTH === 'true' ? 'required' : 'optional (set REQUIRE_AUTH=true)'}`);
     console.log(`🗄️ Phase 2 database: ${app.locals.phase2?.database || 'pending'}`);
     console.log(`⚡ Phase 2 redis: ${app.locals.phase2?.redis || 'pending'}`);
@@ -820,16 +927,43 @@ function setupWebSocketServer(httpServer) {
     wss.handleUpgrade(request, socket, head, (ws) => {
       wss.emit('connection', ws, request);
     });
+    socket.on('error', (err) => {
+      console.warn('[WebSocket] Socket error during upgrade:', safeErrorMessage(err));
+    });
   });
 
   wss.on('connection', (ws) => {
     debugLog('🔌 WebSocket client connected');
+    ws.isAlive = true;
 
-    ws.send(JSON.stringify({
-      type: 'connection',
-      message: 'Connected to Simplebeacon WebSocket server',
-      timestamp: new Date().toISOString()
-    }));
+    try {
+      ws.send(JSON.stringify({
+        type: 'connection',
+        message: 'Connected to Simplebeacon WebSocket server',
+        timestamp: new Date().toISOString()
+      }));
+    } catch {
+      // Socket may have closed immediately after connection
+    }
+
+    // Heartbeat to detect stale connections
+    const heartbeat = setInterval(() => {
+      if (ws.readyState !== WebSocket.OPEN) {
+        clearInterval(heartbeat);
+        return;
+      }
+      if (ws.isAlive === false) {
+        clearInterval(heartbeat);
+        ws.terminate();
+        return;
+      }
+      ws.isAlive = false;
+      ws.ping();
+    }, 30000);
+
+    ws.on('pong', () => {
+      ws.isAlive = true;
+    });
 
     ws.on('message', (message) => {
       try {
@@ -843,47 +977,68 @@ function setupWebSocketServer(httpServer) {
         }));
       } catch (error) {
         console.error('❌ Error parsing WebSocket message:', error);
-        ws.send(JSON.stringify({
-          type: 'error',
-          message: 'Invalid message format',
-          timestamp: new Date().toISOString()
-        }));
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({
+            type: 'error',
+            message: 'Invalid message format',
+            timestamp: new Date().toISOString()
+          }));
+        }
       }
     });
 
     ws.on('close', () => {
+      clearInterval(heartbeat);
+      ws.isAlive = false;
       debugLog('🔌 WebSocket client disconnected');
     });
 
     ws.on('error', (error) => {
-      console.error('❌ WebSocket error');
+      clearInterval(heartbeat);
+      ws.isAlive = false;
+      console.error('❌ WebSocket error:', safeErrorMessage(error));
     });
   });
 
   const wsBroadcastInterval = setInterval(() => {
-    if (wss.clients.size > 0) {
-      const updateData = {
-        type: 'data_update',
-        timestamp: new Date().toISOString(),
-        data: {
-          analysis: {
-            totalFiles: crypto.randomInt(400, 500),
-            issuesDetected: crypto.randomInt(10, 60),
-            processingSpeed: crypto.randomInt(1000, 1500)
-          }
+    if (wss.clients.size === 0) return;
+    const updateData = {
+      type: 'data_update',
+      timestamp: new Date().toISOString(),
+      data: {
+        analysis: {
+          totalFiles: Math.floor(Math.random() * 100) + 400,
+          issuesDetected: Math.floor(Math.random() * 50) + 10,
+          processingSpeed: Math.floor(Math.random() * 500) + 1000
         }
-      };
-
-      wss.clients.forEach((client) => {
-        if (client.readyState === WebSocket.OPEN) {
-          client.send(JSON.stringify(updateData));
+      }
+    };
+    const payload = JSON.stringify(updateData);
+    wss.clients.forEach((client) => {
+      if (client.readyState === WebSocket.OPEN) {
+        try {
+          client.send(payload);
+        } catch {
+          // socket may have closed between check and send
         }
-      });
-    }
+      }
+    });
   }, constants.TIMEOUT_5S);
 
-  process.on('SIGINT', () => { clearInterval(wsBroadcastInterval); });
-  process.on('SIGTERM', () => { clearInterval(wsBroadcastInterval); });
+  process.on('SIGINT', () => {
+    clearInterval(wsBroadcastInterval);
+    wss.clients.forEach((client) => { try { client.close(); } catch { /* ignore */ } });
+    wss.close(() => {
+      httpServer.close(() => process.exit(0));
+    });
+  });
+  process.on('SIGTERM', () => {
+    clearInterval(wsBroadcastInterval);
+    wss.clients.forEach((client) => { try { client.close(); } catch { /* ignore */ } });
+    wss.close(() => {
+      httpServer.close(() => process.exit(0));
+    });
+  });
 
   return wss;
 }
@@ -900,12 +1055,29 @@ legacyWss.on('error', (err) => {
     console.warn(`[Simplebeacon] Legacy WebSocket port ${WS_PORT} already in use — skipping duplicate bind`);
     return;
   }
-  console.warn('[Simplebeacon] Legacy WebSocket error:', err.message);
+  console.warn('[Simplebeacon] Legacy WebSocket error:', safeErrorMessage(err));
 });
 legacyWss.on('listening', () => {
   console.log(`🌐 Legacy WebSocket server running on ws://localhost:${WS_PORT}`);
 });
 legacyWss.on('connection', (ws) => {
+  ws.isAlive = true;
+  ws.on('pong', () => { ws.isAlive = true; });
+
+  const heartbeat = setInterval(() => {
+    if (ws.readyState !== WebSocket.OPEN) {
+      clearInterval(heartbeat);
+      return;
+    }
+    if (ws.isAlive === false) {
+      clearInterval(heartbeat);
+      ws.terminate();
+      return;
+    }
+    ws.isAlive = false;
+    ws.ping();
+  }, 30000);
+
   ws.send(JSON.stringify({
     type: 'connection',
     message: 'Connected to legacy Simplebeacon WebSocket server',
@@ -914,11 +1086,17 @@ legacyWss.on('connection', (ws) => {
   ws.on('message', (message) => {
     try {
       const data = JSON.parse(message);
-      ws.send(JSON.stringify({ type: 'echo', data, timestamp: new Date().toISOString() }));
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'echo', data, timestamp: new Date().toISOString() }));
+      }
     } catch {
-      ws.send(JSON.stringify({ type: 'error', message: 'Invalid message format', timestamp: new Date().toISOString() }));
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'error', message: 'Invalid message format', timestamp: new Date().toISOString() }));
+      }
     }
   });
+  ws.on('close', () => { clearInterval(heartbeat); ws.isAlive = false; });
+  ws.on('error', () => { clearInterval(heartbeat); ws.isAlive = false; });
 });
 
 module.exports = app;

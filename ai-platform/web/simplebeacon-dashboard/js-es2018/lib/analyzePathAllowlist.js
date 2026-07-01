@@ -1,5 +1,6 @@
 import { fetchAnalyzeProviders, normalizeProjectPath } from '../services/analyzeService.js?v=20260531pathfix1';
 import { isRemoteRepoUrl } from './analyzePathSources.js';
+import { escapeHtml } from '../utils.js';
 /**
  * Is path within allowed roots.
  * @param {string} projectPath
@@ -103,18 +104,6 @@ export function renderPathAllowlistWarning(message) {
       ${escapeHtml(message)}
     </div>
   `;
-}
-/**
- * Escape html.
- * @param {any} value
- * @returns {any}
- */
-function escapeHtml(value) {
-    return String(value || '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
 }
 /**
  * Update path allowlist warning dom.

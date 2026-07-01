@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 import * as crypto from 'crypto';
 import * as path from 'path';
 import * as fs from 'fs';
+import { getSbConfig, escapeHtml } from './utils';
 
 function getVersionFromExtUri(extUri: vscode.Uri): string {
   try {
@@ -51,7 +52,7 @@ export class Web2Panel {
       []
     );
     this.panel.webview.onDidReceiveMessage(async (msg) => {
-      const config = vscode.workspace.getConfiguration('simplebeacon');
+      const config = getSbConfig();
       switch (msg.command) {
         case 'updateAutoScan':
           await config.update('autoScanOnOpen', msg.value, true);
@@ -98,7 +99,7 @@ export class Web2Panel {
   private buildHtml(): string {
     const nonce = crypto.randomBytes(16).toString('base64');
     const csp = this.panel.webview.cspSource;
-    const config = vscode.workspace.getConfiguration('simplebeacon');
+    const config = getSbConfig();
     const autoScan = config.get<boolean>('autoScanOnOpen', false);
     const maxFiles = config.get<number>('maxFiles', 5000);
     const excludePatterns = config.get<string[]>('excludePatterns', []);
@@ -300,12 +301,3 @@ document.querySelectorAll('.link-item').forEach(item=>{
   }
 }
 
-function escapeHtml(text: string): string {
-  if (!text) return '';
-  return String(text)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}

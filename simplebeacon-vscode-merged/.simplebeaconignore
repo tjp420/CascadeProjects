@@ -72,6 +72,12 @@ coming-soon/public/js/dashboard/main.js
 # Lockfile
 package-lock.json
 
+# Binary artifacts (WASM grammars)
+*.wasm
+
+# Large generated JSON exports
+simplebeacon-export-*.json
+
 # Test files — console.log is expected in test/debug scripts
 test_*.js
 test_*.py
@@ -79,8 +85,102 @@ test_*.py
 # Build-time validation script — brace balance checker (false positive for eval)
 validate-html.js
 
+# Generated scan report — large by design
+simplebeacon-report.json
+
 # Standard MIT license headers (not governance violations)
 src/enhancedScanProvider.ts
 
 # UI data labels containing "EU AI Act" (not governance violations)
 src/dashboardDataExtractor.ts
+
+# LLM slop catalog — contains example markdown fences by design
+src/rules/llm-slop-catalog.json
+
+# JSDoc code fence examples in barrel export (not slop)
+src/utils/index.ts
+
+# Legitimate AI integration references (not EU AI Act violations)
+src/aiIntegration/aiReportExporter.ts
+src/aiPlatform/dashboardPanel.ts
+src/welcomeDashboardHtml.ts
+
+# Safe Object.prototype usage (not prototype pollution)
+src/analyzers/workspaceAnalyzer.ts
+src/utils/object.ts
+
+# Math.random() references are in comments explaining why NOT to use it
+src/fixes/fixRegistry.ts
+
+# Promise chain with explicit rejection handler (not unhandled)
+src/utils/async.ts
+
+# Test files
+src/test/suite/index.ts
+
+# VS Code: extension activation sync I/O is required by API
+src/extension.ts
+
+# Dev scripts
+__create_token.js
+replace-dashboard.js
+debug-codemap.cjs
+_test_js.js
+extract-html.js
+extract-layout.js
+extract2.js
+
+# Example env file (not real secrets)
+.env.example
+
+# Standard PEM regex pattern (not ReDoS vulnerability)
+dashboard-web/js-es2018/utils/snippetDiagnostic.js
+
+# Lodash-style utility Math.random() (not crypto)
+dashboard-web/js/utils.js
+
+# Chatbot setInterval is intentional UI polling
+src/aiChatbotProvider.ts
+
+# Build scripts
+build-extension.js
+validate-html.js
+
+# Extension media files (compiled HTML strings)
+media/panel.js
+media/sidebar.js
+media/sidebar-main.js
+
+# Dev HTML files
+debug-welcome.html
+
+# Check scripts
+check-*.js
+check-*.cjs
+find-*.cjs
+inspect-*.cjs
+scan-*.cjs
+
+# once() closure pattern — returning a function is not dead code
+ai-platform/simplebeacon-server.cjs
+
+# Ollama default placeholder in settings UI
+ai-platform/web/simplebeacon-dashboard/js-es2018/views/SettingsView.js
+
+# SVG icon library — path coordinates match IP regex falsely
+ai-platform/web/simplebeacon-dashboard/js/vendor/lucide.min.js
+
+# UI random choice utility (not crypto)
+ai-platform/web/simplebeacon-dashboard/js-es2018/utils-dom.js
+
+# One-time startup cache read
+ai-platform/server/routes/meta-routes.cjs
+
+# Simple file-size regex (not a real ReDoS)
+ai-platform/server/config/format.cjs
+
+# Module export on window (not a leak)
+ai-platform/web/simplebeacon-dashboard/js-es2018/scan-utils.js
+
+# Intentional periodic cleanup timer
+ai-platform/server/lib/token-service.cjs

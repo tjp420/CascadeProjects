@@ -29,7 +29,7 @@ function migrateTierName(tier) {
 
 const TIER_LIMITS = {
     developer: {
-        maxScansPerPeriod: 100,
+        maxScansPerPeriod: 9999,
         customConfig: false,
         allowlist: false,
         maxFilesPerScan: 50,

@@ -1,4 +1,4 @@
-import { escapeHtml, apiUrl } from '../utils.js';
+import { escapeHtml, apiUrl, showToast } from '../utils.js';
 import { pathInputListAttr, renderPathSuggestionsDatalistElement, collectPathSuggestions } from '../lib/analyzePathSuggestions.js';
 
 /**
@@ -28,12 +28,18 @@ export class AnalyzeTargetConfig {
         .an-tgt-v3-hd { display:flex; align-items:center; justify-content:space-between; padding:18px 22px; border-bottom:1px solid rgba(148,163,184,0.08); }
         .an-tgt-v3-hd h3 { margin:0; font-size:1rem; font-weight:700; }
         .an-tgt-v3-bd { padding:22px; }
-        .an-tgt-drop { border:2px dashed rgba(148,163,184,0.2); border-radius:16px; background:rgba(148,163,184,0.03); padding:32px 24px; text-align:center; transition:all .2s; }
-        .an-tgt-drop.drag-active { border-color:var(--accent); background:rgba(99,102,241,0.06); }
-        .an-tgt-drop-icon { width:56px; height:56px; border-radius:14px; background:rgba(99,102,241,0.1); color:var(--accent); display:inline-flex; align-items:center; justify-content:center; font-size:28px; margin-bottom:14px; }
-        .an-tgt-drop h4 { margin:0 0 6px; font-size:1rem; color:var(--text-primary); }
-        .an-tgt-drop p { margin:0 0 18px; font-size:0.82rem; color:var(--text-muted); }
-        .an-tgt-actions { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+        .an-tgt-drop { border:2px dashed rgba(148,163,184,0.18); border-radius:20px; background:linear-gradient(145deg, rgba(30,41,59,0.5), rgba(15,23,42,0.3)); padding:40px 28px; text-align:center; transition:all .25s cubic-bezier(0.16,1,0.3,1); position:relative; overflow:hidden; }
+        .an-tgt-drop::before { content:''; position:absolute; inset:0; background:radial-gradient(circle at 50% 0%, rgba(99,102,241,0.08), transparent 60%); opacity:0; transition:opacity .3s ease; pointer-events:none; }
+        .an-tgt-drop.drag-active { border-color:var(--accent); background:linear-gradient(145deg, rgba(99,102,241,0.08), rgba(139,92,246,0.04)); transform:scale(1.01); }
+        .an-tgt-drop.drag-active::before { opacity:1; }
+        .an-tgt-drop-icon { width:64px; height:64px; border-radius:18px; background:linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.1)); color:var(--accent); display:inline-flex; align-items:center; justify-content:center; font-size:1.5rem; margin-bottom:18px; box-shadow:0 4px 16px rgba(99,102,241,0.15); transition:transform .3s ease,box-shadow .3s ease; }
+        .an-tgt-drop.drag-active .an-tgt-drop-icon { transform:translateY(-4px); box-shadow:0 8px 24px rgba(99,102,241,0.25); }
+        .an-tgt-drop h4 { margin:0 0 8px; font-size:1.05rem; font-weight:700; color:var(--text-primary); letter-spacing:-0.01em; }
+        .an-tgt-drop p { margin:0 0 22px; font-size:0.85rem; color:var(--text-muted); line-height:1.5; }
+        .an-tgt-actions { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+        .an-tgt-actions .btn { min-width:120px; }
+        .an-tgt-format-tags { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-top:18px; }
+        .an-tgt-format-tag { font-size:0.7rem; font-weight:500; padding:4px 10px; border-radius:20px; background:rgba(148,163,184,0.08); color:var(--text-muted); border:1px solid rgba(148,163,184,0.1); }
         .an-tgt-path { display:flex; gap:8px; align-items:center; margin-top:18px; }
         .an-tgt-path input { flex:1; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:10px 14px; color:var(--text-primary); font-size:0.85rem; transition:border-color .2s,box-shadow .2s; }
         .an-tgt-path input:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(99,102,241,0.15); }
@@ -50,12 +56,27 @@ export class AnalyzeTargetConfig {
         </div>
         <div class="an-tgt-v3-bd">
           <div class="an-tgt-drop" id="analyze-drop-zone">
-            <div class="an-tgt-drop-icon">📁</div>
-            <h4>Drop a scan report or source file</h4>
-            <p>JSON reports, ZIP bundles, or individual source files</p>
+            <div class="an-tgt-drop-icon">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </div>
+            <h4>Drop files to analyze</h4>
+            <p>Drag & drop a scan report, source file, or ZIP bundle here</p>
             <div class="an-tgt-actions">
-              <button type="button" class="btn btn-primary btn-sm" id="analyze-select-file-btn">Select File</button>
-              <button type="button" class="btn btn-secondary btn-sm" id="quick-file-scan-btn">Quick Scan</button>
+              <button type="button" class="btn btn-primary btn-sm" id="analyze-select-file-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;vertical-align:middle;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                Select File
+              </button>
+              <button type="button" class="btn btn-secondary btn-sm" id="quick-file-scan-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;vertical-align:middle;"><path d="M12 2v4"/><path d="M12 18v4"/><path d="M4.93 4.93l2.83 2.83"/><path d="M16.24 16.24l2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h4"/><path d="M4.93 19.07l2.83-2.83"/><path d="M16.24 7.76l2.83-2.83"/></svg>
+                Quick Scan
+              </button>
+            </div>
+            <div class="an-tgt-format-tags">
+              <span class="an-tgt-format-tag">.json</span>
+              <span class="an-tgt-format-tag">.zip</span>
+              <span class="an-tgt-format-tag">.js / .ts</span>
+              <span class="an-tgt-format-tag">.py</span>
+              <span class="an-tgt-format-tag">.md</span>
             </div>
           </div>
           <div class="an-tgt-path">
@@ -174,13 +195,101 @@ export class AnalyzeTargetConfig {
           dragDepth = 0;
         }
       });
-      dropZone.addEventListener('drop', (e) => {
+      dropZone.addEventListener('drop', async (e) => {
         e.preventDefault();
         e.stopPropagation();
         dragDepth = 0;
         dropZone.classList.remove('drag-active');
-        const file = e.dataTransfer?.files?.[0];
-        if (file) this.view.handleDroppedFile(file);
+        const dt = e.dataTransfer;
+        if (!dt) return;
+        // 1. Check for directory first (before files, since browsers populate files recursively for dir drops)
+        if (dt.items && dt.items.length > 0) {
+          const item = dt.items[0];
+          if (item.kind === 'file') {
+            const entry = item.webkitGetAsEntry ? item.webkitGetAsEntry() : null;
+            if (entry && entry.isDirectory) {
+              const pathInput = document.getElementById('project-path-input');
+              const droppedFile = item.getAsFile ? item.getAsFile() : null;
+              let actualPath = droppedFile && (droppedFile.path || droppedFile.webkitRelativePath) ? (droppedFile.path || droppedFile.webkitRelativePath) : null;
+              // Fallback: derive the directory root from the first dropped file's absolute path
+              if (!actualPath && dt.files && dt.files[0] && dt.files[0].path) {
+                const firstFilePath = dt.files[0].path;
+                const entryFullPath = (entry.fullPath || entry.name || '').replace(/^\//, '').replace(/\//g, '\\');
+                if (entryFullPath) {
+                  const idx = firstFilePath.toLowerCase().indexOf(entryFullPath.toLowerCase());
+                  if (idx > 0) {
+                    actualPath = firstFilePath.slice(0, idx + entryFullPath.length);
+                  }
+                }
+              }
+              // Fallback: use a file:// URI if the browser exposed one for the directory
+              if (!actualPath) {
+                const uri = dt.getData('text/uri-list') || dt.getData('URL') || dt.getData('text/plain');
+                if (uri) {
+                  const fileMatch = uri.match(/^file:\/\/\/([A-Za-z]:\/.*)$/);
+                  if (fileMatch) {
+                    actualPath = decodeURIComponent(fileMatch[1]).replace(/\//g, '\\').replace(/[\\\/]+$/, '');
+                  }
+                }
+              }
+              const relativePath = (entry.fullPath || entry.name || '').replace(/^\//, '');
+              const defaultPath = this.view.app.state.defaultProjectPath || '';
+              const isVsCode = typeof window !== 'undefined' && typeof window.acquireVsCodeApi === 'function';
+              if (actualPath) {
+                if (pathInput) { pathInput.value = actualPath; }
+                this.view.runAnalysisFromPath();
+                return;
+              }
+              if (isVsCode && defaultPath) {
+                const resolvedPath = (defaultPath.replace(/\\/g, '/') + '/' + relativePath).replace(/\//g, '\\');
+                if (pathInput) { pathInput.value = resolvedPath; }
+                this.view.runAnalysisFromPath();
+                return;
+              }
+              // External browsers cannot reveal the absolute path of a dropped folder.
+              // Ask the server to resolve the folder name to a real absolute path.
+              const fallbackPath = relativePath || entry.name || '';
+              try {
+                const folderName = entry.name || fallbackPath;
+                const res = await fetch(apiUrl('/api/analyze/resolve-folder-name') + '?folderName=' + encodeURIComponent(folderName) + '&hintPath=' + encodeURIComponent(defaultPath));
+                const data = await res.json();
+                if (data.success && data.path) {
+                  if (pathInput) { pathInput.value = data.path; }
+                  showToast(`Resolved to ${data.path}`, 'info');
+                  this.view.runAnalysisFromPath();
+                  return;
+                }
+              } catch (err) {
+                console.warn('[AnalyzeTargetConfig] Failed to resolve folder name:', err);
+              }
+              if (pathInput) { pathInput.value = fallbackPath; }
+              showToast(`Directory "${fallbackPath}" dropped. Verify the path and click Analyze.`, 'info');
+              return;
+            }
+          }
+        }
+        // 2. Try files
+        const file = dt.files?.[0];
+        if (file) { this.view.handleDroppedFile(file); return; }
+        // 3. Try text/uri-list for file:// or http:// drops
+        const uri = dt.getData('text/uri-list') || dt.getData('URL') || dt.getData('text/plain');
+        if (uri) {
+          const fileMatch = uri.match(/^file:\/\/\/([A-Za-z]:\/.*)$/);
+          if (fileMatch) {
+            const path = decodeURIComponent(fileMatch[1]).replace(/\//g, '\\').replace(/[\\\/]+$/, '');
+            const pathInput = document.getElementById('project-path-input');
+            if (pathInput) { pathInput.value = path; }
+            this.view.runAnalysisFromPath();
+            return;
+          }
+          const urlMatch = uri.match(/^https?:\/\/.+/);
+          if (urlMatch) {
+            const pathInput = document.getElementById('project-path-input');
+            if (pathInput) { pathInput.value = uri; }
+            this.view.runAnalysisFromPath();
+            return;
+          }
+        }
       });
     }
 

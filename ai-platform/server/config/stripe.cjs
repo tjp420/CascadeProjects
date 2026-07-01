@@ -90,7 +90,7 @@ function getTierConfigByProduct(product) {
  * @returns {Promise<Object>} Stripe API response.
  */
 async function reportScanUsageToStripe(stripeSecretKey, subscriptionItemId, scanCount) {
-  if (!stripeSecretKey || !subscriptionItemId || typeof scanCount !== 'number') {
+  if (!stripeSecretKey || !subscriptionItemId || typeof scanCount !== 'number' || !Number.isFinite(scanCount)) {
     throw new Error('stripeSecretKey, subscriptionItemId, and scanCount are required');
   }
   const stripe = require('stripe')(stripeSecretKey);

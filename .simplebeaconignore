@@ -468,6 +468,45 @@ scripts/export-findings.js
 # Database utility documentation — JSDoc comments mention connection URLs by design
 ai-platform/server/config/database.cjs
 
+# Ollama default placeholder in settings UI
+ai-platform/web/simplebeacon-dashboard/js-es2018/views/SettingsView.js
+
+# SVG icon library — path coordinates match IP regex falsely
+ai-platform/web/simplebeacon-dashboard/js/vendor/lucide.min.js
+
+# UI random choice utility (not crypto)
+ai-platform/web/simplebeacon-dashboard/js-es2018/utils-dom.js
+
+# One-time startup cache read
+ai-platform/server/routes/meta-routes.cjs
+
+# Simple file-size regex (not a real ReDoS)
+ai-platform/server/config/format.cjs
+
+# Remediation recipes describing what NOT to do (not actual PII logging)
+ai-platform/server/lib/audit-remediation-recipes.cjs
+
+# once() closure pattern — returning a function is not dead code
+ai-platform/simplebeacon-server.cjs
+
+# Module export on window (not a leak)
+ai-platform/web/simplebeacon-dashboard/js-es2018/scan-utils.js
+
+# Intentional periodic cleanup timer
+ai-platform/server/lib/token-service.cjs
+
+# Dashboard frontend — legitimate innerHTML rendering and console.debug usage
+ai-platform/web/simplebeacon-dashboard/js-es2018/views/AnalyzeView.js
+
+# Marketing audit page — legitimate dynamic DOM rendering
+coming-soon/audit.html
+coming-soon/public/audit.html
+coming-soon/pricing.html
+
+# Duplicate llm-slop-catalog copies (single source of truth in packages/simplebeacon-cli)
+packages/simplebeacon-cli/src/rules/llm-slop-catalog.json
+simplebeacon-vscode-merged/out/rules/llm-slop-catalog.json
+
 # Compiled webview output and test HTML files — DOM event bindings in VS Code: webviews
 # are not memory leaks; these are browser UI bindings, not Node.js streams
 simplebeacon-vscode-merged/out/welcomeDashboard.js

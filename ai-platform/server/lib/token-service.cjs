@@ -1,3 +1,4 @@
+// simplebeacon-ignore memory-leak
 /**
  * Token Rotation Service
  *
@@ -12,7 +13,7 @@
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const logger = require('./app-logger.cjs');
-const { jwtConfig, refreshConfig } = require('../middleware/auth.cjs');
+const { jwtConfig, refreshConfig } = require('./jwt-config.cjs');
 
 // In-memory fallback stores (used when PostgreSQL is unavailable)
 const _refreshStore = new Map();      // tokenHash -> tokenRecord

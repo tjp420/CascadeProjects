@@ -20,7 +20,7 @@ function createUtilityHandlers({ withGuard, resolveProjectRoot, formatToolResult
 
         init_project: withGuard((args) => {
             const root = resolveProjectRoot(args.projectRoot);
-            const { initSimplebeacon } = require('../../index');
+            const { initSimplebeacon } = require('../../lib/init-simplebeacon.cjs');
             const { installDeveloperStack } = require('../../lib/developer-onboarding');
             try {
                 const result = initSimplebeacon(root, {

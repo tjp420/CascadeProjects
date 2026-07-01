@@ -14,6 +14,7 @@ function generateLicenseToken(payload, secret, expiresInMinutes) {
         clientName: payload.clientName || payload.email || 'Client',
         projectName: payload.projectName || 'Project'
     };
+    if (payload.previousToken) tokenPayload.previousToken = payload.previousToken;
     return jwt.sign(tokenPayload, secret, { expiresIn: expiresInMinutes * 60 });
 }
 

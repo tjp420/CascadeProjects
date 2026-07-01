@@ -1,12 +1,19 @@
 // SPDX-License-Identifier: MIT
-const { DEFAULT_MOCK_SCAN_RELATIVE_PATHS, loadCentralDataConfig, resolveMockDataScanPaths } = require('./simplebeacon-proxy.cjs');
+
+let resolveMockDataScanPaths;
+
+try {
+  ({ resolveMockDataScanPaths } = require('../../../packages/simplebeacon-cli/src/config'));
+} catch (err) {
+  const msg = `Failed to load simplebeacon config module: ${err?.message || String(err)}`;
+  resolveMockDataScanPaths = () => { throw new Error(msg); };
+}
 
 /**
- * Shim — config loader lives in packages/simplebeacon-cli
+ * Resolve mock-data scan paths for a project root.
+ * @param {string} projectRoot
+ * @returns {string[]}
  */
-
 module.exports = {
-    loadCentralDataConfig,
-    resolveMockDataScanPaths,
-    DEFAULT_MOCK_SCAN_RELATIVE_PATHS
+  resolveMockDataScanPaths
 };

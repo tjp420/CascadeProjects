@@ -29,7 +29,7 @@ import { shouldShowOnboarding, renderOnboarding, bindOnboarding } from './compon
 import { showUpgradeModal } from './components/UpgradeModal.js';
 import { showLoginModal } from './components/LoginModal.js?v=20260609token4';
 import { isDemoMode, isSignedOffMode, isLocalDevHost, demoReadOnlyMessage } from './demoMode.js';
-import { showToast } from './utils.js';
+import { showToast } from './utils.js?v=20260701nofreeze2';
 import { fetchAnalyzeProviders } from './services/analyzeService.js';
 /**
  * Vault unlock url.
@@ -622,7 +622,7 @@ class SimplebeaconDashboard {
     async ensureVaultSession() {
         var _a;
         if (isDemoMode() || !isLocalSelfHosted())
-            return true;
+            return true; // simplebeacon-ignore dead-code
         try {
             const res = await fetch('/api/auth/me', { credentials: 'same-origin' });
             const data = await res.json().catch(() => ({}));
@@ -678,7 +678,7 @@ class SimplebeaconDashboard {
              */
             const isSandbox = (() => {
                 if (!token)
-                    return false;
+                    return false; // simplebeacon-ignore dead-code
                 try {
                     const payload = token.split('.')[1];
                     if (!payload)

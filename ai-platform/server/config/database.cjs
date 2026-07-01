@@ -67,15 +67,19 @@ function resolveDatabasePassword(fromUrl, overrides = {}) {
  */
 function getDatabaseConfig(overrides = {}) {
     const fromUrl = parseDatabaseUrl(process.env.DATABASE_URL);
+    const rawPort = overrides.port || fromUrl?.port || process.env.DB_PORT || DEFAULT_PG_PORT;
+    const rawMax = process.env.DB_POOL_MAX || overrides.max || DEFAULT_POOL_MAX;
+    const rawIdle = process.env.DB_IDLE_TIMEOUT_MS || constants.TIMEOUT_30S;
+    const rawConnect = process.env.DB_CONNECT_TIMEOUT_MS || DEFAULT_CONNECT_TIMEOUT_MS;
     return {
         host: overrides.host || fromUrl?.host || process.env.DB_HOST || 'localhost',
-        port: Number(overrides.port || fromUrl?.port || process.env.DB_PORT || DEFAULT_PG_PORT),
+        port: Number.isFinite(Number(rawPort)) ? Number(rawPort) : DEFAULT_PG_PORT,
         database: overrides.database || fromUrl?.database || process.env.DB_NAME || 'cascade_ai_platform',
         user: overrides.user || fromUrl?.user || process.env.DB_USER || 'cascade_user',
         password: resolveDatabasePassword(fromUrl, overrides),
-        max: Number(process.env.DB_POOL_MAX || overrides.max || DEFAULT_POOL_MAX),
-        idleTimeoutMillis: Number(process.env.DB_IDLE_TIMEOUT_MS || constants.TIMEOUT_30S),
-        connectionTimeoutMillis: Number(process.env.DB_CONNECT_TIMEOUT_MS || DEFAULT_CONNECT_TIMEOUT_MS)
+        max: Number.isFinite(Number(rawMax)) ? Number(rawMax) : DEFAULT_POOL_MAX,
+        idleTimeoutMillis: Number.isFinite(Number(rawIdle)) ? Number(rawIdle) : constants.TIMEOUT_30S,
+        connectionTimeoutMillis: Number.isFinite(Number(rawConnect)) ? Number(rawConnect) : DEFAULT_CONNECT_TIMEOUT_MS
     };
 }
 

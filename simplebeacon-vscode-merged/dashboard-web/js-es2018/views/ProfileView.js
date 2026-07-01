@@ -1,222 +1,241 @@
 import { escapeHtml, showToast } from '../utils.js';
 import { authService } from '../services/authService.js';
+
 function loadProfile() {
-    try {
-        const raw = localStorage.getItem('sb_profile');
-        return raw ? JSON.parse(raw) : {};
-    }
-    catch (_a) {
-        return {};
-    }
+  try {
+    const raw = localStorage.getItem('sb_profile');
+    return raw ? JSON.parse(raw) : {};
+  } catch { return {}; }
 }
+
 function saveProfile(data) {
-    localStorage.setItem('sb_profile', JSON.stringify(data));
+  localStorage.setItem('sb_profile', JSON.stringify(data));
 }
+
 function decodeJwtPayload(token) {
-    if (!token || typeof token !== 'string')
-        return null;
-    const parts = token.split('.');
-    if (parts.length !== 3)
-        return null;
-    try {
-        const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-        const padding = '='.repeat((4 - base64.length % 4) % 4);
-        return JSON.parse(atob(base64 + padding));
-    }
-    catch (_a) {
-        return null;
-    }
+  if (!token || typeof token !== 'string') return null;
+  const parts = token.split('.');
+  if (parts.length !== 3) return null;
+  try {
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padding = '='.repeat((4 - base64.length % 4) % 4);
+    return JSON.parse(atob(base64 + padding));
+  } catch {
+    return null;
+  }
 }
+
 function formatTimeAgo(dateString) {
-    if (!dateString)
-        return 'Unknown';
-    const then = new Date(dateString).getTime();
-    if (isNaN(then))
-        return 'Unknown';
-    const diff = Date.now() - then;
-    const seconds = Math.floor(diff / 1000);
-    const minutes = Math.floor(seconds / 60);
-    const hours = Math.floor(minutes / 60);
-    const days = Math.floor(hours / 24);
-    const months = Math.floor(days / 30);
-    const years = Math.floor(days / 365);
-    if (years > 0)
-        return `${years} year${years > 1 ? 's' : ''}`;
-    if (months > 0)
-        return `${months} month${months > 1 ? 's' : ''}`;
-    if (days > 0)
-        return `${days} day${days > 1 ? 's' : ''}`;
-    if (hours > 0)
-        return `${hours} hour${hours > 1 ? 's' : ''}`;
-    if (minutes > 0)
-        return `${minutes} minute${minutes > 1 ? 's' : ''}`;
-    return `${seconds} second${seconds !== 1 ? 's' : ''}`;
+  if (!dateString) return 'Unknown';
+  const then = new Date(dateString).getTime();
+  if (isNaN(then)) return 'Unknown';
+  const diff = Date.now() - then;
+  const seconds = Math.floor(diff / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+  const months = Math.floor(days / 30);
+  const years = Math.floor(days / 365);
+  if (years > 0) return `${years} year${years > 1 ? 's' : ''}`;
+  if (months > 0) return `${months} month${months > 1 ? 's' : ''}`;
+  if (days > 0) return `${days} day${days > 1 ? 's' : ''}`;
+  if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''}`;
+  if (minutes > 0) return `${minutes} minute${minutes > 1 ? 's' : ''}`;
+  return `${seconds} second${seconds !== 1 ? 's' : ''}`;
 }
+
 function formatExpiry(exp) {
-    if (!exp)
-        return { label: 'Never', color: 'var(--text-muted)' };
-    const expiryMs = exp * 1000;
-    const diff = expiryMs - Date.now();
-    if (diff <= 0)
-        return { label: 'Expired', color: 'var(--error)' };
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    if (days > 30)
-        return { label: `${Math.floor(days / 30)} months`, color: 'var(--success)' };
-    if (days > 1)
-        return { label: `${days} days`, color: days < 7 ? 'var(--warning)' : 'var(--success)' };
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    return { label: `${hours}h`, color: 'var(--warning)' };
+  if (!exp) return { label: 'Never', color: 'var(--text-muted)' };
+  const expiryMs = exp * 1000;
+  const diff = expiryMs - Date.now();
+  if (diff <= 0) return { label: 'Expired', color: 'var(--error)' };
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  if (days > 30) return { label: `${Math.floor(days / 30)} months`, color: 'var(--success)' };
+  if (days > 1) return { label: `${days} days`, color: days < 7 ? 'var(--warning)' : 'var(--success)' };
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  return { label: `${hours}h`, color: 'var(--warning)' };
 }
+
+function getInitials(value) {
+  if (!value || typeof value !== 'string') return '?';
+  const clean = value.trim();
+  if (!clean) return '?';
+  const parts = clean.split(/[@\s._-]+/).filter(Boolean);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
 function getTokenRegistry() {
-    try {
-        const raw = localStorage.getItem('sb-token-registry');
-        return raw ? JSON.parse(raw) : {};
-    }
-    catch (_a) {
-        return {};
-    }
+  try {
+    const raw = localStorage.getItem('sb-token-registry');
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
 }
+
 export class ProfileView {
-    constructor(app) {
-        this.app = app;
-        this._countdownInterval = null;
-        this._safetyTimer = null;
+  constructor(app) {
+    this.app = app;
+    this._countdownInterval = null;
+    this._safetyTimer = null;
+    this._container = null;
+    this._renderKey = null;
+  }
+
+  renderSecureReveal(inputId, rawValue, classification) {
+    if (!rawValue || rawValue === 'N/A') {
+      return `<span class="profile-empty-field-fallback">Unassigned Context</span>`;
     }
-    renderSecureReveal(inputId, rawValue, classification) {
-        if (!rawValue || rawValue === 'N/A') {
-            return `<span class="empty-fallback-text">Unassigned Context</span>`;
-        }
-        let masked = '••••••••••••••••';
-        if (classification === 'email' && rawValue.includes('@')) {
-            const [name, domain] = rawValue.split('@');
-            masked = `${name.substring(0, 3)}••••@${domain.substring(0, 3)}••••`;
-        }
-        else if (rawValue.length > 12) {
-            masked = `${rawValue.substring(0, 6)}••••••••${rawValue.slice(-4)}`;
-        }
-        return `
-      <div class="secure-reveal-wrapper profile-privacy-box" data-revealed="false">
+
+    const displayedMask = this.maskAccountEmail(rawValue, classification === 'email');
+
+    return `
+      <div class="secure-reveal-wrapper profile-privacy-shield" data-field-id="${inputId}" data-revealed="false">
         <div class="secret-display-canvas">
-          <span class="masked-view">${escapeHtml(masked)}</span>
+          <span class="masked-view">${escapeHtml(displayedMask)}</span>
           <span class="unmasked-view raw-code-text">${escapeHtml(rawValue)}</span>
         </div>
-        <button class="profile-privacy-eye-toggle" type="button" aria-label="Toggle visibility">
-          <i data-lucide="eye" class="icon-14"></i>
+        <button class="profile-privacy-eye-toggle-btn" type="button" aria-label="Reveal protected parameter information">
+          <span class="codicon codicon-eye"></span>
         </button>
       </div>
     `;
+  }
+
+  /**
+   * Specialized obfuscation engine for standard profile text strings.
+   * Preserves only the first 2 characters of the mailbox name for rapid tracking verification.
+   * @param {string} emailStr
+   * @param {boolean} isEmail
+   * @returns {string}
+   */
+  maskAccountEmail(emailStr, isEmail = false) {
+    if (!isEmail || !emailStr || !emailStr.includes('@')) {
+      return '••••••••••••••••';
     }
-    synchronizeAdaptiveFormDimming() {
-        var _a;
-        const activeSelection = ((_a = document.querySelector('input[name="loginMethod"]:checked')) === null || _a === void 0 ? void 0 : _a.value) || 'both';
-        const emailCard = document.getElementById('profile-card-email-fields');
-        const tokenCard = document.getElementById('profile-card-token-fields');
-        if (!emailCard || !tokenCard)
-            return;
-        emailCard.classList.remove('context-disabled-dim');
-        tokenCard.classList.remove('context-disabled-dim');
-        if (activeSelection === 'email') {
-            tokenCard.classList.add('context-disabled-dim');
-        }
-        else if (activeSelection === 'token') {
-            emailCard.classList.add('context-disabled-dim');
-        }
+    const [name, domain] = emailStr.split('@');
+    const hiddenName = name.length > 2 ? name.substring(0, 2) + '••••' : '••••';
+    const hiddenDomain = domain.length > 4 ? domain.substring(0, 2) + '••••' + domain.slice(-3) : '••••';
+    return `${hiddenName}@${hiddenDomain}`;
+  }
+
+  synchronizeAdaptiveFormDimming() {
+    const activeSelection = document.querySelector('input[name="loginMethod"]:checked')?.value || 'both';
+    const emailCard = document.getElementById('profile-card-email-fields');
+    const tokenCard = document.getElementById('profile-card-token-fields');
+    if (!emailCard || !tokenCard) return;
+    emailCard.classList.remove('context-disabled-dim');
+    tokenCard.classList.remove('context-disabled-dim');
+    if (activeSelection === 'email') {
+      tokenCard.classList.add('context-disabled-dim');
+    } else if (activeSelection === 'token') {
+      emailCard.classList.add('context-disabled-dim');
     }
-    executeHardCacheCleanup(buttonDomRef) {
-        const keys = Object.keys(localStorage).filter((k) => k.startsWith('sb_') || k.includes('simplebeacon'));
-        keys.forEach((k) => localStorage.removeItem(k));
-        showToast('Workspace state caches cleared successfully. Reloading workspace context layers.', 'success');
-        if (buttonDomRef) {
-            const textEl = buttonDomRef.querySelector('.btn-text');
-            if (textEl)
-                textEl.textContent = 'Wiped Clean!';
-        }
-        setTimeout(() => window.location.reload(), 1200);
+  }
+
+  executeHardCacheCleanup(buttonDomRef) {
+    const keys = Object.keys(localStorage).filter((k) => k.startsWith('sb_') || k.includes('simplebeacon'));
+    keys.forEach((k) => localStorage.removeItem(k));
+    showToast('Workspace state caches cleared successfully. Reloading workspace context layers.', 'success');
+    if (buttonDomRef) {
+      const textEl = buttonDomRef.querySelector('.btn-text');
+      if (textEl) textEl.textContent = 'Wiped Clean!';
     }
-    startExpirationCountdown() {
-        var _a, _b;
-        const token = (typeof authService !== 'undefined' ? authService.getToken() : null) || ((_b = (_a = this.app) === null || _a === void 0 ? void 0 : _a.state) === null || _b === void 0 ? void 0 : _b.token) || '';
-        if (!token)
-            return;
-        const payload = decodeJwtPayload(token);
-        if (!payload || !payload.exp) {
-            this.updateExpirationBadge(null, 'Static Key / Non-JWT');
-            return;
-        }
-        const expirationTimestampMs = payload.exp * 1000;
-        if (this._countdownInterval)
-            clearInterval(this._countdownInterval);
-        this.tickExpiration(expirationTimestampMs);
-        this._countdownInterval = setInterval(() => {
-            this.tickExpiration(expirationTimestampMs);
-        }, 60000);
+    setTimeout(() => window.location.reload(), 1200);
+  }
+
+  startExpirationCountdown() {
+    const token = (typeof authService !== 'undefined' ? authService.getToken() : null) || this.app?.state?.token || '';
+    if (!token) return;
+    const payload = decodeJwtPayload(token);
+    if (!payload || !payload.exp) {
+      this.updateExpirationBadge(null, 'Static Key / Non-JWT');
+      return;
     }
-    tickExpiration(expirationMs) {
-        const nowMs = Date.now();
-        const remainingMs = expirationMs - nowMs;
-        if (remainingMs <= 0) {
-            clearInterval(this._countdownInterval);
-            this._countdownInterval = null;
-            this.updateExpirationBadge('expired', 'Session Expired');
-            return;
-        }
-        const totalHours = remainingMs / (1000 * 60 * 60);
-        let state = 'safe';
-        let displayString = '';
-        if (totalHours <= 2) {
-            state = 'critical';
-            const mins = Math.max(1, Math.round(remainingMs / (1000 * 60)));
-            displayString = `Expires in ${mins}m`;
-        }
-        else if (totalHours < 24) {
-            state = 'warning';
-            displayString = `Expires in ${Math.round(totalHours)}h`;
-        }
-        else {
-            const days = Math.floor(totalHours / 24);
-            const hoursLeft = Math.round(totalHours % 24);
-            displayString = days > 0 ? `${days}d ${hoursLeft}h left` : `${hoursLeft}h left`;
-        }
-        this.updateExpirationBadge(state, displayString);
+    const expirationTimestampMs = payload.exp * 1000;
+    if (this._countdownInterval) clearInterval(this._countdownInterval);
+    this.tickExpiration(expirationTimestampMs);
+    this._countdownInterval = setInterval(() => {
+      this.tickExpiration(expirationTimestampMs);
+    }, 60000);
+  }
+
+  tickExpiration(expirationMs) {
+    const nowMs = Date.now();
+    const remainingMs = expirationMs - nowMs;
+    if (remainingMs <= 0) {
+      clearInterval(this._countdownInterval);
+      this._countdownInterval = null;
+      this.updateExpirationBadge('expired', 'Session Expired');
+      return;
     }
-    updateExpirationBadge(state, text) {
-        const container = document.getElementById('sb-profile-expiration-container');
-        if (!container)
-            return;
-        if (!state) {
-            container.innerHTML = `<span class="profile-telemetry-pill neutral">${escapeHtml(text)}</span>`;
-            return;
-        }
-        const refreshLink = state === 'critical'
-            ? ` <a href="#" class="profile-session-refresh-link" id="sb-profile-refresh-session-action">Refresh Session</a>`
-            : '';
-        container.innerHTML = `
+    const totalHours = remainingMs / (1000 * 60 * 60);
+    let state = 'safe';
+    let displayString = '';
+    if (totalHours <= 2) {
+      state = 'critical';
+      const mins = Math.max(1, Math.round(remainingMs / (1000 * 60)));
+      displayString = `Expires in ${mins}m`;
+    } else if (totalHours < 24) {
+      state = 'warning';
+      displayString = `Expires in ${Math.round(totalHours)}h`;
+    } else {
+      const days = Math.floor(totalHours / 24);
+      const hoursLeft = Math.round(totalHours % 24);
+      displayString = days > 0 ? `${days}d ${hoursLeft}h left` : `${hoursLeft}h left`;
+    }
+    this.updateExpirationBadge(state, displayString);
+  }
+
+  updateExpirationBadge(state, text) {
+    const container = document.getElementById('sb-profile-expiration-container');
+    if (!container) return;
+    if (!state) {
+      container.innerHTML = `<span class="profile-telemetry-pill neutral">${escapeHtml(text)}</span>`;
+      return;
+    }
+    const refreshLink = state === 'critical'
+      ? ` <a href="#" class="profile-session-refresh-link" id="sb-profile-refresh-session-action">Refresh Session</a>`
+      : '';
+    container.innerHTML = `
       <span class="profile-telemetry-pill pulse-badge-${state}" data-urgency="${state}">${escapeHtml(text)}</span>${refreshLink}
     `;
+  }
+
+  mount(container) {
+    const user = authService.getUser() || this.app.state?.user || {};
+    const token = authService.getToken() || '';
+    const profile = loadProfile();
+    const email = user.email || profile.email || '';
+    const tier = user.tier || user.plan || profile.tier || 'community';
+    const project = user.projectName || profile.projectName || 'default-project';
+    const loginMethod = profile.loginMethod || (token && !user.email ? 'token' : 'email');
+
+    // ─── Token & Account analytics ───
+    const payload = decodeJwtPayload(token);
+    const registry = getTokenRegistry();
+    const binding = registry[token] || null;
+    const tokenType = token ? (payload ? 'JWT' : 'License Key') : 'None';
+    const tokenTier = payload?.tier || payload?.plan || payload?.product || tier;
+    const tokenExp = payload?.exp || null;
+    const tokenIat = payload?.iat || null;
+    const expiryInfo = formatExpiry(tokenExp);
+    const displayName = profile.displayName || user.displayName || email.split('@')[0] || '';
+    const organization = profile.organization || user.organization || project || '';
+    const lastLogin = profile.lastLogin || user.lastLogin || binding?.boundAt || (tokenIat ? new Date(tokenIat * 1000).toISOString() : null);
+    const renderKey = `${email}|${token}|${loginMethod}|${displayName}|${organization}`;
+    if (this._container === container && this._renderKey === renderKey && container.querySelector('.profile-page')) {
+      return;
     }
-    mount(container) {
-        var _a, _b, _c;
-        const user = authService.getUser() || ((_a = this.app.state) === null || _a === void 0 ? void 0 : _a.user) || {};
-        const token = authService.getToken() || '';
-        const profile = loadProfile();
-        const email = user.email || profile.email || '';
-        const tier = user.tier || user.plan || profile.tier || 'community';
-        const project = user.projectName || profile.projectName || 'default-project';
-        const loginMethod = profile.loginMethod || (token && !user.email ? 'token' : 'email');
-        // ─── Token & Account analytics ───
-        const payload = decodeJwtPayload(token);
-        const registry = getTokenRegistry();
-        const binding = registry[token] || null;
-        const tokenType = token ? (payload ? 'JWT' : 'License Key') : 'None';
-        const tokenTier = (payload === null || payload === void 0 ? void 0 : payload.tier) || (payload === null || payload === void 0 ? void 0 : payload.plan) || (payload === null || payload === void 0 ? void 0 : payload.product) || tier;
-        const tokenExp = (payload === null || payload === void 0 ? void 0 : payload.exp) || null;
-        const tokenIat = (payload === null || payload === void 0 ? void 0 : payload.iat) || null;
-        const expiryInfo = formatExpiry(tokenExp);
-        const boundAt = (binding === null || binding === void 0 ? void 0 : binding.boundAt) || null;
-        const accountAge = boundAt ? formatTimeAgo(boundAt) : (tokenIat ? formatTimeAgo(new Date(tokenIat * 1000).toISOString()) : 'Unknown');
-        const isActive = token ? (tokenExp ? tokenExp * 1000 > Date.now() : true) : false;
-        const subLabel = (payload === null || payload === void 0 ? void 0 : payload.sub) || (payload === null || payload === void 0 ? void 0 : payload.email) || email || 'Not set';
-        const fragment = document.createRange().createContextualFragment(`
+    this._container = container;
+    this._renderKey = renderKey;
+    const boundAt = binding?.boundAt || null;
+    const accountAge = boundAt ? formatTimeAgo(boundAt) : (tokenIat ? formatTimeAgo(new Date(tokenIat * 1000).toISOString()) : 'Unknown');
+    const isActive = token ? (tokenExp ? tokenExp * 1000 > Date.now() : true) : false;
+    const subLabel = payload?.sub || payload?.email || email || 'Not set';
+
+    const fragment = document.createRange().createContextualFragment(`
       <style>
         .profile-page { max-width: 720px; margin: 0 auto; padding: var(--space-6) var(--space-4) var(--space-8); }
         .profile-hero { text-align: center; margin-bottom: var(--space-6); }
@@ -288,13 +307,20 @@ export class ProfileView {
         .staged-safety-btn.is-staged-warning { background: rgba(245,158,11,0.15) !important; border-color: #f59e0b !important; color: #fbbf24 !important; cursor: not-allowed; pointer-events: none; }
         .staged-safety-btn.is-fully-unlocked { background: #ef4444 !important; border-color: #ef4444 !important; color: #fff !important; animation: criticalDestructionPulse 1s infinite alternate; }
         @keyframes criticalDestructionPulse { from { box-shadow: 0 0 0 0 rgba(239,68,68,0.4); } to { box-shadow: 0 0 12px 3px rgba(239,68,68,0.2); } }
+        @media (max-width: 560px) {
+          .profile-page { padding: var(--space-4) var(--space-3) var(--space-6); }
+          .profile-hero h1 { font-size: 1.4rem; }
+          .login-method-grid { grid-template-columns: 1fr; }
+          .session-grid { grid-template-columns: 1fr 1fr; }
+          .profile-actions .btn, .profile-actions .staged-safety-btn { flex: 1 1 100%; }
+        }
       </style>
 
       <div class="profile-page">
         <div class="profile-hero">
-          <div class="profile-avatar">${email ? escapeHtml(email[0].toUpperCase()) : '?'}</div>
-          <h1>Account Profile</h1>
-          <p>Manage your credentials, license token, and session settings.</p>
+          <div class="profile-avatar">${escapeHtml(getInitials(email))}</div>
+          <h1>${escapeHtml(displayName || email || 'Account Profile')}</h1>
+          <p>${escapeHtml(email)} · ${escapeHtml(organization || 'No organization')}</p>
         </div>
 
         <!-- Login Method -->
@@ -325,6 +351,24 @@ export class ProfileView {
               </label>
             </div>
             <p class="profile-help" style="margin-top:var(--space-3);">Choose how you want to authenticate on this device. Your choice is saved locally.</p>
+          </div>
+        </div>
+
+        <!-- Personal Info -->
+        <div class="profile-card" id="profile-card-personal-fields">
+          <div class="profile-card-header">
+            <i data-lucide="user" class="icon-18"></i>
+            <h2>Personal Info</h2>
+          </div>
+          <div class="profile-card-body">
+            <div class="profile-field">
+              <label for="profile-display-name">Display Name</label>
+              <input type="text" id="profile-display-name" value="${escapeHtml(displayName)}" placeholder="How you want to be addressed…">
+            </div>
+            <div class="profile-field">
+              <label for="profile-organization">Organization / Project</label>
+              <input type="text" id="profile-organization" value="${escapeHtml(organization)}" placeholder="Company or project name…">
+            </div>
           </div>
         </div>
 
@@ -402,6 +446,10 @@ export class ProfileView {
                 <div class="value" style="color:${isActive ? 'var(--success)' : 'var(--error)'};">${isActive ? '● Active' : '● Inactive'}</div>
               </div>
               <div class="session-badge">
+                <div class="label">Last Login</div>
+                <div class="value" style="font-size:var(--font-size-xs);">${escapeHtml(lastLogin ? formatTimeAgo(lastLogin) : 'Unknown')}</div>
+              </div>
+              <div class="session-badge">
                 <div class="label">Subject</div>
                 <div class="value" style="font-size:var(--font-size-xs);">${this.renderSecureReveal('profile-subject', subLabel, 'generic')}</div>
               </div>
@@ -428,262 +476,262 @@ export class ProfileView {
       </div>
 
     `);
-        container.appendChild(fragment);
-        // Start live token expiration countdown
-        this.startExpirationCountdown();
-        // Style active login method
-        const updateLoginMethodStyles = () => {
-            container.querySelectorAll('.login-method-card').forEach((card) => {
-                const input = card.querySelector('input[type="radio"]');
-                if (input.checked) {
-                    card.classList.add('active');
-                }
-                else {
-                    card.classList.remove('active');
-                }
-            });
-        };
-        container.querySelectorAll('input[name="loginMethod"]').forEach((radio) => {
-            radio.addEventListener('change', updateLoginMethodStyles);
-        });
-        updateLoginMethodStyles();
-        // Track if any sensitive field changed
-        let hasChanges = false;
-        const watchInputs = ['#profile-email', '#profile-email-password', '#profile-token', '#profile-token-password'];
-        watchInputs.forEach((sel) => {
-            const el = container.querySelector(sel);
-            if (el)
-                el.addEventListener('input', () => { hasChanges = true; });
-        });
-        // Save profile
-        (_b = container.querySelector('#profile-save-btn')) === null || _b === void 0 ? void 0 : _b.addEventListener('click', () => {
-            var _a, _b, _c, _d, _e, _f, _g;
-            const data = {
-                email: ((_b = (_a = container.querySelector('#profile-email')) === null || _a === void 0 ? void 0 : _a.value) === null || _b === void 0 ? void 0 : _b.trim()) || '',
-                emailPassword: ((_c = container.querySelector('#profile-email-password')) === null || _c === void 0 ? void 0 : _c.value) || '',
-                tokenPassword: ((_d = container.querySelector('#profile-token-password')) === null || _d === void 0 ? void 0 : _d.value) || '',
-                loginMethod: ((_e = container.querySelector('input[name="loginMethod"]:checked')) === null || _e === void 0 ? void 0 : _e.value) || 'email'
-            };
-            // Require password confirmation if anything changed
-            if (hasChanges) {
-                const stored = loadProfile();
-                const currentPassword = data.emailPassword || data.tokenPassword || stored.emailPassword || stored.tokenPassword || '';
-                const confirmPassword = prompt('Changes detected. Enter your password to confirm save:');
-                if (confirmPassword === null) {
-                    const status = container.querySelector('#profile-save-status');
-                    status.textContent = 'Save cancelled.';
-                    status.style.color = 'var(--warning)';
-                    setTimeout(() => { status.textContent = ''; status.style.color = ''; }, 3000);
-                    return;
-                }
-                if (confirmPassword !== currentPassword) {
-                    const status = container.querySelector('#profile-save-status');
-                    status.textContent = 'Password mismatch — changes not saved.';
-                    status.style.color = 'var(--error)';
-                    setTimeout(() => { status.textContent = ''; status.style.color = ''; }, 3000);
-                    return;
-                }
-            }
-            saveProfile(data);
-            hasChanges = false;
-            const tokenVal = (_g = (_f = container.querySelector('#profile-token')) === null || _f === void 0 ? void 0 : _f.value) === null || _g === void 0 ? void 0 : _g.trim();
-            if (tokenVal) {
-                localStorage.setItem('cascadeAuthToken', tokenVal);
-            }
-            if (data.email) {
-                localStorage.setItem('cascadeAuthUser', data.email);
-            }
-            const status = container.querySelector('#profile-save-status');
-            status.textContent = 'Profile saved successfully.';
-            status.style.color = 'var(--success)';
-            setTimeout(() => { status.textContent = ''; status.style.color = ''; }, 3000);
-        });
-        // Sign out
-        (_c = container.querySelector('#profile-signout-btn')) === null || _c === void 0 ? void 0 : _c.addEventListener('click', () => {
-            const keys = ['cascadeAuthToken', 'cascadeAuthUser', 'access_token', 'token', 'authToken', 'simplebeacon_token', 'sb-token-vault'];
-            keys.forEach((k) => { localStorage.removeItem(k); });
-            keys.forEach((k) => { document.cookie = k + '=;path=/;max-age=0;SameSite=Lax;'; });
-            sessionStorage.clear();
-            this.app.navigate('dashboard');
-            window.location.reload();
-        });
-        // Token show/hide toggle
-        const toggleBtn = container.querySelector('#profile-token-toggle');
-        if (toggleBtn) {
-            toggleBtn.addEventListener('click', () => {
-                try {
-                    const input = container.querySelector('#profile-token');
-                    if (!input)
-                        return;
-                    if (input.type === 'password') {
-                        input.type = 'text';
-                        toggleBtn.textContent = '🙈';
-                        toggleBtn.title = 'Hide token';
-                    }
-                    else {
-                        input.type = 'password';
-                        toggleBtn.textContent = '👁';
-                        toggleBtn.title = 'Show token';
-                    }
-                }
-                catch (e) {
-                    console.error('[Profile] Toggle failed:', e);
-                }
-            });
+    container.innerHTML = '';
+    container.appendChild(fragment);
+
+    // Start live token expiration countdown
+    this.startExpirationCountdown();
+
+    // Style active login method
+    const updateLoginMethodStyles = () => {
+      container.querySelectorAll('.login-method-card').forEach((card) => {
+        const input = card.querySelector('input[type="radio"]');
+        if (input.checked) {
+          card.classList.add('active');
+        } else {
+          card.classList.remove('active');
         }
-        // Token copy with fallback
-        const copyBtn = container.querySelector('#profile-token-copy');
-        if (copyBtn) {
-            copyBtn.addEventListener('click', async () => {
-                var _a, _b, _c, _d, _e, _f;
-                const input = container.querySelector('#profile-token');
-                if (!input || !input.value) {
-                    (_b = (_a = this.app).showToast) === null || _b === void 0 ? void 0 : _b.call(_a, 'No token to copy', 'error');
-                    return;
-                }
-                let copied = false;
-                // Try modern clipboard API first
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                    try {
-                        await navigator.clipboard.writeText(input.value);
-                        copied = true;
-                    }
-                    catch (e) {
-                        console.warn('[Profile] Clipboard API failed, trying fallback:', e);
-                    }
-                }
-                // Fallback: select + execCommand
-                if (!copied) {
-                    try {
-                        const prevType = input.type;
-                        input.type = 'text';
-                        input.focus();
-                        input.select();
-                        copied = document.execCommand('copy');
-                        input.type = prevType;
-                    }
-                    catch (e) {
-                        console.error('[Profile] Fallback copy failed:', e);
-                    }
-                }
-                if (copied) {
-                    const original = copyBtn.textContent;
-                    copyBtn.textContent = '✓';
-                    setTimeout(() => { copyBtn.textContent = original; }, 1500);
-                    (_d = (_c = this.app).showToast) === null || _d === void 0 ? void 0 : _d.call(_c, 'Token copied', 'success');
-                }
-                else {
-                    (_f = (_e = this.app).showToast) === null || _f === void 0 ? void 0 : _f.call(_e, 'Copy failed — please select and copy manually', 'error');
-                }
-            });
+      });
+    };
+
+    const applyLoginMethod = () => {
+      updateLoginMethodStyles();
+      this.synchronizeAdaptiveFormDimming();
+      const value = container.querySelector('input[name="loginMethod"]:checked')?.value || 'both';
+      localStorage.setItem('sb_preferred_login_method', value);
+      hasChanges = true;
+    };
+
+    container.querySelectorAll('input[name="loginMethod"]').forEach((radio) => {
+      radio.addEventListener('change', applyLoginMethod);
+    });
+    updateLoginMethodStyles();
+    this.synchronizeAdaptiveFormDimming();
+
+    // Track if any sensitive field changed
+    let hasChanges = false;
+    const watchInputs = ['#profile-email', '#profile-email-password', '#profile-token', '#profile-token-password', '#profile-display-name', '#profile-organization'];
+    watchInputs.forEach((sel) => {
+      const el = container.querySelector(sel);
+      if (el) el.addEventListener('input', () => { hasChanges = true; });
+    });
+
+    // Save profile
+    container.querySelector('#profile-save-btn')?.addEventListener('click', () => {
+      const data = {
+        email: container.querySelector('#profile-email')?.value?.trim() || '',
+        emailPassword: container.querySelector('#profile-email-password')?.value || '',
+        tokenPassword: container.querySelector('#profile-token-password')?.value || '',
+        loginMethod: container.querySelector('input[name="loginMethod"]:checked')?.value || 'email',
+        displayName: container.querySelector('#profile-display-name')?.value?.trim() || '',
+        organization: container.querySelector('#profile-organization')?.value?.trim() || '',
+        lastLogin: new Date().toISOString()
+      };
+
+      // Require password confirmation if sensitive fields changed
+      if (hasChanges) {
+        const stored = loadProfile();
+        const currentPassword = data.emailPassword || data.tokenPassword || stored.emailPassword || stored.tokenPassword || '';
+        const confirmPassword = prompt('Changes detected. Enter your password to confirm save:');
+        if (confirmPassword === null) {
+          const status = container.querySelector('#profile-save-status');
+          status.textContent = 'Save cancelled.';
+          status.style.color = 'var(--warning)';
+          setTimeout(() => { status.textContent = ''; status.style.color = ''; }, 3000);
+          return;
         }
-        // Adaptive form dimming
-        this.synchronizeAdaptiveFormDimming();
-        container.querySelectorAll('input[name="loginMethod"]').forEach((radio) => {
-            radio.addEventListener('change', () => {
-                var _a;
-                this.synchronizeAdaptiveFormDimming();
-                localStorage.setItem('sb_preferred_login_method', ((_a = document.querySelector('input[name="loginMethod"]:checked')) === null || _a === void 0 ? void 0 : _a.value) || 'both');
-            });
-        });
-        // Privacy eye toggle
-        container.addEventListener('click', (e) => {
-            const eyeToggle = e.target.closest('.profile-privacy-eye-toggle');
-            if (!eyeToggle)
-                return;
-            e.stopPropagation();
-            const wrapper = eyeToggle.closest('.secure-reveal-wrapper');
-            if (!wrapper)
-                return;
-            const isRevealed = wrapper.getAttribute('data-revealed') === 'true';
-            wrapper.setAttribute('data-revealed', String(!isRevealed));
-            const icon = eyeToggle.querySelector('i');
-            if (icon) {
-                icon.setAttribute('data-lucide', isRevealed ? 'eye' : 'eye-off');
-            }
-        });
-        // Staged double-confirmation cache clear
-        container.addEventListener('click', (e) => {
-            const safetyBtn = e.target.closest('#sb-staged-clear-cache-btn');
-            if (!safetyBtn)
-                return;
-            e.preventDefault();
-            e.stopPropagation();
-            const currentStage = parseInt(safetyBtn.getAttribute('data-stage'), 10);
-            const btnTextElement = safetyBtn.querySelector('.btn-text');
-            if (currentStage === 0) {
-                safetyBtn.setAttribute('data-stage', '1');
-                safetyBtn.classList.add('is-staged-warning');
-                let countdownSeconds = 3;
-                if (btnTextElement)
-                    btnTextElement.textContent = `Confirm Invalidate? (${countdownSeconds}s)`;
-                this._safetyTimer = setInterval(() => {
-                    countdownSeconds--;
-                    if (countdownSeconds > 0) {
-                        if (btnTextElement)
-                            btnTextElement.textContent = `Confirm Invalidate? (${countdownSeconds}s)`;
-                    }
-                    else {
-                        clearInterval(this._safetyTimer);
-                        this._safetyTimer = null;
-                        safetyBtn.setAttribute('data-stage', '2');
-                        safetyBtn.classList.remove('is-staged-warning');
-                        safetyBtn.classList.add('is-fully-unlocked');
-                        if (btnTextElement)
-                            btnTextElement.textContent = 'Commit Cache Obliteration';
-                    }
-                }, 1000);
-            }
-            else if (currentStage === 2) {
-                clearInterval(this._safetyTimer);
-                this._safetyTimer = null;
-                this.executeHardCacheCleanup(safetyBtn);
-            }
-        });
-        // Reset staged button if mouse leaves it
-        container.addEventListener('mouseleave', (e) => {
-            const safetyBtn = e.target.closest('#sb-staged-clear-cache-btn');
-            if (!safetyBtn)
-                return;
+        if (confirmPassword !== currentPassword) {
+          const status = container.querySelector('#profile-save-status');
+          status.textContent = 'Password mismatch — changes not saved.';
+          status.style.color = 'var(--error)';
+          setTimeout(() => { status.textContent = ''; status.style.color = ''; }, 3000);
+          return;
+        }
+      }
+
+      saveProfile(data);
+      hasChanges = false;
+      this._renderKey = null; // allow re-render with updated header
+
+      const tokenVal = container.querySelector('#profile-token')?.value?.trim();
+      if (tokenVal) {
+        localStorage.setItem('cascadeAuthToken', tokenVal);
+      }
+      if (data.email) {
+        localStorage.setItem('cascadeAuthUser', data.email);
+      }
+
+      const status = container.querySelector('#profile-save-status');
+      status.textContent = 'Profile saved successfully.';
+      status.style.color = 'var(--success)';
+      setTimeout(() => { status.textContent = ''; status.style.color = ''; }, 3000);
+    });
+
+    // Sign out
+    container.querySelector('#profile-signout-btn')?.addEventListener('click', () => {
+      const keys = ['cascadeAuthToken', 'cascadeAuthUser', 'access_token', 'token', 'authToken', 'simplebeacon_token', 'sb-token-vault'];
+      keys.forEach((k) => { localStorage.removeItem(k); });
+      keys.forEach((k) => { document.cookie = k + '=;path=/;max-age=0;SameSite=Lax;'; });
+      sessionStorage.clear();
+      this.app.navigate('dashboard');
+      window.location.reload();
+    });
+
+    // Token show/hide toggle
+    const toggleBtn = container.querySelector('#profile-token-toggle');
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', () => {
+        try {
+          const input = container.querySelector('#profile-token');
+          if (!input) return;
+          if (input.type === 'password') {
+            input.type = 'text';
+            toggleBtn.textContent = '🙈';
+            toggleBtn.title = 'Hide token';
+          } else {
+            input.type = 'password';
+            toggleBtn.textContent = '👁';
+            toggleBtn.title = 'Show token';
+          }
+        } catch (e) {
+          console.error('[Profile] Toggle failed:', e);
+        }
+      });
+    }
+
+    // Token copy with fallback
+    const copyBtn = container.querySelector('#profile-token-copy');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', async () => {
+        const input = container.querySelector('#profile-token');
+        if (!input || !input.value) {
+          this.app.showToast?.('No token to copy', 'error');
+          return;
+        }
+        let copied = false;
+        // Try modern clipboard API first
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          try {
+            await navigator.clipboard.writeText(input.value);
+            copied = true;
+          } catch (e) {
+            console.warn('[Profile] Clipboard API failed, trying fallback:', e);
+          }
+        }
+        // Fallback: select + execCommand
+        if (!copied) {
+          try {
+            const prevType = input.type;
+            input.type = 'text';
+            input.focus();
+            input.select();
+            copied = document.execCommand('copy');
+            input.type = prevType;
+          } catch (e) {
+            console.error('[Profile] Fallback copy failed:', e);
+          }
+        }
+        if (copied) {
+          const original = copyBtn.textContent;
+          copyBtn.textContent = '✓';
+          setTimeout(() => { copyBtn.textContent = original; }, 1500);
+          this.app.showToast?.('Token copied', 'success');
+        } else {
+          this.app.showToast?.('Copy failed — please select and copy manually', 'error');
+        }
+      });
+    }
+
+    // Privacy eye toggle
+    container.addEventListener('click', (e) => {
+      const toggleBtn = e.target.closest('.profile-privacy-eye-toggle-btn');
+      if (!toggleBtn) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const wrapper = toggleBtn.closest('.secure-reveal-wrapper');
+      if (!wrapper) return;
+      const isRevealed = wrapper.getAttribute('data-revealed') === 'true';
+      wrapper.setAttribute('data-revealed', String(!isRevealed));
+      const iconNode = toggleBtn.querySelector('.codicon');
+      if (iconNode) {
+        iconNode.className = isRevealed ? 'codicon codicon-eye' : 'codicon codicon-eye-closed';
+      }
+    });
+
+    // Staged double-confirmation cache clear
+    container.addEventListener('click', (e) => {
+      const safetyBtn = e.target.closest('#sb-staged-clear-cache-btn');
+      if (!safetyBtn) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const currentStage = parseInt(safetyBtn.getAttribute('data-stage'), 10);
+      const btnTextElement = safetyBtn.querySelector('.btn-text');
+      if (currentStage === 0) {
+        safetyBtn.setAttribute('data-stage', '1');
+        safetyBtn.classList.add('is-staged-warning');
+        let countdownSeconds = 3;
+        if (btnTextElement) btnTextElement.textContent = `Confirm Invalidate? (${countdownSeconds}s)`;
+        this._safetyTimer = setInterval(() => {
+          countdownSeconds--;
+          if (countdownSeconds > 0) {
+            if (btnTextElement) btnTextElement.textContent = `Confirm Invalidate? (${countdownSeconds}s)`;
+          } else {
             clearInterval(this._safetyTimer);
             this._safetyTimer = null;
-            safetyBtn.setAttribute('data-stage', '0');
-            safetyBtn.classList.remove('is-staged-warning', 'is-fully-unlocked');
-            const btnTextElement = safetyBtn.querySelector('.btn-text');
-            if (btnTextElement)
-                btnTextElement.textContent = 'Wipe Cache Metadata';
-        }, true);
-        // Refresh session link
-        container.addEventListener('click', (e) => {
-            const refreshLink = e.target.closest('#sb-profile-refresh-session-action');
-            if (!refreshLink)
-                return;
-            e.preventDefault();
-            if (typeof showLoginModal === 'function') {
-                showLoginModal({
-                    message: 'Your session has reached a critical expiration threshold. Re-authenticate to fortify operations.',
-                    onSuccess: () => this.startExpirationCountdown()
-                });
-            }
-            else {
-                const vscode = typeof window !== 'undefined' && typeof window.acquireVsCodeApi === 'function' ? window.acquireVsCodeApi() : null;
-                if (vscode) {
-                    vscode.postMessage({ command: 'refreshToken' });
-                }
-                else {
-                    showToast('Refresh session via the extension login command.', 'info');
-                }
-            }
+            safetyBtn.setAttribute('data-stage', '2');
+            safetyBtn.classList.remove('is-staged-warning');
+            safetyBtn.classList.add('is-fully-unlocked');
+            if (btnTextElement) btnTextElement.textContent = 'Commit Cache Obliteration';
+          }
+        }, 1000);
+      } else if (currentStage === 2) {
+        clearInterval(this._safetyTimer);
+        this._safetyTimer = null;
+        this.executeHardCacheCleanup(safetyBtn);
+      }
+    });
+
+    // Reset staged button if mouse leaves it
+    container.addEventListener('mouseleave', (e) => {
+      const safetyBtn = e.target.closest('#sb-staged-clear-cache-btn');
+      if (!safetyBtn) return;
+      clearInterval(this._safetyTimer);
+      this._safetyTimer = null;
+      safetyBtn.setAttribute('data-stage', '0');
+      safetyBtn.classList.remove('is-staged-warning', 'is-fully-unlocked');
+      const btnTextElement = safetyBtn.querySelector('.btn-text');
+      if (btnTextElement) btnTextElement.textContent = 'Wipe Cache Metadata';
+    }, true);
+
+    // Refresh session link
+    container.addEventListener('click', (e) => {
+      const refreshLink = e.target.closest('#sb-profile-refresh-session-action');
+      if (!refreshLink) return;
+      e.preventDefault();
+      if (typeof showLoginModal === 'function') {
+        showLoginModal({
+          message: 'Your session has reached a critical expiration threshold. Re-authenticate to fortify operations.',
+          onSuccess: () => this.startExpirationCountdown()
         });
-    }
-    destroy() {
-        if (this._countdownInterval) {
-            clearInterval(this._countdownInterval);
-            this._countdownInterval = null;
+      } else {
+        const vscode = typeof window !== 'undefined' && typeof window.acquireVsCodeApi === 'function' ? window.acquireVsCodeApi() : null;
+        if (vscode) {
+          vscode.postMessage({ command: 'refreshToken' });
+        } else {
+          showToast('Refresh session via the extension login command.', 'info');
         }
-        if (this._safetyTimer) {
-            clearInterval(this._safetyTimer);
-            this._safetyTimer = null;
-        }
+      }
+    });
+  }
+
+  destroy() {
+    if (this._countdownInterval) {
+      clearInterval(this._countdownInterval);
+      this._countdownInterval = null;
     }
+    if (this._safetyTimer) {
+      clearInterval(this._safetyTimer);
+      this._safetyTimer = null;
+    }
+  }
 }

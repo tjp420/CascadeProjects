@@ -1,4 +1,5 @@
-const { ERROR_TYPE_CODES, LEAK_PATTERNS, RULE_CATALOG, SEVERITY_BANDS } = require('../lib/simplebeacon-proxy.cjs');
+const { ERROR_TYPE_CODES, SEVERITY_BANDS } = require('../../../packages/simplebeacon-cli/src/lib/anonymized-export.js');
+const { RULE_CATALOG, LEAK_PATTERNS } = require('../../../packages/simplebeacon-cli/src/mcp/rule-catalog.js');
 
 /**
  * GET /api/compliance/schema — Public deterministic rule catalog.

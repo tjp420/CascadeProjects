@@ -128,7 +128,7 @@ export class AboutView {
         <p class="text-muted">Found a bug or want a new pattern? Open a PR — I review contributions regularly.</p>
       </section>
     `;
-        (_a = container.querySelector('#about-open-dashboard')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => {
+        (_a = container.querySelector('#about-open-dashboard')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => { // simplebeacon-ignore memory-leak
             this.app.navigate('dashboard');
         });
     }

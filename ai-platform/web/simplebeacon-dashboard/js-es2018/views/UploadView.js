@@ -7,10 +7,17 @@
  */
 export class UploadView {
     constructor(app) {
+        if (!app || typeof app !== 'object') {
+            throw new TypeError('UploadView requires an app object');
+        }
         this.app = app;
         this.reportData = null;
     }
     mount(container) {
+        if (!container || typeof container.innerHTML !== 'string') {
+            console.error('[UploadView] mount called without a valid DOM container');
+            return;
+        }
         var _a, _b;
         const params = ((_b = (_a = this.app) === null || _a === void 0 ? void 0 : _a.state) === null || _b === void 0 ? void 0 : _b.routeParams) || {};
         const prefillToken = params.token || '';
@@ -80,6 +87,10 @@ export class UploadView {
         this.bindEvents(container, sessionId);
     }
     bindEvents(container, sessionId) {
+        if (!container || typeof container.querySelector !== 'function') {
+            console.error('[UploadView] bindEvents called without a valid DOM container');
+            return;
+        }
         const licenseInput = container.querySelector('#upload-license-token');
         const tokenHelp = container.querySelector('#upload-token-help');
         // Auto-lookup license token from Stripe checkout session
@@ -117,6 +128,7 @@ export class UploadView {
          * @returns {any}
          */
         const updateSubmit = () => {
+            if (!licenseInput || !submitBtn) return;
             const hasToken = licenseInput.value.trim().length > 10;
             const hasFile = this.reportData !== null;
             submitBtn.disabled = !(hasToken && hasFile);
@@ -146,7 +158,7 @@ export class UploadView {
             dragDepth = 0;
             dropZone.style.borderColor = 'var(--border)';
             dropZone.style.background = 'var(--bg-input)';
-            const file = e.dataTransfer.files[0];
+            const file = e.dataTransfer?.files?.[0];
             if (file)
                 this.handleFile(file, fileName, scanPreview, scanMeta, previewContent, updateSubmit);
         });
@@ -187,6 +199,11 @@ export class UploadView {
         });
     }
     handleFile(file, fileNameEl, scanPreviewEl, scanMetaEl, previewContentEl, updateSubmit) {
+        if (!file || typeof file.name !== 'string') {
+            const status = document.getElementById('upload-status');
+            this.showStatus(status, 'Invalid file provided', 'error');
+            return;
+        }
         if (!file.name.endsWith('.json')) {
             const status = document.getElementById('upload-status');
             this.showStatus(status, 'Please upload a .json file', 'error');
@@ -211,6 +228,14 @@ export class UploadView {
         reader.readAsText(file);
     }
     renderPreview(data, scanMetaEl, previewContentEl) {
+        if (!data || typeof data !== 'object') {
+            console.error('[UploadView] renderPreview called with invalid data');
+            return;
+        }
+        if (!scanMetaEl || !previewContentEl) {
+            console.error('[UploadView] renderPreview called with missing DOM elements');
+            return;
+        }
         var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r;
         const gate = data.gate || ((_b = (_a = data.results) === null || _a === void 0 ? void 0 : _a.simplebeacon) === null || _b === void 0 ? void 0 : _b.gate) || {};
         const gatePass = (_c = gate.pass) !== null && _c !== void 0 ? _c : false;
@@ -246,6 +271,10 @@ export class UploadView {
         previewContentEl.textContent = snippet + (snippet.length >= 1200 ? '\n\n... (truncated for preview)' : '');
     }
     showStatus(el, message, type) {
+        if (!el || typeof el.style !== 'object') {
+            console.error('[UploadView] showStatus called without a valid DOM element');
+            return;
+        }
         el.style.display = 'block';
         el.textContent = message;
         if (type === 'success') {
@@ -265,6 +294,7 @@ export class UploadView {
         }
     }
     escapeHtml(str) {
+        if (str == null) return '';
         return String(str)
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')

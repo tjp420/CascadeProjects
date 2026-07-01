@@ -309,6 +309,80 @@ router.post('/api/admin/token/revoke', requireAdmin, express.json(), (req, res) 
     }
 });
 
+// GET /api/admin/customers — list all customers with subscription info (admin only)
+router.get('/api/admin/customers', requireAdmin, (req, res) => {
+    try {
+        const db = require('../lib/db.cjs');
+        const customers = db.getAllCustomers();
+        const subscriptions = db.getAllPaidSubscriptions();
+        const refunds = db.getAllRefunds();
+        const combined = customers.map(c => {
+            const subs = subscriptions.filter(s => s.customer_email === c.email);
+            const customerRefunds = refunds.filter(r => r.customer_email === c.email);
+            return {
+                ...c,
+                subscriptions: subs,
+                refunds: customerRefunds,
+                totalRefunded: customerRefunds.length
+            };
+        });
+        res.json({ success: true, customers: combined, total: combined.length });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to load customers', detail: err.message });
+    }
+});
+
+// GET /api/admin/users — list all registered users (admin only)
+router.get('/api/admin/users', requireAdmin, (req, res) => {
+    try {
+        const db = require('../lib/db.cjs');
+        const users = db.getAllUsers();
+        res.json({ success: true, users, total: users.length });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to load users', detail: err.message });
+    }
+});
+
+// POST /api/admin/customers/:email/update-tier — update customer tier (admin only)
+router.post('/api/admin/customers/:email/update-tier', requireAdmin, express.json(), (req, res) => {
+    try {
+        const { email } = req.params;
+        const { tier } = req.body || {};
+        if (!email || !tier) return res.status(400).json({ error: 'Email and tier required' });
+        const db = require('../lib/db.cjs');
+        db.updateCustomerSubscription(email, 'active', tier);
+        systemLogger.logTokenOp('customer_tier_updated', { email, tier, admin: req.adminPayload.email });
+        res.json({ success: true, message: 'Tier updated' });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to update tier', detail: err.message });
+    }
+});
+
+// POST /api/admin/customers/:email/refund — process refund for a customer (admin only)
+router.post('/api/admin/customers/:email/refund', requireAdmin, express.json(), (req, res) => {
+    try {
+        const { email } = req.params;
+        const { stripeSubscriptionId, reason } = req.body || {};
+        if (!email) return res.status(400).json({ error: 'Email required' });
+        const db = require('../lib/db.cjs');
+        let result = { success: false };
+        if (stripeSubscriptionId) {
+            result = db.updatePaidSubscriptionToRefunded(stripeSubscriptionId, reason || 'Manual admin refund');
+        } else {
+            const subs = db.getAllPaidSubscriptions().filter(s => s.customer_email === email.trim().toLowerCase() && s.status === 'active');
+            for (const sub of subs) {
+                db.updatePaidSubscriptionToRefunded(sub.stripe_subscription_id, reason || 'Manual admin refund');
+            }
+            db.updateCustomerSubscription(email, 'refunded', 'community');
+            result = { success: true, refundedCount: subs.length };
+        }
+        systemLogger.logTokenOp('customer_refunded', { email, stripeSubscriptionId, reason, admin: req.adminPayload.email });
+        res.json({ success: true, message: 'Refund processed', ...result });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to process refund', detail: err.message });
+    }
+});
+
 // POST /api/admin/log/action — manual log entry from frontend (admin only)
 router.post('/api/admin/log/action', requireAdmin, express.json(), (req, res) => {
     const { action, details } = req.body || {};

@@ -718,7 +718,31 @@
                 if (result.success) {
                     resendStatus.textContent = 'Token resent! Check your inbox (and spam folder).';
                     resendStatus.style.color = 'var(--success)';
-                } else if (result.redirectToPricing || !response.ok) {
+                } else if (result.redirectToPricing) {
+                    // No existing token — generate a free one instead
+                    try {
+                        const freeRes = await fetch(API_BASE + '/api/free-token', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ email })
+                        });
+                        const freeData = await freeRes.json();
+                        if (freeData.success && freeData.token) {
+                            resendStatus.textContent = 'Free token generated! Paste it above to unlock scanning.';
+                            resendStatus.style.color = 'var(--success)';
+                            if (licenseInput) {
+                                licenseInput.value = freeData.token;
+                                licenseInput.dispatchEvent(new Event('input'));
+                            }
+                        } else {
+                            resendStatus.textContent = freeData.error || 'Could not generate token. Please email contact@simplebeacon.ai for help.';
+                            resendStatus.style.color = 'var(--error)';
+                        }
+                    } catch (freeErr) {
+                        resendStatus.textContent = 'Network error. Please email contact@simplebeacon.ai for help.';
+                        resendStatus.style.color = 'var(--error)';
+                    }
+                } else if (!response.ok) {
                     window.location.href = 'pricing.html';
                     return;
                 } else {
@@ -737,10 +761,15 @@
         // Try for Free — generate a community token without payment
         document.getElementById('tryFreeBtn').addEventListener('click', async () => {
             const btn = document.getElementById('tryFreeBtn');
+            const email = (resendEmail ? resendEmail.value.trim() : '') || 'guest@simplebeacon.ai';
             btn.disabled = true;
             btn.textContent = 'Generating...';
             try {
-                const response = await fetch(API_BASE + '/api/free-token');
+                const response = await fetch(API_BASE + '/api/free-token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
                 const data = await response.json();
                 if (data.success && data.token) {
                     licenseInput.value = data.token;

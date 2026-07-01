@@ -5,6 +5,7 @@ import { existsSync } from 'fs';
 import { join } from 'path';
 import { validateLicenseLocally } from './licenseManager';
 import { evaluateReferralPrompt } from './referralEngine';
+import { getSbConfig } from './utils';
 
 // Embedded production public verification key
 const PUBLIC_KEY_PEM = `-----BEGIN PUBLIC KEY-----
@@ -31,7 +32,7 @@ const slopCatalog = require('./rules/llm-slop-catalog.json') as Array<{
 }>;
 
 export function getAuthorizedRulePresets(document: vscode.TextDocument): string[] {
-  const config = vscode.workspace.getConfiguration('simplebeacon');
+  const config = getSbConfig();
   const userLicenseToken = config.get<string>('licenseKey', '');
   const selectedPreset = config.get<string>('preset', 'default');
 
@@ -112,7 +113,7 @@ export class RealtimeMonitor {
   private aiTotalFilesEdited: number = 0;
 
   private getEffectiveMinConfidence(): number {
-    const config = vscode.workspace.getConfiguration('simplebeacon');
+    const config = getSbConfig();
     const preset = config.get<string>('preset', 'default');
     const threshold = config.get<string>('confidenceThreshold', 'medium');
 
@@ -333,7 +334,7 @@ export class RealtimeMonitor {
   }
 
   private setupFileWatchers(): void {
-    const config = vscode.workspace.getConfiguration('simplebeacon');
+    const config = getSbConfig();
     const monitorDir = config.get<string>('realtimeMonitorDirectory', '').replace(/\\/g, '/');
     const pattern = monitorDir ? `${monitorDir}/**/*` : '**/*';
 
@@ -558,7 +559,7 @@ export class RealtimeMonitor {
       // Detect file type
       const fileExtension = filePath.split('.').pop()?.toLowerCase() || '';
 
-      const config = vscode.workspace.getConfiguration('simplebeacon');
+      const config = getSbConfig();
       const preset = config.get<string>('preset', 'default');
 
       const issues: RealtimeIssue[] = [];

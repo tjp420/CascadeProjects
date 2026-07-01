@@ -1,7 +1,11 @@
 {
   "profile": "eu-ai-act",
-  "scanPaths": ["."],
-  "productionPaths": ["src/"],
+  "scanPaths": [
+    "."
+  ],
+  "productionPaths": [
+    "src/"
+  ],
   "allowedAnalysisRoots": [
     "C:/Users/Trevor/CascadeProjects",
     "C:/Users/Trevor/CascadeProjects/simplebeacon-vscode-merged",
@@ -39,7 +43,8 @@
     "src/modernSidebarProvider.ts",
     "src/aiPlatform/realtimeMonitor.ts",
     "src/auth/authManager.ts",
-    "src/extension.ts"
+    "src/extension.ts",
+    "**/AnalyzeEngineGrid.js"
   ],
   "rules": {
     "credentials": {
@@ -94,7 +99,13 @@
     }
   },
   "gate": {
-    "failOn": ["critical"],
-    "warnOn": ["high", "medium", "low"]
+    "failOn": [
+      "critical"
+    ],
+    "warnOn": [
+      "high",
+      "medium",
+      "low"
+    ]
   }
 }

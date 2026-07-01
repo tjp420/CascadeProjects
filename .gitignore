@@ -151,3 +151,57 @@ simplebeacon.sh
 
 # Root-level backup JSON reports
 *.simplebeacon-backup.*
+
+# Root temp files and generated output
+test-output.txt
+test-results.txt
+tmp-compile-out.txt
+server-start-log.txt
+server-startup-error.txt
+orphan-audit-summary.json
+simplebeacon-report-export.json
+
+# Root temp test scripts
+test_dashboard_route.js
+test_server.js
+test_signin_route.js
+test_url_parse.js
+inspect_vsix.js
+inspect_vsix2.js
+
+# Root temp scripts (all extensions)
+tmp-*.mjs
+tmp-*.cjs
+__*.js
+__*.mjs
+__*.tmp
+__tmp_*.js
+
+# Root generated reports
+ts-prune-report*.txt
+ai-platform-test-output.txt
+
+# ai-platform generated output
+ai-platform/test-output.txt
+ai-platform/server/config/err.txt
+ai-platform/server/config/test-out.txt
+ai-platform/web/simplebeacon-dashboard/js-es2018/__extract-error.txt
+
+# coming-soon secrets
+coming-soon/.token.txt
+
+# False-positive audit fixture repos (embedded git)
+false-positive-audit/express/
+false-positive-audit/lodash/
+
+# SQLite WAL files
+*.db-shm
+*.db-wal
+
+# Generated scan artifacts
+.simplebeacon/codemap.html
+**/knip-report.txt
+
+# Unrelated project directories
+Mag Motor 3D Print Files/
+google-earthenterprise/

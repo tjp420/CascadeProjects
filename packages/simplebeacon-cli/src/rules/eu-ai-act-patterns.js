@@ -190,11 +190,12 @@ function buildEvidence(rule, lineText, match) {
 }
 
 function buildFix(rule, relativePath, lineNumber, lineText) {
+    const fileName = typeof relativePath === 'string' ? path.basename(relativePath) : 'file';
     if (rule.fixTemplate) return rule.fixTemplate;
     if (rule.category === 'high-risk') {
-        return `Document Annex III classification for ${path.basename(relativePath)} at line ${lineNumber}. Conduct a FRIA and implement high-risk system requirements before August 2026.`;
+        return `Document Annex III classification for ${fileName} at line ${lineNumber}. Conduct a FRIA and implement high-risk system requirements before August 2026.`;
     }
-    return `Review EU AI Act transparency and documentation obligations for the AI integration in ${path.basename(relativePath)}:${lineNumber}.`;
+    return `Review EU AI Act transparency and documentation obligations for the AI integration in ${fileName}:${lineNumber}.`;
 }
 
 function isExcludedPath(relativePath) {
@@ -232,6 +233,7 @@ function isExcludedPath(relativePath) {
 }
 
 async function walkSourceFiles(baseDir, sourcePaths, results = []) {
+    if (!Array.isArray(sourcePaths)) return results;
     for (const rel of sourcePaths) {
         const abs = path.join(baseDir, ...String(rel).replace(/\/$/, '').split('/'));
         const stat = await fs.promises.stat(abs).catch(() => null);
@@ -280,7 +282,7 @@ function collapsePatternIssuesByFile(issues, relativePath) {
         ...issues[0],
         id: `${patternId}-${relativePath}`,
         filePath: relativePath,
-        count: 1,
+        count: issues.length,
         description: issues.length > 1
             ? `${issues[0].description} (${issues.length} matches in file)`
             : issues[0].description,

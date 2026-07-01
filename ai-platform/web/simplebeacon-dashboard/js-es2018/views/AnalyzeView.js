@@ -2,10 +2,10 @@ import { escapeHtml, showToast, downloadJson, downloadBlob, downloadText, redact
 import { evaluateFunnelMetrics, getFunnelCopy } from '../utils/funnelTrigger.js';
 // simplebeacon:production-leak-intent: sample-json - Legitimate documentation about sample file patterns in analysis results
 import { analyzePath, scanPath, summarizeReport, fetchAnalyzeProviders, fetchRepositoryInventory, fetchCodebaseAnalysis, enrichScanReport, fetchZscriptModReport, shouldFetchZscriptReport, isLegacyScanReport, buildMonorepoScopeNote, buildPathInventoryProvenance, renderInventoryProvenanceHtml, refreshPathInventory, liveInventoryForPath, renderScanScopePanel, isSimplebeaconReport, aiProviderSupportsSummary, getScanFileMetrics, resolveAutoAnalysisMode, buildScanConclusion, buildConsolidationConclusion, buildFictionDigestPayload, sanitizeFictionDigestExport, resolveCompleteScanTargetPath, normalizeProjectPath, filterIssuesByKind, preparePlatformResultsReport, fetchCompleteAuditReport, fetchAnalyzeExportBundleZip, fetchEuAiActAuditReport, openAuditReportPrintWindow, previewAuditExportTier, auditExportButtonLabel, fetchDataCleanupScan, ensureDashboardApiReady, assertCompleteScanComplianceFresh, assertCompleteScanFileReductionFresh, fetchUnderstandSnippet, isCodebaseReport, fetchComplianceChecklist, fetchProjectNpmAudit, prepareGithubRepo, fetchAnalyzeTestSources, isAnalyzeProviderConfigured } from '../services/analyzeService.js?v=20260531pathfix1';
-import { isRemoteRepoUrl, sourceChipTitle } from '../lib/analyzePathSources.js';
+import { isRemoteRepoUrl } from '../lib/analyzePathSources.js';
 import { reportMatchesPagePath, resolvePageProjectPath, getPathInputDisplayValue } from '../lib/pageRepoScan.js';
-import { collectPathSuggestions, refreshPathSuggestionsDatalist, pathInputListAttr, renderPathSuggestionsDatalistElement, saveRecentPath, removeRecentPath, loadRecentPaths } from '../lib/analyzePathSuggestions.js';
-import { validateProjectPathAllowlist, ensureAllowedAnalysisRoots } from '../lib/analyzePathAllowlist.js';
+import { collectPathSuggestions, refreshPathSuggestionsDatalist, pathInputListAttr, renderPathSuggestionsDatalistElement, saveRecentPath, removeRecentPath } from '../lib/analyzePathSuggestions.js';
+import { validateProjectPathAllowlist } from '../lib/analyzePathAllowlist.js';
 import { isBenchmarkCachePath } from '../utils/complete-scan-artifact-profile.browser.js';
 import { runEuAiActSprint } from '../services/operatorService.js?v=20260531eupdf1';
 import { renderModeFileScopePanel, extractRoadmapFileMetrics } from '../utils/analyze-mode-file-scope.browser.js?v=20260601roadmapscope1';
@@ -29,7 +29,20 @@ import { renderUnderstandingPanel, buildUnderstandingConclusion } from '../compo
 import { renderZscriptReportPanel, buildZscriptConclusion } from '../components/ZscriptReport.js';
 import { showLoginModal } from '../components/LoginModal.js';
 import { authService } from '../services/authService.js';
-import { MAX_SNIPPET_BYTES, isSupportedSourceFile, isAnalyzerCacheJson, isCleanupExportJson, isFictionDigestJson, isLockfileName, isMarkdownFileName, isScannerMetaFileName, filterSnippetFindingsForFile, scanSnippetText, computeThreatScore, redactMatch, severityLabel } from '../utils/snippetDiagnostic.js?v=20260531analyzers1';
+import { MAX_SNIPPET_BYTES, isSupportedSourceFile, isAnalyzerCacheJson, isCleanupExportJson, isFictionDigestJson, isLockfileName, isMarkdownFileName, isScannerMetaFileName, filterSnippetFindingsForFile, scanSnippetText, computeThreatScore } from '../utils/snippetDiagnostic.js?v=20260531analyzers1';
+import { bindAnalyzeDropzones } from './AnalyzeDropZone.js';
+import { renderPathSourceSections, renderSourceChips, renderSnippetResults } from './AnalyzePathSection.js';
+import { summarizeCompleteStepMetric, formatCompleteStepLine, checklistRuleTotal, renderBrowserAnalyzerResult, renderComplianceChecklistPanel, renderNpmAuditPanel, renderEuAiActSprintPanel } from './AnalyzeResultsPanel.js';
+import { completeStepLabel, resolveCompleteScanCounts, formatScanProgressDetails } from './AnalyzeRunProgress.js';
+import {
+    COMPLETE_STEPS, COMPLETE_ENGINE_ORDER, CORE_ENGINE_IDS, BROWSER_ANALYZER_IDS,
+    ENGINE_DEPENDENCIES, SCAN_PRESETS, groupEnginesByCategory, isSelfContainedOnlySelection,
+    defaultSelectedEngines, CLIENT_DELIVERABLE_PLANS, getClientDeliverablePlan,
+    getDeliverablePlanEngines, inferDeliverableSku, normalizeSelectedEngines, resolveEnginesForRun,
+    applyEngineSelectionChange, ensureStandaloneEngineSelection, queueSelectAllState,
+    getCompleteEngineLabel, modeToEngineId,
+    FILE_REDUCTION_SCANNERS, COMPLIANCE_CHECKLIST_RULES
+} from './AnalyzeEngineGrid.js';
 const SNIPPET_ACCEPT = '.json,.js,.mjs,.cjs,.ts,.tsx,.jsx,.py,.env,.yaml,.yml,.txt,.md,.html,.css,.xml,.toml,.ini,.sh,.ps1,.bat';
 /**
  * Read hash query param.
@@ -87,1126 +100,6 @@ function analysisTypeSupportsRoadmapInsights(type) {
 function analysisTypeSupportsUnderstanding(type) {
     const t = String(type || '').toLowerCase();
     return t === 'codebase' || t === 'complete';
-}
-// Canonical analyzer list — single source of truth for engine IDs, labels, categories, and descriptions.
-// Add new analyzers here only. The reference card and queue panel both derive from this array.
-// File location: ai-platform/web/simplebeacon-dashboard/js/views/AnalyzeView.js
-const COMPLETE_STEPS = [
-    // Core scans
-    { id: 'simplebeacon', label: 'Simplebeacon gate', category: 'Core Scans', desc: 'Credential patterns, AI/LLM imports, hardcoded secrets.' },
-    { id: 'consolidation', label: 'Data consolidation', category: 'Core Scans', desc: 'Duplicate file groups && monorepo markers.' },
-    { id: 'mock-scan', label: 'Fiction & KPI digest', category: 'Core Scans', desc: 'Fixture, sample, && test-data files.' },
-    { id: 'roadmap', label: 'Roadmap generation', category: 'Core Scans', desc: 'Task, fix, workaround, && bug markers in code.' },
-    { id: 'codebase', label: 'Codebase analysis', category: 'Core Scans', desc: 'File type breakdown, line counts, && structure.' },
-    { id: 'file-reduction', label: 'File reduction', category: 'Core Scans', desc: 'Unused image assets, duplicate content, && directory bloat.' },
-    { id: 'data-quality', label: 'Data quality', category: 'Core Scans', desc: 'Empty || trivial JSON files.' },
-    { id: 'cleanup-assistant', label: 'Cleanup assistant', category: 'Core Scans', desc: 'Debug artifacts: console.log, debugger, open items.' },
-    { id: 'npm-audit', label: 'npm audit', category: 'Core Scans', desc: 'Package.json files && dependency counts.' },
-    { id: 'compliance', label: 'Compliance checklist', category: 'Core Scans', desc: 'License, security, && governance files.' },
-    // Security
-    { id: 'dependency-vulns', label: 'Dependency Vulns', category: 'Security', desc: 'CVE && outdated dependency audit.' },
-    { id: 'sensitive-data', label: 'Sensitive Data', category: 'Security', desc: 'PII patterns, email/phone/SSN in source.' },
-    { id: 'security-headers', label: 'Security Headers', category: 'Security', desc: 'Missing CSP, X-Frame-Options, HSTS, or Referrer-Policy in server configs.' },
-    { id: 'config-drift', label: 'Config Drift', category: 'Security', desc: 'Committed .env files, hardcoded URLs, secrets in config, inconsistent env naming.' },
-    { id: 'eval-danger', label: 'Eval Danger', category: 'Security', desc: 'ev' + 'al(), new Function(), dynamic code execution risks.' },
-    { id: 'inner-html-xss', label: 'innerHTML XSS', category: 'Security', desc: 'Unsanitized innerHTML assignments.' },
-    { id: 'prototype-pollution', label: 'Prototype Pollution', category: 'Security', desc: 'Object.prototype or __proto__ modification risks.' },
-    { id: 'unvalidated-redirect', label: 'Unvalidated Redirect', category: 'Security', desc: 'Open redirect vulnerabilities.' },
-    { id: 'missing-rate-limit', label: 'Missing Rate Limit', category: 'Security', desc: 'API endpoints without rate limiting.' },
-    { id: 'insecure-random', label: 'Insecure Random', category: 'Security', desc: 'Math.random() used for security purposes.' },
-    { id: 'logging-secrets', label: 'Logging Secrets', category: 'Security', desc: 'Passwords, tokens, or secrets written to logs.' },
-    // AI & LLM
-    { id: 'ai-indicators', label: 'AI System Indicators', category: 'AI & LLM', desc: 'AI/LLM SDK imports && model inference patterns.' },
-    { id: 'ai-residue', label: 'AI Residue', category: 'AI & LLM', desc: 'Hallucinated imports, stub implementations, error swallowing.' },
-    { id: 'llm-slop', label: 'LLM Slop', category: 'AI & LLM', desc: 'Placeholder debris, markdown code fences leaked into source.' },
-    { id: 'token-bleed', label: 'Token Bleed', category: 'AI & LLM', desc: 'LLM API calls without max_tokens limits.' },
-    { id: 'ai-placeholder-comment', label: 'AI Placeholder', category: 'AI & LLM', desc: 'Placeholder comments generated by AI.' },
-    { id: 'ai-placeholder-block', label: 'AI Placeholder Block', category: 'AI & LLM', desc: 'Block comments with AI placeholder text.' },
-    { id: 'markdown-fence-leak', label: 'Markdown Fence Leak', category: 'AI & LLM', desc: 'Markdown code fences (```) leaked into source files.' },
-    { id: 'empty-stub-function', label: 'Empty Stub', category: 'AI & LLM', desc: 'Empty function bodies — likely AI-generated stubs.' },
-    { id: 'arrow-stub', label: 'Arrow Stub', category: 'AI & LLM', desc: 'Arrow functions returning empty objects.' },
-    { id: 'fiction-kpi', label: 'Fiction KPI', category: 'AI & LLM', desc: 'Hardcoded metrics, completion rates, fabricated scores.' },
-    { id: 'hardcoded-confidence', label: 'Hardcoded Confidence', category: 'AI & LLM', desc: 'Static confidence scores that should be dynamic.' },
-    { id: 'hardcoded-completion', label: 'Hardcoded Completion', category: 'AI & LLM', desc: 'Static completion rates that should be real metrics.' },
-    // Code Quality
-    { id: 'performance', label: 'Performance', category: 'Code Quality', desc: 'Nested loops, memory leaks, event listener leaks.' },
-    { id: 'type-safety', label: 'Type Safety', category: 'Code Quality', desc: 'any types, missing PropTypes, runtime typeof checks.' },
-    { id: 'documentation', label: 'Documentation', category: 'Code Quality', desc: 'Missing JSDoc, undocumented public functions.' },
-    { id: 'test-coverage', label: 'Test Coverage', category: 'Code Quality', desc: 'Source files without tests, empty test files.' },
-    { id: 'complexity', label: 'Complexity Metrics', category: 'Code Quality', desc: 'Over-long functions, bloated files, deep nesting.' },
-    { id: 'magic-number', label: 'Magic Numbers', category: 'Code Quality', desc: 'Hardcoded numeric literals that should be constants.' },
-    { id: 'missing-strict-mode', label: 'Missing Strict Mode', category: 'Code Quality', desc: "Files without 'use strict' — implicit globals risk." },
-    { id: 'uninitialized-read', label: 'Uninitialized Read', category: 'Code Quality', desc: 'Variables used before assignment.' },
-    { id: 'unhandled-promise', label: 'Unhandled Promise', category: 'Code Quality', desc: 'Promise chains missing .catch() error handlers.' },
-    { id: 'sync-io', label: 'Sync I/O', category: 'Code Quality', desc: 'Synchronous fs operations that block the event loop.' },
-    // Architecture
-    { id: 'build-readiness', label: 'Build Readiness', category: 'Architecture', desc: 'Missing files, configs, scripts, deploy blockers.' },
-    { id: 'governance', label: 'License & Governance', category: 'Architecture', desc: 'License headers, copyright notices, governance markers.' },
-    { id: 'junk-files', label: 'Junk & Temp Files', category: 'Architecture', desc: 'OS/editor artifacts, backup files, caches.' },
-    { id: 'removable-files', label: 'Removable Files', category: 'Architecture', desc: 'node_modules, build artifacts (dist, build, .next), caches, logs, and temp files that can be safely deleted.' },
-    { id: 'database-patterns', label: 'Database Patterns', category: 'Architecture', desc: 'Raw SQL concatenation, missing limits, unindexed queries.' },
-    { id: 'framework-practices', label: 'Framework Practices', category: 'Architecture', desc: 'React hook misuse, Vue Options API in Vue 3.' },
-    { id: 'workspace-health', label: 'Workspace Health', category: 'Architecture', desc: 'Circular imports, mismatched dependency versions.' },
-    { id: 'unused-deps', label: 'Unused Dependencies', category: 'Architecture', desc: 'Packages in package.json with no import references.' },
-    { id: 'api-contract', label: 'API Contract', category: 'Architecture', desc: 'REST endpoints with no frontend call, GraphQL types without resolvers, stale OpenAPI specs.' },
-    { id: 'production-leak', label: 'Production Leak', category: 'Architecture', desc: 'Mock/fixture/sample data paths in production code.' },
-    { id: 'mock-path-leak', label: 'Mock Path Leak', category: 'Architecture', desc: 'Mock/fixture paths referenced in production code.' },
-    { id: 'sample-json-ref', label: 'Sample JSON Ref', category: 'Architecture', desc: 'Sample JSON files referenced in production code.' },
-    { id: 'architecture-drift', label: 'Architecture Drift', category: 'Architecture', desc: 'Hybrid/SSM model identifiers without schema validators.' },
-    { id: 'roadmap-marker', label: 'Roadmap Marker', category: 'Architecture', desc: 'Unresolved HACK/XXX/WORKAROUND markers.' },
-    { id: 'fix-preview', label: 'Fix Preview', category: 'Architecture', desc: 'Before/after code diffs with copyable patches.' },
-    // UX & Accessibility
-    { id: 'accessibility', label: 'Accessibility', category: 'UX & Accessibility', desc: 'Missing alt text, unlabeled inputs, color-only indicators.' },
-    { id: 'i18n', label: 'i18n Readiness', category: 'UX & Accessibility', desc: 'Hardcoded UI strings, locale-ignorant formatting.' },
-    { id: 'governance-marker', label: 'Governance Marker', category: 'UX & Accessibility', desc: 'License and copyright markers for open-source compliance.' }
-];
-const OPTIONAL_COMPLETE_ENGINES = [
-    { id: 'eu-ai-act', label: 'EU AI Act sprint', hint: 'Regulatory — not included in ZIP unless checked and completed' }
-];
-const COMPLETE_ENGINE_ORDER = [...COMPLETE_STEPS.map((step) => step.id), ...OPTIONAL_COMPLETE_ENGINES.map((step) => step.id)];
-const CORE_ENGINE_IDS = new Set([
-    'simplebeacon', 'consolidation', 'mock-scan', 'roadmap', 'codebase',
-    'file-reduction', 'data-quality', 'cleanup-assistant', 'npm-audit',
-    'compliance', 'eu-ai-act'
-]);
-const BROWSER_ANALYZER_IDS = COMPLETE_STEPS
-    .map((step) => step.id)
-    .filter((id) => !CORE_ENGINE_IDS.has(id));
-const ENGINE_DEPENDENCIES = {
-    'mock-scan': ['simplebeacon'],
-    compliance: ['simplebeacon']
-};
-/** Scan preset definitions for quick-selection buttons */
-const SCAN_PRESETS = [
-    { id: 'essential', label: 'Essential', icon: '⚡', engines: ['simplebeacon', 'consolidation', 'mock-scan', 'roadmap', 'codebase', 'file-reduction', 'data-quality', 'cleanup-assistant', 'npm-audit', 'compliance'] },
-    { id: 'security', label: 'Security', icon: '🔒', engines: ['simplebeacon', 'consolidation', 'mock-scan', 'roadmap', 'codebase', 'file-reduction', 'data-quality', 'cleanup-assistant', 'npm-audit', 'compliance', 'dependency-vulns', 'sensitive-data', 'security-headers', 'config-drift', 'eval-danger', 'inner-html-xss', 'prototype-pollution', 'unvalidated-redirect', 'missing-rate-limit', 'insecure-random', 'logging-secrets'] },
-    { id: 'full', label: 'Full', icon: '🔬', engines: [...COMPLETE_ENGINE_ORDER] },
-    { id: 'custom', label: 'Custom', icon: '🔧', engines: [] }
-];
-/** Group engines by their category field */
-function groupEnginesByCategory(engineIds) {
-    const groups = new Map();
-    for (const id of engineIds) {
-        const step = COMPLETE_STEPS.find((s) => s.id === id);
-        const opt = OPTIONAL_COMPLETE_ENGINES.find((s) => s.id === id);
-        const category = (step === null || step === void 0 ? void 0 : step.category) || (opt === null || opt === void 0 ? void 0 : opt.category) || 'Other';
-        if (!groups.has(category))
-            groups.set(category, []);
-        groups.get(category).push({ id, label: (step === null || step === void 0 ? void 0 : step.label) || (opt === null || opt === void 0 ? void 0 : opt.label) || id, desc: (step === null || step === void 0 ? void 0 : step.desc) || (opt === null || opt === void 0 ? void 0 : opt.hint) || '', optional: !!opt });
-    }
-    return groups;
-}
-/** Engines that fetch their own prerequisites — no separate queue rows on Complete. */
-const SELF_CONTAINED_ENGINES = new Set(['cleanup-assistant', 'mock-scan', 'compliance']);
-/**
- * Is self contained only selection.
- * @param {Array} selectedEngines
- * @returns {any}
- */
-function isSelfContainedOnlySelection(selectedEngines) {
-    const selected = normalizeSelectedEngines(selectedEngines, { allowEmpty: true });
-    return selected.length === 1 && SELF_CONTAINED_ENGINES.has(selected[0]);
-}
-/**
- * Default selected engines.
- * @returns {any}
- */
-function defaultSelectedEngines() {
-    return COMPLETE_STEPS.map((step) => step.id);
-}
-/** Client deliverable SKUs — scans preset per row; price is list/reference (checkout is separate). */
-const CLIENT_DELIVERABLE_PLANS = [
-    {
-        sku: 'moneyPrinter19',
-        label: 'Money Printer Tier',
-        price: '$19',
-        category: 'Instant audit',
-        tagline: 'Website Security Report — instant audit · zero-retention · delivered in 60 seconds',
-        engines: ['simplebeacon'],
-        analysisType: 'simplebeacon',
-        scans: ['SEO', 'SSL', 'Mobile responsiveness', 'Speed', 'Accessibility', 'Headers']
-    },
-    {
-        sku: 'community',
-        label: 'Community',
-        price: '$0',
-        category: 'Community',
-        tagline: 'Simplebeacon gate only — free CLI + MCP on your machine',
-        engines: ['simplebeacon'],
-        analysisType: 'simplebeacon',
-        scans: ['Simplebeacon gate only']
-    },
-    {
-        sku: 'clearance499',
-        label: 'Executive clearance PDF',
-        price: '$499',
-        category: 'Client deliverable',
-        tagline: 'Gate, fiction digest, compliance checklist, executive PDF — 48-hour operator review',
-        engines: ['simplebeacon', 'mock-scan', 'compliance'],
-        analysisType: 'complete',
-        scans: ['Gate', 'Fiction digest', 'Compliance', 'Executive PDF']
-    },
-    {
-        sku: 'agency999',
-        label: 'Agency Project Pack',
-        price: '$999',
-        category: 'Client deliverable',
-        tagline: 'Full complete scan plus co-branded milestone certificates',
-        engines: defaultSelectedEngines(),
-        analysisType: 'complete',
-        scans: ['Complete scan (10 engines)', 'Certificates']
-    },
-    {
-        sku: 'agency1499',
-        label: 'Agency Growth Pack',
-        price: '$1,499',
-        category: 'Client deliverable',
-        tagline: 'Project pack plus priority review and included warranty re-scan',
-        engines: defaultSelectedEngines(),
-        analysisType: 'complete',
-        scans: ['Complete scan', 'Certificates', 'Warranty re-scan']
-    },
-    {
-        sku: 'euai2499',
-        label: 'EU AI Act Readiness Sprint',
-        price: '$2,499',
-        category: 'EU regulatory',
-        tagline: 'Technical readiness audit — not legal conformity certification',
-        engines: ['simplebeacon', 'compliance', 'eu-ai-act'],
-        analysisType: 'complete',
-        scans: ['EU profile gate', 'EU patterns', 'Compliance', 'EU audit PDF']
-    },
-    {
-        sku: 'warranty199',
-        label: 'Post-handoff re-scan',
-        price: '$199',
-        category: 'Retention',
-        tagline: 'Formal 30-day re-attestation after release',
-        engines: ['simplebeacon', 'compliance'],
-        analysisType: 'complete',
-        scans: ['Gate re-run', 'Compliance', 'Executive PDF']
-    },
-    {
-        sku: 'custom',
-        label: 'Custom mix',
-        price: 'Operator',
-        category: 'Desk only',
-        tagline: 'Check scans in the queue below (or on pills) — no fixed list price',
-        engines: null,
-        analysisType: 'complete',
-        allowManual: true,
-        scans: ['Manual engine toggles — no fixed list price']
-    }
-];
-const PRICING_DELIVERABLES_URL = 'https://simplebeacon.ai/pricing#client-deliverables';
-/**
- * Get client deliverable plan.
- * @param {any} sku
- * @returns {any}
- */
-function getClientDeliverablePlan(sku) {
-    return CLIENT_DELIVERABLE_PLANS.find((plan) => plan.sku === sku) || null;
-}
-/**
- * Get deliverable plan engines.
- * @param {any} plan
- * @returns {any}
- */
-function getDeliverablePlanEngines(plan) {
-    if (!plan || plan.allowManual)
-        return null;
-    return Array.isArray(plan.engines) ? plan.engines : null;
-}
-/**
- * Infer deliverable sku.
- * @param {Array} selectedEngines
- * @returns {any}
- */
-function inferDeliverableSku(selectedEngines) {
-    const selected = new Set(normalizeSelectedEngines(selectedEngines, { allowEmpty: true }));
-    for (const plan of CLIENT_DELIVERABLE_PLANS) {
-        const expected = getDeliverablePlanEngines(plan);
-        if (!expected)
-            continue;
-        const want = new Set(expected);
-        if (want.size === selected.size && [...want].every((id) => selected.has(id))) {
-            return plan.sku;
-        }
-    }
-    return 'custom';
-}
-/**
- * Normalize selected engines.
- * @param {any} raw
- * @param {Object} options
- * @returns {any}
- */
-function normalizeSelectedEngines(raw, { allowEmpty = false } = {}) {
-    const allowed = new Set(COMPLETE_ENGINE_ORDER);
-    const selected = Array.isArray(raw)
-        ? raw.filter((id) => allowed.has(id))
-        : defaultSelectedEngines();
-    if (!selected.length && allowEmpty)
-        return [];
-    return selected.length ? selected : defaultSelectedEngines();
-}
-/**
- * Resolve engines for run.
- * @param {Array} selectedEngines
- * @returns {any}
- */
-function resolveEnginesForRun(selectedEngines) {
-    const selected = new Set(normalizeSelectedEngines(selectedEngines));
-    for (const [engineId, deps] of Object.entries(ENGINE_DEPENDENCIES)) {
-        if (!selected.has(engineId))
-            continue;
-        for (const dep of deps)
-            selected.add(dep);
-    }
-    return COMPLETE_ENGINE_ORDER.filter((id) => selected.has(id));
-}
-/** Keep queue checkboxes aligned for explicit co-selection (Complete scan deps use resolveEnginesForRun). */
-function applyEngineSelectionChange(selectedSet, engineId, checked) {
-    if (!engineId || !selectedSet)
-        return;
-    if (checked) {
-        selectedSet.add(engineId);
-        // Auto-select dependencies so the UI reflects what will actually run
-        const deps = ENGINE_DEPENDENCIES[engineId];
-        if (deps) {
-            for (const dep of deps)
-                selectedSet.add(dep);
-        }
-        return;
-    }
-    selectedSet.delete(engineId);
-    // When codebase is unchecked, also uncheck every engine that depends on it
-    if (engineId === 'codebase') {
-        for (const [id, deps] of Object.entries(ENGINE_DEPENDENCIES)) {
-            if (deps.includes('codebase'))
-                selectedSet.delete(id);
-        }
-    }
-}
-/** Standalone pill → only that engine in the queue (internal deps are not shown). */
-function ensureStandaloneEngineSelection(modeValue) {
-    const engineId = modeToEngineId(modeValue);
-    return engineId ? [engineId] : [];
-}
-/** Always show the full engine list; selection state is separate from visibility. */
-function queueEnginesForDisplay() {
-    return COMPLETE_ENGINE_ORDER;
-}
-/**
- * Queue select all state.
- * @param {Array} selectedEngines
- * @returns {any}
- */
-function queueSelectAllState(selectedEngines) {
-    const queueEngineIds = queueEnginesForDisplay();
-    const selected = new Set(selectedEngines || []);
-    const allSelected = queueEngineIds.every((id) => selected.has(id));
-    const someSelected = queueEngineIds.some((id) => selected.has(id));
-    return { queueEngineIds, allSelected, someSelected };
-}
-/**
- * Get complete engine label.
- * @param {string} engineId
- * @returns {any}
- */
-function getCompleteEngineLabel(engineId) {
-    var _a, _b;
-    return ((_a = COMPLETE_STEPS.find((step) => step.id === engineId)) === null || _a === void 0 ? void 0 : _a.label)
-        || ((_b = OPTIONAL_COMPLETE_ENGINES.find((step) => step.id === engineId)) === null || _b === void 0 ? void 0 : _b.label)
-        || engineId;
-}
-/**
- * Get engine mode meta.
- * @param {string} engineId
- * @returns {any}
- */
-function getEngineModeMeta(engineId) {
-    return ANALYSIS_MODES.find((m) => modeToEngineId(m.value) === engineId) || null;
-}
-/**
- * Mode to engine id.
- * @param {any} modeValue
- * @returns {any}
- */
-function modeToEngineId(modeValue) {
-    const normalizedMode = String(modeValue || '');
-    if (!normalizedMode || normalizedMode === 'complete' || normalizedMode === 'auto')
-        return null;
-    return COMPLETE_ENGINE_ORDER.includes(normalizedMode) ? normalizedMode : null;
-}
-const SIMPLEBEACON_GATE_RULES = [
-    { id: 'credentials', label: 'Credential & secret patterns in scan paths + production dirs' },
-    { id: 'production-leak', label: 'Mock/sample JSON paths referenced from production code' },
-    { id: 'json-schema', label: 'Registered page samples match schema specs' },
-    { id: 'sample-consistency', label: 'Anchor sample consistency / fiction KPI drift' },
-    { id: 'fiction-kpi-patterns', label: 'Fiction KPI placeholders across repository JSON' },
-    { id: 'llm-slop-patterns', label: 'LLM slop — unresolved placeholders, code fences, filler metrics' },
-    { id: 'agency-handoff-patterns', label: 'Agency handoff — localhost deploy leaks, auth misconfig, webhooks' }, // simplebeacon-ignore hardcoded-url — rule label text, not a URL
-    { id: 'file-naming-patterns', label: 'File naming — AI-generated or low-quality file names that degrade code readability' },
-    { id: 'roadmap', label: 'Roadmap completeness signal (standard profile)' }
-];
-const EU_AI_ACT_EXTRA_RULES = [
-    { id: 'eu-ai-act-patterns', label: 'EU AI Act transparency, logging, and human-oversight markers' }
-];
-const DATA_QUALITY_SCANNERS = [
-    'config-management',
-    'dependency-health',
-    'environment-variables',
-    'data-freshness',
-    'data-access-patterns',
-    'data-privacy',
-    'data-lineage',
-    'data-consistency'
-];
-const FILE_REDUCTION_SCANNERS = ['build-artifacts', 'asset-consolidation', 'unused-files', 'directory-bloat'];
-const COMPLIANCE_CHECKLIST_RULES = [
-    'GATE-001 — Merge gate passes on configured severities',
-    'CRED-001 — No credential patterns in scanned paths',
-    'LEAK-001 — No mock/sample JSON paths in production dirs',
-    'DATA-001 — Page samples match schema specs',
-    'DATA-002 — No fiction KPI drift in anchor samples',
-    'SUPPLY-001 — No critical/high npm audit vulnerabilities',
-    'SUPPLY-002 — Moderate npm vulnerabilities within policy',
-    'AUTH-001 — Production profile has JWT auth enabled (REQUIRE_AUTH)'
-];
-/**
- * Complete step label.
- * @param {number} index
- * @param {string} text
- * @param {Array} totalSteps
- * @returns {any}
- */
-function completeStepLabel(index, text, totalSteps = COMPLETE_ENGINE_ORDER.length) {
-    return `${index + 1}/${totalSteps} ${text}`;
-}
-/**
- * Resolve complete scan counts.
- * @param {string} lastResult
- * @returns {any}
- */
-function resolveCompleteScanCounts(lastResult) {
-    var _a, _b, _c;
-    const steps = (lastResult === null || lastResult === void 0 ? void 0 : lastResult.steps) || [];
-    const enginesRun = ((_a = lastResult === null || lastResult === void 0 ? void 0 : lastResult.enginesRun) === null || _a === void 0 ? void 0 : _a.length)
-        ? lastResult.enginesRun
-        : ((_c = (_b = lastResult === null || lastResult === void 0 ? void 0 : lastResult.analysisConfig) === null || _b === void 0 ? void 0 : _b.enginesRun) === null || _c === void 0 ? void 0 : _c.length)
-            ? lastResult.analysisConfig.enginesRun
-            : steps.map((step) => step.id);
-    const planned = enginesRun.length || steps.length || COMPLETE_STEPS.length;
-    const succeeded = steps.length;
-    return {
-        enginesRun,
-        planned,
-        succeeded,
-        failed: Math.max(0, planned - succeeded)
-    };
-}
-/**
- * Format scan progress details.
- * @param {any} sp
- * @param {Object} options
- * @returns {any}
- */
-function formatScanProgressDetails(sp, options = {}) {
-    if (!sp || sp.active === false)
-        return { counter: '', scopeNote: '' };
-    const processed = sp.processed != null ? Number(sp.processed) : null;
-    const total = sp.total != null ? Number(sp.total) : null;
-    const phase = String(sp.phase || '');
-    const label = String(sp.label || sp.fileKind || '');
-    const folderLabel = options.scanPathLabel ? String(options.scanPathLabel).trim() : '';
-    const fullTree = Boolean(options.fullDirectoryScan || phase === 'full-tree');
-    let unit = 'files';
-    let phaseLabel = label || 'Scanning';
-    if (fullTree || sp.fileKind === 'full-tree' || (sp.fileKind === 'scan-scoped' && options.fullDirectoryScan)) {
-        phaseLabel = 'Full-tree gate walk';
-    }
-    else if (sp.fileKind === 'scan-scoped') {
-        phaseLabel = 'Gate walk';
-    }
-    else if (phase === 'codebase' || sp.fileKind === 'code') {
-        phaseLabel = /eslint/i.test(label) ? 'ESLint' : 'Code analysis';
-        unit = /eslint/i.test(label) ? 'lint targets' : 'code files';
-    }
-    else if (phase === 'gate') {
-        phaseLabel = 'Simplebeacon gate';
-    }
-    let counter = '';
-    if (processed != null && total != null) {
-        counter = `${phaseLabel} · ${formatNumber(processed)} / ${formatNumber(total)} ${unit}`;
-    }
-    else if (phaseLabel) {
-        counter = phaseLabel;
-    }
-    const scopeParts = [];
-    if (folderLabel) {
-        scopeParts.push(`Folder: ${folderLabel}.`);
-    }
-    const explorer = options.explorerInventory;
-    if (fullTree && total != null) {
-        const skipped = Array.isArray(sp.skipDirs) ? sp.skipDirs : [];
-        const strictFullTree = Boolean(options.fullDirectoryScan && skipped.length <= 1);
-        scopeParts.push(strictFullTree
-            ? 'Every file under the selected path is included (node_modules, etc.) — skips .git, .github-sync CLI mirror, and github-cache benchmark clones only.'
-            : `This step scans ${formatNumber(total)} files after skipping ${skipped.length ? skipped.join(', ') : 'configured dirs'}.`);
-        if ((explorer === null || explorer === void 0 ? void 0 : explorer.totalFiles) != null && Math.abs(explorer.totalFiles - total) > 50) {
-            const folderPart = explorer.totalFolders != null
-                ? ` / ${formatNumber(explorer.totalFolders)} folders`
-                : '';
-            scopeParts.push(`Repository inventory for the same path: ${formatNumber(explorer.totalFiles)} files${folderPart}.`);
-        }
-    }
-    else if (phase === 'codebase' || sp.fileKind === 'code') {
-        scopeParts.push('Source-code extensions only (.js, .ts, .py, …) — not images, JSON, or other assets.');
-        if ((explorer === null || explorer === void 0 ? void 0 : explorer.totalFiles) != null && total != null && explorer.totalFiles !== total) {
-            scopeParts.push(`Folder holds ${formatNumber(explorer.totalFiles)} files total; this step covers ${formatNumber(total)} ${unit}.`);
-        }
-    }
-    else if ((explorer === null || explorer === void 0 ? void 0 : explorer.totalFiles) != null && total != null && explorer.totalFiles !== total) {
-        scopeParts.push(`Folder inventory: ${formatNumber(explorer.totalFiles)} files${explorer.totalFolders != null ? `, ${formatNumber(explorer.totalFolders)} folders` : ''}; active scan: ${formatNumber(total)} ${unit}.`);
-    }
-    else if (sp.repositoryAuditFiles != null && total != null && sp.repositoryAuditFiles !== total) {
-        scopeParts.push(`${formatNumber(sp.repositoryAuditFiles)} audit-scoped repo files (skips node_modules, github-cache, etc.).`);
-    }
-    return { counter, scopeNote: scopeParts.join(' ').trim() };
-}
-/**
- * Summarize complete step metric.
- * @param {string} engineId
- * @param {any} result
- * @param {number} canonicalCount
- * @returns {any}
- */
-function summarizeCompleteStepMetric(engineId, result, canonicalCount = null) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _20, _21, _22, _23, _24, _25, _26, _27, _28, _29, _30, _31, _32, _33, _34;
-    if (!result)
-        return '';
-    switch (engineId) {
-        case 'simplebeacon': {
-            const m = getScanFileMetrics(result.report);
-            const count = canonicalCount !== null && canonicalCount !== void 0 ? canonicalCount : m.repositoryFiles;
-            const parts = [];
-            if (m.ruleScopedFilesAnalyzed != null) {
-                parts.push(`${formatNumber(m.ruleScopedFilesAnalyzed)} analyzed`);
-            }
-            if (count != null && count !== m.ruleScopedFilesAnalyzed) {
-                parts.push(`${formatNumber(count)} total`);
-            }
-            return parts.join(' · ');
-        }
-        case 'consolidation': {
-            const count = (_f = (_c = canonicalCount !== null && canonicalCount !== void 0 ? canonicalCount : (_b = (_a = result.scan) === null || _a === void 0 ? void 0 : _a.summary) === null || _b === void 0 ? void 0 : _b.repositoryFilesTotal) !== null && _c !== void 0 ? _c : (_e = (_d = result.scan) === null || _d === void 0 ? void 0 : _d.repositoryInventory) === null || _e === void 0 ? void 0 : _e.totalFiles) !== null && _f !== void 0 ? _f : (_h = (_g = result.scan) === null || _g === void 0 ? void 0 : _g.summary) === null || _h === void 0 ? void 0 : _h.filesAnalyzed;
-            return count != null ? `${formatNumber(count)} files` : '';
-        }
-        case 'mock-scan': {
-            /**
-             * Hits.
-             * @param {any} result.fictionIssues || []
-             * @returns {any}
-             */
-            const hits = (result.fictionIssues || []).reduce((sum, item) => sum + (item.count || 1), 0);
-            const m = getScanFileMetrics(result.report);
-            const count = canonicalCount !== null && canonicalCount !== void 0 ? canonicalCount : m.mockSampleFiles;
-            if (count != null && hits) {
-                return `${formatNumber(count)} sample files · ${formatNumber(hits)} KPI hits`;
-            }
-            if (count != null)
-                return `${formatNumber(count)} sample files`;
-            return hits ? `${formatNumber(hits)} KPI hits` : '';
-        }
-        case 'roadmap': {
-            const count = canonicalCount !== null && canonicalCount !== void 0 ? canonicalCount : (_l = (_k = (_j = result.roadmap) === null || _j === void 0 ? void 0 : _j.codeAnalysis) === null || _k === void 0 ? void 0 : _k.structure) === null || _l === void 0 ? void 0 : _l.totalFiles;
-            return count != null ? `${formatNumber(count)} files scanned` : '';
-        }
-        case 'codebase': {
-            const count = (_s = (_p = canonicalCount !== null && canonicalCount !== void 0 ? canonicalCount : (_o = (_m = result.report) === null || _m === void 0 ? void 0 : _m.summary) === null || _o === void 0 ? void 0 : _o.codeFilesAnalyzed) !== null && _p !== void 0 ? _p : (_r = (_q = result.report) === null || _q === void 0 ? void 0 : _q.summary) === null || _r === void 0 ? void 0 : _r.filesAnalyzed) !== null && _s !== void 0 ? _s : (_t = result.report) === null || _t === void 0 ? void 0 : _t.filesAnalyzed;
-            return count != null ? `${formatNumber(count)} code files` : '';
-        }
-        case 'file-reduction': {
-            const findings = (_x = (_v = (_u = result.summary) === null || _u === void 0 ? void 0 : _u.totalFindings) !== null && _v !== void 0 ? _v : (_w = result.summary) === null || _w === void 0 ? void 0 : _w.mergeCandidates) !== null && _x !== void 0 ? _x : null;
-            const count = (_2 = (_z = canonicalCount !== null && canonicalCount !== void 0 ? canonicalCount : (_y = result.inventory) === null || _y === void 0 ? void 0 : _y.totalFiles) !== null && _z !== void 0 ? _z : (_1 = (_0 = result.scan) === null || _0 === void 0 ? void 0 : _0.inventory) === null || _1 === void 0 ? void 0 : _1.totalFiles) !== null && _2 !== void 0 ? _2 : (_4 = (_3 = result.scan) === null || _3 === void 0 ? void 0 : _3.repositoryInventory) === null || _4 === void 0 ? void 0 : _4.totalFiles;
-            if (findings != null && count != null) {
-                return `${formatNumber(findings)} finding${findings === 1 ? '' : 's'} · ${formatNumber(count)} files inventoried`;
-            }
-            return count != null ? `${formatNumber(count)} files inventoried` : '';
-        }
-        case 'data-quality': {
-            const count = (_9 = (_6 = canonicalCount !== null && canonicalCount !== void 0 ? canonicalCount : (_5 = result.inventory) === null || _5 === void 0 ? void 0 : _5.totalFiles) !== null && _6 !== void 0 ? _6 : (_8 = (_7 = result.scan) === null || _7 === void 0 ? void 0 : _7.inventory) === null || _8 === void 0 ? void 0 : _8.totalFiles) !== null && _9 !== void 0 ? _9 : (_11 = (_10 = result.scan) === null || _10 === void 0 ? void 0 : _10.repositoryInventory) === null || _11 === void 0 ? void 0 : _11.totalFiles;
-            return count != null ? `${formatNumber(count)} files inventoried` : '';
-        }
-        case 'cleanup-assistant': {
-            const count = (_13 = canonicalCount !== null && canonicalCount !== void 0 ? canonicalCount : (_12 = result.repositoryInventory) === null || _12 === void 0 ? void 0 : _12.totalFiles) !== null && _13 !== void 0 ? _13 : (_15 = (_14 = result.brief) === null || _14 === void 0 ? void 0 : _14.projectedInventory) === null || _15 === void 0 ? void 0 : _15.totalFiles;
-            return count != null ? `${formatNumber(count)} files in brief` : '';
-        }
-        case 'npm-audit': {
-            const n = (_18 = (_17 = (_16 = result.npmAudit) === null || _16 === void 0 ? void 0 : _16.summary) === null || _17 === void 0 ? void 0 : _17.total) !== null && _18 !== void 0 ? _18 : (_20 = (_19 = result.npmAudit) === null || _19 === void 0 ? void 0 : _19.vulnerabilities) === null || _20 === void 0 ? void 0 : _20.length;
-            return n != null ? `${formatNumber(n)} vulnerabilities` : '';
-        }
-        case 'compliance': {
-            const total = checklistRuleTotal(result.checklist);
-            const passed = (_22 = (_21 = result.checklist) === null || _21 === void 0 ? void 0 : _21.summary) === null || _22 === void 0 ? void 0 : _22.passed;
-            return passed != null && total ? `${passed}/${total} rules passed` : '';
-        }
-        case 'eu-ai-act': {
-            const count = (_25 = canonicalCount !== null && canonicalCount !== void 0 ? canonicalCount : (_24 = (_23 = result.sprint) === null || _23 === void 0 ? void 0 : _23.report) === null || _24 === void 0 ? void 0 : _24.repositoryFilesTotal) !== null && _25 !== void 0 ? _25 : (_28 = (_27 = (_26 = result.sprint) === null || _26 === void 0 ? void 0 : _26.report) === null || _27 === void 0 ? void 0 : _27.repositoryInventory) === null || _28 === void 0 ? void 0 : _28.totalFiles;
-            return count != null ? `${formatNumber(count)} files audited` : '';
-        }
-        default: {
-            const findings = (_31 = (_29 = result === null || result === void 0 ? void 0 : result.findingsCount) !== null && _29 !== void 0 ? _29 : (_30 = result === null || result === void 0 ? void 0 : result.category) === null || _30 === void 0 ? void 0 : _30.count) !== null && _31 !== void 0 ? _31 : null;
-            const files = (_34 = (_32 = result === null || result === void 0 ? void 0 : result.fileCount) !== null && _32 !== void 0 ? _32 : (_33 = result === null || result === void 0 ? void 0 : result.category) === null || _33 === void 0 ? void 0 : _33.fileCount) !== null && _34 !== void 0 ? _34 : 0;
-            if (findings != null) {
-                return `${findings} finding${findings === 1 ? '' : 's'} in ${files} file${files === 1 ? '' : 's'}`;
-            }
-            return '';
-        }
-    }
-}
-/**
- * Format complete step line.
- * @param {any} step
- * @returns {any}
- */
-function formatCompleteStepLine(step) {
-    const metric = step.metric ? ` · ${step.metric}` : '';
-    const err = step.error ? ` — ${step.error}` : '';
-    return `${step.label}${metric}${err}`;
-}
-/**
- * Render browser analyzer result.
- * @param {any} step
- * @param {Array} errors
- * @returns {any}
- */
-function renderBrowserAnalyzerResult(step, errors = []) {
-    var _a, _b, _c, _d, _e, _f, _g;
-    const label = getCompleteEngineLabel(step.id);
-    const metric = summarizeCompleteStepMetric(step.id, step);
-    const error = ((_a = errors.find((e) => { var _a; return (_a = e.step) === null || _a === void 0 ? void 0 : _a.includes(label); })) === null || _a === void 0 ? void 0 : _a.message) || '';
-    const findingsCount = (_d = (_b = step.findingsCount) !== null && _b !== void 0 ? _b : (_c = step.category) === null || _c === void 0 ? void 0 : _c.count) !== null && _d !== void 0 ? _d : 0;
-    const fileCount = (_g = (_e = step.fileCount) !== null && _e !== void 0 ? _e : (_f = step.category) === null || _f === void 0 ? void 0 : _f.fileCount) !== null && _g !== void 0 ? _g : 0;
-    const hasFindings = findingsCount > 0;
-    const findings = step.findings || [];
-    const findingsTable = findings.length
-        ? `<table class="results-table mt-3">
-        <thead>
-          <tr><th>Severity</th><th>File</th><th>Line</th><th>Description</th><th>Recommended Action</th></tr>
-        </thead>
-        <tbody>
-          ${findings.map((f) => {
-            var _a;
-            return `
-            <tr>
-              <td><span class="severity-pill ${escapeHtml(f.severity || 'low')}">${escapeHtml(f.severity || 'low')}</span></td>
-              <td><code>${escapeHtml(f.filePath ? f.filePath.split('/').pop().split('\\').pop() : '—')}</code></td>
-              <td>${(_a = f.line) !== null && _a !== void 0 ? _a : '—'}</td>
-              <td>${escapeHtml(f.description || f.type || '—')}</td>
-              <td>${escapeHtml(f.recommendedAction || 'Review and fix manually')}</td>
-            </tr>
-          `;
-        }).join('')}
-        </tbody>
-      </table>
-      <div class="flex gap-2 mt-3">
-        <button type="button" class="btn btn-secondary btn-sm analyze-download-step-json" data-step-id="${escapeHtml(step.id)}" title="Download raw JSON for this category">Download JSON</button>
-      </div>
-      ${findingsCount > findings.length ? `<p class="text-muted mt-2">+ ${findingsCount - findings.length} more finding(s) in JSON download.</p>` : ''}`
-        : '';
-    return `
-    <details class="card mb-4">
-      <summary><strong>${escapeHtml(label)}</strong> ${error ? '⚠️' : '✅'} <span class="text-muted" style="font-weight:400;">${escapeHtml(metric || 'No findings')}</span></summary>
-      <div class="mt-4">
-        ${error ? `<p class="text-muted" style="color: var(--warning-color, #f59e0b);">${escapeHtml(error)}</p>` : ''}
-        ${hasFindings
-        ? `<p class="text-muted">${formatNumber(findingsCount)} finding${findingsCount === 1 ? '' : 's'} in ${formatNumber(fileCount)} file${fileCount === 1 ? '' : 's'}</p>${findingsTable}`
-        : '<p class="text-muted">No findings detected.</p>'}
-      </div>
-    </details>
-  `;
-}
-/**
- * Checklist rule total.
- * @param {any} checklist
- * @returns {any}
- */
-function checklistRuleTotal(checklist) {
-    var _a;
-    const fromSummary = (_a = checklist === null || checklist === void 0 ? void 0 : checklist.summary) === null || _a === void 0 ? void 0 : _a.total;
-    if (Number.isFinite(fromSummary) && fromSummary > 0)
-        return fromSummary;
-    const fromRules = ((checklist === null || checklist === void 0 ? void 0 : checklist.rules) || []).length;
-    return fromRules > 0 ? fromRules : 0;
-}
-/**
- * Normalize path key.
- * @param {any} value
- * @returns {any}
- */
-function normalizePathKey(value) {
-    return String(value || '').replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase();
-}
-/**
- * Render compliance checklist panel.
- * @param {any} checklist
- * @param {Object} options
- * @returns {any}
- */
-function renderComplianceChecklistPanel(checklist, options = {}) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q;
-    const downloadId = (_a = options.downloadButtonId) !== null && _a !== void 0 ? _a : 'download-compliance-json';
-    if (!checklist) {
-        return '<p class="text-muted mt-4">Compliance checklist did not run.</p>';
-    }
-    const ruleTotal = checklistRuleTotal(checklist);
-    const profileLabel = options.profileLabel
-        || (((_b = checklist.summary) === null || _b === void 0 ? void 0 : _b.checklistProfile) === 'eu-ai-act' ? 'EU AI Act technical (10 rules)' : 'Corporate safety (8 rules)');
-    const notHandoff = ((_c = checklist.summary) === null || _c === void 0 ? void 0 : _c.benchmarkScan) || ((_d = checklist.summary) === null || _d === void 0 ? void 0 : _d.hollowGate) || ((_e = checklist.summary) === null || _e === void 0 ? void 0 : _e.handoffEligible) === false;
-    const passHandoff = options.handoffEligible === true || ((_f = checklist.summary) === null || _f === void 0 ? void 0 : _f.handoffEligible) === true;
-    const legalReady = ((_g = checklist.summary) === null || _g === void 0 ? void 0 : _g.legalHandoffEligible) === true;
-    const callout = notHandoff && ((_h = checklist.summary) === null || _h === void 0 ? void 0 : _h.headline)
-        ? `<div class="analyze-info-callout mb-4">${escapeHtml(checklist.summary.headline)}</div>`
-        : legalReady
-            ? '<div class="analyze-info-callout mb-4" style="border-color: var(--color-success, #22c55e);">Technical controls pass and legal classification is signed — ready for counsel-reviewed EU handoff pack.</div>'
-            : passHandoff
-                ? '<div class="analyze-info-callout mb-4" style="border-color: var(--color-success, #22c55e);">Technical checklist pass for this scan profile. Legal classification sign-off still required for EU conformity handoff.</div>'
-                : '';
-    const exportNotes = Array.isArray(options.exportNotes) && options.exportNotes.length
-        ? `<ul class="text-muted mb-3" style="font-size: var(--font-size-sm);">${options.exportNotes.map((n) => `<li>${escapeHtml(n)}</li>`).join('')}</ul>`
-        : '';
-    return `
-    <p class="text-muted mb-2" style="font-size: var(--font-size-xs);">Profile: <strong>${escapeHtml(profileLabel)}</strong> · static scan only — not legal conformity certification.</p>
-    ${callout}
-    ${exportNotes}
-    <div class="metrics-row mb-4 mt-4">
-      <div class="metric-chip gate-badge ${((_j = checklist.summary) === null || _j === void 0 ? void 0 : _j.failed) ? 'warn' : 'pass'}">
-        ${(_l = (_k = checklist.summary) === null || _k === void 0 ? void 0 : _k.passed) !== null && _l !== void 0 ? _l : 0}/${ruleTotal} passed
-      </div>
-      <div class="metric-chip"><strong>${(_o = (_m = checklist.summary) === null || _m === void 0 ? void 0 : _m.failed) !== null && _o !== void 0 ? _o : 0}</strong> failed</div>
-      ${((_p = checklist.summary) === null || _p === void 0 ? void 0 : _p.skipped) ? `<div class="metric-chip"><strong>${checklist.summary.skipped}</strong> skipped</div>` : ''}
-      ${((_q = checklist.summary) === null || _q === void 0 ? void 0 : _q.readyForAutomation) === false ? '<div class="metric-chip"><strong>Not automation-ready</strong></div>' : ''}
-    </div>
-    <ul class="analyze-mode-steps">
-      ${(checklist.rules || []).map((rule) => `
-        <li><strong>${escapeHtml(rule.id)}</strong> — ${escapeHtml(rule.title || rule.name || '')}
-          <span class="text-muted"> (${escapeHtml(rule.status || 'unknown')})</span></li>
-      `).join('')}
-    </ul>
-    ${downloadId ? `<button type="button" class="btn btn-secondary btn-sm mb-4 mt-4" id="${escapeHtml(downloadId)}">Download compliance JSON</button>` : ''}
-  `;
-}
-/**
- * Render npm audit panel.
- * @param {any} npmAudit
- * @param {Object} options
- * @returns {any}
- */
-function renderNpmAuditPanel(npmAudit, options = {}) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o;
-    const downloadId = (_a = options.downloadButtonId) !== null && _a !== void 0 ? _a : 'download-npm-audit-json';
-    if (!npmAudit || npmAudit.error) {
-        return `<p class="text-muted mt-4">${escapeHtml((npmAudit === null || npmAudit === void 0 ? void 0 : npmAudit.error) || 'npm audit did not run.')}</p>`;
-    }
-    if (npmAudit.skipped) {
-        return `
-      <div class="analyze-info-callout mb-4">${escapeHtml(npmAudit.scopeNote || 'npm audit was not run for this scan path.')}</div>
-      <p class="text-muted mb-3" style="font-size: var(--font-size-sm);">
-        Scan profile: <code>${escapeHtml(npmAudit.scanTargetProfile || 'non-npm-project')}</code>
-        ${npmAudit.handoffEligible === false ? ' · not valid for Simplebeacon platform handoff' : ''}
-      </p>
-      ${downloadId ? `<button type="button" class="btn btn-secondary btn-sm mb-4" id="${escapeHtml(downloadId)}">Download npm audit JSON</button>` : ''}
-    `;
-    }
-    const auditRootNote = npmAudit.auditRoot && npmAudit.projectPath
-        && normalizePathKey(npmAudit.auditRoot) !== normalizePathKey(npmAudit.projectPath)
-        ? `<p class="text-muted mb-3" style="font-size: var(--font-size-sm);">
-        Audited <code>${escapeHtml(formatPathInputValue(npmAudit.auditRoot))}</code>
-        (Node platform root for scan path <code>${escapeHtml(formatPathInputValue(npmAudit.projectPath))}</code>).
-      </p>`
-        : npmAudit.auditRoot
-            ? `<p class="text-muted mb-3" style="font-size: var(--font-size-sm);">
-          Audited <code>${escapeHtml(redactPathForDisplay(npmAudit.auditRoot))}</code>.
-        </p>`
-            : '';
-    const supplyStatus = npmAudit.supplyChainStatus
-        || (((_b = npmAudit.summary) === null || _b === void 0 ? void 0 : _b.critical) === 0 && ((_c = npmAudit.summary) === null || _c === void 0 ? void 0 : _c.high) === 0 ? 'pass' : 'review');
-    const passCallout = supplyStatus === 'pass'
-        ? `<div class="analyze-info-callout mb-4" style="border-color: var(--color-success, #22c55e);">
-        Supply chain: <strong>pass</strong> — 0 critical and 0 high npm audit findings.
-        ${npmAudit.handoffEligible ? ' Eligible for platform handoff supply-chain rules.' : ''}
-      </div>`
-        : '';
-    const exportNotes = Array.isArray(npmAudit.exportNotes) && npmAudit.exportNotes.length
-        ? `<ul class="text-muted mb-3" style="font-size: var(--font-size-sm);">
-        ${npmAudit.exportNotes.map((note) => `<li>${escapeHtml(note)}</li>`).join('')}
-      </ul>`
-        : '';
-    return `
-    ${passCallout}
-    ${auditRootNote}
-    ${exportNotes}
-    <div class="metrics-row mb-4 mt-4">
-      <div class="metric-chip"><strong>${(_g = (_e = (_d = npmAudit.summary) === null || _d === void 0 ? void 0 : _d.dependencies) !== null && _e !== void 0 ? _e : (_f = npmAudit.dependencies) === null || _f === void 0 ? void 0 : _f.total) !== null && _g !== void 0 ? _g : '—'}</strong> dependencies</div>
-      <div class="metric-chip"><strong>${(_k = (_j = (_h = npmAudit.summary) === null || _h === void 0 ? void 0 : _h.total) !== null && _j !== void 0 ? _j : npmAudit.vulnerabilityTotal) !== null && _k !== void 0 ? _k : 0}</strong> vulnerabilities</div>
-      ${((_l = npmAudit.summary) === null || _l === void 0 ? void 0 : _l.critical) != null ? `<div class="metric-chip"><strong>${npmAudit.summary.critical}</strong> critical</div>` : ''}
-      ${((_m = npmAudit.summary) === null || _m === void 0 ? void 0 : _m.high) != null ? `<div class="metric-chip"><strong>${npmAudit.summary.high}</strong> high</div>` : ''}
-      ${((_o = npmAudit.summary) === null || _o === void 0 ? void 0 : _o.moderate) != null ? `<div class="metric-chip"><strong>${npmAudit.summary.moderate}</strong> moderate</div>` : ''}
-    </div>
-    ${downloadId ? `<button type="button" class="btn btn-secondary btn-sm mb-4" id="${escapeHtml(downloadId)}">Download npm audit JSON</button>` : ''}
-  `;
-}
-/**
- * Render eu ai act sprint panel.
- * @param {any} sprint
- * @param {Object} options
- * @returns {any}
- */
-function renderEuAiActSprintPanel(sprint, options = {}) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z;
-    if (!sprint) {
-        return '<p class="text-muted mt-4">EU AI Act sprint did not run.</p>';
-    }
-    const s = sprint;
-    const failedRules = ((_a = s.compliance) === null || _a === void 0 ? void 0 : _a.failedRules) || [];
-    const failedRulesHtml = failedRules.length
-        ? `<ul class="analyze-mode-steps mb-4">${failedRules.map((rule) => `
-        <li><strong>${escapeHtml(rule.id)}</strong> — ${escapeHtml(rule.title || '')}
-          <span class="text-muted"> (${escapeHtml(rule.evidence || '')})</span></li>
-      `).join('')}</ul>`
-        : '';
-    const downloadId = (_b = options.downloadButtonId) !== null && _b !== void 0 ? _b : 'download-eu-compliance-json';
-    const showIntro = options.showIntro !== false;
-    const showActions = options.showActions !== false;
-    // Categorize rules by EU AI Act article
-    const rules = ((_c = s.complianceChecklist) === null || _c === void 0 ? void 0 : _c.rules) || ((_d = s.compliance) === null || _d === void 0 ? void 0 : _d.rules) || [];
-    const art5Rules = rules.filter(r => /ART-5|prohibited|banned|subliminal|manipulation|social scoring|biometric.*mass/i.test((r.id || '') + ' ' + (r.title || '')));
-    const art50Rules = rules.filter(r => /T50|transparency|disclosure|article.*50/i.test((r.id || '') + ' ' + (r.title || '')));
-    const otherRules = rules.filter(r => !art5Rules.includes(r) && !art50Rules.includes(r));
-    const art5Status = art5Rules.length ? (art5Rules.every(r => r.status === 'pass') ? 'pass' : 'warn') : 'pass';
-    const art50Status = art50Rules.length ? (art50Rules.every(r => r.status === 'pass') ? 'pass' : 'warn') : 'info';
-    const highRiskStatus = ((_e = s.summary) === null || _e === void 0 ? void 0 : _e.highRiskIndicators) > 0 ? 'warn' : 'pass';
-    const aiSystemStatus = ((_f = s.summary) === null || _f === void 0 ? void 0 : _f.aiSystemIndicators) > 0 ? 'info' : 'pass';
-    /**
-     * Render article card.
-     * @param {any} title
-     * @param {any} article
-     * @param {Array} status
-     * @param {any} rulesList
-     * @param {any} description
-     * @returns {any}
-     */
-    const renderArticleCard = (title, article, status, rulesList, description) => {
-        const badgeClass = status === 'pass' ? 'pass' : status === 'warn' ? 'warn' : 'info';
-        const badgeText = status === 'pass' ? 'PASS' : status === 'warn' ? 'WARN' : 'INFO';
-        return `
-      <div class="card mb-3" style="border-left: 4px solid var(--${badgeClass === 'pass' ? 'color-success' : badgeClass === 'warn' ? 'warning-color' : 'accent-color'}, ${badgeClass === 'pass' ? '#22c55e' : badgeClass === 'warn' ? '#f59e0b' : '#3b82f6'});">
-        <div style="padding: 16px 20px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-            <h4 style="margin:0;font-size:0.95rem;font-weight:600;">${escapeHtml(title)}</h4>
-            <span class="metric-chip gate-badge ${badgeClass}" style="font-size:0.75rem;">${badgeText}</span>
-          </div>
-          <p style="margin:0 0 8px;font-size:0.8rem;color:var(--text-muted);">${escapeHtml(article)}</p>
-          ${description ? `<p style="margin:0 0 12px;font-size:0.8rem;color:var(--text-muted);">${escapeHtml(description)}</p>` : ''}
-          ${rulesList.length ? `
-            <ul style="margin:0;padding-left:18px;font-size:0.8rem;color:var(--text-muted);">
-              ${rulesList.map(r => `<li><strong>${escapeHtml(r.id)}</strong> — ${escapeHtml(r.title || '')} <span style="color:${r.status === 'pass' ? 'var(--color-success,#22c55e)' : 'var(--warning-color,#f59e0b)'};">(${escapeHtml(r.status || 'unknown')})</span></li>`).join('')}
-            </ul>
-          ` : `<p style="margin:0;font-size:0.8rem;color:var(--text-muted);">No specific rules triggered.</p>`}
-        </div>
-      </div>
-    `;
-    };
-    return `
-    ${showIntro ? `<p class="text-muted mb-3" style="font-size: var(--font-size-sm);">
-      <strong>Reference scan</strong> — not an active paid SKU. EU pattern hits flag AI integrations (usually MEDIUM warnings).
-      Gate FAIL means ${(_h = (_g = s.gate) === null || _g === void 0 ? void 0 : _g.blockingCount) !== null && _h !== void 0 ? _h : '—'} HIGH-severity blocking issue(s) under <code>failOn: high</code>.
-    </p>` : ''}
-
-    <div class="metrics-row mb-4">
-      <div class="metric-chip gate-badge ${((_j = s.gate) === null || _j === void 0 ? void 0 : _j.pass) ? 'pass' : 'warn'}">${((_k = s.gate) === null || _k === void 0 ? void 0 : _k.pass) ? 'PASS' : 'FAIL'}</div>
-      <div class="metric-chip"><strong>${(_m = (_l = s.gate) === null || _l === void 0 ? void 0 : _l.blockingCount) !== null && _m !== void 0 ? _m : '—'}</strong> blocking (high)</div>
-      <div class="metric-chip"><strong>${(_q = (_p = (_o = s.gate) === null || _o === void 0 ? void 0 : _o.warningCount) !== null && _p !== void 0 ? _p : s.euPatternHits) !== null && _q !== void 0 ? _q : '—'}</strong> warnings (medium)</div>
-      <div class="metric-chip"><strong>${(_s = (_r = s.compliance) === null || _r === void 0 ? void 0 : _r.passed) !== null && _s !== void 0 ? _s : 0}/${(_u = (_t = s.compliance) === null || _t === void 0 ? void 0 : _t.total) !== null && _u !== void 0 ? _u : 0}</strong> checklist</div>
-      <div class="metric-chip"><strong>${(_w = (_v = s.compliance) === null || _v === void 0 ? void 0 : _v.score) !== null && _w !== void 0 ? _w : '—'}%</strong> readiness</div>
-      ${s.scannedAt || s.timestamp ? `<div class="metric-chip" style="font-size:0.75rem;color:var(--text-muted);">Scanned: ${escapeHtml(new Date(s.scannedAt || s.timestamp).toLocaleString())}</div>` : ''}
-    </div>
-
-    ${renderArticleCard('Prohibited AI Practices', 'Article 5 — Subliminal manipulation, social scoring, biometric mass surveillance', art5Status, art5Rules, art5Status === 'pass' ? 'No prohibited practices detected.' : 'Review required: potential high-risk indicators found.')}
-
-    ${renderArticleCard('Transparency Obligations', 'Article 50 — AI disclosure to users, content labeling, system documentation', art50Status, art50Rules, 'Ensure AI-generated content is disclosed to end users.')}
-
-    ${renderArticleCard('High-Risk System Indicators', 'Annex III — Employment, credit, biometric, education, insurance, law enforcement', highRiskStatus, [], ((_x = s.summary) === null || _x === void 0 ? void 0 : _x.highRiskIndicators) > 0 ? `${s.summary.highRiskIndicators} high-risk pattern(s) detected.` : 'No Annex III high-risk patterns detected.')}
-
-    ${renderArticleCard('AI System Detection', 'System inventory — LLM integrations, model inference, generative AI usage', aiSystemStatus, [], ((_y = s.summary) === null || _y === void 0 ? void 0 : _y.aiSystemIndicators) > 0 ? `${s.summary.aiSystemIndicators} AI system(s) detected in codebase.` : 'No AI systems detected.')}
-
-    ${((_z = s.compliance) === null || _z === void 0 ? void 0 : _z.headline) ? `<p class="text-muted mb-3" style="font-size: var(--font-size-sm);">${escapeHtml(s.compliance.headline)}</p>` : ''}
-    ${s.complianceChecklist ? renderComplianceChecklistPanel(s.complianceChecklist, {
-        downloadButtonId: downloadId,
-        profileLabel: 'EU AI Act technical + legal (10 rules)'
-    }) : ''}
-    ${!s.complianceChecklist && failedRules.length ? `<h3 class="mb-2" style="font-size: var(--font-size-base);">Failed checklist rules</h3>${failedRulesHtml}` : ''}
-    ${s.relativeArtifacts ? `
-      <h3 class="mb-2" style="font-size: var(--font-size-base);">Artifacts</h3>
-      <ul class="analyze-mode-steps mb-4">
-        ${Object.entries(s.relativeArtifacts).map(([key, rel]) => `<li><strong>${escapeHtml(key)}</strong> — <code>${escapeHtml(rel)}</code></li>`).join('')}
-      </ul>
-    ` : ''}
-    <p class="text-muted mb-4" style="font-size: var(--font-size-sm);">${escapeHtml(s.disclaimer || 'Static technical readiness — not legal conformity certification.')}</p>
-    ${showActions ? `
-      <div class="analyze-action-row mb-4">
-        <a class="btn btn-primary btn-sm" href="/dashboard/eu-ai-act">Open EU AI Act results</a>
-        <button type="button" class="btn btn-accent btn-sm" id="download-eu-ai-act-pdf">Download EU PDF</button>
-        <a class="btn btn-secondary btn-sm" href="/eu-ai-act-sample-report" target="_blank" rel="noopener">Sample report layout</a>
-        <a class="btn btn-ghost btn-sm" href="/dashboard/results">Gate blocking issues</a>
-      </div>
-    ` : `
-      <div class="analyze-action-row mb-4">
-        <button type="button" class="btn btn-accent btn-sm" id="download-eu-ai-act-pdf">Download EU PDF</button>
-        <a class="btn btn-ghost btn-sm" href="/dashboard/eu-ai-act">Open EU AI Act page</a>
-      </div>
-    `}
-  `;
-}
-const ANALYSIS_MODES = [
-    {
-        value: 'complete',
-        group: 'bundle',
-        label: 'Complete',
-        desc: 'Ten core engines + optional EU AI Act sprint — gate through npm audit, with regulatory add-on when checked',
-        icon: '⚡',
-        tag: 'Bundle',
-        steps: [
-            'Simplebeacon gate — credentials, production-leak, schema, fiction KPI, LLM slop, agency handoff',
-            'Consolidation — duplicate JSON groups and merge candidates',
-            'Fiction digest — repository-wide JSON KPI patterns',
-            'Roadmap — filesystem sprint phases from code-roadmap-generator',
-            'Codebase — full-depth ESLint + understanding layers',
-            'File reduction — build-artifacts, asset-consolidation, unused-files, directory-bloat (dry-run)',
-            'Data quality — 8 scanners (config, env, privacy, lineage, consistency)',
-            'Cleanup assistant — tiered safe-delete brief for agent mode',
-            'Live npm audit — supply-chain vulnerabilities',
-            'Compliance checklist — 8 corporate safety rules on gate report',
-            'EU AI Act sprint (optional) — eu-ai-act profile gate + 10-rule checklist + assessment artifacts'
-        ],
-        deliverable: 'Audit PDF + JSON bundle'
-    },
-    {
-        value: 'simplebeacon',
-        group: 'standalone',
-        label: 'Simplebeacon',
-        desc: 'Standard profile gate — credentials, production-leak, schema, fiction KPI, LLM slop, agency handoff',
-        icon: '🛡️',
-        tag: 'Gate',
-        steps: SIMPLEBEACON_GATE_RULES.map((rule) => rule.label),
-        deliverable: 'CI-ready pass/fail + .simplebeacon/report.json'
-    },
-    {
-        value: 'roadmap',
-        group: 'standalone',
-        label: 'Roadmap',
-        desc: 'Sprint phases, dependency graph, effort estimates',
-        icon: '🗺️',
-        tag: 'Planning',
-        deliverable: 'Filesystem roadmap JSON'
-    },
-    {
-        value: 'mock-scan',
-        group: 'standalone',
-        label: 'Mock data',
-        desc: 'Fiction KPI patterns across repository JSON — runs Simplebeacon gate internally first',
-        icon: '🔍',
-        tag: 'Fiction',
-        steps: [
-            'Simplebeacon gate scan (automatic)',
-            'Fiction & KPI digest from gate report'
-        ],
-        deliverable: 'Fiction issue digest'
-    },
-    {
-        value: 'consolidation',
-        group: 'standalone',
-        label: 'Consolidation',
-        desc: 'Duplicate JSON groups and merge candidates',
-        icon: '🔀',
-        tag: 'Ops',
-        deliverable: 'Dedup savings report'
-    },
-    {
-        value: 'codebase',
-        group: 'standalone',
-        label: 'Codebase',
-        desc: 'Tech debt, debug artifacts, ESLint (full repo depth)',
-        icon: '🧹',
-        tag: 'Hygiene',
-        deliverable: 'Health score + findings'
-    },
-    {
-        value: 'file-reduction',
-        group: 'standalone',
-        label: 'File reduction',
-        desc: 'Dry-run disk hygiene — build artifacts, duplicate assets, unused-file candidates',
-        icon: '📦',
-        tag: 'Reduce',
-        steps: FILE_REDUCTION_SCANNERS.map((id) => id.replace(/-/g, ' ')),
-        deliverable: 'Reclaimable space estimate + tier list'
-    },
-    {
-        value: 'removable-files',
-        group: 'standalone',
-        label: 'Removable files',
-        desc: 'node_modules, build artifacts, caches, logs, and temp files that can be safely deleted',
-        icon: '🗑️',
-        tag: 'Cleanup',
-        steps: [
-            'Scan for node_modules directories',
-            'Detect build artifacts (dist, build, .next, out)',
-            'Find cache directories (.cache, .turbo)',
-            'Identify log and temp files',
-            'List OS metadata files (.DS_Store, Thumbs.db)',
-            'Calculate total reclaimable space'
-        ],
-        deliverable: 'Removable files report with reclaimable space'
-    },
-    {
-        value: 'data-quality',
-        group: 'standalone',
-        label: 'Data quality',
-        desc: 'Eight data-cleanup scanners — config sprawl, env keys, freshness, privacy, lineage, consistency',
-        icon: '🧪',
-        tag: 'Data',
-        steps: DATA_QUALITY_SCANNERS.map((id) => id.replace(/-/g, ' ')),
-        deliverable: 'Hygiene + privacy findings JSON'
-    },
-    {
-        value: 'cleanup-assistant',
-        group: 'standalone',
-        label: 'Cleanup assistant',
-        desc: 'Tier safe deletes, protect mock data, export agent brief — runs file reduction + data quality internally',
-        icon: '🗂️',
-        tag: 'Agent',
-        steps: [
-            'File reduction scan (automatic)',
-            'Data quality scan (automatic)',
-            'Tiered cleanup brief + export'
-        ],
-        deliverable: 'Cursor cleanup brief + prompt'
-    },
-    {
-        value: 'compliance',
-        group: 'standalone',
-        label: 'Compliance',
-        desc: 'Corporate safety checklist (8 rules) on a fresh gate report — runs Simplebeacon gate internally first',
-        icon: '✅',
-        tag: 'Compliance',
-        steps: [
-            'Simplebeacon gate scan (automatic)',
-            ...COMPLIANCE_CHECKLIST_RULES
-        ],
-        deliverable: 'Rule-by-rule pass/fail JSON'
-    },
-    {
-        value: 'eu-ai-act',
-        group: 'regulatory',
-        label: 'EU AI Act sprint',
-        desc: 'eu-ai-act profile gate + EU pattern hits + checklist + assessment artifacts (operator vault)',
-        icon: '🇪🇺',
-        tag: 'Regulatory',
-        steps: [
-            ...SIMPLEBEACON_GATE_RULES.map((rule) => rule.label),
-            ...EU_AI_ACT_EXTRA_RULES.map((rule) => rule.label),
-            'EU compliance checklist profile + assessment report',
-            'Writes .simplebeacon/eu-ai-act-*.json under platform root'
-        ],
-        deliverable: 'Reference sample + .simplebeacon/eu-ai-act-*.json (not a paid SKU)'
-    },
-    {
-        value: 'npm-audit',
-        group: 'standalone',
-        label: 'npm audit',
-        desc: 'Live npm audit for the project path on the server',
-        icon: '📦',
-        tag: 'Supply chain',
-        deliverable: 'Vulnerability summary JSON'
-    },
-    {
-        value: 'auto',
-        group: 'standalone',
-        label: 'Auto',
-        desc: 'Mock-data path → Simplebeacon, else roadmap',
-        icon: '🤖',
-        tag: 'Smart pick',
-        deliverable: 'Best-fit single scan'
-    }
-];
-/**
- * Get analysis mode.
- * @param {any} value
- * @returns {any}
- */
-function getAnalysisMode(value) {
-    return ANALYSIS_MODES.find((m) => m.value === value) || ANALYSIS_MODES[0];
-}
-/**
- * Is plausible project path.
- * @param {any} value
- * @returns {any}
- */
-function isPlausibleProjectPath(value) {
-    const raw = String(value || '').trim();
-    if (!raw || raw.length > 280)
-        return false;
-    if (isRemoteRepoUrl(raw))
-        return true;
-    if (/outside allowed analysis roots|projectPath is required|projectPath is outside/i.test(raw)) {
-        return false;
-    }
-    if (/allowedAnalysisRoots|ANALYZE_ALLOWED_ROOTS|restart the server/i.test(raw)) {
-        return false;
-    }
-    if (/\.(bat|cmd|exe|ps1|sh|js|json|html?|md|txt)$/i.test(raw))
-        return false;
-    if (/^[a-zA-Z]:[\\/]/.test(raw))
-        return true;
-    if (raw.startsWith('\\\\') || raw.startsWith('/'))
-        return true;
-    if (/^[\w.-]+([\\/]|$)/.test(raw))
-        return true;
-    return false;
-}
-/**
- * Load analyze prefs.
- * @returns {any}
- */
-function loadAnalyzePrefs() {
-    try {
-        const raw = localStorage.getItem(ANALYZE_PREFS_KEY);
-        return raw ? JSON.parse(raw) : {};
-    }
-    catch (_a) {
-        return {};
-    }
-}
-/**
- * Save analyze prefs.
- * @param {Array} prefs
- * @returns {any}
- */
-function saveAnalyzePrefs(prefs) {
-    localStorage.setItem(ANALYZE_PREFS_KEY, JSON.stringify(prefs));
-}
-/**
- * Basename path.
- * @param {string} projectPath
- * @returns {any}
- */
-function basenamePath(projectPath) {
-    if (!projectPath)
-        return '';
-    const parts = projectPath.replace(/\\/g, '/').split('/').filter(Boolean);
-    return parts[parts.length - 1] || projectPath;
 }
 /**
  * Format elapsed.
@@ -1682,122 +575,13 @@ export class AnalyzeView {
     `;
     }
     renderSnippetResults(result) {
-        var _a, _b, _c, _d, _e, _f, _g;
-        const findings = result.findings || [];
-        const threatScore = (_a = result.threatScore) !== null && _a !== void 0 ? _a : 0;
-        const critical = findings.filter((f) => f.severity === 'critical').length;
-        const high = findings.filter((f) => f.severity === 'high').length;
-        const understanding = result.understanding;
-        const findingsHtml = findings.length
-            ? `<ul class="analyze-snippet-findings">
-          ${findings.slice(0, 8).map((f) => `
-            <li>
-              <span class="analyze-snippet-sev analyze-snippet-sev--${escapeHtml(f.severity)}">${escapeHtml(severityLabel(f.severity))}</span>
-              <strong>${escapeHtml(f.label)}</strong> line ${f.line}
-              <code>${escapeHtml(redactMatch(f.match))}</code>
-            </li>
-          `).join('')}
-          ${findings.length > 8 ? `<li class="text-muted">+ ${findings.length - 8} more — run a full repo scan for branch-wide coverage</li>` : ''}
-        </ul>`
-            : (result.cacheMeta
-                ? `<p class="text-muted analyze-snippet-clean">${result.cacheMeta.documentation
-                    // simplebeacon:production-leak-intent - legitimate sample path reference for documentation
-                    ? 'Documentation file — rule names like `-sample.json` describe scanner behavior, not production imports.'
-                    : result.cacheMeta.lockfile
-                        ? 'Dependency lockfile — npm/yarn bin entries are not production mock-path leaks.'
-                        : `Scanner cache index${result.cacheMeta.fileCount != null
-                            ? ` (${formatNumber(result.cacheMeta.fileCount)} tracked path(s))`
-                            : ''} — path keys are not production leak findings. Run a full repo scan for gate coverage.`}</p>`
-                : '<p class="text-muted analyze-snippet-clean">No credential, mock-path, or AI-fiction KPI patterns in this file.</p>');
-        const understandingHtml = understanding
-            ? `
-        <div class="analyze-snippet-understanding">
-          <p class="text-muted" style="font-size: var(--font-size-xs); margin: 0 0 0.5rem;">
-            Server understanding · ${escapeHtml(((_c = (_b = understanding.layers) === null || _b === void 0 ? void 0 : _b.static) === null || _c === void 0 ? void 0 : _c.languageLabel) || ((_e = (_d = understanding.layers) === null || _d === void 0 ? void 0 : _d.static) === null || _e === void 0 ? void 0 : _e.language) || 'unknown')}
-          </p>
-          <p style="font-size: var(--font-size-sm); margin: 0;">${escapeHtml(understanding.summary || ((_g = (_f = understanding.layers) === null || _f === void 0 ? void 0 : _f.semantic) === null || _g === void 0 ? void 0 : _g.purpose) || 'Summary unavailable.')}</p>
-        </div>
-      `
-            : (result.understandingSkipped
-                ? `<p class="text-muted analyze-snippet-note">${escapeHtml(result.understandingSkipped)}</p>`
-                : '');
-        return `
-      <div class="analyze-snippet-results" id="analyze-snippet-results">
-        <div class="analyze-snippet-results-head">
-          <div>
-            <strong>${escapeHtml(result.fileName || 'File')}</strong>
-            <span class="text-muted"> · ${formatNumber(result.bytes)} bytes</span>
-          </div>
-          <div class="metric-chip ${threatScore >= 35 ? 'metric-chip-danger' : ''}">
-            Threat score <strong>${threatScore}</strong>/100
-          </div>
-        </div>
-        <p class="text-muted analyze-snippet-meta">${findings.length} pattern hit(s) · ${critical} critical · ${high} high</p>
-        ${findingsHtml}
-        ${understandingHtml}
-        ${result.cacheMeta ? '' : `
-        <div class="analyze-snippet-actions">
-          <button type="button" class="btn btn-secondary btn-sm" id="analyze-snippet-understand-btn" ${this.snippetBusy ? 'disabled' : ''}>
-            ${understanding ? 'Re-run server understanding' : 'Run server understanding'}
-          </button>
-        </div>`}
-      </div>
-    `;
+        return renderSnippetResults(result, this.snippetBusy);
     }
     renderPathSourceSections(defaultPath, currentPath) {
-        const recent = loadRecentPaths().filter((p) => p !== defaultPath);
-        const recentChips = [];
-        if (defaultPath) {
-            recentChips.push({ path: defaultPath, label: `Server: ${basenamePath(defaultPath)}`, primary: true });
-        }
-        for (const p of recent) {
-            recentChips.push({
-                path: p,
-                label: formatPathLabel(p) || basenamePath(p),
-                primary: false
-            });
-        }
-        const recentHtml = recentChips.length
-            ? this.renderSourceChips(recentChips.map((c) => ({ id: c.path, kind: 'recent', label: c.label, value: c.path, primary: c.primary })), currentPath, 'analyze-recent-paths', { dismissible: true })
-            : '';
-        if (!recentHtml)
-            return '';
-        return `
-      ${recentHtml ? `
-        <div class="analyze-path-sources">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.25rem;">
-            <span class="analyze-path-sources-label text-muted">Recent</span>
-            <button type="button" class="btn btn-ghost btn-xs" id="clear-recent-paths-btn">Clear all</button>
-          </div>
-          ${recentHtml}
-        </div>
-      ` : ''}
-    `;
+        return renderPathSourceSections(defaultPath, currentPath);
     }
     renderSourceChips(sources, currentPath, containerId, options = {}) {
-        if (!(sources === null || sources === void 0 ? void 0 : sources.length)) {
-            return containerId === 'analyze-preset-paths'
-                ? `<div class="analyze-quick-paths" id="${containerId}"><span class="text-muted" style="font-size:var(--font-size-xs)">Loading test sources…</span></div>`
-                : '';
-        }
-        return `
-      <div class="analyze-quick-paths" id="${containerId}">
-        ${sources.map((source) => {
-            const value = source.value || '';
-            const kindClass = source.kind ? `analyze-path-chip--${source.kind}` : '';
-            const active = value === currentPath;
-            const dismissible = options.dismissible && !source.primary;
-            return `
-          <span class="analyze-path-chip-wrap ${source.primary ? 'primary' : ''} ${active ? 'active' : ''} ${kindClass}">
-            <button type="button" class="analyze-path-chip ${source.primary ? 'primary' : ''} ${active ? 'active' : ''} ${kindClass}"
-              data-path="${escapeHtml(value)}" title="${escapeHtml(sourceChipTitle(source))}">
-              ${source.kind === 'remote' ? '🌐 ' : source.kind === 'cached' ? '📦 ' : '📁 '}${escapeHtml(source.label)}
-            </button>
-            ${dismissible ? `<button type="button" class="analyze-path-chip-dismiss" data-path="${escapeHtml(value)}" aria-label="Remove ${escapeHtml(source.label)} from quick paths" title="Remove">×</button>` : ''}
-          </span>`;
-        }).join('')}
-      </div>
-    `;
+        return renderSourceChips(sources, currentPath, containerId, options);
     }
     async loadTestSources(container) {
         var _a;
@@ -2051,7 +835,7 @@ export class AnalyzeView {
         if (!root)
             return;
         root.querySelectorAll('.analyze-deliverable-input').forEach((input) => {
-            input.addEventListener('change', () => {
+            input.addEventListener('change', () => { // simplebeacon-ignore memory-leak
                 if (input.checked)
                     this.applyClientDeliverable(input.value, root);
             });
@@ -2477,9 +1261,6 @@ export class AnalyzeView {
       </div>
     `;
     }
-    renderScanEnginesReferenceCard() {
-        return '';
-    }
     /**
      * Get user's subscription tier from auth service.
      * @returns {string} 'starter' | 'pro' | 'enterprise'
@@ -2752,81 +1533,6 @@ export class AnalyzeView {
             ${formatNumber(nonNodeCount)} shown · ${formatNumber(findings.length - nonNodeCount)} node_modules hidden
             ${scan.durationMs != null ? ` · ${Math.round(scan.durationMs / 1000)}s runtime` : ''}
           </p>
-        </div>
-      </div>
-    `;
-    }
-    _renderScanEnginesReferenceCard() {
-        const gateList = SIMPLEBEACON_GATE_RULES.map((rule) => `<li><code>${escapeHtml(rule.id)}</code> — ${escapeHtml(rule.label)}</li>`).join('');
-        const dataList = DATA_QUALITY_SCANNERS.map((id) => `<li>${escapeHtml(id.replace(/-/g, ' '))}</li>`).join('');
-        const fileList = FILE_REDUCTION_SCANNERS.map((id) => `<li>${escapeHtml(id.replace(/-/g, ' '))}</li>`).join('');
-        const complianceList = COMPLIANCE_CHECKLIST_RULES.map((rule) => `<li>${escapeHtml(rule)}</li>`).join('');
-        const euList = EU_AI_ACT_EXTRA_RULES.map((rule) => `<li><code>${escapeHtml(rule.id)}</code> — ${escapeHtml(rule.label)}</li>`).join('');
-        const aiAnalyzerGroups = this.issueTaxonomyGroups.map((group) => {
-            const issueList = group.issues.map((issue) => `<li><code>${escapeHtml(issue.id)}</code> — ${escapeHtml(issue.title)}</li>`).join('');
-            return `<div class="analyze-engines-col">
-        <h3 class="analyze-engines-col-title">${escapeHtml(group.categoryName)} (${group.issues.length})</h3>
-        <ul class="analyze-mode-steps">${issueList}</ul>
-      </div>`;
-        }).join('');
-        // Derive browser analyzer reference grid from canonical COMPLETE_STEPS (single source of truth)
-        const browserGroups = new Map();
-        for (const step of COMPLETE_STEPS) {
-            if (!browserGroups.has(step.category))
-                browserGroups.set(step.category, []);
-            browserGroups.get(step.category).push(step);
-        }
-        const browserAnalyzerHtml = [...browserGroups.entries()].map(([cat, items]) => {
-            const itemList = items.map((item) => `<li><code>${escapeHtml(item.id)}</code> — ${escapeHtml(item.label)}${item.desc ? ` <span class="text-muted" style="font-size:0.75rem;">— ${escapeHtml(item.desc)}</span>` : ''}</li>`).join('');
-            return `<div class="analyze-engines-col">
-        <h3 class="analyze-engines-col-title">${escapeHtml(cat)} (${items.length})</h3>
-        <ul class="analyze-mode-steps">${itemList}</ul>
-      </div>`;
-        }).join('');
-        return `
-      <div class="card mb-6 analyze-engines-reference">
-        <div class="card-header">
-          <span class="card-title">Scan engines (current codebase)</span>
-          <span class="text-muted" style="font-size: var(--font-size-xs);">packages/simplebeacon-cli · standard profile</span>
-        </div>
-        <div class="analyze-engines-grid">
-          <div class="analyze-engines-col">
-            <h3 class="analyze-engines-col-title">Simplebeacon gate</h3>
-            <ul class="analyze-mode-steps">${gateList}</ul>
-          </div>
-          <div class="analyze-engines-col">
-            <h3 class="analyze-engines-col-title">Data quality (${DATA_QUALITY_SCANNERS.length})</h3>
-            <ul class="analyze-mode-steps">${dataList}</ul>
-          </div>
-          <div class="analyze-engines-col">
-            <h3 class="analyze-engines-col-title">File reduction (${FILE_REDUCTION_SCANNERS.length})</h3>
-            <ul class="analyze-mode-steps">${fileList}</ul>
-          </div>
-          <div class="analyze-engines-col">
-            <h3 class="analyze-engines-col-title">Compliance checklist (${COMPLIANCE_CHECKLIST_RULES.length})</h3>
-            <ul class="analyze-mode-steps">${complianceList}</ul>
-          </div>
-          <div class="analyze-engines-col">
-            <h3 class="analyze-engines-col-title">EU AI Act profile extras</h3>
-            <ul class="analyze-mode-steps">${euList}</ul>
-            <p class="text-muted" style="font-size: var(--font-size-xs); margin: 0.5rem 0 0;">Reference only — <a href="/eu-ai-act-sample-report" target="_blank" rel="noopener">sample report layout</a>. Active offers: <a href="/dashboard/deliverables">$499 PDF</a> and agency packs.</p>
-          </div>
-        </div>
-        <hr style="border: none; border-top: 1px solid var(--border-color); margin: 1.5rem 0;">
-        <div class="card-header">
-          <span class="card-title">AI Problem Analyzer Suite (${AI_SYSTEM_ISSUES.length} analyzers)</span>
-          <span class="text-muted" style="font-size: var(--font-size-xs);">${ANALYZER_CATALOG.filter((a) => a.status === 'implemented').length} implemented · ${ANALYZER_CATALOG.filter((a) => a.status !== 'implemented').length} contract stubs</span>
-        </div>
-        <div class="analyze-engines-grid">
-          ${aiAnalyzerGroups}
-        </div>
-        <hr style="border: none; border-top: 1px solid var(--border-color); margin: 1.5rem 0;">
-        <div class="card-header">
-          <span class="card-title">Browser Sandbox Analyzers (61 modules)</span>
-          <span class="text-muted" style="font-size: var(--font-size-xs);">coming-soon/upload.html · heuristic engine</span>
-        </div>
-        <div class="analyze-engines-grid">
-          ${browserAnalyzerHtml}
         </div>
       </div>
     `;
@@ -4207,77 +2913,10 @@ export class AnalyzeView {
             }
             showToast(this.realtimeMonitorEnabled ? 'Real-time monitoring enabled' : 'Real-time monitoring disabled', 'info');
         });
-        (_m = el.querySelector('#browse-dir-btn')) === null || _m === void 0 ? void 0 : _m.addEventListener('click', async () => {
-            const picked = await this.pickFolderViaBrowser(el);
-            if (!picked) {
-                const dirInput = el.querySelector('#browse-dir-input');
-                if (dirInput)
-                    dirInput.click();
-            }
+        (_m = el.querySelector('#browse-dir-btn')) === null || _m === void 0 ? void 0 : _m.addEventListener('click', () => {
+            this.openDirBrowser(el);
         });
-        // Analyze drop zone — drag-and-drop for scan reports / source files
-        const analyzeDropZone = el.querySelector('#analyze-drop-zone');
-        if (analyzeDropZone) {
-            let dropDragDepth = 0;
-            ['dragenter', 'dragover'].forEach((eventName) => {
-                analyzeDropZone.addEventListener(eventName, (event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    if (eventName === 'dragenter') {
-                        dropDragDepth++;
-                    }
-                    analyzeDropZone.classList.add('drag-active');
-                    if (event.dataTransfer) {
-                        event.dataTransfer.dropEffect = 'copy';
-                    }
-                });
-            });
-            analyzeDropZone.addEventListener('dragleave', (event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                dropDragDepth--;
-                if (dropDragDepth <= 0) {
-                    analyzeDropZone.classList.remove('drag-active');
-                    dropDragDepth = 0;
-                }
-            });
-            analyzeDropZone.addEventListener('drop', async (event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                dropDragDepth = 0;
-                analyzeDropZone.classList.remove('drag-active');
-                const dt = event.dataTransfer;
-                const files = (_a = dt) === null || _a === void 0 ? void 0 : _a.files;
-                if (dt?.items && dt.items.length > 0) {
-                    const entry = dt.items[0].webkitGetAsEntry?.();
-                    if (entry?.isDirectory) {
-                        showToast(`Directory "${entry.name || ''}" detected. Use Browse Folder or type the full path for best results.`, 'warning');
-                        return;
-                    }
-                }
-                if (!(files === null || files === void 0 ? void 0 : files.length))
-                    return;
-                const file = files[0];
-                const isJson = file.name.endsWith('.json');
-                const isZip = file.name.endsWith('.zip');
-                if (isJson || isZip) {
-                    try {
-                        const text = await file.text();
-                        const report = JSON.parse(text);
-                        this.lastResult = report;
-                        this.lastScanId = report.scanId || report.id || Date.now().toString();
-                        this.projectPath = report.projectPath || report.projectRoot || '';
-                        showToast(`Report "${file.name}" loaded`, 'success');
-                        this.refresh();
-                    }
-                    catch {
-                        showToast('Failed to parse report JSON', 'error');
-                    }
-                    return;
-                }
-                void this.handleAnalyzeFiles(files);
-            });
-        }
+        // Analyze drop zones are wired through bindAnalyzeDropzones below.
         // Run button triggers path analysis
         (_a = el.querySelector('#analyze-path-run-btn')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => {
             var _b;
@@ -4584,213 +3223,36 @@ export class AnalyzeView {
                 }
             }
         });
-        // Path area drag/drop — uses file.path in desktop/Electron, falls back to browse hint
-        const pathDropzone = el.querySelector('#analyze-path-dropzone');
-        if (pathDropzone && !this.websiteMode) {
-            let pathDragDepth = 0;
-            ['dragenter', 'dragover'].forEach((eventName) => {
-                pathDropzone.addEventListener(eventName, (event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    if (eventName === 'dragenter') {
-                        pathDragDepth++;
-                    }
-                    pathDropzone.classList.add('drag-active');
-                    if (event.dataTransfer)
-                        event.dataTransfer.dropEffect = 'copy';
-                });
-            });
-            pathDropzone.addEventListener('dragleave', (event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                pathDragDepth--;
-                if (pathDragDepth <= 0) {
-                    pathDropzone.classList.remove('drag-active');
-                    pathDragDepth = 0;
+        bindAnalyzeDropzones(el, {
+            app: this.app,
+            websiteMode: this.websiteMode,
+            deriveFallbackBase: () => this._deriveFallbackBase(),
+            onSetPath: (resolvedPath, name, autoRun = true) => {
+                const pathInput = el.querySelector('#project-path-input');
+                if (pathInput) {
+                    pathInput.value = resolvedPath;
+                    this.app.state.pathInputDraft = '';
+                    this.app.state.lastProjectPath = resolvedPath;
+                    this.setPathInputDisplay(pathInput, resolvedPath);
+                    this.syncAnalyzeModeUi(el);
+                    void this.refreshReportForActivePath(el);
                 }
-            });
-            pathDropzone.addEventListener('drop', async (event) => {
-                var _a, _b, _c, _d, _e, _f, _g;
-                event.preventDefault();
-                event.stopPropagation();
-                pathDragDepth = 0;
-                pathDropzone.classList.remove('drag-active');
-                // Preload providers so defaultProjectPath is available for path resolution
-                try {
-                    await ensureAllowedAnalysisRoots(this.app);
+                showToast(`Folder "${name}" dropped — path set to ${resolvedPath}.`, 'info');
+                if (autoRun && resolvedPath) {
+                    void this.runPathAnalysis(resolvedPath);
                 }
-                catch ( /* ignore */_h) { /* ignore */ }
-                const items = (_a = event.dataTransfer) === null || _a === void 0 ? void 0 : _a.items;
-                const files = (_b = event.dataTransfer) === null || _b === void 0 ? void 0 : _b.files;
-                // Modern browsers: detect directory drops via File System Access API
-                if (((_c = items === null || items === void 0 ? void 0 : items[0]) === null || _c === void 0 ? void 0 : _c.kind) === 'file') {
-                    try {
-                        const handle = await ((_e = (_d = items[0]).getAsFileSystemHandle) === null || _e === void 0 ? void 0 : _e.call(_d));
-                        if (handle && handle.kind === 'directory') {
-                            // Browser sandbox prevents revealing full OS path.
-                            // Prompt user to type path or use Browse Folder instead.
-                            showToast('Directory drop detected. Use Browse Folder or type the full path for best results.', 'warning');
-                            return;
-                        }
-                    }
-                    catch (_j) {
-                        // getAsFileSystemHandle not supported — fall through to legacy logic
-                    }
-                }
-                const deriveDirFromFilePath = (filePath) => {
-                    if (!filePath)
-                        return '';
-                    const norm = filePath.replace(/\\/g, '/');
-                    const lastSlash = norm.lastIndexOf('/');
-                    return lastSlash > 0 ? norm.slice(0, lastSlash) : norm;
-                };
-                const getDroppedFolderPath = (folderName) => {
-                    var _a, _b, _c, _d, _e, _f, _g, _h;
-                    const dt = event.dataTransfer;
-                    if (!dt)
-                        return '';
-                    const tryGetData = (type) => {
-                        try {
-                            return dt.getData(type) || '';
-                        }
-                        catch (_a) {
-                            return '';
-                        }
-                    };
-                    const uriList = tryGetData('text/uri-list');
-                    if (uriList) {
-                        const uri = (_a = uriList.trim().split('\n')[0]) === null || _a === void 0 ? void 0 : _a.trim();
-                        if (uri && uri.startsWith('file:///')) {
-                            let p = uri.slice(8).replace(/\/$/, '');
-                            try {
-                                p = decodeURIComponent(p);
-                            }
-                            catch ( /* ignore */_j) { /* ignore */ }
-                            return p.replace(/\//g, '\\');
-                        }
-                    }
-                    const plain = tryGetData('text/plain');
-                    if (plain) {
-                        let trimmed = (_b = plain.trim().split('\n')[0]) === null || _b === void 0 ? void 0 : _b.trim();
-                        trimmed = trimmed.replace(/^["']|["']$/g, '');
-                        if (trimmed && /^[a-zA-Z]:[\\\/]/.test(trimmed)) {
-                            return trimmed.replace(/[\\\/]+$/, '');
-                        }
-                    }
-                    const mozUrl = tryGetData('text/x-moz-url');
-                    if (mozUrl) {
-                        const url = (_c = mozUrl.trim().split('\n')[0]) === null || _c === void 0 ? void 0 : _c.trim();
-                        if (url && url.startsWith('file:///')) {
-                            let p = url.slice(8).replace(/\/$/, '');
-                            try {
-                                p = decodeURIComponent(p);
-                            }
-                            catch ( /* ignore */_k) { /* ignore */ }
-                            return p.replace(/\//g, '\\');
-                        }
-                    }
-                    // Electron / VS Code extension: file.path contains native absolute path.
-                    // items[0].getAsFile() gives first file INSIDE folder, so we MUST use
-                    // the actual folderName (from webkitGetAsEntry) to find correct boundary.
-                    const tryExtractFromPath = (filePath) => {
-                        if (!filePath)
-                            return '';
-                        const norm = filePath.replace(/\\/g, '/');
-                        if (folderName) {
-                            const idx = norm.indexOf(`/${folderName}/`);
-                            if (idx >= 0) {
-                                return norm.slice(0, idx + folderName.length + 1);
-                            }
-                            const endIdx = norm.lastIndexOf(`/${folderName}`);
-                            if (endIdx >= 0) {
-                                return norm.slice(0, endIdx + folderName.length + 1);
-                            }
-                        }
-                        return deriveDirFromFilePath(filePath);
-                    };
-                    if ((_d = files === null || files === void 0 ? void 0 : files[0]) === null || _d === void 0 ? void 0 : _d.path) {
-                        return tryExtractFromPath(String(files[0].path));
-                    }
-                    if (items === null || items === void 0 ? void 0 : items[0]) {
-                        try {
-                            const file = (_g = (_f = items[0]).getAsFile) === null || _g === void 0 ? void 0 : _g.call(_f);
-                            if (file === null || file === void 0 ? void 0 : file.path) {
-                                return tryExtractFromPath(String(file.path));
-                            }
-                        }
-                        catch (_l) {
-                            // getAsFile may throw for directories
-                        }
-                    }
-                    return '';
-                };
-                const setPathAndNotify = (resolvedPath, name, autoRun = true) => {
-                    const pathInput = el.querySelector('#project-path-input');
-                    if (pathInput) {
-                        pathInput.value = resolvedPath;
-                        this.app.state.pathInputDraft = '';
-                        this.app.state.lastProjectPath = resolvedPath;
-                        this.setPathInputDisplay(pathInput, resolvedPath);
-                        this.syncAnalyzeModeUi(el);
-                        void this.refreshReportForActivePath(el);
-                    }
-                    showToast(`Folder "${name}" dropped — path set to ${resolvedPath}.`, 'info');
-                    if (autoRun && resolvedPath) {
-                        void this.runPathAnalysis(resolvedPath);
-                    }
-                };
-                const resolveFolderPath = (name) => {
-                    const actualDir = getDroppedFolderPath(name);
-                    if (actualDir)
-                        return actualDir;
-                    const pathInput = el.querySelector('#project-path-input');
-                    const currentInput = String((pathInput === null || pathInput === void 0 ? void 0 : pathInput.value) || '').trim();
-                    const currentBase = currentInput
-                        ? currentInput.replace(/\\/g, '/').replace(/\/+$/, '').split('/').slice(0, -1).join('/')
-                        : '';
-                    const rawDefault = String(this.app.state.defaultProjectPath || '')
-                        .replace(/\\/g, '/')
-                        .replace(/\/+$/, '');
-                    const fallbackBase = String(this._deriveFallbackBase())
-                        .replace(/\\/g, '/')
-                        .replace(/\/+$/, '');
-                    const base = rawDefault || currentBase || fallbackBase;
-                    return base ? `${base}/${name}` : name;
-                };
-                if (items === null || items === void 0 ? void 0 : items.length) {
-                    const entry = (_g = (_f = items[0]).webkitGetAsEntry) === null || _g === void 0 ? void 0 : _g.call(_f);
-                    if (entry) {
-                        if (entry.isDirectory) {
-                            const name = entry.name || '';
-                            setPathAndNotify(resolveFolderPath(name), name);
-                            return;
-                        }
-                        if (entry.isFile && (files === null || files === void 0 ? void 0 : files.length)) {
-                            void this.handleAnalyzeFiles(files);
-                            return;
-                        }
-                    }
-                }
-                if (files === null || files === void 0 ? void 0 : files.length) {
-                    const file = files[0];
-                    const dtUriPath = getDroppedFolderPath();
-                    if (dtUriPath) {
-                        setPathAndNotify(dtUriPath, dtUriPath.split(/[\\/]/).pop() || 'folder');
-                        return;
-                    }
-                    if (file.path) {
-                        const targetPath = deriveDirFromFilePath(file.path) || file.path;
-                        setPathAndNotify(targetPath, targetPath.split(/[\\/]/).pop() || 'folder');
-                        return;
-                    }
-                    // Single file -> quick check
-                    void this.handleAnalyzeFiles(files);
-                    return;
-                }
-                showToast('Nothing detected. Drop a folder or file, or type a path manually.', 'warning');
-            });
-        }
-        this.bindFileDropEvents(el);
+            },
+            onHandleFiles: (files) => {
+                void this.handleAnalyzeFiles(files);
+            },
+            onLoadReport: (report) => {
+                this.lastResult = report;
+                this.lastScanId = report.scanId || report.id || Date.now().toString();
+                this.projectPath = report.projectPath || report.projectRoot || '';
+                this.refresh();
+            }
+        });
+        this.bindFileInputEvents(el);
         if (!this._aiKeysListenerBound && typeof window !== 'undefined') {
             window.addEventListener('simplebeacon:ai-keys-updated', this._onAiKeysUpdated);
             this._aiKeysListenerBound = true;
@@ -4807,9 +3269,10 @@ export class AnalyzeView {
         if (!modal)
             return;
         const pathInput = el.querySelector('#project-path-input');
-        const currentPath = this.resolveProjectPath(pathInput === null || pathInput === void 0 ? void 0 : pathInput.value) || this.app.state.defaultProjectPath || this._deriveFallbackBase();
+        const currentPath = this.resolveProjectPath(pathInput === null || pathInput === void 0 ? void 0 : pathInput.value) || this.app.state.defaultProjectPath || '';
         modal.classList.remove('hidden');
         modal.setAttribute('aria-hidden', 'false');
+        // Start from the current path if it is a valid directory; otherwise show the drives/root list.
         this._dirBrowserPath = currentPath;
         this.loadDirBrowser(el, currentPath);
     }
@@ -4827,7 +3290,8 @@ export class AnalyzeView {
         if (!listEl || !pathEl)
             return;
         listEl.innerHTML = '<div class="dir-browser-empty">Loading directories…</div>';
-        pathEl.textContent = dirPath;
+        const displayPath = dirPath || 'Computer';
+        pathEl.textContent = displayPath;
         this._dirBrowserPath = dirPath;
         try {
             const res = await fetch(`/api/analyze/list-directories?path=${encodeURIComponent(dirPath)}`, { cache: 'no-store' });
@@ -4836,8 +3300,9 @@ export class AnalyzeView {
                 listEl.innerHTML = `<div class="dir-browser-empty">Error: ${escapeHtml(data.error || 'Failed to load directories')}</div>`;
                 return;
             }
-            pathEl.textContent = data.current;
-            this._dirBrowserPath = data.current;
+            const current = data.current || dirPath;
+            pathEl.textContent = current || 'Computer';
+            this._dirBrowserPath = current;
             if (!data.directories || data.directories.length === 0) {
                 listEl.innerHTML = '<div class="dir-browser-empty">No subdirectories</div>';
                 return;
@@ -4845,7 +3310,9 @@ export class AnalyzeView {
             const parentItem = data.parent
                 ? `<div class="dir-browser-item" data-path="${escapeHtml(data.parent)}"><span class="dir-icon">⬆️</span> <strong>..</strong></div>`
                 : '';
-            const items = data.directories.map((dir) => `<div class="dir-browser-item" data-path="${escapeHtml(dir.path)}"><span class="dir-icon">📁</span> ${escapeHtml(dir.name)}</div>`).join('');
+            const isDriveList = !current;
+            const icon = isDriveList ? '💾' : '📁';
+            const items = data.directories.map((dir) => `<div class="dir-browser-item" data-path="${escapeHtml(dir.path)}"><span class="dir-icon">${icon}</span> ${escapeHtml(dir.name)}</div>`).join('');
             listEl.innerHTML = parentItem + items;
         }
         catch (err) {
@@ -4855,18 +3322,18 @@ export class AnalyzeView {
     dirBrowserGoUp(el) {
         if (!this._dirBrowserPath)
             return;
-        const parts = this._dirBrowserPath.replace(/\\/g, '/').split('/').filter(Boolean);
+        const normalized = this._dirBrowserPath.replace(/\\/g, '/');
+        const parts = normalized.split('/').filter(Boolean);
         if (parts.length === 0)
             return;
         if (parts.length === 1 && /^[a-zA-Z]:$/.test(parts[0])) {
-            // At a Windows drive root (e.g. D:/). Attempt to load the platform root
-            // so the server can respond with available drives or the root listing.
+            // At a Windows drive root (e.g. D:/). Show the drives list.
             this.loadDirBrowser(el, '');
             return;
         }
         parts.pop();
         const parent = parts.join('/');
-        const parentPath = this._dirBrowserPath.startsWith('/') ? '/' + parent : parent;
+        const parentPath = normalized.startsWith('/') ? '/' + parent : parent;
         this.loadDirBrowser(el, parentPath);
     }
     selectDirBrowserPath(el) {
@@ -4918,7 +3385,7 @@ export class AnalyzeView {
             return false;
         }
     }
-    bindFileDropEvents(el) {
+    bindFileInputEvents(el) {
         var _a, _b;
         const dropzone = el.querySelector('#analyze-file-dropzone');
         const fileInput = el.querySelector('#analyze-file-input');
@@ -4968,148 +3435,6 @@ export class AnalyzeView {
         });
         (_b = dropzone.querySelector('#analyze-snippet-understand-btn')) === null || _b === void 0 ? void 0 : _b.addEventListener('click', () => {
             void this.runSnippetUnderstanding();
-        });
-        // Robust dragleave with depth counter to prevent flicker over child elements
-        let fileDragDepth = 0;
-        ['dragenter', 'dragover'].forEach((eventName) => {
-            dropzone.addEventListener(eventName, (event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                if (eventName === 'dragenter')
-                    fileDragDepth++;
-                dropzone.classList.add('drag-active');
-                if (event.dataTransfer)
-                    event.dataTransfer.dropEffect = 'copy';
-            });
-        });
-        dropzone.addEventListener('dragleave', (event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            fileDragDepth--;
-            if (fileDragDepth <= 0) {
-                dropzone.classList.remove('drag-active');
-                fileDragDepth = 0;
-            }
-        });
-        dropzone.addEventListener('drop', async (event) => {
-            var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
-            event.preventDefault();
-            event.stopPropagation();
-            fileDragDepth = 0;
-            dropzone.classList.remove('drag-active');
-            const items = (_a = event.dataTransfer) === null || _a === void 0 ? void 0 : _a.items;
-            const files = (_b = event.dataTransfer) === null || _b === void 0 ? void 0 : _b.files;
-            // Handle folder drops on file dropzone -> route to path dropzone logic
-            if ((items === null || items === void 0 ? void 0 : items.length) && items[0].kind === 'file') {
-                try {
-                    const handle = await ((_d = (_c = items[0]).getAsFileSystemHandle) === null || _d === void 0 ? void 0 : _d.call(_c));
-                    if (handle && handle.kind === 'directory') {
-                        showToast('Directory drop detected. Use Browse Folder or type the full path for best results.', 'warning');
-                        return;
-                    }
-                }
-                catch (_l) {
-                    // getAsFileSystemHandle not supported — fall through to legacy logic
-                }
-                const entry = (_f = (_e = items[0]).webkitGetAsEntry) === null || _f === void 0 ? void 0 : _f.call(_e);
-                if (entry === null || entry === void 0 ? void 0 : entry.isDirectory) {
-                    const pathInput = el.querySelector('#project-path-input');
-                    const name = entry.name || '';
-                    // Try to extract the real absolute path from OS dataTransfer (same logic as path dropzone)
-                    const dt = event.dataTransfer;
-                    const tryGetData = (type) => { try {
-                        return dt.getData(type) || '';
-                    }
-                    catch (_a) {
-                        return '';
-                    } };
-                    let actualPath = '';
-                    const uriList = tryGetData('text/uri-list');
-                    if (uriList) {
-                        const uri = (_g = uriList.trim().split('\n')[0]) === null || _g === void 0 ? void 0 : _g.trim();
-                        if (uri && uri.startsWith('file:///')) {
-                            let p = uri.slice(8).replace(/\/$/, '');
-                            try {
-                                p = decodeURIComponent(p);
-                            }
-                            catch ( /* ignore */_m) { /* ignore */ }
-                            actualPath = p.replace(/\//g, '\\');
-                        }
-                    }
-                    if (!actualPath) {
-                        const plain = tryGetData('text/plain');
-                        if (plain) {
-                            let trimmed = (_h = plain.trim().split('\n')[0]) === null || _h === void 0 ? void 0 : _h.trim().replace(/^["']|["']$/g, '');
-                            if (trimmed && /^[a-zA-Z]:[\\\/]/.test(trimmed)) {
-                                actualPath = trimmed.replace(/[\\\/]+$/, '');
-                            }
-                        }
-                    }
-                    if (!actualPath) {
-                        const mozUrl = tryGetData('text/x-moz-url');
-                        if (mozUrl) {
-                            const url = (_j = mozUrl.trim().split('\n')[0]) === null || _j === void 0 ? void 0 : _j.trim();
-                            if (url && url.startsWith('file:///')) {
-                                let p = url.slice(8).replace(/\/$/, '');
-                                try {
-                                    p = decodeURIComponent(p);
-                                }
-                                catch ( /* ignore */_o) { /* ignore */ }
-                                actualPath = p.replace(/\//g, '\\');
-                            }
-                        }
-                    }
-                    if (!actualPath && ((_k = files === null || files === void 0 ? void 0 : files[0]) === null || _k === void 0 ? void 0 : _k.path)) {
-                        const filePath = String(files[0].path);
-                        const norm = filePath.replace(/\\/g, '/');
-                        // Use entry.name (actual folder name) to find correct boundary
-                        if (name) {
-                            const idx = norm.indexOf(`/${name}/`);
-                            if (idx >= 0) {
-                                actualPath = norm.slice(0, idx + name.length + 1);
-                            } else {
-                                const endIdx = norm.lastIndexOf(`/${name}`);
-                                if (endIdx >= 0) {
-                                    actualPath = norm.slice(0, endIdx + name.length + 1);
-                                }
-                            }
-                        }
-                        if (!actualPath) {
-                            const lastSlash = norm.lastIndexOf('/');
-                            actualPath = lastSlash > 0 ? filePath.slice(0, filePath.lastIndexOf('\\') > 0 ? filePath.lastIndexOf('\\') : lastSlash) : filePath;
-                        }
-                    }
-                    // Fallback to defaultProjectPath / current input / fallback base if no OS path
-                    const currentInput = String((pathInput === null || pathInput === void 0 ? void 0 : pathInput.value) || '').trim();
-                    const currentBase = currentInput
-                        ? currentInput.replace(/\\/g, '/').replace(/\/+$/, '').split('/').slice(0, -1).join('/')
-                        : '';
-                    const rawDefault = String(this.app.state.defaultProjectPath || '')
-                        .replace(/\\/g, '/')
-                        .replace(/\/+$/, '');
-                    const fallbackBase = String(this._deriveFallbackBase())
-                        .replace(/\\/g, '/')
-                        .replace(/\/+$/, '');
-                    const base = rawDefault || currentBase || fallbackBase;
-                    const resolvedPath = actualPath || (base ? `${base}/${name}` : name);
-                    if (pathInput) {
-                        pathInput.value = resolvedPath;
-                        this.app.state.pathInputDraft = '';
-                        this.app.state.lastProjectPath = resolvedPath;
-                        this.setPathInputDisplay(pathInput, resolvedPath);
-                        this.syncAnalyzeModeUi(el);
-                        void this.refreshReportForActivePath(el);
-                    }
-                    showToast(`Folder "${name}" dropped — path set to ${resolvedPath}. Press Enter or click Analyze to start.`, 'info');
-                    return;
-                }
-            }
-            if (files === null || files === void 0 ? void 0 : files.length) {
-                void this.handleAnalyzeFiles(files);
-            }
-            else {
-                showToast('No file detected. Try dropping a source file or JSON report.', 'warning');
-            }
         });
     }
     readFileAsText(file) {

@@ -27,6 +27,7 @@ export const window = {
   activeColorTheme: { kind: 1 },
   showOpenDialog: jest.fn(),
   showQuickPick: jest.fn(),
+  setStatusBarMessage: jest.fn(() => ({ dispose: jest.fn() })),
 };
 
 /** Mock ViewColumn enum. */
@@ -54,6 +55,6 @@ export const Uri = {
 /** Mock Range constructor. */
 export const Range = jest.fn();
 /** Mock ProgressLocation enum. */
-export const ProgressLocation = { Notification: 15 };
+export const ProgressLocation = { Notification: 15, Window: 10 };
 /** Mock ColorThemeKind enum. */
 export const ColorThemeKind = { Light: 1, Dark: 2 };

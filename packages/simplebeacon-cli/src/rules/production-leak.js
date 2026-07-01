@@ -49,8 +49,12 @@ const PLAIN_SAMPLE_JSON_PATTERN = {
     regex: /['"`][^'"`]*(?:\/|\\|\.\/)(?<![\w-])sample\.json(?:\?[^'"`]*)?['"`]/gi
 };
 
+/**
+ * @param {{plainSampleJson?:boolean}} [options]
+ */
 function getActiveLeakPatterns(options = {}) {
-    if (!options.plainSampleJson) {
+    const opts = (options && typeof options === 'object') ? options : {};
+    if (!opts.plainSampleJson) {
         return LEAK_PATTERNS;
     }
     return [...LEAK_PATTERNS, PLAIN_SAMPLE_JSON_PATTERN];
@@ -76,10 +80,13 @@ function normalizeRel(baseDir, filePath) {
 }
 
 function lineNumberAt(content, index) {
-    return content.slice(0, Math.max(0, index)).split('\n').length;
+    if (!content || typeof content !== 'string') return 0;
+    const safeIndex = Number.isFinite(index) ? Math.max(0, Math.min(index, content.length)) : 0;
+    return content.slice(0, safeIndex).split('\n').length;
 }
 
 function globMatch(relativePath, pattern) {
+    if (typeof relativePath !== 'string' || typeof pattern !== 'string') return false;
     const normalized = relativePath.split('\\').join('/');
     const p = pattern.split('\\').join('/');
 
@@ -102,16 +109,24 @@ function globMatch(relativePath, pattern) {
             return normalized === prefix || normalized.startsWith(`${prefix}/`) || normalized.includes(`/${prefix}/`);
         }
         if (p.startsWith('**/') && suffix !== p) {
-            const tailRegex = new RegExp(
-                `(^|/)${suffix.replace(/\./g, '\\.').replace(/\*/g, '[^/]*')}$`
-            );
-            return tailRegex.test(normalized);
+            try {
+                const tailRegex = new RegExp(
+                    `(^|/)${suffix.replace(/\./g, '\\.').replace(/\*/g, '[^/]*')}$`
+                );
+                return tailRegex.test(normalized);
+            } catch {
+                return false;
+            }
         }
     }
-    const regex = new RegExp(
-        `^${p.replace(/\./g, '\\.').replace(/\*/g, '[^/]*')}$`
-    );
-    return regex.test(normalized);
+    try {
+        const regex = new RegExp(
+            `^${p.replace(/\./g, '\\.').replace(/\*/g, '[^/]*')}$`
+        );
+        return regex.test(normalized);
+    } catch {
+        return false;
+    }
 }
 
 function isIgnored(relativePath, ignoreGlobs) {
@@ -119,8 +134,10 @@ function isIgnored(relativePath, ignoreGlobs) {
 }
 
 function isAllowlisted(relativePath, allowlistFiles) {
+    if (typeof relativePath !== 'string') return false;
     const normalized = relativePath.split('\\').join('/');
     return allowlistFiles.some((entry) => {
+        if (typeof entry !== 'string') return false;
         const allowed = entry.split('\\').join('/');
         return normalized === allowed
             || normalized.endsWith('/' + allowed)
@@ -129,8 +146,12 @@ function isAllowlisted(relativePath, allowlistFiles) {
 }
 
 function isScannerMetaFile(relativePath, userMetaFiles = []) {
+    if (typeof relativePath !== 'string') return false;
     const normalized = relativePath.split('\\').join('/');
-    return userMetaFiles.some(entry => normalized === entry.split('\\').join('/'));
+    return userMetaFiles.some((entry) => {
+        if (typeof entry !== 'string') return false;
+        return normalized === entry.split('\\').join('/');
+    });
 }
 
 function isCommentLine(line) {
@@ -139,7 +160,13 @@ function isCommentLine(line) {
 }
 
 function isLikelyConfigReference(relativePath, matchText) {
-    const base = path.basename(relativePath);
+    if (typeof relativePath !== 'string') return false;
+    let base;
+    try {
+        base = path.basename(relativePath);
+    } catch {
+        return false;
+    }
     if (CONFIG_FILE_NAMES.has(base)) return true;
     if (/\.simplebeacon|truthcheck|repository-audit|page-sample-specs/i.test(matchText)) return true;
     return false;
@@ -207,6 +234,7 @@ function buildRecommendation(patternId) {
 
 async function walkProductionFiles(dir, results = [], depth = 0) {
     if (depth > 8) return results;
+    if (typeof dir !== 'string' || !dir) return results;
     let entries;
     try {
         entries = await fs.promises.readdir(dir, { withFileTypes: true });
@@ -235,13 +263,22 @@ async function walkProductionFiles(dir, results = [], depth = 0) {
     return results;
 }
 
+/**
+ * @param {string} relativePath
+ * @param {string} content
+ * @param {{intentClassification?:boolean,severityBand?:string,severity?:string,plainSampleJson?:boolean}} [options]
+ * @returns {{findings:any[],suppressed:any[]}}
+ */
 function scanFileContent(relativePath, content, options = {}) {
     const findings = [];
     const suppressed = [];
-    const intentClassification = options.intentClassification !== false;
-    const fallbackSeverityBand = options.severityBand || options.severity || 'high';
+    if (typeof relativePath !== 'string') return { findings, suppressed };
+    const opts = (options && typeof options === 'object') ? options : {};
+    const intentClassification = opts.intentClassification !== false;
+    const fallbackSeverityBand = opts.severityBand || opts.severity || 'high';
+    if (typeof content !== 'string') return { findings, suppressed };
     const lines = content.split('\n');
-    const patterns = getActiveLeakPatterns(options);
+    const patterns = getActiveLeakPatterns(opts);
 
     if (hasProductionLeakIntentAnnotation(content)) {
         return { findings: [], suppressed };
@@ -287,7 +324,7 @@ function scanFileContent(relativePath, content, options = {}) {
 
             const lineNum = lineNumberAt(content, match.index);
             const severityBand = intentResult?.severityBand
-                || ((options.severityBand || options.severity)
+                || ((opts.severityBand || opts.severity)
                     ? fallbackSeverityBand
                     : mapSeverityBand(relativePath, pattern.id));
             const recommendation = buildRecommendation(pattern.id);
@@ -325,12 +362,20 @@ function scanFileContent(relativePath, content, options = {}) {
     return { findings, suppressed };
 }
 
+/**
+ * @param {string} baseDir
+ * @param {{productionPaths?:string[],ignoreGlobs?:string[],allowlistFiles?:string[],scannerMetaFiles?:string[],severity?:string,intentClassification?:boolean,plainSampleJson?:boolean}} [options]
+ * @returns {Promise<{scanned:number,findings:number,issues:any[],suppressedIntent:any[],suppressedIntentCount:number}>}
+ */
 async function scanProductionLeaks(baseDir, options = {}) {
-    const productionPaths = options.productionPaths || DEFAULT_PRODUCTION_PATHS;
-    const ignoreGlobs = options.ignoreGlobs || DEFAULT_IGNORE_GLOBS;
-    const allowlistFiles = (options.allowlistFiles || []).map((p) => p.split('\\').join('/'));
-    const scannerMetaFiles = options.scannerMetaFiles || [];
-    const severity = options.severity || 'high';
+    const opts = (options && typeof options === 'object') ? options : {};
+    const productionPaths = Array.isArray(opts.productionPaths) ? opts.productionPaths : DEFAULT_PRODUCTION_PATHS;
+    const ignoreGlobs = Array.isArray(opts.ignoreGlobs) ? opts.ignoreGlobs : DEFAULT_IGNORE_GLOBS;
+    const allowlistFiles = Array.isArray(opts.allowlistFiles)
+        ? opts.allowlistFiles.map((p) => String(p).split('\\').join('/'))
+        : [];
+    const scannerMetaFiles = Array.isArray(opts.scannerMetaFiles) ? opts.scannerMetaFiles : [];
+    const severity = opts.severity || 'high';
 
     const files = [];
     for (const rel of productionPaths) {

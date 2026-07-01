@@ -157,6 +157,13 @@ const server = http.createServer((req, res) => {
   fs.readFile(filePath, (err, data) => {
     if (err) {
       if (err.code === 'ENOENT' || err.code === 'EISDIR') {
+        // Don't SPA-fallback favicon requests — they cause ORB blocking
+        const baseName = path.basename(urlPath).toLowerCase();
+        if (baseName === 'favicon.ico' || baseName === 'favicon.svg' || baseName.startsWith('favicon')) {
+          res.writeHead(404, { 'Content-Type': 'text/plain' });
+          res.end('Not found');
+          return;
+        }
         // SPA fallback: serve index.html for unknown routes
         fs.readFile(path.join(ROOT, 'index.html'), (err2, data2) => {
           if (err2) {

@@ -163,6 +163,21 @@ function dedupeResolvedRoots(roots) {
  * @param {Object} options
  * @returns {any}
  */
+function listLocalDriveRoots() {
+    const drives = [];
+    for (let i = 65; i <= 90; i++) {
+        const letter = String.fromCharCode(i);
+        const drive = `${letter}:/`;
+        try {
+            if (fs.existsSync(drive)) {
+                drives.push(drive);
+            }
+        }
+        catch (e) { /* skip inaccessible drives */ }
+    }
+    return drives;
+}
+
 function resolveDefaultAllowedRoots(platformRoot, options = {}) {
     const platform = path.resolve(platformRoot);
     const chain = [];
@@ -179,6 +194,10 @@ function resolveDefaultAllowedRoots(platformRoot, options = {}) {
     }
 
     chain.push(platform);
+
+    // Include all local drives (Windows) or the platform drive root so the
+    // directory browser can reach folders outside the default workspace.
+    chain.push(...listLocalDriveRoots());
 
     const tmpGitCache = path.join(os.tmpdir(), 'sb-github-cache');
     chain.push(tmpGitCache);

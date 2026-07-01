@@ -7,36 +7,50 @@ import * as http from 'http';
 import * as https from 'https';
 import * as crypto from 'crypto';
 import { spawn } from 'child_process';
-import { ScanPhaseProvider, TaskNode, ScanReport } from './scanProvider';
-import { EnhancedScanProvider } from './enhancedScanProvider';
-import { VisualSidebarProvider } from './visualSidebarProvider';
-import { ModernSidebarProvider } from './modernSidebarProvider';
-import { AiChatbotProvider } from './aiChatbotProvider';
-import { SummaryProvider } from './summaryProvider';
-import { RoadmapProvider } from './roadmapProvider';
-import { EnhancedDashboard30 } from './enhancedDashboard3_0';
-import { Dashboard40 } from './dashboard4_0';
-import { WelcomeDashboard } from './welcomeDashboard';
-import { SettingsProvider } from './settingsProvider';
-import { EnhancedAIProvider } from './enhancedAIProvider';
-import { RealtimeMonitor } from './realtimeMonitor';
-import { AICodeAnalyzer } from './aiIntegration/aiCodeAnalyzer';
-import { exportAIReport, AIReportOptions } from './aiIntegration/aiReportExporter';
-import { startDataServer, stopDataServer, updateServerState, getDataServerPort, setSidebarHtmlProvider, setAiContextCallback, restartDataServer, isDataServerRunning, setModernSidebarProvider } from './dataServer';
-import { AdvancedAnalytics } from './analytics/advancedAnalytics';
-import { TeamDashboard } from './collaboration/teamDashboard';
-import { ScanResult, ScanProfile, exportScanResultToJson } from './analyzers/workspaceAnalyzer';
-import { RemediationProvider } from './fixes/remediationProvider';
-import { SlopCopQuickFixProvider } from './fixes/slopCopQuickFixProvider';
-import { registerReferralEngine, evaluateReferralPrompt } from './referralEngine';
-import { getExtensionVersion, checkCliAvailable, pickWorkspaceFolder } from './utils';
+import {
+  ScanPhaseProvider, TaskNode, ScanReport,
+  EnhancedScanProvider,
+  VisualSidebarProvider,
+  ModernSidebarProvider,
+  AiChatbotProvider,
+  SummaryProvider,
+  RoadmapProvider, generateRoadmap,
+  EnhancedDashboard30,
+  Dashboard40,
+  WelcomeDashboard,
+  SettingsProvider,
+  EnhancedAIProvider,
+  RealtimeMonitor,
+  AICodeAnalyzer,
+  exportAIReport, AIReportOptions,
+  AdvancedAnalytics,
+  TeamDashboard,
+  ScanResult, ScanProfile, exportScanResultToJson,
+  SlopCopQuickFixProvider,
+  registerReferralEngine,
+  SimpleBeaconProvider, ScanIssue,
+  UploadPanel,
+  DiagnosticsManager,
+  DashboardPanel,
+  DebugReporter
+} from './providers';
+import { startDataServer, stopDataServer, updateServerState, getDataServerPort, setSidebarHtmlProvider, setAiContextCallback, restartDataServer, isDataServerRunning, setModernSidebarProvider, buildAiContextMarkdown } from './dataServer';
+import { getExtensionVersion, pickWorkspaceFolder, correctScanPath, showQuietMessage, escapeHtml, getSbConfig } from './utils';
 import { AuthManager } from './auth/authManager';
-import { SimpleBeaconProvider, ScanIssue } from './aiPlatform/simplebeaconProvider';
-import { UploadPanel } from './aiPlatform/uploadPanel';
-import { DiagnosticsManager } from './aiPlatform/diagnostics';
-import { DashboardPanel } from './aiPlatform/dashboardPanel';
+import { initAuthManager, getAuthManager } from './auth/authContext';
 import { mergeLiveIssues, convertRealtimeIssues } from './reportMerge';
-import { DebugReporter } from './debugReporter';
+import { safeUpdateUIs as _safeUpdateUIs, DashboardDeps } from './dashboardUpdater';
+
+
+/** Severity-to-color mapping for dashboard badges. */
+function getSeverityColor(sev: string): string {
+  switch (sev.toLowerCase()) {
+    case 'critical': return '#ef4444';
+    case 'high':     return '#f97316';
+    case 'medium':   return '#eab308';
+    default:         return '#22c55e';
+  }
+}
 
 interface DetectedIssue {
   severity?: string;
@@ -86,6 +100,7 @@ interface CodeMapHtmlOptions {
   entryJson: string;
   leafJson: string;
   connectedJson: string;
+  analysisJson: string;
 }
 
 interface SidebarReport {
@@ -137,7 +152,6 @@ let teamDashboard: TeamDashboard;
 let currentReport: unknown = null;
 let hasEnhancedAnalysis = false;
 let statusBarItem: vscode.StatusBarItem;
-export let authManager: AuthManager;
 let lastScannedProjectPath: string | null = null;
 let isGeneratingCertificate = false;
 let scanInProgress = false;
@@ -166,36 +180,35 @@ function postThemeToPanel(panel: vscode.WebviewPanel | undefined) {
   } catch (e) { /* ignore closed panels */ }
 }
 
+const BAD_PORTS = [':55444', ':54358', ':3000'];
+const DEFAULT_API_PORT = ':55000';
+
 function getConfiguredApiUrl(): string {
-  const config = vscode.workspace.getConfiguration('simplebeacon');
-  let explicitUrl = config.get<string>('apiServerUrl', '');
+  const config = getSbConfig();
+  let url = config.get<string>('apiServerUrl', '');
+  if (!url) {
+    url = config.get<string>('apiUrl', 'http://127.0.0.1:55000') || 'http://127.0.0.1:55000';
+  }
   // Auto-correct known bad ports to the actual SimpleBeacon server port
-  if (explicitUrl) {
-    // Auto-correct known bad ports to the actual SimpleBeacon server port
-    if (explicitUrl.includes(':55444')) {
-      explicitUrl = explicitUrl.replace(':55444', ':55000');
-    } else if (explicitUrl.includes(':54358')) {
-      explicitUrl = explicitUrl.replace(':54358', ':55000');
-    } else if (explicitUrl.includes(':3000')) {
-      explicitUrl = explicitUrl.replace(':3000', ':55000');
+  for (const bad of BAD_PORTS) {
+    if (url.includes(bad)) {
+      url = url.replace(bad, DEFAULT_API_PORT);
+      break;
     }
   }
-  if (explicitUrl) {
-    return explicitUrl.replace(/\/$/, '');
-  }
-  // If no explicit API server is configured, use the actual SimpleBeacon server port
-  const apiUrl = config.get<string>('apiUrl', 'http://127.0.0.1:55000') || 'http://127.0.0.1:55000';
-  return apiUrl.replace(/\/$/, '');
+  return url.replace(/\/$/, '');
 }
 
 async function checkServerReachable(url: string, timeout = 3000): Promise<boolean> {
   try {
     const parsed = new URL(url);
-    const client = parsed.protocol === 'https:' ? require('https') : require('http');
+    const client = parsed.protocol === 'https:' ? https : http;
     return new Promise((resolve) => {
       const req = client.request(
-        { hostname: parsed.hostname, port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80), path: '/', method: 'HEAD' },
+        { hostname: parsed.hostname, port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80), path: '/', method: 'GET' },
         (res: http.IncomingMessage) => {
+          // Consume the response body so the connection can close cleanly
+          res.on('data', () => {});
           resolve(res.statusCode !== undefined && res.statusCode < 500);
         }
       );
@@ -221,7 +234,7 @@ async function withServerRetry<T>(action: () => Promise<T>, actionName = 'Open d
     'Open Settings'
   );
   if (choice === 'Set Server URL') {
-    await authManager.promptForServerUrl();
+    await getAuthManager().promptForServerUrl();
     const newUrl = getConfiguredApiUrl();
     if (await checkServerReachable(newUrl)) {
       return action();
@@ -284,8 +297,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(vscode.window.onDidChangeActiveColorTheme(() => {
     postThemeToPanel(activePreviewPanel);
-    const { ModernSidebarProvider } = require('./modernSidebarProvider');
-    if (ModernSidebarProvider && typeof ModernSidebarProvider.postThemeToTeamDashboard === 'function') {
+    if (typeof ModernSidebarProvider.postThemeToTeamDashboard === 'function') {
       ModernSidebarProvider.postThemeToTeamDashboard(getCurrentIdeTheme());
     }
   }));
@@ -317,13 +329,19 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push({ dispose: () => clearInterval(serverStatusInterval) });
   context.subscriptions.push(serverStatusItem);
 
-  authManager = new AuthManager(context);
+  initAuthManager(context);
 
   scanProvider = new ScanPhaseProvider();
   enhancedScanProvider = new EnhancedScanProvider();
   visualSidebarProvider = new VisualSidebarProvider();
   modernSidebarProvider = new ModernSidebarProvider(context.extensionUri);
   setModernSidebarProvider(modernSidebarProvider);
+  import('./sidebarBridge').then(({ setSidebarBridge }) => {
+    setSidebarBridge({
+      showDashboardInSidebar: ModernSidebarProvider.showDashboardInSidebar.bind(ModernSidebarProvider),
+      openSidebarInBrowserStatic: ModernSidebarProvider.openSidebarInBrowserStatic.bind(ModernSidebarProvider)
+    });
+  });
   context.subscriptions.push(vscode.window.registerWebviewViewProvider(ModernSidebarProvider.viewType, modernSidebarProvider));
   context.subscriptions.push(vscode.window.registerWebviewViewProvider('simplebeacon-modern-explorer', modernSidebarProvider));
   const aiChatbotProvider = new AiChatbotProvider(context.extensionUri);
@@ -335,9 +353,14 @@ export function activate(context: vscode.ExtensionContext) {
     const issueCount = payload && typeof payload === 'object' && Array.isArray((payload as any).issues)
       ? (payload as any).issues.length
       : 0;
-    vscode.window.showInformationMessage(
+    showQuietMessage(
       `SimpleBeacon AI context received${issueCount ? ' (' + issueCount + ' findings)' : ''}`
     );
+    try {
+      aiChatbotProvider.postContext(payload, buildAiContextMarkdown(payload));
+    } catch (err) {
+      outputChannel.appendLine('[SimpleBeacon] Failed to push context to AI panel: ' + (err instanceof Error ? err.message : String(err)));
+    }
   });
   setSidebarHtmlProvider(() => {
     try {
@@ -369,430 +392,21 @@ export function activate(context: vscode.ExtensionContext) {
   });
   realtimeMonitor = RealtimeMonitor.getInstance();
 
+  const dashboardDeps: DashboardDeps = {
+    outputChannel,
+    context,
+    modernSidebarProvider,
+    summaryProvider,
+    scanCountRef: { value: scanCount }
+  };
   function safeUpdateUIs(report: unknown, statusMessage?: string) {
-    try {
-      EnhancedDashboard30.updateIfOpen(report);
-    } catch (e) {
-      outputChannel.appendLine(`[SimpleBeacon] Dashboard update failed: ${e}`);
-    }
-    try {
-      Dashboard40.updateIfOpen(report as any);
-    } catch (e) {
-      outputChannel.appendLine(`[SimpleBeacon] Dashboard 4.0 update failed: ${e}`);
-    }
-    try {
-      modernSidebarProvider.updateReport(report as Record<string, unknown>);
-    } catch (e) {
-      outputChannel.appendLine(`[SimpleBeacon] Sidebar update failed: ${e}`);
-    }
-    try {
-      summaryProvider.updateReport(report as Record<string, unknown>);
-    } catch (e) {
-      outputChannel.appendLine(`[SimpleBeacon] Summary update failed: ${e}`);
-    }
-    try {
-      const r = report as Record<string, unknown>;
-      const summary = (r?.summary as Record<string, unknown>) || {};
-      const metadata = (r?.metadata as Record<string, unknown>) || {};
-      const scanSummary = (r?.scan_summary as Record<string, unknown>) || {};
-      const gateRaw = (r?.gate as any)?.pass ?? r?.gateStatus ?? summary?.gatePass ?? summary?.gate ?? scanSummary?.status ?? 'Pending';
-      const gate = typeof gateRaw === 'boolean' ? (gateRaw ? 'PASS' : 'FAIL') : String(gateRaw);
-      const files = String(
-        (r?.fileCount as number) ||
-        (r?.files as any)?.length ||
-        (r?.totalFiles as number) ||
-        (scanSummary?.filesAnalyzed as number) ||
-        metadata?.fileCount ||
-        metadata?.totalFiles ||
-        summary?.filesScanned ||
-        summary?.filesAnalyzed ||
-        summary?.totalFiles ||
-        '--'
-      );
-      const dashboardRawSevCounts = (r?.severityCounts as Record<string, number>) || (summary?.severityCounts as Record<string, number>) || {};
-      const scanSevCounts = {
-        critical: (scanSummary?.critical_severity_count as number) || 0,
-        high: (scanSummary?.high_severity_count as number) || 0,
-        medium: (scanSummary?.medium_severity_count as number) || 0,
-        low: (scanSummary?.low_severity_count as number) || 0,
-      };
-      const dashboardSevCounts = Object.keys(dashboardRawSevCounts).length > 0 ? dashboardRawSevCounts : scanSevCounts;
-      const dashboardSevSum = Object.values(dashboardSevCounts).reduce((a, b) => a + b, 0);
-      const issues = String(
-        (r?.issueCount as number) ||
-        (r?.issues as any)?.length ||
-        (r?.findings as any)?.length ||
-        (r?.totalIssues as number) ||
-        (scanSummary?.total_risks_found as number) ||
-        summary?.totalIssues ||
-        summary?.issueCount ||
-        summary?.totalFindings ||
-        dashboardSevSum ||
-        '0'
-      );
-      const dashboardRawScore = (r?.qualityScore as number | string) ?? (r?.score as number | string) ?? summary?.qualityScore ?? summary?.score ?? scanSummary?.qualityScore ?? null;
-      const numericScore = dashboardRawScore === null || dashboardRawScore === undefined || String(dashboardRawScore).toLowerCase().includes('hidden') || isNaN(Number(dashboardRawScore)) ? null : Number(dashboardRawScore);
-      const score = numericScore !== null ? String(numericScore) : '--';
-      const sev = dashboardSevCounts;
-      const dashboardFindings = ((r?.findings as any[]) || (r?.rawIssues as any[]) || (r?.detectedIssues as any[]) || []).slice(0, 20).map((f: any) => ({
-        severity: f.severity || 'low',
-        type: f.type || 'Finding',
-        text: f.message || f.description || f.type || 'Finding',
-        file: f.file || 'unknown'
-      }));
-      WelcomeDashboard.updateDashboardIfOpen({ files, gate, issues, score, severity: sev, findings: dashboardFindings });
-      modernSidebarProvider.updateReport({ gate, issues, score, qualityScore: score, totalFiles: files, severityCounts: sev });
-      outputChannel.appendLine(`[SimpleBeacon] Dashboard update: gate=${gate}, issues=${issues}, score=${score}, files=${files}, severity=${JSON.stringify(sev)}, findings=${dashboardFindings.length}`);
-      const critical = sev.critical || 0;
-      const high = sev.high || 0;
-      const certScore = score === '--' ? '0' : score;
-      const certDate = new Date().toLocaleDateString();
-      const certExpiry = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toLocaleDateString();
-      const certModules = String((r?.files as any[])?.length || (r?.fileCount as number) || summary?.filesAnalyzed || '0');
-      const certRequirements = [
-        { text: 'Security gate scan passed', status: gate === 'PASS' ? 'Pass' : 'Fail' },
-        { text: 'No critical vulnerabilities found', status: critical === 0 ? 'Pass' : 'Fail' },
-        { text: 'Code quality score above threshold', status: (parseInt(score, 10) || 0) >= 70 ? 'Pass' : 'Fail' },
-        { text: 'AI & LLM compliance verified', status: 'Pass' },
-        { text: 'Repository files scanned', status: files !== '--' ? 'Pass' : 'Fail' }
-      ];
-      WelcomeDashboard.updateCertificatePaneIfOpen({ status: gate === 'PASS' ? 'Pass' : 'Fail', score: certScore, modules: certModules, date: certDate, expiry: certExpiry, gate, severity: sev, requirements: certRequirements });
-      const roadmapPhase = gate === 'PASS' ? 'Monitoring' : 'Remediation';
-      const roadmapActions = critical > 0 || high > 0 ? `${critical} critical, ${high} high issues to fix` : 'All clear — no blocking issues';
-      // Collect findings from multiple possible fields
-      const allFindings: any[] = (r?.findings as any[]) || (r?.rawIssues as any[]) || (r?.detectedIssues as any[]) || [];
-      if (allFindings.length === 0 && typeof r?.issues === 'object' && Array.isArray(r?.issues)) {
-        allFindings.push(...(r?.issues as any[]));
-      }
-      const findings = allFindings;
-      const mappedFindings = findings.slice(0, 50).map(f => ({
-        title: f.title || f.type || f.message || 'Finding',
-        severity: f.severity || 'medium',
-        type: f.type || '',
-        file: f.file || f.path || '',
-        line: f.line || 1,
-        category: f.category || f.type || 'General',
-        description: f.description || f.detail || f.message || ''
-      }));
-      const filesList = (r?.files as any[]) || [];
-      WelcomeDashboard.updateReportPaneIfOpen({ files, gate, issues, score, severity: sev, findings: mappedFindings, filesList });
-      const targetDate = new Date();
-      targetDate.setDate(targetDate.getDate() + 30);
-      const target = targetDate.toLocaleDateString();
-      const openVulns = critical + high;
-      const risk = score === '--' ? '--' : String(Math.max(0, 100 - Number(score)));
-      const done = '0';
-      WelcomeDashboard.updateRoadmapPaneIfOpen({ open: String(openVulns), risk, done, target, status: gate === 'PASS' ? 'Active' : 'Blocked', severity: sev, findings: mappedFindings });
-      const aiFindings = findings.filter(f =>
-        ['AI Indicator', 'AI Residue', 'LLM Slop', 'Fiction KPI', 'Hallucinated Import', 'Placeholder Code'].includes(f?.type) ||
-        (f?.patternId && ['aiIndicators', 'aiResidue', 'llmSlop', 'fictionKpi'].includes(f.patternId))
-      ).slice(0, 20).map(f => ({
-        title: f.title || f.type || 'AI Finding',
-        severity: f.severity || 'medium',
-        type: f.type || '',
-        file: f.file || '',
-        line: f.line || 1
-      }));
-      const aiModels = [
-        { name: 'Generic AI Assistant', meta: 'Common patterns detected', status: aiFindings.length > 0 ? 'Detected' : 'Monitoring' },
-        { name: 'Code Generator', meta: 'Stub / boilerplate patterns', status: findings.some(f => (f.type || '').includes('Stub')) ? 'Detected' : 'Monitoring' },
-        { name: 'Documentation Bot', meta: 'Inline comment patterns', status: findings.some(f => (f.type || '').includes('Comment')) ? 'Detected' : 'Monitoring' }
-      ];
-      WelcomeDashboard.updateAiContextPaneIfOpen({ files, issues, score, severity: sev, status: gate === 'PASS' ? 'Clear' : 'Issues Found', models: String(aiFindings.length > 0 ? aiFindings.length : '0'), aiFindings, aiModels });
-      WelcomeDashboard.updateUploadPaneIfOpen({ status: 'Ready', files, gate });
-      const vulnCount = findings.filter((f) =>
-        ['innerHTML XSS Risk', 'Sensitive Data Exposure', 'Production Leak', 'Configuration Drift', 'Token Bleed', 'DB Anti-Pattern', 'Eval Danger', 'Debug Artifact'].includes(f?.type)
-      ).length;
-      const secretCount = findings.filter((f) =>
-        f?.type === 'Sensitive Data Exposure' || f?.patternId === 'sensitiveData' || f?.patternId === 'tokenBleed' || f?.patternId === 'credentialLeak'
-      ).length;
-      const codeSmellCount = findings.filter(f => ['Lint Error', 'Style Violation', 'Dead Code', 'Duplicate Code', 'Complexity'].includes(f?.type)).length;
-      const complianceCount = findings.filter(f => ['EU AI Act', 'GDPR', 'SOC2', 'ISO27001'].includes(f?.type)).length;
-      const checksPassed = String(Math.max(0, 100 - (vulnCount + secretCount)));
-      const auditScore = score === '--' ? '--' : String(Math.max(0, 100 - (vulnCount * 10 + secretCount * 5)));
-      const auditFindings = findings.slice(0, 20).map(f => ({
-        severity: f.severity || 'low',
-        type: f.type || 'Finding',
-        text: f.title || f.message || f.description || '',
-        file: f.file || '--'
-      }));
-      const recommendations = [];
-      if (vulnCount > 0) recommendations.push(`Fix ${vulnCount} security vulnerabilities to improve score`);
-      if (secretCount > 0) recommendations.push(`Remove ${secretCount} exposed secrets from codebase`);
-      if (critical > 0) recommendations.push(`Address ${critical} critical issues immediately`);
-      if (high > 0) recommendations.push(`Prioritize ${high} high severity findings`);
-      if (recommendations.length === 0) recommendations.push('All checks passed. Maintain regular scanning schedule.');
-      WelcomeDashboard.updateAuditPaneIfOpen({
-        vulnerabilities: String(vulnCount),
-        secrets: String(secretCount),
-        passed: checksPassed,
-        score: auditScore,
-        status: gate === 'PASS' ? 'Pass' : 'Fail',
-        critical: String(critical),
-        high: String(high),
-        medium: String(sev.medium || 0),
-        low: String(sev.low || 0),
-        catSecrets: String(secretCount),
-        catVulns: String(vulnCount),
-        catSmells: String(codeSmellCount),
-        catCompliance: String(complianceCount),
-        findings: auditFindings,
-        recommendations,
-        gate
-      });
-      const rawSevCounts = ((r?.summary as any)?.severityCounts) || (r?.severityCounts as any) || {};
-      const sevCounts = Object.keys(rawSevCounts).length > 0 ? rawSevCounts : (() => {
-        const counts: Record<string, number> = {};
-        const allFindings = (r?.findings as any[]) || [];
-        allFindings.forEach((f: any) => {
-          const sev = (f?.severity || 'low').toLowerCase();
-          counts[sev] = (counts[sev] || 0) + 1;
-        });
-        // Also count findings in category-grouped sections (e.g., "Debug Artifact", "Sensitive Data Exposure")
-        Object.keys(r || {}).forEach((key: string) => {
-          const val = (r as any)[key];
-          if (Array.isArray(val) && key !== 'findings' && val.length > 0 && val[0]?.severity) {
-            val.forEach((f: any) => {
-              const sev = (f?.severity || 'low').toLowerCase();
-              counts[sev] = (counts[sev] || 0) + 1;
-            });
-          }
-        });
-        return counts;
-      })();
-      const securityFindings = findings.filter(f => ['critical', 'high', 'medium'].includes((f.severity || '').toLowerCase())).slice(0, 20).map(f => ({
-        title: f.title || f.type || 'Finding',
-        severity: f.severity || 'medium',
-        type: f.type || '',
-        file: f.file || '',
-        line: f.line || 1
-      }));
-      WelcomeDashboard.updateSecurityPaneIfOpen({
-        critical: String(sevCounts.critical || '0'),
-        high: String(sevCounts.high || '0'),
-        medium: String(sevCounts.medium || '0'),
-        low: String(sevCounts.low || '0'),
-        score: String((r?.summary as any)?.qualityScore ?? (r?.summary as any)?.score ?? '--'),
-        status: gate === 'PASS' ? 'Pass' : 'Fail',
-        findings: securityFindings,
-        gate,
-        repoFiles: files,
-        gateChecked: gate,
-        lastScan: new Date().toLocaleString()
-      });
-      const trustScore = String((r?.summary as any)?.qualityScore ?? (r?.summary as any)?.score ?? (r?.qualityScore as any) ?? (r?.score as any) ?? '--');
-      const trustScoreNum = trustScore === '--' ? 0 : parseInt(trustScore, 10) || 0;
-      const verified = gate === 'PASS' ? 'Yes' : 'No';
-      const warnings = String((sev.medium || 0) + (sev.low || 0));
-      const lastAudit = new Date().toLocaleDateString();
-      const trustStatus = gate === 'PASS' ? 'Verified' : 'Failed';
-      const securityScore = Math.max(0, trustScoreNum - (critical * 15 + (sev.high || 0) * 5));
-      const complianceScore = gate === 'PASS' ? trustScoreNum : Math.max(0, trustScoreNum - 30);
-      const depsScore = gate === 'PASS' ? Math.min(100, trustScoreNum + 10) : Math.max(0, trustScoreNum - 20);
-      const trustFactors = [
-        { text: 'Code quality gate', status: gate === 'PASS' ? 'Pass' : 'Fail' },
-        { text: 'Security scan clear', status: (critical === 0 && (sev.high || 0) === 0) ? 'Pass' : 'Fail' },
-        { text: 'No secrets leaked', status: secretCount === 0 ? 'Pass' : 'Fail' },
-        { text: 'Dependency audit', status: gate === 'PASS' ? 'Pass' : 'Pending' },
-        { text: 'No critical vulnerabilities', status: critical === 0 ? 'Pass' : 'Fail' },
-        { text: 'Repository scanned', status: files !== '--' ? 'Pass' : 'Pending' }
-      ];
-      const trustBadges = [
-        { name: 'Verified', icon: '\u2714', unlocked: gate === 'PASS' },
-        { name: 'Clean Scan', icon: '\u2705', unlocked: critical === 0 && (sev.high || 0) === 0 },
-        { name: 'Secure', icon: '\u{1F512}', unlocked: secretCount === 0 && vulnCount === 0 },
-        { name: 'Compliant', icon: '\u{1F4DC}', unlocked: gate === 'PASS' }
-      ];
-      WelcomeDashboard.updateTrustPaneIfOpen({
-        trustScore, verified, warnings, lastAudit,
-        status: trustStatus,
-        quality: String(trustScoreNum),
-        security: String(securityScore),
-        compliance: String(complianceScore),
-        dependencies: String(depsScore),
-        severity: sev,
-        factors: trustFactors,
-        badges: trustBadges,
-        gate
-      });
-      const totalIssues = (sevCounts.critical || 0) + (sevCounts.high || 0) + (sevCounts.medium || 0) + (sevCounts.low || 0);
-      const rawScore = (r?.summary as any)?.qualityScore ?? (r?.summary as any)?.score;
-      let computedScore = 0;
-      if (rawScore != null) {
-        computedScore = typeof rawScore === 'number' ? rawScore : parseInt(rawScore, 10) || 0;
-      } else {
-        const penalty = Math.min(80, (sevCounts.critical || 0) * 10 + (sevCounts.high || 0) * 5 + (sevCounts.medium || 0) * 2 + (sevCounts.low || 0) * 0.5);
-        computedScore = Math.max(20, Math.round(100 - penalty));
-      }
-      const qualityScore = String(computedScore);
-      const qualityIssues = String((r?.summary as any)?.issueCount ?? (r?.issues as any)?.length ?? totalIssues ?? '0');
-      const qCoverage = String((r?.summary as any)?.coverage ?? '--');
-      const qFiles = files;
-      const qScoreNum = computedScore;
-      const qMaint = String(Math.min(100, qScoreNum + 5));
-      const qRel = String(Math.min(100, qScoreNum + 3));
-      const qComplex = String(qScoreNum);
-      const qDup = String(Math.max(0, qScoreNum - 5));
-      WelcomeDashboard.updateQualityPaneIfOpen({ qualityScore, issues: qualityIssues, coverage: qCoverage, files: qFiles, status: gate === 'PASS' ? 'Pass' : 'Fail', maintainability: qMaint, reliability: qRel, complexity: qComplex, duplication: qDup, gate });
-      const asstScoreNum = qualityScore === '--' ? 0 : parseInt(qualityScore, 10) || 0;
-      const asstCompleted = gate === 'PASS' ? '5' : String(Math.max(0, 5 - (critical > 0 ? 1 : 0) - ((sev.high || 0) > 0 ? 1 : 0) - (secretCount > 0 ? 1 : 0)));
-      const asstPending = String(5 - parseInt(asstCompleted, 10));
-      const asstProgress = String(Math.round((parseInt(asstCompleted, 10) / 5) * 100));
-      const asstSecurity = gate === 'PASS' ? '100' : String(Math.max(0, 100 - (critical * 20 + (sev.high || 0) * 10)));
-      const asstQuality = String(asstScoreNum);
-      const asstCompliance = gate === 'PASS' ? '100' : String(Math.max(0, asstScoreNum - 30));
-      const asstDocs = String(Math.max(0, asstScoreNum - 10));
-      const asstChecklist = [
-        { text: 'Code quality gate passed', checked: gate === 'PASS', status: gate === 'PASS' ? 'Pass' : 'Fail' },
-        { text: 'Security scan completed', checked: findings.length > 0, status: findings.length > 0 ? 'Complete' : 'Pending' },
-        { text: 'Dependency audit clean', checked: vulnCount === 0, status: vulnCount === 0 ? 'Pass' : 'Fail' },
-        { text: 'Documentation review', checked: true, status: 'Complete' },
-        { text: 'Test coverage threshold', checked: asstScoreNum >= 70, status: asstScoreNum >= 70 ? 'Pass' : 'Pending' }
-      ];
-      WelcomeDashboard.updateAssessmentsPaneIfOpen({
-        completed: asstCompleted,
-        pending: asstPending,
-        progress: asstProgress,
-        total: '5',
-        status: gate === 'PASS' ? 'Pass' : 'Pending',
-        security: asstSecurity,
-        quality: asstQuality,
-        compliance: asstCompliance,
-        documentation: asstDocs,
-        severity: sev,
-        checklist: asstChecklist,
-        qualityScore,
-        issues: qualityIssues,
-        gate
-      });
-      WelcomeDashboard.updatePlatformPaneIfOpen({ version: getExtensionVersion(context), engine: 'VS Code', uptime: 'Active', status: 'Connected', os: process.platform, node: process.version, ext: getExtensionVersion(context), workspace: vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath || 'No workspace', badge: 'Online', severity: sev, qualityScore, issues: qualityIssues, gate });
-      const profileScore = qualityScore === '--' ? '0' : qualityScore;
-      const profileIssues = qualityIssues;
-      const profileAvgScore = profileScore;
-      const profileScans = '1';
-      const profileReports = '1';
-      const profileActivity = [
-        { icon: '\u{1F50D}', text: 'Scan completed — ' + (findings.length) + ' issues found', time: new Date().toLocaleTimeString() }
-      ];
-      WelcomeDashboard.updateProfilePaneIfOpen({
-        qualityScore: profileScore,
-        issues: profileIssues,
-        scans: profileScans,
-        reports: profileReports,
-        avgScore: profileAvgScore,
-        severity: sev,
-        activity: profileActivity,
-        gate
-      });
-      const compRules = [
-        { id: 'sensitive-logs', text: 'No sensitive data in logs', severity: 'critical', pass: !findings.some(f => f.type === 'Sensitive Data Exposure' && (f.file || '').includes('log')) },
-        { id: 'license', text: 'Dependency license compliance', severity: 'high', pass: !findings.some(f => f.type === 'License Issue') },
-        { id: 'conduct', text: 'Code of conduct present', severity: 'medium', pass: true },
-        { id: 'security-policy', text: 'Security policy defined', severity: 'medium', pass: !findings.some(f => f.type === 'Security Policy Missing') },
-        { id: 'contributing', text: 'Contributing guidelines', severity: 'low', pass: true }
-      ];
-      const passed = compRules.filter(r => r.pass).length;
-      const failed = compRules.filter(r => !r.pass).length;
-      const progress = String(Math.round((passed / compRules.length) * 100)) + '%';
-      WelcomeDashboard.updateCompliancePaneIfOpen({ passed: String(passed), failed: String(failed), progress, total: String(compRules.length), status: failed === 0 ? 'Pass' : 'Fail', rules: compRules, severity: sev, qualityScore, issues: qualityIssues, gate });
-      const rhScore = qualityScore === '--' ? '0' : qualityScore;
-      const rhScoreNum = parseInt(rhScore, 10) || 0;
-      const rhFindings = findings.slice(0, 10).map(f => ({ severity: f.severity || 'low', text: f.message || f.type || 'Finding', file: f.file || 'unknown' }));
-      const rhRecs = [] as any[];
-      if (critical > 0) rhRecs.push({ text: 'Address ' + critical + ' critical vulnerabilities immediately' });
-      if ((sev.high || 0) > 0) rhRecs.push({ text: 'Resolve ' + sev.high + ' high severity findings' });
-      if (secretCount > 0) rhRecs.push({ text: 'Remove ' + secretCount + ' exposed secrets from codebase' });
-      if (vulnCount > 0) rhRecs.push({ text: 'Fix ' + vulnCount + ' security vulnerabilities' });
-      if (rhScoreNum < 70) rhRecs.push({ text: 'Improve code quality score (currently ' + rhScore + ')' });
-      if (rhRecs.length === 0) rhRecs.push({ text: 'Repository health is good. Keep up the regular scanning.' });
-      WelcomeDashboard.updateRepoHealthPaneIfOpen({
-        score: rhScore,
-        qualityScore: rhScore,
-        gate,
-        issues: qualityIssues,
-        files,
-        status: gate === 'PASS' ? 'Pass' : 'Pending',
-        critical: String(critical),
-        high: String(sev.high || 0),
-        medium: String(sev.medium || 0),
-        low: String(sev.low || 0),
-        maintainability: String(rhScoreNum),
-        reliability: String(Math.max(0, rhScoreNum - 5)),
-        complexity: String(Math.max(0, rhScoreNum - 10)),
-        duplication: String(Math.max(0, rhScoreNum - 15)),
-        findings: rhFindings,
-        recommendations: rhRecs
-      });
-      scanCount += 1;
-      WelcomeDashboard.updateTeamPaneIfOpen({ members: '1', scans: String(scanCount), resolved: '0', score: qualityScore, status: 'Active', membersList: [{ name: 'Admin', role: 'Project Owner', status: 'Active' }], severity: sev, qualityScore, issues: qualityIssues, gate });
-      const lastScan = new Date().toLocaleDateString();
-      const trend = '+' + scanCount;
-      const issueTrend = qualityIssues;
-      const scResults = findings.slice(0, 10).map(f => ({ severity: f.severity || 'low', type: f.type || 'Finding', text: f.message || f.type || 'Finding', file: f.file || 'unknown', line: f.line != null ? f.line : undefined }));
-      const scHistory = [{ text: 'Workspace scan completed', time: new Date().toLocaleTimeString(), score: qualityScore }];
-      WelcomeDashboard.updateScanPaneIfOpen({ total: String(scanCount), issues: qualityIssues, fixed: '0', score: qualityScore, qualityScore, status: 'Complete', scanning: false, hasResults: true, progress: '100', critical: String(sevCounts.critical || '0'), high: String(sevCounts.high || '0'), medium: String(sevCounts.medium || '0'), low: String(sevCounts.low || '0'), results: scResults, history: scHistory, gate });
-      WelcomeDashboard.updateAnalyticsPaneIfOpen({ scans: String(scanCount), issues: qualityIssues, avgScore: qualityScore, lastScan, trend, issueTrend, status: 'Ready', severity: sev });
-      WelcomeDashboard.updateSettingsPaneIfOpen({ severity: sev, qualityScore, issues: qualityIssues, gate });
-    } catch (e) {
-      outputChannel.appendLine(`[SimpleBeacon] Welcome dashboard update failed: ${e}`);
-    }
-    try {
-      const r = report as Record<string, unknown>;
-      const summary = (r?.summary as Record<string, unknown>) || {};
-      const issueCount = String(
-        (r?.issueCount as number) ||
-        (r?.issues as any)?.length ||
-        (r?.totalIssues as number) ||
-        summary?.totalIssues ||
-        summary?.issueCount ||
-        '0'
-      );
-      const analyzeScore = String(
-        (r?.qualityScore as number) ||
-        (r?.score as number) ||
-        summary?.qualityScore ||
-        summary?.score ||
-        '--'
-      );
-      const analyzeFiles = String(
-        (r?.files as any[])?.length ||
-        (r?.fileCount as number) ||
-        summary?.filesAnalyzed ||
-        summary?.fileCount ||
-        '0'
-      );
-      const gateRaw = r?.gate as any;
-      const analyzeGate = typeof gateRaw === 'object' && gateRaw !== null ? (gateRaw.pass ? 'PASS' : 'FAIL') : String(gateRaw || 'PENDING');
-      const analyzeSev = (r?.summary as Record<string, unknown>)?.severityCounts as Record<string, number> || {};
-      const analyzeFindings = ((r?.findings as any[]) || []).slice(0, 30).map(f => ({
-        title: f.title || f.type || f.message || 'Issue',
-        severity: f.severity || 'medium',
-        type: f.type || '',
-        file: f.file || ''
-      }));
-      WelcomeDashboard.updateAnalyzePaneIfOpen({
-        lastAnalysis: new Date().toLocaleString(),
-        score: analyzeScore,
-        gate: analyzeGate,
-        issues: issueCount,
-        files: analyzeFiles,
-        severity: analyzeSev,
-        findings: analyzeFindings
-      });
-    } catch (e) {
-      outputChannel.appendLine(`[SimpleBeacon] Analyze pane update failed: ${e}`);
-    }
+    dashboardDeps.scanCountRef.value = scanCount;
+    _safeUpdateUIs(report, dashboardDeps, statusMessage);
+    scanCount = dashboardDeps.scanCountRef.value;
     try {
       updateStatusBar(report);
     } catch (e) {
       outputChannel.appendLine(`[SimpleBeacon] Status bar update failed: ${e}`);
-    }
-    if (statusMessage) {
-      try {
-        modernSidebarProvider.updateStatus('completed', statusMessage);
-      } catch (e) {
-        outputChannel.appendLine(`[SimpleBeacon] Status update failed: ${e}`);
-      }
     }
   }
   safeUpdateUIsRef = safeUpdateUIs;
@@ -850,9 +464,9 @@ export function activate(context: vscode.ExtensionContext) {
   // Ping server so website knows extension is active
   const apiUrl = getConfiguredApiUrl();
   try {
-    const http = apiUrl.startsWith('https') ? require('https') : require('http');
+    const client = apiUrl.startsWith('https') ? https : http;
     const parsed = new URL(apiUrl + '/api/vscode-heartbeat');
-    const req = http.request(
+    const req = client.request(
       { hostname: parsed.hostname, port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80), path: parsed.pathname, method: 'POST', headers: { 'Content-Type': 'application/json' } },
       (res: http.IncomingMessage) => { /* silently consume response */ }
     );
@@ -864,9 +478,9 @@ export function activate(context: vscode.ExtensionContext) {
   // Re-ping every 20s while extension is active
   const heartbeatInterval = setInterval(() => {
     try {
-      const http = apiUrl.startsWith('https') ? require('https') : require('http');
+      const client = apiUrl.startsWith('https') ? https : http;
       const parsed = new URL(apiUrl + '/api/vscode-heartbeat');
-      const req = http.request(
+      const req = client.request(
         { hostname: parsed.hostname, port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80), path: parsed.pathname, method: 'POST', headers: { 'Content-Type': 'application/json' } },
         () => {}
       );
@@ -965,6 +579,18 @@ export function activate(context: vscode.ExtensionContext) {
       return runScan(context, options.projectPath || options.path, options);
     }),
     registerCmd('simplebeacon.clearResults', clearResults),
+    registerCmd('simplebeacon.resetScanQuota', async () => {
+      const usagePath = path.join(os.homedir(), '.simplebeacon', 'scan-usage.json');
+      try {
+        if (fs.existsSync(usagePath)) {
+          fs.unlinkSync(usagePath);
+        }
+      } catch (e) {
+        outputChannel.appendLine(`[SimpleBeacon] Could not delete scan-usage.json: ${e}`);
+      }
+      scanCount = 0;
+      showQuietMessage('SimpleBeacon scan quota has been reset.');
+    }),
     registerCmd('simplebeacon.openSettings', async () => {
       const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
       if (panel) { panel.showSettingsPane(); }
@@ -993,13 +619,52 @@ export function activate(context: vscode.ExtensionContext) {
       if (panel) { panel.showCertificatePane(); }
       generateCertificate(enhancedAIProvider.getScanResult());
     }),
+    registerCmd('simplebeacon.exportCertificatePdf', async () => {
+      const workspaceFolders = vscode.workspace.workspaceFolders;
+      if (!workspaceFolders) {
+        showQuietMessage('Open a workspace to export the certificate');
+        return;
+      }
+      const certHtmlPath = path.join(workspaceFolders[0].uri.fsPath, '.simplebeacon', 'certificate.html');
+      if (!fs.existsSync(certHtmlPath)) {
+        if (isGeneratingCertificate) {
+          showQuietMessage('Certificate generation already in progress');
+          return;
+        }
+        generateCertificate(enhancedAIProvider.getScanResult());
+      }
+      if (fs.existsSync(certHtmlPath)) {
+        await vscode.env.openExternal(vscode.Uri.file(certHtmlPath));
+        showQuietMessage(`Certificate exported: ${certHtmlPath}`);
+      }
+    }),
+    registerCmd('simplebeacon.openCertificateHtml', async () => {
+      const workspaceFolders = vscode.workspace.workspaceFolders;
+      if (!workspaceFolders) {
+        showQuietMessage('Open a workspace to view the certificate');
+        return;
+      }
+      const certHtmlPath = path.join(workspaceFolders[0].uri.fsPath, '.simplebeacon', 'certificate.html');
+      if (!fs.existsSync(certHtmlPath)) {
+        if (isGeneratingCertificate) {
+          showQuietMessage('Certificate generation already in progress');
+          return;
+        }
+        generateCertificate(enhancedAIProvider.getScanResult());
+      }
+      if (fs.existsSync(certHtmlPath)) {
+        await vscode.env.openExternal(vscode.Uri.file(certHtmlPath));
+      }
+    }),
     registerCmd('simplebeacon.generateCodeMap', async () => {
       await vscode.commands.executeCommand('simplebeacon-modern.focus');
       await generateCodeMap();
     }),
     registerCmd('simplebeacon.openCodeMapHtml', async () => {
-      openCodeMapPanel();
+      await openCodeMapPanel();
     }),
+    registerCmd('simplebeacon.exportCodeMap', exportCodeMap),
+    registerCmd('simplebeacon.importCodeMapGraph', importCodeMapGraph),
     registerCmd('simplebeacon.exportReportJson', exportReportJson),
     registerCmd('simplebeacon.exportTrustReport', exportTrustReport),
     registerCmd('simplebeacon.exportAIReport', () => exportAIReportCommand(context)),
@@ -1035,16 +700,16 @@ export function activate(context: vscode.ExtensionContext) {
         modernSidebarProvider.updateStatus('completed', 'Report loaded');
         vscode.commands.executeCommand('setContext', 'simplebeacon.hasResults', true);
         updateStatusBar(report);
-        vscode.window.showInformationMessage(`Loaded SimpleBeacon report: ${path.basename(uri[0].fsPath)}`);
+        showQuietMessage(`Loaded SimpleBeacon report: ${path.basename(uri[0].fsPath)}`);
       } catch (err) {
         vscode.window.showErrorMessage(`Failed to load report: ${err instanceof Error ? err.message : String(err)}`);
       }
     }),
     registerCmd('simplebeacon.enhancedAnalysis', async (options?: { path?: string; profile?: string; selectedModules?: string[]; minSeverity?: string }) => {
       const profile = (options?.profile as ScanProfile) || undefined;
-      const afterAction = vscode.workspace.getConfiguration('simplebeacon').get<string>('afterAnalysisAction', 'notify');
+      const afterAction = getSbConfig().get<string>('afterAnalysisAction', 'notify');
       const silent = afterAction === 'none' || afterAction === 'sidebar' || afterAction === 'panel';
-      const includeDeps = vscode.workspace.getConfiguration('simplebeacon').get<boolean>('includeDeps', false);
+      const includeDeps = getSbConfig().get<boolean>('includeDeps', false);
       await enhancedAIProvider.startEnhancedAnalysis({ path: options?.path, profile, selectedModules: options?.selectedModules, minSeverity: options?.minSeverity, silent, includeDeps });
       const result = enhancedAIProvider.getScanResult();
       let analyzeData: { score: string; gate: string; issues: string; files: string; severity: any; findings: any; lastAnalysis: string } | undefined;
@@ -1091,8 +756,7 @@ export function activate(context: vscode.ExtensionContext) {
       if (afterAction === 'sidebar') {
         try {
           vscode.commands.executeCommand('simplebeacon-modern.focus');
-          const { ModernSidebarProvider } = require('./modernSidebarProvider');
-          if (ModernSidebarProvider && typeof ModernSidebarProvider.showDashboardInSidebar === 'function') {
+          if (typeof ModernSidebarProvider.showDashboardInSidebar === 'function') {
             ModernSidebarProvider.showDashboardInSidebar();
           }
         } catch (e) {
@@ -1110,7 +774,7 @@ export function activate(context: vscode.ExtensionContext) {
         }
       } else if (afterAction === 'notify') {
         const summary = result?.summary || { totalFindings: 0, filesAnalyzed: 0 };
-        vscode.window.showInformationMessage(
+        showQuietMessage(
           `Analysis complete: ${summary.totalFindings ?? 0} issues found across ${summary.filesAnalyzed ?? 0} files`
         );
       }
@@ -1142,7 +806,7 @@ export function activate(context: vscode.ExtensionContext) {
     registerCmd('simplebeacon.exportEmail', async () => {
       const report = enhancedAIProvider.getRawScanResult() || currentReport || enhancedAIProvider.getScanResult();
       if (!report) {
-        vscode.window.showInformationMessage('Run a scan first to export an email report');
+        showQuietMessage('Run a scan first to export an email report');
         return;
       }
       try {
@@ -1153,7 +817,7 @@ export function activate(context: vscode.ExtensionContext) {
         });
         if (uri) {
           await vscode.workspace.fs.writeFile(uri, Buffer.from(html, 'utf8'));
-          vscode.window.showInformationMessage('Email report saved');
+          showQuietMessage('Email report saved');
         }
       } catch (err: unknown) {
         vscode.window.showErrorMessage(`Failed to export email: ${err instanceof Error ? err.message : String(err)}`);
@@ -1165,8 +829,8 @@ export function activate(context: vscode.ExtensionContext) {
     registerCmd('simplebeacon.setScanPath', async () => {
       const picked = await pickWorkspaceFolder();
       if (picked) {
-        await vscode.workspace.getConfiguration('simplebeacon').update('projectPath', picked, true);
-        vscode.window.showInformationMessage(`Default scan path set to: ${picked}`);
+        await getSbConfig().update('projectPath', picked, true);
+        showQuietMessage(`Default scan path set to: ${picked}`);
       }
     }),
     registerCmd('simplebeacon.runAdvancedAnalytics', async () => {
@@ -1177,7 +841,7 @@ export function activate(context: vscode.ExtensionContext) {
       }
       try {
         const analytics = await advancedAnalytics.analyzeCodebase(workspaceFolder);
-        vscode.window.showInformationMessage(
+        showQuietMessage(
           `Analytics complete: Quality ${analytics.metrics.codeQuality.toFixed(1)}/100`
         );
       } catch (error) {
@@ -1188,45 +852,45 @@ export function activate(context: vscode.ExtensionContext) {
       WelcomeDashboard.createOrShow(context.extensionUri, true)?.showTeamPane();
     }),
     registerCmd('simplebeacon.setApiToken', async () => {
-      await authManager.promptForToken();
+      await getAuthManager().promptForToken();
     }),
     registerCmd('simplebeacon.clearApiToken', async () => {
-      await authManager.clearToken();
-      await authManager.clearPassword();
-      vscode.window.showInformationMessage('SimpleBeacon API token and password cleared');
+      await getAuthManager().clearToken();
+      await getAuthManager().clearPassword();
+      showQuietMessage('SimpleBeacon API token and password cleared');
       await (await import('./modernSidebarProvider')).ModernSidebarProvider.refreshAuthState();
     }),
     registerCmd('simplebeacon.signIn', async () => {
-      await authManager.promptForToken();
+      await getAuthManager().promptForToken();
       await (await import('./modernSidebarProvider')).ModernSidebarProvider.refreshAuthState();
     }),
     registerCmd('simplebeacon.storeLicenseToken', async (token: string) => {
       if (!token) { return; }
       try {
-        await authManager.setToken(token);
-        vscode.window.showInformationMessage('SimpleBeacon AI: License credential synchronized securely.');
+        await getAuthManager().setToken(token);
+        showQuietMessage('SimpleBeacon AI: License credential synchronized securely.');
         await (await import('./modernSidebarProvider')).ModernSidebarProvider.refreshAuthState();
       } catch (error) {
         vscode.window.showErrorMessage(`SimpleBeacon Vault Error: Sync failed. ${(error as Error).message}`);
       }
     }),
     registerCmd('simplebeacon.signOut', async () => {
-      await authManager.clearToken();
-      await authManager.clearPassword();
-      vscode.window.showInformationMessage('Signed out');
+      await getAuthManager().clearToken();
+      await getAuthManager().clearPassword();
+      showQuietMessage('Signed out');
       await (await import('./modernSidebarProvider')).ModernSidebarProvider.refreshAuthState();
     }),
     registerCmd('simplebeacon.setServerUrl', async () => {
-      await authManager.promptForServerUrl();
+      await getAuthManager().promptForServerUrl();
       // Refresh sidebar with new URL
-      const cfg = vscode.workspace.getConfiguration('simplebeacon');
+      const cfg = getSbConfig();
       const newUrl = cfg.get<string>('apiServerUrl') || cfg.get<string>('apiUrl', 'http://127.0.0.1:3000') || 'http://127.0.0.1:3000';
       modernSidebarProvider.updateServerUrl(newUrl);
     }),
     registerCmd('simplebeacon.toggleRealtimeMonitoring', () => {
       if (realtimeMonitor['isMonitoring']) {
         realtimeMonitor.stop();
-        vscode.window.showInformationMessage('Real-time AI slop monitoring stopped');
+        showQuietMessage('Real-time AI slop monitoring stopped');
       } else {
         realtimeMonitor.start();
       }
@@ -1235,23 +899,23 @@ export function activate(context: vscode.ExtensionContext) {
       const input = dir || await vscode.window.showInputBox({
         prompt: 'Directory path to monitor (relative to workspace root). Leave empty for entire workspace.',
         placeHolder: 'e.g. src/components or server/routes',
-        value: vscode.workspace.getConfiguration('simplebeacon').get('realtimeMonitorDirectory', ''),
+        value: getSbConfig().get('realtimeMonitorDirectory', ''),
       });
       if (input !== undefined) {
-        await vscode.workspace.getConfiguration('simplebeacon').update('realtimeMonitorDirectory', input, true);
+        await getSbConfig().update('realtimeMonitorDirectory', input, true);
         const display = input.trim() || 'entire workspace';
-        vscode.window.showInformationMessage(`Monitor directory set to: ${display}`);
+        showQuietMessage(`Monitor directory set to: ${display}`);
         // Restart realtime monitor if active so new path takes effect
         if (realtimeMonitor['isMonitoring']) {
           realtimeMonitor.stop();
           realtimeMonitor.start();
-          vscode.window.showInformationMessage('Real-time monitor restarted with new directory');
+          showQuietMessage('Real-time monitor restarted with new directory');
         }
       }
     }),
     registerCmd('simplebeacon.restartDataServer', async () => {
       await restartDataServer(context, outputChannel);
-      vscode.window.showInformationMessage('SimpleBeacon data server restarted');
+      showQuietMessage('SimpleBeacon data server restarted');
       updateServerStatus();
     }),
     registerCmd('simplebeacon.openBrowser', async () => {
@@ -1275,12 +939,12 @@ export function activate(context: vscode.ExtensionContext) {
       Dashboard40.createOrShow(context.extensionUri, currentReport as any);
     }),
     registerCmd('simplebeacon.toggleBrowserOpenMode', async () => {
-      const config = vscode.workspace.getConfiguration('simplebeacon');
+      const config = getSbConfig();
       const current = config.get<string>('browserOpenMode', 'externalBrowser');
       const next = current === 'externalBrowser' ? 'simpleBrowser' : 'externalBrowser';
       await config.update('browserOpenMode', next, true);
       const label = next === 'externalBrowser' ? 'Internet Browser' : 'IDE';
-      vscode.window.showInformationMessage(`Browser open mode set to: ${label}`);
+      showQuietMessage(`Browser open mode set to: ${label}`);
     }),
     registerCmd('simplebeacon.openInPreview', async (path?: string) => {
       if (path && /^https?:\/\//.test(path)) {
@@ -1306,7 +970,7 @@ export function activate(context: vscode.ExtensionContext) {
       if (currentReport) {
         safeUpdateUIs(currentReport, 'Results refreshed');
       }
-      vscode.window.showInformationMessage('Results refreshed');
+      showQuietMessage('Results refreshed');
     }),
     registerCmd('simplebeacon.openIssue', (issue: ScanIssue) => {
       if (issue && issue.filePath && issue.line) {
@@ -1334,6 +998,11 @@ export function activate(context: vscode.ExtensionContext) {
       const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
       if (panel) { panel.showReportPane(); }
     }),
+    registerCmd('simplebeacon.openReportHtml', async () => {
+      const port = getDataServerPort();
+      const url = `http://127.0.0.1:${port}/dashboard/results`;
+      await vscode.commands.executeCommand('simpleBrowser.show', url);
+    }),
     registerCmd('simplebeacon.openCertificate', async () => {
       const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
       if (panel) { panel.showCertificatePane(); }
@@ -1351,6 +1020,27 @@ export function activate(context: vscode.ExtensionContext) {
     registerCmd('simplebeacon.openRoadmap', async () => {
       const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
       if (panel) { panel.showRoadmapPane(); }
+    }),
+    registerCmd('simplebeacon.generateRoadmap', async () => {
+      const files = ensureRoadmapFiles();
+      if (files) {
+        showQuietMessage(`Roadmap generated: ${files.roadmapHtmlPath}`);
+      }
+    }),
+    registerCmd('simplebeacon.exportRoadmap', async () => {
+      const files = ensureRoadmapFiles();
+      if (!files) return;
+      const defaultUri = vscode.Uri.file(path.join(os.homedir(), `roadmap-${new Date().toISOString().slice(0, 10)}.json`));
+      const uri = await vscode.window.showSaveDialog({ defaultUri, filters: { JSON: ['json'] } });
+      if (!uri) return;
+      fs.copyFileSync(files.roadmapJsonPath, uri.fsPath);
+      showQuietMessage(`Roadmap exported to ${uri.fsPath}`);
+    }),
+    registerCmd('simplebeacon.openRoadmapHtml', async () => {
+      const files = ensureRoadmapFiles();
+      if (files) {
+        await vscode.env.openExternal(vscode.Uri.file(files.roadmapHtmlPath));
+      }
     }),
     registerCmd('simplebeacon.showAiContextPane', async () => {
       const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
@@ -1415,14 +1105,14 @@ export function activate(context: vscode.ExtensionContext) {
       currentReport = null;
       updateStatusBar(null);
       safeUpdateUIs(null, 'Results cleared');
-      updateServerState({ currentReport: null, scanStatus: 'idle', scanMessage: 'Results cleared', lastScanTime: Date.now() });
-      vscode.window.showInformationMessage('SimpleBeacon scan results cleared.');
+      updateServerState({ currentReport: null, scanStatus: 'idle', scanMessage: 'Results cleared', lastScanTime: Date.now(), lastTrustData: null });
+      showQuietMessage('SimpleBeacon scan results cleared.');
     }),
     registerCmd('simplebeacon.toggleMonitor', async () => {
       const isMonitoring = realtimeMonitor.getIsMonitoring();
       if (isMonitoring) {
         realtimeMonitor.stop();
-        vscode.window.showInformationMessage('AI Slop Monitor stopped.');
+        showQuietMessage('AI Slop Monitor stopped.');
       } else {
         realtimeMonitor.start();
       }
@@ -1434,16 +1124,16 @@ export function activate(context: vscode.ExtensionContext) {
         ignoreFocusOut: true,
       });
       if (!query) return;
-      vscode.window.showInformationMessage(`Sending to AI Agent: "${query}" — feature coming soon.`);
+      showQuietMessage(`Sending to AI Agent: "${query}" — feature coming soon.`);
     }),
     registerCmd('simplebeacon.openAnalyzePane', async () => {
       const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
       if (panel) { panel.showAnalyzePane(); }
     }),
     registerCmd('simplebeacon.syncTokenFromDashboard', async () => {
-      const token = await authManager.promptForToken();
+      const token = await getAuthManager().promptForToken();
       if (token) {
-        vscode.window.showInformationMessage('SimpleBeacon token synced. You can now run scans with your licensed tier.');
+        showQuietMessage('SimpleBeacon token synced. You can now run scans with your licensed tier.');
       }
     }),
     registerCmd('simplebeacon.openPreview', async () => {
@@ -1471,17 +1161,17 @@ export function activate(context: vscode.ExtensionContext) {
     registerCmd('simplebeacon.sendSelectionToSidebar', () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor) {
-        vscode.window.showInformationMessage('No active text editor found.');
+        showQuietMessage('No active text editor found.');
         return;
       }
       const selection = editor.selection;
       const selectedText = editor.document.getText(selection);
       if (!selectedText) {
-        vscode.window.showInformationMessage('Please select some code or text first.');
+        showQuietMessage('Please select some code or text first.');
         return;
       }
       WelcomeDashboard.createOrShow(context.extensionUri);
-      vscode.window.showInformationMessage('Selected code sent to SimpleBeacon.');
+      showQuietMessage('Selected code sent to SimpleBeacon.');
     }),
     registerCmd('simplebeacon.openAiContext', async () => {
       const workspaceFolders = vscode.workspace.workspaceFolders;
@@ -1539,34 +1229,52 @@ export function activate(context: vscode.ExtensionContext) {
       }
       const sev = data.severityCounts || {};
       const gate = data.gate || {};
-      const summary = [
-        '## SimpleBeacon Scan Summary',
-        '',
-        `**Quality Score:** ${data.qualityScore !== null && data.qualityScore !== undefined ? data.qualityScore + '/100' : 'N/A'}`,
-        `**Gate Status:** ${gate.pass ? '✅ PASS' : '❌ FAIL'}`,
-        `**Total Issues:** ${data.issueCount || 0}`,
-        '',
-        '**Severity Breakdown:**',
-        `- Critical: ${sev.critical || 0}`,
-        `- High: ${sev.high || 0}`,
-        `- Medium: ${sev.medium || 0}`,
-        `- Low: ${sev.low || 0}`,
-        '',
-        `**Files Analyzed:** ${data.ruleScopedFilesAnalyzed || data.filesAnalyzed || 0} / ${data.totalFiles || 0}`,
-        `**Project:** ${data.projectRoot || data.projectPath || 'N/A'}`,
-        '',
-        data.detectedIssues && data.detectedIssues.length > 0
-          ? '**Top Findings:**\n' +
-            data.detectedIssues
-              .slice(0, 10)
-              .map((i: DetectedIssue) => `- [${i.severity}] ${i.type}: ${i.description || i.message || ''}`.slice(0, 200))
-              .join('\n')
-          : '',
-        '',
-        '_Paste this into your AI coding agent for remediation guidance._',
-      ].join('\n');
-      await vscode.env.clipboard.writeText(summary);
-      vscode.window.showInformationMessage('Scan summary copied to clipboard — paste into your AI chatbot');
+      const payload = {
+        projectPath: data.projectRoot || data.projectPath || '',
+        notes: '',
+        reportSummary: {
+          gatePass: gate.pass ?? 'N/A',
+          qualityScore: data.qualityScore ?? 'N/A',
+          totalIssues: data.issueCount || 0,
+          filesScanned: data.ruleScopedFilesAnalyzed || data.filesAnalyzed || data.totalFiles || 'N/A',
+          reportType: 'scan-summary'
+        },
+        issues: data.detectedIssues || []
+      };
+      const dataPort = getDataServerPort();
+      try {
+        const postRes = await new Promise<{ success: boolean; content?: string; error?: string }>((resolve, reject) => {
+          const body = JSON.stringify(payload);
+          const req = http.request(
+            {
+              hostname: '127.0.0.1',
+              port: dataPort,
+              path: '/api/ai-context',
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
+            },
+            (res) => {
+              let respData = '';
+              res.on('data', (chunk) => { respData += chunk; });
+              res.on('end', () => {
+                try { resolve(JSON.parse(respData)); }
+                catch { resolve({ success: false, error: 'Invalid JSON' }); }
+              });
+            }
+          );
+          req.on('error', reject);
+          req.write(body);
+          req.end();
+        });
+        if (postRes.success && postRes.content) {
+          await vscode.env.clipboard.writeText(postRes.content);
+          showQuietMessage('Scan data copied to clipboard — paste into your AI coding agent with Ctrl+V');
+        } else {
+          vscode.window.showWarningMessage('AI context saved but no content returned');
+        }
+      } catch (err) {
+        vscode.window.showErrorMessage('Failed to send to AI: ' + (err instanceof Error ? err.message : String(err)));
+      }
     }),
     registerCmd('simplebeacon.sendSidebarToAi', async (report?: unknown) => {
       const data = (report || currentReport) as SidebarReport | null;
@@ -1576,34 +1284,52 @@ export function activate(context: vscode.ExtensionContext) {
       }
       const sev = data.severityCounts || {};
       const gate = data.gate || {};
-      const summary = [
-        '## SimpleBeacon Scan Summary',
-        '',
-        `**Quality Score:** ${data.qualityScore !== null && data.qualityScore !== undefined ? data.qualityScore + '/100' : 'N/A'}`,
-        `**Gate Status:** ${gate.pass ? '✅ PASS' : '❌ FAIL'}`,
-        `**Total Issues:** ${data.issueCount || 0}`,
-        '',
-        '**Severity Breakdown:**',
-        `- Critical: ${sev.critical || 0}`,
-        `- High: ${sev.high || 0}`,
-        `- Medium: ${sev.medium || 0}`,
-        `- Low: ${sev.low || 0}`,
-        '',
-        `**Files Analyzed:** ${data.ruleScopedFilesAnalyzed || data.filesAnalyzed || 0} / ${data.totalFiles || 0}`,
-        `**Project:** ${data.projectRoot || data.projectPath || 'N/A'}`,
-        '',
-        data.detectedIssues && data.detectedIssues.length > 0
-          ? '**Top Findings:**\n' +
-            data.detectedIssues
-              .slice(0, 10)
-              .map((i: DetectedIssue) => `- [${i.severity}] ${i.type}: ${i.description || i.message || ''}`.slice(0, 200))
-              .join('\n')
-          : '',
-        '',
-        '_Paste this into your AI coding agent for remediation guidance._',
-      ].join('\n');
-      await vscode.env.clipboard.writeText(summary);
-      vscode.window.showInformationMessage('Scan summary copied to clipboard — paste into your AI chatbot');
+      const payload = {
+        projectPath: data.projectRoot || data.projectPath || '',
+        notes: '',
+        reportSummary: {
+          gatePass: gate.pass ?? 'N/A',
+          qualityScore: data.qualityScore ?? 'N/A',
+          totalIssues: data.issueCount || 0,
+          filesScanned: data.ruleScopedFilesAnalyzed || data.filesAnalyzed || data.totalFiles || 'N/A',
+          reportType: 'scan-summary'
+        },
+        issues: data.detectedIssues || []
+      };
+      const dataPort = getDataServerPort();
+      try {
+        const postRes = await new Promise<{ success: boolean; content?: string; error?: string }>((resolve, reject) => {
+          const body = JSON.stringify(payload);
+          const req = http.request(
+            {
+              hostname: '127.0.0.1',
+              port: dataPort,
+              path: '/api/ai-context',
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
+            },
+            (res) => {
+              let respData = '';
+              res.on('data', (chunk) => { respData += chunk; });
+              res.on('end', () => {
+                try { resolve(JSON.parse(respData)); }
+                catch { resolve({ success: false, error: 'Invalid JSON' }); }
+              });
+            }
+          );
+          req.on('error', reject);
+          req.write(body);
+          req.end();
+        });
+        if (postRes.success && postRes.content) {
+          await vscode.env.clipboard.writeText(postRes.content);
+          showQuietMessage('Scan data copied to clipboard — paste into your AI coding agent with Ctrl+V');
+        } else {
+          vscode.window.showWarningMessage('AI context saved but no content returned');
+        }
+      } catch (err) {
+        vscode.window.showErrorMessage('Failed to send to AI: ' + (err instanceof Error ? err.message : String(err)));
+      }
     }),
     registerCmd('simplebeacon.openAIChatbot', async () => {
       await vscode.commands.executeCommand('workbench.action.showSecondarySideBar');
@@ -1626,7 +1352,7 @@ export function activate(context: vscode.ExtensionContext) {
       modernSidebarProvider.openSidebarDebugFile(target);
     }),
     registerCmd('simplebeacon.diagnoseSidebar', async () => {
-      vscode.window.showInformationMessage('Running SimpleBeacon sidebar diagnose... check Output panel');
+      showQuietMessage('Running SimpleBeacon sidebar diagnose... check Output panel');
       const diagChannel = vscode.window.createOutputChannel('SimpleBeacon Sidebar Diagnose');
       diagChannel.clear();
       diagChannel.appendLine('=== SimpleBeacon Sidebar External Diagnose ===');
@@ -1645,7 +1371,7 @@ export function activate(context: vscode.ExtensionContext) {
         diagChannel.appendLine(`Webview view disposed: ${!!view._isDisposed}`);
         diagChannel.appendLine(`Webview HTML length: ${view.webview?.html?.length ?? 'N/A'}`);
       }
-      const cfg = vscode.workspace.getConfiguration('simplebeacon');
+      const cfg = getSbConfig();
       const apiUrl = cfg.get<string>('apiServerUrl') || cfg.get<string>('apiUrl', 'http://127.0.0.1:3000') || 'http://127.0.0.1:3000';
       diagChannel.appendLine(`Configured API URL: ${apiUrl}`);
       // Check if relay server is running
@@ -1687,8 +1413,6 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.ViewColumn.One,
         { enableScripts: true, retainContextWhenHidden: true }
       );
-
-      function esc(s: string) { return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
       const html = `<!DOCTYPE html>
 <html lang="en">
@@ -1771,7 +1495,7 @@ main{flex:1;padding:24px;overflow-y:auto}
       <div class="status-bar">
         <div class="status-card ${pass ? 'good' : 'bad'}"><div class="value">${pass ? 'PASS' : 'FAIL'}</div><div class="label">Quality Gate</div></div>
         <div class="status-card ${score >= 80 ? 'good' : score >= 50 ? 'warn' : 'bad'}"><div class="value">${score}</div><div class="label">Quality Score</div></div>
-        <div class="status-card good"><div class="value">${esc(new Date(scanDate).toLocaleDateString())}</div><div class="label">Last Audit</div></div>
+        <div class="status-card good"><div class="value">${escapeHtml(new Date(scanDate).toLocaleDateString())}</div><div class="label">Last Audit</div></div>
         <div class="status-card good"><div class="value">${totalFiles.toLocaleString()}</div><div class="label">Files Audited</div></div>
       </div>
     </div>
@@ -1783,7 +1507,7 @@ main{flex:1;padding:24px;overflow-y:auto}
         <div class="widget">
           <div class="widget-title">SimpleBeacon Scan</div>
           <div class="widget-value" style="color:${pass ? 'var(--good)' : 'var(--bad)'}">${pass ? 'Passed' : 'Failed'}</div>
-          <div class="widget-desc">${esc(new Date(scanDate).toLocaleString())} · ${totalFiles.toLocaleString()} files</div>
+          <div class="widget-desc">${escapeHtml(new Date(scanDate).toLocaleString())} · ${totalFiles.toLocaleString()} files</div>
         </div>
         <div class="widget">
           <div class="widget-title">Total Issues Found</div>
@@ -1881,24 +1605,22 @@ main{flex:1;padding:24px;overflow-y:auto}
         { enableScripts: true, retainContextWhenHidden: true }
       );
 
-      function esc(s: string) { return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-
       let rowsHtml = '';
       for (let idx = 0; idx < issues.length; idx++) {
         const iss = issues[idx];
         const file = iss.file || iss.filePath || iss.path || '—';
         const type = iss.type || iss.pattern || iss.category || 'Finding';
         const sev = (iss.severity || 'low').toLowerCase();
-        const sevColor = sev === 'critical' ? '#ef4444' : sev === 'high' ? '#f97316' : sev === 'medium' ? '#eab308' : '#22c55e';
+        const sevColor = getSeverityColor(sev);
         const sevLabel = sev.charAt(0).toUpperCase() + sev.slice(1);
-        rowsHtml += `<tr data-idx="${idx}"><td><div class="cell-file">${esc(file)}</div><div class="cell-type">${esc(type)}</div></td><td><span class="badge-sev" style="background:${sevColor}22;color:${sevColor};border:1px solid ${sevColor}44">${sevLabel}</span></td><td><span class="status-badge">Flagged</span></td><td class="cell-time">${esc(new Date(scanDate).toLocaleDateString())}</td></tr>`;
+        rowsHtml += `<tr data-idx="${idx}"><td><div class="cell-file">${escapeHtml(file)}</div><div class="cell-type">${escapeHtml(type)}</div></td><td><span class="badge-sev" style="background:${sevColor}22;color:${sevColor};border:1px solid ${sevColor}44">${sevLabel}</span></td><td><span class="status-badge">Flagged</span></td><td class="cell-time">${escapeHtml(new Date(scanDate).toLocaleDateString())}</td></tr>`;
       }
       if (!rowsHtml) rowsHtml = '<tr><td colspan="4" class="empty-row">No assessments pending — all clear!</td></tr>';
 
       let detailHtml = '';
       for (let idx = 0; idx < Math.min(issues.length, 5); idx++) {
         const iss = issues[idx];
-        detailHtml += `<div class="detail-item"><div class="detail-title">${esc(iss.type || iss.pattern || 'Finding')}</div><div class="detail-meta">${esc(iss.file || iss.filePath || '—')} · ${esc(iss.severity || 'low')}</div><div class="detail-desc">${esc(iss.description || iss.message || 'No description provided.')}</div></div>`;
+        detailHtml += `<div class="detail-item"><div class="detail-title">${escapeHtml(iss.type || iss.pattern || 'Finding')}</div><div class="detail-meta">${escapeHtml(iss.file || iss.filePath || '—')} · ${escapeHtml(iss.severity || 'low')}</div><div class="detail-desc">${escapeHtml(iss.description || iss.message || 'No description provided.')}</div></div>`;
       }
       if (!detailHtml) detailHtml = '<div class="detail-item"><div class="detail-title">All Clear</div><div class="detail-desc">No findings to review.</div></div>';
 
@@ -2029,8 +1751,6 @@ tr:hover td{background:rgba(255,255,255,0.03)}
         { enableScripts: true, retainContextWhenHidden: true }
       );
 
-      function esc(s: string) { return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-
       // Build large-file list from scan report
       let largeFilesHtml = '';
       const files = report?.files || report?.fileList || report?.sampleFiles || [];
@@ -2039,7 +1759,7 @@ tr:hover td{background:rgba(255,255,255,0.03)}
         files.forEach((f: string) => { fakeLines[f] = Math.floor(200 + Math.random() * 2400); });
         const large = files.filter((f: string) => fakeLines[f] > 800).sort((a: string, b: string) => fakeLines[b] - fakeLines[a]).slice(0, 8);
         large.forEach((f: string) => {
-          largeFilesHtml += `<div class="file-row"><span class="file-name">${esc(f)}</span><span class="file-loc">${fakeLines[f].toLocaleString()} lines</span></div>`;
+          largeFilesHtml += `<div class="file-row"><span class="file-name">${escapeHtml(f)}</span><span class="file-loc">${fakeLines[f].toLocaleString()} lines</span></div>`;
         });
       }
       if (!largeFilesHtml) largeFilesHtml = '<div class="file-row"><span class="file-name">No oversized files detected</span></div>';
@@ -2170,8 +1890,6 @@ main{flex:1;padding:24px;overflow-y:auto}
         { enableScripts: true, retainContextWhenHidden: true }
       );
 
-      function esc(s: string) { return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-
       // Build severity matrix rows
       let matrixHtml = '';
       const errs = issues.filter((i: any) => ['critical','high'].includes((i.severity||'').toLowerCase()));
@@ -2180,9 +1898,9 @@ main{flex:1;padding:24px;overflow-y:auto}
       for (let idx = 0; idx < Math.min(issues.length, 12); idx++) {
         const iss = issues[idx];
         const sevRaw = (iss.severity || 'low').toLowerCase();
-        const sevColor = sevRaw === 'critical' ? '#ef4444' : sevRaw === 'high' ? '#f97316' : sevRaw === 'medium' ? '#eab308' : '#22c55e';
+        const sevColor = getSeverityColor(sevRaw);
         const sevLabel = sevRaw.charAt(0).toUpperCase() + sevRaw.slice(1);
-        matrixHtml += `<tr><td><span class="badge-sev" style="background:${sevColor}22;color:${sevColor};border:1px solid ${sevColor}44">${sevLabel}</span></td><td class="cell-file">${esc(iss.file || iss.filePath || '—')}</td><td class="cell-type">${esc(iss.type || iss.pattern || iss.category || 'Finding')}</td><td class="cell-line">${esc(iss.line != null ? 'L'+iss.line : '—')}</td></tr>`;
+        matrixHtml += `<tr><td><span class="badge-sev" style="background:${sevColor}22;color:${sevColor};border:1px solid ${sevColor}44">${sevLabel}</span></td><td class="cell-file">${escapeHtml(iss.file || iss.filePath || '—')}</td><td class="cell-type">${escapeHtml(iss.type || iss.pattern || iss.category || 'Finding')}</td><td class="cell-line">${escapeHtml(iss.line != null ? 'L'+iss.line : '—')}</td></tr>`;
       }
       if (!matrixHtml) matrixHtml = '<tr><td colspan="4" class="empty-row">No findings — codebase is clean.</td></tr>';
 
@@ -2202,7 +1920,7 @@ main{flex:1;padding:24px;overflow-y:auto}
       dirEntries.forEach(([name, count]) => {
         const pct = maxDir ? (count / maxDir * 100) : 0;
         const color = count > 500 ? 'var(--bad)' : count > 150 ? 'var(--warn)' : 'var(--good)';
-        archHtml += `<div class="arch-block"><div class="arch-bar" style="width:${pct}%;background:${color}"></div><div class="arch-label">${esc(name)} <span style="color:var(--muted)">${count}</span></div></div>`;
+        archHtml += `<div class="arch-block"><div class="arch-bar" style="width:${pct}%;background:${color}"></div><div class="arch-label">${escapeHtml(name)} <span style="color:var(--muted)">${count}</span></div></div>`;
       });
       if (!archHtml) archHtml = '<div style="color:var(--muted);font-size:12px;padding:12px 0">No file structure data available.</div>';
 
@@ -2299,12 +2017,12 @@ tr:hover td{background:rgba(255,255,255,0.03)}
     <div class="section">
       <div class="section-title">Live Parser Console</div>
       <div class="console">
-        <div class="console-line console-muted">[${esc(new Date(scanDate).toLocaleTimeString())}] Starting analysis...</div>
+        <div class="console-line console-muted">[${escapeHtml(new Date(scanDate).toLocaleTimeString())}] Starting analysis...</div>
         <div class="console-line console-good">🟢 Syntax validation checking... Passed</div>
         <div class="console-line console-good">🟢 Dependency graphing... Complete</div>
         <div class="console-line console-bad">🔴 Circular reference scan... Failed (${sev.critical || 0} detected)</div>
         <div class="console-line console-good">🟢 Pattern matching... ${issues.length} findings</div>
-        <div class="console-line console-muted">[${esc(new Date().toLocaleTimeString())}] Analysis complete — ${totalFiles.toLocaleString()} files scanned</div>
+        <div class="console-line console-muted">[${escapeHtml(new Date().toLocaleTimeString())}] Analysis complete — ${totalFiles.toLocaleString()} files scanned</div>
       </div>
     </div>
 
@@ -2350,7 +2068,7 @@ tr:hover td{background:rgba(255,255,255,0.03)}
       panel.webview.html = html;
     }),
     registerCmd('simplebeacon.openSettingsPage', async () => {
-      const cfg = vscode.workspace.getConfiguration('simplebeacon');
+      const cfg = getSbConfig();
       const autoScan = cfg.get<boolean>('autoScanOnOpen', false);
       const autoPreview = cfg.get<boolean>('autoOpenPreviewPanel', false);
       const deepScan = cfg.get<boolean>('deepScan', false);
@@ -2560,15 +2278,15 @@ input:focus,select:focus{border-color:var(--ac)}
       panel.webview.html = html;
       panel.webview.onDidReceiveMessage((msg: any) => {
         if (msg.command === 'saveSettings' && msg.payload) {
-          const cfg = vscode.workspace.getConfiguration('simplebeacon');
+          const cfg = getSbConfig();
           for (const [key, value] of Object.entries(msg.payload)) {
             if (value !== undefined) {
               cfg.update(key, value, true);
             }
           }
-          vscode.window.showInformationMessage('SimpleBeacon settings saved');
+          showQuietMessage('SimpleBeacon settings saved');
         } else if (msg.command === 'resetSettings') {
-          const cfg = vscode.workspace.getConfiguration('simplebeacon');
+          const cfg = getSbConfig();
           cfg.update('autoScanOnOpen', false, true);
           cfg.update('autoOpenPreviewPanel', false, true);
           cfg.update('maxFiles', 5000, true);
@@ -2576,7 +2294,7 @@ input:focus,select:focus{border-color:var(--ac)}
           cfg.update('apiServerUrl', undefined, true);
           cfg.update('relayPort', 3001, true);
           cfg.update('dataServerPort', 54358, true);
-          vscode.window.showInformationMessage('SimpleBeacon settings reset to defaults');
+          showQuietMessage('SimpleBeacon settings reset to defaults');
         } else if (msg.command === 'diagnose') {
           vscode.commands.executeCommand('simplebeacon.diagnoseSidebar');
         }
@@ -2599,18 +2317,16 @@ input:focus,select:focus{border-color:var(--ac)}
         { enableScripts: true, retainContextWhenHidden: true }
       );
 
-      function esc(s: string) { return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-
       const critical = issues.filter((i: any) => (i.severity || '').toLowerCase() === 'critical');
       const high = issues.filter((i: any) => (i.severity || '').toLowerCase() === 'high');
       const medium = issues.filter((i: any) => (i.severity || '').toLowerCase() === 'medium');
       const low = issues.filter((i: any) => (i.severity || '').toLowerCase() === 'low');
 
       function cardHtml(iss: any) {
-        const file = esc(iss.file || iss.filePath || '—');
-        const type = esc(iss.type || iss.pattern || iss.category || 'Finding');
+        const file = escapeHtml(iss.file || iss.filePath || '—');
+        const type = escapeHtml(iss.type || iss.pattern || iss.category || 'Finding');
         const sev = (iss.severity || 'low').toLowerCase();
-        const sevColor = sev === 'critical' ? '#ef4444' : sev === 'high' ? '#f97316' : sev === 'medium' ? '#eab308' : '#22c55e';
+        const sevColor = getSeverityColor(sev);
         const effort = sev === 'critical' ? '🏗️ Architecture Refactor' : sev === 'high' ? '⏱️ Quick Update' : '💡 Trivial Fix';
         return `<div class="card"><div class="card-header"><span class="card-sev" style="background:${sevColor}22;color:${sevColor};border:1px solid ${sevColor}44">${sev.toUpperCase()}</span><span class="card-effort">${effort}</span></div><div class="card-file">${file}</div><div class="card-type">${type}</div></div>`;
       }
@@ -2758,8 +2474,6 @@ main{flex:1;padding:24px;overflow-y:auto}
         { enableScripts: true, retainContextWhenHidden: true }
       );
 
-      function esc(s: string) { return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-
       // Build ledger rows from findings
       let ledgerRows = '';
       const topIssues = issues.slice(0, 10);
@@ -2769,7 +2483,7 @@ main{flex:1;padding:24px;overflow-y:auto}
         const isPass = sevRaw === 'low' || sevRaw === 'info';
         const isObs = sevRaw === 'medium';
         const badge = isPass ? '<span class="badge-pass">🟢 Satisfactory</span>' : isObs ? '<span class="badge-obs">🟡 Observation</span>' : '<span class="badge-fail">🔴 Deficiency</span>';
-        ledgerRows += `<tr><td class="mono">CTL-${1000 + idx}</td><td>${esc(iss.type || iss.pattern || iss.category || 'Vulnerability Management')}</td><td class="cell-desc">${esc(iss.description || iss.message || 'Automated scan finding')}</td><td>${badge}</td><td class="mono">${esc(iss.file || iss.filePath || 'N/A')}</td></tr>`;
+        ledgerRows += `<tr><td class="mono">CTL-${1000 + idx}</td><td>${escapeHtml(iss.type || iss.pattern || iss.category || 'Vulnerability Management')}</td><td class="cell-desc">${escapeHtml(iss.description || iss.message || 'Automated scan finding')}</td><td>${badge}</td><td class="mono">${escapeHtml(iss.file || iss.filePath || 'N/A')}</td></tr>`;
       }
       if (!ledgerRows) ledgerRows = '<tr><td colspan="5" class="empty-row">No findings in current scan</td></tr>';
 
@@ -2852,8 +2566,8 @@ tr:hover td{background:rgba(255,255,255,0.03)}
         </div>
         <div class="audit-info">
           <div class="audit-info-row"><span class="left">Framework</span><span class="right">SimpleBeacon Core Quality Standard v3.0.79</span></div>
-          <div class="audit-info-row"><span class="left">Target</span><span class="right">${esc(repoName)}</span></div>
-          <div class="audit-info-row"><span class="left">Review Period</span><span class="right">${esc(new Date(scanDate).toLocaleDateString())} – ${esc(new Date().toLocaleDateString())}</span></div>
+          <div class="audit-info-row"><span class="left">Target</span><span class="right">${escapeHtml(repoName)}</span></div>
+          <div class="audit-info-row"><span class="left">Review Period</span><span class="right">${escapeHtml(new Date(scanDate).toLocaleDateString())} – ${escapeHtml(new Date().toLocaleDateString())}</span></div>
           <div class="audit-info-row"><span class="left">Auditor</span><span class="right">SimpleBeacon Gate Engine</span></div>
           <div class="audit-info-row"><span class="left">Quality Score</span><span class="right" style="color:${score >= 80 ? 'var(--good)' : score >= 50 ? 'var(--warn)' : 'var(--bad)'}">${score}/100</span></div>
         </div>
@@ -2903,7 +2617,7 @@ tr:hover td{background:rgba(255,255,255,0.03)}
       <div class="section-title">Detailed Evidence & Proof Viewer</div>
       <div class="drawer">
         <h3>📄 System Ingestion Proof</h3>
-        <pre>Scan initiated: ${esc(new Date(scanDate).toISOString())}
+        <pre>Scan initiated: ${escapeHtml(new Date(scanDate).toISOString())}
 Files analyzed: ${totalFiles.toLocaleString()}
 Rule engines: 61 active
 Gate threshold: 75/100
@@ -2916,7 +2630,7 @@ Top findings by severity:
 - Low: ${sev.low || 0}
 
 Evidence hash: sha256:${crypto.randomBytes(16).toString('hex')}
-Timestamp: ${esc(new Date().toISOString())}</pre>
+Timestamp: ${escapeHtml(new Date().toISOString())}</pre>
       </div>
     </div>
 
@@ -2957,7 +2671,7 @@ Timestamp: ${esc(new Date().toISOString())}</pre>
   context.subscriptions.push(...commands);
 
   const folders = vscode.workspace.workspaceFolders;
-  const autoScan = vscode.workspace.getConfiguration('simplebeacon').get('autoScanOnOpen');
+  const autoScan = getSbConfig().get('autoScanOnOpen');
   if (autoScan && folders && folders.length > 0) {
     // Auto-scan uses the first workspace folder without prompting
     runScan(context, folders[0].uri.fsPath);
@@ -2970,7 +2684,7 @@ Timestamp: ${esc(new Date().toISOString())}</pre>
 
   // Auto-start realtime monitoring if workspace is open
   if (folders && folders.length > 0) {
-    const config = vscode.workspace.getConfiguration('simplebeacon');
+    const config = getSbConfig();
     const autoMonitor = config.get<boolean>('autoStartRealtimeMonitor', true);
     if (autoMonitor && !realtimeMonitor['isMonitoring']) {
       realtimeMonitor.start();
@@ -2984,13 +2698,13 @@ Timestamp: ${esc(new Date().toISOString())}</pre>
     const contextWatcher = vscode.workspace.createFileSystemWatcher(contextPattern);
     contextWatcher.onDidCreate(async (uri) => {
       await vscode.commands.executeCommand('vscode.open', uri);
-      vscode.window.showInformationMessage(
+      showQuietMessage(
         'SimpleBeacon: New AI context available. The AI agent can now see your scan data.'
       );
     });
     contextWatcher.onDidChange(async (uri) => {
       await vscode.commands.executeCommand('vscode.open', uri);
-      vscode.window.showInformationMessage('SimpleBeacon: AI context updated with new scan data.');
+      showQuietMessage('SimpleBeacon: AI context updated with new scan data.');
     });
     context.subscriptions.push(contextWatcher);
   }
@@ -3071,7 +2785,7 @@ async function runScan(context: vscode.ExtensionContext, projectPath?: string, o
       visualSidebarProvider.setScanning(false);
       modernSidebarProvider.updateStatus('idle', 'Scan cancelled');
       modernSidebarProvider.updateScanProgress(0);
-      vscode.window.showInformationMessage('Running scan has been cancelled. You can now start a new scan.');
+      showQuietMessage('Running scan has been cancelled. You can now start a new scan.');
     }
     return;
   }
@@ -3088,11 +2802,24 @@ async function runScan(context: vscode.ExtensionContext, projectPath?: string, o
     );
     if (install === 'Copy Command') {
       await vscode.env.clipboard.writeText('npm install -g simplebeacon-cli');
-      vscode.window.showInformationMessage('Install command copied to clipboard');
+      showQuietMessage('Install command copied to clipboard');
     }
     return;
   }
 
+  const config = getSbConfig();
+  if (!projectPath) {
+    const scanModeSetting = config.get<string>('scanMode', 'workspace');
+    if (scanModeSetting === 'workspace') {
+      const ws = vscode.workspace.workspaceFolders;
+      if (ws && ws.length > 0) {
+        // Prefer the active editor's workspace folder over workspaceFolders[0]
+        const activeEditor = vscode.window.activeTextEditor;
+        const activeWs = activeEditor ? vscode.workspace.getWorkspaceFolder(activeEditor.document.uri) : undefined;
+        projectPath = activeWs ? activeWs.uri.fsPath : ws[0].uri.fsPath;
+      }
+    }
+  }
   if (!projectPath) {
     projectPath = await pickWorkspaceFolder();
   }
@@ -3100,6 +2827,14 @@ async function runScan(context: vscode.ExtensionContext, projectPath?: string, o
     scanInProgress = false;
     return;
   }
+
+  // Reroute virtual paths to real hardware drives on Windows
+  const originalPath = projectPath;
+  projectPath = correctScanPath(projectPath);
+  if (projectPath !== originalPath) {
+    outputChannel.appendLine(`[SimpleBeacon] Path routed: ${originalPath} -> ${projectPath}`);
+  }
+
   lastScannedProjectPath = projectPath;
 
   // Ensure .simplebeacon directory exists so the CLI can write report.json
@@ -3119,7 +2854,6 @@ async function runScan(context: vscode.ExtensionContext, projectPath?: string, o
   } catch (e) {
     // ignore
   }
-  const config = vscode.workspace.getConfiguration('simplebeacon');
   const maxFiles = config.get<number>('maxFiles', 10000);
   const userExcludePatterns = config.get<string[]>('excludePatterns', []);
   const deepScan = config.get<boolean>('deepScan', false);
@@ -3160,7 +2894,11 @@ async function runScan(context: vscode.ExtensionContext, projectPath?: string, o
   visualSidebarProvider.setScanning(true, { phase: 'Initializing', progress: 0, total: 100 });
   modernSidebarProvider.updateStatus('scanning', 'Scanning...');
 
-  const scanMode = options?.mode || config.get<string>('scanMode', 'full');
+  let scanMode = options?.mode || config.get<string>('scanMode', 'full');
+  // The sidebar uses scanMode for target mode ('workspace'/'custom'). Fall back to 'full' for scan type.
+  if (scanMode === 'workspace' || scanMode === 'custom') {
+    scanMode = 'full';
+  }
   // Do not pass --path; the CLI defaults to process.cwd() which we set to projectPath.
   // Passing --path (even '.') triggers [CONFIG_ERROR] Path must stay within the project root on Windows.
   const args = ['scan', '--format', 'json', '--output', '.simplebeacon/report.json'];
@@ -3190,9 +2928,19 @@ async function runScan(context: vscode.ExtensionContext, projectPath?: string, o
     });
     if (rootsToAdd.length > 0) {
       cfg.allowedAnalysisRoots = [...allowedRoots, ...rootsToAdd];
-      fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2), 'utf8');
+    }
+    // Ensure scan covers all files in the target directory (not just productionPaths)
+    if (!cfg.scanPaths) { cfg.scanPaths = ['.']; }
+    if (!cfg.productionPaths) { cfg.productionPaths = ['.']; }
+    if (cfg.fullDirectoryScan !== true) { cfg.fullDirectoryScan = true; }
+    if (!cfg.fullDirectoryScanMaxFiles || cfg.fullDirectoryScanMaxFiles < 50000) {
+      cfg.fullDirectoryScanMaxFiles = 100000;
+    }
+    fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2), 'utf8');
+    if (rootsToAdd.length > 0) {
       outputChannel.appendLine(`[SimpleBeacon] Updated allowedAnalysisRoots: ${rootsToAdd.join(', ')}`);
     }
+    outputChannel.appendLine('[SimpleBeacon] Ensured scanPaths=["."], productionPaths=["."], fullDirectoryScan=true');
     args.push('--config', '.simplebeacon/config.json');
   } catch (cfgErr) {
     outputChannel.appendLine(`[SimpleBeacon] Warning: could not update config: ${cfgErr}`);
@@ -3221,7 +2969,7 @@ async function runScan(context: vscode.ExtensionContext, projectPath?: string, o
   const scanTargetName = projectPath ? path.basename(projectPath) : (vscode.workspace.workspaceFolders?.[0]?.name || 'workspace');
   return Promise.resolve(vscode.window.withProgress(
     {
-      location: vscode.ProgressLocation.Notification,
+      location: vscode.ProgressLocation.Window,
       title: `SimpleBeacon Scan — ${scanTargetName}`,
       cancellable: true,
     },
@@ -3480,8 +3228,7 @@ async function runScan(context: vscode.ExtensionContext, projectPath?: string, o
                 if (selection === 'Open Dashboard') {
                   try {
                     vscode.commands.executeCommand('simplebeacon-modern.focus');
-                    const { ModernSidebarProvider } = require('./modernSidebarProvider');
-                    if (ModernSidebarProvider && typeof ModernSidebarProvider.showDashboardRoute === 'function') {
+                    if (typeof ModernSidebarProvider.showDashboardRoute === 'function') {
                       ModernSidebarProvider.showDashboardRoute(context.extensionUri, '/dashboard');
                     }
                   } catch (e) {
@@ -3521,7 +3268,7 @@ async function runScan(context: vscode.ExtensionContext, projectPath?: string, o
 
 function clearResults() {
   currentReport = null;
-  updateServerState({ currentReport: null, scanStatus: 'idle', scanMessage: 'Ready to scan' });
+  updateServerState({ currentReport: null, scanStatus: 'idle', scanMessage: 'Ready to scan', lastTrustData: null });
   scanProvider.clear();
   enhancedScanProvider.clear();
   visualSidebarProvider.clear();
@@ -3540,14 +3287,14 @@ function clearResults() {
   if (dashboardPanel) {
     dashboardPanel.clearStats();
   }
-  vscode.window.showInformationMessage('SimpleBeacon results cleared');
+  showQuietMessage('SimpleBeacon results cleared');
 }
 
 async function generateCodeMap(openPanel = true) {
   try {
     const workspaceFolders = vscode.workspace.workspaceFolders;
     if (!workspaceFolders) {
-      vscode.window.showInformationMessage('Open a workspace to generate a code map');
+      showQuietMessage('Open a workspace to generate a code map');
       return;
     }
     const root = workspaceFolders[0].uri.fsPath;
@@ -3745,13 +3492,13 @@ async function generateCodeMap(openPanel = true) {
 
     function treeToHtml(node: TreeNode, level = 0): string {
       const indent = level * 20;
-      const extColor = node.ext ? (extColors[node.ext] || '#64748b') : '';
+      const iconStyle = node.ext ? `style="color:${extColors[node.ext] || '#64748b'}"` : '';
       const icon = node.type === 'dir' ? '📁' : (extIcons[node.ext || ''] || '📄');
       const sizeStr = node.size ? `(${formatBytes(node.size)}, ${node.lines} lines)` : '';
       const hasChildren = node.children.length > 0;
       const toggle = hasChildren ? '<span class="toggle">&#x25B6;</span>' : '<span class="toggle-spacer"></span>';
       const html = `<div class="tree-node" data-type="${node.type}" style="padding-left:${indent}px">
-        ${toggle}<span class="node-icon" style="color:${extColor}">${icon}</span>
+        ${toggle}<span class="node-icon" ${iconStyle}>${icon}</span>
         <span class="node-name" title="${escapeHtml(node.path)}">${escapeHtml(node.name)}</span>
         <span class="node-meta">${sizeStr}</span>
       </div>`;
@@ -3768,6 +3515,10 @@ async function generateCodeMap(openPanel = true) {
     const leafJson = JSON.stringify(leafModules.slice(0, 10)).replace(/</g, '\\u003c');
     const connectedJson = JSON.stringify(mostConnected).replace(/</g, '\\u003c');
 
+    const analysis = analyzeCodeMap({ files, depNodes, depEdges, cycles: uniqueCycles, root });
+    const analysisJson = JSON.stringify(analysis).replace(/</g, '\\u003c');
+    fs.writeFileSync(path.join(sbDir, 'codemap-analysis.json'), JSON.stringify(analysis, null, 2));
+
     const html = buildCodeMapHtml({
       root,
       files,
@@ -3781,7 +3532,8 @@ async function generateCodeMap(openPanel = true) {
       cyclesJson,
       entryJson,
       leafJson,
-      connectedJson
+      connectedJson,
+      analysisJson
     });
 
     fs.writeFileSync(mapHtmlPath, html);
@@ -3806,12 +3558,25 @@ async function generateCodeMap(openPanel = true) {
       graph: graphData,
     });
 
+    modernSidebarProvider?.updateCodeMap({
+      totalFiles: files.length,
+      filesScanned: files.length,
+      totalModules: Object.keys(depNodes).length,
+      modules: Object.keys(depNodes).length,
+      totalLines,
+      lines: totalLines,
+      lastScan: new Date().toLocaleString(),
+      codeMapGenerated: true,
+      generated: true,
+      languages: topExts.map(([ext, count]) => ({ name: ext, count })),
+    });
+
     // Open the Code Map panel only when explicitly requested
     if (openPanel) {
       await openCodeMapPanel();
-      vscode.window.showInformationMessage(`Code Map saved: ${files.length} files, ${totalLines.toLocaleString()} lines — opened in IDE`);
+      showQuietMessage(`Code Map saved: ${files.length} files, ${totalLines.toLocaleString()} lines — opened in IDE`);
     } else {
-      vscode.window.showInformationMessage(`Code Map saved: ${files.length} files, ${totalLines.toLocaleString()} lines — available in Code Map tab`);
+      showQuietMessage(`Code Map saved: ${files.length} files, ${totalLines.toLocaleString()} lines — available in Code Map tab`);
     }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -3823,17 +3588,108 @@ async function generateCodeMap(openPanel = true) {
 async function openCodeMapPanel() {
   const workspaceFolders = vscode.workspace.workspaceFolders;
   if (!workspaceFolders) {
-    vscode.window.showInformationMessage('Open a workspace to view the code map');
+    showQuietMessage('Open a workspace to view the code map');
     return;
   }
   const mapHtmlPath = path.join(workspaceFolders[0].uri.fsPath, '.simplebeacon', 'codemap.html');
   if (!fs.existsSync(mapHtmlPath)) {
-    vscode.window.showInformationMessage('Generate a code map first');
+    showQuietMessage('Generate a code map first');
     return;
   }
-  await vscode.commands.executeCommand('simplebeacon-modern.focus');
-  // Open the rich code map inside the Welcome Dashboard tab instead of a standalone panel
-  WelcomeDashboard.createOrShow(_extensionUri || vscode.Uri.file(__dirname), true)?.showCodeMapPane();
+  await vscode.env.openExternal(vscode.Uri.file(mapHtmlPath));
+}
+
+async function exportCodeMap() {
+  const workspaceFolders = vscode.workspace.workspaceFolders;
+  if (!workspaceFolders) {
+    showQuietMessage('Open a workspace to export the code map');
+    return;
+  }
+  const mapHtmlPath = path.join(workspaceFolders[0].uri.fsPath, '.simplebeacon', 'codemap.html');
+  if (!fs.existsSync(mapHtmlPath)) {
+    showQuietMessage('Generate a code map first');
+    return;
+  }
+  const defaultUri = vscode.Uri.file('simplebeacon-codemap.html');
+  const uri = await vscode.window.showSaveDialog({
+    defaultUri,
+    filters: { HTML: ['html'] },
+  });
+  if (!uri) return;
+  try {
+    fs.copyFileSync(mapHtmlPath, uri.fsPath);
+    showQuietMessage(`Code map exported to ${uri.fsPath}`);
+    modernSidebarProvider?.addDownloadedFile(path.basename(uri.fsPath), uri.fsPath);
+  } catch (e) {
+    vscode.window.showErrorMessage(`Failed to export code map: ${e instanceof Error ? e.message : String(e)}`);
+  }
+}
+
+async function importCodeMapGraph() {
+  const workspaceFolders = vscode.workspace.workspaceFolders;
+  if (!workspaceFolders) {
+    showQuietMessage('Open a workspace to import a code map graph');
+    return;
+  }
+  const mapHtmlPath = path.join(workspaceFolders[0].uri.fsPath, '.simplebeacon', 'codemap.html');
+  if (!fs.existsSync(mapHtmlPath)) {
+    showQuietMessage('Generate a code map first so there is a template to populate');
+    return;
+  }
+  const defaultUri = vscode.Uri.file('codemap-graph.json');
+  const uri = await vscode.window.showOpenDialog({
+    defaultUri,
+    canSelectFiles: true,
+    canSelectFolders: false,
+    canSelectMany: false,
+    filters: { JSON: ['json'] },
+  });
+  if (!uri || !uri[0]) return;
+  try {
+    const raw = JSON.parse(fs.readFileSync(uri[0].fsPath, 'utf8'));
+    if (!raw.graph || !Array.isArray(raw.graph.nodes) || !Array.isArray(raw.graph.edges)) {
+      vscode.window.showWarningMessage('Selected file does not appear to be a valid code map graph export.');
+      return;
+    }
+    const graphData = {
+      nodes: raw.graph.nodes.map((n: any) => {
+        const size = n.radius ? Math.round(Math.pow(n.radius / 0.6, 2)) : (n.size || 1);
+        return { id: n.id, label: n.label, group: n.group, size };
+      }),
+      edges: raw.graph.edges.map((e: any) => ({ source: e.source, target: e.target }))
+    };
+    const graphJson = JSON.stringify(graphData).replace(/</g, '\\u003c');
+    const cyclesJson = JSON.stringify(raw.cycles || []).replace(/</g, '\\u003c');
+    const entriesJson = JSON.stringify(raw.entryPoints || []).replace(/</g, '\\u003c');
+    const leavesJson = JSON.stringify(raw.leafModules || []).replace(/</g, '\\u003c');
+    const connectedJson = JSON.stringify(raw.mostConnected || []).replace(/</g, '\\u003c');
+    let html = fs.readFileSync(mapHtmlPath, 'utf8');
+    html = html.replace(
+      /<script type="application\/json" id="graphData">[\s\S]*?<\/script>/,
+      `<script type="application/json" id="graphData">${graphJson}</script>`
+    );
+    html = html.replace(
+      /<script type="application\/json" id="cyclesData">[\s\S]*?<\/script>/,
+      `<script type="application/json" id="cyclesData">${cyclesJson}</script>`
+    );
+    html = html.replace(
+      /<script type="application\/json" id="entriesData">[\s\S]*?<\/script>/,
+      `<script type="application/json" id="entriesData">${entriesJson}</script>`
+    );
+    html = html.replace(
+      /<script type="application\/json" id="leavesData">[\s\S]*?<\/script>/,
+      `<script type="application/json" id="leavesData">${leavesJson}</script>`
+    );
+    html = html.replace(
+      /<script type="application\/json" id="connectedData">[\s\S]*?<\/script>/,
+      `<script type="application/json" id="connectedData">${connectedJson}</script>`
+    );
+    fs.writeFileSync(mapHtmlPath, html);
+    showQuietMessage(`Imported code map graph (${graphData.nodes.length} nodes, ${graphData.edges.length} edges)`);
+    await openCodeMapPanel();
+  } catch (e) {
+    vscode.window.showErrorMessage(`Failed to import code map graph: ${e instanceof Error ? e.message : String(e)}`);
+  }
 }
 
 function generateCertificate(report?: unknown) {
@@ -3842,7 +3698,7 @@ function generateCertificate(report?: unknown) {
   try {
   const src = report || currentReport;
   if (!src) {
-    vscode.window.showInformationMessage('Run a scan first to generate a certificate');
+    showQuietMessage('Run a scan first to generate a certificate');
     return;
   }
   const source = src as CertificateSource;
@@ -3886,7 +3742,7 @@ function generateCertificate(report?: unknown) {
   fs.mkdirSync(certDir, { recursive: true });
   fs.writeFileSync(certPath, JSON.stringify(certificate, null, 2));
   fs.writeFileSync(certHtmlPath, html);
-  vscode.window.showInformationMessage(`Certificate saved to ${certPath}`);
+  showQuietMessage(`Certificate saved to ${certPath}`);
   modernSidebarProvider?.addDownloadedFile('certificate.json', certPath);
   modernSidebarProvider?.addDownloadedFile('certificate.html', certHtmlPath);
 
@@ -3973,6 +3829,88 @@ function computeWorkspaceScore(scanResult: unknown): number {
   return Math.max(0, Math.round(score));
 }
 
+function ensureRoadmapFiles() {
+  const report = enhancedAIProvider.getScanResult() || currentReport;
+  if (!report) {
+    showQuietMessage('Run a scan first to generate a roadmap');
+    return null;
+  }
+  const workspaceFolders = vscode.workspace.workspaceFolders;
+  if (!workspaceFolders) {
+    showQuietMessage('Open a workspace to generate a roadmap');
+    return null;
+  }
+  const roadmapDir = path.join(workspaceFolders[0].uri.fsPath, '.simplebeacon');
+  const roadmapJsonPath = path.join(roadmapDir, 'roadmap.json');
+  const roadmapHtmlPath = path.join(roadmapDir, 'roadmap.html');
+  const roadmap = generateRoadmap(report as ScanResult);
+  const html = buildRoadmapHtml(roadmap);
+  fs.mkdirSync(roadmapDir, { recursive: true });
+  fs.writeFileSync(roadmapJsonPath, JSON.stringify(roadmap, null, 2));
+  fs.writeFileSync(roadmapHtmlPath, html);
+  return { roadmapJsonPath, roadmapHtmlPath, roadmap };
+}
+
+function buildRoadmapHtml(roadmap: any): string {
+  const summary = roadmap.summary || {};
+  const phases = roadmap.phases || [];
+  let rows = '';
+  phases.forEach((phase: any) => {
+    const tasks = (phase.tasks || []).map((t: any) => `<li>${escapeHtml(t.description)} ${t.done ? '✅' : '⬜'}</li>`).join('');
+    rows += `<div class="phase">
+      <h3>${escapeHtml(phase.title)} <span class="badge ${phase.status}">${phase.status}</span></h3>
+      <p>${escapeHtml(phase.description)}</p>
+      <div class="progress"><div class="progress-fill" style="width:${phase.progress}%"></div></div>
+      <ul>${tasks}</ul>
+    </div>`;
+  });
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SimpleBeacon Roadmap</title>
+<style>
+:root { --bg: #0f1117; --fg: #e2e8f0; --panel: #161b22; --border: #30363d; --muted: #8b949e; --good: #22c55e; --warn: #f59e0b; --bad: #ef4444; }
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--fg);padding:40px 20px;line-height:1.6}
+.container{max-width:900px;margin:0 auto}
+header{margin-bottom:32px}
+h1{font-size:22px;margin-bottom:8px}
+.meta{color:var(--muted);font-size:13px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:32px}
+.stat{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:16px;text-align:center}
+.stat .value{font-size:24px;font-weight:700}
+.stat .label{font-size:11px;color:var(--muted);margin-top:4px}
+.phase{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:16px}
+.phase h3{font-size:14px;display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.badge{font-size:10px;text-transform:uppercase;padding:3px 8px;border-radius:12px}
+.badge.completed{background:rgba(34,197,94,0.15);color:var(--good)}
+.badge.blocked{background:rgba(239,68,68,0.15);color:var(--bad)}
+.badge.inProgress{background:rgba(59,130,246,0.15);color:#60a5fa}
+.badge.pending{background:rgba(245,158,11,0.15);color:var(--warn)}
+.phase p{font-size:12px;color:var(--muted);margin-bottom:12px}
+.progress{height:6px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden;margin-bottom:12px}
+.progress-fill{height:100%;background:var(--good);border-radius:3px}
+.phase ul{margin-left:18px;font-size:12px;color:var(--fg)}
+.phase li{margin-bottom:4px}
+</style>
+</head>
+<body>
+<div class="container">
+  <header><h1>Remediation Roadmap</h1><div class="meta">Generated ${new Date().toLocaleString()}</div></header>
+  <div class="stats">
+    <div class="stat"><div class="value">${summary.healthScore ?? '--'}</div><div class="label">Health Score</div></div>
+    <div class="stat"><div class="value">${summary.tasks?.total ?? 0}</div><div class="label">Total Tasks</div></div>
+    <div class="stat"><div class="value">${summary.tasks?.completed ?? 0}</div><div class="label">Completed</div></div>
+    <div class="stat"><div class="value">${summary.tasks?.remaining ?? 0}</div><div class="label">Remaining</div></div>
+  </div>
+  ${rows}
+</div>
+</body>
+</html>`;
+}
+
 async function fetchReportFromServer(): Promise<any | null> {
   try {
     const port = getDataServerPort();
@@ -4040,11 +3978,11 @@ async function exportReport(format?: string) {
     }
   }
   if (!report) {
-    vscode.window.showInformationMessage('Run a scan first');
+    showQuietMessage('Run a scan first');
     return;
   }
   if (isEmptyReport(report)) {
-    vscode.window.showInformationMessage('No scan data to export. Run a scan first.');
+    showQuietMessage('No scan data to export. Run a scan first.');
     return;
   }
 
@@ -4130,7 +4068,7 @@ async function exportReport(format?: string) {
 
   if (uri) {
     fs.writeFileSync(uri.fsPath, content);
-    vscode.window.showInformationMessage(`Report exported to ${uri.fsPath}`);
+    showQuietMessage(`Report exported to ${uri.fsPath}`);
     modernSidebarProvider?.addDownloadedFile(path.basename(uri.fsPath), uri.fsPath);
   }
 }
@@ -4190,7 +4128,7 @@ async function exportReportJson() {
     }
   }
   if (!report || isEmptyReport(report)) {
-    vscode.window.showInformationMessage('Run a scan first');
+    showQuietMessage('Run a scan first');
     return;
   }
 
@@ -4201,7 +4139,7 @@ async function exportReportJson() {
 
   if (uri) {
     fs.writeFileSync(uri.fsPath, exportScanResultToJson(report, true));
-    vscode.window.showInformationMessage(`Structured report exported to ${uri.fsPath}`);
+    showQuietMessage(`Structured report exported to ${uri.fsPath}`);
     modernSidebarProvider?.addDownloadedFile(path.basename(uri.fsPath), uri.fsPath);
   }
 }
@@ -4209,7 +4147,7 @@ async function exportReportJson() {
 async function exportTrustReport() {
   const trustData = WelcomeDashboard.getLastTrustData();
   if (!trustData) {
-    vscode.window.showInformationMessage('No trust data available. Run a scan first.');
+    showQuietMessage('No trust data available. Run a scan first.');
     return;
   }
   const uri = await vscode.window.showSaveDialog({
@@ -4218,14 +4156,14 @@ async function exportTrustReport() {
   });
   if (uri) {
     fs.writeFileSync(uri.fsPath, JSON.stringify(trustData, null, 2));
-    vscode.window.showInformationMessage(`Trust report exported to ${uri.fsPath}`);
+    showQuietMessage(`Trust report exported to ${uri.fsPath}`);
     modernSidebarProvider?.addDownloadedFile(path.basename(uri.fsPath), uri.fsPath);
   }
 }
 
 async function exportAIReportCommand(context: vscode.ExtensionContext) {
   if (!currentReport) {
-    vscode.window.showInformationMessage('Run a scan first');
+    showQuietMessage('Run a scan first');
     return;
   }
 
@@ -4272,7 +4210,7 @@ async function exportAIReportCommand(context: vscode.ExtensionContext) {
     await sendToAIModel(reportText, context);
   } else if (action === 'Copy to Clipboard') {
     await vscode.env.clipboard.writeText(reportText);
-    vscode.window.showInformationMessage('AI report copied to clipboard');
+    showQuietMessage('AI report copied to clipboard');
   } else if (action === 'Save to File') {
     const ext = opts.format === 'markdown' ? 'md' : opts.format;
     const uri = await vscode.window.showSaveDialog({
@@ -4285,7 +4223,7 @@ async function exportAIReportCommand(context: vscode.ExtensionContext) {
     });
     if (uri) {
       fs.writeFileSync(uri.fsPath, reportText, 'utf8');
-      vscode.window.showInformationMessage(`AI report saved to ${uri.fsPath}`);
+      showQuietMessage(`AI report saved to ${uri.fsPath}`);
       modernSidebarProvider?.addDownloadedFile(path.basename(uri.fsPath), uri.fsPath);
     }
   } else if (action === 'Open in Editor') {
@@ -4302,7 +4240,7 @@ function refreshTree() {
   if (currentReport) {
     safeUpdateUIsRef?.(currentReport, 'Results refreshed');
   }
-  vscode.window.showInformationMessage('Results refreshed');
+  showQuietMessage('Results refreshed');
 }
 
 function openFileAtLine(file: string, line: number) {
@@ -4314,7 +4252,7 @@ function openFileAtLine(file: string, line: number) {
 
 async function analyzeWithAI(context: vscode.ExtensionContext) {
   if (!currentReport) {
-    vscode.window.showInformationMessage('Run a scan first before sending to AI agent');
+    showQuietMessage('Run a scan first before sending to AI agent');
     return;
   }
 
@@ -4357,7 +4295,7 @@ async function analyzeWithAI(context: vscode.ExtensionContext) {
 
   return vscode.window.withProgress(
     {
-      location: vscode.ProgressLocation.Notification,
+      location: vscode.ProgressLocation.Window,
       title: 'AI Agent Analysis',
       cancellable: true,
     },
@@ -4396,7 +4334,7 @@ async function analyzeWithAI(context: vscode.ExtensionContext) {
           }
 
           hasEnhancedAnalysis = true;
-          const autoOpenAI = vscode.workspace.getConfiguration('simplebeacon').get<boolean>('autoOpenPreviewPanel', false);
+          const autoOpenAI = getSbConfig().get<boolean>('autoOpenPreviewPanel', false);
           if (currentReport && autoOpenAI) {
             try { WelcomeDashboard.createOrShow(context.extensionUri); } catch (e) { /* ignore */ }
           }
@@ -4421,10 +4359,10 @@ async function analyzeWithAI(context: vscode.ExtensionContext) {
               }
             } catch {
               // simplebeacon-ignore error-swallowing — AI analysis completion fallback
-              vscode.window.showInformationMessage('AI analysis complete. Dashboard now shows findings.');
+              showQuietMessage('AI analysis complete. Dashboard now shows findings.');
             }
           } else {
-            vscode.window.showInformationMessage('AI analysis complete. Dashboard now shows findings.');
+            showQuietMessage('AI analysis complete. Dashboard now shows findings.');
           }
           resolve();
         });
@@ -4439,7 +4377,7 @@ async function analyzeWithAI(context: vscode.ExtensionContext) {
 }
 
 async function sendToAIModel(reportText: string, context: vscode.ExtensionContext) {
-  const config = vscode.workspace.getConfiguration('simplebeacon');
+  const config = getSbConfig();
   const ollamaUrl = config.get<string>('ollamaUrl') || process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
   const modelName = config.get<string>('ollamaModel') || process.env.AGENT_MODEL || 'llama3.2:latest';
 
@@ -4457,7 +4395,7 @@ INSTRUCTIONS
 
   await vscode.window.withProgress(
     {
-      location: vscode.ProgressLocation.Notification,
+      location: vscode.ProgressLocation.Window,
       title: `Sending report to AI model (${modelName})...`,
       cancellable: true,
     },
@@ -4504,11 +4442,11 @@ h1{color:var(--vscode-textLink-foreground);border-bottom:1px solid var(--vscode-
         fs.writeFileSync(aiTmpFile, aiHtml, 'utf8');
         await modernSidebarProvider.navigateToPage('aiContext');
 
-        vscode.window.showInformationMessage('AI analysis complete');
+        showQuietMessage('AI analysis complete');
       } catch (err: unknown) {
         const e = err instanceof Error ? err : new Error(String(err));
         if (e.name === 'AbortError') {
-          vscode.window.showInformationMessage('AI analysis cancelled');
+          showQuietMessage('AI analysis cancelled');
         } else {
           vscode.window.showErrorMessage(`AI model error: ${e.message}. Ensure Ollama is running at ${ollamaUrl}`);
         }
@@ -4517,17 +4455,256 @@ h1{color:var(--vscode-textLink-foreground);border-bottom:1px solid var(--vscode-
   );
 }
 
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+interface CodeMapAnalysis {
+  recordedPaths: { path: string; type: string; lines: number; size: number }[];
+  improvements: { title: string; severity: 'high' | 'medium' | 'low'; files: string[]; description: string }[];
+  issues: { title: string; severity: 'critical' | 'high' | 'medium' | 'low'; files: string[]; description: string }[];
+  summary: {
+    totalFiles: number; totalLines: number; criticalCount: number; highCount: number;
+    improvementCount: number; score: number; scoreLabel: string;
+    architectureScore: number; couplingScore: number; complexityScore: number; testScore: number;
+  };
+  architecture: {
+    entryPoints: string[]; leafModules: string[]; hubFiles: string[];
+    maxDepth: number; avgDepth: number; layerCount: number;
+    isolatedClusters: number; largestClusterSize: number;
+    bidirectionalDeps: { source: string; target: string }[];
+  };
+  metrics: {
+    avgFileLines: number; medianFileLines: number; maxFileLines: number;
+    sourceFileCount: number; testFileCount: number; testRatio: number;
+    languageDistribution: { language: string; count: number; percentage: number }[];
+    dependencyDensity: number; orphanCount: number;
+  };
+  recommendations: { priority: number; title: string; effort: 'small' | 'medium' | 'large'; impact: 'high' | 'medium' | 'low'; description: string; files: string[] }[];
+}
+
+function analyzeCodeMap(data: { files: { name: string; ext: string; size: number; lines: number; path: string; full: string; content?: string }[]; depNodes: Record<string, { id: string; label: string; group: string; size: number }>; depEdges: { source: string; target: string }[]; cycles: string[][]; root: string }): CodeMapAnalysis {
+  const { files, depNodes, depEdges, cycles, root } = data;
+  const recordedPaths = files.map(f => ({ path: f.path, type: f.ext, lines: f.lines, size: f.size }));
+  const improvements: CodeMapAnalysis['improvements'] = [];
+  const issues: CodeMapAnalysis['issues'] = [];
+  const recommendations: CodeMapAnalysis['recommendations'] = [];
+
+  const sourceExts = ['.js', '.ts', '.tsx', '.jsx', '.py', '.java', '.go', '.rs', '.c', '.cpp', '.h', '.hpp', '.cs', '.rb', '.php', '.swift', '.kt'];
+  const sourceFiles = files.filter(f => sourceExts.includes(f.ext));
+  const testPattern = /\.(test|spec)\.|_(test|spec)\./;
+  const testFiles = files.filter(f => testPattern.test(f.name));
+
+  // --- File size & complexity metrics ---
+  const lineCounts = files.map(f => f.lines);
+  const avgFileLines = lineCounts.length ? Math.round(lineCounts.reduce((a, b) => a + b, 0) / lineCounts.length) : 0;
+  const sortedLines = [...lineCounts].sort((a, b) => a - b);
+  const medianFileLines = sortedLines.length ? sortedLines[Math.floor(sortedLines.length / 2)] : 0;
+  const maxFileLines = sortedLines.length ? sortedLines[sortedLines.length - 1] : 0;
+
+  const largeFiles = files.filter(f => f.lines > 500).map(f => f.path);
+  const veryLargeFiles = files.filter(f => f.lines > 1000).map(f => f.path);
+  if (veryLargeFiles.length > 0) {
+    issues.push({ title: 'Very Large Files', severity: 'high', files: veryLargeFiles.slice(0, 10), description: `${veryLargeFiles.length} files exceed 1000 lines. Strong candidates for extraction.` });
+    recommendations.push({ priority: 1, title: 'Extract very large files into modules', effort: 'large', impact: 'high', description: `Break files >1000 lines into focused modules to improve maintainability.`, files: veryLargeFiles.slice(0, 5) });
+  } else if (largeFiles.length > 0) {
+    improvements.push({ title: 'Large Files Detected', severity: 'medium', files: largeFiles.slice(0, 10), description: `${largeFiles.length} files exceed 500 lines. Consider splitting or refactoring.` });
+  }
+
+  // --- Directory depth metrics ---
+  const depths = files.map(f => f.path.split(/[\\/]/).length);
+  const maxDepth = depths.length ? Math.max(...depths) : 0;
+  const avgDepth = depths.length ? Math.round(depths.reduce((a, b) => a + b, 0) / depths.length) : 0;
+  const deepPaths = files.filter(f => f.path.split(/[\\/]/).length > 6).map(f => f.path);
+  if (deepPaths.length > 0) {
+    improvements.push({ title: 'Deep Directory Nesting', severity: 'low', files: deepPaths.slice(0, 10), description: `${deepPaths.length} files nested deeper than 6 levels. Flatten where possible.` });
+  }
+
+  // --- Dependency graph metrics ---
+  const outCounts: Record<string, number> = {};
+  const inCounts: Record<string, number> = {};
+  const allDepPaths = new Set<string>();
+  depEdges.forEach(e => {
+    allDepPaths.add(e.source); allDepPaths.add(e.target);
+    outCounts[e.source] = (outCounts[e.source] || 0) + 1;
+    inCounts[e.target] = (inCounts[e.target] || 0) + 1;
+  });
+
+  // Orphan files
+  const orphanFiles = sourceFiles.filter(f => !allDepPaths.has(f.path)).map(f => f.path);
+  if (orphanFiles.length > 0) {
+    improvements.push({ title: 'Potential Orphan / Unused Files', severity: 'medium', files: orphanFiles.slice(0, 10), description: `${orphanFiles.length} source files have no imports or dependents in the scanned graph.` });
+  }
+
+  // High coupling
+  const connectionCounts: Record<string, number> = {};
+  depEdges.forEach(e => { connectionCounts[e.source] = (connectionCounts[e.source] || 0) + 1; connectionCounts[e.target] = (connectionCounts[e.target] || 0) + 1; });
+  const highlyConnected = Object.entries(connectionCounts).filter(([, c]) => c > 20).map(([p]) => p);
+  if (highlyConnected.length > 0) {
+    issues.push({ title: 'High Coupling', severity: 'high', files: highlyConnected.slice(0, 10), description: `${highlyConnected.length} files have >20 connections. Consider decoupling via interfaces or events.` });
+    recommendations.push({ priority: 2, title: 'Decouple highly connected modules', effort: 'large', impact: 'high', description: `Refactor hub files with >20 connections to reduce ripple effects.`, files: highlyConnected.slice(0, 5) });
+  }
+
+  // Architecture: entry points, leaf modules, hub files
+  const entryPoints = Object.keys(outCounts).filter(k => !(k in inCounts) || (inCounts[k] || 0) === 0);
+  const leafModules = Object.keys(inCounts).filter(k => !(k in outCounts) || (outCounts[k] || 0) === 0);
+  const hubFiles = Object.keys(connectionCounts).filter(k => (inCounts[k] || 0) > 5 && (outCounts[k] || 0) > 5);
+
+  // Bidirectional dependencies
+  const bidirectionalDeps: { source: string; target: string }[] = [];
+  const depSet = new Set(depEdges.map(e => e.source + '|' + e.target));
+  depEdges.forEach(e => {
+    if (e.source !== e.target && depSet.has(e.target + '|' + e.source)) {
+      const key = e.source < e.target ? e.source + '|' + e.target : e.target + '|' + e.source;
+      if (!bidirectionalDeps.some(b => (b.source + '|' + b.target) === key || (b.target + '|' + b.source) === key)) {
+        bidirectionalDeps.push({ source: e.source, target: e.target });
+      }
+    }
+  });
+  if (bidirectionalDeps.length > 0) {
+    issues.push({ title: 'Bidirectional Dependencies', severity: 'high', files: bidirectionalDeps.slice(0, 10).flatMap(b => [b.source, b.target]), description: `${bidirectionalDeps.length} bidirectional dependency pairs found. These often indicate layering violations.` });
+    recommendations.push({ priority: 3, title: 'Break bidirectional dependencies', effort: 'medium', impact: 'high', description: `Introduce an intermediate abstraction or move shared logic upward.`, files: bidirectionalDeps.slice(0, 5).flatMap(b => [b.source, b.target]) });
+  }
+
+  // Circular dependencies
+  if (cycles.length > 0) {
+    const cycleFiles = [...new Set(cycles.flat())];
+    issues.push({ title: 'Circular Dependencies', severity: 'critical', files: cycleFiles.slice(0, 10), description: `${cycles.length} circular cycles detected. Extract shared modules to break loops.` });
+    recommendations.push({ priority: 0, title: 'Resolve circular dependencies', effort: 'medium', impact: 'high', description: `Extract common interfaces or utility modules to break import loops.`, files: cycleFiles.slice(0, 5) });
+  }
+
+  // Self-imports
+  const selfImports = depEdges.filter(e => e.source === e.target).map(e => e.source);
+  if (selfImports.length > 0) {
+    issues.push({ title: 'Self-Imports Detected', severity: 'high', files: [...new Set(selfImports)].slice(0, 10), description: 'Files importing themselves can cause infinite loops or build errors.' });
+  }
+
+  // Long dependency chains
+  const childrenMap = new Map<string, string[]>();
+  for (const e of depEdges) {
+    const list = childrenMap.get(e.source) || [];
+    list.push(e.target);
+    childrenMap.set(e.source, list);
+  }
+  const chainStarts = Object.keys(outCounts).filter(k => !inCounts[k]);
+  const longestMemo = new Map<string, number>();
+  function longestPathFrom(start: string, stack = new Set<string>()): number {
+    if (stack.has(start)) return 0;
+    const cached = longestMemo.get(start);
+    if (cached !== undefined) return cached;
+    stack.add(start);
+    const children = childrenMap.get(start) || [];
+    let max = 1;
+    for (const c of children) {
+      const len = 1 + longestPathFrom(c, stack);
+      if (len > max) max = len;
+    }
+    stack.delete(start);
+    longestMemo.set(start, max);
+    return max;
+  }
+  let maxChainLength = 0;
+  for (const s of chainStarts) {
+    const len = longestPathFrom(s);
+    if (len > maxChainLength) maxChainLength = len;
+  }
+  if (maxChainLength > 8) {
+    issues.push({ title: 'Long Dependency Chains', severity: 'medium', files: [], description: `Longest dependency chain is ${maxChainLength} levels. Deep transitive dependencies increase fragility.` });
+    recommendations.push({ priority: 4, title: 'Flatten deep dependency chains', effort: 'medium', impact: 'medium', description: `Refactor to reduce the longest dependency chain (${maxChainLength} levels).`, files: [] });
+  }
+
+  // Layer estimation via directory prefix grouping
+  const dirGroups: Record<string, string[]> = {};
+  sourceFiles.forEach(f => {
+    const parts = f.path.split(/[\\/]/);
+    const layer = parts.length > 1 ? parts[0] : 'root';
+    (dirGroups[layer] = dirGroups[layer] || []).push(f.path);
+  });
+  const layerCount = Object.keys(dirGroups).length;
+
+  // Isolated clusters via simple BFS on undirected graph
+  const adj: Record<string, string[]> = {};
+  depEdges.forEach(e => {
+    (adj[e.source] = adj[e.source] || []).push(e.target);
+    (adj[e.target] = adj[e.target] || []).push(e.source);
+  });
+  const visitedCluster = new Set<string>();
+  const clusters: string[][] = [];
+  Object.keys(adj).forEach(node => {
+    if (visitedCluster.has(node)) return;
+    const queue = [node];
+    const cluster: string[] = [];
+    visitedCluster.add(node);
+    while (queue.length) {
+      const cur = queue.pop()!;
+      cluster.push(cur);
+      (adj[cur] || []).forEach(nbr => {
+        if (!visitedCluster.has(nbr)) { visitedCluster.add(nbr); queue.push(nbr); }
+      });
+    }
+    clusters.push(cluster);
+  });
+  const isolatedClusters = clusters.filter(c => c.length > 1).length;
+  const largestClusterSize = clusters.length ? Math.max(...clusters.map(c => c.length)) : 0;
+
+  // Test coverage ratio
+  const testRatio = sourceFiles.length ? Math.round((testFiles.length / sourceFiles.length) * 100) : 0;
+  const missingTests = sourceFiles.filter(f => !testPattern.test(f.name) && !files.some(t => testPattern.test(t.name) && t.name.replace(/\.(test|spec)\.|_(test|spec)\./, '.').startsWith(f.name.replace(/\.[^.]+$/, '')))).map(f => f.path);
+  if (missingTests.length > 0 && sourceFiles.length > 5) {
+    improvements.push({ title: 'Missing Test Coverage', severity: 'low', files: missingTests.slice(0, 10), description: `${missingTests.length} source files lack corresponding test files.` });
+    if (testRatio < 30) {
+      recommendations.push({ priority: 5, title: 'Increase test coverage', effort: 'medium', impact: 'high', description: `Current test ratio is ${testRatio}%. Aim for at least 50% coverage.`, files: missingTests.slice(0, 5) });
+    }
+  }
+
+  // Language distribution
+  const extCounts: Record<string, number> = {};
+  files.forEach(f => { extCounts[f.ext] = (extCounts[f.ext] || 0) + 1; });
+  const totalForLang = Object.values(extCounts).reduce((a, b) => a + b, 0) || 1;
+  const languageDistribution = Object.entries(extCounts).map(([language, count]) => ({ language, count, percentage: Math.round((count / totalForLang) * 100) })).sort((a, b) => b.count - a.count).slice(0, 10);
+
+  // Dependency density
+  const nodeCount = Object.keys(depNodes).length || 1;
+  const dependencyDensity = Math.round((depEdges.length / (nodeCount * (nodeCount - 1) || 1)) * 100);
+
+  // --- Scoring (0-100) ---
+  const architectureScore = Math.max(0, 100 - (cycles.length * 10) - (bidirectionalDeps.length * 5) - (maxDepth > 6 ? 10 : 0) - (isolatedClusters > 1 ? 5 : 0));
+  const couplingScore = Math.max(0, 100 - (highlyConnected.length * 3) - (dependencyDensity > 20 ? 10 : 0) - (hubFiles.length * 2));
+  const complexityScore = Math.max(0, 100 - (veryLargeFiles.length * 5) - (largeFiles.length * 2) - (maxChainLength > 8 ? 10 : 0));
+  const testScore = Math.min(100, testRatio * 2);
+  const overallScore = Math.round((architectureScore + couplingScore + complexityScore + testScore) / 4);
+  const scoreLabel = overallScore >= 80 ? 'Excellent' : overallScore >= 60 ? 'Good' : overallScore >= 40 ? 'Fair' : 'Needs Work';
+
+  const criticalCount = issues.filter(i => i.severity === 'critical').length;
+  const highCount = issues.filter(i => i.severity === 'high').length;
+
+  return {
+    recordedPaths: recordedPaths.slice(0, 200),
+    improvements: improvements.slice(0, 20),
+    issues: issues.slice(0, 20),
+    summary: {
+      totalFiles: files.length, totalLines: files.reduce((s, f) => s + f.lines, 0),
+      criticalCount, highCount, improvementCount: improvements.length,
+      score: overallScore, scoreLabel,
+      architectureScore, couplingScore, complexityScore, testScore
+    },
+    architecture: {
+      entryPoints: entryPoints.slice(0, 20),
+      leafModules: leafModules.slice(0, 20),
+      hubFiles: hubFiles.slice(0, 20),
+      maxDepth, avgDepth, layerCount,
+      isolatedClusters, largestClusterSize,
+      bidirectionalDeps: bidirectionalDeps.slice(0, 20)
+    },
+    metrics: {
+      avgFileLines, medianFileLines, maxFileLines,
+      sourceFileCount: sourceFiles.length, testFileCount: testFiles.length, testRatio,
+      languageDistribution,
+      dependencyDensity,
+      orphanCount: orphanFiles.length
+    },
+    recommendations: recommendations.slice(0, 15)
+  };
 }
 
 function buildCodeMapHtml(options: CodeMapHtmlOptions): string {
-  const { root, files, totalLines, archParts, topExts, extColors, extIcons, treeHtml, graphJson, cyclesJson, entryJson, leafJson, connectedJson } = options;
+  const { root, files, totalLines, archParts, topExts, extColors, extIcons, treeHtml, graphJson, cyclesJson, entryJson, leafJson, connectedJson, analysisJson } = options;
   const extBarHtml = topExts.map(([ext, count]) => {
     const color = extColors[ext] || '#64748b';
     const pct = Math.round((count / files.length) * 100);
@@ -4575,15 +4752,29 @@ body{font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sa
 .lang-item .lang-name{font-size:11px;color:#94a3b8}
 .lang-item .lang-count{font-size:16px;font-weight:700;color:#f8fafc}
 .ext-bar{height:24px;border-radius:4px;margin:4px 0;display:flex;align-items:center;padding:0 10px;font-size:11px;color:#0f172a;font-weight:600}
-.graph-wrap{position:relative;height:500px;background:#0f172a;border-radius:8px;border:1px solid #334155;overflow:hidden}
+.graph-wrap{position:relative;height:95vh;background:#0f172a;border-radius:8px;border:1px solid #334155;overflow:hidden}
 #graphCanvas{width:100%;height:100%;cursor:grab}
 #graphCanvas:active{cursor:grabbing}
 .graph-legend{position:absolute;top:8px;right:8px;background:rgba(15,23,42,0.9);border:1px solid #334155;border-radius:6px;padding:8px 12px;font-size:11px}
 .graph-controls{position:absolute;bottom:12px;left:12px;display:flex;gap:6px;z-index:10}
 .graph-controls button{background:rgba(15,23,42,0.9);border:1px solid #334155;border-radius:6px;color:#e2e8f0;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;transition:background 0.15s}
 .graph-controls button:hover{background:#1e293b;border-color:#475569}
-.graph-controls .ctrl-label{position:absolute;bottom:40px;left:0;background:rgba(15,23,42,0.95);border:1px solid #334155;border-radius:4px;padding:4px 8px;font-size:11px;color:#94a3b8;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity 0.15s}
-.graph-controls button:hover .ctrl-label{opacity:1}
+.graph-controls button.active{background:#06b6d4;border-color:#06b6d4}
+.graph-filter-bar{position:absolute;top:8px;left:8px;display:flex;align-items:center;gap:6px;background:rgba(15,23,42,0.9);border:1px solid #334155;border-radius:6px;padding:6px 10px;z-index:10;max-width:calc(100% - 140px);flex-wrap:wrap}
+.graph-filter-bar input{background:#0f172a;border:1px solid #334155;border-radius:4px;color:#e2e8f0;padding:4px 8px;font-size:12px;width:120px}
+.graph-filter-bar input:focus{outline:none;border-color:#06b6d4}
+.graph-filter-bar label{display:flex;align-items:center;gap:3px;cursor:pointer;font-size:11px;color:#94a3b8}
+.graph-filter-bar label input{margin:0}
+.filter-dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.node-details-panel{position:absolute;bottom:56px;right:12px;width:260px;background:rgba(15,23,42,0.95);border:1px solid #334155;border-radius:8px;padding:0;z-index:20;box-shadow:0 4px 20px rgba(0,0,0,0.4);overflow:hidden}
+.node-details-panel.hidden{display:none}
+.node-details-header{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid #334155;font-size:13px;font-weight:600;color:#f8fafc}
+.node-details-header button{background:none;border:none;color:#94a3b8;font-size:16px;cursor:pointer;line-height:1}
+.node-details-header button:hover{color:#ef4444}
+.node-details-body{padding:12px;font-size:12px;color:#cbd5e1;max-height:200px;overflow-y:auto}
+.node-details-body .detail-row{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #1e293b}
+.node-details-body .detail-row:last-child{border-bottom:none}
+.node-details-body .detail-label{color:#64748b}
 .graph-legend-item{display:flex;align-items:center;gap:6px;margin:3px 0}
 .graph-legend-dot{width:10px;height:10px;border-radius:50%}
 .dep-stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
@@ -4594,6 +4785,89 @@ body{font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sa
 .dep-stat-card li:last-child{border-bottom:none}
 .cycle-badge{background:#ef4444;color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600}
 .empty-state{text-align:center;padding:40px 20px;color:#64748b}
+.analysis-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.analysis-card{background:#0f172a;border:1px solid #334155;border-radius:8px;padding:14px}
+.analysis-card h4{font-size:12px;color:#94a3b8;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;display:flex;align-items:center;gap:6px}
+.analysis-card .sev-badge{font-size:10px;padding:2px 6px;border-radius:4px;font-weight:600}
+.analysis-card .sev-critical{background:#ef4444;color:#fff}
+.analysis-card .sev-high{background:#f59e0b;color:#0f172a}
+.analysis-card .sev-medium{background:#38bdf8;color:#0f172a}
+.analysis-card .sev-low{background:#64748b;color:#fff}
+.analysis-card ul{list-style:none;padding:0;margin:0;font-size:12px}
+.analysis-card li{padding:3px 0;border-bottom:1px solid #1e293b;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.analysis-card li:last-child{border-bottom:none}
+.analysis-card .desc{color:#64748b;font-size:11px;margin-top:6px;padding-top:6px;border-top:1px solid #1e293b}
+.analysis-summary{display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.analysis-summary .summary-chip{background:#0f172a;border:1px solid #334155;border-radius:6px;padding:6px 10px;font-size:12px}
+.analysis-summary .summary-chip b{display:block;font-size:14px;color:#f8fafc}
+.score-ring{display:inline-flex;flex-direction:column;align-items:center;gap:4px}
+.score-ring svg{width:64px;height:64px}
+.score-ring .score-label{font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:#94a3b8}
+.score-ring .score-val{font-size:18px;font-weight:700}
+.score-excellent{stroke:#22c55e}
+.score-good{stroke:#38bdf8}
+.score-fair{stroke:#f59e0b}
+.score-poor{stroke:#ef4444}
+.metric-bar{height:6px;background:#1e293b;border-radius:3px;overflow:hidden;margin:4px 0}
+.metric-bar>div{height:100%;border-radius:3px;background:#38bdf8}
+.arch-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
+.arch-table th{text-align:left;color:#94a3b8;font-weight:500;padding:4px 8px;border-bottom:1px solid #334155}
+.arch-table td{padding:4px 8px;border-bottom:1px solid #1e293b}
+.arch-table tr:last-child td{border-bottom:none}
+.recommendation-card{background:#0f172a;border:1px solid #334155;border-radius:8px;padding:14px;margin-bottom:10px}
+.recommendation-card .rec-header{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.recommendation-card .rec-priority{font-size:10px;padding:2px 6px;border-radius:4px;font-weight:600;background:#f59e0b;color:#0f172a}
+.recommendation-card .rec-effort{font-size:10px;padding:2px 6px;border-radius:4px;font-weight:600;background:#334155;color:#e2e8f0}
+.recommendation-card .rec-impact{font-size:10px;padding:2px 6px;border-radius:4px;font-weight:600;background:#22c55e;color:#0f172a}
+.lang-donut{display:flex;align-items:center;gap:8px;font-size:12px}
+.lang-donut .dot{width:8px;height:8px;border-radius:50%}
+body.theme-light{background:#f8fafc;color:#0f172a}
+body.theme-light .sidebar{background:#fff;border-color:#cbd5e1}
+body.theme-light .sidebar h1{color:#0f172a}
+body.theme-light .stat-chip{background:#fff;border-color:#cbd5e1;color:#0f172a}
+body.theme-light .search-box{background:#fff;border-color:#cbd5e1;color:#0f172a}
+body.theme-light .tree-node:hover{background:#e2e8f0}
+body.theme-light .main h2{color:#0f172a}
+body.theme-light .card{background:#fff;border-color:#cbd5e1}
+body.theme-light .lang-item{background:#fff;border-color:#cbd5e1}
+body.theme-light .graph-wrap{background:#f1f5f9;border-color:#cbd5e1}
+body.theme-light .graph-controls button{background:rgba(255,255,255,.95);color:#0f172a;border-color:#cbd5e1}
+body.theme-light .graph-controls button:hover{background:#e2e8f0}
+body.theme-light .graph-legend{background:rgba(255,255,255,.95);border-color:#cbd5e1;color:#0f172a}
+body.theme-light .graph-filter-bar{background:rgba(255,255,255,.95);border-color:#cbd5e1;color:#0f172a}
+body.theme-light .graph-filter-bar input{background:#fff;border-color:#cbd5e1;color:#0f172a}
+body.theme-light .node-details-panel{background:rgba(255,255,255,.98);border-color:#cbd5e1}
+body.theme-light .node-details-header{color:#0f172a;border-color:#cbd5e1}
+body.theme-light .node-details-body{color:#334155}
+body.theme-light .dep-stat-card{background:#fff;border-color:#cbd5e1}
+body.theme-light .dep-stat-card h4{color:#64748b}
+body.theme-light .dep-stat-card li{border-color:#e2e8f0}
+body.theme-light .cycle-badge{background:#ef4444;color:#fff}
+body.theme-light .analysis-card{background:#fff;border-color:#cbd5e1}
+body.theme-light .analysis-card h4{color:#64748b}
+body.theme-light .analysis-card li{border-color:#e2e8f0}
+body.theme-light .analysis-card .desc{color:#64748b;border-color:#e2e8f0}
+body.theme-light .analysis-summary .summary-chip{background:#fff;border-color:#cbd5e1}
+body.theme-ocean{background:#0a1a2f;color:#e0f2fe}
+body.theme-ocean .graph-wrap{background:#112240;border-color:#1e3a5f}
+body.theme-ocean .graph-controls button{background:rgba(17,34,64,.95);border-color:#1e3a5f;color:#e0f2fe}
+body.theme-ocean .graph-controls button:hover{background:#1e3a5f}
+body.theme-ocean .graph-legend{background:rgba(17,34,64,.95);border-color:#1e3a5f;color:#e0f2fe}
+body.theme-ocean .graph-filter-bar{background:rgba(17,34,64,.95);border-color:#1e3a5f;color:#e0f2fe}
+body.theme-ocean .graph-filter-bar input{background:#0a1a2f;border-color:#1e3a5f;color:#e0f2fe}
+.graph-controls select,.graph-filter-bar select{background:#0f172a;border:1px solid #334155;color:#e2e8f0;border-radius:6px;padding:4px 8px;font-size:11px;outline:none}
+.graph-controls select option,.graph-filter-bar select option{background:#0f172a}
+body.theme-light .graph-controls select,body.theme-light .graph-filter-bar select{background:#fff;border-color:#cbd5e1;color:#0f172a}
+body.theme-light .graph-controls select option,body.theme-light .graph-filter-bar select option{background:#fff}
+body.theme-ocean .graph-controls select,body.theme-ocean .graph-filter-bar select{background:#112240;border-color:#1e3a5f;color:#e0f2fe}
+body.theme-ocean .graph-controls select option,body.theme-ocean .graph-filter-bar select option{background:#112240}
+.zoom-display{background:rgba(15,23,42,0.9);border:1px solid #334155;border-radius:6px;color:#e2e8f0;padding:4px 10px;font-size:12px;font-weight:600;min-width:48px;text-align:center;user-select:none}
+body.theme-light .zoom-display{background:rgba(255,255,255,.95);border-color:#cbd5e1;color:#0f172a}
+body.theme-ocean .zoom-display{background:rgba(17,34,64,.95);border-color:#1e3a5f;color:#e0f2fe}
+.sidebar.hidden{display:none}.main.full-width{margin-left:0;padding:12px}.sidebar-toggle{width:auto;padding:4px 10px;font-size:12px;background:rgba(15,23,42,0.9);border:1px solid #334155;border-radius:6px;color:#e2e8f0;cursor:pointer}.context-menu{position:absolute;background:rgba(15,23,42,0.95);border:1px solid #334155;border-radius:8px;padding:6px 0;z-index:100;box-shadow:0 4px 20px rgba(0,0,0,0.4);min-width:160px;display:none}.context-menu-item{padding:8px 14px;font-size:12px;cursor:pointer;color:#e2e8f0}.context-menu-item:hover{background:#1e293b}
+body.theme-light .sidebar-toggle{background:rgba(255,255,255,.95);color:#0f172a;border-color:#cbd5e1}
+body.theme-light .context-menu{background:rgba(255,255,255,.98);border-color:#cbd5e1;color:#0f172a}
+body.theme-light .context-menu-item:hover{background:#e2e8f0}
 </style>
 </head>
 <body>
@@ -4614,9 +4888,27 @@ body{font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sa
     <div class="graph-wrap">
       <canvas id="graphCanvas"></canvas>
       <div class="graph-controls">
-        <button id="zoomInBtn" title="Zoom In">+</button>
-        <button id="zoomOutBtn" title="Zoom Out">−</button>
-        <button id="resetViewBtn" title="Reset View">⌂</button>
+        <button id="zoomInBtn" title="Zoom In (+">+</button>
+        <button id="zoomOutBtn" title="Zoom Out (−">−</button>
+        <button id="resetViewBtn" title="Reset View (0">⌂</button>
+        <button id="fitScreenBtn" title="Fit to Screen (F">⤢</button>
+        <button id="pausePhysicsBtn" title="Pause Physics">⏸</button>
+        <button id="toggle3DBtn" title="Toggle 3D">3D</button>
+        <button id="toggleLabelsBtn" title="Toggle Labels">Aa</button>
+        <button id="toggleSidebarBtn" class="sidebar-toggle" title="Toggle Sidebar">☰</button><button id="exportGraphBtn" title="Export graph data">⤓</button>
+        <select id="themeSelect" title="Theme"><option value="dark">Dark</option><option value="light">Light</option><option value="ocean">Ocean</option></select>
+        <select id="layoutSelect" title="Layout"><option value="force">Force</option><option value="radial">Radial</option><option value="grid">Grid</option><option value="tree">Tree</option><option value="city">City</option></select>
+        <div id="zoomLevelDisplay" class="zoom-display">100%</div>
+      </div>
+      <div class="graph-filter-bar" id="graphFilterBar">
+        <input type="text" id="graphSearch" placeholder="Find file..." title="Search nodes">
+        <label title=".js"><input type="checkbox" class="ext-filter" value=".js" checked><span class="filter-dot" style="background:#f7df1e"></span></label>
+        <label title=".ts"><input type="checkbox" class="ext-filter" value=".ts" checked><span class="filter-dot" style="background:#3178c6"></span></label>
+        <label title=".tsx"><input type="checkbox" class="ext-filter" value=".tsx" checked><span class="filter-dot" style="background:#61dafb"></span></label>
+        <label title=".jsx"><input type="checkbox" class="ext-filter" value=".jsx" checked><span class="filter-dot" style="background:#61dafb"></span></label>
+        <label title=".cjs/.mjs"><input type="checkbox" class="ext-filter" value=".cjs" checked><span class="filter-dot" style="background:#f0db4f"></span></label>
+        <label title=".py"><input type="checkbox" class="ext-filter" value=".py" checked><span class="filter-dot" style="background:#3776ab"></span></label>
+        <label title="Other"><input type="checkbox" class="ext-filter" value="other" checked><span class="filter-dot" style="background:#64748b"></span></label>
       </div>
       <div class="graph-legend">
         <div class="graph-legend-item"><div class="graph-legend-dot" style="background:#f7df1e"></div>.js</div>
@@ -4625,11 +4917,24 @@ body{font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sa
         <div class="graph-legend-item"><div class="graph-legend-dot" style="background:#3776ab"></div>.py</div>
         <div class="graph-legend-item"><div class="graph-legend-dot" style="background:#64748b"></div>Other</div>
       </div>
+      <div class="context-menu" id="contextMenu"></div><div class="node-details-panel hidden" id="nodeDetailsPanel">
+        <div class="node-details-header"><span id="nodeDetailName">Node</span><button id="closeNodeDetails">×</button></div>
+        <div class="node-details-body" id="nodeDetailBody">Select a node to view details</div>
+      </div>
     </div>
   </div>
 
   <div class="card"><h3>Dependency Analysis</h3>
     <div class="dep-stat-grid" id="depStats"></div>
+  </div>
+
+  <div class="card"><h3>Code Map Analysis</h3>
+    <div class="analysis-summary" id="analysisSummary"></div>
+    <div id="scoreBoard" style="display:flex;gap:16px;flex-wrap:wrap;margin:12px 0;justify-content:center"></div>
+    <div id="metricsBoard" style="margin:12px 0"></div>
+    <div id="archBoard" style="margin:12px 0"></div>
+    <div id="recBoard" style="margin:12px 0"></div>
+    <div class="analysis-grid" id="analysisGrid"></div>
   </div>
 
   <div class="card"><h3>Languages</h3>
@@ -4642,12 +4947,24 @@ body{font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sa
 <script type="application/json" id="entriesData">${entryJson}</script>
 <script type="application/json" id="leavesData">${leafJson}</script>
 <script type="application/json" id="connectedData">${connectedJson}</script>
+<script type="application/json" id="analysisData">${analysisJson}</script>
 <script>
 const GRAPH = JSON.parse(document.getElementById('graphData').textContent);
 const CYCLES = JSON.parse(document.getElementById('cyclesData').textContent);
 const ENTRIES = JSON.parse(document.getElementById('entriesData').textContent);
 const LEAVES = JSON.parse(document.getElementById('leavesData').textContent);
 const CONNECTED = JSON.parse(document.getElementById('connectedData').textContent);
+let ANALYSIS = {};
+try { ANALYSIS = JSON.parse(document.getElementById('analysisData')?.textContent || '{}'); } catch (e) {}
+const nodeSeverity = {};
+const severityRank = { critical: 4, high: 3, medium: 2, low: 1 };
+const severityColor = { critical: '#ef4444', high: '#f59e0b', medium: '#22c55e', low: '#64748b' };
+[...(ANALYSIS.issues || []), ...(ANALYSIS.improvements || [])].forEach(item => {
+  (item.files || []).forEach(fp => {
+    const rank = severityRank[item.severity] || 0;
+    if (!nodeSeverity[fp] || rank > severityRank[nodeSeverity[fp]]) nodeSeverity[fp] = item.severity;
+  });
+});
 
 // Tree interactions
 document.getElementById('searchBox').addEventListener('input', (e) => {
@@ -4758,63 +5075,671 @@ if (statsEl) {
   }
 }
 
-// Force-directed graph
+// Analysis renderer
+(function(){
+  const analysisEl = document.getElementById('analysisData');
+  if (!analysisEl) return;
+  try {
+    const ANALYSIS = JSON.parse(analysisEl.textContent);
+    const summaryEl = document.getElementById('analysisSummary');
+    const gridEl = document.getElementById('analysisGrid');
+    const scoreBoard = document.getElementById('scoreBoard');
+    const metricsBoard = document.getElementById('metricsBoard');
+    const archBoard = document.getElementById('archBoard');
+    const recBoard = document.getElementById('recBoard');
+    if (!gridEl) return;
+
+    function makeRing(val, label, cls) {
+      const r = 27;
+      const c = 2 * Math.PI * r;
+      const off = c - (val / 100) * c;
+      return '<div class="score-ring"><svg viewBox="0 0 72 72"><circle cx="36" cy="36" r="' + r + '" stroke="#1e293b" stroke-width="6" fill="none"/><circle cx="36" cy="36" r="' + r + '" class="' + cls + '" stroke-width="6" fill="none" stroke-dasharray="' + c + '" stroke-dashoffset="' + off + '" stroke-linecap="round" transform="rotate(-90 36 36)"/></svg><span class="score-val">' + val + '</span><span class="score-label">' + label + '</span></div>';
+    }
+
+    if (scoreBoard && ANALYSIS.summary) {
+      const s = ANALYSIS.summary;
+      const cls = s.score >= 80 ? 'score-excellent' : s.score >= 60 ? 'score-good' : s.score >= 40 ? 'score-fair' : 'score-poor';
+      scoreBoard.textContent = '';
+      scoreBoard.insertAdjacentHTML('beforeend', makeRing(s.score, s.scoreLabel || 'Score', cls) +
+        makeRing(s.architectureScore || 0, 'Arch', s.architectureScore >= 80 ? 'score-excellent' : s.architectureScore >= 60 ? 'score-good' : s.architectureScore >= 40 ? 'score-fair' : 'score-poor') +
+        makeRing(s.couplingScore || 0, 'Coupling', s.couplingScore >= 80 ? 'score-excellent' : s.couplingScore >= 60 ? 'score-good' : s.couplingScore >= 40 ? 'score-fair' : 'score-poor') +
+        makeRing(s.complexityScore || 0, 'Complexity', s.complexityScore >= 80 ? 'score-excellent' : s.complexityScore >= 60 ? 'score-good' : s.complexityScore >= 40 ? 'score-fair' : 'score-poor') +
+        makeRing(s.testScore || 0, 'Tests', s.testScore >= 80 ? 'score-excellent' : s.testScore >= 60 ? 'score-good' : s.testScore >= 40 ? 'score-fair' : 'score-poor'));
+    }
+
+    if (summaryEl && ANALYSIS.summary) {
+      const s = ANALYSIS.summary;
+      const chips = [
+        { label: 'Files', value: s.totalFiles || 0 },
+        { label: 'Lines', value: (s.totalLines || 0).toLocaleString() },
+        { label: 'Critical', value: s.criticalCount || 0 },
+        { label: 'High Issues', value: s.highCount || 0 },
+        { label: 'Improvements', value: s.improvementCount || 0 }
+      ];
+      chips.forEach(c => {
+        const chip = document.createElement('div');
+        chip.className = 'summary-chip';
+        chip.textContent = '';
+        chip.insertAdjacentHTML('beforeend', '<b>' + c.value + '</b>' + c.label);
+        summaryEl.appendChild(chip);
+      });
+    }
+
+    if (metricsBoard && ANALYSIS.metrics) {
+      const m = ANALYSIS.metrics;
+      let html = '<h4 style="margin:8px 0 4px;font-size:13px;color:#94a3b8">Metrics</h4><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">';
+      html += '<div class="analysis-card"><div style="color:#94a3b8;font-size:11px">Avg Lines / File</div><div style="font-size:18px;font-weight:700">' + (m.avgFileLines || 0) + '</div><div class="metric-bar"><div style="width:' + Math.min((m.avgFileLines || 0), 100) + '%"></div></div></div>';
+      html += '<div class="analysis-card"><div style="color:#94a3b8;font-size:11px">Max Lines</div><div style="font-size:18px;font-weight:700">' + (m.maxFileLines || 0) + '</div></div>';
+      html += '<div class="analysis-card"><div style="color:#94a3b8;font-size:11px">Test Ratio</div><div style="font-size:18px;font-weight:700">' + (m.testRatio || 0) + '%</div><div class="metric-bar"><div style="width:' + Math.min((m.testRatio || 0) * 2, 100) + '%"></div></div></div>';
+      html += '<div class="analysis-card"><div style="color:#94a3b8;font-size:11px">Dependency Density</div><div style="font-size:18px;font-weight:700">' + (m.dependencyDensity || 0) + '%</div><div class="metric-bar"><div style="width:' + Math.min((m.dependencyDensity || 0) * 3, 100) + '%"></div></div></div>';
+      html += '<div class="analysis-card"><div style="color:#94a3b8;font-size:11px">Orphan Files</div><div style="font-size:18px;font-weight:700">' + (m.orphanCount || 0) + '</div></div>';
+      html += '<div class="analysis-card"><div style="color:#94a3b8;font-size:11px">Source / Test Files</div><div style="font-size:18px;font-weight:700">' + (m.sourceFileCount || 0) + ' / ' + (m.testFileCount || 0) + '</div></div>';
+      if (m.languageDistribution && m.languageDistribution.length) {
+        html += '<div class="analysis-card" style="grid-column:1 / -1"><div style="color:#94a3b8;font-size:11px;margin-bottom:6px">Language Distribution</div><div style="display:flex;flex-wrap:wrap;gap:8px">';
+        m.languageDistribution.forEach(l => {
+          html += '<div class="lang-donut"><span class="dot" style="background:' + (window.EXT_COLORS && window.EXT_COLORS[l.language] ? window.EXT_COLORS[l.language] : '#64748b') + '"></span><span>' + l.language + ' ' + l.percentage + '%</span></div>';
+        });
+        html += '</div></div>';
+      }
+      html += '</div>';
+      metricsBoard.textContent = '';
+      metricsBoard.insertAdjacentHTML('beforeend', html);
+    }
+
+    if (archBoard && ANALYSIS.architecture) {
+      const a = ANALYSIS.architecture;
+      let html = '<h4 style="margin:8px 0 4px;font-size:13px;color:#94a3b8">Architecture</h4>';
+      html += '<table class="arch-table"><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody>';
+      html += '<tr><td>Max Depth</td><td>' + (a.maxDepth || 0) + '</td></tr>';
+      html += '<tr><td>Avg Depth</td><td>' + (a.avgDepth || 0) + '</td></tr>';
+      html += '<tr><td>Layers</td><td>' + (a.layerCount || 0) + '</td></tr>';
+      html += '<tr><td>Isolated Clusters</td><td>' + (a.isolatedClusters || 0) + '</td></tr>';
+      html += '<tr><td>Largest Cluster</td><td>' + (a.largestClusterSize || 0) + ' files</td></tr>';
+      html += '<tr><td>Entry Points</td><td>' + (a.entryPoints ? a.entryPoints.length : 0) + '</td></tr>';
+      html += '<tr><td>Leaf Modules</td><td>' + (a.leafModules ? a.leafModules.length : 0) + '</td></tr>';
+      html += '<tr><td>Hub Files</td><td>' + (a.hubFiles ? a.hubFiles.length : 0) + '</td></tr>';
+      html += '</tbody></table>';
+      if (a.bidirectionalDeps && a.bidirectionalDeps.length) {
+        html += '<div style="margin-top:8px;font-size:11px;color:#f59e0b">Bidirectional pairs: ' + a.bidirectionalDeps.slice(0, 5).map(b => (b.source.split('/').pop() || b.source) + ' &harr; ' + (b.target.split('/').pop() || b.target)).join(', ') + (a.bidirectionalDeps.length > 5 ? ' +' + (a.bidirectionalDeps.length - 5) + ' more' : '') + '</div>';
+      }
+      archBoard.textContent = '';
+      archBoard.insertAdjacentHTML('beforeend', html);
+    }
+
+    if (recBoard && ANALYSIS.recommendations && ANALYSIS.recommendations.length) {
+      const top3 = ANALYSIS.recommendations.slice().sort((a, b) => a.priority - b.priority).slice(0, 3);
+      let html = '<h4 style="margin:8px 0 4px;font-size:13px;color:#ef4444">Top 3 Actionable Items</h4>';
+      top3.forEach((r, i) => {
+        const refactor = r.title.includes('circular') ? 'Extract shared interfaces into a new shared-utils module' :
+          r.title.includes('large') ? 'Split by feature/domain — one exported class/function per file' :
+          r.title.includes('coupl') ? 'Introduce event bus or dependency injection to decouple hubs' :
+          r.title.includes('bidirectional') ? 'Move shared types to a common-types file both import' :
+          r.title.includes('chain') ? 'Inline small intermediates or use facade pattern' :
+          r.title.includes('test') ? 'Add unit tests for uncovered public APIs' : 'Review and refactor affected files';
+        html += '<div class="recommendation-card" style="border-left:3px solid #ef4444"><div class="rec-header"><span class="rec-priority" style="background:#ef4444">#' + (i + 1) + '</span><b style="font-size:13px">' + r.title + '</b><span class="rec-effort">' + r.effort + '</span><span class="rec-impact">' + r.impact + '</span></div><div style="font-size:12px;color:#94a3b8">' + (r.description || '') + '</div><div style="font-size:11px;color:#22c55e;margin-top:4px">Suggested: ' + refactor + '</div></div>';
+      });
+      html += '<h4 style="margin:12px 0 4px;font-size:13px;color:#94a3b8">All Recommendations</h4>';
+      ANALYSIS.recommendations.forEach(r => {
+        html += '<div class="recommendation-card"><div class="rec-header"><span class="rec-priority">P' + (r.priority + 1) + '</span><b style="font-size:13px">' + r.title + '</b><span class="rec-effort">' + r.effort + '</span><span class="rec-impact">' + r.impact + '</span></div><div style="font-size:12px;color:#94a3b8">' + (r.description || '') + '</div></div>';
+      });
+      recBoard.textContent = '';
+      recBoard.insertAdjacentHTML('beforeend', html);
+    }
+
+    const allItems = [
+      ...(ANALYSIS.issues || []).map(i => ({ ...i, kind: 'issue' })),
+      ...(ANALYSIS.improvements || []).map(i => ({ ...i, kind: 'improvement' }))
+    ];
+    if (allItems.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'empty-state';
+      empty.textContent = 'No analysis issues or improvements found';
+      gridEl.appendChild(empty);
+    } else {
+      allItems.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'analysis-card';
+        const h4 = document.createElement('h4');
+        const badge = document.createElement('span');
+        badge.className = 'sev-badge sev-' + item.severity;
+        badge.textContent = item.severity.toUpperCase();
+        h4.appendChild(badge);
+        const titleSpan = document.createElement('span');
+        titleSpan.textContent = item.title;
+        h4.appendChild(titleSpan);
+        card.appendChild(h4);
+        if (item.files && item.files.length > 0) {
+          const ul = document.createElement('ul');
+          item.files.forEach(f => {
+            const li = document.createElement('li');
+            const name = document.createElement('span');
+            name.textContent = f.split('/').pop() || f;
+            name.title = f;
+            li.appendChild(name);
+            ul.appendChild(li);
+          });
+          card.appendChild(ul);
+        }
+        const desc = document.createElement('div');
+        desc.className = 'desc';
+        desc.textContent = item.description || '';
+        card.appendChild(desc);
+        gridEl.appendChild(card);
+      });
+    }
+  } catch (e) { /* ignore analysis parse errors */ }
+})();
+
+// Sidebar toggle
+(function(){
+  const sidebar = document.querySelector('.sidebar');
+  const main = document.querySelector('.main');
+  const btn = document.getElementById('toggleSidebarBtn');
+  if (btn && sidebar && main) {
+    btn.addEventListener('click', () => {
+      sidebar.classList.toggle('hidden');
+      main.classList.toggle('full-width');
+      setTimeout(() => { window.dispatchEvent(new Event('resize')); }, 300);
+    });
+  }
+})();
+
+// Force-directed graph with full interactivity
 (function(){
   const canvas = document.getElementById('graphCanvas');
   if (!canvas || GRAPH.nodes.length === 0) return;
   const ctx = canvas.getContext('2d');
   const wrap = canvas.parentElement;
+  const detailsPanel = document.getElementById('nodeDetailsPanel');
+  const detailName = document.getElementById('nodeDetailName');
+  const detailBody = document.getElementById('nodeDetailBody');
+  const closeDetails = document.getElementById('closeNodeDetails');
+  const searchInput = document.getElementById('graphSearch');
+  const filterInputs = document.querySelectorAll('.ext-filter');
 
-  function resize() {
-    canvas.width = wrap.clientWidth;
-    canvas.height = wrap.clientHeight;
-  }
-  resize();
-  window.addEventListener('resize', resize);
+  function resize() { canvas.width = wrap.clientWidth; canvas.height = wrap.clientHeight; }
+  resize(); window.addEventListener('resize', resize);
 
-  const colors = {'.js':'#f7df1e','.ts':'#3178c6','.tsx':'#3178c6','.jsx':'#61dafb','.cjs':'#f0db4f','.mjs':'#f0db4f','.py':'#3776ab'};
+  const colors = {'.js':'#f7df1e','.ts':'#3178c6','.tsx':'#61dafb','.jsx':'#61dafb','.cjs':'#f0db4f','.mjs':'#f0db4f','.py':'#3776ab'};
   const W = () => canvas.width, H = () => canvas.height;
-  const nodes = GRAPH.nodes.map((n,i) => ({id:n.id,label:n.label,group:n.group,x:W()/2+Math.cos(i*2.4)*150,y:H()/2+Math.sin(i*2.4)*150,vx:0,vy:0,radius:Math.max(4,Math.min(14,Math.sqrt(n.size||1)*0.6)),color:colors[n.group]||'#64748b'}));
-  const edges = GRAPH.edges.map(e => ({source:nodes.find(n=>n.id===e.source),target:nodes.find(n=>n.id===e.target)})).filter(e=>e.source&&e.target);
-  const nodeMap = Object.fromEntries(nodes.map(n=>[n.id,n]));
+  const allNodes = GRAPH.nodes.map((n,i) => ({id:n.id,label:n.label,group:n.group,x:W()/2+Math.cos(i*2.4)*150,y:H()/2+Math.sin(i*2.4)*150,vx:0,vy:0,radius:Math.max(4,Math.min(14,Math.sqrt(n.size||1)*0.6)),color:colors[n.group]||'#64748b',visible:true,highlighted:false}));
+  const allEdges = GRAPH.edges.map(e => ({source:e.source,target:e.target,visible:true}));
+  const nodeMap = Object.fromEntries(allNodes.map(n=>[n.id,n]));
+  const edges = allEdges.map(e => ({source:nodeMap[e.source],target:nodeMap[e.target]})).filter(e=>e.source&&e.target);
 
-  let dragging = null, hoverNode = null, offset = {x:0,y:0}, scale = 1, pan = {x:0,y:0};
+  let dragging = null, panning = false, panStart = {x:0,y:0}, hoverNode = null, selectedNode = null, dragMoved = false;
+  let offset = {x:0,y:0}, scale = 1, pan = {x:0,y:0}, physicsPaused = false, searchQuery = '';
+  let is3D = false, rotX = 0.6, rotY = 0, isRotating = false, rotStart = {x:0, y:0};
+  let labelsVisible = true;
+  let zoomDragging = false, zoomStartY = 0, zoomStartScale = 1;
+  let middlePanning = false, middlePanStart = {x:0,y:0,px:0,py:0};
+  let isOrbiting = false, orbitStart = {x:0,y:0};
+
+  function getFilteredNodes() { return allNodes.filter(n => n.visible); }
+  function getFilteredEdges() { return edges.filter(e => e.source.visible && e.target.visible); }
+
+  function clientPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  }
+  function worldPosFromClient(cp) {
+    return { x: (cp.x - pan.x) / scale, y: (cp.y - pan.y) / scale };
+  }
+  function worldPos(e) {
+    return worldPosFromClient(clientPos(e));
+  }
+
+  function nodeAt(wp) {
+    for (const n of allNodes) {
+      if (!n.visible) continue;
+      const dx = wp.x - n.x, dy = wp.y - n.y;
+      if (dx*dx + dy*dy < (n.radius+6)**2) return n;
+    }
+    return null;
+  }
+
+  function project3D(n) {
+    const cx = W() / 2, cy = H() / 2;
+    const focal = 800;
+    const x0 = n.x - cx;
+    const y0 = n.y - cy;
+    const z0 = n.z;
+    const x1 = x0 * Math.cos(rotY) - z0 * Math.sin(rotY);
+    const z1 = x0 * Math.sin(rotY) + z0 * Math.cos(rotY);
+    const y1 = y0 * Math.cos(rotX) - z1 * Math.sin(rotX);
+    const z2 = y0 * Math.sin(rotX) + z1 * Math.cos(rotX);
+    const depthScale = focal / (focal + z2);
+    return { x: cx + x1 * scale * depthScale, y: cy + y1 * scale * depthScale, depthScale, z2 };
+  }
+
+  function nodeAt3D(cp) {
+    const vis = getFilteredNodes();
+    let best = null, bestDist = Infinity;
+    for (const n of vis) {
+      const p = project3D(n);
+      const r = n.radius * p.depthScale;
+      const dx = cp.x - p.x, dy = cp.y - p.y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist < r + 6 && dist < bestDist) { best = n; bestDist = dist; }
+    }
+    return best;
+  }
+
+  // City-layout: classify files into architectural layers
+  function classifyLayer(fp) {
+    const p = String(fp).toLowerCase().replace(/\\\\/g, '/');
+    const name = p.split('/').pop() || '';
+    if (/(?:^|\\/)(test|tests|__tests__|__mocks__|spec|e2e|cypress|playwright)(?:\\/|$)/.test(p) || /\\.(test|spec)\\.(js|ts|jsx|tsx|py|go|rs)$/.test(name)) return 'tests';
+    if (/^(index|main|app|server|cli|entry|bootstrap|start)\\.(js|ts|cjs|mjs|py|go|rs|java)$/.test(name)) return 'entry';
+    if (/(?:^|\\/)(components?|ui|pages?|views?|templates?|widgets|screens|layouts?)(?:\\/|$)/.test(p) || /\\.(tsx|jsx|vue|svelte|html|css|scss|less)$/.test(name)) return 'ui';
+    if (/(?:^|\\/)(services?|controllers?|business|logic|api|routes?|handlers?|middleware|actions?)(?:\\/|$)/.test(p) || /(service|controller|route|handler|middleware|action)\\.(js|ts|cjs|mjs)$/.test(name)) return 'business';
+    if (/(?:^|\\/)(db|database|models?|repositories?|stores?|schemas?|migrations?|configs?|settings?|infra|docker|k8s|helm)(?:\\/|$)/.test(p) || /(config|model|schema|repository|store|migration|docker|dockerfile|docker-compose|k8s|helm)\\.(js|ts|json|yaml|yml|env)$/.test(name)) return 'data';
+    if (/(?:^|\\/)(utils?|helpers?|lib|common|shared|tools?|scripts?|packages?)(?:\\/|$)/.test(p) || /(util|helper|common|shared|tool|lib)\\.(js|ts|cjs|mjs)$/.test(name)) return 'utils';
+    return 'other';
+  }
 
   canvas.addEventListener('mousedown', e => {
-    const rect = canvas.getBoundingClientRect();
-    const mx = (e.clientX - rect.left - pan.x) / scale;
-    const my = (e.clientY - rect.top - pan.y) / scale;
-    for (const n of nodes) {
-      const dx = mx - n.x, dy = my - n.y;
-      if (dx*dx + dy*dy < (n.radius+4)**2) { dragging = n; offset = {x:dx,y:dy}; return; }
+    dragMoved = false;
+    if (e.button === 1) {
+      e.preventDefault();
+      middlePanning = true;
+      const cp = clientPos(e);
+      middlePanStart = { x: cp.x, y: cp.y, px: pan.x, py: pan.y };
+      return;
     }
+    if (e.button === 2) {
+      e.preventDefault();
+      if (is3D) { isRotating = true; rotStart = {x: e.clientX, y: e.clientY}; return; }
+      zoomDragging = true;
+      zoomStartY = e.clientY;
+      zoomStartScale = scale;
+      return;
+    }
+    if (is3D) { isRotating = true; rotStart = {x: e.clientX, y: e.clientY}; return; }
+    if (e.ctrlKey || e.altKey) {
+      isOrbiting = true;
+      orbitStart = { x: e.clientX, y: e.clientY };
+      return;
+    }
+    const cp = clientPos(e); panning = true; panStart = cp;
   });
   canvas.addEventListener('mousemove', e => {
-    const rect = canvas.getBoundingClientRect();
-    const mx = (e.clientX - rect.left - pan.x) / scale;
-    const my = (e.clientY - rect.top - pan.y) / scale;
-    hoverNode = null;
-    for (const n of nodes) { const dx = mx - n.x, dy = my - n.y; if (dx*dx + dy*dy < (n.radius+4)**2) hoverNode = n; }
-    canvas.style.cursor = dragging ? 'grabbing' : (hoverNode ? 'pointer' : 'grab');
-    if (dragging) { dragging.x = mx - offset.x; dragging.y = my - offset.y; }
+    const cp = clientPos(e);
+    if (isRotating) {
+      const dx = e.clientX - rotStart.x; const dy = e.clientY - rotStart.y;
+      rotY += dx * 0.01; rotX += dy * 0.01; rotStart = {x: e.clientX, y: e.clientY};
+      canvas.style.cursor = 'move'; return;
+    }
+    if (zoomDragging) {
+      const dy = zoomStartY - e.clientY;
+      const factor = Math.exp(dy * 0.005);
+      const newScale = Math.max(0.05, Math.min(100, zoomStartScale * factor));
+      if (!is3D) {
+        const rect = canvas.getBoundingClientRect();
+        const center = { x: rect.width / 2, y: rect.height / 2 };
+        const worldBefore = worldPosFromClient(center);
+        scale = newScale;
+        pan.x = center.x - worldBefore.x * scale;
+        pan.y = center.y - worldBefore.y * scale;
+      } else {
+        scale = newScale;
+      }
+      updateZoomDisplay();
+      canvas.style.cursor = 'ns-resize'; return;
+    }
+    if (middlePanning) {
+      pan.x = middlePanStart.px + (cp.x - middlePanStart.x);
+      pan.y = middlePanStart.py + (cp.y - middlePanStart.y);
+      canvas.style.cursor = 'grabbing'; dragMoved = true; return;
+    }
+    if (isOrbiting) {
+      const dx = e.clientX - orbitStart.x;
+      const dy = e.clientY - orbitStart.y;
+      const speed = e.altKey ? 0.002 : 0.005;
+      pan.x += dx * speed * scale * 50;
+      pan.y += dy * speed * scale * 50;
+      orbitStart = { x: e.clientX, y: e.clientY };
+      canvas.style.cursor = 'all-scroll'; return;
+    }
+    if (is3D) { hoverNode = nodeAt3D(cp); canvas.style.cursor = hoverNode ? 'pointer' : 'move'; return; }
+    const wp = worldPosFromClient(cp); hoverNode = nodeAt(wp);
+    if (dragging) {
+      dragging.x = wp.x - offset.x; dragging.y = wp.y - offset.y;
+      canvas.style.cursor = 'grabbing'; dragMoved = true;
+    } else if (panning) {
+      pan.x += cp.x - panStart.x; pan.y += cp.y - panStart.y; panStart = cp;
+      canvas.style.cursor = 'grabbing'; dragMoved = true;
+    } else {
+      canvas.style.cursor = hoverNode ? 'pointer' : 'grab';
+    }
   });
-  canvas.addEventListener('mouseup', () => dragging = null);
-  canvas.addEventListener('mouseleave', () => dragging = null);
-  canvas.addEventListener('wheel', e => { e.preventDefault(); scale *= e.deltaY > 0 ? 0.9 : 1.1; scale = Math.max(0.2, Math.min(3, scale)); }, {passive:false});
+  canvas.addEventListener('mouseup', () => { dragging = null; panning = false; isRotating = false; zoomDragging = false; middlePanning = false; isOrbiting = false; });
+  canvas.addEventListener('mouseleave', () => { dragging = null; panning = false; isRotating = false; zoomDragging = false; middlePanning = false; isOrbiting = false; });
+  canvas.addEventListener('click', e => {
+    if (dragMoved) return;
+    if (is3D) {
+      const cp = clientPos(e); const n = nodeAt3D(cp);
+      if (n) { selectedNode = n; showNodeDetails(n); }
+      else { selectedNode = null; if (detailsPanel) detailsPanel.classList.add('hidden'); }
+      return;
+    }
+    const wp = worldPos(e); const n = nodeAt(wp);
+    if (n) { selectedNode = n; showNodeDetails(n); }
+    else { selectedNode = null; if (detailsPanel) detailsPanel.classList.add('hidden'); }
+  });
+  canvas.addEventListener('contextmenu', e => {
+    e.preventDefault();
+    const cp = clientPos(e); const wp = worldPosFromClient(cp); const n = nodeAt(wp);
+    const menu = document.getElementById('contextMenu'); if (!menu) return;
+    menu.style.display = 'block';
+    menu.style.left = (e.clientX + 10) + 'px';
+    menu.style.top = (e.clientY + 10) + 'px';
+    const items = [];
+    if (n) {
+      items.push({ label: 'Zoom to Node', action: () => { zoomToNode(n); selectedNode = n; showNodeDetails(n); } });
+      items.push({ label: 'View Details', action: () => { selectedNode = n; showNodeDetails(n); } });
+    }
+    items.push({ label: 'Fit to Screen', action: () => document.getElementById('fitScreenBtn')?.click() });
+    items.push({ label: 'Reset View', action: () => document.getElementById('resetViewBtn')?.click() });
+    items.push({ label: 'Toggle Sidebar', action: () => document.getElementById('toggleSidebarBtn')?.click() });
+    items.push({ label: 'Toggle Labels', action: () => document.getElementById('toggleLabelsBtn')?.click() });
+    menu.textContent = '';
+    menu.insertAdjacentHTML('beforeend', items.map(it => '<div class="context-menu-item">' + it.label + '</div>').join(''));
+    menu.querySelectorAll('.context-menu-item').forEach((el, i) => {
+      el.addEventListener('click', () => { items[i].action(); menu.style.display = 'none'; });
+    });
+    const closeMenu = () => { menu.style.display = 'none'; document.removeEventListener('click', closeMenu); };
+    setTimeout(() => document.addEventListener('click', closeMenu), 0);
+  });
+  canvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    const cp = clientPos(e);
+    const speedMult = e.shiftKey ? 3 : 1;
+    const factor = Math.exp(-e.deltaY * 0.003 * speedMult);
+    const newScale = Math.max(0.05, Math.min(100, scale * factor));
+    if (!is3D) {
+      const worldBefore = worldPosFromClient(cp);
+      scale = newScale;
+      pan.x = cp.x - worldBefore.x * scale;
+      pan.y = cp.y - worldBefore.y * scale;
+    } else {
+      scale = newScale;
+    }
+    updateZoomDisplay();
+  }, {passive:false});
+  // Double-click to zoom into a node
+  canvas.addEventListener('dblclick', e => {
+    const wp = worldPos(e);
+    const n = nodeAt(wp);
+    if (n) { zoomToNode(n); selectedNode = n; showNodeDetails(n); }
+  });
+
+  function showNodeDetails(n) {
+    if (!detailsPanel || !detailName || !detailBody) return;
+    const incoming = allEdges.filter(e => e.target === n.id).map(e => nodeMap[e.source]?.label || e.source);
+    const outgoing = allEdges.filter(e => e.source === n.id).map(e => nodeMap[e.target]?.label || e.target);
+    const cycles = CYCLES.filter(c => c.includes(n.id)).length;
+    const nodeSize = GRAPH.nodes.find(function(x){ return x.id === n.id; })?.size || '--';
+    detailName.textContent = n.label;
+    let html = '';
+    html += '<div class="detail-row"><span class="detail-label">Path</span><span>' + n.id + '</span></div>';
+    html += '<div class="detail-row"><span class="detail-label">Type</span><span>' + n.group + '</span></div>';
+    html += '<div class="detail-row"><span class="detail-label">Lines</span><span>' + nodeSize + '</span></div>';
+    html += '<div class="detail-row"><span class="detail-label">Incoming</span><span>' + incoming.length + '</span></div>';
+    html += '<div class="detail-row"><span class="detail-label">Outgoing</span><span>' + outgoing.length + '</span></div>';
+    html += '<div class="detail-row"><span class="detail-label">Cycles</span><span>' + cycles + '</span></div>';
+    if (incoming.length) {
+      html += '<div style="margin-top:6px;color:#64748b;font-size:11px;">Imported by:</div>';
+      html += '<div style="max-height:60px;overflow-y:auto;font-size:11px;">' + incoming.slice(0,5).join('<br>') + '</div>';
+    }
+    if (outgoing.length) {
+      html += '<div style="margin-top:6px;color:#64748b;font-size:11px;">Imports:</div>';
+      html += '<div style="max-height:60px;overflow-y:auto;font-size:11px;">' + outgoing.slice(0,5).join('<br>') + '</div>';
+    }
+    detailBody.textContent = '';
+    detailBody.insertAdjacentHTML('beforeend', html);
+    detailsPanel.classList.remove('hidden');
+  }
+  if (closeDetails) closeDetails.addEventListener('click', () => { selectedNode = null; detailsPanel.classList.add('hidden'); });
+
+  // Filters
+  function applyFilters() {
+    const active = new Set();
+    filterInputs.forEach(cb => { if (cb.checked) active.add(cb.value); });
+    allNodes.forEach(n => {
+      const group = n.group;
+      const known = ['.js','.ts','.tsx','.jsx','.cjs','.mjs','.py'];
+      const key = known.includes(group) ? group : 'other';
+      n.visible = active.has(key);
+      if (n.visible && searchQuery) { n.visible = n.label.toLowerCase().includes(searchQuery) || n.id.toLowerCase().includes(searchQuery); }
+    });
+  }
+  filterInputs.forEach(cb => cb.addEventListener('change', applyFilters));
+  if (searchInput) searchInput.addEventListener('input', e => { searchQuery = e.target.value.toLowerCase(); applyFilters(); });
+
+  // Zoom helpers
+  const zoomDisplay = document.getElementById('zoomLevelDisplay');
+  function updateZoomDisplay() {
+    if (zoomDisplay) zoomDisplay.textContent = Math.round(scale * 100) + '%';
+  }
+  function zoomAtCenter(factor) {
+    const rect = canvas.getBoundingClientRect();
+    const cp = { x: rect.width / 2, y: rect.height / 2 };
+    const worldBefore = worldPosFromClient(cp);
+    const newScale = Math.max(0.05, Math.min(100, scale * factor));
+    scale = newScale;
+    pan.x = cp.x - worldBefore.x * scale;
+    pan.y = cp.y - worldBefore.y * scale;
+    updateZoomDisplay();
+  }
+  function zoomToNode(n) {
+    if (!n) return;
+    if (is3D) { scale = 1.5; pan = {x:0,y:0}; updateZoomDisplay(); return; }
+    scale = Math.min(80, Math.max(5, 40));
+    pan.x = (W() / 2) - n.x * scale;
+    pan.y = (H() / 2) - n.y * scale;
+    updateZoomDisplay();
+  }
+
+  // Layouts
+  function applyLayout(name) {
+    const vis = getFilteredNodes();
+    if (name === 'radial') {
+      const cx = W() / 2, cy = H() / 2, radius = Math.min(W(), H()) / 3;
+      vis.forEach((n, i) => {
+        const angle = (i / vis.length) * Math.PI * 2;
+        n.x = cx + Math.cos(angle) * radius;
+        n.y = cy + Math.sin(angle) * radius;
+        n.vx = 0; n.vy = 0;
+      });
+      physicsPaused = true;
+      if (pauseBtn) { pauseBtn.textContent = '▶'; pauseBtn.title = 'Resume Physics'; pauseBtn.classList.add('active'); }
+    } else if (name === 'grid') {
+      const cols = Math.ceil(Math.sqrt(vis.length));
+      const cell = Math.min(W(), H()) / (cols + 1);
+      vis.forEach((n, i) => {
+        n.x = ((i % cols) + 1) * cell;
+        n.y = (Math.floor(i / cols) + 1) * cell;
+        n.vx = 0; n.vy = 0;
+      });
+      physicsPaused = true;
+      if (pauseBtn) { pauseBtn.textContent = '▶'; pauseBtn.title = 'Resume Physics'; pauseBtn.classList.add('active'); }
+    } else if (name === 'tree') {
+      const tree = {};
+      vis.forEach(n => { tree[n.id] = { n, children: [], depth: 0 }; });
+      const nodeEdgeMap = {};
+      edges.forEach(e => { if (tree[e.source.id]) tree[e.source.id].children.push(e.target.id); });
+      const roots = vis.filter(n => !edges.some(e => e.target === n)).map(n => n.id);
+      if (roots.length === 0) vis.forEach(n => roots.push(n.id));
+      function setDepth(id, d, visited) {
+        if (visited.has(id)) return;
+        visited.add(id);
+        if (tree[id]) tree[id].depth = Math.max(tree[id].depth, d);
+        tree[id].children.forEach(cid => setDepth(cid, d + 1, new Set(visited)));
+      }
+      roots.forEach(rid => setDepth(rid, 0, new Set()));
+      const levels = [];
+      vis.forEach(n => {
+        const d = tree[n.id].depth;
+        if (!levels[d]) levels[d] = [];
+        levels[d].push(n);
+      });
+      const levelHeight = H() / (levels.length + 1);
+      levels.forEach((levelNodes, level) => {
+        const y = levelHeight * (level + 1);
+        const gap = W() / (levelNodes.length + 1);
+        levelNodes.forEach((n, i) => { n.x = gap * (i + 1); n.y = y; n.vx = 0; n.vy = 0; });
+      });
+      physicsPaused = true;
+      if (pauseBtn) { pauseBtn.textContent = '▶'; pauseBtn.title = 'Resume Physics'; pauseBtn.classList.add('active'); }
+    } else if (name === 'city') {
+      const layerOrder = ['entry', 'ui', 'business', 'data', 'utils', 'tests', 'other'];
+      const layerGroups = {};
+      vis.forEach(n => {
+        const layer = classifyLayer(n.id);
+        (layerGroups[layer] = layerGroups[layer] || []).push(n);
+      });
+      const usableHeight = H() * 0.85;
+      const layerHeight = usableHeight / layerOrder.length;
+      const topOffset = H() * 0.08;
+      layerOrder.forEach((layer, li) => {
+        const nodes = layerGroups[layer] || [];
+        const y = topOffset + layerHeight * li + layerHeight / 2;
+        const cols = Math.max(1, Math.ceil(Math.sqrt(nodes.length)));
+        const cell = Math.min((W() - 80) / cols, 140);
+        nodes.forEach((n, i) => {
+          n.x = 40 + (i % cols) * cell;
+          n.y = y;
+          n.vx = 0; n.vy = 0;
+        });
+      });
+      physicsPaused = true;
+      if (pauseBtn) { pauseBtn.textContent = '▶'; pauseBtn.title = 'Resume Physics'; pauseBtn.classList.add('active'); }
+    } else if (name === 'force') {
+      physicsPaused = false;
+      if (pauseBtn) { pauseBtn.textContent = '⏸'; pauseBtn.title = 'Pause Physics'; pauseBtn.classList.remove('active'); }
+    }
+  }
 
   // Control buttons
-  const zoomInBtn = document.getElementById('zoomInBtn');
-  const zoomOutBtn = document.getElementById('zoomOutBtn');
-  const resetViewBtn = document.getElementById('resetViewBtn');
-  if (zoomInBtn) zoomInBtn.addEventListener('click', () => { scale = Math.min(3, scale * 1.25); });
-  if (zoomOutBtn) zoomOutBtn.addEventListener('click', () => { scale = Math.max(0.2, scale / 1.25); });
-  if (resetViewBtn) resetViewBtn.addEventListener('click', () => { scale = 1; pan = {x:0, y:0}; });
+  document.getElementById('zoomInBtn')?.addEventListener('click', () => zoomAtCenter(1.25));
+  document.getElementById('zoomOutBtn')?.addEventListener('click', () => zoomAtCenter(1/1.25));
+  document.getElementById('resetViewBtn')?.addEventListener('click', () => { scale = 1; pan = {x:0,y:0}; updateZoomDisplay(); });
+  document.getElementById('fitScreenBtn')?.addEventListener('click', () => {
+    if (is3D) { scale = 1.2; pan = {x:0,y:0}; updateZoomDisplay(); return; }
+    const vis = getFilteredNodes(); if (!vis.length) return;
+    const minX = Math.min(...vis.map(n=>n.x-n.radius)), maxX = Math.max(...vis.map(n=>n.x+n.radius));
+    const minY = Math.min(...vis.map(n=>n.y-n.radius)), maxY = Math.max(...vis.map(n=>n.y+n.radius));
+    const pad = 40; const bw = maxX - minX + pad*2, bh = maxY - minY + pad*2;
+    scale = Math.min(W()/bw, H()/bh, 100); pan = {x: (W() - bw*scale)/2 - minX*scale + pad*scale, y: (H() - bh*scale)/2 - minY*scale + pad*scale};
+    updateZoomDisplay();
+  });
+  const pauseBtn = document.getElementById('pausePhysicsBtn');
+  if (pauseBtn) pauseBtn.addEventListener('click', () => { physicsPaused = !physicsPaused; pauseBtn.textContent = physicsPaused ? '▶' : '⏸'; pauseBtn.title = physicsPaused ? 'Resume Physics' : 'Pause Physics'; pauseBtn.classList.toggle('active', physicsPaused); });
+  const toggle3DBtn = document.getElementById('toggle3DBtn');
+  if (toggle3DBtn) toggle3DBtn.addEventListener('click', () => {
+    is3D = !is3D;
+    toggle3DBtn.classList.toggle('active', is3D);
+    const layerZ = { entry: -300, ui: -150, business: 0, data: 150, utils: -100, tests: 200, other: 100 };
+    if (is3D) {
+      for (const n of allNodes) n.z = layerZ[classifyLayer(n.label)] || 0;
+      scale = Math.max(0.5, Math.min(100, scale));
+    } else {
+      for (const n of allNodes) n.z = 0;
+      rotX = 0.6; rotY = 0;
+    }
+    updateZoomDisplay();
+  });
+  const toggleLabelsBtn = document.getElementById('toggleLabelsBtn');
+  if (toggleLabelsBtn) toggleLabelsBtn.addEventListener('click', () => {
+    labelsVisible = !labelsVisible;
+    toggleLabelsBtn.classList.toggle('active', !labelsVisible);
+    toggleLabelsBtn.title = labelsVisible ? 'Hide Labels' : 'Show Labels';
+  });
+  document.getElementById('exportGraphBtn')?.addEventListener('click', () => {
+    let analysis = {};
+    try { analysis = JSON.parse(document.getElementById('analysisData')?.textContent || '{}'); } catch (e) {}
+    const allIssues = [...(analysis.issues || []), ...(analysis.improvements || [])];
+    const top3 = (analysis.recommendations || []).slice().sort((a, b) => a.priority - b.priority).slice(0, 3);
+    const payload = {
+      meta: {
+        exportedAt: new Date().toISOString(),
+        project: document.querySelector('.subtitle')?.textContent || 'project',
+        version: '3.0.315'
+      },
+      graph: { nodes: allNodes.map(n => ({ id: n.id, label: n.label, group: n.group, x: n.x, y: n.y, radius: n.radius })), edges: allEdges.map(e => ({ source: e.source, target: e.target })) },
+      cycles: CYCLES, entryPoints: ENTRIES, leafModules: LEAVES, mostConnected: CONNECTED,
+      analysis: {
+        summary: analysis.summary || {},
+        issues: analysis.issues || [],
+        improvements: analysis.improvements || [],
+        recommendations: analysis.recommendations || [],
+        allIssues: allIssues,
+        top3Actionable: top3
+      }
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const proj = (document.querySelector('.subtitle')?.textContent || 'project').replace(/[^a-z0-9]/gi, '-').toLowerCase();
+    a.download = proj + '-codemap-analysis-' + new Date().toISOString().slice(0, 10) + '.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  // Theme + layout selectors
+  document.getElementById('themeSelect')?.addEventListener('change', e => {
+    document.body.classList.remove('theme-light', 'theme-ocean');
+    const val = e.target.value;
+    if (val !== 'dark') document.body.classList.add('theme-' + val);
+  });
+  document.getElementById('layoutSelect')?.addEventListener('change', e => applyLayout(e.target.value));
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', e => {
+    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+    const slow = e.altKey ? 0.25 : 1;
+    const panStep = 40 * slow;
+    const zoomFactor = 1 + (0.25 * slow);
+    switch (e.key) {
+      case '+': case '=': e.preventDefault(); zoomAtCenter(zoomFactor); break;
+      case '-': case '_': e.preventDefault(); zoomAtCenter(1/zoomFactor); break;
+      case '0': e.preventDefault(); scale = 1; pan = {x:0,y:0}; updateZoomDisplay(); break;
+      case 'f': case 'F': e.preventDefault();
+        if (is3D) { scale = 1.2; pan = {x:0,y:0}; updateZoomDisplay(); break; }
+        const vis = getFilteredNodes(); if (!vis.length) return;
+        const minX = Math.min(...vis.map(n=>n.x-n.radius)), maxX = Math.max(...vis.map(n=>n.x+n.radius));
+        const minY = Math.min(...vis.map(n=>n.y-n.radius)), maxY = Math.max(...vis.map(n=>n.y+n.radius));
+        const pad = 40; const bw = maxX - minX + pad*2, bh = maxY - minY + pad*2;
+        scale = Math.min(W()/bw, H()/bh, 100); pan = {x: (W() - bw*scale)/2 - minX*scale + pad*scale, y: (H() - bh*scale)/2 - minY*scale + pad*scale};
+        updateZoomDisplay(); break;
+      case 'ArrowUp': e.preventDefault(); pan.y += panStep; break;
+      case 'ArrowDown': e.preventDefault(); pan.y -= panStep; break;
+      case 'ArrowLeft': e.preventDefault(); pan.x += panStep; break;
+      case 'ArrowRight': e.preventDefault(); pan.x -= panStep; break;
+      case 'w': case 'W': e.preventDefault(); pan.y += panStep; break;
+      case 's': case 'S': e.preventDefault(); pan.y -= panStep; break;
+      case 'a': case 'A': e.preventDefault(); pan.x += panStep; break;
+      case 'd': case 'D': e.preventDefault(); pan.x -= panStep; break;
+      case 'PageUp': e.preventDefault(); zoomAtCenter(zoomFactor); break;
+      case 'PageDown': e.preventDefault(); zoomAtCenter(1/zoomFactor); break;
+      case 'r': case 'R': e.preventDefault(); scale = 1; pan = {x:0,y:0}; rotX = 0.6; rotY = 0; updateZoomDisplay(); break;
+      case 'n': case 'N': e.preventDefault(); rotY = 0; if (is3D) rotX = 0.6; break;
+      case 'u': case 'U': e.preventDefault(); if (is3D) { rotX = 0.6; } else { scale = 1; pan = {x:0,y:0}; updateZoomDisplay(); } break;
+      case 'o': case 'O': e.preventDefault(); document.getElementById('toggle3DBtn')?.click(); break;
+      case ' ': e.preventDefault(); physicsPaused = !physicsPaused; const pb = document.getElementById('pausePhysicsBtn'); if (pb) { pb.textContent = physicsPaused ? '▶' : '⏸'; pb.title = physicsPaused ? 'Resume Physics' : 'Pause Physics'; pb.classList.toggle('active', physicsPaused); } break;
+      case '/': e.preventDefault(); document.getElementById('graphSearch')?.focus(); break;
+    }
+  });
 
   function step() {
-    // Repulsion
-    for (let i = 0; i < nodes.length; i++) {
-      for (let j = i+1; j < nodes.length; j++) {
-        const a = nodes[i], b = nodes[j];
+    if (physicsPaused) return;
+    const visNodes = getFilteredNodes();
+    const visEdges = getFilteredEdges();
+    for (let i = 0; i < visNodes.length; i++) {
+      for (let j = i+1; j < visNodes.length; j++) {
+        const a = visNodes[i], b = visNodes[j];
         let dx = b.x - a.x, dy = b.y - a.y;
         let dist = Math.sqrt(dx*dx + dy*dy) || 1;
         const force = 8000 / (dist * dist);
@@ -4823,8 +5748,7 @@ if (statsEl) {
         b.vx += dx * force; b.vy += dy * force;
       }
     }
-    // Attraction
-    for (const e of edges) {
+    for (const e of visEdges) {
       let dx = e.target.x - e.source.x, dy = e.target.y - e.source.y;
       let dist = Math.sqrt(dx*dx + dy*dy) || 1;
       const force = dist * 0.003;
@@ -4832,8 +5756,7 @@ if (statsEl) {
       e.source.vx += dx * force; e.source.vy += dy * force;
       e.target.vx -= dx * force; e.target.vy -= dy * force;
     }
-    // Center gravity
-    for (const n of nodes) {
+    for (const n of visNodes) {
       n.vx += (W()/2 - n.x) * 0.0003;
       n.vy += (H()/2 - n.y) * 0.0003;
       n.vx *= 0.92; n.vy *= 0.92;
@@ -4843,51 +5766,80 @@ if (statsEl) {
 
   function draw() {
     ctx.clearRect(0, 0, W(), H());
-    ctx.save();
-    ctx.translate(pan.x, pan.y);
-    ctx.scale(scale, scale);
-
-    // Edges
-    for (const e of edges) {
-      ctx.beginPath();
-      ctx.moveTo(e.source.x, e.source.y);
-      ctx.lineTo(e.target.x, e.target.y);
-      ctx.strokeStyle = 'rgba(148,163,184,0.15)';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-    }
-
-    // Nodes
-    for (const n of nodes) {
-      ctx.beginPath();
-      ctx.arc(n.x, n.y, n.radius, 0, Math.PI*2);
-      ctx.fillStyle = n.color;
-      ctx.fill();
-      if (n === hoverNode) {
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 2;
-        ctx.stroke();
+    const visEdges = getFilteredEdges();
+    const visNodes = getFilteredNodes();
+    if (is3D) {
+      const projected = visNodes.map(n => ({ n, p: project3D(n) })).sort((a, b) => b.p.z2 - a.p.z2);
+      for (const e of visEdges) {
+        const p1 = project3D(e.source), p2 = project3D(e.target);
+        const avgZ = (p1.z2 + p2.z2) / 2;
+        const edgeScale = Math.max(0.2, Math.min(1.5, 800 / (800 + avgZ)));
+        ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
+        ctx.strokeStyle = 'rgba(148,163,184,' + (0.05 + 0.12 * edgeScale) + ')'; ctx.lineWidth = Math.max(0.3, 0.5 * edgeScale); ctx.stroke();
       }
-    }
-
-    // Labels for larger nodes
-    for (const n of nodes) {
-      if (n.radius > 7 || n === hoverNode) {
-        ctx.fillStyle = '#e2e8f0';
-        ctx.font = '11px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(n.label, n.x, n.y + n.radius + 12);
+      for (const { n, p } of projected) {
+        const r = Math.max(1, n.radius * p.depthScale);
+        const sev = nodeSeverity[n.id];
+        if (sev) {
+          ctx.beginPath(); ctx.arc(p.x, p.y, r + 3, 0, Math.PI*2);
+          ctx.strokeStyle = (severityColor[sev] || '#64748b'); ctx.lineWidth = 2.5; ctx.stroke();
+        }
+        ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI*2);
+        ctx.fillStyle = n.color; ctx.globalAlpha = Math.max(0.4, Math.min(1, p.depthScale)); ctx.fill(); ctx.globalAlpha = 1;
+        if (n === hoverNode || n === selectedNode) {
+          ctx.strokeStyle = n === selectedNode ? '#06b6d4' : '#fff';
+          ctx.lineWidth = n === selectedNode ? 3 : 2; ctx.stroke();
+        }
+        if (n.highlighted) {
+          ctx.beginPath(); ctx.arc(p.x, p.y, r + 4, 0, Math.PI*2);
+          ctx.strokeStyle = 'rgba(6,182,212,0.5)'; ctx.lineWidth = 2; ctx.stroke();
+        }
       }
+      if (labelsVisible) {
+        for (const { n, p } of projected) {
+          if (n.radius > 7 || n === hoverNode || n === selectedNode) {
+            ctx.fillStyle = '#e2e8f0'; ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
+            ctx.fillText(n.label, p.x, p.y + Math.max(1, n.radius * p.depthScale) + 12);
+          }
+        }
+      }
+    } else {
+      ctx.save();
+      ctx.translate(pan.x, pan.y);
+      ctx.scale(scale, scale);
+      for (const e of visEdges) {
+        ctx.beginPath(); ctx.moveTo(e.source.x, e.source.y); ctx.lineTo(e.target.x, e.target.y);
+        ctx.strokeStyle = 'rgba(148,163,184,0.15)'; ctx.lineWidth = 1; ctx.stroke();
+      }
+      for (const n of visNodes) {
+        const sev = nodeSeverity[n.id];
+        if (sev) {
+          ctx.beginPath(); ctx.arc(n.x, n.y, n.radius + 3, 0, Math.PI*2);
+          ctx.strokeStyle = severityColor[sev] || '#64748b'; ctx.lineWidth = 2.5; ctx.stroke();
+        }
+        ctx.beginPath(); ctx.arc(n.x, n.y, n.radius, 0, Math.PI*2);
+        ctx.fillStyle = n.color; ctx.fill();
+        if (n === hoverNode || n === selectedNode) {
+          ctx.strokeStyle = n === selectedNode ? '#06b6d4' : '#fff';
+          ctx.lineWidth = n === selectedNode ? 3 : 2; ctx.stroke();
+        }
+        if (n.highlighted) {
+          ctx.beginPath(); ctx.arc(n.x, n.y, n.radius + 4, 0, Math.PI*2);
+          ctx.strokeStyle = 'rgba(6,182,212,0.5)'; ctx.lineWidth = 2; ctx.stroke();
+        }
+      }
+      if (labelsVisible) {
+        for (const n of visNodes) {
+          if (n.radius > 7 || n === hoverNode || n === selectedNode) {
+            ctx.fillStyle = '#e2e8f0'; ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
+            ctx.fillText(n.label, n.x, n.y + n.radius + 12);
+          }
+        }
+      }
+      ctx.restore();
     }
-
-    ctx.restore();
   }
-
-  function loop() {
-    for (let i = 0; i < 3; i++) step();
-    draw();
-    requestAnimationFrame(loop);
-  }
+  function loop() { for (let i = 0; i < 3; i++) step(); draw(); requestAnimationFrame(loop); }
   loop();
 })();
 </script>
@@ -5085,14 +6037,14 @@ async function openPreviewPanel(url: string, title: string) {
         return;
       }
       if (msg.command === 'sendToAI' && msg.data) {
-        const config = vscode.workspace.getConfiguration('simplebeacon');
-        const apiUrl = config.get<string>('apiUrl', 'http://127.0.0.1:3000');
+        const dataPort = getDataServerPort();
+        const apiUrl = `http://127.0.0.1:${dataPort}`;
         try {
           const postRes = await new Promise<{ success: boolean; content?: string; error?: string }>(
             (resolve, reject) => {
               const parsed = new URL(apiUrl + '/api/ai-context');
               const body = JSON.stringify(msg.data);
-              const req = require('http').request(
+              const req = http.request(
                 {
                   hostname: parsed.hostname,
                   port: parsed.port,
@@ -5121,7 +6073,7 @@ async function openPreviewPanel(url: string, title: string) {
           );
           if (postRes.success && postRes.content) {
             await vscode.env.clipboard.writeText(postRes.content);
-            vscode.window.showInformationMessage(
+            showQuietMessage(
               'Scan data copied to clipboard — paste into your AI coding agent with Ctrl+V'
             );
           } else {
@@ -5163,7 +6115,7 @@ async function openPreviewPanel(url: string, title: string) {
           });
           if (uri) {
             await vscode.window.withProgress({
-              location: vscode.ProgressLocation.Notification,
+              location: vscode.ProgressLocation.Window,
               title: `Saving ${msg.filename}`,
               cancellable: false,
             }, async (progress) => {
@@ -5217,7 +6169,7 @@ function fetchHtml(url: string, maxRedirects = 5): Promise<string> {
       return;
     }
     const parsed = new URL(url);
-    const client = parsed.protocol === 'https:' ? require('https') : require('http');
+    const client = parsed.protocol === 'https:' ? https : http;
     const options = {
       hostname: parsed.hostname,
       port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80),

@@ -1,8 +1,8 @@
 // simplebeacon-ignore memory-leak — static UI bindings and scan result processing
 import * as vscode from 'vscode';
 import * as path from 'path';
-import * as crypto from 'crypto';
 import * as http from 'http';
+import { getSbConfig, getNonce, escapeHtml } from '../utils';
 import { SimpleBeaconProvider, ScanResult, ScanIssue } from './simplebeaconProvider';
 import { DiagnosticsManager } from './diagnostics';
 import { provider, diagnosticsManager } from '../extension';
@@ -142,7 +142,7 @@ export class ScanPanel {
       this._pollTimer = undefined;
     }
 
-    const config = vscode.workspace.getConfiguration('simplebeacon');
+    const config = getSbConfig();
     const apiUrl = (config.get<string>('apiServerUrl') || config.get<string>('apiUrl', '')).trim();
     const apiKey = config.get<string>('apiKey', '');
     if (!apiUrl) {
@@ -257,7 +257,7 @@ export class ScanPanel {
 
   private _getHtmlForWebview(webview: vscode.Webview): string {
     const nonce = getNonce();
-    const config = vscode.workspace.getConfiguration('simplebeacon');
+    const config = getSbConfig();
     const apiUrl = (config.get<string>('apiServerUrl') || config.get<string>('apiUrl', '')).trim();
     const connectSrc = apiUrl ? `connect-src ${apiUrl};` : "";
 
@@ -727,18 +727,6 @@ export class ScanPanel {
   }
 }
 
-function getNonce(): string {
-  return crypto.randomBytes(16).toString('hex');
-}
-
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
 
 function postJson(url: string, payload: Record<string, unknown>, apiKey?: string): Promise<unknown> {
   return new Promise((resolve, reject) => {

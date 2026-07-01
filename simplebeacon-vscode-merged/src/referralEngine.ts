@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { getSbConfig } from './utils';
 
 // In-memory runtime flag that persists only for the duration of this editor window session
 let hasPromptedReferralThisSession = false;
@@ -36,7 +37,7 @@ export function evaluateReferralPrompt(qualityScore: number): void {
     return;
   }
 
-  const config = vscode.workspace.getConfiguration('simplebeacon');
+  const config = getSbConfig();
   const promptsEnabled = config.get<boolean>('enableReferralPrompts', true);
 
   if (promptsEnabled && qualityScore === 100) {

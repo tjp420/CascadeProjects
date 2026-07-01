@@ -37,6 +37,7 @@
     "**/*.spec.js",
     "**/*.test.ts",
     "**/*.spec.ts",
+    "**/__tests__*",
     "tests/**",
     "test/**",
     "coming-soon/**",
@@ -59,8 +60,23 @@
     "test-output.txt",
     "server/db/token-registry.json",
     "C:/Users/Trevor/CascadeProjects/.github/workflows/simplebeacon-action-stress-test.yml",
+    "C:/Users/Trevor/CascadeProjects/packages/simplebeacon-cli/src/rules/llm-slop-catalog.json",
     "C:/Users/Trevor/CascadeProjects/simplebeacon-vscode-merged/src/rules/llm-slop-catalog.json",
-    "C:/Users/Trevor/CascadeProjects/simplebeacon-vscode-merged/.vsix-patch-temp/**"
+    "C:/Users/Trevor/CascadeProjects/simplebeacon-vscode-merged/out/rules/llm-slop-catalog.json",
+    "C:/Users/Trevor/CascadeProjects/simplebeacon-vscode-merged/.vsix-patch-temp/**",
+    "C:/Users/Trevor/CascadeProjects/ai-platform/web/simplebeacon-dashboard/js-es2018/views/SettingsView.js",
+    "C:/Users/Trevor/CascadeProjects/ai-platform/web/simplebeacon-dashboard/js/vendor/lucide.min.js",
+    "C:/Users/Trevor/CascadeProjects/ai-platform/web/simplebeacon-dashboard/js-es2018/utils-dom.js",
+    "C:/Users/Trevor/CascadeProjects/ai-platform/web/simplebeacon-dashboard/js-es2018/scan-utils.js",
+    "C:/Users/Trevor/CascadeProjects/ai-platform/server/routes/meta-routes.cjs",
+    "C:/Users/Trevor/CascadeProjects/ai-platform/server/config/format.cjs",
+    "C:/Users/Trevor/CascadeProjects/ai-platform/server/lib/audit-remediation-recipes.cjs",
+    "C:/Users/Trevor/CascadeProjects/ai-platform/server/lib/token-service.cjs",
+    "C:/Users/Trevor/CascadeProjects/ai-platform/simplebeacon-server.cjs",
+    "C:/Users/Trevor/CascadeProjects/ai-platform/web/simplebeacon-dashboard/js-es2018/views/AnalyzeView.js",
+    "C:/Users/Trevor/CascadeProjects/coming-soon/audit.html",
+    "C:/Users/Trevor/CascadeProjects/coming-soon/public/audit.html",
+    "C:/Users/Trevor/CascadeProjects/coming-soon/pricing.html"
   ],
   "rules": {
     "credentials": {

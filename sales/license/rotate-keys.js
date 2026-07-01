@@ -7,20 +7,60 @@ const { signLicense } = require('./generator.js');
  * Rotates an active client license token from an old private key signature to a new one.
  */
 function rotateLicenseToken(oldToken, oldPublicKeyPem, newPrivateKeyPem) {
+    if (typeof oldToken !== 'string' || !oldToken) {
+        return { success: false, error: 'oldToken must be a non-empty string' };
+    }
+    if (typeof oldPublicKeyPem !== 'string' || !oldPublicKeyPem) {
+        return { success: false, error: 'oldPublicKeyPem must be a non-empty string' };
+    }
+    if (typeof newPrivateKeyPem !== 'string' || !newPrivateKeyPem) {
+        return { success: false, error: 'newPrivateKeyPem must be a non-empty string' };
+    }
+
     try {
-        const [payloadBase64, signatureBase64] = oldToken.split('.');
+        const parts = oldToken.split('.');
+        if (parts.length !== 2) {
+            return { success: false, error: 'Invalid token format: expected payload.signature' };
+        }
+        const [payloadBase64, signatureBase64] = parts;
+        if (!payloadBase64 || !signatureBase64) {
+            return { success: false, error: 'Invalid token format: missing payload or signature' };
+        }
 
         // 1. Verify token validity against the old public key footprint
-        const verify = crypto.createVerify('SHA256');
-        verify.update(payloadBase64);
-        const isValid = verify.verify(oldPublicKeyPem, signatureBase64, 'base64');
+        let isValid;
+        try {
+            const verify = crypto.createVerify('SHA256');
+            verify.update(payloadBase64);
+            isValid = verify.verify(oldPublicKeyPem, signatureBase64, 'base64');
+        } catch (err) {
+            return { success: false, error: `Token verification error: ${err?.message || String(err)}` };
+        }
 
         if (!isValid) {
-            throw new Error('Token verification failed against the provided old public key.');
+            return { success: false, error: 'Token verification failed against the provided old public key.' };
         }
 
         // 2. Decode the underlying metadata payload context cleanly
-        const meta = JSON.parse(Buffer.from(payloadBase64, 'base64').toString('utf8'));
+        let meta;
+        try {
+            meta = JSON.parse(Buffer.from(payloadBase64, 'base64').toString('utf8'));
+        } catch (err) {
+            return { success: false, error: `Failed to decode license payload: ${err?.message || String(err)}` };
+        }
+
+        if (!meta || typeof meta !== 'object') {
+            return { success: false, error: 'Decoded license payload is not a valid object' };
+        }
+        if (typeof meta.companyId !== 'string' || !meta.companyId) {
+            return { success: false, error: 'Decoded payload missing valid companyId' };
+        }
+        if (typeof meta.tier !== 'string' || !meta.tier) {
+            return { success: false, error: 'Decoded payload missing valid tier' };
+        }
+        if (typeof meta.expiresAt !== 'string' || !meta.expiresAt) {
+            return { success: false, error: 'Decoded payload missing valid expiresAt' };
+        }
 
         // 3. Re-sign the identical metadata structures utilizing the fresh new private key
         const newToken = signLicense(meta.companyId, meta.tier, meta.expiresAt, newPrivateKeyPem);
@@ -31,7 +71,7 @@ function rotateLicenseToken(oldToken, oldPublicKeyPem, newPrivateKeyPem) {
             newToken
         };
     } catch (error) {
-        return { success: false, error: error.message };
+        return { success: false, error: error?.message || String(error) };
     }
 }
 

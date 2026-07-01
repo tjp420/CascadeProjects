@@ -33,18 +33,20 @@ const {
   PROFILE_RULES,
   buildAssessmentReport,
   buildAuditPayload,
-  buildDashboardPayload,
   buildFictionPatternCatalog,
-  buildScanResults,
   countFictionIssues,
   detectProjectProfile,
-  findHistoryEntry,
   readScanProgress,
   resolvePlatformRoot,
   resolveScanProgressPath,
   syncMeasuredBaseline,
   validateConfig
 } = require('../../server/lib/simplebeacon-proxy.cjs');
+const {
+  buildDashboardPayload,
+  buildScanResults,
+  findHistoryEntry
+} = require('../../../packages/simplebeacon-cli/src/lib/dashboard-payload.js');
 
 const PROJECT_ROOT = path.join(__dirname, '../..');
 const MONOREPO_ROOT = path.join(PROJECT_ROOT, '..');

@@ -1,6 +1,6 @@
 # SimpleBeacon Enhanced AI Extension
 
-[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/simplebeacon/simplebeacon-vscode)
+[![Version](https://img.shields.io/badge/version-3.0.344-blue.svg)](https://github.com/simplebeacon/simplebeacon-vscode)
 [![VSCode](https://img.shields.io/badge/VSCode-1.84.0+-green.svg)](https://code.visualstudio.com/)
 [![Node.js](https://img.shields.io/badge/Node.js-22.0.0+-green.svg)](https://nodejs.org/)
 

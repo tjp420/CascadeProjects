@@ -67,7 +67,9 @@ const SUPPRESS_PATTERN = /\/\/\s*simplebeacon-ignore\s+credentials/i;
 const MAX_SCAN_BYTES = 256000;
 
 function lineNumberAt(content, index) {
-    return content.slice(0, Math.max(0, index)).split('\n').length;
+    if (typeof content !== 'string') return 1;
+    const idx = typeof index === 'number' && Number.isFinite(index) ? Math.max(0, index) : 0;
+    return content.slice(0, idx).split('\n').length;
 }
 
 function severityBandForPattern(patternId) {
@@ -81,6 +83,7 @@ function severityBandForPattern(patternId) {
 }
 
 function isAllowlisted(match, content, fileName = '') {
+    if (!match || typeof match.index !== 'number' || !match[0] || typeof content !== 'string') return true;
     const snippet = content.slice(Math.max(0, match.index - 24), match.index + match[0].length + 24);
     const lower = snippet.toLowerCase();
     if (ALLOWLIST_SNIPPETS.some((allowed) => lower.includes(allowed.toLowerCase()))) {
@@ -115,9 +118,11 @@ function isAllowlisted(match, content, fileName = '') {
 }
 
 function scanTextContent(fileName, content, filePath = fileName) {
+    if (typeof content !== 'string') return [];
     const findings = [];
 
     for (const pattern of CREDENTIAL_PATTERNS) {
+        if (!pattern || !pattern.regex || typeof pattern.regex.exec !== 'function') continue;
         pattern.regex.lastIndex = 0;
         let match;
         while ((match = pattern.regex.exec(content)) !== null) {
@@ -180,7 +185,8 @@ function isCredentialScanExcludedPath(file) {
 async function scanCredentialPatterns(files, options = {}) {
     const issues = [];
     let scanned = 0;
-    const ignoreGlobs = options.ignoreGlobs || [];
+    const ignoreGlobs = Array.isArray(options.ignoreGlobs) ? options.ignoreGlobs : [];
+    if (!Array.isArray(files)) return { scanned: 0, findings: 0, issues: [] };
 
     for (const file of files) {
         if (isCredentialScanExcludedPath(file)) continue;

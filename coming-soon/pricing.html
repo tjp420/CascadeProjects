@@ -8,11 +8,12 @@
   <meta name="theme-color" content="#0a0a0a">
   <meta name="robots" content="index, follow">
   <link rel="canonical" href="https://simplebeacon.ai/pricing">
-  <link rel="icon" href="https://simplebeacon.ai/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/dashboard.css">
+  <script src="js/auth.js" defer></script>
   <!-- Google Analytics: set Measurement ID in <meta name="ga-id" content="G-XXXX"> -->
   <script>
     (function() {
@@ -294,22 +295,10 @@
           <a href="roadmap.html">Roadmap</a>
           <a href="audit.html">Audit</a>
           <a href="pricing.html">Pricing</a>
-          <a href="/dashboard/dashboard" id="vaultLink">Team Dashboard</a>
-          <script>
-          (function() {
-            var params = new URLSearchParams(window.location.search);
-            var token = params.get('token');
-            if (token) {
-              document.querySelectorAll('.nav-links a').forEach(function(a) {
-                if (a.href.indexOf('#') === -1 && a.href.indexOf('http') !== 0) {
-                  a.href += (a.href.indexOf('?') === -1 ? '?' : '&') + 'token=' + encodeURIComponent(token);
-                }
-              });
-            }
-          })();
-          </script>
+          <a href="/dashboard/#/dashboard" id="vaultLink">Team Dashboard</a>
+          <script>window.addEventListener('DOMContentLoaded', function() { if (window.SbAuth) window.SbAuth.propagateTokenToLinks(); });</script>
           <button type="button" id="nav-signin-btn" style="display:none;margin-left:8px;padding:4px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text-muted);font-size:0.8rem;cursor:pointer;">Sign in</button>
-          <button type="button" id="nav-signout-btn" onclick="(function(){var keys=['cascadeAuthToken','cascadeAuthUser','access_token','token','authToken','simplebeacon_token','sb-token-vault'];keys.forEach(function(k){localStorage.removeItem(k);});keys.forEach(function(k){document.cookie=k+'=;path=/;max-age=0;SameSite=Lax;'});sessionStorage.clear();window.location.reload();})()" style="margin-left:8px;padding:4px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text-muted);font-size:0.8rem;cursor:pointer;">Sign out</button>
+          <button type="button" id="nav-signout-btn" onclick="window.SbAuth.signOut()" style="margin-left:8px;padding:4px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text-muted);font-size:0.8rem;cursor:pointer;">Sign out</button>
         </div>
       </nav>
 
@@ -435,6 +424,7 @@
             <span class="price-tag">Enterprise</span>
             <h3>Compliance Suite</h3>
             <div class="price-amount" id="entPrice">Custom</div>
+            <p id="entAnnualNote" style="font-size:0.8rem;color:var(--text-secondary);margin-top:4px;display:none;"><span style="text-decoration:line-through;color:var(--text-muted);">Custom</span> <span style="color:var(--success);font-weight:600;">Custom</span> <span class="save-badge">Contact Sales</span></p>
           </div>
           <p class="price-desc">Board-ready compliance. Unlimited scans, custom rules, and dedicated support.</p>
           <ul class="price-features">
@@ -553,14 +543,6 @@
           <details class="faq-item"><summary>What payment methods do you accept?</summary><p>Self-service tiers accept all major credit cards via Stripe. Enterprise invoices support ACH wire transfer, purchase orders, and NET-30 terms.</p></details>
         </div>
       </noscript>
-
-      <div class="email-pricing" data-animate="fade-up" style="margin-bottom:24px;">
-        <h3 style="font-size:1rem;font-weight:600;color:var(--text-primary);margin-bottom:12px;text-align:center;">Switching AI assistants?</h3>
-        <p style="font-size:0.8rem;color:var(--text-secondary);text-align:center;margin-bottom:16px;">Generate a structured handoff report with session context, files touched, and pending tasks.</p>
-        <div style="text-align:center;">
-          <a href="contact.html#handoff" class="price-btn price-btn-secondary" style="display:inline-block;width:auto;padding:10px 24px;font-size:0.8rem;">Create AI Session Handoff</a>
-        </div>
-      </div>
 
       <div class="email-pricing" data-animate="fade-up">
         <h3 style="font-size:1rem;font-weight:600;color:var(--text-primary);margin-bottom:12px;text-align:center;">Email me this pricing</h3>
@@ -720,7 +702,8 @@
 
     // Sticky CTA
     var stickyCta = document.getElementById('stickyCta');
-    var heroBottom = document.querySelector('.pricing-hero').getBoundingClientRect().bottom;
+    var heroEl = document.querySelector('.pricing-hero');
+    var heroBottom = heroEl ? heroEl.getBoundingClientRect().bottom : 0;
     window.addEventListener('scroll', function() {
       if (!stickyCta) return;
       if (window.scrollY > heroBottom + 100) {
@@ -730,7 +713,8 @@
       }
     });
     window.addEventListener('resize', function() {
-      heroBottom = document.querySelector('.pricing-hero').getBoundingClientRect().bottom;
+      var el = document.querySelector('.pricing-hero');
+      if (el) heroBottom = el.getBoundingClientRect().bottom;
     });
     function handleCheckoutSubmit(e) {
       e.preventDefault();
@@ -1234,9 +1218,19 @@
     (function() {
       var signoutBtn = document.getElementById('nav-signout-btn');
       var signinBtn = document.getElementById('nav-signin-btn');
-      var TOKEN_KEYS = ['cascadeAuthToken','access_token','token','authToken','simplebeacon_token'];
+      var TOKEN_KEYS = ['cascadeAuthToken','cascadeAuthUser','access_token','token','authToken','simplebeacon_token','sb-token','sb_token'];
+      function getCookie(name) {
+        var m = document.cookie.match('(?:^|; )' + name.replace(/[-\/\^$*+?.()|[\]{}]/g, '\\$&') + '=([^;]*)');
+        return m ? decodeURIComponent(m[1]) : '';
+      }
+      function clearCookie(name) {
+        document.cookie = name + '=;path=/;max-age=0;SameSite=Lax';
+      }
       function hasAnyToken() {
-        return TOKEN_KEYS.some(function(k) { var v = localStorage.getItem(k); return v && v.length > 10; });
+        return TOKEN_KEYS.some(function(k) {
+          var v = localStorage.getItem(k) || getCookie(k);
+          return v && v.length > 10;
+        });
       }
       function updateAuthNav() {
         var authed = hasAnyToken();
@@ -1254,8 +1248,15 @@
       } catch(e) {}
       if (signoutBtn) {
         signoutBtn.addEventListener('click', function() {
-          for (var i = 0; i < TOKEN_KEYS.length; i++) localStorage.removeItem(TOKEN_KEYS[i]);
+          for (var i = 0; i < TOKEN_KEYS.length; i++) { localStorage.removeItem(TOKEN_KEYS[i]); clearCookie(TOKEN_KEYS[i]); }
+          localStorage.removeItem('sb-user'); localStorage.removeItem('sb_user');
+          clearCookie('sb-user'); clearCookie('sb_user');
           updateAuthNav();
+          try {
+            var bc = new BroadcastChannel('simplebeacon-auth');
+            bc.postMessage({type:'signed-out'});
+            bc.close();
+          } catch(e) {}
           var toast = document.createElement('div');
           toast.textContent = 'Signed out successfully';
           toast.style.cssText = 'position:fixed;bottom:24px;right:24px;padding:10px 16px;border-radius:8px;background:var(--success);color:#fff;font-size:0.875rem;z-index:9999;transition:opacity 300ms;';
@@ -1263,6 +1264,19 @@
           setTimeout(function(){ toast.style.opacity='0'; setTimeout(function(){ toast.remove(); }, 300); }, 2000);
         });
       }
+      // BroadcastChannel for real-time cross-page auth sync
+      try {
+        var authBC = new BroadcastChannel('simplebeacon-auth');
+        authBC.onmessage = function(e) {
+          if (e.data && e.data.type === 'signed-out') {
+            for (var i = 0; i < TOKEN_KEYS.length; i++) { localStorage.removeItem(TOKEN_KEYS[i]); clearCookie(TOKEN_KEYS[i]); }
+            updateAuthNav();
+          }
+          if (e.data && e.data.type === 'signed-in') { updateAuthNav(); }
+        };
+      } catch(e) {}
+      // Periodic check for auth state changes
+      setInterval(updateAuthNav, 2000);
       var signinOverlay = document.getElementById('signinOverlay');
       var signinCloseBtn = document.getElementById('signinCloseBtn');
       var signinSubmitBtn = document.getElementById('signinSubmitBtn');

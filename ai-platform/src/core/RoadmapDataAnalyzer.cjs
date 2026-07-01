@@ -35,6 +35,44 @@ class RoadmapDataAnalyzer {
         this.lastAnalysisTime = null;
     }
 
+    /**
+     * Clear the analysis cache and reset the last analysis timestamp.
+     */
+    clearCache() {
+        this.analysisCache.clear();
+        this.lastAnalysisTime = null;
+    }
+
+    /**
+     * Get statistics about the analysis cache.
+     * @returns {{size:number,lastAnalysisTime:number|null,keys:string[]}}
+     */
+    getCacheStats() {
+        return {
+            size: this.analysisCache.size,
+            lastAnalysisTime: this.lastAnalysisTime,
+            keys: [...this.analysisCache.keys()]
+        };
+    }
+
+    /**
+     * Remove cache entries matching a string prefix or RegExp pattern.
+     * @param {string|RegExp} keyPattern
+     * @returns {number} Number of entries removed.
+     */
+    invalidateCache(keyPattern) {
+        let removed = 0;
+        for (const key of this.analysisCache.keys()) {
+            const matches = keyPattern instanceof RegExp ? keyPattern.test(key) : key.includes(keyPattern);
+            if (matches) {
+                this.analysisCache.delete(key);
+                removed++;
+            }
+        }
+        if (this.analysisCache.size === 0) this.lastAnalysisTime = null;
+        return removed;
+    }
+
     shouldSkipDirectory(name) {
         const skip = new Set([
             'node_modules', '.git', '.svn', 'dist', 'build', 'coverage',
@@ -824,6 +862,253 @@ class RoadmapDataAnalyzer {
         return Math.min(100, Math.max(0, Math.round(pct * 100) / 100));
     }
 
+    // ── Static Collection Utilities ─────────────────────────────
+
+    /**
+     * Count items by a key extracted from each item.
+     * @param {Array} items
+     * @param {(item:any)=>string} keyFn
+     * @returns {Object<string, number>}
+     */
+    static countBy(items, keyFn) {
+        const counts = /** @type {Object<string, number>} */ ({});
+        if (!Array.isArray(items) || typeof keyFn !== 'function') return counts;
+        for (const item of items) {
+            const key = String(keyFn(item));
+            counts[key] = (counts[key] || 0) + 1;
+        }
+        return counts;
+    }
+
+    /**
+     * Group items by a key extracted from each item.
+     * @param {Array} items
+     * @param {(item:any)=>string} keyFn
+     * @returns {Map<string, Array>}
+     */
+    static groupBy(items, keyFn) {
+        const map = new Map();
+        if (!Array.isArray(items) || typeof keyFn !== 'function') return map;
+        for (const item of items) {
+            const key = String(keyFn(item));
+            if (map.has(key)) {
+                map.get(key).push(item);
+            } else {
+                map.set(key, [item]);
+            }
+        }
+        return map;
+    }
+
+    /**
+     * Sum numeric values extracted from items.
+     * @param {Array} items
+     * @param {(item:any)=>number} [keyFn]
+     * @returns {number}
+     */
+    static sumBy(items, keyFn) {
+        if (!Array.isArray(items)) return 0;
+        let total = 0;
+        for (const item of items) {
+            const val = typeof keyFn === 'function' ? keyFn(item) : item;
+            const n = Number(val);
+            if (Number.isFinite(n)) total += n;
+        }
+        return total;
+    }
+
+    /**
+     * Arithmetic mean of numeric values extracted from items.
+     * @param {Array} items
+     * @param {(item:any)=>number} [keyFn]
+     * @returns {number}
+     */
+    static meanBy(items, keyFn) {
+        if (!Array.isArray(items) || items.length === 0) return 0;
+        return RoadmapDataAnalyzer.sumBy(items, keyFn) / items.length;
+    }
+
+    /**
+     * Return item with maximum key value.
+     * @template T
+     * @param {T[]} items
+     * @param {(item:T)=>number} keyFn
+     * @returns {T | undefined}
+     */
+    static maxBy(items, keyFn) {
+        if (!Array.isArray(items) || items.length === 0 || typeof keyFn !== 'function') return undefined;
+        let maxItem = items[0];
+        let maxVal = keyFn(maxItem);
+        for (let i = 1; i < items.length; i++) {
+            const val = keyFn(items[i]);
+            if (val > maxVal) { maxVal = val; maxItem = items[i]; }
+        }
+        return maxItem;
+    }
+
+    /**
+     * Return item with minimum key value.
+     * @template T
+     * @param {T[]} items
+     * @param {(item:T)=>number} keyFn
+     * @returns {T | undefined}
+     */
+    static minBy(items, keyFn) {
+        if (!Array.isArray(items) || items.length === 0 || typeof keyFn !== 'function') return undefined;
+        let minItem = items[0];
+        let minVal = keyFn(minItem);
+        for (let i = 1; i < items.length; i++) {
+            const val = keyFn(items[i]);
+            if (val < minVal) { minVal = val; minItem = items[i]; }
+        }
+        return minItem;
+    }
+
+    /**
+     * Return top N items by extracted key.
+     * @template T
+     * @param {T[]} items
+     * @param {number} n
+     * @param {(item:T)=>number} keyFn
+     * @param {'asc'|'desc'} [order='desc']
+     * @returns {T[]}
+     */
+    static topN(items, n, keyFn, order = 'desc') {
+        if (!Array.isArray(items) || items.length === 0 || typeof keyFn !== 'function') return [];
+        const sorted = [...items].sort((a, b) => {
+            const ka = keyFn(a);
+            const kb = keyFn(b);
+            if (typeof ka === 'number' && typeof kb === 'number') return ka - kb;
+            return String(ka).localeCompare(String(kb));
+        });
+        if (order === 'desc') sorted.reverse();
+        const limit = Math.max(0, Math.floor(Number(n) || 0));
+        return sorted.slice(0, limit);
+    }
+
+    /**
+     * Split an array into two groups based on a predicate.
+     * @template T
+     * @param {T[]} items
+     * @param {(item:T)=>boolean} predicate
+     * @returns {[T[], T[]]}
+     */
+    static partition(items, predicate) {
+        const pass = [];
+        const fail = [];
+        if (!Array.isArray(items) || typeof predicate !== 'function') return [pass, fail];
+        for (const item of items) {
+            if (predicate(item)) pass.push(item);
+            else fail.push(item);
+        }
+        return [pass, fail];
+    }
+
+    // ── Static Path / File Helpers ──────────────────────────────
+
+    /**
+     * Normalize a path to POSIX-style slashes.
+     * @param {string} filePath
+     * @returns {string}
+     */
+    static toPosixPath(filePath) {
+        return String(filePath || '').replace(/\\/g, '/');
+    }
+
+    /**
+     * Extract lowercase extension from a path.
+     * @param {string} filePath
+     * @returns {string}
+     */
+    static getExt(filePath) {
+        const name = String(filePath || '');
+        const dot = name.lastIndexOf('.');
+        return dot > 0 ? name.slice(dot).toLowerCase() : '';
+    }
+
+    /**
+     * Append an extension if the path does not already end with it.
+     * @param {string} filePath
+     * @param {string} ext
+     * @returns {string}
+     */
+    static ensureExt(filePath, ext) {
+        const p = String(filePath || '');
+        const e = String(ext || '');
+        if (!e) return p;
+        const dotExt = e.startsWith('.') ? e : `.${e}`;
+        return p.toLowerCase().endsWith(dotExt.toLowerCase()) ? p : `${p}${dotExt}`;
+    }
+
+    /**
+     * Check if a path has a recognized code extension.
+     * @param {string} filePath
+     * @returns {boolean}
+     */
+    static isCodeFile(filePath) {
+        const codeExts = new Set(['.js', '.ts', '.py', '.java', '.cpp', '.c', '.php', '.rb', '.go', '.cjs', '.mjs', '.jsx', '.tsx']);
+        const ext = RoadmapDataAnalyzer.getExt(filePath);
+        return codeExts.has(ext);
+    }
+
+    // ── Static String / Formatting Helpers ────────────────────────
+
+    /**
+     * Truncate a string to a maximum length, adding an ellipsis if trimmed.
+     * @param {string} str
+     * @param {number} [maxLen=80]
+     * @param {string} [suffix='…']
+     * @returns {string}
+     */
+    static truncate(str, maxLen = 80, suffix = '…') {
+        const s = String(str ?? '');
+        const limit = Number.isFinite(maxLen) && maxLen > 0 ? Math.floor(maxLen) : 80;
+        if (s.length <= limit) return s;
+        const endLen = Math.max(0, limit - String(suffix ?? '…').length);
+        return s.slice(0, endLen) + String(suffix ?? '…');
+    }
+
+    /**
+     * Convert a string to a URL-safe slug.
+     * @param {string} str
+     * @returns {string}
+     */
+    static slugify(str) {
+        return String(str ?? '')
+            .toLowerCase()
+            .trim()
+            .replace(/[^\w\s-]/g, '')
+            .replace(/[\s_-]+/g, '-')
+            .replace(/^-+|-+$/g, '');
+    }
+
+    /**
+     * Format a number as a percentage string.
+     * @param {number} value
+     * @param {number} [digits=1]
+     * @returns {string}
+     */
+    static formatPercent(value, digits = 1) {
+        const num = Number(value);
+        if (!Number.isFinite(num)) return '—%';
+        const d = Number.isFinite(digits) ? Math.max(0, Math.min(20, Math.floor(digits))) : 1;
+        const pct = num <= 1 ? num * 100 : num;
+        return `${pct.toFixed(d)}%`;
+    }
+
+    /**
+     * Clamp a number between a minimum and maximum.
+     * @param {number} num
+     * @param {number} min
+     * @param {number} max
+     * @returns {number}
+     */
+    static clamp(num, min, max) {
+        const n = Number(num);
+        if (!Number.isFinite(n) || !Number.isFinite(min) || !Number.isFinite(max)) return NaN;
+        return Math.min(Math.max(n, min), max);
+    }
+
     getProjectHealth(progress) {
         const pct = this.normalizeProgressPercent(progress);
         if (pct >= 80) return 'Excellent';
@@ -1003,6 +1288,72 @@ class RoadmapDataAnalyzer {
                 description: 'Core infrastructure and deployment systems'
             }
         ];
+    }
+
+    // ── Instance Result-Sorting Helpers ─────────────────────────
+
+    /**
+     * Sort features by status: implemented first, then partial, then planned.
+     * @param {Array<{status:string}>} features
+     * @returns {Array<{status:string}>}
+     */
+    sortFeaturesByStatus(features) {
+        if (!Array.isArray(features)) return [];
+        const rank = { implemented: 0, partial: 1, planned: 2, pending: 3 };
+        return [...features].sort((a, b) => {
+            const ra = rank[a.status] ?? 99;
+            const rb = rank[b.status] ?? 99;
+            return ra - rb;
+        });
+    }
+
+    /**
+     * Filter features by category string.
+     * @param {Array<{category:string}>} features
+     * @param {string} category
+     * @returns {Array<{category:string}>}
+     */
+    filterFeaturesByCategory(features, category) {
+        if (!Array.isArray(features) || typeof category !== 'string') return [];
+        const cat = category.toLowerCase();
+        return features.filter((f) => (f.category || '').toLowerCase() === cat);
+    }
+
+    /**
+     * Deep-merge recommendation objects with deduplication.
+     * @param {...{immediate?:string[],shortTerm?:string[],longTerm?:string[],priorities?:{high?:string[],medium?:string[],low?:string[]}}} sources
+     * @returns {{immediate:string[],shortTerm:string[],longTerm:string[],priorities:{high:string[],medium:string[],low:string[]}}}
+     */
+    mergeRecommendations(...sources) {
+        const result = {
+            immediate: [],
+            shortTerm: [],
+            longTerm: [],
+            priorities: { high: [], medium: [], low: [] }
+        };
+        for (const src of sources) {
+            if (!src || typeof src !== 'object') continue;
+            for (const key of ['immediate', 'shortTerm', 'longTerm']) {
+                if (Array.isArray(src[key])) {
+                    result[key].push(...src[key]);
+                }
+            }
+            if (src.priorities && typeof src.priorities === 'object') {
+                for (const p of ['high', 'medium', 'low']) {
+                    if (Array.isArray(src.priorities[p])) {
+                        result.priorities[p].push(...src.priorities[p]);
+                    }
+                }
+            }
+        }
+        // Deduplicate
+        for (const key of ['immediate', 'shortTerm', 'longTerm']) {
+            result[key] = [...new Set(result[key])];
+        }
+        for (const p of ['high', 'medium', 'low']) {
+            result.priorities[p] = [...new Set(result.priorities[p])];
+        }
+        return result;
     }
 }
 

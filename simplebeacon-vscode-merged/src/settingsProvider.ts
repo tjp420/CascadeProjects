@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { ScanReport } from './scanProvider';
+import { getSbConfig } from './utils';
 
 /**
  * Tree data provider for SimpleBeacon settings and configuration nodes.
@@ -47,7 +48,7 @@ export class SettingsProvider implements vscode.TreeDataProvider<SidebarNode> {
   private getRootSections(): SidebarNode[] {
     const sections: SidebarNode[] = [];
 
-    const config = vscode.workspace.getConfiguration('simplebeacon');
+    const config = getSbConfig();
     const autoScan = config.get<boolean>('autoScanOnOpen', false);
     const maxFiles = config.get<number>('maxFiles', 5000);
 

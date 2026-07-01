@@ -1,10 +1,26 @@
-const { DEFAULT_CONFIG, DEFAULT_MAX_STALE_MS, DEFAULT_MOCK_SCAN_RELATIVE_PATHS, PROFILE_RULES, applyPublicGateToAnalyzeResponse, buildAssessmentReport, buildFictionPatternCatalog, buildReAttestationNoteArtifact, countFictionIssues, countRepositoryInventory, detectProjectProfile, evaluateComplianceChecklist, evaluateEuExportEligibility, evaluateGate, evaluateSprintFreshness, formatJsonReport, initSimplebeacon, isLegalReviewAttestation, loadSimplebeaconConfig, projectLabelFromPath, redactProjectPathForExport, resolveMockDataScanPaths, resolvePlatformRoot: resolvePlatformRootFromIndex, runScan, runFileReductionScan, sanitizeCleanupBriefExport, sanitizeCodebaseReportExport, sanitizeCompleteScanExport, sanitizeComplianceChecklistArtifactExport, sanitizeConsolidationExport, sanitizeDataCleanupReportExport, sanitizeFictionDigestExport, sanitizeNpmAuditExport, sanitizePublicOutput, sanitizePublicSummaryArtifactExport, sanitizeRoadmapExport, sanitizeScanReport, sanitizeSimplebeaconReportExport, validateConfig } = require('../../../packages/simplebeacon-cli/src/index.js');
-const { isExternalBenchmarkCachePath } = require('../../../packages/simplebeacon-cli/src/lib/benchmark-cache-paths.js');
-const { resolveScanProgressPath, readScanProgress } = require('../../../packages/simplebeacon-cli/src/lib/scan-progress.js');
-const { verifyLicenseToken } = require('../../../packages/simplebeacon-cli/src/lib/license-token.js');
-const { sanitizeComplianceBundleExport } = require('../../../packages/simplebeacon-cli/src/lib/compliance-export-sanitize.js');
-const { consolidationCandidateTouchesExcluded, countIntentionalPairExclusions } = require('../../../packages/simplebeacon-cli/src/lib/consolidation-path-exclusions.js');
-const { buildAuditPayload } = require('../../../packages/simplebeacon-cli/src/lib/dashboard-payload.js');
+'use strict';
+
+// --- config / project-detect ---
+const {
+  DEFAULT_CONFIG,
+  DEFAULT_MOCK_SCAN_RELATIVE_PATHS,
+  PROFILE_RULES
+} = require('../../../packages/simplebeacon-cli/src/config');
+const {
+  detectProjectProfile,
+  resolvePlatformRoot: resolvePlatformRootFromIndex
+} = require('../../../packages/simplebeacon-cli/src/project-detect');
+const { validateConfig } = require('../../../packages/simplebeacon-cli/src/config-schema.js');
+const { loadSimplebeaconConfig } = require('../../../packages/simplebeacon-cli/src/config');
+
+// --- scan / gate ---
+const { runScan } = require('../../../packages/simplebeacon-cli/src/scan');
+const { runFileReductionScan } = require('../../../packages/simplebeacon-cli/src/lib/file-reduction-orchestrator');
+const { evaluateGate } = require('../../../packages/simplebeacon-cli/src/gate');
+
+// --- reporters ---
+const { formatJsonReport } = require('../../../packages/simplebeacon-cli/src/reporters/json');
+const { buildAssessmentReport } = require('../../../packages/simplebeacon-cli/src/assessment');
 const {
   collectIssues,
   resolveSeverityCounts,
@@ -16,102 +32,44 @@ const {
   defaultRemediation
 } = require('../../../packages/simplebeacon-cli/src/reporters/audit-report.js');
 
-// Inline isConsolidationExcludedPair to avoid packages/simplebeacon-cli module resolution issues
-/**
- * Normalize relative path.
- * @param {string} relativePath
- * @returns {any}
- */
-function normalizeRelativePath(relativePath) {
-  return String(relativePath || '').replace(/\\/g, '/');
-}
-/**
- * Is ephemeral consolidation path.
- * @param {string} filePath
- * @returns {any}
- */
-function isEphemeralConsolidationPath(filePath) {
-  const rel = normalizeRelativePath(filePath);
-  const base = rel.split('/').pop() || '';
-  if (/^\.tmp[-.]/i.test(base)) return true;
-  if (base === '.tmp-vault-cookies.txt') return true;
-  if (base === 'cookies.txt') {
-    if (!rel.includes('/')) return true;
-    if (/\/\.?tmp/i.test(rel) || /\/vault\//i.test(rel)) return true;
-    const dir = rel.includes('/') ? rel.slice(0, rel.lastIndexOf('/')) : '';
-    if (dir.split('/').some((seg) => /^\.tmp/i.test(seg))) return true;
-  }
-  return false;
-}
-/**
- * Is monorepo platform alias pair.
- * @param {string} pathA
- * @param {string} pathB
- * @param {string} platformDirName
- * @returns {any}
- */
-function isMonorepoPlatformAliasPair(pathA, pathB, platformDirName = 'ai-platform') {
-  const a = normalizeRelativePath(pathA);
-  const b = normalizeRelativePath(pathB);
-  if (a === b) return false;
-  const prefix = `${platformDirName}/`;
-/**
- * Strip prefix.
- * @param {any} p
- * @returns {any}
- */
-  const stripPrefix = (p) => (p.startsWith(prefix) ? p.slice(prefix.length) : p);
-  return (a.startsWith(prefix) && b === stripPrefix(a)) || (b.startsWith(prefix) && a === stripPrefix(b));
-}
-/**
- * Is browser build mirror pair.
- * @param {string} pathA
- * @param {string} pathB
- * @returns {any}
- */
-function isBrowserBuildMirrorPair(pathA, pathB) {
-  const a = normalizeRelativePath(pathA);
-  const b = normalizeRelativePath(pathB);
-  const browserRe = /\.browser\.(js|mjs|cjs|ts|tsx)$/i;
-  if (!browserRe.test(a) && !browserRe.test(b)) return false;
-/**
- * To source.
- * @param {any} p
- * @returns {any}
- */
-  const toSource = (p) => p.replace(/\.browser\.(js|mjs|cjs|ts|tsx)$/i, '.$1');
-  return toSource(a) === b || toSource(b) === a;
-}
-/**
- * Is intentional mcp example pair.
- * @param {string} pathA
- * @param {string} pathB
- * @returns {any}
- */
-function isIntentionalMcpExamplePair(pathA, pathB) {
-  const a = normalizeRelativePath(pathA);
-  const b = normalizeRelativePath(pathB);
-/**
- * Is mcp config.
- * @param {any} p
- * @returns {any}
- */
-  const isMcpConfig = (p) => p.endsWith('mcp.json') || /\/examples\/mcp\//.test(p);
-  return isMcpConfig(a) && isMcpConfig(b);
-}
-/**
- * Is consolidation excluded pair.
- * @param {string} pathA
- * @param {string} pathB
- * @returns {any}
- */
-function isConsolidationExcludedPair(pathA, pathB) {
-  if (isEphemeralConsolidationPath(pathA) || isEphemeralConsolidationPath(pathB)) return true;
-  if (isMonorepoPlatformAliasPair(pathA, pathB)) return true;
-  if (isBrowserBuildMirrorPair(pathA, pathB)) return true;
-  if (isIntentionalMcpExamplePair(pathA, pathB)) return true;
-  return false;
-}
+// --- rules / sanitizers ---
+const { buildFictionPatternCatalog, countFictionIssues } = require('../../../packages/simplebeacon-cli/src/rules/ai-fiction-detection');
+const {
+  applyPublicGateToAnalyzeResponse,
+  sanitizePublicOutput,
+  sanitizeScanReport
+} = require('../../../packages/simplebeacon-cli/src/lib/report-sanitizer');
+const {
+  sanitizeCompleteScanExport,
+  sanitizeNpmAuditExport,
+  sanitizeCleanupBriefExport,
+  sanitizeDataCleanupReportExport,
+  sanitizeCodebaseReportExport,
+  sanitizeFictionDigestExport,
+  sanitizeConsolidationExport,
+  sanitizeComplianceChecklistArtifactExport
+} = require('../../../packages/simplebeacon-cli/src/lib/complete-scan-export-sanitize.js');
+const { sanitizePublicSummaryArtifactExport } = require('../../../packages/simplebeacon-cli/src/lib/public-summary-export-sanitize.js');
+const { projectLabelFromPath, redactProjectPathForExport } = require('../../../packages/simplebeacon-cli/src/lib/assessment-export-sanitize.js');
+const { buildReAttestationNoteArtifact } = require('../../../packages/simplebeacon-cli/src/lib/re-attestation-note-export-sanitize.js');
+const { sanitizeRoadmapExport } = require('../../../packages/simplebeacon-cli/src/lib/roadmap-export-sanitize.js');
+const { sanitizeSimplebeaconReportExport } = require('../../../packages/simplebeacon-cli/src/lib/simplebeacon-report-export-sanitize.js');
+
+// --- EU AI Act ---
+const { DEFAULT_MAX_STALE_MS, evaluateSprintFreshness, evaluateEuExportEligibility } = require('../../../packages/simplebeacon-cli/src/eu-ai-act-export-guard.js');
+const { isLegalReviewAttestation } = require('../../../packages/simplebeacon-cli/src/eu-ai-act-legal-attestation.js');
+
+// --- init / inventory ---
+const { initSimplebeacon } = require('../../../packages/simplebeacon-cli/src/lib/init-simplebeacon.cjs');
+const { countRepositoryInventory } = require('../../../packages/simplebeacon-cli/src/lib/repository-inventory');
+
+// --- lib helpers ---
+const { isExternalBenchmarkCachePath } = require('../../../packages/simplebeacon-cli/src/lib/benchmark-cache-paths.js');
+const { resolveScanProgressPath, readScanProgress } = require('../../../packages/simplebeacon-cli/src/lib/scan-progress.js');
+const { verifyLicenseToken } = require('../../../packages/simplebeacon-cli/src/lib/license-token.js');
+const { sanitizeComplianceBundleExport } = require('../../../packages/simplebeacon-cli/src/lib/compliance-export-sanitize.js');
+const { consolidationCandidateTouchesExcluded, countIntentionalPairExclusions, isConsolidationExcludedPair } = require('../../../packages/simplebeacon-cli/src/lib/consolidation-path-exclusions.js');
+const { buildAuditPayload } = require('../../../packages/simplebeacon-cli/src/lib/dashboard-payload.js');
 
 /**
  * SimpleBeacon proxy re-exports.
@@ -129,15 +87,27 @@ function isConsolidationExcludedPair(pathA, pathB) {
 /**
  * Sync jest baseline fallback.
  * @param {string} baseDir
- * @param {Object} options
+ * @param {Object} [options={}]
  * @returns {any}
  */
-async function syncJestBaselineFallback(baseDir, options = {}) {
-  const { syncJestBaseline } = require('../../../packages/simplebeacon-cli/src/baseline-sync.js');
-  return syncJestBaseline(baseDir, options);
+function syncJestBaselineFallback(baseDir, options) {
+  if (typeof baseDir !== 'string' || !baseDir) {
+    throw new TypeError('baseDir must be a non-empty string');
+  }
+  const safeOptions = (options && typeof options === 'object' && !Array.isArray(options)) ? options : {};
+  let syncJestBaseline;
+  try {
+    ({ syncJestBaseline } = require('../../../packages/simplebeacon-cli/src/baseline-sync.js'));
+  } catch (err) {
+    throw new Error(`Failed to load baseline-sync module: ${err?.message || String(err)}`);
+  }
+  if (typeof syncJestBaseline !== 'function') {
+    throw new Error('baseline-sync module does not export syncJestBaseline function');
+  }
+  return syncJestBaseline(baseDir, safeOptions);
 }
 
-module.exports = {
+module.exports = Object.freeze({
   // lib/
   countRepositoryInventory,
   applyPublicGateToAnalyzeResponse,
@@ -204,6 +174,24 @@ module.exports = {
   // baseline sync stub (not in CLI index)
   syncMeasuredBaseline: syncJestBaselineFallback,
   // data-cleanup report stubs (not exported by CLI index)
-  enrichCleanupReport(report) { return report; },
-  compactDataCleanupReportForClient(report) { return report; }
-};
+  enrichCleanupReport,
+  compactDataCleanupReportForClient
+});
+
+/**
+ * Passthrough stub for data-cleanup report enrichment.
+ * @param {Object} report
+ * @returns {Object}
+ */
+function enrichCleanupReport(report) {
+  return (report && typeof report === 'object' && !Array.isArray(report)) ? report : {};
+}
+
+/**
+ * Passthrough stub for compacting data-cleanup report for client.
+ * @param {Object} report
+ * @returns {Object}
+ */
+function compactDataCleanupReportForClient(report) {
+  return (report && typeof report === 'object' && !Array.isArray(report)) ? report : {};
+}

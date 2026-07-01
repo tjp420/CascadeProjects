@@ -32,7 +32,7 @@ runs:
 
     - name: Install SimpleBeacon
       shell: bash
-      run: npm install -g simplebeacon-cli
+      run: npm install -g simplebeacon
 
     - name: Run SimpleBeacon Scan
       shell: bash

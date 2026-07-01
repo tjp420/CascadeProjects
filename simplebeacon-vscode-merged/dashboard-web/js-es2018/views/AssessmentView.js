@@ -2,57 +2,142 @@ import { escapeHtml, showToast } from '../utils.js';
 import { assessmentService } from '../services/assessmentService.js';
 import { authService } from '../services/authService.js';
 import { showLoginModal } from '../components/LoginModal.js';
+import { renderLockedBadge, renderTierChip } from '../components/TierBadge.js';
+
 /**
  * Assessment view.
  */
 export class AssessmentView {
-    constructor(app) {
-        this.app = app;
-        this.busy = false;
-        this.report = null;
-        this.recent = assessmentService.getRecentAssessments();
-        this.form = {
-            company: '',
-            email: '',
-            repoUrl: '',
-            projectPath: '',
-            assessmentType: 'mna-audit'
-        };
-        this._editorNotes = { headline: '', summary: '' };
-        this._checklistFilter = '';
-        this._scanProgress = { phase: 0, label: '', message: '' };
+  constructor(app) {
+    this.app = app;
+    this.userTier = 'guest';
+    this.busy = false;
+    this.report = null;
+    this.recent = assessmentService.getRecentAssessments();
+    this.form = {
+      company: '',
+      email: '',
+      repoUrl: '',
+      projectPath: '',
+      assessmentType: 'mna-audit'
+    };
+    this.selectedAssessmentId = null;
+    this._editorNotes = { headline: '', summary: '' };
+    this._checklistFilter = '';
+    this._scanProgress = { phase: 0, label: '', message: '' };
+  }
+
+  resolveUserTier() {
+    const isAuthenticated = typeof authService !== 'undefined' ? authService.isAuthenticated() : false;
+    const currentUser = typeof authService !== 'undefined' ? authService.getUser() : null;
+    if (!isAuthenticated || !currentUser) {
+      this.userTier = 'guest';
+    } else if (currentUser.role === 'admin' || currentUser.role === 'auditor') {
+      this.userTier = 'admin';
+    } else {
+      this.userTier = 'developer';
     }
-    renderRuleRow(rule) {
-        const icon = rule.status === 'pass' ? '✓' : rule.status === 'fail' ? '✗' : '○';
-        const cls = rule.status === 'pass' ? 'success' : rule.status === 'fail' ? 'danger' : '';
-        return `
+  }
+
+  renderRuleRow(rule) {
+    const icon = rule.status === 'pass' ? '✓' : rule.status === 'fail' ? '✗' : '○';
+    const cls = rule.status === 'pass' ? 'success' : rule.status === 'fail' ? 'danger' : '';
+    return `
       <tr>
         <td><span class="severity-pill ${cls}">${icon} ${escapeHtml(rule.id)}</span></td>
         <td>${escapeHtml(rule.title)}</td>
         <td>${escapeHtml(rule.evidence || '—')}</td>
       </tr>
     `;
+  }
+
+  renderGatedFormSection() {
+    if (this.userTier === 'guest') {
+      return `
+        <div class="as-v3-hint db-v3-glass cta-marketing-lock">
+          <div class="cta-lock-icon-group">
+            <span class="codicon codicon-lock"></span>
+          </div>
+          <div class="cta-lock-content">
+            <h4>🔒 Active Scanner Workspace Locked</h4>
+            <p>Anonymous server-side cloning is restricted. Interact with the <strong>Pre-Baked Live Demo Sandbox</strong> below to explore enterprise corporate deliverables, or sign in to configure your custom project pipeline.</p>
+            <button type="button" class="as-v3-action-btn-primary" id="sb-portal-trigger-login-btn">
+              Sign In / Create Enterprise Account
+            </button>
+          </div>
+        </div>
+      `;
     }
-    renderReportDetail(assessment) {
-        var _a, _b, _c, _d;
-        const summary = assessment.executiveSummary || {};
-        const checklist = assessment.complianceChecklist || {};
-        const rules = checklist.rules || [];
-        const isAdmin = authService.isAdmin();
-        const filter = this._checklistFilter.toLowerCase();
-        const filteredRules = filter
-            ? rules.filter((r) => (r.id || '').toLowerCase().includes(filter) ||
-                (r.title || '').toLowerCase().includes(filter) ||
-                (r.evidence || '').toLowerCase().includes(filter) ||
-                (r.status || '').toLowerCase().includes(filter))
-            : rules;
-        const notesHeadline = this._editorNotes.headline || summary.headline || '';
-        const notesSummary = this._editorNotes.summary || summary.executiveNotes || '';
-        return `
+
+    const showLocalPathInput = this.userTier !== 'guest';
+    const showRemoteUrlInput = this.userTier !== 'guest' && authService.isPaidTier();
+    const tierLabel = authService.getTierLabel();
+
+    return `
+      <h5 style="margin:0 0 16px;font-size:1rem;font-weight:700;">Initialize Client Compliance Assessment ${renderTierChip(tierLabel)}</h5>
+      <form id="sb-run-assessment-form-element">
+        <div class="as-v3-form-row">
+          <div class="as-v3-input-group">
+            <label class="as-v3-input-label">Target Company *</label>
+            <input class="as-v3-input" type="text" name="company" required placeholder="e.g. Acme Corp" value="${escapeHtml(this.form.company)}">
+          </div>
+          <div class="as-v3-input-group">
+            <label class="as-v3-input-label">Contact Email Address</label>
+            <input class="as-v3-input" type="email" name="email" placeholder="client@company.com" value="${escapeHtml(this.form.email)}">
+          </div>
+        </div>
+        <div class="as-v3-form-row">
+          <div class="as-v3-input-group">
+            <label class="as-v3-input-label">Remote Git Repository URL ${!showRemoteUrlInput ? renderLockedBadge('Remote Clones', { tier: 'Pro' }) : ''}</label>
+            <input class="as-v3-input" type="url" name="repoUrl" placeholder="git@github.com:org/repo.git" value="${escapeHtml(this.form.repoUrl)}" ${!showRemoteUrlInput ? 'disabled' : ''}>
+          </div>
+          ${showLocalPathInput ? `
+          <div class="as-v3-input-group">
+            <label class="as-v3-input-label">Local Workspace Directory Path</label>
+            <input class="as-v3-input" type="text" name="projectPath" placeholder="C:\\dev\\my-repository" value="${escapeHtml(this.form.projectPath)}">
+          </div>` : ''}
+        </div>
+        <div class="form-action-footer" style="display:flex;gap:10px;align-items:center;">
+          <button type="submit" class="btn btn-primary" id="run-assessment-submit-btn" ${this.busy ? 'disabled' : ''}>
+            ${this.busy ? '<span class="loading-spinner"></span> Scanning…' : '<span class="codicon codicon-run"></span> Run Assessment Scan'}
+          </button>
+          ${this.busy && this._scanProgress.phase > 0 ? `
+            <div class="as-v3-progress" style="flex:1;margin:0;">
+              <span class="as-v3-progress-label">Phase ${this._scanProgress.phase}/4</span>
+              <div class="as-v3-progress-bar"><div class="as-v3-progress-fill" style="width:${(this._scanProgress.phase / 4) * 100}%"></div></div>
+              <span class="as-v3-progress-label">${escapeHtml(this._scanProgress.label)}</span>
+            </div>
+            <p class="text-muted" style="font-size:0.78rem;margin:0;">${escapeHtml(this._scanProgress.message)}</p>
+          ` : ''}
+        </div>
+      </form>
+    `;
+  }
+
+  renderAssessmentDetailCanvas(assessment) {
+    const detailMount = document.getElementById('assessment-detail-mount');
+    if (!detailMount) return;
+    const summary = assessment.executiveSummary || {};
+    const checklist = assessment.complianceChecklist || {};
+    const rules = checklist.rules || assessment.checklist || [];
+    const isAdmin = this.userTier === 'admin';
+    const filter = this._checklistFilter.toLowerCase();
+    const filteredRules = filter
+      ? rules.filter((r) =>
+          (r.id || '').toLowerCase().includes(filter) ||
+          (r.title || '').toLowerCase().includes(filter) ||
+          (r.evidence || '').toLowerCase().includes(filter) ||
+          (r.status || '').toLowerCase().includes(filter)
+        )
+      : rules;
+    const notesHeadline = this._editorNotes.headline || summary.headline || assessment.headline || '';
+    const notesSummary = this._editorNotes.summary || summary.executiveNotes || '';
+
+    detailMount.innerHTML = `
       <div class="card mt-4 as-print-report">
         <div class="card-header as-print-header">
           <span class="card-title">Assessment report</span>
-          <span class="severity-pill ${summary.gateResult === 'PASS' ? 'success' : 'danger'}">${escapeHtml(summary.gateResult || '—')}</span>
+          <span class="severity-pill ${summary.gateResult === 'PASS' || assessment.metrics?.gateStatus === 'PASS' ? 'success' : 'danger'}">${escapeHtml(summary.gateResult || assessment.metrics?.gateStatus || '—')}</span>
         </div>
 
         ${isAdmin ? `
@@ -67,14 +152,14 @@ export class AssessmentView {
             </div>
           </div>
         ` : `
-          <p class="text-muted" style="padding:0 var(--space-4)">${escapeHtml(summary.headline || '—')}</p>
+          <p class="text-muted" style="padding:0 var(--space-4)">${escapeHtml(notesHeadline || '—')}</p>
         `}
 
         <div class="settings-grid" style="padding:var(--space-4)">
-          <div class="settings-row"><span class="settings-label">Compliance score</span><span class="settings-value">${(_a = summary.complianceScore) !== null && _a !== void 0 ? _a : '—'}%</span></div>
-          <div class="settings-row"><span class="settings-label">Ready for automation</span><span class="settings-value">${summary.complianceReady ? 'Yes' : 'No'}</span></div>
-          <div class="settings-row"><span class="settings-label">High issues</span><span class="settings-value">${(_b = summary.highIssues) !== null && _b !== void 0 ? _b : 0}</span></div>
-          <div class="settings-row"><span class="settings-label">Expires</span><span class="settings-value">${escapeHtml(((_c = assessment.metadata) === null || _c === void 0 ? void 0 : _c.expiresAt) || '—')}</span></div>
+          <div class="settings-row"><span class="settings-label">Compliance score</span><span class="settings-value">${summary.complianceScore ?? assessment.metrics?.complianceScore ?? '—'}%</span></div>
+          <div class="settings-row"><span class="settings-label">Ready for automation</span><span class="settings-value">${summary.complianceReady ? 'Yes' : assessment.metrics?.qualityScore ? 'Review' : 'No'}</span></div>
+          <div class="settings-row"><span class="settings-label">High issues</span><span class="settings-value">${summary.highIssues ?? assessment.metrics?.highCount ?? 0}</span></div>
+          <div class="settings-row"><span class="settings-label">Expires</span><span class="settings-value">${escapeHtml(assessment.metadata?.expiresAt || '—')}</span></div>
         </div>
 
         ${rules.length ? `
@@ -90,97 +175,274 @@ export class AssessmentView {
         ` : ''}
 
         <div class="card-actions" style="padding:var(--space-4)">
-          <a class="btn btn-secondary btn-sm" href="${assessmentService.downloadUrl((_d = assessment.metadata) === null || _d === void 0 ? void 0 : _d.assessmentId)}" download>Download JSON</a>
+          <a class="btn btn-secondary btn-sm" href="${assessmentService.downloadUrl(assessment.metadata?.assessmentId || assessment.id)}" download>Download JSON</a>
           <button type="button" class="btn btn-ghost btn-sm" id="as-print-btn">🖨 Print Report</button>
         </div>
       </div>
     `;
+  }
+
+  loadPreBakedDemoReport() {
+    const demoPayload = {
+      id: 'sb-demo-verification-9ac',
+      assessmentId: 'sb-demo-verification-9ac',
+      company: 'Acme Cloud Logistics (Sandbox Demo)',
+      createdAt: new Date().toISOString(),
+      executiveSummary: {
+        headline: 'Codebase satisfies core enterprise security gates. Zero plaintext credentials found.',
+        gateResult: 'PASS',
+        complianceScore: 100,
+        complianceReady: true,
+        highIssues: 0
+      },
+      metadata: { assessmentId: 'sb-demo-verification-9ac', expiresAt: '—' },
+      complianceChecklist: {
+        rules: [
+          { id: 'RULE-SEC-01', title: 'API Cryptographic Credential Scan', status: 'pass', evidence: 'Checked 14 source directories; 0 credentials leaked.' },
+          { id: 'RULE-REG-02', title: 'EU AI Act Compliance (Art. 15)', status: 'pass', evidence: 'No loose placeholder tokens or placeholder slop detected.' },
+          { id: 'RULE-ARCH-03', title: 'Repository Integrity & Asset Duplicates', status: 'warn', evidence: 'Identified 3 minor redundant static modules.' }
+        ]
+      }
+    };
+    this.renderHistoryTable([demoPayload]);
+    this.renderAssessmentDetailCanvas(demoPayload);
+  }
+
+  canAccessAssessment(record) {
+    if (this.userTier === 'admin') return true;
+    if (this.userTier === 'guest') return (record?.assessmentId || record?.id) === 'sb-demo-verification-9ac';
+    const currentUser = authService.getUser();
+    if (!currentUser) return false;
+    const recordUserId = record?.userId || record?.user_id;
+    const recordEmail = record?.email || record?.userEmail;
+    return (
+      recordUserId === currentUser.id ||
+      recordUserId === currentUser.sub ||
+      recordEmail === currentUser.email ||
+      recordEmail === currentUser.sub
+    );
+  }
+
+  async refreshHistoryFeed() {
+    if (this.userTier === 'guest') {
+      this.loadPreBakedDemoReport();
+      return;
     }
-    renderRecentList(list = this.recent) {
-        if (!list.length) {
-            return '<p class="text-muted">No assessments yet — run your first scan above.</p>';
-        }
-        return `
+    try {
+      let assessmentsList = this.recent.length ? this.recent : await assessmentService.getRecentAssessments();
+      if (this.userTier === 'developer') {
+        assessmentsList = assessmentsList.filter((item) => this.canAccessAssessment(item));
+      }
+      this.recent = assessmentsList;
+      this.renderHistoryTable(assessmentsList);
+    } catch (err) {
+      showToast('Failed to load secure assessment history.', 'error');
+      this.renderHistoryTable([]);
+    }
+  }
+
+  renderHistoryTable(records) {
+    const mountPoint = document.getElementById('recent-assessments-table-mount');
+    if (!mountPoint) return;
+    if (records.length === 0) {
+      mountPoint.innerHTML = `<div class="as-v3-table-empty">No workspace assessments executed yet.</div>`;
+      return;
+    }
+    mountPoint.innerHTML = `
       <table class="as-v3-table">
-        <thead><tr><th>Company</th><th>ID</th><th>When</th><th></th></tr></thead>
+        <thead>
+          <tr>
+            <th>Target Client</th>
+            <th>Identifier</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
         <tbody>
-          ${list.map((item) => `
+          ${records.map((record) => `
             <tr>
-              <td>${escapeHtml(item.company)}</td>
-              <td><code>${escapeHtml(item.assessmentId)}</code></td>
-              <td>${escapeHtml(new Date(item.createdAt).toLocaleString())}</td>
-              <td><button type="button" class="btn btn-ghost btn-sm" data-open-assessment="${escapeHtml(item.assessmentId)}">View</button></td>
+              <td><strong>${escapeHtml(record.company)}</strong></td>
+              <td><code>${escapeHtml(record.assessmentId || record.id)}</code></td>
+              <td>
+                <button type="button" class="as-view-detail-btn btn btn-ghost btn-sm" data-id="${escapeHtml(record.assessmentId || record.id)}">
+                  Inspect Report
+                </button>
+              </td>
             </tr>
           `).join('')}
         </tbody>
       </table>
     `;
+  }
+
+  bindEvents() {
+    if (!this.container) return;
+
+    this.container.addEventListener('click', (e) => {
+      const loginBtn = e.target.closest('#sb-portal-trigger-login-btn');
+      if (!loginBtn) return;
+      if (typeof showLoginModal === 'function') {
+        showLoginModal({
+          message: 'Sign in to deploy SimpleBeacon scanning workers against public or authenticated paths.',
+          onSuccess: () => {
+            this.resolveUserTier();
+            this.render();
+            this.bindEvents();
+            this.refreshHistoryFeed();
+          }
+        });
+      }
+    });
+
+    this.container.addEventListener('click', (e) => {
+      const inspectBtn = e.target.closest('.as-view-detail-btn');
+      if (!inspectBtn) return;
+      const recordId = inspectBtn.getAttribute('data-id');
+      const record = this.recent.find((r) => (r.assessmentId || r.id) === recordId);
+      if (this.userTier === 'guest') {
+        if (recordId === 'sb-demo-verification-9ac') {
+          this.loadPreBakedDemoReport();
+        } else {
+          this.renderAccessDeniedDetail();
+        }
+        return;
+      }
+      if (record && !this.canAccessAssessment(record)) {
+        this.renderAccessDeniedDetail();
+        return;
+      }
+      this.loadAssessmentDetail(recordId);
+    });
+
+    const formElement = this.container.querySelector('#sb-run-assessment-form-element');
+    if (formElement) {
+      formElement.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (this.userTier === 'guest' || this.busy) return;
+        const fd = new FormData(formElement);
+        const payload = {
+          company: String(fd.get('company') || '').trim(),
+          email: String(fd.get('email') || '').trim(),
+          repoUrl: String(fd.get('repoUrl') || '').trim() || undefined,
+          projectPath: String(fd.get('projectPath') || '').trim() || undefined,
+          assessmentType: this.form.assessmentType
+        };
+
+        if (!payload.repoUrl && !payload.projectPath) {
+          showToast('Provide a repo URL or a local project path', 'error');
+          return;
+        }
+        if (payload.projectPath && !authService.isAuthenticated()) {
+          showLoginModal({ onSuccess: () => formElement.requestSubmit() });
+          return;
+        }
+        if (payload.repoUrl && !authService.isPaidTier()) {
+          showToast('Remote repository cloning is a Pro feature — upgrade to unlock server-side scans.', 'error');
+          return;
+        }
+
+        this.setLoadingState(true);
+        showToast('Running Simplebeacon assessment…', 'info');
+        try {
+          const result = await assessmentService.runAssessment(payload);
+          this.recent = assessmentService.getRecentAssessments();
+          showToast(`Assessment complete — ${result.assessmentId || result.id}`, 'success');
+          this.app.navigate('assessments', { id: result.assessmentId || result.id });
+          const data = await assessmentService.fetchReport(result.assessmentId || result.id);
+          this.report = data.assessment;
+          this.refreshHistoryFeed();
+          this.renderAssessmentDetailCanvas(this.report);
+        } catch (err) {
+          if (err.status === 401) {
+            showLoginModal({ onSuccess: () => formElement.requestSubmit() });
+          } else {
+            showToast(`Assessment Engine Failure: ${err.message}`, 'error');
+          }
+        } finally {
+          this.setLoadingState(false);
+        }
+      });
     }
-    renderSampleReport() {
-        return `
-      <div class="card mt-4 as-print-report">
-        <div class="card-header as-print-header">
-          <span class="card-title">📋 Sample Assessment Report</span>
-          <span class="severity-pill warning">PREVIEW</span>
-        </div>
-        <p class="text-muted" style="padding:0 var(--space-4)">This is a demonstration of an enterprise compliance deliverable.</p>
-        <div class="settings-grid" style="padding:var(--space-4)">
-          <div class="settings-row"><span class="settings-label">Compliance score</span><span class="settings-value">87%</span></div>
-          <div class="settings-row"><span class="settings-label">Ready for automation</span><span class="settings-value">Yes</span></div>
-          <div class="settings-row"><span class="settings-label">High issues</span><span class="settings-value">2</span></div>
-          <div class="settings-row"><span class="settings-label">Expires</span><span class="settings-value">2026-07-27</span></div>
-        </div>
-        <div class="section-heading" style="padding:0 var(--space-4)"><h2>Corporate safety checklist</h2></div>
-        <table class="as-v3-table">
-          <thead><tr><th>Rule</th><th>Title</th><th>Evidence</th></tr></thead>
-          <tbody>
-            <tr>
-              <td><span class="severity-pill success">✓ AUTH-001</span></td>
-              <td>Authentication layer present</td>
-              <td>JWT middleware detected</td>
-            </tr>
-            <tr>
-              <td><span class="severity-pill success">✓ SEC-003</span></td>
-              <td>No hardcoded secrets in source</td>
-              <td>Credential scan clean</td>
-            </tr>
-            <tr>
-              <td><span class="severity-pill danger">✗ DEP-002</span></td>
-              <td>Dependency vulnerabilities below threshold</td>
-              <td>3 high-severity npm advisories</td>
-            </tr>
-            <tr>
-              <td><span class="severity-pill success">✓ LOG-001</span></td>
-              <td>Structured logging enabled</td>
-              <td>Winston/Pino configured</td>
-            </tr>
-            <tr>
-              <td><span class="severity-pill warning">○ INF-004</span></td>
-              <td>Infrastructure-as-code coverage</td>
-              <td>Terraform files found but untested</td>
-            </tr>
-          </tbody>
-        </table>
-        <div class="card-actions" style="padding:var(--space-4)">
-          <button type="button" class="btn btn-primary btn-sm" id="as-sample-signin-btn">🔐 Sign In to Run Real Assessments</button>
-        </div>
-      </div>
-    `;
+
+    const filterInput = this.container.querySelector('#as-checklist-filter');
+    if (filterInput) {
+      filterInput.addEventListener('input', (e) => {
+        this._checklistFilter = e.target.value;
+        this.renderAssessmentDetailCanvas(this.report);
+      });
     }
-    render() {
-        var _a, _b, _c, _d, _e, _f, _g, _h;
-        const el = document.createElement('div');
-        el.className = 'fade-in';
-        const authed = authService.isAuthenticated();
-        const isAdmin = authService.isAdmin();
-        const user = authService.getUser();
-        const userEmail = (user === null || user === void 0 ? void 0 : user.email) || (user === null || user === void 0 ? void 0 : user.sub) || '';
-        const selectedId = (_a = this.app.state.routeParams) === null || _a === void 0 ? void 0 : _a.id;
-        const visibleRecent = isAdmin
-            ? this.recent
-            : this.recent.filter((item) => !item.email || item.email === userEmail);
-        el.innerHTML = `
-            <style>
+
+    this.container.querySelector('#as-print-btn')?.addEventListener('click', () => window.print());
+    this.container.querySelector('#as-save-notes-btn')?.addEventListener('click', () => {
+      const headline = this.container.querySelector('#as-editor-headline')?.value || '';
+      const summary = this.container.querySelector('#as-editor-summary')?.value || '';
+      this._editorNotes = { headline, summary };
+      const statusEl = this.container.querySelector('#as-save-status');
+      if (statusEl) statusEl.textContent = 'Saved locally — not yet synced to server';
+      showToast('Executive notes saved', 'success');
+    });
+  }
+
+  setLoadingState(isBusy) {
+    this.busy = isBusy;
+    const submitBtn = this.container?.querySelector('#run-assessment-submit-btn');
+    if (submitBtn) submitBtn.disabled = isBusy;
+  }
+
+  renderAccessDeniedDetail() {
+    const detailMount = document.getElementById('assessment-detail-mount');
+    if (!detailMount) return;
+    detailMount.innerHTML = '';
+    const card = document.createElement('div');
+    card.className = 'card mt-4';
+    const header = document.createElement('div');
+    header.className = 'card-header';
+    const title = document.createElement('span');
+    title.className = 'card-title';
+    title.textContent = 'Access Restricted';
+    header.appendChild(title);
+    const body = document.createElement('div');
+    body.className = 'card-body';
+    body.style.padding = 'var(--space-4)';
+    const note = document.createElement('p');
+    note.className = 'text-muted';
+    note.textContent = 'You do not have permission to view this assessment. Anonymous users are limited to the pre-baked demo sandbox. Developers can only view assessments linked to their own account.';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn btn-primary btn-sm';
+    btn.textContent = 'Open Demo Sandbox';
+    btn.addEventListener('click', () => this.loadPreBakedDemoReport());
+    body.appendChild(note);
+    body.appendChild(btn);
+    card.appendChild(header);
+    card.appendChild(body);
+    detailMount.appendChild(card);
+  }
+
+  async loadAssessmentDetail(assessmentId) {
+    try {
+      if (this.userTier === 'guest' && assessmentId !== 'sb-demo-verification-9ac') {
+        this.renderAccessDeniedDetail();
+        return;
+      }
+      const record = this.recent.find((r) => (r.assessmentId || r.id) === assessmentId);
+      if (record && !this.canAccessAssessment(record)) {
+        this.renderAccessDeniedDetail();
+        return;
+      }
+      const data = await assessmentService.fetchReport(assessmentId);
+      this.report = data.assessment;
+      this.renderAssessmentDetailCanvas(this.report);
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  }
+
+  render() {
+    this.resolveUserTier();
+    const el = document.createElement('div');
+    el.className = 'fade-in';
+    el.innerHTML = `
+      <style>
         @keyframes as-fade-up { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
         .as-v3 { animation:as-fade-up .5s ease both; }
         .as-v3-header { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:24px; }
@@ -214,6 +476,19 @@ export class AssessmentView {
         .as-v3-cta { text-align:center; padding:20px; background:rgba(99,102,241,0.06); border:1px solid rgba(99,102,241,0.12); border-radius:14px; }
         .as-v3-cta h4 { margin:0 0 8px; font-size:1rem; color:var(--text-primary); }
         .as-v3-cta p { margin:0 0 14px; font-size:0.82rem; color:var(--text-muted); }
+        .cta-marketing-lock { display:flex; align-items:center; gap:20px; padding:24px; background:rgba(99,102,241,0.05) !important; border:1px dashed rgba(99,102,241,0.3) !important; border-radius:12px; margin-bottom:20px; }
+        .cta-lock-icon-group { background:rgba(99,102,241,0.15); color:#818cf8; width:56px; height:56px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.6rem; }
+        .cta-lock-content { flex:1; }
+        .cta-lock-content h4 { margin:0 0 6px 0; font-size:1.1rem; color:var(--text-primary); }
+        .cta-lock-content p { margin:0 0 14px 0; font-size:0.85rem; color:var(--text-muted); line-height:1.5; }
+        .as-v3-badge.tier-badge-guest { background:rgba(156,163,175,0.15); color:#cbd5e1; }
+        .as-v3-badge.tier-badge-developer { background:rgba(59,130,246,0.15); color:#60a5fa; }
+        .as-v3-badge.tier-badge-admin { background:rgba(139,92,246,0.2); color:#c084fc; border:1px solid rgba(139,92,246,0.4); }
+        .as-v3-table-empty { padding:16px; font-size:0.8rem; color:var(--text-muted); text-align:center; }
+        .as-v3-action-btn-primary { background:var(--accent); color:#fff; border:none; border-radius:10px; padding:10px 16px; font-size:0.85rem; font-weight:600; cursor:pointer; transition:opacity .2s; }
+        .as-v3-action-btn-primary:hover { opacity:0.9; }
+        .assessment-split-workspace { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+        @media (max-width:960px) { .assessment-split-workspace { grid-template-columns:1fr; } }
         @media print {
           body * { visibility:hidden; }
           .as-print-report, .as-print-report * { visibility:visible; }
@@ -227,197 +502,58 @@ export class AssessmentView {
         }
       </style>
 
-      <div class="as-v3-header">
-        <div>
-          <h1>Assessment Portal</h1>
-          <p>Simplebeacon scan → human triage → enterprise deliverable</p>
+      <div class="as-v3-portal platform-redesign" data-user-tier="${this.userTier}">
+        <div class="as-v3-header">
+          <div>
+            <h1 class="gradient-text">Enterprise Assessment Portal</h1>
+            <span class="view-subtitle">Simplebeacon scan → human triage → enterprise deliverable</span>
+          </div>
+        </div>
+
+        <div class="as-v3-card as-form-card">
+          <div class="as-v3-card-bd">
+            ${this.renderGatedFormSection()}
+          </div>
+        </div>
+
+        <div class="assessment-split-workspace">
+          <div class="workspace-history-pane">
+            <div class="as-v3-card as-history-card">
+              <div class="as-v3-card-hd">
+                <h3 style="margin:0;font-size:1rem;font-weight:700;">📋 Recent Assessments</h3>
+                <span class="as-v3-badge tier-badge-${this.userTier}">${this.userTier.toUpperCase()} SCOPE</span>
+              </div>
+              <div class="as-v3-card-bd">
+                <div id="recent-assessments-table-mount"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="workspace-report-detail-pane" id="assessment-detail-mount">
+            <!-- Detail canvas populated by renderAssessmentDetailCanvas -->
+          </div>
         </div>
       </div>
-
-      <div class="as-v3-card">
-        <div class="as-v3-card-hd">
-          <h3 style="margin:0;font-size:1rem;font-weight:700;">📝 New Client Assessment</h3>
-          <span class="as-v3-badge">${authed ? (isAdmin ? 'Admin' : 'Developer') : 'Guest'}</span>
-        </div>
-        <div class="as-v3-card-bd">
-          ${!authed ? `
-            <div class="as-v3-form-row">
-              <div class="as-v3-input-group">
-                <label class="as-v3-input-label">Company</label>
-                <input class="as-v3-input" disabled placeholder="Acme Corp" value="Demo Corp">
-              </div>
-              <div class="as-v3-input-group">
-                <label class="as-v3-input-label">Contact Email</label>
-                <input class="as-v3-input" disabled type="email" placeholder="cto@acme.com" value="">
-              </div>
-            </div>
-            <div class="as-v3-form-row">
-              <div class="as-v3-input-group">
-                <label class="as-v3-input-label">Git Repo URL</label>
-                <input class="as-v3-input" disabled placeholder="https://github.com/org/repo" value="">
-              </div>
-              <div class="as-v3-input-group">
-                <div class="as-v3-cta">
-                  <h4>🔐 Assessment Scanning Requires Sign-In</h4>
-                  <p>Sign in to run enterprise-grade compliance scans, generate client deliverables, and access the corporate safety checklist.</p>
-                  <button type="button" class="btn btn-primary" id="as-guest-signin-btn">Sign In to Run Assessments</button>
-                </div>
-              </div>
-            </div>
-          ` : `
-          <form id="assessment-form">
-            <div class="as-v3-form-row">
-              <div class="as-v3-input-group">
-                <label class="as-v3-input-label">Company</label>
-                <input class="as-v3-input" name="company" required placeholder="Acme Corp" value="${escapeHtml(this.form.company)}">
-              </div>
-              <div class="as-v3-input-group">
-                <label class="as-v3-input-label">Contact Email</label>
-                <input class="as-v3-input" name="email" type="email" placeholder="cto@acme.com" value="${escapeHtml(this.form.email)}">
-              </div>
-            </div>
-            <div class="as-v3-form-row">
-              <div class="as-v3-input-group">
-                <label class="as-v3-input-label">Git Repo URL (public or signed-in)</label>
-                <input class="as-v3-input" name="repoUrl" placeholder="https://github.com/org/repo" value="${escapeHtml(this.form.repoUrl)}">
-              </div>
-              <div class="as-v3-input-group">
-                <label class="as-v3-input-label">Local Project Path</label>
-                <input class="as-v3-input" name="projectPath" placeholder="C:\\Projects\\client-repo" value="${escapeHtml(this.form.projectPath)}">
-              </div>
-            </div>
-            <div style="display:flex;gap:10px;align-items:center;">
-              <button type="submit" class="btn btn-primary" ${this.busy ? 'disabled' : ''}>
-                ${this.busy ? '<span class="loading-spinner"></span> Scanning…' : 'Run Assessment Scan'}
-              </button>
-            </div>
-            ${this.busy && this._scanProgress.phase > 0 ? `
-              <div class="as-v3-progress" style="margin-top:14px;">
-                <span class="as-v3-progress-label">Phase ${this._scanProgress.phase}/4</span>
-                <div class="as-v3-progress-bar"><div class="as-v3-progress-fill" style="width:${(this._scanProgress.phase / 4) * 100}%"></div></div>
-                <span class="as-v3-progress-label">${escapeHtml(this._scanProgress.label)}</span>
-              </div>
-              <p class="text-muted" style="font-size:0.78rem;margin:4px 0 0;">${escapeHtml(this._scanProgress.message)}</p>
-            ` : ''}
-          </form>
-          `}
-        </div>
-      </div>
-
-
-      <div class="as-v3-card">
-        <div class="as-v3-card-hd">
-          <h3 style="margin:0;font-size:1rem;font-weight:700;">📋 Recent Assessments</h3>
-          <span class="db-v3-panel-badge">${visibleRecent.length} total</span>
-        </div>
-        <div class="as-v3-card-bd">${this.renderRecentList(visibleRecent)}</div>
-      </div>
-
-      <div id="assessment-detail">${this.report ? this.renderReportDetail(this.report) : (!authed ? this.renderSampleReport() : '')}</div>
     `;
-        (_b = el.querySelector('#assessment-form')) === null || _b === void 0 ? void 0 : _b.addEventListener('submit', (e) => this.onSubmit(e));
-        (_c = el.querySelector('#as-guest-signin-btn')) === null || _c === void 0 ? void 0 : _c.addEventListener('click', () => showLoginModal());
-        (_d = el.querySelector('#as-sample-signin-btn')) === null || _d === void 0 ? void 0 : _d.addEventListener('click', () => showLoginModal());
-        el.querySelectorAll('[data-open-assessment]').forEach((btn) => {
-            btn.addEventListener('click', () => {
-                this.app.navigate('assessments', { id: btn.dataset.openAssessment });
-            });
-        });
-        // Checklist live filter
-        const filterInput = el.querySelector('#as-checklist-filter');
-        if (filterInput) {
-            filterInput.addEventListener('input', (e) => {
-                this._checklistFilter = e.target.value;
-                this.app.refreshCurrentView();
-            });
-        }
-        // Print report
-        (_e = el.querySelector('#as-print-btn')) === null || _e === void 0 ? void 0 : _e.addEventListener('click', () => {
-            window.print();
-        });
-        // Save executive notes
-        (_f = el.querySelector('#as-save-notes-btn')) === null || _f === void 0 ? void 0 : _f.addEventListener('click', () => {
-            var _a, _b;
-            const headline = ((_a = el.querySelector('#as-editor-headline')) === null || _a === void 0 ? void 0 : _a.value) || '';
-            const summary = ((_b = el.querySelector('#as-editor-summary')) === null || _b === void 0 ? void 0 : _b.value) || '';
-            this._editorNotes = { headline, summary };
-            const statusEl = el.querySelector('#as-save-status');
-            if (statusEl)
-                statusEl.textContent = 'Saved locally — not yet synced to server';
-            showToast('Executive notes saved', 'success');
-        });
-        if (selectedId && ((_h = (_g = this.report) === null || _g === void 0 ? void 0 : _g.metadata) === null || _h === void 0 ? void 0 : _h.assessmentId) === selectedId) {
-            // detail rendered inline below
-        }
-        return el;
+    this.container = el;
+    this.refreshHistoryFeed();
+    return el;
+  }
+
+  mount(container) {
+    const selectedId = this.app.state.routeParams?.id;
+    if (selectedId) {
+      if (this.report?.metadata?.assessmentId !== selectedId) {
+        this.loadAssessmentDetail(selectedId)
+          .then(() => this.app.refreshCurrentView())
+          .catch((err) => showToast(err.message, 'error'));
+      }
+    } else {
+      this.report = null;
     }
-    async loadReport(assessmentId) {
-        const data = await assessmentService.fetchReport(assessmentId);
-        this.report = data.assessment;
-        this.app.refreshCurrentView();
-    }
-    async onSubmit(e) {
-        e.preventDefault();
-        if (this.busy)
-            return;
-        const fd = new FormData(e.target);
-        const payload = {
-            company: String(fd.get('company') || '').trim(),
-            email: String(fd.get('email') || '').trim(),
-            repoUrl: String(fd.get('repoUrl') || '').trim() || undefined,
-            projectPath: String(fd.get('projectPath') || '').trim() || undefined,
-            assessmentType: this.form.assessmentType
-        };
-        if (!payload.repoUrl && !payload.projectPath) {
-            showToast('Provide a repo URL or sign in with a local project path', 'error');
-            return;
-        }
-        if (payload.projectPath && !authService.isAuthenticated()) {
-            showLoginModal({ onSuccess: () => e.target.requestSubmit() });
-            return;
-        }
-        this.busy = true;
-        this.app.refreshCurrentView();
-        showToast('Running Simplebeacon assessment…', 'info');
-        try {
-            const result = await assessmentService.runAssessment(payload);
-            this.recent = assessmentService.getRecentAssessments();
-            showToast(`Assessment complete — ${result.assessmentId}`, 'success');
-            this.app.navigate('assessments', { id: result.assessmentId });
-            const data = await assessmentService.fetchReport(result.assessmentId);
-            this.report = data.assessment;
-        }
-        catch (err) {
-            if (err.status === 401) {
-                showLoginModal({ onSuccess: () => e.target.requestSubmit() });
-            }
-            else {
-                showToast(err.message, 'error');
-            }
-        }
-        finally {
-            this.busy = false;
-            this.app.refreshCurrentView();
-        }
-    }
-    mount(container) {
-        var _a, _b, _c;
-        const selectedId = (_a = this.app.state.routeParams) === null || _a === void 0 ? void 0 : _a.id;
-        if (selectedId) {
-            if (((_c = (_b = this.report) === null || _b === void 0 ? void 0 : _b.metadata) === null || _c === void 0 ? void 0 : _c.assessmentId) !== selectedId) {
-                assessmentService.fetchReport(selectedId)
-                    .then((data) => {
-                    this.report = data.assessment;
-                    this.app.refreshCurrentView();
-                })
-                    .catch((err) => showToast(err.message, 'error'));
-            }
-        }
-        else {
-            this.report = null;
-        }
-        this.recent = assessmentService.getRecentAssessments();
-        container.innerHTML = '';
-        container.appendChild(this.render());
-    }
+    this.recent = assessmentService.getRecentAssessments();
+    container.innerHTML = '';
+    container.appendChild(this.render());
+    this.bindEvents();
+  }
 }

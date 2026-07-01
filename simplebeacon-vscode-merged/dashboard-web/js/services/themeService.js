@@ -1,4 +1,5 @@
 const THEME_KEY = 'simplebeacon-theme';
+const MANUAL_KEY = 'simplebeacon-theme-manual';
 
 function detectIdeTheme() {
   try {
@@ -23,6 +24,7 @@ function detectIdeTheme() {
 export class ThemeService {
   constructor() {
     this.theme = localStorage.getItem(THEME_KEY) || 'dark';
+    this.manualOverride = sessionStorage.getItem(MANUAL_KEY) === '1';
   }
 
   init() {
@@ -32,6 +34,7 @@ export class ThemeService {
       return;
     }
     if (window.__SIMPLEBEACON_ENV__ || /^127\.0\.0\.1:\d+$/.test(window.location.host)) {
+      this.apply(this.theme);
       this.pollServerTheme();
       return;
     }
@@ -42,12 +45,13 @@ export class ThemeService {
   pollServerTheme() {
     const poll = () => {
       if (typeof fetch !== 'function') return;
+      if (this.manualOverride) return;
       fetch('/api/theme').then(r => r.json()).then(d => {
-        if (d && d.theme) this.apply(d.theme);
+        if (d && d.theme && !this.manualOverride) this.apply(d.theme);
       }).catch(() => {});
     };
     poll();
-    setInterval(poll, 1000);
+    setInterval(poll, 5000);
   }
 
   followIde() {
@@ -62,6 +66,8 @@ export class ThemeService {
   }
 
   toggle() {
+    this.manualOverride = true;
+    sessionStorage.setItem(MANUAL_KEY, '1');
     this.theme = this.theme === 'dark' ? 'light' : 'dark';
     localStorage.setItem(THEME_KEY, this.theme);
     this.apply(this.theme);
@@ -80,7 +86,17 @@ export class ThemeService {
     document.documentElement.setAttribute('data-theme', theme);
     const btn = document.getElementById('theme-toggle');
     if (btn) {
-      btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+      const iconName = theme === 'dark' ? 'sun' : 'moon';
+      const icon = btn.querySelector('i[data-lucide]');
+      if (icon) {
+        icon.innerHTML = '';
+        icon.setAttribute('data-lucide', iconName);
+        if (typeof window !== 'undefined' && window.lucide && typeof window.lucide.createIcons === 'function') {
+          try { window.lucide.createIcons({ attrs: { 'stroke-width': 2 } }); } catch (_) {}
+        }
+      } else if (btn.children.length === 0) {
+        btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+      }
       btn.setAttribute('aria-label', theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
     }
   }

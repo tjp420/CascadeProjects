@@ -303,5 +303,7 @@
       "medium",
       "low"
     ]
-  }
+  },
+  "fullDirectoryScan": true,
+  "fullDirectoryScanMaxFiles": 100000
 }

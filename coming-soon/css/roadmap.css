@@ -198,3 +198,55 @@ body { font-family:var(--font); background:var(--bg); color:var(--text); line-he
 .issue-fix { font-size:0.78rem; color:var(--info); padding:6px 10px; background:rgba(96,165,250,0.06); border-radius:6px; border-left:3px solid var(--info); }
 .issue-empty { text-align:center; padding:32px; color:var(--text-dim); font-size:0.85rem; }
 @media(max-width:700px){ .hero h1{font-size:1.5rem;} .scorecard-grid{grid-template-columns:1fr 1fr;} .timeline{padding-left:24px;} .timeline-phase::before{left:-20px;width:10px;height:10px;} .overall-health{flex-direction:column;text-align:center;} .health-ring{margin:0 auto;} }
+    @keyframes phaseFlash { 0%{box-shadow:0 0 0 0 rgba(16,185,129,0.6);} 70%{box-shadow:0 0 0 10px rgba(16,185,129,0);} 100%{box-shadow:0 0 0 0 rgba(16,185,129,0);} }
+    .phase-complete-flash { animation:phaseFlash 0.8s ease-out; }
+    .phase-tasks li:focus { outline:2px solid var(--accent); outline-offset:-2px; border-radius:4px; }
+    .phase-tasks li:focus .task-check { border-color:var(--accent); }
+
+    /* --- Visual Patch Diff Canvas --- */
+    .patch-diff-wrap { display:flex; gap:8px; margin-top:8px; border:1px solid var(--border); border-radius:8px; overflow:hidden; background:var(--bg-card); font-family:'SF Mono',Monaco,monospace; font-size:0.72rem; }
+    .patch-diff-col { flex:1; min-width:0; }
+    .patch-diff-header { padding:6px 10px; background:rgba(148,163,184,0.08); border-bottom:1px solid var(--border); font-weight:700; font-size:0.68rem; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-muted); }
+    .patch-diff-line { padding:3px 10px; white-space:pre-wrap; word-break:break-word; line-height:1.5; border-bottom:1px solid rgba(148,163,184,0.04); }
+    .patch-diff-line.del { background:rgba(239,68,68,0.08); color:#f87171; }
+    .patch-diff-line.add { background:rgba(34,197,94,0.08); color:#4ade80; }
+    .patch-diff-line.ctx { color:var(--text-dim); }
+    .patch-diff-line .diff-gutter { display:inline-block; width:20px; text-align:right; margin-right:8px; opacity:0.4; font-size:0.65rem; }
+
+    /* --- Sprint Velocity Tracker --- */
+    .sprint-tracker { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; margin-bottom:16px; }
+    .sprint-metric { background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:12px 14px; text-align:center; }
+    .sprint-metric-value { font-size:1.15rem; font-weight:800; color:var(--text-main); }
+    .sprint-metric-label { font-size:0.68rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; margin-top:4px; }
+    .sprint-metric-delta { font-size:0.72rem; margin-top:4px; font-weight:600; }
+    .sprint-metric-delta.positive { color:var(--success); }
+    .sprint-metric-delta.negative { color:var(--error); }
+    .sprint-effort-bar { display:flex; align-items:center; gap:8px; margin-top:6px; }
+    .sprint-effort-bar .bar-track { flex:1; height:5px; background:var(--bg-input); border-radius:3px; overflow:hidden; }
+    .sprint-effort-bar .bar-fill { height:100%; border-radius:3px; transition:width .4s ease; }
+
+    /* --- Print page-break guards --- */
+    @media print {
+      .phase-card, .task-detail-card, .timeline-phase { page-break-inside: avoid; break-inside: avoid; }
+      .issue-item { page-break-inside: avoid; break-inside: avoid; }
+      pre, code, .task-code-block, .patch-diff-wrap { page-break-inside: auto; }
+      .filter-bar, .search-bar, .phase-action-btn, .task-timer, .btn { display: none !important; }
+    }
+
+    /* Sign-in Modal (copied from dashboard.css) */
+    .signin-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.6); display:none; align-items:center; justify-content:center; z-index:1000; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); }
+    .signin-overlay.active { display:flex; }
+    .signin-panel { background:var(--bg-card); border:1px solid var(--border); border-radius:16px; max-width:400px; width:100%; padding:28px; box-shadow:0 24px 64px rgba(0,0,0,0.5); position:relative; }
+    .signin-panel .signin-close { position:absolute; top:12px; right:16px; background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:1.4rem; line-height:1; }
+    .signin-panel h3 { margin:0 0 6px; color:var(--text-main); font-size:1.1rem; }
+    .signin-panel .signin-sub { color:var(--text-muted); font-size:0.85rem; margin-bottom:18px; }
+    .signin-panel .signin-field { margin-bottom:14px; }
+    .signin-panel .signin-field label { display:block; font-size:0.78rem; color:var(--text-muted); margin-bottom:4px; }
+    .signin-panel .signin-field input { width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:8px; background:var(--bg-input); color:var(--text-main); font-family:inherit; font-size:0.9rem; outline:none; transition:border-color 0.2s, box-shadow 0.2s; }
+    .signin-panel .signin-field input:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(99,102,241,0.15); }
+    .signin-panel .signin-field input::placeholder { color:var(--text-muted); }
+    .signin-panel .signin-btn { width:100%; padding:12px; border:none; border-radius:10px; background:linear-gradient(135deg, var(--accent), var(--primary-hover)); color:#fff; font-size:0.9rem; font-weight:600; cursor:pointer; transition:all 0.2s; }
+    .signin-panel .signin-btn:hover:not(:disabled) { transform:translateY(-1px); box-shadow:0 6px 20px rgba(99,102,241,0.4); }
+    .signin-panel .signin-btn:disabled { opacity:0.6; cursor:not-allowed; }
+    .signin-panel .signin-error { color:var(--error); font-size:0.82rem; margin-top:10px; display:none; }
+    .signin-panel .signin-footer { margin-top:14px; text-align:center; font-size:0.8rem; color:var(--text-muted); }

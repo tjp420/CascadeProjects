@@ -229,8 +229,9 @@ router.post('/api/test-checkout', async (req, res) => {
             expiresInDays: config.days,
             emailSent: emailResult.sent,
             emailQueued: emailResult.queued,
-            emailId: emailResult.id || null,
-            emailQueuePath: emailResult.queuePath || null,
+            queueId: emailResult.queueId || null,
+            provider: emailResult.provider || null,
+            providerMessageId: emailResult.providerMessageId || null,
             emailError: emailResult.error || null
         });
     } catch (error) {
@@ -417,12 +418,19 @@ function setupCheckoutWebhook(app) {
             }
 
             try {
-                await sendEmail({
+                const emailResult = await sendEmail({
                     to: email,
                     subject: 'Your SimpleBeacon License Token — ' + config.label,
                     text: `Hi ${clientName || email},\n\nYour license token for "${projectName}" has been generated.\n\nTier: ${config.label}\nProject: ${projectName}\nToken: ${token}\n\nUpload your scan report here:\n${certUrl}\n\nThis token expires in ${config.days} days.\n`,
                     html: emailHtml
                 });
+                if (!emailResult.sent && !emailResult.queued) {
+                    logger.error('[CheckoutWebhook] Email could not be sent or queued:', emailResult.error);
+                } else if (!emailResult.sent) {
+                    logger.warn('[CheckoutWebhook] Email queued for retry. queueId:', emailResult.queueId);
+                } else {
+                    logger.info('[CheckoutWebhook] Email sent via', emailResult.provider, 'queueId:', emailResult.queueId);
+                }
             } catch (emailErr) {
                 logger.error('[CheckoutWebhook] Email failed:', emailErr.message);
             }

@@ -10,8 +10,10 @@ const DASHBOARD_BASE = '/dashboard';
 export class Router {
     constructor(onNavigate) {
         this.onNavigate = onNavigate;
-        window.addEventListener('popstate', () => this.handlePath());
-        window.addEventListener('hashchange', () => this.handleHash());
+        this._boundHandlePath = () => this.handlePath();
+        this._boundHandleHash = () => this.handleHash();
+        window.addEventListener('popstate', this._boundHandlePath);
+        window.addEventListener('hashchange', this._boundHandleHash);
     }
     init() {
         const forced = typeof window !== 'undefined' && window.__SB_INITIAL_ROUTE__;
@@ -116,5 +118,10 @@ export class Router {
         document.querySelectorAll('.nav-link[data-view]').forEach((link) => {
             link.classList.toggle('active', link.dataset.view === view);
         });
+    }
+    /** Remove window listeners to prevent leaks when the router is discarded. */
+    destroy() {
+        window.removeEventListener('popstate', this._boundHandlePath);
+        window.removeEventListener('hashchange', this._boundHandleHash);
     }
 }

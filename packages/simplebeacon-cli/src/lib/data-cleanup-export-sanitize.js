@@ -7,8 +7,6 @@ const { normalizeDuplicateGroupForBrief } = require('./cleanup-brief-export-sani
 const { aggregateCleanupFindings } = require('./result-aggregator');
 const { normalizeFileReductionReport } = require('./normalize-file-reduction-report');
 const { redactProjectPathForExport, projectLabelFromPath } = require('./assessment-export-sanitize');
-const { shouldSkipDataAccessScan } = require('../analyzers/data-cleanup/data-access-pattern-analyzer');
-const { isPlannedEnvKey } = require('../analyzers/data-cleanup/utils/env-profile-utils');
 const { shouldSkipRuntimeLogFile } = require('../analyzers/file-reduction/build-artifact-scanner');
 const constants = require('../../../../ai-platform/server/config/constants.cjs');
 
@@ -61,19 +59,16 @@ function stripRuntimeLogFindings(report) {
     }
     if (next.scanners?.['build-artifacts']) {
         const buildSummary = next.scanners['build-artifacts'];
-        const reviewBytes = (nextFindings.buildArtifacts || [])
-            .filter((finding) => finding.action === 'review-before-delete')
-            .reduce((sum, finding) => sum + (finding.sizeBytes || 0), 0);
+        const artifacts = nextFindings.buildArtifacts || [];
+        const reviewArtifacts = artifacts.filter((f) => f.action === 'review-before-delete');
+        const reviewBytes = reviewArtifacts.reduce((sum, f) => sum + (f.sizeBytes || 0), 0);
         next.scanners = {
             ...next.scanners,
             'build-artifacts': {
                 ...buildSummary,
-                artifactFiles: (nextFindings.buildArtifacts || []).filter(
-                    (finding) => finding.action === 'review-before-delete'
-                ).length,
+                artifactFiles: reviewArtifacts.length,
                 reviewBeforeDeleteBytes: reviewBytes,
-                reclaimableBytes: (nextFindings.buildArtifacts || [])
-                    .reduce((sum, finding) => sum + (finding.sizeBytes || 0), 0)
+                reclaimableBytes: artifacts.reduce((sum, f) => sum + (f.sizeBytes || 0), 0)
             }
         };
     }
@@ -163,14 +158,9 @@ function sanitizeBenchmarkExecutivePriorityActions(executiveSummary = {}) {
     return actions;
 }
 
-function isBenchmarkFalsePositiveFinding(finding) {
-    if (!finding || typeof finding !== 'object') return false;
-    // All benchmark clone data-quality findings are workspace-scoped false positives
-    return true;
-}
-
-function filterBenchmarkDataQualityFindings(findings = []) {
-    return findings.filter((finding) => !isBenchmarkFalsePositiveFinding(finding));
+/** Benchmark scans treat all findings as workspace-scoped false positives. */
+function filterBenchmarkDataQualityFindings() {
+    return [];
 }
 
 function patchScannerMissingKeys(scanners = {}, missingCount) {
@@ -290,25 +280,25 @@ function sanitizeBenchmarkDataQualityExport(report) {
         };
     }
 
-    const findingBuckets = report.findings || {};
-    const flatFindings = Object.values(findingBuckets).flat().filter(Boolean);
-    const filtered = filterBenchmarkDataQualityFindings(flatFindings);
+    const filtered = filterBenchmarkDataQualityFindings();
     const rebuilt = rebuildBenchmarkDataQualityCounts(report, filtered);
-
-    const filteredByBucket = {
-        ...findingBuckets,
-        environmentVariables: (findingBuckets.environmentVariables || [])
-            .filter((f) => !isBenchmarkFalsePositiveFinding(f)),
-        dataAccessPatterns: (findingBuckets.dataAccessPatterns || [])
-            .filter((f) => !isBenchmarkFalsePositiveFinding(f))
-    };
 
     const next = {
         ...report,
         ...rebuilt,
         findings: Object.fromEntries(Object.keys(report.findings || {}).map((k) => [k, []])),
         allFindings: [],
-        summary: { ...rebuilt.summary, totalFindings: 0, environmentFindings: 0, dataAccessFindings: 0, dataFreshnessFindings: 0, dataPrivacyFindings: 0, dataLineageFindings: 0, dataConsistencyFindings: 0, estimatedReductionPct: 0 },
+        summary: {
+            ...rebuilt.summary,
+            totalFindings: 0,
+            environmentFindings: 0,
+            dataAccessFindings: 0,
+            dataFreshnessFindings: 0,
+            dataPrivacyFindings: 0,
+            dataLineageFindings: 0,
+            dataConsistencyFindings: 0,
+            estimatedReductionPct: 0
+        },
         scanners: patchScannerMissingKeys(rebuilt.scanners, 0),
         scannerStatistics: patchScannerStatisticsEnv(
             report.scannerStatistics,
@@ -422,18 +412,16 @@ function sanitizeBenchmarkFileReductionExport(report) {
         };
     }
 
+    const patchedPlan = patchFileReductionPlanUnusedCounts(normalized.fileReductionPlan, unusedCount);
     return {
         ...normalized,
         executiveSummary,
-        fileReductionPlan: patchFileReductionPlanUnusedCounts(
-            normalized.fileReductionPlan,
-            unusedCount
-        ),
+        fileReductionPlan: patchedPlan,
         exportNormalized: true,
         fileReductionStatus: resolveFileReductionStatus({
             ...normalized,
             summary: normalized.summary,
-            fileReductionPlan: patchFileReductionPlanUnusedCounts(normalized.fileReductionPlan, unusedCount)
+            fileReductionPlan: patchedPlan
         }),
         securityHandoffEligible: false
     };
@@ -922,7 +910,7 @@ function fixEstimatedReductionPct(summary, inventory) {
     const findings = summary.totalFindings ?? 0;
     return {
         ...summary,
-        estimatedReductionPct: Math.round((findings / totalFiles) * 1000) / 10
+        estimatedReductionPct: Math.min(100, Math.round((findings / totalFiles) * 1000) / 10)
     };
 }
 
@@ -980,6 +968,12 @@ function reaggregateAfterRepair(report) {
     };
 }
 
+/** Normalize duplicate-asset topGroups, skipping invalid entries. */
+function normalizeTopGroups(topGroups) {
+    if (!Array.isArray(topGroups)) return [];
+    return topGroups.map((g) => normalizeDuplicateGroupForBrief(g)).filter(Boolean);
+}
+
 function sanitizeFileReductionPlanForProduct(plan) {
     if (!plan || plan.omitted) return plan;
 
@@ -987,9 +981,7 @@ function sanitizeFileReductionPlanForProduct(plan) {
     if (plan.duplicateAssets?.topGroups?.length) {
         next.duplicateAssets = {
             ...plan.duplicateAssets,
-            topGroups: plan.duplicateAssets.topGroups
-                .map((group) => normalizeDuplicateGroupForBrief(group))
-                .filter(Boolean)
+            topGroups: normalizeTopGroups(plan.duplicateAssets.topGroups)
         };
     }
 
@@ -1014,12 +1006,11 @@ function sanitizeFileReductionPlanForProduct(plan) {
     }
 
     if (plan.reviewBeforeDelete?.logs?.length) {
+        const keptLogs = plan.reviewBeforeDelete.logs.filter((entry) => !shouldSkipRuntimeLogFile(entry.path));
         next.reviewBeforeDelete = {
             ...plan.reviewBeforeDelete,
-            logs: plan.reviewBeforeDelete.logs.filter((entry) => !shouldSkipRuntimeLogFile(entry.path)),
-            bytes: (plan.reviewBeforeDelete.logs || [])
-                .filter((entry) => !shouldSkipRuntimeLogFile(entry.path))
-                .reduce((sum, entry) => sum + (entry.bytes || 0), 0)
+            logs: keptLogs,
+            bytes: keptLogs.reduce((sum, entry) => sum + (entry.bytes || 0), 0)
         };
         if (next.totals) {
             next.totals = {
@@ -1054,9 +1045,7 @@ function sanitizeFileReductionPlanForExport(plan, context) {
     if (plan.duplicateAssets?.topGroups) {
         next.duplicateAssets = {
             ...plan.duplicateAssets,
-            topGroups: plan.duplicateAssets.topGroups
-                .map((group) => normalizeDuplicateGroupForBrief(group))
-                .filter(Boolean)
+            topGroups: normalizeTopGroups(plan.duplicateAssets.topGroups)
         };
     }
 
@@ -1064,10 +1053,11 @@ function sanitizeFileReductionPlanForExport(plan, context) {
 }
 
 function sanitizeExecutiveSummaryForFileReduction(executiveSummary, context) {
+    const base = sanitizeExecutiveSummaryForExport(executiveSummary, context);
     if (!executiveSummary || context.profile !== 'file-reduction') {
-        return sanitizeExecutiveSummaryForExport(executiveSummary, context);
+        return base;
     }
-    const next = sanitizeExecutiveSummaryForExport(executiveSummary, context);
+    const next = base;
     const fr = next.fileReduction || {};
     const actions = [...(next.priorityActions || [])];
 
@@ -1140,6 +1130,16 @@ function sanitizeExecutiveSummaryForFileReduction(executiveSummary, context) {
         next.priorityActions = actions.slice(0, 8);
     }
     return next;
+}
+
+/** Build the common scanScope base shared by all profiles. */
+function buildBaseScanScope(existing = {}) {
+    return {
+        ...existing,
+        resultsViewScope: existing.resultsViewScope || 'platform-only',
+        reportHealth: existing.reportHealth || 'platform-scoped',
+        securityHandoffEligible: false
+    };
 }
 
 /**
@@ -1286,26 +1286,15 @@ function sanitizeDataCleanupReportExport(report, options = {}) {
             inventory: enrichedInventory,
             scanScope: profile === 'data-quality'
                 ? enrichProductDataQualityScanScope({
-                    ...(next.scanScope || {}),
-                    resultsViewScope: next.scanScope?.resultsViewScope || 'platform-only',
-                    reportHealth: next.scanScope?.reportHealth || 'platform-scoped',
-                    securityHandoffEligible: false,
+                    ...buildBaseScanScope(next.scanScope),
                     dataQualityNote: 'Data-quality export — workspace scanner hygiene only, not vendor handoff clearance.'
                 }, next, options)
                 : profile === 'file-reduction'
                     ? enrichProductFileReductionScanScope({
-                        ...(next.scanScope || {}),
-                        resultsViewScope: next.scanScope?.resultsViewScope || 'platform-only',
-                        reportHealth: next.scanScope?.reportHealth || 'platform-scoped',
-                        securityHandoffEligible: false,
+                        ...buildBaseScanScope(next.scanScope),
                         fileReductionNote: 'File-reduction export — reclaim tiers are guidance only, not vendor handoff clearance.'
                     }, next, options)
-                    : {
-                        ...(next.scanScope || {}),
-                        resultsViewScope: next.scanScope?.resultsViewScope || 'platform-only',
-                        reportHealth: next.scanScope?.reportHealth || 'platform-scoped',
-                        securityHandoffEligible: false
-                    },
+                    : buildBaseScanScope(next.scanScope),
             ...(profile === 'data-quality'
                 ? { hygieneSummary: buildDataQualityHygieneSummary({ ...next, inventory: enrichedInventory }, options) }
                 : profile === 'file-reduction'
@@ -1333,5 +1322,6 @@ function sanitizeDataCleanupReportExport(report, options = {}) {
 
 module.exports = {
     sanitizeDataCleanupReportExport,
-    replaceMisleadingDataQualityNotes
+    replaceMisleadingDataQualityNotes,
+    reaggregateAfterRepair
 };

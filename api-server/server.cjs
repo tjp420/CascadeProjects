@@ -78,7 +78,26 @@ function cleanupExpiredRateLimiters() {
     for (const [ip, entry] of subRateLog) { if (now >= entry.resetAt) subRateLog.delete(ip); }
     for (const [ip, entry] of testCheckoutRateLog) { if (now >= entry.resetAt) testCheckoutRateLog.delete(ip); }
     for (const [ip, entry] of freeTokenLog) { if (now - entry.createdAt >= FREE_TOKEN_COOLDOWN_MS) freeTokenLog.delete(ip); }
+    // Hard caps to survive flash floods from unique IPs
+    enforceMapSize(certRateLog, 10_000);
+    enforceMapSize(subRateLog, 5_000);
+    enforceMapSize(testCheckoutRateLog, 5_000);
+    enforceMapSize(freeTokenLog, 5_000);
 }
+
+/**
+ * Enforce a maximum size on a Map by evicting the oldest entries.
+ * @template K, V
+ * @param {Map<K, V>} map
+ * @param {number} maxSize
+ */
+function enforceMapSize(map, maxSize) {
+    if (map.size <= maxSize) return;
+    const entries = [...map.entries()];
+    const toDelete = entries.slice(0, map.size - maxSize);
+    for (const [key] of toDelete) map.delete(key);
+}
+
 // Run cleanup every 30 minutes
 setInterval(cleanupExpiredRateLimiters, 30 * 60 * 1000);
 
@@ -121,12 +140,6 @@ try {
 app.use(express.json({ limit: '10mb' }));
 
 // Request logging
-
-// Error logging middleware
-app.use((err, req, res, next) => {
-    systemLogger.logError(err, { path: req.path, method: req.method });
-    next(err);
-});
 
 // Block sensitive files from being served by static middleware
 
@@ -204,11 +217,6 @@ try {
 } catch (err) {
     logger.warn('[API] Simplebeacon dashboard API not loaded:', err.message);
 }
-
-// Health check for Render + load balancers
-app.get('/health', (_req, res) => {
-    res.status(200).json({ status: 'ok', uptime: process.uptime() });
-});
 
 // Comprehensive wiring check — verifies all services are reachable
 app.get('/api/analyze/wiring', async (_req, res) => {
@@ -296,6 +304,10 @@ app.get('/api/analyze/wiring', async (_req, res) => {
     });
 });
 
+// Shared directory-walking constants
+const SHARED_SKIP_DIRS = /[\\/]node_modules[\\/]|[\\/][.]git[\\/]|[\\/][.]github[\\/]|[\\/][.]husky[\\/]|[\\/]dist[\\/]|[\\/]build[\\/]|[\\/][.]next[\\/]|[\\/]out[\\/]|[\\/]coverage[\\/]|[\\/]frontend-build[\\/]|[\\/][.]github-sync[\\/]|[\\/]github-cache[\\/]|[\\/][.]simplebeacon[\\/]|[\\/][.]cursor[\\/]|[\\/][.]windsurf[\\/]|[\\/]deployments[\\/]|[\\/]backups[\\/]|[\\/]coming-soon-dev[\\/]/i;
+const SHARED_BINARY_EXTS = /\.(png|jpe?g|gif|webp|ico|bmp|tiff?|psd|ai|eps|sketch|mp3|mp4|avi|mov|wav|flac|ogg|webm|mkv|zip|tar|gz|bz2|xz|lz|7z|rar|exe|dll|so|dylib|bin|o|obj|class|woff2?|ttf|otf|eot|pdf|doc|docx|xls|xlsx|ppt|pptx|odt|ods|odp|db|sqlite3?|wasm|dat|pkl|npy|h5|pb|pt|onnx|tflite|parquet|pcap|cap|jar|war|ear|apk|aab|ipa|dmg|pkg|msi|iso|img|vmdk|ova|tgz|rpm|deb)$/i;
+
 // ── Server-side directory scan — bypasses browser webkitdirectory limits ──
 app.post('/api/scan-directory', express.json({ limit: '1mb' }), (req, res) => {
     try {
@@ -312,8 +324,8 @@ app.post('/api/scan-directory', express.json({ limit: '1mb' }), (req, res) => {
             const abs = path.resolve(p);
             return abs.length > MAX_WIN_PATH ? '\\\\?\\' + abs : abs;
         }
-        const SKIP_DIRS = /[\\/]node_modules[\\/]|[\\/][.]git[\\/]|[\\/][.]github[\\/]|[\\/][.]husky[\\/]|[\\/]dist[\\/]|[\\/]build[\\/]|[\\/][.]next[\\/]|[\\/]out[\\/]|[\\/]coverage[\\/]|[\\/]frontend-build[\\/]|[\\/][.]github-sync[\\/]|[\\/]github-cache[\\/]|[\\/][.]simplebeacon[\\/]|[\\/][.]cursor[\\/]|[\\/][.]windsurf[\\/]|[\\/]deployments[\\/]|[\\/]backups[\\/]|[\\/]coming-soon-dev[\\/]/i;
-        const BINARY_EXTS = /\.(png|jpe?g|gif|webp|ico|bmp|tiff?|psd|ai|eps|sketch|mp3|mp4|avi|mov|wav|flac|ogg|webm|mkv|zip|tar|gz|bz2|xz|lz|7z|rar|exe|dll|so|dylib|bin|o|obj|class|woff2?|ttf|otf|eot|pdf|doc|docx|xls|xlsx|ppt|pptx|odt|ods|odp|db|sqlite3?|wasm|dat|pkl|npy|h5|pb|pt|onnx|tflite|parquet|pcap|cap|jar|war|ear|apk|aab|ipa|dmg|pkg|msi|iso|img|vmdk|ova|tgz|rpm|deb)$/i;
+        const SKIP_DIRS = SHARED_SKIP_DIRS;
+        const BINARY_EXTS = SHARED_BINARY_EXTS;
         const visitedPaths = new Set();
         let dirCount = 0, entryCount = 0, statFail = 0, dirEntry = 0, fileEntry = 0, otherEntry = 0, readdirFail = 0, skippedDir = 0;
         function walk(rootDir) {
@@ -474,7 +486,7 @@ app.post('/api/scan-directory', express.json({ limit: '1mb' }), (req, res) => {
     } catch (err) {
         logger.error('[Scan Directory] Error:', err.message);
         logger.error(err.stack);
-        res.status(500).json({ error: err.message, stack: err.stack });
+        res.status(500).json({ error: 'Scan failed. Check server logs for details.' });
     }
 });
 
@@ -506,25 +518,28 @@ app.post('/api/send-to-ai', express.json({ limit: '1mb' }), async (req, res) => 
 
 function buildAiPrompt(report) {
     const issues = report.detectedIssues || [];
+    /** Escape markdown-sensitive characters and collapse newlines. */
+    const md = (val) => String(val ?? '').replace(/\r?\n/g, ' ').replace(/[|*`\[\]<>]/g, '');
     const lines = [
         '## SimpleBeacon Scan Summary',
         '',
-        `**Quality Score:** ${report.qualityScore}/100`,
+        `**Quality Score:** ${md(report.qualityScore)}/100`,
         `**Gate Status:** ${report.gate?.pass ? 'PASS' : 'FAIL'}`,
-        `**Total Issues:** ${report.issueCount}`,
+        `**Total Issues:** ${md(report.issueCount)}`,
         '',
         '**Severity Breakdown:**',
-        `- Critical: ${report.severityCounts?.critical || 0}`,
-        `- High: ${report.severityCounts?.high || 0}`,
-        `- Medium: ${report.severityCounts?.medium || 0}`,
-        `- Low: ${report.severityCounts?.low || 0}`,
+        `- Critical: ${md(report.severityCounts?.critical || 0)}`,
+        `- High: ${md(report.severityCounts?.high || 0)}`,
+        `- Medium: ${md(report.severityCounts?.medium || 0)}`,
+        `- Low: ${md(report.severityCounts?.low || 0)}`,
         '',
         '**Top Findings:**'
     ];
     for (const issue of issues.slice(0, 10)) {
-        lines.push(`- [${issue.severity}] ${issue.type}: ${issue.humanReadable || issue.impact}`);
+        lines.push(`- [${md(issue.severity)}] ${md(issue.type)}: ${md(issue.humanReadable || issue.impact)}`);
         if (issue.filePath && issue.filePath.length > 0) {
-            lines.push(`  Files: ${issue.filePath.slice(0, 3).join(', ')}${issue.filePath.length > 3 ? '...' : ''}`);
+            const files = issue.filePath.slice(0, 3).map(md).join(', ');
+            lines.push(`  Files: ${files}${issue.filePath.length > 3 ? '...' : ''}`);
         }
     }
     lines.push('', '_Paste this into your AI coding agent for remediation guidance._');
@@ -538,8 +553,8 @@ app.post('/api/analyze-directory', express.json({ limit: '1mb' }), (req, res) =>
             return res.status(400).json({ error: 'Invalid or missing projectPath' });
         }
 
-        const SKIP_DIRS_ANALYZE = /[\\/]node_modules[\\/]|[\\/][.]git[\\/]|[\\/][.]github[\\/]|[\\/][.]husky[\\/]|[\\/]dist[\\/]|[\\/]build[\\/]|[\\/][.]next[\\/]|[\\/]out[\\/]|[\\/]coverage[\\/]|[\\/]frontend-build[\\/]|[\\/][.]github-sync[\\/]|[\\/]github-cache[\\/]|[\\/][.]simplebeacon[\\/]|[\\/][.]cursor[\\/]|[\\/][.]windsurf[\\/]|[\\/]deployments[\\/]|[\\/]backups[\\/]|[\\/]coming-soon-dev[\\/]/i;
-        const BINARY_EXTS_ANALYZE = /\.(png|jpe?g|gif|webp|ico|bmp|tiff?|psd|ai|eps|sketch|mp3|mp4|avi|mov|wav|flac|ogg|webm|mkv|zip|tar|gz|bz2|xz|lz|7z|rar|exe|dll|so|dylib|bin|o|obj|class|woff2?|ttf|otf|eot|pdf|doc|docx|xls|xlsx|ppt|pptx|odt|ods|odp|db|sqlite3?|wasm|dat|pkl|npy|h5|pb|pt|onnx|tflite|parquet|pcap|cap|jar|war|ear|apk|aab|ipa|dmg|pkg|msi|iso|img|vmdk|ova|tgz|rpm|deb)$/i;
+        const SKIP_DIRS_ANALYZE = SHARED_SKIP_DIRS;
+        const BINARY_EXTS_ANALYZE = SHARED_BINARY_EXTS;
         const COPY_FILE = / copy( \d+)?\.(xml|txt|tfvars|py|js|ts|cjs|mjs|json|md|html|css|scss|sass|less|yml|yaml)$/i;
 
         function bucketSize(size) {

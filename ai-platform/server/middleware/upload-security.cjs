@@ -314,13 +314,7 @@ class UploadSecurityMiddleware {
      * Get user upload limit based on trust level
      */
     getUserUploadLimit(user) {
-        const limits = {
-            bronze: 10,
-            silver: 25,
-            gold: 100
-        };
-        
-        return limits[user.trustLevel] || limits.bronze;
+        return constants.UPLOAD_LIMITS_BY_TRUST[user.trustLevel] || constants.UPLOAD_LIMITS_BY_TRUST.bronze;
     }
 
     /**
@@ -484,26 +478,14 @@ class UploadSecurityMiddleware {
      * Parse size string to bytes
      */
     parseSize(sizeStr) {
-        const units = { B: 1, KB: constants.BYTES_PER_KB, MB: constants.BYTES_PER_KB * constants.BYTES_PER_KB, GB: constants.BYTES_PER_KB * constants.BYTES_PER_KB * constants.BYTES_PER_KB };
-        const match = sizeStr.match(/^(\d+(?:\.\d+)?)\s*(B|KB|MB|GB)$/i);
-        if (!match) throw new Error('Invalid size format');
-        return parseFloat(match[1]) * units[match[2].toUpperCase()];
+        return constants.parseSize(sizeStr);
     }
 
     /**
      * Format bytes to human readable string
      */
     formatSize(bytes) {
-        const units = ['B', 'KB', 'MB', 'GB'];
-        let size = bytes;
-        let unitIndex = 0;
-        
-        while (size >= constants.BYTES_PER_KB && unitIndex < units.length - 1) {
-            size /= constants.BYTES_PER_KB;
-            unitIndex++;
-        }
-        
-        return `${size.toFixed(1)} ${units[unitIndex]}`;
+        return constants.formatSize(bytes);
     }
 
     /**

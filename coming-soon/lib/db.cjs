@@ -34,8 +34,15 @@ function getDb() {
                 body_text TEXT,
                 body_html TEXT,
                 status TEXT NOT NULL DEFAULT 'pending',
+                provider TEXT,
+                provider_message_id TEXT,
+                attempts INTEGER NOT NULL DEFAULT 0,
+                last_error TEXT,
                 queued_at TEXT NOT NULL DEFAULT (datetime('now')),
-                sent_at TEXT
+                sent_at TEXT,
+                delivered_at TEXT,
+                bounced_at TEXT,
+                opened_at TEXT
             );
             CREATE TABLE IF NOT EXISTS customers (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -62,6 +69,16 @@ function getDb() {
             CREATE INDEX IF NOT EXISTS idx_customers_email ON customers(email);
             CREATE INDEX IF NOT EXISTS idx_customers_api_key ON customers(api_key);
             CREATE INDEX IF NOT EXISTS idx_paid_subscriptions_email ON paid_subscriptions(customer_email);
+            CREATE TABLE IF NOT EXISTS refunds (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                customer_email TEXT NOT NULL,
+                stripe_subscription_id TEXT,
+                amount TEXT,
+                reason TEXT,
+                status TEXT DEFAULT 'pending',
+                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+            CREATE INDEX IF NOT EXISTS idx_refunds_email ON refunds(customer_email);
             CREATE TABLE IF NOT EXISTS token_nodes (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 chain_id TEXT NOT NULL,
@@ -80,8 +97,43 @@ function getDb() {
             CREATE INDEX IF NOT EXISTS idx_token_nodes_chain ON token_nodes(chain_id);
             CREATE INDEX IF NOT EXISTS idx_token_nodes_hash ON token_nodes(token_hash);
             CREATE INDEX IF NOT EXISTS idx_token_nodes_status ON token_nodes(status);
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                email TEXT NOT NULL UNIQUE,
+                password_hash TEXT NOT NULL,
+                salt TEXT NOT NULL,
+                tier TEXT DEFAULT 'community',
+                created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+            CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
         `);
     }
+    // Schema migrations for existing databases
+    try {
+        db.exec(`ALTER TABLE email_queue ADD COLUMN provider TEXT;`);
+    } catch (err) { /* column may already exist */ }
+    try {
+        db.exec(`ALTER TABLE email_queue ADD COLUMN provider_message_id TEXT;`);
+    } catch (err) { /* column may already exist */ }
+    try {
+        db.exec(`ALTER TABLE email_queue ADD COLUMN attempts INTEGER DEFAULT 0;`);
+    } catch (err) { /* column may already exist */ }
+    try {
+        db.exec(`ALTER TABLE email_queue ADD COLUMN last_error TEXT;`);
+    } catch (err) { /* column may already exist */ }
+    try {
+        db.exec(`ALTER TABLE email_queue ADD COLUMN delivered_at TEXT;`);
+    } catch (err) { /* column may already exist */ }
+    try {
+        db.exec(`ALTER TABLE email_queue ADD COLUMN bounced_at TEXT;`);
+    } catch (err) { /* column may already exist */ }
+    try {
+        db.exec(`ALTER TABLE email_queue ADD COLUMN opened_at TEXT;`);
+    } catch (err) { /* column may already exist */ }
+    try {
+        db.exec(`CREATE INDEX IF NOT EXISTS idx_email_queue_status_attempts ON email_queue(status, attempts);`);
+    } catch (err) { /* index may already exist */ }
     return db;
 }
 
@@ -103,11 +155,15 @@ function getSubscriptions() {
     return db.prepare('SELECT email, created_at FROM subscriptions ORDER BY created_at DESC').all();
 }
 
-function queueEmail({ id, to, subject, text, html }) {
+function queueEmail({ id, to, subject, text, html, provider, providerMessageId }) {
     const db = getDb();
     db.prepare(
-        'INSERT INTO email_queue (id, recipient, subject, body_text, body_html) VALUES (?, ?, ?, ?, ?)'
-    ).run(id, to, subject, text || '', html || '');
+        `INSERT INTO email_queue (id, recipient, subject, body_text, body_html, provider, provider_message_id, attempts, status, queued_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 0, 'pending', datetime('now'))
+         ON CONFLICT(id) DO UPDATE SET
+         recipient=excluded.recipient, subject=excluded.subject, body_text=excluded.body_text,
+         body_html=excluded.body_html, provider=excluded.provider, provider_message_id=excluded.provider_message_id`
+    ).run(id, to, subject, text || '', html || '', provider || null, providerMessageId || null);
     return { queued: true };
 }
 
@@ -118,10 +174,36 @@ function getPendingEmails(limit = 100) {
     ).all('pending', limit);
 }
 
-function markEmailSent(id) {
+function markEmailSent(id, provider, providerMessageId) {
     const db = getDb();
     db.prepare(
-        "UPDATE email_queue SET status = 'sent', sent_at = datetime('now') WHERE id = ?"
+        "UPDATE email_queue SET status = 'sent', sent_at = datetime('now'), provider = ?, provider_message_id = ? WHERE id = ?"
+    ).run(provider || null, providerMessageId || null, id);
+}
+
+function updateEmailStatus(id, status, lastError) {
+    const db = getDb();
+    db.prepare(
+        "UPDATE email_queue SET status = ?, last_error = ? WHERE id = ?"
+    ).run(status, lastError || null, id);
+}
+
+function getEmailByProviderMessageId(providerMessageId) {
+    const db = getDb();
+    return db.prepare('SELECT * FROM email_queue WHERE provider_message_id = ?').get(providerMessageId);
+}
+
+function getEmailsForRetry(limit = 100) {
+    const db = getDb();
+    return db.prepare(
+        "SELECT * FROM email_queue WHERE status = 'pending' AND (attempts IS NULL OR attempts < 3) ORDER BY queued_at ASC LIMIT ?"
+    ).all(limit);
+}
+
+function incrementEmailAttempts(id) {
+    const db = getDb();
+    db.prepare(
+        "UPDATE email_queue SET attempts = attempts + 1 WHERE id = ?"
     ).run(id);
 }
 
@@ -156,6 +238,54 @@ function getCustomerByApiKey(apiKey) {
     return db.prepare('SELECT * FROM customers WHERE api_key = ?').get(apiKey);
 }
 
+function getAllCustomers() {
+    const db = getDb();
+    return db.prepare('SELECT * FROM customers ORDER BY created_at DESC').all();
+}
+
+function getAllPaidSubscriptions() {
+    const db = getDb();
+    return db.prepare('SELECT * FROM paid_subscriptions ORDER BY created_at DESC').all();
+}
+
+function getAllUsers() {
+    const db = getDb();
+    return db.prepare('SELECT id, email, tier, created_at, updated_at FROM users ORDER BY created_at DESC').all();
+}
+
+function addRefundRecord(customerEmail, stripeSubscriptionId, amount, reason) {
+    const db = getDb();
+    db.prepare(
+        'INSERT INTO refunds (customer_email, stripe_subscription_id, amount, reason, status) VALUES (?, ?, ?, ?, ?)'
+    ).run(customerEmail.trim().toLowerCase(), stripeSubscriptionId || null, amount || null, reason || null, 'completed');
+    return { success: true };
+}
+
+function getRefundsForCustomer(email) {
+    const db = getDb();
+    return db.prepare('SELECT * FROM refunds WHERE customer_email = ? ORDER BY created_at DESC').all(email.trim().toLowerCase());
+}
+
+function getAllRefunds() {
+    const db = getDb();
+    return db.prepare('SELECT * FROM refunds ORDER BY created_at DESC').all();
+}
+
+function updatePaidSubscriptionToRefunded(stripeSubscriptionId, reason) {
+    const db = getDb();
+    db.prepare(
+        "UPDATE paid_subscriptions SET status = 'refunded' WHERE stripe_subscription_id = ?"
+    ).run(stripeSubscriptionId);
+    const sub = db.prepare('SELECT * FROM paid_subscriptions WHERE stripe_subscription_id = ?').get(stripeSubscriptionId);
+    if (sub) {
+        addRefundRecord(sub.customer_email, stripeSubscriptionId, null, reason);
+        db.prepare(
+            "UPDATE customers SET subscription_status = 'refunded', tier = 'community', updated_at = datetime('now') WHERE email = ?"
+        ).run(sub.customer_email);
+    }
+    return { success: true };
+}
+
 function addPaidSubscription(customerEmail, stripeSubscriptionId, stripePriceId, status, periodStart, periodEnd) {
     const db = getDb();
     db.prepare(
@@ -170,6 +300,26 @@ function updatePaidSubscriptionStatus(stripeSubscriptionId, status) {
     ).run(status, stripeSubscriptionId);
 }
 
+function createUser(email, passwordHash, salt, tier) {
+    const db = getDb();
+    db.prepare(
+        'INSERT INTO users (email, password_hash, salt, tier) VALUES (?, ?, ?, ?)'
+    ).run(email.trim().toLowerCase(), passwordHash, salt, tier || 'community');
+    return db.prepare('SELECT * FROM users WHERE email = ?').get(email.trim().toLowerCase());
+}
+
+function getUserByEmail(email) {
+    const db = getDb();
+    return db.prepare('SELECT * FROM users WHERE email = ?').get(email.trim().toLowerCase());
+}
+
+function updateUserTier(email, tier) {
+    const db = getDb();
+    db.prepare(
+        "UPDATE users SET tier = ?, updated_at = datetime('now') WHERE email = ?"
+    ).run(tier, email.trim().toLowerCase());
+}
+
 module.exports = {
     getDb,
     addSubscription,
@@ -177,10 +327,24 @@ module.exports = {
     queueEmail,
     getPendingEmails,
     markEmailSent,
+    updateEmailStatus,
+    getEmailByProviderMessageId,
+    getEmailsForRetry,
+    incrementEmailAttempts,
     getOrCreateCustomer,
     updateCustomerStripeId,
     updateCustomerSubscription,
     getCustomerByApiKey,
+    getAllCustomers,
+    getAllPaidSubscriptions,
+    getAllUsers,
+    addRefundRecord,
+    getRefundsForCustomer,
+    getAllRefunds,
+    updatePaidSubscriptionToRefunded,
     addPaidSubscription,
-    updatePaidSubscriptionStatus
+    updatePaidSubscriptionStatus,
+    createUser,
+    getUserByEmail,
+    updateUserTier
 };

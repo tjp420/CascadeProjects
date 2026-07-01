@@ -1386,7 +1386,7 @@ if (tryFreeBtn) {
 tryFreeBtn.addEventListener('click', async () => {
     const btn = document.getElementById('tryFreeBtn');
     const originalText = '\u2699\uFE0F Try Free Sandbox';
-    const email = (document.getElementById('resendEmail')?.value || '').trim();
+    const email = (document.getElementById('resendEmail')?.value || '').trim() || 'guest@simplebeacon.ai';
 
     btn.disabled = true;
     btn.classList.add('btn-loading');
@@ -3089,9 +3089,9 @@ async function probeLocalServer() {
             const vaultLink = document.getElementById('vaultLink');
             if (banner) {
                 banner.style.display = 'flex';
-                if (link) link.href = `http://127.0.0.1:${port}/dashboard/analyze`;
+                if (link) link.href = `http://127.0.0.1:${port}/dashboard/#/analyze`;
             }
-            if (vaultLink) vaultLink.href = '/dashboard/dashboard';
+            if (vaultLink) vaultLink.href = `http://127.0.0.1:${port}/dashboard/#/dashboard`;
             return;
         } catch (_) {
             // Server not running on this port

@@ -32,8 +32,7 @@ const KNOWN_CLI_ONLY_DEV_DEPENDENCIES = new Set([
     'nodemon',
     'webpack-cli',
     'globals',
-    '@eslint/js',
-    'simplebeacon'
+    '@eslint/js'
 ]);
 
 function prioritizeDependencyScanFiles(files, maxFiles = 1500) {

@@ -109,7 +109,7 @@
   <link rel="stylesheet" href="css/components.css?v=20260610redesign1">
   <link rel="stylesheet" href="css/utilities.css">
   <link rel="stylesheet" href="css/disable-elements.css">
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js" crossorigin="anonymous" defer onerror="window._lucideFailed=true"></script>
+  <script src="js/vendor/lucide.min.js" defer onerror="window._lucideFailed=true"></script>
   <script>
     // API proxy: when served from a non-API port (e.g. 57622 static server), redirect /api/* to port 3000
     (function() {
@@ -548,6 +548,33 @@
       }
     })();
   </script>
-  <script type="module" src="js-es2018/main.js?v=20260628dropfix3"></script>
+  <script type="importmap">
+  {
+    "imports": {
+      "utils": "./js-es2018/utils.js?v=20260701nofreeze3",
+      "utils-lib/": "./js-es2018/utils-lib/"
+    }
+  }
+  </script>
+  <script>
+    // Firefox ES module cache busting — forces fresh module loads on every
+    // page load in Firefox, which aggressively caches ES modules separately
+    // from regular HTTP cache. This prevents stale `Object.freeze()` errors.
+    (function() {
+      var isFirefox = (navigator.userAgent || '').toLowerCase().indexOf('firefox') !== -1;
+      if (!isFirefox) return;
+      var nonce = Date.now();
+      var scripts = document.querySelectorAll('script[type="module"]');
+      scripts.forEach(function(s) {
+        var src = s.getAttribute('src');
+        if (src && src.indexOf('?') === -1) {
+          s.setAttribute('src', src + '?_=' + nonce);
+        } else if (src) {
+          s.setAttribute('src', src + '&_=' + nonce);
+        }
+      });
+    })();
+  </script>
+  <script type="module" src="js-es2018/main.js?v=20260701nofreeze1"></script>
 </body>
 </html>

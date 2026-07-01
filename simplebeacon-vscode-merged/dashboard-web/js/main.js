@@ -15,7 +15,7 @@ import { PlatformView } from './views/PlatformView.js?v=20260601platformmetrics1
 import { QualityView } from './views/QualityView.js';
 import { HelpView, FeaturesView } from './views/HelpView.js';
 import { AuditView } from './views/AuditView.js?v=20260618renderfix1';
-import { AnalyzeView } from './views/AnalyzeView.js?v=20260625pathfix2';
+import { AnalyzeView } from './views/AnalyzeViewClean.js?v=20260628rebuild1';
 import { SecurityView } from './views/SecurityView.js?v=20260611fixexport1';
 import { PricingView } from './views/PricingView.js';
 import { AboutView } from './views/AboutView.js';
@@ -83,7 +83,8 @@ function isLocalSelfHosted() {
  * @returns {any}
  */
 function handleSubscriptionGate() {
-  if (isLocalSelfHosted() || requiresAuthGate()) {
+  if (isLocalSelfHosted()) return;
+  if (requiresAuthGate()) {
     if (!authService.isAuthenticated()) {
       this.navigate('signin');
     } else {
@@ -95,7 +96,7 @@ function handleSubscriptionGate() {
     return;
   }
   showUpgradeModal({ onDismiss: (action) => {
-    if (action === 'signin' || isLocalSelfHosted()) {
+    if (action === 'signin') {
       this.navigate('signin');
     } else {
       this.navigate('pricing');
@@ -194,6 +195,23 @@ class SimplebeaconDashboard {
           } catch (e) {}
         }
         if (event.data.url) { window.location.href = event.data.url; }
+      } else if (event.data.command === 'setAnalyzePath') {
+        var path = event.data.path || '';
+        if (!path) return;
+        var pathInput = document.querySelector('#project-path-input');
+        if (pathInput) {
+          pathInput.value = path;
+          pathInput.dispatchEvent(new Event('input', { bubbles: true }));
+          var app = window.__SB_DASHBOARD_APP__;
+          if (app && app.state) {
+            app.state.lastProjectPath = path;
+            app.state.pathInputDraft = '';
+          }
+        }
+        var legacyInput = document.getElementById('analyzePathInput');
+        if (legacyInput) {
+          legacyInput.value = path;
+        }
       }
     });
     try {
@@ -916,6 +934,27 @@ class SimplebeaconDashboard {
       });
     });
 
+    document.querySelectorAll('.nav-footer-link[data-view]').forEach((link) => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        try {
+          this.navigate(link.dataset.view);
+          this.closeMobileNav();
+        } catch (navErr) {
+          /* ignore footer navigation errors */
+        }
+      });
+    });
+
+    document.getElementById('sidebar-export-btn')?.addEventListener('click', () => {
+      const report = this.state.report;
+      if (!report) {
+        showToast('No report to export', 'warning');
+        return;
+      }
+      this.scanService.exportReport(report);
+    });
+
     const appNav = document.getElementById('app-nav');
     appNav?.addEventListener('click', (e) => {
       const link = e.target.closest('.nav-link[data-view]');
@@ -1105,8 +1144,9 @@ class SimplebeaconDashboard {
 
     // Free tier gets read-only dashboard access (view reports, no interaction)
     const isFreeTier = authService.isFreeTier();
-    this.state.readOnly = isFreeTier;
-    if (isFreeTier) {
+    const isSandbox = this.state.sandboxMode === true;
+    this.state.readOnly = isFreeTier || isSandbox;
+    if (isFreeTier || isSandbox) {
       this.showReadOnlyBanner();
     } else {
       document.getElementById('readonly-banner')?.remove();
@@ -1118,7 +1158,9 @@ class SimplebeaconDashboard {
       if (plan || status) {
         const allowed = billingService.hasCloudTeamsAccess(plan, status);
         if (!allowed && !isFreeTier) {
-          if (isLocalSelfHosted() || requiresAuthGate()) {
+          if (isLocalSelfHosted()) {
+            // localhost bypass — do not redirect
+          } else if (requiresAuthGate()) {
             showToast('Sign in with a local account or use npm run dashboard:v1-internal', 'info');
             this.router.navigate('signin');
           } else {
@@ -1141,6 +1183,7 @@ class SimplebeaconDashboard {
     const viewInstance = this.views[view];
     if (viewInstance) {
       this.currentView = viewInstance;
+      main.innerHTML = '';
       viewInstance.mount(main);
     }
 

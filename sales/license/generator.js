@@ -12,17 +12,44 @@ const crypto = require('crypto');
  * @returns {string} Combined cryptographic token (payloadBase64.signatureBase64)
  */
 function signLicense(companyId, tier, expiresAt, privateKeyPem) {
+    if (typeof companyId !== 'string' || !companyId) {
+        throw new TypeError('companyId must be a non-empty string');
+    }
+    if (typeof tier !== 'string' || !tier) {
+        throw new TypeError('tier must be a non-empty string');
+    }
+    if (typeof expiresAt !== 'string' || !expiresAt) {
+        throw new TypeError('expiresAt must be a non-empty string');
+    }
+    if (typeof privateKeyPem !== 'string' || !privateKeyPem) {
+        throw new TypeError('privateKeyPem must be a non-empty string');
+    }
+
     const payload = {
         companyId,
         tier,
         expiresAt
     };
 
-    const encodedPayload = Buffer.from(JSON.stringify(payload)).toString('base64');
+    let encodedPayload;
+    try {
+        encodedPayload = Buffer.from(JSON.stringify(payload)).toString('base64');
+    } catch (err) {
+        throw new Error(`Failed to encode license payload: ${err?.message || String(err)}`);
+    }
 
-    const sign = crypto.createSign('SHA256');
-    sign.update(encodedPayload);
-    const signature = sign.sign(privateKeyPem, 'base64');
+    let signature;
+    try {
+        const sign = crypto.createSign('SHA256');
+        sign.update(encodedPayload);
+        signature = sign.sign(privateKeyPem, 'base64');
+    } catch (err) {
+        throw new Error(`Failed to sign license: ${err?.message || String(err)}`);
+    }
+
+    if (!signature || typeof signature !== 'string') {
+        throw new Error('Signing produced an invalid signature');
+    }
 
     // Return an explicit, combined cryptographic string
     return `${encodedPayload}.${signature}`;

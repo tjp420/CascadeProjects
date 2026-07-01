@@ -2,6 +2,7 @@
 import * as vscode from 'vscode';
 import { existsSync } from 'fs';
 import * as http from 'http';
+import { getSbConfig } from '../utils';
 
 interface RealtimeIssue {
   file: string;
@@ -48,7 +49,7 @@ export class RealtimeMonitor {
   private clipboardHistory: string[] = [];
 
   private getEffectiveMinConfidence(): number {
-    const config = vscode.workspace.getConfiguration('simplebeacon');
+    const config = getSbConfig();
     const preset = config.get<string>('preset', 'default');
     const threshold = config.get<string>('confidenceThreshold', 'medium');
 
@@ -66,7 +67,7 @@ export class RealtimeMonitor {
   }
 
   private get ollamaUrl(): string {
-    return vscode.workspace.getConfiguration('simplebeacon').get<string>('ollamaUrl', 'http://127.0.0.1:11434');
+    return getSbConfig().get<string>('ollamaUrl', 'http://127.0.0.1:11434');
   }
   private readonly maxClipboardHistory = 10;
 
@@ -357,7 +358,7 @@ export class RealtimeMonitor {
       const content = Buffer.from(fileContent).toString('utf8');
       const fileExtension = filePath.split('.').pop()?.toLowerCase() || '';
 
-      const config = vscode.workspace.getConfiguration('simplebeacon');
+      const config = getSbConfig();
       const preset = config.get<string>('preset', 'default');
 
       const issues: RealtimeIssue[] = [];
