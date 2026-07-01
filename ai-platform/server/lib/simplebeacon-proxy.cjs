@@ -21,6 +21,7 @@ const { evaluateGate } = require('../../../packages/simplebeacon-cli/src/gate');
 // --- reporters ---
 const { formatJsonReport } = require('../../../packages/simplebeacon-cli/src/reporters/json');
 const { buildAssessmentReport } = require('../../../packages/simplebeacon-cli/src/assessment');
+const { evaluateComplianceChecklist } = require('../../../packages/simplebeacon-cli/src/compliance-checklist.js');
 const {
   collectIssues,
   resolveSeverityCounts,
@@ -76,13 +77,11 @@ const { buildAuditPayload } = require('../../../packages/simplebeacon-cli/src/li
  * Centralizes all cross-repo imports from packages/simplebeacon-cli so
  * consumers use a stable local path. If packages/ moves, only this file
  * needs to change.
+ *
+ * All exports are validated at startup: any undefined export throws
+ * immediately so missing imports surface as loud failures instead of
+ * silent undefined values in consumers.
  */
-
-// --- lib/ ---
-
-// --- top-level / src/ ---
-
-// --- index / reporters / assessment (deep relative paths) ---
 
 /**
  * Sync jest baseline fallback.
@@ -107,7 +106,27 @@ function syncJestBaselineFallback(baseDir, options) {
   return syncJestBaseline(baseDir, safeOptions);
 }
 
-module.exports = Object.freeze({
+/**
+ * Lightweight passthrough stub for data-cleanup report enrichment.
+ * Kept intentionally thin until a richer implementation lands in the CLI.
+ * @param {Object} report
+ * @returns {Object}
+ */
+function enrichCleanupReport(report) {
+  return (report && typeof report === 'object' && !Array.isArray(report)) ? report : {};
+}
+
+/**
+ * Lightweight passthrough stub for compacting data-cleanup report for client.
+ * Kept intentionally thin until a richer implementation lands in the CLI.
+ * @param {Object} report
+ * @returns {Object}
+ */
+function compactDataCleanupReportForClient(report) {
+  return (report && typeof report === 'object' && !Array.isArray(report)) ? report : {};
+}
+
+const proxyExports = {
   // lib/
   countRepositoryInventory,
   applyPublicGateToAnalyzeResponse,
@@ -149,7 +168,6 @@ module.exports = Object.freeze({
   // deep paths
   runScan,
   runFileReductionScan,
-  resolveMockDataScanPaths,
   evaluateGate,
   loadSimplebeaconConfig,
   resolvePlatformRoot: resolvePlatformRootFromIndex,
@@ -157,7 +175,6 @@ module.exports = Object.freeze({
   buildAssessmentReport,
   buildAuditPayload,
   initSimplebeacon,
-  evaluateComplianceChecklist,
   detectProjectProfile,
   // consolidation / benchmark helpers
   isExternalBenchmarkCachePath,
@@ -176,22 +193,12 @@ module.exports = Object.freeze({
   // data-cleanup report stubs (not exported by CLI index)
   enrichCleanupReport,
   compactDataCleanupReportForClient
-});
+};
 
-/**
- * Passthrough stub for data-cleanup report enrichment.
- * @param {Object} report
- * @returns {Object}
- */
-function enrichCleanupReport(report) {
-  return (report && typeof report === 'object' && !Array.isArray(report)) ? report : {};
+for (const [key, value] of Object.entries(proxyExports)) {
+  if (value === undefined) {
+    throw new ReferenceError(`simplebeacon-proxy.cjs: export "${key}" is undefined (missing import or typo)`);
+  }
 }
 
-/**
- * Passthrough stub for compacting data-cleanup report for client.
- * @param {Object} report
- * @returns {Object}
- */
-function compactDataCleanupReportForClient(report) {
-  return (report && typeof report === 'object' && !Array.isArray(report)) ? report : {};
-}
+module.exports = Object.freeze(proxyExports);
