@@ -176,7 +176,7 @@ app.use((req, res, next) => {
   const prodConnectOrigins = process.env.SIMPLEBEACON_CSP_CONNECT_ORIGINS || "'self'";
   const devConnectOrigins = process.env.SIMPLEBEACON_CSP_CONNECT_ORIGINS || "'self' ws: wss: http: https: http://127.0.0.1:" + SCANNER_BRIDGE_PORT + " http://127.0.0.1:" + LIVE_SERVER_PORT + DEFAULT_PORTS.map(p => " http://127.0.0.1:" + p).join(""); // simplebeacon-ignore hardcoded-url — localhost dev CSP origins, never production
   const csp = process.env.NODE_ENV === 'production'
-    ? `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data:; connect-src ${prodConnectOrigins}; font-src 'self' https://fonts.gstatic.com; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';`
+    ? `default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data:; connect-src ${prodConnectOrigins}; font-src 'self' https://fonts.gstatic.com; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';`
     : `default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' blob: https://unpkg.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob:; connect-src ${devConnectOrigins}; font-src 'self' https://fonts.gstatic.com; object-src 'none'; frame-ancestors *;`
   res.setHeader('Content-Security-Policy', csp);
   next();
@@ -625,6 +625,11 @@ if (landingRootExists) {
     next();
   });
 
+  // Serve remaining landing assets (images, js subdirectories, etc.) when landing is at root
+  if (landingAtRoot) {
+    app.use(express.static(landingRoot));
+  }
+
   const waitlistRateLimiter = rateLimit({
     windowMs: constants.ONE_MINUTE_MS || 60 * 1000,
     max: 10,
@@ -786,7 +791,7 @@ app.use((req, res, next) => {
 });
 
 // Serve dashboard assets from root when internal dashboard is active
-if (internalDashboard) {
+if (!landingAtRoot) {
   const dashDir = path.join(webRoot, 'simplebeacon-dashboard');
   ['/css', '/js', '/js-es2018', '/images', '/fonts', '/assets'].forEach(p => {
     app.use(p, express.static(path.join(dashDir, p.substring(1))));
@@ -798,8 +803,8 @@ app.use((req, res, next) => {
   if (req.path.startsWith('/api/')) {
     return next();
   }
-  // For internal dashboard, prioritize dashboard index.html over landing page
-  if (internalDashboard && req.path === '/') {
+  // For dashboard mode, prioritize dashboard index.html over landing page
+  if (!landingAtRoot && req.path === '/') {
     return sendSimplebeaconDashboard(res);
   }
   // Explicitly set MIME types for CSS files to ensure proxy forwards correctly
