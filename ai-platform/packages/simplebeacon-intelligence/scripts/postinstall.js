@@ -3,8 +3,10 @@
  */
 
 import os from 'os';
-import { getTreeSitterStatus } from '../src/tree-sitter-loader.js';
-import { probeSlmBin } from '../src/slm-bridge.js';
+import * as treeSitterLoader from '../src/tree-sitter-loader.js';
+import * as slmBridge from '../src/slm-bridge.js';
+const { getTreeSitterStatus } = treeSitterLoader;
+const { probeSlmBin } = slmBridge;
 
 /**
  * Platform label.

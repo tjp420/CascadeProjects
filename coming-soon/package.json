@@ -12,7 +12,8 @@
     "format": "npx prettier --write .",
     "analyze": "node analyze-directory.js",
     "analyze:full": "node analyze-directory.js --output .simplebeacon/analyzer-report.json",
-    "quality:check": "npx simplebeacon scan . --gate --offline"
+    "quality:check": "npx simplebeacon scan . --gate --offline",
+    "deploy": "wrangler pages deploy public --project-name=simplebeacon"
   },
   "keywords": [],
   "author": "",
@@ -23,10 +24,11 @@
     "jsonwebtoken": "^9.0.3"
   },
   "engines": {
-    "node": ">=22.0.0",
-    "npm": ">=10.0.0"
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
   },
   "devDependencies": {
+    "@types/node": "^22.15.21",
     "vite": "^8.0.16"
   }
 }
