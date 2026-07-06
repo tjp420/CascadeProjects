@@ -58,7 +58,20 @@ async function handlePhase2Login(req, res, next) {
         });
     } catch (error) {
         auditAuth('login_failed', { email: req.body?.email }, req);
-        next(error);
+        console.error('[Phase2Login] Error during login:', error?.message, error?.stack);
+        // Try legacy login handler as a fallback before returning the error
+        try {
+            if (process.env.ALLOW_LEGACY_LOGIN !== 'false') {
+                return await handleLogin(req, res, next);
+            }
+        } catch (legacyError) {
+            console.error('[Phase2Login] Legacy fallback also failed:', legacyError?.message);
+        }
+        return res.status(500).json({
+            error: error?.name || 'login_error',
+            message: error?.message || 'Login failed due to a server error.',
+            stack: error?.stack
+        });
     }
 }
 
