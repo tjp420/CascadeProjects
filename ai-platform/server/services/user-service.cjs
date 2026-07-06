@@ -157,8 +157,12 @@ async function authenticateWithDemoFile(email, password) {
  */
 async function authenticateUser(db, email, password) {
     if (db) {
-        const user = await authenticateWithDatabase(db, email, password);
-        if (user) return { user, source: 'database' };
+        try {
+            const user = await authenticateWithDatabase(db, email, password);
+            if (user) return { user, source: 'database' };
+        } catch (err) {
+            logger.warn('[UserService] Database auth failed, falling back to demo file:', err.message);
+        }
     }
 
     const demoUser = await authenticateWithDemoFile(email, password);

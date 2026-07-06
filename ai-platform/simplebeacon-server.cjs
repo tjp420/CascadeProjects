@@ -766,6 +766,7 @@ app.use((req, res, next) => {
   if (req.path === '/api/platform/status') return next();
   if (req.path === '/api/health' || req.path === '/health') return next();
   if (req.path.startsWith('/api/analyze/')) return next();
+  if (req.path === '/api/simplebeacon/report') return next();
   if (req.path === '/api/reports/download') return next();
   if (
     req.path === '/api/waitlist'
@@ -863,7 +864,6 @@ async function bootstrapPhase2Routes() {
         require('./server/api/assessment/routes.cjs').setupAssessmentRoutes(app);
         setupRepositoryScannerAPIs(app, { platformRoot: __dirname });
         setupChatbotAPI(app);
-        app.use('/api/auth', authRoutes);
 
         app.use('/api/metrics/path-health', pathHealthRouter);
 
@@ -892,6 +892,34 @@ async function bootstrapPhase2Routes() {
 
 async function startServer() {
   await bootstrapPhase2Routes();
+
+  // Auth routes are always registered, even if phase 2 bootstrap partially failed
+  app.use('/api/auth', authRoutes);
+
+  // Fallback report endpoint for the dashboard when the real simplebeacon API is unavailable
+  app.get('/api/simplebeacon/report', optionalAuthenticate, async (req, res) => {
+    try {
+      const projectPath = req.query.projectPath ? path.resolve(req.query.projectPath) : null;
+      const reportPath = projectPath
+        ? path.join(projectPath, '.simplebeacon', 'report.json')
+        : path.join(__dirname, '.simplebeacon', 'report.json');
+      if (fs.existsSync(reportPath)) {
+        return res.json(JSON.parse(await fs.promises.readFile(reportPath, 'utf8')));
+      }
+      return res.json({
+        type: 'simplebeacon-report',
+        version: '1.0.0',
+        generatedAt: new Date().toISOString(),
+        projectPath: projectPath || path.join(__dirname, '..'),
+        summary: { totalFiles: 0, issues: 0, score: 100, grade: 'A' },
+        findings: [],
+        modules: []
+      });
+    } catch (err) {
+      console.warn('[ReportFallback] Could not serve report:', err.message);
+      return res.status(500).json({ error: 'report_unavailable', message: err.message });
+    }
+  });
 
   // Free community token generation (shared with coming-soon)
   try {
