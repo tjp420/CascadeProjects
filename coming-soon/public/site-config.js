@@ -46,7 +46,7 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
   stripePaymentLink: 'https://buy.stripe.com/00w5kCbgb47t78X1CmeEo05',
   euAiActPackLink: 'https://buy.stripe.com/fZu28qesn6fB1ODftceEo06',
 
-  apiBase: (typeof location !== 'undefined' && (location.hostname === 'localhost' || location.hostname === '127.0.0.1')) ? '' : (typeof location !== 'undefined' ? location.origin : ''),
+  apiBase: (typeof location !== 'undefined' && (location.hostname === 'localhost' || location.hostname === '127.0.0.1')) ? '' : 'https://simplebeacon.onrender.com',
   dashboardUrl: '/dashboard/',
   dashboardAppUrl: '/dashboard/',
   stagingMode: false,

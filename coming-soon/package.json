@@ -7,7 +7,7 @@
     "start": "node server.cjs",
     "dev": "node server.cjs",
     "test": "node --test test/*.test.cjs",
-    "build": "tsc",
+    "build": "tsc && tsc -p tsconfig.dashboard.json && node build-public.js",
     "lint": "node -c server.cjs",
     "format": "npx prettier --write .",
     "analyze": "node analyze-directory.js",

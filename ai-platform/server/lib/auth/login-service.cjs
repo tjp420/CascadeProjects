@@ -47,7 +47,7 @@ async function handleLogin(req, res, next) {
         email: user.email,
         name: user.name,
         trustLevel: user.trustLevel,
-        permissions: trustLevels[user.trustLevel].permissions
+        permissions: (trustLevels[user.trustLevel] || trustLevels.bronze).permissions
       }
     });
   } catch (error) {

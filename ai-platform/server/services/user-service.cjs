@@ -3,7 +3,7 @@
  */
 
 const path = require('path');
-const { hashPassword, verifyPassword } = require('../middleware/auth.cjs');
+const { hashPassword, verifyPassword } = require('../lib/auth/password-service.cjs');
 const logger = require('../lib/app-logger.cjs');
 const { readJsonFileCached } = require('../lib/json-file-cache.cjs');
 

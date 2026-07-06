@@ -962,6 +962,24 @@ async function startServer() {
     });
   });
 
+  // Pricing config endpoint — serves Stripe URLs from environment variables
+  app.get('/api/config/pricing', (_req, res) => {
+    res.json({
+      success: true,
+      pricing: {
+        instant: {
+          stripeLink: process.env.STRIPE_LINK_INSTANT || 'https://buy.stripe.com/4gM28q83ZavR50P2GqeEo07'
+        },
+        executive: {
+          stripeLink: process.env.STRIPE_LINK_EXECUTIVE || 'https://buy.stripe.com/00w5kCbgb47t78X1CmeEo05'
+        },
+        euSprint: {
+          stripeLink: process.env.STRIPE_LINK_EU_SPRINT || 'https://buy.stripe.com/fZu28qesn6fB1ODftceEo06'
+        }
+      }
+    });
+  });
+
   app.get('/api/simplebeacon/history', optionalAuthenticate, (req, res) => {
     res.json({ entries: [] });
   });
