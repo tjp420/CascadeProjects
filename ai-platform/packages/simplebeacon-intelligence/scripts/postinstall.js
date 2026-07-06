@@ -5,8 +5,21 @@
 import os from 'os';
 import * as treeSitterLoader from '../src/tree-sitter-loader.js';
 import * as slmBridge from '../src/slm-bridge.js';
-const { getTreeSitterStatus } = treeSitterLoader;
-const { probeSlmBin } = slmBridge;
+
+/**
+ * Extract a function from a module that may be resolved as ESM or CJS.
+ * @param {any} mod
+ * @param {string} name
+ * @returns {Function|undefined}
+ */
+function pick(mod, name) {
+    if (typeof mod[name] === 'function') return mod[name];
+    if (mod.default && typeof mod.default[name] === 'function') return mod.default[name];
+    return undefined;
+}
+
+const getTreeSitterStatus = pick(treeSitterLoader, 'getTreeSitterStatus') || (() => ({ ready: false, webTreeSitterInstalled: false, grammarsAvailable: {} }));
+const probeSlmBin = pick(slmBridge, 'probeSlmBin') || (() => ({ configured: false, executable: false, path: null }));
 
 /**
  * Platform label.
@@ -49,8 +62,13 @@ function main() {
         hints.length ? `Next: ${hints.join(' | ')}` : 'Ready for intelligence.enabled in .simplebeacon/config.json'
     ].join('\n');
 
+    console.log(message);
 }
 
-main();
+try {
+    main();
+} catch (err) {
+    console.warn(`[@simplebeacon/intelligence] postinstall probe skipped: ${err.message}`);
+}
 
 export { main };
