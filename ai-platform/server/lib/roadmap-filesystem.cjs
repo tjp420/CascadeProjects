@@ -136,6 +136,20 @@ function slugify(str) {
 }
 
 /**
+ * Read JSON file safely, returning null on error.
+ * @param {string} filePath
+ * @returns {any}
+ */
+function readJsonSafe(filePath) {
+    try {
+        const raw = fs.readFileSync(filePath, 'utf8');
+        return JSON.parse(raw);
+    } catch {
+        return null;
+    }
+}
+
+/**
  * Should ignore roadmap path.
  * @param {string} relativePath
  * @returns {boolean}
