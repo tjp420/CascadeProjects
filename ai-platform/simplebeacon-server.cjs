@@ -773,6 +773,8 @@ app.use((req, res, next) => {
     || req.path === '/api/waitlist/event'
     || req.path === '/api/audit-booking'
     || req.path === '/api/audit-bookings'
+    || req.path === '/api/free-token'
+    || req.path === '/api/tokens/sandbox'
   ) return next();
   if (isVaultAuthenticated(req)) return next();
   // simplebeacon-ignore dead-code — final return in Express middleware, not unreachable code
