@@ -3,8 +3,13 @@
  * Gracefully degrades when web-tree-sitter or grammar files are absent.
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { createRequire } from 'module';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const require = createRequire(import.meta.url);
 
 const GRAMMAR_MAP = {
     javascript: 'tree-sitter-javascript.wasm',
@@ -144,7 +149,7 @@ function getTreeSitterStatus(options = {}) {
     };
 }
 
-module.exports = {
+export {
     GRAMMAR_MAP,
     initParser,
     createLanguageParser,
@@ -152,4 +157,4 @@ module.exports = {
     isGrammarAvailable,
     getTreeSitterStatus,
     resolveWasmDir
-};
+}

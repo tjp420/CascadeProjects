@@ -2,9 +2,9 @@
  * Post-install probe — platform detection and setup hints (no network required).
  */
 
-const os = require('os');
-const { getTreeSitterStatus } = require('../src/tree-sitter-loader');
-const { probeSlmBin } = require('../src/slm-bridge');
+import os from 'os';
+import { getTreeSitterStatus } from '../src/tree-sitter-loader.js';
+import { probeSlmBin } from '../src/slm-bridge.js';
 
 /**
  * Platform label.
@@ -49,8 +49,6 @@ function main() {
 
 }
 
-if (require.main === module) {
-    main();
-}
+main();
 
-module.exports = { main };
+export { main };

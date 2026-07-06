@@ -5,6 +5,7 @@
   "workspaces": [
     "packages/*",
     "ai-platform",
+    "ai-platform/packages/*",
     "coming-soon",
     "simplebeacon-vscode-merged"
   ],

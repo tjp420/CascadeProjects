@@ -3,7 +3,7 @@ services:
     name: simplebeacon
     runtime: node
     plan: free
-    buildCommand: cd ai-platform && npm install
+    buildCommand: npm install
     startCommand: node ai-platform/simplebeacon-server.cjs
     envVars:
       - key: NODE_ENV
@@ -54,8 +54,8 @@ services:
         sync: false
       - key: SMTP_FROM
         value: certificates@simplebeacon.ai
-      - key: SIMPLEBEACON_LANDING
-        value: "true"
       - key: SIMPLEBEACON_APP_URL
         sync: false
+      - key: SIMPLEBEACON_LANDING
+        value: "true"
     healthCheckPath: /health

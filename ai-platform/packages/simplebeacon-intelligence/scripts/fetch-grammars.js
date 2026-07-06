@@ -3,9 +3,9 @@
  * Network required — run manually: npm run fetch-grammars
  */
 
-const fs = require('fs');
-const https = require('https');
-const path = require('path');
+import fs from 'fs';
+import https from 'https';
+import path from 'path';
 
 const GRAMMARS = [
     {
@@ -85,11 +85,9 @@ async function main() {
     }
 }
 
-if (require.main === module) {
-    main().catch((err) => {
-        console.error(err);
-        process.exit(1);
-    });
-}
+main().catch((err) => {
+    console.error(err);
+    process.exit(1);
+});
 
-module.exports = { GRAMMARS, download, OUT_DIR };
+export { GRAMMARS, download, OUT_DIR };
