@@ -637,8 +637,9 @@ if (landingRootExists) {
     return res.redirect(301, '/' + target);
   });
 
-  // Serve remaining landing assets (images, js subdirectories, etc.) when landing is at root
-  if (landingAtRoot) {
+  // Serve remaining landing assets whenever landing pages are available
+  // (not just when landing is at root), so /audit.html and similar pages can load scripts
+  if (landingRootExists) {
     app.use(express.static(landingRoot));
   }
 
