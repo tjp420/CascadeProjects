@@ -58,7 +58,7 @@ function generateToken(user) {
     trustLevel: levelKey,
     permissions: levelConfig.permissions,
     iat: Math.floor(Date.now() / constants.MS_PER_SECOND),
-    jti: crypto.randomUUID()
+    jti: (typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : crypto.randomBytes(16).toString('hex'))
   };
 
   return jwt.sign(payload, jwtConfig.secret, {
