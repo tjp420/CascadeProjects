@@ -74,6 +74,82 @@ const TIER_EMAIL_CONFIG = {
     deliveryVisible: false,
     secondaryVisible: false
   },
+  pro_monthly: {
+    headline: 'Subscription Active',
+    productName: 'SimpleBeacon Pro',
+    price: '$9.00 / month',
+    paymentMethod: 'Paid via Stripe',
+    receiptClass: '',
+    primaryCta: 'Get Started →',
+    stepsTitle: 'Getting started',
+    stepsList: `<li>Copy your license token below into VS Code settings or your CLI env</li>
+      <li>Run <code>npx simplebeacon scan --gate --offline</code> locally</li>
+      <li>Unlock all 38 analyzer engines and exportable reports</li>
+      <li>Install the GitHub Action for automatic PR gating</li>`,
+    privacyText: 'Your source code never leaves your machine. Only the scan report JSON (findings summary, no code) is uploaded for certificate generation.',
+    supportText: 'Questions about your subscription? Email',
+    tokenVisible: true,
+    featuresVisible: false,
+    deliveryVisible: false,
+    secondaryVisible: false
+  },
+  pro_annual: {
+    headline: 'Subscription Active',
+    productName: 'SimpleBeacon Pro (Annual)',
+    price: '$79.00 / year',
+    paymentMethod: 'Paid via Stripe',
+    receiptClass: '',
+    primaryCta: 'Get Started →',
+    stepsTitle: 'Getting started',
+    stepsList: `<li>Copy your license token below into VS Code settings or your CLI env</li>
+      <li>Run <code>npx simplebeacon scan --gate --offline</code> locally</li>
+      <li>Unlock all 38 analyzer engines and exportable reports</li>
+      <li>Install the GitHub Action for automatic PR gating</li>`,
+    privacyText: 'Your source code never leaves your machine. Only the scan report JSON (findings summary, no code) is uploaded for certificate generation.',
+    supportText: 'Questions about your subscription? Email',
+    tokenVisible: true,
+    featuresVisible: false,
+    deliveryVisible: false,
+    secondaryVisible: false
+  },
+  team_monthly: {
+    headline: 'Subscription Active',
+    productName: 'SimpleBeacon Team',
+    price: '$15.00 / dev / month',
+    paymentMethod: 'Paid via Stripe',
+    receiptClass: '',
+    primaryCta: 'Get Started →',
+    stepsTitle: 'Getting started',
+    stepsList: `<li>Copy your license token below into VS Code settings or your CLI env</li>
+      <li>Run <code>npx simplebeacon scan --gate --offline</code> locally</li>
+      <li>Share team configs and manage seats from your dashboard</li>
+      <li>Install the GitHub Action for automatic PR gating</li>`,
+    privacyText: 'Your source code never leaves your machine. Only the scan report JSON (findings summary, no code) is uploaded for certificate generation.',
+    supportText: 'Questions about your subscription? Email',
+    tokenVisible: true,
+    featuresVisible: false,
+    deliveryVisible: false,
+    secondaryVisible: false
+  },
+  team_annual: {
+    headline: 'Subscription Active',
+    productName: 'SimpleBeacon Team (Annual)',
+    price: '$150.00 / dev / year',
+    paymentMethod: 'Paid via Stripe',
+    receiptClass: '',
+    primaryCta: 'Get Started →',
+    stepsTitle: 'Getting started',
+    stepsList: `<li>Copy your license token below into VS Code settings or your CLI env</li>
+      <li>Run <code>npx simplebeacon scan --gate --offline</code> locally</li>
+      <li>Share team configs and manage seats from your dashboard</li>
+      <li>Install the GitHub Action for automatic PR gating</li>`,
+    privacyText: 'Your source code never leaves your machine. Only the scan report JSON (findings summary, no code) is uploaded for certificate generation.',
+    supportText: 'Questions about your subscription? Email',
+    tokenVisible: true,
+    featuresVisible: false,
+    deliveryVisible: false,
+    secondaryVisible: false
+  },
   startup_shield: {
     headline: 'Subscription Active',
     productName: 'Startup Shield',
@@ -208,8 +284,36 @@ function buildTierEmail(product, licenseToken, certUploadUrl, sessionId) {
   return { html, text: textLines };
 }
 
+/**
+ * Build resend email subject and body for a given product.
+ * @param {string} product
+ * @param {{licenseToken: string, licenseTier?: string}} record
+ * @param {string} certUploadUrl
+ * @returns {{subject: string, body: string}}
+ */
+function buildResendEmail(product, record, certUploadUrl) {
+  const token = record.licenseToken;
+  const map = {
+    instant_report: {
+      subject: 'Your SimpleBeacon Instant Report — Token Resent',
+      body: `Here is your license token again:\n\n${token}\n\nYour instant report was sent to this email. If you did not receive it, check your spam folder or contact support.`
+    },
+    executive_clearance: {
+      subject: 'Your SimpleBeacon Executive Risk Certificate — Token Resent',
+      body: `Here is your license token again:\n\n${token}\n\nUpload your scan report at: ${certUploadUrl}\n\n1. Run the scan locally: npx simplebeacon scan --gate --offline\n2. Upload your report JSON and paste the token above.\n3. We will generate your certificate within 48 hours.`
+    },
+    eu_ai_act_sprint: {
+      subject: 'Your SimpleBeacon EU AI Act Sprint — Token Resent',
+      body: `Here is your license token again:\n\n${token}\n\nUpload your scan at: ${certUploadUrl}\n\n1. Run the EU AI Act scan: npx simplebeacon scan --gate --offline --config .simplebeacon/config-full-coverage.json\n2. Upload your report JSON and paste the token above.\n3. We will generate your EU AI Act Readiness Report within 48 hours.`
+    }
+  };
+  const fallback = map.executive_clearance;
+  return map[product] || fallback;
+}
+
 module.exports = {
   TIER_EMAIL_CONFIG,
   buildTierEmail,
+  buildResendEmail,
   emailTemplateHtml
 };

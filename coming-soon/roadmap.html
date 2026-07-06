@@ -49,6 +49,11 @@
   <script type="module" src="js-es2018/dashboard/phase-registry.js?v=20260615a"></script>
 </head>
 <body>
+  <a href="#app" class="skip-link" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;z-index:1001;">Skip to content</a>
+  <script>
+    document.querySelector('.skip-link').addEventListener('focus',function(){this.style.position='fixed';this.style.left='16px';this.style.top='16px';this.style.width='auto';this.style.height='auto';this.style.padding='8px 16px';this.style.background='var(--accent)';this.style.color='#fff';this.style.borderRadius='8px';this.style.fontWeight='600';this.style.textDecoration='none';});
+    document.querySelector('.skip-link').addEventListener('blur',function(){this.style.position='absolute';this.style.left='-9999px';this.style.top='auto';this.style.width='1px';this.style.height='1px';});
+  </script>
   <div class="container">
     <nav class="top-nav">
       <a href="index.html" class="brand">SimpleBeacon</a>
@@ -58,8 +63,8 @@
         <a href="pricing.html">Pricing</a>
         <a href="/dashboard/#/dashboard" id="vaultLink">Team Dashboard</a>
         <script>window.addEventListener('DOMContentLoaded', function() { if (window.SbAuth) window.SbAuth.propagateTokenToLinks(); });</script>
-        <button type="button" id="nav-signin-btn" style="display:none;margin-left:8px;padding:4px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text-muted);font-size:0.8rem;cursor:pointer;">Sign in</button>
-        <button type="button" id="nav-signout-btn" onclick="window.SbAuth.signOut()" style="margin-left:8px;padding:4px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text-muted);font-size:0.8rem;cursor:pointer;">Sign out</button>
+        <button type="button" id="nav-signin-btn" style="display:none;margin-left:8px;padding:4px 0;background:transparent;color:var(--text-muted);font-size:0.8rem;cursor:pointer;border:none;border-radius:0;">Sign in</button>
+        <button type="button" id="nav-signout-btn" style="margin-left:8px;padding:4px 0;background:transparent;color:var(--text-muted);font-size:0.8rem;cursor:pointer;border:none;border-radius:0;">Sign out</button>
       </div>
     </nav>
     <div class="hero">
@@ -83,15 +88,15 @@
     </div>
     <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:32px;">
       <label style="display:block;font-size:0.75rem;color:var(--text-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">&#128203; Or paste JSON directly</label>
-      <textarea id="jsonPasteInput" placeholder='{"type":"simplebeacon-report","gate":{"pass":true}...}' style="width:100%;min-height:120px;padding:12px;border:1px solid var(--border);border-radius:8px;background:#0a0e17;color:var(--text);font-family:'SF Mono',Monaco,monospace;font-size:0.8rem;resize:vertical;"></textarea>
+      <textarea id="jsonPasteInput" placeholder='{"type":"simplebeacon-report","gate":{"pass":true}...}' style="width:100%;min-height:120px;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-input);color:var(--text);font-family:'SF Mono',Monaco,monospace;font-size:0.8rem;resize:vertical;"></textarea>
       <button id="jsonPasteBtn" class="btn btn-primary" style="margin-top:10px;width:100%;">Load JSON Report</button>
       <button id="loadTestReportBtn" class="btn btn-secondary" style="margin-top:8px;width:100%;font-size:0.8rem;">&#128200; Load Test Report</button>
       <p style="font-size:0.7rem;color:var(--text-dim);margin-top:8px;">Press Ctrl+Enter to submit</p>
     </div>
-    <div id="app" style="display:none;">
-      <div class="roadmap-section">
+    <div id="app" style="display:none;" role="main">
+      <div class="roadmap-section" role="region" aria-labelledby="dashboardTitle">
         <div class="section-header">
-          <div><div class="section-title">Data Quality Dashboard</div><div class="section-subtitle" id="projectName">Project: —</div></div>
+          <div><div class="section-title" id="dashboardTitle">Data Quality Dashboard</div><div class="section-subtitle" id="projectName">Project: —</div></div>
           <div style="font-size:0.8rem;color:var(--text-muted);" id="scanDate">—</div>
         </div>
         <div class="scorecard-grid" id="scorecards"></div>
@@ -104,14 +109,15 @@
         <button class="btn btn-secondary" id="exportJiraBtn">&#128220; Jira CSV</button>
         <button class="btn btn-secondary" id="exportTrelloBtn">&#127183; Trello JSON</button>
         <button class="btn btn-secondary" id="shareUrlBtn">&#128279; Share</button>
+        <button class="btn btn-secondary" id="exportCsvBtn">&#128202; CSV</button>
         <button class="btn btn-secondary" id="exportPdfBtn">&#128196; PDF</button>
         <button class="btn btn-primary" id="newScanBtn">&#128259; New Report</button>
       </div>
       <div id="overallHealth"></div>
       <div id="findingsBanner"></div>
-      <div class="roadmap-section">
+      <div class="roadmap-section" role="region" aria-labelledby="roadmapTitle">
         <div class="section-header" style="display:flex;justify-content:space-between;align-items:center;">
-          <div><div class="section-title">Remediation Roadmap</div><div class="section-subtitle">Auto-generated from scan findings</div></div>
+          <div><div class="section-title" id="roadmapTitle">Remediation Roadmap</div><div class="section-subtitle">Auto-generated from scan findings</div></div>
           <div style="display:flex;gap:8px;">
             <button class="btn btn-secondary" id="importPhaseBtn">&#128206; Import Phase</button>
             <button class="btn btn-secondary" id="exportRoadmapJsonBtn">&#128229; Download JSON</button>
@@ -160,9 +166,12 @@
         </div>
         <div class="timeline" id="timeline"></div>
       </div>
-      <div class="roadmap-section" id="allIssuesSection">
+      <div class="roadmap-section" id="allIssuesSection" role="region" aria-labelledby="issuesTitle">
         <div class="section-header" style="display:flex;justify-content:space-between;align-items:center;">
-          <div><div class="section-title">All Issues</div><div class="section-subtitle">Complete list from scan report</div></div>
+          <div class="collapse-toggle" id="allIssuesToggle" aria-expanded="true" role="button" tabindex="0">
+            <span class="collapse-chevron">▼</span>
+            <div><div class="section-title" id="issuesTitle">All Issues</div><div class="section-subtitle">Complete list from scan report</div></div>
+          </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;" id="issueSeverityFilters"></div>
           <button class="btn btn-secondary" id="exportIssuesJsonBtn" title="Export filtered issues as JSON">&#128229; Export JSON</button>
         </div>
@@ -173,9 +182,17 @@
           <button class="btn btn-secondary" id="toggleShowAllIssues" style="font-size:0.8rem;padding:6px 16px;">Show All</button>
         </div>
       </div>
-      <div class="roadmap-section">
-        <div class="section-header"><div class="section-title">Source Report Preview</div><button id="downloadSourceReportBtn" class="btn btn-primary" style="display:none;font-size:0.75rem;padding:6px 12px;">&#128229; Download</button></div>
-        <div class="json-preview"><pre id="jsonPreview"></pre></div>
+      <div class="roadmap-section" role="region" aria-labelledby="previewTitle">
+        <div class="section-header">
+          <div class="collapse-toggle" id="sourcePreviewToggle" aria-expanded="true" role="button" tabindex="0">
+            <span class="collapse-chevron">▼</span>
+            <div class="section-title" id="previewTitle">Source Report Preview</div>
+          </div>
+          <button id="downloadSourceReportBtn" class="btn btn-primary" style="display:none;font-size:0.75rem;padding:6px 12px;">&#128229; Download</button>
+        </div>
+        <div class="collapsible-panel" id="sourcePreviewPanel">
+          <div class="json-preview"><pre id="jsonPreview"></pre></div>
+        </div>
       </div>
     </div>
     <div class="empty-state" id="emptyState">
@@ -184,7 +201,11 @@
     </div>
   </div>
   <input type="file" id="phaseImportInput" accept=".json" style="display:none;">
-  <div class="toast" id="toast"></div>
+  <div class="toast" id="toast" aria-live="polite" aria-atomic="true" role="status"></div>
+  <div class="fab-container" id="fabContainer">
+    <button class="fab fab-secondary" id="fabExport" title="Export">&#128229;</button>
+    <button class="fab" id="fabNewScan" title="New Report">&#128259;</button>
+  </div>
   <script src="js/vendor/jszip.min.js"></script>
   <script src="https://unpkg.com/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
   <script src="js/roadmap-app.js"></script>
@@ -193,34 +214,42 @@
   <div class="signin-overlay" id="signinOverlay">
     <div class="signin-panel">
       <button class="signin-close" id="signinCloseBtn" type="button">&times;</button>
-      <h3>Sign In</h3>
-      <p class="signin-sub">Access your SimpleBeacon account.</p>
-      <div class="signin-tabs">
-        <button class="signin-tab active" id="tab-token" type="button">License Token</button>
-        <button class="signin-tab" id="tab-email" type="button">Email & Password</button>
+      <div class="signin-header">
+        <span class="signin-icon" aria-hidden="true">&#128274;</span>
+        <h3 class="signin-title">Sign In</h3>
+        <p class="signin-sub">Access your SimpleBeacon dashboard.</p>
       </div>
-      <div class="signin-form active" id="form-token">
-        <div class="signin-field">
-          <label for="signinToken">License Token</label>
-          <input type="text" id="signinToken" placeholder="Paste your license token..." autocomplete="off">
-        </div>
-        <button class="signin-btn" id="signinSubmitBtn" type="button">Sign In</button>
+      <div class="signin-subtabs">
+        <button type="button" class="signin-subtab active" data-mode="login" id="subtab-login">Sign In</button>
+        <button type="button" class="signin-subtab" data-mode="register" id="subtab-register">Create Account</button>
       </div>
-      <div class="signin-form" id="form-email">
+      <form id="signin-email-form" class="signin-form active">
         <div class="signin-field">
-          <label for="signinEmail">Email</label>
-          <input type="email" id="signinEmail" placeholder="you@company.com" autocomplete="email">
+          <label for="signinEmail">Email / Username</label>
+          <input type="text" id="signinEmail" placeholder="email@example.com or username" autocomplete="email">
         </div>
         <div class="signin-field">
           <label for="signinPassword">Password</label>
           <input type="password" id="signinPassword" placeholder="Enter your password..." autocomplete="current-password">
         </div>
-        <button class="signin-btn" id="signinEmailBtn" type="button">Sign In</button>
-      </div>
-      <p class="signin-error" id="signinError"></p>
-      <div class="signin-footer">
-        Don't have a token? <a href="pricing.html">Get one</a>
-      </div>
+        <div style="display:flex;justify-content:flex-end;margin:-4px 0 8px;">
+          <button type="button" id="forgot-password-btn" style="background:none;border:none;color:var(--accent);font-size:0.78rem;cursor:pointer;padding:0;">Forgot Password?</button>
+        </div>
+        <p class="signin-error" id="signinError"></p>
+        <button class="signin-btn" type="button" id="signinEmailBtn">Sign In</button>
+      </form>
+      <div class="signin-divider"><span>or</span></div>
+      <button type="button" class="signin-btn" id="webauthn-signin-btn" style="background:var(--bg-elevated);color:var(--text-main);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;gap:8px;">
+        <span>&#128274;</span> Sign in with Security Key
+      </button>
+      <p class="signin-note" id="email-mode-note">New here? Switch to <strong>Create Account</strong> to register.</p>
+      <p class="signin-footer">
+        <a href="/demo">View read-only demo</a>
+        <span class="signin-footer-sep">&middot;</span>
+        <a href="/dashboard/about">About &amp; install</a>
+        <span class="signin-footer-sep">&middot;</span>
+        <a href="https://github.com/tjp420/simplebeacon" target="_blank" rel="noopener noreferrer">GitHub</a>
+      </p>
     </div>
   </div>
 
@@ -288,33 +317,30 @@
       } catch(e) {}
       // Periodic check for auth state changes
       setInterval(updateAuthNav, 2000);
+      var emailMode = 'login';
       var signinOverlay = document.getElementById('signinOverlay');
       var signinCloseBtn = document.getElementById('signinCloseBtn');
-      var signinSubmitBtn = document.getElementById('signinSubmitBtn');
-      var signinToken = document.getElementById('signinToken');
-      var signinError = document.getElementById('signinError');
-      var tabToken = document.getElementById('tab-token');
-      var tabEmail = document.getElementById('tab-email');
-      var formToken = document.getElementById('form-token');
-      var formEmail = document.getElementById('form-email');
       var signinEmailBtn = document.getElementById('signinEmailBtn');
       var signinEmail = document.getElementById('signinEmail');
       var signinPassword = document.getElementById('signinPassword');
+      var signinError = document.getElementById('signinError');
+      var subtabLogin = document.getElementById('subtab-login');
+      var subtabRegister = document.getElementById('subtab-register');
+      var forgotPasswordBtn = document.getElementById('forgot-password-btn');
+      var webauthnBtn = document.getElementById('webauthn-signin-btn');
+      var emailModeNote = document.getElementById('email-mode-note');
 
-      function showTab(name) {
-        if (name === 'token') {
-          tabToken.classList.add('active'); tabEmail.classList.remove('active');
-          formToken.classList.add('active'); formEmail.classList.remove('active');
-          setTimeout(function() { signinToken.focus(); }, 50);
-        } else {
-          tabEmail.classList.add('active'); tabToken.classList.remove('active');
-          formEmail.classList.add('active'); formToken.classList.remove('active');
-          setTimeout(function() { signinEmail.focus(); }, 50);
-        }
-        signinError.style.display = 'none';
+      function setEmailMode(mode) {
+        emailMode = mode;
+        if (subtabLogin) subtabLogin.classList.toggle('active', mode === 'login');
+        if (subtabRegister) subtabRegister.classList.toggle('active', mode === 'register');
+        if (signinEmailBtn) signinEmailBtn.textContent = mode === 'register' ? 'Create Account' : 'Sign In';
+        if (emailModeNote) emailModeNote.innerHTML = mode === 'login' ? 'New here? Switch to <strong>Create Account</strong> to register.' : 'Already have an account? Switch to <strong>Sign In</strong>.';
+        if (forgotPasswordBtn) forgotPasswordBtn.style.display = mode === 'login' ? 'block' : 'none';
       }
       function openSigninModal() {
-        if (signinOverlay) { signinOverlay.classList.add('active'); signinToken.focus(); }
+        if (signinOverlay) { signinOverlay.classList.add('active'); }
+        if (signinEmail) { setTimeout(function() { signinEmail.focus(); }, 50); }
       }
       function closeSigninModal() {
         if (signinOverlay) { signinOverlay.classList.remove('active'); signinError.style.display = 'none'; }
@@ -326,18 +352,6 @@
         document.body.appendChild(toast);
         setTimeout(function(){ toast.style.opacity='0'; setTimeout(function(){ toast.remove(); }, 300); }, 2000);
       }
-      function handleSigninSubmit() {
-        var token = signinToken.value.trim();
-        if (!token) {
-          signinError.textContent = 'Please enter a license token.';
-          signinError.style.display = 'block'; return;
-        }
-        localStorage.setItem('simplebeacon_token', token);
-        signinError.style.display = 'none';
-        closeSigninModal();
-        updateAuthNav();
-        showSuccessToast('Signed in successfully');
-      }
       function handleEmailSignin() {
         var email = signinEmail.value.trim();
         var password = signinPassword.value;
@@ -348,18 +362,32 @@
         signinError.style.display = 'none';
         closeSigninModal();
         updateAuthNav();
-        showSuccessToast('Signed in successfully');
+        showSuccessToast(emailMode === 'register' ? 'Account created successfully' : 'Signed in successfully');
+      }
+      function handleForgotPassword() {
+        var email = signinEmail.value.trim();
+        if (!email) { signinError.textContent = 'Please enter your email first.'; signinError.style.display = 'block'; return; }
+        signinError.style.display = 'none';
+        showSuccessToast('Recovery instructions sent (demo).');
+      }
+      function handleWebAuthn() {
+        if (!window.PublicKeyCredential) {
+          signinError.textContent = 'Security key login is not supported in this browser.';
+          signinError.style.display = 'block'; return;
+        }
+        signinError.style.display = 'none';
+        showSuccessToast('Security key authentication started (demo).');
       }
 
-      if (signinBtn) signinBtn.addEventListener('click', openSigninModal);
+      if (signinBtn) signinBtn.addEventListener('click', function() { window.location.href = '/dashboard/signin?returnTo=' + encodeURIComponent(window.location.pathname); });
       if (signinCloseBtn) signinCloseBtn.addEventListener('click', closeSigninModal);
       if (signinOverlay) signinOverlay.addEventListener('click', function(e) { if (e.target === signinOverlay) closeSigninModal(); });
-      if (signinSubmitBtn) signinSubmitBtn.addEventListener('click', handleSigninSubmit);
-      if (signinToken) signinToken.addEventListener('keydown', function(e) { if (e.key === 'Enter') handleSigninSubmit(); });
-      if (tabToken) tabToken.addEventListener('click', function() { showTab('token'); });
-      if (tabEmail) tabEmail.addEventListener('click', function() { showTab('email'); });
       if (signinEmailBtn) signinEmailBtn.addEventListener('click', handleEmailSignin);
       if (signinPassword) signinPassword.addEventListener('keydown', function(e) { if (e.key === 'Enter') handleEmailSignin(); });
+      if (subtabLogin) subtabLogin.addEventListener('click', function() { setEmailMode('login'); });
+      if (subtabRegister) subtabRegister.addEventListener('click', function() { setEmailMode('register'); });
+      if (forgotPasswordBtn) forgotPasswordBtn.addEventListener('click', handleForgotPassword);
+      if (webauthnBtn) webauthnBtn.addEventListener('click', handleWebAuthn);
 
       updateAuthNav();
       window.addEventListener('storage', function(e) {

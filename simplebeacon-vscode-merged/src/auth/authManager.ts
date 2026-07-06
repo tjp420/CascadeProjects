@@ -1,8 +1,12 @@
 import * as vscode from 'vscode';
 import { getSbConfig } from '../utils';
+import { getDataServerPort } from '../dataServer';
+import { AccountTracker } from '../accountTracker';
 
 const TOKEN_KEY = 'simplebeacon.apiToken';
 const PASSWORD_KEY = 'simplebeacon.apiPassword';
+const USER_EMAIL_KEY = 'simplebeacon.userEmail';
+const USER_NAME_KEY = 'simplebeacon.userName';
 const SERVER_URL_KEY = 'simplebeacon.apiServerUrl';
 function getDefaultServerUrl(): string {
   return getSbConfig().get<string>('apiUrl', 'http://127.0.0.1:3000');
@@ -14,9 +18,11 @@ function getDefaultServerUrl(): string {
  */
 export class AuthManager {
   private context: vscode.ExtensionContext;
+  private tracker: AccountTracker;
 
   constructor(context: vscode.ExtensionContext) {
     this.context = context;
+    this.tracker = new AccountTracker(context);
   }
 
   /**
@@ -44,13 +50,18 @@ export class AuthManager {
    */
   async setToken(token: string): Promise<void> {
     await this.context.secrets.store(TOKEN_KEY, token);
+    try { await this.tracker.recordLogin(token, 'extension', 'tokenStored'); } catch {}
   }
 
   /**
    * Clear the stored token.
    */
   async clearToken(): Promise<void> {
+    const existing = await this.getToken();
     await this.context.secrets.delete(TOKEN_KEY);
+    if (existing) {
+      try { await this.tracker.recordLogout(existing, 'extension', 'tokenCleared'); } catch {}
+    }
   }
 
   /**
@@ -82,6 +93,42 @@ export class AuthManager {
   }
 
   /**
+   * Get the stored user email.
+   */
+  async getUserEmail(): Promise<string | undefined> {
+    try {
+      const secret = await this.context.secrets.get(USER_EMAIL_KEY);
+      if (secret) return secret;
+    } catch {}
+    return this.context.globalState.get<string>(USER_EMAIL_KEY);
+  }
+
+  /**
+   * Store the user email.
+   */
+  async setUserEmail(email: string): Promise<void> {
+    await this.context.secrets.store(USER_EMAIL_KEY, email);
+  }
+
+  /**
+   * Get the stored user name.
+   */
+  async getUserName(): Promise<string | undefined> {
+    try {
+      const secret = await this.context.secrets.get(USER_NAME_KEY);
+      if (secret) return secret;
+    } catch {}
+    return this.context.globalState.get<string>(USER_NAME_KEY);
+  }
+
+  /**
+   * Store the user name.
+   */
+  async setUserName(name: string): Promise<void> {
+    await this.context.secrets.store(USER_NAME_KEY, name);
+  }
+
+  /**
    * Return true if a token is currently stored.
    */
   async isSignedIn(): Promise<boolean> {
@@ -109,32 +156,55 @@ export class AuthManager {
    * Show a prompt to enter the API token.
    */
   async promptForToken(): Promise<string | undefined> {
-    const token = await vscode.window.showInputBox({
+    const raw = await vscode.window.showInputBox({
       title: 'SimpleBeacon API Token',
       prompt: 'Paste your token from the dashboard (localStorage "cascadeAuthToken")',
       password: true,
       ignoreFocusOut: true,
       validateInput: (value) => {
-        if (!value || value.length < 10) {
+        const trimmed = (value || '').trim();
+        if (!trimmed || trimmed.length < 10) {
           return 'Token looks too short — copy the full JWT from your browser';
+        }
+        const parts = trimmed.split('.');
+        if (parts.length !== 2 && parts.length !== 3) {
+          return 'Token must be a JWT (3 dots) or license key (1 dot) — ensure you copied only the token value, not the full JSON response';
         }
         return undefined;
       },
     });
 
-    if (token) {
-      await this.setToken(token);
-      const password = await vscode.window.showInputBox({
-        title: 'SimpleBeacon API Password',
-        prompt: 'Enter your SimpleBeacon account password (optional — press Escape to skip)',
-        password: true,
-        ignoreFocusOut: true,
+    const token = raw ? raw.trim() : undefined;
+    if (!token) { return undefined; }
+
+    // Check if this token is already registered on the server
+    try {
+      const port = getDataServerPort();
+      const res = await fetch(`http://127.0.0.1:${port}/api/auth/token-status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
       });
-      if (password) {
-        await this.setPassword(password);
+      if (res.ok) {
+        const data = await res.json() as { registered?: boolean };
+        if (data.registered) {
+          vscode.window.showErrorMessage('This token is already registered. Use a different token or sign in with the existing one.');
+          return undefined;
+        }
       }
-      vscode.window.showInformationMessage('SimpleBeacon API token saved');
+    } catch {
+      // Data server not running; allow local-only registration
     }
+
+    // Also check local storage to prevent overwriting the same token
+    const existingToken = await this.getToken();
+    if (existingToken === token) {
+      vscode.window.showErrorMessage('This token is already saved locally.');
+      return undefined;
+    }
+
+    await this.setToken(token);
+    vscode.window.showInformationMessage('SimpleBeacon API token saved — complete registration in the panel that opens');
     return token;
   }
 

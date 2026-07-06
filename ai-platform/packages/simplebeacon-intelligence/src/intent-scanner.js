@@ -2,13 +2,13 @@
  * Intent scan orchestrator — combines Tier 1a/1b/1c and optional Tier 2 SLM.
  */
 
-const path = require('path');
-const { LANGUAGE_BY_EXT } = require('./constants');
-const { scanStructuralIntent } = require('./structural-intent-scanner');
-const { fingerprintFindings } = require('./vector-cache');
-const { scanWithTreeSitter } = require('./tree-sitter-queries');
-const { getTreeSitterStatus } = require('./tree-sitter-loader');
-const { probeSlmBin, runSlmReview } = require('./slm-bridge');
+import path from 'path';
+import { LANGUAGE_BY_EXT } from './constants.js';
+import { scanStructuralIntent } from './structural-intent-scanner.js';
+import { fingerprintFindings } from './vector-cache.js';
+import { scanWithTreeSitter } from './tree-sitter-queries.js';
+import { getTreeSitterStatus } from './tree-sitter-loader.js';
+import { probeSlmBin, runSlmReview } from './slm-bridge.js';
 
 const ENGINE = '@simplebeacon/intelligence';
 
@@ -159,10 +159,10 @@ function scanIntent(content, options = {}) {
     };
 }
 
-module.exports = {
+export {
     scanIntent,
     scanIntentAsync,
     resolveLanguage,
     isLanguageSupported,
-    engine: ENGINE
-};
+    ENGINE
+}

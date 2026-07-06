@@ -89,9 +89,11 @@
       return;
     }
 
+    var sendingText = 'Sending…';
+    var sendMessageText = 'Send message';
     if (submitBtn) {
       submitBtn.disabled = true;
-      submitBtn.textContent = 'Sending…';
+      submitBtn.textContent = sendingText;
     }
 
     // Check if Formspree is configured
@@ -101,7 +103,7 @@
         setStatus('Formspree is not configured. Please set up a Formspree account and add your Form ID to the contact form.', 'error');
         if (submitBtn) {
           submitBtn.disabled = false;
-          submitBtn.textContent = 'Send message';
+          submitBtn.textContent = sendMessageText;
         }
       }, 500);
       return;
@@ -131,7 +133,7 @@
       .finally(function () {
         if (submitBtn) {
           submitBtn.disabled = false;
-          submitBtn.textContent = 'Send message';
+          submitBtn.textContent = sendMessageText;
         }
       });
   });

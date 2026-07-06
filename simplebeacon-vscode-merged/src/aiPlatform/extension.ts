@@ -1,6 +1,8 @@
 // simplebeacon-ignore memory-leak — HTTP response accumulation and report processing
 import * as vscode from 'vscode';
 import * as http from 'http';
+import * as fs from 'fs';
+import * as path from 'path';
 import { getSbConfig } from '../utils';
 import { SimpleBeaconProvider, ScanIssue } from './simplebeaconProvider';
 import { ScanPanel } from './scanPanel';
@@ -8,7 +10,8 @@ import { UploadPanel } from './uploadPanel';
 import { DiagnosticsManager } from './diagnostics';
 import { RealtimeMonitor } from './realtimeMonitor';
 import { DashboardPanel } from './dashboardPanel';
-import { fetchHtml, rewritePageHtml, injectPreviewScripts, postAiContext } from './browserPreview';
+import { fetchHtml, rewritePageHtml, injectPreviewScripts } from './browserPreview';
+import { buildAiContextMarkdown } from '../dataServer';
 
 /** Global SimpleBeacon provider instance. */
 export let provider: SimpleBeaconProvider;
@@ -291,22 +294,29 @@ async function openPreviewPanel(url: string, title: string) {
         return;
       }
       if (msg.command === 'sendToAI' && msg.data) {
-        const config = getSbConfig();
-        const apiUrl = (config.get<string>('apiServerUrl') || config.get<string>('apiUrl', '')).trim();
-        if (!apiUrl) {
-          vscode.window.showWarningMessage('SimpleBeacon API URL not configured. Run "Set API Server URL" command first.');
-          return;
-        }
         try {
-          const postRes = await postAiContext(apiUrl, msg.data);
-          if (postRes.success && postRes.content) {
-            await vscode.env.clipboard.writeText(postRes.content);
-            vscode.window.showInformationMessage(
-              'Scan data copied to clipboard — paste into your AI coding agent with Ctrl+V'
-            );
-          } else {
-            vscode.window.showWarningMessage('AI context saved but no content returned');
+          const markdown = buildAiContextMarkdown(msg.data);
+          await vscode.env.clipboard.writeText(markdown);
+          // Persist to disk for @-referencing
+          const ws = vscode.workspace.workspaceFolders?.[0];
+          if (ws) {
+            const contextPath = path.join(ws.uri.fsPath, '.simplebeacon', 'ai-context.md');
+            try {
+              fs.mkdirSync(path.dirname(contextPath), { recursive: true });
+              fs.writeFileSync(contextPath, markdown, 'utf8');
+            } catch (e) {
+              // best-effort disk persistence
+            }
           }
+          // Try to open the IDE native chat panel (Cascade / Copilot / etc.)
+          try {
+            await vscode.commands.executeCommand('workbench.action.chat.open');
+          } catch (chatErr) {
+            // Chat command may not be available in all IDEs
+          }
+          vscode.window.showInformationMessage(
+            'Scan data copied to clipboard — paste into your AI coding agent with Ctrl+V'
+          );
         } catch (err) {
           vscode.window.showErrorMessage('Failed to send to AI: ' + (err instanceof Error ? err.message : String(err)));
         }

@@ -1,4 +1,4 @@
-import { escapeHtml, formatPercent, redactPathForDisplay } from '../utils.js';
+import { escapeHtml, formatPercent } from '../utils.js';
 import { resolveDisplayScore, formatScanScopeSummary, formatScanInventoryNote } from '../services/analyzeService.js';
 /**
  * Resolve initial scan root.

@@ -41,7 +41,13 @@ describe('scan-usage-tracker', () => {
         assert.strictEqual(usage.tier, 'developer');
     });
 
-    it('increments pipeline scan count', () => {
+    it('increments pipeline scan count for pro tier', () => {
+        const usage = incrementPipelineScan('pro');
+        assert.strictEqual(usage.pipelineScans, 1);
+        assert.strictEqual(usage.tier, 'pro');
+    });
+
+    it('increments pipeline scan count for legacy startup alias', () => {
         const usage = incrementPipelineScan('startup');
         assert.strictEqual(usage.pipelineScans, 1);
         assert.strictEqual(usage.tier, 'startup');

@@ -1,30 +1,13 @@
 {
-  "generatedAt": "2026-07-01T05:38:14.184Z",
+  "generatedAt": "2026-07-01T09:01:47.560Z",
   "targets": [
     {
       "name": "lodash",
-      "dir": "C:\\Users\\Trevor\\CascadeProjects\\false-positive-audit\\lodash",
+      "dir": "c:\\Users\\Trevor\\CascadeProjects\\false-positive-audit\\lodash",
       "llmSlop": {
         "scanned": 31,
-        "findings": 2,
-        "issues": [
-          {
-            "id": "llm-slop-SB-FICTION-002-lib/common/util.js-388",
-            "pattern": "SB-FICTION-002",
-            "severity": "high",
-            "file": "lib/common/util.js",
-            "line": 14,
-            "match": "```"
-          },
-          {
-            "id": "llm-slop-SB-FICTION-002-lib/common/util.js-641",
-            "pattern": "SB-FICTION-002",
-            "severity": "high",
-            "file": "lib/common/util.js",
-            "line": 23,
-            "match": "```"
-          }
-        ]
+        "findings": 0,
+        "issues": []
       },
       "tokenBleed": {
         "scanned": 30,
@@ -34,28 +17,11 @@
     },
     {
       "name": "express",
-      "dir": "C:\\Users\\Trevor\\CascadeProjects\\false-positive-audit\\express",
+      "dir": "c:\\Users\\Trevor\\CascadeProjects\\false-positive-audit\\express",
       "llmSlop": {
         "scanned": 172,
-        "findings": 2,
-        "issues": [
-          {
-            "id": "llm-slop-SB-FICTION-002-lib/router/index.js-651",
-            "pattern": "SB-FICTION-002",
-            "severity": "high",
-            "file": "lib/router/index.js",
-            "line": 30,
-            "match": "```"
-          },
-          {
-            "id": "llm-slop-SB-FICTION-002-lib/router/index.js-651",
-            "pattern": "SB-FICTION-002",
-            "severity": "high",
-            "file": "lib/router/index.js",
-            "line": 30,
-            "match": "```"
-          }
-        ]
+        "findings": 0,
+        "issues": []
       },
       "tokenBleed": {
         "scanned": 107,
@@ -65,7 +31,7 @@
     },
     {
       "name": "ai-generated",
-      "dir": "C:\\Users\\Trevor\\CascadeProjects\\false-positive-audit\\ai-generated",
+      "dir": "c:\\Users\\Trevor\\CascadeProjects\\false-positive-audit\\ai-generated",
       "llmSlop": {
         "scanned": 3,
         "findings": 5,

@@ -119,7 +119,7 @@ async function generateSovereignCertificate(report, token, options = {}) {
     const certId = 'SB-' + crypto.getRandomValues(new Uint32Array(1))[0];
     const dateStr = now.toLocaleDateString();
     const isoDate = now.toISOString();
-    const defaultProjectName = report.projectName || 'Untitled Project';
+    const defaultProjectName = report.projectName || report.projectRoot || report.projectPath || 'Untitled Project';
     const projectName = options.projectName || defaultProjectName;
     const profileLabelOverride = options.profileLabel || '';
     const signatoryName = options.signatoryName || 'SimpleBeacon';
@@ -138,6 +138,10 @@ async function generateSovereignCertificate(report, token, options = {}) {
     else if (qs >= 50) { grade = 'D'; gradeColor = '#F97316'; }
 
     const gatePassed = report.gate?.pass === true || report.gate?.status === 'PASS';
+    // Sync summary.gatePass so downstream consumers see consistent state
+    if (report.summary && typeof report.summary === 'object') {
+        report.summary.gatePass = gatePassed;
+    }
     const gateLabel = gatePassed ? 'PASS' : (report.gate?.blockingCount ? 'BLOCKED' : 'REVIEW');
     const gateColor = gatePassed ? '#34D399' : '#EF4444';
     const profileLabel = profileLabelOverride || (window._tokenPayload?.tier || window._tokenPayload?.product || 'executive').toUpperCase();
@@ -257,7 +261,7 @@ async function generateSovereignCertificate(report, token, options = {}) {
         '2': { consolidation: report.consolidation },
         '3': { mockDataCategories: report.mockDataCategories, mockSampleFiles: report.mockSampleFiles },
         '4': { roadmap: report.roadmap, remediationPhases: report.remediationPhases },
-        '5': { codebase: report.codebase },
+        '5': { codebase: report.codebase || { totalFiles: report.filesAnalyzed || 0, totalLines: report.totalLines || 0 } },
         '6': { fileReduction: report.fileReduction },
         '7': { dataQuality: report.dataQuality },
         '8': { cleanup: report.cleanup },
@@ -316,10 +320,144 @@ async function generateSovereignCertificate(report, token, options = {}) {
         '61': { roadmapMarker: report.roadmapMarker, roadmapMarkerFindings: report.roadmapMarkerFindings }
     };
 
+    // Safety net: derive analyzer sections from detectedIssues when buildAnalyzerSections data is missing
+    function deriveAnalyzerSectionsFromDetectedIssues(detectedIssues) {
+        if (!Array.isArray(detectedIssues) || detectedIssues.length === 0) return {};
+        const typeToSection = {
+            'Debug Artifact': 'aiResidue',
+            'License/Governance Marker': 'governanceMarker',
+            'Architecture Drift': 'architectureDrift',
+            'Maintainability Issue': 'magicNumber',
+            'AI Residue': 'aiResidue',
+            'Performance Anti-Pattern': 'performance',
+            'Type Safety Gap': 'typeSafety',
+            'Missing Test Coverage': 'testCoverage',
+            'Accessibility Gap': 'accessibility',
+            'i18n Issue': 'i18n',
+            'Sensitive Data Exposure': 'sensitiveData',
+            'Configuration Drift': 'configDrift',
+            'Missing Security Header': 'securityHeaders',
+            'Database Anti-Pattern': 'databasePatterns',
+            'Framework Practice Issue': 'frameworkPractices',
+            'Workspace Health Issue': 'workspaceHealth',
+            'Unused Dependency': 'unusedDeps',
+            'API Contract Drift': 'apiContract',
+            'High Complexity': 'complexity',
+            'LLM Slop': 'llmSlop',
+            'Token Bleed': 'tokenBleed',
+            'Production Leak': 'productionLeak',
+            'Fiction KPI': 'fictionKpi',
+            'Eval Danger': 'evalDanger',
+            'innerHTML XSS': 'innerHtmlXss',
+            'Prototype Pollution Risk': 'prototypePollution',
+            'Unhandled Promise': 'unhandledPromise',
+            'Magic Number': 'magicNumber',
+            'Missing Strict Mode': 'missingStrictMode',
+            'Uninitialized Variable Read': 'uninitializedRead',
+            'Unvalidated Redirect': 'unvalidatedRedirect',
+            'Missing Rate Limiting': 'missingRateLimit',
+            'Insecure Random for Security': 'insecureRandom',
+            'Sensitive Data in Logs': 'loggingSecrets',
+            'Hardcoded Confidence Score': 'hardcodedConfidence',
+            'Hardcoded Completion Rate': 'hardcodedCompletion',
+            'Mock/Fixture Path in Production': 'mockPathLeak',
+            'Sample JSON Reference': 'sampleJsonRef',
+            'AI Placeholder Comment': 'aiPlaceholderComment',
+            'AI Placeholder Block Comment': 'aiPlaceholderBlock',
+            'Markdown Fence in Code': 'markdownFenceLeak',
+            'Empty Stub Function': 'emptyStubFunction',
+            'Arrow Function Stub': 'arrowStub',
+            'Roadmap Marker': 'roadmapMarker'
+        };
+        const sectionSchema = [
+            { section: 'aiResidue', hitsVar: 'aiResidueHits', findingsVar: 'aiResidueFindings', label: 'AI residue pattern' },
+            { section: 'performance', hitsVar: 'perfHits', findingsVar: 'perfFindings', label: 'performance anti-pattern' },
+            { section: 'typeSafety', hitsVar: 'typeSafetyHits', findingsVar: 'typeSafetyFindings', label: 'type safety gap' },
+            { section: 'testCoverage', hitsVar: 'testHits', findingsVar: 'testFindings', label: 'test coverage gap' },
+            { section: 'accessibility', hitsVar: 'a11yHits', findingsVar: 'a11yFindings', label: 'accessibility gap' },
+            { section: 'i18n', hitsVar: 'i18nHits', findingsVar: 'i18nFindings', label: 'i18n issue' },
+            { section: 'sensitiveData', hitsVar: 'sensitiveDataHits', findingsVar: 'sensitiveDataFindings', label: 'sensitive data exposure' },
+            { section: 'configDrift', hitsVar: 'configDriftHits', findingsVar: 'configDriftFindings', label: 'configuration drift' },
+            { section: 'securityHeaders', hitsVar: 'securityHeaderHits', findingsVar: 'securityHeaderFindings', label: 'security header reference' },
+            { section: 'databasePatterns', hitsVar: 'dbPatternHits', findingsVar: 'dbPatternFindings', label: 'database anti-pattern' },
+            { section: 'frameworkPractices', hitsVar: 'frameworkHits', findingsVar: 'frameworkFindings', label: 'framework practice issue' },
+            { section: 'workspaceHealth', hitsVar: 'workspaceHits', findingsVar: 'workspaceFindings', label: 'workspace health issue' },
+            { section: 'unusedDeps', hitsVar: 'unusedDepHits', findingsVar: 'unusedDepFindings', label: 'unused dependency reference' },
+            { section: 'apiContract', hitsVar: 'apiContractHits', findingsVar: 'apiContractFindings', label: 'API contract drift' },
+            { section: 'complexity', hitsVar: 'complexityHits', findingsVar: 'complexityFindings', label: 'high complexity pattern' },
+            { section: 'llmSlop', hitsVar: 'llmSlopHits', findingsVar: 'llmSlopFindings', label: 'LLM slop pattern' },
+            { section: 'tokenBleed', hitsVar: 'tokenBleedHits', findingsVar: 'tokenBleedFindings', label: 'token bleed risk' },
+            { section: 'productionLeak', hitsVar: 'productionLeakHits', findingsVar: 'productionLeakFindings', label: 'production data leak' },
+            { section: 'fictionKpi', hitsVar: 'fictionKpiHits', findingsVar: 'fictionKpiFindings', label: 'hardcoded fiction KPI' },
+            { section: 'evalDanger', hitsVar: 'evalDangerHits', findingsVar: 'evalDangerFindings', label: 'dangerous eval usage' },
+            { section: 'innerHtmlXss', hitsVar: 'innerHtmlXssHits', findingsVar: 'innerHtmlXssFindings', label: 'innerHTML XSS risk' },
+            { section: 'prototypePollution', hitsVar: 'prototypePollutionHits', findingsVar: 'prototypePollutionFindings', label: 'prototype pollution risk' },
+            { section: 'unhandledPromise', hitsVar: 'unhandledPromiseHits', findingsVar: 'unhandledPromiseFindings', label: 'unhandled promise' },
+            { section: 'magicNumber', hitsVar: 'magicNumberHits', findingsVar: 'magicNumberFindings', label: 'magic number' },
+            { section: 'missingStrictMode', hitsVar: 'missingStrictModeHits', findingsVar: 'missingStrictModeFindings', label: 'missing strict mode' },
+            { section: 'uninitializedRead', hitsVar: 'uninitializedReadHits', findingsVar: 'uninitializedReadFindings', label: 'uninitialized variable read' },
+            { section: 'unvalidatedRedirect', hitsVar: 'unvalidatedRedirectHits', findingsVar: 'unvalidatedRedirectFindings', label: 'unvalidated redirect' },
+            { section: 'missingRateLimit', hitsVar: 'missingRateLimitHits', findingsVar: 'missingRateLimitFindings', label: 'missing rate limiting' },
+            { section: 'insecureRandom', hitsVar: 'insecureRandomHits', findingsVar: 'insecureRandomFindings', label: 'insecure random usage' },
+            { section: 'loggingSecrets', hitsVar: 'loggingSecretsHits', findingsVar: 'loggingSecretsFindings', label: 'secret in logs' },
+            { section: 'hardcodedConfidence', hitsVar: 'hardcodedConfidenceHits', findingsVar: 'hardcodedConfidenceFindings', label: 'hardcoded confidence score' },
+            { section: 'hardcodedCompletion', hitsVar: 'hardcodedCompletionHits', findingsVar: 'hardcodedCompletionFindings', label: 'hardcoded completion rate' },
+            { section: 'mockPathLeak', hitsVar: 'mockPathLeakHits', findingsVar: 'mockPathLeakFindings', label: 'mock/fixture path leak' },
+            { section: 'sampleJsonRef', hitsVar: 'sampleJsonRefHits', findingsVar: 'sampleJsonRefFindings', label: 'sample JSON reference' },
+            { section: 'governanceMarker', hitsVar: 'governanceMarkerHits', findingsVar: 'governanceMarkerFindings', label: 'license/governance marker' },
+            { section: 'aiPlaceholderComment', hitsVar: 'aiPlaceholderCommentHits', findingsVar: 'aiPlaceholderCommentFindings', label: 'AI placeholder comment' },
+            { section: 'aiPlaceholderBlock', hitsVar: 'aiPlaceholderBlockHits', findingsVar: 'aiPlaceholderBlockFindings', label: 'AI placeholder block comment' },
+            { section: 'markdownFenceLeak', hitsVar: 'markdownFenceLeakHits', findingsVar: 'markdownFenceLeakFindings', label: 'markdown fence leak' },
+            { section: 'emptyStubFunction', hitsVar: 'emptyStubFunctionHits', findingsVar: 'emptyStubFunctionFindings', label: 'empty stub function' },
+            { section: 'arrowStub', hitsVar: 'arrowStubHits', findingsVar: 'arrowStubFindings', label: 'arrow function stub' },
+            { section: 'roadmapMarker', hitsVar: 'roadmapMarkerHits', findingsVar: 'roadmapMarkerFindings', label: 'roadmap marker' }
+        ];
+        const derived = {};
+        for (const issue of detectedIssues) {
+            const sectionName = typeToSection[issue.type];
+            if (!sectionName) continue;
+            const schema = sectionSchema.find(s => s.section === sectionName);
+            if (!schema) continue;
+            const findings = (issue.findings || []).map(f => ({
+                file: typeof f === 'string' ? f : (f.file || f.filePath || 'unknown'),
+                type: issue.type,
+                matches: Array.isArray(f.matches) ? f.matches.slice(0, 3).map(m => ({
+                    line: m.line || 0,
+                    snippet: (m.snippet || '').slice(0, 120)
+                })) : []
+            }));
+            const hits = issue.count || findings.length || 0;
+            if (!derived[sectionName]) {
+                derived[sectionName] = {
+                    [schema.hitsVar]: 0,
+                    [schema.findingsVar]: [],
+                    summary: `No ${schema.label}s detected.`
+                };
+            }
+            derived[sectionName][schema.hitsVar] += hits;
+            derived[sectionName][schema.findingsVar].push(...findings);
+        }
+        // Update summaries for sections that have hits
+        for (const s of sectionSchema) {
+            if (derived[s.section]) {
+                const hits = derived[s.section][s.hitsVar];
+                derived[s.section].summary = hits > 0
+                    ? `${hits} ${s.label}(s) detected.`
+                    : `No ${s.label}s detected.`;
+            }
+        }
+        return derived;
+    }
+
     // Assemble comprehensive report.json with ALL available scan data for rich roadmap generation
     const assembledReport = {};
     for (const key of baseKeys) {
         if (report[key] != null) assembledReport[key] = report[key];
+    }
+    // Merge detectedIssues-derived analyzer sections as safety net
+    const derivedSections = deriveAnalyzerSectionsFromDetectedIssues(report.detectedIssues);
+    for (const [sectionName, sectionData] of Object.entries(derivedSections)) {
+        if (!assembledReport[sectionName]) assembledReport[sectionName] = sectionData;
     }
     // Include ALL per-module data regardless of tier so roadmaps have full detail
     for (const data of Object.values(perModuleData)) {

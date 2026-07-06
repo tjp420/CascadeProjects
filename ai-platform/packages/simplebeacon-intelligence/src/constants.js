@@ -5,21 +5,21 @@
  * @license MIT
  */
 
-const GENERIC_AI_MARKERS = new Set([
+export const GENERIC_AI_MARKERS = new Set([
     'data', 'result', 'output', 'temp', 'holder', 'info', 'val',
     'value', 'item', 'items', 'response', 'payload', 'obj', 'res'
 ]);
 
-const CREDENTIAL_KEY_FRAGMENTS = ['secret', 'token', 'pass', 'key', 'apikey', 'api_key'];
+export const CREDENTIAL_KEY_FRAGMENTS = ['secret', 'token', 'pass', 'key', 'apikey', 'api_key'];
 
-const INTENT_RULE_IDS = {
+export const INTENT_RULE_IDS = {
     HOLLOW_FUNCTION: 'SB-INTENT-001',
     CREDENTIAL_STUB: 'SB-INTENT-002',
     FINGERPRINT_MATCH: 'SB-INTENT-003',
     TRY_EXCEPT_PASS: 'SB-INTENT-004'
 };
 
-const LANGUAGE_BY_EXT = {
+export const LANGUAGE_BY_EXT = {
     '.js': 'javascript',
     '.mjs': 'javascript',
     '.cjs': 'javascript',
@@ -29,11 +29,4 @@ const LANGUAGE_BY_EXT = {
     '.py': 'python',
     '.pyw': 'python',
     '.go': 'go'
-};
-
-module.exports = {
-    GENERIC_AI_MARKERS,
-    CREDENTIAL_KEY_FRAGMENTS,
-    INTENT_RULE_IDS,
-    LANGUAGE_BY_EXT
 };

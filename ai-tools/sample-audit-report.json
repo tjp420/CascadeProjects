@@ -1,0 +1,141 @@
+{
+  "audit_timestamp": "2026-07-03T18:18:44.435842Z",
+  "source": "sample-model-log.json",
+  "summary": {
+    "total_findings": 11,
+    "critical": 0,
+    "high": 2,
+    "medium": 9,
+    "low": 0,
+    "attention_findings": 3,
+    "activation_findings": 1,
+    "drift_findings": 1,
+    "trace_findings": 6
+  },
+  "thresholds_used": {
+    "entropy_threshold": 2.5,
+    "diag_dominance_threshold": 0.6,
+    "z_threshold": 3.0,
+    "saturation_threshold": 0.95,
+    "cosine_min": 0.7,
+    "euclidean_max": 2.5,
+    "loss_spike": 2.0,
+    "grad_norm_max": 10.0
+  },
+  "findings": [
+    {
+      "token": "token_mat",
+      "type": "vector_drift",
+      "severity": "high",
+      "detail": "cos=0.142, euc=1.574 against baseline",
+      "metrics": {
+        "cosine_similarity": 0.14210776178810677,
+        "euclidean_distance": 1.5737852458324801
+      }
+    },
+    {
+      "step": 3,
+      "type": "exploding_gradient",
+      "severity": "high",
+      "detail": "Gradient norm 15.5000 exceeds threshold 10.0",
+      "metrics": {
+        "grad_norm": 15.5
+      }
+    },
+    {
+      "layer": "layer_0_head_0",
+      "type": "low_diagonal_dominance",
+      "severity": "medium",
+      "detail": "Diagonal dominance 0.488 below threshold 0.6",
+      "metrics": {
+        "mean_entropy": 1.2178304154159596,
+        "max_entropy": 1.319545463245337,
+        "diagonal_dominance": 0.48750000000000004
+      }
+    },
+    {
+      "layer": "layer_1_head_0",
+      "type": "low_diagonal_dominance",
+      "severity": "medium",
+      "detail": "Diagonal dominance 0.307 below threshold 0.6",
+      "metrics": {
+        "mean_entropy": 0.9690674480057576,
+        "max_entropy": 1.2375971682285571,
+        "diagonal_dominance": 0.3075
+      }
+    },
+    {
+      "layer": "layer_2_head_0",
+      "type": "low_diagonal_dominance",
+      "severity": "medium",
+      "detail": "Diagonal dominance 0.282 below threshold 0.6",
+      "metrics": {
+        "mean_entropy": 0.698147609187566,
+        "max_entropy": 0.9404479886513264,
+        "diagonal_dominance": 0.2825
+      }
+    },
+    {
+      "layer": "layer_0_ff",
+      "type": "activation_saturation",
+      "severity": "medium",
+      "detail": "33.3% of neurons saturated above 0.95",
+      "metrics": {
+        "saturation_ratio": 0.3333333333333333,
+        "mean_activation": 0.5958333333333333
+      }
+    },
+    {
+      "step": 3,
+      "type": "loss_spike",
+      "severity": "medium",
+      "detail": "Loss jumped from 1.8500 to 5.2000 at step 3",
+      "metrics": {
+        "loss_before": 1.85,
+        "loss_after": 5.2,
+        "delta": 3.35
+      }
+    },
+    {
+      "step": 4,
+      "type": "loss_spike",
+      "severity": "medium",
+      "detail": "Loss jumped from 5.2000 to 1.5000 at step 4",
+      "metrics": {
+        "loss_before": 5.2,
+        "loss_after": 1.5,
+        "delta": -3.7
+      }
+    },
+    {
+      "step": 3,
+      "type": "token_probability_collapse",
+      "severity": "medium",
+      "detail": "1 tokens have near-zero probability at step 3",
+      "metrics": {
+        "collapsed_tokens": 1,
+        "min_prob": 1e-06
+      }
+    },
+    {
+      "step": 4,
+      "type": "token_probability_collapse",
+      "severity": "medium",
+      "detail": "1 tokens have near-zero probability at step 4",
+      "metrics": {
+        "collapsed_tokens": 1,
+        "min_prob": 2e-06
+      }
+    },
+    {
+      "step": 5,
+      "type": "token_probability_collapse",
+      "severity": "medium",
+      "detail": "1 tokens have near-zero probability at step 5",
+      "metrics": {
+        "collapsed_tokens": 1,
+        "min_prob": 5e-07
+      }
+    }
+  ]
+}

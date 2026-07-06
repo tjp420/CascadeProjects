@@ -35,7 +35,8 @@ export class AssessmentView {
     } else if (currentUser.role === 'admin' || currentUser.role === 'auditor') {
       this.userTier = 'admin';
     } else {
-      this.userTier = 'developer';
+      const tier = String(currentUser.tier || currentUser.plan || 'developer').toLowerCase();
+      this.userTier = ['pro', 'team', 'enterprise', 'startup', 'growth'].includes(tier) ? tier : 'developer';
     }
   }
 

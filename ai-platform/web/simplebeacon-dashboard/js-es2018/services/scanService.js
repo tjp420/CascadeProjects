@@ -267,6 +267,12 @@ export class ScanService {
             err.code = 'demo_readonly';
             throw err;
         }
+        const scanType = String(options.scanType || 'complete').toLowerCase();
+        if (!authService.canRunScan(scanType)) {
+            const err = new Error('This scan type requires a paid license. View pricing to upgrade.');
+            err.code = 'subscription_required';
+            throw err;
+        }
         const res = await fetchSimplebeacon(`${simplebeaconApiBase()}/scan`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -283,7 +289,11 @@ export class ScanService {
                     gateFailed: true
                 };
             }
-            throw new Error(data.error || data.message || 'Scan failed');
+            throw new Error(data.error || data.message || data.warning || 'Scan failed');
+        }
+        // Backend may return 200 with a warning/fallback but no real report
+        if (data.warning && !data.report) {
+            throw new Error(data.warning);
         }
         const resolvedPath = projectPath || data.projectPath || null;
         try {
@@ -300,6 +310,11 @@ export class ScanService {
         };
     }
     async exportReport(report = this.report) {
+        if (!authService.canExport()) {
+            const err = new Error('Exporting reports requires a paid license. View pricing to upgrade.');
+            err.code = 'subscription_required';
+            throw err;
+        }
         let data = report;
         if (!data) {
             const res = await fetchSimplebeacon(`${simplebeaconApiBase()}/report`);

@@ -4,10 +4,38 @@
 import { sanitizeSimplebeaconReportExport } from './simplebeacon-report-export.browser.js?v=20260601gateexport17';
 import { sanitizeComplianceChecklistArtifactExport } from './compliance-export.browser.js?v=20260601complianceexport7';
 import { redactProjectPathForExport, normalizeSimpleBeaconBranding } from './quality-export.browser.js?v=20260531qualityexport8';
+// ── Small helpers to cut repetitive deep-path fallback chains ──
+/**
+ * Return the first non-nullish value from a list of arguments.
+ * @param  {...any} candidates
+ * @returns {any}
+ */
+function pick(...candidates) {
+    for (const c of candidates) {
+        if (c !== undefined && c !== null)
+            return c;
+    }
+    return null;
+}
+/**
+ * Safely traverse a path of optional properties on an object.
+ * @param {object} obj
+ * @param {string[]} keys
+ * @returns {any}
+ */
+function deepGet(obj, keys) {
+    let current = obj;
+    for (const key of keys) {
+        if (current == null)
+            return undefined;
+        current = current[key];
+    }
+    return current;
+}
 /**
  * Project label from path.
  * @param {string} projectPath
- * @returns {any}
+ * @returns {string}
  */
 function projectLabelFromPath(projectPath) {
     const normalized = String(projectPath || 'ai-platform').replace(/\\/g, '/');
@@ -42,6 +70,8 @@ function resolveProjectLabel(bundle = {}) {
  */
 export function resolveGateResult(bundle = {}) {
     var _a, _b, _c, _d;
+    if (!bundle || typeof bundle !== 'object')
+        return null;
     const embedded = bundle.embeddedInMainReport;
     const assessment = bundle.assessment;
     const embeddedAt = parseTimestamp(embedded === null || embedded === void 0 ? void 0 : embedded.generatedAt);
@@ -473,31 +503,39 @@ function buildFilesScannedNote(assessment) {
         return null;
     return `Assessment filesScanned (${filesScanned}) reflects configured mock/sample JSON paths — not whole-repository coverage.`;
 }
+/** @type {Map<RegExp,string>} */
+const NOTE_CLASSIFIERS = new Map([
+    [/latest gate scan.*newer than eu sprint/i, 'freshness-note'],
+    [/eu indicator counts use live gate scan/i, 'metrics-stale-note'],
+    [/filesScanned \(3\)/i, 'files-scanned-note'],
+    [/sprint artifacts still record gate fail/i, 'gate-mismatch-note'],
+    [/GATE-001 checklist rule reconciled|GATE-001, CRED-001, and LEAK-001 reconciled/i, 'gate-checklist-reconciled'],
+    [/documentation path\(s\) under \.simplebeacon\//i, 'simplebeacon-docs-note'],
+    [/sprint executiveSummary cached/i, 'exec-summary-stale'],
+]);
+/**
+ * Classify a note for deduplication.
+ * @param {string} text
+ * @returns {string}
+ */
+function classifyNote(text) {
+    for (const [pattern, key] of NOTE_CLASSIFIERS) {
+        if (pattern.test(text))
+            return key;
+    }
+    return text.replace(/\s+/g, ' ').trim().toLowerCase();
+}
 /**
  * Dedupe export notes.
  * @param {Array} notes
- * @returns {any}
+ * @returns {string[]}
  */
 function dedupeExportNotes(notes = []) {
     const seen = new Set();
     const out = [];
     for (const note of notes.filter(Boolean)) {
         const text = String(note);
-        const key = /latest gate scan.*newer than eu sprint/i.test(text)
-            ? 'freshness-note'
-            : /eu indicator counts use live gate scan/i.test(text)
-                ? 'metrics-stale-note'
-                : /filesScanned \(3\)/i.test(text)
-                    ? 'files-scanned-note'
-                    : /sprint artifacts still record gate fail/i.test(text)
-                        ? 'gate-mismatch-note'
-                        : /GATE-001 checklist rule reconciled|GATE-001, CRED-001, and LEAK-001 reconciled/i.test(text)
-                            ? 'gate-checklist-reconciled'
-                            : /documentation path\(s\) under \.simplebeacon\//i.test(text)
-                                ? 'simplebeacon-docs-note'
-                                : /sprint executiveSummary cached/i.test(text)
-                                    ? 'exec-summary-stale'
-                                    : text.replace(/\s+/g, ' ').trim().toLowerCase();
+        const key = classifyNote(text);
         if (seen.has(key))
             continue;
         seen.add(key);
@@ -630,6 +668,8 @@ function sanitizeSprintReportExport(sprintReport, projectLabel) {
  */
 export function buildEuAiActSummary(bundle = {}) {
     var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s;
+    if (!bundle || typeof bundle !== 'object')
+        return {};
     const compliance = bundle.compliance;
     const assessment = bundle.assessment;
     const embedded = bundle.embeddedInMainReport;
@@ -765,6 +805,8 @@ function sanitizeLegalAttestationExport(attestation) {
  */
 export function buildEuAiActExportBundle(bundle = {}) {
     var _a, _b, _c, _d, _e;
+    if (!bundle || typeof bundle !== 'object')
+        return {};
     const reconciled = applyExportReconciliation(bundle);
     const projectLabel = resolveProjectLabel(reconciled);
     const summary = buildEuAiActSummary(reconciled);
@@ -863,18 +905,17 @@ function defaultSprintRelativeArtifacts() {
  * @returns {any}
  */
 function resolveSprintGateContext(sprint = {}, options = {}) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _20, _21;
     const gateReport = options.gateReport || {};
-    const repositoryFilesTotal = (_k = (_g = (_e = (_c = (_b = (_a = options.repositoryFilesTotal) !== null && _a !== void 0 ? _a : options.gateRepositoryFilesTotal) !== null && _b !== void 0 ? _b : gateReport.repositoryFilesTotal) !== null && _c !== void 0 ? _c : (_d = gateReport.repositoryInventory) === null || _d === void 0 ? void 0 : _d.totalFiles) !== null && _e !== void 0 ? _e : (_f = sprint.hygieneSummary) === null || _f === void 0 ? void 0 : _f.gateRepositoryFilesTotal) !== null && _g !== void 0 ? _g : (_j = (_h = sprint.report) === null || _h === void 0 ? void 0 : _h.hygieneSummary) === null || _j === void 0 ? void 0 : _j.gateRepositoryFilesTotal) !== null && _k !== void 0 ? _k : null;
-    const credentialScanned = (_u = (_r = (_p = (_m = (_l = gateReport.credentialScanned) !== null && _l !== void 0 ? _l : gateReport.productionLeakScanned) !== null && _m !== void 0 ? _m : (_o = gateReport.scanScope) === null || _o === void 0 ? void 0 : _o.productionDirsScanned) !== null && _p !== void 0 ? _p : (_q = sprint.hygieneSummary) === null || _q === void 0 ? void 0 : _q.gateContentFilesScanned) !== null && _r !== void 0 ? _r : (_t = (_s = sprint.report) === null || _s === void 0 ? void 0 : _s.hygieneSummary) === null || _t === void 0 ? void 0 : _t.contentFilesScanned) !== null && _u !== void 0 ? _u : null;
-    const gateProfile = (_10 = (_8 = (_5 = (_2 = (_z = (_w = (_v = gateReport.scanScope) === null || _v === void 0 ? void 0 : _v.profile) !== null && _w !== void 0 ? _w : (_y = (_x = sprint.report) === null || _x === void 0 ? void 0 : _x.scanScope) === null || _y === void 0 ? void 0 : _y.profile) !== null && _z !== void 0 ? _z : (_1 = (_0 = sprint.report) === null || _0 === void 0 ? void 0 : _0.scanScope) === null || _1 === void 0 ? void 0 : _1.gateRuleBundleProfile) !== null && _2 !== void 0 ? _2 : (_4 = (_3 = sprint.complianceChecklist) === null || _3 === void 0 ? void 0 : _3.scanScope) === null || _4 === void 0 ? void 0 : _4.gateRuleBundleProfile) !== null && _5 !== void 0 ? _5 : (_7 = (_6 = sprint.complianceChecklist) === null || _6 === void 0 ? void 0 : _6.hygieneSummary) === null || _7 === void 0 ? void 0 : _7.gateRuleBundleProfile) !== null && _8 !== void 0 ? _8 : (_9 = sprint.hygieneSummary) === null || _9 === void 0 ? void 0 : _9.gateRuleBundleProfile) !== null && _10 !== void 0 ? _10 : null;
+    const repositoryFilesTotal = pick(options.repositoryFilesTotal, options.gateRepositoryFilesTotal, gateReport.repositoryFilesTotal, deepGet(gateReport, ['repositoryInventory', 'totalFiles']), deepGet(sprint, ['hygieneSummary', 'gateRepositoryFilesTotal']), deepGet(sprint, ['report', 'hygieneSummary', 'gateRepositoryFilesTotal']));
+    const credentialScanned = pick(gateReport.credentialScanned, gateReport.productionLeakScanned, deepGet(gateReport, ['scanScope', 'productionDirsScanned']), deepGet(sprint, ['hygieneSummary', 'gateContentFilesScanned']), deepGet(sprint, ['report', 'hygieneSummary', 'contentFilesScanned']));
+    const gateProfile = pick(deepGet(gateReport, ['scanScope', 'profile']), deepGet(sprint, ['report', 'scanScope', 'profile']), deepGet(sprint, ['report', 'scanScope', 'gateRuleBundleProfile']), deepGet(sprint, ['complianceChecklist', 'scanScope', 'gateRuleBundleProfile']), deepGet(sprint, ['complianceChecklist', 'hygieneSummary', 'gateRuleBundleProfile']), deepGet(sprint, ['hygieneSummary', 'gateRuleBundleProfile']));
     return {
         gateReport,
         repositoryFilesTotal,
         credentialScanned,
         gateProfile,
-        fictionJsonFilesScanned: (_15 = (_13 = (_11 = gateReport.fictionJsonFilesScanned) !== null && _11 !== void 0 ? _11 : (_12 = gateReport.scanScope) === null || _12 === void 0 ? void 0 : _12.fictionJsonFilesScanned) !== null && _13 !== void 0 ? _13 : (_14 = sprint.hygieneSummary) === null || _14 === void 0 ? void 0 : _14.gateFictionJsonFilesScanned) !== null && _15 !== void 0 ? _15 : null,
-        fictionSampleFilesScanned: (_21 = (_19 = (_17 = (_16 = gateReport.fictionSampleFilesScanned) !== null && _16 !== void 0 ? _16 : gateReport.mockSampleFiles) !== null && _17 !== void 0 ? _17 : (_18 = gateReport.scanScope) === null || _18 === void 0 ? void 0 : _18.fictionSampleFilesScanned) !== null && _19 !== void 0 ? _19 : (_20 = sprint.hygieneSummary) === null || _20 === void 0 ? void 0 : _20.fictionSampleFilesScanned) !== null && _21 !== void 0 ? _21 : null
+        fictionJsonFilesScanned: pick(gateReport.fictionJsonFilesScanned, deepGet(gateReport, ['scanScope', 'fictionJsonFilesScanned']), deepGet(sprint, ['hygieneSummary', 'gateFictionJsonFilesScanned'])),
+        fictionSampleFilesScanned: pick(gateReport.fictionSampleFilesScanned, gateReport.mockSampleFiles, deepGet(gateReport, ['scanScope', 'fictionSampleFilesScanned']), deepGet(sprint, ['hygieneSummary', 'fictionSampleFilesScanned']))
     };
 }
 /**
@@ -1070,19 +1111,10 @@ export function sanitizeEuAiActSprintArtifactExport(sprint, options = {}) {
     let assessment = sprint.assessment
         ? sanitizeAssessmentExport(sprint.assessment, projectLabel)
         : sprint.assessment;
-    if (assessment && (report === null || report === void 0 ? void 0 : report.euAiActSummary)) {
+    if (assessment) {
         assessment = {
             ...assessment,
-            euAiActSummary: report.euAiActSummary,
-            exportNormalized: true,
-            exportSanitized: true,
-            securityHandoffEligible: false,
-            handoffEligible: false
-        };
-    }
-    else if (assessment) {
-        assessment = {
-            ...assessment,
+            ...((report === null || report === void 0 ? void 0 : report.euAiActSummary) ? { euAiActSummary: report.euAiActSummary } : {}),
             exportNormalized: true,
             exportSanitized: true,
             securityHandoffEligible: false,
@@ -1119,18 +1151,13 @@ export function sanitizeEuAiActSprintArtifactExport(sprint, options = {}) {
     return sanitized;
 }
 /**
- * Re-sanitize a downloaded EU AI Act export JSON.
- * @param {object} bundle
- * @returns {object}
- */
-/**
  * Sanitize eu ai act export.
  * @param {any} bundle
  * @returns {any}
  */
 export function sanitizeEuAiActExport(bundle) {
     var _a, _b;
-    if (!bundle)
+    if (!bundle || typeof bundle !== 'object')
         return bundle;
     if (bundle.type === 'simplebeacon-eu-ai-act-export') {
         return buildEuAiActExportBundle({
@@ -1148,12 +1175,16 @@ export function sanitizeEuAiActExport(bundle) {
     return buildEuAiActExportBundle(bundle);
 }
 /**
- * Csv escape.
+ * RFC 4180-compliant CSV cell escape.
+ * Quotes the cell only when it contains commas, newlines, quotes, or leading/trailing spaces.
  * @param {any} cell
- * @returns {any}
+ * @returns {string}
  */
 function csvEscape(cell) {
-    return `"${String(cell !== null && cell !== void 0 ? cell : '').replace(/"/g, '""')}"`;
+    const raw = String(cell !== null && cell !== void 0 ? cell : '');
+    const needsQuotes = /[",\n\r]/.test(raw) || raw.startsWith(' ') || raw.endsWith(' ');
+    const escaped = raw.replace(/"/g, '""');
+    return needsQuotes ? `"${escaped}"` : escaped;
 }
 /**
  * Build eu ai act checklist csv.

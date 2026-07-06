@@ -104,6 +104,12 @@ function isCommentLine(line, ext) {
     return false;
 }
 
+/* JSDoc continuation lines (prefixed with star inside doc blocks) are standard docs, not slop. */
+function isJSDocLine(line) {
+    const trimmed = line.trim();
+    return /^\*/.test(trimmed);
+}
+
 async function walkFiles(dir, results = [], options = {}, depth = 0) {
     if (depth > 12) return results;
     let entries;
@@ -182,12 +188,16 @@ function scanTextPatterns(relativePath, content, ext, options = {}) {
 
             if (isAllowlistedMatch(line, match[0])) continue;
             if (isFenceDetectorMetaLine(line, relativePath, rule.id)) continue;
+            if (rule.id === 'SB-FICTION-002' && isJSDocLine(line)) continue;
             if (isCommentLine(line, ext) && rule.id !== 'SB-FICTION-002') continue;
 
+            const cardType = rule.id === 'SB-FICTION-002' ? 'markdown-fence-leak'
+                : rule.id === 'SB-FICTION-001' ? 'ai-placeholder-comment'
+                : rule.type || 'llm-slop';
             findings.push({
                 id: `llm-slop-${rule.id}-${relativePath}-${match.index}`,
                 severity: rule.severity,
-                type: 'LLM Slop Pattern',
+                type: cardType,
                 filePath: relativePath,
                 file: relativePath,
                 line: lineIndex + 1,

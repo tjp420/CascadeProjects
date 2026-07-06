@@ -89,6 +89,8 @@ function createScanHandlers({ withGuard, resolveProjectRoot, formatToolResult, c
                     impact: i.description || i.impact || 'Review required.',
                     fix: i.recommendedAction || i.recommendation || i.fix || 'Manual review required.'
                 }));
+                const normalizedTier = String(report.tier || 'developer').toLowerCase();
+                const isFree = normalizedTier === 'developer' || normalizedTier === 'free';
                 const payload = {
                     type: 'simplebeacon-report',
                     version: '1.3.0',
@@ -109,7 +111,9 @@ function createScanHandlers({ withGuard, resolveProjectRoot, formatToolResult, c
                         qualityScore: report.qualityScore ?? 0
                     },
                     localOnly: true,
-                    methodology: 'Deterministic regex + AST scan — no code uploaded'
+                    methodology: 'Deterministic regex + AST scan — no code uploaded',
+                    tier: normalizedTier,
+                    ...(isFree ? { upsell: 'Upgrade to Pro ($9/mo) to unlock all 38 analyzer engines, exportable reports, and team tools — https://simplebeacon.ai/pricing' } : {})
                 };
                 if (args.format === 'json') {
                     return formatToolResult(payload);

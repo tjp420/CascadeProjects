@@ -1,7 +1,6 @@
 import { authService } from '../services/authService.js';
 import { billingService } from '../services/billingService.js';
 import { showToast } from '../utils.js';
-import { COMING_SOON_URL } from '../config.js';
 /**
  * Decode email from token.
  * @param {string} token
@@ -74,11 +73,11 @@ function isSandboxToken(token) {
 export class SignInView {
     constructor(app) {
         this.app = app;
-        this._activeTab = 'token';
+        this._activeTab = 'email';
         this._emailMode = 'login';
     }
     async mount(container) {
-        var _a, _b, _c, _d;
+        var _a, _b, _c, _d, _e;
         container.innerHTML = `<div class="signin-page"><div class="signin-card card"><p class="text-muted">Loading…</p></div></div>`;
         const authed = authService.isAuthenticated();
         const email = ((_a = authService.getUser()) === null || _a === void 0 ? void 0 : _a.email) || decodeEmailFromToken(authService.getToken()) || '';
@@ -108,14 +107,13 @@ export class SignInView {
       </div>
     `;
         if (!authed) {
-            this.bindTabSwitching(container);
             this.bindEmailModeToggle(container);
             (_b = container.querySelector('#signin-email-form')) === null || _b === void 0 ? void 0 : _b.addEventListener('submit', (e) => this.handleEmailSubmit(e));
-            (_c = container.querySelector('#try-sandbox-btn')) === null || _c === void 0 ? void 0 : _c.addEventListener('click', () => this.handleSandboxToken());
-            this.bindTokenBarAndModal(container);
+            (_d = container.querySelector('#forgot-password-btn')) === null || _d === void 0 ? void 0 : _d.addEventListener('click', () => this._showRecoveryModal());
+            (_e = container.querySelector('#webauthn-signin-btn')) === null || _e === void 0 ? void 0 : _e.addEventListener('click', () => this._handleWebAuthnSignIn());
         }
         else {
-            (_d = container.querySelector('#signin-signout-btn')) === null || _d === void 0 ? void 0 : _d.addEventListener('click', async () => {
+            (_c = container.querySelector('#signin-signout-btn')) === null || _c === void 0 ? void 0 : _c.addEventListener('click', async () => {
                 try {
                     await authService.logout();
                     showToast('Signed out', 'info');
@@ -158,151 +156,29 @@ export class SignInView {
     }
     renderSignInForm() {
         return `
-      <div class="signin-tabs">
-        <button type="button" class="signin-tab ${this._activeTab === 'token' ? 'active' : ''}" data-tab="token" id="tab-token">License Token</button>
-        <button type="button" class="signin-tab ${this._activeTab === 'email' ? 'active' : ''}" data-tab="email" id="tab-email">Email &amp; Password</button>
-      </div>
-
-      <div class="signin-tab-panel ${this._activeTab === 'token' ? 'active' : ''}" id="panel-token">
-        <style>
-          .token-bar-wrap { margin-bottom: var(--space-4); }
-          .token-bar { display: flex; gap: 10px; align-items: stretch; }
-          .token-bar input {
-            flex: 1;
-            padding: 12px 18px;
-            border: 2px solid var(--border);
-            border-radius: 10px;
-            background: var(--bg-input);
-            color: var(--text-main);
-            font-size: 1rem;
-            transition: border-color 150ms, box-shadow 150ms;
-            min-width: 0;
-          }
-          .token-bar input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(99,102,241,0.12); }
-          .token-bar .btn-sandbox {
-            white-space: nowrap;
-            padding: 0 18px;
-            border-radius: 10px;
-            border: 1.5px solid var(--accent);
-            background: transparent;
-            color: var(--accent);
-            font-weight: 600;
-            font-size: 0.85rem;
-            cursor: pointer;
-            transition: all 150ms;
-          }
-          .token-bar .btn-sandbox:hover { background: var(--primary-subtle); }
-          .token-bar-help { font-size: 0.75rem; color: var(--text-muted); margin-top: 8px; }
-          .token-error-bar { color: var(--error); font-size: 0.8rem; margin-top: 8px; }
-
-          .auth-modal-overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.6);
-            display: none; align-items: center; justify-content: center; z-index: 1000;
-            backdrop-filter: blur(4px);
-          }
-          .auth-modal-overlay.active { display: flex; }
-          .auth-modal {
-            background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
-            width: 100%; max-width: 420px; margin: 16px; overflow: hidden;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
-          }
-          .auth-modal-header { padding: 20px 24px 0; }
-          .auth-modal-header h3 { margin: 0 0 4px; font-size: 1.1rem; }
-          .auth-modal-header p { margin: 0; font-size: 0.8rem; color: var(--text-muted); }
-          .auth-modal-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); padding: 0 24px; margin-top: 16px; }
-          .auth-modal-tab {
-            flex: 1; padding: 10px 8px; background: transparent; border: none;
-            border-bottom: 2px solid transparent; color: var(--text-muted);
-            font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: all 150ms;
-          }
-          .auth-modal-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
-          .auth-modal-body { padding: 20px 24px 24px; }
-          .auth-modal-panel { display: none; }
-          .auth-modal-panel.active { display: block; }
-          .auth-modal-field { margin-bottom: 16px; }
-          .auth-modal-field label { display: block; font-size: 0.72rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; }
-          .auth-modal-field input { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-input); color: var(--text-main); font-size: 0.9rem; }
-          .auth-modal-field input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
-          .auth-modal-actions { display: flex; gap: 10px; margin-top: 20px; }
-          .auth-modal-actions .btn { flex: 1; }
-          .auth-modal-close { position: absolute; top: 16px; right: 16px; background: none; border: none; color: var(--text-muted); font-size: 1.2rem; cursor: pointer; }
-        </style>
-
-        <div class="token-bar-wrap">
-          <div class="token-bar">
-            <input id="signin-token-input" type="text" autocomplete="off" placeholder="Paste your license token here…" />
-            <button type="button" class="btn-sandbox" id="try-sandbox-btn">Try Free Sandbox</button>
-          </div>
-          <p class="token-bar-help">Enter your license token and press Enter to unlock the dashboard.</p>
-          <p id="signin-token-error" class="token-error-bar" hidden role="alert"></p>
-        </div>
-
-        <!-- Auth Choice Modal -->
-        <div class="auth-modal-overlay" id="auth-modal-overlay">
-          <div class="auth-modal">
-            <div class="auth-modal-header">
-              <h3>🔐 Authenticate</h3>
-              <p>Choose how you want to sign in to your dashboard.</p>
-            </div>
-            <div class="auth-modal-tabs">
-              <button type="button" class="auth-modal-tab active" data-auth-tab="email">📧 Email + Password</button>
-              <button type="button" class="auth-modal-tab" data-auth-tab="token">🔑 Token + Password</button>
-            </div>
-            <div class="auth-modal-body">
-              <!-- Email Panel -->
-              <div class="auth-modal-panel active" id="auth-panel-email">
-                <form id="auth-email-form">
-                  <div class="auth-modal-field">
-                    <label for="auth-email-input">Email</label>
-                    <input type="email" id="auth-email-input" autocomplete="email" required placeholder="you@example.com" />
-                  </div>
-                  <div class="auth-modal-field">
-                    <label for="auth-email-password">Password</label>
-                    <input type="password" id="auth-email-password" autocomplete="current-password" required placeholder="Enter your password…" />
-                  </div>
-                  <p id="auth-email-error" style="color:var(--error);font-size:0.8rem;margin:0 0 8px;" hidden></p>
-                  <div class="auth-modal-actions">
-                    <button type="button" class="btn btn-secondary" id="auth-modal-cancel">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Sign In</button>
-                  </div>
-                </form>
-              </div>
-              <!-- Token Panel -->
-              <div class="auth-modal-panel" id="auth-panel-token">
-                <form id="auth-token-form">
-                  <div class="auth-modal-field">
-                    <label for="auth-token-display">License Token</label>
-                    <input type="text" id="auth-token-display" readonly aria-label="License Token" style="background:var(--bg);color:var(--text-muted);" />
-                  </div>
-                  <div class="auth-modal-field">
-                    <label for="auth-token-password">Token Password</label>
-                    <input type="password" id="auth-token-password" autocomplete="off" placeholder="Enter token password…" />
-                  </div>
-                  <p id="auth-token-error" style="color:var(--error);font-size:0.8rem;margin:0 0 8px;" hidden></p>
-                  <div class="auth-modal-actions">
-                    <button type="button" class="btn btn-secondary" id="auth-modal-cancel-2">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Unlock Dashboard</button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="signin-tab-panel ${this._activeTab === 'email' ? 'active' : ''}" id="panel-email">
+      <div class="signin-tab-panel active" id="panel-email">
         <div class="signin-subtabs">
           <button type="button" class="signin-subtab ${this._emailMode === 'login' ? 'active' : ''}" data-mode="login" id="subtab-login">Sign In</button>
           <button type="button" class="signin-subtab ${this._emailMode === 'register' ? 'active' : ''}" data-mode="register" id="subtab-register">Create Account</button>
         </div>
         <form id="signin-email-form" class="signin-form">
-          <label class="field-label" for="signin-email-input">Email</label>
-          <input id="signin-email-input" class="input" type="email" autocomplete="email" required placeholder="email@example.com" />
+          <label class="field-label" for="signin-email-input">Email / Username</label>
+          <input id="signin-email-input" class="input" type="text" autocomplete="email" required placeholder="email@example.com or username" />
           <label class="field-label" for="signin-password-input">Password</label>
           <input id="signin-password-input" class="input" type="password" autocomplete="current-password" required placeholder="Enter your password…" />
+          <div style="display:flex;justify-content:flex-end;margin:-4px 0 8px;">
+            <button type="button" id="forgot-password-btn" style="background:none;border:none;color:var(--accent);font-size:0.78rem;cursor:pointer;padding:0;">Forgot Password?</button>
+          </div>
           <p id="signin-email-error" class="signin-error" hidden role="alert"></p>
           <button type="submit" class="btn btn-primary btn-block" id="signin-email-submit">${this._emailMode === 'register' ? 'Create Account' : 'Sign In'}</button>
         </form>
+        <div class="signin-divider" style="text-align:center;margin:16px 0;font-size:0.8rem;color:var(--text-muted);position:relative;">
+          <span style="background:var(--bg-card);padding:0 12px;position:relative;z-index:1;">or</span>
+          <div style="position:absolute;top:50%;left:0;right:0;height:1px;background:var(--border);z-index:0;"></div>
+        </div>
+        <button type="button" class="btn btn-secondary btn-block" id="webauthn-signin-btn" style="display:flex;align-items:center;justify-content:center;gap:8px;">
+          <span>&#128274;</span> Sign in with Security Key
+        </button>
         <p class="signin-note" id="email-mode-note">${this._emailMode === 'register' ? 'Already have an account? Switch to <strong>Sign In</strong>.' : 'New here? Switch to <strong>Create Account</strong> to register.'}</p>
       </div>
 
@@ -315,22 +191,11 @@ export class SignInView {
       </p>
     `;
     }
-    bindTabSwitching(container) {
-        const tabs = container.querySelectorAll('.signin-tab');
-        const panels = container.querySelectorAll('.signin-tab-panel');
-        tabs.forEach(tab => {
-            tab.addEventListener('click', () => {
-                const target = tab.dataset.tab;
-                this._activeTab = target;
-                tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === target));
-                panels.forEach(p => p.classList.toggle('active', p.id === `panel-${target}`));
-            });
-        });
-    }
     bindEmailModeToggle(container) {
         const subtabs = container.querySelectorAll('.signin-subtab');
         const submitBtn = container.querySelector('#signin-email-submit');
         const note = container.querySelector('#email-mode-note');
+        const forgotBtn = container.querySelector('#forgot-password-btn');
         subtabs.forEach(tab => {
             tab.addEventListener('click', () => {
                 const mode = tab.dataset.mode;
@@ -340,155 +205,10 @@ export class SignInView {
                     submitBtn.textContent = mode === 'login' ? 'Sign In' : 'Create Account';
                 if (note)
                     note.innerHTML = mode === 'login' ? 'New here? Switch to <strong>Create Account</strong> to register.' : 'Already have an account? Switch to <strong>Sign In</strong>.';
+                if (forgotBtn)
+                    forgotBtn.style.display = mode === 'login' ? 'block' : 'none';
             });
         });
-    }
-    bindTokenBarAndModal(container) {
-        var _a, _b, _c, _d;
-        const tokenInput = container.querySelector('#signin-token-input');
-        const errorEl = container.querySelector('#signin-token-error');
-        const overlay = container.querySelector('#auth-modal-overlay');
-        const tokenDisplay = container.querySelector('#auth-token-display');
-        const showError = (msg) => {
-            if (errorEl) {
-                errorEl.textContent = msg;
-                errorEl.hidden = false;
-            }
-        };
-        const clearError = () => {
-            if (errorEl) {
-                errorEl.textContent = '';
-                errorEl.hidden = true;
-            }
-        };
-        const closeModal = () => {
-            if (overlay)
-                overlay.classList.remove('active');
-            container.querySelector('#auth-email-error').hidden = true;
-            container.querySelector('#auth-token-error').hidden = true;
-        };
-        const openModal = (token) => {
-            var _a, _b;
-            if (tokenDisplay)
-                tokenDisplay.value = token.slice(0, 20) + (token.length > 20 ? '…' : '');
-            if (overlay)
-                overlay.classList.add('active');
-            // Reset forms
-            (_a = container.querySelector('#auth-email-form')) === null || _a === void 0 ? void 0 : _a.reset();
-            (_b = container.querySelector('#auth-token-form')) === null || _b === void 0 ? void 0 : _b.reset();
-            if (tokenDisplay)
-                tokenDisplay.value = token.slice(0, 24) + (token.length > 24 ? '…' : '');
-        };
-        // Token input: Enter key opens modal
-        if (tokenInput) {
-            const sandboxBtn = container.querySelector('#try-sandbox-btn');
-            tokenInput.addEventListener('input', () => {
-                if (sandboxBtn) {
-                    sandboxBtn.textContent = tokenInput.value.trim() ? 'Sign In' : 'Try Free Sandbox';
-                }
-            });
-            tokenInput.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    const token = tokenInput.value.trim();
-                    if (!token) {
-                        showError('Please enter a license token.');
-                        return;
-                    }
-                    clearError();
-                    // Reject free/sandbox tokens
-                    if (!isPaidToken(token)) {
-                        showError('Free sandbox tokens are for local testing only. Use Try Free Sandbox or purchase a license.');
-                        return;
-                    }
-                    // Check if token already activated → switch to email tab in modal
-                    if (authService.isTokenActivated(token)) {
-                        this._openModalTab(container, 'email');
-                        const binding = authService.getTokenBinding(token);
-                        const emailInput = container.querySelector('#auth-email-input');
-                        if (emailInput && (binding === null || binding === void 0 ? void 0 : binding.email))
-                            emailInput.value = binding.email;
-                        const emailError = container.querySelector('#auth-email-error');
-                        if (emailError) {
-                            emailError.textContent = 'This token is registered to an account. Please sign in with your email and password.';
-                            emailError.hidden = false;
-                        }
-                    }
-                    else {
-                        this._openModalTab(container, 'token');
-                    }
-                    openModal(token);
-                }
-            });
-        }
-        // Modal tab switching
-        container.querySelectorAll('.auth-modal-tab').forEach((tab) => {
-            tab.addEventListener('click', () => {
-                this._openModalTab(container, tab.dataset.authTab);
-            });
-        });
-        // Cancel buttons
-        (_a = container.querySelector('#auth-modal-cancel')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', closeModal);
-        (_b = container.querySelector('#auth-modal-cancel-2')) === null || _b === void 0 ? void 0 : _b.addEventListener('click', closeModal);
-        overlay === null || overlay === void 0 ? void 0 : overlay.addEventListener('click', (e) => { if (e.target === overlay)
-            closeModal(); });
-        // Email form in modal
-        (_c = container.querySelector('#auth-email-form')) === null || _c === void 0 ? void 0 : _c.addEventListener('submit', async (e) => {
-            var _a, _b;
-            e.preventDefault();
-            const email = container.querySelector('#auth-email-input').value.trim();
-            const password = container.querySelector('#auth-email-password').value;
-            const error = container.querySelector('#auth-email-error');
-            error.hidden = true;
-            try {
-                await authService.login(email, password);
-                showToast('Signed in successfully', 'success');
-                this.app.updateAuthUi();
-                (_b = (_a = this.app).bootstrapAfterAuth) === null || _b === void 0 ? void 0 : _b.call(_a);
-                this.app.navigate('dashboard');
-            }
-            catch (err) {
-                error.textContent = err.message || 'Sign in failed';
-                error.hidden = false;
-                showToast(err.message || 'Sign in failed', 'error');
-            }
-        });
-        // Token form in modal
-        (_d = container.querySelector('#auth-token-form')) === null || _d === void 0 ? void 0 : _d.addEventListener('submit', async (e) => {
-            var _a, _b, _c;
-            e.preventDefault();
-            const token = ((_a = tokenInput === null || tokenInput === void 0 ? void 0 : tokenInput.value) === null || _a === void 0 ? void 0 : _a.trim()) || '';
-            const password = container.querySelector('#auth-token-password').value;
-            const error = container.querySelector('#auth-token-error');
-            error.hidden = true;
-            try {
-                authService.setSession(token, { token, source: 'manual', password });
-                const valid = await authService.validateSession(password ? { password } : undefined);
-                if (!valid)
-                    throw new Error('Invalid or expired token.');
-                this.app.updateAuthUi();
-                showToast('Dashboard unlocked', 'success');
-                (_c = (_b = this.app).bootstrapAfterAuth) === null || _c === void 0 ? void 0 : _c.call(_b);
-                this.app.navigate('dashboard');
-            }
-            catch (err) {
-                authService.clearSession();
-                error.textContent = err.message || 'Token validation failed';
-                error.hidden = false;
-                showToast(err.message || 'Token validation failed', 'error');
-            }
-        });
-    }
-    _openModalTab(container, tabName) {
-        container.querySelectorAll('.auth-modal-tab').forEach((t) => {
-            t.classList.toggle('active', t.dataset.authTab === tabName);
-        });
-        container.querySelectorAll('.auth-modal-panel').forEach((p) => {
-            p.classList.toggle('active', p.id === `auth-panel-${tabName}`);
-        });
-    }
-    async handleTokenSubmit(e) {
-        // Legacy: no-op, replaced by bindTokenBarAndModal
     }
     async handleEmailSubmit(e) {
         var _a, _b;
@@ -498,6 +218,22 @@ export class SignInView {
         const password = form.querySelector('#signin-password-input').value;
         const submitBtn = form.querySelector('#signin-email-submit');
         const errorEl = form.querySelector('#signin-email-error');
+        // Client-side validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            if (errorEl) {
+                errorEl.textContent = 'Please enter a valid email address.';
+                errorEl.hidden = false;
+            }
+            return;
+        }
+        if (!password || password.length < 6) {
+            if (errorEl) {
+                errorEl.textContent = 'Password must be at least 6 characters.';
+                errorEl.hidden = false;
+            }
+            return;
+        }
         submitBtn.disabled = true;
         submitBtn.textContent = 'Signing in…';
         if (errorEl) {
@@ -528,37 +264,122 @@ export class SignInView {
             submitBtn.textContent = this._emailMode === 'register' ? 'Create Account' : 'Sign In';
         }
     }
-    async handleSandboxToken() {
+    _showRecoveryModal() {
+        const overlay = document.createElement('div');
+        overlay.id = 'recovery-modal-overlay';
+        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;';
+        overlay.innerHTML = `
+      <div style="background:var(--bg-card);padding:28px 32px;border-radius:14px;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);border:1px solid var(--border);">
+        <h3 style="margin:0 0 8px;font-size:1.15rem;color:var(--text-main);">&#128273; Account Recovery</h3>
+        <p style="margin:0 0 18px;font-size:0.85rem;color:var(--text-muted);line-height:1.5;">Enter your email address and we'll send you instructions to reset your password.</p>
+        <label style="display:block;font-size:0.78rem;color:var(--text-muted);margin-bottom:6px;">Email</label>
+        <input id="recovery-email-input" type="email" placeholder="you@example.com" style="width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:var(--bg-input);color:var(--text-main);font-size:0.95rem;margin-bottom:10px;" />
+        <div id="recovery-error" style="color:var(--error);font-size:0.8rem;margin-bottom:12px;display:none;"></div>
+        <div id="recovery-success" style="color:var(--success);font-size:0.8rem;margin-bottom:12px;display:none;"></div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;">
+          <button id="recovery-cancel" style="padding:10px 18px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text-main);font-size:0.85rem;cursor:pointer;">Cancel</button>
+          <button id="recovery-submit" style="padding:10px 18px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:0.85rem;font-weight:600;cursor:pointer;">Send Instructions</button>
+        </div>
+      </div>
+    `;
+        document.body.appendChild(overlay);
+        const emailInput = overlay.querySelector('#recovery-email-input');
+        const errorEl = overlay.querySelector('#recovery-error');
+        const successEl = overlay.querySelector('#recovery-success');
+        const cancelBtn = overlay.querySelector('#recovery-cancel');
+        const submitBtn = overlay.querySelector('#recovery-submit');
+        const closeModal = () => overlay.remove();
+        cancelBtn.addEventListener('click', closeModal);
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
+        submitBtn.addEventListener('click', async () => {
+            const email = emailInput.value.trim();
+            errorEl.style.display = 'none';
+            successEl.style.display = 'none';
+            if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                errorEl.textContent = 'Please enter a valid email address.';
+                errorEl.style.display = 'block';
+                return;
+            }
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Sending…';
+            try {
+                const res = await fetch('/api/auth/recover', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
+                const data = await res.json();
+                if (data.success) {
+                    successEl.textContent = 'Check your email for recovery instructions.';
+                    successEl.style.display = 'block';
+                    setTimeout(closeModal, 3000);
+                } else {
+                    errorEl.textContent = data.error || 'Failed to send recovery email.';
+                    errorEl.style.display = 'block';
+                }
+            } catch (err) {
+                errorEl.textContent = 'Network error. Please try again.';
+                errorEl.style.display = 'block';
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Send Instructions';
+            }
+        });
+        emailInput.focus();
+    }
+    async _handleWebAuthnSignIn() {
         var _a, _b;
-        const btn = document.getElementById('try-sandbox-btn');
-        const originalText = btn.textContent;
-        btn.disabled = true;
-        btn.textContent = 'Generating…';
+        if (!window.PublicKeyCredential) {
+            showToast('Security key login is not supported in this browser.', 'error');
+            return;
+        }
+        const credentials = authService.getWebAuthnCredentials();
+        if (!credentials.length) {
+            showToast('No registered security key. Register one in Profile > Security.', 'error');
+            return;
+        }
         try {
-            const response = await fetch('/api/tokens/sandbox', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: '' })
-            });
-            const data = await response.json();
-            if (data.success && data.token) {
-                authService.setSession(data.token, { token: data.token, tier: 'sandbox', source: 'sandbox' });
-                this.app.updateAuthUi();
-                showToast('Sandbox token active — limited to 100 requests/day', 'info');
-                (_b = (_a = this.app).bootstrapAfterAuth) === null || _b === void 0 ? void 0 : _b.call(_a);
-                this.app.navigate('dashboard');
+            const challengeBase64 = await authService.getWebAuthnChallenge();
+            const challenge = base64UrlToBuffer(challengeBase64);
+            const allowCredentials = credentials.map(c => ({
+                id: base64UrlToBuffer(c.id),
+                type: c.type || 'public-key'
+            }));
+            const publicKey = {
+                challenge,
+                allowCredentials,
+                timeout: 60000,
+                userVerification: 'preferred',
+                rpId: window.location.hostname
+            };
+            showToast('Touch your security key to continue…', 'info');
+            const assertion = await navigator.credentials.get({ publicKey });
+            if (!assertion || !assertion.id) {
+                showToast('Security key authentication failed.', 'error');
+                return;
             }
-            else {
-                throw new Error(data.error || 'Could not generate sandbox token');
+            const matched = credentials.find(c => c.id === assertion.id);
+            if (!matched) {
+                showToast('Unrecognized security key.', 'error');
+                return;
             }
+            const user = authService.getUser();
+            const email = (user === null || user === void 0 ? void 0 : user.email) || matched.userId || decodeEmailFromToken(authService.getToken()) || '';
+            if (!authService.isAuthenticated() && !email) {
+                showToast('Security key recognized, but no account session found. Sign in with email/token first.', 'error');
+                return;
+            }
+            showToast('Security key authenticated successfully.', 'success');
+            if (!authService.isAuthenticated()) {
+                const existingUser = authService.getUser();
+                const restoredUser = existingUser || { email: email || 'security-key-user', plan: 'community', tokenSession: true };
+                authService.setSession(authService.getToken() || '', restoredUser);
+            }
+            this.app.updateAuthUi();
+            (_b = (_a = this.app).bootstrapAfterAuth) === null || _b === void 0 ? void 0 : _b.call(_a);
+            this.app.navigate('dashboard');
         }
         catch (err) {
-            const msg = (err === null || err === void 0 ? void 0 : err.message) || String(err);
-            showToast(msg, 'error');
-        }
-        finally {
-            btn.disabled = false;
-            btn.textContent = originalText;
+            const message = (err === null || err === void 0 ? void 0 : err.name) === 'NotAllowedError'
+                ? 'Security key sign-in was cancelled or not allowed.'
+                : ((err === null || err === void 0 ? void 0 : err.message) || 'Security key authentication failed.');
+            showToast(message, 'error');
         }
     }
     destroy() { }
@@ -576,4 +397,12 @@ function escapeHtml(str) {
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;');
+}
+function base64UrlToBuffer(base64url) {
+    if (!base64url)
+        return new Uint8Array(0);
+    const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
+    const padding = '='.repeat((4 - base64.length % 4) % 4);
+    const binary = atob(base64 + padding);
+    return Uint8Array.from(binary, c => c.charCodeAt(0));
 }

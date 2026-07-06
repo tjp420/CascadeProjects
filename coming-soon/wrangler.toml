@@ -1,0 +1,20 @@
+# Cloudflare Pages + Workers config for SimpleBeacon marketing site
+name = "simplebeacon"
+compatibility_date = "2026-07-01"
+
+# Pages build settings
+[site]
+bucket = "./public"
+
+# SPA fallback for /dashboard/* routes
+[[routes]]
+pattern = "simplebeacon.ai/dashboard/*"
+zone_name = "simplebeacon.ai"
+
+# Environment variables (set these in Cloudflare Pages dashboard or via wrangler secret)
+# NODE_ENV = "production"
+# PUBLIC_URL = "https://simplebeacon.ai"
+# SIMPLEBEACON_LICENSE_SECRET = "<generate-strong-secret>"
+# RESEND_API_KEY = "<resend-api-key>"
+# RESEND_FROM = "certificates@simplebeacon.ai"
+# STRIPE_LINK_* = "<stripe-links>"

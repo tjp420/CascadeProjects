@@ -1,7 +1,7 @@
 import { fetchWithTimeout, downloadJson, downloadText, apiUrl } from '../utils.js';
 import { billingService } from './billingService.js';
 import { authService } from './authService.js';
-import { isDemoMode, DEMO_API_BASE } from '../demoMode.js';
+import { isDemoMode, isLocalDevHost, DEMO_API_BASE } from '../demoMode.js';
 import { readJsonResponseBody } from '../lib/recoverable-fetch.js';
 import { buildDashboardExportBundle } from '../utils/dashboard-export.browser.js?v=20260616demodashboard1';
 
@@ -268,7 +268,7 @@ export class ScanService {
   }
 
   async runScan(projectPath, options = {}) {
-    if (isDemoMode()) {
+    if (isDemoMode() && !isLocalDevHost()) {
       const err = new Error('Demo mode is read-only');
       err.code = 'demo_readonly';
       throw err;

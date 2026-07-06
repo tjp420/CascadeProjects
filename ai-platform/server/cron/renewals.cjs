@@ -1,5 +1,6 @@
 const crypto = require('crypto');
-const { checkExpiringLicenses } = require('../../../sales/license/renewal-tracker.js');
+const requireProject = require('../lib/project-require.cjs');
+const { checkExpiringLicenses } = requireProject('sales/license/renewal-tracker.js');
 
 /**
  * Dispatch automated 30-day renewal alert emails via Resend.

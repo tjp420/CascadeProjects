@@ -1,4 +1,5 @@
 // simplebeacon-ignore memory-leak — HTTP response accumulation and report processing
+console.log('[SimpleBeacon] extension.ts module loading...');
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as os from 'os';
@@ -6,7 +7,7 @@ import * as fs from 'fs';
 import * as http from 'http';
 import * as https from 'https';
 import * as crypto from 'crypto';
-import { spawn } from 'child_process';
+import { spawn, execSync } from 'child_process';
 import {
   ScanPhaseProvider, TaskNode, ScanReport,
   EnhancedScanProvider,
@@ -34,13 +35,93 @@ import {
   DashboardPanel,
   DebugReporter
 } from './providers';
-import { startDataServer, stopDataServer, updateServerState, getDataServerPort, setSidebarHtmlProvider, setAiContextCallback, restartDataServer, isDataServerRunning, setModernSidebarProvider, buildAiContextMarkdown } from './dataServer';
+import { CodeMapTreeProvider } from './codeMapTreeProvider';
+import { startDataServer, stopDataServer, updateServerState, getDataServerPort, clearBrowserSessionToken, recordBrowserSignOut, setSidebarHtmlProvider, setAiContextCallback, restartDataServer, isDataServerRunning, setModernSidebarProvider, buildAiContextMarkdown, setNotifyCallback } from './dataServer';
 import { getExtensionVersion, pickWorkspaceFolder, correctScanPath, showQuietMessage, escapeHtml, getSbConfig } from './utils';
 import { AuthManager } from './auth/authManager';
 import { initAuthManager, getAuthManager } from './auth/authContext';
 import { mergeLiveIssues, convertRealtimeIssues } from './reportMerge';
 import { safeUpdateUIs as _safeUpdateUIs, DashboardDeps } from './dashboardUpdater';
+import { validateLicenseLocally, normalizeTier } from './licenseManager';
+import { PUBLIC_KEY_PEM } from './realtimeMonitor';
+import { getAccountTracker } from './accountTracker';
+import { PAID_TIERS, resolveTier } from './tierConstants';
 
+/** Decode the payload section of a JWT (3-part dot-separated token). */
+function decodeJwtPayload(token: string): Record<string, any> | null {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const pad = '='.repeat((4 - base64.length % 4) % 4);
+    return JSON.parse(Buffer.from(base64 + pad, 'base64').toString('utf8'));
+  } catch { return null; }
+}
+
+/** Check if the current user has a paid (Pro/Enterprise) license. */
+async function isPaidUser(): Promise<boolean> {
+  const config = getSbConfig();
+
+  // 1. Check locally-configured license token
+  const licenseToken = config.get<string>('licenseKey', '') || config.get<string>('licenseToken', '');
+  if (licenseToken) {
+    const meta = validateLicenseLocally(licenseToken, PUBLIC_KEY_PEM);
+    if (meta) {
+      const tier = resolveTier(meta.tier);
+      if (PAID_TIERS.has(tier)) return true;
+    }
+  }
+
+  // 2. Check secretStorage (primary token store used by AuthManager)
+  let apiToken = '';
+  try {
+    apiToken = (await _extensionContext?.secrets.get('simplebeacon.apiToken')) || '';
+  } catch {
+    // secretStorage unavailable; fall through to config/globalState
+  }
+
+  // 3. Check dashboard JWT auth token (config or globalState)
+  if (!apiToken) {
+    apiToken = config.get<string>('apiToken', '') || _extensionContext?.globalState.get<string>('simplebeacon.apiToken', '') || '';
+  }
+
+  if (apiToken) {
+    const payload = decodeJwtPayload(apiToken);
+    if (payload) {
+      if (payload.exp && payload.exp * 1000 < Date.now()) return false;
+      const tier = String(
+        payload.tier ||
+        payload.plan ||
+        payload.product ||
+        payload.role ||
+        payload.user?.tier ||
+        payload.user?.plan ||
+        payload.data?.tier ||
+        payload.data?.plan ||
+        payload.account?.tier ||
+        payload.account?.plan ||
+        payload.subscription?.tier ||
+        payload.subscription?.plan ||
+        ''
+      ).toLowerCase();
+      if (PAID_TIERS.has(resolveTier(tier))) return true;
+    }
+  }
+
+  return false;
+}
+
+/** Show an upgrade prompt for Free users trying to access Pro features. */
+async function promptUpgrade(featureName: string): Promise<void> {
+  const choice = await vscode.window.showInformationMessage(
+    `${featureName} is a Pro feature. Upgrade to unlock all 63 engines, exports, and team tools.`,
+    'Upgrade to Pro',
+    'Maybe Later'
+  );
+  if (choice === 'Upgrade to Pro') {
+    vscode.env.openExternal(vscode.Uri.parse('https://simplebeacon.ai/pricing'));
+  }
+}
 
 /** Severity-to-color mapping for dashboard badges. */
 function getSeverityColor(sev: string): string {
@@ -90,6 +171,7 @@ interface CodeMapHtmlOptions {
   root: string;
   files: { name: string; ext: string; lines: number }[];
   totalLines: number;
+  treeJson: string;
   archParts: string[];
   topExts: [string, number][];
   extColors: Record<string, string>;
@@ -142,6 +224,7 @@ let scanProvider: ScanPhaseProvider;
 let enhancedScanProvider: EnhancedScanProvider;
 let visualSidebarProvider: VisualSidebarProvider;
 let modernSidebarProvider: ModernSidebarProvider;
+let codeMapTreeProvider: CodeMapTreeProvider;
 let summaryProvider: SummaryProvider;
 let settingsProvider: SettingsProvider;
 let enhancedAIProvider: EnhancedAIProvider;
@@ -157,6 +240,7 @@ let isGeneratingCertificate = false;
 let scanInProgress = false;
 let scanCount = 0;
 let _extensionUri: vscode.Uri | undefined;
+let _extensionContext: vscode.ExtensionContext | undefined;
 
 // aiPlatform globals (exported for aiPlatform panels)
 /** Global SimpleBeacon provider instance. */
@@ -278,10 +362,60 @@ function updateStatusBar(report?: unknown) {
  * @param context - VS Code extension context.
  */
 export function activate(context: vscode.ExtensionContext) {
+  const pkg = context.extension.packageJSON;
+  const version = pkg?.version || 'unknown';
+  try {
+  vscode.window.showInformationMessage(`SimpleBeacon v${version} is activating...`);
+  console.log('[SimpleBeacon] Extension activating... v' + version);
   _extensionUri = context.extensionUri;
+  _extensionContext = context;
   outputChannel = vscode.window.createOutputChannel('SimpleBeacon');
   context.subscriptions.push(outputChannel);
+  console.log('[SimpleBeacon] Output channel created');
   startDataServer(context, outputChannel);
+  console.log('[SimpleBeacon] Data server started');
+
+  // Wire up external-browser → VS Code notification bridge
+  setNotifyCallback((entry) => {
+    if (entry.type === 'openFile' && entry.payload?.path) {
+      const filePath = entry.payload.path;
+      Promise.resolve(vscode.commands.executeCommand('vscode.open', vscode.Uri.file(filePath))).catch(() => {
+        outputChannel.appendLine(`[NotifyBridge] Could not open file: ${filePath}`);
+      });
+    } else if (entry.type === 'downloadComplete' && entry.payload?.filename) {
+      modernSidebarProvider?.addDownloadedFile(entry.payload.filename, entry.payload.filePath || '');
+    }
+  });
+
+  // Register critical commands FIRST so they're available even if later setup fails
+  const earlyCommands: vscode.Disposable[] = [];
+  function earlyRegisterCmd(command: string, callback: (...args: any[]) => unknown) {
+    try {
+      earlyCommands.push(vscode.commands.registerCommand(command, callback));
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`[SimpleBeacon] Early command registration failed for ${command}: ${msg}`);
+      outputChannel.appendLine(`[SimpleBeacon] Early command registration failed for ${command}: ${msg}`);
+    }
+  }
+  earlyRegisterCmd('simplebeacon.setApiToken', async () => {
+    const token = await getAuthManager().promptForToken();
+    if (token) {
+      const msp = await import('./modernSidebarProvider');
+      msp.ModernSidebarProvider.openTokenRegistrationPanel(context.extensionUri, token);
+    }
+  });
+  earlyRegisterCmd('simplebeacon.scanWorkspace', (args?: string | { projectPath?: string; path?: string; mode?: string; fullDirectory?: boolean }) => {
+    const options = typeof args === 'string' ? { projectPath: args } : (args || {});
+    return runScan(context, options.projectPath || options.path, options);
+  });
+  earlyRegisterCmd('simplebeacon.clearResults', clearResults);
+  earlyRegisterCmd('simplebeacon.showReport', async () => {
+    const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
+    if (panel) { panel.showReportPane(); }
+  });
+  context.subscriptions.push(...earlyCommands);
+  console.log('[SimpleBeacon] Early commands registered: ' + earlyCommands.length);
 
   // Register the Slop Cop quick-fix provider for line-level ignore comments
   context.subscriptions.push(
@@ -331,19 +465,108 @@ export function activate(context: vscode.ExtensionContext) {
 
   initAuthManager(context);
 
+  // Register single URI handler for OAuth callbacks and deep links
+  context.subscriptions.push(
+    vscode.window.registerUriHandler({
+      handleUri(uri: vscode.Uri) {
+        if (uri.path === '/auth-callback') {
+          const params = new URLSearchParams(uri.query);
+          const code = params.get('code');
+          const state = params.get('state');
+          if (!code || !state) {
+            vscode.window.showErrorMessage('OAuth callback missing code or state');
+            return;
+          }
+          import('./auth/pkce').then(({ getSession, deleteSession }) => {
+            const session = getSession(state);
+            if (!session) {
+              vscode.window.showErrorMessage('OAuth session expired or invalid. Please try signing in again.');
+              return;
+            }
+            const port = getDataServerPort();
+            const body = JSON.stringify({ code, code_verifier: session.codeVerifier, provider: session.provider, state });
+            const req = require('http').request(
+              { hostname: '127.0.0.1', port, path: '/api/auth/oauth/token', method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) } },
+              (res: any) => {
+                let data = '';
+                res.on('data', (chunk: Buffer) => { data += chunk.toString(); });
+                res.on('end', async () => {
+                  try {
+                    const result = JSON.parse(data);
+                    if (result.success && result.token) {
+                      deleteSession(state);
+                      await getAuthManager().setToken(result.token);
+                      await context.secrets.store('simplebeacon.apiToken', result.token);
+                      vscode.window.showInformationMessage('Signed in successfully via ' + session.provider);
+                      await (await import('./modernSidebarProvider')).ModernSidebarProvider.refreshAuthState();
+                    } else {
+                      vscode.window.showErrorMessage('OAuth token exchange failed: ' + (result.error || 'Unknown error'));
+                    }
+                  } catch {
+                    vscode.window.showErrorMessage('Invalid OAuth token response');
+                  }
+                });
+              }
+            );
+            req.on('error', () => {
+              vscode.window.showErrorMessage('Failed to connect to SimpleBeacon auth server for OAuth exchange');
+            });
+            req.write(body);
+            req.end();
+          });
+          return;
+        }
+        if (uri.path === '/fix' || uri.path === 'fix') {
+          Promise.resolve(vscode.window
+            .showInformationMessage('SimpleBeacon: Received scan from website. Open fix panel?', 'Open', 'Dismiss'))
+            .then((choice) => {
+              if (choice === 'Open') {
+                WelcomeDashboard.createOrShow(context.extensionUri, true)?.showScanPane();
+              }
+            })
+            .catch(() => {});
+          return;
+        }
+        if (uri.path === '/sidebar' || uri.path === 'sidebar') {
+          const params = new URLSearchParams(uri.query);
+          const page = params.get('page') || '';
+          if (page) {
+            void modernSidebarProvider.navigateToPage(page);
+          }
+          return;
+        }
+      }
+    })
+  );
+
   scanProvider = new ScanPhaseProvider();
   enhancedScanProvider = new EnhancedScanProvider();
   visualSidebarProvider = new VisualSidebarProvider();
   modernSidebarProvider = new ModernSidebarProvider(context.extensionUri);
+  codeMapTreeProvider = new CodeMapTreeProvider(context.extensionUri);
   setModernSidebarProvider(modernSidebarProvider);
+  ModernSidebarProvider.setAccountTracker(getAccountTracker(context));
   import('./sidebarBridge').then(({ setSidebarBridge }) => {
     setSidebarBridge({
       showDashboardInSidebar: ModernSidebarProvider.showDashboardInSidebar.bind(ModernSidebarProvider),
-      openSidebarInBrowserStatic: ModernSidebarProvider.openSidebarInBrowserStatic.bind(ModernSidebarProvider)
+      openSidebarInBrowserStatic: ModernSidebarProvider.openSidebarInBrowserStatic.bind(ModernSidebarProvider),
+      isSidebarReady: ModernSidebarProvider.isViewReady.bind(ModernSidebarProvider)
     });
   });
   context.subscriptions.push(vscode.window.registerWebviewViewProvider(ModernSidebarProvider.viewType, modernSidebarProvider));
   context.subscriptions.push(vscode.window.registerWebviewViewProvider('simplebeacon-modern-explorer', modernSidebarProvider));
+  context.subscriptions.push(vscode.window.registerWebviewViewProvider(CodeMapTreeProvider.viewType, codeMapTreeProvider));
+
+  // Auto-start relay server when remoteMode is enabled so the browser URL is always ready
+  if (getSbConfig().get<boolean>('remoteMode', false)) {
+    setTimeout(() => {
+      try {
+        modernSidebarProvider.openSidebarInBrowser(false, '/');
+      } catch (e) {
+        outputChannel.appendLine('[SimpleBeacon] Remote mode relay auto-start failed: ' + (e instanceof Error ? e.message : String(e)));
+      }
+    }, 500);
+  }
   const aiChatbotProvider = new AiChatbotProvider(context.extensionUri);
   context.subscriptions.push(vscode.window.registerWebviewViewProvider(AiChatbotProvider.viewType, aiChatbotProvider));
   setAiContextCallback((payload) => {
@@ -568,17 +791,21 @@ export function activate(context: vscode.ExtensionContext) {
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      outputChannel.appendLine(`[SimpleBeacon] Command registration skipped for ${command}: ${msg}`);
+      const fullMsg = `[SimpleBeacon] Command registration failed for ${command}: ${msg}`;
+      outputChannel.appendLine(fullMsg);
+      console.error(fullMsg);
+      vscode.window.showErrorMessage(fullMsg);
       return { dispose: () => {} } as vscode.Disposable;
     }
   }
 
   const commands = [
-    registerCmd('simplebeacon.scanWorkspace', (args?: string | { projectPath?: string; path?: string; mode?: string; fullDirectory?: boolean }) => {
-      const options = typeof args === 'string' ? { projectPath: args } : (args || {});
-      return runScan(context, options.projectPath || options.path, options);
+    // Note: scanWorkspace, clearResults, showReport, and setApiToken are already
+    // registered above as early commands (lines 401-416) so they survive partial
+    // activation failures. Do NOT duplicate them here.
+    registerCmd('simplebeacon.clearDownloads', () => {
+      modernSidebarProvider?.clearDownloadedFiles();
     }),
-    registerCmd('simplebeacon.clearResults', clearResults),
     registerCmd('simplebeacon.resetScanQuota', async () => {
       const usagePath = path.join(os.homedir(), '.simplebeacon', 'scan-usage.json');
       try {
@@ -602,10 +829,6 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.window.showErrorMessage('Failed to refresh relay port: ' + (e instanceof Error ? e.message : String(e)));
       }
     }),
-    registerCmd('simplebeacon.showReport', async () => {
-      const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
-      if (panel) { panel.showReportPane(); }
-    }),
     registerCmd('simplebeacon.openAnalyze', async () => {
       const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
       if (panel) { panel.showAnalyzePane(); }
@@ -621,7 +844,7 @@ export function activate(context: vscode.ExtensionContext) {
     }),
     registerCmd('simplebeacon.exportCertificatePdf', async () => {
       const workspaceFolders = vscode.workspace.workspaceFolders;
-      if (!workspaceFolders) {
+      if (!workspaceFolders || workspaceFolders.length === 0) {
         showQuietMessage('Open a workspace to export the certificate');
         return;
       }
@@ -640,7 +863,7 @@ export function activate(context: vscode.ExtensionContext) {
     }),
     registerCmd('simplebeacon.openCertificateHtml', async () => {
       const workspaceFolders = vscode.workspace.workspaceFolders;
-      if (!workspaceFolders) {
+      if (!workspaceFolders || workspaceFolders.length === 0) {
         showQuietMessage('Open a workspace to view the certificate');
         return;
       }
@@ -661,13 +884,29 @@ export function activate(context: vscode.ExtensionContext) {
       await generateCodeMap();
     }),
     registerCmd('simplebeacon.openCodeMapHtml', async () => {
-      await openCodeMapPanel();
+      const workspaceFolders = vscode.workspace.workspaceFolders;
+      if (!workspaceFolders || workspaceFolders.length === 0) {
+        showQuietMessage('Open a workspace to view the code map');
+        return;
+      }
+      const mapHtmlPath = path.join(workspaceFolders[0].uri.fsPath, '.simplebeacon', 'codemap.html');
+      if (!fs.existsSync(mapHtmlPath)) {
+        showQuietMessage('Generate a code map first');
+        return;
+      }
+      vscode.env.openExternal(vscode.Uri.file(mapHtmlPath));
+    }),
+    registerCmd('simplebeacon.highlightCodeMapNode', async (filePath: string) => {
+      if (codeMapPanel) {
+        codeMapPanel.webview.postMessage({ command: 'highlightNode', path: filePath });
+      }
     }),
     registerCmd('simplebeacon.exportCodeMap', exportCodeMap),
     registerCmd('simplebeacon.importCodeMapGraph', importCodeMapGraph),
     registerCmd('simplebeacon.exportReportJson', exportReportJson),
     registerCmd('simplebeacon.exportTrustReport', exportTrustReport),
     registerCmd('simplebeacon.exportAIReport', () => exportAIReportCommand(context)),
+    registerCmd('simplebeacon.exportAiContext', exportAiContext),
     registerCmd('simplebeacon.loadReport', async () => {
       const workspaceFolders = vscode.workspace.workspaceFolders;
       const defaultUri = workspaceFolders?.[0]
@@ -834,6 +1073,10 @@ export function activate(context: vscode.ExtensionContext) {
       }
     }),
     registerCmd('simplebeacon.runAdvancedAnalytics', async () => {
+      if (!await isPaidUser()) {
+        await promptUpgrade('Advanced analytics');
+        return;
+      }
       const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
       if (!workspaceFolder) {
         vscode.window.showErrorMessage('No workspace folder found');
@@ -849,10 +1092,11 @@ export function activate(context: vscode.ExtensionContext) {
       }
     }),
     registerCmd('simplebeacon.showTeamDashboard', async () => {
+      if (!await isPaidUser()) {
+        await promptUpgrade('Team dashboard');
+        return;
+      }
       WelcomeDashboard.createOrShow(context.extensionUri, true)?.showTeamPane();
-    }),
-    registerCmd('simplebeacon.setApiToken', async () => {
-      await getAuthManager().promptForToken();
     }),
     registerCmd('simplebeacon.clearApiToken', async () => {
       await getAuthManager().clearToken();
@@ -861,13 +1105,100 @@ export function activate(context: vscode.ExtensionContext) {
       await (await import('./modernSidebarProvider')).ModernSidebarProvider.refreshAuthState();
     }),
     registerCmd('simplebeacon.signIn', async () => {
-      await getAuthManager().promptForToken();
+      let token = await getAuthManager().getToken();
+      if (!token) {
+        const entered = await getAuthManager().promptForToken();
+        if (!entered) {
+          // User cancelled — auto-generate a free community token via local data server
+          try {
+            const port = getDataServerPort();
+            const res = await fetch(`http://127.0.0.1:${port}/api/free-token`);
+            if (res.ok) {
+              const data = await res.json() as { success?: boolean; token?: string };
+              if (data && data.token) {
+                await getAuthManager().setToken(data.token);
+                try { await getAccountTracker(context).recordLogin(data.token, 'extension', 'autoToken', 'free-community auto-generated'); } catch {}
+                vscode.window.showInformationMessage('Free community token auto-generated — you\'re signed in!');
+                token = data.token;
+              }
+            }
+          } catch (e) {
+            // Data server not running or free-token endpoint failed
+            vscode.window.showErrorMessage('Could not generate free token. Start SimpleBeacon data server first, or paste a token manually.');
+            await (await import('./modernSidebarProvider')).ModernSidebarProvider.refreshAuthState();
+            return;
+          }
+        }
+      }
+      if (!token) {
+        vscode.window.showWarningMessage('No token provided. Sign-in cancelled.');
+        await (await import('./modernSidebarProvider')).ModernSidebarProvider.refreshAuthState();
+        return;
+      }
+      const parts = token.split('.');
+      const isJwt = parts.length === 3 && parts.every(p => p.length > 0);
+      const isLicense = parts.length === 2 && parts.every(p => p.length > 0);
+      let valid = false;
+      if (isLicense) {
+        valid = !!validateLicenseLocally(token, PUBLIC_KEY_PEM);
+      } else if (isJwt) {
+        valid = true; // Accept standard JWT auth tokens from the server
+      }
+      if (!valid) {
+        await getAuthManager().clearToken();
+        await getAuthManager().clearPassword();
+        vscode.window.showErrorMessage('Invalid or expired license token. Get a valid token at https://simplebeacon.ai');
+        await (await import('./modernSidebarProvider')).ModernSidebarProvider.refreshAuthState();
+        return;
+      }
+      // Sync valid token to settings so realtimeMonitor can access it
+      await getSbConfig().update('licenseKey', token, true);
+      try {
+        const entered = await getAuthManager().getToken();
+        const eventType = entered === token ? 'tokenStored' : 'preExisting';
+        await getAccountTracker(context).recordLogin(token, 'extension', eventType);
+      } catch {}
       await (await import('./modernSidebarProvider')).ModernSidebarProvider.refreshAuthState();
+    }),
+    registerCmd('simplebeacon.signInWithProvider', async (provider?: string) => {
+      const selected = provider || (await vscode.window.showQuickPick(
+        [
+          { label: 'Google', value: 'google' },
+          { label: 'GitHub', value: 'github' },
+          { label: 'Microsoft', value: 'microsoft' },
+        ],
+        { placeHolder: 'Select a sign-in provider' }
+      ))?.value;
+      if (!selected) { return; }
+      try {
+        const { createSession } = await import('./auth/pkce');
+        const port = getDataServerPort();
+        const session = createSession(selected, `vscode://simplebeacon.simplebeacon-vscode/auth-callback`);
+        const authorizeUrl = `http://127.0.0.1:${port}/api/auth/oauth/authorize?provider=${selected}&redirect_uri=${encodeURIComponent(session.redirectUri || '')}&code_challenge=${session.codeChallenge}&state=${session.state}`;
+        await vscode.env.openExternal(vscode.Uri.parse(authorizeUrl));
+      } catch (e) {
+        vscode.window.showErrorMessage('Failed to start OAuth sign-in: ' + (e instanceof Error ? e.message : String(e)));
+      }
     }),
     registerCmd('simplebeacon.storeLicenseToken', async (token: string) => {
       if (!token) { return; }
+      const parts = token.split('.');
+      const isJwt = parts.length === 3 && parts.every(p => p.length > 0);
+      const isLicense = parts.length === 2 && parts.every(p => p.length > 0);
+      let valid = false;
+      if (isLicense) {
+        valid = !!validateLicenseLocally(token, PUBLIC_KEY_PEM);
+      } else if (isJwt) {
+        valid = true;
+      }
+      if (!valid) {
+        vscode.window.showErrorMessage('Invalid or expired license token. Token was not saved. Get a valid token at https://simplebeacon.ai');
+        return;
+      }
       try {
         await getAuthManager().setToken(token);
+        try { await getAccountTracker(context).recordLogin(token, 'extension', 'licenseStored'); } catch {}
+        await getSbConfig().update('licenseKey', token, true);
         showQuietMessage('SimpleBeacon AI: License credential synchronized securely.');
         await (await import('./modernSidebarProvider')).ModernSidebarProvider.refreshAuthState();
       } catch (error) {
@@ -875,10 +1206,42 @@ export function activate(context: vscode.ExtensionContext) {
       }
     }),
     registerCmd('simplebeacon.signOut', async () => {
+      outputChannel.appendLine('[SimpleBeacon] signOut command invoked');
+      const existing = await getAuthManager().getToken();
       await getAuthManager().clearToken();
       await getAuthManager().clearPassword();
+      clearBrowserSessionToken();
+      recordBrowserSignOut(existing);
+      if (existing) {
+        try { await getAccountTracker(context).recordLogout(existing, 'extension', 'signOutCommand'); } catch {}
+      }
       showQuietMessage('Signed out');
-      await (await import('./modernSidebarProvider')).ModernSidebarProvider.refreshAuthState();
+      await (await import('./modernSidebarProvider')).ModernSidebarProvider.refreshAuthState('signOut');
+      outputChannel.appendLine('[SimpleBeacon] signOut command completed');
+    }),
+    registerCmd('simplebeacon.viewAccountHistory', async () => {
+      const tracker = getAccountTracker(context);
+      const events = await tracker.getHistory(100);
+      const panel = vscode.window.createWebviewPanel('simplebeaconAccountHistory', 'SimpleBeacon Account History', vscode.ViewColumn.One, { enableScripts: true });
+      const rows = events.map(ev => `<tr><td>${ev.timestamp}</td><td>${ev.event}</td><td>${ev.email || '-'}</td><td>${ev.tier || '-'}</td><td>${ev.tokenType}</td><td>${ev.source}</td><td>${ev.details || ''}</td></tr>`).join('');
+      panel.webview.html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+        body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;padding:20px;background:#1e1e1e;color:#ccc;font-size:13px}
+        table{border-collapse:collapse;width:100%;font-size:12px}
+        th,td{padding:8px 12px;text-align:left;border-bottom:1px solid #333}
+        th{background:#252526;color:#fff;position:sticky;top:0}
+        tr:hover{background:#2a2d2e}
+        h2{margin-top:0;color:#fff}
+      </style></head><body><h2>Account History (last ${events.length} events)</h2>
+      <table><thead><tr><th>Timestamp</th><th>Event</th><th>Email</th><th>Tier</th><th>Token Type</th><th>Source</th><th>Details</th></tr></thead><tbody>${rows}</tbody></table>
+      </body></html>`;
+    }),
+    registerCmd('simplebeacon.exportAccountHistory', async () => {
+      const tracker = getAccountTracker(context);
+      const uri = await vscode.window.showSaveDialog({ defaultUri: vscode.Uri.file('simplebeacon-accounts.jsonl'), filters: { 'JSON Lines': ['jsonl'] } });
+      if (uri) {
+        await tracker.exportToFile(uri.fsPath);
+        vscode.window.showInformationMessage('Account history exported to ' + uri.fsPath);
+      }
     }),
     registerCmd('simplebeacon.setServerUrl', async () => {
       await getAuthManager().promptForServerUrl();
@@ -1011,11 +1374,13 @@ export function activate(context: vscode.ExtensionContext) {
       await vscode.commands.executeCommand('simplebeacon-modern.focus');
       const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
       if (panel) { panel.showCodeMapPane(); }
+      await vscode.commands.executeCommand('simplebeacon-codemap-tree.focus');
     }),
     registerCmd('simplebeacon.showCodeMap', async () => {
       await vscode.commands.executeCommand('simplebeacon-modern.focus');
       const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
       if (panel) { panel.showCodeMapPane(); }
+      await vscode.commands.executeCommand('simplebeacon-codemap-tree.focus');
     }),
     registerCmd('simplebeacon.openRoadmap', async () => {
       const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
@@ -1034,6 +1399,7 @@ export function activate(context: vscode.ExtensionContext) {
       const uri = await vscode.window.showSaveDialog({ defaultUri, filters: { JSON: ['json'] } });
       if (!uri) return;
       fs.copyFileSync(files.roadmapJsonPath, uri.fsPath);
+      modernSidebarProvider.addDownloadedFile(path.basename(uri.fsPath), uri.fsPath);
       showQuietMessage(`Roadmap exported to ${uri.fsPath}`);
     }),
     registerCmd('simplebeacon.openRoadmapHtml', async () => {
@@ -2163,7 +2529,7 @@ input:focus,select:focus{border-color:var(--ac)}
       <div class="section-title">Security & Access</div>
       <div class="setting-row"><div class="setting-info"><div class="setting-label">API Server URL</div><div class="setting-desc">Custom endpoint for the SimpleBeacon backend.</div></div><input type="text" value="${apiUrl || 'http://127.0.0.1:3000'}" id="apiUrlInput" /></div>
       <div class="setting-row"><div class="setting-info"><div class="setting-label">Multi-Factor Authentication</div><div class="setting-desc">Require MFA for certificate generation.</div></div><div class="toggle" data-key="mfa"></div></div>
-      <div class="setting-row"><div class="setting-info"><div class="setting-label">Relay Port</div><div class="setting-desc">Local relay server port for browser preview.</div></div><input type="number" value="3001" /></div>
+      <div class="setting-row"><div class="setting-info"><div class="setting-label">Relay Port</div><div class="setting-desc">Local relay server port for browser preview.</div></div><input type="number" value="3004" /></div>
     </div>
 
     <!-- System -->
@@ -2292,7 +2658,7 @@ input:focus,select:focus{border-color:var(--ac)}
           cfg.update('maxFiles', 5000, true);
           cfg.update('excludePatterns', [], true);
           cfg.update('apiServerUrl', undefined, true);
-          cfg.update('relayPort', 3001, true);
+          cfg.update('relayPort', 3004, true);
           cfg.update('dataServerPort', 54358, true);
           showQuietMessage('SimpleBeacon settings reset to defaults');
         } else if (msg.command === 'diagnose') {
@@ -2666,9 +3032,25 @@ Timestamp: ${escapeHtml(new Date().toISOString())}</pre>
     registerCmd('simplebeacon.showWelcome', () => {
       WelcomeDashboard.createOrShow(context.extensionUri, true);
     }),
+    registerCmd('simplebeacon.upgradeToPro', () => {
+      vscode.env.openExternal(vscode.Uri.parse('https://simplebeacon.ai/pricing'));
+    }),
+    registerCmd('simplebeacon.replaceToken', async () => {
+      const authManager = getAuthManager();
+      const token = await authManager.getToken();
+      if (!token) {
+        vscode.window.showWarningMessage('No token to replace. Set a token first.');
+        return;
+      }
+      const msp = await import('./modernSidebarProvider');
+      msp.ModernSidebarProvider.openTokenReplacementPanel(context.extensionUri, token, msp.ModernSidebarProvider.getCachedTier() || '');
+    }),
   ];
 
+  console.log('[SimpleBeacon] Registering ' + commands.length + ' commands...');
   context.subscriptions.push(...commands);
+  console.log('[SimpleBeacon] Commands registered successfully');
+  vscode.window.showInformationMessage(`SimpleBeacon v${version} activated successfully.`);
 
   const folders = vscode.workspace.workspaceFolders;
   const autoScan = getSbConfig().get('autoScanOnOpen');
@@ -2709,33 +3091,18 @@ Timestamp: ${escapeHtml(new Date().toISOString())}</pre>
     context.subscriptions.push(contextWatcher);
   }
 
-  // aiPlatform: Register URI handler for website → VS Code deep links
-  context.subscriptions.push(
-    vscode.window.registerUriHandler({
-      handleUri(uri: vscode.Uri): vscode.ProviderResult<void> {
-        if (uri.path === '/fix' || uri.path === 'fix') {
-          Promise.resolve(vscode.window
-            .showInformationMessage(`SimpleBeacon: Received scan from website. Open fix panel?`, 'Open', 'Dismiss'))
-            .then((choice) => {
-              if (choice === 'Open') {
-                WelcomeDashboard.createOrShow(context.extensionUri, true)?.showScanPane();
-              }
-            })
-            .catch(() => {});
-          return;
-        }
-        // Sidebar deep-link navigation from browser URLs
-        if (uri.path === '/sidebar' || uri.path === 'sidebar') {
-          const params = new URLSearchParams(uri.query);
-          const page = params.get('page') || '';
-          if (page) {
-            void modernSidebarProvider.navigateToPage(page);
-          }
-          return;
-        }
-      },
-    })
-  );
+  } catch (activationError) {
+    const errMsg = activationError instanceof Error ? activationError.message : String(activationError);
+    const errStack = activationError instanceof Error ? activationError.stack : '';
+    const fullMsg = `[SimpleBeacon v${version || 'unknown'}] ACTIVATION FAILED: ${errMsg}`;
+    if (outputChannel) {
+      outputChannel.appendLine(fullMsg);
+      if (errStack) { outputChannel.appendLine(errStack); }
+      outputChannel.show(true);
+    }
+    console.error(fullMsg);
+    vscode.window.showErrorMessage(fullMsg + ' — Check Output > SimpleBeacon for details.');
+  }
 }
 
 /**
@@ -2760,7 +3127,14 @@ function resolveCliPath(): { cmd: string; args: string[] } | null {
 
   // 3. Global npx install (use npx.cmd on Windows so spawn(shell:false) works)
   const isWindows = process.platform === 'win32';
-  return { cmd: isWindows ? 'npx.cmd' : 'npx', args: ['simplebeacon'] };
+  const npxCmd = isWindows ? 'npx.cmd' : 'npx';
+  try {
+    execSync(`${npxCmd} simplebeacon --version`, { stdio: 'ignore', timeout: 5000 });
+    return { cmd: npxCmd, args: ['simplebeacon'] };
+  } catch {
+    // CLI not available via npx
+    return null;
+  }
 }
 
 /**
@@ -2989,10 +3363,12 @@ async function runScan(context: vscode.ExtensionContext, projectPath?: string, o
         token.onCancellationRequested(() => {
           child.kill();
           scanInProgress = false;
+          _stopSimulatedProgress();
           outputChannel.appendLine('[SimpleBeacon] Scan cancelled');
           enhancedScanProvider.setScanning(false);
           visualSidebarProvider.setScanning(false);
           modernSidebarProvider.updateStatus('idle', 'Scan cancelled');
+          modernSidebarProvider.updateScanProgress(0);
           reject(new Error('Cancelled'));
         });
 
@@ -3002,38 +3378,71 @@ async function runScan(context: vscode.ExtensionContext, projectPath?: string, o
           reject(err);
         });
 
+        let lastReportedProgress = 0;
+        let simulatedProgress = 0;
+        let progressInterval: NodeJS.Timeout | null = null;
+        function _reportProgress(percentage: number) {
+          const clamped = Math.max(0, Math.min(99, percentage));
+          if (clamped <= lastReportedProgress) return;
+          lastReportedProgress = clamped;
+          progress.report({ increment: clamped / 100 });
+          enhancedScanProvider.setScanning(true, { phase: 'Scanning', progress: clamped, total: 100 });
+          visualSidebarProvider.setScanning(true, { phase: 'Scanning', progress: clamped, total: 100 });
+          modernSidebarProvider.updateStatus('scanning', 'Scanning... ' + clamped + '%');
+          modernSidebarProvider.updateScanProgress(clamped);
+        }
+        function _startSimulatedProgress() {
+          if (progressInterval) return;
+          simulatedProgress = 5;
+          _reportProgress(simulatedProgress);
+          progressInterval = setInterval(() => {
+            if (lastReportedProgress >= 95 || !scanInProgress) {
+              if (progressInterval) { clearInterval(progressInterval); progressInterval = null; }
+              return;
+            }
+            simulatedProgress = Math.min(95, simulatedProgress + Math.random() * 3 + 1);
+            if (simulatedProgress > lastReportedProgress) {
+              _reportProgress(Math.floor(simulatedProgress));
+            }
+          }, 800);
+        }
+        function _stopSimulatedProgress() {
+          if (progressInterval) { clearInterval(progressInterval); progressInterval = null; }
+        }
+
         child.stdout.on('data', (data: Buffer) => {
           const chunk = data.toString();
           stdout += chunk;
           chunk.split('\n').forEach((line: string) => {
-            if (line.trim()) {
-              outputChannel.appendLine(line.trim());
-              const match = line.match(/(\d+)%/);
+            const trimmed = line.trim();
+            if (trimmed) {
+              outputChannel.appendLine(trimmed);
+              const match = trimmed.match(/(\d+)%/);
               if (match) {
-                const percentage = parseInt(match[1]);
-                progress.report({ increment: percentage / 100 });
-
-                // Update enhanced sidebar with progress
-                enhancedScanProvider.setScanning(true, {
-                  phase: 'Scanning',
-                  progress: percentage,
-                  total: 100,
-                });
-                visualSidebarProvider.setScanning(true, {
-                  phase: 'Scanning',
-                  progress: percentage,
-                  total: 100,
-                });
-                modernSidebarProvider.updateStatus('scanning', 'Scanning... ' + percentage + '%');
-                modernSidebarProvider.updateScanProgress(percentage);
+                _stopSimulatedProgress();
+                _reportProgress(parseInt(match[1]));
+              } else {
+                // Start simulated progress after first real output line if no percentage yet
+                if (lastReportedProgress === 0) { _startSimulatedProgress(); }
               }
             }
           });
         });
 
         child.stderr.on('data', (data: Buffer) => {
-          stderr += data.toString();
-          outputChannel.appendLine(`[stderr] ${data.toString().trim()}`);
+          const chunk = data.toString();
+          stderr += chunk;
+          chunk.split('\n').forEach((line: string) => {
+            const trimmed = line.trim();
+            if (trimmed) {
+              outputChannel.appendLine(`[stderr] ${trimmed}`);
+              const match = trimmed.match(/(\d+)%/);
+              if (match) {
+                _stopSimulatedProgress();
+                _reportProgress(parseInt(match[1]));
+              }
+            }
+          });
         });
 
         child.on('close', async (code: number | null) => {
@@ -3242,6 +3651,8 @@ async function runScan(context: vscode.ExtensionContext, projectPath?: string, o
             }
             outputChannel.appendLine(`[SimpleBeacon] Scan complete. Score: ${scanScore}/100 — Gate: ${scanGate}`);
             scanInProgress = false;
+            _stopSimulatedProgress();
+            _reportProgress(100);
             // Generate code map in the background after scan, but do not auto-open it
             generateCodeMap(false)
               .then(() => outputChannel.appendLine('[SimpleBeacon] Code map generated in background'))
@@ -3262,7 +3673,7 @@ async function runScan(context: vscode.ExtensionContext, projectPath?: string, o
     enhancedScanProvider.setScanning(false);
     visualSidebarProvider.setScanning(false);
     modernSidebarProvider.updateStatus('idle', 'Ready');
-    modernSidebarProvider.updateScanProgress(0);
+    setTimeout(() => modernSidebarProvider.updateScanProgress(0), 2000);
   });
 }
 
@@ -3293,7 +3704,7 @@ function clearResults() {
 async function generateCodeMap(openPanel = true) {
   try {
     const workspaceFolders = vscode.workspace.workspaceFolders;
-    if (!workspaceFolders) {
+    if (!workspaceFolders || workspaceFolders.length === 0) {
       showQuietMessage('Open a workspace to generate a code map');
       return;
     }
@@ -3302,6 +3713,30 @@ async function generateCodeMap(openPanel = true) {
     const mapPath = path.join(sbDir, 'codemap.json');
     const mapHtmlPath = path.join(sbDir, 'codemap.html');
     const exclude = new Set(['node_modules', '.git', '.simplebeacon', 'dist', 'build', 'out', '.vscode', 'coverage', '.husky']);
+    const binaryExts = new Set(['.png', '.jpg', '.jpeg', '.gif', '.ico', '.woff', '.woff2', '.ttf', '.eot', '.pdf', '.zip', '.tar', '.gz', '.tgz', '.bz2', '.7z', '.exe', '.dll', '.so', '.dylib', '.bin', '.dat', '.mp3', '.mp4', '.avi', '.mov', '.webm', '.svg', '.webp', '.wav', '.ogg']);
+
+    // Parse .gitignore patterns
+    const gitignorePatterns: string[] = [];
+    const gitignorePath = path.join(root, '.gitignore');
+    try {
+      if (fs.existsSync(gitignorePath)) {
+        const gitignoreContent = fs.readFileSync(gitignorePath, 'utf8');
+        gitignorePatterns.push(...gitignoreContent.split(/\r?\n/).filter((line: string) => line.trim() && !line.startsWith('#')));
+      }
+    } catch { /* ignore */ }
+    function matchesGitignore(filePath: string): boolean {
+      for (const pattern of gitignorePatterns) {
+        const trimmed = pattern.trim();
+        if (!trimmed) continue;
+        const normalized = filePath.replace(/\\/g, '/');
+        // Simple gitignore matching: exact name, directory prefix, or glob
+        const baseName = path.basename(normalized);
+        if (baseName === trimmed || normalized === trimmed || normalized.endsWith('/' + trimmed)) return true;
+        if (trimmed.endsWith('/') && normalized.includes('/' + trimmed.slice(0, -1) + '/')) return true;
+        if (trimmed.startsWith('*') && baseName.endsWith(trimmed.slice(1))) return true;
+      }
+      return false;
+    }
 
     interface FileInfo { name: string; ext: string; size: number; lines: number; path: string; full: string; content?: string; }
     const files: FileInfo[] = [];
@@ -3315,10 +3750,12 @@ async function generateCodeMap(openPanel = true) {
         if (exclude.has(entry.name)) continue;
         const full = path.join(dir, entry.name);
         const r = path.join(rel, entry.name).replace(/\\/g, '/');
+        if (matchesGitignore(r)) continue;
         if (entry.isDirectory()) {
           walk(full, r);
         } else if (entry.isFile()) {
           const ext = path.extname(entry.name).toLowerCase() || '(no ext)';
+          if (binaryExts.has(ext)) continue;
           counts[ext] = (counts[ext] || 0) + 1;
           let lines = 0;
           let content = '';
@@ -3452,8 +3889,9 @@ async function generateCodeMap(openPanel = true) {
     }
 
     // Build tree structure for sidebar
-    interface TreeNode { name: string; path: string; type: 'dir' | 'file'; children: TreeNode[]; size?: number; lines?: number; ext?: string; }
+    interface TreeNode { name: string; path: string; type: 'dir' | 'file'; children: TreeNode[]; size?: number; lines?: number; ext?: string; viewable?: boolean; inGraph?: boolean; }
     const tree: TreeNode = { name: path.basename(root), path: '', type: 'dir', children: [] };
+    const graphNodeIds = new Set(Object.keys(depNodes));
     for (const f of files) {
       const parts = f.path.split('/').filter(Boolean);
       let current = tree;
@@ -3463,7 +3901,7 @@ async function generateCodeMap(openPanel = true) {
         let child = current.children.find(c => c.name === part);
         if (!child) {
           child = { name: part, path: parts.slice(0, i + 1).join('/'), type: isLast ? 'file' : 'dir', children: [] };
-          if (isLast) { child.size = f.size; child.lines = f.lines; child.ext = f.ext; }
+          if (isLast) { child.size = f.size; child.lines = f.lines; child.ext = f.ext; child.viewable = !binaryExts.has(f.ext) && f.lines > 0; child.inGraph = graphNodeIds.has(f.path); }
           current.children.push(child);
         }
         current = child;
@@ -3478,7 +3916,7 @@ async function generateCodeMap(openPanel = true) {
       modules: String(Object.keys(depNodes).length),
       arch: archParts.join(' + '),
       graph: graphData,
-      tree: tree.children.map((c: any) => ({ name: c.name, type: c.type, children: c.children.map((cc: any) => ({ name: cc.name, path: cc.path, type: cc.type, ext: cc.ext, lines: cc.lines || 0, size: cc.size || 0 })) })),
+      tree: serializeTreeNode(tree.children),
       list: files.slice(0, 50).map((f: any) => ({ name: f.name, path: f.path, ext: f.ext, lines: f.lines, size: f.size, deps: depEdges.filter((e: any) => e.source === f.path || e.target === f.path).length })),
       severity: { critical: 0, high: 0, medium: 0, low: 0 },
       repoFiles: String(files.length),
@@ -3490,74 +3928,9 @@ async function generateCodeMap(openPanel = true) {
       mostConnected: mostConnected,
     });
 
-    function treeToHtml(node: TreeNode, level = 0): string {
-      const indent = level * 20;
-      const iconStyle = node.ext ? `style="color:${extColors[node.ext] || '#64748b'}"` : '';
-      const icon = node.type === 'dir' ? '📁' : (extIcons[node.ext || ''] || '📄');
-      const sizeStr = node.size ? `(${formatBytes(node.size)}, ${node.lines} lines)` : '';
-      const hasChildren = node.children.length > 0;
-      const toggle = hasChildren ? '<span class="toggle">&#x25B6;</span>' : '<span class="toggle-spacer"></span>';
-      const html = `<div class="tree-node" data-type="${node.type}" style="padding-left:${indent}px">
-        ${toggle}<span class="node-icon" ${iconStyle}>${icon}</span>
-        <span class="node-name" title="${escapeHtml(node.path)}">${escapeHtml(node.name)}</span>
-        <span class="node-meta">${sizeStr}</span>
-      </div>`;
-      if (hasChildren) {
-        const childrenHtml = node.children.map(c => treeToHtml(c, level + 1)).join('');
-        return html + `<div class="tree-children collapsed">${childrenHtml}</div>`;
-      }
-      return html;
-    }
-
-    const graphJson = JSON.stringify(graphData).replace(/</g, '\\u003c');
-    const cyclesJson = JSON.stringify(uniqueCycles).replace(/</g, '\\u003c');
-    const entryJson = JSON.stringify(entryPoints.slice(0, 10)).replace(/</g, '\\u003c');
-    const leafJson = JSON.stringify(leafModules.slice(0, 10)).replace(/</g, '\\u003c');
-    const connectedJson = JSON.stringify(mostConnected).replace(/</g, '\\u003c');
-
-    const analysis = analyzeCodeMap({ files, depNodes, depEdges, cycles: uniqueCycles, root });
-    const analysisJson = JSON.stringify(analysis).replace(/</g, '\\u003c');
-    fs.writeFileSync(path.join(sbDir, 'codemap-analysis.json'), JSON.stringify(analysis, null, 2));
-
-    const html = buildCodeMapHtml({
-      root,
-      files,
-      totalLines,
-      archParts,
-      topExts,
-      extColors,
-      extIcons,
-      treeHtml: treeToHtml(tree),
-      graphJson,
-      cyclesJson,
-      entryJson,
-      leafJson,
-      connectedJson,
-      analysisJson
-    });
-
-    fs.writeFileSync(mapHtmlPath, html);
-
-    // Re-push codemap data so updateCodeMapPane can compute the file URI now that HTML exists
-    WelcomeDashboard.updateCodeMapPaneIfOpen({
-      status: 'Generated',
-      files: String(files.length),
-      languages: topExts.map(e => e[0]).join(', ') || '--',
-      modules: String(Object.keys(depNodes).length),
-      arch: archParts.join(' + '),
-      tree: tree.children.map((c: any) => ({ name: c.name, type: c.type, children: c.children.map((cc: any) => ({ name: cc.name, path: cc.path, type: cc.type, ext: cc.ext, lines: cc.lines || 0, size: cc.size || 0 })) })),
-      list: files.slice(0, 50).map((f: any) => ({ name: f.name, path: f.path, ext: f.ext, lines: f.lines, size: f.size, deps: depEdges.filter((e: any) => e.source === f.path || e.target === f.path).length })),
-      severity: { critical: 0, high: 0, medium: 0, low: 0 },
-      repoFiles: String(files.length),
-      totalLines: String(totalLines),
-      lastScan: new Date().toLocaleString(),
-      cycles: uniqueCycles,
-      entryPoints: entryPoints.slice(0, 10),
-      leafModules: leafModules.slice(0, 10),
-      mostConnected: mostConnected,
-      graph: graphData,
-    });
-
+    // Push code map data to sidebar immediately so UI updates even if HTML build fails
+    outputChannel.appendLine(`[SimpleBeacon] Pushing code map data to sidebar: ${files.length} files, ${totalLines} lines`);
+    const isPaidTier = !['guest', 'community', 'developer', 'sandbox', 'instant', 'free', 'solo', ''].includes((ModernSidebarProvider.getCachedTier() || '').toLowerCase());
     modernSidebarProvider?.updateCodeMap({
       totalFiles: files.length,
       filesScanned: files.length,
@@ -3569,7 +3942,98 @@ async function generateCodeMap(openPanel = true) {
       codeMapGenerated: true,
       generated: true,
       languages: topExts.map(([ext, count]) => ({ name: ext, count })),
+      isPaidTier,
     });
+
+    function treeToHtml(node: TreeNode, level = 0): string {
+      const indent = level * 20;
+      const iconStyle = node.ext ? `style="color:${extColors[node.ext] || '#64748b'}"` : '';
+      const icon = node.type === 'dir' ? '📁' : (extIcons[node.ext || ''] || '📄');
+      const sizeStr = node.size ? `(${formatBytes(node.size)}, ${node.lines} lines)` : '';
+      const hasChildren = node.children.length > 0;
+      const toggle = hasChildren ? '<span class="toggle">&#x25B6;</span>' : '<span class="toggle-spacer"></span>';
+      const viewableCls = node.type === 'file' ? (node.viewable ? 'clickable viewable' : 'clickable non-viewable') : '';
+      const viewableTitle = node.type === 'file' ? (node.viewable ? 'Viewable file' : 'Non-viewable file (binary or unreadable)') : 'Directory';
+      const lockIcon = (node.type === 'file' && !node.viewable) ? '<span style="font-size:9px;margin-left:2px;opacity:0.5">&#x1f512;</span>' : '';
+      const graphDot = node.type === 'file'
+        ? (node.inGraph
+          ? '<span class="graph-dot in-graph" title="In dependency graph"></span>'
+          : '<span class="graph-dot not-in-graph" title="Not in dependency graph — file type not parsed for imports (' + (node.ext || 'unknown') + ')"></span>')
+        : '';
+      const html = `<div class="tree-node ${viewableCls}" data-type="${node.type}" data-ext="${node.ext || ''}" data-viewable="${node.viewable ?? ''}" data-in-graph="${node.inGraph ?? ''}" data-path="${escapeHtml(node.path)}" style="padding-left:${indent}px" title="${escapeHtml(node.path)} — ${viewableTitle}${node.inGraph ? ' — In dependency graph' : node.type === 'file' ? ' — Not in dependency graph' : ''}">
+        ${toggle}<span class="node-icon" ${iconStyle}>${icon}</span>
+        <span class="node-name">${escapeHtml(node.name)}${lockIcon}</span>
+        ${graphDot}<span class="node-meta">${sizeStr}</span>
+      </div>`;
+      if (hasChildren) {
+        const childrenHtml = node.children.map(c => treeToHtml(c, level + 1)).join('');
+        return html + `<div class="tree-children collapsed">${childrenHtml}</div>`;
+      }
+      return html;
+    }
+
+    try {
+      const graphJson = JSON.stringify(graphData).replace(/</g, '\\u003c');
+      const cyclesJson = JSON.stringify(uniqueCycles).replace(/</g, '\\u003c');
+      const entryJson = JSON.stringify(entryPoints.slice(0, 10)).replace(/</g, '\\u003c');
+      const leafJson = JSON.stringify(leafModules.slice(0, 10)).replace(/</g, '\\u003c');
+      const connectedJson = JSON.stringify(mostConnected).replace(/</g, '\\u003c');
+      const treeJson = JSON.stringify(serializeTreeNode(tree.children)).replace(/</g, '\\u003c');
+
+      const analysis = analyzeCodeMap({ files, depNodes, depEdges, cycles: uniqueCycles, root });
+      const analysisJson = JSON.stringify(analysis).replace(/</g, '\\u003c');
+      fs.writeFileSync(path.join(sbDir, 'codemap-analysis.json'), JSON.stringify(analysis, null, 2));
+
+      const html = buildCodeMapHtml({
+        root,
+        files,
+        totalLines,
+        archParts,
+        topExts,
+        extColors,
+        extIcons,
+        treeHtml: treeToHtml(tree),
+        treeJson,
+        graphJson,
+        cyclesJson,
+        entryJson,
+        leafJson,
+        connectedJson,
+        analysisJson
+      });
+
+      fs.writeFileSync(mapHtmlPath, html);
+    } catch (htmlErr) {
+      outputChannel.appendLine(`[SimpleBeacon] Code Map HTML build skipped: ${htmlErr instanceof Error ? htmlErr.message : String(htmlErr)}`);
+    }
+
+    // Recursive tree serializer for full depth
+    function serializeTreeNode(nodes: TreeNode[]): any[] {
+      return nodes.map((n) => ({
+        name: n.name,
+        path: n.path,
+        type: n.type,
+        ext: n.ext,
+        lines: n.lines || 0,
+        size: n.size || 0,
+        viewable: n.viewable ?? (n.type === 'dir' ? undefined : true),
+        inGraph: n.inGraph ?? false,
+        children: n.children.length > 0 ? serializeTreeNode(n.children) : undefined
+      }));
+    }
+
+    // Write tree JSON for the sidebar explorer
+    const treeJsonPath = path.join(sbDir, 'codemap-tree.json');
+    try {
+      fs.writeFileSync(treeJsonPath, JSON.stringify({
+        projectName: path.basename(root),
+        generatedAt: new Date().toISOString(),
+        tree: serializeTreeNode(tree.children)
+      }, null, 2));
+    } catch { /* non-critical */ }
+
+    // Refresh the sidebar tree view
+    CodeMapTreeProvider.refreshInstance();
 
     // Open the Code Map panel only when explicitly requested
     if (openPanel) {
@@ -3585,9 +4049,11 @@ async function generateCodeMap(openPanel = true) {
   }
 }
 
+let codeMapPanel: vscode.WebviewPanel | undefined;
+
 async function openCodeMapPanel() {
   const workspaceFolders = vscode.workspace.workspaceFolders;
-  if (!workspaceFolders) {
+  if (!workspaceFolders || workspaceFolders.length === 0) {
     showQuietMessage('Open a workspace to view the code map');
     return;
   }
@@ -3596,12 +4062,61 @@ async function openCodeMapPanel() {
     showQuietMessage('Generate a code map first');
     return;
   }
-  await vscode.env.openExternal(vscode.Uri.file(mapHtmlPath));
+  if (codeMapPanel) {
+    codeMapPanel.reveal(vscode.ViewColumn.One);
+    return;
+  }
+  const html = fs.readFileSync(mapHtmlPath, 'utf8');
+  // Inject CSS to hide the embedded sidebar when running inside VS Code webview
+  const hideSidebarCss = `<style>.sidebar{display:none !important;}.main{margin-left:0 !important;width:100% !important;}</style>`;
+  const modifiedHtml = html.replace('</head>', hideSidebarCss + '</head>');
+  codeMapPanel = vscode.window.createWebviewPanel(
+    'simplebeaconCodemap',
+    'Code Map',
+    vscode.ViewColumn.One,
+    { enableScripts: true, retainContextWhenHidden: true }
+  );
+  codeMapPanel.webview.html = modifiedHtml;
+  codeMapPanel.webview.onDidReceiveMessage(async (msg: any) => {
+    if (msg.command === 'openFile' && msg.path) {
+      const workspaceFolders = vscode.workspace.workspaceFolders;
+      const filePath = path.isAbsolute(msg.path) ? msg.path : (workspaceFolders ? path.join(workspaceFolders[0].uri.fsPath, msg.path) : msg.path);
+      try {
+        const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(filePath));
+        await vscode.window.showTextDocument(doc, { preview: false });
+      }
+      catch (e) {
+        outputChannel.appendLine(`[CodeMap] Could not open file: ${filePath}`);
+      }
+    } else if (msg.command === 'downloadFile' && msg.base64 && msg.filename) {
+      try {
+        const uri = await vscode.window.showSaveDialog({
+          defaultUri: vscode.Uri.file(msg.filename),
+        });
+        if (uri) {
+          await vscode.window.withProgress({
+            location: vscode.ProgressLocation.Window,
+            title: `Saving ${msg.filename}`,
+            cancellable: false,
+          }, async (progress) => {
+            progress.report({ increment: 0 });
+            fs.writeFileSync(uri.fsPath, Buffer.from(msg.base64, 'base64'));
+            progress.report({ increment: 100 });
+          });
+          codeMapPanel?.webview.postMessage({ command: 'downloadComplete', filename: path.basename(uri.fsPath), filePath: uri.fsPath });
+          modernSidebarProvider?.addDownloadedFile(path.basename(uri.fsPath), uri.fsPath);
+        }
+      } catch (err) {
+        vscode.window.showErrorMessage('Export failed: ' + (err instanceof Error ? err.message : String(err)));
+      }
+    }
+  });
+  codeMapPanel.onDidDispose(() => { codeMapPanel = undefined; });
 }
 
 async function exportCodeMap() {
   const workspaceFolders = vscode.workspace.workspaceFolders;
-  if (!workspaceFolders) {
+  if (!workspaceFolders || workspaceFolders.length === 0) {
     showQuietMessage('Open a workspace to export the code map');
     return;
   }
@@ -3627,7 +4142,7 @@ async function exportCodeMap() {
 
 async function importCodeMapGraph() {
   const workspaceFolders = vscode.workspace.workspaceFolders;
-  if (!workspaceFolders) {
+  if (!workspaceFolders || workspaceFolders.length === 0) {
     showQuietMessage('Open a workspace to import a code map graph');
     return;
   }
@@ -3703,7 +4218,7 @@ function generateCertificate(report?: unknown) {
   }
   const source = src as CertificateSource;
   const workspaceFolders = vscode.workspace.workspaceFolders;
-  if (!workspaceFolders) return;
+  if (!workspaceFolders || workspaceFolders.length === 0) return;
 
   const certDir = path.join(workspaceFolders[0].uri.fsPath, '.simplebeacon');
   const certPath = path.join(certDir, 'certificate.json');
@@ -3836,7 +4351,7 @@ function ensureRoadmapFiles() {
     return null;
   }
   const workspaceFolders = vscode.workspace.workspaceFolders;
-  if (!workspaceFolders) {
+  if (!workspaceFolders || workspaceFolders.length === 0) {
     showQuietMessage('Open a workspace to generate a roadmap');
     return null;
   }
@@ -4029,8 +4544,8 @@ async function exportReport(format?: string) {
     const emptyState = rows ? '' : '<tr><td colspan="4" style="padding:24px;text-align:center;color:#666;font-size:13px">No findings to display.</td></tr>';
     content = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>SimpleBeacon Report</title><style>body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;background:#1e1e1e;color:#ccc;padding:24px;margin:0}h1{color:#fff;font-size:20px;margin-bottom:4px}.badge{display:inline-block;padding:4px 12px;border-radius:4px;font-size:12px;font-weight:700;background:#10b981;color:#fff;margin-left:12px}.metrics{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin:20px 0}.metric{background:#252526;border:1px solid #333;border-radius:8px;padding:14px;text-align:center}.metric-value{font-size:24px;font-weight:700;color:#fff}.metric-label{font-size:11px;color:#888;margin-top:4px}table{width:100%;border-collapse:collapse;font-size:13px}th{text-align:left;padding:10px 8px;color:#888;font-size:11px;text-transform:uppercase;border-bottom:1px solid #444}td{vertical-align:top}</style></head><body><h1>SimpleBeacon Scan Report <span class="badge">Gate: ${(r.gate?.pass ?? ((sevCounts.critical || 0) === 0 && (sevCounts.high || 0) === 0 && (summary.qualityScore ?? Math.max(0, 100 - ((sevCounts.critical || 0) * 25 + (sevCounts.high || 0) * 15 + (sevCounts.medium || 0) * 5 + (sevCounts.low || 0) * 2))) >= 80)) ? 'PASS' : 'FAIL'}</span></h1><div style="color:#888;font-size:12px;margin-bottom:20px">${new Date().toLocaleString()}</div><div class="metrics"><div class="metric"><div class="metric-value" style="color:${(summary.qualityScore ?? Math.max(0, 100 - ((sevCounts.critical || 0) * 25 + (sevCounts.high || 0) * 15 + (sevCounts.medium || 0) * 5 + (sevCounts.low || 0) * 2))) >= 80 ? '#10b981' : '#f59e0b'}">${summary.qualityScore ?? Math.max(0, 100 - ((sevCounts.critical || 0) * 25 + (sevCounts.high || 0) * 15 + (sevCounts.medium || 0) * 5 + (sevCounts.low || 0) * 2))}</div><div class="metric-label">Quality Score</div></div><div class="metric"><div class="metric-value" style="color:#ef4444">${sevCounts.critical || 0}</div><div class="metric-label">Critical</div></div><div class="metric"><div class="metric-value" style="color:#f59e0b">${sevCounts.high || 0}</div><div class="metric-label">High</div></div><div class="metric"><div class="metric-value" style="color:#d18616">${sevCounts.medium || 0}</div><div class="metric-label">Medium</div></div><div class="metric"><div class="metric-value" style="color:#75beff">${sevCounts.low || 0}</div><div class="metric-label">Low</div></div><div class="metric"><div class="metric-value">${summary.totalFiles || r.filesAnalyzed || 0}</div><div class="metric-label">Files</div></div></div><table><thead><tr><th>Severity</th><th>Type</th><th>File</th><th>Description</th></tr></thead><tbody>${rows || emptyState}</tbody></table></body></html>`;
   } else if (fmt === 'pdf') {
-    defaultName += '.pdf';
-    filters = { PDF: ['pdf'] };
+    defaultName += '.html';
+    filters = { HTML: ['html'] };
     const rows = (issues as any[]).map((i: any) => {
       const sev = (i.severity || 'low').toLowerCase();
       const color = sev === 'critical' ? '#ef4444' : sev === 'high' ? '#f59e0b' : sev === 'medium' ? '#d18616' : '#75beff';
@@ -4068,7 +4583,8 @@ async function exportReport(format?: string) {
 
   if (uri) {
     fs.writeFileSync(uri.fsPath, content);
-    showQuietMessage(`Report exported to ${uri.fsPath}`);
+    const msg = fmt === 'pdf' ? `Print-ready HTML exported to ${uri.fsPath} — open in browser and print to PDF` : `Report exported to ${uri.fsPath}`;
+    showQuietMessage(msg);
     modernSidebarProvider?.addDownloadedFile(path.basename(uri.fsPath), uri.fsPath);
   }
 }
@@ -4103,6 +4619,33 @@ function isEmptyReport(report: unknown): boolean {
     (r.scan_summary as Record<string, number>)?.totalFiles ??
     0;
   return findingsCount === 0 && rawIssues.length === 0 && findingsNum === 0 && issueCount === 0 && sevTotal === 0 && totalFiles === 0;
+}
+
+async function exportAiContext() {
+  const report = (currentReport as any) || enhancedAIProvider.getScanResult();
+  if (!report) {
+    showQuietMessage('Run a scan first to export AI context');
+    return;
+  }
+  const aiData = {
+    type: 'simplebeacon-ai-context',
+    version: '1.0.0',
+    generatedAt: new Date().toISOString(),
+    projectRoot: report.projectRoot || report.projectPath,
+    aiModels: report.aiModels || [],
+    aiIssues: report.aiIssues || [],
+    aiScore: report.aiScore || report.qualityScore,
+    aiFindings: report.aiFindings || report.findings || [],
+    summary: report.summary || {}
+  };
+  const uri = await vscode.window.showSaveDialog({
+    defaultUri: vscode.Uri.file('simplebeacon-ai-context.json'),
+    filters: { JSON: ['json'] }
+  });
+  if (uri) {
+    fs.writeFileSync(uri.fsPath, JSON.stringify(aiData, null, 2));
+    showQuietMessage(`AI context exported to ${uri.fsPath}`);
+  }
 }
 
 async function exportReportJson() {
@@ -4257,7 +4800,7 @@ async function analyzeWithAI(context: vscode.ExtensionContext) {
   }
 
   const workspaceFolders = vscode.workspace.workspaceFolders;
-  if (!workspaceFolders) {
+  if (!workspaceFolders || workspaceFolders.length === 0) {
     vscode.window.showErrorMessage('No workspace folder open');
     return;
   }
@@ -4704,7 +5247,7 @@ function analyzeCodeMap(data: { files: { name: string; ext: string; size: number
 }
 
 function buildCodeMapHtml(options: CodeMapHtmlOptions): string {
-  const { root, files, totalLines, archParts, topExts, extColors, extIcons, treeHtml, graphJson, cyclesJson, entryJson, leafJson, connectedJson, analysisJson } = options;
+  const { root, files, totalLines, archParts, topExts, extColors, extIcons, treeHtml, treeJson, graphJson, cyclesJson, entryJson, leafJson, connectedJson, analysisJson } = options;
   const extBarHtml = topExts.map(([ext, count]) => {
     const color = extColors[ext] || '#64748b';
     const pct = Math.round((count / files.length) * 100);
@@ -4723,28 +5266,51 @@ function buildCodeMapHtml(options: CodeMapHtmlOptions): string {
 <title>Code Map - ${path.basename(root)}</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0b1120;color:#e2e8f0;min-height:100vh}
-.sidebar{width:320px;background:#0f172a;border-right:1px solid #1e293b;height:100vh;overflow-y:auto;position:fixed;left:0;top:0;padding:16px}
-.sidebar h1{font-size:18px;margin-bottom:4px;color:#f8fafc}
-.sidebar .subtitle{font-size:12px;color:#64748b;margin-bottom:16px}
-.stat-row{display:flex;gap:8px;margin-bottom:16px}
+body{font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0b1120;color:#e2e8f0;height:100vh;overflow:hidden}
+.sidebar{width:var(--sidebar-width,220px);background:#0f172a;border-right:1px solid #1e293b;height:100vh;display:flex;flex-direction:column;position:fixed;left:0;top:0;z-index:10;overflow:hidden}.sidebar-header{flex-shrink:0;padding:8px 8px 0 8px}.sidebar-tree{flex:1;overflow-y:auto;padding:0 8px 8px 8px}
+.sidebar-resizer{position:fixed;left:var(--sidebar-width,220px);top:0;width:6px;height:100vh;cursor:ew-resize;z-index:11;background:transparent;transition:background .15s}
+.sidebar-resizer:hover,.sidebar-resizer.dragging{background:#06b6d4;opacity:0.5}
+.sidebar.hidden{display:none}
+.sidebar h1{font-size:17px;margin-bottom:4px;color:#f8fafc}
+.sidebar .subtitle{font-size:11px;color:#64748b;margin-bottom:14px}
+.stat-row{display:flex;gap:8px;margin-bottom:14px}
 .stat-chip{background:#1e293b;border:1px solid #334155;border-radius:8px;padding:8px 12px;font-size:12px}
 .stat-chip b{display:block;font-size:14px;color:#f8fafc}
-.search-box{width:100%;padding:8px 12px;border-radius:8px;border:1px solid #334155;background:#1e293b;color:#e2e8f0;font-size:13px;margin-bottom:12px}
+.search-box{width:100%;padding:8px 12px;border-radius:8px;border:1px solid #334155;background:#1e293b;color:#e2e8f0;font-size:13px;margin-bottom:10px}
 .search-box:focus{outline:none;border-color:#06b6d4}
-.tree-node{display:flex;align-items:center;padding:4px 8px;border-radius:6px;cursor:pointer;font-size:13px;gap:6px;white-space:nowrap}
+.tree-node{display:flex;align-items:center;padding:3px 6px;border-radius:5px;cursor:pointer;font-size:12px;gap:4px;white-space:nowrap;user-select:none}
 .tree-node:hover{background:#1e293b}
-.tree-node .toggle{width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#94a3b8;cursor:pointer;flex-shrink:0}
-.tree-node .toggle-spacer{width:16px;flex-shrink:0}
-.tree-node .node-icon{flex-shrink:0;font-size:14px}
-.tree-node .node-name{flex:1;overflow:hidden;text-overflow:ellipsis}
-.tree-node .node-meta{color:#64748b;font-size:11px;flex-shrink:0}
+.tree-node.selected{background:#1e3b4f;border-left:3px solid #06b6d4;margin-left:-3px;padding-left:6px}
+body.theme-light .tree-node.selected{background:#bfdbfe;border-left-color:#2563eb}
+/* Clickable files bright, directories dim */
+.tree-node.clickable .node-name{color:#e2e8f0}
+.tree-node:not(.clickable){opacity:0.6}
+.tree-node:not(.clickable) .node-name{color:#64748b}
+body.theme-light .tree-node.clickable .node-name{color:#0f172a}
+body.theme-light .tree-node:not(.clickable) .node-name{color:#94a3b8}
+.tree-node .toggle{width:14px;height:14px;display:flex;align-items:center;justify-content:center;font-size:9px;color:#94a3b8;cursor:pointer;flex-shrink:0}
+.tree-node .toggle-spacer{width:14px;flex-shrink:0}
+.tree-node .node-icon{flex-shrink:0;font-size:13px}
+.tree-node .node-name{flex:1;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.tree-node .node-meta{color:#64748b;font-size:10px;flex-shrink:0;max-width:90px;overflow:hidden;text-overflow:ellipsis}
+.graph-dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:4px;flex-shrink:0}
+.graph-dot.in-graph{background:#22c55e}
+.graph-dot.not-in-graph{background:#334155}
+.tree-node.graph-hidden{opacity:0.25;filter:grayscale(0.8)}
+.tree-node.graph-visible{opacity:1}
 .tree-children{overflow:hidden;transition:max-height 0.2s ease}
 .tree-children.collapsed{max-height:0}
 .tree-children.expanded{max-height:99999px}
-.main{margin-left:320px;padding:24px}
-.main h2{font-size:20px;margin-bottom:16px}
-.card{background:#1e293b;border:1px solid #334155;border-radius:12px;padding:20px;margin-bottom:20px}
+.main{margin-left:var(--sidebar-width,220px);padding:0;height:100vh;display:flex;flex-direction:column;overflow-y:auto}
+.main.full-width{margin-left:0}
+.main.graph-fullscreen{position:fixed;inset:0;z-index:100;margin-left:0;padding:0;background:#0b1120}
+.main.graph-fullscreen .card:not(:first-of-type){display:none}
+.main.graph-fullscreen .card:first-of-type{border-radius:0;border:none;min-height:100vh}
+.main.graph-fullscreen .graph-wrap{border-radius:0}
+.main h2{font-size:16px;margin-bottom:4px;flex-shrink:0}
+.main>h2:first-of-type{margin-top:0}
+.card{background:#1e293b;border:1px solid #334155;border-radius:8px;padding:20px;margin-bottom:12px}
+.main>.card:first-of-type{padding:0;flex:1;min-height:calc(100vh - 48px);display:flex;flex-direction:column;margin-bottom:0;border-radius:0;border:none}
 .card h3{font-size:13px;text-transform:uppercase;letter-spacing:1px;color:#94a3b8;margin-bottom:12px}
 .lang-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
 .lang-item{background:#0f172a;border:1px solid #334155;border-radius:8px;padding:10px;text-align:center}
@@ -4752,11 +5318,11 @@ body{font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sa
 .lang-item .lang-name{font-size:11px;color:#94a3b8}
 .lang-item .lang-count{font-size:16px;font-weight:700;color:#f8fafc}
 .ext-bar{height:24px;border-radius:4px;margin:4px 0;display:flex;align-items:center;padding:0 10px;font-size:11px;color:#0f172a;font-weight:600}
-.graph-wrap{position:relative;height:95vh;background:#0f172a;border-radius:8px;border:1px solid #334155;overflow:hidden}
+.graph-wrap{position:relative;flex:1;min-height:0;background:#0f172a;border-radius:0;border:none;overflow:hidden}
 #graphCanvas{width:100%;height:100%;cursor:grab}
 #graphCanvas:active{cursor:grabbing}
 .graph-legend{position:absolute;top:8px;right:8px;background:rgba(15,23,42,0.9);border:1px solid #334155;border-radius:6px;padding:8px 12px;font-size:11px}
-.graph-controls{position:absolute;bottom:12px;left:12px;display:flex;gap:6px;z-index:10}
+.graph-controls{position:absolute;bottom:12px;left:12px;display:flex;gap:6px;z-index:10;flex-wrap:wrap;max-width:calc(100% - 24px)}
 .graph-controls button{background:rgba(15,23,42,0.9);border:1px solid #334155;border-radius:6px;color:#e2e8f0;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;transition:background 0.15s}
 .graph-controls button:hover{background:#1e293b;border-color:#475569}
 .graph-controls button.active{background:#06b6d4;border-color:#06b6d4}
@@ -4767,6 +5333,9 @@ body{font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sa
 .graph-filter-bar label input{margin:0}
 .filter-dot{width:10px;height:10px;border-radius:50%;display:inline-block}
 .node-details-panel{position:absolute;bottom:56px;right:12px;width:260px;background:rgba(15,23,42,0.95);border:1px solid #334155;border-radius:8px;padding:0;z-index:20;box-shadow:0 4px 20px rgba(0,0,0,0.4);overflow:hidden}
+.minimap{position:absolute;bottom:12px;right:12px;width:160px;height:120px;background:rgba(15,23,42,0.92);border:1px solid #334155;border-radius:6px;z-index:15;overflow:hidden}
+.minimap canvas{width:100%;height:100%}
+.minimap-label{position:absolute;top:2px;left:4px;font-size:9px;color:#64748b;pointer-events:none}
 .node-details-panel.hidden{display:none}
 .node-details-header{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid #334155;font-size:13px;font-weight:600;color:#f8fafc}
 .node-details-header button{background:none;border:none;color:#94a3b8;font-size:16px;cursor:pointer;line-height:1}
@@ -4819,6 +5388,20 @@ body{font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sa
 .recommendation-card .rec-priority{font-size:10px;padding:2px 6px;border-radius:4px;font-weight:600;background:#f59e0b;color:#0f172a}
 .recommendation-card .rec-effort{font-size:10px;padding:2px 6px;border-radius:4px;font-weight:600;background:#334155;color:#e2e8f0}
 .recommendation-card .rec-impact{font-size:10px;padding:2px 6px;border-radius:4px;font-weight:600;background:#22c55e;color:#0f172a}
+.export-btn{background:#0f172a;border:1px solid #334155;color:#e2e8f0;padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;margin-left:4px}
+.export-btn:hover{background:#1e293b;border-color:#06b6d4}
+.file-metric{color:#64748b;font-size:10px;white-space:nowrap}
+.file-detail-modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;z-index:1000}
+.file-detail-modal.active{display:flex}
+.file-detail-box{background:#0f172a;border:1px solid #334155;border-radius:12px;padding:20px;max-width:520px;width:90%;max-height:80vh;overflow-y:auto}
+.file-detail-box h3{margin:0 0 10px;font-size:14px;color:#f8fafc}
+.file-detail-box .close{float:right;background:none;border:none;color:#94a3b8;font-size:16px;cursor:pointer}
+.file-detail-box .detail-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #1e293b;font-size:12px}
+.file-detail-box .detail-row:last-child{border-bottom:none}
+.file-detail-box .detail-label{color:#94a3b8}
+.file-detail-box .detail-val{color:#e2e8f0;font-weight:600}
+.score-breakdown{font-size:10px;color:#94a3b8;margin-top:4px;cursor:pointer;border-bottom:1px dashed #334155;display:inline-block}
+.score-breakdown:hover{color:#e2e8f0}
 .lang-donut{display:flex;align-items:center;gap:8px;font-size:12px}
 .lang-donut .dot{width:8px;height:8px;border-radius:50%}
 body.theme-light{background:#f8fafc;color:#0f172a}
@@ -4830,6 +5413,7 @@ body.theme-light .tree-node:hover{background:#e2e8f0}
 body.theme-light .main h2{color:#0f172a}
 body.theme-light .card{background:#fff;border-color:#cbd5e1}
 body.theme-light .lang-item{background:#fff;border-color:#cbd5e1}
+body.theme-light .sidebar-resizer:hover,body.theme-light .sidebar-resizer.dragging{background:#2563eb}
 body.theme-light .graph-wrap{background:#f1f5f9;border-color:#cbd5e1}
 body.theme-light .graph-controls button{background:rgba(255,255,255,.95);color:#0f172a;border-color:#cbd5e1}
 body.theme-light .graph-controls button:hover{background:#e2e8f0}
@@ -4849,6 +5433,7 @@ body.theme-light .analysis-card li{border-color:#e2e8f0}
 body.theme-light .analysis-card .desc{color:#64748b;border-color:#e2e8f0}
 body.theme-light .analysis-summary .summary-chip{background:#fff;border-color:#cbd5e1}
 body.theme-ocean{background:#0a1a2f;color:#e0f2fe}
+body.theme-ocean .sidebar-resizer:hover,body.theme-ocean .sidebar-resizer.dragging{background:#06b6d4}
 body.theme-ocean .graph-wrap{background:#112240;border-color:#1e3a5f}
 body.theme-ocean .graph-controls button{background:rgba(17,34,64,.95);border-color:#1e3a5f;color:#e0f2fe}
 body.theme-ocean .graph-controls button:hover{background:#1e3a5f}
@@ -4868,25 +5453,95 @@ body.theme-ocean .zoom-display{background:rgba(17,34,64,.95);border-color:#1e3a5
 body.theme-light .sidebar-toggle{background:rgba(255,255,255,.95);color:#0f172a;border-color:#cbd5e1}
 body.theme-light .context-menu{background:rgba(255,255,255,.98);border-color:#cbd5e1;color:#0f172a}
 body.theme-light .context-menu-item:hover{background:#e2e8f0}
+.controls-modal{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:200}
+.controls-modal.hidden{display:none}
+.controls-modal-content{background:#1e293b;border:1px solid #334155;border-radius:12px;width:460px;max-width:90vw;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(0,0,0,0.5)}
+.controls-modal-header{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid #334155}
+.controls-modal-header h3{margin:0;font-size:16px;color:#e2e8f0}
+.controls-modal-close{background:none;border:none;color:#94a3b8;font-size:22px;cursor:pointer;padding:0 4px}
+.controls-modal-close:hover{color:#e2e8f0}
+.controls-modal-body{padding:16px 20px;overflow-y:auto}
+.controls-hint{font-size:12px;color:#94a3b8;margin:0 0 12px}
+.controls-grid{display:grid;grid-template-columns:1fr 120px;gap:8px 12px;align-items:center}
+.controls-grid label{font-size:13px;color:#cbd5e1}
+.controls-grid .key-box{background:#0f172a;border:1px solid #334155;border-radius:6px;padding:6px 10px;font-size:13px;color:#e2e8f0;text-align:center;cursor:pointer;user-select:none;transition:border-color 0.15s}
+.controls-grid .key-box:hover{border-color:#06b6d4}
+.controls-grid .key-box.active{border-color:#06b6d4;background:#0f172a;box-shadow:0 0 0 2px rgba(6,182,212,0.3)}
+.controls-grid .key-box.conflict{border-color:#ef4444;color:#ef4444}
+.controls-modal-footer{display:flex;justify-content:flex-end;gap:8px;padding:12px 20px;border-top:1px solid #334155}
+.controls-modal-btn{padding:8px 16px;border-radius:6px;border:1px solid #334155;font-size:13px;cursor:pointer;background:#0f172a;color:#e2e8f0}
+.controls-modal-btn.primary{background:#06b6d4;border-color:#06b6d4;color:#0f172a;font-weight:600}
+.controls-modal-btn.secondary:hover{background:#1e293b}
+body.theme-light .controls-modal-content{background:#fff;border-color:#cbd5e1}
+body.theme-light .controls-modal-header h3{color:#0f172a}
+body.theme-light .controls-modal-header{border-color:#cbd5e1}
+body.theme-light .controls-hint{color:#64748b}
+body.theme-light .controls-grid label{color:#334155}
+body.theme-light .controls-grid .key-box{background:#f1f5f9;border-color:#cbd5e1;color:#0f172a}
+body.theme-light .controls-grid .key-box.active{box-shadow:0 0 0 2px rgba(6,182,212,0.3)}
+body.theme-light .controls-modal-footer{border-color:#cbd5e1}
+body.theme-light .controls-modal-btn{background:#f1f5f9;color:#0f172a;border-color:#cbd5e1}
+body.theme-light .controls-modal-btn.primary{background:#06b6d4;color:#fff;border-color:#06b6d4}
+body.theme-ocean .controls-modal-content{background:#112240;border-color:#1e3a5f}
+body.theme-ocean .controls-modal-header{border-color:#1e3a5f}
+body.theme-ocean .controls-grid .key-box{background:#0a1a2f;border-color:#1e3a5f}
+body.theme-ocean .controls-modal-footer{border-color:#1e3a5f}
+body.theme-ocean .controls-modal-btn{background:#0a1a2f;border-color:#1e3a5f}
+body.theme-black{background:#000;color:#e2e8f0}
+body.theme-black .sidebar{background:#000;border-color:#222}
+body.theme-black .sidebar-resizer:hover,body.theme-black .sidebar-resizer.dragging{background:#06b6d4}
+body.theme-black .graph-wrap{background:#000;border-color:#222}
+body.theme-black .graph-controls button{background:rgba(10,10,10,.95);border-color:#222;color:#e2e8f0}
+body.theme-black .graph-controls button:hover{background:#1a1a1a}
+body.theme-black .graph-controls button.active{background:#06b6d4;color:#000}
+body.theme-black .graph-legend{background:rgba(10,10,10,.95);border-color:#222;color:#e2e8f0}
+body.theme-black .graph-filter-bar{background:rgba(10,10,10,.95);border-color:#222;color:#e2e8f0}
+body.theme-black .graph-filter-bar input{background:#000;border-color:#222;color:#e2e8f0}
+body.theme-black .graph-controls select,body.theme-black .graph-filter-bar select{background:#0a0a0a;border-color:#222;color:#e2e8f0}
+body.theme-black .graph-controls select option,body.theme-black .graph-filter-bar select option{background:#0a0a0a}
+body.theme-black .zoom-display{background:rgba(10,10,10,.95);border-color:#222;color:#e2e8f0}
+.coord-display{background:rgba(15,23,42,0.9);border:1px solid #334155;border-radius:6px;color:#e2e8f0;padding:4px 10px;font-size:12px;font-weight:600;min-width:90px;text-align:center;user-select:none;margin-left:4px}
+body.theme-light .coord-display{background:rgba(255,255,255,.95);border-color:#cbd5e1;color:#0f172a}
+body.theme-ocean .coord-display{background:rgba(17,34,64,.95);border-color:#1e3a5f;color:#e0f2fe}
+body.theme-black .coord-display{background:rgba(10,10,10,.95);border-color:#222;color:#e2e8f0}
+body.theme-black .sidebar-toggle{background:rgba(10,10,10,.95);color:#e2e8f0;border-color:#222}
+body.theme-black .context-menu{background:rgba(10,10,10,.98);border-color:#222;color:#e2e8f0}
+body.theme-black .context-menu-item:hover{background:#1a1a1a}
+body.theme-black .card{background:#0a0a0a;border-color:#222}
+body.theme-black .node-details-panel{background:rgba(10,10,10,.98);border-color:#222}
+body.theme-black .node-details-header{color:#e2e8f0;border-color:#222}
+body.theme-black .controls-modal-content{background:#0a0a0a;border-color:#222}
+body.theme-black .controls-modal-header{border-color:#222}
+body.theme-black .controls-grid .key-box{background:#000;border-color:#222}
+body.theme-black .controls-modal-footer{border-color:#222}
+body.theme-black .controls-modal-btn{background:#000;border-color:#222;color:#e2e8f0}
+body.theme-black .controls-modal-btn.primary{background:#06b6d4;color:#000;border-color:#06b6d4}
+body.theme-light .arch-svg polygon,body.theme-light .arch-svg circle,body.theme-light .arch-svg rect{stroke-width:2}
+body.theme-light .arch-svg text{fill:#0f172a}
+body.theme-light .arch-svg line{stroke:#cbd5e1}
 </style>
 </head>
 <body>
 <div class="sidebar">
-  <h1>Code Map</h1>
-  <div class="subtitle">${path.basename(root)}</div>
-  <div class="stat-row">
-    <div class="stat-chip"><b>${files.length.toLocaleString()}</b>Files</div>
-    <div class="stat-chip"><b>${totalLines.toLocaleString()}</b>Lines</div>
-    <div class="stat-chip"><b>${archParts.join('+')}</b>Stack</div>
+  <div class="sidebar-resizer" id="sidebarResizer"></div>
+  <div class="sidebar-header">
+    <h1>Code Map</h1>
+    <div class="subtitle" data-root="${escapeHtml(root)}">${path.basename(root)}</div>
+    <div class="stat-row">
+      <div class="stat-chip"><b>${files.length.toLocaleString()}</b>Files</div>
+      <div class="stat-chip"><b>${totalLines.toLocaleString()}</b>Lines</div>
+      <div class="stat-chip"><b>${archParts.join('+')}</b>Stack</div>
+    </div>
+    <input type="text" class="search-box" id="searchBox" placeholder="Search files...">
   </div>
-  <input type="text" class="search-box" id="searchBox" placeholder="Search files...">
-  <div id="treeRoot">${treeHtml}</div>
+  <div class="sidebar-tree">
+    <div id="treeRoot">${treeHtml}</div>
+  </div>
 </div>
 <div class="main">
-  <h2>Dependency Graph</h2>
   <div class="card">
     <div class="graph-wrap">
-      <canvas id="graphCanvas"></canvas>
+      <canvas id="graphCanvas" tabindex="0"></canvas>
       <div class="graph-controls">
         <button id="zoomInBtn" title="Zoom In (+">+</button>
         <button id="zoomOutBtn" title="Zoom Out (−">−</button>
@@ -4895,10 +5550,20 @@ body.theme-light .context-menu-item:hover{background:#e2e8f0}
         <button id="pausePhysicsBtn" title="Pause Physics">⏸</button>
         <button id="toggle3DBtn" title="Toggle 3D">3D</button>
         <button id="toggleLabelsBtn" title="Toggle Labels">Aa</button>
-        <button id="toggleSidebarBtn" class="sidebar-toggle" title="Toggle Sidebar">☰</button><button id="exportGraphBtn" title="Export graph data">⤓</button>
-        <select id="themeSelect" title="Theme"><option value="dark">Dark</option><option value="light">Light</option><option value="ocean">Ocean</option></select>
-        <select id="layoutSelect" title="Layout"><option value="force">Force</option><option value="radial">Radial</option><option value="grid">Grid</option><option value="tree">Tree</option><option value="city">City</option></select>
+        <button id="toggleFocusBtn" title="Focus Mode (F)">◎</button>
+        <button id="toggleGridBtn" title="Toggle Grid">#</button>
+        <button id="toggleStarsBtn" title="Toggle Stars">✦</button>
+        <button id="toggleMinimapBtn" title="Toggle Minimap">🗺</button>
+        <button id="toggleMouseLockBtn" title="Lock Mouse (M)">L</button>
+        <button id="toggleSidebarBtn" class="sidebar-toggle" title="Toggle Sidebar">☰</button>
+        <button id="fullscreenGraphBtn" title="Fullscreen Graph">⛶</button>
+        <button id="exportGraphBtn" title="Export graph JSON">⤓</button>
+        <button id="exportPngBtn" title="Export graph PNG">🖼</button>
+        <button id="controlsBtn" title="Set Controls">⌨</button>
+        <select id="themeSelect" title="Theme"><option value="dark">Dark</option><option value="light">Light</option><option value="ocean">Ocean</option><option value="black">Black</option></select>
+        <select id="layoutSelect" title="Graph layout: Force=physics sim, Radial=circle, Grid=matrix, Tree=top-down levels, City=horizontal layers, Hexagonal=honeycomb architecture sectors"><option value="force">Force</option><option value="radial">Radial</option><option value="grid">Grid</option><option value="tree">Tree</option><option value="city">City</option><option value="hexagonal">Hexagonal</option></select>
         <div id="zoomLevelDisplay" class="zoom-display">100%</div>
+        <div id="coordDisplay" class="coord-display" style="display:none;"></div>
       </div>
       <div class="graph-filter-bar" id="graphFilterBar">
         <input type="text" id="graphSearch" placeholder="Find file..." title="Search nodes">
@@ -4916,7 +5581,12 @@ body.theme-light .context-menu-item:hover{background:#e2e8f0}
         <div class="graph-legend-item"><div class="graph-legend-dot" style="background:#f0db4f"></div>.cjs/.mjs</div>
         <div class="graph-legend-item"><div class="graph-legend-dot" style="background:#3776ab"></div>.py</div>
         <div class="graph-legend-item"><div class="graph-legend-dot" style="background:#64748b"></div>Other</div>
+        <div style="margin-top:8px;padding-top:6px;border-top:1px solid #334155;font-size:10px;color:#94a3b8;line-height:1.4">
+          <span style="color:#22c55e">&#9679;</span> In graph &nbsp; <span style="color:#64748b">&#9679;</span> Not in graph<br>
+          Graph shows JS/TS modules only.
+        </div>
       </div>
+      <div class="minimap" id="minimap"><canvas id="minimapCanvas"></canvas><div class="minimap-label">Map</div></div>
       <div class="context-menu" id="contextMenu"></div><div class="node-details-panel hidden" id="nodeDetailsPanel">
         <div class="node-details-header"><span id="nodeDetailName">Node</span><button id="closeNodeDetails">×</button></div>
         <div class="node-details-body" id="nodeDetailBody">Select a node to view details</div>
@@ -4931,18 +5601,38 @@ body.theme-light .context-menu-item:hover{background:#e2e8f0}
   <div class="card"><h3>Code Map Analysis</h3>
     <div class="analysis-summary" id="analysisSummary"></div>
     <div id="scoreBoard" style="display:flex;gap:16px;flex-wrap:wrap;margin:12px 0;justify-content:center"></div>
+    <div style="margin:8px 0">
+      <button class="export-btn" id="exportJsonBtn">&#x1f4be; Export JSON</button>
+      <button class="export-btn" id="exportCsvBtn">&#x1f4c8; Export CSV</button>
+      <button class="export-btn" id="exportPngBtn2">&#x1f5bc; Export PNG</button>
+    </div>
     <div id="metricsBoard" style="margin:12px 0"></div>
     <div id="archBoard" style="margin:12px 0"></div>
     <div id="recBoard" style="margin:12px 0"></div>
     <div class="analysis-grid" id="analysisGrid"></div>
+  </div>
+  <div class="file-detail-modal" id="fileDetailModal">
+    <div class="file-detail-box">
+      <button class="close" id="closeFileDetail">&times;</button>
+      <h3 id="fileDetailTitle"></h3>
+      <div id="fileDetailContent"></div>
+    </div>
   </div>
 
   <div class="card"><h3>Languages</h3>
     <div class="lang-grid">${langGridHtml}</div>
   </div>
   <div class="card"><h3>Language Breakdown</h3>${extBarHtml}</div>
+  <h2>Architecture Overview</h2>
+  <div class="card" style="padding:0;overflow:hidden;min-height:320px">
+    <div id="archDiagram" style="display:flex;align-items:center;justify-content:center;padding:30px;background:#0f172a;min-height:320px;position:relative">
+      <svg class="arch-svg" id="archSvg" width="600" height="320" viewBox="0 0 600 320" style="max-width:100%;height:auto"></svg>
+      <div id="archStats" style="position:absolute;top:12px;right:12px;display:flex;gap:8px"></div>
+    </div>
+  </div>
 </div>
 <script type="application/json" id="graphData">${graphJson}</script>
+<script type="application/json" id="treeData">${treeJson}</script>
 <script type="application/json" id="cyclesData">${cyclesJson}</script>
 <script type="application/json" id="entriesData">${entryJson}</script>
 <script type="application/json" id="leavesData">${leafJson}</script>
@@ -4950,6 +5640,7 @@ body.theme-light .context-menu-item:hover{background:#e2e8f0}
 <script type="application/json" id="analysisData">${analysisJson}</script>
 <script>
 const GRAPH = JSON.parse(document.getElementById('graphData').textContent);
+const TREE = JSON.parse(document.getElementById('treeData').textContent);
 const CYCLES = JSON.parse(document.getElementById('cyclesData').textContent);
 const ENTRIES = JSON.parse(document.getElementById('entriesData').textContent);
 const LEAVES = JSON.parse(document.getElementById('leavesData').textContent);
@@ -5008,6 +5699,79 @@ setTimeout(() => {
     }
   });
 }, 0);
+
+// Dynamic Architecture Overview renderer
+(function() {
+  function escapeHtmlArch(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+  const svg = document.getElementById('archSvg');
+  const stats = document.getElementById('archStats');
+  if (!svg || !stats) return;
+  // Derive top-level modules from tree data
+  const topModules = [];
+  if (Array.isArray(TREE)) {
+    TREE.forEach(node => {
+      if (node.type === 'dir' && node.children) {
+        const fileCount = countFiles(node);
+        topModules.push({ name: node.name, count: fileCount, children: node.children.length });
+      }
+    });
+  }
+  function countFiles(node) {
+    if (!node) return 0;
+    if (node.type === 'file') return 1;
+    if (Array.isArray(node.children)) return node.children.reduce((s, c) => s + countFiles(c), 0);
+    return 0;
+  }
+  // Sort by file count descending, keep top 6
+  topModules.sort((a, b) => b.count - a.count);
+  const modules = topModules.slice(0, 6);
+  const colors = ['#22c55e', '#38bdf8', '#f59e0b', '#a855f7', '#06b6d4', '#ef4444'];
+  const shapes = ['circle', 'polygon', 'rect', 'circle', 'polygon', 'rect'];
+  const cx = 300, cy = 160, R = 110;
+  let svgHtml = '';
+  // Draw connections from center to modules
+  modules.forEach((mod, i) => {
+    const angle = (i / Math.max(modules.length, 1)) * Math.PI * 2 - Math.PI / 2;
+    const mx = cx + Math.cos(angle) * R;
+    const my = cy + Math.sin(angle) * R;
+    svgHtml += '<line x1="' + cx + '" y1="' + cy + '" x2="' + mx + '" y2="' + my + '" stroke="#334155" stroke-width="1.5"/>';
+  });
+  // Draw center hub
+  svgHtml += '<g transform="translate(' + cx + ',' + cy + ')">';
+  svgHtml += '<polygon points="0,-36 31,-18 31,18 0,36 -31,18 -31,-18" fill="#1e293b" stroke="#06b6d4" stroke-width="2"/>';
+  svgHtml += '<text text-anchor="middle" dy="4" fill="#06b6d4" font-size="11" font-weight="600">' + escapeHtmlArch((document.querySelector('.subtitle')?.textContent || 'Project').split(/[\\/]/).pop() || 'Hub') + '</text>';
+  svgHtml += '</g>';
+  // Draw module nodes
+  modules.forEach((mod, i) => {
+    const angle = (i / Math.max(modules.length, 1)) * Math.PI * 2 - Math.PI / 2;
+    const mx = cx + Math.cos(angle) * R;
+    const my = cy + Math.sin(angle) * R;
+    const color = colors[i % colors.length];
+    const shape = shapes[i % shapes.length];
+    svgHtml += '<g transform="translate(' + mx + ',' + my + ')">';
+    if (shape === 'circle') {
+      svgHtml += '<circle r="32" fill="#1e293b" stroke="' + color + '" stroke-width="2"/>';
+    } else if (shape === 'polygon') {
+      svgHtml += '<polygon points="0,-30 26,-15 26,15 0,30 -26,15 -26,-15" fill="#1e293b" stroke="' + color + '" stroke-width="2"/>';
+    } else {
+      svgHtml += '<rect x="-28" y="-22" width="56" height="44" rx="6" fill="#1e293b" stroke="' + color + '" stroke-width="2"/>';
+    }
+    const label = mod.name.length > 14 ? mod.name.slice(0, 12) + '..' : mod.name;
+    svgHtml += '<text text-anchor="middle" dy="4" fill="#e2e8f0" font-size="10" font-weight="600">' + escapeHtmlArch(label) + '</text>';
+    svgHtml += '<text text-anchor="middle" dy="18" fill="#94a3b8" font-size="9">' + mod.count + ' files</text>';
+    svgHtml += '</g>';
+  });
+  svg.textContent = '';
+  svg.insertAdjacentHTML('beforeend', svgHtml);
+  // Stats chips
+  const totalMods = modules.length;
+  const totalFiles = topModules.reduce((s, m) => s + m.count, 0);
+  const totalDeps = GRAPH.edges.length;
+  stats.textContent = '';
+  stats.insertAdjacentHTML('beforeend', '<div class="stat-chip"><b>' + totalMods + '</b>Modules</div><div class="stat-chip"><b>' + totalFiles + '</b>Files</div><div class="stat-chip"><b>' + totalDeps + '</b>Deps</div>');
+})();
 
 // Dependency stats
 const statsEl = document.getElementById('depStats');
@@ -5186,6 +5950,85 @@ if (statsEl) {
       recBoard.insertAdjacentHTML('beforeend', html);
     }
 
+    // Build per-file metric lookup from recordedPaths
+    const fileMetrics = {};
+    (ANALYSIS.recordedPaths || []).forEach(rp => {
+      fileMetrics[rp.path] = { lines: rp.lines || 0, size: rp.size || 0, type: rp.type || '' };
+    });
+    // Build connection counts
+    const connCounts = {};
+    (ANALYSIS.architecture && ANALYSIS.architecture.bidirectionalDeps || []).forEach(b => {
+      connCounts[b.source] = (connCounts[b.source] || 0) + 1;
+      connCounts[b.target] = (connCounts[b.target] || 0) + 1;
+    });
+    // Cycles per file
+    const fileCycles = {};
+    (CYCLES || []).forEach(cycle => {
+      cycle.forEach(fp => { fileCycles[fp] = (fileCycles[fp] || 0) + 1; });
+    });
+    // Architecture roles
+    const arch = ANALYSIS.architecture || {};
+    const isEntry = new Set(arch.entryPoints || []);
+    const isLeaf = new Set(arch.leafModules || []);
+    const isHub = new Set(arch.hubFiles || []);
+
+    function getFileMetric(fp, item) {
+      const fm = fileMetrics[fp];
+      if (item.title.includes('Large')) return (fm && fm.lines ? fm.lines + ' lines' : '');
+      if (item.title.includes('Coupling')) return (connCounts[fp] ? connCounts[fp] + ' connections' : '');
+      if (item.title.includes('Orphan')) return 'no imports / no dependents';
+      if (item.title.includes('Test')) return 'no test file found';
+      if (item.title.includes('Chain')) return 'deep transitive chain';
+      if (item.title.includes('Circular')) {
+        const cycle = (CYCLES || []).find(c => c.includes(fp));
+        if (cycle) return 'in cycle: ' + cycle.slice(0, 4).map(p => p.split('/').pop()).join(' → ') + (cycle.length > 4 ? '...' : '');
+      }
+      return '';
+    }
+
+    function openFileDetail(fp) {
+      const modal = document.getElementById('fileDetailModal');
+      const title = document.getElementById('fileDetailTitle');
+      const content = document.getElementById('fileDetailContent');
+      if (!modal || !title || !content) return;
+      const fm = fileMetrics[fp] || {};
+      const lines = fm.lines || 0;
+      const size = fm.size || 0;
+      const connections = connCounts[fp] || 0;
+      const cycles = (CYCLES || []).filter(c => c.includes(fp));
+      const issuesForFile = [...(ANALYSIS.issues || []), ...(ANALYSIS.improvements || [])].filter(i => (i.files || []).includes(fp));
+      const recsForFile = (ANALYSIS.recommendations || []).filter(r => (r.files || []).includes(fp));
+      let html = '';
+      html += '<div class="detail-row"><span class="detail-label">Lines</span><span class="detail-val">' + lines + '</span></div>';
+      html += '<div class="detail-row"><span class="detail-label">Size</span><span class="detail-val">' + (size ? (size / 1024).toFixed(1) + ' KB' : '-') + '</span></div>';
+      html += '<div class="detail-row"><span class="detail-label">Connections</span><span class="detail-val">' + connections + '</span></div>';
+      html += '<div class="detail-row"><span class="detail-label">Cycles</span><span class="detail-val">' + cycles.length + '</span></div>';
+      html += '<div class="detail-row"><span class="detail-label">Role</span><span class="detail-val">' + (isEntry.has(fp) ? 'Entry Point' : isLeaf.has(fp) ? 'Leaf' : isHub.has(fp) ? 'Hub' : '—') + '</span></div>';
+      if (issuesForFile.length) {
+        html += '<div style="margin-top:10px;font-size:11px;color:#94a3b8">Flagged Issues:</div>';
+        issuesForFile.forEach(i => {
+          html += '<div style="font-size:11px;padding:2px 0;color:#e2e8f0">• ' + i.title + ' <span class="file-metric">(' + i.severity + ')</span></div>';
+        });
+      }
+      if (recsForFile.length) {
+        html += '<div style="margin-top:10px;font-size:11px;color:#94a3b8">Recommendations:</div>';
+        recsForFile.forEach(r => {
+          html += '<div style="font-size:11px;padding:2px 0;color:#e2e8f0">• ' + r.title + '</div>';
+        });
+      }
+      title.textContent = fp.split('/').pop() || fp;
+      title.title = fp;
+      content.innerHTML = html;
+      modal.classList.add('active');
+    }
+
+    document.getElementById('closeFileDetail')?.addEventListener('click', () => {
+      document.getElementById('fileDetailModal').classList.remove('active');
+    });
+    document.getElementById('fileDetailModal')?.addEventListener('click', (e) => {
+      if (e.target === document.getElementById('fileDetailModal')) document.getElementById('fileDetailModal').classList.remove('active');
+    });
+
     const allItems = [
       ...(ANALYSIS.issues || []).map(i => ({ ...i, kind: 'issue' })),
       ...(ANALYSIS.improvements || []).map(i => ({ ...i, kind: 'improvement' }))
@@ -5215,7 +6058,14 @@ if (statsEl) {
             const name = document.createElement('span');
             name.textContent = f.split('/').pop() || f;
             name.title = f;
+            name.style.cursor = 'pointer';
+            name.style.color = '#38bdf8';
+            name.addEventListener('click', () => openFileDetail(f));
             li.appendChild(name);
+            const metric = document.createElement('span');
+            metric.className = 'file-metric';
+            metric.textContent = getFileMetric(f, item);
+            li.appendChild(metric);
             ul.appendChild(li);
           });
           card.appendChild(ul);
@@ -5226,6 +6076,32 @@ if (statsEl) {
         card.appendChild(desc);
         gridEl.appendChild(card);
       });
+    }
+
+    // "Needs Work" score breakdown tooltip
+    if (scoreBoard && ANALYSIS.summary && ANALYSIS.summary.scoreLabel === 'Needs Work') {
+      const breakdown = document.createElement('div');
+      breakdown.className = 'score-breakdown';
+      breakdown.textContent = 'Why "Needs Work"? Click to see breakdown';
+      breakdown.addEventListener('click', () => {
+        const issues = (ANALYSIS.issues || []).filter(i => i.severity === 'critical' || i.severity === 'high');
+        const improvements = (ANALYSIS.improvements || []).filter(i => i.severity === 'medium' || i.severity === 'low');
+        let msg = 'Score Breakdown\\n\\n';
+        msg += 'Architecture: ' + (ANALYSIS.summary.architectureScore || 0) + '\\n';
+        msg += 'Coupling: ' + (ANALYSIS.summary.couplingScore || 0) + '\\n';
+        msg += 'Complexity: ' + (ANALYSIS.summary.complexityScore || 0) + '\\n';
+        msg += 'Tests: ' + (ANALYSIS.summary.testScore || 0) + '\\n\\n';
+        if (issues.length) {
+          msg += 'Top Issues:\\n';
+          issues.slice(0, 5).forEach(i => { msg += '• ' + i.title + ' (' + i.files.length + ' files)\\n'; });
+        }
+        if (improvements.length) {
+          msg += '\\nImprovements:\\n';
+          improvements.slice(0, 5).forEach(i => { msg += '• ' + i.title + ' (' + i.files.length + ' files)\\n'; });
+        }
+        alert(msg);
+      });
+      scoreBoard.parentElement.appendChild(breakdown);
     }
   } catch (e) { /* ignore analysis parse errors */ }
 })();
@@ -5242,6 +6118,45 @@ if (statsEl) {
       setTimeout(() => { window.dispatchEvent(new Event('resize')); }, 300);
     });
   }
+  const fsBtn = document.getElementById('fullscreenGraphBtn');
+  if (fsBtn && main) {
+    fsBtn.addEventListener('click', () => {
+      const isFs = main.classList.toggle('graph-fullscreen');
+      if (isFs && sidebar) { sidebar.classList.add('hidden'); }
+      if (!isFs && sidebar) { sidebar.classList.remove('hidden'); }
+      setTimeout(() => { window.dispatchEvent(new Event('resize')); }, 300);
+    });
+  }
+})();
+
+// Sidebar resizer
+(function(){
+  const sidebar = document.querySelector('.sidebar');
+  const resizer = document.getElementById('sidebarResizer');
+  if (!sidebar || !resizer) return;
+  let startX = 0, startWidth = 0, isDragging = false;
+  const MIN = 160, MAX = 500;
+  const saved = localStorage.getItem('codemapSidebarWidth');
+  if (saved) { const w = parseInt(saved,10); if (!isNaN(w)) { setWidth(w); } }
+  function setWidth(w) {
+    w = Math.max(MIN, Math.min(MAX, w));
+    document.documentElement.style.setProperty('--sidebar-width', w + 'px');
+    localStorage.setItem('codemapSidebarWidth', String(w));
+  }
+  resizer.addEventListener('mousedown', e => {
+    isDragging = true;
+    startX = e.clientX;
+    startWidth = sidebar.getBoundingClientRect().width;
+    resizer.classList.add('dragging');
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', e => {
+    if (!isDragging) return;
+    setWidth(startWidth + (e.clientX - startX));
+  });
+  document.addEventListener('mouseup', () => {
+    if (isDragging) { isDragging = false; resizer.classList.remove('dragging'); }
+  });
 })();
 
 // Force-directed graph with full interactivity
@@ -5257,33 +6172,103 @@ if (statsEl) {
   const searchInput = document.getElementById('graphSearch');
   const filterInputs = document.querySelectorAll('.ext-filter');
 
-  function resize() { canvas.width = wrap.clientWidth; canvas.height = wrap.clientHeight; }
-  resize(); window.addEventListener('resize', resize);
-
-  const colors = {'.js':'#f7df1e','.ts':'#3178c6','.tsx':'#61dafb','.jsx':'#61dafb','.cjs':'#f0db4f','.mjs':'#f0db4f','.py':'#3776ab'};
   const W = () => canvas.width, H = () => canvas.height;
-  const allNodes = GRAPH.nodes.map((n,i) => ({id:n.id,label:n.label,group:n.group,x:W()/2+Math.cos(i*2.4)*150,y:H()/2+Math.sin(i*2.4)*150,vx:0,vy:0,radius:Math.max(4,Math.min(14,Math.sqrt(n.size||1)*0.6)),color:colors[n.group]||'#64748b',visible:true,highlighted:false}));
+  function resize() {
+    canvas.width = Math.max(1, wrap.clientWidth);
+    canvas.height = Math.max(1, wrap.clientHeight);
+  }
+  resize(); window.addEventListener('resize', resize); setTimeout(resize, 100); setTimeout(resize, 500);
+  if (typeof ResizeObserver !== 'undefined') {
+    const ro = new ResizeObserver(() => { resize(); needsRedraw = true; });
+    ro.observe(wrap);
+  }
+
+  const colors = {'.js':'#f7df1e','.ts':'#3178c6','.tsx':'#61dafb','.jsx':'#61dafb','.cjs':'#f0db4f','.mjs':'#f0db4f','.py':'#3776ab','.css':'#264de4','.html':'#e34c26','.json':'#f1c40f','.md':'#ffffff','.yml':'#cb171e','.yaml':'#cb171e','.go':'#00add8','.rs':'#dea584','.java':'#b07219','.php':'#4f5d95','.rb':'#701516','.sh':'#89e051','.vue':'#41b883','.sql':'#f29111','.xml':'#0060ac','.dockerfile':'#2496ed','.env':'#ffd700','.lock':'#ffd700','.c':'#555555','.cpp':'#f34b7d','.h':'#555555','.cs':'#178600','.swift':'#ffac45','.kt':'#a97bff','.scala':'#c22d40','.r':'#198ce7','.pl':'#0298c3','.lua':'#000080'};
+  const initRadius = Math.min(Math.min(W(),H())/2, Math.max(200, Math.sqrt(GRAPH.nodes.length)*16));
+  const allNodes = GRAPH.nodes.map((n,i) => {
+    const angle = (i / Math.max(1, GRAPH.nodes.length)) * Math.PI * 2 + (i * 0.7);
+    const spread = initRadius * (0.3 + 0.7 * Math.sqrt(i / Math.max(1, GRAPH.nodes.length)));
+    return {id:n.id,label:n.label,group:n.group,x:(typeof n.x === 'number' ? n.x : W()/2+Math.cos(angle)*spread),y:(typeof n.y === 'number' ? n.y : H()/2+Math.sin(angle)*spread),vx:0,vy:0,radius:Math.max(3,Math.min(14,3+Math.log10((n.size||1)+1))),color:colors[n.group]||'#64748b',visible:true,highlighted:false,connCount:0};
+  });
   const allEdges = GRAPH.edges.map(e => ({source:e.source,target:e.target,visible:true}));
   const nodeMap = Object.fromEntries(allNodes.map(n=>[n.id,n]));
   const edges = allEdges.map(e => ({source:nodeMap[e.source],target:nodeMap[e.target]})).filter(e=>e.source&&e.target);
+  edges.forEach(e => { if (e.source) e.source.connCount++; if (e.target) e.target.connCount++; });
+  allNodes.forEach(n => { n.radius = Math.max(4, Math.min(20, 4 + Math.sqrt(n.connCount) * 2.5)); });
 
-  let dragging = null, panning = false, panStart = {x:0,y:0}, hoverNode = null, selectedNode = null, dragMoved = false;
+  let dragging = null, panning = false, panStart = {x:0,y:0}, hoverNode = null, selectedNode = null, dragMoved = false, leftClickNode = null;
   let offset = {x:0,y:0}, scale = 1, pan = {x:0,y:0}, physicsPaused = false, searchQuery = '';
-  let is3D = false, rotX = 0.6, rotY = 0, isRotating = false, rotStart = {x:0, y:0};
-  let labelsVisible = true;
-  let zoomDragging = false, zoomStartY = 0, zoomStartScale = 1;
+  // Set initial pan/zoom to frame the pre-computed graph
+  if (allNodes.length) {
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    for (const n of allNodes) {
+      minX = Math.min(minX, n.x); maxX = Math.max(maxX, n.x);
+      minY = Math.min(minY, n.y); maxY = Math.max(maxY, n.y);
+    }
+    const pad = 80;
+    const graphW = Math.max(1, maxX - minX + pad*2);
+    const graphH = Math.max(1, maxY - minY + pad*2);
+    scale = Math.min(1, Math.min(W() / graphW, H() / graphH));
+    pan.x = (W() - (minX + maxX) * scale) / 2;
+    pan.y = (H() - (minY + maxY) * scale) / 2;
+  }
+  let is3D = false, rotX = 0.6, rotY = 0, rot2D = 0, isRotating = false, rotStart = {x:0, y:0};
+  let labelsVisible = false;
+  let gridMode = 'world'; // 'off' | 'world' | 'screen'
+  let minimapVisible = true;
+  let focusMode = false;
+  // Smooth fly-to animation state
+  let flyTo = null; // { targetScale, targetPanX, targetPanY, progress }
+  let pulseNodes = []; // [{ node, until }]
+  let starsVisible = true;
+  const stars = Array.from({length: 200}, () => ({
+    x: Math.random(), y: Math.random(),
+    size: 0.5 + Math.random() * 1.5,
+    alpha: 0.15 + Math.random() * 0.4,
+    twinkle: Math.random() * Math.PI * 2
+  }));
   let middlePanning = false, middlePanStart = {x:0,y:0,px:0,py:0};
   let isOrbiting = false, orbitStart = {x:0,y:0};
+  let zoomDragging = false, zoomDragStartY = 0;
+  let rightPanning = false, rightPanStart = {x:0,y:0}, rightClickStartScreen = {x:0,y:0}, rightDragged = false;
+  const keysPressed = new Set();
+  let autoRun = false;
+  let currentLayout = 'force';
+  let cameraOffset = {x:0,y:0,z:15000};
+  let manualMouseLook = false;
+  let lastMouseX = 0, lastMouseY = 0, mouseLookActive = false;
 
   function getFilteredNodes() { return allNodes.filter(n => n.visible); }
   function getFilteredEdges() { return edges.filter(e => e.source.visible && e.target.visible); }
+  function getConnectedNodeIds(node) {
+    const connected = new Set();
+    if (!node) return connected;
+    connected.add(node.id);
+    edges.forEach(e => {
+      if (e.source === node) connected.add(e.target.id);
+      if (e.target === node) connected.add(e.source.id);
+    });
+    return connected;
+  }
 
   function clientPos(e) {
     const rect = canvas.getBoundingClientRect();
-    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    const sx = canvas.width / rect.width;
+    const sy = canvas.height / rect.height;
+    return { x: (e.clientX - rect.left) * sx, y: (e.clientY - rect.top) * sy };
   }
   function worldPosFromClient(cp) {
-    return { x: (cp.x - pan.x) / scale, y: (cp.y - pan.y) / scale };
+    if (rot2D === 0) return { x: (cp.x - pan.x) / scale, y: (cp.y - pan.y) / scale };
+    const cx = W() / 2, cy = H() / 2;
+    const sx = cp.x - cx, sy = cp.y - cy;
+    const cos = Math.cos(rot2D), sin = Math.sin(rot2D);
+    const rx = sx * cos + sy * sin;
+    const ry = -sx * sin + sy * cos;
+    return { x: (rx + cx - pan.x) / scale, y: (ry + cy - pan.y) / scale };
+  }
+  function screenDeltaToPan(dx, dy) {
+    const c = Math.cos(rot2D), s = Math.sin(rot2D);
+    return { x: dx * c + dy * s, y: -dx * s + dy * c };
   }
   function worldPos(e) {
     return worldPosFromClient(clientPos(e));
@@ -5300,27 +6285,39 @@ if (statsEl) {
 
   function project3D(n) {
     const cx = W() / 2, cy = H() / 2;
-    const focal = 800;
-    const x0 = n.x - cx;
-    const y0 = n.y - cy;
-    const z0 = n.z;
+    const focal = 2000;
+    const x0 = n.x - cx - cameraOffset.x;
+    const y0 = n.y - cy - cameraOffset.y;
+    const z0 = cameraOffset.z - (n.z || 0);
     const x1 = x0 * Math.cos(rotY) - z0 * Math.sin(rotY);
     const z1 = x0 * Math.sin(rotY) + z0 * Math.cos(rotY);
     const y1 = y0 * Math.cos(rotX) - z1 * Math.sin(rotX);
     const z2 = y0 * Math.sin(rotX) + z1 * Math.cos(rotX);
-    const depthScale = focal / (focal + z2);
-    return { x: cx + x1 * scale * depthScale, y: cy + y1 * scale * depthScale, depthScale, z2 };
+    if (z2 < 0.1) return null;
+    const depthScale = Math.max(0.001, Math.min(2.5, focal / (focal + z2)));
+    return { x: cx + x1 * scale * depthScale + pan.x, y: cy + y1 * scale * depthScale + pan.y, depthScale, z2 };
   }
 
+  function clampCameraDistance() {
+    const dist = Math.sqrt(cameraOffset.x*cameraOffset.x + cameraOffset.y*cameraOffset.y + cameraOffset.z*cameraOffset.z);
+    if (dist < 0.001) { cameraOffset = {x:0,y:0,z:4000}; return; }
+    const minDist = 50, maxDist = 200000;
+    if (dist < minDist || dist > maxDist) {
+      const clamped = Math.max(minDist, Math.min(maxDist, dist));
+      const s = clamped / dist;
+      cameraOffset.x *= s; cameraOffset.y *= s; cameraOffset.z *= s;
+    }
+  }
   function nodeAt3D(cp) {
     const vis = getFilteredNodes();
     let best = null, bestDist = Infinity;
     for (const n of vis) {
       const p = project3D(n);
+      if (!p) continue;
       const r = n.radius * p.depthScale;
       const dx = cp.x - p.x, dy = cp.y - p.y;
       const dist = Math.sqrt(dx*dx + dy*dy);
-      if (dist < r + 6 && dist < bestDist) { best = n; bestDist = dist; }
+      if (dist < Math.max(r + 10, 18) && dist < bestDist) { best = n; bestDist = dist; }
     }
     return best;
   }
@@ -5339,109 +6336,189 @@ if (statsEl) {
   }
 
   canvas.addEventListener('mousedown', e => {
+    canvas.focus();
+    if (typeof window !== 'undefined' && window.focus) { window.focus(); }
     dragMoved = false;
+    // Left = node select if on node, else turn/rotate
+    if (e.button === 0) {
+      e.preventDefault();
+      const cp = (document.pointerLockElement === canvas || manualMouseLook)
+        ? { x: W() / 2, y: H() / 2 }
+        : clientPos(e);
+      const clickNode = is3D ? nodeAt3D(cp) : nodeAt(worldPosFromClient(cp));
+      if (clickNode) { leftClickNode = clickNode; return; }
+      if (is3D) { isRotating = true; rotStart = {x: e.clientX, y: e.clientY}; return; }
+      isOrbiting = true; orbitStart = { x: e.clientX, y: e.clientY }; return;
+    }
+    if (document.pointerLockElement === canvas || manualMouseLook) {
+      if (e.button !== 0) e.preventDefault();
+      return;
+    }
+    // Middle = zoom control
     if (e.button === 1) {
       e.preventDefault();
-      middlePanning = true;
-      const cp = clientPos(e);
-      middlePanStart = { x: cp.x, y: cp.y, px: pan.x, py: pan.y };
+      zoomDragging = true;
+      zoomDragStartY = e.clientY;
       return;
     }
+    // Right = grab/pan (context menu on simple click)
     if (e.button === 2) {
       e.preventDefault();
-      if (is3D) { isRotating = true; rotStart = {x: e.clientX, y: e.clientY}; return; }
-      zoomDragging = true;
-      zoomStartY = e.clientY;
-      zoomStartScale = scale;
+      rightPanning = true;
+      const cp = clientPos(e);
+      rightPanStart = cp;
+      rightClickStartScreen = { x: e.clientX, y: e.clientY };
+      rightDragged = false;
       return;
     }
-    if (is3D) { isRotating = true; rotStart = {x: e.clientX, y: e.clientY}; return; }
-    if (e.ctrlKey || e.altKey) {
-      isOrbiting = true;
-      orbitStart = { x: e.clientX, y: e.clientY };
-      return;
-    }
-    const cp = clientPos(e); panning = true; panStart = cp;
   });
   canvas.addEventListener('mousemove', e => {
+    if (document.pointerLockElement === canvas) {
+      if (is3D) {
+        const yawDir = Math.cos(rotX) >= 0 ? 1 : -1;
+        rotY += e.movementX * 0.005 * yawDir;
+        rotX += e.movementY * 0.005;
+      } else {
+        const d = screenDeltaToPan(e.movementX, e.movementY);
+        pan.x -= d.x;
+        pan.y -= d.y;
+      }
+    }
+    if (manualMouseLook && is3D) {
+      const yawDir = Math.cos(rotX) >= 0 ? 1 : -1;
+      rotY += (e.clientX - lastMouseX) * 0.008 * yawDir;
+      rotX += (e.clientY - lastMouseY) * 0.008;
+      lastMouseX = e.clientX;
+      lastMouseY = e.clientY;
+    }
     const cp = clientPos(e);
     if (isRotating) {
       const dx = e.clientX - rotStart.x; const dy = e.clientY - rotStart.y;
-      rotY += dx * 0.01; rotX += dy * 0.01; rotStart = {x: e.clientX, y: e.clientY};
-      canvas.style.cursor = 'move'; return;
+      if (is3D) {
+        // First-person look: yaw left/right, pitch up/down
+        const sensitivity = 0.008;
+        const yawDir = Math.cos(rotX) >= 0 ? 1 : -1;
+        rotY += dx * sensitivity * yawDir;
+        rotX += dy * sensitivity;
+      }
+      rotStart = {x: e.clientX, y: e.clientY};
+      canvas.style.cursor = 'move'; dragMoved = true; return;
     }
     if (zoomDragging) {
-      const dy = zoomStartY - e.clientY;
-      const factor = Math.exp(dy * 0.005);
-      const newScale = Math.max(0.05, Math.min(100, zoomStartScale * factor));
-      if (!is3D) {
-        const rect = canvas.getBoundingClientRect();
-        const center = { x: rect.width / 2, y: rect.height / 2 };
-        const worldBefore = worldPosFromClient(center);
-        scale = newScale;
-        pan.x = center.x - worldBefore.x * scale;
-        pan.y = center.y - worldBefore.y * scale;
+      const dy = e.clientY - zoomDragStartY;
+      if (is3D) {
+        cameraOffset.z += dy * 3;
+        updateZoomDisplay();
       } else {
-        scale = newScale;
+        const factor = Math.exp(-dy * 0.01);
+        zoomAtCenter(factor);
       }
-      updateZoomDisplay();
-      canvas.style.cursor = 'ns-resize'; return;
+      zoomDragStartY = e.clientY;
+      canvas.style.cursor = 'ns-resize'; dragMoved = true; return;
     }
-    if (middlePanning) {
-      pan.x = middlePanStart.px + (cp.x - middlePanStart.x);
-      pan.y = middlePanStart.py + (cp.y - middlePanStart.y);
+    if (rightPanning) {
+      const sdx = e.clientX - rightClickStartScreen.x;
+      const sdy = e.clientY - rightClickStartScreen.y;
+      if (Math.sqrt(sdx*sdx + sdy*sdy) > 5) rightDragged = true;
+      const rdx = cp.x - rightPanStart.x;
+      const rdy = cp.y - rightPanStart.y;
+      if (rot2D !== 0) {
+        const cos = Math.cos(-rot2D), sin = Math.sin(-rot2D);
+        pan.x += rdx * cos - rdy * sin;
+        pan.y += rdx * sin + rdy * cos;
+      } else {
+        pan.x += rdx; pan.y += rdy;
+      }
+      rightPanStart = cp;
       canvas.style.cursor = 'grabbing'; dragMoved = true; return;
     }
     if (isOrbiting) {
       const dx = e.clientX - orbitStart.x;
       const dy = e.clientY - orbitStart.y;
-      const speed = e.altKey ? 0.002 : 0.005;
-      pan.x += dx * speed * scale * 50;
-      pan.y += dy * speed * scale * 50;
+      if (is3D) {
+        const speed = e.altKey ? 0.002 : 0.005;
+        pan.x += dx * speed * scale * 50;
+        pan.y += dy * speed * scale * 50;
+      } else {
+        if (rot2D !== 0) {
+          const cos = Math.cos(-rot2D), sin = Math.sin(-rot2D);
+          pan.x += dx * cos - dy * sin;
+          pan.y += dx * sin + dy * cos;
+        } else {
+          pan.x += dx; pan.y += dy;
+        }
+      }
       orbitStart = { x: e.clientX, y: e.clientY };
-      canvas.style.cursor = 'all-scroll'; return;
+      canvas.style.cursor = 'all-scroll'; dragMoved = true; return;
     }
     if (is3D) { hoverNode = nodeAt3D(cp); canvas.style.cursor = hoverNode ? 'pointer' : 'move'; return; }
     const wp = worldPosFromClient(cp); hoverNode = nodeAt(wp);
+    const coordDisplay = document.getElementById('coordDisplay');
+    if (coordDisplay) {
+      coordDisplay.style.display = 'block';
+      coordDisplay.textContent = 'X:' + Math.round(wp.x) + '  Y:' + Math.round(wp.y);
+    }
     if (dragging) {
       dragging.x = wp.x - offset.x; dragging.y = wp.y - offset.y;
-      canvas.style.cursor = 'grabbing'; dragMoved = true;
-    } else if (panning) {
-      pan.x += cp.x - panStart.x; pan.y += cp.y - panStart.y; panStart = cp;
       canvas.style.cursor = 'grabbing'; dragMoved = true;
     } else {
       canvas.style.cursor = hoverNode ? 'pointer' : 'grab';
     }
   });
-  canvas.addEventListener('mouseup', () => { dragging = null; panning = false; isRotating = false; zoomDragging = false; middlePanning = false; isOrbiting = false; });
-  canvas.addEventListener('mouseleave', () => { dragging = null; panning = false; isRotating = false; zoomDragging = false; middlePanning = false; isOrbiting = false; });
+  canvas.addEventListener('mouseup', e => {
+    if (e.button === 2 && rightPanning && !rightDragged) {
+      if (document.pointerLockElement === canvas || manualMouseLook) {
+        const center = { x: W() / 2, y: H() / 2 };
+        const chNode = is3D ? nodeAt3D(center) : nodeAt(worldPosFromClient(center));
+        if (chNode) { selectedNode = chNode; showNodeDetails(chNode); }
+      } else {
+        showContextMenu(e.clientX, e.clientY);
+      }
+    }
+    dragging = null; panning = false; isRotating = false; zoomDragging = false; middlePanning = false; rightPanning = false; isOrbiting = false;
+  });
+  canvas.addEventListener('mouseleave', () => { dragging = null; panning = false; isRotating = false; zoomDragging = false; middlePanning = false; rightPanning = false; isOrbiting = false; const coordDisplay = document.getElementById('coordDisplay'); if (coordDisplay) coordDisplay.style.display = 'none'; });
   canvas.addEventListener('click', e => {
+    if (leftClickNode) {
+      selectedNode = leftClickNode;
+      showNodeDetails(leftClickNode);
+      scrollTreeToNode(leftClickNode.id);
+      leftClickNode = null;
+      needsRedraw = true;
+      return;
+    }
     if (dragMoved) return;
+    if (document.activeElement && document.activeElement.tagName === 'INPUT') document.activeElement.blur();
     if (is3D) {
-      const cp = clientPos(e); const n = nodeAt3D(cp);
-      if (n) { selectedNode = n; showNodeDetails(n); }
+      const cp = clientPos(e);
+      const n = nodeAt3D(cp);
+      if (n) { selectedNode = n; showNodeDetails(n); scrollTreeToNode(n.id); }
       else { selectedNode = null; if (detailsPanel) detailsPanel.classList.add('hidden'); }
+      needsRedraw = true;
       return;
     }
     const wp = worldPos(e); const n = nodeAt(wp);
-    if (n) { selectedNode = n; showNodeDetails(n); }
+    if (n) { selectedNode = n; showNodeDetails(n); scrollTreeToNode(n.id); }
     else { selectedNode = null; if (detailsPanel) detailsPanel.classList.add('hidden'); }
+    needsRedraw = true;
   });
-  canvas.addEventListener('contextmenu', e => {
-    e.preventDefault();
-    const cp = clientPos(e); const wp = worldPosFromClient(cp); const n = nodeAt(wp);
+  canvas.addEventListener('contextmenu', e => { e.preventDefault(); });
+  function showContextMenu(cx, cy) {
+    const cp = clientPos({ clientX: cx, clientY: cy });
+    const n = is3D ? nodeAt3D(cp) : nodeAt(worldPosFromClient(cp));
     const menu = document.getElementById('contextMenu'); if (!menu) return;
     menu.style.display = 'block';
-    menu.style.left = (e.clientX + 10) + 'px';
-    menu.style.top = (e.clientY + 10) + 'px';
+    menu.style.left = (cx + 10) + 'px';
+    menu.style.top = (cy + 10) + 'px';
     const items = [];
     if (n) {
-      items.push({ label: 'Zoom to Node', action: () => { zoomToNode(n); selectedNode = n; showNodeDetails(n); } });
-      items.push({ label: 'View Details', action: () => { selectedNode = n; showNodeDetails(n); } });
+      items.push({ label: 'Zoom to Node', action: () => { zoomToNode(n); selectedNode = n; showNodeDetails(n); scrollTreeToNode(n.id); } });
+      items.push({ label: 'View Details', action: () => { selectedNode = n; showNodeDetails(n); scrollTreeToNode(n.id); } });
     }
     items.push({ label: 'Fit to Screen', action: () => document.getElementById('fitScreenBtn')?.click() });
     items.push({ label: 'Reset View', action: () => document.getElementById('resetViewBtn')?.click() });
     items.push({ label: 'Toggle Sidebar', action: () => document.getElementById('toggleSidebarBtn')?.click() });
+    items.push({ label: 'Toggle Fullscreen', action: () => document.getElementById('fullscreenGraphBtn')?.click() });
     items.push({ label: 'Toggle Labels', action: () => document.getElementById('toggleLabelsBtn')?.click() });
     menu.textContent = '';
     menu.insertAdjacentHTML('beforeend', items.map(it => '<div class="context-menu-item">' + it.label + '</div>').join(''));
@@ -5450,28 +6527,47 @@ if (statsEl) {
     });
     const closeMenu = () => { menu.style.display = 'none'; document.removeEventListener('click', closeMenu); };
     setTimeout(() => document.addEventListener('click', closeMenu), 0);
-  });
+  }
   canvas.addEventListener('wheel', e => {
     e.preventDefault();
-    const cp = clientPos(e);
     const speedMult = e.shiftKey ? 3 : 1;
-    const factor = Math.exp(-e.deltaY * 0.003 * speedMult);
-    const newScale = Math.max(0.05, Math.min(100, scale * factor));
-    if (!is3D) {
-      const worldBefore = worldPosFromClient(cp);
-      scale = newScale;
-      pan.x = cp.x - worldBefore.x * scale;
-      pan.y = cp.y - worldBefore.y * scale;
-    } else {
-      scale = newScale;
+    if (is3D) {
+      // Zoom along camera-forward direction (toward/away from scene center)
+      const dz = e.deltaY * 1.5 * speedMult;
+      const sinY = Math.sin(rotY), cosY = Math.cos(rotY);
+      const sinX = Math.sin(rotX), cosX = Math.cos(rotX);
+      const move = dz * 2;
+      cameraOffset.x -= move * sinY * cosX;
+      cameraOffset.y -= move * sinX;
+      cameraOffset.z += move * cosY * cosX;
+      clampCameraDistance();
+      updateZoomDisplay();
+      return;
     }
+    const cp = clientPos(e);
+    const factor = Math.exp(-e.deltaY * 0.003 * speedMult);
+    const newScale = Math.max(0.05, Math.min(20, scale * factor));
+    const worldBefore = worldPosFromClient(cp);
+    const cx = W() / 2, cy = H() / 2;
+    const cos = Math.cos(rot2D), sin = Math.sin(rot2D);
+    const sx = cp.x - cx, sy = cp.y - cy;
+    const A = sx * cos + sy * sin;
+    const B = -sx * sin + sy * cos;
+    scale = newScale;
+    pan.x = cx + A - worldBefore.x * scale;
+    pan.y = cy + B - worldBefore.y * scale;
     updateZoomDisplay();
   }, {passive:false});
   // Double-click to zoom into a node
   canvas.addEventListener('dblclick', e => {
-    const wp = worldPos(e);
-    const n = nodeAt(wp);
-    if (n) { zoomToNode(n); selectedNode = n; showNodeDetails(n); }
+    if (is3D) {
+      const cp = clientPos(e);
+      const n = nodeAt3D(cp) || selectedNode;
+      if (n) { zoomToNode(n); selectedNode = n; showNodeDetails(n); scrollTreeToNode(n.id); }
+    } else {
+      const n = nodeAt(worldPos(e)) || selectedNode;
+      if (n) { zoomToNode(n); selectedNode = n; showNodeDetails(n); scrollTreeToNode(n.id); }
+    }
   });
 
   function showNodeDetails(n) {
@@ -5488,6 +6584,7 @@ if (statsEl) {
     html += '<div class="detail-row"><span class="detail-label">Incoming</span><span>' + incoming.length + '</span></div>';
     html += '<div class="detail-row"><span class="detail-label">Outgoing</span><span>' + outgoing.length + '</span></div>';
     html += '<div class="detail-row"><span class="detail-label">Cycles</span><span>' + cycles + '</span></div>';
+    html += '<div style="margin-top:8px;"><button id="openInEditorBtn" style="background:#06b6d4;border:none;border-radius:6px;color:#0f172a;padding:6px 12px;font-size:12px;cursor:pointer;font-weight:600;width:100%">Open in Editor</button></div>';
     if (incoming.length) {
       html += '<div style="margin-top:6px;color:#64748b;font-size:11px;">Imported by:</div>';
       html += '<div style="max-height:60px;overflow-y:auto;font-size:11px;">' + incoming.slice(0,5).join('<br>') + '</div>';
@@ -5499,6 +6596,19 @@ if (statsEl) {
     detailBody.textContent = '';
     detailBody.insertAdjacentHTML('beforeend', html);
     detailsPanel.classList.remove('hidden');
+    const openBtn = document.getElementById('openInEditorBtn');
+    if (openBtn) openBtn.addEventListener('click', () => {
+      if (typeof acquireVsCodeApi !== 'undefined') {
+        const vscode = acquireVsCodeApi();
+        vscode.postMessage({ command: 'openFile', path: n.id });
+      } else {
+        const root = document.querySelector('.subtitle')?.getAttribute('data-root') || document.querySelector('.subtitle')?.textContent || '';
+        const fullPath = root ? root.replace(/\\\\/g, '/') + '/' + n.id : n.id;
+        const encodedPath = fullPath.replace(/ /g, '%20').replace(/#/g, '%23');
+        try { window.open('vscode://file/' + encodedPath, '_blank'); } catch (e) {}
+        notifyVSCode('openFile', { path: fullPath });
+      }
+    });
   }
   if (closeDetails) closeDetails.addEventListener('click', () => { selectedNode = null; detailsPanel.classList.add('hidden'); });
 
@@ -5513,6 +6623,18 @@ if (statsEl) {
       n.visible = active.has(key);
       if (n.visible && searchQuery) { n.visible = n.label.toLowerCase().includes(searchQuery) || n.id.toLowerCase().includes(searchQuery); }
     });
+    syncSidebarVisibility();
+  }
+  function syncSidebarVisibility() {
+    document.querySelectorAll('.tree-node[data-type="file"]').forEach(el => {
+      const path = el.getAttribute('data-path');
+      if (!path) return;
+      const node = allNodes.find(n => n.id === path || n.label === path || n.label.endsWith('/' + path) || path.endsWith('/' + n.label));
+      if (node) {
+        el.classList.toggle('graph-hidden', !node.visible);
+        el.classList.toggle('graph-visible', node.visible);
+      }
+    });
   }
   filterInputs.forEach(cb => cb.addEventListener('change', applyFilters));
   if (searchInput) searchInput.addEventListener('input', e => { searchQuery = e.target.value.toLowerCase(); applyFilters(); });
@@ -5520,29 +6642,157 @@ if (statsEl) {
   // Zoom helpers
   const zoomDisplay = document.getElementById('zoomLevelDisplay');
   function updateZoomDisplay() {
-    if (zoomDisplay) zoomDisplay.textContent = Math.round(scale * 100) + '%';
+    if (!zoomDisplay) return;
+    if (is3D) {
+      const dist = Math.abs(cameraOffset.z);
+      const pct = Math.round(800 / (800 + dist) * 100);
+      zoomDisplay.textContent = pct + '%';
+    } else {
+      zoomDisplay.textContent = Math.round(scale * 100) + '%';
+    }
   }
   function zoomAtCenter(factor) {
     const rect = canvas.getBoundingClientRect();
     const cp = { x: rect.width / 2, y: rect.height / 2 };
+    if (is3D) {
+      const dz = (factor > 1 ? -200 : 200);
+      cameraOffset.z += dz;
+      updateZoomDisplay(); return;
+    }
     const worldBefore = worldPosFromClient(cp);
-    const newScale = Math.max(0.05, Math.min(100, scale * factor));
+    const newScale = Math.max(0.05, Math.min(20, scale * factor));
+    const cx = W() / 2, cy = H() / 2;
+    const cos = Math.cos(rot2D), sin = Math.sin(rot2D);
+    const sx = cp.x - cx, sy = cp.y - cy;
+    const A = sx * cos + sy * sin;
+    const B = -sx * sin + sy * cos;
     scale = newScale;
-    pan.x = cp.x - worldBefore.x * scale;
-    pan.y = cp.y - worldBefore.y * scale;
+    pan.x = cx + A - worldBefore.x * scale;
+    pan.y = cy + B - worldBefore.y * scale;
     updateZoomDisplay();
   }
   function zoomToNode(n) {
     if (!n) return;
-    if (is3D) { scale = 1.5; pan = {x:0,y:0}; updateZoomDisplay(); return; }
-    scale = Math.min(80, Math.max(5, 40));
-    pan.x = (W() / 2) - n.x * scale;
-    pan.y = (H() / 2) - n.y * scale;
+    if (is3D) {
+      const layerZ = { entry: -2500, ui: -1200, business: 0, data: 1200, utils: -800, tests: 2500, other: 800 };
+      const targetZ = layerZ[classifyLayer(n.label)] || 0;
+      cameraOffset.x = -n.x;
+      cameraOffset.y = -n.y;
+      cameraOffset.z = targetZ - 1500;
+      scale = 1.2; pan = {x:0,y:0}; rotX = 0.6; rotY = 0; rot2D = 0;
+      updateZoomDisplay(); return;
+    }
+    const targetScale = Math.min(12, Math.max(3, 40 / Math.max(4, n.radius)));
+    const targetPanX = (W() / 2) - n.x * targetScale;
+    const targetPanY = (H() / 2) - n.y * targetScale;
+    flyTo = { targetScale, targetPanX, targetPanY, startScale: scale, startPanX: pan.x, startPanY: pan.y, startTime: performance.now(), duration: 600 };
     updateZoomDisplay();
+  }
+
+  // Tree sidebar interactions — inside this IIFE so allNodes, selectedNode, showNodeDetails, zoomToNode are in scope
+  document.addEventListener('click', function(e) {
+    const el = e.target && e.target.closest && e.target.closest('.tree-node[data-type="file"]');
+    if (!el) return;
+    document.querySelectorAll('.tree-node.selected').forEach(n => n.classList.remove('selected'));
+    el.classList.add('selected');
+    const path = el.getAttribute('data-path');
+    if (!path) return;
+    const n = allNodes.find(n => n.id === path || n.label === path || n.label.endsWith('/' + path) || path.endsWith('/' + n.label));
+    if (n) {
+      selectedNode = n;
+      showNodeDetails(n);
+      zoomToNode(n);
+      pulseNodes.push({ node: n, start: performance.now(), duration: 800, until: performance.now() + 800 });
+    }
+  });
+  document.addEventListener('dblclick', function(e) {
+    const el = e.target && e.target.closest && e.target.closest('.tree-node[data-type="file"]');
+    if (!el) return;
+    document.querySelectorAll('.tree-node.selected').forEach(n => n.classList.remove('selected'));
+    el.classList.add('selected');
+    const path = el.getAttribute('data-path');
+    if (!path) return;
+    const n = allNodes.find(n => n.id === path || n.label === path || n.label.endsWith('/' + path) || path.endsWith('/' + n.label));
+    if (n) {
+      selectedNode = n; showNodeDetails(n); zoomToNode(n);
+      pulseNodes.push({ node: n, start: performance.now(), duration: 800, until: performance.now() + 800 });
+      let parent = el.parentElement;
+      while (parent) {
+        if (parent.classList.contains('tree-children') && parent.classList.contains('collapsed')) {
+          parent.classList.remove('collapsed');
+          parent.classList.add('expanded');
+          const prev = parent.previousElementSibling;
+          if (prev) {
+            const toggle = prev.querySelector('.toggle');
+            if (toggle) toggle.textContent = '▼';
+          }
+        }
+        parent = parent.parentElement;
+      }
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  });
+
+  function scrollTreeToNode(path) {
+    if (!path) return;
+    const treeNodes = document.querySelectorAll('.tree-node[data-type="file"]');
+    let target = null;
+    for (const tn of treeNodes) {
+      const nodePath = tn.getAttribute('data-path');
+      if (!nodePath) continue;
+      if (nodePath === path || nodePath.endsWith('/' + path) || path.endsWith('/' + nodePath)) {
+        target = tn; break;
+      }
+    }
+    if (!target) return;
+    // Expand collapsed parent directories
+    let parent = target.parentElement;
+    while (parent) {
+      if (parent.classList.contains('tree-children') && parent.classList.contains('collapsed')) {
+        parent.classList.remove('collapsed');
+        parent.classList.add('expanded');
+        const prev = parent.previousElementSibling;
+        if (prev) {
+          const toggle = prev.querySelector('.toggle');
+          if (toggle) toggle.textContent = '\u25BC';
+        }
+      }
+      parent = parent.parentElement;
+    }
+    // Highlight and scroll
+    document.querySelectorAll('.tree-node.selected').forEach(n => n.classList.remove('selected'));
+    target.classList.add('selected');
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+
+  function classifyHexSector(nodeId) {
+    const id = (nodeId || '').toLowerCase().replace(/\\\\/g, '/');
+    const name = id.split('/').pop() || '';
+    // Tests first (highest priority)
+    if (/(?:^|\\/)(test|tests|__tests__|__mocks__|spec|e2e|cypress|playwright)(?:\\/|$)/.test(id) || /\\.(test|spec)\\.(js|ts|jsx|tsx|py|go|rs)$/.test(name)) return 'tests';
+    // Entry points
+    if (/(?:^|\\/)(index|main|app|server|cli|entry|bootstrap|start)\\.(js|ts|cjs|mjs|py|go|rs|java)$/.test(id)) return 'entry';
+    // UI / Presentation
+    if (/(?:^|\\/)(components?|ui|pages?|views?|templates?|widgets|screens|layouts?|dashboard|sidebar|modal|panel)(?:\\/|$)/.test(id) || /\\.(tsx|jsx|vue|svelte|html|css|scss|less)$/.test(name)) return 'ui';
+    // API / Business logic
+    if (/(?:^|\\/)(services?|controllers?|business|logic|api|routes?|handlers?|middleware|actions?|providers?|hooks?)(?:\\/|$)/.test(id) || /(service|controller|route|handler|middleware|action|provider|hook)\\.(js|ts|cjs|mjs)$/.test(name)) return 'api';
+    // Data / Infrastructure
+    if (/(?:^|\\/)(db|database|models?|repositories?|stores?|schemas?|migrations?|configs?|settings?|infra|docker|k8s|helm|build|webpack|vite|rollup)(?:\\/|$)/.test(id) || /(config|model|schema|repository|store|migration|docker|dockerfile|docker-compose|k8s|helm)\\.(js|ts|json|yaml|yml|env)$/.test(name)) return 'infra';
+    // Core / Shared utilities
+    if (/(?:^|\\/)(utils?|helpers?|lib|common|shared|tools?|scripts?|packages?|core|types?|interfaces?)(?:\\/|$)/.test(id) || /(util|helper|common|shared|tool|lib|type|interface)\\.(js|ts|cjs|mjs)$/.test(name)) return 'core';
+    return 'other';
   }
 
   // Layouts
   function applyLayout(name) {
+    currentLayout = name;
+    const layoutSelect = document.getElementById('layoutSelect');
+    if (layoutSelect) layoutSelect.value = name;
+    // Clear hexagonal properties when switching away from hexagonal
+    if (name !== 'hexagonal') {
+      allNodes.forEach(n => { delete n.hexColor; delete n.hexSector; delete n.isCore; });
+    }
     const vis = getFilteredNodes();
     if (name === 'radial') {
       const cx = W() / 2, cy = H() / 2, radius = Math.min(W(), H()) / 3;
@@ -5567,29 +6817,33 @@ if (statsEl) {
     } else if (name === 'tree') {
       const tree = {};
       vis.forEach(n => { tree[n.id] = { n, children: [], depth: 0 }; });
-      const nodeEdgeMap = {};
       edges.forEach(e => { if (tree[e.source.id]) tree[e.source.id].children.push(e.target.id); });
       const roots = vis.filter(n => !edges.some(e => e.target === n)).map(n => n.id);
       if (roots.length === 0) vis.forEach(n => roots.push(n.id));
       function setDepth(id, d, visited) {
         if (visited.has(id)) return;
         visited.add(id);
-        if (tree[id]) tree[id].depth = Math.max(tree[id].depth, d);
+        if (!tree[id]) return;
+        tree[id].depth = Math.max(tree[id].depth, d);
         tree[id].children.forEach(cid => setDepth(cid, d + 1, new Set(visited)));
       }
       roots.forEach(rid => setDepth(rid, 0, new Set()));
       const levels = [];
       vis.forEach(n => {
+        if (!tree[n.id]) return;
         const d = tree[n.id].depth;
         if (!levels[d]) levels[d] = [];
         levels[d].push(n);
       });
-      const levelHeight = H() / (levels.length + 1);
-      levels.forEach((levelNodes, level) => {
-        const y = levelHeight * (level + 1);
-        const gap = W() / (levelNodes.length + 1);
-        levelNodes.forEach((n, i) => { n.x = gap * (i + 1); n.y = y; n.vx = 0; n.vy = 0; });
-      });
+      const denseLevels = levels.filter(l => l && l.length > 0);
+      if (denseLevels.length > 0) {
+        const levelHeight = H() / (denseLevels.length + 1);
+        denseLevels.forEach((levelNodes, level) => {
+          const y = levelHeight * (level + 1);
+          const gap = W() / (levelNodes.length + 1);
+          levelNodes.forEach((n, i) => { n.x = gap * (i + 1); n.y = y; n.vx = 0; n.vy = 0; });
+        });
+      }
       physicsPaused = true;
       if (pauseBtn) { pauseBtn.textContent = '▶'; pauseBtn.title = 'Resume Physics'; pauseBtn.classList.add('active'); }
     } else if (name === 'city') {
@@ -5615,48 +6869,236 @@ if (statsEl) {
       });
       physicsPaused = true;
       if (pauseBtn) { pauseBtn.textContent = '▶'; pauseBtn.title = 'Resume Physics'; pauseBtn.classList.add('active'); }
+    } else if (name === 'hexagonal') {
+      if (!vis.length) return;
+      const cx = W() / 2, cy = H() / 2;
+      const sectorOrder = ['entry', 'ui', 'api', 'infra', 'core', 'tests', 'other'];
+      const sectorColors = { entry: '#22c55e', ui: '#38bdf8', api: '#f59e0b', infra: '#a855f7', core: '#06b6d4', tests: '#ef4444', other: '#94a3b8' };
+      const sectorNodes = {};
+      vis.forEach(n => {
+        const sector = classifyHexSector(n.id);
+        (sectorNodes[sector] = sectorNodes[sector] || []).push(n);
+      });
+      // Sort sectors by count descending; largest goes center
+      const sortedSectors = sectorOrder.filter(s => (sectorNodes[s] || []).length > 0).sort((a, b) => (sectorNodes[b] || []).length - (sectorNodes[a] || []).length);
+      const R = Math.min(W(), H()) / 3.2; // cell center radius
+      const cellR = R * 0.85; // hex cell radius
+      // Honeycomb cell centers: first sector at center, rest around it
+      const cellCenters = [{x: cx, y: cy}];
+      for (let i = 1; i < sortedSectors.length; i++) {
+        const angle = (i - 1) * (Math.PI / 3) - Math.PI / 2; // 60° increments, start at top
+        cellCenters.push({x: cx + Math.cos(angle) * R, y: cy + Math.sin(angle) * R});
+      }
+      // Pack nodes inside each hex cell using honeycomb tiling
+      const hexSpacing = 32; // distance between adjacent nodes in honeycomb
+      sortedSectors.forEach((sector, si) => {
+        const nodes = sectorNodes[sector];
+        if (!nodes.length) return;
+        const center = cellCenters[si] || cellCenters[0];
+        // Honeycomb close-packing around center
+        nodes.forEach((n, i) => {
+          if (i === 0) { n.x = center.x; n.y = center.y; }
+          else {
+            // Build concentric rings in hex pattern
+            let ring = 1, idx = i - 1;
+            while (idx >= ring * 6) { idx -= ring * 6; ring++; }
+            const ringPos = idx;
+            const sideLen = ring;
+            const side = Math.floor(ringPos / Math.max(1, sideLen));
+            const sideIdx = ringPos % Math.max(1, sideLen);
+            const sideAngles = [-Math.PI/2, -Math.PI/6, Math.PI/6, Math.PI/2, 5*Math.PI/6, 7*Math.PI/6];
+            const a1 = sideAngles[side % 6];
+            const a2 = sideAngles[(side + 1) % 6];
+            const t = sideIdx / Math.max(1, sideLen);
+            const rr = ring * hexSpacing;
+            n.x = center.x + (Math.cos(a1) * (1-t) + Math.cos(a2) * t) * rr;
+            n.y = center.y + (Math.sin(a1) * (1-t) + Math.sin(a2) * t) * rr;
+          }
+          n.vx = 0; n.vy = 0;
+          n.hexSector = sector;
+          n.hexColor = sectorColors[sector] || '#94a3b8';
+        });
+      });
+      cachedHexSectors = sortedSectors.map(sector => {
+        const nodes = sectorNodes[sector];
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        for (const n of nodes) { minX = Math.min(minX, n.x); maxX = Math.max(maxX, n.x); minY = Math.min(minY, n.y); maxY = Math.max(maxY, n.y); }
+        const pad = 24;
+        const sx = (minX + maxX) / 2, sy = (minY + maxY) / 2;
+        const rx = (maxX - minX) / 2 + pad, ry = (maxY - minY) / 2 + pad;
+        const r = Math.max(rx, ry, 40);
+        return { name: sector, sx, sy, r, col: sectorColors[sector] || '#64748b' };
+      });
+      physicsPaused = true;
+      if (pauseBtn) { pauseBtn.textContent = '▶'; pauseBtn.title = 'Resume Physics'; pauseBtn.classList.add('active'); }
     } else if (name === 'force') {
+      vis.forEach(n => { delete n.hexColor; delete n.hexSector; delete n.isCore; });
       physicsPaused = false;
+      temperature = 1.0;
       if (pauseBtn) { pauseBtn.textContent = '⏸'; pauseBtn.title = 'Pause Physics'; pauseBtn.classList.remove('active'); }
     }
+    fitView();
+  }
+
+  function fitView() {
+    if (is3D) { scale = 1.0; cameraOffset = {x:0,y:0,z:15000}; pan = {x:0,y:0}; updateZoomDisplay(); return; }
+    const vis = getFilteredNodes(); if (!vis.length) return;
+    const minX = Math.min(...vis.map(n=>n.x-n.radius)), maxX = Math.max(...vis.map(n=>n.x+n.radius));
+    const minY = Math.min(...vis.map(n=>n.y-n.radius)), maxY = Math.max(...vis.map(n=>n.y+n.radius));
+    const pad = 40; const bw = maxX - minX + pad*2, bh = maxY - minY + pad*2;
+    scale = Math.min(W()/bw, H()/bh, 20); pan = {x: (W() - bw*scale)/2 - minX*scale + pad*scale, y: (H() - bh*scale)/2 - minY*scale + pad*scale};
+    updateZoomDisplay();
   }
 
   // Control buttons
   document.getElementById('zoomInBtn')?.addEventListener('click', () => zoomAtCenter(1.25));
   document.getElementById('zoomOutBtn')?.addEventListener('click', () => zoomAtCenter(1/1.25));
   document.getElementById('resetViewBtn')?.addEventListener('click', () => { scale = 1; pan = {x:0,y:0}; updateZoomDisplay(); });
-  document.getElementById('fitScreenBtn')?.addEventListener('click', () => {
-    if (is3D) { scale = 1.2; pan = {x:0,y:0}; updateZoomDisplay(); return; }
-    const vis = getFilteredNodes(); if (!vis.length) return;
-    const minX = Math.min(...vis.map(n=>n.x-n.radius)), maxX = Math.max(...vis.map(n=>n.x+n.radius));
-    const minY = Math.min(...vis.map(n=>n.y-n.radius)), maxY = Math.max(...vis.map(n=>n.y+n.radius));
-    const pad = 40; const bw = maxX - minX + pad*2, bh = maxY - minY + pad*2;
-    scale = Math.min(W()/bw, H()/bh, 100); pan = {x: (W() - bw*scale)/2 - minX*scale + pad*scale, y: (H() - bh*scale)/2 - minY*scale + pad*scale};
-    updateZoomDisplay();
-  });
+  document.getElementById('fitScreenBtn')?.addEventListener('click', fitView);
   const pauseBtn = document.getElementById('pausePhysicsBtn');
   if (pauseBtn) pauseBtn.addEventListener('click', () => { physicsPaused = !physicsPaused; pauseBtn.textContent = physicsPaused ? '▶' : '⏸'; pauseBtn.title = physicsPaused ? 'Resume Physics' : 'Pause Physics'; pauseBtn.classList.toggle('active', physicsPaused); });
   const toggle3DBtn = document.getElementById('toggle3DBtn');
   if (toggle3DBtn) toggle3DBtn.addEventListener('click', () => {
     is3D = !is3D;
     toggle3DBtn.classList.toggle('active', is3D);
-    const layerZ = { entry: -300, ui: -150, business: 0, data: 150, utils: -100, tests: 200, other: 100 };
+    const layerZ = { entry: -2500, ui: -1200, business: 0, data: 1200, utils: -800, tests: 2500, other: 800 };
+    function zHash(str) { let h = 0; for (let i = 0; i < str.length; i++) { h = ((h << 5) - h) + str.charCodeAt(i); h |= 0; } return (h & 0x7fffffff) / 0x7fffffff; }
     if (is3D) {
-      for (const n of allNodes) n.z = layerZ[classifyLayer(n.label)] || 0;
-      scale = Math.max(0.5, Math.min(100, scale));
+      for (const n of allNodes) {
+        const baseZ = layerZ[classifyLayer(n.label)] || 0;
+        n.z = baseZ + (zHash(n.id) - 0.5) * 8000;
+      }
+      scale = 1.0; cameraOffset = {x:0,y:0,z:4000}; rotX = 0.6; rotY = 0.4; rot2D = 0; pan = {x:0,y:0};
     } else {
       for (const n of allNodes) n.z = 0;
-      rotX = 0.6; rotY = 0;
+      scale = 1.0; cameraOffset = {x:0,y:0,z:0}; rotX = 0.6; rotY = 0; rot2D = 0; pan = {x:0,y:0};
     }
     updateZoomDisplay();
   });
   const toggleLabelsBtn = document.getElementById('toggleLabelsBtn');
   if (toggleLabelsBtn) toggleLabelsBtn.addEventListener('click', () => {
     labelsVisible = !labelsVisible;
-    toggleLabelsBtn.classList.toggle('active', !labelsVisible);
+    toggleLabelsBtn.classList.toggle('active', labelsVisible);
     toggleLabelsBtn.title = labelsVisible ? 'Hide Labels' : 'Show Labels';
   });
-  document.getElementById('exportGraphBtn')?.addEventListener('click', () => {
+  const toggleFocusBtn = document.getElementById('toggleFocusBtn');
+  if (toggleFocusBtn) toggleFocusBtn.addEventListener('click', () => {
+    focusMode = !focusMode;
+    toggleFocusBtn.classList.toggle('active', focusMode);
+    toggleFocusBtn.title = focusMode ? 'Exit Focus Mode' : 'Focus Mode';
+  });
+  const toggleGridBtn = document.getElementById('toggleGridBtn');
+  if (toggleGridBtn) toggleGridBtn.addEventListener('click', () => {
+    gridMode = gridMode === 'off' ? 'world' : (gridMode === 'world' ? 'screen' : 'off');
+    toggleGridBtn.classList.toggle('active', gridMode !== 'off');
+    toggleGridBtn.title = gridMode === 'world' ? 'World Grid' : (gridMode === 'screen' ? 'Screen Grid' : 'Grid Off');
+  });
+  const toggleStarsBtn = document.getElementById('toggleStarsBtn');
+  if (toggleStarsBtn) {
+    toggleStarsBtn.classList.toggle('active', starsVisible);
+    toggleStarsBtn.addEventListener('click', () => {
+      starsVisible = !starsVisible;
+      toggleStarsBtn.classList.toggle('active', starsVisible);
+      toggleStarsBtn.title = starsVisible ? 'Hide Stars' : 'Show Stars';
+    });
+  }
+  const toggleMinimapBtn = document.getElementById('toggleMinimapBtn');
+  if (toggleMinimapBtn) {
+    toggleMinimapBtn.classList.toggle('active', minimapVisible);
+    toggleMinimapBtn.addEventListener('click', () => {
+      minimapVisible = !minimapVisible;
+      const mm = document.getElementById('minimap');
+      if (mm) mm.style.display = minimapVisible ? 'block' : 'none';
+      toggleMinimapBtn.classList.toggle('active', minimapVisible);
+      toggleMinimapBtn.title = minimapVisible ? 'Hide Minimap' : 'Show Minimap';
+    });
+  }
+  // Mouse lock / pointer lock
+  function toggleMouseLock() {
+    if (manualMouseLook) {
+      manualMouseLook = false;
+      if (toggleMouseLockBtn) {
+        toggleMouseLockBtn.classList.remove('active');
+        toggleMouseLockBtn.title = 'Lock Mouse (M)';
+      }
+      canvas.style.cursor = '';
+      return;
+    }
+    if (document.pointerLockElement === canvas) {
+      document.exitPointerLock();
+    } else {
+      canvas.requestPointerLock();
+    }
+  }
+  const toggleMouseLockBtn = document.getElementById('toggleMouseLockBtn');
+  if (toggleMouseLockBtn) toggleMouseLockBtn.addEventListener('click', toggleMouseLock);
+  document.addEventListener('pointerlockchange', () => {
+    const locked = document.pointerLockElement === canvas;
+    if (toggleMouseLockBtn) {
+      toggleMouseLockBtn.classList.toggle('active', locked);
+      toggleMouseLockBtn.title = locked ? 'Unlock Mouse (Esc)' : 'Lock Mouse (M)';
+    }
+  });
+  document.addEventListener('pointerlockerror', () => {
+    if (toggleMouseLockBtn) toggleMouseLockBtn.classList.remove('active');
+    // Fallback for file:// URLs where Pointer Lock is blocked
+    if (is3D) {
+      manualMouseLook = true;
+      lastMouseX = window.innerWidth / 2;
+      lastMouseY = window.innerHeight / 2;
+      if (toggleMouseLockBtn) {
+        toggleMouseLockBtn.classList.add('active');
+        toggleMouseLockBtn.title = 'Unlock Mouse (Esc or M)';
+      }
+      canvas.style.cursor = 'none';
+    }
+  });
+  function notifyVSCode(type, payload) {
+    try {
+      const port = window.location.port || '54358';
+      fetch('http://127.0.0.1:' + port + '/api/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type, payload })
+      }).catch(() => {});
+    } catch (e) {}
+  }
+
+  function postDownload(filename, data, mimeType) {
+    if (typeof acquireVsCodeApi !== 'undefined') {
+      const vscode = acquireVsCodeApi();
+      let base64;
+      if (mimeType === 'image/png' && typeof data === 'string' && data.startsWith('data:')) {
+        base64 = data.substring('data:image/png;base64,'.length);
+      } else {
+        base64 = btoa(unescape(encodeURIComponent(data)));
+      }
+      vscode.postMessage({ command: 'downloadFile', filename, base64 });
+      return true;
+    }
+    let blob;
+    if (mimeType === 'image/png' && typeof data === 'string' && data.startsWith('data:')) {
+      const base64 = data.substring('data:image/png;base64,'.length);
+      const byteChars = atob(base64);
+      const bytes = new Uint8Array(byteChars.length);
+      for (let i = 0; i < byteChars.length; i++) bytes[i] = byteChars.charCodeAt(i);
+      blob = new Blob([bytes], { type: 'image/png' });
+    } else {
+      blob = new Blob([data], { type: mimeType });
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    return false;
+  }
+
+  document.getElementById('exportJsonBtn')?.addEventListener('click', () => {
     let analysis = {};
     try { analysis = JSON.parse(document.getElementById('analysisData')?.textContent || '{}'); } catch (e) {}
     const allIssues = [...(analysis.issues || []), ...(analysis.improvements || [])];
@@ -5667,6 +7109,7 @@ if (statsEl) {
         project: document.querySelector('.subtitle')?.textContent || 'project',
         version: '3.0.315'
       },
+      tree: TREE,
       graph: { nodes: allNodes.map(n => ({ id: n.id, label: n.label, group: n.group, x: n.x, y: n.y, radius: n.radius })), edges: allEdges.map(e => ({ source: e.source, target: e.target })) },
       cycles: CYCLES, entryPoints: ENTRIES, leafModules: LEAVES, mostConnected: CONNECTED,
       analysis: {
@@ -5678,171 +7121,886 @@ if (statsEl) {
         top3Actionable: top3
       }
     };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
     const proj = (document.querySelector('.subtitle')?.textContent || 'project').replace(/[^a-z0-9]/gi, '-').toLowerCase();
-    a.download = proj + '-codemap-analysis-' + new Date().toISOString().slice(0, 10) + '.json';
-    a.click();
-    URL.revokeObjectURL(url);
+    const filename = proj + '-codemap-analysis-' + new Date().toISOString().slice(0, 10) + '.json';
+    postDownload(filename, JSON.stringify(payload, null, 2), 'application/json');
+    notifyVSCode('downloadComplete', { filename });
   });
+
+  document.getElementById('exportCsvBtn')?.addEventListener('click', () => {
+    let analysis = {};
+    try { analysis = JSON.parse(document.getElementById('analysisData')?.textContent || '{}'); } catch (e) {}
+    const allIssues = [...(analysis.issues || []), ...(analysis.improvements || [])];
+    const recs = analysis.recommendations || [];
+    const recordedPaths = analysis.recordedPaths || [];
+    const cycles = CYCLES || [];
+    const bidirectionalDeps = (analysis.architecture && analysis.architecture.bidirectionalDeps) || [];
+    const connCounts = {};
+    bidirectionalDeps.forEach(b => {
+      connCounts[b.source] = (connCounts[b.source] || 0) + 1;
+      connCounts[b.target] = (connCounts[b.target] || 0) + 1;
+    });
+    const inCycle = new Set();
+    cycles.forEach(c => c.forEach(fp => inCycle.add(fp)));
+    const largeFiles = new Set();
+    const orphanFiles = new Set();
+    const missingTests = new Set();
+    allIssues.forEach(i => {
+      if (i.title.includes('Large')) (i.files || []).forEach(f => largeFiles.add(f));
+      if (i.title.includes('Orphan')) (i.files || []).forEach(f => orphanFiles.add(f));
+      if (i.title.includes('Test')) (i.files || []).forEach(f => missingTests.add(f));
+    });
+    const reasonsForFile = {};
+    allIssues.forEach(i => {
+      (i.files || []).forEach(f => {
+        reasonsForFile[f] = reasonsForFile[f] || [];
+        reasonsForFile[f].push(i.title);
+      });
+    });
+    // Flatten TREE to get inGraph status for every file
+    const treeInGraph = {};
+    function flattenTree(nodes) {
+      for (const n of (nodes || [])) {
+        if (n.type === 'file') treeInGraph[n.path] = n.inGraph || false;
+        if (n.children) flattenTree(n.children);
+      }
+    }
+    flattenTree(TREE);
+    let csv = 'File Path,Lines,Size (KB),Connections,In Graph,In Cycle,Is Orphan,Missing Tests,Very Large,Needs Work Reason\\n';
+    recordedPaths.forEach(rp => {
+      const fp = rp.path;
+      const lines = rp.lines || 0;
+      const size = rp.size ? (rp.size / 1024).toFixed(1) : '0';
+      const connections = connCounts[fp] || 0;
+      const inGraph = treeInGraph[fp] ? 'Yes' : 'No';
+      const cycle = inCycle.has(fp) ? 'Yes' : 'No';
+      const orphan = orphanFiles.has(fp) ? 'Yes' : 'No';
+      const missing = missingTests.has(fp) ? 'Yes' : 'No';
+      const veryLarge = largeFiles.has(fp) ? 'Yes' : 'No';
+      const reason = (reasonsForFile[fp] || []).join('; ').replace(/"/g, '""');
+      csv += '"' + fp + '",' + lines + ',' + size + ',' + connections + ',' + inGraph + ',' + cycle + ',' + orphan + ',' + missing + ',' + veryLarge + ',"' + reason + '"\\n';
+    });
+    const proj = (document.querySelector('.subtitle')?.textContent || 'project').replace(/[^a-z0-9]/gi, '-').toLowerCase();
+    const filename = proj + '-codemap-analysis-' + new Date().toISOString().slice(0, 10) + '.csv';
+    postDownload(filename, csv, 'text/csv');
+    notifyVSCode('downloadComplete', { filename });
+  });
+
+  // Graph-toolbar export (full topology JSON)
+  document.getElementById('exportGraphBtn')?.addEventListener('click', () => {
+    let analysis = {};
+    try { analysis = JSON.parse(document.getElementById('analysisData')?.textContent || '{}'); } catch (e) {}
+    const payload = {
+      meta: { exportedAt: new Date().toISOString(), project: document.querySelector('.subtitle')?.textContent || 'project' },
+      tree: TREE,
+      graph: { nodes: GRAPH.nodes, edges: GRAPH.edges },
+      cycles: CYCLES, entryPoints: ENTRIES, leafModules: LEAVES, mostConnected: CONNECTED,
+      analysis: { summary: analysis.summary || {}, issues: analysis.issues || [], improvements: analysis.improvements || [], recommendations: analysis.recommendations || [] }
+    };
+    const proj = (document.querySelector('.subtitle')?.textContent || 'project').replace(/[^a-z0-9]/gi, '-').toLowerCase();
+    const filename = proj + '-codemap-full-' + new Date().toISOString().slice(0, 10) + '.json';
+    postDownload(filename, JSON.stringify(payload, null, 2), 'application/json');
+    notifyVSCode('downloadComplete', { filename });
+  });
+
+  // PNG export — canvas screenshot
+  function exportPng() {
+    const canvas = document.getElementById('graphCanvas');
+    if (!canvas) return;
+    try {
+      const url = canvas.toDataURL('image/png');
+      const proj = (document.querySelector('.subtitle')?.textContent || 'project').replace(/[^a-z0-9]/gi, '-').toLowerCase();
+      const filename = proj + '-codemap-graph-' + new Date().toISOString().slice(0, 10) + '.png';
+      postDownload(filename, url, 'image/png');
+      notifyVSCode('downloadComplete', { filename });
+    } catch (e) { console.error('PNG export failed', e); }
+  }
+  document.getElementById('exportPngBtn')?.addEventListener('click', exportPng);
+  document.getElementById('exportPngBtn2')?.addEventListener('click', exportPng);
 
   // Theme + layout selectors
-  document.getElementById('themeSelect')?.addEventListener('change', e => {
-    document.body.classList.remove('theme-light', 'theme-ocean');
-    const val = e.target.value;
+  const themeSelect = document.getElementById('themeSelect');
+  function applyTheme(val) {
+    document.body.classList.remove('theme-light', 'theme-ocean', 'theme-black');
     if (val !== 'dark') document.body.classList.add('theme-' + val);
-  });
+    try { localStorage.setItem('codemapTheme', val); } catch (e) {}
+    if (themeSelect) themeSelect.value = val;
+  }
+  themeSelect?.addEventListener('change', e => { applyTheme(e.target.value); });
+  // Restore saved theme on load
+  (function() {
+    try {
+      const saved = localStorage.getItem('codemapTheme');
+      if (saved && ['dark','light','ocean','black'].includes(saved)) applyTheme(saved);
+    } catch (e) {}
+  })();
   document.getElementById('layoutSelect')?.addEventListener('change', e => applyLayout(e.target.value));
 
-  // Keyboard shortcuts
+  // Key bindings system
+  const CONTROL_DEFS = [
+    { id: 'moveForward', label: 'Move Forward / Zoom In (2D)', default: 'w' },
+    { id: 'moveBackward', label: 'Move Backward / Zoom Out (2D)', default: 's' },
+    { id: 'strafeLeft', label: 'Strafe Left / Pan Left (2D)', default: 'a' },
+    { id: 'strafeRight', label: 'Strafe Right / Pan Right (2D)', default: 'd' },
+    { id: 'rotateLeft', label: 'Rotate Left', default: 'q' },
+    { id: 'rotateRight', label: 'Rotate Right', default: 'e' },
+    { id: 'moveUp', label: 'Move Up', default: 'z' },
+    { id: 'moveDown', label: 'Move Down', default: 'x' },
+    { id: 'zoomIn', label: 'Zoom In (+)', default: '+' },
+    { id: 'zoomOut', label: 'Zoom Out (-)', default: '-' },
+    { id: 'resetView', label: 'Reset View', default: '0' },
+    { id: 'fitScreen', label: 'Fit to Screen', default: 'f' },
+    { id: 'toggle3D', label: 'Toggle 3D Mode', default: 'o' },
+    { id: 'pausePhysics', label: 'Pause/Resume Physics', default: ' ' },
+    { id: 'searchFocus', label: 'Focus Search', default: '/' },
+    { id: 'saveNode', label: 'Save/Bookmark Node', default: 'b' },
+    { id: 'toggleMouseLock', label: 'Toggle Mouse Lock', default: 'm' },
+    { id: 'interact', label: 'Interact / Select Crosshair Node', default: ' ' },
+  ];
+  let keyBindings = {};
+  function loadBindings() {
+    try { const saved = localStorage.getItem('codemapKeyBindings'); if (saved) keyBindings = JSON.parse(saved); } catch (e) {}
+    for (const def of CONTROL_DEFS) { if (!keyBindings[def.id]) keyBindings[def.id] = def.default; }
+  }
+  loadBindings();
+  function getBoundKey(action) { return (keyBindings[action] || '').toLowerCase(); }
+
+  // Controls modal — elements are defined AFTER this script in HTML, query lazily
+  function getControlsModal() { return document.getElementById('controlsModal'); }
+  let capturingFor = null;
+  function buildControlsGrid() {
+    const controlsGrid = document.getElementById('controlsGrid');
+    if (!controlsGrid) return;
+    controlsGrid.textContent = '';
+    for (const def of CONTROL_DEFS) {
+      const label = document.createElement('label');
+      label.textContent = def.label;
+      const box = document.createElement('div');
+      box.className = 'key-box';
+      const val = keyBindings[def.id] || def.default;
+      box.textContent = val === ' ' ? 'Space' : val.toUpperCase();
+      box.dataset.action = def.id;
+      box.addEventListener('click', () => { capturingFor = { action: def.id, box }; box.classList.add('active'); box.textContent = 'Press key...'; });
+      controlsGrid.appendChild(label);
+      controlsGrid.appendChild(box);
+    }
+  }
+  function stopCapture() {
+    if (capturingFor) {
+      capturingFor.box.classList.remove('active');
+      const def = CONTROL_DEFS.find(d => d.id === capturingFor.action);
+      const val = keyBindings[capturingFor.action] || def.default;
+      capturingFor.box.textContent = val === ' ' ? 'Space' : val.toUpperCase();
+      capturingFor = null;
+    }
+  }
+  document.getElementById('controlsBtn')?.addEventListener('click', () => { buildControlsGrid(); const cm = getControlsModal(); if (cm) cm.classList.remove('hidden'); });
+  // Modal buttons are rendered AFTER the script tag; use event delegation
+  document.addEventListener('click', e => {
+    const t = e.target;
+    if (t.id === 'closeControlsModal') { const cm = getControlsModal(); if (cm) cm.classList.add('hidden'); stopCapture(); }
+    else if (t.id === 'resetControlsBtn') { keyBindings = {}; for (const def of CONTROL_DEFS) keyBindings[def.id] = def.default; buildControlsGrid(); }
+    else if (t.id === 'saveControlsBtn') { try { localStorage.setItem('codemapKeyBindings', JSON.stringify(keyBindings)); } catch (e) {} const cm = getControlsModal(); if (cm) cm.classList.add('hidden'); stopCapture(); }
+    else { const cm = getControlsModal(); if (cm && t === cm) { cm.classList.add('hidden'); stopCapture(); } }
+  });
   document.addEventListener('keydown', e => {
+    if (capturingFor) {
+      e.preventDefault(); e.stopPropagation();
+      const key = e.key.toLowerCase();
+      if (key === 'control' || key === 'alt' || key === 'shift' || key === 'meta') return;
+      const parts = [];
+      if (e.ctrlKey) parts.push('ctrl');
+      if (e.altKey) parts.push('alt');
+      if (e.metaKey) parts.push('meta');
+      if (e.shiftKey && (e.ctrlKey || e.altKey || e.metaKey || key.length !== 1)) parts.push('shift');
+      parts.push(key);
+      const binding = parts.join('+');
+      keyBindings[capturingFor.action] = binding;
+      const controlsGrid = document.getElementById('controlsGrid');
+      if (controlsGrid) {
+        controlsGrid.querySelectorAll('.key-box').forEach(b => b.classList.remove('conflict'));
+        for (const [action, boundKey] of Object.entries(keyBindings)) {
+          if (action !== capturingFor.action && boundKey === binding) {
+            const conflictBox = controlsGrid.querySelector('[data-action="' + action + '"]');
+            if (conflictBox) conflictBox.classList.add('conflict');
+          }
+        }
+      }
+      stopCapture();
+      return;
+    }
+  });
+
+  // Keyboard controls
+  function checkBinding(e, action) {
+    const bound = getBoundKey(action);
+    if (!bound) return false;
+    if (bound.includes('+')) {
+      const parts = bound.split('+');
+      const key = parts.pop();
+      if (e.key.toLowerCase() !== key) return false;
+      if (parts.includes('ctrl') && !e.ctrlKey) return false;
+      if (parts.includes('alt') && !e.altKey) return false;
+      if (parts.includes('shift') && !e.shiftKey) return false;
+      if (parts.includes('meta') && !e.metaKey) return false;
+      return true;
+    }
+    return e.key.toLowerCase() === bound;
+  }
+  function onKeyDown(e) {
     if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+    keysPressed.add(e.key.toLowerCase());
+    if (e.key.toLowerCase() === 'capslock') { autoRun = !autoRun; e.preventDefault(); }
     const slow = e.altKey ? 0.25 : 1;
-    const panStep = 40 * slow;
     const zoomFactor = 1 + (0.25 * slow);
-    switch (e.key) {
-      case '+': case '=': e.preventDefault(); zoomAtCenter(zoomFactor); break;
-      case '-': case '_': e.preventDefault(); zoomAtCenter(1/zoomFactor); break;
-      case '0': e.preventDefault(); scale = 1; pan = {x:0,y:0}; updateZoomDisplay(); break;
-      case 'f': case 'F': e.preventDefault();
-        if (is3D) { scale = 1.2; pan = {x:0,y:0}; updateZoomDisplay(); break; }
+    if (checkBinding(e, 'zoomIn')) { e.preventDefault(); zoomAtCenter(zoomFactor); }
+    else if (checkBinding(e, 'zoomOut')) { e.preventDefault(); zoomAtCenter(1/zoomFactor); }
+    else if (checkBinding(e, 'resetView')) { e.preventDefault(); scale = 1; pan = {x:0,y:0}; updateZoomDisplay(); }
+    else if (checkBinding(e, 'fitScreen')) { e.preventDefault();
+      if (is3D) { scale = 1.0; cameraOffset.z = 4000; pan = {x:0,y:0}; updateZoomDisplay(); }
+      else {
         const vis = getFilteredNodes(); if (!vis.length) return;
         const minX = Math.min(...vis.map(n=>n.x-n.radius)), maxX = Math.max(...vis.map(n=>n.x+n.radius));
         const minY = Math.min(...vis.map(n=>n.y-n.radius)), maxY = Math.max(...vis.map(n=>n.y+n.radius));
         const pad = 40; const bw = maxX - minX + pad*2, bh = maxY - minY + pad*2;
-        scale = Math.min(W()/bw, H()/bh, 100); pan = {x: (W() - bw*scale)/2 - minX*scale + pad*scale, y: (H() - bh*scale)/2 - minY*scale + pad*scale};
-        updateZoomDisplay(); break;
-      case 'ArrowUp': e.preventDefault(); pan.y += panStep; break;
-      case 'ArrowDown': e.preventDefault(); pan.y -= panStep; break;
-      case 'ArrowLeft': e.preventDefault(); pan.x += panStep; break;
-      case 'ArrowRight': e.preventDefault(); pan.x -= panStep; break;
-      case 'w': case 'W': e.preventDefault(); pan.y += panStep; break;
-      case 's': case 'S': e.preventDefault(); pan.y -= panStep; break;
-      case 'a': case 'A': e.preventDefault(); pan.x += panStep; break;
-      case 'd': case 'D': e.preventDefault(); pan.x -= panStep; break;
-      case 'PageUp': e.preventDefault(); zoomAtCenter(zoomFactor); break;
-      case 'PageDown': e.preventDefault(); zoomAtCenter(1/zoomFactor); break;
-      case 'r': case 'R': e.preventDefault(); scale = 1; pan = {x:0,y:0}; rotX = 0.6; rotY = 0; updateZoomDisplay(); break;
-      case 'n': case 'N': e.preventDefault(); rotY = 0; if (is3D) rotX = 0.6; break;
-      case 'u': case 'U': e.preventDefault(); if (is3D) { rotX = 0.6; } else { scale = 1; pan = {x:0,y:0}; updateZoomDisplay(); } break;
-      case 'o': case 'O': e.preventDefault(); document.getElementById('toggle3DBtn')?.click(); break;
-      case ' ': e.preventDefault(); physicsPaused = !physicsPaused; const pb = document.getElementById('pausePhysicsBtn'); if (pb) { pb.textContent = physicsPaused ? '▶' : '⏸'; pb.title = physicsPaused ? 'Resume Physics' : 'Pause Physics'; pb.classList.toggle('active', physicsPaused); } break;
-      case '/': e.preventDefault(); document.getElementById('graphSearch')?.focus(); break;
+        scale = Math.min(W()/bw, H()/bh, 20); pan = {x: (W() - bw*scale)/2 - minX*scale + pad*scale, y: (H() - bh*scale)/2 - minY*scale + pad*scale};
+        updateZoomDisplay();
+      }
     }
-  });
+    else if (e.key.toLowerCase() === 'r') { e.preventDefault(); scale = 1; pan = {x:0,y:0}; rotX = 0.6; rotY = 0; rot2D = 0; cameraOffset = {x:0,y:0,z:4000}; updateZoomDisplay(); }
+    else if (e.key.toLowerCase() === 'n') { e.preventDefault(); rotY = 0; if (is3D) { rotX = 0.6; cameraOffset.z = 4000; } }
+    else if (e.key.toLowerCase() === 'u') { e.preventDefault(); if (is3D) { scale = 1.0; cameraOffset.z = 4000; rotX = 0.6; } else { scale = 1; pan = {x:0,y:0}; rot2D = 0; updateZoomDisplay(); } }
+    else if (['moveForward','moveBackward','strafeRight','strafeLeft','moveUp','moveDown','rotateLeft','rotateRight'].some(id => checkBinding(e, id))) { e.preventDefault(); }
+    else if (checkBinding(e, 'toggle3D')) { e.preventDefault(); document.getElementById('toggle3DBtn')?.click(); }
+    else if (checkBinding(e, 'pausePhysics')) { e.preventDefault(); physicsPaused = !physicsPaused; const pb = document.getElementById('pausePhysicsBtn'); if (pb) { pb.textContent = physicsPaused ? '▶' : '⏸'; pb.title = physicsPaused ? 'Resume Physics' : 'Pause Physics'; pb.classList.toggle('active', physicsPaused); } }
+    else if (checkBinding(e, 'searchFocus')) { e.preventDefault(); document.getElementById('graphSearch')?.focus(); }
+    else if (checkBinding(e, 'saveNode')) { e.preventDefault(); saveCurrentNode(); }
+    else if (checkBinding(e, 'toggleMouseLock')) { e.preventDefault(); toggleMouseLock(); }
+    else if (e.key === 'Escape' && manualMouseLook) { e.preventDefault(); toggleMouseLock(); }
+    else if (checkBinding(e, 'interact')) {
+      e.preventDefault();
+      if (document.pointerLockElement === canvas || manualMouseLook) {
+        const center = { x: W() / 2, y: H() / 2 };
+        const chNode = is3D ? nodeAt3D(center) : nodeAt(worldPosFromClient(center));
+        if (chNode) { selectedNode = chNode; showNodeDetails(chNode); }
+      }
+    }
+  }
+  function onKeyUp(e) { keysPressed.delete(e.key.toLowerCase()); }
+  document.addEventListener('keydown', onKeyDown);
+  document.addEventListener('keyup', onKeyUp);
+  // Also bind on canvas for VS Code webview where focus is on the canvas
+  canvas.addEventListener('keydown', onKeyDown);
+  canvas.addEventListener('keyup', onKeyUp);
+  window.addEventListener('blur', () => { keysPressed.clear(); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) { keysPressed.clear(); } });
 
-  function step() {
-    if (physicsPaused) return;
-    const visNodes = getFilteredNodes();
-    const visEdges = getFilteredEdges();
+  // Saved / bookmarked nodes
+  let savedNodes = new Set();
+  function loadSavedNodes() {
+    try { const saved = localStorage.getItem('codemapSavedNodes'); if (saved) savedNodes = new Set(JSON.parse(saved)); } catch (e) {}
+  }
+  loadSavedNodes();
+  allNodes.forEach(n => { n.saved = savedNodes.has(n.id); });
+  function saveCurrentNode() {
+    const target = selectedNode || hoverNode;
+    if (!target) return;
+    if (savedNodes.has(target.id)) {
+      savedNodes.delete(target.id);
+      target.saved = false;
+    } else {
+      savedNodes.add(target.id);
+      target.saved = true;
+    }
+    try { localStorage.setItem('codemapSavedNodes', JSON.stringify([...savedNodes])); } catch (e) {}
+  }
+
+  let temperature = 1.0;
+  let cachedVisNodes = null, cachedVisEdges = null, cachedHexSectors = null;
+  let needsRedraw = true, frameCounter = 0;
+  let lastPan = {x:0,y:0}, lastScale = 1, lastRot2D = 0;
+  let lastHoverNode = null, lastSelectedNode = null;
+  function step(visNodes, visEdges) {
+    if (physicsPaused) return false;
+    if (visNodes.length === 0) return false;
+    const targetDist = Math.min(100, Math.max(40, Math.sqrt(visNodes.length) * 3));
+    const repulsionStrength = 3 * temperature;
+    const springStrength = 0.04 * temperature;
+    const centerStrength = 0.001 * temperature;
+    const maxVel = 12;
+    const boundaryMargin = Math.max(W(), H()) * 1.5;
     for (let i = 0; i < visNodes.length; i++) {
       for (let j = i+1; j < visNodes.length; j++) {
         const a = visNodes[i], b = visNodes[j];
         let dx = b.x - a.x, dy = b.y - a.y;
-        let dist = Math.sqrt(dx*dx + dy*dy) || 1;
-        const force = 8000 / (dist * dist);
-        dx /= dist; dy /= dist;
-        a.vx -= dx * force; a.vy -= dy * force;
-        b.vx += dx * force; b.vy += dy * force;
+        let dz = (b.z || 0) - (a.z || 0);
+        let dist = Math.sqrt(dx*dx + dy*dy + dz*dz) || 1;
+        if (!is3D && dist > targetDist * 6) continue;
+        const minDist = a.radius + b.radius + 6;
+        dist = Math.max(dist, minDist);
+        const force = repulsionStrength * targetDist / dist;
+        dx /= dist; dy /= dist; dz /= dist;
+        a.vx -= dx * force; a.vy -= dy * force; a.vz = (a.vz || 0) - dz * force;
+        b.vx += dx * force; b.vy += dy * force; b.vz = (b.vz || 0) + dz * force;
       }
     }
     for (const e of visEdges) {
       let dx = e.target.x - e.source.x, dy = e.target.y - e.source.y;
-      let dist = Math.sqrt(dx*dx + dy*dy) || 1;
-      const force = dist * 0.003;
-      dx /= dist; dy /= dist;
-      e.source.vx += dx * force; e.source.vy += dy * force;
-      e.target.vx -= dx * force; e.target.vy -= dy * force;
+      let dz = (e.target.z || 0) - (e.source.z || 0);
+      let dist = Math.sqrt(dx*dx + dy*dy + dz*dz) || 1;
+      const force = (dist - targetDist) * springStrength;
+      dx /= dist; dy /= dist; dz /= dist;
+      e.source.vx += dx * force; e.source.vy += dy * force; e.source.vz = (e.source.vz || 0) + dz * force;
+      e.target.vx -= dx * force; e.target.vy -= dy * force; e.target.vz = (e.target.vz || 0) - dz * force;
     }
+    const layerZ = { entry: -2500, ui: -1200, business: 0, data: 1200, utils: -800, tests: 2500, other: 800 };
+    const zBoundary = 6000;
     for (const n of visNodes) {
-      n.vx += (W()/2 - n.x) * 0.0003;
-      n.vy += (H()/2 - n.y) * 0.0003;
+      if (is3D) {
+        const targetZ = layerZ[classifyLayer(n.label)] || 0;
+        n.vz = (n.vz || 0) + (targetZ - (n.z || 0)) * 0.003;
+        n.vz *= 0.75;
+        n.z = (n.z || 0) + (n.vz || 0);
+        if (n.z > zBoundary) { n.vz -= (n.z - zBoundary) * 0.001; }
+        if (n.z < -zBoundary) { n.vz += (-zBoundary - n.z) * 0.001; }
+        n.vx += (W()/2 - n.x) * 0.0003;
+        n.vy += (H()/2 - n.y) * 0.0003;
+      } else {
+        n.vx += (W()/2 - n.x) * centerStrength;
+        n.vy += (H()/2 - n.y) * centerStrength;
+        const cx = n.x - W()/2, cy = n.y - H()/2;
+        const dFromCenter = Math.sqrt(cx*cx + cy*cy);
+        if (dFromCenter > boundaryMargin) {
+          const pull = (dFromCenter - boundaryMargin) * 0.002;
+          n.vx -= (cx / dFromCenter) * pull;
+          n.vy -= (cy / dFromCenter) * pull;
+        }
+      }
+      const v = Math.sqrt(n.vx*n.vx + n.vy*n.vy + (is3D ? (n.vz||0)*(n.vz||0) : 0));
+      if (v > maxVel) {
+        n.vx = (n.vx / v) * maxVel;
+        n.vy = (n.vy / v) * maxVel;
+        if (is3D) n.vz = ((n.vz || 0) / v) * maxVel;
+      }
       n.vx *= 0.92; n.vy *= 0.92;
+      if (is3D) n.vz = (n.vz || 0) * 0.92;
       n.x += n.vx; n.y += n.vy;
     }
+    if (temperature > 0.1) temperature *= 0.9995;
+    return true;
   }
 
-  function draw() {
+  function draw(visNodes, visEdges, changed) {
     ctx.clearRect(0, 0, W(), H());
-    const visEdges = getFilteredEdges();
-    const visNodes = getFilteredNodes();
+    const connectedIds = focusMode && selectedNode ? getConnectedNodeIds(selectedNode) : null;
+    let crosshairNode = null;
+    if (document.pointerLockElement === canvas || manualMouseLook) {
+      const center = { x: W() / 2, y: H() / 2 };
+      if (is3D) crosshairNode = nodeAt3D(center);
+      else crosshairNode = nodeAt(worldPosFromClient(center));
+    }
     if (is3D) {
-      const projected = visNodes.map(n => ({ n, p: project3D(n) })).sort((a, b) => b.p.z2 - a.p.z2);
-      for (const e of visEdges) {
-        const p1 = project3D(e.source), p2 = project3D(e.target);
-        const avgZ = (p1.z2 + p2.z2) / 2;
-        const edgeScale = Math.max(0.2, Math.min(1.5, 800 / (800 + avgZ)));
-        ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
-        ctx.strokeStyle = 'rgba(148,163,184,' + (0.05 + 0.12 * edgeScale) + ')'; ctx.lineWidth = Math.max(0.3, 0.5 * edgeScale); ctx.stroke();
+      // 3D scene background for depth perception (theme-aware)
+      if (document.body.classList.contains('theme-black')) {
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, W(), H());
+      } else {
+        const bgGrad = ctx.createLinearGradient(0, 0, 0, H());
+        if (document.body.classList.contains('theme-light')) {
+          bgGrad.addColorStop(0, '#e2e8f0'); bgGrad.addColorStop(0.5, '#f1f5f9'); bgGrad.addColorStop(1, '#f8fafc');
+        } else if (document.body.classList.contains('theme-ocean')) {
+          bgGrad.addColorStop(0, '#0a1a2f'); bgGrad.addColorStop(0.5, '#112240'); bgGrad.addColorStop(1, '#1e3a5f');
+        } else {
+          bgGrad.addColorStop(0, '#0a0f1e'); bgGrad.addColorStop(0.5, '#0b1120'); bgGrad.addColorStop(1, '#0d1528');
+        }
+        ctx.fillStyle = bgGrad;
+        ctx.fillRect(0, 0, W(), H());
       }
+      // Draw stars on top of 3D background
+      if (starsVisible) {
+        const t = Date.now() * 0.001;
+        for (const s of stars) {
+          const sx = s.x * W(), sy = s.y * H();
+          const tw = 0.5 + 0.5 * Math.sin(t + s.twinkle);
+          ctx.beginPath(); ctx.arc(sx, sy, s.size, 0, Math.PI*2);
+          ctx.fillStyle = 'rgba(200,220,255,' + (s.alpha * tw) + ')'; ctx.fill();
+        }
+      }
+      // Draw floor grid for spatial reference
+      if (gridMode !== 'off') {
+        const gridSize = 4000, gridStep = 400;
+        ctx.strokeStyle = 'rgba(100,116,139,0.12)';
+        ctx.lineWidth = 1;
+        for (let x = -gridSize; x <= gridSize; x += gridStep) {
+          const p1 = project3D({x: x, y: 0, z: -gridSize, radius: 0});
+          const p2 = project3D({x: x, y: 0, z: gridSize, radius: 0});
+          if (p1 && p2) { ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke(); }
+        }
+        for (let z = -gridSize; z <= gridSize; z += gridStep) {
+          const p1 = project3D({x: -gridSize, y: 0, z: z, radius: 0});
+          const p2 = project3D({x: gridSize, y: 0, z: z, radius: 0});
+          if (p1 && p2) { ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke(); }
+        }
+      }
+      // Project all nodes and edges with depth info — stable sort prevents z-fighting pop
+      const projected = visNodes.map(n => ({ n, p: project3D(n) })).filter(item => item.p !== null).sort((a, b) => b.p.z2 - a.p.z2 || (a.n.id < b.n.id ? -1 : 1));
+      const projMap = new Map();
+      projected.forEach(item => { if (item.p) projMap.set(item.n.id, item.p); });
+      // Draw edges back-to-front with depth fog
+      const edgeProjections = [];
+      for (const e of visEdges) {
+        const p1 = projMap.get(e.source.id), p2 = projMap.get(e.target.id);
+        if (!p1 || !p2) continue;
+        const avgZ = (p1.z2 + p2.z2) / 2;
+        edgeProjections.push({ p1, p2, avgZ, edge: e });
+      }
+      edgeProjections.sort((a, b) => b.avgZ - a.avgZ || (a.edge.source.id + a.edge.target.id < b.edge.source.id + b.edge.target.id ? -1 : 1));
+      for (const { p1, p2, avgZ, edge } of edgeProjections) {
+        const fog = Math.max(0.04, Math.min(0.9, 500 / (500 + avgZ * 0.5)));
+        const isDimmed = focusMode && connectedIds && !connectedIds.has(edge.source.id) && !connectedIds.has(edge.target.id);
+        ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
+        ctx.strokeStyle = isDimmed ? 'rgba(148,163,184,0.03)' : 'rgba(148,163,184,' + (fog * 0.22) + ')';
+        ctx.lineWidth = Math.max(0.4, fog * 1.5); ctx.stroke();
+      }
+      // Draw nodes back-to-front with depth cues
       for (const { n, p } of projected) {
-        const r = Math.max(1, n.radius * p.depthScale);
+        if (!p) continue;
+        const isDimmed = focusMode && connectedIds && !connectedIds.has(n.id);
+        const r = Math.max(4, n.radius * p.depthScale);
+        const depthAlpha = Math.max(0.55, Math.min(1, p.depthScale));
+        const shadowOff = Math.max(1, 4 * p.depthScale);
+        ctx.beginPath(); ctx.arc(p.x + shadowOff, p.y + shadowOff, r, 0, Math.PI*2);
+        ctx.fillStyle = 'rgba(0,0,0,' + (0.35 * depthAlpha * (isDimmed ? 0.2 : 1)) + ')'; ctx.fill();
+        ctx.beginPath(); ctx.arc(p.x, p.y, r + Math.max(2, 5 * p.depthScale), 0, Math.PI*2);
+        ctx.fillStyle = n.hexColor || n.color;
+        ctx.globalAlpha = 0.85 * depthAlpha * (isDimmed ? 0.15 : 1); ctx.fill(); ctx.globalAlpha = 1;
         const sev = nodeSeverity[n.id];
-        if (sev) {
-          ctx.beginPath(); ctx.arc(p.x, p.y, r + 3, 0, Math.PI*2);
-          ctx.strokeStyle = (severityColor[sev] || '#64748b'); ctx.lineWidth = 2.5; ctx.stroke();
+        if (sev && !isDimmed) {
+          ctx.beginPath(); ctx.arc(p.x, p.y, r + 2, 0, Math.PI*2);
+          ctx.strokeStyle = (severityColor[sev] || '#64748b'); ctx.lineWidth = 2; ctx.globalAlpha = depthAlpha; ctx.stroke(); ctx.globalAlpha = 1;
         }
         ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI*2);
-        ctx.fillStyle = n.color; ctx.globalAlpha = Math.max(0.4, Math.min(1, p.depthScale)); ctx.fill(); ctx.globalAlpha = 1;
+        ctx.fillStyle = n.hexColor || n.color; ctx.globalAlpha = depthAlpha * (isDimmed ? 0.2 : 1); ctx.fill(); ctx.globalAlpha = 1;
         if (n === hoverNode || n === selectedNode) {
+          ctx.beginPath(); ctx.arc(p.x, p.y, r + 2, 0, Math.PI*2);
           ctx.strokeStyle = n === selectedNode ? '#06b6d4' : '#fff';
-          ctx.lineWidth = n === selectedNode ? 3 : 2; ctx.stroke();
+          ctx.lineWidth = n === selectedNode ? 2 : 1.5; ctx.globalAlpha = depthAlpha; ctx.stroke(); ctx.globalAlpha = 1;
         }
-        if (n.highlighted) {
-          ctx.beginPath(); ctx.arc(p.x, p.y, r + 4, 0, Math.PI*2);
-          ctx.strokeStyle = 'rgba(6,182,212,0.5)'; ctx.lineWidth = 2; ctx.stroke();
+        if (n.highlighted && !isDimmed) {
+          ctx.beginPath(); ctx.arc(p.x, p.y, r + 3, 0, Math.PI*2);
+          ctx.strokeStyle = 'rgba(6,182,212,0.5)'; ctx.lineWidth = 1.5; ctx.stroke();
+        }
+        if ((n.saved || savedNodes.has(n.id)) && !isDimmed) {
+          ctx.beginPath(); ctx.arc(p.x, p.y, r + 5, 0, Math.PI*2);
+          ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 1.5; ctx.stroke();
+        }
+        if (n === crosshairNode) {
+          ctx.beginPath(); ctx.arc(p.x, p.y, r + 6, 0, Math.PI*2);
+          ctx.strokeStyle = 'rgba(6,182,212,0.9)'; ctx.lineWidth = 2.5; ctx.stroke();
+        }
+        // Pulse ring for recently navigated nodes
+        const pulse = pulseNodes.find(pn => pn.node === n);
+        if (pulse) {
+          const elapsed = performance.now() - pulse.start;
+          const progress = Math.min(1, elapsed / pulse.duration);
+          const ringR = n.radius + 4 + progress * 20;
+          const alpha = 1 - progress;
+          ctx.beginPath(); ctx.arc(p.x, p.y, ringR, 0, Math.PI*2);
+          ctx.strokeStyle = 'rgba(6,182,212,' + (alpha * 0.8) + ')'; ctx.lineWidth = 2; ctx.stroke();
         }
       }
-      if (labelsVisible) {
-        for (const { n, p } of projected) {
-          if (n.radius > 7 || n === hoverNode || n === selectedNode) {
-            ctx.fillStyle = '#e2e8f0'; ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
-            ctx.fillText(n.label, p.x, p.y + Math.max(1, n.radius * p.depthScale) + 12);
-          }
-        }
+      // Labels: show all when toggled on, otherwise only selected / hovered / crosshair
+      for (const { n, p } of projected) {
+        if (!labelsVisible && n !== hoverNode && n !== selectedNode && n !== crosshairNode) continue;
+        const projectedR = Math.max(1, n.radius * p.depthScale);
+        const isDimmed = focusMode && connectedIds && !connectedIds.has(n.id);
+        const fontSize = Math.max(9, Math.min(12, 9 + projectedR * 0.4));
+        ctx.fillStyle = isDimmed ? 'rgba(226,232,240,0.2)' : '#e2e8f0';
+        ctx.font = (n === selectedNode ? 'bold ' : '') + fontSize + 'px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(n.label.split('/').pop() || n.label, p.x, p.y + projectedR + 12);
+      }
+      if (document.pointerLockElement === canvas || manualMouseLook) {
+        const chx = W() / 2, chy = H() / 2;
+        ctx.strokeStyle = 'rgba(6,182,212,0.6)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(chx - 12, chy); ctx.lineTo(chx + 12, chy);
+        ctx.moveTo(chx, chy - 12); ctx.lineTo(chx, chy + 12);
+        ctx.stroke();
       }
     } else {
+      // 2D background fill matching theme
+      if (document.body.classList.contains('theme-light')) { ctx.fillStyle = '#f1f5f9'; }
+      else if (document.body.classList.contains('theme-ocean')) { ctx.fillStyle = '#112240'; }
+      else if (document.body.classList.contains('theme-black')) { ctx.fillStyle = '#000'; }
+      else { ctx.fillStyle = '#0b1120'; }
+      ctx.fillRect(0, 0, W(), H());
+      // Draw stars behind 2D graph (screen space, not affected by pan/zoom)
+      if (starsVisible) {
+        const t = Date.now() * 0.001;
+        for (const s of stars) {
+          const sx = s.x * W(), sy = s.y * H();
+          const tw = 0.5 + 0.5 * Math.sin(t + s.twinkle);
+          ctx.beginPath(); ctx.arc(sx, sy, s.size, 0, Math.PI*2);
+          ctx.fillStyle = 'rgba(200,220,255,' + (s.alpha * tw) + ')'; ctx.fill();
+        }
+      }
       ctx.save();
+      ctx.translate(W()/2, H()/2);
+      ctx.rotate(rot2D);
+      ctx.translate(-W()/2, -H()/2);
       ctx.translate(pan.x, pan.y);
       ctx.scale(scale, scale);
+      // World-space grid (aligned to node coordinates, follows pan/zoom/rotation)
+      if (gridMode === 'world') {
+        const gridStep = 400;
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        for (const n of visNodes) { if (n.x < minX) minX = n.x; if (n.x > maxX) maxX = n.x; if (n.y < minY) minY = n.y; if (n.y > maxY) maxY = n.y; }
+        const pad = 400;
+        const startX = Math.floor((minX - pad) / gridStep) * gridStep;
+        const endX = Math.ceil((maxX + pad) / gridStep) * gridStep;
+        const startY = Math.floor((minY - pad) / gridStep) * gridStep;
+        const endY = Math.ceil((maxY + pad) / gridStep) * gridStep;
+        ctx.strokeStyle = 'rgba(100,116,139,0.12)';
+        ctx.lineWidth = 1 / scale;
+        for (let x = startX; x <= endX; x += gridStep) { ctx.beginPath(); ctx.moveTo(x, startY); ctx.lineTo(x, endY); ctx.stroke(); }
+        for (let y = startY; y <= endY; y += gridStep) { ctx.beginPath(); ctx.moveTo(startX, y); ctx.lineTo(endX, y); ctx.stroke(); }
+        // Grid line labels (Eastings / Northings)
+        ctx.fillStyle = 'rgba(100,116,139,0.5)';
+        ctx.font = (10 / scale) + 'px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        for (let x = startX; x <= endX; x += gridStep) {
+          ctx.fillText(String(Math.round(x)), x, startY + 4 / scale);
+        }
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        for (let y = startY; y <= endY; y += gridStep) {
+          ctx.fillText(String(Math.round(y)), startX + 4 / scale, y);
+        }
+      }
+      // Draw hexagonal sector outlines when in hexagonal layout mode
+      if (currentLayout === 'hexagonal' && cachedHexSectors) {
+        for (const sector of cachedHexSectors) {
+          const { sx, sy, r, col } = sector;
+          ctx.beginPath();
+          for (let i = 0; i < 6; i++) {
+            const angle = (i / 6) * Math.PI * 2 - Math.PI / 2;
+            const px = sx + r * Math.cos(angle);
+            const py = sy + r * Math.sin(angle);
+            if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+          }
+          ctx.closePath();
+          ctx.strokeStyle = col + '88';
+          ctx.lineWidth = 2.5 / scale;
+          ctx.stroke();
+          ctx.fillStyle = col + '12';
+          ctx.fill();
+          // Large centered sector label
+          ctx.fillStyle = col + 'dd';
+          ctx.font = (Math.max(11, Math.min(18, r * 0.25)) / scale) + 'px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(sector.name.toUpperCase(), sx, sy);
+        }
+      }
+      // Viewport culling bounds in world space
+      const vLeft = (-pan.x - 40) / scale, vRight = (-pan.x + W() + 40) / scale;
+      const vTop = (-pan.y - 40) / scale, vBottom = (-pan.y + H() + 40) / scale;
+      function inViewport(x, y, r) { return x + r >= vLeft && x - r <= vRight && y + r >= vTop && y - r <= vBottom; }
       for (const e of visEdges) {
+        if (!inViewport((e.source.x + e.target.x) / 2, (e.source.y + e.target.y) / 2, Math.max(Math.abs(e.target.x - e.source.x), Math.abs(e.target.y - e.source.y)) + 20)) continue;
+        const isDimmed = focusMode && connectedIds && !connectedIds.has(e.source.id) && !connectedIds.has(e.target.id);
         ctx.beginPath(); ctx.moveTo(e.source.x, e.source.y); ctx.lineTo(e.target.x, e.target.y);
-        ctx.strokeStyle = 'rgba(148,163,184,0.15)'; ctx.lineWidth = 1; ctx.stroke();
+        ctx.strokeStyle = isDimmed ? 'rgba(148,163,184,0.03)' : 'rgba(148,163,184,0.15)';
+        ctx.lineWidth = 1; ctx.stroke();
       }
       for (const n of visNodes) {
+        if (!inViewport(n.x, n.y, n.radius + 10)) continue;
+        const isDimmed = focusMode && connectedIds && !connectedIds.has(n.id);
         const sev = nodeSeverity[n.id];
-        if (sev) {
+        if (sev && !isDimmed) {
           ctx.beginPath(); ctx.arc(n.x, n.y, n.radius + 3, 0, Math.PI*2);
           ctx.strokeStyle = severityColor[sev] || '#64748b'; ctx.lineWidth = 2.5; ctx.stroke();
         }
         ctx.beginPath(); ctx.arc(n.x, n.y, n.radius, 0, Math.PI*2);
-        ctx.fillStyle = n.color; ctx.fill();
+        ctx.fillStyle = n.hexColor || n.color;
+        ctx.globalAlpha = isDimmed ? 0.2 : 1;
+        ctx.fill(); ctx.globalAlpha = 1;
         if (n === hoverNode || n === selectedNode) {
           ctx.strokeStyle = n === selectedNode ? '#06b6d4' : '#fff';
           ctx.lineWidth = n === selectedNode ? 3 : 2; ctx.stroke();
         }
-        if (n.highlighted) {
+        if (n.highlighted && !isDimmed) {
           ctx.beginPath(); ctx.arc(n.x, n.y, n.radius + 4, 0, Math.PI*2);
           ctx.strokeStyle = 'rgba(6,182,212,0.5)'; ctx.lineWidth = 2; ctx.stroke();
         }
-      }
-      if (labelsVisible) {
-        for (const n of visNodes) {
-          if (n.radius > 7 || n === hoverNode || n === selectedNode) {
-            ctx.fillStyle = '#e2e8f0'; ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
-            ctx.fillText(n.label, n.x, n.y + n.radius + 12);
-          }
+        if ((n.saved || savedNodes.has(n.id)) && !isDimmed) {
+          ctx.beginPath(); ctx.arc(n.x, n.y, n.radius + 6, 0, Math.PI*2);
+          ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 2; ctx.stroke();
+        }
+        if (n === crosshairNode) {
+          ctx.beginPath(); ctx.arc(n.x, n.y, n.radius + 8, 0, Math.PI*2);
+          ctx.strokeStyle = 'rgba(6,182,212,0.9)'; ctx.lineWidth = 3; ctx.stroke();
+        }
+        // Pulse ring for recently navigated nodes
+        const pulse = pulseNodes.find(pn => pn.node === n);
+        if (pulse) {
+          const elapsed = performance.now() - pulse.start;
+          const progress = Math.min(1, elapsed / pulse.duration);
+          const ringR = n.radius + 4 + progress * 20;
+          const alpha = 1 - progress;
+          ctx.beginPath(); ctx.arc(n.x, n.y, ringR, 0, Math.PI*2);
+          ctx.strokeStyle = 'rgba(6,182,212,' + (alpha * 0.8) + ')'; ctx.lineWidth = 2; ctx.stroke();
         }
       }
       ctx.restore();
+      // Screen-space grid (fixed viewport overlay, unaffected by pan/zoom/rotation)
+      if (gridMode === 'screen') {
+        const cell = 50;
+        ctx.strokeStyle = 'rgba(100,116,139,0.08)';
+        ctx.lineWidth = 1;
+        for (let x = 0; x < W(); x += cell) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H()); ctx.stroke(); }
+        for (let y = 0; y < H(); y += cell) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W(), y); ctx.stroke(); }
+      }
+      // Labels: draw in screen space so they stay horizontal regardless of rotation
+      const cx = W() / 2, cy = H() / 2;
+      for (const n of visNodes) {
+        if (!labelsVisible && n !== hoverNode && n !== selectedNode && n !== crosshairNode) continue;
+        const isDimmed = focusMode && connectedIds && !connectedIds.has(n.id);
+        const fontSize = Math.max(9, Math.min(12, 9 + n.radius * 0.3));
+        const labelX = n.x;
+        const labelY = n.y + n.radius + 12;
+        const txx = labelX * scale + pan.x - cx;
+        const tyy = labelY * scale + pan.y - cy;
+        const screenX = txx * Math.cos(rot2D) - tyy * Math.sin(rot2D) + cx;
+        const screenY = txx * Math.sin(rot2D) + tyy * Math.cos(rot2D) + cy;
+        ctx.fillStyle = isDimmed ? 'rgba(226,232,240,0.3)' : '#e2e8f0';
+        ctx.font = (n === selectedNode ? 'bold ' : '') + fontSize + 'px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(n.label.split('/').pop() || n.label, screenX, screenY);
+      }
+      if (document.pointerLockElement === canvas || manualMouseLook) {
+        const chx = W() / 2, chy = H() / 2;
+        ctx.strokeStyle = 'rgba(6,182,212,0.6)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(chx - 12, chy); ctx.lineTo(chx + 12, chy);
+        ctx.moveTo(chx, chy - 12); ctx.lineTo(chx, chy + 12);
+        ctx.stroke();
+      }
+    }
+    // Minimap in lower-right corner (throttled: only redraw every 10 frames or on camera change)
+    if (minimapVisible) {
+      const mmCanvas = document.getElementById('minimapCanvas');
+      if (mmCanvas && (frameCounter % 10 === 0 || changed)) {
+        const mm = mmCanvas.getContext('2d');
+        const mmW = 160, mmH = 120;
+        if (mmCanvas.width !== mmW) { mmCanvas.width = mmW; mmCanvas.height = mmH; }
+        mm.clearRect(0, 0, mmW, mmH);
+        // Compute bounds of all nodes
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        for (const n of allNodes) {
+          if (n.x < minX) minX = n.x; if (n.x > maxX) maxX = n.x;
+          if (n.y < minY) minY = n.y; if (n.y > maxY) maxY = n.y;
+        }
+        const pad = 30;
+        const bw = Math.max(1, maxX - minX + pad * 2);
+        const bh = Math.max(1, maxY - minY + pad * 2);
+        const mmScale = Math.min(mmW / bw, mmH / bh);
+        const offX = (mmW - (maxX - minX + pad * 2) * mmScale) / 2;
+        const offY = (mmH - (maxY - minY + pad * 2) * mmScale) / 2;
+        function mmX(x) { return (x - minX + pad) * mmScale + offX; }
+        function mmY(y) { return (y - minY + pad) * mmScale + offY; }
+        // Draw faint edges
+        mm.strokeStyle = 'rgba(148,163,184,0.08)';
+        mm.lineWidth = 0.5;
+        for (const e of GRAPH.edges) {
+          const sa = allNodes.find(n => n.id === e.source), ta = allNodes.find(n => n.id === e.target);
+          if (sa && ta) { mm.beginPath(); mm.moveTo(mmX(sa.x), mmY(sa.y)); mm.lineTo(mmX(ta.x), mmY(ta.y)); mm.stroke(); }
+        }
+        // Draw nodes
+        for (const n of allNodes) {
+          const r = Math.max(1.5, Math.min(4, n.radius * mmScale * 0.6));
+          mm.beginPath(); mm.arc(mmX(n.x), mmY(n.y), r, 0, Math.PI * 2);
+          mm.fillStyle = n === selectedNode ? '#06b6d4' : (n === hoverNode ? '#fff' : (n.hexColor || n.color));
+          mm.fill();
+        }
+        // Camera / viewport indicator
+        let camX, camY, vW, vH;
+        if (is3D) {
+          camX = mmX(-cameraOffset.x);
+          camY = mmY(-cameraOffset.y);
+          vW = mmW / scale * mmScale * 0.5;
+          vH = mmH / scale * mmScale * 0.5;
+        } else {
+          const worldCx = (W() / 2 - pan.x) / scale;
+          const worldCy = (H() / 2 - pan.y) / scale;
+          camX = mmX(worldCx);
+          camY = mmY(worldCy);
+          vW = W() / scale * mmScale;
+          vH = H() / scale * mmScale;
+        }
+        // Viewport fill (semi-transparent)
+        mm.save();
+        mm.translate(camX, camY);
+        if (!is3D && rot2D !== 0) mm.rotate(-rot2D);
+        mm.fillStyle = 'rgba(6,182,212,0.12)';
+        mm.fillRect(-vW / 2, -vH / 2, vW, vH);
+        mm.strokeStyle = 'rgba(6,182,212,0.9)';
+        mm.lineWidth = 2;
+        mm.strokeRect(-vW / 2, -vH / 2, vW, vH);
+        mm.restore();
+        // Camera dot with glow
+        mm.beginPath(); mm.arc(camX, camY, 4, 0, Math.PI * 2);
+        mm.fillStyle = '#06b6d4'; mm.fill();
+        mm.beginPath(); mm.arc(camX, camY, 8, 0, Math.PI * 2);
+        mm.fillStyle = 'rgba(6,182,212,0.3)'; mm.fill();
+        // Compass labels
+        mm.fillStyle = '#64748b'; mm.font = '9px sans-serif'; mm.textAlign = 'left';
+        mm.fillText('N', mmW / 2 - 3, 10);
+        mm.fillText('E', mmW - 10, mmH / 2 + 3);
+        mm.fillText('S', mmW / 2 - 3, mmH - 2);
+        mm.fillText('W', 2, mmH / 2 + 3);
+      }
     }
   }
-  function loop() { for (let i = 0; i < 3; i++) step(); draw(); requestAnimationFrame(loop); }
+  function loop() {
+    const moveSpeed = is3D ? 80 : 12;
+    if (is3D) {
+      const fwd = getBoundKey('moveForward'), bwd = getBoundKey('moveBackward');
+      const rightKey = getBoundKey('strafeRight'), leftKey = getBoundKey('strafeLeft');
+      const upKey = getBoundKey('moveUp'), downKey = getBoundKey('moveDown');
+      const rotLeftKey = getBoundKey('rotateLeft'), rotRightKey = getBoundKey('rotateRight');
+      const forward = (keysPressed.has(fwd) ? 1 : 0) - (keysPressed.has(bwd) ? 1 : 0);
+      const right = (keysPressed.has(rightKey) ? 1 : 0) - (keysPressed.has(leftKey) ? 1 : 0);
+      const up = (keysPressed.has(upKey) ? 1 : 0) - (keysPressed.has(downKey) ? 1 : 0);
+      const rotation = (keysPressed.has(rotRightKey) ? 1 : 0) - (keysPressed.has(rotLeftKey) ? 1 : 0);
+      const runMult = keysPressed.has('shift') ? 3 : (autoRun ? 2 : 1);
+      const speed = moveSpeed * 2 * runMult;
+      const sinY = Math.sin(rotY), cosY = Math.cos(rotY);
+      const sinX = Math.sin(rotX), cosX = Math.cos(rotX);
+      if (forward) {
+        cameraOffset.x += forward * sinY * cosX * speed;
+        cameraOffset.y += forward * sinX * speed;
+        cameraOffset.z -= forward * cosY * cosX * speed;
+      }
+      if (right) {
+        cameraOffset.x += right * cosY * speed;
+        cameraOffset.z += right * sinY * speed;
+      }
+      if (up) {
+        cameraOffset.y -= up * speed;
+      }
+      if (rotation) {
+        // Orbit camera around scene center on Y axis (Q/E)
+        const orbitSpeed = 0.03;
+        const angle = -rotation * orbitSpeed;
+        const cosA = Math.cos(angle), sinA = Math.sin(angle);
+        const newX = cameraOffset.x * cosA - cameraOffset.z * sinA;
+        const newZ = cameraOffset.x * sinA + cameraOffset.z * cosA;
+        cameraOffset.x = newX;
+        cameraOffset.z = newZ;
+        // Face center after orbit — only update yaw, keep pitch fixed
+        rotY = Math.atan2(-cameraOffset.x, cameraOffset.z);
+      }
+    } else {
+      const fwd = getBoundKey('moveForward'), bwd = getBoundKey('moveBackward');
+      const leftKey = getBoundKey('strafeLeft'), rightKey = getBoundKey('strafeRight');
+      const rotLeftKey = getBoundKey('rotateLeft'), rotRightKey = getBoundKey('rotateRight');
+      if (keysPressed.has(fwd)) zoomAtCenter(1.02);
+      if (keysPressed.has(bwd)) zoomAtCenter(1/1.02);
+      if (keysPressed.has(leftKey) || keysPressed.has(rightKey)) {
+        const dir = (keysPressed.has(leftKey) ? 1 : 0) - (keysPressed.has(rightKey) ? 1 : 0);
+        const cos = Math.cos(-rot2D), sin = Math.sin(-rot2D);
+        pan.x += dir * moveSpeed * 2 * cos;
+        pan.y += dir * moveSpeed * 2 * sin;
+      }
+      const rot2Dspeed = 0.03;
+      if (keysPressed.has(rotLeftKey)) rot2D -= rot2Dspeed;
+      if (keysPressed.has(rotRightKey)) rot2D += rot2Dspeed;
+    }
+    if (is3D) clampCameraDistance();
+    if (flyTo && !is3D) {
+      const elapsed = performance.now() - flyTo.startTime;
+      const t = Math.min(1, elapsed / flyTo.duration);
+      const ease = 1 - Math.pow(1 - t, 3);
+      scale = flyTo.startScale + (flyTo.targetScale - flyTo.startScale) * ease;
+      pan.x = flyTo.startPanX + (flyTo.targetPanX - flyTo.startPanX) * ease;
+      pan.y = flyTo.startPanY + (flyTo.targetPanY - flyTo.startPanY) * ease;
+      if (t >= 1) flyTo = null;
+    }
+    scale = Math.max(0.05, Math.min(20, scale));
+    const now = performance.now();
+    pulseNodes = pulseNodes.filter(pn => now < pn.until);
+    // Cache filtered results once per frame
+    cachedVisNodes = getFilteredNodes();
+    cachedVisEdges = getFilteredEdges();
+    // Dirty flag: detect camera/node changes
+    let changed = false;
+    if (is3D) { changed = true; }
+    else if (Math.abs(pan.x - lastPan.x) > 0.1 || Math.abs(pan.y - lastPan.y) > 0.1 || Math.abs(scale - lastScale) > 0.001 || Math.abs(rot2D - lastRot2D) > 0.001) { changed = true; lastPan = {x: pan.x, y: pan.y}; lastScale = scale; lastRot2D = rot2D; }
+    if (hoverNode !== lastHoverNode || selectedNode !== lastSelectedNode) { changed = true; lastHoverNode = hoverNode; lastSelectedNode = selectedNode; }
+    if (pulseNodes.length > 0 || flyTo) changed = true;
+    // Physics: throttle to every 2nd frame in 2D mode
+    frameCounter++;
+    const physicsChanged = !is3D && (frameCounter % 2 === 0 || !physicsPaused) ? step(cachedVisNodes, cachedVisEdges) : (is3D ? step(cachedVisNodes, cachedVisEdges) : false);
+    if (physicsChanged) changed = true;
+    if (changed || needsRedraw) { needsRedraw = false; draw(cachedVisNodes, cachedVisEdges, changed); }
+    requestAnimationFrame(loop);
+  }
+  // Initial sidebar visibility sync after filters are set
+  applyFilters();
+  syncSidebarVisibility();
+
+  // VS Code webview message bridge
+  if (typeof acquireVsCodeApi !== 'undefined') {
+    const vscode = acquireVsCodeApi();
+    window.addEventListener('message', (event) => {
+      const msg = event.data;
+      if (msg && msg.command === 'highlightNode') {
+        const target = allNodes.find(n => n.id === msg.path);
+        if (target) {
+          selectedNode = target;
+          pan.x = W() / 2 - target.x * scale;
+          pan.y = H() / 2 - target.y * scale;
+        }
+      }
+    });
+  }
+  // Auto-fit after a short delay so the graph has time to spread from initial spiral
+  setTimeout(() => {
+    const vis = getFilteredNodes();
+    if (vis.length > 0) {
+      const minX = Math.min(...vis.map(n=>n.x-n.radius)), maxX = Math.max(...vis.map(n=>n.x+n.radius));
+      const minY = Math.min(...vis.map(n=>n.y-n.radius)), maxY = Math.max(...vis.map(n=>n.y+n.radius));
+      const pad = 40; const bw = maxX - minX + pad*2, bh = maxY - minY + pad*2;
+      scale = Math.min(W()/bw, H()/bh, 20);
+      pan = {x: (W() - bw*scale)/2 - minX*scale + pad*scale, y: (H() - bh*scale)/2 - minY*scale + pad*scale};
+      updateZoomDisplay();
+    }
+  }, 2000);
+
   loop();
 })();
 </script>
+<div id="controlsModal" class="controls-modal hidden">
+  <div class="controls-modal-content">
+    <div class="controls-modal-header">
+      <h3>Keyboard Controls</h3>
+      <button id="closeControlsModal" class="controls-modal-close">&times;</button>
+    </div>
+    <div class="controls-modal-body">
+      <p class="controls-hint">Click a control and press any key to remap. Click Reset to restore defaults.</p>
+      <div class="controls-grid" id="controlsGrid"></div>
+    </div>
+    <div class="controls-modal-footer">
+      <button id="resetControlsBtn" class="controls-modal-btn secondary">Reset Defaults</button>
+      <button id="saveControlsBtn" class="controls-modal-btn primary">Save</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>`;
 }
@@ -5964,7 +8122,8 @@ async function openPreviewPanel(url: string, title: string) {
   const panel = vscode.window.createWebviewPanel('simplebeaconPreview', title, vscode.ViewColumn.One, {
     enableScripts: true,
     retainContextWhenHidden: true,
-  });
+    enableDragAndDrop: true,
+  } as vscode.WebviewPanelOptions);
   const baseUrl = url.replace(/\?.*$/, '').replace(/#.*$/, '').replace(/\/[^\/]*$/, '/');
   const origin = url.replace(/^(https?:\/\/[^\/]+).*$/, '$1');
   try {
@@ -5995,7 +8154,11 @@ async function openPreviewPanel(url: string, title: string) {
     const apiHostScript = '<script>window.__SB_API_HOST__ = "' + origin + '";<\/script>';
     const parsedUrl = new URL(url);
     const hashRoute = parsedUrl.hash || '';
-    const initialView = hashRoute.replace(/^#\//, '');
+    const hashView = hashRoute.replace(/^#\//, '');
+    // Derive view from path-based routes like /dashboard/security
+    const pathSegments = parsedUrl.pathname.replace(/^\/dashboard\/?/, '').split('/').filter(Boolean);
+    const pathView = pathSegments[0] || '';
+    const initialView = hashView || pathView;
     const routeScript = initialView ? '<script>window.__SB_INITIAL_ROUTE__ = "' + initialView + '";<\/script>' : '';
     const workspaceFolders = vscode.workspace.workspaceFolders;
     const workspacePath = workspaceFolders && workspaceFolders[0] ? workspaceFolders[0].uri.fsPath.replace(/\\/g, '/') : '';
@@ -6037,48 +8200,29 @@ async function openPreviewPanel(url: string, title: string) {
         return;
       }
       if (msg.command === 'sendToAI' && msg.data) {
-        const dataPort = getDataServerPort();
-        const apiUrl = `http://127.0.0.1:${dataPort}`;
         try {
-          const postRes = await new Promise<{ success: boolean; content?: string; error?: string }>(
-            (resolve, reject) => {
-              const parsed = new URL(apiUrl + '/api/ai-context');
-              const body = JSON.stringify(msg.data);
-              const req = http.request(
-                {
-                  hostname: parsed.hostname,
-                  port: parsed.port,
-                  path: parsed.pathname,
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
-                },
-                (res: http.IncomingMessage) => {
-                  let data = '';
-                  res.on('data', (chunk: Buffer) => {
-                    data += chunk;
-                  });
-                  res.on('end', () => {
-                    try {
-                      resolve(JSON.parse(data));
-                    } catch {
-                      resolve({ success: false, error: 'Invalid JSON' });
-                    }
-                  });
-                }
-              );
-              req.on('error', reject);
-              req.write(body);
-              req.end();
+          const markdown = buildAiContextMarkdown(msg.data);
+          await vscode.env.clipboard.writeText(markdown);
+          // Persist to disk for @-referencing
+          const ws = vscode.workspace.workspaceFolders?.[0];
+          if (ws) {
+            const contextPath = path.join(ws.uri.fsPath, '.simplebeacon', 'ai-context.md');
+            try {
+              fs.mkdirSync(path.dirname(contextPath), { recursive: true });
+              fs.writeFileSync(contextPath, markdown, 'utf8');
+            } catch (e) {
+              // best-effort disk persistence
             }
-          );
-          if (postRes.success && postRes.content) {
-            await vscode.env.clipboard.writeText(postRes.content);
-            showQuietMessage(
-              'Scan data copied to clipboard — paste into your AI coding agent with Ctrl+V'
-            );
-          } else {
-            vscode.window.showWarningMessage('AI context saved but no content returned');
           }
+          // Try to open the IDE native chat panel (Cascade / Copilot / etc.)
+          try {
+            await vscode.commands.executeCommand('workbench.action.chat.open');
+          } catch (chatErr) {
+            // Chat command may not be available in all IDEs
+          }
+          showQuietMessage(
+            'Scan data copied to clipboard — paste into your AI coding agent with Ctrl+V'
+          );
         } catch (err) {
           vscode.window.showErrorMessage('Failed to send to AI: ' + (err instanceof Error ? err.message : String(err)));
         }
@@ -6154,6 +8298,18 @@ async function openPreviewPanel(url: string, title: string) {
               vscode.env.clipboard.writeText(msg.filename);
             }
           });
+        }
+      } else if (msg.command === 'setAuthState') {
+        // Forward auth state from dashboard iframe to sidebar
+        const tier = msg.tier || '';
+        ModernSidebarProvider.setSidebarAuthState(msg.signedIn === true, tier);
+      } else if (msg.command === 'storeActiveLicenseToken' && msg.token) {
+        // Store token and forward auth state to sidebar
+        try {
+          await getAuthManager().setToken(msg.token);
+          ModernSidebarProvider.setSidebarAuthState(true);
+        } catch (e) {
+          // best-effort token storage
         }
       }
     });

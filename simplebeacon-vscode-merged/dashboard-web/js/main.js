@@ -62,6 +62,13 @@ const CLOUD_TEAMS_VIEWS = new Set([
   'dashboard', 'audit', 'results', 'analyze', 'security', 'tools', 'platform', 'quality', 'settings', 'assessments'
 ]);
 
+const DASHBOARD_ROUTED_VIEWS = new Set([
+  'dashboard', 'analyze', 'results', 'repository-health',
+  'audit', 'security', 'quality', 'trust',
+  'assessments', 'remediation', 'platform', 'profile',
+  'tools', 'settings', 'help', 'chatbot', 'about'
+]);
+
 /**
  * Requires auth gate.
  * @returns {any}
@@ -212,10 +219,18 @@ class SimplebeaconDashboard {
         if (legacyInput) {
           legacyInput.value = path;
         }
+      } else if (event.data.command === 'showLoginModal') {
+        if (typeof showLoginModal === 'function') {
+          showLoginModal();
+        }
       }
     });
     try {
-      if (window.parent && window.parent !== window) {
+      const vscode = typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi() : null;
+      if (vscode) {
+        vscode.postMessage({command: 'dashReady'});
+        vscode.postMessage({command: 'setAuthState', signedIn: authService.isAuthenticated(), tier: authService.getTier()});
+      } else if (window.parent && window.parent !== window) {
         window.parent.postMessage({command: 'dashReady'}, '*');
         window.parent.postMessage({command: 'setAuthState', signedIn: authService.isAuthenticated()}, '*');
       }
@@ -469,183 +484,7 @@ class SimplebeaconDashboard {
   }
 
   showLockScreen(view) {
-    const main = document.getElementById('app-main');
-    if (!main) return;
-
-    const titles = {
-      dashboard: 'Dashboard',
-      analyze: 'Analyze',
-      results: 'Results',
-      'repository-health': 'Repository Health',
-      audit: 'Audit',
-      security: 'Security',
-      quality: 'Quality',
-      trust: 'Trust',
-      assessments: 'Assessments',
-      remediation: 'Remediation',
-      platform: 'Platform',
-      tools: 'Tools',
-      chatbot: 'Chatbot'
-    };
-    const title = titles[view] || view;
-
-    setHtml(main, `
-      <div class="lock-screen" style="display:flex;align-items:center;justify-content:center;min-height:60vh;padding:var(--space-8);">
-        <div class="lock-screen-content" style="text-align:center;max-width:420px;">
-          <div style="font-size:3rem;margin-bottom:var(--space-4);">🔒</div>
-          <h2 style="font-size:1.5rem;margin-bottom:var(--space-2);">${title} is locked</h2>
-          <p class="text-muted" style="margin-bottom:var(--space-5);">Sign in to access this page.</p>
-
-          <div class="lock-tabs" style="display:flex;gap:0;margin-bottom:var(--space-4);border-bottom:1px solid var(--border);">
-            <button type="button" class="lock-tab active" data-tab="email" style="flex:1;padding:10px 12px;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--text-muted);font-size:0.85rem;font-weight:500;cursor:pointer;">Email</button>
-            <button type="button" class="lock-tab" data-tab="token" style="flex:1;padding:10px 12px;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--text-muted);font-size:0.85rem;font-weight:500;cursor:pointer;">License Token</button>
-          </div>
-
-          <div id="lock-panel-email" class="lock-panel" style="text-align:left;">
-            <form id="lock-email-form">
-              <label class="field-label" for="lock-email">Email</label>
-              <input id="lock-email" class="input" type="email" autocomplete="email" required placeholder="email@example.com" style="margin-bottom:var(--space-2);" />
-              <label class="field-label" for="lock-password">Password</label>
-              <input id="lock-password" class="input" type="password" autocomplete="current-password" required placeholder="••••••••" style="margin-bottom:var(--space-3);" />
-              <p id="lock-email-error" class="text-danger" hidden role="alert" style="font-size:var(--font-size-sm);margin-bottom:var(--space-2);"></p>
-              <button type="submit" class="btn btn-primary btn-block" id="lock-email-submit">Sign in with email</button>
-            </form>
-          </div>
-
-          <div id="lock-panel-token" class="lock-panel" style="display:none;text-align:left;">
-            <form id="lock-token-form">
-              <label class="field-label" for="lock-token">License Token</label>
-              <input id="lock-token" class="input" type="text" autocomplete="off" required placeholder="sb-pro-XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX" style="margin-bottom:var(--space-2);" />
-              <label class="field-label" for="lock-token-password">Password</label>
-              <input id="lock-token-password" class="input" type="password" autocomplete="off" placeholder="Assign or enter a password for this token…" style="margin-bottom:var(--space-3);" />
-              <p id="lock-token-error" class="text-danger" hidden role="alert" style="font-size:var(--font-size-sm);margin-bottom:var(--space-2);"></p>
-              <button type="submit" class="btn btn-primary btn-block" id="lock-token-submit">Unlock with token</button>
-            </form>
-            <details style="margin-top:var(--space-3);">
-              <summary style="font-size:var(--font-size-xs);color:var(--text-muted);cursor:pointer;text-align:center;">Need a token?</summary>
-              <p class="text-muted" style="font-size:var(--font-size-xs);text-align:center;margin-top:var(--space-2);">
-                <a href="${COMING_SOON_URL}" target="_blank">Get a free community token</a> or <a href="${COMING_SOON_URL}pricing.html" target="_blank">purchase a license</a>. No email required.
-              </p>
-            </details>
-          </div>
-
-          <p style="margin-top:var(--space-4);"><a href="/dashboard/dashboard" class="btn btn-secondary btn-block" onclick="document.getElementById('token-prompt-modal')?.remove();window.__SB_DASHBOARD_APP__?.navigate('dashboard');return false;">&#8592; Return to Dashboard</a></p>
-        </div>
-      </div>
-    `);
-
-    // Tab switching
-    const tabs = main.querySelectorAll('.lock-tab');
-    const panels = {
-      email: main.querySelector('#lock-panel-email'),
-      token: main.querySelector('#lock-panel-token')
-    };
-    tabs.forEach((tab) => {
-      tab.addEventListener('click', () => {
-        const key = tab.dataset.tab;
-        tabs.forEach((t) => {
-          t.classList.toggle('active', t.dataset.tab === key);
-          t.style.borderBottomColor = t.dataset.tab === key ? 'var(--primary)' : 'transparent';
-          t.style.color = t.dataset.tab === key ? 'var(--text-primary)' : 'var(--text-muted)';
-        });
-        Object.entries(panels).forEach(([k, el]) => {
-          if (el) el.style.display = k === key ? '' : 'none';
-        });
-      });
-    });
-    // Set initial active tab styling
-    const activeTab = main.querySelector('.lock-tab.active');
-    if (activeTab) {
-      activeTab.style.borderBottomColor = 'var(--primary)';
-      activeTab.style.color = 'var(--text-primary)';
-    }
-
-    // Token form
-    const tokenForm = main.querySelector('#lock-token-form');
-    if (tokenForm) {
-      tokenForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const token = main.querySelector('#lock-token').value.trim();
-        const password = main.querySelector('#lock-token-password')?.value || '';
-        const submitBtn = main.querySelector('#lock-token-submit');
-        const errorEl = main.querySelector('#lock-token-error');
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Validating…';
-        if (errorEl) { errorEl.hidden = true; errorEl.textContent = ''; }
-        if (authService.isTokenActivated(token)) {
-          const tabs = main.querySelectorAll('.lock-tab');
-          const emailPanel = main.querySelector('#lock-panel-email');
-          const tokenPanel = main.querySelector('#lock-panel-token');
-          tabs.forEach((t) => {
-            t.classList.toggle('active', t.dataset.tab === 'email');
-            t.style.borderBottomColor = t.dataset.tab === 'email' ? 'var(--primary)' : 'transparent';
-            t.style.color = t.dataset.tab === 'email' ? 'var(--text-primary)' : 'var(--text-muted)';
-          });
-          if (emailPanel) emailPanel.style.display = '';
-          if (tokenPanel) tokenPanel.style.display = 'none';
-
-          const emailErrorEl = main.querySelector('#lock-email-error');
-          if (emailErrorEl) {
-            const binding = authService.getTokenBinding(token);
-            const emailHint = binding?.email ? ` (${binding.email})` : '';
-            emailErrorEl.textContent = `This token is registered to an account${emailHint}. Please sign in with your email and password.`;
-            emailErrorEl.hidden = false;
-            if (binding?.email) {
-              const emailInput = main.querySelector('#lock-email');
-              if (emailInput) emailInput.value = binding.email;
-            }
-          }
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Unlock with token';
-          return;
-        }
-
-        try {
-          authService.setSession(token, { token, source: 'lock-screen', password });
-          const valid = await authService.validateSession(password ? { password } : undefined);
-          if (!valid) throw new Error('Invalid or expired token.');
-          showToast('Dashboard unlocked', 'success');
-          this.updateAuthUi();
-          this.bootstrapAfterAuth();
-          this.router.navigate(view);
-        } catch (err) {
-          authService.clearSession();
-          const message = err.message || 'Token validation failed';
-          if (errorEl) { errorEl.textContent = message; errorEl.hidden = false; }
-          showToast(message, 'error');
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Unlock with token';
-        }
-      });
-    }
-
-    // Email form
-    const emailForm = main.querySelector('#lock-email-form');
-    if (emailForm) {
-      emailForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const email = main.querySelector('#lock-email').value.trim();
-        const password = main.querySelector('#lock-password').value;
-        const submitBtn = main.querySelector('#lock-email-submit');
-        const errorEl = main.querySelector('#lock-email-error');
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Signing in…';
-        if (errorEl) { errorEl.hidden = true; errorEl.textContent = ''; }
-        try {
-          await authService.login(email, password);
-          showToast('Signed in successfully', 'success');
-          this.updateAuthUi();
-          this.bootstrapAfterAuth();
-          this.router.navigate(view);
-        } catch (err) {
-          const message = err.message || 'Sign in failed';
-          if (errorEl) { errorEl.textContent = message; errorEl.hidden = false; }
-          showToast(message, 'error');
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Sign in with email';
-        }
-      });
-    }
+    this.router.navigate('signin');
   }
 
   updateNavVisibility(authed) {
@@ -703,10 +542,8 @@ class SimplebeaconDashboard {
     this.state.user = authService.getUser() || {};
     const authed = authService.isAuthenticated();
     const signinBtn = document.getElementById('signin-btn');
-    const signoutBtn = document.getElementById('signout-btn');
     const profileBtn = document.getElementById('profile-btn');
     if (signinBtn) signinBtn.hidden = authed;
-    if (signoutBtn) signoutBtn.hidden = !authed;
     if (profileBtn) profileBtn.hidden = !authed;
     const sidebarSigninBtn = document.getElementById('sidebar-signin-btn');
     if (sidebarSigninBtn) sidebarSigninBtn.hidden = authed;
@@ -792,8 +629,6 @@ class SimplebeaconDashboard {
       try {
         await authService.logout();
         showToast('Signed out', 'info');
-        this.updateAuthUi();
-        this.router.navigate('signin');
       } catch (err) {
         showToast('Sign out failed', 'error');
       }
@@ -902,24 +737,17 @@ class SimplebeaconDashboard {
     });
 
     document.getElementById('signin-btn')?.addEventListener('click', () => {
-      this.router.navigate('signin');
+      if (typeof showLoginModal === 'function') {
+        showLoginModal();
+      }
     });
 
     this.setupProfileDropdown();
 
-    document.getElementById('signout-btn')?.addEventListener('click', async () => {
-      try {
-        await authService.logout();
-        showToast('Signed out', 'info');
-        this.updateAuthUi();
-        this.router.navigate('signin');
-      } catch (err) {
-        showToast('Sign out failed', 'error');
-      }
-    });
-
     document.getElementById('sidebar-signin-btn')?.addEventListener('click', () => {
-      this.router.navigate('signin');
+      if (typeof showLoginModal === 'function') {
+        showLoginModal();
+      }
     });
 
     document.querySelectorAll('.nav-link[data-view]').forEach((link) => {
@@ -1143,10 +971,12 @@ class SimplebeaconDashboard {
     }
 
     // Free tier gets read-only dashboard access (view reports, no interaction)
+    // Local dev bypass: full functionality on localhost regardless of token tier
     const isFreeTier = authService.isFreeTier();
     const isSandbox = this.state.sandboxMode === true;
-    this.state.readOnly = isFreeTier || isSandbox;
-    if (isFreeTier || isSandbox) {
+    const isLocal = isLocalDevHost();
+    this.state.readOnly = !isLocal && (isFreeTier || isSandbox);
+    if (!isLocal && (isFreeTier || isSandbox)) {
       this.showReadOnlyBanner();
     } else {
       document.getElementById('readonly-banner')?.remove();

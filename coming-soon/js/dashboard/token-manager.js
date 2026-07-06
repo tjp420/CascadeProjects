@@ -53,21 +53,21 @@ const TIER_PROFILES = (window.SIMPLEBEACON_SITE && window.SIMPLEBEACON_SITE.tier
     admin: ['gate', 'codebase', 'euai', 'compliance', 'hygiene', 'complete']
 };
 
+const ALL_MODULES = ['gate', 'consolidation', 'mock-data', 'roadmap', 'codebase', 'file-reduction', 'data-quality', 'cleanup', 'npm-audit', 'compliance', 'eu-ai-act', 'dependency-vulns', 'build-readiness', 'ai-indicators', 'governance', 'junk-files', 'ai-residue', 'performance', 'type-safety', 'documentation', 'test-coverage', 'accessibility', 'i18n', 'sensitive-data', 'config-drift', 'security-headers', 'database-patterns', 'framework-practices', 'workspace-health', 'unused-deps', 'api-contract', 'complexity', 'fix-preview', 'llm-slop', 'token-bleed', 'production-leak', 'fiction-kpi', 'architecture-drift', 'sync-io', 'eval-danger', 'inner-html-xss', 'prototype-pollution', 'unhandled-promise', 'magic-number', 'missing-strict-mode', 'uninitialized-read', 'unvalidated-redirect', 'missing-rate-limit', 'insecure-random', 'logging-secrets', 'hardcoded-confidence', 'hardcoded-completion', 'mock-path-leak', 'sample-json-ref', 'governance-marker', 'ai-placeholder-comment', 'ai-placeholder-block', 'markdown-fence-leak', 'empty-stub-function', 'arrow-stub', 'roadmap-marker', 'file-naming', 'removable-files'];
 const TIER_MODULE_MAP = {
-    locked: [],
-    community: ['gate'],
-    starter: ['gate', 'llm-slop'],
-    instant: ['gate', 'mock-data'],
-    pro: ['gate', 'consolidation', 'mock-data', 'roadmap', 'codebase', 'file-reduction', 'data-quality', 'cleanup', 'npm-audit', 'compliance', 'eu-ai-act', 'dependency-vulns', 'build-readiness', 'ai-indicators', 'governance', 'junk-files', 'ai-residue', 'performance', 'type-safety', 'documentation', 'test-coverage', 'accessibility', 'i18n', 'sensitive-data', 'config-drift', 'security-headers', 'database-patterns', 'framework-practices', 'workspace-health', 'unused-deps', 'api-contract', 'complexity', 'fix-preview', 'llm-slop', 'token-bleed', 'production-leak', 'fiction-kpi', 'architecture-drift'],
-    aislopcop: ['gate', 'llm-slop', 'token-bleed', 'production-leak', 'fiction-kpi', 'ai-residue'],
-    team: ['gate', 'consolidation', 'mock-data', 'roadmap', 'codebase', 'file-reduction', 'data-quality', 'cleanup', 'npm-audit', 'compliance', 'eu-ai-act', 'dependency-vulns', 'build-readiness', 'ai-indicators', 'governance', 'junk-files', 'ai-residue', 'performance', 'type-safety', 'documentation', 'test-coverage', 'accessibility', 'i18n', 'sensitive-data', 'config-drift', 'security-headers', 'database-patterns', 'framework-practices', 'workspace-health', 'unused-deps', 'api-contract', 'complexity', 'fix-preview', 'llm-slop', 'token-bleed', 'production-leak', 'fiction-kpi', 'architecture-drift'],
-    enterprise: ['gate', 'consolidation', 'mock-data', 'roadmap', 'codebase', 'file-reduction', 'data-quality', 'cleanup', 'npm-audit', 'compliance', 'eu-ai-act', 'dependency-vulns', 'build-readiness', 'ai-indicators', 'governance', 'junk-files', 'ai-residue', 'performance', 'type-safety', 'documentation', 'test-coverage', 'accessibility', 'i18n', 'sensitive-data', 'config-drift', 'security-headers', 'database-patterns', 'framework-practices', 'workspace-health', 'unused-deps', 'api-contract', 'complexity', 'fix-preview', 'llm-slop', 'token-bleed', 'production-leak', 'fiction-kpi', 'architecture-drift'],
-    // Legacy tier aliases for backward compatibility
-    executive: ['gate', 'consolidation', 'mock-data', 'roadmap', 'codebase', 'file-reduction', 'data-quality', 'cleanup', 'npm-audit', 'compliance', 'eu-ai-act', 'dependency-vulns', 'build-readiness', 'ai-indicators', 'governance', 'junk-files', 'ai-residue', 'performance', 'type-safety', 'documentation', 'test-coverage', 'accessibility', 'i18n', 'sensitive-data', 'config-drift', 'security-headers', 'database-patterns', 'framework-practices', 'workspace-health', 'unused-deps', 'api-contract', 'complexity', 'fix-preview'],
-    euai: ['gate', 'consolidation', 'mock-data', 'roadmap', 'codebase', 'file-reduction', 'data-quality', 'cleanup', 'npm-audit', 'compliance', 'eu-ai-act', 'dependency-vulns', 'build-readiness', 'ai-indicators', 'governance', 'junk-files', 'ai-residue', 'performance', 'type-safety', 'documentation', 'test-coverage', 'accessibility', 'i18n', 'sensitive-data', 'config-drift', 'security-headers', 'database-patterns', 'framework-practices', 'workspace-health', 'unused-deps', 'api-contract', 'complexity', 'fix-preview'],
-    euSprint: ['gate', 'consolidation', 'mock-data', 'roadmap', 'codebase', 'file-reduction', 'data-quality', 'cleanup', 'npm-audit', 'compliance', 'eu-ai-act', 'dependency-vulns', 'build-readiness', 'ai-indicators', 'governance', 'junk-files', 'ai-residue', 'performance', 'type-safety', 'documentation', 'test-coverage', 'accessibility', 'i18n', 'sensitive-data', 'config-drift', 'security-headers', 'database-patterns', 'framework-practices', 'workspace-health', 'unused-deps', 'api-contract', 'complexity', 'fix-preview'],
-    universal: ['gate', 'consolidation', 'mock-data', 'roadmap', 'codebase', 'file-reduction', 'data-quality', 'cleanup', 'npm-audit', 'compliance', 'eu-ai-act', 'dependency-vulns', 'build-readiness', 'ai-indicators', 'governance', 'junk-files', 'ai-residue', 'performance', 'type-safety', 'documentation', 'test-coverage', 'accessibility', 'i18n', 'sensitive-data', 'config-drift', 'security-headers', 'database-patterns', 'framework-practices', 'workspace-health', 'unused-deps', 'api-contract', 'complexity', 'fix-preview', 'llm-slop', 'token-bleed', 'production-leak', 'fiction-kpi', 'architecture-drift', 'sync-io', 'eval-danger', 'inner-html-xss', 'prototype-pollution', 'unhandled-promise', 'magic-number', 'missing-strict-mode', 'uninitialized-read', 'unvalidated-redirect', 'missing-rate-limit', 'insecure-random', 'logging-secrets', 'hardcoded-confidence', 'hardcoded-completion', 'mock-path-leak', 'sample-json-ref', 'governance-marker', 'ai-placeholder-comment', 'ai-placeholder-block', 'markdown-fence-leak', 'empty-stub-function', 'arrow-stub', 'roadmap-marker'],
-    admin: ['gate', 'consolidation', 'mock-data', 'roadmap', 'codebase', 'file-reduction', 'data-quality', 'cleanup', 'npm-audit', 'compliance', 'eu-ai-act', 'dependency-vulns', 'build-readiness', 'ai-indicators', 'governance', 'junk-files', 'ai-residue', 'performance', 'type-safety', 'documentation', 'test-coverage', 'accessibility', 'i18n', 'sensitive-data', 'config-drift', 'security-headers', 'database-patterns', 'framework-practices', 'workspace-health', 'unused-deps', 'api-contract', 'complexity', 'fix-preview', 'llm-slop', 'token-bleed', 'production-leak', 'fiction-kpi', 'architecture-drift', 'sync-io', 'eval-danger', 'inner-html-xss', 'prototype-pollution', 'unhandled-promise', 'magic-number', 'missing-strict-mode', 'uninitialized-read', 'unvalidated-redirect', 'missing-rate-limit', 'insecure-random', 'logging-secrets', 'hardcoded-confidence', 'hardcoded-completion', 'mock-path-leak', 'sample-json-ref', 'governance-marker', 'ai-placeholder-comment', 'ai-placeholder-block', 'markdown-fence-leak', 'empty-stub-function', 'arrow-stub', 'roadmap-marker']
+    locked: ALL_MODULES,
+    community: ALL_MODULES,
+    starter: ALL_MODULES,
+    instant: ALL_MODULES,
+    pro: ALL_MODULES,
+    aislopcop: ALL_MODULES,
+    team: ALL_MODULES,
+    enterprise: ALL_MODULES,
+    executive: ALL_MODULES,
+    euai: ALL_MODULES,
+    euSprint: ALL_MODULES,
+    universal: ALL_MODULES,
+    admin: ALL_MODULES
 };
 
 const numToId = {
@@ -220,7 +220,10 @@ function syncModuleSelectionFromTier() {
             }
         }
     }
-    if (!allowed) allowed = TIER_MODULE_MAP[tier] || TIER_MODULE_MAP.locked;
+    if (!allowed) {
+        const paidTiers = ['developer','pro','team','enterprise','startup','growth'];
+        allowed = paidTiers.includes(tier) ? (TIER_MODULE_MAP.universal || TIER_MODULE_MAP.admin || []) : (TIER_MODULE_MAP[tier] || TIER_MODULE_MAP.locked);
+    }
     // console.log('[syncModuleSelectionFromTier] tier:', tier, 'allowed count:', allowed ? allowed.length : 0);
     selectedModules.clear();
     Array.from(analyzerCardGrid.children).forEach(card => {
@@ -256,9 +259,10 @@ function renderTokenInspector(payload) {
     const allModules = TIER_MODULE_MAP.universal || [];
     const customFeatures = Array.isArray(payload.features) ? payload.features : (Array.isArray(payload.modules) ? payload.modules : null);
     const numToId = {'1':'gate','2':'consolidation','3':'mock-data','4':'roadmap','5':'codebase','6':'file-reduction','7':'data-quality','8':'cleanup','9':'npm-audit','10':'compliance','11':'eu-ai-act','12':'dependency-vulns','13':'build-readiness','14':'ai-indicators','15':'governance','16':'junk-files','17':'ai-residue','18':'performance','19':'type-safety','20':'documentation','21':'test-coverage','22':'accessibility','23':'i18n','24':'sensitive-data','25':'config-drift','26':'security-headers','27':'database-patterns','28':'framework-practices','29':'workspace-health','30':'unused-deps','31':'api-contract','32':'complexity'};
+    const paidTiers = ['developer','pro','team','enterprise','startup','growth'];
     const allowed = (tier === 'custom' && customFeatures)
         ? customFeatures.map(m => numToId[m] || m).filter(m => allModules.includes(m))
-        : (TIER_MODULE_MAP[tier] || TIER_MODULE_MAP.locked || []);
+        : (TIER_MODULE_MAP[tier] || (paidTiers.includes(tier) ? (TIER_MODULE_MAP.universal || []) : TIER_MODULE_MAP.locked) || []);
 
     // Tier badge
     tierBadge.textContent = config.label || tier;

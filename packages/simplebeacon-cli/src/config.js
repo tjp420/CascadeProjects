@@ -388,22 +388,44 @@ function loadSimplebeaconConfig(baseDir, configPath = null) {
 }
 
 function isRuleEnabled(config, ruleName) {
-    return config?.rules?.[ruleName]?.enabled !== false;
+    const rule = config?.rules?.[ruleName];
+    if (!rule) return false;
+    return rule.enabled !== false;
 }
 
 function getRuleOptions(config, ruleName) {
     return config?.rules?.[ruleName] || {};
 }
 
+/** Rule engines available on the Free tier. All others require Pro+. */
+const FREE_RULE_ENGINES = new Set([
+    'credentials',
+    'production-leak',
+    'llm-slop-patterns',
+    'dead-code',
+    'security-patterns'
+]);
+
 function sanitizeConfigForTier(config, tier) {
     const limits = getTierLimits(tier) || {};
     const sanitized = { ...config };
+    const normalizedTier = String(tier || 'developer').toLowerCase();
+    const isFree = normalizedTier === 'developer' || normalizedTier === 'free';
 
     if (!limits.customConfig) {
         delete sanitized.scanners;
         delete sanitized.allowlist;
         const profile = sanitized.profile || 'standard';
-        sanitized.rules = { ...PROFILE_RULES[profile] || PROFILE_RULES.standard };
+        const profileRules = { ...PROFILE_RULES[profile] || PROFILE_RULES.standard };
+        // Preserve user-disabled rules so they can suppress false positives
+        if (config.rules) {
+            for (const [ruleName, userRule] of Object.entries(config.rules)) {
+                if (userRule && userRule.enabled === false) {
+                    profileRules[ruleName] = { ...profileRules[ruleName], enabled: false };
+                }
+            }
+        }
+        sanitized.rules = profileRules;
     } else {
         // Preserve user-disabled rules so they can suppress false positives
         if (config.rules) {
@@ -415,6 +437,15 @@ function sanitizeConfigForTier(config, tier) {
         }
         if (!limits.allowlist) {
             delete sanitized.allowlist;
+        }
+    }
+
+    // Free tier: filter to 5 basic engines only
+    if (isFree && sanitized.rules) {
+        for (const ruleName of Object.keys(sanitized.rules)) {
+            if (!FREE_RULE_ENGINES.has(ruleName)) {
+                sanitized.rules[ruleName] = { ...sanitized.rules[ruleName], enabled: false };
+            }
         }
     }
 

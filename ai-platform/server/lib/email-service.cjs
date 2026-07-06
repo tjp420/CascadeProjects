@@ -1,12 +1,13 @@
 /**
- * Email service — Resend REST API → SMTP fallback → disk queue fallback.
+ * Email service — Cloudflare Email Sending → Resend REST API → SMTP fallback → disk queue fallback.
  *
  * Priority:
- *   1. Resend REST API (requires RESEND_API_KEY)
- *   2. SMTP via nodemailer (requires SMTP_HOST, SMTP_USER, SMTP_PASS)
- *   3. Queue JSON to disk for later retry
+ *   1. Cloudflare Email Sending REST API (requires CF_API_TOKEN, CF_ACCOUNT_ID)
+ *   2. Resend REST API (requires RESEND_API_KEY)
+ *   3. SMTP via nodemailer (requires SMTP_HOST, SMTP_USER, SMTP_PASS)
+ *   4. Queue JSON to disk for later retry
  *
- * Env: RESEND_API_KEY, RESEND_FROM, SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM, SMTP_SECURE
+ * Env: CF_API_TOKEN, CF_ACCOUNT_ID, CF_EMAIL_FROM, RESEND_API_KEY, RESEND_FROM, SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM, SMTP_SECURE
  */
 
 const https = require('https');
@@ -37,6 +38,14 @@ function ensureQueueDir() {
  * Get resend config.
  * @returns {any}
  */
+function getCloudflareConfig() {
+  const apiToken = process.env.CF_API_TOKEN || '';
+  const accountId = process.env.CF_ACCOUNT_ID || '';
+  if (!apiToken || !accountId) return null;
+  const from = process.env.CF_EMAIL_FROM || 'certificates@simplebeacon.ai';
+  return { apiToken, accountId, from };
+}
+
 function getResendConfig() {
   const key = process.env.RESEND_API_KEY || process.env.SMTP_PASS || '';
   if (!key.startsWith('re_')) return null;
@@ -85,6 +94,50 @@ function createTransporter() {
  * @param {Array} attachments
  * @returns {any}
  */
+function sendViaCloudflare({ to, from, subject, text, html }) {
+  return new Promise((resolve, reject) => {
+    const cfg = getCloudflareConfig();
+    if (!cfg) return reject(new Error('Cloudflare Email not configured'));
+
+    const body = JSON.stringify({
+      from,
+      to: Array.isArray(to) ? to : [to],
+      subject,
+      text: text || undefined,
+      html: html || undefined
+    });
+
+    const req = https.request({
+      hostname: 'api.cloudflare.com',
+      path: `/client/v4/accounts/${cfg.accountId}/email/sending/send`,
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${cfg.apiToken}`,
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(body)
+      }
+    }, (res) => {
+      let data = '';
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          try {
+            const json = JSON.parse(data);
+            resolve({ id: json.result?.messageId || json.result?.id || null });
+          } catch {
+            resolve({ id: null });
+          }
+        } else {
+          reject(new Error(`Cloudflare Email API error ${res.statusCode}: ${data}`));
+        }
+      });
+    });
+    req.on('error', reject);
+    req.write(body);
+    req.end();
+  });
+}
+
 function sendViaResend({ to, from, subject, text, html, attachments = [] }) {
   return new Promise((resolve, reject) => {
     const cfg = getResendConfig();
@@ -176,17 +229,31 @@ async function sendEmail(options = {}) {
     return { sent: false, queued: false, error: 'to and subject are required' };
   }
 
+  // 1. Cloudflare Email Sending
+  const cfCfg = getCloudflareConfig();
+  if (cfCfg) {
+    try {
+      const result = await sendViaCloudflare({ to, from: cfCfg.from, subject, text, html });
+      return { sent: true, queued: false, id: result.id, provider: 'cloudflare' };
+    } catch (err) {
+      console.error('[Email] Cloudflare failed:', err.message);
+      // fall through to Resend
+    }
+  }
+
+  // 2. Resend REST API
   const cfg = getResendConfig();
   if (cfg) {
     try {
       const result = await sendViaResend({ to, from: cfg.from, subject, text, html, attachments });
-      return { sent: true, queued: false, id: result.id };
+      return { sent: true, queued: false, id: result.id, provider: 'resend' };
     } catch (err) {
       console.error('[Email] Resend API failed'); // simplebeacon-ignore pii-logging — error detail removed
       // fall through to SMTP
     }
   }
 
+  // 3. SMTP fallback
   const transporter = createTransporter();
   if (transporter) {
     try {
@@ -205,14 +272,15 @@ async function sendEmail(options = {}) {
         }));
       }
       await transporter.sendMail(mailOptions);
-      return { sent: true, queued: false };
+      return { sent: true, queued: false, provider: 'smtp' };
     } catch (err) {
       console.error('[Email] SMTP send failed:', err.message);
       // fall through to queue
     }
   }
 
-  return queueEmailToDisk({ to, subject, text, html, attachments });
+  // 4. Disk queue fallback
+  return { ...queueEmailToDisk({ to, subject, text, html, attachments }), provider: 'queued' };
 }
 
-module.exports = { sendEmail, getResendConfig, getSmtpConfig, QUEUE_DIR };
+module.exports = { sendEmail, getCloudflareConfig, getResendConfig, getSmtpConfig, QUEUE_DIR };

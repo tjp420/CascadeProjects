@@ -393,7 +393,7 @@ export class AuditView {
           actions: [{ label: 'Retry', id: 'audit-retry', className: 'btn-primary' }]
         })}
       `;
-      el.querySelector('#audit-retry')?.addEventListener('click', () => this.reload(el.parentElement));
+      el.querySelector('#audit-retry')?.addEventListener('click', () => this.reload(el.parentElement), { once: true });
       return el;
     }
 

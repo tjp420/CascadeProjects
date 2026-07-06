@@ -4,10 +4,12 @@
 
 const express = require('express');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const router = express.Router();
 const systemLogger = require('../lib/system-logger.cjs');
 const { getDb } = require('../lib/db.cjs');
 const { hashToken } = require('../lib/token-chain-store.cjs');
+const { sendEmail } = require('../services/email.cjs');
 
 const logger = {
     error: (...a) => { const c = globalThis.console; c.error(...a); }
@@ -46,7 +48,8 @@ function generateLicenseToken(payload, secret, expiresInMinutes) {
         tier: payload.tier || 'executive',
         features: payload.features || [],
         clientName: payload.clientName || payload.email || 'Client',
-        projectName: payload.projectName || 'Project'
+        projectName: payload.projectName || 'Project',
+        jti: crypto.randomUUID ? crypto.randomUUID() : crypto.randomBytes(16).toString('hex')
     };
     if (payload.previousToken) tokenPayload.previousToken = payload.previousToken;
     return jwt.sign(tokenPayload, secret, { expiresIn: expiresInMinutes * 60 });
@@ -70,9 +73,10 @@ function revokeFreeToken(email) {
     db.prepare("UPDATE free_tokens SET revoked = 1 WHERE email = ?").run(email.trim().toLowerCase());
 }
 
-function handleFreeToken(req, res) {
+async function handleFreeToken(req, res) {
     const now = Date.now();
     const email = (req.body?.email || req.query?.email || '').trim().toLowerCase();
+    const sendEmailFlag = req.body?.sendEmail === true || req.query?.sendEmail === 'true';
 
     if (!email || !email.includes('@')) {
         return res.status(400).json({ error: 'Valid email required for free token generation' });
@@ -91,16 +95,11 @@ function handleFreeToken(req, res) {
             const createdAt = new Date(existing.created_at).getTime();
             if ((now - createdAt) < FREE_TOKEN_COOLDOWN_MS) {
                 const remainingMin = Math.ceil((FREE_TOKEN_COOLDOWN_MS - (now - createdAt)) / 60000);
-                return res.json({
-                    success: true,
-                    token: existing.token,
-                    certUrl: `${PUBLIC_URL}/certificate-upload.html?token=${encodeURIComponent(existing.token)}`,
-                    tier: 'community',
-                    label: 'AI Slop Audit',
-                    expiresInDays: 1,
-                    cached: true,
+                return res.status(429).json({
+                    success: false,
+                    error: 'Rate limit exceeded',
                     retryAfterMinutes: remainingMin,
-                    message: `Free token already issued. Reuse this token or wait ${remainingMin} minutes for a new one.`
+                    message: `Free token already issued. Check your inbox or wait ${remainingMin} minutes for a new one.`
                 });
             }
         }
@@ -120,6 +119,24 @@ function handleFreeToken(req, res) {
         const certUrl = `${PUBLIC_URL}/certificate-upload.html?token=${encodeURIComponent(token)}`;
         setFreeTokenRecord(email, token, hashToken(token), expiresAt);
         systemLogger.logTokenOp('free_token_generated', { email, tier: 'community', clientIp: req.ip || req.socket?.remoteAddress || 'unknown' });
+
+        // Email the token when requested by the UI
+        if (sendEmailFlag) {
+            try {
+                const emailResult = await sendEmail({
+                    to: email,
+                    subject: 'Your SimpleBeacon Free Token',
+                    text: `Your free SimpleBeacon token is:\n\n${token}\n\nPaste this token into the audit page to run a Gate Scan. This token is valid for 24 hours.\n\nAudit URL: ${certUrl}`,
+                    html: `<p>Your free SimpleBeacon token is:</p><p><code style="word-break:break-all;">${token}</code></p><p>Paste this token into the audit page to run a Gate Scan. This token is valid for 24 hours.</p><p><a href="${certUrl}">Open Audit Page</a></p>`
+                });
+                if (!emailResult.sent && !emailResult.queued) {
+                    logger.error('[FreeToken] Email could not be sent or queued:', emailResult.error);
+                }
+            } catch (emailError) {
+                logger.error('[FreeToken] Failed to send email:', emailError.message);
+            }
+        }
+
         res.json({
             success: true,
             token,
@@ -128,7 +145,10 @@ function handleFreeToken(req, res) {
             label: 'AI Slop Audit',
             expiresInDays: 1,
             cached: false,
-            message: 'Free community token generated. Valid for 24 hours.'
+            emailed: sendEmailFlag,
+            message: sendEmailFlag
+                ? 'Free community token generated and emailed. Valid for 24 hours.'
+                : 'Free community token generated. Valid for 24 hours.'
         });
     } catch (error) {
         logger.error('[FreeToken] Token generation failed:', error.message);
@@ -140,7 +160,7 @@ function handleFreeToken(req, res) {
 const SANDBOX_TOKEN_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour per IP
 const sandboxLog = new Map(); // ip -> { token, createdAt }
 
-function handleSandboxToken(req, res) {
+async function handleSandboxToken(req, res) {
     const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown';
     const now = Date.now();
     const email = req.body?.email || req.query?.email || '';
@@ -148,14 +168,11 @@ function handleSandboxToken(req, res) {
 
     if (existing && (now - existing.createdAt) < SANDBOX_TOKEN_COOLDOWN_MS) {
         const remainingMin = Math.ceil((SANDBOX_TOKEN_COOLDOWN_MS - (now - existing.createdAt)) / 60000);
-        return res.json({
-            success: true,
-            token: existing.token,
-            tier: 'sandbox',
-            expiresInDays: 14,
-            cached: true,
+        return res.status(429).json({
+            success: false,
+            error: 'Rate limit exceeded',
             retryAfterMinutes: remainingMin,
-            message: `Sandbox token already issued. Reuse this token or wait ${remainingMin} minutes for a new one.`
+            message: `Sandbox token already issued for this IP. Check your inbox or wait ${remainingMin} minutes for a new one.`
         });
     }
 
@@ -171,9 +188,10 @@ function handleSandboxToken(req, res) {
             return res.status(400).json({ error: 'Valid email required for sandbox token generation' });
         }
 
+        const normalizedEmail = email.trim().toLowerCase();
         const token = generateLicenseToken(
             {
-                email: email.trim().toLowerCase(),
+                email: normalizedEmail,
                 tier: 'sandbox',
                 projectName: 'Developer-Sandbox',
                 clientName: 'Developer',
@@ -182,14 +200,33 @@ function handleSandboxToken(req, res) {
             secret,
             14 * 24 * 60 // 14 days
         );
-        sandboxLog.set(clientIp, { token, createdAt: now, email });
+        const certUrl = `${PUBLIC_URL}/certificate-upload.html?token=${encodeURIComponent(token)}`;
+        sandboxLog.set(clientIp, { token, createdAt: now, email: normalizedEmail });
+
+        // Sandbox tokens are always emailed
+        try {
+            const emailResult = await sendEmail({
+                to: normalizedEmail,
+                subject: 'Your SimpleBeacon Sandbox Token',
+                text: `Your SimpleBeacon sandbox token is:\n\n${token}\n\nPaste this token into the audit page to run a sandbox scan. This token is valid for 14 days.\n\nAudit URL: ${certUrl}`,
+                html: `<p>Your SimpleBeacon sandbox token is:</p><p><code style="word-break:break-all;">${token}</code></p><p>Paste this token into the audit page to run a sandbox scan. This token is valid for 14 days.</p><p><a href="${certUrl}">Open Audit Page</a></p>`
+            });
+            if (!emailResult.sent && !emailResult.queued) {
+                logger.error('[SandboxToken] Email could not be sent or queued:', emailResult.error);
+            }
+        } catch (emailError) {
+            logger.error('[SandboxToken] Failed to send email:', emailError.message);
+        }
+
         res.json({
             success: true,
             token,
+            certUrl,
             tier: 'sandbox',
             expiresInDays: 14,
             cached: false,
-            message: 'Developer sandbox token generated. Valid for 14 days with usage limits.'
+            emailed: true,
+            message: 'Developer sandbox token generated and emailed. Valid for 14 days with usage limits.'
         });
     } catch (error) {
         logger.error('[SandboxToken] Token generation failed:', error.message);

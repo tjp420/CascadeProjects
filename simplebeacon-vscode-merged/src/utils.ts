@@ -80,7 +80,6 @@ export {
 export {
   deepClone,
   clone,
-  isDefined,
   pick,
   omit,
   isEmpty,
@@ -156,6 +155,7 @@ export {
   waterfall,
   timeout,
   retryWithBackoff,
+  createDeferred,
 } from './utils/async';
 
 // ── FS helpers ───────────────────────────────────────────────────
@@ -193,6 +193,7 @@ export {
 
 // ── Type guards ──────────────────────────────────────────────────
 export {
+  isDefined,
   isString,
   isNumber,
   isBoolean,
@@ -209,6 +210,7 @@ export {
   isSymbol,
   isMap,
   isSet,
+  isPlainObject,
 } from './utils/type-guards';
 
 // ── Misc helpers ─────────────────────────────────────────────────
@@ -231,39 +233,61 @@ export {
 // ── JSON helpers ─────────────────────────────────────────────────
 export {
   parseJsonSafe,
+  parseResponseJson,
   stringifySafe,
   isJson,
 } from './utils/json';
+
+// ── Clipboard helpers ────────────────────────────────────────────
+export {
+  copyToClipboard,
+  readFromClipboard,
+} from './utils/clipboard';
+
+// ── Theme helpers ──────────────────────────────────────────────────
+export {
+  getThemeColor,
+  prefersDarkMode,
+  prefersLightMode,
+  prefersReducedMotion,
+  hexToRgba,
+  shadeColor,
+  contrastColor,
+} from './utils/theme';
+
+// ── Event helpers ─────────────────────────────────────────────────
+export {
+  createEventBus,
+  createBroadcastChannel,
+} from './utils/event';
+
+// ── Polling helpers ──────────────────────────────────────────────
+export {
+  createPoller,
+} from './utils/polling';
+
+// ── Inline barrel-native utilities ────────────────────────────────
+export {
+  compose,
+  pipe,
+  zipWith,
+  curry,
+  partial,
+  tap,
+  flip,
+  assert,
+  tryCatch,
+} from './utils/index';
 
 // ── Namespace for grouped access ─────────────────────────────────
 /**
  * Re-export all utilities under a single namespace for convenient
  * IDE autocompletion and `Utils.*` style usage.
  */
-import * as VSCode from './utils/vscode';
-import * as StringUtils from './utils/string';
-import * as NumberUtils from './utils/number';
-import * as ObjectUtils from './utils/object';
-import * as ArrayUtils from './utils/array';
-import * as AsyncUtils from './utils/async';
-import * as FsUtils from './utils/fs';
-import * as NetworkUtils from './utils/network';
-import * as PathUtils from './utils/path';
-import * as MiscUtils from './utils/misc';
-import * as JsonUtils from './utils/json';
-import * as TypeGuardUtils from './utils/type-guards';
+// Re-export the canonical Utils namespace from the barrel index to avoid drift.
+export { Utils } from './utils/index';
 
-export namespace Utils {
-  export const vscode = VSCode;
-  export const string = StringUtils;
-  export const number = NumberUtils;
-  export const object = ObjectUtils;
-  export const array = ArrayUtils;
-  export const async = AsyncUtils;
-  export const fs = FsUtils;
-  export const network = NetworkUtils;
-  export const path = PathUtils;
-  export const misc = MiscUtils;
-  export const json = JsonUtils;
-  export const typeGuards = TypeGuardUtils;
-}
+// Re-export barrel helpers from index.ts for API consistency
+export { freezeNamespace, getExportNames, getNamespaceNames, getBarrelMeta, validateBarrelIntegrity } from './utils/index';
+export type { BarrelMeta } from './utils/index';
+export { __barrel__ } from './utils/index';

@@ -1,0 +1,9 @@
+ai-platform/src/api/simplebeacon-billing-api-original.cjs(1,8): error TS1434: Unexpected keyword or identifier.
+ai-platform/src/api/simplebeacon-billing-api-original.cjs(1,64): error TS1005: ';' expected.
+ai-platform/src/api/simplebeacon-billing-api-original.cjs(1,76): error TS1005: ';' expected.
+ai-platform/src/api/simplebeacon-billing-api-original.cjs(2,7): error TS1434: Unexpected keyword or identifier.
+ai-platform/src/api/simplebeacon-billing-api-original.cjs(2,11): error TS1434: Unexpected keyword or identifier.
+ai-platform/src/api/simplebeacon-billing-api-original.cjs(2,15): error TS1434: Unexpected keyword or identifier.
+ai-platform/src/api/simplebeacon-billing-api-original.cjs(2,76): error TS1005: ';' expected.
+ai-platform/src/api/simplebeacon-billing-api-original.cjs(2,126): error TS1109: Expression expected.
+ai-platform/src/api/simplebeacon-billing-api-original.cjs(3,1): error TS1005: ':' expected.

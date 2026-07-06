@@ -34,6 +34,20 @@ test('scanTextPatterns ignores fence-detector regex definitions', () => {
     );
 });
 
+test('scanTextPatterns ignores markdown fences inside JSDoc blocks', () => {
+    const content = [
+        '/**',
+        ' * Example usage:',
+        ' * ```js',
+        ' * const x = 1;',
+        ' * ```',
+        ' */',
+        'module.exports = {};',
+    ].join('\n');
+    const hits = scanTextPatterns('src/util.js', content, '.js');
+    assert.equal(hits.filter((h) => h.pattern === 'SB-FICTION-002').length, 0);
+});
+
 test('scanTextPatterns flags lorem ipsum UI copy', () => {
     const content = '<p>Lorem Ipsum Dolor sit amet</p>\n';
     const hits = scanTextPatterns('web/index.html', content, '.html');

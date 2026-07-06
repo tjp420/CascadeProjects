@@ -1,4 +1,5 @@
 import { formatNumber, formatPercent, escapeHtml, renderEmptyState, showToast } from '../utils.js';
+import { authService } from '../services/authService.js';
 import { buildScanConclusion, getScanFileMetrics, resolveDisplayScore, resolveJestTestsLabel, resolvePageSpecsLabel, renderScanScopePanel } from '../services/analyzeService.js';
 import { renderScanStatus, updateScanStatusDom, bindScanStatus, runDashboardScanFromInput } from '../components/ScanStatus.js?v=20260613dropfix2';
 import { renderIssueList } from '../components/IssueCard.js';
@@ -270,6 +271,10 @@ export class DashboardView {
         bindQuickActions(actionsSlot, {
             onRunScan: () => runDashboardScanFromInput(scanSlot.querySelector('#scan-root-input'), scanHandlers),
             onExport: () => {
+                if (!authService.canExport()) {
+                    showToast('Exporting reports requires a paid license. View pricing to upgrade.', 'info');
+                    return;
+                }
                 if (isDemoMode()) {
                     this.app.scanService.exportDashboard({
                         report: this.app.state.report,

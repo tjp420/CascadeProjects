@@ -105,21 +105,6 @@ function envJson(key, fallback) {
   }
 }
 
-/**
- * Parse a string into a boolean with explicit truthy/falsy mappings.
- * @param {string|boolean|number} str
- * @returns {boolean | undefined}
- */
-function parseBoolean(str) {
-  if (typeof str === 'boolean') return str;
-  if (typeof str === 'number') return str !== 0;
-  if (typeof str !== 'string') return undefined;
-  const lowered = str.toLowerCase().trim();
-  if (['true', '1', 'yes', 'on'].includes(lowered)) return true;
-  if (['false', '0', 'no', 'off'].includes(lowered)) return false;
-  return undefined;
-}
-
 module.exports = Object.freeze({
   isDevelopment,
   isProduction,

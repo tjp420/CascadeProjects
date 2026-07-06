@@ -7,7 +7,7 @@
  * @param {Blob} blob
  * @param {string} filename
  */
-function normalDownload(blob, filename) {
+export function normalDownload(blob, filename) {
   if (!(blob instanceof Blob)) {
     throw new Error('Download is unavailable: invalid blob.');
   }

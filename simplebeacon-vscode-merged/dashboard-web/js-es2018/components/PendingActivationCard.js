@@ -1,5 +1,4 @@
 import { showToast } from '../utils.js';
-
 /**
  * Reusable pending-activation fallback card.
  *
@@ -9,17 +8,17 @@ import { showToast } from '../utils.js';
  * landing pages.
  */
 export class PendingActivationCard {
-  constructor({ sessionId, tier, onRefresh, onContactSupport } = {}) {
-    this.sessionId = sessionId || '';
-    this.tier = tier || 'premium';
-    this.onRefresh = onRefresh || (() => {});
-    this.onContactSupport = onContactSupport || (() => {});
-  }
-
-  render() {
-    const el = document.createElement('div');
-    el.className = 'pending-activation-card fade-in';
-    el.innerHTML = `
+    constructor({ sessionId, tier, onRefresh, onContactSupport } = {}) {
+        this.sessionId = sessionId || '';
+        this.tier = tier || 'premium';
+        this.onRefresh = onRefresh || (() => { });
+        this.onContactSupport = onContactSupport || (() => { });
+    }
+    render() {
+        var _a, _b;
+        const el = document.createElement('div');
+        el.className = 'pending-activation-card fade-in';
+        el.innerHTML = `
       <style>
         .pending-activation-card {
           background: linear-gradient(145deg, rgba(30,41,59,0.6), rgba(15,23,42,0.5));
@@ -149,35 +148,33 @@ export class PendingActivationCard {
         </button>
       </div>
     `;
-
-    el.querySelector('#pending-refresh-btn')?.addEventListener('click', () => {
-      const btn = el.querySelector('#pending-refresh-btn');
-      if (btn) {
-        btn.disabled = true;
-        btn.textContent = 'Checking…';
-      }
-      this.onRefresh()
-        .then((upgraded) => {
-          if (upgraded) {
-            showToast('Account activated — refreshing page…', 'success');
-            setTimeout(() => window.location.reload(), 1200);
-          } else {
-            showToast('Still processing. Please wait a moment and try again.', 'info');
-          }
-        })
-        .catch(() => showToast('Refresh failed. Please retry.', 'error'))
-        .finally(() => {
-          if (btn) {
-            btn.disabled = false;
-            btn.textContent = '🔄 Check Again';
-          }
+        (_a = el.querySelector('#pending-refresh-btn')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => {
+            const btn = el.querySelector('#pending-refresh-btn');
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = 'Checking…';
+            }
+            this.onRefresh()
+                .then((upgraded) => {
+                if (upgraded) {
+                    showToast('Account activated — refreshing page…', 'success');
+                    setTimeout(() => window.location.reload(), 1200);
+                }
+                else {
+                    showToast('Still processing. Please wait a moment and try again.', 'info');
+                }
+            })
+                .catch(() => showToast('Refresh failed. Please retry.', 'error'))
+                .finally(() => {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = '🔄 Check Again';
+                }
+            });
         });
-    });
-
-    el.querySelector('#pending-support-btn')?.addEventListener('click', () => {
-      this.onContactSupport();
-    });
-
-    return el;
-  }
+        (_b = el.querySelector('#pending-support-btn')) === null || _b === void 0 ? void 0 : _b.addEventListener('click', () => {
+            this.onContactSupport();
+        });
+        return el;
+    }
 }

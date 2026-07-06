@@ -38,6 +38,24 @@ export function stringifySafe(value: unknown, space?: number | string): string {
 }
 
 /**
+ * Safely parse JSON from a fetch Response, returning a fallback on failure.
+ * @param {Response} res
+ * @param {any} [fallback]
+ * @returns {Promise<any>}
+ */
+export async function parseResponseJson(res: Response, fallback?: any): Promise<any> {
+  const contentType = String(res.headers?.get('content-type') || '').toLowerCase();
+  if (!contentType.includes('application/json')) return fallback ?? {};
+  const text = await res.text();
+  if (!text) return fallback ?? {};
+  try {
+    return JSON.parse(text);
+  } catch {
+    return fallback ?? {};
+  }
+}
+
+/**
  * Check whether a string is valid JSON.
  * @param {string} text
  * @returns {boolean}

@@ -118,7 +118,8 @@ router.post('/api/test-checkout', async (req, res) => {
             eu_ai_act_sprint: { label: 'EU AI Act Sprint', days: 30, tier: 'euai' },
             runtime_shield: { label: 'Runtime Shield', days: 30, tier: 'universal' },
             custom_plan: { label: 'Custom Audit Plan', days: 90, tier: 'custom' },
-            team: { label: 'AI Slop Cop Team', days: 30, tier: 'team' },
+            pro: { label: 'SimpleBeacon Pro', days: 30, tier: 'pro' },
+            team: { label: 'SimpleBeacon Team', days: 30, tier: 'team' },
             enterprise: { label: 'AI Slop Cop Enterprise', days: 30, tier: 'enterprise' }
         };
         const VALID_TIERS = Object.keys(tierMap);

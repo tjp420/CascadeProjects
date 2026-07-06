@@ -23,7 +23,9 @@ module.exports = {
   },
   testMatch: [
     '<rootDir>/tests/**/*.test.js',
-    '<rootDir>/tests/**/*.spec.js'
+    '<rootDir>/tests/**/*.spec.js',
+    '<rootDir>/server/**/__tests__/**/*.test.cjs',
+    '<rootDir>/src/**/__tests__/**/*.test.cjs'
   ],
   testPathIgnorePatterns: [
     '/node_modules/',

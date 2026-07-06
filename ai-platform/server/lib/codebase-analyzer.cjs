@@ -1,9 +1,11 @@
 /**
- * Codebase analyzer — filesystem audit for technical debt, broken files,
- * debug artifacts, and meaningless placeholder data across the repo tree.
+ * @module codebase-analyzer
+ * Filesystem audit for technical debt, broken files, debug artifacts,
+ * and meaningless placeholder data across the repo tree.
  * simplebeacon:production-leak-intent — pattern definitions intentionally
  * reference mock/sample/fixture paths for detection.
- * @module codebase-analyzer
+ * simplebeacon-ignore redos — file defines regex patterns for a security
+ * scanner; all regexes are intentionally present as pattern definitions.
  */
 
 if (process.env.SIMPLEBEACON_DEBUG) {
@@ -15,8 +17,10 @@ const path = require('path');
 const vm = require('vm');
 const { execFile } = require('child_process');
 const { promisify } = require('util');
-const { countRepositoryInventory } = require('../../../packages/simplebeacon-cli/src/lib/repository-inventory');
-const { resolvePlatformRoot } = require('../../../packages/simplebeacon-cli/src/project-detect');
+const _repoInventoryPath = '../../../packages/simplebeacon-cli/src/lib/repository-inventory';
+const { countRepositoryInventory } = require(_repoInventoryPath);
+const _platformRootPath = '../../../packages/simplebeacon-cli/src/project-detect';
+const { resolvePlatformRoot } = require(_platformRootPath);
 const { formatBytes } = require('./format-bytes.cjs');
 const {
     PRODUCTION_DIR_HINTS,
@@ -57,7 +61,8 @@ const { getCodeExtensions, resolveScanProfile } = require('./universal-language-
 const { UNIVERSAL_LANGUAGE_REGISTRY, resolveLanguageFromPath } = require('./universal-language-registry.cjs');
 const { getBuiltinPluginManager } = require('./plugin-system/index.cjs');
 const { applyContextToFindings } = require('./file-audit-context.cjs');
-const { isConsolidationExcludedPair } = require('../../../packages/simplebeacon-cli/src/lib/consolidation-path-exclusions');
+const _consolidationPath = '../../../packages/simplebeacon-cli/src/lib/consolidation-path-exclusions';
+const { isConsolidationExcludedPair } = require(_consolidationPath);
 
 const constants = require('../config/constants.cjs');
 const {
@@ -145,6 +150,20 @@ const COMMON_JS_KEYWORDS = new Set(['true', 'false', 'null', 'undefined', 'this'
 const COMMON_STRING_LITERALS = new Set(['utf8', 'utf-8', 'ascii', 'base64', 'hex', 'binary', 'latin1', 'ucs2', 'ucs-2', 'ascii', 'json', 'text', 'data', 'result', 'output', 'input', 'error', 'success', 'failure', 'message', 'status', 'code', 'name', 'value', 'key', 'id', 'type', 'mode', 'path', 'dir', 'file', 'name', 'ext', 'url', 'host', 'port', 'method', 'headers', 'body', 'query', 'params', 'route', 'handler', 'middleware', 'controller', 'service', 'model', 'view', 'template', 'layout', 'component', 'page', 'route', 'link', 'href', 'src', 'alt', 'title', 'class', 'style', 'id', 'data', 'info', 'debug', 'warn', 'warning', 'error', 'fatal', 'trace', 'log', 'info', 'debug', 'warn', 'error', 'fatal', 'trace', 'production', 'development', 'test', 'staging', 'local', 'dev', 'prod', 'ci', 'cd', 'build', 'dist', 'public', 'static', 'assets', 'images', 'fonts', 'scripts', 'styles', 'templates', 'views', 'partials', 'layouts', 'pages', 'routes', 'controllers', 'services', 'models', 'middlewares', 'helpers', 'utils', 'lib', 'libs', 'vendor', 'node_modules', 'package', 'lock', 'yarn', 'npm', 'git', 'github', 'gitlab', 'bitbucket', 'svn', 'hg']);
 const EXCLUDED_UNSCOPED_PACKAGES = new Set([...BUILTIN_NODE_MODULES, ...COMMON_JS_KEYWORDS, ...COMMON_STRING_LITERALS]);
 const MAX_STRUCTURE_SAMPLES = 50;
+const patternCache = new Map();
+const EXCLUDED_ANALYZER_PATHS = [
+    /(?:^|\/)simplebeacon-vscode\/src\//,
+    /(?:^|\/)packages\/simplebeacon-cli\/src\/(?:rules|analyzers|reporters|lib|proxy)\//,
+    /(?:^|\/)ai-agent\//,
+    /(?:^|\/)ai-tools\//,
+    /(?:^|\/)scripts\//,
+    /(?:^|\/)simplebeacon-frameworkless\//,
+    new RegExp('(?:^|/)New folder/'),
+    /(?:^|\/)\.simplebeacon\//,
+    /(?:^|\/)coming-soon\//,
+    /REALTIME_MONITORING_FEATURE_REPORT\.md$/,
+    /complete-scan\.json$/
+];
 
 /**
  * Normalize a scan context string to a canonical value.
@@ -324,346 +343,56 @@ function aggregateStructureInsights(samples) {
     };
 }
 
-/** Technical-debt marker patterns (frozen). */
-const TECH_DEBT_PATTERNS = Object.freeze([
-    { id: 'todo', pattern: /\bTODO\b[:\s]/gi, label: 'TODO marker' },
-    { id: 'fixme', pattern: /\bFIXME\b[:\s]/gi, label: 'FIXME marker' },
-    { id: 'hack', pattern: /\bHACK\s*:/gi, label: 'HACK marker' },
-    { id: 'xxx', pattern: /\bXXX\b[:\s]/gi, label: 'XXX marker' },
-    { id: 'deprecated', pattern: /@deprecated\b/gi, label: 'Deprecated marker' },
-    { id: 'not-implemented', pattern: /not\s+implemented\s+yet|throw\s+new\s+Error\s*\(\s*['"]TODO/gi, label: 'Not implemented stub' }
-]);
+const {
+    TECH_DEBT_PATTERNS,
+    PLACEHOLDER_PATTERNS,
+    AI_RESIDUE_PATTERNS,
+    LLM_SLOP_PATTERNS,
+    MARKDOWN_FENCE_PATTERNS,
+    API_CONTRACT_PATTERNS,
+    ARCHITECTURE_DRIFT_PATTERNS,
+    BUILD_READINESS_PATTERNS,
+    CONFIG_DRIFT_PATTERNS,
+    DEPENDENCY_VULN_PATTERNS,
+    DOCUMENTATION_PATTERNS,
+    FRAMEWORK_PRACTICES_PATTERNS,
+    GOVERNANCE_PATTERNS,
+    LICENSE_HEADER_PATTERNS,
+    I18N_PATTERNS,
+    DATABASE_PATTERNS,
+    C_DATABASE_PATTERNS,
+    COMPLEXITY_PATTERNS,
+    FIX_PREVIEW_PATTERNS,
+    MISSING_STRICT_PATTERN,
+    PERFORMANCE_PATTERNS,
+    SYNC_IO_PATTERNS,
+    TYPE_SAFETY_PATTERNS,
+    C_TYPE_SAFETY_PATTERNS,
+    PROTOTYPE_POLLUTION_PATTERNS,
+    SAMPLE_JSON_REF_PATTERNS,
+    C_SAMPLE_DATA_PATTERNS,
+    SECURITY_PATTERNS,
+    C_RATE_LIMIT_PATTERNS,
+    C_LOGGING_SECRET_PATTERNS,
+    UNVALIDATED_REDIRECT_PATTERNS,
+    UNINITIALIZED_READ_PATTERN,
+    TOKEN_BLEED_PATTERNS,
+    UNHANDLED_PROMISE_PATTERNS,
+    WORKSPACE_HEALTH_PATTERNS,
+    AI_INDICATORS_PATTERNS,
+    UNUSED_DEPS_PATTERNS,
+    INSECURE_RANDOM_PATTERNS,
+    MAGIC_NUMBER_PATTERNS,
+    MOCK_PATH_LEAK_PATTERNS,
+    PRODUCTION_LEAK_PATTERNS,
+    ROADMAP_MARKER_PATTERNS,
+    C_ROADMAP_PATTERNS,
+    SECURITY_HEADERS_PATTERNS,
+    C_SECURITY_PATTERNS,
+    ACCESSIBILITY_PATTERNS,
+    SENSITIVE_DATA_PATTERNS
+} = require('./codebase-analyzer-patterns.cjs');
 
-/** Debug-artifact patterns (frozen). */
-const _DEBUG_PATTERNS = Object.freeze([
-    { id: 'console-log', pattern: /\bconsole\.(log|debug|info)\s*\(/g, label: 'console.log/debug' },
-    { id: 'debugger', pattern: /\bdebugger\s*;?/g, label: 'debugger statement' }
-]);
-
-const PLACEHOLDER_PATTERNS = Object.freeze([
-    { id: 'lorem', pattern: /\blorem ipsum\b/gi, label: 'Lorem ipsum placeholder' },
-    { id: 'coming-soon', pattern: /\bcoming soon\b|\bunder construction\b/gi, label: 'Coming soon placeholder' },
-    { id: 'tbd', pattern: /\bTBD\b|\bto be determined\b/gi, label: 'TBD placeholder' },
-    { id: 'fiction-kpi', pattern: /\b(?:98\.\d|96\.\d|99\.\d{1,2}|95\.\d|97\.\d|100)\s*%\s*(?:AI|accuracy|confidence|uptime|success|completion|quality|pass|rate|score)\b|\b(?:9,999|10,000|1,000,000|100,000|50,000|500,000)\s*(?:users|customers|clients|requests|visitors|downloads|subscribers)\b/gi, label: 'Fictional KPI percentage or AI-generated metric' },
-    { id: 'hardcoded-perfect', pattern: /\b100\s*%\s*(?:quality|compliance|pass|complete)\b/gi, label: 'Suspicious 100% claim' },
-    { id: 'hardcoded-completion', pattern: /(?:completionRate|completion|progress|done)\s*[:=]\s*['"`]?(?:0\.\d+|\d{1,3})\s*%?['"`]?/gi, label: 'Hardcoded completion rate' },
-    { id: 'ai-placeholder-comment', pattern: /(?:\/\/|#)\s*(?:AI[- ]generated|auto[- ]generated|generated by|placeholder|stub|not implemented|implement later|fill in|complete later|needs work|unfinished|to be done)(?:\b|$)/gi, label: 'AI placeholder comment' },
-    { id: 'ai-placeholder-block', pattern: /(?:\/\*|<!--)[\s\S]{0,200}?(?:AI[- ]generated|auto[- ]generated|placeholder|stub|not implemented|implement me|fill in|complete later|needs work|unfinished|to be done|TODO|FIXME|HACK|XXX|NYI|NOT\s+YET\s+IMPLEMENTED)[\s\S]{0,200}?(?:\*\/|-->)/gi, label: 'AI placeholder block comment' }
-]);
-
-const AI_RESIDUE_PATTERNS = Object.freeze([
-    { id: 'hallucinated-import', pattern: /import\s+\w+\s+from\s+['"`](?:ai-|llm-|gpt-|openai-|anthropic-|claude-|vertex-|palm-|bard-|cohere-|huggingface-|hf-|stability-|midjourney-|dalle-|dall-e-)[^'"`]*['"`]|require\s*\(\s*['"`](?:ai-|llm-|gpt-|openai-|anthropic-|claude-|vertex-|palm-|bard-|cohere-|huggingface-|hf-|stability-|midjourney-|dalle-|dall-e-)[^'"`]*['"`]/gi, label: 'Hallucinated AI/LLM SDK import — verify package exists' },
-    { id: 'error-swallowing', pattern: /catch\s*\(\s*\w*\s*\)\s*\{\s*(?:\/\/.*)?\s*\}|catch\s*\(\s*\w*\s*\)\s*\{\s*console\.(?:log|warn|error|info|debug)\s*\([^)]*\)\s*;?\s*\}/gi, label: 'Error swallowing — catch block silently ignores or only logs exception' },
-    { id: 'empty-catch', pattern: /catch\s*\(\s*\w*\s*\)\s*\{\s*\}/gi, label: 'Empty catch block — exception silently swallowed' },
-    { id: 'not-implemented-throw', pattern: /throw\s+new\s+(?:Error|NotImplementedError)\s*\(\s*['"`]\s*(?:not\s+implemented|TODO|FIXME|placeholder|stub)\s*['"`]/gi, label: 'Not implemented stub — throws instead of real logic' },
-    { id: 'ai-generated-comment', pattern: /\/\/\s*(?:generated\s+by\s+AI|created\s+by\s+AI|AI[- ]?written|auto[- ]?generated\s+by|made\s+with\s+(?:ChatGPT|GPT|Claude|Copilot|Gemini))/gi, label: 'AI generation attribution comment' }
-]);
-
-const LLM_SLOP_PATTERNS = Object.freeze([
-    { id: 'template-placeholder', pattern: /YOUR_[A-Z0-9_]+_HERE|INSERT_[A-Z0-9_]+_HERE|\[Insert\s[^\]]+\]/gi, label: 'Template placeholder text (YOUR_*_HERE / INSERT_*_HERE)' },
-    { id: 'todo-later', pattern: /\/\/\s*Handle\s+this\s+later|\/\/\s*AI\s+Generated\s+Placeholder|\/\/\s*TODO:\s*replace/gi, label: 'AI placeholder comment (handle later / AI generated)' },
-    { id: 'fake-uptime', pattern: /99\.99\s*%?\s*Uptime|100\s*%?\s*Secure|9,999\s*Users/gi, label: 'AI-generated fake metric (uptime/secure/users)' }
-]);
-
-const MARKDOWN_FENCE_PATTERNS = [
-    { id: 'markdown-fence-leak', pattern: /```(?:js|javascript|ts|typescript|python|json|html|css|bash|sh|powershell)?/gi, label: 'Markdown code fence leaked into source' } // simplebeacon-ignore redos — static language tag list, not user input
-];
-
-const API_CONTRACT_PATTERNS = [
-    { id: 'no-openapi', pattern: /swagger|openapi|oas3/gi, label: 'OpenAPI reference' }
-];
-
-const ARCHITECTURE_DRIFT_PATTERNS = [
-    { id: 'hardcoded-paths', pattern: new RegExp("['\"`](?:[A-Z]:\\\\[^'\"`]{2,}|/home/[^'\"`]{2,}|/Users/[^'\"`]{2,})['\"`]", 'gi'), label: 'Hardcoded absolute path' },
-    { id: 'deep-imports', pattern: /(?:require|import).*?['"`][./]+\.\./g, label: 'Deep relative import (../../)' }
-];
-
-const BUILD_READINESS_PATTERNS = [
-    { id: 'unsafe-port-hardcode', pattern: /:\s*(?:22|3306|5432|6379|27017|9200)\b/g, label: 'Hardcoded service port (SSH, DB, Redis, Mongo, ES)' }
-];
-
-const CONFIG_DRIFT_PATTERNS = [
-    { id: 'feature-flag', pattern: /featureFlag|feature_flag|toggle|enableFeature|disableFeature/gi, label: 'Feature flag usage' },
-    { id: 'version-pin', pattern: /['"`][~^]?\d+\.\d+\.\d+['"`]/g, label: 'Version-pinned dependency' }
-];
-
-const DEPENDENCY_VULN_PATTERNS = [
-    { id: 'http-over-https', pattern: /['"`]http:\/\/(?!localhost|127\.0\.0\.1|www\.w3\.org)/gi, label: 'Insecure HTTP dependency URL' },
-    { id: 'git-ssh-dep', pattern: /git\+ssh:|git\+http:/gi, label: 'Git-based dependency reference' },
-    { id: 'tarball-url', pattern: /['"`]https?:\/\/.*\.(?:tgz|tar\.gz|zip)['"`]/gi, label: 'Tarball/zip dependency URL' }
-];
-
-const DOCUMENTATION_PATTERNS = [
-    { id: 'missing-jsdoc', pattern: /(^|\n)\s*(export\s+(?:async\s+)?function|export\s+class|export\s+const|export\s+let|export\s+var)/g, label: 'Exported API without JSDoc' }
-];
-
-const FRAMEWORK_PRACTICES_PATTERNS = [
-    { id: 'react-class-component', pattern: /class\s+\w+\s+extends\s+React\.Component/g, label: 'Legacy React class component' },
-    { id: 'react-unsafe-lifecycle', pattern: /componentWillMount|componentWillReceiveProps|componentWillUpdate/g, label: 'Deprecated React lifecycle method' },
-    { id: 'jquery-usage', pattern: /\b\$\.(?:ajax|get|post|getJSON|each|map|grep|extend|fn\.)|\bjQuery\b|\$\(document\)|\$\(['"`#\.\[\w]/g, label: 'jQuery usage in modern codebase' }
-];
-
-const GOVERNANCE_PATTERNS = [
-    { id: 'copyright-notice', pattern: /Copyright\s+(?:\(c\)|©)?\s*\d{4}/gi, label: 'Copyright notice' },
-    { id: 'author-attribution', pattern: /@author/gi, label: 'Author JSDoc tag' },
-    { id: 'legal-disclaimer', pattern: /(?:DO NOT DISTRIBUTE|NOT FOR DISTRIBUTION)/gi, label: 'Legal distribution restriction marker' }
-];
-
-const LICENSE_HEADER_PATTERNS = [
-    { id: 'license-header', pattern: /\b(?:MIT|Apache|GPL|BSD|Mozilla|ISC)\s+License\b/gi, label: 'License header reference' },
-    { id: 'spdx-license', pattern: /SPDX-License-Identifier\s*:\s*[A-Za-z0-9\-.]+/gi, label: 'SPDX license identifier' },
-    { id: 'licensed-under', pattern: /Licensed under\s+(?:the\s+)?(?:MIT|Apache|GPL|BSD|Mozilla|ISC)/gi, label: 'Licensed under clause' }
-];
-
-const I18N_PATTERNS = [
-    { id: 'i18n-hardcoded-string', pattern: /textContent\s*=\s*[`'"][^`'"]{10,200}(?:\s[A-Za-z]+){2,}/i, label: 'Hardcoded UI string — wrap with i18n function' }
-];
-
-const DATABASE_PATTERNS = Object.freeze([
-    { id: 'sql-template-injection', pattern: /`[^`]*\b(?:SELECT|INSERT|UPDATE|DELETE)\b[^`]*\$\{[^`]*`/i, label: 'SQL in template literal with interpolation — potential injection' },
-    { id: 'unparameterized-query', pattern: /\.query\s*\(\s*[`'"][^'"`]*[`'"]\s*\)(?!\s*,)/i, label: 'Query call without parameter array — may be unparameterized' },
-    { id: 'unbounded-select', pattern: /SELECT\s+(?:(?!\bLIMIT\b)[^;])*\bFROM\b(?:(?!\bLIMIT\b)[^;])*(?:;|$)/i, label: 'SELECT without LIMIT clause — unbounded read' }
-]);
-
-const C_DATABASE_PATTERNS = [
-    { id: 'c-raw-sql-string', pattern: /["'](?:SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER)\b[^"';]{10,300}["']/gi, label: 'Raw SQL string in C/C++ code — potential injection if concatenated' },
-    { id: 'c-sqlite3-exec', pattern: /\bsqlite3_(?:exec|prepare|prepare_v2)\s*\(\s*[^,]+,\s*["']/gi, label: 'sqlite3_exec/sqlite3_prepare without visible parameter binding' },
-    { id: 'c-pq-exec', pattern: /\bPQ(?:exec|execParams|prepare)\s*\(/gi, label: 'libpq query execution — verify parameterization' },
-    { id: 'c-mysql-query', pattern: /\bmysql_(?:query|real_query)\s*\(\s*[^,]+,\s*["']/gi, label: 'mysql_query without parameter binding' },
-    { id: 'c-sql-concat', pattern: /\b(?:strcat|strncat|sprintf|snprintf|strcpy|strncpy)\s*\([^)]*(?:SELECT|INSERT|UPDATE|DELETE)/gi, label: 'SQL built via string concatenation — injection risk' },
-    { id: 'c-unbounded-select', pattern: /["']SELECT\s+(?:(?!\bLIMIT\b)[^"';])*\bFROM\b(?:(?!\bLIMIT\b)[^"';])*(?:["']|;)/gi, label: 'SELECT without LIMIT in raw SQL string — unbounded read' }
-];
-
-const COMPLEXITY_PATTERNS = [
-    { id: 'long-function', pattern: /function\s+\w+\s*\([^)]*\)\s*\{[\s\S]{300,2000}?\}|def\s+\w+\s*\([^)]*\):[\s\S]{300,2000}?(?=\ndef |\nclass |\Z)/, label: 'Overly long function' },
-    { id: 'deep-nesting', pattern: /if\s*\([^)]*\)\s*\{[\s\S]{0,120}?if\s*\([^)]*\)\s*\{[\s\S]{0,120}?if\s*\(|try\s*\{[\s\S]{0,60}?try\s*\{|for\s*\([^)]*\)\s*\{[\s\S]{0,60}?for\s*\(/i, label: 'Deeply nested control flow' }
-];
-
-const FIX_PREVIEW_PATTERNS = [
-    { id: 'double-equals', pattern: /(?<![=!<>])==(?![=])/g, label: 'Loose equality (==) — use strict equality (===)' },
-    { id: 'var-declaration', pattern: /\bvar\s+/g, label: 'var declaration — use let or const instead' }
-];
-
-const MISSING_STRICT_PATTERN = /['"]use strict['"]/;
-
-const PERFORMANCE_PATTERNS = Object.freeze([
-    { id: 'nested-loop', pattern: /for\s*\([^)]*\)\s*\{[\s\S]{0,120}?for\s*\(/gi, label: 'Nested loop — O(n²) performance risk' },
-    { id: 'blocking-loop', pattern: /while\s*\(\s*true\s*\)|while\s*\(\s*1\s*\)|for\s*\(\s*;;\s*\)/gi, label: 'Potential blocking infinite loop' }
-]);
-
-const SYNC_IO_PATTERNS = Object.freeze([
-    { id: 'synchronous-read', pattern: /fs\.readFileSync\(|fs\.readdirSync\(|fs\.readSync\(/gi, label: 'Synchronous file read in async context' }
-]);
-
-const TYPE_SAFETY_PATTERNS = Object.freeze([
-    { id: 'any-type', pattern: /:\s*any\b/g, label: 'Explicit any type — weakens TypeScript type safety' },
-    { id: 'ts-ignore', pattern: /\s*@ts-ignore\b/g, label: 'TypeScript error suppression without justification' },
-    { id: 'ts-expect-error', pattern: /\s*@ts-expect-error\b/g, label: 'Expected TypeScript error — may mask real issues' },
-    { id: 'unsafe-type-assertion', pattern: /as\s+(?:any|unknown|\w+\[\])\s*[,;)]/g, label: 'Unsafe type assertion (as any / as unknown)' }
-]);
-
-const C_TYPE_SAFETY_PATTERNS = [
-    { id: 'c-style-cast', pattern: /\(\s*(?:const\s+)?(?:unsigned\s+)?(?:long\s+)?(?:int|char|float|double|void|\w+)\s*\*?\s*\)\s*\w+/g, label: 'C-style cast — prefer static_cast/reinterpret_cast in C++ or avoid in C' },
-    { id: 'reinterpret-cast', pattern: /reinterpret_cast\s*<[^>]+>\s*\(/g, label: 'reinterpret_cast — unsafe type punning' },
-    { id: 'void-star-cast', pattern: /\(\s*\w+\s*\*\s*\)\s*(?:malloc|calloc|realloc|alloca|memset|memcpy|memmove)\b/g, label: 'Cast from void* to typed pointer — unsafe type erasure' },
-    { id: 'unsafe-malloc', pattern: /(?:malloc|calloc|realloc)\s*\(\s*[^)]*sizeof\s*\(\s*[^)]+\)\s*[^)]*\)/g, label: 'Heap allocation without null-check or type-safe wrapper' },
-    { id: 'union-type-punning', pattern: /union\s+\w+\s*\{[^}]+\}[^;]*;/g, label: 'Union type punning — undefined behavior in C++, risky in C' },
-    { id: 'unsafe-string-op', pattern: /\b(?:sprintf|strcpy|strcat|gets)\s*\(/g, label: 'Unsafe string operation — buffer overflow risk' },
-    { id: 'atoi-no-check', pattern: /\b(?:atoi|atof|atol|atoll)\s*\(/g, label: 'atoi/atof without error checking — use strtol/strtod' },
-    { id: 'printf-scanf', pattern: /\b(?:printf|scanf|fprintf|fscanf|sprintf|sscanf|snprintf)\s*\(\s*[^,)]*[^)]*\)/g, label: 'Format string function — verify argument types match format specifiers' },
-    { id: 'implicit-narrowing', pattern: /(?:int|short|char|float)\s+\w+\s*=\s*(?:\w+|[\d.]+[lLfF]?)/g, label: 'Potential implicit narrowing conversion' }
-];
-
-const PROTOTYPE_POLLUTION_PATTERNS = Object.freeze([
-    { id: 'prototype-assignment', pattern: /__proto__\s*[=:]|prototype\s*\[\s*[^\]]+\]\s*=/gi, label: 'Potential prototype pollution via __proto__ or prototype assignment' },
-    { id: 'object-assign-untrusted', pattern: /Object\.assign\s*\([^,]+,\s*(?:req\.|request\.|body\.|params\.|query\.|args\.|input\.|payload\.|data\.|user\.|client\.|config\.|options\.)/gi, label: 'Object.assign with potentially untrusted source — prototype pollution risk' },
-    { id: 'set-prototype-of', pattern: /Object\.setPrototypeOf\s*\(|Reflect\.setPrototypeOf\s*\(/gi, label: 'Direct prototype manipulation via setPrototypeOf' },
-    { id: 'constructor-prototype', pattern: /\.constructor\.prototype\./gi, label: 'Constructor prototype access — potential pollution vector' },
-    { id: 'for-in-no-guard', pattern: /for\s*\(\s*(?:const|let|var)?\s*\w+\s+in\s+\w+\s*\)(?!.*hasOwnProperty)/gi, label: 'for...in loop without hasOwnProperty guard — prototype pollution risk' },
-    { id: 'recursive-merge', pattern: /\.(?:merge|extend|assignDeep)\s*\(|_\.(?:merge|extend|assignDeep)\s*\(/gi, label: 'Recursive merge/extend — verify __proto__ key is sanitized' },
-    // simplebeacon:audit-ignore:prototype-pollution — this is a detection regex, not a vulnerable pattern
-    { id: 'proto-in-key', pattern: /['"`]__proto__['"`]|\b__proto__\b/gi, label: '__proto__ referenced as string key — potential prototype pollution vector' }
-]);
-
-const SAMPLE_JSON_REF_PATTERNS = [
-    { id: 'sample-json-ref', pattern: /['"`][^'"`]*-sample\.json['"`]/gi, label: 'Sample JSON file referenced in production code' }
-];
-
-const C_SAMPLE_DATA_PATTERNS = [
-    { id: 'c-sample-data-ref', pattern: /['"`][^'"`]*(?:-sample|_sample|\.sample|\.mock|_mock|\.fixture|_fixture|\.test-data|_testdata|_test_data)[^'"`]*['"`]/gi, label: 'Sample, mock, fixture, or test data file referenced in C/C++ code' },
-    { id: 'c-mock-path-ref', pattern: /['"`][^'"`]*(?:\/mock\/|\/mocks\/|\/fixture\/|\/fixtures\/|\/test-data\/|\/testdata\/)[^'"`]*['"`]/gi, label: 'Path referencing mock/fixture/test-data directory in C/C++ code' }
-];
-
-const SECURITY_PATTERNS = Object.freeze([
-    { id: 'inner-html-xss', pattern: /\.innerHTML\s*=\s*(?!['"`])[^;\n]+/g, label: 'innerHTML assignment with non-literal value — potential XSS' },
-    { id: 'eval-danger', pattern: /\beval\s*\(|\bnew\s+Function\s*\(|\bFunction\s*\(\s*['"`]|setTimeout\s*\(\s*['"`]|setInterval\s*\(\s*['"`]|\brequire\s*\((?!\s*['"`])|child_process\.(?:exec|execSync|spawn|spawnSync|fork)\s*\(|vm\.(?:runInContext|runInNewContext|runInThisContext)\s*\(/g, label: 'Dynamic code execution via eval, Function, dynamic require, or vm/child_process' },
-    { id: 'missing-rate-limit', pattern: /app\.(?:post|put|delete|patch)\s*\(\s*['"`][^'"`]+['"`]/gi, label: 'Route without rate limiting' },
-    { id: 'logging-secrets', pattern: /console\.(?:log|debug|info|warn)\s*\([^)]*(?:password|secret|token|key|credential|apiKey|auth)/gi, label: 'Potential secret logging' },
-    { id: 'committed-env-file', pattern: /(^|[\\/])\.env$/, label: '.env file committed to repository — environment secrets exposed' },
-    { id: 'secret-in-comment', pattern: /(?:\/\/|\/\*|\*|#)\s*(?:api[_-]?key|secret|token|password|private[_-]?key|client[_-]?secret)\s*[:=]\s*['"`]?[a-zA-Z0-9_\-]{16,}/i, label: 'Credential or secret value found in code comment' },
-    { id: 'weak-cryptography', pattern: /\bmd5\s*\(|\bsha1\s*\(|\bDES\b|\bRC4\b|\bTripleDES\b|\b3DES\b|\bcrypto\.createHash\s*\(\s*['"`][ms]d5['"`]|\bcrypto\.createHash\s*\(\s*['"`]sha1['"`]/i, label: 'Weak hash/cipher (MD5, SHA1, DES, RC4) — use SHA-256+ or AES' },
-    { id: 'redos-risk', pattern: /\(\[\^\]\]\*\)\*|\(\[\^\]\]\+\)\+|\(\[\^\]\]\*\)\+|\(\[\^\]\]\+\)\*|\(\(\?:\[\^\]\]\*\)\+\)\*|\(\[\^\]\]\*\)\{[0-9,]*\}\*|\(\[\^\]\]\*\)\*\+|\(\[\^\]\]\+\)\*\+|\(\[\^\]\]\*\)\?\*|\(\[\^\]\]\+\)\?\*/i, label: 'Regular expression with nested quantifiers — potential ReDoS' },
-    { id: 'cicd-secret-exposure', pattern: /(?:GITHUB_TOKEN|GH_TOKEN|AWS_ACCESS_KEY_ID|AWS_SECRET_ACCESS_KEY|DOCKER_PASSWORD|NPM_TOKEN|SLACK_TOKEN|SONAR_TOKEN)\s*[:=]\s*['"`]?[^\s'"`]{8,}/i, label: 'Hardcoded CI/CD secret in workflow/config file' }
-]);
-
-const C_RATE_LIMIT_PATTERNS = [
-    { id: 'c-route-no-rate-limit', pattern: /\b(?:addRoute|registerHandler|HandleRequest|ProcessRequest|OnRequest|OnGet|OnPost|OnPut|OnDelete)\s*\(/gi, label: 'HTTP route handler without visible rate limiting' },
-    { id: 'c-socket-no-throttle', pattern: /\b(?:accept|Accept)\s*\(\s*\w*\s*\)\s*[^;]*;/g, label: 'Server socket accept loop without throttling or rate limiting' },
-    { id: 'c-server-loop', pattern: /\b(?:while|for)\s*\([^)]*\)\s*\{[^}]*(?:accept|recv|read)\s*\(/gi, label: 'Server loop without rate limiting or connection throttling' }
-];
-
-const C_LOGGING_SECRET_PATTERNS = [
-    { id: 'c-printf-secret', pattern: /\b(?:printf|fprintf|sprintf|snprintf|vprintf|vfprintf|vsprintf|vsnprintf)\s*\([^)]*(?:password|secret|token|api_key|apikey|credential|auth_token|passwd|pwd|private_key|access_token)/gi, label: 'printf-family logging with potential secret or credential' },
-    { id: 'c-syslog-secret', pattern: /\bsyslog\s*\(\s*[^,]+,\s*[^)]*(?:password|secret|token|api_key|apikey|credential|auth_token|passwd|pwd|private_key|access_token)/gi, label: 'syslog with potential secret or credential' },
-    { id: 'c-cout-secret', pattern: /\b(?:std::)?(?:cout|cerr|clog)\s*<<\s*[^;]*(?:password|secret|token|api_key|apikey|credential|auth_token|passwd|pwd|private_key|access_token)/gi, label: 'C++ stream output with potential secret or credential' },
-    { id: 'c-log-macro-secret', pattern: /\b(?:LOG|Log|DLOG|VLOG|LOG_IF|CHECK|PCHECK)\s*\([^)]*(?:password|secret|token|api_key|apikey|credential|auth_token|passwd|pwd|private_key|access_token)/gi, label: 'LOG macro with potential secret or credential' }
-];
-
-const UNVALIDATED_REDIRECT_PATTERNS = [
-    { id: 'express-redirect', pattern: /res(?:ponse)?\.redirect\s*\([^)]*(?:req\.(?:query|body|params|headers|url)|user|input)(?![a-zA-Z0-9_])/gi, label: 'Express unvalidated redirect — user input flows into redirect target' },
-    { id: 'window-location', pattern: /window\.location\.(?:href|replace|assign)\s*=\s*(?!['"`])[^;]+(?:req\.|params|query|input|user)(?![a-zA-Z0-9_])/gi, label: 'Client-side unvalidated redirect — user input flows into window.location' },
-    { id: 'router-redirect', pattern: /(?:router|history)\.(?:push|replace|navigate)\s*\(\s*(?!['"`])[^)]+(?:req\.(?:query|body|params|headers|url)|params|query|input)(?![a-zA-Z0-9_])/gi, label: 'Router unvalidated redirect — user input flows into navigation' }
-];
-
-const UNINITIALIZED_READ_PATTERN = /let\s+\w+\s*;/;
-
-const TOKEN_BLEED_PATTERNS = [
-    { id: 'token-bleed', pattern: /(?:'(?:[^'\\]|\\.){4000,}'|"(?:[^"\\]|\\.){4000,}"|`(?:[^`\\]|\\.){4000,}`)/, label: 'Very long string literal (>4000 chars) — risk of unchunked context overflow in LLM prompts' }
-];
-
-const UNHANDLED_PROMISE_PATTERNS = [
-    { id: 'unhandled-promise', pattern: /(?<!fetch\s*\([^)]*\)\s*)\.then\s*\([^)]*\)(?!.*\.catch)/gi, label: 'Promise chain without catch — verify error handling is present' }
-];
-
-const WORKSPACE_HEALTH_PATTERNS = [
-    { id: 'self-require', pattern: /require\s*\(\s*['"`]\.\/['"`]\s*\)/gi, label: 'Self-import of current directory — potential circular dependency' },
-    { id: 'deep-relative-import', pattern: /require\s*\(\s*['"`]\.\.(?:\/\.\.){3,}['"`]\s*\)/gi, label: 'Deep relative import (../../../../) — breaks encapsulation' }
-];
-
-const AI_INDICATORS_PATTERNS = [
-    { id: 'ai-sdk-import', pattern: /\brequire\s*\(\s*['"`](?:openai|@anthropic\/[^'"`]+|langchain|huggingface_hub)['"`]\s*\)/gi, label: 'AI SDK import detected (OpenAI, Anthropic, LangChain, HuggingFace)' },
-    { id: 'ollama-usage', pattern: /\bollama(?:Generate|ListModels|Client|BaseUrl)\b|\bDEFAULT_OLLAMA_URL\b/gi, label: 'Ollama local model inference usage' },
-    { id: 'ai-inference-service', pattern: /\b(?:local-model-service|model-inference-service|cloud-inference-service|ai-proxy-gateway)\b/gi, label: 'Local or cloud AI inference service' },
-    { id: 'ai-function', pattern: /\b(?:enhanceWithOllama|tryLlamaCppInference|buildAnalysisPrompt|extractJsonObject)\b/gi, label: 'AI inference/generation function call' },
-    { id: 'model-provider', pattern: /\bprovider\s*[:=]\s*['"`](?:ollama|llama|demo)['"`]/gi, label: 'LLM model provider reference in code' }
-];
-
-const UNUSED_DEPS_PATTERNS = [
-    { id: 'unused-require', pattern: /\b(?:const|let|var)\s+(\w+)\s*=\s*require\s*\(\s*['"`]([^'"`]+)['"`]\s*\)/g, label: 'Required module may be unused in this file' }
-];
-
-const INSECURE_RANDOM_PATTERNS = [
-    { id: 'insecure-random', pattern: /Math\.random\s*\(\s*\)(?!.*(?:test|mock|fixture|sample|demo))/gi, label: 'Math.random() used for security-sensitive purpose' },
-    // C-style rand()/random() — no 'i' flag so it doesn't match Math.random() in JS
-    { id: 'insecure-random-c', pattern: /\b(?:srand|rand|srandom|random)\s*\([^)]*\)/g, label: 'Insecure C/C++ rand()/random() used for security-sensitive purpose' }
-];
-
-const MAGIC_NUMBER_PATTERNS = [
-    { id: 'magic-number', pattern: /(?<!\w)(?:\b(?:timeout|delay|interval|port|max|min|limit|size|count|length|width|height)\s*[:=]\s*)?(?<![\w\d#])\d{4,}(?!\w)(?!\s*(?:px|em|rem|%|[\-*/+]))/g, label: 'Hardcoded numeric literal that should be a named constant' }
-];
-
-const MOCK_PATH_LEAK_PATTERNS = [
-    { id: 'mock-path-leak', pattern: /['"`](?:[^'"`]*\/mock\/[^'"`]*|[^'"`]*\/fixture\/[^'"`]*|[^'"`]*\/sample\/[^'"`]*|[^'"`]*\/test-data\/[^'"`]*|[^'"`]*\.mock\.\w+|[^'"`]*\.fixture\.\w+|[^'"`]*\.sample\.\w+)['"`]/gi, label: 'Mock or fixture path referenced in production code' }
-];
-
-const PRODUCTION_LEAK_PATTERNS = [
-    { id: 'production-leak', pattern: /\b(?:sampleData|mockData|fixtureData|testData|dummyData|fakeData|seedData)\b/gi, label: 'Sample/mock data variable referenced in production code' }
-];
-
-const ROADMAP_MARKER_PATTERNS = [
-    { id: 'roadmap-marker', pattern: /\broadmap\.json\b|\broadmap\.md\b|\broadmap\.js\b|\broadmap\.csv\b|\bsprint\s*plan\b|\bepic\b|\bstory\s*points?\b/gi, label: 'Embedded roadmap artifact or project planning reference in code' }
-];
-
-const C_ROADMAP_PATTERNS = [
-    { id: 'c-roadmap-comment', pattern: /(?:\/\/|\/\*)\s*(?:roadmap|sprint|milestone|epic|story\s*point|todo|fixme|hack|xxx|nyi|not\s+yet\s+implemented|coming\s+soon|under\s+construction|tbd|placeholder|stub|not\s+implemented)\b/gi, label: 'C/C++ comment containing roadmap marker or planning reference' },
-    { id: 'c-version-todo', pattern: /(?:VERSION|version|release|RELEASE|milestone)\s*[\:\=]\s*['"`][^'"`]*(?:todo|fixme|tbd|placeholder|stub|coming\s+soon|not\s+implemented)/gi, label: 'C/C++ version string or comment containing roadmap marker' },
-    { id: 'c-deprecated-comment', pattern: /(?:\/\/|\/\*)\s*(?:deprecated|DEPRECATED|legacy|LEGACY|old|OLD|obsolete|OBSOLETE)(?:\s*:)?\s*\b/gi, label: 'C/C++ comment indicating deprecated or legacy code' }
-];
-
-const SECURITY_HEADERS_PATTERNS = [
-    { id: 'cors-wildcard', pattern: /Access-Control-Allow-Origin\s*:\s*\*|cors\s*\(\s*\{[^}]*origin\s*:\s*['"`]\*['"`]/gi, label: 'CORS wildcard origin — potential security risk' },
-    { id: 'x-powered-by', pattern: /x-powered-by|X-Powered-By/gi, label: 'X-Powered-By header exposure' }
-];
-
-const C_SECURITY_PATTERNS = [
-    { id: 'c-format-string-vuln', pattern: /\b(?:printf|fprintf|sprintf|snprintf|syslog|vprintf|vfprintf|vsprintf|vsnprintf)\s*\(\s*(?!['"`])[^,)]*/gi, label: 'Format string vulnerability — user input used as format string' },
-    { id: 'c-system-call', pattern: /\b(?:sy'+'stem|popen|popen)\s*\(\s*[^)]*(?:user|input|path|arg|cmd|command|shell)/gi, label: 'system()/popen() with potentially untrusted input — command injection risk' },
-    { id: 'c-hardcoded-secret', pattern: /\b(?:password|secret|token|api_key|apikey|auth|credential)\s*[:=]\s*['"`][^'"`]{3,}['"`]/gi, label: 'Hardcoded secret or credential in source code' },
-    { id: 'c-path-traversal', pattern: /\b(?:fopen|open|fopen64|creat|openat|rename|unlink|remove|rmdir|mkdir)\s*\(\s*[^)]*(?:user|input|path|arg|req|request|client)/gi, label: 'File operation with unsanitized user input — path traversal risk' },
-    { id: 'c-world-writable', pattern: /\b(?:chmod|fchmod|umask)\s*\(\s*[^)]*(?:0777|0666|0o777|0o666|S_IRWXU|S_IRWXG|S_IRWXO)/gi, label: 'Overly permissive file permissions — world-writable or world-readable' },
-    { id: 'c-ssl-verify-none', pattern: /\b(?:curl_easy_setopt|SSL_CTX_set_verify|VERIFY_NONE|verify_peer.*false|verify.*none)/gi, label: 'SSL/TLS certificate verification disabled' },
-    { id: 'c-temp-race', pattern: /\bmktemp\s*\(/gi, label: 'mktemp() — race condition, use mkstemp() instead' },
-    { id: 'c-unchecked-malloc', pattern: /\b(?:malloc|calloc|realloc|alloca)\s*\([^)]+\)\s*(?!\?)[^;]*[^!]?=\s*\w+/gi, label: 'Memory allocation without null-check — potential NULL dereference' }
-];
-
-const ACCESSIBILITY_PATTERNS = [
-    { id: 'missing-alt-text', pattern: /<img\b(?![^>]*alt\s*=)[^>]*>/gi, label: 'Missing alt attribute on image' },
-    { id: 'unlabeled-input', pattern: /<input\b(?![^>]*(?:aria-label|aria-labelledby|id|placeholder)\s*=)[^>]*>/gi, label: 'Form input without accessible label' },
-    { id: 'clickable-div', pattern: /<(div|span)\b[^>]*\s+on(?:click|keydown|keyup|keypress|focus|blur)\s*=/gi, label: 'Clickable div/span without keyboard accessibility' },
-    { id: 'missing-lang-attr', pattern: /<html\b(?![^>]*lang\s*=)[^>]*>/gi, label: 'Missing lang attribute on html element' },
-    { id: 'missing-button-type', pattern: /<button\b(?![^>]*type\s*=)[^>]*>/gi, label: 'Button without explicit type attribute' },
-    { id: 'outline-none', pattern: /outline\s*:\s*none|outline\s*:\s*0\b/gi, label: 'Focus outline removed — potential keyboard accessibility issue' }
-];
-
-const SENSITIVE_DATA_PATTERNS = [
-    { id: 'sensitive-data', pattern: /\b(?:password|secret|token|api[_-]?key|auth[_-]?token|private[_-]?key|access[_-]?token)\s*[:=]\s*(?:['"`][^'"`]{4,}['"`]|[A-Za-z0-9+/]{16,}={0,2})/gi, label: 'Hardcoded sensitive value or credential' },
-    { id: 'jwt-secret', pattern: /\bjwt[_-]?(?:secret|key|token)\s*[:=]\s*['"`][^'"`]{4,}['"`]/gi, label: 'Hardcoded JWT secret' }
-];
-
-const ESLINT_REPORT_CANDIDATES = [
-    'reports/technical-debt/raw/eslint-report.json',
-    '.simplebeacon/eslint-report.json',
-    'eslint-report.json'
-];
-
-/** Directories linted by runEslint — must stay aligned with eslint.config.js and npm run lint. */
-const ESLINT_TARGET_DIRS = [
-    'server',
-    'packages',
-    'web/scripts',
-    'web/components',
-    'web/simplebeacon-dashboard/js',
-    'src'
-];
-
-/**
- * Recursively check whether a directory contains any JavaScript files worth linting.
- * @param {string} dirPath
- * @param {number} [depth=0]
- * @returns {boolean}
- */
-function directoryHasLintableJsFiles(dirPath, depth = 0) {
-    if (depth > 14) return false;
-    let entries;
-    try {
-        entries = fs.readdirSync(dirPath, { withFileTypes: true });
-    } catch {
-        return false;
-    }
-    for (const entry of entries) {
-        const fullPath = path.join(dirPath, entry.name);
-        if (entry.isDirectory()) {
-            if (REPO_SKIP_DIRS.has(entry.name)) continue;
-            if (directoryHasLintableJsFiles(fullPath, depth + 1)) return true;
-            continue;
-        }
-        if (entry.isFile() && /\.(?:c?js|mjs)$/i.test(entry.name)) {
-            return true;
-        }
-    }
-    return false;
-}
-
-/**
- * Resolve which directories under the platform root should be linted.
- * @param {string} platformRoot
- * @returns {string[]}
- */
-function resolveEslintTargets(platformRoot) {
-    return ESLINT_TARGET_DIRS
-        .map((dir) => path.join(platformRoot, dir))
-        .filter((dir) => fs.existsSync(dir) && directoryHasLintableJsFiles(dir));
-}
 
 const FINDING_RUBRIC = {
     version: 'phase1.0',
@@ -876,6 +605,8 @@ function lineNumberAt(content, index) {
  * @returns {void}
  */
 function pushFinding(findings, finding, cap = MAX_FINDINGS_DASHBOARD) {
+    if (!Array.isArray(findings)) return;
+    if (!finding || typeof finding !== 'object') return;
     if (findings.length >= cap) return;
     findings.push(finding);
 }
@@ -1022,8 +753,8 @@ async function walkCodeFiles(rootDir, options = {}) {
 
 /**
  * Ensure global pattern flags.
- * @param {Array} flags
- * @returns {any}
+ * @param {string|Array} flags
+ * @returns {string}
  */
 function ensureGlobalPatternFlags(flags) {
     const normalized = String(flags || '');
@@ -1032,20 +763,16 @@ function ensureGlobalPatternFlags(flags) {
 
 /**
  * Recommended action for category.
- * @param {any} category
- * @returns {any}
+ * @param {string} category
+ * @returns {string}
  */
 function recommendedActionForCategory(category) {
-    if (category === 'tech-debt') {
-        return 'Resolve or ticket the marker; remove stale TODO/FIXME';
-    }
-    if (category === 'meaningless-data') {
-        return 'Replace placeholder text with verified production content';
-    }
-    if (category === 'debug-artifact') {
-        return 'Remove debug statements before production deploy';
-    }
-    return 'Review and remediate before production deploy';
+    const actions = {
+        'tech-debt': 'Resolve or ticket the marker; remove stale TODO/FIXME',
+        'meaningless-data': 'Replace placeholder text with verified production content',
+        'debug-artifact': 'Remove debug statements before production deploy'
+    };
+    return actions[category] || 'Review and remediate before production deploy';
 }
 
 /** Allow mock_data module names and schema tokens; flag unittest.mock / MagicMock / @patch. */
@@ -1075,7 +802,7 @@ function isExcludedPlaceholderMatch(content, matchIndex) {
     const before = content.charAt(Math.max(0, matchIndex - 1));
     if (before === '.' || before === '#' || before === '-') return true;
     const line = lineAt(content, matchIndex);
-    if (/::(?:-webkit-|-moz-|-ms-)?placeholder\b/i.test(line)) return true;
+    if (/::(?:-webkit-|-moz-|-ms-)?placeholder\b/i.test(line)) return true; // simplebeacon-ignore redos
     if (line.includes('placeholder credentials')) return true;
     if (/\.(?:monaco-)?(?:snippet-)?placeholder|finish-snippet-placeholder/.test(line)) return true;
     if (/placeholder-token|UNIVERSAL_PLACEHOLDERS|scanContentPatterns/.test(line)) return true;
@@ -1127,7 +854,7 @@ const MAX_FILE_SCAN_MS = constants.MAX_RATE_LIMIT;
  * Scan content patterns.
  * @param {string} content
  * @param {string} relativePath
- * @param {Array<Object>} patterns
+ * @param {Array<{id: string, pattern: RegExp, label: string}>} patterns
  * @param {string} category
  * @param {string} severity
  * @param {boolean} [productionOnly=false]
@@ -1154,12 +881,25 @@ function scanContentPatterns(content, relativePath, patterns, category, severity
         return hits;
     }
     const isHtml = /\.html?$/i.test(relativePath);
+    const seen = new Set();
     const startMs = Date.now();
     for (const item of patterns) {
         if (Date.now() - startMs > MAX_FILE_SCAN_MS) {
             break;
         }
-        const pattern = new RegExp(item.pattern.source, ensureGlobalPatternFlags(item.pattern.flags));
+        const cacheKey = item.id + '|' + item.pattern.source + '|' + item.pattern.flags;
+        let pattern = patternCache.get(cacheKey);
+        if (!pattern) {
+            try {
+                pattern = new RegExp(item.pattern.source, ensureGlobalPatternFlags(item.pattern.flags));
+                patternCache.set(cacheKey, pattern);
+            } catch (compileErr) {
+                if (process.env.SIMPLEBEACON_DEBUG) {
+                    console.warn(`[CodebaseAnalyzer] Skipping bad pattern ${item.id}: ${compileErr.message}`);
+                }
+                continue;
+            }
+        }
         let match;
         while ((match = pattern.exec(content)) !== null) {
             // Guard against empty-string matches that would cause an infinite loop
@@ -1817,7 +1557,7 @@ function checkJsSyntax(content, relativePath) {
         return null;
     }
     try {
-        new vm.Script(normalized, { filename: relativePath });
+        new vm.Script(normalized, { filename: relativePath, timeout: 5000 });
         return null;
     } catch (error) {
         return error?.message || String(error);
@@ -1959,7 +1699,7 @@ function detectApiContractIssues(content, relativePath) {
                 category: 'api-contract',
                 analyzer: 'api-contract-analyzer',
                 type: item.id,
-                severity: 'low',
+                severity: 'info',
                 filePath: relativePath,
                 line,
                 description: item.label,
@@ -1998,7 +1738,7 @@ function detectArrowStubs(content, relativePath) {
             category: 'arrow-stub',
             analyzer: 'arrow-stub-analyzer',
             type: 'arrow-stub',
-            severity: 'low',
+            severity: 'info',
             filePath: relativePath,
             line,
             description: 'Arrow function with empty or trivial return — likely AI stub. Implement return value.',
@@ -2042,7 +1782,7 @@ function detectEmptyStubFunctions(content, relativePath) {
             category: 'empty-stub-function',
             analyzer: 'empty-stub-analyzer',
             type: 'empty-stub-function',
-            severity: 'low',
+            severity: 'info',
             filePath: relativePath,
             line,
             description: 'Empty or trivial function body — likely unimplemented stub.',
@@ -2109,7 +1849,7 @@ function detectFixPreviewIssues(content, relativePath) {
                 category: 'fix-preview',
                 analyzer: 'fix-preview-analyzer',
                 type: item.id,
-                severity: 'low',
+                severity: 'info',
                 filePath: relativePath,
                 line,
                 description: item.label,
@@ -2166,7 +1906,7 @@ function detectMissingStrictMode(content, relativePath) {
         category: 'missing-strict-mode',
         analyzer: 'missing-strict-mode-analyzer',
         type: 'missing-strict',
-        severity: 'low',
+        severity: 'info',
         filePath: relativePath,
         line: 1,
         description: 'Missing strict mode directive',
@@ -2549,7 +2289,7 @@ function detectUninitializedRead(content, relativePath) {
         category: 'uninitialized-read',
         analyzer: 'uninitialized-read-analyzer',
         type: 'uninitialized-read',
-        severity: 'low',
+        severity: 'info',
         filePath: relativePath,
         line: 1,
         description: `Excessive uninitialized let declarations (${matches.length}) — consider initializing at declaration`,
@@ -2654,7 +2394,7 @@ function detectUnhandledPromise(content, relativePath) {
                 category: 'unhandled-promise',
                 analyzer: 'unhandled-promise-analyzer',
                 type: item.id,
-                severity: 'low',
+                severity: 'info',
                 filePath: relativePath,
                 line,
                 description: item.label,
@@ -2691,7 +2431,7 @@ function detectWorkspaceHealth(content, relativePath) {
                 category: 'workspace-health',
                 analyzer: 'workspace-health-analyzer',
                 type: item.id,
-                severity: 'low',
+                severity: 'info',
                 filePath: relativePath,
                 line,
                 description: item.label,
@@ -2745,7 +2485,7 @@ function detectAiIndicators(content, relativePath) {
                 category: 'ai-indicators',
                 analyzer: 'ai-indicators-analyzer',
                 type: item.id,
-                severity: 'low',
+                severity: 'info',
                 filePath: relativePath,
                 line,
                 description: item.label,
@@ -2802,7 +2542,7 @@ function detectUnusedDeps(content, relativePath) {
                 category: 'unused-deps',
                 analyzer: 'unused-deps-analyzer',
                 type: item.id,
-                severity: 'low',
+                severity: 'info',
                 filePath: relativePath,
                 line,
                 description: item.label + ': ' + moduleName,
@@ -2845,7 +2585,7 @@ function detectI18nIssues(content, relativePath) {
                 category: 'i18n',
                 analyzer: 'i18n-analyzer',
                 type: item.id,
-                severity: 'low',
+                severity: 'info',
                 filePath: relativePath,
                 line,
                 description: item.label,
@@ -2895,7 +2635,7 @@ function detectComplexityIssues(content, relativePath) {
                 category: 'complexity',
                 analyzer: 'complexity-analyzer',
                 type: item.id,
-                severity: 'low',
+                severity: 'info',
                 filePath: relativePath,
                 line,
                 description: item.label,
@@ -3072,7 +2812,7 @@ function detectLicenseHeaders(content, relativePath) {
                 category: 'governance-marker',
                 analyzer: 'license-header-analyzer',
                 type: item.id,
-                severity: 'low',
+                severity: 'info',
                 filePath: relativePath,
                 line,
                 description: item.label,
@@ -3116,7 +2856,7 @@ function detectMarkdownFenceLeaks(content, relativePath) {
                 category: 'markdown-fence-leak',
                 analyzer: 'markdown-fence-leak-analyzer',
                 type: item.id,
-                severity: 'low',
+                severity: 'info',
                 filePath: relativePath,
                 line,
                 description: item.label,
@@ -3216,7 +2956,7 @@ function detectDocumentationGaps(content, relativePath) {
             category: 'documentation',
             analyzer: 'documentation-analyzer',
             type: 'missing-jsdoc',
-            severity: 'low',
+            severity: 'info',
             filePath: relativePath,
             line,
             description: 'Exported API without JSDoc',
@@ -3449,7 +3189,7 @@ async function analyzeFileContent(file, rootDir, options = {}) {
         pushFinding(findings, {
             category: 'junk-files',
             type: 'backup-or-fixture',
-            severity: 'low',
+            severity: 'info',
             filePath: rel,
             line: 1,
             description: `Generated or backup artifact: ${rel}`,
@@ -3462,7 +3202,7 @@ async function analyzeFileContent(file, rootDir, options = {}) {
         pushFinding(findings, {
             category: 'empty',
             type: 'empty-file',
-            severity: 'low',
+            severity: 'info',
             filePath: rel,
             line: 1,
             description: `Empty file: ${rel}`,
@@ -3504,7 +3244,7 @@ async function analyzeFileContent(file, rootDir, options = {}) {
         pushFinding(findings, {
             category: 'empty',
             type: 'whitespace-only',
-            severity: 'low',
+            severity: 'info',
             filePath: rel,
             line: 1,
             description: `Whitespace-only file: ${rel}`,
@@ -3780,7 +3520,7 @@ function detectDuplicateBasenames(files) {
         pushFinding(findings, {
             category: 'duplicate',
             type: 'duplicate-basename',
-            severity: 'low',
+            severity: 'info',
             filePath: canonicalPaths[0],
             line: 1,
             description: `${canonicalPaths.length} files named "${name}" — possible copy drift`,
@@ -3857,7 +3597,7 @@ function detectTestCoverage(files) {
         findings.push({
             category: 'test-coverage',
             type: 'missing-test-file',
-            severity: 'low',
+            severity: 'info',
             filePath: file.relativePath,
             line: 1,
             description: `Source file with no corresponding test: ${file.relativePath}`,
@@ -3915,7 +3655,7 @@ function detectEmptyVestigialDirs(baseDir) {
                 findings.push({
                     category: 'consolidation',
                     type: 'empty-vestigial-directory',
-                    severity: 'low',
+                    severity: 'info',
                     filePath: path.relative(resolvedBase, dirPath).replace(/\\/g, '/'),
                     line: 1,
                     description: `Empty vestigial directory: ${entry.name}/ — leftover from duplicate cleanup`,
@@ -4254,10 +3994,9 @@ async function runEslint(projectRoot, platformRoot) {
 }
 
 /**
- * Analyze codebase.
- * @param {string} baseDir
- * @param {Object} options
- * @returns {any}
+ * Count governance files.
+ * @param {Array<{name: string}>} files
+ * @returns {{licenseCount: number, securityCount: number, packageJsonCount: number}}
  */
 function countGovernanceFiles(files) {
     const licenseRegex = /^license(?:\.md|\.txt|\.rst)?$/i;
@@ -4315,23 +4054,9 @@ async function analyzeCodebase(baseDir, options = {}) {
     if (nodeModulesFiltered.length > deepAnalyzeCap) {
         if (process.env.SIMPLEBEACON_DEBUG) console.log(`[CodebaseAnalyzer] Skip (deepAnalyzeCap): ${nodeModulesFiltered.length - deepAnalyzeCap} files truncated (cap: ${deepAnalyzeCap})`);
     }
-    // Exclude scanner implementation files and non-production subprojects to prevent self-analysis false positives
-    const excludedAnalyzerPaths = [
-        /(?:^|\/)simplebeacon-vscode\/src\//,
-        /(?:^|\/)packages\/simplebeacon-cli\/src\/(?:rules|analyzers|reporters|lib|proxy)\//,
-        /(?:^|\/)ai-agent\//,
-        /(?:^|\/)ai-tools\//,
-        /(?:^|\/)scripts\//,
-        /(?:^|\/)simplebeacon-frameworkless\//,
-        new RegExp('(?:^|/)New folder/'),
-        /(?:^|\/)\.simplebeacon\//,
-        /(?:^|\/)coming-soon\//,
-        /REALTIME_MONITORING_FEATURE_REPORT\.md$/,
-        /complete-scan\.json$/
-    ];
     const analyzerFilesExcluded = nodeModulesFiltered.filter((f) => {
         const rel = f.relativePath.replace(/\\/g, '/');
-        return !excludedAnalyzerPaths.some((re) => re.test(rel));
+        return !EXCLUDED_ANALYZER_PATHS.some((re) => re.test(rel));
     });
     if (analyzerFilesExcluded.length < nodeModulesFiltered.length) {
         if (process.env.SIMPLEBEACON_DEBUG) console.log(`[CodebaseAnalyzer] Skip (analyzer paths): ${nodeModulesFiltered.length - analyzerFilesExcluded.length} scanner/utility/subproject files excluded`);

@@ -3,36 +3,32 @@
  * Displays real-time scan progress, terminal output, and final results.
  */
 export class StreamResultPanel {
-  constructor(parentView) {
-    this.parent = parentView;
-    this.container = null;
-    this.mounted = false;
-    this._terminalLines = [];
-  }
-
-  mount(element) {
-    this.container = element;
-    this.container.innerHTML = this.render();
-    this.bindEvents();
-    this.mounted = true;
-    return this;
-  }
-
-  unmount() {
-    if (this.container) {
-      this.container.innerHTML = '';
+    constructor(parentView) {
+        this.parent = parentView;
+        this.container = null;
+        this.mounted = false;
+        this._terminalLines = [];
     }
-    this.mounted = false;
-  }
-
-  render() {
-    const progress = this.parent.scanProgress;
-    const isScanning = this.parent.busy;
-    const progressPercent = progress && progress.total
-      ? Math.round((progress.processed / progress.total) * 100)
-      : 0;
-
-    return `
+    mount(element) {
+        this.container = element;
+        this.container.innerHTML = this.render();
+        this.bindEvents();
+        this.mounted = true;
+        return this;
+    }
+    unmount() {
+        if (this.container) {
+            this.container.innerHTML = '';
+        }
+        this.mounted = false;
+    }
+    render() {
+        const progress = this.parent.scanProgress;
+        const isScanning = this.parent.busy;
+        const progressPercent = progress && progress.total
+            ? Math.round((progress.processed / progress.total) * 100)
+            : 0;
+        return `
       <div class="analyze-stream-result-panel db-v3-panel db-v3-glass active-stream-terminal-card">
         <div class="stream-header-row">
           <div class="stream-title-meta">
@@ -50,58 +46,54 @@ export class StreamResultPanel {
               <div class="progress-bar-fill-node" style="width: ${progressPercent}%"></div>
             </div>
             <div class="scan-progress-meta">
-              <span class="scan-progress-phase">${progress?.phase || 'Scanning…'}</span>
-              <span class="scan-progress-counter">${progress?.processed || 0} / ${progress?.total || '—'}</span>
+              <span class="scan-progress-phase">${(progress === null || progress === void 0 ? void 0 : progress.phase) || 'Scanning…'}</span>
+              <span class="scan-progress-counter">${(progress === null || progress === void 0 ? void 0 : progress.processed) || 0} / ${(progress === null || progress === void 0 ? void 0 : progress.total) || '—'}</span>
             </div>
           ` : '<div class="empty-state">No active scan. Start an analysis to see results here.</div>'}
           <div id="terminal-output" class="terminal-buffer-box-canvas"></div>
         </div>
       </div>
     `;
-  }
-
-  bindEvents() {
-    const clearBtn = this.container.querySelector('#btn-clear-terminal');
-    const exportBtn = this.container.querySelector('#btn-export-results');
-
-    if (clearBtn) {
-      clearBtn.addEventListener('click', () => {
-        this._terminalLines = [];
+    }
+    bindEvents() {
+        const clearBtn = this.container.querySelector('#btn-clear-terminal');
+        const exportBtn = this.container.querySelector('#btn-export-results');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => {
+                this._terminalLines = [];
+                this._renderTerminal();
+            });
+        }
+        if (exportBtn) {
+            exportBtn.addEventListener('click', () => {
+                this.parent.handleGlobalAction('EXPORT_RESULTS');
+            });
+        }
+    }
+    appendLine(text, type = 'info') {
+        const timestamp = new Date().toLocaleTimeString();
+        this._terminalLines.push({ text, type, timestamp });
+        if (this._terminalLines.length > 500) {
+            this._terminalLines = this._terminalLines.slice(-500);
+        }
         this._renderTerminal();
-      });
     }
-
-    if (exportBtn) {
-      exportBtn.addEventListener('click', () => {
-        this.parent.handleGlobalAction('EXPORT_RESULTS');
-      });
-    }
-  }
-
-  appendLine(text, type = 'info') {
-    const timestamp = new Date().toLocaleTimeString();
-    this._terminalLines.push({ text, type, timestamp });
-    if (this._terminalLines.length > 500) {
-      this._terminalLines = this._terminalLines.slice(-500);
-    }
-    this._renderTerminal();
-  }
-
-  _renderTerminal() {
-    const output = this.container?.querySelector('#terminal-output');
-    if (!output) return;
-    output.innerHTML = this._terminalLines.map((line) => `
+    _renderTerminal() {
+        var _a;
+        const output = (_a = this.container) === null || _a === void 0 ? void 0 : _a.querySelector('#terminal-output');
+        if (!output)
+            return;
+        output.innerHTML = this._terminalLines.map((line) => `
       <div class="terminal-line terminal-line--${line.type}">
         <span class="terminal-timestamp">${line.timestamp}</span>
         <span class="terminal-text">${line.text}</span>
       </div>
     `).join('');
-    output.scrollTop = output.scrollHeight;
-  }
-
-  prepareCanvas(targetPath) {
-    this._terminalLines = [];
-    this.container.innerHTML = `
+        output.scrollTop = output.scrollHeight;
+    }
+    prepareCanvas(targetPath) {
+        this._terminalLines = [];
+        this.container.innerHTML = `
       <div class="db-v3-panel db-v3-glass active-stream-terminal-card">
         <div class="stream-header-row">
           <div class="stream-title-meta">
@@ -122,26 +114,29 @@ export class StreamResultPanel {
         </div>
       </div>
     `;
-    this.bindEvents();
-  }
-
-  refresh() {
-    if (!this.mounted || !this.container) return;
-    this.container.innerHTML = this.render();
-    this.bindEvents();
-    this._renderTerminal();
-  }
-
-  updateProgress(progress) {
-    if (!this.mounted) return;
-    const fill = this.container.querySelector('.scan-progress-fill');
-    const phase = this.container.querySelector('.scan-progress-phase');
-    const counter = this.container.querySelector('.scan-progress-counter');
-    const percent = progress && progress.total
-      ? Math.round((progress.processed / progress.total) * 100)
-      : 0;
-    if (fill) fill.style.width = `${percent}%`;
-    if (phase) phase.textContent = progress?.phase || 'Scanning…';
-    if (counter) counter.textContent = `${progress?.processed || 0} / ${progress?.total || '—'}`;
-  }
+        this.bindEvents();
+    }
+    refresh() {
+        if (!this.mounted || !this.container)
+            return;
+        this.container.innerHTML = this.render();
+        this.bindEvents();
+        this._renderTerminal();
+    }
+    updateProgress(progress) {
+        if (!this.mounted)
+            return;
+        const fill = this.container.querySelector('.scan-progress-fill');
+        const phase = this.container.querySelector('.scan-progress-phase');
+        const counter = this.container.querySelector('.scan-progress-counter');
+        const percent = progress && progress.total
+            ? Math.round((progress.processed / progress.total) * 100)
+            : 0;
+        if (fill)
+            fill.style.width = `${percent}%`;
+        if (phase)
+            phase.textContent = (progress === null || progress === void 0 ? void 0 : progress.phase) || 'Scanning…';
+        if (counter)
+            counter.textContent = `${(progress === null || progress === void 0 ? void 0 : progress.processed) || 0} / ${(progress === null || progress === void 0 ? void 0 : progress.total) || '—'}`;
+    }
 }

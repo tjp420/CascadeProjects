@@ -18,6 +18,15 @@
     html[data-ide-preview="true"] .sandbox-banner { display: none !important; }
     html[data-ide-preview="true"] .app-shell { --header-height: 0px; }
     html[data-ide-preview="true"] #app-main { height: 100vh; }
+    /* Hide "Send to AI" buttons in standalone browser; show only in IDE */
+    #audit-send-ai-btn, #security-send-ai-btn, #quality-send-ai-btn, #trust-send-ai-btn, #action-send-ai, #send-ai-btn, #send-health-ai-btn { display: none !important; }
+    html[data-ide-preview="true"] #audit-send-ai-btn,
+    html[data-ide-preview="true"] #security-send-ai-btn,
+    html[data-ide-preview="true"] #quality-send-ai-btn,
+    html[data-ide-preview="true"] #trust-send-ai-btn,
+    html[data-ide-preview="true"] #action-send-ai,
+    html[data-ide-preview="true"] #send-ai-btn,
+    html[data-ide-preview="true"] #send-health-ai-btn { display: revert !important; }
   </style>
   <style>
     /* Labeled action buttons */
@@ -116,7 +125,7 @@
   <link rel="stylesheet" href="css/variables.css">
   <link rel="stylesheet" href="css/reset.css">
   <link rel="stylesheet" href="css/layout.css">
-  <link rel="stylesheet" href="css/components.css?v=20260626jsonreport1">
+  <link rel="stylesheet" href="css/components.css?v=20260703dragfix1">
   <link rel="stylesheet" href="css/utilities.css">
   <link rel="stylesheet" href="css/disable-elements.css">
   <script src="js/vendor/lucide.min.js" defer onerror="window._lucideFailed=true"></script>
@@ -218,7 +227,6 @@
           </div>
         </div>
         <button class="icon-btn" id="signin-btn" aria-label="Sign in" hidden><i data-lucide="log-in" class="icon-20"></i></button>
-        <button class="icon-btn" id="signout-btn" aria-label="Sign out" hidden><i data-lucide="log-out" class="icon-20"></i></button>
       </div>
     </header>
 
@@ -354,10 +362,18 @@
         </div>
       </nav>
 
+      <div class="app-resizer" id="app-resizer" aria-label="Resize sidebar" role="separator" tabindex="0"></div>
+
       <main class="app-main" id="app-main" aria-live="polite"></main>
     </div>
   </div>
 
+  <script>
+    // Auto-set IDE preview mode when loaded inside the relay iframe
+    if (window.self !== window.top || window.location.search.includes('ide-preview=true')) {
+      document.documentElement.setAttribute('data-ide-preview', 'true');
+    }
+  </script>
   <script>
     if (typeof lucide !== 'undefined') {
       lucide.createIcons();
@@ -429,10 +445,10 @@
       nav.className = 'app-header-links';
       nav.setAttribute('aria-label', 'External tools');
       var links = [
-        { href: '/coming-soon/roadmap.html', icon: 'map', label: 'Roadmap' },
-        { href: '/coming-soon/audit.html', icon: 'clipboard-check', label: 'Audit' },
-        { href: '/coming-soon/pricing.html', icon: 'tag', label: 'Pricing', id: 'header-pricing-link' },
-        { href: '/coming-soon/index.html', icon: 'layout-dashboard', label: 'Teams Dashboard', id: 'vaultLink' }
+        { href: '/roadmap.html', icon: 'map', label: 'Roadmap' },
+        { href: '/audit.html', icon: 'clipboard-check', label: 'Audit' },
+        { href: '/pricing.html', icon: 'tag', label: 'Pricing', id: 'header-pricing-link' },
+        { href: '#/dashboard', icon: 'layout-dashboard', label: 'Teams Dashboard', id: 'vaultLink' }
       ];
       links.forEach(function(link) {
         var a = document.createElement('a');
@@ -531,7 +547,7 @@
       }
     })();
   </script>
-  <script type="module" src="js-es2018/main.js?v=20260629resultsummary2"></script>
+  <script type="module" src="js-es2018/main.js?v=20260703enhance2"></script>
   <script>
     // Fallback SPA router when the main.js module is missing or fails to load
     (function() {
@@ -558,7 +574,6 @@
         { id: 'compliance', label: 'Compliance', icon: '🛡' },
         { id: 'repo-health', label: 'Repo Health', icon: '📈' },
         { id: 'analytics', label: 'Analytics', icon: '📊' },
-        { id: 'team', label: 'Team', icon: '👥' },
         { id: 'scan', label: 'Scan', icon: '🔍' },
         { id: 'settings', label: 'Settings', icon: '⚙' }
       ];

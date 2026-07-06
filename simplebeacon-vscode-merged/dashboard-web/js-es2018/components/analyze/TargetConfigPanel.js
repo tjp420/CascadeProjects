@@ -3,31 +3,28 @@
  * Handles path input, provider selection, and scan configuration UI.
  */
 export class TargetConfigPanel {
-  constructor(parentView) {
-    this.parent = parentView;
-    this.container = null;
-    this.mounted = false;
-  }
-
-  mount(element) {
-    this.container = element;
-    this.container.innerHTML = this.render();
-    this.bindEvents();
-    this.mounted = true;
-    return this;
-  }
-
-  unmount() {
-    if (this.container) {
-      this.container.innerHTML = '';
+    constructor(parentView) {
+        this.parent = parentView;
+        this.container = null;
+        this.mounted = false;
     }
-    this.mounted = false;
-  }
-
-  render() {
-    const app = this.parent.app;
-    const pathValue = app.state.analyzePath || '';
-    return `
+    mount(element) {
+        this.container = element;
+        this.container.innerHTML = this.render();
+        this.bindEvents();
+        this.mounted = true;
+        return this;
+    }
+    unmount() {
+        if (this.container) {
+            this.container.innerHTML = '';
+        }
+        this.mounted = false;
+    }
+    render() {
+        const app = this.parent.app;
+        const pathValue = app.state.analyzePath || '';
+        return `
       <div class="analyze-target-redesign db-v3-panel db-v3-glass">
         <div class="panel-header-v3">
           <span class="codicon codicon-target header-accent-icon"></span>
@@ -76,56 +73,52 @@ export class TargetConfigPanel {
         </div>
       </div>
     `;
-  }
-
-  bindEvents() {
-    const pathInput = this.container.querySelector('#analyze-path-input');
-    const providerSelect = this.container.querySelector('#ai-provider-select');
-    const validateBtn = this.container.querySelector('#btn-validate-path');
-    const startBtn = this.container.querySelector('#btn-start-scan');
-
-    if (pathInput) {
-      pathInput.addEventListener('input', (e) => {
-        this.parent.app.setState({ analyzePath: e.target.value });
-      });
-      pathInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          this.parent.handleGlobalAction('START_SCAN', { targetPath: pathInput.value });
+    }
+    bindEvents() {
+        const pathInput = this.container.querySelector('#analyze-path-input');
+        const providerSelect = this.container.querySelector('#ai-provider-select');
+        const validateBtn = this.container.querySelector('#btn-validate-path');
+        const startBtn = this.container.querySelector('#btn-start-scan');
+        if (pathInput) {
+            pathInput.addEventListener('input', (e) => {
+                this.parent.app.setState({ analyzePath: e.target.value });
+            });
+            pathInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    this.parent.handleGlobalAction('START_SCAN', { targetPath: pathInput.value });
+                }
+            });
         }
-      });
+        if (providerSelect) {
+            providerSelect.addEventListener('change', (e) => {
+                this.parent.aiProvider = e.target.value;
+                this.parent.savePrefs();
+            });
+        }
+        if (validateBtn) {
+            validateBtn.addEventListener('click', () => {
+                this.parent.handleGlobalAction('VALIDATE_PATH', { targetPath: (pathInput === null || pathInput === void 0 ? void 0 : pathInput.value) || '' });
+            });
+        }
+        if (startBtn) {
+            startBtn.addEventListener('click', () => {
+                this.parent.handleGlobalAction('START_SCAN', { targetPath: (pathInput === null || pathInput === void 0 ? void 0 : pathInput.value) || '' });
+            });
+        }
     }
-
-    if (providerSelect) {
-      providerSelect.addEventListener('change', (e) => {
-        this.parent.aiProvider = e.target.value;
-        this.parent.savePrefs();
-      });
+    setBusy(busy) {
+        var _a;
+        const startBtn = (_a = this.container) === null || _a === void 0 ? void 0 : _a.querySelector('#btn-start-scan');
+        if (startBtn) {
+            startBtn.disabled = busy;
+            startBtn.textContent = busy ? 'Scanning…' : 'Start Analysis';
+        }
     }
-
-    if (validateBtn) {
-      validateBtn.addEventListener('click', () => {
-        this.parent.handleGlobalAction('VALIDATE_PATH', { targetPath: pathInput?.value || '' });
-      });
+    updatePath(value) {
+        var _a;
+        const input = (_a = this.container) === null || _a === void 0 ? void 0 : _a.querySelector('#analyze-path-input');
+        if (input)
+            input.value = value;
     }
-
-    if (startBtn) {
-      startBtn.addEventListener('click', () => {
-        this.parent.handleGlobalAction('START_SCAN', { targetPath: pathInput?.value || '' });
-      });
-    }
-  }
-
-  setBusy(busy) {
-    const startBtn = this.container?.querySelector('#btn-start-scan');
-    if (startBtn) {
-      startBtn.disabled = busy;
-      startBtn.textContent = busy ? 'Scanning…' : 'Start Analysis';
-    }
-  }
-
-  updatePath(value) {
-    const input = this.container?.querySelector('#analyze-path-input');
-    if (input) input.value = value;
-  }
 }

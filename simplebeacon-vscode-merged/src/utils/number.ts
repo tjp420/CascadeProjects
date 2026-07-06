@@ -168,7 +168,10 @@ export function max(arr: number[]): number {
  */
 export function sumBy<T>(arr: T[], fn: (item: T) => number): number {
   if (!Array.isArray(arr) || typeof fn !== 'function') return 0;
-  return arr.reduce((acc, item) => acc + (Number.isFinite(fn(item)) ? fn(item) : 0), 0);
+  return arr.reduce((acc, item) => {
+    const val = fn(item);
+    return acc + (Number.isFinite(val) ? val : 0);
+  }, 0);
 }
 
 /**

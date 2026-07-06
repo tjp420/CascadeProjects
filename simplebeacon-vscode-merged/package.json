@@ -7,7 +7,7 @@
     "type": "git",
     "url": "https://github.com/simplebeacon/simplebeacon-vscode.git"
   },
-  "version": "3.0.347",
+  "version": "3.0.392",
   "publisher": "simplebeacon",
   "engines": {
     "vscode": "^1.84.0",
@@ -56,7 +56,16 @@
     }
   ],
   "activationEvents": [
-    "onStartupFinished"
+    "onStartupFinished",
+    "onView:simplebeacon-modern",
+    "onView:simplebeacon-modern-explorer",
+    "onCommand:simplebeacon.scanWorkspace",
+    "onCommand:simplebeacon.showReport",
+    "onCommand:simplebeacon.clearResults",
+    "onCommand:simplebeacon.setApiToken",
+    "onCommand:simplebeacon.openSettings",
+    "onCommand:simplebeacon.showWelcome",
+    "onCommand:simplebeacon.openAnalyze"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -194,6 +203,12 @@
         "icon": "$(organization)"
       },
       {
+        "command": "simplebeacon.upgradeToPro",
+        "title": "Upgrade to Pro",
+        "category": "SimpleBeacon",
+        "icon": "$(arrow-up)"
+      },
+      {
         "command": "simplebeacon.setApiToken",
         "title": "Set API Token",
         "category": "SimpleBeacon",
@@ -210,6 +225,18 @@
         "title": "Set API Server URL",
         "category": "SimpleBeacon",
         "icon": "$(server)"
+      },
+      {
+        "command": "simplebeacon.viewAccountHistory",
+        "title": "View Account History",
+        "category": "SimpleBeacon",
+        "icon": "$(history)"
+      },
+      {
+        "command": "simplebeacon.exportAccountHistory",
+        "title": "Export Account History",
+        "category": "SimpleBeacon",
+        "icon": "$(file-code)"
       },
       {
         "command": "simplebeacon.toggleRealtimeMonitoring",
@@ -370,6 +397,11 @@
         "title": "Import Code Map Graph",
         "category": "SimpleBeacon",
         "icon": "$(file-add)"
+      },
+      {
+        "command": "simplebeacon.highlightCodeMapNode",
+        "title": "Highlight Code Map Node",
+        "category": "SimpleBeacon"
       }
     ],
     "views": {
@@ -383,11 +415,11 @@
         },
         {
           "type": "webview",
-          "id": "simplebeacon-ai-chatbot",
-          "name": "AI Coding Agent",
-          "icon": "$(comment-discussion)",
-          "contextualTitle": "AI Coding Agent",
-          "when": "true"
+          "id": "simplebeacon-codemap-tree",
+          "name": "Code Map Explorer",
+          "icon": "$(explorer)",
+          "contextualTitle": "Code Map Explorer",
+          "when": "false"
         }
       ],
       "explorer": [
@@ -438,6 +470,14 @@
         },
         {
           "command": "simplebeacon.setServerUrl",
+          "when": "true"
+        },
+        {
+          "command": "simplebeacon.viewAccountHistory",
+          "when": "true"
+        },
+        {
+          "command": "simplebeacon.exportAccountHistory",
           "when": "true"
         },
         {
@@ -497,7 +537,7 @@
         },
         "simplebeacon.showWelcomeOnLoad": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "description": "Show the Welcome dashboard every time the AI Slop Cop extension loads"
         },
         "simplebeacon.displayMode": {
@@ -812,6 +852,11 @@
           "type": "boolean",
           "default": true,
           "description": "Show a subtle success prompt when a repository achieves a perfect 100/100 quality score."
+        },
+        "simplebeacon.remoteMode": {
+          "type": "boolean",
+          "default": false,
+          "description": "Run SimpleBeacon entirely in the browser. All panels and previews open in the browser preview window instead of VS Code: IDE panels."
         }
       }
     }
@@ -829,7 +874,7 @@
     "format:check": "prettier --check \"src/**/*.ts\"",
     "verify:scan": "node ../scripts/verify-scan.js",
     "verify:all": "npm run compile && node ../scripts/verify-scan.js && npx @vscode/vsce package --out simplebeacon-test.vsix",
-    "package:vsix": "npm run compile && npx @vscode/vsce package --no-dependencies --out simplebeacon-3.0.347.vsix",
+    "package:vsix": "npm run compile && npx @vscode/vsce package",
     "test:dashboard": "node ./__extract_html.cjs && node ./__test_server.cjs",
     "arch": "depcruise src --config .dependency-cruiser.js",
     "arch:validate": "depcruise src --config .dependency-cruiser.js --output-type err",
@@ -837,6 +882,7 @@
     "quality:check": "npm run lint && npm run compile && npm run arch:validate && npm run test"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/glob": "^8.1.0",
     "@types/jest": "^30.0.0",
     "@types/mocha": "^10.0.10",
@@ -857,6 +903,8 @@
     "typescript": "^5.3.0"
   },
   "dependencies": {
-    "archiver": "^8.0.0"
+    "archiver": "^8.0.0",
+    "bcryptjs": "^3.0.3",
+    "fido2-lib": "^3.5.9"
   }
 }

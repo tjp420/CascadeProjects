@@ -39,13 +39,15 @@ const { scanDeadCode } = require('./rules/dead-code-scanner');
 const { scanMemoryLeaks } = require('./rules/memory-leak-scanner');
 const { scanTypeSafety } = require('./rules/type-safety-scanner');
 const { scanHallucinatedImports } = require('./rules/hallucinated-import-scanner');
+const { scanDependencyGraph } = require('./rules/dependency-graph-scanner');
 const { scanAstStructural } = require('./rules/ast-structural-scanner');
+const { scanComprehensive } = require('./rules/comprehensive-scanner');
 const { loadSimplebeaconConfig, resolveScanPaths, isRuleEnabled, getRuleOptions, sanitizeConfigForTier } = require('./config');
 const { detectTier } = require('./lib/tier-detector');
 const { checkLocalScanQuota, incrementLocalScan, incrementPipelineScan, isPipelineScan } = require('./lib/scan-usage-tracker');
 const { resolvePlatformRoot, isIsolatedScanRoot } = require('./project-detect');
 const { countRepositoryInventory } = require('./lib/repository-inventory');
-const { normalizePathKey } = require('./lib/path-utils');
+const { normalizePathKey, displayRelativePath } = require('./lib/path-utils');
 const { sanitizePath } = require('./lib/path-sanitizer');
 const {
     isExternalBenchmarkCachePath,
@@ -57,99 +59,48 @@ const { normalizePlatformScanReport } = require('./lib/normalize-scan-report');
 const { evaluateGate } = require('./gate');
 const { isBlockingIssue, groupIssues, countBySeverity, computeQualityScoreFromIssues } = require('./lib/issue-utils');
 const { clearJsonFileCache } = require('../../../ai-platform/server/lib/json-file-cache.cjs');
-const constants = require('../../../ai-platform/server/config/constants.cjs');
+const { ALL_EXTENSION_SET } = require('../../../ai-platform/server/config/file-types.cjs');
+const { LRUCache } = require('./lib/lru-cache');
+const { formatBytes } = require('./lib/format-utils');
+const { cachedGlobToRegex } = require('./lib/glob-utils');
 
 // Scan-session file content cache — eliminates redundant I/O when multiple rules read the same file
-const fileContentCache = new Map();
-/** 256MB cache budget. */
-const MAX_CACHE_BYTES = 256 * 1024 * 1024;
-let currentCacheBytes = 0;
-
-/**
- * Add a file's content to the LRU cache, evicting oldest entries if over budget.
- * @param {string} filePath
- * @param {string} content
- * @returns {void}
- */
-function _addToCache(filePath, content) {
-    if (typeof filePath !== 'string' || typeof content !== 'string') return;
-    const bytes = Buffer.byteLength(content, 'utf8');
-    if (bytes > MAX_CACHE_BYTES) return; // Skip files larger than cache budget
-
-    // If already cached, subtract old size before re-adding so the budget stays correct.
-    if (fileContentCache.has(filePath)) {
-        const oldContent = fileContentCache.get(filePath);
-        if (oldContent !== undefined) {
-            currentCacheBytes -= Buffer.byteLength(oldContent, 'utf8');
-        }
-        fileContentCache.delete(filePath);
-    }
-
-    // Evict oldest entries until we have room (LRU via insertion order)
-    while (currentCacheBytes + bytes > MAX_CACHE_BYTES && fileContentCache.size > 0) {
-        const firstKey = fileContentCache.keys().next().value;
-        const firstContent = fileContentCache.get(firstKey);
-        if (firstContent === undefined) {
-            fileContentCache.delete(firstKey);
-            continue;
-        }
-        currentCacheBytes -= Buffer.byteLength(firstContent, 'utf8');
-        fileContentCache.delete(firstKey);
-    }
-    fileContentCache.set(filePath, content);
-    currentCacheBytes += bytes;
-}
+const fileContentCache = new LRUCache({ maxBytes: 256 * 1024 * 1024 });
 
 /**
  * Read a file synchronously with caching.
- * Skips caching for files larger than the cache budget.
  * @param {string} filePath
  * @returns {string}
  */
 function readFileCached(filePath) {
     if (typeof filePath !== 'string') throw new TypeError('readFileCached expects a string path');
-    if (fileContentCache.has(filePath)) {
-        // Touch: delete and re-insert to promote to most-recently-used
-        const content = fileContentCache.get(filePath);
-        fileContentCache.delete(filePath);
-        fileContentCache.set(filePath, content);
-        return content;
-    }
+    const cached = fileContentCache.get(filePath);
+    if (cached !== undefined) return cached;
     const content = fs.readFileSync(filePath, 'utf8');
-    if (Buffer.byteLength(content, 'utf8') <= MAX_CACHE_BYTES) {
-        _addToCache(filePath, content);
-    }
+    fileContentCache.set(filePath, content);
     return content;
 }
 
 /**
  * Read a file asynchronously with caching.
- * Skips caching for files larger than the cache budget.
  * @param {string} filePath
  * @returns {Promise<string>}
  */
 async function readFileCachedAsync(filePath) {
     if (typeof filePath !== 'string') throw new TypeError('readFileCachedAsync expects a string path');
-    if (fileContentCache.has(filePath)) {
-        const content = fileContentCache.get(filePath);
-        fileContentCache.delete(filePath);
-        fileContentCache.set(filePath, content);
-        return content;
-    }
+    const cached = fileContentCache.get(filePath);
+    if (cached !== undefined) return cached;
     const content = await fs.promises.readFile(filePath, 'utf8');
-    if (Buffer.byteLength(content, 'utf8') <= MAX_CACHE_BYTES) {
-        _addToCache(filePath, content);
-    }
+    fileContentCache.set(filePath, content);
     return content;
 }
 
 /**
- * Clear the scan-session file content cache and reset the byte counter.
+ * Clear the scan-session file content cache.
  * @returns {void}
  */
 function clearFileContentCache() {
     fileContentCache.clear();
-    currentCacheBytes = 0;
 }
 
 const BINARY_EXTENSIONS = new Set([
@@ -173,12 +124,7 @@ async function countFileLines(filePath, ext) {
     if (BINARY_EXTENSIONS.has(ext)) return 0;
     try {
         const content = await readFileCachedAsync(filePath);
-        // Count newlines without creating a large intermediate array
-        let lines = 0;
-        for (let i = 0; i < content.length; i++) {
-            if (content[i] === '\n') lines++;
-        }
-        return content.length > 0 ? lines + 1 : 0;
+        return content.length > 0 ? content.split('\n').length : 0;
     } catch {
         return 0;
     }
@@ -216,17 +162,6 @@ function dedupeScannedFiles(files) {
 }
 
 /**
- * Get a relative path with forward slashes.
- * @param {string} baseDir
- * @param {string} filePath
- * @returns {string}
- */
-function displayRelativePath(baseDir, filePath) {
-    if (typeof baseDir !== 'string' || typeof filePath !== 'string') return '';
-    return path.relative(baseDir, filePath).replace(/\\/g, '/');
-}
-
-/**
  * Load .simplebeaconignore patterns from a directory.
  * @param {string} root
  * @returns {string[]}
@@ -250,57 +185,6 @@ function loadSimplebeaconIgnorePatterns(root) {
 }
 
 /**
- * Convert a glob-like pattern to a RegExp.
- * Supports `*`, `**`, and `?` wildcards.
- * @param {string} pattern
- * @returns {RegExp}
- */
-function globToRegex(pattern) {
-    if (typeof pattern !== 'string') return /(?!)/;
-    let regex = '^';
-    for (let i = 0; i < pattern.length; i += 1) {
-        const c = pattern[i];
-        if (c === '*' && pattern[i + 1] === '*') {
-            i += 1;
-            if (pattern[i + 1] === '/') {
-                regex += '(?:.*/)?';
-                i += 1;
-            } else {
-                regex += '.*';
-            }
-        } else if (c === '*') {
-            regex += '[^/]*';
-        } else if (c === '?') {
-            regex += '[^/]';
-        } else {
-            regex += c.replace(/[.+^${}()|[\]\\]/g, '\\$&');
-        }
-    }
-    regex += '$';
-    try {
-        return new RegExp(regex);
-    } catch {
-        return /(?!)/;
-    }
-}
-
-/** Cache of compiled glob-to-regex patterns. */
-const _globRegexCache = new Map();
-
-/**
- * Compile a glob pattern to a regex, caching the result.
- * @param {string} pattern
- * @returns {RegExp}
- */
-function cachedGlobToRegex(pattern) {
-    if (typeof pattern !== 'string') return /(?!)/;
-    if (_globRegexCache.has(pattern)) return _globRegexCache.get(pattern);
-    const re = globToRegex(pattern);
-    _globRegexCache.set(pattern, re);
-    return re;
-}
-
-/**
  * Check if a relative path matches any ignore pattern.
  * @param {string} rel Relative path to check.
  * @param {string[]} ignorePatterns List of glob or literal ignore patterns.
@@ -317,49 +201,62 @@ function isIgnoredPath(rel, ignorePatterns) {
 }
 
 /**
+ * Search upward for any of the given file names, up to a max depth.
+ * @param {ReadonlyArray<string>} names
+ * @param {string} startDir
+ * @param {number} [maxDepth=3]
+ * @returns {boolean}
+ */
+function findFile(names, startDir, maxDepth = 3) {
+    let dir = startDir;
+    for (let depth = 0; depth < maxDepth; depth++) {
+        for (const name of names) {
+            if (fs.existsSync(path.join(dir, name))) return true;
+        }
+        const parent = path.dirname(dir);
+        if (parent === dir) break;
+        dir = parent;
+    }
+    return false;
+}
+
+/** License file names to look for. */
+const LICENSE_NAMES = Object.freeze(['LICENSE', 'LICENSE.md', 'LICENSE.txt', 'license', 'license.md', 'license.txt']);
+/** Security file names to look for. */
+const SECURITY_NAMES = Object.freeze(['SECURITY.md', 'SECURITY.txt', 'security.md', 'security.txt', 'SECURITY', 'security']);
+
+/**
  * Check for LICENSE and SECURITY files in or near the project root.
  * @param {string} root Project root directory.
  * @returns {{licenseCount:number,securityCount:number,summary:null,remediation:null}}
  */
 function resolveComplianceCounts(root) {
     if (typeof root !== 'string') return { licenseCount: 0, securityCount: 0, summary: null, remediation: null };
-    const LICENSE_NAMES = ['LICENSE', 'LICENSE.md', 'LICENSE.txt', 'license', 'license.md', 'license.txt'];
-    const SECURITY_NAMES = ['SECURITY.md', 'SECURITY.txt', 'security.md', 'security.txt', 'SECURITY', 'security'];
-
-    function findFile(names, startDir) {
-        let dir = startDir;
-        for (let depth = 0; depth < 3; depth++) {
-            for (const name of names) {
-                if (fs.existsSync(path.join(dir, name))) return true;
-            }
-            const parent = path.dirname(dir);
-            if (parent === dir) break;
-            dir = parent;
-        }
-        return false;
-    }
-
-    const hasLicense = findFile(LICENSE_NAMES, root);
-    const hasSecurity = findFile(SECURITY_NAMES, root);
-
     return {
-        licenseCount: hasLicense ? 1 : 0,
-        securityCount: hasSecurity ? 1 : 0,
+        licenseCount: findFile(LICENSE_NAMES, root) ? 1 : 0,
+        securityCount: findFile(SECURITY_NAMES, root) ? 1 : 0,
         summary: null,
         remediation: null
     };
 }
 
 /**
- * Push scanner issues (from scanners returning `{ issues: [...] }`) into the issues array.
+ * Normalize and push scanner output into the issues array.
+ * Handles both `{ issues: [...] }` and `{ results: [{ filePath, findings: [...] }] }` shapes.
  * @param {Array<Object>} issues Mutable issues accumulator.
- * @param {{issues?:Array<Object>}} scanResult Scanner output.
- * @param {string} [severityOverride] Optional severity to force on all issues.
+ * @param {Object} scanResult Scanner output.
+ * @param {string} [type] Issue type label (for findings shape).
+ * @param {string} [defaultId] Default rule ID (for findings shape).
+ * @param {string} [defaultDesc] Default description (for findings shape).
+ * @param {string} [defaultSev='medium'] Default severity (for findings shape).
+ * @param {string} [severityOverride] Optional severity to force on all direct issues.
  * @returns {void}
  */
-function pushScannerIssues(issues, scanResult, severityOverride) {
-    if (!Array.isArray(issues)) return;
-    if (scanResult?.issues?.length) {
+function normalizeScannerOutput(issues, scanResult, type, defaultId, defaultDesc, defaultSev = 'medium', severityOverride) {
+    if (!Array.isArray(issues) || !scanResult || typeof scanResult !== 'object') return;
+
+    // Direct issues array
+    if (scanResult.issues?.length) {
         if (severityOverride) {
             for (const issue of scanResult.issues) {
                 issues.push({ ...issue, severity: severityOverride });
@@ -367,29 +264,17 @@ function pushScannerIssues(issues, scanResult, severityOverride) {
         } else {
             issues.push(...scanResult.issues);
         }
+        return;
     }
-}
 
-/**
- * Push scanner findings (from scanners returning `{ results: [{ filePath, findings: [...] }] }`) into the issues array.
- * @param {Array<Object>} issues Mutable issues accumulator.
- * @param {{results?:Array<{filePath:string,findings?:Array<Object>}>}} scanResult Scanner output.
- * @param {string} type Issue type label.
- * @param {string} defaultId Default rule ID.
- * @param {string} defaultDesc Default description.
- * @param {string} [defaultSev='medium'] Default severity.
- * @returns {void}
- */
-function pushScannerFindings(issues, scanResult, type, defaultId, defaultDesc, defaultSev = 'medium') {
-    if (!Array.isArray(issues)) return;
-    if (!scanResult?.results?.length) return;
+    // Results-with-findings shape
+    if (!scanResult.results?.length) return;
     for (const r of scanResult.results) {
         for (const f of r.findings || []) {
             const sev = f.severity || defaultSev;
-            const cappedSev = (sev === 'critical' || sev === 'high') ? 'medium' : sev;
             issues.push({
                 id: f.ruleId || defaultId,
-                severity: cappedSev,
+                severity: { critical: 'medium', high: 'medium' }[sev] || sev,
                 type,
                 filePath: r.filePath,
                 line: f.line,
@@ -401,6 +286,14 @@ function pushScannerFindings(issues, scanResult, type, defaultId, defaultDesc, d
     }
 }
 
+/** Patterns for known false-positive suppression. */
+const FP_PATH_PATTERNS = Object.freeze([
+    { type: 'Duplicate Data', pathIncludes: ['simplebeacon-dashboard/js-es2018/', 'simplebeacon-dashboard/js/', 'simplebeacon-dashboard/data/', 'tsconfig.json'] },
+    { type: 'cleanup', pathIncludes: ['simplebeacon-dashboard/js-es2018/'] },
+    { type: 'performance', pathIncludes: ['simplebeacon-dashboard/js-es2018/'] },
+    { type: 'env-inconsistency', pathIncludes: ['.env.v1-internal'] }
+]);
+
 /**
  * Known false positives to suppress from the issue list.
  * Only suppresses in specific file contexts, never blanket-suppresses entire rule types.
@@ -411,10 +304,9 @@ function isKnownFalsePositive(issue) {
     if (!issue || typeof issue !== 'object') return false;
     const fp = (issue.filePath || '').replace(/\\/g, '/');
     const type = issue.type || '';
-    const isDashboardFile = fp.includes('simplebeacon-dashboard/js-es2018/') || fp.includes('simplebeacon-dashboard/js/') || fp.includes('simplebeacon-dashboard/data/');
-    if (type === 'Duplicate Data' && (isDashboardFile || fp.includes('tsconfig.json'))) return true;
-    if (type === 'env-inconsistency' && fp.includes('.env.v1-internal')) return true;
-    return false;
+    return FP_PATH_PATTERNS.some((rule) =>
+        rule.type === type && rule.pathIncludes.some((sub) => fp.includes(sub))
+    );
 }
 
 /**
@@ -427,6 +319,27 @@ function scannedCount(scan) {
     return scan.scanned || (scan.results ? scan.results.length : 0) || 0;
 }
 
+/** Per-rule fallback defaults for scan results. */
+const SCAN_RESULT_DEFAULTS = Object.freeze({
+    roadmap: Object.freeze({ checked: 0, passed: 0, issues: [] }),
+    consistency: Object.freeze({ checked: 0, passed: 0, score: null, issues: [] }),
+    credentials: Object.freeze({ scanned: 0, findings: 0, issues: [] }),
+    'production-leak': Object.freeze({ scanned: 0, findings: 0, issues: [] }),
+    'fiction-kpi-patterns': Object.freeze({ scanned: 0, findings: 0, issues: [], patterns: [] }),
+    'llm-slop-patterns': Object.freeze({ scanned: 0, findings: 0, issues: [], patterns: [] }),
+    'agency-handoff-patterns': Object.freeze({ scanned: 0, findings: 0, issues: [], patterns: [] }),
+    'eu-ai-act-patterns': Object.freeze({ scanned: 0, findings: 0, issues: [], summary: null, patterns: [] }),
+    'jest-baseline': Object.freeze({ checked: false, passed: true, issues: [], summary: null }),
+    'token-bleed-patterns': Object.freeze({ scanned: 0, findings: 0, issues: [] }),
+    'architecture-drift-patterns': Object.freeze({ scanned: 0, findings: 0, issues: [] }),
+    'security-patterns': Object.freeze({ scanned: 0, findings: 0, issues: [] }),
+    'file-reduction': Object.freeze({ allFindings: [], findings: {}, summary: {} }),
+    'dependency-graph': Object.freeze({ scanned: 0, findings: 0, issues: [], results: [] })
+});
+
+/** Generic fallback for scanners not in SCAN_RESULT_DEFAULTS. */
+const SCAN_RESULT_SIMPLE_DEFAULTS = Object.freeze({ scanned: 0, findings: 0, issues: [], results: [] });
+
 /**
  * Get a scan result from the resultMap with a key-appropriate fallback default.
  * @param {Map<string,Object>} resultMap
@@ -436,23 +349,7 @@ function scannedCount(scan) {
 function _getScanResult(resultMap, key) {
     if (!(resultMap instanceof Map)) return {};
     if (typeof key !== 'string') return {};
-    const defaults = {
-        roadmap: { checked: 0, passed: 0, issues: [] },
-        consistency: { checked: 0, passed: 0, score: null, issues: [] },
-        credentials: { scanned: 0, findings: 0, issues: [] },
-        'production-leak': { scanned: 0, findings: 0, issues: [] },
-        'fiction-kpi-patterns': { scanned: 0, findings: 0, issues: [], patterns: [] },
-        'llm-slop-patterns': { scanned: 0, findings: 0, issues: [], patterns: [] },
-        'agency-handoff-patterns': { scanned: 0, findings: 0, issues: [], patterns: [] },
-        'eu-ai-act-patterns': { scanned: 0, findings: 0, issues: [], summary: null, patterns: [] },
-        'jest-baseline': { checked: false, passed: true, issues: [], summary: null },
-        'token-bleed-patterns': { scanned: 0, findings: 0, issues: [] },
-        'architecture-drift-patterns': { scanned: 0, findings: 0, issues: [] },
-        'security-patterns': { scanned: 0, findings: 0, issues: [] },
-        'file-reduction': { allFindings: [], findings: {}, summary: {} },
-    };
-    const simpleDefaults = { scanned: 0, findings: 0, issues: [], results: [] };
-    return resultMap.get(key) || defaults[key] || simpleDefaults;
+    return resultMap.get(key) || SCAN_RESULT_DEFAULTS[key] || SCAN_RESULT_SIMPLE_DEFAULTS;
 }
 
 /**
@@ -481,7 +378,7 @@ function applyTierLimits(report, options = {}) {
     const maxFindings = limits.maxFindingsShown;
     const showScore = limits.showQualityScore;
 
-    if (typeof maxFiles === 'number' && report.totalFiles > maxFiles) {
+    if (typeof maxFiles === 'number' && maxFiles >= 0 && typeof report.totalFiles === 'number' && report.totalFiles > maxFiles) {
         report.filesAnalyzed = Math.min(report.filesAnalyzed || 0, maxFiles);
         report.ruleScopedFilesAnalyzed = Math.min(report.ruleScopedFilesAnalyzed || 0, maxFiles);
         report.totalFiles = maxFiles;
@@ -489,10 +386,12 @@ function applyTierLimits(report, options = {}) {
         report.tierLimitation = `Free tier limited to ${maxFiles} files. Upgrade to Pro for unlimited scans.`;
     }
 
-    if (typeof maxFindings === 'number' && Array.isArray(report.rawIssues)) {
+    if (typeof maxFindings === 'number' && maxFindings >= 0 && Array.isArray(report.rawIssues)) {
         const truncated = report.rawIssues.length > maxFindings;
-        report.rawIssues = (report.rawIssues || []).slice(0, maxFindings);
-        report.detectedIssues = (report.detectedIssues || []).slice(0, maxFindings);
+        report.rawIssues = report.rawIssues.slice(0, maxFindings);
+        if (Array.isArray(report.detectedIssues)) {
+            report.detectedIssues = report.detectedIssues.slice(0, maxFindings);
+        }
         if (truncated) {
             report.tierFindingsLimitation = `Free tier shows ${maxFindings} findings. Upgrade to Pro to see all.`;
         }
@@ -573,19 +472,27 @@ function computeFilesAnalyzed(mockCount, credentialScan, productionLeakScan, sou
 
 /**
  * Recursively walk a directory and collect file entries.
- * @param {string} dir
- * @param {Array<{path:string,name:string,ext:string,size:number,relativePath:string}>} [results=[]]
- * @param {number} [depth=0]
- * @param {string|null} [rootDir=null]
- * @param {number} [maxDepth=6]
- * @param {Set<string>} [skipDirs]
+ * @param {Object} opts
+ * @param {string} opts.dir
+ * @param {Array<{path:string,name:string,ext:string,size:number,relativePath:string}>} [opts.results=[]]
+ * @param {number} [opts.depth=0]
+ * @param {string|null} [opts.rootDir=null]
+ * @param {number} [opts.maxDepth=6]
+ * @param {Set<string>} [opts.skipDirs]
+ * @param {number} [opts.maxFiles=500000]
+ * @param {boolean} [opts.quiet=false]
  * @returns {Promise<Array<{path:string,name:string,ext:string,size:number,relativePath:string}>>}
  */
-async function walkAndCollectFiles(dir, results = [], depth = 0, rootDir = null, maxDepth = 6, skipDirs = MOCK_WALK_SKIP_DIRS, maxFiles = 500000) {
+async function walkAndCollectFiles(opts) {
+    const { dir, results = [], depth = 0, rootDir = null, maxDepth = 6, skipDirs = MOCK_WALK_SKIP_DIRS, maxFiles = 500000, quiet = false } = opts;
     if (typeof dir !== 'string') return results;
     if (depth > maxDepth) return results;
     if (results.length >= maxFiles) return results;
     const walkRoot = rootDir || dir;
+    const reportProgress = !quiet && process.stderr.isTTY && results.length > 0 && results.length % 1000 === 0;
+    if (reportProgress) {
+        process.stderr.write(`\rScanning: ${results.length.toLocaleString()} files discovered... `);
+    }
     let entries;
     for (let attempt = 0; attempt < 3; attempt += 1) {
         try {
@@ -605,7 +512,7 @@ async function walkAndCollectFiles(dir, results = [], depth = 0, rootDir = null,
         const fullPath = path.join(dir, entry.name);
         if (entry.isDirectory()) {
             if (skipDirs && skipDirs.has(entry.name)) continue;
-            batch.push(walkAndCollectFiles(fullPath, results, depth + 1, walkRoot, maxDepth, skipDirs, maxFiles));
+            batch.push(walkAndCollectFiles({ dir: fullPath, results, depth: depth + 1, rootDir: walkRoot, maxDepth, skipDirs, maxFiles, quiet }));
             if (batch.length >= CONCURRENCY) {
                 await Promise.all(batch);
                 batch.length = 0;
@@ -616,15 +523,17 @@ async function walkAndCollectFiles(dir, results = [], depth = 0, rootDir = null,
         if (entry.isSymbolicLink()) {
             batch.push((async () => {
                 try {
+                    const realPath = await fs.promises.realpath(fullPath);
                     const stat = await fs.promises.stat(fullPath);
                     if (stat.isDirectory()) {
                         if (skipDirs && skipDirs.has(entry.name)) return;
-                        await walkAndCollectFiles(fullPath, results, depth + 1, walkRoot, maxDepth, skipDirs, maxFiles);
+                        if (!realPath.startsWith(walkRoot)) return;
+                        await walkAndCollectFiles({ dir: realPath, results, depth: depth + 1, rootDir: walkRoot, maxDepth, skipDirs, maxFiles, quiet });
                         return;
                     }
-                    const relativePath = path.relative(walkRoot, fullPath).replace(/\\/g, '/');
+                    const relativePath = path.relative(walkRoot, realPath).replace(/\\/g, '/');
                     results.push({
-                        path: fullPath,
+                        path: realPath,
                         name: entry.name,
                         ext: path.extname(entry.name).toLowerCase(),
                         size: stat.size,
@@ -670,40 +579,32 @@ async function walkAndCollectFiles(dir, results = [], depth = 0, rootDir = null,
 }
 
 /**
- * Format bytes into a human-readable string.
- * @param {number} bytes
- * @returns {string}
- */
-function formatBytes(bytes) {
-    if (bytes == null || !Number.isFinite(bytes) || bytes < 0) return '0 B';
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
-    const i = Math.min(Math.floor(Math.log(bytes) / Math.log(k)), units.length - 1);
-    return `${(bytes / k ** i).toFixed(i === 0 ? 0 : i >= 4 ? 2 : 1)} ${units[i]}`;
-}
-
-/**
  * Read and parse a JSON file.
  * @param {string} filePath
- * @returns {Promise<{valid:boolean,payload?:Object,raw?:string,issue?:string}>}
+ * @returns {Promise<{valid:boolean,payload?:Object,raw?:string,issue?:string,skipped?:boolean}>}
  */
 async function readJsonFile(filePath) {
     if (typeof filePath !== 'string') {
         return { valid: false, issue: 'filePath must be a string', raw: null };
     }
     try {
-        const raw = await fs.promises.readFile(filePath, 'utf8');
-        if (typeof raw !== 'string') {
-            return { valid: false, issue: 'not a text file', raw: null };
-        }
+        const raw = await readFileCachedAsync(filePath);
         if (!raw.trim()) {
             return { valid: false, issue: 'empty file', raw };
         }
         const payload = JSON.parse(raw);
         return { valid: true, payload, raw };
     } catch (error) {
-        return { valid: false, issue: error?.message || String(error), raw: null };
+        const code = error?.code;
+        const message = error?.message || String(error);
+        if (code === 'ENOENT') {
+            return { valid: false, issue: 'file not found', raw: null, skipped: true };
+        }
+        if (code === 'EACCES' || code === 'EPERM') {
+            console.warn(`[simplebeacon] Permission denied reading ${filePath}: ${message}`);
+            return { valid: false, issue: `permission denied (${code})`, raw: null, skipped: true };
+        }
+        return { valid: false, issue: message, raw: null };
     }
 }
 
@@ -775,6 +676,50 @@ function applyPageSampleValidation({
 }
 
 /**
+ * Run the security-pattern scanner over already-collected files in async batches.
+ * @param {Array<{path:string,relativePath:string,ext:string}>} files
+ * @param {Object} secOpts Rule options for security-patterns.
+ * @param {Object} config Full simplebeacon config.
+ * @returns {Promise<{scanned:number,findings:number,issues:Array<Object>}>}
+ */
+async function runSecurityPatternScan(files, secOpts, config) {
+    const secPaths = secOpts.sourcePaths || config.sourceCodeScanPaths || config.productionPaths || ['.'];
+    const secIgnore = secOpts.ignoreGlobs || config.ignore || [];
+    const secIssues = [];
+    let secScanned = 0;
+    const scannableExts = ALL_EXTENSION_SET;
+    const BATCH = 256;
+
+    for (let i = 0; i < files.length; i += BATCH) {
+        const batch = files.slice(i, i + BATCH);
+        const batchResults = await Promise.all(batch.map(async (file) => {
+            const rel = file.relativePath || '';
+            const basename = path.basename(rel);
+            const isEnvFile = basename === '.env' || /^\.env\.[a-z]+$/i.test(basename);
+            const ext = file.ext || '';
+            if (!scannableExts.has(ext) && !isEnvFile) return null;
+            if (secIgnore.some((g) => globMatch(rel, g))) return null;
+            if (!secPaths.some((sp) => rel.startsWith(sp.replace(/^\.\//, '')))) {
+                if (secPaths[0] !== '.') return null;
+            }
+            try {
+                const content = readFileCached(file.path);
+                const findings = scanSecurityPatterns(rel, content, ext);
+                return { findings, scanned: 1 };
+            } catch {
+                return null;
+            }
+        }));
+        for (const r of batchResults) {
+            if (!r) continue;
+            secScanned += r.scanned;
+            if (r.findings.length > 0) secIssues.push(...r.findings);
+        }
+    }
+    return { scanned: secScanned, findings: secIssues.length, issues: secIssues };
+}
+
+/**
  * Main scan entry point. Walks scan paths, runs all enabled rule scanners,
  * aggregates findings, computes quality scores, and returns a full report.
  * @param {string} baseDir Root directory to scan.
@@ -782,10 +727,234 @@ function applyPageSampleValidation({
  * @param {Object} [options={}] Scan options (fullDirectoryScan, quiet, fictionScope, etc).
  * @returns {Promise<Object>} Scan report with summary, issues, scores, and gate evaluation.
  */
+/**
+ * Build the final scan report from all aggregated scan data.
+ * @param {Object} opts
+ * @returns {Object} Draft report with formatted gate summary.
+ */
+function buildScanReport(opts) {
+    const {
+        config, scanRoot, platformRoot, scanPaths, repositoryInventory,
+        uniqueFiles, totalLines, totalSize, ruleScopedFilesAnalyzed,
+        repositoryFilesTotal, repositoryFoldersTotal, issueCount,
+        invalidJson, emptyFiles, qualityScore, schemaCompliance,
+        schemaStats, duplicateGroups, resolved, severityCounts,
+        tierInfo, quotaCheck, isPipeline, scoringIssues,
+        benchmarkCacheIssues, pageSpecCatalogSize, pageSpecsFromAlias,
+        rulesEnabled, gateResult, scanErrors,
+        ruleTimings
+    } = opts;
+
+    const highCount = severityCounts.high || 0;
+    const mediumCount = severityCounts.medium || 0;
+    const totalRisks = issueCount;
+    const estimatedCost = totalRisks > 0 ? `$${(totalRisks * 5000).toLocaleString()}` : '$0';
+
+    const scanSummary = {
+        status: gateResult.pass ? 'PASSED' : 'FAILED',
+        block_merge: !gateResult.pass,
+        total_risks_found: totalRisks,
+        high_severity_count: highCount,
+        medium_severity_count: mediumCount,
+        low_severity_count: severityCounts.low || 0,
+        estimated_incident_cost_saved: estimatedCost,
+        scan_id: `sb_scan_${crypto.randomBytes(6).toString('hex')}`,
+        timestamp: new Date().toISOString(),
+        tier: tierInfo.tier,
+        scans_remaining: quotaCheck.scansRemaining,
+        pipeline_scan: isPipeline
+    };
+
+    const {
+        roadmapValidation, consistency, credentialScan, productionLeakScan,
+        sourceFictionScan, llmSlopScan, agencyHandoffScan, euAiActScan,
+        jestBaseline, tokenBleedScan, architectureDriftScan, securityPatternScan,
+        fileReduction, hardcodedUrlScan, weakCryptoScan, secretInCommentsScan,
+        syncIoScan, envInGitScan, redosScan, piiLoggingScan, deadCodeScan,
+        memoryLeakScan, typeSafetyScan, hallucinatedImportScan, astStructuralScan,
+        dependencyGraphScan, comprehensiveScan
+    } = resolved;
+
+    const scanScope = {
+        profile: config.profile || 'standard',
+        scannerVersion: '1.0.0',
+        rulesEnabled,
+        gatePolicy: config.gate || { failOn: ['high'], warnOn: ['medium', 'low'] },
+        mockSampleFilesInScanPaths: uniqueFiles.length,
+        pageSpecCatalogSize,
+        pageSpecsValidated: schemaStats.pageSampleSchemaChecked,
+        pageSpecsFromScanPaths: schemaStats.pageSampleSchemaChecked - pageSpecsFromAlias,
+        pageSpecsFromAliasPaths: pageSpecsFromAlias,
+        productionDirsScanned: productionLeakScan.scanned,
+        productionPaths: config.productionPaths || [],
+        sourceCodeScanPaths: config.sourceCodeScanPaths || [],
+        sourceCodeFilesScanned: sourceFictionScan.scanned,
+        sourceFictionPatternHits: sourceFictionScan.findings,
+        llmSlopFilesScanned: llmSlopScan.scanned,
+        llmSlopPatternHits: llmSlopScan.findings,
+        euAiActFilesScanned: euAiActScan.scanned,
+        euAiActPatternHits: euAiActScan.findings,
+        euAiActHighRiskIndicators: euAiActScan.summary?.highRiskIndicators ?? 0,
+        jestExecutedDuringScan: jestBaseline.checked === true,
+        consistencyAnchorCount: (config.consistencyAnchorSamples || []).length,
+        fictionScope: consistency.scope || 'repository-json',
+        fictionJsonFilesScanned: consistency.jsonFilesScanned ?? consistency.checked ?? 0,
+        fictionSampleFilesScanned: consistency.samplesScanned ?? 0,
+        ruleScopedFilesAnalyzed,
+        repositoryFilesTotal,
+        repositoryFoldersTotal,
+        benchmarkCacheIssuesExcluded: benchmarkCacheIssues.length,
+        excludedPathsNote: benchmarkCacheIssues.length
+            ? `${benchmarkCacheIssues.length} issue(s) from github-cache/ benchmark clones excluded from gate scores — scan clones with github-cache/.simplebeacon/config.json (profile: benchmark).`
+            : null,
+        limitations: [
+            repositoryFilesTotal != null
+                ? `Repository inventory: ${repositoryFilesTotal.toLocaleString()} files — gate rules checked ${ruleScopedFilesAnalyzed} (mock paths, credentials, server/ leaks).`
+                : `Gate rules checked ${ruleScopedFilesAnalyzed} files — mock paths, credentials, and production directories only.`,
+            'github-cache/ OSS benchmark clones are excluded from platform gate scoring (not your product code).',
+            'Pattern matching on JSON samples and server/ production paths — not LLM semantic review.',
+            consistency.scope === 'repository-json'
+                ? `Fiction/KPI rules scan repository JSON (${consistency.jsonFilesScanned ?? '—'}) plus source code (${sourceFictionScan.scanned ?? 0} files in ${(config.sourceCodeScanPaths || []).join(', ') || 'configured paths'}).`
+                : 'Fiction/KPI rules scan configured sample JSON paths only.',
+            jestBaseline.checked
+                ? 'Jest was executed during this scan.'
+                : 'Jest was not executed during this scan — use npm test or simplebeacon:full for live test verification.',
+            config.profile === 'cascade'
+                ? 'Cascade profile scans server/ for production leaks — src/ stub API is excluded by design.'
+                : null
+        ].filter(Boolean)
+    };
+
+    const draftReport = {
+        type: 'simplebeacon-report',
+        reportVersion: 2,
+        scan_summary: scanSummary,
+        generatedAt: new Date().toISOString(),
+        generatedBy: 'Simplebeacon',
+        projectRoot: scanRoot,
+        platformRoot: platformRoot !== scanRoot ? platformRoot : undefined,
+        configPath: config.configPath,
+        scanPaths,
+        repositoryInventory,
+        mockSampleFiles: uniqueFiles.filter((f) => {
+            const isStructuralUtility = /-(path-resolver|resolver|stub-api|schema-validator|schema|consistency-checker|overrides|config|checker|specs)\.(js|cjs|mjs|ts|json)$/i.test(f.name);
+            return !isStructuralUtility && (
+                /(?:web\/data|data\/mock|data-central|fixtures?|sample)/i.test(f.relativePath)
+                || /-sample\.json$/i.test(f.name)
+            );
+        }).length,
+        totalFiles: uniqueFiles.length,
+        totalLines,
+        ruleScopedFilesAnalyzed,
+        repositoryFilesTotal,
+        repositoryFoldersTotal,
+        filesAnalyzed: config.fullDirectoryScan ? uniqueFiles.length : ruleScopedFilesAnalyzed,
+        totalSizeBytes: totalSize,
+        totalSizeLabel: formatBytes(totalSize),
+        issueCount,
+        invalidJson,
+        emptyFiles,
+        qualityScore,
+        schemaCompliance,
+        schemaChecked: schemaStats.schemaChecked,
+        schemaPassed: schemaStats.schemaPassed,
+        pageSampleSchemaChecked: schemaStats.pageSampleSchemaChecked,
+        pageSampleSchemaPassed: schemaStats.pageSampleSchemaPassed,
+        duplicateGroups: duplicateGroups.length,
+        roadmapSchemaChecked: roadmapValidation.checked,
+        roadmapSchemaPassed: roadmapValidation.passed,
+        consistencyChecked: consistency.checked,
+        consistencyPassed: consistency.passed,
+        consistencyScore: consistency.score,
+        fictionJsonFilesScanned: consistency.jsonFilesScanned ?? consistency.checked ?? 0,
+        fictionSampleFilesScanned: consistency.samplesScanned ?? 0,
+        fictionScope: consistency.scope || 'repository-json',
+        credentialScanned: credentialScan.scanned,
+        credentialFindings: credentialScan.findings,
+        productionLeakScanned: productionLeakScan.scanned,
+        productionLeakFindings: productionLeakScan.findings,
+        productionLeakSuppressedIntent: productionLeakScan.suppressedIntentCount || 0,
+        sourceCodeFilesScanned: sourceFictionScan.scanned,
+        sourceFictionPatternHits: sourceFictionScan.findings,
+        llmSlopFilesScanned: llmSlopScan.scanned,
+        llmSlopPatternHits: llmSlopScan.findings,
+        euAiActScanned: euAiActScan.scanned,
+        euAiActFindings: euAiActScan.findings,
+        euAiActSummary: euAiActScan.summary,
+        securityPatternFilesScanned: securityPatternScan.scanned,
+        securityPatternFindings: securityPatternScan.findings,
+        hardcodedUrlFilesScanned: scannedCount(hardcodedUrlScan),
+        hardcodedUrlFindings: findingsCount(hardcodedUrlScan),
+        weakCryptoFilesScanned: scannedCount(weakCryptoScan),
+        weakCryptoFindings: findingsCount(weakCryptoScan),
+        secretInCommentsFilesScanned: scannedCount(secretInCommentsScan),
+        secretInCommentsFindings: findingsCount(secretInCommentsScan),
+        syncIoFilesScanned: scannedCount(syncIoScan),
+        syncIoFindings: findingsCount(syncIoScan),
+        envInGitFilesScanned: scannedCount(envInGitScan),
+        envInGitFindings: findingsCount(envInGitScan),
+        redosFilesScanned: scannedCount(redosScan),
+        redosFindings: findingsCount(redosScan),
+        piiLoggingFilesScanned: scannedCount(piiLoggingScan),
+        piiLoggingFindings: findingsCount(piiLoggingScan),
+        deadCodeFilesScanned: scannedCount(deadCodeScan),
+        deadCodeFindings: findingsCount(deadCodeScan),
+        memoryLeakFilesScanned: scannedCount(memoryLeakScan),
+        memoryLeakFindings: findingsCount(memoryLeakScan),
+        typeSafetyFilesScanned: scannedCount(typeSafetyScan),
+        typeSafetyFindings: findingsCount(typeSafetyScan),
+        hallucinatedImportFilesScanned: scannedCount(hallucinatedImportScan),
+        hallucinatedImportFindings: findingsCount(hallucinatedImportScan),
+        astStructuralFilesScanned: scannedCount(astStructuralScan),
+        astStructuralFindings: findingsCount(astStructuralScan),
+        astAvailable: astStructuralScan.astAvailable || false,
+        dependencyGraphFilesScanned: scannedCount(dependencyGraphScan),
+        dependencyGraphFindings: findingsCount(dependencyGraphScan),
+        jestBaselineChecked: jestBaseline.checked,
+        jestBaselinePassed: jestBaseline.passed,
+        jestSummary: jestBaseline.summary || null,
+        severityCounts,
+        mockDataCategories: [...opts.categories.values()].map((cat) => ({
+            category: cat.category,
+            fileCount: cat.fileCount,
+            totalSize: formatBytes(cat.totalSize),
+            qualityScore: Math.max(60, Math.min(100, Math.round(100 - (cat.issues / Math.max(cat.fileCount, 1)) * 40))),
+            issues: cat.issues,
+            confidence: null,
+            description: `${cat.category} discovered during filesystem scan`
+        })),
+        compliance: resolveComplianceCounts(platformRoot),
+        detectedIssues: groupIssues(scoringIssues).slice(0, 12),
+        rawIssues: scoringIssues,
+        benchmarkCacheIssues,
+        sampleFiles: uniqueFiles.map((f) => f.name),
+        scanScope,
+        gate: gateResult,
+        scanErrors: scanErrors || [],
+        ruleTimings: (ruleTimings || []).slice(0, 10),
+        slowestRule: (ruleTimings && ruleTimings[0]) || null,
+        totalScanTimeMs: (ruleTimings || []).reduce((sum, t) => sum + (t.elapsedMs || 0), 0)
+    };
+
+    const gateSummary = draftReport.gate;
+    draftReport.gate = {
+        pass: gateSummary.pass,
+        failOn: gateSummary.failOn,
+        warnOn: gateSummary.warnOn,
+        blockingCount: (gateSummary.blockingIssues || []).reduce((sum, i) => sum + (i.count || 1), 0),
+        warningCount: (gateSummary.warningIssues || []).reduce((sum, i) => sum + (i.count || 1), 0),
+        blockingIssues: gateSummary.blockingIssues || [],
+        warningIssues: gateSummary.warningIssues || []
+    };
+
+    return draftReport;
+}
+
 async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
     if (typeof baseDir !== 'string') {
         throw new TypeError('scanMockDataDirectories expects baseDir to be a string');
     }
+    const scanStart = process.hrtime.bigint();
     clearJsonFileCache();
     clearFileContentCache();
     const scanRoot = sanitizePath(baseDir, baseDir);
@@ -881,9 +1050,10 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
     if (config.fullDirectoryScan) {
         skipDirs = config.fullDirectoryScanSkipDirs ? new Set(config.fullDirectoryScanSkipDirs) : new Set(FULL_TREE_MINIMAL_SKIP_DIRS);
     }
+    const walkQuiet = options.quiet || process.env.SIMPLEBEACON_QUIET === '1';
     for (const scanPath of scanPaths) {
         if (fs.existsSync(scanPath)) { // simplebeacon-ignore sync-io — path validation before async walk
-            await walkAndCollectFiles(scanPath, files, 0, null, scanMaxDepth, skipDirs);
+            await walkAndCollectFiles({ dir: scanPath, results: files, depth: 0, rootDir: null, maxDepth: scanMaxDepth, skipDirs, maxFiles: undefined, quiet: walkQuiet });
         }
     }
     let uniqueFiles = dedupeScannedFiles(files);
@@ -908,6 +1078,8 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         pageSampleSchemaPassed: 0
     };
 
+    // Pass 1: Synchronous category building and JSON file collection
+    const jsonFilesToProcess = [];
     for (const file of uniqueFiles) {
         const category = categoryForExt(file.ext);
         const bucket = categories.get(category) || {
@@ -920,16 +1092,28 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         bucket.fileCount += 1;
         bucket.totalSize += file.size;
         bucket.files.push(file.name);
+        categories.set(category, bucket);
 
-        const isNodeModulesFile = /(^|[\\/])node_modules[\\/]/.test(file.path);
-
-        // Skip stdout capture files that have .json extension but contain plain text
+        const isNodeModulesFile = /(^|[\/])node_modules[\/]/.test(file.path);
         const isStdoutCapture = /-stdout\.json$/i.test(file.name) || /report-stdout\.json$/i.test(file.name);
 
         if (file.ext === '.json' && !isStdoutCapture) {
-            const parsed = await readJsonFile(file.path);
+            jsonFilesToProcess.push({ file, isNodeModulesFile });
+        }
+    }
+
+    // Pass 2: Batched async JSON reads to avoid serially blocking the event loop
+    const JSON_BATCH_SIZE = 64;
+    for (let i = 0; i < jsonFilesToProcess.length; i += JSON_BATCH_SIZE) {
+        const batch = jsonFilesToProcess.slice(i, i + JSON_BATCH_SIZE);
+        const results = await Promise.all(batch.map((item) => readJsonFile(item.file.path)));
+        for (let j = 0; j < batch.length; j++) {
+            const { file, isNodeModulesFile } = batch[j];
+            const parsed = results[j];
+            const category = categoryForExt(file.ext);
+            const bucket = categories.get(category);
             if (!parsed.valid) {
-                if (!isNodeModulesFile) {
+                if (!isNodeModulesFile && bucket) {
                     bucket.issues += 1;
                     invalidJson += 1;
                     if (parsed.issue === 'empty file') emptyFiles += 1;
@@ -967,8 +1151,6 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
                 }
             }
         }
-
-        categories.set(category, bucket);
     }
 
     let pageSpecsFromAlias = 0;
@@ -1046,212 +1228,209 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
     // Run independent rule scans in parallel
     const scanPromises = [];
     const scanKeys = [];
+    const _simpleScanOpts = { maxDepth: 20, skipDirs: config.skipDirs || MOCK_WALK_SKIP_DIRS };
 
-    if (isRuleEnabled(config, 'roadmap')) {
-        scanPromises.push(validateRoadmapFiles(root, { baseline: config.baseline, ignoreGlobs: config.ignore }));
-        scanKeys.push('roadmap');
+    /**
+     * Build a scanner registry entry with common option fallbacks.
+     * @param {string} key
+     * @param {string} varName
+     * @param {Function} scannerFn
+     * @param {Function} [buildOpts] (opts) => scanner options object
+     * @param {Object} [overrides]
+     * @param {boolean} [overrides.alwaysRun]
+     * @returns {Object} Registry entry
+     */
+    function scannerEntry(key, varName, scannerFn, buildOpts, overrides = {}) {
+        return {
+            key, varName,
+            enabled: overrides.alwaysRun ? undefined : (cfg) => isRuleEnabled(cfg, key),
+            alwaysRun: overrides.alwaysRun || false,
+            run: buildOpts
+                ? () => {
+                    const opts = getRuleOptions(config, key);
+                    return scannerFn(root, buildOpts(opts));
+                }
+                : () => scannerFn(root, _simpleScanOpts)
+        };
     }
-    if (isRuleEnabled(config, 'sample-consistency')) {
-        scanPromises.push(checkSampleConsistency(root, {
-            sampleDir: config.sampleDir,
-            baseline: config.baseline,
-            anchorSamples: config.consistencyAnchorSamples,
-            scanPathFiles: uniqueFiles.filter((file) => file.ext === '.json'),
-            fictionScope: options.fictionScope || 'repository-json',
-            ignoreGlobs: config.ignore
-        }));
-        scanKeys.push('consistency');
-    }
-    if (isRuleEnabled(config, 'credentials')) {
-        const credOpts = getRuleOptions(config, 'credentials');
-        scanPromises.push(scanCredentialPatterns(uniqueFiles, {
-            scanProduction: credOpts.scanProduction !== false,
-            baseDir: root,
-            productionPaths: credOpts.productionPaths || config.productionPaths,
-            ignoreGlobs: config.ignore
-        }));
-        scanKeys.push('credentials');
-    }
-    if (isRuleEnabled(config, 'production-leak')) {
-        const leakOpts = getRuleOptions(config, 'production-leak');
-        scanPromises.push(scanProductionLeaks(root, {
-            productionPaths: leakOpts.productionPaths || config.productionPaths,
-            ignoreGlobs: leakOpts.ignoreGlobs || config.ignore,
-            allowlistFiles: leakOpts.allowlistFiles || [],
-            scannerMetaFiles: [
-                ...(config.scannerMetaFiles || []),
-                ...(leakOpts.scannerMetaFiles || [])
-            ],
-            severity: leakOpts.severity || 'high',
-            intentClassification: leakOpts.intentClassification !== false,
-            plainSampleJson: leakOpts.plainSampleJson === true
-        }));
-        scanKeys.push('production-leak');
-    }
-    if (isRuleEnabled(config, 'fiction-kpi-patterns')) {
-        const fictionOpts = getRuleOptions(config, 'fiction-kpi-patterns');
-        scanPromises.push(scanSourceFictionPatterns(root, {
-            sourcePaths: fictionOpts.sourcePaths || config.sourceCodeScanPaths,
-            ignoreGlobs: fictionOpts.ignoreGlobs || config.ignore,
+
+    /**
+     * Declarative scanner registry. Each entry defines:
+     *   key       – result map key
+     *   varName   – variable name in the resolved object
+     *   enabled   – (cfg) => boolean   (omit for always-run scanners)
+     *   alwaysRun – bypasses onlyRules/skipRules filters
+     *   run       – () => Promise<scanResult>
+     */
+    const SCANNER_REGISTRY = [
+        {
+            key: 'roadmap', varName: 'roadmapValidation',
+            enabled: (cfg) => isRuleEnabled(cfg, 'roadmap'),
+            run: () => validateRoadmapFiles(root, { baseline: config.baseline, ignoreGlobs: config.ignore })
+        },
+        {
+            key: 'consistency', varName: 'consistency',
+            enabled: (cfg) => isRuleEnabled(cfg, 'sample-consistency'),
+            run: () => checkSampleConsistency(root, {
+                sampleDir: config.sampleDir, baseline: config.baseline,
+                anchorSamples: config.consistencyAnchorSamples,
+                scanPathFiles: uniqueFiles.filter((f) => f.ext === '.json'),
+                fictionScope: options.fictionScope || 'repository-json',
+                ignoreGlobs: config.ignore
+            })
+        },
+        {
+            key: 'credentials', varName: 'credentialScan',
+            enabled: (cfg) => isRuleEnabled(cfg, 'credentials'),
+            run: () => {
+                const credOpts = getRuleOptions(config, 'credentials');
+                return scanCredentialPatterns(uniqueFiles, {
+                    scanProduction: credOpts.scanProduction !== false,
+                    baseDir: root,
+                    productionPaths: credOpts.productionPaths || config.productionPaths,
+                    ignoreGlobs: config.ignore
+                });
+            }
+        },
+        scannerEntry('production-leak', 'productionLeakScan', scanProductionLeaks, (opts) => ({
+            productionPaths: opts.productionPaths || config.productionPaths,
+            ignoreGlobs: opts.ignoreGlobs || config.ignore,
+            allowlistFiles: opts.allowlistFiles || [],
+            scannerMetaFiles: [...(config.scannerMetaFiles || []), ...(opts.scannerMetaFiles || [])],
+            severity: opts.severity || 'high',
+            intentClassification: opts.intentClassification !== false,
+            plainSampleJson: opts.plainSampleJson === true
+        })),
+        scannerEntry('fiction-kpi-patterns', 'sourceFictionScan', scanSourceFictionPatterns, (opts) => ({
+            sourcePaths: opts.sourcePaths || config.sourceCodeScanPaths,
+            ignoreGlobs: opts.ignoreGlobs || config.ignore,
             pathExclusions: config.pathExclusions || [],
             baseline: config.baseline
-        }));
-        scanKeys.push('fiction-kpi-patterns');
-    }
-    if (isRuleEnabled(config, 'llm-slop-patterns')) {
-        const slopOpts = getRuleOptions(config, 'llm-slop-patterns');
-        scanPromises.push(scanLlmSlopPatterns(root, {
-            sourcePaths: slopOpts.sourcePaths || config.sourceCodeScanPaths,
-            productionPaths: slopOpts.productionPaths || config.productionPaths,
-            ignoreGlobs: slopOpts.ignoreGlobs || config.ignore,
-            registryCheck: slopOpts.registryCheck === true
-                || process.env.SIMPLEBEACON_REGISTRY_CHECK === 'true',
-            registryCheckLimit: slopOpts.registryCheckLimit || 12,
-            minConfidence: options.minConfidence ?? config.minConfidence ?? 0.5
-        }));
-        scanKeys.push('llm-slop-patterns');
-    }
-    if (isRuleEnabled(config, 'agency-handoff-patterns')) {
-        const handoffOpts = getRuleOptions(config, 'agency-handoff-patterns');
-        scanPromises.push(scanAgencyHandoffPatterns(root, {
-            sourcePaths: handoffOpts.sourcePaths || config.sourceCodeScanPaths,
-            productionPaths: handoffOpts.productionPaths || config.productionPaths,
-            ignoreGlobs: handoffOpts.ignoreGlobs || config.ignore,
-            severity: handoffOpts.severity || 'medium'
-        }));
-        scanKeys.push('agency-handoff-patterns');
-    }
-    if (isRuleEnabled(config, 'eu-ai-act-patterns')) {
-        const euOpts = getRuleOptions(config, 'eu-ai-act-patterns');
-        scanPromises.push(scanEuAiActPatterns(root, {
-            sourcePaths: euOpts.sourcePaths || config.sourceCodeScanPaths,
-            productionPaths: euOpts.productionPaths || config.productionPaths,
-            ignoreGlobs: euOpts.ignoreGlobs || config.ignore,
-            severity: euOpts.severity || 'medium'
-        }));
-        scanKeys.push('eu-ai-act-patterns');
-    }
-    if (isRuleEnabled(config, 'jest-baseline')) {
-        const jestOpts = getRuleOptions(config, 'jest-baseline');
-        scanPromises.push(checkJestBaseline(root, {
-            baseline: config.baseline,
-            runTests: jestOpts.runTests === true,
-            testCommand: jestOpts.testCommand,
-            timeoutMs: jestOpts.timeoutMs
-        }));
-        scanKeys.push('jest-baseline');
-    }
-    if (isRuleEnabled(config, 'token-bleed-patterns')) {
-        const tbOpts = getRuleOptions(config, 'token-bleed-patterns');
-        scanPromises.push(scanTokenBleedPatterns(root, {
-            productionPaths: tbOpts.productionPaths || config.productionPaths,
-            ignoreGlobs: tbOpts.ignoreGlobs || config.ignore,
-            severity: tbOpts.severity || 'medium'
-        }));
-        scanKeys.push('token-bleed-patterns');
-    }
-    if (isRuleEnabled(config, 'architecture-drift-patterns')) {
-        const adOpts = getRuleOptions(config, 'architecture-drift-patterns');
-        scanPromises.push(scanArchitectureDriftPatterns(root, {
-            sourcePaths: adOpts.sourcePaths || config.sourceCodeScanPaths,
-            productionPaths: adOpts.productionPaths || config.productionPaths,
-            ignoreGlobs: adOpts.ignoreGlobs || config.ignore,
-            severity: adOpts.severity || 'medium'
-        }));
-        scanKeys.push('architecture-drift-patterns');
-    }
-    if (isRuleEnabled(config, 'file-reduction')) {
-        const frOpts = getRuleOptions(config, 'file-reduction');
-        scanPromises.push(runFileReductionScan(root, {
-            dryRun: frOpts.dryRun !== false,
-            scanners: frOpts.scanners || {}
-        }));
-        scanKeys.push('file-reduction');
-    }
-    if (isRuleEnabled(config, 'security-patterns')) {
-        const secOpts = getRuleOptions(config, 'security-patterns');
-        const secPaths = secOpts.sourcePaths || config.sourceCodeScanPaths || config.productionPaths || ['.'];
-        const secIgnore = secOpts.ignoreGlobs || config.ignore || [];
-        const secIssues = [];
-        let secScanned = 0;
-        const scannableExts = constants.ALL_EXTENSION_SET;
-        for (const file of uniqueFiles) {
-            const rel = file.relativePath || '';
-            const basename = path.basename(rel);
-            const isEnvFile = basename === '.env' || /^\.env\.[a-z]+$/i.test(basename);
-            const ext = file.ext || '';
-            if (!scannableExts.has(ext) && !isEnvFile) continue;
-            if (secIgnore.some((g) => globMatch(rel, g))) continue;
-            if (!secPaths.some((sp) => rel.startsWith(sp.replace(/^\.\//, '')))) {
-                if (secPaths[0] !== '.') continue;
+        })),
+        {
+            key: 'llm-slop-patterns', varName: 'llmSlopScan',
+            enabled: (cfg) => options.slopCop === true || isRuleEnabled(cfg, 'llm-slop-patterns'),
+            run: () => {
+                const opts = getRuleOptions(config, 'llm-slop-patterns');
+                return scanLlmSlopPatterns(root, {
+                    sourcePaths: opts.sourcePaths || config.sourceCodeScanPaths,
+                    productionPaths: opts.productionPaths || config.productionPaths,
+                    ignoreGlobs: opts.ignoreGlobs || config.ignore,
+                    registryCheck: opts.registryCheck === true || process.env.SIMPLEBEACON_REGISTRY_CHECK === 'true',
+                    registryCheckLimit: opts.registryCheckLimit || 12,
+                    minConfidence: options.minConfidence ?? config.minConfidence ?? 0.5
+                });
             }
-            try {
-                const content = readFileCached(file.path);
-                const findings = scanSecurityPatterns(rel, content, ext);
-                if (findings.length > 0) {
-                    secIssues.push(...findings);
-                }
-                secScanned += 1;
-            } catch {
-                // Skip unreadable files
+        },
+        scannerEntry('agency-handoff-patterns', 'agencyHandoffScan', scanAgencyHandoffPatterns, (opts) => ({
+            sourcePaths: opts.sourcePaths || config.sourceCodeScanPaths,
+            productionPaths: opts.productionPaths || config.productionPaths,
+            ignoreGlobs: opts.ignoreGlobs || config.ignore,
+            severity: opts.severity || 'medium'
+        })),
+        scannerEntry('eu-ai-act-patterns', 'euAiActScan', scanEuAiActPatterns, (opts) => ({
+            sourcePaths: opts.sourcePaths || config.sourceCodeScanPaths,
+            productionPaths: opts.productionPaths || config.productionPaths,
+            ignoreGlobs: opts.ignoreGlobs || config.ignore,
+            severity: opts.severity || 'medium'
+        })),
+        {
+            key: 'jest-baseline', varName: 'jestBaseline',
+            enabled: (cfg) => isRuleEnabled(cfg, 'jest-baseline'),
+            run: () => {
+                const jestOpts = getRuleOptions(config, 'jest-baseline');
+                return checkJestBaseline(root, {
+                    baseline: config.baseline,
+                    runTests: jestOpts.runTests === true,
+                    testCommand: jestOpts.testCommand,
+                    timeoutMs: jestOpts.timeoutMs
+                });
             }
+        },
+        scannerEntry('token-bleed-patterns', 'tokenBleedScan', scanTokenBleedPatterns, (opts) => ({
+            productionPaths: opts.productionPaths || config.productionPaths,
+            ignoreGlobs: opts.ignoreGlobs || config.ignore,
+            severity: opts.severity || 'medium'
+        })),
+        scannerEntry('architecture-drift-patterns', 'architectureDriftScan', scanArchitectureDriftPatterns, (opts) => ({
+            sourcePaths: opts.sourcePaths || config.sourceCodeScanPaths,
+            productionPaths: opts.productionPaths || config.productionPaths,
+            ignoreGlobs: opts.ignoreGlobs || config.ignore,
+            severity: opts.severity || 'medium'
+        })),
+        {
+            key: 'file-reduction', varName: 'fileReduction',
+            enabled: (cfg) => isRuleEnabled(cfg, 'file-reduction'),
+            run: () => {
+                const frOpts = getRuleOptions(config, 'file-reduction');
+                return runFileReductionScan(root, { dryRun: frOpts.dryRun !== false, scanners: frOpts.scanners || {} });
+            }
+        },
+        {
+            key: 'security-patterns', varName: 'securityPatternScan',
+            enabled: (cfg) => isRuleEnabled(cfg, 'security-patterns'),
+            run: () => runSecurityPatternScan(uniqueFiles, getRuleOptions(config, 'security-patterns'), config)
+        },
+        scannerEntry('hardcoded-url', 'hardcodedUrlScan', scanHardcodedUrls),
+        scannerEntry('weak-crypto', 'weakCryptoScan', scanWeakCrypto),
+        scannerEntry('secret-in-comments', 'secretInCommentsScan', scanSecretInComments),
+        scannerEntry('sync-io-async-path', 'syncIoScan', scanSyncIo),
+        scannerEntry('env-in-git', 'envInGitScan', scanEnvInGit),
+        scannerEntry('redos-risk', 'redosScan', scanReDoS),
+        scannerEntry('pii-logging', 'piiLoggingScan', scanPiiLogging),
+        scannerEntry('dead-code', 'deadCodeScan', scanDeadCode),
+        scannerEntry('memory-leak', 'memoryLeakScan', scanMemoryLeaks),
+        scannerEntry('type-safety', 'typeSafetyScan', scanTypeSafety, (opts) => ({
+            sourcePaths: opts.sourcePaths || config.sourceCodeScanPaths,
+            productionPaths: opts.productionPaths || config.productionPaths,
+            ignoreGlobs: opts.ignoreGlobs || config.ignore
+        })),
+        scannerEntry('hallucinated-import', 'hallucinatedImportScan', scanHallucinatedImports, (opts) => ({
+            sourcePaths: opts.sourcePaths || config.sourceCodeScanPaths,
+            productionPaths: opts.productionPaths || config.productionPaths,
+            ignoreGlobs: opts.ignoreGlobs || config.ignore
+        })),
+        scannerEntry('ast-structural', 'astStructuralScan', scanAstStructural, (opts) => ({
+            sourcePaths: opts.sourcePaths || config.sourceCodeScanPaths,
+            productionPaths: opts.productionPaths || config.productionPaths,
+            ignoreGlobs: opts.ignoreGlobs || config.ignore
+        })),
+        scannerEntry('dependency-graph', 'dependencyGraphScan', scanDependencyGraph, (opts) => ({
+            sourcePaths: opts.sourcePaths || config.sourceCodeScanPaths,
+            productionPaths: opts.productionPaths || config.productionPaths,
+            ignoreGlobs: opts.ignoreGlobs || config.ignore
+        })),
+        {
+            key: 'comprehensive', varName: 'comprehensiveScan',
+            alwaysRun: true,
+            run: () => scanComprehensive(uniqueFiles, { rootDir: root })
         }
-        scanPromises.push(Promise.resolve({ scanned: secScanned, findings: secIssues.length, issues: secIssues }));
-        scanKeys.push('security-patterns');
-    }
-    // Simple pass-through scanners that all use the same {maxDepth, skipDirs} options
-    const _simpleScanOpts = { maxDepth: 20, skipDirs: config.skipDirs || MOCK_WALK_SKIP_DIRS };
-    /** @type {Array<[string, Function]>} */
-    const SIMPLE_SCAN_REGISTRY = [
-        ['hardcoded-url', scanHardcodedUrls],
-        ['weak-crypto', scanWeakCrypto],
-        ['secret-in-comments', scanSecretInComments],
-        ['sync-io-async-path', scanSyncIo],
-        ['env-in-git', scanEnvInGit],
-        ['redos-risk', scanReDoS],
-        ['pii-logging', scanPiiLogging],
-        ['dead-code', scanDeadCode],
-        ['memory-leak', scanMemoryLeaks],
     ];
-    for (const [key, fn] of SIMPLE_SCAN_REGISTRY) {
-        if (isRuleEnabled(config, key)) {
-            scanPromises.push(fn(root, _simpleScanOpts));
-            scanKeys.push(key);
+
+    // --- Selective rule execution ---
+    const onlyRules = Array.isArray(options.onlyRules) && options.onlyRules.length > 0
+        ? new Set(options.onlyRules) : null;
+    const skipRules = Array.isArray(options.skipRules) && options.skipRules.length > 0
+        ? new Set(options.skipRules) : null;
+
+    for (const entry of SCANNER_REGISTRY) {
+        if (!entry.alwaysRun) {
+            if (entry.enabled && !entry.enabled(config)) continue;
+            if (onlyRules && !onlyRules.has(entry.key)) continue;
+            if (skipRules && skipRules.has(entry.key)) continue;
         }
-    }
-    if (isRuleEnabled(config, 'type-safety')) {
-        const tsOpts = getRuleOptions(config, 'type-safety');
-        scanPromises.push(scanTypeSafety(root, {
-            sourcePaths: tsOpts.sourcePaths || config.sourceCodeScanPaths,
-            productionPaths: tsOpts.productionPaths || config.productionPaths,
-            ignoreGlobs: tsOpts.ignoreGlobs || config.ignore
-        }));
-        scanKeys.push('type-safety');
-    }
-    if (isRuleEnabled(config, 'hallucinated-import')) {
-        const hiOpts = getRuleOptions(config, 'hallucinated-import');
-        scanPromises.push(scanHallucinatedImports(root, {
-            sourcePaths: hiOpts.sourcePaths || config.sourceCodeScanPaths,
-            productionPaths: hiOpts.productionPaths || config.productionPaths,
-            ignoreGlobs: hiOpts.ignoreGlobs || config.ignore
-        }));
-        scanKeys.push('hallucinated-import');
-    }
-    if (isRuleEnabled(config, 'ast-structural')) {
-        const astOpts = getRuleOptions(config, 'ast-structural');
-        scanPromises.push(scanAstStructural(root, {
-            sourcePaths: astOpts.sourcePaths || config.sourceCodeScanPaths,
-            productionPaths: astOpts.productionPaths || config.productionPaths,
-            ignoreGlobs: astOpts.ignoreGlobs || config.ignore
-        }));
-        scanKeys.push('ast-structural');
+        scanPromises.push(entry.run());
+        scanKeys.push(entry.key);
     }
 
     const totalRules = scanPromises.length;
     const quiet = options.quiet || process.env.SIMPLEBEACON_QUIET === '1';
+
     let completedRules = 0;
+    const scanErrors = [];
+    const onProgress = typeof options.onProgress === 'function' ? options.onProgress : null;
     /**
-     * Update the TTY progress indicator when a rule scanner finishes.
+     * Update progress when a rule scanner finishes.
      * @param {string} name Scanner rule name.
      * @returns {void}
      */
@@ -1260,57 +1439,53 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         if (!quiet && process.stderr.isTTY && totalRules > 0) {
             process.stderr.write(`\rScanning: ${completedRules}/${totalRules} rules complete (${name})... `);
         }
+        if (onProgress) {
+            try { onProgress({ completed: completedRules, total: totalRules, currentRule: name }); } catch {}
+        }
     }
 
-    const trackedPromises = scanPromises.map((p, i) => p.then((r) => {
-        tickProgress(scanKeys[i]);
-        return r;
-    }).catch((err) => {
-        const errMsg = err?.message || String(err);
-        console.error(`[simplebeacon] Rule scanner '${scanKeys[i]}' failed: ${errMsg}`);
-        return { scanned: 0, findings: 0, issues: [], error: errMsg };
-    }));
-    const scanResults = await Promise.all(trackedPromises);
+    const trackedPromises = scanPromises.map((p, i) => {
+        const start = process.hrtime.bigint();
+        return p.then((r) => {
+            const elapsedMs = Math.round(Number(process.hrtime.bigint() - start) / 1_000_000);
+            tickProgress(scanKeys[i]);
+            return { ...r, _timing: { rule: scanKeys[i], elapsedMs } };
+        }).catch((err) => {
+            const elapsedMs = Math.round(Number(process.hrtime.bigint() - start) / 1_000_000);
+            const errMsg = err?.message || String(err);
+            console.error(`[simplebeacon] Rule scanner '${scanKeys[i]}' failed: ${errMsg}`);
+            scanErrors.push({ rule: scanKeys[i], error: errMsg, stack: err?.stack || '' });
+            return { scanned: 0, findings: 0, issues: [], error: errMsg, _timing: { rule: scanKeys[i], elapsedMs } };
+        });
+    });
+
+    // --- Overall scan timeout ---
+    const timeoutMs = typeof options.timeoutMs === 'number' && options.timeoutMs > 0
+        ? options.timeoutMs : 600000; // 10 minutes default
+    const scanResults = await Promise.race([
+        Promise.all(trackedPromises),
+        new Promise((_resolve, reject) => {
+            setTimeout(() => reject(new Error(`Scan timed out after ${timeoutMs}ms`)), timeoutMs);
+        })
+    ]);
 
     if (!quiet && process.stderr.isTTY && totalRules > 0) {
         process.stderr.write(`\rScanning: ${totalRules}/${totalRules} rules complete.          \n`);
     }
+
+    // Extract per-rule timing metrics
+    const ruleTimings = scanResults
+        .map((r, i) => r._timing || { rule: scanKeys[i], elapsedMs: 0 })
+        .sort((a, b) => b.elapsedMs - a.elapsedMs);
 
     const resultMap = new Map();
     for (let i = 0; i < scanKeys.length; i++) {
         resultMap.set(scanKeys[i], scanResults[i]);
     }
 
-    const scanResultKeys = [
-        ['roadmapValidation', 'roadmap'],
-        ['consistency', 'consistency'],
-        ['credentialScan', 'credentials'],
-        ['productionLeakScan', 'production-leak'],
-        ['sourceFictionScan', 'fiction-kpi-patterns'],
-        ['llmSlopScan', 'llm-slop-patterns'],
-        ['agencyHandoffScan', 'agency-handoff-patterns'],
-        ['euAiActScan', 'eu-ai-act-patterns'],
-        ['jestBaseline', 'jest-baseline'],
-        ['tokenBleedScan', 'token-bleed-patterns'],
-        ['architectureDriftScan', 'architecture-drift-patterns'],
-        ['securityPatternScan', 'security-patterns'],
-        ['fileReduction', 'file-reduction'],
-        ['hardcodedUrlScan', 'hardcoded-url'],
-        ['weakCryptoScan', 'weak-crypto'],
-        ['secretInCommentsScan', 'secret-in-comments'],
-        ['syncIoScan', 'sync-io-async-path'],
-        ['envInGitScan', 'env-in-git'],
-        ['redosScan', 'redos-risk'],
-        ['piiLoggingScan', 'pii-logging'],
-        ['deadCodeScan', 'dead-code'],
-        ['memoryLeakScan', 'memory-leak'],
-        ['typeSafetyScan', 'type-safety'],
-        ['hallucinatedImportScan', 'hallucinated-import'],
-        ['astStructuralScan', 'ast-structural']
-    ];
     const resolved = {};
-    for (const [varName, key] of scanResultKeys) {
-        resolved[varName] = _getScanResult(resultMap, key);
+    for (const entry of SCANNER_REGISTRY) {
+        resolved[entry.varName] = _getScanResult(resultMap, entry.key);
     }
     let {
         roadmapValidation, consistency, credentialScan, productionLeakScan,
@@ -1318,7 +1493,8 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         jestBaseline, tokenBleedScan, architectureDriftScan, securityPatternScan,
         fileReduction, hardcodedUrlScan, weakCryptoScan, secretInCommentsScan,
         syncIoScan, envInGitScan, redosScan, piiLoggingScan, deadCodeScan,
-        memoryLeakScan, typeSafetyScan, hallucinatedImportScan, astStructuralScan
+        memoryLeakScan, typeSafetyScan, hallucinatedImportScan, astStructuralScan,
+        dependencyGraphScan, comprehensiveScan
     } = resolved;
 
     if (roadmapValidation.issues?.length) {
@@ -1326,28 +1502,30 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         schemaStats.schemaPassed += roadmapValidation.passed;
         issues.push(...roadmapValidation.issues);
     }
-    pushScannerIssues(issues, consistency);
-    pushScannerIssues(issues, credentialScan);
-    pushScannerIssues(issues, productionLeakScan);
-    pushScannerIssues(issues, sourceFictionScan, (getRuleOptions(config, 'fiction-kpi-patterns') || {}).severity || 'medium');
-    pushScannerIssues(issues, llmSlopScan, (getRuleOptions(config, 'llm-slop-patterns') || {}).severity || 'medium');
-    pushScannerIssues(issues, agencyHandoffScan);
-    pushScannerIssues(issues, euAiActScan);
-    pushScannerIssues(issues, jestBaseline);
-    pushScannerIssues(issues, tokenBleedScan);
-    pushScannerIssues(issues, architectureDriftScan);
-    pushScannerIssues(issues, securityPatternScan);
-    pushScannerFindings(issues, hardcodedUrlScan, 'Hardcoded URL', 'SB-SEC-005', 'Hardcoded IP/URL reference');
-    pushScannerFindings(issues, weakCryptoScan, 'Weak Crypto', 'SB-SEC-006', 'Weak crypto or insecure random');
-    pushScannerFindings(issues, secretInCommentsScan, 'Secret in Comment', 'SB-SEC-007', 'Secret exposed in comment');
-    pushScannerFindings(issues, syncIoScan, 'Sync I/O in Async Path', 'SB-PERF-001', 'Synchronous I/O in async context');
-    pushScannerFindings(issues, envInGitScan, 'Secret File in Git', 'SB-SEC-008', 'Secret file tracked by git or not gitignored');
-    pushScannerFindings(issues, redosScan, 'ReDoS Risk', 'SB-SEC-009', 'Regex with catastrophic backtracking potential');
-    pushScannerFindings(issues, piiLoggingScan, 'PII Logging', 'SB-SEC-010', 'Potential PII in log output');
-    pushScannerFindings(issues, deadCodeScan, 'Dead Code', 'SB-QUAL-001', 'Unused import or unreachable code', 'low');
-    pushScannerFindings(issues, memoryLeakScan, 'Memory Leak', 'SB-PERF-002', 'Potential memory leak pattern');
-    pushScannerFindings(issues, typeSafetyScan, 'Type Safety', 'SB-QUAL-001', 'Type safety gap', 'low');
-    pushScannerFindings(issues, hallucinatedImportScan, 'Hallucinated Import', 'SB-FICTION-004', 'Import of package not in package.json');
+    normalizeScannerOutput(issues, consistency);
+    normalizeScannerOutput(issues, credentialScan);
+    normalizeScannerOutput(issues, productionLeakScan);
+    normalizeScannerOutput(issues, sourceFictionScan, null, null, null, null, (getRuleOptions(config, 'fiction-kpi-patterns') || {}).severity || 'medium');
+    normalizeScannerOutput(issues, llmSlopScan, null, null, null, null, (getRuleOptions(config, 'llm-slop-patterns') || {}).severity || 'medium');
+    normalizeScannerOutput(issues, agencyHandoffScan);
+    normalizeScannerOutput(issues, euAiActScan);
+    normalizeScannerOutput(issues, jestBaseline);
+    normalizeScannerOutput(issues, tokenBleedScan);
+    normalizeScannerOutput(issues, architectureDriftScan);
+    normalizeScannerOutput(issues, securityPatternScan);
+    normalizeScannerOutput(issues, hardcodedUrlScan, 'hardcoded-url', 'SB-SEC-005', 'Hardcoded IP/URL reference');
+    normalizeScannerOutput(issues, weakCryptoScan, 'insecure-random', 'SB-SEC-006', 'Weak crypto or insecure random');
+    normalizeScannerOutput(issues, secretInCommentsScan, 'sensitive-data', 'SB-SEC-007', 'Secret exposed in comment');
+    normalizeScannerOutput(issues, syncIoScan, 'sync-io', 'SB-PERF-001', 'Synchronous I/O in async context');
+    normalizeScannerOutput(issues, envInGitScan, 'config-drift', 'SB-SEC-008', 'Secret file tracked by git or not gitignored');
+    normalizeScannerOutput(issues, redosScan, 'performance', 'SB-SEC-009', 'Regex with catastrophic backtracking potential');
+    normalizeScannerOutput(issues, piiLoggingScan, 'sensitive-data', 'SB-SEC-010', 'Potential PII in log output');
+    normalizeScannerOutput(issues, deadCodeScan, 'cleanup', 'SB-QUAL-001', 'Unused import or unreachable code', 'low');
+    normalizeScannerOutput(issues, memoryLeakScan, 'performance', 'SB-PERF-002', 'Potential memory leak pattern');
+    normalizeScannerOutput(issues, typeSafetyScan, 'type-safety', 'SB-QUAL-001', 'Type safety gap', 'low');
+    normalizeScannerOutput(issues, hallucinatedImportScan, 'ai-residue', 'SB-FICTION-004', 'Import of package not in package.json');
+    normalizeScannerOutput(issues, comprehensiveScan);
+    normalizeScannerOutput(issues, dependencyGraphScan, 'dependency-graph', 'SB-DEPS-001', 'Dependency graph issue', 'medium');
     if (fileReduction.allFindings?.length) {
         for (const finding of fileReduction.allFindings) {
             issues.push({
@@ -1391,18 +1569,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         ? Math.round((schemaStats.schemaPassed / schemaStats.schemaChecked) * 100)
         : null;
 
-    const mockDataCategories = [...categories.values()].map((cat) => ({
-        category: cat.category,
-        fileCount: cat.fileCount,
-        totalSize: formatBytes(cat.totalSize),
-        qualityScore: Math.max(60, Math.min(100, Math.round(100 - (cat.issues / Math.max(cat.fileCount, 1)) * 40))),
-        issues: cat.issues,
-        confidence: null,
-        description: `${cat.category} discovered during filesystem scan`
-    }));
-
-    const rawIssues = scoringIssues;
-    const severityCounts = countBySeverity(rawIssues);
+    const severityCounts = countBySeverity(scoringIssues);
     const repositoryInventory = await inventoryPromise;
     const ruleScopedFilesAnalyzed = computeFilesAnalyzed(
         uniqueFiles.length,
@@ -1414,186 +1581,23 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
     const repositoryFoldersTotal = repositoryInventory?.totalFolders ?? null;
     const rulesEnabled = Object.keys(config.rules || {}).filter((name) => isRuleEnabled(config, name));
     const pageSpecCatalogSize = Object.keys(PAGE_SAMPLE_SPECS).length;
-    const scanScope = {
-        profile: config.profile || 'standard',
-        scannerVersion: '1.0.0',
-        rulesEnabled,
-        gatePolicy: config.gate || { failOn: ['high'], warnOn: ['medium', 'low'] },
-        mockSampleFilesInScanPaths: uniqueFiles.length,
-        pageSpecCatalogSize,
-        pageSpecsValidated: schemaStats.pageSampleSchemaChecked,
-        pageSpecsFromScanPaths: schemaStats.pageSampleSchemaChecked - pageSpecsFromAlias,
-        pageSpecsFromAliasPaths: pageSpecsFromAlias,
-        productionDirsScanned: productionLeakScan.scanned,
-        productionPaths: config.productionPaths || [],
-        sourceCodeScanPaths: config.sourceCodeScanPaths || [],
-        sourceCodeFilesScanned: sourceFictionScan.scanned,
-        sourceFictionPatternHits: sourceFictionScan.findings,
-        llmSlopFilesScanned: llmSlopScan.scanned,
-        llmSlopPatternHits: llmSlopScan.findings,
-        euAiActFilesScanned: euAiActScan.scanned,
-        euAiActPatternHits: euAiActScan.findings,
-        euAiActHighRiskIndicators: euAiActScan.summary?.highRiskIndicators ?? 0,
-        jestExecutedDuringScan: jestBaseline.checked === true,
-        consistencyAnchorCount: (config.consistencyAnchorSamples || []).length,
-        fictionScope: consistency.scope || 'repository-json',
-        fictionJsonFilesScanned: consistency.jsonFilesScanned ?? consistency.checked ?? 0,
-        fictionSampleFilesScanned: consistency.samplesScanned ?? 0,
-        ruleScopedFilesAnalyzed,
-        repositoryFilesTotal,
-        repositoryFoldersTotal,
-        benchmarkCacheIssuesExcluded: benchmarkCacheIssues.length,
-        excludedPathsNote: benchmarkCacheIssues.length
-            ? `${benchmarkCacheIssues.length} issue(s) from github-cache/ benchmark clones excluded from gate scores — scan clones with github-cache/.simplebeacon/config.json (profile: benchmark).`
-            : null,
-        limitations: [
-            repositoryFilesTotal != null
-                ? `Repository inventory: ${repositoryFilesTotal.toLocaleString()} files — gate rules checked ${ruleScopedFilesAnalyzed} (mock paths, credentials, server/ leaks).`
-                : `Gate rules checked ${ruleScopedFilesAnalyzed} files — mock paths, credentials, and production directories only.`,
-            'github-cache/ OSS benchmark clones are excluded from platform gate scoring (not your product code).',
-            'Pattern matching on JSON samples and server/ production paths — not LLM semantic review.',
-            consistency.scope === 'repository-json'
-                ? `Fiction/KPI rules scan repository JSON (${consistency.jsonFilesScanned ?? '—'}) plus source code (${sourceFictionScan.scanned ?? 0} files in ${(config.sourceCodeScanPaths || []).join(', ') || 'configured paths'}).`
-                : 'Fiction/KPI rules scan configured sample JSON paths only.',
-            jestBaseline.checked
-                ? 'Jest was executed during this scan.'
-                : 'Jest was not executed during this scan — use npm test or simplebeacon:full for live test verification.',
-            config.profile === 'cascade'
-                ? 'Cascade profile scans server/ for production leaks — src/ stub API is excluded by design.'
-                : null
-        ].filter(Boolean)
-    };
-
-    const highCount = severityCounts.high || 0;
-    const mediumCount = severityCounts.medium || 0;
-    const totalRisks = issueCount;
-    const estimatedCost = totalRisks > 0 ? `$${(totalRisks * 5000).toLocaleString()}` : '$0';
     const gateResult = evaluateGate({ rawIssues: scoringIssues }, config.gate || {});
 
-    const scanSummary = {
-        status: gateResult.pass ? 'PASSED' : 'FAILED',
-        block_merge: !gateResult.pass,
-        total_risks_found: totalRisks,
-        high_severity_count: highCount,
-        medium_severity_count: mediumCount,
-        low_severity_count: severityCounts.low || 0,
-        estimated_incident_cost_saved: estimatedCost,
-        scan_id: `sb_scan_${crypto.randomBytes(6).toString('hex')}`,
-        timestamp: new Date().toISOString(),
-        tier: tierInfo.tier,
-        scans_remaining: quotaCheck.scansRemaining,
-        pipeline_scan: isPipeline
-    };
-
-    const draftReport = {
-        type: 'simplebeacon-report',
-        reportVersion: 2,
-        scan_summary: scanSummary,
-        generatedAt: new Date().toISOString(),
-        generatedBy: 'Simplebeacon',
-        projectRoot: scanRoot,
-        platformRoot: platformRoot !== scanRoot ? platformRoot : undefined,
-        configPath: config.configPath,
-        scanPaths,
-        repositoryInventory,
-        mockSampleFiles: uniqueFiles.filter((f) => {
-            const isStructuralUtility = /-(path-resolver|resolver|stub-api|schema-validator|schema|consistency-checker|overrides|config|checker|specs)\.(js|cjs|mjs|ts|json)$/i.test(f.name);
-            return !isStructuralUtility && (
-                /(?:web\/data|data\/mock|data-central|fixtures?|sample)/i.test(f.relativePath)
-                || /-sample\.json$/i.test(f.name)
-            );
-        }).length,
-        totalFiles: uniqueFiles.length,
-        totalLines,
-        ruleScopedFilesAnalyzed,
-        repositoryFilesTotal,
-        repositoryFoldersTotal,
-        filesAnalyzed: config.fullDirectoryScan ? uniqueFiles.length : ruleScopedFilesAnalyzed,
-        totalSizeBytes: totalSize,
-        totalSizeLabel: formatBytes(totalSize),
-        issueCount,
-        invalidJson,
-        emptyFiles,
-        qualityScore,
-        schemaCompliance,
-        schemaChecked: schemaStats.schemaChecked,
-        schemaPassed: schemaStats.schemaPassed,
-        pageSampleSchemaChecked: schemaStats.pageSampleSchemaChecked,
-        pageSampleSchemaPassed: schemaStats.pageSampleSchemaPassed,
-        duplicateGroups: duplicateGroups.length,
-        roadmapSchemaChecked: roadmapValidation.checked,
-        roadmapSchemaPassed: roadmapValidation.passed,
-        consistencyChecked: consistency.checked,
-        consistencyPassed: consistency.passed,
-        consistencyScore: consistency.score,
-        fictionJsonFilesScanned: consistency.jsonFilesScanned ?? consistency.checked ?? 0,
-        fictionSampleFilesScanned: consistency.samplesScanned ?? 0,
-        fictionScope: consistency.scope || 'repository-json',
-        credentialScanned: credentialScan.scanned,
-        credentialFindings: credentialScan.findings,
-        productionLeakScanned: productionLeakScan.scanned,
-        productionLeakFindings: productionLeakScan.findings,
-        productionLeakSuppressedIntent: productionLeakScan.suppressedIntentCount || 0,
-        sourceCodeFilesScanned: sourceFictionScan.scanned,
-        sourceFictionPatternHits: sourceFictionScan.findings,
-        llmSlopFilesScanned: llmSlopScan.scanned,
-        llmSlopPatternHits: llmSlopScan.findings,
-        euAiActScanned: euAiActScan.scanned,
-        euAiActFindings: euAiActScan.findings,
-        euAiActSummary: euAiActScan.summary,
-        securityPatternFilesScanned: securityPatternScan.scanned,
-        securityPatternFindings: securityPatternScan.findings,
-        hardcodedUrlFilesScanned: scannedCount(hardcodedUrlScan),
-        hardcodedUrlFindings: findingsCount(hardcodedUrlScan),
-        weakCryptoFilesScanned: scannedCount(weakCryptoScan),
-        weakCryptoFindings: findingsCount(weakCryptoScan),
-        secretInCommentsFilesScanned: scannedCount(secretInCommentsScan),
-        secretInCommentsFindings: findingsCount(secretInCommentsScan),
-        syncIoFilesScanned: scannedCount(syncIoScan),
-        syncIoFindings: findingsCount(syncIoScan),
-        envInGitFilesScanned: scannedCount(envInGitScan),
-        envInGitFindings: findingsCount(envInGitScan),
-        redosFilesScanned: scannedCount(redosScan),
-        redosFindings: findingsCount(redosScan),
-        piiLoggingFilesScanned: scannedCount(piiLoggingScan),
-        piiLoggingFindings: findingsCount(piiLoggingScan),
-        deadCodeFilesScanned: scannedCount(deadCodeScan),
-        deadCodeFindings: findingsCount(deadCodeScan),
-        memoryLeakFilesScanned: scannedCount(memoryLeakScan),
-        memoryLeakFindings: findingsCount(memoryLeakScan),
-        typeSafetyFilesScanned: scannedCount(typeSafetyScan),
-        typeSafetyFindings: findingsCount(typeSafetyScan),
-        hallucinatedImportFilesScanned: scannedCount(hallucinatedImportScan),
-        hallucinatedImportFindings: findingsCount(hallucinatedImportScan),
-        astStructuralFilesScanned: scannedCount(astStructuralScan),
-        astStructuralFindings: findingsCount(astStructuralScan),
-        astAvailable: astStructuralScan.astAvailable || false,
-        jestBaselineChecked: jestBaseline.checked,
-        jestBaselinePassed: jestBaseline.passed,
-        jestSummary: jestBaseline.summary || null,
-        severityCounts,
-        mockDataCategories,
-        compliance: resolveComplianceCounts(root),
-        detectedIssues: groupIssues(scoringIssues).slice(0, 12),
-        rawIssues,
-        benchmarkCacheIssues,
-        sampleFiles: uniqueFiles.map((f) => f.name),
-        scanScope,
-        gate: gateResult
-    };
-
-    const gateSummary = draftReport.gate;
-    draftReport.gate = {
-        pass: gateSummary.pass,
-        failOn: gateSummary.failOn,
-        warnOn: gateSummary.warnOn,
-        blockingCount: (gateSummary.blockingIssues || []).reduce((sum, i) => sum + (i.count || 1), 0),
-        warningCount: (gateSummary.warningIssues || []).reduce((sum, i) => sum + (i.count || 1), 0),
-        blockingIssues: gateSummary.blockingIssues || [],
-        warningIssues: gateSummary.warningIssues || []
-    };
+    const draftReport = buildScanReport({
+        config, scanRoot, platformRoot, scanPaths, repositoryInventory,
+        uniqueFiles, totalLines, totalSize, ruleScopedFilesAnalyzed,
+        repositoryFilesTotal, repositoryFoldersTotal, issueCount,
+        invalidJson, emptyFiles, qualityScore, schemaCompliance,
+        schemaStats, duplicateGroups, resolved, severityCounts,
+        tierInfo, quotaCheck, isPipeline, scoringIssues,
+        benchmarkCacheIssues, pageSpecCatalogSize, pageSpecsFromAlias,
+        rulesEnabled, gateResult, scanErrors,
+        ruleTimings, categories
+    });
 
     const normalizedReport = normalizePlatformScanReport(draftReport, { gateConfig: config.gate });
+    const totalElapsedMs = Math.round(Number(process.hrtime.bigint() - scanStart) / 1_000_000);
+    normalizedReport.totalScanDurationMs = totalElapsedMs;
     return applyTierLimits(normalizedReport, options);
 }
 
@@ -1614,7 +1618,6 @@ async function runScan(baseDir, options = {}) {
 module.exports = {
     runScan,
     scanMockDataDirectories,
-    formatBytes,
     categoryForExt,
     validateSampleSchema,
     groupIssues,
@@ -1626,5 +1629,6 @@ module.exports = {
     readFileCached,
     readFileCachedAsync,
     clearFileContentCache,
-    loadSimplebeaconIgnorePatterns
+    loadSimplebeaconIgnorePatterns,
+    isIgnoredPath
 };

@@ -6,8 +6,9 @@ const fs = require('fs');
 const path = require('path');
 const { classifyProductionLeakMatch } = require('../lib/production-leak-intent');
 
-const DEFAULT_PRODUCTION_PATHS = ['server/', 'src/', 'app/', 'lib/', 'packages/', 'components/', 'modules/', 'services/', 'utils/', 'hooks/', 'types/', 'config/', 'api/', 'web/', 'client/', 'shared/', 'common/', 'core/', 'lib/'];
-const DEFAULT_IGNORE_GLOBS = [
+const DEFAULT_PRODUCTION_PATHS = Object.freeze(['server/', 'src/', 'app/', 'lib/', 'packages/', 'components/', 'modules/', 'services/', 'utils/', 'hooks/', 'types/', 'config/', 'api/', 'web/', 'client/', 'shared/', 'common/', 'core/']);
+const DEFAULT_SKIP_DIRS = Object.freeze(['node_modules', '.git', 'coverage', 'dist', 'build']);
+const DEFAULT_IGNORE_GLOBS = Object.freeze([
     'node_modules/**',
     'coverage/**',
     'dist/**',
@@ -31,27 +32,24 @@ const DEFAULT_IGNORE_GLOBS = [
     '**/simplebeacon-rule-tests/**',
     'scripts/**',
     '**/scripts/**'
-];
+]);
 
-const LEAK_PATTERNS = [
-    { id: 'sample-json', regex: /['"`][^'"`]*(?:[\/\\][^'"`]+)?-sample\.json['"`]/gi },
-    { id: 'mock-path', regex: /['"`][^'"`]*(?:\/|\\)mock(?:\/|\\)[^'"`]+['"`]/gi },
-    { id: 'fixtures-path', regex: /['"`][^'"`]*(?:\/|\\)fixtures(?:\/|\\)[^'"`]+['"`]/gi },
-    { id: 'web-data-sample', regex: /['"`][^'"`]*(?:[\/\\]|(?<![a-zA-Z0-9_-]))web(?:\/|\\)data[^'"`]*['"`]/gi },
-    {
+const LEAK_PATTERNS = Object.freeze([
+    Object.freeze({ id: 'sample-json', regex: /['"`][^'"`]*(?:[\/\\][^'"`]+)?-sample\.json['"`]/gi }),
+    Object.freeze({ id: 'mock-path', regex: /['"`][^'"`]*(?:\/|\\)mock(?:\/|\\)[^'"`]+['"`]/gi }),
+    Object.freeze({ id: 'fixtures-path', regex: /['"`][^'"`]*(?:\/|\\)fixtures(?:\/|\\)[^'"`]+['"`]/gi }),
+    Object.freeze({ id: 'web-data-sample', regex: /['"`][^'"`]*(?:[\/\\]|(?<![a-zA-Z0-9_-]))web(?:\/|\\)data[^'"`]*['"`]/gi }),
+    Object.freeze({
         id: 'template-sample',
         regex: /`[^`\n]*[\/\\](?:-sample\.json|mock(?:\/|\\)[^`\n]+|fixtures(?:\/|\\)[^`\n]+|web(?:\/|\\)data)[^`\n]*`/gi
-    }
-];
+    })
+]);
 
-const PLAIN_SAMPLE_JSON_PATTERN = {
+const PLAIN_SAMPLE_JSON_PATTERN = Object.freeze({
     id: 'plain-sample-json',
     regex: /['"`][^'"`]*(?:\/|\\|\.\/)(?<![\w-])sample\.json(?:\?[^'"`]*)?['"`]/gi
-};
+});
 
-/**
- * @param {{plainSampleJson?:boolean}} [options]
- */
 function getActiveLeakPatterns(options = {}) {
     const opts = (options && typeof options === 'object') ? options : {};
     if (!opts.plainSampleJson) {
@@ -60,20 +58,20 @@ function getActiveLeakPatterns(options = {}) {
     return [...LEAK_PATTERNS, PLAIN_SAMPLE_JSON_PATTERN];
 }
 
-const SCANNABLE_EXTENSIONS = new Set(['.js', '.mjs', '.cjs', '.ts', '.tsx']);
+const SCANNABLE_EXTENSIONS = Object.freeze(new Set(['.js', '.mjs', '.cjs', '.ts', '.tsx']));
 const MAX_SCAN_BYTES = 512000;
-const NON_PRODUCTION_PATH_HINTS = [
+const NON_PRODUCTION_PATH_HINTS = Object.freeze([
     '/test/', '/tests/', '/__tests__/', '.test.', '.spec.',
     '/fixtures/', '/fixture/', '/mock/', '/mocks/', '/docs/', '/examples/',
     '/storybook/', '/scripts/', '/dev/', '/demo/'
-];
-const CONFIG_FILE_NAMES = new Set([
+]);
+const CONFIG_FILE_NAMES = Object.freeze(new Set([
     'webpack.config.js',
     'vite.config.js',
     'vitest.config.js',
     'jest.config.js',
     'rollup.config.js'
-]);
+]));
 
 function normalizeRel(baseDir, filePath) {
     return path.relative(baseDir, filePath).split(path.sep).join('/');
@@ -154,49 +152,33 @@ function isScannerMetaFile(relativePath, userMetaFiles = []) {
     });
 }
 
-function isCommentLine(line) {
-    const trimmed = line.trim();
-    return trimmed.startsWith('//') || trimmed.startsWith('*') || trimmed.startsWith('/*');
-}
+function shouldSuppressMatch({ relativePath, line, matchText }) {
+    const lineStr = String(line || '');
+    const matchStr = String(matchText || '');
 
-function isLikelyConfigReference(relativePath, matchText) {
-    if (typeof relativePath !== 'string') return false;
-    let base;
-    try {
-        base = path.basename(relativePath);
-    } catch {
-        return false;
+    const trimmed = lineStr.trim();
+    if (trimmed.startsWith('//') || trimmed.startsWith('*') || trimmed.startsWith('/*')) return true;
+
+    if (typeof relativePath === 'string') {
+        let base;
+        try { base = path.basename(relativePath); } catch { /* ignore */ }
+        if (base && CONFIG_FILE_NAMES.has(base)) return true;
+        if (/\.simplebeacon|truthcheck|repository-audit|page-sample-specs/i.test(matchStr)) return true;
     }
-    if (CONFIG_FILE_NAMES.has(base)) return true;
-    if (/\.simplebeacon|truthcheck|repository-audit|page-sample-specs/i.test(matchText)) return true;
+
+    if (/mock\/sample(?:\s+(?:json|files|data|paths?|only)|\s*—)/i.test(matchStr) || /Mock\/sample\s+files/i.test(matchStr)) return true;
+
+    if (/instead of\s+["'`]template(?:\s|-)sample["'`]/i.test(matchStr) || /use the phrase\s+["'`]sample-suffix subset["'`]/i.test(matchStr)) return true;
+
+    if (/\bexpress\.static\s*\(/.test(lineStr) && /web[/\\]data/.test(lineStr)) return true;
+
+    if (/\bfilePath\s*[:=]\s*[`'][^`']*mock_data_/.test(lineStr)) return true;
+
+    if (/\b(mockDataAnalysis|mockData|sampleData|fixtureData|demoData|testData)\s*:\s*Joi\./.test(lineStr)) return true;
+
+    if (/\bexpress\.static\s*\(\s*[^)]+web[/\\]data/.test(lineStr) || /\bjoin\s*\(\s*__dirname\s*,\s*['"]\.\.\/web\/data['"]/.test(lineStr)) return true;
+
     return false;
-}
-
-function isProseSampleReference(matchText) {
-    return /mock\/sample(?:\s+(?:json|files|data|paths?|only)|\s*—)/i.test(matchText)
-        || /Mock\/sample\s+files/i.test(matchText);
-}
-
-function isInstructionalTemplateReference(matchText) {
-    return /instead of\s+["'`]template(?:\s|-)sample["'`]/i.test(matchText)
-        || /use the phrase\s+["'`]sample-suffix subset["'`]/i.test(matchText);
-}
-
-function isExpressStaticWebData(line) {
-    return /\bexpress\.static\s*\(/.test(String(line || '')) && /web[/\\]data/.test(String(line || ''));
-}
-
-function isMockDataFilenameGenerator(line) {
-    return /\bfilePath\s*[:=]\s*[`'][^`']*mock_data_/.test(String(line || ''));
-}
-
-function isJoiSchemaName(line) {
-    return /\b(mockDataAnalysis|mockData|sampleData|fixtureData|demoData|testData)\s*:\s*Joi\./.test(String(line || ''));
-}
-
-function isIntentionalWebDataRoute(line) {
-    return /\bexpress\.static\s*\(\s*[^)]+web[/\\]data/.test(String(line || ''))
-        || /\bjoin\s*\(\s*__dirname\s*,\s*['"]\.\.\/web\/data['"]/.test(String(line || ''));
 }
 
 function hasProductionLeakIntentAnnotation(content) {
@@ -232,7 +214,7 @@ function buildRecommendation(patternId) {
     return 'Audit fixture usage and remove mock references from production-bound modules';
 }
 
-async function walkProductionFiles(dir, results = [], depth = 0) {
+async function walkProductionFiles(dir, results = [], depth = 0, skipDirs = DEFAULT_SKIP_DIRS) {
     if (depth > 8) return results;
     if (typeof dir !== 'string' || !dir) return results;
     let entries;
@@ -245,8 +227,8 @@ async function walkProductionFiles(dir, results = [], depth = 0) {
     for (const entry of entries) {
         const fullPath = path.join(dir, entry.name);
         if (entry.isDirectory()) {
-            if (['node_modules', '.git', 'coverage', 'dist', 'build'].includes(entry.name)) continue;
-            await walkProductionFiles(fullPath, results, depth + 1);
+            if (skipDirs && skipDirs.includes(entry.name)) continue;
+            await walkProductionFiles(fullPath, results, depth + 1, skipDirs);
             continue;
         }
         if (!entry.isFile()) continue;
@@ -288,17 +270,11 @@ function scanFileContent(relativePath, content, options = {}) {
         pattern.regex.lastIndex = 0;
         let match;
         while ((match = pattern.regex.exec(content)) !== null) {
-            const lineIndex = content.slice(0, match.index).split('\n').length - 1;
+            const lineNum = lineNumberAt(content, match.index);
+            const lineIndex = lineNum - 1;
             const line = lines[lineIndex] || '';
-            if (isCommentLine(line)) continue;
             const snippet = content.slice(Math.max(0, match.index - 12), match.index + match[0].length + 12);
-            if (isLikelyConfigReference(relativePath, snippet)) continue;
-            if (isProseSampleReference(match[0])) continue;
-            if (isInstructionalTemplateReference(match[0])) continue;
-            if (isExpressStaticWebData(line)) continue;
-            if (isMockDataFilenameGenerator(line)) continue;
-            if (isJoiSchemaName(line)) continue;
-            if (isIntentionalWebDataRoute(line)) continue;
+            if (shouldSuppressMatch({ relativePath, line, matchText: match[0] }) || shouldSuppressMatch({ relativePath, line, matchText: snippet })) continue;
 
             let intentResult = null;
             if (intentClassification) {
@@ -312,7 +288,7 @@ function scanFileContent(relativePath, content, options = {}) {
                 if (intentResult.suppress) {
                     suppressed.push({
                         filePath: relativePath,
-                        line: lineNumberAt(content, match.index),
+                        line: lineNum,
                         pattern: pattern.id,
                         intent: intentResult.intent,
                         reason: intentResult.reason,
@@ -322,17 +298,20 @@ function scanFileContent(relativePath, content, options = {}) {
                 }
             }
 
-            const lineNum = lineNumberAt(content, match.index);
             const severityBand = intentResult?.severityBand
                 || ((opts.severityBand || opts.severity)
                     ? fallbackSeverityBand
                     : mapSeverityBand(relativePath, pattern.id));
             const recommendation = buildRecommendation(pattern.id);
+            const cardType = pattern.id === 'sample-json-ref' ? 'sample-json-ref'
+                : pattern.id === 'c-sample-data-ref' || pattern.id === 'c-mock-path-ref' ? 'mock-path-leak'
+                : pattern.id.startsWith('mock') || pattern.id.startsWith('c-') ? 'mock-path-leak'
+                : 'production-leak';
             findings.push({
                 id: `production-leak-${pattern.id}-${relativePath}-${match.index}`,
                 severity: severityBand === 'critical' ? 'high' : severityBand,
                 severityBand,
-                type: 'Production Leak',
+                type: cardType,
                 filePath: relativePath,
                 file: relativePath,
                 line: lineNum,
@@ -388,28 +367,35 @@ async function scanProductionLeaks(baseDir, options = {}) {
     const issues = [];
     const suppressedIntent = [];
     let scanned = 0;
+    const BATCH = 64;
 
-    for (const file of files) {
-        const relativePath = normalizeRel(baseDir, file.path);
-        if (isIgnored(relativePath, ignoreGlobs)) continue;
-        if (isAllowlisted(relativePath, allowlistFiles)) continue;
-        if (isScannerMetaFile(relativePath, scannerMetaFiles)) continue;
+    for (let i = 0; i < files.length; i += BATCH) {
+        const batch = files.slice(i, i + BATCH);
+        const batchResults = await Promise.all(batch.map(async (file) => {
+            const relativePath = normalizeRel(baseDir, file.path);
+            if (isIgnored(relativePath, ignoreGlobs)) return null;
+            if (isAllowlisted(relativePath, allowlistFiles)) return null;
+            if (isScannerMetaFile(relativePath, scannerMetaFiles)) return null;
 
-        let content;
-        try {
-            content = await fs.promises.readFile(file.path, 'utf8');
-        } catch {
-            continue;
+            let content;
+            try {
+                content = await fs.promises.readFile(file.path, 'utf8');
+            } catch {
+                return null;
+            }
+            const result = scanFileContent(relativePath, content, {
+                severity,
+                intentClassification: options.intentClassification !== false,
+                plainSampleJson: options.plainSampleJson === true
+            });
+            return { scanned: 1, findings: result.findings, suppressed: result.suppressed };
+        }));
+        for (const r of batchResults) {
+            if (!r) continue;
+            scanned += r.scanned;
+            issues.push(...r.findings);
+            suppressedIntent.push(...r.suppressed);
         }
-
-        scanned += 1;
-        const result = scanFileContent(relativePath, content, {
-            severity,
-            intentClassification: options.intentClassification !== false,
-            plainSampleJson: options.plainSampleJson === true
-        });
-        issues.push(...result.findings);
-        suppressedIntent.push(...result.suppressed);
     }
 
     return {
@@ -421,8 +407,9 @@ async function scanProductionLeaks(baseDir, options = {}) {
     };
 }
 
-module.exports = {
+module.exports = Object.freeze({
     DEFAULT_PRODUCTION_PATHS,
+    DEFAULT_SKIP_DIRS,
     DEFAULT_IGNORE_GLOBS,
     LEAK_PATTERNS,
     PLAIN_SAMPLE_JSON_PATTERN,
@@ -430,5 +417,6 @@ module.exports = {
     scanProductionLeaks,
     scanFileContent,
     globMatch,
-    walkProductionFiles
-};
+    walkProductionFiles,
+    normalizeRel
+});

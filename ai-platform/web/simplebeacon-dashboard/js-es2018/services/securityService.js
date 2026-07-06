@@ -1,3 +1,4 @@
+import { dashboardApiBase } from '../utils.js';
 /** Security findings extracted from live Simplebeacon report (credential + production-leak rules). */
 export const SECURITY_ISSUE_PATTERN = /credential|production leak/i;
 /**
@@ -103,7 +104,7 @@ export function buildSecurityExportPayload(report, findings, compliance = null) 
  * @returns {any}
  */
 export async function fetchComplianceHeadline() {
-    const complianceHttpResponse = await fetch('/api/optimization/compliance', {
+    const complianceHttpResponse = await fetch(`${dashboardApiBase()}/api/optimization/compliance`, {
         headers: { Accept: 'application/json' }
     });
     if (!complianceHttpResponse.ok) {

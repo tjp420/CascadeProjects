@@ -64,6 +64,8 @@
     "C:/Users/Trevor/CascadeProjects/simplebeacon-vscode-merged/src/rules/llm-slop-catalog.json",
     "C:/Users/Trevor/CascadeProjects/simplebeacon-vscode-merged/out/rules/llm-slop-catalog.json",
     "C:/Users/Trevor/CascadeProjects/simplebeacon-vscode-merged/.vsix-patch-temp/**",
+    "**/llm-slop-catalog.json",
+    "**/code-map.json",
     "C:/Users/Trevor/CascadeProjects/ai-platform/web/simplebeacon-dashboard/js-es2018/views/SettingsView.js",
     "C:/Users/Trevor/CascadeProjects/ai-platform/web/simplebeacon-dashboard/js/vendor/lucide.min.js",
     "C:/Users/Trevor/CascadeProjects/ai-platform/web/simplebeacon-dashboard/js-es2018/utils-dom.js",
@@ -159,5 +161,20 @@
       "low"
     ]
   },
-  "fullDirectoryScan": true
+  "fullDirectoryScan": true,
+  "fullDirectoryScanSkipDirs": [
+    ".git",
+    "github-cache",
+    ".simplebeacon",
+    ".vscode-test",
+    "node_modules",
+    "out",
+    "releases",
+    ".vsix-patch-temp",
+    "dist",
+    "build",
+    ".next",
+    ".cache",
+    "coverage"
+  ]
 }

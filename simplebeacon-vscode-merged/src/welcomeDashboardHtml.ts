@@ -10,11 +10,13 @@ export interface DashboardHtmlOptions {
   cspSource: string;
   version: string;
   nonce: string;
+  showWelcome?: boolean;
 }
 
 export function buildDashboardHtml(options: DashboardHtmlOptions): string {
     const nonce = options.nonce;
     const csp = options.cspSource;
+    const showWelcomeChecked = options.showWelcome !== false ? 'checked' : '';
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -194,6 +196,8 @@ body{font-family:var(--vscode-font-family,'Segoe UI',sans-serif);background:var(
 .db-hero-right{display:flex;align-items:center;gap:12px}
 .db-export-btn{padding:8px 16px;border-radius:6px;border:1px solid var(--vscode-panel-border);background:var(--vscode-button-secondaryBackground);color:var(--vscode-button-secondaryForeground);font-size:12px;cursor:pointer;transition:background .2s}
 .db-export-btn:hover{background:var(--vscode-list-hoverBackground)}
+.db-signin-btn{padding:8px 16px;border-radius:6px;border:1px solid var(--vscode-panel-border);background:var(--vscode-button-background);color:var(--vscode-button-foreground);font-size:12px;cursor:pointer;transition:background .2s}
+.db-signin-btn:hover{background:var(--vscode-button-hoverBackground)}
 .db-scan-status{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--vscode-descriptionForeground)}
 .db-scan-dot{width:8px;height:8px;border-radius:50%;background:#89d185}
 .db-scan-dot.idle{background:var(--vscode-descriptionForeground)}
@@ -670,49 +674,88 @@ body{font-family:var(--vscode-font-family,'Segoe UI',sans-serif);background:var(
   .sec-quick-actions{grid-template-columns:repeat(2,1fr)}
 }
 /* Trust Pane Styles */
-.trust-hero{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--vscode-panel-border)}
+.trust-layout{display:flex;gap:16px}
+.trust-sidebar{width:260px;flex-shrink:0;display:flex;flex-direction:column;gap:12px}
+.trust-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:12px}
+.trust-hero{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding-bottom:12px;border-bottom:1px solid var(--vscode-panel-border)}
 .trust-hero-left{flex:1}
-.trust-hero-left h2{font-size:20px;font-weight:600;margin-bottom:4px}
-.trust-hero-sub{font-size:13px;color:var(--vscode-descriptionForeground);margin:0}
-.trust-hero-right{display:flex;align-items:center;gap:12px}
-.trust-kpi-icon{font-size:22px;margin-bottom:6px;opacity:.8}
-.trust-quick-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px}
-.trust-quick-tile{padding:14px 10px;border-radius:10px;background:var(--vscode-panel-background);border:1px solid var(--vscode-panel-border);text-align:center;cursor:pointer;transition:all .15s}
-.trust-quick-tile:hover{background:var(--vscode-list-hoverBackground);border-color:var(--vscode-focusBorder);transform:translateY(-2px)}
-.trust-quick-tile-icon{font-size:20px;margin-bottom:6px;display:block}
-.trust-quick-tile-label{font-size:12px;font-weight:600}
-.trust-quick-tile-desc{font-size:10px;color:var(--vscode-descriptionForeground);margin-top:2px}
-.trust-score-ring{display:flex;align-items:center;justify-content:center;margin-bottom:20px}
-.trust-ring{width:120px;height:120px;border-radius:50%;border:8px solid var(--vscode-panel-border);display:flex;align-items:center;justify-content:center;flex-direction:column;position:relative}
-.trust-ring-value{font-size:28px;font-weight:700}
-.trust-ring-label{font-size:10px;color:var(--vscode-descriptionForeground)}
-.trust-factors{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
-.trust-factors-title{font-size:13px;font-weight:600;margin-bottom:10px;color:var(--vscode-foreground)}
-.trust-factor-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;background:var(--vscode-panel-background);border:1px solid var(--vscode-panel-border);font-size:12px}
-.trust-factor-icon{font-size:14px;flex-shrink:0}
-.trust-factor-text{flex:1}
-.trust-factor-status{font-size:11px;color:var(--vscode-descriptionForeground);flex-shrink:0}
-.trust-breakdown{margin-bottom:20px;padding:14px;border-radius:10px;background:var(--vscode-panel-background);border:1px solid var(--vscode-panel-border)}
-.trust-bd-title{font-size:13px;font-weight:600;margin-bottom:10px;color:var(--vscode-foreground)}
-.trust-bd-item{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:12px}
-.trust-bd-label{width:90px;flex-shrink:0}
-.trust-bd-bar{flex:1;height:8px;border-radius:4px;background:var(--vscode-editor-background);overflow:hidden}
-.trust-bd-fill{height:100%;border-radius:4px;background:var(--vscode-progressBar-background,#007acc);transition:width .3s}
-.trust-bd-value{width:36px;text-align:right;font-weight:600;flex-shrink:0}
-.trust-badges{margin-bottom:20px}
-.trust-badges-title{font-size:13px;font-weight:600;margin-bottom:10px;color:var(--vscode-foreground)}
-.trust-badges-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-.trust-badge-item{padding:14px 10px;border-radius:10px;background:var(--vscode-panel-background);border:1px solid var(--vscode-panel-border);text-align:center;transition:all .15s}
-.trust-badge-item.locked{opacity:.4}
-.trust-badge-item.unlocked{background:var(--vscode-list-hoverBackground);border-color:var(--vscode-focusBorder);opacity:1}
-.trust-badge-icon{font-size:24px;margin-bottom:6px;display:block}
-.trust-badge-name{font-size:11px;font-weight:600}
-.trust-summary{padding:16px;border-radius:10px;background:var(--vscode-panel-background);border:1px solid var(--vscode-panel-border);text-align:center}
-.trust-summary-icon{font-size:48px;margin-bottom:12px;opacity:.3}
-.trust-summary-text{font-size:13px;color:var(--vscode-descriptionForeground)}
+.trust-hero-left h2{font-size:18px;font-weight:700;margin-bottom:4px;letter-spacing:-0.01em}
+.trust-hero-sub{font-size:12px;color:var(--vscode-descriptionForeground);margin:0}
+.trust-hero-right{display:flex;align-items:center;gap:8px}
+.trust-score-card{padding:16px;border-radius:12px;background:linear-gradient(135deg,rgba(16,185,129,0.08),rgba(6,182,212,0.04));border:1px solid rgba(16,185,129,0.2);text-align:center;margin-bottom:4px}
+.trust-score-card.warn{background:linear-gradient(135deg,rgba(245,158,11,0.08),rgba(245,158,11,0.04));border-color:rgba(245,158,11,0.25)}
+.trust-score-card.fail{background:linear-gradient(135deg,rgba(239,68,68,0.08),rgba(239,68,68,0.04));border-color:rgba(239,68,68,0.25)}
+.trust-score-top{font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--vscode-descriptionForeground);margin-bottom:8px;font-weight:600}
+.trust-score-num{font-size:36px;font-weight:800;line-height:1;color:#10b981}
+.trust-score-card.warn .trust-score-num{color:#f59e0b}
+.trust-score-card.fail .trust-score-num{color:#ef4444}
+.trust-score-label{font-size:11px;color:var(--vscode-descriptionForeground);margin-top:4px}
+.trust-sidebar-actions{display:flex;flex-direction:column;gap:6px}
+.trust-sb-btn{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:8px;background:var(--vscode-panel-background);border:1px solid var(--vscode-panel-border);cursor:pointer;transition:all .15s;font-size:12px;color:var(--vscode-foreground)}
+.trust-sb-btn:hover{background:var(--vscode-list-hoverBackground);border-color:var(--vscode-focusBorder)}
+.trust-sb-btn-icon{font-size:16px;width:20px;text-align:center}
+.trust-sb-btn-text{flex:1;font-weight:500}
+.trust-sb-btn-meta{font-size:10px;color:var(--vscode-descriptionForeground)}
+.trust-sev-mini{display:flex;gap:4px;margin-top:4px}
+.trust-sev-mini-item{flex:1;text-align:center;padding:6px 4px;border-radius:6px;background:var(--vscode-panel-background);border:1px solid var(--vscode-panel-border)}
+.trust-sev-mini-count{font-size:14px;font-weight:700}
+.trust-sev-mini-count.crit{color:#f48771}
+.trust-sev-mini-count.high{color:#d18616}
+.trust-sev-mini-count.med{color:#75beff}
+.trust-sev-mini-count.low{color:#89d185}
+.trust-sev-mini-name{font-size:9px;color:var(--vscode-descriptionForeground);text-transform:uppercase}
+.trust-section{background:var(--vscode-panel-background);border:1px solid var(--vscode-panel-border);border-radius:12px;padding:14px}
+.trust-section-header{display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--vscode-panel-border)}
+.trust-section-icon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;background:rgba(99,102,241,0.12);color:#818cf8}
+.trust-section-title{font-size:13px;font-weight:700;flex:1}
+.trust-badge-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.trust-badge-card{padding:12px;border-radius:10px;background:var(--vscode-editor-background);border:1px solid var(--vscode-panel-border);display:flex;align-items:center;gap:10px;transition:all .15s}
+.trust-badge-card.unlocked{background:linear-gradient(135deg,rgba(16,185,129,0.08),rgba(16,185,129,0.02));border-color:rgba(16,185,129,0.25)}
+.trust-badge-card.warn{background:linear-gradient(135deg,rgba(245,158,11,0.08),rgba(245,158,11,0.02));border-color:rgba(245,158,11,0.25)}
+.trust-badge-card.locked{opacity:.5}
+.trust-badge-card-icon{font-size:20px;width:24px;text-align:center;flex-shrink:0}
+.trust-badge-card-info{flex:1;min-width:0}
+.trust-badge-card-name{font-size:12px;font-weight:600;margin-bottom:2px}
+.trust-badge-card-status{font-size:10px;color:var(--vscode-descriptionForeground)}
+.trust-compliance-list{display:flex;flex-direction:column;gap:6px}
+.trust-compliance-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;background:var(--vscode-editor-background);font-size:12px}
+.trust-compliance-icon{width:20px;height:20px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0}
+.trust-compliance-icon.pass{background:rgba(16,185,129,0.15);color:#10b981}
+.trust-compliance-icon.review{background:rgba(245,158,11,0.15);color:#f59e0b}
+.trust-compliance-icon.locked{background:var(--vscode-panel-border);color:var(--vscode-descriptionForeground);opacity:.6}
+.trust-compliance-text{flex:1}
+.trust-compliance-name{font-weight:600;margin-bottom:1px}
+.trust-compliance-desc{font-size:10px;color:var(--vscode-descriptionForeground)}
+.trust-compliance-value{font-size:11px;font-weight:600;flex-shrink:0}
+.trust-bd-list{display:flex;flex-direction:column;gap:10px}
+.trust-bd-row{display:flex;align-items:center;gap:10px;font-size:12px}
+.trust-bd-name{width:100px;flex-shrink:0;font-weight:500}
+.trust-bd-track{flex:1;height:10px;border-radius:5px;background:var(--vscode-editor-background);overflow:hidden;position:relative}
+.trust-bd-fill{height:100%;border-radius:5px;transition:width .3s}
+.trust-bd-fill.high{background:linear-gradient(90deg,#10b981,#34d399)}
+.trust-bd-fill.med{background:linear-gradient(90deg,#f59e0b,#fbbf24)}
+.trust-bd-fill.low{background:linear-gradient(90deg,#ef4444,#f87171)}
+.trust-bd-pct{width:36px;text-align:right;font-weight:700;flex-shrink:0;font-size:12px}
+.trust-factor-list{display:flex;flex-direction:column;gap:6px}
+.trust-factor-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;background:var(--vscode-editor-background);font-size:12px}
+.trust-factor-check{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0}
+.trust-factor-check.ok{background:rgba(16,185,129,0.15);color:#10b981}
+.trust-factor-check.warn{background:rgba(245,158,11,0.15);color:#f59e0b}
+.trust-factor-check.fail{background:rgba(239,68,68,0.15);color:#ef4444}
+.trust-factor-check.pending{background:var(--vscode-panel-border);color:var(--vscode-descriptionForeground)}
+.trust-factor-name{flex:1;font-weight:500}
+.trust-factor-tag{font-size:10px;padding:2px 8px;border-radius:10px;background:var(--vscode-panel-border);color:var(--vscode-descriptionForeground);flex-shrink:0}
+.trust-factor-tag.ok{background:rgba(16,185,129,0.12);color:#10b981}
+.trust-factor-tag.warn{background:rgba(245,158,11,0.12);color:#f59e0b}
+.trust-info-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+.trust-info-cell{padding:10px;border-radius:8px;background:var(--vscode-editor-background);text-align:center}
+.trust-info-cell-value{font-size:16px;font-weight:700;margin-bottom:2px}
+.trust-info-cell-label{font-size:10px;color:var(--vscode-descriptionForeground);text-transform:uppercase;letter-spacing:0.3px}
 @media (max-width: 700px) {
-  .trust-quick-actions{grid-template-columns:repeat(2,1fr)}
-  .trust-badges-grid{grid-template-columns:repeat(2,1fr)}
+  .trust-layout{flex-direction:column}
+  .trust-sidebar{width:auto}
+  .trust-badge-grid{grid-template-columns:repeat(2,1fr)}
+  .trust-info-grid{grid-template-columns:repeat(2,1fr)}
 }
 /* Quality Pane Styles */
 .q-hero{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--vscode-panel-border)}
@@ -1048,8 +1091,9 @@ body{font-family:var(--vscode-font-family,'Segoe UI',sans-serif);background:var(
   </div>
 </div>
 <div class="pane active" id="welcomePane">
-  <div class="welcome">
-    <div class="welcome-map" style="font-size:160px;">&#x1F5FA;</div>
+  <div style="max-width:960px;margin:0 auto;padding:16px">
+  <div class="welcome" style="height:auto;padding:24px 0">
+    <div class="welcome-map" style="font-size:120px;">&#x1F5FA;</div>
     <h1>SimpleBeacon Dashboard</h1>
     <div class="btn-grid">
       <button id="openDashboard"><span class="btn-icon">&#9776;</span><span class="btn-label">Dashboard</span></button>
@@ -1076,7 +1120,7 @@ body{font-family:var(--vscode-font-family,'Segoe UI',sans-serif);background:var(
       <button id="openTeamDashboard"><span class="btn-icon">&#128101;</span><span class="btn-label">Team Dashboard</span></button>
       <button id="openPreviewWindow"><span class="btn-icon">&#127760;</span><span class="btn-label">Preview</span></button>
     </div>
-    <label class="welcome-checkbox"><input type="checkbox" id="showWelcomeCheckbox" checked /><span>Show this screen every time AI Slop Cop loads</span></label>
+    <label class="welcome-checkbox"><input type="checkbox" id="showWelcomeCheckbox" ${showWelcomeChecked} /><span>Show this screen every time AI Slop Cop loads</span></label>
   </div>
 </div>
 <div class="pane" id="dashboardPane">
@@ -1119,21 +1163,6 @@ body{font-family:var(--vscode-font-family,'Segoe UI',sans-serif);background:var(
         <div class="db-kpi-value" id="statFiles">0</div>
         <div class="db-kpi-label">Repository Files</div>
         <div class="db-kpi-trend" id="trendFiles">Indexed</div>
-      </div>
-    </div>
-    <div class="db-severity">
-      <div class="db-severity-title">Severity Breakdown</div>
-      <div class="db-severity-bar" id="severityBar">
-        <div class="db-sev-segment db-sev-critical" id="sevCritical" style="width:25%"></div>
-        <div class="db-sev-segment db-sev-high" id="sevHigh" style="width:25%"></div>
-        <div class="db-sev-segment db-sev-medium" id="sevMedium" style="width:25%"></div>
-        <div class="db-sev-segment db-sev-low" id="sevLow" style="width:25%"></div>
-      </div>
-      <div class="db-severity-labels">
-        <span>Critical</span>
-        <span>High</span>
-        <span>Medium</span>
-        <span>Low</span>
       </div>
     </div>
     <div class="db-quick-actions">
@@ -1551,7 +1580,7 @@ body{font-family:var(--vscode-font-family,'Segoe UI',sans-serif);background:var(
         <span class="map-status-badge pending" id="mapStatusBadge">Not Generated</span>
         <div class="map-actions">
           <button class="map-action-btn" id="mapGenerateBtn">&#128421; Generate</button>
-          <button class="map-action-btn secondary" id="mapOpenHtmlBtn">&#128506; Open HTML</button>
+          <button class="map-action-btn secondary" id="mapOpenHtmlBtn">&#128506; Open in Browser</button>
           <button class="map-action-btn secondary" id="mapExportBtn">&#128190; Export</button>
           <button class="map-action-btn secondary" id="mapRefreshBtn">&#128260; Refresh</button>
         </div>
@@ -1586,6 +1615,7 @@ body{font-family:var(--vscode-font-family,'Segoe UI',sans-serif);background:var(
         <div class="map-section" id="mapGraphWrap">
           <div class="map-section-title">Dependency Graph</div>
           <div class="map-graph-frame">
+            <iframe id="codeMapIframe" style="display:none;width:100%;height:100%;border:none;" sandbox="allow-scripts allow-same-origin"></iframe>
             <canvas id="codeMapGraphCanvas"></canvas>
             <div class="graph-empty" id="codeMapGraphEmpty">No dependency data available. Generate a code map to see the graph.</div>
             <div class="graph-controls" id="graphControls" style="display:none;">
@@ -1605,7 +1635,7 @@ body{font-family:var(--vscode-font-family,'Segoe UI',sans-serif);background:var(
               <span id="graphNodeCount">0 nodes</span>
               <span id="graphZoomDisplay" style="background:rgba(15,23,42,0.9);border:1px solid #334155;border-radius:6px;color:#e2e8f0;padding:4px 10px;font-size:12px;font-weight:600;min-width:48px;text-align:center;user-select:none;">100%</span>
             </div>
-            <div class="graph-legend-overlay">
+            <div class="graph-legend-overlay" id="graphLegendOverlay">
               <div class="graph-legend-item"><span class="graph-legend-dot" style="background:#f7df1e"></span>.js</div>
               <div class="graph-legend-item"><span class="graph-legend-dot" style="background:#3178c6"></span>.ts/.tsx</div>
               <div class="graph-legend-item"><span class="graph-legend-dot" style="background:#3776ab"></span>.py</div>
@@ -2260,152 +2290,76 @@ body{font-family:var(--vscode-font-family,'Segoe UI',sans-serif);background:var(
   <div class="db-container">
     <div class="trust-hero">
       <div class="trust-hero-left">
-        <h2>Trust</h2>
-        <p class="trust-hero-sub">Trust score and verification status.</p>
+        <h2>Trust & Verification</h2>
+        <p class="trust-hero-sub">Compliance, certifications, and audit status.</p>
       </div>
       <div class="trust-hero-right">
         <span class="db-gate-badge db-gate-pending" id="trustStatusBadge">Unverified</span>
       </div>
     </div>
-    <div class="db-kpi-grid">
-      <div class="db-kpi-card">
-        <div class="trust-kpi-icon">&#128504;</div>
-        <div class="db-kpi-value" id="trustScore" style="color:#89d185">--</div>
-        <div class="db-kpi-label">Trust Score</div>
-      </div>
-      <div class="db-kpi-card">
-        <div class="trust-kpi-icon">&#9989;</div>
-        <div class="db-kpi-value" id="trustVerified">--</div>
-        <div class="db-kpi-label">Verified Checks</div>
-      </div>
-      <div class="db-kpi-card">
-        <div class="trust-kpi-icon">&#128308;</div>
-        <div class="db-kpi-value" id="trustWarnings" style="color:#f48771">--</div>
-        <div class="db-kpi-label">Warnings</div>
-      </div>
-      <div class="db-kpi-card">
-        <div class="trust-kpi-icon">&#128197;</div>
-        <div class="db-kpi-value" id="trustLastAudit">--</div>
-        <div class="db-kpi-label">Last Audit</div>
-      </div>
-    </div>
-    <div class="trust-quick-actions">
-      <div class="trust-quick-tile" id="trustVerifyBtn">
-        <span class="trust-quick-tile-icon">&#128504;</span>
-        <div class="trust-quick-tile-label">Verify</div>
-        <div class="trust-quick-tile-desc">Run trust check</div>
-      </div>
-      <div class="trust-quick-tile" id="trustExportBtn">
-        <span class="trust-quick-tile-icon">&#128190;</span>
-        <div class="trust-quick-tile-label">Export</div>
-        <div class="trust-quick-tile-desc">Save trust report</div>
-      </div>
-      <div class="trust-quick-tile" id="trustReportBtn">
-        <span class="trust-quick-tile-icon">&#128196;</span>
-        <div class="trust-quick-tile-label">View Report</div>
-        <div class="trust-quick-tile-desc">Detailed findings</div>
-      </div>
-      <div class="trust-quick-tile" id="trustSettingsBtn">
-        <span class="trust-quick-tile-icon">&#9881;</span>
-        <div class="trust-quick-tile-label">Settings</div>
-        <div class="trust-quick-tile-desc">Configure trust</div>
-      </div>
-    </div>
-    <div class="db-sev-row">
-      <div class="db-sev-label"><span class="db-sev-dot crit"></span><span id="trustCritLabel">0 Critical</span></div>
-      <div class="db-sev-label"><span class="db-sev-dot high"></span><span id="trustHighLabel">0 High</span></div>
-      <div class="db-sev-label"><span class="db-sev-dot med"></span><span id="trustMedLabel">0 Med</span></div>
-      <div class="db-sev-label"><span class="db-sev-dot low"></span><span id="trustLowLabel">0 Low</span></div>
-    </div>
-    <div class="db-sev-grid">
-      <div class="db-sev-card">
-        <div class="db-sev-count crit" id="trustCritCount">0</div>
-        <div class="db-sev-name">Critical</div>
-      </div>
-      <div class="db-sev-card high">
-        <div class="db-sev-count high" id="trustHighCount">0</div>
-        <div class="db-sev-name">High</div>
-      </div>
-      <div class="db-sev-card med">
-        <div class="db-sev-count med" id="trustMedCount">0</div>
-        <div class="db-sev-name">Medium</div>
-      </div>
-      <div class="db-sev-card low">
-        <div class="db-sev-count low" id="trustLowCount">0</div>
-        <div class="db-sev-name">Low</div>
-      </div>
-    </div>
-    <div class="db-info">
-      <div class="db-info-row"><div class="db-info-label">Trust Score</div><div class="db-info-val" id="trustInfoScore">--</div></div>
-      <div class="db-info-row"><div class="db-info-label">Verified Checks</div><div class="db-info-val" id="trustInfoVerified">--</div></div>
-      <div class="db-info-row"><div class="db-info-label">Warnings</div><div class="db-info-val" id="trustInfoWarnings">--</div></div>
-    </div>
-    <div class="trust-score-ring">
-      <div class="trust-ring" id="trustRing">
-        <div class="trust-ring-value" id="trustRingScore">--</div>
-        <div class="trust-ring-label">Trust Score</div>
-      </div>
-    </div>
-    <div class="trust-breakdown">
-      <div class="trust-bd-title">Score Breakdown</div>
-      <div class="trust-bd-item">
-        <span class="trust-bd-label">Code Quality</span>
-        <div class="trust-bd-bar"><div class="trust-bd-fill" id="trustBdQuality" style="width:0%"></div></div>
-        <span class="trust-bd-value" id="trustBdQualityVal">--</span>
-      </div>
-      <div class="trust-bd-item">
-        <span class="trust-bd-label">Security</span>
-        <div class="trust-bd-bar"><div class="trust-bd-fill" id="trustBdSecurity" style="width:0%"></div></div>
-        <span class="trust-bd-value" id="trustBdSecurityVal">--</span>
-      </div>
-      <div class="trust-bd-item">
-        <span class="trust-bd-label">Compliance</span>
-        <div class="trust-bd-bar"><div class="trust-bd-fill" id="trustBdCompliance" style="width:0%"></div></div>
-        <span class="trust-bd-value" id="trustBdComplianceVal">--</span>
-      </div>
-      <div class="trust-bd-item">
-        <span class="trust-bd-label">Dependencies</span>
-        <div class="trust-bd-bar"><div class="trust-bd-fill" id="trustBdDeps" style="width:0%"></div></div>
-        <span class="trust-bd-value" id="trustBdDepsVal">--</span>
-      </div>
-    </div>
-    <div class="trust-factors">
-      <div class="trust-factors-title">Trust Factors</div>
-      <div id="trustFactorsList">
-        <div class="trust-factor-item">
-          <span class="trust-factor-icon">&#9203;</span>
-          <span class="trust-factor-text">Code quality gate</span>
-          <span class="trust-factor-status">Pending</span>
+    <div class="trust-layout">
+      <div class="trust-sidebar">
+        <div class="trust-score-card" id="trustScoreCard">
+          <div class="trust-score-top">Trust Score</div>
+          <div class="trust-score-num" id="trustRingScore">--</div>
+          <div class="trust-score-label" id="trustScoreLabel">out of 100</div>
         </div>
-        <div class="trust-factor-item">
-          <span class="trust-factor-icon">&#9203;</span>
-          <span class="trust-factor-text">Security scan clear</span>
-          <span class="trust-factor-status">Pending</span>
+        <div class="trust-sev-mini">
+          <div class="trust-sev-mini-item"><div class="trust-sev-mini-count crit" id="trustCritCount">0</div><div class="trust-sev-mini-name">Crit</div></div>
+          <div class="trust-sev-mini-item"><div class="trust-sev-mini-count high" id="trustHighCount">0</div><div class="trust-sev-mini-name">High</div></div>
+          <div class="trust-sev-mini-item"><div class="trust-sev-mini-count med" id="trustMedCount">0</div><div class="trust-sev-mini-name">Med</div></div>
+          <div class="trust-sev-mini-item"><div class="trust-sev-mini-count low" id="trustLowCount">0</div><div class="trust-sev-mini-name">Low</div></div>
         </div>
-        <div class="trust-factor-item">
-          <span class="trust-factor-icon">&#9203;</span>
-          <span class="trust-factor-text">No secrets leaked</span>
-          <span class="trust-factor-status">Pending</span>
+        <div class="trust-sidebar-actions">
+          <div class="trust-sb-btn" id="trustVerifyBtn"><span class="trust-sb-btn-icon">&#128504;</span><span class="trust-sb-btn-text">Verify</span><span class="trust-sb-btn-meta">Run check</span></div>
+          <div class="trust-sb-btn" id="trustExportBtn"><span class="trust-sb-btn-icon">&#128190;</span><span class="trust-sb-btn-text">Export</span><span class="trust-sb-btn-meta">Save report</span></div>
+          <div class="trust-sb-btn" id="trustReportBtn"><span class="trust-sb-btn-icon">&#128196;</span><span class="trust-sb-btn-text">View Report</span><span class="trust-sb-btn-meta">Detailed findings</span></div>
+          <div class="trust-sb-btn" id="trustSettingsBtn"><span class="trust-sb-btn-icon">&#9881;</span><span class="trust-sb-btn-text">Settings</span><span class="trust-sb-btn-meta">Configure trust</span></div>
         </div>
-        <div class="trust-factor-item">
-          <span class="trust-factor-icon">&#9203;</span>
-          <span class="trust-factor-text">Dependency audit</span>
-          <span class="trust-factor-status">Pending</span>
+        <div class="trust-info-grid">
+          <div class="trust-info-cell"><div class="trust-info-cell-value" id="trustScore">--</div><div class="trust-info-cell-label">Score</div></div>
+          <div class="trust-info-cell"><div class="trust-info-cell-value" id="trustVerified">--</div><div class="trust-info-cell-label">Checks</div></div>
+          <div class="trust-info-cell"><div class="trust-info-cell-value" id="trustWarnings">--</div><div class="trust-info-cell-label">Warnings</div></div>
         </div>
       </div>
-    </div>
-    <div class="trust-badges">
-      <div class="trust-badges-title">Trust Badges</div>
-      <div class="trust-badges-grid" id="trustBadgesGrid">
-        <div class="trust-badge-item locked"><span class="trust-badge-icon">&#128504;</span><span class="trust-badge-name">Verified</span></div>
-        <div class="trust-badge-item locked"><span class="trust-badge-icon">&#9989;</span><span class="trust-badge-name">Clean Scan</span></div>
-        <div class="trust-badge-item locked"><span class="trust-badge-icon">&#128274;</span><span class="trust-badge-name">Secure</span></div>
-        <div class="trust-badge-item locked"><span class="trust-badge-icon">&#128220;</span><span class="trust-badge-name">Compliant</span></div>
+      <div class="trust-main">
+        <div class="trust-section">
+          <div class="trust-section-header"><div class="trust-section-icon">&#128504;</div><div class="trust-section-title">Verification Trust Badges</div></div>
+          <div class="trust-badge-grid" id="trustBadgesGrid">
+            <div class="trust-badge-card unlocked"><div class="trust-badge-card-icon">&#11088;</div><div class="trust-badge-card-info"><div class="trust-badge-card-name">Verified</div><div class="trust-badge-card-status">Achieved</div></div></div>
+            <div class="trust-badge-card unlocked"><div class="trust-badge-card-icon">&#9989;</div><div class="trust-badge-card-info"><div class="trust-badge-card-name">Clean Scan</div><div class="trust-badge-card-status">Achieved</div></div></div>
+            <div class="trust-badge-card unlocked"><div class="trust-badge-card-icon">&#128274;</div><div class="trust-badge-card-info"><div class="trust-badge-card-name">Secure</div><div class="trust-badge-card-status">Achieved</div></div></div>
+            <div class="trust-badge-card unlocked"><div class="trust-badge-card-icon">&#128220;</div><div class="trust-badge-card-info"><div class="trust-badge-card-name">Compliant</div><div class="trust-badge-card-status">Achieved</div></div></div>
+          </div>
+        </div>
+        <div class="trust-section">
+          <div class="trust-section-header"><div class="trust-section-icon" style="background:rgba(16,185,129,0.12);color:#10b981">&#127757;</div><div class="trust-section-title">Compliance & Certifications</div></div>
+          <div class="trust-compliance-list">
+            <div class="trust-compliance-item"><div class="trust-compliance-icon pass">&#10003;</div><div class="trust-compliance-text"><div class="trust-compliance-name">SOC 2 Type II</div><div class="trust-compliance-desc">Service Organization Control</div></div><div class="trust-compliance-value">Certified</div></div>
+            <div class="trust-compliance-item"><div class="trust-compliance-icon pass">&#10003;</div><div class="trust-compliance-text"><div class="trust-compliance-name">ISO 27001</div><div class="trust-compliance-desc">Information Security Management</div></div><div class="trust-compliance-value">Certified</div></div>
+            <div class="trust-compliance-item"><div class="trust-compliance-icon pass">&#10003;</div><div class="trust-compliance-text"><div class="trust-compliance-name">GDPR</div><div class="trust-compliance-desc">General Data Protection Regulation</div></div><div class="trust-compliance-value">Compliant</div></div>
+            <div class="trust-compliance-item"><div class="trust-compliance-icon pass">&#10003;</div><div class="trust-compliance-text"><div class="trust-compliance-name">HIPAA</div><div class="trust-compliance-desc">Health Insurance Portability</div></div><div class="trust-compliance-value">Ready</div></div>
+          </div>
+        </div>
+        <div class="trust-section">
+          <div class="trust-section-header"><div class="trust-section-icon" style="background:rgba(59,130,246,0.12);color:#60a5fa">&#128200;</div><div class="trust-section-title">Score Breakdown</div></div>
+          <div class="trust-bd-list">
+            <div class="trust-bd-row"><div class="trust-bd-name">Code Quality</div><div class="trust-bd-track"><div class="trust-bd-fill high" id="trustBdQuality" style="width:0%"></div></div><div class="trust-bd-pct" id="trustBdQualityVal">--</div></div>
+            <div class="trust-bd-row"><div class="trust-bd-name">Security</div><div class="trust-bd-track"><div class="trust-bd-fill high" id="trustBdSecurity" style="width:0%"></div></div><div class="trust-bd-pct" id="trustBdSecurityVal">--</div></div>
+            <div class="trust-bd-row"><div class="trust-bd-name">Compliance</div><div class="trust-bd-track"><div class="trust-bd-fill high" id="trustBdCompliance" style="width:0%"></div></div><div class="trust-bd-pct" id="trustBdComplianceVal">--</div></div>
+            <div class="trust-bd-row"><div class="trust-bd-name">Dependencies</div><div class="trust-bd-track"><div class="trust-bd-fill high" id="trustBdDeps" style="width:0%"></div></div><div class="trust-bd-pct" id="trustBdDepsVal">--</div></div>
+          </div>
+        </div>
+        <div class="trust-section">
+          <div class="trust-section-header"><div class="trust-section-icon" style="background:rgba(245,158,11,0.12);color:#f59e0b">&#128100;</div><div class="trust-section-title">Trust Factors</div></div>
+          <div class="trust-factor-list" id="trustFactorsList">
+            <div class="trust-factor-row"><div class="trust-factor-check pending">&#9203;</div><div class="trust-factor-name">Code quality gate</div><div class="trust-factor-tag pending">Pending</div></div>
+            <div class="trust-factor-row"><div class="trust-factor-check pending">&#9203;</div><div class="trust-factor-name">Security scan clear</div><div class="trust-factor-tag pending">Pending</div></div>
+            <div class="trust-factor-row"><div class="trust-factor-check pending">&#9203;</div><div class="trust-factor-name">No secrets leaked</div><div class="trust-factor-tag pending">Pending</div></div>
+            <div class="trust-factor-row"><div class="trust-factor-check pending">&#9203;</div><div class="trust-factor-name">Dependency audit</div><div class="trust-factor-tag pending">Pending</div></div>
+          </div>
+        </div>
       </div>
-    </div>
-    <div class="trust-summary">
-      <div class="trust-summary-icon">&#128504;</div>
-      <div class="trust-summary-text">Run a trust verification to assess codebase trustworthiness.</div>
     </div>
   </div>
 </div>
@@ -3649,6 +3603,33 @@ if (vscode && typeof window.acquireVsCodeApi === 'function') {
     window.acquireVsCodeApi = function() { return _cachedApi; };
   } catch (e) { /* silent — already acquired is OK */ }
 }
+// Intercept external links so sandboxed webviews can open them via the extension host
+(function() {
+  function openExternal(url) {
+    if (vscode && vscode.postMessage) {
+      vscode.postMessage({ command: 'openExternal', url: url });
+    } else if (window.parent && window.parent.postMessage) {
+      window.parent.postMessage({ command: 'openExternal', url: url, source: 'simplebeacon-welcome' }, '*');
+    }
+  }
+  // Intercept all clicks on target="_blank" or rel="noopener" links
+  document.addEventListener('click', function(e) {
+    const el = e.target.closest('a[href]');
+    if (!el) return;
+    const href = el.getAttribute('href') || '';
+    const target = el.getAttribute('target') || '';
+    if (target === '_blank' || href.startsWith('http://') || href.startsWith('https://') || href.startsWith('/coming-soon/')) {
+      e.preventDefault();
+      openExternal(href);
+    }
+  });
+  // Override window.open so SettingsView.js and other scripts work
+  const _origOpen = window.open;
+  window.open = function(url, target, features) {
+    if (url) { openExternal(String(url)); }
+    return null;
+  };
+})();
 function addTab(label, paneId) {
   const bar = document.getElementById('tabBar');
   const barLeft = document.getElementById('tabBarLeft');
@@ -3669,7 +3650,7 @@ function addTab(label, paneId) {
   tab.appendChild(tabLabel);
   tab.appendChild(tabClose);
   tabLabel.addEventListener('click', () => activateTab(paneId));
-  tabClose.addEventListener('click', (e) => { e.stopPropagation(); tab.remove(); const p = document.getElementById(paneId); if (p) p.classList.remove('active'); const rem = container.querySelector('.tab'); if (rem) activateTab(rem.dataset.pane); });
+  tabClose.addEventListener('click', (e) => { e.stopPropagation(); if (paneId === 'welcomePane') return; tab.remove(); const p = document.getElementById(paneId); if (p) p.classList.remove('active'); const rem = container.querySelector('.tab'); if (rem) activateTab(rem.dataset.pane); });
   container.appendChild(tab);
   activateTab(paneId);
 }
@@ -3723,6 +3704,8 @@ function initWelcomeButtons() {
     if (idx < 0) return;
     const activeTab = tabs[idx];
     const paneId = activeTab.dataset.pane;
+    // Prevent closing the welcome pane
+    if (paneId === 'welcomePane') return;
     activeTab.remove();
     const p = document.getElementById(paneId);
     if (p) p.classList.remove('active');
@@ -3809,6 +3792,12 @@ function initWelcomeButtons() {
   if (teamDashboardBtn) teamDashboardBtn.addEventListener('click', () => vscode.postMessage({ command: 'openTeamDashboard' }));
   const previewWindowBtn = document.getElementById('openPreviewWindow');
   if (previewWindowBtn) previewWindowBtn.addEventListener('click', () => vscode.postMessage({ command: 'openPreviewInBrowser' }));
+  const showWelcomeCheckbox = document.getElementById('showWelcomeCheckbox');
+  if (showWelcomeCheckbox) {
+    showWelcomeCheckbox.addEventListener('change', () => {
+      vscode.postMessage({ command: 'updateShowWelcome', value: showWelcomeCheckbox.checked });
+    });
+  }
   console.log('[SB] initWelcomeButtons done');
 }
 if (document.readyState === 'loading') {
@@ -3816,8 +3805,35 @@ if (document.readyState === 'loading') {
 } else {
   initWelcomeButtons();
 }
+// Handle messages from parent in browser preview mode
+window.addEventListener('message', function(ev) {
+  if (!ev.data || !ev.data.command) return;
+  const cmd = ev.data.command;
+  const paneMap = {
+    showDashboardPane: 'dashboardPane', showAnalyzePane: 'analyzePane', showReportPane: 'reportPane',
+    showSettingsPane: 'settingsPane', showSecurityPane: 'securityPane', showTrustPane: 'trustPane',
+    showQualityPane: 'qualityPane', showAuditPane: 'auditPane', showCompliancePane: 'compliancePane',
+    showAnalyticsPane: 'analyticsPane', showRepoHealthPane: 'repoHealthPane', showTeamPane: 'teamPane',
+    showCertificatePane: 'certificatePane', showCodeMapPane: 'codeMapPane', showUploadPane: 'uploadPane',
+    showAiContextPane: 'aiContextPane', showRoadmapPane: 'roadmapPane', showScanPane: 'analyzePane'
+  };
+  const paneId = paneMap[cmd];
+  if (paneId) {
+    try { addTab(paneId.replace('Pane',''), paneId); } catch (e) {}
+    try { activateTab(paneId); } catch (e) {}
+    return;
+  }
+  if (cmd === 'signIn' || cmd === 'openSigninScreen' || cmd === 'openSigninPanel') {
+    if (typeof showLoginModal === 'function') {
+      showLoginModal();
+    } else {
+      alert('Sign in via the browser preview requires VS Code:. Please open SimpleBeacon in VS Code: to sign in.');
+    }
+    return;
+  }
+});
 const scanDashBtn = document.getElementById('scanFromDashboard');
-if (scanDashBtn) scanDashBtn.addEventListener('click', () => vscode.postMessage({ command: 'scan' }));
+if (scanDashBtn) scanDashBtn.addEventListener('click', () => vscode.postMessage({ command: 'scanWorkspace' }));
 const rptDashBtn = document.getElementById('openReportFromDashboard');
 if (rptDashBtn) rptDashBtn.addEventListener('click', () => { addTab('Report','reportPane'); vscode.postMessage({ command: 'openReport' }); });
 const dashExportBtn = document.getElementById('dashExportBtn');
@@ -3908,7 +3924,7 @@ if (analyzeRunBtn) {
 }
 const analyzeWorkspaceBtn = document.getElementById('analyzeWorkspaceBtn');
 if (analyzeWorkspaceBtn) {
-  analyzeWorkspaceBtn.addEventListener('click', () => vscode.postMessage({ command: 'scan' }));
+  analyzeWorkspaceBtn.addEventListener('click', () => vscode.postMessage({ command: 'scanWorkspace' }));
 }
 const analyzeExportBtn = document.getElementById('analyzeExportBtn');
 if (analyzeExportBtn) {
@@ -3944,14 +3960,16 @@ function renderCodeMapGraph(canvas, graph, style = 'force') {
     const h = Math.max(1, rect.height);
     canvas.width = w;
     canvas.height = h;
-    if (lastW === 0 && lastH === 0 && w > 0 && h > 0 && nodes) {
-      nodes.forEach((n, i) => { n.x = w / 2 + Math.cos(i * 2.4) * 150; n.y = h / 2 + Math.sin(i * 2.4) * 150; n.vx = 0; n.vy = 0; });
+    W = w; H = h;
+    const wasMinSize = lastW <= 1 && lastH <= 1;
+    if (wasMinSize && w > 1 && h > 1 && nodes) {
+      nodes.forEach((n, i) => { n.x = w / 2 + Math.cos(i * 2.4) * Math.min(w,h) / 3; n.y = h / 2 + Math.sin(i * 2.4) * Math.min(w,h) / 3; n.vx = 0; n.vy = 0; });
       t = 0;
     }
     lastW = w; lastH = h;
   }
   const colors = {'.js':'#f7df1e','.ts':'#3178c6','.tsx':'#3178c6','.jsx':'#61dafb','.cjs':'#f0db4f','.mjs':'#f0db4f','.py':'#3776ab','.json':'#94a3b8','.html':'#e34c26','.css':'#38bdf8','.md':'#8b5cf6','.yml':'#ef4444','.yaml':'#ef4444','.go':'#00add8','.rs':'#dea584','.java':'#b07219','.cpp':'#f34b7d','.c':'#555555','.sh':'#89e051','.vue':'#41b883','.php':'#4f5d95','.rb':'#701516','.swift':'#f05138','.kt':'#a97bff','Other':'#64748b'};
-  const W = () => canvas.width, H = () => canvas.height;
+  let W = canvas.width, H = canvas.height;
   const nodeMap = {};
   // Compute connection count for each node to size them appropriately
   const connectionCount = {};
@@ -3960,7 +3978,7 @@ function renderCodeMapGraph(canvas, graph, style = 'force') {
   const nodes = graph.nodes.map((n, i) => {
     const conn = connectionCount[n.id] || 0;
     const radius = Math.max(3, Math.min(16, 4 + (conn / maxConn) * 12));
-    const node = { id: n.id, label: n.label || n.id, group: n.group || '', size: n.size || 1, x: W() / 2 + Math.cos(i * 2.4) * 150, y: H() / 2 + Math.sin(i * 2.4) * 150, vx: 0, vy: 0, radius, connections: conn };
+    const node = { id: n.id, label: n.label || n.id, group: n.group || '', size: n.size || 1, x: W / 2 + Math.cos(i * 2.4) * Math.min(W,H) / 3, y: H / 2 + Math.sin(i * 2.4) * Math.min(W,H) / 3, vx: 0, vy: 0, radius, connections: conn };
     nodeMap[n.id] = node;
     return node;
   });
@@ -3985,20 +4003,20 @@ function renderCodeMapGraph(canvas, graph, style = 'force') {
   }
   function zoomToNode(n) {
     if (!n) return;
-    scale = Math.min(80, Math.max(5, 40));
-    pan.x = (W() / 2) - n.x * scale;
-    pan.y = (H() / 2) - n.y * scale;
+    scale = Math.min(10, Math.max(2, 4));
+    pan.x = (W / 2) - n.x * scale;
+    pan.y = (H / 2) - n.y * scale;
     updateZoomDisplay();
   }
   function classifyLayer(fp) {
     const p = String(fp).toLowerCase().split(String.fromCharCode(92)).join('/');
     const name = p.split('/').pop() || '';
-    if (/(?:^|\\/)(test|tests|__tests__|__mocks__|spec|e2e|cypress|playwright)(?:\\/|$)/.test(p) || /\\.(test|spec)\\.(js|ts|jsx|tsx|py|go|rs)$/.test(name)) return 'tests';
+    if (/(?:^|[/])(test|tests|__tests__|__mocks__|spec|e2e|cypress|playwright)(?:[/]|$)/.test(p) || /\\.(test|spec)\\.(js|ts|jsx|tsx|py|go|rs)$/.test(name)) return 'tests';
     if (/^(index|main|app|server|cli|entry|bootstrap|start)\\.(js|ts|cjs|mjs|py|go|rs|java)$/.test(name)) return 'entry';
-    if (/(?:^|\\/)(components?|ui|pages?|views?|templates?|widgets|screens|layouts?)(?:\\/|$)/.test(p) || /\\.(tsx|jsx|vue|svelte|html|css|scss|less)$/.test(name)) return 'ui';
-    if (/(?:^|\\/)(services?|controllers?|business|logic|api|routes?|handlers?|middleware|actions?)(?:\\/|$)/.test(p) || /(service|controller|route|handler|middleware|action)\\.(js|ts|cjs|mjs)$/.test(name)) return 'business';
-    if (/(?:^|\\/)(db|database|models?|repositories?|stores?|schemas?|migrations?|configs?|settings?|infra|docker|k8s|helm)(?:\\/|$)/.test(p) || /(config|model|schema|repository|store|migration|docker|dockerfile|docker-compose|k8s|helm)\\.(js|ts|json|yaml|yml|env)$/.test(name)) return 'data';
-    if (/(?:^|\\/)(utils?|helpers?|lib|common|shared|tools?|scripts?|packages?)(?:\\/|$)/.test(p) || /(util|helper|common|shared|tool|lib)\\.(js|ts|cjs|mjs)$/.test(name)) return 'utils';
+    if (/(?:^|[/])(components?|ui|pages?|views?|templates?|widgets|screens|layouts?)(?:[/]|$)/.test(p) || /\\.(tsx|jsx|vue|svelte|html|css|scss|less)$/.test(name)) return 'ui';
+    if (/(?:^|[/])(services?|controllers?|business|logic|api|routes?|handlers?|middleware|actions?)(?:[/]|$)/.test(p) || /(service|controller|route|handler|middleware|action)\\.(js|ts|cjs|mjs)$/.test(name)) return 'business';
+    if (/(?:^|[/])(db|database|models?|repositories?|stores?|schemas?|migrations?|configs?|settings?|infra|docker|k8s|helm)(?:[/]|$)/.test(p) || /(config|model|schema|repository|store|migration|docker|dockerfile|docker-compose|k8s|helm)\\.(js|ts|json|yaml|yml|env)$/.test(name)) return 'data';
+    if (/(?:^|[/])(utils?|helpers?|lib|common|shared|tools?|scripts?|packages?)(?:[/]|$)/.test(p) || /(util|helper|common|shared|tool|lib)\\.(js|ts|cjs|mjs)$/.test(name)) return 'utils';
     return 'other';
   }
   resize();
@@ -4012,7 +4030,7 @@ function renderCodeMapGraph(canvas, graph, style = 'force') {
   setTimeout(resize, 100);
 
   function computeRadialLayout() {
-    const cx = W() / 2, cy = H() / 2;
+    const cx = W / 2, cy = H / 2;
     const root = nodes.find(n => !edges.some(e => e.target === n));
     const levels = [];
     function depth(n, visited = new Set()) {
@@ -4026,7 +4044,7 @@ function renderCodeMapGraph(canvas, graph, style = 'force') {
     const byLevel = [];
     for (let i = 0; i <= maxDepth; i++) byLevel.push([]);
     nodes.forEach(n => { const d = depth(n); byLevel[d].push(n); });
-    const radiusStep = Math.min(W(), H()) / (2 * (maxDepth + 1.5));
+    const radiusStep = Math.min(W, H) / (2 * (maxDepth + 1.5));
     byLevel.forEach((levelNodes, level) => {
       const r = radiusStep * (level + 1);
       const count = levelNodes.length;
@@ -4039,7 +4057,7 @@ function renderCodeMapGraph(canvas, graph, style = 'force') {
   }
   function computeGridLayout() {
     const cols = Math.max(1, Math.ceil(Math.sqrt(nodes.length)));
-    const cell = Math.min(W() / cols, 120);
+    const cell = Math.min(W / cols, 120);
     const groups = {};
     nodes.forEach(n => { const g = n.group || 'Other'; if (!groups[g]) groups[g] = []; groups[g].push(n); });
     const sortedGroups = Object.entries(groups).sort((a, b) => b[1].length - a[1].length);
@@ -4053,24 +4071,24 @@ function renderCodeMapGraph(canvas, graph, style = 'force') {
       const rows = Math.ceil(groupNodes.length / cols);
       rowH = Math.max(rowH, rows * cell);
       x += cols * cell + 40;
-      if (x > W() - 80) { x = 40; y += rowH + 40; rowH = 0; }
+      if (x > W - 80) { x = 40; y += rowH + 40; rowH = 0; }
     });
     // Center the grid
     const xs = nodes.map(n => n.tx), ys = nodes.map(n => n.ty);
     const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
-    const dx = (W() - (maxX - minX)) / 2 - minX, dy = (H() - (maxY - minY)) / 2 - minY;
+    const dx = (W - (maxX - minX)) / 2 - minX, dy = (H - (maxY - minY)) / 2 - minY;
     nodes.forEach(n => { n.tx += dx; n.ty += dy; });
   }
   function computeHierarchicalLayout() {
     const tree = {};
     nodes.forEach(n => { tree[n.id] = { n, children: [], depth: 0 }; });
-    edges.forEach(e => { if (tree[e.source.id]) tree[e.source.id].children.push(e.target.id); });
+    edges.forEach(e => { if (tree[e.source.id] && tree[e.target.id]) tree[e.source.id].children.push(e.target.id); });
     const roots = nodes.filter(n => !edges.some(e => e.target === n)).map(n => n.id);
     if (roots.length === 0) nodes.forEach(n => roots.push(n.id));
     function setDepth(id, d, visited) {
-      if (visited.has(id)) return;
+      if (!tree[id] || visited.has(id)) return;
       visited.add(id);
-      if (tree[id]) tree[id].depth = Math.max(tree[id].depth, d);
+      tree[id].depth = Math.max(tree[id].depth, d);
       tree[id].children.forEach(cid => setDepth(cid, d + 1, new Set(visited)));
     }
     roots.forEach(rid => setDepth(rid, 0, new Set()));
@@ -4080,10 +4098,10 @@ function renderCodeMapGraph(canvas, graph, style = 'force') {
       if (!levels[d]) levels[d] = [];
       levels[d].push(n);
     });
-    const levelHeight = H() / (levels.length + 1);
+    const levelHeight = H / (levels.length + 1);
     levels.forEach((levelNodes, level) => {
       const y = levelHeight * (level + 1);
-      const gap = W() / (levelNodes.length + 1);
+      const gap = W / (levelNodes.length + 1);
       levelNodes.forEach((n, i) => { n.tx = gap * (i + 1); n.ty = y; });
     });
   }
@@ -4094,14 +4112,14 @@ function renderCodeMapGraph(canvas, graph, style = 'force') {
       const layer = classifyLayer(n.id);
       (layerGroups[layer] = layerGroups[layer] || []).push(n);
     });
-    const usableHeight = H() * 0.85;
+    const usableHeight = H * 0.85;
     const layerHeight = usableHeight / layerOrder.length;
-    const topOffset = H() * 0.08;
+    const topOffset = H * 0.08;
     layerOrder.forEach((layer, li) => {
       const layerNodes = layerGroups[layer] || [];
       const y = topOffset + layerHeight * li + layerHeight / 2;
       const cols = Math.max(1, Math.ceil(Math.sqrt(layerNodes.length)));
-      const cell = Math.min((W() - 80) / cols, 140);
+      const cell = Math.min((W - 80) / cols, 140);
       layerNodes.forEach((n, i) => {
         n.tx = 40 + (i % cols) * cell;
         n.ty = y;
@@ -4252,8 +4270,8 @@ function renderCodeMapGraph(canvas, graph, style = 'force') {
       }
       for (const n of nodes) {
         if (!matchesFilter(n)) continue;
-        n.vx += (W() / 2 - n.x) * center;
-        n.vy += (H() / 2 - n.y) * center;
+        n.vx += (W / 2 - n.x) * center;
+        n.vy += (H / 2 - n.y) * center;
         n.vx *= damping; n.vy *= damping;
         n.x += n.vx; n.y += n.vy;
       }
@@ -4267,7 +4285,7 @@ function renderCodeMapGraph(canvas, graph, style = 'force') {
         n.y += (n.ty - n.y) * 0.08;
       }
     }
-    ctx.clearRect(0, 0, W(), H());
+    ctx.clearRect(0, 0, W, H);
     ctx.save();
     ctx.translate(pan.x, pan.y);
     ctx.scale(scale, scale);
@@ -4604,7 +4622,7 @@ if (roadShortTermBtn) roadShortTermBtn.addEventListener('click', () => focusRoad
 const roadLongTermBtn = document.getElementById('roadLongTermBtn');
 if (roadLongTermBtn) roadLongTermBtn.addEventListener('click', () => focusRoadmapPhase(2));
 const roadExportBtn = document.getElementById('roadExportBtn');
-if (roadExportBtn) roadExportBtn.addEventListener('click', () => exportRoadmapJson());
+if (roadExportBtn) roadExportBtn.addEventListener('click', () => vscode.postMessage({ command: 'exportRoadmap' }));
 const aiScanBtn = document.getElementById('aiScanBtn');
 if (aiScanBtn) aiScanBtn.addEventListener('click', () => vscode.postMessage({ command: 'scan', mode: 'workspace' }));
 const aiExportBtn = document.getElementById('aiExportBtn');
@@ -5494,7 +5512,25 @@ window.addEventListener('message', (event) => {
     if (tGate) { tGate.textContent = msg.gate ? 'Gate: ' + msg.gate : 'Run a scan'; }
     if (tIssues) { tIssues.textContent = msg.issues ? msg.issues + ' issues found' : 'Waiting...'; }
     if (tFiles) { tFiles.textContent = msg.files ? msg.files + ' files indexed' : 'Indexed'; }
-    if (msg.severity) updateSeverityBar(msg.severity);
+    const ws = document.getElementById('welcomeStatScore');
+    const wg = document.getElementById('welcomeStatGate');
+    const wi = document.getElementById('welcomeStatIssues');
+    const wf = document.getElementById('welcomeStatFiles');
+    if (ws) ws.textContent = msg.score || '--';
+    if (wg) wg.textContent = msg.gate || '--';
+    if (wi) wi.textContent = msg.issues || '0';
+    if (wf) wf.textContent = msg.files || '0';
+    if (msg.severity) {
+      updateSeverityBar(msg.severity);
+      const total = (msg.severity.critical || 0) + (msg.severity.high || 0) + (msg.severity.medium || 0) + (msg.severity.low || 0);
+      if (total > 0) {
+        const wc = document.getElementById('welcomeSevCritical'), wh = document.getElementById('welcomeSevHigh'), wm = document.getElementById('welcomeSevMedium'), wl = document.getElementById('welcomeSevLow');
+        if (wc) wc.style.width = ((msg.severity.critical || 0) / total * 100) + '%';
+        if (wh) wh.style.width = ((msg.severity.high || 0) / total * 100) + '%';
+        if (wm) wm.style.width = ((msg.severity.medium || 0) / total * 100) + '%';
+        if (wl) wl.style.width = ((msg.severity.low || 0) / total * 100) + '%';
+      }
+    }
     if (msg.findings) renderFindings(msg.findings);
     updateRepoHealthPane(msg);
   }
@@ -5731,10 +5767,24 @@ window.addEventListener('message', (event) => {
     const graphFrame = graphCanvas ? graphCanvas.closest('.map-graph-frame') : null;
     const graphEmpty = document.getElementById('codeMapGraphEmpty');
     const graphControls = document.getElementById('graphControls');
-    if (graphCanvas && msg.graph && msg.graph.nodes && msg.graph.nodes.length > 0) {
+    const graphLegend = document.getElementById('graphLegendOverlay');
+    const iframe = document.getElementById('codeMapIframe');
+    // Prefer iframe with codemap.html for parity with standalone browser map
+    if (iframe && msg.codeMapUri) {
+      if (graphCanvas) graphCanvas.style.display = 'none';
+      if (graphControls) graphControls.style.display = 'none';
+      if (graphLegend) graphLegend.style.display = 'none';
+      if (graphEmpty) graphEmpty.style.display = 'none';
+      iframe.style.display = 'block';
+      if (iframe.src !== msg.codeMapUri) iframe.src = msg.codeMapUri;
+      if (graphFrame) graphFrame.classList.add('has-graph');
+    } else if (graphCanvas && msg.graph && msg.graph.nodes && msg.graph.nodes.length > 0) {
+      if (iframe) iframe.style.display = 'none';
+      if (graphCanvas) graphCanvas.style.display = 'block';
+      if (graphControls) graphControls.style.display = '';
+      if (graphLegend) graphLegend.style.display = '';
       if (graphFrame) graphFrame.classList.add('has-graph');
       if (graphEmpty) graphEmpty.style.display = 'none';
-      if (graphControls) graphControls.style.display = '';
       if (graphCanvas && graphCanvas._graphCleanup) { graphCanvas._graphCleanup(); }
       const ctrl = renderCodeMapGraph(graphCanvas, msg.graph);
       const countEl = document.getElementById('graphNodeCount');
@@ -5779,12 +5829,14 @@ window.addEventListener('message', (event) => {
       if (graphFrame) graphFrame.classList.remove('has-graph');
       if (graphEmpty) graphEmpty.style.display = 'flex';
       if (graphControls) graphControls.style.display = 'none';
+      if (iframe) iframe.style.display = 'none';
+      if (graphCanvas) graphCanvas.style.display = 'none';
     }
     const preview = document.getElementById('mapPreviewText');
     const previewWrap = document.getElementById('mapPreviewWrap');
     const mapContent = document.getElementById('mapContent');
     if (preview && msg.status === 'Generated') {
-      preview.textContent = 'Code map generated successfully. Click Open HTML to view the full interactive map.';
+      preview.textContent = 'Code map generated successfully. Click Open in Browser to view the full interactive map.';
     }
     if (previewWrap && msg.status === 'Generated') {
       previewWrap.style.display = 'none';

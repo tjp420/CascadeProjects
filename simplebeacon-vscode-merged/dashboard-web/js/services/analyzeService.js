@@ -1,7 +1,7 @@
 import { authService } from './authService.js';
 import { fetchUserAiKeys } from './aiKeysService.js';
 import { scanService } from './scanService.js';
-import { formatNumber, escapeHtml, fetchWithTimeout, apiUrl } from '../utils.js';
+import { formatNumber, escapeHtml, fetchWithTimeout, apiUrl, parseResponseJson } from '../utils.js';
 import { isRemoteRepoUrl } from '../lib/analyzePathSources.js';
 import { isBenchmarkCachePath } from '../utils/complete-scan-artifact-profile.browser.js';
 import { DEMO_EMAIL } from '../demoMode.js';
@@ -10,25 +10,6 @@ import { DASHBOARD_BASE_URL } from '../config.js';
 // simplebeacon:production-leak-intent: web-data-sample - Legitimate web data path detection for analysis mode resolution
 
 let providersPromise = null;
-
-/**
- * Parse json safe.
- * @param {Array} res
- * @returns {any}
- */
-async function parseJsonSafe(res) {
-  const contentType = String(res.headers.get('content-type') || '').toLowerCase();
-  if (!contentType.includes('application/json')) {
-    return {};
-  }
-  const text = await res.text();
-  if (!text) return {};
-  try {
-    return JSON.parse(text);
-  } catch {
-    return {};
-  }
-}
 
 /**
  * Build network error message.
@@ -65,7 +46,7 @@ export async function ensureDashboardApiReady() {
   } catch (error) {
     throw new Error(buildNetworkErrorMessage('/api/simplebeacon/config', error));
   }
-  const probeData = await parseJsonSafe(probeRes);
+  const probeData = await parseResponseJson(probeRes);
   if (probeRes.status === 403 && probeData.error === 'vault_required') {
     throw new Error(
       'Vault session required for internal dashboard. '
@@ -91,7 +72,7 @@ async function fetchJsonWithGuidance(target, options = {}, timeoutMs = 0) {
     throw new Error(buildNetworkErrorMessage(target, error));
   }
 
-  const data = await parseJsonSafe(res);
+  const data = await parseResponseJson(res);
   if (res.status === 401) {
     authService.clearSession();
     throw new Error(`Session expired — sign in again at #/signin (${DEMO_EMAIL}).`);
@@ -358,7 +339,7 @@ export function slimReportForSummary(report) {
 
 /**
  * Summarize report.
- * @param {number} report
+ * @param {Object} report
  * @param {Object} options
  * @returns {any}
  */
@@ -378,7 +359,7 @@ export async function summarizeReport(report, options = {}) {
       summaryFocus: options.summaryFocus || 'all'
     })
   });
-  const data = await parseJsonSafe(res);
+  const data = await parseResponseJson(res);
   if (res.status === 413) {
     return {
       success: true,
@@ -394,7 +375,7 @@ export async function summarizeReport(report, options = {}) {
 
 /**
  * Slim complete scan for audit.
- * @param {number} exportPayload
+ * @param {Object} exportPayload
  * @param {Object} options
  * @returns {any}
  */
@@ -562,7 +543,7 @@ export function slimCompleteScanForAudit(exportPayload, options = {}) {
 
 /**
  * Normalize audit export payload.
- * @param {number} exportPayload
+ * @param {Object} exportPayload
  * @returns {any}
  */
 export function normalizeAuditExportPayload(exportPayload) {
@@ -712,7 +693,7 @@ export function auditExportButtonLabel(tierInfo) {
 
 /**
  * Fetch complete audit report.
- * @param {any} completeScan
+ * @param {Object} completeScan
  * @param {Object} options
  * @returns {any}
  */
@@ -747,7 +728,7 @@ export async function fetchCompleteAuditReport(completeScan, options = {}) {
       credentials: options.credentials
     })
   }, timeoutMs);
-  const data = await parseJsonSafe(res);
+  const data = await parseResponseJson(res);
   if (res.status === 402) {
     const err = new Error(data.error || 'Pre-Launch Audit PDF requires purchase');
     err.code = 'audit_paywall';
@@ -785,7 +766,7 @@ export async function fetchEuAiActAuditReport(options = {}) {
       credentials: options.credentials
     })
   }, timeoutMs);
-  const data = await parseJsonSafe(res);
+  const data = await parseResponseJson(res);
   if (res.status === 402) {
     const err = new Error(data.error || 'EU AI Act audit PDF requires purchase');
     err.code = 'audit_paywall';
@@ -816,7 +797,7 @@ function parseContentDispositionFilename(header) {
 
 /**
  * Fetch analyze export bundle zip.
- * @param {any} completeScan
+ * @param {Object} completeScan
  * @param {Object} options
  * @returns {any}
  */
@@ -854,21 +835,21 @@ export async function fetchAnalyzeExportBundleZip(completeScan, options = {}) {
   }, timeoutMs);
 
   if (res.status === 402) {
-    const data = await parseJsonSafe(res);
+    const data = await parseResponseJson(res);
     const err = new Error(data.error || 'Export bundle requires a paid deliverable tier.');
     err.code = 'export_paywall';
     err.checkoutUrl = data.checkoutUrl;
     throw err;
   }
   if (res.status === 422) {
-    const data = await parseJsonSafe(res);
+    const data = await parseResponseJson(res);
     const err = new Error(data.error || 'Export bundle could not be generated from this scan.');
     err.code = 'export_empty';
     err.warnings = data.warnings || [];
     throw err;
   }
   if (!res.ok) {
-    const data = await parseJsonSafe(res);
+    const data = await parseResponseJson(res);
     throw new Error(data.error || data.message || 'Export bundle generation failed');
   }
 
@@ -910,8 +891,8 @@ export function downloadAuditReportHtml(html, filename = 'simplebeacon-audit.htm
 }
 
 /**
- * Fetch compliance trail export json.
- * @param {Array} windowDays
+ * Fetch compliance trail export JSON.
+ * @param {number} windowDays
  * @returns {any}
  */
 export async function fetchComplianceTrailExportJson(windowDays = 90) {
@@ -924,7 +905,7 @@ export async function fetchComplianceTrailExportJson(windowDays = 90) {
     headers: authService.getAuthHeaders()
   });
   if (!res.ok) {
-    const data = await parseJsonSafe(res);
+    const data = await parseResponseJson(res);
     throw new Error(data?.message || data?.error || 'Compliance trail JSON export failed');
   }
   const payload = await res.json();
@@ -935,8 +916,8 @@ export async function fetchComplianceTrailExportJson(windowDays = 90) {
 }
 
 /**
- * Fetch compliance trail export html.
- * @param {Array} windowDays
+ * Fetch compliance trail export HTML.
+ * @param {number} windowDays
  * @returns {any}
  */
 export async function fetchComplianceTrailExportHtml(windowDays = 90) {
@@ -950,7 +931,7 @@ export async function fetchComplianceTrailExportHtml(windowDays = 90) {
     headers: authService.getAuthHeaders()
   });
   if (!res.ok) {
-    const data = await parseJsonSafe(res);
+    const data = await parseResponseJson(res);
     throw new Error(data?.message || data?.error || 'Compliance trail PDF export failed');
   }
   const html = await res.text();
@@ -1197,11 +1178,6 @@ export async function refreshPathInventory(app, projectPath, options = {}) {
   if (_inventoryInflight && _inventoryInflight.path === path) {
     return _inventoryInflight.promise;
   }
-/**
- * Promise.
- * @param {any} async (
- * @returns {any}
- */
   const promise = (async () => {
     try {
       const inventory = await fetchRepositoryInventory(path, { profile: options.profile || 'all', fullDirectoryScan: options.fullDirectoryScan });
@@ -1312,7 +1288,7 @@ export async function fetchScanReport(projectPath) {
   });
   if (res.status === 404) return null;
   if (!res.ok) return null;
-  const data = await parseJsonSafe(res);
+  const data = await parseResponseJson(res);
   return data && typeof data === 'object' ? data : null;
 }
 
@@ -1381,7 +1357,7 @@ function partitionPlatformScanIssues(issues = []) {
 
 /**
  * Prepare platform results report.
- * @param {number} report
+ * @param {Object} report
  * @returns {any}
  */
 export function preparePlatformResultsReport(report) {
@@ -1425,7 +1401,7 @@ export function preparePlatformResultsReport(report) {
 
 /**
  * Sanitize fiction digest export.
- * @param {any} digest
+ * @param {Object} digest
  * @returns {any}
  */
 export function sanitizeFictionDigestExport(digest) {
@@ -1435,20 +1411,10 @@ export function sanitizeFictionDigestExport(digest) {
   const sourceReport = digest.sourceReport
     ? preparePlatformResultsReport(digest.sourceReport)
     : null;
-/**
- * Fiction issues.
- * @param {any} digest.fictionIssues || []
- * @returns {any}
- */
   const fictionIssues = (digest.fictionIssues || []).filter((issue) => {
     const filePath = issue.filePath || issue.file || '';
     return !filePath || !isBenchmarkCachePath(filePath);
   });
-/**
- * Non fiction issues.
- * @param {any} digest.nonFictionIssues || []
- * @returns {any}
- */
   const nonFictionIssues = (digest.nonFictionIssues || []).filter((issue) => {
     const filePath = issue.filePath || issue.file || '';
     return !filePath || !isBenchmarkCachePath(filePath);
@@ -1483,7 +1449,7 @@ export function resolveCompleteScanTargetPath(projectPath, priorSteps = []) {
 
 /**
  * Enrich scan report.
- * @param {number} report
+ * @param {Object} report
  * @param {string} projectPath
  * @returns {any}
  */
@@ -1513,7 +1479,7 @@ export async function enrichScanReport(report, projectPath) {
 
 /**
  * Build inventory provenance.
- * @param {number} report
+ * @param {Object} report
  * @param {string} requestedPath
  * @param {Object} options
  * @returns {any}
@@ -1664,7 +1630,7 @@ export function renderInventoryProvenanceHtml(provenance, options = {}) {
 
 /**
  * Build monorepo scope note.
- * @param {number} report
+ * @param {Object} report
  * @returns {any}
  */
 export function buildMonorepoScopeNote(report) {
@@ -1690,8 +1656,8 @@ export function buildMonorepoScopeNote(report) {
 /**
  * Project path matches report root.
  * @param {string} projectPath
- * @param {number} reportRoot
- * @returns {any}
+ * @param {string} reportRoot
+ * @returns {boolean}
  */
 function projectPathMatchesReportRoot(projectPath, reportRoot) {
   const normPath = normalizeProjectPath(projectPath);
@@ -1723,9 +1689,9 @@ export function isInventoryRootAligned(requestedPath, inventoryRoot) {
 
 /**
  * Is legacy scan report.
- * @param {number} report
+ * @param {Object} report
  * @param {string} projectPath
- * @returns {any}
+ * @returns {boolean}
  */
 export function isLegacyScanReport(report, projectPath = '') {
   if (!report) return true;
@@ -1741,7 +1707,7 @@ export function isLegacyScanReport(report, projectPath = '') {
 
 /**
  * Get scan file metrics.
- * @param {number} report
+ * @param {Object} report
  * @param {Object} options
  * @returns {any}
  */
@@ -1802,7 +1768,7 @@ export function getScanFileMetrics(report, options = {}) {
 
 /**
  * Resolve display score.
- * @param {number} report
+ * @param {Object} report
  * @returns {any}
  */
 export function resolveDisplayScore(report) {
@@ -1857,8 +1823,8 @@ export function resolveJestTestsLabel(baseline, dashboardHome, report) {
 
 /**
  * Resolve page specs label.
- * @param {number} report
- * @param {any} baseline
+ * @param {Object} report
+ * @param {Object} baseline
  * @returns {any}
  */
 export function resolvePageSpecsLabel(report, baseline) {
@@ -1893,11 +1859,6 @@ export function hydrateDashboardHome(home, baseline) {
   const suites = baseline?.jestSuites ?? home?.overview?.testSuites;
   if (!jestLabel) return home;
 
-/**
- * Comparative analysis.
- * @param {any} home.comparativeAnalysis || []
- * @returns {any}
- */
   const comparativeAnalysis = (home.comparativeAnalysis || []).map((row) => {
     if (String(row.metric || '').toLowerCase() !== 'jest tests') return row;
     const prevNum = Number(String(row.previous).replace(/[^\d.-]/g, ''));
@@ -1907,11 +1868,6 @@ export function hydrateDashboardHome(home, baseline) {
     return { ...row, current: jestPassing ?? row.current, change };
   });
 
-/**
- * Kpis.
- * @param {any} home.kpis || []
- * @returns {any}
- */
   const kpis = (home.kpis || []).map((item) => (
     String(item.name || '').toLowerCase().includes('jest')
       ? { ...item, current: jestLabel, target: jestLabel }
@@ -1950,8 +1906,8 @@ export function hydrateDashboardHome(home, baseline) {
 
 /**
  * Format scan scope summary.
- * @param {number} report
- * @returns {any}
+ * @param {Object} report
+ * @returns {string}
  */
 export function formatScanScopeSummary(report) {
   const metrics = getScanFileMetrics(report);
@@ -1982,8 +1938,8 @@ export function formatScanScopeSummary(report) {
 
 /**
  * Format scan inventory note.
- * @param {number} report
- * @returns {any}
+ * @param {Object} report
+ * @returns {string|null}
  */
 export function formatScanInventoryNote(report) {
   const metrics = getScanFileMetrics(report);
@@ -1993,8 +1949,8 @@ export function formatScanInventoryNote(report) {
 
 /**
  * Build scan scope lines.
- * @param {number} report
- * @returns {any}
+ * @param {Object} report
+ * @returns {string[]}
  */
 export function buildScanScopeLines(report) {
   const scope = report?.scanScope;
@@ -2029,8 +1985,8 @@ export function buildScanScopeLines(report) {
 
 /**
  * Render scan scope panel.
- * @param {number} report
- * @returns {any}
+ * @param {Object} report
+ * @returns {string}
  */
 export function renderScanScopePanel(report) {
   const lines = buildScanScopeLines(report);
@@ -2057,19 +2013,19 @@ export function aiProviderSupportsSummary(aiProvider) {
 /**
  * Is simplebeacon report.
  * @param {any} obj
- * @returns {any}
+ * @returns {boolean}
  */
 export function isSimplebeaconReport(obj) {
-  return obj && (obj.type === 'simplebeacon-report' || obj.rawIssues != null);
+  return Boolean(obj && (obj.type === 'simplebeacon-report' || obj.rawIssues != null));
 }
 
 /**
  * Is codebase report.
  * @param {any} obj
- * @returns {any}
+ * @returns {boolean}
  */
 export function isCodebaseReport(obj) {
-  return obj && obj.type === 'codebase-analyzer-report';
+  return Boolean(obj && obj.type === 'codebase-analyzer-report');
 }
 
 /**
@@ -2102,8 +2058,8 @@ export function resolveAutoAnalysisMode(projectPath) {
 
 /**
  * Issue list.
- * @param {number} report
- * @returns {any}
+ * @param {Object} report
+ * @returns {Array}
  */
 function issueList(report) {
   return report?.rawIssues || report?.detectedIssues || [];
@@ -2111,9 +2067,9 @@ function issueList(report) {
 
 /**
  * Filter issues by kind.
- * @param {number} report
- * @param {any} kind
- * @returns {any}
+ * @param {Object} report
+ * @param {string} kind
+ * @returns {Array}
  */
 export function filterIssuesByKind(report, kind = 'all') {
   const raw = issueList(report);
@@ -2131,8 +2087,8 @@ export function filterIssuesByKind(report, kind = 'all') {
 
 /**
  * Build consolidation conclusion.
- * @param {any} scan
- * @returns {any}
+ * @param {Object} scan
+ * @returns {string}
  */
 export function buildConsolidationConclusion(scan) {
   if (!scan?.summary) {
@@ -2169,9 +2125,9 @@ export function buildConsolidationConclusion(scan) {
 
 /**
  * Build scan conclusion.
- * @param {number} report
+ * @param {Object} report
  * @param {Object} options
- * @returns {any}
+ * @returns {string}
  */
 export function buildScanConclusion(report, options = {}) {
   if (!report) {
@@ -2199,11 +2155,6 @@ export function buildScanConclusion(report, options = {}) {
 
   const focus = options.focus || 'all';
   const _raw = focus === 'fiction' ? filterIssuesByKind(report, 'fiction') : issueList(report);
-/**
- * Count issues.
- * @param {Array} items
- * @returns {any}
- */
   const countIssues = (items) => items.reduce((sum, i) => sum + (i.count || 1), 0);
 
   const fiction = filterIssuesByKind(report, 'fiction');
@@ -2280,9 +2231,9 @@ export function buildScanConclusion(report, options = {}) {
 
 /**
  * Build fiction digest payload.
- * @param {number} report
+ * @param {Object} report
  * @param {Object} options
- * @returns {any}
+ * @returns {Object|null}
  */
 export function buildFictionDigestPayload(report, options = {}) {
   if (!report) return null;
@@ -2339,7 +2290,7 @@ export async function readFileAsJson(file) {
 
 /**
  * Read dropped files.
- * @param {string} fileList
+ * @param {FileList|File[]} fileList
  * @returns {any}
  */
 export async function readDroppedFiles(fileList) {
@@ -2360,7 +2311,7 @@ export async function readDroppedFiles(fileList) {
 
 /**
  * Fetch compliance checklist.
- * @param {number} report
+ * @param {Object} report
  * @param {string} projectPath
  * @param {Object} options
  * @returns {any}
@@ -2379,7 +2330,7 @@ export async function fetchComplianceChecklist(report, projectPath, options = {}
       forceNpmAudit: options.forceNpmAudit === true
     })
   }, options.timeoutMs ?? 120000);
-  const checklistResponse = await parseJsonSafe(checklistHttpResponse);
+  const checklistResponse = await parseResponseJson(checklistHttpResponse);
   if (!checklistHttpResponse.ok || !checklistResponse.success) {
     throw new Error(checklistResponse.error || checklistResponse.message || 'Compliance checklist failed');
   }
@@ -2483,9 +2434,9 @@ export async function exportAgencyCertificate(certificateRequest = {}) {
 
 /**
  * Assert complete scan compliance fresh.
- * @param {number} report
- * @param {any} checklist
- * @returns {any}
+ * @param {Object} report
+ * @param {Object} checklist
+ * @returns {void}
  */
 export function assertCompleteScanComplianceFresh(report, checklist) {
   if (!checklist?.evaluatedAt) return;

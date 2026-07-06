@@ -1,4 +1,4 @@
-import { escapeHtml, formatPercent, redactPathForDisplay, showToast, apiUrl } from '../utils.js';
+import { escapeHtml, formatPercent, showToast, apiUrl } from '../utils.js';
 import {
   resolveDisplayScore,
   formatScanScopeSummary,

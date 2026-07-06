@@ -76,131 +76,104 @@ const {
   handleTokenRefresh
 } = require('../lib/auth/login-service.cjs');
 
-// Primary authentication middleware — kept in the middleware layer
-const authenticate = async (req, res, next) => {
-  try {
-    if (process.env.NODE_ENV === 'development') {
-      req.user = {
+/**
+ * Resolve authentication for a request.
+ * Handles dev bypass, vault operator, Bearer extraction, token verification,
+ * first-use expiry, sandbox rate-limiting, and req.user construction.
+ * @returns {{ user?: object, error?: Error, sandbox?: boolean }}
+ */
+async function resolveAuth(req, res) {
+  if (process.env.NODE_ENV === 'development') {
+    return {
+      user: {
         id: 'dev-user-01',
         email: 'dev@localhost',
         name: 'Local Developer',
         role: 'admin',
         trustLevel: 'platinum',
         permissions: ['read:all', 'write:all', 'admin:all']
-      };
-      return next();
-    }
-
-    if (vaultOperatorSessionActive(req)) {
-      applyVaultOperatorUser(req);
-      return next();
-    }
-
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      throw createError(401, 'Authorization header required');
-    }
-
-    const token = authHeader.startsWith('Bearer ')
-      ? authHeader.substring(7)
-      : authHeader;
-    if (!token) {
-      throw createError(401, 'Token required');
-    }
-
-    const decoded = await verifyToken(token);
-
-    recordTokenFirstUse(decoded.jti);
-    if (isTokenExpiredByFirstUse(decoded.jti)) {
-      invalidateToken(decoded.jti);
-      throw createError(401, 'Token expired');
-    }
-
-    const sandbox = isSandboxToken(decoded);
-    if (sandbox) {
-      const { allowed } = recordSandboxRequest(decoded.jti);
-      if (!allowed) {
-        const headers = getSandboxLimitHeaders(decoded.jti);
-        Object.entries(headers).forEach(([k, v]) => res.setHeader(k, v));
-        throw createError(429, 'Sandbox daily limit reached');
       }
-      const headers = getSandboxLimitHeaders(decoded.jti);
-      Object.entries(headers).forEach(([k, v]) => res.setHeader(k, v));
-    }
-
-    req.user = {
-      id: decoded.sub,
-      email: decoded.email,
-      name: decoded.name,
-      trustLevel: decoded.trustLevel,
-      permissions: decoded.permissions,
-      tokenId: decoded.jti,
-      sessionId: decoded.sessionId,
-      isSandbox: sandbox,
-      tier: decoded.tier || decoded.plan || ''
     };
+  }
 
+  if (vaultOperatorSessionActive(req)) {
+    applyVaultOperatorUser(req);
+    return { user: req.user };
+  }
+
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return { error: createError(401, 'Authorization header required') };
+  }
+
+  const token = authHeader.startsWith('Bearer ')
+    ? authHeader.substring(7)
+    : authHeader;
+  if (!token) {
+    return { error: createError(401, 'Token required') };
+  }
+
+  const decoded = await verifyToken(token);
+
+  recordTokenFirstUse(decoded.jti);
+  if (isTokenExpiredByFirstUse(decoded.jti)) {
+    invalidateToken(decoded.jti);
+    return { error: createError(401, 'Token expired') };
+  }
+
+  const sandbox = isSandboxToken(decoded);
+  if (sandbox) {
+    const { allowed } = recordSandboxRequest(decoded.jti);
+    const headers = getSandboxLimitHeaders(decoded.jti);
+    Object.entries(headers).forEach(([k, v]) => res.setHeader(k, v));
+    if (!allowed) {
+      return { error: createError(429, 'Sandbox daily limit reached') };
+    }
+  }
+
+  const user = {
+    id: decoded.sub,
+    email: decoded.email,
+    name: decoded.name,
+    trustLevel: decoded.trustLevel,
+    permissions: decoded.permissions,
+    tokenId: decoded.jti,
+    sessionId: decoded.sessionId,
+    isSandbox: sandbox,
+    tier: decoded.tier || decoded.plan || ''
+  };
+
+  return { user, sandbox };
+}
+
+// Primary authentication middleware — kept in the middleware layer
+const authenticate = async (req, res, next) => {
+  try {
+    const { user, error } = await resolveAuth(req, res);
+    if (error) throw error;
+
+    req.user = user;
     authLog('[AUTH] User authenticated');
     next();
   } catch (error) {
     authWarn(`[AUTH] Authentication failed - ${req.method} ${req.originalUrl}`);
-    const status = error.status || 401;
-    return res.status(status).json({
-      error: 'Authentication failed',
-      message: toClientError(error, 'Invalid or expired token'),
-      requestId: req.requestId
-    });
+    next(error);
   }
 };
 
 const optionalAuthenticate = async (req, res, next) => {
   try {
-    if (vaultOperatorSessionActive(req)) {
-      applyVaultOperatorUser(req);
-      return next();
+    const { user, error } = await resolveAuth(req, res);
+    if (!error) {
+      req.user = user;
     }
-
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return next();
-
-    const token = authHeader.startsWith('Bearer ')
-      ? authHeader.substring(7)
-      : authHeader;
-    if (!token) return next();
-
-    const decoded = await verifyToken(token);
-
-    recordTokenFirstUse(decoded.jti);
-    if (isTokenExpiredByFirstUse(decoded.jti)) {
-      invalidateToken(decoded.jti);
-      return next();
-    }
-
-    const sandbox = isSandboxToken(decoded);
-    if (sandbox) {
-      recordSandboxRequest(decoded.jti);
-      const headers = getSandboxLimitHeaders(decoded.jti);
-      Object.entries(headers).forEach(([k, v]) => res.setHeader(k, v));
-    }
-
-    req.user = {
-      id: decoded.sub,
-      email: decoded.email,
-      name: decoded.name,
-      trustLevel: decoded.trustLevel,
-      permissions: decoded.permissions,
-      tokenId: decoded.jti,
-      sessionId: decoded.sessionId,
-      isSandbox: sandbox,
-      tier: decoded.tier || decoded.plan || ''
-    };
-  } catch {
-    /* public route — ignore invalid tokens */
+  } catch (error) {
+    authWarn(`[AUTH] Optional auth failed - ${req.method} ${req.originalUrl}: ${error.message}`);
   }
   return next();
 };
 
-module.exports = {
+module.exports = Object.freeze({
   generateToken,
   verifyToken,
   authenticate,
@@ -228,4 +201,4 @@ module.exports = {
   isSandboxToken,
   recordSandboxRequest,
   getSandboxLimitHeaders
-};
+});

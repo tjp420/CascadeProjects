@@ -1,56 +1,53 @@
 import { escapeHtml, formatNumber, redactPathForDisplay, showToast, apiUrl } from '../utils.js';
 import { authService } from '../services/authService.js';
-
 /**
  * Auth headers.
  * @param {any} extra
  * @returns {any}
  */
 function authHeaders(extra = {}) {
-  return { ...authService.getAuthHeaders(), ...extra };
+    return { ...authService.getAuthHeaders(), ...extra };
 }
-
 /**
  * Is json response.
  * @param {Array} res
  * @returns {any}
  */
 function isJsonResponse(res) {
-  const contentType = String(res.headers.get('content-type') || '').toLowerCase();
-  return contentType.includes('application/json');
+    const contentType = String(res.headers.get('content-type') || '').toLowerCase();
+    return contentType.includes('application/json');
 }
-
 /**
  * Normalize static repository health payload.
  * @param {any} payload
  * @returns {any}
  */
 function normalizeStaticRepositoryHealthPayload(payload) {
-  const health = payload?.repositoryHealth;
-  if (!health || typeof health !== 'object') return null;
-  return {
-    ...health,
-    staticHost: true,
-    staticPayload: true,
-    headline: health.headline || null,
-    recommendations: Array.isArray(health.recommendations) ? health.recommendations : [],
-    disclaimers: Array.isArray(health.disclaimers) ? health.disclaimers : [],
-    monorepo: health.monorepo || null,
-    platform: health.platform || null
-  };
+    const health = payload === null || payload === void 0 ? void 0 : payload.repositoryHealth;
+    if (!health || typeof health !== 'object')
+        return null;
+    return {
+        ...health,
+        staticHost: true,
+        staticPayload: true,
+        headline: health.headline || null,
+        recommendations: Array.isArray(health.recommendations) ? health.recommendations : [],
+        disclaimers: Array.isArray(health.disclaimers) ? health.disclaimers : [],
+        monorepo: health.monorepo || null,
+        platform: health.platform || null
+    };
 }
-
 /**
  * Fetch static repository health fallback.
  * @returns {any}
  */
 async function fetchStaticRepositoryHealthFallback() {
-  const trustHttpResponse = await fetch('/trust-verification.json', { cache: 'no-store' }).catch(() => null);
-  if (!trustHttpResponse || !trustHttpResponse.ok) return null;
-  const trustVerificationDocument = await trustHttpResponse.json().catch(() => null);
-  return normalizeStaticRepositoryHealthPayload(trustVerificationDocument);
+    const trustHttpResponse = await fetch('/trust-verification.json', { cache: 'no-store' }).catch(() => null);
+    if (!trustHttpResponse || !trustHttpResponse.ok)
+        return null;
+    const trustVerificationDocument = await trustHttpResponse.json().catch(() => null);
+    return normalizeStaticRepositoryHealthPayload(trustVerificationDocument);
 }
-
 /**
  * Read json or default.
  * @param {Array} res
@@ -58,48 +55,49 @@ async function fetchStaticRepositoryHealthFallback() {
  * @returns {any}
  */
 async function readJsonOrDefault(res, defaultValue = {}) {
-  if (!isJsonResponse(res)) return defaultValue;
-  const parsed = await res.json().catch(() => defaultValue);
-  return parsed == null ? defaultValue : parsed;
+    if (!isJsonResponse(res))
+        return defaultValue;
+    const parsed = await res.json().catch(() => defaultValue);
+    return parsed == null ? defaultValue : parsed;
 }
-
 /**
  * Fetch repository health.
  * @returns {any}
  */
 export async function fetchRepositoryHealth() {
-  const res = await fetch(apiUrl('/api/optimization/health'), { cache: 'no-store', headers: authHeaders() });
-  if (!isJsonResponse(res)) {
-    const fallback = await fetchStaticRepositoryHealthFallback();
-    if (fallback) return fallback;
-    return {
-      staticHost: true,
-      headline: null,
-      recommendations: [],
-      disclaimers: [
-        'Repository optimization data is unavailable on static hosting. Run the dashboard server for live optimization APIs.'
-      ]
-    };
-  }
-  const data = await res.json().catch(() => null);
-  if (!data) {
-    const fallback = await fetchStaticRepositoryHealthFallback();
-    if (fallback) return fallback;
-    return {
-      staticHost: true,
-      headline: null,
-      recommendations: [],
-      disclaimers: [
-        'Repository optimization API returned invalid data on this host. Live optimization requires the dashboard server.'
-      ]
-    };
-  }
-  if (!res.ok || data.success === false) {
-    throw new Error(data.error || data.message || 'Failed to load repository health');
-  }
-  return data;
+    const res = await fetch(apiUrl('/api/optimization/health'), { cache: 'no-store', headers: authHeaders() });
+    if (!isJsonResponse(res)) {
+        const fallback = await fetchStaticRepositoryHealthFallback();
+        if (fallback)
+            return fallback;
+        return {
+            staticHost: true,
+            headline: null,
+            recommendations: [],
+            disclaimers: [
+                'Repository optimization data is unavailable on static hosting. Run the dashboard server for live optimization APIs.'
+            ]
+        };
+    }
+    const data = await res.json().catch(() => null);
+    if (!data) {
+        const fallback = await fetchStaticRepositoryHealthFallback();
+        if (fallback)
+            return fallback;
+        return {
+            staticHost: true,
+            headline: null,
+            recommendations: [],
+            disclaimers: [
+                'Repository optimization API returned invalid data on this host. Live optimization requires the dashboard server.'
+            ]
+        };
+    }
+    if (!res.ok || data.success === false) {
+        throw new Error(data.error || data.message || 'Failed to load repository health');
+    }
+    return data;
 }
-
 /**
  * Render health snapshot.
  * @param {any} snap
@@ -107,15 +105,14 @@ export async function fetchRepositoryHealth() {
  * @returns {any}
  */
 function renderHealthSnapshot(snap, title) {
-  if (!snap) {
-    return `<div class="rh-v3-card" style="border-left:4px solid var(--text-muted);"><div class="rh-v3-card-bd"><p class="text-muted" style="margin:0;font-size:0.85rem;">No ${escapeHtml(title)} consolidation report — run Analyze → Consolidation or <code>npm run optimization:scan</code>.</p></div></div>`;
-  }
-
-  const score = snap.repositoryHealthScore ?? 0;
-  const scoreClass = score >= 80 ? 'success' : score >= 60 ? 'warning' : 'danger';
-  const scoreColor = score >= 80 ? '#22c55e' : score >= 60 ? '#f59e0b' : '#ef4444';
-
-  return `
+    var _a, _b, _c, _d, _e, _f;
+    if (!snap) {
+        return `<div class="rh-v3-card" style="border-left:4px solid var(--text-muted);"><div class="rh-v3-card-bd"><p class="text-muted" style="margin:0;font-size:0.85rem;">No ${escapeHtml(title)} consolidation report — run Analyze → Consolidation or <code>npm run optimization:scan</code>.</p></div></div>`;
+    }
+    const score = (_a = snap.repositoryHealthScore) !== null && _a !== void 0 ? _a : 0;
+    const scoreClass = score >= 80 ? 'success' : score >= 60 ? 'warning' : 'danger';
+    const scoreColor = score >= 80 ? '#22c55e' : score >= 60 ? '#f59e0b' : '#ef4444';
+    return `
     <div class="rh-v3-card">
       <div class="rh-v3-card-hd">
         <h3 style="margin:0;font-size:1rem;font-weight:700;">${escapeHtml(title)}</h3>
@@ -129,11 +126,11 @@ function renderHealthSnapshot(snap, title) {
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;">
           <div class="rh-v3-metric" style="margin-bottom:0;">
             <div class="rh-v3-metric-icon info">📄</div>
-            <div><div class="rh-v3-metric-val">${formatNumber(snap.repositoryFilesTotal ?? 0)}</div><div class="rh-v3-metric-label">Repo Files</div></div>
+            <div><div class="rh-v3-metric-val">${formatNumber((_b = snap.repositoryFilesTotal) !== null && _b !== void 0 ? _b : 0)}</div><div class="rh-v3-metric-label">Repo Files</div></div>
           </div>
           <div class="rh-v3-metric" style="margin-bottom:0;">
             <div class="rh-v3-metric-icon info">📂</div>
-            <div><div class="rh-v3-metric-val">${formatNumber(snap.repositoryFoldersTotal ?? 0)}</div><div class="rh-v3-metric-label">Folders</div></div>
+            <div><div class="rh-v3-metric-val">${formatNumber((_c = snap.repositoryFoldersTotal) !== null && _c !== void 0 ? _c : 0)}</div><div class="rh-v3-metric-label">Folders</div></div>
           </div>
           <div class="rh-v3-metric" style="margin-bottom:0;">
             <div class="rh-v3-metric-icon ${scoreClass}">💾</div>
@@ -141,15 +138,15 @@ function renderHealthSnapshot(snap, title) {
           </div>
           <div class="rh-v3-metric" style="margin-bottom:0;">
             <div class="rh-v3-metric-icon ${snap.duplicateGroups ? 'warning' : 'success'}">📦</div>
-            <div><div class="rh-v3-metric-val">${snap.duplicateGroups ?? 0}</div><div class="rh-v3-metric-label">Dup Groups</div></div>
+            <div><div class="rh-v3-metric-val">${(_d = snap.duplicateGroups) !== null && _d !== void 0 ? _d : 0}</div><div class="rh-v3-metric-label">Dup Groups</div></div>
           </div>
           <div class="rh-v3-metric" style="margin-bottom:0;">
             <div class="rh-v3-metric-icon ${snap.oversizedFiles ? 'warning' : 'success'}">📁</div>
-            <div><div class="rh-v3-metric-val">${snap.oversizedFiles ?? 0}</div><div class="rh-v3-metric-label">Oversized</div></div>
+            <div><div class="rh-v3-metric-val">${(_e = snap.oversizedFiles) !== null && _e !== void 0 ? _e : 0}</div><div class="rh-v3-metric-label">Oversized</div></div>
           </div>
           <div class="rh-v3-metric" style="margin-bottom:0;">
             <div class="rh-v3-metric-icon info">🔧</div>
-            <div><div class="rh-v3-metric-val">${snap.reductionOpportunities ?? 0}</div><div class="rh-v3-metric-label">Reductions</div></div>
+            <div><div class="rh-v3-metric-val">${(_f = snap.reductionOpportunities) !== null && _f !== void 0 ? _f : 0}</div><div class="rh-v3-metric-label">Reductions</div></div>
           </div>
         </div>
         ${snap.scopeNote ? `<p class="text-muted" style="font-size:0.75rem;margin:0;">${escapeHtml(snap.scopeNote)}</p>` : ''}
@@ -157,7 +154,6 @@ function renderHealthSnapshot(snap, title) {
     </div>
   `;
 }
-
 /**
  * Render repository health section.
  * @param {any} health
@@ -165,27 +161,25 @@ function renderHealthSnapshot(snap, title) {
  * @returns {any}
  */
 export function renderRepositoryHealthSection(health, { compact = false } = {}) {
-  if (!health?.headline) {
-    return compact
-      ? '<p class="text-muted">No repository health scan yet.</p>'
-      : '<p class="text-muted card">Run a consolidation scan to compute repository health.</p>';
-  }
-
-  const h = health.headline;
-  const scoreClass = h.repositoryHealthScore >= 80 ? 'pass' : h.repositoryHealthScore >= 60 ? 'warn' : 'fail';
-
-  if (compact) {
-    return `
+    var _a, _b, _c, _d, _e, _f;
+    if (!(health === null || health === void 0 ? void 0 : health.headline)) {
+        return compact
+            ? '<p class="text-muted">No repository health scan yet.</p>'
+            : '<p class="text-muted card">Run a consolidation scan to compute repository health.</p>';
+    }
+    const h = health.headline;
+    const scoreClass = h.repositoryHealthScore >= 80 ? 'pass' : h.repositoryHealthScore >= 60 ? 'warn' : 'fail';
+    if (compact) {
+        return `
       <div class="metrics-row">
         <div class="metric-chip"><strong>${h.repositoryHealthScore}/100</strong> repo health</div>
         <div class="metric-chip"><strong>${escapeHtml(h.optimizationPotential || '—')}</strong> savings</div>
-        <div class="metric-chip"><strong>${h.duplicateGroups ?? '—'}</strong> dup groups</div>
-        <div class="metric-chip"><strong>${h.oversizedFiles ?? '—'}</strong> oversized</div>
+        <div class="metric-chip"><strong>${(_a = h.duplicateGroups) !== null && _a !== void 0 ? _a : '—'}</strong> dup groups</div>
+        <div class="metric-chip"><strong>${(_b = h.oversizedFiles) !== null && _b !== void 0 ? _b : '—'}</strong> oversized</div>
       </div>
     `;
-  }
-
-  return `
+    }
+    return `
     <div class="card mb-4">
       <div class="section-heading mb-2">
         <h3 style="margin:0;font-size:var(--font-size-base);">Repository health</h3>
@@ -193,40 +187,39 @@ export function renderRepositoryHealthSection(health, { compact = false } = {}) 
       </div>
       <div class="metrics-row mb-4">
         <div class="metric-chip"><strong>${escapeHtml(h.optimizationPotential || '—')}</strong> optimization potential</div>
-        <div class="metric-chip"><strong>${h.duplicateGroups ?? '—'}</strong> duplicate groups</div>
-        <div class="metric-chip"><strong>${h.oversizedFiles ?? '—'}</strong> oversized files</div>
-        <div class="metric-chip"><strong>${h.reductionOpportunities ?? '—'}</strong> reduction ops</div>
-        <div class="metric-chip"><strong>${formatNumber(h.repositoryFilesTotal ?? '—')}</strong> repo files</div>
+        <div class="metric-chip"><strong>${(_c = h.duplicateGroups) !== null && _c !== void 0 ? _c : '—'}</strong> duplicate groups</div>
+        <div class="metric-chip"><strong>${(_d = h.oversizedFiles) !== null && _d !== void 0 ? _d : '—'}</strong> oversized files</div>
+        <div class="metric-chip"><strong>${(_e = h.reductionOpportunities) !== null && _e !== void 0 ? _e : '—'}</strong> reduction ops</div>
+        <div class="metric-chip"><strong>${formatNumber((_f = h.repositoryFilesTotal) !== null && _f !== void 0 ? _f : '—')}</strong> repo files</div>
       </div>
       ${renderHealthSnapshot(health.monorepo || health.platform, health.monorepo ? 'Monorepo' : 'Platform')}
     </div>
   `;
 }
-
 /**
  * Repository health view.
  */
 export class RepositoryHealthView {
-  constructor(app) {
-    this.app = app;
-    this.loading = true;
-    this.error = null;
-    this.data = null;
-    this.candidates = [];
-    this.candidatesProjectPath = '';
-    this.preview = null;
-    this.previewError = null;
-    this.previewLoading = false;
-    this.previewCandidateId = null;
-    this.scanning = false;
-    this._root = null;
-    this._eventsBound = false;
-    this._mountSeq = 0;
-  }
-
-  render() {
-    if (this.loading) {
-      return `
+    constructor(app) {
+        this.app = app;
+        this.loading = true;
+        this.error = null;
+        this.data = null;
+        this.candidates = [];
+        this.candidatesProjectPath = '';
+        this.preview = null;
+        this.previewError = null;
+        this.previewLoading = false;
+        this.previewCandidateId = null;
+        this.scanning = false;
+        this._root = null;
+        this._eventsBound = false;
+        this._mountSeq = 0;
+    }
+    render() {
+        var _a, _b, _c, _d, _e, _f, _g;
+        if (this.loading) {
+            return `
         <div class="db-v3-header">
           <div>
             <h1>Repository Health</h1>
@@ -238,9 +231,9 @@ export class RepositoryHealthView {
           <p class="text-muted" style="margin-top:16px;font-size:0.9rem;">Analyzing duplicate files and oversized assets…</p>
         </div>
       `;
-    }
-    if (this.error) {
-      return `
+        }
+        if (this.error) {
+            return `
         <div class="db-v3-header">
           <div><h1>Repository Health</h1><p>Consolidation metrics unavailable</p></div>
         </div>
@@ -251,17 +244,15 @@ export class RepositoryHealthView {
           </div>
         </div>
       `;
-    }
-
-    const health = this.data;
-    const headline = health?.headline;
-    const staticHost = Boolean(health?.staticHost);
-    const score = headline?.repositoryHealthScore ?? 0;
-    const scoreClass = score >= 80 ? 'success' : score >= 60 ? 'warning' : 'danger';
-    const scoreColor = score >= 80 ? '#22c55e' : score >= 60 ? '#f59e0b' : '#ef4444';
-    const scoreLabel = score >= 80 ? 'Healthy' : score >= 60 ? 'Needs Attention' : 'Critical';
-
-    return `
+        }
+        const health = this.data;
+        const headline = health === null || health === void 0 ? void 0 : health.headline;
+        const staticHost = Boolean(health === null || health === void 0 ? void 0 : health.staticHost);
+        const score = (_a = headline === null || headline === void 0 ? void 0 : headline.repositoryHealthScore) !== null && _a !== void 0 ? _a : 0;
+        const scoreClass = score >= 80 ? 'success' : score >= 60 ? 'warning' : 'danger';
+        const scoreColor = score >= 80 ? '#22c55e' : score >= 60 ? '#f59e0b' : '#ef4444';
+        const scoreLabel = score >= 80 ? 'Healthy' : score >= 60 ? 'Needs Attention' : 'Critical';
+        return `
       <style>
         @keyframes rh-fade-up { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
         .rh-v3 { animation:rh-fade-up .5s ease both; }
@@ -371,23 +362,23 @@ export class RepositoryHealthView {
                 <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
                   <div class="rh-v3-metric">
                     <div class="rh-v3-metric-icon ${headline.duplicateGroups ? 'warning' : 'success'}">📦</div>
-                    <div><div class="rh-v3-metric-val">${headline.duplicateGroups ?? 0}</div><div class="rh-v3-metric-label">Duplicate Groups</div></div>
+                    <div><div class="rh-v3-metric-val">${(_b = headline.duplicateGroups) !== null && _b !== void 0 ? _b : 0}</div><div class="rh-v3-metric-label">Duplicate Groups</div></div>
                   </div>
                   <div class="rh-v3-metric">
                     <div class="rh-v3-metric-icon ${headline.oversizedFiles ? 'warning' : 'success'}">📁</div>
-                    <div><div class="rh-v3-metric-val">${headline.oversizedFiles ?? 0}</div><div class="rh-v3-metric-label">Oversized Files</div></div>
+                    <div><div class="rh-v3-metric-val">${(_c = headline.oversizedFiles) !== null && _c !== void 0 ? _c : 0}</div><div class="rh-v3-metric-label">Oversized Files</div></div>
                   </div>
                   <div class="rh-v3-metric">
                     <div class="rh-v3-metric-icon info">🔧</div>
-                    <div><div class="rh-v3-metric-val">${headline.reductionOpportunities ?? 0}</div><div class="rh-v3-metric-label">Reduction Ops</div></div>
+                    <div><div class="rh-v3-metric-val">${(_d = headline.reductionOpportunities) !== null && _d !== void 0 ? _d : 0}</div><div class="rh-v3-metric-label">Reduction Ops</div></div>
                   </div>
                   <div class="rh-v3-metric">
                     <div class="rh-v3-metric-icon info">📄</div>
-                    <div><div class="rh-v3-metric-val">${formatNumber(headline.repositoryFilesTotal ?? 0)}</div><div class="rh-v3-metric-label">Repo Files</div></div>
+                    <div><div class="rh-v3-metric-val">${formatNumber((_e = headline.repositoryFilesTotal) !== null && _e !== void 0 ? _e : 0)}</div><div class="rh-v3-metric-label">Repo Files</div></div>
                   </div>
                   <div class="rh-v3-metric">
                     <div class="rh-v3-metric-icon info">📂</div>
-                    <div><div class="rh-v3-metric-val">${formatNumber(headline.repositoryFoldersTotal ?? 0)}</div><div class="rh-v3-metric-label">Folders</div></div>
+                    <div><div class="rh-v3-metric-val">${formatNumber((_f = headline.repositoryFoldersTotal) !== null && _f !== void 0 ? _f : 0)}</div><div class="rh-v3-metric-label">Folders</div></div>
                   </div>
                   <div class="rh-v3-metric">
                     <div class="rh-v3-metric-icon ${scoreClass}">💾</div>
@@ -407,8 +398,8 @@ export class RepositoryHealthView {
         </div>
       `}
 
-      ${renderHealthSnapshot(health?.monorepo, 'Monorepo root')}
-      ${health?.platform && health?.monorepo ? renderHealthSnapshot(health.platform, 'Platform (ai-platform)') : ''}
+      ${renderHealthSnapshot(health === null || health === void 0 ? void 0 : health.monorepo, 'Monorepo root')}
+      ${(health === null || health === void 0 ? void 0 : health.platform) && (health === null || health === void 0 ? void 0 : health.monorepo) ? renderHealthSnapshot(health.platform, 'Platform (ai-platform)') : ''}
 
       ${this.candidates.length ? `
         <div class="rh-v3-card">
@@ -463,7 +454,7 @@ export class RepositoryHealthView {
               </div>
             </div>
             <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px;">
-              <span class="text-muted" style="font-size:0.8rem;">Conflicts: <strong style="color:var(--text-primary);">${this.preview.conflicts?.length || 0}</strong></span>
+              <span class="text-muted" style="font-size:0.8rem;">Conflicts: <strong style="color:var(--text-primary);">${((_g = this.preview.conflicts) === null || _g === void 0 ? void 0 : _g.length) || 0}</strong></span>
               <span class="text-muted" style="font-size:0.8rem;">Mode: <strong style="color:var(--text-primary);">${escapeHtml(this.preview.executionMode || '—')}</strong></span>
               ${this.preview.riskAssessment ? `<span class="text-muted" style="font-size:0.8rem;">Risk: <strong style="color:${this.preview.riskAssessment.level === 'low' ? '#22c55e' : this.preview.riskAssessment.level === 'medium' ? '#f59e0b' : '#ef4444'};">${escapeHtml(this.preview.riskAssessment.level || '—')}</strong></span>` : ''}
             </div>
@@ -487,7 +478,7 @@ export class RepositoryHealthView {
         </div>
       ` : ''}
 
-      ${(health?.recommendations || []).length ? `
+      ${((health === null || health === void 0 ? void 0 : health.recommendations) || []).length ? `
         <div class="rh-v3-card">
           <div class="rh-v3-card-hd">
             <h3 style="margin:0;font-size:1rem;font-weight:700;">💡 Recommendations</h3>
@@ -503,7 +494,7 @@ export class RepositoryHealthView {
         </div>
       ` : ''}
 
-      ${(health?.disclaimers || []).length ? `
+      ${((health === null || health === void 0 ? void 0 : health.disclaimers) || []).length ? `
         <div class="rh-v3-card">
           <div class="rh-v3-card-hd">
             <h3 style="margin:0;font-size:1rem;font-weight:700;">📋 Scope & Disclaimers</h3>
@@ -516,152 +507,151 @@ export class RepositoryHealthView {
         </div>
       ` : ''}
     `;
-  }
-
-  async fetchCandidatesList() {
-/**
- * Fetch list.
- * @param {string} projectPath
- * @returns {any}
- */
-    const fetchList = async (projectPath) => {
-      const params = projectPath ? `?projectPath=${encodeURIComponent(projectPath)}` : '';
-      const candRes = await fetch(apiUrl(`/api/optimization/candidates${params}`), { cache: 'no-store', headers: authHeaders() });
-      const candData = await readJsonOrDefault(candRes, {});
-      return candData.success ? (candData.candidates || []) : [];
-    };
-
-    const projectPath = this.app.state.lastProjectPath || '';
-    let candidates = await fetchList(projectPath);
-    let candidatesProjectPath = projectPath;
-
-    if (!candidates.length && projectPath) {
-      const monorepoCandidates = await fetchList('');
-      if (monorepoCandidates.length) {
-        candidates = monorepoCandidates;
-        candidatesProjectPath = '';
-      }
     }
-
-    this.candidatesProjectPath = candidatesProjectPath;
-    return candidates;
-  }
-
-  resolvePreviewProjectPath() {
-    if (this.candidatesProjectPath !== undefined && this.candidatesProjectPath !== null) {
-      return this.candidatesProjectPath;
-    }
-    return this.app.state.lastProjectPath || '';
-  }
-
-  async loadHealth() {
-    this.loading = true;
-    this.error = null;
-    try {
-      this.data = await fetchRepositoryHealth();
-      if (this.data?.staticHost) {
-        this.candidates = [];
-        this.candidatesProjectPath = '';
-        this.preview = null;
-        this.previewError = null;
-        return;
-      }
-      this.candidates = await this.fetchCandidatesList();
-    } catch (err) {
-      this.error = err.message;
-    } finally {
-      this.loading = false;
-    }
-  }
-
-  paint(container) {
-    container.innerHTML = this.render();
-    this.bindEvents(container);
-  }
-
-  scrollPreviewIntoView(container) {
-    requestAnimationFrame(() => {
-      container.querySelector('#merge-preview-panel')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    });
-  }
-
-  async mount(container) {
-    this._root = container;
-    const mountSeq = ++this._mountSeq;
-    this.loading = true;
-    this.paint(container);
-
-    await this.loadHealth();
-    if (mountSeq !== this._mountSeq) return;
-
-    this.paint(container);
-  }
-
-  async handlePreviewMerge(candidateId) {
-    if (!candidateId || this.previewLoading) return;
-
-    this.previewLoading = true;
-    this.previewCandidateId = candidateId;
-    this.previewError = null;
-    this.preview = null;
-    if (this._root) this.paint(this._root);
-
-    try {
-      const res = await fetch(apiUrl('/api/optimization/merge-preview'), {
-        method: 'POST',
-        headers: authHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify({
-          projectPath: this.resolvePreviewProjectPath(),
-          candidateId
-        })
-      });
-      const data = await readJsonOrDefault(res, {});
-      if (!res.ok || !data.success) throw new Error(data.error || 'Preview failed');
-      this.preview = data.preview;
-      showToast('Merge preview ready', 'success');
-    } catch (err) {
-      this.previewError = err.message;
-      showToast(err.message, 'error');
-    } finally {
-      this.previewLoading = false;
-      this.previewCandidateId = null;
-      if (this._root) {
-        this.paint(this._root);
-        this.scrollPreviewIntoView(this._root);
-        if (this.preview) {
-          this._loadMergeDiff(this.preview.keepFile, this.preview.removeFiles?.[0]);
+    async fetchCandidatesList() {
+        /**
+         * Fetch list.
+         * @param {string} projectPath
+         * @returns {any}
+         */
+        const fetchList = async (projectPath) => {
+            const params = projectPath ? `?projectPath=${encodeURIComponent(projectPath)}` : '';
+            const candRes = await fetch(apiUrl(`/api/optimization/candidates${params}`), { cache: 'no-store', headers: authHeaders() });
+            const candData = await readJsonOrDefault(candRes, {});
+            return candData.success ? (candData.candidates || []) : [];
+        };
+        const projectPath = this.app.state.lastProjectPath || '';
+        let candidates = await fetchList(projectPath);
+        let candidatesProjectPath = projectPath;
+        if (!candidates.length && projectPath) {
+            const monorepoCandidates = await fetchList('');
+            if (monorepoCandidates.length) {
+                candidates = monorepoCandidates;
+                candidatesProjectPath = '';
+            }
         }
-      }
+        this.candidatesProjectPath = candidatesProjectPath;
+        return candidates;
     }
-  }
-
-  async _loadMergeDiff(keepFile, removeFile) {
-    if (!keepFile || !removeFile) return;
-    const root = this._root?.querySelector('#merge-diff-root');
-    if (!root) return;
-    root.innerHTML = this._renderDiffSkeleton(keepFile, removeFile);
-    try {
-      const [contentA, contentB] = await Promise.all([
-        this._fetchFileContent(keepFile),
-        this._fetchFileContent(removeFile)
-      ]);
-      this._renderDiffPanes(contentA, contentB);
-      this._bindDiffScrollSync();
-      this._evaluateDiffSafety(contentA === contentB);
-    } catch (err) {
-      console.warn('[RepositoryHealth] Diff load failed:', err);
-      root.innerHTML = `<div class="rh-v3-diff-banner error">Failed to load file contents: ${escapeHtml(err.message)}</div>`;
+    resolvePreviewProjectPath() {
+        if (this.candidatesProjectPath !== undefined && this.candidatesProjectPath !== null) {
+            return this.candidatesProjectPath;
+        }
+        return this.app.state.lastProjectPath || '';
     }
-  }
-
-  async _fetchFileContent(filePath) {
-    const res = await fetch(`/api/file-content?path=${encodeURIComponent(filePath)}`, { cache: 'no-store' });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.text();
-  }
-
-  _renderDiffSkeleton(fileA, fileB) {
-    return `
+    async loadHealth() {
+        var _a;
+        this.loading = true;
+        this.error = null;
+        try {
+            this.data = await fetchRepositoryHealth();
+            if ((_a = this.data) === null || _a === void 0 ? void 0 : _a.staticHost) {
+                this.candidates = [];
+                this.candidatesProjectPath = '';
+                this.preview = null;
+                this.previewError = null;
+                return;
+            }
+            this.candidates = await this.fetchCandidatesList();
+        }
+        catch (err) {
+            this.error = err.message;
+        }
+        finally {
+            this.loading = false;
+        }
+    }
+    paint(container) {
+        container.innerHTML = this.render();
+        this.bindEvents(container);
+    }
+    scrollPreviewIntoView(container) {
+        requestAnimationFrame(() => {
+            var _a;
+            (_a = container.querySelector('#merge-preview-panel')) === null || _a === void 0 ? void 0 : _a.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
+    }
+    async mount(container) {
+        this._root = container;
+        const mountSeq = ++this._mountSeq;
+        this.loading = true;
+        this.paint(container);
+        await this.loadHealth();
+        if (mountSeq !== this._mountSeq)
+            return;
+        this.paint(container);
+    }
+    async handlePreviewMerge(candidateId) {
+        var _a;
+        if (!candidateId || this.previewLoading)
+            return;
+        this.previewLoading = true;
+        this.previewCandidateId = candidateId;
+        this.previewError = null;
+        this.preview = null;
+        if (this._root)
+            this.paint(this._root);
+        try {
+            const res = await fetch(apiUrl('/api/optimization/merge-preview'), {
+                method: 'POST',
+                headers: authHeaders({ 'Content-Type': 'application/json' }),
+                body: JSON.stringify({
+                    projectPath: this.resolvePreviewProjectPath(),
+                    candidateId
+                })
+            });
+            const data = await readJsonOrDefault(res, {});
+            if (!res.ok || !data.success)
+                throw new Error(data.error || 'Preview failed');
+            this.preview = data.preview;
+            showToast('Merge preview ready', 'success');
+        }
+        catch (err) {
+            this.previewError = err.message;
+            showToast(err.message, 'error');
+        }
+        finally {
+            this.previewLoading = false;
+            this.previewCandidateId = null;
+            if (this._root) {
+                this.paint(this._root);
+                this.scrollPreviewIntoView(this._root);
+                if (this.preview) {
+                    this._loadMergeDiff(this.preview.keepFile, (_a = this.preview.removeFiles) === null || _a === void 0 ? void 0 : _a[0]);
+                }
+            }
+        }
+    }
+    async _loadMergeDiff(keepFile, removeFile) {
+        var _a;
+        if (!keepFile || !removeFile)
+            return;
+        const root = (_a = this._root) === null || _a === void 0 ? void 0 : _a.querySelector('#merge-diff-root');
+        if (!root)
+            return;
+        root.innerHTML = this._renderDiffSkeleton(keepFile, removeFile);
+        try {
+            const [contentA, contentB] = await Promise.all([
+                this._fetchFileContent(keepFile),
+                this._fetchFileContent(removeFile)
+            ]);
+            this._renderDiffPanes(contentA, contentB);
+            this._bindDiffScrollSync();
+            this._evaluateDiffSafety(contentA === contentB);
+        }
+        catch (err) {
+            console.warn('[RepositoryHealth] Diff load failed:', err);
+            root.innerHTML = `<div class="rh-v3-diff-banner error">Failed to load file contents: ${escapeHtml(err.message)}</div>`;
+        }
+    }
+    async _fetchFileContent(filePath) {
+        const res = await fetch(`/api/file-content?path=${encodeURIComponent(filePath)}`, { cache: 'no-store' });
+        if (!res.ok)
+            throw new Error(`HTTP ${res.status}`);
+        return await res.text();
+    }
+    _renderDiffSkeleton(fileA, fileB) {
+        return `
       <div class="rh-v3-diff-header">
         <strong style="font-size:0.85rem;color:var(--text-primary);">Comparing Duplicate Candidates</strong>
         <div id="diff-safety-banner" class="rh-v3-diff-banner checking"><span class="loading-spinner" style="width:14px;height:14px;border-width:2px;"></span> Analyzing file parity…</div>
@@ -689,212 +679,241 @@ export class RepositoryHealthView {
         </div>
       </div>
     `;
-  }
-
-  _renderDiffPanes(contentA, contentB) {
-    const linesA = contentA.split(/\r?\n/);
-    const linesB = contentB.split(/\r?\n/);
-    const maxLines = Math.max(linesA.length, linesB.length);
-    let lnLeft = '', codeLeft = '', lnRight = '', codeRight = '';
-    for (let i = 0; i < maxLines; i++) {
-      const a = linesA[i];
-      const b = linesB[i];
-      const num = i + 1;
-      const identical = a === b;
-      const hasA = i < linesA.length;
-      const hasB = i < linesB.length;
-      let status = 'identical';
-      if (!identical) {
-        if (hasA && hasB) status = 'modified';
-        else if (hasA) status = 'removed';
-        else status = 'added';
-      }
-      if (hasA) {
-        lnLeft += `<div class="ln-num">${num}</div>`;
-        codeLeft += `<div class="code-row ${status}">${escapeHtml(a || ' ')}</div>`;
-      }
-      if (hasB) {
-        lnRight += `<div class="ln-num">${num}</div>`;
-        codeRight += `<div class="code-row ${status}">${escapeHtml(b || ' ')}</div>`;
-      }
     }
-    const root = this._root?.querySelector('#merge-diff-root');
-    if (!root) return;
-    const lnLeftEl = root.querySelector('#ln-left');
-    const linesLeftEl = root.querySelector('#lines-left');
-    const lnRightEl = root.querySelector('#ln-right');
-    const linesRightEl = root.querySelector('#lines-right');
-    if (lnLeftEl) lnLeftEl.innerHTML = lnLeft;
-    if (linesLeftEl) linesLeftEl.innerHTML = codeLeft;
-    if (lnRightEl) lnRightEl.innerHTML = lnRight;
-    if (linesRightEl) linesRightEl.innerHTML = codeRight;
-  }
-
-  _bindDiffScrollSync() {
-    const root = this._root?.querySelector('#merge-diff-root');
-    if (!root) return;
-    const left = root.querySelector('#code-view-left');
-    const right = root.querySelector('#code-view-right');
-    if (!left || !right) return;
-    let scrolling = false;
-    const sync = (source, target) => {
-      if (!scrolling) {
-        scrolling = true;
-        target.scrollTop = source.scrollTop;
-        target.scrollLeft = source.scrollLeft;
-        setTimeout(() => { scrolling = false; }, 40);
-      }
-    };
-    left.addEventListener('scroll', () => sync(left, right));
-    right.addEventListener('scroll', () => sync(right, left));
-  }
-
-  _evaluateDiffSafety(isIdentical) {
-    const banner = this._root?.querySelector('#diff-safety-banner');
-    const quarantineBtn = this._root?.querySelector('#quarantine-merge-btn');
-    if (!banner) return;
-    if (isIdentical) {
-      banner.className = 'rh-v3-diff-banner safe';
-      banner.innerHTML = '✓ 100% identical. Safe to quarantine.';
-    } else {
-      banner.className = 'rh-v3-diff-banner unsafe';
-      banner.innerHTML = '⚠ Content differs. Manual review required.';
-      if (quarantineBtn) {
-        quarantineBtn.setAttribute('disabled', 'true');
-        quarantineBtn.title = 'Quarantine disabled: candidate files are not identical.';
-      }
+    _renderDiffPanes(contentA, contentB) {
+        var _a;
+        const linesA = contentA.split(/\r?\n/);
+        const linesB = contentB.split(/\r?\n/);
+        const maxLines = Math.max(linesA.length, linesB.length);
+        let lnLeft = '', codeLeft = '', lnRight = '', codeRight = '';
+        for (let i = 0; i < maxLines; i++) {
+            const a = linesA[i];
+            const b = linesB[i];
+            const num = i + 1;
+            const identical = a === b;
+            const hasA = i < linesA.length;
+            const hasB = i < linesB.length;
+            let status = 'identical';
+            if (!identical) {
+                if (hasA && hasB)
+                    status = 'modified';
+                else if (hasA)
+                    status = 'removed';
+                else
+                    status = 'added';
+            }
+            if (hasA) {
+                lnLeft += `<div class="ln-num">${num}</div>`;
+                codeLeft += `<div class="code-row ${status}">${escapeHtml(a || ' ')}</div>`;
+            }
+            if (hasB) {
+                lnRight += `<div class="ln-num">${num}</div>`;
+                codeRight += `<div class="code-row ${status}">${escapeHtml(b || ' ')}</div>`;
+            }
+        }
+        const root = (_a = this._root) === null || _a === void 0 ? void 0 : _a.querySelector('#merge-diff-root');
+        if (!root)
+            return;
+        const lnLeftEl = root.querySelector('#ln-left');
+        const linesLeftEl = root.querySelector('#lines-left');
+        const lnRightEl = root.querySelector('#ln-right');
+        const linesRightEl = root.querySelector('#lines-right');
+        if (lnLeftEl)
+            lnLeftEl.innerHTML = lnLeft;
+        if (linesLeftEl)
+            linesLeftEl.innerHTML = codeLeft;
+        if (lnRightEl)
+            lnRightEl.innerHTML = lnRight;
+        if (linesRightEl)
+            linesRightEl.innerHTML = codeRight;
     }
-  }
-
-  _getVscodeApi() {
-    if (this._vscodeApiCached) return this._vscodeApiCached;
-    if (typeof window === 'undefined' || typeof window.acquireVsCodeApi !== 'function') return null;
-    try {
-      this._vscodeApiCached = window.acquireVsCodeApi();
-      return this._vscodeApiCached;
-    } catch {
-      return null;
+    _bindDiffScrollSync() {
+        var _a;
+        const root = (_a = this._root) === null || _a === void 0 ? void 0 : _a.querySelector('#merge-diff-root');
+        if (!root)
+            return;
+        const left = root.querySelector('#code-view-left');
+        const right = root.querySelector('#code-view-right');
+        if (!left || !right)
+            return;
+        let scrolling = false;
+        const sync = (source, target) => {
+            if (!scrolling) {
+                scrolling = true;
+                target.scrollTop = source.scrollTop;
+                target.scrollLeft = source.scrollLeft;
+                setTimeout(() => { scrolling = false; }, 40);
+            }
+        };
+        left.addEventListener('scroll', () => sync(left, right));
+        right.addEventListener('scroll', () => sync(right, left));
     }
-  }
-
-  bindEvents(container) {
-    this._root = container;
-
-    container.querySelector('#run-optimization-scan')?.addEventListener('click', async () => {
-      if (this.scanning) return;
-      this.scanning = true;
-      this.paint(container);
-      try {
-        const res = await fetch(apiUrl('/api/optimization/analyze'), {
-          method: 'POST',
-          headers: authHeaders({ 'Content-Type': 'application/json' }),
-          body: JSON.stringify({ projectPath: this.app.state.lastProjectPath || '' })
-        });
-        const data = await readJsonOrDefault(res, {});
-        if (!res.ok || !data.success) throw new Error(data.error || 'Scan failed');
-        this.data = data.health;
-        this.candidates = await this.fetchCandidatesList();
-        this.preview = null;
-        this.previewError = null;
-      } catch (err) {
-        this.error = err.message;
-        showToast(err.message, 'error');
-      } finally {
-        this.scanning = false;
-        this.paint(container);
-      }
-    });
-
-    container.querySelector('#quarantine-merge-btn')?.addEventListener('click', async () => {
-      if (!this.preview) return;
-      const btn = container.querySelector('#quarantine-merge-btn');
-      if (btn) { btn.disabled = true; btn.textContent = 'Quarantining…'; }
-      try {
-        const res = await fetch(apiUrl('/api/optimization/merge-execute'), {
-          method: 'POST',
-          headers: authHeaders({ 'Content-Type': 'application/json' }),
-          body: JSON.stringify({
-            projectPath: this.resolvePreviewProjectPath(),
-            previewId: this.preview.previewId || undefined,
-            confirmed: true,
-            confirmationPhrase: this.preview.confirmationPhrase
-          })
-        });
-        const data = await readJsonOrDefault(res, {});
-        if (!res.ok || !data.success) throw new Error(data.error || 'Quarantine failed');
-        showToast(data.message || 'Duplicates quarantined successfully', 'success');
-        this.preview = null;
-        this.previewError = null;
-        await this.loadHealth();
-        this.paint(container);
-      } catch (err) {
-        showToast(err.message, 'error');
-        if (btn) { btn.disabled = false; btn.textContent = 'Quarantine duplicates'; }
-      }
-    });
-
-    container.querySelector('#send-health-ai-btn')?.addEventListener('click', async () => {
-      const health = this.data;
-      if (!health || !health.headline) { showToast('No repository health data — run a scan first', 'error'); return; }
-      const headline = health.headline;
-      const payload = {
-        projectPath: health.projectRoot || health.projectPath || this.app.state.lastProjectPath || window.location.origin,
-        reportType: 'repository-health',
-        reportSummary: {
-          repositoryHealthScore: headline.repositoryHealthScore,
-          optimizationPotential: headline.optimizationPotential,
-          duplicateGroups: headline.duplicateGroups,
-          oversizedFiles: headline.oversizedFiles,
-          reductionOpportunities: headline.reductionOpportunities,
-          repositoryFilesTotal: headline.repositoryFilesTotal,
-          repositoryFoldersTotal: headline.repositoryFoldersTotal
-        },
-        notes: ''
-      };
-      const vscode = this._getVscodeApi();
-      if (vscode) {
+    _evaluateDiffSafety(isIdentical) {
+        var _a, _b;
+        const banner = (_a = this._root) === null || _a === void 0 ? void 0 : _a.querySelector('#diff-safety-banner');
+        const quarantineBtn = (_b = this._root) === null || _b === void 0 ? void 0 : _b.querySelector('#quarantine-merge-btn');
+        if (!banner)
+            return;
+        if (isIdentical) {
+            banner.className = 'rh-v3-diff-banner safe';
+            banner.innerHTML = '✓ 100% identical. Safe to quarantine.';
+        }
+        else {
+            banner.className = 'rh-v3-diff-banner unsafe';
+            banner.innerHTML = '⚠ Content differs. Manual review required.';
+            if (quarantineBtn) {
+                quarantineBtn.setAttribute('disabled', 'true');
+                quarantineBtn.title = 'Quarantine disabled: candidate files are not identical.';
+            }
+        }
+    }
+    _getVscodeApi() {
+        if (this._vscodeApiCached)
+            return this._vscodeApiCached;
+        if (typeof window === 'undefined' || typeof window.acquireVsCodeApi !== 'function')
+            return null;
         try {
-          vscode.postMessage({ command: 'sendToAI', data: payload });
-          showToast('Repository health sent to your AI coding agent', 'success');
-          return;
-        } catch (err) {
-          console.warn('[Health-AI] vscode.postMessage failed:', err);
+            this._vscodeApiCached = window.acquireVsCodeApi();
+            return this._vscodeApiCached;
         }
-      }
-      // Fallback: POST to /api/ai-context and copy to clipboard
-      try {
-        const res = await fetch(apiUrl('/api/ai-context'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+        catch (_a) {
+            return null;
+        }
+    }
+    bindEvents(container) {
+        var _a, _b, _c;
+        this._root = container;
+        (_a = container.querySelector('#run-optimization-scan')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', async () => {
+            if (this.scanning)
+                return;
+            this.scanning = true;
+            this.paint(container);
+            try {
+                const res = await fetch(apiUrl('/api/optimization/analyze'), {
+                    method: 'POST',
+                    headers: authHeaders({ 'Content-Type': 'application/json' }),
+                    body: JSON.stringify({ projectPath: this.app.state.lastProjectPath || '' })
+                });
+                const data = await readJsonOrDefault(res, {});
+                if (!res.ok || !data.success)
+                    throw new Error(data.error || 'Scan failed');
+                this.data = data.health;
+                this.candidates = await this.fetchCandidatesList();
+                this.preview = null;
+                this.previewError = null;
+            }
+            catch (err) {
+                this.error = err.message;
+                showToast(err.message, 'error');
+            }
+            finally {
+                this.scanning = false;
+                this.paint(container);
+            }
         });
-        const json = await res.json();
-        if (json.success && json.content) {
-          await navigator.clipboard.writeText(json.content);
-          showToast('Copied to clipboard — paste into your AI coding agent with Ctrl+V', 'success');
-        } else {
-          showToast('AI context saved. Mention @.simplebeacon/ai-context.md in chat.', 'success');
-        }
-      } catch (err) {
-        showToast('Failed to send: ' + err.message, 'error');
-      }
-    });
-
-    if (this._eventsBound) return;
-    this._eventsBound = true;
-
-    container.addEventListener('click', (event) => {
-      const btn = event.target.closest('.preview-merge-btn');
-      if (!btn || !container.contains(btn) || btn.disabled) return;
-      event.preventDefault();
-      const candidateId = btn.dataset.candidateId;
-      if (!candidateId) {
-        showToast('Merge candidate id missing — re-run consolidation scan', 'error');
-        return;
-      }
-      this.handlePreviewMerge(candidateId);
-    });
-  }
-
-  destroy() {}
+        (_b = container.querySelector('#quarantine-merge-btn')) === null || _b === void 0 ? void 0 : _b.addEventListener('click', async () => {
+            if (!this.preview)
+                return;
+            const btn = container.querySelector('#quarantine-merge-btn');
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = 'Quarantining…';
+            }
+            try {
+                const res = await fetch(apiUrl('/api/optimization/merge-execute'), {
+                    method: 'POST',
+                    headers: authHeaders({ 'Content-Type': 'application/json' }),
+                    body: JSON.stringify({
+                        projectPath: this.resolvePreviewProjectPath(),
+                        previewId: this.preview.previewId || undefined,
+                        confirmed: true,
+                        confirmationPhrase: this.preview.confirmationPhrase
+                    })
+                });
+                const data = await readJsonOrDefault(res, {});
+                if (!res.ok || !data.success)
+                    throw new Error(data.error || 'Quarantine failed');
+                showToast(data.message || 'Duplicates quarantined successfully', 'success');
+                this.preview = null;
+                this.previewError = null;
+                await this.loadHealth();
+                this.paint(container);
+            }
+            catch (err) {
+                showToast(err.message, 'error');
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = 'Quarantine duplicates';
+                }
+            }
+        });
+        (_c = container.querySelector('#send-health-ai-btn')) === null || _c === void 0 ? void 0 : _c.addEventListener('click', async () => {
+            const health = this.data;
+            if (!health || !health.headline) {
+                showToast('No repository health data — run a scan first', 'error');
+                return;
+            }
+            const headline = health.headline;
+            const payload = {
+                projectPath: health.projectRoot || health.projectPath || this.app.state.lastProjectPath || window.location.origin,
+                reportType: 'repository-health',
+                reportSummary: {
+                    repositoryHealthScore: headline.repositoryHealthScore,
+                    optimizationPotential: headline.optimizationPotential,
+                    duplicateGroups: headline.duplicateGroups,
+                    oversizedFiles: headline.oversizedFiles,
+                    reductionOpportunities: headline.reductionOpportunities,
+                    repositoryFilesTotal: headline.repositoryFilesTotal,
+                    repositoryFoldersTotal: headline.repositoryFoldersTotal
+                },
+                notes: ''
+            };
+            const vscode = this._getVscodeApi();
+            if (vscode) {
+                try {
+                    vscode.postMessage({ command: 'sendToAI', data: payload });
+                    showToast('Repository health sent to your AI coding agent', 'success');
+                    return;
+                }
+                catch (err) {
+                    console.warn('[Health-AI] vscode.postMessage failed:', err);
+                }
+            }
+            // Fallback: POST to /api/ai-context and copy to clipboard
+            try {
+                const res = await fetch(apiUrl('/api/ai-context'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const json = await res.json();
+                if (json.success && json.content) {
+                    await navigator.clipboard.writeText(json.content);
+                    showToast('Copied to clipboard — paste into your AI coding agent with Ctrl+V', 'success');
+                }
+                else {
+                    showToast('AI context saved. Mention @.simplebeacon/ai-context.md in chat.', 'success');
+                }
+            }
+            catch (err) {
+                showToast('Failed to send: ' + err.message, 'error');
+            }
+        });
+        if (this._eventsBound)
+            return;
+        this._eventsBound = true;
+        container.addEventListener('click', (event) => {
+            const btn = event.target.closest('.preview-merge-btn');
+            if (!btn || !container.contains(btn) || btn.disabled)
+                return;
+            event.preventDefault();
+            const candidateId = btn.dataset.candidateId;
+            if (!candidateId) {
+                showToast('Merge candidate id missing — re-run consolidation scan', 'error');
+                return;
+            }
+            this.handlePreviewMerge(candidateId);
+        });
+    }
+    destroy() { }
 }

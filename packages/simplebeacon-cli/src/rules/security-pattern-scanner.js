@@ -10,6 +10,22 @@ const SCANNABLE_EXTENSIONS = new Set([
 
 const MAX_SCAN_BYTES = 512000;
 
+const RULE_TYPE_MAP = {
+  'SB-SEC-001': 'eval-danger',
+  'SB-SEC-002': 'inner-html-xss',
+  'SB-SEC-003': 'prototype-pollution',
+  'SB-SEC-004': 'unhandled-promise',
+  'SB-SEC-005': 'unvalidated-redirect',
+  'SB-SEC-006': 'missing-rate-limit',
+  'SB-SEC-007': 'insecure-random',
+  'SB-SEC-008': 'logging-secrets',
+  'SB-SEC-009': 'config-drift',
+  'SB-SEC-010': 'sensitive-data',
+  'SB-SEC-011': 'insecure-random',
+  'SB-SEC-012': 'performance',
+  'SB-SEC-013': 'sensitive-data'
+};
+
 const SECURITY_RULES = [
   {
     id: 'SB-SEC-001',
@@ -140,7 +156,7 @@ function scanSecurityPatterns(relativePath, content, ext) {
       issues.push({
         id: `${rule.id}-${relativePath}`,
         severity: rule.severity,
-        type: rule.name,
+        type: RULE_TYPE_MAP[rule.id] || rule.name,
         filePath: relativePath,
         count: matches.length,
         description: `${relativePath}: ${rule.description}`,

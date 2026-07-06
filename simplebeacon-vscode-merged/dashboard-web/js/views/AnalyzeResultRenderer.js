@@ -93,7 +93,7 @@ export class AnalyzeResultRenderer {
     return `
       <div class="an-res-v3">
         <div class="an-res-v3-hd"><h3>📊 Codebase Analysis</h3></div>
-        <div class="an-res-v3-body">${renderCodebasePanel(scan)}</div>
+        <div class="an-res-v3-body">${renderCodebasePanel({ scan })}</div>
       </div>
     `;
   }

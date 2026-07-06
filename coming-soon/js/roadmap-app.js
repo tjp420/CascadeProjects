@@ -3,9 +3,54 @@
     const scorecardsEl=document.getElementById('scorecards'),timelineEl=document.getElementById('timeline'),projectNameEl=document.getElementById('projectName'),scanDateEl=document.getElementById('scanDate'),jsonPreviewEl=document.getElementById('jsonPreview'),toastEl=document.getElementById('toast');
 
     dropzone.addEventListener('click',()=>fileInput.click());
-    dropzone.addEventListener('dragover',e=>{e.preventDefault();dropzone.classList.add('dragover');});
-    dropzone.addEventListener('dragleave',()=>dropzone.classList.remove('dragover'));
-    dropzone.addEventListener('drop',e=>{e.preventDefault();dropzone.classList.remove('dragover');const f=e.dataTransfer.files[0];if(f)loadFile(f);});
+    let dragCounter=0;
+    dropzone.addEventListener('dragenter',e=>{
+      e.preventDefault();
+      e.stopPropagation();
+      dragCounter++;
+      dropzone.classList.add('dragover');
+    });
+    dropzone.addEventListener('dragover',e=>{
+      e.preventDefault();
+      e.stopPropagation();
+      try{ e.dataTransfer.dropEffect='copy'; }catch(_){}
+      dropzone.classList.add('dragover');
+    });
+    dropzone.addEventListener('dragleave',e=>{
+      e.preventDefault();
+      e.stopPropagation();
+      dragCounter--;
+      if(dragCounter<=0){
+        dragCounter=0;
+        dropzone.classList.remove('dragover');
+      }
+    });
+    dropzone.addEventListener('drop',e=>{
+      e.preventDefault();
+      e.stopPropagation();
+      dragCounter=0;
+      dropzone.classList.remove('dragover');
+      const files=e.dataTransfer.files;
+      if(files&&files.length>0){
+        loadFile(files[0]);
+      }else if(e.dataTransfer.items&&e.dataTransfer.items.length>0){
+        const item=e.dataTransfer.items[0];
+        if(item.kind==='file'){
+          const entry=item.webkitGetAsEntry&&item.webkitGetAsEntry();
+          const file=item.getAsFile();
+          if(file)loadFile(file);
+          else if(entry&&entry.isFile){
+            entry.file(file=>loadFile(file),err=>showToast('Drop read error: '+err.message,'error'));
+          }else{
+            showToast('Dropped item is not a file','error');
+          }
+        }else{
+          showToast('Drop a file here, not text or a URL','error');
+        }
+      }else{
+        showToast('No file detected in drop','error');
+      }
+    });
     fileInput.addEventListener('change',e=>{if(e.target.files[0])loadFile(e.target.files[0]);});
 
     // Address bar handlers
@@ -52,7 +97,7 @@
       jsonPasteBtn.addEventListener('click',()=>{
         const text=jsonPasteInput.value.trim();
         if(!text){showToast('Paste JSON content first','error');return;}
-        try{const j=JSON.parse(text);loadReport(j);}catch(err){showToast('Invalid JSON: '+err.message,'error');}
+        try{const parsedJson=JSON.parse(text);loadReport(parsedJson);}catch(err){showToast('Invalid JSON: '+err.message,'error');}
       });
     }
 
@@ -61,13 +106,32 @@
     if(loadTestReportBtn){
       loadTestReportBtn.addEventListener('click',async()=>{
         try{
-          const res=await fetch('test-report.json');
+          const res=await fetch('archive/test-report.json');
           if(!res.ok){showToast('Failed to load test-report.json: '+res.status,'error');return;}
-          const j=await res.json();
-          loadReport(j);
+          const parsedJson=await res.json();
+          loadReport(parsedJson);
         }catch(err){showToast('Error loading test report: '+err.message,'error');}
       });
     }
+
+    // Auto-load from extension data server when served in VS Code context
+    (async function autoLoadFromExtension(){
+      const env=window.__SIMPLEBEACON_ENV__;
+      if(!env||!env.API_BASE_URL)return;
+      try{
+        const res=await fetch(env.API_BASE_URL+'/simplebeacon/report');
+        if(!res.ok)return;
+        const parsedJson=await res.json();
+        if(parsedJson&&parsedJson.type==='simplebeacon-report'&&parsedJson.rawIssues&&parsedJson.rawIssues.length>0){
+          loadReport(parsedJson);
+          showToast('Loaded scan report from extension','success');
+        }else if(parsedJson&&parsedJson.rawIssues&&parsedJson.rawIssues.length>0){
+          parsedJson.type='simplebeacon-report';
+          loadReport(parsedJson);
+          showToast('Loaded scan report from extension','success');
+        }
+      }catch(_){/* silent fail — user can still load manually */}
+    })();
 
 
     function showToast(msg,type='info'){toastEl.textContent=msg;toastEl.className='toast show toast-'+type;setTimeout(()=>toastEl.classList.remove('show'),3000);}
@@ -85,22 +149,24 @@
           });
           if(!reportJson){showToast('No JSON file found inside ZIP.','error');return;}
           const text=await reportJson;
-          try{const j=JSON.parse(text);loadReport(j);}catch(err){showToast('Invalid JSON inside ZIP: '+err.message,'error');}
+          try{const parsedJson=JSON.parse(text);loadReport(parsedJson);}catch(err){showToast('Invalid JSON inside ZIP: '+err.message,'error');}
         }catch(err){showToast('ZIP read error: '+(err&&err.message?err.message:String(err)),'error');}
         return;
       }
       const r=new FileReader();
-      r.onload=e=>{try{const j=JSON.parse(e.target.result);loadReport(j);}catch(err){showToast('Invalid JSON: '+err.message,'error');}};
+      r.onload=e=>{try{const parsedJson=JSON.parse(e.target.result);loadReport(parsedJson);}catch(err){showToast('Invalid JSON: '+err.message,'error');}};
       r.readAsText(file);
     }
     function loadReport(report){
+      // Unwrap API-style {success, report} wrapper (e.g. from CLI download)
+      if(report&&typeof report==='object'&&report.report&&report.success===true){report=report.report;}
       // Extract project name from various report structures (flat scan, all-reports wrapper, etc.)
       const src = report.sourceReport || report.results?.simplebeacon || report;
       // Stale-report guard: check top-level, sourceReport, and results.simplebeacon for metrics
-      const qs=report.qualityScore!=null?report.qualityScore:src.qualityScore;
-      const sc=report.schemaCompliance!=null?report.schemaCompliance:src.schemaCompliance;
-      const cs=report.consistencyScore!=null?report.consistencyScore:src.consistencyScore;
-      if(qs==null&&sc==null&&cs==null){
+      const qualityScore=report.qualityScore!=null?report.qualityScore:src.qualityScore;
+      const schemaComplianceScore=report.schemaCompliance!=null?report.schemaCompliance:src.schemaCompliance;
+      const consistencyScore=report.consistencyScore!=null?report.consistencyScore:src.consistencyScore;
+      if(qualityScore==null&&schemaComplianceScore==null&&consistencyScore==null){
         showToast('Stale report detected — quality metrics missing. Re-run scan with updated scanner.','warning');
         if(location.hash.length>1){history.replaceState(null,'',location.pathname+location.search);}
         return;
@@ -124,6 +190,30 @@
     function saveTaskTime(project,phaseId,taskIdx,seconds){try{localStorage.setItem(getTimeKey(project,phaseId,taskIdx),String(seconds));}catch(e){}}
     function formatTime(sec){const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=sec%60;return(h>0?h+'h ':'')+(m>0?m+'m ':'')+s+'s';}
     function escapeHtml(str){return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');}
+    function fireConfetti(container){
+      if(!container) return;
+      const colors=['#2563EB','#10B981','#F59E0B','#EF4444','#60A5FA','#A78BFA'];
+      const rect=container.getBoundingClientRect();
+      const centerX=rect.left+rect.width/2;
+      const centerY=rect.top+rect.height/2;
+      for(let i=0;i<18;i++){
+        const piece=document.createElement('div');
+        piece.className='confetti-piece';
+        piece.style.backgroundColor=colors[Math.floor(Math.random()*colors.length)];
+        const angle=(i/18)*Math.PI*2;
+        const dist=40+Math.random()*60;
+        piece.style.left=centerX+'px';
+        piece.style.top=centerY+'px';
+        piece.style.transform='rotate('+Math.random()*360+'deg)';
+        document.body.appendChild(piece);
+        requestAnimationFrame(()=>{
+          piece.style.transition='transform 0.8s cubic-bezier(0.25,1,0.5,1), opacity 0.8s ease';
+          piece.style.transform='translate('+Math.cos(angle)*dist+'px,'+Math.sin(angle)*dist+'px) rotate('+(Math.random()*360+180)+'deg) scale(0)';
+          piece.style.opacity='0';
+        });
+        setTimeout(()=>{if(piece.parentNode)piece.parentNode.removeChild(piece);},900);
+      }
+    }
     function buildStructuredTaskHtml(task){
       const parts=[];
       if(task.type){
@@ -152,12 +242,33 @@
       }
       return `<div class="task-structured">${parts.join('')}</div>`;
     }
+    function buildPhaseCardHtml(phase,phaseIdx,projectKey,roadmap){
+      const statusClass=phase.status==='completed'?'completed':phase.status==='blocked'?'blocked':phase.status==='in-progress'?'in-progress':'';
+      const extraClass=phase.status==='blocked'||(phase.status==='pending'&&phase.severity==='critical')?' blocked':'';
+      const pt=phase.status==='completed'?'Complete':phase.status==='blocked'?'Blocked':phase.status==='in-progress'?'In Progress':'Not Started';
+      const collapsed=phaseIdx>0&&phase.status==='completed'?' collapsed':'';
+      const ariaExpanded=collapsed?'false':'true';
+      const depBlock=phase.dependsOn?`<div class="dep-line"><span class="dep-arrow">↳</span> Depends on <strong>${escapeHtml(roadmap.phases.find(x=>x.id===phase.dependsOn)?.title||phase.dependsOn)}</strong></div>`:'';
+      const depClass=phase.dependsOn?' depends-on-critical':'';
+      const completedMark=phase.status==='completed'?' <span style="color:var(--success);margin-left:4px;">✓</span>':'';
+      const statusBadgeClass=phase.status==='completed'?'complete':phase.status==='blocked'?'blocked':phase.status==='in-progress'?'in-progress':'incomplete';
+      const statusBadgeText=phase.status==='completed'?'COMPLETE':phase.status==='blocked'?'BLOCKED':phase.status==='in-progress'?'IN PROGRESS':'INCOMPLETE';
+      const statusBadgeHtml='<span class="phase-status-badge '+statusBadgeClass+'">'+statusBadgeText+'</span>';
+      const progressFillStyle=phase.status==='completed'?'background:var(--success)':phase.status==='blocked'?'background:var(--error)':'background:linear-gradient(90deg,var(--accent),var(--info))';
+      const markAllBtn=phase.status==='completed'?'':`<button class="phase-action-btn done" data-action="markall" data-phase="${phase.id}">✓ Mark All Done</button>`;
+      const taskTypeBar=buildPhaseTaskTypeBar(phase.tasks);
+      const TASK_OVERFLOW_LIMIT=10;
+      const totalTasks=phase.tasks.length;
+      const hasOverflow=totalTasks>TASK_OVERFLOW_LIMIT;
+      const taskItemsHtml=(()=>{return phase.tasks.map((task,taskIdx)=>{const done=phase.status==='completed'?true:(task&&task.done?true:loadTaskState(projectKey,phase.id,taskIdx));if(phase.status==='completed')saveTaskState(projectKey,phase.id,taskIdx,true);if(typeof task==='object'&&task!=null)task.done=done;const timeSpent=loadTaskTime(projectKey,phase.id,taskIdx);const taskText=typeof task==='object'&&task.html?task.html:(typeof task==='object'&&task!=null&&task.description?buildStructuredTaskHtml(task):escapeHtml(task));const copyBtn='<span class="task-copy" data-phase="'+phase.id+'" data-task="'+taskIdx+'" title="Copy task">&#128203;</span>';const overflowClass=(hasOverflow&&taskIdx>=TASK_OVERFLOW_LIMIT)?' phase-task-overflow':'';return '<li tabindex="0" class="'+(done?'done ':'')+overflowClass+'" data-phase="'+phase.id+'" data-task="'+taskIdx+'"><span class="task-check'+(done?' checked':'')+'"></span><span class="task-text">'+taskText+'</span>'+copyBtn+'<span class="task-timer" data-phase="'+phase.id+'" data-task="'+taskIdx+'"><span class="timer-btn">\u25B6</span><span class="timer-display">'+formatTime(timeSpent)+'</span></span></li>';}).join('')+(hasOverflow?'<li class="phase-expand-li" style="list-style:none;padding-left:0;margin-left:-8px;border-bottom:none;"><button class="phase-action-btn phase-expand-btn" data-action="expand-tasks" data-phase="'+phase.id+'">Show '+(totalTasks-TASK_OVERFLOW_LIMIT)+' more tasks</button></li>':'');})();
+      return '<div class="timeline-phase '+statusClass+extraClass+depClass+'" data-status="'+phase.status+'" data-phase="'+phase.id+'"><div class="phase-card'+collapsed+'" aria-expanded="'+ariaExpanded+'" role="region" aria-labelledby="ph-title-'+phase.id+'">'+depBlock+'<div class="phase-header"><div class="phase-title" id="ph-title-'+phase.id+'">'+escapeHtml(phase.title)+completedMark+'</div><div class="phase-meta">'+statusBadgeHtml+'<span class="phase-badge badge-'+escapeHtml(phase.severity)+'">'+escapeHtml(phase.severity)+'</span><span class="phase-badge badge-effort">'+escapeHtml(phase.effort)+'</span><span class="phase-toggle" aria-hidden="true">▼</span></div></div><div class="phase-desc">'+escapeHtml(phase.description)+'</div>'+(phase.extraHtml||'')+taskTypeBar+'<ul class="phase-tasks">'+taskItemsHtml+'</ul><div class="phase-progress"><div class="phase-progress-label"><span>'+pt+'</span><span>'+phase.progress+'%</span></div><div class="phase-progress-bar"><div class="phase-progress-fill" style="width:'+phase.progress+'%;'+progressFillStyle+'"></div></div></div><div class="phase-actions">'+markAllBtn+'<button class="phase-action-btn" data-action="copy-phase" data-phase="'+phase.id+'" title="Copy all tasks as markdown">&#128203; Copy Phase</button><button class="phase-action-btn" data-action="download-json" data-phase="'+phase.id+'">Download JSON</button><button class="phase-action-btn" data-action="collapse" data-phase="'+phase.id+'" aria-label="Toggle phase details">Toggle Details</button></div></div></div>';
+    }
     function buildPhaseTaskTypeBar(tasks){
       if(!Array.isArray(tasks)||tasks.length===0)return'';
       const counts={};
-      tasks.forEach(t=>{
-        if(typeof t==='object'&&t!=null&&t.type){
-          counts[t.type]=(counts[t.type]||0)+1;
+      tasks.forEach(task=>{
+        if(typeof task==='object'&&task!=null&&task.type){
+          counts[task.type]=(counts[task.type]||0)+1;
         }
       });
       const entries=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
@@ -353,27 +464,27 @@
       }
       // Prefer server-computed remediationPhases when available (most accurate)
       if (Array.isArray(report.remediationPhases) && report.remediationPhases.length > 0) {
-        const phases = report.remediationPhases.map(p => {
-          const tasks = p.tasks || [];
+        const phases = report.remediationPhases.map(phase => {
+          const tasks = phase.tasks || [];
           // Auto-mark verify/review tasks as done for clean phases (no real fix tasks)
-          const hasFix = tasks.some(t => typeof t === 'object' && t && t.type === 'fix');
+          const hasFix = tasks.some(task => typeof task === 'object' && task && task.type === 'fix');
           if (!hasFix) {
-            tasks.forEach(t => {
-              if (typeof t === 'object' && t && (t.type === 'verify' || t.type === 'review')) {
-                t.done = true;
+            tasks.forEach(task => {
+              if (typeof task === 'object' && task && (task.type === 'verify' || task.type === 'review')) {
+                task.done = true;
               }
             });
           }
-          const doneCount = tasks.filter(t => typeof t === 'object' && t && t.done).length;
+          const doneCount = tasks.filter(task => typeof task === 'object' && task && task.done).length;
           const total = tasks.length;
           const taskPercent = total ? Math.round((doneCount / total) * 100) : 100;
           const taskStatus = taskPercent >= 95 ? 'completed' : (taskPercent > 0 ? 'in-progress' : 'pending');
           return {
-            id: p.id,
-            title: p.title,
-            severity: p.severity || 'medium',
-            effort: p.effort || 'TBD',
-            description: p.description || '',
+            id: phase.id,
+            title: phase.title,
+            severity: phase.severity || 'medium',
+            effort: phase.effort || 'TBD',
+            description: phase.description || '',
             tasks,
             progress: taskPercent,
             status: taskStatus,
@@ -381,10 +492,10 @@
           };
         });
         // Re-apply dependency blocking logic
-        phases.forEach(p => {
-          if (!p.dependsOn || p.progress >= 100) return;
-          const dep = phases.find(x => x.id === p.dependsOn);
-          if (dep && dep.progress < 95) { p.status = 'blocked'; p.progress = Math.min(p.progress, dep.progress); }
+        phases.forEach(phase => {
+          if (!phase.dependsOn || phase.progress >= 100) return;
+          const dep = phases.find(x => x.id === phase.dependsOn);
+          if (dep && dep.progress < 95) { phase.status = 'blocked'; phase.progress = Math.min(phase.progress, dep.progress); }
         });
         return { phases, generatedAt: new Date().toISOString(), sourceReport: report.generatedAt };
       }
@@ -400,7 +511,7 @@
       const phases=[];
       // Use null for missing fields so we can distinguish "not measured" from "zero"
       const src = report.sourceReport || report.results?.simplebeacon || report;
-      const qs=src.qualityScore!=null?Number(src.qualityScore):null;
+      const qualityScore=src.qualityScore!=null?Number(src.qualityScore):null;
       const issues=src.issueCount!=null?Number(src.issueCount):null;
       const invalidJson=src.invalidJson!=null?Number(src.invalidJson):null;
       const emptyFiles=src.emptyFiles!=null?Number(src.emptyFiles):(src.dataQuality?.emptyJsonCount!=null?Number(src.dataQuality.emptyJsonCount):null);
@@ -417,7 +528,7 @@
       const todoMarkers=src.todoMarkerCount!=null?Number(src.todoMarkerCount):(src.roadmap?.todoCount!=null?Number(src.roadmap.todoCount):null);
       const issueCount=src.issueCount!=null?Number(src.issueCount):0;
       // Auto-complete helper: gate passed, quality 100, no issues = structural duplicates only
-      const scanIsClean=qs===100&&(src.gate?.pass===true||src.gate?.blockingCount===0)&&issueCount===0;
+      const scanIsClean=qualityScore===100&&(src.gate?.pass===true||src.gate?.blockingCount===0)&&issueCount===0;
 
       // --- Detailed findings analysis (when unredacted data is available) ---
       function isRestricted(str){return typeof str==='string'&&str.includes('***REDACTED***');}
@@ -845,16 +956,16 @@
     function renderDashboard(report,roadmap){
       // Auto-mark verify/review tasks as done when phase has no real issues
       if(roadmap&&Array.isArray(roadmap.phases)){
-        roadmap.phases.forEach(p=>{
-          if((p.status==='completed'||p.progress>=95)&&Array.isArray(p.tasks)){
-            p.tasks.forEach(t=>{if(t&&(t.type==='verify'||t.type==='review'))t.done=true;});
+        roadmap.phases.forEach(phase=>{
+          if((phase.status==='completed'||phase.progress>=95)&&Array.isArray(phase.tasks)){
+            phase.tasks.forEach(task=>{if(task&&(task.type==='verify'||task.type==='review'))task.done=true;});
           }
         });
       }
       const src = report.sourceReport || report;
       const pn=src.projectRoot||src.projectPath||src.projectName||report.projectRoot||report.projectPath||report.projectName||'Unknown';
       const srcIssues = report.rawIssues || report.issues || report.detectedIssues || [];
-      const isBuildArtifactPath = (p) => /(^|\/)(node_modules|\.git|dist|build|\.next|out|coverage|frontend-build|simplebeacon-vscode-merged|ai-platform)\//i.test(p) || /(^|\/)vscode-extension\/out\//i.test(p) || /\.map$/i.test(p);
+      const isBuildArtifactPath = (path) => /(^|\/)(node_modules|\.git|dist|build|\.next|out|coverage|frontend-build|simplebeacon-vscode-merged|ai-platform)\//i.test(path) || /(^|\/)vscode-extension\/out\//i.test(path) || /\.map$/i.test(path);
       const allIssues = (Array.isArray(srcIssues) ? srcIssues : []).map(issue => {
         const sev = issue.severity || issue.severityBand || 'low';
         const type = issue.type || 'Unknown';
@@ -865,33 +976,96 @@
       const projectKey=String(pn).replace(/[^a-z0-9]/gi,'_');
       projectNameEl.textContent='Project: '+pn;
       scanDateEl.textContent=report.generatedAt?new Date(report.generatedAt).toLocaleDateString():'—';
-      const qs=src.qualityScore!=null?Number(src.qualityScore):null;
-      const sc=src.schemaCompliance!=null?Number(src.schemaCompliance):null;
-      const cs=src.consistencyScore!=null?Number(src.consistencyScore):null;
+      const qualityScore=src.qualityScore!=null?Number(src.qualityScore):null;
+      const schemaComplianceScore=src.schemaCompliance!=null?Number(src.schemaCompliance):null;
+      const consistencyScore=src.consistencyScore!=null?Number(src.consistencyScore):null;
       const issues=allIssues.length;
       const dupes=src.duplicateGroups!=null?Number(src.duplicateGroups):null;
       const filesAnalyzed=src.filesAnalyzed!=null?Number(src.filesAnalyzed):(src.totalFiles!=null?Number(src.totalFiles):null);
       const cards=[
-        qs!=null?{label:'Quality Score',value:qs+'/100',pct:qs,cls:qs>=85?'score-good':qs>=70?'score-warn':'score-bad'}:null,
-        sc!=null?{label:'Schema Compliance',value:sc+'%',pct:sc,cls:sc===100?'score-good':sc>=80?'score-warn':'score-bad'}:null,
-        cs!=null?{label:'Consistency',value:cs+'%',pct:cs,cls:cs===100?'score-good':cs>=80?'score-warn':'score-bad'}:null,
+        qualityScore!=null?{label:'Quality Score',value:qualityScore+'/100',pct:qualityScore,cls:qualityScore>=85?'score-good':qualityScore>=70?'score-warn':'score-bad'}:null,
+        schemaComplianceScore!=null?{label:'Schema Compliance',value:schemaComplianceScore+'%',pct:schemaComplianceScore,cls:schemaComplianceScore===100?'score-good':schemaComplianceScore>=80?'score-warn':'score-bad'}:null,
+        consistencyScore!=null?{label:'Consistency',value:consistencyScore+'%',pct:consistencyScore,cls:consistencyScore===100?'score-good':consistencyScore>=80?'score-warn':'score-bad'}:null,
         issues!=null?{label:'Total Issues',value:String(issues),pct:Math.max(0,100-issues*3),cls:issues===0?'score-good':issues<10?'score-warn':'score-bad'}:null,
         dupes!=null?{label:'Duplicate Groups',value:String(dupes),pct:dupes===0?100:Math.max(0,100-dupes*10),cls:dupes===0?'score-good':dupes<5?'score-warn':'score-bad'}:null,
         filesAnalyzed!=null?{label:'Files Analyzed',value:String(filesAnalyzed),rawValue:String(filesAnalyzed)+(src.excludedCount!=null&&src.excludedCount>0?` <span style="font-size:0.7rem;color:var(--text-dim);">(${src.excludedCount} excluded)</span>`:''),pct:100,cls:'score-info'}:null
       ].filter(Boolean);
-      scorecardsEl.innerHTML=cards.map(c=>`<div class="scorecard ${c.cls}"><div class="scorecard-label">${escapeHtml(c.label)}</div><div class="scorecard-value">${c.rawValue || escapeHtml(c.value)}</div><div class="scorecard-delta">${c.pct}% health</div><div class="scorecard-bar"><div class="scorecard-bar-fill" style="width:${c.pct}%"></div></div></div>`).join('');
+      scorecardsEl.textContent='';
+      cards.forEach(card=>{
+        const el=document.createElement('div');
+        el.className='scorecard '+card.cls;
+        const lbl=document.createElement('div');
+        lbl.className='scorecard-label';
+        lbl.textContent=card.label;
+        el.appendChild(lbl);
+        const val=document.createElement('div');
+        val.className='scorecard-value';
+        val.textContent=card.rawValue ? card.rawValue.replace(/<[^>]+>/g,'') : card.value;
+        el.appendChild(val);
+        const delta=document.createElement('div');
+        delta.className='scorecard-delta';
+        delta.textContent=card.pct+'% health';
+        el.appendChild(delta);
+        const bar=document.createElement('div');
+        bar.className='scorecard-bar';
+        const fill=document.createElement('div');
+        fill.className='scorecard-bar-fill';
+        fill.style.width=card.pct+'%';
+        bar.appendChild(fill);
+        el.appendChild(bar);
+        scorecardsEl.appendChild(el);
+      });
 
       // Overall health ring
-      const completedCount=roadmap.phases.filter(p=>p.status==='completed').length;
-      const blockedCount=roadmap.phases.filter(p=>p.status==='pending'&&p.severity==='critical').length;
-      const totalWeight=roadmap.phases.reduce((a,p)=>a+(p.status==='completed'?1:p.status==='in-progress'?0.5:0),0);
+      const completedCount=roadmap.phases.filter(phase=>phase.status==='completed').length;
+      const blockedCount=roadmap.phases.filter(phase=>phase.status==='pending'&&phase.severity==='critical').length;
+      const totalWeight=roadmap.phases.reduce((acc,phase)=>acc+(phase.status==='completed'?1:phase.status==='in-progress'?0.5:0),0);
       const overallPct=roadmap.phases.length?Math.round((totalWeight/roadmap.phases.length)*100):0;
       const ringColor=overallPct>=85?'#10B981':(overallPct>=60?'#F59E0B':'#EF4444');
       const overallHealthEl=document.getElementById('overallHealth');
       if(overallHealthEl){
         const circumference=2*Math.PI*36;
         const offset=circumference-(overallPct/100)*circumference;
-        overallHealthEl.innerHTML=`<div class="overall-health"><div class="health-ring"><svg viewBox="0 0 80 80"><circle class="health-ring-bg" cx="40" cy="40" r="36"/><circle class="health-ring-fill" cx="40" cy="40" r="36" stroke-dasharray="${circumference}" stroke-dashoffset="${offset}" style="stroke:${ringColor}"/></svg><div class="health-ring-text" style="color:${ringColor}">${overallPct}%</div></div><div class="health-details"><div class="health-title">Project Health</div><div class="health-subtitle">${completedCount} of ${roadmap.phases.length} phases completed${blockedCount>0?'; '+blockedCount+' blocked by critical issues':''}</div><div class="health-eta">Estimated completion: ${estimateEta(roadmap)}</div></div></div>`;
+        overallHealthEl.textContent='';
+        const ohContainer=document.createElement('div');
+        ohContainer.className='overall-health';
+        const ringWrap=document.createElement('div');
+        ringWrap.className='health-ring';
+        const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+        svg.setAttribute('viewBox','0 0 80 80');
+        const c1=document.createElementNS('http://www.w3.org/2000/svg','circle');
+        c1.setAttribute('class','health-ring-bg');
+        c1.setAttribute('cx','40');c1.setAttribute('cy','40');c1.setAttribute('r','36');
+        const c2=document.createElementNS('http://www.w3.org/2000/svg','circle');
+        c2.setAttribute('class','health-ring-fill');
+        c2.setAttribute('cx','40');c2.setAttribute('cy','40');c2.setAttribute('r','36');
+        c2.setAttribute('stroke-dasharray',String(circumference));
+        c2.setAttribute('stroke-dashoffset',String(offset));
+        c2.style.stroke=ringColor;
+        svg.appendChild(c1);svg.appendChild(c2);
+        ringWrap.appendChild(svg);
+        const ringText=document.createElement('div');
+        ringText.className='health-ring-text';
+        ringText.style.color=ringColor;
+        ringText.textContent=overallPct+'%';
+        ringWrap.appendChild(ringText);
+        ohContainer.appendChild(ringWrap);
+        const details=document.createElement('div');
+        details.className='health-details';
+        const ht=document.createElement('div');
+        ht.className='health-title';
+        ht.textContent='Project Health';
+        details.appendChild(ht);
+        const hs=document.createElement('div');
+        hs.className='health-subtitle';
+        hs.textContent=completedCount+' of '+roadmap.phases.length+' phases completed'+(blockedCount>0?'; '+blockedCount+' blocked by critical issues':'');
+        details.appendChild(hs);
+        const he=document.createElement('div');
+        he.className='health-eta';
+        he.textContent='Estimated completion: '+estimateEta(roadmap);
+        details.appendChild(he);
+        ohContainer.appendChild(details);
+        overallHealthEl.appendChild(ohContainer);
       }
 
       // Findings banner
@@ -909,7 +1083,17 @@
         if(vuln>0)chips.push(`<div class="finding-chip high">${vuln} Vuln</div>`);
         if(wc>0)chips.push(`<div class="finding-chip medium">${wc} Warning</div>`);
         if(debug>0)chips.push(`<div class="finding-chip low">${debug} Debug</div>`);
-        bannerEl.innerHTML=chips.length?`<div class="findings-banner">${chips.join('')}</div>`:'';
+        bannerEl.textContent='';
+        if(chips.length>0){
+          const bannerWrap=document.createElement('div');
+          bannerWrap.className='findings-banner';
+          chips.forEach(chipHtml=>{
+            const wrap=document.createElement('div');
+            wrap.innerHTML=chipHtml;
+            while(wrap.firstChild)bannerWrap.appendChild(wrap.firstChild);
+          });
+          bannerEl.appendChild(bannerWrap);
+        }
       }
 
       // Global progress bar
@@ -917,7 +1101,7 @@
       const globalProgressFill=document.getElementById('globalProgressFill');
       const globalProgressText=document.getElementById('globalProgressText');
       if(globalProgressEl&&globalProgressFill&&globalProgressText){
-        const overallPct=roadmap.phases.length?Math.round((roadmap.phases.filter(p=>p.status==='completed').length/roadmap.phases.length)*100):0;
+        const overallPct=roadmap.phases.length?Math.round((roadmap.phases.filter(phase=>phase.status==='completed').length/roadmap.phases.length)*100):0;
         globalProgressEl.style.display='block';
         globalProgressFill.style.width=overallPct+'%';
         globalProgressText.textContent=overallPct+'%';
@@ -926,26 +1110,14 @@
       // Render phases with interactive checkboxes and expand/collapse
       window._roadmapProjectKey=projectKey;
       window._currentRoadmap=roadmap;
-      timelineEl.innerHTML=roadmap.phases.map((p,phaseIdx)=>{
-        const sc=p.status==='completed'?'completed':p.status==='blocked'?'blocked':p.status==='in-progress'?'in-progress':'';
-        const extraClass=p.status==='blocked'||(p.status==='pending'&&p.severity==='critical')?' blocked':'';
-        const pt=p.status==='completed'?'Complete':p.status==='blocked'?'Blocked':p.status==='in-progress'?'In Progress':'Not Started';
-        const collapsed=phaseIdx>0&&p.status==='completed'?' collapsed':'';
-        const depBlock=p.dependsOn?`<div class="dep-line"><span class="dep-arrow">↳</span> Depends on <strong>${escapeHtml(roadmap.phases.find(x=>x.id===p.dependsOn)?.title||p.dependsOn)}</strong></div>`:'';
-        const depClass=p.dependsOn?' depends-on-critical':'';
-        const completedMark=p.status==='completed'?' <span style="color:var(--success);margin-left:4px;">✓</span>':'';
-        const statusBadgeClass=p.status==='completed'?'complete':p.status==='blocked'?'blocked':p.status==='in-progress'?'in-progress':'incomplete';
-        const statusBadgeText=p.status==='completed'?'COMPLETE':p.status==='blocked'?'BLOCKED':p.status==='in-progress'?'IN PROGRESS':'INCOMPLETE';
-        const statusBadgeHtml='<span class="phase-status-badge '+statusBadgeClass+'">'+statusBadgeText+'</span>';
-        const progressFillStyle=p.status==='completed'?'background:var(--success)':p.status==='blocked'?'background:var(--error)':'background:linear-gradient(90deg,var(--accent),var(--info))';
-        const markAllBtn=p.status==='completed'?'':`<button class="phase-action-btn done" data-action="markall" data-phase="${p.id}">✓ Mark All Done</button>`;
-        const taskTypeBar=buildPhaseTaskTypeBar(p.tasks);
-        const TASK_OVERFLOW_LIMIT=10;
-        const totalTasks=p.tasks.length;
-        const hasOverflow=totalTasks>TASK_OVERFLOW_LIMIT;
-        const taskItemsHtml=(()=>{return p.tasks.map((t,taskIdx)=>{const done=p.status==='completed'?true:(t&&t.done?true:loadTaskState(projectKey,p.id,taskIdx));if(p.status==='completed')saveTaskState(projectKey,p.id,taskIdx,true);if(typeof t==='object'&&t!=null)t.done=done;const timeSpent=loadTaskTime(projectKey,p.id,taskIdx);const taskText=typeof t==='object'&&t.html?t.html:(typeof t==='object'&&t!=null&&t.description?buildStructuredTaskHtml(t):escapeHtml(t));const copyBtn='<span class="task-copy" data-phase="'+p.id+'" data-task="'+taskIdx+'" title="Copy task">&#128203;</span>';const overflowClass=(hasOverflow&&taskIdx>=TASK_OVERFLOW_LIMIT)?' phase-task-overflow':'';return '<li tabindex="0" class="'+(done?'done ':'')+overflowClass+'" data-phase="'+p.id+'" data-task="'+taskIdx+'"><span class="task-check'+(done?' checked':'')+'"></span><span class="task-text">'+taskText+'</span>'+copyBtn+'<span class="task-timer" data-phase="'+p.id+'" data-task="'+taskIdx+'"><span class="timer-btn">&#9654;</span><span class="timer-display">'+formatTime(timeSpent)+'</span></span></li>';}).join('')+(hasOverflow?'<li class="phase-expand-li" style="list-style:none;padding-left:0;margin-left:-8px;border-bottom:none;"><button class="phase-action-btn phase-expand-btn" data-action="expand-tasks" data-phase="'+p.id+'">Show '+(totalTasks-TASK_OVERFLOW_LIMIT)+' more tasks</button></li>':'');})();
-        return '<div class="timeline-phase '+sc+extraClass+depClass+'" data-status="'+p.status+'" data-phase="'+p.id+'"><div class="phase-card'+collapsed+'">'+depBlock+'<div class="phase-header"><div class="phase-title">'+escapeHtml(p.title)+completedMark+'</div><div class="phase-meta">'+statusBadgeHtml+'<span class="phase-badge badge-'+escapeHtml(p.severity)+'">'+escapeHtml(p.severity)+'</span><span class="phase-badge badge-effort">'+escapeHtml(p.effort)+'</span><span class="phase-toggle">▼</span></div></div><div class="phase-desc">'+escapeHtml(p.description)+'</div>'+(p.extraHtml||'')+taskTypeBar+'<ul class="phase-tasks">'+taskItemsHtml+'</ul><div class="phase-progress"><div class="phase-progress-label"><span>'+pt+'</span><span>'+p.progress+'%</span></div><div class="phase-progress-bar"><div class="phase-progress-fill" style="width:'+p.progress+'%;'+progressFillStyle+'"></div></div></div><div class="phase-actions">'+markAllBtn+'<button class="phase-action-btn" data-action="copy-phase" data-phase="'+p.id+'" title="Copy all tasks as markdown">&#128203; Copy Phase</button><button class="phase-action-btn" data-action="download-json" data-phase="'+p.id+'">Download JSON</button><button class="phase-action-btn" data-action="collapse" data-phase="'+p.id+'">Toggle Details</button></div></div></div>';
-      }).join('');
+      timelineEl.textContent='';
+      const tlFrag=document.createDocumentFragment();
+      roadmap.phases.forEach((phase,phaseIdx)=>{
+        const wrapper=document.createElement('div');
+        wrapper.innerHTML=buildPhaseCardHtml(phase,phaseIdx,projectKey,roadmap);
+        while(wrapper.firstChild)tlFrag.appendChild(wrapper.firstChild);
+      });
+      timelineEl.appendChild(tlFrag);
 
       // Wire up interactivity
       wirePhaseInteractions(projectKey);
@@ -964,36 +1136,91 @@
       const severities = Object.keys(sevCounts).sort((a, b) => (sevOrder[a] || 99) - (sevOrder[b] || 99));
       let activeIssueFilter = 'all';
       let activeIssueQuery = '';
+      let _issuesChunkSize = 30;
+      let _issuesObserver = null;
+      function buildIssueHtml(issue){
+        const sevClass = issue.sev;
+        const fileHtml = issue.files.slice(0, 5).map(f => `<code>${escapeHtml(f)}</code>`).join(', ') + (issue.files.length > 5 ? ` <span style="color:var(--text-dim);font-size:0.7rem;">+${issue.files.length - 5} more</span>` : '');
+        const impactHtml = issue.impact ? `<div class="issue-impact">${escapeHtml(issue.impact)}</div>` : '';
+        const fixHtml = issue.fix ? `<div class="issue-fix">${escapeHtml(issue.fix)}</div>` : '';
+        return `<div class="issue-item" data-severity="${escapeHtml(issue.sev)}">
+          <div class="issue-header">
+            <span class="issue-severity ${sevClass}">${escapeHtml(issue.sev)}</span>
+            <span class="issue-type">${escapeHtml(issue.type)}</span>
+            <span class="issue-count">${issue.count} hit${issue.count === 1 ? '' : 's'}</span>
+          </div>
+          <div class="issue-files">Files: ${fileHtml || '<em>none</em>'}</div>
+          ${impactHtml}${fixHtml}
+        </div>`;
+      }
       function renderIssues() {
         if (!allIssuesListEl) return;
+        if (_issuesObserver) { _issuesObserver.disconnect(); _issuesObserver = null; }
         let filtered = allIssues.filter(i => activeIssueFilter === 'all' || i.sev === activeIssueFilter);
         if (activeIssueQuery) {
           const q = activeIssueQuery.toLowerCase();
           filtered = filtered.filter(i => i.type.toLowerCase().includes(q) || i.files.some(f => f.toLowerCase().includes(q)) || (i.impact && i.impact.toLowerCase().includes(q)) || (i.fix && i.fix.toLowerCase().includes(q)));
         }
         if (filtered.length === 0) {
-          allIssuesListEl.innerHTML = '<div class="issue-empty">No issues match the current filter.</div>';
-        } else {
-          allIssuesListEl.innerHTML = filtered.map(issue => {
-            const sevClass = issue.sev;
-            const fileHtml = issue.files.slice(0, 5).map(f => `<code>${escapeHtml(f)}</code>`).join(', ') + (issue.files.length > 5 ? ` <span style="color:var(--text-dim);font-size:0.7rem;">+${issue.files.length - 5} more</span>` : '');
-            const impactHtml = issue.impact ? `<div class="issue-impact">${escapeHtml(issue.impact)}</div>` : '';
-            const fixHtml = issue.fix ? `<div class="issue-fix">${escapeHtml(issue.fix)}</div>` : '';
-            return `<div class="issue-item" data-severity="${escapeHtml(issue.sev)}">
-              <div class="issue-header">
-                <span class="issue-severity ${sevClass}">${escapeHtml(issue.sev)}</span>
-                <span class="issue-type">${escapeHtml(issue.type)}</span>
-                <span class="issue-count">${issue.count} hit${issue.count === 1 ? '' : 's'}</span>
-              </div>
-              <div class="issue-files">Files: ${fileHtml || '<em>none</em>'}</div>
-              ${impactHtml}${fixHtml}
-            </div>`;
-          }).join('');
+          allIssuesListEl.textContent = '';
+          const emptyDiv = document.createElement('div');
+          emptyDiv.className = 'issue-empty';
+          emptyDiv.textContent = 'No issues match the current filter.';
+          allIssuesListEl.appendChild(emptyDiv);
+          if (issueSearchHitsEl) issueSearchHitsEl.textContent = 'Showing 0 of '+allIssues.length+' issues';
+          return;
         }
-        if (issueSearchHitsEl) issueSearchHitsEl.textContent = `Showing ${filtered.length} of ${allIssues.length} issues`;
+        const sentinelId='issue-sentinel-'+Date.now();
+        allIssuesListEl.textContent = '';
+        const frag=document.createDocumentFragment();
+        filtered.slice(0,_issuesChunkSize).forEach(issue=>{
+          const wrapper=document.createElement('div');
+          wrapper.innerHTML=buildIssueHtml(issue);
+          while(wrapper.firstChild)frag.appendChild(wrapper.firstChild);
+        });
+        const sentinel=document.createElement('div');
+        sentinel.id=sentinelId;
+        sentinel.style.height='1px';
+        frag.appendChild(sentinel);
+        allIssuesListEl.appendChild(frag);
+        if (issueSearchHitsEl) issueSearchHitsEl.textContent = 'Showing '+Math.min(_issuesChunkSize,filtered.length)+' of '+filtered.length+' issues (lazy)';
+        if (filtered.length <= _issuesChunkSize) return;
+        let nextIdx = _issuesChunkSize;
+        _issuesObserver = new IntersectionObserver((entries)=>{
+          entries.forEach(entry=>{
+            if(entry.isIntersecting){
+              const chunk=filtered.slice(nextIdx,nextIdx+_issuesChunkSize);
+              if(chunk.length===0){_issuesObserver.disconnect();return;}
+              const frag=document.createDocumentFragment();
+              chunk.forEach(issue=>{
+                const wrapper=document.createElement('div');
+                wrapper.innerHTML=buildIssueHtml(issue);
+                while(wrapper.firstChild)frag.appendChild(wrapper.firstChild);
+              });
+              allIssuesListEl.insertBefore(frag,entry.target);
+              nextIdx+=_issuesChunkSize;
+              if (issueSearchHitsEl) issueSearchHitsEl.textContent = 'Showing '+Math.min(nextIdx,filtered.length)+' of '+filtered.length+' issues';
+              if(nextIdx>=filtered.length){_issuesObserver.disconnect();entry.target.remove();}
+            }
+          });
+        },{root:allIssuesListEl,rootMargin:'200px 0px'});
+        const sentinelEl=document.getElementById(sentinelId);
+        if(sentinelEl)_issuesObserver.observe(sentinelEl);
       }
       if (issueSeverityFiltersEl) {
-        issueSeverityFiltersEl.innerHTML = '<button class="filter-btn active" data-sev="all">All (' + allIssues.length + ')</button>' + severities.map(s => `<button class="filter-btn" data-sev="${escapeHtml(s)}">${escapeHtml(s)} (${sevCounts[s]})</button>`).join('');
+        issueSeverityFiltersEl.textContent = '';
+        const allBtn = document.createElement('button');
+        allBtn.className = 'filter-btn active';
+        allBtn.dataset.sev = 'all';
+        allBtn.textContent = 'All (' + allIssues.length + ')';
+        issueSeverityFiltersEl.appendChild(allBtn);
+        severities.forEach(severity => {
+          const btn = document.createElement('button');
+          btn.className = 'filter-btn';
+          btn.dataset.sev = severity;
+          btn.textContent = severity + ' (' + sevCounts[severity] + ')';
+          issueSeverityFiltersEl.appendChild(btn);
+        });
         issueSeverityFiltersEl.querySelectorAll('.filter-btn').forEach(btn => {
           btn.addEventListener('click', () => {
             issueSeverityFiltersEl.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
@@ -1004,10 +1231,10 @@
         });
       }
       if (issueSearchInput) {
-        issueSearchInput.addEventListener('input', () => {
+        issueSearchInput.addEventListener('input', debounce(() => {
           activeIssueQuery = issueSearchInput.value.trim();
           renderIssues();
-        });
+        }, 150));
       }
       renderIssues();
 
@@ -1033,6 +1260,7 @@
           allExpanded = !allExpanded;
           document.querySelectorAll('.phase-card').forEach(card => {
             card.classList.toggle('collapsed', !allExpanded);
+            card.setAttribute('aria-expanded', allExpanded?'true':'false');
           });
           toggleBtn.textContent = allExpanded ? 'Collapse All' : 'Show All';
         });
@@ -1131,19 +1359,19 @@
       if(!window._currentRoadmap)return;
       const rm=window._currentRoadmap;
       const pk=window._roadmapProjectKey||'project';
-      const completedCount=rm.phases.filter(p=>p.status==='completed').length;
-      const blockedCount=rm.phases.filter(p=>p.status==='blocked').length;
+      const completedCount=rm.phases.filter(phase=>phase.status==='completed').length;
+      const blockedCount=rm.phases.filter(phase=>phase.status==='blocked').length;
       // Recalculate task-based progress for each phase
       let totalWeight=0;
-      rm.phases.forEach(p=>{
-        const card=document.querySelector('.timeline-phase[data-phase="'+p.id+'"] .phase-card');
+      rm.phases.forEach(phase=>{
+        const card=document.querySelector('.timeline-phase[data-phase="'+phase.id+'"] .phase-card');
         if(card){
           const tasks=card.querySelectorAll('.phase-tasks li');
           const doneCount=card.querySelectorAll('.phase-tasks li.done').length;
           const pct=tasks.length?Math.round((doneCount/tasks.length)*100):0;
           totalWeight+=(pct>=95?1:pct>0?0.5:0);
         } else {
-          totalWeight+=(p.status==='completed'?1:p.status==='in-progress'?0.5:0);
+          totalWeight+=(phase.status==='completed'?1:phase.status==='in-progress'?0.5:0);
         }
       });
       const overallPct=rm.phases.length?Math.round((totalWeight/rm.phases.length)*100):0;
@@ -1152,7 +1380,46 @@
       if(overallHealthEl){
         const circumference=2*Math.PI*36;
         const offset=circumference-(overallPct/100)*circumference;
-        overallHealthEl.innerHTML=`<div class="overall-health"><div class="health-ring"><svg viewBox="0 0 80 80"><circle class="health-ring-bg" cx="40" cy="40" r="36"/><circle class="health-ring-fill" cx="40" cy="40" r="36" stroke-dasharray="${circumference}" stroke-dashoffset="${offset}" style="stroke:${ringColor}"/></svg><div class="health-ring-text" style="color:${ringColor}">${overallPct}%</div></div><div class="health-details"><div class="health-title">Project Health</div><div class="health-subtitle">${completedCount} of ${rm.phases.length} phases completed${blockedCount>0?'; '+blockedCount+' blocked by critical issues':''}</div><div class="health-eta">Estimated completion: ${estimateEta(rm)}</div></div></div>`;
+        overallHealthEl.textContent='';
+        const ohContainer=document.createElement('div');
+        ohContainer.className='overall-health';
+        const ringWrap=document.createElement('div');
+        ringWrap.className='health-ring';
+        const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+        svg.setAttribute('viewBox','0 0 80 80');
+        const c1=document.createElementNS('http://www.w3.org/2000/svg','circle');
+        c1.setAttribute('class','health-ring-bg');
+        c1.setAttribute('cx','40');c1.setAttribute('cy','40');c1.setAttribute('r','36');
+        const c2=document.createElementNS('http://www.w3.org/2000/svg','circle');
+        c2.setAttribute('class','health-ring-fill');
+        c2.setAttribute('cx','40');c2.setAttribute('cy','40');c2.setAttribute('r','36');
+        c2.setAttribute('stroke-dasharray',String(circumference));
+        c2.setAttribute('stroke-dashoffset',String(offset));
+        c2.style.stroke=ringColor;
+        svg.appendChild(c1);svg.appendChild(c2);
+        ringWrap.appendChild(svg);
+        const ringText=document.createElement('div');
+        ringText.className='health-ring-text';
+        ringText.style.color=ringColor;
+        ringText.textContent=overallPct+'%';
+        ringWrap.appendChild(ringText);
+        ohContainer.appendChild(ringWrap);
+        const details=document.createElement('div');
+        details.className='health-details';
+        const ht=document.createElement('div');
+        ht.className='health-title';
+        ht.textContent='Project Health';
+        details.appendChild(ht);
+        const hs=document.createElement('div');
+        hs.className='health-subtitle';
+        hs.textContent=completedCount+' of '+rm.phases.length+' phases completed'+(blockedCount>0?'; '+blockedCount+' blocked by critical issues':'');
+        details.appendChild(hs);
+        const he=document.createElement('div');
+        he.className='health-eta';
+        he.textContent='Estimated completion: '+estimateEta(rm);
+        details.appendChild(he);
+        ohContainer.appendChild(details);
+        overallHealthEl.appendChild(ohContainer);
       }
       // Update global progress bar
       const globalProgressFill=document.getElementById('globalProgressFill');
@@ -1175,26 +1442,62 @@
         if(searchEl){searchEl.focus();searchEl.select();}
       }
     });
+    function debounce(callback,delayMs){let t;return function(...args){clearTimeout(t);t=setTimeout(()=>callback.apply(this,args),delayMs);};}
+    function highlightText(node,q){
+      if(!q)return;
+      const walker=document.createTreeWalker(node,NodeFilter.SHOW_TEXT,null,false);
+      const nodes=[];
+      while(walker.nextNode())nodes.push(walker.currentNode);
+      nodes.forEach(textNode=>{
+        const text=textNode.textContent;
+        const index=text.toLowerCase().indexOf(q);
+        if(index===-1)return;
+        const span=document.createElement('span');
+        span.className='search-highlight';
+        span.style.background='rgba(245,158,11,0.3)';
+        span.style.borderRadius='3px';
+        span.style.padding='0 2px';
+        const before=text.slice(0,index);
+        const match=text.slice(index,index+q.length);
+        const after=text.slice(index+q.length);
+        const parent=textNode.parentNode;
+        if(before)parent.insertBefore(document.createTextNode(before),textNode);
+        span.textContent=match;
+        parent.insertBefore(span,textNode);
+        if(after)parent.insertBefore(document.createTextNode(after),textNode);
+        parent.removeChild(textNode);
+      });
+    }
+    function clearHighlights(container){
+      container.querySelectorAll('.search-highlight').forEach(el=>{
+        const parent=el.parentNode;
+        parent.insertBefore(document.createTextNode(el.textContent),el);
+        parent.removeChild(el);
+        parent.normalize();
+      });
+    }
     function wireSearchFilter(){
       const searchEl=document.getElementById('taskSearch');
       const hitsEl=document.getElementById('searchHits');
       if(!searchEl)return;
-      searchEl.addEventListener('input',()=>{
+      const doSearch=()=>{
         const q=searchEl.value.trim().toLowerCase();
+        document.querySelectorAll('.timeline-phase').forEach(el=>clearHighlights(el));
         if(!q){hitsEl.textContent='';document.querySelectorAll('.phase-tasks li').forEach(li=>li.style.display='');document.querySelectorAll('.timeline-phase').forEach(el=>el.style.display='');applyPhaseFilter(currentFilter||'all');return;}
         let hitCount=0;
         document.querySelectorAll('.phase-tasks li').forEach(li=>{
           const text=li.textContent.toLowerCase();
           const show=text.includes(q);
           li.style.display=show?'':'none';
-          if(show)hitCount++;
+          if(show){hitCount++;highlightText(li,q);}
         });
         document.querySelectorAll('.timeline-phase').forEach(el=>{
           const visibleTasks=el.querySelectorAll('.phase-tasks li:not([style*="display: none"])').length;
           el.style.display=visibleTasks>0?'block':'none';
         });
         hitsEl.textContent=hitCount+' task'+(hitCount===1?'':'s')+' matched';
-      });
+      };
+      searchEl.addEventListener('input',debounce(doSearch,150));
     }
     function computeSprintMetrics() {
       if (!window._currentRoadmap) return;
@@ -1241,6 +1544,7 @@
         card.addEventListener('click',e=>{
           if(e.target.closest('.phase-tasks'))return;
           card.classList.toggle('collapsed');
+          card.setAttribute('aria-expanded', card.classList.contains('collapsed')?'false':'true');
         });
       });
       document.querySelectorAll('.phase-tasks li').forEach(li=>{
@@ -1252,7 +1556,7 @@
           const isDone=!li.classList.contains('done');
           li.classList.toggle('done',isDone);
           const check=li.querySelector('.task-check');
-          if(check)check.classList.toggle('checked',isDone);
+          if(check){check.classList.toggle('checked',isDone);check.setAttribute('aria-checked',isDone?'true':'false');}
           saveTaskState(projectKey,phaseId,taskIdx,isDone);
           const card=li.closest('.phase-card');
           const tasks=card.querySelectorAll('.phase-tasks li');
@@ -1266,10 +1570,26 @@
           updatePhaseState(phaseId);
           updateOverallHealth();
           updateSprintTracker();
-          // Completion flash when phase reaches 100%
+          // Completion flash + confetti when phase reaches 100%
           if(pct>=95){
             const phaseEl=li.closest('.timeline-phase');
             if(phaseEl){phaseEl.classList.add('phase-complete-flash');setTimeout(()=>phaseEl.classList.remove('phase-complete-flash'),900);}
+            fireConfetti(card);
+          }
+        });
+        li.addEventListener('keydown',e=>{
+          if(e.key==='Enter'||e.key===' '){
+            e.preventDefault();
+            li.click();
+          } else if(e.key==='ArrowUp'||e.key==='ArrowDown'){
+            e.preventDefault();
+            const card=li.closest('.phase-card');
+            const allTasks=Array.from(card.querySelectorAll('.phase-tasks li'));
+            const visible=allTasks.filter(t=>t.style.display!=='none');
+            const idx=visible.indexOf(li);
+            if(idx===-1)return;
+            const next=e.key==='ArrowUp'?visible[idx-1]:visible[idx+1];
+            if(next){next.focus();}
           }
         });
       });
@@ -1285,25 +1605,25 @@
             const elapsed=Math.floor((Date.now()-start)/1000);
             const prev=loadTaskTime(projectKey,phaseId,taskIdx);
             saveTaskTime(projectKey,phaseId,taskIdx,prev+elapsed);
-            timer.querySelector('.timer-btn').innerHTML='&#9654;';
+            timer.querySelector('.timer-btn').textContent='\u25B6';
             const disp=timer.querySelector('.timer-display');
             if(disp)disp.textContent=formatTime(prev+elapsed);
             showToast('Timer stopped — '+formatTime(prev+elapsed)+' total','success');
           }else{
-            document.querySelectorAll('.task-timer.running').forEach(t=>{
-              const p=t.dataset.phase,idx=parseInt(t.dataset.task,10);
-              const s=parseInt(t.dataset.startedAt,10);
-              const el=Math.floor((Date.now()-s)/1000);
-              const pr=loadTaskTime(projectKey,p,idx);
-              saveTaskTime(projectKey,p,idx,pr+el);
-              t.classList.remove('running');
-              t.querySelector('.timer-btn').innerHTML='&#9654;';
-              const disp=t.querySelector('.timer-display');
-              if(disp)disp.textContent=formatTime(pr+el);
+            document.querySelectorAll('.task-timer.running').forEach(runningTimer=>{
+              const phaseId=runningTimer.dataset.phase,index=parseInt(runningTimer.dataset.task,10);
+              const s=parseInt(runningTimer.dataset.startedAt,10);
+              const elapsedSeconds=Math.floor((Date.now()-s)/1000);
+              const prevTime=loadTaskTime(projectKey,phaseId,index);
+              saveTaskTime(projectKey,phaseId,index,prevTime+elapsedSeconds);
+              runningTimer.classList.remove('running');
+              runningTimer.querySelector('.timer-btn').textContent='\u25B6';
+              const disp=runningTimer.querySelector('.timer-display');
+              if(disp)disp.textContent=formatTime(prevTime+elapsedSeconds);
             });
             timer.classList.add('running');
             timer.dataset.startedAt=String(Date.now());
-            timer.querySelector('.timer-btn').innerHTML='&#9632;';
+            timer.querySelector('.timer-btn').textContent='\u25A0';
             showToast('Timer started','success');
           }
         });
@@ -1391,6 +1711,7 @@
           } else if(action==='collapse'){
             const card=btn.closest('.phase-card');
             card.classList.toggle('collapsed');
+            card.setAttribute('aria-expanded', card.classList.contains('collapsed')?'false':'true');
           } else if(action==='download-json'){
             exportPhaseJson(phaseId);
           } else if(action==='copy-phase'){
@@ -1470,8 +1791,14 @@
       header.style.marginBottom='32px';
       header.style.borderBottom='2px solid #2563EB';
       header.style.paddingBottom='16px';
-      header.innerHTML='<h1 style="font-size:1.6rem;font-weight:700;color:#111827;margin-bottom:4px;">SimpleBeacon Remediation Roadmap</h1>'+
-        '<p style="font-size:0.85rem;color:#6b7280;margin:0;">Project: <strong>'+escapeHtml(pk)+'</strong> &middot; Generated '+new Date().toLocaleDateString()+'</p>';
+      const pdfH1=document.createElement('h1');
+      pdfH1.style.fontSize='1.6rem';pdfH1.style.fontWeight='700';pdfH1.style.color='#111827';pdfH1.style.marginBottom='4px';
+      pdfH1.textContent='SimpleBeacon Remediation Roadmap';
+      header.appendChild(pdfH1);
+      const pdfP=document.createElement('p');
+      pdfP.style.fontSize='0.85rem';pdfP.style.color='#6b7280';pdfP.style.margin='0';
+      pdfP.textContent='Project: '+escapeHtml(pk)+' · Generated '+new Date().toLocaleDateString();
+      header.appendChild(pdfP);
       wrapper.appendChild(header);
       const summary=document.createElement('div');
       summary.style.marginBottom='24px';
@@ -1481,15 +1808,29 @@
       summary.style.border='1px solid #e5e7eb';
       const stats=currentRoadmap.phases;
       const total=stats.length;
-      const completed=stats.filter(p=>p.status==='completed').length;
-      const blocked=stats.filter(p=>p.status==='blocked').length;
-      const inProgress=stats.filter(p=>p.status==='in-progress').length;
-      summary.innerHTML='<div style="display:flex;gap:24px;flex-wrap:wrap;justify-content:center;">'+
-        '<div style="text-align:center;"><div style="font-size:1.4rem;font-weight:700;color:#111827;">'+total+'</div><div style="font-size:0.7rem;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;">Phases</div></div>'+
-        '<div style="text-align:center;"><div style="font-size:1.4rem;font-weight:700;color:#10b981;">'+completed+'</div><div style="font-size:0.7rem;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;">Completed</div></div>'+
-        '<div style="text-align:center;"><div style="font-size:1.4rem;font-weight:700;color:#f59e0b;">'+inProgress+'</div><div style="font-size:0.7rem;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;">In Progress</div></div>'+
-        '<div style="text-align:center;"><div style="font-size:1.4rem;font-weight:700;color:#ef4444;">'+blocked+'</div><div style="font-size:0.7rem;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;">Blocked</div></div>'+
-        '</div>';
+      const completed=stats.filter(phase=>phase.status==='completed').length;
+      const blocked=stats.filter(phase=>phase.status==='blocked').length;
+      const inProgress=stats.filter(phase=>phase.status==='in-progress').length;
+      function makeStatBox(number,label,color){
+        const box=document.createElement('div');
+        box.style.textAlign='center';
+        const numDiv=document.createElement('div');
+        numDiv.style.fontSize='1.4rem';numDiv.style.fontWeight='700';numDiv.style.color=color;
+        numDiv.textContent=String(number);
+        box.appendChild(numDiv);
+        const lblDiv=document.createElement('div');
+        lblDiv.style.fontSize='0.7rem';lblDiv.style.color='#6b7280';lblDiv.style.textTransform='uppercase';lblDiv.style.letterSpacing='0.5px';
+        lblDiv.textContent=label;
+        box.appendChild(lblDiv);
+        return box;
+      }
+      const summaryRow=document.createElement('div');
+      summaryRow.style.display='flex';summaryRow.style.gap='24px';summaryRow.style.flexWrap='wrap';summaryRow.style.justifyContent='center';
+      summaryRow.appendChild(makeStatBox(total,'Phases','#111827'));
+      summaryRow.appendChild(makeStatBox(completed,'Completed','#10b981'));
+      summaryRow.appendChild(makeStatBox(inProgress,'In Progress','#f59e0b'));
+      summaryRow.appendChild(makeStatBox(blocked,'Blocked','#ef4444'));
+      summary.appendChild(summaryRow);
       wrapper.appendChild(summary);
       // Comprehensive dark-theme to light-theme color remapping
       const darkToLight={
@@ -1513,7 +1854,7 @@
       footer.style.textAlign='center';
       footer.style.fontSize='0.75rem';
       footer.style.color='#9ca3af';
-      footer.innerHTML='Generated by SimpleBeacon &middot; simplebeacon.dev';
+      footer.textContent='Generated by SimpleBeacon · simplebeacon.dev';
       wrapper.appendChild(footer);
       document.body.appendChild(wrapper);
       const opt={
@@ -1961,8 +2302,75 @@
     document.getElementById('exportTrelloBtn').addEventListener('click',exportAllReportsJson);
     document.getElementById('newScanBtn').addEventListener('click',()=>{app.style.display='none';emptyState.style.display='block';currentReport=null;currentRoadmap=null;fileInput.value='';dropzone.scrollIntoView({behavior:'smooth'});});
     document.getElementById('exportPdfBtn').addEventListener('click', generatePdf);
+    document.getElementById('exportCsvBtn').addEventListener('click',()=>{
+      if(!currentRoadmap||!currentReport){showToast('Load a report first','warning');return;}
+      const pk=String(currentReport.projectRoot||currentReport.projectPath||currentReport.projectName||'Unknown').replace(/[^a-z0-9]/gi,'_');
+      const rows=[['Phase','Severity','Effort','Progress','Status','Task Index','Task Description','Task Type','Done','Location']];
+      currentRoadmap.phases.forEach(p=>{
+        p.tasks.forEach((t,idx)=>{
+          const done=loadTaskState(pk,p.id,idx);
+          let desc='',type='',loc='';
+          if(typeof t==='object'&&t!=null){desc=t.description||'';type=t.type||'';loc=t.location||'';}
+          else if(typeof t==='string'){desc=t;}
+          else if(t&&t.html){desc=t.html.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();}
+          rows.push([p.title,p.severity,p.effort,p.progress+'%',p.status,String(idx+1),desc,type,String(done),loc]);
+        });
+      });
+      const csv=rows.map(r=>r.map(c=>{
+        const s=String(c).replace(/"/g,'""');
+        return (s.includes(',')||s.includes('"')||s.includes('\n'))?'"'+s+'"':s;
+      }).join(',')).join('\n');
+      const blob=new Blob([csv],{type:'text/csv'});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');a.href=url;a.download='roadmap-'+pk+'-'+new Date().toISOString().slice(0,10)+'.csv';a.click();URL.revokeObjectURL(url);
+      showToast('CSV exported','success');
+    });
     document.getElementById('importPhaseBtn').addEventListener('click',()=>document.getElementById('phaseImportInput').click());
     document.getElementById('phaseImportInput').addEventListener('change',e=>{if(e.target.files[0]){importPhaseJson(e.target.files[0]);e.target.value='';}});
+
+    // --- Sticky Action Bar ---
+    (function(){
+      const actionBar=document.querySelector('.action-bar');
+      if(!actionBar)return;
+      const observer=new IntersectionObserver((entries)=>{
+        entries.forEach(entry=>{
+          actionBar.classList.toggle('sticky',!entry.isIntersecting);
+        });
+      },{threshold:0,rootMargin:'-56px 0px 0px 0px'});
+      const hero=document.querySelector('.hero');
+      if(hero)observer.observe(hero);
+    })();
+
+    // --- Collapsible Panels ---
+    function wireCollapseToggle(toggleId,panelId){
+      const toggle=document.getElementById(toggleId);
+      const panel=document.getElementById(panelId);
+      if(!toggle||!panel)return;
+      toggle.addEventListener('click',()=>{
+        const isExpanded=toggle.getAttribute('aria-expanded')!=='false';
+        toggle.setAttribute('aria-expanded',isExpanded?'false':'true');
+        panel.classList.toggle('collapsed',isExpanded);
+      });
+      toggle.addEventListener('keydown',e=>{
+        if(e.key==='Enter'||e.key===' '){e.preventDefault();toggle.click();}
+      });
+    }
+    wireCollapseToggle('allIssuesToggle','allIssuesList');
+    wireCollapseToggle('sourcePreviewToggle','sourcePreviewPanel');
+
+    // --- FAB Actions ---
+    (function(){
+      const fabNew=document.getElementById('fabNewScan');
+      const fabExport=document.getElementById('fabExport');
+      if(fabNew)fabNew.addEventListener('click',()=>{
+        app.style.display='none';emptyState.style.display='block';currentReport=null;currentRoadmap=null;fileInput.value='';dropzone.scrollIntoView({behavior:'smooth'});
+      });
+      if(fabExport)fabExport.addEventListener('click',()=>{
+        if(!currentRoadmap){showToast('Load a report first','warning');return;}
+        exportAllReportsJson();
+      });
+    })();
+
     async function compressSharePayload(jsonStr) {
       try {
         const encoder = new TextEncoder();

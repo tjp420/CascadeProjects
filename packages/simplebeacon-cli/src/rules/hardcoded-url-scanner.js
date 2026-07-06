@@ -30,13 +30,14 @@ const RULES = [
   {
     id: 'SB-SEC-005',
     name: 'Hardcoded IP Address',
-    regex: /\b(?:25[0-5]|2[0-4]\d|1\d{1,2}|\d{1,2})\.(?:25[0-5]|2[0-4]\d|1\d{1,2}|\d{1,2})\.(?:25[0-5]|2[0-4]\d|1\d{1,2}|\d{1,2})\.(?:25[0-5]|2[0-4]\d|1\d{1,2}|\d{1,2})\b/g,
+    regex: /(?<![-+\w.])(?:25[0-5]|2[0-4]\d|1\d{1,2}|\d{1,2})\.(?:25[0-5]|2[0-4]\d|1\d{1,2}|\d{1,2})\.(?:25[0-5]|2[0-4]\d|1\d{1,2}|\d{1,2})\.(?:25[0-5]|2[0-4]\d|1\d{1,2}|\d{1,2})(?![\w.])/g,
     severity: 'medium',
     description: 'Hardcoded IPv4 address — may reference dev/staging/internal infrastructure',
     skipPatterns: [
       /\b0\.0\.0\.0\b/,
       /\b127\.0\.0\.1\b/,
-      /\b255\.255\.255\.255\b/
+      /\b255\.255\.255\.255\b/,
+      /[MLCSQTAVHZmlcsqtavhz][\d.\s,-]{0,40}\d+\.\d+\.\d+\.\d+/  // SVG path data context
     ]
   },
   {

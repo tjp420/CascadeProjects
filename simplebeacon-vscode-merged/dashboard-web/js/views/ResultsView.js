@@ -1,5 +1,6 @@
 import { escapeHtml, showToast, formatPercent, formatNumber, renderEmptyState, apiUrl } from '../utils.js';
 import { getScanFileMetrics, resolveDisplayScore } from '../services/analyzeService.js';
+import { authService } from '../services/authService.js';
 
 const SEVERITIES = ['all', 'high', 'medium', 'low'];
 
@@ -158,7 +159,7 @@ export class ResultsView {
           <p class="results-subtitle">${report ? escapeHtml(report.projectRoot || report.projectPath || 'Scan results') : 'No report loaded'}</p>
         </div>
         <div class="results-header-actions">
-          <button class="btn btn-ghost btn-sm" id="export-full-btn" type="button"><i data-lucide="download" class="icon-16"></i> Export</button>
+          ${authService.isPaidTier() ? `<button class="btn btn-ghost btn-sm" id="export-full-btn" type="button"><i data-lucide="download" class="icon-16"></i> Export</button>` : ''}
           <button class="btn btn-primary btn-sm" id="send-ai-btn" type="button"><i data-lucide="bot" class="icon-16"></i> Send to AI</button>
         </div>
       </div>

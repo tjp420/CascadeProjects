@@ -1,6 +1,6 @@
 'use strict';
 
-const { generateLicenseToken, verifyLicenseToken } = require('../../../../packages/simplebeacon-cli/src/lib/license-token.js');
+const { generateLicenseToken, verifyLicenseToken } = require('../../../server/lib/simplebeacon-proxy.cjs');
 
 function validateProjectToken(req, res, next) {
   const authHeader = String(req.headers.authorization || '');

@@ -120,6 +120,34 @@ export class ProfileView {
     return `${hiddenName}@${hiddenDomain}`;
   }
 
+  renderSecurityKeysList() {
+    const credentials = authService.getWebAuthnCredentials();
+    if (!credentials || credentials.length === 0) {
+      return '<p style="font-size:0.8rem;color:var(--text-muted);margin:0 0 8px;">No security keys registered yet.</p>';
+    }
+    return '<ul style="list-style:none;padding:0;margin:0 0 12px;">' +
+      credentials.map((c, i) => `
+        <li style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;font-size:0.8rem;">
+          <span>🔑 <strong>Key ${i + 1}</strong> · ${escapeHtml(c.id.slice(0, 16))}… · <span style="color:var(--text-muted);">${formatTimeAgo(c.registeredAt)}</span></span>
+          <button type="button" class="input-action remove-key-btn" data-key-id="${escapeHtml(c.id)}" title="Remove">🗑</button>
+        </li>
+      `).join('') +
+    '</ul>';
+  }
+
+  attachRemoveKeyHandlers(container) {
+    container.querySelectorAll('.remove-key-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const keyId = btn.dataset.keyId;
+        if (!keyId) return;
+        authService.removeWebAuthnCredential(keyId);
+        const listEl = container.querySelector('#security-keys-list');
+        if (listEl) listEl.innerHTML = this.renderSecurityKeysList();
+        this.attachRemoveKeyHandlers(container);
+      });
+    });
+  }
+
   synchronizeAdaptiveFormDimming() {
     const activeSelection = document.querySelector('input[name="loginMethod"]:checked')?.value || 'both';
     const emailCard = document.getElementById('profile-card-email-fields');
@@ -225,9 +253,6 @@ export class ProfileView {
     const organization = profile.organization || user.organization || project || '';
     const lastLogin = profile.lastLogin || user.lastLogin || binding?.boundAt || (tokenIat ? new Date(tokenIat * 1000).toISOString() : null);
     const renderKey = `${email}|${token}|${loginMethod}|${displayName}|${organization}`;
-    if (this._container === container && this._renderKey === renderKey && container.querySelector('.profile-page')) {
-      return;
-    }
     this._container = container;
     this._renderKey = renderKey;
     const boundAt = binding?.boundAt || null;
@@ -307,6 +332,14 @@ export class ProfileView {
         .staged-safety-btn.is-staged-warning { background: rgba(245,158,11,0.15) !important; border-color: #f59e0b !important; color: #fbbf24 !important; cursor: not-allowed; pointer-events: none; }
         .staged-safety-btn.is-fully-unlocked { background: #ef4444 !important; border-color: #ef4444 !important; color: #fff !important; animation: criticalDestructionPulse 1s infinite alternate; }
         @keyframes criticalDestructionPulse { from { box-shadow: 0 0 0 0 rgba(239,68,68,0.4); } to { box-shadow: 0 0 12px 3px rgba(239,68,68,0.2); } }
+        .locked-sensitive { position: relative; }
+        .locked-sensitive .lock-overlay { position: absolute; inset: 0; background: rgba(15,23,42,0.85); backdrop-filter: blur(4px); z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: var(--radius-xl); gap: 10px; }
+        .locked-sensitive.unlocked .lock-overlay { display: none; }
+        .lock-overlay-icon { font-size: 2rem; }
+        .lock-overlay-text { color: #94a3b8; font-size: 0.85rem; text-align: center; max-width: 200px; }
+        .lock-overlay-input { width: 200px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text-primary); font-size: 0.85rem; }
+        .lock-overlay-btn { padding: 8px 16px; border-radius: 8px; border: 1px solid var(--primary); background: var(--primary); color: #fff; font-size: 0.85rem; cursor: pointer; }
+        .lock-overlay-btn:hover { opacity: 0.9; }
         @media (max-width: 560px) {
           .profile-page { padding: var(--space-4) var(--space-3) var(--space-6); }
           .profile-hero h1 { font-size: 1.4rem; }
@@ -338,10 +371,10 @@ export class ProfileView {
                 <div class="method-desc">Email + Password</div>
               </label>
               <label class="login-method-card ${loginMethod === 'token' ? 'active' : ''}">
-                <input type="radio" name="loginMethod" value="token" aria-label="Token login method" ${loginMethod === 'token' ? 'checked' : ''}>
+                <input type="radio" name="loginMethod" value="token" aria-label="Sign in with Security Keys" ${loginMethod === 'token' ? 'checked' : ''}>
                 <div class="method-icon">🔑</div>
-                <div class="method-label">Token</div>
-                <div class="method-desc">Token + Password</div>
+                <div class="method-label">Sign in with Security Keys</div>
+                <div class="method-desc">Sign in with Security Keys</div>
               </label>
               <label class="login-method-card ${loginMethod === 'both' ? 'active' : ''}">
                 <input type="radio" name="loginMethod" value="both" aria-label="Both login methods" ${loginMethod === 'both' ? 'checked' : ''}>
@@ -366,14 +399,48 @@ export class ProfileView {
               <input type="text" id="profile-display-name" value="${escapeHtml(displayName)}" placeholder="How you want to be addressed…">
             </div>
             <div class="profile-field">
+              <label for="profile-username">Username</label>
+              <input type="text" id="profile-username" value="${escapeHtml(profile.username || '')}" placeholder="Unique username for your account…">
+            </div>
+            <div class="profile-field">
               <label for="profile-organization">Organization / Project</label>
               <input type="text" id="profile-organization" value="${escapeHtml(organization)}" placeholder="Company or project name…">
             </div>
           </div>
         </div>
 
+        <!-- Profile Lock -->
+        <div class="profile-card" id="profile-lock-card">
+          <div class="profile-card-header">
+            <i data-lucide="shield" class="icon-18"></i>
+            <h2>Profile Lock</h2>
+          </div>
+          <div class="profile-card-body">
+            <p style="font-size:0.85rem;color:var(--text-muted);margin:0 0 14px;">Set a password to protect your sensitive profile details. When locked, email, token, and security key sections are hidden.</p>
+            <div class="profile-field" id="profile-lock-set-field">
+              <label for="profile-password">Set Profile Password</label>
+              <input type="password" id="profile-password" value="" placeholder="Set a password to lock your profile…" autocomplete="new-password">
+            </div>
+            <div class="profile-field" id="profile-lock-confirm-field">
+              <label for="profile-password-confirm">Confirm Password</label>
+              <input type="password" id="profile-password-confirm" value="" placeholder="Re-enter to confirm…" autocomplete="new-password">
+            </div>
+            <div class="profile-field" id="profile-lock-current-field" style="display:none;">
+              <label for="profile-password-current">Current Password</label>
+              <input type="password" id="profile-password-current" value="" placeholder="Enter current password to change…" autocomplete="new-password">
+            </div>
+            <div id="profile-lock-status" style="font-size:0.8rem;margin-top:8px;color:var(--text-muted);"></div>
+          </div>
+        </div>
+
         <!-- Email Credentials -->
-        <div class="profile-card credentials-section-card" id="profile-card-email-fields">
+        <div class="profile-card credentials-section-card locked-sensitive" id="profile-card-email-fields">
+          <div class="lock-overlay">
+            <div class="lock-overlay-icon">🔒</div>
+            <div class="lock-overlay-text">Enter your profile password to view email credentials</div>
+            <input type="password" class="lock-overlay-input" placeholder="Profile password…" data-unlock-target="profile-card-email-fields">
+            <button type="button" class="lock-overlay-btn unlock-btn">Unlock</button>
+          </div>
           <div class="profile-card-header">
             <i data-lucide="mail" class="icon-18"></i>
             <h2>Email Credentials</h2>
@@ -391,40 +458,41 @@ export class ProfileView {
           </div>
         </div>
 
-        <!-- Token Credentials -->
-        <div class="profile-card credentials-section-card" id="profile-card-token-fields">
+        <!-- Security Key -->
+        <div class="profile-card credentials-section-card locked-sensitive" id="profile-card-token-fields">
+          <div class="lock-overlay">
+            <div class="lock-overlay-icon">🔒</div>
+            <div class="lock-overlay-text">Enter your profile password to view security key</div>
+            <input type="password" class="lock-overlay-input" placeholder="Profile password…" data-unlock-target="profile-card-token-fields">
+            <button type="button" class="lock-overlay-btn unlock-btn">Unlock</button>
+          </div>
           <div class="profile-card-header">
             <i data-lucide="key-round" class="icon-18"></i>
-            <h2>License Token</h2>
+            <h2>Security Key</h2>
           </div>
           <div class="profile-card-body">
             <div class="profile-field">
-              <label for="profile-token">Token</label>
+              <label for="profile-token">Security Key</label>
               <div class="profile-input-group">
-                ${this.renderSecureReveal('profile-token', token, 'token')}
+                <input type="password" id="profile-token" value="${escapeHtml(token)}" placeholder="Paste your SimpleBeacon security key…" autocomplete="off" style="flex:1;padding:var(--space-2) var(--space-3);border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface);color:var(--text-primary);font-size:var(--font-size-sm);font-family:var(--font-mono);">
                 <button type="button" class="input-action" id="profile-token-toggle" title="Show/Hide">👁</button>
                 <button type="button" class="input-action" id="profile-token-copy" title="Copy">📋</button>
               </div>
-              <p class="profile-help">Your SimpleBeacon license token. Click 👁 to reveal, 📋 to copy.</p>
-            </div>
-            <div class="profile-field">
-              <label for="profile-token-password">Token Password</label>
-              <input type="password" id="profile-token-password" value="${escapeHtml(profile.tokenPassword || '')}" placeholder="Set a password for token login…" autocomplete="new-password">
-              <p class="profile-help">Used when signing in with Token + Password.</p>
+              <p class="profile-help">Paste your SimpleBeacon security key here. Click 👁 to reveal, 📋 to copy.</p>
             </div>
           </div>
         </div>
 
-        <!-- Account & Token Status -->
+        <!-- Account & Security Key Status -->
         <div class="profile-card">
           <div class="profile-card-header">
             <i data-lucide="ticket-check" class="icon-18"></i>
-            <h2>Account & Token Status</h2>
+            <h2>Account & Security Key Status</h2>
           </div>
           <div class="profile-card-body">
             <div class="session-grid">
               <div class="session-badge">
-                <div class="label">Token Type</div>
+                <div class="label">Key Type</div>
                 <div class="value">${escapeHtml(tokenType)}</div>
               </div>
               <div class="session-badge">
@@ -457,6 +525,28 @@ export class ProfileView {
           </div>
         </div>
 
+        <!-- Security Keys -->
+        <div class="profile-card locked-sensitive">
+          <div class="lock-overlay">
+            <div class="lock-overlay-icon">🔒</div>
+            <div class="lock-overlay-text">Enter your profile password to view security keys</div>
+            <input type="password" class="lock-overlay-input" placeholder="Profile password…" data-unlock-target="security-keys">
+            <button type="button" class="lock-overlay-btn unlock-btn">Unlock</button>
+          </div>
+          <div class="profile-card-header">
+            <i data-lucide="key-round" class="icon-18"></i>
+            <h2>Security Keys</h2>
+          </div>
+          <div class="profile-card-body">
+            <p style="font-size:0.85rem;color:var(--text-muted);margin:0 0 14px;">Register a USB security key (YubiKey, Touch ID, Windows Hello) for passwordless sign-in.</p>
+            <div id="security-keys-list" style="margin-bottom:var(--space-3);">
+              ${this.renderSecurityKeysList()}
+            </div>
+            <button type="button" class="btn btn-primary" id="profile-register-webauthn">🔐 Register New Security Key</button>
+            <p id="webauthn-register-status" class="profile-status" style="margin-top:8px;"></p>
+          </div>
+        </div>
+
         <!-- Actions -->
         <div class="profile-card">
           <div class="profile-card-header">
@@ -470,6 +560,8 @@ export class ProfileView {
               <span class="btn-text">Wipe Cache Metadata</span>
             </button>
             <button type="button" class="btn btn-primary" id="profile-signout-btn" style="background:var(--error);border-color:var(--error);">🚪 Sign Out</button>
+            <button type="button" class="btn btn-primary" id="profile-deactivate-btn" style="background:var(--warning);border-color:var(--warning);">⏸ Deactivate Account</button>
+            <button type="button" class="btn btn-primary" id="profile-delete-btn" style="background:#7f1d1d;border-color:#7f1d1d;">🗑 Delete Account</button>
           </div>
           <p class="profile-status" id="profile-save-status"></p>
         </div>
@@ -510,7 +602,7 @@ export class ProfileView {
 
     // Track if any sensitive field changed
     let hasChanges = false;
-    const watchInputs = ['#profile-email', '#profile-email-password', '#profile-token', '#profile-token-password', '#profile-display-name', '#profile-organization'];
+    const watchInputs = ['#profile-email', '#profile-email-password', '#profile-token', '#profile-display-name', '#profile-username', '#profile-organization', '#profile-password'];
     watchInputs.forEach((sel) => {
       const el = container.querySelector(sel);
       if (el) el.addEventListener('input', () => { hasChanges = true; });
@@ -521,17 +613,46 @@ export class ProfileView {
       const data = {
         email: container.querySelector('#profile-email')?.value?.trim() || '',
         emailPassword: container.querySelector('#profile-email-password')?.value || '',
-        tokenPassword: container.querySelector('#profile-token-password')?.value || '',
         loginMethod: container.querySelector('input[name="loginMethod"]:checked')?.value || 'email',
         displayName: container.querySelector('#profile-display-name')?.value?.trim() || '',
+        username: container.querySelector('#profile-username')?.value?.trim() || '',
         organization: container.querySelector('#profile-organization')?.value?.trim() || '',
         lastLogin: new Date().toISOString()
       };
+      // Handle profile password set/change
+      const newPw = container.querySelector('#profile-password')?.value || '';
+      const confirmPw = container.querySelector('#profile-password-confirm')?.value || '';
+      const currentPw = container.querySelector('#profile-password-current')?.value || '';
+      const stored = loadProfile();
+      if (newPw) {
+        if (stored.profilePassword && !currentPw) {
+          const status = container.querySelector('#profile-lock-status');
+          status.textContent = 'Enter current password to change it.';
+          status.style.color = 'var(--error)';
+          setTimeout(() => { status.textContent = ''; status.style.color = ''; }, 3000);
+          return;
+        }
+        if (stored.profilePassword && currentPw !== stored.profilePassword) {
+          const status = container.querySelector('#profile-lock-status');
+          status.textContent = 'Current password incorrect.';
+          status.style.color = 'var(--error)';
+          setTimeout(() => { status.textContent = ''; status.style.color = ''; }, 3000);
+          return;
+        }
+        if (newPw !== confirmPw) {
+          const status = container.querySelector('#profile-lock-status');
+          status.textContent = 'Passwords do not match.';
+          status.style.color = 'var(--error)';
+          setTimeout(() => { status.textContent = ''; status.style.color = ''; }, 3000);
+          return;
+        }
+        data.profilePassword = newPw;
+      }
 
       // Require password confirmation if sensitive fields changed
       if (hasChanges) {
         const stored = loadProfile();
-        const currentPassword = data.emailPassword || data.tokenPassword || stored.emailPassword || stored.tokenPassword || '';
+        const currentPassword = stored.profilePassword || data.emailPassword || stored.emailPassword || '';
         const confirmPassword = prompt('Changes detected. Enter your password to confirm save:');
         if (confirmPassword === null) {
           const status = container.querySelector('#profile-save-status');
@@ -555,16 +676,80 @@ export class ProfileView {
 
       const tokenVal = container.querySelector('#profile-token')?.value?.trim();
       if (tokenVal) {
-        localStorage.setItem('cascadeAuthToken', tokenVal);
+        // Decode token to build user object for authService
+        let user = { email: data.email || 'token-user', plan: 'pro', tokenSession: true };
+        try {
+          const parts = tokenVal.split('.');
+          if (parts.length === 3) {
+            const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+            const pad = '='.repeat((4 - base64.length % 4) % 4);
+            const payload = JSON.parse(atob(base64 + pad));
+            user = {
+              email: payload.email || payload.sub || data.email || 'token-user',
+              plan: payload.plan || payload.tier || 'pro',
+              tokenSession: true
+            };
+          }
+        } catch { /* non-JWT token, use default user */ }
+        authService.setSession(tokenVal, user);
+        authService.bindTokenToAccount(tokenVal, 'account');
       }
       if (data.email) {
-        localStorage.setItem('cascadeAuthUser', data.email);
+        const user = authService.getUser() || {};
+        localStorage.setItem('cascadeAuthUser', JSON.stringify({ ...user, email: data.email }));
       }
+
+      // Refresh expiration badge and re-render to show updated token state
+      this.startExpirationCountdown();
+      this._renderKey = null;
+      this.mount(container);
 
       const status = container.querySelector('#profile-save-status');
       status.textContent = 'Profile saved successfully.';
       status.style.color = 'var(--success)';
       setTimeout(() => { status.textContent = ''; status.style.color = ''; }, 3000);
+    });
+
+    // Profile lock/unlock behavior
+    const storedProfile = loadProfile();
+    const hasProfilePw = !!storedProfile.profilePassword;
+    if (hasProfilePw) {
+      // Show current-password field for changing; hide set/confirm fields
+      const setField = container.querySelector('#profile-lock-set-field');
+      const confirmField = container.querySelector('#profile-lock-confirm-field');
+      const currentField = container.querySelector('#profile-lock-current-field');
+      if (setField) setField.style.display = 'none';
+      if (confirmField) confirmField.style.display = 'none';
+      if (currentField) currentField.style.display = 'block';
+      // Keep sensitive sections locked by default
+      container.querySelectorAll('.locked-sensitive').forEach((el) => {
+        el.classList.remove('unlocked');
+      });
+    } else {
+      // No password set: unlock all sensitive sections
+      container.querySelectorAll('.locked-sensitive').forEach((el) => {
+        el.classList.add('unlocked');
+      });
+    }
+
+    // Unlock button handlers
+    container.querySelectorAll('.unlock-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const overlay = btn.closest('.lock-overlay');
+        const input = overlay?.querySelector('.lock-overlay-input');
+        const entered = input?.value || '';
+        if (!entered) return;
+        const storedPw = loadProfile().profilePassword;
+        if (entered !== storedPw) {
+          const msg = overlay.querySelector('.lock-overlay-text');
+          const original = msg?.textContent;
+          if (msg) { msg.textContent = 'Incorrect password'; msg.style.color = '#ef4444'; }
+          setTimeout(() => { if (msg) { msg.textContent = original; msg.style.color = ''; } }, 2000);
+          return;
+        }
+        const card = btn.closest('.locked-sensitive');
+        if (card) card.classList.add('unlocked');
+      });
     });
 
     // Sign out
@@ -576,6 +761,139 @@ export class ProfileView {
       this.app.navigate('dashboard');
       window.location.reload();
     });
+
+    // Deactivate account
+    container.querySelector('#profile-deactivate-btn')?.addEventListener('click', async () => {
+      const confirmed = confirm('Deactivate your account?\n\nYour data will be preserved but you will be signed out and unable to access features until you reactivate.');
+      if (!confirmed) return;
+      try {
+        await authService.logout();
+        showToast('Account deactivated. Sign in again to reactivate.', 'info');
+        this.app.navigate('signin');
+      } catch (err) {
+        showToast('Deactivation failed — please try again.', 'error');
+      }
+    });
+
+    // Delete account
+    container.querySelector('#profile-delete-btn')?.addEventListener('click', async () => {
+      const input = prompt('WARNING: This will permanently delete your account and all associated data.\n\nType DELETE to confirm:');
+      if (input !== 'DELETE') {
+        showToast('Account deletion cancelled.', 'info');
+        return;
+      }
+      try {
+        await authService.deleteAccount?.();
+        authService.clearSession();
+        showToast('Account deleted. All local session data cleared.', 'info');
+        this.app.navigate('signin');
+      } catch (err) {
+        authService.clearSession();
+        showToast('Account deleted locally. Please contact support if billing issues persist.', 'info');
+        this.app.navigate('signin');
+      }
+    });
+
+    // Register Security Key
+    container.querySelector('#profile-register-webauthn')?.addEventListener('click', async () => {
+      const statusEl = container.querySelector('#webauthn-register-status');
+      try {
+        if (!window.PublicKeyCredential || !navigator.credentials || typeof navigator.credentials.create !== 'function') {
+          if (statusEl) { statusEl.textContent = 'WebAuthn is not available in this browser/context. Open the dashboard in an external browser like Chrome or Edge.'; statusEl.style.color = 'var(--error)'; }
+          console.warn('[Profile] WebAuthn unavailable: PublicKeyCredential=' + !!window.PublicKeyCredential + ', navigator.credentials=' + !!navigator.credentials);
+          return;
+        }
+        // WebAuthn requires a secure context. VS Code:'s simple browser / webview iframe is not.
+        if (!window.isSecureContext) {
+          const msg = 'Security key registration requires a secure browser context. Open http://127.0.0.1:' + window.location.port + '/dashboard/profile in Chrome or Edge outside of VS Code:.';
+          if (statusEl) { statusEl.textContent = msg; statusEl.style.color = 'var(--error)'; }
+          console.warn('[Profile] WebAuthn blocked: window.isSecureContext=false');
+          return;
+        }
+        if (window.top !== window.self) {
+          const msg = 'Security key registration cannot run inside an embedded iframe. Open the dashboard in an external browser.';
+          if (statusEl) { statusEl.textContent = msg; statusEl.style.color = 'var(--error)'; }
+          console.warn('[Profile] WebAuthn blocked: running in iframe');
+          return;
+        }
+        const challenge = await authService.getWebAuthnChallenge();
+        if (!challenge) {
+          if (statusEl) { statusEl.textContent = 'Could not get registration challenge.'; statusEl.style.color = 'var(--error)'; }
+          return;
+        }
+        const user = authService.getUser();
+        const userId = user?.id || 'user';
+        const userEmail = user?.email || 'user@simplebeacon.ai';
+        const rpId = window.location.hostname || '127.0.0.1';
+        const userIdBytes = Uint8Array.from(userId.split('').map(c => c.charCodeAt(0)));
+        const challengeBytes = Uint8Array.from(atob(challenge.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+        const options = {
+          publicKey: {
+            challenge: challengeBytes,
+            rp: { name: 'SimpleBeacon', id: rpId },
+            user: { id: userIdBytes, name: userEmail, displayName: userEmail.split('@')[0] },
+            pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }, { type: 'public-key', alg: -37 }],
+            authenticatorSelection: { userVerification: 'preferred', residentKey: 'preferred', requireResidentKey: false },
+            timeout: 120000,
+            attestation: 'none'
+          }
+        };
+        console.log('[Profile] Creating WebAuthn credential with rp.id=' + rpId + ' secureContext=' + window.isSecureContext);
+        let credential;
+        try {
+          credential = await navigator.credentials.create(options);
+        } catch (firstErr) {
+          const msg = firstErr?.message || String(firstErr);
+          console.warn('[Profile] First WebAuthn attempt failed:', msg);
+          if (msg.toLowerCase().includes('insecure') || msg.toLowerCase().includes('not allowed') || msg.toLowerCase().includes('not supported')) {
+            // Retry without explicit rp.id and without residentKey preference
+            delete options.publicKey.rp.id;
+            options.publicKey.authenticatorSelection = { userVerification: 'preferred' };
+            console.log('[Profile] Retrying WebAuthn without explicit rp.id');
+            credential = await navigator.credentials.create(options);
+          } else {
+            throw firstErr;
+          }
+        }
+        if (!credential) {
+          if (statusEl) { statusEl.textContent = 'Registration cancelled.'; statusEl.style.color = 'var(--text-muted)'; }
+          return;
+        }
+        const credentialData = {
+          id: credential.id,
+          rawId: btoa(String.fromCharCode(...new Uint8Array(credential.rawId))),
+          response: {
+            clientDataJSON: btoa(String.fromCharCode(...new Uint8Array(credential.response.clientDataJSON))),
+            attestationObject: btoa(String.fromCharCode(...new Uint8Array(credential.response.attestationObject)))
+          },
+          type: credential.type
+        };
+        const ok = await authService.registerWebAuthnCredential(credentialData, userId);
+        if (ok) {
+          if (statusEl) { statusEl.textContent = 'Security key registered successfully! You can now sign in with it from the sign-in screen.'; statusEl.style.color = 'var(--success)'; }
+          const listEl = container.querySelector('#security-keys-list');
+          if (listEl) listEl.innerHTML = this.renderSecurityKeysList();
+          this.attachRemoveKeyHandlers(container);
+        } else {
+          if (statusEl) { statusEl.textContent = 'Registration failed. Please try again.'; statusEl.style.color = 'var(--error)'; }
+        }
+      } catch (err) {
+        const msg = err?.message || String(err);
+        console.error('[Profile] WebAuthn registration error:', err);
+        if (msg.toLowerCase().includes('insecure')) {
+          if (statusEl) { statusEl.textContent = 'Security key registration is blocked because the page is not in a secure context. Open the dashboard in an external browser at http://127.0.0.1:' + window.location.port + '/dashboard/profile'; statusEl.style.color = 'var(--error)'; }
+        } else if (msg.toLowerCase().includes('not allowed') || msg.toLowerCase().includes('cancelled')) {
+          if (statusEl) { statusEl.textContent = 'Registration cancelled or not allowed by the browser.'; statusEl.style.color = 'var(--warning)'; }
+        } else if (msg.toLowerCase().includes('not supported')) {
+          if (statusEl) { statusEl.textContent = 'This browser or device does not support security key registration. Try Chrome or Edge.'; statusEl.style.color = 'var(--error)'; }
+        } else {
+          if (statusEl) { statusEl.textContent = msg || 'Registration failed.'; statusEl.style.color = 'var(--error)'; }
+        }
+      }
+    });
+
+    // Attach remove-key handlers for already-rendered list
+    this.attachRemoveKeyHandlers(container);
 
     // Token show/hide toggle
     const toggleBtn = container.querySelector('#profile-token-toggle');

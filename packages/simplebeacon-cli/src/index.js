@@ -2,29 +2,127 @@
 
 /**
  * @module simplebeacon
- * SimpleBeacon CLI public API facade.
+ * SimpleBeacon CLI public API facade. Re-exports every public function
+ * from 20+ core modules as flat exports and a namespaced object.
  *
- * Re-exports every public function from 20+ core modules, organized as both
- * a flat list (backward compatible) and a namespaced `Simplebeacon` object
- * for IDE autocompletion and discoverability.
- *
- * Flat access (cherry-pick what you need):
- * ```js
- * const { runScan, evaluateGate, formatJsonReport } = require('simplebeacon-cli');
- * const report = await runScan('/path/to/project');
- * ```
- *
- * Namespaced access (frozen at runtime):
- * ```js
- * const { Simplebeacon } = require('simplebeacon-cli');
- * Object.isFrozen(Simplebeacon); // true
- * const report = await Simplebeacon.scan.runScan('/path/to/project');
- * ```
- *
- * @file packages/simplebeacon-cli/src/index.js
+ * Heavy modules are lazy-loaded via Proxy so consumers only pay for what
+ * they use. Duplicate keys in the flat export are detected and warned.
+ * The entire API surface is deeply frozen to prevent accidental mutation.
  */
 
-const { detectProjectProfile, resolvePlatformRoot } = require('./project-detect');
+// ── Small / always-needed modules (eager) ──────────────────────────────
+const configSchema = require('./config-schema.js');
+const errors = require('./lib/errors');
+const { version } = require('../package.json');
+
+// ── Deep freeze helper ───────────────────────────────────────────────────
+const _proxyObjects = new WeakSet();
+
+function deepFreeze(obj) {
+    if (obj === null || typeof obj !== 'object') return obj;
+    if (_proxyObjects.has(obj)) return obj;
+    if (Object.isFrozen(obj)) return obj;
+    const ctor = obj.constructor;
+    if (ctor === Date || ctor === RegExp || ctor === WeakMap || ctor === WeakSet) return obj;
+    if (ctor === Map) {
+        for (const [k, v] of obj) obj.set(k, deepFreeze(v));
+        return Object.freeze(obj);
+    }
+    if (ctor === Set) {
+        const frozenSet = new Set();
+        for (const v of obj) frozenSet.add(deepFreeze(v));
+        return Object.freeze(frozenSet);
+    }
+    const propNames = Object.getOwnPropertyNames(obj);
+    for (const name of propNames) {
+        const value = obj[name];
+        if (value && typeof value === 'object') deepFreeze(value);
+    }
+    return Object.freeze(obj);
+}
+
+// ── Module loader with validation ──────────────────────────────────────
+const _loaded = new Map();
+
+function _loadModule(name, path) {
+    if (_loaded.has(name)) return _loaded.get(name);
+    try {
+        const mod = require(path);
+        _loaded.set(name, mod);
+        return mod;
+    } catch (err) {
+        throw new errors.SimplebeaconError(
+            `Failed to load "${name}" from ${path}: ${err.message}`,
+            'MODULE_LOAD_ERROR'
+        );
+    }
+}
+
+// ── Lazy namespace factory ───────────────────────────────────────────────
+function _createNamespace(name, path) {
+    const proxy = new Proxy(Object.freeze({}), {
+        get(target, prop) {
+            if (typeof prop !== 'string') return undefined;
+            return _loadModule(name, path)[prop];
+        },
+        has(target, prop) {
+            if (typeof prop !== 'string') return false;
+            return prop in _loadModule(name, path);
+        },
+        ownKeys(target) {
+            return Reflect.ownKeys(_loadModule(name, path));
+        },
+        getOwnPropertyDescriptor(target, prop) {
+            return Reflect.getOwnPropertyDescriptor(_loadModule(name, path), prop);
+        }
+    });
+    _proxyObjects.add(proxy);
+    return proxy;
+}
+
+function _createMultiNamespace(name, paths) {
+    const _key = (p) => `${name}:${p}`;
+    const proxy = new Proxy(Object.freeze({}), {
+        get(target, prop) {
+            if (typeof prop !== 'string') return undefined;
+            for (const p of paths) {
+                const mod = _loadModule(_key(p), p);
+                if (prop in mod) return mod[prop];
+            }
+            return undefined;
+        },
+        has(target, prop) {
+            if (typeof prop !== 'string') return false;
+            for (const p of paths) {
+                if (prop in _loadModule(_key(p), p)) return true;
+            }
+            return false;
+        },
+        ownKeys(target) {
+            const keys = new Set();
+            for (const p of paths) {
+                for (const k of Reflect.ownKeys(_loadModule(_key(p), p))) {
+                    keys.add(k);
+                }
+            }
+            return Array.from(keys);
+        },
+        getOwnPropertyDescriptor(target, prop) {
+            for (const p of paths) {
+                const desc = Reflect.getOwnPropertyDescriptor(_loadModule(_key(p), p), prop);
+                if (desc) return desc;
+            }
+            return undefined;
+        }
+    });
+    _proxyObjects.add(proxy);
+    return proxy;
+}
+
+// ── Eager-load config + project-detect (used by inline helpers) ────────
+const configModule = _loadModule('config', './config');
+const projectDetect = _loadModule('project-detect', './project-detect');
+
 const {
     loadSimplebeaconConfig,
     loadCentralDataConfig,
@@ -37,157 +135,9 @@ const {
     DEFAULT_BASELINE,
     DEFAULT_CONFIG,
     PROFILE_RULES
-} = require('./config');
-const {
-    runScan,
-    scanMockDataDirectories,
-    formatBytes,
-    categoryForExt,
-    validateSampleSchema,
-    groupIssues,
-    isBlockingIssue,
-    countBySeverity
-} = require('./scan');
-const { evaluateGate } = require('./gate');
-const { formatTextReport, formatActionPlanReport } = require('./reporters/text');
-const { formatJsonReport } = require('./reporters/json');
-const { formatGithubComment, formatGithubStepSummary, postGithubComment } = require('./reporters/github-comment');
-const { buildAssessmentReport } = require('./assessment');
-const {
-    compileAuditReportMarkdown,
-    formatReportDate,
-    capitalize: _capitalize,
-    pluralize: _pluralize,
-    truncate: _truncate
-} = require('./reporters/audit-report');
-const { buildFictionPatternCatalog, countFictionIssues } = require('./rules/ai-fiction-detection');
-const { startGateway, createGateway } = require('./proxy/gateway');
-const { evaluateComplianceChecklist, loadComplianceChecklist } = require('./compliance-checklist');
-const {
-    redactSecretsInString,
-    sanitizeScanReport,
-    sanitizeAssessment,
-    sanitizeReportForCloudUpload,
-    sanitizePublicOutput,
-    applyPublicGateToAnalyzeResponse
-} = require('./lib/report-sanitizer');
-const {
-    sanitizeCompleteScanExport,
-    sanitizeNpmAuditExport,
-    sanitizeCleanupBriefExport,
-    sanitizeDataCleanupReportExport,
-    sanitizeCodebaseReportExport,
-    sanitizeFictionDigestExport,
-    sanitizeConsolidationExport,
-    sanitizeComplianceChecklistArtifactExport,
-    sanitizeRoadmapForBenchmark,
-    sanitizeGateReportForComplianceExport,
-    buildProductCompleteScanHygieneSummary,
-    buildProductCompleteScanScanScope,
-    hasHollowGateAttestation,
-    assembleBenchmarkCompleteScanExportNotes
-} = require('./lib/complete-scan-export-sanitize.js');
-const { sanitizePublicSummaryArtifactExport } = require('./lib/public-summary-export-sanitize.js');
-const { projectLabelFromPath, redactProjectPathForExport } = require('./lib/assessment-export-sanitize.js');
-const { buildReAttestationNoteArtifact } = require('./lib/re-attestation-note-export-sanitize.js');
-const { sanitizeRoadmapExport } = require('./lib/roadmap-export-sanitize.js');
-const { sanitizeSimplebeaconReportExport } = require('./lib/simplebeacon-report-export-sanitize.js');
-const { validateConfig } = require('./config-schema.js');
-const { DEFAULT_MAX_STALE_MS, evaluateSprintFreshness, evaluateEuExportEligibility } = require('./eu-ai-act-export-guard.js');
-const { isLegalReviewAttestation } = require('./eu-ai-act-legal-attestation.js');
-const { syncJestBaseline, verifyJestBaseline } = require('./baseline-sync');
-const { installSimplebeaconHook, buildHookScript } = require('./hook-install');
-const {
-    createNetworkGuard,
-    snapshotFileState,
-    assertFileUnchanged,
-    printTrustBanner,
-    printTrustCompletion
-} = require('./lib/trust-guard');
-const { withTransactionSync } = require('./lib/transaction-manager');
-const { writeManagedFileSync } = require('./lib/safe-write');
-const { sanitizePath, PathSanitizer } = require('./lib/path-sanitizer');
-const {
-    SimplebeaconError,
-    ConfigError,
-    ScanError,
-    PathError
-} = require('./lib/errors');
-const {
-    normalizePathKey,
-    isPathWithinRoot,
-    resolveCliProjectRoot
-} = require('./lib/path-utils');
-const { sanitizeFilePath } = require('./lib/input-sanitizer');
-const { runFileReductionScan } = require('./lib/file-reduction-orchestrator');
-const { generateFileReductionReport } = require('./reporters/file-reduction-report');
-const { aggregateCleanupFindings } = require('./lib/result-aggregator');
-const { initSimplebeacon, buildInitDryRunPlan } = require('./lib/init-simplebeacon.cjs');
-const { countRepositoryInventory } = require('./lib/repository-inventory');
-const { createMcpToolHandlers, TOOL_DEFINITIONS } = require('./mcp/tools');
-const { createMcpStdioServer } = require('./mcp/stdio-server');
-const { scanSnippetContent, scanFileOnDisk, readGateStatus } = require('./lib/snippet-scanner');
-const { version } = require('../package.json');
-const { buildAnonymizedExport, signAnonymizedExport, verifyAnonymizedExport, validateAnonymizedSchema, attachAnalyzerSuiteToReport } = require('./lib/anonymized-export');
-const {
-    buildAiSystemsIssueAnalysis,
-    isEmpty: _isEmpty,
-    ensureArray: _ensureArray,
-    deepEqual: _deepEqual,
-    sortBy: _sortBy,
-    flatten: _flatten,
-    range: _range,
-    unique: _unique,
-    partition: _partition,
-    chunk: _chunk,
-    times: _times,
-    get: _get,
-    set: _set,
-    seq: _seq,
-    identity: _identity,
-    constant: _constant,
-    random: _random,
-    sleep: _sleep,
-    delay: _delay,
-    parseJsonSafe: _parseJsonSafe,
-    tryFn: _tryFn,
-    memoize: _memoize,
-    hash: _hash,
-    randomId: _randomId
-} = require('./lib/ai-problem-analyzer-suite');
-const { getCachedAnalysis, setCachedAnalysis, clearCache: clearAnalyzerCache } = require('./lib/ai-problem-analyzer-cache');
-const { sanitizeAiProblemAnalyzerExport } = require('./lib/ai-problem-analyzer-export-sanitize');
-
-// ── Inline utility helpers (extracted to sub-modules) ─────────────────────
-const {
-    withTimeout,
-    retry,
-    debounce,
-    once
-} = require('./utils/async');
-const {
-    pick,
-    omit,
-    compact,
-    groupBy: _groupBy,
-    keyBy: _keyBy,
-    zipObject
-} = require('./utils/object');
-const {
-    kebabCase,
-    camelCase,
-    snakeCase,
-    padStart,
-    padEnd,
-    escapeRegExp,
-    formatDuration,
-    formatNumber,
-    isBlank
-} = require('./utils/string');
-const {
-    noop,
-    assertNever
-} = require('./utils/functional');
+} = configModule;
+const { detectProjectProfile, resolvePlatformRoot } = projectDetect;
+const { PathError } = errors;
 
 /**
  * Resolve the set of mock-data directories to scan for a project.
@@ -267,406 +217,316 @@ function getConsistencyAnchorSamples(baseDir) {
     return _loadConfigKey(baseDir, 'consistencyAnchorSamples', DEFAULT_CONSISTENCY_ANCHOR_SAMPLES);
 }
 
-// ── Flat exports (backward compatible) ───────────────────────────────────
+// ── Namespaced API (lazy-loaded via Proxy) ──────────────────────────────
 
-module.exports = {
-    // ── Metadata ──
+const _initNs = _createNamespace('init-simplebeacon', './lib/init-simplebeacon.cjs');
+const _repoInvNs = _createNamespace('repository-inventory', './lib/repository-inventory');
+
+const Simplebeacon = deepFreeze({
     version,
-
-    // ── Config ──
-    loadSimplebeaconConfig,
-    loadSamplebeaconConfig: loadSimplebeaconConfig,
-    loadCentralDataConfig,
-    resolveScanPaths,
-    resolveMockDataScanPaths,
-    countRepositoryInventory,
-    resolvePathFromBase,
-    normalizeRelativePath,
-    getInitTemplates,
-    initSimplebeacon,
-    initSamplebeacon: initSimplebeacon,
-    buildInitDryRunPlan,
-    getRepositoryAuditBaseline,
-    getConsistencyAnchorSamples,
-    DEFAULT_MOCK_SCAN_RELATIVE_PATHS,
-    DEFAULT_CONSISTENCY_ANCHOR_SAMPLES,
-    DEFAULT_BASELINE,
-    DEFAULT_CONFIG,
-    PROFILE_RULES,
-    validateConfig,
-
-    // ── Scan & Analysis ──
-    runScan,
-    scanMockDataDirectories,
-    formatBytes,
-    categoryForExt,
-    validateSampleSchema,
-    groupIssues,
-    isBlockingIssue,
-    countBySeverity,
-
-    // ── Gate ──
-    evaluateGate,
-
-    // ── Reporters ──
-    formatTextReport,
-    formatActionPlanReport,
-    formatJsonReport,
-    formatGithubComment,
-    formatGithubStepSummary,
-    postGithubComment,
-    buildAssessmentReport,
-    compileAuditReportMarkdown,
-    generateFileReductionReport,
-    aggregateCleanupFindings,
-    formatReportDate,
-    capitalize: _capitalize,
-    pluralize: _pluralize,
-    truncate: _truncate,
-
-    // ── Fiction Detection ──
-    buildFictionPatternCatalog,
-    countFictionIssues,
-
-    // ── Proxy / Gateway ──
-    startGateway,
-    createGateway,
-
-    // ── Compliance ──
-    evaluateComplianceChecklist,
-    loadComplianceChecklist,
-    DEFAULT_MAX_STALE_MS,
-    evaluateSprintFreshness,
-    evaluateEuExportEligibility,
-    isLegalReviewAttestation,
-
-    // ── Sanitizers ──
-    redactSecretsInString,
-    sanitizeScanReport,
-    sanitizeAssessment,
-    sanitizeReportForCloudUpload,
-    sanitizePublicOutput,
-    applyPublicGateToAnalyzeResponse,
-
-    // ── Baseline & Hooks ──
-    syncJestBaseline,
-    verifyJestBaseline,
-    installSimplebeaconHook,
-    buildHookScript,
-
-    // ── Project Detection ──
-    detectProjectProfile,
-    resolvePlatformRoot,
-
-    // ── Trust & Safety ──
-    createNetworkGuard,
-    snapshotFileState,
-    assertFileUnchanged,
-    printTrustBanner,
-    printTrustCompletion,
-    writeManagedFileSync,
-    withTransactionSync,
-
-    // ── Errors ──
-    SimplebeaconError,
-    ConfigError,
-    ScanError,
-    PathError,
-
-    // ── Path Utilities ──
-    normalizePathKey,
-    isPathWithinRoot,
-    resolveCliProjectRoot,
-    sanitizeFilePath,
-    sanitizePath,
-    PathSanitizer,
-
-    // ── File Reduction ──
-    runFileReductionScan,
-
-    // ── MCP ──
-    createMcpToolHandlers,
-    TOOL_DEFINITIONS,
-    createMcpStdioServer,
-    scanSnippetContent,
-    scanFileOnDisk,
-    readGateStatus,
-
-    // ── Export Sanitizers ──
-    buildAnonymizedExport,
-    signAnonymizedExport,
-    verifyAnonymizedExport,
-    validateAnonymizedSchema,
-    attachAnalyzerSuiteToReport,
-    buildAiSystemsIssueAnalysis,
-    getCachedAnalysis,
-    setCachedAnalysis,
-    clearAnalyzerCache,
-    sanitizeAiProblemAnalyzerExport,
-    sanitizeCompleteScanExport,
-    sanitizeNpmAuditExport,
-    sanitizeCleanupBriefExport,
-    sanitizeDataCleanupReportExport,
-    sanitizeCodebaseReportExport,
-    sanitizeFictionDigestExport,
-    sanitizeConsolidationExport,
-    sanitizeComplianceChecklistArtifactExport,
-    sanitizeRoadmapForBenchmark,
-    sanitizeGateReportForComplianceExport,
-    sanitizePublicSummaryArtifactExport,
-    projectLabelFromPath,
-    redactProjectPathForExport,
-    buildReAttestationNoteArtifact,
-    sanitizeRoadmapExport,
-    sanitizeSimplebeaconReportExport,
-    buildProductCompleteScanHygieneSummary,
-    buildProductCompleteScanScanScope,
-    hasHollowGateAttestation,
-    assembleBenchmarkCompleteScanExportNotes,
-
-    // ── Re-exported ai-problem-analyzer-suite helpers ──
-    isEmpty: _isEmpty,
-    ensureArray: _ensureArray,
-    deepEqual: _deepEqual,
-    sortBy: _sortBy,
-    flatten: _flatten,
-    range: _range,
-    unique: _unique,
-    partition: _partition,
-    chunk: _chunk,
-    times: _times,
-    get: _get,
-    set: _set,
-    seq: _seq,
-    identity: _identity,
-    constant: _constant,
-    random: _random,
-    sleep: _sleep,
-    delay: _delay,
-    parseJsonSafe: _parseJsonSafe,
-    tryFn: _tryFn,
-    memoize: _memoize,
-    hash: _hash,
-    randomId: _randomId,
-
-    // ── Inline utility helpers ──
-    withTimeout,
-    retry,
-    pick,
-    omit,
-    compact,
-    groupBy: _groupBy,
-    keyBy: _keyBy,
-    zipObject,
-    kebabCase,
-    camelCase,
-    snakeCase,
-    padStart,
-    padEnd,
-    escapeRegExp,
-    formatDuration,
-    noop,
-    assertNever,
-    debounce,
-    once,
-    formatNumber,
-    isBlank
-};
-
-// ── Namespaced API for discoverability ────────────────────────────────────
-
-const Simplebeacon = {
-    version,
-    config: {
-        loadSimplebeaconConfig,
-        loadCentralDataConfig,
-        resolveScanPaths,
+    config: deepFreeze({
+        ...configModule,
         resolveMockDataScanPaths,
-        countRepositoryInventory,
-        resolvePathFromBase,
-        normalizeRelativePath,
-        getInitTemplates,
-        initSimplebeacon,
-        buildInitDryRunPlan,
         getRepositoryAuditBaseline,
         getConsistencyAnchorSamples,
-        DEFAULT_MOCK_SCAN_RELATIVE_PATHS,
-        DEFAULT_CONSISTENCY_ANCHOR_SAMPLES,
-        DEFAULT_BASELINE,
-        DEFAULT_CONFIG,
-        PROFILE_RULES,
-        validateConfig
-    },
-    scan: {
-        runScan,
-        scanMockDataDirectories,
-        formatBytes,
-        categoryForExt,
-        validateSampleSchema,
-        groupIssues,
-        isBlockingIssue,
-        countBySeverity
-    },
-    gate: {
-        evaluateGate
-    },
-    report: {
-        formatTextReport,
-        formatActionPlanReport,
-        formatJsonReport,
-        formatGithubComment,
-        formatGithubStepSummary,
-        postGithubComment,
-        buildAssessmentReport,
-        compileAuditReportMarkdown,
-        generateFileReductionReport,
-        aggregateCleanupFindings,
-        formatReportDate
-    },
-    fiction: {
-        buildFictionPatternCatalog,
-        countFictionIssues
-    },
-    proxy: {
-        startGateway,
-        createGateway
-    },
-    compliance: {
-        evaluateComplianceChecklist,
-        loadComplianceChecklist,
-        DEFAULT_MAX_STALE_MS,
-        evaluateSprintFreshness,
-        evaluateEuExportEligibility,
-        isLegalReviewAttestation
-    },
-    sanitize: {
-        redactSecretsInString,
-        sanitizeScanReport,
-        sanitizeAssessment,
-        sanitizeReportForCloudUpload,
-        sanitizePublicOutput,
-        applyPublicGateToAnalyzeResponse,
-        buildAnonymizedExport,
-        signAnonymizedExport,
-        verifyAnonymizedExport,
-        validateAnonymizedSchema,
-        attachAnalyzerSuiteToReport,
-        buildAiSystemsIssueAnalysis,
-        sanitizeAiProblemAnalyzerExport,
-        sanitizeCompleteScanExport,
-        sanitizeNpmAuditExport,
-        sanitizeCleanupBriefExport,
-        sanitizeDataCleanupReportExport,
-        sanitizeCodebaseReportExport,
-        sanitizeFictionDigestExport,
-        sanitizeConsolidationExport,
-        sanitizeComplianceChecklistArtifactExport,
-        sanitizeRoadmapForBenchmark,
-        sanitizeGateReportForComplianceExport,
-        sanitizePublicSummaryArtifactExport,
-        projectLabelFromPath,
-        redactProjectPathForExport,
-        buildReAttestationNoteArtifact,
-        sanitizeRoadmapExport,
-        sanitizeSimplebeaconReportExport,
-        buildProductCompleteScanHygieneSummary,
-        buildProductCompleteScanScanScope,
-        hasHollowGateAttestation,
-        assembleBenchmarkCompleteScanExportNotes
-    },
-    baseline: {
-        syncJestBaseline,
-        verifyJestBaseline
-    },
-    hooks: {
-        installSimplebeaconHook,
-        buildHookScript
-    },
-    project: {
-        detectProjectProfile,
-        resolvePlatformRoot
-    },
-    trust: {
-        createNetworkGuard,
-        snapshotFileState,
-        assertFileUnchanged,
-        printTrustBanner,
-        printTrustCompletion,
-        writeManagedFileSync,
-        withTransactionSync
-    },
-    errors: {
-        SimplebeaconError,
-        ConfigError,
-        ScanError,
-        PathError
-    },
-    path: {
-        normalizePathKey,
-        isPathWithinRoot,
-        resolveCliProjectRoot,
-        sanitizeFilePath,
-        sanitizePath,
-        PathSanitizer
-    },
-    mcp: {
-        createMcpToolHandlers,
-        TOOL_DEFINITIONS,
-        createMcpStdioServer,
-        scanSnippetContent,
-        scanFileOnDisk,
-        readGateStatus
-    },
-    utils: {
-        withTimeout,
-        retry,
-        pick,
-        omit,
-        compact,
-        groupBy: _groupBy,
-        keyBy: _keyBy,
-        zipObject,
-        kebabCase,
-        camelCase,
-        snakeCase,
-        padStart,
-        padEnd,
-        escapeRegExp,
-        formatDuration,
-        noop,
-        assertNever,
-        debounce,
-        once,
-        formatNumber,
-        isBlank,
-        isEmpty: _isEmpty,
-        ensureArray: _ensureArray,
-        deepEqual: _deepEqual,
-        sortBy: _sortBy,
-        flatten: _flatten,
-        range: _range,
-        unique: _unique,
-        partition: _partition,
-        chunk: _chunk,
-        times: _times,
-        get: _get,
-        set: _set,
-        seq: _seq,
-        identity: _identity,
-        constant: _constant,
-        random: _random,
-        sleep: _sleep,
-        delay: _delay,
-        parseJsonSafe: _parseJsonSafe,
-        tryFn: _tryFn,
-        memoize: _memoize,
-        hash: _hash,
-        randomId: _randomId,
-        capitalize: _capitalize,
-        pluralize: _pluralize,
-        truncate: _truncate
-    }
-};
+        initSimplebeacon: _initNs.initSimplebeacon,
+        initSamplebeacon: _initNs.initSimplebeacon,
+        loadSamplebeaconConfig: configModule.loadSimplebeaconConfig,
+        buildInitDryRunPlan: _initNs.buildInitDryRunPlan,
+        countRepositoryInventory: _repoInvNs.countRepositoryInventory,
+        SKIP_BY_PROFILE: _repoInvNs.SKIP_BY_PROFILE,
+        validateConfig: configSchema.validateConfig,
+        VALID_RULES: configSchema.VALID_RULES,
+        VALID_PROFILES: configSchema.VALID_PROFILES,
+        VALID_SCANNER_ACTIONS: configSchema.VALID_SCANNER_ACTIONS,
+        VALID_SEVERITIES: configSchema.VALID_SEVERITIES
+    }),
+    scan: _createNamespace('scan', './scan'),
+    gate: _createNamespace('gate', './gate'),
+    report: _createMultiNamespace('report', [
+        './reporters/text',
+        './reporters/json',
+        './reporters/github-comment',
+        './assessment',
+        './reporters/audit-report',
+        './reporters/file-reduction-report',
+        './lib/result-aggregator',
+        './lib/file-reduction-orchestrator'
+    ]),
+    fiction: _createNamespace('fiction', './rules/ai-fiction-detection'),
+    proxy: _createNamespace('proxy', './proxy/gateway'),
+    compliance: _createMultiNamespace('compliance', [
+        './compliance-checklist',
+        './eu-ai-act-export-guard',
+        './eu-ai-act-legal-attestation'
+    ]),
+    sanitize: _createMultiNamespace('sanitize', [
+        './lib/report-sanitizer',
+        './lib/complete-scan-export-sanitize',
+        './lib/public-summary-export-sanitize',
+        './lib/assessment-export-sanitize',
+        './lib/re-attestation-note-export-sanitize',
+        './lib/roadmap-export-sanitize',
+        './lib/simplebeacon-report-export-sanitize',
+        './lib/anonymized-export',
+        './lib/ai-problem-analyzer-cache',
+        './lib/ai-problem-analyzer-export-sanitize'
+    ]),
+    baseline: _createNamespace('baseline', './baseline-sync'),
+    hooks: _createNamespace('hooks', './hook-install'),
+    project: deepFreeze({ ...projectDetect }),
+    trust: _createMultiNamespace('trust', [
+        './lib/trust-guard',
+        './lib/transaction-manager',
+        './lib/safe-write'
+    ]),
+    errors: deepFreeze({ ...errors }),
+    path: _createMultiNamespace('path', [
+        './lib/path-utils',
+        './lib/input-sanitizer',
+        './lib/path-sanitizer'
+    ]),
+    mcp: _createMultiNamespace('mcp', [
+        './mcp/tools',
+        './mcp/stdio-server',
+        './lib/snippet-scanner'
+    ]),
+    doctor: _createNamespace('doctor', './doctor'),
+    fixDryRun: _createNamespace('fix-dry-run', './fix-dry-run'),
+    scanOrchestrator: _createNamespace('scan-orchestrator', './scanOrchestrator'),
+    utils: _createMultiNamespace('utils', [
+        './utils/async',
+        './utils/object',
+        './utils/string',
+        './utils/functional',
+        './utils/async-advanced',
+        './lib/ai-problem-analyzer-suite'
+    ])
+});
 
-module.exports.Simplebeacon = Object.freeze(Simplebeacon);
-Object.freeze(module.exports);
+// ── Lazy flat export builder with collision detection ────────────────────
+
+const _allModuleSpecs = [
+    { name: 'project-detect', path: './project-detect' },
+    { name: 'config', path: './config' },
+    { name: 'config-schema', path: './config-schema.js' },
+    { name: 'errors', path: './lib/errors' },
+    { name: 'scan', path: './scan' },
+    { name: 'gate', path: './gate' },
+    { name: 'reporters/text', path: './reporters/text' },
+    { name: 'reporters/json', path: './reporters/json' },
+    { name: 'reporters/github-comment', path: './reporters/github-comment' },
+    { name: 'assessment', path: './assessment' },
+    { name: 'reporters/audit-report', path: './reporters/audit-report' },
+    { name: 'fiction', path: './rules/ai-fiction-detection' },
+    { name: 'proxy', path: './proxy/gateway' },
+    { name: 'compliance', path: './compliance-checklist' },
+    { name: 'eu-ai-act-export-guard', path: './eu-ai-act-export-guard' },
+    { name: 'eu-ai-act-legal-attestation', path: './eu-ai-act-legal-attestation' },
+    { name: 'report-sanitizer', path: './lib/report-sanitizer' },
+    { name: 'complete-scan-export-sanitize', path: './lib/complete-scan-export-sanitize' },
+    { name: 'public-summary-export-sanitize', path: './lib/public-summary-export-sanitize' },
+    { name: 'assessment-export-sanitize', path: './lib/assessment-export-sanitize' },
+    { name: 're-attestation-export-sanitize', path: './lib/re-attestation-note-export-sanitize' },
+    { name: 'roadmap-export-sanitize', path: './lib/roadmap-export-sanitize' },
+    { name: 'simplebeacon-report-export-sanitize', path: './lib/simplebeacon-report-export-sanitize' },
+    { name: 'anonymized-export', path: './lib/anonymized-export' },
+    { name: 'ai-problem-analyzer-cache', path: './lib/ai-problem-analyzer-cache' },
+    { name: 'ai-problem-analyzer-export-sanitize', path: './lib/ai-problem-analyzer-export-sanitize' },
+    { name: 'baseline-sync', path: './baseline-sync' },
+    { name: 'hook-install', path: './hook-install' },
+    { name: 'trust-guard', path: './lib/trust-guard' },
+    { name: 'transaction-manager', path: './lib/transaction-manager' },
+    { name: 'safe-write', path: './lib/safe-write' },
+    { name: 'path-utils', path: './lib/path-utils' },
+    { name: 'input-sanitizer', path: './lib/input-sanitizer' },
+    { name: 'path-sanitizer', path: './lib/path-sanitizer' },
+    { name: 'file-reduction-orchestrator', path: './lib/file-reduction-orchestrator' },
+    { name: 'file-reduction-report', path: './reporters/file-reduction-report' },
+    { name: 'result-aggregator', path: './lib/result-aggregator' },
+    { name: 'init-simplebeacon', path: './lib/init-simplebeacon.cjs' },
+    { name: 'repository-inventory', path: './lib/repository-inventory' },
+    { name: 'mcp-tools', path: './mcp/tools' },
+    { name: 'mcp-stdio-server', path: './mcp/stdio-server' },
+    { name: 'snippet-scanner', path: './lib/snippet-scanner' },
+    { name: 'ai-problem-analyzer-suite', path: './lib/ai-problem-analyzer-suite' },
+    { name: 'async-utils', path: './utils/async' },
+    { name: 'object-utils', path: './utils/object' },
+    { name: 'string-utils', path: './utils/string' },
+    { name: 'functional-utils', path: './utils/functional' },
+    { name: 'async-advanced', path: './utils/async-advanced' },
+    { name: 'doctor', path: './doctor' },
+    { name: 'fix-dry-run', path: './fix-dry-run' },
+    { name: 'scan-orchestrator', path: './scanOrchestrator' }
+];
+
+const _collisionWarnings = new Map();
+
+function _buildLazyFlatExport(specs) {
+    const eagerOut = {};
+    const seen = new Map();
+    const eager = process.env.SIMPLEBEACON_LAZY_FLAT !== '1';
+
+    if (eager) {
+        for (const { name, path: p } of specs) {
+            const mod = _loadModule(name, p);
+            for (const key of Object.keys(mod)) {
+                if (seen.has(key)) {
+                    const prev = seen.get(key);
+                    if (process.env.SIMPLEBEACON_DUP_WARN !== '0') {
+                        process.emitWarning(
+                            `[simplebeacon] Export collision: "${key}" from "${name}" shadows "${prev}". ` +
+                            `Access via Simplebeacon namespace to disambiguate.`,
+                            'SimplebeaconExportCollision'
+                        );
+                    }
+                } else {
+                    seen.set(key, name);
+                }
+                eagerOut[key] = mod[key];
+            }
+        }
+        return eagerOut;
+    }
+
+    const lazyOut = new Proxy({}, {
+        get(target, prop) {
+            if (typeof prop !== 'string') return undefined;
+            if (prop === 'version') return version;
+            if (prop === 'resolveMockDataScanPaths') return resolveMockDataScanPaths;
+            if (prop === 'getRepositoryAuditBaseline') return getRepositoryAuditBaseline;
+            if (prop === 'getConsistencyAnchorSamples') return getConsistencyAnchorSamples;
+            if (prop === 'Simplebeacon') return Simplebeacon;
+            if (prop === 'getExportNames') return getExportNames;
+            if (prop === 'getNamespaceNames') return getNamespaceNames;
+            if (prop === 'validateBarrelIntegrity') return validateBarrelIntegrity;
+            if (prop === '__barrel__') return __barrel__;
+            for (const { name, path: p } of specs) {
+                const mod = _loadModule(name, p);
+                if (prop in mod) {
+                    if (seen.has(prop) && seen.get(prop) !== name && !_collisionWarnings.has(prop)) {
+                        _collisionWarnings.set(prop, true);
+                        if (process.env.SIMPLEBEACON_DUP_WARN !== '0') {
+                            process.emitWarning(
+                                `[simplebeacon] Export collision: "${prop}" from "${name}" shadows "${seen.get(prop)}". ` +
+                                `Access via Simplebeacon namespace to disambiguate.`,
+                                'SimplebeaconExportCollision'
+                            );
+                        }
+                    }
+                    if (!seen.has(prop)) seen.set(prop, name);
+                    return mod[prop];
+                }
+            }
+            return undefined;
+        },
+        has(target, prop) {
+            if (typeof prop !== 'string') return false;
+            if (['version', 'resolveMockDataScanPaths', 'getRepositoryAuditBaseline',
+                 'getConsistencyAnchorSamples', 'Simplebeacon',
+                 'getExportNames', 'getNamespaceNames', 'validateBarrelIntegrity', '__barrel__'].includes(prop)) {
+                return true;
+            }
+            for (const { name, path: p } of specs) {
+                if (prop in _loadModule(name, p)) return true;
+            }
+            return false;
+        },
+        ownKeys(target) {
+            const keys = new Set([
+                'version', 'resolveMockDataScanPaths', 'getRepositoryAuditBaseline',
+                'getConsistencyAnchorSamples', 'Simplebeacon',
+                'getExportNames', 'getNamespaceNames', 'validateBarrelIntegrity', '__barrel__'
+            ]);
+            for (const { name, path: p } of specs) {
+                for (const k of Object.keys(_loadModule(name, p))) keys.add(k);
+            }
+            return Array.from(keys);
+        },
+        getOwnPropertyDescriptor(target, prop) {
+            if (typeof prop !== 'string') return undefined;
+            if (prop === 'version') return { value: version, writable: false, enumerable: true, configurable: false };
+            if (prop === 'resolveMockDataScanPaths') return { value: resolveMockDataScanPaths, writable: false, enumerable: true, configurable: false };
+            if (prop === 'getRepositoryAuditBaseline') return { value: getRepositoryAuditBaseline, writable: false, enumerable: true, configurable: false };
+            if (prop === 'getConsistencyAnchorSamples') return { value: getConsistencyAnchorSamples, writable: false, enumerable: true, configurable: false };
+            if (prop === 'Simplebeacon') return { value: Simplebeacon, writable: false, enumerable: true, configurable: false };
+            if (prop === 'getExportNames') return { value: getExportNames, writable: false, enumerable: true, configurable: false };
+            if (prop === 'getNamespaceNames') return { value: getNamespaceNames, writable: false, enumerable: true, configurable: false };
+            if (prop === 'validateBarrelIntegrity') return { value: validateBarrelIntegrity, writable: false, enumerable: true, configurable: false };
+            if (prop === '__barrel__') return { value: __barrel__, writable: false, enumerable: true, configurable: false };
+            for (const { name, path: p } of specs) {
+                const mod = _loadModule(name, p);
+                if (prop in mod) return { value: mod[prop], writable: false, enumerable: true, configurable: false };
+            }
+            return undefined;
+        }
+    });
+    _proxyObjects.add(lazyOut);
+    return lazyOut;
+}
+
+const flat = _buildLazyFlatExport(_allModuleSpecs);
+
+// ── Barrel introspection ─────────────────────────────────────────────────
+
+const NAMESPACE_NAMES = Object.freeze([
+    'config', 'scan', 'gate', 'report', 'fiction', 'proxy',
+    'compliance', 'sanitize', 'baseline', 'hooks', 'project',
+    'trust', 'errors', 'path', 'mcp', 'doctor', 'fixDryRun',
+    'scanOrchestrator', 'utils', 'inline'
+]);
+
+function getExportNames() {
+    const keys = new Set([
+        'version', 'resolveMockDataScanPaths', 'getRepositoryAuditBaseline',
+        'getConsistencyAnchorSamples', 'Simplebeacon',
+        'getExportNames', 'getNamespaceNames', 'validateBarrelIntegrity', '__barrel__'
+    ]);
+    for (const { name, path: p } of _allModuleSpecs) {
+        for (const k of Object.keys(_loadModule(name, p))) keys.add(k);
+    }
+    return Object.freeze(Array.from(keys).sort());
+}
+
+function getNamespaceNames() {
+    return NAMESPACE_NAMES;
+}
+
+function validateBarrelIntegrity() {
+    const errors = [];
+    if (!Simplebeacon) {
+        errors.push('Simplebeacon namespace is missing');
+    } else if (!Object.isFrozen(Simplebeacon)) {
+        errors.push('Simplebeacon namespace is not frozen');
+    }
+    for (const ns of NAMESPACE_NAMES) {
+        if (!Simplebeacon[ns] || typeof Simplebeacon[ns] !== 'object') {
+            errors.push(`Namespace "${ns}" is missing or not an object`);
+        }
+    }
+    if (!flat.__barrel__) {
+        errors.push('Missing __barrel__ metadata');
+    } else {
+        const requiredMetaKeys = ['name', 'description', 'moduleCount', 'exportCount', 'namespaceCount', 'version', 'timestamp', 'exports', 'namespaces'];
+        for (const metaKey of requiredMetaKeys) {
+            if (!(metaKey in flat.__barrel__)) {
+                errors.push(`Missing __barrel__ key: "${metaKey}"`);
+            }
+        }
+    }
+    return { valid: errors.length === 0, errors };
+}
+
+const __barrel__ = Object.freeze({
+    name: 'simplebeacon-cli',
+    description: 'Simplebeacon CLI public API facade',
+    moduleCount: NAMESPACE_NAMES.length,
+    exportCount: getExportNames().length,
+    namespaceCount: NAMESPACE_NAMES.length,
+    version,
+    timestamp: new Date().toISOString(),
+    exports: getExportNames(),
+    namespaces: NAMESPACE_NAMES
+});
+
+module.exports = deepFreeze(flat);

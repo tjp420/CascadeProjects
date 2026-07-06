@@ -2,6 +2,22 @@
 
 export const version: string;
 
+// ── Barrel introspection ──
+export function getExportNames(): ReadonlyArray<string>;
+export function getNamespaceNames(): ReadonlyArray<string>;
+export function validateBarrelIntegrity(): { valid: boolean; errors: string[] };
+export const __barrel__: {
+    name: string;
+    description: string;
+    moduleCount: number;
+    exportCount: number;
+    namespaceCount: number;
+    version: string;
+    timestamp: string;
+    exports: ReadonlyArray<string>;
+    namespaces: ReadonlyArray<string>;
+};
+
 // ── Config ──
 export function loadSimplebeaconConfig(baseDir: string): any;
 export function loadSamplebeaconConfig(baseDir: string): any;
@@ -23,6 +39,11 @@ export const DEFAULT_BASELINE: any;
 export const DEFAULT_CONFIG: any;
 export const PROFILE_RULES: any;
 export function validateConfig(config: any): { valid: boolean; errors?: string[] };
+export const VALID_RULES: Set<string>;
+export const VALID_PROFILES: Set<string>;
+export const VALID_SCANNER_ACTIONS: Set<string>;
+export const VALID_SEVERITIES: Set<string>;
+export const SKIP_BY_PROFILE: Record<string, string[]>;
 
 // ── Scan & Analysis ──
 export function runScan(paths: string[], options?: any): Promise<any>;
@@ -33,6 +54,8 @@ export function validateSampleSchema(sample: any, schema?: any): { valid: boolea
 export function groupIssues(issues: any[]): any;
 export function isBlockingIssue(issue: any, config?: any): boolean;
 export function countBySeverity(issues: any[]): any;
+export function parallelScan(filePaths: string[], rulesCatalog: { id: string; pattern: string; }[]): Promise<any[]>;
+export function singleThreadScan(filePaths: string[], rulesCatalog: { id: string; pattern: string; }[]): any[];
 
 // ── Gate ──
 export function evaluateGate(report: any, config?: any): any;
@@ -117,6 +140,19 @@ export class PathSanitizer {
 
 // ── File Reduction ──
 export function runFileReductionScan(projectRoot: string, options?: any): any;
+export class FileReductionOrchestrator {
+    constructor(options?: any);
+    run(projectRoot: string): Promise<any>;
+    listScanners(): any[];
+}
+
+// ── Doctor ──
+export function runDoctor(): void;
+
+// ── Fix Dry-Run ──
+export function runFixDryRun(options?: any): any;
+export function formatFixDryRunText(plan: any): string;
+export function loadRemediationModule(platformRoot: string): any;
 
 // ── MCP ──
 export function createMcpToolHandlers(): any;
@@ -185,7 +221,7 @@ export function randomId(length?: number): string;
 
 // ── Inline utility helpers (extracted to utils/) ──
 export function withTimeout<T>(promise: Promise<T>, ms: number, message?: string): Promise<T>;
-export function retry<T>(fn: () => Promise<T>, retries?: number, delayMs?: number): Promise<T>;
+export function retry<T>(fn: () => Promise<T>, opts?: { retries?: number; delayMs?: number; backoff?: number; maxDelayMs?: number; shouldRetry?: (err: Error) => boolean }): Promise<T>;
 export function pick(obj: any, keys: string[]): any;
 export function omit(obj: any, keys: string[]): any;
 export function compact<T>(arr: T[]): T[];
@@ -205,6 +241,12 @@ export function debounce<T extends (...args: any[]) => any>(fn: T, waitMs: numbe
 export function once<T extends (...args: any[]) => any>(fn: T): T;
 export function formatNumber(n: number | null | undefined): string;
 export function isBlank(value: any): boolean;
+
+// ── Async advanced helpers ──
+export function debounceAsync<T extends (...args: any[]) => Promise<any>>(fn: T, waitMs?: number): T;
+export function throttleAsync<T extends (...args: any[]) => Promise<any>>(fn: T, limitMs?: number): T;
+export function memoizeAsync<T extends (...args: any[]) => Promise<any>>(fn: T, maxSize?: number): T;
+export function delay(ms: number): Promise<void>;
 
 // ── Namespaced API ────────────────────────────────────────────────────────
 
@@ -254,6 +296,15 @@ export namespace Simplebeacon {
     }
     export namespace mcp {
         export { createMcpToolHandlers, TOOL_DEFINITIONS, createMcpStdioServer, scanSnippetContent, scanFileOnDisk, readGateStatus };
+    }
+    export namespace doctor {
+        export { runDoctor };
+    }
+    export namespace fixDryRun {
+        export { runFixDryRun, formatFixDryRunText, loadRemediationModule };
+    }
+    export namespace scanOrchestrator {
+        export { parallelScan, singleThreadScan };
     }
     export namespace utils {
         export { withTimeout, retry, pick, omit, compact, groupBy, keyBy, zipObject, kebabCase, camelCase, snakeCase, padStart, padEnd, escapeRegExp, formatDuration, noop, assertNever, debounce, once, formatNumber, isBlank, isEmpty, ensureArray, deepEqual, sortBy, flatten, range, unique, partition, chunk, times, get, set, seq, identity, constant, random, sleep, delay, parseJsonSafe, tryFn, memoize, hash, randomId, capitalize, pluralize, truncate };

@@ -151,6 +151,11 @@ function buildSuggestedFixes(collections) {
         if (/scanner-engine\.js/.test(fp)) return true;
         // Test files: fixtures are intentionally hardcoded
         if (/\.(test|spec)\.(js|ts|cjs|mjs)$/.test(fp)) return true;
+        // Dedicated test / false-positive directories
+        if (/simplebeacon-rule-tests\//.test(fp)) return true;
+        if (/false-positive-audit\//.test(fp)) return true;
+        if (/\.vscode-test\//.test(fp)) return true;
+        if (/coming-soon\/archive\/test-/.test(fp)) return true;
         // Crypto token generation (random, not hardcoded secret)
         if (type === 'Credential Pattern' && /crypto\.randomBytes|Math\.random|Date\.now/.test(s)) return true;
         // CLI help text
@@ -242,6 +247,34 @@ function buildSuggestedFixes(collections) {
                 const wrapped = snippet.replace(/['"]([^'"]+)['"]/g, "t('$1')");
                 replacement = wrapped;
                 suggestedPatch = `--- a/${file}\n+++ b/${file}\n@@ -${line},1 +${line},1 @@\n-${snippet}\n+${replacement}`;
+            } else if (type === 'AI Residue' || type === 'Error Swallowing' || type === 'Stub Implementation') {
+                replacement = '// TODO: replace stub with real implementation';
+                suggestedPatch = `--- a/${file}\n+++ b/${file}\n@@ -${line},1 +${line},1 @@\n-${snippet}\n+${replacement}`;
+            } else if (type === 'License/Governance Marker') {
+                replacement = '// REVIEW: verify license compatibility with distribution model';
+                suggestedPatch = `--- a/${file}\n+++ b/${file}\n@@ -${line},1 +${line},1 @@\n-${snippet}\n+${replacement}`;
+            } else if (type === 'Maintainability Issue' || type === 'High Complexity' || type === 'Magic Number') {
+                replacement = '// TODO: extract hardcoded value into named constant';
+                suggestedPatch = `--- a/${file}\n+++ b/${file}\n@@ -${line},1 +${line},1 @@\n-${snippet}\n+${replacement}`;
+            } else if (type === 'Architecture Drift') {
+                replacement = '// REVIEW: add schema validator and enforce max_tokens limit';
+                suggestedPatch = `--- a/${file}\n+++ b/${file}\n@@ -${line},1 +${line},1 @@\n-${snippet}\n+${replacement}`;
+            } else if (type === 'Performance Anti-Pattern') {
+                replacement = '// TODO: optimize loop or debounce handler';
+                suggestedPatch = `--- a/${file}\n+++ b/${file}\n@@ -${line},1 +${line},1 @@\n-${snippet}\n+${replacement}`;
+            } else if (type === 'Type Safety Gap') {
+                replacement = '// TODO: replace any with specific type';
+                suggestedPatch = `--- a/${file}\n+++ b/${file}\n@@ -${line},1 +${line},1 @@\n-${snippet}\n+${replacement}`;
+            }
+            // File-extension-aware verification command fallback
+            let verificationCommand = typeToVerification[type] || '';
+            if (!verificationCommand) {
+                const ext = file.split('.').pop().toLowerCase();
+                if (['js','cjs','mjs'].includes(ext)) verificationCommand = 'node -c ' + file;
+                else if (['ts','tsx'].includes(ext)) verificationCommand = 'npx tsc --noEmit';
+                else if (['py'].includes(ext)) verificationCommand = 'python -m py_compile ' + file;
+                else if (['java'].includes(ext)) verificationCommand = 'javac -d /tmp ' + file;
+                else verificationCommand = 'npm test';
             }
             fixes.push({
                 file,
@@ -257,7 +290,7 @@ function buildSuggestedFixes(collections) {
                 context: surrounding.slice(0, 5),
                 suggestedPatch,
                 autoFixable: typeToAutoFixable[type] || false,
-                verificationCommand: typeToVerification[type] || 'npm test'
+                verificationCommand
             });
         });
     });

@@ -116,12 +116,12 @@ export class AiChatbotProvider implements vscode.WebviewViewProvider {
   }
   button.secondary:hover { background: var(--vscode-button-secondaryHoverBackground, #4a4a4a); }
   .toast {
-    position: fixed; bottom: 12px; left: 12px; right: 12px;
-    padding: 8px 12px; border-radius: 4px; font-size: 12px;
-    background: var(--vscode-notifications-background, #252526);
-    color: var(--vscode-notifications-foreground, #ccc);
-    border: 1px solid var(--vscode-notifications-border, #3c3c3c);
-    display: none; z-index: 10;
+    margin-top: 12px;
+    padding: 8px 12px; border-radius: 6px; font-size: 12px;
+    background: var(--vscode-inputValidation-infoBackground, rgba(17,143,208,0.1));
+    color: var(--vscode-inputValidation-infoForeground, #3794ff);
+    border: 1px solid var(--vscode-inputValidation-infoBorder, rgba(55,148,255,0.3));
+    display: none;
   }
   .toast.show { display: block; }
 </style>

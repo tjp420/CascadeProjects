@@ -16,19 +16,49 @@
 
 const STRIPE_TIER_MAP = {
   // --- New 4-tier metered products ---
+  'price_pro_monthly': {
+    tier: 'pro',
+    expiryDays: 30,
+    product: 'pro',
+    basePrice: 900, // cents
+    metered: false
+  },
+  'price_pro_annual': {
+    tier: 'pro',
+    expiryDays: 365,
+    product: 'pro_annual',
+    basePrice: 7900, // cents ($79/yr)
+    metered: false
+  },
+  'price_team_monthly': {
+    tier: 'team',
+    expiryDays: 30,
+    product: 'team',
+    basePrice: 1500, // cents per seat
+    metered: true
+  },
+  'price_team_annual': {
+    tier: 'team',
+    expiryDays: 365,
+    product: 'team_annual',
+    basePrice: 15000, // cents per seat ($150/yr)
+    metered: false
+  },
   'price_startup_monthly': {
-    tier: 'startup',
+    tier: 'pro', // mapped to pro tier
     expiryDays: 30,
     product: 'startup',
     basePrice: 4900, // cents
-    metered: true
+    metered: true,
+    legacy: true
   },
   'price_growth_monthly': {
-    tier: 'growth',
+    tier: 'team', // mapped to team tier
     expiryDays: 30,
     product: 'growth',
     basePrice: 14900, // cents
-    metered: true
+    metered: true,
+    legacy: true
   },
   'price_enterprise_annual': {
     tier: 'enterprise',

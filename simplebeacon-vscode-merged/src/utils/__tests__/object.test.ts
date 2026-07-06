@@ -1,5 +1,5 @@
 import {
-  deepClone, deepEqual, isEmpty, isDefined, pick, omit, ensureArray,
+  deepClone, deepEqual, isEmpty, pick, omit, ensureArray,
   defaults, merge, has, get, set, mapKeys, invert, values, keys, freezeDeep
 } from '../object';
 
@@ -54,21 +54,6 @@ describe('object utilities', () => {
     });
     test('non-empty', () => {
       expect(isEmpty([1])).toBe(false);
-    });
-  });
-
-  describe('isDefined', () => {
-    test('null is not defined', () => {
-      expect(isDefined(null)).toBe(false);
-    });
-    test('undefined is not defined', () => {
-      expect(isDefined(undefined)).toBe(false);
-    });
-    test('zero is defined', () => {
-      expect(isDefined(0)).toBe(true);
-    });
-    test('false is defined', () => {
-      expect(isDefined(false)).toBe(true);
     });
   });
 
@@ -164,6 +149,38 @@ describe('object utilities', () => {
   describe('freezeDeep', () => {
     test('freezes nested objects', () => {
       const obj = { a: { b: 1 } };
+      freezeDeep(obj);
+      expect(Object.isFrozen(obj)).toBe(true);
+      expect(Object.isFrozen(obj.a)).toBe(true);
+    });
+
+    test('freezes Map values', () => {
+      const map = new Map([['a', { b: 1 }]]);
+      freezeDeep(map);
+      expect(Object.isFrozen(map)).toBe(true);
+      expect(Object.isFrozen(map.get('a'))).toBe(true);
+    });
+
+    test('freezes Set members', () => {
+      const set = new Set([{ a: 1 }]);
+      const result = freezeDeep(set) as Set<any>;
+      expect(Object.isFrozen(result)).toBe(true);
+      expect(Object.isFrozen([...result][0])).toBe(true);
+    });
+
+    test('skips Date and RegExp', () => {
+      const date = new Date();
+      const regex = /test/;
+      const obj = { date, regex };
+      freezeDeep(obj);
+      expect(Object.isFrozen(obj)).toBe(true);
+      expect(Object.isFrozen(obj.date)).toBe(false);
+      expect(Object.isFrozen(obj.regex)).toBe(false);
+    });
+
+    test('handles circular references', () => {
+      const obj: any = { a: { b: 1 } };
+      obj.a.self = obj.a;
       freezeDeep(obj);
       expect(Object.isFrozen(obj)).toBe(true);
       expect(Object.isFrozen(obj.a)).toBe(true);

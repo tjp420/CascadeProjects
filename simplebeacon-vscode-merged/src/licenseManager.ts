@@ -6,6 +6,28 @@ export interface LicenseMeta {
     expiresAt: string;
 }
 
+/** Tier alias map: canonical -> aliases. Tokens may use alternate names. */
+const TIER_ALIASES: Record<string, string> = {
+    free: 'developer',
+    pro: 'pro',
+    enterprise: 'compliance'
+};
+
+/** Reverse map: alias -> canonical. */
+const ALIAS_TO_CANONICAL: Record<string, string> = Object.fromEntries(
+    Object.entries(TIER_ALIASES).map(([k, v]) => [v, k])
+);
+
+/**
+ * Normalize a tier name to canonical form (free, pro, team, enterprise).
+ * @param tier - Raw tier string from token
+ * @returns Canonical tier name
+ */
+export function normalizeTier(tier: string): string {
+    const t = (tier || 'free').toLowerCase();
+    return ALIAS_TO_CANONICAL[t] || t;
+}
+
 /**
  * Validate a SimpleBeacon enterprise license token locally using
  * an embedded RSA public key. This verification occurs entirely on

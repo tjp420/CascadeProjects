@@ -37,6 +37,7 @@ const PROCESSOR_DEBUG = process.env.PROCESSOR_DEBUG === 'true';
 const MAX_FILE_SIZE_MB = parseInt(process.env.PROCESSOR_MAX_FILE_SIZE_MB || '50', 10);
 const log = (...args) => { if (PROCESSOR_DEBUG) console.log(...args); }; // simplebeacon-ignore debug-artifact — gated by PROCESSOR_DEBUG env var
 const logError = (...args) => { if (PROCESSOR_DEBUG) console.error(...args); }; // simplebeacon-ignore debug-artifact — gated by PROCESSOR_DEBUG env var
+const timestamp = () => new Date().toISOString();
 
 // Ensure directories exist
 [WATCH_DIR, OUTPUT_DIR, ARCHIVE_DIR].forEach(dir => {
@@ -49,10 +50,21 @@ const logError = (...args) => { if (PROCESSOR_DEBUG) console.error(...args); }; 
 /**
  * Call local Ollama engine for analysis
  */
+async function fetchWithTimeout(url, options = {}, ms = constants.TIMEOUT_2M) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    return response;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function analyzeWithOllama(prompt) {
   const url = `${OLLAMA_BASE_URL}/api/generate`;
-  
-  const response = await fetch(url, {
+
+  const response = await fetchWithTimeout(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -83,18 +95,18 @@ async function processFile(filePath) {
   const startTime = Date.now();
 
   try {
-    log(`[${new Date().toISOString()}] Processing: ${filename}`);
+    log(`[${timestamp()}] Processing: ${filename}`);
 
     // 1. Read input file (with size guard)
     const stats = fs.statSync(filePath);
-    if (stats.size > MAX_FILE_SIZE_MB * constants.BYTES_PER_KB * constants.BYTES_PER_KB) {
+    if (stats.size > MAX_FILE_SIZE_MB * constants.BYTES_PER_MB) {
       throw new Error(`File exceeds ${MAX_FILE_SIZE_MB}MB limit: ${filename} (${Math.round(stats.size / 1024 / 1024)}MB)`);
     }
     const rawData = fs.readFileSync(filePath, 'utf8');
 
     // 2. Absolute Privacy: Strip PII before AI processing
     const cleanData = sanitizePrivacyData(rawData);
-    log(`[${new Date().toISOString()}] PII sanitized for: ${filename}`);
+    log(`[${timestamp()}] PII sanitized for: ${filename}`);
 
     // 3. Automated Analysis via local Ollama
     const analysisPrompt = `You are an expert static analysis engine for SimpleBeacon. Your primary job is to find hardcoded secrets, mock data, and AI-hallucinated paths.
@@ -112,7 +124,7 @@ ${cleanData}
 Provide a structured report with findings and recommendations.`;
 
     const analysisResult = await analyzeWithOllama(analysisPrompt);
-    log(`[${new Date().toISOString()}] Analysis completed for: ${filename}`);
+    log(`[${timestamp()}] Analysis completed for: ${filename}`);
 
     // 4. Generate report
     const report = {
@@ -135,22 +147,28 @@ Provide a structured report with findings and recommendations.`;
     const outputFilename = `report_${Date.now()}_${filename}.json`;
     const outputPath = path.join(OUTPUT_DIR, outputFilename);
     fs.writeFileSync(outputPath, JSON.stringify(report, null, 2));
-    log(`[${new Date().toISOString()}] Report saved: ${outputFilename}`);
+    log(`[${timestamp()}] Report saved: ${outputFilename}`);
 
     // 6. Archive original file (instead of deleting for audit trail)
     const archivePath = path.join(ARCHIVE_DIR, filename);
     fs.renameSync(filePath, archivePath);
-    log(`[${new Date().toISOString()}] Archived to: ${archivePath}`);
+    log(`[${timestamp()}] Archived to: ${archivePath}`);
 
-    log(`[${new Date().toISOString()}] ✅ Successfully processed ${filename} in ${Date.now() - startTime}ms`);
+    log(`[${timestamp()}] ✅ Successfully processed ${filename} in ${Date.now() - startTime}ms`);
 
   } catch (error) {
-    logError(`[${new Date().toISOString()}] ❌ Failed to process ${filename}:`, error.message);
-    
+    logError(`[${timestamp()}] ❌ Failed to process ${filename}:`, error.message);
+
     // Move failed file to error subdirectory
-    const errorDir = path.join(ARCHIVE_DIR, 'errors');
-    if (!fs.existsSync(errorDir)) fs.mkdirSync(errorDir, { recursive: true });
-    fs.renameSync(filePath, path.join(errorDir, `${filename}.error`));
+    if (fs.existsSync(filePath)) {
+      const errorDir = path.join(ARCHIVE_DIR, 'errors');
+      if (!fs.existsSync(errorDir)) fs.mkdirSync(errorDir, { recursive: true });
+      try {
+        fs.renameSync(filePath, path.join(errorDir, `${filename}.error`));
+      } catch (renameErr) {
+        logError(`[${timestamp()}] Could not archive failed file ${filename}:`, renameErr.message);
+      }
+    }
   }
 }
 
@@ -160,18 +178,18 @@ Provide a structured report with findings and recommendations.`;
 async function processExistingFiles() {
   const files = fs.readdirSync(WATCH_DIR); // simplebeacon-ignore sync-io — startup directory listing before async watch begins
   if (files.length === 0) {
-    log(`[${new Date().toISOString()}] No existing files to process in ${WATCH_DIR}`);
+    log(`[${timestamp()}] No existing files to process in ${WATCH_DIR}`);
     return;
   }
 
-  log(`[${new Date().toISOString()}] Processing ${files.length} existing file(s)...`);
+  log(`[${timestamp()}] Processing ${files.length} existing file(s)...`);
   for (const file of files) {
     const fullPath = path.join(WATCH_DIR, file);
     if (fs.statSync(fullPath).isFile()) {
       try {
         await processFile(fullPath);
       } catch (err) {
-        logError(`[${new Date().toISOString()}] Failed to process existing file ${file}:`, err.message);
+        logError(`[${timestamp()}] Failed to process existing file ${file}:`, err.message);
       }
     }
   }
@@ -181,13 +199,14 @@ async function processExistingFiles() {
  * Setup file watcher for real-time processing
  */
 function setupFileWatcher() {
-  log(`[${new Date().toISOString()}] Setting up file watcher on: ${WATCH_DIR}`);
-  
+  const FILE_STABILITY_MS = 2000;
+  log(`[${timestamp()}] Setting up file watcher on: ${WATCH_DIR}`);
+
   fileWatcher = chokidar.watch(WATCH_DIR, {
     ignored: /(^|[\\/])\../, // ignore dotfiles
     persistent: true,
     awaitWriteFinish: {
-      stabilityThreshold: constants.MAX_RATE_LIMIT,
+      stabilityThreshold: FILE_STABILITY_MS,
       pollInterval: 100
     }
   });
@@ -199,17 +218,17 @@ function setupFileWatcher() {
         activeTimers.delete(timer);
         if (fs.existsSync(filePath)) {
           processFile(filePath).catch(err => {
-            logError(`[${new Date().toISOString()}] Unhandled error processing ${filePath}:`, err.message);
+            logError(`[${timestamp()}] Unhandled error processing ${filePath}:`, err.message);
           });
         }
       }, 2500);
       activeTimers.add(timer);
     })
     .on('error', error => {
-      logError(`[${new Date().toISOString()}] Watcher error:`, error);
+      logError(`[${timestamp()}] Watcher error:`, error);
     });
 
-  log(`[${new Date().toISOString()}] File watcher active. Drop files into ${WATCH_DIR} for automatic processing.`);
+  log(`[${timestamp()}] File watcher active. Drop files into ${WATCH_DIR} for automatic processing.`);
 }
 
 /**
@@ -226,15 +245,15 @@ async function main() {
 
   // Verify Ollama is accessible
   try {
-    const testResponse = await fetch(`${OLLAMA_BASE_URL}/api/tags`);
+    const testResponse = await fetchWithTimeout(`${OLLAMA_BASE_URL}/api/tags`, {}, constants.TIMEOUT_5S);
     if (!testResponse.ok) {
       throw new Error(`Ollama returned ${testResponse.status}`);
     }
-    log(`[${new Date().toISOString()}] ✅ Ollama connection verified`);
+    log(`[${timestamp()}] ✅ Ollama connection verified`);
   } catch (error) {
-    logError(`[${new Date().toISOString()}] ❌ Ollama connection failed: ${error.message}`);
-    logError(`[${new Date().toISOString()}] Ensure Ollama is running: ollama serve`);
-    process.exit(1);
+    logError(`[${timestamp()}] ❌ Ollama connection failed: ${error.message}`);
+    logError(`[${timestamp()}] Ensure Ollama is running: ollama serve`);
+    throw error;
   }
 
   // Process existing files

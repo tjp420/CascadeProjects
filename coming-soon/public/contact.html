@@ -39,9 +39,9 @@
           <span>Your name (optional)</span>
           <input type="text" name="name" autocomplete="name" placeholder="First Last">
         </label>
-        <label class="audit-booking-field">
+        <label class="audit-booking-field" for="contactTopic">
           <span>Topic</span>
-          <select name="topic" required>
+          <select id="contactTopic" name="topic" required>
             <option value="free-audit">Free AI Slop Audit request</option>
             <option value="certificate">Executive Risk Certificate ($499)</option>
             <option value="eu-ai-act">EU AI Act Readiness Sprint ($2,499)</option>
@@ -60,17 +60,17 @@
           <input type="text" name="title" required placeholder="e.g. Chief Compliance Officer">
         </label>
         <div id="invoiceFields" style="display:none;" class="invoice-fieldset">
-          <label class="audit-booking-field">
+          <label class="audit-booking-field" for="invoiceType">
             <span>What do you need?</span>
-            <select name="invoiceType">
+            <select id="invoiceType" name="invoiceType">
               <option value="invoice">Invoice only</option>
               <option value="w9">W-9 only</option>
               <option value="both">Invoice + W-9</option>
             </select>
           </label>
-          <label class="audit-booking-field">
+          <label class="audit-booking-field" for="invoiceProduct">
             <span>Product / service</span>
-            <select name="product">
+            <select id="invoiceProduct" name="product">
               <option value="">-- Select what you're buying --</option>
               <option value="certificate">Executive Risk Certificate ($499)</option>
               <option value="eu-ai-act">EU AI Act Readiness Sprint ($2,499)</option>

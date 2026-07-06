@@ -95,16 +95,6 @@ function _deepClone(obj: unknown, seen = new WeakMap<object, unknown>()): unknow
 }
 
 /**
- * Type guard: returns true if the value is neither null nor undefined.
- * Narrows the type for TypeScript flow analysis.
- * @param {T | null | undefined} value
- * @returns {value is T}
- */
-export function isDefined<T>(value: T | null | undefined): value is T {
-  return value !== null && value !== undefined;
-}
-
-/**
  * Create a new object with only the specified keys from source.
  * @template T, K extends keyof T
  * @param {T} source
@@ -282,10 +272,10 @@ export function has(obj: unknown, key: string): boolean {
 export function get(obj: unknown, path: string, fallback?: unknown): unknown {
   if (!obj || typeof obj !== 'object' || typeof path !== 'string') return fallback;
   const keys = path.split('.');
-  let current: any = obj;
+  let current: unknown = obj;
   for (const key of keys) {
     if (current == null || typeof current !== 'object') return fallback;
-    current = current[key];
+    current = (current as Record<string, unknown>)[key];
   }
   return current === undefined ? fallback : current;
 }
@@ -376,19 +366,44 @@ export function freezeDeep<T>(obj: T): T {
   function freeze(val: unknown): unknown {
     if (val == null || typeof val !== 'object') return val;
     if (seen.has(val)) return val;
+    if (Object.isFrozen(val)) return val;
+
+    const ctor = (val as any).constructor;
+    if (ctor === Date || ctor === RegExp || ctor === WeakMap || ctor === WeakSet) return val;
+
+    if (ctor === Map) {
+      seen.add(val);
+      for (const [k, v] of val as Map<unknown, unknown>) {
+        (val as Map<unknown, unknown>).set(k, freeze(v));
+      }
+      Object.freeze(val);
+      return val;
+    }
+
+    if (ctor === Set) {
+      seen.add(val);
+      const frozenSet = new Set<unknown>();
+      for (const v of val as Set<unknown>) {
+        frozenSet.add(freeze(v));
+      }
+      Object.freeze(frozenSet);
+      return frozenSet;
+    }
+
     seen.add(val);
     if (Array.isArray(val)) {
-      val.forEach(freeze);
+      for (let i = 0; i < val.length; i++) {
+        val[i] = freeze(val[i]);
+      }
     } else {
       for (const key of Object.keys(val)) {
-        freeze((val as Record<string, unknown>)[key]);
+        (val as Record<string, unknown>)[key] = freeze((val as Record<string, unknown>)[key]);
       }
     }
     Object.freeze(val);
     return val;
   }
-  freeze(obj);
-  return obj;
+  return freeze(obj) as T;
 }
 
 /**

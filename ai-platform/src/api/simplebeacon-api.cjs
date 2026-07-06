@@ -10,11 +10,7 @@ const { promisify } = require('util');
 
 const constants = require('../../server/config/constants.cjs');
 const execAsync = promisify(exec);
-const https = require('https');
-const http = require('http');
-const { URL } = require('url');
-const { sendEmail } = require('../../server/lib/email-service.cjs');
-const { runNpmAudit, runNpmAuditAsync } = require('../../server/lib/npm-audit-runner.cjs');
+const { runNpmAuditAsync } = require('../../server/lib/npm-audit-runner.cjs');
 const {
   resolveDefaultAllowedRoots,
   assertSafeProjectPath
@@ -46,7 +42,7 @@ const {
   buildDashboardPayload,
   buildScanResults,
   findHistoryEntry
-} = require('../../../packages/simplebeacon-cli/src/lib/dashboard-payload.js');
+} = require('../../server/lib/simplebeacon-proxy.cjs');
 
 const PROJECT_ROOT = path.join(__dirname, '../..');
 const MONOREPO_ROOT = path.join(PROJECT_ROOT, '..');
@@ -71,9 +67,15 @@ const AUDIT_SAMPLE_FILES = {
   adoptionTrends: 'ai-adoption-trends-sample.json'
 };
 
-const SCHEDULE_PATH = path.join(SIMPLEBEACON_DIR, 'schedule.json');
-let scheduleTimer = null;
-let scheduleConfigCache = null;
+/**
+ * Scan scheduler factory.
+ */
+const { createScheduler } = require('../../server/lib/scan-scheduler.cjs');
+
+/**
+ * Demo API routes.
+ */
+const { setupSimplebeaconDemoAPI } = require('../../server/routes/demo-simplebeacon-api.cjs');
 
 /**
  * Read json.
@@ -215,7 +217,7 @@ function resolveConfigFilePath(projectPath) {
 
 /**
  * Append history.
- * @param {number} report
+ * @param {Object} report
  * @returns {any}
  */
 async function appendHistory(report) {
@@ -471,7 +473,7 @@ async function runSimplebeaconScan(projectPath, opts = {}) {
 }
 
 /**
- * Setup simplebeacon a p i.
+ * Setup Simplebeacon API routes.
  * @param {any} app
  * @param {Object} options
  * @returns {any}
@@ -1017,10 +1019,19 @@ function setupSimplebeaconAPI(app, options = {}) {
     res.redirect('/simplebeacon-dashboard/index.html');
   });
 
-  // Schedule management
+  // ── Scan Scheduler ──
+  const SCHEDULE_PATH = path.join(SIMPLEBEACON_DIR, 'schedule.json');
+  const scheduler = createScheduler({
+    runSimplebeaconScan,
+    PROJECT_ROOT,
+    REPORT_PATH,
+    SIMPLEBEACON_DIR,
+    SCHEDULE_PATH
+  });
+
   app.get('/api/simplebeacon/schedule', requirePaidReadOnly, async (_req, res) => {
     try {
-      const cfg = await readScheduleConfig();
+      const cfg = await scheduler.readScheduleConfig();
       res.json({ success: true, schedule: cfg });
     } catch (err) {
       res.status(500).json({ success: false, error: err.message });
@@ -1030,7 +1041,7 @@ function setupSimplebeaconAPI(app, options = {}) {
   app.post('/api/simplebeacon/schedule', requirePaid, async (req, res) => {
     try {
       const body = req.body && typeof req.body === 'object' ? req.body : {};
-      const current = await readScheduleConfig();
+      const current = await scheduler.readScheduleConfig();
       const updated = {
         enabled: typeof body.enabled === 'boolean' ? body.enabled : current.enabled,
         intervalMinutes: Number(body.intervalMinutes) || current.intervalMinutes || 60,
@@ -1046,8 +1057,8 @@ function setupSimplebeaconAPI(app, options = {}) {
           ? body.zeroRetention
           : current.zeroRetention
       };
-      await writeScheduleConfig(updated);
-      startScheduler();
+      await scheduler.writeScheduleConfig(updated);
+      scheduler.startScheduler();
       res.json({ success: true, schedule: updated });
     } catch (err) {
       res.status(500).json({ success: false, error: err.message });
@@ -1095,7 +1106,7 @@ function setupSimplebeaconAPI(app, options = {}) {
         stderr: result.stderr,
         timestamp: new Date().toISOString()
       };
-      const webhookResult = await postWebhook(webhookUrl, payload);
+      const webhookResult = await scheduler.postWebhook(webhookUrl, payload);
       console.log(`[WebhookScan] ${webhookResult.success ? 'delivered' : 'failed'} to ${webhookUrl}`);
 
       // Zero-retention: wipe payload from memory after delivery
@@ -1114,7 +1125,7 @@ function setupSimplebeaconAPI(app, options = {}) {
       }
     } catch (err) {
       console.error('[WebhookScan] Scan or delivery failed:', err.message);
-      postWebhook(webhookUrl, {
+      scheduler.postWebhook(webhookUrl, {
         event: 'simplebeacon.scan.failed',
         scanId,
         error: err.message,
@@ -1123,316 +1134,8 @@ function setupSimplebeaconAPI(app, options = {}) {
     }
   });
 
-  startScheduler();
+  scheduler.startScheduler();
   setupSimplebeaconDemoAPI(app);
-}
-
-const DEMO_DIR = path.join(PROJECT_ROOT, 'data', 'simplebeacon-demo');
-
-/**
- * Load demo context.
- * @returns {any}
- */
-async function loadDemoContext() {
-  const [report, baseline, history] = await Promise.all([
-    readJson(path.join(DEMO_DIR, 'report.json')),
-    readJson(path.join(DEMO_DIR, 'baseline.json')),
-    readJson(path.join(DEMO_DIR, 'history.json'), [])
-  ]);
-  const fictionCatalog = buildFictionPatternCatalog(baseline);
-  return { report, baseline, history, fictionCatalog };
-}
-
-/**
- * Demo readonly.
- * @param {any} _req
- * @param {Array} res
- * @returns {any}
- */
-function demoReadonly(_req, res) {
-  return res.status(403).json({
-    error: 'demo_readonly',
-    message: 'Demo dashboard is read-only. Run npx simplebeacon locally or sign in at /app for your workspace.'
-  });
-}
-
-// ── Scheduled Scan & Report Delivery ──
-
-/**
- * Read schedule config.
- * @returns {any}
- */
-async function readScheduleConfig() {
-  try {
-    const data = await fs.promises.readFile(SCHEDULE_PATH, 'utf8');
-    return JSON.parse(data);
-  } catch {
-    return {
-      enabled: false,
-      intervalMinutes: 60,
-      recipients: [],
-      projectPath: null,
-      includeCertificate: false,
-      webhookUrl: null,
-      zeroRetention: false
-    };
-  }
-}
-
-/**
- * Write schedule config.
- * @param {Object} config
- * @returns {any}
- */
-async function writeScheduleConfig(config) {
-  await fs.promises.mkdir(SIMPLEBEACON_DIR, { recursive: true });
-  await fs.promises.writeFile(SCHEDULE_PATH, JSON.stringify(config, null, 2) + '\n', 'utf8');
-  scheduleConfigCache = config;
-}
-
-/**
- * Post webhook.
- * @param {string} targetUrl
- * @param {any} payload
- * @returns {any}
- */
-async function postWebhook(targetUrl, payload) {
-  return new Promise((resolve) => {
-    const url = new URL(targetUrl);
-    const data = JSON.stringify(payload);
-    const options = {
-      hostname: url.hostname,
-      port: url.port || (url.protocol === 'https:' ? 443 : 80),
-      path: url.pathname + url.search,
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(data)
-      }
-    };
-    const mod = url.protocol === 'https:' ? https : http;
-    const req = mod.request(options, (res) => {
-      let body = '';
-      res.on('data', (chunk) => { body += chunk; });
-      res.on('end', () => {
-        resolve({
-          success: res.statusCode >= 200 && res.statusCode < 300,
-          statusCode: res.statusCode,
-          body: body.slice(0, 500)
-        });
-      });
-    });
-    req.on('error', (err) => resolve({ success: false, error: err.message }));
-    req.write(data);
-    req.end();
-  });
-}
-
-/**
- * Run scheduled scan and deliver.
- * @returns {any}
- */
-async function runScheduledScanAndDeliver() {
-  const cfg = scheduleConfigCache || (await readScheduleConfig());
-  if (!cfg.enabled) return;
-
-  try {
-    const result = await runSimplebeaconScan(cfg.projectPath || null);
-    if (result.skipped) {
-      console.log('[Schedule] Scan skipped:', result.reason);
-      return;
-    }
-
-    const report = result.report;
-    if (!report) {
-      console.log('[Schedule] No report generated');
-      return;
-    }
-
-    const summaryText = `Simplebeacon Scheduled Scan Complete\nProject: ${result.projectPath}\nScan ID: ${result.scanId || 'unknown'}\nGate Pass: ${report.gate?.pass ? 'PASS' : 'FAIL'}\nQuality Score: ${report.qualityScore}\nIssue Count: ${report.issueCount}\n\nView full report in the dashboard.`;
-
-    if (Array.isArray(cfg.recipients) && cfg.recipients.length) {
-      for (const recipient of cfg.recipients) {
-        const attachments = [];
-        if (cfg.includeCertificate && report) {
-          attachments.push({
-            filename: `report-${result.scanId || 'unknown'}.json`,
-            content: Buffer.from(JSON.stringify(report, null, 2)).toString('base64')
-          });
-        }
-        await sendEmail({
-          to: recipient,
-          subject: `Simplebeacon Scan Report — ${result.scanId || 'unknown'}`,
-          text: summaryText,
-          attachments
-        }).catch((err) => console.error('[Schedule] Email failed'));
-      }
-    }
-
-    if (cfg.webhookUrl) {
-      const webhookResult = await postWebhook(cfg.webhookUrl, {
-        event: 'simplebeacon.scan.completed',
-        scanId: result.scanId,
-        projectPath: result.projectPath,
-        gatePass: report.gate?.pass ?? null,
-        qualityScore: report.qualityScore,
-        issueCount: report.issueCount,
-        report: cfg.includeCertificate ? report : undefined,
-        timestamp: new Date().toISOString()
-      });
-      console.log(
-        `[Schedule] Webhook ${webhookResult.success ? 'delivered' : 'failed'} to ${cfg.webhookUrl}`
-      );
-    }
-
-    if (cfg.zeroRetention) {
-      const reportOut = cfg.projectPath
-        ? path.join(cfg.projectPath, '.simplebeacon', 'report.json')
-        : REPORT_PATH;
-      try {
-        if (fs.existsSync(reportOut)) {
-          fs.unlinkSync(reportOut);
-          console.log('[Schedule] Zero-retention: report file removed after delivery');
-        }
-      } catch (unlinkErr) {
-        console.warn('[Schedule] Zero-retention: failed to remove report file:', unlinkErr.message);
-      }
-    }
-  } catch (err) {
-    console.error('[Schedule] Scheduled scan delivery failed:', err.message);
-  }
-}
-
-/**
- * Start scheduler.
- * @returns {any}
- */
-function startScheduler() {
-  if (scheduleTimer) {
-    clearInterval(scheduleTimer);
-    scheduleTimer = null;
-  }
-  readScheduleConfig()
-    .then((cfg) => {
-      scheduleConfigCache = cfg;
-      if (cfg.enabled && cfg.intervalMinutes > 0) {
-        const ms = cfg.intervalMinutes * 60 * 1000;
-        scheduleTimer = setInterval(runScheduledScanAndDeliver, ms);
-        console.log(
-          `[Schedule] Started: every ${cfg.intervalMinutes} min, recipients: ${(cfg.recipients || []).join(', ') || 'none'}`
-        );
-      }
-    })
-    .catch((err) => console.error('[Schedule] Failed to start scheduler:', err.message));
-}
-
-/**
- * Setup simplebeacon demo a p i.
- * @param {any} app
- * @returns {any}
- */
-function setupSimplebeaconDemoAPI(app) {
-  app.get('/api/simplebeacon/demo/report', async (_req, res) => {
-    try {
-      const report = await readJson(path.join(DEMO_DIR, 'report.json'));
-      res.json(report);
-    } catch (err) {
-      res.status(404).json({ error: 'Demo report not found', message: err.message });
-    }
-  });
-
-  app.get('/api/simplebeacon/demo/baseline', async (_req, res) => {
-    try {
-      res.json(await readJson(path.join(DEMO_DIR, 'baseline.json')));
-    } catch (err) {
-      res.status(404).json({ error: 'Demo baseline not found', message: err.message });
-    }
-  });
-
-  app.get('/api/simplebeacon/demo/config', async (_req, res) => {
-    try {
-      res.json(await readJson(path.join(DEMO_DIR, 'config.json')));
-    } catch (err) {
-      res.status(404).json({ error: 'Demo config not found', message: err.message });
-    }
-  });
-
-  app.get('/api/simplebeacon/demo/history', async (_req, res) => {
-    try {
-      res.json(await readJson(path.join(DEMO_DIR, 'history.json'), []));
-    } catch {
-      res.json([]);
-    }
-  });
-
-  app.get('/api/simplebeacon/demo/dashboard', async (_req, res) => {
-    try {
-      const context = await loadDemoContext();
-      res.json(buildDashboardPayload(context));
-    } catch (err) {
-      res.status(404).json({ error: 'Demo dashboard not found', message: err.message });
-    }
-  });
-
-  app.get('/api/simplebeacon/demo/results/:scanId', async (req, res) => {
-    try {
-      const context = await loadDemoContext();
-      const entry = findHistoryEntry(context.history, req.params.scanId);
-      if (!entry) {
-        return res.status(404).json({ error: 'Scan not found', scanId: req.params.scanId });
-      }
-      res.json(buildScanResults(context.report, entry, context.baseline));
-    } catch (err) {
-      res.status(404).json({ error: 'Demo results not found', message: err.message });
-    }
-  });
-
-  app.get('/api/simplebeacon/demo/assessment', async (_req, res) => {
-    try {
-      const context = await loadDemoContext();
-      const assessment = buildAssessmentReport(context.report, {
-        company: 'Acme Corp (demo honey-pot)',
-        projectRoot: context.report.projectRoot || '/demo/toxic-honeypot'
-      });
-      res.json(assessment);
-    } catch (err) {
-      res.status(404).json({ error: 'Demo assessment not found', message: err.message });
-    }
-  });
-
-  app.get('/api/simplebeacon/demo/audit', async (_req, res) => {
-    try {
-      const context = await loadDemoContext();
-      const assessment = buildAssessmentReport(context.report, {
-        company: 'Acme Corp (demo honey-pot)',
-        projectRoot: context.report.projectRoot || '/demo/toxic-honeypot'
-      });
-      res.json(buildAuditPayload(
-        { ...context, assessment, pageSamples: {}, npmAudit: null },
-        { assessment, npmAudit: null, pageSamples: {} }
-      ));
-    } catch (err) {
-      res.status(404).json({ error: 'Demo audit not found', message: err.message });
-    }
-  });
-
-  app.get('/api/simplebeacon/demo/config/presets', async (_req, res) => {
-    res.json({ success: true, presets: {} });
-  });
-
-  const block = ['scan', 'assess', 'npm-audit', 'cloud-scan'];
-  for (const action of block) {
-    app.post(`/api/simplebeacon/demo/${action}`, demoReadonly);
-  }
-  app.put('/api/simplebeacon/demo/config', demoReadonly);
-  app.post('/api/simplebeacon/demo/tools/baseline-sync', demoReadonly);
-
-  const { registerOutreachRoutes } = require('../../server/lib/outreach-route.cjs');
-
-  registerOutreachRoutes(app, {
-    dataDir: path.join(PROJECT_ROOT, 'data'),
-    prefixes: ['/api/simplebeacon/outreach']
-  });
 }
 
 /**

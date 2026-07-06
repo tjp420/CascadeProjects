@@ -3,12 +3,13 @@ import * as vscode from 'vscode';
 import { spawn } from 'child_process';
 import { existsSync } from 'fs';
 import { join } from 'path';
-import { validateLicenseLocally } from './licenseManager';
+import { validateLicenseLocally, normalizeTier } from './licenseManager';
 import { evaluateReferralPrompt } from './referralEngine';
 import { getSbConfig } from './utils';
+import { PAID_TIERS, resolveTier } from './tierConstants';
 
 // Embedded production public verification key
-const PUBLIC_KEY_PEM = `-----BEGIN PUBLIC KEY-----
+export const PUBLIC_KEY_PEM = `-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuVRzrbVu/Fvld1/OWHw7
 uwdQD/tLQGndxuFC1uFUFj9QxG4ZvULWJKje0i8sJ2W1tk5GxU9B1ZbtDDS1KLS1
 9rgZ1/6/qPWXdUP70Qf6WM4b73sF6UQus245xdkuGZzP+76VCy3LBs0yTujjCfRr
@@ -46,7 +47,8 @@ export function getAuthorizedRulePresets(document: vscode.TextDocument): string[
   // Verify the license token completely offline with zero server API hits
   const activeLicense = validateLicenseLocally(userLicenseToken, PUBLIC_KEY_PEM);
 
-  if (activeLicense && (activeLicense.tier === 'team' || activeLicense.tier === 'enterprise')) {
+  const canonicalTier = activeLicense ? resolveTier(activeLicense.tier) : 'developer';
+  if (activeLicense && PAID_TIERS.has(canonicalTier)) {
     if (selectedPreset === 'complete' || selectedPreset === 'fiction-kpi') {
       activeRules.push('fiction-kpi', 'ai-indicators', 'enterprise-compliance');
     }

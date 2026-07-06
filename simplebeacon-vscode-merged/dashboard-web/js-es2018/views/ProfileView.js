@@ -1,96 +1,106 @@
 import { escapeHtml, showToast } from '../utils.js';
 import { authService } from '../services/authService.js';
-
 function loadProfile() {
-  try {
-    const raw = localStorage.getItem('sb_profile');
-    return raw ? JSON.parse(raw) : {};
-  } catch { return {}; }
-}
-
-function saveProfile(data) {
-  localStorage.setItem('sb_profile', JSON.stringify(data));
-}
-
-function decodeJwtPayload(token) {
-  if (!token || typeof token !== 'string') return null;
-  const parts = token.split('.');
-  if (parts.length !== 3) return null;
-  try {
-    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-    const padding = '='.repeat((4 - base64.length % 4) % 4);
-    return JSON.parse(atob(base64 + padding));
-  } catch {
-    return null;
-  }
-}
-
-function formatTimeAgo(dateString) {
-  if (!dateString) return 'Unknown';
-  const then = new Date(dateString).getTime();
-  if (isNaN(then)) return 'Unknown';
-  const diff = Date.now() - then;
-  const seconds = Math.floor(diff / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
-  const months = Math.floor(days / 30);
-  const years = Math.floor(days / 365);
-  if (years > 0) return `${years} year${years > 1 ? 's' : ''}`;
-  if (months > 0) return `${months} month${months > 1 ? 's' : ''}`;
-  if (days > 0) return `${days} day${days > 1 ? 's' : ''}`;
-  if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''}`;
-  if (minutes > 0) return `${minutes} minute${minutes > 1 ? 's' : ''}`;
-  return `${seconds} second${seconds !== 1 ? 's' : ''}`;
-}
-
-function formatExpiry(exp) {
-  if (!exp) return { label: 'Never', color: 'var(--text-muted)' };
-  const expiryMs = exp * 1000;
-  const diff = expiryMs - Date.now();
-  if (diff <= 0) return { label: 'Expired', color: 'var(--error)' };
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-  if (days > 30) return { label: `${Math.floor(days / 30)} months`, color: 'var(--success)' };
-  if (days > 1) return { label: `${days} days`, color: days < 7 ? 'var(--warning)' : 'var(--success)' };
-  const hours = Math.floor(diff / (1000 * 60 * 60));
-  return { label: `${hours}h`, color: 'var(--warning)' };
-}
-
-function getInitials(value) {
-  if (!value || typeof value !== 'string') return '?';
-  const clean = value.trim();
-  if (!clean) return '?';
-  const parts = clean.split(/[@\s._-]+/).filter(Boolean);
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
-
-function getTokenRegistry() {
-  try {
-    const raw = localStorage.getItem('sb-token-registry');
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
-  }
-}
-
-export class ProfileView {
-  constructor(app) {
-    this.app = app;
-    this._countdownInterval = null;
-    this._safetyTimer = null;
-    this._container = null;
-    this._renderKey = null;
-  }
-
-  renderSecureReveal(inputId, rawValue, classification) {
-    if (!rawValue || rawValue === 'N/A') {
-      return `<span class="profile-empty-field-fallback">Unassigned Context</span>`;
+    try {
+        const raw = localStorage.getItem('sb_profile');
+        return raw ? JSON.parse(raw) : {};
     }
-
-    const displayedMask = this.maskAccountEmail(rawValue, classification === 'email');
-
-    return `
+    catch (_a) {
+        return {};
+    }
+}
+function saveProfile(data) {
+    localStorage.setItem('sb_profile', JSON.stringify(data));
+}
+function decodeJwtPayload(token) {
+    if (!token || typeof token !== 'string')
+        return null;
+    const parts = token.split('.');
+    if (parts.length !== 3)
+        return null;
+    try {
+        const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+        const padding = '='.repeat((4 - base64.length % 4) % 4);
+        return JSON.parse(atob(base64 + padding));
+    }
+    catch (_a) {
+        return null;
+    }
+}
+function formatTimeAgo(dateString) {
+    if (!dateString)
+        return 'Unknown';
+    const then = new Date(dateString).getTime();
+    if (isNaN(then))
+        return 'Unknown';
+    const diff = Date.now() - then;
+    const seconds = Math.floor(diff / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+    const months = Math.floor(days / 30);
+    const years = Math.floor(days / 365);
+    if (years > 0)
+        return `${years} year${years > 1 ? 's' : ''}`;
+    if (months > 0)
+        return `${months} month${months > 1 ? 's' : ''}`;
+    if (days > 0)
+        return `${days} day${days > 1 ? 's' : ''}`;
+    if (hours > 0)
+        return `${hours} hour${hours > 1 ? 's' : ''}`;
+    if (minutes > 0)
+        return `${minutes} minute${minutes > 1 ? 's' : ''}`;
+    return `${seconds} second${seconds !== 1 ? 's' : ''}`;
+}
+function formatExpiry(exp) {
+    if (!exp)
+        return { label: 'Never', color: 'var(--text-muted)' };
+    const expiryMs = exp * 1000;
+    const diff = expiryMs - Date.now();
+    if (diff <= 0)
+        return { label: 'Expired', color: 'var(--error)' };
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    if (days > 30)
+        return { label: `${Math.floor(days / 30)} months`, color: 'var(--success)' };
+    if (days > 1)
+        return { label: `${days} days`, color: days < 7 ? 'var(--warning)' : 'var(--success)' };
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    return { label: `${hours}h`, color: 'var(--warning)' };
+}
+function getInitials(value) {
+    if (!value || typeof value !== 'string')
+        return '?';
+    const clean = value.trim();
+    if (!clean)
+        return '?';
+    const parts = clean.split(/[@\s._-]+/).filter(Boolean);
+    if (parts.length === 1)
+        return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+function getTokenRegistry() {
+    try {
+        const raw = localStorage.getItem('sb-token-registry');
+        return raw ? JSON.parse(raw) : {};
+    }
+    catch (_a) {
+        return {};
+    }
+}
+export class ProfileView {
+    constructor(app) {
+        this.app = app;
+        this._countdownInterval = null;
+        this._safetyTimer = null;
+        this._container = null;
+        this._renderKey = null;
+    }
+    renderSecureReveal(inputId, rawValue, classification) {
+        if (!rawValue || rawValue === 'N/A') {
+            return `<span class="profile-empty-field-fallback">Unassigned Context</span>`;
+        }
+        const displayedMask = this.maskAccountEmail(rawValue, classification === 'email');
+        return `
       <div class="secure-reveal-wrapper profile-privacy-shield" data-field-id="${inputId}" data-revealed="false">
         <div class="secret-display-canvas">
           <span class="masked-view">${escapeHtml(displayedMask)}</span>
@@ -101,141 +111,168 @@ export class ProfileView {
         </button>
       </div>
     `;
-  }
-
-  /**
-   * Specialized obfuscation engine for standard profile text strings.
-   * Preserves only the first 2 characters of the mailbox name for rapid tracking verification.
-   * @param {string} emailStr
-   * @param {boolean} isEmail
-   * @returns {string}
-   */
-  maskAccountEmail(emailStr, isEmail = false) {
-    if (!isEmail || !emailStr || !emailStr.includes('@')) {
-      return '••••••••••••••••';
     }
-    const [name, domain] = emailStr.split('@');
-    const hiddenName = name.length > 2 ? name.substring(0, 2) + '••••' : '••••';
-    const hiddenDomain = domain.length > 4 ? domain.substring(0, 2) + '••••' + domain.slice(-3) : '••••';
-    return `${hiddenName}@${hiddenDomain}`;
-  }
-
-  synchronizeAdaptiveFormDimming() {
-    const activeSelection = document.querySelector('input[name="loginMethod"]:checked')?.value || 'both';
-    const emailCard = document.getElementById('profile-card-email-fields');
-    const tokenCard = document.getElementById('profile-card-token-fields');
-    if (!emailCard || !tokenCard) return;
-    emailCard.classList.remove('context-disabled-dim');
-    tokenCard.classList.remove('context-disabled-dim');
-    if (activeSelection === 'email') {
-      tokenCard.classList.add('context-disabled-dim');
-    } else if (activeSelection === 'token') {
-      emailCard.classList.add('context-disabled-dim');
+    /**
+     * Specialized obfuscation engine for standard profile text strings.
+     * Preserves only the first 2 characters of the mailbox name for rapid tracking verification.
+     * @param {string} emailStr
+     * @param {boolean} isEmail
+     * @returns {string}
+     */
+    maskAccountEmail(emailStr, isEmail = false) {
+        if (!isEmail || !emailStr || !emailStr.includes('@')) {
+            return '••••••••••••••••';
+        }
+        const [name, domain] = emailStr.split('@');
+        const hiddenName = name.length > 2 ? name.substring(0, 2) + '••••' : '••••';
+        const hiddenDomain = domain.length > 4 ? domain.substring(0, 2) + '••••' + domain.slice(-3) : '••••';
+        return `${hiddenName}@${hiddenDomain}`;
     }
-  }
-
-  executeHardCacheCleanup(buttonDomRef) {
-    const keys = Object.keys(localStorage).filter((k) => k.startsWith('sb_') || k.includes('simplebeacon'));
-    keys.forEach((k) => localStorage.removeItem(k));
-    showToast('Workspace state caches cleared successfully. Reloading workspace context layers.', 'success');
-    if (buttonDomRef) {
-      const textEl = buttonDomRef.querySelector('.btn-text');
-      if (textEl) textEl.textContent = 'Wiped Clean!';
+    renderSecurityKeysList() {
+        const credentials = authService.getWebAuthnCredentials();
+        if (!credentials || credentials.length === 0) {
+            return '<p style="font-size:0.8rem;color:var(--text-muted);margin:0 0 8px;">No security keys registered yet.</p>';
+        }
+        return '<ul style="list-style:none;padding:0;margin:0 0 12px;">' +
+            credentials.map((c, i) => `
+        <li style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;font-size:0.8rem;">
+          <span>🔑 <strong>Key ${i + 1}</strong> · ${escapeHtml(c.id.slice(0, 16))}… · <span style="color:var(--text-muted);">${formatTimeAgo(c.registeredAt)}</span></span>
+          <button type="button" class="input-action remove-key-btn" data-key-id="${escapeHtml(c.id)}" title="Remove">🗑</button>
+        </li>
+      `).join('') +
+            '</ul>';
     }
-    setTimeout(() => window.location.reload(), 1200);
-  }
-
-  startExpirationCountdown() {
-    const token = (typeof authService !== 'undefined' ? authService.getToken() : null) || this.app?.state?.token || '';
-    if (!token) return;
-    const payload = decodeJwtPayload(token);
-    if (!payload || !payload.exp) {
-      this.updateExpirationBadge(null, 'Static Key / Non-JWT');
-      return;
+    attachRemoveKeyHandlers(container) {
+        container.querySelectorAll('.remove-key-btn').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const keyId = btn.dataset.keyId;
+                if (!keyId)
+                    return;
+                authService.removeWebAuthnCredential(keyId);
+                const listEl = container.querySelector('#security-keys-list');
+                if (listEl)
+                    listEl.innerHTML = this.renderSecurityKeysList();
+                this.attachRemoveKeyHandlers(container);
+            });
+        });
     }
-    const expirationTimestampMs = payload.exp * 1000;
-    if (this._countdownInterval) clearInterval(this._countdownInterval);
-    this.tickExpiration(expirationTimestampMs);
-    this._countdownInterval = setInterval(() => {
-      this.tickExpiration(expirationTimestampMs);
-    }, 60000);
-  }
-
-  tickExpiration(expirationMs) {
-    const nowMs = Date.now();
-    const remainingMs = expirationMs - nowMs;
-    if (remainingMs <= 0) {
-      clearInterval(this._countdownInterval);
-      this._countdownInterval = null;
-      this.updateExpirationBadge('expired', 'Session Expired');
-      return;
+    synchronizeAdaptiveFormDimming() {
+        var _a;
+        const activeSelection = ((_a = document.querySelector('input[name="loginMethod"]:checked')) === null || _a === void 0 ? void 0 : _a.value) || 'both';
+        const emailCard = document.getElementById('profile-card-email-fields');
+        const tokenCard = document.getElementById('profile-card-token-fields');
+        if (!emailCard || !tokenCard)
+            return;
+        emailCard.classList.remove('context-disabled-dim');
+        tokenCard.classList.remove('context-disabled-dim');
+        if (activeSelection === 'email') {
+            tokenCard.classList.add('context-disabled-dim');
+        }
+        else if (activeSelection === 'token') {
+            emailCard.classList.add('context-disabled-dim');
+        }
     }
-    const totalHours = remainingMs / (1000 * 60 * 60);
-    let state = 'safe';
-    let displayString = '';
-    if (totalHours <= 2) {
-      state = 'critical';
-      const mins = Math.max(1, Math.round(remainingMs / (1000 * 60)));
-      displayString = `Expires in ${mins}m`;
-    } else if (totalHours < 24) {
-      state = 'warning';
-      displayString = `Expires in ${Math.round(totalHours)}h`;
-    } else {
-      const days = Math.floor(totalHours / 24);
-      const hoursLeft = Math.round(totalHours % 24);
-      displayString = days > 0 ? `${days}d ${hoursLeft}h left` : `${hoursLeft}h left`;
+    executeHardCacheCleanup(buttonDomRef) {
+        const keys = Object.keys(localStorage).filter((k) => k.startsWith('sb_') || k.includes('simplebeacon'));
+        keys.forEach((k) => localStorage.removeItem(k));
+        showToast('Workspace state caches cleared successfully. Reloading workspace context layers.', 'success');
+        if (buttonDomRef) {
+            const textEl = buttonDomRef.querySelector('.btn-text');
+            if (textEl)
+                textEl.textContent = 'Wiped Clean!';
+        }
+        setTimeout(() => window.location.reload(), 1200);
     }
-    this.updateExpirationBadge(state, displayString);
-  }
-
-  updateExpirationBadge(state, text) {
-    const container = document.getElementById('sb-profile-expiration-container');
-    if (!container) return;
-    if (!state) {
-      container.innerHTML = `<span class="profile-telemetry-pill neutral">${escapeHtml(text)}</span>`;
-      return;
+    startExpirationCountdown() {
+        var _a, _b;
+        const token = (typeof authService !== 'undefined' ? authService.getToken() : null) || ((_b = (_a = this.app) === null || _a === void 0 ? void 0 : _a.state) === null || _b === void 0 ? void 0 : _b.token) || '';
+        if (!token)
+            return;
+        const payload = decodeJwtPayload(token);
+        if (!payload || !payload.exp) {
+            this.updateExpirationBadge(null, 'Static Key / Non-JWT');
+            return;
+        }
+        const expirationTimestampMs = payload.exp * 1000;
+        if (this._countdownInterval)
+            clearInterval(this._countdownInterval);
+        this.tickExpiration(expirationTimestampMs);
+        this._countdownInterval = setInterval(() => {
+            this.tickExpiration(expirationTimestampMs);
+        }, 60000);
     }
-    const refreshLink = state === 'critical'
-      ? ` <a href="#" class="profile-session-refresh-link" id="sb-profile-refresh-session-action">Refresh Session</a>`
-      : '';
-    container.innerHTML = `
+    tickExpiration(expirationMs) {
+        const nowMs = Date.now();
+        const remainingMs = expirationMs - nowMs;
+        if (remainingMs <= 0) {
+            clearInterval(this._countdownInterval);
+            this._countdownInterval = null;
+            this.updateExpirationBadge('expired', 'Session Expired');
+            return;
+        }
+        const totalHours = remainingMs / (1000 * 60 * 60);
+        let state = 'safe';
+        let displayString = '';
+        if (totalHours <= 2) {
+            state = 'critical';
+            const mins = Math.max(1, Math.round(remainingMs / (1000 * 60)));
+            displayString = `Expires in ${mins}m`;
+        }
+        else if (totalHours < 24) {
+            state = 'warning';
+            displayString = `Expires in ${Math.round(totalHours)}h`;
+        }
+        else {
+            const days = Math.floor(totalHours / 24);
+            const hoursLeft = Math.round(totalHours % 24);
+            displayString = days > 0 ? `${days}d ${hoursLeft}h left` : `${hoursLeft}h left`;
+        }
+        this.updateExpirationBadge(state, displayString);
+    }
+    updateExpirationBadge(state, text) {
+        const container = document.getElementById('sb-profile-expiration-container');
+        if (!container)
+            return;
+        if (!state) {
+            container.innerHTML = `<span class="profile-telemetry-pill neutral">${escapeHtml(text)}</span>`;
+            return;
+        }
+        const refreshLink = state === 'critical'
+            ? ` <a href="#" class="profile-session-refresh-link" id="sb-profile-refresh-session-action">Refresh Session</a>`
+            : '';
+        container.innerHTML = `
       <span class="profile-telemetry-pill pulse-badge-${state}" data-urgency="${state}">${escapeHtml(text)}</span>${refreshLink}
     `;
-  }
-
-  mount(container) {
-    const user = authService.getUser() || this.app.state?.user || {};
-    const token = authService.getToken() || '';
-    const profile = loadProfile();
-    const email = user.email || profile.email || '';
-    const tier = user.tier || user.plan || profile.tier || 'community';
-    const project = user.projectName || profile.projectName || 'default-project';
-    const loginMethod = profile.loginMethod || (token && !user.email ? 'token' : 'email');
-
-    // ─── Token & Account analytics ───
-    const payload = decodeJwtPayload(token);
-    const registry = getTokenRegistry();
-    const binding = registry[token] || null;
-    const tokenType = token ? (payload ? 'JWT' : 'License Key') : 'None';
-    const tokenTier = payload?.tier || payload?.plan || payload?.product || tier;
-    const tokenExp = payload?.exp || null;
-    const tokenIat = payload?.iat || null;
-    const expiryInfo = formatExpiry(tokenExp);
-    const displayName = profile.displayName || user.displayName || email.split('@')[0] || '';
-    const organization = profile.organization || user.organization || project || '';
-    const lastLogin = profile.lastLogin || user.lastLogin || binding?.boundAt || (tokenIat ? new Date(tokenIat * 1000).toISOString() : null);
-    const renderKey = `${email}|${token}|${loginMethod}|${displayName}|${organization}`;
-    if (this._container === container && this._renderKey === renderKey && container.querySelector('.profile-page')) {
-      return;
     }
-    this._container = container;
-    this._renderKey = renderKey;
-    const boundAt = binding?.boundAt || null;
-    const accountAge = boundAt ? formatTimeAgo(boundAt) : (tokenIat ? formatTimeAgo(new Date(tokenIat * 1000).toISOString()) : 'Unknown');
-    const isActive = token ? (tokenExp ? tokenExp * 1000 > Date.now() : true) : false;
-    const subLabel = payload?.sub || payload?.email || email || 'Not set';
-
-    const fragment = document.createRange().createContextualFragment(`
+    mount(container) {
+        var _a, _b, _c, _d, _e, _f;
+        const user = authService.getUser() || ((_a = this.app.state) === null || _a === void 0 ? void 0 : _a.user) || {};
+        const token = authService.getToken() || '';
+        const profile = loadProfile();
+        const email = user.email || profile.email || '';
+        const tier = user.tier || user.plan || profile.tier || 'community';
+        const project = user.projectName || profile.projectName || 'default-project';
+        const loginMethod = profile.loginMethod || (token && !user.email ? 'token' : 'email');
+        // ─── Token & Account analytics ───
+        const payload = decodeJwtPayload(token);
+        const registry = getTokenRegistry();
+        const binding = registry[token] || null;
+        const tokenType = token ? (payload ? 'JWT' : 'License Key') : 'None';
+        const tokenTier = (payload === null || payload === void 0 ? void 0 : payload.tier) || (payload === null || payload === void 0 ? void 0 : payload.plan) || (payload === null || payload === void 0 ? void 0 : payload.product) || tier;
+        const tokenExp = (payload === null || payload === void 0 ? void 0 : payload.exp) || null;
+        const tokenIat = (payload === null || payload === void 0 ? void 0 : payload.iat) || null;
+        const expiryInfo = formatExpiry(tokenExp);
+        const displayName = profile.displayName || user.displayName || email.split('@')[0] || '';
+        const organization = profile.organization || user.organization || project || '';
+        const lastLogin = profile.lastLogin || user.lastLogin || (binding === null || binding === void 0 ? void 0 : binding.boundAt) || (tokenIat ? new Date(tokenIat * 1000).toISOString() : null);
+        const renderKey = `${email}|${token}|${loginMethod}|${displayName}|${organization}`;
+        this._container = container;
+        this._renderKey = renderKey;
+        const boundAt = (binding === null || binding === void 0 ? void 0 : binding.boundAt) || null;
+        const accountAge = boundAt ? formatTimeAgo(boundAt) : (tokenIat ? formatTimeAgo(new Date(tokenIat * 1000).toISOString()) : 'Unknown');
+        const isActive = token ? (tokenExp ? tokenExp * 1000 > Date.now() : true) : false;
+        const subLabel = (payload === null || payload === void 0 ? void 0 : payload.sub) || (payload === null || payload === void 0 ? void 0 : payload.email) || email || 'Not set';
+        const fragment = document.createRange().createContextualFragment(`
       <style>
         .profile-page { max-width: 720px; margin: 0 auto; padding: var(--space-6) var(--space-4) var(--space-8); }
         .profile-hero { text-align: center; margin-bottom: var(--space-6); }
@@ -272,6 +309,29 @@ export class ProfileView {
         .profile-actions { display: flex; gap: var(--space-2); flex-wrap: wrap; padding: var(--space-3) var(--space-5); }
         .profile-actions .btn { flex: 1; min-width: 120px; }
         .profile-status { padding: 0 var(--space-5) var(--space-4); margin: 0; font-size: var(--font-size-sm); min-height: 1.2em; color: var(--success); }
+
+        /* Account Overview Grid */
+        .profile-overview-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-4); }
+        .profile-overview-item { display: flex; flex-direction: column; gap: var(--space-1); }
+        .profile-overview-label { font-size: var(--font-size-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+        .profile-overview-value { font-size: var(--font-size-sm); font-weight: 500; color: var(--text-primary); word-break: break-word; }
+        .profile-overview-value .profile-mono { font-family: var(--font-mono); }
+
+        /* Tier badges */
+        .tier-badge { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 999px; font-size: var(--font-size-xs); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+        .tier-badge.tier-community { background: rgba(148,163,184,0.15); color: #94a3b8; border: 1px solid rgba(148,163,184,0.25); }
+        .tier-badge.tier-pro { background: rgba(99,102,241,0.15); color: #818cf8; border: 1px solid rgba(99,102,241,0.3); }
+        .tier-badge.tier-enterprise { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); }
+        .tier-badge.tier-instant { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3); }
+        .tier-badge.tier-executive { background: rgba(236,72,153,0.15); color: #f472b6; border: 1px solid rgba(236,72,153,0.3); }
+
+        /* Status badges */
+        .status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 999px; font-size: var(--font-size-xs); font-weight: 600; }
+        .status-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; }
+        .status-badge.status-active { background: rgba(16,185,129,0.12); color: #34d399; }
+        .status-badge.status-active::before { background: #34d399; box-shadow: 0 0 0 2px rgba(16,185,129,0.2); }
+        .status-badge.status-inactive { background: rgba(148,163,184,0.12); color: #94a3b8; }
+        .status-badge.status-inactive::before { background: #94a3b8; }
 
         /* Live expiration telemetry */
         .profile-telemetry-pill { font-size: 0.75rem; font-weight: bold; padding: 3px 8px; border-radius: 4px; display: inline-flex; align-items: center; letter-spacing: 0.2px; }
@@ -312,6 +372,7 @@ export class ProfileView {
           .profile-hero h1 { font-size: 1.4rem; }
           .login-method-grid { grid-template-columns: 1fr; }
           .session-grid { grid-template-columns: 1fr 1fr; }
+          .profile-overview-grid { grid-template-columns: 1fr; }
           .profile-actions .btn, .profile-actions .staged-safety-btn { flex: 1 1 100%; }
         }
       </style>
@@ -338,10 +399,10 @@ export class ProfileView {
                 <div class="method-desc">Email + Password</div>
               </label>
               <label class="login-method-card ${loginMethod === 'token' ? 'active' : ''}">
-                <input type="radio" name="loginMethod" value="token" aria-label="Token login method" ${loginMethod === 'token' ? 'checked' : ''}>
+                <input type="radio" name="loginMethod" value="token" aria-label="Sign in with Security Keys" ${loginMethod === 'token' ? 'checked' : ''}>
                 <div class="method-icon">🔑</div>
-                <div class="method-label">Token</div>
-                <div class="method-desc">Token + Password</div>
+                <div class="method-label">Sign in with Security Keys</div>
+                <div class="method-desc">Sign in with Security Keys</div>
               </label>
               <label class="login-method-card ${loginMethod === 'both' ? 'active' : ''}">
                 <input type="radio" name="loginMethod" value="both" aria-label="Both login methods" ${loginMethod === 'both' ? 'checked' : ''}>
@@ -364,6 +425,10 @@ export class ProfileView {
             <div class="profile-field">
               <label for="profile-display-name">Display Name</label>
               <input type="text" id="profile-display-name" value="${escapeHtml(displayName)}" placeholder="How you want to be addressed…">
+            </div>
+            <div class="profile-field">
+              <label for="profile-username">Username</label>
+              <input type="text" id="profile-username" value="${escapeHtml(profile.username || '')}" placeholder="Unique username for your account…">
             </div>
             <div class="profile-field">
               <label for="profile-organization">Organization / Project</label>
@@ -401,25 +466,65 @@ export class ProfileView {
             <div class="profile-field">
               <label for="profile-token">Token</label>
               <div class="profile-input-group">
-                ${this.renderSecureReveal('profile-token', token, 'token')}
+                <input type="password" id="profile-token" value="${escapeHtml(token)}" placeholder="Paste your SimpleBeacon license token…" autocomplete="off" style="flex:1;padding:var(--space-2) var(--space-3);border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface);color:var(--text-primary);font-size:var(--font-size-sm);font-family:var(--font-mono);">
                 <button type="button" class="input-action" id="profile-token-toggle" title="Show/Hide">👁</button>
                 <button type="button" class="input-action" id="profile-token-copy" title="Copy">📋</button>
               </div>
-              <p class="profile-help">Your SimpleBeacon license token. Click 👁 to reveal, 📋 to copy.</p>
+              <p class="profile-help">Paste your SimpleBeacon license token here. Click 👁 to reveal, 📋 to copy.</p>
             </div>
             <div class="profile-field">
               <label for="profile-token-password">Token Password</label>
               <input type="password" id="profile-token-password" value="${escapeHtml(profile.tokenPassword || '')}" placeholder="Set a password for token login…" autocomplete="new-password">
-              <p class="profile-help">Used when signing in with Token + Password.</p>
+              <p class="profile-help">Used when signing in with Security Keys.</p>
             </div>
           </div>
         </div>
 
-        <!-- Account & Token Status -->
+        <!-- Account Overview -->
+        <div class="profile-card">
+          <div class="profile-card-header">
+            <i data-lucide="user-circle" class="icon-18"></i>
+            <h2>Account Overview</h2>
+          </div>
+          <div class="profile-card-body">
+            <div class="profile-overview-grid">
+              <div class="profile-overview-item">
+                <div class="profile-overview-label">Current Tier</div>
+                <div class="profile-overview-value">
+                  <span class="tier-badge tier-${escapeHtml(tokenTier).toLowerCase()}">${escapeHtml(tokenTier)}</span>
+                </div>
+              </div>
+              <div class="profile-overview-item">
+                <div class="profile-overview-label">Subscription Status</div>
+                <div class="profile-overview-value">
+                  <span class="status-badge ${isActive ? 'status-active' : 'status-inactive'}">${isActive ? 'Active' : 'Inactive'}</span>
+                </div>
+              </div>
+              <div class="profile-overview-item">
+                <div class="profile-overview-label">Email</div>
+                <div class="profile-overview-value">${escapeHtml(email || 'Not set')}</div>
+              </div>
+              <div class="profile-overview-item">
+                <div class="profile-overview-label">User ID</div>
+                <div class="profile-overview-value profile-mono">${escapeHtml(user.id || profile.username || 'N/A')}</div>
+              </div>
+              <div class="profile-overview-item">
+                <div class="profile-overview-label">Auth Provider</div>
+                <div class="profile-overview-value">${escapeHtml(user.authProvider || loginMethod || 'community')}</div>
+              </div>
+              <div class="profile-overview-item">
+                <div class="profile-overview-label">Account Created</div>
+                <div class="profile-overview-value">${escapeHtml(accountAge)}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Token & Session Status -->
         <div class="profile-card">
           <div class="profile-card-header">
             <i data-lucide="ticket-check" class="icon-18"></i>
-            <h2>Account & Token Status</h2>
+            <h2>Token & Session</h2>
           </div>
           <div class="profile-card-body">
             <div class="session-grid">
@@ -428,22 +533,10 @@ export class ProfileView {
                 <div class="value">${escapeHtml(tokenType)}</div>
               </div>
               <div class="session-badge">
-                <div class="label">Tier</div>
-                <div class="value" style="text-transform:capitalize;color:var(--primary);">${escapeHtml(tokenTier)}</div>
-              </div>
-              <div class="session-badge">
-                <div class="label">Account Age</div>
-                <div class="value">${escapeHtml(accountAge)}</div>
-              </div>
-              <div class="session-badge">
                 <div class="label">Expires In</div>
                 <div class="value" id="sb-profile-expiration-container" style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;">
                   <span class="profile-telemetry-pill neutral">Initializing…</span>
                 </div>
-              </div>
-              <div class="session-badge">
-                <div class="label">Active</div>
-                <div class="value" style="color:${isActive ? 'var(--success)' : 'var(--error)'};">${isActive ? '● Active' : '● Inactive'}</div>
               </div>
               <div class="session-badge">
                 <div class="label">Last Login</div>
@@ -454,6 +547,22 @@ export class ProfileView {
                 <div class="value" style="font-size:var(--font-size-xs);">${this.renderSecureReveal('profile-subject', subLabel, 'generic')}</div>
               </div>
             </div>
+          </div>
+        </div>
+
+        <!-- Security Keys -->
+        <div class="profile-card">
+          <div class="profile-card-header">
+            <i data-lucide="key-round" class="icon-18"></i>
+            <h2>Security Keys</h2>
+          </div>
+          <div class="profile-card-body">
+            <p style="font-size:0.85rem;color:var(--text-muted);margin:0 0 14px;">Register a USB security key (YubiKey, Touch ID, Windows Hello) for passwordless sign-in.</p>
+            <div id="security-keys-list" style="margin-bottom:var(--space-3);">
+              ${this.renderSecurityKeysList()}
+            </div>
+            <button type="button" class="btn btn-primary" id="profile-register-webauthn">🔐 Register New Security Key</button>
+            <p id="webauthn-register-status" class="profile-status" style="margin-top:8px;"></p>
           </div>
         </div>
 
@@ -470,268 +579,458 @@ export class ProfileView {
               <span class="btn-text">Wipe Cache Metadata</span>
             </button>
             <button type="button" class="btn btn-primary" id="profile-signout-btn" style="background:var(--error);border-color:var(--error);">🚪 Sign Out</button>
+            <button type="button" class="btn btn-primary" id="profile-deactivate-btn" style="background:var(--warning);border-color:var(--warning);">⏸ Deactivate Account</button>
+            <button type="button" class="btn btn-primary" id="profile-delete-btn" style="background:#7f1d1d;border-color:#7f1d1d;">🗑 Delete Account</button>
           </div>
           <p class="profile-status" id="profile-save-status"></p>
         </div>
       </div>
 
     `);
-    container.innerHTML = '';
-    container.appendChild(fragment);
-
-    // Start live token expiration countdown
-    this.startExpirationCountdown();
-
-    // Style active login method
-    const updateLoginMethodStyles = () => {
-      container.querySelectorAll('.login-method-card').forEach((card) => {
-        const input = card.querySelector('input[type="radio"]');
-        if (input.checked) {
-          card.classList.add('active');
-        } else {
-          card.classList.remove('active');
+        container.innerHTML = '';
+        container.appendChild(fragment);
+        // Start live token expiration countdown
+        this.startExpirationCountdown();
+        // Style active login method
+        const updateLoginMethodStyles = () => {
+            container.querySelectorAll('.login-method-card').forEach((card) => {
+                const input = card.querySelector('input[type="radio"]');
+                if (input.checked) {
+                    card.classList.add('active');
+                }
+                else {
+                    card.classList.remove('active');
+                }
+            });
+        };
+        const applyLoginMethod = () => {
+            var _a;
+            updateLoginMethodStyles();
+            this.synchronizeAdaptiveFormDimming();
+            const value = ((_a = container.querySelector('input[name="loginMethod"]:checked')) === null || _a === void 0 ? void 0 : _a.value) || 'both';
+            localStorage.setItem('sb_preferred_login_method', value);
+            hasChanges = true;
+        };
+        container.querySelectorAll('input[name="loginMethod"]').forEach((radio) => {
+            radio.addEventListener('change', applyLoginMethod);
+        });
+        updateLoginMethodStyles();
+        this.synchronizeAdaptiveFormDimming();
+        // Track if any sensitive field changed
+        let hasChanges = false;
+        const watchInputs = ['#profile-email', '#profile-email-password', '#profile-token', '#profile-token-password', '#profile-display-name', '#profile-username', '#profile-organization'];
+        watchInputs.forEach((sel) => {
+            const el = container.querySelector(sel);
+            if (el)
+                el.addEventListener('input', () => { hasChanges = true; });
+        });
+        // Save profile
+        (_b = container.querySelector('#profile-save-btn')) === null || _b === void 0 ? void 0 : _b.addEventListener('click', () => {
+            var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o;
+            const data = {
+                email: ((_b = (_a = container.querySelector('#profile-email')) === null || _a === void 0 ? void 0 : _a.value) === null || _b === void 0 ? void 0 : _b.trim()) || '',
+                emailPassword: ((_c = container.querySelector('#profile-email-password')) === null || _c === void 0 ? void 0 : _c.value) || '',
+                tokenPassword: ((_d = container.querySelector('#profile-token-password')) === null || _d === void 0 ? void 0 : _d.value) || '',
+                loginMethod: ((_e = container.querySelector('input[name="loginMethod"]:checked')) === null || _e === void 0 ? void 0 : _e.value) || 'email',
+                displayName: ((_g = (_f = container.querySelector('#profile-display-name')) === null || _f === void 0 ? void 0 : _f.value) === null || _g === void 0 ? void 0 : _g.trim()) || '',
+                username: ((_j = (_h = container.querySelector('#profile-username')) === null || _h === void 0 ? void 0 : _h.value) === null || _j === void 0 ? void 0 : _j.trim()) || '',
+                organization: ((_l = (_k = container.querySelector('#profile-organization')) === null || _k === void 0 ? void 0 : _k.value) === null || _l === void 0 ? void 0 : _l.trim()) || '',
+                lastLogin: new Date().toISOString()
+            };
+            // Require password confirmation if sensitive fields changed
+            if (hasChanges) {
+                const stored = loadProfile();
+                const currentPassword = data.emailPassword || data.tokenPassword || stored.emailPassword || stored.tokenPassword || '';
+                const confirmPassword = prompt('Changes detected. Enter your password to confirm save:');
+                if (confirmPassword === null) {
+                    const status = container.querySelector('#profile-save-status');
+                    status.textContent = 'Save cancelled.';
+                    status.style.color = 'var(--warning)';
+                    setTimeout(() => { status.textContent = ''; status.style.color = ''; }, 3000);
+                    return;
+                }
+                if (confirmPassword !== currentPassword) {
+                    const status = container.querySelector('#profile-save-status');
+                    status.textContent = 'Password mismatch — changes not saved.';
+                    status.style.color = 'var(--error)';
+                    setTimeout(() => { status.textContent = ''; status.style.color = ''; }, 3000);
+                    return;
+                }
+            }
+            saveProfile(data);
+            hasChanges = false;
+            this._renderKey = null; // allow re-render with updated header
+            const tokenVal = (_o = (_m = container.querySelector('#profile-token')) === null || _m === void 0 ? void 0 : _m.value) === null || _o === void 0 ? void 0 : _o.trim();
+            if (tokenVal) {
+                // Decode token to build user object for authService
+                let user = { email: data.email || 'token-user', plan: 'pro', tokenSession: true };
+                try {
+                    const parts = tokenVal.split('.');
+                    if (parts.length === 3) {
+                        const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+                        const pad = '='.repeat((4 - base64.length % 4) % 4);
+                        const payload = JSON.parse(atob(base64 + pad));
+                        user = {
+                            email: payload.email || payload.sub || data.email || 'token-user',
+                            plan: payload.plan || payload.tier || 'pro',
+                            tokenSession: true
+                        };
+                    }
+                }
+                catch ( /* non-JWT token, use default user */_p) { /* non-JWT token, use default user */ }
+                authService.setSession(tokenVal, user);
+                authService.bindTokenToAccount(tokenVal, 'account');
+            }
+            if (data.email) {
+                const user = authService.getUser() || {};
+                localStorage.setItem('cascadeAuthUser', JSON.stringify({ ...user, email: data.email }));
+            }
+            // Refresh expiration badge and re-render to show updated token state
+            this.startExpirationCountdown();
+            this._renderKey = null;
+            this.mount(container);
+            const status = container.querySelector('#profile-save-status');
+            status.textContent = 'Profile saved successfully.';
+            status.style.color = 'var(--success)';
+            setTimeout(() => { status.textContent = ''; status.style.color = ''; }, 3000);
+        });
+        // Sign out
+        (_c = container.querySelector('#profile-signout-btn')) === null || _c === void 0 ? void 0 : _c.addEventListener('click', () => {
+            const keys = ['cascadeAuthToken', 'cascadeAuthUser', 'access_token', 'token', 'authToken', 'simplebeacon_token', 'sb-token-vault'];
+            keys.forEach((k) => { localStorage.removeItem(k); });
+            keys.forEach((k) => { document.cookie = k + '=;path=/;max-age=0;SameSite=Lax;'; });
+            sessionStorage.clear();
+            this.app.navigate('dashboard');
+            window.location.reload();
+        });
+        // Deactivate account
+        (_d = container.querySelector('#profile-deactivate-btn')) === null || _d === void 0 ? void 0 : _d.addEventListener('click', async () => {
+            const confirmed = confirm('Deactivate your account?\n\nYour data will be preserved but you will be signed out and unable to access features until you reactivate.');
+            if (!confirmed) return;
+            try {
+                await authService.logout();
+                showToast('Account deactivated. Sign in again to reactivate.', 'info');
+                this.app.navigate('signin');
+            }
+            catch (err) {
+                showToast('Deactivation failed — please try again.', 'error');
+            }
+        });
+        // Delete account
+        (_e = container.querySelector('#profile-delete-btn')) === null || _e === void 0 ? void 0 : _e.addEventListener('click', async () => {
+            const input = prompt('WARNING: This will permanently delete your account and all associated data.\n\nType DELETE to confirm:');
+            if (input !== 'DELETE') {
+                showToast('Account deletion cancelled.', 'info');
+                return;
+            }
+            try {
+                await authService.deleteAccount?.();
+                authService.clearSession();
+                showToast('Account deleted. All local session data cleared.', 'info');
+                this.app.navigate('signin');
+            }
+            catch (err) {
+                authService.clearSession();
+                showToast('Account deleted locally. Please contact support if billing issues persist.', 'info');
+                this.app.navigate('signin');
+            }
+        });
+        // Register Security Key
+        (_f = container.querySelector('#profile-register-webauthn')) === null || _f === void 0 ? void 0 : _f.addEventListener('click', async () => {
+            const statusEl = container.querySelector('#webauthn-register-status');
+            try {
+                if (!window.PublicKeyCredential || !navigator.credentials || typeof navigator.credentials.create !== 'function') {
+                    if (statusEl) {
+                        statusEl.textContent = 'WebAuthn is not available in this browser/context. Open the dashboard in an external browser like Chrome or Edge.';
+                        statusEl.style.color = 'var(--error)';
+                    }
+                    console.warn('[Profile] WebAuthn unavailable: PublicKeyCredential=' + !!window.PublicKeyCredential + ', navigator.credentials=' + !!navigator.credentials);
+                    return;
+                }
+                if (!window.isSecureContext) {
+                    if (statusEl) {
+                        statusEl.textContent = 'Security key registration requires a secure browser context. Open http://127.0.0.1:' + window.location.port + '/dashboard/profile in Chrome or Edge outside of VS Code:.';
+                        statusEl.style.color = 'var(--error)';
+                    }
+                    console.warn('[Profile] WebAuthn blocked: window.isSecureContext=false');
+                    return;
+                }
+                if (window.top !== window.self) {
+                    if (statusEl) {
+                        statusEl.textContent = 'Security key registration cannot run inside an embedded iframe. Open the dashboard in an external browser.';
+                        statusEl.style.color = 'var(--error)';
+                    }
+                    console.warn('[Profile] WebAuthn blocked: running in iframe');
+                    return;
+                }
+                const challenge = await authService.getWebAuthnChallenge();
+                if (!challenge) {
+                    if (statusEl) {
+                        statusEl.textContent = 'Could not get registration challenge.';
+                        statusEl.style.color = 'var(--error)';
+                    }
+                    return;
+                }
+                const user = authService.getUser();
+                const userId = (user === null || user === void 0 ? void 0 : user.id) || 'user';
+                const userEmail = (user === null || user === void 0 ? void 0 : user.email) || 'user@simplebeacon.ai';
+                const rpId = window.location.hostname || '127.0.0.1';
+                const userIdBytes = Uint8Array.from(userId.split('').map(c => c.charCodeAt(0)));
+                const challengeBytes = Uint8Array.from(atob(challenge.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+                const options = {
+                    publicKey: {
+                        challenge: challengeBytes,
+                        rp: { name: 'SimpleBeacon', id: rpId },
+                        user: { id: userIdBytes, name: userEmail, displayName: userEmail.split('@')[0] },
+                        pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }, { type: 'public-key', alg: -37 }],
+                        authenticatorSelection: { userVerification: 'preferred', residentKey: 'preferred', requireResidentKey: false },
+                        timeout: 120000,
+                        attestation: 'none'
+                    }
+                };
+                console.log('[Profile] Creating WebAuthn credential with rp.id=' + rpId + ' secureContext=' + window.isSecureContext);
+                let credential;
+                try {
+                    credential = await navigator.credentials.create(options);
+                }
+                catch (firstErr) {
+                    const msg = (firstErr === null || firstErr === void 0 ? void 0 : firstErr.message) || String(firstErr);
+                    console.warn('[Profile] First WebAuthn attempt failed:', msg);
+                    if (msg.toLowerCase().includes('insecure') || msg.toLowerCase().includes('not allowed') || msg.toLowerCase().includes('not supported')) {
+                        delete options.publicKey.rp.id;
+                        options.publicKey.authenticatorSelection = { userVerification: 'preferred' };
+                        console.log('[Profile] Retrying WebAuthn without explicit rp.id');
+                        credential = await navigator.credentials.create(options);
+                    }
+                    else {
+                        throw firstErr;
+                    }
+                }
+                if (!credential) {
+                    if (statusEl) {
+                        statusEl.textContent = 'Registration cancelled.';
+                        statusEl.style.color = 'var(--text-muted)';
+                    }
+                    return;
+                }
+                const credentialData = {
+                    id: credential.id,
+                    rawId: btoa(String.fromCharCode(...new Uint8Array(credential.rawId))),
+                    response: {
+                        clientDataJSON: btoa(String.fromCharCode(...new Uint8Array(credential.response.clientDataJSON))),
+                        attestationObject: btoa(String.fromCharCode(...new Uint8Array(credential.response.attestationObject)))
+                    },
+                    type: credential.type
+                };
+                const ok = await authService.registerWebAuthnCredential(credentialData, userId);
+                if (ok) {
+                    if (statusEl) {
+                        statusEl.textContent = 'Security key registered successfully! You can now sign in with it from the sign-in screen.';
+                        statusEl.style.color = 'var(--success)';
+                    }
+                    const listEl = container.querySelector('#security-keys-list');
+                    if (listEl)
+                        listEl.innerHTML = this.renderSecurityKeysList();
+                    this.attachRemoveKeyHandlers(container);
+                }
+                else {
+                    if (statusEl) {
+                        statusEl.textContent = 'Registration failed. Please try again.';
+                        statusEl.style.color = 'var(--error)';
+                    }
+                }
+            }
+            catch (err) {
+                const msg = (err === null || err === void 0 ? void 0 : err.message) || String(err);
+                console.error('[Profile] WebAuthn registration error:', err);
+                if (statusEl) {
+                    if (msg.toLowerCase().includes('insecure')) {
+                        statusEl.textContent = 'Security key registration is blocked because the page is not in a secure context. Open the dashboard in an external browser at http://127.0.0.1:' + window.location.port + '/dashboard/profile';
+                    }
+                    else if (msg.toLowerCase().includes('not allowed') || msg.toLowerCase().includes('cancelled')) {
+                        statusEl.textContent = 'Registration cancelled or not allowed by the browser.';
+                    }
+                    else if (msg.toLowerCase().includes('not supported')) {
+                        statusEl.textContent = 'This browser or device does not support security key registration. Try Chrome or Edge.';
+                    }
+                    else {
+                        statusEl.textContent = msg || 'Registration failed.';
+                    }
+                    statusEl.style.color = 'var(--error)';
+                }
+            }
+        });
+        // Attach remove-key handlers for already-rendered list
+        this.attachRemoveKeyHandlers(container);
+        // Token show/hide toggle
+        const toggleBtn = container.querySelector('#profile-token-toggle');
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', () => {
+                try {
+                    const input = container.querySelector('#profile-token');
+                    if (!input)
+                        return;
+                    if (input.type === 'password') {
+                        input.type = 'text';
+                        toggleBtn.textContent = '🙈';
+                        toggleBtn.title = 'Hide token';
+                    }
+                    else {
+                        input.type = 'password';
+                        toggleBtn.textContent = '👁';
+                        toggleBtn.title = 'Show token';
+                    }
+                }
+                catch (e) {
+                    console.error('[Profile] Toggle failed:', e);
+                }
+            });
         }
-      });
-    };
-
-    const applyLoginMethod = () => {
-      updateLoginMethodStyles();
-      this.synchronizeAdaptiveFormDimming();
-      const value = container.querySelector('input[name="loginMethod"]:checked')?.value || 'both';
-      localStorage.setItem('sb_preferred_login_method', value);
-      hasChanges = true;
-    };
-
-    container.querySelectorAll('input[name="loginMethod"]').forEach((radio) => {
-      radio.addEventListener('change', applyLoginMethod);
-    });
-    updateLoginMethodStyles();
-    this.synchronizeAdaptiveFormDimming();
-
-    // Track if any sensitive field changed
-    let hasChanges = false;
-    const watchInputs = ['#profile-email', '#profile-email-password', '#profile-token', '#profile-token-password', '#profile-display-name', '#profile-organization'];
-    watchInputs.forEach((sel) => {
-      const el = container.querySelector(sel);
-      if (el) el.addEventListener('input', () => { hasChanges = true; });
-    });
-
-    // Save profile
-    container.querySelector('#profile-save-btn')?.addEventListener('click', () => {
-      const data = {
-        email: container.querySelector('#profile-email')?.value?.trim() || '',
-        emailPassword: container.querySelector('#profile-email-password')?.value || '',
-        tokenPassword: container.querySelector('#profile-token-password')?.value || '',
-        loginMethod: container.querySelector('input[name="loginMethod"]:checked')?.value || 'email',
-        displayName: container.querySelector('#profile-display-name')?.value?.trim() || '',
-        organization: container.querySelector('#profile-organization')?.value?.trim() || '',
-        lastLogin: new Date().toISOString()
-      };
-
-      // Require password confirmation if sensitive fields changed
-      if (hasChanges) {
-        const stored = loadProfile();
-        const currentPassword = data.emailPassword || data.tokenPassword || stored.emailPassword || stored.tokenPassword || '';
-        const confirmPassword = prompt('Changes detected. Enter your password to confirm save:');
-        if (confirmPassword === null) {
-          const status = container.querySelector('#profile-save-status');
-          status.textContent = 'Save cancelled.';
-          status.style.color = 'var(--warning)';
-          setTimeout(() => { status.textContent = ''; status.style.color = ''; }, 3000);
-          return;
+        // Token copy with fallback
+        const copyBtn = container.querySelector('#profile-token-copy');
+        if (copyBtn) {
+            copyBtn.addEventListener('click', async () => {
+                var _a, _b, _c, _d, _e, _f;
+                const input = container.querySelector('#profile-token');
+                if (!input || !input.value) {
+                    (_b = (_a = this.app).showToast) === null || _b === void 0 ? void 0 : _b.call(_a, 'No token to copy', 'error');
+                    return;
+                }
+                let copied = false;
+                // Try modern clipboard API first
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    try {
+                        await navigator.clipboard.writeText(input.value);
+                        copied = true;
+                    }
+                    catch (e) {
+                        console.warn('[Profile] Clipboard API failed, trying fallback:', e);
+                    }
+                }
+                // Fallback: select + execCommand
+                if (!copied) {
+                    try {
+                        const prevType = input.type;
+                        input.type = 'text';
+                        input.focus();
+                        input.select();
+                        copied = document.execCommand('copy');
+                        input.type = prevType;
+                    }
+                    catch (e) {
+                        console.error('[Profile] Fallback copy failed:', e);
+                    }
+                }
+                if (copied) {
+                    const original = copyBtn.textContent;
+                    copyBtn.textContent = '✓';
+                    setTimeout(() => { copyBtn.textContent = original; }, 1500);
+                    (_d = (_c = this.app).showToast) === null || _d === void 0 ? void 0 : _d.call(_c, 'Token copied', 'success');
+                }
+                else {
+                    (_f = (_e = this.app).showToast) === null || _f === void 0 ? void 0 : _f.call(_e, 'Copy failed — please select and copy manually', 'error');
+                }
+            });
         }
-        if (confirmPassword !== currentPassword) {
-          const status = container.querySelector('#profile-save-status');
-          status.textContent = 'Password mismatch — changes not saved.';
-          status.style.color = 'var(--error)';
-          setTimeout(() => { status.textContent = ''; status.style.color = ''; }, 3000);
-          return;
-        }
-      }
-
-      saveProfile(data);
-      hasChanges = false;
-      this._renderKey = null; // allow re-render with updated header
-
-      const tokenVal = container.querySelector('#profile-token')?.value?.trim();
-      if (tokenVal) {
-        localStorage.setItem('cascadeAuthToken', tokenVal);
-      }
-      if (data.email) {
-        localStorage.setItem('cascadeAuthUser', data.email);
-      }
-
-      const status = container.querySelector('#profile-save-status');
-      status.textContent = 'Profile saved successfully.';
-      status.style.color = 'var(--success)';
-      setTimeout(() => { status.textContent = ''; status.style.color = ''; }, 3000);
-    });
-
-    // Sign out
-    container.querySelector('#profile-signout-btn')?.addEventListener('click', () => {
-      const keys = ['cascadeAuthToken', 'cascadeAuthUser', 'access_token', 'token', 'authToken', 'simplebeacon_token', 'sb-token-vault'];
-      keys.forEach((k) => { localStorage.removeItem(k); });
-      keys.forEach((k) => { document.cookie = k + '=;path=/;max-age=0;SameSite=Lax;'; });
-      sessionStorage.clear();
-      this.app.navigate('dashboard');
-      window.location.reload();
-    });
-
-    // Token show/hide toggle
-    const toggleBtn = container.querySelector('#profile-token-toggle');
-    if (toggleBtn) {
-      toggleBtn.addEventListener('click', () => {
-        try {
-          const input = container.querySelector('#profile-token');
-          if (!input) return;
-          if (input.type === 'password') {
-            input.type = 'text';
-            toggleBtn.textContent = '🙈';
-            toggleBtn.title = 'Hide token';
-          } else {
-            input.type = 'password';
-            toggleBtn.textContent = '👁';
-            toggleBtn.title = 'Show token';
-          }
-        } catch (e) {
-          console.error('[Profile] Toggle failed:', e);
-        }
-      });
-    }
-
-    // Token copy with fallback
-    const copyBtn = container.querySelector('#profile-token-copy');
-    if (copyBtn) {
-      copyBtn.addEventListener('click', async () => {
-        const input = container.querySelector('#profile-token');
-        if (!input || !input.value) {
-          this.app.showToast?.('No token to copy', 'error');
-          return;
-        }
-        let copied = false;
-        // Try modern clipboard API first
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          try {
-            await navigator.clipboard.writeText(input.value);
-            copied = true;
-          } catch (e) {
-            console.warn('[Profile] Clipboard API failed, trying fallback:', e);
-          }
-        }
-        // Fallback: select + execCommand
-        if (!copied) {
-          try {
-            const prevType = input.type;
-            input.type = 'text';
-            input.focus();
-            input.select();
-            copied = document.execCommand('copy');
-            input.type = prevType;
-          } catch (e) {
-            console.error('[Profile] Fallback copy failed:', e);
-          }
-        }
-        if (copied) {
-          const original = copyBtn.textContent;
-          copyBtn.textContent = '✓';
-          setTimeout(() => { copyBtn.textContent = original; }, 1500);
-          this.app.showToast?.('Token copied', 'success');
-        } else {
-          this.app.showToast?.('Copy failed — please select and copy manually', 'error');
-        }
-      });
-    }
-
-    // Privacy eye toggle
-    container.addEventListener('click', (e) => {
-      const toggleBtn = e.target.closest('.profile-privacy-eye-toggle-btn');
-      if (!toggleBtn) return;
-      e.preventDefault();
-      e.stopPropagation();
-      const wrapper = toggleBtn.closest('.secure-reveal-wrapper');
-      if (!wrapper) return;
-      const isRevealed = wrapper.getAttribute('data-revealed') === 'true';
-      wrapper.setAttribute('data-revealed', String(!isRevealed));
-      const iconNode = toggleBtn.querySelector('.codicon');
-      if (iconNode) {
-        iconNode.className = isRevealed ? 'codicon codicon-eye' : 'codicon codicon-eye-closed';
-      }
-    });
-
-    // Staged double-confirmation cache clear
-    container.addEventListener('click', (e) => {
-      const safetyBtn = e.target.closest('#sb-staged-clear-cache-btn');
-      if (!safetyBtn) return;
-      e.preventDefault();
-      e.stopPropagation();
-      const currentStage = parseInt(safetyBtn.getAttribute('data-stage'), 10);
-      const btnTextElement = safetyBtn.querySelector('.btn-text');
-      if (currentStage === 0) {
-        safetyBtn.setAttribute('data-stage', '1');
-        safetyBtn.classList.add('is-staged-warning');
-        let countdownSeconds = 3;
-        if (btnTextElement) btnTextElement.textContent = `Confirm Invalidate? (${countdownSeconds}s)`;
-        this._safetyTimer = setInterval(() => {
-          countdownSeconds--;
-          if (countdownSeconds > 0) {
-            if (btnTextElement) btnTextElement.textContent = `Confirm Invalidate? (${countdownSeconds}s)`;
-          } else {
+        // Privacy eye toggle
+        container.addEventListener('click', (e) => {
+            const toggleBtn = e.target.closest('.profile-privacy-eye-toggle-btn');
+            if (!toggleBtn)
+                return;
+            e.preventDefault();
+            e.stopPropagation();
+            const wrapper = toggleBtn.closest('.secure-reveal-wrapper');
+            if (!wrapper)
+                return;
+            const isRevealed = wrapper.getAttribute('data-revealed') === 'true';
+            wrapper.setAttribute('data-revealed', String(!isRevealed));
+            const iconNode = toggleBtn.querySelector('.codicon');
+            if (iconNode) {
+                iconNode.className = isRevealed ? 'codicon codicon-eye' : 'codicon codicon-eye-closed';
+            }
+        });
+        // Staged double-confirmation cache clear
+        container.addEventListener('click', (e) => {
+            const safetyBtn = e.target.closest('#sb-staged-clear-cache-btn');
+            if (!safetyBtn)
+                return;
+            e.preventDefault();
+            e.stopPropagation();
+            const currentStage = parseInt(safetyBtn.getAttribute('data-stage'), 10);
+            const btnTextElement = safetyBtn.querySelector('.btn-text');
+            if (currentStage === 0) {
+                safetyBtn.setAttribute('data-stage', '1');
+                safetyBtn.classList.add('is-staged-warning');
+                let countdownSeconds = 3;
+                if (btnTextElement)
+                    btnTextElement.textContent = `Confirm Invalidate? (${countdownSeconds}s)`;
+                this._safetyTimer = setInterval(() => {
+                    countdownSeconds--;
+                    if (countdownSeconds > 0) {
+                        if (btnTextElement)
+                            btnTextElement.textContent = `Confirm Invalidate? (${countdownSeconds}s)`;
+                    }
+                    else {
+                        clearInterval(this._safetyTimer);
+                        this._safetyTimer = null;
+                        safetyBtn.setAttribute('data-stage', '2');
+                        safetyBtn.classList.remove('is-staged-warning');
+                        safetyBtn.classList.add('is-fully-unlocked');
+                        if (btnTextElement)
+                            btnTextElement.textContent = 'Commit Cache Obliteration';
+                    }
+                }, 1000);
+            }
+            else if (currentStage === 2) {
+                clearInterval(this._safetyTimer);
+                this._safetyTimer = null;
+                this.executeHardCacheCleanup(safetyBtn);
+            }
+        });
+        // Reset staged button if mouse leaves it
+        container.addEventListener('mouseleave', (e) => {
+            const safetyBtn = e.target.closest('#sb-staged-clear-cache-btn');
+            if (!safetyBtn)
+                return;
             clearInterval(this._safetyTimer);
             this._safetyTimer = null;
-            safetyBtn.setAttribute('data-stage', '2');
-            safetyBtn.classList.remove('is-staged-warning');
-            safetyBtn.classList.add('is-fully-unlocked');
-            if (btnTextElement) btnTextElement.textContent = 'Commit Cache Obliteration';
-          }
-        }, 1000);
-      } else if (currentStage === 2) {
-        clearInterval(this._safetyTimer);
-        this._safetyTimer = null;
-        this.executeHardCacheCleanup(safetyBtn);
-      }
-    });
-
-    // Reset staged button if mouse leaves it
-    container.addEventListener('mouseleave', (e) => {
-      const safetyBtn = e.target.closest('#sb-staged-clear-cache-btn');
-      if (!safetyBtn) return;
-      clearInterval(this._safetyTimer);
-      this._safetyTimer = null;
-      safetyBtn.setAttribute('data-stage', '0');
-      safetyBtn.classList.remove('is-staged-warning', 'is-fully-unlocked');
-      const btnTextElement = safetyBtn.querySelector('.btn-text');
-      if (btnTextElement) btnTextElement.textContent = 'Wipe Cache Metadata';
-    }, true);
-
-    // Refresh session link
-    container.addEventListener('click', (e) => {
-      const refreshLink = e.target.closest('#sb-profile-refresh-session-action');
-      if (!refreshLink) return;
-      e.preventDefault();
-      if (typeof showLoginModal === 'function') {
-        showLoginModal({
-          message: 'Your session has reached a critical expiration threshold. Re-authenticate to fortify operations.',
-          onSuccess: () => this.startExpirationCountdown()
+            safetyBtn.setAttribute('data-stage', '0');
+            safetyBtn.classList.remove('is-staged-warning', 'is-fully-unlocked');
+            const btnTextElement = safetyBtn.querySelector('.btn-text');
+            if (btnTextElement)
+                btnTextElement.textContent = 'Wipe Cache Metadata';
+        }, true);
+        // Refresh session link
+        container.addEventListener('click', (e) => {
+            const refreshLink = e.target.closest('#sb-profile-refresh-session-action');
+            if (!refreshLink)
+                return;
+            e.preventDefault();
+            if (typeof showLoginModal === 'function') {
+                showLoginModal({
+                    message: 'Your session has reached a critical expiration threshold. Re-authenticate to fortify operations.',
+                    onSuccess: () => this.startExpirationCountdown()
+                });
+            }
+            else {
+                const vscode = typeof window !== 'undefined' && typeof window.acquireVsCodeApi === 'function' ? window.acquireVsCodeApi() : null;
+                if (vscode) {
+                    vscode.postMessage({ command: 'refreshToken' });
+                }
+                else {
+                    showToast('Refresh session via the extension login command.', 'info');
+                }
+            }
         });
-      } else {
-        const vscode = typeof window !== 'undefined' && typeof window.acquireVsCodeApi === 'function' ? window.acquireVsCodeApi() : null;
-        if (vscode) {
-          vscode.postMessage({ command: 'refreshToken' });
-        } else {
-          showToast('Refresh session via the extension login command.', 'info');
+    }
+    destroy() {
+        if (this._countdownInterval) {
+            clearInterval(this._countdownInterval);
+            this._countdownInterval = null;
         }
-      }
-    });
-  }
-
-  destroy() {
-    if (this._countdownInterval) {
-      clearInterval(this._countdownInterval);
-      this._countdownInterval = null;
+        if (this._safetyTimer) {
+            clearInterval(this._safetyTimer);
+            this._safetyTimer = null;
+        }
     }
-    if (this._safetyTimer) {
-      clearInterval(this._safetyTimer);
-      this._safetyTimer = null;
-    }
-  }
 }

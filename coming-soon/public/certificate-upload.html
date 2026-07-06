@@ -758,26 +758,32 @@
             resendBtn.textContent = 'Send a Token';
         });
 
-        // Try for Free — generate a community token without payment
+        // Try for Free — generate a community token and email it
         document.getElementById('tryFreeBtn').addEventListener('click', async () => {
             const btn = document.getElementById('tryFreeBtn');
-            const email = (resendEmail ? resendEmail.value.trim() : '') || 'guest@simplebeacon.ai';
+            const email = (resendEmail ? resendEmail.value.trim() : '');
+            if (!email || !email.includes('@')) {
+                showStatus('Please enter a valid email in the field below first.', 'error');
+                if (resendEmail) resendEmail.focus();
+                return;
+            }
             btn.disabled = true;
-            btn.textContent = 'Generating...';
+            btn.textContent = 'Sending…';
             try {
                 const response = await fetch(API_BASE + '/api/free-token', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email })
+                    body: JSON.stringify({ email: email, sendEmail: true, referrer: 'certificate-upload' })
                 });
                 const data = await response.json();
                 if (data.success && data.token) {
                     licenseInput.value = data.token;
                     applyProductFromToken(data.token);
                     updateSubmit();
-                    btn.textContent = 'Free Token Ready ✓';
+                    btn.textContent = 'Token Sent ✓';
                     btn.style.borderColor = 'var(--success)';
                     btn.style.color = 'var(--success)';
+                    showStatus('Token emailed to ' + email + ' and pasted above. Check your inbox!', 'success');
                 } else {
                     btn.textContent = 'Try for Free →';
                     btn.disabled = false;

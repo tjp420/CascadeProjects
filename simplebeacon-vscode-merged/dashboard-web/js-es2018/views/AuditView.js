@@ -1,95 +1,84 @@
 import { escapeHtml, formatNumber, formatPercent, showToast, downloadJson, renderEmptyState, apiUrl } from '../utils.js';
 import { renderComplianceBadges, renderComplianceSummary } from '../lib/complianceMapper.js';
-
 const LAYER_LABELS = {
-  credentials: 'Credential patterns',
-  fictionKpis: 'Fiction & KPI drift',
-  schema: 'JSON schema & page samples',
-  productionLeaks: 'Production path leaks',
-  roadmap: 'Roadmap & duplicates',
-  jestBaseline: 'Jest baseline',
-  gate: 'Compliance gate'
+    credentials: 'Credential patterns',
+    fictionKpis: 'Fiction & KPI drift',
+    schema: 'JSON schema & page samples',
+    productionLeaks: 'Production path leaks',
+    roadmap: 'Roadmap & duplicates',
+    jestBaseline: 'Jest baseline',
+    gate: 'Compliance gate'
 };
-
 /**
  * Npm audit summary.
  * @param {any} audit
  * @returns {any}
  */
 function npmAuditSummary(audit) {
-  const summary = audit?.summary || audit?.metadata?.vulnerabilities || {};
-  const deps = audit?.dependencies || audit?.metadata?.dependencies || {};
-  return {
-    critical: summary.critical ?? 0,
-    high: summary.high ?? 0,
-    moderate: summary.moderate ?? summary.medium ?? 0,
-    low: summary.low ?? 0,
-    dependencies: summary.dependencies ?? deps.total ?? null,
-    vulnerabilityTotal: summary.vulnerabilityTotal ?? summary.total ?? (audit?.vulnerabilities?.length ?? 0)
-  };
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o;
+    const summary = (audit === null || audit === void 0 ? void 0 : audit.summary) || ((_a = audit === null || audit === void 0 ? void 0 : audit.metadata) === null || _a === void 0 ? void 0 : _a.vulnerabilities) || {};
+    const deps = (audit === null || audit === void 0 ? void 0 : audit.dependencies) || ((_b = audit === null || audit === void 0 ? void 0 : audit.metadata) === null || _b === void 0 ? void 0 : _b.dependencies) || {};
+    return {
+        critical: (_c = summary.critical) !== null && _c !== void 0 ? _c : 0,
+        high: (_d = summary.high) !== null && _d !== void 0 ? _d : 0,
+        moderate: (_f = (_e = summary.moderate) !== null && _e !== void 0 ? _e : summary.medium) !== null && _f !== void 0 ? _f : 0,
+        low: (_g = summary.low) !== null && _g !== void 0 ? _g : 0,
+        dependencies: (_j = (_h = summary.dependencies) !== null && _h !== void 0 ? _h : deps.total) !== null && _j !== void 0 ? _j : null,
+        vulnerabilityTotal: (_l = (_k = summary.vulnerabilityTotal) !== null && _k !== void 0 ? _k : summary.total) !== null && _l !== void 0 ? _l : ((_o = (_m = audit === null || audit === void 0 ? void 0 : audit.vulnerabilities) === null || _m === void 0 ? void 0 : _m.length) !== null && _o !== void 0 ? _o : 0)
+    };
 }
-
 /**
  * Build audit metrics.
  * @param {any} audit
  * @returns {any}
  */
 function buildAuditMetrics(audit = {}) {
-  const report = audit.report || {};
-  const dash = audit.dashboard?.scanStatus || {};
-  const inventory = report.repositoryInventory;
-
-  const consistencyScore = report.consistencyScore
-    ?? dash.consistencyScore
-    ?? report.schemaCompliance
-    ?? dash.qualityScore
-    ?? report.qualityScore;
-
-  const pageSpecsChecked = report.pageSampleSchemaChecked;
-  const pageSpecsLabel = pageSpecsChecked != null
-    ? `${report.pageSampleSchemaPassed ?? 0}/${pageSpecsChecked}`
-    : audit.baseline?.pageSamplesLabel ?? '—';
-
-  const mockSampleFiles = report.mockSampleFiles ?? dash.mockSampleFiles ?? report.totalFiles;
-  const filesAnalyzed = report.filesAnalyzed ?? dash.totalFilesScanned;
-
-  return {
-    consistencyScore,
-    pageSpecsLabel,
-    mockSampleFiles,
-    filesAnalyzed,
-    schemaChecked: report.schemaChecked,
-    schemaPassed: report.schemaPassed,
-    lastScan: report.generatedAt ?? dash.lastScan,
-    inventoryFiles: inventory?.totalFiles ?? null,
-    inventoryFolders: inventory?.totalFolders ?? null,
-    inventoryRoot: inventory?.projectRoot ?? null
-  };
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q;
+    const report = audit.report || {};
+    const dash = ((_a = audit.dashboard) === null || _a === void 0 ? void 0 : _a.scanStatus) || {};
+    const inventory = report.repositoryInventory;
+    const consistencyScore = (_e = (_d = (_c = (_b = report.consistencyScore) !== null && _b !== void 0 ? _b : dash.consistencyScore) !== null && _c !== void 0 ? _c : report.schemaCompliance) !== null && _d !== void 0 ? _d : dash.qualityScore) !== null && _e !== void 0 ? _e : report.qualityScore;
+    const pageSpecsChecked = report.pageSampleSchemaChecked;
+    const pageSpecsLabel = pageSpecsChecked != null
+        ? `${(_f = report.pageSampleSchemaPassed) !== null && _f !== void 0 ? _f : 0}/${pageSpecsChecked}`
+        : (_h = (_g = audit.baseline) === null || _g === void 0 ? void 0 : _g.pageSamplesLabel) !== null && _h !== void 0 ? _h : '—';
+    const mockSampleFiles = (_k = (_j = report.mockSampleFiles) !== null && _j !== void 0 ? _j : dash.mockSampleFiles) !== null && _k !== void 0 ? _k : report.totalFiles;
+    const filesAnalyzed = (_l = report.filesAnalyzed) !== null && _l !== void 0 ? _l : dash.totalFilesScanned;
+    return {
+        consistencyScore,
+        pageSpecsLabel,
+        mockSampleFiles,
+        filesAnalyzed,
+        schemaChecked: report.schemaChecked,
+        schemaPassed: report.schemaPassed,
+        lastScan: (_m = report.generatedAt) !== null && _m !== void 0 ? _m : dash.lastScan,
+        inventoryFiles: (_o = inventory === null || inventory === void 0 ? void 0 : inventory.totalFiles) !== null && _o !== void 0 ? _o : null,
+        inventoryFolders: (_p = inventory === null || inventory === void 0 ? void 0 : inventory.totalFolders) !== null && _p !== void 0 ? _p : null,
+        inventoryRoot: (_q = inventory === null || inventory === void 0 ? void 0 : inventory.projectRoot) !== null && _q !== void 0 ? _q : null
+    };
 }
-
 /**
  * Render scan scope.
  * @param {Array} metrics
  * @returns {any}
  */
 function renderScanScope(metrics) {
-  const parts = [];
-  if (metrics.mockSampleFiles != null) {
-    parts.push(`<strong>${formatNumber(metrics.mockSampleFiles)}</strong> mock/sample files`);
-  }
-  if (metrics.filesAnalyzed != null) {
-    parts.push(`<strong>${formatNumber(metrics.filesAnalyzed)}</strong> files analyzed`);
-  }
-  if (metrics.inventoryFiles != null) {
-    parts.push(`<strong>${formatNumber(metrics.inventoryFiles)}</strong> repo files · <strong>${formatNumber(metrics.inventoryFolders)}</strong> folders`);
-  }
-  if (!parts.length) return '';
-
-  const when = metrics.lastScan
-    ? `Last scan: ${new Date(metrics.lastScan).toLocaleString()}`
-    : '';
-
-  return `
+    const parts = [];
+    if (metrics.mockSampleFiles != null) {
+        parts.push(`<strong>${formatNumber(metrics.mockSampleFiles)}</strong> mock/sample files`);
+    }
+    if (metrics.filesAnalyzed != null) {
+        parts.push(`<strong>${formatNumber(metrics.filesAnalyzed)}</strong> files analyzed`);
+    }
+    if (metrics.inventoryFiles != null) {
+        parts.push(`<strong>${formatNumber(metrics.inventoryFiles)}</strong> repo files · <strong>${formatNumber(metrics.inventoryFolders)}</strong> folders`);
+    }
+    if (!parts.length)
+        return '';
+    const when = metrics.lastScan
+        ? `Last scan: ${new Date(metrics.lastScan).toLocaleString()}`
+        : '';
+    return `
     <div class="au-v3-scope" style="margin-bottom:20px;">
       <span style="font-size:1.1rem;">📂</span>
       <div>
@@ -99,74 +88,73 @@ function renderScanScope(metrics) {
     </div>
   `;
 }
-
 /**
  * Audit view.
  */
 export class AuditView {
-  constructor(app) {
-    this.app = app;
-    this.audit = app.state.audit || null;
-    this.loading = !this.audit;
-    this.refreshing = false;
-    this.running = null;
-    this.error = null;
-    this._container = null;
-    this._fetchPromise = null;
-    this._animatedOnce = false;
-    this.assessmentHighlight = false;
-  }
-
-  _getVscodeApi() {
-    if (this._vscodeApiCached) return this._vscodeApiCached;
-    if (typeof window === 'undefined' || typeof window.acquireVsCodeApi !== 'function') return null;
-    try {
-      this._vscodeApiCached = window.acquireVsCodeApi();
-      return this._vscodeApiCached;
-    } catch {
-      return null;
+    constructor(app) {
+        this.app = app;
+        this.audit = app.state.audit || null;
+        this.loading = !this.audit;
+        this.refreshing = false;
+        this.running = null;
+        this.error = null;
+        this._container = null;
+        this._fetchPromise = null;
+        this._animatedOnce = false;
+        this.assessmentHighlight = false;
     }
-  }
-
-  invalidateCache() {
-    this.audit = null;
-    this.app.state.audit = null;
-    this._fetchPromise = null;
-  }
-
-  layerStatusClass(status) {
-    if (status === 'pass') return 'success';
-    if (status === 'warn' || status === 'warning') return 'warning';
-    if (status === 'fail') return 'danger';
-    return '';
-  }
-
-  renderLayerCard(key, layer, metrics) {
-    if (!layer || key === 'gate') return '';
-    const status = layer.status || (layer.findings > 0 ? 'fail' : 'pass');
-    const findings = layer.findings ?? layer.blockingCount ?? '—';
-    const scanned = layer.scanned ?? layer.checked ?? layer.label ?? '—';
-    const statusClass = this.layerStatusClass(status);
-    const statusIcon = status === 'pass' ? '✅' : status === 'warn' || status === 'warning' ? '⚠️' : '❌';
-
-    const LAYER_ICONS = {
-      credentials: '🔑', fictionKpis: '🎭', schema: '📐',
-      productionLeaks: '🔓', roadmap: '🗺️', jestBaseline: '🧪'
-    };
-
-    let extraRows = '';
-    if (key === 'schema') {
-      if (layer.pageSamplesChecked != null) {
-        extraRows += `<div class="au-v3-layer-item"><span>Page specs</span><strong>${layer.pageSamplesPassed ?? 0}/${layer.pageSamplesChecked}</strong></div>`;
-      }
-      if (metrics.schemaChecked != null) {
-        extraRows += `<div class="au-v3-layer-item"><span>JSON schema</span><strong>${metrics.schemaPassed ?? 0}/${metrics.schemaChecked}</strong></div>`;
-      }
+    _getVscodeApi() {
+        if (this._vscodeApiCached)
+            return this._vscodeApiCached;
+        if (typeof window === 'undefined' || typeof window.acquireVsCodeApi !== 'function')
+            return null;
+        try {
+            this._vscodeApiCached = window.acquireVsCodeApi();
+            return this._vscodeApiCached;
+        }
+        catch (_a) {
+            return null;
+        }
     }
-
-    const complianceBadges = renderComplianceSummary(key);
-
-    return `
+    invalidateCache() {
+        this.audit = null;
+        this.app.state.audit = null;
+        this._fetchPromise = null;
+    }
+    layerStatusClass(status) {
+        if (status === 'pass')
+            return 'success';
+        if (status === 'warn' || status === 'warning')
+            return 'warning';
+        if (status === 'fail')
+            return 'danger';
+        return '';
+    }
+    renderLayerCard(key, layer, metrics) {
+        var _a, _b, _c, _d, _e, _f, _g;
+        if (!layer || key === 'gate')
+            return '';
+        const status = layer.status || (layer.findings > 0 ? 'fail' : 'pass');
+        const findings = (_b = (_a = layer.findings) !== null && _a !== void 0 ? _a : layer.blockingCount) !== null && _b !== void 0 ? _b : '—';
+        const scanned = (_e = (_d = (_c = layer.scanned) !== null && _c !== void 0 ? _c : layer.checked) !== null && _d !== void 0 ? _d : layer.label) !== null && _e !== void 0 ? _e : '—';
+        const statusClass = this.layerStatusClass(status);
+        const statusIcon = status === 'pass' ? '✅' : status === 'warn' || status === 'warning' ? '⚠️' : '❌';
+        const LAYER_ICONS = {
+            credentials: '🔑', fictionKpis: '🎭', schema: '📐',
+            productionLeaks: '🔓', roadmap: '🗺️', jestBaseline: '🧪'
+        };
+        let extraRows = '';
+        if (key === 'schema') {
+            if (layer.pageSamplesChecked != null) {
+                extraRows += `<div class="au-v3-layer-item"><span>Page specs</span><strong>${(_f = layer.pageSamplesPassed) !== null && _f !== void 0 ? _f : 0}/${layer.pageSamplesChecked}</strong></div>`;
+            }
+            if (metrics.schemaChecked != null) {
+                extraRows += `<div class="au-v3-layer-item"><span>JSON schema</span><strong>${(_g = metrics.schemaPassed) !== null && _g !== void 0 ? _g : 0}/${metrics.schemaChecked}</strong></div>`;
+            }
+        }
+        const complianceBadges = renderComplianceSummary(key);
+        return `
       <div class="au-v3-layer">
         <div class="au-v3-layer-hd">
           <div class="au-v3-layer-title">
@@ -185,17 +173,16 @@ export class AuditView {
         ${complianceBadges ? `<div class="au-v3-compliance-bar"><span class="au-v3-compliance-label">Regulatory</span>${complianceBadges}</div>` : ''}
       </div>
     `;
-  }
-
-  renderFictionCatalog(catalog = [], activeFindings = 0) {
-    if (!catalog.length) {
-      return '<p class="text-muted" style="text-align:center;padding:20px;">No fiction pattern catalog loaded.</p>';
     }
-    const statusLine = activeFindings === 0
-      ? '✅ Latest scan: 0 active fiction findings in KPI fields — gate passes.'
-      : `⚠️ Latest scan: ${activeFindings} active fiction finding(s) — review Results for details.`;
-    const statusColor = activeFindings === 0 ? '#22c55e' : '#f59e0b';
-    return `
+    renderFictionCatalog(catalog = [], activeFindings = 0) {
+        if (!catalog.length) {
+            return '<p class="text-muted" style="text-align:center;padding:20px;">No fiction pattern catalog loaded.</p>';
+        }
+        const statusLine = activeFindings === 0
+            ? '✅ Latest scan: 0 active fiction findings in KPI fields — gate passes.'
+            : `⚠️ Latest scan: ${activeFindings} active fiction finding(s) — review Results for details.`;
+        const statusColor = activeFindings === 0 ? '#22c55e' : '#f59e0b';
+        return `
       <p style="font-size:0.82rem;color:var(--text-secondary);margin:0 0 14px;line-height:1.5;">
         These ${catalog.length} baseline patterns are banned KPI values Simplebeacon detects and rejects.
         They are not scan failures by themselves.
@@ -215,23 +202,22 @@ export class AuditView {
       </table>
       ${catalog.length > 12 ? `<p class="text-muted" style="font-size:0.75rem;margin-top:10px;">${catalog.length - 12} more baseline patterns documented in <code>.simplebeacon/baseline.json</code>.</p>` : ''}
     `;
-  }
-
-  renderAssessmentSummary(assessment, highlight = false) {
-    const exec = assessment?.executiveSummary;
-    if (!exec) return '';
-
-    const checklist = assessment.complianceChecklist || {};
-    const rules = checklist.rules || [];
-    const summary = checklist.summary || {};
-    const generatedAt = assessment.generatedAt
-      ? new Date(assessment.generatedAt).toLocaleString()
-      : null;
-    const gateResult = exec.gateResult || '—';
-    const gateResultClass = gateResult === 'PASS' ? 'pass' : 'warn';
-    const gateResultColor = gateResult === 'PASS' ? '#22c55e' : '#f59e0b';
-
-    return `
+    }
+    renderAssessmentSummary(assessment, highlight = false) {
+        var _a, _b, _c, _d, _e, _f, _g;
+        const exec = assessment === null || assessment === void 0 ? void 0 : assessment.executiveSummary;
+        if (!exec)
+            return '';
+        const checklist = assessment.complianceChecklist || {};
+        const rules = checklist.rules || [];
+        const summary = checklist.summary || {};
+        const generatedAt = assessment.generatedAt
+            ? new Date(assessment.generatedAt).toLocaleString()
+            : null;
+        const gateResult = exec.gateResult || '—';
+        const gateResultClass = gateResult === 'PASS' ? 'pass' : 'warn';
+        const gateResultColor = gateResult === 'PASS' ? '#22c55e' : '#f59e0b';
+        return `
       <div class="au-v3-card ${highlight ? 'au-v3-highlight' : ''}" id="audit-assessment-summary">
         <div class="au-v3-card-hd">
           <h3 style="margin:0;font-size:1rem;font-weight:700;">📋 Assessment Summary</h3>
@@ -244,40 +230,40 @@ export class AuditView {
               <div><div class="au-v3-metric-val" style="color:${gateResultColor};">${escapeHtml(gateResult)}</div><div class="au-v3-metric-label">Gate Result</div></div>
             </div>
             <div class="au-v3-metric" style="margin-bottom:0;">
-              <div><div class="au-v3-metric-val">${exec.qualityScore ?? '—'}</div><div class="au-v3-metric-label">Quality Score</div></div>
+              <div><div class="au-v3-metric-val">${(_a = exec.qualityScore) !== null && _a !== void 0 ? _a : '—'}</div><div class="au-v3-metric-label">Quality Score</div></div>
             </div>
             <div class="au-v3-metric" style="margin-bottom:0;">
               <div><div class="au-v3-metric-val">${formatNumber(exec.filesScanned)}</div><div class="au-v3-metric-label">Files Scanned</div></div>
             </div>
             <div class="au-v3-metric" style="margin-bottom:0;">
-              <div><div class="au-v3-metric-val" style="color:#f87171;">${exec.highIssues ?? 0}</div><div class="au-v3-metric-label">High Issues</div></div>
+              <div><div class="au-v3-metric-val" style="color:#f87171;">${(_b = exec.highIssues) !== null && _b !== void 0 ? _b : 0}</div><div class="au-v3-metric-label">High Issues</div></div>
             </div>
             <div class="au-v3-metric" style="margin-bottom:0;">
-              <div><div class="au-v3-metric-val" style="color:#fbbf24;">${exec.mediumIssues ?? 0}</div><div class="au-v3-metric-label">Medium Issues</div></div>
+              <div><div class="au-v3-metric-val" style="color:#fbbf24;">${(_c = exec.mediumIssues) !== null && _c !== void 0 ? _c : 0}</div><div class="au-v3-metric-label">Medium Issues</div></div>
             </div>
             <div class="au-v3-metric" style="margin-bottom:0;">
-              <div><div class="au-v3-metric-val">${exec.lowIssues ?? 0}</div><div class="au-v3-metric-label">Low Issues</div></div>
+              <div><div class="au-v3-metric-val">${(_d = exec.lowIssues) !== null && _d !== void 0 ? _d : 0}</div><div class="au-v3-metric-label">Low Issues</div></div>
             </div>
           </div>
           ${rules.length ? `
             <p class="text-muted" style="font-size:0.78rem;margin:0 0 12px;">
-              Corporate safety checklist — <strong style="color:#22c55e;">${summary.passed ?? 0} pass</strong> · <strong style="color:#f87171;">${summary.failed ?? 0} fail</strong> · ${summary.skipped ?? 0} skipped
+              Corporate safety checklist — <strong style="color:#22c55e;">${(_e = summary.passed) !== null && _e !== void 0 ? _e : 0} pass</strong> · <strong style="color:#f87171;">${(_f = summary.failed) !== null && _f !== void 0 ? _f : 0} fail</strong> · ${(_g = summary.skipped) !== null && _g !== void 0 ? _g : 0} skipped
             </p>
             <table class="au-v3-table" style="margin-bottom:16px;">
               <thead><tr><th>Rule</th><th>Title</th><th>Status</th></tr></thead>
               <tbody>
                 ${rules.slice(0, 8).map((rule) => {
-    const icon = rule.status === 'pass' ? '✓' : rule.status === 'fail' ? '✗' : '○';
-    const cls = rule.status === 'pass' ? 'success' : rule.status === 'fail' ? 'danger' : '';
-    const color = rule.status === 'pass' ? '#22c55e' : rule.status === 'fail' ? '#ef4444' : 'var(--text-muted)';
-    return `
+            const icon = rule.status === 'pass' ? '✓' : rule.status === 'fail' ? '✗' : '○';
+            const cls = rule.status === 'pass' ? 'success' : rule.status === 'fail' ? 'danger' : '';
+            const color = rule.status === 'pass' ? '#22c55e' : rule.status === 'fail' ? '#ef4444' : 'var(--text-muted)';
+            return `
                     <tr>
                       <td><span class="severity-pill ${cls}">${icon} ${escapeHtml(rule.id)}</span></td>
                       <td>${escapeHtml(rule.title)}</td>
                       <td><span style="color:${color};font-weight:600;">${escapeHtml(rule.status || '—')}</span></td>
                     </tr>
                   `;
-  }).join('')}
+        }).join('')}
               </tbody>
             </table>
             ${rules.length > 8 ? `<p class="text-muted" style="font-size:0.75rem;margin-bottom:16px;">${rules.length - 8} more rules in the full report.</p>` : ''}
@@ -289,24 +275,22 @@ export class AuditView {
         </div>
       </div>
     `;
-  }
-
-  renderNpmAudit(audit) {
-    if (!audit) {
-      return `<div style="text-align:center;padding:30px;"><div style="font-size:32px;margin-bottom:12px;">📦</div><p class="text-muted" style="margin:0;font-size:0.85rem;">Run npm audit to load dependency vulnerability results.</p></div>`;
     }
-    if (audit.error) {
-      return `
+    renderNpmAudit(audit) {
+        if (!audit) {
+            return `<div style="text-align:center;padding:30px;"><div style="font-size:32px;margin-bottom:12px;">📦</div><p class="text-muted" style="margin:0;font-size:0.85rem;">Run npm audit to load dependency vulnerability results.</p></div>`;
+        }
+        if (audit.error) {
+            return `
         <div style="padding:16px;border-radius:12px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.15);">
           <p style="margin:0;color:#fbbf24;font-weight:600;font-size:0.85rem;">⚠ npm audit failed</p>
           <p class="text-muted" style="margin-top:6px;font-size:0.78rem;">${escapeHtml(audit.error)}</p>
         </div>
       `;
-    }
-
-    const s = npmAuditSummary(audit);
-    const hasVulns = s.vulnerabilityTotal > 0;
-    return `
+        }
+        const s = npmAuditSummary(audit);
+        const hasVulns = s.vulnerabilityTotal > 0;
+        return `
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;">
         <div class="au-v3-metric" style="margin-bottom:0;">
           <div><div class="au-v3-metric-val">${formatNumber(s.dependencies) || '—'}</div><div class="au-v3-metric-label">Dependencies</div></div>
@@ -322,8 +306,8 @@ export class AuditView {
         </div>
       </div>
       ${!hasVulns && s.dependencies
-        ? `<p style="text-align:center;margin:0;color:#22c55e;font-weight:600;font-size:0.85rem;">✅ Clean audit — ${formatNumber(s.dependencies)} dependencies, 0 known vulnerabilities.</p>`
-        : ''}
+            ? `<p style="text-align:center;margin:0;color:#22c55e;font-weight:600;font-size:0.85rem;">✅ Clean audit — ${formatNumber(s.dependencies)} dependencies, 0 known vulnerabilities.</p>`
+            : ''}
       ${hasVulns ? `
         <div style="margin-top:14px;">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
@@ -334,23 +318,24 @@ export class AuditView {
         </div>
       ` : ''}
     `;
-  }
-
-  renderNpmVulnList(audit) {
-    const rawVulns = audit?.vulnerabilities || audit?.advisories || {};
-    const vulnList = [];
-    if (typeof rawVulns === 'object' && rawVulns !== null) {
-      for (const [pkg, info] of Object.entries(rawVulns)) {
-        if (info && typeof info === 'object') {
-          const sev = info.severity || info.via?.[0]?.severity || 'unknown';
-          const title = info.via?.[0]?.title || info.title || info.overview || '';
-          const fixAvailable = info.fixAvailable != null ? (info.fixAvailable ? '✅ Fix available' : '❌ No fix') : '';
-          vulnList.push({ package: pkg, severity: sev, title, fixAvailable });
-        }
-      }
     }
-    if (!vulnList.length) return '';
-    return vulnList.map((v) => `
+    renderNpmVulnList(audit) {
+        var _a, _b, _c, _d;
+        const rawVulns = (audit === null || audit === void 0 ? void 0 : audit.vulnerabilities) || (audit === null || audit === void 0 ? void 0 : audit.advisories) || {};
+        const vulnList = [];
+        if (typeof rawVulns === 'object' && rawVulns !== null) {
+            for (const [pkg, info] of Object.entries(rawVulns)) {
+                if (info && typeof info === 'object') {
+                    const sev = info.severity || ((_b = (_a = info.via) === null || _a === void 0 ? void 0 : _a[0]) === null || _b === void 0 ? void 0 : _b.severity) || 'unknown';
+                    const title = ((_d = (_c = info.via) === null || _c === void 0 ? void 0 : _c[0]) === null || _d === void 0 ? void 0 : _d.title) || info.title || info.overview || '';
+                    const fixAvailable = info.fixAvailable != null ? (info.fixAvailable ? '✅ Fix available' : '❌ No fix') : '';
+                    vulnList.push({ package: pkg, severity: sev, title, fixAvailable });
+                }
+            }
+        }
+        if (!vulnList.length)
+            return '';
+        return vulnList.map((v) => `
       <div class="au-v3-npm-vuln severity-${v.severity}">
         <div style="flex:1;min-width:0;">
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
@@ -362,51 +347,47 @@ export class AuditView {
         </div>
       </div>
     `).join('');
-  }
-
-  render() {
-    const el = document.createElement('div');
-    if (!this._animatedOnce) {
-      el.className = 'fade-in';
-      this._animatedOnce = true;
     }
-
-    if (this.loading && !this.audit) {
-      el.innerHTML = `
+    render() {
+        var _a, _b, _c, _d, _e, _f, _g, _h;
+        const el = document.createElement('div');
+        if (!this._animatedOnce) {
+            el.className = 'fade-in';
+            this._animatedOnce = true;
+        }
+        if (this.loading && !this.audit) {
+            el.innerHTML = `
         <div class="analyze-hero"><h1 class="page-title">Compliance Audit</h1><p class="text-muted analyze-hero-sub">Loading audit layers…</p></div>
         ${renderEmptyState({
-          icon: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
-          title: 'Loading audit report…',
-          body: '<div class="loading-spinner" style="width:32px;height:32px;margin:0 auto var(--space-4)"></div>'
-        })}
+                icon: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+                title: 'Loading audit report…',
+                body: '<div class="loading-spinner" style="width:32px;height:32px;margin:0 auto var(--space-4)"></div>'
+            })}
       `;
-      return el;
-    }
-
-    if (this.error && !this.audit) {
-      el.innerHTML = `
+            return el;
+        }
+        if (this.error && !this.audit) {
+            el.innerHTML = `
         <div class="analyze-hero"><h1 class="page-title">Compliance Audit</h1><p class="text-muted analyze-hero-sub">Audit unavailable</p></div>
         ${renderEmptyState({
-          icon: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
-          title: 'Audit unavailable',
-          body: escapeHtml(this.error),
-          actions: [{ label: 'Retry', id: 'audit-retry', className: 'btn-primary' }]
-        })}
+                icon: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
+                title: 'Audit unavailable',
+                body: escapeHtml(this.error),
+                actions: [{ label: 'Retry', id: 'audit-retry', className: 'btn-primary' }]
+            })}
       `;
-      el.querySelector('#audit-retry')?.addEventListener('click', () => this.reload(el.parentElement));
-      return el;
-    }
-
-    const audit = this.audit || {};
-    const layers = audit.auditLayers || {};
-    const gate = layers.gate || {};
-    const metrics = buildAuditMetrics(audit);
-    const assessment = audit.assessment;
-    const gatePass = Boolean(gate.pass);
-    const gateColor = gatePass ? '#22c55e' : '#ef4444';
-    const gateClass = gatePass ? 'success' : 'danger';
-
-    el.innerHTML = `
+            (_a = el.querySelector('#audit-retry')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => this.reload(el.parentElement), { once: true });
+            return el;
+        }
+        const audit = this.audit || {};
+        const layers = audit.auditLayers || {};
+        const gate = layers.gate || {};
+        const metrics = buildAuditMetrics(audit);
+        const assessment = audit.assessment;
+        const gatePass = Boolean(gate.pass);
+        const gateColor = gatePass ? '#22c55e' : '#ef4444';
+        const gateClass = gatePass ? 'success' : 'danger';
+        el.innerHTML = `
       <style>
         @keyframes au-fade-up { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
         .au-v3 { animation:au-fade-up .5s ease both; }
@@ -484,7 +465,7 @@ export class AuditView {
           <div class="au-v3-kpi-icon" style="background:${gatePass ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)'}; color:${gateColor};">${gatePass ? '✅' : '❌'}</div>
           <div class="au-v3-kpi-label">Gate Status</div>
           <div class="au-v3-kpi-value" style="color:${gateColor};">${gatePass ? 'PASS' : 'FAIL'}</div>
-          <div class="au-v3-kpi-meta">${gate.blockingCount ?? 0} blocking issues</div>
+          <div class="au-v3-kpi-meta">${(_b = gate.blockingCount) !== null && _b !== void 0 ? _b : 0} blocking issues</div>
         </div>
         <div class="au-v3-kpi kpi-info">
           <div class="au-v3-kpi-icon" style="background:rgba(99,102,241,0.15); color:#a78bfa;">📊</div>
@@ -502,7 +483,7 @@ export class AuditView {
 
       ${renderScanScope(metrics)}
 
-      ${assessment?.executiveSummary ? this.renderAssessmentSummary(assessment, this.assessmentHighlight) : `
+      ${(assessment === null || assessment === void 0 ? void 0 : assessment.executiveSummary) ? this.renderAssessmentSummary(assessment, this.assessmentHighlight) : `
         <div class="au-v3-card" id="audit-assessment-summary">
           <div class="au-v3-card-hd">
             <h3 style="margin:0;font-size:1rem;font-weight:700;">📋 Assessment Summary</h3>
@@ -557,7 +538,7 @@ export class AuditView {
           <span class="db-v3-panel-badge">${(audit.fictionCatalog || []).length} patterns</span>
         </div>
         <div class="au-v3-card-bd">
-          ${this.renderFictionCatalog(audit.fictionCatalog, layers.fictionKpis?.findings ?? 0)}
+          ${this.renderFictionCatalog(audit.fictionCatalog, (_d = (_c = layers.fictionKpis) === null || _c === void 0 ? void 0 : _c.findings) !== null && _d !== void 0 ? _d : 0)}
         </div>
       </div>
 
@@ -570,254 +551,269 @@ export class AuditView {
         </div>
       </div>
     `;
-
-    el.querySelectorAll('[data-action]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        if (btn.disabled) return;
-        this.handleAction(btn.dataset.action, el.parentElement);
-      });
-    });
-
-    el.querySelector('#audit-export-btn')?.addEventListener('click', () => {
-      const audit = this.app.state.audit;
-      const report = this.app.state.report;
-      const payload = {
-        audit,
-        report,
-        exportedAt: new Date().toISOString()
-      };
-      downloadJson(payload, `simplebeacon-audit-${new Date().toISOString().slice(0, 10)}.json`);
-      showToast('Full audit data exported', 'success');
-    });
-
-    el.querySelector('#audit-download-assessment')?.addEventListener('click', () => {
-      if (!assessment) {
-        showToast('Run assessment first', 'info');
-        return;
-      }
-      downloadJson(assessment, `simplebeacon-assessment-${new Date().toISOString().slice(0, 10)}.json`);
-      showToast('Assessment JSON downloaded', 'success');
-    });
-
-    el.querySelector('#audit-open-assessments')?.addEventListener('click', () => {
-      this.app.navigate('assessments');
-    });
-
-    el.querySelector('#audit-send-ai-btn')?.addEventListener('click', async () => {
-      const audit = this.app.state.audit;
-      const report = this.app.state.report;
-      if (!audit && !report) { showToast('No audit data — run a scan first', 'error'); return; }
-      const npmAudit = audit?.npmAudit;
-      const vulnList = [];
-      const rawVulns = npmAudit?.vulnerabilities || npmAudit?.advisories || {};
-      if (typeof rawVulns === 'object' && rawVulns !== null) {
-        for (const [pkg, info] of Object.entries(rawVulns)) {
-          if (info && typeof info === 'object') {
-            const sev = info.severity || info.via?.[0]?.severity || 'unknown';
-            const title = info.via?.[0]?.title || info.title || info.overview || '';
-            vulnList.push({ package: pkg, severity: sev, title });
-          }
+        el.querySelectorAll('[data-action]').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                if (btn.disabled)
+                    return;
+                this.handleAction(btn.dataset.action, el.parentElement);
+            });
+        });
+        (_e = el.querySelector('#audit-export-btn')) === null || _e === void 0 ? void 0 : _e.addEventListener('click', () => {
+            const audit = this.app.state.audit;
+            const report = this.app.state.report;
+            const payload = {
+                audit,
+                report,
+                exportedAt: new Date().toISOString()
+            };
+            downloadJson(payload, `simplebeacon-audit-${new Date().toISOString().slice(0, 10)}.json`);
+            showToast('Full audit data exported', 'success');
+        });
+        (_f = el.querySelector('#audit-download-assessment')) === null || _f === void 0 ? void 0 : _f.addEventListener('click', () => {
+            if (!assessment) {
+                showToast('Run assessment first', 'info');
+                return;
+            }
+            downloadJson(assessment, `simplebeacon-assessment-${new Date().toISOString().slice(0, 10)}.json`);
+            showToast('Assessment JSON downloaded', 'success');
+        });
+        (_g = el.querySelector('#audit-open-assessments')) === null || _g === void 0 ? void 0 : _g.addEventListener('click', () => {
+            this.app.navigate('assessments');
+        });
+        (_h = el.querySelector('#audit-send-ai-btn')) === null || _h === void 0 ? void 0 : _h.addEventListener('click', async () => {
+            var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q;
+            const audit = this.app.state.audit;
+            const report = this.app.state.report;
+            if (!audit && !report) {
+                showToast('No audit data — run a scan first', 'error');
+                return;
+            }
+            const npmAudit = audit === null || audit === void 0 ? void 0 : audit.npmAudit;
+            const vulnList = [];
+            const rawVulns = (npmAudit === null || npmAudit === void 0 ? void 0 : npmAudit.vulnerabilities) || (npmAudit === null || npmAudit === void 0 ? void 0 : npmAudit.advisories) || {};
+            if (typeof rawVulns === 'object' && rawVulns !== null) {
+                for (const [pkg, info] of Object.entries(rawVulns)) {
+                    if (info && typeof info === 'object') {
+                        const sev = info.severity || ((_b = (_a = info.via) === null || _a === void 0 ? void 0 : _a[0]) === null || _b === void 0 ? void 0 : _b.severity) || 'unknown';
+                        const title = ((_d = (_c = info.via) === null || _c === void 0 ? void 0 : _c[0]) === null || _d === void 0 ? void 0 : _d.title) || info.title || info.overview || '';
+                        vulnList.push({ package: pkg, severity: sev, title });
+                    }
+                }
+            }
+            const payload = {
+                projectPath: (report === null || report === void 0 ? void 0 : report.projectRoot) || (report === null || report === void 0 ? void 0 : report.projectPath) || this.app.state.lastProjectPath || window.location.origin,
+                reportType: 'compliance-audit',
+                reportSummary: {
+                    gatePass: (_f = (_e = report === null || report === void 0 ? void 0 : report.gate) === null || _e === void 0 ? void 0 : _e.pass) !== null && _f !== void 0 ? _f : 'N/A',
+                    qualityScore: (_g = report === null || report === void 0 ? void 0 : report.qualityScore) !== null && _g !== void 0 ? _g : 'N/A',
+                    consistencyScore: (_j = (_h = audit === null || audit === void 0 ? void 0 : audit.report) === null || _h === void 0 ? void 0 : _h.consistencyScore) !== null && _j !== void 0 ? _j : 'N/A',
+                    totalIssues: (_k = report === null || report === void 0 ? void 0 : report.issueCount) !== null && _k !== void 0 ? _k : ((_m = (_l = report === null || report === void 0 ? void 0 : report.rawIssues) === null || _l === void 0 ? void 0 : _l.length) !== null && _m !== void 0 ? _m : 0),
+                    npmAuditVulnerabilities: (_p = (_o = npmAudit === null || npmAudit === void 0 ? void 0 : npmAudit.summary) === null || _o === void 0 ? void 0 : _o.vulnerabilityTotal) !== null && _p !== void 0 ? _p : 'N/A',
+                    layers: Object.keys((audit === null || audit === void 0 ? void 0 : audit.layers) || {})
+                },
+                issues: vulnList.slice(0, 200),
+                notes: 'Compliance Audit — perimeter scan, assessment, npm audit layers'
+            };
+            const vscode = (_q = this._getVscodeApi) === null || _q === void 0 ? void 0 : _q.call(this);
+            if (vscode) {
+                try {
+                    vscode.postMessage({ command: 'sendToAI', data: payload });
+                    showToast('Audit data sent to AI agent', 'success');
+                    return;
+                }
+                catch (err) {
+                    console.warn('[Audit-AI] vscode.postMessage failed:', err);
+                } // simplebeacon-ignore ai-residue — intentional error handling for VS Code API
+            }
+            try {
+                const res = await fetch(apiUrl('/api/ai-context'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                const json = await res.json();
+                if (json.success && json.content) {
+                    await navigator.clipboard.writeText(json.content);
+                    showToast('Copied to clipboard — paste into your AI coding agent with Ctrl+V', 'success');
+                }
+                else {
+                    showToast('AI context saved. Mention @.simplebeacon/ai-context.md in chat.', 'success');
+                }
+            }
+            catch (err) {
+                showToast('Failed to send: ' + err.message, 'error');
+            }
+        });
+        return el;
+    }
+    mergeLiveReport(audit) {
+        var _a, _b;
+        const live = this.app.state.report;
+        if (!audit || !live)
+            return audit;
+        return {
+            ...audit,
+            report: {
+                ...audit.report,
+                ...live,
+                repositoryInventory: (_a = live.repositoryInventory) !== null && _a !== void 0 ? _a : (_b = audit.report) === null || _b === void 0 ? void 0 : _b.repositoryInventory
+            },
+            auditLayers: audit.auditLayers
+        };
+    }
+    paint(container = this._container) {
+        if (!container)
+            return;
+        this._container = container;
+        container.innerHTML = '';
+        try {
+            container.appendChild(this.render());
         }
-      }
-      const payload = {
-        projectPath: report?.projectRoot || report?.projectPath || this.app.state.lastProjectPath || window.location.origin,
-        reportType: 'compliance-audit',
-        reportSummary: {
-          gatePass: report?.gate?.pass ?? 'N/A',
-          qualityScore: report?.qualityScore ?? 'N/A',
-          consistencyScore: audit?.report?.consistencyScore ?? 'N/A',
-          totalIssues: report?.issueCount ?? (report?.rawIssues?.length ?? 0),
-          npmAuditVulnerabilities: npmAudit?.summary?.vulnerabilityTotal ?? 'N/A',
-          layers: Object.keys(audit?.layers || {})
-        },
-        issues: vulnList.slice(0, 200),
-        notes: 'Compliance Audit — perimeter scan, assessment, npm audit layers'
-      };
-      const vscode = this._getVscodeApi?.();
-      if (vscode) {
-        try { vscode.postMessage({ command: 'sendToAI', data: payload }); showToast('Audit data sent to AI agent', 'success'); return; }
-        catch (err) { console.warn('[Audit-AI] vscode.postMessage failed:', err); } // simplebeacon-ignore ai-residue — intentional error handling for VS Code API
-      }
-      try {
-        const res = await fetch(apiUrl('/api/ai-context'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-        const json = await res.json();
-        if (json.success && json.content) { await navigator.clipboard.writeText(json.content); showToast('Copied to clipboard — paste into your AI coding agent with Ctrl+V', 'success'); }
-        else { showToast('AI context saved. Mention @.simplebeacon/ai-context.md in chat.', 'success'); }
-      } catch (err) { showToast('Failed to send: ' + err.message, 'error'); }
-    });
-
-    return el;
-  }
-
-  mergeLiveReport(audit) {
-    const live = this.app.state.report;
-    if (!audit || !live) return audit;
-    return {
-      ...audit,
-      report: {
-        ...audit.report,
-        ...live,
-        repositoryInventory: live.repositoryInventory ?? audit.report?.repositoryInventory
-      },
-      auditLayers: audit.auditLayers
-    };
-  }
-
-  paint(container = this._container) {
-    if (!container) return;
-    this._container = container;
-    container.innerHTML = '';
-    try {
-      container.appendChild(this.render());
-    } catch (err) {
-      console.error('[AuditView] Render error:', err);
-      container.innerHTML = `<div class="analyze-hero"><h1 class="page-title">Compliance Audit</h1><p class="text-muted analyze-hero-sub">Render error</p></div>
+        catch (err) {
+            console.error('[AuditView] Render error:', err);
+            container.innerHTML = `<div class="analyze-hero"><h1 class="page-title">Compliance Audit</h1><p class="text-muted analyze-hero-sub">Render error</p></div>
         <div class="card" style="padding:var(--space-6);">
           <p class="text-danger mb-2"><strong>Failed to render audit page</strong></p>
-          <pre style="font-size:var(--font-size-sm);overflow:auto;">${escapeHtml(err?.message || String(err))}</pre>
+          <pre style="font-size:var(--font-size-sm);overflow:auto;">${escapeHtml((err === null || err === void 0 ? void 0 : err.message) || String(err))}</pre>
         </div>`;
-    }
-  }
-
-  scrollToAssessmentSummary() {
-    requestAnimationFrame(() => {
-      document.getElementById('audit-assessment-summary')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
-  }
-
-  async handleAction(action, container) {
-    if (action === 'results') {
-      const report = this.app.state.report;
-      const issueCount = report?.issueCount ?? (report?.rawIssues ?? []).reduce((s, i) => s + (i.count || 1), 0);
-      this.app.navigate('results', { from: 'audit' });
-      if (!report) {
-        showToast('No scan report loaded — run perimeter scan first', 'info');
-      } else if (issueCount === 0) {
-        showToast('Gate passed — 0 blocking issues. Sample files are listed on Results.', 'info');
-      } else {
-        showToast(`Opening ${issueCount} issue group(s) from the latest scan`, 'success');
-      }
-      return;
-    }
-
-    this.running = action;
-    this.error = null;
-    this.paint(container);
-    try {
-      if (action === 'scan') {
-        await this.app.runScan();
-        this.invalidateCache();
-        showToast('Perimeter scan complete — audit metrics updated', 'success');
-      } else if (action === 'assess') {
-        const data = await this.app.scanService.runAssess();
-        if (data.assessment) {
-          if (this.audit) {
-            this.audit = { ...this.audit, assessment: data.assessment };
-          } else {
-            this.audit = { assessment: data.assessment };
-          }
-          this.app.state.audit = this.audit;
         }
-        this.assessmentHighlight = true;
-        showToast('Assessment complete — summary and checklist updated below', 'success');
-      } else if (action === 'npm') {
-        const npmAudit = await this.app.scanService.runNpmAudit();
-        this.app.state.npmAudit = npmAudit;
-        if (this.audit) {
-          this.audit = { ...this.audit, npmAudit };
-          this.app.state.audit = this.audit;
-          showToast('npm audit complete — see results below', 'success');
-          this.paint(container);
-          return;
+    }
+    scrollToAssessmentSummary() {
+        requestAnimationFrame(() => {
+            var _a;
+            (_a = document.getElementById('audit-assessment-summary')) === null || _a === void 0 ? void 0 : _a.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    }
+    async handleAction(action, container) {
+        var _a, _b;
+        if (action === 'results') {
+            const report = this.app.state.report;
+            const issueCount = (_a = report === null || report === void 0 ? void 0 : report.issueCount) !== null && _a !== void 0 ? _a : ((_b = report === null || report === void 0 ? void 0 : report.rawIssues) !== null && _b !== void 0 ? _b : []).reduce((s, i) => s + (i.count || 1), 0);
+            this.app.navigate('results', { from: 'audit' });
+            if (!report) {
+                showToast('No scan report loaded — run perimeter scan first', 'info');
+            }
+            else if (issueCount === 0) {
+                showToast('Gate passed — 0 blocking issues. Sample files are listed on Results.', 'info');
+            }
+            else {
+                showToast(`Opening ${issueCount} issue group(s) from the latest scan`, 'success');
+            }
+            return;
         }
-      }
-      await this.reload(container, { includeNpm: action === 'npm' });
-      if (action === 'assess') {
-        this.assessmentHighlight = true;
-        this.scrollToAssessmentSummary();
-      }
-    } catch (err) {
-      this.error = err.message;
-      showToast(err.message, 'error');
-    } finally {
-      this.running = null;
-      this.paint(container);
-      if (action === 'assess' && this.assessmentHighlight) {
-        this.scrollToAssessmentSummary();
-      }
-    }
-  }
-
-  async reload(container, options = {}) {
-    this._container = container;
-    await this.loadAudit({ force: true, includeNpm: Boolean(options.includeNpm) });
-  }
-
-  async loadAudit(options = {}) {
-    const { force = false, includeNpm = false } = options;
-    if (this._fetchPromise) {
-      if (!force) return this._fetchPromise;
-      await this._fetchPromise.catch(() => {});
-      this._fetchPromise = null;
-    }
-
-    if (!force && this.audit) {
-      this.audit = this.mergeLiveReport(this.audit);
-      this.app.state.audit = this.audit;
-      return this.audit;
-    }
-
-    const hadAudit = Boolean(this.audit);
-    this._fetchPromise = (async () => {
-      if (!hadAudit) {
-        this.loading = true;
+        this.running = action;
         this.error = null;
-        this.paint();
-      } else {
-        this.refreshing = true;
-        this.error = null;
-        this.paint();
-      }
-
-      try {
-        const audit = await this.app.scanService.fetchAudit(includeNpm);
-        this.audit = this.mergeLiveReport(audit);
+        this.paint(container);
+        try {
+            if (action === 'scan') {
+                await this.app.runScan();
+                this.invalidateCache();
+                showToast('Perimeter scan complete — audit metrics updated', 'success');
+            }
+            else if (action === 'assess') {
+                const data = await this.app.scanService.runAssess();
+                if (data.assessment) {
+                    if (this.audit) {
+                        this.audit = { ...this.audit, assessment: data.assessment };
+                    }
+                    else {
+                        this.audit = { assessment: data.assessment };
+                    }
+                    this.app.state.audit = this.audit;
+                }
+                this.assessmentHighlight = true;
+                showToast('Assessment complete — summary and checklist updated below', 'success');
+            }
+            else if (action === 'npm') {
+                const npmAudit = await this.app.scanService.runNpmAudit();
+                this.app.state.npmAudit = npmAudit;
+                if (this.audit) {
+                    this.audit = { ...this.audit, npmAudit };
+                    this.app.state.audit = this.audit;
+                    showToast('npm audit complete — see results below', 'success');
+                    this.paint(container);
+                    return;
+                }
+            }
+            await this.reload(container, { includeNpm: action === 'npm' });
+            if (action === 'assess') {
+                this.assessmentHighlight = true;
+                this.scrollToAssessmentSummary();
+            }
+        }
+        catch (err) {
+            this.error = err.message;
+            showToast(err.message, 'error');
+        }
+        finally {
+            this.running = null;
+            this.paint(container);
+            if (action === 'assess' && this.assessmentHighlight) {
+                this.scrollToAssessmentSummary();
+            }
+        }
+    }
+    async reload(container, options = {}) {
+        this._container = container;
+        await this.loadAudit({ force: true, includeNpm: Boolean(options.includeNpm) });
+    }
+    async loadAudit(options = {}) {
+        const { force = false, includeNpm = false } = options;
+        if (this._fetchPromise) {
+            if (!force)
+                return this._fetchPromise;
+            await this._fetchPromise.catch(() => { });
+            this._fetchPromise = null;
+        }
+        if (!force && this.audit) {
+            this.audit = this.mergeLiveReport(this.audit);
+            this.app.state.audit = this.audit;
+            return this.audit;
+        }
+        const hadAudit = Boolean(this.audit);
+        this._fetchPromise = (async () => {
+            if (!hadAudit) {
+                this.loading = true;
+                this.error = null;
+                this.paint();
+            }
+            else {
+                this.refreshing = true;
+                this.error = null;
+                this.paint();
+            }
+            try {
+                const audit = await this.app.scanService.fetchAudit(includeNpm);
+                this.audit = this.mergeLiveReport(audit);
+                if (this.app.state.npmAudit && !this.audit.npmAudit) {
+                    this.audit.npmAudit = this.app.state.npmAudit;
+                }
+                this.app.state.audit = this.audit;
+            }
+            catch (err) {
+                if (!hadAudit)
+                    this.error = err.message;
+            }
+            finally {
+                this.loading = false;
+                this.refreshing = false;
+                this._fetchPromise = null;
+                this.paint();
+            }
+            return this.audit;
+        })();
+        return this._fetchPromise;
+    }
+    mount(container) {
+        if (!this.audit && this.app.state.audit) {
+            this.audit = this.app.state.audit;
+            this.loading = false;
+        }
+        this.paint(container);
+        if (!this.audit) {
+            void this.loadAudit();
+            return;
+        }
+        this.audit = this.mergeLiveReport(this.audit);
         if (this.app.state.npmAudit && !this.audit.npmAudit) {
-          this.audit.npmAudit = this.app.state.npmAudit;
+            this.audit.npmAudit = this.app.state.npmAudit;
         }
         this.app.state.audit = this.audit;
-      } catch (err) {
-        if (!hadAudit) this.error = err.message;
-      } finally {
-        this.loading = false;
-        this.refreshing = false;
-        this._fetchPromise = null;
-        this.paint();
-      }
-
-      return this.audit;
-    })();
-
-    return this._fetchPromise;
-  }
-
-  mount(container) {
-    if (!this.audit && this.app.state.audit) {
-      this.audit = this.app.state.audit;
-      this.loading = false;
     }
-
-    this.paint(container);
-
-    if (!this.audit) {
-      void this.loadAudit();
-      return;
-    }
-
-    this.audit = this.mergeLiveReport(this.audit);
-    if (this.app.state.npmAudit && !this.audit.npmAudit) {
-      this.audit.npmAudit = this.app.state.npmAudit;
-    }
-    this.app.state.audit = this.audit;
-  }
 }

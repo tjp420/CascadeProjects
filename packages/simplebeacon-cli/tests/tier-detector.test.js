@@ -9,20 +9,34 @@ const { detectTier, getTierLimits, PAID_TIERS, FREE_TIERS, TIER_LIMITS } = requi
 describe('getTierLimits', () => {
     it('returns developer limits for unknown tier', () => {
         const limits = getTierLimits('unknown');
-        assert.strictEqual(limits.maxScansPerPeriod, 100);
+        assert.strictEqual(limits.maxScansPerPeriod, 9999);
         assert.strictEqual(limits.customConfig, false);
         assert.strictEqual(limits.pipelineScans, false);
     });
 
-    it('returns startup limits correctly', () => {
-        const limits = getTierLimits('startup');
+    it('returns pro limits correctly', () => {
+        const limits = getTierLimits('pro');
         assert.strictEqual(limits.maxScansPerPeriod, 2500);
         assert.strictEqual(limits.customConfig, true);
         assert.strictEqual(limits.allowlist, false);
         assert.strictEqual(limits.pipelineScans, true);
     });
 
-    it('returns growth limits with allowlist', () => {
+    it('returns team limits with allowlist', () => {
+        const limits = getTierLimits('team');
+        assert.strictEqual(limits.maxScansPerPeriod, 10000);
+        assert.strictEqual(limits.customConfig, true);
+        assert.strictEqual(limits.allowlist, true);
+    });
+
+    it('maps legacy startup to pro limits', () => {
+        const limits = getTierLimits('startup');
+        assert.strictEqual(limits.maxScansPerPeriod, 2500);
+        assert.strictEqual(limits.customConfig, true);
+        assert.strictEqual(limits.pipelineScans, true);
+    });
+
+    it('maps legacy growth to team limits', () => {
         const limits = getTierLimits('growth');
         assert.strictEqual(limits.maxScansPerPeriod, 10000);
         assert.strictEqual(limits.customConfig, true);
@@ -44,12 +58,14 @@ describe('detectTier', () => {
         const result = detectTier();
         assert.strictEqual(result.tier, 'developer');
         assert.strictEqual(result.paid, false);
-        assert.strictEqual(result.limits.maxScansPerPeriod, 100);
+        assert.strictEqual(result.limits.maxScansPerPeriod, 9999);
     });
 });
 
 describe('PAID_TIERS', () => {
-    it('includes all new usage-based tiers', () => {
+    it('includes all paid tiers including canonical and legacy aliases', () => {
+        assert(PAID_TIERS.has('pro'));
+        assert(PAID_TIERS.has('team'));
         assert(PAID_TIERS.has('startup'));
         assert(PAID_TIERS.has('growth'));
         assert(PAID_TIERS.has('enterprise'));
@@ -57,14 +73,17 @@ describe('PAID_TIERS', () => {
 });
 
 describe('FREE_TIERS', () => {
-    it('includes developer tier', () => {
+    it('includes free tier names', () => {
         assert(FREE_TIERS.has('developer'));
+        assert(FREE_TIERS.has('free'));
     });
 });
 
 describe('TIER_LIMITS', () => {
-    it('has all four tiers defined', () => {
+    it('has all six tier entries defined (canonical + legacy)', () => {
         assert('developer' in TIER_LIMITS);
+        assert('pro' in TIER_LIMITS);
+        assert('team' in TIER_LIMITS);
         assert('startup' in TIER_LIMITS);
         assert('growth' in TIER_LIMITS);
         assert('enterprise' in TIER_LIMITS);

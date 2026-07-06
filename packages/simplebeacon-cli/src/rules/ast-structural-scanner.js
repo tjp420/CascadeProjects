@@ -80,6 +80,7 @@ function analyzeDeadweightFunctions(ast, relativePath) {
     const exports = new Map();
     const calls = new Set();
 
+    try {
     babelTraverse(ast, {
         FunctionDeclaration(path) {
             const node = path.node;
@@ -120,6 +121,9 @@ function analyzeDeadweightFunctions(ast, relativePath) {
             }
         }
     });
+    } catch {
+        return [];
+    }
 
     const findings = [];
     for (const [name, info] of exports) {
@@ -142,6 +146,7 @@ function analyzeRedundantTryCatch(ast, relativePath) {
     let tryCatchCount = 0;
     let functionCount = 0;
 
+    try {
     babelTraverse(ast, {
         Function(path) {
             functionCount++;
@@ -154,6 +159,9 @@ function analyzeRedundantTryCatch(ast, relativePath) {
             }
         }
     });
+    } catch {
+        return [];
+    }
 
     const findings = [];
     if (functionCount > 0 && tryCatchCount / functionCount > 0.8 && functionCount >= 3) {
@@ -175,6 +183,7 @@ function analyzePromiseChains(ast, relativePath) {
     let identicalCatchCount = 0;
     const catchBodies = [];
 
+    try {
     babelTraverse(ast, {
         MemberExpression(path) {
             const node = path.node;
@@ -202,6 +211,9 @@ function analyzePromiseChains(ast, relativePath) {
             }
         }
     });
+    } catch {
+        return [];
+    }
 
     // Check for identical catch bodies
     if (catchBodies.length >= 3) {

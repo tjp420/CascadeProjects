@@ -136,6 +136,23 @@ body {
     color: var(--text-primary);
     background: var(--surface-hover);
 }
+.top-nav .nav-links button {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.35rem 0.6rem;
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.top-nav .nav-links button:hover {
+    color: var(--text-primary);
+    background: var(--surface-hover);
+}
 .top-nav .github-badge {
     display: inline-flex;
     align-items: center;
@@ -2414,4 +2431,95 @@ div[style*="display:flex;align-items:center;justify-content:space-between"] butt
 .token-save-btn:hover {
     background: var(--primary);
     color: #fff;
+}
+/* Sign-in header */
+.signin-header { text-align: center; margin-bottom: 18px; }
+.signin-icon { font-size: 2rem; display: block; margin-bottom: 8px; }
+.signin-title { margin: 0 0 6px; color: var(--text-main); font-size: 1.25rem; font-weight: 700; }
+
+/* Sign-in subtabs */
+.signin-subtabs { display: flex; gap: 0; margin-bottom: 18px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; padding: 4px; }
+.signin-subtab { flex: 1; padding: 8px 0; border: none; border-radius: 8px; background: transparent; color: var(--text-muted); font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: all 0.2s; font-family: inherit; }
+.signin-subtab.active { background: var(--bg-card); color: var(--text-main); box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+
+/* Sign-in divider */
+.signin-divider { text-align: center; margin: 16px 0; font-size: 0.8rem; color: var(--text-muted); position: relative; }
+.signin-divider span { background: var(--bg-card); padding: 0 12px; position: relative; z-index: 1; }
+.signin-divider::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: var(--border); z-index: 0; }
+
+/* Sign-in note */
+.signin-note { margin: 14px 0 0; font-size: 0.8rem; color: var(--text-muted); text-align: center; }
+
+/* Footer separator */
+.signin-footer-sep { color: var(--text-muted); margin: 0 6px; }
+
+/* Light theme overrides */
+html[data-theme="light"] {
+    --background: #f8fafc;
+    --surface: #ffffff;
+    --surface-elevated: #f1f5f9;
+    --surface-hover: #e2e8f0;
+    --surface-active: #cbd5e1;
+    --primary: #4f46e5;
+    --primary-hover: #4338ca;
+    --primary-subtle: rgba(79, 70, 229, 0.08);
+    --success: #059669;
+    --error: #dc2626;
+    --warning: #d97706;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #64748b;
+    --border: #e2e8f0;
+    --border-subtle: #f1f5f9;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.08), 0 4px 6px rgba(0, 0, 0, 0.06);
+    --bg-main: var(--background);
+    --bg-card: var(--surface);
+    --bg-input: var(--surface-elevated);
+    --accent: var(--primary);
+    --accent-hover: var(--primary-hover);
+    --accent-glow: var(--primary-subtle);
+    --text-main: var(--text-primary);
+    --border-focus: var(--primary);
+}
+html[data-theme="light"] .cert-preview {
+    background: linear-gradient(145deg, #f1f5f9, #e2e8f0);
+}
+html[data-theme="light"] .issue-item {
+    background: rgba(241, 245, 249, 0.6);
+}
+html[data-theme="light"] .issue-item:hover {
+    background: rgba(226, 232, 240, 0.8);
+}
+html[data-theme="light"] .analyzer-card.locked {
+    background: rgba(226, 232, 240, 0.5);
+}
+html[data-theme="light"] .module-card .module-detail li {
+    border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+}
+html[data-theme="light"] .filter-chip.active {
+    background: #f1f5f9;
+}
+html[data-theme="light"] .terminal-dropzone {
+    background: rgba(241, 245, 249, 0.5);
+}
+html[data-theme="light"] .terminal-palette {
+    background: #f8fafc;
+}
+html[data-theme="light"] .drop-zone::before {
+    background: linear-gradient(135deg, rgba(37,99,235,0.15), rgba(96,165,250,0.08), rgba(37,99,235,0.15));
+}
+html[data-theme="light"] .drop-zone:hover::before,
+html[data-theme="light"] .drop-zone.dragover::before {
+    background: linear-gradient(135deg, rgba(37,99,235,0.25), rgba(96,165,250,0.15), rgba(37,99,235,0.25));
+}
+html[data-theme="light"] .module-card:hover {
+    border-color: rgba(37,99,235,0.25);
+}
+html[data-theme="light"] .analyzer-card:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+html[data-theme="light"] .analyzer-card.selected {
+    background: linear-gradient(145deg, rgba(37, 99, 235, 0.05), transparent);
 }

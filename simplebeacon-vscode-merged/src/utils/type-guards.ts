@@ -1,6 +1,17 @@
 // simplebeacon-ignore memory-leak — type predicate utility functions
 
 /**
+ * Type guard: returns true if the value is neither null nor undefined.
+ * Narrows the type for TypeScript flow analysis.
+ * @template T
+ * @param {T | null | undefined} value
+ * @returns {value is T}
+ */
+export function isDefined<T>(value: T | null | undefined): value is T {
+  return value !== null && value !== undefined;
+}
+
+/**
  * Type guard: value is a string.
  * @param {unknown} value
  * @returns {value is string}
@@ -142,4 +153,16 @@ export function isMap(value: unknown): value is Map<unknown, unknown> {
  */
 export function isSet(value: unknown): value is Set<unknown> {
   return value instanceof Set;
+}
+
+/**
+ * Type guard: value is a plain object (Object.prototype, not null, not array, not date, etc.).
+ * @param {unknown} value
+ * @returns {value is Record<string, unknown>}
+ */
+export function isPlainObject(value: unknown): value is Record<string, unknown> {
+  if (value == null || typeof value !== 'object') return false;
+  if (Array.isArray(value)) return false;
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
 }

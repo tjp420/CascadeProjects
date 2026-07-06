@@ -1,4 +1,4 @@
-import { parseJsonSafe, stringifySafe, isJson } from '../json';
+import { parseJsonSafe, parseResponseJson, stringifySafe, isJson } from '../json';
 
 describe('json utilities', () => {
   describe('parseJsonSafe', () => {
@@ -30,6 +30,44 @@ describe('json utilities', () => {
     });
     test('false for invalid', () => {
       expect(isJson('not json')).toBe(false);
+    });
+  });
+
+  describe('parseResponseJson', () => {
+    test('parses JSON response', async () => {
+      const res = {
+        headers: { get: () => 'application/json' },
+        text: async () => '{"a":1}'
+      } as any as Response;
+      const data = await parseResponseJson(res);
+      expect(data).toEqual({ a: 1 });
+    });
+
+    test('returns fallback for non-JSON content type', async () => {
+      const res = {
+        headers: { get: () => 'text/html' },
+        text: async () => '<html></html>'
+      } as any as Response;
+      const data = await parseResponseJson(res);
+      expect(data).toEqual({});
+    });
+
+    test('returns fallback on JSON parse error', async () => {
+      const res = {
+        headers: { get: () => 'application/json' },
+        text: async () => 'not valid json'
+      } as any as Response;
+      const data = await parseResponseJson(res, 'fallback');
+      expect(data).toBe('fallback');
+    });
+
+    test('returns custom fallback when body empty', async () => {
+      const res = {
+        headers: { get: () => 'application/json' },
+        text: async () => ''
+      } as any as Response;
+      const data = await parseResponseJson(res, { empty: true });
+      expect(data).toEqual({ empty: true });
     });
   });
 });

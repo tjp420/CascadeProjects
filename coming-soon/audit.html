@@ -33,6 +33,20 @@
         <div style="color:var(--text-secondary);font-size:14px;letter-spacing:.05em;">SimpleBeacon</div>
         <style>@keyframes spin{to{transform:rotate(360deg)}}body.loaded #loader{opacity:0;visibility:hidden;pointer-events:none}</style>
     </div>
+    <script>
+    // Redirect hash-based dashboard routes to the actual dashboard SPA
+    (function() {
+      var hash = window.location.hash;
+      if (hash && hash.startsWith('#/')) {
+        var route = hash.slice(2);
+        var dashboardRoutes = ['analyze', 'dashboard', 'audit', 'assessments', 'results', 'remediation', 'security', 'tools', 'platform', 'quality', 'help', 'features', 'trust', 'repository-health', 'settings', 'pricing', 'about', 'signin', 'chatbot', 'upload', 'eu-ai-act', 'profile', 'billing-success', 'billing-cancel'];
+        if (dashboardRoutes.indexOf(route) !== -1) {
+          var port = window.location.port || '54358';
+          window.location.replace('http://' + window.location.hostname + ':' + port + '/dashboard/' + route);
+        }
+      }
+    })();
+    </script>
     <script>window.addEventListener('DOMContentLoaded',function(){document.body.classList.add('loaded')});setTimeout(function(){document.body.classList.add('loaded')},3000)</script>
     <script>
         if (window.self !== window.top) {
@@ -52,8 +66,8 @@
                 <a href="pricing.html">Pricing</a>
                 <a href="/dashboard/#/dashboard" id="vaultLink">Team Dashboard</a>
                 <script>window.addEventListener('DOMContentLoaded', function() { if (window.SbAuth) window.SbAuth.propagateTokenToLinks(); });</script>
-                <button type="button" id="nav-signin-btn" style="display:none;margin-left:8px;padding:4px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text-muted);font-size:0.8rem;cursor:pointer;">Sign in</button>
-                <button type="button" id="nav-signout-btn" onclick="window.SbAuth.signOut()" style="margin-left:8px;padding:4px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text-muted);font-size:0.8rem;cursor:pointer;">Sign out</button>
+                <button type="button" id="nav-signin-btn" style="display:none;margin-left:8px;padding:4px 0;background:transparent;color:var(--text-muted);font-size:0.8rem;cursor:pointer;border:none;border-radius:0;">Sign in</button>
+                <button type="button" id="nav-signout-btn" style="margin-left:8px;padding:4px 0;background:transparent;color:var(--text-muted);font-size:0.8rem;cursor:pointer;border:none;border-radius:0;">Sign out</button>
             </div>
         </nav>
         <header>
@@ -164,6 +178,21 @@
               <p id="tokenError" class="token-error-bar hidden-display" role="alert"></p>
             </div>
 
+            <!-- Sandbox Email Modal -->
+            <div id="sandboxEmailModal" class="modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;z-index:1000;">
+              <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px;width:90%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,0.4);">
+                <h3 style="margin:0 0 6px;font-size:1.1rem;color:var(--text-main);">Try Free Sandbox</h3>
+                <p style="margin:0 0 16px;font-size:0.8rem;color:var(--text-muted);">Enter your email and we'll send you a 14-day sandbox token.</p>
+                <input type="email" id="sandboxEmailInput" placeholder="you@example.com" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:8px;background:var(--bg-input);color:var(--text-main);font-size:0.9rem;margin-bottom:12px;" />
+                <div style="display:flex;gap:10px;">
+                  <button type="button" id="sandboxSendBtn" class="btn btn-primary" style="flex:1;padding:10px;border-radius:8px;font-weight:600;">Send My Token</button>
+                  <button type="button" id="sandboxCancelBtn" class="btn btn-secondary" style="flex:1;padding:10px;border-radius:8px;font-weight:600;">Cancel</button>
+                </div>
+                <p id="sandboxModalError" style="color:var(--error);font-size:0.8rem;margin-top:10px;display:none;"></p>
+                <p id="sandboxModalSuccess" style="color:var(--success);font-size:0.8rem;margin-top:10px;display:none;"></p>
+              </div>
+            </div>
+
             <!-- Token Status & Admin Panel -->
             <div id="tokenStatusCard" style="display:none;margin-top:16px;padding:16px 20px;background:var(--surface);border:1px solid var(--border);border-radius:12px;">
               <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
@@ -256,13 +285,6 @@
               <div id="tokenFileOptions"></div>
               <div id="tokenDropzoneContainer"></div>
               <div id="tokenPathContainer"></div>
-
-              <div class="token-actions-redesign">
-                <button type="button" class="btn btn-primary" id="submitBtn" disabled>
-                  <span>&#128229;</span> Generate Certificate
-                </button>
-                <button class="btn-text" id="resetBtn" type="button" title="Clear uploaded scan">&#10005; Clear</button>
-              </div>
 
               <!-- Token Inspector -->
               <div id="tokenInspector" class="token-inspector" style="display:none;margin-top:16px;">
@@ -448,7 +470,7 @@
                 </div>
                 <div style="padding:20px 24px;background:var(--bg-input);">
                     <div class="form-group" style="margin-bottom:14px;">
-                        <label style="font-size:0.75rem;color:var(--text-muted);margin-bottom:6px;">Scan Profile</label>
+                        <label for="browserScanProfile" style="font-size:0.75rem;color:var(--text-muted);margin-bottom:6px;">Scan Profile</label>
                         <select id="browserScanProfile" style="display:none;">
                             <option value="complete" selected>&#127775; Complete Scan — All engines</option>
                             <option value="gate">&#127775; Gate Scan — Credential + AI heuristics</option>
@@ -878,43 +900,47 @@
     </div>
 
     <!-- Sign-in Modal -->
-    <div class="signin-overlay" id="signinOverlay" style="display:none;">
-        <div class="signin-panel">
-            <button class="signin-close" id="signinCloseBtn" type="button">&times;</button>
-            <h3>Sign In</h3>
-            <p class="signin-sub">Access your SimpleBeacon account.</p>
-            <div class="signin-tabs">
-                <button class="signin-tab active" id="tab-token" type="button">License Token</button>
-                <button class="signin-tab" id="tab-email" type="button">Email & Password</button>
-            </div>
-            <div class="signin-form active" id="form-token">
-                <div class="signin-field">
-                    <label for="signinToken">License Token</label>
-                    <input type="text" id="signinToken" placeholder="Paste your license token..." autocomplete="off">
-                </div>
-                <button class="signin-btn" id="signinSubmitBtn" type="button">Sign In</button>
-                <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);text-align:center;">
-                    <p style="margin:0 0 8px;font-size:0.75rem;color:var(--text-muted);">Want full dashboard access?</p>
-                    <a href="pricing.html" class="btn btn-secondary" style="display:block;text-align:center;text-decoration:none;padding:10px 14px;background:var(--bg-elevated);border:1px solid var(--border);color:var(--text-main);font-weight:600;border-radius:8px;transition:all 0.2s;">Register Token — Purchase License</a>
-                </div>
-            </div>
-            <div class="signin-form" id="form-email">
-                <div class="signin-field">
-                    <label for="signinEmail">Email</label>
-                    <input type="email" id="signinEmail" placeholder="you@company.com" autocomplete="email">
-                </div>
-                <div class="signin-field">
-                    <label for="signinPassword">Password</label>
-                    <input type="password" id="signinPassword" placeholder="Enter your password..." autocomplete="current-password">
-                </div>
-                <button class="signin-btn" id="signinEmailBtn" type="button">Sign In</button>
-            </div>
-            <p class="signin-error" id="signinError"></p>
-            <div class="signin-footer">
-                Don't have a token? <a href="pricing.html">Get one</a>
-            </div>
-        </div>
+<div class="signin-overlay" id="signinOverlay">
+  <div class="signin-panel">
+    <button class="signin-close" id="signinCloseBtn" type="button">&times;</button>
+    <div class="signin-header">
+      <span class="signin-icon" aria-hidden="true">&#128274;</span>
+      <h3 class="signin-title">Sign In</h3>
+      <p class="signin-sub">Access your SimpleBeacon dashboard.</p>
     </div>
+    <div class="signin-subtabs">
+      <button type="button" class="signin-subtab active" data-mode="login" id="subtab-login">Sign In</button>
+      <button type="button" class="signin-subtab" data-mode="register" id="subtab-register">Create Account</button>
+    </div>
+    <form id="signin-email-form" class="signin-form active">
+      <div class="signin-field">
+        <label for="signinEmail">Email / Username</label>
+        <input type="text" id="signinEmail" placeholder="email@example.com or username" autocomplete="email">
+      </div>
+      <div class="signin-field">
+        <label for="signinPassword">Password</label>
+        <input type="password" id="signinPassword" placeholder="Enter your password..." autocomplete="current-password">
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin:-4px 0 8px;">
+        <button type="button" id="forgot-password-btn" style="background:none;border:none;color:var(--accent);font-size:0.78rem;cursor:pointer;padding:0;">Forgot Password?</button>
+      </div>
+      <p class="signin-error" id="signinError"></p>
+      <button class="signin-btn" type="button" id="signinEmailBtn">Sign In</button>
+    </form>
+    <div class="signin-divider"><span>or</span></div>
+    <button type="button" class="signin-btn" id="webauthn-signin-btn" style="background:var(--bg-elevated);color:var(--text-main);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;gap:8px;">
+      <span>&#128274;</span> Sign in with Security Key
+    </button>
+    <p class="signin-note" id="email-mode-note">New here? Switch to <strong>Create Account</strong> to register.</p>
+    <p class="signin-footer">
+      <a href="/demo">View read-only demo</a>
+      <span class="signin-footer-sep">&middot;</span>
+      <a href="/dashboard/about">About &amp; install</a>
+      <span class="signin-footer-sep">&middot;</span>
+      <a href="https://github.com/tjp420/simplebeacon" target="_blank" rel="noopener noreferrer">GitHub</a>
+    </p>
+  </div>
+</div>
 
     <script>
         // v10-stale-guard — always purge cached scan data on fresh page load
@@ -1012,88 +1038,80 @@
             } catch(e) {}
             // Periodic check for auth state changes (storage events don't fire in same tab)
             setInterval(updateAuthNav, 2000);
-            const signinOverlay = document.getElementById('signinOverlay');
-            const signinCloseBtn = document.getElementById('signinCloseBtn');
-            const signinSubmitBtn = document.getElementById('signinSubmitBtn');
-            const signinToken = document.getElementById('signinToken');
-            const signinError = document.getElementById('signinError');
-            const tabToken = document.getElementById('tab-token');
-            const tabEmail = document.getElementById('tab-email');
-            const formToken = document.getElementById('form-token');
-            const formEmail = document.getElementById('form-email');
-            const signinEmailBtn = document.getElementById('signinEmailBtn');
-            const signinEmail = document.getElementById('signinEmail');
-            const signinPassword = document.getElementById('signinPassword');
+                  var emailMode = 'login';
+      var signinOverlay = document.getElementById('signinOverlay');
+      var signinCloseBtn = document.getElementById('signinCloseBtn');
+      var signinEmailBtn = document.getElementById('signinEmailBtn');
+      var signinEmail = document.getElementById('signinEmail');
+      var signinPassword = document.getElementById('signinPassword');
+      var signinError = document.getElementById('signinError');
+      var subtabLogin = document.getElementById('subtab-login');
+      var subtabRegister = document.getElementById('subtab-register');
+      var forgotPasswordBtn = document.getElementById('forgot-password-btn');
+      var webauthnBtn = document.getElementById('webauthn-signin-btn');
+      var emailModeNote = document.getElementById('email-mode-note');
+      var tabToken = document.getElementById('tabToken');
+      var tabEmail = document.getElementById('tabEmail');
 
-            function showTab(name) {
-                if (name === 'token') {
-                    tabToken.classList.add('active'); tabEmail.classList.remove('active');
-                    formToken.classList.add('active'); formEmail.classList.remove('active');
-                    setTimeout(() => signinToken.focus(), 50);
-                } else {
-                    tabEmail.classList.add('active'); tabToken.classList.remove('active');
-                    formEmail.classList.add('active'); formToken.classList.remove('active');
-                    setTimeout(() => signinEmail.focus(), 50);
-                }
-                signinError.style.display = 'none';
-            }
-            function openSigninModal() {
-                if (signinOverlay) { signinOverlay.classList.add('active'); signinToken.focus(); }
-            }
-            function closeSigninModal() {
-                if (signinOverlay) { signinOverlay.classList.remove('active'); signinError.style.display = 'none'; }
-            }
-            function showSuccessToast(msg) {
-                const toast = document.createElement('div');
-                toast.textContent = msg;
-                toast.style.cssText = 'position:fixed;bottom:24px;right:24px;padding:10px 16px;border-radius:8px;background:var(--success);color:#fff;font-size:0.875rem;z-index:9999;transition:opacity 300ms;';
-                document.body.appendChild(toast);
-                setTimeout(function(){ toast.style.opacity='0'; setTimeout(function(){ toast.remove(); }, 300); }, 2000);
-            }
-            function handleSigninSubmit() {
-                const token = signinToken.value.trim();
-                if (!token) {
-                    signinError.textContent = 'Please enter a license token.';
-                    signinError.style.display = 'block'; return;
-                }
-                const payload = decodeJwtPayload(token);
-                const tier = (payload && payload.tier) || (payload && payload.product) || '';
-                const freeTiers = ['community','starter','instant','free','developer','sandbox'];
-                if (freeTiers.includes(tier)) {
-                    signinError.innerHTML = 'Free sandbox tokens are for local testing only. <a href="pricing.html" style="color:var(--accent);">Purchase a license</a> for full dashboard access.';
-                    signinError.style.display = 'block';
-                    return;
-                }
-                localStorage.setItem('simplebeacon_token', token);
-                setCookie('simplebeacon_token', token);
-                setCookie('cascadeAuthToken', token);
-                signinError.style.display = 'none';
-                closeSigninModal();
-                updateAuthNav();
-                showSuccessToast('Signed in successfully');
-                const licenseInput = document.getElementById('licenseToken');
-                if (licenseInput) licenseInput.value = token;
-            }
-            function handleEmailSignin() {
-                const email = signinEmail.value.trim();
-                const password = signinPassword.value;
-                if (!email || !password) {
-                    signinError.textContent = 'Please enter both email and password.';
-                    signinError.style.display = 'block'; return;
-                }
-                signinError.style.display = 'none';
-                closeSigninModal();
-                updateAuthNav();
-                showSuccessToast('Signed in successfully');
-            }
+      function setEmailMode(mode) {
+        emailMode = mode;
+        if (subtabLogin) subtabLogin.classList.toggle('active', mode === 'login');
+        if (subtabRegister) subtabRegister.classList.toggle('active', mode === 'register');
+        if (signinEmailBtn) signinEmailBtn.textContent = mode === 'register' ? 'Create Account' : 'Sign In';
+        if (emailModeNote) emailModeNote.innerHTML = mode === 'login' ? 'New here? Switch to <strong>Create Account</strong> to register.' : 'Already have an account? Switch to <strong>Sign In</strong>.';
+        if (forgotPasswordBtn) forgotPasswordBtn.style.display = mode === 'login' ? 'block' : 'none';
+      }
+      function openSigninModal() {
+        if (signinOverlay) { signinOverlay.classList.add('active'); }
+        if (signinEmail) { setTimeout(function() { signinEmail.focus(); }, 50); }
+      }
+      function closeSigninModal() {
+        if (signinOverlay) { signinOverlay.classList.remove('active'); signinError.style.display = 'none'; }
+      }
+      function showSuccessToast(msg) {
+        var toast = document.createElement('div');
+        toast.textContent = msg;
+        toast.style.cssText = 'position:fixed;bottom:24px;right:24px;padding:10px 16px;border-radius:8px;background:var(--success);color:#fff;font-size:0.875rem;z-index:9999;transition:opacity 300ms;';
+        document.body.appendChild(toast);
+        setTimeout(function(){ toast.style.opacity='0'; setTimeout(function(){ toast.remove(); }, 300); }, 2000);
+      }
+      function handleEmailSignin() {
+        var email = signinEmail.value.trim();
+        var password = signinPassword.value;
+        if (!email || !password) {
+          signinError.textContent = 'Please enter both email and password.';
+          signinError.style.display = 'block'; return;
+        }
+        signinError.style.display = 'none';
+        closeSigninModal();
+        updateAuthNav();
+        showSuccessToast(emailMode === 'register' ? 'Account created successfully' : 'Signed in successfully');
+      }
+      function handleForgotPassword() {
+        var email = signinEmail.value.trim();
+        if (!email) { signinError.textContent = 'Please enter your email first.'; signinError.style.display = 'block'; return; }
+        signinError.style.display = 'none';
+        showSuccessToast('Recovery instructions sent (demo).');
+      }
+      function handleWebAuthn() {
+        if (!window.PublicKeyCredential) {
+          signinError.textContent = 'Security key login is not supported in this browser.';
+          signinError.style.display = 'block'; return;
+        }
+        signinError.style.display = 'none';
+        showSuccessToast('Security key authentication started (demo).');
+      }
 
-            if (signinBtn) signinBtn.addEventListener('click', openSigninModal);
-            if (signinCloseBtn) signinCloseBtn.addEventListener('click', closeSigninModal);
-            if (signinOverlay) signinOverlay.addEventListener('click', function(e) { if (e.target === signinOverlay) closeSigninModal(); });
-            if (signinSubmitBtn) signinSubmitBtn.addEventListener('click', handleSigninSubmit);
-            if (signinToken) signinToken.addEventListener('keydown', function(e) { if (e.key === 'Enter') handleSigninSubmit(); });
-
-            // Certificate Credentials Modal
+      if (signinBtn) signinBtn.addEventListener('click', function() { window.location.href = '/dashboard/signin?returnTo=' + encodeURIComponent(window.location.pathname); });
+      if (signinCloseBtn) signinCloseBtn.addEventListener('click', closeSigninModal);
+      if (signinOverlay) signinOverlay.addEventListener('click', function(e) { if (e.target === signinOverlay) closeSigninModal(); });
+      if (signinEmailBtn) signinEmailBtn.addEventListener('click', handleEmailSignin);
+      if (signinPassword) signinPassword.addEventListener('keydown', function(e) { if (e.key === 'Enter') handleEmailSignin(); });
+      if (subtabLogin) subtabLogin.addEventListener('click', function() { setEmailMode('login'); });
+      if (subtabRegister) subtabRegister.addEventListener('click', function() { setEmailMode('register'); });
+      if (forgotPasswordBtn) forgotPasswordBtn.addEventListener('click', handleForgotPassword);
+      if (webauthnBtn) webauthnBtn.addEventListener('click', handleWebAuthn);
+// Certificate Credentials Modal
             const certCredentialsOverlay = document.getElementById('certCredentialsOverlay');
             const certCredentialsCloseBtn = document.getElementById('certCredentialsCloseBtn');
             const certCredentialsSubmitBtn = document.getElementById('certCredentialsSubmitBtn');
@@ -1141,7 +1159,7 @@
                     localStorage.setItem('sb_cert_token_password', creds.tokenPassword);
                 }
                 closeCertCredentialsModal();
-                if (typeof doGenerateCertificate === 'function') doGenerateCertificate(submitBtn);
+                if (typeof doGenerateCertificate === 'function') doGenerateCertificate(certSubmitBtn);
             });
             if (tabToken) tabToken.addEventListener('click', function() { showTab('token'); });
             if (tabEmail) tabEmail.addEventListener('click', function() { showTab('email'); });
@@ -1232,7 +1250,7 @@
                         }
                     },
                     onStatusChange: function(status) {
-                        console.log('[USB Token]', status.type, status.message);
+                        // USB token status logged silently
                     },
                     onError: function(msg) {
                         if (typeof showToast === 'function') showToast(msg, 'error');
@@ -1355,34 +1373,70 @@
 
                 // ── Try Free Sandbox button ───────────────────────────────────
                 const tryFreeBtn = document.getElementById('tryFreeBtn');
+                const sandboxModal = document.getElementById('sandboxEmailModal');
+                const sandboxEmailInput = document.getElementById('sandboxEmailInput');
+                const sandboxSendBtn = document.getElementById('sandboxSendBtn');
+                const sandboxCancelBtn = document.getElementById('sandboxCancelBtn');
+                const sandboxModalError = document.getElementById('sandboxModalError');
+                const sandboxModalSuccess = document.getElementById('sandboxModalSuccess');
+
+                function openSandboxModal() {
+                    if (sandboxModal) { sandboxModal.style.display = 'flex'; }
+                    if (sandboxEmailInput) { sandboxEmailInput.value = ''; sandboxEmailInput.focus(); }
+                    if (sandboxModalError) { sandboxModalError.style.display = 'none'; }
+                    if (sandboxModalSuccess) { sandboxModalSuccess.style.display = 'none'; }
+                }
+                function closeSandboxModal() {
+                    if (sandboxModal) { sandboxModal.style.display = 'none'; }
+                }
+
                 if (tryFreeBtn) {
-                    tryFreeBtn.addEventListener('click', async () => {
-                        tryFreeBtn.disabled = true;
-                        tryFreeBtn.textContent = 'Generating…';
+                    tryFreeBtn.addEventListener('click', openSandboxModal);
+                }
+                if (sandboxCancelBtn) {
+                    sandboxCancelBtn.addEventListener('click', closeSandboxModal);
+                }
+                if (sandboxModal) {
+                    sandboxModal.addEventListener('click', (e) => { if (e.target === sandboxModal) closeSandboxModal(); });
+                }
+                if (sandboxSendBtn) {
+                    sandboxSendBtn.addEventListener('click', async () => {
+                        const email = (sandboxEmailInput ? sandboxEmailInput.value : '').trim();
+                        if (!email || !email.includes('@')) {
+                            if (sandboxModalError) { sandboxModalError.textContent = 'Please enter a valid email address.'; sandboxModalError.style.display = 'block'; }
+                            if (sandboxModalSuccess) { sandboxModalSuccess.style.display = 'none'; }
+                            return;
+                        }
+                        sandboxSendBtn.disabled = true;
+                        sandboxSendBtn.textContent = 'Sending…';
                         try {
-                            const res = await fetch('/api/free-token', {
+                            const res = await fetch('/api/tokens/sandbox', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ email: 'guest@simplebeacon.ai' })
+                                body: JSON.stringify({ email: email })
                             });
                             const data = await res.json();
                             if (data.success && data.token) {
                                 if (tokenInput) {
                                     tokenInput.value = data.token;
                                     tokenInput.dispatchEvent(new Event('input'));
-                                    // Trigger the Enter-key validation flow
                                     const enterEvent = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true });
                                     tokenInput.dispatchEvent(enterEvent);
                                 }
-                                if (typeof showToast === 'function') showToast(data.message || 'Free sandbox token activated — 7 days', 'success');
+                                if (sandboxModalSuccess) { sandboxModalSuccess.textContent = 'Sandbox token sent to ' + email + '! It\'s also pasted above.'; sandboxModalSuccess.style.display = 'block'; }
+                                if (sandboxModalError) { sandboxModalError.style.display = 'none'; }
+                                setTimeout(closeSandboxModal, 2000);
+                                if (typeof showToast === 'function') showToast(data.message || 'Sandbox token emailed and pasted — 14 days', 'success');
                             } else {
-                                showError(data.error || data.message || 'Failed to generate free token.');
+                                if (sandboxModalError) { sandboxModalError.textContent = data.error || data.message || 'Failed to generate sandbox token.'; sandboxModalError.style.display = 'block'; }
+                                if (sandboxModalSuccess) { sandboxModalSuccess.style.display = 'none'; }
                             }
                         } catch (err) {
-                            showError('Network error. Please try again.');
+                            if (sandboxModalError) { sandboxModalError.textContent = 'Network error. Please try again.'; sandboxModalError.style.display = 'block'; }
+                            if (sandboxModalSuccess) { sandboxModalSuccess.style.display = 'none'; }
                         } finally {
-                            tryFreeBtn.disabled = false;
-                            tryFreeBtn.textContent = 'Try Free Sandbox';
+                            sandboxSendBtn.disabled = false;
+                            sandboxSendBtn.textContent = 'Send My Token';
                         }
                     });
                 }
@@ -1420,14 +1474,20 @@
                                         else msg = JSON.stringify(l.details || {}).slice(0, 80);
                                         return ts + ' [' + type + '] ' + msg;
                                     }).join('\n');
+                                    adminLogViewer.style.color = '';
+                                    adminLogViewer.style.textAlign = '';
                                 } else {
-                                    adminLogViewer.innerHTML = '<div style="color:var(--text-muted);text-align:center;">No logs found</div>';
+                                    adminLogViewer.textContent = 'No logs found';
+                                    adminLogViewer.style.color = 'var(--text-muted)';
+                                    adminLogViewer.style.textAlign = 'center';
                                 }
                             }
                         } catch (err) {
                             if (adminLogViewer) {
                                 adminLogViewer.style.display = 'block';
-                                adminLogViewer.innerHTML = '<div style="color:var(--error);text-align:center;">Failed to load logs: ' + (err.message || '') + '</div>';
+                                adminLogViewer.textContent = 'Failed to load logs: ' + (err.message || '');
+                                adminLogViewer.style.color = 'var(--error)';
+                                adminLogViewer.style.textAlign = 'center';
                             }
                         } finally {
                             adminViewLogsBtn.disabled = false;
@@ -1562,10 +1622,53 @@
                 if (aiNotes) aiNotes.focus();
             });
         }
-        if (analyzeSendBtn && aiPanel) {
+        if (analyzeSendBtn) {
             analyzeSendBtn.addEventListener('click', function() {
-                aiPanel.style.display = 'block';
-                if (aiNotes) aiNotes.focus();
+                var report = window.currentReport || (typeof window.lastScanReport !== 'undefined' ? window.lastScanReport : null);
+                if (!report) { alert('No scan report to send'); return; }
+                var hasVsCodeApi = typeof window !== 'undefined' && typeof window.acquireVsCodeApi === 'function';
+                if (hasVsCodeApi) {
+                    try {
+                        var vscode;
+                        if (window.__vscodeApiCached) {
+                            vscode = window.__vscodeApiCached;
+                        } else {
+                            window.__vscodeApiCached = window.acquireVsCodeApi();
+                            vscode = window.__vscodeApiCached;
+                        }
+                        var allIssues = [];
+                        if (Array.isArray(report.detectedIssues)) allIssues = report.detectedIssues;
+                        else if (Array.isArray(report.allIssues)) allIssues = report.allIssues;
+                        else if (Array.isArray(report.findings)) allIssues = report.findings;
+                        else if (Array.isArray(report.issues)) allIssues = report.issues;
+                        else if (report.summary && Array.isArray(report.summary.issues)) allIssues = report.summary.issues;
+                        var payload = {
+                            reportPath: report.projectPath || report.path || '',
+                            notes: '',
+                            reportType: report.type || 'simplebeacon',
+                            filesScanned: report.repositoryFilesTotal || report.totalFiles || 'N/A',
+                            issues: allIssues
+                        };
+                        vscode.postMessage({
+                            command: 'sendToAI',
+                            data: payload
+                        });
+                        analyzeSendBtn.textContent = 'Sent \u2713';
+                        analyzeSendBtn.style.background = 'var(--success)';
+                        setTimeout(function() {
+                            analyzeSendBtn.textContent = '\uD83E\uDD16 Send to AI Slop Cop';
+                            analyzeSendBtn.style.background = 'linear-gradient(135deg,#6366f1,#8b5cf6)';
+                        }, 2000);
+                    } catch (err) {
+                        console.warn('[AI-Send] Failed:', err);
+                    }
+                    return;
+                }
+                // Fallback: open inline panel when not in VS Code
+                if (aiPanel) {
+                    aiPanel.style.display = 'block';
+                    if (aiNotes) aiNotes.focus();
+                }
             });
         }
         if (aiCancel && aiPanel) {

@@ -55,6 +55,35 @@ function clearCookie(name) {
     localStorage.setItem(USER_KEY, userCookie);
   }
 })();
+function registerSessionWithServer() {
+  try {
+    const token = localStorage.getItem(TOKEN_KEY) || localStorage.getItem('access_token') || localStorage.getItem('token') || localStorage.getItem('authToken') || localStorage.getItem('simplebeacon_token');
+    if (token && token.length > 10) {
+      fetch('/api/auth/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+        credentials: 'include'
+      }).then(function(res) {
+        if (!res.ok) return;
+        return res.json().catch(function() { return {}; });
+      }).then(function(data) {
+        if (data && data.clearSession) {
+          clearSession();
+        }
+      }).catch(() => {});
+    }
+  } catch (e) {}
+}
+registerSessionWithServer();
+setInterval(registerSessionWithServer, 5000);
+// Detect sign-out immediately when the user switches back to the dashboard tab
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) { registerSessionWithServer(); }
+  });
+  window.addEventListener('focus', registerSessionWithServer);
+}
 
 /**
  * Login error message.
@@ -133,6 +162,7 @@ export class AuthService {
   setSession(token, user) {
     localStorage.setItem(TOKEN_KEY, token);
     setCookie(TOKEN_KEY, token);
+    registerSessionWithServer();
     for (const key of LEGACY_TOKEN_KEYS) {
       localStorage.setItem(key, token);
       setCookie(key, token);
@@ -143,8 +173,13 @@ export class AuthService {
     this.user = user;
     try {
       window.dispatchEvent(new CustomEvent('auth-signed-in', { detail: { token, user } }));
-      if (window.parent && window.parent !== window) {
+      const vscode = typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi() : null;
+      if (vscode) {
+        vscode.postMessage({command: 'setAuthState', signedIn: true, tier: this.getTier()});
+        vscode.postMessage({command: 'accountEvent', event: 'login', token: token});
+      } else if (window.parent && window.parent !== window) {
         window.parent.postMessage({command: 'setAuthState', signedIn: true}, '*');
+        window.parent.postMessage({command: 'accountEvent', event: 'login', token: token}, '*');
       }
     } catch (e) {}
     try {
@@ -157,6 +192,9 @@ export class AuthService {
   clearSession() {
     const token = this.getToken();
     if (token) this.unbindToken(token);
+    try {
+      fetch('/api/auth/signout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: token || '' }), credentials: 'include' }).catch(() => {});
+    } catch (e) {}
     localStorage.removeItem(TOKEN_KEY);
     clearCookie(TOKEN_KEY);
     for (const key of LEGACY_TOKEN_KEYS) {
@@ -167,8 +205,16 @@ export class AuthService {
     clearCookie(USER_KEY);
     this.user = null;
     try {
-      if (window.parent && window.parent !== window) {
+      window.dispatchEvent(new CustomEvent('auth-signed-out', { detail: { source: 'clearSession', token: token || '' } }));
+    } catch (e) {}
+    try {
+      const vscode = typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi() : null;
+      if (vscode) {
+        vscode.postMessage({command: 'setAuthState', signedIn: false});
+        vscode.postMessage({command: 'accountEvent', event: 'logout', token: token || ''});
+      } else if (window.parent && window.parent !== window) {
         window.parent.postMessage({command: 'setAuthState', signedIn: false}, '*');
+        window.parent.postMessage({command: 'accountEvent', event: 'logout', token: token || ''}, '*');
       }
     } catch (e) {}
     try {
@@ -178,29 +224,45 @@ export class AuthService {
     } catch (e) {}
   }
 
+  /**
+   * Check if a non-JWT token looks like a valid SimpleBeacon license token.
+   * Valid format: payloadBase64.signatureBase64 (exactly 2 parts, 1 dot).
+   * Rejects arbitrary strings like "abc123" or malformed tokens.
+   */
+  _isValidLicenseFormat(token) {
+    if (!token || typeof token !== 'string') return false;
+    const parts = token.split('.');
+    if (parts.length !== 2) return false;
+    return parts[0].length > 0 && parts[1].length > 0;
+  }
+
   isAuthenticated() {
     const token = this.getToken();
     if (token) {
-      // If token looks like a raw license key (not JWT), accept it as valid
-      // (same logic as validateSession)
-      if (!token.includes('.') || token.split('.').length !== 3) {
+      const parts = token.split('.');
+      if (parts.length === 3) {
+        // JWT: validate expiry
+        const payload = this._decodeJwtPayload(token);
+        if (!payload) {
+          return false;
+        }
+        if (payload.exp && payload.exp * 1000 < Date.now()) {
+          this.clearSession();
+          return false;
+        }
         return true;
       }
-      const payload = this._decodeJwtPayload(token);
-      // Reject expired JWTs but don't clear undecodeable tokens
-      // (they may be free/sandbox tokens that still work for features)
-      if (!payload) {
-        return false;
+      // Non-JWT: must match license token format (payload.signature)
+      if (this._isValidLicenseFormat(token)) {
+        return true;
       }
-      if (payload.exp && payload.exp * 1000 < Date.now()) {
-        this.clearSession();
-        return false;
-      }
-      return true;
+      // Reject arbitrary strings
+      return false;
     }
     // Also accept legacy tokens directly for upload.html → vault cross-port flow
     for (const key of LEGACY_TOKEN_KEYS) {
-      if (localStorage.getItem(key)) return true;
+      const legacy = localStorage.getItem(key);
+      if (legacy && this._isValidLicenseFormat(legacy)) return true;
     }
     return Boolean(this.user?.vaultSession);
   }
@@ -272,8 +334,10 @@ export class AuthService {
     return loginResponseBody;
   }
 
-  async register(email, password, name) {
-    const r = await fetch(apiUrl('/api/auth/register'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password, name }) });
+  async register(email, password, name, username, confirmPassword, licenseToken = '') {
+    const payload = { email, password, name, username, confirmPassword };
+    if (licenseToken) payload.licenseToken = licenseToken;
+    const r = await fetch(apiUrl('/api/auth/register'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     const b = await readJsonResponseBody(r, {});
     if (!r.ok) throw new Error(b?.message || b?.error || 'Registration failed');
     if (!b?.token || !b?.user) throw new Error('Registration response missing token');
@@ -284,12 +348,14 @@ export class AuthService {
   }
 
   async logout() {
-    await withRecoverableFallback('auth logout request', async () => {
-      await fetch(apiUrl('/api/auth/logout'), {
-        method: 'POST',
-        headers: this.getAuthHeaders()
-      });
-    }, null);
+    try {
+      await withRecoverableFallback('auth logout request', async () => {
+        await fetch(apiUrl('/api/auth/logout'), {
+          method: 'POST',
+          headers: this.getAuthHeaders()
+        });
+      }, null);
+    } catch (e) {}
     this.clearSession();
   }
 
@@ -333,7 +399,7 @@ export class AuthService {
     }
     const tier = this.getTokenTier();
     if (!tier) return false;
-    const freeTiers = ['community', 'developer', 'sandbox', 'instant', 'free', ''];
+    const freeTiers = ['guest', 'community', 'developer', 'sandbox', 'instant', 'free', ''];
     return freeTiers.includes(String(tier).toLowerCase());
   }
 
@@ -344,7 +410,11 @@ export class AuthService {
   }
 
   getTierLabel() {
-    return this.isPaidTier() ? 'Pro / Enterprise' : 'Community';
+    const tier = String(this.getTier()).toLowerCase();
+    if (['pro', 'startup'].includes(tier)) return 'Pro';
+    if (['team', 'growth'].includes(tier)) return 'Team';
+    if (['enterprise'].includes(tier)) return 'Enterprise';
+    return 'Community';
   }
 
   isPaidTier() {
@@ -355,7 +425,7 @@ export class AuthService {
     const tier = String(this.getTier()).toLowerCase();
     const freeTiers = ['guest', 'community', 'developer', 'sandbox', 'instant', 'free', ''];
     if (freeTiers.includes(tier)) return false;
-    const paidTiers = ['pro', 'enterprise', 'team', 'business', 'paid', 'premium', 'license', 'auditor', 'compliance', 'admin'];
+    const paidTiers = ['pro', 'team', 'enterprise', 'startup', 'growth', 'business', 'paid', 'premium', 'license', 'auditor', 'compliance', 'admin'];
     return paidTiers.includes(tier) || user?.isAdmin === true;
   }
 
@@ -371,8 +441,36 @@ export class AuthService {
       'basic-format',
       'basic-dependency',
       'basic-security',
-      'basic-quality'
+      'basic-quality',
+      'eu-ai-act'
     ];
+  }
+
+  getScanQuotaInfo() {
+    const user = this.getUser();
+    const tier = String(this.getTier()).toLowerCase();
+    const quotaMap = {
+      developer: Infinity,
+      guest: Infinity,
+      free: Infinity,
+      community: Infinity,
+      sandbox: Infinity,
+      instant: Infinity,
+      pro: 2500,
+      startup: 2500,
+      team: 10000,
+      growth: 10000,
+      enterprise: Infinity
+    };
+    const quota = quotaMap[tier] ?? Infinity;
+    const used = user?.scansThisPeriod ?? 0;
+    return {
+      tier,
+      quota,
+      used,
+      remaining: quota === Infinity ? Infinity : Math.max(0, quota - used),
+      unlimited: quota === Infinity
+    };
   }
 
   canRunRemoteClones() {
@@ -595,21 +693,61 @@ export class AuthService {
     }
   }
 
-  async validateSession({ password } = {}) {
+  async validateSession({ password, strict = false } = {}) {
     const token = this.getToken();
     if (!token) {
       // No active token — try vault rotation
       return this.tryRotateVaultToken();
     }
-    // If token looks like a raw license key (not JWT), accept it as valid
-    // (upload.html sets simplebeacon_token which is not a JWT)
-    if (!token.includes('.') || token.split('.').length !== 3) {
+
+    const parts = token.split('.');
+
+    // Reject obviously malformed tokens (not JWT and not valid license format)
+    if (parts.length !== 2 && parts.length !== 3) {
+      this.clearSession();
+      return false;
+    }
+
+    if (parts.length === 2) {
+      // Raw license key (payloadBase64.signatureBase64)
+      if (!this._isValidLicenseFormat(token)) {
+        this.clearSession();
+        return false;
+      }
+      // Try server-side validation for license tokens
+      try {
+        const res = await fetch(apiUrl('/api/auth/login'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ licenseToken: token })
+        });
+        if (res.ok) {
+          const body = await readJsonResponseBody(res, null);
+          if (body?.success) {
+            this._setTokenSession({ sub: 'license-user', plan: 'licensed', tokenSession: true });
+            this.bindTokenToAccount(token, 'account');
+            return true;
+          }
+        }
+      } catch (e) {
+        // Network error — fall through to offline check only in local dev
+      }
+      // In strict mode (explicit signin), never accept tokens without server validation
+      if (strict) {
+        this.clearSession();
+        return false;
+      }
+      // Offline fallback: only accept properly formatted tokens in local dev
+      if (!isLocalDevHost()) {
+        this.clearSession();
+        return false;
+      }
       this._setTokenSession({ sub: 'license-user', plan: 'pro', tokenSession: true });
-      // Bind raw license token to current account (or anonymous if no user yet)
       this.bindTokenToAccount(token, 'account');
       return true;
     }
-    // Try server-side validation first
+
+    // JWT (3 parts) — try server-side validation first
     const headers = this.getAuthHeaders();
     if (password) {
       headers['X-Token-Password'] = password;
@@ -661,6 +799,165 @@ export class AuthService {
     if (this.getToken()) return this.validateSession();
     if (isLocalDevHost()) return this.probeVaultOperatorSession();
     return false;
+  }
+
+  // ─── Token Password Methods ───
+
+  async checkTokenPassword(token) {
+    try {
+      const res = await fetch(apiUrl('/api/auth/check-token-password'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token })
+      });
+      const data = await readJsonResponseBody(res, {});
+      return data.hasPassword === true;
+    } catch {
+      return false;
+    }
+  }
+
+  async setTokenPassword(token, password) {
+    try {
+      const res = await fetch(apiUrl('/api/auth/set-token-password'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, password })
+      });
+      const data = await readJsonResponseBody(res, {});
+      return data.success === true;
+    } catch {
+      return false;
+    }
+  }
+
+  async loginWithToken(token, password = '') {
+    try {
+      const res = await fetch(apiUrl('/api/auth/login'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, password })
+      });
+      const data = await readJsonResponseBody(res, {});
+      return data;
+    } catch (err) {
+      return { success: false, error: err?.message || 'Network error' };
+    }
+  }
+
+  /**
+   * Attempts to activate a license token for tier benefits on the current account.
+   * Tries a dedicated activation endpoint first, then falls back to login validation.
+   */
+  async activateTokenForTier(token) {
+    try {
+      const res = await fetch(apiUrl('/api/auth/activate-token'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...this.getAuthHeaders() },
+        body: JSON.stringify({ token })
+      });
+      const data = await readJsonResponseBody(res, {});
+      if (data?.success) {
+        if (data?.token && data?.user) {
+          this.setSession(data.token, data.user);
+        }
+        this.bindTokenToAccount(token, 'account');
+        return { success: true, message: data.message || 'Token activated successfully.', tier: data.tier || this.getTierLabel() };
+      }
+      // If endpoint returns non-success but no error, try fallback
+    } catch {
+      // Dedicated endpoint may not exist — fall through to validation approach
+    }
+
+    // Fallback: validate the token via login endpoint and bind it locally
+    try {
+      const data = await this.loginWithToken(token);
+      if (data?.success && data?.token) {
+        this.setSession(data.token, data.user || { email: data.email || 'token-user', tier: data.tier || 'licensed' });
+        this.bindTokenToAccount(token, 'account');
+        return { success: true, message: `Token activated successfully! Tier: ${this.getTierLabel()}.`, tier: this.getTierLabel() };
+      }
+      return { success: false, error: data?.error || 'Token validation failed.' };
+    } catch (err) {
+      return { success: false, error: err?.message || 'Activation failed. Please try again or contact support.' };
+    }
+  }
+
+  // ─── WebAuthn / Security Key Methods ───
+
+  async getWebAuthnChallenge() {
+    // Prefer server challenge for replay protection; fall back to local
+    try {
+      const res = await fetch(apiUrl('/api/webauthn/challenge'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+      });
+      const data = await res.json();
+      if (data.success && data.challenge) {
+        return data.challenge;
+      }
+    } catch {
+      /* server unavailable — fall through to local */
+    }
+    const arr = new Uint8Array(32);
+    if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+      crypto.getRandomValues(arr);
+    } else {
+      for (let i = 0; i < 32; i++) arr[i] = Math.floor(Math.random() * 256);
+    }
+    return btoa(String.fromCharCode(...arr));
+  }
+
+  getWebAuthnCredentials() {
+    try {
+      const raw = localStorage.getItem('sb-webauthn-credentials');
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  _saveWebAuthnCredentials(credentials) {
+    localStorage.setItem('sb-webauthn-credentials', JSON.stringify(credentials));
+  }
+
+  async registerWebAuthnCredential(credentialData, userId) {
+    // Send to server first; fallback to localStorage
+    let serverOk = false;
+    try {
+      const res = await fetch(apiUrl('/api/webauthn/register'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credential: credentialData, userId })
+      });
+      const data = await res.json();
+      serverOk = data && data.success;
+    } catch {
+      /* server unavailable — fall through to local */
+    }
+    // Always mirror to localStorage for client-side list
+    const credentials = this.getWebAuthnCredentials();
+    const existing = credentials.findIndex(c => c.id === credentialData.id);
+    const entry = {
+      id: credentialData.id,
+      userId,
+      registeredAt: new Date().toISOString(),
+      type: credentialData.type || 'public-key'
+    };
+    if (existing >= 0) {
+      credentials[existing] = entry;
+    } else {
+      credentials.push(entry);
+    }
+    this._saveWebAuthnCredentials(credentials);
+    return serverOk || true;
+  }
+
+  removeWebAuthnCredential(credentialId) {
+    const credentials = this.getWebAuthnCredentials().filter(c => c.id !== credentialId);
+    this._saveWebAuthnCredentials(credentials);
+    return true;
   }
 }
 

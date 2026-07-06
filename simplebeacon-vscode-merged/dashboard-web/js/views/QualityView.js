@@ -539,6 +539,7 @@ export class QualityView {
   }
 
   async runAudit() {
+    if (this.auditLoading) return;
     this.auditLoading = true;
     this.refreshAuditButton();
 

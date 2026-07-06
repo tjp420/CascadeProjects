@@ -22,20 +22,14 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
   // Unified pricing source of truth
   pricing: {
     developer: {
-      name: 'Developer',
+      name: 'Free',
       price: 0,
       stripeLink: null,
       testStripeLink: null
     },
     startup: {
-      name: 'Startup',
-      price: 49,
-      stripeLink: null,
-      testStripeLink: null
-    },
-    growth: {
-      name: 'Growth',
-      price: 149,
+      name: 'Pro',
+      price: 9,
       stripeLink: null,
       testStripeLink: null
     },
@@ -53,6 +47,8 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
   euAiActPackLink: 'https://buy.stripe.com/fZu28qesn6fB1ODftceEo06',
 
   apiBase: (typeof location !== 'undefined' && (location.hostname === 'localhost' || location.hostname === '127.0.0.1')) ? '' : 'https://simplebeacon.onrender.com',
+  dashboardUrl: '/dashboard/',
+  dashboardAppUrl: '/dashboard/',
   stagingMode: false,
   paymentsEnabled: true,
   closedSource: false,
@@ -84,7 +80,7 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
       subtitle: 'Unlimited scans, CI integration, exportable reports. Certificate ZIP generated locally.',
       showUpload: true,
       scanCommand: 'npx simplebeacon scan --gate --offline',
-      tokenHelp: 'Paste your Simplebeacon Pro license token.'
+      tokenHelp: 'Paste your Simplebeacon Pro access token.'
     },
     enterprise: {
       label: 'Compliance Suite',
@@ -93,7 +89,7 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
       subtitle: 'EU AI Act documentation, quarterly compliance certificates, analyst support.',
       showUpload: true,
       scanCommand: 'npx simplebeacon scan --complete --gate --offline',
-      tokenHelp: 'Paste your Compliance Suite license token.'
+      tokenHelp: 'Paste your Compliance Suite access token.'
     },
     custom: {
       label: 'Custom Plan',
@@ -102,16 +98,16 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
       subtitle: 'Custom module selection. Scan runs locally in your browser.',
       showUpload: true,
       scanCommand: 'npx simplebeacon scan --gate --offline',
-      tokenHelp: 'Paste your custom plan license token to unlock selected modules.'
+      tokenHelp: 'Paste your custom plan access token to unlock selected modules.'
     },
     universal: {
-      label: 'Operator License',
+      label: 'Operator Access',
       price: '',
       title: 'Upload Your Scan Report',
       subtitle: 'Your scan ran locally on your machine. Upload the report JSON to generate your Operator Vault Certificate.',
       showUpload: true,
       scanCommand: 'npx simplebeacon scan --gate --offline',
-      tokenHelp: 'Paste any SimpleBeacon license token — works with any tier or custom label.'
+      tokenHelp: 'Paste any SimpleBeacon access token — works with any tier or custom label.'
     }
   },
 
@@ -173,33 +169,33 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
 
   // Feature comparison table — pricing.html source of truth
   features: [
-    { name: 'Price', developer: '$0', startup: '<strong>$49/mo</strong>', growth: '<strong>$149/mo</strong>', enterprise: '<strong>Custom</strong>' },
-    { name: 'Scans per month', developer: '<strong>100 local</strong>', startup: '<strong>2,500 pipeline</strong>', growth: '<strong>10,000 pipeline</strong>', enterprise: '<strong>Unlimited</strong>' },
-    { name: 'Files per scan', developer: '50', startup: '<strong>Unlimited</strong>', growth: '<strong>Unlimited</strong>', enterprise: '<strong>Unlimited</strong>' },
-    { name: 'Pipeline scans (CI)', developer: '<span class="cross">&mdash;</span>', startup: '<span class="check">&#10003;</span>', growth: '<span class="check">&#10003;</span>', enterprise: '<span class="check">&#10003;</span>' },
-    { name: 'Developers / repos', developer: '1 dev', startup: '1-10 devs', growth: 'Scaling teams', enterprise: '<strong>5+ seats</strong>' },
-    { name: 'Real-time IDE detection', developer: '<span class="check">&#10003;</span> 24 rules', startup: '<span class="check">&#10003;</span> 38 rules', growth: '<span class="check">&#10003;</span> 38 rules', enterprise: '<span class="check">&#10003;</span> 54 rules' },
-    { name: 'AI Slop Cop IDE rules', developer: '24 real-time rules', startup: '<strong>38 IDE rules</strong>', growth: '<strong>38 IDE rules</strong>', enterprise: '<strong>54 IDE rules</strong>' },
-    { name: 'CLI / Dashboard analyzers', developer: '<span class="check">&#10003;</span> Core', startup: '<span class="check">&#10003;</span> 38 modules', growth: '<span class="check">&#10003;</span> 60+ engines', enterprise: '<span class="check">&#10003;</span> 60+ engines' },
-    { name: 'Placeholder debris detection', developer: '<span class="check">&#10003;</span>', startup: '<span class="check">&#10003;</span>', growth: '<span class="check">&#10003;</span>', enterprise: '<span class="check">&#10003;</span>' },
-    { name: 'Markdown fence detection', developer: '<span class="check">&#10003;</span>', startup: '<span class="check">&#10003;</span>', growth: '<span class="check">&#10003;</span>', enterprise: '<span class="check">&#10003;</span>' },
-    { name: 'Fiction KPI detection', developer: '<span class="cross">&mdash;</span>', startup: '<span class="check">&#10003;</span>', growth: '<span class="check">&#10003;</span>', enterprise: '<span class="check">&#10003;</span>' },
-    { name: 'Token bleed detection', developer: '<span class="cross">&mdash;</span>', startup: '<span class="check">&#10003;</span>', growth: '<span class="check">&#10003;</span>', enterprise: '<span class="check">&#10003;</span>' },
-    { name: 'Custom scanner toggles', developer: '<span class="cross">&mdash;</span>', startup: '<span class="check">&#10003;</span>', growth: '<span class="check">&#10003;</span>', enterprise: '<span class="check">&#10003;</span>' },
-    { name: 'URL allowlist', developer: '<span class="cross">&mdash;</span>', startup: '<span class="cross">&mdash;</span>', growth: '<span class="check">&#10003;</span>', enterprise: '<span class="check">&#10003;</span>' },
-    { name: 'Findings shown', developer: '5 max', startup: '<strong>All</strong>', growth: '<strong>All</strong>', enterprise: '<strong>All</strong>' },
-    { name: 'Quality score', developer: '<span class="cross">&mdash;</span>', startup: '<span class="check">&#10003;</span>', growth: '<span class="check">&#10003;</span>', enterprise: '<span class="check">&#10003;</span>' },
-    { name: 'Actionable JSON summary', developer: '<span class="cross">&mdash;</span>', startup: '<span class="check">&#10003;</span>', growth: '<span class="check">&#10003;</span>', enterprise: '<span class="check">&#10003;</span>' },
-    { name: 'Full JSON exports', developer: '<span class="cross">&mdash;</span>', startup: '<span class="check">&#10003;</span>', growth: '<span class="check">&#10003;</span>', enterprise: '<span class="check">&#10003;</span>' },
-    { name: 'CI gate (GitHub Action)', developer: '<span class="cross">&mdash;</span>', startup: '<span class="check">&#10003;</span>', growth: '<span class="check">&#10003;</span>', enterprise: '<span class="check">&#10003;</span>' },
-    { name: 'Team dashboard + trends', developer: '<span class="cross">&mdash;</span>', startup: '<span class="check">&#10003;</span>', growth: '<span class="check">&#10003;</span>', enterprise: '<span class="check">&#10003;</span>' },
-    { name: 'Slack / email alerts', developer: '<span class="cross">&mdash;</span>', startup: '<span class="check">&#10003;</span>', growth: '<span class="check">&#10003;</span> Slack', enterprise: '<span class="check">&#10003;</span>' },
-    { name: 'EU AI Act documentation', developer: '<span class="cross">&mdash;</span>', startup: '<span class="cross">&mdash;</span>', growth: '<span class="check">&#10003;</span>', enterprise: '<span class="check">&#10003;</span>' },
-    { name: 'Certificate ZIP (PDF + JSON)', developer: '<span class="cross">&mdash;</span>', startup: '<span class="cross">&mdash;</span>', growth: '<span class="check">&#10003;</span>', enterprise: '<span class="check">&#10003;</span>' },
-    { name: 'Analyst support', developer: '<span class="cross">&mdash;</span>', startup: '<span class="cross">&mdash;</span>', growth: '<span class="check">&#10003;</span> Priority', enterprise: '<span class="check">&#10003;</span> Quarterly review' },
-    { name: 'Priority support', developer: '<span class="cross">&mdash;</span>', startup: '<span class="check">&#10003;</span> Email', growth: '<span class="check">&#10003;</span> Slack', enterprise: '<span class="check">&#10003;</span> Dedicated engineer' },
-    { name: 'Self-hosted / air-gapped', developer: '<span class="cross">&mdash;</span>', startup: '<span class="cross">&mdash;</span>', growth: '<span class="cross">&mdash;</span>', enterprise: '<span class="check">&#10003;</span>' },
-    { name: 'Support', developer: 'Community', startup: 'Email', growth: 'Priority + Slack', enterprise: 'Dedicated engineer + SLA' }
+    { name: 'Price', developer: 'Free', startup: '<strong>$9/mo</strong>', enterprise: '<strong>Custom</strong>' },
+    { name: 'Scans per month', developer: '<strong>100 local</strong>', startup: '<strong>Unlimited</strong>', enterprise: '<strong>Unlimited</strong>' },
+    { name: 'Files per scan', developer: '50', startup: '<strong>Unlimited</strong>', enterprise: '<strong>Unlimited</strong>' },
+    { name: 'Pipeline scans (CI)', developer: '<span class="cross">&mdash;</span>', startup: '<span class="check">&#10003;</span>', enterprise: '<span class="check">&#10003;</span>' },
+    { name: 'Developers / repos', developer: '1 dev', startup: '1 dev', enterprise: '<strong>5+ seats</strong>' },
+    { name: 'Real-time IDE detection', developer: '<span class="check">&#10003;</span> 24 rules', startup: '<span class="check">&#10003;</span> 38 rules', enterprise: '<span class="check">&#10003;</span> 52+ rules' },
+    { name: 'AI Slop Cop IDE rules', developer: '24 real-time rules', startup: '<strong>38 IDE rules</strong>', enterprise: '<strong>52+ IDE rules</strong>' },
+    { name: 'CLI / Dashboard analyzers', developer: '<span class="check">&#10003;</span> Core', startup: '<span class="check">&#10003;</span> 38 modules', enterprise: '<span class="check">&#10003;</span> 60+ engines' },
+    { name: 'Placeholder debris detection', developer: '<span class="check">&#10003;</span>', startup: '<span class="check">&#10003;</span>', enterprise: '<span class="check">&#10003;</span>' },
+    { name: 'Markdown fence detection', developer: '<span class="check">&#10003;</span>', startup: '<span class="check">&#10003;</span>', enterprise: '<span class="check">&#10003;</span>' },
+    { name: 'Fiction KPI detection', developer: '<span class="cross">&mdash;</span>', startup: '<span class="check">&#10003;</span>', enterprise: '<span class="check">&#10003;</span>' },
+    { name: 'Token bleed detection', developer: '<span class="cross">&mdash;</span>', startup: '<span class="check">&#10003;</span>', enterprise: '<span class="check">&#10003;</span>' },
+    { name: 'Custom scanner toggles', developer: '<span class="cross">&mdash;</span>', startup: '<span class="check">&#10003;</span>', enterprise: '<span class="check">&#10003;</span>' },
+    { name: 'URL allowlist', developer: '<span class="cross">&mdash;</span>', startup: '<span class="cross">&mdash;</span>', enterprise: '<span class="check">&#10003;</span>' },
+    { name: 'Findings shown', developer: '5 max', startup: '<strong>All</strong>', enterprise: '<strong>All</strong>' },
+    { name: 'Quality score', developer: '<span class="cross">&mdash;</span>', startup: '<span class="check">&#10003;</span>', enterprise: '<span class="check">&#10003;</span>' },
+    { name: 'Actionable JSON summary', developer: '<span class="cross">&mdash;</span>', startup: '<span class="check">&#10003;</span>', enterprise: '<span class="check">&#10003;</span>' },
+    { name: 'Full JSON exports', developer: '<span class="cross">&mdash;</span>', startup: '<span class="check">&#10003;</span>', enterprise: '<span class="check">&#10003;</span>' },
+    { name: 'CI gate (GitHub Action)', developer: '<span class="cross">&mdash;</span>', startup: '<span class="check">&#10003;</span>', enterprise: '<span class="check">&#10003;</span>' },
+    { name: 'Team dashboard + trends', developer: '<span class="cross">&mdash;</span>', startup: '<span class="check">&#10003;</span>', enterprise: '<span class="check">&#10003;</span>' },
+    { name: 'Slack / email alerts', developer: '<span class="cross">&mdash;</span>', startup: '<span class="check">&#10003;</span> Email', enterprise: '<span class="check">&#10003;</span>' },
+    { name: 'EU AI Act documentation', developer: '<span class="cross">&mdash;</span>', startup: '<span class="cross">&mdash;</span>', enterprise: '<span class="check">&#10003;</span>' },
+    { name: 'Certificate ZIP (PDF + JSON)', developer: '<span class="cross">&mdash;</span>', startup: '<span class="cross">&mdash;</span>', enterprise: '<span class="check">&#10003;</span>' },
+    { name: 'Analyst support', developer: '<span class="cross">&mdash;</span>', startup: '<span class="cross">&mdash;</span>', enterprise: '<span class="check">&#10003;</span>' },
+    { name: 'Priority support', developer: '<span class="cross">&mdash;</span>', startup: '<span class="check">&#10003;</span> Email', enterprise: '<span class="check">&#10003;</span> Dedicated engineer' },
+    { name: 'Self-hosted / air-gapped', developer: '<span class="cross">&mdash;</span>', startup: '<span class="cross">&mdash;</span>', enterprise: '<span class="check">&#10003;</span>' },
+    { name: 'Support', developer: 'Community', startup: 'Priority email', enterprise: 'Dedicated engineer + SLA' }
   ],
 
   // FAQ entries — pricing.html source of truth
@@ -209,20 +205,20 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
       a: 'AI Slop Cop is a local-first code scanner that detects AI-generated slop, exposed credentials, and compliance gaps. It runs entirely on your machine — no source code ever leaves your laptop. Install the free VS Code extension for real-time IDE squiggles with 24 rules, or use the CLI for CI gate integration with 60+ analyzer engines.'
     },
     {
-      q: 'What do I get with the Developer (Free) tier?',
-      a: 'The Developer tier is free and includes the VS Code extension + CLI for up to 100 local scans per month. Each scan covers up to 50 files. You get real-time detection of placeholder comments, leaked markdown code fences, and empty stubs with 24 AI residue rules. No account or credit card required. Pipeline/CI scans require a paid tier.'
+      q: 'What do I get with the Free tier?',
+      a: 'The Free tier includes the VS Code extension + CLI for up to 100 local scans per month. Each scan covers up to 50 files. You get real-time detection of placeholder comments, leaked markdown code fences, and empty stubs with 24 AI residue rules. No account or credit card required. Pipeline/CI scans require a paid tier.'
     },
     {
-      q: 'What do I get with the Startup tier?',
-      a: 'Startup ($49/mo) includes up to 2,500 pipeline scans per month with unlimited files per scan. All findings are shown, quality score is visible, and you get full JSON exports with an actionable summary. Includes custom scanner toggles via Configuration-as-Code, GitHub Action CI gate, team dashboard, priority email support, and 38 CLI analyzer modules. 7-day money-back guarantee.'
+      q: 'What do I get with the Pro tier?',
+      a: 'Pro ($19/mo) includes up to 2,500 pipeline scans per month with unlimited files per scan. All findings are shown, quality score is visible, and you get full JSON exports with an actionable summary. Includes custom scanner toggles via Configuration-as-Code, GitHub Action CI gate, team dashboard, priority email support, and 38 CLI analyzer modules. 7-day money-back guarantee.'
     },
     {
-      q: 'What do I get with the Growth tier?',
-      a: 'Growth ($149/mo) includes up to 10,000 pipeline scans per month. Everything in Startup plus URL allowlists (no false positives on internal APIs), EU AI Act compliance rules, advanced JSON export with actionable summary, and priority support with a Slack channel. 7-day money-back guarantee.'
+      q: 'What do I get with the Team tier?',
+      a: 'Team ($49/mo) includes up to 10,000 pipeline scans per month. Everything in Pro plus URL allowlists (no false positives on internal APIs), EU AI Act compliance rules, advanced JSON export with actionable summary, and priority support with a Slack channel. 7-day money-back guarantee.'
     },
     {
       q: 'What do I get with the Enterprise tier?',
-      a: 'Enterprise (custom pricing) includes unlimited scans. Everything in Growth plus 16 additional IDE rules for 54 total, team management (5+ seats), SSO/SAML authentication, custom rule development, quarterly compliance certificates, dedicated support with SLA, and self-hosted / air-gapped deployment options.'
+      a: 'Enterprise (custom pricing) includes unlimited scans. Everything in Team plus 16 additional IDE rules for 54 total, team management (5+ seats), SSO/SAML authentication, custom rule development, quarterly compliance certificates, dedicated support with SLA, and self-hosted / air-gapped deployment options.'
     },
     {
       q: 'Do I need a SaaS subscription?',
@@ -230,14 +226,14 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
     },
     {
       q: 'How does the 14-day free trial work?',
-      a: 'Subscribe to AI Slop Cop Pro for $9/month or $90/year (save 17%). Cancel anytime. 7-day money-back guarantee.'
+      a: 'Subscribe to Pro ($19/mo) or Team ($49/mo). Annual billing saves 17%. Cancel anytime. 7-day money-back guarantee.'
     },
     {
       q: 'Is this EU AI Act compliant?',
       a: 'The AI Slop Cop Enterprise tier produces Annex III high-risk AI system documentation, Article 14 Human Oversight evaluation, and Article 50 transparency checks. This is a technical attestation, not a legal certification. For full legal conformity, engage a qualified EU legal firm.'
     },
     {
-      q: 'How long are license tokens valid?',
+      q: 'How long are access tokens valid?',
       a: 'AI Slop Cop Pro and Enterprise tokens are valid for 1 year and auto-renew with your subscription. Free tokens have no expiry. If your subscription lapses, the CLI reverts to free-tier limits.'
     },
     {

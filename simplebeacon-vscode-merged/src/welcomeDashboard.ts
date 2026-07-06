@@ -9,7 +9,9 @@ import { getDataServerPort } from './dataServer';
 import { ScanProfile } from './analyzers/workspaceAnalyzer';
 import { AuthManager } from './auth/authManager';
 import { buildDashboardHtml } from './welcomeDashboardHtml';
-import { showDashboardInSidebar, openSidebarInBrowserStatic } from './sidebarBridge';
+import { showDashboardInSidebar, openSidebarInBrowserStatic, isSidebarReady } from './sidebarBridge';
+import { postSidebarMessage } from './sidebarMessenger';
+import { ModernSidebarProvider } from './modernSidebarProvider';
 import { showQuietMessage, getSbConfig } from './utils';
 
 const DEFAULT_API_PROTOCOL = 'http://';
@@ -34,6 +36,9 @@ function getVersionFromExtUri(extUri: vscode.Uri): string {
  */
 export class WelcomeDashboard {
   private static currentPanel: WelcomeDashboard | undefined;
+  private static _programmaticDispose = false;
+  private static _lastPane = 'dashboard';
+  private static _lastAutoReopenTime = 0;
   private panel: vscode.WebviewPanel;
   private extUri: vscode.Uri;
   private version: string;
@@ -42,23 +47,28 @@ export class WelcomeDashboard {
   static createOrShow(extUri: vscode.Uri, force = false) {
     const displayMode = getSbConfig().get<string>('displayMode', 'sidebar');
     if (!force && displayMode === 'sidebar') {
-      vscode.commands.executeCommand('simplebeacon-modern.focus');
-      // Trigger dashboard in sidebar instead of returning null
+      Promise.resolve(vscode.commands.executeCommand('simplebeacon-modern.focus')).catch(() => {});
       showDashboardInSidebar();
-      return null;
+      if (isSidebarReady()) {
+        return null;
+      }
+      // Sidebar not ready — fall back to panel mode
     }
     const col = vscode.window.activeTextEditor?.viewColumn;
     if (WelcomeDashboard.currentPanel) {
       try {
         WelcomeDashboard.currentPanel.panel.reveal();
-        WelcomeDashboard.currentPanel.isReady = false;
-        WelcomeDashboard.currentPanel.messageQueue.length = 0;
-        WelcomeDashboard.currentPanel.panel.webview.html = WelcomeDashboard.currentPanel.buildHtml();
+        // Do NOT rebuild HTML or clear queue on reveal — with retainContextWhenHidden
+        // the webview stays alive and rebuilding causes unnecessary reloads that lose
+        // queued messages (e.g. showLoginModal from the Sign In button).
         return WelcomeDashboard.currentPanel;
       } catch {
         WelcomeDashboard.currentPanel = undefined;
       }
     }
+    const workspace = vscode.workspace.workspaceFolders?.[0];
+    const localRoots: vscode.Uri[] = [vscode.Uri.joinPath(extUri, 'media')];
+    if (workspace) { localRoots.push(vscode.Uri.joinPath(workspace.uri, '.simplebeacon')); }
     const panel = vscode.window.createWebviewPanel(
       'simplebeaconWelcomeV2',
       'SimpleBeacon',
@@ -66,7 +76,7 @@ export class WelcomeDashboard {
       {
         enableScripts: true,
         retainContextWhenHidden: true,
-        localResourceRoots: [vscode.Uri.joinPath(extUri, 'media')]
+        localResourceRoots: localRoots
       }
     );
     WelcomeDashboard.currentPanel = new WelcomeDashboard(panel, extUri);
@@ -74,9 +84,19 @@ export class WelcomeDashboard {
     return WelcomeDashboard.currentPanel;
   }
 
+  static reveal() {
+    if (WelcomeDashboard.currentPanel) {
+      WelcomeDashboard.currentPanel.panel.reveal();
+      return true;
+    }
+    return false;
+  }
+
   static dispose() {
     if (WelcomeDashboard.currentPanel) {
+      WelcomeDashboard._programmaticDispose = true;
       WelcomeDashboard.currentPanel.panel.dispose();
+      WelcomeDashboard._programmaticDispose = false;
       WelcomeDashboard.currentPanel = undefined;
     }
   }
@@ -123,37 +143,43 @@ export class WelcomeDashboard {
   static showPaneIfOpen(route: string) {
     const panel = WelcomeDashboard.currentPanel;
     if (!panel) return;
-    const r = (route || '').replace(/^#\//, '').replace(/^\/+/, '').replace(/-/g, '').toLowerCase();
+    let r = (route || '').replace(/^#\//, '').replace(/^\/+/, '').replace(/-/g, '').toLowerCase();
+    r = r.split('/').filter(Boolean).pop() || 'dashboard';
     switch (r) {
       case 'dashboard': panel.showDashboardPane(); break;
       case 'analyze': panel.showAnalyzePane(); break;
-      case 'report':
-      case 'results': panel.showReportPane(); break;
-      case 'certificate': panel.showCertificatePane(); break;
-      case 'codemap': panel.showCodeMapPane(); break;
-      case 'roadmap':
-      case 'remediation': panel.showRoadmapPane(); break;
-      case 'aicontext': panel.showAiContextPane(); break;
-      case 'upload': panel.showUploadPane(); break;
-      case 'audit': panel.showAuditPane(); break;
+      case 'results':
+      case 'report': panel.showReportPane(); break;
       case 'security': panel.showSecurityPane(); break;
+      case 'settings': panel.showSettingsPane(); break;
+      case 'audit': panel.showAuditPane(); break;
       case 'trust': panel.showTrustPane(); break;
       case 'quality': panel.showQualityPane(); break;
       case 'assessments': panel.showAssessmentsPane(); break;
       case 'platform': panel.showPlatformPane(); break;
       case 'profile': panel.showProfilePane(); break;
       case 'compliance': panel.showCompliancePane(); break;
-      case 'repohealth':
       case 'repositoryhealth': panel.showRepoHealthPane(); break;
       case 'analytics': panel.showAnalyticsPane(); break;
       case 'team': panel.showTeamPane(); break;
       case 'scan': panel.showScanPane(); break;
-      case 'settings': panel.showSettingsPane(); break;
+      case 'certificate': panel.showCertificatePane(); break;
+      case 'codemap': panel.showCodeMapPane(); break;
+      case 'roadmap':
+      case 'remediation': panel.showRoadmapPane(); break;
+      case 'aicontext': panel.showAiContextPane(); break;
+      case 'upload': panel.showUploadPane(); break;
+      case 'signin': panel.showSigninPane(); break;
+      case 'tools': panel.showDashboardPane(); break;
+      case 'help': panel.showDashboardPane(); break;
+      case 'chatbot': panel.showDashboardPane(); break;
+      case 'about': panel.showDashboardPane(); break;
       default: panel.showDashboardPane(); break;
     }
   }
 
   public showSettingsPane(data?: { severity?: any; qualityScore?: string; issues?: string; gate?: string }) {
+    WelcomeDashboard._lastPane = 'settings';
     this.queueOrPostMessage({ command: 'showSettingsPane' });
     this.updateSettingsPane(data);
   }
@@ -182,13 +208,20 @@ export class WelcomeDashboard {
   }
 
   public showDashboardPane() {
+    WelcomeDashboard._lastPane = 'dashboard';
     this.queueOrPostMessage({ command: 'showDashboardPane' });
     if (WelcomeDashboard._lastDashboardData) {
       this.queueOrPostMessage({ command: 'updateDashboard', ...WelcomeDashboard._lastDashboardData });
     }
   }
 
+  public showSigninPane() {
+    WelcomeDashboard._lastPane = 'signin';
+    vscode.commands.executeCommand('simplebeacon.signIn');
+  }
+
   public showAnalyzePane() {
+    WelcomeDashboard._lastPane = 'analyze';
     this.queueOrPostMessage({ command: 'showAnalyzePane' });
     if (WelcomeDashboard._lastAnalyzeData) {
       this.queueOrPostMessage({ command: 'updateAnalyzePane', ...WelcomeDashboard._lastAnalyzeData });
@@ -196,6 +229,7 @@ export class WelcomeDashboard {
   }
 
   public showReportPane() {
+    WelcomeDashboard._lastPane = 'report';
     this.queueOrPostMessage({ command: 'showReportPane' });
     if (WelcomeDashboard._lastReportData) {
       this.queueOrPostMessage({ command: 'updateReportPane', ...WelcomeDashboard._lastReportData });
@@ -203,10 +237,12 @@ export class WelcomeDashboard {
   }
 
   public showCertificatePane() {
+    WelcomeDashboard._lastPane = 'certificate';
     this.queueOrPostMessage({ command: 'showCertificatePane' });
   }
 
   public showCodeMapPane() {
+    WelcomeDashboard._lastPane = 'codemap';
     this.queueOrPostMessage({ command: 'showCodeMapPane' });
     if (WelcomeDashboard._lastCodeMapData) {
       this.queueOrPostMessage({ command: 'updateCodeMapPane', ...WelcomeDashboard._lastCodeMapData });
@@ -240,8 +276,23 @@ export class WelcomeDashboard {
               leafModules: raw.leafModules || [],
               mostConnected: raw.mostConnected || []
             };
-            WelcomeDashboard._lastCodeMapData = data;
-            this.queueOrPostMessage({ command: 'updateCodeMapPane', ...data });
+            let codeMapUri: string | undefined;
+            const mapHtmlPath = path.join(workspace.uri.fsPath, '.simplebeacon', 'codemap.html');
+            if (fs.existsSync(mapHtmlPath)) {
+              const sbUri = vscode.Uri.joinPath(workspace.uri, '.simplebeacon');
+              const currentRoots = this.panel.webview.options.localResourceRoots || [];
+              const alreadyAllowed = currentRoots.some(r => r.fsPath === sbUri.fsPath);
+              if (!alreadyAllowed) {
+                this.panel.webview.options = {
+                  ...this.panel.webview.options,
+                  localResourceRoots: [...currentRoots, sbUri]
+                };
+              }
+              codeMapUri = this.panel.webview.asWebviewUri(vscode.Uri.file(mapHtmlPath)).toString();
+            }
+            const dataWithUri = { ...data, codeMapUri };
+            WelcomeDashboard._lastCodeMapData = dataWithUri;
+            this.queueOrPostMessage({ command: 'updateCodeMapPane', ...dataWithUri });
           }
         } catch (e) {
           // Ignore missing/stale codemap.json
@@ -251,6 +302,7 @@ export class WelcomeDashboard {
   }
 
   public showRoadmapPane() {
+    WelcomeDashboard._lastPane = 'roadmap';
     this.queueOrPostMessage({ command: 'showRoadmapPane' });
     if (WelcomeDashboard._lastRoadmapData) {
       this.queueOrPostMessage({ command: 'updateRoadmapPane', ...WelcomeDashboard._lastRoadmapData });
@@ -258,18 +310,22 @@ export class WelcomeDashboard {
   }
 
   public showAiContextPane() {
+    WelcomeDashboard._lastPane = 'aicontext';
     this.queueOrPostMessage({ command: 'showAiContextPane' });
   }
 
   public showUploadPane() {
+    WelcomeDashboard._lastPane = 'upload';
     this.queueOrPostMessage({ command: 'showUploadPane' });
   }
 
   public showAuditPane() {
+    WelcomeDashboard._lastPane = 'audit';
     this.queueOrPostMessage({ command: 'showAuditPane' });
   }
 
   public showSecurityPane() {
+    WelcomeDashboard._lastPane = 'security';
     this.queueOrPostMessage({ command: 'showSecurityPane' });
     if (WelcomeDashboard._lastSecurityData) {
       this.queueOrPostMessage({ command: 'updateSecurityPane', ...WelcomeDashboard._lastSecurityData });
@@ -277,6 +333,7 @@ export class WelcomeDashboard {
   }
 
   public showTrustPane() {
+    WelcomeDashboard._lastPane = 'trust';
     this.queueOrPostMessage({ command: 'showTrustPane' });
     if (WelcomeDashboard._lastTrustData) {
       this.queueOrPostMessage({ command: 'updateTrustPane', ...WelcomeDashboard._lastTrustData });
@@ -284,6 +341,7 @@ export class WelcomeDashboard {
   }
 
   public showQualityPane() {
+    WelcomeDashboard._lastPane = 'quality';
     this.queueOrPostMessage({ command: 'showQualityPane' });
     if (WelcomeDashboard._lastQualityData) {
       this.queueOrPostMessage({ command: 'updateQualityPane', ...WelcomeDashboard._lastQualityData });
@@ -291,10 +349,12 @@ export class WelcomeDashboard {
   }
 
   public showAssessmentsPane() {
+    WelcomeDashboard._lastPane = 'assessments';
     this.queueOrPostMessage({ command: 'showAssessmentsPane' });
   }
 
   public showPlatformPane() {
+    WelcomeDashboard._lastPane = 'platform';
     this.queueOrPostMessage({ command: 'showPlatformPane' });
     const workspace = vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath || 'No workspace';
     this.queueOrPostMessage({
@@ -312,6 +372,7 @@ export class WelcomeDashboard {
   }
 
   public showProfilePane() {
+    WelcomeDashboard._lastPane = 'profile';
     const config = getSbConfig();
     this.queueOrPostMessage({ command: 'showProfilePane' });
     this.queueOrPostMessage({
@@ -324,6 +385,7 @@ export class WelcomeDashboard {
   }
 
   public showCompliancePane() {
+    WelcomeDashboard._lastPane = 'compliance';
     this.queueOrPostMessage({ command: 'showCompliancePane' });
     if (WelcomeDashboard._lastComplianceData) {
       this.queueOrPostMessage({ command: 'updateCompliancePane', ...WelcomeDashboard._lastComplianceData });
@@ -331,6 +393,7 @@ export class WelcomeDashboard {
   }
 
   public showRepoHealthPane() {
+    WelcomeDashboard._lastPane = 'repohealth';
     this.queueOrPostMessage({ command: 'showRepoHealthPane' });
     if (WelcomeDashboard._lastRepoHealthData) {
       this.queueOrPostMessage({ command: 'updateRepoHealthPane', ...WelcomeDashboard._lastRepoHealthData });
@@ -338,6 +401,7 @@ export class WelcomeDashboard {
   }
 
   public showAnalyticsPane() {
+    WelcomeDashboard._lastPane = 'analytics';
     this.queueOrPostMessage({ command: 'showAnalyticsPane' });
     if (WelcomeDashboard._lastAnalyticsData) {
       this.queueOrPostMessage({ command: 'updateAnalyticsPane', ...WelcomeDashboard._lastAnalyticsData });
@@ -345,6 +409,7 @@ export class WelcomeDashboard {
   }
 
   public showTeamPane() {
+    WelcomeDashboard._lastPane = 'team';
     this.queueOrPostMessage({ command: 'showTeamPane' });
     if (WelcomeDashboard._lastTeamData) {
       this.queueOrPostMessage({ command: 'updateTeamPane', ...WelcomeDashboard._lastTeamData });
@@ -352,6 +417,7 @@ export class WelcomeDashboard {
   }
 
   public showScanPane() {
+    WelcomeDashboard._lastPane = 'scan';
     this.queueOrPostMessage({ command: 'showScanPane' });
     if (WelcomeDashboard._lastScanData) {
       this.queueOrPostMessage({ command: 'updateScanPane', ...WelcomeDashboard._lastScanData });
@@ -390,6 +456,15 @@ export class WelcomeDashboard {
     if (workspace) {
       const mapHtmlPath = path.join(workspace.uri.fsPath, '.simplebeacon', 'codemap.html');
       if (fs.existsSync(mapHtmlPath)) {
+        const sbUri = vscode.Uri.joinPath(workspace.uri, '.simplebeacon');
+        const currentRoots = this.panel.webview.options.localResourceRoots || [];
+        const alreadyAllowed = currentRoots.some(r => r.fsPath === sbUri.fsPath);
+        if (!alreadyAllowed) {
+          this.panel.webview.options = {
+            ...this.panel.webview.options,
+            localResourceRoots: [...currentRoots, sbUri]
+          };
+        }
         codeMapUri = this.panel.webview.asWebviewUri(vscode.Uri.file(mapHtmlPath)).toString();
       }
     }
@@ -398,6 +473,8 @@ export class WelcomeDashboard {
   }
 
   static updateCodeMapPaneIfOpen(data: { status?: string; files?: string; languages?: string; modules?: string; arch?: string; graph?: { nodes: any[]; edges: any[] }; tree?: any[]; list?: any[]; severity?: any; repoFiles?: string; totalLines?: string; lastScan?: string; cycles?: any[]; entryPoints?: string[]; leafModules?: string[]; mostConnected?: { name: string; count: number }[] }) {
+    // Always cache the data so showCodeMapPane can display it even if panel was closed during generation
+    WelcomeDashboard._lastCodeMapData = { ...WelcomeDashboard._lastCodeMapData, ...data };
     if (WelcomeDashboard.currentPanel) {
       WelcomeDashboard.currentPanel.updateCodeMapPane(data);
     }
@@ -629,6 +706,10 @@ export class WelcomeDashboard {
           const dataPort = getDataServerPort();
           const dashboardUrl = `http://127.0.0.1:${dataPort}/dashboard/dashboard`;
           vscode.commands.executeCommand('simpleBrowser.show', dashboardUrl);
+          vscode.commands.executeCommand('simplebeacon-modern.focus');
+          setTimeout(() => {
+            postSidebarMessage({ command: 'switchSidebarTab', tab: 'team' });
+          }, 300);
           break;
         }
         case 'openTeamDashboardInIDE':
@@ -636,6 +717,16 @@ export class WelcomeDashboard {
           break;
         case 'openPreviewInBrowser': {
           openSidebarInBrowserStatic('/');
+          break;
+        }
+        case 'openExternal': {
+          const extUrl = msg.url || '';
+          if (extUrl) {
+            const resolved = extUrl.startsWith('http')
+              ? extUrl
+              : `http://127.0.0.1:${getDataServerPort()}${extUrl.startsWith('/') ? extUrl : '/' + extUrl}`;
+            Promise.resolve(vscode.env.openExternal(vscode.Uri.parse(resolved))).catch(() => {});
+          }
           break;
         }
         case 'openAnalyze':
@@ -707,6 +798,10 @@ export class WelcomeDashboard {
           break;
         case 'openTeam':
           this.showTeamPane();
+          vscode.commands.executeCommand('simplebeacon-modern.focus');
+          setTimeout(() => {
+            postSidebarMessage({ command: 'switchSidebarTab', tab: 'team' });
+          }, 300);
           break;
         case 'inviteTeamMember':
           showQuietMessage('Invite sent to ' + (msg.email || '') + ' as ' + (msg.role || 'viewer'));
@@ -839,7 +934,7 @@ export class WelcomeDashboard {
           WelcomeDashboard.createOrShow(this.extUri, true)?.showRoadmapPane();
           break;
         case 'exportRoadmap':
-          showQuietMessage('Roadmap export is handled in the dashboard.');
+          vscode.commands.executeCommand('simplebeacon.exportRoadmap');
           break;
         case 'openFullAiContext':
           vscode.commands.executeCommand('simplebeacon.openAiContext');
@@ -979,7 +1074,7 @@ export class WelcomeDashboard {
           vscode.commands.executeCommand('simplebeacon.exportReport');
           break;
         case 'openPlatformDocs':
-          vscode.env.openExternal(vscode.Uri.parse('https://simplebeacon.io/docs'));
+          vscode.env.openExternal(vscode.Uri.parse('https://simplebeacon.ai/docs'));
           break;
         case 'openFullProfile':
           this.showReportPane();
@@ -988,7 +1083,7 @@ export class WelcomeDashboard {
           this.showReportPane();
           break;
         case 'runComplianceCheck':
-          showQuietMessage('Running compliance check...');
+          vscode.commands.executeCommand('simplebeacon.enhancedAnalysis', { profile: 'compliance' });
           break;
         case 'exportComplianceReport':
           vscode.commands.executeCommand('simplebeacon.exportReport');
@@ -1089,6 +1184,24 @@ export class WelcomeDashboard {
           }
           break;
         }
+        case 'signIn':
+          // Dashboard webview handles its own sign-in UI (sign-in modal overlay).
+          // Do NOT call simplebeacon.signIn here — that shows the IDE input box prompt.
+          break;
+        case 'setAuthState':
+          // Store token in AuthManager so refreshAuthState can verify and forward it
+          if (msg.token && msg.signedIn) {
+            try { await this.authManager.setToken(String(msg.token)); } catch {}
+          }
+          // Forward auth state from dashboard to sidebar
+          ModernSidebarProvider.setSidebarAuthState(msg.signedIn === true, msg.tier || '', msg.token ? String(msg.token) : undefined);
+          break;
+        case 'storeActiveLicenseToken':
+          if (msg.token) {
+            this.authManager.setToken(String(msg.token));
+            ModernSidebarProvider.setSidebarAuthState(true);
+          }
+          break;
       }
     });
     this.panel.webview.html = this.buildHtml();
@@ -1096,10 +1209,12 @@ export class WelcomeDashboard {
 
   public buildHtml(): string {
     const nonce = crypto.randomBytes(16).toString('hex');
+    const config = getSbConfig();
     return buildDashboardHtml({
       cspSource: this.panel.webview.cspSource,
       version: this.version,
-      nonce
+      nonce,
+      showWelcome: config.get('showWelcomeOnLoad', true)
     });
   }
 
@@ -1112,7 +1227,8 @@ export class WelcomeDashboard {
       html = buildDashboardHtml({
         cspSource: "default-src 'self'",
         version: 'browser',
-        nonce
+        nonce,
+        showWelcome: true
       });
     }
     return html;

@@ -10,8 +10,15 @@
 
 const express = require('express');
 const Stripe = require('stripe');
-const { spawn } = require('child_process');
-const path = require('path');
+const rateLimit = require('express-rate-limit');
+
+const billingRateLimit = rateLimit({
+    windowMs: 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: (req, res) => res.status(429).json({ error: 'too_many_requests', message: 'Too many requests, please try again later.' })
+});
 const {
   isMonetizationEnabled,
   upsertSubscription,
@@ -21,22 +28,15 @@ const {
   syncSubscriptionToDb,
   publicSubscriptionStatus,
   consumeScan,
-  normalizeEmail
+  normalizeEmail,
+  readStore
 } = require('../../server/lib/simplebeacon-subscription-store.cjs');
 const { runSimplebeaconScan } = require('./simplebeacon-api.cjs');
 const { sendEmail } = require('../../server/lib/email-service.cjs');
 const { insertLicenseToken } = require('../../server/lib/token-db.cjs');
-const { generateLicenseToken, verifyLicenseToken } = require('../../../packages/simplebeacon-cli/src/lib/license-token.js');
-const {
-  buildCertificateModel,
-  renderCertificateHtml
-} = require('../../server/lib/code-hygiene-certificate.cjs');
-const { buildCompleteAuditReport } = require('../../server/lib/complete-scan-audit-report.cjs');
-const { buildAnalyzeExportZipStream } = require('../../server/lib/analyze-export-bundle.cjs');
-const { loadAgencyBranding } = require('../../server/lib/agency-branding-store.cjs');
+const { generateLicenseToken } = require('../../server/lib/simplebeacon-proxy.cjs');
 const { getTierConfigByPriceId, getTierConfigByProduct } = require('../../server/config/stripe.cjs');
-const archiver = require('archiver');
-const { PassThrough } = require('stream');
+const { buildReportBundle } = require('./billing/report-bundle-builder.cjs');
 
 // ── Extracted billing sub-modules ──
 const {
@@ -60,7 +60,8 @@ const {
 
 const {
   TIER_EMAIL_CONFIG,
-  buildTierEmail
+  buildTierEmail,
+  buildResendEmail
 } = require('./billing/email-templates.cjs');
 
 const {
@@ -72,7 +73,10 @@ const {
   isValidEmail,
   isValidLicenseTier,
   VALID_LICENSE_TIERS,
-  checkoutModeForProduct
+  checkoutModeForProduct,
+  PRODUCT_TIER_MAP,
+  PRODUCT_FEATURES_MAP,
+  PRODUCT_EXPIRY_MINUTES_MAP
 } = require('./billing/license-utils.cjs');
 
 const { validateProjectToken } = require('./billing/validate-project-token.cjs');
@@ -81,9 +85,9 @@ const { validateProjectToken } = require('./billing/validate-project-token.cjs')
 
 
 /**
- * Setup simplebeacon billing webhook.
- * @param {any} app
- * @returns {any}
+ * Setup Simplebeacon billing webhook.
+ * @param {import('express').Application} app
+ * @returns {void}
  */
 function setupSimplebeaconBillingWebhook(app) {
   app.post(
@@ -95,6 +99,12 @@ function setupSimplebeaconBillingWebhook(app) {
 
       if (!stripe || !webhookSecret) {
         return res.status(503).json({ error: 'Webhook not configured' });
+      }
+
+      // Reject oversized webhook payloads ( Stripe events are typically < 1 MB )
+      const MAX_WEBHOOK_BYTES = 2 * 1024 * 1024;
+      if (Buffer.byteLength(req.body, 'utf8') > MAX_WEBHOOK_BYTES) {
+        return res.status(413).json({ error: 'Webhook payload too large' });
       }
 
       let event;
@@ -138,30 +148,11 @@ function setupSimplebeaconBillingWebhook(app) {
             const isPaymentMode = session.mode === 'payment';
             const isOneTimeProduct = ['executive_clearance', 'instant_report', 'eu_ai_act_sprint', 'custom_plan'].includes(product);
             if (isOneTimeProduct || isPaymentMode) {
-              const tierMap = {
-                instant_report: 'instant',
-                executive_clearance: 'executive',
-                eu_ai_act_sprint: 'euai',
-                custom_plan: 'custom'
-              };
-              const licenseTier = tierMap[product] || 'executive';
-              const featuresMap = {
-                instant_report: ['instant-report'],
-                executive_clearance: ['pdf-generation', 'certificate'],
-                eu_ai_act_sprint: ['eu-ai-act', 'pdf-generation', 'certificate'],
-                custom_plan: ['custom-plan', 'pdf-generation', 'certificate']
-              };
-              // Tier-based expiry: instant=7 days, executive=90 days, euai=30 days, custom=30 days
-              const expiryMap = {
-                instant_report: 7 * 24 * 60,
-                executive_clearance: 90 * 24 * 60,
-                eu_ai_act_sprint: 30 * 24 * 60,
-                custom_plan: 30 * 24 * 60
-              };
-              const expiresInMinutes = expiryMap[product] || 60;
+              const licenseTier = PRODUCT_TIER_MAP[product] || 'executive';
+              const expiresInMinutes = PRODUCT_EXPIRY_MINUTES_MAP[product] || 60;
 
               // For custom plans, derive features from metadata.scans
-              let customFeatures = featuresMap[product] || ['pdf-generation'];
+              let customFeatures = PRODUCT_FEATURES_MAP[product] || ['pdf-generation'];
               if (product === 'custom_plan' && session.metadata?.scans) {
                 customFeatures = session.metadata.scans.split(',').map(s => s.trim()).filter(Boolean);
               }
@@ -228,10 +219,16 @@ function setupSimplebeaconBillingWebhook(app) {
             } else if (session.mode === 'subscription') {
               const isContinuousShield = product === 'continuous_shield';
               const isRuntimeShield = product === 'runtime_shield';
-              const subTier = isContinuousShield ? 'operator' : isRuntimeShield ? 'operator' : 'community';
+              const isPro = product === 'pro_monthly' || product === 'pro_annual' || product === 'startup_monthly' || product === 'startup_annual';
+              const isTeam = product === 'team_monthly' || product === 'team_annual' || product === 'growth_monthly' || product === 'growth_annual';
+              const subTier = isContinuousShield ? 'operator' : isRuntimeShield ? 'operator' : isTeam ? 'team' : isPro ? 'pro' : 'community';
               const subFeatures = isRuntimeShield
                 ? ['runtime-shield', 'eu-ai-act', 'pdf-generation', 'certificate', 'continuous-shield']
-                : ['continuous-shield', 'pdf-generation', 'certificate'];
+                : isTeam
+                  ? ['team-management', 'shared-configs', 'pdf-generation', 'certificate', 'priority-support']
+                  : isPro
+                    ? ['all-engines', 'unlimited-projects', 'export-formats', 'pdf-generation']
+                    : ['continuous-shield', 'pdf-generation', 'certificate'];
               const subExpiryMinutes = 365 * 24 * 60; // 1 year — renewed by subscription
 
               const licenseToken = generateLicenseToken(
@@ -327,9 +324,18 @@ function setupSimplebeaconBillingWebhook(app) {
 }
 
 /**
- * Setup simplebeacon billing routes.
- * @param {any} app
- * @returns {any}
+ * Return a 503 response when billing/monetization is disabled.
+ * @param {import('express').Response} res
+ * @returns {import('express').Response}
+ */
+function billingDisabledResponse(res) {
+  return res.status(503).json({ error: 'billing_disabled', message: 'Monetization is not enabled on this server.' });
+}
+
+/**
+ * Setup Simplebeacon billing routes.
+ * @param {import('express').Application} app
+ * @returns {void}
  */
 function setupSimplebeaconBillingRoutes(app) {
   app.get('/api/simplebeacon/billing/status', async (req, res) => {
@@ -386,7 +392,7 @@ function setupSimplebeaconBillingRoutes(app) {
     });
   });
 
-  app.post('/api/simplebeacon/billing/checkout', async (req, res) => {
+  app.post('/api/simplebeacon/billing/checkout', billingRateLimit, async (req, res) => {
     if (!isMonetizationEnabled()) {
       return billingDisabledResponse(res);
     }
@@ -582,307 +588,11 @@ function setupSimplebeaconBillingRoutes(app) {
   // ── Report Upload & Certificate Delivery ──
 
   /**
-   * Shared helper: validates token, generates certificate + audit report + ZIP.
-   * Returns bundle object for both email and direct-download flows.
-   */
-  async function buildReportBundle(licenseToken, reportJson) {
-    const { readStore } = require('../../server/lib/simplebeacon-subscription-store.cjs');
-    const store = await readStore();
-    let record = Object.values(store.subscriptions || {}).find(
-      (s) => s.licenseToken === licenseToken
-    );
-    let payload = null;
-    if (!record) {
-      // Fallback: cryptographically verify tokens not in store
-      const secret = process.env.SIMPLEBEACON_LICENSE_SECRET || 'simplebeacon-dev-insecure';
-      payload = verifyLicenseToken(licenseToken, secret);
-      if (!payload) {
-        const err = new Error('Invalid license token');
-        err.statusCode = 401;
-        throw err;
-      }
-      const tier = payload.tier || 'executive';
-      record = {
-        licenseToken,
-        licenseTier: tier,
-        email: payload.email || '',
-        features: payload.features || [],
-        certClientName: payload.clientName || 'Client',
-        certProjectName: payload.projectName || 'Project'
-      };
-    } else {
-      // Token found in store — enrich with cert fields from payload if missing
-      const secret = process.env.SIMPLEBEACON_LICENSE_SECRET || 'simplebeacon-dev-insecure';
-      payload = verifyLicenseToken(licenseToken, secret);
-      if (payload) {
-        record.certClientName = record.certClientName || payload.clientName || record.clientName || 'Client';
-        record.certProjectName = record.certProjectName || payload.projectName || record.projectName || 'Project';
-      }
-    }
-    if (!['executive', 'agency', 'universal', 'euai', 'instant', 'community'].includes(record.licenseTier)) {
-      const err = new Error('License tier does not include certificate delivery');
-      err.statusCode = 403;
-      throw err;
-    }
-
-    const email = record.email;
-    const deliveryId = `delivery_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-
-    // Store the uploaded report
-    ensureReportDir();
-    const fs = require('fs');
-    const reportPath = path.join(REPORT_STORE_DIR, `${deliveryId}.json`);
-    fs.writeFileSync(reportPath, JSON.stringify(reportJson, null, 2));
-
-    // Load payer-specific agency branding (configured at payment time via certOrgId)
-    let branding = null;
-    try {
-      const platformRoot = path.join(__dirname, '..', '..');
-      branding = loadAgencyBranding(platformRoot, record.certOrgId || 'default');
-    } catch {
-      branding = null;
-    }
-
-    // Generate certificate using stored cert profile (pre-configured at payment)
-    const certificateModel = buildCertificateModel({
-      report: reportJson,
-      certificate_id: deliveryId,
-      generated_at: new Date().toISOString(),
-      milestone: record.certMilestone || 'release',
-      client_name: record.certClientName || 'Client',
-      project_name: record.certProjectName || 'Project',
-      agency_name: branding?.agency_name || record.email || 'SimpleBeacon',
-      branding: branding || { agency_name: record.email || 'SimpleBeacon' }
-    });
-    const certificateHtml = renderCertificateHtml(certificateModel);
-
-    const totalScanned = reportJson.ruleScopedFilesAnalyzed
-      || reportJson.repositoryFilesTotal
-      || reportJson.llmSlopFilesScanned
-      || 0;
-
-    // Generate full audit report HTML (printable PDF source)
-    let auditReportHtml = null;
-    let auditReportFilename = null;
-    try {
-      const auditResult = await buildCompleteAuditReport({
-        type: 'simplebeacon-complete-scan',
-        version: '1.3.0',
-        generatedAt: new Date().toISOString(),
-        projectPath: reportJson.projectRoot || reportJson.scanTargetRoot || '',
-        results: results
-      }, {
-        client: record.certClientName || 'Client',
-        company: record.certClientName || 'Client',
-        assessor: 'SimpleBeacon',
-        aiProvider: 'demo'
-      });
-      auditReportHtml = auditResult.html;
-      auditReportFilename = auditResult.filename;
-    } catch (auditErr) {
-      console.warn('[Reports] Audit report generation skipped:', auditErr.message);
-    }
-
-    // Build full export ZIP with all JSON artifacts + HTML reports via analyze-export-bundle
-    const TIER_TO_DELIVERABLE_SKU = {
-      community: 'community',
-      executive: 'clearance499',
-      agency: 'agency999',
-      universal: 'operator',
-      euai: 'euai2499',
-      instant: 'moneyPrinter19'
-    };
-    const PRODUCT_TO_DELIVERABLE_SKU = {
-      executive_clearance: 'clearance499',
-      eu_ai_act_sprint: 'euai2499',
-      instant_report: 'moneyPrinter19',
-      community: 'community'
-    };
-    const tierLabel = TIER_TO_DELIVERABLE_SKU[record.licenseTier]
-      || PRODUCT_TO_DELIVERABLE_SKU[record.product]
-      || record.product
-      || 'operator';
-    // Extract embedded analysis results from upload-directory reportJson
-    const embeddedResults = reportJson._completeResults || {};
-/**
- * Simplebeacon report.
- * @param {any} (
- * @returns {any}
- */
-    const simplebeaconReport = (() => {
-      if (!reportJson.gate && !reportJson.issues) return null;
-      const base = { ...reportJson };
-      const embeddedKeys = [
-        '_completeResults', '_codebaseAnalysis', '_npmAuditAnalysis',
-        '_complianceAnalysis', '_dataCleanupAnalysis', '_dataQualityAnalysis',
-        '_cleanupAssistantAnalysis', '_fileReductionAnalysis', '_roadmapAnalysis',
-        '_consolidationAnalysis', '_mockScanAnalysis', '_euAiActAnalysis',
-        '_analysisError'
-      ];
-      for (const key of embeddedKeys) delete base[key];
-      return base;
-    })();
-    // Browser sandbox sends results as direct keys; ai-platform CLI sends as _ prefixed keys
-    const browserMockScan = reportJson.mockDataCategories?.length ? { categories: reportJson.mockDataCategories, total: reportJson.mockSampleFiles || reportJson.mockDataCategories.length } : null;
-    const browserDataQuality = reportJson.dataQuality?.emptyJsonCount !== undefined ? reportJson.dataQuality : null;
-    const browserCleanup = reportJson.cleanup?.debugArtifactCount !== undefined ? reportJson.cleanup : null;
-    const browserNpmAudit = reportJson.npmAudit?.packageJsonCount !== undefined ? reportJson.npmAudit : null;
-    const browserCompliance = reportJson.compliance?.licenseCount !== undefined ? reportJson.compliance : null;
-    const browserEuAiAct = reportJson.euAiActSummary?.highRiskIndicators !== undefined ? reportJson.euAiActSummary : null;
-
-    const results = {
-      simplebeacon: embeddedResults.simplebeacon || simplebeaconReport || reportJson,
-      codebase: embeddedResults.codebase || reportJson._codebaseAnalysis || reportJson.codebase || null,
-      mockScan: embeddedResults.mockScan || reportJson._mockScanAnalysis || browserMockScan || null,
-      roadmap: embeddedResults.roadmap || reportJson._roadmapAnalysis || reportJson.roadmap || null,
-      consolidation: embeddedResults.consolidation || reportJson._consolidationAnalysis || reportJson.consolidation || null,
-      fileReduction: embeddedResults.fileReduction || reportJson._fileReductionAnalysis || reportJson.fileReduction || null,
-      dataQuality: embeddedResults.dataQuality || embeddedResults.dataCleanup || reportJson._dataQualityAnalysis || browserDataQuality || null,
-      cleanupAssistant: embeddedResults.cleanupAssistant || reportJson._cleanupAssistantAnalysis || browserCleanup || null,
-      npmAudit: embeddedResults.npmAudit || reportJson._npmAuditAnalysis || browserNpmAudit || null,
-      compliance: embeddedResults.compliance || reportJson._complianceAnalysis || browserCompliance || null,
-      euAiAct: embeddedResults.euAiAct || reportJson._euAiActAnalysis || browserEuAiAct || (reportJson.type === 'simplebeacon-eu-ai-act-sprint' ? reportJson : null) || null
-    };
-    // Derive enginesRun from which result keys have actual data
-    const enginesRun = [
-      'simplebeacon',
-      ...(results.codebase ? ['codebase'] : []),
-      ...(results.mockScan ? ['mock-scan'] : []),
-      ...(results.roadmap ? ['roadmap'] : []),
-      ...(results.consolidation ? ['consolidation'] : []),
-      ...(results.fileReduction ? ['file-reduction'] : []),
-      ...(results.dataQuality ? ['data-quality'] : []),
-      ...(results.cleanupAssistant ? ['cleanup-assistant'] : []),
-      ...(results.npmAudit ? ['npm-audit'] : []),
-      ...(results.compliance ? ['compliance'] : []),
-      ...(results.euAiAct ? ['eu-ai-act'] : [])
-    ];
-    // Alias sprint for EU AI Act export bundle compatibility
-    if (results.euAiAct && !results.sprint) {
-      results.sprint = results.euAiAct;
-    }
-    const completeScanPayload = {
-      type: 'simplebeacon-complete-scan',
-      version: '1.3.0',
-      generatedAt: new Date().toISOString(),
-      projectPath: reportJson.projectRoot || reportJson.scanTargetRoot || '',
-      results,
-      enginesRun,
-      analysisConfig: { selectedEngines: enginesRun }
-    };
-    console.log('[buildReportBundle] results keys with data:', Object.keys(results).filter(k => !!results[k]));
-    console.log('[buildReportBundle] enginesRun:', enginesRun);
-
-    let zipBuffer;
-    let zipFilename;
-    try {
-      const { stream, filename } = await buildAnalyzeExportZipStream(completeScanPayload, {
-        deliverableSku: tierLabel,
-        internalDashboard: true,
-        hasAuditDeliverableAccess: true,
-        client: record.certClientName || 'Client',
-        company: record.certClientName || 'Client',
-        projectName: record.certProjectName || 'Project',
-        assessor: 'SimpleBeacon',
-        includeEuAiAct: tierLabel === 'euai2499' || record.licenseTier === 'euai2499' || record.licenseTier === 'euai' || record.licenseTier === 'universal'
-      });
-      zipBuffer = await streamToBuffer(stream);
-      zipFilename = filename;
-    } catch (zipErr) {
-      console.warn('[Reports] Full export ZIP failed, falling back to minimal:', zipErr.message, zipErr.code || '');
-      // Fallback: build a minimal ZIP that includes the correct analysis artifacts
-      const chunks = [];
-      const pass = new PassThrough();
-      const archive = archiver('zip', { zlib: { level: 9 } });
-      pass.on('data', (c) => chunks.push(c));
-      pass.on('end', () => { zipBuffer = Buffer.concat(chunks); });
-      archive.pipe(pass);
-      const date = new Date().toISOString().slice(0, 10);
-      const slug = String(reportJson.projectRoot || reportJson.scanTargetRoot || 'project')
-        .replace(/[\\/]/g, '-').replace(/[^a-zA-Z0-9_-]/g, '-').slice(0, 40);
-      const root = `simplebeacon-export-${tierLabel}-${slug}-${date}`;
-      archive.append(certificateHtml, { name: `${root}/reports/agency-certificate.html` });
-      if (auditReportHtml) archive.append(auditReportHtml, { name: `${root}/reports/executive-audit.html` });
-      if (results.euAiAct?.html) {
-        archive.append(results.euAiAct.html, { name: `${root}/reports/eu-ai-act-audit.html` });
-      } else if (results.euAiAct) {
-        try {
-          const { buildEuAiActAuditReport } = require('../lib/eu-ai-act-audit-report.cjs');
-          const gateReport = results.simplebeacon || reportJson;
-          const eu = await buildEuAiActAuditReport({
-            projectPath: reportJson.projectRoot || reportJson.scanTargetRoot || '',
-            clientName: record.certClientName || 'Client',
-            artifacts: {
-              report: gateReport,
-              platformRoot: reportJson.projectRoot || reportJson.scanTargetRoot || ''
-            }
-          });
-          archive.append(eu.html, { name: `${root}/reports/eu-ai-act-audit.html` });
-        } catch (euErr) {
-          console.warn('[Reports] EU AI Act audit HTML generation skipped in fallback:', euErr.message);
-        }
-      }
-
-      // Write the primary report
-      const primaryReport = reportJson._completeResults || reportJson;
-      let primaryText;
-      try { primaryText = JSON.stringify(primaryReport, null, 2); }
-      catch (e) { primaryText = safeStringify(primaryReport, 2); }
-      archive.append(primaryText, { name: `${root}/json/report.json` });
-
-      // Write all computed analysis artifacts regardless of tier
-      const analysisMap = {
-        '_mockScanAnalysis': { file: 'json/fiction-digest.json' },
-        '_codebaseAnalysis': { file: 'json/codebase-summary.json' },
-        '_roadmapAnalysis': { file: 'json/roadmap.json' },
-        '_complianceAnalysis': { file: 'json/compliance-checklist.json' },
-        '_fileReductionAnalysis': { file: 'json/file-reduction.json' },
-        '_dataQualityAnalysis': { file: 'json/data-quality.json' },
-        '_cleanupAssistantAnalysis': { file: 'json/cleanup-brief.json' },
-        '_npmAuditAnalysis': { file: 'json/npm-audit.json' },
-        '_euAiActAnalysis': { file: 'json/eu-ai-act-sprint.json' },
-        '_consolidationAnalysis': { file: 'json/consolidation.json' },
-        '_reAttestationReadme': { file: 'json/re-attestation-note.json' }
-      };
-      for (const [key, meta] of Object.entries(analysisMap)) {
-        if (reportJson[key]) {
-          let text;
-          try { text = JSON.stringify(reportJson[key], null, 2); }
-          catch (e) { text = safeStringify(reportJson[key], 2); }
-          archive.append(text, { name: `${root}/${meta.file}` });
-        }
-      }
-
-      // Build a minimal manifest
-      const manifest = {
-        type: 'simplebeacon-export-bundle-manifest',
-        version: '1.0.0',
-        generatedAt: new Date().toISOString(),
-        tierId: tierLabel,
-        fallback: true,
-        fallbackReason: zipErr.message,
-        artifactCount: 1 + Object.entries(analysisMap).filter(([k]) => reportJson[k]).length
-      };
-      let manifestText;
-      try { manifestText = JSON.stringify(manifest, null, 2); }
-      catch (e) { manifestText = safeStringify(manifest, 2); }
-      archive.append(manifestText, { name: `${root}/manifest.json` });
-
-      archive.append('SimpleBeacon fallback export — analysis artifacts included.\n', { name: `${root}/README.txt` });
-      await archive.finalize();
-      pass.end();
-      zipFilename = `${root}.zip`;
-    }
-
-    return { record, email, deliveryId, certificateHtml, auditReportHtml, zipBuffer, zipFilename };
-  }
-
-  /**
    * POST /api/reports/upload
    * Accepts a scan report JSON and a license token.
    * Validates the token, generates a certificate, and emails it.
    */
-  app.post('/api/reports/upload', async (req, res) => {
+  app.post('/api/reports/upload', billingRateLimit, async (req, res) => {
     try {
       const authHeader = String(req.headers.authorization || '');
       const bearerToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
@@ -913,7 +623,6 @@ function setupSimplebeaconBillingRoutes(app) {
       });
 
       // Update subscription with delivery status
-      const { upsertSubscription } = require('../../server/lib/simplebeacon-subscription-store.cjs');
       await upsertSubscription(bundle.email, {
         lastDeliveryId: bundle.deliveryId,
         lastDeliveredAt: new Date().toISOString(),
@@ -942,7 +651,7 @@ function setupSimplebeaconBillingRoutes(app) {
    * Accepts a scan report JSON and a license token.
    * Generates certificate + ZIP and returns the ZIP as a binary download.
    */
-  app.post('/api/reports/download', async (req, res) => {
+  app.post('/api/reports/download', billingRateLimit, async (req, res) => {
     try {
       const authHeader = String(req.headers.authorization || '');
       const bearerToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
@@ -976,9 +685,6 @@ function setupSimplebeaconBillingRoutes(app) {
   app.get('/api/reports/status/:licenseToken', async (req, res) => {
     try {
       const { licenseToken } = req.params;
-      const { readStore } = require('../../server/lib/simplebeacon-subscription-store.cjs');
-const { generateLicenseToken, verifyLicenseToken } = require('../../server/lib/simplebeacon-proxy.cjs');
-
       const store = await readStore();
       const record = Object.values(store.subscriptions || {}).find(
         (s) => s.licenseToken === licenseToken
@@ -1017,50 +723,10 @@ const { generateLicenseToken, verifyLicenseToken } = require('../../server/lib/s
 
       const product = record.product || 'executive_clearance';
       const certUploadUrl = `${getAppBaseUrl()}/coming-soon/certificate-upload.html`;
-      const tierMap = {
-        instant_report: 'instant',
-        executive_clearance: 'executive',
-        eu_ai_act_sprint: 'euai'
-      };
-      const licenseTier = record.licenseTier || tierMap[product] || 'executive';
+      const licenseTier = record.licenseTier || PRODUCT_TIER_MAP[product] || 'executive';
 
-      const productEmailSubject = {
-        instant_report: 'Your SimpleBeacon Instant Report — Token Resent',
-        executive_clearance: 'Your SimpleBeacon Executive Risk Certificate — Token Resent',
-        eu_ai_act_sprint: 'Your SimpleBeacon EU AI Act Sprint — Token Resent'
-      };
-
-      const productEmailBody = {
-        instant_report: `Here is your license token again:
-
-${record.licenseToken}
-
-Your instant report was sent to this email. If you did not receive it, check your spam folder or contact support.`,
-        executive_clearance: `Here is your license token again:
-
-${record.licenseToken}
-
-Upload your scan report at: ${certUploadUrl}
-
-1. Run the scan locally: npx simplebeacon scan --gate --offline
-2. Upload your report JSON and paste the token above.
-3. We will generate your certificate within 48 hours.`,
-        eu_ai_act_sprint: `Here is your license token again:
-
-${record.licenseToken}
-
-Upload your scan at: ${certUploadUrl}
-
-1. Run the EU AI Act scan: npx simplebeacon scan --gate --offline --config .simplebeacon/config-full-coverage.json
-2. Upload your report JSON and paste the token above.
-3. We will generate your EU AI Act Readiness Report within 48 hours.`
-      };
-
-      await sendEmail({
-        to: email,
-        subject: productEmailSubject[product] || productEmailSubject.executive_clearance,
-        text: productEmailBody[product] || productEmailBody.executive_clearance
-      });
+      const { subject, body } = buildResendEmail(product, record, certUploadUrl);
+      await sendEmail({ to: email, subject, text: body });
 
       res.json({ success: true, message: 'Token resent to ' + email });
     } catch (err) {
@@ -1069,81 +735,6 @@ Upload your scan at: ${certUploadUrl}
     }
   });
 
-  // ── Scan Quota Management ──
-
-  /**
-   * POST /api/quota/check
-   * Check if a user has scan quota remaining.
-   * Body: { apiToken, scanType: 'local' | 'pipeline' }
-   */
-  app.post('/api/quota/check', async (req, res) => {
-    try {
-      const { consumeScan, getSubscriptionByApiToken } = require('../../server/lib/simplebeacon-subscription-store.cjs');
-      const token = req.body?.apiToken || req.headers['x-api-token'] || '';
-      const scanType = req.body?.scanType || 'local';
-
-      if (!token) {
-        return res.status(400).json({ allowed: false, reason: 'missing_token' });
-      }
-
-      const record = await getSubscriptionByApiToken(token);
-      if (!record) {
-        return res.status(404).json({ allowed: false, reason: 'unknown_token' });
-      }
-
-      const result = await consumeScan(record.email, scanType);
-      // Roll back the consumption since this is just a check
-      if (result.allowed) {
-        const { readStore, writeStore } = require('../../server/lib/simplebeacon-subscription-store.cjs');
-        const store = await readStore();
-        if (store.subscriptions[record.email]) {
-          store.subscriptions[record.email].scansThisPeriod = Math.max(0, store.subscriptions[record.email].scansThisPeriod - 1);
-          await writeStore(store);
-        }
-      }
-
-      res.json({ allowed: result.allowed, scansRemaining: result.remaining, tier: record.tier || 'developer', scanType });
-    } catch (err) {
-      console.error('[Simplebeacon billing] Quota check failed:', err.message);
-      res.status(500).json({ allowed: false, error: 'quota_check_failed', message: err.message });
-    }
-  });
-
-  /**
-   * POST /api/quota/consume
-   * Record a scan usage against the user's quota.
-   * Body: { apiToken, scanType: 'local' | 'pipeline', scanId }
-   */
-  app.post('/api/quota/consume', async (req, res) => {
-    try {
-      const { consumeScan, getSubscriptionByApiToken } = require('../../server/lib/simplebeacon-subscription-store.cjs');
-      const token = req.body?.apiToken || req.headers['x-api-token'] || '';
-      const scanType = req.body?.scanType || 'local';
-      const scanId = req.body?.scanId || '';
-
-      if (!token) {
-        return res.status(400).json({ allowed: false, reason: 'missing_token' });
-      }
-
-      const record = await getSubscriptionByApiToken(token);
-      if (!record) {
-        return res.status(404).json({ allowed: false, reason: 'unknown_token' });
-      }
-
-      const result = await consumeScan(record.email, scanType);
-      res.json({
-        allowed: result.allowed,
-        scansRemaining: result.remaining,
-        scansUsed: result.limit === Infinity ? result.limit : result.limit - result.remaining,
-        tier: record.tier || 'developer',
-        scanType,
-        scanId
-      });
-    } catch (err) {
-      console.error('[Simplebeacon billing] Quota consume failed:', err.message);
-      res.status(500).json({ allowed: false, error: 'quota_consume_failed', message: err.message });
-    }
-  });
 }
 
 

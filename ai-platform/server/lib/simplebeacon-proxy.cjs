@@ -1,77 +1,5 @@
 'use strict';
 
-// --- config / project-detect ---
-const {
-  DEFAULT_CONFIG,
-  DEFAULT_MOCK_SCAN_RELATIVE_PATHS,
-  PROFILE_RULES
-} = require('../../../packages/simplebeacon-cli/src/config');
-const {
-  detectProjectProfile,
-  resolvePlatformRoot: resolvePlatformRootFromIndex
-} = require('../../../packages/simplebeacon-cli/src/project-detect');
-const { validateConfig } = require('../../../packages/simplebeacon-cli/src/config-schema.js');
-const { loadSimplebeaconConfig } = require('../../../packages/simplebeacon-cli/src/config');
-
-// --- scan / gate ---
-const { runScan } = require('../../../packages/simplebeacon-cli/src/scan');
-const { runFileReductionScan } = require('../../../packages/simplebeacon-cli/src/lib/file-reduction-orchestrator');
-const { evaluateGate } = require('../../../packages/simplebeacon-cli/src/gate');
-
-// --- reporters ---
-const { formatJsonReport } = require('../../../packages/simplebeacon-cli/src/reporters/json');
-const { buildAssessmentReport } = require('../../../packages/simplebeacon-cli/src/assessment');
-const { evaluateComplianceChecklist } = require('../../../packages/simplebeacon-cli/src/compliance-checklist.js');
-const {
-  collectIssues,
-  resolveSeverityCounts,
-  buildDetailedFindings,
-  buildComplianceTable,
-  buildHowToFixSection,
-  buildPersonalizedActionPlan,
-  formatRule,
-  defaultRemediation
-} = require('../../../packages/simplebeacon-cli/src/reporters/audit-report.js');
-
-// --- rules / sanitizers ---
-const { buildFictionPatternCatalog, countFictionIssues } = require('../../../packages/simplebeacon-cli/src/rules/ai-fiction-detection');
-const {
-  applyPublicGateToAnalyzeResponse,
-  sanitizePublicOutput,
-  sanitizeScanReport
-} = require('../../../packages/simplebeacon-cli/src/lib/report-sanitizer');
-const {
-  sanitizeCompleteScanExport,
-  sanitizeNpmAuditExport,
-  sanitizeCleanupBriefExport,
-  sanitizeDataCleanupReportExport,
-  sanitizeCodebaseReportExport,
-  sanitizeFictionDigestExport,
-  sanitizeConsolidationExport,
-  sanitizeComplianceChecklistArtifactExport
-} = require('../../../packages/simplebeacon-cli/src/lib/complete-scan-export-sanitize.js');
-const { sanitizePublicSummaryArtifactExport } = require('../../../packages/simplebeacon-cli/src/lib/public-summary-export-sanitize.js');
-const { projectLabelFromPath, redactProjectPathForExport } = require('../../../packages/simplebeacon-cli/src/lib/assessment-export-sanitize.js');
-const { buildReAttestationNoteArtifact } = require('../../../packages/simplebeacon-cli/src/lib/re-attestation-note-export-sanitize.js');
-const { sanitizeRoadmapExport } = require('../../../packages/simplebeacon-cli/src/lib/roadmap-export-sanitize.js');
-const { sanitizeSimplebeaconReportExport } = require('../../../packages/simplebeacon-cli/src/lib/simplebeacon-report-export-sanitize.js');
-
-// --- EU AI Act ---
-const { DEFAULT_MAX_STALE_MS, evaluateSprintFreshness, evaluateEuExportEligibility } = require('../../../packages/simplebeacon-cli/src/eu-ai-act-export-guard.js');
-const { isLegalReviewAttestation } = require('../../../packages/simplebeacon-cli/src/eu-ai-act-legal-attestation.js');
-
-// --- init / inventory ---
-const { initSimplebeacon } = require('../../../packages/simplebeacon-cli/src/lib/init-simplebeacon.cjs');
-const { countRepositoryInventory } = require('../../../packages/simplebeacon-cli/src/lib/repository-inventory');
-
-// --- lib helpers ---
-const { isExternalBenchmarkCachePath } = require('../../../packages/simplebeacon-cli/src/lib/benchmark-cache-paths.js');
-const { resolveScanProgressPath, readScanProgress } = require('../../../packages/simplebeacon-cli/src/lib/scan-progress.js');
-const { verifyLicenseToken } = require('../../../packages/simplebeacon-cli/src/lib/license-token.js');
-const { sanitizeComplianceBundleExport } = require('../../../packages/simplebeacon-cli/src/lib/compliance-export-sanitize.js');
-const { consolidationCandidateTouchesExcluded, countIntentionalPairExclusions, isConsolidationExcludedPair } = require('../../../packages/simplebeacon-cli/src/lib/consolidation-path-exclusions.js');
-const { buildAuditPayload } = require('../../../packages/simplebeacon-cli/src/lib/dashboard-payload.js');
-
 /**
  * SimpleBeacon proxy re-exports.
  * Centralizes all cross-repo imports from packages/simplebeacon-cli so
@@ -83,23 +11,94 @@ const { buildAuditPayload } = require('../../../packages/simplebeacon-cli/src/li
  * silent undefined values in consumers.
  */
 
+// --- Bulk import from CLI package root (re-exports everything) ---
+const cli = require('../../../packages/simplebeacon-cli/src/index.js');
+
+const {
+  countRepositoryInventory,
+  applyPublicGateToAnalyzeResponse,
+  sanitizePublicOutput,
+  sanitizeScanReport,
+  sanitizeCompleteScanExport,
+  sanitizeComplianceChecklistArtifactExport,
+  sanitizeFictionDigestExport,
+  sanitizeDataCleanupReportExport,
+  sanitizeNpmAuditExport,
+  sanitizePublicSummaryArtifactExport,
+  buildReAttestationNoteArtifact,
+  sanitizeRoadmapExport,
+  sanitizeSimplebeaconReportExport,
+  sanitizeCleanupBriefExport,
+  sanitizeCodebaseReportExport,
+  sanitizeConsolidationExport,
+  redactProjectPathForExport,
+  projectLabelFromPath,
+  collectIssues,
+  resolveSeverityCounts,
+  buildDetailedFindings,
+  buildComplianceTable,
+  buildHowToFixSection,
+  buildPersonalizedActionPlan,
+  formatRule,
+  defaultRemediation,
+  formatTextReport,
+  formatActionPlanReport,
+  compileAuditReportMarkdown,
+  generateFileReductionReport,
+  aggregateCleanupFindings,
+  formatReportDate,
+  capitalize,
+  pluralize,
+  truncate,
+  formatGithubComment,
+  formatGithubStepSummary,
+  postGithubComment,
+  validateConfig,
+  PROFILE_RULES,
+  DEFAULT_MOCK_SCAN_RELATIVE_PATHS,
+  DEFAULT_CONFIG,
+  buildFictionPatternCatalog,
+  countFictionIssues,
+  evaluateEuExportEligibility,
+  evaluateSprintFreshness,
+  DEFAULT_MAX_STALE_MS,
+  isLegalReviewAttestation,
+  runScan,
+  runFileReductionScan,
+  evaluateGate,
+  evaluateComplianceChecklist,
+  loadSimplebeaconConfig,
+  formatJsonReport,
+  buildAssessmentReport,
+  initSimplebeacon,
+  detectProjectProfile,
+  resolvePlatformRoot
+} = cli;
+
+// --- Deep-path imports for modules not re-exported by CLI index ---
+const { syncJestBaseline } = require('../../../packages/simplebeacon-cli/src/baseline-sync.js');
+const { isExternalBenchmarkCachePath } = require('../../../packages/simplebeacon-cli/src/lib/benchmark-cache-paths.js');
+const { resolveScanProgressPath, readScanProgress } = require('../../../packages/simplebeacon-cli/src/lib/scan-progress.js');
+const { verifyLicenseToken } = require('../../../packages/simplebeacon-cli/src/lib/license-token.js');
+const { sanitizeComplianceBundleExport } = require('../../../packages/simplebeacon-cli/src/lib/compliance-export-sanitize.js');
+const { consolidationCandidateTouchesExcluded, countIntentionalPairExclusions, isConsolidationExcludedPair } = require('../../../packages/simplebeacon-cli/src/lib/consolidation-path-exclusions.js');
+const { buildAuditPayload, buildDashboardPayload, buildScanResults, findHistoryEntry } = require('../../../packages/simplebeacon-cli/src/lib/dashboard-payload.js');
+const { generateLicenseToken } = require('../../../packages/simplebeacon-cli/src/lib/license-token.js');
+const { isPaidTier, getTierCapability } = require('../../../packages/simplebeacon-cli/src/lib/tier-constants');
+const { ERROR_TYPE_CODES, SEVERITY_BANDS } = require('../../../packages/simplebeacon-cli/src/lib/anonymized-export.js');
+const { RULE_CATALOG, LEAK_PATTERNS } = require('../../../packages/simplebeacon-cli/src/mcp/rule-catalog.js');
+
 /**
- * Sync jest baseline fallback.
+ * Passthrough to the CLI syncJestBaseline function.
  * @param {string} baseDir
  * @param {Object} [options={}]
  * @returns {any}
  */
-function syncJestBaselineFallback(baseDir, options) {
+function syncMeasuredBaseline(baseDir, options) {
   if (typeof baseDir !== 'string' || !baseDir) {
     throw new TypeError('baseDir must be a non-empty string');
   }
   const safeOptions = (options && typeof options === 'object' && !Array.isArray(options)) ? options : {};
-  let syncJestBaseline;
-  try {
-    ({ syncJestBaseline } = require('../../../packages/simplebeacon-cli/src/baseline-sync.js'));
-  } catch (err) {
-    throw new Error(`Failed to load baseline-sync module: ${err?.message || String(err)}`);
-  }
   if (typeof syncJestBaseline !== 'function') {
     throw new Error('baseline-sync module does not export syncJestBaseline function');
   }
@@ -165,14 +164,29 @@ const proxyExports = {
   evaluateSprintFreshness,
   DEFAULT_MAX_STALE_MS,
   isLegalReviewAttestation,
-  // deep paths
+  // scan / gate
   runScan,
   runFileReductionScan,
   evaluateGate,
+  evaluateComplianceChecklist,
   loadSimplebeaconConfig,
-  resolvePlatformRoot: resolvePlatformRootFromIndex,
+  resolvePlatformRoot,
+  // reporters
+  formatTextReport,
+  formatActionPlanReport,
   formatJsonReport,
+  formatGithubComment,
+  formatGithubStepSummary,
+  postGithubComment,
   buildAssessmentReport,
+  compileAuditReportMarkdown,
+  generateFileReductionReport,
+  aggregateCleanupFindings,
+  formatReportDate,
+  capitalize,
+  pluralize,
+  truncate,
+  // init / detection
   buildAuditPayload,
   initSimplebeacon,
   detectProjectProfile,
@@ -186,13 +200,27 @@ const proxyExports = {
   readScanProgress,
   // license token
   verifyLicenseToken,
+  generateLicenseToken,
   // compliance export
   sanitizeComplianceBundleExport,
   // baseline sync stub (not in CLI index)
-  syncMeasuredBaseline: syncJestBaselineFallback,
+  syncMeasuredBaseline,
   // data-cleanup report stubs (not exported by CLI index)
   enrichCleanupReport,
-  compactDataCleanupReportForClient
+  compactDataCleanupReportForClient,
+  // dashboard payload
+  buildDashboardPayload,
+  buildScanResults,
+  findHistoryEntry,
+  // tier constants
+  isPaidTier,
+  getTierCapability,
+  // anonymized export
+  ERROR_TYPE_CODES,
+  SEVERITY_BANDS,
+  // rule catalog
+  RULE_CATALOG,
+  LEAK_PATTERNS
 };
 
 for (const [key, value] of Object.entries(proxyExports)) {

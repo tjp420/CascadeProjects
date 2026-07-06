@@ -3,11 +3,12 @@
  * Maps structural features to precomputed AI-slop behavior vectors.
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import { INTENT_RULE_IDS } from './constants.js';
 
-const CACHE_PATH = path.join(__dirname, '..', 'vector-cache', 'default-fingerprints.json');
-const ALLOWED_CACHE_ROOT = path.resolve(__dirname, '..');
+const CACHE_PATH = path.join(import.meta.dirname, '..', 'vector-cache', 'default-fingerprints.json');
+const ALLOWED_CACHE_ROOT = path.resolve(import.meta.dirname, '..');
 const MAX_CACHE_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
 let cachedFingerprints = null;
@@ -168,7 +169,6 @@ function matchFingerprints(content, structuralFindings = [], options = {}) {
  */
 function fingerprintFindings(content, structuralFindings, filePath, options = {}) {
     const matches = matchFingerprints(content, structuralFindings, options);
-    const { INTENT_RULE_IDS } = require('./constants');
 
     return matches.map((match) => ({
         id: INTENT_RULE_IDS.FINGERPRINT_MATCH,
@@ -188,10 +188,10 @@ function fingerprintFindings(content, structuralFindings, filePath, options = {}
     }));
 }
 
-module.exports = {
+export {
     loadFingerprints,
     extractFeatureVector,
     matchFingerprints,
     fingerprintFindings,
     cosineSimilarity
-};
+}

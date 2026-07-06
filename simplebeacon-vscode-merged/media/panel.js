@@ -301,10 +301,12 @@ window.addEventListener('hashchange',function(){
 const MIN_SIDEBAR_WIDTH=180;
 const MAX_SIDEBAR_WIDTH=500;
 let resizing=false;
+let startX=0;
+let startWidth=0;
 const rz=document.getElementById('resizer'),sb=document.getElementById('sidebar');
-if(rz){rz.addEventListener('mousedown',()=>{resizing=true;document.body.style.cursor='col-resize';});}
-document.addEventListener('mousemove',e=>{if(!resizing)return;const nw=e.clientX;if(nw>=MIN_SIDEBAR_WIDTH&&nw<=MAX_SIDEBAR_WIDTH)sb.style.width=nw+'px';});
-document.addEventListener('mouseup',()=>{resizing=false;document.body.style.cursor='default';});
+if(rz){rz.addEventListener('mousedown',e=>{resizing=true;startX=e.clientX;startWidth=sb.offsetWidth;document.body.style.cursor='col-resize';document.body.style.userSelect='none';});}
+document.addEventListener('mousemove',e=>{if(!resizing)return;const dx=e.clientX-startX;const nw=Math.max(MIN_SIDEBAR_WIDTH,Math.min(MAX_SIDEBAR_WIDTH,startWidth+dx));sb.style.width=nw+'px';});
+document.addEventListener('mouseup',()=>{resizing=false;document.body.style.cursor='default';document.body.style.userSelect='';});
 
 var __vscodeApi=null;
 try{__vscodeApi=typeof acquireVsCodeApi==='function'?acquireVsCodeApi():null;}catch(e){__vscodeApi=window.vscode||null;}

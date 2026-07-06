@@ -1,5 +1,5 @@
 // simplebeacon-ignore memory-leak — pure array utility functions
-import { isDefined } from './object';
+import { isDefined } from './type-guards';
 
 /**
  * Return a de-duplicated copy of an array.
@@ -311,11 +311,11 @@ export function tail<T>(arr: T[], n = 1): T[] {
 /**
  * Alias for flatten that always flattens all nesting levels.
  * @template T
- * @param {any[]} arr
+ * @param {(T | T[])[]} arr
  * @returns {T[]}
  */
-export function flattenDeep<T>(arr: any[]): T[] {
-  return flatten(arr) as T[];
+export function flattenDeep<T>(arr: (T | T[])[]): T[] {
+  return flatten(arr);
 }
 
 /**

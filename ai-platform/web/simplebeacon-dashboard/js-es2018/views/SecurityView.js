@@ -1,4 +1,5 @@
 import { escapeHtml, showToast, downloadJson, redactPathForDisplay, formatNumber, renderEmptyState } from '../utils.js';
+import { authService } from '../services/authService.js';
 import { extractSecurityFindings, buildSecuritySummary, buildSecurityExportPayload, fetchComplianceHeadline } from '../services/securityService.js';
 /**
  * Security view.
@@ -114,6 +115,8 @@ export class SecurityView {
         const lastScan = summary.generatedAt
             ? new Date(summary.generatedAt).toLocaleString()
             : 'Never';
+        const isFreeTier = authService.isFreeTier();
+        const canExport = authService.canExport();
         el.innerHTML = `
       <div class="analyze-hero">
         <h1 class="page-title">Security Scanner</h1>
@@ -128,7 +131,7 @@ export class SecurityView {
           <button class="btn btn-primary btn-sm" id="security-run-scan" type="button" ${this.scanning ? 'disabled' : ''}>
             ${this.scanning ? 'Scanning…' : 'Run security scan'}
           </button>
-          <button class="btn btn-secondary btn-sm" id="security-export-json" type="button">
+          <button class="btn btn-secondary btn-sm" id="security-export-json" type="button" ${canExport ? '' : 'disabled'} title="${isFreeTier ? 'Upgrade to export security findings' : ''}">
             Export JSON
           </button>
           <button class="btn btn-ghost btn-sm" id="security-send-ai-btn" type="button" title="Send security findings to AI coding agent">🤖 Send to AI Agent</button>
@@ -279,6 +282,10 @@ export class SecurityView {
         return el;
     }
     exportResults() {
+        if (!authService.canExport()) {
+            showToast('Exporting security findings requires a paid license. View pricing to upgrade.', 'info');
+            return;
+        }
         const report = this.getReport();
         const findings = this.getFindings();
         if (!findings.length) {
@@ -303,7 +310,7 @@ export class SecurityView {
         this.error = null;
         this.paint(container);
         try {
-            await this.app.runScan();
+            await this.app.runScan(null, { scanType: 'gate' });
             showToast('Security scan complete', 'success');
         }
         catch (err) {

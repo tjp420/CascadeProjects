@@ -1,4 +1,5 @@
 import { escapeHtml } from '../utils.js';
+import { authService } from '../services/authService.js';
 
 /**
  * Render a small inline locked/upgrade badge for a paid feature.
@@ -27,7 +28,7 @@ export function renderLockedBadge(featureLabel = 'Paid feature', {
  * @returns {string}
  */
 export function renderTierChip(label, extraClass = '') {
-  const isPaid = /pro|enterprise|team|business|paid|premium|license|auditor|compliance|admin/i.test(label);
+  const isPaid = typeof authService !== 'undefined' ? authService.isPaidTier() : /pro|enterprise|team|business|paid|premium|license|auditor|compliance|admin/i.test(label);
   return `
     <span class="tier-badge ${isPaid ? 'tier-badge-paid' : 'tier-badge-free'} ${escapeHtml(extraClass)}">
       ${isPaid ? '<span class="codicon codicon-gem"></span>' : '<span class="codicon codicon-person"></span>'}

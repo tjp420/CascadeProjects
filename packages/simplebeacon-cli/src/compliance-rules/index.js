@@ -20,33 +20,31 @@
  * registerRule('my-check', (rule, context) => ({ ...result }));
  * ```
  *
- * Access the frozen registry directly:
+ * Access the frozen registry snapshot:
  * ```js
- * const { registry } = require('./compliance-rules');
- * Object.isFrozen(registry); // true
+ * const { getRegistry } = require('./compliance-rules');
+ * Object.isFrozen(getRegistry()); // true
  * ```
  *
  * @file packages/simplebeacon-cli/src/compliance-rules/index.js
  */
 
-const registry = {
-    'gate-pass': require('./gate-pass'),
-    'zero-credential-findings': require('./zero-credential-findings'),
-    'zero-production-leaks': require('./zero-production-leaks'),
-    'schema-compliance': require('./schema-compliance'),
-    'consistency-pass': require('./consistency-pass'),
-    'npm-no-critical-high': require('./npm-no-critical-high'),
-    'npm-moderate-limit': require('./npm-moderate-limit'),
-    'production-auth-profile': require('./production-auth-profile'),
-    'eu-ai-act-high-risk-reviewed': require('./eu-ai-act-high-risk-reviewed'),
-    'eu-ai-act-transparency': require('./eu-ai-act-transparency'),
-    'eu-ai-act-documentation': require('./eu-ai-act-documentation'),
-    'eu-ai-act-human-oversight': require('./eu-ai-act-human-oversight'),
-    'eu-ai-act-logging': require('./eu-ai-act-logging'),
-    'cleanup-bloat-reviewed': require('./cleanup-bloat-reviewed'),
-    'cleanup-empty-dirs': require('./cleanup-empty-dirs'),
-    'file-reduction-reviewed': require('./file-reduction-reviewed')
-};
+const fs = require('fs');
+const path = require('path');
+
+/** Discover and load all rule modules from the current directory. */
+function loadRuleRegistry() {
+    const registry = {};
+    const dir = __dirname;
+    const files = fs.readdirSync(dir).filter((f) => f.endsWith('.js') && f !== 'index.js');
+    for (const file of files) {
+        const id = path.basename(file, '.js');
+        registry[id] = require(path.join(dir, file));
+    }
+    return registry;
+}
+
+const registry = loadRuleRegistry();
 
 /**
  * Evaluate a single compliance rule against the provided scan context.
@@ -98,8 +96,13 @@ function registerRule(checkName, evaluatorFn) {
     registry[checkName] = evaluatorFn;
 }
 
+/** Return a frozen snapshot of the current registry. */
+function getRegistry() {
+    return Object.freeze({ ...registry });
+}
+
 module.exports = Object.freeze({
   evaluateRule,
   registerRule,
-  registry: Object.freeze({ ...registry })
+  getRegistry
 });

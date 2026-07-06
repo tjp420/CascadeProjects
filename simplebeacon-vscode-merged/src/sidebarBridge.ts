@@ -7,13 +7,16 @@
 
 let _showDashboardInSidebar: (() => void) | null = null;
 let _openSidebarInBrowserStatic: ((route: string) => void) | null = null;
+let _isSidebarReady: (() => boolean) | null = null;
 
 export function setSidebarBridge(fns: {
   showDashboardInSidebar: () => void;
   openSidebarInBrowserStatic: (route: string) => void;
+  isSidebarReady?: () => boolean;
 }) {
   _showDashboardInSidebar = fns.showDashboardInSidebar;
   _openSidebarInBrowserStatic = fns.openSidebarInBrowserStatic;
+  _isSidebarReady = fns.isSidebarReady || null;
 }
 
 export function showDashboardInSidebar() {
@@ -22,4 +25,8 @@ export function showDashboardInSidebar() {
 
 export function openSidebarInBrowserStatic(route: string) {
   _openSidebarInBrowserStatic?.(route);
+}
+
+export function isSidebarReady(): boolean {
+  return _isSidebarReady ? _isSidebarReady() : false;
 }

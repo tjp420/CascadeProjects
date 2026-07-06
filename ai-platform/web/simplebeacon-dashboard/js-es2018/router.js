@@ -15,6 +15,10 @@ export class Router {
         window.addEventListener('popstate', this._boundHandlePath);
         window.addEventListener('hashchange', this._boundHandleHash);
     }
+    destroy() {
+        window.removeEventListener('popstate', this._boundHandlePath);
+        window.removeEventListener('hashchange', this._boundHandleHash);
+    }
     init() {
         const forced = typeof window !== 'undefined' && window.__SB_INITIAL_ROUTE__;
         if (forced && ROUTES.includes(forced)) {
@@ -118,10 +122,5 @@ export class Router {
         document.querySelectorAll('.nav-link[data-view]').forEach((link) => {
             link.classList.toggle('active', link.dataset.view === view);
         });
-    }
-    /** Remove window listeners to prevent leaks when the router is discarded. */
-    destroy() {
-        window.removeEventListener('popstate', this._boundHandlePath);
-        window.removeEventListener('hashchange', this._boundHandleHash);
     }
 }

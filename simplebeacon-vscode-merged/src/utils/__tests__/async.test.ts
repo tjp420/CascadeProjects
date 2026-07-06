@@ -1,7 +1,8 @@
 import {
   sleep, delay, debounce, debounceLeading, debounceAsync, once, memoize,
   throttle, throttleAsync, withTimeout, waitFor, poll, waitForAsync,
-  memoizeAsync, retry, parallel, series, waterfall, timeout, retryWithBackoff
+  memoizeAsync, retry, parallel, series, waterfall, timeout, retryWithBackoff,
+  createDeferred
 } from '../async';
 
 describe('async utilities', () => {
@@ -196,6 +197,24 @@ describe('async utilities', () => {
         return 'ok';
       }, 3, 1);
       expect(result).toBe('ok');
+    });
+  });
+
+  describe('createDeferred', () => {
+    test('resolves via external resolve', async () => {
+      const d = createDeferred<string>();
+      d.resolve('hello');
+      await expect(d.promise).resolves.toBe('hello');
+    });
+    test('rejects via external reject', async () => {
+      const d = createDeferred<number>();
+      d.reject(new Error('fail'));
+      await expect(d.promise).rejects.toThrow('fail');
+    });
+    test('can be resolved after awaiting', async () => {
+      const d = createDeferred<boolean>();
+      setTimeout(() => d.resolve(true), 10);
+      await expect(d.promise).resolves.toBe(true);
     });
   });
 });

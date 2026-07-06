@@ -5,6 +5,7 @@
  * @param {any} _onLegacy }
  * @returns {any}
  */
+import { authService } from '../services/authService.js';
 export function renderQuickActions({ _onRunScan, _onExport, _onLegacy, _onSendAi, showSendAi = true }) {
     const sendAiBtn = showSendAi
         ? `<button class="dashboard-action-btn" id="action-send-ai" title="Send current scan report to AI coding agent" style="background:rgba(99,102,241,0.1);border-color:rgba(99,102,241,0.3);">
@@ -12,13 +13,16 @@ export function renderQuickActions({ _onRunScan, _onExport, _onLegacy, _onSendAi
         <span>Send to AI</span>
       </button>`
         : '';
+    const isFreeTier = authService.isFreeTier();
+    const exportDisabled = isFreeTier ? 'disabled' : '';
+    const exportTitle = isFreeTier ? 'Upgrade to export reports' : 'Export the current scan report as JSON';
     return `
     <div class="dashboard-quick-actions">
       <button class="dashboard-action-btn dashboard-action-primary" id="action-run-scan" title="Run gate scan on the configured folder">
         <i data-lucide="play" class="icon-18"></i>
         <span>Run Scan</span>
       </button>
-      <button class="dashboard-action-btn" id="action-export" title="Export the current scan report as JSON">
+      <button class="dashboard-action-btn" id="action-export" title="${exportTitle}" ${exportDisabled}>
         <i data-lucide="download" class="icon-18"></i>
         <span>Export Report</span>
       </button>

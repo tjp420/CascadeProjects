@@ -1,0 +1,6 @@
+Γ£ô Simplebeacon running in read-only mode
+Γ£ô Local-only scan ΓÇö code is not transmitted unless you pass --upload
+Γ£ô Your source files are never modified by Simplebeacon
+
+Γ£ô No network activity detected during scan
+Report written to .simplebeacon/report-debug2.json

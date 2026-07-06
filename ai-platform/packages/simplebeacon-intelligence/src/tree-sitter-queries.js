@@ -2,8 +2,10 @@
  * Tree-sitter query helpers — extract function scopes for intent analysis.
  */
 
-const { analyzeFunctionBlock, scanCredentialDictStubs } = require('./structural-intent-scanner');
-const { INTENT_RULE_IDS } = require('./constants');
+import { analyzeFunctionBlock, scanCredentialDictStubs } from './structural-intent-scanner.js';
+import { INTENT_RULE_IDS } from './constants.js';
+import { parseWithTreeSitter, getTreeSitterStatus } from './tree-sitter-loader.js';
+import { scanStructuralIntent } from './structural-intent-scanner.js';
 
 const FUNCTION_NODE_TYPES = {
     javascript: ['function_declaration', 'arrow_function', 'method_definition', 'generator_function_declaration'],
@@ -122,9 +124,7 @@ function scanStructuralFromTree(content, options = {}) {
  * @returns {any}
  */
 async function scanWithTreeSitter(content, options = {}) {
-    const { parseWithTreeSitter, getTreeSitterStatus } = require('./tree-sitter-loader');
     const language = options.language || 'javascript';
-    const { scanStructuralIntent } = require('./structural-intent-scanner');
 
     const status = getTreeSitterStatus(options);
     if (!status.ready) {
@@ -161,10 +161,9 @@ async function scanWithTreeSitter(content, options = {}) {
     };
 }
 
-module.exports = {
+export {
     FUNCTION_NODE_TYPES,
     extractFunctionsFromTree,
     scanStructuralFromTree,
-    scanWithTreeSitter,
-    INTENT_RULE_IDS
-};
+    scanWithTreeSitter
+}

@@ -23,10 +23,10 @@
  * @file packages/simplebeacon-intelligence/src/slm-bridge.js
  */
 
-const fs = require('fs');
-const { spawnSync, spawn } = require('child_process');
+import fs from 'fs';
+import { spawnSync, spawn } from 'child_process';
 
-const constants = require('../../../server/config/constants.cjs');
+import constants from '../../../server/config/constants.cjs';
 const DEFAULT_PROMPT_TEMPLATE = `You are a code hygiene auditor. Reply with JSON only: {"risk":"low|medium|high","reason":"..."}.
 Does this snippet look like unchecked AI-generated boilerplate, mock API stub, or placeholder credentials?
 Snippet:
@@ -293,7 +293,7 @@ function runSlmReviewAsync(content, options = {}) {
     });
 }
 
-module.exports = Object.freeze({
+export {
     probeSlmBin,
     canRunSlm,
     buildSlmPrompt,
@@ -301,4 +301,4 @@ module.exports = Object.freeze({
     validateSlmResult,
     runSlmReview,
     runSlmReviewAsync
-});
+}

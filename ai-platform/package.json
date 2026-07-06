@@ -73,6 +73,7 @@
     "test": "jest --config jest.config.cjs",
     "test:coverage": "jest --config jest.config.cjs --coverage",
     "test:coverage:critical-path": "jest --config jest.critical-path.config.cjs --coverage",
+    "test:server:lib": "node --test server/lib/__tests__/*.test.cjs",
     "coverage": "npm run test:coverage",
     "coverage:sync": "npm run test:coverage && node tools/sync-coverage-reports-sample.js",
     "verify:critical-path-coverage": "node tools/verify-critical-path-coverage.js",

@@ -16,10 +16,12 @@ const SKIP_DIRS = new Set([
   'node_modules', '.git', 'coverage', 'dist', 'build', 'archive',
   '.simplebeacon', 'fixtures', 'docs', 'coming-soon', 'reports',
   'simplebeacon-rule-tests', 'simplebeacon-toxic-fixtures',
-  'ai-platform/web/simplebeacon-dashboard/js-es2018'
+  'ai-platform/web/simplebeacon-dashboard/js-es2018',
+  'simplebeacon-vscode-merged/dashboard-web/js-es2018'
 ]);
 
 const SKIP_FILES = /\.(test|spec)\.(js|cjs|mjs|ts|tsx)$/i;
+const SKIP_TEMP_FILES = /^(_tmp_|_merged_js|_test_|_test_welcome|inspect_vsix|temp_codemap|tmp-check|__tmp_script|debug-|__test_server|replace-dashboard|test-welcome-load)/i;
 
 function isScannable(filePath) {
   const ext = path.extname(filePath).toLowerCase();
@@ -31,7 +33,10 @@ function isScannable(filePath) {
 function isExcludedPath(filePath, rootDir) {
   const rel = filePath.replace(rootDir, '').replace(/^[/\\]+/, '');
   const dirs = rel.split(/[/\\]/);
-  return dirs.some((dir) => SKIP_DIRS.has(dir));
+  if (dirs.some((dir) => SKIP_DIRS.has(dir))) return true;
+  if (/ai-platform[/\\]web[/\\]simplebeacon-dashboard[/\\]js\b/.test(rel)) return true;
+  if (/simplebeacon-vscode-merged[/\\]dashboard-web[/\\]js\b/.test(rel)) return true;
+  return false;
 }
 
 function extractImports(content) {
@@ -154,7 +159,13 @@ function findUnreachableCode(content) {
     if (/^return\s+/.test(line) && i + 1 < lines.length) {
       // Skip if this is inside a template literal or string continuation
       if (line.includes('`') || line.includes('${')) continue;
+      // Skip if return line opens a new block (callback/collection literal) — code after is inside it
+      const openBraces = (line.match(/\{/g) || []).length;
+      const closeBraces = (line.match(/\}/g) || []).length;
+      if (openBraces > closeBraces) continue;
+      // Skip if return expression continues on next line (chained methods or operators)
       const nextLine = lines[i + 1].trim();
+      if (/^[.\|&+\-*%?:]/.test(nextLine)) continue;
       // Skip if next line is closing brace, comment, or empty
       if (nextLine && !/^[}\/\]`,;*]/.test(nextLine) && !/^(else|catch|finally)\b/.test(nextLine)) {
         findings.push({

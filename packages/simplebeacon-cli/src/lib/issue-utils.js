@@ -4,7 +4,16 @@
 
 const INFORMATIONAL_ISSUE_TYPES = new Set([
     'Legacy Fiction Roadmap',
-    'Oversized Roadmap File'
+    'Oversized Roadmap File',
+    'test-coverage',
+    'documentation',
+    'workspace-health',
+    'governance-marker',
+    'ai-indicators',
+    'i18n',
+    'security-headers',
+    'governance',
+    'database-patterns'
 ]);
 
 function isBlockingIssue(issue) {

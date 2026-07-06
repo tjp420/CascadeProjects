@@ -26,8 +26,31 @@ const TIER_QUOTAS = Object.freeze({
     developer: 100,
     startup: 500,
     growth: 2000,
-    enterprise: Infinity
+    enterprise: Infinity,
+    pro: 500,
+    team: 2000,
+    free: 100
 });
+
+/** Tier alias map for unified 4-tier model (canonical -> legacy alias). */
+const TIER_ALIASES = Object.freeze({
+    free: 'developer',
+    pro: 'startup',
+    team: 'growth'
+});
+
+/**
+ * Normalize a tier name to its canonical form (free, pro, team, enterprise).
+ * @param {string} tier
+ * @returns {string}
+ */
+function normalizeTier(tier) {
+    const t = String(tier || 'free').toLowerCase();
+    const reverse = Object.fromEntries(
+        Object.entries(TIER_ALIASES).map(([k, v]) => [v, k])
+    );
+    return reverse[t] || t;
+}
 
 function base64UrlEncode(buf) {
     return buf.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -262,5 +285,7 @@ module.exports = {
     hasValidLicense,
     resolveLicenseToken,
     isTokenExpiringSoon,
-    getTierQuota
+    getTierQuota,
+    normalizeTier,
+    TIER_ALIASES
 };

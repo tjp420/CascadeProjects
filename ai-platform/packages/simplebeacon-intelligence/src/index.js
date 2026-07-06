@@ -9,72 +9,35 @@
  * @license MIT
  */
 
-'use strict';
+import {
+    scanIntent, scanIntentAsync, resolveLanguage, isLanguageSupported, ENGINE as engine
+} from './intent-scanner.js';
 
-// ── Dependency Validation ───────────────────────────────────
-
-const REQUIRED = [
-    { file: './intent-scanner', exports: ['scanIntent', 'scanIntentAsync', 'resolveLanguage', 'isLanguageSupported', 'engine'] },
-    { file: './structural-intent-scanner', exports: ['scanStructuralIntent', 'scanCredentialDictStubs', 'extractPythonFunctions', 'extractJsFunctions', 'analyzeFunctionBlock', 'isGenericName', 'credentialKeyMatch', 'isPlaceholderCredentialValue', 'hasPlaceholderReturn'] },
-    { file: './tree-sitter-loader', exports: ['GRAMMAR_MAP', 'initParser', 'createLanguageParser', 'parseWithTreeSitter', 'isGrammarAvailable', 'getTreeSitterStatus', 'resolveWasmDir'] },
-    { file: './slm-bridge', exports: ['probeSlmBin', 'canRunSlm', 'buildSlmPrompt', 'parseSlmResponse', 'validateSlmResult', 'runSlmReview', 'runSlmReviewAsync'] },
-    { file: './constants', exports: ['GENERIC_AI_MARKERS', 'CREDENTIAL_KEY_FRAGMENTS', 'INTENT_RULE_IDS', 'LANGUAGE_BY_EXT'] },
-    { file: './tree-sitter-queries', exports: ['FUNCTION_NODE_TYPES', 'extractFunctionsFromTree', 'scanStructuralFromTree', 'scanWithTreeSitter'] },
-    { file: './vector-cache', exports: ['loadFingerprints', 'extractFeatureVector', 'matchFingerprints', 'fingerprintFindings', 'cosineSimilarity'] }
-];
-
-const loaded = {};
-for (const req of REQUIRED) {
-    let mod;
-    try {
-        mod = require(req.file);
-    } catch (err) {
-        throw new Error(
-            `[intelligence] Failed to load required submodule "${req.file}". ` +
-            `Ensure @simplebeacon/intelligence is installed correctly. Original: ${err.message}`
-        );
-    }
-    for (const name of req.exports) {
-        if (!(name in mod)) {
-            throw new Error(
-                `[intelligence] Submodule "${req.file}" missing expected export "${name}".`
-            );
-        }
-    }
-    loaded[req.file] = mod;
-}
-
-// ── Destructure all validated submodules ──────────────────────
-
-const {
-    scanIntent, scanIntentAsync, resolveLanguage, isLanguageSupported, engine
-} = loaded['./intent-scanner'];
-
-const {
+import {
     scanStructuralIntent, scanCredentialDictStubs,
     extractPythonFunctions, extractJsFunctions, analyzeFunctionBlock,
     isGenericName, credentialKeyMatch, isPlaceholderCredentialValue, hasPlaceholderReturn
-} = loaded['./structural-intent-scanner'];
+} from './structural-intent-scanner.js';
 
-const {
+import {
     GRAMMAR_MAP, initParser, createLanguageParser, parseWithTreeSitter,
     isGrammarAvailable, getTreeSitterStatus, resolveWasmDir
-} = loaded['./tree-sitter-loader'];
+} from './tree-sitter-loader.js';
 
-const {
+import {
     probeSlmBin, canRunSlm, buildSlmPrompt, parseSlmResponse,
     validateSlmResult, runSlmReview, runSlmReviewAsync
-} = loaded['./slm-bridge'];
+} from './slm-bridge.js';
 
-const { GENERIC_AI_MARKERS, CREDENTIAL_KEY_FRAGMENTS, INTENT_RULE_IDS, LANGUAGE_BY_EXT } = loaded['./constants'];
+import { GENERIC_AI_MARKERS, CREDENTIAL_KEY_FRAGMENTS, INTENT_RULE_IDS, LANGUAGE_BY_EXT } from './constants.js';
 
-const {
+import {
     FUNCTION_NODE_TYPES, extractFunctionsFromTree, scanStructuralFromTree, scanWithTreeSitter
-} = loaded['./tree-sitter-queries'];
+} from './tree-sitter-queries.js';
 
-const {
+import {
     loadFingerprints, extractFeatureVector, matchFingerprints, fingerprintFindings, cosineSimilarity
-} = loaded['./vector-cache'];
+} from './vector-cache.js';
 
 // ── JSDoc Type Definitions ────────────────────────────────────
 
@@ -234,7 +197,15 @@ class IntelligenceEngine {
             treeSitter: getTreeSitterStatus(),
             slm: this._slmProbe || probeSlmBin(),
             grammarCount: Object.keys(GRAMMAR_MAP || {}).length,
-            loadedModules: REQUIRED.map((r) => r.file)
+            loadedModules: [
+                './intent-scanner.js',
+                './structural-intent-scanner.js',
+                './tree-sitter-loader.js',
+                './slm-bridge.js',
+                './constants.js',
+                './tree-sitter-queries.js',
+                './vector-cache.js'
+            ]
         };
     }
 }
@@ -266,23 +237,22 @@ function getIntelligenceEngine(options = {}) {
 }
 
 // ── Module Exports ────────────────────────────────────────────
-// Note: do NOT Object.freeze() — ES module namespace objects in some
-// engines throw when redefining frozen properties.
+// Static explicit exports for bundler tree-shaking and static analysis.
 
-module.exports = {
+export {
     // ── Facade
     IntelligenceEngine,
     createIntelligenceEngine,
     getIntelligenceEngine,
 
-    // ── Intent Scanner
+    // ── intent-scanner
     scanIntent,
     scanIntentAsync,
     resolveLanguage,
     isLanguageSupported,
     engine,
 
-    // ── Structural Intent Scanner
+    // ── structural-intent-scanner
     scanStructuralIntent,
     scanCredentialDictStubs,
     extractPythonFunctions,
@@ -293,7 +263,7 @@ module.exports = {
     isPlaceholderCredentialValue,
     hasPlaceholderReturn,
 
-    // ── Tree-sitter Loader
+    // ── tree-sitter-loader
     GRAMMAR_MAP,
     initParser,
     createLanguageParser,
@@ -302,7 +272,7 @@ module.exports = {
     getTreeSitterStatus,
     resolveWasmDir,
 
-    // ── SLM Bridge
+    // ── slm-bridge
     probeSlmBin,
     canRunSlm,
     buildSlmPrompt,
@@ -311,19 +281,19 @@ module.exports = {
     runSlmReview,
     runSlmReviewAsync,
 
-    // ── Constants
+    // ── constants
     GENERIC_AI_MARKERS,
     CREDENTIAL_KEY_FRAGMENTS,
     INTENT_RULE_IDS,
     LANGUAGE_BY_EXT,
 
-    // ── Tree-sitter Queries
+    // ── tree-sitter-queries
     FUNCTION_NODE_TYPES,
     extractFunctionsFromTree,
     scanStructuralFromTree,
     scanWithTreeSitter,
 
-    // ── Vector Cache
+    // ── vector-cache
     loadFingerprints,
     extractFeatureVector,
     matchFingerprints,

@@ -111,3 +111,70 @@ const data = require('../data/users-mock.json');`;
         expectNoFindings('server/lib/loader.cjs', content);
     });
 });
+
+/* ------------------------------------------------------------------ */
+/*  globMatch                                                         */
+/* ------------------------------------------------------------------ */
+
+const { globMatch, normalizeRel, getActiveLeakPatterns } = require('../src/rules/production-leak.js');
+
+describe('globMatch', () => {
+    it('matches exact paths', () => {
+        assert.strictEqual(globMatch('foo.js', 'foo.js'), true);
+        assert.strictEqual(globMatch('bar.js', 'foo.js'), false);
+    });
+
+    it('matches suffix wildcard', () => {
+        assert.strictEqual(globMatch('foo.test.js', '*.test.js'), true);
+        assert.strictEqual(globMatch('main.js', '*.test.js'), false);
+        assert.strictEqual(globMatch('src/foo.test.js', '**/*.test.js'), true);
+        assert.strictEqual(globMatch('src/main.js', '**/*.test.js'), false);
+    });
+
+    it('matches **/dir/** pattern', () => {
+        assert.strictEqual(globMatch('node_modules/foo/package.json', 'node_modules/**'), true);
+        assert.strictEqual(globMatch('a/b/tests/foo.js', '**/tests/**'), true);
+        assert.strictEqual(globMatch('src/main.js', '**/tests/**'), false);
+    });
+
+    it('returns false for invalid inputs', () => {
+        assert.strictEqual(globMatch(null, '*.js'), false);
+        assert.strictEqual(globMatch('foo.js', null), false);
+    });
+});
+
+/* ------------------------------------------------------------------ */
+/*  normalizeRel                                                      */
+/* ------------------------------------------------------------------ */
+
+describe('normalizeRel', () => {
+    it('returns forward-slash relative paths', () => {
+        const result = normalizeRel('C:\\project', 'C:\\project\\src\\main.js');
+        assert.strictEqual(result, 'src/main.js');
+    });
+});
+
+/* ------------------------------------------------------------------ */
+/*  getActiveLeakPatterns                                             */
+/* ------------------------------------------------------------------ */
+
+describe('getActiveLeakPatterns', () => {
+    it('returns base patterns by default', () => {
+        const patterns = getActiveLeakPatterns();
+        assert.strictEqual(patterns.length, 5);
+        assert.ok(patterns.every(p => p.regex instanceof RegExp));
+    });
+
+    it('includes plain-sample-json when requested', () => {
+        const patterns = getActiveLeakPatterns({ plainSampleJson: true });
+        assert.strictEqual(patterns.length, 6);
+        assert.ok(patterns.some(p => p.id === 'plain-sample-json'));
+    });
+
+    it('returns independent regex instances on each call', () => {
+        const a = getActiveLeakPatterns();
+        const b = getActiveLeakPatterns();
+        a[0].regex.lastIndex = 99;
+        assert.strictEqual(b[0].regex.lastIndex, 0);
+    });
+});

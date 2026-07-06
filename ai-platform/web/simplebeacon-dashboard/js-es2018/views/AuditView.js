@@ -294,7 +294,7 @@ export class AuditView {
                 actions: [{ label: 'Retry', id: 'audit-retry', className: 'btn-primary' }]
             })}
       `;
-            (_a = el.querySelector('#audit-retry')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => this.reload(el.parentElement));
+            (_a = el.querySelector('#audit-retry')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => this.reload(el.parentElement), { once: true });
             return el;
         }
         const audit = this.audit || {};

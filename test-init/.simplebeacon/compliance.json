@@ -1,0 +1,119 @@
+{
+  "type": "simplebeacon-compliance-checklist",
+  "version": "1.0.0",
+  "title": "Simplebeacon Corporate Safety Checklist",
+  "description": "Automated guardrails for AI-generated code — maps scan signals to deploy readiness.",
+  "evaluatedAt": "2026-07-01T17:57:37.274Z",
+  "projectRoot": "c:\\Users\\Trevor\\CascadeProjects\\test-init",
+  "summary": {
+    "passed": 6,
+    "failed": 0,
+    "skipped": 5,
+    "total": 11,
+    "score": 100,
+    "readyForAutomation": true,
+    "checklistProfile": "default",
+    "headline": "6/6 applicable rules pass — safe to enable automated AI deploy gates"
+  },
+  "rules": [
+    {
+      "id": "GATE-001",
+      "title": "Merge gate passes on configured severities",
+      "category": "Automation",
+      "severity": "critical",
+      "remediation": "Fix blocking findings and re-run: npx simplebeacon scan --gate",
+      "status": "pass",
+      "evidence": "Gate pass — no blocking issues at configured severities"
+    },
+    {
+      "id": "CRED-001",
+      "title": "No credential or secret patterns in scanned paths",
+      "category": "Security",
+      "severity": "critical",
+      "remediation": "Remove secrets from the repo, rotate exposed credentials, add patterns to .gitignore",
+      "status": "pass",
+      "evidence": "Scanned 52 path(s) — no credential patterns"
+    },
+    {
+      "id": "LEAK-001",
+      "title": "No mock/sample JSON paths referenced from production directories",
+      "category": "Data integrity",
+      "severity": "high",
+      "remediation": "Replace hardcoded *-sample.json paths with repository-audit APIs or env-based config",
+      "status": "pass",
+      "evidence": "Scanned 182 production file(s) — no sample-path leaks"
+    },
+    {
+      "id": "DATA-001",
+      "title": "Registered page samples match schema specs",
+      "category": "Data integrity",
+      "severity": "high",
+      "remediation": "Fix schema violations listed in the scan report",
+      "status": "skip",
+      "evidence": "No registered page samples in this project"
+    },
+    {
+      "id": "DATA-002",
+      "title": "No fiction KPI or baseline drift in anchor samples",
+      "category": "Data integrity",
+      "severity": "high",
+      "remediation": "Replace fiction metrics with repository-audit baseline values",
+      "status": "skip",
+      "evidence": "Consistency anchors not configured for this profile"
+    },
+    {
+      "id": "SUPPLY-001",
+      "title": "No critical or high npm audit vulnerabilities",
+      "category": "Supply chain",
+      "severity": "critical",
+      "remediation": "Run npm audit fix; upgrade transitive dependencies blocking CVEs",
+      "status": "skip",
+      "evidence": "No package.json — npm audit not applicable"
+    },
+    {
+      "id": "SUPPLY-002",
+      "title": "Moderate npm vulnerabilities within policy limit",
+      "category": "Supply chain",
+      "severity": "medium",
+      "remediation": "Upgrade dependencies flagged by npm audit (moderate severity)",
+      "status": "skip",
+      "evidence": "No package.json — npm audit not applicable"
+    },
+    {
+      "id": "AUTH-001",
+      "title": "Production profile has JWT auth enabled (REQUIRE_AUTH)",
+      "category": "Access control",
+      "severity": "medium",
+      "remediation": "Set REQUIRE_AUTH=true and real JWT secrets in .env.production on the deploy host",
+      "status": "skip",
+      "evidence": ".env.production not present (local/dev repo)"
+    },
+    {
+      "id": "CLEANUP-001",
+      "title": "Directory bloat reviewed and safe-to-delete items identified",
+      "category": "Cleanup",
+      "severity": "medium",
+      "remediation": "Review directory bloat findings in data-cleanup scan and remove safe-to-delete items",
+      "status": "pass",
+      "evidence": "No directory bloat detected — codebase is clean"
+    },
+    {
+      "id": "CLEANUP-002",
+      "title": "Empty directories identified for removal",
+      "category": "Cleanup",
+      "severity": "low",
+      "remediation": "Remove empty directories flagged by the directory scanner",
+      "status": "pass",
+      "evidence": "No empty directories detected"
+    },
+    {
+      "id": "CLEANUP-003",
+      "title": "File reduction findings reviewed",
+      "category": "Cleanup",
+      "severity": "medium",
+      "remediation": "Review file reduction scan results and clean up unused files, duplicates, and build artifacts",
+      "status": "pass",
+      "evidence": "No file reduction findings — no cleanup needed"
+    }
+  ]
+}

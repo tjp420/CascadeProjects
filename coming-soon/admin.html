@@ -473,33 +473,9 @@
                         document.getElementById('statActiveTokens').textContent = s.activeTokens;
                         document.getElementById('statExpiredTokens').textContent = s.expiredTokens;
                         document.getElementById('statRevokedTokens').textContent = s.revokedTokens;
-                        document.getElementById('statCustomers').textContent = s.totalCustomers;
-                        document.getElementById('statSubscriptions').textContent = s.activeSubscriptions;
-                        document.getElementById('statErrors').textContent = s.errorCount24h;
-                    }
-
-                    // Violations
-                    const vioRes = await fetch(API_BASE + '/api/admin/violations', {
-                        headers: { 'Authorization': 'Bearer ' + adminToken }
-                    });
-                    const vioData = await vioRes.json();
-                    const vioBody = document.getElementById('violationsBody');
-                    document.getElementById('violationsCount').textContent = vioData.total || 0;
-                    if (vioData.success && vioData.violations.length) {
-                        vioBody.innerHTML = vioData.violations.map(v => {
-                            const sevClass = v.severity;
-                            const badgeClass = 'badge-' + v.severity;
-                            const target = v.tokenHash ? '<span class="truncate">' + v.tokenHash + '</span>' : (v.ip || '—');
-                            return '<tr class="violation-row ' + sevClass + '">' +
-                                '<td><span class="badge ' + badgeClass + '">' + (v.severity || '—').toUpperCase() + '</span></td>' +
-                                '<td>' + (v.type || '—').replace(/_/g, ' ') + '</td>' +
-                                '<td>' + target + '</td>' +
-                                '<td>' + (v.message || '—') + '</td>' +
-                                '<td>' + formatDate(v.detectedAt) + '</td>' +
-                                '</tr>';
-                        }).join('');
-                    } else {
-                        vioBody.innerHTML = '<tr><td colspan="5"><div class="empty-state">No violations detected 🎉</div></td></tr>';
+                        document.getElementById('statCustomers').textContent = s.customers;
+                        document.getElementById('statSubscriptions').textContent = s.activeTokens;
+                        document.getElementById('statErrors').textContent = '0';
                     }
 
                     // Tokens
@@ -508,78 +484,61 @@
                     });
                     const tokData = await tokRes.json();
                     const tokBody = document.getElementById('tokensBody');
-                    document.getElementById('tokensCount').textContent = tokData.total || 0;
+                    document.getElementById('tokensCount').textContent = tokData.tokens ? tokData.tokens.length : 0;
                     if (tokData.success && tokData.tokens.length) {
                         tokBody.innerHTML = tokData.tokens.map(t => {
-                            const statusBadge = t.status === 'active' ? 'badge-active' : (t.status === 'expired' ? 'badge-expired' : 'badge-revoked');
-                            const tierBadge = t.tier === 'admin' ? 'badge-admin' : 'badge-community';
-                            const vioCount = t.violations ? t.violations.length : 0;
-                            const vioDisplay = vioCount > 0 ? '<span style="color:var(--error);font-weight:600;">' + vioCount + '</span>' : '0';
+                            const status = t.revoked ? 'revoked' : ((Date.now() - t.lastSeenAt) < (30 * 60 * 1000) ? 'active' : 'expired');
+                            const statusBadge = status === 'active' ? 'badge-active' : (status === 'expired' ? 'badge-expired' : 'badge-revoked');
+                            const tierBadge = t.plan === 'admin' ? 'badge-admin' : 'badge-active';
                             return '<tr>' +
                                 '<td>' + (t.id || '—') + '</td>' +
-                                '<td class="truncate" title="' + (t.tokenHash || '') + '">' + (t.tokenHash || '—') + '</td>' +
-                                '<td><span class="badge ' + tierBadge + '">' + (t.tier || 'unknown').toUpperCase() + '</span></td>' +
-                                '<td><span class="badge ' + statusBadge + '">' + (t.status || 'unknown').toUpperCase() + '</span></td>' +
+                                '<td class="truncate" title="' + (t.masked || '') + '">' + (t.masked || '—') + '</td>' +
+                                '<td><span class="badge ' + tierBadge + '">' + (t.plan || 'unknown').toUpperCase() + '</span></td>' +
+                                '<td><span class="badge ' + statusBadge + '">' + status.toUpperCase() + '</span></td>' +
                                 '<td>' + (t.email || '—') + '</td>' +
                                 '<td>' + formatDate(t.createdAt) + '</td>' +
-                                '<td>' + formatDate(t.expiresAt) + '</td>' +
-                                '<td>' + vioDisplay + '</td>' +
-                                '<td>' + (t.status !== 'revoked' ? '<button class="btn btn-danger btn-sm" onclick="revokeToken(\'' + (t.tokenHash || '') + '\')">Revoke</button>' : '—') + '</td>' +
+                                '<td>' + formatDate(t.lastSeenAt) + '</td>' +
+                                '<td>' + (t.authMethod || '—') + '</td>' +
+                                '<td>' + (t.revoked ? '—' : '<button class="btn btn-danger btn-sm" onclick="revokeToken(\'' + (t.id || '') + '\')">Revoke</button>') + ' ' +
+                                '<button class="btn btn-danger btn-sm" onclick="deleteToken(\'' + (t.id || '') + '\')">Delete</button></td>' +
                                 '</tr>';
                         }).join('');
                     } else {
-                        tokBody.innerHTML = '<tr><td colspan="9"><div class="empty-state">No tokens found</div></td></tr>';
+                        tokBody.innerHTML = '<tr><td colspan="9"><div class="empty-state">No tokens found. Sign in on the dashboard to register tokens.</div></td></tr>';
                     }
 
-                    // Customers
-                    const custRes = await fetch(API_BASE + '/api/admin/customers', {
-                        headers: { 'Authorization': 'Bearer ' + adminToken }
-                    });
-                    const custData = await custRes.json();
+                    // Customers (derived from tokens)
                     const custBody = document.getElementById('customersBody');
-                    document.getElementById('customersCount').textContent = custData.total || 0;
-                    if (custData.success && custData.customers.length) {
-                        custBody.innerHTML = custData.customers.map(c => {
-                            const tierBadge = c.tier === 'admin' ? 'badge-admin' : (c.tier === 'community' ? 'badge-community' : 'badge-active');
-                            const statusBadge = c.subscription_status === 'active' ? 'badge-active' : (c.subscription_status === 'refunded' ? 'badge-revoked' : 'badge-expired');
-                            const subCount = c.subscriptions ? c.subscriptions.length : 0;
-                            const refCount = c.totalRefunded || 0;
+                    const customers = {};
+                    if (tokData.success && tokData.tokens.length) {
+                        tokData.tokens.forEach(t => {
+                            const c = customers[t.email] || { email: t.email, plan: t.plan, revoked: true, createdAt: t.createdAt };
+                            if (!t.revoked) c.revoked = false;
+                            if (t.createdAt < c.createdAt) c.createdAt = t.createdAt;
+                            customers[t.email] = c;
+                        });
+                        const rows = Object.values(customers).map(c => {
+                            const tierBadge = c.plan === 'admin' ? 'badge-admin' : 'badge-active';
+                            const statusBadge = c.revoked ? 'badge-revoked' : 'badge-active';
                             return '<tr>' +
                                 '<td>' + (c.email || '—') + '</td>' +
-                                '<td><span class="badge ' + tierBadge + '">' + (c.tier || 'unknown').toUpperCase() + '</span></td>' +
-                                '<td><span class="badge ' + statusBadge + '">' + (c.subscription_status || 'unknown').toUpperCase() + '</span></td>' +
-                                '<td>' + subCount + '</td>' +
-                                '<td>' + refCount + '</td>' +
-                                '<td>' + formatDate(c.created_at) + '</td>' +
-                                '<td class="actions-cell">' +
-                                (c.subscription_status !== 'refunded' && c.subscription_status !== 'inactive' ? '<button class="btn btn-danger btn-sm" onclick="refundCustomer(\'' + encodeURIComponent(c.email) + '\')">Refund</button>' : '—') +
-                                '</td>' +
+                                '<td><span class="badge ' + tierBadge + '">' + (c.plan || 'unknown').toUpperCase() + '</span></td>' +
+                                '<td><span class="badge ' + statusBadge + '">' + (c.revoked ? 'REVOKED' : 'ACTIVE') + '</span></td>' +
+                                '<td>' + formatDate(c.createdAt) + '</td>' +
+                                '<td class="actions-cell">' + (c.revoked ? '—' : '<button class="btn btn-danger btn-sm" onclick="refundCustomer(\'' + encodeURIComponent(c.email) + '\')">Refund</button>') + '</td>' +
                                 '</tr>';
                         }).join('');
+                        custBody.innerHTML = rows;
+                        document.getElementById('customersCount').textContent = Object.keys(customers).length;
                     } else {
-                        custBody.innerHTML = '<tr><td colspan="7"><div class="empty-state">No customers found</div></td></tr>';
+                        custBody.innerHTML = '<tr><td colspan="5"><div class="empty-state">No customers found</div></td></tr>';
+                        document.getElementById('customersCount').textContent = '0';
                     }
 
-                    // Users
-                    const userRes = await fetch(API_BASE + '/api/admin/users', {
-                        headers: { 'Authorization': 'Bearer ' + adminToken }
-                    });
-                    const userData = await userRes.json();
+                    // Users placeholder (same as customers for now)
                     const userBody = document.getElementById('usersBody');
-                    document.getElementById('usersCount').textContent = userData.total || 0;
-                    if (userData.success && userData.users.length) {
-                        userBody.innerHTML = userData.users.map(u => {
-                            const tierBadge = u.tier === 'admin' ? 'badge-admin' : 'badge-community';
-                            return '<tr>' +
-                                '<td>' + (u.email || '—') + '</td>' +
-                                '<td><span class="badge ' + tierBadge + '">' + (u.tier || 'unknown').toUpperCase() + '</span></td>' +
-                                '<td>' + formatDate(u.created_at) + '</td>' +
-                                '<td>' + formatDate(u.updated_at) + '</td>' +
-                                '</tr>';
-                        }).join('');
-                    } else {
-                        userBody.innerHTML = '<tr><td colspan="4"><div class="empty-state">No registered users found</div></td></tr>';
-                    }
+                    userBody.innerHTML = custBody.innerHTML;
+                    document.getElementById('usersCount').textContent = document.getElementById('customersCount').textContent;
                 } catch (err) {
                     showError('Failed to load dashboard: ' + (err.message || ''));
                 }
@@ -589,12 +548,12 @@
                 if (!email) return;
                 const reason = prompt('Enter refund reason (optional):');
                 if (reason === null) return;
-                if (!confirm('Process refund for ' + decodeURIComponent(email) + '? This will downgrade the customer to community tier.')) return;
+                if (!confirm('Process refund for ' + decodeURIComponent(email) + '? This will revoke all tokens for this account.')) return;
                 try {
-                    const res = await fetch(API_BASE + '/api/admin/customers/' + encodeURIComponent(email) + '/refund', {
+                    const res = await fetch(API_BASE + '/api/admin/tokens/revoke', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + adminToken },
-                        body: JSON.stringify({ reason: reason || 'Manual admin refund' })
+                        body: JSON.stringify({ email: decodeURIComponent(email) })
                     });
                     const data = await res.json();
                     if (data.success) {
@@ -608,14 +567,14 @@
                 }
             };
 
-            window.revokeToken = async function(tokenHash) {
-                if (!tokenHash) return;
+            window.revokeToken = async function(id) {
+                if (!id) return;
                 if (!confirm('Revoke this token? Users will lose access.')) return;
                 try {
-                    const res = await fetch(API_BASE + '/api/admin/token/revoke', {
+                    const res = await fetch(API_BASE + '/api/admin/tokens/revoke', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + adminToken },
-                        body: JSON.stringify({ tokenHash })
+                        body: JSON.stringify({ id })
                     });
                     const data = await res.json();
                     if (data.success) {
@@ -626,6 +585,26 @@
                     }
                 } catch (err) {
                     showError('Revoke failed: ' + err.message);
+                }
+            };
+
+            window.deleteToken = async function(id) {
+                if (!id) return;
+                if (!confirm('Delete this token permanently? This cannot be undone.')) return;
+                try {
+                    const res = await fetch(API_BASE + '/api/admin/tokens/' + encodeURIComponent(id), {
+                        method: 'DELETE',
+                        headers: { 'Authorization': 'Bearer ' + adminToken }
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        alert('Token deleted');
+                        loadDashboard();
+                    } else {
+                        showError(data.error || 'Delete failed');
+                    }
+                } catch (err) {
+                    showError('Delete failed: ' + err.message);
                 }
             };
 

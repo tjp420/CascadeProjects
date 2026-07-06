@@ -3,11 +3,7 @@
  * Ports IntelligentIntentScanner logic without Python AST or native deps.
  */
 
-const {
-    GENERIC_AI_MARKERS,
-    CREDENTIAL_KEY_FRAGMENTS,
-    INTENT_RULE_IDS
-} = require('./constants');
+import { GENERIC_AI_MARKERS, CREDENTIAL_KEY_FRAGMENTS, INTENT_RULE_IDS } from './constants.js';
 
 /**
  * Is generic name.
@@ -307,7 +303,7 @@ function scanStructuralIntent(content, options = {}) {
     return findings;
 }
 
-module.exports = {
+export {
     scanStructuralIntent,
     scanCredentialDictStubs,
     extractPythonFunctions,
@@ -317,4 +313,4 @@ module.exports = {
     credentialKeyMatch,
     isPlaceholderCredentialValue,
     hasPlaceholderReturn
-};
+}

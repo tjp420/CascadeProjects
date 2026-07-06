@@ -1,13 +1,13 @@
 import { apiUrl } from './utils.js';
-import { scanService } from './services/scanService.js?v=20260525jsonguard1';
+import { scanService } from './services/scanService.js?v=20260703cats1';
 import { platformService } from './services/platformService.js?v=20260525jsonguard1';
 import { billingService } from './services/billingService.js?v=20260525jsonfixbilling1';
-import { authService } from './services/authService.js?v=20260626authfix1';
+import { authService } from './services/authService.js?v=20260703tier1';
 import { themeService } from './services/themeService.js';
-import { Router, PUBLIC_VIEWS } from './router.js';
+import { Router, PUBLIC_VIEWS } from './router.js?v=20260702navfix1';
 import { TrustView } from './views/TrustView.js?v=20260525statictrust2';
 import { RepositoryHealthView } from './views/RepositoryHealthView.js?v=20260525mergepreview1';
-import { DashboardView } from './views/DashboardView.js?v=20260626redesign3';
+import { DashboardView } from './views/DashboardView.js?v=20260702drop2';
 import { ResultsView } from './views/ResultsView.js';
 import { SettingsView } from './views/SettingsView.js?v=20260525aikeysguard1';
 import { ToolsView } from './views/ToolsView.js';
@@ -15,11 +15,11 @@ import { PlatformView } from './views/PlatformView.js?v=20260601platformmetrics1
 import { QualityView } from './views/QualityView.js';
 import { HelpView, FeaturesView } from './views/HelpView.js';
 import { AuditView } from './views/AuditView.js?v=20260618renderfix1';
-import { AnalyzeView } from './views/AnalyzeViewClean.js?v=20260629resultsummary2';
+import { AnalyzeView } from './views/AnalyzeViewClean.js?v=20260703enhance2';
 import { SecurityView } from './views/SecurityView.js?v=20260611fixexport1';
-import { PricingView } from './views/PricingView.js';
+import { PricingView } from './views/PricingView.js?v=20260703tier1';
 import { AboutView } from './views/AboutView.js';
-import { AssessmentView } from './views/AssessmentView.js';
+import { AssessmentView } from './views/AssessmentView.js?v=20260702assess1';
 import { SignInView } from './views/SignInView.js?v=20260609token3';
 import { ChatbotView } from './views/ChatbotView.js';
 import { UploadView } from './views/UploadView.js';
@@ -28,306 +28,311 @@ import { ProfileView } from './views/ProfileView.js';
 import { BillingLandingController } from './controllers/billingLanding.js';
 import { COMING_SOON_URL } from './config.js';
 import { shouldShowOnboarding, renderOnboarding, bindOnboarding } from './components/Onboarding.js';
-import { showUpgradeModal } from './components/UpgradeModal.js';
+import { showUpgradeModal } from './components/UpgradeModal.js?v=20260703tier1';
 import { showLoginModal } from './components/LoginModal.js?v=20260609token4';
 import { isDemoMode, isSignedOffMode, isLocalDevHost, demoReadOnlyMessage } from './demoMode.js';
 import { showToast } from './utils.js';
 import { fetchAnalyzeProviders } from './services/analyzeService.js';
-
 /**
  * Vault unlock url.
  * @param {string} returnPath
  * @returns {any}
  */
 function vaultUnlockUrl(returnPath = '/app') {
-  const returnTo = encodeURIComponent(returnPath);
-  if (isLocalDevHost()) {
-    // Use server-injected vault password from environment variable
-    // Server should inject window.SIMPLEBEACON_VAULT_PASSWORD from process.env.VAULT_PASSWORD
-    const vaultPassword = window.SIMPLEBEACON_VAULT_PASSWORD || '';
-    if (!vaultPassword) {
-      return `/private-dashboard-vault?returnTo=${returnTo}`;
+    const returnTo = encodeURIComponent(returnPath);
+    if (isLocalDevHost()) {
+        // Use server-injected vault password from environment variable
+        // Server should inject window.SIMPLEBEACON_VAULT_PASSWORD from process.env.VAULT_PASSWORD
+        const vaultPassword = window.SIMPLEBEACON_VAULT_PASSWORD || '';
+        if (!vaultPassword) {
+            return `/private-dashboard-vault?returnTo=${returnTo}`;
+        }
+        return `/private-dashboard-vault?password=${encodeURIComponent(vaultPassword)}&returnTo=${returnTo}`;
     }
-    return `/private-dashboard-vault?password=${encodeURIComponent(vaultPassword)}&returnTo=${returnTo}`;
-  }
-  return `/private-dashboard-vault?returnTo=${returnTo}`;
+    return `/private-dashboard-vault?returnTo=${returnTo}`;
 }
 function setHtml(el, html) {
-  // simplebeacon-ignore innerhtml-xss — setHtml uses createContextualFragment for trusted view HTML; untrusted data is escaped before passing
-  el.textContent = '';
-  if (html) el.appendChild(document.createRange().createContextualFragment(html));
+    // simplebeacon-ignore innerhtml-xss — setHtml uses createContextualFragment for trusted view HTML; untrusted data is escaped before passing
+    el.textContent = '';
+    if (html)
+        el.appendChild(document.createRange().createContextualFragment(html));
 }
-
 const CLOUD_TEAMS_VIEWS = new Set([
-  'dashboard', 'audit', 'results', 'analyze', 'security', 'tools', 'platform', 'quality', 'settings', 'assessments'
+    'dashboard', 'audit', 'results', 'analyze', 'security', 'tools', 'platform', 'quality', 'settings', 'assessments'
 ]);
-
 /**
  * Requires auth gate.
  * @returns {any}
  */
 function requiresAuthGate() {
-  return isSignedOffMode() || authService.authRequired;
+    return isSignedOffMode() || authService.authRequired;
 }
-
 /**
  * Is local self hosted.
  * @returns {any}
  */
 function isLocalSelfHosted() {
-  return isLocalDevHost() || Boolean(billingService.plan?.internalDashboard);
+    var _a;
+    return isLocalDevHost() || Boolean((_a = billingService.plan) === null || _a === void 0 ? void 0 : _a.internalDashboard);
 }
-
 /**
  * Handle subscription gate.
  * @returns {any}
  */
 function handleSubscriptionGate() {
-  if (isLocalSelfHosted()) return;
-  if (requiresAuthGate()) {
-    if (!authService.isAuthenticated()) {
-      this.navigate('signin');
-    } else {
-      showToast(
-        'Local dev: restart with npm run dashboard:v1-internal (sets internal dashboard bypass).',
-        'info'
-      );
+    if (isLocalSelfHosted())
+        return;
+    if (requiresAuthGate()) {
+        if (!authService.isAuthenticated()) {
+            this.navigate('signin');
+        }
+        else {
+            showToast('Local dev: restart with npm run dashboard:v1-internal (sets internal dashboard bypass).', 'info');
+        }
+        return;
     }
-    return;
-  }
-  showUpgradeModal({ onDismiss: (action) => {
-    if (action === 'signin') {
-      this.navigate('signin');
-    } else {
-      this.navigate('pricing');
-    }
-  } });
+    showUpgradeModal({ onDismiss: (action) => {
+            if (action === 'signin') {
+                this.navigate('signin');
+            }
+            else {
+                this.navigate('pricing');
+            }
+        } });
 }
-
 /**
  * Simplebeacon dashboard.
  */
 class SimplebeaconDashboard {
-  constructor() {
-    this.scanService = scanService;
-    this.platformService = platformService;
-    this.state = {
-      report: null,
-      baseline: null,
-      config: null,
-      history: [],
-      scanning: false,
-      routeParams: {},
-      dashboardHome: null,
-      devTools: null,
-      devWorkflows: null,
-      coverage: null,
-      security: null,
-      quality: null,
-      help: null,
-      audit: null,
-      npmAudit: null,
-      analyzeResult: null,
-      lastProjectPath: '',
-      defaultProjectPath: '',
-      mergerReductionScan: null,
-      reAttestation: null,
-      dataLoading: false,
-      billingPlan: null,
-      billingStatus: null
-    };
-
-    this.views = {
-      dashboard: new DashboardView(this),
-      audit: new AuditView(this),
-      assessments: new AssessmentView(this),
-      analyze: new AnalyzeView(this),
-      results: new ResultsView(this),
-      security: new SecurityView(this),
-      tools: new ToolsView(this),
-      platform: new PlatformView(this),
-      quality: new QualityView(this),
-      help: new HelpView(this),
-      features: new FeaturesView(this),
-      settings: new SettingsView(this),
-      pricing: new PricingView(this),
-      about: new AboutView(this),
-      trust: new TrustView(this),
-      'repository-health': new RepositoryHealthView(this),
-      signin: new SignInView(this),
-      chatbot: new ChatbotView(this),
-      upload: new UploadView(this),
-      remediation: new RemediationRoadmapView(this),
-      profile: new ProfileView(this),
-      'billing-success': new BillingLandingController(this),
-      'billing-cancel': new BillingLandingController(this)
-    };
-
-    this.currentView = null;
-    this.router = new Router((view, params) => this.onRoute(view, params));
-    this._refreshScheduled = false;
-    this._bgScanPollTimer = null;
-    this._bgScanPollStart = 0;
-    this._lastKnownScanId = null;
-    this._currentViewName = 'dashboard';
-  }
-
-  async init() {
-    themeService.init();
-    window.addEventListener('message', (event) => {
-      if (!event.data) { return; }
-      if (event.data.command === 'setTheme') {
-        themeService.set(event.data.theme);
-      } else if (event.data.command === 'setIdePreview') {
-        document.documentElement.setAttribute('data-ide-preview', 'true');
-      } else if (event.data.command === 'navigate') {
-        if (event.data.url && window.__SB_DASHBOARD_APP__) {
-          try {
-            const url = new URL(event.data.url);
-            let route = url.pathname.replace(/^\/dashboard\/?/, '').replace(/\/$/, '');
-            if (!route && url.hash) {
-              route = url.hash.replace(/^#\//, '');
-            }
-            if (route) {
-              window.__SB_DASHBOARD_APP__.navigate(route);
-              return;
-            }
-          } catch (e) {}
-        }
-        if (event.data.url) { window.location.href = event.data.url; }
-      } else if (event.data.command === 'setAnalyzePath') {
-        // Backend-resolved absolute path from VS Code extension
-        const path = event.data.path || '';
-        if (!path) return;
-        // Try to update the AnalyzeView path input if it exists
-        const pathInput = document.querySelector('#project-path-input');
-        if (pathInput) {
-          pathInput.value = path;
-          pathInput.dispatchEvent(new Event('input', { bubbles: true }));
-          // Trigger analyze if the view is active and auto-run is expected
-          const app = window.__SB_DASHBOARD_APP__;
-          if (app && app.state) {
-            app.state.lastProjectPath = path;
-            app.state.pathInputDraft = '';
-          }
-        }
-        // Also try the legacy welcome-dashboard analyzePathInput
-        const legacyInput = document.getElementById('analyzePathInput');
-        if (legacyInput) {
-          legacyInput.value = path;
-        }
-      }
-    });
-    try {
-      if (window.parent && window.parent !== window) {
-        window.parent.postMessage({command: 'dashReady'}, '*');
-        window.parent.postMessage({command: 'setAuthState', signedIn: authService.isAuthenticated()}, '*');
-      }
-    } catch (e) {}
-    this.setupShell();
-    this.setupKeyboard();
-    this.setupMobileNav();
-    this.cleanupDisabledElements();
-    this.updateAuthUi();
-
-    window.addEventListener('auth-signed-in', () => {
-      this.updateAuthUi();
-      this.updateNavVisibility(true);
-    });
-
-    window.addEventListener('auth-signed-out', () => {
-      this.updateAuthUi();
-      this.updateNavVisibility(false);
-      this.router.navigate('signin');
-    });
-
-    if (isDemoMode()) {
-      document.title = 'SimpleBeacon Demo — Honey-pot Gate';
-      this.showDemoBanner();
-      this.bootstrapAfterAuth();
-      return;
+    constructor() {
+        this.scanService = scanService;
+        this.platformService = platformService;
+        this.state = {
+            report: null,
+            baseline: null,
+            config: null,
+            history: [],
+            scanning: false,
+            routeParams: {},
+            dashboardHome: null,
+            devTools: null,
+            devWorkflows: null,
+            coverage: null,
+            security: null,
+            quality: null,
+            help: null,
+            audit: null,
+            npmAudit: null,
+            analyzeResult: null,
+            lastProjectPath: '',
+            defaultProjectPath: '',
+            mergerReductionScan: null,
+            reAttestation: null,
+            dataLoading: false,
+            billingPlan: null,
+            billingStatus: null
+        };
+        this.views = {
+            dashboard: new DashboardView(this),
+            audit: new AuditView(this),
+            assessments: new AssessmentView(this),
+            analyze: new AnalyzeView(this),
+            results: new ResultsView(this),
+            security: new SecurityView(this),
+            tools: new ToolsView(this),
+            platform: new PlatformView(this),
+            quality: new QualityView(this),
+            help: new HelpView(this),
+            features: new FeaturesView(this),
+            settings: new SettingsView(this),
+            pricing: new PricingView(this),
+            about: new AboutView(this),
+            trust: new TrustView(this),
+            'repository-health': new RepositoryHealthView(this),
+            signin: new SignInView(this),
+            chatbot: new ChatbotView(this),
+            upload: new UploadView(this),
+            remediation: new RemediationRoadmapView(this),
+            profile: new ProfileView(this),
+            'billing-success': new BillingLandingController(this),
+            'billing-cancel': new BillingLandingController(this)
+        };
+        this.currentView = null;
+        this.router = new Router((view, params) => this.onRoute(view, params));
+        this._refreshScheduled = false;
+        this._bgScanPollTimer = null;
+        this._bgScanPollStart = 0;
+        this._lastKnownScanId = null;
+        this._currentViewName = 'dashboard';
     }
-
-    const vaultReady = await this.ensureVaultSession();
-    if (!vaultReady) {
-      this.router.init();
-      this.updateAuthUi();
-      return;
+    async init() {
+        themeService.init();
+        window.addEventListener('message', (event) => {
+            if (!event.data) {
+                return;
+            }
+            if (event.data.command === 'setTheme') {
+                themeService.set(event.data.theme);
+            }
+            else if (event.data.command === 'setIdePreview') {
+                document.documentElement.setAttribute('data-ide-preview', 'true');
+            }
+            else if (event.data.command === 'navigate') {
+                if (event.data.url && window.__SB_DASHBOARD_APP__) {
+                    try {
+                        const url = new URL(event.data.url);
+                        let route = url.pathname.replace(/^\/dashboard\/?/, '').replace(/\/$/, '');
+                        if (!route && url.hash) {
+                            route = url.hash.replace(/^#\//, '');
+                        }
+                        if (route) {
+                            window.__SB_DASHBOARD_APP__.navigate(route);
+                            return;
+                        }
+                    }
+                    catch (e) { }
+                }
+                if (event.data.url) {
+                    window.location.href = event.data.url;
+                }
+            }
+            else if (event.data.command === 'setAnalyzePath') {
+                var path = event.data.path || '';
+                if (!path)
+                    return;
+                var pathInput = document.querySelector('#project-path-input');
+                if (pathInput) {
+                    pathInput.value = path;
+                    pathInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    var app = window.__SB_DASHBOARD_APP__;
+                    if (app && app.state) {
+                        app.state.lastProjectPath = path;
+                        app.state.pathInputDraft = '';
+                    }
+                }
+                var legacyInput = document.getElementById('analyzePathInput');
+                if (legacyInput) {
+                    legacyInput.value = path;
+                }
+            }
+            else if (event.data.command === 'showLoginModal') {
+                if (typeof showLoginModal === 'function') {
+                    showLoginModal();
+                }
+            }
+        });
+        try {
+            const vscode = typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi() : null;
+            if (vscode) {
+                vscode.postMessage({ command: 'dashReady' });
+                vscode.postMessage({ command: 'setAuthState', signedIn: authService.isAuthenticated(), tier: authService.getTier() });
+            } else if (window.parent && window.parent !== window) {
+                window.parent.postMessage({ command: 'dashReady' }, '*');
+                window.parent.postMessage({ command: 'setAuthState', signedIn: authService.isAuthenticated(), tier: authService.getTier() }, '*');
+            }
+        }
+        catch (e) { }
+        this.setupShell();
+        this.setupKeyboard();
+        this.setupMobileNav();
+        this.cleanupDisabledElements();
+        this.updateAuthUi();
+        window.addEventListener('auth-signed-in', () => {
+            this.updateAuthUi();
+            this.updateNavVisibility(true);
+        });
+        window.addEventListener('auth-signed-out', () => {
+            this.updateAuthUi();
+            this.updateNavVisibility(false);
+            this.router.navigate('signin');
+        });
+        if (isDemoMode()) {
+            document.title = 'SimpleBeacon Demo — Honey-pot Gate';
+            this.showDemoBanner();
+            this.bootstrapAfterAuth();
+            return;
+        }
+        const vaultReady = await this.ensureVaultSession();
+        if (!vaultReady) {
+            this.router.init();
+            this.updateAuthUi();
+            return;
+        }
+        await authService.ensureAuthenticated();
+        this.bootstrapAfterAuth();
     }
-
-    await authService.ensureAuthenticated();
-    this.bootstrapAfterAuth();
-  }
-
-  showDemoBanner() {
-    if (document.getElementById('demo-banner')) return;
-    const bar = document.createElement('div');
-    bar.id = 'demo-banner';
-    bar.className = 'demo-banner';
-    const span = document.createElement('span');
-    const strong = document.createElement('strong'); strong.textContent = 'Demo';
-    span.appendChild(strong);
-    span.appendChild(document.createTextNode(' — read-only honey-pot fixture (gate FAIL). Not your workspace.'));
-    const a = document.createElement('a');
-    a.className = 'demo-banner-link';
-    a.href = 'https://simplebeacon.pages.dev/pricing';
-    a.target = '_blank';
-    a.rel = 'noopener noreferrer';
-    a.textContent = 'View pricing →';
-    bar.appendChild(span);
-    bar.appendChild(a);
-    document.body.prepend(bar);
-  }
-
-  showReadOnlyBanner() {
-    if (document.getElementById('readonly-banner')) return;
-    const bar = document.createElement('div');
-    bar.id = 'readonly-banner';
-    bar.className = 'demo-banner';
-    bar.style.background = 'linear-gradient(90deg, rgba(99,102,241,0.15), rgba(99,102,241,0.05))';
-    bar.style.borderBottom = '1px solid rgba(99,102,241,0.3)';
-    const span = document.createElement('span');
-    const strong = document.createElement('strong'); strong.textContent = 'Demo Mode';
-    span.appendChild(strong);
-    span.appendChild(document.createTextNode(' — You are viewing with a free token. Reports are read-only. Upgrade to unlock scans, exports, and full dashboard interaction.'));
-    const a = document.createElement('a');
-    a.className = 'demo-banner-link';
-    a.href = 'pricing.html';
-    a.target = '_blank';
-    a.rel = 'noopener noreferrer';
-    a.textContent = 'View pricing →';
-    bar.appendChild(span);
-    bar.appendChild(a);
-    document.body.prepend(bar);
-  }
-
-  showVaultBanner() {
-    if (document.getElementById('vault-banner')) return;
-    const returnPath = `${window.location.pathname}${window.location.search}`;
-    const bar = document.createElement('div');
-    bar.id = 'vault-banner';
-    bar.className = 'demo-banner';
-    const span = document.createElement('span');
-    const strong = document.createElement('strong'); strong.textContent = 'Vault locked';
-    span.appendChild(strong);
-    span.appendChild(document.createTextNode(' — unlock the internal dashboard before scan/API calls work.'));
-    const a = document.createElement('a');
-    a.className = 'demo-banner-link';
-    a.href = vaultUnlockUrl(returnPath);
-    a.textContent = 'Unlock vault →';
-    bar.appendChild(span);
-    bar.appendChild(a);
-    document.body.prepend(bar);
-  }
-
-  showTokenPrompt() {
-    if (document.getElementById('token-prompt-modal')) return;
-
-    const overlay = document.createElement('div');
-    overlay.id = 'token-prompt-modal';
-    overlay.className = 'modal-overlay';
-    overlay.style.zIndex = '300';
-    setHtml(overlay, `
+    showDemoBanner() {
+        if (document.getElementById('demo-banner'))
+            return;
+        const bar = document.createElement('div');
+        bar.id = 'demo-banner';
+        bar.className = 'demo-banner';
+        const span = document.createElement('span');
+        const strong = document.createElement('strong');
+        strong.textContent = 'Demo';
+        span.appendChild(strong);
+        span.appendChild(document.createTextNode(' — read-only honey-pot fixture (gate FAIL). Not your workspace.'));
+        const a = document.createElement('a');
+        a.className = 'demo-banner-link';
+        a.href = 'https://simplebeacon.pages.dev/pricing';
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.textContent = 'View pricing →';
+        bar.appendChild(span);
+        bar.appendChild(a);
+        document.body.prepend(bar);
+    }
+    showReadOnlyBanner() {
+        if (document.getElementById('readonly-banner'))
+            return;
+        const bar = document.createElement('div');
+        bar.id = 'readonly-banner';
+        bar.className = 'demo-banner';
+        bar.style.background = 'linear-gradient(90deg, rgba(99,102,241,0.15), rgba(99,102,241,0.05))';
+        bar.style.borderBottom = '1px solid rgba(99,102,241,0.3)';
+        const span = document.createElement('span');
+        const strong = document.createElement('strong');
+        strong.textContent = 'Demo Mode';
+        span.appendChild(strong);
+        span.appendChild(document.createTextNode(' — You are viewing with a free token. Reports are read-only. Upgrade to unlock scans, exports, and full dashboard interaction.'));
+        const a = document.createElement('a');
+        a.className = 'demo-banner-link';
+        a.href = 'pricing.html';
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.textContent = 'View pricing →';
+        bar.appendChild(span);
+        bar.appendChild(a);
+        document.body.prepend(bar);
+    }
+    showVaultBanner() {
+        if (document.getElementById('vault-banner'))
+            return;
+        const returnPath = `${window.location.pathname}${window.location.search}`;
+        const bar = document.createElement('div');
+        bar.id = 'vault-banner';
+        bar.className = 'demo-banner';
+        const span = document.createElement('span');
+        const strong = document.createElement('strong');
+        strong.textContent = 'Vault locked';
+        span.appendChild(strong);
+        span.appendChild(document.createTextNode(' — unlock the internal dashboard before scan/API calls work.'));
+        const a = document.createElement('a');
+        a.className = 'demo-banner-link';
+        a.href = vaultUnlockUrl(returnPath);
+        a.textContent = 'Unlock vault →';
+        bar.appendChild(span);
+        bar.appendChild(a);
+        document.body.prepend(bar);
+    }
+    showTokenPrompt() {
+        if (document.getElementById('token-prompt-modal'))
+            return;
+        const overlay = document.createElement('div');
+        overlay.id = 'token-prompt-modal';
+        overlay.className = 'modal-overlay';
+        overlay.style.zIndex = '300';
+        setHtml(overlay, `
       <div class="modal-card" role="dialog" aria-labelledby="token-prompt-title" style="max-width:420px;">
         <div class="modal-header" style="text-align:center;">
           <h2 id="token-prompt-title" style="font-size:1.25rem;margin-bottom:var(--space-1);">🔐 Unlock Dashboard</h2>
@@ -370,998 +375,933 @@ class SimplebeaconDashboard {
         </div>
       </div>
     `);
-    document.body.appendChild(overlay);
-
-    // Tab switching
-    const tabs = overlay.querySelectorAll('.signin-tab');
-    const panels = {
-      email: overlay.querySelector('#prompt-panel-email'),
-      token: overlay.querySelector('#prompt-panel-token')
-    };
-    tabs.forEach((tab) => {
-      tab.addEventListener('click', () => {
-        const key = tab.dataset.tab;
-        tabs.forEach((t) => t.classList.toggle('active', t.dataset.tab === key));
-        Object.entries(panels).forEach(([k, el]) => {
-          if (el) el.classList.toggle('active', k === key);
+        document.body.appendChild(overlay);
+        // Tab switching
+        const tabs = overlay.querySelectorAll('.signin-tab');
+        const panels = {
+            email: overlay.querySelector('#prompt-panel-email'),
+            token: overlay.querySelector('#prompt-panel-token')
+        };
+        tabs.forEach((tab) => {
+            tab.addEventListener('click', () => {
+                const key = tab.dataset.tab;
+                tabs.forEach((t) => t.classList.toggle('active', t.dataset.tab === key));
+                Object.entries(panels).forEach(([k, el]) => {
+                    if (el)
+                        el.classList.toggle('active', k === key);
+                });
+            });
         });
-      });
-    });
-
-    const tokenForm = overlay.querySelector('#token-prompt-form');
-    const tokenSubmitBtn = overlay.querySelector('#token-prompt-submit');
-    const tokenErrorEl = overlay.querySelector('#token-prompt-error');
-
-    tokenForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const token = overlay.querySelector('#token-prompt-input').value.trim();
-      const password = overlay.querySelector('#token-prompt-password')?.value || '';
-      tokenSubmitBtn.disabled = true;
-      tokenSubmitBtn.textContent = 'Validating…';
-      if (tokenErrorEl) { tokenErrorEl.hidden = true; tokenErrorEl.textContent = ''; }
-
-      if (authService.isTokenActivated(token)) {
-        const emailTab = overlay.querySelector('#prompt-tab-email');
-        const tokenTab = overlay.querySelector('#prompt-tab-token');
-        const emailPanel = overlay.querySelector('#prompt-panel-email');
-        const tokenPanel = overlay.querySelector('#prompt-panel-token');
-        if (emailTab) emailTab.classList.add('active');
-        if (tokenTab) tokenTab.classList.remove('active');
-        if (emailPanel) emailPanel.classList.add('active');
-        if (tokenPanel) tokenPanel.classList.remove('active');
-
-        const emailErrorEl = overlay.querySelector('#token-email-error');
-        if (emailErrorEl) {
-          const binding = authService.getTokenBinding(token);
-          const emailHint = binding?.email ? ` (${binding.email})` : '';
-          emailErrorEl.textContent = `This token is registered to an account${emailHint}. Please sign in with your email and password.`;
-          emailErrorEl.hidden = false;
-          if (binding?.email) {
-            const emailInput = overlay.querySelector('#token-email-input');
-            if (emailInput) emailInput.value = binding.email;
-          }
-        }
-        tokenSubmitBtn.disabled = false;
-        tokenSubmitBtn.textContent = 'Unlock with token';
-        return;
-      }
-
-      try {
-        authService.setSession(token, { token, source: 'modal', password });
-        const valid = await authService.validateSession(password ? { password } : undefined);
-        if (!valid) throw new Error('Invalid or expired token. Check your license token and try again.');
-        overlay.remove();
-        showToast('Dashboard unlocked', 'success');
-        this.updateNavVisibility(true);
-        this.bootstrapAfterAuth();
-      } catch (err) {
-        authService.clearSession();
-        const message = err.message || 'Token validation failed';
-        if (tokenErrorEl) { tokenErrorEl.textContent = message; tokenErrorEl.hidden = false; }
-        showToast(message, 'error');
-        tokenSubmitBtn.disabled = false;
-        tokenSubmitBtn.textContent = 'Unlock with token';
-      }
-    });
-
-    const emailForm = overlay.querySelector('#token-email-form');
-    const emailSubmitBtn = overlay.querySelector('#token-email-submit');
-    const emailErrorEl = overlay.querySelector('#token-email-error');
-    if (emailForm) {
-      emailForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const email = overlay.querySelector('#token-email-input').value.trim();
-        const password = overlay.querySelector('#token-password-input').value;
-        emailSubmitBtn.disabled = true;
-        emailSubmitBtn.textContent = 'Signing in…';
-        if (emailErrorEl) { emailErrorEl.hidden = true; emailErrorEl.textContent = ''; }
-        try {
-          await authService.login(email, password);
-          overlay.remove();
-          showToast('Signed in successfully', 'success');
-          this.updateAuthUi();
-          this.bootstrapAfterAuth();
-        } catch (err) {
-          const message = err.message || 'Sign in failed';
-          if (emailErrorEl) { emailErrorEl.textContent = message; emailErrorEl.hidden = false; }
-          showToast(message, 'error');
-          emailSubmitBtn.disabled = false;
-          emailSubmitBtn.textContent = 'Sign in with email';
-        }
-      });
-    }
-  }
-
-  showLockScreen(view) {
-    const main = document.getElementById('app-main');
-    if (!main) return;
-
-    const titles = {
-      dashboard: 'Dashboard',
-      analyze: 'Analyze',
-      results: 'Results',
-      'repository-health': 'Repository Health',
-      audit: 'Audit',
-      security: 'Security',
-      quality: 'Quality',
-      trust: 'Trust',
-      assessments: 'Assessments',
-      remediation: 'Remediation',
-      platform: 'Platform',
-      tools: 'Tools',
-      chatbot: 'Chatbot'
-    };
-    const title = titles[view] || view;
-
-    setHtml(main, `
-      <div class="lock-screen" style="display:flex;align-items:center;justify-content:center;min-height:60vh;padding:var(--space-8);">
-        <div class="lock-screen-content" style="text-align:center;max-width:420px;">
-          <div style="font-size:3rem;margin-bottom:var(--space-4);">🔒</div>
-          <h2 style="font-size:1.5rem;margin-bottom:var(--space-2);">${title} is locked</h2>
-          <p class="text-muted" style="margin-bottom:var(--space-5);">Sign in to access this page.</p>
-
-          <div class="lock-tabs" style="display:flex;gap:0;margin-bottom:var(--space-4);border-bottom:1px solid var(--border);">
-            <button type="button" class="lock-tab active" data-tab="email" style="flex:1;padding:10px 12px;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--text-muted);font-size:0.85rem;font-weight:500;cursor:pointer;">Email</button>
-            <button type="button" class="lock-tab" data-tab="token" style="flex:1;padding:10px 12px;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--text-muted);font-size:0.85rem;font-weight:500;cursor:pointer;">License Token</button>
-          </div>
-
-          <div id="lock-panel-email" class="lock-panel" style="text-align:left;">
-            <form id="lock-email-form">
-              <label class="field-label" for="lock-email">Email</label>
-              <input id="lock-email" class="input" type="email" autocomplete="email" required placeholder="email@example.com" style="margin-bottom:var(--space-2);" />
-              <label class="field-label" for="lock-password">Password</label>
-              <input id="lock-password" class="input" type="password" autocomplete="current-password" required placeholder="••••••••" style="margin-bottom:var(--space-3);" />
-              <p id="lock-email-error" class="text-danger" hidden role="alert" style="font-size:var(--font-size-sm);margin-bottom:var(--space-2);"></p>
-              <button type="submit" class="btn btn-primary btn-block" id="lock-email-submit">Sign in with email</button>
-            </form>
-          </div>
-
-          <div id="lock-panel-token" class="lock-panel" style="display:none;text-align:left;">
-            <form id="lock-token-form">
-              <label class="field-label" for="lock-token">License Token</label>
-              <input id="lock-token" class="input" type="text" autocomplete="off" required placeholder="sb-pro-XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX" style="margin-bottom:var(--space-2);" />
-              <label class="field-label" for="lock-token-password">Password</label>
-              <input id="lock-token-password" class="input" type="password" autocomplete="off" placeholder="Assign or enter a password for this token…" style="margin-bottom:var(--space-3);" />
-              <p id="lock-token-error" class="text-danger" hidden role="alert" style="font-size:var(--font-size-sm);margin-bottom:var(--space-2);"></p>
-              <button type="submit" class="btn btn-primary btn-block" id="lock-token-submit">Unlock with token</button>
-            </form>
-            <details style="margin-top:var(--space-3);">
-              <summary style="font-size:var(--font-size-xs);color:var(--text-muted);cursor:pointer;text-align:center;">Need a token?</summary>
-              <p class="text-muted" style="font-size:var(--font-size-xs);text-align:center;margin-top:var(--space-2);">
-                <a href="${COMING_SOON_URL}" target="_blank">Get a free community token</a> or <a href="${COMING_SOON_URL}pricing.html" target="_blank">purchase a license</a>. No email required.
-              </p>
-            </details>
-          </div>
-
-          <p style="margin-top:var(--space-4);"><a href="/dashboard/dashboard" class="btn btn-secondary btn-block" onclick="document.getElementById('token-prompt-modal')?.remove();window.__SB_DASHBOARD_APP__?.navigate('dashboard');return false;">&#8592; Return to Dashboard</a></p>
-        </div>
-      </div>
-    `);
-
-    // Tab switching
-    const tabs = main.querySelectorAll('.lock-tab');
-    const panels = {
-      email: main.querySelector('#lock-panel-email'),
-      token: main.querySelector('#lock-panel-token')
-    };
-    tabs.forEach((tab) => {
-      tab.addEventListener('click', () => {
-        const key = tab.dataset.tab;
-        tabs.forEach((t) => {
-          t.classList.toggle('active', t.dataset.tab === key);
-          t.style.borderBottomColor = t.dataset.tab === key ? 'var(--primary)' : 'transparent';
-          t.style.color = t.dataset.tab === key ? 'var(--text-primary)' : 'var(--text-muted)';
-        });
-        Object.entries(panels).forEach(([k, el]) => {
-          if (el) el.style.display = k === key ? '' : 'none';
-        });
-      });
-    });
-    // Set initial active tab styling
-    const activeTab = main.querySelector('.lock-tab.active');
-    if (activeTab) {
-      activeTab.style.borderBottomColor = 'var(--primary)';
-      activeTab.style.color = 'var(--text-primary)';
-    }
-
-    // Token form
-    const tokenForm = main.querySelector('#lock-token-form');
-    if (tokenForm) {
-      tokenForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const token = main.querySelector('#lock-token').value.trim();
-        const password = main.querySelector('#lock-token-password')?.value || '';
-        const submitBtn = main.querySelector('#lock-token-submit');
-        const errorEl = main.querySelector('#lock-token-error');
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Validating…';
-        if (errorEl) { errorEl.hidden = true; errorEl.textContent = ''; }
-        if (authService.isTokenActivated(token)) {
-          const tabs = main.querySelectorAll('.lock-tab');
-          const emailPanel = main.querySelector('#lock-panel-email');
-          const tokenPanel = main.querySelector('#lock-panel-token');
-          tabs.forEach((t) => {
-            t.classList.toggle('active', t.dataset.tab === 'email');
-            t.style.borderBottomColor = t.dataset.tab === 'email' ? 'var(--primary)' : 'transparent';
-            t.style.color = t.dataset.tab === 'email' ? 'var(--text-primary)' : 'var(--text-muted)';
-          });
-          if (emailPanel) emailPanel.style.display = '';
-          if (tokenPanel) tokenPanel.style.display = 'none';
-
-          const emailErrorEl = main.querySelector('#lock-email-error');
-          if (emailErrorEl) {
-            const binding = authService.getTokenBinding(token);
-            const emailHint = binding?.email ? ` (${binding.email})` : '';
-            emailErrorEl.textContent = `This token is registered to an account${emailHint}. Please sign in with your email and password.`;
-            emailErrorEl.hidden = false;
-            if (binding?.email) {
-              const emailInput = main.querySelector('#lock-email');
-              if (emailInput) emailInput.value = binding.email;
+        const tokenForm = overlay.querySelector('#token-prompt-form');
+        const tokenSubmitBtn = overlay.querySelector('#token-prompt-submit');
+        const tokenErrorEl = overlay.querySelector('#token-prompt-error');
+        tokenForm.addEventListener('submit', async (e) => {
+            var _a;
+            e.preventDefault();
+            const token = overlay.querySelector('#token-prompt-input').value.trim();
+            const password = ((_a = overlay.querySelector('#token-prompt-password')) === null || _a === void 0 ? void 0 : _a.value) || '';
+            tokenSubmitBtn.disabled = true;
+            tokenSubmitBtn.textContent = 'Validating…';
+            if (tokenErrorEl) {
+                tokenErrorEl.hidden = true;
+                tokenErrorEl.textContent = '';
             }
-          }
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Unlock with token';
-          return;
+            if (authService.isTokenActivated(token)) {
+                const emailTab = overlay.querySelector('#prompt-tab-email');
+                const tokenTab = overlay.querySelector('#prompt-tab-token');
+                const emailPanel = overlay.querySelector('#prompt-panel-email');
+                const tokenPanel = overlay.querySelector('#prompt-panel-token');
+                if (emailTab)
+                    emailTab.classList.add('active');
+                if (tokenTab)
+                    tokenTab.classList.remove('active');
+                if (emailPanel)
+                    emailPanel.classList.add('active');
+                if (tokenPanel)
+                    tokenPanel.classList.remove('active');
+                const emailErrorEl = overlay.querySelector('#token-email-error');
+                if (emailErrorEl) {
+                    const binding = authService.getTokenBinding(token);
+                    const emailHint = (binding === null || binding === void 0 ? void 0 : binding.email) ? ` (${binding.email})` : '';
+                    emailErrorEl.textContent = `This token is registered to an account${emailHint}. Please sign in with your email and password.`;
+                    emailErrorEl.hidden = false;
+                    if (binding === null || binding === void 0 ? void 0 : binding.email) {
+                        const emailInput = overlay.querySelector('#token-email-input');
+                        if (emailInput)
+                            emailInput.value = binding.email;
+                    }
+                }
+                tokenSubmitBtn.disabled = false;
+                tokenSubmitBtn.textContent = 'Unlock with token';
+                return;
+            }
+            try {
+                authService.setSession(token, { token, source: 'modal', password });
+                const valid = await authService.validateSession(password ? { password } : undefined);
+                if (!valid)
+                    throw new Error('Invalid or expired token. Check your license token and try again.');
+                overlay.remove();
+                showToast('Dashboard unlocked', 'success');
+                this.updateNavVisibility(true);
+                this.bootstrapAfterAuth();
+            }
+            catch (err) {
+                authService.clearSession();
+                const message = err.message || 'Token validation failed';
+                if (tokenErrorEl) {
+                    tokenErrorEl.textContent = message;
+                    tokenErrorEl.hidden = false;
+                }
+                showToast(message, 'error');
+                tokenSubmitBtn.disabled = false;
+                tokenSubmitBtn.textContent = 'Unlock with token';
+            }
+        });
+        const emailForm = overlay.querySelector('#token-email-form');
+        const emailSubmitBtn = overlay.querySelector('#token-email-submit');
+        const emailErrorEl = overlay.querySelector('#token-email-error');
+        if (emailForm) {
+            emailForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = overlay.querySelector('#token-email-input').value.trim();
+                const password = overlay.querySelector('#token-password-input').value;
+                emailSubmitBtn.disabled = true;
+                emailSubmitBtn.textContent = 'Signing in…';
+                if (emailErrorEl) {
+                    emailErrorEl.hidden = true;
+                    emailErrorEl.textContent = '';
+                }
+                try {
+                    await authService.login(email, password);
+                    overlay.remove();
+                    showToast('Signed in successfully', 'success');
+                    this.updateAuthUi();
+                    this.bootstrapAfterAuth();
+                }
+                catch (err) {
+                    const message = err.message || 'Sign in failed';
+                    if (emailErrorEl) {
+                        emailErrorEl.textContent = message;
+                        emailErrorEl.hidden = false;
+                    }
+                    showToast(message, 'error');
+                    emailSubmitBtn.disabled = false;
+                    emailSubmitBtn.textContent = 'Sign in with email';
+                }
+            });
         }
-
+    }
+    showLockScreen(view) {
+        const main = document.getElementById('app-main');
+        if (!main)
+            return;
+        const titles = {
+            dashboard: 'Dashboard',
+            analyze: 'Analyze',
+            results: 'Results',
+            'repository-health': 'Repository Health',
+            audit: 'Audit',
+            security: 'Security',
+            quality: 'Quality',
+            trust: 'Trust',
+            assessments: 'Assessments',
+            remediation: 'Remediation',
+            platform: 'Platform',
+            tools: 'Tools',
+            chatbot: 'Chatbot'
+        };
+        this.router.navigate('signin');
+    }
+    updateNavVisibility(authed) {
+        // Nav links are always visible; route gating in onRoute() shows lock screen
+        // for protected views when not authenticated. This keeps the menu visible
+        // after sign-out so users know what features exist.
+        document.querySelectorAll('.nav-link[data-view]').forEach((link) => {
+            const view = link.dataset.view;
+            if (view === 'settings')
+                return;
+            link.style.display = '';
+        });
+        document.querySelectorAll('.nav-group-toggle').forEach((toggle) => {
+            var _a;
+            toggle.style.display = '';
+            const itemsContainer = (_a = toggle.closest('.nav-group')) === null || _a === void 0 ? void 0 : _a.querySelector('.nav-group-items');
+            if (itemsContainer)
+                itemsContainer.style.display = '';
+        });
+    }
+    async ensureVaultSession() {
+        var _a;
+        if (isDemoMode() || !isLocalSelfHosted())
+            return true;
         try {
-          authService.setSession(token, { token, source: 'lock-screen', password });
-          const valid = await authService.validateSession(password ? { password } : undefined);
-          if (!valid) throw new Error('Invalid or expired token.');
-          showToast('Dashboard unlocked', 'success');
-          this.updateAuthUi();
-          this.bootstrapAfterAuth();
-          this.router.navigate(view);
-        } catch (err) {
-          authService.clearSession();
-          const message = err.message || 'Token validation failed';
-          if (errorEl) { errorEl.textContent = message; errorEl.hidden = false; }
-          showToast(message, 'error');
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Unlock with token';
+            const res = await fetch(apiUrl('/api/auth/me'), { credentials: 'same-origin' });
+            const data = await res.json().catch(() => ({}));
+            if (res.status === 403 && data.error === 'vault_required') {
+                this.showVaultBanner();
+                return false;
+            }
+            (_a = document.getElementById('vault-banner')) === null || _a === void 0 ? void 0 : _a.remove();
+            return true;
         }
-      });
-    }
-
-    // Email form
-    const emailForm = main.querySelector('#lock-email-form');
-    if (emailForm) {
-      emailForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const email = main.querySelector('#lock-email').value.trim();
-        const password = main.querySelector('#lock-password').value;
-        const submitBtn = main.querySelector('#lock-email-submit');
-        const errorEl = main.querySelector('#lock-email-error');
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Signing in…';
-        if (errorEl) { errorEl.hidden = true; errorEl.textContent = ''; }
-        try {
-          await authService.login(email, password);
-          showToast('Signed in successfully', 'success');
-          this.updateAuthUi();
-          this.bootstrapAfterAuth();
-          this.router.navigate(view);
-        } catch (err) {
-          const message = err.message || 'Sign in failed';
-          if (errorEl) { errorEl.textContent = message; errorEl.hidden = false; }
-          showToast(message, 'error');
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Sign in with email';
+        catch (_b) {
+            return true;
         }
-      });
     }
-  }
-
-  updateNavVisibility(authed) {
-    // Nav links are always visible; route gating in onRoute() shows lock screen
-    // for protected views when not authenticated. This keeps the menu visible
-    // after sign-out so users know what features exist.
-    document.querySelectorAll('.nav-link[data-view]').forEach((link) => {
-      const view = link.dataset.view;
-      if (view === 'settings') return;
-      link.style.display = '';
-    });
-    document.querySelectorAll('.nav-group-toggle').forEach((toggle) => {
-      toggle.style.display = '';
-      const itemsContainer = toggle.closest('.nav-group')?.querySelector('.nav-group-items');
-      if (itemsContainer) itemsContainer.style.display = '';
-    });
-  }
-
-  async ensureVaultSession() {
-    if (isDemoMode() || !isLocalSelfHosted()) return true;
-    try {
-      const res = await fetch(apiUrl('/api/auth/me'), { credentials: 'same-origin' });
-      const data = await res.json().catch(() => ({}));
-      if (res.status === 403 && data.error === 'vault_required') {
-        this.showVaultBanner();
-        return false;
-      }
-      document.getElementById('vault-banner')?.remove();
-      return true;
-    } catch {
-      return true;
-    }
-  }
-
-  bootstrapAfterAuth() {
-    this.updateAuthUi();
-    this.router.init();
-
-    const readOnlyPreview = isDemoMode();
-
-    this.updateNavVisibility(authService.isAuthenticated());
-    this.loadDataInBackground().then(() => {
-      this.startBackgroundScanWatcher();
-    });
-    if (!readOnlyPreview) {
-      this.loadPlatformData();
-      this.loadBillingContext();
-    }
-    if (!readOnlyPreview) {
-      this.maybeShowOnboarding();
-    }
-  }
-
-  updateAuthUi() {
-    this.state.user = authService.getUser() || {};
-    const authed = authService.isAuthenticated();
-    const signinBtn = document.getElementById('signin-btn');
-    const signoutBtn = document.getElementById('signout-btn');
-    const profileBtn = document.getElementById('profile-btn');
-    if (signinBtn) signinBtn.hidden = authed;
-    if (signoutBtn) signoutBtn.hidden = !authed;
-    if (profileBtn) profileBtn.hidden = !authed;
-    const sidebarSigninBtn = document.getElementById('sidebar-signin-btn');
-    if (sidebarSigninBtn) sidebarSigninBtn.hidden = authed;
-    const pricingLink = document.getElementById('header-pricing-link');
-    if (pricingLink) pricingLink.hidden = authed;
-
-    const token = authService.getToken();
-    const sandboxBanner = document.getElementById('sandbox-banner');
-    if (sandboxBanner) {
-/**
- * Is sandbox.
- * @param {any} (
- * @returns {any}
- */
-      const isSandbox = (() => {
-        if (!token) return false;
-        try {
-          const payload = token.split('.')[1];
-          if (!payload) return false;
-          const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
-          const data = JSON.parse(json);
-          const tier = data.tier || data.plan || '';
-          return tier === 'sandbox' || tier === 'developer';
-        } catch {
-          return false;
+    bootstrapAfterAuth() {
+        this.updateAuthUi();
+        this.router.init();
+        const readOnlyPreview = isDemoMode();
+        this.updateNavVisibility(authService.isAuthenticated());
+        this.loadDataInBackground().then(() => {
+            this.startBackgroundScanWatcher();
+        });
+        if (!readOnlyPreview) {
+            this.loadPlatformData();
+            this.loadBillingContext();
         }
-      })();
-      sandboxBanner.hidden = !isSandbox;
+        if (!readOnlyPreview) {
+            this.maybeShowOnboarding();
+        }
     }
-    this.updateProfileDropdownHeader();
-  }
-
-  updateProfileDropdownHeader() {
-    const header = document.getElementById('profile-dropdown-header');
-    if (!header) return;
-    const user = authService.getUser() || {};
-    const email = user.email || 'Signed in user';
-    const tier = user.tier || user.plan || 'Community';
-    header.textContent = '';
-    const emailEl = document.createElement('strong');
-    emailEl.textContent = email;
-    const tierEl = document.createElement('span');
-    tierEl.textContent = tier;
-    header.appendChild(emailEl);
-    header.appendChild(tierEl);
-  }
-
-  setupProfileDropdown() {
-    const profileBtn = document.getElementById('profile-btn');
-    const menu = document.getElementById('profile-dropdown-menu');
-    const viewItem = document.getElementById('profile-dropdown-view');
-    const signoutItem = document.getElementById('profile-dropdown-signout');
-    if (!profileBtn || !menu) return;
-
-    const closeMenu = () => {
-      menu.classList.add('hidden');
-      profileBtn.setAttribute('aria-expanded', 'false');
-    };
-
-    const toggleMenu = () => {
-      const isOpen = !menu.classList.contains('hidden');
-      if (isOpen) {
-        closeMenu();
-      } else {
+    updateAuthUi() {
+        this.state.user = authService.getUser() || {};
+        const authed = authService.isAuthenticated();
+        const signinBtn = document.getElementById('signin-btn');
+        const profileBtn = document.getElementById('profile-btn');
+        if (signinBtn)
+            signinBtn.hidden = authed;
+        if (profileBtn)
+            profileBtn.hidden = !authed;
+        const sidebarSigninBtn = document.getElementById('sidebar-signin-btn');
+        if (sidebarSigninBtn)
+            sidebarSigninBtn.hidden = authed;
+        const pricingLink = document.getElementById('header-pricing-link');
+        if (pricingLink)
+            pricingLink.hidden = authed;
+        const token = authService.getToken();
+        const sandboxBanner = document.getElementById('sandbox-banner');
+        if (sandboxBanner) {
+            /**
+             * Is sandbox.
+             * @param {any} (
+             * @returns {any}
+             */
+            const isSandbox = (() => {
+                if (!token)
+                    return false;
+                try {
+                    const payload = token.split('.')[1];
+                    if (!payload)
+                        return false;
+                    const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+                    const data = JSON.parse(json);
+                    const tier = data.tier || data.plan || '';
+                    return tier === 'sandbox' || tier === 'developer';
+                }
+                catch (_a) {
+                    return false;
+                }
+            })();
+            sandboxBanner.hidden = !isSandbox;
+        }
         this.updateProfileDropdownHeader();
-        menu.classList.remove('hidden');
-        profileBtn.setAttribute('aria-expanded', 'true');
-      }
-    };
-
-    profileBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      toggleMenu();
-    });
-
-    viewItem?.addEventListener('click', () => {
-      closeMenu();
-      this.router.navigate('profile');
-    });
-
-    signoutItem?.addEventListener('click', async () => {
-      closeMenu();
-      try {
-        await authService.logout();
-        showToast('Signed out', 'info');
-        this.updateAuthUi();
-        this.router.navigate('signin');
-      } catch (err) {
-        showToast('Sign out failed', 'error');
-      }
-    });
-
-    document.addEventListener('click', (e) => {
-      if (!menu.contains(e.target) && e.target !== profileBtn && !profileBtn.contains(e.target)) {
-        closeMenu();
-      }
-    });
-  }
-
-  async loadBillingContext() {
-    try {
-      const email = authService.getUser()?.email || billingService.getEmail();
-      if (email) billingService.setEmail(email);
-      const entitlement = email
-        ? await billingService.resolveEntitlement(email)
-        : { plan: await billingService.fetchPlan(), status: { subscriptionActive: false }, allowed: false };
-      this.state.billingPlan = entitlement.plan;
-      this.state.billingStatus = entitlement.status;
-      this.state.entitlements = entitlement.status;
-      await this.handleCheckoutReturn();
-    } catch (err) {
-      /* billing context unavailable */
     }
-  }
-
-  async handleCheckoutReturn() {
-    const search = window.location.search;
-    const params = new URLSearchParams(search);
-    if (params.get('success') === 'true' && params.get('session_id')) {
-      try {
-        await billingService.confirmSession(params.get('session_id'));
-        this.state.billingStatus = billingService.status;
-        showToast('Subscription active — welcome to SimpleBeacon Cloud Teams', 'success');
-      } catch (err) {
-        showToast(err.message, 'error');
-      }
+    updateProfileDropdownHeader() {
+        const header = document.getElementById('profile-dropdown-header');
+        if (!header)
+            return;
+        const user = authService.getUser() || {};
+        const email = user.email || 'Signed in user';
+        const tier = user.tier || user.plan || 'Community';
+        header.textContent = '';
+        const emailEl = document.createElement('strong');
+        emailEl.textContent = email;
+        const tierEl = document.createElement('span');
+        tierEl.textContent = tier;
+        header.appendChild(emailEl);
+        header.appendChild(tierEl);
     }
-  }
-
-  async loadDataInBackground() {
-    const now = Date.now();
-    if (this._lastLoadDataTime && now - this._lastLoadDataTime < 2000) {
-      return;
+    setupProfileDropdown() {
+        const profileBtn = document.getElementById('profile-btn');
+        const menu = document.getElementById('profile-dropdown-menu');
+        const viewItem = document.getElementById('profile-dropdown-view');
+        const signoutItem = document.getElementById('profile-dropdown-signout');
+        if (!profileBtn || !menu)
+            return;
+        const closeMenu = () => {
+            menu.classList.add('hidden');
+            profileBtn.setAttribute('aria-expanded', 'false');
+        };
+        const toggleMenu = () => {
+            const isOpen = !menu.classList.contains('hidden');
+            if (isOpen) {
+                closeMenu();
+            }
+            else {
+                this.updateProfileDropdownHeader();
+                menu.classList.remove('hidden');
+                profileBtn.setAttribute('aria-expanded', 'true');
+            }
+        };
+        profileBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleMenu();
+        });
+        viewItem === null || viewItem === void 0 ? void 0 : viewItem.addEventListener('click', () => {
+            closeMenu();
+            this.router.navigate('profile');
+        });
+        signoutItem === null || signoutItem === void 0 ? void 0 : signoutItem.addEventListener('click', async () => {
+            closeMenu();
+            try {
+                await authService.logout();
+                showToast('Signed out', 'info');
+            }
+            catch (err) {
+                showToast('Sign out failed', 'error');
+            }
+        });
+        document.addEventListener('click', (e) => {
+            if (!menu.contains(e.target) && e.target !== profileBtn && !profileBtn.contains(e.target)) {
+                closeMenu();
+            }
+        });
     }
-    this._lastLoadDataTime = now;
-    if (this.state.scanning) {
-      try {
-        await this.loadData();
-      } catch (err) {
-        if (err.code === 'vault_required') {
-          this.showVaultBanner();
-          showToast('Unlock the internal vault, then sign in and retry.', 'info');
-        } else if (err.code === 'subscription_required') {
-          handleSubscriptionGate.call(this);
-        } else if (err.code === 'auth_required') {
-          showLoginModal({ onSuccess: () => this.loadDataInBackground() });
-        } else {
-          showToast(`Scan data unavailable: ${err.message}`, 'error');
+    async loadBillingContext() {
+        var _a;
+        try {
+            const email = ((_a = authService.getUser()) === null || _a === void 0 ? void 0 : _a.email) || billingService.getEmail();
+            if (email)
+                billingService.setEmail(email);
+            const entitlement = email
+                ? await billingService.resolveEntitlement(email)
+                : { plan: await billingService.fetchPlan(), status: { subscriptionActive: false }, allowed: false };
+            this.state.billingPlan = entitlement.plan;
+            this.state.billingStatus = entitlement.status;
+            this.state.entitlements = entitlement.status;
+            await this.handleCheckoutReturn();
         }
-      }
-      return;
+        catch (err) {
+            /* billing context unavailable */
+        }
     }
-    this.state.dataLoading = true;
-    this.refreshCurrentView();
-    const safetyTimer = setTimeout(() => {
-      if (this.state.dataLoading) {
-        /* safety timeout reached */
-        this.state.dataLoading = false;
+    async handleCheckoutReturn() {
+        const search = window.location.search;
+        const params = new URLSearchParams(search);
+        if (params.get('success') === 'true' && params.get('session_id')) {
+            try {
+                await billingService.confirmSession(params.get('session_id'));
+                this.state.billingStatus = billingService.status;
+                showToast('Subscription active — welcome to SimpleBeacon Cloud Teams', 'success');
+            }
+            catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+    }
+    async loadDataInBackground() {
+        const now = Date.now();
+        if (this._lastLoadDataTime && now - this._lastLoadDataTime < 2000) {
+            return;
+        }
+        this._lastLoadDataTime = now;
+        if (this.state.scanning) {
+            try {
+                await this.loadData();
+            }
+            catch (err) {
+                if (err.code === 'vault_required') {
+                    this.showVaultBanner();
+                    showToast('Unlock the internal vault, then sign in and retry.', 'info');
+                }
+                else if (err.code === 'subscription_required') {
+                    handleSubscriptionGate.call(this);
+                }
+                else if (err.code === 'auth_required') {
+                    showLoginModal({ onSuccess: () => this.loadDataInBackground() });
+                }
+                else {
+                    showToast(`Scan data unavailable: ${err.message}`, 'error');
+                }
+            }
+            return;
+        }
+        this.state.dataLoading = true;
         this.refreshCurrentView();
-      }
-    }, 10000);
-    try {
-      await this.loadData();
-      if (this._currentViewName === 'dashboard') {
-        this.startBackgroundScanWatcher();
-      }
-    } catch (err) {
-      if (err.code === 'vault_required') {
-        this.showVaultBanner();
-        showToast('Unlock the internal vault, then sign in and retry.', 'info');
-      } else if (err.code === 'subscription_required') {
-        handleSubscriptionGate.call(this);
-      } else if (err.code === 'auth_required') {
-        showLoginModal({ onSuccess: () => this.loadDataInBackground() });
-      } else {
-        showToast(`Scan data unavailable: ${err.message}`, 'error');
-      }
-    } finally {
-      clearTimeout(safetyTimer);
-      this.state.dataLoading = false;
-      this.refreshCurrentView();
-    }
-  }
-
-  setupShell() {
-    document.getElementById('theme-toggle')?.addEventListener('click', () => {
-      themeService.toggle();
-      try {
-        if (window.parent && window.parent !== window) {
-          window.parent.postMessage({command: 'toggleTheme'}, '*');
-        }
-      } catch (e) {}
-    });
-
-    document.getElementById('signin-btn')?.addEventListener('click', () => {
-      this.router.navigate('signin');
-    });
-
-    this.setupProfileDropdown();
-
-    document.getElementById('signout-btn')?.addEventListener('click', async () => {
-      try {
-        await authService.logout();
-        showToast('Signed out', 'info');
-        this.updateAuthUi();
-        this.router.navigate('signin');
-      } catch (err) {
-        showToast('Sign out failed', 'error');
-      }
-    });
-
-    document.getElementById('sidebar-signin-btn')?.addEventListener('click', () => {
-      this.router.navigate('signin');
-    });
-
-    document.querySelectorAll('.nav-link[data-view]').forEach((link) => {
-      link.addEventListener('click', (e) => {
-        e.preventDefault();
+        const safetyTimer = setTimeout(() => {
+            if (this.state.dataLoading) {
+                /* safety timeout reached */
+                this.state.dataLoading = false;
+                this.refreshCurrentView();
+            }
+        }, 10000);
         try {
-          this.navigate(link.dataset.view);
-          this.closeMobileNav();
-        } catch (navErr) {
-          /* ignore sidebar navigation errors */
+            await this.loadData();
+            if (this._currentViewName === 'dashboard') {
+                this.startBackgroundScanWatcher();
+            }
         }
-      });
-    });
-
-    const appNav = document.getElementById('app-nav');
-    appNav?.addEventListener('click', (e) => {
-      const link = e.target.closest('.nav-link[data-view]');
-      if (!link) return;
-      e.preventDefault();
-      try {
-        this.navigate(link.dataset.view);
-        this.closeMobileNav();
-      } catch (navErr) {
-        /* ignore sidebar delegation errors */
-      }
-    });
-
-    document.addEventListener('click', (e) => {
-      const link = e.target.closest('a[href^="/dashboard/"]');
-      if (!link) { return; }
-      try {
-        const url = new URL(link.href);
-        if (url.origin !== window.location.origin) { return; }
-        e.preventDefault();
-        const route = url.pathname.replace(/^\/dashboard\/?/, '').replace(/\/$/, '') || 'dashboard';
-        this.navigate(route);
-      } catch (navErr) { /* ignore */ }
-    });
-
-    const searchInput = document.getElementById('global-search');
-    searchInput?.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && searchInput.value.trim()) {
-        this.navigate('results', { q: searchInput.value.trim() });
-      }
-    });
-  }
-
-  setupKeyboard() {
-    document.addEventListener('keydown', (e) => {
-      const mod = e.ctrlKey || e.metaKey;
-      if (mod && e.key === 'k') {
-        e.preventDefault();
-        document.getElementById('global-search')?.focus();
-      }
-      if (mod && e.key === 'r') {
-        e.preventDefault();
-        this.runScan();
-      }
-      if (mod && e.key === 'e') {
-        e.preventDefault();
+        catch (err) {
+            if (err.code === 'vault_required') {
+                this.showVaultBanner();
+                showToast('Unlock the internal vault, then sign in and retry.', 'info');
+            }
+            else if (err.code === 'subscription_required') {
+                handleSubscriptionGate.call(this);
+            }
+            else if (err.code === 'auth_required') {
+                showLoginModal({ onSuccess: () => this.loadDataInBackground() });
+            }
+            else {
+                showToast(`Scan data unavailable: ${err.message}`, 'error');
+            }
+        }
+        finally {
+            clearTimeout(safetyTimer);
+            this.state.dataLoading = false;
+            this.refreshCurrentView();
+        }
+    }
+    setupShell() {
+        var _a, _b, _c, _d, _e;
+        // Safety net: prevent browser from navigating to dropped files anywhere on the page.
+        // Individual drop zones must still call preventDefault themselves, but this ensures
+        // the browser never hijacks a drop if an event bubbles past a zone.
+        document.addEventListener('dragover', (e) => {
+            if (e.dataTransfer && e.dataTransfer.types.includes('Files')) {
+                e.preventDefault();
+            }
+        });
+        document.addEventListener('drop', (e) => {
+            if (e.dataTransfer && e.dataTransfer.types.includes('Files')) {
+                e.preventDefault();
+            }
+        });
+        (_a = document.getElementById('theme-toggle')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => {
+            themeService.toggle();
+            try {
+                if (window.parent && window.parent !== window) {
+                    window.parent.postMessage({ command: 'toggleTheme' }, '*');
+                }
+            }
+            catch (e) { }
+        });
+        (_b = document.getElementById('signin-btn')) === null || _b === void 0 ? void 0 : _b.addEventListener('click', () => {
+            if (typeof showLoginModal === 'function') {
+                showLoginModal();
+            }
+        });
+        this.setupProfileDropdown();
+        (_d = document.getElementById('sidebar-signin-btn')) === null || _d === void 0 ? void 0 : _d.addEventListener('click', () => {
+            if (typeof showLoginModal === 'function') {
+                showLoginModal();
+            }
+        });
+        document.querySelectorAll('.nav-link[data-view]').forEach((link) => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                try {
+                    this.navigate(link.dataset.view);
+                    this.closeMobileNav();
+                }
+                catch (navErr) {
+                    /* ignore sidebar navigation errors */
+                }
+            });
+        });
+        document.querySelectorAll('.nav-footer-link[data-view]').forEach((link) => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                try {
+                    this.navigate(link.dataset.view);
+                    this.closeMobileNav();
+                }
+                catch (navErr) {
+                    /* ignore footer navigation errors */
+                }
+            });
+        });
+        (_e = document.getElementById('sidebar-export-btn')) === null || _e === void 0 ? void 0 : _e.addEventListener('click', () => {
+            const report = this.state.report;
+            if (!report) {
+                showToast('No report to export', 'warning');
+                return;
+            }
+            this.scanService.exportReport(report);
+        });
+        const appNav = document.getElementById('app-nav');
+        appNav === null || appNav === void 0 ? void 0 : appNav.addEventListener('click', (e) => {
+            const link = e.target.closest('.nav-link[data-view]');
+            if (!link)
+                return;
+            e.preventDefault();
+            try {
+                this.navigate(link.dataset.view);
+                this.closeMobileNav();
+            }
+            catch (navErr) {
+                /* ignore sidebar delegation errors */
+            }
+        });
+        document.addEventListener('click', (e) => {
+            const link = e.target.closest('a[href^="/dashboard/"]');
+            if (!link) {
+                return;
+            }
+            try {
+                const url = new URL(link.href);
+                if (url.origin !== window.location.origin) {
+                    return;
+                }
+                e.preventDefault();
+                const route = url.pathname.replace(/^\/dashboard\/?/, '').replace(/\/$/, '') || 'dashboard';
+                this.navigate(route);
+            }
+            catch (navErr) { /* ignore */ }
+        });
+        const searchInput = document.getElementById('global-search');
+        searchInput === null || searchInput === void 0 ? void 0 : searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && searchInput.value.trim()) {
+                this.navigate('results', { q: searchInput.value.trim() });
+            }
+        });
+    }
+    setupKeyboard() {
+        document.addEventListener('keydown', (e) => {
+            var _a, _b;
+            const mod = e.ctrlKey || e.metaKey;
+            if (mod && e.key === 'k') {
+                e.preventDefault();
+                (_a = document.getElementById('global-search')) === null || _a === void 0 ? void 0 : _a.focus();
+            }
+            if (mod && e.key === 'r') {
+                e.preventDefault();
+                this.runScan();
+            }
+            if (mod && e.key === 'e') {
+                e.preventDefault();
+                if (isDemoMode()) {
+                    this.scanService.exportDashboard({
+                        report: this.state.report,
+                        baseline: this.state.baseline,
+                        config: this.state.config,
+                        history: this.state.history,
+                        dashboardHome: this.state.dashboardHome
+                    });
+                }
+                else {
+                    this.scanService.exportReport();
+                }
+            }
+            if (e.key === 'Escape') {
+                if (document.getElementById('token-prompt-modal'))
+                    return;
+                (_b = document.getElementById('onboarding-modal')) === null || _b === void 0 ? void 0 : _b.remove();
+                this.closeMobileNav();
+            }
+        });
+    }
+    setupMobileNav() {
+        const toggle = document.getElementById('mobile-nav-toggle');
+        const nav = document.getElementById('app-nav');
+        const overlay = document.getElementById('mobile-nav-overlay');
+        toggle === null || toggle === void 0 ? void 0 : toggle.addEventListener('click', () => {
+            nav === null || nav === void 0 ? void 0 : nav.classList.toggle('open');
+            overlay === null || overlay === void 0 ? void 0 : overlay.classList.toggle('open');
+        });
+        overlay === null || overlay === void 0 ? void 0 : overlay.addEventListener('click', () => this.closeMobileNav());
+    }
+    closeMobileNav() {
+        var _a, _b;
+        (_a = document.getElementById('app-nav')) === null || _a === void 0 ? void 0 : _a.classList.remove('open');
+        (_b = document.getElementById('mobile-nav-overlay')) === null || _b === void 0 ? void 0 : _b.classList.remove('open');
+    }
+    cleanupDisabledElements() {
+        const selectors = [
+            '.nav-link[data-view="outreach"]',
+            'a.nav-link[href="/dashboard/outreach"]',
+            '.analyze-issue-analyzer-card',
+            '.analyze-engines-reference',
+            '.analyze-deliverable-table-wrap',
+            '.analyze-deliverable-picker'
+        ];
+        selectors.forEach((sel) => {
+            document.querySelectorAll(sel).forEach((el) => {
+                el.remove();
+            });
+        });
+    }
+    async loadData() {
+        var _a, _b, _c, _d;
+        // Defensive: clear lastProjectPath if it is not an absolute path
+        const safePath = this.sanitizeProjectPath(this.state.lastProjectPath);
+        if (!safePath && this.state.lastProjectPath) {
+            this.state.lastProjectPath = '';
+        }
+        let data = { report: null, baseline: null, config: null, history: null };
+        try {
+            data = await this.scanService.fetchAll(safePath || null);
+        }
+        catch (_e) {
+            // Path-specific report failed — try default platform report
+            try {
+                data = await this.scanService.fetchAll();
+            }
+            catch (_f) {
+                // Silent fallback — try local saved scan below
+            }
+        }
+        // No saved scan fallback — stale /data/ files removed
+        // Load re-attestation metadata if available
+        let reAttestation = null;
+        try {
+            const res = await fetch('data/re-attestation-metadata.json', { cache: 'no-store' });
+            if (res.ok) {
+                reAttestation = await res.json();
+            }
+        }
+        catch (_g) {
+            // No re-attestation metadata available
+        }
+        Object.assign(this.state, {
+            report: (_a = data.report) !== null && _a !== void 0 ? _a : (this.state.scanning ? this.state.report : null),
+            baseline: (_b = data.baseline) !== null && _b !== void 0 ? _b : this.state.baseline,
+            config: (_c = data.config) !== null && _c !== void 0 ? _c : this.state.config,
+            history: (_d = data.history) !== null && _d !== void 0 ? _d : this.state.history,
+            reAttestation
+        });
+        await this.ensureDefaultProjectPath();
+    }
+    async ensureDefaultProjectPath() {
+        if (this.state.defaultProjectPath)
+            return;
+        try {
+            const info = await fetchAnalyzeProviders();
+            if (info.defaultProjectPath) {
+                this.state.defaultProjectPath = info.defaultProjectPath;
+            }
+        }
+        catch (_a) {
+            /* optional — Analyze page loads this too */
+        }
+    }
+    async loadPlatformData() {
+        await this.platformService.fetchAll();
+        Object.assign(this.state, {
+            dashboardHome: this.platformService.dashboardHome,
+            devTools: this.platformService.devTools,
+            devWorkflows: this.platformService.devWorkflows,
+            coverage: this.platformService.coverage,
+            security: this.platformService.security,
+            quality: this.platformService.quality,
+            help: this.platformService.help
+        });
+        this.refreshCurrentView();
+    }
+    navigate(view, params = {}) {
+        this.router.navigate(view, params);
+    }
+    onRoute(view, params) {
+        var _a, _b;
+        this._currentViewName = view;
+        this.state.routeParams = params;
+        const main = document.getElementById('app-main');
+        if (!main)
+            return;
+        // Prevent stale loading state from persisting across navigation
+        if (this.currentView && this.state.dataLoading) {
+            this.state.dataLoading = false;
+        }
+        const readOnlyPreview = isDemoMode();
+        if (!readOnlyPreview && !PUBLIC_VIEWS.has(view) && !authService.isAuthenticated()) {
+            this.showLockScreen(view);
+            return;
+        }
+        // Free tier gets read-only dashboard access (view reports, no interaction)
+        // Local dev bypass: full functionality on localhost regardless of token tier
+        const isFreeTier = authService.isFreeTier();
+        const isSandbox = this.state.sandboxMode === true;
+        const isLocal = isLocalDevHost();
+        this.state.readOnly = !isLocal && (isFreeTier || isSandbox);
+        if (!isLocal && (isFreeTier || isSandbox)) {
+            this.showReadOnlyBanner();
+        }
+        else {
+            (_a = document.getElementById('readonly-banner')) === null || _a === void 0 ? void 0 : _a.remove();
+        }
+        if (!readOnlyPreview && CLOUD_TEAMS_VIEWS.has(view) && authService.isAuthenticated()) {
+            const plan = this.state.billingPlan || billingService.plan;
+            const status = this.state.billingStatus || billingService.status;
+            if (plan || status) {
+                const allowed = billingService.hasCloudTeamsAccess(plan, status);
+                if (!allowed && !isFreeTier) {
+                    if (isLocalSelfHosted()) {
+                        // localhost bypass
+                    }
+                    else if (requiresAuthGate()) {
+                        showToast('Sign in with a local account or use npm run dashboard:v1-internal', 'info');
+                        this.router.navigate('signin');
+                    }
+                    else {
+                        showToast('Use the free CLI — see About for install', 'info');
+                        this.router.navigate('about');
+                    }
+                    return;
+                }
+            }
+        }
+        if ((_b = this.currentView) === null || _b === void 0 ? void 0 : _b.destroy) {
+            try {
+                this.currentView.destroy();
+            }
+            catch (destroyErr) {
+                /* ignore view destroy errors */
+            }
+        }
+        const viewInstance = this.views[view];
+        if (viewInstance) {
+            this.currentView = viewInstance;
+            main.innerHTML = '';
+            viewInstance.mount(main);
+        }
+        if (view === 'dashboard') {
+            this.startBackgroundScanWatcher();
+        }
+        else {
+            this.stopBackgroundScanWatcher();
+        }
+    }
+    sanitizeProjectPath(rawPath) {
+        const path = String(rawPath || '').trim();
+        if (!path)
+            return null;
+        const isAbsolute = /^[a-zA-Z]:[\\/]|^\\|^\//.test(path);
+        return isAbsolute ? path : null;
+    }
+    async runScan(projectPath) {
+        var _a, _b, _c, _d, _e;
+        if (this.state.scanning)
+            return;
+        if (this.state.readOnly) {
+            showToast('Scanning requires a paid license. View pricing to upgrade.', 'info');
+            return;
+        }
         if (isDemoMode()) {
-          this.scanService.exportDashboard({
-            report: this.state.report,
-            baseline: this.state.baseline,
-            config: this.state.config,
-            history: this.state.history,
-            dashboardHome: this.state.dashboardHome
-          });
-        } else {
-          this.scanService.exportReport();
+            showToast(demoReadOnlyMessage(), 'info');
+            return;
         }
-      }
-      if (e.key === 'Escape') {
-        if (document.getElementById('token-prompt-modal')) return;
-        document.getElementById('onboarding-modal')?.remove();
-        this.closeMobileNav();
-      }
-    });
-  }
-
-  setupMobileNav() {
-    const toggle = document.getElementById('mobile-nav-toggle');
-    const nav = document.getElementById('app-nav');
-    const overlay = document.getElementById('mobile-nav-overlay');
-
-    toggle?.addEventListener('click', () => {
-      nav?.classList.toggle('open');
-      overlay?.classList.toggle('open');
-    });
-    overlay?.addEventListener('click', () => this.closeMobileNav());
-  }
-
-  closeMobileNav() {
-    document.getElementById('app-nav')?.classList.remove('open');
-    document.getElementById('mobile-nav-overlay')?.classList.remove('open');
-  }
-
-  cleanupDisabledElements() {
-    const selectors = [
-      '.nav-link[data-view="outreach"]',
-      'a.nav-link[href="/dashboard/outreach"]',
-      '.analyze-issue-analyzer-card',
-      '.analyze-engines-reference',
-      '.analyze-deliverable-table-wrap',
-      '.analyze-deliverable-picker'
-    ];
-    selectors.forEach((sel) => {
-      document.querySelectorAll(sel).forEach((el) => {
-        el.remove();
-      });
-    });
-  }
-
-  async loadData() {
-    // Defensive: clear lastProjectPath if it points to a known-invalid nested path
-    const badPathPattern = /ai-platform\/CascadeProjects$|google-earthenterprise|c:\\Users\\Trevor\\CascadeProjects\\Mag Motor 3D Print Files/i;
-    if (badPathPattern.test(this.state.lastProjectPath)) {
-      this.state.lastProjectPath = '';
-    }
-    // Also clear stale paths from localStorage suggestions
-    try {
-      const recentRaw = localStorage.getItem('simplebeaconRecentPaths');
-      if (recentRaw) {
-        const recent = JSON.parse(recentRaw);
-        if (Array.isArray(recent)) {
-          const cleaned = recent.filter(p => !badPathPattern.test(p));
-          localStorage.setItem('simplebeaconRecentPaths', JSON.stringify(cleaned));
-        }
-      }
-    } catch { /* ignore */ }
-    let data = { report: null, baseline: null, config: null, history: null };
-    try {
-      data = await this.scanService.fetchAll(this.state.lastProjectPath || null);
-    } catch {
-      // Path-specific report failed — try default platform report
-      try {
-        data = await this.scanService.fetchAll();
-      } catch {
-        // Silent fallback — try local saved scan below
-      }
-    }
-
-    // No saved scan fallback — stale /data/ files removed
-
-    // Load re-attestation metadata if available
-    let reAttestation = null;
-    try {
-      const res = await fetch('data/re-attestation-metadata.json', { cache: 'no-store' });
-      if (res.ok) {
-        reAttestation = await res.json();
-      }
-    } catch {
-      // No re-attestation metadata available
-    }
-
-    Object.assign(this.state, {
-      report: data.report ?? (this.state.scanning ? this.state.report : null),
-      baseline: data.baseline ?? this.state.baseline,
-      config: data.config ?? this.state.config,
-      history: data.history ?? this.state.history,
-      reAttestation
-    });
-    // Clear stale analyze result if it points to the bad path
-    const resultPath = this.state.analyzeResult?.projectPath || this.state.analyzeResult?.report?.projectRoot || '';
-    if (resultPath && badPathPattern.test(resultPath)) {
-      this.state.analyzeResult = null;
-      if (this.views.analyze) this.views.analyze.lastResult = null;
-    }
-    // Clear stale server report if it points to the bad path
-    const reportPath = this.state.report?.projectRoot || this.state.report?.projectPath || this.state.report?.scanPaths?.[0] || '';
-    if (reportPath && badPathPattern.test(reportPath)) {
-      this.state.report = null;
-    }
-    await this.ensureDefaultProjectPath();
-    // Default to the workspace root if no path is set
-    if (!this.state.lastProjectPath && this.state.defaultProjectPath) {
-      this.state.lastProjectPath = this.state.defaultProjectPath;
-    }
-  }
-
-  async ensureDefaultProjectPath() {
-    if (this.state.defaultProjectPath) return;
-    try {
-      const info = await fetchAnalyzeProviders();
-      if (info.defaultProjectPath) {
-        this.state.defaultProjectPath = info.defaultProjectPath;
-      }
-    } catch {
-      /* optional — Analyze page loads this too */
-    }
-  }
-
-  async loadPlatformData() {
-    await this.platformService.fetchAll();
-    Object.assign(this.state, {
-      dashboardHome: this.platformService.dashboardHome,
-      devTools: this.platformService.devTools,
-      devWorkflows: this.platformService.devWorkflows,
-      coverage: this.platformService.coverage,
-      security: this.platformService.security,
-      quality: this.platformService.quality,
-      help: this.platformService.help
-    });
-    this.refreshCurrentView();
-  }
-
-  navigate(view, params = {}) {
-    this.router.navigate(view, params);
-  }
-
-  onRoute(view, params) {
-    this._currentViewName = view;
-    this.state.routeParams = params;
-    const main = document.getElementById('app-main');
-    if (!main) return;
-
-    // Prevent stale loading state from persisting across navigation
-    if (this.currentView && this.state.dataLoading) {
-      this.state.dataLoading = false;
-    }
-
-    const readOnlyPreview = isDemoMode();
-    if (!readOnlyPreview && !PUBLIC_VIEWS.has(view) && !authService.isAuthenticated()) {
-      this.showLockScreen(view);
-      return;
-    }
-
-    // Free tier gets read-only dashboard access (view reports, no interaction)
-    const isFreeTier = authService.isFreeTier();
-    const isSandbox = this.state.sandboxMode === true;
-    this.state.readOnly = isFreeTier || isSandbox;
-    if (isFreeTier || isSandbox) {
-      this.showReadOnlyBanner();
-    } else {
-      document.getElementById('readonly-banner')?.remove();
-    }
-
-    if (!readOnlyPreview && CLOUD_TEAMS_VIEWS.has(view) && authService.isAuthenticated()) {
-      const plan = this.state.billingPlan || billingService.plan;
-      const status = this.state.billingStatus || billingService.status;
-      if (plan || status) {
-        const allowed = billingService.hasCloudTeamsAccess(plan, status);
-        if (!allowed && !isFreeTier) {
-          if (isLocalSelfHosted()) {
-            // localhost bypass — do not redirect
-          } else if (requiresAuthGate()) {
-            showToast('Sign in with a local account or use npm run dashboard:v1-internal', 'info');
-            this.router.navigate('signin');
-          } else {
-            showToast('Use the free CLI — see About for install', 'info');
-            this.router.navigate('about');
-          }
-          return;
-        }
-      }
-    }
-
-    if (this.currentView?.destroy) {
-      try {
-        this.currentView.destroy();
-      } catch (destroyErr) {
-        /* ignore view destroy errors */
-      }
-    }
-
-    const viewInstance = this.views[view];
-    if (viewInstance) {
-      this.currentView = viewInstance;
-      main.innerHTML = '';
-      viewInstance.mount(main);
-    }
-
-    if (view === 'dashboard') {
-      this.startBackgroundScanWatcher();
-    } else {
-      this.stopBackgroundScanWatcher();
-    }
-  }
-
-  async runScan(projectPath) {
-    if (this.state.scanning) return;
-    if (this.state.readOnly) {
-      showToast('Scanning requires a paid license. View pricing to upgrade.', 'info');
-      return;
-    }
-    if (isDemoMode()) {
-      showToast(demoReadOnlyMessage(), 'info');
-      return;
-    }
-    const resolvedPath = String(projectPath || this.state.lastProjectPath || this.state.defaultProjectPath || '').trim() || undefined;
-    this.state.scanning = true;
-    this.refreshCurrentView();
-    showToast('Running SimpleBeacon scan…', 'info');
-
-    try {
-      await this.scanService.runScan(resolvedPath, { fullDirectoryScan: true });
-      if (resolvedPath) {
-        this.state.lastProjectPath = resolvedPath;
-      }
-      Object.assign(this.state, {
-        report: this.scanService.report,
-        baseline: this.scanService.baseline,
-        config: this.scanService.config,
-        history: this.scanService.history,
-        scanning: false,
-        audit: null
-      });
-      this.views.audit?.invalidateCache?.();
-      showToast('Scan complete', 'success');
-
-      // If inside VS Code webview, update sidebar with scan stats
-      const report = this.scanService.report;
-      if (report && typeof window !== 'undefined' && typeof window.acquireVsCodeApi === 'function') {
+        const resolvedPath = this.sanitizeProjectPath(projectPath)
+            || this.sanitizeProjectPath(this.state.lastProjectPath)
+            || this.sanitizeProjectPath(this.state.defaultProjectPath)
+            || undefined;
+        this.state.scanning = true;
+        this.refreshCurrentView();
+        showToast('Running SimpleBeacon scan…', 'info');
         try {
-          const vscode = window.acquireVsCodeApi();
-          const allIssues = report.rawIssues || report.detectedIssues || [];
-          const sevCounts = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
-          for (const issue of allIssues) {
-            const band = String(issue.severity || 'low').toLowerCase();
-            if (sevCounts[band] !== undefined) sevCounts[band]++;
-          }
-          vscode.postMessage({
-            command: 'updateStats',
-            issues: allIssues.length,
-            critical: sevCounts.critical,
-            high: sevCounts.high,
-            medium: sevCounts.medium,
-            low: sevCounts.low,
-            score: report.gate?.score ?? report.qualityScore ?? 0
-          });
-        } catch (err) {
-          /* ignore VS Code: bridge errors */
+            await this.scanService.runScan(resolvedPath, { fullDirectoryScan: true });
+            if (resolvedPath) {
+                this.state.lastProjectPath = resolvedPath;
+            }
+            Object.assign(this.state, {
+                report: this.scanService.report,
+                baseline: this.scanService.baseline,
+                config: this.scanService.config,
+                history: this.scanService.history,
+                scanning: false,
+                audit: null
+            });
+            (_b = (_a = this.views.audit) === null || _a === void 0 ? void 0 : _a.invalidateCache) === null || _b === void 0 ? void 0 : _b.call(_a);
+            showToast('Scan complete', 'success');
+            // If inside VS Code webview, update sidebar with scan stats
+            const report = this.scanService.report;
+            if (report && typeof window !== 'undefined' && typeof window.acquireVsCodeApi === 'function') {
+                try {
+                    const vscode = window.acquireVsCodeApi();
+                    const allIssues = report.rawIssues || report.detectedIssues || [];
+                    const sevCounts = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
+                    for (const issue of allIssues) {
+                        const band = String(issue.severity || 'low').toLowerCase();
+                        if (sevCounts[band] !== undefined)
+                            sevCounts[band]++;
+                    }
+                    vscode.postMessage({
+                        command: 'updateStats',
+                        issues: allIssues.length,
+                        critical: sevCounts.critical,
+                        high: sevCounts.high,
+                        medium: sevCounts.medium,
+                        low: sevCounts.low,
+                        score: (_e = (_d = (_c = report.gate) === null || _c === void 0 ? void 0 : _c.score) !== null && _d !== void 0 ? _d : report.qualityScore) !== null && _e !== void 0 ? _e : 0
+                    });
+                }
+                catch (err) {
+                    /* ignore VS Code: bridge errors */
+                }
+            }
         }
-      }
-    } catch (err) {
-      this.state.scanning = false;
-      showToast(err.message, 'error');
+        catch (err) {
+            this.state.scanning = false;
+            showToast(err.message, 'error');
+        }
+        this.refreshCurrentView();
+        this.startBackgroundScanWatcher();
     }
-
-    this.refreshCurrentView();
-    this.startBackgroundScanWatcher();
-  }
-
-  refreshCurrentView() {
-    if (this._refreshScheduled) return;
-    this._refreshScheduled = true;
-    requestAnimationFrame(() => {
-      this._refreshScheduled = false;
-      const main = document.getElementById('app-main');
-      if (!this.currentView || !main) return;
-      // Surgical update on dashboard to avoid flicker.
-      // If a report already exists and we had one before, refresh the scan slot in-place
-      // instead of re-rendering the entire view (which would flash the
-      // loading spinner when dataLoading is toggled in loadDataInBackground).
-      // If the report just arrived (transition from no-report), do a full mount
-      // so the dashboard switches from empty state to the full report view.
-      const hadReport = this._hadReport;
-      this._hadReport = Boolean(this.state.report);
-      if (this._currentViewName === 'dashboard' && this.state.report && hadReport) {
-        const updated = this.views.dashboard?.refreshScanStatus?.();
-        if (updated) return;
-        // Surgical update failed — fall back to full mount
-      }
-      this.currentView.mount(main);
-    });
-  }
-
-  stopBackgroundScanWatcher() {
-    if (this._bgScanPollTimer) {
-      clearInterval(this._bgScanPollTimer);
-      this._bgScanPollTimer = null;
+    refreshCurrentView() {
+        if (this._refreshScheduled)
+            return;
+        this._refreshScheduled = true;
+        requestAnimationFrame(() => {
+            var _a, _b;
+            this._refreshScheduled = false;
+            const main = document.getElementById('app-main');
+            if (!this.currentView || !main)
+                return;
+            // Surgical update on dashboard to avoid flicker.
+            // If a report already exists and we had one before, refresh the scan slot in-place
+            // instead of re-rendering the entire view (which would flash the
+            // loading spinner when dataLoading is toggled in loadDataInBackground).
+            // If the report just arrived (transition from no-report), do a full mount
+            // so the dashboard switches from empty state to the full report view.
+            const hadReport = this._hadReport;
+            this._hadReport = Boolean(this.state.report);
+            if (this._currentViewName === 'dashboard' && this.state.report && hadReport) {
+                const updated = (_b = (_a = this.views.dashboard) === null || _a === void 0 ? void 0 : _a.refreshScanStatus) === null || _b === void 0 ? void 0 : _b.call(_a);
+                if (updated)
+                    return;
+                // Surgical update failed — fall back to full mount
+            }
+            this.currentView.mount(main);
+        });
     }
-    this._bgScanPollStart = 0;
-    this._bgScanPollInProgress = false;
-  }
-
-  startBackgroundScanWatcher() {
-    this.stopBackgroundScanWatcher();
-    const currentScanId = this.state.report?.scanId || this.state.report?.generatedAt || null;
-    this._lastKnownScanId = currentScanId;
-    this._bgScanPollStart = Date.now();
-
-    const poll = async () => {
-      if (this._bgScanPollInProgress) return;
-      this._bgScanPollInProgress = true;
-      if (Date.now() - this._bgScanPollStart > 120000) {
+    stopBackgroundScanWatcher() {
+        if (this._bgScanPollTimer) {
+            clearInterval(this._bgScanPollTimer);
+            this._bgScanPollTimer = null;
+        }
+        this._bgScanPollStart = 0;
+        this._bgScanPollInProgress = false;
+    }
+    startBackgroundScanWatcher() {
+        var _a, _b;
         this.stopBackgroundScanWatcher();
-        this._bgScanPollInProgress = false;
-        return;
-      }
-      try {
-        const report = await this.scanService.fetchReport(this.state.lastProjectPath || null);
-        const newScanId = report?.scanId || report?.generatedAt || null;
-        if (newScanId && newScanId !== this._lastKnownScanId) {
-          this.stopBackgroundScanWatcher();
-          await this.loadDataInBackground();
-          showToast('New scan results available', 'success');
-        }
-      } catch {
-        // Silently ignore transient fetch errors
-      } finally {
-        this._bgScanPollInProgress = false;
-      }
-    };
-
-    this._bgScanPollTimer = setInterval(poll, 5000);
-  }
-
-  maybeShowOnboarding() {
-    if (!shouldShowOnboarding()) return;
-    const overlay = renderOnboarding();
-    document.body.appendChild(overlay);
-    bindOnboarding(overlay, {
-      onStart: () => this.runScan(),
-      onDismiss: () => {}
-    });
-  }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  try {
-    const app = new SimplebeaconDashboard();
-    window.__SB_DASHBOARD_APP__ = app;
-    app.init().catch((err) => {
-      /* ignore errors */
-      showToast(err.message || 'Dashboard failed to start', 'error');
-    });
-  } catch (err) {
-    /* ignore startup errors */
-    const main = document.getElementById('app-main');
-    if (main) {
-      main.textContent = '';
-      const card = document.createElement('div');
-      card.className = 'empty-state card';
-      const p = document.createElement('p');
-      p.textContent = 'Failed to load dashboard: ' + (err.message || String(err));
-      card.appendChild(p);
-      main.appendChild(card);
+        const currentScanId = ((_a = this.state.report) === null || _a === void 0 ? void 0 : _a.scanId) || ((_b = this.state.report) === null || _b === void 0 ? void 0 : _b.generatedAt) || null;
+        this._lastKnownScanId = currentScanId;
+        this._bgScanPollStart = Date.now();
+        const poll = async () => {
+            if (this._bgScanPollInProgress)
+                return;
+            this._bgScanPollInProgress = true;
+            if (Date.now() - this._bgScanPollStart > 120000) {
+                this.stopBackgroundScanWatcher();
+                this._bgScanPollInProgress = false;
+                return;
+            }
+            try {
+                const safePath = this.sanitizeProjectPath(this.state.lastProjectPath);
+                const report = await this.scanService.fetchReport(safePath);
+                const newScanId = (report === null || report === void 0 ? void 0 : report.scanId) || (report === null || report === void 0 ? void 0 : report.generatedAt) || null;
+                if (newScanId && newScanId !== this._lastKnownScanId) {
+                    this.stopBackgroundScanWatcher();
+                    await this.loadDataInBackground();
+                    showToast('New scan results available', 'success');
+                }
+            }
+            catch (_a) {
+                // Silently ignore transient fetch errors
+            }
+            finally {
+                this._bgScanPollInProgress = false;
+            }
+        };
+        this._bgScanPollTimer = setInterval(poll, 5000);
     }
-  }
+    maybeShowOnboarding() {
+        if (!shouldShowOnboarding())
+            return;
+        const overlay = renderOnboarding();
+        document.body.appendChild(overlay);
+        bindOnboarding(overlay, {
+            onStart: () => this.runScan(),
+            onDismiss: () => { }
+        });
+    }
+}
+document.addEventListener('DOMContentLoaded', () => {
+    try {
+        const app = new SimplebeaconDashboard();
+        window.__SB_DASHBOARD_APP__ = app;
+        app.init().catch((err) => {
+            /* ignore errors */
+            showToast(err.message || 'Dashboard failed to start', 'error');
+        });
+    }
+    catch (err) {
+        /* ignore startup errors */
+        const main = document.getElementById('app-main');
+        if (main) {
+            main.textContent = '';
+            const card = document.createElement('div');
+            card.className = 'empty-state card';
+            const p = document.createElement('p');
+            p.textContent = 'Failed to load dashboard: ' + (err.message || String(err));
+            card.appendChild(p);
+            main.appendChild(card);
+        }
+    }
 });
+
+// ── Sidebar resizer ──────────────────────────────────────────────
+(function initSidebarResizer() {
+    const resizer = document.getElementById('app-resizer');
+    const sidebar = document.getElementById('app-nav');
+    if (!resizer || !sidebar) return;
+
+    const MIN_WIDTH = 160;
+    const MAX_WIDTH = 480;
+    const STORAGE_KEY = 'sb_sidebar_width';
+
+    // Restore saved width
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+        const w = parseInt(saved, 10);
+        if (!Number.isNaN(w)) sidebar.style.width = w + 'px';
+    }
+
+    let startX = 0;
+    let startWidth = 0;
+
+    function onPointerMove(e) {
+        const dx = e.clientX - startX;
+        const newWidth = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, startWidth + dx));
+        sidebar.style.width = newWidth + 'px';
+    }
+
+    function onPointerUp(e) {
+        resizer.classList.remove('resizing');
+        document.removeEventListener('pointermove', onPointerMove);
+        document.removeEventListener('pointerup', onPointerUp);
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        // Save width
+        const w = parseInt(sidebar.style.width, 10);
+        if (!Number.isNaN(w)) localStorage.setItem(STORAGE_KEY, String(w));
+    }
+
+    resizer.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        resizer.classList.add('resizing');
+        startX = e.clientX;
+        startWidth = sidebar.offsetWidth;
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+        document.addEventListener('pointermove', onPointerMove);
+        document.addEventListener('pointerup', onPointerUp);
+    });
+
+    // Double-click to reset
+    resizer.addEventListener('dblclick', () => {
+        sidebar.style.width = '';
+        localStorage.removeItem(STORAGE_KEY);
+    });
+})();

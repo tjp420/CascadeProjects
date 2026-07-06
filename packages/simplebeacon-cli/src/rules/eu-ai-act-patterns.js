@@ -299,9 +299,9 @@ function collapsePatternIssuesByFile(issues, relativePath) {
 function scanCatalogPatterns(relativePath, content, catalog, severityDefault) {
     const issues = [];
     for (const rule of catalog) {
-        rule.regex.lastIndex = 0;
+        const regex = new RegExp(rule.regex.source, rule.regex.flags);
         let match;
-        while ((match = rule.regex.exec(content)) !== null) {
+        while ((match = regex.exec(content)) !== null) {
             const { line, text } = extractLineAt(content, match.index);
             const evidence = buildEvidence(rule, text, match);
             const fix = buildFix(rule, relativePath, line, text);
@@ -392,9 +392,9 @@ function scanHumanOversightGaps(relativePath, content, hasHighRiskInFile, severi
     let hrLine = 0;
     let hrLineText = '';
     for (const rule of HIGH_RISK_CATALOG) {
-        rule.regex.lastIndex = 0;
+        const regex = new RegExp(rule.regex.source, rule.regex.flags);
         let m;
-        while ((m = rule.regex.exec(content)) !== null) {
+        while ((m = regex.exec(content)) !== null) {
             if (!hrLine) {
                 const loc = extractLineAt(content, m.index);
                 hrLine = loc.line;
@@ -433,9 +433,9 @@ function scanLoggingGaps(relativePath, content, hasAiInFile, severityDefault) {
     let aiLine = 0;
     let aiLineText = '';
     for (const rule of AI_SYSTEM_INDICATORS) {
-        rule.regex.lastIndex = 0;
+        const regex = new RegExp(rule.regex.source, rule.regex.flags);
         let m;
-        while ((m = rule.regex.exec(content)) !== null) {
+        while ((m = regex.exec(content)) !== null) {
             if (!aiLine) {
                 const loc = extractLineAt(content, m.index);
                 aiLine = loc.line;

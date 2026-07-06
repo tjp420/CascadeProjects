@@ -83,7 +83,7 @@ export class ChatbotView {
                 id="chatbot-input" 
                 class="chatbot-input" 
                 placeholder="Ask about your codebase..."
-                rows="3"
+                rows="4"
               ></textarea>
               <button id="chatbot-send" class="chatbot-send-btn" ${this.isLoading ? 'disabled' : ''}>
                 ${this.isLoading ? 'Sending...' : 'Send'}
@@ -363,13 +363,25 @@ export class ChatbotView {
             const messageElements = container.querySelectorAll('.chatbot-message');
             const targetBubble = (_d = messageElements[assistantMessageIndex]) === null || _d === void 0 ? void 0 : _d.querySelector('.chatbot-message-text');
             if (targetBubble) {
-                // Consume streaming response
-                await this.consumeTokenStream(res, targetBubble);
-                // Update history with final content
-                this.conversationHistory[assistantMessageIndex].content = targetBubble.textContent;
+                // Try non-streaming JSON first (server returns a single JSON object)
+                const clonedRes = res.clone();
+                try {
+                    const data = await clonedRes.json();
+                    if (data.success && data.response) {
+                        this.conversationHistory[assistantMessageIndex].content = data.response;
+                        targetBubble.innerHTML = this.formatStreamedMessage(data.response);
+                    } else if (data.error) {
+                        this.showErrorBanner(data.message || data.error || 'The AI provider returned an error.');
+                        this.conversationHistory.pop();
+                    }
+                } catch (_jsonErr) {
+                    // If JSON parse fails, try consuming as a streaming NDJSON response
+                    await this.consumeTokenStream(res, targetBubble);
+                    this.conversationHistory[assistantMessageIndex].content = targetBubble.textContent;
+                }
             }
             else {
-                // Fallback to non-streaming if streaming fails
+                // Fallback to non-streaming if target bubble not found
                 const data = await res.json();
                 if (data.success) {
                     this.conversationHistory[assistantMessageIndex].content = data.response;

@@ -1,6 +1,7 @@
 {
   "name": "@simplebeacon/intelligence",
   "version": "1.0.0",
+  "type": "module",
   "description": "Opt-in local structural intent analysis for SimpleBeacon — Tree-sitter WASM + deterministic AI fingerprint scoring. Zero network.",
   "author": "SimpleBeacon",
   "license": "MIT",

@@ -1,78 +1,68 @@
 import { fetchPathHealthMetrics } from '../services/pathHealthService.js';
-
 let refreshInterval = null;
 let isRefreshing = false;
-
 /**
  * Render path health dashboard.
  * @returns {any}
  */
 export function renderPathHealthDashboard() {
-  const container = document.createElement('div');
-  container.className = 'card';
-  container.id = 'path-health-dashboard';
-  
-  const header = document.createElement('div');
-  header.className = 'card-header';
-  const flex = document.createElement('div');
-  flex.className = 'flex items-center gap-3';
-  const title = document.createElement('span');
-  title.className = 'card-title';
-  title.textContent = 'System Path Health';
-  const refreshBtn = document.createElement('button');
-  refreshBtn.id = 'path-health-refresh';
-  refreshBtn.className = 'btn btn-sm btn-ghost';
-  refreshBtn.disabled = true;
-  refreshBtn.textContent = 'Refresh';
-  flex.appendChild(title);
-  flex.appendChild(refreshBtn);
-  const gate = document.createElement('span');
-  gate.id = 'path-health-gate';
-  gate.className = 'badge badge-success';
-  gate.textContent = 'Loading...';
-  header.appendChild(flex);
-  header.appendChild(gate);
-
-  const body = document.createElement('div');
-  body.className = 'card-body';
-  const content = document.createElement('div');
-  content.id = 'path-health-content';
-  const loading = document.createElement('div');
-  loading.className = 'text-gray-500';
-  loading.textContent = 'Loading system metrics...';
-  content.appendChild(loading);
-  body.appendChild(content);
-
-  container.appendChild(header);
-  container.appendChild(body);
-  
-  bindPathHealthDashboard(container);
-  return container;
+    const container = document.createElement('div');
+    container.className = 'card';
+    container.id = 'path-health-dashboard';
+    const header = document.createElement('div');
+    header.className = 'card-header';
+    const flex = document.createElement('div');
+    flex.className = 'flex items-center gap-3';
+    const title = document.createElement('span');
+    title.className = 'card-title';
+    title.textContent = 'System Path Health';
+    const refreshBtn = document.createElement('button');
+    refreshBtn.id = 'path-health-refresh';
+    refreshBtn.className = 'btn btn-sm btn-ghost';
+    refreshBtn.disabled = true;
+    refreshBtn.textContent = 'Refresh';
+    flex.appendChild(title);
+    flex.appendChild(refreshBtn);
+    const gate = document.createElement('span');
+    gate.id = 'path-health-gate';
+    gate.className = 'badge badge-success';
+    gate.textContent = 'Loading...';
+    header.appendChild(flex);
+    header.appendChild(gate);
+    const body = document.createElement('div');
+    body.className = 'card-body';
+    const content = document.createElement('div');
+    content.id = 'path-health-content';
+    const loading = document.createElement('div');
+    loading.className = 'text-gray-500';
+    loading.textContent = 'Loading system metrics...';
+    content.appendChild(loading);
+    body.appendChild(content);
+    container.appendChild(header);
+    container.appendChild(body);
+    bindPathHealthDashboard(container);
+    return container;
 }
-
 /**
  * Bind path health dashboard.
  * @param {any} container
  * @returns {any}
  */
 function bindPathHealthDashboard(container) {
-  const refreshBtn = container.querySelector('#path-health-refresh');
-  
-  refreshBtn.addEventListener('click', () => {
-    if (!isRefreshing) {
-      loadPathHealthData(container);
-    }
-  });
-  
-  loadPathHealthData(container, true);
-  
-  // Set up 30-second polling
-  if (refreshInterval) clearInterval(refreshInterval);
-  refreshInterval = setInterval(() => {
-    loadPathHealthData(container, false);
-  }, 30000);
+    const refreshBtn = container.querySelector('#path-health-refresh');
+    refreshBtn.addEventListener('click', () => {
+        if (!isRefreshing) {
+            loadPathHealthData(container);
+        }
+    });
+    loadPathHealthData(container, true);
+    // Set up 30-second polling
+    if (refreshInterval)
+        clearInterval(refreshInterval);
+    refreshInterval = setInterval(() => {
+        loadPathHealthData(container, false);
+    }, 30000);
 }
-
 /**
  * Load path health data.
  * @param {any} container
@@ -80,50 +70,50 @@ function bindPathHealthDashboard(container) {
  * @returns {any}
  */
 async function loadPathHealthData(container, isInitial = false) {
-  const content = container.querySelector('#path-health-content');
-  const gateBadge = container.querySelector('#path-health-gate');
-  const refreshBtn = container.querySelector('#path-health-refresh');
-  
-  if (isInitial) {
-    // simplebeacon-ignore innerhtml-usage — static loading text
-    content.innerHTML = '<div class="text-gray-500">Loading system metrics...</div>';
-  } else {
-    isRefreshing = true;
-    refreshBtn.disabled = true;
-    refreshBtn.textContent = 'Refreshing...';
-  }
-  
-  try {
-    const data = await fetchPathHealthMetrics();
-
-    if (data.status === 'success') {
-      renderPathHealthContent(content, data);
-
-      // Update gate badge
-      const gateClass = data.summary.globalGate === 'PASS' ? 'badge-success' : 'badge-danger';
-      gateBadge.className = `badge ${gateClass}`;
-      gateBadge.textContent = `Gate: ${data.summary.globalGate}`;
-    } else if (data.status === 'unavailable') {
-      // simplebeacon-ignore innerhtml-usage — static offline message
-      content.innerHTML = '<div class="text-muted" style="font-size:0.85rem;">Path health metrics unavailable — running offline.</div>';
-      gateBadge.className = 'badge badge-ghost';
-      gateBadge.textContent = 'Gate: —';
-    } else {
-      // simplebeacon-ignore innerhtml-usage — static error message
-      content.innerHTML = '<div class="text-red-500">Failed to load metrics.</div>';
+    const content = container.querySelector('#path-health-content');
+    const gateBadge = container.querySelector('#path-health-gate');
+    const refreshBtn = container.querySelector('#path-health-refresh');
+    if (isInitial) {
+        // simplebeacon-ignore innerhtml-usage — static loading text
+        content.innerHTML = '<div class="text-gray-500">Loading system metrics...</div>';
     }
-  } catch (error) {
-    const msg = (error && error.message) || String(error);
-    console.error('Error fetching path health metrics:', msg);
-    // simplebeacon-ignore innerhtml-usage — static error message
-    content.innerHTML = '<div class="text-red-500">Failed to load metrics.</div>';
-  } finally {
-    isRefreshing = false;
-    refreshBtn.disabled = false;
-    refreshBtn.textContent = 'Refresh';
-  }
+    else {
+        isRefreshing = true;
+        refreshBtn.disabled = true;
+        refreshBtn.textContent = 'Refreshing...';
+    }
+    try {
+        const data = await fetchPathHealthMetrics();
+        if (data.status === 'success') {
+            renderPathHealthContent(content, data);
+            // Update gate badge
+            const gateClass = data.summary.globalGate === 'PASS' ? 'badge-success' : 'badge-danger';
+            gateBadge.className = `badge ${gateClass}`;
+            gateBadge.textContent = `Gate: ${data.summary.globalGate}`;
+        }
+        else if (data.status === 'unavailable') {
+            // simplebeacon-ignore innerhtml-usage — static offline message
+            content.innerHTML = '<div class="text-muted" style="font-size:0.85rem;">Path health metrics unavailable — running offline.</div>';
+            gateBadge.className = 'badge badge-ghost';
+            gateBadge.textContent = 'Gate: —';
+        }
+        else {
+            // simplebeacon-ignore innerhtml-usage — static error message
+            content.innerHTML = '<div class="text-red-500">Failed to load metrics.</div>';
+        }
+    }
+    catch (error) {
+        const msg = (error && error.message) || String(error);
+        console.error('Error fetching path health metrics:', msg);
+        // simplebeacon-ignore innerhtml-usage — static error message
+        content.innerHTML = '<div class="text-red-500">Failed to load metrics.</div>';
+    }
+    finally {
+        isRefreshing = false;
+        refreshBtn.disabled = false;
+        refreshBtn.textContent = 'Refresh';
+    }
 }
-
 /**
  * Render path health content.
  * @param {any} container
@@ -131,11 +121,11 @@ async function loadPathHealthData(container, isInitial = false) {
  * @returns {any}
  */
 function renderPathHealthContent(container, data) {
-  const summary = data.summary;
-  const directories = data.directories;
-  const engine = data.engine;
-  // simplebeacon-ignore innerhtml-usage — internal API data rendered to trusted container
-  container.innerHTML = `
+    const summary = data.summary;
+    const directories = data.directories;
+    const engine = data.engine;
+    // simplebeacon-ignore innerhtml-usage — internal API data rendered to trusted container
+    container.innerHTML = `
     <div class="metrics-grid mb-4">
       <div class="metric-card">
         <div class="metric-label">Files Scanned</div>
@@ -178,14 +168,13 @@ function renderPathHealthContent(container, data) {
     </div>
   `;
 }
-
 /**
  * Cleanup path health dashboard.
  * @returns {any}
  */
 export function cleanupPathHealthDashboard() {
-  if (refreshInterval) {
-    clearInterval(refreshInterval);
-    refreshInterval = null;
-  }
+    if (refreshInterval) {
+        clearInterval(refreshInterval);
+        refreshInterval = null;
+    }
 }

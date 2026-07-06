@@ -75,14 +75,18 @@ function isExcludedPath(filePath, rootDir) {
   if (/simplebeacon-cli[/\\](src|bin)[/\\]/.test(rel)) return true;
   if (/simplebeacon-vscode-merged[/\\](out|media|test-|src)[/\\]/.test(rel)) return true;
   if (/scripts[/\\]/.test(rel)) return true;
-  if (/ai-platform[/\\]web[/\\]simplebeacon-dashboard[/\\]js-es2018[/\\]/.test(rel)) return true;
+  if (/ai-platform[/\\]web[/\\]simplebeacon-dashboard[/\\]js\b/.test(rel)) return true;
+  if (/simplebeacon-vscode-merged[/\\]dashboard-web[/\\]js\b/.test(rel)) return true;
   return false;
 }
 
 async function scanFile(filePath) {
-  // Skip CLI entry points and scripts more aggressively
+  // Skip CLI entry points, scripts, and temp files more aggressively
   const basename = path.basename(filePath);
   if (/^(bin|scripts|test)/.test(basename) || basename.endsWith('.test.js') || basename.endsWith('.spec.js')) {
+    return null;
+  }
+  if (/^_tmp_/.test(basename) || /^_merged_js/.test(basename) || /^_test_/.test(basename) || /^_test_welcome/.test(basename) || /^inspect_vsix/.test(basename) || /^temp_codemap/.test(basename) || /^tmp-check/.test(basename) || /^__tmp_script/.test(basename) || /^debug-/.test(basename) || /^__test_server/.test(basename)) {
     return null;
   }
 
@@ -112,6 +116,24 @@ async function scanFile(filePath) {
 
       // Skip if suppression comment on this line
       if (SUPPRESS_PATTERN.test(lineText)) continue;
+
+      // Skip addEventListener with { once: true } — auto-removes after first fire
+      if (rule.id === 'SB-PERF-002') {
+        const callWindow = content.substring(
+          Math.max(0, match.index - 20),
+          Math.min(content.length, match.index + 120)
+        );
+        if (/\{\s*once\s*:\s*true\s*\}/.test(callWindow)) continue;
+      }
+
+      // Skip SB-PERF-002d if the accumulator is returned (grouping function, not unbounded cache)
+      if (rule.id === 'SB-PERF-002d') {
+        const loopWindow = content.substring(
+          Math.max(0, match.index - 60),
+          Math.min(content.length, match.index + match[0].length + 60)
+        );
+        if (/\breturn\s+\w+\s*;/.test(loopWindow)) continue;
+      }
 
       // For addEventListener: check if this specific event type has removal in the file
       if (rule.id === 'SB-PERF-002' && rule.removalCheck) {

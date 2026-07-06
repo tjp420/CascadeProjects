@@ -11,6 +11,17 @@ function normalizePathKey(filePath) {
     return path.resolve(filePath).replace(/\\/g, '/').toLowerCase();
 }
 
+/**
+ * Get a relative path with forward slashes.
+ * @param {string} baseDir
+ * @param {string} filePath
+ * @returns {string}
+ */
+function displayRelativePath(baseDir, filePath) {
+    if (typeof baseDir !== 'string' || typeof filePath !== 'string') return '';
+    return path.relative(baseDir, filePath).replace(/\\/g, '/');
+}
+
 function isPathWithinRoot(childPath, rootPath) {
     const child = normalizePathKey(childPath);
     const root = normalizePathKey(rootPath);
@@ -111,6 +122,7 @@ function sanitizeCliPathOptions(options) {
 
 module.exports = {
     normalizePathKey,
+    displayRelativePath,
     isPathWithinRoot,
     assertPathWithinRoot,
     resolveCliProjectRoot,

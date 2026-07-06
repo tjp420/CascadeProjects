@@ -1,5 +1,6 @@
 import { escapeHtml, apiUrl, showToast } from '../utils.js';
 import { pathInputListAttr, renderPathSuggestionsDatalistElement, collectPathSuggestions } from '../lib/analyzePathSuggestions.js';
+import { authService } from '../services/authService.js';
 
 /**
  * AnalyzeTargetConfig — Target selection, drag-and-drop, path input,
@@ -101,7 +102,7 @@ export class AnalyzeTargetConfig {
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px;padding:14px 18px;background:linear-gradient(145deg, rgba(30,41,59,0.5), rgba(15,23,42,0.4));border:1px solid rgba(148,163,184,0.08);border-radius:16px;">
         <button type="button" class="btn btn-primary btn-sm" id="quick-action-run-btn" ${canRun ? '' : 'disabled'} title="Run analysis on the current path">▶️ Run Scan</button>
         <button type="button" class="btn btn-secondary btn-sm" id="quick-action-results-btn" ${hasResult ? '' : 'disabled'} title="Open results view">📊 Results</button>
-        <button type="button" class="btn btn-secondary btn-sm" id="quick-action-export-btn" ${hasResult ? '' : 'disabled'} title="Export scan report">📥 Export</button>
+        ${authService.isPaidTier() ? `<button type="button" class="btn btn-secondary btn-sm" id="quick-action-export-btn" ${hasResult ? '' : 'disabled'} title="Export scan report">📥 Export</button>` : ''}
         <button type="button" class="btn btn-ghost btn-sm" id="quick-action-remediation-btn" ${hasResult ? '' : 'disabled'} title="Open remediation roadmap">🗺️ Remediate</button>
       </div>
     `;

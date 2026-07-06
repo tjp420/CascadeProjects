@@ -118,6 +118,7 @@ const {
 const { listAnalyzeTestSources } = require('../lib/analyze-test-sources.cjs');
 const { scanMockFiles } = require('../routes/repository-scanner-api.cjs');
 const { getLimits } = require('../../../coming-soon/lib/plans.cjs');
+// note: coming-soon is a sibling package, kept as-is since it is not part of simplebeacon-cli
 const { buildRoadmapFromPath } = require('./lib/flexible-analyze-roadmap.cjs');
 
 // In-memory async scan jobs for /api/analyze/upload-directory polling
@@ -443,6 +444,32 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 }, 200, sendAnalyzeJsonOpts);
             }
 
+            if (analysisType === 'workspace-health') {
+                const report = await withTimeout(
+                    getAnalyzeCodebase()(projectPath, { includeEslint: false, context: 'dashboard', scanProfile: 'universal' }),
+                    120_000,
+                    'flexible workspace-health analysis'
+                );
+                const workspaceFindings = (report.findings || []).filter((f) => f.category === 'workspace-health');
+                return sendAnalyzeJson(res, {
+                    success: true,
+                    analysisType: 'workspace-health',
+                    aiProvider,
+                    report: {
+                        ...report,
+                        findings: workspaceFindings,
+                        summary: {
+                            ...(report.summary || {}),
+                            totalFindings: workspaceFindings.length,
+                            severityCounts: workspaceFindings.reduce((acc, f) => {
+                                acc[f.severity || 'info'] = (acc[f.severity || 'info'] || 0) + 1;
+                                return acc;
+                            }, {})
+                        }
+                    }
+                }, 200, sendAnalyzeJsonOpts);
+            }
+
             if (analysisType === 'complete') {
                 logger.info(`[Flexible Analyze] Running complete analysis for ${projectPath}`);
                 const results = {};
@@ -654,6 +681,49 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             if (tempFetchDir) {
                 await cleanupWebsiteTemp(tempFetchDir);
             }
+        }
+    });
+
+    /**
+     * Website scan endpoint — fetch remote URL and run AI Slop / PII / security patterns.
+     * Tier-gated: Pro+ for website scans.
+     */
+    app.post('/api/analyze/website', async (req, res) => {
+        try {
+            const body = req.body || {};
+            const url = String(body.url || '').trim();
+            if (!url) {
+                return res.status(400).json({ success: false, error: 'url is required' });
+            }
+            if (!/^https?:\/\//i.test(url)) {
+                return res.status(400).json({ success: false, error: 'url must be a valid HTTP(S) URL' });
+            }
+
+            // Tier check
+            const userTier = req.user?.tier || body.tier || 'developer';
+            const { isPaidTier, getTierCapability } = require('../../../packages/simplebeacon-cli/src/lib/tier-constants');
+            if (!isPaidTier(userTier) && !getTierCapability(userTier, 'websiteScans')) {
+                return res.status(403).json({ success: false, error: 'Website scanning requires a Pro or higher tier.' });
+            }
+
+            const { scanWebsite } = require('../lib/website-scanner.cjs');
+            const result = await scanWebsite(url, {
+                scanTypes: body.scanTypes || ['ai-slop', 'pii'],
+                minConfidence: Number(body.minConfidence) || 0.5,
+                timeout: Number(body.timeout) || 15000
+            });
+
+            return sendAnalyzeJson(res, {
+                success: true,
+                analysisType: 'website',
+                url: result.url,
+                findings: result.findings,
+                severityCounts: result.severityCounts,
+                scanTimeMs: result.scanTimeMs,
+                contentSize: result.contentSize
+            }, 200, sendAnalyzeJsonOpts);
+        } catch (error) {
+            res.status(400).json({ success: false, error: toClientError(error, 'Website scan failed') });
         }
     });
 

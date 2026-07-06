@@ -33,6 +33,192 @@ describe('Facade loads', () => {
     assert.ok(Array.isArray(constants.CODE_EXTENSIONS));
     assert.ok(Array.isArray(constants.CONFIG_EXTENSIONS));
   });
+
+  it('has discovery helpers', () => {
+    assert.strictEqual(typeof constants.getExportNames, 'function');
+    assert.strictEqual(typeof constants.getNamespaceNames, 'function');
+    assert.strictEqual(typeof constants.validateFacadeIntegrity, 'function');
+    assert.strictEqual(typeof constants.resolve, 'function');
+    assert.strictEqual(typeof constants.hasExport, 'function');
+    assert.strictEqual(typeof constants.getNamespace, 'function');
+    assert.strictEqual(typeof constants.getExportSource, 'function');
+    assert.strictEqual(typeof constants.isNamespace, 'function');
+    assert.strictEqual(typeof constants.getExportsByNamespace, 'function');
+    assert.strictEqual(typeof constants.getStatistics, 'function');
+    assert.strictEqual(typeof constants.toJSON, 'function');
+    assert.strictEqual(typeof constants.describeExport, 'function');
+    assert.strictEqual(typeof constants.searchExports, 'function');
+    assert.strictEqual(typeof constants.assertIntegrity, 'function');
+  });
+
+  it('getExportNames returns non-empty array', () => {
+    const names = constants.getExportNames();
+    assert.ok(Array.isArray(names));
+    assert.ok(names.length > 50, 'should have many exports');
+    assert.ok(names.includes('parseSize'));
+    assert.ok(names.includes('CODE_EXTENSIONS'));
+  });
+
+  it('getNamespaceNames returns expected namespaces', () => {
+    const ns = constants.getNamespaceNames();
+    assert.ok(Array.isArray(ns));
+    assert.ok(ns.includes('time'));
+    assert.ok(ns.includes('format'));
+    assert.ok(ns.includes('env'));
+    assert.ok(ns.includes('strings'));
+  });
+
+  it('validateFacadeIntegrity passes', () => {
+    const result = constants.validateFacadeIntegrity();
+    assert.strictEqual(result.valid, true);
+    assert.deepStrictEqual(result.errors, []);
+  });
+
+  it('has __facade__ metadata with required keys', () => {
+    const meta = constants.__facade__;
+    assert.ok(meta);
+    assert.strictEqual(meta.name, 'simplebeacon-server-config');
+    assert.strictEqual(typeof meta.moduleCount, 'number');
+    assert.strictEqual(typeof meta.exportCount, 'number');
+    assert.strictEqual(typeof meta.namespaceCount, 'number');
+    assert.strictEqual(meta.version, '1.0.0');
+    assert.ok(typeof meta.timestamp === 'string' && meta.timestamp.length > 0);
+    assert.ok(Array.isArray(meta.exports));
+    assert.ok(Array.isArray(meta.namespaces));
+  });
+
+  it('categories are deeply frozen', () => {
+    assert.ok(Object.isFrozen(constants.categories));
+    assert.ok(Object.isFrozen(constants.categories.time));
+    assert.ok(Object.isFrozen(constants.categories.format));
+  });
+
+  it('resolve returns expected values', () => {
+    assert.strictEqual(constants.resolve('parseSize'), constants.categories.format.parseSize);
+    assert.deepStrictEqual(constants.resolve('CODE_EXTENSIONS'), constants.categories.fileTypes.EXTENSIONS.CODE);
+    assert.strictEqual(constants.resolve('nonExistent'), undefined);
+    assert.strictEqual(constants.resolve(123), undefined);
+  });
+
+  it('hasExport detects known and unknown exports', () => {
+    assert.strictEqual(constants.hasExport('parseSize'), true);
+    assert.strictEqual(constants.hasExport('CODE_EXTENSIONS'), true);
+    assert.strictEqual(constants.hasExport('nonExistent'), false);
+    assert.strictEqual(constants.hasExport(''), false);
+    assert.strictEqual(constants.hasExport(123), false);
+  });
+
+  it('getNamespace returns correct namespace', () => {
+    assert.ok(constants.getNamespace('format'));
+    assert.strictEqual(constants.getNamespace('format'), constants.categories.format);
+    assert.strictEqual(constants.getNamespace('nonExistent'), undefined);
+    assert.strictEqual(constants.getNamespace(123), undefined);
+  });
+
+  it('getExportSource traces origins', () => {
+    assert.strictEqual(constants.getExportSource('parseSize'), 'format');
+    assert.strictEqual(constants.getExportSource('isBlank'), 'strings');
+    assert.strictEqual(constants.getExportSource('clamp'), 'encoding');
+    assert.strictEqual(constants.getExportSource('nonExistent'), undefined);
+    assert.strictEqual(constants.getExportSource(123), undefined);
+  });
+
+  it('isNamespace returns correct boolean', () => {
+    assert.strictEqual(constants.isNamespace('format'), true);
+    assert.strictEqual(constants.isNamespace('strings'), true);
+    assert.strictEqual(constants.isNamespace('nonExistent'), false);
+    assert.strictEqual(constants.isNamespace(123), false);
+  });
+
+  it('getExportsByNamespace returns frozen array of keys', () => {
+    const formatExports = constants.getExportsByNamespace('format');
+    assert.ok(Array.isArray(formatExports));
+    assert.ok(Object.isFrozen(formatExports));
+    assert.ok(formatExports.includes('parseSize'));
+    assert.ok(formatExports.includes('formatSize'));
+    assert.deepStrictEqual(constants.getExportsByNamespace('nonExistent'), []);
+    assert.deepStrictEqual(constants.getExportsByNamespace(123), []);
+  });
+
+  it('getStatistics returns aggregate counts', () => {
+    const stats = constants.getStatistics();
+    assert.strictEqual(typeof stats.total, 'number');
+    assert.strictEqual(typeof stats.namespaces, 'number');
+    assert.strictEqual(typeof stats.functions, 'number');
+    assert.strictEqual(typeof stats.objects, 'number');
+    assert.strictEqual(typeof stats.arrays, 'number');
+    assert.strictEqual(typeof stats.primitives, 'number');
+    assert.ok(stats.total > 50);
+    assert.strictEqual(stats.total, stats.functions + stats.objects + stats.arrays + stats.primitives);
+  });
+
+  it('toJSON returns serializable metadata snapshot', () => {
+    const json = constants.toJSON();
+    assert.strictEqual(json.name, 'simplebeacon-server-config');
+    assert.strictEqual(json.version, '1.0.0');
+    assert.ok(typeof json.moduleCount === 'number');
+    assert.ok(typeof json.exportCount === 'number');
+    assert.ok(typeof json.namespaceCount === 'number');
+    assert.ok(Array.isArray(json.namespaces));
+    assert.ok(Array.isArray(json.exports));
+    assert.ok(json.statistics);
+    assert.strictEqual(typeof json.statistics.total, 'number');
+    assert.ok(typeof json.timestamp === 'string');
+    assert.strictEqual(JSON.stringify(json), JSON.stringify(JSON.parse(JSON.stringify(json))), 'should round-trip through JSON');
+  });
+
+  it('exportNames is frozen and contains expected keys', () => {
+    assert.ok(Array.isArray(constants.exportNames));
+    assert.ok(Object.isFrozen(constants.exportNames));
+    assert.ok(constants.exportNames.length > 50);
+    assert.ok(constants.exportNames.includes('parseSize'));
+    assert.ok(constants.exportNames.includes('getExportNames'));
+    assert.ok(constants.exportNames.includes('exportNames'));
+    assert.strictEqual(constants.getExportNames(), constants.exportNames);
+  });
+
+  it('describeExport returns correct shape', () => {
+    const desc = constants.describeExport('parseSize');
+    assert.ok(desc);
+    assert.strictEqual(desc.name, 'parseSize');
+    assert.strictEqual(desc.type, 'function');
+    assert.strictEqual(desc.namespace, 'format');
+    assert.strictEqual(desc.source, 'format');
+    assert.strictEqual(typeof desc.value, 'function');
+    assert.ok(Object.isFrozen(desc));
+  });
+
+  it('describeExport handles legacy aliases', () => {
+    const desc = constants.describeExport('CODE_EXTENSIONS');
+    assert.ok(desc);
+    assert.strictEqual(desc.name, 'CODE_EXTENSIONS');
+    assert.strictEqual(desc.type, 'object');
+    assert.strictEqual(desc.source, 'legacy');
+    assert.ok(Array.isArray(desc.value));
+  });
+
+  it('describeExport returns undefined for unknown names', () => {
+    assert.strictEqual(constants.describeExport('nonExistent'), undefined);
+    assert.strictEqual(constants.describeExport(123), undefined);
+  });
+
+  it('searchExports finds matching names', () => {
+    const sizeResults = constants.searchExports('size');
+    assert.ok(Array.isArray(sizeResults));
+    assert.ok(Object.isFrozen(sizeResults));
+    assert.ok(sizeResults.includes('parseSize'));
+    assert.ok(sizeResults.includes('formatSize'));
+  });
+
+  it('searchExports returns empty for empty or invalid input', () => {
+    assert.deepStrictEqual(constants.searchExports(''), []);
+    assert.deepStrictEqual(constants.searchExports(123), []);
+    assert.deepStrictEqual(constants.searchExports(null), []);
+  });
+
+  it('assertIntegrity does not throw for healthy facade', () => {
+    assert.doesNotThrow(() => constants.assertIntegrity());
+  });
 });
 
 describe('file-types', () => {

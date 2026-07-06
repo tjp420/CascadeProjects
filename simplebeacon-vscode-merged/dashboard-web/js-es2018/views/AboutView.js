@@ -1,9 +1,7 @@
 import { escapeHtml } from '../utils.js';
-
 // simplebeacon:production-leak-intent: mock-path - Legitimate documentation about mock data detection in About page
 const GITHUB_REPO = 'https://github.com/tjp420/simplebeacon';
 const MANIFESTO = 'https://github.com/tjp420/simplebeacon/blob/main/docs/ANTI-BLOAT-MANIFESTO.md';
-
 // Transparency note: This dashboard view displays documentation about pattern-matching tools.
 const CODE_SAMPLE = `// From credential-pattern-scanner.js — no API calls, no ML
 const CREDENTIAL_PATTERNS = [
@@ -30,17 +28,16 @@ function scanTextContent(fileName, content) {
   }
   return findings;
 }`;
-
 /**
  * About view.
  */
 export class AboutView {
-  constructor(app) {
-    this.app = app;
-  }
-
-  mount(container) {
-    container.innerHTML = `
+    constructor(app) {
+        this.app = app;
+    }
+    mount(container) {
+        var _a;
+        container.innerHTML = `
       <div class="analyze-hero">
         <h1 class="page-title">About</h1>
         <p class="text-muted analyze-hero-sub">Free · local · zero runtime dependencies</p>
@@ -131,11 +128,9 @@ export class AboutView {
         <p class="text-muted">Found a bug or want a new pattern? Open a PR — I review contributions regularly.</p>
       </section>
     `;
-
-    container.querySelector('#about-open-dashboard')?.addEventListener('click', () => {
-      this.app.navigate('dashboard');
-    });
-  }
-
-  destroy() {}
+        (_a = container.querySelector('#about-open-dashboard')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => {
+            this.app.navigate('dashboard');
+        });
+    }
+    destroy() { }
 }

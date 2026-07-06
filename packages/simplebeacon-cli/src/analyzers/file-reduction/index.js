@@ -33,6 +33,11 @@ const DEFAULT_SCANNERS = fileReductionRules.scanners.map((entry) => ({
     priority: entry.priority
 }));
 
+/** Convert kebab-case to camelCase (e.g. 'build-artifacts' -> 'buildArtifacts'). */
+function kebabToCamel(str) {
+    return str.replace(/-([a-z])/g, (_, ch) => ch.toUpperCase());
+}
+
 /**
  * Run the full file-reduction analysis pipeline.
  *
@@ -85,6 +90,16 @@ async function runFileReductionAnalysis(projectRoot, options = {}) {
         return sum;
     }, 0);
 
+    const totalProjectBytes = inventory.files.reduce((sum, f) => sum + (f.size || 0), 0);
+
+    // Build findings and summary dynamically so new scanners need only one entry in rules.
+    const findings = Object.fromEntries(
+        DEFAULT_SCANNERS.map((s) => [kebabToCamel(s.id), results[s.id]?.findings || []])
+    );
+    const summaryCounts = Object.fromEntries(
+        DEFAULT_SCANNERS.map((s) => [`${kebabToCamel(s.id)}Findings`, (results[s.id]?.findings || []).length])
+    );
+
     const report = {
         type: 'data-cleanup-report',
         projectRoot,
@@ -98,22 +113,7 @@ async function runFileReductionAnalysis(projectRoot, options = {}) {
         scanners: Object.fromEntries(
             Object.entries(results).map(([id, result]) => [id, result.summary || {}])
         ),
-        findings: {
-            buildArtifacts: results['build-artifacts']?.findings || [],
-            assetConsolidation: results['asset-consolidation']?.findings || [],
-            unusedFiles: results['unused-files']?.findings || [],
-            supplyChainSecurity: results['supply-chain-security']?.findings || [],
-            deadCode: results['dead-code']?.findings || [],
-            gitHygiene: results['git-hygiene']?.findings || [],
-            configManagement: results['config-management']?.findings || [],
-            dependencyHealth: results['dependency-health']?.findings || [],
-            environmentVariables: results['environment-variables']?.findings || [],
-            dataFreshness: results['data-freshness']?.findings || [],
-            dataAccessPatterns: results['data-access-patterns']?.findings || [],
-            dataPrivacy: results['data-privacy']?.findings || [],
-            dataLineage: results['data-lineage']?.findings || [],
-            dataConsistency: results['data-consistency']?.findings || []
-        },
+        findings,
         aggregation: {
             bySeverity: {
                 critical: aggregated.bySeverity.critical.length,
@@ -127,23 +127,10 @@ async function runFileReductionAnalysis(projectRoot, options = {}) {
         allFindings,
         summary: {
             totalFindings: allFindings.length,
-            buildArtifactFindings: (results['build-artifacts']?.findings || []).length,
-            duplicateAssetGroups: (results['asset-consolidation']?.findings || []).length,
-            unusedFileCandidates: (results['unused-files']?.findings || []).length,
-            supplyChainSecurityFindings: (results['supply-chain-security']?.findings || []).length,
-            deadCodeFindings: (results['dead-code']?.findings || []).length,
-            gitHygieneFindings: (results['git-hygiene']?.findings || []).length,
-            configFindings: (results['config-management']?.findings || []).length,
-            dependencyFindings: (results['dependency-health']?.findings || []).length,
-            environmentFindings: (results['environment-variables']?.findings || []).length,
-            dataFreshnessFindings: (results['data-freshness']?.findings || []).length,
-            dataAccessFindings: (results['data-access-patterns']?.findings || []).length,
-            dataPrivacyFindings: (results['data-privacy']?.findings || []).length,
-            dataLineageFindings: (results['data-lineage']?.findings || []).length,
-            dataConsistencyFindings: (results['data-consistency']?.findings || []).length,
+            ...summaryCounts,
             reclaimableBytes,
-            estimatedReductionPct: inventory.files.length
-                ? Math.round((allFindings.length / inventory.files.length) * 1000) / 10
+            estimatedReductionPct: totalProjectBytes
+                ? Math.round((reclaimableBytes / totalProjectBytes) * 1000) / 10
                 : 0
         },
         metadata: {
@@ -161,8 +148,8 @@ module.exports = Object.freeze({
     runFileReductionAnalysis,
     DEFAULT_SCANNERS,
     fileReductionRules,
-    BuildArtifactScanner: fileReductionRules.scanners.find((s) => s.id === 'build-artifacts').class,
-    AssetConsolidationScanner: fileReductionRules.scanners.find((s) => s.id === 'asset-consolidation').class,
-    UnusedFileDetector: fileReductionRules.scanners.find((s) => s.id === 'unused-files').class,
+    BuildArtifactScanner: fileReductionRules.scanners.find((s) => s.id === 'build-artifacts')?.class,
+    AssetConsolidationScanner: fileReductionRules.scanners.find((s) => s.id === 'asset-consolidation')?.class,
+    UnusedFileDetector: fileReductionRules.scanners.find((s) => s.id === 'unused-files')?.class,
     walkProjectFiles
 });

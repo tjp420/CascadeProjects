@@ -1,9 +1,35 @@
 
 (function(){
+  window._sidebarMainLoaded = true;
   if (typeof window._displayMode === 'undefined') window._displayMode = 'sidebar';
   if (!window.vscode && typeof acquireVsCodeApi === 'function') { window.vscode = acquireVsCodeApi(); }
   const vscode = window.vscode || null;
   if (vscode) window.vscode = vscode;
+  // Report uncaught errors to the extension so they appear in the output channel instead of the hidden webview console
+  window.addEventListener('error', function(e) {
+    if (vscode) { try { vscode.postMessage({ command: 'sidebarError', message: e.message, file: e.filename, line: e.lineno, col: e.colno, stack: e.error && e.error.stack ? e.error.stack : '' }); } catch(_) {} }
+  });
+  window.addEventListener('unhandledrejection', function(e) {
+    if (vscode) { try { vscode.postMessage({ command: 'sidebarError', message: String(e.reason), file: '', line: 0, col: 0, stack: e.reason && e.reason.stack ? e.reason.stack : '' }); } catch(_) {} }
+  });
+  // Direct server sign-out fallback: clears the browser session even if the extension message is dropped
+  function _callServerSignout() {
+    try {
+      const base = window.__SB_DATA_SERVER_URL__ || '';
+      if (!base) return;
+      fetch(base + '/api/auth/signout', { method: 'POST', headers: { 'Content-Type': 'application/json' } }).catch(function() {});
+    } catch (e) {}
+  }
+  // Immediate local sign-out: clears the webview's stored tokens and updates the button so the UI responds right away
+  function _clearSidebarAuthLocally() {
+    try {
+      ['cascadeAuthToken','access_token','token','authToken','simplebeacon_token'].forEach(function(k) {
+        localStorage.removeItem(k);
+      });
+      sessionStorage.removeItem('sb_sidebar_auth_ts');
+    } catch (e) {}
+    try { _updateSidebarAuthState(false); } catch (e) {}
+  }
   // Generic dropdown toggle: works for every .settings-dropdown-header including duplicates
   document.addEventListener('click', function(e) {
     let header = e.target.closest('.settings-dropdown-header, .menu-list-item');
@@ -37,7 +63,7 @@
     'roadmapDropdownHeader': 'openRoadmap',
     'complianceDropdownHeader': 'openCompliance',
     'codeMapDropdownHeader': 'openCodeMap',
-    'aiContextDropdownHeader': 'openAiContext',
+    'contextDropdownHeader': 'openContext',
     'uploadDropdownHeader': 'openUpload',
     'auditDropdownHeader': 'openAudit'
   };
@@ -47,8 +73,8 @@
     let id = header.id;
     if (!id) return;
     let mainCommand = HEADER_TO_MAIN_WINDOW_COMMAND[id];
-    if (window._displayMode === 'mainWindow' && mainCommand) {
-      if (window.vscode) window.vscode.postMessage({command: mainCommand});
+    if (window._displayMode === 'mainWindow' && mainCommand && window.vscode) {
+      window.vscode.postMessage({command: mainCommand});
       return;
     }
     let detailId = null;
@@ -167,7 +193,7 @@
   let _openCertificateBtn=document.getElementById('openCertificateBtn');if(_openCertificateBtn){_openCertificateBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openCertificate'}); });}
   let _openCodeMapBtn=document.getElementById('openCodeMapBtn');if(_openCodeMapBtn){_openCodeMapBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openCodeMap'}); });}
   let _openRoadmapBtn=document.getElementById('openRoadmapBtn');if(_openRoadmapBtn){_openRoadmapBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openRoadmap'}); });}
-  let _openAiContextBtn=document.getElementById('openAiContextBtn');if(_openAiContextBtn){_openAiContextBtn.addEventListener('click', function() { _switchSidebarTab('aicontext'); });}
+  let _openContextBtn=document.getElementById('openContextBtn');if(_openContextBtn){_openContextBtn.addEventListener('click', function() { _switchSidebarTab('context'); });}
   let _openUploadBtn=document.getElementById('openUploadBtn');if(_openUploadBtn){_openUploadBtn.addEventListener('click', function() { _switchSidebarTab('upload'); });}
   let _openAuditBtnMain=document.getElementById('openAuditBtnMain');if(_openAuditBtnMain){_openAuditBtnMain.addEventListener('click', function() { _switchSidebarTab('audit'); });}
   let _openSecurityBtnMain=document.getElementById('openSecurityBtnMain');if(_openSecurityBtnMain){_openSecurityBtnMain.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openSecurity'}); });}
@@ -190,10 +216,10 @@
   let _reportExportJsonBtn=document.getElementById('reportExportJsonBtn');if(_reportExportJsonBtn){_reportExportJsonBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'exportReport'}); });}
   let _roadmapBackBtn=document.getElementById('roadmapBackBtn');if(_roadmapBackBtn){_roadmapBackBtn.addEventListener('click', function() { _switchSidebarTab('advanced'); });}
   let _openRoadmapInMainWindowBtn=document.getElementById('openRoadmapInMainWindowBtn');if(_openRoadmapInMainWindowBtn){_openRoadmapInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openRoadmap'}); });}
-  let _openRoadmapBtn2=document.getElementById('openRoadmapBtn2');if(_openRoadmapBtn2){_openRoadmapBtn2.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openRoadmap'}); });}
+  let _openRoadmapBtn2=document.getElementById('openRoadmapBtn2');if(_openRoadmapBtn2){_openRoadmapBtn2.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openRoadmapHtml'}); });}
   let _openRoadmapInMainWindowBtn2=document.getElementById('openRoadmapInMainWindowBtn2');if(_openRoadmapInMainWindowBtn2){_openRoadmapInMainWindowBtn2.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openRoadmap'}); });}
-  let _aiContextBackBtn=document.getElementById('aiContextBackBtn');if(_aiContextBackBtn){_aiContextBackBtn.addEventListener('click', function() { _switchSidebarTab('advanced'); });}
-  let _openAiContextInMainWindowBtn=document.getElementById('openAiContextInMainWindowBtn');if(_openAiContextInMainWindowBtn){_openAiContextInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openAiContext'}); });}
+  let _contextBackBtn=document.getElementById('contextBackBtn');if(_contextBackBtn){_contextBackBtn.addEventListener('click', function() { _switchSidebarTab('advanced'); });}
+  let _openContextInMainWindowBtn=document.getElementById('openContextInMainWindowBtn');if(_openContextInMainWindowBtn){_openContextInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openContext'}); });}
   let _openUploadTabInMainWindowBtn=document.getElementById('openUploadTabInMainWindowBtn');if(_openUploadTabInMainWindowBtn){_openUploadTabInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openUpload'}); });}
   let _openTrustTabInMainWindowBtn=document.getElementById('openTrustTabInMainWindowBtn');if(_openTrustTabInMainWindowBtn){_openTrustTabInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openTrust'}); });}
   let _openAssessmentsTabInMainWindowBtn=document.getElementById('openAssessmentsTabInMainWindowBtn');if(_openAssessmentsTabInMainWindowBtn){_openAssessmentsTabInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openAssessments'}); });}
@@ -206,33 +232,7 @@
   let _openPatternDetectionBtn=document.getElementById('openPatternDetectionBtn');if(_openPatternDetectionBtn){_openPatternDetectionBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openPatternDetection'}); });}
   let _openModelHealthBtn=document.getElementById('openModelHealthBtn');if(_openModelHealthBtn){_openModelHealthBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openModelHealth'}); });}
   let _openTeamDashboardBtnMain=document.getElementById('openTeamDashboardBtnMain');if(_openTeamDashboardBtnMain){_openTeamDashboardBtnMain.addEventListener('click', function() { if(window.vscode) window.vscode.postMessage({command:'openTeamDashboard'}); });}
-  function _tdBind(id,cmd){let el=document.getElementById(id);if(el){el.addEventListener('click',function(){if(window.vscode)window.vscode.postMessage({command:cmd});});}}
-  _tdBind('tdRoadmap','openRoadmap');
-  let _tdAuditEl=document.getElementById('tdAudit');if(_tdAuditEl){_tdAuditEl.addEventListener('click',function(){if(window.vscode)window.vscode.postMessage({command:'openAuditUrl',url:'http://127.0.0.1:54358/coming-soon/roadmap.html?h=1782501104143'});});}
-  _tdPath('tdPricing','/coming-soon/pricing.html');
-  _tdBind('tdOpenSite','openTeamDashboard');
-  _tdBind('tdSignIn','signIn');
-  _tdBind('tdOfflineToggle','toggleOffline');
-  _tdBind('tdSignOut','signOut');
-  _tdBind('tdDashboard','dashboard');
-  _tdBind('tdAnalyze','openAnalyze');
-  _tdBind('tdResults','openReport');
-  _tdBind('tdRepoHealth','openRepoHealth');
-  _tdBind('tdSecurity','openSecurity');
-  _tdBind('tdQuality','openQuality');
-  _tdBind('tdTrust','openTrust');
-  _tdBind('tdAuditReport','openAudit');
-  _tdBind('tdAssessments','openAssessments');
-  _tdBind('tdRemediation','openRoadmap');
-  _tdBind('tdPlatform','openPlatform');
-  _tdBind('tdProfile','openProfile');
-  _tdBind('tdTools','openDiagnose');
-  _tdBind('tdSettings','settings');
-  _tdBind('tdHelp','openHelp');
-  _tdBind('tdChatbot','openChatbot');
-  _tdBind('tdAbout','openAbout');
-  _tdBind('tdGitHub','openGitHub');
-  _tdBind('tdDocs','openDocs');
+  function _tdBind(id,cmd){let el=document.getElementById(id);if(el){el.addEventListener('click',function(){if(cmd==='openSigninScreen'||cmd==='signIn'){_openSigninWithClear();return;}if(window.vscode)window.vscode.postMessage({command:cmd});});}}
   // Analyze, Roadmap, and AI Context buttons already send open* commands above; do not switch sidebar tabs.
   let _openSettingsBtn=document.getElementById('openSettingsBtn');if(_openSettingsBtn){_openSettingsBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openSettings'}); });}
   let _uploadDropzone=document.getElementById('uploadDropzone');let _uploadFileInput=document.getElementById('uploadFileInput');let _uploadList=document.getElementById('uploadList');let _uploadStatPending=document.getElementById('uploadStatPending');let _uploadStatValid=document.getElementById('uploadStatValid');let _uploadStatInvalid=document.getElementById('uploadStatInvalid');let _uploadValidateBtn=document.getElementById('uploadValidateBtn');let _uploadClearBtn=document.getElementById('uploadClearBtn');let _uploadProgress=document.getElementById('uploadProgress');let _uploadProgressFill=document.getElementById('uploadProgressFill');let _uploadProgressText=document.getElementById('uploadProgressText');let _uploadDetail=document.getElementById('uploadDetail');let _uploadDetailList=document.getElementById('uploadDetailList');let _uploadResultBox=document.getElementById('uploadResultBox');let _uploadResultTitle=document.getElementById('uploadResultTitle');let _uploadResultList=document.getElementById('uploadResultList');
@@ -310,13 +310,12 @@
   let _roadmapDetailBackBtn=document.getElementById('roadmapDetailBackBtn');if(_roadmapDetailBackBtn){_roadmapDetailBackBtn.addEventListener('click', function() { _switchSidebarTab('advanced'); });}
   let _generateRoadmapBtn=document.getElementById('generateRoadmapBtn');if(_generateRoadmapBtn){_generateRoadmapBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'generateRoadmap'}); });}
   let _exportRoadmapBtn=document.getElementById('exportRoadmapBtn');if(_exportRoadmapBtn){_exportRoadmapBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'exportRoadmap'}); });}
-  let _openRoadmapInMainWindowBtn2b=document.getElementById('openRoadmapInMainWindowBtn2');if(_openRoadmapInMainWindowBtn2b){_openRoadmapInMainWindowBtn2b.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openRoadmapHtml'}); });}
   let _aiContextDropdownHeader=document.getElementById('aiContextDropdownHeader');if(_aiContextDropdownHeader){_aiContextDropdownHeader.addEventListener('click', function() { const header=document.getElementById('aiContextDropdownHeader'); const detail=document.getElementById('aiContextDetailPanel'); _closeDetailPanels(); if(header){header.style.display='none';} if(detail){detail.classList.remove('hidden');detail.classList.add('detail-active');detail.style.display='block';} document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');p.classList.add('hidden');}); document.body.classList.add('detail-panel-open'); if (window.vscode) window.vscode.postMessage({command: 'getAuditData'}); });}
   let _aiContextDetailBackBtn=document.getElementById('aiContextDetailBackBtn');if(_aiContextDetailBackBtn){_aiContextDetailBackBtn.addEventListener('click', function() { _switchSidebarTab('advanced'); });}
   let _scanAiContextBtn=document.getElementById('scanAiContextBtn');if(_scanAiContextBtn){_scanAiContextBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'scan', mode: 'workspace'}); });}
   let _exportAiContextBtn=document.getElementById('exportAiContextBtn');if(_exportAiContextBtn){_exportAiContextBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'exportReport'}); });}
   let _viewAiContextReportBtn=document.getElementById('viewAiContextReportBtn');if(_viewAiContextReportBtn){_viewAiContextReportBtn.addEventListener('click', function() { _switchSidebarTab('report'); });}
-  let _openAiContextInMainWindowBtn2=document.getElementById('openAiContextInMainWindowBtn2');if(_openAiContextInMainWindowBtn2){_openAiContextInMainWindowBtn2.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openAiContext'}); });}
+  let _openContextInMainWindowBtn2=document.getElementById('openContextInMainWindowBtn2');if(_openContextInMainWindowBtn2){_openContextInMainWindowBtn2.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openContext'}); });}
   let _uploadDropdownHeader=document.getElementById('uploadDropdownHeader');if(_uploadDropdownHeader){_uploadDropdownHeader.addEventListener('click', function() { const header=document.getElementById('uploadDropdownHeader'); const detail=document.getElementById('uploadDetailPanel'); _closeDetailPanels(); if(header){header.style.display='none';} if(detail){detail.classList.remove('hidden');detail.classList.add('detail-active');detail.style.display='block';} document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');p.classList.add('hidden');}); document.body.classList.add('detail-panel-open'); if (window.vscode) window.vscode.postMessage({command: 'getAuditData'}); });}
   let _uploadDetailBackBtn=document.getElementById('uploadDetailBackBtn');if(_uploadDetailBackBtn){_uploadDetailBackBtn.addEventListener('click', function() { _switchSidebarTab('advanced'); });}
   let _auditDropdownHeader=document.getElementById('auditDropdownHeader');if(_auditDropdownHeader){_auditDropdownHeader.addEventListener('click', function() { _switchSidebarTab('report'); });}
@@ -385,37 +384,47 @@
   let _previewDropdownHeader=document.getElementById('previewDropdownHeader');if(_previewDropdownHeader){_previewDropdownHeader.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openPreview'}); });}
   let _toggleMonitorSidebarBtn=document.getElementById('toggleMonitorSidebarBtn');if(_toggleMonitorSidebarBtn){_toggleMonitorSidebarBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openToggleMonitor'}); });}
   let _browserDropdownHeader=document.getElementById('browserDropdownHeader');if(_browserDropdownHeader){_browserDropdownHeader.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openBrowser'}); });}
-  let _scanWorkspaceDropdownHeader=document.getElementById('scanWorkspaceDropdownHeader');if(_scanWorkspaceDropdownHeader){_scanWorkspaceDropdownHeader.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openScanWorkspace'}); });}
-  function _tdBind2(id,cmd){let el=document.getElementById(id);if(el){el.addEventListener('click',function(){if(window.vscode)window.vscode.postMessage({command:cmd});});}}
-  function _tdPath(id,path){let el=document.getElementById(id);if(el){el.addEventListener('click',function(){if(window.vscode)window.vscode.postMessage({command:'openDataServerPath',path:path});});}}
+  let _scanWorkspaceDropdownHeader=document.getElementById('scanWorkspaceDropdownHeader');if(_scanWorkspaceDropdownHeader){_scanWorkspaceDropdownHeader.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'scan', mode: 'workspace'}); });}
+  function _tdBind2(id,cmd){let el=document.getElementById(id);if(el){el.addEventListener('click',function(){if(window.vscode){window.vscode.postMessage({command:cmd});try{window.vscode.postMessage({command:'sidebarError',message:'sent: ' + id + ' -> ' + cmd});}catch(e){}} if(cmd==='signOut'){_clearSidebarAuthLocally();_callServerSignout();}});}}
+  function _openSigninWithClear(){const base=window.__SB_DATA_SERVER_URL__||'';function _post(){if(window.vscode){try{window.vscode.postMessage({command:'openSigninPanel'});}catch(e){}}} if(base){fetch(base+'/api/auth/signout',{method:'POST',headers:{'Content-Type':'application/json'}}).finally(_post).catch(_post);}else{_post();}}
+  function _tdPath(id,path){let el=document.getElementById(id);if(el){el.addEventListener('click',function(){if(window.__SB_BROWSER_MODE__){const base=window.__SB_DATA_SERVER_URL__||'';parent.postMessage({command:'openBrowserTab',url:base+path,label:path},'*');return;}if(window.vscode)window.vscode.postMessage({command:'openDataServerPath',path:path});});}}
+  function _tdBrowser(id,path){let el=document.getElementById(id);if(el){el.addEventListener('click',function(){if(window.__SB_BROWSER_MODE__){const base=window.__SB_DATA_SERVER_URL__||'';parent.postMessage({command:'openBrowserTab',url:base+path,label:path},'*');return;}if(window.vscode)window.vscode.postMessage({command:'openBrowserPath',path:path});});}}
   _tdPath('tdRoadmapSidebar','/coming-soon/roadmap.html');
   _tdPath('tdAuditSidebar','/coming-soon/audit.html');
   _tdPath('tdAuditReportSidebar','/dashboard/audit');
-  _tdPath('tdPricingSidebar','/coming-soon/pricing.html');
-  _tdPath('tdOpenSiteSidebar','/dashboard/dashboard');
+  _tdBrowser('tdPricingSidebar','/coming-soon/pricing.html');
+  _tdBind('tdOpenSiteSidebar','openTeamDashboard');
   _tdBind2('tdThemeToggleSidebar','toggleTheme');
-  _tdPath('tdSignInSidebar','/dashboard/signin');
+  _tdBind('tdSignInSidebar','openSigninScreen');
   _tdBind2('tdOfflineToggleSidebar','toggleOffline');
   _tdBind2('tdSignOutSidebar','signOut');
-  _tdPath('tdDashboardSidebar','/dashboard/dashboard');
-  _tdPath('tdAnalyzeSidebar','/dashboard/analyze');
-  _tdPath('tdResultsSidebar','/dashboard/results');
-  _tdPath('tdRepoHealthSidebar','/dashboard/repository-health');
-  _tdPath('tdSecuritySidebar','/dashboard/security');
-  _tdPath('tdQualitySidebar','/dashboard/quality');
-  _tdPath('tdTrustSidebar','/dashboard/trust');
-  _tdPath('tdAssessmentsSidebar','/dashboard/assessments');
-  _tdPath('tdRemediationSidebar','/dashboard/remediation');
-  _tdPath('tdPlatformSidebar','/dashboard/platform');
-  _tdPath('tdProfileSidebar','/dashboard/profile');
-  _tdPath('tdToolsSidebar','/dashboard/tools');
-  _tdPath('tdSettingsSidebar','/dashboard/settings');
-  _tdPath('tdHelpSidebar','/dashboard/help');
-  _tdPath('tdChatbotSidebar','/dashboard/chatbot');
-  _tdPath('tdAboutSidebar','/dashboard/about');
+  let _sidebarSignInLink=document.getElementById('sidebarSignInLink');if(_sidebarSignInLink){_sidebarSignInLink.addEventListener('click',function(){_openSigninWithClear();});}
+  let _sidebarSignOutLink=document.getElementById('sidebarSignOutLink');if(_sidebarSignOutLink){_sidebarSignOutLink.addEventListener('click',function(){_clearSidebarAuthLocally(); if(window.vscode){window.vscode.postMessage({command:'signOut'});try{window.vscode.postMessage({command:'sidebarError',message:'signOut sent from sidebarSignOutLink'});}catch(e){}} _callServerSignout();});}
+  let _headerSignInBtn=document.getElementById('headerSignInBtn');if(_headerSignInBtn){_headerSignInBtn.addEventListener('click',function(){_openSigninWithClear();});}
+  let _headerSignOutBtn=document.getElementById('headerSignOutBtn');if(_headerSignOutBtn){_headerSignOutBtn.addEventListener('click',function(){_clearSidebarAuthLocally(); if(window.vscode){window.vscode.postMessage({command:'signOut'});try{window.vscode.postMessage({command:'sidebarError',message:'signOut sent from headerSignOutBtn'});}catch(e){}} _callServerSignout();});}
+  let _tdSignOutSidebarEl=document.getElementById('tdSignOutSidebar');if(_tdSignOutSidebarEl){_tdSignOutSidebarEl.addEventListener('click',function(){_clearSidebarAuthLocally();});}
+  _tdBrowser('tdDashboardSidebar','/dashboard/dashboard');
+  _tdBrowser('tdAnalyzeSidebar','/dashboard/analyze');
+  _tdBrowser('tdResultsSidebar','/dashboard/results');
+  _tdBrowser('tdRepoHealthSidebar','/dashboard/repository-health');
+  _tdBrowser('tdSecuritySidebar','/dashboard/security');
+  _tdBrowser('tdQualitySidebar','/dashboard/quality');
+  _tdBrowser('tdTrustSidebar','/dashboard/trust');
+  _tdBrowser('tdAssessmentsSidebar','/dashboard/assessments');
+  _tdBrowser('tdRemediationSidebar','/dashboard/remediation');
+  _tdBrowser('tdPlatformSidebar','/dashboard/platform');
+  _tdBrowser('tdProfileSidebar','/dashboard/profile');
+  _tdBrowser('tdToolsSidebar','/dashboard/tools');
+  _tdBrowser('tdSettingsSidebar','/dashboard/settings');
+  _tdBrowser('tdHelpSidebar','/dashboard/help');
+  _tdBrowser('tdChatbotSidebar','/dashboard/chatbot');
+  _tdBrowser('tdAboutSidebar','/dashboard/about');
   _tdBind2('tdGitHubSidebar','openGitHub');
+  let _tokenManagementCard=document.getElementById('tokenManagementCard');if(_tokenManagementCard){_tokenManagementCard.addEventListener('click',function(){if(window.vscode)window.vscode.postMessage({command:'openTokenReplacementPanel'});});}
   _tdBind2('tdDocsSidebar','openDocs');
   let _dbExportBtn=document.getElementById('dbExportBtn');if(_dbExportBtn){_dbExportBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'exportReport'}); });}
+  let _dbSigninBtn=document.getElementById('dbSigninBtn');if(_dbSigninBtn){_dbSigninBtn.addEventListener('click', function() { _openSigninWithClear(); });}
+  let _dbSignoutBtn=document.getElementById('dbSignoutBtn');if(_dbSignoutBtn){_dbSignoutBtn.addEventListener('click', function() { _clearSidebarAuthLocally(); if (window.vscode) { window.vscode.postMessage({command: 'signOut'}); try { window.vscode.postMessage({command: 'sidebarError', message: 'signOut sent from dbSignoutBtn'}); } catch(e) {} } _callServerSignout(); });}
   let _dashPreviewBtn=document.getElementById('dashPreviewBtn');if(_dashPreviewBtn){_dashPreviewBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openPreviewInBrowser'}); });}
   let _dashBrowserBtn=document.getElementById('dashBrowserBtn');if(_dashBrowserBtn){_dashBrowserBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openBrowser'}); });}
   let _dashExportReportBtn=document.getElementById('dashExportReportBtn');if(_dashExportReportBtn){_dashExportReportBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'exportReport'}); });}
@@ -511,14 +520,16 @@
     const mEl = document.getElementById('scanMedium'); if (mEl) mEl.textContent = med;
     const lEl = document.getElementById('scanLow'); if (lEl) lEl.textContent = low;
     const list = document.getElementById('scanResultsList'); if (list) {
-      list.textContent = '';
+      list.replaceChildren();
       const findings = Array.isArray(data.findings) ? data.findings.slice(0, 5) : (Array.isArray(data.issuesList) ? data.issuesList.slice(0, 5) : []);
       if (findings.length === 0) {
         const row = document.createElement('div'); row.className = 'tc-list-item';
         const left = document.createElement('div'); left.className = 'tc-list-item-left';
         const dot = document.createElement('span'); dot.className = 'tc-list-dot green';
-        const name = document.createElement('span'); name.className = 'tc-list-name'; name.textContent = 'No results yet';
-        const meta = document.createElement('span'); meta.className = 'tc-list-meta'; meta.textContent = '--';
+        const noResultsText = 'No results yet';
+        const name = document.createElement('span'); name.className = 'tc-list-name'; name.textContent = noResultsText;
+        const dashText = '--';
+        const meta = document.createElement('span'); meta.className = 'tc-list-meta'; meta.textContent = dashText;
         left.appendChild(dot); left.appendChild(name); row.appendChild(left); row.appendChild(meta); list.appendChild(row);
       } else {
         findings.forEach(function(f){
@@ -597,9 +608,9 @@
     const badge = document.getElementById('repoHealthStatusBadge'); if (badge) { const ok = totalIssues === 0; badge.textContent = ok ? 'Ready' : (crit > 0 ? 'Critical' : 'Needs Attention'); badge.style.background = ok ? 'rgba(34,197,94,0.18)' : (crit > 0 ? 'rgba(239,68,68,0.18)' : 'rgba(245,158,11,0.18)'); badge.style.color = ok ? '#4ade80' : (crit > 0 ? '#f87171' : '#fbbf24'); }
     const maintainabilityEl = document.getElementById('repoHealthMaintainability'); if (maintainabilityEl) { maintainabilityEl.textContent = typeof score === 'number' ? (score >= 80 ? 'Good' : score >= 50 ? 'Fair' : 'Poor') : '--'; maintainabilityEl.style.color = score >= 80 ? '#4ade80' : score >= 50 ? '#fbbf24' : '#f87171'; }
     const reliabilityEl = document.getElementById('repoHealthReliability'); if (reliabilityEl) { reliabilityEl.textContent = typeof score === 'number' ? (score >= 80 ? 'Stable' : score >= 50 ? 'Moderate' : 'At Risk') : '--'; reliabilityEl.style.color = score >= 80 ? '#4ade80' : score >= 50 ? '#fbbf24' : '#f87171'; }
-    const complexityEl = document.getElementById('repoHealthComplexity'); if (complexityEl) complexityEl.textContent = '--';
-    const duplicationEl = document.getElementById('repoHealthDuplication'); if (duplicationEl) duplicationEl.textContent = '--';
-    const findingsEl = document.getElementById('repoHealthFindings'); if (findingsEl) { while (findingsEl.firstChild) { findingsEl.removeChild(findingsEl.firstChild); } const row = document.createElement('div'); row.className = 'tc-list-item'; const span = document.createElement('span'); span.className = 'tc-list-name'; if (totalIssues === 0) { span.style.color = 'var(--vscode-descriptionForeground)'; span.textContent = 'No issues detected. Repository looks healthy.'; } else { span.textContent = crit + ' Critical, ' + high + ' High, ' + med + ' Medium, ' + low + ' Low issues detected.'; } row.appendChild(span); findingsEl.appendChild(row); }
+    const complexityEl = document.getElementById('repoHealthComplexity'); if (complexityEl) { const dash = '--'; complexityEl.textContent = dash; }
+    const duplicationEl = document.getElementById('repoHealthDuplication'); if (duplicationEl) { const dash2 = '--'; duplicationEl.textContent = dash2; }
+    const findingsEl = document.getElementById('repoHealthFindings'); if (findingsEl) { while (findingsEl.firstChild) { findingsEl.removeChild(findingsEl.firstChild); } const row = document.createElement('div'); row.className = 'tc-list-item'; const span = document.createElement('span'); span.className = 'tc-list-name'; const healthyMsg = 'No issues detected. Repository looks healthy.'; const issuesMsg = crit + ' Critical, ' + high + ' High, ' + med + ' Medium, ' + low + ' Low issues detected.'; if (totalIssues === 0) { span.style.color = 'var(--vscode-descriptionForeground)'; span.textContent = healthyMsg; } else { span.textContent = issuesMsg; } row.appendChild(span); findingsEl.appendChild(row); }
     const recEl = document.getElementById('repoHealthRecommendations'); if (recEl) { recEl.textContent = totalIssues === 0 ? 'No action needed. Keep monitoring repository health.' : 'Review ' + totalIssues + ' issue' + (totalIssues === 1 ? '' : 's') + ' to improve repository health.'; }
   }
   function _updateSidebarAnalyticsPanel(data) {
@@ -650,7 +661,7 @@
     const scansEl = document.getElementById('teamScans'); if (scansEl) scansEl.textContent = scans;
     const resolvedEl = document.getElementById('teamResolved'); if (resolvedEl) { resolvedEl.textContent = resolved; resolvedEl.className = 'settings-kpi-value ' + (resolved > 0 ? 'green' : 'green'); }
     const teamScoreEl = document.getElementById('teamScore'); if (teamScoreEl) { teamScoreEl.textContent = teamScore; teamScoreEl.className = 'settings-kpi-value ' + (teamScore >= 80 ? 'green' : teamScore >= 50 ? 'amber' : 'red'); }
-    const badge = document.getElementById('teamStatusBadge'); if (badge) { badge.textContent = 'Active'; badge.style.background = 'rgba(34,197,94,0.18)'; badge.style.color = '#4ade80'; }
+    const badge = document.getElementById('teamStatusBadge'); if (badge) { const activeText = 'Active'; badge.textContent = activeText; badge.style.background = 'rgba(34,197,94,0.18)'; badge.style.color = '#4ade80'; }
     const critEl = document.getElementById('teamCritical'); if (critEl) critEl.textContent = crit + ' Critical';
     const highEl = document.getElementById('teamHigh'); if (highEl) highEl.textContent = high + ' High';
     const medEl = document.getElementById('teamMedium'); if (medEl) medEl.textContent = med + ' Med';
@@ -740,12 +751,18 @@
     const lastScanEl = document.getElementById('codeMapLastScan'); if (lastScanEl) lastScanEl.textContent = lastScan;
     const lastScanEl2 = document.getElementById('codeMapLastScan2'); if (lastScanEl2) lastScanEl2.textContent = lastScan;
     const repoFilesEl = document.getElementById('codeMapRepoFiles'); if (repoFilesEl) repoFilesEl.textContent = files;
+    const isPaid = data.isPaidTier === true || !_isFreeTier();
+    const detailSections = document.querySelectorAll('.code-map-detail-section');
+    detailSections.forEach(function(s) { s.style.display = isPaid ? '' : 'none'; });
+    const upgradeMsg = document.getElementById('codeMapUpgradeMsg');
+    if (upgradeMsg) upgradeMsg.style.display = isPaid ? 'none' : 'block';
+    if (!isPaid) return;
     const list = document.getElementById('codeMapLanguagesList');
     if (list && data.languages) {
       const langs = Array.isArray(data.languages) ? data.languages : Object.entries(data.languages).map(function(e) { return { name: e[0], count: typeof e[1] === 'number' ? e[1] : e[1].count || 0 }; });
       const max = Math.max(1, langs.reduce(function(m, l) { return Math.max(m, l.count || 0); }, 0));
       const colors = ['#4ade80','#60a5fa','#a78bfa','#f87171','#fbbf24','#22d3ee','#f472b6','#fb923c'];
-      list.textContent = '';
+      list.replaceChildren();
       langs.forEach(function(l, i) {
         const pct = Math.round((l.count / max) * 100);
         const color = colors[i % colors.length];
@@ -823,7 +840,7 @@
     const score = data.qualityScore != null ? data.qualityScore : (data.score != null ? data.score : '--');
     const badge = document.getElementById('auditPassBadge'); if (badge) { badge.textContent = gate === 'PASS' ? 'PASS' : gate === 'FAIL' ? 'FAIL' : 'PENDING'; badge.style.background = gate === 'PASS' ? 'rgba(34,197,94,0.18)' : gate === 'FAIL' ? 'rgba(239,68,68,0.18)' : 'rgba(245,158,11,0.18)'; badge.style.color = gate === 'PASS' ? '#4ade80' : gate === 'FAIL' ? '#f87171' : '#fbbf24'; }
     const vuln = document.getElementById('auditVulnerabilities'); if (vuln) vuln.textContent = crit + high + med + low;
-    const secrets = document.getElementById('auditSecrets'); if (secrets) secrets.textContent = '0';
+    const secrets = document.getElementById('auditSecrets'); if (secrets) secrets.textContent='0';
     const checks = document.getElementById('auditChecksPassed'); if (checks) checks.textContent = gate === 'PASS' ? '100' : gate === 'FAIL' ? '0' : '--';
     const auditScore = document.getElementById('auditScore'); if (auditScore) auditScore.textContent = score;
     const cEl = document.getElementById('auditCritical'); if (cEl) cEl.textContent = crit;
@@ -831,14 +848,14 @@
     const mEl = document.getElementById('auditMedium'); if (mEl) mEl.textContent = med;
     const lEl = document.getElementById('auditLow'); if (lEl) lEl.textContent = low;
     const findingsList = document.getElementById('auditFindingsList'); if (findingsList) {
-      findingsList.textContent = '';
+      findingsList.textContent='';
       const findings = data.detectedIssues || data.findings || [];
       if (findings.length === 0) {
         const row = document.createElement('div'); row.className = 'tc-list-item';
         const left = document.createElement('div'); left.className = 'tc-list-item-left';
         const dot = document.createElement('span'); dot.className = 'tc-list-dot green';
-        const name = document.createElement('span'); name.className = 'tc-list-name'; name.textContent = 'No new findings';
-        const meta = document.createElement('span'); meta.className = 'tc-list-meta'; meta.textContent = '0';
+        const name = document.createElement('span'); name.className = 'tc-list-name'; name.textContent='No new findings';
+        const meta = document.createElement('span'); meta.className = 'tc-list-meta'; meta.textContent='0';
         left.appendChild(dot); left.appendChild(name); row.appendChild(left); row.appendChild(meta); findingsList.appendChild(row);
       } else {
         findings.slice(0,5).forEach(function(f){
@@ -871,14 +888,14 @@
     const mEl = document.getElementById('trustMedium'); if (mEl) mEl.textContent = med;
     const lEl = document.getElementById('trustLow'); if (lEl) lEl.textContent = low;
     const statusList = document.getElementById('trustStatusList'); if (statusList) {
-      statusList.textContent = '';
+      statusList.textContent='';
       const findings = data.detectedIssues || data.findings || [];
       if (findings.length === 0) {
         const row = document.createElement('div'); row.className = 'tc-list-item';
         const left = document.createElement('div'); left.className = 'tc-list-item-left';
         const dot = document.createElement('span'); dot.className = 'tc-list-dot green';
-        const name = document.createElement('span'); name.className = 'tc-list-name'; name.textContent = 'All checks passed';
-        const meta = document.createElement('span'); meta.className = 'tc-list-meta'; meta.textContent = 'OK';
+        const name = document.createElement('span'); name.className = 'tc-list-name'; name.textContent='All checks passed';
+        const meta = document.createElement('span'); meta.className = 'tc-list-meta'; meta.textContent='OK';
         left.appendChild(dot); left.appendChild(name); row.appendChild(left); row.appendChild(meta); statusList.appendChild(row);
       } else {
         findings.slice(0,5).forEach(function(f){
@@ -907,7 +924,7 @@
     const passedEl = document.getElementById('compliancePassed'); if (passedEl) passedEl.textContent = passed;
     const failedEl = document.getElementById('complianceFailed'); if (failedEl) failedEl.textContent = failed;
     const progressEl = document.getElementById('complianceProgress'); if (progressEl) progressEl.textContent = progress;
-    const totalEl = document.getElementById('complianceTotalRules'); if (totalEl) totalEl.textContent = '5';
+    const totalEl = document.getElementById('complianceTotalRules'); if (totalEl) totalEl.textContent='5';
     const cEl = document.getElementById('complianceCritical'); if (cEl) cEl.textContent = crit;
     const hEl = document.getElementById('complianceHigh'); if (hEl) hEl.textContent = high;
     const mEl = document.getElementById('complianceMedium'); if (mEl) mEl.textContent = med;
@@ -918,13 +935,13 @@
     const lEl2 = document.getElementById('complianceLow2'); if (lEl2) lEl2.textContent = low;
     const requirements = [
       { name: 'No sensitive data in logs', severity: crit > 0 ? 'critical' : 'green' },
-      { name: 'Dependency license compliance', severity: med > 0 ? 'medium' : 'green' },
+      { name: 'Dependency compliance', severity: med > 0 ? 'medium' : 'green' },
       { name: 'Code of conduct present', severity: 'green' },
       { name: 'Security policy defined', severity: high > 0 ? 'high' : 'green' },
       { name: 'Contributing guidelines', severity: 'green' }
     ];
     const list = document.getElementById('complianceRequirementsList'); if (list) {
-      list.textContent = '';
+      list.textContent='';
       requirements.forEach(function(r){
         const row = document.createElement('div'); row.className = 'tc-list-item';
         const left = document.createElement('div'); left.className = 'tc-list-item-left';
@@ -998,17 +1015,17 @@
     const lEl2 = document.getElementById('assessmentsLow2'); if (lEl2) lEl2.textContent = low;
     const completionEl = document.getElementById('assessmentsCompletion'); if (completionEl) completionEl.textContent = (gate === 'PASS' ? '100' : '0') + '%';
     const checklist = document.getElementById('assessmentsChecklist'); if (checklist) {
-      checklist.textContent = '';
+      checklist.textContent='';
       const qualityRow = document.createElement('div'); qualityRow.className = 'tc-list-item';
       const qualityLeft = document.createElement('div'); qualityLeft.className = 'tc-list-item-left';
       const qualityDot = document.createElement('span'); qualityDot.className = 'tc-list-dot ' + (gate === 'PASS' ? 'green' : 'amber');
-      const qualityName = document.createElement('span'); qualityName.className = 'tc-list-name'; qualityName.textContent = 'Code quality gate passed';
+      const qualityName = document.createElement('span'); qualityName.className = 'tc-list-name'; qualityName.textContent='Code quality gate passed';
       const qualityMeta = document.createElement('span'); qualityMeta.className = 'tc-list-meta'; qualityMeta.textContent = gate === 'PASS' ? 'Done' : 'Pending';
       qualityLeft.appendChild(qualityDot); qualityLeft.appendChild(qualityName); qualityRow.appendChild(qualityLeft); qualityRow.appendChild(qualityMeta); checklist.appendChild(qualityRow);
       const securityRow = document.createElement('div'); securityRow.className = 'tc-list-item';
       const securityLeft = document.createElement('div'); securityLeft.className = 'tc-list-item-left';
       const securityDot = document.createElement('span'); securityDot.className = 'tc-list-dot ' + (crit + high + med === 0 ? 'green' : 'amber');
-      const securityName = document.createElement('span'); securityName.className = 'tc-list-name'; securityName.textContent = 'Security scan completed';
+      const securityName = document.createElement('span'); securityName.className = 'tc-list-name'; securityName.textContent='Security scan completed';
       const securityMeta = document.createElement('span'); securityMeta.className = 'tc-list-meta'; securityMeta.textContent = crit + high + med === 0 ? 'Done' : 'Pending';
       securityLeft.appendChild(securityDot); securityLeft.appendChild(securityName); securityRow.appendChild(securityLeft); securityRow.appendChild(securityMeta); checklist.appendChild(securityRow);
     }
@@ -1038,14 +1055,14 @@
     const stackMed = document.getElementById('securityStackMedium'); if (stackMed) stackMed.style.width = totalIssues === 0 ? '0%' : ((med / totalIssues) * 100) + '%';
     const stackLow = document.getElementById('securityStackLow'); if (stackLow) stackLow.style.width = totalIssues === 0 ? '0%' : ((low / totalIssues) * 100) + '%';
     const threatsList = document.getElementById('securityThreatsList'); if (threatsList) {
-      threatsList.textContent = '';
+      threatsList.textContent='';
       const findings = data.detectedIssues || data.findings || [];
       if (findings.length === 0) {
         const row = document.createElement('div'); row.className = 'tc-list-item';
         const left = document.createElement('div'); left.className = 'tc-list-item-left';
         const dot = document.createElement('span'); dot.className = 'tc-list-dot green';
-        const name = document.createElement('span'); name.className = 'tc-list-name'; name.textContent = 'No threats detected';
-        const meta = document.createElement('span'); meta.className = 'tc-list-meta'; meta.textContent = '0';
+        const name = document.createElement('span'); name.className = 'tc-list-name'; name.textContent='No threats detected';
+        const meta = document.createElement('span'); meta.className = 'tc-list-meta'; meta.textContent='0';
         left.appendChild(dot); left.appendChild(name); row.appendChild(left); row.appendChild(meta); threatsList.appendChild(row);
       } else {
         findings.slice(0,5).forEach(function(f){
@@ -1064,14 +1081,21 @@
     if (msg.command === 'updateStatus') {
       const st = document.getElementById('statusText');
       const ic = document.getElementById('statusIcon');
+      const bar = document.getElementById('scanProgressBar');
+      const pct = document.getElementById('scanProgressPct');
       if (st) st.textContent = msg.text || 'Ready';
       if (ic) { ic.className = 'card-icon ' + (msg.status === 'error' ? 'error' : msg.status === 'scanning' ? 'scanning' : 'ok'); ic.textContent = msg.status === 'error' ? '✖' : msg.status === 'scanning' ? '⚠' : '✔'; }
+      if (bar) {
+        if (msg.status === 'scanning') { bar.classList.add('indeterminate'); }
+        else { bar.classList.remove('indeterminate'); bar.style.width = '0%'; }
+      }
+      if (pct) { if (msg.status !== 'scanning') pct.textContent='0%'; }
     }
     if (msg.command === 'scanProgress') {
       const bar = document.getElementById('scanProgressBar');
       const pct = document.getElementById('scanProgressPct');
       const val = Math.max(0, Math.min(100, msg.percentage || 0));
-      if (bar) bar.style.width = val + '%';
+      if (bar) { bar.classList.remove('indeterminate'); bar.style.width = val + '%'; }
       if (pct) pct.textContent = val + '%';
     }
     if (msg.command === 'updateAuditData') {
@@ -1131,49 +1155,49 @@
       const dbLow = document.getElementById('dbLowCount');
       const dbRepo = document.getElementById('dbRepoFiles');
       const dbGateChk = document.getElementById('dbGateChecked');
-      if (dbGate) dbGate.textContent = 'Pending';
-      if (dbScore) dbScore.textContent = '--';
-      if (dbIssues) dbIssues.textContent = '0';
-      if (dbCrit) { dbCrit.textContent = '0'; document.getElementById('dbCritLabel').textContent = '0 Critical'; }
-      if (dbHigh) { dbHigh.textContent = '0'; document.getElementById('dbHighLabel').textContent = '0 High'; }
-      if (dbMed) { dbMed.textContent = '0'; document.getElementById('dbMedLabel').textContent = '0 Med'; }
-      if (dbLow) { dbLow.textContent = '0'; document.getElementById('dbLowLabel').textContent = '0 Low'; }
-      if (dbRepo) dbRepo.textContent = '--';
-      if (dbGateChk) dbGateChk.textContent = '--';
+      if (dbGate) dbGate.textContent='Pending';
+      if (dbScore) dbScore.textContent='--';
+      if (dbIssues) dbIssues.textContent='0';
+      if (dbCrit) { dbCrit.textContent='0'; document.getElementById('dbCritLabel').textContent='0 Critical'; }
+      if (dbHigh) { dbHigh.textContent='0'; document.getElementById('dbHighLabel').textContent='0 High'; }
+      if (dbMed) { dbMed.textContent='0'; document.getElementById('dbMedLabel').textContent='0 Med'; }
+      if (dbLow) { dbLow.textContent='0'; document.getElementById('dbLowLabel').textContent='0 Low'; }
+      if (dbRepo) dbRepo.textContent='--';
+      if (dbGateChk) dbGateChk.textContent='--';
       const dashGate = document.getElementById('dashGateText');
       const dashIssues = document.getElementById('dashIssuesText');
       const dashScore = document.getElementById('dashScoreText');
-      if (dashGate) dashGate.textContent = 'Pending';
-      if (dashIssues) dashIssues.textContent = '0';
-      if (dashScore) dashScore.textContent = '--';
+      if (dashGate) dashGate.textContent='Pending';
+      if (dashIssues) dashIssues.textContent='0';
+      if (dashScore) dashScore.textContent='--';
       const sidebarRepoFiles = document.getElementById('sidebarRepoFiles');
-      if (sidebarRepoFiles) sidebarRepoFiles.textContent = '--';
+      if (sidebarRepoFiles) sidebarRepoFiles.textContent='--';
       const aScoreClr = document.getElementById('analyzeScoreCard');
       const aGateClr = document.getElementById('analyzeGateCard');
       const aIssuesClr = document.getElementById('analyzeIssuesCard');
       const aFilesClr = document.getElementById('analyzeFilesCard');
-      if (aScoreClr) aScoreClr.textContent = '--';
-      if (aGateClr) aGateClr.textContent = '--';
-      if (aIssuesClr) aIssuesClr.textContent = '--';
-      if (aFilesClr) aFilesClr.textContent = '--';
+      if (aScoreClr) aScoreClr.textContent='--';
+      if (aGateClr) aGateClr.textContent='--';
+      if (aIssuesClr) aIssuesClr.textContent='--';
+      if (aFilesClr) aFilesClr.textContent='--';
       const rScoreClr = document.getElementById('reportScoreCard');
       const rGateClr = document.getElementById('reportGateCard');
       const rIssuesClr = document.getElementById('reportIssuesCard');
       const rFilesClr = document.getElementById('reportFilesCard');
-      if (rScoreClr) rScoreClr.textContent = '--';
-      if (rGateClr) rGateClr.textContent = '--';
-      if (rIssuesClr) rIssuesClr.textContent = '--';
-      if (rFilesClr) rFilesClr.textContent = '--';
+      if (rScoreClr) rScoreClr.textContent='--';
+      if (rGateClr) rGateClr.textContent='--';
+      if (rIssuesClr) rIssuesClr.textContent='--';
+      if (rFilesClr) rFilesClr.textContent='--';
       const rCritBar = document.getElementById('reportCritBar'); if (rCritBar) rCritBar.style.width = '0%';
       const rHighBar = document.getElementById('reportHighBar'); if (rHighBar) rHighBar.style.width = '0%';
       const rMedBar = document.getElementById('reportMedBar'); if (rMedBar) rMedBar.style.width = '0%';
       const rLowBar = document.getElementById('reportLowBar'); if (rLowBar) rLowBar.style.width = '0%';
-      const rCritVal = document.getElementById('reportCritVal'); if (rCritVal) rCritVal.textContent = '0';
-      const rHighVal = document.getElementById('reportHighVal'); if (rHighVal) rHighVal.textContent = '0';
-      const rMedVal = document.getElementById('reportMedVal'); if (rMedVal) rMedVal.textContent = '0';
-      const rLowVal = document.getElementById('reportLowVal'); if (rLowVal) rLowVal.textContent = '0';
-      const rLastScan = document.getElementById('reportLastScan'); if (rLastScan) rLastScan.textContent = '--';
-      const rDuration = document.getElementById('reportDuration'); if (rDuration) rDuration.textContent = '--';
+      const rCritVal = document.getElementById('reportCritVal'); if (rCritVal) rCritVal.textContent='0';
+      const rHighVal = document.getElementById('reportHighVal'); if (rHighVal) rHighVal.textContent='0';
+      const rMedVal = document.getElementById('reportMedVal'); if (rMedVal) rMedVal.textContent='0';
+      const rLowVal = document.getElementById('reportLowVal'); if (rLowVal) rLowVal.textContent='0';
+      const rLastScan = document.getElementById('reportLastScan'); if (rLastScan) rLastScan.textContent='--';
+      const rDuration = document.getElementById('reportDuration'); if (rDuration) rDuration.textContent='--';
     }
     if (msg.command === 'updateReport' && msg.report) {
       const r = msg.report;
@@ -1299,7 +1323,7 @@
       const prScore = document.getElementById('prScore');
       const prScans = document.getElementById('prScans');
       if (prScore) prScore.textContent = score != null ? score + '' : '--';
-      if (prScans) prScans.textContent = '1';
+      if (prScans) prScans.textContent='1';
       _updateSidebarAuditPanel(r);
       _updateSidebarProfilePanel(r);
       _updateSidebarUploadPanel(r);
@@ -1333,14 +1357,14 @@
       const item = document.createElement('div');
       item.className = 'dl-item';
       item.dataset.filePath = msg.path || '';
-      const dlWrap = document.createElement('div'); dlWrap.style.overflow = 'hidden'; const dlName = document.createElement('div'); dlName.className = 'dl-item-name'; dlName.textContent = msg.name || 'File'; const dlPath = document.createElement('div'); dlPath.className = 'dl-item-path'; dlPath.textContent = msg.path || ''; dlWrap.appendChild(dlName); dlWrap.appendChild(dlPath); const dlActs = document.createElement('div'); dlActs.className = 'dl-actions'; const dlBtnOpen = document.createElement('button'); dlBtnOpen.className = 'dl-btn dl-open'; dlBtnOpen.textContent = 'Open'; const dlBtnCopy = document.createElement('button'); dlBtnCopy.className = 'dl-btn dl-copy'; dlBtnCopy.textContent = 'Copy'; dlActs.appendChild(dlBtnOpen); dlActs.appendChild(dlBtnCopy); item.appendChild(dlWrap); item.appendChild(dlActs);
+      const dlWrap = document.createElement('div'); dlWrap.style.overflow = 'hidden'; const dlName = document.createElement('div'); dlName.className = 'dl-item-name'; dlName.textContent = msg.name || 'File'; const dlPath = document.createElement('div'); dlPath.className = 'dl-item-path'; dlPath.textContent = msg.path || ''; dlWrap.appendChild(dlName); dlWrap.appendChild(dlPath); const dlActs = document.createElement('div'); dlActs.className = 'dl-actions'; const dlBtnOpen = document.createElement('button'); dlBtnOpen.className = 'dl-btn dl-open'; dlBtnOpen.textContent='Open'; const dlBtnCopy = document.createElement('button'); dlBtnCopy.className = 'dl-btn dl-copy'; dlBtnCopy.textContent='Copy'; dlActs.appendChild(dlBtnOpen); dlActs.appendChild(dlBtnCopy); item.appendChild(dlWrap); item.appendChild(dlActs);
       dlList.insertBefore(item, dlList.firstChild);
       item.querySelector('.dl-open').addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openFile', path: msg.path}); });
       item.querySelector('.dl-copy').addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'copyPath', path: msg.path}); });
     }
     if (msg.command === 'clearDownloadedFiles') {
       const dlList = document.getElementById('dlList');
-      if (dlList) { dlList.textContent = ''; const emptyDiv = document.createElement('div'); emptyDiv.className = 'dl-empty'; emptyDiv.textContent = 'No downloads yet'; dlList.appendChild(emptyDiv); }
+      if (dlList) { dlList.textContent=''; const emptyDiv = document.createElement('div'); emptyDiv.className = 'dl-empty'; emptyDiv.textContent='No downloads yet'; dlList.appendChild(emptyDiv); }
     }
     if (msg.command === 'diagnoseResult') {
       const detailPanel = document.getElementById('diagnoseDetailPanel');
@@ -1359,9 +1383,9 @@
       const hasErr = msg.lines && msg.lines.some(function(l){ return /FAIL|ERROR|UNREACHABLE|MISSING|TIMEOUT/.test(String(l)); });
       const hasWarn = msg.lines && msg.lines.some(function(l){ return /WARN|PENDING|UNKNOWN/.test(String(l)); });
       if (detailBadge) {
-        if (hasErr) { detailBadge.style.background = 'rgba(239,68,68,0.18)'; detailBadge.style.color = '#f87171'; detailBadge.textContent = 'Issues Found'; }
-        else if (hasWarn) { detailBadge.style.background = 'rgba(245,158,11,0.18)'; detailBadge.style.color = '#fbbf24'; detailBadge.textContent = 'Warnings'; }
-        else { detailBadge.style.background = 'rgba(34,197,94,0.18)'; detailBadge.style.color = '#4ade80'; detailBadge.textContent = 'All Clear'; }
+        if (hasErr) { detailBadge.style.background = 'rgba(239,68,68,0.18)'; detailBadge.style.color = '#f87171'; detailBadge.textContent='Issues Found'; }
+        else if (hasWarn) { detailBadge.style.background = 'rgba(245,158,11,0.18)'; detailBadge.style.color = '#fbbf24'; detailBadge.textContent='Warnings'; }
+        else { detailBadge.style.background = 'rgba(34,197,94,0.18)'; detailBadge.style.color = '#4ade80'; detailBadge.textContent='All Clear'; }
       }
       function setKpi(el, line, pattern) { if (!el || !line) return; const val = String(line).replace(pattern, '').trim(); el.textContent = val || '--'; if (/FAIL|ERROR|UNREACHABLE|MISSING|TIMEOUT/.test(val)) el.className = 'settings-kpi-value red'; else if (/WARN|PENDING|UNKNOWN/.test(val)) el.className = 'settings-kpi-value amber'; else el.className = 'settings-kpi-value green'; }
       if (msg.lines && Array.isArray(msg.lines)) {
@@ -1377,7 +1401,7 @@
         if (!sideHtmlLine && dashHtmlLine) setKpi(detailSidebar, dashHtmlLine, /^Dashboard HTML:s*/i);
       }
       if (detailResults) {
-        detailResults.textContent = '';
+        detailResults.textContent='';
         if (msg.lines && Array.isArray(msg.lines)) {
           msg.lines.forEach(function(line) {
             const text = String(line);
@@ -1459,27 +1483,111 @@
         }
       }
     }
+    if (msg.command === 'switchSidebarTab' && msg.tab) {
+      _switchSidebarTab(msg.tab);
+    }
   });
-  function _updateSidebarAuthState(signedIn) {
+  function _decodeJwtPayload(token) {
+    try {
+      const parts = token.split('.');
+      if (parts.length !== 3) return null;
+      const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+      const pad = '='.repeat((4 - base64.length % 4) % 4);
+      return JSON.parse(atob(base64 + pad));
+    } catch { return null; }
+  }
+  let _serverTier = '';
+  function _getTokenTier() {
+    if (_serverTier) return _serverTier;
+    let token = localStorage.getItem('cascadeAuthToken');
+    if (!token) { token = localStorage.getItem('access_token') || localStorage.getItem('token') || localStorage.getItem('authToken') || localStorage.getItem('simplebeacon_token'); }
+    if (!token) return null;
+    const payload = _decodeJwtPayload(token);
+    return payload?.tier || payload?.plan || payload?.product || null;
+  }
+  function _isFreeTier() {
+    const tier = _getTokenTier();
+    if (!tier) return false;
+    const freeTiers = ['guest', 'community', 'developer', 'sandbox', 'instant', 'free', 'solo', ''];
+    return freeTiers.includes(String(tier).toLowerCase());
+  }
+  function _updateSidebarAuthState(signedIn, tier) {
+    if (tier) _serverTier = tier;
+    const effectiveTier = tier || _getTokenTier() || 'Unknown';
     let signIn = document.getElementById('tdSignInSidebar');
     let signOut = document.getElementById('tdSignOutSidebar');
-    let signInMenu = document.getElementById('tdSignIn');
     let signOutMenu = document.getElementById('tdSignOut');
     let pricing = document.getElementById('tdPricingSidebar');
     let pricingMenu = document.getElementById('tdPricing');
-    if (signIn) signIn.style.display = signedIn ? 'none' : '';
-    if (signOut) signOut.style.display = signedIn ? '' : 'none';
-    if (signInMenu) signInMenu.style.display = signedIn ? 'none' : '';
-    if (signOutMenu) signOutMenu.style.display = signedIn ? '' : 'none';
-    if (pricing) pricing.style.display = signedIn ? 'none' : '';
-    if (pricingMenu) pricingMenu.style.display = signedIn ? 'none' : '';
+    if (signIn) signIn.style.display = signedIn ? 'none' : 'flex';
+    if (signOut) signOut.style.display = signedIn ? 'flex' : 'none';
+    if (signOutMenu) signOutMenu.style.display = signedIn ? 'flex' : 'none';
+    const isPaid = signedIn && !_isFreeTier();
+    if (pricing) pricing.style.display = isPaid ? 'none' : 'flex';
+    if (pricingMenu) pricingMenu.style.display = isPaid ? 'none' : 'flex';
+    let tokenMgmt = document.getElementById('tokenManagementTier');
+    if (tokenMgmt) {
+      tokenMgmt.textContent = signedIn ? ('Tier: ' + effectiveTier) : 'No token — Sign In';
+    }
+    let dbSigninBtn = document.getElementById('dbSigninBtn');
+    if (dbSigninBtn) dbSigninBtn.style.display = signedIn ? 'none' : 'inline-flex';
+    let dbSignoutBtn = document.getElementById('dbSignoutBtn');
+    if (dbSignoutBtn) dbSignoutBtn.style.display = signedIn ? 'inline-flex' : 'none';
+    let sidebarSignInLink = document.getElementById('sidebarSignInLink');
+    if (sidebarSignInLink) sidebarSignInLink.style.display = signedIn ? 'none' : 'flex';
+    let sidebarSignOutLink = document.getElementById('sidebarSignOutLink');
+    if (sidebarSignOutLink) sidebarSignOutLink.style.display = signedIn ? 'flex' : 'none';
+    let headerSignInBtn = document.getElementById('headerSignInBtn');
+    if (headerSignInBtn) headerSignInBtn.style.display = signedIn ? 'none' : 'inline-flex';
+    let headerSignOutBtn = document.getElementById('headerSignOutBtn');
+    if (headerSignOutBtn) headerSignOutBtn.style.display = signedIn ? 'inline-flex' : 'none';
   }
   window.addEventListener('message', function(e) {
     let msg = e.data; if (!msg) return;
     if (msg.command === 'setAuthState') {
-      _updateSidebarAuthState(msg.signedIn);
+      const _authTokenCheck = !!(localStorage.getItem('cascadeAuthToken') || localStorage.getItem('access_token') || localStorage.getItem('token') || localStorage.getItem('authToken') || localStorage.getItem('simplebeacon_token'));
+      console.log('[SB auth] setAuthState signedIn=' + msg.signedIn + ' source=' + (msg.source || '') + ' hasToken=' + _authTokenCheck);
+      if (!msg.signedIn) {
+        // Only accept signed-out state if the webview has no independent token
+        // and the extension hasn't recently confirmed sign-in (prevents race with
+        // periodic auth polls that can't see web-app session tokens).
+        // When the source is explicitly signOut, always accept it.
+        if (msg.source !== 'signOut') {
+          const hasToken = !!(localStorage.getItem('cascadeAuthToken') || localStorage.getItem('access_token') || localStorage.getItem('token') || localStorage.getItem('authToken') || localStorage.getItem('simplebeacon_token'));
+          if (hasToken) {
+            return;
+          }
+          const lastAuthTs = parseInt(sessionStorage.getItem('sb_sidebar_auth_ts') || '0', 10);
+          if (Date.now() - lastAuthTs < 30000) {
+            return;
+          }
+        }
+        try {
+          ['cascadeAuthToken','access_token','token','authToken','simplebeacon_token'].forEach(function(k) {
+            localStorage.removeItem(k);
+          });
+          sessionStorage.removeItem('sb_sidebar_auth_ts');
+        } catch(e) {}
+      } else if (msg.token) {
+        try { localStorage.setItem('cascadeAuthToken', msg.token); } catch(e) {}
+      }
+      if (msg.signedIn) {
+        try { sessionStorage.setItem('sb_sidebar_auth_ts', String(Date.now())); } catch(e) {}
+      }
+      _updateSidebarAuthState(msg.signedIn, msg.tier);
+      // Diagnostic log
+      try {
+        const debugLog = document.getElementById('sbAuthDebugLog');
+        if (debugLog) {
+          const tokenCheck = localStorage.getItem('cascadeAuthToken') || localStorage.getItem('access_token') || localStorage.getItem('token') || localStorage.getItem('authToken') || localStorage.getItem('simplebeacon_token');
+          debugLog.textContent = 'setAuthState: signedIn=' + msg.signedIn + ' tier=' + msg.tier + ' hasToken=' + (tokenCheck ? 'yes(' + tokenCheck.length + ')' : 'no') + ' at ' + new Date().toLocaleTimeString();
+        }
+      } catch(e) {}
     }
     if (msg.command === 'rehydrateCachedSession') {
+      if (msg.token) {
+        try { localStorage.setItem('cascadeAuthToken', msg.token); } catch(e) {}
+      }
       _updateSidebarAuthState(true);
     }
     if (msg.command === 'setSidebarScanPath') {
@@ -1491,7 +1599,7 @@
       let label = document.getElementById('sidebarScanToggleLabel');
       let wrap = document.getElementById('sidebarScanCustomWrap');
       let actionRow = document.getElementById('scanActionRow');
-      if (label) { label.textContent = 'Custom Location'; }
+      if (label) { label.textContent='Custom Location'; }
       if (wrap) { wrap.style.display = 'flex'; }
       if (actionRow) { actionRow.style.display = 'flex'; }
       if (window.vscode) window.vscode.postMessage({ command: 'updateSidebarScanMode', mode: 'custom' });
@@ -1511,5 +1619,41 @@
       document.documentElement.setAttribute('data-theme', msg.theme);
     }
   });
-  if (window.vscode) { window.vscode.postMessage({command: 'getAuthState'}); }
+  // Check localStorage for existing token to set initial auth UI state before extension responds
+  (function checkInitialAuth() {
+    const hasToken = !!(localStorage.getItem('cascadeAuthToken') || localStorage.getItem('access_token') || localStorage.getItem('token') || localStorage.getItem('authToken') || localStorage.getItem('simplebeacon_token'));
+    if (hasToken) { _updateSidebarAuthState(true); }
+  })();
+  // Listen for storage changes from other tabs/iframes (e.g. sign-in panel)
+  window.addEventListener('storage', function(e) {
+    const tokenKeys = ['cascadeAuthToken','access_token','token','authToken','simplebeacon_token'];
+    if (tokenKeys.includes(e.key)) {
+      const hasToken = !!(localStorage.getItem('cascadeAuthToken') || localStorage.getItem('access_token') || localStorage.getItem('token') || localStorage.getItem('authToken') || localStorage.getItem('simplebeacon_token'));
+      _updateSidebarAuthState(hasToken);
+    }
+  });
+  // Request auth state from extension; retry multiple times to handle race on boot
+  (function requestAuthState(attempt) {
+    if (window.vscode) { window.vscode.postMessage({command: 'getAuthState'}); }
+    if (attempt < 10) {
+      setTimeout(function() {
+        let signIn = document.getElementById('tdSignInSidebar');
+        if (signIn && signIn.style.display !== 'none') {
+          requestAuthState(attempt + 1);
+        }
+      }, 500);
+    }
+  })(0);
+  // Periodic auth state sync every 3 seconds for first 60 seconds, then every 10s
+  (function startAuthPoll() {
+    let pollCount = 0;
+    function poll() {
+      if (window.vscode) { window.vscode.postMessage({command: 'getAuthState'}); }
+      pollCount++;
+      let interval = pollCount < 20 ? 3000 : 10000;
+      setTimeout(poll, interval);
+    }
+    setTimeout(poll, 1000);
+  })();
+
 })();

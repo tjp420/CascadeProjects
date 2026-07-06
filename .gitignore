@@ -154,12 +154,14 @@ simplebeacon.sh
 
 # Root temp files and generated output
 test-output.txt
+test-output-root.txt
 test-results.txt
 tmp-compile-out.txt
 server-start-log.txt
 server-startup-error.txt
 orphan-audit-summary.json
 simplebeacon-report-export.json
+scan-exports/
 
 # Root temp test scripts
 test_dashboard_route.js

@@ -39,7 +39,10 @@ const SCAN_QUOTA_MAP = {
   developer: Infinity,
   startup: 2500,
   growth: 10000,
-  enterprise: Infinity
+  enterprise: Infinity,
+  free: Infinity,
+  pro: 2500,
+  team: 10000
 };
 
 /**

@@ -8,9 +8,12 @@ import * as http from 'http';
 import * as os from 'os';
 import * as path from 'path';
 import { WelcomeDashboard } from './welcomeDashboard';
-import { getDataServerPort, getTheme, setTheme } from './dataServer';
+import { getDataServerPort, getBrowserSessionToken, clearBrowserSessionToken, recordBrowserSignOut, isTokenSignedOut, getTheme, setTheme } from './dataServer';
+import { registerSidebarView, registerTeamDashboardPanel, postSidebarMessage as _postSidebarMessage, openTeamDashboardPanel as _openTeamDashboardPanel } from './sidebarMessenger';
 import { getAuthManager } from './auth/authContext';
+import type { AuthManager } from './auth/authManager';
 import { showQuietMessage, escapeHtml, getSbConfig } from './utils';
+import { AccountTracker } from './accountTracker';
 
 /** Typed shape for messages received from the sidebar webview. */
 interface SidebarMessage {
@@ -20,11 +23,15 @@ interface SidebarMessage {
   value?: string | boolean;
   url?: string;
   token?: string;
+  event?: string;
   data?: Record<string, unknown>;
   analyzers?: string[];
   minSeverity?: string;
   file?: string;
   line?: number;
+  col?: number;
+  message?: string;
+  stack?: string;
   report?: Record<string, unknown>;
 }
 
@@ -35,16 +42,43 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'simplebeacon-modern';
   private static browserPanel: vscode.WebviewPanel | undefined;
   private static teamDashboardPanel: vscode.WebviewPanel | undefined;
+  private static signinPanel: vscode.WebviewPanel | undefined;
+  private static tokenRegistrationPanel: vscode.WebviewPanel | undefined;
   private static relayOutputChannel?: vscode.OutputChannel;
   private static _relayPort?: number;
   private static _relayServer?: http.Server;
+  private static _relayPollInterval?: NodeJS.Timeout;
   public static _dashboardHtml: string | undefined;
   public static _sidebarHtml: string | undefined;
   public static _welcomeBrowserHtml: string | undefined;
   private static _instance?: ModernSidebarProvider;
+  private static _extensionUri?: vscode.Uri;
+  private static _cachedSignedIn = false;
+  private static _cachedTier = '';
+  private static _cachedToken = '';
+  public static getCachedTier(): string { return ModernSidebarProvider._cachedTier; }
+  private static _tracker?: AccountTracker;
+
+  public static setAccountTracker(tracker: AccountTracker) {
+    ModernSidebarProvider._tracker = tracker;
+  }
 
   public static getBrowserPanel(): vscode.WebviewPanel | undefined {
     return ModernSidebarProvider.browserPanel;
+  }
+
+  /** Check if remoteMode is enabled (run entirely in browser). */
+  private static isRemoteMode(): boolean {
+    return getSbConfig().get<boolean>('remoteMode', false);
+  }
+
+  /** When remoteMode is active, open the given route in the browser relay window instead of the IDE. */
+  private static openInBrowserIfRemote(route: string): boolean {
+    if (!ModernSidebarProvider.isRemoteMode()) return false;
+    const relayPort = ModernSidebarProvider._relayPort || getSbConfig().get<number>('relayPort', 55444);
+    const url = `http://127.0.0.1:${relayPort}${route.startsWith('/') ? route : '/' + route}`;
+    Promise.resolve(vscode.env.openExternal(vscode.Uri.parse(url))).catch(() => {});
+    return true;
   }
 
   public static getSidebarReport(): Record<string, unknown> | null {
@@ -52,28 +86,61 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
     return inst ? inst._currentReport : null;
   }
 
-  public static async refreshAuthState() {
+  public static postSidebarMessage(message: any) {
+    _postSidebarMessage(message);
+  }
+
+  public static async refreshAuthState(source?: 'signOut' | 'signIn') {
     const inst = ModernSidebarProvider._instance;
     if (!inst || !inst._view) { return; }
-    let signedIn = false;
+    // Prefer cached auth state from webview (set via setSidebarAuthState) over the stub AuthManager
+    let signedIn = ModernSidebarProvider._cachedSignedIn;
+    let token = ModernSidebarProvider._cachedSignedIn ? ModernSidebarProvider._cachedToken : '';
+    let tier = ModernSidebarProvider._cachedTier;
     try {
-      const authManager = getAuthManager();
-      if (authManager && typeof authManager.isSignedIn === 'function') {
+      let authManager: AuthManager | null = null;
+      try { authManager = getAuthManager(); } catch { authManager = null; }
+      // Only override cached state if authManager actually has a valid token
+      if (!signedIn && authManager && typeof authManager.isSignedIn === 'function') {
         signedIn = await authManager.isSignedIn();
       }
-      // Note: Node.js fetch cannot access browser cookies, so server session
-      // check from the extension host always returns 401. Webview-side polling
-      // in sidebar-main.js handles browser session detection.
-      inst._view.webview.postMessage({ command: 'setAuthState', signedIn });
+      if (signedIn && authManager && typeof authManager.getToken === 'function') {
+        const mgrToken = await authManager.getToken();
+        if (mgrToken) { token = mgrToken; }
+      }
+      // If the extension has no token, check if the browser dashboard signed in recently
+      if (!signedIn && !token) {
+        const browserToken = getBrowserSessionToken();
+        const signedOut = browserToken && browserToken.length > 10 && isTokenSignedOut(browserToken);
+        ModernSidebarProvider.logRelay('refreshAuthState browserToken=' + (browserToken ? 'present(' + browserToken.length + ')' : 'none') + ' signedOut=' + signedOut + ' signedIn=' + signedIn);
+        if (browserToken && !signedOut && authManager && typeof authManager.setToken === 'function') {
+          await authManager.setToken(browserToken);
+          signedIn = true;
+          token = browserToken;
+          ModernSidebarProvider.logRelay('Synced browser session token into extension auth state');
+        }
+      }
+      ModernSidebarProvider._cachedSignedIn = signedIn;
+      ModernSidebarProvider._cachedTier = tier;
+      ModernSidebarProvider.logRelay('refreshAuthState post setAuthState signedIn=' + signedIn + ' tier=' + tier + ' source=' + (source || ''));
+      const msg: any = { command: 'setAuthState', signedIn, token, tier };
+      if (source) { msg.source = source; }
+      inst._view.webview.postMessage(msg);
     } catch (e) {
-      inst._view.webview.postMessage({ command: 'setAuthState', signedIn: false });
+      inst._view.webview.postMessage({ command: 'setAuthState', signedIn: ModernSidebarProvider._cachedSignedIn, token: '', tier: ModernSidebarProvider._cachedTier });
     }
   }
 
-  public static setSidebarAuthState(signedIn: boolean) {
+  public static setSidebarAuthState(signedIn: boolean, tier?: string, token?: string, source?: 'signOut' | 'signIn') {
+    ModernSidebarProvider._cachedSignedIn = signedIn;
+    if (tier) { ModernSidebarProvider._cachedTier = tier; }
+    if (token) { ModernSidebarProvider._cachedToken = token; }
     const inst = ModernSidebarProvider._instance;
     if (!inst || !inst._view) { return; }
-    inst._view.webview.postMessage({ command: 'setAuthState', signedIn });
+    const msg: any = { command: 'setAuthState', signedIn, tier: ModernSidebarProvider._cachedTier };
+    if (token) { msg.token = token; }
+    if (source) { msg.source = source; }
+    inst._view.webview.postMessage(msg);
   }
 
   private static _safePost(target: { webview: vscode.Webview } | undefined, message: unknown) {
@@ -86,6 +153,11 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
     ModernSidebarProvider._safePost(ModernSidebarProvider._instance?._view, { command: 'setTheme', theme });
   }
 
+  public static isViewReady(): boolean {
+    const inst = ModernSidebarProvider._instance;
+    return !!inst && !!inst._view;
+  }
+
   public static showDashboardInSidebar() {
     const inst = ModernSidebarProvider._instance;
     if (!inst || !inst._view) { return; }
@@ -94,6 +166,287 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
     if (inst._currentReport) {
       inst._view.webview.postMessage({ command: 'updateReport', report: inst._currentReport });
     }
+  }
+
+  public static openSigninPanel() {
+    if (ModernSidebarProvider.openInBrowserIfRemote('/dashboard/signin')) return;
+    const port = getDataServerPort();
+    vscode.commands.executeCommand('simpleBrowser.show', `http://127.0.0.1:${port}/dashboard/signin`);
+  }
+
+  public static openTokenRegistrationPanel(extUri: vscode.Uri, token: string) {
+    if (ModernSidebarProvider.openInBrowserIfRemote('/dashboard/signin')) return;
+    const nonce = crypto.randomBytes(16).toString('base64');
+    if (!ModernSidebarProvider.tokenRegistrationPanel) {
+      ModernSidebarProvider.tokenRegistrationPanel = vscode.window.createWebviewPanel(
+        'simplebeaconTokenRegistration',
+        'Token Registration',
+        vscode.ViewColumn.One,
+        { enableScripts: true, retainContextWhenHidden: true }
+      );
+      ModernSidebarProvider.tokenRegistrationPanel.onDidDispose(() => {
+        ModernSidebarProvider.tokenRegistrationPanel = undefined;
+      });
+      ModernSidebarProvider.tokenRegistrationPanel.webview.onDidReceiveMessage(async (msg: any) => {
+        if (!msg || !msg.command) return;
+        const authManager = getAuthManager();
+        switch (msg.command) {
+          case 'registerTokenDetails': {
+            const { email, username, password } = msg;
+            if (email) { try { await authManager.setUserEmail(email); } catch {} }
+            if (username) { try { await authManager.setUserName(username); } catch {} }
+            if (password) { try { await authManager.setPassword(password); } catch {} }
+            // Register token with server
+            try {
+              const port = getDataServerPort();
+              await fetch(`http://127.0.0.1:${port}/api/auth/register-token`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token, email: email || '' }),
+              });
+            } catch {
+              // Data server not running; credentials stored locally only
+            }
+            vscode.window.showInformationMessage('Token registration complete');
+            ModernSidebarProvider.refreshAuthState();
+            break;
+          }
+          case 'saveTokenToUsb': {
+            const saveUri = await vscode.window.showSaveDialog({
+              saveLabel: 'Save Token',
+              filters: { 'Token Files': ['txt', 'token'] },
+              defaultUri: vscode.Uri.file('simplebeacon-token.txt'),
+            });
+            if (saveUri && saveUri.fsPath) {
+              try {
+                fs.writeFileSync(saveUri.fsPath, token, 'utf8');
+                vscode.window.showInformationMessage(`Token saved to ${saveUri.fsPath}`);
+              } catch (e) {
+                vscode.window.showErrorMessage(`Failed to save token: ${(e as Error).message}`);
+              }
+            }
+            break;
+          }
+        }
+      });
+    }
+    ModernSidebarProvider.tokenRegistrationPanel.reveal(vscode.ViewColumn.One);
+    ModernSidebarProvider.tokenRegistrationPanel.webview.html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Token Registration</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#1e1e1e;color:#ccc;display:flex;align-items:center;justify-content:center}
+.container{width:100%;max-width:420px;padding:24px}
+.card{background:#252526;border:1px solid #3c3c3c;border-radius:12px;padding:28px;box-shadow:0 4px 24px rgba(0,0,0,0.3)}
+h2{font-size:1.25rem;color:#fff;margin-bottom:6px}
+p.sub{color:#858585;font-size:0.85rem;margin-bottom:20px}
+.field{margin-bottom:16px}
+label{display:block;font-size:0.8rem;color:#858585;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px}
+input{width:100%;padding:10px 12px;border-radius:6px;border:1px solid #3c3c3c;background:#1e1e1e;color:#ccc;font-size:0.9rem;outline:none}
+input:focus{border-color:#007acc}
+input[readonly]{opacity:0.6;cursor:not-allowed}
+.actions{display:flex;gap:10px;margin-top:24px}
+button{flex:1;padding:10px;border-radius:6px;border:none;font-size:0.9rem;font-weight:600;cursor:pointer;transition:opacity 0.2s}
+button.primary{background:#0e639c;color:#fff}
+button.secondary{background:#2d2d30;color:#ccc;border:1px solid #3c3c3c}
+button:hover{opacity:0.9}
+.status{margin-top:16px;font-size:0.85rem;color:#89d185;min-height:1.2em}
+.status.error{color:#f48771}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="card">
+<h2>Token Registration</h2>
+<p class="sub">Complete your token setup with account details</p>
+<div class="field">
+<label>Token</label>
+<input type="text" id="tokenField" value="${token.substring(0, 20)}..." readonly>
+</div>
+<div class="field">
+<label>Email Address</label>
+<input type="email" id="emailField" placeholder="you@example.com">
+</div>
+<div class="field">
+<label>Username</label>
+<input type="text" id="usernameField" placeholder="your_username">
+</div>
+<div class="field">
+<label>Password</label>
+<input type="password" id="passwordField" placeholder="Secure password">
+</div>
+<div class="actions">
+<button class="secondary" id="saveUsbBtn">Save to USB</button>
+<button class="primary" id="registerBtn">Register</button>
+</div>
+<div class="status" id="status"></div>
+</div>
+</div>
+<script nonce="${nonce}">
+const vscode = typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi() : null;
+const token = ${JSON.stringify(token)};
+const $ = id => document.getElementById(id);
+const statusEl = $('status');
+function setStatus(msg, isError) {
+  statusEl.textContent = msg;
+  statusEl.className = 'status' + (isError ? ' error' : '');
+}
+$('registerBtn').addEventListener('click', () => {
+  const email = $('emailField').value.trim();
+  const username = $('usernameField').value.trim();
+  const password = $('passwordField').value;
+  if (!email || !email.includes('@')) { setStatus('Enter a valid email', true); return; }
+  if (!password || password.length < 6) { setStatus('Password must be at least 6 characters', true); return; }
+  if (vscode) { vscode.postMessage({ command: 'registerTokenDetails', email, username, password }); }
+  setStatus('Registration saved');
+});
+$('saveUsbBtn').addEventListener('click', () => {
+  if (vscode) { vscode.postMessage({ command: 'saveTokenToUsb' }); }
+  setStatus('Choose a save location...');
+});
+</script>
+</body>
+</html>`;
+  }
+
+  public static openTokenReplacementPanel(extUri: vscode.Uri, currentToken: string, currentTier: string) {
+    if (ModernSidebarProvider.openInBrowserIfRemote('/dashboard/signin')) return;
+    const nonce = crypto.randomBytes(16).toString('base64');
+    if (!ModernSidebarProvider.tokenRegistrationPanel) {
+      ModernSidebarProvider.tokenRegistrationPanel = vscode.window.createWebviewPanel(
+        'simplebeaconTokenReplacement',
+        'Replace Token',
+        vscode.ViewColumn.One,
+        { enableScripts: true, retainContextWhenHidden: true }
+      );
+      ModernSidebarProvider.tokenRegistrationPanel.onDidDispose(() => {
+        ModernSidebarProvider.tokenRegistrationPanel = undefined;
+      });
+      ModernSidebarProvider.tokenRegistrationPanel.webview.onDidReceiveMessage(async (msg: any) => {
+        if (!msg || !msg.command) return;
+        const authManager = getAuthManager();
+        switch (msg.command) {
+          case 'replaceToken': {
+            const newToken = msg.token ? String(msg.token).trim() : '';
+            if (!newToken) { vscode.window.showErrorMessage('No token provided.'); return; }
+            const parts = newToken.split('.');
+            if (parts.length !== 2 && parts.length !== 3) { vscode.window.showErrorMessage('Token must be a JWT (3 dots) or license key (1 dot).'); return; }
+            // Prevent replacing with the same token
+            if (newToken === currentToken) { vscode.window.showErrorMessage('New token is identical to the current one.'); return; }
+            // Check server registration
+            try {
+              const port = getDataServerPort();
+              const res = await fetch(`http://127.0.0.1:${port}/api/auth/token-status`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: newToken }),
+              });
+              if (res.ok) {
+                const data = await res.json() as { registered?: boolean };
+                if (data.registered) {
+                  vscode.window.showErrorMessage('This token is already registered. Use a different token.');
+                  return;
+                }
+              }
+            } catch {
+              // Data server not running; proceed with local-only validation
+            }
+            // Store new token and clear old cached state
+            try {
+              await authManager.setToken(newToken);
+              ModernSidebarProvider._cachedSignedIn = true;
+              ModernSidebarProvider._cachedTier = '';
+              vscode.window.showInformationMessage('Token replaced successfully');
+              ModernSidebarProvider.refreshAuthState();
+              if (ModernSidebarProvider.tokenRegistrationPanel) {
+                ModernSidebarProvider.tokenRegistrationPanel.dispose();
+              }
+            } catch (e) {
+              vscode.window.showErrorMessage(`Failed to save token: ${(e as Error).message}`);
+            }
+            break;
+          }
+        }
+      });
+    }
+    ModernSidebarProvider.tokenRegistrationPanel.reveal(vscode.ViewColumn.One);
+    ModernSidebarProvider.tokenRegistrationPanel.webview.html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Replace Token</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#1e1e1e;color:#ccc;display:flex;align-items:center;justify-content:center}
+.container{width:100%;max-width:420px;padding:24px}
+.card{background:#252526;border:1px solid #3c3c3c;border-radius:12px;padding:28px;box-shadow:0 4px 24px rgba(0,0,0,0.3)}
+h2{font-size:1.25rem;color:#fff;margin-bottom:6px}
+p.sub{color:#858585;font-size:0.85rem;margin-bottom:20px}
+.field{margin-bottom:16px}
+label{display:block;font-size:0.8rem;color:#858585;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px}
+input{width:100%;padding:10px 12px;border-radius:6px;border:1px solid #3c3c3c;background:#1e1e1e;color:#ccc;font-size:0.9rem;outline:none}
+input:focus{border-color:#007acc}
+input[readonly]{opacity:0.6;cursor:not-allowed}
+.actions{display:flex;gap:10px;margin-top:24px}
+button{flex:1;padding:10px;border-radius:6px;border:none;font-size:0.9rem;font-weight:600;cursor:pointer;transition:opacity 0.2s}
+button.primary{background:#0e639c;color:#fff}
+button.secondary{background:#2d2d30;color:#ccc;border:1px solid #3c3c3c}
+button:hover{opacity:0.9}
+.status{margin-top:16px;font-size:0.85rem;color:#89d185;min-height:1.2em}
+.status.error{color:#f48771}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="card">
+<h2>Replace Token</h2>
+<p class="sub">Upgrade or downgrade by replacing your current token</p>
+<div class="field">
+<label>Current Tier</label>
+<input type="text" value="${currentTier || 'Unknown'}" readonly>
+</div>
+<div class="field">
+<label>Current Token</label>
+<input type="text" value="${currentToken.substring(0, 12)}..." readonly>
+</div>
+<div class="field">
+<label>New Token</label>
+<input type="text" id="newTokenField" placeholder="Paste new JWT or license key">
+</div>
+<div class="actions">
+<button class="secondary" id="cancelBtn">Cancel</button>
+<button class="primary" id="replaceBtn">Replace</button>
+</div>
+<div class="status" id="status"></div>
+</div>
+</div>
+<script nonce="${nonce}">
+const vscode = typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi() : null;
+const $ = id => document.getElementById(id);
+const statusEl = $('status');
+function setStatus(msg, isError) {
+  statusEl.textContent = msg;
+  statusEl.className = 'status' + (isError ? ' error' : '');
+}
+$('replaceBtn').addEventListener('click', () => {
+  const token = $('newTokenField').value.trim();
+  if (!token) { setStatus('Enter a new token', true); return; }
+  const parts = token.split('.');
+  if (parts.length !== 2 && parts.length !== 3) { setStatus('Token must be a JWT or license key', true); return; }
+  if (vscode) { vscode.postMessage({ command: 'replaceToken', token }); }
+  setStatus('Replacing...');
+});
+$('cancelBtn').addEventListener('click', () => {
+  if (vscode) { vscode.postMessage({ command: 'closePanel' }); }
+});
+</script>
+</body>
+</html>`;
   }
 
   public static openSidebarInBrowserStatic(path = '/') {
@@ -112,8 +465,11 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
       const storedToken = authManager && typeof authManager.getToken === 'function' ? await authManager.getToken() : undefined;
       if (storedToken) {
         webview.postMessage({ command: 'rehydrateCachedSession', token: storedToken });
+      } else {
+        webview.postMessage({ command: 'setAuthState', signedIn: false, token: '' });
       }
     } catch (err) {
+      webview.postMessage({ command: 'setAuthState', signedIn: false, token: '' });
       ModernSidebarProvider.logRelay('Failed to rehydrate panel session tokens: ' + (err instanceof Error ? err.message : String(err)));
     }
   }
@@ -124,6 +480,7 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
 
   constructor(private readonly _extensionUri: vscode.Uri) {
     ModernSidebarProvider._instance = this;
+    ModernSidebarProvider._extensionUri = _extensionUri;
     // Sync data-server theme with VS Code: theme on startup and on changes
     const syncServerTheme = (theme: vscode.ColorTheme) => {
       setTheme(theme.kind === vscode.ColorThemeKind.Dark ? 'dark' : 'light');
@@ -133,10 +490,13 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
   }
 
   private static logRelay(msg: string) {
-    if (!ModernSidebarProvider.relayOutputChannel) {
-      ModernSidebarProvider.relayOutputChannel = vscode.window.createOutputChannel('SimpleBeacon Relay');
-    }
-    ModernSidebarProvider.relayOutputChannel.appendLine(msg);
+    try {
+      if (!ModernSidebarProvider.relayOutputChannel) {
+        ModernSidebarProvider.relayOutputChannel = vscode.window.createOutputChannel('SimpleBeacon Relay');
+      }
+      ModernSidebarProvider.relayOutputChannel.appendLine(msg);
+    } catch (e) {}
+    console.error('[SimpleBeacon Relay]', msg);
   }
 
   private static relayCommand(cmd: string) {
@@ -152,6 +512,10 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
   }
 
   public static showDashboardRoute(extUri: vscode.Uri, route: string) {
+    if (WelcomeDashboard.reveal()) {
+      WelcomeDashboard.showPaneIfOpen(route);
+      return;
+    }
     const panel = WelcomeDashboard.createOrShow(extUri, true);
     if (panel) {
       WelcomeDashboard.showPaneIfOpen(route);
@@ -159,41 +523,14 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
   }
 
   public static async openTeamDashboardPanel(extUri: vscode.Uri, route = '/dashboard', panelTitle = 'Team Dashboard') {
-    const dataPort = getDataServerPort();
-    const baseUrl = `http://127.0.0.1:${dataPort}`;
-    const dashboardUrl = baseUrl + '/dashboard#' + route;
-    const iframeHtml = `<!DOCTYPE html>
-<html>
-<head>
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; frame-src http://127.0.0.1:*; style-src 'unsafe-inline';">
-<style>body{margin:0;padding:0;height:100vh;overflow:hidden;}iframe{width:100%;height:100%;border:none;}</style>
-</head>
-<body>
-<iframe src="${dashboardUrl}" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
-</body>
-</html>`;
-    let panel = ModernSidebarProvider.teamDashboardPanel;
-    if (panel) {
-      panel.reveal(vscode.ViewColumn.Two);
-      panel.webview.html = iframeHtml;
-      return;
-    }
-    panel = vscode.window.createWebviewPanel(
-      'simplebeaconTeamDashboard',
-      panelTitle,
-      vscode.ViewColumn.Two,
-      { enableScripts: true, retainContextWhenHidden: true }
-    );
-    ModernSidebarProvider.teamDashboardPanel = panel;
-    panel.webview.html = iframeHtml;
-    panel.onDidDispose(() => { ModernSidebarProvider.teamDashboardPanel = undefined; });
+    await _openTeamDashboardPanel(extUri, route, panelTitle);
   }
 
   private resolveWorkspacePath(targetPath: string): string {
     if (path.isAbsolute(targetPath)) {
       return targetPath;
     }
-    const workspace = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    const workspace = vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath;
     if (workspace) {
       return path.join(workspace, targetPath);
     }
@@ -206,7 +543,7 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
    */
   private normalizeScanPath(candidatePath: string): string {
     if (!candidatePath) return candidatePath;
-    const workspace = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    const workspace = vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath;
     if (!workspace) return candidatePath;
     const normalizedCandidate = path.normalize(candidatePath).toLowerCase();
     const normalizedWorkspace = path.normalize(workspace).toLowerCase();
@@ -224,7 +561,16 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
     context: vscode.WebviewViewResolveContext,
     _token: vscode.CancellationToken
   ) {
+    // Guard: extension URI must be available for the sidebar to function
+    if (!this._extensionUri) {
+      webviewView.webview.html = `<!DOCTYPE html><html><body style="font-family:sans-serif;padding:20px;color:#c00">
+        <h2>SimpleBeacon Sidebar Error</h2>
+        <p>Extension URI not available. Please reload the window (Ctrl+Shift+P → Developer: Reload Window).</p>
+      </body></html>`;
+      return;
+    }
     this._view = webviewView;
+    registerSidebarView(webviewView);
     // Ensure data-server theme stays in sync whenever webview is shown
     setTheme(vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Dark ? 'dark' : 'light');
 
@@ -234,7 +580,13 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
     };
 
     try {
-      webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
+      const html = this._getHtmlForWebview(webviewView.webview);
+      webviewView.webview.html = html;
+      ModernSidebarProvider.logRelay(`Sidebar HTML set: ${html.length} chars`);
+      // Health-check: if the webview does not post back within 3s, log a warning
+      setTimeout(() => {
+        webviewView.webview.postMessage({ command: 'pingSidebarHealth' });
+      }, 3000);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       ModernSidebarProvider.logRelay('Sidebar HTML generation error: ' + msg);
@@ -270,10 +622,13 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
 
     // Phase 3: Rehydrate cached license token from secure storage into the webview on boot
     ModernSidebarProvider.rehydrateWebviewSession(webviewView.webview);
-    ModernSidebarProvider.refreshAuthState();
+    // Defer refreshAuthState so the webview JS has time to attach its message listener
+    setTimeout(() => {
+      ModernSidebarProvider.refreshAuthState();
+    }, 300);
 
     // Auto-open welcome screen panel if showWelcomeOnLoad is enabled
-    const autoOpen = getSbConfig().get<boolean>('showWelcomeOnLoad', false);
+    const autoOpen = getSbConfig().get<boolean>('showWelcomeOnLoad', true);
     if (autoOpen) {
       // Defer panel creation so it doesn't race with webview view resolution
       setTimeout(() => {
@@ -321,17 +676,31 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
         }
       }
       try {
+        if (!this._extensionUri) {
+          vscode.window.showErrorMessage('SimpleBeacon sidebar not ready — extension URI unavailable. Please reload the window.');
+          return;
+        }
         switch (message.command) {
-          case 'scan': {
-            const isWorkspaceScan = message.mode === 'workspace' || !message.mode;
+          case 'pongSidebarHealth': {
+            const payload = message as any;
+            ModernSidebarProvider.logRelay(`Sidebar health pong: scriptLoaded=${payload.scriptLoaded}`);
+            break;
+          }
+          case 'scan':
+          case 'scanWorkspace': {
+            const isWorkspaceScan = message.command === 'scanWorkspace' || message.mode === 'workspace' || !message.mode;
             if (isWorkspaceScan) {
               const ws = vscode.workspace.workspaceFolders;
               if (ws && ws.length > 0) {
                 // Prefer the active editor's workspace folder over workspaceFolders[0]
                 const activeEditor = vscode.window.activeTextEditor;
                 const activeWs = activeEditor ? vscode.workspace.getWorkspaceFolder(activeEditor.document.uri) : undefined;
-                const targetPath = activeWs ? activeWs.uri.fsPath : ws[0].uri.fsPath;
-                vscode.commands.executeCommand('simplebeacon.scanWorkspace', { projectPath: targetPath });
+                const targetPath = activeWs?.uri?.fsPath ?? ws[0]?.uri?.fsPath;
+                if (targetPath) {
+                  vscode.commands.executeCommand('simplebeacon.scanWorkspace', { projectPath: targetPath });
+                } else {
+                  vscode.commands.executeCommand('simplebeacon.scanWorkspace');
+                }
               } else {
                 vscode.commands.executeCommand('simplebeacon.scanWorkspace');
               }
@@ -339,7 +708,7 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
               const correctedPath = this.normalizeScanPath(message.path);
               vscode.commands.executeCommand('simplebeacon.scanWorkspace', { projectPath: correctedPath });
             }
-            ModernSidebarProvider.relayCommand('scan');
+            ModernSidebarProvider.relayCommand(message.command);
             break;
           }
           case 'browseSidebarScanPath': {
@@ -353,7 +722,10 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
           case 'detectSidebarScanPath': {
             const ws = vscode.workspace.workspaceFolders;
             if (ws && ws.length > 0) {
-              webviewView.webview.postMessage({ command: 'setSidebarScanPath', path: ws[0].uri.fsPath });
+              const detectedPath = ws[0]?.uri?.fsPath;
+              if (detectedPath) {
+                webviewView.webview.postMessage({ command: 'setSidebarScanPath', path: detectedPath });
+              }
             }
             break;
           }
@@ -362,6 +734,7 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
             if (!token) { break; }
             try {
               await vscode.commands.executeCommand('simplebeacon.storeLicenseToken', token);
+              ModernSidebarProvider.setSidebarAuthState(true);
               webviewView.webview.postMessage({ command: 'licenseTokenStored', success: true });
             } catch (error) {
               webviewView.webview.postMessage({ command: 'licenseTokenStored', success: false, error: (error as Error).message });
@@ -476,8 +849,9 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
             break;
           case 'team':
           case 'openTeamDashboard': {
-            WelcomeDashboard.createOrShow(this._extensionUri, true)?.showTeamPane();
+            ModernSidebarProvider.openTeamDashboardPanel(this._extensionUri, '/dashboard');
             ModernSidebarProvider.relayCommand('showTeamDashboard');
+            this._view?.webview.postMessage({ command: 'switchSidebarTab', tab: 'team' });
             break;
           }
           case 'toggleRealtime':
@@ -635,17 +1009,89 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
             });
             break;
           }
-          case 'toggleTheme':
+          case 'toggleTheme': {
+            const newTheme = getTheme() === 'dark' ? 'light' : 'dark';
+            setTheme(newTheme);
+            ModernSidebarProvider.postThemeToTeamDashboard(newTheme);
             vscode.commands.executeCommand('workbench.action.toggleLightDarkThemes');
             break;
+          }
           case 'signIn':
-            vscode.commands.executeCommand('simplebeacon.signIn');
+          case 'openSigninScreen':
+          case 'openSigninPanel':
+            ModernSidebarProvider.openSigninPanel();
             break;
-          case 'signOut':
-            vscode.commands.executeCommand('simplebeacon.signOut');
+          case 'signOut': {
+            console.error('[SimpleBeacon] SIGNOUT CASE ENTERED');
+            ModernSidebarProvider.logRelay('sidebar signOut received, handling directly');
+            try {
+              let authManager: AuthManager | null = null;
+              try { authManager = getAuthManager(); } catch { authManager = null; }
+              const existing = authManager && typeof authManager.getToken === 'function' ? await authManager.getToken() : undefined;
+              if (authManager && typeof authManager.clearToken === 'function') { await authManager.clearToken(); }
+              if (authManager && typeof authManager.clearPassword === 'function') { await authManager.clearPassword(); }
+              const browserToken = getBrowserSessionToken();
+              clearBrowserSessionToken();
+              recordBrowserSignOut(existing);
+              recordBrowserSignOut(browserToken);
+              // Directly notify the data server so the dashboard detects the sign-out even if the webview fetch is blocked
+              try {
+                const signoutPort = getDataServerPort();
+                await fetch(`http://127.0.0.1:${signoutPort}/api/auth/signout`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' }
+                });
+              } catch (e) {}
+              if (existing) {
+                try {
+                  const tracker = ModernSidebarProvider._tracker;
+                  if (tracker) { await tracker.recordLogout(existing, 'webview', 'sidebarSignOut'); }
+                } catch {}
+              }
+              ModernSidebarProvider._cachedSignedIn = false;
+              ModernSidebarProvider._cachedToken = '';
+              ModernSidebarProvider.setSidebarAuthState(false, '', '', 'signOut');
+              showQuietMessage('Signed out');
+            } catch (err) {
+              const msg = err instanceof Error ? err.message : String(err);
+              ModernSidebarProvider.logRelay('sidebar signOut failed: ' + msg);
+              vscode.window.showErrorMessage('Sign out failed: ' + msg);
+            }
             break;
+          }
+          case 'openTokenReplacementPanel': {
+            const authManager = getAuthManager();
+            const token = await authManager.getToken() || '';
+            const tier = ModernSidebarProvider._cachedTier || '';
+            ModernSidebarProvider.openTokenReplacementPanel(this._extensionUri, token, tier);
+            break;
+          }
+          case 'accountEvent': {
+            const tracker = ModernSidebarProvider._tracker;
+            const token = message.token || '';
+            const event = message.event || 'login';
+            if (tracker && token) {
+              if (event === 'login' || event === 'tokenStored') {
+                try { tracker.recordLogin(token, 'webview', 'webviewLogin'); } catch {}
+              } else if (event === 'logout' || event === 'tokenCleared') {
+                try { tracker.recordLogout(token, 'webview', 'webviewLogout'); } catch {}
+              }
+            }
+            break;
+          }
           case 'getAuthState':
             ModernSidebarProvider.refreshAuthState();
+            break;
+          case 'setAuthState': {
+            const msg = message as any;
+            const signedIn = !!msg.signedIn;
+            const tier = msg.tier || '';
+            ModernSidebarProvider.setSidebarAuthState(signedIn, tier);
+            break;
+          }
+          case 'sidebarError':
+            console.error('[Sidebar Webview Error]', message.message, `(${message.file}:${message.line}:${message.col})`, message.stack || '');
+            ModernSidebarProvider.logRelay('[Sidebar] ' + String(message.message || ''));
             break;
           case 'toggleOffline': {
             const cfg = getSbConfig();
@@ -675,8 +1121,22 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
             break;
           }
           case 'openDataServerPath': {
-            const dspPort = getDataServerPort();
-            if (message.path) { vscode.commands.executeCommand('simpleBrowser.show', `http://127.0.0.1:${dspPort}${message.path}`); }
+            if (message.path) {
+              if (message.path.startsWith('/coming-soon/')) {
+                const dsPort = getDataServerPort();
+                vscode.commands.executeCommand('simpleBrowser.show', `http://127.0.0.1:${dsPort}${message.path}`);
+              } else {
+                const routePath = message.path.replace(/^\/dashboard\/?/, '').replace(/\/$/, '') || 'dashboard';
+                ModernSidebarProvider.showDashboardRoute(this._extensionUri, '/' + routePath);
+              }
+            }
+            break;
+          }
+          case 'openBrowserPath': {
+            if (message.path) {
+              const dsPort = getDataServerPort();
+              vscode.commands.executeCommand('simpleBrowser.show', `http://127.0.0.1:${dsPort}${message.path}`);
+            }
             break;
           }
           case 'openPricing':
@@ -710,6 +1170,10 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
             }
 
             // Check media folder exists
+            if (!this._extensionUri) {
+              webviewView.webview.postMessage({ command: 'doctorResult', results: ['Extension URI not available'] });
+              break;
+            }
             const mediaPath = path.join(this._extensionUri.fsPath, 'media');
             try {
               const mediaExists = fs.existsSync(mediaPath);
@@ -851,6 +1315,7 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
           case 'openCodeMap':
             vscode.commands.executeCommand('simplebeacon-modern.focus');
             WelcomeDashboard.createOrShow(this._extensionUri, true)?.showCodeMapPane();
+            vscode.commands.executeCommand('simplebeacon-codemap-tree.focus');
             break;
           case 'refreshCodeMap':
             showQuietMessage('Refreshing code map data…');
@@ -927,9 +1392,19 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
   }
 
   private _getHtmlForWebview(webview: vscode.Webview) {
+    if (!this._extensionUri) {
+      throw new Error('Extension URI not available');
+    }
     const nonce = crypto.randomBytes(16).toString('base64');
     const csp = webview.cspSource;
-    const sidebarMainJsUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'sidebar-main.js')).toString();
+    // Inline sidebar-main.js to avoid external script loading failures in the webview
+    const sidebarMainJsPath = vscode.Uri.joinPath(this._extensionUri, 'media', 'sidebar-main.js').fsPath;
+    let sidebarMainJsContent = '';
+    try {
+      sidebarMainJsContent = fs.readFileSync(sidebarMainJsPath, 'utf8');
+    } catch (e) {
+      ModernSidebarProvider.logRelay('Failed to read sidebar-main.js: ' + (e instanceof Error ? e.message : String(e)));
+    }
     const sbConfig = getSbConfig();
     const showWelcome = sbConfig.get('showWelcomeOnLoad', false);
     const displayMode = sbConfig.get('displayMode', 'sidebar') as string;
@@ -939,13 +1414,13 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
     const savedProjectPath = sbConfig.get<string>('projectPath', '');
     const isWorkspaceMode = savedScanMode === 'workspace';
     const dataServerUrl = `http://127.0.0.1:${getDataServerPort()}`;
-    const apiUrlScript = apiUrl ? `<script nonce="${nonce}">window.__SB_API_URL__='${escapeHtml(apiUrl)}';</script>` : '';
-    const dataServerUrlScript = `<script nonce="${nonce}">window.__SB_DATA_SERVER_URL__='${dataServerUrl}';</script>`;
+    const apiUrlScript = apiUrl ? `<script nonce="${nonce}">window.__SB_API_URL__=${JSON.stringify(apiUrl)};</script>` : '';
+    const dataServerUrlScript = `<script nonce="${nonce}">window.__SB_DATA_SERVER_URL__=${JSON.stringify(dataServerUrl)};</script>`;
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${csp} 'unsafe-inline'; script-src 'nonce-${nonce}'; img-src ${csp} data:; font-src ${csp}; frame-src ${csp}; connect-src ${csp} http://127.0.0.1:*;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${csp} 'unsafe-inline'; script-src ${csp} 'nonce-${nonce}'; img-src ${csp} data:; font-src ${csp}; frame-src ${csp}; connect-src ${csp} http://127.0.0.1:*;">
 ${dataServerUrlScript}${apiUrlScript}
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
@@ -1819,6 +2294,8 @@ body.detail-panel-open .tab-pane,
 body.detail-panel-open #tabAdvanced {
   display: none !important;
 }
+/* Ensure dashboard is visible by default before JS runs */
+#tabDashboard { display: block; }
 </style>
 </head>
 <body>
@@ -1829,6 +2306,8 @@ body.detail-panel-open #tabAdvanced {
     <div class="header-subtitle">AI Slop Cop</div>
   </div>
   <div class="header-actions">
+    <button type="button" id="headerSignInBtn" style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:6px;border:1px solid rgba(99,102,241,0.3);background:rgba(99,102,241,0.12);color:#818cf8;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;" data-command="signIn">&#x1F512; Sign In</button>
+    <button type="button" id="headerSignOutBtn" style="display:none;align-items:center;gap:6px;padding:5px 10px;border-radius:6px;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.12);color:#ef4444;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;" data-command="signOut">&#x1F512; Sign Out</button>
     <button type="button" class="header-theme-toggle" id="tdThemeToggleSidebar" title="Toggle Theme" aria-label="Toggle Theme">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
     </button>
@@ -2296,10 +2775,9 @@ body.detail-panel-open #tabAdvanced {
   <div class="tc-list-item" id="tdRoadmapSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F5FA;</span><span class="tc-list-name">Roadmap</span></div></div>
   <div class="tc-list-item" id="tdAuditSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F4CB;</span><span class="tc-list-name">Audit</span></div></div>
   <div class="tc-list-item" id="tdPricingSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F4B0;</span><span class="tc-list-name">Pricing</span></div></div>
-  <div class="tc-list-item" id="tdOpenSiteSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F465;</span><span class="tc-list-name">Teams Dashboard</span></div></div>
   <div class="tc-list-item" id="tdSignInSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg></span><span class="tc-list-name">Sign In</span></div></div>
-  <div class="tc-list-item" id="tdOfflineToggleSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F4F6;</span><span class="tc-list-name">Online</span></div></div>
   <div class="tc-list-item" id="tdSignOutSidebar" style="display:none;"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg></span><span class="tc-list-name">Sign Out</span></div></div>
+  <div class="tc-list-item" id="tdOfflineToggleSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F4F6;</span><span class="tc-list-name">Online</span></div></div>
 </div>
 <div class="tab-section" style="margin-top:16px;">Navigation</div>
 <div class="tc-list" style="gap:8px;">
@@ -2632,7 +3110,7 @@ body.detail-panel-open #tabAdvanced {
       <input type="text" class="settings-input" id="settingsApiInputTab" value="http://127.0.0.1:54358">
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 8px;">
         <button type="button" id="apiPresetLocal" class="menu-list-item" style="padding:6px 10px;font-size:11px;width:auto;flex:0;">Local (54358)</button>
-        <button type="button" id="apiPresetSlopCop" class="menu-list-item" style="padding:6px 10px;font-size:11px;width:auto;flex:0;">AI Slop Cop (3001)</button>
+        <button type="button" id="apiPresetSlopCop" class="menu-list-item" style="padding:6px 10px;font-size:11px;width:auto;flex:0;">AI Slop Cop (3004)</button>
         <button type="button" id="apiPresetRemote" class="menu-list-item" style="padding:6px 10px;font-size:11px;width:auto;flex:0;">Remote (30011)</button>
       </div>
       <div class="menu-list" style="display:flex;flex-direction:column;gap:6px;">
@@ -2868,28 +3346,33 @@ body.detail-panel-open #tabAdvanced {
       <div class="settings-kpi-label">Last Scan</div>
     </div>
   </div>
-  <div class="settings-section-card">
-    <div class="settings-section-title">Languages</div>
-    <div id="codeMapLanguagesList" style="display:flex;flex-direction:column;gap:6px;">
-      <div class="code-map-lang-row"><span class="code-map-lang-name">.md</span><div class="code-map-lang-bar"><div class="code-map-lang-fill" style="width:21%;background:#4ade80;"></div></div><span class="code-map-lang-count">21</span></div>
-    </div>
+  <div id="codeMapUpgradeMsg" style="display:none;margin:12px;padding:12px;border-radius:8px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);color:#818cf8;font-size:12px;text-align:center;">
+    Upgrade to Pro for full dependency analysis, language breakdown, and detailed architecture insights.
   </div>
-  <div class="settings-section-card">
-    <div class="settings-section-title">Scan Details</div>
-    <div id="codeMapScanDetailsList" style="display:flex;flex-direction:column;gap:8px;">
-      <div class="code-map-detail-row"><span class="code-map-detail-label">Repository Files</span><span class="code-map-detail-value" id="codeMapRepoFiles">0</span></div>
-      <div class="code-map-detail-row"><span class="code-map-detail-label">Total Lines</span><span class="code-map-detail-value" id="codeMapTotalLines2">0</span></div>
-      <div class="code-map-detail-row"><span class="code-map-detail-label">Last Scan</span><span class="code-map-detail-value" id="codeMapLastScan2">--</span></div>
+  <div class="code-map-detail-section">
+    <div class="settings-section-card">
+      <div class="settings-section-title">Languages</div>
+      <div id="codeMapLanguagesList" style="display:flex;flex-direction:column;gap:6px;">
+        <div class="code-map-lang-row"><span class="code-map-lang-name">.md</span><div class="code-map-lang-bar"><div class="code-map-lang-fill" style="width:21%;background:#4ade80;"></div></div><span class="code-map-lang-count">21</span></div>
+      </div>
     </div>
-  </div>
-  <div class="settings-section-card">
-    <div class="settings-section-title">Actions</div>
-    <div class="menu-list" style="display:flex;flex-direction:column;gap:6px;">
-      <button type="button" id="generateCodeMapBtn" class="menu-list-item">Generate</button>
-      <button type="button" id="openCodeMapHtmlBtn" class="menu-list-item">Open HTML</button>
-      <button type="button" id="exportCodeMapBtn" class="menu-list-item">Export</button>
-      <button type="button" id="refreshCodeMapBtn" class="menu-list-item">Refresh</button>
-      <button type="button" id="openCodeMapInMainWindowBtn" class="menu-list-item">Open in Main Window</button>
+    <div class="settings-section-card">
+      <div class="settings-section-title">Scan Details</div>
+      <div id="codeMapScanDetailsList" style="display:flex;flex-direction:column;gap:8px;">
+        <div class="code-map-detail-row"><span class="code-map-detail-label">Repository Files</span><span class="code-map-detail-value" id="codeMapRepoFiles">0</span></div>
+        <div class="code-map-detail-row"><span class="code-map-detail-label">Total Lines</span><span class="code-map-detail-value" id="codeMapTotalLines2">0</span></div>
+        <div class="code-map-detail-row"><span class="code-map-detail-label">Last Scan</span><span class="code-map-detail-value" id="codeMapLastScan2">--</span></div>
+      </div>
+    </div>
+    <div class="settings-section-card">
+      <div class="settings-section-title">Actions</div>
+      <div class="menu-list" style="display:flex;flex-direction:column;gap:6px;">
+        <button type="button" id="generateCodeMapBtn" class="menu-list-item">Generate</button>
+        <button type="button" id="openCodeMapHtmlBtn" class="menu-list-item">Open in Browser</button>
+        <button type="button" id="exportCodeMapBtn" class="menu-list-item">Export</button>
+        <button type="button" id="refreshCodeMapBtn" class="menu-list-item">Refresh</button>
+        <button type="button" id="openCodeMapInMainWindowBtn" class="menu-list-item">Open in Main Window</button>
+      </div>
     </div>
   </div>
 </div>
@@ -3751,8 +4234,7 @@ body.detail-panel-open #tabAdvanced {
     </div>
   </div>
 </div>
-<button type="button" id="teamDropdownHeader" data-sidebar-tab="advanced" class="menu-list-item ${displayMode === 'sidebar' ? '' : 'hidden'}">Team</button>
-<div id="teamDetailPanel" data-sidebar-tab="advanced" style="display:none;">
+<div id="teamDetailPanel" data-sidebar-tab="team" style="display:none;">
   <div class="diag-back-bar" id="teamDetailBackBtn" role="button" tabindex="0">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
     <span>Back</span>
@@ -3803,9 +4285,6 @@ body.detail-panel-open #tabAdvanced {
       <button type="button" id="teamSettingsBtn" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border-radius:8px;background:var(--vscode-input-background,rgba(255,255,255,0.03));color:var(--vscode-foreground,#ccc);border:1px solid var(--vscode-panel-border,rgba(255,255,255,0.06));font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l-.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         Settings
-      </button>
-      <button type="button" id="openTeamInMainWindowBtn" style="grid-column:1 / -1;display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border-radius:8px;background:var(--vscode-input-background,rgba(255,255,255,0.03));color:var(--vscode-foreground,#ccc);border:1px solid var(--vscode-panel-border,rgba(255,255,255,0.06));font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;">
-        <span style="opacity:0.6;">&#x2197;</span> Open in Main Window
       </button>
     </div>
   </div>
@@ -3942,11 +4421,51 @@ body.detail-panel-open #tabAdvanced {
       <div class="card-value" id="settingsServerUrlText">http://127.0.0.1:54358</div>
     </div>
   </div>
+  <div class="tab-section" style="margin-top:16px;">TOKEN</div>
+  <div class="card" id="tokenManagementCard" style="cursor:pointer;">
+    <div class="card-icon server" style="background:rgba(59,130,246,0.12);color:#60a5fa;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+    <div class="card-text">
+      <div class="card-label">Token Management</div>
+      <div class="card-value" id="tokenManagementTier">No token — Sign In</div>
+    </div>
+  </div>
 </div>
 <script nonce="${nonce}">
   window._displayMode = '${displayMode}';
 </script>
-<script nonce="${nonce}" src="${sidebarMainJsUri}"></script>
+<script nonce="${nonce}">
+${sidebarMainJsContent}
+</script>
+<div id="sbAuthDebugLog" style="position:fixed;bottom:4px;left:4px;right:4px;padding:4px 6px;font-size:10px;color:#94a3b8;background:rgba(15,23,42,0.9);border-radius:4px;z-index:9999;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Auth state: waiting...</div>
+<script nonce="${nonce}">
+(function(){
+  // Force dashboard visible immediately so the sidebar never appears blank
+  try {
+    const dash = document.getElementById('tabDashboard');
+    if (dash) { dash.style.display = 'block'; dash.classList.add('active'); }
+  } catch(e) {}
+  // After 5s, if the dashboard still looks empty, log a diagnostic message to the extension
+  setTimeout(function(){
+    const dash = document.getElementById('tabDashboard');
+    const visible = dash && (dash.offsetHeight > 50 || dash.children.length > 0);
+    const jsLoaded = !!window._sidebarMainLoaded;
+    if (!visible || !jsLoaded) {
+      const vscode = window.vscode || (typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi() : null);
+      if (vscode) {
+        try { vscode.postMessage({ command: 'sidebarError', message: 'Sidebar render check failed: jsLoaded=' + jsLoaded + ' visible=' + visible }); } catch(_) {}
+      }
+    }
+  }, 5000);
+  window.addEventListener('message', function(e) {
+    if (e.data && e.data.command === 'pingSidebarHealth') {
+      const vscode = window.vscode || (typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi() : null);
+      if (vscode) {
+        vscode.postMessage({ command: 'pongSidebarHealth', scriptLoaded: !!window._sidebarMainLoaded });
+      }
+    }
+  });
+})();
+</script>
 </body>
 </html>`;
     }
@@ -4030,6 +4549,11 @@ body.detail-panel-open #tabAdvanced {
   }
 
   public openStandaloneDebug() {
+    if (ModernSidebarProvider.openInBrowserIfRemote('/')) return;
+    if (!this._extensionUri) {
+      vscode.window.showErrorMessage('Extension URI not available');
+      return;
+    }
     const currentReport = this._currentReport;
     const html = this._getHtmlForWebview(this._view!.webview);
     // Inline sidebar-main.js so it loads in the standalone panel (webview URIs are panel-specific)
@@ -4047,7 +4571,7 @@ body.detail-panel-open #tabAdvanced {
     // Inject API URL
     const sbConfig = getSbConfig();
     const apiUrl = (sbConfig.get<string>('apiServerUrl') || sbConfig.get<string>('apiUrl', 'http://127.0.0.1:55000') || 'http://127.0.0.1:55000') as string;
-    const apiScript = `<script>window.__SB_API_URL__='${apiUrl}';</script>`;
+    const apiScript = `<script>window.__SB_API_URL__=${JSON.stringify(apiUrl)};</script>`;
     standaloneHtml = standaloneHtml.replace('</head>', apiScript + '</head>');
     // Inject initial report data if available
     if (currentReport) {
@@ -4260,6 +4784,9 @@ body.detail-panel-open #tabAdvanced {
   }
 
   public openDebugPreview(skipPanelOpen?: boolean): string {
+    if (!this._extensionUri) {
+      throw new Error('Extension URI not available');
+    }
     const currentReport = this._currentReport;
     const extUri = this._extensionUri;
     // Generate a nonce for panel CSP so inline scripts are not blocked by Trusted Types
@@ -4284,7 +4811,9 @@ body.detail-panel-open #tabAdvanced {
     // Replace VS Code API with a bridge that posts messages to parent window
     browserHtml = browserHtml.replace(
       /(?:let|var) vscodeApi = null;[\s\S]*?window\.vscode = vscodeApi;\s*}/g,
-      `window.vscode = {
+      `window.__SB_BROWSER_MODE__ = true;
+      document.body.classList.add('browser-mode');
+      window.vscode = {
         postMessage: function(msg) {
           if (!msg || !msg.command) return;
           if (window.parent !== window) {
@@ -4324,12 +4853,35 @@ body.detail-panel-open #tabAdvanced {
       /bindBtn\('previewBtn', 'openSidebarDebug'\);/g,
       `bindBtn('previewBtn', 'openInIde');`
     );
+    // Ensure browser-mode sidebar has a working vscode mock that posts to parent window
+    const vscodeMockScript = `<script nonce="${panelNonce}">
+if (!window.vscode || typeof window.vscode.postMessage !== 'function') {
+  window.__SB_BROWSER_MODE__ = true;
+  document.body.classList.add('browser-mode');
+  window.vscode = {
+    postMessage: function(msg) {
+      if (!msg || !msg.command) return;
+      if (window.parent !== window) {
+        parent.postMessage(msg, '*');
+        return;
+      }
+      const feat = msg.command || 'This feature';
+      alert(feat + ' is only available inside VS Code:.');
+    },
+    getState: function() { return {}; },
+    setState: function() {}
+  };
+}
+</script>`;
+    browserHtml = browserHtml.replace('</body>', vscodeMockScript + '</body>');
+
     // Inject VS Code dark theme CSS variables and API URL so sidebar renders correctly outside VS Code
     const vscodeVars = `<style>:root{--vscode-editor-background:#1e1e1e;--vscode-sidebar-background:#252526;--vscode-foreground:#cccccc;--vscode-panel-background:#252526;--vscode-panel-border:#3c3c3c;--vscode-button-secondaryBackground:#2d2d30;--vscode-button-secondaryForeground:#cccccc;--vscode-button-hoverBackground:#3c3c3c;--vscode-descriptionForeground:#858585;--vscode-activityBar-background:#333333;--vscode-activityBar-foreground:#ffffff;--vscode-activityBar-inactiveForeground:#858585;--vscode-focusBorder:#007acc;--vscode-list-hoverBackground:#2a2d2e;--vscode-charts-green:#89d185;--vscode-charts-red:#f48771;--vscode-charts-orange:#d18616;--vscode-charts-blue:#75beff;--vscode-font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;}</style>`;
     const sbConfig = getSbConfig();
     const apiUrl = sbConfig.get<string>('apiServerUrl') || sbConfig.get<string>('apiUrl', 'http://127.0.0.1:55000') || 'http://127.0.0.1:55000';
     const relayPort = ModernSidebarProvider._relayPort || sbConfig.get<number>('relayPort', 55444);
-    const injectScript = `<script nonce="${panelNonce}">window.__SB_API_URL__='${apiUrl}';window._relayPort=${relayPort};</script>`;
+    const dashboardUrl = `http://127.0.0.1:${getDataServerPort()}`;
+    const injectScript = `<script nonce="${panelNonce}">window.__SB_DASHBOARD_URL__=${JSON.stringify(dashboardUrl)};window.__SB_API_URL__=${JSON.stringify(apiUrl)};window._relayPort=${relayPort};</script>`;
     browserHtml = browserHtml.replace('</head>', injectScript + vscodeVars + '</head>');
 
     // Seed the browser sidebar with the same report data the IDE sidebar is showing
@@ -4361,6 +4913,10 @@ body.detail-panel-open #tabAdvanced {
       ModernSidebarProvider._relayServer = undefined;
       ModernSidebarProvider._relayPort = undefined;
     }
+    if (ModernSidebarProvider._relayPollInterval) {
+      clearInterval(ModernSidebarProvider._relayPollInterval);
+      ModernSidebarProvider._relayPollInterval = undefined;
+    }
     this.openSidebarInBrowser(false);
     const dataPort = getDataServerPort();
     const url = `http://127.0.0.1:${dataPort}`;
@@ -4369,6 +4925,10 @@ body.detail-panel-open #tabAdvanced {
   }
 
   public openSidebarInBrowser(openBrowser = true, urlPath = '/') {
+    if (!this._extensionUri) {
+      vscode.window.showErrorMessage('Extension URI not available. Please reload the window.');
+      return;
+    }
     const extUri = this._extensionUri;
     const sbConfig = getSbConfig();
 
@@ -4403,7 +4963,7 @@ body.detail-panel-open #tabAdvanced {
     }
 
     // Start minimal relay server if not already running
-    const RELAY_PORT = sbConfig.get<number>('relayPort', 55444);
+    const RELAY_PORT = sbConfig.get<number>('relayPort', 3004);
     if (ModernSidebarProvider._relayServer) {
       const port = ModernSidebarProvider._relayPort || RELAY_PORT;
       const url = `http://127.0.0.1:${port}${urlPath}`;
@@ -4447,30 +5007,245 @@ html,body{height:100%;margin:0;padding:0;background:#0f1117;overflow:hidden}
 .main{flex:1;min-width:0}
 .resizer{width:6px;background:#334155;cursor:col-resize;flex-shrink:0}
 iframe{width:100%;height:100%;border:none;display:block}
+#browserTabBar{display:none;position:fixed;top:0;left:0;right:0;height:36px;background:#1e1e1e;border-bottom:1px solid rgba(255,255,255,0.06);z-index:200;align-items:center;gap:0;overflow-x:auto;scrollbar-width:thin;}
+#browserTabBar::-webkit-scrollbar{height:5px;}
+#browserTabBar::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.2);border-radius:3px;}
+.browser-tab{position:relative;display:flex;align-items:center;gap:6px;padding:0 12px;height:36px;font-size:12px;font-weight:600;color:#858585;cursor:pointer;white-space:nowrap;user-select:none;background:transparent;border:none;border-bottom:2px solid transparent;transition:color .15s,border-color .15s;}
+.browser-tab:hover{color:#ccc;}
+.browser-tab.active{color:#fff;border-bottom-color:#0e639c;background:rgba(255,255,255,0.03);}
+.browser-tab-close{width:16px;height:16px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#858585;background:transparent;border:none;cursor:pointer;}
+.browser-tab-close:hover{color:#ef4444;background:rgba(239,68,68,0.1);}
+.browser-iframe-wrap{display:none;position:fixed;top:36px;left:0;right:0;bottom:0;border:none;width:100%;height:calc(100% - 36px);background:#1e1e1e;}
+.browser-iframe-wrap.active{display:block;}
+.browser-iframe{width:100%;height:100%;border:none;}
+body.tabs-open #ide{display:none !important;}
+body.tabs-open #browserTabBar{display:flex !important;}
+.browser-sidebar{width:260px;min-width:200px;max-width:400px;height:100vh;border-right:1px solid #334155;background:#141414;overflow-y:auto;flex-shrink:0;display:flex;flex-direction:column;padding:8px 0;box-sizing:border-box}
+.browser-sidebar .sidebar-section{margin-bottom:4px}
+.browser-sidebar .sidebar-heading{padding:6px 16px;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:#737373;font-weight:600}
+.browser-sidebar .sidebar-link{display:flex;align-items:center;gap:10px;padding:8px 16px;color:#a3a3a3;font-size:13px;cursor:pointer;transition:background .15s;text-decoration:none;border-radius:0}
+.browser-sidebar .sidebar-link:hover{background:#262626;color:#fafafa}
+.browser-sidebar .sidebar-link.active{background:rgba(14,99,156,.15);color:#0e639c;border-right:2px solid #0e639c}
+.browser-sidebar .sidebar-link .icon{font-size:16px;width:20px;text-align:center}
 </style>
 </head>
 <body>
+<div id="browserTabBar"></div>
+<div id="browserIframeContainer"></div>
 <div class="ide" id="ide">
-  <div class="sidebar"><iframe src="/sidebar" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe></div>
+  <div class="browser-sidebar" id="browserSidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-heading">Core</div>
+      <div class="sidebar-link" data-command="showDashboardPane"><span class="icon">&#x1F4CA;</span> Dashboard</div>
+      <div class="sidebar-link" data-command="showAnalyzePane"><span class="icon">&#x1F50D;</span> Analyze</div>
+      <div class="sidebar-link" data-command="showReportPane"><span class="icon">&#x1F4CB;</span> Report</div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-heading">Quality</div>
+      <div class="sidebar-link" data-command="showSecurityPane"><span class="icon">&#x1F512;</span> Security</div>
+      <div class="sidebar-link" data-command="showTrustPane"><span class="icon">&#x1F91D;</span> Trust</div>
+      <div class="sidebar-link" data-command="showQualityPane"><span class="icon">&#x2696;</span> Quality</div>
+      <div class="sidebar-link" data-command="showAuditPane"><span class="icon">&#x1F4CB;</span> Audit</div>
+      <div class="sidebar-link" data-command="showCompliancePane"><span class="icon">&#x1F4D1;</span> Compliance</div>
+      <div class="sidebar-link" data-command="showAnalyticsPane"><span class="icon">&#x1F4C8;</span> Analytics</div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-heading">Management</div>
+      <div class="sidebar-link" data-command="showSettingsPane"><span class="icon">&#x2699;</span> Settings</div>
+      <div class="sidebar-link" data-command="showRepoHealthPane"><span class="icon">&#x1F3E0;</span> Repo Health</div>
+      <div class="sidebar-link" data-command="showTeamPane"><span class="icon">&#x1F465;</span> Team</div>
+      <div class="sidebar-link" data-command="showCertificatePane"><span class="icon">&#x1F3C6;</span> Certificate</div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-heading">Tools</div>
+      <div class="sidebar-link" data-command="showCodeMapPane"><span class="icon">&#x1F5FA;</span> Code Map</div>
+      <div class="sidebar-link" data-command="showUploadPane"><span class="icon">&#x1F4E4;</span> Upload</div>
+      <div class="sidebar-link" data-command="showAiContextPane"><span class="icon">&#x1F916;</span> AI Context</div>
+      <div class="sidebar-link" data-command="showRoadmapPane"><span class="icon">&#x1F6E4;</span> Roadmap</div>
+      <div class="sidebar-link" data-command="showScanPane"><span class="icon">&#x1F50D;</span> Scan</div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-heading">Account</div>
+      <div class="sidebar-link" data-command="signIn" id="sidebarSignInLink"><span class="icon">&#x1F512;</span> Sign In</div>
+      <div class="sidebar-link" data-command="signOut" id="sidebarSignOutLink" style="display:none;"><span class="icon">&#x1F512;</span> Sign Out</div>
+    </div>
+  </div>
   <div class="resizer" id="resizer"></div>
-  <div class="main"><iframe src="/welcome" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe></div>
+  <div class="main"><iframe id="mainIframe" src="${sbConfig.get('browserDashboardUrl') || `http://127.0.0.1:${getDataServerPort()}/#/dashboard`}" style="width:100%;height:100%;border:none;display:block;"></iframe></div>
 </div>
 <script>
 (function(){
   const resizer = document.getElementById('resizer');
-  const sidebar = document.querySelector('.sidebar');
+  const sidebar = document.querySelector('.browser-sidebar');
   let isDragging = false;
-  resizer.addEventListener('mousedown', function(e){ isDragging = true; document.body.style.cursor = 'col-resize'; e.preventDefault(); });
-  document.addEventListener('mousemove', function(e){ if(!isDragging) return; sidebar.style.width = Math.max(200, Math.min(400, e.clientX)) + 'px'; });
-  document.addEventListener('mouseup', function(){ isDragging = false; document.body.style.cursor = ''; });
-  // Relay sidebar iframe messages to the main window iframe so sidebar buttons work in the browser
-  const mainIframe = document.querySelector('.main iframe');
+  let startX = 0;
+  let startWidth = 0;
+  const mainIframe = document.getElementById('mainIframe');
+  function stopDrag(){
+    isDragging = false;
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+    if (mainIframe) mainIframe.style.pointerEvents = '';
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', stopDrag);
+    window.removeEventListener('mouseup', stopDrag);
+    window.removeEventListener('blur', stopDrag);
+  }
+  function onMove(e){
+    if(!isDragging) return;
+    const dx = e.clientX - startX;
+    const newWidth = Math.max(200, Math.min(400, startWidth + dx));
+    sidebar.style.width = newWidth + 'px';
+  }
+  resizer.addEventListener('mousedown', function(e){
+    isDragging = true;
+    startX = e.clientX;
+    startWidth = sidebar.offsetWidth;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    if (mainIframe) mainIframe.style.pointerEvents = 'none';
+    e.preventDefault();
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', stopDrag);
+    window.addEventListener('mouseup', stopDrag);
+    window.addEventListener('blur', stopDrag);
+  });
+  const DASHBOARD_URL = window.__SB_DASHBOARD_URL__ || 'http://127.0.0.1:54358';
+  const CMD_TO_HASH = {
+    showDashboardPane: '#/dashboard', showRepoHealthPane: '#/repo-health', showTeamPane: '#/team',
+    showScanPane: '#/scan', showSecurityPane: '#/security', showTrustPane: '#/trust', showQualityPane: '#/quality',
+    showReportPane: '#/results', showAuditPane: '#/audit', showCompliancePane: '#/compliance', showAnalyticsPane: '#/analytics',
+    showUploadPane: '#/upload',
+    showSettingsPane: '#/settings', showCodeMapPane: '#/code-map', showAiContextPane: '#/ai-context', showRoadmapPane: '#/roadmap', showCertificatePane: '#/certificate', showAnalyzePane: '#/analyze'
+  };
+  document.querySelectorAll('.sidebar-link[data-command]').forEach(function(link){
+    link.addEventListener('click', function(){
+      const cmd = link.dataset.command;
+      if(mainIframe){
+        const hash = CMD_TO_HASH[cmd];
+        if (hash) {
+          mainIframe.src = DASHBOARD_URL + '/' + hash;
+        } else if (cmd === 'signIn') {
+          mainIframe.src = DASHBOARD_URL + '/#/signin';
+        }
+      }
+      document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+      link.classList.add('active');
+    });
+  });
+  // Auth state messages from extension to toggle Sign In / Sign Out UI are handled by sidebar-main.js
+  // Keep only the message forwarding and polling logic here to avoid duplicate click handlers.
+  // Handle auth state messages from extension to toggle Sign In / Sign Out UI
   window.addEventListener('message', function(ev) {
     if (!ev.data || !ev.data.command) return;
-    if (mainIframe && mainIframe.contentWindow) {
+    if (ev.data.command === 'openBrowserTab') {
+      _openBrowserTab(ev.data.url, ev.data.label);
+      return;
+    }
+    const mainIframe = document.getElementById('mainIframe');
+    const fromIframe = !!(mainIframe && mainIframe.contentWindow && ev.source === mainIframe.contentWindow);
+    if (ev.data.command === 'setAuthState') {
+      const signedIn = !!ev.data.signedIn;
+      const dbSignin = document.getElementById('dbSigninBtn');
+      const dbSignout = document.getElementById('dbSignoutBtn');
+      const tdSignin = document.getElementById('tdSignInSidebar');
+      const tdSignout = document.getElementById('tdSignOutSidebar');
+      const sidebarSignIn = document.getElementById('sidebarSignInLink');
+      const sidebarSignOut = document.getElementById('sidebarSignOutLink');
+      if (dbSignin) dbSignin.style.display = signedIn ? 'none' : '';
+      if (dbSignout) dbSignout.style.display = signedIn ? '' : 'none';
+      if (tdSignin) tdSignin.style.display = signedIn ? 'none' : '';
+      if (tdSignout) tdSignout.style.display = signedIn ? '' : '';
+      if (sidebarSignIn) sidebarSignIn.style.display = signedIn ? 'none' : '';
+      if (sidebarSignOut) sidebarSignOut.style.display = signedIn ? '' : 'none';
+      const headerSignIn = document.getElementById('headerSignInBtn');
+      const headerSignOut = document.getElementById('headerSignOutBtn');
+      if (headerSignIn) headerSignIn.style.display = signedIn ? 'none' : 'inline-flex';
+      if (headerSignOut) headerSignOut.style.display = signedIn ? 'inline-flex' : 'none';
+      if (fromIframe && typeof acquireVsCodeApi === 'function') {
+        try { acquireVsCodeApi().postMessage(ev.data); } catch (e) {}
+      }
+      return;
+    }
+    if (!fromIframe && mainIframe && mainIframe.contentWindow) {
       mainIframe.contentWindow.postMessage(ev.data, '*');
     }
   });
+  // Poll auth state so the sidebar updates after external sign-in/out
+  function _requestAuthState(){
+    if (typeof acquireVsCodeApi === 'function') {
+      try { acquireVsCodeApi().postMessage({ command: 'getAuthState' }); } catch (e) {}
+    }
+    // Also ask the iframe (dashboard) for its current auth state since the extension
+    // AuthManager cannot see iframe-localStorage tokens.
+    const mainIframe = document.getElementById('mainIframe');
+    if (mainIframe && mainIframe.contentWindow) {
+      try { mainIframe.contentWindow.postMessage({ command: 'getAuthState' }, '*'); } catch (e) {}
+    }
+  }
+  _requestAuthState();
+  setInterval(_requestAuthState, 3000);
+  // Parent-level tab bar management
+  let _browserTabs = [];
+  let _browserTabCounter = 0;
+  function _openBrowserTab(url, label) {
+    const tabBar = document.getElementById('browserTabBar');
+    const container = document.getElementById('browserIframeContainer');
+    if (!tabBar || !container) return;
+    const existing = _browserTabs.find(function(t){return t.url===url;});
+    if (existing){_activateBrowserTab(existing.id);return;}
+    const id = 'browserTab_'+(_browserTabCounter++);
+    const wrap = document.createElement('div');
+    wrap.id = id+'_wrap';
+    wrap.className = 'browser-iframe-wrap';
+    const iframe = document.createElement('iframe');
+    iframe.className = 'browser-iframe';
+    iframe.src = url;
+    wrap.appendChild(iframe);
+    container.appendChild(wrap);
+    const tab = document.createElement('button');
+    tab.type = 'button';
+    tab.id = id;
+    tab.className = 'browser-tab';
+    const tabLabel = document.createElement('span');
+    tabLabel.textContent = label || 'Page';
+    tab.appendChild(tabLabel);
+    const closeBtn = document.createElement('span');
+    closeBtn.className = 'browser-tab-close';
+    closeBtn.textContent = '\u00D7';
+    closeBtn.addEventListener('click', function(e){e.stopPropagation();_closeBrowserTab(id);});
+    tab.appendChild(closeBtn);
+    tab.addEventListener('click', function(){_activateBrowserTab(id);});
+    tabBar.appendChild(tab);
+    _browserTabs.push({id:id,url:url,label:label||'Page'});
+    _activateBrowserTab(id);
+    document.body.classList.add('tabs-open');
+  }
+  function _activateBrowserTab(tabId) {
+    const container = document.getElementById('browserIframeContainer');
+    if(container){container.querySelectorAll('.browser-iframe-wrap').forEach(function(w){w.classList.remove('active');});}
+    const wrap = document.getElementById(tabId+'_wrap');
+    if(wrap) wrap.classList.add('active');
+    const tabBar = document.getElementById('browserTabBar');
+    if(tabBar){tabBar.querySelectorAll('.browser-tab').forEach(function(t){t.classList.remove('active');});}
+    const tab = document.getElementById(tabId);
+    if(tab) tab.classList.add('active');
+  }
+  function _closeBrowserTab(tabId) {
+    const idx = _browserTabs.findIndex(function(t){return t.id===tabId;});
+    if(idx<0) return;
+    _browserTabs.splice(idx,1);
+    const tab = document.getElementById(tabId);
+    if(tab) tab.remove();
+    const wrap = document.getElementById(tabId+'_wrap');
+    if(wrap) wrap.remove();
+    if(_browserTabs.length>0){_activateBrowserTab(_browserTabs[Math.min(idx,_browserTabs.length-1)].id);}
+    else {
+      const container=document.getElementById('browserIframeContainer');
+      if(container){while(container.firstChild){container.removeChild(container.firstChild);}}
+      document.body.classList.remove('tabs-open');
+    }
+  }
 })();
 </script>
 </body>
@@ -4482,13 +5257,14 @@ iframe{width:100%;height:100%;border:none;display:block}
       res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
       res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
       if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
+      const htmlCacheHeaders = { 'Content-Type': 'text/html', 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache', 'Expires': '0' };
       if (req.url === '/') {
-        res.writeHead(200, {'Content-Type': 'text/html'});
+        res.writeHead(200, htmlCacheHeaders);
         res.end(buildIdeHtml());
         return;
       }
       if (req.url === '/sidebar') {
-        res.writeHead(200, {'Content-Type': 'text/html'});
+        res.writeHead(200, htmlCacheHeaders);
         try {
           const freshSidebarHtml = this.openDebugPreview(true);
           ModernSidebarProvider._sidebarHtml = freshSidebarHtml;
@@ -4503,7 +5279,7 @@ iframe{width:100%;height:100%;border:none;display:block}
           if (typeof WelcomeDashboard.buildBrowserHtml === 'function') {
             const welcomeHtml = WelcomeDashboard.buildBrowserHtml(this._currentReport || undefined);
             ModernSidebarProvider._welcomeBrowserHtml = welcomeHtml;
-            res.writeHead(200, {'Content-Type': 'text/html'});
+            res.writeHead(200, htmlCacheHeaders);
             res.end(welcomeHtml);
             return;
           }
@@ -4512,8 +5288,32 @@ iframe{width:100%;height:100%;border:none;display:block}
         }
       }
       if (req.url === '/codemap') {
-        res.writeHead(200, {'Content-Type': 'text/html'});
+        res.writeHead(200, htmlCacheHeaders);
         res.end(getCodeMapHtml());
+        return;
+      }
+      // Execute VS Code: commands coming from browser preview
+      if (req.url === '/api/command') {
+        let body = '';
+        req.on('data', (chunk: any) => { body += chunk; });
+        req.on('end', () => {
+          try {
+            const data = JSON.parse(body);
+            if (data && data.command) {
+              vscode.commands.executeCommand(data.command).then(undefined, () => {});
+            }
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: true }));
+          } catch {
+            res.writeHead(400); res.end('Bad request');
+          }
+        });
+        return;
+      }
+      // Return empty pending-commands for polling compatibility with standalone relay server
+      if (req.url === '/api/pending-commands') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify([]));
         return;
       }
       // Proxy API calls to the actual SimpleBeacon data server
@@ -4554,6 +5354,27 @@ iframe{width:100%;height:100%;border:none;display:block}
         const actualPort = addr ? (typeof addr === 'object' ? addr.port : addr) : port;
         ModernSidebarProvider._relayPort = typeof actualPort === 'number' ? actualPort : Number(actualPort);
         ModernSidebarProvider._relayServer = server;
+        // Poll relay server for commands queued by external browser previews
+        if (!ModernSidebarProvider._relayPollInterval) {
+          ModernSidebarProvider._relayPollInterval = setInterval(() => {
+            const rp = ModernSidebarProvider._relayPort;
+            if (!rp) return;
+            http.get(`http://127.0.0.1:${rp}/api/pending-commands`, (res) => {
+              let body = '';
+              res.on('data', (chunk: any) => { body += chunk; });
+              res.on('end', () => {
+                try {
+                  const commands = JSON.parse(body);
+                  commands.forEach((cmd: any) => {
+                    if (cmd && cmd.command) {
+                      vscode.commands.executeCommand(cmd.command).then(undefined, () => {});
+                    }
+                  });
+                } catch {}
+              });
+            }).on('error', () => {});
+          }, 3000);
+        }
         const url = `http://127.0.0.1:${actualPort}${urlPath}`;
         if (openBrowser) {
           try {
@@ -4568,6 +5389,10 @@ iframe{width:100%;height:100%;border:none;display:block}
       server.on('close', () => {
         ModernSidebarProvider._relayServer = undefined;
         ModernSidebarProvider._relayPort = undefined;
+        if (ModernSidebarProvider._relayPollInterval) {
+          clearInterval(ModernSidebarProvider._relayPollInterval);
+          ModernSidebarProvider._relayPollInterval = undefined;
+        }
         ModernSidebarProvider.logRelay('Relay server closed');
       });
       server.listen(port, '127.0.0.1');
@@ -4636,6 +5461,8 @@ tr:hover td{background:rgba(255,255,255,0.02)}
 footer{padding:10px 20px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);display:flex;justify-content:space-between;align-items:center;background:var(--panel)}
 .spinner{width:16px;height:16px;border:2px solid rgba(99,102,241,0.2);border-top-color:var(--ac);border-radius:50%;animation:spin 1s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px}
 @keyframes spin{to{transform:rotate(360deg)}}
+@keyframes scanIndeterminate{0%{transform:translateX(-100%)}50%{transform:translateX(0%)}100%{transform:translateX(100%)}}
+#scanProgressBar.indeterminate{width:40% !important;animation:scanIndeterminate 1.2s ease-in-out infinite;background:linear-gradient(90deg,rgba(99,102,241,0.6),rgba(129,140,248,0.9),rgba(99,102,241,0.6)) !important}
 .cm-link{display:inline-flex;align-items:center;gap:6px;background:var(--ac);color:#fff;border:none;padding:8px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;text-decoration:none}
 </style>
 </head>

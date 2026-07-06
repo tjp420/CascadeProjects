@@ -102,6 +102,18 @@ export class ProfileView {
         const accountAge = boundAt ? formatTimeAgo(boundAt) : (tokenIat ? formatTimeAgo(new Date(tokenIat * 1000).toISOString()) : 'Unknown');
         const isActive = token ? (tokenExp ? tokenExp * 1000 > Date.now() : true) : false;
         const subLabel = (payload === null || payload === void 0 ? void 0 : payload.sub) || (payload === null || payload === void 0 ? void 0 : payload.email) || email || 'Not set';
+        const webAuthnCreds = authService.getWebAuthnCredentials();
+        const webAuthnSupported = typeof window !== 'undefined' && 'PublicKeyCredential' in window;
+        const webAuthnListHtml = webAuthnCreds.length
+            ? webAuthnCreds.map((c, i) => `
+              <div class="profile-webauthn-item" style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;background:var(--bg-input);">
+                <div>
+                  <div style="font-weight:600;font-size:0.85rem;color:var(--text-main);">Security Key ${i + 1}</div>
+                  <div style="font-size:0.72rem;color:var(--text-muted);">Registered ${c.registeredAt ? formatTimeAgo(c.registeredAt) : 'Unknown'}</div>
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm profile-webauthn-remove" data-credential-id="${escapeHtml(c.id)}" style="font-size:0.75rem;padding:4px 10px;">Remove</button>
+              </div>`).join('')
+            : '<p class="profile-help">No security keys registered. Click Register to add a USB key or biometric authenticator.</p>';
         const fragment = document.createRange().createContextualFragment(`
       <style>
         .profile-page { max-width: 720px; margin: 0 auto; padding: 24px 16px 48px; }
@@ -258,6 +270,23 @@ export class ProfileView {
           </div>
         </div>
 
+        <!-- Security Keys -->
+        <div class="profile-card" id="webauthn-section">
+          <div class="profile-card-header">
+            <span class="icon">🔐</span>
+            <h2>Security Keys</h2>
+          </div>
+          <div class="profile-card-body">
+            <div id="webauthn-credential-list" style="margin-bottom:12px;">
+              ${webAuthnListHtml}
+            </div>
+            <button type="button" class="btn btn-primary" id="profile-webauthn-register-btn" ${!webAuthnSupported ? 'disabled' : ''}>
+              🔑 Register Security Key
+            </button>
+            ${!webAuthnSupported ? '<p class="profile-help" style="color:var(--error);">WebAuthn is not supported in this browser or context.</p>' : '<p class="profile-help">Register a USB security key or built-in biometric authenticator. Works on localhost/HTTPS only.</p>'}
+          </div>
+        </div>
+
         <!-- Actions -->
         <div class="profile-card">
           <div class="profile-card-header">
@@ -309,11 +338,13 @@ export class ProfileView {
                 tokenPassword: ((_d = container.querySelector('#profile-token-password')) === null || _d === void 0 ? void 0 : _d.value) || '',
                 loginMethod: ((_e = container.querySelector('input[name="loginMethod"]:checked')) === null || _e === void 0 ? void 0 : _e.value) || 'email'
             };
+            const tokenVal = (_g = (_f = container.querySelector('#profile-token')) === null || _f === void 0 ? void 0 : _f.value) === null || _g === void 0 ? void 0 : _g.trim();
             // Require password confirmation if anything changed
             if (hasChanges) {
                 const stored = loadProfile();
-                const currentPassword = data.emailPassword || data.tokenPassword || stored.emailPassword || stored.tokenPassword || '';
-                const confirmPassword = prompt('Changes detected. Enter your password to confirm save:');
+                const changedTokenPassword = data.tokenPassword !== (stored.tokenPassword || '');
+                const currentPassword = stored.tokenPassword || stored.emailPassword || '';
+                const confirmPassword = prompt('Changes detected. Enter your current password to confirm save:');
                 if (confirmPassword === null) {
                     const status = container.querySelector('#profile-save-status');
                     status.textContent = 'Save cancelled.';
@@ -328,15 +359,34 @@ export class ProfileView {
                     setTimeout(() => { status.textContent = ''; status.style.color = ''; }, 3000);
                     return;
                 }
+                if (changedTokenPassword) {
+                    authService.setTokenPassword(tokenVal || token, data.tokenPassword);
+                }
             }
             saveProfile(data);
             hasChanges = false;
-            const tokenVal = (_g = (_f = container.querySelector('#profile-token')) === null || _f === void 0 ? void 0 : _f.value) === null || _g === void 0 ? void 0 : _g.trim();
-            if (tokenVal) {
-                localStorage.setItem('cascadeAuthToken', tokenVal);
+            if (tokenVal && tokenVal !== token) {
+                const tokenParts = tokenVal.split('.');
+                const payload = decodeJwtPayload(tokenVal);
+                if (tokenParts.length === 3 && !payload) {
+                    const status = container.querySelector('#profile-save-status');
+                    status.textContent = 'Invalid token — could not decode JWT.';
+                    status.style.color = 'var(--error)';
+                    setTimeout(() => { status.textContent = ''; status.style.color = ''; }, 3000);
+                    return;
+                }
+                const user = {
+                    email: data.email || (payload === null || payload === void 0 ? void 0 : payload.sub) || email || 'token-user',
+                    plan: (payload === null || payload === void 0 ? void 0 : payload.plan) || (payload === null || payload === void 0 ? void 0 : payload.tier) || tier || 'community',
+                    tokenSession: true
+                };
+                authService.setSession(tokenVal, user);
+                authService.bindTokenToAccount(tokenVal, 'account');
             }
-            if (data.email) {
-                localStorage.setItem('cascadeAuthUser', data.email);
+            else if (data.email) {
+                const currentUser = authService.getUser() || {};
+                const updatedUser = { ...currentUser, email: data.email };
+                localStorage.setItem('cascadeAuthUser', JSON.stringify(updatedUser));
             }
             const status = container.querySelector('#profile-save-status');
             status.textContent = 'Profile saved successfully.';
@@ -429,6 +479,88 @@ export class ProfileView {
             keys.forEach((k) => localStorage.removeItem(k));
             ((_b = (_a = this.app).showToast) === null || _b === void 0 ? void 0 : _b.call(_a, 'Local cache cleared', 'success')) || alert('Local cache cleared');
         });
+        // WebAuthn security key registration
+        const registerWebAuthnBtn = container.querySelector('#profile-webauthn-register-btn');
+        if (registerWebAuthnBtn) {
+            registerWebAuthnBtn.addEventListener('click', async () => {
+                var _a, _b;
+                if (!window.PublicKeyCredential) {
+                    ((_b = (_a = this.app).showToast) === null || _b === void 0 ? void 0 : _b.call(_a, 'WebAuthn not supported in this browser', 'error'));
+                    return;
+                }
+                try {
+                    const challengeBase64 = await authService.getWebAuthnChallenge();
+                    const challenge = base64UrlToArrayBuffer(challengeBase64);
+                    const userId = email || subLabel || 'simplebeacon-user';
+                    const publicKey = {
+                        challenge,
+                        rp: { name: 'SimpleBeacon', id: window.location.hostname },
+                        user: {
+                            id: new TextEncoder().encode(userId),
+                            name: userId,
+                            displayName: userId
+                        },
+                        pubKeyCredParams: [{ alg: -7, type: 'public-key' }, { alg: -257, type: 'public-key' }],
+                        authenticatorSelection: { userVerification: 'preferred', residentKey: 'discouraged' },
+                        timeout: 60000,
+                        attestation: 'none'
+                    };
+                    ((_b = (_a = this.app).showToast) === null || _b === void 0 ? void 0 : _b.call(_a, 'Touch your security key to register…', 'info'));
+                    const credential = await navigator.credentials.create({ publicKey });
+                    if (!credential || !credential.id) {
+                        ((_b = (_a = this.app).showToast) === null || _b === void 0 ? void 0 : _b.call(_a, 'Registration failed — no credential returned', 'error'));
+                        return;
+                    }
+                    const credentialData = {
+                        id: credential.id,
+                        type: credential.type,
+                        rawId: arrayBufferToBase64Url(credential.rawId),
+                        response: {
+                            clientDataJSON: arrayBufferToBase64Url(credential.response.clientDataJSON),
+                            attestationObject: arrayBufferToBase64Url(credential.response.attestationObject)
+                        }
+                    };
+                    await authService.registerWebAuthnCredential(credentialData, userId);
+                    ((_b = (_a = this.app).showToast) === null || _b === void 0 ? void 0 : _b.call(_a, 'Security key registered successfully', 'success'));
+                    this.mount(container);
+                }
+                catch (err) {
+                    var _a, _b;
+                    const message = (err === null || err === void 0 ? void 0 : err.name) === 'NotAllowedError'
+                        ? 'Registration was cancelled or not allowed.'
+                        : ((err === null || err === void 0 ? void 0 : err.message) || 'Security key registration failed.');
+                    ((_b = (_a = this.app).showToast) === null || _b === void 0 ? void 0 : _b.call(_a, message, 'error'));
+                }
+            });
+        }
+        // WebAuthn credential removal
+        container.querySelectorAll('.profile-webauthn-remove').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                var _a, _b;
+                const credentialId = btn.getAttribute('data-credential-id');
+                if (!credentialId)
+                    return;
+                authService.removeWebAuthnCredential(credentialId);
+                ((_b = (_a = this.app).showToast) === null || _b === void 0 ? void 0 : _b.call(_a, 'Security key removed', 'info'));
+                this.mount(container);
+            });
+        });
     }
     destroy() { }
+}
+function arrayBufferToBase64Url(buffer) {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+function base64UrlToArrayBuffer(base64url) {
+    if (!base64url)
+        return new Uint8Array(0);
+    const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
+    const padding = '='.repeat((4 - base64.length % 4) % 4);
+    const binary = atob(base64 + padding);
+    return Uint8Array.from(binary, c => c.charCodeAt(0));
 }

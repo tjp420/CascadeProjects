@@ -66,6 +66,8 @@
     "java-ai-vulnerable/**",
     ".github/workflows/simplebeacon-action-stress-test.yml",
     "simplebeacon-vscode-merged/src/rules/llm-slop-catalog.json",
+    "**/llm-slop-catalog.json",
+    "**/code-map.json",
     "**/.vsix-patch-temp/**",
     "report.json",
     "**/report.json",
@@ -305,5 +307,20 @@
     ]
   },
   "fullDirectoryScan": true,
-  "fullDirectoryScanMaxFiles": 100000
+  "fullDirectoryScanMaxFiles": 100000,
+  "fullDirectoryScanSkipDirs": [
+    ".git",
+    "github-cache",
+    ".simplebeacon",
+    ".vscode-test",
+    "node_modules",
+    "out",
+    "releases",
+    ".vsix-patch-temp",
+    "dist",
+    "build",
+    ".next",
+    ".cache",
+    "coverage"
+  ]
 }

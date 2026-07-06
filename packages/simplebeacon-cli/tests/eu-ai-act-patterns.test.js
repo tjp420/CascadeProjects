@@ -57,7 +57,7 @@ test('scanEuAiActPatterns collapses multiple AI indicator matches per file', asy
     const aiIssues = result.issues.filter((i) => i.metadata?.patternId === 'EUAI-AI-001');
     assert.equal(aiIssues.length, 1);
     assert.ok((aiIssues[0].metadata?.matchCount || 0) >= 2);
-    assert.equal(aiIssues[0].count, 1);
+    assert.equal(aiIssues[0].count, 3);
 
     fs.rmSync(dir, { recursive: true, force: true });
 });

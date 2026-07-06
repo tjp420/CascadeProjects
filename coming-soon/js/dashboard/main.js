@@ -98,15 +98,13 @@ function getFreeTokenUrl() {
     const storedHost = localStorage.getItem('sb_api_host');
     if (storedHost) return storedHost + '/api/free-token';
     const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-    const knownPorts = [38000, 50559, 3002, 3001, 3000, 5000];
+    const knownPorts = [38000, 50559, 54358, 3002, 3001, 3000, 5000];
     const currentPort = parseInt(location.port, 10);
     if (isLocal && knownPorts.includes(currentPort)) {
         return location.origin + '/api/free-token';
     }
     if (isLocal) {
-        const devHost = '127.0.0.1';
-        const devPort = '3000';
-        return `http://${devHost}:${devPort}/api/free-token`;
+        return location.origin + '/api/free-token';
     }
     return API_BASE + '/api/free-token';
 }
@@ -330,7 +328,46 @@ const MODULE_REPORT_KEYS = {
 // Filter a report object to only include sections the user has activated
 function filterReportByModules(report, modules) {
     const out = {};
-    const allowedKeys = new Set(['type', 'reportVersion', 'version', 'generatedAt', 'generatedBy', 'scanProfileLabel', 'checkEuAi', 'projectRoot', 'projectPath', 'scanTargetRoot', 'platformRoot', 'projectName', 'scanProfile', 'scanProfileLabel', 'qualityScore', 'schemaCompliance', 'consistencyScore', 'duplicateGroups', 'invalidJson', 'emptyFiles', 'schemaChecked', 'schemaPassed', 'totalFiles', 'filesAnalyzed', 'repositoryFilesTotal', 'repositoryFoldersTotal', 'excludedCount', 'excludedSummary', 'issueCount', 'simplebeaconIssues', 'detectedIssues', 'issues', 'rawIssues', 'severityCounts', 'gate', 'gateReport', 'summary', 'scanDurationMs', 'title', 'aiContext']);
+    const allowedKeys = new Set([
+        'type', 'reportVersion', 'version', 'generatedAt', 'generatedBy', 'scanProfileLabel', 'checkEuAi',
+        'projectRoot', 'projectPath', 'scanTargetRoot', 'platformRoot', 'projectName', 'scanProfile',
+        'qualityScore', 'schemaCompliance', 'consistencyScore', 'duplicateGroups', 'invalidJson', 'emptyFiles',
+        'schemaChecked', 'schemaPassed', 'totalFiles', 'filesAnalyzed', 'repositoryFilesTotal', 'repositoryFoldersTotal',
+        'excludedCount', 'excludedSummary', 'issueCount', 'simplebeaconIssues', 'detectedIssues', 'issues', 'rawIssues',
+        'severityCounts', 'gate', 'gateReport', 'summary', 'scanDurationMs', 'title', 'aiContext',
+        // Analyzer section data — must always be kept so certificate generator can use them
+        'aiResidue', 'performance', 'typeSafety', 'testCoverage', 'accessibility', 'i18n', 'sensitiveData',
+        'configDrift', 'securityHeaders', 'databasePatterns', 'frameworkPractices', 'workspaceHealth',
+        'unusedDeps', 'apiContract', 'complexity', 'llmSlop', 'tokenBleed', 'productionLeak', 'fictionKpi',
+        'architectureDrift', 'fixPreview', 'syncIo', 'syncIoFindings', 'evalDanger', 'innerHtmlXss',
+        'prototypePollution', 'unhandledPromise', 'magicNumber', 'missingStrictMode', 'uninitializedRead',
+        'unvalidatedRedirect', 'missingRateLimit', 'insecureRandom', 'loggingSecrets', 'hardcodedConfidence',
+        'hardcodedCompletion', 'mockPathLeak', 'sampleJsonRef', 'governanceMarker', 'aiPlaceholderComment',
+        'aiPlaceholderBlock', 'markdownFenceLeak', 'emptyStubFunction', 'arrowStub', 'roadmapMarker',
+        'fileNaming', 'removableFiles',
+        // Hits / findings keys that buildAnalyzerSections produces
+        'aiResidueHits', 'aiResidueFindings', 'perfHits', 'perfFindings', 'typeSafetyHits', 'typeSafetyFindings',
+        'testHits', 'testFindings', 'a11yHits', 'a11yFindings', 'i18nHits', 'i18nFindings',
+        'sensitiveDataHits', 'sensitiveDataFindings', 'configDriftHits', 'configDriftFindings',
+        'securityHeaderHits', 'securityHeaderFindings', 'dbPatternHits', 'dbPatternFindings',
+        'frameworkHits', 'frameworkFindings', 'workspaceHits', 'workspaceFindings',
+        'unusedDepHits', 'unusedDepFindings', 'apiContractHits', 'apiContractFindings',
+        'complexityHits', 'complexityFindings', 'llmSlopHits', 'llmSlopFindings',
+        'tokenBleedHits', 'tokenBleedFindings', 'productionLeakHits', 'productionLeakFindings',
+        'fictionKpiHits', 'fictionKpiFindings', 'archDriftFindings',
+        'evalDangerHits', 'evalDangerFindings', 'innerHtmlXssHits', 'innerHtmlXssFindings',
+        'prototypePollutionHits', 'prototypePollutionFindings', 'unhandledPromiseHits', 'unhandledPromiseFindings',
+        'magicNumberHits', 'magicNumberFindings', 'missingStrictModeHits', 'missingStrictModeFindings',
+        'uninitializedReadHits', 'uninitializedReadFindings', 'unvalidatedRedirectHits', 'unvalidatedRedirectFindings',
+        'missingRateLimitHits', 'missingRateLimitFindings', 'insecureRandomHits', 'insecureRandomFindings',
+        'loggingSecretsHits', 'loggingSecretsFindings', 'hardcodedConfidenceHits', 'hardcodedConfidenceFindings',
+        'hardcodedCompletionHits', 'hardcodedCompletionFindings', 'mockPathLeakHits', 'mockPathLeakFindings',
+        'sampleJsonRefHits', 'sampleJsonRefFindings', 'governanceMarkerHits', 'governanceMarkerFindings',
+        'aiPlaceholderCommentHits', 'aiPlaceholderCommentFindings', 'aiPlaceholderBlockHits', 'aiPlaceholderBlockFindings',
+        'markdownFenceLeakHits', 'markdownFenceLeakFindings', 'emptyStubFunctionHits', 'emptyStubFunctionFindings',
+        'arrowStubHits', 'arrowStubFindings', 'roadmapMarkerHits', 'roadmapMarkerFindings',
+        'fileNamingHits', 'fileNamingFindings', 'removableFilesHits', 'removableFilesFindings'
+    ]);
     const moduleKeys = new Set();
     modules.forEach(id => {
         (MODULE_REPORT_KEYS[id] || []).forEach(k => moduleKeys.add(k));
@@ -826,7 +863,7 @@ function isModulePaidFor(moduleNum) {
         return ['1','3'].includes(numStr);
     }
     const tier = String(payload.tier || payload.product || '').toLowerCase();
-    const allAccess = ['executive','euai','eusprint','operator','continuous_shield','runtime_shield','universal'];
+    const allAccess = ['executive','euai','eusprint','operator','continuous_shield','runtime_shield','universal','developer','pro','team','enterprise','startup','growth'];
     if (allAccess.includes(tier)) return true;
     if (tier === 'instant') {
         return ['1','3'].includes(numStr);

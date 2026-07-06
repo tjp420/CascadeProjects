@@ -1,99 +1,88 @@
 import { escapeHtml, formatNumber, formatPercent, renderEmptyState, showToast } from '../utils.js';
 import { FEATURE_CATALOG } from '../services/platformService.js';
 // EU AI Act transparency disclosure: This view includes AI system integration indicators per Article 50.
-import {
-  getScanFileMetrics,
-  resolveDisplayScore,
-  resolveJestTestsLabel,
-  resolvePageSpecsLabel,
-  formatScanScopeSummary,
-  formatScanInventoryNote
-} from '../services/analyzeService.js';
-
+import { getScanFileMetrics, resolveDisplayScore, resolveJestTestsLabel, resolvePageSpecsLabel, formatScanScopeSummary, formatScanInventoryNote } from '../services/analyzeService.js';
 // simplebeacon:production-leak-intent: web-data-sample - Legitimate documentation about web data paths in help documentation
-
 const DASHBOARD_PAGES = [
-  {
-    route: 'dashboard',
-    icon: '📊',
-    title: 'Dashboard',
-    description: 'Last scan status, scan summary, metric chips, and issue categories. Rescan from here or open Analyze for deeper runs.'
-  },
-  {
-    route: 'analyze',
-    icon: '📂',
-    title: 'Analyze',
-    description: 'Complete, Simplebeacon, mock data, consolidation, roadmap, or auto mode. Drop JSON reports or enter a server-readable path.'
-  },
-  {
-    route: 'assessments',
-    icon: '📑',
-    title: 'Assessment Portal',
-    description: 'Client-facing M&A / diligence flow — clone a repo or scan a local path (signed-in), deliver assessment JSON.'
-  },
-  {
-    route: 'audit',
-    icon: '🛡️',
-    title: 'Compliance Audit',
-    description: 'All auditing layers in one view — credentials, fiction KPIs, schema, production leaks, roadmap, Jest baseline, npm audit.'
-  },
-  {
-    route: 'results',
-    icon: '📋',
-    title: 'Results',
-    description: 'Filter issues by severity and category. Empty state with gate PASS means a clean scan on configured paths — not a broken page.'
-  },
-  {
-    route: 'platform',
-    icon: '📈',
-    title: 'Platform',
-    description: 'Engineering baseline — mock file counts, Jest health, schema pass rate, and comparative metrics from live scan + baseline.'
-  },
-  {
-    route: 'quality',
-    icon: '🛡️',
-    title: 'Quality & Security',
-    description: 'Live npm audit (dependency count + vulnerabilities), security checklist, and coverage posture.'
-  },
-  {
-    route: 'settings',
-    icon: '⚙️',
-    title: 'Settings',
-    description: 'Scan paths, gate severities, rule toggles, and optional AI provider keys (OpenAI, Anthropic, Ollama) for Analyze summaries.'
-  },
-  {
-    route: 'about',
-    icon: '📖',
-    title: 'About the project',
-    description: 'Radical honesty — what Simplebeacon does well, what it is bad at, install commands, and links to source.'
-  },
-  {
-    route: 'pricing',
-    icon: '⚡',
-    title: 'Install',
-    description: 'Community CLI ($0) — npx commands, GitHub Action, documentation links. No enterprise checkout on this page.'
-  }
+    {
+        route: 'dashboard',
+        icon: '📊',
+        title: 'Dashboard',
+        description: 'Last scan status, scan summary, metric chips, and issue categories. Rescan from here or open Analyze for deeper runs.'
+    },
+    {
+        route: 'analyze',
+        icon: '📂',
+        title: 'Analyze',
+        description: 'Complete, Simplebeacon, mock data, consolidation, roadmap, or auto mode. Drop JSON reports or enter a server-readable path.'
+    },
+    {
+        route: 'assessments',
+        icon: '📑',
+        title: 'Assessment Portal',
+        description: 'Client-facing M&A / diligence flow — clone a repo or scan a local path (signed-in), deliver assessment JSON.'
+    },
+    {
+        route: 'audit',
+        icon: '🛡️',
+        title: 'Compliance Audit',
+        description: 'All auditing layers in one view — credentials, fiction KPIs, schema, production leaks, roadmap, Jest baseline, npm audit.'
+    },
+    {
+        route: 'results',
+        icon: '📋',
+        title: 'Results',
+        description: 'Filter issues by severity and category. Empty state with gate PASS means a clean scan on configured paths — not a broken page.'
+    },
+    {
+        route: 'platform',
+        icon: '📈',
+        title: 'Platform',
+        description: 'Engineering baseline — mock file counts, Jest health, schema pass rate, and comparative metrics from live scan + baseline.'
+    },
+    {
+        route: 'quality',
+        icon: '🛡️',
+        title: 'Quality & Security',
+        description: 'Live npm audit (dependency count + vulnerabilities), security checklist, and coverage posture.'
+    },
+    {
+        route: 'settings',
+        icon: '⚙️',
+        title: 'Settings',
+        description: 'Scan paths, gate severities, rule toggles, and optional AI provider keys (OpenAI, Anthropic, Ollama) for Analyze summaries.'
+    },
+    {
+        route: 'about',
+        icon: '📖',
+        title: 'About the project',
+        description: 'Radical honesty — what Simplebeacon does well, what it is bad at, install commands, and links to source.'
+    },
+    {
+        route: 'pricing',
+        icon: '⚡',
+        title: 'Install',
+        description: 'Community CLI ($0) — npx commands, GitHub Action, documentation links. No enterprise checkout on this page.'
+    }
 ];
-
 const STATIC_FAQ = [
-  {
-    question: 'Why does the dashboard show 42 mock/sample files but 40k+ repo files?',
-    answer: 'Simplebeacon gate scans configured scanPaths (web/data, data/mock, etc.) — typically ~42 mock/sample JSON files. The repo inventory is an audit-style index of the project root (skips node_modules, .git, build artifacts) for context; it is not a full-fiction scan of every file.'
-  },
-  {
-    question: 'What is the difference between quality score and consistency score?',
-    answer: 'Quality score is a capped mock-scan heuristic (often 99%). Consistency score reflects fiction/KPI drift checks on page samples — use consistency and schema compliance on Dashboard and Compliance Audit for pass/fail truth.'
-  },
-  {
-    question: 'Why does Results show 0 issues when I expected findings?',
-    answer: 'A PASS gate with zero issues on configured paths is correct for ai-platform. Simplebeacon uses pattern matching on mock/sample paths and production directories — not semantic review of the entire monorepo.'
-  },
-  {
-    question: 'How do I run the v1-internal dashboard locally?',
-    answer: 'Community CLI: npm install simplebeacon or /community. Cloud Teams requires Stripe subscription. Operators: npm run dashboard:v1-internal (port 3002).'
-  }
+    {
+        question: 'Why does the dashboard show 42 mock/sample files but 40k+ repo files?',
+        answer: 'Simplebeacon gate scans configured scanPaths (web/data, data/mock, etc.) — typically ~42 mock/sample JSON files. The repo inventory is an audit-style index of the project root (skips node_modules, .git, build artifacts) for context; it is not a full-fiction scan of every file.'
+    },
+    {
+        question: 'What is the difference between quality score and consistency score?',
+        answer: 'Quality score is a capped mock-scan heuristic (often 99%). Consistency score reflects fiction/KPI drift checks on page samples — use consistency and schema compliance on Dashboard and Compliance Audit for pass/fail truth.'
+    },
+    {
+        question: 'Why does Results show 0 issues when I expected findings?',
+        answer: 'A PASS gate with zero issues on configured paths is correct for ai-platform. Simplebeacon uses pattern matching on mock/sample paths and production directories — not semantic review of the entire monorepo.'
+    },
+    {
+        question: 'How do I run the v1-internal dashboard locally?',
+        answer: 'Community CLI: npm install simplebeacon or /community. Cloud Teams requires Stripe subscription. Operators: npm run dashboard:v1-internal (port 3002).'
+    }
 ];
-
 /**
  * Render live scan strip.
  * @param {number} report
@@ -102,8 +91,9 @@ const STATIC_FAQ = [
  * @returns {any}
  */
 function renderLiveScanStrip(report, baseline, dashboardHome) {
-  if (!report) {
-    return `
+    var _a, _b, _c, _d, _e, _f;
+    if (!report) {
+        return `
       <div class="card mb-6" style="padding: var(--space-4); border-left: 4px solid var(--accent);">
         <h3 style="margin:0 0 var(--space-3); font-size:1rem; font-weight:700; color:var(--text-primary);">🚀 Getting Started Checklist</h3>
         <div style="display:flex;flex-direction:column;gap:var(--space-2);">
@@ -125,23 +115,21 @@ function renderLiveScanStrip(report, baseline, dashboardHome) {
         </p>
       </div>
     `;
-  }
-
-  const metrics = getScanFileMetrics(report);
-  const inventoryNote = formatScanInventoryNote(report);
-  const gateLabel = report.gate?.pass ? 'PASS' : 'FAIL';
-  const jestLabel = resolveJestTestsLabel(baseline, dashboardHome) ?? '—';
-  const pageSpecs = resolvePageSpecsLabel(report, baseline) ?? '—';
-
-  return `
+    }
+    const metrics = getScanFileMetrics(report);
+    const inventoryNote = formatScanInventoryNote(report);
+    const gateLabel = ((_a = report.gate) === null || _a === void 0 ? void 0 : _a.pass) ? 'PASS' : 'FAIL';
+    const jestLabel = (_b = resolveJestTestsLabel(baseline, dashboardHome)) !== null && _b !== void 0 ? _b : '—';
+    const pageSpecs = (_c = resolvePageSpecsLabel(report, baseline)) !== null && _c !== void 0 ? _c : '—';
+    return `
     <div class="card mb-6" style="padding: var(--space-4);">
       <p class="text-muted mb-2" style="margin-top: 0; font-size: var(--font-size-xs);">Live scan snapshot</p>
       <div class="metrics-row mb-2">
-        <div class="metric-chip gate-badge ${report.gate?.pass ? 'pass' : 'warn'}">${gateLabel}</div>
+        <div class="metric-chip gate-badge ${((_d = report.gate) === null || _d === void 0 ? void 0 : _d.pass) ? 'pass' : 'warn'}">${gateLabel}</div>
         <div class="metric-chip"><strong>${formatPercent(resolveDisplayScore(report))}</strong> consistency</div>
-        <div class="metric-chip"><strong>${formatNumber(metrics.mockSampleFiles ?? report.totalFiles)}</strong> mock/sample</div>
+        <div class="metric-chip"><strong>${formatNumber((_e = metrics.mockSampleFiles) !== null && _e !== void 0 ? _e : report.totalFiles)}</strong> mock/sample</div>
         ${metrics.repositoryFiles != null ? `<div class="metric-chip"><strong>${formatNumber(metrics.repositoryFiles)}</strong> repo files</div>` : ''}
-        <div class="metric-chip"><strong>${formatNumber(metrics.ruleScopedFilesAnalyzed ?? metrics.credentialScanned)}</strong> gate rules checked</div>
+        <div class="metric-chip"><strong>${formatNumber((_f = metrics.ruleScopedFilesAnalyzed) !== null && _f !== void 0 ? _f : metrics.credentialScanned)}</strong> gate rules checked</div>
         <div class="metric-chip"><strong>${pageSpecs}</strong> page specs</div>
         <div class="metric-chip"><strong>${jestLabel}</strong> Jest</div>
       </div>
@@ -149,33 +137,30 @@ function renderLiveScanStrip(report, baseline, dashboardHome) {
     </div>
   `;
 }
-
 /**
  * Help view.
  */
 export class HelpView {
-  constructor(app) {
-    this.app = app;
-    this._scaffoldPreset = 'standard';
-    this._expandedMode = null;
-  }
-
-  render() {
-    const help = this.app.state.help || {};
-    const overview = help.overview || {};
-    const quickLinks = help.quickLinks || [];
-    const faq = [...STATIC_FAQ, ...(help.faq || help.faqItems || [])];
-    const report = this.app.state.report;
-    const baseline = this.app.state.baseline;
-    const dashboardHome = this.app.state.dashboardHome;
-
-    const el = document.createElement('div');
-    el.className = 'fade-in';
-
-    const SCAFFOLD_PRESETS = {
-      minimal: {
-        label: 'Minimal Config',
-        json: `{
+    constructor(app) {
+        this.app = app;
+        this._scaffoldPreset = 'standard';
+        this._expandedMode = null;
+    }
+    render() {
+        var _a, _b, _c, _d, _e;
+        const help = this.app.state.help || {};
+        const overview = help.overview || {};
+        const quickLinks = help.quickLinks || [];
+        const faq = [...STATIC_FAQ, ...(help.faq || help.faqItems || [])];
+        const report = this.app.state.report;
+        const baseline = this.app.state.baseline;
+        const dashboardHome = this.app.state.dashboardHome;
+        const el = document.createElement('div');
+        el.className = 'fade-in';
+        const SCAFFOLD_PRESETS = {
+            minimal: {
+                label: 'Minimal Config',
+                json: `{
   "profile": "minimal",
   "scanPaths": ["src/", "lib/"],
   "productionPaths": ["src/"],
@@ -192,10 +177,10 @@ export class HelpView {
     "warnOn": ["medium"]
   }
 }`
-      },
-      standard: {
-        label: 'Standard Config',
-        json: `{
+            },
+            standard: {
+                label: 'Standard Config',
+                json: `{
   "profile": "standard",
   "scanPaths": ["web/data", "data/mock", "src/"],
   "productionPaths": ["src/", "web/"],
@@ -214,10 +199,10 @@ export class HelpView {
     "warnOn": ["low"]
   }
 }`
-      },
-      monorepo: {
-        label: 'Monorepo Config',
-        json: `{
+            },
+            monorepo: {
+                label: 'Monorepo Config',
+                json: `{
   "profile": "cascade",
   "scanPaths": [
     "packages/*/web/data",
@@ -245,44 +230,40 @@ export class HelpView {
     "warnOn": ["low"]
   }
 }`
-      }
-    };
-
-    const scanModes = [
-      { mode: 'Complete', desc: 'Runs all core scans in sequence: gate, consolidation, fiction digest, roadmap, codebase analysis, file reduction, data quality, cleanup assistant, npm audit, and compliance checklist. Browser analyzers (security, AI/LLM, code quality, architecture) run inside the codebase step. Optional AI narrative attaches to consolidation and codebase results.', icon: '🔬', subEngines: ['Gate Scanner', 'Consolidation', 'Fiction Digest', 'Roadmap', 'Codebase Analysis', 'File Reduction', 'Data Quality', 'npm Audit', 'Compliance'] },
-      { mode: 'Simplebeacon', desc: 'Uses .simplebeacon/config.json scan paths, all rules, and gate policy. Primary mode for CI.', icon: '🛡️', subEngines: ['Credential Scanner', 'JSON Schema', 'Sample Consistency', 'Production Leak', 'Jest Baseline'] },
-      { mode: 'Mock data', desc: 'Fiction/KPI digest derived from the Simplebeacon gate report. Requires gate scan to complete first — filters fiction-type issues from the same results.', icon: '🧪', subEngines: ['Fiction KPI Detector', 'Mock Path Validator', 'Sample Drift Analyzer'] },
-      { mode: 'Roadmap', desc: 'Filesystem sprint scan for planning. Exports belong in reports/.', icon: '🗺️', subEngines: ['Sprint Planner', 'Milestone Tracker', 'Feature Dependency Map'] },
-      { mode: 'Consolidation', desc: 'Duplicate JSON groups and similar schemas across the full repository inventory. Pick canonical files.', icon: '📦', subEngines: ['JSON Duplicate Finder', 'Schema Matcher', 'Oversized Asset Walker'] },
-      { mode: 'Codebase', desc: 'File type breakdown, line counts, ESLint results, and structure. Feeds browser analyzers (security, AI/LLM, quality, architecture).', icon: '💻', subEngines: ['File Type Breakdown', 'Line Counter', 'ESLint Runner', 'Security Analyzer', 'AI/LLM Detector', 'Quality Analyzer', 'Architecture Analyzer'] },
-      { mode: 'File reduction', desc: 'Unused image assets and duplicate content detection.', icon: '🗑️', subEngines: ['Unused Image Finder', 'Duplicate Content Detector', 'Asset Size Auditor'] },
-      { mode: 'Data quality', desc: 'Empty or trivial JSON files and schema issues.', icon: '📋', subEngines: ['Empty File Detector', 'Schema Validator', 'Trivial JSON Checker'] },
-      { mode: 'Cleanup assistant', desc: 'Aggregates file reduction + data quality into an actionable cleanup brief.', icon: '🧹', subEngines: ['Reduction Aggregator', 'Quality Brief Generator', 'Action Planner'] },
-      { mode: 'npm audit', desc: 'Package.json dependency vulnerability check.', icon: '🔒', subEngines: ['Dependency Auditor', 'Vulnerability Scanner', 'CVE Matcher'] },
-      { mode: 'Compliance', desc: 'License, security, and governance checklist. Requires gate scan first.', icon: '✅', subEngines: ['License Checker', 'Security Gate', 'Governance Validator'] },
-      { mode: 'EU AI Act', desc: 'Regulatory sprint scan for EU AI Act compliance. Runs on product root.', icon: '🇪🇺', subEngines: ['Article 50 Checker', 'Transparency Auditor', 'Risk Classifier'] },
-      { mode: 'Auto', desc: 'Picks Simplebeacon when path contains web/data, ai-platform, /data/mock, or simplebeacon; otherwise picks Roadmap.', icon: '⚡', subEngines: ['Path Heuristic Matcher', 'Mode Selector', 'Auto Router'] }
-    ];
-
-    const metricDefs = [
-      { term: 'mock/sample', meaning: 'Files in configured scanPaths (e.g. web/data/*-sample.json) — the gate target (~42 on ai-platform).' },
-      { term: 'rule-scoped', meaning: 'Files read by credential + production-leak rules (often ~117) — broader than mock paths alone.' },
-      { term: 'page specs', meaning: 'Page-sample JSON validated against Jest specs (e.g. 42/42) — includes aliased roadmap samples outside scanPaths.' },
-      { term: 'repo files', meaning: 'Audit inventory of project root (~1k on ai-platform, skips node_modules/.git) — context only.' },
-      { term: 'consistency', meaning: 'Fiction/KPI drift score on samples — prefer this over capped quality score for pass/fail.' },
-      { term: 'gate PASS + 0 issues', meaning: 'Expected for a clean repo on current config — not a broken scan.' }
-    ];
-
-    const steps = [
-      { icon: '✏️', title: 'Write code', desc: 'Developer writes code and pushes to repo' },
-      { icon: '🔍', title: 'Scan', desc: 'Simplebeacon scans on commit, push, CI, or manual trigger' },
-      { icon: '🐛', title: 'Find', desc: 'Detects passwords, API keys, fake KPIs, mock paths in production' },
-      { icon: '🚫', title: 'Block', desc: 'High-severity findings stop the gate — no merge or deploy' },
-      { icon: '🔧', title: 'Fix', desc: 'Developer fixes issues and re-scans until clean' },
-      { icon: '🚀', title: 'Ship', desc: 'Gate green, code deploys to production' }
-    ];
-
-    el.innerHTML = `
+            }
+        };
+        const scanModes = [
+            { mode: 'Complete', desc: 'Runs all core scans in sequence: gate, consolidation, fiction digest, roadmap, codebase analysis, file reduction, data quality, cleanup assistant, npm audit, and compliance checklist. Browser analyzers (security, AI/LLM, code quality, architecture) run inside the codebase step. Optional AI narrative attaches to consolidation and codebase results.', icon: '🔬', subEngines: ['Gate Scanner', 'Consolidation', 'Fiction Digest', 'Roadmap', 'Codebase Analysis', 'File Reduction', 'Data Quality', 'npm Audit', 'Compliance'] },
+            { mode: 'Simplebeacon', desc: 'Uses .simplebeacon/config.json scan paths, all rules, and gate policy. Primary mode for CI.', icon: '🛡️', subEngines: ['Credential Scanner', 'JSON Schema', 'Sample Consistency', 'Production Leak', 'Jest Baseline'] },
+            { mode: 'Mock data', desc: 'Fiction/KPI digest derived from the Simplebeacon gate report. Requires gate scan to complete first — filters fiction-type issues from the same results.', icon: '🧪', subEngines: ['Fiction KPI Detector', 'Mock Path Validator', 'Sample Drift Analyzer'] },
+            { mode: 'Roadmap', desc: 'Filesystem sprint scan for planning. Exports belong in reports/.', icon: '🗺️', subEngines: ['Sprint Planner', 'Milestone Tracker', 'Feature Dependency Map'] },
+            { mode: 'Consolidation', desc: 'Duplicate JSON groups and similar schemas across the full repository inventory. Pick canonical files.', icon: '📦', subEngines: ['JSON Duplicate Finder', 'Schema Matcher', 'Oversized Asset Walker'] },
+            { mode: 'Codebase', desc: 'File type breakdown, line counts, ESLint results, and structure. Feeds browser analyzers (security, AI/LLM, quality, architecture).', icon: '💻', subEngines: ['File Type Breakdown', 'Line Counter', 'ESLint Runner', 'Security Analyzer', 'AI/LLM Detector', 'Quality Analyzer', 'Architecture Analyzer'] },
+            { mode: 'File reduction', desc: 'Unused image assets and duplicate content detection.', icon: '🗑️', subEngines: ['Unused Image Finder', 'Duplicate Content Detector', 'Asset Size Auditor'] },
+            { mode: 'Data quality', desc: 'Empty or trivial JSON files and schema issues.', icon: '📋', subEngines: ['Empty File Detector', 'Schema Validator', 'Trivial JSON Checker'] },
+            { mode: 'Cleanup assistant', desc: 'Aggregates file reduction + data quality into an actionable cleanup brief.', icon: '🧹', subEngines: ['Reduction Aggregator', 'Quality Brief Generator', 'Action Planner'] },
+            { mode: 'npm audit', desc: 'Package.json dependency vulnerability check.', icon: '🔒', subEngines: ['Dependency Auditor', 'Vulnerability Scanner', 'CVE Matcher'] },
+            { mode: 'Compliance', desc: 'License, security, and governance checklist. Requires gate scan first.', icon: '✅', subEngines: ['License Checker', 'Security Gate', 'Governance Validator'] },
+            { mode: 'EU AI Act', desc: 'Regulatory sprint scan for EU AI Act compliance. Runs on product root.', icon: '🇪🇺', subEngines: ['Article 50 Checker', 'Transparency Auditor', 'Risk Classifier'] },
+            { mode: 'Auto', desc: 'Picks Simplebeacon when path contains web/data, ai-platform, /data/mock, or simplebeacon; otherwise picks Roadmap.', icon: '⚡', subEngines: ['Path Heuristic Matcher', 'Mode Selector', 'Auto Router'] }
+        ];
+        const metricDefs = [
+            { term: 'mock/sample', meaning: 'Files in configured scanPaths (e.g. web/data/*-sample.json) — the gate target (~42 on ai-platform).' },
+            { term: 'rule-scoped', meaning: 'Files read by credential + production-leak rules (often ~117) — broader than mock paths alone.' },
+            { term: 'page specs', meaning: 'Page-sample JSON validated against Jest specs (e.g. 42/42) — includes aliased roadmap samples outside scanPaths.' },
+            { term: 'repo files', meaning: 'Audit inventory of project root (~1k on ai-platform, skips node_modules/.git) — context only.' },
+            { term: 'consistency', meaning: 'Fiction/KPI drift score on samples — prefer this over capped quality score for pass/fail.' },
+            { term: 'gate PASS + 0 issues', meaning: 'Expected for a clean repo on current config — not a broken scan.' }
+        ];
+        const steps = [
+            { icon: '✏️', title: 'Write code', desc: 'Developer writes code and pushes to repo' },
+            { icon: '🔍', title: 'Scan', desc: 'Simplebeacon scans on commit, push, CI, or manual trigger' },
+            { icon: '🐛', title: 'Find', desc: 'Detects passwords, API keys, fake KPIs, mock paths in production' },
+            { icon: '🚫', title: 'Block', desc: 'High-severity findings stop the gate — no merge or deploy' },
+            { icon: '🔧', title: 'Fix', desc: 'Developer fixes issues and re-scans until clean' },
+            { icon: '🚀', title: 'Ship', desc: 'Gate green, code deploys to production' }
+        ];
+        el.innerHTML = `
       <style>
         .help-hero { text-align:center; padding: var(--space-8) var(--space-6); background: linear-gradient(135deg, rgba(99,102,241,0.06), rgba(139,92,246,0.03)); border-bottom: 1px solid var(--border); margin-bottom: var(--space-6); }
         .help-hero h1 { font-size: 1.75rem; font-weight: 800; margin: 0 0 var(--space-2); letter-spacing: -0.02em; }
@@ -380,11 +361,11 @@ export class HelpView {
 
       <div class="grid-3 mb-6">
         <div class="card insight-stat">
-          <div class="insight-stat-value">${overview.totalDocs ?? DASHBOARD_PAGES.length}</div>
+          <div class="insight-stat-value">${(_a = overview.totalDocs) !== null && _a !== void 0 ? _a : DASHBOARD_PAGES.length}</div>
           <div class="insight-stat-label">Dashboard pages</div>
         </div>
         <div class="card insight-stat">
-          <div class="insight-stat-value">${overview.totalTutorials ?? '5'}</div>
+          <div class="insight-stat-value">${(_b = overview.totalTutorials) !== null && _b !== void 0 ? _b : '5'}</div>
           <div class="insight-stat-label">Workflows</div>
         </div>
         <div class="card insight-stat">
@@ -482,146 +463,137 @@ npm test -- --testPathPattern=page-samples</pre>
         <button type="button" class="btn btn-primary btn-sm" id="help-open-features">Browse catalog →</button>
       </div>
     `;
-
-    // Search filter with deep-link highlighting
-    const KEYWORD_ROUTE_MAP = {
-      secrets: ['audit', 'results'],
-      leak: ['audit', 'results'],
-      credential: ['audit', 'results'],
-      password: ['audit', 'results'],
-      security: ['audit', 'quality'],
-      vulnerability: ['quality', 'audit'],
-      npm: ['quality', 'tools'],
-      dependency: ['quality', 'tools'],
-      test: ['platform', 'quality'],
-      jest: ['platform', 'quality'],
-      coverage: ['quality'],
-      schema: ['audit', 'settings'],
-      config: ['settings'],
-      baseline: ['platform', 'settings'],
-      scan: ['dashboard', 'analyze'],
-      report: ['dashboard', 'results'],
-      fix: ['remediation'],
-      roadmap: ['remediation'],
-      task: ['remediation'],
-      assessment: ['assessments'],
-      compliance: ['audit', 'assessments']
-    };
-    const searchInput = el.querySelector('#help-search');
-    searchInput?.addEventListener('input', (e) => {
-      const q = e.target.value.toLowerCase().trim();
-      el.querySelectorAll('.help-page-card, .help-faq-item, .help-mode-card, .help-metric-card, .help-step').forEach((node) => {
-        const text = node.textContent.toLowerCase();
-        node.style.display = text.includes(q) ? '' : 'none';
-      });
-      // Highlight relevant destination cards
-      el.querySelectorAll('.help-page-card').forEach((card) => {
-        card.classList.remove('help-card-highlight');
-        const route = card.dataset.route;
-        if (!q || !route) return;
-        for (const [kw, routes] of Object.entries(KEYWORD_ROUTE_MAP)) {
-          if (q.includes(kw) && routes.includes(route)) {
-            card.classList.add('help-card-highlight');
-            card.style.display = '';
-            break;
-          }
-        }
-      });
-    });
-
-    // Scaffold preset switching
-    el.querySelectorAll('[data-scaffold]').forEach((chip) => {
-      chip.addEventListener('click', () => {
-        this._scaffoldPreset = chip.dataset.scaffold;
-        const container = el.parentElement;
-        if (container) this.mount(container);
-      });
-    });
-
-    // Copy scaffold JSON
-    el.querySelector('#help-copy-scaffold')?.addEventListener('click', async () => {
-      const code = el.querySelector('#help-scaffold-code')?.textContent || '';
-      try {
-        await navigator.clipboard.writeText(code);
-        showToast('Config JSON copied', 'success');
-      } catch {
-        showToast('Copy failed', 'error');
-      }
-    });
-
-    // Scan mode expand/collapse
-    el.querySelectorAll('[data-mode-index]').forEach((card) => {
-      card.addEventListener('click', () => {
-        const idx = parseInt(card.dataset.modeIndex, 10);
-        this._expandedMode = this._expandedMode === idx ? null : idx;
-        const container = el.parentElement;
-        if (container) this.mount(container);
-      });
-    });
-
-    // Copy CLI
-    el.querySelector('#help-copy-cli')?.addEventListener('click', async () => {
-      const code = el.querySelector('#help-cli-code')?.textContent || '';
-      try {
-        await navigator.clipboard.writeText(code);
-        showToast('Commands copied', 'success');
-      } catch {
-        showToast('Copy failed', 'error');
-      }
-    });
-
-    el.querySelectorAll('[data-route]').forEach((btn) => {
-      btn.addEventListener('click', () => this.app.navigate(btn.dataset.route));
-    });
-    el.querySelector('#help-open-features')?.addEventListener('click', () => {
-      this.app.navigate('features');
-    });
-
-    return el;
-  }
-
-  mount(container) {
-    container.innerHTML = '';
-    container.appendChild(this.render());
-  }
+        // Search filter with deep-link highlighting
+        const KEYWORD_ROUTE_MAP = {
+            secrets: ['audit', 'results'],
+            leak: ['audit', 'results'],
+            credential: ['audit', 'results'],
+            password: ['audit', 'results'],
+            security: ['audit', 'quality'],
+            vulnerability: ['quality', 'audit'],
+            npm: ['quality', 'tools'],
+            dependency: ['quality', 'tools'],
+            test: ['platform', 'quality'],
+            jest: ['platform', 'quality'],
+            coverage: ['quality'],
+            schema: ['audit', 'settings'],
+            config: ['settings'],
+            baseline: ['platform', 'settings'],
+            scan: ['dashboard', 'analyze'],
+            report: ['dashboard', 'results'],
+            fix: ['remediation'],
+            roadmap: ['remediation'],
+            task: ['remediation'],
+            assessment: ['assessments'],
+            compliance: ['audit', 'assessments']
+        };
+        const searchInput = el.querySelector('#help-search');
+        searchInput === null || searchInput === void 0 ? void 0 : searchInput.addEventListener('input', (e) => {
+            const q = e.target.value.toLowerCase().trim();
+            el.querySelectorAll('.help-page-card, .help-faq-item, .help-mode-card, .help-metric-card, .help-step').forEach((node) => {
+                const text = node.textContent.toLowerCase();
+                node.style.display = text.includes(q) ? '' : 'none';
+            });
+            // Highlight relevant destination cards
+            el.querySelectorAll('.help-page-card').forEach((card) => {
+                card.classList.remove('help-card-highlight');
+                const route = card.dataset.route;
+                if (!q || !route)
+                    return;
+                for (const [kw, routes] of Object.entries(KEYWORD_ROUTE_MAP)) {
+                    if (q.includes(kw) && routes.includes(route)) {
+                        card.classList.add('help-card-highlight');
+                        card.style.display = '';
+                        break;
+                    }
+                }
+            });
+        });
+        // Scaffold preset switching
+        el.querySelectorAll('[data-scaffold]').forEach((chip) => {
+            chip.addEventListener('click', () => {
+                this._scaffoldPreset = chip.dataset.scaffold;
+                const container = el.parentElement;
+                if (container)
+                    this.mount(container);
+            });
+        });
+        // Copy scaffold JSON
+        (_c = el.querySelector('#help-copy-scaffold')) === null || _c === void 0 ? void 0 : _c.addEventListener('click', async () => {
+            var _a;
+            const code = ((_a = el.querySelector('#help-scaffold-code')) === null || _a === void 0 ? void 0 : _a.textContent) || '';
+            try {
+                await navigator.clipboard.writeText(code);
+                showToast('Config JSON copied', 'success');
+            }
+            catch (_b) {
+                showToast('Copy failed', 'error');
+            }
+        });
+        // Scan mode expand/collapse
+        el.querySelectorAll('[data-mode-index]').forEach((card) => {
+            card.addEventListener('click', () => {
+                const idx = parseInt(card.dataset.modeIndex, 10);
+                this._expandedMode = this._expandedMode === idx ? null : idx;
+                const container = el.parentElement;
+                if (container)
+                    this.mount(container);
+            });
+        });
+        // Copy CLI
+        (_d = el.querySelector('#help-copy-cli')) === null || _d === void 0 ? void 0 : _d.addEventListener('click', async () => {
+            var _a;
+            const code = ((_a = el.querySelector('#help-cli-code')) === null || _a === void 0 ? void 0 : _a.textContent) || '';
+            try {
+                await navigator.clipboard.writeText(code);
+                showToast('Commands copied', 'success');
+            }
+            catch (_b) {
+                showToast('Copy failed', 'error');
+            }
+        });
+        el.querySelectorAll('[data-route]').forEach((btn) => {
+            btn.addEventListener('click', () => this.app.navigate(btn.dataset.route));
+        });
+        (_e = el.querySelector('#help-open-features')) === null || _e === void 0 ? void 0 : _e.addEventListener('click', () => {
+            this.app.navigate('features');
+        });
+        return el;
+    }
+    mount(container) {
+        container.innerHTML = '';
+        container.appendChild(this.render());
+    }
 }
-
 /** Feature catalog — all navigation stays in the Simplebeacon SPA */
 export class FeaturesView {
-  constructor(app) {
-    this.app = app;
-    this.filter = '';
-  }
-
-  getAllItems() {
-    return FEATURE_CATALOG.flatMap((group) =>
-      group.items.map((item) => ({ ...item, group: group.group }))
-    );
-  }
-
-  getFilteredCatalog() {
-    const q = this.filter.trim().toLowerCase();
-    if (!q) return FEATURE_CATALOG;
-
-    return FEATURE_CATALOG.map((group) => ({
-      ...group,
-      items: group.items.filter((item) =>
-        `${item.label} ${item.description} ${item.route} ${item.analyzeMode || ''} ${group.group}`
-          .toLowerCase()
-          .includes(q)
-      )
-    })).filter((group) => group.items.length > 0);
-  }
-
-  render() {
-    const el = document.createElement('div');
-    el.className = 'fade-in';
-    const allItems = this.getAllItems();
-    const catalog = this.getFilteredCatalog();
-    const analyzeModes = allItems.filter((i) => i.analyzeMode).length;
-    const routes = new Set(allItems.map((i) => i.route)).size;
-
-    el.innerHTML = `
+    constructor(app) {
+        this.app = app;
+        this.filter = '';
+    }
+    getAllItems() {
+        return FEATURE_CATALOG.flatMap((group) => group.items.map((item) => ({ ...item, group: group.group })));
+    }
+    getFilteredCatalog() {
+        const q = this.filter.trim().toLowerCase();
+        if (!q)
+            return FEATURE_CATALOG;
+        return FEATURE_CATALOG.map((group) => ({
+            ...group,
+            items: group.items.filter((item) => `${item.label} ${item.description} ${item.route} ${item.analyzeMode || ''} ${group.group}`
+                .toLowerCase()
+                .includes(q))
+        })).filter((group) => group.items.length > 0);
+    }
+    render() {
+        var _a;
+        const el = document.createElement('div');
+        el.className = 'fade-in';
+        const allItems = this.getAllItems();
+        const catalog = this.getFilteredCatalog();
+        const analyzeModes = allItems.filter((i) => i.analyzeMode).length;
+        const routes = new Set(allItems.map((i) => i.route)).size;
+        el.innerHTML = `
       <h1 class="page-title">All Features</h1>
       <p class="text-muted mb-4">
         ${allItems.length} destinations across ${FEATURE_CATALOG.length} groups —
@@ -650,7 +622,7 @@ export class FeaturesView {
 
       <div id="features-catalog">
         ${catalog.length
-    ? catalog.map((group) => `
+            ? catalog.map((group) => `
             <div class="section-block" data-feature-group>
               <div class="section-heading">
                 <h2>${escapeHtml(group.group)}</h2>
@@ -661,45 +633,42 @@ export class FeaturesView {
               </div>
             </div>
           `).join('')
-    : `<div class="empty-state card"><p>No features match “${escapeHtml(this.filter)}”.</p></div>`}
+            : `<div class="empty-state card"><p>No features match “${escapeHtml(this.filter)}”.</p></div>`}
       </div>
     `;
-
-    el.querySelector('#features-filter')?.addEventListener('input', (e) => {
-      this.filter = e.target.value;
-      const container = el.parentElement;
-      if (container) this.mount(container);
-      container?.querySelector('#features-filter')?.focus();
-      const input = container?.querySelector('#features-filter');
-      if (input) {
-        input.focus();
-        input.setSelectionRange(input.value.length, input.value.length);
-      }
-    });
-
-    el.querySelectorAll('[data-route]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const route = btn.dataset.route;
-        const mode = btn.dataset.analyzeMode;
-        if (mode) {
-          this.app.views.analyze.analysisType = mode;
-          this.app.navigate('analyze', { mode });
-          return;
-        }
-        this.app.navigate(route);
-      });
-    });
-
-    return el;
-  }
-
-  renderFeatureCard(item) {
-    const badge = item.analyzeMode
-      ? `<span class="feature-badge mode">Analyze · ${escapeHtml(item.analyzeMode)}</span>`
-      : `<span class="feature-badge inapp">Open</span>`;
-
-    if (item.external) {
-      return `
+        (_a = el.querySelector('#features-filter')) === null || _a === void 0 ? void 0 : _a.addEventListener('input', (e) => {
+            var _a;
+            this.filter = e.target.value;
+            const container = el.parentElement;
+            if (container)
+                this.mount(container);
+            (_a = container === null || container === void 0 ? void 0 : container.querySelector('#features-filter')) === null || _a === void 0 ? void 0 : _a.focus();
+            const input = container === null || container === void 0 ? void 0 : container.querySelector('#features-filter');
+            if (input) {
+                input.focus();
+                input.setSelectionRange(input.value.length, input.value.length);
+            }
+        });
+        el.querySelectorAll('[data-route]').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const route = btn.dataset.route;
+                const mode = btn.dataset.analyzeMode;
+                if (mode) {
+                    this.app.views.analyze.analysisType = mode;
+                    this.app.navigate('analyze', { mode });
+                    return;
+                }
+                this.app.navigate(route);
+            });
+        });
+        return el;
+    }
+    renderFeatureCard(item) {
+        const badge = item.analyzeMode
+            ? `<span class="feature-badge mode">Analyze · ${escapeHtml(item.analyzeMode)}</span>`
+            : `<span class="feature-badge inapp">Open</span>`;
+        if (item.external) {
+            return `
         <a href="${escapeHtml(item.external)}" class="legacy-link card feature-card-inapp feature-card-external" target="_blank" rel="noopener">
           <span class="legacy-link-icon">${item.icon}</span>
           <span class="feature-card-body">
@@ -709,9 +678,8 @@ export class FeaturesView {
           <span class="feature-badge classic">Open ↗</span>
         </a>
       `;
-    }
-
-    return `
+        }
+        return `
       <button type="button" class="legacy-link card feature-card-inapp" data-route="${item.route}" ${item.analyzeMode ? `data-analyze-mode="${item.analyzeMode}"` : ''}>
         <span class="legacy-link-icon">${item.icon}</span>
         <span class="feature-card-body">
@@ -721,17 +689,14 @@ export class FeaturesView {
         ${badge}
       </button>
     `;
-  }
-
-  mount(container) {
-    container.innerHTML = '';
-    container.appendChild(this.render());
-  }
+    }
+    mount(container) {
+        container.innerHTML = '';
+        container.appendChild(this.render());
+    }
 }
-
 // Backward compat alias
 /**
  * Legacy hub view.
  */
 export const LegacyHubView = FeaturesView;
-

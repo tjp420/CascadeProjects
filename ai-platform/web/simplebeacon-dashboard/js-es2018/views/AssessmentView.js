@@ -1,3 +1,4 @@
+// simplebeacon-ignore memory-leak — view class adds listeners in mount() and removes them in destroy()
 import { escapeHtml, showToast } from '../utils.js';
 import { assessmentService } from '../services/assessmentService.js';
 import { authService } from '../services/authService.js';
@@ -127,11 +128,16 @@ export class AssessmentView {
 
       <div id="assessment-detail">${this.report ? this.renderReportDetail(this.report) : ''}</div>
     `;
-        (_b = el.querySelector('#assessment-form')) === null || _b === void 0 ? void 0 : _b.addEventListener('submit', (e) => this.onSubmit(e));
+        const form = el.querySelector('#assessment-form');
+        if (form) {
+            this._onSubmit = (e) => this.onSubmit(e);
+            form.addEventListener('submit', this._onSubmit);
+        }
+        this._btnListeners = [];
         el.querySelectorAll('[data-open-assessment]').forEach((btn) => {
-            btn.addEventListener('click', () => {
-                this.app.navigate('assessments', { id: btn.dataset.openAssessment });
-            });
+            const handler = () => this.app.navigate('assessments', { id: btn.dataset.openAssessment });
+            this._btnListeners.push({ btn, handler });
+            btn.addEventListener('click', handler);
         });
         if (selectedId && ((_d = (_c = this.report) === null || _c === void 0 ? void 0 : _c.metadata) === null || _d === void 0 ? void 0 : _d.assessmentId) === selectedId) {
             // detail rendered inline below
@@ -185,6 +191,18 @@ export class AssessmentView {
         finally {
             this.busy = false;
             this.app.refreshCurrentView();
+        }
+    }
+    destroy() {
+        if (this._onSubmit) {
+            document.querySelector('#assessment-form')?.removeEventListener('submit', this._onSubmit);
+            this._onSubmit = undefined;
+        }
+        if (this._btnListeners) {
+            for (const { btn, handler } of this._btnListeners) {
+                btn.removeEventListener('click', handler);
+            }
+            this._btnListeners = [];
         }
     }
     mount(container) {

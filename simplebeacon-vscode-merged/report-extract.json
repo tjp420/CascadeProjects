@@ -1,0 +1,666 @@
+{
+  "generatedAt": "2026-07-04T19:59:45.630Z",
+  "totalIssues": 249,
+  "byType": {
+    "governance-marker": 40,
+    "test-coverage": 50,
+    "security-headers": 8,
+    "database-patterns": 1,
+    "workspace-health": 45,
+    "governance": 8,
+    "ai-indicators": 34,
+    "i18n": 13,
+    "documentation": 50
+  },
+  "fixableCount": 94,
+  "testGapCount": 50,
+  "governanceCount": 40,
+  "topFiles": [
+    [
+      "simplebeacon-vscode-merged/src/enhancedAIProvider.ts",
+      4
+    ],
+    [
+      "simplebeacon-vscode-merged/src/analyzers/workspaceAnalyzer.ts",
+      4
+    ],
+    [
+      "ai-platform/server/routes/flexible-analyze-api.cjs",
+      3
+    ],
+    [
+      "packages/simplebeacon-cli/src/lib/cleanup-brief-export-sanitize.js",
+      3
+    ],
+    [
+      "packages/simplebeacon-cli/src/lib/runtime-sentinel.js",
+      3
+    ],
+    [
+      "simplebeacon-vscode-merged/src/dashboardDataExtractor.ts",
+      3
+    ],
+    [
+      "simplebeacon-vscode-merged/src/dataServer.ts",
+      3
+    ],
+    [
+      "simplebeacon-vscode-merged/src/enhancedScanProvider.ts",
+      3
+    ],
+    [
+      "simplebeacon-vscode-merged/src/welcomeDashboard.ts",
+      3
+    ],
+    [
+      "simplebeacon-vscode-merged/src/aiPlatform/dashboardPanel.ts",
+      3
+    ]
+  ],
+  "estimatedEffortHours": 52,
+  "actionableFindings": [
+    {
+      "type": "governance-marker",
+      "filePath": ".github/workflows/simplebeacon-ai-hygiene-gate.yml",
+      "line": 54,
+      "description": ".github/workflows/simplebeacon-ai-hygiene-gate.yml:54 governance-marker pattern detected"
+    },
+    {
+      "type": "security-headers",
+      "filePath": "ai-platform/server/index.cjs",
+      "line": 91,
+      "description": "ai-platform/server/index.cjs:91 security-headers pattern detected"
+    },
+    {
+      "type": "governance-marker",
+      "filePath": "api-server/lib/auth.js",
+      "line": 8,
+      "description": "api-server/lib/auth.js:8 governance-marker pattern detected"
+    },
+    {
+      "type": "database-patterns",
+      "filePath": "api-server/lib/rbac.js",
+      "line": 120,
+      "description": "api-server/lib/rbac.js:120 database-patterns pattern detected"
+    },
+    {
+      "type": "governance-marker",
+      "filePath": "api-server/routes/audit.js",
+      "line": 22,
+      "description": "api-server/routes/audit.js:22 governance-marker pattern detected"
+    },
+    {
+      "type": "security-headers",
+      "filePath": "ai-platform/server/bootstrap/phase2-integration.cjs",
+      "line": 202,
+      "description": "ai-platform/server/bootstrap/phase2-integration.cjs:202 security-headers pattern detected"
+    },
+    {
+      "type": "workspace-health",
+      "filePath": "ai-platform/server/routes/compliance-schema-api.cjs",
+      "line": 1,
+      "description": "ai-platform/server/routes/compliance-schema-api.cjs:1 workspace-health pattern detected"
+    },
+    {
+      "type": "workspace-health",
+      "filePath": "ai-platform/server/routes/demo-simplebeacon-api.cjs",
+      "line": 15,
+      "description": "ai-platform/server/routes/demo-simplebeacon-api.cjs:15 workspace-health pattern detected"
+    },
+    {
+      "type": "workspace-health",
+      "filePath": "ai-platform/server/routes/flexible-analyze-api.cjs",
+      "line": 120,
+      "description": "ai-platform/server/routes/flexible-analyze-api.cjs:120 workspace-health pattern detected"
+    },
+    {
+      "type": "security-headers",
+      "filePath": "ai-platform/server/routes/flexible-analyze-api.cjs",
+      "line": 210,
+      "description": "ai-platform/server/routes/flexible-analyze-api.cjs:210 security-headers pattern detected"
+    },
+    {
+      "type": "security-headers",
+      "filePath": "ai-platform/server/routes/pr-integration-api.cjs",
+      "line": 146,
+      "description": "ai-platform/server/routes/pr-integration-api.cjs:146 security-headers pattern detected"
+    },
+    {
+      "type": "security-headers",
+      "filePath": "ai-platform/server/routes/realtime-analysis-api.cjs",
+      "line": 88,
+      "description": "ai-platform/server/routes/realtime-analysis-api.cjs:88 security-headers pattern detected"
+    },
+    {
+      "type": "workspace-health",
+      "filePath": "ai-platform/server/lib/central-data-config.cjs",
+      "line": 6,
+      "description": "ai-platform/server/lib/central-data-config.cjs:6 workspace-health pattern detected"
+    },
+    {
+      "type": "security-headers",
+      "filePath": "ai-platform/src/api/dashboard-stub-api.cjs",
+      "line": 718,
+      "description": "ai-platform/src/api/dashboard-stub-api.cjs:718 security-headers pattern detected"
+    },
+    {
+      "type": "workspace-health",
+      "filePath": "ai-platform/src/api/simplebeacon-api.cjs",
+      "line": 45,
+      "description": "ai-platform/src/api/simplebeacon-api.cjs:45 workspace-health pattern detected"
+    },
+    {
+      "type": "workspace-health",
+      "filePath": "ai-platform/src/api/simplebeacon-billing-api.cjs",
+      "line": 37,
+      "description": "ai-platform/src/api/simplebeacon-billing-api.cjs:37 workspace-health pattern detected"
+    },
+    {
+      "type": "governance-marker",
+      "filePath": "ai-platform/packages/simplebeacon-intelligence/src/constants.js",
+      "line": 1,
+      "description": "ai-platform/packages/simplebeacon-intelligence/src/constants.js:1 governance-marker pattern detected"
+    },
+    {
+      "type": "governance-marker",
+      "filePath": "ai-platform/packages/simplebeacon-intelligence/src/index.js",
+      "line": 1,
+      "description": "ai-platform/packages/simplebeacon-intelligence/src/index.js:1 governance-marker pattern detected"
+    },
+    {
+      "type": "workspace-health",
+      "filePath": "ai-platform/packages/simplebeacon-intelligence/src/slm-bridge.js",
+      "line": 29,
+      "description": "ai-platform/packages/simplebeacon-intelligence/src/slm-bridge.js:29 workspace-health pattern detected"
+    },
+    {
+      "type": "workspace-health",
+      "filePath": "ai-platform/server/routes/lib/flexible-analyze-roadmap.cjs",
+      "line": 10,
+      "description": "ai-platform/server/routes/lib/flexible-analyze-roadmap.cjs:10 workspace-health pattern detected"
+    },
+    {
+      "type": "workspace-health",
+      "filePath": "ai-platform/server/lib/code-understanding/ml-pattern-detector.cjs",
+      "line": 11,
+      "description": "ai-platform/server/lib/code-understanding/ml-pattern-detector.cjs:11 workspace-health pattern detected"
+    },
+    {
+      "type": "workspace-health",
+      "filePath": "ai-platform/src/api/billing/validate-project-token.cjs",
+      "line": 3,
+      "description": "ai-platform/src/api/billing/validate-project-token.cjs:3 workspace-health pattern detected"
+    },
+    {
+      "type": "workspace-health",
+      "filePath": "ai-platform/src/api/billing/report-bundle-builder.cjs",
+      "line": 11,
+      "description": "ai-platform/src/api/billing/report-bundle-builder.cjs:11 workspace-health pattern detected"
+    },
+    {
+      "type": "workspace-health",
+      "filePath": "ai-platform/server/lib/mock-data-scanner.cjs",
+      "line": 11,
+      "description": "ai-platform/server/lib/mock-data-scanner.cjs:11 workspace-health pattern detected"
+    },
+    {
+      "type": "workspace-health",
+      "filePath": "ai-platform/server/lib/mock-data-schema-validator.cjs",
+      "line": 4,
+      "description": "ai-platform/server/lib/mock-data-schema-validator.cjs:4 workspace-health pattern detected"
+    },
+    {
+      "type": "workspace-health",
+      "filePath": "ai-platform/server/lib/page-sample-specs.cjs",
+      "line": 4,
+      "description": "ai-platform/server/lib/page-sample-specs.cjs:4 workspace-health pattern detected"
+    },
+    {
+      "type": "workspace-health",
+      "filePath": "ai-platform/server/lib/path-classification.cjs",
+      "line": 6,
+      "description": "ai-platform/server/lib/path-classification.cjs:6 workspace-health pattern detected"
+    },
+    {
+      "type": "workspace-health",
+      "filePath": "ai-platform/server/lib/project-require.cjs",
+      "line": 3,
+      "description": "ai-platform/server/lib/project-require.cjs:3 workspace-health pattern detected"
+    },
+    {
+      "type": "workspace-health",
+      "filePath": "ai-platform/server/lib/repository-audit-baseline.cjs",
+      "line": 6,
+      "description": "ai-platform/server/lib/repository-audit-baseline.cjs:6 workspace-health pattern detected"
+    },
+    {
+      "type": "workspace-health",
+      "filePath": "ai-platform/server/lib/simplebeacon-proxy.cjs",
+      "line": 15,
+      "description": "ai-platform/server/lib/simplebeacon-proxy.cjs:15 workspace-health pattern detected"
+    },
+    {
+      "type": "security-headers",
+      "filePath": "ai-platform/server/lib/server-startup.cjs",
+      "line": 49,
+      "description": "ai-platform/server/lib/server-startup.cjs:49 security-headers pattern detected"
+    },
+    {
+      "type": "workspace-health",
+      "filePath": "ai-platform/server/lib/website-scanner.cjs",
+      "line": 141,
+      "description": "ai-platform/server/lib/website-scanner.cjs:141 workspace-health pattern detected"
+    },
+    {
+      "type": "governance-marker",
+      "filePath": "ai-platform/web/data/roadmap-ai-agent-localstorage-inject.js",
+      "line": 3,
+      "description": "ai-platform/web/data/roadmap-ai-agent-localstorage-inject.js:3 governance-marker pattern detected"
+    },
+    {
+      "type": "governance-marker",
+      "filePath": "render.yaml",
+      "line": 15,
+      "description": "render.yaml:15 governance-marker pattern detected"
+    },
+    {
+      "type": "workspace-health",
+      "filePath": "scripts/fix-compliance-constants.js",
+      "line": 6,
+      "description": "scripts/fix-compliance-constants.js:6 workspace-health pattern detected"
+    },
+    {
+      "type": "workspace-health",
+      "filePath": "scripts/fix-compliance-constants-2.js",
+      "line": 6,
+      "description": "scripts/fix-compliance-constants-2.js:6 workspace-health pattern detected"
+    },
+    {
+      "type": "governance-marker",
+      "filePath": "simplebeacon-vscode-merged/media/signin-bridge.js",
+      "line": 7,
+      "description": "simplebeacon-vscode-merged/media/signin-bridge.js:7 governance-marker pattern detected"
+    },
+    {
+      "type": "governance-marker",
+      "filePath": "simplebeacon-vscode-merged/scripts/preflight-check.py",
+      "line": 91,
+      "description": "simplebeacon-vscode-merged/scripts/preflight-check.py:91 governance-marker pattern detected"
+    },
+    {
+      "type": "governance-marker",
+      "filePath": "packages/simplebeacon-cli/bin/simplebeacon.js",
+      "line": 402,
+      "description": "packages/simplebeacon-cli/bin/simplebeacon.js:402 governance-marker pattern detected"
+    },
+    {
+      "type": "workspace-health",
+      "filePath": "packages/simplebeacon-cli/src/config.js",
+      "line": 13,
+      "description": "packages/simplebeacon-cli/src/config.js:13 workspace-health pattern detected"
+    },
+    {
+      "type": "workspace-health",
+      "filePath": "packages/simplebeacon-cli/src/eu-ai-act-export-guard.js",
+      "line": 1,
+      "description": "packages/simplebeacon-cli/src/eu-ai-act-export-guard.js:1 workspace-health pattern detected"
+    },
+    {
+      "type": "governance-marker",
+      "filePath": "packages/simplebeacon-cli/src/scan.js",
+      "line": 226,
+      "description": "packages/simplebeacon-cli/src/scan.js:226 governance-marker pattern detected"
+    },
+    {
+      "type": "workspace-health",
+      "filePath": "packages/simplebeacon-cli/src/scan.js",
+      "line": 61,
+      "description": "packages/simplebeacon-cli/src/scan.js:61 workspace-health pattern detected"
+    },
+    {
+      "type": "governance-marker",
+      "filePath": "packages/simplebeacon-cli/examples/github-action/simplebeacon-enterprise-vault.yml",
+      "line": 1,
+      "description": "packages/simplebeacon-cli/examples/github-action/simplebeacon-enterprise-vault.yml:1 governance-marker pattern detected"
+    },
+    {
+      "type": "workspace-health",
+      "filePath": "packages/simplebeacon-cli/src/mcp/tools.js",
+      "line": 10,
+      "description": "packages/simplebeacon-cli/src/mcp/tools.js:10 workspace-health pattern detected"
+    },
+    {
+      "type": "governance-marker",
+      "filePath": "packages/simplebeacon-cli/src/lib/ai-problem-analyzer-suite.js",
+      "line": 42,
+      "description": "packages/simplebeacon-cli/src/lib/ai-problem-analyzer-suite.js:42 governance-marker pattern detected"
+    },
+    {
+      "type": "workspace-health",
+      "filePath": "packages/simplebeacon-cli/src/lib/ai-problem-analyzer-suite.js",
+      "line": 1,
+      "description": "packages/simplebeacon-cli/src/lib/ai-problem-analyzer-suite.js:1 workspace-health pattern detected"
+    },
+    {
+      "type": "workspace-health",
+      "filePath": "packages/simplebeacon-cli/src/lib/cleanup-assistant-brief.js",
+      "line": 6,
+      "description": "packages/simplebeacon-cli/src/lib/cleanup-assistant-brief.js:6 workspace-health pattern detected"
+    },
+    {
+      "type": "governance-marker",
+      "filePath": "packages/simplebeacon-cli/src/lib/cleanup-brief-export-sanitize.js",
+      "line": 20,
+      "description": "packages/simplebeacon-cli/src/lib/cleanup-brief-export-sanitize.js:20 governance-marker pattern detected"
+    },
+    {
+      "type": "workspace-health",
+      "filePath": "packages/simplebeacon-cli/src/lib/cleanup-brief-export-sanitize.js",
+      "line": 7,
+      "description": "packages/simplebeacon-cli/src/lib/cleanup-brief-export-sanitize.js:7 workspace-health pattern detected"
+    },
+    {
+      "type": "workspace-health",
+      "filePath": "packages/simplebeacon-cli/src/lib/complete-scan-export-sanitize.js",
+      "line": 69,
+      "description": "packages/simplebeacon-cli/src/lib/complete-scan-export-sanitize.js:69 workspace-health pattern detected"
+    },
+    {
+      "type": "workspace-health",
+      "filePath": "packages/simplebeacon-cli/src/lib/data-cleanup-export-sanitize.js",
+      "line": 11,
+      "description": "packages/simplebeacon-cli/src/lib/data-cleanup-export-sanitize.js:11 workspace-health pattern detected"
+    },
+    {
+      "type": "workspace-health",
+      "filePath": "packages/simplebeacon-cli/src/lib/full-directory-scanner.js",
+      "line": 17,
+      "description": "packages/simplebeacon-cli/src/lib/full-directory-scanner.js:17 workspace-health pattern detected"
+    },
+    {
+      "type": "workspace-health",
+      "filePath": "packages/simplebeacon-cli/src/lib/local-remediation.js",
+      "line": 12,
+      "description": "packages/simplebeacon-cli/src/lib/local-remediation.js:12 workspace-health pattern detected"
+    },
+    {
+      "type": "workspace-health",
+      "filePath": "packages/simplebeacon-cli/src/lib/normalize-file-reduction-report.js",
+      "line": 9,
+      "description": "packages/simplebeacon-cli/src/lib/normalize-file-reduction-report.js:9 workspace-health pattern detected"
+    },
+    {
+      "type": "governance-marker",
+      "filePath": "packages/simplebeacon-cli/src/lib/pdf-generator.js",
+      "line": 11,
+      "description": "packages/simplebeacon-cli/src/lib/pdf-generator.js:11 governance-marker pattern detected"
+    },
+    {
+      "type": "workspace-health",
+      "filePath": "packages/simplebeacon-cli/src/lib/python-ast-scanner.js",
+      "line": 10,
+      "description": "packages/simplebeacon-cli/src/lib/python-ast-scanner.js:10 workspace-health pattern detected"
+    },
+    {
+      "type": "workspace-health",
+      "filePath": "packages/simplebeacon-cli/src/lib/roadmap-export-sanitize.js",
+      "line": 7,
+      "description": "packages/simplebeacon-cli/src/lib/roadmap-export-sanitize.js:7 workspace-health pattern detected"
+    },
+    {
+      "type": "workspace-health",
+      "filePath": "packages/simplebeacon-cli/src/proxy/gateway.js",
+      "line": 14,
+      "description": "packages/simplebeacon-cli/src/proxy/gateway.js:14 workspace-health pattern detected"
+    },
+    {
+      "type": "governance-marker",
+      "filePath": "packages/simplebeacon-cli/src/reporters/json.js",
+      "line": 112,
+      "description": "packages/simplebeacon-cli/src/reporters/json.js:112 governance-marker pattern detected"
+    },
+    {
+      "type": "governance-marker",
+      "filePath": "packages/simplebeacon-cli/src/rules/file-naming-patterns.js",
+      "line": 64,
+      "description": "packages/simplebeacon-cli/src/rules/file-naming-patterns.js:64 governance-marker pattern detected"
+    },
+    {
+      "type": "governance-marker",
+      "filePath": "simplebeacon-vscode-merged/server/api/billing/webhook.js",
+      "line": 34,
+      "description": "simplebeacon-vscode-merged/server/api/billing/webhook.js:34 governance-marker pattern detected"
+    },
+    {
+      "type": "workspace-health",
+      "filePath": "packages/simplebeacon-cli/src/analyzers/data-cleanup/data-lineage-analyzer.js",
+      "line": 9,
+      "description": "packages/simplebeacon-cli/src/analyzers/data-cleanup/data-lineage-analyzer.js:9 workspace-health pattern detected"
+    },
+    {
+      "type": "governance-marker",
+      "filePath": "packages/simplebeacon-cli/src/analyzers/file-reduction/git-hygiene-scanner.js",
+      "line": 56,
+      "description": "packages/simplebeacon-cli/src/analyzers/file-reduction/git-hygiene-scanner.js:56 governance-marker pattern detected"
+    },
+    {
+      "type": "workspace-health",
+      "filePath": "packages/simplebeacon-cli/src/analyzers/file-reduction/git-hygiene-scanner.js",
+      "line": 12,
+      "description": "packages/simplebeacon-cli/src/analyzers/file-reduction/git-hygiene-scanner.js:12 workspace-health pattern detected"
+    },
+    {
+      "type": "governance-marker",
+      "filePath": "packages/simplebeacon-cli/src/analyzers/file-reduction/unused-file-detector.js",
+      "line": 40,
+      "description": "packages/simplebeacon-cli/src/analyzers/file-reduction/unused-file-detector.js:40 governance-marker pattern detected"
+    },
+    {
+      "type": "workspace-health",
+      "filePath": "packages/simplebeacon-cli/src/analyzers/data-cleanup/utils/analyzer-cache.js",
+      "line": 8,
+      "description": "packages/simplebeacon-cli/src/analyzers/data-cleanup/utils/analyzer-cache.js:8 workspace-health pattern detected"
+    },
+    {
+      "type": "workspace-health",
+      "filePath": "packages/simplebeacon-cli/src/analyzers/data-cleanup/utils/data-file-utils.js",
+      "line": 5,
+      "description": "packages/simplebeacon-cli/src/analyzers/data-cleanup/utils/data-file-utils.js:5 workspace-health pattern detected"
+    },
+    {
+      "type": "governance-marker",
+      "filePath": "packages/simplebeacon-cli/src/analyzers/data-cleanup/utils/env-profile-utils.js",
+      "line": 149,
+      "description": "packages/simplebeacon-cli/src/analyzers/data-cleanup/utils/env-profile-utils.js:149 governance-marker pattern detected"
+    },
+    {
+      "type": "workspace-health",
+      "filePath": "packages/simplebeacon-cli/src/analyzers/data-cleanup/utils/workspace-path-utils.js",
+      "line": 5,
+      "description": "packages/simplebeacon-cli/src/analyzers/data-cleanup/utils/workspace-path-utils.js:5 workspace-health pattern detected"
+    },
+    {
+      "type": "workspace-health",
+      "filePath": "packages/simplebeacon-cli/src/analyzers/file-reduction/utils/file-reference-tracker.js",
+      "line": 11,
+      "description": "packages/simplebeacon-cli/src/analyzers/file-reduction/utils/file-reference-tracker.js:11 workspace-health pattern detected"
+    },
+    {
+      "type": "workspace-health",
+      "filePath": "packages/simplebeacon-cli/src/analyzers/file-reduction/utils/hash-utils.js",
+      "line": 7,
+      "description": "packages/simplebeacon-cli/src/analyzers/file-reduction/utils/hash-utils.js:7 workspace-health pattern detected"
+    },
+    {
+      "type": "workspace-health",
+      "filePath": "packages/simplebeacon-cli/src/lib/runtime-sentinel.js",
+      "line": 14,
+      "description": "packages/simplebeacon-cli/src/lib/runtime-sentinel.js:14 workspace-health pattern detected"
+    },
+    {
+      "type": "security-headers",
+      "filePath": "packages/simplebeacon-cli/src/lib/runtime-sentinel.js",
+      "line": 8,
+      "description": "packages/simplebeacon-cli/src/lib/runtime-sentinel.js:8 security-headers pattern detected"
+    },
+    {
+      "type": "workspace-health",
+      "filePath": "packages/simplebeacon-cli/src/lib/scan-history.js",
+      "line": 9,
+      "description": "packages/simplebeacon-cli/src/lib/scan-history.js:9 workspace-health pattern detected"
+    },
+    {
+      "type": "governance-marker",
+      "filePath": "packages/simplebeacon-cli/src/lib/scan-usage-tracker.js",
+      "line": 4,
+      "description": "packages/simplebeacon-cli/src/lib/scan-usage-tracker.js:4 governance-marker pattern detected"
+    },
+    {
+      "type": "governance-marker",
+      "filePath": "packages/simplebeacon-cli/src/lib/tier-constants.js",
+      "line": 83,
+      "description": "packages/simplebeacon-cli/src/lib/tier-constants.js:83 governance-marker pattern detected"
+    },
+    {
+      "type": "governance-marker",
+      "filePath": "packages/simplebeacon-cli/src/lib/tier-detector.js",
+      "line": 7,
+      "description": "packages/simplebeacon-cli/src/lib/tier-detector.js:7 governance-marker pattern detected"
+    },
+    {
+      "type": "governance-marker",
+      "filePath": "simplebeacon-vscode-merged/__create_token.js",
+      "line": 5,
+      "description": "simplebeacon-vscode-merged/__create_token.js:5 governance-marker pattern detected"
+    },
+    {
+      "type": "governance-marker",
+      "filePath": "simplebeacon-vscode-merged/src/accountTracker.ts",
+      "line": 11,
+      "description": "simplebeacon-vscode-merged/src/accountTracker.ts:11 governance-marker pattern detected"
+    },
+    {
+      "type": "governance-marker",
+      "filePath": "simplebeacon-vscode-merged/src/dashboardDataExtractor.ts",
+      "line": 2,
+      "description": "simplebeacon-vscode-merged/src/dashboardDataExtractor.ts:2 governance-marker pattern detected"
+    },
+    {
+      "type": "governance-marker",
+      "filePath": "simplebeacon-vscode-merged/src/dashboardUpdater.ts",
+      "line": 361,
+      "description": "simplebeacon-vscode-merged/src/dashboardUpdater.ts:361 governance-marker pattern detected"
+    },
+    {
+      "type": "governance-marker",
+      "filePath": "simplebeacon-vscode-merged/src/dataServer.ts",
+      "line": 38,
+      "description": "simplebeacon-vscode-merged/src/dataServer.ts:38 governance-marker pattern detected"
+    },
+    {
+      "type": "governance-marker",
+      "filePath": "simplebeacon-vscode-merged/src/enhancedAIProvider.ts",
+      "line": 109,
+      "description": "simplebeacon-vscode-merged/src/enhancedAIProvider.ts:109 governance-marker pattern detected"
+    },
+    {
+      "type": "governance-marker",
+      "filePath": "simplebeacon-vscode-merged/src/enhancedScanProvider.ts",
+      "line": 2,
+      "description": "simplebeacon-vscode-merged/src/enhancedScanProvider.ts:2 governance-marker pattern detected"
+    },
+    {
+      "type": "governance-marker",
+      "filePath": "simplebeacon-vscode-merged/src/licenseManager.ts",
+      "line": 3,
+      "description": "simplebeacon-vscode-merged/src/licenseManager.ts:3 governance-marker pattern detected"
+    },
+    {
+      "type": "governance-marker",
+      "filePath": "simplebeacon-vscode-merged/src/realtimeMonitor.ts",
+      "line": 6,
+      "description": "simplebeacon-vscode-merged/src/realtimeMonitor.ts:6 governance-marker pattern detected"
+    },
+    {
+      "type": "governance-marker",
+      "filePath": "simplebeacon-vscode-merged/src/roadmapProvider.ts",
+      "line": 229,
+      "description": "simplebeacon-vscode-merged/src/roadmapProvider.ts:229 governance-marker pattern detected"
+    },
+    {
+      "type": "governance-marker",
+      "filePath": "simplebeacon-vscode-merged/src/tierConstants.ts",
+      "line": 96,
+      "description": "simplebeacon-vscode-merged/src/tierConstants.ts:96 governance-marker pattern detected"
+    },
+    {
+      "type": "governance-marker",
+      "filePath": "simplebeacon-vscode-merged/src/welcomeDashboard.ts",
+      "line": 1168,
+      "description": "simplebeacon-vscode-merged/src/welcomeDashboard.ts:1168 governance-marker pattern detected"
+    },
+    {
+      "type": "governance-marker",
+      "filePath": "simplebeacon-vscode-merged/src/analyzers/workspaceAnalyzer.ts",
+      "line": 801,
+      "description": "simplebeacon-vscode-merged/src/analyzers/workspaceAnalyzer.ts:801 governance-marker pattern detected"
+    },
+    {
+      "type": "governance-marker",
+      "filePath": "simplebeacon-vscode-merged/src/auth/authManager.ts",
+      "line": 171,
+      "description": "simplebeacon-vscode-merged/src/auth/authManager.ts:171 governance-marker pattern detected"
+    },
+    {
+      "type": "governance-marker",
+      "filePath": "simplebeacon-vscode-merged/src/fixes/remediationProvider.ts",
+      "line": 427,
+      "description": "simplebeacon-vscode-merged/src/fixes/remediationProvider.ts:427 governance-marker pattern detected"
+    },
+    {
+      "type": "governance-marker",
+      "filePath": "verify-codemap2.js",
+      "line": 6,
+      "description": "verify-codemap2.js:6 governance-marker pattern detected"
+    }
+  ],
+  "falsePositiveAnalysis": {
+    "securityHeaders": {
+      "originalCount": 8,
+      "rootCause": "Scanner matched express(), app.use(, app.listen( in every Express file — these are normal Express patterns, not missing security headers. The main server (index.cjs) already had securityHeaders middleware.",
+      "fix": "Removed app.use( and app.listen( from security-headers terms. Added context filter to skip files containing helmet( or securityHeaders. Added path skip for known secured files.",
+      "remainingCount": 0,
+      "status": "resolved"
+    },
+    "databasePatterns": {
+      "originalCount": 1,
+      "rootCause": "Scanner matched query( in api-server/lib/rbac.js:120, but this is a properly parameterized PostgreSQL query using  placeholder.",
+      "fix": "Added context filter to skip lines containing $\\d+ parameterized placeholders or array parameter syntax.",
+      "remainingCount": 0,
+      "status": "resolved"
+    },
+    "governanceMarker": {
+      "originalCount": 40,
+      "rootCause": "Scanner matched LICENSE/NOTICE substrings in env var names (SIMPLEBEACON_LICENSE_TOKEN, SIMPLEBEACON_LICENSE_SECRET) and severity level comments (debug | info | notice | warning | critical).",
+      "fix": "Added context filters: skip lines with \\w+_LICENSE_\\w+ or SIMPLEBEACON_LICENSE env var names; skip JSDoc severity comment lines.",
+      "affectedExamples": [
+        ".github/workflows/simplebeacon-ai-hygiene-gate.yml:54 — SIMPLEBEACON_LICENSE_TOKEN env var",
+        "api-server/lib/auth.js:8 — SIMPLEBEACON_LICENSE_SECRET env var",
+        "api-server/routes/audit.js:22 — severity level JSDoc comment"
+      ],
+      "status": "significantly reduced"
+    },
+    "workspaceHealth": {
+      "originalCount": 45,
+      "rootCause": "Monorepo cross-package requires like require(../../../packages/...) flagged as brittle.",
+      "fix": "Added path-specific skips for known monorepo cross-package imports. Remaining findings are genuine deep-relative paths that may benefit from path aliases.",
+      "status": "reduced"
+    }
+  },
+  "filesModified": [
+    "packages/simplebeacon-cli/src/rules/comprehensive-scanner.js",
+    "simplebeacon-vscode-merged/dashboard-web/js/views/SignInView.js",
+    "simplebeacon-vscode-merged/dashboard-web/js/services/authService.js",
+    "ai-platform/web/simplebeacon-dashboard/js/services/authService.js"
+  ]
+}

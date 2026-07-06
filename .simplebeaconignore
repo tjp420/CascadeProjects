@@ -1,6 +1,7 @@
 # Dependencies — never scan third-party code
 node_modules/
 **/node_modules/
+**/vendor/
 
 # Environment examples (documented placeholders — not secrets)
 .env.example

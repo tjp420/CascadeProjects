@@ -1,75 +1,31 @@
 /**
  * Detect the user's SimpleBeacon tier from environment or config.
  * Free/community tier gets limited output to drive upgrades.
+ * Now delegates to tier-constants.js for canonical definitions.
  */
 
 const { validateLicenseToken } = require('./license-token');
+const {
+    TIER_DEFINITIONS,
+    TIER_ALIASES,
+    PAID_TIERS,
+    FREE_TIERS,
+    resolveTier,
+    isPaidTier,
+    getTierLimits,
+    getTierCapability
+} = require('./tier-constants');
 
-const PAID_TIERS = new Set(['startup', 'growth', 'enterprise']);
-const FREE_TIERS = new Set(['developer', 'community', 'instant', 'locked', '']);
+/** @deprecated kept for backward compat; use resolveTier() */
+const TIER_MIGRATION_MAP = TIER_ALIASES;
 
-/** Migrate legacy tier names to new 4-tier model at read time. */
-const TIER_MIGRATION_MAP = {
-    executive: 'startup',
-    euai: 'startup',
-    eusprint: 'growth',
-    continuous_shield: 'growth',
-    universal: 'enterprise',
-    custom: 'enterprise',
-    community: 'developer',
-    instant: 'developer',
-    locked: 'developer',
-    '': 'developer'
-};
-
+/** @deprecated kept for backward compat; use resolveTier() */
 function migrateTierName(tier) {
-    const raw = String(tier || '').toLowerCase().trim();
-    return TIER_MIGRATION_MAP[raw] || raw || 'developer';
+    return resolveTier(tier);
 }
 
-const TIER_LIMITS = {
-    developer: {
-        maxScansPerPeriod: 9999,
-        customConfig: false,
-        allowlist: false,
-        maxFilesPerScan: 50,
-        maxFindingsShown: 5,
-        showQualityScore: false,
-        pipelineScans: false
-    },
-    startup: {
-        maxScansPerPeriod: 2500,
-        customConfig: true,
-        allowlist: false,
-        maxFilesPerScan: Infinity,
-        maxFindingsShown: Infinity,
-        showQualityScore: true,
-        pipelineScans: true
-    },
-    growth: {
-        maxScansPerPeriod: 10000,
-        customConfig: true,
-        allowlist: true,
-        maxFilesPerScan: Infinity,
-        maxFindingsShown: Infinity,
-        showQualityScore: true,
-        pipelineScans: true
-    },
-    enterprise: {
-        maxScansPerPeriod: Infinity,
-        customConfig: true,
-        allowlist: true,
-        maxFilesPerScan: Infinity,
-        maxFindingsShown: Infinity,
-        showQualityScore: true,
-        pipelineScans: true
-    }
-};
-
-function getTierLimits(tier) {
-    const normalized = migrateTierName(tier);
-    return TIER_LIMITS[normalized] || TIER_LIMITS.developer;
-}
+/** @deprecated kept for backward compat; use TIER_DEFINITIONS */
+const TIER_LIMITS = TIER_DEFINITIONS;
 
 function detectTier() {
     const token = process.env.SIMPLEBEACON_LICENSE_TOKEN || '';
@@ -85,10 +41,21 @@ function detectTier() {
     }
 
     const rawTier = String(result.claims.tier || result.claims.product || 'developer').toLowerCase();
-    const tier = migrateTierName(rawTier);
-    const paid = PAID_TIERS.has(tier);
+    const tier = resolveTier(rawTier);
+    const paid = isPaidTier(tier);
     const limits = getTierLimits(tier);
     return { tier, paid, claims: result.claims, limits };
 }
 
-module.exports = { detectTier, getTierLimits, migrateTierName, PAID_TIERS, FREE_TIERS, TIER_LIMITS, TIER_MIGRATION_MAP };
+module.exports = {
+    detectTier,
+    getTierLimits,
+    getTierCapability,
+    resolveTier,
+    isPaidTier,
+    migrateTierName,
+    PAID_TIERS,
+    FREE_TIERS,
+    TIER_LIMITS,
+    TIER_MIGRATION_MAP
+};

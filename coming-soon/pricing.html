@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SimpleBeacon Pricing — AI Code Debt Detection & Compliance</title>
-  <meta name="description" content="SimpleBeacon pricing: Free IDE extension (24 real-time rules), $9/mo Pro for 38 analyzer engines, Enterprise custom pricing with 52 engines + EU AI Act compliance. AI code debt detection + board-ready certificates.">
+  <meta name="description" content="SimpleBeacon pricing: Free IDE extension (24 real-time rules), $9/mo Pro for 38 analyzer engines, Enterprise custom pricing with 60+ engines + EU AI Act compliance. AI code debt detection + board-ready certificates.">
   <meta name="theme-color" content="#0a0a0a">
   <meta name="robots" content="index, follow">
   <link rel="canonical" href="https://simplebeacon.ai/pricing">
@@ -274,6 +274,63 @@
       .sticky-cta { flex-direction: column; gap: 8px; padding: 12px 16px; }
       .sticky-cta-text { font-size: 0.8rem; text-align: center; }
     }
+
+    /* Light theme overrides */
+    html[data-theme="light"] .price-card {
+      background: linear-gradient(145deg, rgba(255,255,255,0.95), rgba(248,250,252,0.98));
+      box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+    }
+    html[data-theme="light"] .price-card:hover {
+      box-shadow: 0 12px 32px rgba(0,0,0,0.1);
+    }
+    html[data-theme="light"] .compare-wrap {
+      background: rgba(255,255,255,0.7);
+    }
+    html[data-theme="light"] .compare-head {
+      background: rgba(241,245,249,0.9);
+    }
+    html[data-theme="light"] .compare-row {
+      border-bottom: 1px solid rgba(226,232,240,0.6);
+    }
+    html[data-theme="light"] .faq-item {
+      background: rgba(255,255,255,0.6);
+    }
+    html[data-theme="light"] .email-pricing {
+      background: rgba(255,255,255,0.7);
+    }
+    html[data-theme="light"] .pill {
+      background: rgba(255,255,255,0.7);
+    }
+    html[data-theme="light"] .price-features li {
+      border-bottom: 1px solid rgba(226,232,240,0.5);
+    }
+    html[data-theme="light"] .testimonial {
+      background: rgba(255,255,255,0.6);
+    }
+    html[data-theme="light"] .sticky-cta {
+      background: rgba(248,250,252,0.95);
+    }
+    html[data-theme="light"] .modal-box {
+      background: linear-gradient(145deg, rgba(255,255,255,0.98), rgba(248,250,252,0.99));
+    }
+    html[data-theme="light"] .modal-field input {
+      background: rgba(255,255,255,0.8);
+    }
+    html[data-theme="light"] .token-box {
+      background: rgba(241,245,249,0.8);
+    }
+    html[data-theme="light"] .plan-builder {
+      background: linear-gradient(145deg, rgba(255,255,255,0.95), rgba(248,250,252,0.98));
+    }
+    html[data-theme="light"] .scan-option {
+      background: rgba(255,255,255,0.5);
+    }
+    html[data-theme="light"] .preset-btn {
+      background: rgba(255,255,255,0.5);
+    }
+    html[data-theme="light"] .plan-total-bar {
+      background: rgba(255,255,255,0.8);
+    }
   </style>
 </head>
 <body>
@@ -297,15 +354,15 @@
           <a href="pricing.html">Pricing</a>
           <a href="/dashboard/#/dashboard" id="vaultLink">Team Dashboard</a>
           <script>window.addEventListener('DOMContentLoaded', function() { if (window.SbAuth) window.SbAuth.propagateTokenToLinks(); });</script>
-          <button type="button" id="nav-signin-btn" style="display:none;margin-left:8px;padding:4px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text-muted);font-size:0.8rem;cursor:pointer;">Sign in</button>
-          <button type="button" id="nav-signout-btn" onclick="window.SbAuth.signOut()" style="margin-left:8px;padding:4px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text-muted);font-size:0.8rem;cursor:pointer;">Sign out</button>
+          <button type="button" id="nav-signin-btn" style="display:none;margin-left:8px;padding:4px 0;background:transparent;color:var(--text-muted);font-size:0.8rem;cursor:pointer;border:none;border-radius:0;">Sign in</button>
+          <button type="button" id="nav-signout-btn" style="margin-left:8px;padding:4px 0;background:transparent;color:var(--text-muted);font-size:0.8rem;cursor:pointer;border:none;border-radius:0;">Sign out</button>
         </div>
       </nav>
 
       <div class="pricing-hero" data-animate="fade-up">
         <span class="hero-badge">AI Slop Cop — 60+ Analyzer Engines</span>
         <h1>Catch AI slop before it ships. Pay per scan as you grow.</h1>
-        <p class="hero-sub">Free for solo devs (100 scans/mo). $49 for startups. $149 for growth teams. Custom for Enterprise. No credit card to start.</p>
+        <p class="hero-sub">Free for solo devs. Pro for power users. Custom for Enterprise. No credit card to start.</p>
         <p style="font-size:0.85rem;color:var(--accent-hover);margin-top:12px;display:inline-flex;align-items:center;gap:6px;"><span style="font-size:1rem;">&#128274;</span> Zero source-code upload — scans run locally in your IDE or browser sandbox. <a href="faq.html" style="color:var(--accent-hover);text-decoration:underline;">How it works</a></p>
       </div>
 
@@ -359,8 +416,8 @@
       <div class="pricing-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
         <article class="price-card" data-animate="fade-up" data-delay="0">
           <div class="price-card-header">
-            <span class="price-tag">Developer</span>
-            <h3>Free</h3>
+            <span class="price-tag">Free</span>
+            <h3>Solo</h3>
             <div class="price-amount">$0</div>
           </div>
           <p class="price-desc">For solo devs and open-source projects. Test locally before you buy.</p>
@@ -379,12 +436,12 @@
         <article class="price-card price-card-popular" data-animate="fade-up" data-delay="100">
           <div class="popular-badge">Most Popular</div>
           <div class="price-card-header">
-            <span class="price-tag">Startup</span>
-            <h3>Team Shield</h3>
-            <div class="price-amount" id="teamPrice">$49<span class="price-unit">/mo</span></div>
-            <p id="teamAnnualNote" style="font-size:0.8rem;color:var(--text-secondary);margin-top:4px;display:none;"><span style="text-decoration:line-through;color:var(--text-muted);">$588/yr</span> <span style="color:var(--success);font-weight:600;">$490/yr</span> <span class="save-badge">Save 17%</span></p>
+            <span class="price-tag">Pro</span>
+            <h3>Pro</h3>
+            <div class="price-amount" id="teamPrice">$9<span class="price-unit">/mo</span></div>
+            <p id="teamAnnualNote" style="font-size:0.8rem;color:var(--text-secondary);margin-top:4px;display:none;"><span style="text-decoration:line-through;color:var(--text-muted);">$108/yr</span> <span style="color:var(--success);font-weight:600;">$90/yr</span> <span class="save-badge">Save 17%</span></p>
           </div>
-          <p class="price-desc">Small teams pushing code daily. Scales with your CI pipeline.</p>
+          <p class="price-desc">Power users and indie devs. Unlock all analyzers and exportable reports.</p>
           <ul class="price-features">
             <li>Up to <strong>2,500 pipeline scans</strong> / month</li>
             <li><strong>Unlimited</strong> files per scan</li>
@@ -396,30 +453,10 @@
             <li>Priority email support</li>
           </ul>
           <p style="font-size:0.75rem;color:var(--text-muted);text-align:center;margin-top:-12px;margin-bottom:12px;">&#10003; Cancel anytime &middot; 7-day money-back guarantee</p>
-          <button class="price-btn checkout-btn" data-tier="startup" data-price-id="price_startup_monthly">Subscribe</button>
+          <button class="price-btn checkout-btn" data-tier="pro" data-price-id="price_pro_monthly">Subscribe</button>
         </article>
 
         <article class="price-card price-card-premium" data-animate="fade-up" data-delay="200">
-          <div class="price-card-header">
-            <span class="price-tag">Growth</span>
-            <h3>Scale Shield</h3>
-            <div class="price-amount" id="growthPrice">$149<span class="price-unit">/mo</span></div>
-            <p id="growthAnnualNote" style="font-size:0.8rem;color:var(--text-secondary);margin-top:4px;display:none;"><span style="text-decoration:line-through;color:var(--text-muted);">$1,788/yr</span> <span style="color:var(--success);font-weight:600;">$1,490/yr</span> <span class="save-badge">Save 17%</span></p>
-          </div>
-          <p class="price-desc">Scaling engineering teams with custom needs. Full configuration control.</p>
-          <ul class="price-features">
-            <li>Up to <strong>10,000 pipeline scans</strong> / month</li>
-            <li><strong>Everything in Startup</strong></li>
-            <li>URL allowlist (no false positives on internal APIs)</li>
-            <li>EU AI Act compliance rules</li>
-            <li>Advanced JSON export with actionable summary</li>
-            <li>Priority support + Slack channel</li>
-          </ul>
-          <p style="font-size:0.75rem;color:var(--text-muted);text-align:center;margin-top:-12px;margin-bottom:12px;">&#10003; Cancel anytime &middot; 7-day money-back guarantee</p>
-          <button class="price-btn checkout-btn" data-tier="growth" data-price-id="price_growth_monthly">Subscribe</button>
-        </article>
-
-        <article class="price-card price-card-premium" data-animate="fade-up" data-delay="300">
           <div class="price-card-header">
             <span class="price-tag">Enterprise</span>
             <h3>Compliance Suite</h3>
@@ -429,7 +466,7 @@
           <p class="price-desc">Board-ready compliance. Unlimited scans, custom rules, and dedicated support.</p>
           <ul class="price-features">
             <li><strong>Unlimited</strong> scans</li>
-            <li><strong>Everything in Growth</strong></li>
+            <li><strong>Everything in Pro</strong></li>
             <li><strong>60+ analyzer engines</strong> (full suite)</li>
             <li>Team management (5+ seats)</li>
             <li>SSO / SAML authentication</li>
@@ -442,63 +479,7 @@
         </article>
       </div>
 
-      <h2 class="section-title" data-animate="fade-up" style="margin-top:24px;">AI Slop Cop — VS Code Extension</h2>
-      <p style="text-align:center;font-size:0.85rem;color:var(--text-secondary);margin:-16px 0 24px;">Real-time AI slop detection inside your IDE. 38 analyzer engines catch placeholder debris, markdown fences, and hardcoded metrics as you type.</p>
-      <div class="pricing-grid" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));margin-bottom:24px;">
-        <article class="price-card" data-animate="fade-up" data-delay="0">
-          <div class="price-card-header">
-            <span class="price-tag">Free</span>
-            <h3>IDE Linter</h3>
-            <div class="price-amount">$0</div>
-          </div>
-          <p class="price-desc">24 real-time rules. Catch placeholders, markdown fences, stubs, and empty catch blocks as you type.</p>
-          <ul class="price-features">
-            <li>24 AI residue rules (real-time)</li>
-            <li>50 files per workspace scan</li>
-            <li>Gate status bar indicator</li>
-            <li>Local only — zero network calls</li>
-          </ul>
-          <a href="https://marketplace.visualstudio.com/items?itemName=simplebeacon.ai-slop-cop" class="price-btn price-btn-secondary">Install from Marketplace</a>
-        </article>
-
-        <article class="price-card price-card-popular" data-animate="fade-up" data-delay="100">
-          <div class="popular-badge">Most Popular</div>
-          <div class="price-card-header">
-            <span class="price-tag">Pro</span>
-            <h3>Pro Rules</h3>
-            <div class="price-amount">$9<span class="price-unit">/mo</span></div>
-          </div>
-          <p class="price-desc">38 total analyzer engines. Unlock security, quality, and debug-artifact detection.</p>
-          <ul class="price-features">
-            <li><strong>38 analyzer engines</strong> (24 free + 14 Pro)</li>
-            <li>Credential leak detection</li>
-            <li>Mock-path &amp; fixture leak detection</li>
-            <li>Debug artifact cleanup hints</li>
-            <li>JSON / Markdown export</li>
-            <li>Unlimited workspace scans</li>
-          </ul>
-          <button class="price-btn checkout-btn" data-tier="pro" data-price-id="price_pro_monthly">Subscribe</button>
-        </article>
-
-        <article class="price-card price-card-premium" data-animate="fade-up" data-delay="200">
-          <div class="price-card-header">
-            <span class="price-tag">Enterprise</span>
-            <h3>Full Suite</h3>
-            <div class="price-amount">Custom</div>
-          </div>
-          <p class="price-desc">54 total IDE rules (38 + 16 Enterprise). AI SDK governance, accessibility, i18n, test coverage, and CI gate enforcement.</p>
-          <ul class="price-features">
-            <li><strong>54 IDE rules</strong> (38 + 16 Enterprise)</li>
-            <li>Team management (5+ seats)</li>
-            <li>SSO authentication</li>
-            <li>Custom rule development</li>
-            <li>Dedicated support channel + SLA</li>
-            <li>Self-hosted / air-gapped option</li>
-          </ul>
-          <a href="contact.html?topic=enterprise" class="price-btn price-btn-secondary" data-contact-link data-contact-topic="enterprise">Contact Sales</a>
-        </article>
-      </div>
-      <p style="text-align:center;font-size:0.8rem;color:var(--text-muted);margin-bottom:32px;">All extension tiers use the same license token system. Buy once, use in VS Code + CLI + Dashboard.</p>
+      <p style="text-align:center;font-size:0.85rem;color:var(--text-secondary);margin:0 0 32px;">One license token works across VS Code, CLI, and Dashboard. No separate add-ons needed.</p>
 
       <h2 class="section-title" data-animate="fade-up">Compare everything</h2>
       <div class="compare-wrap" data-animate="fade-up" id="compareTable">
@@ -588,7 +569,7 @@
 
       <!-- Sticky CTA -->
       <div class="sticky-cta" id="stickyCta">
-        <span class="sticky-cta-text">Install SimpleBeacon free (100 scans/mo), upgrade to <strong>Startup ($49/mo)</strong> when you're ready</span>
+        <span class="sticky-cta-text">Install SimpleBeacon free (100 scans/mo), upgrade to <strong>Pro ($9/mo)</strong> when you're ready</span>
         <button class="sticky-cta-btn" id="stickyCtaBtn">Install Free Extension</button>
       </div>
 
@@ -611,41 +592,49 @@
   </main>
 
   <!-- Sign-in Modal -->
-  <div class="signin-overlay" id="signinOverlay">
-    <div class="signin-panel">
-      <button class="signin-close" id="signinCloseBtn" type="button">&times;</button>
-      <h3>Sign In</h3>
-      <p class="signin-sub">Access your SimpleBeacon account.</p>
-      <div class="signin-tabs">
-        <button class="signin-tab active" id="tab-token" type="button">License Token</button>
-        <button class="signin-tab" id="tab-email" type="button">Email & Password</button>
+<div class="signin-overlay" id="signinOverlay">
+  <div class="signin-panel">
+    <button class="signin-close" id="signinCloseBtn" type="button">&times;</button>
+    <div class="signin-header">
+      <span class="signin-icon" aria-hidden="true">&#128274;</span>
+      <h3 class="signin-title">Sign In</h3>
+      <p class="signin-sub">Access your SimpleBeacon dashboard.</p>
+    </div>
+    <div class="signin-subtabs">
+      <button type="button" class="signin-subtab active" data-mode="login" id="subtab-login">Sign In</button>
+      <button type="button" class="signin-subtab" data-mode="register" id="subtab-register">Create Account</button>
+    </div>
+    <form id="signin-email-form" class="signin-form active">
+      <div class="signin-field">
+        <label for="signinEmail">Email / Username</label>
+        <input type="text" id="signinEmail" placeholder="email@example.com or username" autocomplete="email">
       </div>
-      <div class="signin-form active" id="form-token">
-        <div class="signin-field">
-          <label for="signinToken">License Token</label>
-          <input type="text" id="signinToken" placeholder="Paste your license token..." autocomplete="off">
-        </div>
-        <button class="signin-btn" id="signinSubmitBtn" type="button">Sign In</button>
+      <div class="signin-field">
+        <label for="signinPassword">Password</label>
+        <input type="password" id="signinPassword" placeholder="Enter your password..." autocomplete="current-password">
       </div>
-      <div class="signin-form" id="form-email">
-        <div class="signin-field">
-          <label for="signinEmail">Email</label>
-          <input type="email" id="signinEmail" placeholder="you@company.com" autocomplete="email">
-        </div>
-        <div class="signin-field">
-          <label for="signinPassword">Password</label>
-          <input type="password" id="signinPassword" placeholder="Enter your password..." autocomplete="current-password">
-        </div>
-        <button class="signin-btn" id="signinEmailBtn" type="button">Sign In</button>
+      <div style="display:flex;justify-content:flex-end;margin:-4px 0 8px;">
+        <button type="button" id="forgot-password-btn" style="background:none;border:none;color:var(--accent);font-size:0.78rem;cursor:pointer;padding:0;">Forgot Password?</button>
       </div>
       <p class="signin-error" id="signinError"></p>
-      <div class="signin-footer">
-        Don't have a token? <a href="pricing.html">Get one</a>
-      </div>
-    </div>
+      <button class="signin-btn" type="button" id="signinEmailBtn">Sign In</button>
+    </form>
+    <div class="signin-divider"><span>or</span></div>
+    <button type="button" class="signin-btn" id="webauthn-signin-btn" style="background:var(--bg-elevated);color:var(--text-main);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;gap:8px;">
+      <span>&#128274;</span> Sign in with Security Key
+    </button>
+    <p class="signin-note" id="email-mode-note">New here? Switch to <strong>Create Account</strong> to register.</p>
+    <p class="signin-footer">
+      <a href="/demo">View read-only demo</a>
+      <span class="signin-footer-sep">&middot;</span>
+      <a href="/dashboard/about">About &amp; install</a>
+      <span class="signin-footer-sep">&middot;</span>
+      <a href="https://github.com/tjp420/simplebeacon" target="_blank" rel="noopener noreferrer">GitHub</a>
+    </p>
   </div>
+</div>
 
-  <script src="site-config.js?v=1.3.0"></script>
+  <script src="site-config.js?v=1.3.1"></script>
   <script src="app-links.js"></script>
   <script>
     // Escape HTML for safe insertion
@@ -679,16 +668,12 @@
       if (monthlyLabelEl) monthlyLabelEl.classList.toggle('active', !isAnnual);
       if (annualLabelEl) annualLabelEl.classList.toggle('active', isAnnual);
       var teamPrice = document.getElementById('teamPrice');
-      var growthPrice = document.getElementById('growthPrice');
       var entPrice = document.getElementById('entPrice');
       var teamNote = document.getElementById('teamAnnualNote');
-      var growthNote = document.getElementById('growthAnnualNote');
       var entNote = document.getElementById('entAnnualNote');
-      if (teamPrice) teamPrice.innerHTML = isAnnual ? '$490<span class="price-unit">/yr</span>' : '$49<span class="price-unit">/mo</span>';
-      if (growthPrice) growthPrice.innerHTML = isAnnual ? '$1,490<span class="price-unit">/yr</span>' : '$149<span class="price-unit">/mo</span>';
+      if (teamPrice) teamPrice.innerHTML = isAnnual ? '$90<span class="price-unit">/yr</span>' : '$9<span class="price-unit">/mo</span>';
       if (entPrice) entPrice.innerHTML = 'Custom';
       if (teamNote) teamNote.style.display = isAnnual ? 'block' : 'none';
-      if (growthNote) growthNote.style.display = isAnnual ? 'block' : 'none';
       if (entNote) entNote.style.display = 'none';
     }
     function toggleBilling() { setBilling(isAnnual ? 'monthly' : 'annual'); }
@@ -731,7 +716,7 @@
         return false;
       }
 
-      var productMap = { startup: 'startup_shield', growth: 'growth_shield', enterprise: 'compliance_suite', custom: 'custom_plan' };
+      var productMap = { pro: 'startup_shield', startup: 'startup_shield', enterprise: 'compliance_suite', custom: 'custom_plan' };
       var product = productMap[tier] || (tier.indexOf('custom_') === 0 ? 'custom_plan' : null);
       if (!product) {
         errorEl.textContent = 'Unknown product tier.';
@@ -745,11 +730,11 @@
 
       var apiBase = 'https://simplebeacon.onrender.com';
 
-      // Subscription tiers: startup/growth/enterprise
-      var subscriptionTiers = ['startup_shield', 'growth_shield', 'compliance_suite'];
+      // Subscription tiers: pro/enterprise
+      var subscriptionTiers = ['startup_shield', 'compliance_suite'];
       if (subscriptionTiers.indexOf(product) >= 0) {
-        var subTierMap = { startup_shield: 'startup', growth_shield: 'growth', compliance_suite: 'enterprise' };
-        var subTier = subTierMap[product] || 'team';
+        var subTierMap = { startup_shield: 'pro', compliance_suite: 'enterprise' };
+        var subTier = subTierMap[product] || 'pro';
         var payload = { email: email, projectName: projectName, clientName: clientName || email, tier: subTier, mode: isAnnual ? 'annual' : 'monthly' };
         var endpoint = apiBase + '/api/create-subscription-session';
         fetch(endpoint, {
@@ -831,27 +816,21 @@
       btn.disabled = true;
       btn.textContent = 'Sending...';
       var body = 'SimpleBeacon Pricing Tiers\n\n' +
-        'Developer — Free\n' +
+        'Free — $0\n' +
         '  • Up to 100 local scans / month\n' +
         '  • Up to 50 files per scan\n' +
         '  • Gate scan: credentials + AI patterns\n' +
         '  • CLI + VS Code extension\n\n' +
-        'Startup — $49/mo (small teams 1-10 devs)\n' +
-        '  • Up to 2,500 pipeline scans / month\n' +
+        'Pro — $9/mo (power users & indie devs)\n' +
+        '  • Unlimited scans\n' +
         '  • Unlimited files per scan\n' +
         '  • Custom scanner toggles (config-as-code)\n' +
         '  • GitHub Action for every PR\n' +
         '  • Quality score + full JSON exports\n' +
         '  • Priority email support\n\n' +
-        'Growth — $149/mo (scaling engineering teams)\n' +
-        '  • Up to 10,000 pipeline scans / month\n' +
-        '  • URL allowlist for internal APIs\n' +
-        '  • EU AI Act compliance rules\n' +
-        '  • Advanced JSON export with actionable summary\n' +
-        '  • Priority support + Slack channel\n\n' +
         'Enterprise — Custom pricing\n' +
         '  • Unlimited scans\n' +
-        '  • Everything in Growth\n' +
+        '  • Everything in Pro\n' +
         '  • Team management (5+ seats)\n' +
         '  • SSO / SAML authentication\n' +
         '  • Custom rule development\n' +
@@ -890,17 +869,15 @@
       if (!wrap) return;
       var html = '<div class="compare-row compare-head">' +
         '<div class="compare-cell compare-feature">Feature</div>' +
-        '<div class="compare-cell">Developer</div>' +
-        '<div class="compare-cell compare-highlight">Startup</div>' +
-        '<div class="compare-cell compare-premium">Growth</div>' +
+        '<div class="compare-cell">Free</div>' +
+        '<div class="compare-cell compare-highlight">Pro</div>' +
         '<div class="compare-cell compare-premium">Enterprise</div>' +
         '</div>';
       features.forEach(function(row) {
         html += '<div class="compare-row">' +
           '<div class="compare-cell compare-feature">' + row.name + '</div>' +
           '<div class="compare-cell">' + (row.developer || row.free || '&mdash;') + '</div>' +
-          '<div class="compare-cell compare-highlight">' + (row.startup || row.team || '&mdash;') + '</div>' +
-          '<div class="compare-cell compare-premium">' + (row.growth || '&mdash;') + '</div>' +
+          '<div class="compare-cell compare-highlight">' + (row.startup || row.pro || '&mdash;') + '</div>' +
           '<div class="compare-cell compare-premium">' + (row.enterprise || '&mdash;') + '</div>' +
           '</div>';
       });
@@ -1161,7 +1138,7 @@
           e.preventDefault();
           e.stopPropagation();
           if (typeof gtag === 'function') {
-            gtag('event', 'begin_checkout', { event_category: 'ecommerce', event_label: tier, value: tier === 'enterprise' ? 499 : 49 });
+            gtag('event', 'begin_checkout', { event_category: 'ecommerce', event_label: tier, value: tier === 'enterprise' ? 499 : 19 });
           }
           openCheckoutModal(tier);
           return false;
@@ -1277,33 +1254,30 @@
       } catch(e) {}
       // Periodic check for auth state changes
       setInterval(updateAuthNav, 2000);
+            var emailMode = 'login';
       var signinOverlay = document.getElementById('signinOverlay');
       var signinCloseBtn = document.getElementById('signinCloseBtn');
-      var signinSubmitBtn = document.getElementById('signinSubmitBtn');
-      var signinToken = document.getElementById('signinToken');
-      var signinError = document.getElementById('signinError');
-      var tabToken = document.getElementById('tab-token');
-      var tabEmail = document.getElementById('tab-email');
-      var formToken = document.getElementById('form-token');
-      var formEmail = document.getElementById('form-email');
       var signinEmailBtn = document.getElementById('signinEmailBtn');
       var signinEmail = document.getElementById('signinEmail');
       var signinPassword = document.getElementById('signinPassword');
+      var signinError = document.getElementById('signinError');
+      var subtabLogin = document.getElementById('subtab-login');
+      var subtabRegister = document.getElementById('subtab-register');
+      var forgotPasswordBtn = document.getElementById('forgot-password-btn');
+      var webauthnBtn = document.getElementById('webauthn-signin-btn');
+      var emailModeNote = document.getElementById('email-mode-note');
 
-      function showTab(name) {
-        if (name === 'token') {
-          tabToken.classList.add('active'); tabEmail.classList.remove('active');
-          formToken.classList.add('active'); formEmail.classList.remove('active');
-          setTimeout(function() { signinToken.focus(); }, 50);
-        } else {
-          tabEmail.classList.add('active'); tabToken.classList.remove('active');
-          formEmail.classList.add('active'); formToken.classList.remove('active');
-          setTimeout(function() { signinEmail.focus(); }, 50);
-        }
-        signinError.style.display = 'none';
+      function setEmailMode(mode) {
+        emailMode = mode;
+        if (subtabLogin) subtabLogin.classList.toggle('active', mode === 'login');
+        if (subtabRegister) subtabRegister.classList.toggle('active', mode === 'register');
+        if (signinEmailBtn) signinEmailBtn.textContent = mode === 'register' ? 'Create Account' : 'Sign In';
+        if (emailModeNote) emailModeNote.innerHTML = mode === 'login' ? 'New here? Switch to <strong>Create Account</strong> to register.' : 'Already have an account? Switch to <strong>Sign In</strong>.';
+        if (forgotPasswordBtn) forgotPasswordBtn.style.display = mode === 'login' ? 'block' : 'none';
       }
       function openSigninModal() {
-        if (signinOverlay) { signinOverlay.classList.add('active'); signinToken.focus(); }
+        if (signinOverlay) { signinOverlay.classList.add('active'); }
+        if (signinEmail) { setTimeout(function() { signinEmail.focus(); }, 50); }
       }
       function closeSigninModal() {
         if (signinOverlay) { signinOverlay.classList.remove('active'); signinError.style.display = 'none'; }
@@ -1315,18 +1289,6 @@
         document.body.appendChild(toast);
         setTimeout(function(){ toast.style.opacity='0'; setTimeout(function(){ toast.remove(); }, 300); }, 2000);
       }
-      function handleSigninSubmit() {
-        var token = signinToken.value.trim();
-        if (!token) {
-          signinError.textContent = 'Please enter a license token.';
-          signinError.style.display = 'block'; return;
-        }
-        localStorage.setItem('simplebeacon_token', token);
-        signinError.style.display = 'none';
-        closeSigninModal();
-        updateAuthNav();
-        showSuccessToast('Signed in successfully');
-      }
       function handleEmailSignin() {
         var email = signinEmail.value.trim();
         var password = signinPassword.value;
@@ -1337,20 +1299,33 @@
         signinError.style.display = 'none';
         closeSigninModal();
         updateAuthNav();
-        showSuccessToast('Signed in successfully');
+        showSuccessToast(emailMode === 'register' ? 'Account created successfully' : 'Signed in successfully');
+      }
+      function handleForgotPassword() {
+        var email = signinEmail.value.trim();
+        if (!email) { signinError.textContent = 'Please enter your email first.'; signinError.style.display = 'block'; return; }
+        signinError.style.display = 'none';
+        showSuccessToast('Recovery instructions sent (demo).');
+      }
+      function handleWebAuthn() {
+        if (!window.PublicKeyCredential) {
+          signinError.textContent = 'Security key login is not supported in this browser.';
+          signinError.style.display = 'block'; return;
+        }
+        signinError.style.display = 'none';
+        showSuccessToast('Security key authentication started (demo).');
       }
 
-      if (signinBtn) signinBtn.addEventListener('click', openSigninModal);
+      if (signinBtn) signinBtn.addEventListener('click', function() { window.location.href = '/dashboard/signin?returnTo=' + encodeURIComponent(window.location.pathname); });
       if (signinCloseBtn) signinCloseBtn.addEventListener('click', closeSigninModal);
       if (signinOverlay) signinOverlay.addEventListener('click', function(e) { if (e.target === signinOverlay) closeSigninModal(); });
-      if (signinSubmitBtn) signinSubmitBtn.addEventListener('click', handleSigninSubmit);
-      if (signinToken) signinToken.addEventListener('keydown', function(e) { if (e.key === 'Enter') handleSigninSubmit(); });
-      if (tabToken) tabToken.addEventListener('click', function() { showTab('token'); });
-      if (tabEmail) tabEmail.addEventListener('click', function() { showTab('email'); });
       if (signinEmailBtn) signinEmailBtn.addEventListener('click', handleEmailSignin);
       if (signinPassword) signinPassword.addEventListener('keydown', function(e) { if (e.key === 'Enter') handleEmailSignin(); });
-
-      updateAuthNav();
+      if (subtabLogin) subtabLogin.addEventListener('click', function() { setEmailMode('login'); });
+      if (subtabRegister) subtabRegister.addEventListener('click', function() { setEmailMode('register'); });
+      if (forgotPasswordBtn) forgotPasswordBtn.addEventListener('click', handleForgotPassword);
+      if (webauthnBtn) webauthnBtn.addEventListener('click', handleWebAuthn);
+updateAuthNav();
       window.addEventListener('storage', function(e) {
         if (TOKEN_KEYS.indexOf(e.key) !== -1) updateAuthNav();
       });

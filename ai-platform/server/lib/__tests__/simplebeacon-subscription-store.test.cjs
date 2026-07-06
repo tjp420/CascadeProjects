@@ -295,14 +295,26 @@ describe('consumeScan', () => {
     }
   });
 
-  it('enforces startup quota', async () => {
-    await store.upsertSubscription('startup@example.com', { tier: 'startup' });
-    const quota = store.SCAN_QUOTA_MAP.startup;
+  it('enforces pro quota (same as startup)', async () => {
+    await store.upsertSubscription('pro@example.com', { tier: 'pro' });
+    const quota = store.SCAN_QUOTA_MAP.pro;
     for (let i = 0; i < quota; i++) {
-      const r = await store.consumeScan('startup@example.com');
+      const r = await store.consumeScan('pro@example.com');
       assert.strictEqual(r.allowed, true, `scan ${i} should be allowed`);
     }
-    const over = await store.consumeScan('startup@example.com');
+    const over = await store.consumeScan('pro@example.com');
+    assert.strictEqual(over.allowed, false);
+    assert.strictEqual(over.reason, 'scan_quota_exceeded');
+  });
+
+  it('enforces team quota (same as growth)', async () => {
+    await store.upsertSubscription('team@example.com', { tier: 'team' });
+    const quota = store.SCAN_QUOTA_MAP.team;
+    for (let i = 0; i < quota; i++) {
+      const r = await store.consumeScan('team@example.com');
+      assert.strictEqual(r.allowed, true, `scan ${i} should be allowed`);
+    }
+    const over = await store.consumeScan('team@example.com');
     assert.strictEqual(over.allowed, false);
     assert.strictEqual(over.reason, 'scan_quota_exceeded');
   });

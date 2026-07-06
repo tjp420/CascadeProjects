@@ -13,6 +13,7 @@ export class ChatbotView {
     this.SETTINGS_KEY = 'simplebeacon_chatbot_settings';
     this.personality = 'helpful';
     this.removeFilters = false;
+    this.username = localStorage.getItem('simplebeacon_chatbot_username') || '';
     this._mentions = []; // { filePath, content }
     this._attachedFindings = []; // { id, severity, type, filePath, description, snippet }
     this._diffOpenIndex = null;
@@ -113,11 +114,11 @@ export class ChatbotView {
     container.innerHTML = `
       <style>
         @keyframes cb-fade-up { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
-        .cb-v3 { animation:cb-fade-up .5s ease both; }
-        .cb-v3-header { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:20px; }
+        .cb-v3 { animation:cb-fade-up .5s ease both; display:flex; flex-direction:column; height:100%; }
+        .cb-v3-header { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:8px; }
         .cb-v3-header h1 { font-size:2.2rem; font-weight:800; margin:0; letter-spacing:-0.03em; background:linear-gradient(135deg,var(--text-primary) 0%,var(--accent) 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
         .cb-v3-header p { color:var(--text-muted); font-size:0.9rem; margin:6px 0 0; }
-        .cb-v3-card { background:linear-gradient(145deg, rgba(30,41,59,0.7), rgba(15,23,42,0.6)); border:1px solid rgba(148,163,184,0.08); border-radius:20px; overflow:hidden; backdrop-filter:blur(12px); transition:box-shadow .3s ease; display:flex; flex-direction:column; height:calc(100vh - 140px); min-height:420px; }
+        .cb-v3-card { background:linear-gradient(145deg, rgba(30,41,59,0.7), rgba(15,23,42,0.6)); border:1px solid rgba(148,163,184,0.08); border-radius:20px; overflow:hidden; backdrop-filter:blur(12px); transition:box-shadow .3s ease; display:flex; flex-direction:column; flex:1; min-height:0; }
         [data-theme='light'] .cb-v3-card { background:linear-gradient(145deg, rgba(255,255,255,0.85), rgba(248,250,252,0.9)); border-color:rgba(148,163,184,0.15); }
         @media (max-width: 768px) {
           .cb-v3-card { height:calc(100vh - 120px); min-height:360px; border-radius:14px; }
@@ -148,8 +149,9 @@ export class ChatbotView {
         .cb-v3-bubble code { font-family:var(--font-mono); font-size:0.8rem; }
         .cb-v3-bubble pre code { font-size:0.78rem; }
         .cb-v3-inline-code { background:rgba(148,163,184,0.12); padding:2px 6px; border-radius:4px; font-size:0.8rem; }
-        .cb-v3-input-area { padding:14px 18px; border-top:1px solid rgba(148,163,184,0.08); display:flex; gap:10px; align-items:flex-end; }
-        .cb-v3-textarea { flex:1; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:12px 16px; font-size:0.85rem; color:var(--text-primary); resize:none; min-height:44px; max-height:200px; overflow-y:auto; transition:border-color .2s,box-shadow .2s; line-height:1.5; }
+        .cb-v3-input-area { padding:14px 18px; border-top:1px solid rgba(148,163,184,0.08); display:flex; gap:10px; align-items:flex-end; flex-shrink:0; }
+        .cb-v3-mention-wrap { flex:1; display:flex; flex-direction:column; }
+        .cb-v3-textarea { width:100%; box-sizing:border-box; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:12px 16px; font-size:0.85rem; color:var(--text-primary); resize:none; min-height:44px; max-height:200px; overflow-y:auto; transition:border-color .2s,box-shadow .2s; line-height:1.5; }
         .cb-v3-textarea:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(99,102,241,0.15); }
         .cb-v3-send { background:var(--accent); color:#fff; border:none; border-radius:14px; padding:12px 22px; font-size:0.85rem; font-weight:700; cursor:pointer; transition:transform .2s,box-shadow .2s; }
         .cb-v3-send:hover:not(:disabled) { transform:translateY(-2px); box-shadow:0 4px 16px rgba(99,102,241,0.3); }
@@ -197,6 +199,10 @@ export class ChatbotView {
           <h1>🤖 Chatbot</h1>
           <p>AI-powered assistance for your codebase</p>
         </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span id="cb-username-display" style="font-size:0.78rem;color:var(--text-muted);font-weight:600;">${this.username ? escapeHtml(this.username) : 'You'}</span>
+          <button id="cb-username-edit" class="cb-v3-btn" title="Change display name" style="padding:4px 8px;font-size:0.7rem;">✏️</button>
+        </div>
       </div>
 
       <div class="cb-v3-notice">
@@ -233,6 +239,11 @@ export class ChatbotView {
               </select>
             </div>
             <div>
+              <label class="cb-v3-label">Display Name</label>
+              <p class="cb-v3-help">Name shown next to your messages.</p>
+              <input type="text" id="chatbot-username" class="cb-v3-select" style="width:100%;padding:8px 12px;" value="${escapeHtml(this.username)}" placeholder="Your name..." />
+            </div>
+            <div>
               <label class="cb-v3-label">Content Filters</label>
               <p class="cb-v3-help">When disabled, the AI will not apply safety or content filtering.</p>
               <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.82rem;color:var(--text-secondary);">
@@ -259,11 +270,11 @@ export class ChatbotView {
         <div id="chatbot-messages" class="cb-v3-messages"></div>
 
         <div class="cb-v3-input-area">
-          <div class="cb-v3-mention-wrap" style="flex:1;position:relative;">
+          <div class="cb-v3-mention-wrap" style="position:relative;">
             <textarea id="chatbot-input" class="cb-v3-textarea" placeholder="Ask about your codebase... Type @ to mention a file" rows="1"></textarea>
             <div id="cb-mentions-dropdown" class="cb-v3-mentions-dropdown" style="display:none;"></div>
             <div id="cb-findings-dropdown" class="cb-v3-finding-dropdown" style="display:none;"></div>
-            <div id="cb-input-chips" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;"></div>
+            <div id="cb-input-chips" style="display:none;flex-wrap:wrap;gap:4px;margin-top:4px;"></div>
           </div>
           <button id="chatbot-send" class="cb-v3-send" ${this.isLoading ? 'disabled' : ''}>
             ${this.isLoading ? '⏳' : 'Send'}
@@ -278,6 +289,20 @@ export class ChatbotView {
     this._renderInputChips();
     const input = document.getElementById('chatbot-input');
     if (input) this.autoResizeTextarea(input);
+    // Lock viewport: remove page scroll and padding so chat fills the screen
+    const appMain = document.getElementById('app-main');
+    if (appMain) {
+      this._savedAppMainStyles = {
+        padding: appMain.style.padding,
+        overflow: appMain.style.overflow,
+        display: appMain.style.display,
+        flexDirection: appMain.style.flexDirection
+      };
+      appMain.style.padding = '0';
+      appMain.style.overflow = 'hidden';
+      appMain.style.display = 'flex';
+      appMain.style.flexDirection = 'column';
+    }
 
     return container;
   }
@@ -456,13 +481,30 @@ export class ChatbotView {
       removeFiltersCheckbox.checked = this.removeFilters;
     }
 
+    const usernameInput = document.getElementById('chatbot-username');
+    if (usernameInput) {
+      usernameInput.value = this.username;
+    }
+
     if (settingsSave) {
       settingsSave.addEventListener('click', () => {
         this.personality = personalitySelect?.value || 'helpful';
         this.removeFilters = removeFiltersCheckbox?.checked || false;
+        this.username = usernameInput?.value.trim() || '';
+        localStorage.setItem('simplebeacon_chatbot_username', this.username);
         this.saveSettings();
         this.showPromptToast('Settings saved');
         if (settingsPanel) settingsPanel.style.display = 'none';
+        const display = document.getElementById('cb-username-display');
+        if (display) display.textContent = this.username || 'You';
+      });
+    }
+
+    const usernameEditBtn = document.getElementById('cb-username-edit');
+    if (usernameEditBtn && settingsPanel) {
+      usernameEditBtn.addEventListener('click', () => {
+        settingsPanel.style.display = 'block';
+        if (usernameInput) usernameInput.focus();
       });
     }
   }
@@ -591,6 +633,7 @@ export class ChatbotView {
       // Create placeholder for assistant response
       const assistantMessageIndex = this.conversationHistory.length;
       this.conversationHistory.push({ role: 'assistant', content: '' });
+      this.renderMessages();
       
       // Get the message container for streaming updates
       const container = document.getElementById('chatbot-messages');
@@ -700,7 +743,7 @@ export class ChatbotView {
         <div class="cb-v3-avatar ${msg.role}">${msg.role === 'user' ? '👤' : '🤖'}</div>
         <div style="min-width:0;">
           <div style="display:flex;align-items:center;margin-bottom:4px;">
-            <span style="font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;">${msg.role === 'user' ? 'You' : 'AI'}</span>
+            <span style="font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;">${msg.role === 'user' ? escapeHtml(this.username || 'You') : 'AI'}</span>
             ${msg.role === 'assistant' ? `<button class="cb-v3-copy" data-index="${index}" title="Copy response">📋</button>` : ''}
           </div>
           <div class="cb-v3-bubble ${msg.role}">${this.formatMessage(msg.content)}</div>
@@ -980,6 +1023,7 @@ export class ChatbotView {
         this.personality = settings.personality || 'helpful';
         this.removeFilters = settings.removeFilters || false;
         this.selectedProvider = settings.selectedProvider || this.selectedProvider || 'ollama';
+        this.username = settings.username || localStorage.getItem('simplebeacon_chatbot_username') || '';
       }
     } catch (error) {
       console.error('Failed to load settings:', error);
@@ -991,7 +1035,8 @@ export class ChatbotView {
       localStorage.setItem(this.SETTINGS_KEY, JSON.stringify({
         personality: this.personality,
         removeFilters: this.removeFilters,
-        selectedProvider: this.selectedProvider
+        selectedProvider: this.selectedProvider,
+        username: this.username
       }));
     } catch (error) {
       console.error('Failed to save settings:', error);
@@ -1027,6 +1072,12 @@ export class ChatbotView {
   }
 
   destroy() {
-    // Cleanup event listeners if needed
+    const appMain = document.getElementById('app-main');
+    if (appMain && this._savedAppMainStyles) {
+      appMain.style.padding = this._savedAppMainStyles.padding;
+      appMain.style.overflow = this._savedAppMainStyles.overflow;
+      appMain.style.display = this._savedAppMainStyles.display;
+      appMain.style.flexDirection = this._savedAppMainStyles.flexDirection;
+    }
   }
 }

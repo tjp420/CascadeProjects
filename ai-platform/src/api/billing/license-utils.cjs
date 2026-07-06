@@ -18,6 +18,18 @@ function getStripeClient() {
 
 function resolvePriceId(product) {
   const map = {
+    pro_monthly:
+      process.env.STRIPE_PRICE_ID_PRO_MONTHLY ||
+      process.env.SIMPLEBEACON_PRO_PRICE_ID,
+    pro_annual:
+      process.env.STRIPE_PRICE_ID_PRO_ANNUAL ||
+      process.env.SIMPLEBEACON_PRO_ANNUAL_PRICE_ID,
+    team_monthly:
+      process.env.STRIPE_PRICE_ID_TEAM_MONTHLY ||
+      process.env.SIMPLEBEACON_TEAM_PRICE_ID,
+    team_annual:
+      process.env.STRIPE_PRICE_ID_TEAM_ANNUAL ||
+      process.env.SIMPLEBEACON_TEAM_ANNUAL_PRICE_ID,
     startup_monthly:
       process.env.STRIPE_PRICE_ID_STARTUP_MONTHLY ||
       process.env.SIMPLEBEACON_STARTUP_PRICE_ID,
@@ -72,7 +84,8 @@ function isValidEmail(email) {
 const VALID_LICENSE_TIERS = new Set([
   'developer', 'startup', 'growth', 'enterprise',
   'executive', 'agency', 'universal', 'euai', 'instant',
-  'community', 'operator', 'custom'
+  'community', 'operator', 'custom',
+  'free', 'pro', 'team'
 ]);
 
 function isValidLicenseTier(tier) {
@@ -81,8 +94,32 @@ function isValidLicenseTier(tier) {
 
 function checkoutModeForProduct(product) {
   const oneTimeProducts = ['executive_clearance', 'instant_report', 'eu_ai_act_sprint'];
-  return oneTimeProducts.includes(product) ? 'payment' : 'subscription';
+  const subscriptionProducts = ['pro_monthly', 'pro_annual', 'team_monthly', 'team_annual', 'startup_monthly', 'startup_annual', 'growth_monthly', 'growth_annual', 'teams_monthly', 'teams_annual', 'continuous_shield', 'runtime_shield'];
+  if (oneTimeProducts.includes(product)) return 'payment';
+  if (subscriptionProducts.includes(product)) return 'subscription';
+  return 'subscription';
 }
+
+const PRODUCT_TIER_MAP = {
+  instant_report: 'instant',
+  executive_clearance: 'executive',
+  eu_ai_act_sprint: 'euai',
+  custom_plan: 'custom'
+};
+
+const PRODUCT_FEATURES_MAP = {
+  instant_report: ['instant-report'],
+  executive_clearance: ['pdf-generation', 'certificate'],
+  eu_ai_act_sprint: ['eu-ai-act', 'pdf-generation', 'certificate'],
+  custom_plan: ['custom-plan', 'pdf-generation', 'certificate']
+};
+
+const PRODUCT_EXPIRY_MINUTES_MAP = {
+  instant_report: 7 * 24 * 60,
+  executive_clearance: 90 * 24 * 60,
+  eu_ai_act_sprint: 30 * 24 * 60,
+  custom_plan: 30 * 24 * 60
+};
 
 module.exports = {
   getAppBaseUrl,
@@ -93,5 +130,8 @@ module.exports = {
   isValidEmail,
   isValidLicenseTier,
   VALID_LICENSE_TIERS,
-  checkoutModeForProduct
+  checkoutModeForProduct,
+  PRODUCT_TIER_MAP,
+  PRODUCT_FEATURES_MAP,
+  PRODUCT_EXPIRY_MINUTES_MAP
 };

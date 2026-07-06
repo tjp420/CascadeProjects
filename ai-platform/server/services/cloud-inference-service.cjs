@@ -34,9 +34,9 @@ const DEFAULTS = {
 
 // Circuit breaker state to prevent cascading failures
 const circuitBreakerState = {
-    openai: { failures: 0, lastFailure: 0, isOpen: false },
-    anthropic: { failures: 0, lastFailure: 0, isOpen: false },
-    ollama: { failures: 0, lastFailure: 0, isOpen: false }
+    openai: { failures: 0, lastFailure: 0, isOpen: false, probePending: false },
+    anthropic: { failures: 0, lastFailure: 0, isOpen: false, probePending: false },
+    ollama: { failures: 0, lastFailure: 0, isOpen: false, probePending: false }
 };
 
 const CIRCUIT_BREAKER_THRESHOLD = 5; // Open circuit after 5 failures
@@ -44,10 +44,10 @@ const CIRCUIT_BREAKER_TIMEOUT = constants.TIMEOUT_1M; // Reset after 60 seconds
 
 /**
  * Resolve credential.
- * @param {Array} userCredentials
+ * @param {Object|null} userCredentials
  * @param {string} providerId
- * @param {any} envKey
- * @returns {any}
+ * @param {string} envKey
+ * @returns {string}
  */
 function resolveCredential(userCredentials, providerId, envKey) {
     const userValue = userCredentials?.[providerId];
@@ -58,7 +58,7 @@ function resolveCredential(userCredentials, providerId, envKey) {
 /**
  * Check circuit breaker.
  * @param {string} providerId
- * @returns {any}
+ * @returns {boolean}
  */
 function checkCircuitBreaker(providerId) {
     const state = circuitBreakerState[providerId];
@@ -67,10 +67,12 @@ function checkCircuitBreaker(providerId) {
     if (state.isOpen) {
         const timeSinceFailure = Date.now() - state.lastFailure;
         if (timeSinceFailure > CIRCUIT_BREAKER_TIMEOUT) {
-            // Reset circuit breaker
-            state.isOpen = false;
-            state.failures = 0;
-            logger.info(`[Circuit Breaker] ${providerId} circuit reset`);
+            // Transition to half-open: allow one probe request
+            if (state.probePending) {
+                return true; // Another probe is already in flight
+            }
+            state.probePending = true;
+            logger.info(`[Circuit Breaker] ${providerId} circuit half-open — allowing probe request`);
             return false;
         }
         return true; // Circuit is still open
@@ -81,7 +83,7 @@ function checkCircuitBreaker(providerId) {
 /**
  * Record failure.
  * @param {string} providerId
- * @returns {any}
+ * @returns {void}
  */
 function recordFailure(providerId) {
     const state = circuitBreakerState[providerId];
@@ -89,6 +91,7 @@ function recordFailure(providerId) {
 
     state.failures++;
     state.lastFailure = Date.now();
+    state.probePending = false;
 
     if (state.failures >= CIRCUIT_BREAKER_THRESHOLD) {
         state.isOpen = true;
@@ -99,7 +102,7 @@ function recordFailure(providerId) {
 /**
  * Record success.
  * @param {string} providerId
- * @returns {any}
+ * @returns {void}
  */
 function recordSuccess(providerId) {
     const state = circuitBreakerState[providerId];
@@ -107,14 +110,15 @@ function recordSuccess(providerId) {
 
     state.failures = 0;
     state.isOpen = false;
+    state.probePending = false;
 }
 
 /**
  * Fetch with timeout.
  * @param {string} url
- * @param {Object} options
- * @param {Array} timeoutMs
- * @returns {any}
+ * @param {Object} [options]
+ * @param {number} [timeoutMs]
+ * @returns {Promise<Response>}
  */
 async function fetchWithTimeout(url, options = {}, timeoutMs = constants.TIMEOUT_30S) {
     const controller = new AbortController();
@@ -139,9 +143,9 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = constants.TIMEOUT
 /**
  * Retry with backoff.
  * @param {Function} fn
- * @param {Array} maxRetries
- * @param {Array} baseDelayMs
- * @returns {any}
+ * @param {number} [maxRetries]
+ * @param {number} [baseDelayMs]
+ * @returns {Promise<any>}
  */
 async function retryWithBackoff(fn, maxRetries = 3, baseDelayMs = constants.ONE_SECOND_MS) {
     let lastError;
@@ -152,12 +156,16 @@ async function retryWithBackoff(fn, maxRetries = 3, baseDelayMs = constants.ONE_
         } catch (error) {
             lastError = error;
 
-            // Critical Client Errors: Authentication issues or invalid requests should drop early
-            if (error.message.includes('401') ||
+            const statusCode = error.statusCode || null;
+            const isClientError = error.message.includes('401') ||
                 error.message.includes('403') ||
                 error.message.includes('400') ||
                 error.message.includes('authentication') ||
-                error.message.includes('configured')) {
+                error.message.includes('configured');
+            const isRetryable = statusCode === 429 || statusCode === 503 || statusCode === 502 || statusCode === 504;
+
+            // Critical Client Errors: Authentication issues or invalid requests should drop early
+            if (isClientError && !isRetryable) {
                 throw error;
             }
 
@@ -165,7 +173,9 @@ async function retryWithBackoff(fn, maxRetries = 3, baseDelayMs = constants.ONE_
                 throw error;
             }
 
-            const delayMs = baseDelayMs * Math.pow(2, attempt);
+            // Exponential backoff with jitter for 429 rate limits
+            const jitter = isRetryable ? Math.floor(Math.random() * 200) : 0;
+            const delayMs = baseDelayMs * Math.pow(2, attempt) + jitter;
             logger.warn(`[Retry] Attempt ${attempt + 1}/${maxRetries + 1} failed, retrying in ${delayMs}ms: ${error.message}`);
             await new Promise(resolve => setTimeout(resolve, delayMs));
         }
@@ -176,9 +186,9 @@ async function retryWithBackoff(fn, maxRetries = 3, baseDelayMs = constants.ONE_
 
 /**
  * Resolve ollama base url.
- * @param {string} registry
- * @param {Array} userCredentials
- * @returns {any}
+ * @param {Object|null} registry
+ * @param {Object|null} userCredentials
+ * @returns {string}
  */
 function resolveOllamaBaseUrl(registry = null, userCredentials = null) {
     return userCredentials?.ollamaBaseUrl
@@ -188,10 +198,10 @@ function resolveOllamaBaseUrl(registry = null, userCredentials = null) {
 
 /**
  * Resolve ollama model sync.
- * @param {string} registry
- * @param {Array} userCredentials
- * @param {Object} options
- * @returns {any}
+ * @param {Object|null} registry
+ * @param {Object|null} userCredentials
+ * @param {Object} [options]
+ * @returns {string|null}
  */
 function resolveOllamaModelSync(registry = null, userCredentials = null, options = {}) {
     return options.ollamaModel
@@ -223,10 +233,10 @@ function pickInstalledOllamaModel(requested, available = []) {
 
 /**
  * Resolve ollama model.
- * @param {string} registry
- * @param {Array} userCredentials
- * @param {Object} options
- * @returns {any}
+ * @param {Object|null} registry
+ * @param {Object|null} userCredentials
+ * @param {Object} [options]
+ * @returns {Promise<string|null>}
  */
 async function resolveOllamaModel(registry = null, userCredentials = null, options = {}) {
     const explicit = resolveOllamaModelSync(registry, userCredentials, options);
@@ -264,9 +274,9 @@ async function resolveOllamaModel(registry = null, userCredentials = null, optio
 
 /**
  * List available providers.
- * @param {string} registry
- * @param {Array} userCredentials
- * @returns {any}
+ * @param {Object|null} registry
+ * @param {Object|null} userCredentials
+ * @returns {Array<Object>}
  */
 function listAvailableProviders(registry = null, userCredentials = null) {
     const activeModel = registry?.models?.find((m) => m.id === registry.activeModelId);
@@ -323,9 +333,9 @@ function listAvailableProviders(registry = null, userCredentials = null) {
 /**
  * Provider configured.
  * @param {string} providerId
- * @param {string} registry
- * @param {Array} userCredentials
- * @returns {any}
+ * @param {Object|null} registry
+ * @param {Object|null} userCredentials
+ * @returns {boolean}
  */
 function providerConfigured(providerId, registry = null, userCredentials = null) {
     if (providerId === 'ollama') {
@@ -338,7 +348,7 @@ function providerConfigured(providerId, registry = null, userCredentials = null)
 /**
  * Provider config hint.
  * @param {string} providerId
- * @returns {any}
+ * @returns {string}
  */
 function providerConfigHint(providerId) {
     const settingsHint = 'add your key in Settings → AI providers';
@@ -353,9 +363,9 @@ function providerConfigHint(providerId) {
 /**
  * Summarize scan with provider.
  * @param {string} providerId
- * @param {any} scanPayload
- * @param {Object} options
- * @returns {any}
+ * @param {Object} scanPayload
+ * @param {Object} [options]
+ * @returns {Promise<Object>}
  */
 async function summarizeScanWithProvider(providerId, scanPayload, options = {}) {
     const reportType = options.reportType || scanPayload.reportKind || '';
@@ -384,19 +394,43 @@ async function summarizeScanWithProvider(providerId, scanPayload, options = {}) 
     }
 
     const prompt = buildScanPrompt(scanPayload, options.projectPath, options.reportType, options);
-    const providerResult = await callProvider(providerId, prompt, options);
+    let providerResult;
+    try {
+        providerResult = await callProvider(providerId, prompt, options);
+    } catch (error) {
+        logInferenceEvent({
+            provider: providerId,
+            operation: 'summarizeScan',
+            projectLabel: redactPathForSummary(options.projectPath),
+            outcome: 'error',
+            errorMessage: error.message
+        });
+        throw error;
+    }
     const summary = sanitizeSummaryText(providerResult?.text, providerId);
     logInferenceEvent({
         provider: providerId,
         operation: 'summarizeScan',
         projectLabel: redactPathForSummary(options.projectPath),
-        outcome: 'ok'
+        outcome: 'ok',
+        requestId: providerResult?.requestId || null,
+        timingMs: providerResult?.timing?.durationMs || null,
+        tokenUsage: providerResult?.usage || null
     });
     const result = {
         enhanced: true,
         provider: providerId,
         summary
     };
+    if (providerResult?.timing) {
+        result.timing = providerResult.timing;
+    }
+    if (providerResult?.usage) {
+        result.usage = providerResult.usage;
+    }
+    if (providerResult?.requestId) {
+        result.requestId = providerResult.requestId;
+    }
     if (options._ollamaModelFallback) {
         result.modelFallback = options._ollamaModelFallback;
     }
@@ -419,7 +453,7 @@ const OLLAMA_SUMMARY_SYSTEM_PROMPT = CLOUD_SUMMARY_SYSTEM_PROMPT;
 /**
  * Redact path for summary.
  * @param {string} projectPath
- * @returns {any}
+ * @returns {string}
  */
 function redactPathForSummary(projectPath) {
     const normalized = String(projectPath || '').replace(/\\/g, '/').trim();
@@ -434,8 +468,8 @@ function redactPathForSummary(projectPath) {
 
 /**
  * Count fiction issues.
- * @param {Array} issues
- * @returns {any}
+ * @param {Array<Object>} [issues]
+ * @returns {number}
  */
 function countFictionIssues(issues = []) {
     return issues
@@ -445,11 +479,11 @@ function countFictionIssues(issues = []) {
 
 /**
  * Build scan prompt.
- * @param {any} scanPayload
+ * @param {Object} scanPayload
  * @param {string} projectPath
- * @param {number} reportType
- * @param {Object} options
- * @returns {any}
+ * @param {string} [reportType]
+ * @param {Object} [options]
+ * @returns {string}
  */
 function buildScanPrompt(scanPayload, projectPath, reportType = '', options = {}) {
     if (options.customPrompt) {
@@ -464,11 +498,6 @@ function buildScanPrompt(scanPayload, projectPath, reportType = '', options = {}
 
     if (type === 'file-merger-reduction-report') {
         const merger = scanPayload.mergerSummary || {};
-/**
- * Paths.
- * @param {string} scanPayload.scanPaths || []
- * @returns {any}
- */
         const paths = (scanPayload.scanPaths || []).map((p) => redactPathForSummary(p)).join(', ') || '—';
         const repoFiles = merger.repositoryFilesTotal ?? scanPayload.repositoryInventory?.totalFiles ?? '—';
         const repoFolders = merger.repositoryFoldersTotal ?? scanPayload.repositoryInventory?.totalFolders ?? '—';
@@ -599,9 +628,9 @@ Do not call production-path references "blocking issues" when gate is PASS.`;
 
 /**
  * Sanitize summary text.
- * @param {string} text
- * @param {string} providerId
- * @returns {any}
+ * @param {string|Object} text
+ * @param {string} [providerId]
+ * @returns {string}
  */
 function sanitizeSummaryText(text, providerId = '') {
     const raw = text && typeof text === 'object' ? text.text : text;
@@ -612,15 +641,15 @@ function sanitizeSummaryText(text, providerId = '') {
     }
     out = out.replace(/[A-Za-z]:[\\/][^\s,)]+/g, (match) => redactPathForSummary(match));
     out = out.replace(/(?:\(|\s)([A-Za-z]:[\\/][^\s,)]+)/g, (_, path) => ` (${redactPathForSummary(path)})`);
-    return out || String(text || '').trim();
+    return out;
 }
 
 /**
  * Call provider.
  * @param {string} providerId
- * @param {any} prompt
- * @param {Object} options
- * @returns {any}
+ * @param {string|Array<Object>} prompt
+ * @param {Object} [options]
+ * @returns {Promise<Object>}
  */
 async function callProvider(providerId, prompt, options = {}) {
     // Check circuit breaker before attempting request
@@ -652,9 +681,9 @@ async function callProvider(providerId, prompt, options = {}) {
 
 /**
  * Normalize messages.
- * @param {any} input
- * @param {Object} options
- * @returns {any}
+ * @param {string|Array<Object>} input
+ * @param {Object} [options]
+ * @returns {Array<Object>}
  */
 function normalizeMessages(input, options = {}) {
     if (Array.isArray(input) && input.length > 0 && typeof input[0] === 'object' && 'role' in input[0]) {
@@ -667,10 +696,10 @@ function normalizeMessages(input, options = {}) {
 }
 
 /**
- * Call open a i.
- * @param {any} prompt
- * @param {Object} options
- * @returns {any}
+ * Call OpenAI.
+ * @param {string|Array<Object>} prompt
+ * @param {Object} [options]
+ * @returns {Promise<Object>}
  */
 async function callOpenAI(prompt, options = {}) {
     const cfg = DEFAULTS.openai;
@@ -680,12 +709,15 @@ async function callOpenAI(prompt, options = {}) {
     }
     const messages = normalizeMessages(prompt, options);
     const timeoutMs = options.timeoutMs || cfg.timeoutMs;
+    const startedAt = Date.now();
+    const requestId = options.requestId || `sb-${startedAt}-${Math.random().toString(36).slice(2, 8)}`;
 
     const response = await fetchWithTimeout(`${cfg.baseUrl.replace(/\/$/, '')}/chat/completions`, {
         method: 'POST',
         headers: {
             Authorization: `Bearer ${apiKey}`,
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            ...(requestId ? { 'X-Request-ID': requestId } : {})
         },
         body: JSON.stringify({
             model: options.model || cfg.model,
@@ -696,22 +728,37 @@ async function callOpenAI(prompt, options = {}) {
     }, timeoutMs);
 
     if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error?.message || `OpenAI request failed (${response.status})`);
+        let errorBody = '';
+        try {
+            errorBody = await response.text();
+        } catch {
+            /* ignore secondary read errors */
+        }
+        let parsed = null;
+        try {
+            parsed = JSON.parse(errorBody);
+        } catch {
+            /* not JSON — use raw text */
+        }
+        const err = new Error(parsed?.error?.message || errorBody.slice(0, 200) || `OpenAI request failed (${response.status})`);
+        err.statusCode = response.status;
+        throw err;
     }
     const data = await response.json();
     return {
         text: data.choices?.[0]?.message?.content?.trim() || '',
         provider: 'openai',
-        timing: null
+        timing: { durationMs: Date.now() - startedAt, provider: 'openai' },
+        usage: data.usage || null,
+        requestId
     };
 }
 
 /**
- * Call anthropic.
- * @param {any} prompt
- * @param {Object} options
- * @returns {any}
+ * Call Anthropic.
+ * @param {string|Array<Object>} prompt
+ * @param {Object} [options]
+ * @returns {Promise<Object>}
  */
 async function callAnthropic(prompt, options = {}) {
     const cfg = DEFAULTS.anthropic;
@@ -721,6 +768,8 @@ async function callAnthropic(prompt, options = {}) {
     }
     const messages = normalizeMessages(prompt, options);
     const timeoutMs = options.timeoutMs || cfg.timeoutMs;
+    const startedAt = Date.now();
+    const requestId = options.requestId || `sb-${startedAt}-${Math.random().toString(36).slice(2, 8)}`;
 
     // Convert system/user/assistant context array format to Anthropic structure cleanly
     const systemMessage = messages.find(m => m.role === 'system')?.content || '';
@@ -731,7 +780,8 @@ async function callAnthropic(prompt, options = {}) {
         headers: {
             'x-api-key': apiKey,
             'anthropic-version': '2023-06-01',
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            ...(requestId ? { 'X-Request-ID': requestId } : {})
         },
         body: JSON.stringify({
             model: options.model || cfg.model,
@@ -742,28 +792,38 @@ async function callAnthropic(prompt, options = {}) {
     }, timeoutMs);
 
     if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error?.message || `Anthropic request failed (${response.status})`);
+        let errorBody = '';
+        try {
+            errorBody = await response.text();
+        } catch {
+            /* ignore secondary read errors */
+        }
+        let parsed = null;
+        try {
+            parsed = JSON.parse(errorBody);
+        } catch {
+            /* not JSON — use raw text */
+        }
+        const err = new Error(parsed?.error?.message || errorBody.slice(0, 200) || `Anthropic request failed (${response.status})`);
+        err.statusCode = response.status;
+        throw err;
     }
     const data = await response.json();
-/**
- * Block.
- * @param {any} data.content || []
- * @returns {any}
- */
     const block = (data.content || []).find((item) => item.type === 'text');
     return {
         text: block?.text?.trim() || '',
         provider: 'anthropic',
-        timing: null
+        timing: { durationMs: Date.now() - startedAt, provider: 'anthropic' },
+        usage: data.usage || null,
+        requestId
     };
 }
 
 /**
- * Call ollama.
- * @param {any} prompt
- * @param {Object} options
- * @returns {any}
+ * Call Ollama.
+ * @param {string|Array<Object>} prompt
+ * @param {Object} [options]
+ * @returns {Promise<Object>}
  */
 async function callOllama(prompt, options = {}) {
     const { ollamaGenerate } = require('./ollama-client.cjs');
@@ -816,8 +876,8 @@ const CODE_UNDERSTANDING_SYSTEM = 'You explain code purpose for engineering audi
 
 /**
  * Build code understanding prompt.
- * @param {any} payload
- * @returns {any}
+ * @param {Object} [payload]
+ * @returns {string}
  */
 function buildCodeUnderstandingPrompt(payload = {}) {
     const findings = (payload.staticFindings || [])
@@ -850,9 +910,9 @@ Answer with:
 /**
  * Explain code with provider.
  * @param {string} providerId
- * @param {any} payload
- * @param {Object} options
- * @returns {any}
+ * @param {Object} payload
+ * @param {Object} [options]
+ * @returns {Promise<Object>}
  */
 async function explainCodeWithProvider(providerId, payload, options = {}) {
     if (!providerId || providerId === 'demo' || providerId === 'active') {
@@ -864,24 +924,49 @@ async function explainCodeWithProvider(providerId, payload, options = {}) {
     }
 
     const prompt = buildCodeUnderstandingPrompt(payload);
-    const explanationResult = await callProvider(providerId, prompt, {
-        ...options,
-        systemPrompt: CODE_UNDERSTANDING_SYSTEM
-    });
+    let explanationResult;
+    try {
+        explanationResult = await callProvider(providerId, prompt, {
+            ...options,
+            systemPrompt: CODE_UNDERSTANDING_SYSTEM
+        });
+    } catch (error) {
+        logInferenceEvent({
+            provider: providerId,
+            operation: 'explainCode',
+            projectLabel: payload?.projectLabel || payload?.relativePath || null,
+            outcome: 'error',
+            errorMessage: error.message
+        });
+        throw error;
+    }
     const explanation = sanitizeSummaryText(explanationResult?.text, providerId);
 
     logInferenceEvent({
         provider: providerId,
         operation: 'explainCode',
         projectLabel: payload?.projectLabel || payload?.relativePath || null,
-        outcome: 'ok'
+        outcome: 'ok',
+        requestId: explanationResult?.requestId || null,
+        timingMs: explanationResult?.timing?.durationMs || null,
+        tokenUsage: explanationResult?.usage || null
     });
 
-    return {
+    const result = {
         enhanced: true,
         provider: providerId,
         explanation
     };
+    if (explanationResult?.timing) {
+        result.timing = explanationResult.timing;
+    }
+    if (explanationResult?.usage) {
+        result.usage = explanationResult.usage;
+    }
+    if (explanationResult?.requestId) {
+        result.requestId = explanationResult.requestId;
+    }
+    return result;
 }
 
 module.exports = {

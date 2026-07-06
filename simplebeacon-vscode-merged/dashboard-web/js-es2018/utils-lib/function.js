@@ -91,3 +91,58 @@ export function tryFn(fn, ...args) {
  */
 export function noop() { /* intentionally empty */ }
 
+/**
+ * Zip two arrays applying a function to each pair.
+ * @param {any[]} arr1
+ * @param {any[]} arr2
+ * @param {(a: any, b: any) => any} fn
+ * @returns {any[]}
+ */
+export function zipWith(arr1, arr2, fn) {
+  const len = Math.min(arr1.length, arr2.length);
+  const result = new Array(len);
+  for (let i = 0; i < len; i++) {
+    result[i] = fn(arr1[i], arr2[i]);
+  }
+  return result;
+}
+
+/**
+ * Curry a function so it can be called with one argument at a time.
+ * @param {Function} fn
+ * @returns {Function}
+ */
+export function curry(fn) {
+  return function curried(...args) {
+    if (args.length >= fn.length) {
+      return fn.apply(this, args);
+    }
+    return function (...nextArgs) {
+      return curried.apply(this, args.concat(nextArgs));
+    };
+  };
+}
+
+/**
+ * Partially apply a function with preset leading arguments.
+ * @param {Function} fn
+ * @param {...any} presetArgs
+ * @returns {Function}
+ */
+export function partial(fn, ...presetArgs) {
+  return function (...args) {
+    return fn.apply(this, presetArgs.concat(args));
+  };
+}
+
+/**
+ * Run a side-effect function on a value and return the value.
+ * @param {any} value
+ * @param {Function} fn
+ * @returns {any}
+ */
+export function tap(value, fn) {
+  fn(value);
+  return value;
+}
+

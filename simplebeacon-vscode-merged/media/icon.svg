@@ -1,21 +1,65 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
   <defs>
-    <linearGradient id="shieldGrad" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#2563eb"/>
-      <stop offset="100%" stop-color="#1e3a8a"/>
-    </linearGradient>
-    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
-      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000000" flood-opacity="0.25"/>
-    </filter>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fbbf24" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#fbbf24" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="blueGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#60a5fa" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#60a5fa" stop-opacity="0"/>
+    </radialGradient>
   </defs>
-  <path d="M64 8 L16 28 L16 60 C16 92 36 116 64 120 C92 116 112 92 112 60 L112 28 L64 8Z" fill="url(#shieldGrad)" filter="url(#shadow)" stroke="#1d4ed8" stroke-width="2"/>
-  <path d="M64 18 L28 34 L28 60 C28 84 44 104 64 108 C84 104 100 84 100 60 L100 34 L64 18Z" fill="none" stroke="#60a5fa" stroke-width="2" opacity="0.6"/>
-  <g transform="translate(34, 34)" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-    <circle cx="22" cy="22" r="14"/>
-    <path d="M32 32 L44 44"/>
-    <path d="M22 14 L22 22 L30 22" stroke-width="2"/>
-    <circle cx="22" cy="22" r="4" fill="#ffffff" stroke="none"/>
+
+  <!-- Dark rounded background -->
+  <rect x="4" y="4" width="120" height="120" rx="24" fill="#0f172a" stroke="#1e293b" stroke-width="2"/>
+
+  <!-- Central glow behind cluster -->
+  <circle cx="64" cy="60" r="42" fill="url(#glow)"/>
+
+  <!-- Connection lines (thin, wireframe feel) -->
+  <g stroke="#334155" stroke-width="1.2" opacity="0.7">
+    <line x1="64" y1="60" x2="46" y2="40"/>
+    <line x1="64" y1="60" x2="82" y2="40"/>
+    <line x1="64" y1="60" x2="88" y2="58"/>
+    <line x1="64" y1="60" x2="78" y2="78"/>
+    <line x1="64" y1="60" x2="50" y2="78"/>
+    <line x1="64" y1="60" x2="36" y2="54"/>
+    <line x1="46" y1="40" x2="82" y2="40"/>
+    <line x1="82" y1="40" x2="88" y2="58"/>
+    <line x1="88" y1="58" x2="78" y2="78"/>
+    <line x1="78" y1="78" x2="50" y2="78"/>
+    <line x1="50" y1="78" x2="36" y2="54"/>
+    <line x1="36" y1="54" x2="46" y2="40"/>
+    <line x1="82" y1="40" x2="78" y2="78"/>
+    <line x1="46" y1="40" x2="50" y2="78"/>
   </g>
-  <path d="M52 88 L76 88" stroke="#fbbf24" stroke-width="4" stroke-linecap="round"/>
-  <path d="M44 96 L84 96" stroke="#fbbf24" stroke-width="4" stroke-linecap="round" opacity="0.7"/>
+
+  <!-- Outer peripheral nodes (smaller) -->
+  <circle cx="46" cy="40" r="5" fill="#f59e0b" opacity="0.85"/>
+  <circle cx="82" cy="40" r="5" fill="#f59e0b" opacity="0.85"/>
+  <circle cx="88" cy="58" r="5" fill="#3b82f6" opacity="0.85"/>
+  <circle cx="78" cy="78" r="5" fill="#f59e0b" opacity="0.85"/>
+  <circle cx="50" cy="78" r="5" fill="#f59e0b" opacity="0.85"/>
+  <circle cx="36" cy="54" r="5" fill="#3b82f6" opacity="0.85"/>
+
+  <!-- Central hub (larger, brighter) -->
+  <circle cx="64" cy="60" r="10" fill="#fbbf24"/>
+  <circle cx="64" cy="60" r="6" fill="#fde047"/>
+
+  <!-- Top-right blue accent node with glow -->
+  <circle cx="90" cy="36" r="5" fill="#3b82f6"/>
+  <circle cx="90" cy="36" r="10" fill="url(#blueGlow)"/>
+  <line x1="82" y1="40" x2="90" y2="36" stroke="#334155" stroke-width="1.2" opacity="0.7"/>
+
+  <!-- Bottom-left yellow accent node with glow -->
+  <circle cx="30" cy="82" r="5" fill="#f59e0b"/>
+  <circle cx="30" cy="82" r="10" fill="url(#glow)"/>
+  <line x1="36" y1="54" x2="30" y2="82" stroke="#334155" stroke-width="1.2" opacity="0.7"/>
+  <line x1="50" y1="78" x2="30" y2="82" stroke="#334155" stroke-width="1.2" opacity="0.7"/>
+
+  <!-- Small detail nodes -->
+  <circle cx="72" cy="30" r="3" fill="#fde047" opacity="0.7"/>
+  <line x1="72" y1="30" x2="82" y2="40" stroke="#334155" stroke-width="1" opacity="0.5"/>
+  <circle cx="96" cy="68" r="3" fill="#60a5fa" opacity="0.7"/>
+  <line x1="96" y1="68" x2="88" y2="58" stroke="#334155" stroke-width="1" opacity="0.5"/>
 </svg>

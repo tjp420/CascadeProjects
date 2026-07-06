@@ -175,10 +175,13 @@ function scanFileContent(relativePath, content, patterns, ext) {
             if (isCommentLine(line, ext) && isDocumentationContext(line)) continue;
             if (isDocumentationContext(line)) continue;
 
+            const cardType = pattern.id.startsWith('ai-confidence-') ? 'hardcoded-confidence'
+                : pattern.id.startsWith('completion-rate-') ? 'hardcoded-completion'
+                : 'fiction-kpi';
             findings.push({
                 id: `source-fiction-${pattern.id}-${relativePath}-${match.index}`,
                 severity: pattern.severity,
-                type: 'Source Fiction KPI Pattern',
+                type: cardType,
                 filePath: relativePath,
                 file: relativePath,
                 line: lineIndex + 1,

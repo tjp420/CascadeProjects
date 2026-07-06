@@ -1,5 +1,7 @@
 const THEME_KEY = 'simplebeacon-theme';
 const MANUAL_KEY = 'simplebeacon-theme-manual';
+let _globalPollInterval = null;
+let _initCalled = false;
 
 function detectIdeTheme() {
   try {
@@ -24,13 +26,20 @@ function detectIdeTheme() {
 export class ThemeService {
   constructor() {
     this.theme = localStorage.getItem(THEME_KEY) || 'dark';
-    this.manualOverride = sessionStorage.getItem(MANUAL_KEY) === '1';
+    this.manualOverride = localStorage.getItem(MANUAL_KEY) === '1';
   }
 
   init() {
+    if (_initCalled) return;
+    _initCalled = true;
+    if (this.manualOverride) {
+      this.apply(this.theme);
+      if (window.__SIMPLEBEACON_ENV__ || /^127\.0\.0\.1:\d+$/.test(window.location.host)) { this.pollServerTheme(); }
+      return;
+    }
     const ideTheme = detectIdeTheme();
     if (ideTheme) {
-      this.set(ideTheme);
+      this.apply(ideTheme);
       return;
     }
     if (window.__SIMPLEBEACON_ENV__ || /^127\.0\.0\.1:\d+$/.test(window.location.host)) {
@@ -43,6 +52,9 @@ export class ThemeService {
   }
 
   pollServerTheme() {
+    if (_globalPollInterval !== null) {
+      clearInterval(_globalPollInterval);
+    }
     const poll = () => {
       if (typeof fetch !== 'function') return;
       if (this.manualOverride) return;
@@ -51,14 +63,14 @@ export class ThemeService {
       }).catch(() => {});
     };
     poll();
-    setInterval(poll, 5000);
+    _globalPollInterval = setInterval(poll, 5000);
   }
 
   followIde() {
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const applyMq = () => this.set(mq.matches ? 'dark' : 'light');
+    const applyMq = () => { if (!this.manualOverride) this.set(mq.matches ? 'dark' : 'light'); };
     try { mq.addEventListener('change', applyMq); } catch (_) { /* older browsers */ }
-    applyMq();
+    if (!this.manualOverride) applyMq();
   }
 
   get() {
@@ -67,7 +79,7 @@ export class ThemeService {
 
   toggle() {
     this.manualOverride = true;
-    sessionStorage.setItem(MANUAL_KEY, '1');
+    localStorage.setItem(MANUAL_KEY, '1');
     this.theme = this.theme === 'dark' ? 'light' : 'dark';
     localStorage.setItem(THEME_KEY, this.theme);
     this.apply(this.theme);
@@ -89,7 +101,7 @@ export class ThemeService {
       const iconName = theme === 'dark' ? 'sun' : 'moon';
       const icon = btn.querySelector('i[data-lucide]');
       if (icon) {
-        icon.innerHTML = '';
+        icon.textContent = '';
         icon.setAttribute('data-lucide', iconName);
         if (typeof window !== 'undefined' && window.lucide && typeof window.lucide.createIcons === 'function') {
           try { window.lucide.createIcons({ attrs: { 'stroke-width': 2 } }); } catch (_) {}

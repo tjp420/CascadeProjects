@@ -135,10 +135,6 @@ function walk(rootDir) {
 }
 
 // ── Run ─────────────────────────────────────────────────────────
-console.log(`\n🚀 SimpleBeacon High-Performance Analyzer`);
-console.log(`   Target: ${TARGET_DIR}`);
-console.log(`   Started: ${new Date().toISOString()}\n`);
-
 walk(TARGET_DIR);
 
 const duration = ((Date.now() - startTime) / 1000).toFixed(2);

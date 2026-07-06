@@ -737,3 +737,19 @@ export async function retryWithBackoff<T>(fn: () => Promise<T>, maxRetries = 3, 
   }
   throw lastErr;
 }
+
+/**
+ * Create a deferred promise with externally exposed resolve/reject handles.
+ * Useful when you need to resolve a promise from outside its constructor.
+ * @template T
+ * @returns {{ promise: Promise<T>; resolve(value: T): void; reject(reason?: unknown): void }}
+ */
+export function createDeferred<T>(): { promise: Promise<T>; resolve(value: T): void; reject(reason?: unknown): void } {
+  let resolveFn!: (value: T) => void;
+  let rejectFn!: (reason?: unknown) => void;
+  const promise = new Promise<T>((resolve, reject) => {
+    resolveFn = resolve;
+    rejectFn = reject;
+  });
+  return { promise, resolve: resolveFn, reject: rejectFn };
+}

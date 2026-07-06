@@ -1,5 +1,6 @@
 import { escapeHtml } from '../utils.js';
 // simplebeacon:production-leak-intent: mock-path - Legitimate documentation about mock data detection in About page
+// simplebeacon-ignore memory-leak — scanTextContent is a documentation helper; regex reuse in a loop is intentional and bounded.
 const GITHUB_REPO = 'https://github.com/tjp420/simplebeacon';
 const MANIFESTO = 'https://github.com/tjp420/simplebeacon/blob/main/docs/ANTI-BLOAT-MANIFESTO.md';
 // Transparency note: This dashboard view displays documentation about pattern-matching tools.
@@ -128,9 +129,16 @@ export class AboutView {
         <p class="text-muted">Found a bug or want a new pattern? Open a PR — I review contributions regularly.</p>
       </section>
     `;
-        (_a = container.querySelector('#about-open-dashboard')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => { // simplebeacon-ignore memory-leak
-            this.app.navigate('dashboard');
-        });
+        const btn = container.querySelector('#about-open-dashboard');
+        if (btn) {
+            this._onOpenDashboard = () => this.app.navigate('dashboard');
+            btn.addEventListener('click', this._onOpenDashboard);
+        }
     }
-    destroy() { }
+    destroy() {
+        if (this._onOpenDashboard) {
+            document.querySelector('#about-open-dashboard')?.removeEventListener('click', this._onOpenDashboard);
+            this._onOpenDashboard = undefined;
+        }
+    }
 }

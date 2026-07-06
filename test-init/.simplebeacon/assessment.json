@@ -1,0 +1,317 @@
+{
+  "type": "simplebeacon-assessment-report",
+  "title": "Simplebeacon Free Assessment — Test Corp",
+  "generatedAt": "2026-07-01T17:57:53.992Z",
+  "generatedBy": "Simplebeacon",
+  "assessor": "Tester",
+  "projectRoot": "c:\\Users\\Trevor\\CascadeProjects\\test-init",
+  "executiveSummary": {
+    "gateResult": "PASS",
+    "qualityScore": 100,
+    "filesScanned": 0,
+    "criticalIssues": 0,
+    "highIssues": 0,
+    "mediumIssues": 17,
+    "lowIssues": 4,
+    "warningCount": 17,
+    "blockingCount": 0,
+    "headline": "Clean scan — no blocking mock/fiction findings in configured paths.",
+    "complianceScore": 100,
+    "complianceReady": true
+  },
+  "complianceChecklist": {
+    "type": "simplebeacon-compliance-checklist",
+    "version": "1.0.0",
+    "title": "Simplebeacon Corporate Safety Checklist",
+    "description": "Automated guardrails for AI-generated code — maps scan signals to deploy readiness.",
+    "evaluatedAt": "2026-07-01T17:57:53.991Z",
+    "projectRoot": "c:\\Users\\Trevor\\CascadeProjects\\test-init",
+    "summary": {
+      "passed": 6,
+      "failed": 0,
+      "skipped": 5,
+      "total": 11,
+      "score": 100,
+      "readyForAutomation": true,
+      "checklistProfile": "default",
+      "headline": "6/6 applicable rules pass — safe to enable automated AI deploy gates"
+    },
+    "rules": [
+      {
+        "id": "GATE-001",
+        "title": "Merge gate passes on configured severities",
+        "category": "Automation",
+        "severity": "critical",
+        "remediation": "Fix blocking findings and re-run: npx simplebeacon scan --gate",
+        "status": "pass",
+        "evidence": "Gate pass — no blocking issues at configured severities"
+      },
+      {
+        "id": "CRED-001",
+        "title": "No credential or secret patterns in scanned paths",
+        "category": "Security",
+        "severity": "critical",
+        "remediation": "Remove secrets from the repo, rotate exposed credentials, add patterns to .gitignore",
+        "status": "pass",
+        "evidence": "Scanned 52 path(s) — no credential patterns"
+      },
+      {
+        "id": "LEAK-001",
+        "title": "No mock/sample JSON paths referenced from production directories",
+        "category": "Data integrity",
+        "severity": "high",
+        "remediation": "Replace hardcoded *-sample.json paths with repository-audit APIs or env-based config",
+        "status": "pass",
+        "evidence": "Scanned 182 production file(s) — no sample-path leaks"
+      },
+      {
+        "id": "DATA-001",
+        "title": "Registered page samples match schema specs",
+        "category": "Data integrity",
+        "severity": "high",
+        "remediation": "Fix schema violations listed in the scan report",
+        "status": "skip",
+        "evidence": "No registered page samples in this project"
+      },
+      {
+        "id": "DATA-002",
+        "title": "No fiction KPI or baseline drift in anchor samples",
+        "category": "Data integrity",
+        "severity": "high",
+        "remediation": "Replace fiction metrics with repository-audit baseline values",
+        "status": "skip",
+        "evidence": "Consistency anchors not configured for this profile"
+      },
+      {
+        "id": "SUPPLY-001",
+        "title": "No critical or high npm audit vulnerabilities",
+        "category": "Supply chain",
+        "severity": "critical",
+        "remediation": "Run npm audit fix; upgrade transitive dependencies blocking CVEs",
+        "status": "skip",
+        "evidence": "No package.json — npm audit not applicable"
+      },
+      {
+        "id": "SUPPLY-002",
+        "title": "Moderate npm vulnerabilities within policy limit",
+        "category": "Supply chain",
+        "severity": "medium",
+        "remediation": "Upgrade dependencies flagged by npm audit (moderate severity)",
+        "status": "skip",
+        "evidence": "No package.json — npm audit not applicable"
+      },
+      {
+        "id": "AUTH-001",
+        "title": "Production profile has JWT auth enabled (REQUIRE_AUTH)",
+        "category": "Access control",
+        "severity": "medium",
+        "remediation": "Set REQUIRE_AUTH=true and real JWT secrets in .env.production on the deploy host",
+        "status": "skip",
+        "evidence": ".env.production not present (local/dev repo)"
+      },
+      {
+        "id": "CLEANUP-001",
+        "title": "Directory bloat reviewed and safe-to-delete items identified",
+        "category": "Cleanup",
+        "severity": "medium",
+        "remediation": "Review directory bloat findings in data-cleanup scan and remove safe-to-delete items",
+        "status": "pass",
+        "evidence": "No directory bloat detected — codebase is clean"
+      },
+      {
+        "id": "CLEANUP-002",
+        "title": "Empty directories identified for removal",
+        "category": "Cleanup",
+        "severity": "low",
+        "remediation": "Remove empty directories flagged by the directory scanner",
+        "status": "pass",
+        "evidence": "No empty directories detected"
+      },
+      {
+        "id": "CLEANUP-003",
+        "title": "File reduction findings reviewed",
+        "category": "Cleanup",
+        "severity": "medium",
+        "remediation": "Review file reduction scan results and clean up unused files, duplicates, and build artifacts",
+        "status": "pass",
+        "evidence": "No file reduction findings — no cleanup needed"
+      }
+    ]
+  },
+  "findings": {
+    "credentials": {
+      "scanned": 52,
+      "findings": 0,
+      "severity": "high",
+      "items": [],
+      "summary": "No credential patterns detected in scanned paths."
+    },
+    "fictionKpis": {
+      "scanned": 0,
+      "findings": 0,
+      "severity": "high",
+      "items": [],
+      "summary": "No fiction KPI or consistency drift detected."
+    },
+    "productionLeaks": {
+      "scanned": 182,
+      "findings": 0,
+      "severity": "medium",
+      "items": [],
+      "summary": "No mock/sample path references in production directories."
+    },
+    "schemaDrift": {
+      "checked": 0,
+      "passed": 0,
+      "severity": "high",
+      "items": [],
+      "summary": "All registered page samples match schema specs."
+    },
+    "other": {
+      "items": [
+        {
+          "file": "packages/simplebeacon-cli/src/doctor.js",
+          "description": "packages/simplebeacon-cli/src/doctor.js:20 Unresolved LLM placeholder or conversational debris",
+          "severity": "medium",
+          "count": 1,
+          "recommendedAction": "Replace placeholder copy with production-ready values before client handoff"
+        },
+        {
+          "file": "c:\\Users\\Trevor\\CascadeProjects\\test_server.js",
+          "description": "Port; console.log(`Listening on http://127.0.0.1:${actualPort}`); }); dataServer",
+          "severity": "low",
+          "count": 1
+        },
+        {
+          "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\dashboard-web\\js\\vendor\\lucide.min.js",
+          "description": "d:\"M17 13v-3h4\"}],[\"path\",{d:\"M17 17.7c.4.2.8.3 1.3.3 1.5 0 2.7-1.1 2.7-2.5S19.8 13 18.",
+          "severity": "medium",
+          "count": 1
+        },
+        {
+          "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\dashboard-web\\js\\utils.js",
+          "description": "const lo = min === undefined ? 0 : Number(min) || 0; const hi = max === undefined ? 1 : Number(max) || 1; const r = Math",
+          "severity": "medium",
+          "count": 1
+        },
+        {
+          "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\extension.ts",
+          "description": "if (fs.existsSync(usagePath)) {",
+          "severity": "medium",
+          "count": 1
+        },
+        {
+          "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\out\\dataServer.js",
+          "description": "const out = child_process.execSync('wmic logicaldisk get name', { encoding: 'utf8' });",
+          "severity": "medium",
+          "count": 1
+        },
+        {
+          "file": "c:\\Users\\Trevor\\CascadeProjects\\scan-exports\\simplebeacon-export-operator-2026-06-16\\steps\\logging-secrets.json",
+          "description": "scan-exports/simplebeacon-export-operator-2026-06-16/steps/logging-secrets.json is tracked by git — add to .gitignore and rotate any exposed secrets",
+          "severity": "medium",
+          "count": 1
+        },
+        {
+          "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\dashboard-web\\js-es2018\\utils\\snippetDiagnostic.js",
+          "description": "Regex: -----BEGIN (RSA |EC |OPENSSH )?P — Alternation groups with quantifiers can cause polynomial backtracking",
+          "severity": "medium",
+          "count": 1
+        },
+        {
+          "file": "c:\\Users\\Trevor\\CascadeProjects\\test-jwt-rotation.cjs",
+          "description": "console.log(` Status: ${r1.status} — ${r1.body.error || 'OK'}`);",
+          "severity": "medium",
+          "count": 1
+        },
+        {
+          "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\__create_token.js",
+          "description": "console.log('Token:', token);",
+          "severity": "medium",
+          "count": 1
+        },
+        {
+          "file": "c:\\Users\\Trevor\\CascadeProjects\\sales\\license\\renewal-tracker.js",
+          "description": "console.log(`\\nAutomated Email Triggers (${alerts.length}):`);",
+          "severity": "medium",
+          "count": 1
+        },
+        {
+          "file": "c:\\Users\\Trevor\\CascadeProjects\\test-jwt-rotation.cjs",
+          "description": "Code after return statement is unreachable",
+          "severity": "low",
+          "count": 1
+        },
+        {
+          "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\enhancedScanProvider.ts",
+          "description": "Import \"QuickActionNode\" from \"./enhancedSidebar\" is never referenced",
+          "severity": "low",
+          "count": 1
+        },
+        {
+          "file": "c:\\Users\\Trevor\\CascadeProjects\\inspect_vsix.js",
+          "description": "h); let offset = 0; const entries = []; while (offset < data.length - 30) { if (data[offset] === 0x50 && data[offset + 1",
+          "severity": "medium",
+          "count": 1
+        },
+        {
+          "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\_test_js.js",
+          "description": "ons document.getElementById('searchBox').addEventListener('input', (e) => { const q = e.target.value.to",
+          "severity": "medium",
+          "count": 1
+        },
+        {
+          "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\dashboard-web\\site-config.js",
+          "description": "SimpleBeacon dashboard site config stub window.__SB_SITE_CONFIG__ = { features: { scan: true, analyze: true",
+          "severity": "low",
+          "count": 1
+        },
+        {
+          "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\dashboard-web\\js-es2018\\services\\themeService.js",
+          "description": "catch(() => {}); }; poll(); setInterval(poll, 5000); } followIde() { co",
+          "severity": "medium",
+          "count": 1
+        }
+      ],
+      "summary": "packages/simplebeacon-cli/src/doctor.js: packages/simplebeacon-cli/src/doctor.js:20 Unresolved LLM placeholder or conversational debris; c:\\Users\\Trevor\\CascadeProjects\\test_server.js: Port; console.log(`Listening on http://127.0.0.1:${actualPort}`); }); dataServer; c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\dashboard-web\\js\\vendor\\lucide.min.js: d:\"M17 13v-3h4\"}],[\"path\",{d:\"M17 17.7c.4.2.8.3 1.3.3 1.5 0 2.7-1.1 2.7-2.5S19.8 13 18.; c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\dashboard-web\\js\\utils.js: const lo = min === undefined ? 0 : Number(min) || 0; const hi = max === undefined ? 1 : Number(max) || 1; const r = Math; c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\extension.ts: if (fs.existsSync(usagePath)) {"
+    }
+  },
+  "recommendedActions": {
+    "immediate": [
+      "Add simplebeacon scan --gate to PR workflow (see docs/GITHUB-ACTION-QUICKSTART.md)"
+    ],
+    "next30Days": [
+      "Sync .simplebeacon/baseline.json after green test runs",
+      "Review production-leak allowlist for intentional seed files",
+      "Run consolidation scan to dedupe identical sample JSON"
+    ]
+  },
+  "complementaryStack": {
+    "keepUsing": [
+      "Snyk or GitHub Advanced Security for CVEs",
+      "SonarQube for code smells"
+    ],
+    "addSimplebeaconFor": [
+      "Mock/fiction drift in sample JSON",
+      "Hardcoded sample paths in production directories"
+    ]
+  },
+  "pilotProposal": {
+    "offer": "Wire simplebeacon gate + 30-day support",
+    "pricePlaceholder": "$2,000–10,000/year depending on team size",
+    "ask": "Will you run simplebeacon scan --gate on every PR for 2 weeks?"
+  },
+  "commandsRun": [
+    "npx simplebeacon scan --format json --output .simplebeacon/report.json --gate",
+    "npx simplebeacon assess --company \"Test Corp\" --assessor \"Tester\""
+  ],
+  "sourceReport": {
+    "generatedAt": "2026-07-01T17:50:35.307Z",
+    "scanPaths": [
+      "c:\\Users\\Trevor\\CascadeProjects\\test-init"
+    ],
+    "duplicateGroups": 0
+  },
+  "sanitized": true,
+  "sanitizedAt": "2026-07-01T17:57:53.994Z"
+}

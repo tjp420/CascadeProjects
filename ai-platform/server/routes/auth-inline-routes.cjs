@@ -13,8 +13,19 @@ const {
 const { validateInput } = require('../middleware/security.cjs');
 const { registerUser } = require('../services/user-service.cjs');
 const { getLicenseToken, insertLicenseToken } = require('../lib/token-db.cjs');
+const { isDatabaseEnabled, getDatabaseConfig } = require('../config/database.cjs');
+const DatabaseAdapter = require('../lib/database-adapter.cjs');
 
 const router = express.Router();
+
+let dbAdapter = null;
+if (isDatabaseEnabled()) {
+  try {
+    dbAdapter = new DatabaseAdapter(getDatabaseConfig());
+  } catch (e) {
+    console.warn('[Auth] Database adapter creation failed:', e.message);
+  }
+}
 
 const authLoginRateLimit = rateLimit({
   windowMs: Number(process.env.AUTH_LOGIN_RATE_LIMIT_WINDOW_MS || constants.RATE_LIMIT_WINDOW_MS),
@@ -27,7 +38,10 @@ const authLoginRateLimit = rateLimit({
   }
 });
 
-router.post('/auth/login', authLoginRateLimit, validateInput('login'), handleLogin);
+router.post('/auth/login', authLoginRateLimit, validateInput('login'), (req, res, next) => {
+  if (dbAdapter) req.db = dbAdapter;
+  next();
+}, handleLogin);
 
 router.post('/auth/register', authLoginRateLimit, validateInput('login'), async (req, res, next) => {
   try {

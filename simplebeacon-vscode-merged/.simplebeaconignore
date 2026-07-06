@@ -46,6 +46,7 @@ replace-dashboard.js
 *.log
 coverage/
 simplebeacon-rule-tests/
+false-positive-audit/
 
 # CLI scripts — console.log is expected output mechanism
 scripts/

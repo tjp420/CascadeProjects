@@ -14,14 +14,20 @@ const EU_AI_ACT_CHECKLIST = require('./compliance-checklist.eu-ai-act.defaults.j
 const { evaluateRule } = require('./compliance-rules');
 const { detectNpmAuditSummary, detectProductionAuthProfile } = require('./compliance-checklist/detectors');
 
-const CHECKLIST_PROFILES = {
+/** Frozen map of built-in checklist profiles. */
+const CHECKLIST_PROFILES = Object.freeze({
     default: DEFAULT_CHECKLIST,
     corporate: DEFAULT_CHECKLIST,
     'eu-ai-act': EU_AI_ACT_CHECKLIST
-};
+});
 
 /* ── Checklist loading ──────────────────────────────────────────────── */
 
+/**
+ * Determine whether a parsed custom checklist file is a stale evaluated output.
+ * @param {object} custom Parsed JSON from a compliance-checklist.json file.
+ * @returns {boolean}
+ */
 function isEvaluatedChecklistOutput(custom) {
     const customRules = Array.isArray(custom?.rules) ? custom.rules : [];
     if (!customRules.length) return false;
@@ -31,6 +37,13 @@ function isEvaluatedChecklistOutput(custom) {
     return customRules.every((rule) => rule.status != null && !rule.check);
 }
 
+/**
+ * Merge custom rules on top of defaults, preserving fallback `check` fields.
+ * Strips prior `status`/`evidence` so re-evaluation is clean.
+ * @param {Array<object>} customRules Rules loaded from the custom file.
+ * @param {Array<object>} defaultRules Rules from the selected base profile.
+ * @returns {Array<object>} Merged and filtered rule set.
+ */
 function mergeChecklistRules(customRules, defaultRules) {
     const defaultsById = new Map((defaultRules || []).map((rule) => [rule.id, rule]));
     if (!customRules?.length) return defaultRules;
@@ -46,16 +59,54 @@ function mergeChecklistRules(customRules, defaultRules) {
     return [...result.values()].filter((rule) => rule.check);
 }
 
+/**
+ * Resolve the base checklist profile, defaulting to `DEFAULT_CHECKLIST`.
+ * Guards against unknown profile names.
+ * @param {object} [options]
+ * @param {string} [options.checklistProfile]
+ * @param {string} [options.profile]
+ * @returns {object} Base checklist object.
+ */
 function resolveChecklistBase(options = {}) {
     const profile = options.checklistProfile || options.profile || 'default';
-    return CHECKLIST_PROFILES[profile] || DEFAULT_CHECKLIST;
+    if (!Object.prototype.hasOwnProperty.call(CHECKLIST_PROFILES, profile)) {
+        return DEFAULT_CHECKLIST;
+    }
+    return CHECKLIST_PROFILES[profile];
 }
 
+/**
+ * Validate that a checklist object has the minimum required shape.
+ * @param {object} checklist
+ * @returns {{ valid: boolean; errors: string[] }}
+ */
+function validateChecklist(checklist) {
+    const errors = [];
+    if (!Array.isArray(checklist.rules)) {
+        errors.push('Missing or non-array "rules"');
+    } else {
+        for (let i = 0; i < checklist.rules.length; i++) {
+            const rule = checklist.rules[i];
+            if (typeof rule.id !== 'string') errors.push(`Rule ${i}: missing "id"`);
+            if (typeof rule.check !== 'string') errors.push(`Rule ${i}: missing "check"`);
+        }
+    }
+    return { valid: errors.length === 0, errors };
+}
+
+/**
+ * Load the compliance checklist for a project, merging custom rules if present.
+ * Returns `{ checklist, error }` so callers can decide how to handle invalid JSON.
+ * @param {string} projectRoot Absolute or relative path to the project root.
+ * @param {object} [options]
+ * @param {string} [options.checklistProfile]
+ * @returns {{ checklist: object; error?: string }}
+ */
 function loadComplianceChecklist(projectRoot, options = {}) {
     const baseChecklist = resolveChecklistBase(options);
-    if (!projectRoot) return baseChecklist;
+    if (!projectRoot) return { checklist: baseChecklist };
     const customPath = path.join(path.resolve(projectRoot), '.simplebeacon', 'compliance-checklist.json');
-    if (!fs.existsSync(customPath)) return baseChecklist;
+    if (!fs.existsSync(customPath)) return { checklist: baseChecklist };
     try {
         const custom = JSON.parse(fs.readFileSync(customPath, 'utf8'));
         const defaultRules = baseChecklist.rules || [];
@@ -63,26 +114,56 @@ function loadComplianceChecklist(projectRoot, options = {}) {
         const rules = isEvaluatedChecklistOutput(custom)
             ? defaultRules
             : mergeChecklistRules(customRules, defaultRules);
-        return { ...baseChecklist, ...custom, rules: rules.length ? rules : defaultRules };
-    } catch {
-        return baseChecklist;
+        const merged = { ...baseChecklist, ...custom, rules: rules.length ? rules : defaultRules };
+        const validation = validateChecklist(merged);
+        return validation.valid
+            ? { checklist: merged }
+            : { checklist: baseChecklist, error: `Invalid custom checklist: ${validation.errors.join('; ')}` };
+    } catch (err) {
+        return { checklist: baseChecklist, error: `Failed to load custom checklist: ${err.message}` };
     }
 }
 
 /* ── Evaluation context ──────────────────────────────────────────── */
 
+const _evalCtxCache = new Map();
+
+/**
+ * Build the evaluation context for a single checklist run.
+ * Caches detector results per `projectRoot` to avoid redundant filesystem probes.
+ * @param {object} report Simplebeacon scan report.
+ * @param {object} [options]
+ * @param {string} [options.projectRoot]
+ * @param {object} [options.npmAudit]
+ * @param {object} [options.productionProfile]
+ * @param {*} [options.dataCleanup]
+ * @returns {object} Context passed to each rule evaluator.
+ */
 function buildEvaluationContext(report, options = {}) {
     const projectRoot = options.projectRoot || report.projectRoot || '';
+
+    let cached = _evalCtxCache.get(projectRoot);
+    if (!cached) {
+        cached = {
+            npmAudit: detectNpmAuditSummary(projectRoot),
+            productionProfile: detectProductionAuthProfile(projectRoot)
+        };
+        _evalCtxCache.set(projectRoot, cached);
+    }
+
     return {
         report,
-        npmAudit: options.npmAudit || detectNpmAuditSummary(projectRoot),
-        productionProfile: options.productionProfile || detectProductionAuthProfile(projectRoot),
+        npmAudit: options.npmAudit || cached.npmAudit,
+        productionProfile: options.productionProfile || cached.productionProfile,
         dataCleanup: options.dataCleanup || null
     };
 }
 
-/* ── Formatting ────────────────────────────────────────────────────── */
-
+/**
+ * Format a byte count into a human-readable string.
+ * @param {number} bytes
+ * @returns {string} e.g. "1.5 MB"
+ */
 function formatBytes(bytes) {
     if (bytes === 0) return '0 B';
     const k = 1024;
@@ -91,13 +172,53 @@ function formatBytes(bytes) {
     return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 }
 
-/* ── Main evaluator ────────────────────────────────────────────────── */
+/**
+ * Generate a human-readable headline summarising the checklist outcome.
+ * @param {number} passed
+ * @param {number} failed
+ * @param {number} skipped
+ * @param {number} scored
+ * @param {boolean} isEuAiAct
+ * @returns {string}
+ */
+function buildHeadline(passed, failed, skipped, scored, isEuAiAct) {
+    if (failed === 0 && passed > 0) {
+        return isEuAiAct
+            ? `${passed}/${scored} EU AI Act readiness rules pass — review legal classification before August 2026`
+            : `${passed}/${scored} applicable rules pass — safe to enable automated AI deploy gates`;
+    }
+    if (failed > 0) {
+        return isEuAiAct
+            ? `${failed} EU AI Act rule(s) fail — address before August 2026 deadline`
+            : `${failed} rule(s) fail — fix before handing operations to AI-generated code`;
+    }
+    if (skipped === scored + skipped) {
+        return 'Checklist not evaluated — stale compliance output was ignored; re-run assess or compliance';
+    }
+    return 'No scored rules — review scan report manually';
+}
 
+/**
+ * Evaluate the full compliance checklist against a scan report.
+ * @param {object} report Simplebeacon scan report.
+ * @param {object} [options]
+ * @param {string} [options.projectRoot]
+ * @param {string} [options.checklistProfile]
+ * @param {object} [options.checklist]
+ * @param {object} [options.npmAudit]
+ * @param {object} [options.productionProfile]
+ * @param {*} [options.dataCleanup]
+ * @returns {object} Compliance checklist result.
+ */
 function evaluateComplianceChecklist(report, options = {}) {
     const projectRoot = options.projectRoot || report.projectRoot || '';
-    const checklist = options.checklist || loadComplianceChecklist(projectRoot, {
-        checklistProfile: options.checklistProfile
-    });
+    const { checklist, error } = options.checklist
+        ? { checklist: options.checklist }
+        : loadComplianceChecklist(projectRoot, { checklistProfile: options.checklistProfile });
+    if (error) {
+        /* eslint-disable no-console */
+        console.warn('[compliance-checklist]', error);
+    }
     const context = buildEvaluationContext(report, options);
     const rules = (checklist.rules || []).map((rule) => evaluateRule(rule, context));
 
@@ -124,17 +245,7 @@ function evaluateComplianceChecklist(report, options = {}) {
             score,
             readyForAutomation: failed === 0 && passed > 0,
             checklistProfile: options.checklistProfile || (isEuAiAct ? 'eu-ai-act' : 'default'),
-            headline: failed === 0 && passed > 0
-                ? (isEuAiAct
-                    ? `${passed}/${scored} EU AI Act readiness rules pass — review legal classification before August 2026`
-                    : `${passed}/${scored} applicable rules pass — safe to enable automated AI deploy gates`)
-                : failed > 0
-                    ? (isEuAiAct
-                        ? `${failed} EU AI Act rule(s) fail — address before August 2026 deadline`
-                        : `${failed} rule(s) fail — fix before handing operations to AI-generated code`)
-                    : skipped === rules.length
-                        ? 'Checklist not evaluated — stale compliance output was ignored; re-run assess or compliance'
-                        : 'No scored rules — review scan report manually'
+            headline: buildHeadline(passed, failed, skipped, scored, isEuAiAct)
         },
         rules
     };
@@ -149,6 +260,7 @@ module.exports = {
     detectNpmAuditSummary,
     detectProductionAuthProfile,
     resolveChecklistBase,
+    formatBytes,
     DEFAULT_CHECKLIST,
     EU_AI_ACT_CHECKLIST,
     CHECKLIST_PROFILES

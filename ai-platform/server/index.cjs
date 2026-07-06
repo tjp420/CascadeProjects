@@ -64,6 +64,7 @@ const {
 const uploadRoutes = require('./routes/upload.cjs');
 const { uploadSecurity, contentValidation } = require('./middleware/upload-security.cjs');
 const { setupFlexibleAnalyzeAPI } = require('./routes/flexible-analyze-api.cjs');
+const { setupAiMathAuditRoute } = require('./routes/ai-math-audit-route.cjs');
 const tokenAuthRoutes = require('./routes/token-auth.cjs');
 const { setupMockDataAPI } = require('./routes/mock-data-api.cjs');
 const { setupChatbotAPI } = require('./routes/chatbot-api.cjs');
@@ -491,6 +492,9 @@ setupFlexibleAnalyzeAPI(app, {
     baseDir: platformRoot,
     monorepoRoot: path.join(platformRoot, '..')
 });
+
+// AI Math Audit route — deterministic model-log analysis
+setupAiMathAuditRoute(app, platformRoot);
 
 // Pricing config endpoint — serves Stripe URLs from environment variables
 app.get('/api/config/pricing', (_req, res) => {

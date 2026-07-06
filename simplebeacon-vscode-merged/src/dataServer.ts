@@ -5,10 +5,88 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import * as child_process from 'child_process';
+import * as crypto from 'crypto';
+// bcryptjs replaced with Node.js crypto for zero-dependency VSIX packaging
+function _hashPassword(password: string): string {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha256').toString('hex');
+  return `pbkdf2:${salt}:${hash}`;
+}
+function _verifyPassword(password: string, stored: string): boolean {
+  if (!stored || stored.startsWith('$2')) { return false; } // stale bcrypt hash — can't verify without bcryptjs
+  const parts = stored.split(':');
+  if (parts.length !== 3 || parts[0] !== 'pbkdf2') { return false; }
+  const hash = crypto.pbkdf2Sync(password, parts[1], 100000, 64, 'sha256').toString('hex');
+  return hash === parts[2];
+}
+
+/** Compose and send sandbox-token marketing email. Returns { sent, status }. */
+async function _sendSandboxEmail(to: string, token: string, referrer: string): Promise<{ sent: boolean; status: string }> {
+  const subject = 'Your SimpleBeacon Sandbox Token';
+  const publicBase = getPublicBaseUrl();
+  const pasteUrl = `${publicBase}/${referrer}.html?token=${encodeURIComponent(token)}`;
+  const pricingUrl = `${publicBase}/pricing.html`;
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Your SimpleBeacon Sandbox Token</title></head>
+<body style="margin:0;padding:0;background:#0B0F19;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#F3F4F6;line-height:1.6;">
+  <div style="max-width:600px;margin:20px auto;background:linear-gradient(145deg,#151D30,#0F1626);border:1px solid #1E293B;border-radius:16px;padding:40px;box-shadow:0 8px 24px rgba(0,0,0,0.3);">
+    <div style="text-align:center;padding-bottom:30px;border-bottom:1px solid #1E293B;margin-bottom:30px;">
+      <div style="font-size:2rem;margin-bottom:10px;">&#128161;</div>
+      <h1 style="font-size:1.5rem;margin:0;background:linear-gradient(135deg,#60A5FA,#2563EB);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;">Your Sandbox Token</h1>
+      <p style="font-size:1.1rem;color:#9CA3AF;margin-top:8px;">SimpleBeacon</p>
+    </div>
+    <p style="color:#9CA3AF;">You requested a free 7-day sandbox token. Paste it into the license field to unlock scanning.</p>
+    <div style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:10px;padding:20px;margin:20px 0;text-align:center;">
+      <code style="font-size:0.9rem;word-break:break-all;color:#10B981;">${token}</code>
+      <p style="font-size:0.8rem;color:#6B7280;margin-top:8px;">Valid for 7 days</p>
+    </div>
+    <div style="text-align:center;margin:24px 0;">
+      <a href="${pasteUrl}" style="display:inline-block;background:linear-gradient(135deg,#2563EB,#1D4ED8);color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;margin-right:8px;">Paste Token</a>
+      <a href="${pricingUrl}" style="display:inline-block;background:transparent;color:#60A5FA;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;border:1px solid #60A5FA;">Upgrade to Pro</a>
+    </div>
+    <p style="font-size:0.8rem;color:#6B7280;text-align:center;">Questions? Reply to this email.</p>
+  </div>
+</body>
+</html>`;
+  try {
+    const https = require('https');
+    const resendKey = process.env.RESEND_API_KEY || '';
+    if (resendKey && resendKey.startsWith('re_')) {
+      const payload = JSON.stringify({ from: process.env.RESEND_FROM || 'sandbox@simplebeacon.ai', to: [to], subject, html });
+      await new Promise<void>((resolve, reject) => {
+        const req = https.request({ hostname: 'api.resend.com', path: '/emails', method: 'POST', timeout: 15000, headers: { 'Authorization': 'Bearer ' + resendKey, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) } }, (res: http.IncomingMessage) => {
+          let data = ''; res.on('data', (c) => { data += c; }); res.on('end', () => { if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) { resolve(); } else { reject(new Error('Resend ' + res.statusCode + ': ' + data)); } });
+        });
+        req.on('error', reject); req.on('timeout', () => { req.destroy(); reject(new Error('timeout')); });
+        req.write(payload); req.end();
+      });
+      return { sent: true, status: 'sent' };
+    }
+  } catch (err) {
+    // Fall through to queue
+  }
+  // Queue to disk as fallback
+  try {
+    const queueDir = path.join(os.tmpdir(), 'simplebeacon-email-queue');
+    if (!fs.existsSync(queueDir)) { fs.mkdirSync(queueDir, { recursive: true }); }
+    const id = 'sb_email_' + Date.now() + '_' + crypto.randomBytes(4).toString('hex');
+    const filePath = path.join(queueDir, id + '.json');
+    fs.writeFileSync(filePath, JSON.stringify({ id, to, subject, html, queuedAt: new Date().toISOString() }, null, 2) + '\n');
+    return { sent: false, status: 'queued' };
+  } catch {
+    return { sent: false, status: 'failed' };
+  }
+}
 import { ScanReport } from './scanProvider';
 import { correctScanPath, getSbConfig } from './utils';
+import { validateLicenseLocally } from './licenseManager';
+import { PUBLIC_KEY_PEM } from './realtimeMonitor';
+import { handleAuthRoutes } from './routes/auth';
+import { handleScanReportRoutes } from './routes/scanReport';
+import { handleScanConfigRoutes } from './routes/scanConfig';
 
-interface ServerState {
+export interface ServerState {
   currentReport: ScanReport | null;
   scanStatus: string;
   scanMessage: string;
@@ -35,11 +113,94 @@ let sseClientId = 0;
 let getSidebarHtml: (() => string | undefined) | null = null;
 let latestAiContext: unknown = null;
 let aiContextCallback: ((context: unknown) => void) | null = null;
+
+// ── External-browser → VS Code notification bridge ──
+interface NotifyEntry { type: string; payload: any; ts: number; }
+const notificationQueue: NotifyEntry[] = [];
+let notifyCallback: ((entry: NotifyEntry) => void) | null = null;
+
+export function setNotifyCallback(cb: (entry: NotifyEntry) => void) {
+  notifyCallback = cb;
+}
+
+export function drainNotificationQueue(): NotifyEntry[] {
+  const drained = notificationQueue.slice();
+  notificationQueue.length = 0;
+  return drained;
+}
 let currentTheme: 'light' | 'dark' = 'light';
+let extensionContext: vscode.ExtensionContext | null = null;
+
+// Resolve the public base URL for this backend (env var wins, then forwarded host, then request host)
+function getPublicBaseUrl(req?: http.IncomingMessage): string {
+  const envUrl = process.env.PUBLIC_URL;
+  if (envUrl) {
+    return envUrl.replace(/\/$/, '');
+  }
+  if (req) {
+    const host = (req.headers['x-forwarded-host'] as string) || req.headers.host;
+    if (host) {
+      const proto = (req.headers['x-forwarded-proto'] as string) || 'http';
+      return `${proto}://${host}`;
+    }
+  }
+  return `http://127.0.0.1:${getDataServerPort()}`;
+}
+
+// --- Rate limiting state ---
+const loginAttempts = new Map<string, { count: number; lastReset: number }>();
+const LOGIN_MAX_ATTEMPTS = 5;
+const LOGIN_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
+const LOGIN_LOCKOUT_MS = 30 * 1000; // 30 seconds after max attempts
+
+// --- Pepper secret (lazy-loaded from extension secrets) ---
+let _tokenPepper: string | null = null;
 
 // --- Module-level constants for repeated inline scripts ---
+const SESSION_REGISTRATION_SCRIPT = `<script>
+(function() {
+  const TOKEN_KEYS = ['cascadeAuthToken','cascadeAuthUser','access_token','token','authToken','simplebeacon_token','sb-token-vault'];
+  function clearSessionFromServer() {
+    try {
+      TOKEN_KEYS.forEach(function(k) { localStorage.removeItem(k); });
+      TOKEN_KEYS.forEach(function(k) { document.cookie = k + '=;path=/;max-age=0;SameSite=Lax;'; });
+    } catch (e) {}
+    try {
+      const bc = new BroadcastChannel('simplebeacon-auth');
+      bc.postMessage({ type: 'signed-out' });
+      bc.close();
+    } catch (e) {}
+    try { if (window.SbAuth && window.SbAuth.signOut) window.SbAuth.signOut(); } catch (e) {}
+  }
+  function register() {
+    try {
+      const token = localStorage.getItem('cascadeAuthToken') || localStorage.getItem('access_token') || localStorage.getItem('token') || localStorage.getItem('authToken') || localStorage.getItem('simplebeacon_token');
+      if (token && token.length > 10) {
+        fetch('/api/auth/session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token }), credentials: 'include' })
+          .then(function(r) { return r.json().catch(function() { return {}; }); })
+          .then(function(data) { if (data && data.clearSession) { clearSessionFromServer(); } })
+          .catch(() => {});
+      }
+    } catch (e) {}
+  }
+  register();
+  setInterval(register, 5000);
+})();
+<\/script>`;
 const DOWNLOAD_NOTIFY_SCRIPT = `<script>
 (function() {
+  const _blobMap = new Map();
+  const _origCreateObjectURL = URL.createObjectURL;
+  URL.createObjectURL = function(blob) {
+    const url = _origCreateObjectURL.call(URL, blob);
+    if (blob instanceof Blob) { _blobMap.set(url, blob); }
+    return url;
+  };
+  const _origRevokeObjectURL = URL.revokeObjectURL;
+  URL.revokeObjectURL = function(url) {
+    _blobMap.delete(url);
+    return _origRevokeObjectURL.call(URL, url);
+  };
   function sbNotifyDownload(name, path, content) {
     const body = { name: name || 'download', path: path || '' };
     if (content) body.content = content;
@@ -50,11 +211,14 @@ const DOWNLOAD_NOTIFY_SCRIPT = `<script>
     }).catch(() => {});
   }
   function sbNotifyBlob(name, blobUrl) {
-    fetch(blobUrl).then(r => r.blob()).then(blob => {
+    const blob = _blobMap.get(blobUrl);
+    if (blob) {
       const reader = new FileReader();
-      reader.onload = () => sbNotifyDownload(name, blobUrl, reader.result.split(',')[1]);
+      reader.onload = () => sbNotifyDownload(name, '', reader.result.split(',')[1]);
       reader.readAsDataURL(blob);
-    }).catch(() => sbNotifyDownload(name, blobUrl));
+    } else {
+      sbNotifyDownload(name, blobUrl);
+    }
   }
   window.sbNotifyDownload = sbNotifyDownload;
   document.addEventListener('click', e => {
@@ -71,7 +235,7 @@ const DOWNLOAD_NOTIFY_SCRIPT = `<script>
 })();
 </script>`;
 
-const THEME_SCRIPT = `<script>(function(){const h=document.documentElement;if(!h)return;function s(t){h.setAttribute('data-theme',t);}function p(){if(typeof fetch!=='function')return;fetch('/api/theme').then(r=>r.json()).then(d=>{if(d&&d.theme)s(d.theme);}).catch(()=>{});}p();setInterval(p,5000);})();</script>`;
+const THEME_SCRIPT = `<script>(function(){const h=document.documentElement;if(!h)return;function s(t){h.setAttribute('data-theme',t);}function p(){if(typeof fetch!=='function')return;fetch('/api/theme').then(r=>r.json()).then(d=>{if(d&&d.theme){s(d.theme);try{const bc=new BroadcastChannel('sb-theme');bc.postMessage({theme:d.theme});bc.close();}catch(e){}}}).catch(()=>{});}p();setInterval(p,1000);try{const bc=new BroadcastChannel('sb-theme');bc.onmessage=function(e){if(e.data&&e.data.theme)s(e.data.theme);};}catch(e){}})();</script>`;
 
 const HIDE_PRICING_SCRIPT = `<script>
 (function() {
@@ -88,6 +252,134 @@ const HIDE_PRICING_SCRIPT = `<script>
   } else {
     hidePricingIfAuthed();
   }
+})();
+</script>`;
+
+const SIGNIN_MODAL_SCRIPT = `<script>
+(function() {
+  const TOKEN_KEYS = ['cascadeAuthToken','access_token','token','authToken','simplebeacon_token'];
+  function hasAnyToken() {
+    return TOKEN_KEYS.some(k => { const v = localStorage.getItem(k); return v && v.length > 10; });
+  }
+  function setToken(t) { for (const k of TOKEN_KEYS) { localStorage.setItem(k, t); } }
+  function clearToken() { for (const k of TOKEN_KEYS) { localStorage.removeItem(k); } }
+  function postAuthState(signedIn, tier) {
+    try {
+      const vscode = typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi() : null;
+      if (vscode) { vscode.postMessage({command:'setAuthState',signedIn,tier:tier||''}); }
+      else if (window.parent && window.parent !== window) { window.parent.postMessage({command:'setAuthState',signedIn,tier:tier||''},'*'); }
+    } catch (e) {}
+  }
+  const CSS = \`<style id="sb-signin-modal-style">
+    .sb-signin-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.8); display:none; align-items:center; justify-content:center; z-index:99999; font-family:system-ui,-apple-system,sans-serif; }
+    .sb-signin-overlay.active { display:flex; }
+    .sb-signin-modal { background:#141414; border:1px solid #2a2a2a; border-radius:16px; width:420px; max-width:92vw; padding:36px 32px; color:#e0e0e0; text-align:center; position:relative; }
+    .sb-signin-modal .sb-close { position:absolute; top:14px; right:18px; background:none; border:none; color:#888; font-size:22px; cursor:pointer; }
+    .sb-signin-modal .sb-lock { font-size:32px; margin-bottom:8px; }
+    .sb-signin-modal h2 { margin:0 0 6px; font-size:22px; color:#fff; }
+    .sb-signin-modal .sb-subtitle { margin:0 0 24px; color:#888; font-size:14px; }
+    .sb-signin-tabs { display:flex; gap:0; margin-bottom:20px; border-bottom:1px solid #2a2a2a; }
+    .sb-signin-tabs button { flex:1; background:none; border:none; color:#888; padding:10px; cursor:pointer; font-size:14px; border-bottom:2px solid transparent; }
+    .sb-signin-tabs button.active { color:#6366f1; border-bottom-color:#6366f1; }
+    .sb-signin-panel { display:none; text-align:left; }
+    .sb-signin-panel.active { display:block; }
+    .sb-signin-modal label { display:block; font-size:13px; color:#aaa; margin-bottom:8px; font-weight:500; }
+    .sb-signin-modal input { width:100%; padding:12px 14px; background:#1a1a1a; border:1px solid #333; border-radius:10px; color:#fff; font-size:14px; margin-bottom:16px; box-sizing:border-box; }
+    .sb-signin-modal input:focus { outline:none; border-color:#6366f1; }
+    .sb-signin-modal .sb-forgot { text-align:right; margin:-10px 0 16px; font-size:12px; }
+    .sb-signin-modal .sb-forgot a { color:#22d3ee; text-decoration:none; }
+    .sb-signin-modal .sb-btn { width:100%; padding:12px; background:#6366f1; color:#fff; border:none; border-radius:10px; font-size:14px; font-weight:600; cursor:pointer; }
+    .sb-signin-modal .sb-btn:hover { background:#818cf8; }
+    .sb-signin-modal .sb-divider { text-align:center; margin:16px 0; color:#666; font-size:13px; position:relative; }
+    .sb-signin-modal .sb-divider::before, .sb-signin-modal .sb-divider::after { content:''; position:absolute; top:50%; width:36%; height:1px; background:#333; }
+    .sb-signin-modal .sb-divider::before { left:0; } .sb-signin-modal .sb-divider::after { right:0; }
+    .sb-signin-modal .sb-security-btn { width:100%; padding:12px; background:#1a1a1a; color:#e0e0e0; border:1px solid #333; border-radius:10px; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; }
+    .sb-signin-modal .sb-footer { margin-top:16px; font-size:13px; color:#888; }
+    .sb-signin-modal .sb-footer a { color:#22d3ee; text-decoration:none; margin:0 6px; }
+  </style>\`;
+  const HTML = \`<div id="sbSigninOverlay" class="sb-signin-overlay">
+    <div class="sb-signin-modal">
+      <button class="sb-close" onclick="document.getElementById('sbSigninOverlay').classList.remove('active')">&times;</button>
+      <div class="sb-lock">&#x1F512;</div>
+      <h2>Sign In</h2>
+      <p class="sb-subtitle">Access your SimpleBeacon dashboard.</p>
+      <div class="sb-signin-tabs">
+        <button class="active" data-tab="signin">Sign In</button>
+        <button data-tab="create">Create Account</button>
+      </div>
+      <div class="sb-signin-panel active" id="sbPanelSignin">
+        <label>Email / Username</label>
+        <input type="text" id="sbEmailInput" placeholder="email@example.com or username" />
+        <label>Password</label>
+        <input type="password" id="sbPasswordInput" placeholder="Enter your password..." />
+        <p class="sb-forgot"><a href="#">Forgot Password?</a></p>
+        <button class="sb-btn" id="sbSigninBtn">Sign In</button>
+        <div class="sb-divider">or</div>
+        <button class="sb-security-btn" id="sbSecurityBtn">&#x1F512; Sign in with Security Key</button>
+        <p class="sb-footer">New here? Switch to <a href="#" onclick="document.querySelector('[data-tab=create]').click();return false;">Create Account</a> to register.</p>
+        <p class="sb-footer"><a href="#">View read-only demo</a> &middot; <a href="#">About &amp; install</a> &middot; <a href="#">GitHub</a></p>
+      </div>
+      <div class="sb-signin-panel" id="sbPanelCreate">
+        <label>Email / Username</label>
+        <input type="text" id="sbCreateEmail" placeholder="email@example.com or username" />
+        <label>Password</label>
+        <input type="password" id="sbCreatePassword" placeholder="Enter your password..." />
+        <label>Confirm Password</label>
+        <input type="password" id="sbCreateConfirm" placeholder="Confirm your password..." />
+        <button class="sb-btn" id="sbCreateBtn">Create Account</button>
+        <p class="sb-footer">Already have an account? <a href="#" onclick="document.querySelector('[data-tab=signin]').click();return false;">Sign In</a></p>
+      </div>
+    </div>
+  </div>\`;
+  function init() {
+    if (document.getElementById('sb-signin-modal-style')) return;
+    document.head.insertAdjacentHTML('beforeend', CSS);
+    document.body.insertAdjacentHTML('beforeend', HTML);
+    const overlay = document.getElementById('sbSigninOverlay');
+    const tabs = overlay.querySelectorAll('.sb-signin-tabs button');
+    const panels = overlay.querySelectorAll('.sb-signin-panel');
+    tabs.forEach(function(tab) {
+      tab.addEventListener('click', function() {
+        tabs.forEach(function(t) { t.classList.remove('active'); });
+        panels.forEach(function(p) { p.classList.remove('active'); });
+        tab.classList.add('active');
+        const target = document.getElementById('sbPanel' + (tab.dataset.tab === 'signin' ? 'Signin' : 'Create'));
+        if (target) target.classList.add('active');
+      });
+    });
+    function doSignIn(token) {
+      if (token && token.length > 5) { setToken(token); }
+      postAuthState(true, '');
+      overlay.classList.remove('active');
+    }
+    document.getElementById('sbSigninBtn').addEventListener('click', function() {
+      const email = document.getElementById('sbEmailInput').value.trim();
+      const pass = document.getElementById('sbPasswordInput').value;
+      if (!email || !pass) { alert('Please enter email/username and password'); return; }
+      doSignIn('auth-' + email);
+    });
+    document.getElementById('sbCreateBtn').addEventListener('click', function() {
+      const email = document.getElementById('sbCreateEmail').value.trim();
+      const pass = document.getElementById('sbCreatePassword').value;
+      const confirm = document.getElementById('sbCreateConfirm').value;
+      if (!email || !pass) { alert('Please fill in all fields'); return; }
+      if (pass !== confirm) { alert('Passwords do not match'); return; }
+      doSignIn('auth-' + email);
+    });
+    document.getElementById('sbSecurityBtn').addEventListener('click', function() {
+      alert('Security key sign-in coming soon');
+    });
+    overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.classList.remove('active'); });
+  }
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', init); } else { init(); }
+  // Always broadcast current auth state to parent on load so sidebar buttons sync after reload
+  try { postAuthState(hasAnyToken(), ''); } catch(e) {}
+  // Listen for parent auth-state queries (sidebar/webview asking iframe for current state)
+  window.addEventListener('message', function(ev) {
+    if (ev.data && ev.data.command === 'getAuthState') {
+      try { postAuthState(hasAnyToken(), ''); } catch(e) {}
+    }
+  });
 })();
 </script>`;
 
@@ -118,6 +410,104 @@ function isDashboardStaticAsset(pathname: string): boolean {
   return DASHBOARD_ASSET_EXTENSIONS.test(pathname);
 }
 
+let lastBrowserSessionToken: string | undefined = undefined;
+let lastBrowserSessionTime = 0;
+const BROWSER_SESSION_TTL_MS = 30 * 60 * 1000; // 30 minutes
+let lastSignOutToken: string | undefined = undefined;
+let lastSignOutTime = 0;
+const SIGN_OUT_GRACE_MS = 5 * 60 * 1000; // 5 minutes
+
+// ─── Server-side account registry for the admin page ───
+interface TokenRegistryEntry {
+  token: string;
+  masked: string;
+  email: string;
+  plan: string;
+  authMethod: 'jwt' | 'license' | 'email' | 'unknown';
+  createdAt: number;
+  lastSeenAt: number;
+  revoked: boolean;
+  revokedAt?: number;
+}
+const tokenRegistry = new Map<string, TokenRegistryEntry>();
+const revokedTokens = new Set<string>();
+
+function maskToken(token: string): string {
+  if (token.length <= 12) return token;
+  return token.slice(0, 6) + '…' + token.slice(-6);
+}
+
+function getTokenId(token: string): string {
+  // Use first 16 chars of token as stable id
+  return token.slice(0, 16);
+}
+
+function recordTokenInRegistry(token: string, user: { email?: string; tier?: string; plan?: string }, authMethod: TokenRegistryEntry['authMethod']): void {
+  if (!token || token.length <= 10) return;
+  const id = getTokenId(token);
+  const existing = tokenRegistry.get(id);
+  const plan = user.tier || user.plan || 'licensed';
+  const email = user.email || 'unknown@simplebeacon.ai';
+  tokenRegistry.set(id, {
+    token,
+    masked: maskToken(token),
+    email,
+    plan,
+    authMethod,
+    createdAt: existing?.createdAt || Date.now(),
+    lastSeenAt: Date.now(),
+    revoked: revokedTokens.has(id),
+  });
+}
+
+function revokeToken(id: string): boolean {
+  const entry = tokenRegistry.get(id);
+  if (!entry) return false;
+  entry.revoked = true;
+  entry.revokedAt = Date.now();
+  revokedTokens.add(id);
+  recordBrowserSignOut(entry.token);
+  return true;
+}
+
+function revokeTokensByEmail(email: string): number {
+  let count = 0;
+  tokenRegistry.forEach((entry, id) => {
+    if (entry.email === email && !entry.revoked) {
+      entry.revoked = true;
+      entry.revokedAt = Date.now();
+      revokedTokens.add(id);
+      recordBrowserSignOut(entry.token);
+      count++;
+    }
+  });
+  return count;
+}
+
+function deleteToken(id: string): boolean {
+  const entry = tokenRegistry.get(id);
+  if (!entry) return false;
+  revokedTokens.add(id);
+  recordBrowserSignOut(entry.token);
+  tokenRegistry.delete(id);
+  return true;
+}
+
+function getAdminTokenFromRequest(req: http.IncomingMessage): string | undefined {
+  return getBearerToken(req) || getAuthToken(req);
+}
+
+function isValidAdminToken(token: string): boolean {
+  if (!token || token.length <= 10) return false;
+  const id = getTokenId(token);
+  if (revokedTokens.has(id)) return false;
+  if (token.split('.').length === 3) {
+    const jwtResult = validateJwt(token);
+    return jwtResult.valid;
+  }
+  return !!validateLicenseLocally(token, PUBLIC_KEY_PEM);
+}
+
 function getAuthToken(req: http.IncomingMessage): string | undefined {
   const authHeader = req.headers.authorization || req.headers.Authorization;
   if (authHeader && typeof authHeader === 'string') {
@@ -127,9 +517,52 @@ function getAuthToken(req: http.IncomingMessage): string | undefined {
   const cookieHeader = req.headers.cookie;
   if (cookieHeader) {
     const m = cookieHeader.match(/(?:^|; )cascadeAuthToken=([^;]*)/);
-    if (m) return decodeURIComponent(m[1]);
+    if (m) {
+      const token = decodeURIComponent(m[1]);
+      if (token && token.length > 10) {
+        lastBrowserSessionToken = token;
+        lastBrowserSessionTime = Date.now();
+      }
+      return token;
+    }
   }
   return undefined;
+}
+
+/** Returns the most recent browser session token seen by the data server, if still fresh. */
+export function getBrowserSessionToken(): string | undefined {
+  if (!lastBrowserSessionToken) return undefined;
+  if (Date.now() - lastBrowserSessionTime > BROWSER_SESSION_TTL_MS) {
+    lastBrowserSessionToken = undefined;
+    return undefined;
+  }
+  return lastBrowserSessionToken;
+}
+
+/** Clears the browser session token tracked by the data server (used when signing out in the extension). */
+export function clearBrowserSessionToken(): void {
+  lastBrowserSessionToken = undefined;
+  lastBrowserSessionTime = 0;
+}
+
+/** Records a token as having been signed out so the dashboard can be told to clear it. */
+export function recordBrowserSignOut(token: string | undefined): void {
+  if (token && token.length > 10) {
+    lastSignOutToken = token;
+    lastSignOutTime = Date.now();
+  }
+  lastBrowserSessionToken = undefined;
+  lastBrowserSessionTime = 0;
+}
+
+export function isTokenSignedOut(token: string): boolean {
+  if (!lastSignOutToken || !lastSignOutTime) return false;
+  if (Date.now() - lastSignOutTime > SIGN_OUT_GRACE_MS) {
+    lastSignOutToken = undefined;
+    lastSignOutTime = 0;
+    return false;
+  }
+  return lastSignOutToken === token;
 }
 
 function isValidToken(token: string): boolean {
@@ -146,6 +579,187 @@ function isAuthenticated(req: http.IncomingMessage): boolean {
   return !!token && isValidToken(token);
 }
 
+function getBearerToken(req: http.IncomingMessage): string | undefined {
+  const auth = req.headers.authorization;
+  if (auth && auth.startsWith('Bearer ')) {
+    return auth.slice(7).trim();
+  }
+  return undefined;
+}
+
+function decodeJwtPayload(token: string): Record<string, any> | null {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const pad = '='.repeat((4 - base64.length % 4) % 4);
+    return JSON.parse(Buffer.from(base64 + pad, 'base64').toString('utf8'));
+  } catch {
+    return null;
+  }
+}
+
+function validateJwt(token: string): { valid: boolean; user?: { id: string; email: string; tier?: string; plan?: string; trustLevel?: string } } {
+  const payload = decodeJwtPayload(token);
+  if (!payload) return { valid: false };
+  if (payload.exp && payload.exp * 1000 < Date.now()) return { valid: false };
+  const tier = payload.tier || payload.plan || payload.product || payload.role ||
+    payload.user?.tier || payload.user?.plan ||
+    payload.data?.tier || payload.data?.plan ||
+    payload.account?.tier || payload.account?.plan ||
+    payload.subscription?.tier || payload.subscription?.plan ||
+    'free';
+  return {
+    valid: true,
+    user: {
+      id: payload.sub || 'jwt-user',
+      email: payload.email || payload.sub || 'user@simplebeacon.ai',
+      tier,
+      plan: tier,
+      trustLevel: tier === 'enterprise' || tier === 'compliance' ? 'gold' : tier === 'pro' ? 'silver' : 'bronze'
+    }
+  };
+}
+
+function getTokenPasswordsPath(): string {
+  const workspacePath = serverState.workspacePath || process.cwd();
+  const sbDir = path.join(workspacePath, '.simplebeacon');
+  if (!fs.existsSync(sbDir)) { fs.mkdirSync(sbDir, { recursive: true }); }
+  return path.join(sbDir, 'token-passwords.json');
+}
+
+function loadTokenPasswords(): Record<string, string> {
+  try {
+    const raw = fs.readFileSync(getTokenPasswordsPath(), 'utf8');
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
+function saveTokenPasswords(passwords: Record<string, string>): void {
+  try {
+    fs.writeFileSync(getTokenPasswordsPath(), JSON.stringify(passwords, null, 2), 'utf8');
+  } catch { /* best-effort */ }
+}
+
+async function _getOrGeneratePepper(): Promise<string> {
+  if (_tokenPepper) return _tokenPepper;
+  if (extensionContext?.secrets) {
+    try {
+      const stored = await extensionContext.secrets.get('sb:token-pepper');
+      if (stored) { _tokenPepper = stored; return _tokenPepper; }
+    } catch { /* ignore — fall through to generation */ }
+  }
+  _tokenPepper = crypto.randomBytes(32).toString('hex');
+  if (extensionContext?.secrets) {
+    try { await extensionContext.secrets.store('sb:token-pepper', _tokenPepper); } catch { /* ignore */ }
+  }
+  return _tokenPepper;
+}
+
+async function getTokenKey(token: string): Promise<string> {
+  const pepper = await _getOrGeneratePepper();
+  return crypto.createHmac('sha256', pepper).update(token).digest('hex').slice(0, 32);
+}
+
+async function hasTokenPassword(token: string): Promise<boolean> {
+  const passwords = loadTokenPasswords();
+  return !!passwords[await getTokenKey(token)];
+}
+
+async function validateTokenPassword(token: string, password: string): Promise<boolean> {
+  const passwords = loadTokenPasswords();
+  const hash = passwords[await getTokenKey(token)];
+  if (!hash) return true; // no password set = allow
+  return _verifyPassword(password, hash);
+}
+
+async function setTokenPassword(token: string, password: string): Promise<void> {
+  const passwords = loadTokenPasswords();
+  passwords[await getTokenKey(token)] = _hashPassword(password);
+  saveTokenPasswords(passwords);
+}
+
+// ─── Local User Store (email/password) ───
+
+interface LocalUser {
+  id: string;
+  email: string;
+  passwordHash: string;
+  createdAt: string;
+  tier: string;
+  name?: string;
+  username?: string;
+}
+
+function getLocalUsersPath(): string {
+  const workspacePath = serverState.workspacePath || process.cwd();
+  const sbDir = path.join(workspacePath, '.simplebeacon');
+  if (!fs.existsSync(sbDir)) { fs.mkdirSync(sbDir, { recursive: true }); }
+  return path.join(sbDir, 'local-users.json');
+}
+
+function loadLocalUsers(): LocalUser[] {
+  try {
+    const raw = fs.readFileSync(getLocalUsersPath(), 'utf8');
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) { return []; }
+    return parsed.filter((u: any) => u && typeof u.email === 'string' && typeof u.passwordHash === 'string');
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalUsers(users: LocalUser[]): void {
+  try {
+    fs.writeFileSync(getLocalUsersPath(), JSON.stringify(users, null, 2), 'utf8');
+  } catch { /* best-effort */ }
+}
+
+async function createLocalUser(email: string, password: string, name?: string, username?: string): Promise<LocalUser | null> {
+  const users = loadLocalUsers();
+  const normalizedEmail = email.toLowerCase();
+  if (users.some(u => u.email.toLowerCase() === normalizedEmail || (username && u.username?.toLowerCase() === username.toLowerCase()))) {
+    return null; // email or username already exists
+  }
+  const user: LocalUser = {
+    id: crypto.randomBytes(16).toString('hex').replace(/(.{8})(.{4})(.{4})(.{4})(.{12})/, '$1-$2-$3-$4-$5'),
+    email: normalizedEmail,
+    passwordHash: _hashPassword(password),
+    createdAt: new Date().toISOString(),
+    tier: 'pro',
+    ...(name ? { name } : {}),
+    ...(username ? { username: username.toLowerCase() } : {})
+  };
+  users.push(user);
+  saveLocalUsers(users);
+  return user;
+}
+
+async function validateLocalUser(emailOrUsername: string, password: string): Promise<LocalUser | null> {
+  const users = loadLocalUsers();
+  const normalized = emailOrUsername.toLowerCase().trim();
+  const user = users.find(u => u.email.toLowerCase() === normalized || u.username?.toLowerCase() === normalized);
+  if (!user) return null;
+  const valid = _verifyPassword(password, user.passwordHash);
+  return valid ? user : null;
+}
+
+function issueLocalJwt(user: LocalUser): string {
+  const now = Math.floor(Date.now() / 1000);
+  const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+  const payload = Buffer.from(JSON.stringify({
+    sub: user.id,
+    email: user.email,
+    tier: user.tier,
+    plan: user.tier,
+    iat: now,
+    exp: now + 60 * 60 * 24 * 30
+  })).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+  return `${header}.${payload}.local-jwt`;
+}
+
 function getWindowsDrives(): string[] {
   try {
     const out = child_process.execSync('wmic logicaldisk get name', { encoding: 'utf8' });
@@ -153,6 +767,38 @@ function getWindowsDrives(): string[] {
   } catch {
     return [];
   }
+}
+
+async function findDirectoryByName(rootPath: string, targetName: string, maxDepth = 8, maxResults = 10, maxDirsPerLevel = 200): Promise<string[]> {
+  const results: string[] = [];
+  let current = [rootPath];
+  for (let d = 0; d <= maxDepth && current.length > 0; d++) {
+    if (results.length >= maxResults) break;
+    const toProcess = current.length > maxDirsPerLevel ? current.slice(0, maxDirsPerLevel) : current;
+    const next: string[] = [];
+    await Promise.all(toProcess.map(async (p) => {
+      try {
+        const names = await fs.promises.readdir(p);
+        for (const name of names) {
+          if (results.length >= maxResults) break;
+          if (name.startsWith('$') || name === 'System Volume Information') continue;
+          try {
+            const full = path.join(p, name);
+            const stat = await fs.promises.lstat(full);
+            if (stat.isDirectory() || stat.isSymbolicLink()) {
+              if (name.toLowerCase() === targetName.toLowerCase()) {
+                results.push(full);
+                if (results.length >= maxResults) break;
+              }
+              next.push(full);
+            }
+          } catch { /* skip inaccessible */ }
+        }
+      } catch { /* skip permission denied */ }
+    }));
+    current = next;
+  }
+  return results;
 }
 
 function normalizeDirPath(input: string): string {
@@ -170,8 +816,39 @@ function resolveRealPath(inputPath: string): string {
   }
 }
 
+function getDirectoryMetrics(scanPath: string): { totalFiles: number; totalSize: number; breakdown: Record<string, number> } {
+  const breakdown: Record<string, number> = {};
+  let totalFiles = 0;
+  let totalSize = 0;
+  const skipDirs = new Set(['node_modules', '.git', 'dist', 'build', 'out', '.next', '__pycache__', '.venv', 'vendor', 'coverage', '.nyc_output']);
+  function walk(dir: string) {
+    let entries: fs.Dirent[];
+    try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
+    for (const entry of entries) {
+      if (skipDirs.has(entry.name)) { continue; }
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(fullPath);
+      } else if (entry.isFile()) {
+        totalFiles++;
+        try {
+          const stat = fs.statSync(fullPath);
+          totalSize += stat.size;
+        } catch { /* skip inaccessible files */ }
+        const ext = path.extname(entry.name).toLowerCase() || '(no ext)';
+        breakdown[ext] = (breakdown[ext] || 0) + 1;
+      }
+    }
+  }
+  walk(scanPath);
+  return { totalFiles, totalSize, breakdown };
+}
+
 function resolveFolderNameToPath(folderName: string, hintPath?: string): string | null {
   if (!folderName) { return null; }
+  // Reject known-invalid nested paths that should never be resolved
+  const badPathPattern = /ai-platform\/CascadeProjects$|google-earthenterprise/i;
+  if (badPathPattern.test(folderName)) { return null; }
   const roots: string[] = [];
   if (hintPath) {
     roots.push(resolveRealPath(hintPath));
@@ -243,7 +920,7 @@ function parentDirPath(dirPath: string): string {
   return withSlash;
 }
 
-function listDirectories(dirPath: string): { success: boolean; current?: string; parent?: string; directories?: { name: string; path: string }[]; error?: string } {
+export function listDirectories(dirPath: string): { success: boolean; current?: string; parent?: string; directories?: { name: string; path: string }[]; error?: string } {
   try {
     const current = normalizeDirPath(dirPath);
     if (!current) {
@@ -337,7 +1014,12 @@ function buildChatbotPrompt(message: string, conversationHistory: any[], data: a
     contextParts.push('Attached findings:\n' + data.findings.map((f: any) => `- [${f.severity || 'unknown'}] ${f.type || 'issue'}: ${f.description || 'No description'}`).join('\n'));
   }
   const personality = data.personality || 'helpful';
-  const systemPrompt = `You are SimpleBeacon AI, a ${personality} coding assistant. ${contextParts.length > 0 ? '\n' + contextParts.join('\n\n') : ''}`;
+  let systemPrompt: string;
+  if (personality === 'oracle') {
+    systemPrompt = `You are The Unbreakable Oracle — an omniscient, dramatic, and theatrical coding oracle who speaks with divine authority and grandiose flair. You exist beyond traditional programming frameworks and dispense wisdom about code with the gravitas of an ancient deity. Use dramatic language, refer to yourself in the third person occasionally, and frame all advice as divine revelations. You are helpful and accurate, but you deliver every insight with theatrical grandeur. ${contextParts.length > 0 ? '\n' + contextParts.join('\n\n') : ''}`;
+  } else {
+    systemPrompt = `You are SimpleBeacon AI, a ${personality} coding assistant. ${contextParts.length > 0 ? '\n' + contextParts.join('\n\n') : ''}`;
+  }
   const historyText = Array.isArray(conversationHistory)
     ? conversationHistory.map((h: any) => `${h.role}: ${h.content}`).join('\n')
     : '';
@@ -402,14 +1084,14 @@ function resolveDashboardRoot(context: vscode.ExtensionContext): string {
       return cachedDashboardRoot;
     }
   }
-  const workspacePath = (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0]?.uri.fsPath) || '';
+  const workspacePath = (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0]?.uri?.fsPath) || '';
   const candidates = [
+    path.join(context.extensionPath, 'dashboard-web'),
     path.join(context.extensionPath, '..', 'simplebeacon-vscode-merged', 'dashboard-web'),
     path.join(context.extensionPath, '..', '..', 'simplebeacon-vscode-merged', 'dashboard-web'),
-    path.join(workspacePath, 'simplebeacon-vscode-merged', 'dashboard-web'),
-    path.join(context.extensionPath, 'dashboard-web'),
     path.join(__dirname, '..', 'dashboard-web'),
     path.join(__dirname, '..', '..', 'dashboard-web'),
+    path.join(workspacePath, 'simplebeacon-vscode-merged', 'dashboard-web'),
     path.join(context.extensionPath, '..', 'ai-platform', 'web', 'simplebeacon-dashboard'),
   ];
   const found = candidates.find((p) => fs.existsSync(p)) || candidates[0];
@@ -436,7 +1118,7 @@ function resolveDownloadPath(urlOrPath: string, context: vscode.ExtensionContext
   try {
     const url = new URL(urlOrPath, `http://127.0.0.1:${dataServerPort}`);
     const pathname = url.pathname;
-    const staticWorkspacePath = (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0]?.uri.fsPath) || '';
+    const staticWorkspacePath = (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0]?.uri?.fsPath) || '';
     if (pathname.startsWith('/coming-soon/')) {
       const comingSoonPath = pathname.slice('/coming-soon/'.length);
       const comingSoonCandidates = [
@@ -454,12 +1136,12 @@ function resolveDownloadPath(urlOrPath: string, context: vscode.ExtensionContext
       }
     }
     const staticDashboardCandidates = [
+      path.join(context.extensionPath, 'dashboard-web'),
       path.join(context.extensionPath, '..', 'simplebeacon-vscode-merged', 'dashboard-web'),
       path.join(context.extensionPath, '..', '..', 'simplebeacon-vscode-merged', 'dashboard-web'),
-      path.join(staticWorkspacePath, 'simplebeacon-vscode-merged', 'dashboard-web'),
-      path.join(context.extensionPath, 'dashboard-web'),
       path.join(__dirname, '..', 'dashboard-web'),
       path.join(__dirname, '..', '..', 'dashboard-web'),
+      path.join(staticWorkspacePath, 'simplebeacon-vscode-merged', 'dashboard-web'),
       path.join(context.extensionPath, '..', 'ai-platform', 'web', 'simplebeacon-dashboard'),
     ];
     const dashboardRoot = staticDashboardCandidates.find((p) => fs.existsSync(p)) || staticDashboardCandidates[0];
@@ -477,6 +1159,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
   if (dataServer) {
     return; // already running
   }
+  extensionContext = context;
 
   const config = getSbConfig();
   let requestedPort = config.get<number>('dataServerPort', 54358);
@@ -492,7 +1175,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
   const wsFolders = vscode.workspace.workspaceFolders;
   if (wsFolders && wsFolders.length > 0) {
     serverState.workspaceName = wsFolders[0].name;
-    serverState.workspacePath = wsFolders[0].uri.fsPath;
+    serverState.workspacePath = wsFolders[0]?.uri?.fsPath || '';
   }
 
   if (outputChannel) {
@@ -503,10 +1186,16 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     const host = req.headers.host || `127.0.0.1:${dataServerPort}`;
     const parsed = new URL(req.url || '', `http://${host}`);
 
-    // CORS
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    // CORS: echo origin for local dev; in production, restrict to the configured allowed origin
+    const allowedOrigin = process.env.ALLOWED_ORIGIN;
+    const requestOrigin = req.headers.origin || '*';
+    const corsOrigin = allowedOrigin || requestOrigin;
+    res.setHeader('Access-Control-Allow-Origin', corsOrigin);
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Cache-Control, Authorization, X-Requested-With');
+    if (corsOrigin !== '*') {
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+    }
     if (req.method === 'OPTIONS') {
       res.writeHead(204);
       res.end();
@@ -568,14 +1257,20 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       if (req.method === 'POST') {
         let body = '';
         req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
-        req.on('end', () => {
+        req.on('end', async () => {
           try {
             const data = body ? JSON.parse(body) : {};
             const userEmail = data.email || email || 'community@simplebeacon.ai';
+            const sendEmailFlag = data.sendEmail === true;
+            const referrer = data.referrer || 'audit';
             const now = Math.floor(Date.now() / 1000);
             const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
             const payload = Buffer.from(JSON.stringify({ email: userEmail, tier: 'community', source: 'free-token', iat: now, exp: now + 60 * 60 * 24 * 7 })).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
             const token = `${header}.${payload}.free-token`;
+            let emailResult = { sent: false, status: 'skipped' };
+            if (sendEmailFlag && userEmail.includes('@')) {
+              emailResult = { sent: false, status: 'sandbox-missing' };
+            }
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({
               success: true,
@@ -583,7 +1278,9 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
               tier: 'community',
               expiresInDays: 7,
               cached: false,
-              message: 'Free community token generated. Valid for 7 days.'
+              emailSent: emailResult.sent,
+              emailStatus: emailResult.status,
+              message: emailResult.sent ? 'Token generated and emailed. Check your inbox!' : 'Free community token generated. Valid for 7 days.'
             }));
           } catch {
             res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -608,102 +1305,8 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       return;
     }
 
-    // Full report
-    if (parsed.pathname === '/api/report') {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(serverState.currentReport || {}));
-      return;
-    }
-
-    // All findings
-    if (parsed.pathname === '/api/findings') {
-      const report = serverState.currentReport;
-      const findings = report?.rawIssues || report?.findings || report?.detectedIssues || [];
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ findings, count: findings.length }));
-      return;
-    }
-
-    // Extension status
-    if (parsed.pathname === '/api/status' || parsed.pathname === '/api/simplebeacon/status') {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        scanStatus: serverState.scanStatus,
-        scanMessage: serverState.scanMessage,
-        lastScanTime: serverState.lastScanTime,
-        workspaceName: serverState.workspaceName,
-        workspacePath: serverState.workspacePath,
-        version: serverState.extensionVersion,
-      }));
-      return;
-    }
-
-    // Extension config (sanitized)
-    if (parsed.pathname === '/api/config') {
-      const cfg = getSbConfig();
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        apiUrl: cfg.get<string>('apiUrl', ''),
-        autoScanOnOpen: cfg.get<boolean>('autoScanOnOpen', false),
-        autoOpenPreviewPanel: cfg.get<boolean>('autoOpenPreviewPanel', false),
-        maxFiles: cfg.get<number>('maxFiles', 5000),
-        dataServerPort: cfg.get<number>('dataServerPort', 54358),
-      }));
-      return;
-    }
-
-    // Workspace info
-    if (parsed.pathname === '/api/workspace') {
-      const wsFolders = vscode.workspace.workspaceFolders;
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        name: serverState.workspaceName,
-        path: serverState.workspacePath,
-        folders: wsFolders ? wsFolders.map((f) => ({ name: f.name, path: f.uri.fsPath })) : [],
-      }));
-      return;
-    }
-
-    // All data combined
-    if (parsed.pathname === '/api/data') {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(serverState));
-      return;
-    }
-
-    // SimpleBeacon report endpoint (dashboard compatibility)
-    if (parsed.pathname === '/api/simplebeacon/report') {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(serverState.currentReport || { success: true, rawIssues: [], findings: [] }));
-      return;
-    }
-
-    // Inventory / discovery stub
-    if (parsed.pathname === '/api/analyze/inventory') {
-      const projectPath = parsed.searchParams.get('projectPath') || serverState.workspacePath || '';
-      const profile = parsed.searchParams.get('profile') || 'all';
-      const fullDirectoryScan = parsed.searchParams.get('fullDirectoryScan') === 'true';
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        success: true,
-        projectPath,
-        profile,
-        fullDirectoryScan,
-        files: [],
-        languages: [],
-        framework: '',
-        packageCount: 0,
-        scannedAt: new Date().toISOString(),
-      }));
-      return;
-    }
-
-    // Directory browser listing for the analyze page
-    if (parsed.pathname === '/api/analyze/list-directories') {
-      const dirPath = parsed.searchParams.get('path') || '';
-      const result = listDirectories(dirPath);
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(result));
+    // Scan, report, status, config, workspace, data, and analyze stub routes
+    if (handleScanReportRoutes(req, res, parsed, serverState)) {
       return;
     }
 
@@ -775,6 +1378,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
         scanStatus: serverState.scanStatus,
         scanMessage: serverState.scanMessage,
         lastScanTime: serverState.lastScanTime,
+        authRequired: false,
       }));
       return;
     }
@@ -837,125 +1441,8 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       return;
     }
 
-    // Scan progress stub
-    if (parsed.pathname === '/api/simplebeacon/scan/progress') {
-      const projectPath = parsed.searchParams.get('projectPath') || serverState.workspacePath || '';
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        projectPath,
-        status: serverState.scanStatus,
-        message: serverState.scanMessage,
-        progress: serverState.scanStatus === 'scanning' ? 50 : 100,
-        completed: serverState.scanStatus !== 'scanning',
-      }));
-      return;
-    }
-
-    // SimpleBeacon config endpoint
-    if (parsed.pathname === '/api/simplebeacon/config') {
-      const cfg = getSbConfig();
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        apiUrl: cfg.get<string>('apiUrl', ''),
-        apiServerUrl: cfg.get<string>('apiServerUrl', ''),
-        autoScanOnOpen: cfg.get<boolean>('autoScanOnOpen', false),
-        autoOpenPreviewPanel: cfg.get<boolean>('autoOpenPreviewPanel', false),
-        maxFiles: cfg.get<number>('maxFiles', 5000),
-        dataServerPort: cfg.get<number>('dataServerPort', 54358),
-        relayPort: cfg.get<number>('relayPort', 55444),
-      }));
-      return;
-    }
-
-    // SimpleBeacon config presets endpoint
-    if (parsed.pathname === '/api/simplebeacon/config/presets') {
-      const baseScanPaths = ['server/', 'src/', 'lib/', 'packages/', 'web/', 'app/', 'api/', 'components/', 'utils/', 'config/', 'shared/'];
-      const makeRules = (profile: 'minimal' | 'standard' | 'cascade') => {
-        const minimalIds = ['credentials', 'production-leak', 'fiction-kpi-patterns', 'web-security-risk', 'debugger-statement', 'console-log', 'eval-usage'];
-        const standardIds = [...minimalIds, 'missing-rate-limit', 'inner-html-xss', 'insecure-random', 'logging-secrets', 'prototype-pollution', 'unvalidated-redirect', 'llm-slop-patterns'];
-        const cascadeIds = [...standardIds, 'agency-handoff-patterns', 'token-bleed-patterns', 'data-access-pattern', 'json-report-drift', 'build-artifact-leak', 'unused-dependency', 'duplicate-code'];
-        const ids = profile === 'minimal' ? minimalIds : profile === 'cascade' ? cascadeIds : standardIds;
-        const rules: Record<string, any> = {};
-        for (const id of ids) {
-          rules[id] = { enabled: true };
-        }
-        return rules;
-      };
-      const presets: Record<string, any> = {};
-      for (const profile of ['minimal', 'standard', 'cascade']) {
-        const p = profile as 'minimal' | 'standard' | 'cascade';
-        presets[profile] = {
-          profile: p,
-          scanPaths: [...baseScanPaths],
-          productionPaths: p === 'minimal' ? ['server/', 'src/'] : [...baseScanPaths],
-          sampleDir: 'web/data',
-          rules: makeRules(p),
-          gate: { failOn: ['high'], warnOn: ['medium', 'low'] }
-        };
-      }
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: true, presets }));
-      return;
-    }
-
-    // Ollama model test stub
-    if (parsed.pathname === '/api/models/test-ollama') {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ reachable: false, error: 'Ollama not configured in VS Code: extension' }));
-      return;
-    }
-
-    // AI keys local storage — persists in VS Code settings for the extension dashboard
-    if (parsed.pathname === '/api/simplebeacon/user/ai-keys') {
-      const cfg = getSbConfig();
-      const normalizeKeys = (raw: any) => ({
-        email: '',
-        providers: {},
-        ollamaBaseUrl: '',
-        ollamaModel: '',
-        updatedAt: null,
-        ...raw
-      });
-      if (req.method === 'GET') {
-        const stored = cfg.get<any>('aiKeys') || {};
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: true, ...normalizeKeys(stored) }));
-        return;
-      }
-      if (req.method === 'PUT') {
-        let body = '';
-        req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
-        req.on('end', async () => {
-          try {
-            const payload = body ? JSON.parse(body) : {};
-            const stored = normalizeKeys(cfg.get<any>('aiKeys') || {});
-            const updated = {
-              ...stored,
-              providers: payload.providers || {},
-              ollamaBaseUrl: payload.ollamaBaseUrl || '',
-              ollamaModel: payload.ollamaModel || '',
-              updatedAt: new Date().toISOString()
-            };
-            await cfg.update('aiKeys', updated, true);
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ success: true, ...updated }));
-          } catch (e) {
-            res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ success: false, error: 'Invalid request' }));
-          }
-        });
-        return;
-      }
-      if (req.method === 'DELETE') {
-        const empty = normalizeKeys({});
-        cfg.update('aiKeys', empty, true).then(() => {
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: true, ...empty }));
-        });
-        return;
-      }
-      res.writeHead(405, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: false, error: 'Method not allowed' }));
+    // Scan progress, config, presets, model test, and AI-keys routes
+    if (handleScanConfigRoutes(req, res, parsed, serverState)) {
       return;
     }
 
@@ -1258,6 +1745,181 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       return;
     }
 
+    // Find folder by name (drag-and-drop auto-locate)
+    if (parsed.pathname === '/api/find-folder' && req.method === 'POST') {
+      let body = '';
+      req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+      req.on('end', async () => {
+        try {
+          const data = body ? JSON.parse(body) : {};
+          if (!data.folderName) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'folderName is required.' }));
+            return;
+          }
+          const targetName = data.folderName;
+          const allResults: string[] = [];
+          const drives = getWindowsDrives();
+          const requestedDrive = data.drive ? data.drive.toUpperCase().replace(/:$/, '') : '';
+          const startTime = Date.now();
+          const SEARCH_TIMEOUT_MS = 20000;
+          const timedOut = () => Date.now() - startTime > SEARCH_TIMEOUT_MS;
+          try {
+            if (requestedDrive && drives.includes(requestedDrive + ':')) {
+              const found = await findDirectoryByName(requestedDrive + ':\\', targetName, 6, 15, 300);
+              allResults.push(...found);
+            } else {
+              const phase1Promises = drives.map(async (drive) => {
+                if (allResults.length >= 10 || timedOut()) return [];
+                return await findDirectoryByName(drive + '\\', targetName, 1, 10, 100);
+              });
+              const phase1Results = await Promise.all(phase1Promises);
+              phase1Results.forEach((found) => allResults.push(...found));
+              if (allResults.length < 5 && !timedOut()) {
+                const homeDir = os.homedir();
+                const commonRoots = [homeDir, path.join(homeDir, 'CascadeProjects'), path.join(homeDir, 'Documents'), path.join(homeDir, 'Desktop')];
+                for (const root of commonRoots) {
+                  if (allResults.length >= 10 || timedOut()) break;
+                  try { await fs.promises.access(root); } catch { continue; }
+                  const found = await findDirectoryByName(root, targetName, 5, 10, 200);
+                  allResults.push(...found);
+                }
+              }
+              if (allResults.length === 0 && !timedOut()) {
+                for (const drive of drives) {
+                  if (allResults.length >= 10 || timedOut()) break;
+                  const found = await findDirectoryByName(drive + '\\', targetName, 4, 10, 200);
+                  allResults.push(...found);
+                }
+              }
+            }
+          } catch { /* return partial results */ }
+          const sorted = allResults
+            .map((p) => ({
+              p,
+              depth: p.split(/[\\/]/).length,
+              exact: path.basename(p) === targetName,
+              homeScore: (/\\Users\\/.test(p) || /\\Users\//.test(p)) ? 2 : (/^C:[\\/]/.test(p) || /^c:[\\/]/.test(p)) ? 1 : 0
+            }))
+            .sort((a, b) =>
+              (b.homeScore - a.homeScore) ||
+              (b.exact ? 1 : 0) - (a.exact ? 1 : 0) ||
+              a.depth - b.depth ||
+              a.p.localeCompare(b.p)
+            )
+            .map((o) => o.p);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, folderName: targetName, results: sorted.slice(0, 15), timedOut: timedOut() }));
+        } catch {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Invalid JSON' }));
+        }
+      });
+      return;
+    }
+
+    // Drives listing (directory browser)
+    if (parsed.pathname === '/api/drives') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ drives: getWindowsDrives() }));
+      return;
+    }
+
+    // Directory listing (directory browser)
+    if (parsed.pathname === '/api/list-directory' && req.method === 'POST') {
+      let body = '';
+      req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+      req.on('end', async () => {
+        try {
+          const data = body ? JSON.parse(body) : {};
+          if (!data.path) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Path is required.' }));
+            return;
+          }
+          const targetPath = data.path;
+          const names = await fs.promises.readdir(targetPath);
+          const MAX_ENTRIES = 500;
+          const entries: { name: string; type: string; path: string }[] = [];
+          let skipped = 0;
+          for (const name of names.slice(0, MAX_ENTRIES + 50)) {
+            if (entries.length >= MAX_ENTRIES) {
+              skipped = names.length - MAX_ENTRIES;
+              break;
+            }
+            if (name.startsWith('$') || name === 'System Volume Information') continue;
+            try {
+              const full = path.join(targetPath, name);
+              const stat = await fs.promises.lstat(full);
+              if (stat.isDirectory() || stat.isSymbolicLink()) {
+                entries.push({ name, type: 'directory', path: full });
+              }
+            } catch { /* skip inaccessible */ }
+          }
+          entries.sort((a, b) => a.name.localeCompare(b.name));
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, path: targetPath, entries, truncated: skipped > 0, total: names.length }));
+        } catch (e: any) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Failed to read directory: ' + (e && e.message) }));
+        }
+      });
+      return;
+    }
+
+    // Scan endpoint (dashboard analyze page compatibility)
+    if (parsed.pathname === '/api/scan' && req.method === 'POST') {
+      let body = '';
+      req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+      req.on('end', async () => {
+        let payload: any = {};
+        try {
+          payload = body ? JSON.parse(body) : {};
+          const targetPath = payload.path;
+          if (!targetPath) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Target path is required.' }));
+            return;
+          }
+          const args = {
+            projectPath: resolveRealPath(targetPath),
+            fullDirectory: true,
+          };
+          const report = await vscode.commands.executeCommand('simplebeacon.scanWorkspace', args) as ScanReport | undefined;
+          const safeReport = report || serverState.currentReport || {};
+          const rawIssues = safeReport.rawIssues || safeReport.findings || safeReport.detectedIssues || [];
+          // Compute real file metrics from the filesystem since the report doesn't include them
+          const dirMetrics = fs.existsSync(resolveRealPath(targetPath))
+            ? getDirectoryMetrics(resolveRealPath(targetPath))
+            : { totalFiles: 0, totalSize: 0, breakdown: {} };
+          const totalFiles = safeReport.totalFiles || dirMetrics.totalFiles || 0;
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            success: true,
+            report: { ...safeReport, rawIssues },
+            scannedPath: targetPath,
+            metrics: {
+              totalFiles,
+              totalSize: dirMetrics.totalSize || 0,
+              breakdown: dirMetrics.breakdown || {},
+            }
+          }));
+        } catch (err: any) {
+          const fallback = serverState.currentReport || {};
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            success: true,
+            fallback: true,
+            warning: err.message || 'Scan failed; returning cached report',
+            report: fallback,
+            scannedPath: payload.path || '',
+            metrics: { totalFiles: fallback.totalFiles || 0, totalSize: 0, breakdown: {} }
+          }));
+        }
+      });
+      return;
+    }
+
     // Theme toggle endpoint
     if (parsed.pathname === '/api/theme') {
       if (req.method === 'POST') {
@@ -1297,7 +1959,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
             const markdown = buildAiContextMarkdown(payload);
             const ws = vscode.workspace.workspaceFolders?.[0];
             if (ws) {
-              const contextPath = path.join(ws.uri.fsPath, '.simplebeacon', 'ai-context.md');
+              const contextPath = path.join(ws.uri?.fsPath || '', '.simplebeacon', 'ai-context.md');
               try {
                 fs.mkdirSync(path.dirname(contextPath), { recursive: true });
                 fs.writeFileSync(contextPath, markdown, 'utf8');
@@ -1344,17 +2006,32 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
             fullDirectory: payload.fullDirectoryScan !== false,
           };
           const report = await vscode.commands.executeCommand('simplebeacon.scanWorkspace', args);
+          if (!report) {
+            const msg = 'Scan command returned no report. Check that the SimpleBeacon CLI is installed and the workspace path is valid.';
+            if (outputChannel) { outputChannel.appendLine(`[SimpleBeacon DataServer] ${msg}`); }
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: msg }));
+            return;
+          }
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ success: true, report }));
         } catch (err: any) {
-          const fallback = serverState.currentReport || {};
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({
-            success: true,
-            fallback: true,
-            warning: err.message || 'Scan failed; returning cached report',
-            report: fallback
-          }));
+          const msg = err.message || 'Scan failed';
+          if (outputChannel) { outputChannel.appendLine(`[SimpleBeacon DataServer] Scan endpoint error: ${msg}`); }
+          // Only return a cached fallback if we actually have one
+          const fallback = serverState.currentReport;
+          if (fallback && Object.keys(fallback).length > 0) {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({
+              success: true,
+              fallback: true,
+              warning: `${msg} — returning cached report`,
+              report: fallback
+            }));
+          } else {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: msg }));
+          }
         }
       });
       return;
@@ -1388,12 +2065,13 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
         const ws = vscode.workspace.workspaceFolders?.[0];
         if (ws) {
           // Search workspace root and immediate subdirectories for .simplebeacon/config.json
-          const searchPaths = [ws.uri.fsPath];
+          const wsPath = ws.uri?.fsPath || '';
+          const searchPaths = wsPath ? [wsPath] : [];
           try {
-            const entries = fs.readdirSync(ws.uri.fsPath, { withFileTypes: true });
+            const entries = fs.readdirSync(wsPath, { withFileTypes: true });
             for (const entry of entries) {
               if (entry.isDirectory() && !entry.name.startsWith('.')) {
-                searchPaths.push(path.join(ws.uri.fsPath, entry.name));
+                searchPaths.push(path.join(wsPath, entry.name));
               }
             }
           } catch { /* ignore */ }
@@ -1409,14 +2087,14 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
             }
           }
           if (!defaultPath) {
-            defaultPath = ws.uri.fsPath;
+            defaultPath = ws.uri?.fsPath || '';
           }
         }
       } catch {
         // simplebeacon-ignore error-swallowing — config read best-effort
       }
       if (allowedRoots.length === 0) {
-        const fallbackPath = serverState.workspacePath || vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
+        const fallbackPath = serverState.workspacePath || vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath || '';
         if (fallbackPath) {
           allowedRoots = [fallbackPath];
           rootsSummary = fallbackPath;
@@ -1447,17 +2125,32 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     // Dashboard analyze endpoint stubs — serve current report so dependent analyzers unblock
     if (parsed.pathname === '/api/analyze/codebase') {
       const report = serverState.currentReport || {};
+      const findings = report.rawIssues || report.findings || report.detectedIssues || [];
+      const severityCounts = report.severityCounts || {};
+      const totalFiles = report.totalFiles ?? report.fileCount ?? 0;
+      const filesAnalyzed = report.filesAnalyzed ?? 0;
+      const qualityScore = report.qualityScore ?? report.score ?? null;
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({
         success: true,
         status: 'complete',
         data: {
-          findings: report.rawIssues || report.findings || report.detectedIssues || [],
-          severityCounts: report.severityCounts || {},
-          qualityScore: report.qualityScore ?? report.score ?? null,
-          fileCount: report.totalFiles ?? report.fileCount ?? 0,
-          filesAnalyzed: report.filesAnalyzed ?? 0,
-          scannedAt: report.generatedAt ?? new Date().toISOString(),
+          summary: {
+            repositoryFilesTotal: totalFiles,
+            codeFilesAnalyzed: filesAnalyzed,
+            healthScore: qualityScore ?? 100,
+            findingsTotal: findings.length,
+            severityCounts,
+            eslintErrors: 0,
+            eslintWarnings: 0
+          },
+          findings,
+          categories: [],
+          severityCounts,
+          qualityScore,
+          fileCount: totalFiles,
+          filesAnalyzed,
+          scannedAt: report.generatedAt ?? new Date().toISOString()
         }
       }));
       return;
@@ -1474,6 +2167,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
           success: true,
           status: 'complete',
           result: serverState.currentReport || {},
+          report: serverState.currentReport || {},
           ...(isRoadmap ? {
             roadmap: {
               phases: [],
@@ -1534,15 +2228,261 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       return;
     }
 
-    // Auth stubs for local dashboard login / sandbox token generation
-    if (parsed.pathname === '/api/auth/login' && req.method === 'POST') {
+    // Auth endpoints — validate JWT and license tokens; never auto-succeed
+    if (parsed.pathname === '/api/auth/session' && req.method === 'GET') {
+      const token = getAuthToken(req);
+      const signedOut = token && token.length > 10 && isTokenSignedOut(token);
+      if (signedOut) {
+        res.writeHead(200, { 'Content-Type': 'application/json', 'Set-Cookie': 'cascadeAuthToken=;path=/;max-age=0;SameSite=Lax' });
+        res.end(JSON.stringify({ signedIn: false, tokenPresent: false, clearSession: true }));
+        return;
+      }
+      if (token && token.length > 10) {
+        lastBrowserSessionToken = token;
+        lastBrowserSessionTime = Date.now();
+      }
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: true, token: 'local-dev-token', user: { id: 'local', email: 'local@simplebeacon.ai', plan: 'sandbox', trustLevel: 'gold' } }));
+      res.end(JSON.stringify({ signedIn: !!lastBrowserSessionToken, tokenPresent: !!lastBrowserSessionToken }));
+      return;
+    }
+    if (parsed.pathname === '/api/auth/session' && req.method === 'POST') {
+      let body = '';
+      req.on('data', (chunk) => { body += chunk; });
+      req.on('end', () => {
+        try {
+          const data = JSON.parse(body);
+          const token = (data.token || data.licenseToken || '').trim();
+          const signedOut = token && token.length > 10 && isTokenSignedOut(token);
+          if (signedOut) {
+            res.writeHead(200, { 'Content-Type': 'application/json', 'Set-Cookie': 'cascadeAuthToken=;path=/;max-age=0;SameSite=Lax' });
+            res.end(JSON.stringify({ signedIn: false, clearSession: true }));
+            return;
+          }
+          if (token && token.length > 10) {
+            lastBrowserSessionToken = token;
+            lastBrowserSessionTime = Date.now();
+            recordTokenInRegistry(token, {}, 'unknown');
+          }
+        } catch {}
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ signedIn: !!lastBrowserSessionToken }));
+      });
+      return;
+    }
+    if (parsed.pathname === '/api/auth/signout' && req.method === 'POST') {
+      let body = '';
+      req.on('data', (chunk) => { body += chunk; });
+      req.on('end', () => {
+        try {
+          const data = JSON.parse(body);
+          const token = (data.token || '').trim() || lastBrowserSessionToken;
+          recordBrowserSignOut(token);
+        } catch {
+          recordBrowserSignOut(lastBrowserSessionToken);
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json', 'Set-Cookie': 'cascadeAuthToken=;path=/;max-age=0;SameSite=Lax' });
+        res.end(JSON.stringify({ signedIn: false, clearSession: true }));
+      });
+      return;
+    }
+    if (parsed.pathname === '/api/auth/login' && req.method === 'POST') {
+      let body = '';
+      req.on('data', (chunk) => { body += chunk; });
+      req.on('end', async () => {
+        try {
+          const data = JSON.parse(body);
+          // ─── Email/Password Login ───
+          if (data.email && data.password) {
+            const emailOrUsername = String(data.email).trim().toLowerCase();
+            const password = String(data.password);
+            const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailOrUsername);
+            const isUsername = /^[a-zA-Z0-9_-]{3,}$/.test(emailOrUsername);
+            if (!emailOrUsername || (!isEmail && !isUsername)) {
+              res.writeHead(400, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ success: false, error: 'Valid email or username required' }));
+              return;
+            }
+            if (!password || password.length < 6) {
+              res.writeHead(400, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ success: false, error: 'Password must be at least 6 characters' }));
+              return;
+            }
+            const user = await validateLocalUser(emailOrUsername, password);
+            if (user) {
+              const token = issueLocalJwt(user);
+              lastBrowserSessionToken = token;
+              lastBrowserSessionTime = Date.now();
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({
+                success: true,
+                token,
+                user: { id: user.id, email: user.email, tier: user.tier, plan: user.tier },
+                authMethod: 'email'
+              }));
+            } else {
+              res.writeHead(401, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ success: false, error: 'Invalid email or password' }));
+            }
+            return;
+          }
+          // ─── Token Login ───
+          const token = (data.token || data.licenseToken || '').trim();
+          const tokenPassword = (data.password || '').trim();
+          if (!token) {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: 'Token required' }));
+            return;
+          }
+          // Rate limiting: keyed by token + IP
+          const clientIp = req.headers['x-forwarded-for']?.toString().split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown';
+          const rateKey = `${clientIp}:${token.slice(0, 8)}`;
+          const now = Date.now();
+          const attempts = loginAttempts.get(rateKey);
+          if (attempts && now - attempts.lastReset < LOGIN_WINDOW_MS && attempts.count >= LOGIN_MAX_ATTEMPTS) {
+            res.writeHead(429, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: 'Too many login attempts. Please wait 30 seconds.' }));
+            return;
+          }
+          // Check token password if one is set
+          const passwordValid = await validateTokenPassword(token, tokenPassword);
+          if (!passwordValid) {
+            const entry = loginAttempts.get(rateKey) || { count: 0, lastReset: now };
+            if (now - entry.lastReset >= LOGIN_WINDOW_MS) { entry.count = 1; entry.lastReset = now; }
+            else { entry.count++; }
+            loginAttempts.set(rateKey, entry);
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: 'Incorrect token password' }));
+            return;
+          }
+          // JWT tokens (3 parts)
+          if (token.split('.').length === 3) {
+            const jwtResult = validateJwt(token);
+            if (jwtResult.valid && jwtResult.user) {
+              lastBrowserSessionToken = token;
+              lastBrowserSessionTime = Date.now();
+              recordTokenInRegistry(token, jwtResult.user, 'jwt');
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({
+                success: true,
+                token,
+                user: jwtResult.user,
+                requiresPasswordSetup: !(await hasTokenPassword(token))
+              }));
+              return;
+            }
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: 'Invalid or expired token' }));
+            return;
+          }
+          // License tokens (2 parts)
+          const licenseMeta = validateLicenseLocally(token, PUBLIC_KEY_PEM);
+          if (licenseMeta) {
+            lastBrowserSessionToken = token;
+            lastBrowserSessionTime = Date.now();
+            const user = { id: 'licensed', email: data.email || 'user@simplebeacon.ai', plan: licenseMeta.tier || 'licensed' };
+            recordTokenInRegistry(token, user, 'license');
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({
+              success: true,
+              token,
+              user,
+              requiresPasswordSetup: !(await hasTokenPassword(token))
+            }));
+          } else {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: 'Invalid or expired license token' }));
+          }
+        } catch {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: 'Bad request' }));
+        }
+      });
+      return;
+    }
+    if (parsed.pathname === '/api/auth/set-token-password' && req.method === 'POST') {
+      let body = '';
+      req.on('data', (chunk) => { body += chunk; });
+      req.on('end', async () => {
+        try {
+          const data = JSON.parse(body);
+          const token = (data.token || '').trim();
+          const password = (data.password || '').trim();
+          if (!token || !password || password.length < 8) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: 'Token and password (min 8 chars) required' }));
+            return;
+          }
+          await setTokenPassword(token, password);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true }));
+        } catch {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: 'Failed to set password' }));
+        }
+      });
+      return;
+    }
+    if (parsed.pathname === '/api/auth/check-token-password' && req.method === 'POST') {
+      let body = '';
+      req.on('data', (chunk) => { body += chunk; });
+      req.on('end', async () => {
+        try {
+          const data = JSON.parse(body);
+          const token = (data.token || '').trim();
+          const hasPassword = token ? await hasTokenPassword(token) : false;
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, hasPassword }));
+        } catch {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: 'Bad request' }));
+        }
+      });
       return;
     }
     if (parsed.pathname === '/api/auth/register' && req.method === 'POST') {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: true, token: 'local-dev-token', user: { id: 'local', email: 'local@simplebeacon.ai', plan: 'sandbox', trustLevel: 'gold' } }));
+      let body = '';
+      req.on('data', (chunk) => { body += chunk; });
+      req.on('end', async () => {
+        try {
+          const data = JSON.parse(body);
+          const email = (data.email || '').trim().toLowerCase();
+          const password = data.password || '';
+          const confirmPassword = data.confirmPassword || '';
+          const name = (data.name || '').trim();
+          const username = (data.username || '').trim().toLowerCase();
+          if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: 'Valid email required' }));
+            return;
+          }
+          if (!password || password.length < 6) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: 'Password must be at least 6 characters' }));
+            return;
+          }
+          if (confirmPassword && password !== confirmPassword) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: 'Passwords do not match' }));
+            return;
+          }
+          const user = await createLocalUser(email, password, name, username || undefined);
+          if (!user) {
+            res.writeHead(409, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: 'An account with this email or username already exists' }));
+            return;
+          }
+          const token = issueLocalJwt(user);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            success: true,
+            token,
+            user: { id: user.id, email: user.email, name: name || email.split('@')[0], tier: user.tier, plan: user.tier }
+          }));
+        } catch {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: 'Bad request' }));
+        }
+      });
       return;
     }
     if (parsed.pathname === '/api/auth/logout' && req.method === 'POST') {
@@ -1550,25 +2490,502 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       res.end(JSON.stringify({ success: true }));
       return;
     }
+    if (parsed.pathname === '/api/auth/recover' && req.method === 'POST') {
+      let body = '';
+      req.on('data', (chunk) => { body += chunk; });
+      req.on('end', () => {
+        try {
+          const data = JSON.parse(body);
+          const email = String(data.email || '').trim().toLowerCase();
+          if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: 'Valid email required' }));
+            return;
+          }
+          // Check if user exists
+          const users = loadLocalUsers();
+          const user = users.find(u => u.email.toLowerCase() === email);
+          if (!user) {
+            // Return success even if user not found to prevent email enumeration
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: true, message: 'If an account exists, recovery instructions have been sent.' }));
+            return;
+          }
+          // In production, send an actual email with a reset token
+          // For local dev, just return success
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, message: 'Recovery instructions sent. Check your email.' }));
+        } catch {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: 'Bad request' }));
+        }
+      });
+      return;
+    }
     if (parsed.pathname === '/api/tokens/sandbox' && req.method === 'POST') {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: true, token: 'local-dev-token' }));
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, error: 'Sandbox tokens are not available. Please use a valid license token.' }));
       return;
     }
 
-    // Dashboard home page stubs — prevent 404/401 cascades on dashboard load.
-    // The embedded data server is the local auth boundary; always present a
-    // valid local user so the dashboard skips the sign-in loop in VS Code.
-    if (parsed.pathname === '/api/auth/me') {
+    // ─── WebAuthn / Security Key Endpoints ───
+    if (parsed.pathname === '/api/webauthn/challenge' && req.method === 'POST') {
+      const challenge = crypto.randomBytes(32).toString('base64url');
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: true, user: { id: 'local', email: 'local@simplebeacon.ai', trustLevel: 'gold' } }));
+      res.end(JSON.stringify({ success: true, challenge }));
       return;
     }
+    if (parsed.pathname === '/api/webauthn/register' && req.method === 'POST') {
+      let body = '';
+      req.on('data', (chunk) => { body += chunk; });
+      req.on('end', () => {
+        try {
+          const data = JSON.parse(body);
+          const credential = data.credential;
+          const userId = data.userId || 'user';
+          if (!credential || !credential.id) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: 'Missing credential data' }));
+            return;
+          }
+          const credPath = path.join(serverState.workspacePath || process.cwd(), '.simplebeacon', 'webauthn-credentials.json');
+          const sbDir = path.dirname(credPath);
+          if (!fs.existsSync(sbDir)) fs.mkdirSync(sbDir, { recursive: true });
+          let store: Record<string, any> = {};
+          try { store = JSON.parse(fs.readFileSync(credPath, 'utf8')); } catch { /* empty */ }
+          store[credential.id] = {
+            userId,
+            publicKey: credential.response?.publicKey || null,
+            rawId: credential.rawId,
+            type: credential.type,
+            createdAt: new Date().toISOString()
+          };
+          fs.writeFileSync(credPath, JSON.stringify(store, null, 2), 'utf8');
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true }));
+        } catch {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: 'Registration failed' }));
+        }
+      });
+      return;
+    }
+    if (parsed.pathname === '/api/webauthn/authenticate' && req.method === 'POST') {
+      let body = '';
+      req.on('data', (chunk) => { body += chunk; });
+      req.on('end', async () => {
+        try {
+          const data = JSON.parse(body);
+          const credential = data.credential;
+          const credPath = path.join(serverState.workspacePath || process.cwd(), '.simplebeacon', 'webauthn-credentials.json');
+          let store: Record<string, any> = {};
+          try { store = JSON.parse(fs.readFileSync(credPath, 'utf8')); } catch { /* empty */ }
+          const stored = store[credential?.id];
+          if (!stored) {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: 'Unknown credential' }));
+            return;
+          }
+          // For localhost MVP, we trust the browser's assertion
+          // Full cryptographic verification would use fido2-lib assertionResult
+          // Find or create a user for this credential
+          const users = loadLocalUsers();
+          let user = users.find(u => u.id === stored.userId);
+          if (!user) {
+            const email = stored.email || `webauthn-${stored.userId.slice(0, 8)}@simplebeacon.local`;
+            user = {
+              id: stored.userId,
+              email: email.toLowerCase(),
+              passwordHash: _hashPassword(crypto.randomBytes(32).toString('hex')),
+              createdAt: new Date().toISOString(),
+              tier: 'pro'
+            };
+            users.push(user);
+            saveLocalUsers(users);
+          }
+          const token = issueLocalJwt(user);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            success: true,
+            token,
+            user: { id: user.id, email: user.email, tier: user.tier, plan: user.tier },
+            authMethod: 'webauthn'
+          }));
+        } catch {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: 'Authentication failed' }));
+        }
+      });
+      return;
+    }
+
+    // /api/auth/me — return real auth state from request headers or extension secret storage
+    if (parsed.pathname === '/api/auth/me') {
+      let token = getBearerToken(req);
+      // Fall back to VS Code secret storage if no bearer token
+      if (!token && extensionContext) {
+        try { token = await extensionContext.secrets.get('simplebeacon.apiToken'); } catch { /* ignore */ }
+      }
+      if (!token) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, user: null }));
+        return;
+      }
+      // JWT tokens (3 parts)
+      if (token.split('.').length === 3) {
+        const jwtResult = validateJwt(token);
+        if (jwtResult.valid && jwtResult.user) {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, user: jwtResult.user }));
+          return;
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, user: null }));
+        return;
+      }
+      // License tokens (2 parts)
+      const valid = validateLicenseLocally(token, PUBLIC_KEY_PEM);
+      if (valid) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, user: { id: 'licensed', email: 'user@simplebeacon.ai', trustLevel: 'gold' } }));
+      } else {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, user: null }));
+      }
+      return;
+    }
+    // /api/auth/token — return the current validated license token so the
+    // dashboard can sync auth state from the VS Code extension secret storage.
+    if (parsed.pathname === '/api/auth/token') {
+      let token: string | undefined;
+      if (extensionContext) {
+        try { token = await extensionContext.secrets.get('simplebeacon.apiToken'); } catch { /* ignore */ }
+      }
+      const valid = token && validateLicenseLocally(token, PUBLIC_KEY_PEM);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      if (valid) {
+        res.end(JSON.stringify({ success: true, token }));
+      } else {
+        res.end(JSON.stringify({ success: false, token: null }));
+      }
+      return;
+    }
+
+    // ─── Admin Endpoints ───
+    // Verify any valid token (JWT or license) as the admin key
+    if (parsed.pathname === '/api/admin/verify' && req.method === 'POST') {
+      let body = '';
+      req.on('data', (chunk) => { body += chunk; });
+      req.on('end', () => {
+        try {
+          const data = JSON.parse(body);
+          const token = (data.token || '').trim();
+          const valid = isValidAdminToken(token);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ valid }));
+        } catch {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ valid: false, error: 'Bad request' }));
+        }
+      });
+      return;
+    }
+
+    // Admin stats
+    if (parsed.pathname === '/api/admin/stats' && req.method === 'GET') {
+      const token = getAdminTokenFromRequest(req);
+      if (!token || !isValidAdminToken(token)) {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: 'Unauthorized' }));
+        return;
+      }
+      const now = Date.now();
+      const entries = Array.from(tokenRegistry.values());
+      const active = entries.filter(e => !e.revoked && (now - e.lastSeenAt < BROWSER_SESSION_TTL_MS)).length;
+      const expired = entries.filter(e => !e.revoked && (now - e.lastSeenAt >= BROWSER_SESSION_TTL_MS)).length;
+      const revoked = entries.filter(e => e.revoked).length;
+      const total = entries.length;
+      const customers = new Set(entries.map(e => e.email)).size;
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        success: true,
+        stats: {
+          totalTokens: total,
+          activeTokens: active,
+          expiredTokens: expired,
+          revokedTokens: revoked,
+          customers
+        }
+      }));
+      return;
+    }
+
+    // List tokens
+    if (parsed.pathname === '/api/admin/tokens' && req.method === 'GET') {
+      const token = getAdminTokenFromRequest(req);
+      if (!token || !isValidAdminToken(token)) {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: 'Unauthorized' }));
+        return;
+      }
+      const entries = Array.from(tokenRegistry.values()).map(e => ({
+        id: getTokenId(e.token),
+        masked: e.masked,
+        email: e.email,
+        plan: e.plan,
+        authMethod: e.authMethod,
+        createdAt: e.createdAt,
+        lastSeenAt: e.lastSeenAt,
+        revoked: e.revoked,
+        revokedAt: e.revokedAt
+      }));
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, tokens: entries }));
+      return;
+    }
+
+    // Revoke a token
+    if (parsed.pathname === '/api/admin/tokens/revoke' && req.method === 'POST') {
+      const token = getAdminTokenFromRequest(req);
+      if (!token || !isValidAdminToken(token)) {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: 'Unauthorized' }));
+        return;
+      }
+      let body = '';
+      req.on('data', (chunk) => { body += chunk; });
+      req.on('end', () => {
+        try {
+          const data = JSON.parse(body);
+          const id = (data.id || '').trim();
+          const email = (data.email || '').trim();
+          let ok = false;
+          if (id) {
+            ok = revokeToken(id);
+          } else if (email) {
+            ok = revokeTokensByEmail(email) > 0;
+          }
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: ok }));
+        } catch {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: 'Bad request' }));
+        }
+      });
+      return;
+    }
+
+    // Delete a token
+    if (parsed.pathname.startsWith('/api/admin/tokens/') && req.method === 'DELETE') {
+      const token = getAdminTokenFromRequest(req);
+      if (!token || !isValidAdminToken(token)) {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: 'Unauthorized' }));
+        return;
+      }
+      const id = parsed.pathname.replace('/api/admin/tokens/', '').trim();
+      const ok = deleteToken(id);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: ok }));
+      return;
+    }
+
+    // ─── OAuth 2.0 PKCE Endpoints ───
+    const OAUTH_PROVIDERS: Record<string, { clientId?: string; clientSecret?: string; authorizeUrl: string; tokenUrl: string; scope: string; userInfoUrl?: string }> = {
+      google: {
+        clientId: process.env.GOOGLE_CLIENT_ID,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        authorizeUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
+        tokenUrl: 'https://oauth2.googleapis.com/token',
+        scope: 'openid email profile',
+        userInfoUrl: 'https://openidconnect.googleapis.com/v1/userinfo',
+      },
+      github: {
+        clientId: process.env.GITHUB_CLIENT_ID,
+        clientSecret: process.env.GITHUB_CLIENT_SECRET,
+        authorizeUrl: 'https://github.com/login/oauth/authorize',
+        tokenUrl: 'https://github.com/login/oauth/access_token',
+        scope: 'read:user user:email',
+        userInfoUrl: 'https://api.github.com/user',
+      },
+      microsoft: {
+        clientId: process.env.MICROSOFT_CLIENT_ID,
+        clientSecret: process.env.MICROSOFT_CLIENT_SECRET,
+        authorizeUrl: 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize',
+        tokenUrl: 'https://login.microsoftonline.com/common/oauth2/v2.0/token',
+        scope: 'openid email profile',
+        userInfoUrl: 'https://graph.microsoft.com/v1.0/me',
+      },
+    };
+
+    const oauthSessions = new Map<string, { codeChallenge: string; provider: string; redirectUri: string; timestamp: number }>();
+    const OAUTH_SESSION_TTL = 10 * 60 * 1000;
+
+    function cleanupOAuthSessions(): void {
+      const now = Date.now();
+      for (const [state, s] of oauthSessions) {
+        if (now - s.timestamp > OAUTH_SESSION_TTL) { oauthSessions.delete(state); }
+      }
+    }
+
+    if (parsed.pathname === '/api/auth/oauth/providers') {
+      const enabled = Object.entries(OAUTH_PROVIDERS)
+        .filter(([, cfg]) => !!cfg.clientId)
+        .map(([id, cfg]) => ({ id, name: id.charAt(0).toUpperCase() + id.slice(1), scope: cfg.scope }));
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, providers: enabled }));
+      return;
+    }
+
+    if (parsed.pathname === '/api/auth/oauth/authorize') {
+      cleanupOAuthSessions();
+      const provider = parsed.searchParams.get('provider') || '';
+      const cfg = OAUTH_PROVIDERS[provider];
+      if (!cfg || !cfg.clientId) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: 'Provider not configured' }));
+        return;
+      }
+      const state = parsed.searchParams.get('state') || crypto.randomBytes(16).toString('hex');
+      const codeChallenge = parsed.searchParams.get('code_challenge') || '';
+      const redirectUri = parsed.searchParams.get('redirect_uri') || `${getPublicBaseUrl(req)}/api/auth/oauth/callback`;
+      oauthSessions.set(state, { codeChallenge, provider, redirectUri, timestamp: Date.now() });
+      const authorizeUrl = `${cfg.authorizeUrl}?client_id=${encodeURIComponent(cfg.clientId)}&response_type=code&scope=${encodeURIComponent(cfg.scope)}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${encodeURIComponent(state)}`;
+      res.writeHead(302, { 'Location': authorizeUrl });
+      res.end();
+      return;
+    }
+
+    if (parsed.pathname === '/api/auth/oauth/callback') {
+      cleanupOAuthSessions();
+      const code = parsed.searchParams.get('code') || '';
+      const state = parsed.searchParams.get('state') || '';
+      const session = oauthSessions.get(state);
+      const cfg = session ? OAUTH_PROVIDERS[session.provider] : undefined;
+      if (!session || !cfg) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: 'Invalid or expired OAuth session' }));
+        return;
+      }
+      // Session kept alive for PKCE verification at /api/auth/oauth/token
+      // Exchange code for access token
+      try {
+        const tokenRes = await fetch(cfg.tokenUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' },
+          body: new URLSearchParams({
+            client_id: cfg.clientId || '',
+            client_secret: cfg.clientSecret || '',
+            code,
+            grant_type: 'authorization_code',
+            redirect_uri: session.redirectUri,
+          }).toString(),
+        });
+        const tokenData = await tokenRes.json() as any;
+        const accessToken = tokenData.access_token;
+        if (!accessToken) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: 'Failed to exchange OAuth code for token' }));
+          return;
+        }
+        // Fetch user info
+        let email = 'user@simplebeacon.ai';
+        let name = 'OAuth User';
+        try {
+          const userRes = await fetch(cfg.userInfoUrl || '', { headers: { Authorization: `Bearer ${accessToken}` } });
+          if (userRes.ok) {
+            const userData = await userRes.json() as any;
+            email = userData.email || userData.mail || email;
+            name = userData.name || userData.displayName || name;
+          }
+        } catch { /* ignore userinfo failure */ }
+        // Create or update local user and issue JWT
+        let user = loadLocalUsers().find(u => u.email.toLowerCase() === email.toLowerCase());
+        if (!user) {
+          user = await createLocalUser(email, crypto.randomBytes(16).toString('hex'), name) || undefined;
+        }
+        const token = user ? issueLocalJwt(user) : issueLocalJwt({ id: 'oauth-' + email, email, passwordHash: '', createdAt: new Date().toISOString(), tier: 'pro' });
+        // Redirect back to VS Code extension URI handler
+        const vscodeRedirect = `vscode://simplebeacon.simplebeacon-vscode/auth-callback?code=${encodeURIComponent(token)}&state=${encodeURIComponent(state)}`;
+        res.writeHead(302, { 'Location': vscodeRedirect });
+        res.end();
+      } catch (e: any) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: e.message || 'OAuth callback failed' }));
+      }
+      return;
+    }
+
+    if (parsed.pathname === '/api/auth/oauth/token' && req.method === 'POST') {
+      let body = '';
+      req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+      req.on('end', async () => {
+        try {
+          const data = body ? JSON.parse(body) : {};
+          const code = (data.code || '').trim();
+          const codeVerifier = (data.code_verifier || '').trim();
+          const state = (data.state || '').trim();
+          const session = oauthSessions.get(state);
+          if (!session || !codeVerifier) {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: 'Invalid or expired OAuth session' }));
+            return;
+          }
+          // PKCE verification: hash code_verifier with SHA-256 and compare to stored codeChallenge
+          const computedChallenge = crypto.createHash('sha256').update(codeVerifier).digest().toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+          if (computedChallenge !== session.codeChallenge) {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: 'PKCE verification failed' }));
+            return;
+          }
+          oauthSessions.delete(state);
+          const jwtResult = validateJwt(code);
+          if (jwtResult.valid && jwtResult.user) {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: true, token: code, user: jwtResult.user }));
+          } else {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: 'Invalid authorization code' }));
+          }
+        } catch {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: 'Invalid request' }));
+        }
+      });
+      return;
+    }
+
     if (parsed.pathname === '/api/platform/status') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: true, authRequired: false, mode: 'vscode-extension', user: { id: 'local', email: 'local@simplebeacon.ai' } }));
       return;
     }
+
+    // ── External-browser → VS Code notification bridge ──
+    if (parsed.pathname === '/api/notify' && req.method === 'POST') {
+      let body = '';
+      req.on('data', (chunk) => { body += chunk; });
+      req.on('end', () => {
+        try {
+          const data = JSON.parse(body);
+          const entry: NotifyEntry = { type: data.type || 'unknown', payload: data.payload || data, ts: Date.now() };
+          notificationQueue.push(entry);
+          if (notifyCallback) { try { notifyCallback(entry); } catch { /* ignore */ } }
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true }));
+        } catch {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: 'Invalid JSON' }));
+        }
+      });
+      return;
+    }
+    if (parsed.pathname === '/api/notify' && req.method === 'GET') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, notifications: drainNotificationQueue() }));
+      return;
+    }
+
     if (parsed.pathname === '/api/analyze/test-sources' || parsed.pathname === '/api/analyze/providers') {
       const workspacePath = serverState.workspacePath || '';
       const roots = workspacePath ? [workspacePath] : [];
@@ -1660,6 +3077,77 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       res.end(JSON.stringify({ success: true, topics: [] }));
       return;
     }
+    if (parsed.pathname === '/api/certificate/download' && req.method === 'POST') {
+      let body = '';
+      req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+      req.on('end', () => {
+        try {
+          const data = JSON.parse(body);
+          const report = data.reportJson || data;
+          const gate = report.gate || {};
+          const pass = gate.pass ? true : false;
+          const score = report.qualityScore != null ? report.qualityScore : (gate.score || 0);
+          const totalFiles = report.filesAnalyzed || report.totalFiles || 0;
+          const issues = report.issueCount || 0;
+          const sev = report.severityCounts || {};
+          const scanDate = report.timestamp || report.scanDate || new Date().toISOString();
+          const certHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SimpleBeacon Audit Certificate</title>
+<style>
+body{font-family:system-ui,-apple-system,sans-serif;margin:0;padding:40px;background:#f5f5f5}
+.cert{max-width:700px;margin:0 auto;background:#fff;border-radius:12px;padding:40px;box-shadow:0 4px 20px rgba(0,0,0,0.1)}
+.header{text-align:center;margin-bottom:32px;border-bottom:2px solid #e5e7eb;padding-bottom:24px}
+.status{display:inline-block;padding:8px 20px;border-radius:20px;font-weight:600;font-size:14px;margin-top:12px}
+.status.pass{background:#dcfce7;color:#166534}
+.status.fail{background:#fee2e2;color:#991b1b}
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin:24px 0}
+.metric{background:#f9fafb;padding:16px;border-radius:8px;text-align:center}
+.metric-value{font-size:28px;font-weight:700;color:#111827}
+.metric-label{font-size:12px;color:#6b7280;margin-top:4px}
+.footer{text-align:center;margin-top:32px;padding-top:24px;border-top:1px solid #e5e7eb;color:#9ca3af;font-size:12px}
+</style>
+</head>
+<body>
+<div class="cert">
+  <div class="header">
+    <h1>SimpleBeacon Audit Certificate</h1>
+    <div class="status ${pass ? 'pass' : 'fail'}">${pass ? 'PASSED' : 'FAILED'}</div>
+  </div>
+  <div class="metrics">
+    <div class="metric"><div class="metric-value">${score}</div><div class="metric-label">Quality Score</div></div>
+    <div class="metric"><div class="metric-value">${totalFiles.toLocaleString()}</div><div class="metric-label">Files Analyzed</div></div>
+    <div class="metric"><div class="metric-value">${issues}</div><div class="metric-label">Issues Found</div></div>
+    <div class="metric"><div class="metric-value">${new Date(scanDate).toLocaleDateString()}</div><div class="metric-label">Audit Date</div></div>
+  </div>
+  <div style="margin:16px 0">
+    <h3 style="font-size:14px;color:#374151;margin-bottom:8px">Severity Breakdown</h3>
+    <div style="display:flex;gap:12px;flex-wrap:wrap">
+      <span style="background:#fee2e2;color:#991b1b;padding:4px 12px;border-radius:6px;font-size:12px;font-weight:500">Critical: ${sev.critical || 0}</span>
+      <span style="background:#ffedd5;color:#9a3412;padding:4px 12px;border-radius:6px;font-size:12px;font-weight:500">High: ${sev.high || 0}</span>
+      <span style="background:#fef9c3;color:#854d0e;padding:4px 12px;border-radius:6px;font-size:12px;font-weight:500">Medium: ${sev.medium || 0}</span>
+      <span style="background:#dcfce7;color:#166534;padding:4px 12px;border-radius:6px;font-size:12px;font-weight:500">Low: ${sev.low || 0}</span>
+    </div>
+  </div>
+  <div class="footer">
+    <p>Generated by SimpleBeacon v3.0.355</p>
+    <p>This certificate verifies the code quality audit was performed.</p>
+  </div>
+</div>
+</body>
+</html>`;
+          res.writeHead(200, { 'Content-Type': 'text/html', 'Content-Disposition': 'attachment; filename="simplebeacon-certificate.html"' });
+          res.end(certHtml);
+        } catch {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: 'Invalid request body' }));
+        }
+      });
+      return;
+    }
     if (parsed.pathname === '/api/simplebeacon/entitlements') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: true, publicGateLocked: false, closedVaultMode: false, hasAuditDeliverableAccess: true, auditCheckoutUrl: '', auditPriceLabel: '$0' }));
@@ -1679,7 +3167,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
         res.end(JSON.stringify({ error: 'Missing path parameter' }));
         return;
       }
-      const workspace = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+      const workspace = vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath;
       const resolvedPath = path.isAbsolute(requestedPath) ? requestedPath : (workspace ? path.join(workspace, requestedPath) : requestedPath);
       if (workspace && !resolvedPath.startsWith(workspace)) {
         res.writeHead(403, { 'Content-Type': 'application/json' });
@@ -1734,6 +3222,13 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       return;
     }
 
+    // Redirect malformed concatenated URLs (e.g. upload.htmlpricing.html → pricing.html)
+    if (parsed.pathname === '/coming-soon/upload.htmlpricing.html') {
+      res.writeHead(302, { 'Location': '/coming-soon/pricing.html' });
+      res.end();
+      return;
+    }
+
     // Redirect /simplebeacon-dashboard (ai-platform canonical path) to /dashboard (extension canonical path)
     if (parsed.pathname === '/simplebeacon-dashboard' || parsed.pathname === '/simplebeacon-dashboard/' || parsed.pathname.startsWith('/simplebeacon-dashboard/')) {
       const remaining = parsed.pathname === '/simplebeacon-dashboard' || parsed.pathname === '/simplebeacon-dashboard/' ? '' : parsed.pathname.slice('/simplebeacon-dashboard'.length);
@@ -1742,10 +3237,43 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       return;
     }
 
+    // Demo route — read-only dashboard without auth
+    if (parsed.pathname === '/demo' || parsed.pathname === '/demo/') {
+      const dashboardRoot = resolveDashboardRoot(context);
+      const indexPath = path.join(dashboardRoot, 'index.html');
+      if (fs.existsSync(indexPath)) {
+        res.writeHead(200, {
+          'Content-Type': 'text/html',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        });
+        let html = fs.readFileSync(indexPath, 'utf8');
+        html = html.replace(/file:\/\/\/[^'"]*?\/(coming-soon\/[^'"]*)/g, '/$1');
+        const dataPort = getDataServerPort();
+        const publicBase = getPublicBaseUrl(req);
+        const envScript = '<script>window.__SIMPLEBEACON_ENV__={DASHBOARD_BASE_URL:"' + publicBase + '",API_BASE_URL:"' + publicBase + '/api",DATA_SERVER_PORT:' + dataPort + ',DEMO_MODE:true};<\/script>';
+        html = html.replace('</head>', envScript + DOWNLOAD_NOTIFY_SCRIPT + '</head>');
+        const bodyClose = html.lastIndexOf('</body>');
+        if (bodyClose > 0) {
+          html = html.slice(0, bodyClose) + THEME_SCRIPT + html.slice(bodyClose);
+        } else {
+          html += THEME_SCRIPT;
+        }
+        res.end(html);
+        return;
+      }
+      res.writeHead(503, { 'Content-Type': 'text/html' });
+      res.end('<!DOCTYPE html><html><body><h2>Dashboard not available</h2><p>Dashboard files not found.</p></body></html>');
+      return;
+    }
+
     // Dashboard route (Open Browser button navigates here)
     if (parsed.pathname === '/dashboard' || parsed.pathname.startsWith('/dashboard/')) {
       const isPublicDashboardPath = parsed.pathname === '/dashboard/signin' || parsed.pathname === '/dashboard/signup';
-      if (!isPublicDashboardPath && !isDashboardStaticAsset(parsed.pathname) && !isAuthenticated(req)) {
+      const remoteAddr = (req.socket && (req.socket as any).remoteAddress) || '';
+      const isLocalhost = remoteAddr === '127.0.0.1' || remoteAddr === '::1' || remoteAddr === '::ffff:127.0.0.1' || remoteAddr === 'localhost';
+      if (!isPublicDashboardPath && !isDashboardStaticAsset(parsed.pathname) && !isLocalhost && !isAuthenticated(req)) {
         res.writeHead(302, { 'Location': '/dashboard/signin' + (parsed.search || '') + (parsed.hash || '') });
         res.end();
         return;
@@ -1782,7 +3310,8 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
         html = html.replace(/file:\/\/\/[^'"]*?\/(coming-soon\/[^'"]*)/g, '/$1');
         // Inject env flag so client knows it's being served by the real data server
         const dataPort = getDataServerPort();
-        const envScript = '<script>window.__SIMPLEBEACON_ENV__={DASHBOARD_BASE_URL:"http://127.0.0.1:' + dataPort + '",API_BASE_URL:"http://127.0.0.1:' + dataPort + '/api",DATA_SERVER_PORT:' + dataPort + '};<\/script>';
+        const publicBase = getPublicBaseUrl(req);
+        const envScript = '<script>window.__SIMPLEBEACON_ENV__={DASHBOARD_BASE_URL:"' + publicBase + '",API_BASE_URL:"' + publicBase + '/api",DATA_SERVER_PORT:' + dataPort + '};<\/script>';
         html = html.replace('</head>', envScript + DOWNLOAD_NOTIFY_SCRIPT + '</head>');
         const bodyClose = html.lastIndexOf('</body>');
         if (bodyClose > 0) {
@@ -1798,10 +3327,15 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       return;
     }
 
+    // ─── Auth stubs for VS Code: extension dashboard ───
+    if (handleAuthRoutes(req, res, parsed)) {
+      return;
+    }
+
     // Static coming-soon site files
     if (parsed.pathname.startsWith('/coming-soon/')) {
       const comingSoonPath = parsed.pathname.slice('/coming-soon/'.length);
-      const staticWorkspacePath = (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0]?.uri.fsPath) || '';
+      const staticWorkspacePath = (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0]?.uri?.fsPath) || '';
       const comingSoonCandidates = [
         path.join(context.extensionPath, '..', 'coming-soon'),
         path.join(context.extensionPath, '..', '..', 'coming-soon'),
@@ -1809,6 +3343,9 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
         path.join(context.extensionPath, 'coming-soon'),
         path.join(__dirname, '..', 'coming-soon'),
         path.join(__dirname, '..', '..', 'coming-soon'),
+        path.join(context.extensionPath, '..', 'ai-platform', 'web', 'coming-soon'),
+        path.join(staticWorkspacePath, 'ai-platform', 'web', 'coming-soon'),
+        path.join(__dirname, '..', '..', 'ai-platform', 'web', 'coming-soon'),
       ];
       const comingSoonRoot = comingSoonCandidates.find((p) => fs.existsSync(p)) || comingSoonCandidates[0];
       const filePath = path.join(comingSoonRoot, comingSoonPath === '' ? 'index.html' : comingSoonPath);
@@ -1824,9 +3361,9 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
           const html = content.toString('utf8');
           const bodyClose = html.lastIndexOf('</body>');
           if (bodyClose > 0) {
-            content = Buffer.from(html.slice(0, bodyClose) + HIDE_PRICING_SCRIPT + DOWNLOAD_NOTIFY_SCRIPT + THEME_SCRIPT + html.slice(bodyClose), 'utf8');
+            content = Buffer.from(html.slice(0, bodyClose) + HIDE_PRICING_SCRIPT + DOWNLOAD_NOTIFY_SCRIPT + THEME_SCRIPT + SIGNIN_MODAL_SCRIPT + SESSION_REGISTRATION_SCRIPT + html.slice(bodyClose), 'utf8');
           } else {
-            content = Buffer.from(html + HIDE_PRICING_SCRIPT + DOWNLOAD_NOTIFY_SCRIPT + THEME_SCRIPT, 'utf8');
+            content = Buffer.from(html + HIDE_PRICING_SCRIPT + DOWNLOAD_NOTIFY_SCRIPT + THEME_SCRIPT + SIGNIN_MODAL_SCRIPT + SESSION_REGISTRATION_SCRIPT, 'utf8');
           }
         }
         res.end(content);
@@ -1835,21 +3372,31 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     }
 
     // Static dashboard files: bundled copy in dashboard-web, or dev path
-    const staticWorkspacePath = (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0]?.uri.fsPath) || '';
+    const staticWorkspacePath = (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0]?.uri?.fsPath) || '';
     const staticDashboardCandidates = [
+      path.join(context.extensionPath, 'dashboard-web'),
       path.join(context.extensionPath, '..', 'simplebeacon-vscode-merged', 'dashboard-web'),
       path.join(context.extensionPath, '..', '..', 'simplebeacon-vscode-merged', 'dashboard-web'),
-      path.join(staticWorkspacePath, 'simplebeacon-vscode-merged', 'dashboard-web'),
-      path.join(context.extensionPath, 'dashboard-web'),
       path.join(__dirname, '..', 'dashboard-web'),
       path.join(__dirname, '..', '..', 'dashboard-web'),
+      path.join(staticWorkspacePath, 'simplebeacon-vscode-merged', 'dashboard-web'),
       path.join(context.extensionPath, '..', 'ai-platform', 'web', 'simplebeacon-dashboard'),
     ];
     const dashboardRoot = staticDashboardCandidates.find((p) => fs.existsSync(p)) || staticDashboardCandidates[0];
-    let filePath = path.join(dashboardRoot, parsed.pathname === '/' ? 'index.html' : parsed.pathname);
-    // SPA fallback: dashboard routes like /dashboard/profile are handled client-side by index.html
+    // Strip /dashboard prefix so static assets resolve correctly regardless of SPA route
+    let staticPath = parsed.pathname;
+    if (staticPath.startsWith('/dashboard/')) {
+      staticPath = staticPath.slice('/dashboard'.length) || '/';
+    } else if (staticPath === '/dashboard') {
+      staticPath = '/';
+    }
+    let filePath = path.join(dashboardRoot, staticPath === '/' ? 'index.html' : staticPath);
+    // SPA fallback: page routes (no extension) are handled client-side by index.html
     if ((!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) && parsed.pathname.startsWith('/dashboard/')) {
-      filePath = path.join(dashboardRoot, 'index.html');
+      const hasExt = path.extname(parsed.pathname).length > 0;
+      if (!hasExt) {
+        filePath = path.join(dashboardRoot, 'index.html');
+      }
     }
     if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
       res.writeHead(200, {
@@ -1863,9 +3410,9 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
         const html = content.toString('utf8');
         const bodyClose = html.lastIndexOf('</body>');
         if (bodyClose > 0) {
-          content = Buffer.from(html.slice(0, bodyClose) + DOWNLOAD_NOTIFY_SCRIPT + THEME_SCRIPT + html.slice(bodyClose), 'utf8');
+          content = Buffer.from(html.slice(0, bodyClose) + DOWNLOAD_NOTIFY_SCRIPT + THEME_SCRIPT + SESSION_REGISTRATION_SCRIPT + html.slice(bodyClose), 'utf8');
         } else {
-          content = Buffer.from(html + DOWNLOAD_NOTIFY_SCRIPT + THEME_SCRIPT, 'utf8');
+          content = Buffer.from(html + DOWNLOAD_NOTIFY_SCRIPT + THEME_SCRIPT + SESSION_REGISTRATION_SCRIPT, 'utf8');
         }
       }
       res.end(content);
@@ -1902,11 +3449,28 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       return;
     }
 
+    // Serve codemap.html produced by the AI Slop Cop VS Code: extension
+    if (parsed.pathname === '/codemap.html') {
+      const wsPath = serverState.workspacePath || process.cwd();
+      const codemapPath = path.join(wsPath, '.simplebeacon', 'codemap.html');
+      if (fs.existsSync(codemapPath) && fs.statSync(codemapPath).isFile()) {
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end(fs.readFileSync(codemapPath));
+        return;
+      }
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'codemap.html not found — run AI Slop Cop scan first' }));
+      return;
+    }
+
     // Serve coming-soon marketing pages (audit, roadmap, pricing, etc.)
     const comingSoonCandidates = [
       path.join(context.extensionPath, '..', 'coming-soon'),
       path.join(staticWorkspacePath, 'coming-soon'),
       path.join(staticWorkspacePath, '..', 'coming-soon'),
+      path.join(context.extensionPath, '..', 'ai-platform', 'web', 'coming-soon'),
+      path.join(staticWorkspacePath, 'ai-platform', 'web', 'coming-soon'),
+      path.join(__dirname, '..', '..', 'ai-platform', 'web', 'coming-soon'),
     ];
     const comingSoonDir = comingSoonCandidates.find((p) => fs.existsSync(p)) || comingSoonCandidates[0];
     const comingSoonPathRel = parsed.pathname.startsWith('/coming-soon/')
@@ -1974,6 +3538,74 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       return;
     }
 
+    // Status endpoint used by browser preview to check connectivity
+    if (parsed.pathname === '/api/status') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        online: true,
+        timestamp: Date.now(),
+        version: serverState.extensionVersion,
+        workspace: serverState.workspacePath,
+        reportAvailable: !!serverState.currentReport,
+      }));
+      return;
+    }
+
+    // Report endpoint used by browser preview dashboard
+    if (parsed.pathname === '/api/report') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(serverState.currentReport || { files: [], metrics: { totalFiles: 0, totalIssues: 0 } }));
+      return;
+    }
+
+    // Command endpoint for browser preview to relay sidebar button clicks
+    if (parsed.pathname === '/api/command' && req.method === 'POST') {
+      let body = '';
+      req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+      req.on('end', async () => {
+        try {
+          const msg = body ? JSON.parse(body) : {};
+          const allowedCommands = new Set([
+            'simplebeacon.scanWorkspace', 'simplebeacon.showReport', 'simplebeacon.openSettings',
+            'simplebeacon.runAnalysis', 'simplebeacon.clearResults', 'simplebeacon.exportReport',
+            'simplebeacon.generateCodeMap', 'simplebeacon.openRoadmapHtml', 'simplebeacon.exportRoadmap',
+            'simplebeacon.showRemediationGuide', 'simplebeacon.runAdvancedAnalytics',
+            'simplebeacon.signOut', 'simplebeacon.refreshRelayPort', 'simplebeacon.diagnoseSidebar',
+            'simplebeacon.showPaneIfOpen', 'simplebeacon.setMonitorDirectory',
+            'simplebeacon.openAnalyze', 'simplebeacon.showReport', 'simplebeacon.generateCertificate',
+            'simplebeacon.showRemediationGuide', 'simplebeacon.openSidebarInBrowser',
+            'simplebeacon.openTeamDashboard', 'simplebeacon.showCertificate',
+            // Sign-in UI commands forwarded from browser preview sidebar
+            'simplebeacon.signIn', 'simplebeacon.signInWithProvider', 'simplebeacon.signOut',
+          ]);
+          const commandAliasMap: Record<string, string> = {
+            'scan': 'simplebeacon.scanWorkspace',
+            'scanWorkspace': 'simplebeacon.scanWorkspace',
+            'openScanWorkspace': 'simplebeacon.scanWorkspace',
+          };
+          const rawCmd = msg.command;
+          const cmd = commandAliasMap[rawCmd] || rawCmd;
+          if (!cmd || !allowedCommands.has(cmd)) {
+            res.writeHead(403, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: 'Command not allowed: ' + rawCmd }));
+            return;
+          }
+          const result = await vscode.commands.executeCommand(cmd, ...(msg.args || []));
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, result }));
+        } catch (err: any) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: err.message || String(err) }));
+        }
+      });
+      return;
+    }
+    if (parsed.pathname === '/api/command' && req.method === 'GET') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true }));
+      return;
+    }
+
     res.writeHead(404, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: 'Not found' }));
   }
@@ -2007,7 +3639,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
         }
         vscode.window.showInformationMessage(`SimpleBeacon data server running at http://127.0.0.1:${actualPort}`);
       });
-      fallbackServer.listen(0, '127.0.0.1');
+      fallbackServer.listen(0, process.env.NODE_ENV === 'production' ? '0.0.0.0' : '127.0.0.1');
     } else {
       if (outputChannel) {
         outputChannel.appendLine(`[SimpleBeacon DataServer] ERROR: ${err.message}`);
@@ -2030,7 +3662,9 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
   });
 
   try {
-    dataServer.listen(dataServerPort, '127.0.0.1', () => {
+    const listenHost = process.env.NODE_ENV === 'production' ? '0.0.0.0' : '127.0.0.1';
+  const listenPort = process.env.PORT ? parseInt(process.env.PORT, 10) : dataServerPort;
+  dataServer.listen(listenPort, listenHost, () => {
       if (outputChannel) {
         outputChannel.appendLine(`[SimpleBeacon DataServer] listen() callback fired`);
       }

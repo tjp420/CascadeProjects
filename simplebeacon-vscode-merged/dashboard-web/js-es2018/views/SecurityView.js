@@ -1,143 +1,133 @@
 import { escapeHtml, showToast, downloadJson, redactPathForDisplay, formatNumber, renderEmptyState, apiUrl } from '../utils.js';
-import {
-  extractSecurityFindings,
-  buildSecuritySummary,
-  buildSecurityExportPayload,
-  fetchComplianceHeadline
-} from '../services/securityService.js';
-
+import { extractSecurityFindings, buildSecuritySummary, buildSecurityExportPayload, fetchComplianceHeadline } from '../services/securityService.js';
 /**
  * Security view.
  */
 export class SecurityView {
-  constructor(app) {
-    this.app = app;
-    this.scanning = false;
-    this.loading = true;
-    this.error = null;
-    this.compliance = null;
-    this._container = null;
-  }
-
-  _getVscodeApi() {
-    if (this._vscodeApiCached) return this._vscodeApiCached;
-    if (typeof window === 'undefined' || typeof window.acquireVsCodeApi !== 'function') return null;
-    try {
-      this._vscodeApiCached = window.acquireVsCodeApi();
-      return this._vscodeApiCached;
-    } catch {
-      return null;
+    constructor(app) {
+        this.app = app;
+        this.scanning = false;
+        this.loading = true;
+        this.error = null;
+        this.compliance = null;
+        this._container = null;
     }
-  }
-
-  getReport() {
-    return this.app.state.report;
-  }
-
-  getFindings() {
-    return extractSecurityFindings(this.getReport());
-  }
-
-  getSummary() {
-    return buildSecuritySummary(this.getReport(), this.getFindings());
-  }
-
-  _escapeHtml(text) {
-    return String(text || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  }
-
-  maskSensitiveData(rawText) {
-    if (!rawText) return '';
-    const patterns = [
-      { regex: /(amzn\.sk\.[a-zA-Z0-9-_]{0,8})([a-zA-Z0-9-_]+)/gi, name: 'AWS session key' },
-      { regex: /(AKIA[0-9A-Z]{0,12})([0-9A-Z]+)/g, name: 'AWS access key' },
-      { regex: /(sk-or-v1-[a-zA-Z0-9-_]{0,8})([a-zA-Z0-9-_]+)/g, name: 'OpenRouter key' },
-      { regex: /(sk-[a-zA-Z0-9]{0,12})([a-zA-Z0-9]+)/g, name: 'OpenAI key' },
-      { regex: /(ghp_[a-zA-Z0-9]{0,8})([a-zA-Z0-9]+)/g, name: 'GitHub token' },
-      { regex: /(xoxb-[a-zA-Z0-9-]{0,12})([a-zA-Z0-9-]+)/g, name: 'Slack bot token' }
-    ];
-    let maskedText = this._escapeHtml(rawText);
-    let matched = false;
-    for (const { regex } of patterns) {
-      maskedText = maskedText.replace(regex, (match, prefix, secretPart) => {
-        matched = true;
-        return `${this._escapeHtml(prefix)}<span class="secret-beads" aria-hidden="true">••••••••••••••••</span>`;
-      });
+    _getVscodeApi() {
+        if (this._vscodeApiCached)
+            return this._vscodeApiCached;
+        if (typeof window === 'undefined' || typeof window.acquireVsCodeApi !== 'function')
+            return null;
+        try {
+            this._vscodeApiCached = window.acquireVsCodeApi();
+            return this._vscodeApiCached;
+        }
+        catch (_a) {
+            return null;
+        }
     }
-    if (!matched && rawText.length > 8) {
-      const quarter = Math.floor(rawText.length / 4);
-      const prefix = this._escapeHtml(rawText.substring(0, quarter));
-      const suffix = this._escapeHtml(rawText.substring(rawText.length - quarter));
-      return `${prefix}<span class="secret-beads" aria-hidden="true">••••••••••••••••</span>${suffix}`;
+    getReport() {
+        return this.app.state.report;
     }
-    return maskedText;
-  }
-
-  getRotationPlaybook(type, file) {
-    const playbooks = {
-      'AWS Secret Key': {
-        provider: 'Amazon Web Services',
-        docsLink: 'https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html',
-        steps: [
-          'Open the AWS IAM console and locate the exposed identity or credentials profile.',
-          'Create a new access key pair to replace the compromised key.',
-          'Update your local environment variables or secret vault with the new key.',
-          'Deactivate and permanently delete the exposed legacy access key.',
-          'Verify downstream services are using the rotated credentials.'
-        ],
-        cliSnippet: 'aws iam update-access-key --access-key-id YOUR_KEY_ID --status Inactive\naws iam delete-access-key --access-key-id YOUR_KEY_ID'
-      },
-      'OpenAI API Key': {
-        provider: 'OpenAI',
-        docsLink: 'https://platform.openai.com/account/api-keys',
-        steps: [
-          'Open the OpenAI Platform API keys dashboard.',
-          'Find the matching key and click Revoke Key.',
-          'Generate a fresh API key and store it in a secret vault.',
-          'Update your application environment variables and redeploy.'
-        ],
-        cliSnippet: '# Revoke and regenerate at https://platform.openai.com/account/api-keys'
-      },
-      'GitHub Token': {
-        provider: 'GitHub',
-        docsLink: 'https://github.com/settings/tokens',
-        steps: [
-          'Open your GitHub account developer settings.',
-          'Locate the Personal Access Token matching the exposed prefix.',
-          'Click Revoke or Delete to immediately disable the token.',
-          'Generate a fresh fine-grained token with minimal repository permissions.'
-        ],
-        cliSnippet: 'curl -X DELETE -H "Authorization: token GITHUB_TOKEN" https://api.github.com/applications/Iv23lixxx/token'
-      },
-      'Slack Bot Token': {
-        provider: 'Slack',
-        docsLink: 'https://api.slack.com/apps',
-        steps: [
-          'Open the Slack app management dashboard.',
-          'Select the app associated with the exposed bot token.',
-          'Navigate to OAuth & Permissions and revoke the token.',
-          'Reinstall the app to generate a new token and update your environment.'
-        ],
-        cliSnippet: '# Revoke at https://api.slack.com/apps > OAuth & Permissions'
-      }
-    };
-    return playbooks[type] || {
-      provider: 'Generic Credential Provider',
-      docsLink: 'https://owasp.org/www-project-top-ten/',
-      steps: [
-        'Immediately invalidate or revoke this secret in its platform management console.',
-        `Remove the raw plaintext secret from the source file at ${this._escapeHtml(file)}.`,
-        'Externalize the secret using environment variables or a secure secret vault.',
-        'Add the file path to .gitignore to prevent future accidental commits.'
-      ],
-      cliSnippet: '# Invalidate secret on host provider dashboard console'
-    };
-  }
-
-  renderSecureReveal(rawText) {
-    const masked = this.maskSensitiveData(rawText);
-    const escaped = this._escapeHtml(rawText);
-    return `
+    getFindings() {
+        return extractSecurityFindings(this.getReport());
+    }
+    getSummary() {
+        return buildSecuritySummary(this.getReport(), this.getFindings());
+    }
+    _escapeHtml(text) {
+        return String(text || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+    maskSensitiveData(rawText) {
+        if (!rawText)
+            return '';
+        const patterns = [
+            { regex: /(amzn\.sk\.[a-zA-Z0-9-_]{0,8})([a-zA-Z0-9-_]+)/gi, name: 'AWS session key' },
+            { regex: /(AKIA[0-9A-Z]{0,12})([0-9A-Z]+)/g, name: 'AWS access key' },
+            { regex: /(sk-or-v1-[a-zA-Z0-9-_]{0,8})([a-zA-Z0-9-_]+)/g, name: 'OpenRouter key' },
+            { regex: /(sk-[a-zA-Z0-9]{0,12})([a-zA-Z0-9]+)/g, name: 'OpenAI key' },
+            { regex: /(ghp_[a-zA-Z0-9]{0,8})([a-zA-Z0-9]+)/g, name: 'GitHub token' },
+            { regex: /(xoxb-[a-zA-Z0-9-]{0,12})([a-zA-Z0-9-]+)/g, name: 'Slack bot token' }
+        ];
+        let maskedText = this._escapeHtml(rawText);
+        let matched = false;
+        for (const { regex } of patterns) {
+            maskedText = maskedText.replace(regex, (match, prefix, secretPart) => {
+                matched = true;
+                return `${this._escapeHtml(prefix)}<span class="secret-beads" aria-hidden="true">••••••••••••••••</span>`;
+            });
+        }
+        if (!matched && rawText.length > 8) {
+            const quarter = Math.floor(rawText.length / 4);
+            const prefix = this._escapeHtml(rawText.substring(0, quarter));
+            const suffix = this._escapeHtml(rawText.substring(rawText.length - quarter));
+            return `${prefix}<span class="secret-beads" aria-hidden="true">••••••••••••••••</span>${suffix}`;
+        }
+        return maskedText;
+    }
+    getRotationPlaybook(type, file) {
+        const playbooks = {
+            'AWS Secret Key': {
+                provider: 'Amazon Web Services',
+                docsLink: 'https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html',
+                steps: [
+                    'Open the AWS IAM console and locate the exposed identity or credentials profile.',
+                    'Create a new access key pair to replace the compromised key.',
+                    'Update your local environment variables or secret vault with the new key.',
+                    'Deactivate and permanently delete the exposed legacy access key.',
+                    'Verify downstream services are using the rotated credentials.'
+                ],
+                cliSnippet: 'aws iam update-access-key --access-key-id YOUR_KEY_ID --status Inactive\naws iam delete-access-key --access-key-id YOUR_KEY_ID'
+            },
+            'OpenAI API Key': {
+                provider: 'OpenAI',
+                docsLink: 'https://platform.openai.com/account/api-keys',
+                steps: [
+                    'Open the OpenAI Platform API keys dashboard.',
+                    'Find the matching key and click Revoke Key.',
+                    'Generate a fresh API key and store it in a secret vault.',
+                    'Update your application environment variables and redeploy.'
+                ],
+                cliSnippet: '# Revoke and regenerate at https://platform.openai.com/account/api-keys'
+            },
+            'GitHub Token': {
+                provider: 'GitHub',
+                docsLink: 'https://github.com/settings/tokens',
+                steps: [
+                    'Open your GitHub account developer settings.',
+                    'Locate the Personal Access Token matching the exposed prefix.',
+                    'Click Revoke or Delete to immediately disable the token.',
+                    'Generate a fresh fine-grained token with minimal repository permissions.'
+                ],
+                cliSnippet: 'curl -X DELETE -H "Authorization: token GITHUB_TOKEN" https://api.github.com/applications/Iv23lixxx/token'
+            },
+            'Slack Bot Token': {
+                provider: 'Slack',
+                docsLink: 'https://api.slack.com/apps',
+                steps: [
+                    'Open the Slack app management dashboard.',
+                    'Select the app associated with the exposed bot token.',
+                    'Navigate to OAuth & Permissions and revoke the token.',
+                    'Reinstall the app to generate a new token and update your environment.'
+                ],
+                cliSnippet: '# Revoke at https://api.slack.com/apps > OAuth & Permissions'
+            }
+        };
+        return playbooks[type] || {
+            provider: 'Generic Credential Provider',
+            docsLink: 'https://owasp.org/www-project-top-ten/',
+            steps: [
+                'Immediately invalidate or revoke this secret in its platform management console.',
+                `Remove the raw plaintext secret from the source file at ${this._escapeHtml(file)}.`,
+                'Externalize the secret using environment variables or a secure secret vault.',
+                'Add the file path to .gitignore to prevent future accidental commits.'
+            ],
+            cliSnippet: '# Invalidate secret on host provider dashboard console'
+        };
+    }
+    renderSecureReveal(rawText) {
+        const masked = this.maskSensitiveData(rawText);
+        const escaped = this._escapeHtml(rawText);
+        return `
       <div class="secure-reveal-wrapper">
         <div class="secret-display-canvas">
           <span class="masked-view">${masked}</span>
@@ -149,39 +139,35 @@ export class SecurityView {
         </button>
       </div>
     `;
-  }
-
-  renderSeverityBand(label, count, className) {
-    return `
+    }
+    renderSeverityBand(label, count, className) {
+        return `
       <div class="card insight-stat">
         <div class="insight-stat-value ${className}">${formatNumber(count)}</div>
         <div class="insight-stat-label">${escapeHtml(label)}</div>
       </div>
     `;
-  }
-
-  renderFindingsList(findings) {
-    if (!findings.length) {
-      return renderEmptyState({
-        icon: '🛡️',
-        title: 'No security findings',
-        body: 'Credential and production-leak rules reported clean on the last scan.',
-        iconWrapper: 'emoji'
-      });
     }
-
-    const severityTint = {
-      critical: 'rgba(239,68,68,0.06)',
-      high: 'rgba(249,115,22,0.04)',
-      medium: 'rgba(234,179,8,0.03)',
-      low: 'rgba(59,130,246,0.03)'
-    };
-
-    return `
+    renderFindingsList(findings) {
+        if (!findings.length) {
+            return renderEmptyState({
+                icon: '🛡️',
+                title: 'No security findings',
+                body: 'Credential and production-leak rules reported clean on the last scan.',
+                iconWrapper: 'emoji'
+            });
+        }
+        const severityTint = {
+            critical: 'rgba(239,68,68,0.06)',
+            high: 'rgba(249,115,22,0.04)',
+            medium: 'rgba(234,179,8,0.03)',
+            low: 'rgba(59,130,246,0.03)'
+        };
+        return `
       <div class="sec-v3-list">
         ${findings.map((finding, index) => {
-          const playbook = this.getRotationPlaybook(finding.type, finding.file);
-          return `
+            const playbook = this.getRotationPlaybook(finding.type, finding.file);
+            return `
           <div class="sec-v3-row" data-severity="${escapeHtml(finding.severity)}" style="--row-tint:${severityTint[finding.severity] || 'transparent'};" data-index="${index}">
             <div class="sec-v3-row-main">
               <div class="sec-v3-col-sev">
@@ -240,48 +226,44 @@ export class SecurityView {
         }).join('')}
       </div>
     `;
-  }
-
-  render() {
-    const el = document.createElement('div');
-    el.className = 'fade-in security-redesign';
-
-    if (this.loading && !this.getReport()) {
-      el.innerHTML = `
+    }
+    render() {
+        var _a, _b, _c, _d, _e, _f;
+        const el = document.createElement('div');
+        el.className = 'fade-in security-redesign';
+        if (this.loading && !this.getReport()) {
+            el.innerHTML = `
         <div class="analyze-hero"><h1 class="page-title">Security Scanner</h1><p class="text-muted analyze-hero-sub">Loading security findings…</p></div>
         ${renderEmptyState({
-          icon: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
-          title: 'Loading scan report…',
-          body: '<div class="loading-spinner" style="width:32px;height:32px;margin:0 auto var(--space-4)"></div>'
-        })}
+                icon: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+                title: 'Loading scan report…',
+                body: '<div class="loading-spinner" style="width:32px;height:32px;margin:0 auto var(--space-4)"></div>'
+            })}
       `;
-      return el;
-    }
-
-    if (this.error && !this.getReport()) {
-      el.innerHTML = `
+            return el;
+        }
+        if (this.error && !this.getReport()) {
+            el.innerHTML = `
         <div class="analyze-hero"><h1 class="page-title">Security Scanner</h1><p class="text-muted analyze-hero-sub">Security scan unavailable</p></div>
         ${renderEmptyState({
-          icon: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
-          title: 'Security scan unavailable',
-          body: escapeHtml(this.error),
-          actions: [{ label: 'Retry', id: 'security-retry', className: 'btn-primary' }]
-        })}
+                icon: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
+                title: 'Security scan unavailable',
+                body: escapeHtml(this.error),
+                actions: [{ label: 'Retry', id: 'security-retry', className: 'btn-primary' }]
+            })}
       `;
-      el.querySelector('#security-retry')?.addEventListener('click', () => this.loadReport(this._container));
-      return el;
-    }
-
-    const _report = this.getReport();
-    const findings = this.getFindings();
-    const summary = this.getSummary();
-    const gateLabel = summary.gatePass ? 'PASS' : summary.gatePass === false ? 'REVIEW' : '—';
-    const gateClass = summary.gatePass ? 'success' : 'danger';
-    const lastScan = summary.generatedAt
-      ? new Date(summary.generatedAt).toLocaleString()
-      : 'Never';
-
-    el.innerHTML = `
+            (_a = el.querySelector('#security-retry')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => this.loadReport(this._container));
+            return el;
+        }
+        const _report = this.getReport();
+        const findings = this.getFindings();
+        const summary = this.getSummary();
+        const gateLabel = summary.gatePass ? 'PASS' : summary.gatePass === false ? 'REVIEW' : '—';
+        const gateClass = summary.gatePass ? 'success' : 'danger';
+        const lastScan = summary.generatedAt
+            ? new Date(summary.generatedAt).toLocaleString()
+            : 'Never';
+        el.innerHTML = `
       <style>
         .security-redesign .security-hero { text-align: center; margin: var(--space-6) 0 var(--space-5); }
         .security-redesign .security-hero h1 { font-size: 1.75rem; font-weight: 800; margin-bottom: 0.5rem; letter-spacing: -0.02em; }
@@ -419,7 +401,7 @@ export class SecurityView {
           <div class="security-metrics">
             <div class="security-metric"><strong>${formatNumber(summary.credentialScanned + summary.productionLeakScanned)}</strong> files checked</div>
             <div class="security-metric"><strong>${formatNumber(summary.totalFindings)}</strong> findings</div>
-            <div class="security-metric"><strong>${this.compliance?.securityScore ?? '—'}</strong> compliance score</div>
+            <div class="security-metric"><strong>${(_c = (_b = this.compliance) === null || _b === void 0 ? void 0 : _b.securityScore) !== null && _c !== void 0 ? _c : '—'}</strong> compliance score</div>
           </div>
         </div>
         <div class="security-severity-grid">
@@ -465,169 +447,179 @@ export class SecurityView {
         ${this.renderFindingsList(findings)}
       </div>
     `;
-
-    el.querySelector('#security-run-scan')?.addEventListener('click', () => this.runScan(this._container));
-    el.querySelector('#security-export-json')?.addEventListener('click', () => this.exportResults());
-
-    // Secret reveal toggles
-    el.querySelectorAll('.secret-toggle-visibility-btn').forEach((btn) => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const wrapper = btn.closest('.secure-reveal-wrapper');
-        if (!wrapper) return;
-        const isRevealed = wrapper.getAttribute('data-revealed') === 'true';
-        wrapper.setAttribute('data-revealed', isRevealed ? 'false' : 'true');
-        btn.blur();
-      });
-    });
-
-    // Expand/collapse playbook drawer
-    el.querySelectorAll('.sec-v3-expand-btn').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const idx = btn.dataset.index;
-        const drawer = el.querySelector(`#sec-drawer-${idx}`);
-        const isOpen = drawer?.classList.contains('is-open');
-        drawer?.classList.toggle('is-open', !isOpen);
-        btn.classList.toggle('is-open', !isOpen);
-      });
-    });
-
-    // Mark triaged
-    el.querySelectorAll('.sec-v3-triage-btn').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const idx = btn.dataset.index;
-        const row = el.querySelector(`.sec-v3-row[data-index="${idx}"]`);
-        if (row) {
-          row.classList.add('is-triaged');
-          btn.textContent = 'Triaged';
-          btn.disabled = true;
-          showToast('Finding marked as triaged', 'success');
+        (_d = el.querySelector('#security-run-scan')) === null || _d === void 0 ? void 0 : _d.addEventListener('click', () => this.runScan(this._container));
+        (_e = el.querySelector('#security-export-json')) === null || _e === void 0 ? void 0 : _e.addEventListener('click', () => this.exportResults());
+        // Secret reveal toggles
+        el.querySelectorAll('.secret-toggle-visibility-btn').forEach((btn) => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const wrapper = btn.closest('.secure-reveal-wrapper');
+                if (!wrapper)
+                    return;
+                const isRevealed = wrapper.getAttribute('data-revealed') === 'true';
+                wrapper.setAttribute('data-revealed', isRevealed ? 'false' : 'true');
+                btn.blur();
+            });
+        });
+        // Expand/collapse playbook drawer
+        el.querySelectorAll('.sec-v3-expand-btn').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const idx = btn.dataset.index;
+                const drawer = el.querySelector(`#sec-drawer-${idx}`);
+                const isOpen = drawer === null || drawer === void 0 ? void 0 : drawer.classList.contains('is-open');
+                drawer === null || drawer === void 0 ? void 0 : drawer.classList.toggle('is-open', !isOpen);
+                btn.classList.toggle('is-open', !isOpen);
+            });
+        });
+        // Mark triaged
+        el.querySelectorAll('.sec-v3-triage-btn').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const idx = btn.dataset.index;
+                const row = el.querySelector(`.sec-v3-row[data-index="${idx}"]`);
+                if (row) {
+                    row.classList.add('is-triaged');
+                    btn.textContent = 'Triaged';
+                    btn.disabled = true;
+                    showToast('Finding marked as triaged', 'success');
+                }
+            });
+        });
+        // Copy path
+        el.querySelectorAll('.sec-v3-copy-btn').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const idx = btn.dataset.index;
+                const finding = findings[idx];
+                if (finding === null || finding === void 0 ? void 0 : finding.file) {
+                    navigator.clipboard.writeText(finding.file).then(() => showToast('File path copied', 'success'));
+                }
+            });
+        });
+        (_f = el.querySelector('#security-send-ai-btn')) === null || _f === void 0 ? void 0 : _f.addEventListener('click', async () => {
+            var _a, _b;
+            const report = this.getReport();
+            const findings = this.getFindings();
+            if (!findings.length) {
+                showToast('No security findings to send', 'error');
+                return;
+            }
+            const summary = this.getSummary();
+            const payload = {
+                projectPath: (report === null || report === void 0 ? void 0 : report.projectRoot) || (report === null || report === void 0 ? void 0 : report.projectPath) || window.location.origin,
+                reportType: 'security-scan',
+                reportSummary: {
+                    totalFindings: summary.totalFindings,
+                    credentialCount: summary.credentialCount,
+                    productionLeakCount: summary.productionLeakCount,
+                    complianceScore: (_b = (_a = this.compliance) === null || _a === void 0 ? void 0 : _a.securityScore) !== null && _b !== void 0 ? _b : 'N/A'
+                },
+                notes: 'Security Scanner findings — credential patterns and production leaks'
+            };
+            const vscode = this._getVscodeApi();
+            if (vscode) {
+                try {
+                    vscode.postMessage({ command: 'sendToAI', data: payload });
+                    showToast('Security findings sent to AI agent', 'success');
+                    return;
+                }
+                catch (err) {
+                    console.warn('[Security-AI] vscode.postMessage failed:', err);
+                } // simplebeacon-ignore ai-residue — intentional error handling for VS Code API
+            }
+            try {
+                const res = await fetch(apiUrl('/api/ai-context'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                const json = await res.json();
+                if (json.success && json.content) {
+                    await navigator.clipboard.writeText(json.content);
+                    showToast('Copied to clipboard — paste into your AI coding agent with Ctrl+V', 'success');
+                }
+                else {
+                    showToast('AI context saved. Mention @.simplebeacon/ai-context.md in chat.', 'success');
+                }
+            }
+            catch (err) {
+                showToast('Failed to send: ' + err.message, 'error');
+            }
+        });
+        return el;
+    }
+    exportResults() {
+        const report = this.getReport();
+        const findings = this.getFindings();
+        if (!findings.length) {
+            showToast('No security findings to export', 'info');
+            return;
         }
-      });
-    });
-
-    // Copy path
-    el.querySelectorAll('.sec-v3-copy-btn').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const idx = btn.dataset.index;
-        const finding = findings[idx];
-        if (finding?.file) {
-          navigator.clipboard.writeText(finding.file).then(() => showToast('File path copied', 'success'));
+        const payload = buildSecurityExportPayload(report, findings, this.compliance);
+        downloadJson(payload, `security-scan-${new Date().toISOString().slice(0, 10)}.json`);
+        showToast('Security scan JSON downloaded', 'success');
+    }
+    paint(container = this._container) {
+        if (!container)
+            return;
+        this._container = container;
+        container.innerHTML = '';
+        container.appendChild(this.render());
+    }
+    async runScan(container) {
+        if (this.scanning)
+            return;
+        this.scanning = true;
+        this.error = null;
+        this.paint(container);
+        try {
+            this.app.navigate('analyze');
+            await this.app.runScan();
+            showToast('Security scan complete', 'success');
         }
-      });
-    });
-
-    el.querySelector('#security-send-ai-btn')?.addEventListener('click', async () => {
-      const report = this.getReport();
-      const findings = this.getFindings();
-      if (!findings.length) { showToast('No security findings to send', 'error'); return; }
-      const summary = this.getSummary();
-      const payload = {
-        projectPath: report?.projectRoot || report?.projectPath || window.location.origin,
-        reportType: 'security-scan',
-        reportSummary: {
-          totalFindings: summary.totalFindings,
-          credentialCount: summary.credentialCount,
-          productionLeakCount: summary.productionLeakCount,
-          complianceScore: this.compliance?.securityScore ?? 'N/A'
-        },
-        notes: 'Security Scanner findings — credential patterns and production leaks'
-      };
-      const vscode = this._getVscodeApi();
-      if (vscode) {
-        try { vscode.postMessage({ command: 'sendToAI', data: payload }); showToast('Security findings sent to AI agent', 'success'); return; }
-        catch (err) { console.warn('[Security-AI] vscode.postMessage failed:', err); } // simplebeacon-ignore ai-residue — intentional error handling for VS Code API
-      }
-      try {
-        const res = await fetch(apiUrl('/api/ai-context'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-        const json = await res.json();
-        if (json.success && json.content) { await navigator.clipboard.writeText(json.content); showToast('Copied to clipboard — paste into your AI coding agent with Ctrl+V', 'success'); }
-        else { showToast('AI context saved. Mention @.simplebeacon/ai-context.md in chat.', 'success'); }
-      } catch (err) { showToast('Failed to send: ' + err.message, 'error'); }
-    });
-
-    return el;
-  }
-
-  exportResults() {
-    const report = this.getReport();
-    const findings = this.getFindings();
-    if (!findings.length) {
-      showToast('No security findings to export', 'info');
-      return;
+        catch (err) {
+            this.error = err.message;
+            showToast(err.message, 'error');
+        }
+        finally {
+            this.scanning = false;
+            this.loading = false;
+            this.paint(container);
+        }
     }
-    const payload = buildSecurityExportPayload(report, findings, this.compliance);
-    downloadJson(payload, `security-scan-${new Date().toISOString().slice(0, 10)}.json`);
-    showToast('Security scan JSON downloaded', 'success');
-  }
-
-  paint(container = this._container) {
-    if (!container) return;
-    this._container = container;
-    container.innerHTML = '';
-    container.appendChild(this.render());
-  }
-
-  async runScan(container) {
-    if (this.scanning) return;
-    this.scanning = true;
-    this.error = null;
-    this.paint(container);
-
-    try {
-      this.app.navigate('analyze');
-      await this.app.runScan();
-      showToast('Security scan complete', 'success');
-    } catch (err) {
-      this.error = err.message;
-      showToast(err.message, 'error');
-    } finally {
-      this.scanning = false;
-      this.loading = false;
-      this.paint(container);
+    async loadReport(container) {
+        this._container = container;
+        this.loading = true;
+        this.error = null;
+        this.paint(container);
+        try {
+            if (!this.getReport()) {
+                await this.app.scanService.fetchReport();
+                this.app.state.report = this.app.scanService.report;
+            }
+        }
+        catch (err) {
+            this.error = err.message;
+        }
+        finally {
+            this.loading = false;
+            this.paint(container);
+        }
     }
-  }
-
-  async loadReport(container) {
-    this._container = container;
-    this.loading = true;
-    this.error = null;
-    this.paint(container);
-
-    try {
-      if (!this.getReport()) {
-        await this.app.scanService.fetchReport();
-        this.app.state.report = this.app.scanService.report;
-      }
-    } catch (err) {
-      this.error = err.message;
-    } finally {
-      this.loading = false;
-      this.paint(container);
+    async loadCompliance() {
+        try {
+            this.compliance = await fetchComplianceHeadline();
+        }
+        catch (_a) {
+            this.compliance = null;
+        }
+        if (this._container && this.app.currentView === this) {
+            this.paint(this._container);
+        }
     }
-  }
-
-  async loadCompliance() {
-    try {
-      this.compliance = await fetchComplianceHeadline();
-    } catch {
-      this.compliance = null;
+    mount(container) {
+        this._container = container;
+        if (this.getReport()) {
+            this.loading = false;
+            this.paint(container);
+            void this.loadCompliance();
+            return;
+        }
+        void this.loadReport(container);
+        void this.loadCompliance();
     }
-    if (this._container && this.app.currentView === this) {
-      this.paint(this._container);
-    }
-  }
-
-  mount(container) {
-    this._container = container;
-    if (this.getReport()) {
-      this.loading = false;
-      this.paint(container);
-      void this.loadCompliance();
-      return;
-    }
-    void this.loadReport(container);
-    void this.loadCompliance();
-  }
 }
-

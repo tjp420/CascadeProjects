@@ -15,10 +15,14 @@ const envPath = process.env.DOTENV_CONFIG_PATH
     ? v1InternalEnvPath
     : path.join(__dirname, '.env'));
 if (fs.existsSync(envPath)) {
-  require('dotenv').config({ path: envPath });
-  if (envPath.endsWith('.env.v1-internal')) {
-    const { applyLocalV1InternalDevProfile } = require('./server/lib/secret-config.cjs');
-    applyLocalV1InternalDevProfile();
+  try {
+    require('dotenv').config({ path: envPath });
+    if (envPath.endsWith('.env.v1-internal')) {
+      const { applyLocalV1InternalDevProfile } = require('./server/lib/secret-config.cjs');
+      applyLocalV1InternalDevProfile();
+    }
+  } catch (envErr) {
+    console.warn('[Simplebeacon] dotenv/secret-config load failed');
   }
 }
 
@@ -71,15 +75,31 @@ function trySendFile(res, filePath, type) {
     return true;
 }
 
+/**
+ * Check if request originates from a loopback address.
+ * @param {import('express').Request} req
+ * @returns {boolean}
+ */
 function isLocalhostRequest(req) {
     return /^(localhost|127\.0\.0\.1|::1|0\.0\.0\.0)$/i.test(req.hostname);
 }
 
+/**
+ * Sanitize and validate email.
+ * @param {string} raw
+ * @returns {string}
+ */
 function sanitizeEmail(raw) {
     const email = String(raw || '').trim().toLowerCase();
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : '';
 }
 
+/**
+ * Parse JSON safely.
+ * @param {string} text
+ * @param {unknown} [fallback=null]
+ * @returns {unknown}
+ */
 function parseJsonSafe(text, fallback = null) {
     try {
         return JSON.parse(text);
@@ -88,28 +108,13 @@ function parseJsonSafe(text, fallback = null) {
     }
 }
 
+/**
+ * Delay promise.
+ * @param {number} ms
+ * @returns {Promise<void>}
+ */
 function delay(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function once(fn) {
-    let called = false;
-    let result;
-    return function (...args) { // simplebeacon-ignore dead-code
-        if (!called) {
-            called = true;
-            result = fn.apply(this, args);
-        }
-        return result;
-    };
-}
-
-function debounce(fn, wait) {
-    let timer = null;
-    return function (...args) { // simplebeacon-ignore dead-code
-        if (timer) clearTimeout(timer);
-        timer = setTimeout(() => { timer = null; fn.apply(this, args); }, wait);
-    };
 }
 
 const app = express();
@@ -124,8 +129,28 @@ const rawAllowedOrigins = process.env.NODE_ENV === 'production'
     ? (process.env.ALLOWED_ORIGIN || 'https://simplebeacon.ai').split(',').map(s => s.trim()).filter(Boolean)
     : true;
 const allowedOrigins = Array.isArray(rawAllowedOrigins) && rawAllowedOrigins.length > 0 ? rawAllowedOrigins : true;
+
+const pagesPreviewOriginRegex = /^https:\/\/[a-z0-9-]+\.simplebeacon\.pages\.dev$/;
+function isAllowedCorsOrigin(origin) {
+    if (allowedOrigins === true) { return true; }
+    if (!origin) { return true; }
+    return allowedOrigins.some(allowed => {
+        if (allowed === origin) { return true; }
+        if (/^http:\/\/(127\.0\.0\.1|localhost):\*$/.test(allowed)) {
+            return origin.startsWith(allowed.replace(':*', ':'));
+        }
+        return false;
+    }) || pagesPreviewOriginRegex.test(origin);
+}
+
 app.use(cors({
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+        if (isAllowedCorsOrigin(origin)) {
+            callback(null, origin || true);
+        } else {
+            callback(new Error('Origin not allowed'));
+        }
+    },
     credentials: true
 }));
 
@@ -183,14 +208,20 @@ const landingRoot = path.join(__dirname, '../coming-soon/public');
 const landingEnabled = process.env.SIMPLEBEACON_LANDING === 'true';
 const landingRootExists = fs.existsSync(landingRoot);
 
+/**
+ * Send a landing file with path-traversal guard.
+ * @param {import('express').Response} res
+ * @param {string} relativePath
+ * @param {string} [type]
+ * @returns {boolean}
+ */
 function sendLandingFile(res, relativePath, type) {
   if (!landingRootExists) return false;
   if (typeof relativePath !== 'string') return false;
   const resolved = path.resolve(path.join(landingRoot, relativePath));
   const rootResolved = path.resolve(landingRoot);
-  const normalizedResolved = resolved.replace(/\\/g, '/');
-  const normalizedRoot = rootResolved.replace(/\\/g, '/');
-  if (!normalizedResolved.startsWith(normalizedRoot + '/') && normalizedResolved !== normalizedRoot) {
+  const relativeToRoot = path.relative(rootResolved, resolved);
+  if (relativeToRoot.startsWith('..') || path.isAbsolute(relativeToRoot)) {
     return false;
   }
   if (!fs.existsSync(resolved)) return false;
@@ -200,6 +231,11 @@ function sendLandingFile(res, relativePath, type) {
   return true;
 }
 
+/**
+ * Send demo report if allowed.
+ * @param {import('express').Response} res
+ * @returns {boolean}
+ */
 function sendDemoReport(res) {
   // Only serve demo report in non-production or when explicitly enabled
   if (process.env.NODE_ENV === 'production' && !process.env.SIMPLEBEACON_ENABLE_DEMO_REPORT) {
@@ -210,6 +246,10 @@ function sendDemoReport(res) {
 
 const internalDashboard = String(process.env.SIMPLEBEACON_INTERNAL_DASHBOARD || '').trim().toLowerCase() === 'true';
 
+/**
+ * Whether storefront assets should be served.
+ * @returns {boolean}
+ */
 function storefrontAssetsEnabled() {
   return landingEnabled || internalDashboard;
 }
@@ -369,6 +409,13 @@ async function loadDashboardHtml() {
 
 async function sendSimplebeaconDashboard(res) {
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+  // Path-traversal guard: ensure dashboard path resolves inside webRoot
+  const resolved = path.resolve(dashboardPath);
+  const rootResolved = path.resolve(webRoot);
+  const relativeToRoot = path.relative(rootResolved, resolved);
+  if (relativeToRoot.startsWith('..') || path.isAbsolute(relativeToRoot)) {
+    return res.status(403).send('Forbidden');
+  }
   const html = await loadDashboardHtml();
   if (html === null) {
     return res.status(404).send('Simplebeacon dashboard not found');
@@ -726,12 +773,16 @@ app.use((req, res, next) => {
   });
 });
 
-app.use((req, res, next) => {
+function requireVaultAuth(req, res, next) {
   if (process.env.NODE_ENV === 'development') return next();
   if (!internalDashboard) return next();
-  if (!isProtectedDashboardPath(req.path)) return next();
   if (isVaultAuthenticated(req)) return next();
   return res.redirect(302, '/');
+}
+
+app.use((req, res, next) => {
+  if (!isProtectedDashboardPath(req.path)) return next();
+  requireVaultAuth(req, res, next);
 });
 
 // Serve dashboard assets from root when internal dashboard is active
@@ -924,6 +975,15 @@ function setupWebSocketServer(httpServer) {
       socket.destroy();
       return;
     }
+    // Reject cross-origin upgrades in production
+    if (process.env.NODE_ENV === 'production') {
+      const origin = request.headers.origin || '';
+      const allowed = Array.isArray(allowedOrigins) ? allowedOrigins : [];
+      if (allowed.length > 0 && !allowed.some((o) => origin.startsWith(o))) {
+        socket.destroy();
+        return;
+      }
+    }
     wss.handleUpgrade(request, socket, head, (ws) => {
       wss.emit('connection', ws, request);
     });
@@ -936,30 +996,17 @@ function setupWebSocketServer(httpServer) {
     debugLog('🔌 WebSocket client connected');
     ws.isAlive = true;
 
-    try {
-      ws.send(JSON.stringify({
-        type: 'connection',
-        message: 'Connected to Simplebeacon WebSocket server',
-        timestamp: new Date().toISOString()
-      }));
-    } catch {
-      // Socket may have closed immediately after connection
+    if (ws.readyState === WebSocket.OPEN) {
+      try {
+        ws.send(JSON.stringify({
+          type: 'connection',
+          message: 'Connected to Simplebeacon WebSocket server',
+          timestamp: new Date().toISOString()
+        }));
+      } catch {
+        // Socket may have closed immediately after connection
+      }
     }
-
-    // Heartbeat to detect stale connections
-    const heartbeat = setInterval(() => {
-      if (ws.readyState !== WebSocket.OPEN) {
-        clearInterval(heartbeat);
-        return;
-      }
-      if (ws.isAlive === false) {
-        clearInterval(heartbeat);
-        ws.terminate();
-        return;
-      }
-      ws.isAlive = false;
-      ws.ping();
-    }, 30000);
 
     ws.on('pong', () => {
       ws.isAlive = true;
@@ -988,60 +1035,78 @@ function setupWebSocketServer(httpServer) {
     });
 
     ws.on('close', () => {
-      clearInterval(heartbeat);
       ws.isAlive = false;
       debugLog('🔌 WebSocket client disconnected');
     });
 
     ws.on('error', (error) => {
-      clearInterval(heartbeat);
       ws.isAlive = false;
       console.error('❌ WebSocket error:', safeErrorMessage(error));
     });
   });
 
-  const wsBroadcastInterval = setInterval(() => {
-    if (wss.clients.size === 0) return;
-    const updateData = {
-      type: 'data_update',
-      timestamp: new Date().toISOString(),
-      data: {
-        analysis: {
-          totalFiles: Math.floor(Math.random() * 100) + 400,
-          issuesDetected: Math.floor(Math.random() * 50) + 10,
-          processingSpeed: Math.floor(Math.random() * 500) + 1000
-        }
+  // Server-wide heartbeat — one interval for all clients instead of per-connection
+  const heartbeatInterval = setInterval(() => {
+    wss.clients.forEach((ws) => {
+      if (ws.readyState !== WebSocket.OPEN) {
+        return;
       }
-    };
-    const payload = JSON.stringify(updateData);
-    wss.clients.forEach((client) => {
-      if (client.readyState === WebSocket.OPEN) {
-        try {
-          client.send(payload);
-        } catch {
-          // socket may have closed between check and send
-        }
+      if (ws.isAlive === false) {
+        ws.terminate();
+        return;
       }
+      ws.isAlive = false;
+      ws.ping();
     });
-  }, constants.TIMEOUT_5S);
+  }, 30000);
 
-  process.on('SIGINT', () => {
-    clearInterval(wsBroadcastInterval);
+  let wsBroadcastInterval = null;
+  if (process.env.NODE_ENV === 'development') {
+    wsBroadcastInterval = setInterval(() => {
+      if (wss.clients.size === 0) return;
+      const updateData = {
+        type: 'data_update',
+        timestamp: new Date().toISOString(),
+        data: {
+          analysis: {
+            totalFiles: Math.floor(Math.random() * 100) + 400,
+            issuesDetected: Math.floor(Math.random() * 50) + 10,
+            processingSpeed: Math.floor(Math.random() * 500) + 1000
+          }
+        }
+      };
+      const payload = JSON.stringify(updateData);
+      wss.clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+          try {
+            client.send(payload);
+          } catch {
+            // socket may have closed between check and send
+          }
+        }
+      });
+    }, constants.TIMEOUT_5S);
+  }
+
+  function cleanup() {
+    clearInterval(heartbeatInterval);
+    if (wsBroadcastInterval) clearInterval(wsBroadcastInterval);
     wss.clients.forEach((client) => { try { client.close(); } catch { /* ignore */ } });
     wss.close(() => {
       httpServer.close(() => process.exit(0));
     });
-  });
-  process.on('SIGTERM', () => {
-    clearInterval(wsBroadcastInterval);
-    wss.clients.forEach((client) => { try { client.close(); } catch { /* ignore */ } });
-    wss.close(() => {
-      httpServer.close(() => process.exit(0));
-    });
-  });
+  }
+
+  process.on('SIGINT', cleanup);
+  process.on('SIGTERM', cleanup);
 
   return wss;
 }
+
+process.on('unhandledRejection', (reason) => {
+  console.error('❌ Unhandled rejection:', reason);
+  process.exit(1);
+});
 
 startServer().catch((error) => {
   console.error('❌ Failed to start Simplebeacon server:', error);
@@ -1053,6 +1118,10 @@ const legacyWss = new WebSocket.Server({ port: WS_PORT });
 legacyWss.on('error', (err) => {
   if (err?.code === 'EADDRINUSE') {
     console.warn(`[Simplebeacon] Legacy WebSocket port ${WS_PORT} already in use — skipping duplicate bind`);
+    return;
+  }
+  if (err?.code === 'EACCES') {
+    console.warn(`[Simplebeacon] Legacy WebSocket port ${WS_PORT} requires elevated permissions`);
     return;
   }
   console.warn('[Simplebeacon] Legacy WebSocket error:', safeErrorMessage(err));
@@ -1078,11 +1147,17 @@ legacyWss.on('connection', (ws) => {
     ws.ping();
   }, 30000);
 
-  ws.send(JSON.stringify({
-    type: 'connection',
-    message: 'Connected to legacy Simplebeacon WebSocket server',
-    timestamp: new Date().toISOString()
-  }));
+  if (ws.readyState === WebSocket.OPEN) {
+    try {
+      ws.send(JSON.stringify({
+        type: 'connection',
+        message: 'Connected to legacy Simplebeacon WebSocket server',
+        timestamp: new Date().toISOString()
+      }));
+    } catch {
+      // Socket may have closed immediately after connection
+    }
+  }
   ws.on('message', (message) => {
     try {
       const data = JSON.parse(message);
