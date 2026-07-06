@@ -35,6 +35,7 @@ const files = [
   'faq.html', 'privacy.html', 'refund.html', 'roadmap.html',
   'security.html', 'terms.html', 'unlock.html',
   'styles.css', 'app-links.js', 'site-config.js',
+  'js/auth.js', 'js/roadmap-app.js', 'js/scan-worker.js', 'js/terminal-simulation.js',
   'favicon.svg', 'robots.txt', 'sitemap.xml'
 ];
 
@@ -54,6 +55,15 @@ for (const d of dirs) {
   if (fs.existsSync(sp)) {
     copyRecursive(sp, dp);
   }
+}
+
+// Copy the full ai-platform dashboard app into public/dashboard
+const dashboardSrc = path.resolve(__dirname, '..', 'ai-platform', 'web', 'simplebeacon-dashboard');
+const dashboardDst = path.join(dst, 'dashboard');
+if (fs.existsSync(dashboardSrc)) {
+  fs.rmSync(dashboardDst, { recursive: true, force: true });
+  fs.mkdirSync(dashboardDst, { recursive: true });
+  copyRecursive(dashboardSrc, dashboardDst);
 }
 
 process.stdout.write('Public build complete\n');

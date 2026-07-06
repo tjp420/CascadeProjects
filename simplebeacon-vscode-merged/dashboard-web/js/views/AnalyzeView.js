@@ -1614,9 +1614,9 @@ export class AnalyzeView {
           <button type="button" class="btn btn-secondary btn-sm" id="quick-action-results-btn" ${hasResult ? '' : 'disabled'} title="Open results view">
             <i data-lucide="bar-chart-2" class="icon-16" style="margin-right:4px;"></i> Results
           </button>
-          <button type="button" class="btn btn-secondary btn-sm" id="quick-action-export-btn" ${hasResult ? '' : 'disabled'} title="Export scan report">
+          ${authService.isPaidTier() ? `<button type="button" class="btn btn-secondary btn-sm" id="quick-action-export-btn" ${hasResult ? '' : 'disabled'} title="Export scan report">
             <i data-lucide="download" class="icon-16" style="margin-right:4px;"></i> Export
-          </button>
+          </button>` : ''}
           <button type="button" class="btn btn-ghost btn-sm" id="quick-action-remediation-btn" ${hasResult ? '' : 'disabled'} title="Open remediation roadmap">
             <i data-lucide="map" class="icon-16" style="margin-right:4px;"></i> Remediate
           </button>
@@ -2814,7 +2814,7 @@ export class AnalyzeView {
         <hr style="border: none; border-top: 1px solid var(--border-color); margin: 1.5rem 0;">
         <div class="card-header">
           <span class="card-title">Browser Sandbox Analyzers (61 modules)</span>
-          <span class="text-muted" style="font-size: var(--font-size-xs);">coming-soon/upload.html · heuristic engine</span>
+          <span class="text-muted" style="font-size: var(--font-size-xs);">/upload.html · heuristic engine</span>
         </div>
         <div class="analyze-engines-grid">
           ${browserAnalyzerHtml}
@@ -6864,11 +6864,12 @@ export class AnalyzeView {
     const downloadLabel = isComplete ? 'Download all results' : 'Download result';
     const showEuPdf = this.hasEuAiActSprintResult();
     const zipMeta = isComplete ? this.resolveZipExportButtonMeta() : null;
+    const isPaid = authService.isPaidTier();
 
     return `
       <div class="roadmap-result-actions">
-        <button type="button" class="btn btn-primary btn-sm" id="download-scan-result">${downloadLabel}</button>
-        ${isComplete
+        ${isPaid ? `<button type="button" class="btn btn-primary btn-sm" id="download-scan-result">${downloadLabel}</button>` : ''}
+        ${isComplete && isPaid
           ? `<button type="button" class="btn btn-secondary btn-sm" id="download-export-bundle-zip" title="${escapeHtml(zipMeta?.title || 'ZIP with step JSON plus audit PDF sources')}">${escapeHtml(zipMeta?.label || 'Download all reports (ZIP)')}</button>`
           : ''}
         <button type="button" class="btn btn-secondary btn-sm" id="export-for-remediation" title="Download JSON ready for the Remediation Roadmap page">Export for Remediation</button>

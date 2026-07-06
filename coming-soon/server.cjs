@@ -134,15 +134,15 @@ app.use((req, res, next) => {
         // Reflect actual origin instead of wildcard to allow credentials in dev
         res.setHeader('Access-Control-Allow-Origin', origin || '*');
     } else {
-        const allowedOrigins = (process.env.ALLOWED_ORIGIN || 'https://simplebeacon.ai,https://simplebeacon.onrender.com,http://127.0.0.1:*,http://localhost:*')
+        const configuredOrigins = (process.env.ALLOWED_ORIGIN || 'https://simplebeacon.ai,https://simplebeacon.onrender.com,http://127.0.0.1:*,http://localhost:*')
             .split(',').map(s => s.trim()).filter(Boolean);
-        const isAllowed = allowedOrigins.some(a => {
+        const isAllowed = configuredOrigins.some(a => {
             if (a === origin) return true;
             if (/^http:\/\/(127\.0\.0\.1|localhost):\*$/.test(a)) {
                 return origin.startsWith(a.replace(':*', ':'));
             }
             return false;
-        });
+        }) || /^https:\/\/[a-z0-9-]+\.simplebeacon\.pages\.dev$/.test(origin);
         if (isAllowed) {
             res.setHeader('Access-Control-Allow-Origin', origin);
         } else {
