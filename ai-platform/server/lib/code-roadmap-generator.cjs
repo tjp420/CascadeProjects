@@ -14,6 +14,8 @@ const { REPOSITORY_AUDIT_BASELINE } = require('./repository-audit-baseline.cjs')
 const { loadJestCoverageSummary } = require('./jest-coverage-reader.cjs');
 const { getCodeExtensions } = require('./universal-language-config.cjs');
 const { buildScanRisks, buildScanActionPlan } = require('./roadmap-scan-analysis.cjs');
+const { analyzeCodebase } = require('./codebase-analyzer.cjs');
+const { isConfiguredSecret } = require('./secret-config.cjs');
 
 const PLATFORM_DIR_NAMES = ['ai-platform'];
 
@@ -32,7 +34,7 @@ const {
     countTestFiles, countApiRoutes, extractApiRoutesFromFiles, sanitizeApiRouteList,
     extractJsDependencies, detectV1InternalReadinessAt, detectNpmAuditStatusAt,
     detectPlatformSignalsAt, detectPlatformSignals, resolvePlatformRoot,
-    scopeFilesToPlatform, countPageSamples
+    scopeFilesToPlatform, countPageSamples, readEnvFileFlags
 } = require('./roadmap-analysis.cjs');
 
 const { buildSprintModel } = require('./roadmap-sprint-model.cjs');
@@ -516,12 +518,6 @@ module.exports = {
     filterBySize,
     sortBySize,
     sortByName,
-    // Collection aggregation helpers
-    countByKey,
-    groupByKey,
-    sumBy,
-    meanBy,
-    topN,
     // Safety helpers
     isValidPath,
     safeReadFile,

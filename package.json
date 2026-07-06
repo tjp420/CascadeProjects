@@ -10,7 +10,7 @@
     "simplebeacon-vscode-merged"
   ],
   "scripts": {
-    "start": "node coming-soon/server.cjs",
+    "start": "node ai-platform/simplebeacon-server.cjs",
     "build": "npm run build --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
     "format": "npx prettier --write \"**/*.{js,cjs,mjs,ts,json,md}\"",
