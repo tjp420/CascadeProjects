@@ -136,7 +136,7 @@ app.use((req, res, next) => {
     } else {
         const configuredOrigins = (process.env.ALLOWED_ORIGIN || 'https://simplebeacon.ai,https://simplebeacon.onrender.com,http://127.0.0.1:*,http://localhost:*')
             .split(',').map(s => s.trim()).filter(Boolean);
-        const isAllowed = configuredOrigins.some(a => {
+        const isAllowed = !origin || configuredOrigins.some(a => {
             if (a === origin) return true;
             if (/^http:\/\/(127\.0\.0\.1|localhost):\*$/.test(a)) {
                 return origin.startsWith(a.replace(':*', ':'));
@@ -144,7 +144,9 @@ app.use((req, res, next) => {
             return false;
         }) || /^https:\/\/[a-z0-9-]+\.simplebeacon\.pages\.dev$/.test(origin);
         if (isAllowed) {
-            res.setHeader('Access-Control-Allow-Origin', origin);
+            if (origin) {
+                res.setHeader('Access-Control-Allow-Origin', origin);
+            }
         } else {
             return res.status(403).json({ error: 'Origin not allowed' });
         }
