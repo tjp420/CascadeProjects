@@ -176,7 +176,7 @@ app.use((req, res, next) => {
   const prodConnectOrigins = process.env.SIMPLEBEACON_CSP_CONNECT_ORIGINS || "'self'";
   const devConnectOrigins = process.env.SIMPLEBEACON_CSP_CONNECT_ORIGINS || "'self' ws: wss: http: https: http://127.0.0.1:" + SCANNER_BRIDGE_PORT + " http://127.0.0.1:" + LIVE_SERVER_PORT + DEFAULT_PORTS.map(p => " http://127.0.0.1:" + p).join(""); // simplebeacon-ignore hardcoded-url — localhost dev CSP origins, never production
   const csp = process.env.NODE_ENV === 'production'
-    ? `default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data:; connect-src ${prodConnectOrigins}; font-src 'self' https://fonts.gstatic.com; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';`
+    ? `default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data:; connect-src ${prodConnectOrigins}; font-src 'self' https://fonts.gstatic.com; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';`
     : `default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' blob: https://unpkg.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob:; connect-src ${devConnectOrigins}; font-src 'self' https://fonts.gstatic.com; object-src 'none'; frame-ancestors *;`
   res.setHeader('Content-Security-Policy', csp);
   next();
@@ -398,7 +398,11 @@ async function loadDashboardHtml() {
     if (_cachedDashboardHtml && stat.mtimeMs === _cachedDashboardMtimeMs) {
       return _cachedDashboardHtml;
     }
-    const html = await fs.promises.readFile(dashboardPath, 'utf8');
+    let html = await fs.promises.readFile(dashboardPath, 'utf8');
+    // Ensure relative asset paths resolve from root when served from /dashboard
+    if (!html.includes('<base href=')) {
+      html = html.replace(/<head>/i, '<head>\n  <base href="/">');
+    }
     _cachedDashboardHtml = html;
     _cachedDashboardMtimeMs = stat.mtimeMs;
     return html;
@@ -804,7 +808,7 @@ app.use((req, res, next) => {
     return next();
   }
   // For dashboard mode, prioritize dashboard index.html over landing page
-  if (!landingAtRoot && req.path === '/') {
+  if (!landingAtRoot && (req.path === '/' || req.path === '/dashboard' || req.path === '/dashboard/')) {
     return sendSimplebeaconDashboard(res);
   }
   // Explicitly set MIME types for CSS files to ensure proxy forwards correctly
