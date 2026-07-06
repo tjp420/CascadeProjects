@@ -629,6 +629,14 @@ if (landingRootExists) {
     next();
   });
 
+  // Redirect /coming-soon/* links to the canonical landing pages served at root
+  app.get('/coming-soon/*', (req, res, next) => {
+    if (!storefrontAssetsEnabled()) return next();
+    const target = req.params[0] || '';
+    if (!target) return res.redirect(301, '/');
+    return res.redirect(301, '/' + target);
+  });
+
   // Serve remaining landing assets (images, js subdirectories, etc.) when landing is at root
   if (landingAtRoot) {
     app.use(express.static(landingRoot));
