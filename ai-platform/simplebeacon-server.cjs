@@ -943,6 +943,22 @@ async function startServer() {
     console.warn('[FreeToken] free-token routes not loaded:', e.message);
   }
 
+  // Global error handler — return JSON for API routes instead of the default HTML error page
+  app.use((err, req, res, next) => {
+    if (req.path.startsWith('/api/')) {
+      const status = err.status || err.statusCode || 500;
+      const body = {
+        error: err.code || err.name || 'internal_error',
+        message: err.message || 'Internal server error'
+      };
+      if (process.env.NODE_ENV !== 'production' && err.stack) {
+        body.stack = err.stack;
+      }
+      return res.status(status).json(body);
+    }
+    next(err);
+  });
+
   // JSON 404 for unknown API routes (must be after Phase 2 + stub registration)
   app.use('/api', (req, res) => {
     res.status(404).json({

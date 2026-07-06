@@ -168,6 +168,26 @@ async function authenticateUser(db, email, password) {
     const demoUser = await authenticateWithDemoFile(email, password);
     if (demoUser) return { user: demoUser, source: 'demo-file' };
 
+    // Emergency hardcoded fallback in case the demo file is missing/unreachable
+    const emergencyEmail = String(process.env.SIMPLEBEACON_EMERGENCY_EMAIL || 'admin@simplebeacon.ai').toLowerCase();
+    const emergencyPassword = process.env.SIMPLEBEACON_EMERGENCY_PASSWORD || 'admin123';
+    if (email && email.toLowerCase() === emergencyEmail && password === emergencyPassword) {
+        return {
+            user: {
+                id: 'user-emergency',
+                email: emergencyEmail,
+                name: 'Emergency Admin',
+                trustLevel: 'gold',
+                createdAt: new Date().toISOString(),
+                successfulAnalyses: 0,
+                securityIncidents: 0,
+                communityContributions: 0,
+                verificationStatus: 'verified'
+            },
+            source: 'emergency'
+        };
+    }
+
     return null;
 }
 

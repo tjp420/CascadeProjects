@@ -52,7 +52,15 @@ async function handleLogin(req, res, next) {
     });
   } catch (error) {
     auditAuth('login_failed', { email: req.body?.email }, req);
-    next(error);
+    console.error('[Login] Error during login:', error?.message, error?.stack);
+    // Let validation errors (4xx) pass through to the Express error handler
+    if (error?.status && error.status < 500) {
+      return next(error);
+    }
+    return res.status(500).json({
+      error: 'login_error',
+      message: process.env.NODE_ENV === 'production' ? 'Login failed due to a server error.' : error?.message
+    });
   }
 }
 
