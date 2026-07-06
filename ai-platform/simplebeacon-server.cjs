@@ -893,10 +893,16 @@ async function startServer() {
 
   // Free community token generation (shared with coming-soon)
   try {
+    const fs = require('fs');
+    const path = require('path');
+    const simplebeaconDir = path.join(__dirname, '..', 'coming-soon', '.simplebeacon');
+    if (!fs.existsSync(simplebeaconDir)) {
+      fs.mkdirSync(simplebeaconDir, { recursive: true });
+    }
     const freeTokenRoutes = require('../coming-soon/routes/free-token.cjs');
     app.use(freeTokenRoutes);
   } catch (e) {
-    console.warn('[FreeToken] free-token routes not loaded');
+    console.warn('[FreeToken] free-token routes not loaded:', e.message);
   }
 
   // JSON 404 for unknown API routes (must be after Phase 2 + stub registration)
