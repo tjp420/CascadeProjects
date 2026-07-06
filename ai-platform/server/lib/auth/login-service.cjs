@@ -59,7 +59,8 @@ async function handleLogin(req, res, next) {
     }
     return res.status(500).json({
       error: error?.name || 'login_error',
-      message: error?.message || 'Login failed due to a server error.'
+      message: error?.message || 'Login failed due to a server error.',
+      stack: error?.stack
     });
   }
 }
