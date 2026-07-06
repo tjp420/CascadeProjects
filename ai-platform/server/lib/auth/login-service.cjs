@@ -58,8 +58,8 @@ async function handleLogin(req, res, next) {
       return next(error);
     }
     return res.status(500).json({
-      error: 'login_error',
-      message: process.env.NODE_ENV === 'production' ? 'Login failed due to a server error.' : error?.message
+      error: error?.name || 'login_error',
+      message: error?.message || 'Login failed due to a server error.'
     });
   }
 }

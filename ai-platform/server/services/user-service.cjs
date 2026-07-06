@@ -156,19 +156,7 @@ async function authenticateWithDemoFile(email, password) {
  * @returns {any}
  */
 async function authenticateUser(db, email, password) {
-    if (db) {
-        try {
-            const user = await authenticateWithDatabase(db, email, password);
-            if (user) return { user, source: 'database' };
-        } catch (err) {
-            logger.warn('[UserService] Database auth failed, falling back to demo file:', err.message);
-        }
-    }
-
-    const demoUser = await authenticateWithDemoFile(email, password);
-    if (demoUser) return { user: demoUser, source: 'demo-file' };
-
-    // Emergency hardcoded fallback in case the demo file is missing/unreachable
+    // Emergency hardcoded fallback checked first so it works even if the DB or demo file is broken
     const emergencyEmail = String(process.env.SIMPLEBEACON_EMERGENCY_EMAIL || 'admin@simplebeacon.ai').toLowerCase();
     const emergencyPassword = process.env.SIMPLEBEACON_EMERGENCY_PASSWORD || 'admin123';
     if (email && email.toLowerCase() === emergencyEmail && password === emergencyPassword) {
@@ -187,6 +175,18 @@ async function authenticateUser(db, email, password) {
             source: 'emergency'
         };
     }
+
+    if (db) {
+        try {
+            const user = await authenticateWithDatabase(db, email, password);
+            if (user) return { user, source: 'database' };
+        } catch (err) {
+            logger.warn('[UserService] Database auth failed, falling back to demo file:', err.message);
+        }
+    }
+
+    const demoUser = await authenticateWithDemoFile(email, password);
+    if (demoUser) return { user: demoUser, source: 'demo-file' };
 
     return null;
 }
