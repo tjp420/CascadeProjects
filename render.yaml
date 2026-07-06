@@ -57,5 +57,5 @@ services:
       - key: SIMPLEBEACON_APP_URL
         sync: false
       - key: SIMPLEBEACON_LANDING
-        value: "true"
+        value: "false"
     healthCheckPath: /health
