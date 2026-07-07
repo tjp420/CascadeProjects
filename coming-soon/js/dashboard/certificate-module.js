@@ -471,9 +471,8 @@ async function generateSovereignCertificate(report, token, options = {}) {
     // --- Rich Executive Risk Certificate data ---
     const aiResidue = report.aiResidue || {};
     const aiIndicators = report.aiIndicators || {};
-    const aiHits = aiResidue.aiResidueHits || 0;
+    const aiResidueHits = aiResidue.aiResidueHits || 0;
     const aiSdkCount = aiIndicators.sdkCount || aiIndicators.aiSystemIndicators || 0;
-    const credentialHits = (gateReport.blockingFindings || []).length || gateReport.blockingCount || 0;
     const comp = report.compliance || {};
     const licenseCount = comp.licenseCount || 0;
     const securityCount = comp.securityCount || 0;
@@ -486,37 +485,68 @@ async function generateSovereignCertificate(report, token, options = {}) {
         'D': { label: 'High Risk', ringColor: '#d29922', cssVar: 'var(--warn)' },
         'F': { label: 'Critical Risk', ringColor: '#f85149', cssVar: 'var(--blocked)' }
     };
-    const LIABILITY_MULTIPLIER_BLOCKING = 150000;
-    const LIABILITY_MULTIPLIER_WARNING = 45000;
-    const LIABILITY_FORMAT_THRESHOLD = 1000000;
     const gradeInfo = gradeConfig[grade] || gradeConfig['F'];
-    const blocking = (gateReport.blockingIssues || []).length;
-    const warnings = (gateReport.warningIssues || []).length;
-    const liabilityRaw = (blocking * LIABILITY_MULTIPLIER_BLOCKING) + (warnings * LIABILITY_MULTIPLIER_WARNING);
+    const companyInitials = escapeHtml(projectName).split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'SB';
+
+    // Aggregate real findings from detectedIssues when gate buckets are empty
+    const detectedIssues = report.detectedIssues || [];
+    const issueCounts = { credential: 0, debug: 0, architecture: 0, maintainability: 0, governance: 0, slop: 0, sensitive: 0, other: 0 };
+    const severityCounts = { critical: 0, high: 0, medium: 0, low: 0 };
+    for (const issue of detectedIssues) {
+        const type = (issue.type || '').toLowerCase();
+        const count = issue.count || 0;
+        const sev = (issue.severity || 'low').toLowerCase();
+        if (severityCounts[sev] != null) severityCounts[sev] += count;
+        if (type.includes('credential')) issueCounts.credential += count;
+        else if (type.includes('debug')) issueCounts.debug += count;
+        else if (type.includes('architecture')) issueCounts.architecture += count;
+        else if (type.includes('maintainability')) issueCounts.maintainability += count;
+        else if (type.includes('license') || type.includes('governance')) issueCounts.governance += count;
+        else if (type.includes('llm slop') || type.includes('ai residue') || type.includes('fiction')) issueCounts.slop += count;
+        else if (type.includes('sensitive') || type.includes('production leak') || type.includes('token bleed')) issueCounts.sensitive += count;
+        else issueCounts.other += count;
+    }
+    const aiHits = aiResidueHits || issueCounts.slop || issueCounts.debug;
+    const credentialHits = issueCounts.credential || (gateReport.blockingFindings || []).length || gateReport.blockingCount || 0;
+    const governanceHits = issueCounts.governance;
+
+    // Liability based on severity (conservative per-incident estimates)
+    const LIABILITY_MULTIPLIER_CRITICAL = 500000;
+    const LIABILITY_MULTIPLIER_HIGH = 250000;
+    const LIABILITY_MULTIPLIER_MEDIUM = 100000;
+    const LIABILITY_MULTIPLIER_LOW = 25000;
+    const LIABILITY_FORMAT_THRESHOLD = 1000000;
+    const liabilityRaw = (severityCounts.critical * LIABILITY_MULTIPLIER_CRITICAL)
+        + (severityCounts.high * LIABILITY_MULTIPLIER_HIGH)
+        + (severityCounts.medium * LIABILITY_MULTIPLIER_MEDIUM)
+        + (severityCounts.low * LIABILITY_MULTIPLIER_LOW);
     const liabilityFormatted = liabilityRaw > 0
         ? (liabilityRaw >= LIABILITY_FORMAT_THRESHOLD ? '$' + (liabilityRaw / LIABILITY_FORMAT_THRESHOLD).toFixed(1) + 'M' : '$' + liabilityRaw.toLocaleString())
         : '$0';
-    const companyInitials = escapeHtml(projectName).split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'SB';
+
     const pillars = [];
     if (aiHits === 0) {
         pillars.push({ status: 'pass', statusText: 'PASS', name: 'AI Slop & Hallucinations', detail: 'No unresolved LLM placeholders or fake metrics detected' });
     } else {
-        pillars.push({ status: 'warn', statusText: 'WARNING', name: 'AI Slop & Hallucinations', detail: aiHits + ' AI residue pattern(s) detected in source' });
+        pillars.push({ status: 'warn', statusText: 'WARNING', name: 'AI Slop & Hallucinations', detail: aiHits.toLocaleString() + ' AI residue / debug pattern(s) detected in source' });
     }
     if (credentialHits === 0) {
         pillars.push({ status: 'pass', statusText: 'PASS', name: 'Credential Leaks', detail: 'No hardcoded credentials or API keys detected in source' });
     } else {
-        pillars.push({ status: 'warn', statusText: 'WARNING', name: 'Credential Leaks', detail: credentialHits + ' credential pattern(s) detected — review before release' });
+        pillars.push({ status: 'warn', statusText: 'WARNING', name: 'Credential Leaks', detail: credentialHits.toLocaleString() + ' credential pattern(s) detected — review before release' });
     }
     if (aiSdkCount === 0) {
         pillars.push({ status: 'pass', statusText: 'PASS', name: 'Shadow AI Systems', detail: 'No undocumented AI integrations detected' });
     } else {
-        pillars.push({ status: gatePassed ? 'pass' : 'warn', statusText: gatePassed ? 'PASS' : 'REVIEW', name: 'Shadow AI Systems', detail: aiSdkCount + ' AI SDK reference(s) detected — verify compliance documentation' });
+        pillars.push({ status: gatePassed ? 'pass' : 'warn', statusText: gatePassed ? 'PASS' : 'REVIEW', name: 'Shadow AI Systems', detail: aiSdkCount.toLocaleString() + ' AI SDK reference(s) detected — verify compliance documentation' });
     }
-    if (hasLicense && hasSecurity) {
+    if (hasLicense && hasSecurity && governanceHits === 0) {
         pillars.push({ status: 'pass', statusText: 'PASS', name: 'Licensing & IP Verification', detail: licenseCount + ' license file(s), ' + securityCount + ' governance file(s) present' });
     } else {
-        pillars.push({ status: 'warn', statusText: 'REVIEW', name: 'Licensing & IP Verification', detail: 'Missing governance files — add LICENSE and SECURITY.md' });
+        const govDetail = governanceHits > 0
+            ? governanceHits.toLocaleString() + ' governance marker(s) detected — review license compatibility'
+            : 'Missing governance files — add LICENSE and SECURITY.md';
+        pillars.push({ status: 'warn', statusText: 'REVIEW', name: 'Licensing & IP Verification', detail: govDetail });
     }
     const pillarsHtml = pillars.map(p => `    <div class="pillar">
         <div class="status ${p.status}">${p.statusText}</div>
