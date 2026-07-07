@@ -26,7 +26,7 @@ fs.mkdirSync(dst, { recursive: true });
 // Copy individual files
 const files = [
   'index.html', 'landing.html', 'pricing.html', 'community.html',
-  'contact.html', 'contact.js', 'certificate-upload.html', 'upload.html',
+  'contact.html', 'contact.js', 'certificate-upload.html',
   // cloud-scan.html is an intentional demo page for the marketing site
   'cloud-scan.html',
   'admin.html',
@@ -39,6 +39,8 @@ const files = [
   'favicon.svg', 'robots.txt', 'sitemap.xml'
 ];
 
+const minimalAuthJs = `(function(){'use strict';var TOKEN_KEYS=['cascadeAuthToken','cascadeAuthUser','access_token','token','authToken','simplebeacon_token','sb-token-vault'];function clearLocalStorageItems(keys){try{for(var i=0;i<keys.length;i++){localStorage.removeItem(keys[i]);}}catch(_){}}function clearCookies(keys){try{for(var i=0;i<keys.length;i++){document.cookie=keys[i]+'=;path=/;max-age=0;SameSite=Lax;';}}catch(_){}}function signOut(){clearLocalStorageItems(TOKEN_KEYS);clearCookies(TOKEN_KEYS);try{sessionStorage.clear();}catch(_){}window.location.reload();}function propagateTokenToLinks(){try{var params=new URLSearchParams(window.location.search);var token=params.get('token');if(!token)return;var links=document.querySelectorAll('.nav-links a');for(var i=0;i<links.length;i++){var a=links[i];var href=a.getAttribute('href')||'';if(href.indexOf('#')===-1&&href.indexOf('http')!==0){var sep=href.indexOf('?')===-1?'?':'&';a.setAttribute('href',href+sep+'token='+encodeURIComponent(token));}}}catch(e){}}window.SbAuth={signOut:signOut,propagateTokenToLinks:propagateTokenToLinks};})();`;
+
 for (const f of files) {
   const s = path.join(src, f);
   const d = path.join(dst, f);
@@ -49,7 +51,13 @@ for (const f of files) {
       fs.copyFileSync(s, d);
     }
   } catch (e) {
-    console.warn('Skipping copy of', f, ':', (e && e.message) || e);
+    if (f === 'js/auth.js') {
+      fs.mkdirSync(path.dirname(d), { recursive: true });
+      fs.writeFileSync(d, minimalAuthJs, 'utf8');
+      console.warn('Source js/auth.js missing; wrote minimal fallback to public/js/auth.js');
+    } else {
+      console.warn('Skipping copy of', f, ':', (e && e.message) || e);
+    }
   }
 }
 
