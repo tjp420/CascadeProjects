@@ -98,6 +98,18 @@ function resolveProjectPath(baseDir, rawPath, monorepoRoot) {
         const fromMono = path.normalize(path.join(monorepoRoot, trimmedPath));
         if (fs.existsSync(fromMono)) return fromMono;
     }
+
+    // Render deployment fallback: the dashboard may cache a stale path like
+    // /opt/render/project/src/ai-platform/CascadeProjects. If the resolved path
+    // does not exist and we are inside a Render-style monorepo checkout, fall back
+    // to the monorepo root so the scan can still run against the actual project.
+    if (!fs.existsSync(fromBase) && monorepoRoot && fromBase.startsWith(monorepoRoot)) {
+        const platformDir = path.join(monorepoRoot, 'ai-platform');
+        if (fs.existsSync(platformDir)) {
+            return monorepoRoot;
+        }
+    }
+
     return fromBase;
 }
 

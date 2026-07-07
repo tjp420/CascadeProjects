@@ -267,6 +267,22 @@ function assertSafeProjectPath(targetPath, allowedRoots, label = 'projectPath') 
     }
 
     let resolved = path.resolve(raw);
+
+    // Render deployment fallback: if the requested path does not exist but is
+    // inside a Render-style monorepo checkout, fall back to the monorepo root.
+    if (!fs.existsSync(resolved) && allowedRoots.length) {
+        const monoRoot = allowedRoots.find((root) => {
+            const normalized = normalizePathKey(root);
+            return normalized.endsWith('/ai-platform') === false && resolved.toLowerCase().startsWith(normalized + '/');
+        });
+        if (monoRoot) {
+            const platformDir = path.join(monoRoot, 'ai-platform');
+            if (fs.existsSync(platformDir)) {
+                resolved = path.resolve(monoRoot);
+            }
+        }
+    }
+
     if (!isPathWithinRoots(resolved, allowedRoots)) {
         // Bare directory name: try resolving against each allowed root
         const isBareName = !path.isAbsolute(raw) && !raw.includes(path.sep) && !raw.includes('/');

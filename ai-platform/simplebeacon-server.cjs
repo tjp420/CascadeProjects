@@ -48,6 +48,7 @@ const pathHealthRouter = require('./server/api/metrics/path-health.cjs');
 const { registerLegacyPageRedirects } = require('./server/lib/legacy-page-redirects.cjs');
 const uploadRoutes = require('./server/routes/upload.cjs');
 const { setupRepositoryScannerAPIs } = require('./server/routes/repository-scanner-api.cjs');
+const { setupAiMathAuditRoute } = require('./server/routes/ai-math-audit-route.cjs');
 const { uploadSecurity, contentValidation } = require('./server/middleware/upload-security.cjs');
 const { authenticate, optionalAuthenticate } = require('./server/middleware/auth.cjs');
 const authRoutes = require('./server/routes/auth.cjs');
@@ -868,43 +869,71 @@ app.get('/community', async (_req, res) => {
   return res.status(404).send('Community pricing page not found');
 });
 
+/**
+ * Stub merger-tool routes used by the dashboard scan pipeline.
+ * @param {import('express').Application} app
+ * @param {string} baseDir
+ */
+function setupMergerToolRoutes(app, baseDir) {
+    app.get('/api/merger-tool/reduction-scan', optionalAuthenticate, (req, res) => {
+        res.json({
+            success: true,
+            projectPath: req.query.projectPath || baseDir,
+            reductions: [],
+            duplicates: [],
+            notes: 'Merger-tool reduction scan is not available in this deployment.'
+        });
+    });
+}
+
 // Phase 2 bootstrap + dashboard stub APIs (initialized in startServer) // simplebeacon-ignore production-leak — real production dashboard API module
 async function bootstrapPhase2Routes() {
-    try {
-        setupLocalModelsAPI(app, { baseDir: __dirname });
-        setupFlexibleAnalyzeAPI(app, {
+    const routeSetups = [
+        { name: 'localModels', fn: () => setupLocalModelsAPI(app, { baseDir: __dirname }) },
+        { name: 'flexibleAnalyze', fn: () => setupFlexibleAnalyzeAPI(app, {
             baseDir: __dirname,
             monorepoRoot: path.join(__dirname, '..'),
             publicGateEnabled: !internalDashboard,
             closedVaultMode: landingAtRoot
-        });
-        await setupPhase2Integration(app, { webRoot });
-        setupSimplebeaconBillingRoutes(app);
-        setupSimplebeaconAPI(app);
-        require('./src/api/trust-api.cjs').setupTrustAPI(app, { platformRoot: __dirname, monorepoRoot: path.join(__dirname, '..') });
-        require('./src/api/optimization-api.cjs').setupOptimizationAPI(app, { platformRoot: __dirname, monorepoRoot: path.join(__dirname, '..') });
-        require('./server/api/assessment/routes.cjs').setupAssessmentRoutes(app);
-        setupRepositoryScannerAPIs(app, { platformRoot: __dirname });
-        setupChatbotAPI(app);
+        }) },
+        { name: 'phase2Integration', fn: async () => await setupPhase2Integration(app, { webRoot }) },
+        { name: 'billingRoutes', fn: () => setupSimplebeaconBillingRoutes(app) },
+        { name: 'simplebeaconAPI', fn: () => setupSimplebeaconAPI(app) },
+        { name: 'trustAPI', fn: () => require('./src/api/trust-api.cjs').setupTrustAPI(app, { platformRoot: __dirname, monorepoRoot: path.join(__dirname, '..') }) },
+        { name: 'optimizationAPI', fn: () => require('./src/api/optimization-api.cjs').setupOptimizationAPI(app, { platformRoot: __dirname, monorepoRoot: path.join(__dirname, '..') }) },
+        { name: 'assessmentRoutes', fn: () => require('./server/api/assessment/routes.cjs').setupAssessmentRoutes(app) },
+        { name: 'repositoryScanner', fn: () => setupRepositoryScannerAPIs(app, { platformRoot: __dirname }) },
+        { name: 'chatbotAPI', fn: () => setupChatbotAPI(app) },
+        { name: 'aiMathAudit', fn: () => setupAiMathAuditRoute(app, __dirname) },
+        { name: 'mergerTool', fn: () => setupMergerToolRoutes(app, __dirname) }
+    ];
 
-        app.use('/api/metrics/path-health', pathHealthRouter);
+    for (const setup of routeSetups) {
+        try {
+            await setup.fn();
+        } catch (error) {
+            console.error(`❌ ${setup.name} setup failed:`, safeErrorMessage(error)); // simplebeacon-ignore production-leak — error message text only
+            console.error('Stack:', error?.stack || '(no stack)');
+        }
+    }
 
-        const uploadAuth = process.env.REQUIRE_AUTH === 'true' ? authenticate : optionalAuthenticate;
-        app.use('/api/upload', uploadAuth, uploadSecurity, contentValidation, uploadRoutes);
+    app.use('/api/metrics/path-health', pathHealthRouter);
+
+    const uploadAuth = process.env.REQUIRE_AUTH === 'true' ? authenticate : optionalAuthenticate;
+    app.use('/api/upload', uploadAuth, uploadSecurity, contentValidation, uploadRoutes);
+
+    try {
         setupDashboardStubAPIs(app, webRoot, { // simplebeacon-ignore production-leak — real production dashboard API module
             db: app.locals.db,
             redis: app.locals.redis,
             authMiddleware: optionalAuthenticate
         });
-
     } catch (error) {
-        console.error('❌ Phase 2 bootstrap failed, using stub APIs only:', safeErrorMessage(error)); // simplebeacon-ignore production-leak — error message text only
+        console.error('❌ Dashboard stub setup failed:', safeErrorMessage(error)); // simplebeacon-ignore production-leak — error message text only
         console.error('Stack:', error?.stack || '(no stack)');
         setupDashboardStubAPIs(app, webRoot, { // simplebeacon-ignore production-leak — real production dashboard API module
             authMiddleware: optionalAuthenticate
         });
-        require('./src/api/trust-api.cjs').setupTrustAPI(app, { platformRoot: __dirname, monorepoRoot: path.join(__dirname, '..') });
-        require('./src/api/optimization-api.cjs').setupOptimizationAPI(app, { platformRoot: __dirname, monorepoRoot: path.join(__dirname, '..') });
     }
 
     registerOutreachRoutes(app, {
