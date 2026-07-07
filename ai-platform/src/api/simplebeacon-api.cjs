@@ -513,7 +513,16 @@ function setupSimplebeaconAPI(app, options = {}) {
       const report = patchRemediationPhases(await readJson(reportPath));
       res.json(report);
     } catch (err) {
-      res.status(404).json({ error: 'Report not found', message: err.message });
+      // Return a default empty report so the dashboard can render before the first scan
+      res.json({
+        type: 'simplebeacon-report',
+        version: '1.0.0',
+        generatedAt: new Date().toISOString(),
+        projectPath: req.query.projectPath || PROJECT_ROOT,
+        summary: { totalFiles: 0, issues: 0, score: 100, grade: 'A' },
+        findings: [],
+        modules: []
+      });
     }
   });
 
@@ -566,7 +575,13 @@ function setupSimplebeaconAPI(app, options = {}) {
       }
       res.json(enriched);
     } catch (err) {
-      res.status(404).json({ error: 'Baseline not found', message: err.message });
+      // Return a default empty baseline so the dashboard can render before the first scan
+      res.json({
+        summary: {},
+        jestTestsLabel: '0/0',
+        jestSuites: '0/0',
+        pageSamplesLabel: '0/0'
+      });
     }
   });
 
