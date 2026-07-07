@@ -125,12 +125,15 @@ const PORT = Number.isFinite(Number(process.env.PORT)) && Number(process.env.POR
 const WS_PORT = 8081;
 
 // CORS — allow any origin in dev; specific origins in production
+const productionDefaultOrigins = (process.env.ALLOWED_ORIGIN || 'https://simplebeacon.ai').split(',').map(s => s.trim()).filter(Boolean);
+const publicUrlOrigin = process.env.PUBLIC_URL ? (process.env.PUBLIC_URL.startsWith('http') ? process.env.PUBLIC_URL : 'https://' + process.env.PUBLIC_URL) : '';
 const rawAllowedOrigins = process.env.NODE_ENV === 'production'
-    ? (process.env.ALLOWED_ORIGIN || 'https://simplebeacon.ai').split(',').map(s => s.trim()).filter(Boolean)
+    ? [...new Set([...productionDefaultOrigins, publicUrlOrigin].filter(Boolean))]
     : true;
 const allowedOrigins = Array.isArray(rawAllowedOrigins) && rawAllowedOrigins.length > 0 ? rawAllowedOrigins : true;
 
 const pagesPreviewOriginRegex = /^https:\/\/[a-z0-9-]+\.simplebeacon\.pages\.dev$/;
+const renderOriginRegex = /^https:\/\/[a-z0-9-]+\.onrender\.com$/;
 function isAllowedCorsOrigin(origin) {
     if (allowedOrigins === true) { return true; }
     if (!origin) { return true; }
@@ -140,7 +143,7 @@ function isAllowedCorsOrigin(origin) {
             return origin.startsWith(allowed.replace(':*', ':'));
         }
         return false;
-    }) || pagesPreviewOriginRegex.test(origin);
+    }) || pagesPreviewOriginRegex.test(origin) || renderOriginRegex.test(origin);
 }
 
 app.use(cors({
@@ -148,7 +151,7 @@ app.use(cors({
         if (isAllowedCorsOrigin(origin)) {
             callback(null, origin || true);
         } else {
-            callback(new Error('Origin not allowed'));
+            callback(null, false);
         }
     },
     credentials: true
