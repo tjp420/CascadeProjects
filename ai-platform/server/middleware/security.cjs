@@ -146,6 +146,9 @@ const buildConnectSrc = () => {
   const dashUrl = process.env.OPERATOR_DASHBOARD_BASE_URL || process.env.DASHBOARD_BASE_URL;
   if (publicUrl) base.push(publicUrl);
   if (dashUrl) base.push(dashUrl);
+  // Render services and local dev origins (CSP does not allow wildcards for ports,
+  // but a host without a port allows any port on that host)
+  base.push('https://*.onrender.com', 'http://127.0.0.1', 'http://localhost'); // simplebeacon-ignore hardcoded-url — Render/local origins for dashboard API and bridge probes
   if (!isProd) {
     const apiPort = process.env.PORT || 3000;
     const dashPort = process.env.DASHBOARD_PORT || 3002;

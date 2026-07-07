@@ -868,6 +868,9 @@ function isModulePaidFor(moduleNum) {
     if (tier === 'instant') {
         return ['1','3'].includes(numStr);
     }
+    if (tier === 'community') {
+        return ['1'].includes(numStr);
+    }
     if (tier === 'custom' && Array.isArray(payload.features)) {
         return payload.features.includes(map[numStr]) || payload.features.includes(numStr);
     }
@@ -3006,6 +3009,7 @@ let bridgeEventSource = null;
 let serverUploadUrl = null;
 
 async function probeLocalBridge() {
+    if (API_BASE) return;
     try {
         const res = await fetch(`${BRIDGE_URL}/health`, { method: 'GET', mode: 'cors', signal: AbortSignal.timeout(2000) });
         if (res.ok) {
@@ -3027,6 +3031,14 @@ let dataServerAvailable = false;
 let dataServerSse = null;
 
 async function probeDataServer() {
+    if (API_BASE) {
+        const statusEl = document.getElementById('dataServerStatus');
+        if (statusEl) {
+            statusEl.textContent = 'Not connected — open VS Code: sidebar to enable';
+            statusEl.style.color = '#888';
+        }
+        return;
+    }
     try {
         const res = await fetch(`${DATA_SERVER_URL}/api/health`, { method: 'GET', mode: 'cors', signal: AbortSignal.timeout(2000) });
         if (res.ok) {
@@ -3108,6 +3120,7 @@ async function fetchSidebarData() {
 
 // Detect local SimpleBeacon server (e.g. ai-platform dashboard) for full scans
 async function probeLocalServer() {
+    if (API_BASE) return;
     const SERVER_PORTS = LOCAL_SERVER_PORTS;
     const currentPort = parseInt(location.port, 10);
     // Skip detection if we're already served from the server
