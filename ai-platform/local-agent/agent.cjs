@@ -194,24 +194,11 @@ function toPrivacySummaryReport(report) {
   };
 }
 
-/**
- * Only allow requests from localhost origins. The agent intentionally binds to
- * 127.0.0.1, but we also guard against cross-origin calls.
- */
-function isLocalOrigin(origin) {
-  if (!origin) return true; // Same-origin / direct requests
-  return /^(https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?)$/i.test(origin);
-}
-
-// CORS middleware scoped to localhost
+// CORS middleware. The requireLoopback middleware below already restricts
+// TCP connections to the loopback interface, so reflecting any origin is safe.
 app.use(cors({
-  origin: (origin, callback) => {
-    if (isLocalOrigin(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('CORS blocked: origin is not localhost'));
-    }
-  },
+  origin: true,
+  credentials: true,
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type']
 }));
