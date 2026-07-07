@@ -1,5 +1,6 @@
 import { escapeHtml, showToast, downloadJson, downloadBlob, downloadText, redactPathForDisplay, formatPathLabel, formatPathInputValue, formatAiSummarySkipMessage, isRedactedPathDisplay, formatNumber, renderEmptyState } from '../utils.js';
 import { evaluateFunnelMetrics, getFunnelCopy } from '../utils/funnelTrigger.js';
+import { LocalScanService } from '../services/localScanService.js';
 
 // simplebeacon:production-leak-intent: sample-json - Legitimate documentation about sample file patterns in analysis results
 import {
@@ -1365,7 +1366,8 @@ function loadAnalyzePrefs() {
  * @returns {any}
  */
 function saveAnalyzePrefs(prefs) {
-  localStorage.setItem(ANALYZE_PREFS_KEY, JSON.stringify(prefs));
+  const existing = loadAnalyzePrefs();
+  localStorage.setItem(ANALYZE_PREFS_KEY, JSON.stringify({ ...existing, ...prefs }));
 }
 
 /**
@@ -1458,6 +1460,7 @@ export class AnalyzeView {
     this._queueExpanded = false;
     this.websiteMode = false;
     this.realtimeMonitorEnabled = false;
+    this.localMode = prefs.localMode || false;
     this._vscodeApiCached = null;
   }
 
@@ -1588,6 +1591,13 @@ export class AnalyzeView {
                     <label style="display:flex;align-items:center;gap:0.5rem;font-size:var(--font-size-xs);color:var(--text-muted);cursor:pointer;margin-top:0.25rem;">
                       <input type="checkbox" id="analyze-realtime-monitor" aria-label="Enable real-time file monitoring" ${this.realtimeMonitorEnabled ? 'checked' : ''}>
                       <span>Watch filesystem changes and auto-rescan (requires VS Code extension or server watcher)</span>
+                    </label>
+                  </div>
+                  <div class="analyze-local-mode-wrap">
+                    <label class="text-muted" style="font-size: var(--font-size-xs);">Privacy mode</label>
+                    <label style="display:flex;align-items:center;gap:0.5rem;font-size:var(--font-size-xs);color:var(--text-muted);cursor:pointer;margin-top:0.25rem;">
+                      <input type="checkbox" id="analyze-local-mode" aria-label="Scan locally in browser" ${this.localMode ? 'checked' : ''}>
+                      <span>Scan locally in browser — no file data sent to server</span>
                     </label>
                   </div>
                 </div>
@@ -4269,6 +4279,18 @@ export class AnalyzeView {
       }
     });
 
+    el.querySelector('#analyze-local-mode')?.addEventListener('change', (event) => {
+      this.localMode = Boolean(event.target.checked);
+      saveAnalyzePrefs({
+        analysisType: this.analysisType,
+        aiProvider: this.aiProvider,
+        roadmapInsightsMode: this.roadmapInsightsMode,
+        understandingMode: this.understandingMode,
+        localMode: this.localMode
+      });
+      this.syncAnalyzeModeUi(el);
+    });
+
     this.bindModeGridEvents(el);
     this.bindClientDeliverablePicker(el);
     this.bindCodebaseSectionEvents(el);
@@ -5879,7 +5901,55 @@ export class AnalyzeView {
     ].filter(Boolean).join(' ');
   }
 
+  async runLocalScan() {
+    if (!window.showDirectoryPicker) {
+      showToast('Local scan requires a browser that supports directory selection (Chrome/Edge).', 'error');
+      return;
+    }
+    this.busy = true;
+    this.scanStartedAt = Date.now();
+    this._terminalLogLines = [];
+    this.app.state.analyzeResult = null;
+    this.app.state.report = null;
+    this.refresh();
+    showToast('Select a local folder to scan privately…', 'info');
+    try {
+      const service = new LocalScanService();
+      const report = await service.runScan({
+        onProgress: (processed, total) => {
+          this.scanProgress = { processed, total, percent: Math.round((processed / Math.max(1, total)) * 100) };
+          this.refresh();
+        }
+      });
+      const conclusion = buildScanConclusion(report);
+      this.repositoryInventory = report.inventory || null;
+      this.lastResult = {
+        kind: 'simplebeacon-report',
+        report,
+        projectPath: report.projectPath,
+        repositoryInventory: report.inventory || null,
+        label: `Local scan: ${report.projectPath}`,
+        conclusion
+      };
+      this.applyReport(report, this.lastResult.label, { conclusion });
+      this.app.state.analyzeResult = this.lastResult;
+      this.app.state.report = report;
+      this.app.scanService.report = report;
+      showToast('Local scan complete — no data sent to server', 'success');
+    } catch (err) {
+      showToast(err.message || 'Local scan failed', 'error');
+    } finally {
+      this.busy = false;
+      this.scanProgress = null;
+      this.refresh();
+    }
+  }
+
   async runPathAnalysis(inputPath) {
+    if (this.localMode) {
+      await this.runLocalScan();
+      return;
+    }
     let projectPath = String(inputPath || '').trim();
     if (!projectPath) {
       showToast('Enter a project path or public repo URL', 'error');
