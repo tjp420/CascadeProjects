@@ -852,6 +852,12 @@ app.use((req, res, next) => {
 });
 
 // Marketing landing lives at / when SIMPLEBEACON_LANDING=true (or /landing in internal preview)
+// Serve the marketing/coming-soon site under the /coming-soon/ prefix so that
+// direct links like /coming-soon/audit.html work on the deployed service.
+if (landingRootExists) {
+  app.use('/coming-soon', express.static(landingRoot, { fallthrough: false }));
+}
+
 app.get('/coming-soon', (_req, res) => {
   if (!landingEnabled) return res.redirect(301, '/');
   if (internalDashboard) return res.redirect(301, '/landing');
