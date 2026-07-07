@@ -1,6 +1,8 @@
 import { escapeHtml, showToast, downloadJson, downloadBlob, downloadText, redactPathForDisplay, formatPathLabel, formatPathInputValue, formatAiSummarySkipMessage, isRedactedPathDisplay, formatNumber, renderEmptyState } from '../utils.js';
 import { evaluateFunnelMetrics, getFunnelCopy } from '../utils/funnelTrigger.js';
 import { LocalScanService } from '../services/localScanService.js';
+import { fingerprintDirectory, formatFingerprint } from '../services/fingerprintService.js';
+import { probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus, getAgentDownloadUrl } from '../services/localAgentService.js';
 
 // simplebeacon:production-leak-intent: sample-json - Legitimate documentation about sample file patterns in analysis results
 import {
@@ -1463,6 +1465,7 @@ export class AnalyzeView {
     this.realtimeMonitorEnabled = false;
     this.localMode = prefs.localMode || false;
     this._vscodeApiCached = null;
+    this.agentStatus = { available: false, scannerAvailable: false };
   }
 
   get vscodeEnhanced() {
@@ -1770,6 +1773,12 @@ export class AnalyzeView {
         .analyze-target-redesign .scanning-state p { color: var(--text-muted); font-size: 0.85rem; }
         .an-tgt-drop { border: 2px dashed var(--border); border-radius: var(--radius-lg); background: var(--surface); padding: 28px 24px; text-align: center; transition: all .2s; }
         .an-tgt-drop.drag-active { border-color: var(--primary); background: rgba(99,102,241,0.06); }
+        .fingerprint-status { min-height: 1.2em; margin-top: 8px; font-size: 0.85rem; color: var(--primary); font-weight: 500; text-align: center; }
+        .agent-status { min-height: 1.2em; margin-top: 4px; font-size: 0.8rem; color: var(--text-muted); text-align: center; }
+        .agent-status.available { color: var(--success); }
+        .agent-status.unavailable { color: var(--text-muted); }
+        .agent-download-cta { min-height: 1.2em; margin-top: 4px; font-size: 0.8rem; text-align: center; }
+        .agent-download-cta a { color: var(--primary); text-decoration: underline; }
         .an-tgt-drop-icon { font-size: 2.5rem; margin-bottom: 12px; }
         .an-tgt-drop h4 { font-size: 1rem; font-weight: 600; margin-bottom: 4px; }
         .an-tgt-drop p { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 16px; }
@@ -1809,6 +1818,9 @@ export class AnalyzeView {
 
               ${datalist}
               <p class="hint">${isWeb ? 'Enter a public URL to scan a website.' : 'Browser drag-and-drop cannot reveal full drive paths — use Browse Folder or type the path for best results.'}</p>
+              <p id="fingerprint-status" class="fingerprint-status"></p>
+              <p id="agent-status" class="agent-status"></p>
+              <p id="agent-download-cta" class="agent-download-cta"></p>
             </div>
             <div class="scanning-state ${this.busy ? 'active' : ''}">
               <div class="drop-zone-icon"><i data-lucide="loader-2" class="icon-24" style="animation:spin 1s linear infinite;"></i></div>
@@ -4268,7 +4280,45 @@ export class AnalyzeView {
     pathInput.value = fullPath ? formatPathInputValue(fullPath) : '';
   }
 
+  updateAgentStatusUI(root, text = '', available = false) {
+    const status = root?.querySelector('#agent-status');
+    if (!status) return;
+    status.textContent = text;
+    status.classList.remove('available', 'unavailable');
+    status.classList.add(available ? 'available' : 'unavailable');
+
+    const cta = root?.querySelector('#agent-download-cta');
+    if (!cta) return;
+    if (available) {
+      cta.textContent = '';
+      return;
+    }
+    cta.textContent = '';
+    const link = document.createElement('a');
+    link.href = getAgentDownloadUrl();
+    link.target = '_blank';
+    link.rel = 'noopener';
+    link.textContent = 'Download the Local Scan Agent';
+    cta.appendChild(link);
+    cta.appendChild(document.createTextNode(' to scan typed paths like '));
+    const code = document.createElement('code');
+    code.textContent = 'G:\\Games\\Ubisoft';
+    cta.appendChild(code);
+  }
+
+  async probeAndUpdateAgentStatus(root = this._root) {
+    if (!root) return;
+    try {
+      this.agentStatus = await probeAgent();
+    } catch {
+      this.agentStatus = { available: false, scannerAvailable: false };
+    }
+    this.updateAgentStatusUI(root, formatAgentStatus(this.agentStatus), this.agentStatus.available && this.agentStatus.scannerAvailable);
+  }
+
   bindEvents(el) {
+    void this.probeAndUpdateAgentStatus(el);
+
     const pathInput = el.querySelector('#project-path-input');
     const typeSelect = el.querySelector('#analysis-type-select');
     const providerSelect = el.querySelector('#ai-provider-select');
@@ -4794,6 +4844,11 @@ export class AnalyzeView {
     });
 
     // Path area drag/drop — uses file.path in desktop/Electron, otherwise uploads folder
+    const updateFingerprintStatus = (text) => {
+      const status = el.querySelector('#fingerprint-status');
+      if (status) status.textContent = text || '';
+    };
+
     const pathDropzone = el.querySelector('#analyze-path-dropzone');
     if (pathDropzone) {
       let pathDragDepth = 0;
@@ -4836,6 +4891,10 @@ export class AnalyzeView {
             const handle = await items[0].getAsFileSystemHandle?.();
             if (handle && handle.kind === 'directory') {
               if (files?.length && !files[0].path) {
+                updateFingerprintStatus('Fingerprinting dropped folder…');
+                void fingerprintDirectory(handle, handle.name)
+                  .then((fp) => updateFingerprintStatus(formatFingerprint(fp)))
+                  .catch(() => updateFingerprintStatus(''));
                 void this.uploadFolderFiles(files, handle.name);
                 return;
               }
@@ -4965,6 +5024,10 @@ export class AnalyzeView {
             if (entry.isDirectory) {
               const name = entry.name || '';
               if (files?.length && !files[0].path) {
+                updateFingerprintStatus('Fingerprinting dropped folder…');
+                void fingerprintDirectory(entry, name)
+                  .then((fp) => updateFingerprintStatus(formatFingerprint(fp)))
+                  .catch(() => updateFingerprintStatus(''));
                 void this.uploadFolderFiles(files, name);
                 return;
               }
@@ -5041,6 +5104,13 @@ export class AnalyzeView {
     const displayPath = dirPath || 'Computer';
     pathEl.textContent = displayPath;
     this._dirBrowserPath = dirPath;
+
+    // Local paths cannot be browsed by the remote server; type them directly into the path input.
+    if (isLocalPath(dirPath)) {
+      listEl.innerHTML = '<div class="dir-browser-empty">Local folders cannot be browsed from the server. Type the path above or run the Local Scan Agent.</div>';
+      return;
+    }
+
     try {
       const res = await fetch(`/api/analyze/list-directories?path=${encodeURIComponent(dirPath)}`, { cache: 'no-store' });
       const data = await res.json();
@@ -5118,6 +5188,8 @@ export class AnalyzeView {
       const basePath = (lastSlash > 2) ? rawDefault.substring(0, lastSlash) : rawDefault;
       const resolvedPath = `${basePath}/${folderName}`;
       const pathInput = el.querySelector('#project-path-input');
+      const fingerprintStatus = el.querySelector('#fingerprint-status');
+      if (fingerprintStatus) fingerprintStatus.textContent = '';
       if (pathInput) {
         this.setPathInputDisplay(pathInput, resolvedPath);
         this.app.state.lastProjectPath = resolvedPath;
@@ -5975,12 +6047,71 @@ export class AnalyzeView {
     }
   }
 
+  async runAgentScan(projectPath) {
+    this.busy = true;
+    this.scanStartedAt = Date.now();
+    this._terminalLogLines = [];
+    const startTime = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    this._terminalLogLines.push(`<span class="terminal-time">[${startTime}]</span><span class="terminal-prompt">❯</span><span class="terminal-file">Initializing local agent scan…</span>`);
+    this.refresh();
+    try {
+      const report = await scanViaAgent(projectPath);
+      if (!report) throw new Error('Agent scan returned no report');
+      const conclusion = buildScanConclusion(report);
+      this.repositoryInventory = report.repositoryInventory || null;
+      this.lastResult = {
+        kind: 'simplebeacon-report',
+        report,
+        projectPath: report.projectPath || projectPath,
+        repositoryInventory: report.repositoryInventory || null,
+        label: `Agent scan: ${report.projectPath || projectPath}`,
+        conclusion
+      };
+      this.applyReport(report, this.lastResult.label, { conclusion });
+      this.app.state.analyzeResult = this.lastResult;
+      this.app.state.report = report;
+      this.app.scanService.report = report;
+      showToast('Local agent scan complete', 'success');
+    } catch (err) {
+      showToast(err.message || 'Local agent scan failed', 'error');
+    } finally {
+      this.busy = false;
+      this.scanProgress = null;
+      this.refresh();
+    }
+  }
+
   async runPathAnalysis(inputPath) {
     if (this.localMode) {
       await this.runLocalScan();
       return;
     }
     let projectPath = String(inputPath || '').trim();
+    const isLocal = isLocalPath(projectPath);
+
+    if (isLocal) {
+      // Re-probe in case the agent was started after the page loaded.
+      try {
+        this.agentStatus = await probeAgent();
+      } catch {
+        this.agentStatus = { available: false, scannerAvailable: false };
+      }
+      this.updateAgentStatusUI(this._root, formatAgentStatus(this.agentStatus), this.agentStatus?.available && this.agentStatus?.scannerAvailable);
+
+      if (shouldUseAgent(projectPath, this.agentStatus)) {
+        await this.runAgentScan(projectPath);
+        return;
+      }
+
+      showToast(`Local path detected. Download and run the Local Scan Agent from the link below, then try again.`, 'error');
+      return;
+    }
+
+    if (shouldUseAgent(projectPath, this.agentStatus)) {
+      await this.runAgentScan(projectPath);
+      return;
+    }
+
     if (!projectPath) {
       showToast('Enter a project path or public repo URL', 'error');
       return;

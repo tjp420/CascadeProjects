@@ -193,6 +193,18 @@ packages/simplebeacon-cli/docs/SAMPLE_REPORT.md
 
 # Scanner internals: reporter strings and rule definitions trigger their own rules
 packages/simplebeacon-cli/src/reporters/json.js
+ai-platform/web/simplebeacon-dashboard/js/workers/scan-worker.js
+ai-platform/web/simplebeacon-dashboard/js/workers/scan-wasm-bridge.js
+ai-platform/web/simplebeacon-dashboard/js-es2018/workers/scan-worker.js
+ai-platform/web/simplebeacon-dashboard/js-es2018/workers/scan-wasm-bridge.js
+ai-platform/web/simplebeacon-dashboard/js/services/fingerprintService.js
+ai-platform/web/simplebeacon-dashboard/js/services/localAgentService.js
+ai-platform/web/simplebeacon-dashboard/js-es2018/services/fingerprintService.js
+ai-platform/web/simplebeacon-dashboard/js-es2018/services/localAgentService.js
+ai-platform/local-agent/agent.cjs
+ai-platform/local-agent/agent.test.cjs
+ai-platform/local-agent/build.cjs
+ai-platform/local-agent/build-portable.cjs
 packages/simplebeacon-cli/src/rules/architecture-drift-patterns.js
 packages/simplebeacon-cli/src/lib/ai-problem-analyzer-suite.js
 packages/simplebeacon-cli/src/lib/consolidation-export-sanitize.js
@@ -263,6 +275,9 @@ packages/simplebeacon-cli/src/rules/budget-config-scanner.js
 
 # Tree-sitter WASM grammar — legitimate binary dependency
 ai-platform/packages/simplebeacon-intelligence/grammars/tree-sitter-typescript.wasm
+
+# Rust/WASM local scan analyzer — source contains literal detection strings (e.g., console.log, debugger) as pattern data
+ai-platform/web/simplebeacon-dashboard/wasm/src/
 
 # VS Code extension main entry point (not importable by other modules)
 vscode-extension/src/extension.ts

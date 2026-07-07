@@ -1,0 +1,94 @@
+/**
+ * Build a portable distribution of the SimpleBeacon local agent.
+ *
+ * Produces a directory that can be zipped and shipped to end users. It contains
+ * the agent source, its dependencies, the SimpleBeacon CLI scanner source, and a
+ * small launcher script for Windows and Unix.
+ */
+
+const fs = require('fs');
+const path = require('path');
+const childProcess = require('child_process');
+
+const LOCAL_AGENT_DIR = __dirname;
+const MONOREPO_ROOT = path.resolve(LOCAL_AGENT_DIR, '..', '..');
+const OUT_DIR = path.join(LOCAL_AGENT_DIR, 'dist', 'portable');
+const SCANNER_SRC = path.join(MONOREPO_ROOT, 'packages', 'simplebeacon-cli', 'src');
+const SIMPLEBEACON_DIR = path.join(MONOREPO_ROOT, '.simplebeacon');
+
+const WIN_BAT = `@echo off
+start "" "node.exe" "%~dp0agent.cjs"
+`;
+
+const UNIX_SH = `#!/bin/sh
+"$(dirname "$0")/node" "$(dirname "$0")/agent.cjs"
+`;
+
+function copyDir(src, dest) {
+  if (!fs.existsSync(src)) {
+    throw new Error(`Source directory does not exist: ${src}`);
+  }
+  fs.mkdirSync(dest, { recursive: true });
+  const entries = fs.readdirSync(src, { withFileTypes: true });
+  for (const entry of entries) {
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+    if (entry.isDirectory()) {
+      copyDir(srcPath, destPath);
+    } else {
+      fs.copyFileSync(srcPath, destPath);
+    }
+  }
+}
+
+function cleanOutDir() {
+  if (fs.existsSync(OUT_DIR)) {
+    fs.rmSync(OUT_DIR, { recursive: true, force: true });
+  }
+  fs.mkdirSync(OUT_DIR, { recursive: true });
+}
+
+function main() {
+  if (!fs.existsSync(SCANNER_SRC)) {
+    throw new Error(`Scanner source not found at ${SCANNER_SRC}`);
+  }
+  if (!fs.existsSync(SIMPLEBEACON_DIR)) {
+    throw new Error(`.simplebeacon directory not found at ${SIMPLEBEACON_DIR}`);
+  }
+  if (!fs.existsSync(path.join(LOCAL_AGENT_DIR, 'node_modules'))) {
+    throw new Error('node_modules not found in local-agent; run npm install first');
+  }
+
+  cleanOutDir();
+
+  // Copy the agent source and manifest.
+  fs.copyFileSync(path.join(LOCAL_AGENT_DIR, 'agent.cjs'), path.join(OUT_DIR, 'agent.cjs'));
+  fs.copyFileSync(path.join(LOCAL_AGENT_DIR, 'package.json'), path.join(OUT_DIR, 'package.json'));
+  fs.copyFileSync(path.join(LOCAL_AGENT_DIR, 'README.md'), path.join(OUT_DIR, 'README.md'));
+
+  // Copy dependencies and scanner source.
+  copyDir(path.join(LOCAL_AGENT_DIR, 'node_modules'), path.join(OUT_DIR, 'node_modules'));
+  copyDir(SCANNER_SRC, path.join(OUT_DIR, 'packages', 'simplebeacon-cli', 'src'));
+  copyDir(SIMPLEBEACON_DIR, path.join(OUT_DIR, '.simplebeacon'));
+
+  // Launcher scripts.
+  fs.writeFileSync(path.join(OUT_DIR, 'start-agent.bat'), WIN_BAT);
+  fs.writeFileSync(path.join(OUT_DIR, 'start-agent.sh'), UNIX_SH, { mode: 0o755 });
+
+  // Zip the portable directory.
+  const zipPath = path.join(LOCAL_AGENT_DIR, 'dist', 'simplebeacon-local-agent-portable.zip');
+  if (process.platform === 'win32') {
+    childProcess.execSync(`powershell -Command "Compress-Archive -Path '${OUT_DIR}\*' -DestinationPath '${zipPath}' -Force"`, { stdio: 'inherit' });
+  } else {
+    childProcess.execSync(`cd "${OUT_DIR}" && zip -r "${zipPath}" .`, { stdio: 'inherit' });
+  }
+
+  console.log(`[build-portable] Portable distribution ready at ${OUT_DIR}`);
+  console.log(`[build-portable] Zip archive at ${zipPath}`);
+}
+
+if (require.main === module) {
+  main();
+}
+
+module.exports = { main };

@@ -1,12 +1,12 @@
 import { authService } from './authService.js';
 import { fetchUserAiKeys } from './aiKeysService.js';
 import { scanService } from './scanService.js';
-import { slimAiMathAuditForAudit } from './aiMathAuditService.js';
 import { formatNumber, escapeHtml, fetchWithTimeout } from '../utils.js';
 import { isRemoteRepoUrl } from '../lib/analyzePathSources.js';
 import { isBenchmarkCachePath } from '../utils/complete-scan-artifact-profile.browser.js';
 import { DEMO_EMAIL } from '../demoMode.js';
 import { DASHBOARD_BASE_URL } from '../config.js';
+import { isLocalPath, fetchInventoryViaAgent, probeAgent } from './localAgentService.js';
 // simplebeacon:production-leak-intent: web-data-sample - Legitimate web data path detection for analysis mode resolution
 let providersPromise = null;
 /**
@@ -75,7 +75,7 @@ export async function ensureDashboardApiReady() {
  * @param {Array} timeoutMs
  * @returns {any}
  */
-export async function fetchJsonWithGuidance(target, options = {}, timeoutMs = 0) {
+async function fetchJsonWithGuidance(target, options = {}, timeoutMs = 0) {
     let res;
     try {
         res = timeoutMs > 0
@@ -522,8 +522,7 @@ export function slimCompleteScanForAudit(exportPayload, options = {}) {
             codebase: slimCodebase,
             fileReduction: slimFileReduction,
             dataQuality: slimDataQuality,
-            cleanupAssistant: slimCleanupAssistant,
-            aiMathAudit: results.aiMathAudit ? slimAiMathAuditForAudit(results.aiMathAudit) : null,
+            cleanupAssistant: slimCleanupAssistant
         }
     };
 }
@@ -1132,6 +1131,14 @@ export async function fetchRepositoryInventory(projectPath, options = {}) {
         return null;
     if (/^https?:\/\//i.test(path) && !isRemoteRepoUrl(path)) {
         throw new Error('Enter a folder path (not a file like .bat or .json) or a supported public repo URL');
+    }
+    // Local paths must be inventoried by the agent, not the remote server.
+    if (isLocalPath(path)) {
+        const agentStatus = await probeAgent();
+        if (agentStatus.available && agentStatus.scannerAvailable) {
+            return fetchInventoryViaAgent(path, { fullDirectoryScan: options.fullDirectoryScan });
+        }
+        return null;
     }
     const params = new URLSearchParams({
         projectPath: path,
@@ -2481,4 +2488,36 @@ export function assertCompleteScanFileReductionFresh(scan) {
     if (!hasSignal) {
         throw new Error('File reduction scan returned no findings — restart the SimpleBeacon server and retry.');
     }
+}
+/**
+ * Upload a directory of files to the server and run a SimpleBeacon scan.
+ * @param {FileList|Array<File>} files
+ * @param {Object} options
+ * @param {string} options.analysisType
+ * @param {number} [options.timeoutMs]
+ * @returns {Promise<Object>}
+ */
+export async function uploadDirectoryAndAnalyze(files, options = {}) {
+    var _a;
+    if (!files || files.length === 0) {
+        throw new Error('No files selected for upload');
+    }
+    const fileArray = Array.from(files);
+    const filePaths = fileArray.map((file) => {
+        // webkitdirectory and drag-and-drop folders expose the relative path
+        return file.webkitRelativePath || file.name || file.fieldname || 'file';
+    });
+    const formData = new FormData();
+    fileArray.forEach((file) => formData.append('files', file));
+    formData.append('filePaths', JSON.stringify(filePaths));
+    formData.append('analysisType', options.analysisType || 'simplebeacon');
+    const data = await fetchJsonWithGuidance('/api/analyze/upload-directory', {
+        method: 'POST',
+        headers: authService.getAuthHeaders(),
+        body: formData
+    }, (_a = options.timeoutMs) !== null && _a !== void 0 ? _a : 600000);
+    if (!data.success) {
+        throw new Error(data.error || 'Directory upload scan failed');
+    }
+    return data;
 }

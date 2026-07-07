@@ -6,6 +6,7 @@ import { isRemoteRepoUrl } from '../lib/analyzePathSources.js';
 import { isBenchmarkCachePath } from '../utils/complete-scan-artifact-profile.browser.js';
 import { DEMO_EMAIL } from '../demoMode.js';
 import { DASHBOARD_BASE_URL } from '../config.js';
+import { isLocalPath, fetchInventoryViaAgent, probeAgent } from './localAgentService.js';
 
 // simplebeacon:production-leak-intent: web-data-sample - Legitimate web data path detection for analysis mode resolution
 
@@ -1138,6 +1139,16 @@ export async function fetchRepositoryInventory(projectPath, options = {}) {
   if (/^https?:\/\//i.test(path) && !isRemoteRepoUrl(path)) {
     throw new Error('Enter a folder path (not a file like .bat or .json) or a supported public repo URL');
   }
+
+  // Local paths must be inventoried by the agent, not the remote server.
+  if (isLocalPath(path)) {
+    const agentStatus = await probeAgent();
+    if (agentStatus.available && agentStatus.scannerAvailable) {
+      return fetchInventoryViaAgent(path, { fullDirectoryScan: options.fullDirectoryScan });
+    }
+    return null;
+  }
+
   const params = new URLSearchParams({
     projectPath: path,
     profile: options.profile || 'all'
