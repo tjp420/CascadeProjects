@@ -876,12 +876,26 @@ app.get('/community', async (_req, res) => {
  */
 function setupMergerToolRoutes(app, baseDir) {
     app.get('/api/merger-tool/reduction-scan', optionalAuthenticate, (req, res) => {
+        const projectPath = req.query.projectPath || baseDir;
         res.json({
             success: true,
-            projectPath: req.query.projectPath || baseDir,
-            reductions: [],
-            duplicates: [],
-            notes: 'Merger-tool reduction scan is not available in this deployment.'
+            projectPath,
+            reportVersion: 2,
+            summary: {
+                repositoryFilesTotal: 0,
+                repositoryFoldersTotal: 0,
+                filesAnalyzed: 0,
+                sampleDataFilesAnalyzed: 0,
+                jsonFilesAnalyzed: 0,
+                exactDuplicateGroups: 0,
+                mergeCandidates: 0,
+                oversizedFiles: 0,
+                potentialSavingsBytes: 0,
+                potentialSavingsLabel: '0 B'
+            },
+            mergeCandidates: [],
+            reductionOpportunities: [],
+            notes: 'Merger-tool reduction scan is not available in this deployment — returning empty summary.'
         });
     });
 }

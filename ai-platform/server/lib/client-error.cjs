@@ -21,6 +21,9 @@ function isProduction() {
 function toClientError(error, fallback = 'An unexpected error occurred') {
     if (!error) return fallback;
     const message = typeof error === 'string' ? error : error.message;
+    if (process.env.DEBUG_CLIENT_ERRORS === '1') {
+        return message || fallback;
+    }
     if (message && /outside allowed analysis roots/i.test(message)) {
         return message;
     }
