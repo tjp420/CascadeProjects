@@ -1492,6 +1492,13 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             try {
                 projectPath = resolveSafeProjectPath(rawPath);
             } catch (error) {
+                logger.warn('[Analyze/Codebase] Path validation failed:', {
+                    rawPath,
+                    baseDir,
+                    monorepoRoot,
+                    allowedRoots: getAllowedRoots(),
+                    rawError: error instanceof Error ? error.message : String(error)
+                });
                 const debug = process.env.DEBUG_CLIENT_ERRORS === '1' || process.env.DEBUG_CLIENT_ERRORS === 'true';
                 const errorPayload = { success: false, error: toClientError(error, 'Invalid projectPath') };
                 if (debug) {
