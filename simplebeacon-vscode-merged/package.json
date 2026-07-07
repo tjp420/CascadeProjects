@@ -1,13 +1,13 @@
 {
   "name": "simplebeacon-vscode",
   "displayName": "SimpleBeacon AI Slop Cop",
-  "description": "Privacy-first source code scanner with modern GUI sidebar interface. Analyze your repository for security, compliance, and quality issues with intelligent pattern detection, real-time analysis, and interactive visual controls.",
+  "description": "Offline AI code audit — 38 analyzer engines, zero source-code upload, board-ready compliance reports for AI slop, credential leaks, and EU AI Act / SOC 2 gaps.",
   "homepage": "https://simplebeacon.ai",
   "repository": {
     "type": "git",
     "url": "https://github.com/simplebeacon/simplebeacon-vscode.git"
   },
-  "version": "3.0.392",
+  "version": "3.0.398",
   "publisher": "simplebeacon",
   "engines": {
     "vscode": "^1.84.0",
@@ -65,7 +65,9 @@
     "onCommand:simplebeacon.setApiToken",
     "onCommand:simplebeacon.openSettings",
     "onCommand:simplebeacon.showWelcome",
-    "onCommand:simplebeacon.openAnalyze"
+    "onCommand:simplebeacon.openAnalyze",
+    "onCommand:simplebeacon.installLocalAgent",
+    "onCommand:simplebeacon.startLocalAgent"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -291,6 +293,18 @@
         "title": "Refresh Results",
         "category": "SimpleBeacon",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "simplebeacon.installLocalAgent",
+        "title": "Install Local Agent",
+        "category": "SimpleBeacon",
+        "icon": "$(desktop-download)"
+      },
+      {
+        "command": "simplebeacon.startLocalAgent",
+        "title": "Start Local Agent",
+        "category": "SimpleBeacon",
+        "icon": "$(play)"
       },
       {
         "command": "simplebeacon.openIssue",
@@ -847,6 +861,33 @@
             "Quick scan — skip heavy AST engines, fastest feedback"
           ],
           "description": "Scan mode controlling depth and rule coverage"
+        },
+        "simplebeacon.localAgent.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Use the SimpleBeacon Local Agent for scans when it is available on 127.0.0.1."
+        },
+        "simplebeacon.localAgent.autoInstall": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically download and install the local agent when the SimpleBeacon CLI is not found."
+        },
+        "simplebeacon.localAgent.autoStart": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically start the installed local agent before scanning if it is not already running."
+        },
+        "simplebeacon.localAgent.downloadUrl": {
+          "type": "string",
+          "default": "",
+          "description": "Override URL for the local agent portable zip. Falls back to the configured API server or the public Render deployment."
+        },
+        "simplebeacon.localAgent.port": {
+          "type": "number",
+          "default": 55432,
+          "minimum": 1024,
+          "maximum": 65535,
+          "description": "Port the local agent listens on (default 55432)."
         },
         "simplebeacon.enableReferralPrompts": {
           "type": "boolean",

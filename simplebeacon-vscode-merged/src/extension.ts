@@ -38,6 +38,15 @@ import {
 import { CodeMapTreeProvider } from './codeMapTreeProvider';
 import { startDataServer, stopDataServer, updateServerState, getDataServerPort, clearBrowserSessionToken, recordBrowserSignOut, setSidebarHtmlProvider, setAiContextCallback, restartDataServer, isDataServerRunning, setModernSidebarProvider, buildAiContextMarkdown, setNotifyCallback } from './dataServer';
 import { getExtensionVersion, pickWorkspaceFolder, correctScanPath, showQuietMessage, escapeHtml, getSbConfig } from './utils';
+import {
+  getAgentPort,
+  getLocalAgentInstallDir,
+  installLocalAgent,
+  isLocalAgentInstalled,
+  probeLocalAgent,
+  scanViaLocalAgent,
+  startLocalAgent
+} from './localAgent';
 import { AuthManager } from './auth/authManager';
 import { initAuthManager, getAuthManager } from './auth/authContext';
 import { mergeLiveIssues, convertRealtimeIssues } from './reportMerge';
@@ -822,6 +831,41 @@ export function activate(context: vscode.ExtensionContext) {
       const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
       if (panel) { panel.showSettingsPane(); }
     }),
+    registerCmd('simplebeacon.installLocalAgent', async () => {
+      try {
+        await installLocalAgent();
+        vscode.window.showInformationMessage('SimpleBeacon Local Agent installed and started.');
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        vscode.window.showErrorMessage(`Local agent install failed: ${msg}`);
+      }
+    }),
+    registerCmd('simplebeacon.startLocalAgent', async () => {
+      try {
+        const installDir = getLocalAgentInstallDir();
+        if (!isLocalAgentInstalled(installDir)) {
+          const choice = await vscode.window.showWarningMessage(
+            'Local agent is not installed. Install it now?',
+            'Install',
+            'Cancel'
+          );
+          if (choice === 'Install') {
+            await installLocalAgent();
+          }
+          return;
+        }
+        startLocalAgent(installDir);
+        const status = await probeLocalAgent(getAgentPort());
+        if (status.available) {
+          vscode.window.showInformationMessage('SimpleBeacon Local Agent started.');
+        } else {
+          vscode.window.showWarningMessage('Agent process started but health check did not respond yet.');
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        vscode.window.showErrorMessage(`Local agent start failed: ${msg}`);
+      }
+    }),
     registerCmd('simplebeacon.refreshRelayPort', async () => {
       try {
         modernSidebarProvider.restartRelayServer();
@@ -857,7 +901,7 @@ export function activate(context: vscode.ExtensionContext) {
         generateCertificate(enhancedAIProvider.getScanResult());
       }
       if (fs.existsSync(certHtmlPath)) {
-        await vscode.env.openExternal(vscode.Uri.file(certHtmlPath));
+        await vscode.commands.executeCommand('simpleBrowser.show', vscode.Uri.file(certHtmlPath).toString());
         showQuietMessage(`Certificate exported: ${certHtmlPath}`);
       }
     }),
@@ -876,7 +920,7 @@ export function activate(context: vscode.ExtensionContext) {
         generateCertificate(enhancedAIProvider.getScanResult());
       }
       if (fs.existsSync(certHtmlPath)) {
-        await vscode.env.openExternal(vscode.Uri.file(certHtmlPath));
+        await vscode.commands.executeCommand('simpleBrowser.show', vscode.Uri.file(certHtmlPath).toString());
       }
     }),
     registerCmd('simplebeacon.generateCodeMap', async () => {
@@ -894,8 +938,9 @@ export function activate(context: vscode.ExtensionContext) {
         showQuietMessage('Generate a code map first');
         return;
       }
-      vscode.env.openExternal(vscode.Uri.file(mapHtmlPath));
+      await vscode.env.openExternal(vscode.Uri.file(mapHtmlPath));
     }),
+    registerCmd('simplebeacon.openCodeMapPanel', openCodeMapPanel),
     registerCmd('simplebeacon.highlightCodeMapNode', async (filePath: string) => {
       if (codeMapPanel) {
         codeMapPanel.webview.postMessage({ command: 'highlightNode', path: filePath });
@@ -1295,8 +1340,9 @@ export function activate(context: vscode.ExtensionContext) {
       const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
       if (panel) { WelcomeDashboard.showPaneIfOpen(path || '/dashboard'); }
     }),
-    registerCmd('simplebeacon.openInternalDashboard', async () => {
-      WelcomeDashboard.createOrShow(context.extensionUri);
+    registerCmd('simplebeacon.openInternalDashboard', async (path?: string) => {
+      const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
+      if (panel) { WelcomeDashboard.showPaneIfOpen(path || '/dashboard'); }
     }),
     registerCmd('simplebeacon.openDashboard40', async () => {
       Dashboard40.createOrShow(context.extensionUri, currentReport as any);
@@ -1405,7 +1451,7 @@ export function activate(context: vscode.ExtensionContext) {
     registerCmd('simplebeacon.openRoadmapHtml', async () => {
       const files = ensureRoadmapFiles();
       if (files) {
-        await vscode.env.openExternal(vscode.Uri.file(files.roadmapHtmlPath));
+        await vscode.commands.executeCommand('simpleBrowser.show', vscode.Uri.file(files.roadmapHtmlPath).toString());
       }
     }),
     registerCmd('simplebeacon.showAiContextPane', async () => {
@@ -1512,10 +1558,10 @@ export function activate(context: vscode.ExtensionContext) {
       WelcomeDashboard.createOrShow(context.extensionUri);
     }),
     registerCmd('simplebeacon.openGitHub', async () => {
-      await vscode.env.openExternal(vscode.Uri.parse('https://github.com/tjp420/simplebeacon'));
+      await vscode.commands.executeCommand('simpleBrowser.show', 'https://github.com/tjp420/simplebeacon');
     }),
     registerCmd('simplebeacon.openDocs', async () => {
-      await vscode.env.openExternal(vscode.Uri.parse('https://github.com/tjp420/simplebeacon/blob/main/docs/ANTI-BLOAT-MANIFESTO.md'));
+      await vscode.commands.executeCommand('simpleBrowser.show', 'https://github.com/tjp420/simplebeacon/blob/main/docs/ANTI-BLOAT-MANIFESTO.md');
     }),
     registerCmd('simplebeacon.openUrlInPreview', async (url?: string, _title?: string) => {
       if (url && /^https?:\/\//.test(url)) {
@@ -3167,7 +3213,9 @@ async function runScan(context: vscode.ExtensionContext, projectPath?: string, o
 
   const cliResolved = resolveCliPath();
   const cliOk = cliResolved !== null;
-  if (!cliOk) {
+  const config = getSbConfig();
+  const localAgentEnabled = config.get<boolean>('localAgent.enabled', true);
+  if (!cliOk && !localAgentEnabled) {
     scanInProgress = false;
     const install = await vscode.window.showWarningMessage(
       'SimpleBeacon CLI not found. Install it with: npm install -g simplebeacon-cli',
@@ -3181,7 +3229,6 @@ async function runScan(context: vscode.ExtensionContext, projectPath?: string, o
     return;
   }
 
-  const config = getSbConfig();
   if (!projectPath) {
     const scanModeSetting = config.get<string>('scanMode', 'workspace');
     if (scanModeSetting === 'workspace') {
@@ -3331,8 +3378,91 @@ async function runScan(context: vscode.ExtensionContext, projectPath?: string, o
     args.push('--include-deps');
   }
 
+  // Prefer the local agent if enabled. It avoids requiring Node.js / CLI globally.
+  if (config.get<boolean>('localAgent.enabled', true)) {
+    const agentPort = getAgentPort();
+    let agentStatus = await probeLocalAgent(agentPort);
+
+    if (!agentStatus.available) {
+      const installDir = getLocalAgentInstallDir();
+      if (isLocalAgentInstalled(installDir) && config.get<boolean>('localAgent.autoStart', true)) {
+        outputChannel.appendLine('[SimpleBeacon] Starting installed local agent...');
+        startLocalAgent(installDir, agentPort);
+        // Give the agent a moment to bind, then re-probe up to 5 times.
+        for (let i = 0; i < 5; i++) {
+          await new Promise((r) => setTimeout(r, 800));
+          agentStatus = await probeLocalAgent(agentPort);
+          if (agentStatus.available) { break; }
+        }
+      }
+    }
+
+    if (!agentStatus.available && config.get<boolean>('localAgent.autoInstall', true)) {
+      const choice = await vscode.window.showWarningMessage(
+        'SimpleBeacon Local Agent is not installed. It enables offline scans without requiring the CLI.',
+        'Install Now',
+        'Use CLI Instead'
+      );
+      if (choice === 'Install Now') {
+        try {
+          await installLocalAgent();
+          agentStatus = await probeLocalAgent(agentPort);
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          outputChannel.appendLine(`[SimpleBeacon] Local agent install failed: ${msg}`);
+        }
+      }
+    }
+
+    if (agentStatus.available && agentStatus.scannerAvailable) {
+      outputChannel.appendLine('[SimpleBeacon] Scanning via local agent...');
+      try {
+        const report = await scanViaLocalAgent({ projectPath, fullDirectory: options?.fullDirectory }, agentPort);
+        if (report) {
+          const sbDir = path.join(projectPath, '.simplebeacon');
+          await fs.promises.mkdir(sbDir, { recursive: true });
+          await fs.promises.writeFile(path.join(sbDir, 'report.json'), JSON.stringify(report, null, 2), 'utf8');
+          currentReport = report;
+          updateServerState({ currentReport: currentReport as ScanReport | null, scanStatus: 'completed', scanMessage: 'Local agent scan complete', lastScanTime: Date.now() });
+          hasEnhancedAnalysis = false;
+          enhancedAIProvider.setScanResult(currentReport);
+          await fs.promises.writeFile(path.join(sbDir, 'vscode-report.json'), JSON.stringify(report, null, 2), 'utf8');
+          scanProvider.updateReport(currentReport as ScanReport);
+          enhancedScanProvider.updateReport(currentReport as Record<string, unknown>);
+          visualSidebarProvider.updateReport(currentReport as Record<string, unknown>);
+          summaryProvider.updateReport(currentReport as Record<string, unknown>);
+          settingsProvider.updateReport(currentReport as Record<string, unknown>);
+          modernSidebarProvider.updateReport(currentReport as Record<string, unknown>);
+          dashboardPanel?.updateReport(currentReport as Record<string, unknown>);
+          Dashboard40.updateIfOpen(currentReport as any);
+          modernSidebarProvider.updateStatus('completed', 'Scan complete — local agent');
+          vscode.commands.executeCommand('setContext', 'simplebeacon.hasResults', true);
+          updateStatusBar(currentReport);
+          safeUpdateUIsRef?.(currentReport, 'Local agent scan complete');
+          const scanScore = report.qualityScore ?? '[HIDDEN]';
+          const scanGate = report.gate?.pass ? 'PASS' : 'FAIL';
+          const issueCount = report.issueCount || report.detectedIssues?.length || report.rawIssues?.length || report.findings?.length || report.summary?.totalFindings || 0;
+          vscode.window.showInformationMessage(
+            `SimpleBeacon scan complete — Score: ${scanScore}/100 — Gate: ${scanGate}. ${issueCount} issue${issueCount === 1 ? '' : 's'} found.`
+          );
+          outputChannel.appendLine(`[SimpleBeacon] Local agent scan complete. Score: ${scanScore}/100 — Gate: ${scanGate}`);
+          scanInProgress = false;
+          generateCodeMap(false)
+            .then(() => outputChannel.appendLine('[SimpleBeacon] Code map generated in background'))
+            .catch((e) => outputChannel.appendLine(`[SimpleBeacon] Code map generation failed: ${e}`));
+          return;
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        outputChannel.appendLine(`[SimpleBeacon] Local agent scan failed: ${msg}`);
+        vscode.window.showWarningMessage(`Local agent scan failed; falling back to CLI. ${msg}`);
+      }
+    }
+  }
+
   if (!cliResolved) {
     vscode.window.showErrorMessage('SimpleBeacon CLI not found. Install with: npm install -g simplebeacon-cli');
+    scanInProgress = false;
     return;
   }
 
@@ -6110,12 +6240,17 @@ if (statsEl) {
 (function(){
   const sidebar = document.querySelector('.sidebar');
   const main = document.querySelector('.main');
+  const resizer = document.getElementById('sidebarResizer');
   const btn = document.getElementById('toggleSidebarBtn');
+  function updateResizer() {
+    if (resizer) { resizer.style.display = sidebar && sidebar.classList.contains('hidden') ? 'none' : ''; }
+  }
   if (btn && sidebar && main) {
     btn.addEventListener('click', () => {
       sidebar.classList.toggle('hidden');
       main.classList.toggle('full-width');
-      setTimeout(() => { window.dispatchEvent(new Event('resize')); }, 300);
+      updateResizer();
+      setTimeout(() => { window.dispatchEvent(new Event('resize')); resize(); }, 300);
     });
   }
   const fsBtn = document.getElementById('fullscreenGraphBtn');
@@ -6124,9 +6259,11 @@ if (statsEl) {
       const isFs = main.classList.toggle('graph-fullscreen');
       if (isFs && sidebar) { sidebar.classList.add('hidden'); }
       if (!isFs && sidebar) { sidebar.classList.remove('hidden'); }
-      setTimeout(() => { window.dispatchEvent(new Event('resize')); }, 300);
+      updateResizer();
+      setTimeout(() => { window.dispatchEvent(new Event('resize')); resize(); }, 300);
     });
   }
+  updateResizer();
 })();
 
 // Sidebar resizer
@@ -6174,12 +6311,27 @@ if (statsEl) {
 
   const W = () => canvas.width, H = () => canvas.height;
   function resize() {
-    canvas.width = Math.max(1, wrap.clientWidth);
-    canvas.height = Math.max(1, wrap.clientHeight);
+    const oldW = canvas.width;
+    const oldH = canvas.height;
+    const newW = Math.max(1, wrap.clientWidth);
+    const newH = Math.max(1, wrap.clientHeight);
+    // Keep the world point under the old center fixed at the new center
+    if (oldW > 0 && oldH > 0 && (oldW !== newW || oldH !== newH)) {
+      pan.x += (newW - oldW) / 2;
+      pan.y += (newH - oldH) / 2;
+    }
+    canvas.width = newW;
+    canvas.height = newH;
   }
-  resize(); window.addEventListener('resize', resize); setTimeout(resize, 100); setTimeout(resize, 500);
+  setTimeout(resize, 100); setTimeout(resize, 500);
+  let resizeTimer = null;
+  function debouncedResize() {
+    if (resizeTimer) { clearTimeout(resizeTimer); }
+    resizeTimer = setTimeout(() => { resize(); needsRedraw = true; }, 50);
+  }
+  window.addEventListener('resize', debouncedResize);
   if (typeof ResizeObserver !== 'undefined') {
-    const ro = new ResizeObserver(() => { resize(); needsRedraw = true; });
+    const ro = new ResizeObserver(() => { debouncedResize(); });
     ro.observe(wrap);
   }
 
@@ -6212,6 +6364,7 @@ if (statsEl) {
     pan.x = (W() - (minX + maxX) * scale) / 2;
     pan.y = (H() - (minY + maxY) * scale) / 2;
   }
+  resize();
   let is3D = false, rotX = 0.6, rotY = 0, rot2D = 0, isRotating = false, rotStart = {x:0, y:0};
   let labelsVisible = false;
   let gridMode = 'world'; // 'off' | 'world' | 'screen'
@@ -8119,77 +8272,24 @@ function loadExistingReport(context?: vscode.ExtensionContext) {
 
 // aiPlatform helper: open a preview panel with URL rewriting for embedded dashboards
 async function openPreviewPanel(url: string, title: string) {
-  const panel = vscode.window.createWebviewPanel('simplebeaconPreview', title, vscode.ViewColumn.One, {
-    enableScripts: true,
-    retainContextWhenHidden: true,
-    enableDragAndDrop: true,
-  } as vscode.WebviewPanelOptions);
-  const baseUrl = url.replace(/\?.*$/, '').replace(/#.*$/, '').replace(/\/[^\/]*$/, '/');
-  const origin = url.replace(/^(https?:\/\/[^\/]+).*$/, '$1');
-  try {
-    const html = await fetchHtml(url);
-    let rewritten = html
-      .replace(/href="(?!https?:\/\/|\/\/|#|data:)([^"]*)"/g, 'href="' + baseUrl + '$1"')
-      .replace(/src="(?!https?:\/\/|\/\/|#|data:)([^"]*)"/g, 'src="' + baseUrl + '$1"')
-      .replace(/url\((?!https?:\/\/|\/\/|#|data:)([^\)]*)\)/g, 'url(' + baseUrl + '$1)')
-      .replace(/file:\/\/\/[^'"]*?\/(coming-soon\/[^'"]*)/g, '/$1')
-      .replace(
-        /<script>\s*\(\s*function\s*\(\)\s*\{\s*try\s*\{\s*var\s+key\s*=\s*['"]sb_dash_[^'"]+['"];[\s\S]*?\}\s*catch\s*\(e\)\s*\{[\s\S]*?\}\s*\}\s*\)\s*\(\s*\)\s*;?\s*<\/script>/gi,
-        ''
-      );
-    const cspTag =
-      '<meta http-equiv="Content-Security-Policy" content="default-src ' +
-      origin +
-      "; script-src " +
-      origin +
-      " https://unpkg.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src " +
-      origin +
-      " https://fonts.googleapis.com 'unsafe-inline'; img-src " +
-      origin +
-      " data: blob:; connect-src " +
-      origin +
-      "; font-src " +
-      origin +
-      ' https://fonts.gstatic.com;">';
-    const apiHostScript = '<script>window.__SB_API_HOST__ = "' + origin + '";<\/script>';
-    const parsedUrl = new URL(url);
-    const hashRoute = parsedUrl.hash || '';
-    const hashView = hashRoute.replace(/^#\//, '');
-    // Derive view from path-based routes like /dashboard/security
-    const pathSegments = parsedUrl.pathname.replace(/^\/dashboard\/?/, '').split('/').filter(Boolean);
-    const pathView = pathSegments[0] || '';
-    const initialView = hashView || pathView;
-    const routeScript = initialView ? '<script>window.__SB_INITIAL_ROUTE__ = "' + initialView + '";<\/script>' : '';
-    const workspaceFolders = vscode.workspace.workspaceFolders;
-    const workspacePath = workspaceFolders && workspaceFolders[0] ? workspaceFolders[0].uri.fsPath.replace(/\\/g, '/') : '';
-    const projectPathScript = '<script>window.__SB_DEFAULT_PROJECT_PATH__ = ' + JSON.stringify(workspacePath).replace(/<\/script>/gi, '<\\/script>') + ';<\/script>';
-    const fetchInterceptorScript = `<script>
-(function() {
-  const origFetch = window.fetch;
-  window.fetch = function() {
-    const args = arguments;
-    const url = typeof args[0] === 'string' ? args[0] : (args[0] && args[0].url ? args[0].url : '');
-    return origFetch.apply(this, args).then(function(res) {
-      if (res.status >= 400) {
-        res.clone().text().then(function(body) {
-          /* Fetch errors logged by server; silence in webview */
-        });
-      }
-      return res;
-    });
-  };
-})();
-<\/script>`;
-    const headClose = rewritten.indexOf('</head>');
-    if (headClose > 0) {
-      rewritten = rewritten.slice(0, headClose) + cspTag + apiHostScript + routeScript + projectPathScript + fetchInterceptorScript + rewritten.slice(headClose);
-    } else {
-      rewritten = cspTag + apiHostScript + routeScript + projectPathScript + fetchInterceptorScript + rewritten;
+  let panel = activePreviewPanel;
+  if (panel) {
+    try {
+      panel.reveal();
+    } catch {
+      activePreviewPanel = undefined;
+      panel = undefined;
     }
+  }
+  const isNewPanel = !panel;
+  if (isNewPanel) {
+    panel = vscode.window.createWebviewPanel('simplebeaconPreview', title, vscode.ViewColumn.One, {
+      enableScripts: true,
+      retainContextWhenHidden: true,
+      enableDragAndDrop: true,
+    } as vscode.WebviewPanelOptions);
     activePreviewPanel = panel;
     panel.onDidDispose(() => { if (activePreviewPanel === panel) { activePreviewPanel = undefined; } });
-    panel.webview.html = rewritten;
-    postThemeToPanel(panel);
     panel.webview.onDidReceiveMessage(async (msg) => {
       if (msg.command === 'updateStats') {
         dashboardPanel?.updateStats(msg);
@@ -8267,7 +8367,7 @@ async function openPreviewPanel(url: string, title: string) {
               fs.writeFileSync(uri.fsPath, Buffer.from(msg.base64, 'base64'));
               progress.report({ increment: 100 });
             });
-            panel.webview.postMessage({ command: 'downloadComplete', filename: path.basename(uri.fsPath), filePath: uri.fsPath });
+            activePreviewPanel?.webview.postMessage({ command: 'downloadComplete', filename: path.basename(uri.fsPath), filePath: uri.fsPath });
             modernSidebarProvider?.addDownloadedFile(path.basename(uri.fsPath), uri.fsPath);
           }
         } catch (err) {
@@ -8277,13 +8377,13 @@ async function openPreviewPanel(url: string, title: string) {
         try {
           const filePath = msg.path;
           if (!fs.existsSync(filePath)) {
-            panel.webview.postMessage({ command: 'readLocalFileResult', path: filePath, error: 'File not found' });
+            activePreviewPanel?.webview.postMessage({ command: 'readLocalFileResult', path: filePath, error: 'File not found' });
           } else {
             const content = fs.readFileSync(filePath, 'utf8');
-            panel.webview.postMessage({ command: 'readLocalFileResult', path: filePath, content });
+            activePreviewPanel?.webview.postMessage({ command: 'readLocalFileResult', path: filePath, content });
           }
         } catch (err) {
-          panel.webview.postMessage({
+          activePreviewPanel?.webview.postMessage({
             command: 'readLocalFileResult',
             path: msg.path,
             error: err instanceof Error ? err.message : String(err)
@@ -8313,8 +8413,76 @@ async function openPreviewPanel(url: string, title: string) {
         }
       }
     });
+  }
+  const baseUrl = url.replace(/\?.*$/, '').replace(/#.*$/, '').replace(/\/[^\/]*$/, '/');
+  const origin = url.replace(/^(https?:\/\/[^\/]+).*$/, '$1');
+  try {
+    const html = await fetchHtml(url);
+    let rewritten = html
+      .replace(/href="(?!https?:\/\/|\/\/|#|data:)([^"]*)"/g, 'href="' + baseUrl + '$1"')
+      .replace(/src="(?!https?:\/\/|\/\/|#|data:)([^"]*)"/g, 'src="' + baseUrl + '$1"')
+      .replace(/url\((?!https?:\/\/|\/\/|#|data:)([^\)]*)\)/g, 'url(' + baseUrl + '$1)')
+      .replace(/file:\/\/\/[^'"]*?\/(coming-soon\/[^'"]*)/g, '/$1')
+      .replace(
+        /<script>\s*\(\s*function\s*\(\)\s*\{\s*try\s*\{\s*var\s+key\s*=\s*['"]sb_dash_[^'"]+['"];[\s\S]*?\}\s*catch\s*\(e\)\s*\{[\s\S]*?\}\s*\}\s*\)\s*\(\s*\)\s*;?\s*<\/script>/gi,
+        ''
+      );
+    const cspTag =
+      '<meta http-equiv="Content-Security-Policy" content="default-src ' +
+      origin +
+      "; script-src " +
+      origin +
+      " https://unpkg.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src " +
+      origin +
+      " https://fonts.googleapis.com 'unsafe-inline'; img-src " +
+      origin +
+      " data: blob:; connect-src " +
+      origin +
+      "; font-src " +
+      origin +
+      ' https://fonts.gstatic.com;">';
+    const apiHostScript = '<script>window.__SB_API_HOST__ = "' + origin + '";<\/script>';
+    const parsedUrl = new URL(url);
+    const hashRoute = parsedUrl.hash || '';
+    const hashView = hashRoute.replace(/^#\//, '');
+    // Derive view from path-based routes like /dashboard/security
+    const pathSegments = parsedUrl.pathname.replace(/^\/dashboard\/?/, '').split('/').filter(Boolean);
+    const pathView = pathSegments[0] || '';
+    const initialView = hashView || pathView;
+    const routeScript = initialView ? '<script>window.__SB_INITIAL_ROUTE__ = "' + initialView + '";<\/script>' : '';
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    const workspacePath = workspaceFolders && workspaceFolders[0] ? workspaceFolders[0].uri.fsPath.replace(/\\/g, '/') : '';
+    const projectPathScript = '<script>window.__SB_DEFAULT_PROJECT_PATH__ = ' + JSON.stringify(workspacePath).replace(/<\/script>/gi, '<\\/script>') + ';<\/script>';
+    const fetchInterceptorScript = `<script>
+(function() {
+  const origFetch = window.fetch;
+  window.fetch = function() {
+    const args = arguments;
+    const url = typeof args[0] === 'string' ? args[0] : (args[0] && args[0].url ? args[0].url : '');
+    return origFetch.apply(this, args).then(function(res) {
+      if (res.status >= 400) {
+        res.clone().text().then(function(body) {
+          /* Fetch errors logged by server; silence in webview */
+        });
+      }
+      return res;
+    });
+  };
+})();
+<\/script>`;
+    const headClose = rewritten.indexOf('</head>');
+    if (headClose > 0) {
+      rewritten = rewritten.slice(0, headClose) + cspTag + apiHostScript + routeScript + projectPathScript + fetchInterceptorScript + rewritten.slice(headClose);
+    } else {
+      rewritten = cspTag + apiHostScript + routeScript + projectPathScript + fetchInterceptorScript + rewritten;
+    }
+    panel!.title = title;
+    panel!.webview.html = rewritten;
+    if (isNewPanel) {
+      postThemeToPanel(panel!);
+    }
   } catch (err) {
-    panel.webview.html = `<!DOCTYPE html><html><body style="background:#0f0f1a;color:#ef4444;font-family:sans-serif;text-align:center;padding-top:40vh;">Failed to load preview: ${err instanceof Error ? err.message : String(err)}</body></html>`;
+    panel!.webview.html = `<!DOCTYPE html><html><body style="background:#0f0f1a;color:#ef4444;font-family:sans-serif;text-align:center;padding-top:40vh;">Failed to load preview: ${err instanceof Error ? err.message : String(err)}</body></html>`;
   }
 }
 
