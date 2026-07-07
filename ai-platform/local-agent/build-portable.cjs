@@ -90,6 +90,10 @@ function main() {
   // Copy dependencies and scanner source.
   copyDir(path.join(LOCAL_AGENT_DIR, 'node_modules'), path.join(OUT_DIR, 'node_modules'));
   copyDir(SCANNER_SRC, path.join(OUT_DIR, 'packages', 'simplebeacon-cli', 'src'));
+  fs.copyFileSync(
+    path.join(MONOREPO_ROOT, 'packages', 'simplebeacon-cli', 'package.json'),
+    path.join(OUT_DIR, 'packages', 'simplebeacon-cli', 'package.json')
+  );
   copyDir(SIMPLEBEACON_DIR, path.join(OUT_DIR, '.simplebeacon'));
 
   // Launcher scripts.
