@@ -41,7 +41,7 @@ export interface BarrelMeta {
   /** ISO timestamp of module load. */
   readonly timestamp: string;
   /** Host platform identifier. */
-  readonly platform: string;
+  readonly platform: NodeJS.Platform | 'unknown';
   /** Node.js runtime version. */
   readonly nodeVersion: string;
   /** Snapshot of all flat export keys. */
@@ -55,26 +55,12 @@ export interface BarrelMeta {
  * Namespace types are derived directly from imported module types;
  * the inline namespace mirrors the runtime _inlineNamespace object.
  */
-interface UtilsNamespace {
-  vscode: typeof VSCode;
-  string: typeof StringUtils;
-  number: typeof NumberUtils;
-  object: typeof ObjectUtils;
-  array: typeof ArrayUtils;
-  async: typeof AsyncUtils;
-  fs: typeof FsUtils;
-  network: typeof NetworkUtils;
-  path: typeof PathUtils;
-  misc: typeof MiscUtils;
-  json: typeof JsonUtils;
-  typeGuards: typeof TypeGuardUtils;
-  clipboard: typeof ClipboardUtils;
-  theme: typeof ThemeUtils;
-  event: typeof EventUtils;
-  polling: typeof PollingUtils;
+type UtilsNamespace = {
+  [K in keyof NamespaceMap]: DeepReadonly<NamespaceMap[K]>;
+} & {
   inline: Readonly<typeof _inlineNamespace>;
   __barrel__: BarrelMeta;
-}
+};
 
 // ── Flat re-exports (auto-generated from submodules) ──────────────
 export * from './vscode';
@@ -108,7 +94,8 @@ function _warnCollision(name: string, ns1: string, ns2: string): void {
 
 function _checkExportCollisions(): void {
   const flatExports = new Map<string, string>();
-  for (const [nsKey, ns] of Object.entries(_namespaceRegistry)) {
+  const registry = _namespaceRegistry as unknown as Record<string, Record<string, unknown>>;
+  for (const [nsKey, ns] of Object.entries(registry)) {
     if (!ns || typeof ns !== 'object') continue;
     for (const name of Object.keys(ns)) {
       if (name === 'default') continue;
@@ -121,7 +108,7 @@ function _checkExportCollisions(): void {
     }
   }
   // Check namespace-to-inline collisions
-  for (const [nsKey, ns] of Object.entries(_namespaceRegistry)) {
+  for (const [nsKey, ns] of Object.entries(registry)) {
     if (!ns || typeof ns !== 'object') continue;
     for (const name of Object.keys(ns)) {
       if (name === 'default') continue;
@@ -137,6 +124,21 @@ let _collisionsChecked = false;
 
 /** Unary function type used by compose/pipe. */
 type Unary<A, B> = (x: A) => B;
+
+/** Deep immutable version of a type. Preserves primitive, Date, RegExp, Map, Set, etc. */
+type DeepReadonly<T> = T extends ((...args: any[]) => any) | Date | RegExp | Error | URL | URLSearchParams | Promise<unknown> | BigInt
+  ? T
+  : T extends Map<infer K, infer V>
+    ? ReadonlyMap<DeepReadonly<K>, DeepReadonly<V>>
+    : T extends Set<infer U>
+      ? ReadonlySet<DeepReadonly<U>>
+      : T extends ArrayBuffer | SharedArrayBuffer
+        ? T
+        : T extends Array<infer U>
+          ? ReadonlyArray<DeepReadonly<U>>
+          : T extends object
+            ? { readonly [K in keyof T]: DeepReadonly<T[K]> }
+            : T;
 
 /**
  * Compose functions right-to-left.
@@ -186,26 +188,36 @@ export const zipWith = <T, U, R>(arr1: T[], arr2: U[], fn: (a: T, b: U) => R): R
   return result;
 };
 
+/** Generic function shape used by curry/partial. */
+type AnyFunction = (...args: any[]) => any;
+
+/** Curried type: supports full application or applying arguments one at a time. */
+type Curried<T extends AnyFunction> = T extends (...args: infer Args) => infer R
+  ? Args extends [infer First, ...infer Rest]
+    ? ((...args: Args) => R) & ((arg: First) => Curried<(...args: Rest) => R>)
+    : T
+  : never;
+
 /**
  * Curry a function so it can be called with one argument at a time.
  */
-export const curry = <T extends (...args: any[]) => any>(fn: T): ((...args: any[]) => ReturnType<T> | any) => {
+export const curry = <T extends AnyFunction>(fn: T): Curried<T> => {
   if (typeof fn !== 'function') throw new TypeError('curry requires a function');
-  const curried = (...args: any[]): any => {
+  const curried = (...args: unknown[]): unknown => {
     if (args.length >= fn.length) {
       return fn(...args);
     }
-    return (...nextArgs: any[]): any => curried(...args.concat(nextArgs));
+    return (...nextArgs: unknown[]): unknown => curried(...args.concat(nextArgs));
   };
-  return curried;
+  return curried as Curried<T>;
 };
 
 /**
  * Create a partial application of a function with preset arguments.
  */
-export const partial = <T extends (...args: any[]) => any>(fn: T, ...presetArgs: any[]): ((...args: any[]) => ReturnType<T>) => {
+export const partial = <T extends AnyFunction>(fn: T, ...presetArgs: unknown[]): ((...args: unknown[]) => ReturnType<T>) => {
   if (typeof fn !== 'function') throw new TypeError('partial requires a function');
-  return (...args: any[]): ReturnType<T> => fn(...presetArgs.concat(args));
+  return (...args: unknown[]): ReturnType<T> => fn(...presetArgs.concat(args)) as ReturnType<T>;
 };
 
 /**
@@ -260,9 +272,9 @@ export function tryCatch<T>(fn: () => T): { ok: true; value: T } | { ok: false; 
  * @param ns Namespace object whose values are objects to freeze.
  * @returns Deeply frozen copy of the namespace.
  */
-export const freezeNamespace = <T extends Record<string, unknown>>(ns: T): Readonly<{ [K in keyof T]: Readonly<T[K]> }> => {
-  if (ns == null || typeof ns !== 'object') return ns as unknown as Readonly<{ [K in keyof T]: Readonly<T[K]> }>;
-  if (Object.isFrozen(ns)) return ns as unknown as Readonly<{ [K in keyof T]: Readonly<T[K]> }>;
+export const freezeNamespace = <T extends Record<string, unknown>>(ns: T): DeepReadonly<T> => {
+  if (ns == null || typeof ns !== 'object') return ns as DeepReadonly<T>;
+  if (Object.isFrozen(ns)) return ns as DeepReadonly<T>;
 
   const seen = new WeakMap<object, unknown>();
 
@@ -321,11 +333,11 @@ export const freezeNamespace = <T extends Record<string, unknown>>(ns: T): Reado
   for (const key of Object.keys(ns)) {
     frozen[key] = _deepFreeze(ns[key]);
   }
-  return Object.freeze(frozen) as Readonly<{ [K in keyof T]: Readonly<T[K]> }>;
+  return Object.freeze(frozen) as DeepReadonly<T>;
 };
 
 /** Namespace registry for auto-generation and collision detection. */
-const _namespaceRegistry: Record<string, Record<string, unknown>> = {
+const _namespaceRegistry = {
   vscode: VSCode,
   string: StringUtils,
   number: NumberUtils,
@@ -342,7 +354,9 @@ const _namespaceRegistry: Record<string, Record<string, unknown>> = {
   theme: ThemeUtils,
   event: EventUtils,
   polling: PollingUtils,
-};
+} as const;
+
+type NamespaceMap = typeof _namespaceRegistry;
 
 /** All exports defined directly in this barrel (both inline-namespace and standalone). */
 const _barrelNativeNames = Object.freeze([
@@ -386,7 +400,8 @@ const _inlineReExports = Object.freeze([
 /** Auto-build flat export list by introspecting namespace objects. */
 function _buildExportNames(): ReadonlyArray<string> {
   const set = new Set<string>();
-  for (const ns of Object.values(_namespaceRegistry)) {
+  const registry = _namespaceRegistry as unknown as Record<string, Record<string, unknown>>;
+  for (const ns of Object.values(registry)) {
     if (!ns || typeof ns !== 'object') continue;
     for (const name of Object.keys(ns)) {
       if (name !== 'default' && Object.prototype.hasOwnProperty.call(ns, name)) {
@@ -450,7 +465,7 @@ export const __barrel__: BarrelMeta = Object.freeze({
   namespaceCount: getNamespaceNames().length,
   version: _getPackageVersion(),
   timestamp: BARREL_TIMESTAMP,
-  platform: typeof process !== 'undefined' ? process.platform : 'unknown',
+  platform: (typeof process !== 'undefined' ? process.platform : 'unknown') as NodeJS.Platform | 'unknown',
   nodeVersion: typeof process !== 'undefined' ? process.version : 'unknown',
   exports: getExportNames(),
   namespaces: getNamespaceNames()
@@ -630,7 +645,7 @@ const _inlineNamespace = Object.freeze({
 /** Eagerly freeze all namespaces and build the Utils object at module init. */
 const _utilsTarget: Record<string, unknown> = {};
 for (const key of Object.keys(_namespaceRegistry)) {
-  _utilsTarget[key] = freezeNamespace(_namespaceRegistry[key]);
+  _utilsTarget[key] = freezeNamespace((_namespaceRegistry as unknown as Record<string, Record<string, unknown>>)[key]);
 }
 _utilsTarget['__barrel__'] = __barrel__;
 _utilsTarget['inline'] = _inlineNamespace;

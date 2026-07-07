@@ -288,6 +288,6 @@ export {
 export { Utils } from './utils/index';
 
 // Re-export barrel helpers from index.ts for API consistency
-export { freezeNamespace, getExportNames, getNamespaceNames, getBarrelMeta, validateBarrelIntegrity } from './utils/index';
+export { freezeNamespace, getExportNames, getNamespaceNames, getBarrelMeta, validateBarrelIntegrity, integrityTest } from './utils/index';
 export type { BarrelMeta } from './utils/index';
 export { __barrel__ } from './utils/index';
