@@ -12,7 +12,9 @@
     "build": "node build.cjs",
     "build:portable": "node build-portable.cjs",
     "package": "npm run build && pkg package.json --out-path dist",
-    "package:portable": "npm run build && npm run build:portable"
+    "package:portable": "npm run build && npm run build:portable",
+    "build:setup": "pkg setup.cjs --targets node18-win-x64 --output dist/simplebeacon-local-agent-setup.exe",
+    "package:installer": "npm run build && npm run build:portable && npm run build:setup"
   },
   "pkg": {
     "scripts": [
