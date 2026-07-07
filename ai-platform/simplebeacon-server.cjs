@@ -177,7 +177,7 @@ app.use((req, res, next) => {
   const SCANNER_BRIDGE_PORT = 3456;
   const LIVE_SERVER_PORT = 55000;
   const DEFAULT_PORTS = [3000, 3002, 8080, 5000];
-  const prodConnectOrigins = process.env.SIMPLEBEACON_CSP_CONNECT_ORIGINS || "'self'";
+  const prodConnectOrigins = process.env.SIMPLEBEACON_CSP_CONNECT_ORIGINS || "'self' https://simplebeacon.onrender.com https://*.onrender.com http://127.0.0.1:" + SCANNER_BRIDGE_PORT + " http://127.0.0.1:" + LIVE_SERVER_PORT + DEFAULT_PORTS.map(p => " http://127.0.0.1:" + p).join(""); // simplebeacon-ignore hardcoded-url — Render and localhost origins for dashboard API
   const devConnectOrigins = process.env.SIMPLEBEACON_CSP_CONNECT_ORIGINS || "'self' ws: wss: http: https: http://127.0.0.1:" + SCANNER_BRIDGE_PORT + " http://127.0.0.1:" + LIVE_SERVER_PORT + DEFAULT_PORTS.map(p => " http://127.0.0.1:" + p).join(""); // simplebeacon-ignore hardcoded-url — localhost dev CSP origins, never production
   const csp = process.env.NODE_ENV === 'production'
     ? `default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data:; connect-src ${prodConnectOrigins}; font-src 'self' https://fonts.gstatic.com; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';`
