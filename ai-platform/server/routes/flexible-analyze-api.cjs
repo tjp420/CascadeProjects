@@ -377,7 +377,18 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 tempFetchDir = resolved.tempFetchDir;
                 isWebsite = resolved.isWebsite;
             } catch (error) {
-                return res.status(400).json({ success: false, error: toClientError(error, 'Invalid projectPath') });
+                const debug = process.env.DEBUG_CLIENT_ERRORS === '1' || process.env.DEBUG_CLIENT_ERRORS === 'true';
+                const errorPayload = { success: false, error: toClientError(error, 'Invalid projectPath') };
+                if (debug) {
+                    errorPayload._debug = {
+                        rawPath,
+                        baseDir,
+                        monorepoRoot,
+                        allowedRoots: getAllowedRoots(),
+                        rawError: error instanceof Error ? error.message : String(error)
+                    };
+                }
+                return res.status(400).json(errorPayload);
             }
 
             const aiProvider = String(body.aiProvider || 'active').toLowerCase();
@@ -1470,10 +1481,22 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
     app.get('/api/analyze/codebase', async (req, res) => {
         try {
             let projectPath;
+            const rawPath = req.query.projectPath || req.query.path;
             try {
-                projectPath = resolveSafeProjectPath(req.query.projectPath || req.query.path);
+                projectPath = resolveSafeProjectPath(rawPath);
             } catch (error) {
-                return res.status(400).json({ success: false, error: toClientError(error, 'Invalid projectPath') });
+                const debug = process.env.DEBUG_CLIENT_ERRORS === '1' || process.env.DEBUG_CLIENT_ERRORS === 'true';
+                const errorPayload = { success: false, error: toClientError(error, 'Invalid projectPath') };
+                if (debug) {
+                    errorPayload._debug = {
+                        rawPath,
+                        baseDir,
+                        monorepoRoot,
+                        allowedRoots: getAllowedRoots(),
+                        rawError: error instanceof Error ? error.message : String(error)
+                    };
+                }
+                return res.status(400).json(errorPayload);
             }
             if (!projectPath) {
                 return res.status(400).json({ success: false, error: 'projectPath is required' });

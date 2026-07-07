@@ -273,7 +273,7 @@ function assertSafeProjectPath(targetPath, allowedRoots, label = 'projectPath') 
     if (!fs.existsSync(resolved) && allowedRoots.length) {
         const monoRoot = allowedRoots.find((root) => {
             const normalized = normalizePathKey(root);
-            return normalized.endsWith('/ai-platform') === false && resolved.toLowerCase().startsWith(normalized + '/');
+            return normalized.endsWith('/ai-platform') === false && normalizePathKey(resolved).startsWith(normalized + '/');
         });
         if (monoRoot) {
             const platformDir = path.join(monoRoot, 'ai-platform');
