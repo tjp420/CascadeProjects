@@ -90,7 +90,7 @@ const FILE_COUNT_VERY_HIGH = 100000;
 const LOCAL_SERVER_PORTS = [38000, 50559, 3002, 3001, 3000, 5000];
 
 // API base URL — localhost uses same-origin; production uses Render backend
-const API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? '' : 'https://simplebeacon.onrender.com';
+const API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.hostname.endsWith('.onrender.com')) ? '' : 'https://simplebeacon.onrender.com';
 
 // Free-token endpoint — resolved at request time so probeLocalServer() can set serverUploadUrl
 function getFreeTokenUrl() {
