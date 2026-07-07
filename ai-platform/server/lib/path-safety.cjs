@@ -121,6 +121,10 @@ function detectMonorepoRoot(platformRoot) {
  * @param {any} platformRoot
  * @returns {any}
  */
+function isWindowsDrivePath(entry) {
+    return /^[A-Za-z]:[\\/]/.test(String(entry || '').trim());
+}
+
 function loadConfigAnalyzeRoots(platformRoot) {
     try {
         const configPath = path.join(platformRoot, '.simplebeacon', 'config.json');
@@ -130,9 +134,11 @@ function loadConfigAnalyzeRoots(platformRoot) {
         const roots = config.allowedAnalysisRoots || config.analyzeRoots;
         if (!Array.isArray(roots)) return [];
         const platform = path.resolve(platformRoot);
+        const isWindowsHost = process.platform === 'win32' || /^win/.test(process.platform);
         return roots
             .map((entry) => String(entry || '').trim())
             .filter(Boolean)
+            .filter((entry) => isWindowsHost || !isWindowsDrivePath(entry))
             .map((entry) => (path.isAbsolute(entry) ? path.resolve(entry) : path.resolve(platform, entry)));
     } catch {
         return [];
@@ -201,6 +207,16 @@ function resolveDefaultAllowedRoots(platformRoot, options = {}) {
 
     const tmpGitCache = path.join(os.tmpdir(), 'sb-github-cache');
     chain.push(tmpGitCache);
+
+    // Render deployment fallback: allow the standard Render project checkout root
+    // when the platform directory is located inside it.
+    if (process.env.RENDER === 'true' || platform.includes('/opt/render/project/src/')) {
+        const renderProjectRoot = path.resolve('/opt/render/project/src');
+        const platformParent = path.resolve(path.join(platform, '..'));
+        if (platformParent.startsWith(renderProjectRoot) && fs.existsSync(platformParent)) {
+            chain.push(platformParent);
+        }
+    }
 
     const merged = dedupeResolvedRoots(chain);
     const cwd = path.resolve(process.cwd());
