@@ -20,6 +20,7 @@ interface SidebarMessage {
   command: string;
   mode?: string;
   path?: string;
+  route?: string;
   value?: string | boolean;
   url?: string;
   token?: string;
@@ -111,7 +112,7 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
       // If the extension has no token, check if the browser dashboard signed in recently
       if (!signedIn && !token) {
         const browserToken = getBrowserSessionToken();
-        const signedOut = browserToken && browserToken.length > 10 && isTokenSignedOut(browserToken);
+        const signedOut = !!(browserToken && browserToken.length > 10 && isTokenSignedOut(browserToken));
         ModernSidebarProvider.logRelay('refreshAuthState browserToken=' + (browserToken ? 'present(' + browserToken.length + ')' : 'none') + ' signedOut=' + signedOut + ' signedIn=' + signedIn);
         if (browserToken && !signedOut && authManager && typeof authManager.setToken === 'function') {
           await authManager.setToken(browserToken);
@@ -496,7 +497,6 @@ $('cancelBtn').addEventListener('click', () => {
       }
       ModernSidebarProvider.relayOutputChannel.appendLine(msg);
     } catch (e) {}
-    console.error('[SimpleBeacon Relay]', msg);
   }
 
   private static relayCommand(cmd: string) {
@@ -849,7 +849,10 @@ $('cancelBtn').addEventListener('click', () => {
             break;
           case 'team':
           case 'openTeamDashboard': {
-            ModernSidebarProvider.openTeamDashboardPanel(this._extensionUri, '/dashboard');
+            const teamRoute = (message.route && typeof message.route === 'string') ? message.route : '/dashboard';
+            const dsPort = getDataServerPort();
+            const dashboardUrl = `http://127.0.0.1:${dsPort}${teamRoute}?_=${Date.now()}`;
+            vscode.commands.executeCommand('simpleBrowser.show', dashboardUrl);
             ModernSidebarProvider.relayCommand('showTeamDashboard');
             this._view?.webview.postMessage({ command: 'switchSidebarTab', tab: 'team' });
             break;
@@ -860,7 +863,7 @@ $('cancelBtn').addEventListener('click', () => {
             break;
           case 'openBrowser': {
             const brPort = getDataServerPort();
-            vscode.commands.executeCommand('simpleBrowser.show', `http://127.0.0.1:${brPort}/dashboard/dashboard`);
+            vscode.commands.executeCommand('simpleBrowser.show', `http://127.0.0.1:${brPort}/dashboard?_=${Date.now()}`);
             ModernSidebarProvider.relayCommand('openBrowser');
             break;
           }
@@ -1022,7 +1025,6 @@ $('cancelBtn').addEventListener('click', () => {
             ModernSidebarProvider.openSigninPanel();
             break;
           case 'signOut': {
-            console.error('[SimpleBeacon] SIGNOUT CASE ENTERED');
             ModernSidebarProvider.logRelay('sidebar signOut received, handling directly');
             try {
               let authManager: AuthManager | null = null;
@@ -1107,17 +1109,17 @@ $('cancelBtn').addEventListener('click', () => {
             WelcomeDashboard.createOrShow(this._extensionUri, true)?.showAiContextPane();
             break;
           case 'openGitHub':
-            vscode.env.openExternal(vscode.Uri.parse('https://github.com/simplebeacon/simplebeacon'));
+            vscode.commands.executeCommand('simpleBrowser.show', 'https://github.com/simplebeacon/simplebeacon');
             break;
           case 'openDocs':
-            vscode.env.openExternal(vscode.Uri.parse('https://docs.simplebeacon.dev'));
+            vscode.commands.executeCommand('simpleBrowser.show', 'https://docs.simplebeacon.dev');
             break;
           case 'openExternalUrl':
             if (message.url) { vscode.commands.executeCommand('simpleBrowser.show', message.url); }
             break;
           case 'openDataServerUrl': {
             const dsPort = getDataServerPort();
-            vscode.env.openExternal(vscode.Uri.parse(`http://127.0.0.1:${dsPort}`));
+            vscode.commands.executeCommand('simpleBrowser.show', `http://127.0.0.1:${dsPort}`);
             break;
           }
           case 'openDataServerPath': {
@@ -1135,7 +1137,8 @@ $('cancelBtn').addEventListener('click', () => {
           case 'openBrowserPath': {
             if (message.path) {
               const dsPort = getDataServerPort();
-              vscode.commands.executeCommand('simpleBrowser.show', `http://127.0.0.1:${dsPort}${message.path}`);
+              const url = `http://127.0.0.1:${dsPort}${message.path}`;
+              vscode.commands.executeCommand('simpleBrowser.show', url);
             }
             break;
           }
@@ -1216,13 +1219,10 @@ $('cancelBtn').addEventListener('click', () => {
             ModernSidebarProvider.showDashboardRoute(this._extensionUri, '/dashboard');
             ModernSidebarProvider.relayCommand('navDashboard');
             break;
-          case 'navAnalyze': {
-            const dataPort = getDataServerPort();
-            const analyzeUrl = `http://127.0.0.1:${dataPort}/dashboard/analyze`;
-            vscode.commands.executeCommand('simplebeacon.openInPreview', analyzeUrl);
+          case 'navAnalyze':
+            ModernSidebarProvider.showDashboardRoute(this._extensionUri, '/analyze');
             ModernSidebarProvider.relayCommand('navAnalyze');
             break;
-          }
           case 'navResults':
           case 'navRepoHealth':
           case 'navAudit':
@@ -1256,6 +1256,7 @@ $('cancelBtn').addEventListener('click', () => {
           case 'openCertificate':
           case 'openAiContext':
           case 'openAudit':
+          case 'openAuditReport':
           case 'openSecurity':
           case 'openTrust':
           case 'openQuality':
@@ -1273,6 +1274,7 @@ $('cancelBtn').addEventListener('click', () => {
               openCertificate: 'showCertificatePane',
               openAiContext: 'showAiContextPane',
               openAudit: 'showAuditPane',
+              openAuditReport: 'showReportPane',
               openSecurity: 'showSecurityPane',
               openTrust: 'showTrustPane',
               openQuality: 'showQualityPane',
@@ -1409,7 +1411,7 @@ $('cancelBtn').addEventListener('click', () => {
     const showWelcome = sbConfig.get('showWelcomeOnLoad', false);
     const displayMode = sbConfig.get('displayMode', 'sidebar') as string;
     const autoScan = sbConfig.get('autoScanOnOpen', false);
-    const apiUrl = sbConfig.get('apiServerUrl', '');
+    const apiUrl = String(sbConfig.get('apiServerUrl', '') || '');
     const savedScanMode = sbConfig.get<string>('scanMode', 'workspace');
     const savedProjectPath = sbConfig.get<string>('projectPath', '');
     const isWorkspaceMode = savedScanMode === 'workspace';
@@ -2766,7 +2768,7 @@ body.detail-panel-open #tabAdvanced {
   <button type="button" id="openAnalyticsBtn" class="menu-list-item">Open Full Analytics</button>
 </div>
 </div>
-<div class="tab-pane" id="tabTeam">
+<div class="tab-pane" id="tabTeam" data-sidebar-tab="team">
 <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;">
   <div class="db-title">Team Dashboard</div>
 </div>
@@ -2839,7 +2841,7 @@ body.detail-panel-open #tabAdvanced {
   <button type="button" id="openAssessmentsTabInMainWindowBtn" class="menu-list-item">Open in Main Window</button>
 </div>
 </div>
-<div class="tab-pane" id="tabPlatform">
+<div class="tab-pane" id="tabPlatform" data-sidebar-tab="platform">
 <div class="tab-section">Platform</div>
 <div class="tc-grid">
   <div class="tc-card"><div class="tc-card-val blue" id="plVer">--</div><div class="tc-card-label">Extension</div></div>
@@ -2902,7 +2904,9 @@ body.detail-panel-open #tabAdvanced {
 <div class="tab-section">Cloud &amp; AI Tools</div>
 <div class="menu-list" style="padding:0 12px 12px;display:flex;flex-direction:column;gap:6px;">
   <button type="button" id="openUploadBtn" class="menu-list-item">Upload &amp; Validate</button>
+  <button type="button" id="openPlatformBtnMain" class="menu-list-item">Platform</button>
   <button type="button" id="openAuditBtnMain" class="menu-list-item">Audit</button>
+  <button type="button" id="openTeamBtnMain" class="menu-list-item">Team</button>
 </div>
 </div>
 <div class="tab-pane" id="tabAudit" data-sidebar-tab="audit">
@@ -4570,7 +4574,7 @@ ${sidebarMainJsContent}
     standaloneHtml = standaloneHtml.replace('</head>', vscodeVars + '</head>');
     // Inject API URL
     const sbConfig = getSbConfig();
-    const apiUrl = (sbConfig.get<string>('apiServerUrl') || sbConfig.get<string>('apiUrl', 'http://127.0.0.1:55000') || 'http://127.0.0.1:55000') as string;
+    const apiUrl = String(sbConfig.get<string>('apiServerUrl') || sbConfig.get<string>('apiUrl', 'http://127.0.0.1:55000') || 'http://127.0.0.1:55000');
     const apiScript = `<script>window.__SB_API_URL__=${JSON.stringify(apiUrl)};</script>`;
     standaloneHtml = standaloneHtml.replace('</head>', apiScript + '</head>');
     // Inject initial report data if available
@@ -4624,7 +4628,7 @@ ${sidebarMainJsContent}
           vscode.commands.executeCommand('simplebeacon.openSettings');
           break;
         case 'openInIde':
-          if (apiUrl) { vscode.env.openExternal(vscode.Uri.parse(apiUrl)); }
+          if (apiUrl) { vscode.commands.executeCommand('simpleBrowser.show', apiUrl); }
           break;
         case 'openCloudInBrowser':
         case 'openCloudInPreview':
@@ -4757,9 +4761,7 @@ ${sidebarMainJsContent}
         case 'navigateToPage':
           if (message.page) {
             if (message.page === 'analyze') {
-              const dataPort = getDataServerPort();
-              const analyzeUrl = `http://127.0.0.1:${dataPort}/dashboard/analyze`;
-              vscode.commands.executeCommand('simplebeacon.openInPreview', analyzeUrl);
+              ModernSidebarProvider.showDashboardRoute(this._extensionUri, '/analyze');
               break;
             }
             const pageMap: Record<string, string> = {
@@ -4878,10 +4880,10 @@ if (!window.vscode || typeof window.vscode.postMessage !== 'function') {
     // Inject VS Code dark theme CSS variables and API URL so sidebar renders correctly outside VS Code
     const vscodeVars = `<style>:root{--vscode-editor-background:#1e1e1e;--vscode-sidebar-background:#252526;--vscode-foreground:#cccccc;--vscode-panel-background:#252526;--vscode-panel-border:#3c3c3c;--vscode-button-secondaryBackground:#2d2d30;--vscode-button-secondaryForeground:#cccccc;--vscode-button-hoverBackground:#3c3c3c;--vscode-descriptionForeground:#858585;--vscode-activityBar-background:#333333;--vscode-activityBar-foreground:#ffffff;--vscode-activityBar-inactiveForeground:#858585;--vscode-focusBorder:#007acc;--vscode-list-hoverBackground:#2a2d2e;--vscode-charts-green:#89d185;--vscode-charts-red:#f48771;--vscode-charts-orange:#d18616;--vscode-charts-blue:#75beff;--vscode-font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;}</style>`;
     const sbConfig = getSbConfig();
-    const apiUrl = sbConfig.get<string>('apiServerUrl') || sbConfig.get<string>('apiUrl', 'http://127.0.0.1:55000') || 'http://127.0.0.1:55000';
+    const apiUrl = String(sbConfig.get<string>('apiServerUrl') || sbConfig.get<string>('apiUrl', 'http://127.0.0.1:55000') || 'http://127.0.0.1:55000');
     const relayPort = ModernSidebarProvider._relayPort || sbConfig.get<number>('relayPort', 55444);
     const dashboardUrl = `http://127.0.0.1:${getDataServerPort()}`;
-    const injectScript = `<script nonce="${panelNonce}">window.__SB_DASHBOARD_URL__=${JSON.stringify(dashboardUrl)};window.__SB_API_URL__=${JSON.stringify(apiUrl)};window._relayPort=${relayPort};</script>`;
+    const injectScript = `<script nonce="${panelNonce}">window.__SB_DASHBOARD_URL__=${JSON.stringify(String(dashboardUrl))};window.__SB_API_URL__=${JSON.stringify(apiUrl)};window._relayPort=${relayPort};</script>`;
     browserHtml = browserHtml.replace('</head>', injectScript + vscodeVars + '</head>');
 
     // Seed the browser sidebar with the same report data the IDE sidebar is showing
@@ -5112,11 +5114,12 @@ body.tabs-open #browserTabBar{display:flex !important;}
   });
   const DASHBOARD_URL = window.__SB_DASHBOARD_URL__ || 'http://127.0.0.1:54358';
   const CMD_TO_HASH = {
-    showDashboardPane: '#/dashboard', showRepoHealthPane: '#/repo-health', showTeamPane: '#/team',
-    showScanPane: '#/scan', showSecurityPane: '#/security', showTrustPane: '#/trust', showQualityPane: '#/quality',
-    showReportPane: '#/results', showAuditPane: '#/audit', showCompliancePane: '#/compliance', showAnalyticsPane: '#/analytics',
-    showUploadPane: '#/upload',
-    showSettingsPane: '#/settings', showCodeMapPane: '#/code-map', showAiContextPane: '#/ai-context', showRoadmapPane: '#/roadmap', showCertificatePane: '#/certificate', showAnalyzePane: '#/analyze'
+    showDashboardPane: '#/dashboard', showAnalyzePane: '#/analyze', showReportPane: '#/results',
+    showSecurityPane: '#/security', showTrustPane: '#/trust', showQualityPane: '#/quality', showAuditPane: '#/audit',
+    showCompliancePane: '#/audit', showAnalyticsPane: '#/platform', showRepoHealthPane: '#/repository-health',
+    showTeamPane: '#/platform', showCertificatePane: '#/profile', showCodeMapPane: '#/code-map',
+    showUploadPane: '#/upload', showAiContextPane: '#/chatbot', showRoadmapPane: '#/remediation',
+    showScanPane: '#/analyze', showSettingsPane: '#/settings'
   };
   document.querySelectorAll('.sidebar-link[data-command]').forEach(function(link){
     link.addEventListener('click', function(){

@@ -195,7 +195,9 @@
   let _openRoadmapBtn=document.getElementById('openRoadmapBtn');if(_openRoadmapBtn){_openRoadmapBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openRoadmap'}); });}
   let _openContextBtn=document.getElementById('openContextBtn');if(_openContextBtn){_openContextBtn.addEventListener('click', function() { _switchSidebarTab('context'); });}
   let _openUploadBtn=document.getElementById('openUploadBtn');if(_openUploadBtn){_openUploadBtn.addEventListener('click', function() { _switchSidebarTab('upload'); });}
+  let _openPlatformBtnMain=document.getElementById('openPlatformBtnMain');if(_openPlatformBtnMain){_openPlatformBtnMain.addEventListener('click', function() { _switchSidebarTab('platform'); });}
   let _openAuditBtnMain=document.getElementById('openAuditBtnMain');if(_openAuditBtnMain){_openAuditBtnMain.addEventListener('click', function() { _switchSidebarTab('audit'); });}
+  let _openTeamBtnMain=document.getElementById('openTeamBtnMain');if(_openTeamBtnMain){_openTeamBtnMain.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openTeam'}); });}
   let _openSecurityBtnMain=document.getElementById('openSecurityBtnMain');if(_openSecurityBtnMain){_openSecurityBtnMain.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openSecurity'}); });}
   let _openTrustBtn=document.getElementById('openTrustBtn');if(_openTrustBtn){_openTrustBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openTrust'}); });}
   let _openQualityBtn=document.getElementById('openQualityBtn');if(_openQualityBtn){_openQualityBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openQuality'}); });}
@@ -387,12 +389,6 @@
   let _scanWorkspaceDropdownHeader=document.getElementById('scanWorkspaceDropdownHeader');if(_scanWorkspaceDropdownHeader){_scanWorkspaceDropdownHeader.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'scan', mode: 'workspace'}); });}
   function _tdBind2(id,cmd){let el=document.getElementById(id);if(el){el.addEventListener('click',function(){if(window.vscode){window.vscode.postMessage({command:cmd});try{window.vscode.postMessage({command:'sidebarError',message:'sent: ' + id + ' -> ' + cmd});}catch(e){}} if(cmd==='signOut'){_clearSidebarAuthLocally();_callServerSignout();}});}}
   function _openSigninWithClear(){const base=window.__SB_DATA_SERVER_URL__||'';function _post(){if(window.vscode){try{window.vscode.postMessage({command:'openSigninPanel'});}catch(e){}}} if(base){fetch(base+'/api/auth/signout',{method:'POST',headers:{'Content-Type':'application/json'}}).finally(_post).catch(_post);}else{_post();}}
-  function _tdPath(id,path){let el=document.getElementById(id);if(el){el.addEventListener('click',function(){if(window.__SB_BROWSER_MODE__){const base=window.__SB_DATA_SERVER_URL__||'';parent.postMessage({command:'openBrowserTab',url:base+path,label:path},'*');return;}if(window.vscode)window.vscode.postMessage({command:'openDataServerPath',path:path});});}}
-  function _tdBrowser(id,path){let el=document.getElementById(id);if(el){el.addEventListener('click',function(){if(window.__SB_BROWSER_MODE__){const base=window.__SB_DATA_SERVER_URL__||'';parent.postMessage({command:'openBrowserTab',url:base+path,label:path},'*');return;}if(window.vscode)window.vscode.postMessage({command:'openBrowserPath',path:path});});}}
-  _tdPath('tdRoadmapSidebar','/coming-soon/roadmap.html');
-  _tdPath('tdAuditSidebar','/coming-soon/audit.html');
-  _tdPath('tdAuditReportSidebar','/dashboard/audit');
-  _tdBrowser('tdPricingSidebar','/coming-soon/pricing.html');
   _tdBind('tdOpenSiteSidebar','openTeamDashboard');
   _tdBind2('tdThemeToggleSidebar','toggleTheme');
   _tdBind('tdSignInSidebar','openSigninScreen');
@@ -403,22 +399,6 @@
   let _headerSignInBtn=document.getElementById('headerSignInBtn');if(_headerSignInBtn){_headerSignInBtn.addEventListener('click',function(){_openSigninWithClear();});}
   let _headerSignOutBtn=document.getElementById('headerSignOutBtn');if(_headerSignOutBtn){_headerSignOutBtn.addEventListener('click',function(){_clearSidebarAuthLocally(); if(window.vscode){window.vscode.postMessage({command:'signOut'});try{window.vscode.postMessage({command:'sidebarError',message:'signOut sent from headerSignOutBtn'});}catch(e){}} _callServerSignout();});}
   let _tdSignOutSidebarEl=document.getElementById('tdSignOutSidebar');if(_tdSignOutSidebarEl){_tdSignOutSidebarEl.addEventListener('click',function(){_clearSidebarAuthLocally();});}
-  _tdBrowser('tdDashboardSidebar','/dashboard/dashboard');
-  _tdBrowser('tdAnalyzeSidebar','/dashboard/analyze');
-  _tdBrowser('tdResultsSidebar','/dashboard/results');
-  _tdBrowser('tdRepoHealthSidebar','/dashboard/repository-health');
-  _tdBrowser('tdSecuritySidebar','/dashboard/security');
-  _tdBrowser('tdQualitySidebar','/dashboard/quality');
-  _tdBrowser('tdTrustSidebar','/dashboard/trust');
-  _tdBrowser('tdAssessmentsSidebar','/dashboard/assessments');
-  _tdBrowser('tdRemediationSidebar','/dashboard/remediation');
-  _tdBrowser('tdPlatformSidebar','/dashboard/platform');
-  _tdBrowser('tdProfileSidebar','/dashboard/profile');
-  _tdBrowser('tdToolsSidebar','/dashboard/tools');
-  _tdBrowser('tdSettingsSidebar','/dashboard/settings');
-  _tdBrowser('tdHelpSidebar','/dashboard/help');
-  _tdBrowser('tdChatbotSidebar','/dashboard/chatbot');
-  _tdBrowser('tdAboutSidebar','/dashboard/about');
   _tdBind2('tdGitHubSidebar','openGitHub');
   let _tokenManagementCard=document.getElementById('tokenManagementCard');if(_tokenManagementCard){_tokenManagementCard.addEventListener('click',function(){if(window.vscode)window.vscode.postMessage({command:'openTokenReplacementPanel'});});}
   _tdBind2('tdDocsSidebar','openDocs');
@@ -1632,6 +1612,50 @@
       _updateSidebarAuthState(hasToken);
     }
   });
+  // Team Dashboard navigation/quick links: open pages inside the IDE (webview panel or simple browser)
+  (function bindWebsiteNavigation() {
+    const websitePathMap = {
+      tdRoadmapSidebar: '/dashboard/roadmap',
+      tdAuditSidebar: '/dashboard/audit',
+      tdPricingSidebar: '/dashboard/pricing',
+      tdDashboardSidebar: '/dashboard',
+      tdAnalyzeSidebar: '/dashboard/analyze',
+      tdResultsSidebar: '/dashboard/results',
+      tdRepoHealthSidebar: '/dashboard/repository-health',
+      tdSecuritySidebar: '/dashboard/security',
+      tdQualitySidebar: '/dashboard/quality',
+      tdTrustSidebar: '/dashboard/trust',
+      tdAuditReportSidebar: '/dashboard/audit',
+      tdAssessmentsSidebar: '/dashboard/assessments',
+      tdRemediationSidebar: '/dashboard/remediation',
+      tdPlatformSidebar: '/dashboard/platform',
+      tdProfileSidebar: '/dashboard/profile',
+      tdToolsSidebar: '/dashboard/tools',
+      tdSettingsSidebar: '/dashboard/settings',
+      tdHelpSidebar: '/dashboard/help',
+      tdChatbotSidebar: '/dashboard/chatbot',
+      tdAboutSidebar: '/dashboard/about'
+    };
+    const comingSoonMap = {
+      tdRoadmapSidebar: '/coming-soon/roadmap.html',
+      tdAuditSidebar: '/coming-soon/audit.html',
+      tdPricingSidebar: '/coming-soon/pricing.html'
+    };
+    Object.keys(websitePathMap).forEach(function(id) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.style.cursor = 'pointer';
+      el.addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (!window.vscode) return;
+        if (comingSoonMap[id]) {
+          window.vscode.postMessage({ command: 'openDataServerPath', path: comingSoonMap[id] });
+        } else {
+          window.vscode.postMessage({ command: 'openTeamDashboard', route: websitePathMap[id] });
+        }
+      });
+    });
+  })();
   // Request auth state from extension; retry multiple times to handle race on boot
   (function requestAuthState(attempt) {
     if (window.vscode) { window.vscode.postMessage({command: 'getAuthState'}); }
