@@ -112,7 +112,7 @@ router.post('/api/auth/login', express.json(), async (req, res) => {
         });
     } catch (error) {
         logger.error('[Auth] Login failed:', error.message);
-        res.status(500).json({ error: 'Login failed', detail: error.message });
+        res.status(500).json({ error: 'Login failed', detail: error.message, stack: error.stack });
     }
 });
 
