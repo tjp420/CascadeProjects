@@ -91,7 +91,32 @@ function resolveProjectPath(baseDir, rawPath, monorepoRoot) {
             + `Received: ${trimmedPath.slice(0, 120)}`
         );
     }
-    if (path.isAbsolute(trimmedPath)) return path.normalize(trimmedPath);
+    if (path.isAbsolute(trimmedPath)) {
+        const normalized = path.normalize(trimmedPath);
+        // Render deployment fallback: the dashboard may cache a stale path like
+        // /opt/render/project/src/ai-platform/CascadeProjects. If the absolute path
+        // does not exist and contains ai-platform, fall back to the server's actual
+        // platform directory or monorepo root.
+        if (!fs.existsSync(normalized)) {
+            const normalizedKey = normalized.replace(/\\/g, '/').toLowerCase();
+            if (normalizedKey.includes('/ai-platform')) {
+                const serverPlatformKey = baseDir.replace(/\\/g, '/').toLowerCase();
+                if (serverPlatformKey.includes('/ai-platform')) {
+                    if (normalizedKey.endsWith('/ai-platform')) {
+                        // The platform directory itself was requested; use the server's platform dir.
+                        return baseDir;
+                    }
+                    const effectiveMonoRoot = monorepoRoot || path.join(baseDir, '..');
+                    const repoName = path.basename(effectiveMonoRoot).toLowerCase();
+                    if (repoName && normalizedKey.endsWith('/ai-platform/' + repoName)) {
+                        // The monorepo root was requested via the stale path; use the server's monorepo root.
+                        return effectiveMonoRoot;
+                    }
+                }
+            }
+        }
+        return normalized;
+    }
     const fromBase = path.normalize(path.join(baseDir, trimmedPath));
     if (fs.existsSync(fromBase)) return fromBase;
     if (monorepoRoot) {

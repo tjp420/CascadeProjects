@@ -271,14 +271,34 @@ function assertSafeProjectPath(targetPath, allowedRoots, label = 'projectPath') 
     // Render deployment fallback: if the requested path does not exist but is
     // inside a Render-style monorepo checkout, fall back to the monorepo root.
     if (!fs.existsSync(resolved) && allowedRoots.length) {
+        const normalizedResolved = normalizePathKey(resolved);
         const monoRoot = allowedRoots.find((root) => {
             const normalized = normalizePathKey(root);
-            return normalized.endsWith('/ai-platform') === false && normalizePathKey(resolved).startsWith(normalized + '/');
+            return normalized.endsWith('/ai-platform') === false && normalizedResolved.startsWith(normalized + '/');
         });
         if (monoRoot) {
             const platformDir = path.join(monoRoot, 'ai-platform');
             if (fs.existsSync(platformDir)) {
                 resolved = path.resolve(monoRoot);
+            }
+        }
+    }
+
+    // Second Render fallback: the path may contain ai-platform/<repoName> where the
+    // actual repo was cloned into <repoName>. Try <parent>/ai-platform/<repoName>
+    // translated to <parent>/<repoName>/ai-platform as the platform root.
+    if (!fs.existsSync(resolved)) {
+        const normalized = normalizePathKey(resolved);
+        const platformIdx = normalized.indexOf('/ai-platform/');
+        if (platformIdx !== -1) {
+            const aiPlatformParent = path.dirname(resolved);
+            const segment = path.basename(resolved);
+            if (segment) {
+                const candidateRoot = path.join(path.dirname(aiPlatformParent), segment);
+                const candidatePlatform = path.join(candidateRoot, 'ai-platform');
+                if (fs.existsSync(candidatePlatform)) {
+                    resolved = path.resolve(candidateRoot);
+                }
             }
         }
     }
@@ -296,6 +316,16 @@ function assertSafeProjectPath(targetPath, allowedRoots, label = 'projectPath') 
             }
         }
     }
+
+    // Allow a Render-style fallback root that contains an ai-platform directory,
+    // even if it wasn't pre-populated in allowedRoots.
+    if (!isPathWithinRoots(resolved, allowedRoots) && !fs.existsSync(resolved)) {
+        const platformDir = path.join(resolved, 'ai-platform');
+        if (fs.existsSync(platformDir)) {
+            allowedRoots.push(resolved);
+        }
+    }
+
     if (!isPathWithinRoots(resolved, allowedRoots)) {
         logPathAccess('deny', resolved, allowedRoots);
         const allowedSummary = formatAllowedRootsSummary(allowedRoots, 6);
