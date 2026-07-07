@@ -91,6 +91,7 @@ const LOCAL_SERVER_PORTS = [38000, 50559, 3002, 3001, 3000, 5000];
 
 // API base URL — localhost uses same-origin; production uses Render backend
 const API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.hostname.endsWith('.onrender.com')) ? '' : 'https://simplebeacon.onrender.com';
+const IS_LOCAL_HOST = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
 
 // Free-token endpoint — resolved at request time so probeLocalServer() can set serverUploadUrl
 function getFreeTokenUrl() {
@@ -3009,7 +3010,7 @@ let bridgeEventSource = null;
 let serverUploadUrl = null;
 
 async function probeLocalBridge() {
-    if (API_BASE) return;
+    if (!IS_LOCAL_HOST) return;
     try {
         const res = await fetch(`${BRIDGE_URL}/health`, { method: 'GET', mode: 'cors', signal: AbortSignal.timeout(2000) });
         if (res.ok) {
@@ -3031,7 +3032,7 @@ let dataServerAvailable = false;
 let dataServerSse = null;
 
 async function probeDataServer() {
-    if (API_BASE) {
+    if (!IS_LOCAL_HOST) {
         const statusEl = document.getElementById('dataServerStatus');
         if (statusEl) {
             statusEl.textContent = 'Not connected — open VS Code: sidebar to enable';
@@ -3120,7 +3121,7 @@ async function fetchSidebarData() {
 
 // Detect local SimpleBeacon server (e.g. ai-platform dashboard) for full scans
 async function probeLocalServer() {
-    if (API_BASE) return;
+    if (!IS_LOCAL_HOST) return;
     const SERVER_PORTS = LOCAL_SERVER_PORTS;
     const currentPort = parseInt(location.port, 10);
     // Skip detection if we're already served from the server
