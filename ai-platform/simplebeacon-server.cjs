@@ -208,7 +208,23 @@ if (
   );
 }
 const webRoot = path.join(__dirname, 'web');
-const landingRoot = path.join(__dirname, '../coming-soon/public');
+
+// Render may clone the repo into a directory named after the repository (e.g.
+// /opt/render/project/src/CascadeProjects), so try several candidate locations
+// for the marketing landing pages before giving up.
+function resolveLandingRoot() {
+  const candidates = [
+    path.join(__dirname, '../coming-soon/public'),
+    path.join(__dirname, '../../coming-soon/public'),
+    path.join(__dirname, '../CascadeProjects/coming-soon/public'),
+    path.join(__dirname, '../../CascadeProjects/coming-soon/public')
+  ];
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  return candidates[0];
+}
+const landingRoot = resolveLandingRoot();
 const landingEnabled = process.env.SIMPLEBEACON_LANDING === 'true';
 const landingRootExists = fs.existsSync(landingRoot);
 
