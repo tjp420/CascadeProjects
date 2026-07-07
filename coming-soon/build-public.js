@@ -42,8 +42,14 @@ const files = [
 for (const f of files) {
   const s = path.join(src, f);
   const d = path.join(dst, f);
-  if (fs.existsSync(s)) {
-    fs.copyFileSync(s, d);
+  try {
+    const stat = fs.statSync(s);
+    if (stat.isFile()) {
+      fs.mkdirSync(path.dirname(d), { recursive: true });
+      fs.copyFileSync(s, d);
+    }
+  } catch (e) {
+    console.warn('Skipping copy of', f, ':', (e && e.message) || e);
   }
 }
 
