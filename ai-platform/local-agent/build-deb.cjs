@@ -15,7 +15,7 @@ const { execSync } = require('child_process');
 const LOCAL_AGENT_DIR = __dirname;
 const PORTABLE_DIR = path.join(LOCAL_AGENT_DIR, 'dist', 'portable');
 const OUT_DIR = path.join(LOCAL_AGENT_DIR, 'dist');
-const VERSION = '1.0.2';
+const VERSION = '1.0.3';
 const ARCH = 'amd64';
 const PKG_NAME = `simplebeacon-local-agent_${VERSION}_${ARCH}`;
 

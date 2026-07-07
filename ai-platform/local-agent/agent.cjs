@@ -197,10 +197,13 @@ function toPrivacySummaryReport(report) {
 // CORS middleware. The requireLoopback middleware below already restricts
 // TCP connections to the loopback interface, so reflecting any origin is safe.
 app.use(cors({
-  origin: true,
+  origin: (origin, callback) => {
+    // Allow requests with no origin (e.g. curl) and reflect any real origin.
+    callback(null, origin || true);
+  },
   credentials: true,
   methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type']
+  allowedHeaders: ['Content-Type', 'Accept']
 }));
 
 app.use(express.json({ limit: '1mb' }));
@@ -224,12 +227,18 @@ function requireLoopback(req, res, next) {
 
 app.use(requireLoopback);
 
+// Request logger to help diagnose browser/agent issues.
+app.use((req, res, next) => {
+  console.log(`[agent] ${req.method} ${req.url} from ${req.headers.origin || 'no-origin'} (${req.socket.remoteAddress || 'unknown'})`);
+  next();
+});
+
 // Health check used by the dashboard to detect the agent.
 app.get('/health', (req, res) => {
   res.json({
     success: true,
     agent: 'simplebeacon-local-agent',
-    version: '1.0.0',
+    version: '1.0.3',
     scannerAvailable: Boolean(scannerApi && typeof scannerApi.runScan === 'function'),
     timestamp: new Date().toISOString()
   });
@@ -277,6 +286,11 @@ app.post('/summary', async (req, res) => {
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, _next) => {
   console.error('[agent] Unhandled error:', err);
+  const origin = req.headers.origin;
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  }
   res.status(500).json({ success: false, error: err.message || 'Internal agent error' });
 });
 

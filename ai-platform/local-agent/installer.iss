@@ -4,7 +4,7 @@
 ; creates Start Menu and startup shortcuts, and launches the agent.
 
 #define MyAppName "SimpleBeacon Local Agent"
-#define MyAppVersion "1.0.2"
+#define MyAppVersion "1.0.3"
 #define MyAppPublisher "SimpleBeacon"
 #define MyAppURL "https://simplebeacon.ai"
 #define MyAppExeName "start-agent.bat"
