@@ -22,10 +22,39 @@ const {
 } = require('../lib/auth/login-service.cjs');
 
 const { generateToken: tokenServiceGenerateToken } = require('../lib/auth/token-service.cjs');
+const { registerUser } = require('../services/user-service.cjs');
+const { trustLevels } = require('../lib/auth/trust-levels.cjs');
 
 const router = express.Router();
 
 router.post('/login', handleLogin);
+
+router.post('/register', async (req, res) => {
+  try {
+    const { email, password, name } = req.body || {};
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password required' });
+    }
+    const result = await registerUser(email, password, name);
+    if (result.error) {
+      return res.status(409).json({ error: 'Registration failed', message: result.error });
+    }
+    const token = tokenServiceGenerateToken(result.user);
+    res.json({
+      message: 'Registration successful',
+      token,
+      user: {
+        id: result.user.id,
+        email: result.user.email,
+        name: result.user.name,
+        trustLevel: result.user.trustLevel,
+        permissions: (trustLevels[result.user.trustLevel] || trustLevels.bronze).permissions
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'register_error', message: error.message });
+  }
+});
 
 router.get('/health', (req, res) => {
   try {
@@ -50,20 +79,27 @@ router.post('/logout', optionalAuthenticate, (req, res) => {
 router.post('/refresh', optionalAuthenticate, handleTokenRefresh);
 
 router.get('/me', optionalAuthenticate, (req, res) => {
-  if (!req.user) {
-    return res.status(401).json({
-      error: 'Unauthorized',
-      message: 'Authentication required'
+  if (req.user) {
+    return res.json({
+      success: true,
+      user: {
+        id: req.user.id,
+        email: req.user.email,
+        name: req.user.name,
+        trustLevel: req.user.trustLevel,
+        permissions: req.user.permissions
+      }
     });
   }
+  // Return a guest user so the dashboard can load without an explicit 401
   res.json({
     success: true,
     user: {
-      id: req.user.id,
-      email: req.user.email,
-      name: req.user.name,
-      trustLevel: req.user.trustLevel,
-      permissions: req.user.permissions
+      id: 'guest',
+      email: null,
+      name: 'Guest',
+      trustLevel: 'bronze',
+      permissions: (trustLevels.bronze || { permissions: [] }).permissions
     }
   });
 });
