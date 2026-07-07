@@ -48,7 +48,8 @@ import {
   fetchProjectNpmAudit,
   prepareGithubRepo,
   fetchAnalyzeTestSources,
-  isAnalyzeProviderConfigured
+  isAnalyzeProviderConfigured,
+  uploadDirectoryAndAnalyze
 } from '../services/analyzeService.js?v=20260531pathfix1';
 import { isRemoteRepoUrl, sourceChipTitle } from '../lib/analyzePathSources.js';
 import { reportMatchesPagePath, resolvePageProjectPath, getPathInputDisplayValue } from '../lib/pageRepoScan.js';
@@ -4584,24 +4585,8 @@ export class AnalyzeView {
         }
 
         const folderName = relPath.split('/')[0] || firstFile.name || '';
-        // webkitdirectory only gives relative paths; auto-derive the best absolute path
-        const currentInput = this.resolveProjectPath(el.querySelector('#project-path-input')?.value);
-        const rawBase = String(currentInput || this.app.state.defaultProjectPath || this._deriveFallbackBase())
-          .replace(/\\/g, '/')
-          .replace(/\/+$/, '');
-        // Use the parent directory of the current path as the base, not stripped to user home
-        const lastSlash = rawBase.lastIndexOf('/');
-        const basePath = (lastSlash > 2) ? rawBase.substring(0, lastSlash) : rawBase;
-        const resolvedPath = `${basePath}/${folderName}`;
-        const pathInput = el.querySelector('#project-path-input');
-        if (pathInput) {
-          this.setPathInputDisplay(pathInput, resolvedPath);
-          this.app.state.lastProjectPath = resolvedPath;
-          this.app.state.pathInputDraft = '';
-          this.syncAnalyzeModeUi(el);
-          void this.refreshReportForActivePath(el);
-          showToast(`Folder "${folderName}" selected — path set to ${resolvedPath}. Press Enter or click Run Scan to start.`, 'info');
-        }
+        // webkitdirectory only gives relative paths in regular browsers; upload the folder instead.
+        void this.uploadFolderFiles(files, folderName);
       }
       e.target.value = '';
     });
@@ -4808,9 +4793,9 @@ export class AnalyzeView {
       }
     });
 
-    // Path area drag/drop — uses file.path in desktop/Electron, falls back to browse hint
+    // Path area drag/drop — uses file.path in desktop/Electron, otherwise uploads folder
     const pathDropzone = el.querySelector('#analyze-path-dropzone');
-    if (pathDropzone && !this.websiteMode) {
+    if (pathDropzone) {
       let pathDragDepth = 0;
       ['dragenter', 'dragover'].forEach((eventName) => {
         pathDropzone.addEventListener(eventName, (event) => {
@@ -4844,13 +4829,16 @@ export class AnalyzeView {
         const items = event.dataTransfer?.items;
         const files = event.dataTransfer?.files;
 
-        // Modern browsers: detect directory drops via File System Access API
+        // Modern browsers: detect directory drops via File System Access API.
+        // If the browser cannot reveal the full OS path, upload the folder contents instead.
         if (items?.[0]?.kind === 'file') {
           try {
             const handle = await items[0].getAsFileSystemHandle?.();
             if (handle && handle.kind === 'directory') {
-              // Browser sandbox prevents revealing full OS path.
-              // Prompt user to type path or use Browse Folder instead.
+              if (files?.length && !files[0].path) {
+                void this.uploadFolderFiles(files, handle.name);
+                return;
+              }
               showToast('Directory drop detected. Use Browse Folder or type the full path for best results.', 'warning');
               return;
             }
@@ -4976,6 +4964,10 @@ export class AnalyzeView {
           if (entry) {
             if (entry.isDirectory) {
               const name = entry.name || '';
+              if (files?.length && !files[0].path) {
+                void this.uploadFolderFiles(files, name);
+                return;
+              }
               setPathAndNotify(resolveFolderPath(name), name);
               return;
             }
@@ -5682,6 +5674,44 @@ export class AnalyzeView {
       return true;
     }
     return false;
+  }
+
+  async uploadFolderFiles(fileList, folderName) {
+    if (!fileList || fileList.length === 0) {
+      showToast('No files to upload', 'warning');
+      return;
+    }
+    this.busy = true;
+    this._terminalLogLines.push(`Uploading ${fileList.length} files from "${folderName || 'folder'}"…`);
+    this.refresh();
+    try {
+      const data = await uploadDirectoryAndAnalyze(fileList, {
+        analysisType: this.analysisType || 'simplebeacon',
+        timeoutMs: 600000
+      });
+      const report = data.results?.simplebeacon || data.simplebeacon || data;
+      const projectPath = report?.projectPath || report?.projectRoot || `upload://${folderName || 'folder'}`;
+      const pathInput = this._root?.querySelector('#project-path-input');
+      if (pathInput) {
+        this.setPathInputDisplay(pathInput, projectPath);
+        this.app.state.lastProjectPath = projectPath;
+        this.app.state.pathInputDraft = '';
+      }
+      this.lastResult = {
+        projectPath,
+        report,
+        analysisType: this.analysisType || 'simplebeacon',
+        generatedAt: report?.generatedAt || new Date().toISOString()
+      };
+      this.lastScanId = report?.scanId || report?.id || Date.now().toString();
+      showToast(`Uploaded "${folderName || 'folder'}" and scanned ${report?.ruleScopedFilesAnalyzed || report?.filesAnalyzed || fileList.length} files`, 'success');
+      this.refresh();
+    } catch (error) {
+      showToast(error.message || 'Folder upload scan failed', 'error');
+    } finally {
+      this.busy = false;
+      this.refresh();
+    }
   }
 
   async handleAnalyzeFiles(fileList) {

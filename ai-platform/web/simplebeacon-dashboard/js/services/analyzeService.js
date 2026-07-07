@@ -2506,3 +2506,37 @@ export function assertCompleteScanFileReductionFresh(scan) {
   }
 }
 
+/**
+ * Upload a directory of files to the server and run a SimpleBeacon scan.
+ * @param {FileList|Array<File>} files
+ * @param {Object} options
+ * @param {string} options.analysisType
+ * @param {number} [options.timeoutMs]
+ * @returns {Promise<Object>}
+ */
+export async function uploadDirectoryAndAnalyze(files, options = {}) {
+  if (!files || files.length === 0) {
+    throw new Error('No files selected for upload');
+  }
+  const fileArray = Array.from(files);
+  const filePaths = fileArray.map((file) => {
+    // webkitdirectory and drag-and-drop folders expose the relative path
+    return file.webkitRelativePath || file.name || file.fieldname || 'file';
+  });
+
+  const formData = new FormData();
+  fileArray.forEach((file) => formData.append('files', file));
+  formData.append('filePaths', JSON.stringify(filePaths));
+  formData.append('analysisType', options.analysisType || 'simplebeacon');
+
+  const data = await fetchJsonWithGuidance('/api/analyze/upload-directory', {
+    method: 'POST',
+    headers: authService.getAuthHeaders(),
+    body: formData
+  }, options.timeoutMs ?? 600000);
+
+  if (!data.success) {
+    throw new Error(data.error || 'Directory upload scan failed');
+  }
+  return data;
+}
