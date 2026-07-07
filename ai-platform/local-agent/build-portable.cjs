@@ -97,7 +97,7 @@ function main() {
   fs.writeFileSync(path.join(OUT_DIR, 'start-agent.sh'), UNIX_SH, { mode: 0o755 });
 
   // Windows installer scripts.
-  const installerFiles = ['install.ps1', 'install-windows.bat', 'uninstall.ps1', 'uninstall-windows.bat'];
+  const installerFiles = ['install.ps1', 'install-windows.bat', 'uninstall.ps1', 'uninstall-windows.bat', 'install.sh'];
   for (const f of installerFiles) {
     const src = path.join(LOCAL_AGENT_DIR, f);
     if (fs.existsSync(src)) {

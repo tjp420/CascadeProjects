@@ -14,6 +14,9 @@
     "package": "npm run build && pkg package.json --out-path dist",
     "package:portable": "npm run build && npm run build:portable",
     "build:setup": "pkg setup.cjs --targets node18-win-x64 --output dist/simplebeacon-local-agent-setup.exe",
+    "build:msi": "candle windows-installer.wxs -o dist/simplebeacon-local-agent.wixobj && light dist/simplebeacon-local-agent.wixobj -o dist/simplebeacon-local-agent.msi",
+    "build:deb": "node build-deb.cjs",
+    "build:all": "npm run build && npm run build:portable && npm run build:setup && npm run build:msi && npm run build:deb",
     "package:installer": "npm run build && npm run build:portable && npm run build:setup"
   },
   "pkg": {

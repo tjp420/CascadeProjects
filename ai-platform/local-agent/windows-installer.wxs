@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product Id="*" Name="SimpleBeacon Local Agent" Language="1033" Version="1.0.2.0"
+           Manufacturer="SimpleBeacon" UpgradeCode="B1E2C3D4-E5F6-7890-ABCD-EF1234567890">
+    <Package InstallerVersion="200" Compressed="yes" InstallScope="perUser" />
+    <MajorUpgrade DowngradeErrorMessage="A newer version is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Feature Id="ProductFeature" Title="SimpleBeacon Local Agent" Level="1">
+      <ComponentGroupRef Id="ProductComponents" />
+      <ComponentGroupRef Id="StartupShortcutComponents" />
+    </Feature>
+
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="LocalAppDataFolder">
+        <Directory Id="INSTALLFOLDER" Name="SimpleBeaconLocalAgent" />
+      </Directory>
+      <Directory Id="ProgramMenuFolder">
+        <Directory Id="ApplicationMenuFolder" Name="SimpleBeacon" />
+      </Directory>
+    </Directory>
+
+    <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
+      <Component Id="AgentFiles" Guid="C1D2E3F4-1234-5678-90AB-CDEF12345678">
+        <File Source="dist\portable\agent.cjs" />
+        <File Source="dist\portable\package.json" />
+        <File Source="dist\portable\README.md" />
+        <File Source="dist\portable\start-agent.bat" />
+        <File Source="dist\portable\start-agent.sh" />
+      </Component>
+      <Component Id="NodeModules" Guid="C1D2E3F4-1234-5678-90AB-CDEF12345679">
+        <File Source="dist\portable\node_modules" />
+      </Component>
+      <Component Id="Packages" Guid="C1D2E3F4-1234-5678-90AB-CDEF1234567A">
+        <File Source="dist\portable\packages" />
+      </Component>
+      <Component Id="SimplebeaconDir" Guid="C1D2E3F4-1234-5678-90AB-CDEF1234567B">
+        <File Source="dist\portable\.simplebeacon" />
+      </Component>
+      <Component Id="StartMenuShortcut" Directory="ApplicationMenuFolder" Guid="C1D2E3F4-1234-5678-90AB-CDEF1234567C">
+        <Shortcut Id="StartMenuShortcut" Name="SimpleBeacon Local Agent"
+                  Target="[INSTALLFOLDER]start-agent.bat" WorkingDirectory="INSTALLFOLDER" />
+        <RemoveFolder Id="ApplicationMenuFolder" On="uninstall" />
+        <RegistryValue Root="HKCU" Key="Software\SimpleBeacon\LocalAgent" Name="installed" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <ComponentGroup Id="StartupShortcutComponents" Directory="StartupFolder">
+      <Component Id="StartupShortcut" Guid="C1D2E3F4-1234-5678-90AB-CDEF1234567D">
+        <Shortcut Id="StartupMenuShortcut" Name="SimpleBeacon Local Agent"
+                  Target="[INSTALLFOLDER]start-agent.bat" WorkingDirectory="INSTALLFOLDER" />
+        <RegistryValue Root="HKCU" Key="Software\SimpleBeacon\LocalAgent" Name="startup" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <CustomAction Id="StartAgent" Directory="INSTALLFOLDER" ExeCommand='cmd.exe /c "[INSTALLFOLDER]start-agent.bat"' Return="asyncNoWait" />
+    <InstallExecuteSequence>
+      <Custom Action="StartAgent" After="InstallFinalize">NOT Installed</Custom>
+    </InstallExecuteSequence>
+  </Product>
+</Wix>
