@@ -298,6 +298,10 @@ function assertSafeProjectPath(targetPath, allowedRoots, label = 'projectPath') 
                 const candidatePlatform = path.join(candidateRoot, 'ai-platform');
                 if (fs.existsSync(candidatePlatform)) {
                     resolved = path.resolve(candidateRoot);
+                    // The resolved root may not be in the pre-populated allowedRoots,
+                    // so register it now before the final safety check.
+                    allowedRoots.push(resolved);
+                    allowedRoots = dedupeResolvedRoots(allowedRoots);
                 }
             }
         }
