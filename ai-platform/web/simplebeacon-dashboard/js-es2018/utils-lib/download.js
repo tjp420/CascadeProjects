@@ -1,8 +1,6 @@
 /**
- * download utilities.
+ * @module download
  */
-
-
 /**
  * Download a Blob as a file.
  * Uses VS Code webview message passing when in a sandboxed webview,
@@ -16,7 +14,6 @@ export function downloadBlob(blob, filename) {
     if (!(blob instanceof Blob)) {
         throw new Error('Download is unavailable: no valid blob provided.');
     }
-    // Standard anchor-based download (extracted so it can be reused as a fallback).
     function _anchorDownload() {
         if (typeof document === 'undefined' || !document.body) {
             throw new Error('Download is unavailable in this environment.');
@@ -29,13 +26,12 @@ export function downloadBlob(blob, filename) {
         document.body.appendChild(a);
         try {
             a.click();
-        } finally {
+        }
+        finally {
             a.remove();
-            // revoke on next tick — download starts synchronously from click()
             setTimeout(() => URL.revokeObjectURL(url), 0);
         }
     }
-    // VS Code: webview fallback — blob downloads via <a download> are blocked in sandboxed webviews
     if (typeof window !== 'undefined' && typeof window.acquireVsCodeApi === 'function') {
         const vscode = window.acquireVsCodeApi();
         const reader = new FileReader();
@@ -49,7 +45,8 @@ export function downloadBlob(blob, filename) {
             console.error('FileReader failed to convert blob for VS Code download. Falling back to normal download.');
             try {
                 _anchorDownload();
-            } catch (err) {
+            }
+            catch (err) {
                 console.error('Fallback download failed:', err);
             }
         };
@@ -58,8 +55,6 @@ export function downloadBlob(blob, filename) {
     }
     _anchorDownload();
 }
-
-
 /**
  * Serialize data to JSON and trigger a download.
  * @param {unknown} data
@@ -74,14 +69,13 @@ export function downloadJson(data, filename) {
     let json;
     try {
         json = JSON.stringify(data, null, 2);
-    } catch (err) {
-        throw new Error(`Failed to serialize data to JSON: ${err?.message || String(err)}`);
+    }
+    catch (err) {
+        throw new Error(`Failed to serialize data to JSON: ${(err === null || err === void 0 ? void 0 : err.message) || String(err)}`);
     }
     const blob = new Blob([json], { type: 'application/json' });
     downloadBlob(blob, filename);
 }
-
-
 /**
  * Create a text blob and trigger a download.
  * @param {string} content
@@ -99,4 +93,3 @@ export function downloadText(content, filename, mime = 'text/plain') {
     const blob = new Blob([content], { type: mime });
     downloadBlob(blob, filename);
 }
-

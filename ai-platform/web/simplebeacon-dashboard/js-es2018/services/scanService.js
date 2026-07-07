@@ -267,12 +267,6 @@ export class ScanService {
             err.code = 'demo_readonly';
             throw err;
         }
-        const scanType = String(options.scanType || 'complete').toLowerCase();
-        if (!authService.canRunScan(scanType)) {
-            const err = new Error('This scan type requires a paid license. View pricing to upgrade.');
-            err.code = 'subscription_required';
-            throw err;
-        }
         const res = await fetchSimplebeacon(`${simplebeaconApiBase()}/scan`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -310,11 +304,6 @@ export class ScanService {
         };
     }
     async exportReport(report = this.report) {
-        if (!authService.canExport()) {
-            const err = new Error('Exporting reports requires a paid license. View pricing to upgrade.');
-            err.code = 'subscription_required';
-            throw err;
-        }
         let data = report;
         if (!data) {
             const res = await fetchSimplebeacon(`${simplebeaconApiBase()}/report`);

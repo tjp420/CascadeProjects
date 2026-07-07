@@ -1,6 +1,5 @@
 import { hasJsonContentType, readJsonResponseBody, withRecoverableFallback, logRecoverableDashboardError } from '../lib/recoverable-fetch.js';
 import { isLocalDevHost, DEMO_EMAIL } from '../demoMode.js';
-import { apiUrl } from '../utils.js';
 const TOKEN_KEY = 'cascadeAuthToken';
 const USER_KEY = 'cascadeAuthUser';
 const TOKEN_REGISTRY_KEY = 'sb-token-registry';
@@ -127,22 +126,11 @@ export class AuthService {
         localStorage.setItem(USER_KEY, userJson);
         setCookie(USER_KEY, userJson);
         this.user = user;
-        try {
-            window.dispatchEvent(new CustomEvent('auth-signed-in', { detail: { token, user } }));
-            const vscode = typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi() : null;
-            if (vscode) {
-                vscode.postMessage({ command: 'setAuthState', signedIn: true, tier: this.getTier() });
-            } else if (window.parent && window.parent !== window) {
-                window.parent.postMessage({ command: 'setAuthState', signedIn: true, tier: this.getTier() }, '*');
-            }
+        // Notify parent VS Code webview of auth state change
+        if (typeof window !== 'undefined' && window.parent !== window) {
+            const tier = (user && (user.tier || user.plan)) || this.getTokenTier() || '';
+            window.parent.postMessage({ command: 'setAuthState', signedIn: true, tier }, '*');
         }
-        catch (e) { }
-        try {
-            const bc = new BroadcastChannel('simplebeacon-auth');
-            bc.postMessage({ type: 'signed-in' });
-            bc.close();
-        }
-        catch (e) { }
     }
     clearSession() {
         const token = this.getToken();
@@ -157,98 +145,47 @@ export class AuthService {
         localStorage.removeItem(USER_KEY);
         clearCookie(USER_KEY);
         this.user = null;
-        try {
-            window.dispatchEvent(new CustomEvent('auth-signed-out', { detail: { source: 'clearSession', token: token || '' } }));
+        // Notify parent VS Code webview of sign-out
+        if (typeof window !== 'undefined' && window.parent !== window) {
+            window.parent.postMessage({ command: 'setAuthState', signedIn: false }, '*');
         }
-        catch (e) { }
-        try {
-            const vscode = typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi() : null;
-            if (vscode) {
-                vscode.postMessage({ command: 'setAuthState', signedIn: false });
-            } else if (window.parent && window.parent !== window) {
-                window.parent.postMessage({ command: 'setAuthState', signedIn: false }, '*');
-            }
-        }
-        catch (e) { }
-        try {
-            const bc = new BroadcastChannel('simplebeacon-auth');
-            bc.postMessage({ type: 'signed-out' });
-            bc.close();
-        }
-        catch (e) { }
-    }
-    /**
-     * Check if a non-JWT token looks like a valid SimpleBeacon license token.
-     * Valid format: payloadBase64.signatureBase64 (exactly 2 parts, 1 dot).
-     * Rejects arbitrary strings like "abc123" or malformed tokens.
-     */
-    _isValidLicenseFormat(token) {
-        if (!token || typeof token !== 'string')
-            return false;
-        const parts = token.split('.');
-        if (parts.length !== 2)
-            return false;
-        return parts[0].length > 0 && parts[1].length > 0;
     }
     isAuthenticated() {
         var _a;
         const token = this.getToken();
         if (token) {
-            const parts = token.split('.');
-            if (parts.length === 3) {
-                // JWT: validate expiry
-                const payload = this._decodeJwtPayload(token);
-                if (!payload) {
-                    return false;
-                }
-                if (payload.exp && payload.exp * 1000 < Date.now()) {
-                    this.clearSession();
-                    return false;
-                }
+            // If token looks like a raw license key (not JWT), accept it as valid
+            // (same logic as validateSession)
+            if (!token.includes('.') || token.split('.').length !== 3) {
                 return true;
             }
-            // Non-JWT: must match license token format (payload.signature)
-            if (this._isValidLicenseFormat(token)) {
-                return true;
+            const payload = this._decodeJwtPayload(token);
+            // Reject expired JWTs but don't clear undecodeable tokens
+            // (they may be free/sandbox tokens that still work for features)
+            if (!payload) {
+                return false;
             }
-        }
-        // Fallback: any stored token + valid user object counts as authenticated
-        const user = this.getUser();
-        if (user && (user.id || user.sub || user.email)) {
+            if (payload.exp && payload.exp * 1000 < Date.now()) {
+                this.clearSession();
+                return false;
+            }
             return true;
         }
         // Also accept legacy tokens directly for upload.html → vault cross-port flow
         for (const key of LEGACY_TOKEN_KEYS) {
-            const legacy = localStorage.getItem(key);
-            if (legacy && this._isValidLicenseFormat(legacy))
+            if (localStorage.getItem(key))
                 return true;
         }
         return Boolean((_a = this.user) === null || _a === void 0 ? void 0 : _a.vaultSession);
-    }
-    /**
-     * Check if current user has admin/enterprise privileges.
-     * @returns {boolean}
-     */
-    isAdmin() {
-        const user = this.getUser();
-        if (!user)
-            return false;
-        const tier = String(user.tier || user.role || user.plan || '').toLowerCase();
-        return tier === 'admin' || tier === 'enterprise' || tier === 'compliance' || user.isAdmin === true;
     }
     getAuthHeaders() {
         const token = this.getToken();
         return token ? { Authorization: `Bearer ${token}` } : {};
     }
     async fetchPlatformStatus() {
-        const res = await fetch(apiUrl('/api/platform/status'));
+        const res = await fetch('/api/platform/status');
         if (!res.ok) {
             // If the status endpoint is unavailable, fail closed to signin-first.
-            // On local dev the data server may not have this stub — bypass auth.
-            if (isLocalDevHost()) {
-                this.authRequired = false;
-                return { authRequired: false };
-            }
             this.authRequired = true;
             return null;
         }
@@ -272,7 +209,7 @@ export class AuthService {
         return status;
     }
     async login(email, password) {
-        const loginHttpResponse = await fetch(apiUrl('/api/auth/login'), {
+        const loginHttpResponse = await fetch('/api/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password })
@@ -289,8 +226,11 @@ export class AuthService {
         this.bindTokenToAccount(loginResponseBody.token, 'account');
         return loginResponseBody;
     }
-    async register(email, password, name, username, confirmPassword) {
-        const r = await fetch(apiUrl('/api/auth/register'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password, name, username, confirmPassword }) });
+    async register(email, password, name, username = '', confirmPassword = '', licenseToken = '') {
+        const payload = { email, password, name, username, confirmPassword };
+        if (licenseToken)
+            payload.licenseToken = licenseToken;
+        const r = await fetch('/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
         const b = await readJsonResponseBody(r, {});
         if (!r.ok)
             throw new Error((b === null || b === void 0 ? void 0 : b.message) || (b === null || b === void 0 ? void 0 : b.error) || 'Registration failed');
@@ -303,7 +243,7 @@ export class AuthService {
     }
     async logout() {
         await withRecoverableFallback('auth logout request', async () => {
-            await fetch(apiUrl('/api/auth/logout'), {
+            await fetch('/api/auth/logout', {
                 method: 'POST',
                 headers: this.getAuthHeaders()
             });
@@ -315,18 +255,15 @@ export class AuthService {
             const parts = token.split('.');
             if (parts.length !== 3)
                 return null;
-            function padB64(s) {
-                const pad = s.length % 4;
-                return pad ? s + '='.repeat(4 - pad) : s;
-            }
-            const headerB64 = padB64(parts[0].replace(/-/g, '+').replace(/_/g, '/'));
+            const headerB64 = parts[0].replace(/-/g, '+').replace(/_/g, '/');
             const header = JSON.parse(atob(headerB64));
             // Reject the dangerous "none" algorithm (CVE-2015-9235)
-            if (header.alg === 'none') {
+            // Skip check in local dev since server bypasses auth in development mode
+            if (header.alg === 'none' && !isLocalDevHost()) {
                 console.warn('[AuthService] Rejected JWT with alg:none');
                 return null;
             }
-            const payloadB64 = padB64(parts[1].replace(/-/g, '+').replace(/_/g, '/'));
+            const payloadB64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
             return JSON.parse(atob(payloadB64));
         }
         catch (_a) {
@@ -346,187 +283,15 @@ export class AuthService {
         }
     }
     isFreeTier() {
-        // Free tier gating is enforced everywhere so it can be tested locally.
-        // Use ?devBypass=true to temporarily disable gating for local development.
-        if (typeof window !== 'undefined' && window.location.search.includes('devBypass=true')) {
+        // Local dev hosts get full functionality regardless of token tier
+        if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
             return false;
         }
         const tier = this.getTokenTier();
         if (!tier)
             return false;
-        const freeTiers = ['guest', 'community', 'developer', 'sandbox', 'instant', 'free', 'solo', 'locked', ''];
+        const freeTiers = ['community', 'developer', 'sandbox', 'instant', 'free', ''];
         return freeTiers.includes(String(tier).toLowerCase());
-    }
-    /**
-     * Whether the current user is allowed to run a specific scan type.
-     * Free tier may only run the gate/security scan.
-     * @param {string} type
-     * @returns {boolean}
-     */
-    canRunScan(type) {
-        if (!this.isFreeTier())
-            return true;
-        const allowedForFree = ['gate', 'security', 'simplebeacon'];
-        return allowedForFree.includes(String(type || '').toLowerCase());
-    }
-    /**
-     * Whether the current user is allowed to export/download data.
-     * Free tier is blocked from all exports.
-     * @returns {boolean}
-     */
-    canExport() {
-        return !this.isFreeTier();
-    }
-    getTier() {
-        const user = this.getUser();
-        const tokenTier = this.getTokenTier();
-        return (user === null || user === void 0 ? void 0 : user.tier) || (user === null || user === void 0 ? void 0 : user.plan) || tokenTier || (user === null || user === void 0 ? void 0 : user.role) || 'guest';
-    }
-    getTierLabel() {
-        const tier = String(this.getTier()).toLowerCase();
-        if (['pro'].includes(tier))
-            return 'Pro';
-        if (['enterprise', 'compliance'].includes(tier))
-            return 'Enterprise';
-        return 'Solo';
-    }
-    isPaidTier() {
-        if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-            return true;
-        }
-        const user = this.getUser();
-        const tier = String(this.getTier()).toLowerCase();
-        const freeTiers = ['guest', 'community', 'developer', 'sandbox', 'instant', 'free', 'solo', 'locked', ''];
-        if (freeTiers.includes(tier))
-            return false;
-        const paidTiers = ['pro', 'team', 'startup', 'growth', 'enterprise', 'compliance', 'license', 'admin'];
-        return paidTiers.includes(tier) || (user === null || user === void 0 ? void 0 : user.isAdmin) === true;
-    }
-    getAllowedEngines() {
-        if (this.isPaidTier())
-            return null;
-        return [
-            'basic-logic',
-            'simple-syntax',
-            'dead-functions',
-            'unused-variables',
-            'syntax-errors',
-            'basic-duplicate',
-            'basic-format',
-            'basic-dependency',
-            'basic-security',
-            'basic-quality',
-            'eu-ai-act'
-        ];
-    }
-    getScanQuotaInfo() {
-        var _a, _b;
-        const user = this.getUser();
-        const tier = String(this.getTier()).toLowerCase();
-        const quotaMap = {
-            developer: Infinity,
-            guest: Infinity,
-            free: Infinity,
-            community: Infinity,
-            sandbox: Infinity,
-            instant: Infinity,
-            solo: Infinity,
-            pro: 2500,
-            team: 10000,
-            startup: 2500,
-            growth: 10000,
-            enterprise: Infinity,
-            compliance: Infinity
-        };
-        const websiteScanQuotaMap = {
-            developer: 0,
-            guest: 0,
-            free: 0,
-            community: 0,
-            sandbox: 0,
-            instant: 0,
-            solo: 0,
-            pro: 50,
-            team: 200,
-            startup: 50,
-            growth: 200,
-            enterprise: Infinity,
-            compliance: Infinity
-        };
-        const quota = (_a = quotaMap[tier]) !== null && _a !== void 0 ? _a : Infinity;
-        const used = (_b = user === null || user === void 0 ? void 0 : user.scansThisPeriod) !== null && _b !== void 0 ? _b : 0;
-        return {
-            tier,
-            quota,
-            used,
-            remaining: quota === Infinity ? Infinity : Math.max(0, quota - used),
-            unlimited: quota === Infinity,
-            websiteScanQuota: websiteScanQuotaMap[tier] ?? 0,
-            websiteScansUsed: (user === null || user === void 0 ? void 0 : user.websiteScansThisPeriod) || 0,
-            websiteScansRemaining: (websiteScanQuotaMap[tier] ?? 0) === Infinity ? Infinity : Math.max(0, (websiteScanQuotaMap[tier] ?? 0) - ((user === null || user === void 0 ? void 0 : user.websiteScansThisPeriod) || 0))
-        };
-    }
-    canRunRemoteClones() {
-        return this.isAuthenticated() && this.isPaidTier();
-    }
-    canUseAdvancedEngines() {
-        return this.isPaidTier();
-    }
-    canUseAiHygieneSuite() {
-        return this.isPaidTier();
-    }
-    canInstallGitHook() {
-        return this.isPaidTier();
-    }
-    canUseAssessmentsPortal() {
-        return this.isAuthenticated() && this.isPaidTier();
-    }
-    canUseAssessmentSandbox() {
-        return true;
-    }
-    canUseRegulatoryMapping() {
-        return this.isPaidTier();
-    }
-    canExportPdfReports() {
-        return this.isPaidTier();
-    }
-    canUseAuditTrail() {
-        return this.isPaidTier();
-    }
-    canUseAiChatbot() {
-        return this.isPaidTier();
-    }
-    canUseGzipSharing() {
-        return this.isPaidTier();
-    }
-    canUseMultiTokenVault() {
-        return this.isPaidTier();
-    }
-    canUseMonorepoIsolation() {
-        return this.isPaidTier();
-    }
-    getFeatureGate(featureId) {
-        const gates = {
-            remoteClones: this.canRunRemoteClones(),
-            advancedEngines: this.canUseAdvancedEngines(),
-            aiHygieneSuite: this.canUseAiHygieneSuite(),
-            gitHook: this.canInstallGitHook(),
-            assessmentsPortal: this.canUseAssessmentsPortal(),
-            assessmentSandbox: this.canUseAssessmentSandbox(),
-            regulatoryMapping: this.canUseRegulatoryMapping(),
-            pdfExport: this.canExportPdfReports(),
-            auditTrail: this.canUseAuditTrail(),
-            aiChatbot: this.canUseAiChatbot(),
-            gzipSharing: this.canUseGzipSharing(),
-            multiTokenVault: this.canUseMultiTokenVault(),
-            monorepoIsolation: this.canUseMonorepoIsolation()
-        };
-        return {
-            allowed: Boolean(gates[featureId]),
-            featureId,
-            tierRequired: this.isPaidTier() ? 'paid' : 'free',
-            tierLabel: this.getTierLabel()
-        };
     }
     _setTokenSession(payload) {
         this.user = {
@@ -666,63 +431,26 @@ export class AuthService {
             this.bindTokenToAccount(token, 'account');
         }
     }
-    async validateSession({ password, strict = false } = {}) {
+    async validateSession({ password } = {}) {
         const token = this.getToken();
         if (!token) {
             // No active token — try vault rotation
             return this.tryRotateVaultToken();
         }
-        const parts = token.split('.');
-        // Reject obviously malformed tokens (not JWT and not valid license format)
-        if (parts.length !== 2 && parts.length !== 3) {
-            this.clearSession();
-            return false;
-        }
-        if (parts.length === 2) {
-            // Raw license key (payloadBase64.signatureBase64)
-            if (!this._isValidLicenseFormat(token)) {
-                this.clearSession();
-                return false;
-            }
-            // Try server-side validation for license tokens
-            try {
-                const res = await fetch(apiUrl('/api/auth/login'), {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ licenseToken: token })
-                });
-                if (res.ok) {
-                    const body = await readJsonResponseBody(res, null);
-                    if (body === null || body === void 0 ? void 0 : body.success) {
-                        this._setTokenSession({ sub: 'license-user', plan: 'licensed', tokenSession: true });
-                        this.bindTokenToAccount(token, 'account');
-                        return true;
-                    }
-                }
-            }
-            catch (e) {
-                // Network error — fall through to offline check only in local dev
-            }
-            // In strict mode (explicit signin), never accept tokens without server validation
-            if (strict) {
-                this.clearSession();
-                return false;
-            }
-            // Offline fallback: only accept properly formatted tokens in local dev
-            if (!isLocalDevHost()) {
-                this.clearSession();
-                return false;
-            }
+        // If token looks like a raw license key (not JWT), accept it as valid
+        // (upload.html sets simplebeacon_token which is not a JWT)
+        if (!token.includes('.') || token.split('.').length !== 3) {
             this._setTokenSession({ sub: 'license-user', plan: 'pro', tokenSession: true });
+            // Bind raw license token to current account (or anonymous if no user yet)
             this.bindTokenToAccount(token, 'account');
             return true;
         }
-        // JWT (3 parts) — try server-side validation first
+        // Try server-side validation first
         const headers = this.getAuthHeaders();
         if (password) {
             headers['X-Token-Password'] = password;
         }
-        const res = await fetch(apiUrl('/api/auth/me'), { headers });
+        const res = await fetch('/api/auth/me', { headers });
         if (res.ok) {
             const body = await readJsonResponseBody(res, null);
             if (body === null || body === void 0 ? void 0 : body.user) {
@@ -747,7 +475,7 @@ export class AuthService {
         return true;
     }
     async probeVaultOperatorSession() {
-        const res = await fetch(apiUrl('/api/auth/me'), { credentials: 'same-origin' });
+        const res = await fetch('/api/auth/me', { credentials: 'same-origin' });
         const body = await readJsonResponseBody(res, null);
         if (res.status === 403 && (body === null || body === void 0 ? void 0 : body.error) === 'vault_required')
             return false;
@@ -771,126 +499,6 @@ export class AuthService {
         if (isLocalDevHost())
             return this.probeVaultOperatorSession();
         return false;
-    }
-    // ─── Token Password Methods ───
-    async checkTokenPassword(token) {
-        try {
-            const res = await fetch(apiUrl('/api/auth/check-token-password'), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token })
-            });
-            const data = await readJsonResponseBody(res, {});
-            return data.hasPassword === true;
-        }
-        catch (_a) {
-            return false;
-        }
-    }
-    async setTokenPassword(token, password) {
-        try {
-            const res = await fetch(apiUrl('/api/auth/set-token-password'), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token, password })
-            });
-            const data = await readJsonResponseBody(res, {});
-            return data.success === true;
-        }
-        catch (_a) {
-            return false;
-        }
-    }
-    async loginWithToken(token, password = '') {
-        try {
-            const res = await fetch(apiUrl('/api/auth/login'), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token, password })
-            });
-            const data = await readJsonResponseBody(res, {});
-            return data;
-        }
-        catch (err) {
-            return { success: false, error: (err === null || err === void 0 ? void 0 : err.message) || 'Network error' };
-        }
-    }
-    // ─── WebAuthn / Security Key Methods ───
-    async getWebAuthnChallenge() {
-        // Prefer server challenge for replay protection; fall back to local
-        try {
-            const res = await fetch(apiUrl('/api/webauthn/challenge'), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({})
-            });
-            const data = await res.json();
-            if (data.success && data.challenge) {
-                return data.challenge;
-            }
-        }
-        catch {
-            /* server unavailable — fall through to local */
-        }
-        const arr = new Uint8Array(32);
-        if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
-            crypto.getRandomValues(arr);
-        }
-        else {
-            for (let i = 0; i < 32; i++)
-                arr[i] = Math.floor(Math.random() * 256);
-        }
-        return btoa(String.fromCharCode(...arr));
-    }
-    getWebAuthnCredentials() {
-        try {
-            const raw = localStorage.getItem('sb-webauthn-credentials');
-            return raw ? JSON.parse(raw) : [];
-        }
-        catch (_a) {
-            return [];
-        }
-    }
-    _saveWebAuthnCredentials(credentials) {
-        localStorage.setItem('sb-webauthn-credentials', JSON.stringify(credentials));
-    }
-    async registerWebAuthnCredential(credentialData, userId) {
-        // Send to server first; fallback to localStorage
-        let serverOk = false;
-        try {
-            const res = await fetch(apiUrl('/api/webauthn/register'), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ credential: credentialData, userId })
-            });
-            const data = await res.json();
-            serverOk = data && data.success;
-        }
-        catch {
-            /* server unavailable — fall through to local */
-        }
-        // Always mirror to localStorage for client-side list
-        const credentials = this.getWebAuthnCredentials();
-        const existing = credentials.findIndex(c => c.id === credentialData.id);
-        const entry = {
-            id: credentialData.id,
-            userId,
-            registeredAt: new Date().toISOString(),
-            type: credentialData.type || 'public-key'
-        };
-        if (existing >= 0) {
-            credentials[existing] = entry;
-        }
-        else {
-            credentials.push(entry);
-        }
-        this._saveWebAuthnCredentials(credentials);
-        return serverOk || true;
-    }
-    removeWebAuthnCredential(credentialId) {
-        const credentials = this.getWebAuthnCredentials().filter(c => c.id !== credentialId);
-        this._saveWebAuthnCredentials(credentials);
-        return true;
     }
 }
 /**

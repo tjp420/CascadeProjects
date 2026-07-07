@@ -1,9 +1,16 @@
 /**
  * Local browser scan worker for the AI platform dashboard.
  * Scans files selected by the user on their own hardware — no data is sent to the server.
+ *
+ * This version streams large files through a Rust/WebAssembly chunk analyzer (with a
+ * pure-JS fallback) instead of loading the entire file into memory at once.
  */
 
+import { analyzeFileChunks, findingsToIssues } from './scan-wasm-bridge.js';
+
 const MAX_DISCOVERED_FILES = 500000;
+const LARGE_FILE_THRESHOLD = 5 * 1024 * 1024; // 5 MB
+const BINARY_EXTENSIONS = /\.(exe|dll|bin|so|dylib|wasm|zip|tar|gz|rar|7z|iso|img|dmg|pkg|deb|msi)$/i;
 
 const LANGUAGE_REGISTRY = {
   javascript: { extensions: ['js', 'cjs', 'mjs', 'ts', 'tsx', 'jsx'] },
@@ -131,6 +138,10 @@ function shouldSkipFile(path, deepScan) {
   return false;
 }
 
+function isBinaryOrLarge(path, size) {
+  return BINARY_EXTENSIONS.test(path) || size > LARGE_FILE_THRESHOLD;
+}
+
 function runAnalyzer(name, text, filePath) {
   const results = [];
   const reg = PATTERN_REGISTRY[name];
@@ -148,45 +159,73 @@ function runAnalyzer(name, text, filePath) {
   return results;
 }
 
+async function resolveFile(fileEntry) {
+  const fileObj = fileEntry.fileObj || fileEntry;
+  if (typeof fileObj.getFile === 'function') {
+    return fileObj.getFile();
+  }
+  return fileObj;
+}
+
+async function analyzeWithTextPatterns(file, filePath) {
+  const text = await file.text();
+  const fileLang = detectFileLanguage(filePath);
+  if (!fileLang) return [];
+  const analyzers = getAnalyzersForLanguage(fileLang);
+  const issues = [];
+  for (const name of analyzers) {
+    const results = runAnalyzer(name, text, filePath);
+    for (const r of results) {
+      for (const m of r.matches) {
+        issues.push({
+          severity: SEVERITY_MAP[name] || 'medium',
+          filePath: r.filePath,
+          rule: name,
+          line: m.line,
+          impact: `${r.count} ${name} finding(s) detected`,
+          fix: 'Review and remediate before next release.'
+        });
+      }
+    }
+  }
+  return issues;
+}
+
 async function scanFiles(files, deepScan) {
   const allResults = [];
   const issues = [];
   let processed = 0;
   let textErrors = 0;
+  let chunkAnalyzed = 0;
 
   for (const file of files) {
     if (shouldSkipFile(file.path, deepScan)) continue;
     try {
-      const fileObj = file.fileObj || file;
-      if (typeof fileObj.text !== 'function') {
+      const fileObj = await resolveFile(file);
+      if (!fileObj || typeof fileObj.slice !== 'function') {
         textErrors++;
         continue;
       }
-      const text = await fileObj.text();
-      const fileLang = detectFileLanguage(file.path);
-      if (!fileLang) {
-        processed++;
-        continue;
-      }
-      const analyzers = getAnalyzersForLanguage(fileLang);
-      for (const name of analyzers) {
-        const results = runAnalyzer(name, text, file.path);
-        if (results.length > 0) {
-          allResults.push(...results);
-          for (const r of results) {
-            for (const m of r.matches) {
-              issues.push({
-                severity: SEVERITY_MAP[name] || 'medium',
-                filePath: r.filePath,
-                rule: name,
-                line: m.line,
-                impact: `${r.count} ${name} finding(s) detected`,
-                fix: 'Review and remediate before next release.'
-              });
-            }
-          }
+
+      const size = fileObj.size || 0;
+      if (isBinaryOrLarge(file.path, size)) {
+        const results = await analyzeFileChunks(fileObj, file.path);
+        chunkAnalyzed += 1;
+        const chunkIssues = findingsToIssues(results, file.path);
+        if (chunkIssues.length > 0) {
+          issues.push(...chunkIssues);
+          allResults.push({
+            analyzer: 'chunkAnalyzer',
+            filePath: file.path,
+            matches: chunkIssues.map((i) => ({ line: i.line, snippet: i.impact })),
+            count: chunkIssues.length
+          });
         }
+      } else {
+        const textIssues = await analyzeWithTextPatterns(fileObj, file.path);
+        issues.push(...textIssues);
       }
+
       processed++;
       if (processed % 50 === 0) {
         self.postMessage({ type: 'progress', processed, total: files.length });
@@ -196,7 +235,7 @@ async function scanFiles(files, deepScan) {
     }
   }
   self.postMessage({ type: 'progress', processed, total: files.length });
-  return { processed, totalFiles: files.length, findings: allResults, issues, issueCount: issues.length };
+  return { processed, totalFiles: files.length, findings: allResults, issues, issueCount: issues.length, chunkAnalyzed };
 }
 
 self.onmessage = async (e) => {

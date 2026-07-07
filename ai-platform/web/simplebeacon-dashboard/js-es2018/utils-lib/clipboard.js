@@ -1,16 +1,15 @@
 /**
- * clipboard utilities.
+ * @module clipboard
  */
-
-
 /**
  * Copy text to clipboard. Returns a promise resolving to true on success.
  * @param {string} text
  * @returns {Promise<boolean>}
  */
 export async function copyToClipboard(text) {
-    const s = String(text ?? '');
-    if (!s) return false;
+    const s = String(text !== null && text !== void 0 ? text : '');
+    if (!s)
+        return false;
     try {
         if (typeof navigator !== 'undefined' && navigator.clipboard) {
             await navigator.clipboard.writeText(s);
@@ -27,9 +26,9 @@ export async function copyToClipboard(text) {
             ta.remove();
             return ok;
         }
-    } catch {
+    }
+    catch (_a) {
         // fall through
     }
     return false;
 }
-

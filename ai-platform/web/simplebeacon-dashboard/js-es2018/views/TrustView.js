@@ -1,5 +1,4 @@
-import { escapeHtml, formatNumber, redactPathForDisplay, showToast, dashboardApiBase } from '../utils.js';
-import { authService } from '../services/authService.js';
+import { escapeHtml, formatNumber, redactPathForDisplay, showToast } from '../utils.js';
 import { renderRepositoryHealthSection } from './RepositoryHealthView.js';
 /**
  * Normalize static trust payload.
@@ -70,7 +69,7 @@ function normalizeTrustApiPayload(data) {
  * @returns {any}
  */
 export async function fetchTrustVerification() {
-    const res = await fetch(`${dashboardApiBase()}/api/trust/verification`, { cache: 'no-store' });
+    const res = await fetch('/api/trust/verification', { cache: 'no-store' });
     const contentType = String(res.headers.get('content-type') || '').toLowerCase();
     if (!contentType.includes('application/json')) {
         const fallback = await fetchStaticTrustFallback();
@@ -231,8 +230,6 @@ export class TrustView {
         const disclaimers = (live === null || live === void 0 ? void 0 : live.disclaimers) || [];
         const methodology = (live === null || live === void 0 ? void 0 : live.methodology) || [];
         const fictionScope = (live === null || live === void 0 ? void 0 : live.fictionScope) || null;
-        const isFreeTier = authService.isFreeTier();
-        const apiBase = dashboardApiBase();
         return `
       <div class="analyze-hero">
         <h1 class="page-title">Trust Verification</h1>
@@ -242,11 +239,11 @@ export class TrustView {
       <div class="analyze-action-bar" style="position:static;margin:0 0 var(--space-4);">
         <div class="analyze-action-info"></div>
         <div class="flex gap-2">
-          <button class="btn btn-secondary btn-sm" id="trust-download-json" type="button" ${isFreeTier ? 'disabled' : ''} title="${isFreeTier ? 'Upgrade to download trust data' : ''}">
+          <button class="btn btn-secondary btn-sm" id="trust-download-json" type="button">
             <i data-lucide="download" class="icon-16"></i> Download JSON
           </button>
-          <a class="btn btn-ghost btn-sm" href="${escapeHtml(apiBase)}/api/trust/badge.svg" target="_blank" rel="noopener">Badge preview</a>
-          <a class="btn btn-ghost btn-sm" href="${escapeHtml(apiBase)}/api/trust/verify?format=html" target="_blank" rel="noopener">Verify page</a>
+          <a class="btn btn-ghost btn-sm" href="/api/trust/badge" target="_blank" rel="noopener">Badge preview</a>
+          <a class="btn btn-ghost btn-sm" href="/api/trust/verify?format=html" target="_blank" rel="noopener">Verify page</a>
           <button class="btn btn-ghost btn-sm" id="trust-send-ai-btn" type="button" title="Send trust verification data to AI coding agent">🤖 Send to AI Agent</button>
         </div>
       </div>
@@ -254,7 +251,7 @@ export class TrustView {
       ${staticHost ? `
         <div class="card mb-4" style="background:rgba(245,158,11,0.06);border-color:rgba(245,158,11,0.2);">
           <p class="text-muted" style="margin:0;font-size:var(--font-size-sm);">
-            Static-host preview: trust APIs require <code>npm run dashboard</code> locally or setting <code>localStorage.setItem('sb_api_host', 'http://localhost:54355')</code>.
+            Static-host preview: trust APIs require <code>npm run dashboard</code> locally.
           </p>
         </div>
       ` : ''}
@@ -324,7 +321,7 @@ export class TrustView {
 
         <div class="card">
           <h3 class="mb-2" style="font-size:var(--font-size-base);">Embed badge</h3>
-          <pre class="audit-log" style="margin:0;font-size:var(--font-size-xs);">&lt;img src="${escapeHtml(apiBase || window.location.origin)}/api/trust/badge.svg?raw=1" alt="Simplebeacon gate verification badge" width="320" height="72"&gt;</pre>
+          <pre class="audit-log" style="margin:0;font-size:var(--font-size-xs);">&lt;img src="${escapeHtml(window.location.origin)}/api/trust/badge.svg?raw=1" alt="Simplebeacon gate verification badge" width="320" height="72"&gt;</pre>
           <p class="text-muted mt-2 mb-0" style="font-size:var(--font-size-xs);">
             Refresh reports + publish: <code>npm run trust:refresh</code> (platform + monorepo scan with <code>--output</code>, then trust publish)
           </p>
@@ -333,10 +330,6 @@ export class TrustView {
     `;
     }
     downloadTrustData() {
-        if (!authService.canExport()) {
-            showToast('Trust data download requires a paid license. View pricing to upgrade.', 'info');
-            return;
-        }
         if (!this.data)
             return;
         const payload = {

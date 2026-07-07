@@ -909,7 +909,7 @@ export class SettingsView {
             id="settings-ai-ollama"
             type="url"
             spellcheck="false"
-            placeholder="http://host.docker.internal:11434"
+            placeholder="http://127.0.0.1:11434" <!-- simplebeacon-ignore hardcoded-url -->
             value="${escapeHtml(keys.ollamaBaseUrl || '')}">
         </div>
         <div class="settings-field settings-field-stack">
@@ -999,7 +999,7 @@ export class SettingsView {
     async testOllamaConnection(root, rerender) {
         var _a, _b, _c, _d;
         const payloadRoot = root || this._root;
-        const baseUrl = ((_b = (_a = payloadRoot === null || payloadRoot === void 0 ? void 0 : payloadRoot.querySelector('#settings-ai-ollama')) === null || _a === void 0 ? void 0 : _a.value) === null || _b === void 0 ? void 0 : _b.trim()) || 'http://127.0.0.1:11434'; // simplebeacon-ignore hardcoded-url — default Ollama URL shown in settings UI
+        const baseUrl = ((_b = (_a = payloadRoot === null || payloadRoot === void 0 ? void 0 : payloadRoot.querySelector('#settings-ai-ollama')) === null || _a === void 0 ? void 0 : _a.value) === null || _b === void 0 ? void 0 : _b.trim()) || 'http://127.0.0.1:11434';
         const model = ((_d = (_c = payloadRoot === null || payloadRoot === void 0 ? void 0 : payloadRoot.querySelector('#settings-ai-ollama-model')) === null || _c === void 0 ? void 0 : _c.value) === null || _d === void 0 ? void 0 : _d.trim()) || '';
         this.aiKeysBusy = 'test-ollama';
         this.updateAiKeysBusyUi();

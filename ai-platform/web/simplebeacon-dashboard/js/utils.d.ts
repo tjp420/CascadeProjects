@@ -225,7 +225,10 @@ export function tap<T>(value: T, fn: (value: T) => void): T;
 
 export function deepFreeze<T>(obj: T): T;
 export function getExportNames(): ReadonlyArray<string>;
+export const exportNames: typeof getExportNames;
+export function stringifySafe(value: any, fallback?: any): string | any;
 export function getNamespaceNames(): ReadonlyArray<string>;
+export function getBarrelMeta(): BarrelMeta;
 export function validateBarrelIntegrity(): IntegrityResult;
 export const __barrel__: BarrelMeta;
 
@@ -266,7 +269,7 @@ export namespace type {
 }
 
 export namespace inline {
-  export { compose, pipe, zipWith, curry, partial, tap, parseJsonSafe, parseResponseJson };
+  export { compose, pipe, zipWith, curry, partial, tap, parseJsonSafe, parseResponseJson, stringifySafe };
 }
 
 // ── Default export ───────────────────────────────────────────
@@ -283,7 +286,25 @@ declare const _default: Readonly<{
   dom: typeof dom;
   format: typeof format;
   type: typeof type;
+  accessibility: typeof accessibility;
+  clipboard: typeof clipboard;
+  crypto: typeof crypto;
+  download: typeof download;
+  fetch: typeof fetch;
+  fn: typeof fn;
+  path: typeof path;
+  privacy: typeof privacy;
+  vscode: typeof vscode;
+  event: typeof event;
+  polling: typeof polling;
   inline: typeof inline;
+  getExportNames: typeof getExportNames;
+  exportNames: typeof exportNames;
+  getNamespaceNames: typeof getNamespaceNames;
+  getBarrelMeta: typeof getBarrelMeta;
+  validateBarrelIntegrity: typeof validateBarrelIntegrity;
+  freezeNamespace: typeof freezeNamespace;
+  stringifySafe: typeof stringifySafe;
   __barrel__: BarrelMeta;
 }>;
 

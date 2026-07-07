@@ -1,5 +1,4 @@
 import { escapeHtml, formatNumber, showToast, renderEmptyState } from '../utils.js';
-import { authService } from '../services/authService.js';
 const SEVERITY_ORDER = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
 /**
  * Get remediation plan.
@@ -706,9 +705,6 @@ export class RemediationRoadmapView {
         const searchHits = this.searchQuery
             ? `<span class="text-muted" style="font-size:var(--font-size-xs);">Showing ${formatNumber(sorted.length)} of ${formatNumber(issues.length)} issues</span>`
             : '';
-        const isFreeTier = authService.isFreeTier();
-        const remediationExportDisabled = isFreeTier ? 'disabled' : '';
-        const remediationExportTitle = isFreeTier ? 'Upgrade to export remediation data' : '';
         return `
       ${this.renderProgressBar(stats.completed, stats.total)}
 
@@ -727,9 +723,9 @@ export class RemediationRoadmapView {
           </button>
           ${importBadge}
           ${searchHits}
-          <button class="btn btn-ghost btn-sm" id="export-remediation-markdown" ${remediationExportDisabled} title="${remediationExportTitle}" style="white-space:nowrap;">Copy Markdown</button>
-          <button class="btn btn-ghost btn-sm" id="export-remediation-summary" ${remediationExportDisabled} title="${remediationExportTitle}" style="white-space:nowrap;">Copy Summary</button>
-          <button class="btn btn-sm" id="export-remediation-json" ${remediationExportDisabled} title="${remediationExportTitle}" style="white-space:nowrap;">Export JSON</button>
+          <button class="btn btn-ghost btn-sm" id="export-remediation-markdown" style="white-space:nowrap;">Copy Markdown</button>
+          <button class="btn btn-ghost btn-sm" id="export-remediation-summary" style="white-space:nowrap;">Copy Summary</button>
+          <button class="btn btn-sm" id="export-remediation-json" style="white-space:nowrap;">Export JSON</button>
         </div>
       </div>
 
@@ -812,10 +808,6 @@ export class RemediationRoadmapView {
         });
         const exportBtn = el.querySelector('#export-remediation-json');
         exportBtn === null || exportBtn === void 0 ? void 0 : exportBtn.addEventListener('click', async () => {
-            if (!authService.canExport()) {
-                showToast('Exporting remediation data requires a paid license. View pricing to upgrade.', 'info');
-                return;
-            }
             await this.ensureReportFresh();
             this.exportToJson(this.getIssues());
         });
@@ -917,18 +909,10 @@ export class RemediationRoadmapView {
         });
         const markdownBtn = el.querySelector('#export-remediation-markdown');
         markdownBtn === null || markdownBtn === void 0 ? void 0 : markdownBtn.addEventListener('click', () => {
-            if (!authService.canExport()) {
-                showToast('Exporting remediation data requires a paid license. View pricing to upgrade.', 'info');
-                return;
-            }
             this.copyMarkdown(this.getIssues());
         });
         const summaryBtn = el.querySelector('#export-remediation-summary');
         summaryBtn === null || summaryBtn === void 0 ? void 0 : summaryBtn.addEventListener('click', () => {
-            if (!authService.canExport()) {
-                showToast('Exporting remediation data requires a paid license. View pricing to upgrade.', 'info');
-                return;
-            }
             this.copySummary(this.getIssues());
         });
     }

@@ -388,6 +388,9 @@ export class AuditView {
       </div>
     `;
         el.querySelectorAll('[data-action]').forEach((btn) => {
+            if (btn._sbHasListener)
+                return;
+            btn._sbHasListener = true;
             btn.addEventListener('click', () => {
                 if (btn.disabled)
                     return;

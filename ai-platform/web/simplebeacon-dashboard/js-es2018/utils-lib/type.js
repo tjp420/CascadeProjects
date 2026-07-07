@@ -134,18 +134,20 @@ export function parseJsonSafe(text, fallback = null) {
  * @param {any} fallback
  * @returns {Promise<any>}
  */
-export function parseResponseJson(res, fallback) {
-    fallback = fallback !== undefined ? fallback : null;
-    var contentType = String((res.headers && typeof res.headers.get === 'function' ? res.headers.get('content-type') : '') || '').toLowerCase();
-    if (!contentType.includes('application/json')) return Promise.resolve(fallback !== null ? fallback : {});
-    return res.text().then(function(text) {
-        if (!text) return fallback !== null ? fallback : {};
-        try {
-            return JSON.parse(text);
-        } catch (e) {
-            return fallback !== null ? fallback : {};
-        }
-    });
+export async function parseResponseJson(res, fallback = null) {
+    var _a;
+    const contentType = String(((_a = res.headers) === null || _a === void 0 ? void 0 : _a.get('content-type')) || '').toLowerCase();
+    if (!contentType.includes('application/json'))
+        return fallback !== null && fallback !== void 0 ? fallback : {};
+    const text = await res.text();
+    if (!text)
+        return fallback !== null && fallback !== void 0 ? fallback : {};
+    try {
+        return JSON.parse(text);
+    }
+    catch (_b) {
+        return fallback !== null && fallback !== void 0 ? fallback : {};
+    }
 }
 /**
  * Check whether the browser appears to be online.

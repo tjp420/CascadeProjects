@@ -1,4 +1,4 @@
-import { escapeHtml, formatNumber, redactPathForDisplay, showToast, dashboardApiBase } from '../utils.js';
+import { escapeHtml, formatNumber, redactPathForDisplay, showToast } from '../utils.js';
 import { authService } from '../services/authService.js';
 /**
  * Auth headers.
@@ -65,7 +65,7 @@ async function readJsonOrDefault(res, defaultValue = {}) {
  * @returns {any}
  */
 export async function fetchRepositoryHealth() {
-    const res = await fetch(`${dashboardApiBase()}/api/optimization/health`, { cache: 'no-store', headers: authHeaders() });
+    const res = await fetch('/api/optimization/health', { cache: 'no-store', headers: authHeaders() });
     if (!isJsonResponse(res)) {
         const fallback = await fetchStaticRepositoryHealthFallback();
         if (fallback)
@@ -217,8 +217,6 @@ export class RepositoryHealthView {
         const health = this.data;
         const headline = health === null || health === void 0 ? void 0 : health.headline;
         const staticHost = Boolean(health === null || health === void 0 ? void 0 : health.staticHost);
-        const isFreeTier = authService.isFreeTier();
-        const canRunOptimization = !isFreeTier && !this.scanning && !staticHost;
         return `
       <div class="analyze-hero">
         <h1 class="page-title">Repository Health</h1>
@@ -231,19 +229,19 @@ export class RepositoryHealthView {
             <span class="text-muted" style="font-size:var(--font-size-sm);">${headline ? `Score ${headline.repositoryHealthScore}/100` : 'No scan data'}</span>
           </div>
           <div class="flex gap-2">
-            <button type="button" class="btn btn-primary btn-sm" id="run-optimization-scan" ${canRunOptimization ? '' : 'disabled'} title="${isFreeTier ? 'Upgrade to run consolidation scans' : ''}">
+            <button type="button" class="btn btn-primary btn-sm" id="run-optimization-scan" ${this.scanning || staticHost ? 'disabled' : ''}>
               ${this.scanning ? 'Scanning…' : 'Run consolidation scan'}
             </button>
-            <a class="btn btn-secondary btn-sm" href="${dashboardApiBase()}/api/optimization/compliance?format=html" target="_blank" rel="noopener">Compliance report</a>
+            <a class="btn btn-secondary btn-sm" href="/api/optimization/compliance?format=html" target="_blank" rel="noopener">Compliance report</a>
             <a class="btn btn-ghost btn-sm" href="/dashboard/trust">Trust dashboard</a>
-            <button type="button" class="btn btn-ghost btn-sm" id="send-health-ai-btn" ${isFreeTier ? 'disabled' : ''} title="${isFreeTier ? 'Upgrade to send health data to AI' : 'Send repository health data to AI coding agent'}">🤖 Send to AI Agent</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="send-health-ai-btn" title="Send repository health data to AI coding agent">🤖 Send to AI Agent</button>
           </div>
         </div>
 
         ${staticHost ? `
           <div class="card mb-4" style="background:rgba(245,158,11,0.06);border-color:rgba(245,158,11,0.2);">
             <p class="text-muted" style="margin:0;font-size:var(--font-size-sm);">
-              Static-host preview: optimization APIs require <code>npm run dashboard</code> locally or setting <code>localStorage.setItem('sb_api_host', 'http://localhost:54355')</code>.
+              Static-host preview: optimization APIs require <code>npm run dashboard</code> locally.
             </p>
           </div>
         ` : ''}
@@ -286,7 +284,7 @@ export class RepositoryHealthView {
                 <div class="consolidation-card card">
                   <div class="consolidation-meta">${escapeHtml(item.mergeType || 'candidate')} · ${escapeHtml(item.savingsLabel || '—')} savings</div>
                   <p><code>${escapeHtml((item.files || []).map((f) => f.path).join(' ↔ ') || '—')}</code></p>
-                  <button type="button" class="btn btn-secondary btn-sm preview-merge-btn" data-candidate-id="${escapeHtml(item.id || '')}" ${(this.previewLoading && this.previewCandidateId === item.id) || isFreeTier ? 'disabled' : ''} title="${isFreeTier ? 'Upgrade to preview merges' : ''}">
+                  <button type="button" class="btn btn-secondary btn-sm preview-merge-btn" data-candidate-id="${escapeHtml(item.id || '')}" ${this.previewLoading && this.previewCandidateId === item.id ? 'disabled' : ''}>
                     ${this.previewLoading && this.previewCandidateId === item.id ? 'Previewing…' : 'Preview merge'}
                   </button>
                 </div>
@@ -311,7 +309,7 @@ export class RepositoryHealthView {
             ` : ''}
             ${this.preview.safeToExecute ? `
               <div class="flex gap-2 mt-2">
-                <button type="button" class="btn btn-danger btn-sm" id="quarantine-merge-btn" ${isFreeTier ? 'disabled' : ''} title="${isFreeTier ? 'Upgrade to quarantine duplicates' : ''}">Quarantine duplicates</button>
+                <button type="button" class="btn btn-danger btn-sm" id="quarantine-merge-btn">Quarantine duplicates</button>
                 <span class="text-muted text-sm" style="align-self:center;">Requires phrase: <code>${escapeHtml(this.preview.confirmationPhrase || '')}</code></span>
               </div>
             ` : ''}
@@ -353,7 +351,7 @@ export class RepositoryHealthView {
          */
         const fetchList = async (projectPath) => {
             const params = projectPath ? `?projectPath=${encodeURIComponent(projectPath)}` : '';
-            const candRes = await fetch(`${dashboardApiBase()}/api/optimization/candidates${params}`, { cache: 'no-store', headers: authHeaders() });
+            const candRes = await fetch(`/api/optimization/candidates${params}`, { cache: 'no-store', headers: authHeaders() });
             const candData = await readJsonOrDefault(candRes, {});
             return candData.success ? (candData.candidates || []) : [];
         };
@@ -428,7 +426,7 @@ export class RepositoryHealthView {
         if (this._root)
             this.paint(this._root);
         try {
-            const res = await fetch(`${dashboardApiBase()}/api/optimization/merge-preview`, {
+            const res = await fetch('/api/optimization/merge-preview', {
                 method: 'POST',
                 headers: authHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({
@@ -474,14 +472,10 @@ export class RepositoryHealthView {
         (_a = container.querySelector('#run-optimization-scan')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', async () => {
             if (this.scanning)
                 return;
-            if (!authService.canRunScan('consolidation')) {
-                showToast('Consolidation scans require a paid license. View pricing to upgrade.', 'info');
-                return;
-            }
             this.scanning = true;
             this.paint(container);
             try {
-                const res = await fetch(`${dashboardApiBase()}/api/optimization/analyze`, {
+                const res = await fetch('/api/optimization/analyze', {
                     method: 'POST',
                     headers: authHeaders({ 'Content-Type': 'application/json' }),
                     body: JSON.stringify({ projectPath: this.app.state.lastProjectPath || '' })
@@ -512,7 +506,7 @@ export class RepositoryHealthView {
                 btn.textContent = 'Quarantining…';
             }
             try {
-                const res = await fetch(`${dashboardApiBase()}/api/optimization/merge-execute`, {
+                const res = await fetch('/api/optimization/merge-execute', {
                     method: 'POST',
                     headers: authHeaders({ 'Content-Type': 'application/json' }),
                     body: JSON.stringify({

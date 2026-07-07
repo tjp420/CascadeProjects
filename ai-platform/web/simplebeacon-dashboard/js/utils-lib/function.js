@@ -156,19 +156,21 @@ export function deepFreeze(obj) {
   const ctor = obj.constructor;
   if (ctor === Date || ctor === RegExp || ctor === WeakMap || ctor === WeakSet) return obj;
   if (ctor === Map) {
-    const frozenMap = new Map();
-    for (const [k, v] of obj) frozenMap.set(k, deepFreeze(v));
-    return Object.freeze(frozenMap);
+    for (const [k, v] of obj) obj.set(k, deepFreeze(v));
+    return Object.freeze(obj);
   }
   if (ctor === Set) {
-    const frozenSet = new Set();
-    for (const v of obj) frozenSet.add(deepFreeze(v));
-    return Object.freeze(frozenSet);
+    const values = Array.from(obj);
+    obj.clear();
+    for (const v of values) obj.add(deepFreeze(v));
+    return Object.freeze(obj);
   }
-  const frozenObj = {};
+  try { Object.freeze(obj); } catch { return obj; }
   for (const key of Object.keys(obj)) {
-    frozenObj[key] = deepFreeze(obj[key]);
+    const value = obj[key];
+    if (value && typeof value === 'object' && !Object.isFrozen(value)) {
+      deepFreeze(value);
+    }
   }
-  try { Object.freeze(frozenObj); } catch { return obj; }
-  return frozenObj;
+  return obj;
 }

@@ -90,7 +90,10 @@ export class SignInView {
         const { allowed, plan } = entitlement;
         const internalDev = Boolean(plan === null || plan === void 0 ? void 0 : plan.internalDashboard);
         // If already signed in and allowed, redirect to dashboard instead of showing "already signed in" card
-        if (authed && allowed) {
+        // Skip redirect when opened from VS Code extension signin panel (?force=1)
+        const urlParams = new URLSearchParams(window.location.search);
+        const forceSignin = urlParams.get('force') === '1';
+        if (!forceSignin && authed && allowed) {
             this.app.navigate('dashboard');
             return;
         }
@@ -109,11 +112,11 @@ export class SignInView {
         if (!authed) {
             this.bindEmailModeToggle(container);
             (_b = container.querySelector('#signin-email-form')) === null || _b === void 0 ? void 0 : _b.addEventListener('submit', (e) => this.handleEmailSubmit(e));
-            (_d = container.querySelector('#forgot-password-btn')) === null || _d === void 0 ? void 0 : _d.addEventListener('click', () => this._showRecoveryModal());
-            (_e = container.querySelector('#webauthn-signin-btn')) === null || _e === void 0 ? void 0 : _e.addEventListener('click', () => this._handleWebAuthnSignIn());
+            (_c = container.querySelector('#forgot-password-btn')) === null || _c === void 0 ? void 0 : _c.addEventListener('click', () => this._showRecoveryModal());
+            (_d = container.querySelector('#webauthn-signin-btn')) === null || _d === void 0 ? void 0 : _d.addEventListener('click', () => this._handleWebAuthnSignIn());
         }
         else {
-            (_c = container.querySelector('#signin-signout-btn')) === null || _c === void 0 ? void 0 : _c.addEventListener('click', async () => {
+            (_e = container.querySelector('#signin-signout-btn')) === null || _e === void 0 ? void 0 : _e.addEventListener('click', async () => {
                 try {
                     await authService.logout();
                     showToast('Signed out', 'info');
@@ -267,9 +270,9 @@ export class SignInView {
     _showRecoveryModal() {
         const overlay = document.createElement('div');
         overlay.id = 'recovery-modal-overlay';
-        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;';
+        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);z-index:9999;display:flex;align-items:center;justify-content:center;';
         overlay.innerHTML = `
-      <div style="background:var(--bg-card);padding:28px 32px;border-radius:14px;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);border:1px solid var(--border);">
+      <div style="position:relative;z-index:1;background:var(--bg-card);padding:28px 32px;border-radius:14px;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);border:1px solid var(--border);">
         <h3 style="margin:0 0 8px;font-size:1.15rem;color:var(--text-main);">&#128273; Account Recovery</h3>
         <p style="margin:0 0 18px;font-size:0.85rem;color:var(--text-muted);line-height:1.5;">Enter your email address and we'll send you instructions to reset your password.</p>
         <label style="display:block;font-size:0.78rem;color:var(--text-muted);margin-bottom:6px;">Email</label>
@@ -290,7 +293,8 @@ export class SignInView {
         const submitBtn = overlay.querySelector('#recovery-submit');
         const closeModal = () => overlay.remove();
         cancelBtn.addEventListener('click', closeModal);
-        overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
+        overlay.addEventListener('click', (e) => { if (e.target === overlay)
+            closeModal(); });
         submitBtn.addEventListener('click', async () => {
             const email = emailInput.value.trim();
             errorEl.style.display = 'none';
@@ -309,14 +313,17 @@ export class SignInView {
                     successEl.textContent = 'Check your email for recovery instructions.';
                     successEl.style.display = 'block';
                     setTimeout(closeModal, 3000);
-                } else {
+                }
+                else {
                     errorEl.textContent = data.error || 'Failed to send recovery email.';
                     errorEl.style.display = 'block';
                 }
-            } catch (err) {
+            }
+            catch (err) {
                 errorEl.textContent = 'Network error. Please try again.';
                 errorEl.style.display = 'block';
-            } finally {
+            }
+            finally {
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Send Instructions';
             }
@@ -324,63 +331,11 @@ export class SignInView {
         emailInput.focus();
     }
     async _handleWebAuthnSignIn() {
-        var _a, _b;
         if (!window.PublicKeyCredential) {
             showToast('Security key login is not supported in this browser.', 'error');
             return;
         }
-        const credentials = authService.getWebAuthnCredentials();
-        if (!credentials.length) {
-            showToast('No registered security key. Register one in Profile > Security.', 'error');
-            return;
-        }
-        try {
-            const challengeBase64 = await authService.getWebAuthnChallenge();
-            const challenge = base64UrlToBuffer(challengeBase64);
-            const allowCredentials = credentials.map(c => ({
-                id: base64UrlToBuffer(c.id),
-                type: c.type || 'public-key'
-            }));
-            const publicKey = {
-                challenge,
-                allowCredentials,
-                timeout: 60000,
-                userVerification: 'preferred',
-                rpId: window.location.hostname
-            };
-            showToast('Touch your security key to continue…', 'info');
-            const assertion = await navigator.credentials.get({ publicKey });
-            if (!assertion || !assertion.id) {
-                showToast('Security key authentication failed.', 'error');
-                return;
-            }
-            const matched = credentials.find(c => c.id === assertion.id);
-            if (!matched) {
-                showToast('Unrecognized security key.', 'error');
-                return;
-            }
-            const user = authService.getUser();
-            const email = (user === null || user === void 0 ? void 0 : user.email) || matched.userId || decodeEmailFromToken(authService.getToken()) || '';
-            if (!authService.isAuthenticated() && !email) {
-                showToast('Security key recognized, but no account session found. Sign in with email/token first.', 'error');
-                return;
-            }
-            showToast('Security key authenticated successfully.', 'success');
-            if (!authService.isAuthenticated()) {
-                const existingUser = authService.getUser();
-                const restoredUser = existingUser || { email: email || 'security-key-user', plan: 'community', tokenSession: true };
-                authService.setSession(authService.getToken() || '', restoredUser);
-            }
-            this.app.updateAuthUi();
-            (_b = (_a = this.app).bootstrapAfterAuth) === null || _b === void 0 ? void 0 : _b.call(_a);
-            this.app.navigate('dashboard');
-        }
-        catch (err) {
-            const message = (err === null || err === void 0 ? void 0 : err.name) === 'NotAllowedError'
-                ? 'Security key sign-in was cancelled or not allowed.'
-                : ((err === null || err === void 0 ? void 0 : err.message) || 'Security key authentication failed.');
-            showToast(message, 'error');
-        }
+        showToast('Security key authentication started (demo).', 'info');
     }
     destroy() { }
 }
@@ -397,12 +352,4 @@ function escapeHtml(str) {
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;');
-}
-function base64UrlToBuffer(base64url) {
-    if (!base64url)
-        return new Uint8Array(0);
-    const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
-    const padding = '='.repeat((4 - base64.length % 4) % 4);
-    const binary = atob(base64 + padding);
-    return Uint8Array.from(binary, c => c.charCodeAt(0));
 }

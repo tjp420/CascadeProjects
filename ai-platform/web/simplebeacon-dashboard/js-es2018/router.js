@@ -10,14 +10,14 @@ const DASHBOARD_BASE = '/dashboard';
 export class Router {
     constructor(onNavigate) {
         this.onNavigate = onNavigate;
-        this._boundHandlePath = () => this.handlePath();
-        this._boundHandleHash = () => this.handleHash();
-        window.addEventListener('popstate', this._boundHandlePath);
-        window.addEventListener('hashchange', this._boundHandleHash);
+        this._popstateHandler = () => this.handlePath();
+        this._hashchangeHandler = () => this.handleHash();
+        window.addEventListener('popstate', this._popstateHandler);
+        window.addEventListener('hashchange', this._hashchangeHandler);
     }
-    destroy() {
-        window.removeEventListener('popstate', this._boundHandlePath);
-        window.removeEventListener('hashchange', this._boundHandleHash);
+    dispose() {
+        window.removeEventListener('popstate', this._popstateHandler);
+        window.removeEventListener('hashchange', this._hashchangeHandler);
     }
     init() {
         const forced = typeof window !== 'undefined' && window.__SB_INITIAL_ROUTE__;

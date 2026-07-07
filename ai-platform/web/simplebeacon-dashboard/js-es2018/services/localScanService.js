@@ -1,10 +1,7 @@
 import { showToast } from '../utils.js';
-
 const WORKER_URL = new URL('../workers/scan-worker.js', import.meta.url);
-
 const MAX_FILES = 50000;
 const SKIP_DIRS = /(^|[\\/])(node_modules|\.git|\.github|\.husky|dist|build|\.next|out|coverage|frontend-build|\.github-sync|github-cache|\.simplebeacon|\.cursor|\.windsurf|deployments|backups)([\\/]|$)/i;
-
 /**
  * Recursively collect FileSystemFileHandle entries from a directory handle.
  * @param {FileSystemDirectoryHandle} dirHandle
@@ -13,20 +10,23 @@ const SKIP_DIRS = /(^|[\\/])(node_modules|\.git|\.github|\.husky|dist|build|\.ne
  * @returns {Promise<Array<{path:string, handle:FileSystemFileHandle}>>}
  */
 async function collectFiles(dirHandle, pathPrefix = '', files = []) {
-  if (files.length >= MAX_FILES) return files;
-  for await (const [name, handle] of dirHandle.entries()) {
-    const fullPath = pathPrefix ? `${pathPrefix}/${name}` : name;
-    if (SKIP_DIRS.test(fullPath)) continue;
-    if (handle.kind === 'directory') {
-      await collectFiles(handle, fullPath, files);
-    } else if (handle.kind === 'file') {
-      files.push({ path: fullPath, handle });
+    if (files.length >= MAX_FILES)
+        return files;
+    for await (const [name, handle] of dirHandle.entries()) {
+        const fullPath = pathPrefix ? `${pathPrefix}/${name}` : name;
+        if (SKIP_DIRS.test(fullPath))
+            continue;
+        if (handle.kind === 'directory') {
+            await collectFiles(handle, fullPath, files);
+        }
+        else if (handle.kind === 'file') {
+            files.push({ path: fullPath, handle });
+        }
+        if (files.length >= MAX_FILES)
+            break;
     }
-    if (files.length >= MAX_FILES) break;
-  }
-  return files;
+    return files;
 }
-
 /**
  * Build a Simplebeacon-compatible report from worker findings.
  * @param {string} projectName
@@ -36,50 +36,49 @@ async function collectFiles(dirHandle, pathPrefix = '', files = []) {
  * @returns {Object}
  */
 function buildReport(projectName, findings, totalFiles, analyzedFiles) {
-  const categories = {};
-  const findingsList = [];
-  const severityCounts = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
-
-  for (const f of findings || []) {
-    const rule = f.rule || f.analyzer || 'finding';
-    const severity = f.severity || 'medium';
-    if (severityCounts[severity] !== undefined) severityCounts[severity] += 1;
-    if (!categories[rule]) categories[rule] = { severity, findings: [] };
-    categories[rule].findings.push({
-      file: f.filePath,
-      line: f.line || 1,
-      message: f.impact || `${rule} finding`,
-      severity
-    });
-    findingsList.push({
-      category: rule,
-      file: f.filePath,
-      line: f.line || 1,
-      severity,
-      message: f.impact || `${rule} finding`
-    });
-  }
-
-  return {
-    type: 'simplebeacon-report',
-    version: '1.0.0',
-    generatedAt: new Date().toISOString(),
-    projectPath: projectName,
-    projectRoot: projectName,
-    summary: {
-      totalFiles,
-      codeFilesAnalyzed: analyzedFiles,
-      codeFilesDiscovered: totalFiles,
-      totalFindings: findingsList.length,
-      severityCounts
-    },
-    categories,
-    findings: findingsList,
-    inventory: { totalFiles, totalFolders: 0, scannedFiles: analyzedFiles },
-    gate: { pass: findingsList.length === 0, score: findingsList.length === 0 ? 100 : 0 }
-  };
+    const categories = {};
+    const findingsList = [];
+    const severityCounts = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
+    for (const f of findings || []) {
+        const rule = f.rule || f.analyzer || 'finding';
+        const severity = f.severity || 'medium';
+        if (severityCounts[severity] !== undefined)
+            severityCounts[severity] += 1;
+        if (!categories[rule])
+            categories[rule] = { severity, findings: [] };
+        categories[rule].findings.push({
+            file: f.filePath,
+            line: f.line || 1,
+            message: f.impact || `${rule} finding`,
+            severity
+        });
+        findingsList.push({
+            category: rule,
+            file: f.filePath,
+            line: f.line || 1,
+            severity,
+            message: f.impact || `${rule} finding`
+        });
+    }
+    return {
+        type: 'simplebeacon-report',
+        version: '1.0.0',
+        generatedAt: new Date().toISOString(),
+        projectPath: projectName,
+        projectRoot: projectName,
+        summary: {
+            totalFiles,
+            codeFilesAnalyzed: analyzedFiles,
+            codeFilesDiscovered: totalFiles,
+            totalFindings: findingsList.length,
+            severityCounts
+        },
+        categories,
+        findings: findingsList,
+        inventory: { totalFiles, totalFolders: 0, scannedFiles: analyzedFiles },
+        gate: { pass: findingsList.length === 0, score: findingsList.length === 0 ? 100 : 0 }
+    };
 }
-
 /**
  * Run a local browser-based scan against a directory selected by the user.
  * No file contents are ever sent to the server.
@@ -89,82 +88,75 @@ function buildReport(projectName, findings, totalFiles, analyzedFiles) {
  * @returns {Promise<Object>}
  */
 export async function runLocalScan(options = {}) {
-  if (!window.showDirectoryPicker) {
-    throw new Error('Your browser does not support the local directory picker. Use Chrome/Edge or run the server locally.');
-  }
-  const dirHandle = await window.showDirectoryPicker();
-  const projectName = dirHandle.name || 'local-project';
-  const files = await collectFiles(dirHandle);
-  const workerFiles = files.map((f) => ({ path: f.path, fileObj: f.handle }));
-
-  return new Promise((resolve, reject) => {
-    const worker = new Worker(WORKER_URL, { type: 'module' });
-    const signal = options.signal;
-    let settled = false;
-
-    function cleanup() {
-      if (!settled) {
-        settled = true;
-        worker.terminate();
-      }
+    if (!window.showDirectoryPicker) {
+        throw new Error('Your browser does not support the local directory picker. Use Chrome/Edge or run the server locally.');
     }
-
-    if (signal) {
-      signal.addEventListener('abort', () => {
-        cleanup();
-        reject(new Error('Local scan cancelled.'));
-      });
-    }
-
-    worker.onmessage = (e) => {
-      const { type, scanId, processed, total, findings, issues, error } = e.data;
-      if (type === 'progress' && options.onProgress) {
-        options.onProgress(processed, total);
-      }
-      if (type === 'complete') {
-        cleanup();
-        const analyzedFiles = files.filter((f) => /\.(js|cjs|mjs|ts|tsx|jsx|py|java|go|rs|php|rb|cs|vb)$/i.test(f.path)).length;
-        resolve(buildReport(projectName, issues, total, analyzedFiles));
-      }
-      if (type === 'error') {
-        cleanup();
-        reject(new Error(error || 'Local scan failed'));
-      }
-    };
-
-    worker.onerror = (err) => {
-      cleanup();
-      reject(new Error(err.message || 'Local scan worker failed'));
-    };
-
-    worker.postMessage({ type: 'scan', files: workerFiles, deepScan: false, scanId: crypto.randomUUID() });
-  });
+    const dirHandle = await window.showDirectoryPicker();
+    const projectName = dirHandle.name || 'local-project';
+    const files = await collectFiles(dirHandle);
+    const workerFiles = files.map((f) => ({ path: f.path, fileObj: f.handle }));
+    return new Promise((resolve, reject) => {
+        const worker = new Worker(WORKER_URL, { type: 'module' });
+        const signal = options.signal;
+        let settled = false;
+        function cleanup() {
+            if (!settled) {
+                settled = true;
+                worker.terminate();
+            }
+        }
+        if (signal) {
+            signal.addEventListener('abort', () => {
+                cleanup();
+                reject(new Error('Local scan cancelled.'));
+            });
+        }
+        worker.onmessage = (e) => {
+            const { type, scanId, processed, total, findings, issues, error } = e.data;
+            if (type === 'progress' && options.onProgress) {
+                options.onProgress(processed, total);
+            }
+            if (type === 'complete') {
+                cleanup();
+                const analyzedFiles = files.filter((f) => /\.(js|cjs|mjs|ts|tsx|jsx|py|java|go|rs|php|rb|cs|vb)$/i.test(f.path)).length;
+                resolve(buildReport(projectName, issues, total, analyzedFiles));
+            }
+            if (type === 'error') {
+                cleanup();
+                reject(new Error(error || 'Local scan failed'));
+            }
+        };
+        worker.onerror = (err) => {
+            cleanup();
+            reject(new Error(err.message || 'Local scan worker failed'));
+        };
+        worker.postMessage({ type: 'scan', files: workerFiles, deepScan: false, scanId: crypto.randomUUID() });
+    });
 }
-
 /**
  * Local scan service compatible with the dashboard's ScanService API.
  */
 export class LocalScanService {
-  constructor() {
-    this.report = null;
-  }
-  async runScan(options) {
-    this.report = await runLocalScan(options);
-    return this.report;
-  }
-  async fetchReport() {
-    return this.report;
-  }
-  async fetchRepositoryInventory() {
-    return this.report ? this.report.inventory : null;
-  }
-  async fetchHistory() {
-    return [];
-  }
-  async fetchBaseline() {
-    return null;
-  }
-  async fetchConfig() {
-    return null;
-  }
+    constructor() {
+        this.report = null;
+    }
+    async runScan(options) {
+        this.report = await runLocalScan(options);
+        return this.report;
+    }
+    async fetchReport() {
+        return this.report;
+    }
+    async fetchRepositoryInventory() {
+        return this.report ? this.report.inventory : null;
+    }
+    async fetchHistory() {
+        return [];
+    }
+    async fetchBaseline() {
+        return null;
+    }
+    async fetchConfig() {
+        return null;
+    }
 }

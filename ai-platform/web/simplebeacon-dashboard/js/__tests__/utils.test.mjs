@@ -5,10 +5,10 @@ import Utils, {
   escapeHtml, clamp, deepClone, fetchWithTimeout,
   copyToClipboard, sanitizePrivacyData, isVSCodeWebview,
   formatPathLabel, prefersReducedMotion, getNonce,
-  deepFreeze, getExportNames, getNamespaceNames,
-  validateBarrelIntegrity, __barrel__,
+  deepFreeze, getExportNames, exportNames, getNamespaceNames,
+  getBarrelMeta, validateBarrelIntegrity, freezeNamespace, __barrel__,
   compose, pipe, zipWith, curry, partial, tap,
-  parseJsonSafe, parseResponseJson
+  parseJsonSafe, parseResponseJson, stringifySafe
 } from '../utils.js';
 
 describe('js/utils.js barrel', () => {
@@ -31,8 +31,8 @@ describe('js/utils.js barrel', () => {
 
   it('default export contains all namespaces', () => {
     const expected = [
-      'string', 'number', 'async', 'array', 'object',
-      'url', 'storage', 'theme', 'dom', 'format', 'type', 'inline'
+      'string', 'number', 'async', 'array', 'object', 'url', 'storage', 'theme', 'dom', 'format', 'type',
+      'accessibility', 'clipboard', 'crypto', 'download', 'fetch', 'fn', 'path', 'privacy', 'vscode', 'event', 'polling', 'inline'
     ];
     for (const key of expected) {
       assert.ok(Utils[key], `namespace "${key}" should exist`);
@@ -40,9 +40,9 @@ describe('js/utils.js barrel', () => {
     }
   });
 
-  it('getNamespaceNames returns 12 namespaces including inline', () => {
+  it('getNamespaceNames returns 23 namespaces including inline', () => {
     const names = getNamespaceNames();
-    assert.strictEqual(names.length, 12);
+    assert.strictEqual(names.length, 23);
     assert.ok(names.includes('inline'), 'inline should be in namespace names');
   });
 
@@ -89,6 +89,7 @@ describe('js/utils.js barrel', () => {
     assert.ok(names.includes('sleep'));
     assert.ok(names.includes('deepFreeze'));
     assert.ok(names.includes('exportNames'));
+    assert.ok(names.includes('stringifySafe'));
   });
 
   it('getExportNames is frozen', () => {
@@ -114,11 +115,12 @@ describe('js/utils.js barrel', () => {
     assert.ok(names.has('getExportNames'), 'getExportNames should be self-listed');
   });
 
-  it('getNamespaceNames returns all 12 namespaces and is frozen', () => {
+  it('getNamespaceNames returns all 23 namespaces and is frozen', () => {
     const names = getNamespaceNames();
     assert.ok(Array.isArray(names), 'should return an array');
     assert.strictEqual(Object.isFrozen(names), true, 'should be frozen');
-    const expected = ['string', 'number', 'async', 'array', 'object', 'url', 'storage', 'theme', 'dom', 'format', 'type', 'inline'];
+    assert.strictEqual(names.length, 23);
+    const expected = ['string', 'number', 'async', 'array', 'object', 'url', 'storage', 'theme', 'dom', 'format', 'type', 'accessibility', 'clipboard', 'crypto', 'download', 'fetch', 'fn', 'path', 'privacy', 'vscode', 'event', 'polling', 'inline'];
     for (const ns of expected) {
       assert.ok(names.includes(ns), `should include namespace "${ns}"`);
     }
@@ -127,7 +129,7 @@ describe('js/utils.js barrel', () => {
   it('__barrel__ metadata is present with all fields', () => {
     assert.ok(__barrel__, '__barrel__ should be defined');
     assert.strictEqual(__barrel__.name, 'simplebeacon-dashboard-utils');
-    assert.strictEqual(__barrel__.moduleCount, 12);
+    assert.strictEqual(__barrel__.moduleCount, 23);
     assert.ok(typeof __barrel__.exportCount === 'number');
     assert.ok(typeof __barrel__.namespaceCount === 'number');
     assert.strictEqual(__barrel__.version, '1.0.0');
@@ -191,12 +193,49 @@ describe('js/utils.js barrel', () => {
     assert.ok(names.includes('tap'), 'tap should be exported');
     assert.ok(names.includes('parseJsonSafe'), 'parseJsonSafe should be exported');
     assert.ok(names.includes('parseResponseJson'), 'parseResponseJson should be exported');
+    assert.ok(names.includes('stringifySafe'), 'stringifySafe should be exported');
+    assert.ok(names.includes('exportNames'), 'exportNames should be exported');
   });
 
-  it('parseJsonSafe and parseResponseJson are flat named exports', () => {
+  it('parseJsonSafe, parseResponseJson and stringifySafe are flat named exports', () => {
     const names = getExportNames();
     assert.ok(names.includes('parseJsonSafe'));
     assert.ok(names.includes('parseResponseJson'));
+    assert.ok(names.includes('stringifySafe'));
+  });
+
+  it('exportNames aliases getExportNames', () => {
+    assert.strictEqual(typeof exportNames, 'function');
+    assert.deepStrictEqual(exportNames(), getExportNames());
+  });
+
+  it('stringifySafe is a flat named export', () => {
+    assert.strictEqual(typeof stringifySafe, 'function');
+    assert.strictEqual(stringifySafe({ a: 1 }), '{"a":1}');
+    assert.strictEqual(stringifySafe({ toJSON() { throw new Error('bad'); } }), null);
+  });
+
+  it('freezeNamespace does not mutate inputs and returns frozen copies', () => {
+    const map = new Map([['a', { b: 1 }]]);
+    const frozen = freezeNamespace(map);
+    assert.notStrictEqual(frozen, map);
+    assert.strictEqual(Object.isFrozen(frozen), true);
+    assert.strictEqual(Object.isFrozen(frozen.get('a')), true);
+    assert.strictEqual(map.get('a').b, 1);
+
+    const obj = { nested: { value: 2 } };
+    const frozenObj = freezeNamespace(obj);
+    assert.notStrictEqual(frozenObj, obj);
+    assert.strictEqual(Object.isFrozen(frozenObj), true);
+    assert.strictEqual(Object.isFrozen(frozenObj.nested), true);
+    assert.strictEqual(Object.isFrozen(obj), false);
+  });
+
+  it('getBarrelMeta is a flat named export and exposed on Utils', () => {
+    assert.strictEqual(typeof getBarrelMeta, 'function');
+    assert.strictEqual(getBarrelMeta(), __barrel__);
+    assert.strictEqual(Utils.getBarrelMeta, getBarrelMeta);
+    assert.strictEqual(Utils.getBarrelMeta(), __barrel__);
   });
 });
 
@@ -215,6 +254,7 @@ describe('util.inline namespace', () => {
     assert.strictEqual(typeof Utils.inline.tap, 'function');
     assert.strictEqual(typeof Utils.inline.parseJsonSafe, 'function');
     assert.strictEqual(typeof Utils.inline.parseResponseJson, 'function');
+    assert.strictEqual(typeof Utils.inline.stringifySafe, 'function');
   });
 });
 
