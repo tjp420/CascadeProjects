@@ -13,7 +13,7 @@
  */
 const DEFAULT_AGENT_ORIGIN = 'http://127.0.0.1:55432';
 const AGENT_TIMEOUT_MS = 3000;
-const AGENT_DOWNLOAD_URL = 'https://github.com/tjp420/CascadeProjects/releases';
+const AGENT_DOWNLOAD_URL = '/downloads/simplebeacon-local-agent-portable.zip';
 let cachedAgentStatus = null;
 let cachedAt = 0;
 const CACHE_TTL_MS = 5000;
