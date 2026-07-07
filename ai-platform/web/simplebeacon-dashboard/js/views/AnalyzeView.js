@@ -2,7 +2,10 @@ import { escapeHtml, showToast, downloadJson, downloadBlob, downloadText, redact
 import { evaluateFunnelMetrics, getFunnelCopy } from '../utils/funnelTrigger.js';
 import { LocalScanService } from '../services/localScanService.js';
 import { fingerprintDirectory, formatFingerprint } from '../services/fingerprintService.js';
-import { probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus, getAgentDownloadUrl } from '../services/localAgentService.js';
+import {
+  probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus,
+  getAgentDownloadUrl, detectPlatform, getPlatformLabel, getInstallInstructions
+} from '../services/localAgentService.js';
 
 // simplebeacon:production-leak-intent: sample-json - Legitimate documentation about sample file patterns in analysis results
 import {
@@ -1777,8 +1780,15 @@ export class AnalyzeView {
         .agent-status { min-height: 1.2em; margin-top: 4px; font-size: 0.8rem; color: var(--text-muted); text-align: center; }
         .agent-status.available { color: var(--success); }
         .agent-status.unavailable { color: var(--text-muted); }
-        .agent-download-cta { min-height: 1.2em; margin-top: 4px; font-size: 0.8rem; text-align: center; }
+        .agent-download-cta { min-height: 1.2em; margin-top: 4px; font-size: 0.85rem; text-align: center; }
         .agent-download-cta a { color: var(--primary); text-decoration: underline; }
+        .agent-install-wizard { display: inline-flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px; border: 1px dashed var(--border); border-radius: var(--radius-lg); background: var(--surface); max-width: 420px; margin: 0 auto; }
+        .agent-wizard-title { font-weight: 600; margin: 0; }
+        .agent-wizard-subtitle { color: var(--text-muted); margin: 0; font-size: 0.8rem; }
+        .agent-wizard-step { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center; }
+        .agent-wizard-instructions { color: var(--text); margin: 0; max-width: 380px; }
+        .agent-wizard-polling { color: var(--text-muted); font-size: 0.8rem; }
+        .agent-wizard-polling.hidden { display: none; }
         .an-tgt-drop-icon { font-size: 2.5rem; margin-bottom: 12px; }
         .an-tgt-drop h4 { font-size: 1rem; font-weight: 600; margin-bottom: 4px; }
         .an-tgt-drop p { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 16px; }
@@ -4291,19 +4301,127 @@ export class AnalyzeView {
     if (!cta) return;
     if (available) {
       cta.textContent = '';
+      this._stopAgentWizardPolling();
       return;
     }
+    this._renderAgentWizard(cta);
+  }
+
+  _getWizardPlatform() {
+    if (this._agentWizardPlatform) return this._agentWizardPlatform;
+    const saved = typeof localStorage !== 'undefined' ? localStorage.getItem('sb-agent-platform') : null;
+    if (saved) return saved;
+    return detectPlatform();
+  }
+
+  _setWizardPlatform(platform) {
+    this._agentWizardPlatform = platform;
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('sb-agent-platform', platform);
+    }
+  }
+
+  _renderAgentWizard(cta) {
+    const platform = this._getWizardPlatform();
     cta.textContent = '';
-    const link = document.createElement('a');
-    link.href = getAgentDownloadUrl();
-    link.target = '_blank';
-    link.rel = 'noopener';
-    link.textContent = 'Download the Local Scan Agent';
-    cta.appendChild(link);
-    cta.appendChild(document.createTextNode(' to scan typed paths like '));
-    const code = document.createElement('code');
-    code.textContent = 'G:\\Games\\Ubisoft';
-    cta.appendChild(code);
+
+    const wizard = document.createElement('div');
+    wizard.className = 'agent-install-wizard';
+
+    const title = document.createElement('p');
+    title.className = 'agent-wizard-title';
+    title.textContent = 'Local Scan Agent required';
+    wizard.appendChild(title);
+
+    const subtitle = document.createElement('p');
+    subtitle.className = 'agent-wizard-subtitle';
+    subtitle.textContent = 'This program runs on your computer so paths and source code never leave it.';
+    wizard.appendChild(subtitle);
+
+    const step1 = document.createElement('div');
+    step1.className = 'agent-wizard-step';
+    const downloadLink = document.createElement('a');
+    downloadLink.className = 'btn btn-primary agent-download-btn';
+    downloadLink.href = getAgentDownloadUrl(platform);
+    downloadLink.target = '_blank';
+    downloadLink.rel = 'noopener';
+    downloadLink.textContent = `Download for ${getPlatformLabel(platform)}`;
+    downloadLink.addEventListener('click', () => this._startAgentWizardPolling());
+    step1.appendChild(downloadLink);
+    const switchBtn = document.createElement('button');
+    switchBtn.type = 'button';
+    switchBtn.className = 'btn btn-ghost agent-platform-switch';
+    switchBtn.title = 'Wrong platform?';
+    switchBtn.textContent = 'Not your platform?';
+    switchBtn.addEventListener('click', () => {
+      const platforms = ['windows', 'linux', 'macos'];
+      const current = this._getWizardPlatform();
+      const next = platforms[(platforms.indexOf(current) + 1) % platforms.length] || 'windows';
+      this._setWizardPlatform(next);
+      this._renderAgentWizard(cta);
+    });
+    step1.appendChild(switchBtn);
+    wizard.appendChild(step1);
+
+    const step2 = document.createElement('div');
+    step2.className = 'agent-wizard-step';
+    const instructions = document.createElement('p');
+    instructions.className = 'agent-wizard-instructions';
+    instructions.textContent = getInstallInstructions(platform);
+    step2.appendChild(instructions);
+    wizard.appendChild(step2);
+
+    const step3 = document.createElement('div');
+    step3.className = 'agent-wizard-step';
+    const verifyBtn = document.createElement('button');
+    verifyBtn.type = 'button';
+    verifyBtn.className = 'btn btn-secondary agent-verify-btn';
+    verifyBtn.textContent = 'I have installed and started the agent';
+    verifyBtn.addEventListener('click', async () => {
+      const polling = cta.querySelector('.agent-wizard-polling');
+      if (polling) polling.classList.remove('hidden');
+      await this.probeAndUpdateAgentStatus(this._root);
+      if (polling) polling.classList.add('hidden');
+    });
+    step3.appendChild(verifyBtn);
+    const polling = document.createElement('span');
+    polling.className = 'agent-wizard-polling hidden';
+    polling.textContent = 'Waiting for agent…';
+    step3.appendChild(polling);
+    wizard.appendChild(step3);
+
+    cta.appendChild(wizard);
+  }
+
+  _startAgentWizardPolling() {
+    this._stopAgentWizardPolling();
+    const cta = this._root?.querySelector('#agent-download-cta');
+    const polling = cta?.querySelector('.agent-wizard-polling');
+    if (polling) polling.classList.remove('hidden');
+    const start = Date.now();
+    const max = 120_000;
+    const tick = async () => {
+      if (this.agentStatus?.available) { return; }
+      if (Date.now() - start > max) {
+        this._stopAgentWizardPolling();
+        if (polling) polling.textContent = 'Still not detected. Try clicking the button above.';
+        return;
+      }
+      await this.probeAndUpdateAgentStatus(this._root);
+      if (this.agentStatus?.available) {
+        this._stopAgentWizardPolling();
+        return;
+      }
+      this._agentWizardTimer = setTimeout(tick, 3000);
+    };
+    this._agentWizardTimer = setTimeout(tick, 3000);
+  }
+
+  _stopAgentWizardPolling() {
+    if (this._agentWizardTimer) {
+      clearTimeout(this._agentWizardTimer);
+      this._agentWizardTimer = null;
+    }
   }
 
   async probeAndUpdateAgentStatus(root = this._root) {

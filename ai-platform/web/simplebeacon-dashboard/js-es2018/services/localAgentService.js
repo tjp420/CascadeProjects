@@ -13,7 +13,12 @@
  */
 const DEFAULT_AGENT_ORIGIN = 'http://127.0.0.1:55432';
 const AGENT_TIMEOUT_MS = 3000;
-const AGENT_DOWNLOAD_URL = '/downloads/simplebeacon-local-agent-setup.exe';
+const AGENT_DOWNLOAD_URLS = {
+    windows: '/downloads/simplebeacon-local-agent-setup.exe',
+    linux: '/downloads/simplebeacon-local-agent-portable.zip',
+    macos: '/downloads/simplebeacon-local-agent-portable.zip',
+    unknown: '/downloads/simplebeacon-local-agent-portable.zip'
+};
 let cachedAgentStatus = null;
 let cachedAt = 0;
 const CACHE_TTL_MS = 5000;
@@ -167,8 +172,53 @@ export function formatAgentStatus(agentStatus) {
     return `Local agent connected${agentStatus.version ? ` (v${agentStatus.version})` : ''}`;
 }
 /**
- * Return a download URL for the packaged local agent.
+ * Detect the user's platform from the user agent string.
+ * @returns {'windows'|'linux'|'macos'|'unknown'}
  */
-export function getAgentDownloadUrl() {
-    return AGENT_DOWNLOAD_URL;
+export function detectPlatform() {
+    if (typeof window === 'undefined' || !window.navigator)
+        return 'unknown';
+    const ua = window.navigator.userAgent.toLowerCase();
+    if (ua.includes('win'))
+        return 'windows';
+    if (ua.includes('mac') || ua.includes('darwin'))
+        return 'macos';
+    if (ua.includes('linux'))
+        return 'linux';
+    return 'unknown';
+}
+/**
+ * Return a download URL for the packaged local agent.
+ * @param {'windows'|'linux'|'macos'|'unknown'} [platform]
+ */
+export function getAgentDownloadUrl(platform) {
+    const p = platform || detectPlatform();
+    return AGENT_DOWNLOAD_URLS[p] || AGENT_DOWNLOAD_URLS.unknown;
+}
+/**
+ * Return human-readable platform name.
+ * @param {'windows'|'linux'|'macos'|'unknown'} platform
+ */
+export function getPlatformLabel(platform) {
+    const labels = {
+        windows: 'Windows',
+        linux: 'Linux',
+        macos: 'macOS',
+        unknown: 'your platform'
+    };
+    return labels[platform] || labels.unknown;
+}
+/**
+ * Return platform-specific install instructions.
+ * @param {'windows'|'linux'|'macos'|'unknown'} platform
+ */
+export function getInstallInstructions(platform) {
+    const p = platform || detectPlatform();
+    if (p === 'windows') {
+        return 'Run the downloaded .exe and follow the prompts. The installer will start the agent automatically.';
+    }
+    if (p === 'linux' || p === 'macos' || p === 'unknown') {
+        return 'Extract the downloaded zip, open a terminal in the extracted folder, and run: ./install.sh';
+    }
+    return '';
 }
