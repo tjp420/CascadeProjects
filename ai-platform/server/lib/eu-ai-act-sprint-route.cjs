@@ -1,6 +1,7 @@
 const path = require('path');
 const { runEuAiActSprint } = require('./eu-ai-act-sprint-service.cjs');
 const { toClientError } = require('./client-error.cjs');
+const { resolveProjectPath } = require('./flexible-analyze-utils.cjs');
 
 /**
  * Register eu ai act sprint route.
@@ -10,6 +11,7 @@ const { toClientError } = require('./client-error.cjs');
  */
 function registerEuAiActSprintRoute(app, options = {}) {
   const projectRoot = options.projectRoot || path.join(__dirname, '../..');
+  const monorepoRoot = options.monorepoRoot || path.join(projectRoot, '..');
 
   app.get('/api/operator/eu-ai-act/bootstrap', (_req, res) => {
     res.json({
@@ -35,12 +37,21 @@ function registerEuAiActSprintRoute(app, options = {}) {
   app.post('/api/operator/eu-ai-act/sprint', async (req, res) => {
     try {
       const body = req.body || {};
-      const projectPath = body.projectPath || body.path;
-      if (!projectPath) {
+      const rawPath = body.projectPath || body.path;
+      if (!rawPath) {
         return res.status(400).json({
           ok: false,
           error: 'missing_path',
           message: 'projectPath is required (folder on this machine)'
+        });
+      }
+
+      const projectPath = resolveProjectPath(projectRoot, rawPath, monorepoRoot);
+      if (!projectPath) {
+        return res.status(400).json({
+          ok: false,
+          error: 'invalid_path',
+          message: 'projectPath could not be resolved'
         });
       }
 
