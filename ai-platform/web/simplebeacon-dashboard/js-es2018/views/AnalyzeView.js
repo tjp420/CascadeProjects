@@ -1664,8 +1664,7 @@ export class AnalyzeView {
                   spellcheck="false"
                   autocomplete="list"
                   aria-label="${pathAria}">
-                <button type="button" class="btn btn-primary btn-sm" id="dropzone-path-analyze-btn">Analyze</button>
-                <button type="button" class="btn btn-primary" id="analyze-path-run-btn">Run</button>
+                <button type="button" class="btn btn-primary" id="dropzone-path-analyze-btn">Analyze</button>
               </div>
 
               ${datalist}
@@ -4497,26 +4496,6 @@ export class AnalyzeView {
                 void this.handleAnalyzeFiles(files);
             });
         }
-        // Run button (analyze-path-run-btn) triggers path analysis
-        (_p = el.querySelector('#analyze-path-run-btn')) === null || _p === void 0 ? void 0 : _p.addEventListener('click', () => {
-            var _a;
-            const raw = (_a = pathInput === null || pathInput === void 0 ? void 0 : pathInput.value) === null || _a === void 0 ? void 0 : _a.trim();
-            if (!raw) {
-                showToast('Enter a project path first', 'error');
-                return;
-            }
-            const resolvedPath = this.resolveProjectPath(raw);
-            if (!resolvedPath) {
-                showToast('Invalid path', 'error');
-                return;
-            }
-            this.app.state.pathInputDraft = '';
-            this.app.state.lastProjectPath = resolvedPath;
-            this.setPathInputDisplay(pathInput, resolvedPath);
-            this.savePreferredProjectBase(resolvedPath);
-            void this.refreshReportForActivePath(el);
-            void this.runPathAnalysis(resolvedPath);
-        });
         // Select File button triggers hidden file input
         (_q = el.querySelector('#analyze-select-file-btn')) === null || _q === void 0 ? void 0 : _q.addEventListener('click', () => {
             let input = el.querySelector('#analyze-file-input');
