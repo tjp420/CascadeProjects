@@ -4405,7 +4405,13 @@ export class AnalyzeView {
             showToast(this.realtimeMonitorEnabled ? 'Real-time monitoring enabled' : 'Real-time monitoring disabled', 'info');
         });
         (_o = el.querySelector('#browse-dir-btn')) === null || _o === void 0 ? void 0 : _o.addEventListener('click', () => {
-            this.openDirBrowser(el);
+            const input = el.querySelector('#browse-dir-input');
+            if (input) {
+                input.value = '';
+                input.click();
+            } else {
+                this.openDirBrowser(el);
+            }
         });
         // Analyze drop zone — drag-and-drop for scan reports / source files
         const analyzeDropZone = el.querySelector('#analyze-drop-zone');
@@ -4441,7 +4447,21 @@ export class AnalyzeView {
                     const entry = (_b = (_a = dt.items[0]).webkitGetAsEntry) === null || _b === void 0 ? void 0 : _b.call(_a);
                     if (entry === null || entry === void 0 ? void 0 : entry.isDirectory) {
                         const folderName = entry.name || '';
-                        showToast(`Directory "${folderName}" detected. Use Browse Folder or type the full path for best results.`, 'warning');
+                        const resolvedPath = this.resolveFolderPathFromFiles(files, folderName);
+                        if (resolvedPath) {
+                            const pathInput = el.querySelector('#project-path-input');
+                            if (pathInput) {
+                                this.setPathInputDisplay(pathInput, resolvedPath);
+                                this.app.state.lastProjectPath = resolvedPath;
+                                this.app.state.pathInputDraft = '';
+                                this.syncAnalyzeModeUi(el);
+                                void this.refreshReportForActivePath(el);
+                            }
+                            void this.runPathAnalysis(resolvedPath);
+                            showToast(`Analyzing dropped folder "${folderName}"…`, 'info');
+                        } else {
+                            showToast(`Directory "${folderName}" dropped but absolute path could not be read. Use Browse Folder or type the path.`, 'warning');
+                        }
                         return;
                     }
                 }
@@ -5135,6 +5155,46 @@ export class AnalyzeView {
             }
             return false;
         }
+    }
+    /**
+     * Resolve a dropped/browsed folder's absolute path from the first File object.
+     * Works in Electron and Chromium-derived environments where file.path is exposed.
+     * Falls back to defaultProjectPath + folder name if no OS path is available.
+     */
+    resolveFolderPathFromFiles(files, folderName) {
+        if (!files || !files.length)
+            return null;
+        const firstFile = files[0];
+        const relPath = firstFile.webkitRelativePath || '';
+        const filePath = firstFile.path;
+        const fName = folderName || firstFile.name || '';
+        if (filePath && relPath) {
+            const normalizedFull = filePath.replace(/\\/g, '/');
+            const normalizedRel = relPath.replace(/\\/g, '/');
+            if (normalizedFull.endsWith(normalizedRel)) {
+                const baseDir = normalizedFull.slice(0, -normalizedRel.length).replace(/\/$/, '');
+                const relFolderName = normalizedRel.split('/')[0] || fName;
+                let resolvedPath = baseDir ? `${baseDir}/${relFolderName}` : relFolderName;
+                if (!resolvedPath.match(/^[a-zA-Z]:/) && !resolvedPath.startsWith('/')) {
+                    const driveMatch = String(this.app.state.defaultProjectPath || '').match(/^([a-zA-Z]:)/);
+                    resolvedPath = driveMatch ? `${driveMatch[1]}/Users/${relFolderName}` : `C:/Users/${relFolderName}`;
+                }
+                return resolvedPath;
+            }
+        }
+        if (filePath) {
+            const norm = filePath.replace(/\\/g, '/');
+            if (fName && (norm.endsWith(`/${fName}`) || norm === fName)) {
+                return filePath;
+            }
+            const lastSlash = norm.lastIndexOf('/');
+            if (lastSlash > 0) {
+                const winSep = filePath.lastIndexOf('\\');
+                return filePath.slice(0, winSep > 0 ? winSep : lastSlash);
+            }
+            return filePath;
+        }
+        return null;
     }
     bindFileDropEvents(el) {
         var _a, _b;

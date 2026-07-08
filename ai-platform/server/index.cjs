@@ -104,6 +104,9 @@ app.use((req, res, next) => {
   if (!isLocalhost && !isSecure && process.env.NODE_ENV === 'production' && publicUrl) {
     try {
       const target = new URL(req.url, publicUrl).href;
+      if (!target.startsWith(publicUrl)) {
+        return res.status(400).send('Invalid redirect target');
+      }
       return res.redirect(301, target);
     } catch {
       return res.status(400).send('Invalid request URL');
@@ -289,18 +292,23 @@ app.use((req, res, next) => {
 
 // Private dashboard — unlocks vault session, then opens the marketing sample report
 app.get('/private-dashboard-vault', async (req, res) => {
-  const vaultPassword = process.env.DASHBOARD_VAULT_PASSWORD;
-  if (!vaultPassword || req.query.password !== vaultPassword) {
-    return res.status(403).send('Unauthorized Access: Private Vault is Locked.');
-  }
-  setVaultSessionCookie(res, vaultPassword);
-  const samplePath = path.join(comingSoonRoot, 'sample-report.html');
   try {
-    await fs.promises.access(samplePath);
-    res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
-    return res.sendFile(samplePath);
-  } catch {
-    return res.status(404).send('sample-report.html not found — run: cd ai-platform && npm run build:sample-report');
+    const vaultPassword = process.env.DASHBOARD_VAULT_PASSWORD;
+    if (!vaultPassword || req.query.password !== vaultPassword) {
+      return res.status(403).send('Unauthorized Access: Private Vault is Locked.');
+    }
+    setVaultSessionCookie(res, vaultPassword);
+    const samplePath = path.join(comingSoonRoot, 'sample-report.html');
+    try {
+      await fs.promises.access(samplePath);
+      res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+      return res.sendFile(samplePath);
+    } catch {
+      return res.status(404).send('sample-report.html not found — run: cd ai-platform && npm run build:sample-report');
+    }
+  } catch (err) {
+    logger.error('[private-dashboard-vault] error:', err.message);
+    return res.status(500).send('Internal server error');
   }
 });
 

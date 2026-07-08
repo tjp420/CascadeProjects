@@ -55,6 +55,7 @@ server/lib/code-roadmap-phase2.cjs
 server/lib/file-merger-reduction-scanner.cjs
 server/lib/json-file-cache.cjs
 server/lib/codebase-analyzer.cjs
+server/lib/codebase-analyzer-patterns.cjs
 server/routes/chatbot-api.cjs
 
 # Secret resolution utility — not a secret itself (false-positive git-sensitive-file)

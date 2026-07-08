@@ -264,12 +264,16 @@ function set(obj, path, value) {
     let current = obj;
     for (let i = 0; i < keys.length - 1; i++) {
         const key = keys[i];
+        if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue;
         if (current[key] == null || typeof current[key] !== 'object') {
             current[key] = {};
         }
         current = current[key];
     }
-    current[keys[keys.length - 1]] = value;
+    const lastKey = keys[keys.length - 1];
+    if (lastKey !== '__proto__' && lastKey !== 'constructor' && lastKey !== 'prototype') {
+        current[lastKey] = value;
+    }
     return obj;
 }
 
