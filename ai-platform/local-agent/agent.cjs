@@ -256,26 +256,30 @@ app.get('/health', (req, res) => {
 
 // Scan a local directory.
 app.post('/scan', async (req, res) => {
+  const rawPath = req.body?.projectPath;
   try {
-    const rawPath = req.body?.projectPath;
+    console.log('[agent] /scan received projectPath:', rawPath);
     const targetPath = validateTargetPath(rawPath);
     const report = await runLocalScan(targetPath);
     res.json({ success: true, projectPath: targetPath, report });
   } catch (err) {
-    res.status(400).json({ success: false, error: err.message });
+    console.error('[agent] /scan rejected projectPath:', rawPath, '-', err.message);
+    res.status(400).json({ success: false, error: err.message, receivedPath: rawPath });
   }
 });
 
 // Fetch inventory for a local directory without running a full gate scan.
 app.post('/inventory', async (req, res) => {
+  const rawPath = req.body?.projectPath;
   try {
-    const rawPath = req.body?.projectPath;
+    console.log('[agent] /inventory received projectPath:', rawPath);
     const targetPath = validateTargetPath(rawPath);
     const report = await runLocalScan(targetPath, { inventoryOnly: true });
     const inventory = report?.repositoryInventory || report?.inventory || null;
     res.json({ success: true, projectPath: targetPath, inventory });
   } catch (err) {
-    res.status(400).json({ success: false, error: err.message });
+    console.error('[agent] /inventory rejected projectPath:', rawPath, '-', err.message);
+    res.status(400).json({ success: false, error: err.message, receivedPath: rawPath });
   }
 });
 
