@@ -291,6 +291,31 @@ async function readSimplebeaconJson(fileName, fallback = null) {
  * Load dashboard context.
  * @returns {any}
  */
+function createEmptyReport() {
+  return {
+    type: 'simplebeacon-report',
+    generatedAt: new Date().toISOString(),
+    projectRoot: PROJECT_ROOT,
+    qualityScore: null,
+    consistencyScore: null,
+    schemaCompliance: null,
+    totalFiles: 0,
+    filesAnalyzed: 0,
+    pageSampleSchemaChecked: 0,
+    pageSampleSchemaPassed: 0,
+    schemaChecked: 0,
+    schemaPassed: 0,
+    repositoryInventory: null,
+    issueCount: 0,
+    warningCount: 0,
+    blockingCount: 0,
+    gate: { pass: true, blockingCount: 0, warningCount: 0 },
+    jestSummary: null,
+    jestBaselinePassed: null,
+    detectedIssues: []
+  };
+}
+
 async function loadDashboardContext() {
   const [report, baseline, history] = await Promise.all([
     readSimplebeaconJson('report.json'),
@@ -303,8 +328,10 @@ async function loadDashboardContext() {
     resolvedHistory = await ensureHistoryFromReport();
   }
 
-  const fictionCatalog = buildFictionPatternCatalog(baseline);
-  return { report, baseline, history: resolvedHistory, fictionCatalog };
+  const resolvedReport = report || createEmptyReport();
+  const resolvedBaseline = baseline || {};
+  const fictionCatalog = buildFictionPatternCatalog(resolvedBaseline);
+  return { report: resolvedReport, baseline: resolvedBaseline, history: resolvedHistory, fictionCatalog };
 }
 
 /**
@@ -317,9 +344,10 @@ async function loadAssessment(report) {
   if (saved) {
     return saved;
   }
-  return buildAssessmentReport(report, {
+  const safeReport = report || createEmptyReport();
+  return buildAssessmentReport(safeReport, {
     company: 'Cascade AI Platform',
-    projectRoot: report.projectRoot || PROJECT_ROOT
+    projectRoot: safeReport.projectRoot || PROJECT_ROOT
   });
 }
 
@@ -817,6 +845,7 @@ function setupSimplebeaconAPI(app, options = {}) {
         pageSamples: context.pageSamples
       }));
     } catch (err) {
+      console.error('[/api/simplebeacon/audit] Failed to load audit context:', err?.message || err);
       res.status(404).json({ error: 'Audit not found', message: err.message });
     }
   });

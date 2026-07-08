@@ -948,7 +948,7 @@ async function bootstrapPhase2Routes() {
                 app.use('/api/prompts', promptService);
             }
             catch (e) {
-                console.warn('[PromptService] prompt-service routes not loaded');
+                console.error('[PromptService] prompt-service routes not loaded:', e?.message || e);
             }
         } },
         { name: 'aiMathAudit', fn: () => setupAiMathAuditRoute(app, __dirname) },
