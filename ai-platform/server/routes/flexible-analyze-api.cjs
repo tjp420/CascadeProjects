@@ -45,6 +45,8 @@ const {
     resolveDefaultAllowedRoots,
     assertSafeProjectPath,
     isPathWithinRoots,
+    isPathAncestorOfRoots,
+    dedupeResolvedRoots,
     logResolvedAllowedRoots,
     formatAllowedRootsSummary
 } = require('../lib/path-safety.cjs');
@@ -2030,31 +2032,34 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             const rawPath = String(req.query.path || '');
             const allowedRoots = resolveDefaultAllowedRoots(baseDir, { monorepoRoot });
 
-            // Empty path => list all local drives (Windows) or the platform root (Unix-like)
-            if (!rawPath) {
-                const drives = [];
-                for (let i = 65; i <= 90; i++) {
-                    const letter = String.fromCharCode(i);
-                    const drive = `${letter}:/`;
-                    try {
-                        if (fs.existsSync(drive)) {
-                            drives.push({ name: `${letter}:\\`, path: drive });
+            // Empty path or root => list all local drives (Windows) or the allowed analysis roots
+            // (Unix-like). The server is not allowed to list /, so we present the roots the user can
+            // actually analyze instead of returning a 403.
+            if (!rawPath || rawPath === '/') {
+                if (process.platform === 'win32') {
+                    const drives = [];
+                    for (let i = 65; i <= 90; i++) {
+                        const letter = String.fromCharCode(i);
+                        const drive = `${letter}:/`;
+                        try {
+                            if (fs.existsSync(drive)) {
+                                drives.push({ name: `${letter}:\\`, path: drive });
+                            }
                         }
+                        catch (e) { /* skip inaccessible drives */ }
                     }
-                    catch (e) { /* skip inaccessible drives */ }
+                    if (drives.length > 0) {
+                        return res.json({ success: true, current: '', parent: null, directories: drives });
+                    }
                 }
-                if (drives.length > 0) {
-                    return res.json({ success: true, current: '', parent: null, directories: drives });
-                }
-                return res.json({
-                    success: true,
-                    current: '/',
-                    parent: null,
-                    directories: (await fs.promises.readdir('/', { withFileTypes: true }))
-                        .filter((entry) => entry.isDirectory() && !entry.name.startsWith('.'))
-                        .map((entry) => ({ name: entry.name, path: path.join('/', entry.name) }))
-                        .sort((a, b) => a.name.localeCompare(b.name))
-                });
+                const roots = dedupeResolvedRoots(allowedRoots)
+                    .filter((root) => fs.existsSync(root))
+                    .map((root) => ({
+                        name: path.basename(root) || root,
+                        path: root.replace(/\\/g, '/')
+                    }))
+                    .sort((a, b) => a.name.localeCompare(b.name));
+                return res.json({ success: true, current: '', parent: null, directories: roots });
             }
 
             const candidate = resolveProjectPath(baseDir, rawPath, monorepoRoot);
@@ -2062,7 +2067,12 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             try {
                 targetPath = assertSafeProjectPath(candidate, allowedRoots, 'path');
             } catch (e) {
-                return res.status(403).json({ success: false, error: e.message });
+                // Directory browsers may walk above allowed roots; allow listing ancestors
+                // so the user can still navigate down into an allowed project directory.
+                if (!isPathAncestorOfRoots(candidate, allowedRoots)) {
+                    return res.status(403).json({ success: false, error: e.message });
+                }
+                targetPath = path.resolve(candidate);
             }
             const stat = await fs.promises.stat(targetPath);
             if (!stat.isDirectory()) {
@@ -2077,7 +2087,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 }))
                 .sort((a, b) => a.name.localeCompare(b.name));
             const parent = path.dirname(targetPath).replace(/\\/g, '/');
-            const isRoot = targetPath === parent || !isPathWithinRoots(parent, allowedRoots);
+            const isRoot = targetPath === parent || (!isPathWithinRoots(parent, allowedRoots) && !isPathAncestorOfRoots(parent, allowedRoots));
             res.json({
                 success: true,
                 current: targetPath.replace(/\\/g, '/'),
