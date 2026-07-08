@@ -308,7 +308,7 @@ export function bindScanStatus(container, options = {}) {
             // On Windows, never use a Linux server path like /opt/render/... as the fallback base.
             if (isWindowsClient && isUnixAbsolute) {
                 const driveMatch = String(getLastProjectPath() || '').match(/^([a-zA-Z]:)/);
-                return driveMatch ? `${driveMatch[1]}/Users` : 'C:/Users';
+                return driveMatch ? `${driveMatch[1]}/Users` : '';
             }
             const parts = normalized.split('/').filter(Boolean);
             // If last part looks like a server subfolder, remove it
@@ -325,10 +325,8 @@ export function bindScanStatus(container, options = {}) {
                 return isUnixAbsolute ? `/${base}` : base;
             }
         }
-        // Fallback: preserve the drive letter from defaultPath/lastProjectPath if available,
-        // so users on D:, E:, etc. don't get forced back to C:/Users.
-        const driveMatch = String(getLastProjectPath() || defaultPath).match(/^([a-zA-Z]:)/);
-        return driveMatch ? `${driveMatch[1]}/Users` : 'C:/Users';
+        // No reliable base is known; don't fabricate a path that will likely be wrong.
+        return '';
     }
     scanBtn === null || scanBtn === void 0 ? void 0 : scanBtn.addEventListener('click', runScan);
     // Hidden file input for webkitdirectory fallback
@@ -368,7 +366,7 @@ export function bindScanStatus(container, options = {}) {
         const firstPath = files[0].webkitRelativePath || files[0].name || '';
         const folderName = firstPath.split('/')[0] || firstPath;
         const homePath = deriveUserHomeBase();
-        const resolvedPath = `${homePath}/${folderName}`;
+        const resolvedPath = homePath ? `${homePath}/${folderName}` : folderName;
         if (input) {
             input.value = resolvedPath;
             setLastProjectPath(resolvedPath);
@@ -379,7 +377,9 @@ export function bindScanStatus(container, options = {}) {
         if (toast) {
             const msg = document.createElement('div');
             msg.className = 'toast toast-info';
-            msg.textContent = `Folder "${folderName}" selected. Path is estimated — please verify before scanning.`;
+            msg.textContent = homePath
+                ? `Folder "${folderName}" selected. Path is estimated — please verify before scanning.`
+                : `Folder "${folderName}" selected — browser cannot reveal its full path. Type or browse the full path before scanning.`;
             toast.appendChild(msg);
             setTimeout(() => msg.remove(), 4000);
         }
@@ -397,7 +397,7 @@ export function bindScanStatus(container, options = {}) {
                 const dirHandle = await window.showDirectoryPicker();
                 const folderName = dirHandle.name || '';
                 const homePath = deriveUserHomeBase();
-                const fallbackPath = `${homePath}/${folderName}`;
+                const fallbackPath = homePath ? `${homePath}/${folderName}` : folderName;
                 if (input) {
                     input.value = fallbackPath;
                     setLastProjectPath(fallbackPath);
@@ -408,7 +408,9 @@ export function bindScanStatus(container, options = {}) {
                 if (toast) {
                     const msg = document.createElement('div');
                     msg.className = 'toast toast-info';
-                    msg.textContent = `Folder "${folderName}" selected. Path is estimated — please verify before scanning.`;
+                    msg.textContent = homePath
+                        ? `Folder "${folderName}" selected. Path is estimated — please verify before scanning.`
+                        : `Folder "${folderName}" selected — browser cannot reveal its full path. Type or browse the full path before scanning.`;
                     toast.appendChild(msg);
                     setTimeout(() => msg.remove(), 4000);
                 }
@@ -495,7 +497,7 @@ export function bindScanStatus(container, options = {}) {
                 if (entry === null || entry === void 0 ? void 0 : entry.isDirectory) {
                     const name = entry.name || '';
                     const homePath = deriveUserHomeBase();
-                    const fallbackPath = `${homePath}/${name}`;
+                    const fallbackPath = homePath ? `${homePath}/${name}` : name;
                     input.value = fallbackPath;
                     setLastProjectPath(fallbackPath);
                     if (clearBtn)
@@ -505,7 +507,9 @@ export function bindScanStatus(container, options = {}) {
                     if (toast) {
                         const msg = document.createElement('div');
                         msg.className = 'toast toast-info';
-                        msg.textContent = `Folder "${name}" dropped. Path is estimated — please verify before scanning.`;
+                        msg.textContent = homePath
+                            ? `Folder "${name}" dropped. Path is estimated — please verify before scanning.`
+                            : `Folder "${name}" dropped — browser cannot reveal its full path. Type or browse the full path before scanning.`;
                         toast.appendChild(msg);
                         setTimeout(() => msg.remove(), 4000);
                     }
