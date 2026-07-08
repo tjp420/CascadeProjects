@@ -6320,8 +6320,13 @@ export class AnalyzeView {
                     await this.runAgentScan(typedPath);
                     return;
                 }
-                // Modern picker unavailable: reuse the hidden webkitdirectory input
-                // (same as Browse Folder) so the change listener can run the local scan.
+                // Modern picker unavailable: Firefox cannot read a typed local path from a web page.
+                // Explain the limitation instead of silently replacing the typed path with a guessed one.
+                if (typedPath && isLocalPath(typedPath)) {
+                    showToast('Firefox Privacy mode cannot read a typed local path. Use Browse Folder to select the folder, or turn off Privacy mode to use the Local Scan Agent.', 'error', { duration: 8000 });
+                    return;
+                }
+                // No path entered yet: open the legacy folder picker so the user can choose.
                 const browseInput = this._root?.querySelector('#browse-dir-input');
                 if (browseInput) {
                     showToast('Opening folder picker for privacy mode…', 'info');
