@@ -259,8 +259,32 @@ async function appendHistory(report) {
  * @returns {any}
  */
 async function ensureHistoryFromReport() {
-  const report = await readJson(REPORT_PATH);
+  const report = await readSimplebeaconJson('report.json');
   return appendHistory(report);
+}
+
+/**
+ * Read a JSON file from the platform .simplebeacon directory first, then the monorepo root.
+ * This supports deployments where the server runs from ai-platform but scans the repo root.
+ * @param {string} fileName
+ * @param {any} fallback
+ * @returns {any}
+ */
+async function readSimplebeaconJson(fileName, fallback = null) {
+  const candidates = [
+    path.join(SIMPLEBEACON_DIR, fileName),
+    path.join(MONOREPO_ROOT, '.simplebeacon', fileName)
+  ];
+  for (const candidate of candidates) {
+    try {
+      const content = await fs.promises.readFile(candidate, 'utf8');
+      return JSON.parse(content);
+    }
+    catch {
+      /* try next location */
+    }
+  }
+  return fallback;
 }
 
 /**
@@ -269,9 +293,9 @@ async function ensureHistoryFromReport() {
  */
 async function loadDashboardContext() {
   const [report, baseline, history] = await Promise.all([
-    readJson(REPORT_PATH),
-    readJson(BASELINE_PATH),
-    readJson(HISTORY_PATH, []).catch(() => [])
+    readSimplebeaconJson('report.json'),
+    readSimplebeaconJson('baseline.json'),
+    readSimplebeaconJson('history.json', []).catch(() => [])
   ]);
 
   let resolvedHistory = history;
@@ -289,14 +313,14 @@ async function loadDashboardContext() {
  * @returns {any}
  */
 async function loadAssessment(report) {
-  try {
-    return await readJson(ASSESSMENT_PATH);
-  } catch {
-    return buildAssessmentReport(report, {
-      company: 'Cascade AI Platform',
-      projectRoot: report.projectRoot || PROJECT_ROOT
-    });
+  const saved = await readSimplebeaconJson('assessment.json');
+  if (saved) {
+    return saved;
   }
+  return buildAssessmentReport(report, {
+    company: 'Cascade AI Platform',
+    projectRoot: report.projectRoot || PROJECT_ROOT
+  });
 }
 
 /**

@@ -942,6 +942,15 @@ async function bootstrapPhase2Routes() {
         { name: 'assessmentRoutes', fn: () => require('./server/api/assessment/routes.cjs').setupAssessmentRoutes(app) },
         { name: 'repositoryScanner', fn: () => setupRepositoryScannerAPIs(app, { platformRoot: __dirname }) },
         { name: 'chatbotAPI', fn: () => setupChatbotAPI(app) },
+        { name: 'promptService', fn: () => {
+            try {
+                const promptService = require('./server/services/prompt-service.cjs');
+                app.use('/api/prompts', promptService);
+            }
+            catch (e) {
+                console.warn('[PromptService] prompt-service routes not loaded');
+            }
+        } },
         { name: 'aiMathAudit', fn: () => setupAiMathAuditRoute(app, __dirname) },
         { name: 'mergerTool', fn: () => setupMergerToolRoutes(app, __dirname) }
     ];
