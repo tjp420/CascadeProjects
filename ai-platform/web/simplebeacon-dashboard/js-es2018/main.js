@@ -14,7 +14,7 @@ import { PlatformView } from './views/PlatformView.js?v=20260601platformmetrics1
 import { QualityView } from './views/QualityView.js';
 import { HelpView, FeaturesView } from './views/HelpView.js';
 import { AuditView } from './views/AuditView.js?v=20260618renderfix1';
-import { AnalyzeView } from './views/AnalyzeView.js?v=20260709uploadlimit18';
+import { AnalyzeView } from './views/AnalyzeView.js?v=20260709uploadlimit19';
 import { SecurityView } from './views/SecurityView.js?v=20260611fixexport1';
 import { PricingView } from './views/PricingView.js';
 import { AboutView } from './views/AboutView.js';
@@ -918,6 +918,7 @@ class SimplebeaconDashboard {
         const badPathPattern = /ai-platform\/CascadeProjects$|google-earthenterprise|^[a-zA-Z]:\/Users\/CascadeProjects$/i;
         if (badPathPattern.test(String(this.state.lastProjectPath || '').replace(/\\/g, '/'))) {
             this.state.lastProjectPath = '';
+            this.state.pathInputDraft = '';
         }
         let data = { report: null, baseline: null, config: null, history: null };
         try {
