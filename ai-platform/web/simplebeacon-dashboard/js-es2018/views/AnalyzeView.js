@@ -5951,44 +5951,9 @@ export class AnalyzeView {
             void this.runPathAnalysis(absolutePath);
             return;
         }
-        // No absolute path available. Populate the input with a best-guess path so the user
-        // can edit it or click Analyze/Run, then fingerprint the folder for visibility.
-        const resolvedPath = this.resolveFolderPathFromFiles(files, folderName) || this.resolveFallbackFolderPath(folderName);
-        if (resolvedPath) {
-            const pathInput = (_b = this._root) === null || _b === void 0 ? void 0 : _b.querySelector('#project-path-input');
-            if (pathInput) {
-                pathInput.value = resolvedPath;
-                this.app.state.pathInputDraft = '';
-                this.app.state.lastProjectPath = resolvedPath;
-                this.setPathInputDisplay(pathInput, resolvedPath);
-                this.syncAnalyzeModeUi(this._root);
-            }
-        }
-        if (directoryHandle && updateFingerprintStatus) {
-            updateFingerprintStatus('Fingerprinting dropped folder…');
-            try {
-                const fp = await fingerprintDirectory(directoryHandle, folderName);
-                const status = [formatFingerprint(fp), 'Path pre-filled — verify and press Enter to scan'].filter(Boolean).join(' · ');
-                updateFingerprintStatus(status);
-            }
-            catch (_c) {
-                updateFingerprintStatus('');
-            }
-        }
-        let agentStatus;
-        try {
-            agentStatus = await probeAgent();
-        } catch {
-            agentStatus = { available: false, scannerAvailable: false };
-        }
-        if (shouldUseAgent(folderName, agentStatus)) {
-            showToast(`Dropped folder path could not be read by the browser. Type or browse the full path to "${folderName}" and press Enter.`, 'warning');
-            if (window.showDirectoryPicker) {
-                // Open the picker so the user can point the dashboard at the real folder.
-                setTimeout(() => { void this.runLocalScan(); }, 0);
-            }
-            return;
-        }
+        // No absolute path available. Browsers hide the full OS path for security,
+        // so we cannot safely guess it. Route directly to a browser-local scan
+        // (directory picker / dropped handle) instead of pre-filling a likely-wrong path.
         if (directoryHandle && directoryHandle.kind === 'directory') {
             showToast('Scanning dropped folder locally — no upload…', 'info');
             await this.runLocalScan(directoryHandle);
@@ -6000,12 +5965,17 @@ export class AnalyzeView {
             await this.runLocalScan(null, files);
             return;
         }
+        if (files?.length) {
+            showToast('Scanning dropped folder locally — no upload…', 'info');
+            await this.runLocalScan(null, files);
+            return;
+        }
         if (window.showDirectoryPicker) {
-            showToast('Switching to browser local scan picker…', 'info');
+            showToast(`Dropped folder "${folderName}" — browser cannot reveal its full path. Select it in the folder picker to scan locally.`, 'info');
             await this.runLocalScan();
             return;
         }
-        showToast(getAgentFallbackMessage(agentStatus), 'error');
+        showToast(`Dropped folder "${folderName}" — browser cannot reveal its full path. Type the full path (e.g., C:/path/to/${folderName}) to scan with the Local Agent.`, 'warning');
     }
     async handleAnalyzeFiles(fileList) {
         const file = fileList[0];
