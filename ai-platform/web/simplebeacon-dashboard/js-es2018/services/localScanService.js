@@ -84,16 +84,28 @@ function buildReport(projectName, findings, totalFiles, analyzedFiles) {
  * No file contents are ever sent to the server.
  * @param {Object} options
  * @param {AbortSignal} [options.signal]
- * @param {(progress:number, total:number) => void} [options.onProgress]
+ * @param {(processed:number, total:number) => void} [options.onProgress]
+ * @param {FileSystemDirectoryHandle} [options.dirHandle] Optional directory handle from drag-and-drop.
+ * @param {FileList|File[]} [options.files] Optional dropped files (legacy directory entry) to scan locally.
  * @returns {Promise<Object>}
  */
 export async function runLocalScan(options = {}) {
-    if (!window.showDirectoryPicker) {
+    if (!options.files && !window.showDirectoryPicker && !options.dirHandle) {
         throw new Error('Your browser does not support the local directory picker. Use Chrome/Edge or run the server locally.');
     }
-    const dirHandle = await window.showDirectoryPicker();
-    const projectName = dirHandle.name || 'local-project';
-    const files = await collectFiles(dirHandle);
+    let projectName = 'local-project';
+    let files = [];
+    if (options.files && options.files.length) {
+        const fileArray = Array.from(options.files);
+        const firstRel = fileArray[0].webkitRelativePath || fileArray[0].name || '';
+        projectName = firstRel.split('/')[0] || 'local-project';
+        files = fileArray.map((f) => ({ path: f.webkitRelativePath || f.name, handle: f }));
+    }
+    else {
+        const dirHandle = options.dirHandle || await window.showDirectoryPicker();
+        projectName = dirHandle.name || 'local-project';
+        files = await collectFiles(dirHandle);
+    }
     const workerFiles = files.map((f) => ({ path: f.path, fileObj: f.handle }));
     return new Promise((resolve, reject) => {
         const worker = new Worker(WORKER_URL, { type: 'module' });

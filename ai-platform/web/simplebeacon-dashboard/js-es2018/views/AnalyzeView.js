@@ -1,6 +1,6 @@
 import { escapeHtml, showToast, downloadJson, downloadBlob, downloadText, redactPathForDisplay, formatPathLabel, formatPathInputValue, formatAiSummarySkipMessage, isRedactedPathDisplay, formatNumber, renderEmptyState } from '../utils.js';
 import { evaluateFunnelMetrics, getFunnelCopy } from '../utils/funnelTrigger.js';
-import { LocalScanService } from '../services/localScanService.js?v=20260709uploadlimit4';
+import { LocalScanService } from '../services/localScanService.js?v=20260709uploadlimit5';
 import { fingerprintDirectory, formatFingerprint } from '../services/fingerprintService.js';
 import { probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus, getAgentDownloadUrl, detectPlatform, getPlatformLabel, getInstallInstructions, getAgentFallbackMessage } from '../services/localAgentService.js';
 // simplebeacon:production-leak-intent: sample-json - Legitimate documentation about sample file patterns in analysis results
@@ -5986,8 +5986,9 @@ export class AnalyzeView {
             return;
         }
         if (directoryHandle && directoryHandle.isDirectory) {
-            // Legacy webkit entry: upload only if the directory is small enough.
-            await this.uploadFolderFiles(files, folderName);
+            // Legacy webkit entry: scan locally without uploading.
+            showToast('Scanning dropped folder locally — no upload…', 'info');
+            await this.runLocalScan(null, files);
             return;
         }
         if (window.showDirectoryPicker) {
@@ -6201,8 +6202,8 @@ export class AnalyzeView {
             buildZscriptConclusion(scan === null || scan === void 0 ? void 0 : scan.zscriptReport)
         ].filter(Boolean).join(' ');
     }
-    async runLocalScan(dirHandle = null) {
-        if (!window.showDirectoryPicker && !dirHandle) {
+    async runLocalScan(dirHandle = null, files = null) {
+        if (!files && !window.showDirectoryPicker && !dirHandle) {
             showToast('Local scan requires a browser that supports directory selection (Chrome/Edge).', 'error');
             return;
         }
@@ -6212,13 +6213,14 @@ export class AnalyzeView {
         this.app.state.analyzeResult = null;
         this.app.state.report = null;
         this.refresh();
-        if (!dirHandle) {
+        if (!dirHandle && !files) {
             showToast('Select a local folder to scan privately…', 'info');
         }
         try {
             const service = new LocalScanService();
             const report = await service.runScan({
                 dirHandle,
+                files,
                 onProgress: (processed, total) => {
                     this.scanProgress = { processed, total, percent: Math.round((processed / Math.max(1, total)) * 100) };
                     this.refresh();
