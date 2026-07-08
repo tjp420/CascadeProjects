@@ -6319,23 +6319,13 @@ export class AnalyzeView {
                     await this.runAgentScan(typedPath);
                     return;
                 }
-                // Modern picker unavailable: fall back to legacy webkitdirectory picker.
-                showToast('Opening folder picker for privacy mode…', 'info');
-                const files = await this.promptLegacyDirectoryPicker();
-                if (files && files.length) {
-                    const fileArray = Array.from(files);
-                    const firstRel = fileArray[0].webkitRelativePath || fileArray[0].name || '';
-                    const folderName = firstRel.split('/')[0] || fileArray[0].name || '';
-                    const pathInput = this._root?.querySelector('#project-path-input');
-                    if (pathInput && folderName) {
-                        const fallback = this.resolveFallbackFolderPath(folderName);
-                        this.setPathInputDisplay(pathInput, fallback);
-                        this.app.state.lastProjectPath = fallback;
-                        this.app.state.pathInputDraft = '';
-                        this.savePreferredProjectBase(fallback);
-                        this.syncAnalyzeModeUi(pathInput);
-                    }
-                    await this.runLocalScan(null, files);
+                // Modern picker unavailable: reuse the hidden webkitdirectory input
+                // (same as Browse Folder) so the change listener can run the local scan.
+                const browseInput = this._root?.querySelector('#browse-dir-input');
+                if (browseInput) {
+                    showToast('Opening folder picker for privacy mode…', 'info');
+                    browseInput.value = '';
+                    browseInput.click();
                     return;
                 }
                 showToast('Privacy mode requires a browser that supports directory selection (Chrome/Edge).', 'error');
