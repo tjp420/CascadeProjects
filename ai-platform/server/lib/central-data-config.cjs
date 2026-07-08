@@ -3,9 +3,13 @@
 let resolveMockDataScanPaths;
 
 try {
-  ({ resolveMockDataScanPaths } = require('../../../packages/simplebeacon-cli/src/config'));
+  const Simplebeacon = require('../../../packages/simplebeacon-cli/src/index');
+  resolveMockDataScanPaths = Simplebeacon?.config?.resolveMockDataScanPaths;
+  if (typeof resolveMockDataScanPaths !== 'function') {
+    throw new Error('Simplebeacon.config.resolveMockDataScanPaths is not a function');
+  }
 } catch (err) {
-  const msg = `Failed to load simplebeacon config module: ${err?.message || String(err)}`;
+  const msg = `Failed to load simplebeacon scanner module: ${err?.message || String(err)}`;
   resolveMockDataScanPaths = () => { throw new Error(msg); };
 }
 
