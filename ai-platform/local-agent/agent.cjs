@@ -136,17 +136,21 @@ async function runLocalScan(targetPath, scanOptions = {}) {
   }
 
   const options = {
-    outputFormat: 'json',
-    gate: !scanOptions.inventoryOnly,
-    full: Boolean(scanOptions.fullDirectoryScan),
+    fullDirectoryScan: Boolean(scanOptions.fullDirectoryScan),
     offline: true
   };
 
-  const report = await scannerApi.runScan(targetPath, options);
-  if (!report || typeof report !== 'object') {
-    throw new Error('Scan returned an empty or invalid report');
+  try {
+    const report = await scannerApi.runScan(targetPath, options);
+    if (!report || typeof report !== 'object') {
+      throw new Error('Scan returned an empty or invalid report');
+    }
+    return report;
   }
-  return report;
+  catch (scanErr) {
+    console.error('[agent] Scanner error:', scanErr?.message || scanErr);
+    throw scanErr;
+  }
 }
 
 /**
