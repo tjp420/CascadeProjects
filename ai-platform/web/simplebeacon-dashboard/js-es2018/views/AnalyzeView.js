@@ -6323,6 +6323,18 @@ export class AnalyzeView {
                 showToast('Opening folder picker for privacy mode…', 'info');
                 const files = await this.promptLegacyDirectoryPicker();
                 if (files && files.length) {
+                    const fileArray = Array.from(files);
+                    const firstRel = fileArray[0].webkitRelativePath || fileArray[0].name || '';
+                    const folderName = firstRel.split('/')[0] || fileArray[0].name || '';
+                    const pathInput = this._root?.querySelector('#project-path-input');
+                    if (pathInput && folderName) {
+                        const fallback = this.resolveFallbackFolderPath(folderName);
+                        this.setPathInputDisplay(pathInput, fallback);
+                        this.app.state.lastProjectPath = fallback;
+                        this.app.state.pathInputDraft = '';
+                        this.savePreferredProjectBase(fallback);
+                        this.syncAnalyzeModeUi(pathInput);
+                    }
                     await this.runLocalScan(null, files);
                     return;
                 }
