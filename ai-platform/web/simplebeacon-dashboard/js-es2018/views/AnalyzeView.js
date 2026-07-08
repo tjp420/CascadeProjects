@@ -6212,6 +6212,39 @@ export class AnalyzeView {
             buildZscriptConclusion(scan === null || scan === void 0 ? void 0 : scan.zscriptReport)
         ].filter(Boolean).join(' ');
     }
+    /**
+     * Open a legacy webkitdirectory file picker and return the selected FileList.
+     * Useful for browsers that do not support window.showDirectoryPicker.
+     * @returns {Promise<FileList|null>}
+     */
+    promptLegacyDirectoryPicker() {
+        return new Promise((resolve) => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.setAttribute('webkitdirectory', 'true');
+            input.setAttribute('directory', 'true');
+            input.style.display = 'none';
+            let settled = false;
+            function cleanup() {
+                if (!settled) {
+                    settled = true;
+                    if (input.parentNode)
+                        input.parentNode.removeChild(input);
+                }
+            }
+            input.addEventListener('change', () => {
+                resolve(input.files || null);
+                cleanup();
+            });
+            input.addEventListener('cancel', () => {
+                resolve(null);
+                cleanup();
+            });
+            document.body.appendChild(input);
+            input.click();
+            setTimeout(cleanup, 300000);
+        });
+    }
     async runLocalScan(dirHandle = null, files = null) {
         if (!files && !window.showDirectoryPicker && !dirHandle) {
             showToast('Local scan requires a browser that supports directory selection (Chrome/Edge).', 'error');
@@ -6305,6 +6338,13 @@ export class AnalyzeView {
                 if (isLocalPath(typedPath) && shouldUseAgent(typedPath, this.agentStatus)) {
                     showToast('Privacy mode requires Chrome/Edge for directory picker. Falling back to local agent scan.', 'info');
                     await this.runAgentScan(typedPath);
+                    return;
+                }
+                // Modern picker unavailable: fall back to legacy webkitdirectory picker.
+                showToast('Opening folder picker for privacy mode…', 'info');
+                const files = await this.promptLegacyDirectoryPicker();
+                if (files && files.length) {
+                    await this.runLocalScan(null, files);
                     return;
                 }
                 showToast('Privacy mode requires a browser that supports directory selection (Chrome/Edge).', 'error');
