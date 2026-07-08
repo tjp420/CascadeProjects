@@ -445,12 +445,12 @@
         { href: '/coming-soon/roadmap.html', icon: 'map', label: 'Roadmap' },
         { href: '/coming-soon/audit.html', icon: 'clipboard-check', label: 'Audit' },
         { href: '/coming-soon/pricing.html', icon: 'tag', label: 'Pricing', id: 'header-pricing-link' },
-        { href: '#/dashboard', icon: 'layout-dashboard', label: 'Teams Dashboard', id: 'vaultLink' }
+        { href: '/dashboard/dashboard', icon: 'layout-dashboard', label: 'Teams Dashboard', id: 'vaultLink' }
       ];
       links.forEach(function(link) {
         var a = document.createElement('a');
         a.href = link.href;
-        if (!link.href.startsWith('#')) {
+        if (!link.href.startsWith('#') && !link.href.startsWith('/dashboard')) {
           a.target = '_blank';
           a.rel = 'noopener';
         }
