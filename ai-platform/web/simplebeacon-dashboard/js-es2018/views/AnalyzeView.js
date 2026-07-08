@@ -6107,6 +6107,16 @@ export class AnalyzeView {
     async runPathAnalysis(inputPath) {
         var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p;
         if (this.localMode) {
+            if (!window.showDirectoryPicker) {
+                const typedPath = String(inputPath || '').trim();
+                if (isLocalPath(typedPath) && shouldUseAgent(typedPath, this.agentStatus)) {
+                    showToast('Privacy mode requires Chrome/Edge for directory picker. Falling back to local agent scan.', 'info');
+                    await this.runAgentScan(typedPath);
+                    return;
+                }
+                showToast('Privacy mode requires a browser that supports directory selection (Chrome/Edge).', 'error');
+                return;
+            }
             await this.runLocalScan();
             return;
         }
