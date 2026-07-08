@@ -52,6 +52,7 @@ const { setupAiMathAuditRoute } = require('./server/routes/ai-math-audit-route.c
 const { uploadSecurity, contentValidation } = require('./server/middleware/upload-security.cjs');
 const { authenticate, optionalAuthenticate } = require('./server/middleware/auth.cjs');
 const authRoutes = require('./server/routes/auth.cjs');
+const { runNpmAuditAsync } = require('./server/lib/npm-audit-runner.cjs');
 
 const { safeString, safeErrorMessage } = constants;
 
@@ -1108,6 +1109,26 @@ async function startServer() {
       totalIncidents: 0,
       resolvedIncidents: 0
     });
+  });
+
+  app.post('/api/security/npm-audit', optionalAuthenticate, async (req, res) => {
+    try {
+      const platformRoot = path.join(__dirname);
+      const force = req.body?.force === true;
+      const npmAudit = await runNpmAuditAsync(platformRoot, { force });
+      res.set('Cache-Control', 'no-store');
+      res.json({
+        success: true,
+        ...npmAudit,
+        projectPath: platformRoot,
+        auditRoot: platformRoot
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: safeString(error)
+      });
+    }
   });
 
   app.get('/api/help', optionalAuthenticate, (req, res) => {
