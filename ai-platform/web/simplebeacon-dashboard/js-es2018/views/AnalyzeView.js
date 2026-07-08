@@ -1,6 +1,6 @@
 import { escapeHtml, showToast, downloadJson, downloadBlob, downloadText, redactPathForDisplay, formatPathLabel, formatPathInputValue, formatAiSummarySkipMessage, isRedactedPathDisplay, formatNumber, renderEmptyState } from '../utils.js';
 import { evaluateFunnelMetrics, getFunnelCopy } from '../utils/funnelTrigger.js';
-import { LocalScanService } from '../services/localScanService.js';
+import { LocalScanService } from '../services/localScanService.js?v=20260709uploadlimit3';
 import { fingerprintDirectory, formatFingerprint } from '../services/fingerprintService.js';
 import { probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus, getAgentDownloadUrl, detectPlatform, getPlatformLabel, getInstallInstructions, getAgentFallbackMessage } from '../services/localAgentService.js';
 // simplebeacon:production-leak-intent: sample-json - Legitimate documentation about sample file patterns in analysis results
@@ -34,6 +34,7 @@ import { showLoginModal } from '../components/LoginModal.js';
 import { authService } from '../services/authService.js';
 import { MAX_SNIPPET_BYTES, isSupportedSourceFile, isAnalyzerCacheJson, isCleanupExportJson, isFictionDigestJson, isLockfileName, isMarkdownFileName, isScannerMetaFileName, filterSnippetFindingsForFile, scanSnippetText, computeThreatScore, redactMatch, severityLabel } from '../utils/snippetDiagnostic.js?v=20260531analyzers1';
 const SNIPPET_ACCEPT = '.json,.js,.mjs,.cjs,.ts,.tsx,.jsx,.py,.env,.yaml,.yml,.txt,.md,.html,.css,.xml,.toml,.ini,.sh,.ps1,.bat';
+const MAX_UPLOAD_BYTES = 100 * 1024 * 1024; // 100 MB — server-side directory upload limit
 /**
  * Read hash query param.
  * @param {string} name
@@ -66,6 +67,7 @@ function dateStamp() {
     return new Date().toISOString().slice(0, 10);
 }
 const ANALYZE_PREFS_KEY = 'simplebeaconAnalyzePrefs';
+const PREFERRED_PROJECT_BASE_KEY = 'simplebeaconPreferredProjectBase';
 /**
  * Analysis type uses ai narrative.
  * @param {any} type
@@ -4405,6 +4407,11 @@ export class AnalyzeView {
             showToast(this.realtimeMonitorEnabled ? 'Real-time monitoring enabled' : 'Real-time monitoring disabled', 'info');
         });
         (_o = el.querySelector('#browse-dir-btn')) === null || _o === void 0 ? void 0 : _o.addEventListener('click', () => {
+            // Prefer the local directory picker (Chrome/Edge) to avoid uploading huge folders.
+            if (window.showDirectoryPicker && !this.isElectronLike()) {
+                void this.runLocalScan();
+                return;
+            }
             const input = el.querySelector('#browse-dir-input');
             if (input) {
                 input.value = '';
@@ -4506,6 +4513,7 @@ export class AnalyzeView {
             this.app.state.pathInputDraft = '';
             this.app.state.lastProjectPath = resolvedPath;
             this.setPathInputDisplay(pathInput, resolvedPath);
+            this.savePreferredProjectBase(resolvedPath);
             void this.refreshReportForActivePath(el);
             void this.runPathAnalysis(resolvedPath);
         });
@@ -4539,6 +4547,7 @@ export class AnalyzeView {
             this.app.state.pathInputDraft = '';
             this.app.state.lastProjectPath = resolvedPath;
             this.setPathInputDisplay(pathInput, resolvedPath);
+            this.savePreferredProjectBase(resolvedPath);
             void this.runPathAnalysis(resolvedPath);
         });
         // Dropzone Analyze button triggers the same analysis as Enter on project-path-input
@@ -4554,6 +4563,7 @@ export class AnalyzeView {
             this.app.state.pathInputDraft = '';
             this.app.state.lastProjectPath = resolvedPath;
             this.setPathInputDisplay(pathInput, resolvedPath);
+            this.savePreferredProjectBase(resolvedPath);
             void this.refreshReportForActivePath(el);
             void this.runPathAnalysis(resolvedPath);
         });
@@ -4767,6 +4777,7 @@ export class AnalyzeView {
                 this.app.state.pathInputDraft = '';
                 this.app.state.lastProjectPath = resolved;
                 this.setPathInputDisplay(pathInput, resolved);
+                this.savePreferredProjectBase(resolved);
                 void this.refreshReportForActivePath(el);
                 void this.runPathAnalysis(resolved);
             }
@@ -4979,7 +4990,27 @@ export class AnalyzeView {
                     return base ? `${base}/${name}` : name;
                 };
                 if (items === null || items === void 0 ? void 0 : items.length) {
-                    const entry = (_g = (_f = items[0]).webkitGetAsEntry) === null || _g === void 0 ? void 0 : _g.call(_f);
+                    // Prefer the File System Access API handle so we can scan locally without upload.
+                    try {
+                        const handle = await ((_g = (_f = items[0]).getAsFileSystemHandle) === null || _g === void 0 ? void 0 : _g.call(_f));
+                        if (handle && handle.kind === 'directory') {
+                            const name = handle.name || '';
+                            if ((files === null || files === void 0 ? void 0 : files.length) && !files[0].path) {
+                                void this.handleDroppedFolderFallback(files, name, event, handle, updateFingerprintStatus);
+                                return;
+                            }
+                            setPathAndNotify(resolveFolderPath(name), name);
+                            return;
+                        }
+                        if (handle && handle.kind === 'file' && (files === null || files === void 0 ? void 0 : files.length)) {
+                            void this.handleAnalyzeFiles(files);
+                            return;
+                        }
+                    }
+                    catch (_k) {
+                        // getAsFileSystemHandle not supported — fall through to legacy entry
+                    }
+                    const entry = (_j = (_i = items[0]).webkitGetAsEntry) === null || _j === void 0 ? void 0 : _j.call(_i);
                     if (entry) {
                         if (entry.isDirectory) {
                             const name = entry.name || '';
@@ -5115,14 +5146,17 @@ export class AnalyzeView {
         }
         this.closeDirBrowser(el);
     }
+    isElectronLike() {
+        var _a, _b;
+        return Boolean(typeof window !== 'undefined' &&
+            (((_b = (_a = window.process) === null || _a === void 0 ? void 0 : _a.versions) === null || _b === void 0 ? void 0 : _b.electron) || /Electron/.test(navigator.userAgent)));
+    }
     /** Try native directory picker; returns true if a folder was chosen. */
     async pickFolderViaBrowser(el) {
         var _a, _b, _c;
         // In Electron-like environments skip showDirectoryPicker because it cannot
         // reveal absolute paths; the webkitdirectory fallback gives files with .path.
-        const isElectronLike = Boolean(typeof window !== 'undefined' &&
-            (((_b = (_a = window.process) === null || _a === void 0 ? void 0 : _a.versions) === null || _b === void 0 ? void 0 : _b.electron) || /Electron/.test(navigator.userAgent)));
-        if (!window.showDirectoryPicker || isElectronLike)
+        if (!window.showDirectoryPicker || this.isElectronLike())
             return false;
         try {
             const dirHandle = await window.showDirectoryPicker();
@@ -5195,6 +5229,63 @@ export class AnalyzeView {
             return filePath;
         }
         return null;
+    }
+    /**
+     * Build a best-guess folder path when the browser cannot reveal the absolute OS path.
+     * Prefers recent paths, then a path base that matches the client's OS (so a Windows drop
+     * does not get anchored to a Linux server default like /opt/render/...).
+     */
+    resolveFallbackFolderPath(folderName) {
+        const fName = folderName.replace(/\\/g, '/');
+        // 1. Prefer a recently-used path that ends with the same folder name.
+        const recent = loadRecentPaths();
+        for (const p of recent) {
+            const norm = p.replace(/\\/g, '/').replace(/\/+$/, '');
+            if (norm.endsWith(`/${fName}`) || norm === fName) {
+                return p;
+            }
+        }
+        // 2. Determine a base directory that matches the client OS.
+        const isWindowsClient = /Windows/i.test(navigator.userAgent);
+        const isLinuxPath = (p) => p.startsWith('/') && !p.match(/^[a-zA-Z]:/);
+        const pathInput = this._root?.querySelector('#project-path-input');
+        const currentInput = String(pathInput?.value || '').trim();
+        const currentBase = currentInput
+            ? currentInput.replace(/\\/g, '/').replace(/\/+$/, '').split('/').slice(0, -1).join('/')
+            : '';
+        const rawDefault = String(this.app.state.defaultProjectPath || '')
+            .replace(/\\/g, '/')
+            .replace(/\/+$/, '');
+        const fallbackBase = String(this._deriveFallbackBase())
+            .replace(/\\/g, '/')
+            .replace(/\/+$/, '');
+        const preferredBase = String(this.loadPreferredProjectBase() || '')
+            .replace(/\\/g, '/')
+            .replace(/\/+$/, '');
+        const candidates = [preferredBase, currentBase, rawDefault, fallbackBase].filter(Boolean);
+        const base = isWindowsClient
+            ? candidates.find((p) => !isLinuxPath(p)) || fallbackBase
+            : candidates[0] || fallbackBase;
+        return base ? `${base}/${folderName}` : folderName;
+    }
+    savePreferredProjectBase(path) {
+        const norm = String(path || '').replace(/\\/g, '/').replace(/\/+$/, '');
+        const lastSlash = norm.lastIndexOf('/');
+        const base = lastSlash > 0 ? norm.slice(0, lastSlash) : norm;
+        if (base && base.length > 2) {
+            try {
+                localStorage.setItem(PREFERRED_PROJECT_BASE_KEY, base);
+            }
+            catch { /* ignore quota / privacy errors */ }
+        }
+    }
+    loadPreferredProjectBase() {
+        try {
+            return localStorage.getItem(PREFERRED_PROJECT_BASE_KEY) || '';
+        }
+        catch {
+            return '';
+        }
     }
     bindFileDropEvents(el) {
         var _a, _b;
@@ -5737,6 +5828,12 @@ export class AnalyzeView {
             showToast('No files to upload', 'warning');
             return;
         }
+        const totalBytes = Array.from(fileList).reduce((sum, f) => sum + (f.size || 0), 0);
+        if (totalBytes > MAX_UPLOAD_BYTES) {
+            const sizeMb = Math.round(totalBytes / (1024 * 1024));
+            showToast(`Directory is too large to upload (${sizeMb} MB). Use Chrome/Edge local scan, type the server path, or install the local agent.`, 'error');
+            return;
+        }
         this.busy = true;
         this._terminalLogLines.push(`Uploading ${fileList.length} files from "${folderName || 'folder'}"…`);
         this.refresh();
@@ -5849,13 +5946,24 @@ export class AnalyzeView {
             void this.runPathAnalysis(absolutePath);
             return;
         }
-        // No absolute path available. Fingerprint the folder so the user sees the file count,
-        // but make it clear they must type the full path before scanning.
+        // No absolute path available. Populate the input with a best-guess path so the user
+        // can edit it or click Analyze/Run, then fingerprint the folder for visibility.
+        const resolvedPath = this.resolveFolderPathFromFiles(files, folderName) || this.resolveFallbackFolderPath(folderName);
+        if (resolvedPath) {
+            const pathInput = (_b = this._root) === null || _b === void 0 ? void 0 : _b.querySelector('#project-path-input');
+            if (pathInput) {
+                pathInput.value = resolvedPath;
+                this.app.state.pathInputDraft = '';
+                this.app.state.lastProjectPath = resolvedPath;
+                this.setPathInputDisplay(pathInput, resolvedPath);
+                this.syncAnalyzeModeUi(this._root);
+            }
+        }
         if (directoryHandle && updateFingerprintStatus) {
             updateFingerprintStatus('Fingerprinting dropped folder…');
             try {
                 const fp = await fingerprintDirectory(directoryHandle, folderName);
-                const status = [formatFingerprint(fp), 'Type the full path and press Enter to scan'].filter(Boolean).join(' · ');
+                const status = [formatFingerprint(fp), 'Path pre-filled — verify and press Enter to scan'].filter(Boolean).join(' · ');
                 updateFingerprintStatus(status);
             }
             catch (_c) {
@@ -5872,7 +5980,17 @@ export class AnalyzeView {
             showToast(`Dropped folder path could not be read. Type the full path (e.g., C:/Users/${folderName}) and press Enter.`, 'warning');
             return;
         }
-        if (this.localMode && window.showDirectoryPicker) {
+        if (directoryHandle && directoryHandle.kind === 'directory') {
+            showToast('Scanning dropped folder locally — no upload…', 'info');
+            await this.runLocalScan(directoryHandle);
+            return;
+        }
+        if (directoryHandle && directoryHandle.isDirectory) {
+            // Legacy webkit entry: upload only if the directory is small enough.
+            await this.uploadFolderFiles(files, folderName);
+            return;
+        }
+        if (window.showDirectoryPicker) {
             showToast('Switching to browser local scan picker…', 'info');
             await this.runLocalScan();
             return;
@@ -6083,8 +6201,8 @@ export class AnalyzeView {
             buildZscriptConclusion(scan === null || scan === void 0 ? void 0 : scan.zscriptReport)
         ].filter(Boolean).join(' ');
     }
-    async runLocalScan() {
-        if (!window.showDirectoryPicker) {
+    async runLocalScan(dirHandle = null) {
+        if (!window.showDirectoryPicker && !dirHandle) {
             showToast('Local scan requires a browser that supports directory selection (Chrome/Edge).', 'error');
             return;
         }
@@ -6094,10 +6212,13 @@ export class AnalyzeView {
         this.app.state.analyzeResult = null;
         this.app.state.report = null;
         this.refresh();
-        showToast('Select a local folder to scan privately…', 'info');
+        if (!dirHandle) {
+            showToast('Select a local folder to scan privately…', 'info');
+        }
         try {
             const service = new LocalScanService();
             const report = await service.runScan({
+                dirHandle,
                 onProgress: (processed, total) => {
                     this.scanProgress = { processed, total, percent: Math.round((processed / Math.max(1, total)) * 100) };
                     this.refresh();
@@ -6628,6 +6749,7 @@ export class AnalyzeView {
         finally {
             if (analysisSucceeded) {
                 saveRecentPath(projectPath);
+                this.savePreferredProjectBase(projectPath);
             }
             this.stopProgressPolling();
             this.busy = false;
