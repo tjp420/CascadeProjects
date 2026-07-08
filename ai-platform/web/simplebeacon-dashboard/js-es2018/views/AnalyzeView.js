@@ -4601,8 +4601,18 @@ export class AnalyzeView {
                     }
                 }
                 const folderName = relPath.split('/')[0] || firstFile.name || '';
-                // webkitdirectory only gives relative paths in regular browsers; upload the folder instead.
-                void this.uploadFolderFiles(files, folderName);
+                // webkitdirectory only gives relative paths in regular browsers; scan locally instead of uploading.
+                showToast('Scanning selected folder locally — no upload…', 'info');
+                void this.runLocalScan(null, files);
+                // Keep the path input set to a best-guess location for reference.
+                const pathInput = el.querySelector('#project-path-input');
+                if (pathInput && folderName) {
+                    const fallback = this.resolveFallbackFolderPath(folderName);
+                    this.setPathInputDisplay(pathInput, fallback);
+                    this.app.state.lastProjectPath = fallback;
+                    this.app.state.pathInputDraft = '';
+                    this.syncAnalyzeModeUi(el);
+                }
             }
             e.target.value = '';
         });
