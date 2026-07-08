@@ -23,6 +23,7 @@ const multer = require('multer');
 const tmp = require('tmp');
 const rateLimit = require('express-rate-limit');
 const unzipper = require('unzipper');
+const { optionalAuthenticate } = require('../middleware/auth.cjs');
 // Dynamic reload wrapper: always load the latest codebase-analyzer.cjs to pick up patches without server restart
 function getAnalyzeCodebase() {
     const modulePath = require.resolve('../lib/codebase-analyzer.cjs');
@@ -198,12 +199,22 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
 
     const sendAnalyzeJsonOpts = { publicGateEnabled, applyPublicGateToAnalyzeResponse };
 
-    app.get('/api/simplebeacon/entitlements', (req, res) => {
+    function hasAdminDeliverableAccess(req) {
+        const user = req.user;
+        if (!user) return false;
+        if (user.role === 'superuser' || user.role === 'admin') return true;
+        if (Array.isArray(user.features) && user.features.includes('all_modules')) return true;
+        return false;
+    }
+
+    app.get('/api/simplebeacon/entitlements', optionalAuthenticate, (req, res) => {
+        const locked = publicGateEnabled || closedVaultMode;
+        const adminAccess = hasAdminDeliverableAccess(req);
         res.json({
             success: true,
-            publicGateLocked: publicGateEnabled || closedVaultMode,
+            publicGateLocked: locked,
             closedVaultMode,
-            hasAuditDeliverableAccess: !publicGateEnabled && !closedVaultMode,
+            hasAuditDeliverableAccess: (!publicGateEnabled && !closedVaultMode) || adminAccess,
             auditCheckoutUrl,
             auditPriceLabel: '$499'
         });

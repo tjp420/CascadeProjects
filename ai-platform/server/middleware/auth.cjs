@@ -137,6 +137,8 @@ async function resolveAuth(req, res) {
     name: decoded.name,
     trustLevel: decoded.trustLevel,
     permissions: decoded.permissions,
+    role: decoded.role || '',
+    features: Array.isArray(decoded.features) ? decoded.features : [],
     tokenId: decoded.jti,
     sessionId: decoded.sessionId,
     isSandbox: sandbox,
