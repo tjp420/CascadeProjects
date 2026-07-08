@@ -194,6 +194,24 @@ export function getAgentDownloadUrl(platform) {
 }
 
 /**
+ * Return user-facing guidance for why the agent cannot be used and what to do next.
+ * @param {Object} agentStatus
+ * @returns {string}
+ */
+export function getAgentFallbackMessage(agentStatus) {
+  if (agentStatus?.likelyBlocked) {
+    return 'Firefox/Safari block HTTPS pages from reaching the Local Scan Agent. Use Chrome/Edge, type the full path and press Enter, or install the browser extension.';
+  }
+  if (!agentStatus?.available) {
+    return 'Local Scan Agent is offline. Download and run it from the link below, then try again.';
+  }
+  if (!agentStatus?.scannerAvailable) {
+    return 'Local Scan Agent is running but the scanner is not loaded. Restart the agent or reinstall the portable package.';
+  }
+  return 'Local Scan Agent is not ready.';
+}
+
+/**
  * Return human-readable platform name.
  * @param {'windows'|'linux'|'macos'|'unknown'} platform
  */

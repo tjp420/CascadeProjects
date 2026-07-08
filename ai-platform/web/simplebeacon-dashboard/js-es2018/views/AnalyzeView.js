@@ -2,7 +2,7 @@ import { escapeHtml, showToast, downloadJson, downloadBlob, downloadText, redact
 import { evaluateFunnelMetrics, getFunnelCopy } from '../utils/funnelTrigger.js';
 import { LocalScanService } from '../services/localScanService.js';
 import { fingerprintDirectory, formatFingerprint } from '../services/fingerprintService.js';
-import { probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus, getAgentDownloadUrl, detectPlatform, getPlatformLabel, getInstallInstructions } from '../services/localAgentService.js';
+import { probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus, getAgentDownloadUrl, detectPlatform, getPlatformLabel, getInstallInstructions, getAgentFallbackMessage } from '../services/localAgentService.js';
 // simplebeacon:production-leak-intent: sample-json - Legitimate documentation about sample file patterns in analysis results
 import { analyzePath, scanPath, summarizeReport, fetchAnalyzeProviders, fetchRepositoryInventory, fetchCodebaseAnalysis, enrichScanReport, fetchZscriptModReport, shouldFetchZscriptReport, isLegacyScanReport, buildMonorepoScopeNote, buildPathInventoryProvenance, renderInventoryProvenanceHtml, refreshPathInventory, liveInventoryForPath, renderScanScopePanel, isSimplebeaconReport, aiProviderSupportsSummary, getScanFileMetrics, resolveAutoAnalysisMode, buildScanConclusion, buildConsolidationConclusion, buildFictionDigestPayload, sanitizeFictionDigestExport, resolveCompleteScanTargetPath, normalizeProjectPath, filterIssuesByKind, preparePlatformResultsReport, fetchCompleteAuditReport, fetchAnalyzeExportBundleZip, fetchEuAiActAuditReport, openAuditReportPrintWindow, previewAuditExportTier, auditExportButtonLabel, fetchDataCleanupScan, ensureDashboardApiReady, assertCompleteScanComplianceFresh, assertCompleteScanFileReductionFresh, fetchUnderstandSnippet, isCodebaseReport, fetchComplianceChecklist, fetchProjectNpmAudit, prepareGithubRepo, fetchAnalyzeTestSources, isAnalyzeProviderConfigured, uploadDirectoryAndAnalyze } from '../services/analyzeService.js?v=20260531pathfix1';
 import { isRemoteRepoUrl, sourceChipTitle } from '../lib/analyzePathSources.js';
@@ -4815,7 +4815,8 @@ export class AnalyzeView {
                 const items = (_a = event.dataTransfer) === null || _a === void 0 ? void 0 : _a.items;
                 const files = (_b = event.dataTransfer) === null || _b === void 0 ? void 0 : _b.files;
                 // Modern browsers: detect directory drops via File System Access API.
-                // If the browser cannot reveal the full OS path, upload the folder contents instead.
+                // If the browser cannot reveal the full OS path, fall back to agent-aware handling
+                // instead of uploading private folder contents to the server.
                 if (((_c = items === null || items === void 0 ? void 0 : items[0]) === null || _c === void 0 ? void 0 : _c.kind) === 'file') {
                     try {
                         const handle = await ((_e = (_d = items[0]).getAsFileSystemHandle) === null || _e === void 0 ? void 0 : _e.call(_d));
@@ -4825,7 +4826,7 @@ export class AnalyzeView {
                                 void fingerprintDirectory(handle, handle.name)
                                     .then((fp) => updateFingerprintStatus(formatFingerprint(fp)))
                                     .catch(() => updateFingerprintStatus(''));
-                                void this.uploadFolderFiles(files, handle.name);
+                                void this.handleDroppedFolderFallback(files, handle.name, event);
                                 return;
                             }
                             showToast('Directory drop detected. Use Browse Folder or type the full path for best results.', 'warning');
@@ -4971,7 +4972,7 @@ export class AnalyzeView {
                                 void fingerprintDirectory(entry, name)
                                     .then((fp) => updateFingerprintStatus(formatFingerprint(fp)))
                                     .catch(() => updateFingerprintStatus(''));
-                                void this.uploadFolderFiles(files, name);
+                                void this.handleDroppedFolderFallback(files, name, event);
                                 return;
                             }
                             setPathAndNotify(resolveFolderPath(name), name);
@@ -5718,6 +5719,99 @@ export class AnalyzeView {
             this.refresh();
         }
     }
+    /**
+     * Try to extract an absolute OS path from a drop event's dataTransfer.
+     * Browsers like Firefox/Safari expose file:/// URIs for dragged folders.
+     * @param {DragEvent} event
+     * @param {string} [folderName]
+     * @returns {string}
+     */
+    extractAbsoluteDroppedPath(event, folderName) {
+        var _a, _b;
+        const dt = event.dataTransfer;
+        if (!dt) return '';
+        const tryGetData = (type) => {
+            try { return dt.getData(type) || ''; } catch { return ''; }
+        };
+        const decodeFileUri = (uri) => {
+            if (!uri || !uri.startsWith('file:///')) return '';
+            let p = uri.slice(8).replace(/\/$/, '');
+            try { p = decodeURIComponent(p); } catch { /* ignore */ }
+            return p.replace(/\//g, '\\');
+        };
+        const uriList = tryGetData('text/uri-list');
+        if (uriList) {
+            const uri = uriList.trim().split('\n')[0]?.trim();
+            const decoded = decodeFileUri(uri);
+            if (decoded) return decoded;
+        }
+        const plain = tryGetData('text/plain');
+        if (plain) {
+            const trimmed = plain.trim().split('\n')[0]?.trim().replace(/^["']|["']$/g, '');
+            if (trimmed && /^[a-zA-Z]:[\\\/]/.test(trimmed)) {
+                return trimmed.replace(/[\\\/]+$/, '');
+            }
+        }
+        const mozUrl = tryGetData('text/x-moz-url');
+        if (mozUrl) {
+            const url = mozUrl.trim().split('\n')[0]?.trim();
+            const decoded = decodeFileUri(url);
+            if (decoded) return decoded;
+        }
+        const files = dt.files;
+        if (files?.[0]?.path) {
+            const filePath = String(files[0].path).replace(/\\/g, '/');
+            if (folderName) {
+                const idx = filePath.indexOf(`/${folderName}/`);
+                if (idx >= 0) return filePath.slice(0, idx + folderName.length + 1).replace(/\//g, '\\');
+                const endIdx = filePath.lastIndexOf(`/${folderName}`);
+                if (endIdx >= 0) return filePath.slice(0, endIdx + folderName.length + 1).replace(/\//g, '\\');
+            }
+            const lastSlash = filePath.lastIndexOf('/');
+            return lastSlash > 0 ? filePath.slice(0, lastSlash).replace(/\//g, '\\') : '';
+        }
+        return '';
+    }
+    /**
+     * Handle a dropped folder when the browser cannot directly reveal the full path.
+     * Prefer routing to the local agent if an absolute path can be recovered;
+     * otherwise show guidance instead of leaking the folder to the server.
+     * @param {FileList} files
+     * @param {string} folderName
+     * @param {DragEvent} event
+     */
+    async handleDroppedFolderFallback(files, folderName, event) {
+        var _a, _b;
+        const absolutePath = this.extractAbsoluteDroppedPath(event, folderName);
+        if (absolutePath) {
+            const pathInput = (_a = this._root) === null || _a === void 0 ? void 0 : _a.querySelector('#project-path-input');
+            if (pathInput) {
+                pathInput.value = absolutePath;
+                this.app.state.pathInputDraft = '';
+                this.app.state.lastProjectPath = absolutePath;
+                this.setPathInputDisplay(pathInput, absolutePath);
+                this.syncAnalyzeModeUi(this._root);
+            }
+            void this.runPathAnalysis(absolutePath);
+            return;
+        }
+        let agentStatus;
+        try {
+            agentStatus = await probeAgent();
+        } catch {
+            agentStatus = { available: false, scannerAvailable: false };
+        }
+        if (shouldUseAgent(folderName, agentStatus)) {
+            showToast(`Dropped folder path could not be read. Type the full path (e.g., C:/Users/${folderName}) and press Enter.`, 'warning');
+            return;
+        }
+        if (this.localMode && window.showDirectoryPicker) {
+            showToast('Switching to browser local scan picker…', 'info');
+            await this.runLocalScan();
+            return;
+        }
+        showToast(getAgentFallbackMessage(agentStatus), 'error');
+    }
     async handleAnalyzeFiles(fileList) {
         const file = fileList[0];
         if (!file)
@@ -6024,7 +6118,7 @@ export class AnalyzeView {
                 await this.runAgentScan(projectPath);
                 return;
             }
-            showToast(`Local path detected. Download and run the Local Scan Agent from the link below, then try again.`, 'error');
+            showToast(getAgentFallbackMessage(this.agentStatus), 'error');
             return;
         }
         if (shouldUseAgent(projectPath, this.agentStatus)) {

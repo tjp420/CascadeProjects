@@ -196,6 +196,24 @@ export function getAgentDownloadUrl(platform) {
     return AGENT_DOWNLOAD_URLS[p] || AGENT_DOWNLOAD_URLS.unknown;
 }
 /**
+ * Return user-facing guidance for why the agent cannot be used and what to do next.
+ * @param {Object} agentStatus
+ * @returns {string}
+ */
+export function getAgentFallbackMessage(agentStatus) {
+    var _a, _b, _c;
+    if ((_a = agentStatus) === null || _a === void 0 ? void 0 : _a.likelyBlocked) {
+        return 'Firefox/Safari block HTTPS pages from reaching the Local Scan Agent. Use Chrome/Edge, type the full path and press Enter, or install the browser extension.';
+    }
+    if (!((_b = agentStatus) === null || _b === void 0 ? void 0 : _b.available)) {
+        return 'Local Scan Agent is offline. Download and run it from the link below, then try again.';
+    }
+    if (!((_c = agentStatus) === null || _c === void 0 ? void 0 : _c.scannerAvailable)) {
+        return 'Local Scan Agent is running but the scanner is not loaded. Restart the agent or reinstall the portable package.';
+    }
+    return 'Local Scan Agent is not ready.';
+}
+/**
  * Return human-readable platform name.
  * @param {'windows'|'linux'|'macos'|'unknown'} platform
  */
