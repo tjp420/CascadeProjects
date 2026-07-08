@@ -44,6 +44,8 @@ $items = @(
     "README.md",
     "start-agent.bat",
     "start-agent.sh",
+    "uninstall.ps1",
+    "uninstall-windows.bat",
     "node_modules",
     "packages",
     ".simplebeacon"
@@ -66,12 +68,20 @@ foreach ($item in $items) {
     }
 }
 
+$uninstallBat = Join-Path $InstallDir "uninstall-windows.bat"
+
 # Start Menu shortcut.
 Ensure-Dir $startMenuDir
 Create-Shortcut `
     -target $agentBat `
     -shortcutPath "$startMenuDir\SimpleBeacon Local Agent.lnk" `
     -description "Start the SimpleBeacon local scan agent"
+
+# Uninstall shortcut.
+Create-Shortcut `
+    -target $uninstallBat `
+    -shortcutPath "$startMenuDir\Uninstall SimpleBeacon Local Agent.lnk" `
+    -description "Remove the SimpleBeacon local scan agent"
 
 # Startup shortcut so the agent runs on login.
 Create-Shortcut `

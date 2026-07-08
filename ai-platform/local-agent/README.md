@@ -73,6 +73,27 @@ This produces `dist/simplebeacon-local-agent.exe` (Windows), `dist/simplebeacon-
 
 The dashboard is served over HTTPS, while the agent is HTTP on `127.0.0.1`. Chromium-based browsers (Chrome, Edge, Brave) treat `localhost` as a secure context and allow the dashboard to talk to the agent. Firefox and Safari may block the connection as mixed content. For those browsers, use the browser extension bridge or run the dashboard in a native Electron wrapper.
 
+## Uninstall
+
+### Windows (setup.exe or install-windows.bat)
+
+After installation, an **Uninstall SimpleBeacon Local Agent** shortcut is created in the Start Menu under `SimpleBeacon`. Running it removes:
+
+- The installed agent folder at `%LOCALAPPDATA%\SimpleBeaconLocalAgent`
+- The Start Menu folder
+- The startup shortcut
+- Any running agent process started from that folder
+
+You can also run the uninstaller manually from the install folder:
+
+```powershell
+& "$env:LOCALAPPDATA\SimpleBeaconLocalAgent\uninstall-windows.bat"
+```
+
+### Portable zip (without running the installer)
+
+If you only extracted the zip and ran `start-agent.bat`, stop the agent window and delete the extracted folder.
+
 ## Environment variables
 
 - `SIMPLEBEACON_AGENT_PORT` — override the default port `55432`.
