@@ -28,7 +28,11 @@ export function isLocalPath(value) {
         return false;
     if (/^https?:\/\//i.test(raw) || /^file:\/\//i.test(raw))
         return false;
-    return /^[A-Za-z]:[\\/]/.test(raw) || /^\/[^/]/.test(raw) || /^~[\\/]/.test(raw);
+    const isWindowsClient = typeof navigator !== 'undefined' && /Win(dows|32|64)/i.test(navigator.userAgent || '');
+    if (isWindowsClient) {
+        return /^[A-Za-z]:[\\/]/.test(raw) || /^\\\\/.test(raw);
+    }
+    return /^[A-Za-z]:[\\/]/.test(raw) || /^\/[^/]/.test(raw) || /^~[\\/]/.test(raw) || /^\\\\/.test(raw);
 }
 /**
  * Probe the local agent health endpoint.
