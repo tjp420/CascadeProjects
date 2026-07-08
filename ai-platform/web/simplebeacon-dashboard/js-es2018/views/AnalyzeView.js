@@ -5266,9 +5266,11 @@ export class AnalyzeView {
             .replace(/\\/g, '/')
             .replace(/\/+$/, '');
         const candidates = [currentBase, preferredBase, rawDefault, fallbackBase].filter(Boolean);
+        // On Windows, only accept a Windows-style base. Avoid fabricating a C:/Users path
+        // when the actual folder may be on a different drive or directory.
         const base = isWindowsClient
-            ? candidates.find((p) => !isLinuxPath(p)) || fallbackBase
-            : candidates[0] || fallbackBase;
+            ? (candidates.find((p) => !isLinuxPath(p)) || '')
+            : (candidates[0] || fallbackBase);
         return base ? `${base}/${folderName}` : folderName;
     }
     savePreferredProjectBase(path) {
@@ -5980,7 +5982,11 @@ export class AnalyzeView {
             agentStatus = { available: false, scannerAvailable: false };
         }
         if (shouldUseAgent(folderName, agentStatus)) {
-            showToast(`Dropped folder path could not be read. Type the full path (e.g., C:/Users/${folderName}) and press Enter.`, 'warning');
+            showToast(`Dropped folder path could not be read by the browser. Type or browse the full path to "${folderName}" and press Enter.`, 'warning');
+            if (window.showDirectoryPicker) {
+                // Open the picker so the user can point the dashboard at the real folder.
+                setTimeout(() => { void this.runLocalScan(); }, 0);
+            }
             return;
         }
         if (directoryHandle && directoryHandle.kind === 'directory') {
