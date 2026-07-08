@@ -4822,11 +4822,7 @@ export class AnalyzeView {
                         const handle = await ((_e = (_d = items[0]).getAsFileSystemHandle) === null || _e === void 0 ? void 0 : _e.call(_d));
                         if (handle && handle.kind === 'directory') {
                             if ((files === null || files === void 0 ? void 0 : files.length) && !files[0].path) {
-                                updateFingerprintStatus('Fingerprinting dropped folder…');
-                                void fingerprintDirectory(handle, handle.name)
-                                    .then((fp) => updateFingerprintStatus(formatFingerprint(fp)))
-                                    .catch(() => updateFingerprintStatus(''));
-                                void this.handleDroppedFolderFallback(files, handle.name, event);
+                                void this.handleDroppedFolderFallback(files, handle.name, event, handle, updateFingerprintStatus);
                                 return;
                             }
                             showToast('Directory drop detected. Use Browse Folder or type the full path for best results.', 'warning');
@@ -4968,11 +4964,7 @@ export class AnalyzeView {
                         if (entry.isDirectory) {
                             const name = entry.name || '';
                             if ((files === null || files === void 0 ? void 0 : files.length) && !files[0].path) {
-                                updateFingerprintStatus('Fingerprinting dropped folder…');
-                                void fingerprintDirectory(entry, name)
-                                    .then((fp) => updateFingerprintStatus(formatFingerprint(fp)))
-                                    .catch(() => updateFingerprintStatus(''));
-                                void this.handleDroppedFolderFallback(files, name, event);
+                                void this.handleDroppedFolderFallback(files, name, event, entry, updateFingerprintStatus);
                                 return;
                             }
                             setPathAndNotify(resolveFolderPath(name), name);
@@ -5779,8 +5771,10 @@ export class AnalyzeView {
      * @param {FileList} files
      * @param {string} folderName
      * @param {DragEvent} event
+     * @param {FileSystemDirectoryHandle|FileSystemDirectoryEntry} [directoryHandle]
+     * @param {(text:string)=>void} [updateFingerprintStatus]
      */
-    async handleDroppedFolderFallback(files, folderName, event) {
+    async handleDroppedFolderFallback(files, folderName, event, directoryHandle = null, updateFingerprintStatus = null) {
         var _a, _b;
         const absolutePath = this.extractAbsoluteDroppedPath(event, folderName);
         if (absolutePath) {
@@ -5794,6 +5788,19 @@ export class AnalyzeView {
             }
             void this.runPathAnalysis(absolutePath);
             return;
+        }
+        // No absolute path available. Fingerprint the folder so the user sees the file count,
+        // but make it clear they must type the full path before scanning.
+        if (directoryHandle && updateFingerprintStatus) {
+            updateFingerprintStatus('Fingerprinting dropped folder…');
+            try {
+                const fp = await fingerprintDirectory(directoryHandle, folderName);
+                const status = [formatFingerprint(fp), 'Type the full path and press Enter to scan'].filter(Boolean).join(' · ');
+                updateFingerprintStatus(status);
+            }
+            catch (_c) {
+                updateFingerprintStatus('');
+            }
         }
         let agentStatus;
         try {
