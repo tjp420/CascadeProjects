@@ -4408,7 +4408,8 @@ export class AnalyzeView {
         (_o = el.querySelector('#browse-dir-btn')) === null || _o === void 0 ? void 0 : _o.addEventListener('click', () => {
             // Prefer the local directory picker (Chrome/Edge) to avoid uploading huge folders.
             if (window.showDirectoryPicker && !this.isElectronLike()) {
-                void this.runLocalScan();
+                const pathInput = el.querySelector('#project-path-input');
+                void this.runLocalScan(null, null, pathInput === null || pathInput === void 0 ? void 0 : pathInput.value);
                 return;
             }
             const input = el.querySelector('#browse-dir-input');
@@ -5954,25 +5955,34 @@ export class AnalyzeView {
         // No absolute path available. Browsers hide the full OS path for security,
         // so we cannot safely guess it. Route directly to a browser-local scan
         // (directory picker / dropped handle) instead of pre-filling a likely-wrong path.
+        const pathInput = (_b = this._root) === null || _b === void 0 ? void 0 : _b.querySelector('#project-path-input');
+        const localLabel = folderName;
+        if (pathInput) {
+            pathInput.value = localLabel;
+            this.app.state.pathInputDraft = '';
+            this.app.state.lastProjectPath = localLabel;
+            this.setPathInputDisplay(pathInput, localLabel);
+            this.syncAnalyzeModeUi(this._root);
+        }
         if (directoryHandle && directoryHandle.kind === 'directory') {
             showToast('Scanning dropped folder locally — no upload…', 'info');
-            await this.runLocalScan(directoryHandle);
+            await this.runLocalScan(directoryHandle, null, localLabel);
             return;
         }
         if (directoryHandle && directoryHandle.isDirectory) {
             // Legacy webkit entry: scan locally without uploading.
             showToast('Scanning dropped folder locally — no upload…', 'info');
-            await this.runLocalScan(null, files);
+            await this.runLocalScan(null, files, localLabel);
             return;
         }
         if (files?.length) {
             showToast('Scanning dropped folder locally — no upload…', 'info');
-            await this.runLocalScan(null, files);
+            await this.runLocalScan(null, files, localLabel);
             return;
         }
         if (window.showDirectoryPicker) {
             showToast(`Dropped folder "${folderName}" — browser cannot reveal its full path. Select it in the folder picker to scan locally.`, 'info');
-            await this.runLocalScan();
+            await this.runLocalScan(null, null, localLabel);
             return;
         }
         showToast(`Dropped folder "${folderName}" — browser cannot reveal its full path. Type the full path (e.g., C:/path/to/${folderName}) to scan with the Local Agent.`, 'warning');
@@ -6214,7 +6224,7 @@ export class AnalyzeView {
             setTimeout(cleanup, 300000);
         });
     }
-    async runLocalScan(dirHandle = null, files = null) {
+    async runLocalScan(dirHandle = null, files = null, projectPath = '') {
         if (!files && !window.showDirectoryPicker && !dirHandle) {
             showToast('Local scan requires a browser that supports directory selection (Chrome/Edge).', 'error');
             return;
@@ -6239,13 +6249,14 @@ export class AnalyzeView {
                 }
             });
             const conclusion = buildScanConclusion(report);
+            const resolvedPath = projectPath && projectPath.trim() ? projectPath.trim() : report.projectPath;
             this.repositoryInventory = report.inventory || null;
             this.lastResult = {
                 kind: 'simplebeacon-report',
                 report,
-                projectPath: report.projectPath,
+                projectPath: resolvedPath,
                 repositoryInventory: report.inventory || null,
-                label: `Local scan: ${report.projectPath}`,
+                label: `Local scan: ${resolvedPath}`,
                 conclusion
             };
             this.applyReport(report, this.lastResult.label, { conclusion });
@@ -6326,7 +6337,7 @@ export class AnalyzeView {
                 showToast('Privacy mode requires a browser that supports directory selection (Chrome/Edge).', 'error');
                 return;
             }
-            await this.runLocalScan();
+            await this.runLocalScan(null, null, inputPath);
             return;
         }
         let projectPath = String(inputPath || '').trim();
@@ -8309,8 +8320,10 @@ export class AnalyzeView {
         }
         const pathInput = (_a = this._root) === null || _a === void 0 ? void 0 : _a.querySelector('#project-path-input');
         const activePath = this.getActiveProjectPath(pathInput === null || pathInput === void 0 ? void 0 : pathInput.value);
-        const resultReport = this.lastResult.report || { projectRoot: this.lastResult.projectPath };
-        if (activePath && (resultReport === null || resultReport === void 0 ? void 0 : resultReport.projectRoot) && !reportMatchesPagePath(resultReport, activePath)) {
+        // Local scans only know the folder basename, but lastResult.projectPath can hold the full
+        // path the user typed/browsed. Prefer that for the mismatch check.
+        const scannedRoot = this.lastResult.projectPath || ((this.lastResult.report) === null || this.lastResult.report === void 0 ? void 0 : this.lastResult.report.projectRoot) || '';
+        if (activePath && scannedRoot && !reportMatchesPagePath({ projectRoot: scannedRoot }, activePath)) {
             return `
         ${renderEmptyState({
                 icon: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>',
