@@ -300,8 +300,7 @@ const FP_PATH_PATTERNS = Object.freeze([
     { type: 'insecure-random', pathIncludes: ['server/lib/codebase-analyzer-patterns.cjs', 'server/routes/sso-routes.cjs'] },
     { type: 'prototype-pollution', pathIncludes: ['server/lib/codebase-analyzer-helpers.cjs'] },
     { type: 'unvalidated-redirect', pathIncludes: ['server/routes/sso-routes.cjs', 'server/lib/legacy-page-redirects.cjs'] },
-    { type: 'unhandled-promise', pathIncludes: ['server/api/assessment/index.cjs', 'server/lib/simplebeacon-subscription-store.cjs'] },
-    { type: 'test-coverage', pathIncludes: ['ai-platform/'] }
+    { type: 'unhandled-promise', pathIncludes: ['server/api/assessment/index.cjs', 'server/lib/simplebeacon-subscription-store.cjs'] }
 ]);
 
 /**
