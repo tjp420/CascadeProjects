@@ -5044,7 +5044,12 @@ export class AnalyzeView {
         this.loadTestSources(el);
     }
     _deriveFallbackBase() {
-        const driveMatch = String(this.app.state.defaultProjectPath || '').match(/^([a-zA-Z]:)/);
+        const defaultPath = String(this.app.state.defaultProjectPath || '');
+        if (!defaultPath) return 'C:/Users';
+        const norm = defaultPath.replace(/\\/g, '/').replace(/\/+$/, '');
+        const lastSlash = norm.lastIndexOf('/');
+        if (lastSlash > 0) return norm.slice(0, lastSlash);
+        const driveMatch = norm.match(/^([a-zA-Z]:)/);
         return driveMatch ? `${driveMatch[1]}/Users` : 'C:/Users';
     }
     openDirBrowser(el) {
@@ -5199,8 +5204,8 @@ export class AnalyzeView {
                 const relFolderName = normalizedRel.split('/')[0] || fName;
                 let resolvedPath = baseDir ? `${baseDir}/${relFolderName}` : relFolderName;
                 if (!resolvedPath.match(/^[a-zA-Z]:/) && !resolvedPath.startsWith('/')) {
-                    const driveMatch = String(this.app.state.defaultProjectPath || '').match(/^([a-zA-Z]:)/);
-                    resolvedPath = driveMatch ? `${driveMatch[1]}/Users/${relFolderName}` : `C:/Users/${relFolderName}`;
+                    const fallbackBase = String(this._deriveFallbackBase()).replace(/\\/g, '/').replace(/\/+$/, '');
+                    resolvedPath = `${fallbackBase}/${relFolderName}`;
                 }
                 return resolvedPath;
             }
@@ -5235,7 +5240,15 @@ export class AnalyzeView {
                 return p;
             }
         }
-        // 2. Determine a base directory that matches the client OS.
+        // 2. If the last/default project path already ends with this folder name, use it verbatim.
+        const knownPaths = [this.app.state.lastProjectPath, this.app.state.defaultProjectPath].filter(Boolean);
+        for (const known of knownPaths) {
+            const norm = String(known).replace(/\\/g, '/').replace(/\/+$/, '');
+            if (norm.endsWith(`/${fName}`) || norm === fName) {
+                return norm;
+            }
+        }
+        // 3. Determine a base directory that matches the client OS.
         const isWindowsClient = /Windows/i.test(navigator.userAgent);
         const isLinuxPath = (p) => p.startsWith('/') && !p.match(/^[a-zA-Z]:/);
         const pathInput = this._root?.querySelector('#project-path-input');
