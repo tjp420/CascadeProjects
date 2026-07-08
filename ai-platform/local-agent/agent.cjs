@@ -25,6 +25,7 @@ const app = express();
  */
 function resolveAgentRoot() {
   const candidates = [
+    __dirname,                        // installed portable/agent directory contains packages/
     path.join(__dirname, '..', '..'), // ai-platform/local-agent/../../ => monorepo root
     path.join(__dirname, '..'),       // ai-platform/local-agent/../ => ai-platform
     process.cwd()
