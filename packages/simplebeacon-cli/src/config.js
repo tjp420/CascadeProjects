@@ -4,7 +4,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { detectProjectProfile, IGNORE_DEFAULTS, CASCADE_ANCHORS, isCascadeMonorepo } = require('./project-detect');
+const { detectProjectProfile, IGNORE_DEFAULTS, CASCADE_ANCHORS, isCascadeMonorepo, resolvePlatformRoot } = require('./project-detect');
 const { validateConfig } = require('./config-schema');
 const { getTierLimits } = require('./lib/tier-detector');
 const { ConfigError } = require('./lib/errors');
@@ -187,6 +187,34 @@ function loadCentralDataConfig(baseDir) {
         }
     }
     return null;
+}
+
+function resolveMockDataScanPaths(baseDir, extraPaths = []) {
+    const safeBase = baseDir && typeof baseDir === 'string' ? baseDir : process.cwd();
+    const resolved = resolvePlatformRoot(safeBase);
+    if (!resolved || typeof resolved !== 'object') {
+        throw new ConfigError(`Could not resolve platform root object from: ${safeBase}`);
+    }
+    const { platformRoot } = resolved;
+    if (!platformRoot) {
+        throw new ConfigError(`Resolved platform root is empty for: ${safeBase}`);
+    }
+    let mockPaths;
+    try {
+        const central = loadCentralDataConfig(platformRoot);
+        const rawMockPaths = central?.mockDataScan?.paths;
+        mockPaths = Array.isArray(rawMockPaths) ? rawMockPaths : DEFAULT_MOCK_SCAN_RELATIVE_PATHS;
+    } catch {
+        mockPaths = DEFAULT_MOCK_SCAN_RELATIVE_PATHS;
+    }
+    const safeExtras = Array.isArray(extraPaths)
+        ? extraPaths.filter(p => typeof p === 'string' && p.length > 0)
+        : [];
+    try {
+        return resolveScanPaths(platformRoot, { scanPaths: mockPaths }, safeExtras);
+    } catch (err) {
+        throw new ConfigError(`Failed to resolve mock-data scan paths: ${err?.message || err}`);
+    }
 }
 
 function resolveScanPaths(baseDir, config, extraPaths = []) {
@@ -474,6 +502,7 @@ module.exports = {
     loadSimplebeaconConfig,
     loadSamplebeaconConfig: loadSimplebeaconConfig,
     resolveSimplebeaconDir,
+    resolveMockDataScanPaths,
     resolveScanPaths,
     resolvePathFromBase,
     normalizeRelativePath,

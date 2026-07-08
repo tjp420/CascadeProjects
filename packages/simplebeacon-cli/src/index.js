@@ -386,6 +386,15 @@ function _buildLazyFlatExport(specs) {
                 eagerOut[key] = mod[key];
             }
         }
+        // Special top-level exports that are not part of any lazy module namespace.
+        eagerOut.version = version;
+        eagerOut.resolveMockDataScanPaths = resolveMockDataScanPaths;
+        eagerOut.getRepositoryAuditBaseline = getRepositoryAuditBaseline;
+        eagerOut.getConsistencyAnchorSamples = getConsistencyAnchorSamples;
+        eagerOut.Simplebeacon = Simplebeacon;
+        eagerOut.getExportNames = getExportNames;
+        eagerOut.getNamespaceNames = getNamespaceNames;
+        eagerOut.validateBarrelIntegrity = validateBarrelIntegrity;
         return eagerOut;
     }
 
@@ -528,5 +537,7 @@ const __barrel__ = Object.freeze({
     exports: getExportNames(),
     namespaces: NAMESPACE_NAMES
 });
+
+flat.__barrel__ = __barrel__;
 
 module.exports = deepFreeze(flat);
