@@ -6,7 +6,7 @@
  * read; only relative paths and names are inspected.
  */
 
-const MAX_DISCOVERED_ENTRIES = 10000;
+const MAX_DISCOVERED_ENTRIES = Number.MAX_SAFE_INTEGER;
 const MAX_DEPTH = 32;
 
 const FINGERPRINT_PROFILES = [
