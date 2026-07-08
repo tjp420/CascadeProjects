@@ -15,6 +15,7 @@ const MONOREPO_ROOT = path.resolve(LOCAL_AGENT_DIR, '..', '..');
 const OUT_DIR = path.join(LOCAL_AGENT_DIR, 'dist', 'portable');
 const SCANNER_SRC = path.join(MONOREPO_ROOT, 'packages', 'simplebeacon-cli', 'src');
 const SIMPLEBEACON_DIR = path.join(MONOREPO_ROOT, '.simplebeacon');
+const SERVER_DIR = path.join(MONOREPO_ROOT, 'ai-platform', 'server');
 
 const WIN_BAT = `@echo off
 start "" "node.exe" "%~dp0agent.cjs"
@@ -95,6 +96,12 @@ function main() {
     path.join(OUT_DIR, 'packages', 'simplebeacon-cli', 'package.json')
   );
   copyDir(SIMPLEBEACON_DIR, path.join(OUT_DIR, '.simplebeacon'));
+
+  // Copy server files that the scanner package requires at runtime.
+  if (fs.existsSync(SERVER_DIR)) {
+    copyDir(path.join(SERVER_DIR, 'config'), path.join(OUT_DIR, 'ai-platform', 'server', 'config'));
+    copyDir(path.join(SERVER_DIR, 'lib'), path.join(OUT_DIR, 'ai-platform', 'server', 'lib'));
+  }
 
   // Launcher scripts.
   fs.writeFileSync(path.join(OUT_DIR, 'start-agent.bat'), WIN_BAT);
