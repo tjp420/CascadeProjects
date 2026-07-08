@@ -267,6 +267,41 @@ function isPathWithinRoots(targetPath, allowedRoots) {
 }
 
 /**
+ * Is path an ancestor of any allowed root (but not itself within roots).
+ * Useful for directory browsers that need to walk up from a project root.
+ * @param {string} targetPath
+ * @param {Array} allowedRoots
+ * @returns {boolean}
+ */
+function isPathAncestorOfRoots(targetPath, allowedRoots) {
+    const resolved = path.resolve(targetPath);
+    const targetKey = normalizePathKey(resolved);
+    return allowedRoots.some((root) => {
+        const rootKey = normalizePathKey(root);
+        return rootKey.startsWith(`${targetKey}/`);
+    });
+}
+
+/**
+ * Find the shallowest allowed root that is a strict descendant of targetPath.
+ * Returns null if no descendant exists. Shallowest is preferred for analysis
+ * so that selecting an ancestor (e.g., /opt) resolves to the project root
+ * rather than a nested platform directory.
+ * @param {string} targetPath
+ * @param {Array} allowedRoots
+ * @returns {string|null}
+ */
+function findShallowestDescendantRoot(targetPath, allowedRoots) {
+    const resolved = path.resolve(targetPath);
+    const targetKey = normalizePathKey(resolved);
+    const descendants = allowedRoots
+        .map((root) => ({ root, key: normalizePathKey(root) }))
+        .filter(({ key }) => key.startsWith(`${targetKey}/`))
+        .sort((a, b) => a.key.length - b.key.length);
+    return descendants.length ? descendants[0].root : null;
+}
+
+/**
  * Assert safe project path.
  * @param {string} targetPath
  * @param {Array} allowedRoots
@@ -343,6 +378,16 @@ function assertSafeProjectPath(targetPath, allowedRoots, label = 'projectPath') 
         const platformDir = path.join(resolved, 'ai-platform');
         if (fs.existsSync(platformDir)) {
             allowedRoots.push(resolved);
+        }
+    }
+
+    // Ancestor fallback: if the requested path is a parent of an allowed root,
+    // redirect to the shallowest allowed descendant rather than rejecting the request.
+    // This lets users browse up from a project root and still analyze the project root.
+    if (!isPathWithinRoots(resolved, allowedRoots) && fs.existsSync(resolved)) {
+        const shallowest = findShallowestDescendantRoot(resolved, allowedRoots);
+        if (shallowest) {
+            resolved = path.resolve(shallowest);
         }
     }
 
@@ -429,7 +474,10 @@ module.exports = {
     formatAllowedRootsSummary,
     logResolvedAllowedRoots,
     isPathWithinRoots,
+    isPathAncestorOfRoots,
+    findShallowestDescendantRoot,
     assertSafeProjectPath,
+    dedupeResolvedRoots,
     validateRepoUrl,
     assertSafeExecutablePath,
     DEFAULT_ALLOWED_HOSTS
