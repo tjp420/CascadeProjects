@@ -59,6 +59,12 @@ coming-soon/js/dashboard/token-manager.js
 coming-soon/js/vendor/jszip.min.js
 coming-soon/js/vendor/html2canvas.min.js
 
+# coming-soon intentional mirror data files — duplicate JSON and package.json copies are expected
+coming-soon/public/data/
+coming-soon/public/dashboard/data/roadmap-ai-agent-2026-06-12.json
+coming-soon/public/dashboard/js/utils-lib/package.json
+coming-soon/public/dashboard/js-es2018/utils-lib/package.json
+
 # Ignore stale report copies
 report-*.json
 report-verify*.json
@@ -106,6 +112,9 @@ full-cert-current.json
 full-scan-current.json
 consolidation-current.json
 consolidation-report.json
+
+# Ignore generated AI agent dashboard report (contains placeholder findings from other files)
+ai-agent-report-for-dashboard.json
 
 # Ignore verification & reduction dumps
 parent-verify.json

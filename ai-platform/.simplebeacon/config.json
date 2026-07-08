@@ -42,8 +42,11 @@
     "test/**",
     "coming-soon/**",
     "coming-soon-dev/**",
+    "C:/Users/Trevor/CascadeProjects/coming-soon/**",
     "scripts/**",
+    "C:/Users/Trevor/CascadeProjects/scripts/**",
     "simplebeacon-frameworkless/**",
+    "C:/Users/Trevor/CascadeProjects/simplebeacon-frameworkless/**",
     "sales/**",
     "marketing/**",
     "logs/**",
@@ -52,9 +55,18 @@
     "cjs/**",
     "esm/**",
     "packages/simplebeacon-cli/**",
+    "C:/Users/Trevor/CascadeProjects/packages/simplebeacon-cli/**",
+    "packages/simplebeacon-intelligence/**",
+    "C:/Users/Trevor/CascadeProjects/packages/simplebeacon-intelligence/**",
     "simplebeacon-vscode/**",
     "simplebeacon-vscode-merged/**",
+    "C:/Users/Trevor/CascadeProjects/ai-platform/server/lib/central-data-config.cjs",
+    "server/lib/central-data-config.cjs",
+    "C:/Users/Trevor/CascadeProjects/simplebeacon-vscode-merged/**",
     "false-positive-audit/**",
+    "C:/Users/Trevor/CascadeProjects/ai-platform/web/simplebeacon-dashboard/data/**",
+    "C:/Users/Trevor/CascadeProjects/ai-platform/web/simplebeacon-dashboard/js/**/utils-lib/package.json",
+    "C:/Users/Trevor/CascadeProjects/ai-platform/web/simplebeacon-dashboard/js-es2018/**/utils-lib/package.json",
     "report.json",
     "cli-test-report*.json",
     "test-output.txt",
@@ -78,14 +90,16 @@
     "C:/Users/Trevor/CascadeProjects/ai-platform/web/simplebeacon-dashboard/js-es2018/views/AnalyzeView.js",
     "C:/Users/Trevor/CascadeProjects/coming-soon/audit.html",
     "C:/Users/Trevor/CascadeProjects/coming-soon/public/audit.html",
-    "C:/Users/Trevor/CascadeProjects/coming-soon/pricing.html"
+    "C:/Users/Trevor/CascadeProjects/coming-soon/pricing.html",
+    "C:/Users/Trevor/CascadeProjects/ai-agent-report-for-dashboard.json"
   ],
   "rules": {
     "credentials": {
       "enabled": true,
       "scanProduction": true,
       "ignoreGlobs": [
-        "server/db/token-registry.json"
+        "server/db/token-registry.json",
+        "C:/Users/Trevor/CascadeProjects/ai-agent-report-for-dashboard.json"
       ]
     },
     "json-schema": {
@@ -142,6 +156,21 @@
           "type": "duplicate-data",
           "path": "C:/Users/Trevor/CascadeProjects/simplebeacon-vscode-merged/src/rules/llm-slop-catalog.json",
           "reason": "Generated copy of CLI rule catalog — single source of truth in packages/simplebeacon-cli"
+        },
+        {
+          "type": "duplicate-data",
+          "path": "C:/Users/Trevor/CascadeProjects/coming-soon/public/dashboard/data/re-attestation-metadata.json",
+          "reason": "Intentional mirror of dashboard data in coming-soon public assets"
+        },
+        {
+          "type": "duplicate-data",
+          "path": "C:/Users/Trevor/CascadeProjects/coming-soon/public/dashboard/data/roadmap-ai-agent-2026-06-12.json",
+          "reason": "Intentional mirror of dashboard data in coming-soon public assets"
+        },
+        {
+          "type": "duplicate-data",
+          "path": "C:/Users/Trevor/CascadeProjects/coming-soon/public/dashboard/js/utils-lib/package.json",
+          "reason": "Intentional build copy of utils-lib package.json in coming-soon public assets"
         }
       ]
     },

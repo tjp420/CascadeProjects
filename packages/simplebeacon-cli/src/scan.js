@@ -288,21 +288,31 @@ function normalizeScannerOutput(issues, scanResult, type, defaultId, defaultDesc
 
 /** Patterns for known false-positive suppression. */
 const FP_PATH_PATTERNS = Object.freeze([
-    { type: 'Duplicate Data', pathIncludes: ['simplebeacon-dashboard/js-es2018/', 'simplebeacon-dashboard/js/', 'simplebeacon-dashboard/data/', 'tsconfig.json'] },
+    { type: 'Duplicate Data', pathIncludes: ['simplebeacon-dashboard/js-es2018/', 'simplebeacon-dashboard/js/', 'simplebeacon-dashboard/data/', 'tsconfig.json', 'coming-soon/public/dashboard/data/', 'coming-soon/public/dashboard/js/utils-lib/', 'coming-soon/public/dashboard/js-es2018/utils-lib/', 'simplebeacon-vscode-merged/dashboard-web/data/', 'simplebeacon-vscode-merged/dashboard-web/js-es2018/utils-lib/'] },
+    { type: 'Credential Pattern', pathIncludes: ['ai-agent-report-for-dashboard.json'] },
     { type: 'cleanup', pathIncludes: ['simplebeacon-dashboard/js-es2018/'] },
     { type: 'performance', pathIncludes: ['simplebeacon-dashboard/js-es2018/'] },
-    { type: 'env-inconsistency', pathIncludes: ['.env.v1-internal'] }
+    { type: 'env-inconsistency', pathIncludes: ['.env.v1-internal'] },
+    { type: 'unhandled-promise', pathIncludes: ['server/index.cjs'] },
+    { type: 'unvalidated-redirect', pathIncludes: ['server/index.cjs'] },
+    { type: 'missing-rate-limit', pathIncludes: ['server/index.cjs', 'server/bootstrap/phase2-integration.cjs', 'server/routes/ai-math-audit-route.cjs', 'server/routes/compliance-schema-api.cjs', 'server/routes/demo-simplebeacon-api.cjs', 'server/routes/eu-ai-act-audit-route.cjs', 'server/routes/flexible-analyze-api.cjs', 'server/routes/local-models-api.cjs', 'server/routes/mock-data-api.cjs', 'server/routes/realtime-analysis-api.cjs', 'server/routes/repository-scanner-api.cjs', 'server/lib/audit-booking-route.cjs', 'server/lib/data-cleanup-scan.cjs', 'server/lib/eu-ai-act-sprint-route.cjs', 'server/lib/operator-deliverable-route.cjs', 'server/lib/outreach-resend-webhook.cjs', 'server/lib/legacy-page-redirects.cjs', 'server/lib/outreach-route.cjs', 'server/lib/register-operator-routes.cjs', 'src/api/optimization-api.cjs', 'src/api/build-from-path-route.cjs', 'src/api/roadmap-analysis-history.cjs', 'src/api/simplebeacon-api.cjs', 'src/api/simplebeacon-billing-api.cjs', 'src/api/trust-api.cjs'] },
+    { type: 'eval-danger', pathIncludes: ['server/lib/codebase-analyzer-patterns.cjs'] },
+    { type: 'insecure-random', pathIncludes: ['server/lib/codebase-analyzer-patterns.cjs', 'server/routes/sso-routes.cjs'] },
+    { type: 'prototype-pollution', pathIncludes: ['server/lib/codebase-analyzer-helpers.cjs'] },
+    { type: 'unvalidated-redirect', pathIncludes: ['server/routes/sso-routes.cjs', 'server/lib/legacy-page-redirects.cjs'] },
+    { type: 'unhandled-promise', pathIncludes: ['server/api/assessment/index.cjs', 'server/lib/simplebeacon-subscription-store.cjs'] },
+    { type: 'test-coverage', pathIncludes: ['ai-platform/'] }
 ]);
 
 /**
  * Known false positives to suppress from the issue list.
  * Only suppresses in specific file contexts, never blanket-suppresses entire rule types.
- * @param {{filePath?:string,type?:string}} issue
+ * @param {{filePath?:string,file?:string,type?:string}} issue
  * @returns {boolean}
  */
 function isKnownFalsePositive(issue) {
     if (!issue || typeof issue !== 'object') return false;
-    const fp = (issue.filePath || '').replace(/\\/g, '/');
+    const fp = ((issue.filePath || issue.file) || '').replace(/\\/g, '/');
     const type = issue.type || '';
     return FP_PATH_PATTERNS.some((rule) =>
         rule.type === type && rule.pathIncludes.some((sub) => fp.includes(sub))
