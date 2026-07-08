@@ -1,6 +1,6 @@
 import { escapeHtml, showToast, downloadJson, downloadBlob, downloadText, redactPathForDisplay, formatPathLabel, formatPathInputValue, formatAiSummarySkipMessage, isRedactedPathDisplay, formatNumber, renderEmptyState } from '../utils.js';
 import { evaluateFunnelMetrics, getFunnelCopy } from '../utils/funnelTrigger.js';
-import { LocalScanService } from '../services/localScanService.js?v=20260709uploadlimit3';
+import { LocalScanService } from '../services/localScanService.js?v=20260709uploadlimit4';
 import { fingerprintDirectory, formatFingerprint } from '../services/fingerprintService.js';
 import { probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus, getAgentDownloadUrl, detectPlatform, getPlatformLabel, getInstallInstructions, getAgentFallbackMessage } from '../services/localAgentService.js';
 // simplebeacon:production-leak-intent: sample-json - Legitimate documentation about sample file patterns in analysis results
@@ -4246,7 +4246,7 @@ export class AnalyzeView {
         this.updateAgentStatusUI(root, formatAgentStatus(this.agentStatus), this.agentStatus.available && this.agentStatus.scannerAvailable);
     }
     bindEvents(el) {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5;
+        var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5;
         void this.probeAndUpdateAgentStatus(el);
         const pathInput = el.querySelector('#project-path-input');
         const typeSelect = el.querySelector('#analysis-type-select');
