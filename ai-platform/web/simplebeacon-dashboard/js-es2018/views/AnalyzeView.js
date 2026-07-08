@@ -5221,8 +5221,9 @@ export class AnalyzeView {
     }
     /**
      * Build a best-guess folder path when the browser cannot reveal the absolute OS path.
-     * Prefers recent paths, then a path base that matches the client's OS (so a Windows drop
-     * does not get anchored to a Linux server default like /opt/render/...).
+     * Prefers a recently-used path that ends with the same folder name, then the current
+     * path-input value as the base (so a typed J:\StarCraft is not overwritten by a stale
+     * C:/Users preference), then a base that matches the client's OS.
      */
     resolveFallbackFolderPath(folderName) {
         const fName = folderName.replace(/\\/g, '/');
@@ -5251,7 +5252,7 @@ export class AnalyzeView {
         const preferredBase = String(this.loadPreferredProjectBase() || '')
             .replace(/\\/g, '/')
             .replace(/\/+$/, '');
-        const candidates = [preferredBase, currentBase, rawDefault, fallbackBase].filter(Boolean);
+        const candidates = [currentBase, preferredBase, rawDefault, fallbackBase].filter(Boolean);
         const base = isWindowsClient
             ? candidates.find((p) => !isLinuxPath(p)) || fallbackBase
             : candidates[0] || fallbackBase;
