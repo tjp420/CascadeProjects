@@ -260,6 +260,9 @@ async function appendHistory(report) {
  */
 async function ensureHistoryFromReport() {
   const report = await readSimplebeaconJson('report.json');
+  if (!report) {
+    return [];
+  }
   return appendHistory(report);
 }
 
