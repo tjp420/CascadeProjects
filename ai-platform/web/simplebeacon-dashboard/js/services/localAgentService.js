@@ -56,6 +56,7 @@ export async function probeAgent(origin = DEFAULT_AGENT_ORIGIN) {
     const status = {
       available: response.ok && body.success === true,
       scannerAvailable: Boolean(body.scannerAvailable),
+      scannerLoadError: body.scannerLoadError || undefined,
       version: body.version || undefined
     };
     cachedAgentStatus = status;
@@ -167,7 +168,10 @@ export function formatAgentStatus(agentStatus) {
     }
     return 'Local agent offline — download the Local Scan Agent portable zip and run start-agent.bat';
   }
-  if (!agentStatus.scannerAvailable) return 'Local agent connected, but scanner is not available';
+  if (!agentStatus.scannerAvailable) {
+    const error = agentStatus.scannerLoadError ? `: ${agentStatus.scannerLoadError}` : '';
+    return `Local agent connected, but scanner is not available${error}`;
+  }
   return `Local agent connected${agentStatus.version ? ` (v${agentStatus.version})` : ''}`;
 }
 
@@ -206,7 +210,8 @@ export function getAgentFallbackMessage(agentStatus) {
     return 'Local Scan Agent is offline. Download and run it from the link below, then try again.';
   }
   if (!agentStatus?.scannerAvailable) {
-    return 'Local Scan Agent is running but the scanner is not loaded. Restart the agent or reinstall the portable package.';
+    const error = agentStatus?.scannerLoadError ? ` (${agentStatus.scannerLoadError})` : '';
+    return `Local Scan Agent is running but the scanner is not loaded.${error} Restart the agent or reinstall the portable package.`;
   }
   return 'Local Scan Agent is not ready.';
 }

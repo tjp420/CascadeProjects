@@ -1,6 +1,6 @@
 {
   "name": "simplebeacon-local-agent",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Local agent that lets the SimpleBeacon web dashboard scan local filesystem paths.",
   "main": "agent.cjs",
   "bin": {

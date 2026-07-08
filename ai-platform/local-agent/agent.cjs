@@ -60,6 +60,8 @@ try {
   // Ignore at runtime; this path is only used during pkg analysis.
 }
 
+let scannerLoadError = null;
+
 function loadScannerApi() {
   const candidates = [SCANNER_MODULE];
 
@@ -82,9 +84,11 @@ function loadScannerApi() {
       // eslint-disable-next-line import/no-dynamic-require, global-require
       const api = require(candidate);
       if (api && typeof api.runScan === 'function') {
+        scannerLoadError = null;
         return api;
       }
     } catch (err) {
+      scannerLoadError = err.message;
       console.warn('[agent] Failed to load SimpleBeacon scanner from', candidate, ':', err.message);
     }
   }
@@ -238,8 +242,9 @@ app.get('/health', (req, res) => {
   res.json({
     success: true,
     agent: 'simplebeacon-local-agent',
-    version: '1.0.3',
+    version: '1.0.4',
     scannerAvailable: Boolean(scannerApi && typeof scannerApi.runScan === 'function'),
+    scannerLoadError,
     timestamp: new Date().toISOString()
   });
 });
