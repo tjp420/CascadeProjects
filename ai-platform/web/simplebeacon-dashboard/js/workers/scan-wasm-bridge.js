@@ -165,6 +165,11 @@ class WasmAnalyzer {
 
 async function createAnalyzer() {
   try {
+    // Avoid a hard 404/parse error in some browsers by checking the package exists first.
+    const head = await fetch(WASM_PKG_URL, { method: 'HEAD', mode: 'same-origin' });
+    if (!head.ok) {
+      throw new Error(`WASM package not available: ${head.status}`);
+    }
     const wasm = await import(WASM_PKG_URL);
     await wasm.default();
     return new WasmAnalyzer(wasm);
