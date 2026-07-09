@@ -17,7 +17,7 @@ const {
 } = require('../../server/lib/path-safety.cjs');
 const { patchRemediationPhases } = require('../../server/lib/scan-report-patch.cjs');
 const { createRequireSubscription } = require('../../server/middleware/simplebeacon-subscription.cjs');
-const { optionalAuthenticate } = require('../../server/middleware/auth.cjs');
+const { optionalAuthenticate, verifyToken } = require('../../server/middleware/auth.cjs');
 const {
   getUserAiKeysPublic,
   saveUserAiKeys,
@@ -767,16 +767,35 @@ function setupSimplebeaconAPI(app, options = {}) {
         // Debug log to diagnose why optionalAuthenticate did not set req.user on production
         const authHeader = req.headers.authorization || '';
         const hasBearer = authHeader.toLowerCase().startsWith('bearer ');
+        const token = hasBearer ? authHeader.substring(7) : '';
+        let verifyResult = null;
+        let verifyError = null;
+        if (token) {
+          try {
+            verifyResult = await verifyToken(token);
+          } catch (err) {
+            verifyError = err.message || String(err);
+          }
+        }
         console.warn('[PUT /api/simplebeacon/user/ai-keys] Auth failed: missing req.user.email', {
           hasAuthorizationHeader: Boolean(authHeader),
           hasBearerPrefix: hasBearer,
+          tokenLength: token.length,
           userSet: Boolean(req.user),
           userEmail: req.user?.email || null,
+          verifyError,
+          verifyResultEmail: verifyResult?.email || null,
+          verifyResultJti: verifyResult?.jti || null,
+          verifyResultSub: verifyResult?.sub || null,
           method: req.method,
           path: req.path,
           ip: req.ip || req.connection?.remoteAddress || null
         });
-        return res.status(401).json({ success: false, error: 'Authentication required' });
+        return res.status(401).json({
+          success: false,
+          error: 'Authentication required',
+          debug: verifyError ? `Token verification failed: ${verifyError}` : (token ? 'Token verified but req.user was not set' : 'No Bearer token provided')
+        });
       }
       const body = req.body && typeof req.body === 'object' ? req.body : {};
       const keys = await saveUserAiKeys(email, body);

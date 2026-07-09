@@ -95,7 +95,8 @@ export async function saveUserAiKeys(payload) {
         if (saveHttpResponse.status === 404 && savePayload.error === 'API route not found') {
             throw new Error('AI keys API not loaded — restart the dashboard server (npm run dashboard:v1-internal).');
         }
-        throw new Error(savePayload.error || savePayload.message || 'Failed to save AI keys');
+        const debugPart = savePayload.debug ? ` (${savePayload.debug})` : '';
+        throw new Error((savePayload.error || savePayload.message || 'Failed to save AI keys') + debugPart);
     }
     return normalizeAiKeysRecord(savePayload);
 }
