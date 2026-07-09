@@ -43,12 +43,27 @@ export function runDashboardScanFromInput(input, options = {}) {
     if (!path) {
         path = getDefaultProjectPath();
     }
-    if (path) {
-        setLastProjectPath(path);
-        onRescan(path);
+    if (!path) {
+        onRescan(undefined);
         return;
     }
-    onRescan(undefined);
+    // Dropped/browsed folders without a full OS path come through as bare folder names.
+    // The dashboard scan needs an absolute local path or a remote repo URL.
+    const isAbsoluteLocal = /^[a-zA-Z]:[\\/]|^\\|^\//.test(path);
+    const isRemoteUrl = /^https?:\/\//i.test(path);
+    if (!isAbsoluteLocal && !isRemoteUrl) {
+        const toast = document.getElementById('toast-container');
+        if (toast) {
+            const msg = document.createElement('div');
+            msg.className = 'toast toast-warning';
+            msg.textContent = `"${path}" is not a full path. Type the absolute path (e.g., J:/Mag Motor 3D Print Files) or use Browse, then click Scan.`;
+            toast.appendChild(msg);
+            setTimeout(() => msg.remove(), 6000);
+        }
+        return;
+    }
+    setLastProjectPath(path);
+    onRescan(path);
 }
 /**
  * Format scan path display.
