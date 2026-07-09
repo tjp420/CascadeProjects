@@ -1061,6 +1061,7 @@ async function startServer() {
       }
       const reportPath = path.join(sbDir, 'report.json');
       await fs.promises.writeFile(reportPath, JSON.stringify(report, null, 2), 'utf8');
+      console.warn('[ReportImport] persisted report to', reportPath.replace(/\\/g, '/'));
       return res.json({
         success: true,
         projectPath: safePath.replace(/\\/g, '/'),

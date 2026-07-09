@@ -536,6 +536,7 @@ async function runSimplebeaconScan(projectPath, opts = {}) {
  * @returns {any}
  */
 function setupSimplebeaconAPI(app, options = {}) {
+  console.warn('[simplebeacon-api] default report path:', REPORT_PATH.replace(/\\/g, '/'), 'project root:', PROJECT_ROOT.replace(/\\/g, '/'));
   const requirePaidReadOnly = options.requirePaidReadOnly || createRequireSubscription({ allowFree: true });
   const requirePaid = options.requirePaid || createRequireSubscription();
   const requirePaidWithQuota = options.requirePaidWithQuota || createRequireSubscription({ consumeQuota: true });
@@ -558,27 +559,46 @@ function setupSimplebeaconAPI(app, options = {}) {
   }
 
   app.get('/api/simplebeacon/report', requirePaidReadOnly, async (req, res) => {
+    const rawProjectPath = req.query.projectPath || '';
+    let projectPath = null;
+    let reportPath = null;
+    let fileExists = false;
+    let fileSize = 0;
     try {
-      let projectPath = null;
-      if (req.query.projectPath) {
+      if (rawProjectPath) {
         try {
-          projectPath = resolveSafeAnalyzePath(req.query.projectPath);
+          projectPath = resolveSafeAnalyzePath(rawProjectPath);
         } catch (err) {
           // Path outside allowed roots — fall back to default platform report
-          console.log('[simplebeacon-api] report path outside allowed roots:', req.query.projectPath, '- falling back to default');
+          console.log('[simplebeacon-api] report path outside allowed roots:', rawProjectPath, '- falling back to default');
           projectPath = null;
         }
       }
-      const reportPath = resolveReportFilePath(projectPath);
+      reportPath = resolveReportFilePath(projectPath);
+      fileExists = fs.existsSync(reportPath);
+      if (fileExists) {
+        try {
+          fileSize = fs.statSync(reportPath).size;
+        } catch {
+          /* ignore stat failure */
+        }
+      }
       const report = patchRemediationPhases(await readJson(reportPath));
-      res.json(report);
+      return res.json(report);
     } catch (err) {
-      // Return a default empty report so the dashboard can render before the first scan
-      res.json({
+      const isAdmin = req.user?.role === 'admin' || (Array.isArray(req.user?.permissions) && req.user.permissions.includes('admin:all'));
+      const isDebug = process.env.DEBUG_CLIENT_ERRORS === '1' || isAdmin;
+      console.warn(
+        `[simplebeacon-api] report fallback triggered — raw: ${rawProjectPath || '(none)'}, ` +
+        `resolved: ${projectPath || '(default)'}, reportPath: ${reportPath || '(none)'}, ` +
+        `exists: ${fileExists}, size: ${fileSize}, error: ${err.message || err}`
+      );
+      const fallback = {
+        // Return a default empty report so the dashboard can render before the first scan
         type: 'simplebeacon-report',
         version: '1.0.0',
         generatedAt: new Date().toISOString(),
-        projectPath: req.query.projectPath || PROJECT_ROOT,
+        projectPath: rawProjectPath || PROJECT_ROOT,
         summary: { totalFiles: 0, issues: 0, score: 0, grade: 'F' },
         findings: [{
           category: 'scan-empty',
@@ -588,7 +608,19 @@ function setupSimplebeaconAPI(app, options = {}) {
         }],
         modules: [],
         gate: { pass: false, blockingCount: 1, warningCount: 0, failOn: ['high'] }
-      });
+      };
+      if (isDebug) {
+        fallback._debug = {
+          rawProjectPath,
+          resolvedProjectPath: projectPath,
+          resolvedReportPath: reportPath,
+          fileExists,
+          fileSize,
+          error: err.message || String(err),
+          code: err.code || null
+        };
+      }
+      return res.json(fallback);
     }
   });
 
