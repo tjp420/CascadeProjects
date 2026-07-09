@@ -121,6 +121,14 @@ const REPO_SKIP_DIRS = new Set([
 const CODE_EXTENSIONS = getCodeExtensions();
 const languagePluginManager = getBuiltinPluginManager();
 const ARTIFACT_EXTENSIONS = ['.backup', '.bak', '.tmp', '.old', '.orig', '.log', '.simplebeacon-backup'];
+const ESLINT_REPORT_CANDIDATES = [
+    '.simplebeacon/eslint-report.json',
+    'eslint-report.json',
+    'reports/eslint-report.json',
+    'coverage/eslint-report.json',
+    '.eslint-report.json'
+];
+const ESLINT_TARGET_DIRS = ['src', 'server', 'lib', 'packages', 'app', 'api'];
 const BINARY_EXTENSIONS = new Set([
     '.png', '.jpg', '.jpeg', '.gif', '.bmp', '.ico', '.svg', '.webp', '.avif',
     '.pdf', '.zip', '.tar', '.gz', '.tgz', '.bz2', '.7z', '.rar',
