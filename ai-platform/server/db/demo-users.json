@@ -31,5 +31,16 @@
     "securityIncidents": 0,
     "communityContributions": 0,
     "verificationStatus": "email"
+  },
+  {
+    "id": "user-license",
+    "email": "license-user@simplebeacon.local",
+    "password": "license-user",
+    "name": "license-user",
+    "trustLevel": "gold",
+    "successfulAnalyses": 100,
+    "securityIncidents": 0,
+    "communityContributions": 50,
+    "verificationStatus": "verified"
   }
 ]
