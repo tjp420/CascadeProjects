@@ -17,7 +17,7 @@ const constants = require('../config/constants.cjs');
  */
 function t(str) { return str; }
 const { generateWithProvider } = require('../services/cloud-inference-service.cjs');
-const { DEFAULT_OLLAMA_URL } = require('../services/ollama-client.cjs');
+const { DEFAULT_OLLAMA_URL, ollamaListModels } = require('../services/ollama-client.cjs');
 const fs = require('fs');
 const path = require('path');
 
@@ -146,6 +146,25 @@ function sanitizeConversationHistory(history) {
  * @param {any} app
  * @returns {any}
  */
+function resolveOllamaBaseUrl(userCredentials) {
+  return String(userCredentials?.ollamaBaseUrl || process.env.OLLAMA_BASE_URL || DEFAULT_OLLAMA_URL).replace(/\/$/, '');
+}
+
+async function probeOllama(baseUrl, timeoutMs = 2500) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(`${baseUrl.replace(/\/$/, '')}/api/tags`, { signal: controller.signal });
+    return res.ok;
+  }
+  catch {
+    return false;
+  }
+  finally {
+    clearTimeout(timer);
+  }
+}
+
 function setupChatbotAPI(app) {
   app.post('/api/chatbot/message', async (req, res) => {
     try {
@@ -196,6 +215,22 @@ function setupChatbotAPI(app) {
           provider: 'demo',
           timing: null
         });
+      }
+
+      // Defensive: Ollama may be "configured" with a URL that the server cannot actually reach
+      // (e.g. http://127.0.0.1:11434 on Render). Probe quickly to avoid long timeouts and 500s.
+      if (provider === 'ollama') {
+        const ollamaBaseUrl = resolveOllamaBaseUrl(userCredentials);
+        const reachable = await probeOllama(ollamaBaseUrl);
+        if (!reachable) {
+          logger.warn(`[Chatbot API] Ollama unreachable at ${ollamaBaseUrl}; returning demo response`);
+          return res.json({
+            success: true,
+            response: `Ollama is configured at ${ollamaBaseUrl} but is not reachable from this server.\n\nTo use the chatbot:\n• Configure OpenAI or Anthropic in Settings → AI providers, or\n• Run Ollama on a network-reachable host and set OLLAMA_BASE_URL.\n\nYour message: "${message.substring(0, 200)}"`,
+            provider: 'demo',
+            timing: null
+          });
+        }
       }
       if (provider === 'openai' && !isOpenAIAvailable) {
         return res.status(400).json({
@@ -291,6 +326,16 @@ function setupChatbotAPI(app) {
 
     } catch (error) {
       logger.error('[Chatbot API] Error:', error);
+      // Ollama is often unreachable from remote deployments; return a friendly demo response
+      // rather than a 500 so the chatbot UI stays usable.
+      if (req.body?.provider === 'ollama') {
+        return res.json({
+          success: true,
+          response: `Ollama inference failed (${error.message}). The service may be unreachable from this server.\n\nTo use the chatbot:\n• Configure OpenAI or Anthropic in Settings → AI providers, or\n• Run Ollama on a network-reachable host and set OLLAMA_BASE_URL.\n\nYour message: "${String(req.body?.message || '').substring(0, 200)}"`,
+          provider: 'demo',
+          timing: null
+        });
+      }
       res.status(500).json({
         error: 'Failed to generate response',
         message: error.message
