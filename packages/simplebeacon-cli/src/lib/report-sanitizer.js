@@ -196,7 +196,9 @@ function stripSensitiveScanFields(report) {
     const next = sanitizePlainObject(report);
     next.rawIssues = [];
     next.detectedIssues = [];
-    if (Array.isArray(next.findings)) next.findings = [];
+    if (Array.isArray(next.findings)) {
+        next.findings = next.findings.filter((f) => f && f.category === 'workspace-health');
+    }
     if (next.results && typeof next.results === 'object') {
         next.results = sanitizePlainObject(next.results);
         if (next.results.codebase?.findings) {
