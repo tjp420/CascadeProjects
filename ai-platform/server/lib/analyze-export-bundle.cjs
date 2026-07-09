@@ -18,6 +18,9 @@ const {
     resolveDeliverableTier
 } = require('./analyze-deliverable-access.cjs');
 const {
+    sanitizeFrozenAuditDeliverableHtml
+} = require('./audit-export-tier.cjs');
+const {
     sanitizeEuAiActSprintArtifactExport,
     projectLabelFromPath,
     redactProjectPathForExport,
@@ -34,8 +37,7 @@ const {
     sanitizeCleanupBriefExport,
     sanitizeNpmAuditExport,
     sanitizeRoadmapExport,
-    buildReAttestationNoteArtifact,
-    sanitizeFrozenAuditDeliverableHtml
+    buildReAttestationNoteArtifact
 } = require('./simplebeacon-proxy.cjs');
 
 const { safeStringify, tryStringify, slugify, dateStamp, detectScanKind } = require('./analyze-export-bundle/utils.cjs');

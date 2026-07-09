@@ -13,7 +13,6 @@ const {
 const {
     formatReportTimestamp,
     formatScanDuration,
-    redactPathForDisplay,
     buildReportId
 } = require('./audit-report-utils.cjs');
 const {
@@ -33,6 +32,8 @@ const {
     normalizeSimplebeaconForCompliance,
     buildDeveloperRemediationRows,
     dedupeFindings,
+    sortBySeverity,
+    redactPathForDisplay,
     isProductionCodePath,
     isAuditProductionRuntimePath,
     isPlaceholderExecutiveText,
