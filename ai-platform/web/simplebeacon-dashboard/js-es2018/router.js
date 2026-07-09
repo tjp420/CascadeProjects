@@ -1,4 +1,4 @@
-const ROUTES = ['dashboard', 'audit', 'assessments', 'analyze', 'results', 'remediation', 'security', 'tools', 'platform', 'quality', 'help', 'features', 'trust', 'repository-health', 'settings', 'pricing', 'about', 'signin', 'chatbot', 'upload', 'eu-ai-act', 'profile'];
+const ROUTES = ['dashboard', 'audit', 'assessments', 'analyze', 'results', 'remediation', 'security', 'tools', 'platform', 'quality', 'help', 'features', 'trust', 'repository-health', 'settings', 'pricing', 'about', 'signin', 'chatbot', 'upload', 'eu-ai-act', 'profile', 'admin'];
 /**
  * P u b l i c  v i e w s.
  */

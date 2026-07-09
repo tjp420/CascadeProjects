@@ -24,6 +24,7 @@ import { ChatbotView } from './views/ChatbotView.js';
 import { UploadView } from './views/UploadView.js';
 import { RemediationRoadmapView } from './views/RemediationRoadmapView.js';
 import { ProfileView } from './views/ProfileView.js';
+import { AdminPanelView } from './views/AdminPanelView.js?v=20260709adminpanel1';
 import { COMING_SOON_URL } from './config.js';
 import { shouldShowOnboarding, renderOnboarding, bindOnboarding } from './components/Onboarding.js';
 import { showUpgradeModal } from './components/UpgradeModal.js';
@@ -144,7 +145,8 @@ class SimplebeaconDashboard {
             chatbot: new ChatbotView(this),
             upload: new UploadView(this),
             remediation: new RemediationRoadmapView(this),
-            profile: new ProfileView(this)
+            profile: new ProfileView(this),
+            admin: new AdminPanelView(this)
         };
         this.currentView = null;
         this.router = new Router((view, params) => this.onRoute(view, params));
@@ -643,6 +645,15 @@ class SimplebeaconDashboard {
             return true;
         }
     }
+    isCurrentUserAdmin() {
+        const user = authService.getUser() || this.state.user || {};
+        const role = String(user.role || '').toLowerCase();
+        const tier = String(user.tier || '').toLowerCase();
+        if (role === 'admin' || role === 'superuser') return true;
+        if (tier === 'admin' || tier === 'superuser') return true;
+        if (Array.isArray(user.features) && user.features.map(String).map(s => s.toLowerCase()).includes('all_modules')) return true;
+        return false;
+    }
     bootstrapAfterAuth() {
         this.updateAuthUi();
         this.router.init();
@@ -671,6 +682,9 @@ class SimplebeaconDashboard {
         const sidebarSigninBtn = document.getElementById('sidebar-signin-btn');
         if (sidebarSigninBtn)
             sidebarSigninBtn.hidden = authed;
+        const adminLink = document.getElementById('nav-admin-link');
+        if (adminLink)
+            adminLink.hidden = !authed || !this.isCurrentUserAdmin();
         const pricingLink = document.getElementById('header-pricing-link');
         if (pricingLink)
             pricingLink.hidden = authed;

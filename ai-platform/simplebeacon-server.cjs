@@ -57,6 +57,7 @@ const { registerLegacyPageRedirects } = require('./server/lib/legacy-page-redire
 const uploadRoutes = require('./server/routes/upload.cjs');
 const { setupRepositoryScannerAPIs } = require('./server/routes/repository-scanner-api.cjs');
 const { setupAiMathAuditRoute } = require('./server/routes/ai-math-audit-route.cjs');
+const { setupAdminAPI } = require('./server/routes/admin-api.cjs');
 const { uploadSecurity, contentValidation } = require('./server/middleware/upload-security.cjs');
 const { authenticate, optionalAuthenticate } = require('./server/middleware/auth.cjs');
 const authRoutes = require('./server/routes/auth.cjs');
@@ -961,6 +962,7 @@ async function bootstrapPhase2Routes() {
             }
         } },
         { name: 'aiMathAudit', fn: () => setupAiMathAuditRoute(app, __dirname) },
+        { name: 'adminAPI', fn: () => setupAdminAPI(app, { platformRoot: __dirname }) },
         { name: 'mergerTool', fn: () => setupMergerToolRoutes(app, __dirname) }
     ];
 

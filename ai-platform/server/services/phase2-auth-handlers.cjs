@@ -42,6 +42,9 @@ async function handlePhase2Login(req, res, next) {
                     email: user.email,
                     name: user.name,
                     trustLevel: user.trustLevel,
+                    role: user.role || '',
+                    features: Array.isArray(user.features) ? user.features : [],
+                    tier: user.tier || '',
                     permissions: trustLevels[user.trustLevel]?.permissions || trustLevels.bronze.permissions
                 }
             });

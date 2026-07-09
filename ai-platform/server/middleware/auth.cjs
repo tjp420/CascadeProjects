@@ -18,6 +18,7 @@
 const { toClientError } = require('../lib/client-error.cjs');
 const createError = require('http-errors');
 const { jwtConfig } = require('../lib/jwt-config.cjs');
+const { recordActivity } = require('../lib/session-activity.cjs');
 
 const {
   trustLevels,
@@ -207,6 +208,7 @@ const authenticate = async (req, res, next) => {
     if (error) throw error;
 
     req.user = user;
+    recordActivity(user.id, user.email, user.name);
     authLog('[AUTH] User authenticated');
     next();
   } catch (error) {
@@ -220,6 +222,7 @@ const optionalAuthenticate = async (req, res, next) => {
     const { user, error } = await resolveAuth(req, res);
     if (!error) {
       req.user = user;
+      recordActivity(user.id, user.email, user.name);
     } else {
       req.authError = error;
       authWarn(`[AUTH] Optional auth failed - ${req.method} ${req.originalUrl}: ${error.message}`);
