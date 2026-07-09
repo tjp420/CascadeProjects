@@ -1,3 +1,22 @@
+const fs = require('fs');
+const path = require('path');
+const {
+    resolvePlatformRoot,
+    detectPlatformSignalsAt,
+    countPageSamples,
+    extractJsDependencies,
+    extractApiRoutesFromFiles,
+    countTestFiles
+} = require('./roadmap-analysis.cjs');
+const {
+    walkProject,
+    filterRoadmapAnalysisFiles,
+    readJsonSafe,
+    CODE_EXTENSIONS
+} = require('./roadmap-filesystem.cjs');
+const { REPOSITORY_AUDIT_BASELINE } = require('./repository-audit-baseline.cjs');
+const { buildPhase2Analysis } = require('./code-roadmap-phase2.cjs');
+
 /**
  * Build sprint model.
  * @param {Object} signals
@@ -416,5 +435,6 @@ function extractDetectedFeatures(signals, metrics, samples) {
     return list;
 }
 module.exports = {
-    buildSprintModel
+    buildSprintModel,
+    analyzeCodebase
 };

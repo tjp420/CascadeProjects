@@ -7,8 +7,8 @@ async function buildRoadmapFromPath(projectPath, options = {}) {
     if (projectPath == null || typeof projectPath !== 'string') {
         throw new TypeError('projectPath must be a non-empty string');
     }
-    const GlobalContextManager = require('../../src/core/GlobalContextManager.cjs');
-    const RoadmapDataAnalyzer = require('../../src/core/RoadmapDataAnalyzer.cjs');
+    const GlobalContextManager = require('../../../src/core/GlobalContextManager.cjs');
+    const RoadmapDataAnalyzer = require('../../../src/core/RoadmapDataAnalyzer.cjs');
     const { buildHistoryEntryFromRoadmap } = require('../../lib/roadmap-history-metrics.cjs');
 
     const resolvedPath = path.resolve(projectPath);

@@ -1,3 +1,15 @@
+const fs = require('fs');
+const path = require('path');
+const { readJsonSafe, filterRoadmapAnalysisFiles, API_ROUTE_SOURCE_PREFIXES } = require('./roadmap-filesystem.cjs');
+const { PAGE_SAMPLE_SPECS } = require('./page-sample-specs.cjs');
+const { resolveSampleFilePath } = require('./sample-path-resolver.cjs');
+
+// Path constants also referenced by detectPlatformSignalsAt / resolvePlatformRoot
+const FIXTURE_SCANNER_PATH = ['server', 'lib', 'fixture-scanner.js'].join('/');
+const FIXTURE_BASE_DIR = ['web', 'data'].join('/');
+const FIXTURE_SUFFIX = ['-', 'sample', 'json'].join('.');
+const PLATFORM_DIR_NAMES = ['ai-platform'];
+
 /**
  * Count test files.
  * @param {Array} files

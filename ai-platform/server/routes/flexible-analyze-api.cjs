@@ -520,6 +520,17 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 }, 200, sendAnalyzeJsonOpts);
             }
 
+            if (analysisType === 'removable-files') {
+                const report = await scanRemovableFiles(projectPath);
+                return sendAnalyzeJson(res, {
+                    success: true,
+                    analysisType: 'removable-files',
+                    aiProvider,
+                    report,
+                    removableFiles: report
+                }, 200, sendAnalyzeJsonOpts);
+            }
+
             if (analysisType === 'complete') {
                 logger.info(`[Flexible Analyze] Running complete analysis for ${projectPath}`);
                 const results = {};

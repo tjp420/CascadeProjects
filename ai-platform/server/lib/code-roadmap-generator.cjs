@@ -14,7 +14,7 @@ const { REPOSITORY_AUDIT_BASELINE } = require('./repository-audit-baseline.cjs')
 const { loadJestCoverageSummary } = require('./jest-coverage-reader.cjs');
 const { getCodeExtensions } = require('./universal-language-config.cjs');
 const { buildScanRisks, buildScanActionPlan } = require('./roadmap-scan-analysis.cjs');
-const { analyzeCodebase } = require('./codebase-analyzer.cjs');
+const { analyzeCodebase } = require('./roadmap-sprint-model.cjs');
 const { isConfiguredSecret } = require('./secret-config.cjs');
 
 const PLATFORM_DIR_NAMES = ['ai-platform'];
@@ -60,6 +60,7 @@ function generateCodeRoadmap(projectRoot, priorAnalysis = {}, options = {}) {
             projectRoot: scanRoot,
             aiIntegration: codeAiIntegration
         } = codeAnalysis;
+        const effectivePlatformRoot = platformRoot || scanRoot || projectRoot;
         const scanReport = options.scanReport || null;
         const scanBlocking = scanReport?.gate?.blockingCount || 0;
         const scanPass = scanReport?.gate?.pass ?? null;
@@ -67,9 +68,9 @@ function generateCodeRoadmap(projectRoot, priorAnalysis = {}, options = {}) {
             ? buildSprintModel(signals, metrics, samples, scanReport)
             : rawSprintModel;
         const now = new Date().toISOString();
-        const istanbul = loadJestCoverageSummary(platformRoot);
+        const istanbul = loadJestCoverageSummary(effectivePlatformRoot);
         const baseline = REPOSITORY_AUDIT_BASELINE;
-        const v1Internal = detectV1InternalReadinessAt(platformRoot);
+        const v1Internal = detectV1InternalReadinessAt(effectivePlatformRoot);
         const projectHealth = scanPass === false || scanBlocking > 0
             ? 'Blocked'
             : sprintModel.completionRate >= 95
@@ -199,7 +200,7 @@ function generateCodeRoadmap(projectRoot, priorAnalysis = {}, options = {}) {
             },
 
             sourceProjectPath: scanRoot,
-            platformRoot,
+            platformRoot: effectivePlatformRoot,
 
             rejectedFiction: {
                 warning: 'Enterprise roadmap design claims not produced by this scanner',
