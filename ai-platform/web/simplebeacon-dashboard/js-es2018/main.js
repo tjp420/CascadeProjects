@@ -921,8 +921,14 @@ class SimplebeaconDashboard {
         var _a, _b, _c, _d;
         // Defensive: clear lastProjectPath if it points to a known-invalid nested path
         // or to the fabricated Windows fallback C:/Users/CascadeProjects (missing the user directory).
+        // Also, when the dashboard is served remotely, a Windows local path like C:/Users/... can never be
+        // scanned by the remote server and will trigger Firefox Privacy mode warnings. Clear it and
+        // fall back to the loaded report's projectRoot or the server default.
+        const normalizedLast = String(this.state.lastProjectPath || '').replace(/\\/g, '/');
         const badPathPattern = /ai-platform\/CascadeProjects$|google-earthenterprise|^[a-zA-Z]:\/Users\/CascadeProjects$/i;
-        if (badPathPattern.test(String(this.state.lastProjectPath || '').replace(/\\/g, '/'))) {
+        const isRemote = typeof window !== 'undefined' && !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
+        const isLocalWindowsPath = /^[a-zA-Z]:\//i.test(normalizedLast);
+        if (badPathPattern.test(normalizedLast) || (isRemote && isLocalWindowsPath)) {
             this.state.lastProjectPath = '';
             this.state.pathInputDraft = '';
         }
@@ -958,6 +964,12 @@ class SimplebeaconDashboard {
             history: (_d = data.history) !== null && _d !== void 0 ? _d : this.state.history,
             reAttestation
         });
+        if (isRemote && isLocalWindowsPath && !this.state.lastProjectPath && !this.state.defaultProjectPath) {
+            const reportRoot = data.report && data.report.projectRoot;
+            if (reportRoot) {
+                this.state.defaultProjectPath = reportRoot;
+            }
+        }
         await this.ensureDefaultProjectPath();
     }
     async ensureDefaultProjectPath() {
