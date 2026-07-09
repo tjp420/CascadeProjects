@@ -1,6 +1,6 @@
 import { escapeHtml, showToast, downloadJson, downloadBlob, downloadText, redactPathForDisplay, formatPathLabel, formatPathInputValue, formatAiSummarySkipMessage, isRedactedPathDisplay, formatNumber, renderEmptyState } from '../utils.js';
 import { evaluateFunnelMetrics, getFunnelCopy } from '../utils/funnelTrigger.js';
-import { LocalScanService } from '../services/localScanService.js?v=20260709noise1';
+import { LocalScanService } from '../services/localScanService.js?v=20260709noise2';
 import { fingerprintDirectory, formatFingerprint } from '../services/fingerprintService.js';
 import {
   probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus,
@@ -9064,11 +9064,9 @@ export class AnalyzeView {
     });
 
     // Send to AI Agent handlers (Analyze page export bar)
-    console.log('[AI-Send] Binding AI send events. lastResult:', !!this.lastResult, 'report:', !!(this.lastResult?.report || this.app.state.report));
     const analyzeAiPanel = view.querySelector('#analyze-ai-panel');
     const analyzeAiNotes = view.querySelector('#analyze-ai-notes');
     const analyzeAiStatus = view.querySelector('#analyze-ai-status');
-    console.log('[AI-Send] Panel found:', !!analyzeAiPanel, 'Confirm btn found:', !!view.querySelector('#analyze-ai-confirm'));
 
     const doSendToAi = async (notes = '') => {
       const report = this.lastResult?.report || this.app.state.report;
@@ -9135,17 +9133,14 @@ export class AnalyzeView {
     };
 
     view.querySelector('#analyze-send-ai-btn')?.addEventListener('click', () => {
-      console.log('[AI-Send] Send button clicked — sending directly');
       doSendToAi('');
     });
     view.querySelector('#analyze-ai-cancel')?.addEventListener('click', () => {
-      console.log('[AI-Send] Cancel clicked');
       if (analyzeAiPanel) analyzeAiPanel.style.display = 'none';
       if (analyzeAiNotes) analyzeAiNotes.value = '';
       if (analyzeAiStatus) { analyzeAiStatus.style.display = 'none'; analyzeAiStatus.textContent = ''; }
     });
     view.querySelector('#analyze-ai-confirm')?.addEventListener('click', async () => {
-      console.log('[AI-Send] Confirm clicked');
       const btn = view.querySelector('#analyze-ai-confirm');
       if (!btn) return;
       btn.disabled = true; btn.textContent = 'Sending…';

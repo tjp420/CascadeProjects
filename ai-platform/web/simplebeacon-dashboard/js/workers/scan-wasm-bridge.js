@@ -7,6 +7,7 @@
  */
 
 const WASM_PKG_URL = new URL('../../wasm/pkg/simplebeacon_scan_wasm.js', import.meta.url);
+const WASM_ENABLED = false; // Set to true after building and deploying wasm/pkg/
 const DEFAULT_CHUNK_SIZE = 1024 * 1024; // 1 MB
 
 const SEVERITY_MAP = {
@@ -167,6 +168,9 @@ let analyzerFactory = null;
 async function createAnalyzer() {
   if (!analyzerFactory) {
     analyzerFactory = await (async () => {
+      if (!WASM_ENABLED) {
+        return { type: 'js' };
+      }
       try {
         const wasm = await import(WASM_PKG_URL);
         await wasm.default();

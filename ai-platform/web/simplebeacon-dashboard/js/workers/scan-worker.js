@@ -6,7 +6,7 @@
  * pure-JS fallback) instead of loading the entire file into memory at once.
  */
 
-import { analyzeFileChunks, findingsToIssues } from './scan-wasm-bridge.js?v=20260709noise1';
+import { analyzeFileChunks, findingsToIssues } from './scan-wasm-bridge.js?v=20260709noise2';
 
 const MAX_DISCOVERED_FILES = 500000;
 const LARGE_FILE_THRESHOLD = 5 * 1024 * 1024; // 5 MB
