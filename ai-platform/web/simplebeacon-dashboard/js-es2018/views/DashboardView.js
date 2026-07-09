@@ -1,6 +1,6 @@
 import { formatNumber, formatPercent, escapeHtml, renderEmptyState, showToast } from '../utils.js';
 import { buildScanConclusion, getScanFileMetrics, resolveDisplayScore, resolveJestTestsLabel, resolvePageSpecsLabel, renderScanScopePanel } from '../services/analyzeService.js';
-import { renderScanStatus, updateScanStatusDom, bindScanStatus, runDashboardScanFromInput } from '../components/ScanStatus.js?v=20260709starcraft5';
+import { renderScanStatus, updateScanStatusDom, bindScanStatus, runDashboardScanFromInput } from '../components/ScanStatus.js?v=20260709starcraft6';
 import { renderIssueList } from '../components/IssueCard.js';
 import { renderQuickActions, bindQuickActions } from '../components/QuickActions.js';
 import { renderTrendSection, mountTrendChart } from '../components/TrendChart.js';
@@ -252,7 +252,18 @@ export class DashboardView {
             getLastProjectPath: () => this.app.state.lastProjectPath,
             setLastProjectPath: (path) => { this.app.state.lastProjectPath = path; },
             getDefaultProjectPath: () => this.app.state.defaultProjectPath,
-            onRescan: (path) => this.app.runScan(path)
+            onRescan: (path) => this.app.runScan(path),
+            onLocalScanResult: (report) => {
+                if (!report)
+                    return;
+                this.app.state.report = report;
+                this.app.state.scanning = false;
+                this.app.state.lastProjectPath = report.projectPath || report.projectRoot || this.app.state.lastProjectPath;
+                if (this.app.scanService) {
+                    this.app.scanService.report = report;
+                }
+                this.app.refreshCurrentView();
+            }
         };
         // Use surgical DOM update if card already exists to prevent flicker
         const updated = updateScanStatusDom(scanSlot, report);

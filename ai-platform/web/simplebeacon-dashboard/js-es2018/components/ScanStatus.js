@@ -1,5 +1,6 @@
 import { escapeHtml, formatPercent } from '../utils.js';
 import { resolveDisplayScore, formatScanScopeSummary, formatScanInventoryNote } from '../services/analyzeService.js';
+import { runLocalScan } from '../services/localScanService.js';
 /**
  * Resolve initial scan root.
  * @param {number} report
@@ -290,7 +291,7 @@ export function updateScanStatusDom(root, report) {
  */
 export function bindScanStatus(container, options = {}) {
     var _a, _b;
-    const { onRescan, getLastProjectPath = () => '', setLastProjectPath = () => { }, getDefaultProjectPath = () => '' } = options;
+    const { onRescan, onLocalScanResult, getLastProjectPath = () => '', setLastProjectPath = () => { }, getDefaultProjectPath = () => '' } = options;
     const input = container.querySelector('#scan-root-input');
     const clearBtn = container.querySelector('#scan-clear-btn');
     const setDefaultBtn = container.querySelector('#scan-set-default-btn');
@@ -569,7 +570,7 @@ export function bindScanStatus(container, options = {}) {
                 dragDepth = 0;
             }
         });
-        scope.addEventListener('drop', (event) => {
+        scope.addEventListener('drop', async (event) => {
             var _a, _b, _c, _d;
             event.preventDefault();
             event.stopPropagation();
@@ -592,6 +593,30 @@ export function bindScanStatus(container, options = {}) {
                     setLastProjectPath(resolvedPath);
                     if (clearBtn)
                         clearBtn.disabled = false;
+                    // If the browser exposes a directory handle, scan it locally right away.
+                    if (!resolvedPath.match(/^[a-zA-Z]:|^\\\\|^\//) && onLocalScanResult && items[0].getAsFileSystemHandle) {
+                        try {
+                            const handle = await items[0].getAsFileSystemHandle();
+                            if (handle && handle.kind === 'directory') {
+                                const toast = document.getElementById('toast-container');
+                                if (toast) {
+                                    const msg = document.createElement('div');
+                                    msg.className = 'toast toast-info';
+                                    msg.textContent = `Scanning "${name}" locally in your browser…`;
+                                    toast.appendChild(msg);
+                                    setTimeout(() => msg.remove(), 4000);
+                                }
+                                const report = await runLocalScan({ dirHandle: handle });
+                                onLocalScanResult(report);
+                                return;
+                            }
+                        }
+                        catch (err) {
+                            if (err.name !== 'AbortError') {
+                                console.warn('[ScanStatus] Local scan from dropped handle failed:', err);
+                            }
+                        }
+                    }
                     // Notify user to verify path
                     const toast = document.getElementById('toast-container');
                     if (toast) {
