@@ -121,6 +121,17 @@ const REPO_SKIP_DIRS = new Set([
 const CODE_EXTENSIONS = getCodeExtensions();
 const languagePluginManager = getBuiltinPluginManager();
 const ARTIFACT_EXTENSIONS = ['.backup', '.bak', '.tmp', '.old', '.orig', '.log', '.simplebeacon-backup'];
+const BINARY_EXTENSIONS = new Set([
+    '.png', '.jpg', '.jpeg', '.gif', '.bmp', '.ico', '.svg', '.webp', '.avif',
+    '.pdf', '.zip', '.tar', '.gz', '.tgz', '.bz2', '.7z', '.rar',
+    '.exe', '.dll', '.so', '.dylib', '.bin',
+    '.mp3', '.mp4', '.wav', '.avi', '.mov', '.mkv', '.webm',
+    '.woff', '.woff2', '.ttf', '.otf', '.eot',
+    '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
+    '.sqlite', '.db', '.lock',
+    // Game asset / map binaries
+    '.scx', '.scm', '.sc2map', '.sc2data', '.chk', '.mix', '.vxl', '.shp', '.tmp'
+]);
 const WALK_MAX_DEPTH = 128;
 const MAX_FILE_BYTES = Number(process.env.CODEBASE_MAX_FILE_BYTES) || Number.POSITIVE_INFINITY;
 const GOVERNANCE_FILE_BASENAMES = new Set([
@@ -3221,6 +3232,10 @@ async function analyzeFileContent(file, rootDir, options = {}) {
             description: `Oversized file (${formatBytes(file.size)}): ${rel}`,
             recommendedAction: 'Split, compress, or move large generated assets out of source'
         });
+        return finalizeFileAnalysis(findings, rel, structure);
+    }
+
+    if (BINARY_EXTENSIONS.has(String(file.ext || '').toLowerCase())) {
         return finalizeFileAnalysis(findings, rel, structure);
     }
 
