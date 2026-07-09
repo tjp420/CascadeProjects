@@ -96,10 +96,10 @@ router.get('/get', async (req, res) => {
   const prompts = await loadPrompts();
   const entry = prompts[userId];
   if (!entry) {
-    return res.status(404).json({ error: 'Prompt not found for user' });
+    return res.json({ success: true, prompt: '', userId, updatedAt: null });
   }
 
-  res.json({ success: true, prompt: entry.prompt, updatedAt: entry.updatedAt });
+  res.json({ success: true, prompt: entry.prompt, userId, updatedAt: entry.updatedAt });
 });
 
 /**

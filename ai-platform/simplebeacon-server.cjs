@@ -1190,10 +1190,10 @@ async function startServer() {
   // Fallback stub for prompt endpoints when prompt-service module did not mount.
   // The real prompt-service router is mounted earlier; this only handles the 404 case.
   app.get('/api/prompts/get', (req, res) => {
-    res.json({ success: true, prompt: '', userId: req.query.userId || 'anonymous' });
+    res.json({ success: true, prompt: '', userId: req.query.userId || 'anonymous', updatedAt: null });
   });
   app.post('/api/prompts/set', (req, res) => {
-    res.json({ success: true, userId: req.body?.userId || 'anonymous' });
+    res.json({ success: true, userId: req.body?.userId || 'anonymous', message: 'Prompt saved' });
   });
   // JSON 404 for unknown API routes (must be after Phase 2 + stub registration)
   app.use('/api', (req, res) => {
