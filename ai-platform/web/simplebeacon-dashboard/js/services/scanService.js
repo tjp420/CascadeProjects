@@ -119,6 +119,25 @@ export class ScanService {
     return this.report;
   }
 
+  async importReport(report, projectPath = null) {
+    if (!report || typeof report !== 'object') {
+      throw new Error('report is required');
+    }
+    const body = { report };
+    if (projectPath) body.projectPath = projectPath;
+    const res = await fetchSimplebeacon(`${simplebeaconApiBase()}/report/import`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    }, 60000);
+    const data = await readJsonResponseBody(res, null);
+    if (!res.ok || !data || !data.success) {
+      throw new Error(data?.error || `Report import failed (${res.status})`);
+    }
+    this.report = await this.fetchReport(data.projectPath || projectPath || undefined);
+    return { response: data, report: this.report };
+  }
+
   async fetchRepositoryInventory(projectPath) {
     const path = String(projectPath || '').trim();
     if (!path) return null;

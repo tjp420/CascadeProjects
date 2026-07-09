@@ -177,7 +177,7 @@ export function formatAgentStatus(agentStatus) {
   if (!agentStatus) return '';
   if (!agentStatus.available) {
     if (agentStatus.likelyBlocked) {
-      return 'Local agent blocked by HTTPS mixed-content policy — use Chrome/Edge or install the browser extension';
+      return 'Local agent blocked by HTTPS mixed-content policy — use Chrome/Edge or download the Local Scan Agent below';
     }
     return 'Local agent offline — download the Local Scan Agent portable zip and run start-agent.bat';
   }
@@ -217,7 +217,7 @@ export function getAgentDownloadUrl(platform) {
  */
 export function getAgentFallbackMessage(agentStatus) {
   if (agentStatus?.likelyBlocked) {
-    return 'Firefox/Safari block HTTPS pages from reaching the Local Scan Agent. Use Chrome/Edge, type the full path and press Enter, or install the browser extension.';
+    return 'Firefox/Safari block HTTPS pages from reaching the Local Scan Agent. Use Chrome/Edge, type the full path and press Enter, or download the Local Scan Agent below.';
   }
   if (!agentStatus?.available) {
     return 'Local Scan Agent is offline. Download and run it from the link below, then try again.';

@@ -6,7 +6,7 @@ import {
   probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus,
   getAgentDownloadUrl, detectPlatform, getPlatformLabel, getInstallInstructions,
   getAgentFallbackMessage
-} from '../services/localAgentService.js';
+} from '../services/localAgentService.js?v=20260709noise3';
 
 // simplebeacon:production-leak-intent: sample-json - Legitimate documentation about sample file patterns in analysis results
 import {
@@ -4643,8 +4643,22 @@ export class AnalyzeView {
         const isJson = file.name.endsWith('.json');
         const isZip = file.name.endsWith('.zip');
 
-        if (isJson || isZip) {
+        if (isJson) {
           // Scan report import
+          try {
+            const text = await file.text();
+            const parsed = JSON.parse(text);
+            if (await this.importJsonReport(parsed, file.name, { bytes: file.size })) {
+              return;
+            }
+            showToast(`${file.name} parsed as JSON but report type was not recognized`, 'info');
+          } catch {
+            showToast('Failed to parse report JSON', 'error');
+          }
+          return;
+        }
+        if (isZip) {
+          // Complete-scan ZIP bundle — currently loaded client-side only
           try {
             const text = await file.text();
             const report = JSON.parse(text);
@@ -5695,7 +5709,7 @@ export class AnalyzeView {
     this.refresh();
   }
 
-  importJsonReport(parsed, fileName, meta = {}) {
+  async importJsonReport(parsed, fileName, meta = {}) {
     // Validate structural integrity before import
     const integrity = this.validateReportIntegrity(parsed, fileName);
     const errors = integrity.filter(i => i.level === 'error');
@@ -5720,7 +5734,21 @@ export class AnalyzeView {
       return true;
     }
     if (isSimplebeaconReport(parsed)) {
-      this.applyReport(parsed, `Imported scan: ${fileName}`, { conclusion: buildScanConclusion(parsed) });
+      const reportProjectPath = parsed.projectRoot || parsed.projectPath || parsed.platformRoot || '';
+      try {
+        const imported = await this.app.scanService.importReport(parsed, reportProjectPath || undefined);
+        const loadedReport = imported.report || parsed;
+        const resolvedProjectPath = imported.response?.projectPath || reportProjectPath;
+        if (resolvedProjectPath) {
+          this.app.state.lastProjectPath = resolvedProjectPath;
+          this.app.state.pathInputDraft = '';
+        }
+        this.applyReport(loadedReport, `Imported scan: ${fileName}`, { conclusion: buildScanConclusion(loadedReport) });
+      } catch (err) {
+        console.warn('[AnalyzeView] Server report import failed; applying locally:', err);
+        this.applyReport(parsed, `Imported scan: ${fileName}`, { conclusion: buildScanConclusion(parsed) });
+        showToast(`Saved locally — server import failed: ${err.message}`, 'warning');
+      }
       if (warnings.length) showToast(`Imported with ${warnings.length} warning(s) — see console`, 'info');
       return true;
     }
@@ -6043,7 +6071,7 @@ export class AnalyzeView {
           this.refresh();
           return;
         }
-        if (this.importJsonReport(parsed, file.name, { bytes: file.size })) {
+        if (await this.importJsonReport(parsed, file.name, { bytes: file.size })) {
           this.snippetBusy = false;
           return;
         }
@@ -8177,9 +8205,11 @@ export class AnalyzeView {
   applyReport(report, label, options = {}) {
     this.app.state.report = report;
     this.app.scanService.report = report;
+    const projectPath = options.projectPath || this.app.state.lastProjectPath || report.projectPath || report.projectRoot || report.platformRoot || '';
     this.lastResult = {
       kind: 'simplebeacon-report',
       report,
+      projectPath,
       label,
       conclusion: options.conclusion || buildScanConclusion(report)
     };

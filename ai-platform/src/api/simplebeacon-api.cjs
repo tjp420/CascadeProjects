@@ -549,7 +549,10 @@ function setupSimplebeaconAPI(app, options = {}) {
  */
   function requireUserAccount(req, res, next) {
     if (!req.user?.email) {
-      return res.status(401).json({ success: false, error: 'Authentication required' });
+      const debug = req.authError ? req.authError.message : undefined;
+      const body = { success: false, error: 'Authentication required' };
+      if (debug) body.debug = debug;
+      return res.status(401).json(body);
     }
     next();
   }

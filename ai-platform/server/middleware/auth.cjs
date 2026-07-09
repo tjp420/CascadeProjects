@@ -82,37 +82,27 @@ const {
  * first-use expiry, sandbox rate-limiting, and req.user construction.
  * @returns {{ user?: object, error?: Error, sandbox?: boolean }}
  */
-async function resolveAuth(req, res) {
-  if (process.env.NODE_ENV === 'development') {
-    return {
-      user: {
-        id: 'dev-user-01',
-        email: 'dev@localhost',
-        name: 'Local Developer',
-        role: 'admin',
-        trustLevel: 'platinum',
-        permissions: ['read:all', 'write:all', 'admin:all']
-      }
-    };
+function extractTokenFromCookies(req) {
+  if (!req.cookies || typeof req.cookies !== 'object') return null;
+  const rawCookie = req.cookies.cascadeAuthToken;
+  if (rawCookie && typeof rawCookie === 'string') return rawCookie;
+  const accessTokenCookie = req.cookies.access_token;
+  if (accessTokenCookie && typeof accessTokenCookie === 'string') {
+    try {
+      const decoded = decodeURIComponent(accessTokenCookie);
+      const parsed = JSON.parse(decoded);
+      if (parsed && typeof parsed.token === 'string') return parsed.token;
+    } catch {
+      // ignore malformed cookie
+    }
   }
+  return null;
+}
 
-  if (vaultOperatorSessionActive(req)) {
-    applyVaultOperatorUser(req);
-    return { user: req.user };
-  }
-
-  const authHeader = req.headers.authorization;
-  if (!authHeader) {
-    return { error: createError(401, 'Authorization header required') };
-  }
-
-  const token = authHeader.startsWith('Bearer ')
-    ? authHeader.substring(7)
-    : authHeader;
+async function tryToken(token, res) {
   if (!token) {
     return { error: createError(401, 'Token required') };
   }
-
   const decoded = await verifyToken(token);
 
   recordTokenFirstUse(decoded.jti);
@@ -148,6 +138,51 @@ async function resolveAuth(req, res) {
   return { user, sandbox };
 }
 
+async function resolveAuth(req, res) {
+  if (process.env.NODE_ENV === 'development') {
+    return {
+      user: {
+        id: 'dev-user-01',
+        email: 'dev@localhost',
+        name: 'Local Developer',
+        role: 'admin',
+        trustLevel: 'platinum',
+        permissions: ['read:all', 'write:all', 'admin:all']
+      }
+    };
+  }
+
+  if (vaultOperatorSessionActive(req)) {
+    applyVaultOperatorUser(req);
+    return { user: req.user };
+  }
+
+  const headerToken = typeof req.headers.authorization === 'string' && req.headers.authorization.startsWith('Bearer ')
+    ? req.headers.authorization.substring(7)
+    : '';
+  const cookieToken = extractTokenFromCookies(req);
+
+  const attempts = [];
+  if (headerToken) attempts.push({ label: 'bearer', token: headerToken });
+  if (cookieToken) attempts.push({ label: 'cookie', token: cookieToken });
+
+  const errors = [];
+  for (const { label, token } of attempts) {
+    try {
+      const result = await tryToken(token, res);
+      if (!result.error) return result;
+      errors.push(`${label}: ${result.error.message}`);
+    } catch (err) {
+      errors.push(`${label}: ${err.message || 'token error'}`);
+    }
+  }
+
+  if (attempts.length === 0) {
+    return { error: createError(401, 'Authorization required') };
+  }
+  return { error: createError(401, errors.join('; ') || 'Invalid or expired token') };
+}
+
 // Primary authentication middleware — kept in the middleware layer
 const authenticate = async (req, res, next) => {
   try {
@@ -168,8 +203,12 @@ const optionalAuthenticate = async (req, res, next) => {
     const { user, error } = await resolveAuth(req, res);
     if (!error) {
       req.user = user;
+    } else {
+      req.authError = error;
+      authWarn(`[AUTH] Optional auth failed - ${req.method} ${req.originalUrl}: ${error.message}`);
     }
   } catch (error) {
+    req.authError = error;
     authWarn(`[AUTH] Optional auth failed - ${req.method} ${req.originalUrl}: ${error.message}`);
   }
   return next();

@@ -189,6 +189,9 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
     const opts = (options && typeof options === 'object' && !Array.isArray(options)) ? options : {};
     const baseDir = opts.baseDir || path.join(__dirname, '..', '..');
     const monorepoRoot = opts.monorepoRoot || path.resolve(path.join(baseDir, '..'));
+    if (!fs.existsSync(baseDir)) {
+        logger.warn('[Analyze] baseDir does not exist:', { baseDir, monorepoRoot });
+    }
     const publicGateEnabled = opts.publicGateEnabled === true
         || (opts.publicGateEnabled !== false && process.env.SIMPLEBEACON_PUBLIC_GATE === 'true');
     const closedVaultMode = opts.closedVaultMode === true
@@ -455,7 +458,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 const explicitMaxDeep = Number(body.maxDeepAnalyze);
                 const maxDeepAnalyze = Number.isFinite(explicitMaxDeep) && explicitMaxDeep > 0
                     ? Math.min(explicitMaxDeep, 10000)
-                    : null;
+                    : 5000;
                 const analyzeOpts = {
                     includeEslint: body.includeEslint === true || scanContext === 'complete',
                     scanProfile,
@@ -1555,7 +1558,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             const explicitMaxDeep = Number(req.query.maxDeepAnalyze);
             const maxDeepAnalyze = Number.isFinite(explicitMaxDeep) && explicitMaxDeep > 0
                 ? Math.min(explicitMaxDeep, 10000)
-                : null;
+                : 5000;
             const analyzeOptions = {
                 includeEslint: req.query.includeEslint === 'true',
                 scanProfile,
@@ -1788,6 +1791,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 });
             }
 
+            const hasAdmin = hasAdminDeliverableAccess(req);
             const internalDashboard = process.env.SIMPLEBEACON_INTERNAL_DASHBOARD === 'true'
                 || body.internalDashboard === true;
 
@@ -1798,8 +1802,8 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 zipResult = await buildAnalyzeExportZipStream(completeScan, {
                     deliverableSku: body.deliverableSku,
                     internalDashboard,
-                    publicGateLocked: publicGateEnabled && !internalDashboard,
-                    hasAuditDeliverableAccess: !publicGateEnabled && !closedVaultMode,
+                    publicGateLocked: publicGateEnabled && !internalDashboard && !hasAdmin,
+                    hasAuditDeliverableAccess: (!publicGateEnabled && !closedVaultMode) || hasAdmin,
                     cloudTeamsActive: body.cloudTeamsActive === true,
                     client: body.client,
                     company: body.company,
@@ -1921,8 +1925,8 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 const zipResult = await buildAnalyzeExportZipStream(completeScan, {
                     deliverableSku: body.deliverableSku || 'clearance499',
                     internalDashboard: process.env.SIMPLEBEACON_INTERNAL_DASHBOARD === 'true',
-                    publicGateLocked: publicGateEnabled,
-                    hasAuditDeliverableAccess: !publicGateEnabled && !closedVaultMode,
+                    publicGateLocked: publicGateEnabled && !hasAdminDeliverableAccess(req),
+                    hasAuditDeliverableAccess: !publicGateEnabled && !closedVaultMode || hasAdminDeliverableAccess(req),
                     milestone,
                     client: clientName,
                     projectName,
@@ -1982,7 +1986,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             if (!completeScan || typeof completeScan !== 'object') {
                 return res.status(400).json({ success: false, error: 'completeScan payload is required' });
             }
-            if (publicGateEnabled) {
+            if (publicGateEnabled && !hasAdminDeliverableAccess(req)) {
                 return rejectPaidDeliverable(res, auditCheckoutUrl);
             }
             const aiProvider = String(body.aiProvider || 'demo').toLowerCase();

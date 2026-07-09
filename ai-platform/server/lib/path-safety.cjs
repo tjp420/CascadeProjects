@@ -328,9 +328,14 @@ function assertSafeProjectPath(targetPath, allowedRoots, label = 'projectPath') 
     // inside a Render-style monorepo checkout, fall back to the monorepo root.
     if (!fs.existsSync(resolved) && allowedRoots.length) {
         const normalizedResolved = normalizePathKey(resolved);
+        // Prefer a monorepo root that actually contains an ai-platform directory.
         const monoRoot = allowedRoots.find((root) => {
             const normalized = normalizePathKey(root);
-            return normalized.endsWith('/ai-platform') === false && normalizedResolved.startsWith(normalized + '/');
+            return !normalized.endsWith('/ai-platform') && normalizedResolved.startsWith(normalized + '/')
+                && fs.existsSync(path.join(root, 'ai-platform'));
+        }) || allowedRoots.find((root) => {
+            const normalized = normalizePathKey(root);
+            return !normalized.endsWith('/ai-platform') && normalizedResolved.startsWith(normalized + '/');
         });
         if (monoRoot) {
             const platformDir = path.join(monoRoot, 'ai-platform');

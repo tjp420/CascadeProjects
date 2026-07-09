@@ -71,6 +71,22 @@ function normalizeStringList(value) {
 }
 
 /**
+ * Find the server's actual ai-platform directory when baseDir itself is missing.
+ * This handles Render deployments where the repo root is nested (e.g. CascadeProjects/ai-platform).
+ * @param {string} baseDir
+ * @param {string} [monorepoRoot]
+ * @returns {string|null}
+ */
+function findExistingPlatformDir(baseDir, monorepoRoot) {
+    if (baseDir && fs.existsSync(baseDir)) return baseDir;
+    if (monorepoRoot) {
+        const candidate = path.join(monorepoRoot, 'ai-platform');
+        if (fs.existsSync(candidate)) return candidate;
+    }
+    return null;
+}
+
+/**
  * Resolve a user-provided path against allowed base directories.
  * Rejects HTTP/HTTPS URLs. Falls back to monorepo root when the path is not found under baseDir.
  * @param {string} baseDir Primary allowed root.
@@ -102,15 +118,16 @@ function resolveProjectPath(baseDir, rawPath, monorepoRoot) {
             if (normalizedKey.includes('/ai-platform')) {
                 const serverPlatformKey = baseDir.replace(/\\/g, '/').toLowerCase();
                 if (serverPlatformKey.includes('/ai-platform')) {
-                    if (normalizedKey.endsWith('/ai-platform')) {
-                        // The platform directory itself was requested; use the server's platform dir.
-                        return baseDir;
-                    }
                     const effectiveMonoRoot = monorepoRoot || path.join(baseDir, '..');
+                    const existingPlatform = findExistingPlatformDir(baseDir, effectiveMonoRoot);
+                    if (normalizedKey.endsWith('/ai-platform')) {
+                        // The platform directory itself was requested; use the server's actual platform dir.
+                        return existingPlatform || baseDir;
+                    }
                     const repoName = path.basename(effectiveMonoRoot).toLowerCase();
                     if (repoName && normalizedKey.endsWith('/ai-platform/' + repoName)) {
-                        // The monorepo root was requested via the stale path; use the server's monorepo root.
-                        return effectiveMonoRoot;
+                        // The monorepo root was requested via the stale path; use the server's actual monorepo root.
+                        return existingPlatform ? path.resolve(path.dirname(existingPlatform)) : effectiveMonoRoot;
                     }
                 }
             }

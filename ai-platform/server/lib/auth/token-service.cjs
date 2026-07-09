@@ -8,6 +8,7 @@ const { jwtConfig } = require('../jwt-config.cjs');
 const constants = require('../../config/constants.cjs');
 const { trustLevels } = require('./trust-levels.cjs');
 const { isAccessTokenBlacklisted } = require('../token-service.cjs');
+const logger = require('../app-logger.cjs');
 
 const TOKEN_LIFETIME_MS = 24 * 60 * constants.ONE_MINUTE_MS;
 
@@ -89,6 +90,16 @@ async function verifyToken(token) {
     if (err.status) throw err;
     throw createError(401, 'Invalid or expired token');
   }
+}
+
+if (process.env.NODE_ENV !== 'test') {
+  logger.info('[token-service] JWT configuration loaded:', {
+    algorithm: jwtConfig.algorithm,
+    issuer: jwtConfig.issuer,
+    audience: jwtConfig.audience,
+    expiresIn: jwtConfig.expiresIn,
+    hasSecret: Boolean(jwtConfig.secret)
+  });
 }
 
 module.exports = {

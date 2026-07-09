@@ -798,6 +798,7 @@ app.use((req, res, next) => {
   if (req.path === '/api/health' || req.path === '/health') return next();
   if (req.path.startsWith('/api/analyze/')) return next();
   if (req.path === '/api/simplebeacon/report') return next();
+  if (req.path === '/api/simplebeacon/report/import') return next();
   if (req.path === '/api/simplebeacon/config') return next();
   if (req.path === '/api/simplebeacon/history') return next();
   if (req.path === '/api/simplebeacon/baseline') return next();
@@ -1016,6 +1017,58 @@ async function startServer() {
     } catch (err) {
       console.warn('[ReportFallback] Could not serve report:', err.message);
       return res.status(500).json({ error: 'report_unavailable', message: err.message });
+    }
+  });
+
+  // Import a simplebeacon-report JSON file so the dashboard can load/export it
+  app.post('/api/simplebeacon/report/import', authenticate, async (req, res) => {
+    try {
+      const body = req.body || {};
+      const report = body.report;
+      if (!report || typeof report !== 'object') {
+        return res.status(400).json({ success: false, error: 'report is required' });
+      }
+      const reportType = report.type;
+      if (reportType !== 'simplebeacon-report' && reportType !== 'data-cleanup-report' && reportType !== 'simplebeacon-complete-scan') {
+        return res.status(400).json({ success: false, error: 'Unsupported report type' });
+      }
+      const rawTarget = String(body.projectPath || report.platformRoot || report.projectRoot || '').trim();
+      if (!rawTarget) {
+        return res.status(400).json({ success: false, error: 'projectPath or report projectRoot/platformRoot is required' });
+      }
+      const { resolveProjectPath } = require('./server/lib/flexible-analyze-utils.cjs');
+      const { assertSafeProjectPath, resolveDefaultAllowedRoots } = require('./server/lib/path-safety.cjs');
+      const baseDir = __dirname;
+      const monorepoRoot = path.resolve(path.join(baseDir, '..'));
+      const resolved = resolveProjectPath(baseDir, rawTarget, monorepoRoot);
+      const allowedRoots = resolveDefaultAllowedRoots(baseDir, { monorepoRoot });
+      const safePath = assertSafeProjectPath(resolved, allowedRoots, 'projectPath');
+      if (!fs.existsSync(safePath)) {
+        return res.status(400).json({ success: false, error: `Target path does not exist: ${safePath.replace(/\\/g, '/')}` });
+      }
+      // Enrich repository inventory if the imported report is missing it
+      if (!report.repositoryInventory || report.repositoryInventory.totalFiles == null) {
+        try {
+          const { countRepositoryInventory } = require('./server/lib/simplebeacon-proxy.cjs');
+          report.repositoryInventory = await countRepositoryInventory(safePath, { profile: 'all' });
+        } catch (invErr) {
+          console.warn('[ReportImport] inventory enrichment failed:', invErr.message);
+        }
+      }
+      const sbDir = path.join(safePath, '.simplebeacon');
+      if (!fs.existsSync(sbDir)) {
+        fs.mkdirSync(sbDir, { recursive: true });
+      }
+      const reportPath = path.join(sbDir, 'report.json');
+      await fs.promises.writeFile(reportPath, JSON.stringify(report, null, 2), 'utf8');
+      return res.json({
+        success: true,
+        projectPath: safePath.replace(/\\/g, '/'),
+        reportVersion: report.reportVersion || report.version || null
+      });
+    } catch (err) {
+      console.warn('[ReportImport] failed:', err.message);
+      return res.status(400).json({ success: false, error: err.message });
     }
   });
 
