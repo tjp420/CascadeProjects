@@ -1084,14 +1084,18 @@ async function startServer() {
         return res.status(400).json({ success: false, error: `Target path does not exist: ${safePath.replace(/\\/g, '/')}` });
       }
       const safePathForward = safePath.replace(/\\/g, '/');
+      const safePlatformRoot = path.dirname(safePath).replace(/\\/g, '/');
 
-      // Normalize legacy v1 reports to reportVersion 2 so the dashboard treats them as current
+      // Normalize legacy v1 reports to reportVersion 2 so the dashboard treats them as current.
+      // Always align the imported roots to the resolved target path so relative roots like
+      // "CascadeProjects" from a v1 export do not cause the dashboard to flag the report as stale.
       const isLegacy = report.reportVersion == null || Number(report.reportVersion) < 2;
       if (isLegacy) {
         report.reportVersion = 2;
-        report.projectRoot = report.projectRoot || safePathForward;
-        report.platformRoot = report.platformRoot || safePathForward;
       }
+      report.projectRoot = safePathForward;
+      report.platformRoot = safePlatformRoot;
+      report.scanTargetRoot = safePathForward;
 
       // Enrich repository inventory if the imported report is missing it
       if (!report.repositoryInventory || report.repositoryInventory.totalFiles == null) {
