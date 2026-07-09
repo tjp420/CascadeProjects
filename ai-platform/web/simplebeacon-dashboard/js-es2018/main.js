@@ -652,6 +652,21 @@ class SimplebeaconDashboard {
         if (role === 'admin' || role === 'superuser') return true;
         if (tier === 'admin' || tier === 'superuser') return true;
         if (Array.isArray(user.features) && user.features.map(String).map(s => s.toLowerCase()).includes('all_modules')) return true;
+        // Fallback: decode the JWT in case the stored user object lacks role/features
+        try {
+            const token = authService.getToken();
+            if (token) {
+                const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+                const tokenRole = String(payload.role || '').toLowerCase();
+                const tokenTier = String(payload.tier || payload.plan || '').toLowerCase();
+                if (tokenRole === 'admin' || tokenRole === 'superuser') return true;
+                if (tokenTier === 'admin' || tokenTier === 'superuser') return true;
+                if (Array.isArray(payload.features) && payload.features.map(String).map(s => s.toLowerCase()).includes('all_modules')) return true;
+            }
+        }
+        catch (_a) {
+            // ignore decode errors
+        }
         return false;
     }
     bootstrapAfterAuth() {
