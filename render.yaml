@@ -58,4 +58,10 @@ services:
         sync: false
       - key: SIMPLEBEACON_LANDING
         value: "false"
+      - key: REQUIRE_AUTH
+        value: "true"
+      - key: SEED_DEMO_USERS
+        value: "false"
+      - key: ALLOW_LEGACY_LOGIN
+        value: "false"
     healthCheckPath: /health
