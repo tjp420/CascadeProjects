@@ -69,18 +69,22 @@ function generateToken(user) {
   });
 }
 
-// Verify JWT token
+// Verify JWT token. Supports both new tokens (with iss/aud) and legacy tokens (without).
 async function verifyToken(token) {
   try {
     const blacklisted = await isAccessTokenBlacklisted(token);
     if (blacklisted) {
       throw createError(401, 'Token has been revoked');
     }
-    return jwt.verify(token, jwtConfig.secret, {
-      algorithms: [jwtConfig.algorithm],
-      issuer: jwtConfig.issuer,
-      audience: jwtConfig.audience
-    });
+    const decoded = jwt.decode(token);
+    const hasIssuer = decoded && typeof decoded === 'object' && decoded.iss;
+    const hasAudience = decoded && typeof decoded === 'object' && decoded.aud;
+    const options = {
+      algorithms: [jwtConfig.algorithm]
+    };
+    if (hasIssuer) options.issuer = jwtConfig.issuer;
+    if (hasAudience) options.audience = jwtConfig.audience;
+    return jwt.verify(token, jwtConfig.secret, options);
   } catch (err) {
     if (err.status) throw err;
     throw createError(401, 'Invalid or expired token');
