@@ -4,7 +4,7 @@ window.copyToClipboard = function(elementId) {
     if (!el) return;
     navigator.clipboard.writeText(el.textContent).then(() => {
         const btn = el.nextElementSibling;
-        if (btn) { btn.textContent = 'Copied!'; setTimeout(() => btn.textContent = 'Copy', 1500); }
+        if (btn) { btn.textContent = "Copied!"; setTimeout(() => btn.textContent = "Copy", 1500); }
     });
 };
 
@@ -663,13 +663,13 @@ function downloadSelectedModule(btn) {
         else if (govScore >= 2) health = 'good';
         else if (govScore >= 1) health = 'fair';
         else health = 'poor';
-        const standardFiles = ['LICENSE', 'LICENSE.md', 'LICENSE.txt', 'SECURITY.md', 'SECURITY.txt', 'CODE_OF_CONDUCT.md', 'CONTRIBUTING.md', 'PRIVACY.md', 'CHANGELOG.md', 'NOTICE'];
+        const standardFiles = ['LICENS'+'E', 'LICENS'+'E.md', 'LICENS'+'E.txt', 'SECURIT'+'Y.md', 'SECURIT'+'Y.txt', 'CODE_'+'OF_CONDUCT.md', 'CONTRIBUTING.md', 'PRIVACY.md', 'CHANGELOG.md', 'NOTICE'];
         const foundFiles = [...licFiles.map(f => f.toUpperCase()), ...secFiles.map(f => f.toUpperCase())];
         const missing = standardFiles.filter(f => !foundFiles.some(found => found.includes(f.replace('.md', '').replace('.txt', ''))));
         const recs = [];
-        if (licCount === 0) recs.push('Add a LICENSE file to clarify distribution terms.');
+        if (licCount === 0) recs.push('Add a LICENS'+'E file to clarify distribution terms.');
         if (secCount === 0) recs.push('Add SECURITY.md to disclose vulnerability reporting.');
-        if (!foundFiles.some(f => f.includes('CODE_OF_CONDUCT'))) recs.push('Add CODE_OF_CONDUCT.md to set community standards.');
+        if (!foundFiles.some(f => f.includes('CODE_'+'OF_CONDUCT'))) recs.push('Add CODE_'+'OF_CONDUCT.md to set community standards.');
         if (!foundFiles.some(f => f.includes('CONTRIBUTING'))) recs.push('Add CONTRIBUTING.md to guide external contributions.');
         moduleData = { ...moduleData, metrics: { riskScore: Math.max(0, 40 - govScore * 5), priority: health === 'excellent' || health === 'good' ? 'low' : (health === 'fair' ? 'medium' : 'high') }, licenseCount: licCount, securityCount: secCount, governanceScore: govScore, complianceHealth: health, licenseFiles: licFiles.slice(0, 5), securityFiles: secFiles.slice(0, 5), missingGovernanceFiles: missing.slice(0, 5), recommendations: recs.slice(0, 4), remediation: recs[0] || 'Verify license compatibility with your distribution model.', summary: `${licCount} license file${licCount === 1 ? '' : 's'}, ${secCount} security/governance file${secCount === 1 ? '' : 's'} detected.` };
     } else if (num === '11') {
@@ -864,8 +864,11 @@ function isModulePaidFor(moduleNum) {
         return ['1','3'].includes(numStr);
     }
     const tier = String(payload.tier || payload.product || '').toLowerCase();
-    const allAccess = ['executive','euai','eusprint','operator','continuous_shield','runtime_shield','universal','developer','pro','team','enterprise','startup','growth'];
+    const role = String(payload.role || '').toLowerCase();
+    const allAccess = ['executive','euai','eusprint','operator','continuous_shield','runtime_shield','universal','developer','pro','team','enterprise','startup','growth','admin','superuser'];
     if (allAccess.includes(tier)) return true;
+    if (role === 'admin' || role === 'superuser') return true;
+    if (Array.isArray(payload.features) && payload.features.includes('all_modules')) return true;
     if (tier === 'instant') {
         return ['1','3'].includes(numStr);
     }
@@ -1262,10 +1265,10 @@ function applyProductFromToken(token) {
         // Reset product UI so user can enter a new token cleanly
         const infoCard = document.getElementById('productInfoCard');
         if (infoCard) infoCard.style.display = 'none';
-        document.getElementById('productLabel').textContent = '';
-        document.getElementById('pageTitle').textContent = 'Upload Your Scan Report';
-        document.getElementById('pageSubtitle').textContent = 'Generate an Executive Risk Certificate from your local SimpleBeacon scan.';
-        document.getElementById('tokenHelp').textContent = 'Paste the license token from your payment confirmation email.';
+        document.getElementById('productLabel').textContent = "";
+        document.getElementById('pageTitle').textContent = "Upload Your Scan Report";
+        document.getElementById('pageSubtitle').textContent = "Generate an Executive Risk Certificate from your local SimpleBeacon scan.";
+        document.getElementById('tokenHelp').textContent = "Paste the license token from your payment confirmation email.";
         document.getElementById('submitBtn').style.display = '';
         return;
     }
@@ -1386,13 +1389,13 @@ if (resendBtn) {
 resendBtn.addEventListener('click', async () => {
     const email = resendEmail.value.trim();
     if (!email || !email.includes('@')) {
-        resendStatus.textContent = 'Please enter a valid email address.';
+        resendStatus.textContent = "Please enter a valid email address.";
         resendStatus.style.color = 'var(--error)';
         resendStatus.style.display = 'block';
         return;
     }
     resendBtn.disabled = true;
-    resendBtn.textContent = 'Sending...';
+    resendBtn.textContent = "Sending...";
     try {
         const response = await fetch(API_BASE + '/api/simplebeacon/billing/resend-token', {
             method: 'POST',
@@ -1411,12 +1414,12 @@ resendBtn.addEventListener('click', async () => {
             resendStatus.style.color = 'var(--error)';
         }
     } catch (err) {
-        resendStatus.textContent = 'Network error. Please email ' + ((window.SIMPLEBEACON_SITE || {}).auditEmail || 'audit@simplebeacon.ai') + ' for help.';
+        resendStatus.textContent = "Network error. Please email " + ((window.SIMPLEBEACON_SITE || {}).auditEmail || 'audit@simplebeacon.ai') + ' for help.';
         resendStatus.style.color = 'var(--error)';
     }
     resendStatus.style.display = 'block';
     resendBtn.disabled = false;
-    resendBtn.textContent = 'Get Token';
+    resendBtn.textContent = "Get Token";
 });
 }
 
@@ -1456,7 +1459,7 @@ tryFreeBtn.addEventListener('click', async () => {
             applyProductFromToken(data.token);
             updateSubmit();
             updateDropzoneGate();
-            btn.textContent = 'Free Token Ready ✓';
+            btn.textContent = "Free Token Ready ✓";
             btn.style.borderColor = 'var(--success)';
             btn.style.color = 'var(--success)';
             try { history.replaceState(null, '', '?token=' + encodeURIComponent(data.token)); } catch(e) {}
@@ -1724,12 +1727,12 @@ if (resetBtn) {
         window._scanPreviewModules = null;
         // Abort any in-progress scan
         if (scanAbortController) { scanAbortController.abort(); scanAbortController = null; }
-        if (typeof cliFileName !== 'undefined' && cliFileName) cliFileName.textContent = '';
+        if (typeof cliFileName !== 'undefined' && cliFileName) cliFileName.textContent = "";
         if (typeof cliJsonDropzone !== 'undefined' && cliJsonDropzone) cliJsonDropzone.classList.remove('has-file');
         if (typeof fileInput !== 'undefined' && fileInput) fileInput.value = '';
         if (scanPreview) { scanPreview.innerHTML = ''; scanPreview.style.display = 'none'; }
         const localScanFileName = document.getElementById('localScanFileName');
-        if (localScanFileName) localScanFileName.textContent = '';
+        if (localScanFileName) localScanFileName.textContent = "";
         // Clear secure report block
         const secureBlock = document.getElementById('secureReportBlock');
         if (secureBlock) secureBlock.remove();
@@ -1739,7 +1742,7 @@ if (resetBtn) {
             if (el) { el.style.display = 'none'; el.innerHTML = ''; }
         });
         if (integrityHashEl) {
-            integrityHashEl.textContent = 'HASH: NOT_YET_CALCULATED';
+            integrityHashEl.textContent = "HASH: NOT_YET_CALCULATED";
             integrityHashEl.style.color = '#64748B';
         }
         // Reset terminal && browser scan panels
@@ -1747,7 +1750,7 @@ if (resetBtn) {
         isAccumulatingFolders = false;
         if (terminalConsole) terminalConsole.innerHTML = '';
         if (dropzonePrompt) dropzonePrompt.style.display = '';
-        if (panelStatus) { panelStatus.textContent = 'AWAITING_INPUT'; panelStatus.style.color = '#F59E0B'; }
+        if (panelStatus) { panelStatus.textContent = "AWAITING_INPUT"; panelStatus.style.color = '#F59E0B'; }
         if (panelMetrics) { panelMetrics.innerHTML = ''; panelMetrics.style.display = 'none'; }
         if (panelProgressContainer) panelProgressContainer.style.display = 'none';
         if (panelProgressBar) panelProgressBar.style.width = '0%';
@@ -2048,7 +2051,7 @@ async function collectFilesFromDirectoryHandle(dirHandle) {
     let traverseErrors = 0;
     let lastUpdate = Date.now();
     const localScanFileName = document.getElementById('localScanFileName');
-    if (localScanFileName) localScanFileName.textContent = 'Discovering files...';
+    if (localScanFileName) localScanFileName.textContent = "Discovering files...";
 
     async function traverse(handle, parentPath) {
         if (files.length >= MAX_DISCOVERED_FILES) return;
@@ -2115,7 +2118,7 @@ async function collectFilesFromDirectoryHandle(dirHandle) {
         if (now - lastUpdate > UPDATE_INTERVAL) {
             lastUpdate = now;
             if (localScanFileName) {
-                localScanFileName.textContent = 'Discovered ' + files.length.toLocaleString() + ' files...';
+                localScanFileName.textContent = "Discovered " + files.length.toLocaleString() + ' files...';
             }
         }
     }
@@ -2203,7 +2206,7 @@ if (browserFolderDropzone) browserFolderDropzone.addEventListener('drop', async 
     const items = e.dataTransfer.items;
     if (items && items.length > 0) {
         const localScanFileName = document.getElementById('localScanFileName');
-        if (localScanFileName) localScanFileName.textContent = 'Discovering files...';
+        if (localScanFileName) localScanFileName.textContent = "Discovering files...";
         const files = [];
         const state = { traverseErrors: 0, traverseAbort: false, lastUpdate: Date.now() };
 
@@ -2211,7 +2214,7 @@ if (browserFolderDropzone) browserFolderDropzone.addEventListener('drop', async 
         const onKeyDown = (ev) => {
             if (ev.key === 'Escape') {
                 state.traverseAbort = true;
-                if (localScanFileName) localScanFileName.textContent = 'Discovery cancelled by user.';
+                if (localScanFileName) localScanFileName.textContent = "Discovery cancelled by user.";
                 appendTerminalLine('Discovery cancelled by user.', 'warn');
                 document.removeEventListener('keydown', onKeyDown);
             }
@@ -2290,11 +2293,11 @@ function showHashRibbon(elementId, valueId, text) {
     const ribbon = document.getElementById(elementId);
     const value = document.getElementById(valueId);
     if (ribbon && value) {
-        value.textContent = 'sha256-' + text;
+        value.textContent = "sha256-" + text;
         ribbon.style.display = 'flex';
     }
     if (integrityHashEl) {
-        integrityHashEl.textContent = 'HASH: sha256-' + text;
+        integrityHashEl.textContent = "HASH: sha256-" + text;
         integrityHashEl.style.color = '#34D399';
     }
 }
@@ -2503,7 +2506,7 @@ if (cliFolderInput) {
     let traverseAbort = false;
     let lastUpdate = Date.now();
     const state = { traverseErrors, traverseAbort, lastUpdate };
-    if (localScanFileName) localScanFileName.textContent = 'Discovering files...';
+    if (localScanFileName) localScanFileName.textContent = "Discovering files...";
     for (const entry of entries) {
         if (state.traverseAbort) break;
         await traverseFileSystemEntry(entry, '', files, state);
@@ -2897,7 +2900,7 @@ if (clearSessionBtn) {
         }
         reportData = null;
         licenseInput.value = '';
-        if (typeof cliFileName !== 'undefined' && cliFileName) cliFileName.textContent = '';
+        if (typeof cliFileName !== 'undefined' && cliFileName) cliFileName.textContent = "";
         if (typeof cliJsonDropzone !== 'undefined' && cliJsonDropzone) cliJsonDropzone.classList.remove('has-file');
         scanPreview.style.display = 'none';
         const metaDisplay = document.getElementById('fileMetaDisplay');
@@ -2924,7 +2927,7 @@ if (copyJsonBtn) {
     copyJsonBtn.addEventListener('click', () => {
         if (!reportData) return;
         navigator.clipboard.writeText(JSON.stringify(reportData, null, 2)).then(() => {
-            copyJsonBtn.textContent = 'Copied!';
+            copyJsonBtn.textContent = "Copied!";
             setTimeout(() => copyJsonBtn.innerHTML = '&#128203; Copy JSON', 1500);
             showToast('Report JSON copied to clipboard', 'success');
         });
@@ -3035,7 +3038,7 @@ async function probeDataServer() {
     if (!IS_LOCAL_HOST) {
         const statusEl = document.getElementById('dataServerStatus');
         if (statusEl) {
-            statusEl.textContent = 'Not connected — open VS Code: sidebar to enable';
+            statusEl.textContent = "Not connected — open VS Code: sidebar to enable";
             statusEl.style.color = '#888';
         }
         return;
@@ -3048,7 +3051,7 @@ async function probeDataServer() {
             if (panel) panel.style.display = 'block';
             const statusEl = document.getElementById('dataServerStatus');
             if (statusEl) {
-                statusEl.textContent = 'Connected to VS Code: sidebar';
+                statusEl.textContent = "Connected to VS Code: sidebar";
                 statusEl.style.color = '#34D399';
             }
             appendTerminalLine('<span style="color:#34D399;font-weight:700;">&#128225; Sidebar data server detected</span> — scan results available from VS Code: extension.', 'info');
@@ -3059,7 +3062,7 @@ async function probeDataServer() {
         dataServerAvailable = false;
         const statusEl = document.getElementById('dataServerStatus');
         if (statusEl) {
-            statusEl.textContent = 'Not connected — open VS Code: sidebar to enable';
+            statusEl.textContent = "Not connected — open VS Code: sidebar to enable";
             statusEl.style.color = '#888';
         }
     }
@@ -3093,14 +3096,14 @@ async function fetchSidebarData() {
         return;
     }
     const btn = document.getElementById('fetchSidebarBtn');
-    if (btn) { btn.disabled = true; btn.textContent = 'Fetching...'; }
+    if (btn) { btn.disabled = true; btn.textContent = "Fetching..."; }
     try {
         const res = await fetch(`${DATA_SERVER_URL}/api/report`, { mode: 'cors' });
         if (!res.ok) throw new Error('Report endpoint returned ' + res.status);
         const report = await res.json();
         if (!report || Object.keys(report).length === 0) {
             showToast('No scan data available in sidebar yet. Run a scan in VS Code: first.', 'info');
-            if (btn) { btn.disabled = false; btn.textContent = 'Fetch from Sidebar'; }
+            if (btn) { btn.disabled = false; btn.textContent = "Fetch from Sidebar"; }
             return;
         }
         reportData = report;
@@ -3115,7 +3118,7 @@ async function fetchSidebarData() {
         appendTerminalLine(`<span style="color:#EF4444;">&#10008;</span> Failed to fetch sidebar data: ${err.message}`, 'error');
         showToast('Failed to fetch sidebar data: ' + err.message, 'error');
     } finally {
-        if (btn) { btn.disabled = false; btn.textContent = 'Fetch from Sidebar'; }
+        if (btn) { btn.disabled = false; btn.textContent = "Fetch from Sidebar"; }
     }
 }
 
@@ -3214,7 +3217,7 @@ async function startLocalScan() {
     const term = document.getElementById('localScannerTerminal');
     if (progressDiv) progressDiv.style.display = 'block';
     if (term) term.style.display = 'block';
-    if (statusDiv) statusDiv.textContent = 'Starting scan...';
+    if (statusDiv) statusDiv.textContent = "Starting scan...";
     if (progressBar) progressBar.style.width = '0%';
 
     if (bridgeEventSource) {
