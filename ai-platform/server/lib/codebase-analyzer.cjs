@@ -2434,6 +2434,9 @@ function detectUnhandledPromise(content, relativePath) {
 function detectWorkspaceHealth(content, relativePath) {
     const isJsLike = /\.(js|mjs|cjs|ts|tsx|jsx)$/i.test(relativePath);
     if (!isJsLike) return [];
+    // Workspace-health patterns are noisy on the platform's own scaffolding and UI files
+    if (/\/(server\/|src\/api\/|tools\/|web\/simplebeacon-dashboard\/|coming-soon\/|packages\/simplebeacon-cli\/)/.test(relativePath)) return [];
+    if (/\.(test|spec)\.(js|cjs|mjs|ts)|patch-strategies|scanner-engine|scanner-patterns/.test(relativePath)) return [];
     const hits = [];
     const seen = new Set();
     for (const item of WORKSPACE_HEALTH_PATTERNS) {
