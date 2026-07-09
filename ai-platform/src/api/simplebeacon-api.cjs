@@ -312,7 +312,7 @@ function createEmptyReport() {
     issueCount: 0,
     warningCount: 0,
     blockingCount: 0,
-    gate: { pass: true, blockingCount: 0, warningCount: 0 },
+    gate: { pass: false, blockingCount: 0, warningCount: 0, failOn: ['high'] },
     jestSummary: null,
     jestBaselinePassed: null,
     detectedIssues: []
@@ -422,6 +422,8 @@ async function runSimplebeaconScan(projectPath, opts = {}) {
       const { analyzeCodebase } = require('../../server/lib/codebase-analyzer.cjs');
       const scanRoot = projectPath || PROJECT_ROOT;
       const analysis = await analyzeCodebase(scanRoot, { includeEslint: false, includeBrowserAnalyzers: opts.includeBrowserAnalyzers, includeAllFiles: opts.fullDirectoryScan, context: 'dashboard' });
+      const analyzedCount = analysis.summary?.codeFilesAnalyzed ?? analysis.summary?.codeFilesDiscovered ?? 0;
+      const healthScore = analysis.summary?.healthScore || 100;
       const report = {
         type: 'simplebeacon-report',
         version: '1.0.0',
@@ -430,7 +432,7 @@ async function runSimplebeaconScan(projectPath, opts = {}) {
         summary: analysis.summary || {},
         categories: analysis.categories || [],
         findings: analysis.findings || [],
-        gate: { pass: (analysis.summary?.healthScore || 100) >= 80, score: analysis.summary?.healthScore || 100 }
+        gate: { pass: analyzedCount > 0 && healthScore >= 80, score: analyzedCount > 0 ? healthScore : 0 }
       };
       const patchedReport = patchRemediationPhases(report);
       await fs.promises.writeFile(reportOut, JSON.stringify(patchedReport, null, 2));
