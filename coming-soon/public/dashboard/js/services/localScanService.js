@@ -1,6 +1,6 @@
 import { showToast } from '../utils.js';
 
-const WORKER_URL = new URL('../workers/scan-worker.js', import.meta.url);
+const WORKER_URL = new URL('../workers/scan-worker.js?v=20260709wasm3', import.meta.url);
 
 const MAX_FILES = 50000;
 const SKIP_DIRS = /(^|[\\/])(node_modules|\.git|\.github|\.husky|dist|build|\.next|out|coverage|frontend-build|\.github-sync|github-cache|\.simplebeacon|\.cursor|\.windsurf|deployments|backups)([\\/]|$)/i;
@@ -76,7 +76,7 @@ function buildReport(projectName, findings, totalFiles, analyzedFiles) {
     categories,
     findings: findingsList,
     inventory: { totalFiles, totalFolders: 0, scannedFiles: analyzedFiles },
-    gate: { pass: findingsList.length === 0, score: findingsList.length === 0 ? 100 : 0 }
+    gate: { pass: findingsList.length === 0 && totalFiles > 0, score: findingsList.length === 0 && totalFiles > 0 ? 100 : 0 }
   };
 }
 
@@ -95,6 +95,9 @@ export async function runLocalScan(options = {}) {
   const dirHandle = await window.showDirectoryPicker();
   const projectName = dirHandle.name || 'local-project';
   const files = await collectFiles(dirHandle);
+  if (files.length === 0) {
+    throw new Error(`No files were found in "${projectName}". The folder may be empty, permission was denied, or all files were excluded. Try selecting the folder again or use the local agent.`);
+  }
   const workerFiles = files.map((f) => ({ path: f.path, fileObj: f.handle }));
 
   return new Promise((resolve, reject) => {

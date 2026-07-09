@@ -5,7 +5,7 @@
  * This version streams large files through a Rust/WebAssembly chunk analyzer (with a
  * pure-JS fallback) instead of loading the entire file into memory at once.
  */
-import { analyzeFileChunks, findingsToIssues } from './scan-wasm-bridge.js';
+import { analyzeFileChunks, findingsToIssues } from './scan-wasm-bridge.js?v=20260709wasm3';
 const MAX_DISCOVERED_FILES = 500000;
 const LARGE_FILE_THRESHOLD = 5 * 1024 * 1024; // 5 MB
 const BINARY_EXTENSIONS = /\.(exe|dll|bin|so|dylib|wasm|zip|tar|gz|rar|7z|iso|img|dmg|pkg|deb|msi)$/i;
