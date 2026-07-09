@@ -179,7 +179,13 @@ class SimplebeaconDashboard {
             this.updateAuthUi();
             return;
         }
-        await authService.ensureAuthenticated();
+        const authed = await authService.ensureAuthenticated();
+        if (!authed && authService.authRequired) {
+            this.router.init();
+            this.router.navigate('signin');
+            this.updateAuthUi();
+            return;
+        }
         this.bootstrapAfterAuth();
     }
     showDemoBanner() {
