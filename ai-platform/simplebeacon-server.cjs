@@ -1086,6 +1086,22 @@ async function startServer() {
       const safePathForward = safePath.replace(/\\/g, '/');
       const safePlatformRoot = path.dirname(safePath).replace(/\\/g, '/');
 
+      // Determine the intended project root for the imported report. Prefer the requested
+      // projectPath when it is valid, so non-existent remote targets still produce aligned
+      // roots instead of being rewritten to the filesystem fallback (e.g. monorepo root).
+      let importRoot = safePath;
+      if (body.projectPath) {
+        const requested = path.resolve(baseDir, body.projectPath);
+        try {
+          assertSafeProjectPath(requested, allowedRoots, 'projectPath');
+          importRoot = requested;
+        } catch (_e) {
+          // requested path is not allowed; fall back to the resolved safe path
+        }
+      }
+      const importRootForward = importRoot.replace(/\\/g, '/');
+      const importPlatformRoot = path.dirname(importRootForward).replace(/\\/g, '/');
+
       // Normalize legacy v1 reports to reportVersion 2 so the dashboard treats them as current.
       // Always align the imported roots to the resolved target path so relative roots like
       // "CascadeProjects" from a v1 export do not cause the dashboard to flag the report as stale.
@@ -1093,9 +1109,9 @@ async function startServer() {
       if (isLegacy) {
         report.reportVersion = 2;
       }
-      report.projectRoot = safePathForward;
-      report.platformRoot = safePlatformRoot;
-      report.scanTargetRoot = safePathForward;
+      report.projectRoot = importRootForward;
+      report.platformRoot = importPlatformRoot;
+      report.scanTargetRoot = importRootForward;
 
       // Enrich repository inventory if the imported report is missing it
       if (!report.repositoryInventory || report.repositoryInventory.totalFiles == null) {
@@ -1106,14 +1122,15 @@ async function startServer() {
           report.repositoryInventory = {
             totalFiles: totalFiles != null ? totalFiles : 0,
             totalFolders: inv.totalFolders != null ? inv.totalFolders : 0,
-            projectRoot: safePathForward
+            projectRoot: importRootForward
           };
         }
       }
       if (!report.repositoryInventory || report.repositoryInventory.totalFiles == null) {
         try {
           const { countRepositoryInventory } = require('./server/lib/simplebeacon-proxy.cjs');
-          report.repositoryInventory = await countRepositoryInventory(safePath, { profile: 'all' });
+          const inventorySource = fs.existsSync(importRoot) ? importRoot : safePath;
+          report.repositoryInventory = await countRepositoryInventory(inventorySource, { profile: 'all' });
         } catch (invErr) {
           console.warn('[ReportImport] inventory enrichment failed:', invErr.message);
         }
@@ -1127,7 +1144,7 @@ async function startServer() {
       console.warn('[ReportImport] persisted report to', reportPath.replace(/\\/g, '/'));
       return res.json({
         success: true,
-        projectPath: safePath.replace(/\\/g, '/'),
+        projectPath: importRootForward,
         reportVersion: report.reportVersion || report.version || null
       });
     } catch (err) {
