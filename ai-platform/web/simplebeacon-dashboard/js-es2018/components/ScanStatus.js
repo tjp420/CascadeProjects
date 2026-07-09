@@ -308,6 +308,77 @@ export function bindScanStatus(container, options = {}) {
      * @returns {any}
      */
     const runScan = () => runDashboardScanFromInput(input, options);
+    /**
+     * Extract the absolute folder path from a drop event using every available source.
+     * Browsers may expose the path via file.path, text/uri-list, text/plain, etc.
+     * @param {DragEvent} event
+     * @param {string} folderName
+     * @returns {string}
+     */
+    function extractAbsoluteDroppedFolderPath(event, folderName) {
+        var _a, _b;
+        const dt = event.dataTransfer;
+        if (!dt)
+            return '';
+        // 1. text/uri-list often contains file:///C:/Users/... from Windows File Explorer
+        const uriList = dt.getData('text/uri-list') || '';
+        const uriLines = uriList.split(/\r?\n/).filter((line) => line && !line.startsWith('#'));
+        for (const line of uriLines) {
+            try {
+                const url = new URL(line);
+                if (url.protocol === 'file:') {
+                    const decoded = decodeURIComponent(url.pathname.replace(/^\//, '').replace(/\//g, '\\'));
+                    const normalized = decoded.replace(/\\/g, '/');
+                    if (folderName && normalized.endsWith(`/${folderName}`)) {
+                        return normalized;
+                    }
+                    if (folderName && normalized.split('/').pop() === folderName) {
+                        return normalized;
+                    }
+                }
+            }
+            catch { /* ignore malformed URI */ }
+        }
+        // 2. text/plain may contain a raw Windows or Unix path
+        const plain = dt.getData('text/plain') || '';
+        const plainTrimmed = plain.trim();
+        if (plainTrimmed) {
+            const normalizedPlain = plainTrimmed.replace(/\\/g, '/');
+            if (/^[a-zA-Z]:|^\\|^\//.test(normalizedPlain)) {
+                if (folderName && (normalizedPlain.endsWith(`/${folderName}`) || normalizedPlain.split('/').pop() === folderName)) {
+                    return normalizedPlain;
+                }
+            }
+        }
+        // 3. Files custom format used by some Windows drag sources
+        const filesData = dt.getData('Files') || '';
+        const filesLines = filesData.split(/\r?\n/).filter(Boolean);
+        for (const line of filesLines) {
+            const normalized = line.replace(/\\/g, '/');
+            if (/^[a-zA-Z]:|^\\|^\//.test(normalized)) {
+                if (folderName && (normalized.endsWith(`/${folderName}`) || normalized.split('/').pop() === folderName)) {
+                    return normalized;
+                }
+            }
+        }
+        // 4. First dropped File object may expose .path (Chrome/Edge on Windows)
+        const files = (_b = (_a = dt) === null || _a === void 0 ? void 0 : _a.files) !== null && _b !== void 0 ? _b : null;
+        if (files?.length) {
+            const firstFile = files[0];
+            const filePath = firstFile.path;
+            const relPath = firstFile.webkitRelativePath || '';
+            if (filePath && relPath) {
+                const normalizedFull = filePath.replace(/\\/g, '/');
+                const normalizedRel = relPath.replace(/\\/g, '/');
+                if (normalizedFull.endsWith(normalizedRel)) {
+                    const baseDir = normalizedFull.slice(0, -normalizedRel.length).replace(/\/$/, '');
+                    const relFolderName = normalizedRel.split('/')[0] || folderName;
+                    return baseDir ? `${baseDir}/${relFolderName}` : relFolderName;
+                }
+            }
+        }
+        return '';
+    }
     // Derive a sensible home base for path fallbacks (e.g. C:/Users/Trevor)
     /**
      * Derive user home base.
@@ -511,22 +582,8 @@ export function bindScanStatus(container, options = {}) {
                 const entry = (_d = (_c = items[0]).webkitGetAsEntry) === null || _d === void 0 ? void 0 : _d.call(_c);
                 if (entry === null || entry === void 0 ? void 0 : entry.isDirectory) {
                     const name = entry.name || '';
-                    // Some browsers (Chrome on Windows) expose the full OS path via the first file.
-                    let resolvedPath = '';
-                    if (files?.length) {
-                        const firstFile = files[0];
-                        const filePath = firstFile.path;
-                        const relPath = firstFile.webkitRelativePath || '';
-                        if (filePath && relPath) {
-                            const normalizedFull = filePath.replace(/\\/g, '/');
-                            const normalizedRel = relPath.replace(/\\/g, '/');
-                            if (normalizedFull.endsWith(normalizedRel)) {
-                                const baseDir = normalizedFull.slice(0, -normalizedRel.length).replace(/\/$/, '');
-                                const relFolderName = normalizedRel.split('/')[0] || name;
-                                resolvedPath = baseDir ? `${baseDir}/${relFolderName}` : relFolderName;
-                            }
-                        }
-                    }
+                    // Try every available source for the absolute OS path.
+                    let resolvedPath = extractAbsoluteDroppedFolderPath(event, name);
                     if (!resolvedPath) {
                         const homePath = deriveUserHomeBase();
                         resolvedPath = homePath ? `${homePath}/${name}` : name;
