@@ -21,7 +21,8 @@ const AGENT_DOWNLOAD_URLS = {
 };
 let cachedAgentStatus = null;
 let cachedAt = 0;
-const CACHE_TTL_MS = 5000;
+const CACHE_TTL_MS = 30000;
+let pendingProbe = null;
 export function isLocalPath(value) {
     const raw = String(value || '').trim();
     if (!raw)
@@ -44,33 +45,42 @@ export async function probeAgent(origin = DEFAULT_AGENT_ORIGIN) {
     if (cachedAgentStatus && cachedAt + CACHE_TTL_MS > now) {
         return cachedAgentStatus;
     }
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), AGENT_TIMEOUT_MS);
-    try {
-        const response = await fetch(`${origin}/health`, {
-            method: 'GET',
-            signal: controller.signal,
-            headers: { Accept: 'application/json' }
-        });
-        clearTimeout(timer);
-        const body = await response.json().catch(() => ({}));
-        const status = {
-            available: response.ok && body.success === true,
-            scannerAvailable: Boolean(body.scannerAvailable),
-            scannerLoadError: body.scannerLoadError || undefined,
-            version: body.version || undefined
-        };
-        cachedAgentStatus = status;
-        cachedAt = Date.now();
-        return status;
+    if (pendingProbe) {
+        return pendingProbe;
     }
-    catch (err) {
-        clearTimeout(timer);
-        const likelyBlocked = isMixedContentBlocked(origin, err);
-        cachedAgentStatus = { available: false, scannerAvailable: false, likelyBlocked };
-        cachedAt = Date.now();
-        return cachedAgentStatus;
-    }
+    pendingProbe = (async () => {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), AGENT_TIMEOUT_MS);
+        try {
+            const response = await fetch(`${origin}/health`, {
+                method: 'GET',
+                signal: controller.signal,
+                headers: { Accept: 'application/json' }
+            });
+            clearTimeout(timer);
+            const body = await response.json().catch(() => ({}));
+            const status = {
+                available: response.ok && body.success === true,
+                scannerAvailable: Boolean(body.scannerAvailable),
+                scannerLoadError: body.scannerLoadError || undefined,
+                version: body.version || undefined
+            };
+            cachedAgentStatus = status;
+            cachedAt = Date.now();
+            return status;
+        }
+        catch (err) {
+            clearTimeout(timer);
+            const likelyBlocked = isMixedContentBlocked(origin, err);
+            cachedAgentStatus = { available: false, scannerAvailable: false, likelyBlocked };
+            cachedAt = Date.now();
+            return cachedAgentStatus;
+        }
+        finally {
+            pendingProbe = null;
+        }
+    })();
+    return pendingProbe;
 }
 /**
  * Detect whether the browser likely blocked the HTTP localhost fetch because
