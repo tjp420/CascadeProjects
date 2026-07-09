@@ -462,6 +462,10 @@ export class AuthService {
             return true;
         }
         // Server rejected — try client-side decode for unsigned/development tokens
+        if (this.authRequired) {
+            this.clearSession();
+            return this.tryRotateVaultToken();
+        }
         const payload = this._decodeJwtPayload(token);
         if (!payload) {
             this.clearSession();
