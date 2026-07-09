@@ -380,6 +380,45 @@ export function bindScanStatus(container, options = {}) {
         }
         return '';
     }
+    /**
+     * Recursively collect File objects from a legacy FileSystemDirectoryEntry.
+     * Used as a fallback when getAsFileSystemHandle is unavailable.
+     * @param {FileSystemDirectoryEntry} entry
+     * @returns {Promise<File[]>}
+     */
+    function collectFilesFromDirectoryEntry(entry) {
+        return new Promise((resolve, reject) => {
+            const files = [];
+            const reader = entry.createReader();
+            function readBatch() {
+                reader.readEntries((entries) => {
+                    if (!entries.length) {
+                        resolve(files);
+                        return;
+                    }
+                    const promises = entries.map((child) => {
+                        if (child.isFile) {
+                            return new Promise((res) => child.file((file) => res(file)));
+                        }
+                        if (child.isDirectory) {
+                            return collectFilesFromDirectoryEntry(child);
+                        }
+                        return Promise.resolve([]);
+                    });
+                    Promise.all(promises).then((results) => {
+                        results.forEach((r) => {
+                            if (Array.isArray(r))
+                                files.push(...r);
+                            else if (r)
+                                files.push(r);
+                        });
+                        readBatch();
+                    }).catch(reject);
+                }, reject);
+            }
+            readBatch();
+        });
+    }
     // Derive a sensible home base for path fallbacks (e.g. C:/Users/Trevor)
     /**
      * Derive user home base.
@@ -593,28 +632,51 @@ export function bindScanStatus(container, options = {}) {
                     setLastProjectPath(resolvedPath);
                     if (clearBtn)
                         clearBtn.disabled = false;
-                    // If the browser exposes a directory handle, scan it locally right away.
-                    if (!resolvedPath.match(/^[a-zA-Z]:|^\\\\|^\//) && onLocalScanResult && items[0].getAsFileSystemHandle) {
-                        try {
-                            const handle = await items[0].getAsFileSystemHandle();
-                            if (handle && handle.kind === 'directory') {
-                                const toast = document.getElementById('toast-container');
-                                if (toast) {
-                                    const msg = document.createElement('div');
-                                    msg.className = 'toast toast-info';
-                                    msg.textContent = `Scanning "${name}" locally in your browser…`;
-                                    toast.appendChild(msg);
-                                    setTimeout(() => msg.remove(), 4000);
+                    // If no absolute path was recovered, scan the dropped folder locally.
+                    if (!resolvedPath.match(/^[a-zA-Z]:|^\\\\|^\//) && onLocalScanResult) {
+                        // Prefer the modern File System Access API handle.
+                        if (items[0].getAsFileSystemHandle) {
+                            try {
+                                const handle = await items[0].getAsFileSystemHandle();
+                                if (handle && handle.kind === 'directory') {
+                                    const toast = document.getElementById('toast-container');
+                                    if (toast) {
+                                        const msg = document.createElement('div');
+                                        msg.className = 'toast toast-info';
+                                        msg.textContent = `Scanning "${name}" locally in your browser…`;
+                                        toast.appendChild(msg);
+                                        setTimeout(() => msg.remove(), 4000);
+                                    }
+                                    const report = await runLocalScan({ dirHandle: handle });
+                                    onLocalScanResult(report);
+                                    return;
                                 }
-                                const report = await runLocalScan({ dirHandle: handle });
+                            }
+                            catch (err) {
+                                if (err.name !== 'AbortError') {
+                                    console.warn('[ScanStatus] Local scan from dropped handle failed:', err);
+                                }
+                            }
+                        }
+                        // Fallback: read files through the legacy FileSystemDirectoryEntry API.
+                        try {
+                            const toast = document.getElementById('toast-container');
+                            if (toast) {
+                                const msg = document.createElement('div');
+                                msg.className = 'toast toast-info';
+                                msg.textContent = `Scanning "${name}" locally in your browser…`;
+                                toast.appendChild(msg);
+                                setTimeout(() => msg.remove(), 4000);
+                            }
+                            const collectedFiles = await collectFilesFromDirectoryEntry(entry);
+                            if (collectedFiles.length) {
+                                const report = await runLocalScan({ files: collectedFiles });
                                 onLocalScanResult(report);
                                 return;
                             }
                         }
                         catch (err) {
-                            if (err.name !== 'AbortError') {
-                                console.warn('[ScanStatus] Local scan from dropped handle failed:', err);
-                            }
+                            console.warn('[ScanStatus] Local scan from dropped entry failed:', err);
                         }
                     }
                     // Notify user to verify path
