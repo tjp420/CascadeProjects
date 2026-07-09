@@ -5183,7 +5183,13 @@ export class AnalyzeView {
           void this.handleAnalyzeFiles(files);
           return;
         }
-
+        // Plain-text path paste (e.g., C:\Users\... or a file:// URI)
+        const textPath = getDroppedFolderPath();
+        if (textPath) {
+          const name = textPath.split(/[\\/]/).pop() || 'folder';
+          setPathAndNotify(textPath, name);
+          return;
+        }
         showToast('Nothing detected. Drop a folder or file, or type a path manually.', 'warning');
       });
     }

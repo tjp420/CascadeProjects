@@ -200,6 +200,12 @@ export function bindPathDropzone(root, ctx) {
             ctx.onHandleFiles(files);
             return;
         }
+        // Plain-text path paste (e.g., C:\Users\... or a file:// URI)
+        const textPath = getDroppedFolderPath(event.dataTransfer, undefined, files, items);
+        if (textPath) {
+            ctx.onSetPath(textPath, textPath.split(/[\\/]/).pop() || 'folder', true);
+            return;
+        }
         showToast('Nothing detected. Drop a folder or file, or type a path manually.', 'warning');
     };
     dropzone.addEventListener('dragenter', enter); // simplebeacon-ignore memory-leak
