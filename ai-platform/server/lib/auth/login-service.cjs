@@ -73,12 +73,15 @@ function handleTokenRefresh(req, res, next) {
         message: 'Valid token required for refresh'
       });
     }
-    const newToken = generateToken(req.user);
+    const longLived = req.body?.longLived === true || req.query?.longLived === 'true' || req.query?.longLived === '1';
+    const tokenOptions = longLived ? { expiresIn: '4h' } : undefined;
+    const newToken = generateToken(req.user, tokenOptions);
     auditAuth('token_refresh', req.user, req);
 
     res.json({
       message: 'Token refreshed successfully',
-      token: newToken
+      token: newToken,
+      longLived: Boolean(longLived)
     });
   } catch (error) {
     next(error);

@@ -6455,6 +6455,15 @@ export class AnalyzeView {
       window.location.hash = '#/signin';
       return;
     }
+    // Refresh to a long-lived 4-hour token for server-side scans so the session
+    // does not expire mid-flight during long-running complete analyses.
+    if (!this.localMode && !isLocalPath(projectPath) && !isRemoteRepoUrl(projectPath)) {
+      try {
+        await authService.refreshToken(true);
+      } catch (refreshErr) {
+        console.warn('Token refresh before scan failed:', refreshErr);
+      }
+    }
 
     try {
       await ensureDashboardApiReady();

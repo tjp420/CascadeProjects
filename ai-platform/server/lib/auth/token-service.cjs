@@ -46,7 +46,7 @@ setInterval(() => {
 }, 60 * constants.ONE_MINUTE_MS).unref();
 
 // Generate JWT token
-function generateToken(user) {
+function generateToken(user, options = {}) {
   if (!user || typeof user !== 'object') {
     throw new TypeError('generateToken requires a valid user object');
   }
@@ -69,7 +69,7 @@ function generateToken(user) {
     algorithm: jwtConfig.algorithm,
     issuer: jwtConfig.issuer,
     audience: jwtConfig.audience,
-    expiresIn: jwtConfig.expiresIn
+    expiresIn: options.expiresIn || jwtConfig.expiresIn
   });
 }
 

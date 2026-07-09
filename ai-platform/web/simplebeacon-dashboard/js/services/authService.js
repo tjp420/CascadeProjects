@@ -266,6 +266,30 @@ export class AuthService {
     this.clearSession();
   }
 
+  /**
+   * Refresh the access token. Call with longLived=true before long-running analyze scans
+   * to obtain a 4-hour token that survives scans longer than the default 15-minute expiry.
+   */
+  async refreshToken(longLived = false) {
+    if (!this.isAuthenticated()) {
+      throw new Error('Cannot refresh token — not authenticated');
+    }
+    const res = await fetch('/api/auth/refresh', {
+      method: 'POST',
+      headers: { ...this.getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ longLived: longLived === true })
+    });
+    const body = await readJsonResponseBody(res, {});
+    if (!res.ok) {
+      throw new Error(body?.message || body?.error || 'Token refresh failed');
+    }
+    if (!body.token) {
+      throw new Error('Token refresh response missing token');
+    }
+    this.setSession(body.token, this.user || this.getUser());
+    return body.token;
+  }
+
   _decodeJwtPayload(token) {
     try {
       const parts = token.split('.');
