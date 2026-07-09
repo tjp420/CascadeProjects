@@ -4080,6 +4080,15 @@ export class AnalyzeView {
             this.syncAnalyzeModeUi(root);
             return;
         }
+        const isRemoteDeployment = typeof window !== 'undefined' && !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
+        const isLocalWindowsPath = /^[a-zA-Z]:[\\/]/i.test(String(projectPath || ''));
+        if (isRemoteDeployment && isLocalWindowsPath) {
+            // A typed local Windows path can never be resolved by the remote server.
+            // Don't poll report/inventory endpoints for it.
+            this.app.state.pathInventory = null;
+            this.syncAnalyzeModeUi(root);
+            return;
+        }
         try {
             const live = await this.app.scanService.fetchReport(projectPath);
             if (live && reportMatchesPagePath(live, projectPath)) {
