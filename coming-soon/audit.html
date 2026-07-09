@@ -8,6 +8,14 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
+    <script>
+      (function() {
+        try {
+          var theme = localStorage.getItem('simplebeacon-theme') || 'dark';
+          if (theme === 'light') { document.documentElement.setAttribute('data-theme', 'light'); }
+        } catch (e) {}
+      })();
+    </script>
     <title>SimpleBeacon — Audit</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <script src="site-config.js?h=1781475000000" defer></script>
@@ -19,7 +27,7 @@
     <script src="js-es2018/dashboard/scanner-patterns.js?h=1781475000004" defer></script>
     <script src="js-es2018/dashboard/quick-actions.js?h=1781475000005" defer></script>
     <script src="js-es2018/dashboard/pattern-documentation.js?h=1781475000005" defer></script>
-    <script src="js-es2018/dashboard/scanner-engine.js?h=1781475000010" defer></script>
+    <script src="js-es2018/dashboard/scanner-engine.js?h=1781475000011" defer></script>
     <script src="js-es2018/dashboard/ui-renderer.js?h=1781475000000" defer></script>
     <script src="js-es2018/dashboard/certificate-module.js?h=1781475000007" defer></script>
     <script src="js/vendor/jszip.min.js?h=1781475000000" defer></script>

@@ -1570,6 +1570,20 @@ async function processLocalCLIScan(files) {
         appendTerminalLine(`  <span style="color:#64748B;">&#10148;</span> ${reason}: <strong>${count.toLocaleString()}</strong>`);
     }
 
+    if (sourceFiles.length === 0) {
+        appendTerminalLine(`<span style="color:#F59E0B;font-weight:700;">&#9888; No scannable files found.</span> The selected folder appears to be empty or contains only vendor/build directories.`, 'warn');
+        showToast('No scannable source files found. Select a folder with actual code, or enable Deep Scan.', 'warning');
+        panelStatus.textContent = 'NO_FILES';
+        panelStatus.style.color = '#F59E0B';
+        panelProgressContainer.style.display = 'none';
+        panelMetrics.style.display = 'none';
+        if (dropzonePrompt)
+            dropzonePrompt.style.display = 'block';
+        const cancelBtn = document.getElementById('cancelScanBtn');
+        if (cancelBtn)
+            cancelBtn.style.display = 'none';
+        return;
+    }
     appendTerminalLine(`Found ${sourceFiles.length.toLocaleString()} files. All files will be analyzed.`, 'success');
 
     // File inventory breakdown — show real composition of discovered files
@@ -2530,7 +2544,7 @@ async function processLocalCLIScan(files) {
     const securityHeaderGateFindings = (profile.checkAiResidue && securityHeaderFindings.length ? securityHeaderFindings.filter(f => !testFixturePattern.test(f.file) && f.matches.some(m => m.confidence >= 0.75)).slice(0,3).map(f => ({ severity: 'medium', type: 'Missing Security Header', count: f.matches.filter(m => m.confidence >= 0.75).length, filePath: f.file, rule: 'SECURITY_HEADER_PATTERN', impact: 'SECURITY RISK: Missing CSP or X-Frame-Options enables XSS and clickjacking.', fix: 'Add helmet middleware or configure reverse proxy with CSP, HSTS, X-Frame-Options.', findings: f.matches.filter(m => m.confidence >= 0.75) })) : []);
     const gateFindings = [...credentialGateFindings, ...sensitiveDataGateFindings, ...dbPatternGateFindings, ...configDriftGateFindings, ...securityHeaderGateFindings];
     const gateBlockingCount = gateFindings.length;
-    const gatePassFinal = gateBlockingCount === 0;
+    const gatePassFinal = gateBlockingCount === 0 && sourceFiles.length > 0;
     reportData = {
         type: profile.reportType || 'simplebeacon-report',
         reportVersion: 2,
