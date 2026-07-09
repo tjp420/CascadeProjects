@@ -746,7 +746,7 @@ async function resolveAnalysisType(requestedType, targetPath, pathLooksLikeMockS
         'roadmap', 'mock-scan', 'codebase', 'complete',
         'npm-audit', 'compliance', 'data-cleanup', 'data-quality',
         'cleanup-assistant', 'file-reduction', 'consolidation', 'eu-ai-act',
-        'workspace-health'
+        'workspace-health', 'removable-files'
     ];
     if (knownTypes.includes(type)) return type;
     return (typeof pathLooksLikeMockScan === 'function' && await pathLooksLikeMockScan(targetPath)) ? 'mock-scan' : 'roadmap';
