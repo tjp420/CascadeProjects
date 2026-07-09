@@ -1,5 +1,7 @@
 'use strict';
 
+const rateLimit = require('express-rate-limit');
+const constants = require('../config/constants.cjs');
 const { getActiveUsers } = require('../lib/session-activity.cjs');
 const { authenticate } = require('../middleware/auth.cjs');
 
@@ -17,7 +19,15 @@ function isAdmin(req) {
 function setupAdminAPI(app, options = {}) {
   const db = app.locals?.db || options.db || null;
 
-  app.get('/api/admin/users', authenticate, async (req, res) => {
+  const adminRateLimit = rateLimit({
+    windowMs: constants.RATE_LIMIT_WINDOW_MS,
+    max: constants.MAX_RATE_LIMIT,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { success: false, error: 'Admin API rate limit exceeded. Please try again later.' }
+  });
+
+  app.get('/api/admin/users', authenticate, adminRateLimit, async (req, res) => {
     if (!isAdmin(req)) {
       return res.status(403).json({ success: false, error: 'Forbidden' });
     }
@@ -78,7 +88,7 @@ function setupAdminAPI(app, options = {}) {
     }
   });
 
-  app.get('/api/admin/sessions', authenticate, async (req, res) => {
+  app.get('/api/admin/sessions', authenticate, adminRateLimit, async (req, res) => {
     if (!isAdmin(req)) {
       return res.status(403).json({ success: false, error: 'Forbidden' });
     }
@@ -91,7 +101,7 @@ function setupAdminAPI(app, options = {}) {
     }
   });
 
-  app.post('/api/admin/users/:id/trust-level', authenticate, async (req, res) => {
+  app.post('/api/admin/users/:id/trust-level', authenticate, adminRateLimit, async (req, res) => {
     if (!isAdmin(req)) {
       return res.status(403).json({ success: false, error: 'Forbidden' });
     }
@@ -112,7 +122,7 @@ function setupAdminAPI(app, options = {}) {
     }
   });
 
-  app.delete('/api/admin/users/:id', authenticate, async (req, res) => {
+  app.delete('/api/admin/users/:id', authenticate, adminRateLimit, async (req, res) => {
     if (!isAdmin(req)) {
       return res.status(403).json({ success: false, error: 'Forbidden' });
     }
