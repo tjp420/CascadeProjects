@@ -6352,6 +6352,23 @@ export class AnalyzeView {
     }
     async runPathAnalysis(inputPath) {
         var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p;
+        const typedPath = String(inputPath || '').trim();
+        const isRemoteDeployment = typeof window !== 'undefined' && !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
+        const isLocalWindowsPath = /^[a-zA-Z]:[\\/]/i.test(typedPath);
+        // Remote deployments can never access the user's local filesystem. Switch to the server's
+        // default project path and server-scan mode instead of showing the Privacy mode error.
+        if (isRemoteDeployment && isLocalWindowsPath) {
+            const fallbackPath = this.app.state.defaultProjectPath || this.app.state.lastProjectPath || '';
+            if (fallbackPath && !/^[a-zA-Z]:[\\/]/i.test(fallbackPath)) {
+                showToast('Local paths cannot be scanned from the remote dashboard. Switching to the server project path.', 'info');
+                this.localMode = false;
+                this.saveAnalyzePrefs({ localMode: false, analysisType: this.analysisType, aiProvider: this.aiProvider, understandingMode: this.understandingMode });
+                this.syncAnalyzeModeUi(this._root);
+                return this.runPathAnalysis(fallbackPath);
+            }
+            showToast('Cannot scan a local path from the remote dashboard. Run SimpleBeacon locally or enter the server project path.', 'error', { duration: 8000 });
+            return;
+        }
         if (this.localMode) {
             if (!window.showDirectoryPicker) {
                 const typedPath = String(inputPath || '').trim();
