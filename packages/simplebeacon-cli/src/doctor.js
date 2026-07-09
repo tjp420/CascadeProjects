@@ -17,7 +17,8 @@ function runDoctor() {
     // 2. Auto-Fix Missing .env.example Template
     const envExamplePath = path.join(rootDir, '.env.example');
     if (!fs.existsSync(envExamplePath)) {
-        const defaultTemplate = `# SimpleBeacon Token Vault\nSIMPLEBEACON_API_KEY=your_token_here\nSIMPLEBEACON_ENVIRONMENT=local\n`;
+        // simplebeacon-ignore fiction-kpi-pattern — intentional .env.example placeholder template
+        const defaultTemplate = `# SimpleBeacon Token Vault\nSIMPLEBEACON_API_KEY=<REPLACE_WITH_YOUR_API_TOKEN>\nSIMPLEBEACON_ENVIRONMENT=local\n`;
         fs.writeFileSync(envExamplePath, defaultTemplate, 'utf-8');
         issuesFixed.push('Generated missing configuration template: .env.example');
     }
