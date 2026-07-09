@@ -346,12 +346,24 @@ function setupChatbotAPI(app) {
   app.get('/api/chatbot/providers', async (req, res) => {
     try {
       const userCredentials = await getUserAiCredentials(req.user?.email || null);
-      
+
+      // A configured Ollama URL is not enough — it must actually be reachable from the server.
+      let ollamaConfigured = Boolean(userCredentials?.ollamaBaseUrl || process.env.OLLAMA_BASE_URL);
+      let ollamaReachable = false;
+      if (ollamaConfigured) {
+        try {
+          ollamaReachable = await probeOllama(resolveOllamaBaseUrl(userCredentials), 2500);
+        }
+        catch {
+          ollamaReachable = false;
+        }
+      }
+
       const providers = [
         {
           id: 'ollama',
           label: 'Ollama',
-          available: Boolean(userCredentials?.ollamaBaseUrl || process.env.OLLAMA_BASE_URL),
+          available: ollamaReachable,
           description: 'Local models via Ollama'
         },
         {
