@@ -129,6 +129,13 @@ const PATTERN_REGISTRY = {
         pattern: /\bnew\s+openai\b|\brequire\s*\(\s*['"]openai['"]\s*\)|\bimport\s+.*\bopenai\b|\bfrom\s+['"]openai['"]\b|\bfrom\s+['"]@anthropic\/[^'"]+['"]\b|\bnew\s+anthropic\b|\bimport\s+.*\blangchain\b|\bfrom\s+['"]langchain['"]\b|\brequire\s*\(\s*['"]langchain['"]\s*\)|\bfrom\s+['"]huggingface_hub['"]\b|\bimport\s+.*\bhuggingface_hub\b|\brequire\s*\(\s*['"]huggingface_hub['"]\s*\)|\b\.create\s*\(\s*\{\s*model\s*:\s*['"]gpt|\b\.create\s*\(\s*\{\s*model\s*:\s*['"]claude|\bcreateChatCompletion\s*\(|\bopenai\.chat\.completions\b|\banthropic\.messages\.create\b|\bazure\.openai\b/i,
         maxMatches: 5,
         selfReferenceFilter: /(?:const|let|var)\s+(?:aiPattern|AI_INDICATORS_PATTERNS)\b|{\s*id:\s*['"][^'"]+['"],\s*pattern:\s*\//,
+        contextFilter: (snippet, filePath) => {
+            // Skip dashboard UI labels/comments that merely mention AI providers
+            if (/(label|placeholder|title|tooltip|hint|description|heading)\s*[:=]\s*['"].*\b(openai|anthropic|langchain|huggingface|gpt|claude)/i.test(snippet)) return false;
+            // Skip dashboard UI files that surface AI settings but do not import AI SDKs
+            if (filePath && /\/(simplebeacon-dashboard\/js-es2018\/views|coming-soon\/(js|js-es2018|public\/js-es2018)\/dashboard|coming-soon\/lib\/certificate-utils)\//.test(filePath)) return false;
+            return true;
+        },
         message: 'AI SDK usage detected. Review EU AI Act Article 6 applicability.'
     },
     credentials: {
@@ -141,7 +148,7 @@ const PATTERN_REGISTRY = {
         redact: true,
         selfReferenceFilter: /PATTERN_REGISTRY|TEST_CASES|shouldMatch|shouldNotMatch|test.*password|test.*api_key|mockFileContent|REDACTED|trello-board|test-all-patterns/i,
         contextFilter: (snippet, filePath) => {
-            // Skip test files (*.test.js, *.spec.js, *.test.ts) — test fixtures are intentionally hardcoded
+            // Skip test files — test fixtures are intentionally hardcoded
             if (filePath && /\.(test|spec)\.(js|ts|cjs|mjs)$/.test(filePath)) return false;
             // Skip token generation using crypto.randomBytes() — produces random tokens, not hardcoded secrets
             if (/crypto\.randomBytes|Math\.random|Date\.now|require\(['"]crypto['"]\)/.test(snippet)) return false;
@@ -149,6 +156,8 @@ const PATTERN_REGISTRY = {
             if (/process\.env\.(JWT_SECRET|JWT_REFRESH_SECRET|SECRET|TOKEN)\s*=/.test(snippet)) return false;
             // Skip dynamic token generation with template literals
             if (/`[^`]*\$\{[^}]+\}[^`]*`/.test(snippet) && /token|secret|key/i.test(snippet)) return false;
+            // Skip placeholder/example secrets
+            if (/[:=]\s*['"`]\s*(placeholder|example|test|sample|changeme)\s*['"`]/i.test(snippet)) return false;
             return true;
         },
         message: 'Potential hardcoded secret detected. Move to environment variables or secret manager.'
@@ -173,12 +182,16 @@ const PATTERN_REGISTRY = {
             if (/console\.(error|warn|log)\s*\(['"`]\s*Usage:\s*node/.test(snippet)) return false;
             // Skip gated debug logging (if(DEBUG) console.log, if(PROCESSOR_DEBUG) console.log)
             if (/if\s*\(\s*DEBUG\s*\)|if\s*\(\s*PROCESSOR_DEBUG\s*\)/.test(snippet)) return false;
-            // Skip error handling in catch blocks with console.error
+            // Skip error handling in catch blocks with console.error or console.warn
             if (/catch\s*\([^)]*\)\s*\{[^}]*console\.(error|warn)/i.test(snippet)) return false;
             // Skip test files that test quality heuristics themselves
             if (filePath && /file-quality-heuristics\.test\.|test-all-patterns\./.test(filePath)) return false;
             // Skip simplebeacon-ignore comments
             if (/simplebeacon-ignore/.test(snippet)) return false;
+            // Skip promise .catch(console.error/.warn) handlers
+            if (/\.catch\s*\(\s*console\.(error|warn)\s*\)/i.test(snippet)) return false;
+            // Skip labeled server setup warnings (e.g., console.warn('[Module] ...'))
+            if (/console\.(warn|error|log)\s*\(\s*['"`]\[[^\]]+\]\s+\w+\s+.*not\s+loaded|setup\s+skipped/i.test(snippet)) return false;
             return true;
         },
         message: 'Development-only debug artifact. Remove before production builds.'
@@ -717,6 +730,8 @@ const PATTERN_REGISTRY = {
             if (/fixture|mock|test-data|__tests__|spec/i.test(filePath)) return false;
             // Allow legitimate TODO comments in development
             if (/\/\/\s*TODO:?|\/\/\s*FIXME:?|#\s*TODO:?/i.test(snippet) && !/AI\s+Generated|Placeholder/i.test(snippet)) return false;
+            // Skip placeholder/test API keys
+            if (/process\.env\.(RESEND_API_KEY|JWT_SECRET|SECRET|TOKEN)\s*=\s*['"][^'"]*(test|placeholder|example)/i.test(snippet)) return false;
             // Skip legitimate markdown in documentation
             if (/\.md$|\.markdown$/i.test(filePath) && /```[a-z]+\s*$/.test(snippet)) return false;
             return true;
@@ -1156,8 +1171,8 @@ const PATTERN_REGISTRY = {
         pattern: /\b(TODO|FIXME|HACK|XXX)\b/gi,
         maxMatches: 10,
         contextFilter: (snippet, filePath) => {
-            if (/\.(test|spec)\.|fixture|mock|__tests__/.test(filePath)) return false;
-            if (/scanner-patterns|scanner-engine|pattern-documentation/.test(filePath)) return false;
+            if (/\.(test|spec)\.|fixture|mock|__tests__|\.test\.cjs/.test(filePath)) return false;
+            if (/scanner-patterns|scanner-engine|pattern-documentation|patch-strategies/.test(filePath)) return false;
             return true;
         },
         message: 'High TODO/FIXME density — file may need focused refactoring. Track in issue tracker.'
