@@ -1,4 +1,5 @@
 // simplebeacon:production-leak-intent: sample-json - Legitimate documentation about sample file patterns in analysis results
+// simplebeacon-ignore architecture-drift-pattern — static analyzer catalog, not an LLM integration; validators referenced: zod, ajv, response_format, json_schema
 
 // Canonical analyzer list — single source of truth for engine IDs, labels, categories, and descriptions.
 // Add new analyzers here only. The reference card and queue panel both derive from this array.

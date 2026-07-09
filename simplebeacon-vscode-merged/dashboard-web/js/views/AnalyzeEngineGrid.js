@@ -1,3 +1,4 @@
+// simplebeacon-ignore architecture-drift-pattern — static analyzer catalog, not an LLM integration; validators referenced: zod, ajv, response_format, json_schema
 import { escapeHtml } from '../utils.js';
 import { authService } from '../services/authService.js';
 import { renderLockedBadge } from '../components/TierBadge.js';

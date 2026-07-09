@@ -61,7 +61,9 @@ function isPlatformScannerMetaPath(relativePath) {
 /** Dashboard views containing analyzer catalog definitions — not customer application code. */
 function isDashboardAnalyzerCatalogPath(relativePath) {
     const normalized = String(relativePath || '').replace(/\\/g, '/').toLowerCase();
-    return /(?:^|\/)web\/simplebeacon-dashboard\/js\/views\/analyzeview\.js$/.test(normalized);
+    if (/(?:^|\/)web\/simplebeacon-dashboard\/js\/views\/analyzeview\.js$/.test(normalized)) return true;
+    if (/(?:^|\/)views\/analyzeenginegrid\.js$/.test(normalized)) return true;
+    return false;
 }
 
 function isExcludedPath(relativePath) {
