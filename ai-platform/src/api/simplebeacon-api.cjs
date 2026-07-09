@@ -576,9 +576,15 @@ function setupSimplebeaconAPI(app, options = {}) {
         version: '1.0.0',
         generatedAt: new Date().toISOString(),
         projectPath: req.query.projectPath || PROJECT_ROOT,
-        summary: { totalFiles: 0, issues: 0, score: 100, grade: 'A' },
-        findings: [],
-        modules: []
+        summary: { totalFiles: 0, issues: 0, score: 0, grade: 'F' },
+        findings: [{
+          category: 'scan-empty',
+          file: '',
+          severity: 'high',
+          message: 'No scan report found for the requested path. Run a scan or verify the project path.'
+        }],
+        modules: [],
+        gate: { pass: false, blockingCount: 1, warningCount: 0, failOn: ['high'] }
       });
     }
   });
