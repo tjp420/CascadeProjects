@@ -690,16 +690,22 @@ class SimplebeaconDashboard {
         const authed = authService.isAuthenticated();
         const signinBtn = document.getElementById('signin-btn');
         const signoutBtn = document.getElementById('signout-btn');
+        const profileBtn = document.getElementById('profile-btn');
         if (signinBtn)
             signinBtn.hidden = authed;
         if (signoutBtn)
             signoutBtn.hidden = !authed;
+        if (profileBtn)
+            profileBtn.hidden = !authed;
         const sidebarSigninBtn = document.getElementById('sidebar-signin-btn');
         if (sidebarSigninBtn)
             sidebarSigninBtn.hidden = authed;
         const adminLink = document.getElementById('nav-admin-link');
         if (adminLink)
             adminLink.hidden = !authed || !this.isCurrentUserAdmin();
+        const profileAdminItem = document.getElementById('profile-dropdown-admin');
+        if (profileAdminItem)
+            profileAdminItem.hidden = !authed || !this.isCurrentUserAdmin();
         const pricingLink = document.getElementById('header-pricing-link');
         if (pricingLink)
             pricingLink.hidden = authed;
@@ -878,6 +884,52 @@ class SimplebeaconDashboard {
         searchInput === null || searchInput === void 0 ? void 0 : searchInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && searchInput.value.trim()) {
                 this.navigate('results', { q: searchInput.value.trim() });
+            }
+        });
+        this.setupProfileDropdown();
+    }
+    setupProfileDropdown() {
+        const profileBtn = document.getElementById('profile-btn');
+        const menu = document.getElementById('profile-dropdown-menu');
+        const viewBtn = document.getElementById('profile-dropdown-view');
+        const adminBtn = document.getElementById('profile-dropdown-admin');
+        const signoutBtn = document.getElementById('profile-dropdown-signout');
+        if (!profileBtn || !menu)
+            return;
+        profileBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const willShow = menu.classList.contains('hidden');
+            menu.classList.toggle('hidden', !willShow);
+            profileBtn.setAttribute('aria-expanded', String(willShow));
+        });
+        document.addEventListener('click', (e) => {
+            const target = e.target;
+            if (!menu.contains(target) && target !== profileBtn && !profileBtn.contains(target)) {
+                menu.classList.add('hidden');
+                profileBtn.setAttribute('aria-expanded', 'false');
+            }
+        });
+        viewBtn === null || viewBtn === void 0 ? void 0 : viewBtn.addEventListener('click', () => {
+            menu.classList.add('hidden');
+            profileBtn.setAttribute('aria-expanded', 'false');
+            this.navigate('profile');
+        });
+        adminBtn === null || adminBtn === void 0 ? void 0 : adminBtn.addEventListener('click', () => {
+            menu.classList.add('hidden');
+            profileBtn.setAttribute('aria-expanded', 'false');
+            this.navigate('admin');
+        });
+        signoutBtn === null || signoutBtn === void 0 ? void 0 : signoutBtn.addEventListener('click', async () => {
+            menu.classList.add('hidden');
+            profileBtn.setAttribute('aria-expanded', 'false');
+            try {
+                await authService.logout();
+                showToast('Signed out', 'info');
+                this.updateAuthUi();
+                this.router.navigate('signin');
+            }
+            catch (err) {
+                showToast('Sign out failed', 'error');
             }
         });
     }
