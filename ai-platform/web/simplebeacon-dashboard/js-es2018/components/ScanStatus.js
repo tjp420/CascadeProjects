@@ -511,10 +511,28 @@ export function bindScanStatus(container, options = {}) {
                 const entry = (_d = (_c = items[0]).webkitGetAsEntry) === null || _d === void 0 ? void 0 : _d.call(_c);
                 if (entry === null || entry === void 0 ? void 0 : entry.isDirectory) {
                     const name = entry.name || '';
-                    const homePath = deriveUserHomeBase();
-                    const fallbackPath = homePath ? `${homePath}/${name}` : name;
-                    input.value = fallbackPath;
-                    setLastProjectPath(fallbackPath);
+                    // Some browsers (Chrome on Windows) expose the full OS path via the first file.
+                    let resolvedPath = '';
+                    if (files?.length) {
+                        const firstFile = files[0];
+                        const filePath = firstFile.path;
+                        const relPath = firstFile.webkitRelativePath || '';
+                        if (filePath && relPath) {
+                            const normalizedFull = filePath.replace(/\\/g, '/');
+                            const normalizedRel = relPath.replace(/\\/g, '/');
+                            if (normalizedFull.endsWith(normalizedRel)) {
+                                const baseDir = normalizedFull.slice(0, -normalizedRel.length).replace(/\/$/, '');
+                                const relFolderName = normalizedRel.split('/')[0] || name;
+                                resolvedPath = baseDir ? `${baseDir}/${relFolderName}` : relFolderName;
+                            }
+                        }
+                    }
+                    if (!resolvedPath) {
+                        const homePath = deriveUserHomeBase();
+                        resolvedPath = homePath ? `${homePath}/${name}` : name;
+                    }
+                    input.value = resolvedPath;
+                    setLastProjectPath(resolvedPath);
                     if (clearBtn)
                         clearBtn.disabled = false;
                     // Notify user to verify path
@@ -522,8 +540,8 @@ export function bindScanStatus(container, options = {}) {
                     if (toast) {
                         const msg = document.createElement('div');
                         msg.className = 'toast toast-info';
-                        msg.textContent = homePath
-                            ? `Folder "${name}" dropped. Path is estimated — please verify before scanning.`
+                        msg.textContent = /^[a-zA-Z]:|^\\|^\//.test(resolvedPath)
+                            ? `Folder "${name}" dropped. Verify the path, then click Scan.`
                             : `Folder "${name}" dropped — browser cannot reveal its full path. Type or browse the full path before scanning.`;
                         toast.appendChild(msg);
                         setTimeout(() => msg.remove(), 4000);
