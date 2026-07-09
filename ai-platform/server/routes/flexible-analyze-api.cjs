@@ -1607,9 +1607,15 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
 
     app.get('/api/analyze/inventory', async (req, res) => {
         try {
+            let rawPath = req.query.projectPath || req.query.path || '';
+            // Fallback to the server's default project path when no meaningful path is provided.
+            // This prevents 400 errors from the dashboard's initial "no folder selected" state.
+            if (!rawPath || rawPath === '/' || rawPath === '\\') {
+                rawPath = baseDir;
+            }
             let projectPath;
             try {
-                projectPath = resolveSafeProjectPath(req.query.projectPath || req.query.path);
+                projectPath = resolveSafeProjectPath(rawPath);
             } catch (error) {
                 return res.status(400).json({ success: false, error: toClientError(error, 'Invalid projectPath') });
             }
