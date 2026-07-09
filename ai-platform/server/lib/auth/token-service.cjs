@@ -93,12 +93,16 @@ async function verifyToken(token) {
 }
 
 if (process.env.NODE_ENV !== 'test') {
+  const secretFromEnv = Boolean(process.env.JWT_SECRET);
   logger.info('[token-service] JWT configuration loaded:', {
     algorithm: jwtConfig.algorithm,
     issuer: jwtConfig.issuer,
     audience: jwtConfig.audience,
     expiresIn: jwtConfig.expiresIn,
-    hasSecret: Boolean(jwtConfig.secret)
+    hasSecret: Boolean(jwtConfig.secret),
+    secretSource: secretFromEnv ? 'env' : (jwtConfig.secret ? 'ephemeral' : 'none'),
+    secretLength: jwtConfig.secret ? jwtConfig.secret.length : 0,
+    secretFromEnv
   });
 }
 

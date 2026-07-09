@@ -551,8 +551,13 @@ function setupSimplebeaconAPI(app, options = {}) {
   function requireUserAccount(req, res, next) {
     if (!req.user?.email) {
       const debug = req.authError ? req.authError.message : undefined;
+      if (debug) {
+        console.warn(`[simplebeacon-api] requireUserAccount 401 - ${req.method} ${req.originalUrl}: ${debug}`);
+      }
       const body = { success: false, error: 'Authentication required' };
-      if (debug) body.debug = debug;
+      if (debug && process.env.DEBUG_CLIENT_ERRORS === '1') {
+        body.debug = debug;
+      }
       return res.status(401).json(body);
     }
     next();
