@@ -82,11 +82,28 @@ const {
  * first-use expiry, sandbox rate-limiting, and req.user construction.
  * @returns {{ user?: object, error?: Error, sandbox?: boolean }}
  */
+function parseCookieHeader(req) {
+  if (req.cookies && typeof req.cookies === 'object') {
+    return req.cookies;
+  }
+  const raw = req.headers?.cookie;
+  if (!raw || typeof raw !== 'string') return {};
+  const cookies = {};
+  for (const pair of raw.split(';')) {
+    const [rawName, ...rawValue] = pair.split('=');
+    if (!rawName) continue;
+    const name = decodeURIComponent(rawName.trim());
+    const value = rawValue.length > 0 ? decodeURIComponent(rawValue.join('=').trim()) : '';
+    cookies[name] = value;
+  }
+  return cookies;
+}
+
 function extractTokenFromCookies(req) {
-  if (!req.cookies || typeof req.cookies !== 'object') return null;
-  const rawCookie = req.cookies.cascadeAuthToken;
+  const cookies = parseCookieHeader(req);
+  const rawCookie = cookies.cascadeAuthToken;
   if (rawCookie && typeof rawCookie === 'string') return rawCookie;
-  const accessTokenCookie = req.cookies.access_token;
+  const accessTokenCookie = cookies.access_token;
   if (accessTokenCookie && typeof accessTokenCookie === 'string') {
     try {
       const decoded = decodeURIComponent(accessTokenCookie);

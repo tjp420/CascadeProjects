@@ -14,6 +14,7 @@ const PUBLIC_API_PATHS = new Set([
     'simplebeacon/billing/plan',
     'simplebeacon/billing/webhook',
     'simplebeacon/billing/checkout',
+    'config/pricing',
     'waitlist',
     'waitlist/count',
     'waitlist/event',
