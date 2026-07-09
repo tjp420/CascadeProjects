@@ -203,6 +203,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
         const user = req.user;
         if (!user) return false;
         if (user.role === 'superuser' || user.role === 'admin') return true;
+        if (user.tier === 'superuser' || user.tier === 'admin') return true;
         if (Array.isArray(user.features) && user.features.includes('all_modules')) return true;
         return false;
     }
