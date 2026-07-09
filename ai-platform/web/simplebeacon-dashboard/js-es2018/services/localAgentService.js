@@ -49,6 +49,12 @@ export async function probeAgent(origin = DEFAULT_AGENT_ORIGIN) {
         return pendingProbe;
     }
     pendingProbe = (async () => {
+        if (isMixedContent(origin)) {
+            const status = { available: false, scannerAvailable: false, likelyBlocked: true };
+            cachedAgentStatus = status;
+            cachedAt = Date.now();
+            return status;
+        }
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), AGENT_TIMEOUT_MS);
         try {
@@ -88,6 +94,8 @@ export async function probeAgent(origin = DEFAULT_AGENT_ORIGIN) {
  * but Firefox/Safari will throw a mixed-content error.
  */
 function isMixedContentBlocked(origin, err) {
+    if (isMixedContent(origin))
+        return true;
     if (!origin || !origin.startsWith('http://'))
         return false;
     if (typeof window === 'undefined')
@@ -98,7 +106,15 @@ function isMixedContentBlocked(origin, err) {
     return message.includes('mixed content') ||
         message.includes('insecure') ||
         message.includes('blocked') ||
-        message.includes('failed to fetch');
+        message.includes('failed to fetch') ||
+        message.includes('ns_error');
+}
+function isMixedContent(origin) {
+    if (!origin || !origin.startsWith('http://'))
+        return false;
+    if (typeof window === 'undefined')
+        return false;
+    return window.location.protocol === 'https:';
 }
 /**
  * Fetch repository inventory through the local agent.
