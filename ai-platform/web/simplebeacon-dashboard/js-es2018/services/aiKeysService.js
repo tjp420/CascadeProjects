@@ -125,9 +125,25 @@ export async function clearUserAiKeys() {
  * @param {string} ollamaBaseUrl
  * @returns {any}
  */
+function isLocalOllamaUrl(url) {
+    try {
+        const parsed = new URL(url);
+        return parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1';
+    } catch {
+        return false;
+    }
+}
+
 export async function fetchOllamaModels(ollamaBaseUrl = OLLAMA_DEFAULT_URL) {
     const baseUrl = String(ollamaBaseUrl || OLLAMA_DEFAULT_URL).trim().replace(/\/$/, '') || OLLAMA_DEFAULT_URL;
     const isHttpsPage = typeof window !== 'undefined' && window.location.protocol === 'https:';
+
+    if (isHttpsPage && isLocalOllamaUrl(baseUrl)) {
+        throw new Error(
+            'The hosted HTTPS dashboard cannot reach Ollama on your local machine. ' +
+            'Run the dashboard locally (npm run dashboard:v1-internal) or use a cloud/network-accessible Ollama instance.'
+        );
+    }
 
     async function fetchDirect() {
         const controller = new AbortController();
