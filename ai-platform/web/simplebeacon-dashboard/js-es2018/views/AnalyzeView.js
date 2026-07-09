@@ -4414,20 +4414,25 @@ export class AnalyzeView {
             }
             showToast(this.realtimeMonitorEnabled ? 'Real-time monitoring enabled' : 'Real-time monitoring disabled', 'info');
         });
-        (_o = el.querySelector('#browse-dir-btn')) === null || _o === void 0 ? void 0 : _o.addEventListener('click', () => {
-            // Prefer the local directory picker (Chrome/Edge) to avoid uploading huge folders.
-            if (window.showDirectoryPicker && !this.isElectronLike()) {
-                const pathInput = el.querySelector('#project-path-input');
-                void this.runLocalScan(null, null, pathInput === null || pathInput === void 0 ? void 0 : pathInput.value);
-                return;
+        (_o = el.querySelector('#browse-dir-btn')) === null || _o === void 0 ? void 0 : _o.addEventListener('click', async () => {
+            const isRemoteDeployment = typeof window !== 'undefined' && !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
+            if (!isRemoteDeployment) {
+                // Local/standalone mode: prefer the native directory picker (Chrome/Edge).
+                if (window.showDirectoryPicker && !this.isElectronLike()) {
+                    const picked = await this.pickFolderViaBrowser(el);
+                    if (picked)
+                        return;
+                }
+                const input = el.querySelector('#browse-dir-input');
+                if (input) {
+                    input.value = '';
+                    input.click();
+                    return;
+                }
             }
-            const input = el.querySelector('#browse-dir-input');
-            if (input) {
-                input.value = '';
-                input.click();
-            } else {
-                this.openDirBrowser(el);
-            }
+            // Remote deployment: open the server directory browser so the user can pick the
+            // actual server project path (e.g., /opt/render/project/src/ai-platform/CascadeProjects).
+            this.openDirBrowser(el);
         });
         // Analyze drop zone — drag-and-drop for scan reports / source files
         const analyzeDropZone = el.querySelector('#analyze-drop-zone');
@@ -5082,7 +5087,13 @@ export class AnalyzeView {
         if (!modal)
             return;
         const pathInput = el.querySelector('#project-path-input');
-        const currentPath = this.resolveProjectPath(pathInput === null || pathInput === void 0 ? void 0 : pathInput.value) || this.app.state.defaultProjectPath || '';
+        const isRemoteDeployment = typeof window !== 'undefined' && !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
+        let currentPath = this.resolveProjectPath(pathInput === null || pathInput === void 0 ? void 0 : pathInput.value) || this.app.state.defaultProjectPath || '';
+        // On a remote deployment, local Windows paths or bare folder names cannot be browsed
+        // by the server. Start from the server's default project path instead.
+        if (isRemoteDeployment && (isLocalPath(currentPath) || (currentPath && !currentPath.startsWith('/') && !/^[a-zA-Z]:[\\/]/i.test(currentPath)))) {
+            currentPath = this.app.state.defaultProjectPath || '';
+        }
         modal.classList.remove('hidden');
         modal.setAttribute('aria-hidden', 'false');
         // Start from the current path if it is a valid directory; otherwise show the drives/root list.

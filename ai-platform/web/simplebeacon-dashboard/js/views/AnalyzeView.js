@@ -5206,7 +5206,13 @@ export class AnalyzeView {
     const modal = el.querySelector('#dir-browser-modal');
     if (!modal) return;
     const pathInput = el.querySelector('#project-path-input');
-    const currentPath = this.resolveProjectPath(pathInput?.value) || this.app.state.defaultProjectPath || '';
+    const isRemoteDeployment = typeof window !== 'undefined' && !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
+    let currentPath = this.resolveProjectPath(pathInput?.value) || this.app.state.defaultProjectPath || '';
+    // On a remote deployment, local Windows paths or bare folder names cannot be browsed
+    // by the server. Start from the server's default project path instead.
+    if (isRemoteDeployment && (isLocalPath(currentPath) || (currentPath && !currentPath.startsWith('/') && !/^[a-zA-Z]:[\\/]/i.test(currentPath)))) {
+      currentPath = this.app.state.defaultProjectPath || '';
+    }
     modal.classList.remove('hidden');
     modal.setAttribute('aria-hidden', 'false');
     // Start from the current path if it is a valid directory; otherwise show the drives/root list.
