@@ -1046,7 +1046,29 @@ async function startServer() {
       if (!fs.existsSync(safePath)) {
         return res.status(400).json({ success: false, error: `Target path does not exist: ${safePath.replace(/\\/g, '/')}` });
       }
+      const safePathForward = safePath.replace(/\\/g, '/');
+
+      // Normalize legacy v1 reports to reportVersion 2 so the dashboard treats them as current
+      const isLegacy = report.reportVersion == null || Number(report.reportVersion) < 2;
+      if (isLegacy) {
+        report.reportVersion = 2;
+        report.projectRoot = report.projectRoot || safePathForward;
+        report.platformRoot = report.platformRoot || safePathForward;
+      }
+
       // Enrich repository inventory if the imported report is missing it
+      if (!report.repositoryInventory || report.repositoryInventory.totalFiles == null) {
+        // v1 reports often store counts under `inventory`
+        if (report.inventory && typeof report.inventory === 'object') {
+          const inv = report.inventory;
+          const totalFiles = inv.scannedFiles != null ? inv.scannedFiles : (inv.totalFiles != null ? inv.totalFiles : null);
+          report.repositoryInventory = {
+            totalFiles: totalFiles != null ? totalFiles : 0,
+            totalFolders: inv.totalFolders != null ? inv.totalFolders : 0,
+            projectRoot: safePathForward
+          };
+        }
+      }
       if (!report.repositoryInventory || report.repositoryInventory.totalFiles == null) {
         try {
           const { countRepositoryInventory } = require('./server/lib/simplebeacon-proxy.cjs');
