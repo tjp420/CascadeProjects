@@ -647,7 +647,7 @@ export function bindScanStatus(container, options = {}) {
                                         toast.appendChild(msg);
                                         setTimeout(() => msg.remove(), 4000);
                                     }
-                                    const report = await runLocalScan({ dirHandle: handle });
+                                    const report = await runLocalScan({ dirHandle: handle, projectPath: resolvedPath });
                                     onLocalScanResult(report);
                                     return;
                                 }
@@ -670,9 +670,19 @@ export function bindScanStatus(container, options = {}) {
                             }
                             const collectedFiles = await collectFilesFromDirectoryEntry(entry);
                             if (collectedFiles.length) {
-                                const report = await runLocalScan({ files: collectedFiles });
+                                const report = await runLocalScan({ files: collectedFiles, projectPath: resolvedPath });
                                 onLocalScanResult(report);
                                 return;
+                            }
+                            else {
+                                const toast = document.getElementById('toast-container');
+                                if (toast) {
+                                    const msg = document.createElement('div');
+                                    msg.className = 'toast toast-warning';
+                                    msg.textContent = `Could not read any files from "${name}". The folder may be empty or permission was denied.`;
+                                    toast.appendChild(msg);
+                                    setTimeout(() => msg.remove(), 5000);
+                                }
                             }
                         }
                         catch (err) {

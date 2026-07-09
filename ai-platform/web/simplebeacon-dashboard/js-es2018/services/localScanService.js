@@ -39,6 +39,17 @@ function buildReport(projectName, findings, totalFiles, analyzedFiles) {
     const categories = {};
     const findingsList = [];
     const severityCounts = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
+    if (totalFiles === 0) {
+        findingsList.push({
+            category: 'scan-empty',
+            file: '',
+            line: 0,
+            severity: 'high',
+            message: 'No files were discovered. The folder may be empty, permission was denied, or all entries were excluded.'
+        });
+        severityCounts.high += 1;
+        categories['scan-empty'] = { severity: 'high', findings: [findingsList[0]] };
+    }
     for (const f of findings || []) {
         const rule = f.rule || f.analyzer || 'finding';
         const severity = f.severity || 'medium';
@@ -76,7 +87,7 @@ function buildReport(projectName, findings, totalFiles, analyzedFiles) {
         categories,
         findings: findingsList,
         inventory: { totalFiles, totalFolders: 0, scannedFiles: analyzedFiles },
-        gate: { pass: findingsList.length === 0, score: findingsList.length === 0 ? 100 : 0 }
+        gate: { pass: findingsList.length === 0 && totalFiles > 0, score: findingsList.length === 0 && totalFiles > 0 ? 100 : 0 }
     };
 }
 /**
@@ -87,24 +98,28 @@ function buildReport(projectName, findings, totalFiles, analyzedFiles) {
  * @param {(processed:number, total:number) => void} [options.onProgress]
  * @param {FileSystemDirectoryHandle} [options.dirHandle] Optional directory handle from drag-and-drop.
  * @param {FileList|File[]} [options.files] Optional dropped files (legacy directory entry) to scan locally.
+ * @param {string} [options.projectPath] Optional display path/label to use as projectPath in the report.
  * @returns {Promise<Object>}
  */
 export async function runLocalScan(options = {}) {
     if (!options.files && !window.showDirectoryPicker && !options.dirHandle) {
         throw new Error('Your browser does not support the local directory picker. Use Chrome/Edge or run the server locally.');
     }
-    let projectName = 'local-project';
+    let projectName = options.projectPath || 'local-project';
     let files = [];
     if (options.files && options.files.length) {
         const fileArray = Array.from(options.files);
         const firstRel = fileArray[0].webkitRelativePath || fileArray[0].name || '';
-        projectName = firstRel.split('/')[0] || 'local-project';
+        projectName = options.projectPath || firstRel.split('/')[0] || 'local-project';
         files = fileArray.map((f) => ({ path: f.webkitRelativePath || f.name, handle: f }));
     }
     else {
         const dirHandle = options.dirHandle || await window.showDirectoryPicker();
-        projectName = dirHandle.name || 'local-project';
+        projectName = options.projectPath || dirHandle.name || 'local-project';
         files = await collectFiles(dirHandle);
+    }
+    if (files.length === 0) {
+        throw new Error(`No files were found in "${projectName}". The folder may be empty, permission was denied, or all files were excluded. Try selecting the folder again or use the local agent.`);
     }
     const workerFiles = files.map((f) => ({ path: f.path, fileObj: f.handle }));
     return new Promise((resolve, reject) => {
