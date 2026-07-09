@@ -6362,7 +6362,7 @@ export class AnalyzeView {
             if (fallbackPath && !/^[a-zA-Z]:[\\/]/i.test(fallbackPath)) {
                 showToast('Local paths cannot be scanned from the remote dashboard. Switching to the server project path.', 'info');
                 this.localMode = false;
-                this.saveAnalyzePrefs({ localMode: false, analysisType: this.analysisType, aiProvider: this.aiProvider, understandingMode: this.understandingMode });
+                saveAnalyzePrefs({ localMode: false, analysisType: this.analysisType, aiProvider: this.aiProvider, understandingMode: this.understandingMode });
                 this.syncAnalyzeModeUi(this._root);
                 return this.runPathAnalysis(fallbackPath);
             }
