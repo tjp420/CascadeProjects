@@ -1003,6 +1003,20 @@ async function startServer() {
   // Auth routes are always registered, even if phase 2 bootstrap partially failed
   app.use('/api/auth', authRoutes);
 
+  // Copy the bundled report shipped with the repo into the runtime .simplebeacon directory
+  // so the dashboard has data even though .simplebeacon/*.json is gitignored.
+  const bundledReportPath = path.join(__dirname, 'web', 'data', 'simplebeacon-report.json');
+  const activeReportPath = path.join(__dirname, '.simplebeacon', 'report.json');
+  try {
+    if (fs.existsSync(bundledReportPath) && !fs.existsSync(activeReportPath)) {
+      fs.mkdirSync(path.dirname(activeReportPath), { recursive: true });
+      fs.copyFileSync(bundledReportPath, activeReportPath);
+      console.log('[Server] Copied bundled report to', activeReportPath.replace(/\\/g, '/'));
+    }
+  } catch (reportCopyErr) {
+    console.warn('[Server] Could not copy bundled report:', reportCopyErr.message);
+  }
+
   // Fallback report endpoint for the dashboard when the real simplebeacon API is unavailable
   app.get('/api/simplebeacon/report', optionalAuthenticate, async (req, res) => {
     try {
