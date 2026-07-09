@@ -1,7 +1,7 @@
 import { showToast } from '../utils.js';
-const WORKER_URL = new URL('../workers/scan-worker.js?v=20260709noise2', import.meta.url);
+const WORKER_URL = new URL('../workers/scan-worker.js?v=20260709noise3', import.meta.url);
 const MAX_FILES = 50000;
-const SKIP_DIRS = /(^|[\\/])(node_modules|\.git|\.github|\.husky|dist|build|\.next|out|coverage|frontend-build|\.github-sync|github-cache|\.simplebeacon|\.cursor|\.windsurf|deployments|backups)([\\/]|$)/i;
+const SKIP_DIRS = /(^|[\\/])(node_modules|\.git|\.github|\.husky|dist|build|\.next|out|coverage|frontend-build|\.github-sync|github-cache|\.simplebeacon|\.cursor|\.windsurf|deployments|backups|\.vscode-test|\.vsix-patch-temp|logs|cache|\.cache|tmp|temp)([\\/]|$)/i;
 /**
  * Recursively collect FileSystemFileHandle entries from a directory handle.
  * @param {FileSystemDirectoryHandle} dirHandle

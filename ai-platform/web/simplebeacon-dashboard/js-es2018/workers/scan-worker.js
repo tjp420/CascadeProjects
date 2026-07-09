@@ -5,10 +5,10 @@
  * This version streams large files through a Rust/WebAssembly chunk analyzer (with a
  * pure-JS fallback) instead of loading the entire file into memory at once.
  */
-import { analyzeFileChunks, findingsToIssues } from './scan-wasm-bridge.js?v=20260709noise2';
+import { analyzeFileChunks, findingsToIssues } from './scan-wasm-bridge.js?v=20260709noise3';
 const MAX_DISCOVERED_FILES = 500000;
 const LARGE_FILE_THRESHOLD = 5 * 1024 * 1024; // 5 MB
-const BINARY_EXTENSIONS = /\.(exe|dll|bin|so|dylib|wasm|zip|tar|gz|tgz|bz2|7z|rar|iso|img|dmg|pkg|deb|msi|apk|ipa|woff|woff2|ttf|otf|eot|png|jpg|jpeg|gif|bmp|ico|webp|avif|svg|mp3|mp4|wav|avi|mov|mkv|webm|pdf|doc|docx|xls|xlsx|ppt|pptx|sqlite|db|lock|scx|scm|sc2map|sc2data|chk|mix|vxl|shp|tmp|mpq|w3x|w3m|nif|bik|ogv)$/i;
+const BINARY_EXTENSIONS = /\.(exe|dll|bin|so|dylib|wasm|zip|tar|gz|tgz|bz2|7z|rar|iso|img|dmg|pkg|deb|msi|apk|ipa|woff|woff2|ttf|otf|eot|png|jpg|jpeg|gif|bmp|ico|webp|avif|svg|mp3|mp4|wav|avi|mov|mkv|webm|pdf|doc|docx|xls|xlsx|ppt|pptx|sqlite|db|lock|scx|scm|sc2map|sc2data|chk|mix|vxl|shp|tmp|mpq|w3x|w3m|nif|bik|ogv|dat|vsix|pack|bundle|map)$/i;
 const LANGUAGE_REGISTRY = {
     javascript: { extensions: ['js', 'cjs', 'mjs', 'ts', 'tsx', 'jsx'] },
     python: { extensions: ['py', 'pyw', 'pyi'] },
@@ -124,7 +124,7 @@ function extractMatches(text, pattern, max = 3) {
 }
 function shouldSkipFile(path, deepScan) {
     const normalized = path.replace(/\\/g, '/');
-    if (/(^|[\/])(node_modules|\.git|\.github|\.husky|dist|build|\.next|out|coverage|frontend-build|\.github-sync|github-cache|\.simplebeacon|\.cursor|\.windsurf|deployments|backups)([\/]|$)/i.test(normalized))
+    if (/(^|[\/])(node_modules|\.git|\.github|\.husky|dist|build|\.next|out|coverage|frontend-build|\.github-sync|github-cache|\.simplebeacon|\.cursor|\.windsurf|deployments|backups|\.vscode-test|\.vsix-patch-temp|logs|cache|\.cache|tmp|temp)([\/]|$)/i.test(normalized))
         return true;
     if (!deepScan && /(^|[\/])(docs\/|doc\/|third_party\/|thirdparty\/|geedocs\/|mapfiles\/|vendor\/)/i.test(normalized))
         return true;
