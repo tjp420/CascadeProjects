@@ -26,6 +26,14 @@ if (fs.existsSync(envPath)) {
   }
 }
 
+// Production-safe defaults for auth env vars when Render (or other hosts) do not apply them.
+// These only apply when the variable is missing/empty; explicit values are preserved.
+if (String(process.env.NODE_ENV || '').toLowerCase() === 'production') {
+  if (!process.env.REQUIRE_AUTH) process.env.REQUIRE_AUTH = 'true';
+  if (!process.env.SEED_DEMO_USERS) process.env.SEED_DEMO_USERS = 'false';
+  if (!process.env.ALLOW_LEGACY_LOGIN) process.env.ALLOW_LEGACY_LOGIN = 'false';
+}
+
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 const http = require('http');

@@ -152,11 +152,19 @@ function assertProductionAuthSafety() {
     const nodeEnv = String(process.env.NODE_ENV || '').toLowerCase();
     if (nodeEnv !== 'production') return;
 
+    const requireAuth = String(process.env.REQUIRE_AUTH || '').trim();
+    const seedDemoUsers = String(process.env.SEED_DEMO_USERS || '').trim();
+    const allowLegacyLogin = String(process.env.ALLOW_LEGACY_LOGIN || '').trim();
+
     const violations = [];
-    if (process.env.REQUIRE_AUTH !== 'true') violations.push('REQUIRE_AUTH=true');
-    if (process.env.SEED_DEMO_USERS !== 'false') violations.push('SEED_DEMO_USERS=false');
-    if (process.env.ALLOW_LEGACY_LOGIN === 'true') {
-        violations.push('ALLOW_LEGACY_LOGIN must not be true');
+    if (requireAuth !== 'true') {
+        violations.push(`REQUIRE_AUTH=true (got ${JSON.stringify(process.env.REQUIRE_AUTH)})`);
+    }
+    if (seedDemoUsers !== 'false') {
+        violations.push(`SEED_DEMO_USERS=false (got ${JSON.stringify(process.env.SEED_DEMO_USERS)})`);
+    }
+    if (allowLegacyLogin === 'true') {
+        violations.push(`ALLOW_LEGACY_LOGIN must not be true (got ${JSON.stringify(process.env.ALLOW_LEGACY_LOGIN)})`);
     }
 
     if (!violations.length) return;
