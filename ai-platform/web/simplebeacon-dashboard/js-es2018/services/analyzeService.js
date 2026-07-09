@@ -1123,6 +1123,23 @@ export async function fetchZscriptModReport(projectPath, options = {}) {
  * @param {Object} options
  * @returns {any}
  */
+const _inventoryCache = new Map();
+const INVENTORY_CACHE_TTL_MS = 30000;
+function getInventoryCacheKey(projectPath, options) {
+    return `${projectPath}|${options.profile || 'all'}|${options.fullDirectoryScan ? '1' : '0'}`;
+}
+function getCachedInventory(projectPath, options) {
+    const key = getInventoryCacheKey(projectPath, options);
+    const entry = _inventoryCache.get(key);
+    if (entry && Date.now() - entry.ts < INVENTORY_CACHE_TTL_MS) {
+        return entry.inventory;
+    }
+    return undefined;
+}
+function setCachedInventory(projectPath, options, inventory) {
+    const key = getInventoryCacheKey(projectPath, options);
+    _inventoryCache.set(key, { inventory, ts: Date.now() });
+}
 export async function fetchRepositoryInventory(projectPath, options = {}) {
     const path = String(projectPath || '').trim();
     if (!path)
@@ -1132,12 +1149,19 @@ export async function fetchRepositoryInventory(projectPath, options = {}) {
     if (/^https?:\/\//i.test(path) && !isRemoteRepoUrl(path)) {
         throw new Error('Enter a folder path (not a file like .bat or .json) or a supported public repo URL');
     }
+    const cached = getCachedInventory(path, options);
+    if (cached !== undefined) {
+        return cached;
+    }
     // Local paths must be inventoried by the agent, not the remote server.
     if (isLocalPath(path)) {
         const agentStatus = await probeAgent();
         if (agentStatus.available && agentStatus.scannerAvailable) {
-            return fetchInventoryViaAgent(path, { fullDirectoryScan: options.fullDirectoryScan });
+            const inventory = await fetchInventoryViaAgent(path, { fullDirectoryScan: options.fullDirectoryScan });
+            setCachedInventory(path, options, inventory);
+            return inventory;
         }
+        setCachedInventory(path, options, null);
         return null;
     }
     const params = new URLSearchParams({
@@ -1155,8 +1179,11 @@ export async function fetchRepositoryInventory(projectPath, options = {}) {
             return null;
         throw new Error(data.error || 'Repository inventory failed');
     }
-    if (data.pathMissing || !data.inventory)
+    if (data.pathMissing || !data.inventory) {
+        setCachedInventory(path, options, null);
         return null;
+    }
+    setCachedInventory(path, options, data.inventory);
     return data.inventory;
 }
 let _inventoryInflight = null;

@@ -1,16 +1,16 @@
 {
   "type": "simplebeacon-report",
   "version": "1.0.0",
-  "generatedAt": "2026-07-09T15:31:55.192Z",
+  "generatedAt": "2026-07-09T16:05:25.996Z",
   "projectPath": "CascadeProjects",
   "projectRoot": "/opt/render/project/src/ai-platform/CascadeProjects",
   "summary": {
     "codeFilesAnalyzed": 64610,
-    "totalFindings": 5655,
+    "totalFindings": 5656,
     "severityCounts": {
       "critical": 2105,
       "high": 411,
-      "medium": 3139,
+      "medium": 3140,
       "low": 0,
       "info": 0
     }
@@ -21104,13 +21104,19 @@
         {
           "file": "CascadeProjects/ai-platform/server/services/phase2-auth-handlers.cjs",
           "line": 61,
-          "message": "2 debugArtifacts finding(s) detected",
+          "message": "3 debugArtifacts finding(s) detected",
           "severity": "medium"
         },
         {
           "file": "CascadeProjects/ai-platform/server/services/phase2-auth-handlers.cjs",
-          "line": 68,
-          "message": "2 debugArtifacts finding(s) detected",
+          "line": 72,
+          "message": "3 debugArtifacts finding(s) detected",
+          "severity": "medium"
+        },
+        {
+          "file": "CascadeProjects/ai-platform/server/services/phase2-auth-handlers.cjs",
+          "line": 79,
+          "message": "3 debugArtifacts finding(s) detected",
           "severity": "medium"
         },
         {
@@ -46179,14 +46185,21 @@
       "file": "CascadeProjects/ai-platform/server/services/phase2-auth-handlers.cjs",
       "line": 61,
       "severity": "medium",
-      "message": "2 debugArtifacts finding(s) detected"
+      "message": "3 debugArtifacts finding(s) detected"
     },
     {
       "category": "debugArtifacts",
       "file": "CascadeProjects/ai-platform/server/services/phase2-auth-handlers.cjs",
-      "line": 68,
+      "line": 72,
       "severity": "medium",
-      "message": "2 debugArtifacts finding(s) detected"
+      "message": "3 debugArtifacts finding(s) detected"
+    },
+    {
+      "category": "debugArtifacts",
+      "file": "CascadeProjects/ai-platform/server/services/phase2-auth-handlers.cjs",
+      "line": 79,
+      "severity": "medium",
+      "message": "3 debugArtifacts finding(s) detected"
     },
     {
       "category": "debugArtifacts",
@@ -73582,9 +73595,9 @@
   "platformRoot": "/opt/render/project/src/ai-platform",
   "scanTargetRoot": "/opt/render/project/src/ai-platform/CascadeProjects",
   "repositoryInventory": {
-    "totalFiles": 1944,
-    "totalFolders": 217,
+    "totalFiles": 7158,
+    "totalFolders": 1497,
     "projectRoot": "/opt/render/project/src/ai-platform/CascadeProjects",
-    "profile": "explorer"
+    "profile": "all"
   }
 }
