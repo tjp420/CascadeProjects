@@ -209,12 +209,17 @@ function resolveDefaultAllowedRoots(platformRoot, options = {}) {
     chain.push(tmpGitCache);
 
     // Render deployment fallback: allow the standard Render project checkout root
-    // when the platform directory is located inside it.
+    // when the platform directory is located inside it, and also allow the Render
+    // working directory root so users can scan projects placed directly under /opt/render.
     if (process.env.RENDER === 'true' || platform.includes('/opt/render/project/src/')) {
         const renderProjectRoot = path.resolve('/opt/render/project/src');
         const platformParent = path.resolve(path.join(platform, '..'));
         if (platformParent.startsWith(renderProjectRoot) && fs.existsSync(platformParent)) {
             chain.push(platformParent);
+        }
+        const renderRoot = path.resolve('/opt/render');
+        if (platform.startsWith(renderRoot) && fs.existsSync(renderRoot)) {
+            chain.push(renderRoot);
         }
     }
 

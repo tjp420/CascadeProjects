@@ -25,6 +25,7 @@ import { ChatbotView } from './views/ChatbotView.js';
 import { UploadView } from './views/UploadView.js';
 import { RemediationRoadmapView } from './views/RemediationRoadmapView.js';
 import { ProfileView } from './views/ProfileView.js';
+import { CodeMapView } from './views/CodeMapView.js';
 import { BillingLandingController } from './controllers/billingLanding.js';
 import { COMING_SOON_URL } from './config.js';
 import { shouldShowOnboarding, renderOnboarding, bindOnboarding } from './components/Onboarding.js';
@@ -154,6 +155,7 @@ class SimplebeaconDashboard {
             upload: new UploadView(this),
             remediation: new RemediationRoadmapView(this),
             profile: new ProfileView(this),
+            'code-map': new CodeMapView(this),
             'billing-success': new BillingLandingController(this),
             'billing-cancel': new BillingLandingController(this)
         };

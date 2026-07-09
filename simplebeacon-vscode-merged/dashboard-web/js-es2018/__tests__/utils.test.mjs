@@ -3,8 +3,8 @@ import assert from 'node:assert';
 
 import Utils, {
   compose, pipe, zipWith, curry, partial, tap,
-  parseJsonSafe, parseResponseJson,
-  getExportNames, getNamespaceNames, validateBarrelIntegrity, __barrel__,
+  parseJsonSafe, parseResponseJson, stringifySafe,
+  getExportNames, exportNames, getNamespaceNames, validateBarrelIntegrity, __barrel__,
   flatten, range, groupBy, partition
 } from '../utils.js';
 
@@ -28,8 +28,12 @@ describe('dashboard-web/js-es2018/utils.js', () => {
     assert.ok(names.includes('parseJsonSafe'));
     assert.ok(names.includes('parseResponseJson'));
     assert.ok(names.includes('getExportNames'));
+    assert.ok(names.includes('exportNames'));
+    assert.ok(names.includes('getNamespaceNames'));
     assert.ok(names.includes('validateBarrelIntegrity'));
+    assert.ok(names.includes('setDefaultBarrel'));
     assert.ok(names.includes('__barrel__'));
+    assert.ok(names.includes('stringifySafe'));
   });
 
   it('__barrel__ metadata has all required fields', () => {
@@ -46,10 +50,10 @@ describe('dashboard-web/js-es2018/utils.js', () => {
     assert.strictEqual(Utils.__barrel__, __barrel__);
   });
 
-  it('getNamespaceNames returns frozen array with 13 namespaces including inline', () => {
+  it('getNamespaceNames returns frozen array with 15 namespaces including inline', () => {
     const names = getNamespaceNames();
     assert.ok(Array.isArray(names));
-    assert.strictEqual(names.length, 13);
+    assert.strictEqual(names.length, 15);
     assert.ok(names.includes('inline'));
     assert.strictEqual(Object.isFrozen(names), true);
   });
@@ -69,11 +73,12 @@ describe('dashboard-web/js-es2018/utils.js', () => {
     assert.strictEqual(typeof Utils.inline.tap, 'function');
     assert.strictEqual(typeof Utils.inline.parseJsonSafe, 'function');
     assert.strictEqual(typeof Utils.inline.parseResponseJson, 'function');
+    assert.strictEqual(typeof Utils.inline.stringifySafe, 'function');
   });
 
   it('__barrel__ has correct moduleCount and namespaceCount', () => {
-    assert.strictEqual(__barrel__.moduleCount, 13);
-    assert.strictEqual(__barrel__.namespaceCount, 13);
+    assert.strictEqual(__barrel__.moduleCount, 15);
+    assert.strictEqual(__barrel__.namespaceCount, 15);
   });
 
   it('validateBarrelIntegrity passes', () => {
@@ -136,6 +141,17 @@ describe('dashboard-web/js-es2018/utils.js', () => {
     const [even, odd] = partition([1, 2, 3, 4], (x) => x % 2 === 0);
     assert.deepStrictEqual(even, [2, 4]);
     assert.deepStrictEqual(odd, [1, 3]);
+  });
+
+  it('stringifySafe is a flat named export', () => {
+    assert.strictEqual(typeof stringifySafe, 'function');
+    assert.strictEqual(stringifySafe({ a: 1 }), '{"a":1}');
+    assert.strictEqual(stringifySafe({ toJSON() { throw new Error('bad'); } }), null);
+  });
+
+  it('exportNames aliases getExportNames', () => {
+    assert.strictEqual(typeof exportNames, 'function');
+    assert.deepStrictEqual(exportNames(), getExportNames());
   });
 });
 

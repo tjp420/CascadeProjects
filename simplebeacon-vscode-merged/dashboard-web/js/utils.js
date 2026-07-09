@@ -33,6 +33,8 @@ function _getDefaultExport() {
   if (!_defaultExport) {
     _defaultExport = Object.freeze({
       ...UpstreamDefault,
+      getFacadeMeta,
+      __barrel__: UpstreamDefault.__barrel__,
       __facade__: getFacadeMeta()
     });
   }

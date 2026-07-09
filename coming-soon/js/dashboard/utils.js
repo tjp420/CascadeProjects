@@ -48,7 +48,7 @@ function showHashRibbon(elementId, valueId, text) {
     const ribbon = document.getElementById(elementId);
     const value = document.getElementById(valueId);
     if (ribbon && value) {
-        value.textContent = 'sha256-' + text;
+        value.textContent = "sha256-" + text;
         ribbon.style.display = 'flex';
     }
 }

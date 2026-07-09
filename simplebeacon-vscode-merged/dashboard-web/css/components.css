@@ -3785,9 +3785,16 @@ button.tool-card.help-page-card:hover {
 .about-install-block code {
   display: block;
   padding: var(--space-3) var(--space-4);
-  background: var(--bg-elevated, rgba(0, 0, 0, 0.25));
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: var(--radius-md);
   font-size: var(--font-size-sm);
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .about-install-block code {
+  background: var(--surface-elevated);
+  border-color: var(--border);
 }
 
 .about-hero-actions {
@@ -3816,10 +3823,17 @@ button.tool-card.help-page-card:hover {
 .about-code {
   overflow-x: auto;
   padding: var(--space-4);
-  background: var(--bg-elevated, rgba(0, 0, 0, 0.25));
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: var(--radius-md);
   font-size: var(--font-size-xs);
   line-height: 1.5;
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .about-code {
+  background: var(--surface-elevated);
+  border-color: var(--border);
 }
 
 .about-bench {

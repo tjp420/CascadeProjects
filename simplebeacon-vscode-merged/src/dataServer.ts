@@ -379,6 +379,14 @@ const SIGNIN_MODAL_SCRIPT = `<script>
     if (ev.data && ev.data.command === 'getAuthState') {
       try { postAuthState(hasAnyToken(), ''); } catch(e) {}
     }
+    if (ev.data && ev.data.command === 'setAuthState' && ev.data.signedIn === false) {
+      clearToken();
+      try { postAuthState(false, ev.data.tier || ''); } catch(e) {}
+    }
+    if (ev.data && ev.data.command === 'signOut') {
+      clearToken();
+      try { postAuthState(false, ev.data.tier || ''); } catch(e) {}
+    }
   });
 })();
 </script>`;
@@ -1012,6 +1020,9 @@ function buildChatbotPrompt(message: string, conversationHistory: any[], data: a
   }
   if (Array.isArray(data.findings) && data.findings.length > 0) {
     contextParts.push('Attached findings:\n' + data.findings.map((f: any) => `- [${f.severity || 'unknown'}] ${f.type || 'issue'}: ${f.description || 'No description'}`).join('\n'));
+  }
+  if (data.username && typeof data.username === 'string') {
+    contextParts.push(`Address the user as "${data.username}" when greeting or referring to them.`);
   }
   const personality = data.personality || 'helpful';
   let systemPrompt: string;
@@ -3575,6 +3586,14 @@ body{font-family:system-ui,-apple-system,sans-serif;margin:0;padding:40px;backgr
             'simplebeacon.openAnalyze', 'simplebeacon.showReport', 'simplebeacon.generateCertificate',
             'simplebeacon.showRemediationGuide', 'simplebeacon.openSidebarInBrowser',
             'simplebeacon.openTeamDashboard', 'simplebeacon.showCertificate',
+            // Sidebar pane commands forwarded from browser preview
+            'simplebeacon.openDashboard', 'simplebeacon.openAnalyze', 'simplebeacon.openReport',
+            'simplebeacon.openSecurityPane', 'simplebeacon.openTrustPane', 'simplebeacon.openQualityPane',
+            'simplebeacon.openAuditPane', 'simplebeacon.openCompliancePane', 'simplebeacon.openAnalyticsPane',
+            'simplebeacon.openRepoHealthPane', 'simplebeacon.openTeamPane', 'simplebeacon.openCertificate',
+            'simplebeacon.openCodeMap', 'simplebeacon.showCodeMap', 'simplebeacon.openUploadPane',
+            'simplebeacon.showAiContextPane', 'simplebeacon.openRoadmap', 'simplebeacon.openAssessmentsPane',
+            'simplebeacon.openPlatformPane', 'simplebeacon.openProfilePane', 'simplebeacon.openScanPane',
             // Sign-in UI commands forwarded from browser preview sidebar
             'simplebeacon.signIn', 'simplebeacon.signInWithProvider', 'simplebeacon.signOut',
           ]);
@@ -3582,6 +3601,28 @@ body{font-family:system-ui,-apple-system,sans-serif;margin:0;padding:40px;backgr
             'scan': 'simplebeacon.scanWorkspace',
             'scanWorkspace': 'simplebeacon.scanWorkspace',
             'openScanWorkspace': 'simplebeacon.scanWorkspace',
+            // Sidebar pane names from browser preview → registered VS Code: commands
+            'showDashboardPane': 'simplebeacon.openDashboard',
+            'showAnalyzePane': 'simplebeacon.openAnalyze',
+            'showReportPane': 'simplebeacon.openReport',
+            'showSecurityPane': 'simplebeacon.openSecurityPane',
+            'showTrustPane': 'simplebeacon.openTrustPane',
+            'showQualityPane': 'simplebeacon.openQualityPane',
+            'showAuditPane': 'simplebeacon.openAuditPane',
+            'showCompliancePane': 'simplebeacon.openCompliancePane',
+            'showAnalyticsPane': 'simplebeacon.openAnalyticsPane',
+            'showSettingsPane': 'simplebeacon.openSettings',
+            'showRepoHealthPane': 'simplebeacon.openRepoHealthPane',
+            'showTeamPane': 'simplebeacon.openTeamPane',
+            'showCertificatePane': 'simplebeacon.openCertificate',
+            'showCodeMapPane': 'simplebeacon.openCodeMap',
+            'showUploadPane': 'simplebeacon.openUploadPane',
+            'showAiContextPane': 'simplebeacon.showAiContextPane',
+            'showRoadmapPane': 'simplebeacon.openRoadmap',
+            'showAssessmentsPane': 'simplebeacon.openAssessmentsPane',
+            'showPlatformPane': 'simplebeacon.openPlatformPane',
+            'showProfilePane': 'simplebeacon.openProfilePane',
+            'showScanPane': 'simplebeacon.openScanPane',
           };
           const rawCmd = msg.command;
           const cmd = commandAliasMap[rawCmd] || rawCmd;

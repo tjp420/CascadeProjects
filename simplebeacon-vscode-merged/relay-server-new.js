@@ -54,21 +54,21 @@ iframe{width:100%;height:100%;border:none;display:block}
       <div class="sidebar-link" data-command="showTrustPane"><span class="icon">&#x1F91D;</span> Trust</div>
       <div class="sidebar-link" data-command="showQualityPane"><span class="icon">&#x2696;</span> Quality</div>
       <div class="sidebar-link" data-command="showAuditPane"><span class="icon">&#x1F4CB;</span> Audit</div>
-      <div class="sidebar-link" data-command="showCompliancePane"><span class="icon">&#x1F4D1;</span> Compliance</div>
-      <div class="sidebar-link" data-command="showAnalyticsPane"><span class="icon">&#x1F4C8;</span> Analytics</div>
+      <div class="sidebar-link dashboard" data-command="showCompliancePane"><span class="icon">&#x1F4D1;</span> Compliance</div>
+      <div class="sidebar-link dashboard" data-command="showAnalyticsPane"><span class="icon">&#x1F4C8;</span> Analytics</div>
     </div>
     <div class="sidebar-section"><div class="sidebar-heading">Management</div>
       <div class="sidebar-link" data-command="showSettingsPane"><span class="icon">&#x2699;</span> Settings</div>
-      <div class="sidebar-link" data-command="showRepoHealthPane"><span class="icon">&#x1F3E0;</span> Repo Health</div>
-      <div class="sidebar-link" data-command="showTeamPane"><span class="icon">&#x1F465;</span> Team</div>
-      <div class="sidebar-link" data-command="showCertificatePane"><span class="icon">&#x1F3C6;</span> Certificate</div>
+      <div class="sidebar-link dashboard" data-command="showRepoHealthPane"><span class="icon">&#x1F3E0;</span> Repo Health</div>
+      <div class="sidebar-link dashboard" data-command="showTeamPane"><span class="icon">&#x1F465;</span> Team</div>
+      <div class="sidebar-link dashboard" data-command="showCertificatePane"><span class="icon">&#x1F3C6;</span> Certificate</div>
     </div>
     <div class="sidebar-section"><div class="sidebar-heading">Tools</div>
-      <div class="sidebar-link" data-command="showCodeMapPane"><span class="icon">&#x1F5FA;</span> Code Map</div>
+      <div class="sidebar-link dashboard" data-command="showCodeMapPane"><span class="icon">&#x1F5FA;</span> Code Map</div>
       <div class="sidebar-link" data-command="showUploadPane"><span class="icon">&#x1F4E4;</span> Upload</div>
-      <div class="sidebar-link" data-command="showAiContextPane"><span class="icon">&#x1F916;</span> AI Context</div>
-      <div class="sidebar-link" data-command="showRoadmapPane"><span class="icon">&#x1F6E4;</span> Roadmap</div>
-      <div class="sidebar-link" data-command="showScanPane"><span class="icon">&#x1F50D;</span> Scan</div>
+      <div class="sidebar-link dashboard" data-command="showAiContextPane"><span class="icon">&#x1F916;</span> AI Context</div>
+      <div class="sidebar-link dashboard" data-command="showRoadmapPane"><span class="icon">&#x1F6E4;</span> Roadmap</div>
+      <div class="sidebar-link dashboard" data-command="showScanPane"><span class="icon">&#x1F50D;</span> Scan</div>
     </div>
     <div class="sidebar-section"><div class="sidebar-heading">Account</div>
       <div class="sidebar-link" data-command="signIn"><span class="icon">&#x1F512;</span> Sign In</div>

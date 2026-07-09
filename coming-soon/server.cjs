@@ -114,7 +114,7 @@ app.use((req, res, next) => {
     res.setHeader('X-XSS-Protection', '1; mode=block');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     const SCANNER_BRIDGE_PORT = 3456;
-    const LOCAL_PORTS = [DEFAULT_PORT, 3000, 3002, 8080, 5000, 54800, 54358, 38000, 50559];
+    const LOCAL_PORTS = [DEFAULT_PORT, 3000, 3002, 8080, 5000, 54800, 54358, 38000, 50559, 11434];
     const localConnectOrigins = LOCAL_PORTS.flatMap(p => ['http://127.0.0.1:' + p, 'http://localhost:' + p]).join(' ');
     // Render backend and any other Render service the dashboard may call
     const renderOrigins = 'https://simplebeacon.onrender.com https://*.onrender.com';
@@ -997,6 +997,14 @@ app.get('/api/metrics/path-health', (_req, res) => {
 });
 
 // ── Dashboard stub endpoints (prevent 404 noise from AnalyzeView) ──
+app.get('/api/simplebeacon/audit', (_req, res) => res.json({
+    success: true,
+    generatedAt: new Date().toISOString(),
+    assessment: { score: 100, status: 'ok', findings: [] },
+    npmAudit: { vulnerabilities: { info: 0, low: 0, moderate: 0, high: 0, critical: 0 } },
+    pageSamples: { fictionPatterns: {}, qualityMetrics: {}, baselineComparison: {} }
+}));
+app.get('/api/prompts/get', (req, res) => res.json({ prompts: [], userId: req.query.userId || 'anonymous' }));
 app.get('/api/auth/me', (_req, res) => res.json({ authenticated: false, user: null }));
 app.get('/api/platform/status', (_req, res) => res.json({ online: true, status: 'ok', version: '1.3.0' }));
 app.get('/api/dashboard-home', (_req, res) => res.json({ sections: [], widgets: [], user: null }));

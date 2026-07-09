@@ -764,6 +764,18 @@ function setupSimplebeaconAPI(app, options = {}) {
     try {
       const email = req.user?.email;
       if (!email) {
+        // Debug log to diagnose why optionalAuthenticate did not set req.user on production
+        const authHeader = req.headers.authorization || '';
+        const hasBearer = authHeader.toLowerCase().startsWith('bearer ');
+        console.warn('[PUT /api/simplebeacon/user/ai-keys] Auth failed: missing req.user.email', {
+          hasAuthorizationHeader: Boolean(authHeader),
+          hasBearerPrefix: hasBearer,
+          userSet: Boolean(req.user),
+          userEmail: req.user?.email || null,
+          method: req.method,
+          path: req.path,
+          ip: req.ip || req.connection?.remoteAddress || null
+        });
         return res.status(401).json({ success: false, error: 'Authentication required' });
       }
       const body = req.body && typeof req.body === 'object' ? req.body : {};
@@ -784,6 +796,44 @@ function setupSimplebeaconAPI(app, options = {}) {
       res.json({ success: true, ...keys });
     } catch (err) {
       res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // Server-side proxy for Ollama so the HTTPS dashboard avoids mixed-content CORS issues
+  // with direct http://127.0.0.1:11434 calls from the browser.
+  const OLLAMA_ALLOWED_HOSTS = new Set(['127.0.0.1', 'localhost']);
+  app.get('/api/simplebeacon/ollama/models', async (req, res) => {
+    try {
+      const baseUrl = String(req.query.baseUrl || 'http://127.0.0.1:11434').trim();
+      let parsed;
+      try {
+        parsed = new URL(baseUrl);
+      } catch {
+        return res.status(400).json({ success: false, error: 'Invalid Ollama base URL' });
+      }
+      if (!OLLAMA_ALLOWED_HOSTS.has(parsed.hostname)) {
+        return res.status(400).json({ success: false, error: 'Ollama base URL must be localhost or 127.0.0.1' });
+      }
+      const targetUrl = `${baseUrl.replace(/\/$/, '')}/api/tags`;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+      let response;
+      try {
+        response = await fetch(targetUrl, {
+          method: 'GET',
+          signal: controller.signal,
+          headers: { Accept: 'application/json' }
+        });
+      } finally {
+        clearTimeout(timeout);
+      }
+      const data = await response.text();
+      res.status(response.status)
+        .set('Content-Type', response.headers.get('content-type') || 'application/json')
+        .send(data);
+    } catch (err) {
+      console.warn('[GET /api/simplebeacon/ollama/models] Proxy failed:', err.message);
+      res.status(502).json({ success: false, error: 'Ollama unreachable', message: err.message });
     }
   });
 

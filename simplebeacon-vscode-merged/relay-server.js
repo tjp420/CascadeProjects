@@ -72,21 +72,21 @@ iframe{width:100%;height:100%;border:none;display:block}
       <div class="sidebar-link" data-command="showTrustPane"><span class="icon">&#x1F91D;</span> Trust</div>
       <div class="sidebar-link" data-command="showQualityPane"><span class="icon">&#x2696;</span> Quality</div>
       <div class="sidebar-link" data-command="showAuditPane"><span class="icon">&#x1F4CB;</span> Audit</div>
-      <div class="sidebar-link" data-command="showCompliancePane"><span class="icon">&#x1F4D1;</span> Compliance</div>
-      <div class="sidebar-link" data-command="showAnalyticsPane"><span class="icon">&#x1F4C8;</span> Analytics</div>
+      <div class="sidebar-link dashboard" data-command="showCompliancePane"><span class="icon">&#x1F4D1;</span> Compliance</div>
+      <div class="sidebar-link dashboard" data-command="showAnalyticsPane"><span class="icon">&#x1F4C8;</span> Analytics</div>
     </div>
     <div class="sidebar-section"><div class="sidebar-heading">Management</div>
       <div class="sidebar-link" data-command="showSettingsPane"><span class="icon">&#x2699;</span> Settings</div>
-      <div class="sidebar-link" data-command="showRepoHealthPane"><span class="icon">&#x1F3E0;</span> Repo Health</div>
-      <div class="sidebar-link" data-command="showTeamPane"><span class="icon">&#x1F465;</span> Team</div>
-      <div class="sidebar-link" data-command="showCertificatePane"><span class="icon">&#x1F3C6;</span> Certificate</div>
+      <div class="sidebar-link dashboard" data-command="showRepoHealthPane"><span class="icon">&#x1F3E0;</span> Repo Health</div>
+      <div class="sidebar-link dashboard" data-command="showTeamPane"><span class="icon">&#x1F465;</span> Team</div>
+      <div class="sidebar-link dashboard" data-command="showCertificatePane"><span class="icon">&#x1F3C6;</span> Certificate</div>
     </div>
     <div class="sidebar-section"><div class="sidebar-heading">Tools</div>
-      <div class="sidebar-link" data-command="showCodeMapPane"><span class="icon">&#x1F5FA;</span> Code Map</div>
+      <div class="sidebar-link dashboard" data-command="showCodeMapPane"><span class="icon">&#x1F5FA;</span> Code Map</div>
       <div class="sidebar-link" data-command="showUploadPane"><span class="icon">&#x1F4E4;</span> Upload</div>
-      <div class="sidebar-link" data-command="showAiContextPane"><span class="icon">&#x1F916;</span> AI Context</div>
-      <div class="sidebar-link" data-command="showRoadmapPane"><span class="icon">&#x1F6E4;</span> Roadmap</div>
-      <div class="sidebar-link" data-command="showScanPane"><span class="icon">&#x1F50D;</span> Scan</div>
+      <div class="sidebar-link dashboard" data-command="showAiContextPane"><span class="icon">&#x1F916;</span> AI Context</div>
+      <div class="sidebar-link dashboard" data-command="showRoadmapPane"><span class="icon">&#x1F6E4;</span> Roadmap</div>
+      <div class="sidebar-link dashboard" data-command="showScanPane"><span class="icon">&#x1F50D;</span> Scan</div>
     </div>
     <div class="sidebar-section"><div class="sidebar-heading">Account</div>
       <div class="sidebar-link" data-command="signIn"><span class="icon">&#x1F512;</span> Sign In</div>
@@ -131,35 +131,61 @@ iframe{width:100%;height:100%;border:none;display:block}
     window.addEventListener('blur', stopDrag);
   });
 
-  // Map sidebar commands to page URLs for iframe navigation
+  // Map sidebar commands to page URLs for iframe navigation.
+  // Routes must match the dashboard SPA router (see dashboard-web/js/router.js or ai-platform router.js).
+  // The data server redirects /simplebeacon-dashboard/* to /dashboard/*, so use /dashboard paths directly.
   const cmdToPage = {
-    showDashboardPane: '/simplebeacon-dashboard/#/dashboard',
-    showAnalyzePane: '/simplebeacon-dashboard/#/analyze',
-    showReportPane: '/simplebeacon-dashboard/#/report',
-    showSecurityPane: '/simplebeacon-dashboard/#/security',
-    showTrustPane: '/simplebeacon-dashboard/#/trust',
-    showQualityPane: '/simplebeacon-dashboard/#/quality',
-    showAuditPane: '/simplebeacon-dashboard/#/audit',
-    showCompliancePane: '/simplebeacon-dashboard/#/compliance',
-    showAnalyticsPane: '/simplebeacon-dashboard/#/analytics',
-    showSettingsPane: '/simplebeacon-dashboard/#/settings',
-    showRepoHealthPane: '/simplebeacon-dashboard/#/repoHealth',
-    showTeamPane: '/simplebeacon-dashboard/#/team',
-    showCertificatePane: '/simplebeacon-dashboard/#/certificate',
-    showCodeMapPane: '/codemap',
-    showUploadPane: '/simplebeacon-dashboard/#/upload',
-    showAiContextPane: '/simplebeacon-dashboard/#/aiContext',
-    showRoadmapPane: '/simplebeacon-dashboard/#/roadmap',
-    showScanPane: '/simplebeacon-dashboard/#/scan'
+    showDashboardPane: '/dashboard/#/dashboard',
+    showAnalyzePane: '/dashboard/#/analyze',
+    showReportPane: '/dashboard/#/results',
+    showSecurityPane: '/dashboard/#/security',
+    showTrustPane: '/dashboard/#/trust',
+    showQualityPane: '/dashboard/#/quality',
+    showAuditPane: '/dashboard/#/audit',
+    showCompliancePane: '/dashboard/#/audit',
+    showAnalyticsPane: '/dashboard/#/platform',
+    showSettingsPane: '/dashboard/#/settings',
+    showRepoHealthPane: '/dashboard/#/repository-health',
+    showTeamPane: '/dashboard/#/platform',
+    showCertificatePane: '/dashboard/#/profile',
+    showCodeMapPane: '/dashboard/#/code-map',
+    showUploadPane: '/dashboard/#/upload',
+    showAiContextPane: '/dashboard/#/chatbot',
+    showRoadmapPane: '/dashboard/#/remediation',
+    showScanPane: '/dashboard/#/analyze',
+    showAssessmentsPane: '/dashboard/#/assessments',
+    showPlatformPane: '/dashboard/#/platform'
+  };
+  const showPaneToIde = {
+    showDashboardPane: 'openDashboard',
+    showAnalyzePane: 'openAnalyze',
+    showReportPane: 'openReport',
+    showSecurityPane: 'openSecurity',
+    showTrustPane: 'openTrust',
+    showQualityPane: 'openQuality',
+    showAuditPane: 'openAudit',
+    showCompliancePane: 'openCompliance',
+    showAnalyticsPane: 'openAnalytics',
+    showSettingsPane: 'openSettings',
+    showRepoHealthPane: 'openRepoHealth',
+    showTeamPane: 'openTeam',
+    showCertificatePane: 'openCertificate',
+    showCodeMapPane: 'openCodeMap',
+    showUploadPane: 'openUpload',
+    showAiContextPane: 'openAiContext',
+    showRoadmapPane: 'openRoadmap',
+    showScanPane: 'openScan'
   };
   document.querySelectorAll('.sidebar-link[data-command]').forEach(function(link){
     link.addEventListener('click', function(){
       const cmd = link.dataset.command;
+      // Convert show*Pane commands to the IDE-compatible open* commands
+      const ideCmd = showPaneToIde[cmd] || cmd;
       // Send command to relay server so IDE can execute it
       fetch('/api/command', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({command: cmd, source: 'browser-preview'})
+        body: JSON.stringify({command: ideCmd, source: 'browser-preview'})
       }).catch(function(){});
       // Navigate iframe if this command maps to a page
       const pageUrl = cmdToPage[cmd];
@@ -168,7 +194,7 @@ iframe{width:100%;height:100%;border:none;display:block}
       }
       // For signIn, always navigate to signin page
       if(cmd === 'signIn'){
-        mainIframe.src = '/simplebeacon-dashboard/?ide-preview=true&force=1#/signin';
+        mainIframe.src = '/dashboard/?ide-preview=true&force=1#/signin';
       }
       document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
       link.classList.add('active');
@@ -177,14 +203,15 @@ iframe{width:100%;height:100%;border:none;display:block}
   // Listen for messages from iframe (e.g., from sidebar HTML vscode mock)
   window.addEventListener('message', function(ev){
     if(!ev.data || !ev.data.command) return;
+    const cmd = ev.data.command;
     // Forward to relay server
     fetch('/api/command', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({command: ev.data.command, source: 'iframe-proxy', data: ev.data})
+      body: JSON.stringify({command: cmd, source: 'iframe-proxy', data: ev.data})
     }).catch(function(){});
     // Handle openBrowserTab from iframe
-    if(ev.data.command === 'openBrowserTab' && ev.data.url){
+    if(cmd === 'openBrowserTab' && ev.data.url){
       mainIframe.src = ev.data.url;
     }
   });
@@ -375,7 +402,9 @@ const server = http.createServer((req, res) => {
   }
 
   // Proxy dashboard and upload pages to the actual API server
-  if (parsed.pathname.startsWith('/simplebeacon-dashboard/') || parsed.pathname === '/simplebeacon-dashboard' || parsed.pathname === '/certificate-upload.html' || parsed.pathname === '/audit.html') {
+  const isDashboardPath = parsed.pathname.startsWith('/simplebeacon-dashboard/') || parsed.pathname === '/simplebeacon-dashboard' ||
+    parsed.pathname.startsWith('/dashboard/') || parsed.pathname === '/dashboard';
+  if (isDashboardPath || parsed.pathname === '/certificate-upload.html' || parsed.pathname === '/audit.html') {
     try {
       const apiParsed = url.parse(API_URL);
       const proxyPort = apiParsed.port || (apiParsed.protocol === 'https:' ? 443 : 80);
@@ -390,7 +419,7 @@ const server = http.createServer((req, res) => {
         const status = proxyRes.statusCode || 200;
         // SPA fallback: if API server doesn't have the dashboard file, serve the dashboard SPA
         // so the client-side router can handle the hash route
-        if (status === 404 && (parsed.pathname.startsWith('/simplebeacon-dashboard/') || parsed.pathname === '/simplebeacon-dashboard')) {
+        if (status === 404 && isDashboardPath) {
           const sidebarPath = path.join(__dirname, 'sidebar.html');
           if (fs.existsSync(sidebarPath)) {
             res.writeHead(200, { 'Content-Type': 'text/html' });

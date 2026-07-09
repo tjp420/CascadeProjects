@@ -195,6 +195,8 @@ export function isValidUrl(url: string): boolean;
 
 export function assertNever(value: never, message?: string): never;
 export function parseJsonSafe<T>(json: string, fallback?: T): T | undefined;
+export function parseResponseJson<T>(res: Response, fallback?: T): Promise<T>;
+export function stringifySafe<T>(value: any, fallback?: T): string | T;
 export function prefersReducedMotion(): boolean;
 export function prefersDarkMode(): boolean;
 export function isEqual(a: any, b: any): boolean;
@@ -204,7 +206,11 @@ export function findIndex<T>(arr: T[], predicate: (item: T) => boolean): number;
 // ── Barrel helpers ─────────────────────────────────────────────
 
 export function getExportNames(): ReadonlyArray<string>;
+export const exportNames: typeof getExportNames;
+export function getNamespaceNames(): ReadonlyArray<string>;
 export function validateBarrelIntegrity(barrel?: BarrelMeta | null): IntegrityResult;
+export function setDefaultBarrel(barrel: BarrelMeta | null): void;
+export function getBarrelMeta(): BarrelMeta;
 export function deepFreeze<T>(obj: T): T;
 export const __barrel__: BarrelMeta;
 
@@ -223,6 +229,9 @@ declare const Utils: Readonly<{
   storage: typeof import('./utils/storage.js');
   url: typeof import('./utils/url.js');
   misc: typeof import('./utils/misc.js');
+  safeStorage: typeof import('./utils/safe-storage.js');
+  eventBus: typeof import('./utils/event-bus.js');
+  inline: Readonly<Record<string, any>>;
   __barrel__: BarrelMeta;
 }>;
 

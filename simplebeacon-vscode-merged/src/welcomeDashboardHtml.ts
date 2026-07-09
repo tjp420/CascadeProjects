@@ -1123,6 +1123,7 @@ body{font-family:var(--vscode-font-family,'Segoe UI',sans-serif);background:var(
     <label class="welcome-checkbox"><input type="checkbox" id="showWelcomeCheckbox" ${showWelcomeChecked} /><span>Show this screen every time AI Slop Cop loads</span></label>
   </div>
 </div>
+</div>
 <div class="pane" id="dashboardPane">
   <div class="db-container">
     <div class="db-hero">
@@ -3633,10 +3634,13 @@ if (vscode && typeof window.acquireVsCodeApi === 'function') {
 function addTab(label, paneId) {
   const bar = document.getElementById('tabBar');
   const barLeft = document.getElementById('tabBarLeft');
-  if (!bar) return;
+  if (!bar) { console.warn('[SB addTab] tabBar not found'); return; }
   const container = barLeft || bar;
   const existing = container.querySelector('[data-pane="' + paneId + '"]');
-  if (existing) { activateTab(paneId); return; }
+  if (existing) { // simplebeacon-ignore console-log — diagnostic
+    console.log('[SB addTab] existing tab, activating:', paneId); activateTab(paneId); return; }
+  // simplebeacon-ignore console-log — diagnostic
+  console.log('[SB addTab] creating tab:', label, paneId);
   const tab = document.createElement('div');
   tab.className = 'tab';
   tab.dataset.pane = paneId;
@@ -3649,16 +3653,35 @@ function addTab(label, paneId) {
   tabClose.textContent = '×';
   tab.appendChild(tabLabel);
   tab.appendChild(tabClose);
-  tabLabel.addEventListener('click', () => activateTab(paneId));
-  tabClose.addEventListener('click', (e) => { e.stopPropagation(); if (paneId === 'welcomePane') return; tab.remove(); const p = document.getElementById(paneId); if (p) p.classList.remove('active'); const rem = container.querySelector('.tab'); if (rem) activateTab(rem.dataset.pane); });
+  tab.addEventListener('click', (e) => { if (e.target !== tabClose && e.target !== tabClose.firstChild) activateTab(paneId); });
+  tabClose.addEventListener('click', (e) => { e.stopPropagation(); if (paneId === 'welcomePane') return; tab.remove(); const p = document.getElementById(paneId); if (p) { p.classList.remove('active'); } const rem = container.querySelector('.tab'); if (rem) activateTab(rem.dataset.pane); });
   container.appendChild(tab);
   activateTab(paneId);
 }
 function activateTab(paneId) {
   const pane = document.getElementById(paneId);
-  if (!pane) return;
+  if (!pane) { console.warn('[SB activateTab] pane not found:', paneId); return; }
+  // simplebeacon-ignore console-log — diagnostic
+  console.log('[SB activateTab] activating:', paneId, 'pane classList before:', pane.classList.toString());
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.pane === paneId));
-  document.querySelectorAll('.pane').forEach(p => p.classList.toggle('active', p.id === paneId));
+  document.querySelectorAll('.pane').forEach(p => {
+    if (p.id === paneId) {
+      p.classList.add('active');
+      p.style.display = '';
+    } else {
+      p.classList.remove('active');
+      p.style.display = 'none';
+    }
+  });
+  // Re-trigger code map graph resize after the pane becomes visible
+  if (paneId === 'codeMapPane') {
+    const graphCanvas = document.getElementById('codeMapGraphCanvas');
+    if (graphCanvas && graphCanvas._graphResize) {
+      try { graphCanvas._graphResize(); } catch (e) { console.warn('[SB] codeMap resize failed', e); }
+    }
+  }
+  // simplebeacon-ignore console-log — diagnostic
+  console.log('[SB activateTab] pane classList after:', pane.classList.toString(), 'display:', pane.style.display);
 }
 function getTabList() { return Array.from(document.querySelectorAll('#tabBar .tab')); }
 function getActiveTabIndex() { return getTabList().findIndex(t => t.classList.contains('active')); }
@@ -3685,6 +3708,7 @@ function bindProfileToggle(id, command) {
   });
 }
 function initWelcomeButtons() {
+  // simplebeacon-ignore console-log — diagnostic
   console.log('[SB] initWelcomeButtons start');
   document.querySelectorAll('#tabBar .tab').forEach(t => { if (!t.dataset.bound) { t.dataset.bound = '1'; t.addEventListener('click', () => activateTab(t.dataset.pane)); } });
   const tabArrowLeft = document.getElementById('tabArrowLeft');
@@ -3798,6 +3822,7 @@ function initWelcomeButtons() {
       vscode.postMessage({ command: 'updateShowWelcome', value: showWelcomeCheckbox.checked });
     });
   }
+  // simplebeacon-ignore console-log — diagnostic
   console.log('[SB] initWelcomeButtons done');
 }
 if (document.readyState === 'loading') {
@@ -3808,7 +3833,11 @@ if (document.readyState === 'loading') {
 // Handle messages from parent in browser preview mode
 window.addEventListener('message', function(ev) {
   if (!ev.data || !ev.data.command) return;
+  // Only run in the browser-preview iframe; the VS Code: webview uses the vscode API below
+  if (typeof window.__SB_BROWSER_MODE__ === 'undefined' || !window.__SB_BROWSER_MODE__) { return; }
   const cmd = ev.data.command;
+  // simplebeacon-ignore console-log — diagnostic
+  console.log('[SB browser handler] command:', cmd);
   const paneMap = {
     showDashboardPane: 'dashboardPane', showAnalyzePane: 'analyzePane', showReportPane: 'reportPane',
     showSettingsPane: 'settingsPane', showSecurityPane: 'securityPane', showTrustPane: 'trustPane',
@@ -3819,8 +3848,8 @@ window.addEventListener('message', function(ev) {
   };
   const paneId = paneMap[cmd];
   if (paneId) {
-    try { addTab(paneId.replace('Pane',''), paneId); } catch (e) {}
-    try { activateTab(paneId); } catch (e) {}
+    try { addTab(paneId.replace('Pane',''), paneId); } catch (e) { console.error('[SB browser handler] addTab error:', e); }
+    try { activateTab(paneId); } catch (e) { console.error('[SB browser handler] activateTab error:', e); }
     return;
   }
   if (cmd === 'signIn' || cmd === 'openSigninScreen' || cmd === 'openSigninPanel') {
@@ -3955,9 +3984,16 @@ function renderCodeMapGraph(canvas, graph, style = 'force') {
   let lastW = 0, lastH = 0;
   function resize() {
     if (!wrap) return;
+    const oldW = canvas.width;
+    const oldH = canvas.height;
     const rect = wrap.getBoundingClientRect();
     const w = Math.max(1, rect.width);
     const h = Math.max(1, rect.height);
+    // Keep the world point under the old center fixed at the new center
+    if (oldW > 0 && oldH > 0 && (oldW !== w || oldH !== h)) {
+      pan.x += (w - oldW) / 2;
+      pan.y += (h - oldH) / 2;
+    }
     canvas.width = w;
     canvas.height = h;
     W = w; H = h;
@@ -4020,7 +4056,8 @@ function renderCodeMapGraph(canvas, graph, style = 'force') {
     return 'other';
   }
   resize();
-  const resizeObserver = wrap ? new ResizeObserver(resize) : null;
+  let roTimer = null;
+  const resizeObserver = wrap ? new ResizeObserver(() => { if (roTimer) { clearTimeout(roTimer); } roTimer = setTimeout(resize, 50); }) : null;
   if (resizeObserver && wrap) resizeObserver.observe(wrap);
   // Ensure the canvas is resized once it becomes visible (e.g., when the Code Map tab is opened after data arrives)
   const intersectionObserver = wrap && typeof IntersectionObserver === 'function' ? new IntersectionObserver((entries) => { if (entries.some(e => e.isIntersecting)) resize(); }, { threshold: 0 }) : null;
@@ -4377,6 +4414,7 @@ function renderCodeMapGraph(canvas, graph, style = 'force') {
   }
   animId = requestAnimationFrame(step);
   canvas._graphCleanup = () => { if (resizeObserver && wrap) resizeObserver.disconnect(); if (intersectionObserver && wrap) intersectionObserver.disconnect(); if (animId) cancelAnimationFrame(animId); if (timeoutId) clearTimeout(timeoutId); };
+  canvas._graphResize = resize;
   return {
     resetView() { scale = 1; pan = {x: 0, y: 0}; applyLayout(false); updateZoomDisplay(); },
     zoomIn() { scale = Math.min(100, scale * 1.2); updateZoomDisplay(); },
@@ -5256,6 +5294,10 @@ function renderTeamMembers(members) {
 window.addEventListener('message', (event) => {
   const msg = event.data;
   if (!msg || !msg.command) return;
+  // This handler is for the VS Code: webview API. Browser preview uses the parent-message handler above.
+  if (window.__SB_BROWSER_MODE__) { return; }
+  // simplebeacon-ignore console-log — diagnostic
+  console.log('[SB vscode handler] command:', msg.command);
   if (msg.command === 'showDashboardPane') addTab('Dashboard','dashboardPane');
   if (msg.command === 'showAnalyzePane') {
     addTab('Analyze','analyzePane');
@@ -5769,16 +5811,8 @@ window.addEventListener('message', (event) => {
     const graphControls = document.getElementById('graphControls');
     const graphLegend = document.getElementById('graphLegendOverlay');
     const iframe = document.getElementById('codeMapIframe');
-    // Prefer iframe with codemap.html for parity with standalone browser map
-    if (iframe && msg.codeMapUri) {
-      if (graphCanvas) graphCanvas.style.display = 'none';
-      if (graphControls) graphControls.style.display = 'none';
-      if (graphLegend) graphLegend.style.display = 'none';
-      if (graphEmpty) graphEmpty.style.display = 'none';
-      iframe.style.display = 'block';
-      if (iframe.src !== msg.codeMapUri) iframe.src = msg.codeMapUri;
-      if (graphFrame) graphFrame.classList.add('has-graph');
-    } else if (graphCanvas && msg.graph && msg.graph.nodes && msg.graph.nodes.length > 0) {
+    // Prefer inline canvas graph when graph data is present; fall back to iframe for codemap.html parity
+    if (graphCanvas && msg.graph && msg.graph.nodes && msg.graph.nodes.length > 0) {
       if (iframe) iframe.style.display = 'none';
       if (graphCanvas) graphCanvas.style.display = 'block';
       if (graphControls) graphControls.style.display = '';
@@ -5825,6 +5859,14 @@ window.addEventListener('message', (event) => {
           if (ctrl && ctrl.setStyle) ctrl.setStyle(styleSelect.value);
         };
       }
+    } else if (iframe && msg.codeMapUri) {
+      if (graphCanvas) graphCanvas.style.display = 'none';
+      if (graphControls) graphControls.style.display = 'none';
+      if (graphLegend) graphLegend.style.display = 'none';
+      if (graphEmpty) graphEmpty.style.display = 'none';
+      iframe.style.display = 'block';
+      if (iframe.src !== msg.codeMapUri) iframe.src = msg.codeMapUri;
+      if (graphFrame) graphFrame.classList.add('has-graph');
     } else {
       if (graphFrame) graphFrame.classList.remove('has-graph');
       if (graphEmpty) graphEmpty.style.display = 'flex';

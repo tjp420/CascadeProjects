@@ -5,6 +5,7 @@
 let _registeredNamespaces = null;
 let _inlineKeys = [];
 let _cachedExportNames = null;
+let _defaultBarrel = null;
 
 /**
  * Register namespace objects so getExportNames can auto-derive the flat export list.
@@ -24,6 +25,14 @@ export function registerInlineKeys(keys) {
     _cachedExportNames = null;
 }
 
+/**
+ * Set the default barrel metadata used by validateBarrelIntegrity when no argument is passed.
+ * @param {Object|null} barrel
+ */
+export function setDefaultBarrel(barrel) {
+    _defaultBarrel = barrel;
+}
+
 function _buildExportNames() {
     const set = new Set();
     if (_registeredNamespaces) {
@@ -36,9 +45,12 @@ function _buildExportNames() {
     for (const name of _inlineKeys) set.add(name);
     // Barrel meta exports
     set.add('getExportNames');
+    set.add('exportNames');
+    set.add('getNamespaceNames');
     set.add('validateBarrelIntegrity');
     set.add('registerNamespaces');
     set.add('registerInlineKeys');
+    set.add('setDefaultBarrel');
     set.add('__barrel__');
     return Object.freeze(Array.from(set).sort());
 }
@@ -50,9 +62,12 @@ export function getExportNames() {
     return _cachedExportNames;
 }
 
+/** Shorter alias for getExportNames. */
+export const exportNames = getExportNames;
+
 export function validateBarrelIntegrity(barrel = null) {
     const errors = [];
-    const target = barrel || (typeof __barrel__ !== 'undefined' ? __barrel__ : null);
+    const target = barrel || _defaultBarrel || (typeof __barrel__ !== 'undefined' ? __barrel__ : null);
     if (!target) {
         errors.push('Missing __barrel__ metadata');
     } else {

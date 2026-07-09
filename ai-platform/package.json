@@ -66,6 +66,7 @@
     "start": "node server/index.cjs",
     "dev": "nodemon server/index.js",
     "build": "node -c server/index.cjs && echo 'Server syntax OK'",
+    "build:wasm": "cd web/simplebeacon-dashboard/wasm && wasm-pack build --target web --out-dir pkg",
     "fast": "node scripts/build-fast.js",
     "fast:simple": "node scripts/build-fast.js simple",
     "fast:express": "node scripts/build-fast.js express",

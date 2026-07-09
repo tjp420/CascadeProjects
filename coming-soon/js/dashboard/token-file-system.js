@@ -14,6 +14,8 @@
   const LOCK_HEARTBEAT_MS = 30000;
   const LOCK_TIMEOUT_MS = 120000;
 
+  function htmlToFragment(html) { return document.createRange().createContextualFragment(html.trim()); }
+
   // ── Device ID ───────────────────────────────────────────────────────────────
   function getDeviceId() {
     let id = localStorage.getItem(DEVICE_KEY);
@@ -159,26 +161,26 @@
     const container = document.getElementById('tokenStatusBadge');
     if (!container) return;
     if (!token) {
-      container.textContent = '';
+      container.textContent = "";
       container.style.display = 'none';
       return;
     }
     checkLockStatus(token).then(function(status) {
       container.style.display = 'inline-flex';
-      container.textContent = '';
+      container.textContent = "";
       var span = document.createElement('span');
       span.style.cssText = 'font-size:0.7rem;font-weight:600;';
       if (status.locked) {
         span.style.color = 'var(--warn)';
-        span.textContent = '\uD83D\uDD12 In use on ' + (status.holder || 'another device');
+        span.textContent = "\uD83D\uDD12 In use on " + (status.holder || 'another device');
         container.title = 'This token is currently active on another device. Close other sessions to use here.';
       } else if (status.own) {
         span.style.color = 'var(--success)';
-        span.textContent = '\u2705 Active on this device';
+        span.textContent = "\u2705 Active on this device";
         container.title = 'Token is active on this device.';
       } else {
         span.style.color = 'var(--text-dim)';
-        span.textContent = '\uD83D\uDD17 Ready';
+        span.textContent = "\uD83D\uDD17 Ready";
         container.title = 'Token is available.';
       }
       container.appendChild(span);
@@ -200,18 +202,18 @@
     const dzIcon = document.createElement('span');
     dzIcon.className = 'token-dropzone-icon';
     dzIcon.setAttribute('aria-hidden', 'true');
-    dzIcon.textContent = '\uD83D\uDCCB';
+    dzIcon.textContent = "\uD83D\uDCCB";
     const dzText = document.createElement('p');
     dzText.className = 'token-dropzone-text';
     dzText.id = 'tokenDropLabel';
     dzText.appendChild(document.createTextNode('Drop '));
     const codeEl = document.createElement('code');
-    codeEl.textContent = '.tokenkey';
+    codeEl.textContent = ".tokenkey";
     dzText.appendChild(codeEl);
     dzText.appendChild(document.createTextNode(' file here'));
     const dzHint = document.createElement('p');
     dzHint.className = 'token-dropzone-hint';
-    dzHint.textContent = 'or click to browse';
+    dzHint.textContent = "or click to browse";
     const dzInput = document.createElement('input');
     dzInput.type = 'file';
     dzInput.className = 'token-dropzone-input';
@@ -277,7 +279,7 @@
 
     const row = document.createElement('div');
     row.className = 'token-path-row';
-    row.innerHTML = '<label class="token-path-label">Token file path</label><div class="token-path-input-wrap"><input type="text" id="tokenFilePath" class="token-path-input" placeholder="~/.simplebeacon/token.tokenkey" readonly><input type="file" id="tokenFilePathInput" accept=".tokenkey,application/json" style="display:none;"><button type="button" class="token-path-btn" id="tokenFileBrowseBtn">Browse...</button></div>';
+    row.appendChild(htmlToFragment('<label class="token-path-label">Token file path</label><div class="token-path-input-wrap"><input type="text" id="tokenFilePath" class="token-path-input" placeholder="~/.simplebeacon/token.tokenkey" readonly><input type="file" id="tokenFilePathInput" accept=".tokenkey,application/json" style="display:none;"><button type="button" class="token-path-btn" id="tokenFileBrowseBtn">Browse...</button></div>'));
     container.appendChild(row);
 
     const pathInput = row.querySelector('#tokenFilePath');
@@ -310,7 +312,7 @@
 
     const wrap = document.createElement('div');
     wrap.className = 'token-save-toggle';
-    wrap.innerHTML = '<label class="token-save-label"><input type="checkbox" id="saveTokenToggle" class="token-save-check"> Save token to <code>.tokenkey</code> file</label><button type="button" id="downloadTokenKeyBtn" class="token-save-btn" style="display:none;">&#128229; Download .tokenkey</button>';
+    wrap.appendChild(htmlToFragment('<label class="token-save-label"><input type="checkbox" id="saveTokenToggle" class="token-save-check"> Save token to <code>.tokenkey</code> file</label><button type="button" id="downloadTokenKeyBtn" class="token-save-btn" style="display:none;">&#128229; Download .tokenkey</button>'));
     container.appendChild(wrap);
 
     const checkbox = wrap.querySelector('#saveTokenToggle');

@@ -66,7 +66,7 @@ export class CodeMapTreeProvider implements vscode.WebviewViewProvider {
           vscode.commands.executeCommand('simplebeacon.generateCodeMap');
           break;
         case 'openCodeMapPanel':
-          vscode.commands.executeCommand('simplebeacon.openCodeMapHtml');
+          vscode.commands.executeCommand('simplebeacon.openCodeMapPanel');
           break;
       }
     });

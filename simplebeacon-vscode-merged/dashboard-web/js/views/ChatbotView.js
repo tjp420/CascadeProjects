@@ -618,6 +618,7 @@ export class ChatbotView {
           userId: this.app?.state?.user?.email || localStorage.getItem('simplebeacon_user_id') || 'anonymous',
           personality: this.personality,
           removeFilters: this.removeFilters,
+          username: this.username,
           mentions: mentionsToSend,
           findings: findingsToSend
         })

@@ -351,14 +351,30 @@ if (statsEl) {
 (function(){
   const sidebar = document.querySelector('.sidebar');
   const main = document.querySelector('.main');
+  const resizer = document.getElementById('sidebarResizer');
   const btn = document.getElementById('toggleSidebarBtn');
+  function updateResizer() {
+    if (resizer) { resizer.style.display = sidebar && sidebar.classList.contains('hidden') ? 'none' : ''; }
+  }
   if (btn && sidebar && main) {
     btn.addEventListener('click', () => {
       sidebar.classList.toggle('hidden');
       main.classList.toggle('full-width');
-      setTimeout(() => { window.dispatchEvent(new Event('resize')); }, 300);
+      updateResizer();
+      setTimeout(() => { window.dispatchEvent(new Event('resize')); resize(); }, 300);
     });
   }
+  const fsBtn = document.getElementById('fullscreenGraphBtn');
+  if (fsBtn && main) {
+    fsBtn.addEventListener('click', () => {
+      const isFs = main.classList.toggle('graph-fullscreen');
+      if (isFs && sidebar) { sidebar.classList.add('hidden'); }
+      if (!isFs && sidebar) { sidebar.classList.remove('hidden'); }
+      updateResizer();
+      setTimeout(() => { window.dispatchEvent(new Event('resize')); resize(); }, 300);
+    });
+  }
+  updateResizer();
 })();
 
 // Force-directed graph with full interactivity
@@ -374,8 +390,26 @@ if (statsEl) {
   const searchInput = document.getElementById('graphSearch');
   const filterInputs = document.querySelectorAll('.ext-filter');
 
-  function resize() { canvas.width = wrap.clientWidth; canvas.height = wrap.clientHeight; }
-  resize(); window.addEventListener('resize', resize);
+  function resize() {
+    const oldW = canvas.width;
+    const oldH = canvas.height;
+    const newW = Math.max(1, wrap.clientWidth);
+    const newH = Math.max(1, wrap.clientHeight);
+    // Keep the world point under the old center fixed at the new center
+    if (oldW > 0 && oldH > 0 && (oldW !== newW || oldH !== newH)) {
+      pan.x += (newW - oldW) / 2;
+      pan.y += (newH - oldH) / 2;
+    }
+    canvas.width = newW;
+    canvas.height = newH;
+  }
+  setTimeout(resize, 100); setTimeout(resize, 500);
+  let resizeTimer = null;
+  function debouncedResize() {
+    if (resizeTimer) { clearTimeout(resizeTimer); }
+    resizeTimer = setTimeout(function() { resize(); }, 50);
+  }
+  window.addEventListener('resize', debouncedResize);
 
   const colors = {'.js':'#f7df1e','.ts':'#3178c6','.tsx':'#61dafb','.jsx':'#61dafb','.cjs':'#f0db4f','.mjs':'#f0db4f','.py':'#3776ab'};
   const W = () => canvas.width, H = () => canvas.height;
@@ -393,6 +427,7 @@ if (statsEl) {
 
   let dragging = null, panning = false, panStart = {x:0,y:0}, hoverNode = null, selectedNode = null, dragMoved = false;
   let offset = {x:0,y:0}, scale = 1, pan = {x:0,y:0}, physicsPaused = false, searchQuery = '';
+  resize();
   let is3D = false, rotX = 0.6, rotY = 0, rot2D = 0, isRotating = false, rotStart = {x:0, y:0};
   let labelsVisible = false;
   let gridVisible = true;

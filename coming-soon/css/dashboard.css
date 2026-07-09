@@ -2493,7 +2493,9 @@ html[data-theme="light"] .issue-item:hover {
     background: rgba(226, 232, 240, 0.8);
 }
 html[data-theme="light"] .analyzer-card.locked {
-    background: rgba(226, 232, 240, 0.5);
+    background: rgba(226, 232, 240, 0.6);
+    opacity: 0.85;
+    filter: grayscale(0.3);
 }
 html[data-theme="light"] .module-card .module-detail li {
     border-bottom: 1px solid rgba(148, 163, 184, 0.3);
@@ -2520,6 +2522,19 @@ html[data-theme="light"] .module-card:hover {
 html[data-theme="light"] .analyzer-card:hover {
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 }
-html[data-theme="light"] .analyzer-card.selected {
-    background: linear-gradient(145deg, rgba(37, 99, 235, 0.05), transparent);
+html[data-theme="light"] .analyzer-card {
+    background: var(--surface);
 }
+html[data-theme="light"] .analyzer-card.selected {
+    background: linear-gradient(145deg, rgba(37, 99, 235, 0.08), var(--surface));
+    box-shadow: 0 0 0 1px var(--accent), 0 4px 20px rgba(37, 99, 235, 0.1);
+}
+html[data-theme="light"] .module-card .module-detail .detail-label { color: var(--primary); }
+html[data-theme="light"] .module-card .module-detail .detail-fix { color: var(--success); background: var(--success-bg); border-left-color: var(--success); }
+html[data-theme="light"] .module-card .module-detail .detail-data-btn { color: var(--primary); background: var(--primary-subtle); border-color: rgba(99, 102, 241, 0.3); }
+html[data-theme="light"] .module-detail-panel .detail-data-btn { color: var(--primary); background: var(--primary-subtle); border-color: rgba(99, 102, 241, 0.3); }
+html[data-theme="light"] .compliance-matrix .control-id { color: var(--primary); }
+html[data-theme="light"] .status-pill.warn { color: var(--warning); background: var(--warning-bg); }
+html[data-theme="light"] .status-pill.fail { color: var(--error); background: var(--danger-bg); }
+html[data-theme="light"] .status-pill.review { color: var(--info); background: var(--info-bg); }
+html[data-theme="light"] .issue-item .severity.low { background: var(--info); }

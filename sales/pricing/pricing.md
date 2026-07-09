@@ -10,6 +10,8 @@
   - Basic diagnostic reporting
   - Gate evaluation (errors only)
 - **Limitations:**
+  - 10 local scans per month
+  - 50 files per scan
   - No batch CLI scanning
   - No advanced rules (14 batch engines)
   - No CI/CD integration
@@ -19,6 +21,8 @@
 - **Price:** $9/month or $90/year (17% savings)
 - **Features:**
   - All Free features
+  - Unlimited scans
+  - Unlimited files per scan
   - Full scanning (38 analyzer engines)
   - Batch CLI scanning
   - CI/CD gate integration
@@ -27,36 +31,65 @@
   - Custom rule configurations
 - **Best for:** Individual developers, small teams
 
-### Enterprise Tier
-- **Price:** Custom (contact sales)
+### Compliance Suite Tier
+- **Price:** $399/month or $3,999/year (~16% savings)
 - **Features:**
   - All Pro features
-  - Team management (5+ seats)
-  - SSO authentication
+  - Unlimited scans
+  - 60+ analyzer engines (full suite)
+  - EU AI Act documentation
+  - SOC 2 alignment artifacts
+  - Board-ready PDF certificate ZIP
+  - 5 team seats
+  - Team dashboard + trends
+  - Priority email + Slack support
+  - Quarterly compliance reviews
+- **Best for:** VC-backed startups, scaleups, compliance officers
+
+### One-Time Audit Certificate
+- **Price:** $149 one-time purchase
+- **Features:**
+  - 1 cryptographic, board-ready certificate
+  - PDF + JSON + remediation roadmap
+  - EU AI Act + SOC 2 alignment
+  - Valid for 12 months
+  - Corporate card checkout
+- **Best for:** Companies needing immediate audit proof for a funding round or external audit
+
+### Enterprise Air-Gapped Tier
+- **Price:** Custom (contact sales)
+- **Features:**
+  - All Compliance Suite features
+  - Unlimited network monorepos
+  - Team management (unlimited seats)
+  - SSO / SAML authentication
   - Custom rule development
   - Dedicated support channel
   - SLA guarantee
-  - On-premise deployment option
-- **Best for:** Large teams, enterprises
+  - On-premise / air-gapped deployment option
+  - NET-30 invoicing & PO support
+- **Best for:** Fortune 500, government, healthcare, regulated industries
 
 ## Pricing Strategy
 
 ### Monthly vs Yearly
-- Monthly: $9/month (flexible, cancel anytime)
-- Yearly: $90/year (save $18, billed annually)
-- Enterprise: Custom pricing based on team size
+- Free: $0 forever (10 scans/month, 50 files/scan)
+- Pro: $9/month or $90/year (17% savings)
+- Compliance Suite: $399/month or $3,999/year (~16% savings)
+- Audit Certificate: $149 one-time
+- Enterprise Air-Gapped: Custom pricing based on team size and deployment model
 
-### Volume Discounts (Enterprise)
+### Volume Discounts (Enterprise Air-Gapped)
 - 5-10 seats: 10% discount
 - 11-25 seats: 20% discount
 - 26-50 seats: 30% discount
 - 50+ seats: Custom pricing
 
 ### Free Trial
-- Free tier serves as unlimited trial
+- Free tier serves as a limited trial (10 scans/month)
 - No time limit
-- Upgrade to Pro/Enterprise anytime
-- Pro trial available on request (7 days)
+- Upgrade to Pro or Compliance Suite anytime
+- 7-day money-back guarantee on self-service subscriptions
 
 ## Competitive Analysis
 
@@ -85,10 +118,20 @@
    - Recurring: Yearly
    - Metadata: `{"tier": "pro", "duration": "yearly"}`
 
-3. **AI Slop Cop Enterprise**
+3. **AI Slop Cop Compliance Suite**
+   - Price: $399.00 USD (monthly) or $3,999.00 USD (yearly)
+   - Recurring: Monthly or Yearly
+   - Metadata: `{"tier": "compliance", "duration": "monthly"}` or `{"tier": "compliance", "duration": "yearly"}`
+
+4. **AI Slop Cop Enterprise Air-Gapped**
    - Price: Custom
    - Recurring: Yearly
    - Metadata: `{"tier": "enterprise", "duration": "yearly"}`
+
+5. **AI Slop Cop Audit Certificate (One-Time)**
+   - Price: $149.00 USD
+   - Recurring: None
+   - Metadata: `{"tier": "one_time_certificate", "duration": "one-time"}`
 
 #### Checkout Flow
 

@@ -1,0 +1,30 @@
+1/4
+We just ran @simplebeacon on ai-platform.
+
+3257 files scanned.
+Gate: PASS.
+Score: 100/100.
+
+Thread on what we found 
+
+---
+
+2/4
+No credential patterns found in 3257 scanned paths.
+
+One less thing to worry about before deploy.
+
+---
+
+3/4
+No mock data leaks detected. Sample JSON stayed in sample directories where it belongs.
+
+---
+
+4/4
+Run it yourself:
+npx simplebeacon scan --gate
+
+Sub-second scan. No config required for most repos.
+
+#DevOps #AIGovernance #EUAIAct #CISecurity

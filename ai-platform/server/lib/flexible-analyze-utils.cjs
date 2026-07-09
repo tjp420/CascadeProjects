@@ -114,6 +114,19 @@ function resolveProjectPath(baseDir, rawPath, monorepoRoot) {
                     }
                 }
             }
+            // Third fallback: the path may be a stale ai-platform prefix concatenated
+            // with an absolute target path (e.g. /opt/render/project/src/ai-platform/opt/render/Foo).
+            // When the suffix after /ai-platform/ is an absolute path that exists, use it.
+            const platformIdx = normalizedKey.indexOf('/ai-platform/');
+            if (platformIdx !== -1) {
+                const afterPlatform = normalized.slice(platformIdx + '/ai-platform/'.length);
+                if (afterPlatform && path.isAbsolute(afterPlatform)) {
+                    const afterNormalized = path.normalize(afterPlatform);
+                    if (fs.existsSync(afterNormalized)) {
+                        return afterNormalized;
+                    }
+                }
+            }
         }
         return normalized;
     }
@@ -132,6 +145,21 @@ function resolveProjectPath(baseDir, rawPath, monorepoRoot) {
         const platformDir = path.join(monorepoRoot, 'ai-platform');
         if (fs.existsSync(platformDir)) {
             return monorepoRoot;
+        }
+    }
+
+    // Final fallback for stale ai-platform concatenations in the relative case.
+    // The client may have sent a path that was intended as absolute Unix (e.g.
+    // /opt/render/Foo) but lost its leading slash, so the server joined it with
+    // baseDir. If the joined path ends with the exact relative input and
+    // prepending '/' produces an existing absolute path, use that path.
+    const baseKey = fromBase.replace(/\\/g, '/');
+    const trimmedKey = trimmedPath.replace(/\\/g, '/');
+    const platformIdx = baseKey.toLowerCase().indexOf('/ai-platform/');
+    if (platformIdx !== -1 && baseKey.endsWith('/' + trimmedKey)) {
+        const absoluteGuess = path.normalize('/' + trimmedKey);
+        if (fs.existsSync(absoluteGuess)) {
+            return absoluteGuess;
         }
     }
 

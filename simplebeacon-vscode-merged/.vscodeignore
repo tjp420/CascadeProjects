@@ -22,3 +22,4 @@ progress.txt
 simplebeacon-report.json
 simplebeacon-*.json
 .clinerules
+.vsix-patch-temp/**

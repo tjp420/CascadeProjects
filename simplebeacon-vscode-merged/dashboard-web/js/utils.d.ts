@@ -17,6 +17,24 @@ export interface IntegrityResult {
   errors: string[];
 }
 
+export interface FacadeMeta {
+  name: string;
+  description: string;
+  upstreamModule: string;
+  timestamp: string;
+}
+
+export interface SmokeTestResult {
+  passed: boolean;
+  failures: string[];
+}
+
+// ── Facade helpers ─────────────────────────────────────────────
+
+export function getFacadeMeta(): FacadeMeta;
+export function validateFacadeIntegrity(): IntegrityResult;
+export function integrityTest(): SmokeTestResult;
+
 // ── String helpers ─────────────────────────────────────────────
 
 export function escapeHtml(str: string | null | undefined): string;
@@ -107,14 +125,20 @@ export const __barrel__: BarrelMeta;
 // ── Default export namespace ─────────────────────────────────
 
 declare const Utils: Readonly<{
-  string: typeof import('./utils/string.js');
-  number: typeof import('./utils/number.js');
-  async: typeof import('./utils/async.js');
-  array: typeof import('./utils/array.js');
-  object: typeof import('./utils/object.js');
-  format: typeof import('./utils/format.js');
-  dom: typeof import('./utils/dom.js');
-  type: typeof import('./utils/type.js');
+  string: typeof import('../js-es2018/utils/string.js');
+  number: typeof import('../js-es2018/utils/number.js');
+  async: typeof import('../js-es2018/utils/async.js');
+  array: typeof import('../js-es2018/utils/array.js');
+  object: typeof import('../js-es2018/utils/object.js');
+  format: typeof import('../js-es2018/utils/format.js');
+  dom: typeof import('../js-es2018/utils/dom.js');
+  type: typeof import('../js-es2018/utils/type.js');
+  functional: typeof import('../js-es2018/utils/functional.js');
+  storage: typeof import('../js-es2018/utils/storage.js');
+  url: typeof import('../js-es2018/utils/url.js');
+  misc: typeof import('../js-es2018/utils/misc.js');
+  safeStorage: typeof import('../js-es2018/utils/safe-storage.js');
+  eventBus: typeof import('../js-es2018/utils/event-bus.js');
   inline: Readonly<{
     compose: typeof compose;
     pipe: typeof pipe;
@@ -123,7 +147,9 @@ declare const Utils: Readonly<{
     partial: typeof partial;
     tap: typeof tap;
   }>;
+  getFacadeMeta: typeof getFacadeMeta;
   __barrel__: BarrelMeta;
+  __facade__: FacadeMeta;
 }>;
 
 export default Utils;

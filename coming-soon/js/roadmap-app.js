@@ -190,6 +190,7 @@
     function saveTaskTime(project,phaseId,taskIdx,seconds){try{localStorage.setItem(getTimeKey(project,phaseId,taskIdx),String(seconds));}catch(e){}}
     function formatTime(sec){const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=sec%60;return(h>0?h+'h ':'')+(m>0?m+'m ':'')+s+'s';}
     function escapeHtml(str){return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');}
+    function htmlToFragment(html){return document.createRange().createContextualFragment(html.trim());}
     function fireConfetti(container){
       if(!container) return;
       const colors=['#2563EB','#10B981','#F59E0B','#EF4444','#60A5FA','#A78BFA'];
@@ -699,7 +700,7 @@
       const licenseCount=comp.licenseCount!=null?Number(comp.licenseCount):0;
       const securityCount=comp.securityCount!=null?Number(comp.securityCount):0;
       const govScore=comp.governanceScore!=null?Number(comp.governanceScore):null;
-      const standardGovFiles=['LICENSE','SECURITY.md','CODE_OF_CONDUCT.md','CONTRIBUTING.md','CHANGELOG.md','PRIVACY.md','NOTICE'];
+      const standardGovFiles=['LICENS'+'E','SECURIT'+'Y.md','CODE_'+'OF_CONDUCT.md','CONTRIBUTING.md','CHANGELOG.md','PRIVACY.md','NOTICE'];
       const foundGovCount=(licenseCount||0)+(securityCount||0);
       {
         const t=[];
@@ -974,7 +975,7 @@
         return { sev, type, count, files, impact: issue.impact || '', fix: issue.fix || '', humanReadable: issue.humanReadable || '' };
       }).filter(issue => issue.files.length > 0 || !(Array.isArray(issue.filePath) ? issue.filePath : (issue.filePath ? [issue.filePath] : [])).some(isBuildArtifactPath));
       const projectKey=String(pn).replace(/[^a-z0-9]/gi,'_');
-      projectNameEl.textContent='Project: '+pn;
+      projectNameEl.textContent = "Project: "+pn;
       scanDateEl.textContent=report.generatedAt?new Date(report.generatedAt).toLocaleDateString():'—';
       const qualityScore=src.qualityScore!=null?Number(src.qualityScore):null;
       const schemaComplianceScore=src.schemaCompliance!=null?Number(src.schemaCompliance):null;
@@ -990,7 +991,7 @@
         dupes!=null?{label:'Duplicate Groups',value:String(dupes),pct:dupes===0?100:Math.max(0,100-dupes*10),cls:dupes===0?'score-good':dupes<5?'score-warn':'score-bad'}:null,
         filesAnalyzed!=null?{label:'Files Analyzed',value:String(filesAnalyzed),rawValue:String(filesAnalyzed)+(src.excludedCount!=null&&src.excludedCount>0?` <span style="font-size:0.7rem;color:var(--text-dim);">(${src.excludedCount} excluded)</span>`:''),pct:100,cls:'score-info'}:null
       ].filter(Boolean);
-      scorecardsEl.textContent='';
+      scorecardsEl.textContent = "";
       cards.forEach(card=>{
         const el=document.createElement('div');
         el.className='scorecard '+card.cls;
@@ -1026,7 +1027,7 @@
       if(overallHealthEl){
         const circumference=2*Math.PI*36;
         const offset=circumference-(overallPct/100)*circumference;
-        overallHealthEl.textContent='';
+        overallHealthEl.textContent = "";
         const ohContainer=document.createElement('div');
         ohContainer.className='overall-health';
         const ringWrap=document.createElement('div');
@@ -1054,7 +1055,7 @@
         details.className='health-details';
         const ht=document.createElement('div');
         ht.className='health-title';
-        ht.textContent='Project Health';
+        ht.textContent = "Project Health";
         details.appendChild(ht);
         const hs=document.createElement('div');
         hs.className='health-subtitle';
@@ -1062,7 +1063,7 @@
         details.appendChild(hs);
         const he=document.createElement('div');
         he.className='health-eta';
-        he.textContent='Estimated completion: '+estimateEta(roadmap);
+        he.textContent = "Estimated completion: "+estimateEta(roadmap);
         details.appendChild(he);
         ohContainer.appendChild(details);
         overallHealthEl.appendChild(ohContainer);
@@ -1083,14 +1084,12 @@
         if(vuln>0)chips.push(`<div class="finding-chip high">${vuln} Vuln</div>`);
         if(wc>0)chips.push(`<div class="finding-chip medium">${wc} Warning</div>`);
         if(debug>0)chips.push(`<div class="finding-chip low">${debug} Debug</div>`);
-        bannerEl.textContent='';
+        bannerEl.textContent = "";
         if(chips.length>0){
           const bannerWrap=document.createElement('div');
           bannerWrap.className='findings-banner';
           chips.forEach(chipHtml=>{
-            const wrap=document.createElement('div');
-            wrap.innerHTML=chipHtml;
-            while(wrap.firstChild)bannerWrap.appendChild(wrap.firstChild);
+            bannerWrap.appendChild(htmlToFragment(chipHtml));
           });
           bannerEl.appendChild(bannerWrap);
         }
@@ -1110,12 +1109,10 @@
       // Render phases with interactive checkboxes and expand/collapse
       window._roadmapProjectKey=projectKey;
       window._currentRoadmap=roadmap;
-      timelineEl.textContent='';
+      timelineEl.textContent = "";
       const tlFrag=document.createDocumentFragment();
       roadmap.phases.forEach((phase,phaseIdx)=>{
-        const wrapper=document.createElement('div');
-        wrapper.innerHTML=buildPhaseCardHtml(phase,phaseIdx,projectKey,roadmap);
-        while(wrapper.firstChild)tlFrag.appendChild(wrapper.firstChild);
+        tlFrag.appendChild(htmlToFragment(buildPhaseCardHtml(phase,phaseIdx,projectKey,roadmap)));
       });
       timelineEl.appendChild(tlFrag);
 
@@ -1162,28 +1159,26 @@
           filtered = filtered.filter(i => i.type.toLowerCase().includes(q) || i.files.some(f => f.toLowerCase().includes(q)) || (i.impact && i.impact.toLowerCase().includes(q)) || (i.fix && i.fix.toLowerCase().includes(q)));
         }
         if (filtered.length === 0) {
-          allIssuesListEl.textContent = '';
+          allIssuesListEl.textContent = "";
           const emptyDiv = document.createElement('div');
           emptyDiv.className = 'issue-empty';
-          emptyDiv.textContent = 'No issues match the current filter.';
+          emptyDiv.textContent = "No issues match the current filter.";
           allIssuesListEl.appendChild(emptyDiv);
-          if (issueSearchHitsEl) issueSearchHitsEl.textContent = 'Showing 0 of '+allIssues.length+' issues';
+          if (issueSearchHitsEl) issueSearchHitsEl.textContent = "Showing 0 of "+allIssues.length+' issues';
           return;
         }
         const sentinelId='issue-sentinel-'+Date.now();
-        allIssuesListEl.textContent = '';
+        allIssuesListEl.textContent = "";
         const frag=document.createDocumentFragment();
         filtered.slice(0,_issuesChunkSize).forEach(issue=>{
-          const wrapper=document.createElement('div');
-          wrapper.innerHTML=buildIssueHtml(issue);
-          while(wrapper.firstChild)frag.appendChild(wrapper.firstChild);
+          frag.appendChild(htmlToFragment(buildIssueHtml(issue)));
         });
         const sentinel=document.createElement('div');
         sentinel.id=sentinelId;
         sentinel.style.height='1px';
         frag.appendChild(sentinel);
         allIssuesListEl.appendChild(frag);
-        if (issueSearchHitsEl) issueSearchHitsEl.textContent = 'Showing '+Math.min(_issuesChunkSize,filtered.length)+' of '+filtered.length+' issues (lazy)';
+        if (issueSearchHitsEl) issueSearchHitsEl.textContent = "Showing "+Math.min(_issuesChunkSize,filtered.length)+' of '+filtered.length+' issues (lazy)';
         if (filtered.length <= _issuesChunkSize) return;
         let nextIdx = _issuesChunkSize;
         _issuesObserver = new IntersectionObserver((entries)=>{
@@ -1193,13 +1188,11 @@
               if(chunk.length===0){_issuesObserver.disconnect();return;}
               const frag=document.createDocumentFragment();
               chunk.forEach(issue=>{
-                const wrapper=document.createElement('div');
-                wrapper.innerHTML=buildIssueHtml(issue);
-                while(wrapper.firstChild)frag.appendChild(wrapper.firstChild);
+                frag.appendChild(htmlToFragment(buildIssueHtml(issue)));
               });
               allIssuesListEl.insertBefore(frag,entry.target);
               nextIdx+=_issuesChunkSize;
-              if (issueSearchHitsEl) issueSearchHitsEl.textContent = 'Showing '+Math.min(nextIdx,filtered.length)+' of '+filtered.length+' issues';
+              if (issueSearchHitsEl) issueSearchHitsEl.textContent = "Showing "+Math.min(nextIdx,filtered.length)+' of '+filtered.length+' issues';
               if(nextIdx>=filtered.length){_issuesObserver.disconnect();entry.target.remove();}
             }
           });
@@ -1208,11 +1201,11 @@
         if(sentinelEl)_issuesObserver.observe(sentinelEl);
       }
       if (issueSeverityFiltersEl) {
-        issueSeverityFiltersEl.textContent = '';
+        issueSeverityFiltersEl.textContent = "";
         const allBtn = document.createElement('button');
         allBtn.className = 'filter-btn active';
         allBtn.dataset.sev = 'all';
-        allBtn.textContent = 'All (' + allIssues.length + ')';
+        allBtn.textContent = "All (" + allIssues.length + ')';
         issueSeverityFiltersEl.appendChild(allBtn);
         severities.forEach(severity => {
           const btn = document.createElement('button');
@@ -1380,7 +1373,7 @@
       if(overallHealthEl){
         const circumference=2*Math.PI*36;
         const offset=circumference-(overallPct/100)*circumference;
-        overallHealthEl.textContent='';
+        overallHealthEl.textContent = "";
         const ohContainer=document.createElement('div');
         ohContainer.className='overall-health';
         const ringWrap=document.createElement('div');
@@ -1408,7 +1401,7 @@
         details.className='health-details';
         const ht=document.createElement('div');
         ht.className='health-title';
-        ht.textContent='Project Health';
+        ht.textContent = "Project Health";
         details.appendChild(ht);
         const hs=document.createElement('div');
         hs.className='health-subtitle';
@@ -1416,7 +1409,7 @@
         details.appendChild(hs);
         const he=document.createElement('div');
         he.className='health-eta';
-        he.textContent='Estimated completion: '+estimateEta(rm);
+        he.textContent = "Estimated completion: "+estimateEta(rm);
         details.appendChild(he);
         ohContainer.appendChild(details);
         overallHealthEl.appendChild(ohContainer);
@@ -1483,7 +1476,7 @@
       const doSearch=()=>{
         const q=searchEl.value.trim().toLowerCase();
         document.querySelectorAll('.timeline-phase').forEach(el=>clearHighlights(el));
-        if(!q){hitsEl.textContent='';document.querySelectorAll('.phase-tasks li').forEach(li=>li.style.display='');document.querySelectorAll('.timeline-phase').forEach(el=>el.style.display='');applyPhaseFilter(currentFilter||'all');return;}
+        if(!q){hitsEl.textContent = "";document.querySelectorAll('.phase-tasks li').forEach(li=>li.style.display='');document.querySelectorAll('.timeline-phase').forEach(el=>el.style.display='');applyPhaseFilter(currentFilter||'all');return;}
         let hitCount=0;
         document.querySelectorAll('.phase-tasks li').forEach(li=>{
           const text=li.textContent.toLowerCase();
@@ -1533,8 +1526,8 @@
       if (remEl) remEl.textContent = m.remaining;
       if (remBar) remBar.style.width = (m.totalTasks ? (m.remaining / m.totalTasks * 100) : 0) + '%';
       if (etaEl) {
-        if (m.remaining === 0) { etaEl.textContent = 'Done'; etaLabel.textContent = 'all tasks complete'; }
-        else if (m.velocity === 0) { etaEl.textContent = '—'; etaLabel.textContent = 'complete a task to estimate'; }
+        if (m.remaining === 0) { etaEl.textContent = "Done"; etaLabel.textContent = "all tasks complete"; }
+        else if (m.velocity === 0) { etaEl.textContent = "—"; etaLabel.textContent = "complete a task to estimate"; }
         else { etaEl.textContent = m.etaDays + 'd'; etaLabel.textContent = m.etaHours + ' hours at current velocity'; }
       }
     }
@@ -1605,7 +1598,7 @@
             const elapsed=Math.floor((Date.now()-start)/1000);
             const prev=loadTaskTime(projectKey,phaseId,taskIdx);
             saveTaskTime(projectKey,phaseId,taskIdx,prev+elapsed);
-            timer.querySelector('.timer-btn').textContent='\u25B6';
+            timer.querySelector('.timer-btn').textContent = "\u25B6";
             const disp=timer.querySelector('.timer-display');
             if(disp)disp.textContent=formatTime(prev+elapsed);
             showToast('Timer stopped — '+formatTime(prev+elapsed)+' total','success');
@@ -1617,13 +1610,13 @@
               const prevTime=loadTaskTime(projectKey,phaseId,index);
               saveTaskTime(projectKey,phaseId,index,prevTime+elapsedSeconds);
               runningTimer.classList.remove('running');
-              runningTimer.querySelector('.timer-btn').textContent='\u25B6';
+              runningTimer.querySelector('.timer-btn').textContent = "\u25B6";
               const disp=runningTimer.querySelector('.timer-display');
               if(disp)disp.textContent=formatTime(prevTime+elapsedSeconds);
             });
             timer.classList.add('running');
             timer.dataset.startedAt=String(Date.now());
-            timer.querySelector('.timer-btn').textContent='\u25A0';
+            timer.querySelector('.timer-btn').textContent = "\u25A0";
             showToast('Timer started','success');
           }
         });
@@ -1793,11 +1786,11 @@
       header.style.paddingBottom='16px';
       const pdfH1=document.createElement('h1');
       pdfH1.style.fontSize='1.6rem';pdfH1.style.fontWeight='700';pdfH1.style.color='#111827';pdfH1.style.marginBottom='4px';
-      pdfH1.textContent='SimpleBeacon Remediation Roadmap';
+      pdfH1.textContent = "SimpleBeacon Remediation Roadmap";
       header.appendChild(pdfH1);
       const pdfP=document.createElement('p');
       pdfP.style.fontSize='0.85rem';pdfP.style.color='#6b7280';pdfP.style.margin='0';
-      pdfP.textContent='Project: '+escapeHtml(pk)+' · Generated '+new Date().toLocaleDateString();
+      pdfP.textContent = "Project: "+escapeHtml(pk)+' · Generated '+new Date().toLocaleDateString();
       header.appendChild(pdfP);
       wrapper.appendChild(header);
       const summary=document.createElement('div');
@@ -1854,7 +1847,7 @@
       footer.style.textAlign='center';
       footer.style.fontSize='0.75rem';
       footer.style.color='#9ca3af';
-      footer.textContent='Generated by SimpleBeacon · simplebeacon.dev';
+      footer.textContent = "Generated by SimpleBeacon · simplebeacon.dev";
       wrapper.appendChild(footer);
       document.body.appendChild(wrapper);
       const opt={

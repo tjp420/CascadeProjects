@@ -55,12 +55,27 @@ router.post('/api/create-subscription-session', async (req, res) => {
             return res.status(400).json({ error: 'Email and project name are required.' });
         }
 
+        const PRICE_PRO_MONTHLY = 900;
+        const PRICE_PRO_ANNUAL = 9000;
+        const PRICE_COMPLIANCE_MONTHLY = 39900;
+        const PRICE_COMPLIANCE_ANNUAL = 399000;
         const PRICE_TEAM_MONTHLY = 4900;
         const PRICE_TEAM_ANNUAL = 49000;
         const PRICE_ENTERPRISE_MONTHLY = 49900;
         const PRICE_ENTERPRISE_ANNUAL = 499000;
-        const PRICE_ENTERPRISE_THRESHOLD = 49900;
         const tierConfig = {
+            pro: {
+                name: 'AI Slop Cop Pro',
+                desc: 'SimpleBeacon Pro — unlimited scans, CI/CD, and 38 analyzer engines',
+                monthly: PRICE_PRO_MONTHLY,
+                annual: PRICE_PRO_ANNUAL
+            },
+            compliance: {
+                name: 'Compliance Suite',
+                desc: 'SimpleBeacon Compliance Suite — EU AI Act, SOC 2, quarterly certs, analyst support',
+                monthly: PRICE_COMPLIANCE_MONTHLY,
+                annual: PRICE_COMPLIANCE_ANNUAL
+            },
             team: {
                 name: 'Continuous Shield Team',
                 desc: 'SimpleBeacon Team — unlimited repos, devs, and scans',
@@ -68,20 +83,20 @@ router.post('/api/create-subscription-session', async (req, res) => {
                 annual: PRICE_TEAM_ANNUAL
             },
             enterprise: {
-                name: 'Compliance Suite',
+                name: 'Compliance Suite Enterprise',
                 desc: 'SimpleBeacon Enterprise — EU AI Act, quarterly certs, analyst support',
                 monthly: PRICE_ENTERPRISE_MONTHLY,
                 annual: PRICE_ENTERPRISE_ANNUAL
             }
         };
 
-        const selectedTier = tierConfig[tier] || tierConfig.team;
+        const selectedTier = tierConfig[tier] || tierConfig.pro;
         const isAnnual = mode === 'annual';
         const unitAmount = isAnnual ? selectedTier.annual : selectedTier.monthly;
         const interval = isAnnual ? 'year' : 'month';
         const displayPrice = isAnnual
-            ? (tier === 'enterprise' ? '$4,990/yr' : '$490/yr')
-            : (tier === 'enterprise' ? '$499/mo' : '$49/mo');
+            ? (tier === 'enterprise' ? '$4,990/yr' : tier === 'compliance' ? '$3,990/yr' : tier === 'pro' ? '$90/yr' : '$490/yr')
+            : (tier === 'enterprise' ? '$499/mo' : tier === 'compliance' ? '$399/mo' : tier === 'pro' ? '$9/mo' : '$49/mo');
 
         // Get or create customer in DB
         const db = require('../lib/db.cjs');
@@ -255,12 +270,21 @@ function setupSubscriptionWebhook(app) {
 
             // Infer tier from subscription amount or customer record
             const unitAmount = sub.items?.data?.[0]?.price?.unit_amount || 0;
-            const detectedTier = unitAmount >= PRICE_ENTERPRISE_THRESHOLD ? 'enterprise' : 'team';
+            let detectedTier = 'pro';
+            if (unitAmount >= PRICE_ENTERPRISE_MONTHLY) {
+                detectedTier = 'enterprise';
+            } else if (unitAmount >= PRICE_COMPLIANCE_MONTHLY) {
+                detectedTier = 'compliance';
+            } else if (unitAmount >= PRICE_TEAM_MONTHLY) {
+                detectedTier = 'team';
+            }
             const finalTier = customer.tier && customer.tier !== 'community' ? customer.tier : detectedTier;
-            const tierLabel = finalTier === 'enterprise' ? 'Compliance Suite' : 'Continuous Shield Team';
-            const features = finalTier === 'enterprise'
+            const tierLabel = finalTier === 'enterprise' ? 'Compliance Suite Enterprise' : finalTier === 'compliance' ? 'Compliance Suite' : finalTier === 'team' ? 'Continuous Shield Team' : 'AI Slop Cop Pro';
+            const features = finalTier === 'enterprise' || finalTier === 'compliance'
                 ? ['continuous_shield', 'team_dashboard', 'ci_integration', 'compliance_certificate', 'eu_ai_act', 'analyst_support']
-                : ['continuous_shield', 'team_dashboard', 'ci_integration'];
+                : finalTier === 'team'
+                    ? ['continuous_shield', 'team_dashboard', 'ci_integration']
+                    : ['continuous_shield', 'ci_integration', 'export_reports'];
 
             db.updateCustomerSubscription(customer.email, status, finalTier);
             db.addPaidSubscription(customer.email, sub.id, priceId, status, periodStart, periodEnd);

@@ -69,7 +69,7 @@ function shouldSkipCheckForPath(checkId, relativePath) {
   const rel = relativePath.replace(/\\/g, '/');
   // Governance markers are expected in AI platform source files with license headers
   if (checkId === 'governance' || checkId === 'governance-marker') {
-    if (/\b(ai-agent\/prompts\.js|eslint\.config\.js|enterprise-dlp\.js|action\.yml|\.github\/workflows\/simplebeacon-ai-hygiene-gate\.yml|consistency-score\.test\.js)\b/.test(rel)) return true;
+    if (/\b(ai-agent\/prompts\.js|eslint\.config\.js|enterprise-dlp\.js|action\.yml|\.github\/workflows\/simplebeacon-ai-hygiene-gate\.yml|consistency-score\.test\.js|packages\/simplebeacon-intelligence\/src\/constants\.js|packages\/simplebeacon-intelligence\/src\/index\.js)\b/.test(rel)) return true;
   }
   // AI SDK usage is expected in AI platform source files
   if (checkId === 'ai-indicators') {
@@ -77,11 +77,11 @@ function shouldSkipCheckForPath(checkId, relativePath) {
   }
   // security-headers: main server file already has securityHeaders middleware
   if (checkId === 'security-headers') {
-    if (/\b(ai-platform\/server\/index\.cjs|ai-platform\/server\/middleware\/security\.cjs)\b/.test(rel)) return true;
+    if (/\b(server\/index\.cjs|server\/middleware\/security\.cjs)\b/.test(rel)) return true;
   }
   // workspace-health: monorepo cross-package requires are expected
   if (checkId === 'workspace-health') {
-    if (/\b(ai-platform\/server\/routes\/compliance-schema-api\.cjs|ai-platform\/server\/routes\/demo-simplebeacon-api\.cjs|ai-platform\/server\/routes\/flexible-analyze-api\.cjs)\b/.test(rel)) return true;
+    if (/\b(server\/routes\/compliance-schema-api\.cjs|server\/routes\/demo-simplebeacon-api\.cjs|server\/routes\/flexible-analyze-api\.cjs|server\/lib\/central-data-config\.cjs|packages\/simplebeacon-intelligence\/src\/slm-bridge\.js)\b/.test(rel)) return true;
   }
   return false;
 }

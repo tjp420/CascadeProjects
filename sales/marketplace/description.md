@@ -3,11 +3,11 @@
 ## Extension Description
 
 ### Short Description (128 characters max)
-Professional AI code debt detection — 38 analyzer engines, gate enforcement, fix suggestions, and exportable reports.
+Offline AI code audit — 38 analyzer engines, zero source-code upload, board-ready compliance reports.
 
 ### Full Description
 
-Simplebeacon is a professional-grade AI code quality assurance tool for VSCode. It scans your codebase for AI-generated slop, hallucinated metrics, filler content, and other artifacts that can degrade code quality and security.
+**Simplebeacon is an offline, zero-upload AI code audit tool for VS Code.** It runs 100% on your machine so your source code never leaves your infrastructure. It scans for AI-generated slop, credential leaks, hallucinated dependencies, and EU AI Act / SOC 2 compliance gaps — then generates a board-ready Executive Risk Certificate when your team needs to show auditors, investors, or a board exactly what is in the codebase.
 
 ## Features
 
@@ -32,9 +32,11 @@ Simplebeacon is a professional-grade AI code quality assurance tool for VSCode. 
 - File reduction analysis
 
 ### Tier System
-- **Free Tier:** Basic real-time scanning, gate evaluation
-- **Pro Tier:** All 38 engines, CLI scanning, CI/CD integration, export reports
-- **Enterprise Tier:** Team management, custom rules, dedicated support
+- **Free:** 10 local scans/month, 24 real-time IDE rules, CLI + VS Code extension
+- **Pro:** $9/month — unlimited scans, all 38 engines, CLI scanning, CI/CD integration, export reports
+- **Compliance Suite:** $399/month — unlimited scans, 60+ engines, EU AI Act + SOC 2 artifacts, 5 team seats, board-ready certificate ZIP
+- **Audit Certificate:** $149 one-time — single cryptographic board-ready certificate for investors/auditors, valid 12 months
+- **Enterprise Air-Gapped:** Custom pricing — on-premise deployment, SSO, unlimited seats, dedicated SLA
 
 ### Privacy-First Design
 - All scanning happens locally on your machine
@@ -56,23 +58,28 @@ Simplebeacon is a professional-grade AI code quality assurance tool for VSCode. 
 
 ## Use Cases
 
+### For Engineering Teams (VP of Engineering)
+- Stop shadow AI and copy-pasted LLM code from entering production
+- Enforce a local, zero-upload quality gate before code review
+- Catch hardcoded API keys, hallucinated dependencies, and placeholder KPIs in CI/CD
+- Show leadership exactly what AI-generated risks exist in the codebase
+
+### For Compliance & Risk Officers
+- Generate board-ready Executive Risk Certificates for SOC 2 and EU AI Act audits
+- Produce PDF + JSON + remediation roadmaps in minutes, not weeks
+- Prove that code artifacts were audited without ever uploading source code
+- Reduce reliance on expensive external compliance consulting
+
 ### For Individual Developers
 - Clean up AI-generated code before committing
-- Ensure code quality standards
 - Learn best practices for AI-assisted development
-- Maintain professional code hygiene
+- Maintain professional code hygiene with a free local scanner
+- Upgrade to Pro for unlimited scans and CI integration
 
-### For Teams
-- Enforce consistent code quality across the team
-- Prevent AI slop from entering production
-- Automate quality gates in CI/CD
-- Track code debt over time
-
-### For Enterprises
-- Ensure AI code governance
-- Meet compliance requirements (EU AI Act)
-- Reduce technical debt
-- Improve code maintainability
+### For Startups and Scaleups
+- Prepare for investor due diligence with a $149 one-time Audit Certificate
+- Move to Compliance Suite as the team grows and regulatory pressure increases
+- Keep all scanning local so IP never leaves the machine
 
 ## Installation
 
@@ -113,9 +120,11 @@ Customize rule severity:
 
 ## Pricing
 
-- **Free:** Basic real-time scanning (24 engines)
-- **Pro:** $9/month or $90/year - All 38 engines, CLI scanning, CI/CD integration
-- **Enterprise:** Custom pricing - Team management, custom rules, dedicated support
+- **Free:** 10 local scans/month (24 IDE rules)
+- **Pro:** $9/month or $90/year — unlimited scans, 38 engines, CI/CD integration
+- **Compliance Suite:** $399/month or $3,999/year — unlimited scans, 60+ engines, EU AI Act + SOC 2 artifacts, 5 seats, certificate ZIP
+- **Audit Certificate:** $149 one-time — single board-ready certificate, valid 12 months
+- **Enterprise Air-Gapped:** Custom pricing — on-premise, SSO, unlimited seats, dedicated SLA
 
 Visit https://simplebeacon.com/pricing for details.
 

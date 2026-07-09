@@ -1,29 +1,26 @@
-# Enterprise CTO Outreach Template: Managing Generative AI Software Liability
+# VP of Engineering Outreach Template: AI-Generated Code Debt and Zero-Upload Audit
 
-**Subject:** Code hygiene audit: Managing [Company]'s AI code-gen liability
+**Subject:** [Company] + AI-generated code debt — quick 5-minute audit
 
-**Alternative Subject:** Managing the downstream risk of Cursor / Copilot at [Company]
+**Alternative Subject:** Shadow AI hitting [Company]'s repos?
 
 ---
 
-Hi [CTO_First_Name],
+Hi [FirstName],
 
-The speed gains from deploying Cursor and GitHub Copilot across engineering teams are clear. However, the downstream architectural and legal side effects are starting to hit enterprise codebases.
+I keep talking to VPs of Engineering who are suddenly dealing with AI-generated code hitting their repos before review. The common thread: hardcoded API keys, placeholder KPIs, hallucinated npm dependencies, and unfinished AI placeholders slipping past normal linters.
 
-When engineering teams copy-paste or auto-generate code via LLMs, they inadvertently introduce three specific vulnerabilities:
+I built **SimpleBeacon** to run a 100% offline scan on the developer's machine — no source code ever leaves your infrastructure. It takes about 5 minutes to surface the kind of debris that becomes an investor or auditor problem later.
 
-1. **Hallucinated Package Exploits:** LLMs frequently invent plausible-sounding npm/pip dependencies that do not exist, leaving teams open to supply-chain attacks.
-2. **Conversational Code Debris:** Raw markdown fences, unfinished AI placeholders, and verbose boilerplate code slipping past standard code reviews.
-3. **Intellectual Property Contamination:** Inadvertently checking in open-source licensed blocks that break corporate compliance guardrails.
+A few things it catches out of the box:
 
-We built **SimpleBeacon** as an offline, local-first linting firewall to detect and catch these machine artifacts before code hits your production pipeline.
+1. **Credential leaks** — hardcoded API keys, tokens, and env values that made it past review.
+2. **Hallucinated dependencies** — npm/pip packages that LLMs invented and no one verified.
+3. **AI slop artifacts** — raw markdown fences, TODO stubs, and fake KPIs in production files.
+4. **EU AI Act / SOC 2 gaps** — mappings that feed directly into a board-ready Executive Risk Certificate.
 
-We recently completed a release hygiene audit for an enterprise FinTech platform that identified and cleared several compliance anomalies in their monorepo before a major release.
+Worth a 10-minute demo this week? I can run it on a repo you point me to and show you exactly what the certificate output looks like.
 
-The scanner runs completely on-device, meaning your source code never leaves your secure local infrastructure.
-
-Do you have 10 minutes next Tuesday morning for a brief look at our enterprise compliance matrix?
-
-Best regards,
+Best,
 [Your_Name]
-Founder, SimpleBeacon | [Your_Phone_Number] | simplebeacon.ai
+Founder, SimpleBeacon | simplebeacon.ai

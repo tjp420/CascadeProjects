@@ -42,6 +42,14 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>SimpleBeacon Data Quality Roadmap</title>
+  <script>
+    (function() {
+      try {
+        var theme = localStorage.getItem('simplebeacon-theme') || 'dark';
+        if (theme === 'light') { document.documentElement.setAttribute('data-theme', 'light'); }
+      } catch (e) {}
+    })();
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/roadmap.css?v=20260616a">

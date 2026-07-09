@@ -445,10 +445,10 @@
       nav.className = 'app-header-links';
       nav.setAttribute('aria-label', 'External tools');
       var links = [
-        { href: '/roadmap.html', icon: 'map', label: 'Roadmap' },
-        { href: '/audit.html', icon: 'clipboard-check', label: 'Audit' },
+        { href: 'http://127.0.0.1:54358/coming-soon/roadmap.html', icon: 'map', label: 'Roadmap' },
+        { href: 'http://127.0.0.1:54358/coming-soon/audit.html', icon: 'clipboard-check', label: 'Audit' },
         { href: '/pricing.html', icon: 'tag', label: 'Pricing', id: 'header-pricing-link' },
-        { href: '#/dashboard', icon: 'layout-dashboard', label: 'Teams Dashboard', id: 'vaultLink' }
+        { href: 'http://127.0.0.1:54358/ai-platform/web/simplebeacon-dashboard/?_=' + Date.now() + '#/dashboard', icon: 'layout-dashboard', label: 'Teams Dashboard', id: 'vaultLink' }
       ];
       links.forEach(function(link) {
         var a = document.createElement('a');

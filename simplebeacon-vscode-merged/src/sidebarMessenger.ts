@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as crypto from 'crypto';
-import { buildDashboardHtml } from './welcomeDashboardHtml';
+import { getDataServerPort } from './dataServer';
 
 let _sidebarView: vscode.WebviewView | undefined;
 let _teamDashboardPanel: vscode.WebviewPanel | undefined;
@@ -29,9 +29,9 @@ export function postSidebarMessage(message: any) {
 }
 
 /**
- * Open the team dashboard panel in a webview.
+ * Open the team dashboard panel in a webview, loading the real dashboard website.
  */
-export async function openTeamDashboardPanel(extUri: vscode.Uri, route = '/dashboard', panelTitle = 'Team Dashboard') {
+export async function openTeamDashboardPanel(_extUri: vscode.Uri, route = '/dashboard', panelTitle = 'Team Dashboard') {
   const nonce = crypto.randomBytes(16).toString('hex');
   let panel = _teamDashboardPanel;
   if (!panel) {
@@ -39,7 +39,11 @@ export async function openTeamDashboardPanel(extUri: vscode.Uri, route = '/dashb
       'simplebeaconTeamDashboard',
       panelTitle,
       vscode.ViewColumn.Two,
-      { enableScripts: true, retainContextWhenHidden: true }
+      {
+        enableScripts: true,
+        retainContextWhenHidden: true,
+        localResourceRoots: []
+      }
     );
     registerTeamDashboardPanel(panel);
     panel.onDidDispose(() => {
@@ -47,30 +51,35 @@ export async function openTeamDashboardPanel(extUri: vscode.Uri, route = '/dashb
     });
   }
   panel.reveal(vscode.ViewColumn.Two);
-  const dashboardHtml = buildDashboardHtml({
-    cspSource: panel.webview.cspSource,
-    version: 'team',
-    nonce,
-    showWelcome: false
-  });
-  const autoTeamScript = `
+
+  const dsPort = getDataServerPort();
+  const dashboardUrl = `http://127.0.0.1:${dsPort}${route}?_=${Date.now()}`;
+  const csp = panel.webview.cspSource;
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-${nonce}'; style-src 'unsafe-inline'; frame-src http://127.0.0.1:${dsPort} ${csp}; connect-src 'none'; img-src 'none';">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${panelTitle}</title>
+<style>
+html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #0B0F19; }
+iframe { border: 0; width: 100%; height: 100%; display: block; }
+.fallback { color: #e2e8f0; font-family: sans-serif; padding: 20px; text-align: center; }
+</style>
+</head>
+<body>
+<iframe id="dashFrame" src="${dashboardUrl}" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads" allow="fullscreen"></iframe>
 <script nonce="${nonce}">
 (function(){
-  function activateTeam(){
-    document.querySelectorAll('.pane').forEach(function(p){p.classList.remove('active');});
-    var tp=document.getElementById('teamPane');
-    if(tp){tp.classList.add('active');}
-    var tb=document.querySelector('.tab-bar');
-    if(tb){tb.style.display='none';}
-    var wa=document.querySelector('.welcome');
-    if(wa){wa.style.display='none';}
-  }
-  if(document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded',activateTeam);
-  }else{
-    activateTeam();
-  }
+  const frame = document.getElementById('dashFrame');
+  if (!frame) return;
+  function reloadOnVisibility() { if (!frame.src) { frame.src = frame.dataset.src || '${dashboardUrl}'; } }
+  document.addEventListener('visibilitychange', reloadOnVisibility);
 })();
-</script>`;
-  panel.webview.html = dashboardHtml.replace('</body>', autoTeamScript + '\n</body>');
+</script>
+</body>
+</html>`;
+  panel.webview.html = html;
 }

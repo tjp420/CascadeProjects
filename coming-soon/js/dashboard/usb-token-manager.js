@@ -271,7 +271,7 @@
     const statusText = document.createElement('span');
     statusText.id = 'usb-status-text';
     statusText.style.cssText = 'font-size:0.85rem;color:var(--text-secondary);';
-    statusText.textContent = 'USB Token Drive';
+    statusText.textContent = "USB Token Drive";
 
     headerRow.appendChild(statusIndicator);
     headerRow.appendChild(statusText);
@@ -342,10 +342,10 @@
     monitorBtn?.addEventListener('click', () => {
       if (manager.isMonitoring) {
         manager.stopMonitoring();
-        monitorBtn.textContent = '\u{1F50C} Monitor USB';
+        monitorBtn.textContent = "\u{1F50C} Monitor USB";
       } else {
         manager.startMonitoring();
-        monitorBtn.textContent = '\u{23F9} Stop Monitoring';
+        monitorBtn.textContent = "\u{23F9} Stop Monitoring";
       }
     });
     saveBtn?.addEventListener('click', () => {
@@ -356,10 +356,10 @@
     const originalOnToken = manager.onTokenLoaded;
     manager.onTokenLoaded = (data) => {
       elInfoBox.style.display = 'block';
-      elInfoBox.textContent = '';
+      elInfoBox.textContent = "";
       const strong = document.createElement('strong');
       strong.style.color = 'var(--success)';
-      strong.textContent = 'Token Loaded';
+      strong.textContent = "Token Loaded";
       elInfoBox.appendChild(strong);
       elInfoBox.appendChild(document.createElement('br'));
       if (data.label) {
@@ -377,7 +377,7 @@
       const span = document.createElement('span');
       span.style.fontSize = '0.7rem';
       span.style.color = 'var(--text-muted)';
-      span.textContent = 'Token ready for authentication';
+      span.textContent = "Token ready for authentication";
       elInfoBox.appendChild(span);
       originalOnToken(data);
     };
@@ -386,10 +386,10 @@
     const originalOnError = manager.onError;
     manager.onError = (msg) => {
       elInfoBox.style.display = 'block';
-      elInfoBox.textContent = '';
+      elInfoBox.textContent = "";
       const errSpan = document.createElement('span');
       errSpan.style.color = 'var(--danger)';
-      errSpan.textContent = 'Error: ' + msg;
+      errSpan.textContent = "Error: " + msg;
       elInfoBox.appendChild(errSpan);
       originalOnError(msg);
     };

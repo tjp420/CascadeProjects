@@ -118,65 +118,84 @@ export async function clearUserAiKeys() {
     return normalizeAiKeysRecord(clearPayload);
 }
 /**
- * Try to list Ollama models directly from the browser first, then fall back to
- * the server proxy. Browser-side works on Chrome/Edge when the page is served
- * over HTTPS and Ollama is started with CORS enabled, e.g.
- *   OLLAMA_ORIGINS=* ollama serve
+ * List Ollama models. When the dashboard is served over HTTPS, the browser
+ * cannot directly fetch http://127.0.0.1:11434 (mixed content / private network),
+ * so we route the request through the server proxy. On HTTP pages we try the
+ * direct browser fetch first and fall back to the proxy.
  * @param {string} ollamaBaseUrl
  * @returns {any}
  */
 export async function fetchOllamaModels(ollamaBaseUrl = OLLAMA_DEFAULT_URL) {
     const baseUrl = String(ollamaBaseUrl || OLLAMA_DEFAULT_URL).trim().replace(/\/$/, '') || OLLAMA_DEFAULT_URL;
-    try {
+    const isHttpsPage = typeof window !== 'undefined' && window.location.protocol === 'https:';
+
+    async function fetchDirect() {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 10000);
-        const response = await fetch(`${baseUrl}/api/tags`, {
-            method: 'GET',
-            signal: controller.signal,
-            headers: { Accept: 'application/json' }
-        });
-        clearTimeout(timeout);
-        if (!response.ok) {
-            throw new Error(`Ollama returned HTTP ${response.status}`);
+        try {
+            const response = await fetch(`${baseUrl}/api/tags`, {
+                method: 'GET',
+                signal: controller.signal,
+                headers: { Accept: 'application/json' }
+            });
+            if (!response.ok) {
+                throw new Error(`Ollama returned HTTP ${response.status}`);
+            }
+            const data = await response.json().catch(() => ({}));
+            const models = Array.isArray(data.models) ? data.models.map((m) => m.name || m.model) : [];
+            return {
+                ok: true,
+                models,
+                message: models.length ? `${models.length} model(s) available` : 'Ollama is running but has no models pulled',
+                source: 'browser'
+            };
+        } finally {
+            clearTimeout(timeout);
         }
-        const data = await response.json().catch(() => ({}));
-        const models = Array.isArray(data.models) ? data.models.map((m) => m.name || m.model) : [];
-        return {
-            ok: true,
-            models,
-            message: models.length ? `${models.length} model(s) available` : 'Ollama is running but has no models pulled',
-            source: 'browser'
-        };
     }
-    catch (browserErr) {
-        const isCors = String(browserErr.message).toLowerCase().includes('cors') ||
-                       String(browserErr.message).includes('Failed to fetch');
+
+    async function fetchProxy() {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 15000);
         try {
-            const ollamaHttpResponse = await fetch('/api/models/test-ollama', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ollamaBaseUrl }),
-                signal: controller.signal
+            const response = await fetch(`/api/simplebeacon/ollama/models?baseUrl=${encodeURIComponent(baseUrl)}`, {
+                method: 'GET',
+                signal: controller.signal,
+                headers: { Accept: 'application/json' }
             });
-            clearTimeout(timeout);
-            const ollamaProbe = await readJsonResponseBody(ollamaHttpResponse, {});
-            if (!ollamaHttpResponse.ok || ollamaProbe.success === false) {
-                throw new Error(ollamaProbe.error || ollamaProbe.message || 'Failed to list Ollama models');
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(data.error || data.message || `Server proxy returned HTTP ${response.status}`);
             }
-            if (!ollamaProbe.ok) {
-                throw new Error(ollamaProbe.message || 'Ollama connection failed');
-            }
+            const models = Array.isArray(data.models) ? data.models.map((m) => m.name || m.model) : [];
             return {
                 ok: true,
-                models: Array.isArray(ollamaProbe.availableModels) ? ollamaProbe.availableModels : [],
-                message: ollamaProbe.message || '',
+                models,
+                message: models.length ? `${models.length} model(s) available` : 'Ollama is running but has no models pulled',
                 source: 'server'
             };
-        }
-        catch (proxyErr) {
+        } finally {
             clearTimeout(timeout);
+        }
+    }
+
+    if (isHttpsPage) {
+        try {
+            return await fetchProxy();
+        } catch (proxyErr) {
+            throw new Error(`Ollama proxy failed: ${proxyErr.message}`);
+        }
+    }
+
+    // HTTP page: try direct browser fetch first, then fall back to the proxy.
+    try {
+        return await fetchDirect();
+    } catch (browserErr) {
+        const isCors = String(browserErr.message).toLowerCase().includes('cors') ||
+                       String(browserErr.message).includes('Failed to fetch');
+        try {
+            return await fetchProxy();
+        } catch (proxyErr) {
             if (proxyErr.name === 'AbortError') {
                 throw new Error('Ollama connection timed out - is Ollama running?');
             }

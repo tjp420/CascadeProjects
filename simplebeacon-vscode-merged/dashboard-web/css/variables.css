@@ -24,6 +24,9 @@
   --surface-active: #ebebeb;
   --border: #e5e5e5;
   --border-subtle: #f0f0f0;
+  --bg-main: var(--background);
+  --bg-card: var(--surface);
+  --bg-elevated: var(--surface-elevated);
 
   /* Text */
   --text-primary: #171717;
@@ -102,6 +105,9 @@
   --surface-active: #e5e5e5;
   --border: #e5e5e5;
   --border-subtle: #f0f0f0;
+  --bg-main: var(--background);
+  --bg-card: var(--surface);
+  --bg-elevated: var(--surface-elevated);
 
   /* Text */
   --text-primary: #171717;
@@ -131,6 +137,9 @@
   --surface-active: #333333;
   --border: #262626;
   --border-subtle: #1f1f1f;
+  --bg-main: var(--background);
+  --bg-card: var(--surface);
+  --bg-elevated: var(--surface-elevated);
 
   /* Text */
   --text-primary: #fafafa;

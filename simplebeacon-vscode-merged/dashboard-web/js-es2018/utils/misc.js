@@ -38,6 +38,15 @@ export async function parseResponseJson(res, fallback = null) {
     }
 }
 
+export function stringifySafe(value, fallback = null) {
+    try {
+        return JSON.stringify(value);
+    }
+    catch (_a) {
+        return fallback;
+    }
+}
+
 export function prefersReducedMotion() {
     if (typeof window === 'undefined' || !window.matchMedia)
         return false;

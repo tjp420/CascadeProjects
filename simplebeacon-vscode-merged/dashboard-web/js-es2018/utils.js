@@ -1267,10 +1267,11 @@ export const isEqual         = MiscUtils.isEqual;
  */
 export const isEmpty         = MiscUtils.isEmpty;
 export const findIndex       = MiscUtils.findIndex;
+export const stringifySafe   = MiscUtils.stringifySafe;
 
 // ── Barrel helpers ─────────────────────────────────────────────
-import { getExportNames, validateBarrelIntegrity, registerNamespaces, registerInlineKeys } from './utils/barrel.js';
-export { getExportNames, validateBarrelIntegrity, registerNamespaces, registerInlineKeys };
+import { getExportNames, exportNames, validateBarrelIntegrity, registerNamespaces, registerInlineKeys, setDefaultBarrel } from './utils/barrel.js';
+export { getExportNames, exportNames, validateBarrelIntegrity, registerNamespaces, registerInlineKeys, setDefaultBarrel };
 
 const _namespaceRegistry = {
   string: StringUtils, number: NumberUtils, async: AsyncUtils, array: ArrayUtils,
@@ -1372,6 +1373,7 @@ const inlineNamespace = /*#__PURE__*/ Object.freeze({
   isTypedArray, isGenerator, isAsyncGenerator, isIterable, isAsyncIterable,
   parseJsonSafe: MiscUtils.parseJsonSafe,
   parseResponseJson: MiscUtils.parseResponseJson,
+  stringifySafe: MiscUtils.stringifySafe,
   isEmpty: MiscUtils.isEmpty,
   isEqual: MiscUtils.isEqual,
   prefersReducedMotion: MiscUtils.prefersReducedMotion,
@@ -1396,6 +1398,8 @@ export const __barrel__ = /*#__PURE__*/ Object.freeze({
   exports: getExportNames(),
   namespaces: NAMESPACE_NAMES
 });
+
+setDefaultBarrel(__barrel__);
 
 /**
  * Run inline smoke tests for critical barrel utilities.
@@ -1444,6 +1448,8 @@ const defaultExport = /*#__PURE__*/ deepFreeze({
   storage: StorageUtils,
   url: UrlUtils,
   misc: MiscUtils,
+  safeStorage: SafeStorage,
+  eventBus: EventBus,
   inline: inlineNamespace,
   __barrel__
 });

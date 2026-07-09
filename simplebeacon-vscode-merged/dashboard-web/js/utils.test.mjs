@@ -184,8 +184,8 @@ test('find returns first match', () => {
 });
 
 test('findIndex returns correct index', () => {
-  assert.strictEqual(findIndex((x) => x > 2, [1, 3, 2]), 1);
-  assert.strictEqual(findIndex((x) => x > 5, [1, 3, 2]), -1);
+  assert.strictEqual(findIndex([1, 3, 2], (x) => x > 2), 1);
+  assert.strictEqual(findIndex([1, 3, 2], (x) => x > 5), -1);
 });
 
 test('contains checks membership', () => {

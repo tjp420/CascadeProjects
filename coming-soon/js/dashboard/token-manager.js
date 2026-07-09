@@ -1,6 +1,8 @@
 // SimpleBeacon Token Manager
 // Handles token parsing, tier logic, product UI, and scan profile filtering.
 
+function htmlToFragment(html) { return document.createRange().createContextualFragment(html.trim()); }
+
 function decodeJwtPayload(token) {
     if (!token || typeof token !== 'string') return null;
     const parts = token.split('.');
@@ -55,17 +57,17 @@ const TIER_PROFILES = (window.SIMPLEBEACON_SITE && window.SIMPLEBEACON_SITE.tier
 
 const ALL_MODULES = ['gate', 'consolidation', 'mock-data', 'roadmap', 'codebase', 'file-reduction', 'data-quality', 'cleanup', 'npm-audit', 'compliance', 'eu-ai-act', 'dependency-vulns', 'build-readiness', 'ai-indicators', 'governance', 'junk-files', 'ai-residue', 'performance', 'type-safety', 'documentation', 'test-coverage', 'accessibility', 'i18n', 'sensitive-data', 'config-drift', 'security-headers', 'database-patterns', 'framework-practices', 'workspace-health', 'unused-deps', 'api-contract', 'complexity', 'fix-preview', 'llm-slop', 'token-bleed', 'production-leak', 'fiction-kpi', 'architecture-drift', 'sync-io', 'eval-danger', 'inner-html-xss', 'prototype-pollution', 'unhandled-promise', 'magic-number', 'missing-strict-mode', 'uninitialized-read', 'unvalidated-redirect', 'missing-rate-limit', 'insecure-random', 'logging-secrets', 'hardcoded-confidence', 'hardcoded-completion', 'mock-path-leak', 'sample-json-ref', 'governance-marker', 'ai-placeholder-comment', 'ai-placeholder-block', 'markdown-fence-leak', 'empty-stub-function', 'arrow-stub', 'roadmap-marker', 'file-naming', 'removable-files'];
 const TIER_MODULE_MAP = {
-    locked: ALL_MODULES,
-    community: ALL_MODULES,
+    locked: [],
+    community: (TIER_PROFILES && TIER_PROFILES.community) || ['gate'],
     starter: ALL_MODULES,
-    instant: ALL_MODULES,
+    instant: (TIER_PROFILES && TIER_PROFILES.instant) || ['gate', 'mock-data'],
     pro: ALL_MODULES,
-    aislopcop: ALL_MODULES,
+    aislopcop: (TIER_PROFILES && TIER_PROFILES.aislopcop) || ALL_MODULES,
     team: ALL_MODULES,
     enterprise: ALL_MODULES,
-    executive: ALL_MODULES,
-    euai: ALL_MODULES,
-    euSprint: ALL_MODULES,
+    executive: (TIER_PROFILES && TIER_PROFILES.executive) || ALL_MODULES,
+    euai: (TIER_PROFILES && TIER_PROFILES.euai) || ALL_MODULES,
+    euSprint: (TIER_PROFILES && TIER_PROFILES.euSprint) || ALL_MODULES,
     universal: ALL_MODULES,
     admin: ALL_MODULES
 };
@@ -143,17 +145,17 @@ function resetScanProfiles() {
 
 function renderAnalyzerCards() {
     if (!analyzerCardGrid) return;
-    analyzerCardGrid.innerHTML = '';
+    analyzerCardGrid.textContent = "";
     MODULE_CARDS.forEach(mod => {
         const card = document.createElement('div');
         card.className = 'analyzer-card';
         card.dataset.value = mod.id;
-        card.innerHTML = `
+        card.appendChild(htmlToFragment(`
             <div class="card-check">&#10003;</div>
             <div class="card-icon">${mod.icon}</div>
             <div class="card-title">${mod.label}</div>
             <div class="card-desc">${mod.desc}</div>
-        `;
+        `));
         card.addEventListener('click', () => {
             if (card.classList.contains('locked')) {
                 showToast('Upgrade your token to unlock this module.', 'warning');
@@ -310,11 +312,12 @@ function renderTokenInspector(payload) {
         'workspace-health': 'Workspace Health', 'unused-deps': 'Unused Deps', 'api-contract': 'API Contract',
         complexity: 'Complexity', 'fix-preview': 'Fix Preview'
     };
-    moduleGrid.innerHTML = allModules.map(mod => {
+    moduleGrid.textContent = "";
+    allModules.forEach(mod => {
         const isUnlocked = allowed.includes(mod);
         const label = moduleLabels[mod] || mod;
-        return `<span class="ti-mod${isUnlocked ? '' : ' locked'}">${isUnlocked ? '&#10003;' : '&#10005;'} ${label}</span>`;
-    }).join('');
+        moduleGrid.appendChild(htmlToFragment(`<span class="ti-mod${isUnlocked ? '' : ' locked'}">${isUnlocked ? '&#10003;' : '&#10005;'} ${label}</span>`));
+    });
 
     // Scan command
     const scanCmd = config.scanCommand || 'npx simplebeacon scan --gate --offline';
@@ -333,10 +336,10 @@ function applyProductFromToken(token) {
         updateDropzoneGate();
         const infoCard = document.getElementById('productInfoCard');
         if (infoCard) infoCard.style.display = 'none';
-        document.getElementById('productLabel').textContent = '';
-        document.getElementById('pageTitle').textContent = 'Upload Your Scan Report';
-        document.getElementById('pageSubtitle').textContent = 'Generate an Executive Risk Certificate from your local SimpleBeacon scan.';
-        document.getElementById('tokenHelp').textContent = 'Paste the license token from your payment confirmation email.';
+        document.getElementById('productLabel').textContent = "";
+        document.getElementById('pageTitle').textContent = "Upload Your Scan Report";
+        document.getElementById('pageSubtitle').textContent = "Generate an Executive Risk Certificate from your local SimpleBeacon scan.";
+        document.getElementById('tokenHelp').textContent = "Paste the license token from your payment confirmation email.";
         document.getElementById('submitBtn').style.display = '';
         renderTokenInspector(null);
         return;
@@ -370,7 +373,8 @@ function applyProductFromToken(token) {
         const helpTexts = document.querySelectorAll('.help-text');
         helpTexts.forEach(h => {
             if (h.textContent.includes('simplebeacon.js scan')) {
-                h.innerHTML = `Generated by: <code>${config.scanCommand}</code>`;
+                h.textContent = "";
+                h.appendChild(htmlToFragment(`Generated by: <code>${config.scanCommand}</code>`));
             }
         });
     }
@@ -378,11 +382,13 @@ function applyProductFromToken(token) {
     const infoCard = document.getElementById('productInfoCard');
     if (infoCard) {
         infoCard.style.display = 'block';
-        document.getElementById('productDetails').innerHTML = `
+        const productDetails = document.getElementById('productDetails');
+        productDetails.textContent = "";
+        productDetails.appendChild(htmlToFragment(`
             <strong style="color:var(--text-main);font-size:1.1rem;">${config.label}</strong><br>
             <span style="color:var(--accent);font-weight:700;font-size:1.05rem;">${config.price || ''}</span><br>
             <span style="color:var(--text-muted);font-size:0.85rem;">${config.subtitle}</span>
-        `;
+        `));
     }
     if (banner && payload.exp && tier !== 'community') {
         const totalDays = (tier === 'euai' || tier === 'euSprint') ? 30 : (tier === 'executive' ? 90 : (tier === 'instant' ? 7 : (tier === 'team' || tier === 'enterprise' ? 365 : 30)));
@@ -395,7 +401,8 @@ function applyProductFromToken(token) {
         const projEl = document.getElementById('sprintProject');
         const fill = document.getElementById('sprintExpiryFill');
         if (isExpired) {
-            daysEl.innerHTML = '<span style="color:#EF4444;font-weight:700;">EXPIRED</span>';
+            daysEl.textContent = "";
+            daysEl.appendChild(htmlToFragment('<span style="color:#EF4444;font-weight:700;">EXPIRED</span>'));
             tierEl.textContent = config.label;
             projEl.textContent = payload.projectName || 'default-project';
             fill.style.width = '0%';

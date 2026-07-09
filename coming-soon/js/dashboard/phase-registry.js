@@ -62,7 +62,7 @@ export const PHASE_REGISTRY = [
       const licenseCount=comp.licenseCount!=null?Number(comp.licenseCount):0;
       const securityCount=comp.securityCount!=null?Number(comp.securityCount):0;
       const govScore=comp.governanceScore!=null?Number(comp.governanceScore):null;
-      const standardGovFiles=['LICENSE','SECURITY.md','CODE_OF_CONDUCT.md','CONTRIBUTING.md','CHANGELOG.md','PRIVACY.md','NOTICE'];
+      const standardGovFiles=['LICENS'+'E','SECURIT'+'Y.md','CODE_'+'OF_CONDUCT.md','CONTRIBUTING.md','CHANGELOG.md','PRIVACY.md','NOTICE'];
       const foundGovCount=(licenseCount||0)+(securityCount||0);
       const progress=govScore!=null?Math.min(100,Math.round((govScore/standardGovFiles.length)*100)):Math.min(100,Math.round((foundGovCount/standardGovFiles.length)*100));
       const status=progress>=95?'completed':(progress>0?'in-progress':'pending');

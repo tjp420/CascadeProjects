@@ -36,22 +36,47 @@ Pop-Location
 # Step 3b: Inject sidebar.html if vsce omitted it (untracked files are skipped by vsce)
 $vsix = Get-ChildItem "$root\simplebeacon-*.vsix" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
 if ($vsix -and (Test-Path "$root\sidebar.html")) {
-    $tempDir = "$root\.vsix-patch-temp"
-    if (Test-Path $tempDir) { Remove-Item $tempDir -Recurse -Force }
-    New-Item -ItemType Directory -Path $tempDir | Out-Null
-    $zipPath = "$tempDir\package.zip"
-    Copy-Item -Path $vsix.FullName -Destination $zipPath -Force
-    Expand-Archive -Path $zipPath -DestinationPath $tempDir -Force
-    $extensionDir = Join-Path $tempDir 'extension'
-    if (Test-Path $extensionDir) {
+    try {
+        $tempDir = "$root\.vsix-patch-temp"
+        if (Test-Path $tempDir) { Remove-Item $tempDir -Recurse -Force }
+        New-Item -ItemType Directory -Path $tempDir | Out-Null
+        $extensionDir = "$tempDir\extension"
+        $scriptPath = "$tempDir\repackage-vsix.js"
+
+        # Extract the VSIX and inject sidebar.html
+        & tar -xf $vsix.FullName -C $tempDir
         Copy-Item "$root\sidebar.html" -Destination $extensionDir -Force
-        Remove-Item $vsix.FullName -Force
-        Remove-Item $zipPath -Force
-        Compress-Archive -Path "$tempDir\*" -DestinationPath $zipPath -Force
-        Move-Item -Path $zipPath -Destination $vsix.FullName -Force
-        Write-Host "Injected sidebar.html into VSIX." -ForegroundColor Green
+
+        # Write a small Node helper to repackage with jszip (yauzl-compatible)
+        @"
+const JSZip = require('jszip');
+const fs = require('fs');
+(async () => {
+  try {
+    const zip = await JSZip.loadAsync(fs.readFileSync(process.argv[2]));
+    const source = fs.readFileSync(process.argv[3]);
+    zip.file('extension/sidebar.html', source);
+    const output = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE', compressionOptions: { level: 9 } });
+    fs.writeFileSync(process.argv[2], output);
+    console.log('Injected sidebar.html into VSIX.');
+  } catch (err) {
+    console.error('Failed to inject sidebar.html:', err.message);
+    process.exit(1);
+  }
+})();
+"@ | Out-File -FilePath $scriptPath -Encoding UTF8
+
+        # Run from the project directory so 'jszip' resolves
+        Push-Location $root
+        & node $scriptPath $vsix.FullName "$root\sidebar.html"
+        $result = $LASTEXITCODE
+        Pop-Location
+        if ($result -ne 0) { exit 1 }
+        Remove-Item $tempDir -Recurse -Force
+    } catch {
+        Write-Host "Failed to inject sidebar.html: $_" -ForegroundColor Red
+        exit 1
     }
-    Remove-Item $tempDir -Recurse -Force
 }
 
 # Show result

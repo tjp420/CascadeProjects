@@ -27,7 +27,8 @@ const SCAN_OPTION_MAP = {
   'dependency-vulns': { name: 'Dependency Vulns', price: 29 },
   'build-readiness': { name: 'Build Readiness', price: 19 },
   'ai-indicators': { name: 'AI System Indicators', price: 19 },
-  governance: { name: 'License & Governance', price: 19 }
+  governance: { name: 'License & Governance', price: 19 },
+  one_time_certificate: { name: 'Board-Ready Audit Certificate', price: 149 }
 };
 
 const logger = {
@@ -247,10 +248,11 @@ router.post('/api/create-checkout-session', async (req, res) => {
             return res.status(503).json({ error: 'Stripe is not configured. Set STRIPE_SECRET_KEY.' });
         }
 
-        const { email, projectName, clientName, scans, total } = req.body;
+        const { email, projectName, clientName, scans, total, product } = req.body;
         if (!email || !projectName || !Array.isArray(scans) || scans.length === 0) {
             return res.status(400).json({ error: 'Email, project name, and at least one scan are required.' });
         }
+        const checkoutProduct = product || 'custom_plan';
 
         const lineItems = [];
         for (const scanId of scans) {
@@ -280,7 +282,7 @@ router.post('/api/create-checkout-session', async (req, res) => {
             success_url: successUrl,
             cancel_url: cancelUrl,
             metadata: {
-                product: 'custom_plan',
+                product: checkoutProduct,
                 email,
                 projectName: String(projectName).slice(0, 200),
                 clientName: String(clientName || email).slice(0, 200),
@@ -340,6 +342,7 @@ function setupCheckoutWebhook(app) {
                 eu_ai_act_sprint: { label: 'EU AI Act Sprint', days: 30, tier: 'euai' },
                 runtime_shield: { label: 'Runtime Shield', days: 30, tier: 'universal' },
                 custom_plan: { label: 'Custom Audit Plan', days: 90, tier: 'custom' },
+                one_time_certificate: { label: 'Board-Ready Audit Certificate', days: 365, tier: 'certificate' },
                 team: { label: 'AI Slop Cop Team', days: 30, tier: 'team' },
                 enterprise: { label: 'AI Slop Cop Enterprise', days: 30, tier: 'enterprise' }
             };

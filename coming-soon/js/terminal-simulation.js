@@ -10,11 +10,12 @@
   let cancelled = false;
 
   const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+  function htmlToFragment(html) { return document.createRange().createContextualFragment(html.trim()); }
 
   function appendLine(html, className='') {
     const div = document.createElement('div');
     div.className = 'tw-line ' + className;
-    div.innerHTML = html;
+    div.appendChild(htmlToFragment(html));
     term.appendChild(div);
     term.scrollTop = term.scrollHeight;
   }
@@ -22,7 +23,7 @@
   function appendRaw(html) {
     const div = document.createElement('div');
     div.className = 'tw-line';
-    div.innerHTML = html;
+    div.appendChild(htmlToFragment(html));
     term.appendChild(div);
     term.scrollTop = term.scrollHeight;
   }
@@ -60,7 +61,7 @@
   async function typeHTML(html, delay=0) {
     const div = document.createElement('div');
     div.className = 'tw-line';
-    div.innerHTML = html;
+    div.appendChild(htmlToFragment(html));
     term.appendChild(div);
     term.scrollTop = term.scrollHeight;
     if (delay > 0) await sleep(delay);
@@ -95,7 +96,7 @@
         { sev: 'high', type: 'EU AI Act Indicator', file: 'src/ai/generate.js', line: 8, msg: 'Generative AI system without transparency notice' },
         { sev: 'high', type: 'Architecture Drift', file: 'src/legacy/v1-api.js', line: 200, msg: '500-line function violates service boundary' },
         { sev: 'medium', type: 'Token Bleed', file: 'src/auth/oauth.ts', line: 34, msg: 'OAuth refresh token logged to console' },
-        { sev: 'medium', type: 'Copyleft Contamination', file: 'src/lib/helpers.js', line: 12, msg: 'GPL-licensed code found in proprietary repo' },
+        { sev: 'medium', type: 'Copyleft Contamination', file: 'src/lib/helpers.js', line: 12, msg: 'GPL-licenced code found in proprietary repo' },
       ]
     }
   ];
@@ -105,7 +106,7 @@
   async function runScenario(idx) {
     const s = SCENARIOS[idx];
     cancelled = false;
-    term.innerHTML = '';
+    term.textContent = "";
     running = true;
     startBtn.style.display = 'none';
     resetBtn.style.display = 'none';
@@ -166,7 +167,7 @@
     cancelled = true;
     await sleep(50);
     const s = SCENARIOS[idx];
-    term.innerHTML = '';
+    term.textContent = "";
 
     appendLine('<span class="tw-prompt">$ </span><span class="tw-cmd">' + s.cmd + '</span>');
     appendLine('<span class="tw-ok">Scanner</span> <span class="tw-dim">v3.0.22</span>');

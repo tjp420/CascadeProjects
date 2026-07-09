@@ -21,6 +21,7 @@ const mimeTypes = {
   '.woff': 'font/woff',
   '.ttf': 'font/ttf',
   '.otf': 'font/otf',
+  '.wasm': 'application/wasm',
   '.map': 'application/json'
 };
 

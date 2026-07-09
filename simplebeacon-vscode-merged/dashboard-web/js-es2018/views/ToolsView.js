@@ -189,6 +189,14 @@ export class ToolsView {
         .tl-v3-log-drawer.is-open { max-height:400px; }
         .tl-v3-log-inner { padding:14px 18px; border-top:1px solid rgba(148,163,184,0.08); background:rgba(15,23,42,0.4); }
         .tl-v3-log-block { background:#0f172a; border:1px solid rgba(148,163,184,0.12); border-radius:8px; padding:10px 14px; font-family:var(--font-mono); font-size:0.72rem; color:#e2e8f0; max-height:200px; overflow:auto; white-space:pre-wrap; line-height:1.5; }
+        [data-theme='light'] nav[style*="position:sticky"] { background:linear-gradient(145deg, rgba(255,255,255,0.9), rgba(248,250,252,0.95)) !important; border-color:rgba(148,163,184,0.15) !important; }
+        [data-theme='light'] .tl-v3-terminal { background:var(--surface); color:var(--text-primary); border-color:var(--border); }
+        [data-theme='light'] .tl-v3-terminal-time { color:var(--text-muted); }
+        [data-theme='light'] .tl-v3-terminal-text.info { color:var(--text-primary); }
+        [data-theme='light'] .tl-v3-prereq-warn { color:var(--warning); background:var(--warning-bg); border-color:rgba(217,119,6,0.2); }
+        [data-theme='light'] .tl-v3-prereq-ok { color:var(--success); background:var(--success-bg); border-color:rgba(5,150,105,0.2); }
+        [data-theme='light'] .tl-v3-log-inner { background:var(--surface); }
+        [data-theme='light'] .tl-v3-log-block { background:var(--surface); color:var(--text-primary); border-color:var(--border); }
       </style>
 
       <div class="tl-v3-header">

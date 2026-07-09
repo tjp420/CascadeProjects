@@ -3,9 +3,9 @@ import assert from 'node:assert';
 
 import Utils, {
   compose, pipe, zipWith, curry, partial, tap,
-  parseJsonSafe, parseResponseJson,
-  getExportNames, getNamespaceNames, validateBarrelIntegrity, __barrel__,
-  escapeHtml, clamp, deepClone
+  parseJsonSafe, parseResponseJson, stringifySafe,
+  getExportNames, exportNames, getNamespaceNames, validateBarrelIntegrity, __barrel__,
+  getFacadeMeta, escapeHtml, clamp, deepClone
 } from '../utils.js';
 
 describe('dashboard-web/js/utils.js barrel', () => {
@@ -28,9 +28,12 @@ describe('dashboard-web/js/utils.js barrel', () => {
     assert.ok(names.includes('parseJsonSafe'));
     assert.ok(names.includes('parseResponseJson'));
     assert.ok(names.includes('getExportNames'));
+    assert.ok(names.includes('exportNames'));
     assert.ok(names.includes('getNamespaceNames'));
     assert.ok(names.includes('validateBarrelIntegrity'));
+    assert.ok(names.includes('setDefaultBarrel'));
     assert.ok(names.includes('__barrel__'));
+    assert.ok(names.includes('stringifySafe'));
   });
 
   it('__barrel__ metadata has all required fields', () => {
@@ -45,8 +48,8 @@ describe('dashboard-web/js/utils.js barrel', () => {
   });
 
   it('__barrel__ has correct moduleCount and namespaceCount', () => {
-    assert.strictEqual(__barrel__.moduleCount, 9);
-    assert.strictEqual(__barrel__.namespaceCount, 9);
+    assert.strictEqual(__barrel__.moduleCount, 15);
+    assert.strictEqual(__barrel__.namespaceCount, 15);
   });
 
   it('__barrel__ is attached to default export', () => {
@@ -65,8 +68,8 @@ describe('dashboard-web/js/utils.js barrel', () => {
 
   it('default export contains all namespaces', () => {
     const expected = [
-      'string', 'number', 'async', 'array', 'object',
-      'format', 'dom', 'type', 'inline'
+      'string', 'number', 'async', 'array', 'object', 'format', 'dom', 'type',
+      'functional', 'storage', 'url', 'misc', 'safeStorage', 'eventBus', 'inline'
     ];
     for (const key of expected) {
       assert.ok(Utils[key], `namespace "${key}" should exist`);
@@ -84,13 +87,14 @@ describe('dashboard-web/js/utils.js barrel', () => {
     assert.strictEqual(typeof Utils.inline.tap, 'function');
     assert.strictEqual(typeof Utils.inline.parseJsonSafe, 'function');
     assert.strictEqual(typeof Utils.inline.parseResponseJson, 'function');
+    assert.strictEqual(typeof Utils.inline.stringifySafe, 'function');
     assert.strictEqual(Object.isFrozen(Utils.inline), true);
   });
 
-  it('getNamespaceNames returns frozen array with 9 namespaces including inline', () => {
+  it('getNamespaceNames returns frozen array with 15 namespaces including inline', () => {
     const names = getNamespaceNames();
     assert.ok(Array.isArray(names));
-    assert.strictEqual(names.length, 9);
+    assert.strictEqual(names.length, 15);
     assert.ok(names.includes('inline'));
     assert.strictEqual(Object.isFrozen(names), true);
   });
@@ -111,6 +115,24 @@ describe('dashboard-web/js/utils.js barrel', () => {
     assert.strictEqual(typeof escapeHtml, 'function');
     assert.strictEqual(typeof clamp, 'function');
     assert.strictEqual(typeof deepClone, 'function');
+  });
+
+  it('facade metadata is available via getFacadeMeta and default export', () => {
+    assert.strictEqual(typeof getFacadeMeta, 'function');
+    assert.strictEqual(Utils.getFacadeMeta, getFacadeMeta);
+    assert.strictEqual(Object.isFrozen(getFacadeMeta()), true);
+    assert.strictEqual(Utils.__facade__, getFacadeMeta());
+  });
+
+  it('stringifySafe is a flat named export', () => {
+    assert.strictEqual(typeof stringifySafe, 'function');
+    assert.strictEqual(stringifySafe({ a: 1 }), '{"a":1}');
+    assert.strictEqual(stringifySafe({ toJSON() { throw new Error('bad'); } }), null);
+  });
+
+  it('exportNames aliases getExportNames', () => {
+    assert.strictEqual(typeof exportNames, 'function');
+    assert.deepStrictEqual(exportNames(), getExportNames());
   });
 });
 

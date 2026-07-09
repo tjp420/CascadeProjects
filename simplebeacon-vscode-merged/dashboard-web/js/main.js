@@ -25,6 +25,7 @@ import { ChatbotView } from './views/ChatbotView.js';
 import { UploadView } from './views/UploadView.js';
 import { RemediationRoadmapView } from './views/RemediationRoadmapView.js';
 import { ProfileView } from './views/ProfileView.js';
+import { CodeMapView } from './views/CodeMapView.js';
 import { BillingLandingController } from './controllers/billingLanding.js';
 import { COMING_SOON_URL } from './config.js';
 import { shouldShowOnboarding, renderOnboarding, bindOnboarding } from './components/Onboarding.js';
@@ -66,7 +67,7 @@ const DASHBOARD_ROUTED_VIEWS = new Set([
   'dashboard', 'analyze', 'results', 'repository-health',
   'audit', 'security', 'quality', 'trust',
   'assessments', 'remediation', 'platform', 'profile',
-  'tools', 'settings', 'help', 'chatbot', 'about'
+  'tools', 'settings', 'help', 'chatbot', 'about', 'code-map'
 ]);
 
 /**
@@ -166,6 +167,7 @@ class SimplebeaconDashboard {
       upload: new UploadView(this),
       remediation: new RemediationRoadmapView(this),
       profile: new ProfileView(this),
+      'code-map': new CodeMapView(this),
       'billing-success': new BillingLandingController(this),
       'billing-cancel': new BillingLandingController(this)
     };

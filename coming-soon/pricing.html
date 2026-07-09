@@ -120,7 +120,7 @@
 
     /* Comparison table */
     .compare-wrap { border: 1px solid var(--border); border-radius: 14px; overflow: hidden; margin-bottom: 16px; background: rgba(20,20,20,0.5); backdrop-filter: blur(10px); }
-    .compare-row { display: grid; grid-template-columns: 1.8fr 1fr 1fr 1fr; border-bottom: 1px solid rgba(38,38,38,0.5); transition: background 0.15s; }
+    .compare-row { display: grid; grid-template-columns: 1.8fr 1fr 1fr 1fr 1fr; border-bottom: 1px solid rgba(38,38,38,0.5); transition: background 0.15s; }
     .compare-row:last-child { border-bottom: none; }
     .compare-row:not(.compare-head):hover { background: rgba(99,102,241,0.04); }
     .compare-head { background: rgba(26,26,26,0.8); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); }
@@ -270,7 +270,7 @@
       .how-it-works { gap: 8px; }
       .step-arrow { display: none; }
       .compare-row { grid-template-columns: 1.5fr 1fr 1fr; }
-      .compare-cell:nth-child(4), .compare-cell:nth-child(5) { display: none; }
+      .compare-cell:nth-child(4), .compare-cell:nth-child(5), .compare-cell:nth-child(6) { display: none; }
       .sticky-cta { flex-direction: column; gap: 8px; padding: 12px 16px; }
       .sticky-cta-text { font-size: 0.8rem; text-align: center; }
     }
@@ -422,7 +422,7 @@
           </div>
           <p class="price-desc">For solo devs and open-source projects. Test locally before you buy.</p>
           <ul class="price-features">
-            <li>Up to <strong>100 local scans</strong> / month</li>
+            <li>Up to <strong>10 local scans</strong> / month</li>
             <li>Up to <strong>50 files</strong> per scan</li>
             <li>Gate scan: credentials + AI patterns</li>
             <li>AI Slop Cop: placeholder debris detection</li>
@@ -458,21 +458,42 @@
 
         <article class="price-card price-card-premium" data-animate="fade-up" data-delay="200">
           <div class="price-card-header">
-            <span class="price-tag">Enterprise</span>
+            <span class="price-tag">Compliance</span>
             <h3>Compliance Suite</h3>
-            <div class="price-amount" id="entPrice">Custom</div>
-            <p id="entAnnualNote" style="font-size:0.8rem;color:var(--text-secondary);margin-top:4px;display:none;"><span style="text-decoration:line-through;color:var(--text-muted);">Custom</span> <span style="color:var(--success);font-weight:600;">Custom</span> <span class="save-badge">Contact Sales</span></p>
+            <div class="price-amount" id="compliancePrice">$399<span class="price-unit">/mo</span></div>
+            <p id="complianceAnnualNote" style="font-size:0.8rem;color:var(--text-secondary);margin-top:4px;display:none;"><span style="text-decoration:line-through;color:var(--text-muted);">$4,788/yr</span> <span style="color:var(--success);font-weight:600;">$3,999/yr</span> <span class="save-badge">Save 16%</span></p>
           </div>
-          <p class="price-desc">Board-ready compliance. Unlimited scans, custom rules, and dedicated support.</p>
+          <p class="price-desc">Board-ready compliance for mid-market teams. Instant SOC 2 & EU AI Act artifacts.</p>
           <ul class="price-features">
             <li><strong>Unlimited</strong> scans</li>
             <li><strong>Everything in Pro</strong></li>
-            <li><strong>60+ analyzer engines</strong> (full suite)</li>
-            <li>Team management (5+ seats)</li>
+            <li><strong>EU AI Act</strong> & SOC 2 documentation</li>
+            <li><strong>Board-ready PDF certificate</strong> ZIP</li>
+            <li><strong>5 team seats</strong></li>
+            <li>Team dashboard + trends</li>
+            <li>Priority email + Slack support</li>
+            <li>Quarterly compliance reviews</li>
+          </ul>
+          <p style="font-size:0.75rem;color:var(--text-muted);text-align:center;margin-top:-12px;margin-bottom:12px;">&#10003; Cancel anytime &middot; 7-day money-back guarantee</p>
+          <button class="price-btn checkout-btn" data-tier="compliance_suite" data-price-id="price_compliance_monthly">Subscribe</button>
+        </article>
+
+        <article class="price-card" data-animate="fade-up" data-delay="300">
+          <div class="price-card-header">
+            <span class="price-tag">Enterprise</span>
+            <h3>Enterprise Air-Gapped</h3>
+            <div class="price-amount">Custom</div>
+          </div>
+          <p class="price-desc">On-premise, air-gapped, and Fortune 500 deployments. Custom contracts and SLA.</p>
+          <ul class="price-features">
+            <li><strong>Everything in Compliance Suite</strong></li>
+            <li>Unlimited network monorepos</li>
             <li>SSO / SAML authentication</li>
             <li>Custom rule development</li>
             <li>Self-hosted / air-gapped option</li>
             <li>Dedicated support channel + SLA</li>
+            <li>NET-30 invoicing & PO support</li>
+            <li>Volume discounts</li>
           </ul>
           <p style="font-size:0.75rem;color:var(--text-muted);text-align:center;margin-top:-12px;margin-bottom:12px;">&#10003; Annual contract &middot; Volume discounts available</p>
           <a href="contact.html?topic=enterprise" class="price-btn price-btn-secondary" data-contact-link data-contact-topic="enterprise">Contact Sales</a>
@@ -480,6 +501,27 @@
       </div>
 
       <p style="text-align:center;font-size:0.85rem;color:var(--text-secondary);margin:0 0 32px;">One license token works across VS Code, CLI, and Dashboard. No separate add-ons needed.</p>
+
+      <h2 class="section-title" data-animate="fade-up" data-delay="0">Need just one certificate?</h2>
+      <div class="pricing-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); max-width: 320px; margin: 0 auto 48px;">
+        <article class="price-card" data-animate="fade-up" data-delay="0">
+          <div class="price-card-header">
+            <span class="price-tag">One-Time</span>
+            <h3>Audit Certificate</h3>
+            <div class="price-amount">$149</div>
+          </div>
+          <p class="price-desc">Generate a single board-ready certificate now. No subscription required.</p>
+          <ul class="price-features">
+            <li><strong>1 cryptographic certificate</strong></li>
+            <li>PDF + JSON + remediation roadmap</li>
+            <li>EU AI Act + SOC 2 alignment</li>
+            <li>Valid for 12 months</li>
+            <li>Corporate card checkout</li>
+          </ul>
+          <p style="font-size:0.75rem;color:var(--text-muted);text-align:center;margin-top:-12px;margin-bottom:12px;">&#10003; Instant delivery &middot; No recurring bill</p>
+          <button class="price-btn checkout-btn" data-tier="one_time_certificate" data-price-id="price_certificate_onetime">Buy $149 Pass</button>
+        </article>
+      </div>
 
       <h2 class="section-title" data-animate="fade-up">Compare everything</h2>
       <div class="compare-wrap" data-animate="fade-up" id="compareTable">
@@ -569,7 +611,7 @@
 
       <!-- Sticky CTA -->
       <div class="sticky-cta" id="stickyCta">
-        <span class="sticky-cta-text">Install SimpleBeacon free (100 scans/mo), upgrade to <strong>Pro ($9/mo)</strong> when you're ready</span>
+        <span class="sticky-cta-text">Install SimpleBeacon free (10 scans/mo), upgrade to <strong>Pro ($9/mo)</strong> when you're ready</span>
         <button class="sticky-cta-btn" id="stickyCtaBtn">Install Free Extension</button>
       </div>
 
@@ -645,7 +687,7 @@
     // Checkout modal handlers
     function openCheckoutModal(tier) {
       var modal = document.getElementById('checkoutModal');
-      var tierNames = { pro: 'SimpleBeacon Pro — $9/mo', pro_annual: 'SimpleBeacon Pro — $90/yr', enterprise: 'SimpleBeacon Enterprise — Custom', enterprise_annual: 'SimpleBeacon Enterprise — Custom', custom: 'Custom Audit Plan' };
+      var tierNames = { pro: 'SimpleBeacon Pro — $9/mo', pro_annual: 'SimpleBeacon Pro — $90/yr', compliance_suite: 'SimpleBeacon Compliance Suite — $399/mo', compliance_suite_annual: 'SimpleBeacon Compliance Suite — $3,999/yr', enterprise: 'SimpleBeacon Enterprise Air-Gapped — Custom', enterprise_annual: 'SimpleBeacon Enterprise Air-Gapped — Custom', one_time_certificate: 'SimpleBeacon Audit Certificate — $149 one-time', one_time_certificate_annual: 'SimpleBeacon Audit Certificate — $149 one-time', custom: 'Custom Audit Plan' };
       var displayTier = tier;
       if (isAnnual) { displayTier = tier + '_annual'; }
       document.getElementById('modalTitle').textContent = 'Purchase: ' + (tierNames[displayTier] || 'License');
@@ -668,12 +710,16 @@
       if (monthlyLabelEl) monthlyLabelEl.classList.toggle('active', !isAnnual);
       if (annualLabelEl) annualLabelEl.classList.toggle('active', isAnnual);
       var teamPrice = document.getElementById('teamPrice');
+      var compliancePrice = document.getElementById('compliancePrice');
       var entPrice = document.getElementById('entPrice');
       var teamNote = document.getElementById('teamAnnualNote');
+      var complianceNote = document.getElementById('complianceAnnualNote');
       var entNote = document.getElementById('entAnnualNote');
       if (teamPrice) teamPrice.innerHTML = isAnnual ? '$90<span class="price-unit">/yr</span>' : '$9<span class="price-unit">/mo</span>';
+      if (compliancePrice) compliancePrice.innerHTML = isAnnual ? '$3,999<span class="price-unit">/yr</span>' : '$399<span class="price-unit">/mo</span>';
       if (entPrice) entPrice.innerHTML = 'Custom';
       if (teamNote) teamNote.style.display = isAnnual ? 'block' : 'none';
+      if (complianceNote) complianceNote.style.display = isAnnual ? 'block' : 'none';
       if (entNote) entNote.style.display = 'none';
     }
     function toggleBilling() { setBilling(isAnnual ? 'monthly' : 'annual'); }
@@ -716,7 +762,7 @@
         return false;
       }
 
-      var productMap = { pro: 'startup_shield', startup: 'startup_shield', enterprise: 'compliance_suite', custom: 'custom_plan' };
+      var productMap = { pro: 'startup_shield', startup: 'startup_shield', compliance_suite: 'compliance_suite', enterprise: 'compliance_suite', custom: 'custom_plan', one_time_certificate: 'one_time_certificate' };
       var product = productMap[tier] || (tier.indexOf('custom_') === 0 ? 'custom_plan' : null);
       if (!product) {
         errorEl.textContent = 'Unknown product tier.';
@@ -730,10 +776,38 @@
 
       var apiBase = 'https://simplebeacon.onrender.com';
 
-      // Subscription tiers: pro/enterprise
+      // One-time certificate pass: fixed $149 payment
+      if (product === 'one_time_certificate') {
+        var certPayload = { email: email, projectName: projectName, clientName: clientName || email, scans: ['one_time_certificate'], total: 149, product: 'one_time_certificate' };
+        fetch(apiBase + '/api/create-checkout-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(certPayload)
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          if (data.success && data.url) {
+            window.location.href = data.url;
+          } else {
+            errorEl.textContent = data.error || data.message || 'Checkout failed. Please try again.';
+            errorEl.style.display = 'block';
+            btn.disabled = false;
+            btn.textContent = 'Proceed to Payment';
+          }
+        })
+        .catch(function(err) {
+          errorEl.textContent = 'Network error: ' + err.message;
+          errorEl.style.display = 'block';
+          btn.disabled = false;
+          btn.textContent = 'Proceed to Payment';
+        });
+        return false;
+      }
+
+      // Subscription tiers: pro/compliance
       var subscriptionTiers = ['startup_shield', 'compliance_suite'];
       if (subscriptionTiers.indexOf(product) >= 0) {
-        var subTierMap = { startup_shield: 'pro', compliance_suite: 'enterprise' };
+        var subTierMap = { startup_shield: 'pro', compliance_suite: 'compliance' };
         var subTier = subTierMap[product] || 'pro';
         var payload = { email: email, projectName: projectName, clientName: clientName || email, tier: subTier, mode: isAnnual ? 'annual' : 'monthly' };
         var endpoint = apiBase + '/api/create-subscription-session';
@@ -817,7 +891,7 @@
       btn.textContent = 'Sending...';
       var body = 'SimpleBeacon Pricing Tiers\n\n' +
         'Free — $0\n' +
-        '  • Up to 100 local scans / month\n' +
+        '  • Up to 10 local scans / month\n' +
         '  • Up to 50 files per scan\n' +
         '  • Gate scan: credentials + AI patterns\n' +
         '  • CLI + VS Code extension\n\n' +
@@ -828,13 +902,23 @@
         '  • GitHub Action for every PR\n' +
         '  • Quality score + full JSON exports\n' +
         '  • Priority email support\n\n' +
-        'Enterprise — Custom pricing\n' +
+        'Compliance Suite — $399/mo (VC-backed startups & scaleups)\n' +
         '  • Unlimited scans\n' +
-        '  • Everything in Pro\n' +
-        '  • Team management (5+ seats)\n' +
+        '  • EU AI Act & SOC 2 documentation\n' +
+        '  • Board-ready PDF certificate ZIP\n' +
+        '  • 5 team seats + team dashboard\n' +
+        '  • Priority email + Slack support\n' +
+        '  • Quarterly compliance reviews\n\n' +
+        'Audit Certificate — $149 one-time\n' +
+        '  • 1 cryptographic, board-ready certificate\n' +
+        '  • PDF + JSON + remediation roadmap\n' +
+        '  • Valid for 12 months\n\n' +
+        'Enterprise Air-Gapped — Custom pricing\n' +
+        '  • Unlimited scans\n' +
+        '  • Everything in Compliance Suite\n' +
+        '  • On-premise / air-gapped deployment\n' +
         '  • SSO / SAML authentication\n' +
         '  • Custom rule development\n' +
-        '  • Self-hosted / air-gapped option\n' +
         '  • Dedicated support + SLA\n\n' +
         'Visit: https://simplebeacon.ai/pricing';
       fetch(apiBase + '/api/test-checkout', {
@@ -871,14 +955,16 @@
         '<div class="compare-cell compare-feature">Feature</div>' +
         '<div class="compare-cell">Free</div>' +
         '<div class="compare-cell compare-highlight">Pro</div>' +
-        '<div class="compare-cell compare-premium">Enterprise</div>' +
+        '<div class="compare-cell compare-premium">Compliance</div>' +
+        '<div class="compare-cell">Enterprise</div>' +
         '</div>';
       features.forEach(function(row) {
         html += '<div class="compare-row">' +
           '<div class="compare-cell compare-feature">' + row.name + '</div>' +
           '<div class="compare-cell">' + (row.developer || row.free || '&mdash;') + '</div>' +
           '<div class="compare-cell compare-highlight">' + (row.startup || row.pro || '&mdash;') + '</div>' +
-          '<div class="compare-cell compare-premium">' + (row.enterprise || '&mdash;') + '</div>' +
+          '<div class="compare-cell compare-premium">' + (row.compliance || '&mdash;') + '</div>' +
+          '<div class="compare-cell">' + (row.enterprise || '&mdash;') + '</div>' +
           '</div>';
       });
       wrap.innerHTML = html;
