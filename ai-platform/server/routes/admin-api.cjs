@@ -1,5 +1,6 @@
 'use strict';
 
+const express = require('express');
 const rateLimit = require('express-rate-limit');
 const constants = require('../config/constants.cjs');
 const { getActiveUsers } = require('../lib/session-activity.cjs');
@@ -27,7 +28,10 @@ function setupAdminAPI(app, options = {}) {
     message: { success: false, error: 'Admin API rate limit exceeded. Please try again later.' }
   });
 
-  app.get('/api/admin/users', authenticate, adminRateLimit, async (req, res) => {
+  const router = express.Router();
+  app.use('/api/admin', authenticate, adminRateLimit, router);
+
+  router.get('/users', async (req, res) => {
     if (!isAdmin(req)) {
       return res.status(403).json({ success: false, error: 'Forbidden' });
     }
@@ -88,7 +92,7 @@ function setupAdminAPI(app, options = {}) {
     }
   });
 
-  app.get('/api/admin/sessions', authenticate, adminRateLimit, async (req, res) => {
+  router.get('/sessions', async (req, res) => {
     if (!isAdmin(req)) {
       return res.status(403).json({ success: false, error: 'Forbidden' });
     }
@@ -101,7 +105,7 @@ function setupAdminAPI(app, options = {}) {
     }
   });
 
-  app.post('/api/admin/users/:id/trust-level', authenticate, adminRateLimit, async (req, res) => {
+  router.post('/users/:id/trust-level', async (req, res) => {
     if (!isAdmin(req)) {
       return res.status(403).json({ success: false, error: 'Forbidden' });
     }
@@ -122,7 +126,7 @@ function setupAdminAPI(app, options = {}) {
     }
   });
 
-  app.delete('/api/admin/users/:id', authenticate, adminRateLimit, async (req, res) => {
+  router.delete('/users/:id', async (req, res) => {
     if (!isAdmin(req)) {
       return res.status(403).json({ success: false, error: 'Forbidden' });
     }
