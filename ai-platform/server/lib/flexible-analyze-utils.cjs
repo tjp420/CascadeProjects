@@ -129,6 +129,14 @@ function resolveProjectPath(baseDir, rawPath, monorepoRoot) {
                         // The monorepo root was requested via the stale path; use the server's actual monorepo root.
                         return existingPlatform ? path.resolve(path.dirname(existingPlatform)) : effectiveMonoRoot;
                     }
+                    // Fallback: any stale subpath under /ai-platform/ (e.g., /ai-platform/CascadeProjects)
+                    // resolves to the server's actual platform directory.
+                    if (existingPlatform) {
+                        const existingPlatformKey = existingPlatform.replace(/\\/g, '/').toLowerCase();
+                        if (normalizedKey.startsWith(existingPlatformKey + '/')) {
+                            return existingPlatform;
+                        }
+                    }
                 }
             }
             // Third fallback: the path may be a stale ai-platform prefix concatenated
