@@ -114,7 +114,17 @@ async function authenticateWithDatabase(db, email, password) {
     const valid = await verifyPassword(password, row.password_hash);
     if (!valid) return null;
 
-    return toAuthUser(row);
+    const user = toAuthUser(row);
+    // Demo file may carry role/features/tier overrides for seeded accounts; merge them in
+    // so admin/superuser bypasses for paid deliverables work without a DB schema change.
+    const demoUsers = loadDemoUsers();
+    const demoMatch = demoUsers.find((u) => u.email.toLowerCase() === String(email).toLowerCase());
+    if (demoMatch) {
+        if (demoMatch.role && !user.role) user.role = demoMatch.role;
+        if (Array.isArray(demoMatch.features)) user.features = demoMatch.features;
+        if (demoMatch.tier && !user.tier) user.tier = demoMatch.tier;
+    }
+    return user;
 }
 
 /**
@@ -166,6 +176,8 @@ async function authenticateUser(db, email, password) {
                 email: emergencyEmail,
                 name: 'Emergency Admin',
                 trustLevel: 'gold',
+                role: 'admin',
+                features: ['all_modules'],
                 createdAt: new Date().toISOString(),
                 successfulAnalyses: 0,
                 securityIncidents: 0,

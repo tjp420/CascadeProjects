@@ -16,6 +16,8 @@
     "password": "admin123",
     "name": "Admin User",
     "trustLevel": "gold",
+    "role": "admin",
+    "features": ["all_modules"],
     "successfulAnalyses": 48,
     "securityIncidents": 0,
     "communityContributions": 15,

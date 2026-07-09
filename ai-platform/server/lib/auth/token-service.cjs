@@ -58,6 +58,9 @@ function generateToken(user) {
     name: user.name,
     trustLevel: levelKey,
     permissions: levelConfig.permissions,
+    role: user.role || '',
+    features: Array.isArray(user.features) ? user.features : [],
+    tier: user.tier || user.plan || '',
     iat: Math.floor(Date.now() / constants.MS_PER_SECOND),
     jti: (typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : crypto.randomBytes(16).toString('hex'))
   };
