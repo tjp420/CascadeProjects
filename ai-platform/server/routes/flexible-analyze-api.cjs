@@ -1857,11 +1857,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             logger.debug('[export-bundle] response streamed');
         } catch (error) {
             logger.warn('[export-bundle] generation failed', { error: safeErrorMessage(error) });
-            return res.status(400).json({
-                success: false,
-                error: toClientError(error, 'Export bundle generation failed'),
-                details: safeErrorMessage(error)
-            });
+            return res.status(400).json({ success: false, error: toClientError(error, 'Export bundle generation failed') });
         }
     });
 
