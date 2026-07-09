@@ -9,7 +9,7 @@ const {
     auditAuth,
     handleLogin
 } = require('../middleware/auth.cjs');
-const { authenticateUser } = require('./user-service.cjs');
+const { authenticateUser, loadDemoUsers } = require('./user-service.cjs');
 
 /**
  * Handle phase2 login.
@@ -51,11 +51,22 @@ async function handlePhase2Login(req, res, next) {
             return handleLogin(req, res, next);
         }
 
+        let demoUserFound = false;
+        try {
+            const demoUsers = loadDemoUsers();
+            demoUserFound = demoUsers.some(u => u.email && u.email.toLowerCase() === String(email).toLowerCase());
+        } catch (e) {
+            // ignore demo file read errors
+        }
+        console.warn(`[Phase2Login] failed for ${email} - demoUserFound: ${demoUserFound}`);
         auditAuth('login_failed', { email }, req);
-        return res.status(401).json({
+        const debug = process.env.DEBUG_CLIENT_ERRORS === '1' ? { email, demoUserFound } : undefined;
+        const body = {
             error: 'Authentication failed',
             message: 'Invalid email or password'
-        });
+        };
+        if (debug) body.debug = debug;
+        return res.status(401).json(body);
     } catch (error) {
         auditAuth('login_failed', { email: req.body?.email }, req);
         console.error('[Phase2Login] Error during login:', error?.message, error?.stack);
