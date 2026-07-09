@@ -1008,10 +1008,25 @@ async function startServer() {
   const bundledReportPath = path.join(__dirname, 'web', 'data', 'simplebeacon-report.json');
   const activeReportPath = path.join(__dirname, '.simplebeacon', 'report.json');
   try {
-    if (fs.existsSync(bundledReportPath) && !fs.existsSync(activeReportPath)) {
-      fs.mkdirSync(path.dirname(activeReportPath), { recursive: true });
-      fs.copyFileSync(bundledReportPath, activeReportPath);
-      console.log('[Server] Copied bundled report to', activeReportPath.replace(/\\/g, '/'));
+    if (fs.existsSync(bundledReportPath)) {
+      let needsCopy = false;
+      if (!fs.existsSync(activeReportPath)) {
+        needsCopy = true;
+      } else {
+        try {
+          const activeReport = JSON.parse(fs.readFileSync(activeReportPath, 'utf8'));
+          if (!activeReport.repositoryInventory || activeReport.repositoryInventory.totalFiles == null) {
+            needsCopy = true;
+          }
+        } catch {
+          needsCopy = true;
+        }
+      }
+      if (needsCopy) {
+        fs.mkdirSync(path.dirname(activeReportPath), { recursive: true });
+        fs.copyFileSync(bundledReportPath, activeReportPath);
+        console.log('[Server] Copied bundled report to', activeReportPath.replace(/\\/g, '/'));
+      }
     }
   } catch (reportCopyErr) {
     console.warn('[Server] Could not copy bundled report:', reportCopyErr.message);
