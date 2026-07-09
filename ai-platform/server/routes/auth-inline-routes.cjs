@@ -3,6 +3,7 @@ const rateLimit = require('express-rate-limit');
 const constants = require('../config/constants.cjs');
 const {
   authenticate,
+  optionalAuthenticate,
   generateToken
 } = require('../middleware/auth.cjs');
 
@@ -71,12 +72,20 @@ router.post('/auth/register', authLoginRateLimit, validateInput('login'), async 
 
 router.post('/auth/refresh', authenticate, handleTokenRefresh);
 
-router.get('/auth/me', authenticate, (req, res) => {
-  res.json({
-    user: req.user,
-    authenticated: true,
-    timestamp: new Date().toISOString()
-  });
+router.get('/auth/me', optionalAuthenticate, (req, res) => {
+  if (req.user) {
+    res.json({
+      user: req.user,
+      authenticated: true,
+      timestamp: new Date().toISOString()
+    });
+  } else {
+    res.json({
+      user: null,
+      authenticated: false,
+      timestamp: new Date().toISOString()
+    });
+  }
 });
 
 router.post('/auth/logout', (req, res) => {

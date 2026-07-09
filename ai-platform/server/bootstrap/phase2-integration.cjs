@@ -329,12 +329,20 @@ function setupAuthRoutes(app, authRateLimit, refreshRateLimit) {
         }
     });
     app.post('/api/auth/refresh', refreshRateLimit, authenticate, handleTokenRefresh);
-    app.get('/api/auth/me', authenticate, (req, res) => {
-        res.json({
-            user: req.user,
-            authenticated: true,
-            timestamp: new Date().toISOString()
-        });
+    app.get('/api/auth/me', _optionalAuthenticate, (req, res) => {
+        if (req.user) {
+            res.json({
+                user: req.user,
+                authenticated: true,
+                timestamp: new Date().toISOString()
+            });
+        } else {
+            res.json({
+                user: null,
+                authenticated: false,
+                timestamp: new Date().toISOString()
+            });
+        }
     });
     app.post('/api/auth/logout', (req, res) => {
         res.json({ message: 'Logged out', timestamp: new Date().toISOString() });
