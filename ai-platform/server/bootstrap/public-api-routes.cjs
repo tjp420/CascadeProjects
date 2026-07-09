@@ -37,6 +37,9 @@ const PUBLIC_API_PATHS = new Set([
     'optimization/candidates',
     'analyze/upload-directory',
     'reports/download',
+    'chatbot/providers',
+    'chatbot/disclosure',
+    'chatbot/message',
     // Legacy dashboard.html scanner wiring (read-only repository scans)
     'project-structure',
     'backlog',
