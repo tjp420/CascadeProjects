@@ -146,15 +146,24 @@ class WasmAnalyzer {
         return this.inner.get_results();
     }
 }
+let analyzerFactory = null;
 async function createAnalyzer() {
-    try {
-        const wasm = await import(WASM_PKG_URL);
-        await wasm.default();
-        return new WasmAnalyzer(wasm);
+    if (!analyzerFactory) {
+        analyzerFactory = await (async () => {
+            try {
+                const wasm = await import(WASM_PKG_URL);
+                await wasm.default();
+                return { type: 'wasm', wasm };
+            }
+            catch (_a) {
+                return { type: 'js' };
+            }
+        })();
     }
-    catch (_a) {
-        return new JsChunkAnalyzer();
+    if (analyzerFactory.type === 'wasm') {
+        return new WasmAnalyzer(analyzerFactory.wasm);
     }
+    return new JsChunkAnalyzer();
 }
 /**
  * Stream a file through a chunk analyzer and return aggregated findings.

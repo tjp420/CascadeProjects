@@ -10,7 +10,7 @@ import { analyzeFileChunks, findingsToIssues } from './scan-wasm-bridge.js?v=202
 
 const MAX_DISCOVERED_FILES = 500000;
 const LARGE_FILE_THRESHOLD = 5 * 1024 * 1024; // 5 MB
-const BINARY_EXTENSIONS = /\.(exe|dll|bin|so|dylib|wasm|zip|tar|gz|rar|7z|iso|img|dmg|pkg|deb|msi)$/i;
+const BINARY_EXTENSIONS = /\.(exe|dll|bin|so|dylib|wasm|zip|tar|gz|tgz|bz2|7z|rar|iso|img|dmg|pkg|deb|msi|apk|ipa|woff|woff2|ttf|otf|eot|png|jpg|jpeg|gif|bmp|ico|webp|avif|svg|mp3|mp4|wav|avi|mov|mkv|webm|pdf|doc|docx|xls|xlsx|ppt|pptx|sqlite|db|lock|scx|scm|sc2map|sc2data|chk|mix|vxl|shp|tmp|mpq|w3x|w3m|nif|bik|ogv)$/i;
 
 const LANGUAGE_REGISTRY = {
   javascript: { extensions: ['js', 'cjs', 'mjs', 'ts', 'tsx', 'jsx'] },
@@ -138,8 +138,12 @@ function shouldSkipFile(path, deepScan) {
   return false;
 }
 
+function isBinary(path) {
+  return BINARY_EXTENSIONS.test(path);
+}
+
 function isBinaryOrLarge(path, size) {
-  return BINARY_EXTENSIONS.test(path) || size > LARGE_FILE_THRESHOLD;
+  return isBinary(path) || size > LARGE_FILE_THRESHOLD;
 }
 
 function runAnalyzer(name, text, filePath) {
@@ -197,6 +201,7 @@ async function scanFiles(files, deepScan) {
   let processed = 0;
   let textErrors = 0;
   let chunkAnalyzed = 0;
+  let binarySkipped = 0;
 
   for (const file of files) {
     if (shouldSkipFile(file.path, deepScan)) continue;
@@ -208,7 +213,12 @@ async function scanFiles(files, deepScan) {
       }
 
       const size = fileObj.size || 0;
-      if (isBinaryOrLarge(file.path, size)) {
+      if (isBinary(file.path)) {
+        binarySkipped += 1;
+        processed++;
+        continue;
+      }
+      if (size > LARGE_FILE_THRESHOLD) {
         const results = await analyzeFileChunks(fileObj, file.path);
         chunkAnalyzed += 1;
         const chunkIssues = findingsToIssues(results, file.path);
@@ -235,7 +245,7 @@ async function scanFiles(files, deepScan) {
     }
   }
   self.postMessage({ type: 'progress', processed, total: files.length });
-  return { processed, totalFiles: files.length, findings: allResults, issues, issueCount: issues.length, chunkAnalyzed };
+  return { processed, totalFiles: files.length, findings: allResults, issues, issueCount: issues.length, chunkAnalyzed, binarySkipped };
 }
 
 self.onmessage = async (e) => {

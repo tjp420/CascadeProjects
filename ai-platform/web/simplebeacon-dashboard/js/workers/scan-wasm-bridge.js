@@ -163,14 +163,23 @@ class WasmAnalyzer {
   }
 }
 
+let analyzerFactory = null;
 async function createAnalyzer() {
-  try {
-    const wasm = await import(WASM_PKG_URL);
-    await wasm.default();
-    return new WasmAnalyzer(wasm);
-  } catch {
-    return new JsChunkAnalyzer();
+  if (!analyzerFactory) {
+    analyzerFactory = await (async () => {
+      try {
+        const wasm = await import(WASM_PKG_URL);
+        await wasm.default();
+        return { type: 'wasm', wasm };
+      } catch {
+        return { type: 'js' };
+      }
+    })();
   }
+  if (analyzerFactory.type === 'wasm') {
+    return new WasmAnalyzer(analyzerFactory.wasm);
+  }
+  return new JsChunkAnalyzer();
 }
 
 /**
