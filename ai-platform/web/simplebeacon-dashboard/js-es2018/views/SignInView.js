@@ -86,6 +86,7 @@ export class SignInView {
             entitlement = await billingService.resolveEntitlement(email);
             this.app.state.billingPlan = entitlement.plan;
             this.app.state.billingStatus = entitlement.status;
+            this.app.state.entitlements = entitlement.status;
         }
         const { allowed, plan } = entitlement;
         const internalDev = Boolean(plan === null || plan === void 0 ? void 0 : plan.internalDashboard);

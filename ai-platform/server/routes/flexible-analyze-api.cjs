@@ -202,23 +202,38 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
     function hasAdminDeliverableAccess(req) {
         const user = req.user;
         if (!user) return false;
-        if (user.role === 'superuser' || user.role === 'admin') return true;
-        if (user.tier === 'superuser' || user.tier === 'admin') return true;
-        if (Array.isArray(user.features) && user.features.includes('all_modules')) return true;
+        const role = String(user.role || '').toLowerCase();
+        const tier = String(user.tier || '').toLowerCase();
+        if (role === 'superuser' || role === 'admin') return true;
+        if (tier === 'superuser' || tier === 'admin') return true;
+        if (Array.isArray(user.features) && user.features.map(String).map(s => s.toLowerCase()).includes('all_modules')) return true;
+        if (Array.isArray(user.permissions) && user.permissions.includes('admin:all')) return true;
+        if (user.trustLevel === 'platinum' || user.trustLevel === 'operator') return true;
         return false;
     }
 
     app.get('/api/simplebeacon/entitlements', optionalAuthenticate, (req, res) => {
         const locked = publicGateEnabled || closedVaultMode;
         const adminAccess = hasAdminDeliverableAccess(req);
-        res.json({
+        const debugClientErrors = process.env.DEBUG_CLIENT_ERRORS === '1' || req.query.debug === '1';
+        const response = {
             success: true,
             publicGateLocked: locked,
             closedVaultMode,
             hasAuditDeliverableAccess: (!publicGateEnabled && !closedVaultMode) || adminAccess,
             auditCheckoutUrl,
             auditPriceLabel: '$499'
-        });
+        };
+        if (debugClientErrors && req.user) {
+            response._debug = {
+                role: req.user.role,
+                tier: req.user.tier,
+                features: req.user.features,
+                trustLevel: req.user.trustLevel,
+                adminAccess
+            };
+        }
+        res.json(response);
     });
 
     if (closedVaultMode) {
