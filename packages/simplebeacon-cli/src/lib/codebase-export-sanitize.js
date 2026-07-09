@@ -70,6 +70,10 @@ function isBenchmarkCodebaseReport(report, options = {}) {
 function isKnownCodebaseFalsePositive(finding) {
     if (!finding || typeof finding !== 'object') return false;
     const filePath = String(finding.filePath || '').replace(/\\/g, '/');
+    // Bundled VS Code test binaries and packaged extension files are not product code.
+    if (/(^|\/)\.vscode-test\//.test(filePath)) return true;
+    if (/(^|\/)simplebeacon-vscode-merged\//.test(filePath)) return true;
+    if (/\.vsix$/i.test(filePath)) return true;
     if (filePath === 'pdf-export.html' && finding.type === 'placeholder-token') return true;
     if (finding.type === 'placeholder-token' && /\bplaceholder\s+patterns\b/i.test(String(finding.match || ''))) {
         return /\bfiction\b/i.test(String(finding.description || finding.match || ''));

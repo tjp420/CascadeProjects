@@ -1142,6 +1142,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                         '*.png', '*.jpg', '*.jpeg', '*.gif', '*.svg', '*.ico',
                         '*.mp4', '*.webm', '*.mp3', '*.wav',
                         '*.pdf', '*.doc', '*.docx', '*.zip', '*.tar', '*.gz',
+                        '**/.vscode-test/**', '**/simplebeacon-vscode-merged/**', '**/*.vsix',
                         '**/cp*.json', '**/euc*.json', '**/gbk*.json',
                         '**/shiftjis.json', '**/big5*.json', '**/encoding*.json',
                         '**/codes.json', '**/dbcs*.js', '**/dbcs*.json'
@@ -1151,6 +1152,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                         '.simplebeacon', 'tmp', '.github', '.github-sync',
                         'backups', 'deployments', 'logs', 'ai-agent', 'ai-tools',
                         'simplebeacon-rule-tests', 'simplebeacon-frameworkless',
+                        'simplebeacon-vscode-merged', '.vscode-test',
                         'packages/simplebeacon-cli'
                     ]
                 }, null, 2)
@@ -2484,33 +2486,52 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                     throw progErr;
                 }
             } else {
-                // simplebeacon:production-leak-intent: config-comment - Explains temp scan config override behavior
-                // Write a temp config so scanPaths points to the root, not the default sample directories
+                // simplebeacon:production-leak-intent: config-comment - Merge project config so server scans use the same ignore/skip rules as local scans
                 const tempConfigPath = path.join(tmpDir, '.simplebeacon', 'config.json');
-                fs.writeFileSync(tempConfigPath, JSON.stringify({
+                let baseConfig = {};
+                const configCandidates = [
+                    path.join(projectPath, '.simplebeacon', 'config.json'),
+                    path.join(baseDir, '.simplebeacon', 'config.json')
+                ];
+                for (const candidate of configCandidates) {
+                    try {
+                        if (fs.existsSync(candidate)) {
+                            baseConfig = JSON.parse(fs.readFileSync(candidate, 'utf8'));
+                            break;
+                        }
+                    } catch (readErr) {
+                        logger.warn('[Flexible Analyze] Could not read config candidate:', candidate, readErr.message);
+                    }
+                }
+                const defaultIgnore = [
+                    '*.log', '*.backup.*', '*.tmp',
+                    'node_modules/**', '.git/**', 'coverage/**',
+                    'dist/**', 'build/**', '.github/**',
+                    '**/*.test.js', '**/*.spec.js',
+                    '**/*.test.ts', '**/*.spec.ts',
+                    '**/*.map', '**/*.min.js', '**/*.min.css',
+                    '**/*.d.ts', '**/*.lock', '**/*.lockb',
+                    'package-lock.json', 'yarn.lock', 'pnpm-lock.yaml',
+                    '.DS_Store', 'Thumbs.db',
+                    '*.woff', '*.woff2', '*.ttf', '*.eot',
+                    '*.png', '*.jpg', '*.jpeg', '*.gif', '*.svg', '*.ico',
+                    '*.mp4', '*.webm', '*.mp3', '*.wav',
+                    '*.pdf', '*.doc', '*.docx', '*.zip', '*.tar', '*.gz',
+                    '**/cp*.json', '**/euc*.json', '**/gbk*.json',
+                    '**/shiftjis.json', '**/big5*.json', '**/encoding*.json',
+                    '**/codes.json', '**/dbcs*.js', '**/dbcs*.json'
+                ];
+                const defaultSkipDirs = ['.git', 'node_modules', 'coverage', 'dist', 'build', '.simplebeacon', 'tmp'];
+                const scanConfig = {
+                    ...baseConfig,
                     scanPaths: ['.'],
                     productionPaths: ['.'],
                     fullDirectoryScan: true,
-                    ignore: [
-                        '*.log', '*.backup.*', '*.tmp',
-                        'node_modules/**', '.git/**', 'coverage/**',
-                        'dist/**', 'build/**', '.github/**',
-                        '**/*.test.js', '**/*.spec.js',
-                        '**/*.test.ts', '**/*.spec.ts',
-                        '**/*.map', '**/*.min.js', '**/*.min.css',
-                        '**/*.d.ts', '**/*.lock', '**/*.lockb',
-                        'package-lock.json', 'yarn.lock', 'pnpm-lock.yaml',
-                        '.DS_Store', 'Thumbs.db',
-                        '*.woff', '*.woff2', '*.ttf', '*.eot',
-                        '*.png', '*.jpg', '*.jpeg', '*.gif', '*.svg', '*.ico',
-                        '*.mp4', '*.webm', '*.mp3', '*.wav',
-                        '*.pdf', '*.doc', '*.docx', '*.zip', '*.tar', '*.gz',
-                        '**/cp*.json', '**/euc*.json', '**/gbk*.json',
-                        '**/shiftjis.json', '**/big5*.json', '**/encoding*.json',
-                        '**/codes.json', '**/dbcs*.js', '**/dbcs*.json'
-                    ],
-                    fullDirectoryScanSkipDirs: ['.git', 'node_modules', 'coverage', 'dist', 'build', '.simplebeacon', 'tmp']
-                }, null, 2));
+                    allowedAnalysisRoots: [projectPath],
+                    fullDirectoryScanSkipDirs: [...new Set([...defaultSkipDirs, ...(baseConfig.fullDirectoryScanSkipDirs || [])])],
+                    ignore: [...new Set([...defaultIgnore, ...(baseConfig.ignore || [])])]
+                };
+                fs.writeFileSync(tempConfigPath, JSON.stringify(scanConfig, null, 2));
 
                 const scanCmd = `node "${cliBin}" scan --path "${tmpDir}" --config "${tempConfigPath}" --format json --output "${reportOut}" --offline --full`;
                 let stdout = '';

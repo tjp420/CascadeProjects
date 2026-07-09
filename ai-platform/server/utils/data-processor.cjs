@@ -110,11 +110,12 @@ async function runLocalScan(sandboxDir, options = {}) {
             '.DS_Store', 'Thumbs.db',
             '*.png', '*.jpg', '*.jpeg', '*.gif', '*.svg', '*.ico',
             '*.mp4', '*.webm', '*.mp3', '*.wav',
-            '*.pdf', '*.doc', '*.docx', '*.zip', '*.tar', '*.gz'
+            '*.pdf', '*.doc', '*.docx', '*.zip', '*.tar', '*.gz',
+            '**/.vscode-test/**', '**/simplebeacon-vscode-merged/**', '**/*.vsix'
         ],
         fullDirectoryScanSkipDirs: [
             '.git', 'node_modules', 'coverage', 'dist', 'build',
-            '.next', '.simplebeacon', 'tmp'
+            '.next', '.simplebeacon', 'tmp', '.vscode-test', 'simplebeacon-vscode-merged'
         ]
     }, null, 2));
 

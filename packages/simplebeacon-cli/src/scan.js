@@ -1056,7 +1056,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         .filter(Boolean);
     const scanPaths = resolveEffectiveScanPaths(scanRoot, root, config, sanitizedExtraPaths);
     const schemaEnabled = isRuleEnabled(config, 'json-schema');
-    const FULL_TREE_MINIMAL_SKIP_DIRS = ['.git', 'github-cache', '.simplebeacon', '.vscode-test'];
+    const FULL_TREE_MINIMAL_SKIP_DIRS = ['.git', 'github-cache', '.simplebeacon', '.vscode-test', 'simplebeacon-vscode-merged', 'ai-tools', 'ai-agent'];
     const inventoryPromise = countRepositoryInventory(root, {
         profile: config.fullDirectoryScan ? 'all' : (options.inventoryProfile || 'universal'),
         skipDirs: config.fullDirectoryScan

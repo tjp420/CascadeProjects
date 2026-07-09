@@ -155,6 +155,8 @@ function buildSuggestedFixes(collections) {
         if (/simplebeacon-rule-tests\//.test(fp)) return true;
         if (/false-positive-audit\//.test(fp)) return true;
         if (/\.vscode-test\//.test(fp)) return true;
+        if (/simplebeacon-vscode-merged\//.test(fp)) return true;
+        if (/\.vsix$/i.test(fp)) return true;
         if (/coming-soon\/archive\/test-/.test(fp)) return true;
         // Crypto token generation (random, not hardcoded secret)
         if (type === 'Credential Pattern' && /crypto\.randomBytes|Math\.random|Date\.now/.test(s)) return true;
