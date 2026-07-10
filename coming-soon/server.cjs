@@ -114,7 +114,7 @@ app.use((req, res, next) => {
     res.setHeader('X-XSS-Protection', '1; mode=block');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     const SCANNER_BRIDGE_PORT = 3456;
-    const LOCAL_PORTS = [DEFAULT_PORT, 3000, 3002, 8080, 5000, 54800, 54358, 38000, 50559, 11434];
+    const LOCAL_PORTS = [DEFAULT_PORT, 3000, 3002, 4000, 8080, 5000, 54800, 54358, 38000, 50559, 11434];
     const localConnectOrigins = LOCAL_PORTS.flatMap(p => ['http://127.0.0.1:' + p, 'http://localhost:' + p]).join(' ');
     // Render backend and any other Render service the dashboard may call
     const renderOrigins = 'https://simplebeacon.onrender.com https://*.onrender.com';

@@ -1700,11 +1700,11 @@ export class AnalyzeView {
               <p id="agent-status" class="agent-status"></p>
               <p id="agent-4000-status" class="agent-status"></p>
               <div id="agent-4000-results"></div>
-              <div id="sandbox-scanner" class="sandbox-scanner" style="margin-top: 16px; padding: 16px; border: 1px solid #d0d7de; border-radius: 8px; background: #f6f8fa;">
-                <h4 style="margin-top: 0;">Secure Local Directory Scanner</h4>
-                <p style="margin-bottom: 12px;">Select a local drive or folder. Scanning runs privately inside your browser using the File System Access API (Chrome/Edge).</p>
+              <div id="sandbox-scanner" class="sandbox-scanner" style="margin-top: 16px; padding: 16px; border: 1px solid #30363d; border-radius: 8px; background: #161b22; color: #c9d1d9;">
+                <h4 style="margin-top: 0; color: #f0f6fc;">Secure Local Directory Scanner</h4>
+                <p style="margin-bottom: 12px; color: #8b949e;">Select a local drive or folder. Scanning runs privately inside your browser using the File System Access API (Chrome/Edge/Brave).</p>
                 <button type="button" id="trigger-native-picker" class="btn btn-primary" style="margin-bottom: 12px;">Select Drive Target</button>
-                <pre id="sandbox-scan-terminal" style="background: #1c1f24; color: #abb2bf; font-family: monospace; padding: 12px; border-radius: 4px; max-height: 240px; overflow-y: auto; margin: 0;">Awaiting drive selection...</pre>
+                <pre id="sandbox-scan-terminal" style="background: #0d1117; color: #abb2bf; font-family: monospace; padding: 12px; border-radius: 4px; max-height: 240px; overflow-y: auto; margin: 0; border: 1px solid #30363d;">Awaiting drive selection...</pre>
               </div>
               <p id="agent-download-cta" class="agent-download-cta"></p>
             </div>
@@ -6379,7 +6379,7 @@ export class AnalyzeView {
         catch (err) {
             const msg = err.message || 'Sandbox scan failed';
             showToast(msg, 'error');
-            if (terminal) terminal.textContent += `\n❌ ${msg}`;
+            if (terminal) terminal.textContent = `❌ ${msg}`;
         }
     }
     async runPathAnalysis(inputPath) {
