@@ -195,7 +195,7 @@ class DependencyHealthAnalyzer {
 
     isLikelyToolingDependency(name, section) {
         if (section === 'devDependencies') {
-            return /^(eslint|jest|vitest|typescript|prettier|husky|nodemon|webpack|vite|rollup|postcss|tailwindcss|autoprefixer|@types\/)/.test(name);
+            return /^(eslint|jest|vitest|supertest|typescript|prettier|husky|nodemon|webpack|vite|rollup|postcss|tailwindcss|autoprefixer|@types\/)/.test(name);
         }
         return false;
     }
