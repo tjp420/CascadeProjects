@@ -1,6 +1,6 @@
 import { authService } from './authService.js';
 import { fetchUserAiKeys } from './aiKeysService.js';
-import { scanService } from './scanService.js?v=20260710reportnorm1';
+import { scanService } from './scanService.js?v=20260710inventory1';
 import { formatNumber, escapeHtml, fetchWithTimeout } from '../utils.js';
 import { isRemoteRepoUrl } from '../lib/analyzePathSources.js';
 import { isBenchmarkCachePath } from '../utils/complete-scan-artifact-profile.browser.js';
@@ -1200,6 +1200,9 @@ export async function fetchRepositoryInventory(projectPath, options = {}) {
     if (/^https?:\/\//i.test(path) && !isRemoteRepoUrl(path)) {
         throw new Error('Enter a folder path (not a file like .bat or .json) or a supported public repo URL');
     }
+    // Avoid hitting the server for obviously incomplete paths while the user is still typing.
+    if (path.length < 3)
+        return null;
     const cached = getCachedInventory(path, options);
     if (cached !== undefined) {
         return cached;
@@ -1222,13 +1225,23 @@ export async function fetchRepositoryInventory(projectPath, options = {}) {
     if (options.fullDirectoryScan) {
         params.set('fullDirectoryScan', 'true');
     }
-    const data = await fetchJsonWithGuidance(`/api/analyze/inventory?${params}`, {
-        headers: authService.getAuthHeaders()
-    });
+    let data;
+    try {
+        data = await fetchJsonWithGuidance(`/api/analyze/inventory?${params}`, {
+            headers: authService.getAuthHeaders()
+        });
+    }
+    catch (_a) {
+        // Inventory is optional metadata; a 400/404 from an invalid/missing path is not fatal.
+        setCachedInventory(path, options, null);
+        return null;
+    }
     if (!data.success) {
         if (data.pathMissing)
             return null;
-        throw new Error(data.error || 'Repository inventory failed');
+        // Treat validation errors as missing inventory so the dashboard degrades gracefully.
+        setCachedInventory(path, options, null);
+        return null;
     }
     if (data.pathMissing || !data.inventory) {
         setCachedInventory(path, options, null);

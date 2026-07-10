@@ -1,4 +1,4 @@
-import { fetchAnalyzeProviders, normalizeProjectPath } from '../services/analyzeService.js?v=20260710reportnorm1';
+import { fetchAnalyzeProviders, normalizeProjectPath } from '../services/analyzeService.js?v=20260710inventory1';
 import { isRemoteRepoUrl } from './analyzePathSources.js';
 /**
  * Is path within allowed roots.

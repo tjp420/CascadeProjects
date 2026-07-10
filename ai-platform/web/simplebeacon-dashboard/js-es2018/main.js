@@ -1,4 +1,4 @@
-import { scanService } from './services/scanService.js?v=20260710reportnorm1';
+import { scanService } from './services/scanService.js?v=20260710inventory1';
 import { platformService } from './services/platformService.js?v=20260525jsonguard1';
 import { billingService } from './services/billingService.js?v=20260525jsonfixbilling1';
 import { authService } from './services/authService.js?v=20260709tokenfix1';
@@ -14,7 +14,7 @@ import { PlatformView } from './views/PlatformView.js?v=20260601platformmetrics1
 import { QualityView } from './views/QualityView.js';
 import { HelpView, FeaturesView } from './views/HelpView.js';
 import { AuditView } from './views/AuditView.js?v=20260618renderfix1';
-import { AnalyzeView } from './views/AnalyzeView.js?v=20260710reportnorm1';
+import { AnalyzeView } from './views/AnalyzeView.js?v=20260710inventory1';
 import { SecurityView } from './views/SecurityView.js?v=20260611fixexport1';
 import { PricingView } from './views/PricingView.js';
 import { AboutView } from './views/AboutView.js';
@@ -31,7 +31,7 @@ import { showUpgradeModal } from './components/UpgradeModal.js';
 import { showLoginModal } from './components/LoginModal.js?v=20260609token4';
 import { isDemoMode, isSignedOffMode, isLocalDevHost, demoReadOnlyMessage } from './demoMode.js';
 import { showToast, resolveDashboardProjectPath } from './utils.js';
-import { fetchAnalyzeProviders } from './services/analyzeService.js?v=20260710reportnorm1';
+import { fetchAnalyzeProviders } from './services/analyzeService.js?v=20260710inventory1';
 /**
  * Vault unlock url.
  * @param {string} returnPath

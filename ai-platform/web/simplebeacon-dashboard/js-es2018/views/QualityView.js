@@ -1,5 +1,5 @@
 import { escapeHtml, showToast, formatNumber } from '../utils.js';
-import { resolveJestTestsLabel } from '../services/analyzeService.js?v=20260710reportnorm1';
+import { resolveJestTestsLabel } from '../services/analyzeService.js?v=20260710inventory1';
 /**
  * Parse jest total.
  * @param {any} jestTestsLabel

@@ -1,5 +1,5 @@
 import { escapeHtml, formatScanPathForDisplay } from '../utils.js';
-import { resolveJestTestsLabel, resolvePageSpecsLabel, hydrateDashboardHome } from '../services/analyzeService.js?v=20260710reportnorm1';
+import { resolveJestTestsLabel, resolvePageSpecsLabel, hydrateDashboardHome } from '../services/analyzeService.js?v=20260710inventory1';
 /**
  * Format percent.
  * @param {any} value

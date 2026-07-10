@@ -1,7 +1,7 @@
 import { escapeHtml, showToast, downloadJson, renderEmptyState } from '../utils.js';
-import { resolvePageSpecsLabel, resolveJestTestsLabel } from '../services/analyzeService.js?v=20260710reportnorm1';
+import { resolvePageSpecsLabel, resolveJestTestsLabel } from '../services/analyzeService.js?v=20260710inventory1';
 // EU AI Act transparency disclosure: This view includes AI system integration indicators per Article 50.
-import { scanService } from '../services/scanService.js?v=20260710reportnorm1';
+import { scanService } from '../services/scanService.js?v=20260710inventory1';
 import { platformService } from '../services/platformService.js';
 import { fetchUserAiKeys, saveUserAiKeys, clearUserAiKeys, normalizeAiKeysRecord, fetchOllamaModels } from '../services/aiKeysService.js?v=20260709ollama3';
 import { authService } from '../services/authService.js';
