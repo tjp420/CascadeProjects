@@ -12,6 +12,7 @@
  * a browser extension or an Electron wrapper for full compatibility.
  */
 const DEFAULT_AGENT_ORIGIN = 'http://127.0.0.1:55432';
+const AGENT_4000_ORIGIN = 'http://127.0.0.1:4000';
 const AGENT_TIMEOUT_MS = 3000;
 const AGENT_DOWNLOAD_URLS = {
     windows: '/downloads/simplebeacon-local-agent-setup.exe',
@@ -161,6 +162,40 @@ export async function scanViaAgent(projectPath, origin = DEFAULT_AGENT_ORIGIN) {
         throw new Error(data.error || `Agent scan failed (${response.status})`);
     }
     return data.report;
+}
+/**
+ * Probe the lightweight localhost:4000 agent used by the provided agent.js bridge.
+ * @param {string} [origin]
+ */
+export async function probeAgent4000(origin = AGENT_4000_ORIGIN) {
+    try {
+        const response = await agentFetchWithTimeout(`${origin}/api/ping`, {
+            method: 'GET',
+            headers: { Accept: 'application/json' }
+        }, AGENT_TIMEOUT_MS);
+        const body = await response.json().catch(() => ({}));
+        return { available: response.ok && body.online === true };
+    }
+    catch (_a) {
+        return { available: false };
+    }
+}
+/**
+ * Run a scan through the lightweight localhost:4000 agent.
+ * @param {string} projectPath
+ * @param {string} [origin]
+ */
+export async function scanViaAgent4000(projectPath, origin = AGENT_4000_ORIGIN) {
+    const response = await agentFetchWithTimeout(`${origin}/api/analyze`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ path: projectPath })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.success) {
+        throw new Error(data.error || `Agent scan failed (${response.status})`);
+    }
+    return data;
 }
 /**
  * Decide whether a given path should be routed to the local agent rather than

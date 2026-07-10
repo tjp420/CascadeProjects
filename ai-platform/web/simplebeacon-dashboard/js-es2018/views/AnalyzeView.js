@@ -2,7 +2,7 @@ import { escapeHtml, showToast, downloadJson, downloadBlob, downloadText, redact
 import { evaluateFunnelMetrics, getFunnelCopy } from '../utils/funnelTrigger.js';
 import { LocalScanService } from '../services/localScanService.js?v=20260709noise3';
 import { fingerprintDirectory, formatFingerprint } from '../services/fingerprintService.js';
-import { probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus, getAgentDownloadUrl, detectPlatform, getPlatformLabel, getInstallInstructions, getAgentFallbackMessage } from '../services/localAgentService.js?v=20260710bridge1';
+import { probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus, getAgentDownloadUrl, detectPlatform, getPlatformLabel, getInstallInstructions, getAgentFallbackMessage, probeAgent4000, scanViaAgent4000 } from '../services/localAgentService.js?v=20260710bridge2';
 // simplebeacon:production-leak-intent: sample-json - Legitimate documentation about sample file patterns in analysis results
 import { analyzePath, scanPath, summarizeReport, fetchAnalyzeProviders, fetchRepositoryInventory, fetchCodebaseAnalysis, enrichScanReport, fetchZscriptModReport, shouldFetchZscriptReport, isLegacyScanReport, buildMonorepoScopeNote, buildPathInventoryProvenance, renderInventoryProvenanceHtml, refreshPathInventory, liveInventoryForPath, renderScanScopePanel, isSimplebeaconReport, aiProviderSupportsSummary, getScanFileMetrics, resolveAutoAnalysisMode, buildScanConclusion, buildConsolidationConclusion, buildFictionDigestPayload, sanitizeFictionDigestExport, resolveCompleteScanTargetPath, normalizeProjectPath, filterIssuesByKind, preparePlatformResultsReport, fetchCompleteAuditReport, fetchAnalyzeExportBundleZip, fetchEuAiActAuditReport, openAuditReportPrintWindow, previewAuditExportTier, auditExportButtonLabel, fetchDataCleanupScan, ensureDashboardApiReady, assertCompleteScanComplianceFresh, assertCompleteScanFileReductionFresh, fetchUnderstandSnippet, isCodebaseReport, fetchComplianceChecklist, fetchProjectNpmAudit, prepareGithubRepo, fetchAnalyzeTestSources, isAnalyzeProviderConfigured, uploadDirectoryAndAnalyze } from '../services/analyzeService.js?v=20260709inventorycache1';
 import { isRemoteRepoUrl, sourceChipTitle } from '../lib/analyzePathSources.js';
@@ -1697,6 +1697,7 @@ export class AnalyzeView {
               <p class="hint">${isWeb ? 'Enter a public URL to scan a website.' : 'Browser drag-and-drop cannot reveal full paths — use Browse Folder or the Local Scan Agent for the correct path.'}</p>
               <p id="fingerprint-status" class="fingerprint-status"></p>
               <p id="agent-status" class="agent-status"></p>
+              <p id="agent-4000-status" class="agent-status"></p>
               <p id="agent-download-cta" class="agent-download-cta"></p>
             </div>
             <div class="scanning-state ${this.busy ? 'active' : ''}">
@@ -4282,6 +4283,31 @@ export class AnalyzeView {
     bindEvents(el) {
         var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5;
         void this.probeAndUpdateAgentStatus(el);
+        const status4000 = el.querySelector('#agent-4000-status');
+        if (status4000) {
+            const update4000 = async () => {
+                try {
+                    const s = await probeAgent4000();
+                    if (s.available) {
+                        status4000.textContent = 'Localhost:4000 agent connected — typed local paths will be scanned locally';
+                        status4000.classList.remove('unavailable');
+                        status4000.classList.add('available');
+                    }
+                    else {
+                        status4000.textContent = 'Localhost:4000 agent offline (run node agent.js to enable local path scans)';
+                        status4000.classList.remove('available');
+                        status4000.classList.add('unavailable');
+                    }
+                }
+                catch (_a) {
+                    status4000.textContent = 'Localhost:4000 agent offline (run node agent.js to enable local path scans)';
+                    status4000.classList.remove('available');
+                    status4000.classList.add('unavailable');
+                }
+            };
+            void update4000();
+            this._agent4000Timer = window.setInterval(update4000, 5000);
+        }
         const pathInput = el.querySelector('#project-path-input');
         const typeSelect = el.querySelector('#analysis-type-select');
         const providerSelect = el.querySelector('#ai-provider-select');
@@ -6281,9 +6307,46 @@ export class AnalyzeView {
             this.refresh();
         }
     }
+    async runAgent4000Scan(projectPath) {
+        this.busy = true;
+        this.scanStartedAt = Date.now();
+        this.refresh();
+        try {
+            const result = await scanViaAgent4000(projectPath);
+            const summary = result.summary || {};
+            const mb = (summary.totalSizeBytes || 0) / 1024 / 1024;
+            const message = `Localhost:4000 scan complete — ${summary.fileCount || 0} files, ${summary.folderCount || 0} folders, ${mb.toFixed(2)} MB`;
+            showToast(message, 'success');
+            const statusEl = this._root && this._root.querySelector('#agent-4000-status');
+            if (statusEl) {
+                statusEl.textContent = message;
+                statusEl.classList.remove('unavailable');
+                statusEl.classList.add('available');
+            }
+        }
+        catch (err) {
+            showToast(err.message || 'Localhost:4000 scan failed', 'error');
+        }
+        finally {
+            this.busy = false;
+            this.scanProgress = null;
+            this.refresh();
+        }
+    }
     async runPathAnalysis(inputPath) {
         var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p;
         const typedPath = String(inputPath || '').trim();
+        // Lightweight localhost:4000 bridge from the provided agent.js template.
+        if (isLocalPath(typedPath)) {
+            try {
+                const status4000 = await probeAgent4000();
+                if (status4000.available) {
+                    await this.runAgent4000Scan(typedPath);
+                    return;
+                }
+            }
+            catch (_r) { /* fall through to existing agent/server flow */ }
+        }
         const isRemoteDeployment = typeof window !== 'undefined' && !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
         const isLocalWindowsPath = /^[a-zA-Z]:[\\/]/i.test(typedPath);
         // Remote deployments can never access the user's local filesystem. Switch to the server's

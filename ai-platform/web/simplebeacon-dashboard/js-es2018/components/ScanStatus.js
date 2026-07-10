@@ -1,6 +1,7 @@
-import { escapeHtml, formatPercent } from '../utils.js';
+import { escapeHtml, formatPercent, showToast } from '../utils.js';
 import { resolveDisplayScore, formatScanScopeSummary, formatScanInventoryNote } from '../services/analyzeService.js';
 import { runLocalScan } from '../services/localScanService.js';
+import { isLocalPath, probeAgent4000, scanViaAgent4000 } from '../services/localAgentService.js?v=20260710bridge2';
 /**
  * Resolve initial scan root.
  * @param {number} report
@@ -34,8 +35,8 @@ export function resolveDashboardScanPath(input, { lastProjectPath } = {}) {
  * @param {Object} options
  * @returns {any}
  */
-export function runDashboardScanFromInput(input, options = {}) {
-    const { onRescan, getLastProjectPath = () => '', setLastProjectPath = () => { }, getDefaultProjectPath = () => '' } = options;
+export async function runDashboardScanFromInput(input, options = {}) {
+    const { onRescan, onLocalScanResult, getLastProjectPath = () => '', setLastProjectPath = () => { }, getDefaultProjectPath = () => '' } = options;
     if (!onRescan)
         return;
     let path = resolveScanRootFromInput(input, {
@@ -47,6 +48,31 @@ export function runDashboardScanFromInput(input, options = {}) {
     if (!path) {
         onRescan(undefined);
         return;
+    }
+    // Lightweight localhost:4000 bridge from the provided agent.js template.
+    if (isLocalPath(path)) {
+        try {
+            const status = await probeAgent4000();
+            if (status.available) {
+                const result = await scanViaAgent4000(path);
+                const summary = result.summary || {};
+                const mb = (summary.totalSizeBytes || 0) / 1024 / 1024;
+                const message = `Localhost:4000 scan complete — ${summary.fileCount || 0} files, ${summary.folderCount || 0} folders, ${mb.toFixed(2)} MB`;
+                showToast(message, 'success');
+                const statusEl = document.getElementById('agent-4000-status');
+                if (statusEl) {
+                    statusEl.textContent = message;
+                    statusEl.classList.remove('unavailable');
+                    statusEl.classList.add('available');
+                }
+                if (onLocalScanResult) {
+                    onLocalScanResult({ projectPath: result.path, summary, source: 'agent4000' });
+                }
+                setLastProjectPath(result.path || path);
+                return;
+            }
+        }
+        catch (_a) { /* fall through to existing server flow */ }
     }
     // Dropped/browsed folders without a full OS path come through as bare folder names.
     // The dashboard scan needs an absolute local path or a remote repo URL.
@@ -158,6 +184,7 @@ function renderScanPathControls(report, options = {}) {
         Deep analysis → <a href="/dashboard/analyze" class="scan-status-link">Analyze</a> ·
         Mock folders → <a href="/dashboard/settings" class="scan-status-link">Settings → Scan paths</a>${pathCount ? ` (${pathCount})` : ''}
       </p>
+      <p id="agent-4000-status" class="agent-status"></p>
     </div>
   `;
 }
@@ -726,5 +753,31 @@ export function bindScanStatus(container, options = {}) {
             }
         });
 
+    }
+    // Poll the lightweight localhost:4000 agent used by the provided agent.js template.
+    const status4000 = container.querySelector('#agent-4000-status');
+    if (status4000) {
+        const update4000 = async () => {
+            try {
+                const s = await probeAgent4000();
+                if (s.available) {
+                    status4000.textContent = 'Localhost:4000 agent connected — typed local paths will be scanned locally';
+                    status4000.classList.remove('unavailable');
+                    status4000.classList.add('available');
+                }
+                else {
+                    status4000.textContent = 'Localhost:4000 agent offline (run node agent.js to enable local path scans)';
+                    status4000.classList.remove('available');
+                    status4000.classList.add('unavailable');
+                }
+            }
+            catch (_a) {
+                status4000.textContent = 'Localhost:4000 agent offline (run node agent.js to enable local path scans)';
+                status4000.classList.remove('available');
+                status4000.classList.add('unavailable');
+            }
+        };
+        void update4000();
+        window.setInterval(update4000, 5000);
     }
 }
