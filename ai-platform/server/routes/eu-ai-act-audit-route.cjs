@@ -146,43 +146,69 @@ function registerEuAiActAuditRoute(app, options = {}) {
       || permissions.includes('analyze:private');
   }
 
+  /**
+   * Build an EU AI Act audit report from request parameters.
+   * @param {import('express').Request} req
+   * @param {import('express').Response} res
+   * @param {Object} params
+   * @returns {Promise<any>}
+   */
+  async function buildAuditReport(req, res, params) {
+    if (publicGateEnabled && !canAccessAuditReport(req.user)) {
+      return res.status(402).json({
+        success: false,
+        publicGateLocked: true,
+        error: 'Pre-Launch Audit PDF is a paid deliverable ($499). Unlock the full remediation log and executive PDF.',
+        checkoutUrl: auditCheckoutUrl,
+        auditPriceLabel: '$499'
+      });
+    }
+
+    const reportModulePath = require.resolve('../lib/eu-ai-act-audit-report.cjs');
+    if (process.env.SIMPLEBEACON_INTERNAL_DASHBOARD === 'true') {
+      delete require.cache[reportModulePath];
+    }
+    const { buildEuAiActAuditReport } = require('../lib/eu-ai-act-audit-report.cjs');
+
+    const projectPath = params.projectPath
+      ? resolveSafeProjectPath(params.projectPath)
+      : baseDir;
+    const report = await buildEuAiActAuditReport({
+      projectPath,
+      clientName: params.client || params.company || undefined,
+      deliverableSku: params.deliverableSku || params.productSku || 'euai2499',
+      artifacts: params.sprintArtifacts || undefined,
+      credentials: params.credentials
+    });
+    res.set('Cache-Control', 'no-store');
+    return res.json({
+      success: true,
+      html: report.html,
+      filename: report.filename,
+      reportId: report.reportId,
+      tier: report.exportTier,
+      exportTierLabel: report.exportTierLabel
+    });
+  }
+
   app.post('/api/analyze/eu-ai-act-audit-report', optionalAuthenticate, async (req, res) => {
     try {
-      if (publicGateEnabled && !canAccessAuditReport(req.user)) {
-        return res.status(402).json({
-          success: false,
-          publicGateLocked: true,
-          error: 'Pre-Launch Audit PDF is a paid deliverable ($499). Unlock the full remediation log and executive PDF.',
-          checkoutUrl: auditCheckoutUrl,
-          auditPriceLabel: '$499'
-        });
+      await buildAuditReport(req, res, req.body || {});
+    } catch (error) {
+      if (error.code === 'eu_ai_act_artifacts_missing') {
+        return res.status(422).json({ success: false, error: error.message });
       }
-      const body = req.body || {};
-      const reportModulePath = require.resolve('../lib/eu-ai-act-audit-report.cjs');
-      if (process.env.SIMPLEBEACON_INTERNAL_DASHBOARD === 'true') {
-        delete require.cache[reportModulePath];
-      }
-      const { buildEuAiActAuditReport } = require('../lib/eu-ai-act-audit-report.cjs');
+      logger.warn('[eu-ai-act-audit-report] generation failed', { error: error.message });
+      return res.status(400).json({
+        success: false,
+        error: toClientError(error, 'EU AI Act audit report generation failed')
+      });
+    }
+  });
 
-      const projectPath = body.projectPath
-        ? resolveSafeProjectPath(body.projectPath)
-        : baseDir;
-      const report = await buildEuAiActAuditReport({
-        projectPath,
-        clientName: body.client || body.company || undefined,
-        deliverableSku: body.deliverableSku || body.productSku || 'euai2499',
-        artifacts: body.sprintArtifacts || undefined,
-        credentials: body.credentials
-      });
-      res.set('Cache-Control', 'no-store');
-      return res.json({
-        success: true,
-        html: report.html,
-        filename: report.filename,
-        reportId: report.reportId,
-        tier: report.exportTier,
-        exportTierLabel: report.exportTierLabel
-      });
+  app.get('/api/analyze/eu-ai-act-audit-report', optionalAuthenticate, async (req, res) => {
+    try {
+      await buildAuditReport(req, res, req.query || {});
     } catch (error) {
       if (error.code === 'eu_ai_act_artifacts_missing') {
         return res.status(422).json({ success: false, error: error.message });
@@ -196,7 +222,7 @@ function registerEuAiActAuditRoute(app, options = {}) {
   });
 
   if (process.env.NODE_ENV !== 'test') {
-    logger.info('[Simplebeacon] Registered POST /api/analyze/eu-ai-act-audit-report');
+    logger.info('[Simplebeacon] Registered POST and GET /api/analyze/eu-ai-act-audit-report');
   }
 }
 
