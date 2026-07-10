@@ -97,6 +97,20 @@ export function formatScanPathForDisplay(scanPath, projectRoot) {
  * @param {string} projectPath
  * @returns {string}
  */
+/**
+ * Resolve a dashboard project path for API calls.
+ * A bare filesystem root sentinel ('/' or '\\') is treated as "use the default project path".
+ * @param {string} projectPath
+ * @param {string} defaultProjectPath
+ * @returns {string}
+ */
+export function resolveDashboardProjectPath(projectPath, defaultProjectPath = '') {
+    const trimmed = String(projectPath || '').trim();
+    if (!trimmed || trimmed === '/' || trimmed === '\\') {
+        return defaultProjectPath || '';
+    }
+    return trimmed;
+}
 export function formatPathLabel(projectPath) {
     if (typeof projectPath !== 'string') {
         try {

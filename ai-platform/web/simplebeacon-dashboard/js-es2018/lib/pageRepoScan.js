@@ -89,6 +89,10 @@ function isSuspiciousNestedPath(candidate, defaultPath) {
 export function resolvePageProjectPath(inputValue, app) {
     const trimmed = stripArtifactSuffixes(String(inputValue || '').trim());
     const defaultPath = String(app.state.defaultProjectPath || '').trim();
+    // A bare filesystem root sentinel means "use the default project path".
+    if (trimmed === '/' || trimmed === '\\') {
+        return defaultPath || trimmed;
+    }
     // Resolve bare directory names (no drive letter or slash prefix) against default path
     if (trimmed && !trimmed.startsWith('…') && isPlausibleProjectPath(trimmed)) {
         const cleaned = stripArtifactSuffixes(trimmed);

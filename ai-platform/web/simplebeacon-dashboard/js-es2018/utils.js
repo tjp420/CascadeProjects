@@ -96,6 +96,8 @@ export const padStart = StringUtils.padStart;
 export const padEnd = StringUtils.padEnd;
 export const stripHtml = StringUtils.stripHtml;
 export const pluralize = StringUtils.pluralize;
+// ── Path helpers ─────────────────────────────────────────────────
+export const resolveDashboardProjectPath = PathUtils.resolveDashboardProjectPath;
 // ── Number helpers ─────────────────────────────────────────────
 export const formatNumber = NumberUtils.formatNumber;
 export const formatPercent = NumberUtils.formatPercent;

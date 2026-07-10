@@ -1,4 +1,4 @@
-import { fetchWithTimeout, downloadJson, downloadText } from '../utils.js';
+import { fetchWithTimeout, downloadJson, downloadText, resolveDashboardProjectPath } from '../utils.js';
 import { billingService } from './billingService.js';
 import { authService } from './authService.js';
 import { isDemoMode, DEMO_API_BASE } from '../demoMode.js';
@@ -95,12 +95,13 @@ export class ScanService {
         };
     }
     async fetchReport(projectPath) {
-        if (projectPath && /^https?:\/\//i.test(projectPath)) {
+        const safePath = resolveDashboardProjectPath(projectPath);
+        if (safePath && /^https?:\/\//i.test(safePath)) {
             return null;
         }
         const query = new URLSearchParams();
-        if (projectPath)
-            query.set('projectPath', projectPath);
+        if (safePath)
+            query.set('projectPath', safePath);
         query.set('_cb', Date.now().toString());
         const params = query.toString() ? `?${query.toString()}` : '';
         const res = await fetchSimplebeacon(`${simplebeaconApiBase()}/report${params}`);
@@ -133,7 +134,7 @@ export class ScanService {
         return { response: data, report: this.report };
     }
     async fetchRepositoryInventory(projectPath) {
-        const path = String(projectPath || '').trim();
+        const path = resolveDashboardProjectPath(projectPath);
         if (!path)
             return null;
         if (/^https?:\/\//i.test(path) && !/^(git@|ssh:\/\/|https:\/\/(github|gitlab|bitbucket|codeberg)\.)/i.test(path)) {
@@ -167,7 +168,8 @@ export class ScanService {
         return this.baseline;
     }
     async fetchConfig(projectPath = null) {
-        const qs = projectPath ? `?projectPath=${encodeURIComponent(projectPath)}` : '';
+        const safePath = resolveDashboardProjectPath(projectPath);
+        const qs = safePath ? `?projectPath=${encodeURIComponent(safePath)}` : '';
         const res = await fetchWithTimeout(`${simplebeaconApiBase()}/config${qs}`, { headers: mergeAuthHeaders() });
         if (!res.ok)
             throw new Error('Failed to load config');
@@ -263,9 +265,10 @@ export class ScanService {
         return assessmentPayload;
     }
     async fetchScanProgress(projectPath) {
-        if (!projectPath)
+        const safePath = resolveDashboardProjectPath(projectPath);
+        if (!safePath)
             return { active: false };
-        const params = new URLSearchParams({ projectPath });
+        const params = new URLSearchParams({ projectPath: safePath });
         try {
             const res = await fetchWithTimeout(`${simplebeaconApiBase()}/scan/progress?${params}`, { headers: mergeAuthHeaders() }, 5000);
             const data = await readJsonResponseBody(res, {});
@@ -286,10 +289,11 @@ export class ScanService {
             err.code = 'demo_readonly';
             throw err;
         }
+        const safePath = resolveDashboardProjectPath(projectPath) || undefined;
         const res = await fetchSimplebeacon(`${simplebeaconApiBase()}/scan`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ projectPath: projectPath || undefined, fullDirectoryScan: options.fullDirectoryScan !== false })
+            body: JSON.stringify({ projectPath: safePath, fullDirectoryScan: options.fullDirectoryScan !== false })
         }, 600000);
         const data = await readJsonResponseBody(res, {});
         if (!res.ok) {

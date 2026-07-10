@@ -1,4 +1,4 @@
-import { scanService } from './services/scanService.js?v=20260709reportimport1';
+import { scanService } from './services/scanService.js?v=20260709rootpath1';
 import { platformService } from './services/platformService.js?v=20260525jsonguard1';
 import { billingService } from './services/billingService.js?v=20260525jsonfixbilling1';
 import { authService } from './services/authService.js?v=20260709tokenfix1';
@@ -14,7 +14,7 @@ import { PlatformView } from './views/PlatformView.js?v=20260601platformmetrics1
 import { QualityView } from './views/QualityView.js';
 import { HelpView, FeaturesView } from './views/HelpView.js';
 import { AuditView } from './views/AuditView.js?v=20260618renderfix1';
-import { AnalyzeView } from './views/AnalyzeView.js?v=20260709droppaste1';
+import { AnalyzeView } from './views/AnalyzeView.js?v=20260709rootpath1';
 import { SecurityView } from './views/SecurityView.js?v=20260611fixexport1';
 import { PricingView } from './views/PricingView.js';
 import { AboutView } from './views/AboutView.js';
@@ -30,7 +30,7 @@ import { shouldShowOnboarding, renderOnboarding, bindOnboarding } from './compon
 import { showUpgradeModal } from './components/UpgradeModal.js';
 import { showLoginModal } from './components/LoginModal.js?v=20260609token4';
 import { isDemoMode, isSignedOffMode, isLocalDevHost, demoReadOnlyMessage } from './demoMode.js';
-import { showToast } from './utils.js';
+import { showToast, resolveDashboardProjectPath } from './utils.js';
 import { fetchAnalyzeProviders } from './services/analyzeService.js';
 /**
  * Vault unlock url.
@@ -1157,7 +1157,10 @@ class SimplebeaconDashboard {
             showToast(demoReadOnlyMessage(), 'info');
             return;
         }
-        const resolvedPath = String(projectPath || this.state.lastProjectPath || this.state.defaultProjectPath || '').trim() || undefined;
+        const resolvedPath = resolveDashboardProjectPath(
+            String(projectPath || this.state.lastProjectPath || this.state.defaultProjectPath || '').trim(),
+            this.state.defaultProjectPath
+        ) || undefined;
         this.state.scanning = true;
         this.refreshCurrentView();
         showToast('Running SimpleBeacon scan…', 'info');
