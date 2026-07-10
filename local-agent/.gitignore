@@ -1,0 +1,5 @@
+node_modules/
+simplebeacon-scanner.exe
+simplebeacon-scanner-macos
+simplebeacon-scanner-linux
+*.log

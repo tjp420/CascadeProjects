@@ -2,7 +2,7 @@ import { escapeHtml, showToast, downloadJson, downloadBlob, downloadText, redact
 import { evaluateFunnelMetrics, getFunnelCopy } from '../utils/funnelTrigger.js';
 import { LocalScanService } from '../services/localScanService.js?v=20260709noise3';
 import { fingerprintDirectory, formatFingerprint } from '../services/fingerprintService.js';
-import { probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus, getAgentDownloadUrl, detectPlatform, getPlatformLabel, getInstallInstructions, getAgentFallbackMessage, probeAgent4000, scanViaAgent4000 } from '../services/localAgentService.js?v=20260710bridge2';
+import { probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus, getAgentDownloadUrl, detectPlatform, getPlatformLabel, getInstallInstructions, getAgentFallbackMessage, probeAgent4000, scanViaAgent4000, renderAgentCertificate } from '../services/localAgentService.js?v=20260710bridge3';
 // simplebeacon:production-leak-intent: sample-json - Legitimate documentation about sample file patterns in analysis results
 import { analyzePath, scanPath, summarizeReport, fetchAnalyzeProviders, fetchRepositoryInventory, fetchCodebaseAnalysis, enrichScanReport, fetchZscriptModReport, shouldFetchZscriptReport, isLegacyScanReport, buildMonorepoScopeNote, buildPathInventoryProvenance, renderInventoryProvenanceHtml, refreshPathInventory, liveInventoryForPath, renderScanScopePanel, isSimplebeaconReport, aiProviderSupportsSummary, getScanFileMetrics, resolveAutoAnalysisMode, buildScanConclusion, buildConsolidationConclusion, buildFictionDigestPayload, sanitizeFictionDigestExport, resolveCompleteScanTargetPath, normalizeProjectPath, filterIssuesByKind, preparePlatformResultsReport, fetchCompleteAuditReport, fetchAnalyzeExportBundleZip, fetchEuAiActAuditReport, openAuditReportPrintWindow, previewAuditExportTier, auditExportButtonLabel, fetchDataCleanupScan, ensureDashboardApiReady, assertCompleteScanComplianceFresh, assertCompleteScanFileReductionFresh, fetchUnderstandSnippet, isCodebaseReport, fetchComplianceChecklist, fetchProjectNpmAudit, prepareGithubRepo, fetchAnalyzeTestSources, isAnalyzeProviderConfigured, uploadDirectoryAndAnalyze } from '../services/analyzeService.js?v=20260709inventorycache1';
 import { isRemoteRepoUrl, sourceChipTitle } from '../lib/analyzePathSources.js';
@@ -1698,6 +1698,7 @@ export class AnalyzeView {
               <p id="fingerprint-status" class="fingerprint-status"></p>
               <p id="agent-status" class="agent-status"></p>
               <p id="agent-4000-status" class="agent-status"></p>
+              <div id="agent-4000-results"></div>
               <p id="agent-download-cta" class="agent-download-cta"></p>
             </div>
             <div class="scanning-state ${this.busy ? 'active' : ''}">
@@ -6313,9 +6314,11 @@ export class AnalyzeView {
         this.refresh();
         try {
             const result = await scanViaAgent4000(projectPath);
-            const summary = result.summary || {};
-            const mb = (summary.totalSizeBytes || 0) / 1024 / 1024;
-            const message = `Localhost:4000 scan complete — ${summary.fileCount || 0} files, ${summary.folderCount || 0} folders, ${mb.toFixed(2)} MB`;
+            const cert = result && result.certificate;
+            const fileCount = (result.files || []).length;
+            const message = cert
+                ? `Localhost:4000 scan complete — Grade ${cert.letterGrade} | ${fileCount} files | Liability ${cert.liabilityStr}`
+                : `Localhost:4000 scan complete — ${fileCount} files`;
             showToast(message, 'success');
             const statusEl = this._root && this._root.querySelector('#agent-4000-status');
             if (statusEl) {
@@ -6323,6 +6326,8 @@ export class AnalyzeView {
                 statusEl.classList.remove('unavailable');
                 statusEl.classList.add('available');
             }
+            const resultsEl = this._root && this._root.querySelector('#agent-4000-results');
+            renderAgentCertificate(result, resultsEl);
         }
         catch (err) {
             showToast(err.message || 'Localhost:4000 scan failed', 'error');

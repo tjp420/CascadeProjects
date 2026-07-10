@@ -1,0 +1,23 @@
+{
+  "name": "simplebeacon-local-agent",
+  "version": "1.0.0",
+  "description": "SimpleBeacon native scanning agent that bridges the hosted dashboard to local filesystem paths.",
+  "main": "agent.js",
+  "scripts": {
+    "start": "node agent.js",
+    "build:win": "pkg agent.js --targets node18-win-x64 --output simplebeacon-scanner.exe",
+    "build:mac": "pkg agent.js --targets node18-macos-x64 --output simplebeacon-scanner-macos",
+    "build:linux": "pkg agent.js --targets node18-linux-x64 --output simplebeacon-scanner-linux"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.22.2"
+  },
+  "devDependencies": {
+    "pkg": "^5.8.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "license": "MIT"
+}

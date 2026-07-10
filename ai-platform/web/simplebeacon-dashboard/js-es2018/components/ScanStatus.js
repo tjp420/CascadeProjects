@@ -1,7 +1,7 @@
 import { escapeHtml, formatPercent, showToast } from '../utils.js';
 import { resolveDisplayScore, formatScanScopeSummary, formatScanInventoryNote } from '../services/analyzeService.js';
 import { runLocalScan } from '../services/localScanService.js';
-import { isLocalPath, probeAgent4000, scanViaAgent4000 } from '../services/localAgentService.js?v=20260710bridge2';
+import { isLocalPath, probeAgent4000, scanViaAgent4000, renderAgentCertificate } from '../services/localAgentService.js?v=20260710bridge3';
 /**
  * Resolve initial scan root.
  * @param {number} report
@@ -55,9 +55,11 @@ export async function runDashboardScanFromInput(input, options = {}) {
             const status = await probeAgent4000();
             if (status.available) {
                 const result = await scanViaAgent4000(path);
-                const summary = result.summary || {};
-                const mb = (summary.totalSizeBytes || 0) / 1024 / 1024;
-                const message = `Localhost:4000 scan complete — ${summary.fileCount || 0} files, ${summary.folderCount || 0} folders, ${mb.toFixed(2)} MB`;
+                const cert = result && result.certificate;
+                const fileCount = (result.files || []).length;
+                const message = cert
+                    ? `Localhost:4000 scan complete — Grade ${cert.letterGrade} | ${fileCount} files | Liability ${cert.liabilityStr}`
+                    : `Localhost:4000 scan complete — ${fileCount} files`;
                 showToast(message, 'success');
                 const statusEl = document.getElementById('agent-4000-status');
                 if (statusEl) {
@@ -65,10 +67,12 @@ export async function runDashboardScanFromInput(input, options = {}) {
                     statusEl.classList.remove('unavailable');
                     statusEl.classList.add('available');
                 }
+                const resultsEl = document.getElementById('agent-4000-results');
+                renderAgentCertificate(result, resultsEl);
                 if (onLocalScanResult) {
-                    onLocalScanResult({ projectPath: result.path, summary, source: 'agent4000' });
+                    onLocalScanResult({ projectPath: result.verifiedAddress || result.path, summary: result.certificate, source: 'agent4000' });
                 }
-                setLastProjectPath(result.path || path);
+                setLastProjectPath(result.verifiedAddress || result.path || path);
                 return;
             }
         }
@@ -185,6 +189,7 @@ function renderScanPathControls(report, options = {}) {
         Mock folders → <a href="/dashboard/settings" class="scan-status-link">Settings → Scan paths</a>${pathCount ? ` (${pathCount})` : ''}
       </p>
       <p id="agent-4000-status" class="agent-status"></p>
+      <div id="agent-4000-results"></div>
     </div>
   `;
 }
