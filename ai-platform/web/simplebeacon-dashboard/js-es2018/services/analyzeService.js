@@ -7,6 +7,57 @@ import { isBenchmarkCachePath } from '../utils/complete-scan-artifact-profile.br
 import { DEMO_EMAIL } from '../demoMode.js';
 import { DASHBOARD_BASE_URL } from '../config.js';
 import { isLocalPath, fetchInventoryViaAgent, probeAgent } from './localAgentService.js';
+/**
+ * Upgrade a v1 ("version": "1.0.0" and no reportVersion) scan report so the
+ * dashboard treats it as current and can render aligned file-count metrics.
+ * @param {Object} rawReport
+ * @returns {Object}
+ */
+function normalizeScanReport(rawReport) {
+    if (!rawReport || typeof rawReport !== 'object') {
+        return rawReport;
+    }
+    if (rawReport.reportVersion && Number(rawReport.reportVersion) >= 2) {
+        return rawReport;
+    }
+    if (rawReport.version !== '1.0.0' && rawReport.reportVersion == null) {
+        return rawReport;
+    }
+    const summary = rawReport.summary || {};
+    const repositoryInventory = rawReport.repositoryInventory || null;
+    const repositoryFilesTotal = rawReport.repositoryFilesTotal
+        ?? repositoryInventory?.totalFiles
+        ?? summary.repositoryFilesTotal
+        ?? null;
+    const repositoryFoldersTotal = rawReport.repositoryFoldersTotal
+        ?? repositoryInventory?.totalFolders
+        ?? summary.repositoryFoldersTotal
+        ?? null;
+    const ruleScopedFilesAnalyzed = rawReport.ruleScopedFilesAnalyzed
+        ?? summary.ruleScopedFilesAnalyzed
+        ?? null;
+    const codeFilesAnalyzed = summary.codeFilesAnalyzed
+        ?? summary.codeFilesDiscovered
+        ?? rawReport.filesAnalyzed
+        ?? null;
+    let filesAnalyzed = rawReport.filesAnalyzed ?? null;
+    if (filesAnalyzed == null) {
+        filesAnalyzed = rawReport.fullDirectoryScan
+            ? repositoryFilesTotal
+            : (ruleScopedFilesAnalyzed ?? codeFilesAnalyzed ?? repositoryFilesTotal);
+    }
+    return {
+        ...rawReport,
+        reportVersion: 2,
+        filesAnalyzed,
+        ruleScopedFilesAnalyzed: ruleScopedFilesAnalyzed ?? filesAnalyzed,
+        repositoryFilesTotal,
+        repositoryFoldersTotal,
+        repositoryInventory: repositoryInventory || (repositoryFilesTotal != null
+            ? { totalFiles: repositoryFilesTotal, totalFolders: repositoryFoldersTotal }
+            : null)
+    };
+}
 // simplebeacon:production-leak-intent: web-data-sample - Legitimate web data path detection for analysis mode resolution
 let providersPromise = null;
 /**
@@ -1747,16 +1798,17 @@ export function isLegacyScanReport(report, projectPath = '') {
     var _a;
     if (!report)
         return true;
-    if (report.reportVersion == null || report.reportVersion < 2)
+    const normalized = normalizeScanReport(report);
+    if (normalized.reportVersion == null || normalized.reportVersion < 2)
         return true;
-    if (!projectPath || !report.projectRoot)
+    if (!projectPath || !normalized.projectRoot)
         return false;
-    if (projectPathMatchesReportRoot(projectPath, report.projectRoot))
+    if (projectPathMatchesReportRoot(projectPath, normalized.projectRoot))
         return false;
-    const inventoryRoot = (_a = report.repositoryInventory) === null || _a === void 0 ? void 0 : _a.projectRoot;
+    const inventoryRoot = (_a = normalized.repositoryInventory) === null || _a === void 0 ? void 0 : _a.projectRoot;
     if (inventoryRoot && projectPathMatchesReportRoot(projectPath, inventoryRoot))
         return false;
-    const scanTargetRoot = report.scanTargetRoot || report.platformRoot;
+    const scanTargetRoot = normalized.scanTargetRoot || normalized.platformRoot;
     if (scanTargetRoot && projectPathMatchesReportRoot(projectPath, scanTargetRoot))
         return false;
     return true;
@@ -1769,8 +1821,9 @@ export function isLegacyScanReport(report, projectPath = '') {
  */
 export function getScanFileMetrics(report, options = {}) {
     var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11;
+    const normalizedReport = normalizeScanReport(report);
     const inventory = options.repositoryInventory
-        || (report === null || report === void 0 ? void 0 : report.repositoryInventory)
+        || (normalizedReport === null || normalizedReport === void 0 ? void 0 : normalizedReport.repositoryInventory)
         || null;
     if (!report || typeof report !== 'object') {
         return {
@@ -1782,33 +1835,33 @@ export function getScanFileMetrics(report, options = {}) {
             repositoryRoot: (_c = inventory === null || inventory === void 0 ? void 0 : inventory.projectRoot) !== null && _c !== void 0 ? _c : null
         };
     }
-    if (report.type === 'file-merger-reduction-report') {
-        const sampleDataFiles = (_g = (_e = (_d = report.summary) === null || _d === void 0 ? void 0 : _d.sampleDataFilesAnalyzed) !== null && _e !== void 0 ? _e : (_f = report.summary) === null || _f === void 0 ? void 0 : _f.filesAnalyzed) !== null && _g !== void 0 ? _g : 0;
-        const repoFiles = (_o = (_l = (_j = (_h = report.summary) === null || _h === void 0 ? void 0 : _h.repositoryFilesTotal) !== null && _j !== void 0 ? _j : (_k = report.repositoryInventory) === null || _k === void 0 ? void 0 : _k.totalFiles) !== null && _l !== void 0 ? _l : (_m = report.summary) === null || _m === void 0 ? void 0 : _m.filesAnalyzed) !== null && _o !== void 0 ? _o : null;
+    if (normalizedReport.type === 'file-merger-reduction-report') {
+        const sampleDataFiles = (_g = (_e = (_d = normalizedReport.summary) === null || _d === void 0 ? void 0 : _d.sampleDataFilesAnalyzed) !== null && _e !== void 0 ? _e : (_f = normalizedReport.summary) === null || _f === void 0 ? void 0 : _f.filesAnalyzed) !== null && _g !== void 0 ? _g : 0;
+        const repoFiles = (_o = (_l = (_j = (_h = normalizedReport.summary) === null || _h === void 0 ? void 0 : _h.repositoryFilesTotal) !== null && _j !== void 0 ? _j : (_k = normalizedReport.repositoryInventory) === null || _k === void 0 ? void 0 : _k.totalFiles) !== null && _l !== void 0 ? _l : (_m = normalizedReport.summary) === null || _m === void 0 ? void 0 : _m.filesAnalyzed) !== null && _o !== void 0 ? _o : null;
         return {
             filesAnalyzed: repoFiles !== null && repoFiles !== void 0 ? repoFiles : sampleDataFiles,
             mockSampleFiles: sampleDataFiles,
-            jsonFilesAnalyzed: (_q = (_p = report.summary) === null || _p === void 0 ? void 0 : _p.jsonFilesAnalyzed) !== null && _q !== void 0 ? _q : null,
+            jsonFilesAnalyzed: (_q = (_p = normalizedReport.summary) === null || _p === void 0 ? void 0 : _p.jsonFilesAnalyzed) !== null && _q !== void 0 ? _q : null,
             credentialScanned: null,
             productionLeakScanned: null,
             repositoryFiles: repoFiles,
-            repositoryFolders: (_u = (_s = (_r = report.summary) === null || _r === void 0 ? void 0 : _r.repositoryFoldersTotal) !== null && _s !== void 0 ? _s : (_t = report.repositoryInventory) === null || _t === void 0 ? void 0 : _t.totalFolders) !== null && _u !== void 0 ? _u : null,
-            repositoryRoot: (_w = (_v = report.repositoryInventory) === null || _v === void 0 ? void 0 : _v.projectRoot) !== null && _w !== void 0 ? _w : null
+            repositoryFolders: (_u = (_s = (_r = normalizedReport.summary) === null || _r === void 0 ? void 0 : _r.repositoryFoldersTotal) !== null && _s !== void 0 ? _s : (_t = normalizedReport.repositoryInventory) === null || _t === void 0 ? void 0 : _t.totalFolders) !== null && _u !== void 0 ? _u : null,
+            repositoryRoot: (_w = (_v = normalizedReport.repositoryInventory) === null || _v === void 0 ? void 0 : _v.projectRoot) !== null && _w !== void 0 ? _w : null
         };
     }
-    const mockSampleFiles = (_x = report.mockSampleFiles) !== null && _x !== void 0 ? _x : 0;
-    const ruleScopedFilesAnalyzed = (_z = (_y = report.ruleScopedFilesAnalyzed) !== null && _y !== void 0 ? _y : report.filesAnalyzed) !== null && _z !== void 0 ? _z : 0;
-    const repositoryFiles = (_1 = (_0 = report.repositoryFilesTotal) !== null && _0 !== void 0 ? _0 : inventory === null || inventory === void 0 ? void 0 : inventory.totalFiles) !== null && _1 !== void 0 ? _1 : null;
+    const mockSampleFiles = (_x = normalizedReport.mockSampleFiles) !== null && _x !== void 0 ? _x : 0;
+    const ruleScopedFilesAnalyzed = (_z = (_y = normalizedReport.ruleScopedFilesAnalyzed) !== null && _y !== void 0 ? _y : normalizedReport.filesAnalyzed) !== null && _z !== void 0 ? _z : 0;
+    const repositoryFiles = (_1 = (_0 = normalizedReport.repositoryFilesTotal) !== null && _0 !== void 0 ? _0 : inventory === null || inventory === void 0 ? void 0 : inventory.totalFiles) !== null && _1 !== void 0 ? _1 : null;
     return {
         filesAnalyzed: ruleScopedFilesAnalyzed,
         ruleScopedFilesAnalyzed,
         mockSampleFiles,
-        fictionJsonFilesScanned: (_4 = (_2 = report.fictionJsonFilesScanned) !== null && _2 !== void 0 ? _2 : (_3 = report.scanScope) === null || _3 === void 0 ? void 0 : _3.fictionJsonFilesScanned) !== null && _4 !== void 0 ? _4 : null,
-        credentialScanned: (_5 = report.credentialScanned) !== null && _5 !== void 0 ? _5 : 0,
-        productionLeakScanned: (_6 = report.productionLeakScanned) !== null && _6 !== void 0 ? _6 : 0,
+        fictionJsonFilesScanned: (_4 = (_2 = normalizedReport.fictionJsonFilesScanned) !== null && _2 !== void 0 ? _2 : (_3 = normalizedReport.scanScope) === null || _3 === void 0 ? void 0 : _3.fictionJsonFilesScanned) !== null && _4 !== void 0 ? _4 : null,
+        credentialScanned: (_5 = normalizedReport.credentialScanned) !== null && _5 !== void 0 ? _5 : 0,
+        productionLeakScanned: (_6 = normalizedReport.productionLeakScanned) !== null && _6 !== void 0 ? _6 : 0,
         repositoryFiles,
-        repositoryFolders: (_8 = (_7 = report.repositoryFoldersTotal) !== null && _7 !== void 0 ? _7 : inventory === null || inventory === void 0 ? void 0 : inventory.totalFolders) !== null && _8 !== void 0 ? _8 : null,
-        repositoryRoot: (_11 = (_9 = inventory === null || inventory === void 0 ? void 0 : inventory.projectRoot) !== null && _9 !== void 0 ? _9 : (_10 = report.repositoryInventory) === null || _10 === void 0 ? void 0 : _10.projectRoot) !== null && _11 !== void 0 ? _11 : null
+        repositoryFolders: (_8 = (_7 = normalizedReport.repositoryFoldersTotal) !== null && _7 !== void 0 ? _7 : inventory === null || inventory === void 0 ? void 0 : inventory.totalFolders) !== null && _8 !== void 0 ? _8 : null,
+        repositoryRoot: (_11 = (_9 = inventory === null || inventory === void 0 ? void 0 : inventory.projectRoot) !== null && _9 !== void 0 ? _9 : (_10 = normalizedReport.repositoryInventory) === null || _10 === void 0 ? void 0 : _10.projectRoot) !== null && _11 !== void 0 ? _11 : null
     };
 }
 /**

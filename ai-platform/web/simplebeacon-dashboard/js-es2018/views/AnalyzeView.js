@@ -4320,9 +4320,13 @@ export class AnalyzeView {
         const typeSelect = el.querySelector('#analysis-type-select');
         const providerSelect = el.querySelector('#ai-provider-select');
         (_a = el.querySelector('#analyze-full-directory')) === null || _a === void 0 ? void 0 : _a.addEventListener('change', (event) => {
-            this.fullDirectoryScan = Boolean(event.target.checked);
+            // Full-tree scanning is now the enforced default so analyzed-file counts match repository inventory.
+            this.fullDirectoryScan = true;
+            if (event.target && !event.target.checked) {
+                event.target.checked = true;
+            }
             if (typeof localStorage !== 'undefined') {
-                localStorage.setItem('simplebeacon_full_directory_scan', this.fullDirectoryScan ? '1' : '0');
+                localStorage.setItem('simplebeacon_full_directory_scan', '1');
             }
         });
         (_b = el.querySelector('#analyze-local-mode')) === null || _b === void 0 ? void 0 : _b.addEventListener('change', (event) => {

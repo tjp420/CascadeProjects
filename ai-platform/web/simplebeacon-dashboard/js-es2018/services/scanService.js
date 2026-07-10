@@ -5,6 +5,57 @@ import { isDemoMode, DEMO_API_BASE } from '../demoMode.js';
 import { readJsonResponseBody } from '../lib/recoverable-fetch.js';
 import { buildDashboardExportBundle } from '../utils/dashboard-export.browser.js?v=20260616demodashboard1';
 /**
+ * Upgrade a v1 ("version": "1.0.0" and no reportVersion) scan report so the
+ * dashboard treats it as current and can render aligned file-count metrics.
+ * @param {Object} rawReport
+ * @returns {Object}
+ */
+function normalizeScanReport(rawReport) {
+    if (!rawReport || typeof rawReport !== 'object') {
+        return rawReport;
+    }
+    if (rawReport.reportVersion && Number(rawReport.reportVersion) >= 2) {
+        return rawReport;
+    }
+    if (rawReport.version !== '1.0.0' && rawReport.reportVersion == null) {
+        return rawReport;
+    }
+    const summary = rawReport.summary || {};
+    const repositoryInventory = rawReport.repositoryInventory || null;
+    const repositoryFilesTotal = rawReport.repositoryFilesTotal
+        ?? repositoryInventory?.totalFiles
+        ?? summary.repositoryFilesTotal
+        ?? null;
+    const repositoryFoldersTotal = rawReport.repositoryFoldersTotal
+        ?? repositoryInventory?.totalFolders
+        ?? summary.repositoryFoldersTotal
+        ?? null;
+    const ruleScopedFilesAnalyzed = rawReport.ruleScopedFilesAnalyzed
+        ?? summary.ruleScopedFilesAnalyzed
+        ?? null;
+    const codeFilesAnalyzed = summary.codeFilesAnalyzed
+        ?? summary.codeFilesDiscovered
+        ?? rawReport.filesAnalyzed
+        ?? null;
+    let filesAnalyzed = rawReport.filesAnalyzed ?? null;
+    if (filesAnalyzed == null) {
+        filesAnalyzed = rawReport.fullDirectoryScan
+            ? repositoryFilesTotal
+            : (ruleScopedFilesAnalyzed ?? codeFilesAnalyzed ?? repositoryFilesTotal);
+    }
+    return {
+        ...rawReport,
+        reportVersion: 2,
+        filesAnalyzed,
+        ruleScopedFilesAnalyzed: ruleScopedFilesAnalyzed ?? filesAnalyzed,
+        repositoryFilesTotal,
+        repositoryFoldersTotal,
+        repositoryInventory: repositoryInventory || (repositoryFilesTotal != null
+            ? { totalFiles: repositoryFilesTotal, totalFolders: repositoryFoldersTotal }
+            : null)
+    };
+}
+/**
  * Simplebeacon api base.
  * @returns {any}
  */
@@ -111,7 +162,7 @@ export class ScanService {
         if (!report || typeof report !== 'object') {
             throw new Error('Scan report API unavailable on this host (received HTML instead of JSON).');
         }
-        this.report = await this.enrichReport(report);
+        this.report = await this.enrichReport(normalizeScanReport(report));
         return this.report;
     }
     async importReport(report, projectPath = null) {
