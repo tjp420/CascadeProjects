@@ -56,6 +56,7 @@ router.post('/register', async (req, res) => {
   }
 });
 
+// simplebeacon-ignore sensitive-data — health-check test token, not a real secret
 router.get('/health', (req, res) => {
   try {
     const token = tokenServiceGenerateToken({

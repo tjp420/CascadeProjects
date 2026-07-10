@@ -1,3 +1,5 @@
+const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
 /**
  * Deep-clone a serializable object.
  * Uses structuredClone when available, falls back to a recursive walk
@@ -200,6 +202,7 @@ export function merge(target, ...sources) {
   for (const src of sources) {
     if (!src || typeof src !== 'object') continue;
     for (const key of Object.keys(src)) {
+      if (DANGEROUS_KEYS.has(key)) continue;
       const val = src[key];
       if (val && typeof val === 'object' && !Array.isArray(val) && result[key] && typeof result[key] === 'object' && !Array.isArray(result[key])) {
         result[key] = merge(result[key], val);
@@ -291,6 +294,7 @@ export function get(obj, path, fallback) {
 export function set(obj, path, value) {
   if (!obj || typeof obj !== 'object' || typeof path !== 'string') return obj;
   const keys = path.split('.');
+  if (keys.some(key => DANGEROUS_KEYS.has(key))) return obj;
   let current = obj;
   for (let i = 0; i < keys.length - 1; i++) {
     const key = keys[i];
@@ -394,6 +398,7 @@ export function defaultsDeep(target, ...sources) {
   for (const source of sources) {
     if (!source || typeof source !== 'object') continue;
     for (const key of Object.keys(source)) {
+      if (DANGEROUS_KEYS.has(key)) continue;
       if (target[key] === undefined) {
         target[key] = source[key];
       } else if (

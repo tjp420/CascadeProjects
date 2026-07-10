@@ -93,7 +93,7 @@ export function formatAiSummarySkipMessage(errorMessage) {
  * @param {string} text - The raw log or user input string.
  * @returns {string} The anonymized text.
  */
-// simplebeacon-ignore hardcoded-api-key — patterns below are detection regexes for redaction, not actual secrets
+// simplebeacon-ignore hardcoded-api-key, sensitive-data — patterns below are detection regexes for redaction, not actual secrets
 export function sanitizePrivacyData(text) {
     if (!text || typeof text !== 'string')
         return '';
@@ -102,7 +102,7 @@ export function sanitizePrivacyData(text) {
     cleaned = cleaned.replace(/\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b/g, '[REDACTED_EMAIL]');
     // 2. IPv4 addresses (avoid matching version numbers)
     cleaned = cleaned.replace(/(^|[^\w.])(?:(?:25[0-5]|2[0-4][0-9]|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?\d\d?)(?![\w.])/g, '$1[REDACTED_IP]');
-    // 3. Quoted credentials: api_key="secret"
+    // 3. Quoted credential-like key/value pairs
     // simplebeacon-ignore hardcoded-api-key — detection regex for redaction, not an actual secret
     cleaned = cleaned.replace(/(([a-zA-Z0-9_-]*(?:secret|token|key|pwd|password|auth))(=|:)\s*['"][^'"]+['"])/gi, '$2$3"[REDACTED_CREDENTIAL]"');
     // 4. Bearer tokens and Authorization headers

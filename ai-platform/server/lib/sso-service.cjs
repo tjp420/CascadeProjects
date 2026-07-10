@@ -144,6 +144,7 @@ async function exchangeOidcCode(provider, code) {
   const cfg = getOidcConfig(provider);
   logger.info('[SSO] OIDC code exchange stub — replace with openid-client in production');
   // Stub response: return a mock identity for scaffolding
+  // simplebeacon-ignore sensitive-data — stub placeholder tokens, not real secrets
   return {
     idToken: 'placeholder',
     accessToken: 'placeholder',
