@@ -106,7 +106,9 @@
       ]
     }
   },
-  "predictions": [],
+  "predictions": [
+    { "metric": "sprintCompletion", "value": 67, "unit": "percent" }
+  ],
   "risks": [
     {
       "category": "maintainability",
@@ -141,7 +143,9 @@
       "category": "maintainability"
     }
   ],
-  "performanceMetrics": [],
+  "performanceMetrics": [
+    { "sprintsComplete": 3, "sprintsPlanned": 4, "healthScore": 67 }
+  ],
   "hygieneSummary": {
     "roadmapAuditFiles": 756,
     "gateRepositoryFilesTotal": null,

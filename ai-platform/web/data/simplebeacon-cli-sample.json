@@ -1,7 +1,8 @@
 {
   "type": "simplebeacon-cli-model",
   "overview": {
-    "total": 100
+    "total": 100,
+    "totalItems": 100
   },
   "items": [{"name":"scan","status":"active"}],
   "commands": [{"name":"simplebeacon scan","usage":150}],
