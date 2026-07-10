@@ -24,6 +24,9 @@ let cachedAgentStatus = null;
 let cachedAt = 0;
 const CACHE_TTL_MS = 30000;
 let pendingProbe = null;
+let cachedAgent4000Status = null;
+let cachedAgent4000At = 0;
+let pendingProbe4000 = null;
 function hasAgentBridge() {
     return typeof window !== 'undefined' && !!window.simplebeaconAgentBridge;
 }
@@ -168,17 +171,44 @@ export async function scanViaAgent(projectPath, origin = DEFAULT_AGENT_ORIGIN) {
  * @param {string} [origin]
  */
 export async function probeAgent4000(origin = AGENT_4000_ORIGIN) {
-    try {
-        const response = await agentFetchWithTimeout(`${origin}/api/ping`, {
-            method: 'GET',
-            headers: { Accept: 'application/json' }
-        }, AGENT_TIMEOUT_MS);
-        const body = await response.json().catch(() => ({}));
-        return { available: response.ok && body.online === true };
+    const now = Date.now();
+    if (cachedAgent4000Status && cachedAgent4000At + CACHE_TTL_MS > now) {
+        return cachedAgent4000Status;
     }
-    catch (_a) {
-        return { available: false };
+    if (pendingProbe4000) {
+        return pendingProbe4000;
     }
+    pendingProbe4000 = (async () => {
+        // When served over HTTPS, plain HTTP localhost fetches are blocked by
+        // mixed-content rules in Firefox/Safari. Skip the doomed network call.
+        if (!hasAgentBridge() && isMixedContent(origin)) {
+            const status = { available: false, likelyBlocked: true };
+            cachedAgent4000Status = status;
+            cachedAgent4000At = Date.now();
+            return status;
+        }
+        try {
+            const response = await agentFetchWithTimeout(`${origin}/api/ping`, {
+                method: 'GET',
+                headers: { Accept: 'application/json' }
+            }, AGENT_TIMEOUT_MS);
+            const body = await response.json().catch(() => ({}));
+            const status = { available: response.ok && body.online === true };
+            cachedAgent4000Status = status;
+            cachedAgent4000At = Date.now();
+            return status;
+        }
+        catch (_a) {
+            const status = { available: false };
+            cachedAgent4000Status = status;
+            cachedAgent4000At = Date.now();
+            return status;
+        }
+        finally {
+            pendingProbe4000 = null;
+        }
+    })();
+    return pendingProbe4000;
 }
 /**
  * Run a scan through the lightweight localhost:4000 agent.
