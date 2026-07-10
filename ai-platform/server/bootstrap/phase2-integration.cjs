@@ -11,7 +11,7 @@ const rateLimit = require('express-rate-limit');
 const DatabaseAdapter = require('../lib/database-adapter.cjs');
 const {
     authenticate,
-    _optionalAuthenticate,
+    optionalAuthenticate,
     handleTokenRefresh
 } = require('../middleware/auth.cjs');
 const { handlePhase2Login } = require('../services/phase2-auth-handlers.cjs');
@@ -26,7 +26,7 @@ const {
     closeRedis
 } = require('../lib/redis-cache.cjs');
 const { SNAPSHOT_SEEDS, REAL_API_PATH_PREFIXES } = require('../lib/snapshot-seeds.cjs');
-const { PUBLIC_API_PATHS, _isPublicApiRoute, isPublicApiRequest } = require('./public-api-routes.cjs');
+const { PUBLIC_API_PATHS, isPublicApiRoute, isPublicApiRequest } = require('./public-api-routes.cjs');
 const constants = require('../config/constants.cjs');
 
 /**
@@ -329,7 +329,7 @@ function setupAuthRoutes(app, authRateLimit, refreshRateLimit) {
         }
     });
     app.post('/api/auth/refresh', refreshRateLimit, authenticate, handleTokenRefresh);
-    app.get('/api/auth/me', _optionalAuthenticate, (req, res) => {
+    app.get('/api/auth/me', optionalAuthenticate, (req, res) => {
         if (req.user) {
             res.json({
                 user: req.user,
