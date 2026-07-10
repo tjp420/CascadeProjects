@@ -7,10 +7,16 @@
 const DEFAULT_MAX_FILE_SIZE = 1500000;
 const DEFAULT_MAX_FILES = 10000;
 
-const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', 'build']);
+// Hidden/artifact directories that bloat scans with false positives (reports, caches, binaries).
+const SKIP_DIRS = new Set([
+  'node_modules', '.git', 'dist', 'build', '.simplebeacon', '.github', '.vscode',
+  '.vscode-test', 'coverage', 'lcov-report', '.husky', '.windsurf', '.wrangler',
+  'packages'
+]);
+// Source/config file types only; skip .md and .html to avoid flagging documentation/coverage output.
 const ALLOWED_EXTENSIONS = new Set([
   '.js', '.json', '.txt', '.ini', '.cfg', '.log', '.py', '.cs', '.cjs', '.mjs',
-  '.ts', '.tsx', '.jsx', '.env', '.yml', '.yaml', '.xml', '.md', '.html', '.css'
+  '.ts', '.tsx', '.jsx', '.env', '.yml', '.yaml', '.xml', '.css'
 ]);
 
 const RULES = [
@@ -32,7 +38,7 @@ const RULES = [
     id: 'SB-03',
     type: 'Markdown Fences',
     severity: 'MEDIUM',
-    regex: /(```javascript|```json|```html)/g,
+    regex: new RegExp('(' + ['```javascript', '```json', '```html'].join('|') + ')', 'g'),
     msg: 'Raw markdown formatting left behind from an AI chat interaction wrapper.'
   }
 ];
@@ -49,7 +55,7 @@ function logLine(logger, message, level) {
 
 async function crawlSandboxedTree(dirHandle, currentPath, queue, options) {
   const { maxFiles, onLog } = options || {};
-  if (SKIP_DIRS.has(dirHandle.name)) {
+  if (SKIP_DIRS.has(dirHandle.name) || dirHandle.name.startsWith('.')) {
     logLine(onLog, `Skipping dependency/build directory: ${currentPath}`, 'info');
     return;
   }
@@ -169,7 +175,7 @@ function pickLegacyDirectory({ maxFiles, onLog }) {
         }
         const virtualPath = file.webkitRelativePath || file.name;
         const pathParts = virtualPath.split('/');
-        if (pathParts.some((part) => SKIP_DIRS.has(part))) continue;
+        if (pathParts.some((part) => SKIP_DIRS.has(part) || part.startsWith('.'))) continue;
         const extIndex = file.name.lastIndexOf('.');
         const ext = extIndex >= 0 ? file.name.substring(extIndex).toLowerCase() : '';
         if (!ALLOWED_EXTENSIONS.has(ext)) continue;
