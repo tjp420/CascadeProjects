@@ -4416,8 +4416,9 @@ export class AnalyzeView {
         });
         (_o = el.querySelector('#browse-dir-btn')) === null || _o === void 0 ? void 0 : _o.addEventListener('click', async () => {
             const isRemoteDeployment = typeof window !== 'undefined' && !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
-            if (!isRemoteDeployment) {
-                // Local/standalone mode: prefer the native directory picker (Chrome/Edge).
+            const agentAvailable = !!(this.agentStatus && this.agentStatus.available);
+            if (!isRemoteDeployment || agentAvailable) {
+                // Local/standalone mode or local agent connected: prefer the native directory picker (Chrome/Edge).
                 if (window.showDirectoryPicker && !this.isElectronLike()) {
                     const picked = await this.pickFolderViaBrowser(el);
                     if (picked)
@@ -4430,7 +4431,7 @@ export class AnalyzeView {
                     return;
                 }
             }
-            // Remote deployment: open the server directory browser so the user can pick the
+            // Remote deployment without a local agent: open the server directory browser so the user can pick the
             // actual server project path (e.g., /opt/render/project/src/ai-platform/CascadeProjects).
             this.openDirBrowser(el);
         });
@@ -4480,6 +4481,14 @@ export class AnalyzeView {
                             }
                             void this.runPathAnalysis(resolvedPath);
                             showToast(`Analyzing dropped folder "${folderName}"…`, 'info');
+                        } else if (files && files.length > 0) {
+                            // Absolute path is unavailable (e.g., Firefox Privacy mode). Use the local-scan fallback.
+                            const updateFingerprintStatus = (text) => {
+                                const fp = el.querySelector('#fingerprint-status');
+                                if (fp)
+                                    fp.textContent = text || '';
+                            };
+                            void this.handleDroppedFolderFallback(files, folderName, event, null, updateFingerprintStatus);
                         } else {
                             showToast(`Directory "${folderName}" dropped but absolute path could not be read. Use Browse Folder or type the path.`, 'warning');
                         }

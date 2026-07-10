@@ -2248,10 +2248,19 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             }
 
             const resolvedRoot = projectPath || report.projectRoot || baseDir;
+
+            const withTimeout = (promise, ms) => Promise.race([
+                promise,
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Scan timed out')), ms))
+            ]);
+
             let npmAudit = body.npmAudit || null;
             if (!npmAudit) {
                 try {
-                    npmAudit = await runNpmAuditAsync(resolvedRoot, { force: body.forceNpmAudit === true });
+                    npmAudit = await withTimeout(
+                        runNpmAuditAsync(resolvedRoot, { force: body.forceNpmAudit === true }),
+                        20000
+                    );
                 } catch {
                     npmAudit = null;
                 }
@@ -2261,7 +2270,10 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             let dataCleanup = body.dataCleanup || null;
             if (!dataCleanup) {
                 try {
-                    dataCleanup = await runDataCleanupScan(resolvedRoot, { profile: 'all' });
+                    dataCleanup = await withTimeout(
+                        runDataCleanupScan(resolvedRoot, { profile: 'all' }),
+                        20000
+                    );
                 } catch {
                     dataCleanup = null;
                 }
