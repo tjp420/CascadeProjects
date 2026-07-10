@@ -11,8 +11,9 @@
  * a secure context, but Firefox/Safari may require the agent to be paired with
  * a browser extension or an Electron wrapper for full compatibility.
  */
-const DEFAULT_AGENT_ORIGIN = 'http://127.0.0.1:55432';
-const AGENT_4000_ORIGIN = 'http://127.0.0.1:4000';
+// simplebeacon:production-leak-intent: localhost-agent-origins - These hardcoded loopback origins are required by the local agent bridge; they are not deploy leaks.
+const DEFAULT_AGENT_ORIGIN = 'http://127.0.0.1:55432'; // simplebeacon-ignore hardcoded-url
+const AGENT_4000_ORIGIN = 'http://127.0.0.1:4000'; // simplebeacon-ignore hardcoded-url
 const AGENT_TIMEOUT_MS = 3000;
 const AGENT_DOWNLOAD_URLS = {
     windows: '/downloads/simplebeacon-scanner.exe',
