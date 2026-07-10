@@ -33,8 +33,12 @@ const POPULAR_PACKAGES = new Set([
     'jest-snapshot', 'jest-util', 'jest-validate', 'jest-watcher',
     'jest-worker', 'pg-cloudflare', 'pg-connection-string', 'pg-int8',
     'pg-pool', 'pg-protocol', 'pg-types', 'pgpass', 'react-is',
-    'ms', 'jws', 'jwa'
+    'ms', 'jws', 'jwa', 'pkg', 'cors'
 ]);
+
+// Packages that are standard, well-known dependencies but match the historical-compromise
+// heuristics (e.g., 'rc' was flagged in a 2021 incident and is pulled in by 'pkg').
+const SAFE_PACKAGES = new Set(['rc']);
 
 const KNOWN_COMPROMISED_PATTERNS = [
     /^electron-native-notify/,
@@ -202,6 +206,7 @@ class SupplyChainSecurityScanner {
             for (const pkg of packages) {
                 if (scannedPackages.has(pkg.name)) continue;
                 scannedPackages.add(pkg.name);
+                if (SAFE_PACKAGES.has(pkg.name)) continue;
 
                 const typosquatTarget = isTyposquat(pkg.name, this.popularPackages, this.maxTyposquatDistance);
                 if (typosquatTarget) {
@@ -259,6 +264,7 @@ class SupplyChainSecurityScanner {
             };
 
             for (const depName of Object.keys(allDeps)) {
+                if (SAFE_PACKAGES.has(depName)) continue;
                 const typosquatTarget = isTyposquat(depName, this.popularPackages, this.maxTyposquatDistance);
                 if (typosquatTarget) {
                     findings.push({

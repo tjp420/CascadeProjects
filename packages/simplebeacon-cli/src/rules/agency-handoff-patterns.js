@@ -161,6 +161,7 @@ const ALLOWLIST_SNIPPETS = [
     'example.com',
     'localhost:54355',
     '127.0.0.1:54355',
+    '127.0.0.1:55432',
     'placeholder',
     'your-secret',
     'replace-with',

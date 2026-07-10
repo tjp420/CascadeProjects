@@ -5,7 +5,10 @@ module.exports = function evaluateProductionAuthProfile(rule, { productionProfil
     if (!productionProfile) {
         return { id: rule.id, title: rule.title, category: rule.category, severity: rule.severity, remediation: rule.remediation || null, status: 'skip', evidence: 'Production profile not evaluated' };
     }
-    if (!fs.existsSync(path.join(path.resolve(report.projectRoot || ''), '.env.production'))) {
+    const envPath = path.join(path.resolve(report.projectRoot || ''), '.env.production');
+    const hasEnvFile = fs.existsSync(envPath);
+    // Only skip as a local/dev repo when neither .env.production nor env vars configure auth.
+    if (!productionProfile.configured && !hasEnvFile) {
         return { id: rule.id, title: rule.title, category: rule.category, severity: rule.severity, remediation: rule.remediation || null, status: 'skip', evidence: '.env.production not present (local/dev repo)' };
     }
     return {

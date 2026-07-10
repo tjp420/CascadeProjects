@@ -472,7 +472,7 @@ async function runSimplebeaconScan(projectPath, opts = {}) {
       60 * 24 // 24 hours
     );
   } catch (tokenErr) {
-    console.warn('[runSimplebeaconScan] Failed to generate license token:', tokenErr.message);
+    console.warn('[runSimplebeaconScan] License generation failed:', tokenErr.message);
   }
 
   let scanCmd = '';
