@@ -792,6 +792,27 @@ export function bindScanStatus(container, options = {}) {
             // Fallback for browsers without File System API
             if (files === null || files === void 0 ? void 0 : files.length) {
                 const file = files[0];
+                const relRoot = file && file.webkitRelativePath ? file.webkitRelativePath.split('/')[0] : '';
+                if (relRoot && onLocalScanResult) {
+                    // Firefox exposes dropped folder contents as files with webkitRelativePath
+                    // but hides the directory entry. Scan locally without needing the full path.
+                    const resolvedPath = deriveFallbackBase(input, relRoot);
+                    input.value = resolvedPath;
+                    setLastProjectPath(resolvedPath);
+                    if (clearBtn)
+                        clearBtn.disabled = false;
+                    const toast = document.getElementById('toast-container');
+                    if (toast) {
+                        const msg = document.createElement('div');
+                        msg.className = 'toast toast-info';
+                        msg.textContent = `Scanning "${relRoot}" locally in your browser…`;
+                        toast.appendChild(msg);
+                        setTimeout(() => msg.remove(), 4000);
+                    }
+                    const report = await runLocalScan({ files: Array.from(files), projectPath: resolvedPath });
+                    onLocalScanResult(report);
+                    return;
+                }
                 const path = file.path || file.name;
                 if (path) {
                     input.value = path;

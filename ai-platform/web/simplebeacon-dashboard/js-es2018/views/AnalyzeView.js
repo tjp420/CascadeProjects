@@ -5055,6 +5055,13 @@ export class AnalyzeView {
                 }
                 if (files === null || files === void 0 ? void 0 : files.length) {
                     const file = files[0];
+                    const relRoot = file && file.webkitRelativePath ? file.webkitRelativePath.split('/')[0] : '';
+                    if (relRoot) {
+                        // Firefox exposes dropped folder contents as files with webkitRelativePath
+                        // but hides the directory entry. Scan locally without needing the full path.
+                        void this.handleDroppedFolderFallback(files, relRoot, event, null, updateFingerprintStatus);
+                        return;
+                    }
                     const dtUriPath = getDroppedFolderPath();
                     if (dtUriPath) {
                         setPathAndNotify(dtUriPath, dtUriPath.split(/[\\/]/).pop() || 'folder');
