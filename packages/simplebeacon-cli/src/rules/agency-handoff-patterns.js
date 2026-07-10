@@ -255,6 +255,7 @@ function scanTextPatterns(relativePath, content, ext) {
             const line = content.split('\n')[lineIndex] || '';
             if (isCommentLine(line, ext) && !rule.id.startsWith('SB-HANDOFF')) continue;
             if (isAllowlistedMatch(line, match[0])) continue;
+            if (/simplebeacon-ignore/.test(line)) continue;
             if (rule.id === 'SB-DEPLOY-001' && /(?:localhost|127\.0\.0\.1):(?:54355|11434)\b/.test(match[0])) continue;
             if (rule.id === 'SB-DEPLOY-001' && /connect-src|connectSrc|Content-Security-Policy|buildConnectSrc/.test(line)) continue;
             if ((rule.id === 'SB-DEPLOY-001' || rule.id === 'SB-DEPLOY-005') && /console\.log\s*\(/.test(line)) continue;
