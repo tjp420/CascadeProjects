@@ -151,7 +151,9 @@ function resolveSafeAnalyzePath(rawPath) {
     if (!fs.existsSync(trimmed) && fs.existsSync(PROJECT_ROOT)) {
       const normalized = trimmed.replace(/\\/g, '/').toLowerCase();
       const platformKey = PROJECT_ROOT.replace(/\\/g, '/').toLowerCase();
-      if (normalized.includes('/ai-platform/') && !normalized.startsWith(platformKey + '/')) {
+      const isUnderPlatformRoot = normalized.startsWith(platformKey + '/');
+      const isPlatformStyleFallback = normalized.includes('/ai-platform/') && !isUnderPlatformRoot;
+      if (isUnderPlatformRoot || isPlatformStyleFallback) {
         return assertSafeProjectPath(PROJECT_ROOT, getAnalyzeAllowedRoots());
       }
     }
