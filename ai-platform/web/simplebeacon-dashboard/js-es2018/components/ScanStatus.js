@@ -487,7 +487,8 @@ export function bindScanStatus(container, options = {}) {
             const cNorm = c.replace(/\\/g, '/').replace(/\/+$/, '');
             if (!isAbs(cNorm))
                 continue;
-            // On Windows, don't use a Linux server path as a fallback base.
+            // On Windows, don't use a Linux server path as a fallback base, even if the
+            // folder name happens to match the end of that path.
             if (isWindowsClient && /^\//.test(cNorm) && !/^[a-zA-Z]:/.test(cNorm))
                 continue;
             if (cNorm.endsWith(`/${normName}`) || cNorm === normName)

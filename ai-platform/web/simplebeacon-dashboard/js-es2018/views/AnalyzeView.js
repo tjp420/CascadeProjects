@@ -5097,15 +5097,22 @@ export class AnalyzeView {
     _deriveFallbackBase() {
         // Prefer a real previously-used or configured path as a fallback base.
         // Never fabricate C:/Users because it is almost always the wrong location
-        // on multi-drive Windows installs.
+        // on multi-drive Windows installs, and never use the server's Linux default
+        // path as a fallback base for a Windows client.
         const isAbs = (p) => /^[a-zA-Z]:\//.test(p) || /^\//.test(p);
+        const isLinuxPath = (p) => /^\//.test(p) && !/^[a-zA-Z]:/.test(p);
+        const isWindowsClient = typeof navigator !== 'undefined' && /Windows/i.test(navigator.userAgent);
         const lastPath = String(this.app.state.lastProjectPath || '');
         if (lastPath && isAbs(lastPath.replace(/\\/g, '/'))) {
-            return lastPath.replace(/\\/g, '/').replace(/\/+$/, '');
+            const norm = lastPath.replace(/\\/g, '/').replace(/\/+$/, '');
+            if (!isWindowsClient || !isLinuxPath(norm))
+                return norm;
         }
         const defaultPath = String(this.app.state.defaultProjectPath || '');
         if (defaultPath && isAbs(defaultPath.replace(/\\/g, '/'))) {
-            return defaultPath.replace(/\\/g, '/').replace(/\/+$/, '');
+            const norm = defaultPath.replace(/\\/g, '/').replace(/\/+$/, '');
+            if (!isWindowsClient || !isLinuxPath(norm))
+                return norm;
         }
         return '';
     }
@@ -5295,25 +5302,30 @@ export class AnalyzeView {
      */
     resolveFallbackFolderPath(folderName) {
         const fName = folderName.replace(/\\/g, '/');
+        const isWindowsClient = /Windows/i.test(navigator.userAgent);
+        const isLinuxPath = (p) => /^\//.test(p) && !/^[a-zA-Z]:/.test(p);
         // 1. Prefer a recently-used path that ends with the same folder name.
         const recent = loadRecentPaths();
         for (const p of recent) {
             const norm = p.replace(/\\/g, '/').replace(/\/+$/, '');
+            if (isWindowsClient && isLinuxPath(norm))
+                continue;
             if (norm.endsWith(`/${fName}`) || norm === fName) {
                 return p;
             }
         }
-        // 2. If the last/default project path already ends with this folder name, use it verbatim.
+        // 2. If the last/default project path already ends with this folder name, use it verbatim
+        // — but only if it matches the client OS (never use a Linux server path on Windows).
         const knownPaths = [this.app.state.lastProjectPath, this.app.state.defaultProjectPath].filter(Boolean);
         for (const known of knownPaths) {
             const norm = String(known).replace(/\\/g, '/').replace(/\/+$/, '');
+            if (isWindowsClient && isLinuxPath(norm))
+                continue;
             if (norm.endsWith(`/${fName}`) || norm === fName) {
                 return norm;
             }
         }
         // 3. Determine a base directory that matches the client OS.
-        const isWindowsClient = /Windows/i.test(navigator.userAgent);
-        const isLinuxPath = (p) => p.startsWith('/') && !p.match(/^[a-zA-Z]:/);
         const pathInput = this._root?.querySelector('#project-path-input');
         const currentInput = String(pathInput?.value || '').trim();
         const normalizedCurrent = currentInput.replace(/\\/g, '/').replace(/\/+$/, '');
@@ -6036,7 +6048,12 @@ export class AnalyzeView {
         // so we cannot safely guess it. Prefer the typed path as the base if the user
         // already supplied one, otherwise leave the bare folder name as a label.
         const pathInput = (_b = this._root) === null || _b === void 0 ? void 0 : _b.querySelector('#project-path-input');
-        const fallbackPath = this.resolveFallbackFolderPath(folderName) || folderName;
+        const rawFallback = this.resolveFallbackFolderPath(folderName) || folderName;
+        const isWindowsClient = typeof navigator !== 'undefined' && /Windows/i.test(navigator.userAgent);
+        const isLinuxPath = (p) => /^\//.test(p) && !/^[a-zA-Z]:/.test(p);
+        const fallbackPath = (isWindowsClient && isLinuxPath(rawFallback.replace(/\\/g, '/')))
+            ? folderName
+            : rawFallback;
         if (pathInput) {
             pathInput.value = fallbackPath;
             this.app.state.pathInputDraft = '';
