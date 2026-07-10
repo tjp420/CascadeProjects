@@ -145,6 +145,16 @@ function resolveSafeAnalyzePath(rawPath) {
     return null;
   }
   if (path.isAbsolute(trimmed)) {
+    // Render / container fallback: if the requested ai-platform sub-path does not exist,
+    // scan the platform root instead of drifting up to the monorepo root and mismatching
+    // the repository inventory (which is anchored to PROJECT_ROOT's .simplebeacon config).
+    if (!fs.existsSync(trimmed) && fs.existsSync(PROJECT_ROOT)) {
+      const normalized = trimmed.replace(/\\/g, '/').toLowerCase();
+      const platformKey = PROJECT_ROOT.replace(/\\/g, '/').toLowerCase();
+      if (normalized.includes('/ai-platform/') && !normalized.startsWith(platformKey + '/')) {
+        return assertSafeProjectPath(PROJECT_ROOT, getAnalyzeAllowedRoots());
+      }
+    }
     return assertSafeProjectPath(trimmed, getAnalyzeAllowedRoots());
   }
 
