@@ -459,7 +459,8 @@ async function runSimplebeaconScan(projectPath, opts = {}) {
   const fullFlag = opts.fullDirectoryScan ? ' --full' : '';
   // Server needs JSON output regardless of user tier — apply tier limits to response, not generation
   const tierFlag = ' --tier ' + (opts.tier || 'executive');
-  const scanCmd = projectPath
+  let scanCmd = '';
+  scanCmd = projectPath
     ? 'node "' + cliBin + '" scan --path "' + projectPath + '" --format json --output "' + reportOut + '"' + fullFlag + tierFlag
     : 'node "' + cliBin + '" scan --format json --output "' + REPORT_PATH + '"' + fullFlag + tierFlag;
 
@@ -1060,21 +1061,45 @@ function setupSimplebeaconAPI(app, options = {}) {
             cliExitCode: err.code
           });
         } catch (recoverErr) {
+          const recoverDebug = process.env.DEBUG_CLIENT_ERRORS === '1' ? {
+            _debug: {
+              stack: recoverErr.stack,
+              code: recoverErr.code,
+              killed: recoverErr.killed,
+              scanCmd,
+              projectPath,
+              reportOut,
+              reportExists
+            }
+          } : {};
           return res.status(recoverErr.killed ? 504 : 500).json({
             error: 'Scan failed',
             message: recoverErr.message,
             stdout: recoverErr.stdout?.slice(-constants.MAX_RATE_LIMIT),
             stderr: recoverErr.stderr?.slice(-500),
-            partialReport: null
+            partialReport: null,
+            ...recoverDebug
           });
         }
       }
+      const debugPayload = process.env.DEBUG_CLIENT_ERRORS === '1' ? {
+        _debug: {
+          stack: err.stack,
+          code: err.code,
+          killed: err.killed,
+          scanCmd,
+          projectPath,
+          reportOut,
+          reportExists
+        }
+      } : {};
       res.status(err.killed ? 504 : 500).json({
         error: 'Scan failed',
         message: err.message,
         stdout: err.stdout?.slice(-constants.MAX_RATE_LIMIT),
         stderr: err.stderr?.slice(-500),
-        partialReport: reportExists ? await readJson(reportOut).catch(() => null) : null
+        partialReport: reportExists ? await readJson(reportOut).catch(() => null) : null,
+        ...debugPayload
       });
     }
   });
