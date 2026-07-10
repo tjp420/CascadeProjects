@@ -242,9 +242,9 @@ export function renderAgentCertificate(report, container) {
     if (!cert)
         return;
     const wrapper = document.createElement('div');
-    wrapper.style.cssText = `border:2px solid ${cert.badgeColor}; padding:16px; border-radius:6px; background:#fff; margin-bottom:16px;`;
+    wrapper.style.cssText = `border:2px solid ${cert.badgeColor}; padding:12px; border-radius:6px; background:var(--card-bg,#1e1e1e); color:var(--text-color,#e0e0e0); margin-bottom:12px;`;
     const header = document.createElement('div');
-    header.style.cssText = 'display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:10px; margin-bottom:10px;';
+    header.style.cssText = 'display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #444; padding-bottom:8px; margin-bottom:8px;';
     const titleBlock = document.createElement('div');
     const title = document.createElement('h3');
     title.textContent = 'SIMPLEBEACON COMPLIANCE REPORT';
