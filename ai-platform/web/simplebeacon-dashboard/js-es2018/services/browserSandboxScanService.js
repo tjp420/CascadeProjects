@@ -201,11 +201,14 @@ async function analyzeDirectory({ rootName, fileQueue }, { maxFileSize, onLog, o
   let highRiskCount = 0;
   let mediumRiskCount = 0;
   let processed = 0;
+  let skippedLarge = 0;
+  let skippedError = 0;
 
   for (const item of fileQueue) {
     try {
       const file = item.file || await item.handle.getFile();
       if (file.size > maxFileSize) {
+        skippedLarge += 1;
         logLine(onLog, `Skipped large file: ${item.virtualPath}`, 'info');
         continue;
       }
@@ -231,6 +234,7 @@ async function analyzeDirectory({ rootName, fileQueue }, { maxFileSize, onLog, o
         onProgress({ processed, total: fileQueue.length });
       }
     } catch (err) {
+      skippedError += 1;
       logLine(onLog, `Could not read ${item.virtualPath}: ${err.message}`, 'warning');
     }
   }
@@ -238,13 +242,17 @@ async function analyzeDirectory({ rootName, fileQueue }, { maxFileSize, onLog, o
   const certificate = gradeFindings(highRiskCount, mediumRiskCount);
   certificate.logs = globalIssuesQueue;
 
-  logLine(onLog, `Sandboxed drive sweep complete. Grade ${certificate.letterGrade} | ${fileReport.length} files.`, 'success');
+  logLine(onLog, `Sandboxed drive sweep complete. Grade ${certificate.letterGrade} | ${fileReport.length}/${fileQueue.length} files (${skippedLarge + skippedError} skipped).`, 'success');
 
   return {
     success: true,
     verifiedAddress: rootName,
     path: rootName,
     files: fileReport,
+    discoveredFiles: fileQueue.length,
+    skippedFiles: skippedLarge + skippedError,
+    skippedLarge,
+    skippedError,
     certificate
   };
 }

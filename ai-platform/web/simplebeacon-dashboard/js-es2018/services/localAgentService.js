@@ -242,13 +242,14 @@ export function renderAgentCertificate(report, container) {
     if (!cert)
         return;
     const wrapper = document.createElement('div');
-    wrapper.style.cssText = `border:2px solid ${cert.badgeColor}; padding:12px; border-radius:6px; background:var(--card-bg,#1e1e1e); color:var(--text-color,#e0e0e0); margin-bottom:12px;`;
+    wrapper.style.cssText = `border:2px solid ${cert.badgeColor}; padding:12px; border-radius:6px; background:var(--card-bg,#1e1e1e); color:var(--text-color,#e0e0e0); margin-bottom:12px; max-width:100%; box-sizing:border-box;`;
     const header = document.createElement('div');
-    header.style.cssText = 'display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #444; padding-bottom:8px; margin-bottom:8px;';
+    header.style.cssText = 'display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; border-bottom:1px solid #444; padding-bottom:8px; margin-bottom:8px;';
     const titleBlock = document.createElement('div');
+    titleBlock.style.cssText = 'min-width:0; flex:1 1 auto;';
     const title = document.createElement('h3');
     title.textContent = 'SIMPLEBEACON COMPLIANCE REPORT';
-    title.style.cssText = 'margin:0 0 4px 0; font-size:1.1rem;';
+    title.style.cssText = 'margin:0 0 4px 0; font-size:1.1rem; overflow-wrap:anywhere;';
     const status = document.createElement('span');
     status.textContent = cert.complianceStatus || '';
     status.style.cssText = `font-weight:600; color:${cert.badgeColor};`;
@@ -256,15 +257,15 @@ export function renderAgentCertificate(report, container) {
     titleBlock.appendChild(status);
     const badge = document.createElement('div');
     badge.textContent = cert.letterGrade;
-    badge.style.cssText = `background:${cert.badgeColor}; color:#fff; width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:bold;`;
+    badge.style.cssText = `background:${cert.badgeColor}; color:#fff; width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:bold; flex:0 0 auto;`;
     header.appendChild(titleBlock);
     header.appendChild(badge);
     wrapper.appendChild(header);
     const grid = document.createElement('div');
-    grid.style.cssText = 'display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:13px;';
+    grid.style.cssText = 'display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:8px; font-size:13px;';
     function makePair(labelText, valueText, valueColor) {
         const p = document.createElement('p');
-        p.style.margin = '0 0 4px 0';
+        p.style.cssText = 'margin:0 0 4px 0; overflow-wrap:anywhere;';
         const label = document.createElement('b');
         label.textContent = labelText;
         const value = document.createElement('span');
@@ -275,12 +276,17 @@ export function renderAgentCertificate(report, container) {
         p.appendChild(value);
         return p;
     }
+    const discovered = typeof report.discoveredFiles === 'number' ? report.discoveredFiles : (report.files || []).length;
+    const skipped = typeof report.skippedFiles === 'number' ? report.skippedFiles : 0;
     const left = document.createElement('div');
-    left.appendChild(makePair('Scanned Absolute Path:', report.verifiedAddress || report.path || '', null));
-    left.appendChild(makePair('Total Files Handled:', String((report.files || []).length), null));
+    left.appendChild(makePair('Scanned Path:', report.verifiedAddress || report.path || '', null));
+    left.appendChild(makePair('Files Scanned:', `${(report.files || []).length} / ${discovered} candidates`, null));
     const right = document.createElement('div');
     right.appendChild(makePair('Heuristic Score:', `${cert.score || 0}/100`, null));
     right.appendChild(makePair('Estimated Risk Liability:', cert.liabilityStr || '$0', '#dc3545'));
+    if (skipped > 0) {
+        right.appendChild(makePair('Skipped Files:', `${skipped} (large or unreadable)`, null));
+    }
     grid.appendChild(left);
     grid.appendChild(right);
     wrapper.appendChild(grid);
@@ -290,7 +296,7 @@ export function renderAgentCertificate(report, container) {
     filesHeading.style.cssText = 'margin:12px 0 8px 0; font-size:14px;';
     container.appendChild(filesHeading);
     const filesBox = document.createElement('div');
-    filesBox.style.cssText = 'max-height:260px; overflow-y:auto; background:#1e1e1e; color:#abb2bf; padding:12px; font-family:monospace; font-size:12px; border-radius:4px;';
+    filesBox.style.cssText = 'max-height:260px; overflow:auto; background:#1e1e1e; color:#abb2bf; padding:12px; font-family:monospace; font-size:12px; border-radius:4px; max-width:100%;';
     const files = report.files || [];
     if (!files.length) {
         const empty = document.createElement('div');
