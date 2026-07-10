@@ -32,7 +32,8 @@ const KNOWN_CLI_ONLY_DEV_DEPENDENCIES = new Set([
     'nodemon',
     'webpack-cli',
     'globals',
-    '@eslint/js'
+    '@eslint/js',
+    'pkg'
 ]);
 
 function prioritizeDependencyScanFiles(files, maxFiles = 1500) {

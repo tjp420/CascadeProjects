@@ -2495,10 +2495,9 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 ];
                 for (const candidate of configCandidates) {
                     try {
-                        if (fs.existsSync(candidate)) {
-                            baseConfig = JSON.parse(fs.readFileSync(candidate, 'utf8'));
-                            break;
-                        }
+                        await fs.promises.access(candidate);
+                        baseConfig = JSON.parse(await fs.promises.readFile(candidate, 'utf8'));
+                        break;
                     } catch (readErr) {
                         logger.warn('[Flexible Analyze] Could not read config candidate:', candidate, readErr.message);
                     }

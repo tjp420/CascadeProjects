@@ -108,7 +108,7 @@ function setupAiMathAuditRoute(app, baseDir) {
         return res.status(500).json({ success: false, error: 'Audit produced no report file' });
       }
 
-      const report = JSON.parse(fs.readFileSync(reportJson, 'utf-8'));
+      const report = JSON.parse(await fs.promises.readFile(reportJson, 'utf-8'));
 
       // Convert absolute viz paths to relative / serveable URLs
       const vizAssets = (report.visualizations || []).map(v => {
