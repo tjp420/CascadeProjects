@@ -2,6 +2,7 @@ import { escapeHtml, formatPercent, showToast } from '../utils.js';
 import { resolveDisplayScore, formatScanScopeSummary, formatScanInventoryNote } from '../services/analyzeService.js';
 import { runLocalScan } from '../services/localScanService.js';
 import { isLocalPath, probeAgent4000, scanViaAgent4000, renderAgentCertificate } from '../services/localAgentService.js?v=20260710bridge3';
+import { runSandboxedDirectoryScan } from '../services/browserSandboxScanService.js?v=20260710sandbox1';
 /**
  * Resolve initial scan root.
  * @param {number} report
@@ -95,6 +96,41 @@ export async function runDashboardScanFromInput(input, options = {}) {
     }
     setLastProjectPath(path);
     onRescan(path);
+}
+async function runSandboxedScanForDashboard(onLocalScanResult) {
+    const terminal = document.getElementById('sandbox-scan-terminal');
+    const resultsEl = document.getElementById('agent-4000-results');
+    if (terminal) terminal.textContent = 'Opening native OS system access window...';
+    try {
+        const report = await runSandboxedDirectoryScan({
+            onLog: (entry) => {
+                if (terminal) {
+                    terminal.textContent += `\n[${entry.level.toUpperCase()}] ${entry.message}`;
+                    terminal.scrollTop = terminal.scrollHeight;
+                }
+            },
+            onProgress: ({ processed, total }) => {
+                if (terminal) {
+                    terminal.textContent += `\n...${processed}/${total} files analyzed`;
+                    terminal.scrollTop = terminal.scrollHeight;
+                }
+            }
+        });
+        const cert = report && report.certificate;
+        const message = cert
+            ? `Sandbox scan complete — Grade ${cert.letterGrade} | ${report.files.length} files | Liability ${cert.liabilityStr}`
+            : `Sandbox scan complete — ${report.files.length} files`;
+        showToast(message, 'success');
+        renderAgentCertificate(report, resultsEl);
+        if (onLocalScanResult) {
+            onLocalScanResult({ projectPath: report.verifiedAddress || report.path, summary: report.certificate, source: 'sandbox' });
+        }
+    }
+    catch (err) {
+        const msg = err.message || 'Sandbox scan failed';
+        showToast(msg, 'error');
+        if (terminal) terminal.textContent += `\n❌ ${msg}`;
+    }
 }
 /**
  * Format scan path display.
@@ -190,6 +226,12 @@ function renderScanPathControls(report, options = {}) {
       </p>
       <p id="agent-4000-status" class="agent-status"></p>
       <div id="agent-4000-results"></div>
+      <div id="sandbox-scanner" class="sandbox-scanner" style="margin-top: 16px; padding: 16px; border: 1px solid #d0d7de; border-radius: 8px; background: #f6f8fa;">
+        <h4 style="margin-top: 0;">Secure Local Directory Scanner</h4>
+        <p style="margin-bottom: 12px;">Select a local drive or folder. Scanning runs privately inside your browser using the File System Access API (Chrome/Edge).</p>
+        <button type="button" id="trigger-native-picker" class="btn btn-primary" style="margin-bottom: 12px;">Select Drive Target</button>
+        <pre id="sandbox-scan-terminal" style="background: #1c1f24; color: #abb2bf; font-family: monospace; padding: 12px; border-radius: 4px; max-height: 240px; overflow-y: auto; margin: 0;">Awaiting drive selection...</pre>
+      </div>
     </div>
   `;
 }
@@ -644,6 +686,10 @@ export function bindScanStatus(container, options = {}) {
         if (clearBtn)
             clearBtn.disabled = !defaultPath;
         input.focus();
+    });
+    const sandboxPickerBtn = container.querySelector('#trigger-native-picker');
+    sandboxPickerBtn === null || sandboxPickerBtn === void 0 ? void 0 : sandboxPickerBtn.addEventListener('click', () => {
+        void runSandboxedScanForDashboard(onLocalScanResult);
     });
     input === null || input === void 0 ? void 0 : input.addEventListener('input', () => {
         const value = input.value.trim();

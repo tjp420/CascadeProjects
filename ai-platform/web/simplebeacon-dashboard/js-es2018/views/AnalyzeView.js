@@ -3,6 +3,7 @@ import { evaluateFunnelMetrics, getFunnelCopy } from '../utils/funnelTrigger.js'
 import { LocalScanService } from '../services/localScanService.js?v=20260709noise3';
 import { fingerprintDirectory, formatFingerprint } from '../services/fingerprintService.js';
 import { probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus, getAgentDownloadUrl, detectPlatform, getPlatformLabel, getInstallInstructions, getAgentFallbackMessage, probeAgent4000, scanViaAgent4000, renderAgentCertificate } from '../services/localAgentService.js?v=20260710bridge3';
+import { runSandboxedDirectoryScan } from '../services/browserSandboxScanService.js?v=20260710sandbox1';
 // simplebeacon:production-leak-intent: sample-json - Legitimate documentation about sample file patterns in analysis results
 import { analyzePath, scanPath, summarizeReport, fetchAnalyzeProviders, fetchRepositoryInventory, fetchCodebaseAnalysis, enrichScanReport, fetchZscriptModReport, shouldFetchZscriptReport, isLegacyScanReport, buildMonorepoScopeNote, buildPathInventoryProvenance, renderInventoryProvenanceHtml, refreshPathInventory, liveInventoryForPath, renderScanScopePanel, isSimplebeaconReport, aiProviderSupportsSummary, getScanFileMetrics, resolveAutoAnalysisMode, buildScanConclusion, buildConsolidationConclusion, buildFictionDigestPayload, sanitizeFictionDigestExport, resolveCompleteScanTargetPath, normalizeProjectPath, filterIssuesByKind, preparePlatformResultsReport, fetchCompleteAuditReport, fetchAnalyzeExportBundleZip, fetchEuAiActAuditReport, openAuditReportPrintWindow, previewAuditExportTier, auditExportButtonLabel, fetchDataCleanupScan, ensureDashboardApiReady, assertCompleteScanComplianceFresh, assertCompleteScanFileReductionFresh, fetchUnderstandSnippet, isCodebaseReport, fetchComplianceChecklist, fetchProjectNpmAudit, prepareGithubRepo, fetchAnalyzeTestSources, isAnalyzeProviderConfigured, uploadDirectoryAndAnalyze } from '../services/analyzeService.js?v=20260709inventorycache1';
 import { isRemoteRepoUrl, sourceChipTitle } from '../lib/analyzePathSources.js';
@@ -1699,6 +1700,12 @@ export class AnalyzeView {
               <p id="agent-status" class="agent-status"></p>
               <p id="agent-4000-status" class="agent-status"></p>
               <div id="agent-4000-results"></div>
+              <div id="sandbox-scanner" class="sandbox-scanner" style="margin-top: 16px; padding: 16px; border: 1px solid #d0d7de; border-radius: 8px; background: #f6f8fa;">
+                <h4 style="margin-top: 0;">Secure Local Directory Scanner</h4>
+                <p style="margin-bottom: 12px;">Select a local drive or folder. Scanning runs privately inside your browser using the File System Access API (Chrome/Edge).</p>
+                <button type="button" id="trigger-native-picker" class="btn btn-primary" style="margin-bottom: 12px;">Select Drive Target</button>
+                <pre id="sandbox-scan-terminal" style="background: #1c1f24; color: #abb2bf; font-family: monospace; padding: 12px; border-radius: 4px; max-height: 240px; overflow-y: auto; margin: 0;">Awaiting drive selection...</pre>
+              </div>
               <p id="agent-download-cta" class="agent-download-cta"></p>
             </div>
             <div class="scanning-state ${this.busy ? 'active' : ''}">
@@ -4638,6 +4645,11 @@ export class AnalyzeView {
             void this.refreshReportForActivePath(el);
             void this.runPathAnalysis(resolvedPath);
         });
+        // Browser-native sandbox directory picker (File System Access API)
+        const sandboxPickerBtn = el.querySelector('#trigger-native-picker');
+        sandboxPickerBtn === null || sandboxPickerBtn === void 0 ? void 0 : sandboxPickerBtn.addEventListener('click', () => {
+            void this.runSandboxedDirectoryScan();
+        });
         // Handle folder selection from the hidden directory input
         (_s = el.querySelector('#browse-dir-input')) === null || _s === void 0 ? void 0 : _s.addEventListener('change', (e) => {
             const files = e.target.files;
@@ -6336,6 +6348,38 @@ export class AnalyzeView {
             this.busy = false;
             this.scanProgress = null;
             this.refresh();
+        }
+    }
+    async runSandboxedDirectoryScan() {
+        const terminal = this._root && this._root.querySelector('#sandbox-scan-terminal');
+        const resultsEl = this._root && this._root.querySelector('#agent-4000-results');
+        if (terminal) terminal.textContent = 'Opening native OS system access window...';
+        try {
+            const report = await runSandboxedDirectoryScan({
+                onLog: (entry) => {
+                    if (terminal) {
+                        terminal.textContent += `\n[${entry.level.toUpperCase()}] ${entry.message}`;
+                        terminal.scrollTop = terminal.scrollHeight;
+                    }
+                },
+                onProgress: ({ processed, total }) => {
+                    if (terminal) {
+                        terminal.textContent += `\n...${processed}/${total} files analyzed`;
+                        terminal.scrollTop = terminal.scrollHeight;
+                    }
+                }
+            });
+            const cert = report && report.certificate;
+            const message = cert
+                ? `Sandbox scan complete — Grade ${cert.letterGrade} | ${report.files.length} files | Liability ${cert.liabilityStr}`
+                : `Sandbox scan complete — ${report.files.length} files`;
+            showToast(message, 'success');
+            renderAgentCertificate(report, resultsEl);
+        }
+        catch (err) {
+            const msg = err.message || 'Sandbox scan failed';
+            showToast(msg, 'error');
+            if (terminal) terminal.textContent += `\n❌ ${msg}`;
         }
     }
     async runPathAnalysis(inputPath) {
