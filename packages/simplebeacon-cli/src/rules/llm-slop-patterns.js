@@ -21,6 +21,9 @@ const SKIP_DIRS = new Set([
     '.github-sync', '.cursor', '.vscode', 'downloads', 'findings',
     'simplebeacon-rule-tests', 'simplebeacon-toxic-fixtures'
 ]);
+
+// Directory names containing __tests__ are already in SKIP_DIRS above, but the
+// isExcludedPath regex below also skips explicit test directories to be safe.
 const MAX_SCAN_BYTES = 512000;
 
 const RULE_CATALOG_RAW = require('./llm-slop-catalog.json');
@@ -52,7 +55,11 @@ function isIgnored(relativePath, ignoreGlobs) {
 
 function isExcludedPath(relativePath) {
     const normalized = relativePath.replace(/\\/g, '/').toLowerCase();
-    if (/\.(test|spec)\.[jt]sx?$/.test(normalized)) return true;
+    if (/\.(test|spec)\.[jt]sx?$/i.test(normalized)) return true;
+    if (/\.(test|spec)\.[cm]js$/i.test(normalized)) return true;
+    if (/(?:^|\/)__tests__\//.test(normalized)) return true;
+    if (/(?:^|\/)__tests__\.[jt]sx?$/i.test(normalized)) return true;
+    if (/(?:^|\/)__tests__\.[cm]js$/i.test(normalized)) return true;
     if (/\/tests?\//.test(normalized)) return true;
     if (/\/fixtures?\//.test(normalized)) return true;
     if (/\.example\.[a-z0-9]+$/i.test(normalized)) return true;
