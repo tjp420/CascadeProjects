@@ -23,6 +23,20 @@ let cachedAgentStatus = null;
 let cachedAt = 0;
 const CACHE_TTL_MS = 30000;
 let pendingProbe = null;
+function hasAgentBridge() {
+    return typeof window !== 'undefined' && !!window.simplebeaconAgentBridge;
+}
+function getAgentFetch() {
+    return hasAgentBridge() ? window.simplebeaconAgentBridge.fetch.bind(window.simplebeaconAgentBridge) : fetch;
+}
+async function agentFetchWithTimeout(url, options = {}, timeoutMs = 300000) {
+    const doFetch = getAgentFetch();
+    const timeout = new Promise((_resolve, reject) => {
+        setTimeout(() => reject(new Error('Local agent request timed out')), timeoutMs);
+    });
+    const response = await Promise.race([doFetch(url, options), timeout]);
+    return response;
+}
 export function isLocalPath(value) {
     const raw = String(value || '').trim();
     if (!raw)
@@ -49,21 +63,17 @@ export async function probeAgent(origin = DEFAULT_AGENT_ORIGIN) {
         return pendingProbe;
     }
     pendingProbe = (async () => {
-        if (isMixedContent(origin)) {
+        if (!hasAgentBridge() && isMixedContent(origin)) {
             const status = { available: false, scannerAvailable: false, likelyBlocked: true };
             cachedAgentStatus = status;
             cachedAt = Date.now();
             return status;
         }
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), AGENT_TIMEOUT_MS);
         try {
-            const response = await fetch(`${origin}/health`, {
+            const response = await agentFetchWithTimeout(`${origin}/health`, {
                 method: 'GET',
-                signal: controller.signal,
                 headers: { Accept: 'application/json' }
-            });
-            clearTimeout(timer);
+            }, AGENT_TIMEOUT_MS);
             const body = await response.json().catch(() => ({}));
             const status = {
                 available: response.ok && body.success === true,
@@ -76,8 +86,7 @@ export async function probeAgent(origin = DEFAULT_AGENT_ORIGIN) {
             return status;
         }
         catch (err) {
-            clearTimeout(timer);
-            const likelyBlocked = isMixedContentBlocked(origin, err);
+            const likelyBlocked = !hasAgentBridge() && isMixedContentBlocked(origin, err);
             cachedAgentStatus = { available: false, scannerAvailable: false, likelyBlocked };
             cachedAt = Date.now();
             return cachedAgentStatus;
@@ -124,26 +133,16 @@ function isMixedContent(origin) {
  * @returns {Promise<Object>}
  */
 export async function fetchInventoryViaAgent(projectPath, options = {}, origin = DEFAULT_AGENT_ORIGIN) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 300000);
-    try {
-        const response = await fetch(`${origin}/inventory`, {
-            method: 'POST',
-            signal: controller.signal,
-            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-            body: JSON.stringify({ projectPath, fullDirectoryScan: options.fullDirectoryScan })
-        });
-        clearTimeout(timer);
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok || !data.success) {
-            throw new Error(data.error || `Agent inventory failed (${response.status})`);
-        }
-        return data.inventory;
+    const response = await agentFetchWithTimeout(`${origin}/inventory`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ projectPath, fullDirectoryScan: options.fullDirectoryScan })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.success) {
+        throw new Error(data.error || `Agent inventory failed (${response.status})`);
     }
-    catch (err) {
-        clearTimeout(timer);
-        throw err;
-    }
+    return data.inventory;
 }
 /**
  * Run a scan through the local agent.
@@ -152,27 +151,16 @@ export async function fetchInventoryViaAgent(projectPath, options = {}, origin =
  * @returns {Promise<Object>}
  */
 export async function scanViaAgent(projectPath, origin = DEFAULT_AGENT_ORIGIN) {
-    const controller = new AbortController();
-    // Scans can take a while; use a generous timeout.
-    const timer = setTimeout(() => controller.abort(), 300000);
-    try {
-        const response = await fetch(`${origin}/scan`, {
-            method: 'POST',
-            signal: controller.signal,
-            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-            body: JSON.stringify({ projectPath })
-        });
-        clearTimeout(timer);
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok || !data.success) {
-            throw new Error(data.error || `Agent scan failed (${response.status})`);
-        }
-        return data.report;
+    const response = await agentFetchWithTimeout(`${origin}/scan`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ projectPath })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.success) {
+        throw new Error(data.error || `Agent scan failed (${response.status})`);
     }
-    catch (err) {
-        clearTimeout(timer);
-        throw err;
-    }
+    return data.report;
 }
 /**
  * Decide whether a given path should be routed to the local agent rather than
@@ -236,7 +224,7 @@ export function getAgentDownloadUrl(platform) {
 export function getAgentFallbackMessage(agentStatus) {
     var _a, _b, _c;
     if ((_a = agentStatus) === null || _a === void 0 ? void 0 : _a.likelyBlocked) {
-        return 'Firefox/Safari block HTTPS pages from reaching the Local Scan Agent. Use Chrome/Edge, type the full path and press Enter, or download the Local Scan Agent below.';
+        return 'HTTPS blocks direct access to the Local Scan Agent. Install the Simplebeacon Browser Extension, open this page in Chrome/Edge, or run the local dashboard.';
     }
     if (!((_b = agentStatus) === null || _b === void 0 ? void 0 : _b.available)) {
         return 'Local Scan Agent is offline. Download and run it from the link below, then try again.';

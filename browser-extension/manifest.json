@@ -1,0 +1,46 @@
+{
+  "manifest_version": 3,
+  "name": "Simplebeacon Local Agent Bridge",
+  "version": "1.0.0",
+  "description": "Lets the Simplebeacon dashboard scan your local files through the localhost agent.",
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
+  "host_permissions": [
+    "http://127.0.0.1:55432/*",
+    "http://localhost:55432/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.simplebeacon.ai/*",
+        "https://simplebeacon.onrender.com/*",
+        "https://*.onrender.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": false
+    }
+  ],
+  "background": {
+    "service_worker": "service-worker.js"
+  },
+  "icons": {
+    "16": "icon-16.png",
+    "48": "icon-48.png",
+    "128": "icon-128.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "bridge-inject.js"
+      ],
+      "matches": [
+        "https://*/*"
+      ]
+    }
+  ]
+}
