@@ -130,39 +130,66 @@ function analyzeFile(content, virtualPath) {
   return { fileIssues, fileFindings };
 }
 
-/**
- * Prompt the user to pick a directory, then scan it in-browser.
- * @param {Object} [options]
- * @param {number} [options.maxFileSize=1500000]
- * @param {number} [options.maxFiles=10000]
- * @param {Function} [options.onLog] - Receives { message, level, timestamp } objects.
- * @param {Function} [options.onProgress] - Receives { processed, total } objects.
- * @returns {Promise<Object>} Report compatible with renderAgentCertificate.
- */
-export async function runSandboxedDirectoryScan(options = {}) {
-  if (!isSupported()) {
-    throw new Error('The File System Access API is not available in this browser. Try Chrome, Edge, or Opera, or run the local agent instead.');
-  }
-
-  const { maxFileSize = DEFAULT_MAX_FILE_SIZE, maxFiles = DEFAULT_MAX_FILES, onLog, onProgress } = options;
-
-  let directoryHandle;
-  try {
-    directoryHandle = await window.showDirectoryPicker({ mode: 'read' });
-  } catch (err) {
-    if (err.name === 'AbortError') {
-      throw new Error('Directory selection was cancelled.');
-    }
-    throw err;
-  }
-
+async function pickFileSystemAccessDirectory({ maxFiles, onLog }) {
+  const directoryHandle = await window.showDirectoryPicker({ mode: 'read' });
   const rootName = directoryHandle.name;
   logLine(onLog, `Access granted. Initializing scan over boundary: ${rootName}`, 'info');
-
   const fileQueue = [];
   await crawlSandboxedTree(directoryHandle, rootName, fileQueue, { maxFiles, onLog });
-  logLine(onLog, `Discovered ${fileQueue.length} text/code targets.`, 'info');
+  return { rootName, fileQueue };
+}
 
+function pickLegacyDirectory({ maxFiles, onLog }) {
+  return new Promise((resolve, reject) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.webkitdirectory = true;
+    input.multiple = true;
+    input.style.display = 'none';
+    let resolved = false;
+    const cleanup = () => {
+      if (input.parentNode) input.parentNode.removeChild(input);
+    };
+    input.addEventListener('change', (e) => {
+      if (resolved) return;
+      resolved = true;
+      cleanup();
+      const files = Array.from(e.target.files || []);
+      if (files.length === 0) {
+        reject(new Error('Directory selection was cancelled or no files were chosen.'));
+        return;
+      }
+      const rootName = (files[0].webkitRelativePath || files[0].name).split('/')[0] || 'selected-folder';
+      logLine(onLog, `Legacy directory input selected. Streaming analysis over ${files.length} items...`, 'info');
+      const fileQueue = [];
+      for (const file of files) {
+        if (fileQueue.length >= maxFiles) {
+          logLine(onLog, `Reached max file limit (${maxFiles}); stopping traversal.`, 'warning');
+          break;
+        }
+        const virtualPath = file.webkitRelativePath || file.name;
+        const pathParts = virtualPath.split('/');
+        if (pathParts.some((part) => SKIP_DIRS.has(part))) continue;
+        const extIndex = file.name.lastIndexOf('.');
+        const ext = extIndex >= 0 ? file.name.substring(extIndex).toLowerCase() : '';
+        if (!ALLOWED_EXTENSIONS.has(ext)) continue;
+        fileQueue.push({ file, virtualPath });
+      }
+      resolve({ rootName, fileQueue });
+    });
+    input.addEventListener('cancel', () => {
+      if (!resolved) {
+        resolved = true;
+        cleanup();
+        reject(new Error('Directory selection was cancelled or no files were chosen.'));
+      }
+    });
+    document.body.appendChild(input);
+    input.click();
+  });
+}
+
+async function analyzeDirectory({ rootName, fileQueue }, { maxFileSize, onLog, onProgress }) {
   const fileReport = [];
   const globalIssuesQueue = [];
   let highRiskCount = 0;
@@ -171,7 +198,7 @@ export async function runSandboxedDirectoryScan(options = {}) {
 
   for (const item of fileQueue) {
     try {
-      const file = await item.handle.getFile();
+      const file = item.file || await item.handle.getFile();
       if (file.size > maxFileSize) {
         logLine(onLog, `Skipped large file: ${item.virtualPath}`, 'info');
         continue;
@@ -214,4 +241,24 @@ export async function runSandboxedDirectoryScan(options = {}) {
     files: fileReport,
     certificate
   };
+}
+
+/**
+ * Prompt the user to pick a directory, then scan it in-browser.
+ * @param {Object} [options]
+ * @param {number} [options.maxFileSize=1500000]
+ * @param {number} [options.maxFiles=10000]
+ * @param {Function} [options.onLog] - Receives { message, level, timestamp } objects.
+ * @param {Function} [options.onProgress] - Receives { processed, total } objects.
+ * @returns {Promise<Object>} Report compatible with renderAgentCertificate.
+ */
+export async function runSandboxedDirectoryScan(options = {}) {
+  const { maxFileSize = DEFAULT_MAX_FILE_SIZE, maxFiles = DEFAULT_MAX_FILES, onLog, onProgress } = options;
+
+  const picked = isSupported()
+    ? await pickFileSystemAccessDirectory({ maxFiles, onLog })
+    : await pickLegacyDirectory({ maxFiles, onLog });
+
+  logLine(onLog, `Discovered ${picked.fileQueue.length} text/code targets.`, 'info');
+  return analyzeDirectory(picked, { maxFileSize, onLog, onProgress });
 }
