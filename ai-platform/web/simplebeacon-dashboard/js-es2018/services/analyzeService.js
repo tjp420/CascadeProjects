@@ -1,6 +1,6 @@
 import { authService } from './authService.js';
 import { fetchUserAiKeys } from './aiKeysService.js';
-import { scanService } from './scanService.js';
+import { scanService } from './scanService.js?v=20260710reportnorm1';
 import { formatNumber, escapeHtml, fetchWithTimeout } from '../utils.js';
 import { isRemoteRepoUrl } from '../lib/analyzePathSources.js';
 import { isBenchmarkCachePath } from '../utils/complete-scan-artifact-profile.browser.js';

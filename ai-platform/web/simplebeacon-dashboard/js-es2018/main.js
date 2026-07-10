@@ -31,7 +31,7 @@ import { showUpgradeModal } from './components/UpgradeModal.js';
 import { showLoginModal } from './components/LoginModal.js?v=20260609token4';
 import { isDemoMode, isSignedOffMode, isLocalDevHost, demoReadOnlyMessage } from './demoMode.js';
 import { showToast, resolveDashboardProjectPath } from './utils.js';
-import { fetchAnalyzeProviders } from './services/analyzeService.js';
+import { fetchAnalyzeProviders } from './services/analyzeService.js?v=20260710reportnorm1';
 /**
  * Vault unlock url.
  * @param {string} returnPath

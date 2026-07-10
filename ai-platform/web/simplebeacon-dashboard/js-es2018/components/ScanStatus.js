@@ -1,5 +1,5 @@
 import { escapeHtml, formatPercent, showToast } from '../utils.js';
-import { resolveDisplayScore, formatScanScopeSummary, formatScanInventoryNote } from '../services/analyzeService.js';
+import { resolveDisplayScore, formatScanScopeSummary, formatScanInventoryNote } from '../services/analyzeService.js?v=20260710reportnorm1';
 import { runLocalScan } from '../services/localScanService.js';
 import { isLocalPath, probeAgent4000, scanViaAgent4000, renderAgentCertificate } from '../services/localAgentService.js?v=20260710bridge3';
 import { runSandboxedDirectoryScan } from '../services/browserSandboxScanService.js?v=20260710sandbox1';

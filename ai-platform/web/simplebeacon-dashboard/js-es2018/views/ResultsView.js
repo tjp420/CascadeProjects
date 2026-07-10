@@ -1,5 +1,5 @@
 import { escapeHtml, showToast, formatPercent, formatNumber, renderEmptyState } from '../utils.js';
-import { getScanFileMetrics, resolveDisplayScore } from '../services/analyzeService.js';
+import { getScanFileMetrics, resolveDisplayScore } from '../services/analyzeService.js?v=20260710reportnorm1';
 const SEVERITIES = ['all', 'high', 'medium', 'low'];
 /**
  * Results view.
