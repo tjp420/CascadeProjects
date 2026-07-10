@@ -4600,10 +4600,10 @@ export class AnalyzeView {
                         const baseDir = normalizedFull.slice(0, -normalizedRel.length).replace(/\/$/, '');
                         const folderName = normalizedRel.split('/')[0] || '';
                         let resolvedPath = baseDir ? `${baseDir}/${folderName}` : folderName;
-                        // Guard: never leave a bare folder name — at minimum prefix with a drive
+                        // If the browser didn't expose an absolute path, fall back to a sensible
+                        // guess from typed/last/default paths rather than inventing C:/Users.
                         if (!resolvedPath.match(/^[a-zA-Z]:/) && !resolvedPath.startsWith('/')) {
-                            const driveMatch = String(this.app.state.defaultProjectPath || '').match(/^([a-zA-Z]:)/);
-                            resolvedPath = driveMatch ? `${driveMatch[1]}/Users/${folderName}` : `C:/Users/${folderName}`;
+                            resolvedPath = this.resolveFallbackFolderPath(folderName) || folderName;
                         }
                         const pathInput = el.querySelector('#project-path-input');
                         if (pathInput) {
@@ -5003,19 +5003,7 @@ export class AnalyzeView {
                     const actualDir = getDroppedFolderPath(name);
                     if (actualDir)
                         return actualDir;
-                    const pathInput = el.querySelector('#project-path-input');
-                    const currentInput = String((pathInput === null || pathInput === void 0 ? void 0 : pathInput.value) || '').trim();
-                    const currentBase = currentInput
-                        ? currentInput.replace(/\\/g, '/').replace(/\/+$/, '').split('/').slice(0, -1).join('/')
-                        : '';
-                    const rawDefault = String(this.app.state.defaultProjectPath || '')
-                        .replace(/\\/g, '/')
-                        .replace(/\/+$/, '');
-                    const fallbackBase = String(this._deriveFallbackBase())
-                        .replace(/\\/g, '/')
-                        .replace(/\/+$/, '');
-                    const base = rawDefault || currentBase || fallbackBase;
-                    return base ? `${base}/${name}` : name;
+                    return this.resolveFallbackFolderPath(name);
                 };
                 if (items === null || items === void 0 ? void 0 : items.length) {
                     // Prefer the File System Access API handle so we can scan locally without upload.
@@ -5090,13 +5078,19 @@ export class AnalyzeView {
         this.loadTestSources(el);
     }
     _deriveFallbackBase() {
+        // Prefer a real previously-used or configured path as a fallback base.
+        // Never fabricate C:/Users because it is almost always the wrong location
+        // on multi-drive Windows installs.
+        const isAbs = (p) => /^[a-zA-Z]:\//.test(p) || /^\//.test(p);
+        const lastPath = String(this.app.state.lastProjectPath || '');
+        if (lastPath && isAbs(lastPath.replace(/\\/g, '/'))) {
+            return lastPath.replace(/\\/g, '/').replace(/\/+$/, '');
+        }
         const defaultPath = String(this.app.state.defaultProjectPath || '');
-        if (!defaultPath) return 'C:/Users';
-        const norm = defaultPath.replace(/\\/g, '/').replace(/\/+$/, '');
-        const lastSlash = norm.lastIndexOf('/');
-        if (lastSlash > 0) return norm.slice(0, lastSlash);
-        const driveMatch = norm.match(/^([a-zA-Z]:)/);
-        return driveMatch ? `${driveMatch[1]}/Users` : 'C:/Users';
+        if (defaultPath && isAbs(defaultPath.replace(/\\/g, '/'))) {
+            return defaultPath.replace(/\\/g, '/').replace(/\/+$/, '');
+        }
+        return '';
     }
     openDirBrowser(el) {
         const modal = el.querySelector('#dir-browser-modal');
@@ -5305,6 +5299,14 @@ export class AnalyzeView {
         const isLinuxPath = (p) => p.startsWith('/') && !p.match(/^[a-zA-Z]:/);
         const pathInput = this._root?.querySelector('#project-path-input');
         const currentInput = String(pathInput?.value || '').trim();
+        const normalizedCurrent = currentInput.replace(/\\/g, '/').replace(/\/+$/, '');
+        const isAbsCurrent = /^[a-zA-Z]:\//.test(normalizedCurrent) || /^\//.test(normalizedCurrent);
+        if (isAbsCurrent) {
+            if (normalizedCurrent.endsWith(`/${fName}`) || normalizedCurrent === fName) {
+                return currentInput;
+            }
+            return `${normalizedCurrent}/${folderName}`;
+        }
         const currentBase = currentInput
             ? currentInput.replace(/\\/g, '/').replace(/\/+$/, '').split('/').slice(0, -1).join('/')
             : '';
@@ -5508,18 +5510,7 @@ export class AnalyzeView {
                         }
                     }
                     // Fallback to defaultProjectPath / current input / fallback base if no OS path
-                    const currentInput = String((pathInput === null || pathInput === void 0 ? void 0 : pathInput.value) || '').trim();
-                    const currentBase = currentInput
-                        ? currentInput.replace(/\\/g, '/').replace(/\/+$/, '').split('/').slice(0, -1).join('/')
-                        : '';
-                    const rawDefault = String(this.app.state.defaultProjectPath || '')
-                        .replace(/\\/g, '/')
-                        .replace(/\/+$/, '');
-                    const fallbackBase = String(this._deriveFallbackBase())
-                        .replace(/\\/g, '/')
-                        .replace(/\/+$/, '');
-                    const base = rawDefault || currentBase || fallbackBase;
-                    const resolvedPath = actualPath || (base ? `${base}/${name}` : name);
+                    const resolvedPath = actualPath || this.resolveFallbackFolderPath(name);
                     if (pathInput) {
                         pathInput.value = resolvedPath;
                         this.app.state.pathInputDraft = '';
@@ -6019,36 +6010,36 @@ export class AnalyzeView {
             return;
         }
         // No absolute path available. Browsers hide the full OS path for security,
-        // so we cannot safely guess it. Route directly to a browser-local scan
-        // (directory picker / dropped handle) instead of pre-filling a likely-wrong path.
+        // so we cannot safely guess it. Prefer the typed path as the base if the user
+        // already supplied one, otherwise leave the bare folder name as a label.
         const pathInput = (_b = this._root) === null || _b === void 0 ? void 0 : _b.querySelector('#project-path-input');
-        const localLabel = folderName;
+        const fallbackPath = this.resolveFallbackFolderPath(folderName) || folderName;
         if (pathInput) {
-            pathInput.value = localLabel;
+            pathInput.value = fallbackPath;
             this.app.state.pathInputDraft = '';
-            this.app.state.lastProjectPath = localLabel;
-            this.setPathInputDisplay(pathInput, localLabel);
+            this.app.state.lastProjectPath = fallbackPath;
+            this.setPathInputDisplay(pathInput, fallbackPath);
             this.syncAnalyzeModeUi(this._root);
         }
         if (directoryHandle && directoryHandle.kind === 'directory') {
             showToast('Scanning dropped folder locally — no upload…', 'info');
-            await this.runLocalScan(directoryHandle, null, localLabel);
+            await this.runLocalScan(directoryHandle, null, fallbackPath);
             return;
         }
         if (directoryHandle && directoryHandle.isDirectory) {
             // Legacy webkit entry: scan locally without uploading.
             showToast('Scanning dropped folder locally — no upload…', 'info');
-            await this.runLocalScan(null, files, localLabel);
+            await this.runLocalScan(null, files, fallbackPath);
             return;
         }
         if (files?.length) {
             showToast('Scanning dropped folder locally — no upload…', 'info');
-            await this.runLocalScan(null, files, localLabel);
+            await this.runLocalScan(null, files, fallbackPath);
             return;
         }
         if (window.showDirectoryPicker) {
             showToast(`Dropped folder "${folderName}" — browser cannot reveal its full path. Select it in the folder picker to scan locally.`, 'info');
-            await this.runLocalScan(null, null, localLabel);
+            await this.runLocalScan(null, null, fallbackPath);
             return;
         }
         showToast(`Dropped folder "${folderName}" — browser cannot reveal its full path. Type the full path (e.g., C:/path/to/${folderName}) to scan with the Local Agent.`, 'warning');

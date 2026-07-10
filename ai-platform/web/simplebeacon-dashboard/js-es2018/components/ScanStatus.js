@@ -454,6 +454,44 @@ export function bindScanStatus(container, options = {}) {
         // No reliable base is known; don't fabricate a path that will likely be wrong.
         return '';
     }
+    /**
+     * Prefer the user's typed path input as the base for a dropped/browsed folder name.
+     * If the input already contains an absolute directory path, append the folder name to it.
+     * Otherwise try recently-used or default paths for a sensible base, but never fabricate
+     * a home-directory path when none of the known paths match the client OS.
+     * @param {HTMLInputElement} [input]
+     * @param {string} [folderName]
+     * @returns {string}
+     */
+    function deriveFallbackBase(input, folderName) {
+        const current = String(input?.value || '').trim();
+        const normName = String(folderName || '').replace(/\\/g, '/').replace(/\/+$/, '');
+        if (!normName)
+            return '';
+        const isAbs = (p) => /^[a-zA-Z]:\//.test(p) || /^\//.test(p);
+        if (current && isAbs(current.replace(/\\/g, '/'))) {
+            const norm = current.replace(/\\/g, '/').replace(/\/+$/, '');
+            if (norm.endsWith(`/${normName}`) || norm === normName)
+                return norm;
+            return `${norm}/${normName}`;
+        }
+        const isWindowsClient = typeof navigator !== 'undefined' && /Windows/i.test(navigator.userAgent);
+        for (const candidate of [getLastProjectPath(), getDefaultProjectPath()]) {
+            const c = String(candidate || '').trim();
+            if (!c)
+                continue;
+            const cNorm = c.replace(/\\/g, '/').replace(/\/+$/, '');
+            if (!isAbs(cNorm))
+                continue;
+            // On Windows, don't use a Linux server path as a fallback base.
+            if (isWindowsClient && /^\//.test(cNorm) && !/^[a-zA-Z]:/.test(cNorm))
+                continue;
+            if (cNorm.endsWith(`/${normName}`) || cNorm === normName)
+                return cNorm;
+            return `${cNorm}/${normName}`;
+        }
+        return normName;
+    }
     scanBtn === null || scanBtn === void 0 ? void 0 : scanBtn.addEventListener('click', runScan);
     // Hidden file input for webkitdirectory fallback
     browseInput === null || browseInput === void 0 ? void 0 : browseInput.addEventListener('change', (e) => {
@@ -491,8 +529,7 @@ export function bindScanStatus(container, options = {}) {
         // Standard browser fallback — no absolute path available.
         const firstPath = files[0].webkitRelativePath || files[0].name || '';
         const folderName = firstPath.split('/')[0] || firstPath;
-        const homePath = deriveUserHomeBase();
-        const resolvedPath = homePath ? `${homePath}/${folderName}` : folderName;
+        const resolvedPath = deriveFallbackBase(input, folderName);
         if (input) {
             input.value = resolvedPath;
             setLastProjectPath(resolvedPath);
@@ -503,7 +540,7 @@ export function bindScanStatus(container, options = {}) {
         if (toast) {
             const msg = document.createElement('div');
             msg.className = 'toast toast-info';
-            msg.textContent = homePath
+            msg.textContent = /^[a-zA-Z]:|^\\\\|^\//.test(resolvedPath)
                 ? `Folder "${folderName}" selected. Path is estimated — please verify before scanning.`
                 : `Folder "${folderName}" selected — browser cannot reveal its full path. Type or browse the full path before scanning.`;
             toast.appendChild(msg);
@@ -522,8 +559,7 @@ export function bindScanStatus(container, options = {}) {
             try {
                 const dirHandle = await window.showDirectoryPicker();
                 const folderName = dirHandle.name || '';
-                const homePath = deriveUserHomeBase();
-                const fallbackPath = homePath ? `${homePath}/${folderName}` : folderName;
+                const fallbackPath = deriveFallbackBase(input, folderName);
                 if (input) {
                     input.value = fallbackPath;
                     setLastProjectPath(fallbackPath);
@@ -534,7 +570,7 @@ export function bindScanStatus(container, options = {}) {
                 if (toast) {
                     const msg = document.createElement('div');
                     msg.className = 'toast toast-info';
-                    msg.textContent = homePath
+                    msg.textContent = /^[a-zA-Z]:|^\\\\|^\//.test(fallbackPath)
                         ? `Folder "${folderName}" selected. Path is estimated — please verify before scanning.`
                         : `Folder "${folderName}" selected — browser cannot reveal its full path. Type or browse the full path before scanning.`;
                     toast.appendChild(msg);
@@ -625,8 +661,7 @@ export function bindScanStatus(container, options = {}) {
                     // Try every available source for the absolute OS path.
                     let resolvedPath = extractAbsoluteDroppedFolderPath(event, name);
                     if (!resolvedPath) {
-                        const homePath = deriveUserHomeBase();
-                        resolvedPath = homePath ? `${homePath}/${name}` : name;
+                        resolvedPath = deriveFallbackBase(input, name);
                     }
                     input.value = resolvedPath;
                     setLastProjectPath(resolvedPath);
