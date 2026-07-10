@@ -32,6 +32,7 @@ const {
   buildFictionPatternCatalog,
   countFictionIssues,
   detectProjectProfile,
+  generateLicenseToken,
   readScanProgress,
   resolvePlatformRoot,
   resolveScanProgressPath,
@@ -459,6 +460,21 @@ async function runSimplebeaconScan(projectPath, opts = {}) {
   const fullFlag = opts.fullDirectoryScan ? ' --full' : '';
   // Server needs JSON output regardless of user tier — apply tier limits to response, not generation
   const tierFlag = ' --tier ' + (opts.tier || 'executive');
+
+  // Generate a short-lived license token for the CLI so it enables the user's tiered rule engines.
+  const licenseTier = opts.tier || 'executive';
+  const licenseSecret = process.env.SIMPLEBEACON_LICENSE_SECRET || 'simplebeacon-dev-insecure';
+  let licenseToken = '';
+  try {
+    licenseToken = generateLicenseToken(
+      { email: 'server@simplebeacon.ai', tier: licenseTier, features: ['all'] },
+      licenseSecret,
+      60 * 24 // 24 hours
+    );
+  } catch (tokenErr) {
+    console.warn('[runSimplebeaconScan] Failed to generate license token:', tokenErr.message);
+  }
+
   let scanCmd = '';
   scanCmd = projectPath
     ? 'node "' + cliBin + '" scan --path "' + projectPath + '" --format json --output "' + reportOut + '"' + fullFlag + tierFlag
@@ -472,7 +488,12 @@ async function runSimplebeaconScan(projectPath, opts = {}) {
       const result = await execAsync(scanCmd, {
         cwd: PROJECT_ROOT,
         timeout: Number(process.env.SIMPLEBEACON_SCAN_TIMEOUT_MS) || constants.TIMEOUT_10M,
-        env: { ...process.env, FORCE_COLOR: '0' }
+        env: {
+          ...process.env,
+          FORCE_COLOR: '0',
+          SIMPLEBEACON_LICENSE_TOKEN: licenseToken,
+          SIMPLEBEACON_LICENSE_SECRET: licenseSecret
+        }
       });
       stdout = result.stdout || '';
       stderr = result.stderr || '';

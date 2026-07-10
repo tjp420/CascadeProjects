@@ -102,12 +102,10 @@ function isPlaceholderSecret(value) {
 function detectProductionAuthProfile(projectRoot) {
     if (!projectRoot) return null;
     const envPath = path.join(path.resolve(projectRoot), '.env.production');
-    if (!fs.existsSync(envPath)) {
-        return { configured: false, requireAuth: false, reason: '.env.production not present' };
-    }
+    const fromFile = fs.existsSync(envPath);
+    const env = fromFile ? parseEnvMap(fs.readFileSync(envPath, 'utf8')) : process.env;
+    const source = fromFile ? '.env.production' : 'process.env';
 
-    const text = fs.readFileSync(envPath, 'utf8');
-    const env = parseEnvMap(text);
     const requireAuth = String(env.REQUIRE_AUTH || '').toLowerCase() === 'true';
     const jwtSecretSet = !isPlaceholderSecret(env.JWT_SECRET);
     const hasRefreshSecret = Object.prototype.hasOwnProperty.call(env, 'JWT_REFRESH_SECRET');
@@ -121,12 +119,12 @@ function detectProductionAuthProfile(projectRoot) {
         jwtSecretConfigured: jwtSecretSet,
         jwtRefreshConfigured: jwtRefreshSecretSet,
         reason: requireAuth && jwtSet
-            ? 'REQUIRE_AUTH=true with non-placeholder JWT'
+            ? `REQUIRE_AUTH=true with non-placeholder JWT (${source})`
             : !requireAuth
-                ? 'Set REQUIRE_AUTH=true in .env.production'
+                ? `Set REQUIRE_AUTH=true in ${source}`
                 : !jwtSecretSet
-                    ? 'Set a non-placeholder JWT_SECRET in .env.production'
-                    : 'Set a non-placeholder JWT_REFRESH_SECRET in .env.production'
+                    ? `Set a non-placeholder JWT_SECRET in ${source}`
+                    : `Set a non-placeholder JWT_REFRESH_SECRET in ${source}`
     };
 }
 
