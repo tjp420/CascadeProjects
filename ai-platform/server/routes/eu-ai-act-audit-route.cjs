@@ -9,6 +9,7 @@ const { assertSafeProjectPath, resolveDefaultAllowedRoots } = require('../lib/pa
 const { toClientError } = require('../lib/client-error.cjs');
 const logger = require('../lib/app-logger.cjs');
 const { resolvePlatformRoot } = require('../lib/simplebeacon-proxy.cjs');
+const { optionalAuthenticate } = require('../middleware/auth.cjs');
 
 /**
  * Resolve project path.
@@ -131,9 +132,23 @@ function registerEuAiActAuditRoute(app, options = {}) {
     });
   }
 
-  app.post('/api/analyze/eu-ai-act-audit-report', async (req, res) => {
+  /**
+   * Check whether an authenticated user may bypass the public audit gate.
+   * @param {Object|null} user
+   * @returns {boolean}
+   */
+  function canAccessAuditReport(user) {
+    if (!user) return false;
+    if (user.role === 'admin' || user.role === 'superadmin') return true;
+    const permissions = Array.isArray(user.permissions) ? user.permissions : [];
+    return permissions.includes('admin:basic')
+      || permissions.includes('admin:full')
+      || permissions.includes('analyze:private');
+  }
+
+  app.post('/api/analyze/eu-ai-act-audit-report', optionalAuthenticate, async (req, res) => {
     try {
-      if (publicGateEnabled) {
+      if (publicGateEnabled && !canAccessAuditReport(req.user)) {
         return res.status(402).json({
           success: false,
           publicGateLocked: true,
