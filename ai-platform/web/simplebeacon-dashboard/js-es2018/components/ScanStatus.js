@@ -469,13 +469,17 @@ export function bindScanStatus(container, options = {}) {
         if (!normName)
             return '';
         const isAbs = (p) => /^[a-zA-Z]:\//.test(p) || /^\//.test(p);
+        const isWindowsClient = typeof navigator !== 'undefined' && /Windows/i.test(navigator.userAgent);
         if (current && isAbs(current.replace(/\\/g, '/'))) {
             const norm = current.replace(/\\/g, '/').replace(/\/+$/, '');
-            if (norm.endsWith(`/${normName}`) || norm === normName)
+            // On Windows, don't append a dropped folder to a Linux server path.
+            if (isWindowsClient && /^\//.test(norm) && !/^[a-zA-Z]:/.test(norm))
+                ; // fall through
+            else if (norm.endsWith(`/${normName}`) || norm === normName)
                 return norm;
-            return `${norm}/${normName}`;
+            else
+                return `${norm}/${normName}`;
         }
-        const isWindowsClient = typeof navigator !== 'undefined' && /Windows/i.test(navigator.userAgent);
         for (const candidate of [getLastProjectPath(), getDefaultProjectPath()]) {
             const c = String(candidate || '').trim();
             if (!c)

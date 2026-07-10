@@ -5302,10 +5302,16 @@ export class AnalyzeView {
         const normalizedCurrent = currentInput.replace(/\\/g, '/').replace(/\/+$/, '');
         const isAbsCurrent = /^[a-zA-Z]:\//.test(normalizedCurrent) || /^\//.test(normalizedCurrent);
         if (isAbsCurrent) {
-            if (normalizedCurrent.endsWith(`/${fName}`) || normalizedCurrent === fName) {
+            // On Windows, never append a dropped folder to a Linux server path.
+            if (isWindowsClient && isLinuxPath(normalizedCurrent)) {
+                // fall through to candidates/bare folder name
+            }
+            else if (normalizedCurrent.endsWith(`/${fName}`) || normalizedCurrent === fName) {
                 return currentInput;
             }
-            return `${normalizedCurrent}/${folderName}`;
+            else {
+                return `${normalizedCurrent}/${folderName}`;
+            }
         }
         const currentBase = currentInput
             ? currentInput.replace(/\\/g, '/').replace(/\/+$/, '').split('/').slice(0, -1).join('/')
