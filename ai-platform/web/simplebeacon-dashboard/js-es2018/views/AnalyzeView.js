@@ -4086,11 +4086,6 @@ export class AnalyzeView {
             return;
         const resultPath = this.lastResult.projectPath || ((_b = this.lastResult.report) === null || _b === void 0 ? void 0 : _b.projectRoot) || '';
         if (resultPath && !reportMatchesPagePath({ projectRoot: resultPath }, activePath)) {
-            // Guard against race conditions: don't clear a scan that just finished
-            const scanCompletedAt = this.lastResult.scanCompletedAt || this.scanStartedAt;
-            const ageMs = scanCompletedAt ? Date.now() - scanCompletedAt : Infinity;
-            if (ageMs < 60000)
-                return;
             this.lastResult = null;
             this.app.state.analyzeResult = null;
             this.app.state.report = null;
@@ -8442,6 +8437,7 @@ export class AnalyzeView {
     }
     renderResults() {
         var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p;
+        this.clearStaleResultIfPathMismatch();
         if (!this.lastResult && this.app.state.analyzeResult) {
             this.lastResult = this.app.state.analyzeResult;
         }
