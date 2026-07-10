@@ -5042,6 +5042,16 @@ export class AnalyzeView {
                             return;
                         }
                     }
+                    // Firefox / Privacy mode: the item exists but the browser won't expose a
+                    // directory handle or entry. Route it through the Local Scan Agent fallback
+                    // instead of leaving the user with "Nothing detected".
+                    if (items[0].kind === 'file') {
+                        const relRoot = files && files[0] && files[0].webkitRelativePath ? files[0].webkitRelativePath.split('/')[0] : '';
+                        const firstName = files && files[0] ? files[0].name : '';
+                        const fallbackName = relRoot || firstName || items[0].name || 'folder';
+                        void this.handleDroppedFolderFallback(files, fallbackName, event, null, updateFingerprintStatus);
+                        return;
+                    }
                 }
                 if (files === null || files === void 0 ? void 0 : files.length) {
                     const file = files[0];

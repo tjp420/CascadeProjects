@@ -752,6 +752,42 @@ export function bindScanStatus(container, options = {}) {
                     }
                     return;
                 }
+                // Firefox / Privacy mode: an item was dropped but the browser won't expose a
+                // directory entry or handle. Use the Local Scan Agent fallback instead of silently
+                // ignoring the drop.
+                if (!entry && items[0].kind === 'file') {
+                    const relRoot = files && files[0] && files[0].webkitRelativePath ? files[0].webkitRelativePath.split('/')[0] : '';
+                    const firstName = files && files[0] ? files[0].name : '';
+                    const name = relRoot || firstName || items[0].name || 'folder';
+                    const resolvedPath = deriveFallbackBase(input, name);
+                    input.value = resolvedPath;
+                    setLastProjectPath(resolvedPath);
+                    if (clearBtn)
+                        clearBtn.disabled = false;
+                    if (files && files.length && onLocalScanResult) {
+                        const toast = document.getElementById('toast-container');
+                        if (toast) {
+                            const msg = document.createElement('div');
+                            msg.className = 'toast toast-info';
+                            msg.textContent = `Scanning "${name}" locally in your browser…`;
+                            toast.appendChild(msg);
+                            setTimeout(() => msg.remove(), 4000);
+                        }
+                        const report = await runLocalScan({ files: Array.from(files), projectPath: resolvedPath });
+                        onLocalScanResult(report);
+                    }
+                    else {
+                        const toast = document.getElementById('toast-container');
+                        if (toast) {
+                            const msg = document.createElement('div');
+                            msg.className = 'toast toast-info';
+                            msg.textContent = `Folder "${name}" dropped — browser cannot reveal its full path. Type or browse the full path before scanning.`;
+                            toast.appendChild(msg);
+                            setTimeout(() => msg.remove(), 4000);
+                        }
+                    }
+                    return;
+                }
             }
             // Fallback for browsers without File System API
             if (files === null || files === void 0 ? void 0 : files.length) {
