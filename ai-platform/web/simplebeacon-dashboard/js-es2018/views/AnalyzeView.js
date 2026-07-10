@@ -1668,7 +1668,7 @@ export class AnalyzeView {
               </div>
 
               ${datalist}
-              <p class="hint">${isWeb ? 'Enter a public URL to scan a website.' : 'Browser drag-and-drop cannot reveal full drive paths — use Browse Folder or type the path for best results.'}</p>
+              <p class="hint">${isWeb ? 'Enter a public URL to scan a website.' : 'Browser drag-and-drop cannot reveal full paths — use Browse Folder or the Local Scan Agent for the correct path.'}</p>
               <p id="fingerprint-status" class="fingerprint-status"></p>
               <p id="agent-status" class="agent-status"></p>
               <p id="agent-download-cta" class="agent-download-cta"></p>
