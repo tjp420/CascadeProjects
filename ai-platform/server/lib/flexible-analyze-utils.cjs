@@ -100,6 +100,10 @@ function resolveProjectPath(baseDir, rawPath, monorepoRoot) {
     }
     const trimmedPath = String(rawPath || '').trim();
     if (!trimmedPath) return null;
+    // Dashboard default sentinel: a bare "/" means "use the default platform root".
+    if (trimmedPath === '/' || trimmedPath === path.sep) {
+        return path.resolve(baseDir);
+    }
     if (/^https?:\/\//i.test(trimmedPath) || /^file:\/\//i.test(trimmedPath)) {
         throw new Error(
             'projectPath must be a local folder path, not a URL. '

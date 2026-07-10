@@ -149,6 +149,10 @@ function resolveDataCleanupScannerConfig(profile, singleScanner) {
 function resolveSafeProjectPath(rawPath, options = {}) {
     const trimmed = String(rawPath || '').trim();
     if (!trimmed) return null;
+    // Dashboard default sentinel: a bare "/" means "use the default platform root".
+    if (trimmed === '/' || trimmed === path.sep) {
+        return path.resolve(options.baseDir || process.cwd());
+    }
     const allowedRoots = options.allowedRoots || resolveDefaultAllowedRoots(options.baseDir, {
         monorepoRoot: options.monorepoRoot
     });

@@ -136,6 +136,10 @@ function tryExtractJsonFromStdout(stdout) {
 function resolveSafeAnalyzePath(rawPath) {
   if (!rawPath) return null;
   const trimmed = String(rawPath).trim();
+  // Dashboard default sentinel: a bare "/" means "use the default platform root".
+  if (trimmed === '/' || trimmed === path.sep) {
+    return PROJECT_ROOT;
+  }
   // Website URLs have no local report file — fall back to the default platform report
   if (/^https?:\/\//i.test(trimmed)) {
     return null;
