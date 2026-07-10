@@ -6385,15 +6385,29 @@ export class AnalyzeView {
         // Remote deployments can never access the user's local filesystem. Switch to the server's
         // default project path and server-scan mode instead of showing the Privacy mode error.
         if (isRemoteDeployment && isLocalWindowsPath) {
+            // Re-probe the agent in case it was started after the page loaded.
+            if (!shouldUseAgent(typedPath, this.agentStatus)) {
+                try {
+                    this.agentStatus = await probeAgent();
+                }
+                catch (_r) {
+                    this.agentStatus = { available: false, scannerAvailable: false };
+                }
+                this.updateAgentStatusUI(this._root, formatAgentStatus(this.agentStatus), this.agentStatus.available && this.agentStatus.scannerAvailable);
+            }
+            if (shouldUseAgent(typedPath, this.agentStatus)) {
+                await this.runAgentScan(typedPath);
+                return;
+            }
             const fallbackPath = this.app.state.defaultProjectPath || this.app.state.lastProjectPath || '';
             if (fallbackPath && !/^[a-zA-Z]:[\\/]/i.test(fallbackPath)) {
-                showToast('Local paths cannot be scanned from the remote dashboard. Switching to the server project path.', 'info');
+                showToast('Local agent is not available. Switching to the server project path.', 'info');
                 this.localMode = false;
                 saveAnalyzePrefs({ localMode: false, analysisType: this.analysisType, aiProvider: this.aiProvider, understandingMode: this.understandingMode });
                 this.syncAnalyzeModeUi(this._root);
                 return this.runPathAnalysis(fallbackPath);
             }
-            showToast('Cannot scan a local path from the remote dashboard. Run SimpleBeacon locally or enter the server project path.', 'error', { duration: 8000 });
+            showToast('Cannot scan a local path from the remote dashboard. Install/Start the Local Scan Agent or run SimpleBeacon locally.', 'error', { duration: 8000 });
             return;
         }
         if (this.localMode) {
