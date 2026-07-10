@@ -651,177 +651,80 @@ export function bindScanStatus(container, options = {}) {
             }
         });
         scope.addEventListener('drop', async (event) => {
-            var _a, _b, _c, _d;
             event.preventDefault();
             event.stopPropagation();
             dragDepth = 0;
             dragOverlay.classList.remove('is-active');
-            const items = (_a = event.dataTransfer) === null || _a === void 0 ? void 0 : _a.items;
-            const files = (_b = event.dataTransfer) === null || _b === void 0 ? void 0 : _b.files;
-            // Try File System API first for directory detection
-            if (items === null || items === void 0 ? void 0 : items.length) {
-                const entry = (_d = (_c = items[0]).webkitGetAsEntry) === null || _d === void 0 ? void 0 : _d.call(_c);
-                if (entry === null || entry === void 0 ? void 0 : entry.isDirectory) {
-                    const name = entry.name || '';
-                    // Try every available source for the absolute OS path.
-                    let resolvedPath = extractAbsoluteDroppedFolderPath(event, name);
-                    if (!resolvedPath) {
-                        resolvedPath = deriveFallbackBase(input, name);
-                    }
-                    input.value = resolvedPath;
-                    setLastProjectPath(resolvedPath);
-                    if (clearBtn)
-                        clearBtn.disabled = false;
-                    // If no absolute path was recovered, scan the dropped folder locally.
-                    if (!resolvedPath.match(/^[a-zA-Z]:|^\\\\|^\//) && onLocalScanResult) {
-                        // Prefer the modern File System Access API handle.
-                        if (items[0].getAsFileSystemHandle) {
-                            try {
-                                const handle = await items[0].getAsFileSystemHandle();
-                                if (handle && handle.kind === 'directory') {
-                                    const toast = document.getElementById('toast-container');
-                                    if (toast) {
-                                        const msg = document.createElement('div');
-                                        msg.className = 'toast toast-info';
-                                        msg.textContent = `Scanning "${name}" locally in your browser…`;
-                                        toast.appendChild(msg);
-                                        setTimeout(() => msg.remove(), 4000);
-                                    }
-                                    const report = await runLocalScan({ dirHandle: handle, projectPath: resolvedPath });
-                                    onLocalScanResult(report);
-                                    return;
-                                }
-                            }
-                            catch (err) {
-                                if (err.name !== 'AbortError') {
-                                    console.warn('[ScanStatus] Local scan from dropped handle failed:', err);
-                                }
-                            }
-                        }
-                        // Fallback: read files through the legacy FileSystemDirectoryEntry API.
-                        try {
-                            const toast = document.getElementById('toast-container');
-                            if (toast) {
-                                const msg = document.createElement('div');
-                                msg.className = 'toast toast-info';
-                                msg.textContent = `Scanning "${name}" locally in your browser…`;
-                                toast.appendChild(msg);
-                                setTimeout(() => msg.remove(), 4000);
-                            }
-                            const collectedFiles = await collectFilesFromDirectoryEntry(entry);
-                            if (collectedFiles.length) {
-                                const report = await runLocalScan({ files: collectedFiles, projectPath: resolvedPath });
-                                onLocalScanResult(report);
-                                return;
-                            }
-                            else {
-                                const toast = document.getElementById('toast-container');
-                                if (toast) {
-                                    const msg = document.createElement('div');
-                                    msg.className = 'toast toast-warning';
-                                    msg.textContent = `Could not read any files from "${name}". The folder may be empty or permission was denied.`;
-                                    toast.appendChild(msg);
-                                    setTimeout(() => msg.remove(), 5000);
-                                }
-                            }
-                        }
-                        catch (err) {
-                            console.warn('[ScanStatus] Local scan from dropped entry failed:', err);
-                        }
-                    }
-                    // Notify user to verify path
-                    const toast = document.getElementById('toast-container');
-                    if (toast) {
-                        const msg = document.createElement('div');
-                        msg.className = 'toast toast-info';
-                        msg.textContent = /^[a-zA-Z]:|^\\|^\//.test(resolvedPath)
-                            ? `Folder "${name}" dropped. Verify the path, then click Scan.`
-                            : `Folder "${name}" dropped — browser cannot reveal its full path. Type or browse the full path before scanning.`;
-                        toast.appendChild(msg);
-                        setTimeout(() => msg.remove(), 4000);
-                    }
-                    return;
-                }
-                if ((entry === null || entry === void 0 ? void 0 : entry.isFile) && (files === null || files === void 0 ? void 0 : files.length)) {
-                    const file = files[0];
-                    const path = file.path || file.name;
-                    if (path) {
-                        input.value = path;
-                        setLastProjectPath(path);
-                        if (clearBtn)
-                            clearBtn.disabled = false;
-                    }
-                    return;
-                }
-                // Firefox / Privacy mode: an item was dropped but the browser won't expose a
-                // directory entry or handle. Use the Local Scan Agent fallback instead of silently
-                // ignoring the drop.
-                if (!entry && items[0].kind === 'file') {
-                    const relRoot = files && files[0] && files[0].webkitRelativePath ? files[0].webkitRelativePath.split('/')[0] : '';
-                    const firstName = files && files[0] ? files[0].name : '';
-                    const name = relRoot || firstName || items[0].name || 'folder';
-                    const resolvedPath = deriveFallbackBase(input, name);
-                    input.value = resolvedPath;
-                    setLastProjectPath(resolvedPath);
-                    if (clearBtn)
-                        clearBtn.disabled = false;
-                    if (files && files.length && onLocalScanResult) {
-                        const toast = document.getElementById('toast-container');
-                        if (toast) {
-                            const msg = document.createElement('div');
-                            msg.className = 'toast toast-info';
-                            msg.textContent = `Scanning "${name}" locally in your browser…`;
-                            toast.appendChild(msg);
-                            setTimeout(() => msg.remove(), 4000);
-                        }
-                        const report = await runLocalScan({ files: Array.from(files), projectPath: resolvedPath });
-                        onLocalScanResult(report);
-                    }
-                    else {
-                        const toast = document.getElementById('toast-container');
-                        if (toast) {
-                            const msg = document.createElement('div');
-                            msg.className = 'toast toast-info';
-                            msg.textContent = `Folder "${name}" dropped — browser cannot reveal its full path. Type or browse the full path before scanning.`;
-                            toast.appendChild(msg);
-                            setTimeout(() => msg.remove(), 4000);
-                        }
-                    }
-                    return;
+            const items = event.dataTransfer && event.dataTransfer.items;
+            const dtFiles = event.dataTransfer && event.dataTransfer.files;
+            let entry = null;
+            let folderName = '';
+            if (items && items.length) {
+                try {
+                    entry = items[0].webkitGetAsEntry && items[0].webkitGetAsEntry();
+                } catch (_a) {
+                    entry = null;
                 }
             }
-            // Fallback for browsers without File System API
-            if (files === null || files === void 0 ? void 0 : files.length) {
-                const file = files[0];
-                const relRoot = file && file.webkitRelativePath ? file.webkitRelativePath.split('/')[0] : '';
-                if (relRoot && onLocalScanResult) {
-                    // Firefox exposes dropped folder contents as files with webkitRelativePath
-                    // but hides the directory entry. Scan locally without needing the full path.
-                    const resolvedPath = deriveFallbackBase(input, relRoot);
-                    input.value = resolvedPath;
-                    setLastProjectPath(resolvedPath);
-                    if (clearBtn)
-                        clearBtn.disabled = false;
+            if (!entry && dtFiles && dtFiles.length && dtFiles[0].webkitRelativePath) {
+                folderName = String(dtFiles[0].webkitRelativePath).split('/')[0];
+            }
+            if (entry) {
+                folderName = entry.name || folderName;
+            }
+            if (!folderName && dtFiles && dtFiles.length) {
+                folderName = dtFiles[0].name || 'folder';
+            }
+            // Single file drop
+            if (entry && entry.isFile && dtFiles && dtFiles.length) {
+                const file = dtFiles[0];
+                input.value = file.path || file.name;
+                setLastProjectPath(input.value);
+                if (clearBtn)
+                    clearBtn.disabled = false;
+                return;
+            }
+            let collected = [];
+            if (entry && entry.isDirectory) {
+                collected = await collectFilesFromDirectoryEntry(entry);
+            }
+            else if (dtFiles && dtFiles.length) {
+                collected = Array.from(dtFiles);
+            }
+            if (collected.length) {
+                const rawPath = deriveFallbackBase(input, folderName);
+                const isWindowsClient = typeof navigator !== 'undefined' && /Windows/i.test(navigator.userAgent);
+                const isLinuxPath = (p) => /^\//.test(p) && !/^[a-zA-Z]:/.test(p);
+                const resolvedPath = (isWindowsClient && isLinuxPath(rawPath.replace(/\\/g, '/')))
+                    ? folderName
+                    : rawPath;
+                input.value = resolvedPath;
+                setLastProjectPath(resolvedPath);
+                if (clearBtn)
+                    clearBtn.disabled = false;
+                if (onLocalScanResult) {
                     const toast = document.getElementById('toast-container');
                     if (toast) {
                         const msg = document.createElement('div');
                         msg.className = 'toast toast-info';
-                        msg.textContent = `Scanning "${relRoot}" locally in your browser…`;
+                        msg.textContent = `Scanning "${folderName}" locally in your browser…`;
                         toast.appendChild(msg);
                         setTimeout(() => msg.remove(), 4000);
                     }
-                    const report = await runLocalScan({ files: Array.from(files), projectPath: resolvedPath });
+                    const report = await runLocalScan({ files: collected, projectPath: resolvedPath });
                     onLocalScanResult(report);
-                    return;
                 }
-                const path = file.path || file.name;
-                if (path) {
-                    input.value = path;
-                    setLastProjectPath(path);
-                    if (clearBtn)
-                        clearBtn.disabled = false;
-                }
+                return;
+            }
+            // Nothing useful detected
+            if (dtFiles && dtFiles.length) {
+                const file = dtFiles[0];
+                input.value = file.path || file.name;
+                setLastProjectPath(input.value);
+                if (clearBtn)
+                    clearBtn.disabled = false;
             }
         });
+
     }
 }

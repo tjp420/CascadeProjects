@@ -1237,6 +1237,32 @@ function formatElapsed(ms) {
         return `${secs}s`;
     return `${Math.floor(secs / 60)}m ${secs % 60}s`;
 }
+/**
+ * Recursively walk a FileSystemEntry tree and collect all files.
+ * @param {any} entry - FileSystemFileEntry or FileSystemDirectoryEntry
+ * @param {string} relativePath
+ * @param {{ file: File, path: string }[]} results
+ */
+async function traverseDirectoryEntry(entry, relativePath = '', results = []) {
+    const currentPath = relativePath ? `${relativePath}/${entry.name}` : entry.name;
+    if (entry.isFile) {
+        return new Promise((resolve) => {
+            entry.file((file) => {
+                results.push({ file, path: currentPath });
+                resolve();
+            }, () => resolve());
+        });
+    }
+    if (entry.isDirectory) {
+        const reader = entry.createReader();
+        const entries = await new Promise((resolve) => {
+            reader.readEntries((items) => resolve(items || []), () => resolve([]));
+        });
+        for (const child of entries) {
+            await traverseDirectoryEntry(child, currentPath, results);
+        }
+    }
+}
 /** EU AI Act Article 50: Users interact with an AI-assisted analysis system; responses may be AI-generated. */
 export class AnalyzeView {
     constructor(app) {
@@ -4861,228 +4887,75 @@ export class AnalyzeView {
                 }
             });
             pathDropzone.addEventListener('drop', async (event) => {
-                var _a, _b, _c, _d, _e, _f, _g;
                 event.preventDefault();
                 event.stopPropagation();
                 pathDragDepth = 0;
                 pathDropzone.classList.remove('drag-active');
-                // Preload providers so defaultProjectPath is available for path resolution
-                try {
-                    await ensureAllowedAnalysisRoots(this.app);
-                }
-                catch ( /* ignore */_h) { /* ignore */ }
-                const items = (_a = event.dataTransfer) === null || _a === void 0 ? void 0 : _a.items;
-                const files = (_b = event.dataTransfer) === null || _b === void 0 ? void 0 : _b.files;
-                // Modern browsers: detect directory drops via File System Access API.
-                // If the browser cannot reveal the full OS path, fall back to agent-aware handling
-                // instead of uploading private folder contents to the server.
-                if (((_c = items === null || items === void 0 ? void 0 : items[0]) === null || _c === void 0 ? void 0 : _c.kind) === 'file') {
+
+                const items = event.dataTransfer && event.dataTransfer.items;
+                const dtFiles = event.dataTransfer && event.dataTransfer.files;
+                let entry = null;
+                let folderName = '';
+
+                if (items && items.length) {
                     try {
-                        const handle = await ((_e = (_d = items[0]).getAsFileSystemHandle) === null || _e === void 0 ? void 0 : _e.call(_d));
-                        if (handle && handle.kind === 'directory') {
-                            if ((files === null || files === void 0 ? void 0 : files.length) && !files[0].path) {
-                                void this.handleDroppedFolderFallback(files, handle.name, event, handle, updateFingerprintStatus);
-                                return;
-                            }
-                            showToast('Directory drop detected. Use Browse Folder or type the full path for best results.', 'warning');
-                            return;
-                        }
+                        entry = items[0].webkitGetAsEntry && items[0].webkitGetAsEntry();
+                    } catch (_a) {
+                        entry = null;
                     }
-                    catch (_j) {
-                        // getAsFileSystemHandle not supported — fall through to legacy logic
+                    if (!entry && dtFiles && dtFiles.length && dtFiles[0].webkitRelativePath) {
+                        folderName = String(dtFiles[0].webkitRelativePath).split('/')[0];
                     }
-                }
-                const deriveDirFromFilePath = (filePath) => {
-                    if (!filePath)
-                        return '';
-                    const norm = filePath.replace(/\\/g, '/');
-                    const lastSlash = norm.lastIndexOf('/');
-                    return lastSlash > 0 ? norm.slice(0, lastSlash) : norm;
-                };
-                // Resolve dropped folder path using the ACTUAL folder name from entry
-                // (not files[0].name which is the first file inside the folder)
-                const getDroppedFolderPath = (folderName) => {
-                    var _a, _b, _c, _d, _e, _f;
-                    const dt = event.dataTransfer;
-                    if (!dt)
-                        return '';
-                    const tryGetData = (type) => {
-                        try {
-                            return dt.getData(type) || '';
-                        }
-                        catch (_a) {
-                            return '';
-                        }
-                    };
-                    const uriList = tryGetData('text/uri-list');
-                    if (uriList) {
-                        const uri = (_a = uriList.trim().split('\n')[0]) === null || _a === void 0 ? void 0 : _a.trim();
-                        if (uri && uri.startsWith('file:///')) {
-                            let p = uri.slice(8).replace(/\/$/, '');
-                            try {
-                                p = decodeURIComponent(p);
-                            }
-                            catch ( /* ignore */_g) { /* ignore */ }
-                            return p.replace(/\//g, '\\');
-                        }
-                    }
-                    const plain = tryGetData('text/plain');
-                    if (plain) {
-                        let trimmed = (_b = plain.trim().split('\n')[0]) === null || _b === void 0 ? void 0 : _b.trim();
-                        trimmed = trimmed.replace(/^["']|["']$/g, '');
-                        if (trimmed && /^[a-zA-Z]:[\\\/]/.test(trimmed)) {
-                            return trimmed.replace(/[\\\/]+$/, '');
-                        }
-                    }
-                    const mozUrl = tryGetData('text/x-moz-url');
-                    if (mozUrl) {
-                        const url = (_c = mozUrl.trim().split('\n')[0]) === null || _c === void 0 ? void 0 : _c.trim();
-                        if (url && url.startsWith('file:///')) {
-                            let p = url.slice(8).replace(/\/$/, '');
-                            try {
-                                p = decodeURIComponent(p);
-                            }
-                            catch ( /* ignore */_h) { /* ignore */ }
-                            return p.replace(/\//g, '\\');
-                        }
-                    }
-                    // Electron / VS Code extension: file.path contains native absolute path.
-                    // items[0].getAsFile() gives first file INSIDE folder, so we MUST use
-                    // the actual folderName (from webkitGetAsEntry) to find correct boundary.
-                    const tryExtractFromPath = (filePath) => {
-                        if (!filePath)
-                            return '';
-                        const norm = filePath.replace(/\\/g, '/');
-                        if (folderName) {
-                            // Search for /folderName/ in path — this gives us the actual dropped folder
-                            const idx = norm.indexOf(`/${folderName}/`);
-                            if (idx >= 0) {
-                                return norm.slice(0, idx + folderName.length + 1);
-                            }
-                            // Handle case where folderName is at the end: .../folderName
-                            const endIdx = norm.lastIndexOf(`/${folderName}`);
-                            if (endIdx >= 0) {
-                                return norm.slice(0, endIdx + folderName.length + 1);
-                            }
-                        }
-                        // Fallback: parent directory of the first file (may be subfolder — marked for review)
-                        return deriveDirFromFilePath(filePath);
-                    };
-                    if ((_d = files === null || files === void 0 ? void 0 : files[0]) === null || _d === void 0 ? void 0 : _d.path) {
-                        return tryExtractFromPath(String(files[0].path));
-                    }
-                    if (items === null || items === void 0 ? void 0 : items[0]) {
-                        try {
-                            const file = (_f = (_e = items[0]).getAsFile) === null || _f === void 0 ? void 0 : _f.call(_e);
-                            if (file === null || file === void 0 ? void 0 : file.path) {
-                                return tryExtractFromPath(String(file.path));
-                            }
-                        }
-                        catch (_j) {
-                            // getAsFile may throw for directories
-                        }
-                    }
-                    return '';
-                };
-                const setPathAndNotify = (resolvedPath, name, autoRun = true) => {
-                    const pathInput = el.querySelector('#project-path-input');
-                    if (pathInput) {
-                        pathInput.value = resolvedPath;
-                        this.app.state.pathInputDraft = '';
-                        this.app.state.lastProjectPath = resolvedPath;
-                        this.setPathInputDisplay(pathInput, resolvedPath);
-                        this.syncAnalyzeModeUi(el);
-                        void this.refreshReportForActivePath(el);
-                    }
-                    showToast(`Folder "${name}" dropped — path set to ${resolvedPath}.`, 'info');
-                    if (autoRun && resolvedPath) {
-                        void this.runPathAnalysis(resolvedPath);
-                    }
-                };
-                const resolveFolderPath = (name) => {
-                    const actualDir = getDroppedFolderPath(name);
-                    if (actualDir)
-                        return actualDir;
-                    return this.resolveFallbackFolderPath(name);
-                };
-                if (items === null || items === void 0 ? void 0 : items.length) {
-                    // Prefer the File System Access API handle so we can scan locally without upload.
-                    try {
-                        const handle = await ((_g = (_f = items[0]).getAsFileSystemHandle) === null || _g === void 0 ? void 0 : _g.call(_f));
-                        if (handle && handle.kind === 'directory') {
-                            const name = handle.name || '';
-                            if ((files === null || files === void 0 ? void 0 : files.length) && !files[0].path) {
-                                void this.handleDroppedFolderFallback(files, name, event, handle, updateFingerprintStatus);
-                                return;
-                            }
-                            setPathAndNotify(resolveFolderPath(name), name);
-                            return;
-                        }
-                        if (handle && handle.kind === 'file' && (files === null || files === void 0 ? void 0 : files.length)) {
-                            void this.handleAnalyzeFiles(files);
-                            return;
-                        }
-                    }
-                    catch (_k) {
-                        // getAsFileSystemHandle not supported — fall through to legacy entry
-                    }
-                    const entry = (_j = (_i = items[0]).webkitGetAsEntry) === null || _j === void 0 ? void 0 : _j.call(_i);
                     if (entry) {
-                        if (entry.isDirectory) {
-                            const name = entry.name || '';
-                            if ((files === null || files === void 0 ? void 0 : files.length) && !files[0].path) {
-                                void this.handleDroppedFolderFallback(files, name, event, entry, updateFingerprintStatus);
-                                return;
-                            }
-                            setPathAndNotify(resolveFolderPath(name), name);
-                            return;
-                        }
-                        if (entry.isFile && (files === null || files === void 0 ? void 0 : files.length)) {
-                            void this.handleAnalyzeFiles(files);
-                            return;
-                        }
-                    }
-                    // Firefox / Privacy mode: the item exists but the browser won't expose a
-                    // directory handle or entry. Route it through the Local Scan Agent fallback
-                    // instead of leaving the user with "Nothing detected".
-                    if (items[0].kind === 'file') {
-                        const relRoot = files && files[0] && files[0].webkitRelativePath ? files[0].webkitRelativePath.split('/')[0] : '';
-                        const firstName = files && files[0] ? files[0].name : '';
-                        const fallbackName = relRoot || firstName || items[0].name || 'folder';
-                        void this.handleDroppedFolderFallback(files, fallbackName, event, null, updateFingerprintStatus);
-                        return;
+                        folderName = entry.name || folderName;
                     }
                 }
-                if (files === null || files === void 0 ? void 0 : files.length) {
-                    const file = files[0];
-                    const relRoot = file && file.webkitRelativePath ? file.webkitRelativePath.split('/')[0] : '';
-                    if (relRoot) {
-                        // Firefox exposes dropped folder contents as files with webkitRelativePath
-                        // but hides the directory entry. Scan locally without needing the full path.
-                        void this.handleDroppedFolderFallback(files, relRoot, event, null, updateFingerprintStatus);
-                        return;
-                    }
-                    const dtUriPath = getDroppedFolderPath();
-                    if (dtUriPath) {
-                        setPathAndNotify(dtUriPath, dtUriPath.split(/[\\/]/).pop() || 'folder');
-                        return;
-                    }
-                    if (file.path) {
-                        const targetPath = deriveDirFromFilePath(file.path) || file.path;
-                        setPathAndNotify(targetPath, targetPath.split(/[\\/]/).pop() || 'folder');
-                        return;
-                    }
-                    // Single file -> quick check
-                    void this.handleAnalyzeFiles(files);
+
+                if (!folderName && dtFiles && dtFiles.length) {
+                    folderName = dtFiles[0].name || 'folder';
+                }
+
+                // Single file drop -> use the existing file analyzer.
+                if (entry && entry.isFile && dtFiles && dtFiles.length) {
+                    void this.handleAnalyzeFiles(dtFiles);
                     return;
                 }
-                // Plain-text path paste (e.g., C:\Users\... or a file:// URI)
-                const textPath = getDroppedFolderPath();
-                if (textPath) {
-                    const name = textPath.split(/[\\/]/).pop() || 'folder';
-                    setPathAndNotify(textPath, name);
+
+                const collected = [];
+                if (entry && entry.isDirectory) {
+                    await traverseDirectoryEntry(entry, '', collected);
+                } else if (dtFiles && dtFiles.length) {
+                    for (const f of Array.from(dtFiles)) {
+                        const rel = f.webkitRelativePath || f.name;
+                        collected.push({ file: f, path: rel });
+                    }
+                }
+
+                if (collected.length) {
+                    const pathInput = el.querySelector('#project-path-input');
+                    const rawFallback = this.resolveFallbackFolderPath(folderName) || folderName;
+                    const isWindowsClient = typeof navigator !== 'undefined' && /Windows/i.test(navigator.userAgent);
+                    const isLinuxPath = (p) => /^\//.test(p) && !/^[a-zA-Z]:/.test(p);
+                    const displayPath = (isWindowsClient && isLinuxPath(rawFallback.replace(/\\/g, '/')))
+                        ? folderName
+                        : rawFallback;
+                    if (pathInput) {
+                        pathInput.value = displayPath;
+                        this.app.state.pathInputDraft = '';
+                        this.app.state.lastProjectPath = displayPath;
+                        this.setPathInputDisplay(pathInput, displayPath);
+                        this.syncAnalyzeModeUi(el);
+                    }
+                    showToast(`Scanning "${folderName}" locally in your browser…`, 'info');
+                    await this.runLocalScan(null, collected.map((item) => item.file), displayPath);
                     return;
                 }
+
+                if (dtFiles && dtFiles.length) {
+                    void this.handleAnalyzeFiles(dtFiles);
+                    return;
+                }
+
                 showToast('Nothing detected. Drop a folder or file, or type a path manually.', 'warning');
             });
         }
