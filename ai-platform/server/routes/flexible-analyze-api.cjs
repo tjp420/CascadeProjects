@@ -292,7 +292,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             const allowedRoots = getAllowedRoots();
             res.json({
                 success: true,
-                defaultProjectPath: baseDir,
+                defaultProjectPath: monorepoRoot,
                 allowedAnalysisRoots: allowedRoots,
                 allowedAnalysisRootsSummary: formatAllowedRootsSummary(allowedRoots),
                 providers: listAvailableProviders(registry, userCredentials),
@@ -344,7 +344,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             const sources = listAnalyzeTestSources(baseDir, allowedRoots);
             res.json({
                 success: true,
-                defaultProjectPath: baseDir,
+                defaultProjectPath: monorepoRoot,
                 allowedAnalysisRoots: allowedRoots,
                 sources
             });
