@@ -7,6 +7,43 @@ import { renderTrendSection, mountTrendChart } from '../components/TrendChart.js
 import { fetchRepositoryHealth, renderRepositoryHealthSection } from './RepositoryHealthView.js';
 import { renderPathHealthDashboard, cleanupPathHealthDashboard } from '../components/PathHealthDashboard.js';
 import { isDemoMode } from '../demoMode.js';
+const PRIVACY_NOTICE_KEY = 'sb_privacy_notice_dismissed';
+const PRIVACY_NOTICE_TEXT = '100% private. Your source code never leaves your browser. Browser scans use a lightweight heuristic engine (no npm audit, no AST). For full analysis, run the server dashboard, open analyzer (auto-detected port), or upload a CLI report JSON.';
+function renderPrivacyBanner() {
+    if (typeof localStorage !== 'undefined' && localStorage.getItem(PRIVACY_NOTICE_KEY) === '1') {
+        return '';
+    }
+    return `
+    <div class="privacy-banner" id="dash-privacy-banner">
+      <span class="privacy-banner-icon">🔒</span>
+      <span class="privacy-banner-text">${PRIVACY_NOTICE_TEXT}</span>
+      <button class="privacy-banner-close" id="dash-privacy-banner-close" aria-label="Dismiss privacy notice">✕</button>
+    </div>
+  `;
+}
+function renderPrivacyCard() {
+    return `
+    <div class="card privacy-card">
+      <div class="privacy-card-header">
+        <span class="privacy-card-icon">🔒</span>
+        <span class="privacy-card-title">Privacy-first scanning</span>
+      </div>
+      <p class="privacy-card-text">${PRIVACY_NOTICE_TEXT}</p>
+    </div>
+  `;
+}
+function bindPrivacyBanner(container) {
+    const banner = container.querySelector('#dash-privacy-banner');
+    const closeBtn = container.querySelector('#dash-privacy-banner-close');
+    if (!banner || !closeBtn)
+        return;
+    closeBtn.addEventListener('click', () => {
+        banner.style.display = 'none';
+        if (typeof localStorage !== 'undefined') {
+            localStorage.setItem(PRIVACY_NOTICE_KEY, '1');
+        }
+    });
+}
 /**
  * Convert a browser-sandbox scanner report (certificate shape) into a simplebeacon-report
  * shape so the Analyze page can render it.
@@ -192,6 +229,7 @@ export class DashboardView {
         const gateClass = gate.pass ? 'success' : gate.blockingCount > 0 ? 'danger' : 'warning';
         const gateLabel = gate.pass ? 'PASS' : gate.blockingCount > 0 ? 'FAIL' : 'WARN';
         el.innerHTML = `
+      ${renderPrivacyBanner()}
       <div class="dashboard-header">
         <h1 class="page-title">Dashboard</h1>
         <div class="dashboard-header-actions">
@@ -244,6 +282,7 @@ export class DashboardView {
       </div>
 
       <div class="dashboard-hero">
+        ${renderPrivacyCard()}
         <div id="slot-scan-status"></div>
         <div id="slot-quick-actions"></div>
       </div>
@@ -499,6 +538,7 @@ export class DashboardView {
         container.innerHTML = '';
         const view = this.render();
         container.appendChild(view);
+        bindPrivacyBanner(view);
         (_a = view.querySelector('#dash-run-scan')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => this.app.runScan());
         (_b = view.querySelector('#dash-goto-analyze')) === null || _b === void 0 ? void 0 : _b.addEventListener('click', () => this.app.navigate('analyze'));
         if (!this.app.state.report)

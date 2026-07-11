@@ -35,6 +35,43 @@ import { renderZscriptReportPanel, buildZscriptConclusion } from '../components/
 import { showLoginModal } from '../components/LoginModal.js';
 import { authService } from '../services/authService.js';
 import { fetchCliApiKey, fetchCliHistory, fetchCliReport, renderCliUploadCard, renderCliReport } from '../services/cliUploadService.js?v=20260711apibase1';
+const PRIVACY_NOTICE_KEY = 'sb_privacy_notice_dismissed';
+const PRIVACY_NOTICE_TEXT = '100% private. Your source code never leaves your browser. Browser scans use a lightweight heuristic engine (no npm audit, no AST). For full analysis, run the server dashboard, open analyzer (auto-detected port), or upload a CLI report JSON.';
+function renderPrivacyBanner() {
+    if (typeof localStorage !== 'undefined' && localStorage.getItem(PRIVACY_NOTICE_KEY) === '1') {
+        return '';
+    }
+    return `
+    <div class="privacy-banner" id="analyze-privacy-banner">
+      <span class="privacy-banner-icon">🔒</span>
+      <span class="privacy-banner-text">${PRIVACY_NOTICE_TEXT}</span>
+      <button class="privacy-banner-close" id="analyze-privacy-banner-close" aria-label="Dismiss privacy notice">✕</button>
+    </div>
+  `;
+}
+function renderPrivacyCard() {
+    return `
+    <div class="card privacy-card">
+      <div class="privacy-card-header">
+        <span class="privacy-card-icon">🔒</span>
+        <span class="privacy-card-title">Privacy-first scanning</span>
+      </div>
+      <p class="privacy-card-text">${PRIVACY_NOTICE_TEXT}</p>
+    </div>
+  `;
+}
+function bindPrivacyBanner(container) {
+    const banner = container.querySelector('#analyze-privacy-banner');
+    const closeBtn = container.querySelector('#analyze-privacy-banner-close');
+    if (!banner || !closeBtn)
+        return;
+    closeBtn.addEventListener('click', () => {
+        banner.style.display = 'none';
+        if (typeof localStorage !== 'undefined') {
+            localStorage.setItem(PRIVACY_NOTICE_KEY, '1');
+        }
+    });
+}
 import { MAX_SNIPPET_BYTES, isSupportedSourceFile, isAnalyzerCacheJson, isCleanupExportJson, isFictionDigestJson, isLockfileName, isMarkdownFileName, isScannerMetaFileName, filterSnippetFindingsForFile, scanSnippetText, computeThreatScore, redactMatch, severityLabel } from '../utils/snippetDiagnostic.js?v=20260531analyzers1';
 const SNIPPET_ACCEPT = '.json,.js,.mjs,.cjs,.ts,.tsx,.jsx,.py,.env,.yaml,.yml,.txt,.md,.html,.css,.xml,.toml,.ini,.sh,.ps1,.bat';
 const MAX_UPLOAD_BYTES = 100 * 1024 * 1024; // 100 MB — server-side directory upload limit
@@ -1496,6 +1533,7 @@ export class AnalyzeView {
         const el = document.createElement('div');
         el.className = 'fade-in';
         el.innerHTML = `
+      ${renderPrivacyBanner()}
       <!-- Hero header -->
       <div class="analyze-hero">
         <div class="analyze-hero-main">
@@ -1515,6 +1553,8 @@ export class AnalyzeView {
         <!-- Left: Target -->
         <div class="analyze-col">
           ${this.renderTargetCard(defaultPath, displayPath)}
+
+          ${renderPrivacyCard()}
 
           <!-- CLI Upload Card -->
           <div id="cli-upload-card"></div>
@@ -9311,6 +9351,7 @@ export class AnalyzeView {
         const view = this.render();
         const el = view;
         container.appendChild(view);
+        bindPrivacyBanner(view);
         void this.initCliUploadPanel(view);
         (_b = view.querySelector('#goto-results-btn')) === null || _b === void 0 ? void 0 : _b.addEventListener('click', () => {
             this.openResultsView();

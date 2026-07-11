@@ -5120,3 +5120,66 @@ button.tool-card.help-page-card:hover {
   gap: 10px;
   flex-wrap: wrap;
 }
+
+/* Privacy notice banner + card */
+.privacy-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-4);
+  background: var(--surface-elevated);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--success);
+  border-radius: var(--radius-lg);
+  color: var(--text);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+}
+
+.privacy-banner-icon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.privacy-banner-text {
+  flex: 1;
+}
+
+.privacy-banner-close {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: var(--space-1);
+  line-height: 1;
+}
+
+.privacy-banner-close:hover {
+  color: var(--text);
+}
+
+.privacy-card {
+  margin-bottom: var(--space-4);
+}
+
+.privacy-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.privacy-card-icon {
+  font-size: 1.1rem;
+}
+
+.privacy-card-text {
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+  margin: 0;
+}
