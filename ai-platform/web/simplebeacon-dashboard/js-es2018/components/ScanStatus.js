@@ -146,6 +146,13 @@ async function runSandboxedScanForDashboard(onLocalScanResult) {
         if (onLocalScanResult) {
             onLocalScanResult({ projectPath: report.verifiedAddress || report.path, summary: report.certificate, source: 'sandbox' });
         }
+        // Continue the single local-scan process on the Analyze page.
+        if (!window.location.pathname.includes('/analyze')) {
+            showToast('Scan complete — opening analysis…', 'success');
+            setTimeout(() => {
+                window.location.href = '/dashboard/analyze';
+            }, 1200);
+        }
     }
     catch (err) {
         const msg = err.message || 'Sandbox scan failed';
