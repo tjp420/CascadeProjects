@@ -15,6 +15,7 @@ import { runEuAiActSprint } from '../services/operatorService.js?v=20260531eupdf
 import { renderModeFileScopePanel, extractRoadmapFileMetrics } from '../utils/analyze-mode-file-scope.browser.js?v=20260601roadmapscope1';
 import { renderModeFileResultsPanel } from '../utils/analyze-mode-file-results.browser.js?v=20260601filereconcile1';
 import { renderScanPaywall, buildPublicSummaryFromScan, isDeliverableLocked } from '../components/ScanPaywall.js';
+import { renderCompactScanStatus } from '../components/ScanStatus.js?v=20260710lastscan1';
 import { AI_SYSTEM_ISSUES, ANALYZER_CATALOG, groupIssuesByCategory, buildAiSystemsIssueAnalysis } from '../services/aiProblemAnalyzerSuite.mjs';
 import { renderIssueList } from '../components/IssueCard.js';
 import { showDownloadCredentialsModal } from '../components/DownloadCredentialsModal.js';
@@ -1341,6 +1342,7 @@ export class AnalyzeView {
         this._cliUploadApiKey = null;
         this._cliUploadPollTimer = null;
         this._cliUploadLastSeen = null;
+        this._lastAgentReport = null;
     }
     get vscodeEnhanced() {
         if (this._vscodeApiCached !== null)
@@ -1421,6 +1423,11 @@ export class AnalyzeView {
           <span class="analyze-build-badge">${escapeHtml(String(window.__SIMPLEBEACON_DASHBOARD_BUILD__ || 'dev'))}</span>
         </div>
         <p class="text-muted analyze-hero-sub">Scan a repo folder, drop a file, or paste a URL. Pick your scan mix and run.</p>
+      </div>
+
+      <!-- Last scan summary card -->
+      <div id="analyze-last-scan-card" class="analyze-last-scan-wrap">
+        ${this.renderLastScanCard()}
       </div>
 
       <!-- Two-column layout: Target + Scan Config -->
@@ -1613,6 +1620,38 @@ export class AnalyzeView {
         </div>
       </div>
     `;
+    }
+    normalizeReportForScanStatus(report) {
+        if (!report) return null;
+        const cert = report.certificate;
+        if (cert) {
+            const files = report.files || [];
+            const highRisk = cert.highRiskCount || 0;
+            const mediumRisk = cert.mediumRiskCount || 0;
+            return {
+                generatedAt: report.generatedAt || new Date().toISOString(),
+                gate: { pass: cert.letterGrade !== 'F' && cert.letterGrade !== 'D', blockingCount: highRisk },
+                filesAnalyzed: files.length,
+                repositoryFilesTotal: null,
+                mockSampleFiles: 0,
+                qualityScore: null,
+                consistencyScore: null,
+                totalSizeLabel: null,
+                projectRoot: report.path || report.projectPath || ''
+            };
+        }
+        return report;
+    }
+    renderLastScanCard() {
+        const report = this.app.state.report || this._lastAgentReport || null;
+        const normalized = this.normalizeReportForScanStatus(report);
+        if (!normalized) return '';
+        return renderCompactScanStatus(normalized);
+    }
+    updateLastScanCard() {
+        const slot = this._root && this._root.querySelector('#analyze-last-scan-card');
+        if (!slot) return;
+        slot.innerHTML = this.renderLastScanCard();
     }
     async initCliUploadPanel(view) {
         if (!authService.isAuthenticated()) return;
@@ -6381,6 +6420,7 @@ export class AnalyzeView {
         this.refresh();
         try {
             const result = await scanViaAgent4000(projectPath);
+            this._lastAgentReport = result;
             const cert = result && result.certificate;
             const fileCount = (result.files || []).length;
             const message = cert
@@ -6424,12 +6464,14 @@ export class AnalyzeView {
                     }
                 }
             });
+            this._lastAgentReport = report;
             const cert = report && report.certificate;
             const message = cert
                 ? `Sandbox scan complete — Grade ${cert.letterGrade} | ${report.files.length} files | Liability ${cert.liabilityStr}`
                 : `Sandbox scan complete — ${report.files.length} files`;
             showToast(message, 'success');
             renderAgentCertificate(report, resultsEl);
+            this.updateLastScanCard();
         }
         catch (err) {
             const msg = err.message || 'Sandbox scan failed';

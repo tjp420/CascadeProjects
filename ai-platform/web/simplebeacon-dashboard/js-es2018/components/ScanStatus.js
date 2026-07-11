@@ -242,7 +242,7 @@ function renderScanPathControls(report, options = {}) {
  * @returns {any}
  */
 export function renderScanStatus(report, options = {}) {
-    const { scanning = false, config } = options;
+    const { scanning = false, config, compact = false } = options;
     const gate = (report === null || report === void 0 ? void 0 : report.gate) || {};
     const gateClass = gate.pass ? 'pass' : gate.blockingCount > 0 ? 'fail' : 'warn';
     const gateLabel = gate.pass ? 'PASS' : gate.blockingCount > 0 ? 'FAIL' : 'WARN';
@@ -251,7 +251,7 @@ export function renderScanStatus(report, options = {}) {
     const score = formatPercent(resolveDisplayScore(report));
     const freshness = formatFreshnessWarning(report);
     return `
-    <div class="card dashboard-scan-card">
+    <div class="card dashboard-scan-card${compact ? ' compact' : ''}">
       <div class="dashboard-scan-header">
         <div class="dashboard-scan-meta">
           <div class="dashboard-scan-title">Last scan</div>
@@ -272,9 +272,12 @@ export function renderScanStatus(report, options = {}) {
         </div>
         ${inventoryNote ? `<div class="dashboard-scan-inventory">${escapeHtml(inventoryNote)}</div>` : ''}
       </div>
-      ${renderScanPathControls(report, { ...options, config, scanning })}
+      ${compact ? '' : renderScanPathControls(report, { ...options, config, scanning })}
     </div>
   `;
+}
+export function renderCompactScanStatus(report, options = {}) {
+    return renderScanStatus(report, { ...options, compact: true });
 }
 /** Surgically update an existing scan card without replacing innerHTML — prevents flicker. */
 export function updateScanStatusDom(root, report) {
