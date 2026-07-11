@@ -582,6 +582,9 @@ function formatScanProgressDetails(sp, options = {}) {
     else if (sp.repositoryAuditFiles != null && total != null && sp.repositoryAuditFiles !== total) {
         scopeParts.push(`${formatNumber(sp.repositoryAuditFiles)} audit-scoped repo files (skips node_modules, github-cache, etc.).`);
     }
+    if (total != null && total > 50000) {
+        scopeParts.push('Large repository — this step may take several minutes.');
+    }
     return { counter, scopeNote: scopeParts.join(' ').trim() };
 }
 /**
@@ -3394,13 +3397,13 @@ export class AnalyzeView {
                     this.updateProgressDom();
                 }
                 this._progressPollInactive += 1;
-                if (this._progressPollInactive >= 8) {
+                if (this._progressPollInactive >= 30) {
                     this.stopProgressPolling();
                 }
             }
             catch (_b) {
                 this._progressPollInactive += 1;
-                if (this._progressPollInactive >= 3) {
+                if (this._progressPollInactive >= 10) {
                     this.stopProgressPolling();
                 }
             }

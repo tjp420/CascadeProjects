@@ -321,7 +321,7 @@ export class ScanService {
             return { active: false };
         const params = new URLSearchParams({ projectPath: safePath });
         try {
-            const res = await fetchWithTimeout(`${simplebeaconApiBase()}/scan/progress?${params}`, { headers: mergeAuthHeaders() }, 5000);
+            const res = await fetchWithTimeout(`${simplebeaconApiBase()}/scan/progress?${params}`, { headers: mergeAuthHeaders() }, 15000);
             const data = await readJsonResponseBody(res, {});
             if (res.status === 404) {
                 return { active: false, endpointUnavailable: true };
