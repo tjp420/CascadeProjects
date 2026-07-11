@@ -2546,31 +2546,98 @@ button.tool-card.help-page-card:hover {
   letter-spacing: 0.04em;
 }
 
-/* Hero section */
-.dashboard-hero {
+/* KPI bar */
+.dashboard-kpi-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.dashboard-kpi {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.dashboard-kpi i {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.dashboard-kpi.success { color: var(--success); border-color: rgba(34, 197, 94, 0.3); }
+.dashboard-kpi.warning { color: var(--warning); border-color: rgba(234, 179, 8, 0.3); }
+.dashboard-kpi.danger { color: var(--danger); border-color: rgba(248, 113, 113, 0.3); }
+.dashboard-kpi.muted { color: var(--text-muted); font-weight: 500; }
+
+/* Horizontal quick actions bar */
+.dashboard-actions-bar {
+  margin-bottom: var(--space-4);
+}
+
+.dashboard-actions-bar .dashboard-quick-actions {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.dashboard-actions-bar .dashboard-action-btn {
+  width: auto;
+  flex: 1 1 auto;
+  min-width: 140px;
+  justify-content: center;
+}
+
+/* Bento hero section */
+.dashboard-bento {
   display: grid;
-  grid-template-columns: 1fr 260px;
+  grid-template-columns: 2fr 1fr;
   gap: var(--space-4);
   margin-bottom: var(--space-4);
   align-items: stretch;
 }
 
-#slot-quick-actions {
+.dashboard-bento-main {
   min-width: 0;
 }
 
-#slot-quick-actions .dashboard-quick-actions {
+.dashboard-bento-main .dashboard-scan-card,
+.dashboard-bento-main .sb-dropzone {
   height: 100%;
-  justify-content: stretch;
 }
 
-#slot-scan-status {
+.dashboard-bento-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
   min-width: 0;
+}
+
+.dashboard-bento-side .dashboard-panel {
+  flex: 1 1 auto;
+  margin-bottom: 0;
 }
 
 @media (max-width: 768px) {
-  .dashboard-hero {
+  .dashboard-bento {
     grid-template-columns: 1fr;
+  }
+  .dashboard-actions-bar .dashboard-quick-actions {
+    flex-direction: column;
+  }
+  .dashboard-actions-bar .dashboard-action-btn {
+    width: 100%;
   }
 }
 
@@ -2778,7 +2845,7 @@ button.tool-card.help-page-card:hover {
 /* Body layout */
 .dashboard-body {
   display: grid;
-  grid-template-columns: 1fr 300px;
+  grid-template-columns: 2fr 1fr;
   gap: var(--space-4);
   margin-bottom: var(--space-4);
 }
@@ -2852,17 +2919,15 @@ button.tool-card.help-page-card:hover {
   background: rgba(99, 102, 241, 0.03);
 }
 
-/* Bottom grid */
-.dashboard-bottom-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-4);
-}
-
-@media (max-width: 768px) {
-  .dashboard-bottom-grid {
-    grid-template-columns: 1fr;
-  }
+/* Dropzone privacy note */
+.sb-dropzone-privacy {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin: 12px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
 }
 
 /* Utility */

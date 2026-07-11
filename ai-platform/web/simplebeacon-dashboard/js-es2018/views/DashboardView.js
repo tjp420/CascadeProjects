@@ -1,6 +1,6 @@
 import { formatNumber, formatPercent, escapeHtml, renderEmptyState, showToast } from '../utils.js';
 import { buildScanConclusion, getScanFileMetrics, resolveDisplayScore, resolveJestTestsLabel, resolvePageSpecsLabel, renderScanScopePanel } from '../services/analyzeService.js?v=20260710inventory1';
-import { renderScanStatus, updateScanStatusDom, bindScanStatus, runDashboardScanFromInput } from '../components/ScanStatus.js?v=20260711dropzone1';
+import { renderScanStatus, updateScanStatusDom, bindScanStatus, runDashboardScanFromInput } from '../components/ScanStatus.js?v=20260711bento1';
 import { renderIssueList } from '../components/IssueCard.js';
 import { renderQuickActions, bindQuickActions } from '../components/QuickActions.js';
 import { renderTrendSection, mountTrendChart } from '../components/TrendChart.js';
@@ -228,8 +228,10 @@ export class DashboardView {
         const gate = (report === null || report === void 0 ? void 0 : report.gate) || {};
         const gateClass = gate.pass ? 'success' : gate.blockingCount > 0 ? 'danger' : 'warning';
         const gateLabel = gate.pass ? 'PASS' : gate.blockingCount > 0 ? 'FAIL' : 'WARN';
+        const fileMetrics = getScanFileMetrics(report);
+        const analyzedFiles = fileMetrics.analyzedFiles ?? report.filesAnalyzed ?? report.codeFilesAnalyzed ?? 0;
+        const totalFiles = fileMetrics.totalFiles ?? report.totalFiles ?? report.repoFiles ?? analyzedFiles ?? 0;
         el.innerHTML = `
-      ${renderPrivacyBanner()}
       <div class="dashboard-header">
         <h1 class="page-title">Dashboard</h1>
         <div class="dashboard-header-actions">
@@ -242,48 +244,33 @@ export class DashboardView {
         </div>
       </div>
 
-      <div class="dashboard-stats-row">
-        <div class="dashboard-stat-card">
-          <div class="dashboard-stat-icon-wrapper ${gateClass}">
-            <i data-lucide="shield-check" class="icon-20"></i>
-          </div>
-          <div class="dashboard-stat-body">
-            <div class="dashboard-stat-value ${gateClass}">${gateLabel}</div>
-            <div class="dashboard-stat-label">Gate status</div>
-          </div>
-        </div>
-        <div class="dashboard-stat-card">
-          <div class="dashboard-stat-icon-wrapper ${healthClass}">
-            <i data-lucide="alert-circle" class="icon-20"></i>
-          </div>
-          <div class="dashboard-stat-body">
-            <div class="dashboard-stat-value ${healthClass}">${totalIssues}</div>
-            <div class="dashboard-stat-label">${totalIssues === 1 ? 'Open issue' : 'Open issues'}</div>
-          </div>
-        </div>
-        <div class="dashboard-stat-card">
-          <div class="dashboard-stat-icon-wrapper success">
-            <i data-lucide="check-circle-2" class="icon-20"></i>
-          </div>
-          <div class="dashboard-stat-body">
-            <div class="dashboard-stat-value success">${formatPercent(resolveDisplayScore(report))}</div>
-            <div class="dashboard-stat-label">Consistency</div>
-          </div>
-        </div>
-        <div class="dashboard-stat-card">
-          <div class="dashboard-stat-icon-wrapper">
-            <i data-lucide="flask-conical" class="icon-20"></i>
-          </div>
-          <div class="dashboard-stat-body">
-            <div class="dashboard-stat-value">${(_a = resolveJestTestsLabel(baseline, this.app.state.dashboardHome)) !== null && _a !== void 0 ? _a : '—'}</div>
-            <div class="dashboard-stat-label">Tests</div>
-          </div>
-        </div>
+      <div class="dashboard-kpi-bar">
+        <span class="dashboard-kpi ${gateClass}"><i data-lucide="shield-check"></i> ${gateLabel}</span>
+        <span class="dashboard-kpi ${healthClass}"><i data-lucide="alert-circle"></i> ${totalIssues} ${totalIssues === 1 ? 'issue' : 'issues'}</span>
+        <span class="dashboard-kpi success"><i data-lucide="check-circle-2"></i> ${formatPercent(resolveDisplayScore(report))} consistency</span>
+        <span class="dashboard-kpi"><i data-lucide="flask-conical"></i> ${(_a = resolveJestTestsLabel(baseline, this.app.state.dashboardHome)) !== null && _a !== void 0 ? _a : '—'} tests</span>
+        <span class="dashboard-kpi muted"><i data-lucide="files"></i> ${formatNumber(analyzedFiles)} / ${formatNumber(totalFiles)} files</span>
       </div>
 
-      <div class="dashboard-hero">
-        <div id="slot-quick-actions"></div>
-        <div id="slot-scan-status"></div>
+      <div class="dashboard-actions-bar" id="slot-quick-actions"></div>
+
+      <div class="dashboard-bento">
+        <div class="dashboard-bento-main" id="slot-scan-status"></div>
+        <div class="dashboard-bento-side">
+          <div class="dashboard-panel" id="slot-repo-health">
+            <div class="dashboard-panel-header">
+              <h3 class="dashboard-panel-title-sm">Repository health</h3>
+              <a class="btn btn-ghost btn-xs" href="/dashboard/repository-health">Details →</a>
+            </div>
+            <p class="text-muted"><span class="loading-spinner"></span> Loading optimization metrics…</p>
+          </div>
+          <div class="dashboard-panel" id="slot-path-health">
+            <div class="dashboard-panel-header">
+              <h3 class="dashboard-panel-title-sm">System Path Health</h3>
+            </div>
+            <p class="text-muted"><span class="loading-spinner"></span> Loading path health metrics…</p>
+          </div>
+        </div>
       </div>
 
       <div class="dashboard-body">
@@ -315,22 +302,6 @@ export class DashboardView {
             ${renderScanMetrics(report)}
           </div>
           ${this.app.state.reAttestation ? renderReAttestationPreview(this.app.state.reAttestation) : ''}
-        </div>
-      </div>
-
-      <div class="dashboard-bottom-grid">
-        <div class="dashboard-panel" id="slot-repo-health">
-          <div class="dashboard-panel-header">
-            <h3 class="dashboard-panel-title-sm">Repository health</h3>
-            <a class="btn btn-ghost btn-xs" href="/dashboard/repository-health">Details →</a>
-          </div>
-          <p class="text-muted"><span class="loading-spinner"></span> Loading optimization metrics…</p>
-        </div>
-        <div class="dashboard-panel" id="slot-path-health">
-          <div class="dashboard-panel-header">
-            <h3 class="dashboard-panel-title-sm">System Path Health</h3>
-          </div>
-          <p class="text-muted"><span class="loading-spinner"></span> Loading path health metrics…</p>
         </div>
       </div>
     `;

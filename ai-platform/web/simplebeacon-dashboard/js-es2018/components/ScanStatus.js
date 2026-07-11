@@ -251,6 +251,7 @@ function renderScanPathControls(report, options = {}) {
             <button type="button" id="trigger-native-picker" class="btn btn-primary"><i data-lucide="folder-open" class="icon-16"></i> Select Folder</button>
             <button type="button" id="trigger-file-picker" class="btn btn-ghost">Select Files</button>
           </div>
+          <p class="sb-dropzone-privacy">🔒 Scans run privately in your browser.</p>
         </div>
         <div class="sb-dropzone-drag" aria-hidden="true">
           <div class="sb-dropzone-drag-icon">📂</div>
