@@ -1,7 +1,7 @@
 import { scanService } from './services/scanService.js?v=20260711dedup2';
 import { platformService } from './services/platformService.js?v=20260525jsonguard1';
 import { billingService } from './services/billingService.js?v=20260525jsonfixbilling1';
-import { authService } from './services/authService.js?v=20260709tokenfix1';
+import { authService, apiBase } from './services/authService.js?v=20260709tokenfix1';
 import { themeService } from './services/themeService.js';
 import { Router, PUBLIC_VIEWS } from './router.js';
 import { TrustView } from './views/TrustView.js?v=20260525statictrust2';
@@ -632,7 +632,7 @@ class SimplebeaconDashboard {
         if (isDemoMode() || !isLocalSelfHosted())
             return true;
         try {
-            const res = await fetch('/api/auth/me', { credentials: 'same-origin' });
+            const res = await fetch(`${apiBase()}/api/auth/me`, { credentials: 'same-origin' });
             const data = await res.json().catch(() => ({}));
             if (res.status === 403 && data.error === 'vault_required') {
                 this.showVaultBanner();

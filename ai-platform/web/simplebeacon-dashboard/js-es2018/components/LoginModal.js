@@ -192,13 +192,8 @@ export function showLoginModal({ onSuccess } = {}) {
             recoveryStatus.textContent = 'Sending recovery link…';
             recoveryStatus.style.color = 'var(--text-muted)';
             try {
-                const res = await fetch('/api/auth/recover', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email })
-                });
-                const data = await res.json().catch(() => ({}));
-                if (res.ok && data.success) {
+                const data = await authService.recoverPassword(email);
+                if (data.success) {
                     recoveryStatus.textContent = 'Recovery link sent! Check your inbox.';
                     recoveryStatus.style.color = 'var(--success)';
                     setTimeout(() => { recoveryBack.click(); }, 2500);

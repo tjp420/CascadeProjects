@@ -1,5 +1,15 @@
 import { hasJsonContentType, readJsonResponseBody, withRecoverableFallback, logRecoverableDashboardError } from '../lib/recoverable-fetch.js';
 import { isLocalDevHost, DEMO_EMAIL } from '../demoMode.js';
+/**
+ * API base prefix: use the Render backend when the dashboard is served from
+ * a custom domain (simplebeacon.ai / Cloudflare Pages), otherwise use relative paths.
+ */
+export function apiBase() {
+    if (typeof location !== 'undefined' && !/^(localhost|127\.0\.0\.1)$/i.test(location.hostname) && !location.hostname.endsWith('.onrender.com')) {
+        return 'https://simplebeacon.onrender.com';
+    }
+    return '';
+}
 const TOKEN_KEY = 'cascadeAuthToken';
 const USER_KEY = 'cascadeAuthUser';
 const TOKEN_REGISTRY_KEY = 'sb-token-registry';
@@ -183,7 +193,7 @@ export class AuthService {
         return token ? { Authorization: `Bearer ${token}` } : {};
     }
     async fetchPlatformStatus() {
-        const res = await fetch('/api/platform/status');
+        const res = await fetch(`${apiBase()}/api/platform/status`);
         if (!res.ok) {
             // If the status endpoint is unavailable, fail closed to signin-first.
             this.authRequired = true;
@@ -209,7 +219,7 @@ export class AuthService {
         return status;
     }
     async login(email, password) {
-        const loginHttpResponse = await fetch('/api/auth/login', {
+        const loginHttpResponse = await fetch(`${apiBase()}/api/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password })
@@ -230,7 +240,7 @@ export class AuthService {
         const payload = { email, password, name, username, confirmPassword };
         if (licenseToken)
             payload.licenseToken = licenseToken;
-        const r = await fetch('/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        const r = await fetch(`${apiBase()}/api/auth/register`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
         const b = await readJsonResponseBody(r, {});
         if (!r.ok)
             throw new Error((b === null || b === void 0 ? void 0 : b.message) || (b === null || b === void 0 ? void 0 : b.error) || 'Registration failed');
@@ -243,12 +253,20 @@ export class AuthService {
     }
     async logout() {
         await withRecoverableFallback('auth logout request', async () => {
-            await fetch('/api/auth/logout', {
+            await fetch(`${apiBase()}/api/auth/logout`, {
                 method: 'POST',
                 headers: this.getAuthHeaders()
             });
         }, null);
         this.clearSession();
+    }
+    async recoverPassword(email) {
+        const res = await fetch(`${apiBase()}/api/auth/recover`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
+        });
+        return readJsonResponseBody(res, {});
     }
     /**
      * Refresh the access token. Call with longLived=true before long-running analyze scans
@@ -258,7 +276,7 @@ export class AuthService {
         if (!this.isAuthenticated()) {
             throw new Error('Cannot refresh token — not authenticated');
         }
-        const res = await fetch('/api/auth/refresh', {
+        const res = await fetch(`${apiBase()}/api/auth/refresh`, {
             method: 'POST',
             headers: { ...this.getAuthHeaders(), 'Content-Type': 'application/json' },
             body: JSON.stringify({ longLived: longLived === true })
@@ -473,7 +491,7 @@ export class AuthService {
         if (password) {
             headers['X-Token-Password'] = password;
         }
-        const res = await fetch('/api/auth/me', { headers });
+        const res = await fetch(`${apiBase()}/api/auth/me`, { headers });
         if (res.ok) {
             const body = await readJsonResponseBody(res, null);
             if (body === null || body === void 0 ? void 0 : body.user) {
@@ -502,7 +520,7 @@ export class AuthService {
         return true;
     }
     async probeVaultOperatorSession() {
-        const res = await fetch('/api/auth/me', { credentials: 'same-origin' });
+        const res = await fetch(`${apiBase()}/api/auth/me`, { credentials: 'same-origin' });
         const body = await readJsonResponseBody(res, null);
         if (res.status === 403 && (body === null || body === void 0 ? void 0 : body.error) === 'vault_required')
             return false;

@@ -308,8 +308,7 @@ export class SignInView {
             submitBtn.disabled = true;
             submitBtn.textContent = 'Sending…';
             try {
-                const res = await fetch('/api/auth/recover', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
-                const data = await res.json();
+                const data = await authService.recoverPassword(email);
                 if (data.success) {
                     successEl.textContent = 'Check your email for recovery instructions.';
                     successEl.style.display = 'block';
