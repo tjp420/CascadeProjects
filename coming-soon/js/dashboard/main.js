@@ -3152,9 +3152,9 @@ async function probeLocalServer() {
             const vaultLink = document.getElementById('vaultLink');
             if (banner) {
                 banner.style.display = 'flex';
-                if (link) link.href = `http://127.0.0.1:${port}/dashboard/#/analyze`;
+                if (link) link.href = `http://127.0.0.1:${port}/dashboard/analyze`;
             }
-            if (vaultLink) vaultLink.href = `http://127.0.0.1:${port}/dashboard/#/dashboard`;
+            if (vaultLink) vaultLink.href = `http://127.0.0.1:${port}/dashboard/dashboard`;
             return;
         } catch (_) {
             // Server not running on this port
