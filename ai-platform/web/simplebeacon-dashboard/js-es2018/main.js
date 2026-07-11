@@ -1277,7 +1277,7 @@ class SimplebeaconDashboard {
                 this._bgScanPollInProgress = false;
             }
         };
-        this._bgScanPollTimer = setInterval(poll, 5000);
+        this._bgScanPollTimer = setInterval(poll, 15000);
     }
     maybeShowOnboarding() {
         if (!shouldShowOnboarding())

@@ -1711,7 +1711,7 @@ export class AnalyzeView {
             } catch {
                 // Silently ignore poll failures so the page stays usable offline.
             }
-        }, 4000);
+        }, 15000);
     }
     _renderCliReportInSlot(report, slot) {
         const slotInner = slot.querySelector('#cli-report-slot') || slot;
