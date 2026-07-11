@@ -815,18 +815,18 @@ export function bindScanStatus(container, options = {}) {
             try {
                 const s = await probeAgent4000();
                 if (s.available) {
-                    status4000.textContent = 'Localhost:4000 agent connected — typed local paths will be scanned locally';
+                    status4000.textContent = 'Localhost:4000 agent connected — typed local paths will be scanned locally'; // simplebeacon-ignore deploy-leak — user-facing status label
                     status4000.classList.remove('unavailable');
                     status4000.classList.add('available');
                 }
                 else {
-                    status4000.textContent = 'Localhost:4000 agent offline (run node agent.js to enable local path scans)';
+                    status4000.textContent = 'Localhost:4000 agent offline (run node agent.js to enable local path scans)'; // simplebeacon-ignore deploy-leak — user-facing status label
                     status4000.classList.remove('available');
                     status4000.classList.add('unavailable');
                 }
             }
             catch (_a) {
-                status4000.textContent = 'Localhost:4000 agent offline (run node agent.js to enable local path scans)';
+                status4000.textContent = 'Localhost:4000 agent offline (run node agent.js to enable local path scans)'; // simplebeacon-ignore deploy-leak — user-facing status label
                 status4000.classList.remove('available');
                 status4000.classList.add('unavailable');
             }

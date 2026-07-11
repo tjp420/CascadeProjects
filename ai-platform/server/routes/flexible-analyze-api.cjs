@@ -1584,7 +1584,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             }
             let report = await withTimeout(
                 getAnalyzeCodebase()(projectPath, analyzeOptions),
-                120_000,
+                80_000,
                 'codebase analysis'
             );
             logger.info(`[analyze] codebase done path=${projectPath} context=${scanContext} ms=${Date.now() - startedAt} analyzed=${report.summary?.codeFilesAnalyzed ?? '—'}/${report.summary?.codeFilesDiscovered ?? '—'}`);
@@ -1603,7 +1603,17 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             res.set('Cache-Control', 'no-store');
             return sendAnalyzeJson(res, { success: true, data: report, scanProfile, scanContext, understandingMode }, 200, sendAnalyzeJsonOpts);
         } catch (error) {
-            return res.status(400).json({ success: false, error: toClientError(error, 'Codebase analysis failed') });
+            logger.warn('[Analyze/Codebase] Analysis failed:', { error: error instanceof Error ? error.message : String(error), projectPath });
+            const debug = process.env.DEBUG_CLIENT_ERRORS === '1' || process.env.DEBUG_CLIENT_ERRORS === 'true';
+            const errorPayload = { success: false, error: toClientError(error, 'Codebase analysis failed') };
+            if (debug) {
+                errorPayload._debug = {
+                    projectPath,
+                    rawError: error instanceof Error ? error.message : String(error),
+                    stack: error instanceof Error ? error.stack : null
+                };
+            }
+            return res.status(500).json(errorPayload);
         }
     });
 

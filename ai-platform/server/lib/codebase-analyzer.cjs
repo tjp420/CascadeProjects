@@ -4093,7 +4093,7 @@ async function analyzeCodebase(baseDir, options = {}) {
 
     const { findings, structureSamples } = await analyzeFilesInBatches(filesToAnalyze, codeWalkRoot, {
         concurrency: context === 'complete'
-            ? Number(process.env.CODEBASE_COMPLETE_CONCURRENCY) || Math.max(ANALYZE_FILE_CONCURRENCY, 48)
+            ? Number(process.env.CODEBASE_COMPLETE_CONCURRENCY) || Math.max(ANALYZE_FILE_CONCURRENCY, 24)
             : opts.concurrency,
         includeLegacyExperimental: opts.includeLegacyExperimental,
         onProgress: opts.onProgress,
