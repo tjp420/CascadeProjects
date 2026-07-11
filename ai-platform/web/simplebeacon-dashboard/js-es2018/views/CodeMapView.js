@@ -1,5 +1,5 @@
 import { escapeHtml, formatNumber } from '../utils.js';
-import { scanService } from '../services/scanService.js?v=20260711scanfix1';
+import { scanService } from '../services/scanService.js?v=20260711dedup1';
 import { fetchRepositoryInventory } from '../services/analyzeService.js?v=20260710inventory1';
 /**
  * Build a nested tree object from an array of file paths.

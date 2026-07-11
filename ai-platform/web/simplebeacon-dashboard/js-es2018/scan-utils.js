@@ -1,5 +1,5 @@
 // simplebeacon-ignore memory-leak
-import { scanService } from './services/scanService.js?v=20260711scanfix1';
+import { scanService } from './services/scanService.js?v=20260711dedup1';
 /**
  * Global scan utility wrapper for non-module consumers and quick scripting.
  * Delegates to the canonical ScanService so behaviour stays consistent.

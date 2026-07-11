@@ -126,6 +126,7 @@ export class ScanService {
         this.baseline = null;
         this.config = null;
         this.history = [];
+        this._pendingFetches = new Map();
     }
     async fetchAll(projectPath = null) {
         const [reportR, baselineR, configR, historyR] = await Promise.allSettled([
@@ -150,20 +151,33 @@ export class ScanService {
         if (safePath && /^https?:\/\//i.test(safePath)) {
             return null;
         }
-        const query = new URLSearchParams();
-        if (safePath)
-            query.set('projectPath', safePath);
-        query.set('_cb', Date.now().toString());
-        const params = query.toString() ? `?${query.toString()}` : '';
-        const res = await fetchSimplebeacon(`${simplebeaconApiBase()}/report${params}`);
-        if (!res.ok)
-            throw new Error('Failed to load scan report — is the dashboard server running?');
-        const report = await readJsonResponseBody(res, null);
-        if (!report || typeof report !== 'object') {
-            throw new Error('Scan report API unavailable on this host (received HTML instead of JSON).');
+        const key = `report:${safePath || ''}`;
+        if (this._pendingFetches.has(key)) {
+            return this._pendingFetches.get(key);
         }
-        this.report = await this.enrichReport(normalizeScanReport(report));
-        return this.report;
+        const promise = (async () => {
+            try {
+                const query = new URLSearchParams();
+                if (safePath)
+                    query.set('projectPath', safePath);
+                query.set('_cb', Date.now().toString());
+                const params = query.toString() ? `?${query.toString()}` : '';
+                const res = await fetchSimplebeacon(`${simplebeaconApiBase()}/report${params}`);
+                if (!res.ok)
+                    throw new Error('Failed to load scan report — is the dashboard server running?');
+                const report = await readJsonResponseBody(res, null);
+                if (!report || typeof report !== 'object') {
+                    throw new Error('Scan report API unavailable on this host (received HTML instead of JSON).');
+                }
+                this.report = await this.enrichReport(normalizeScanReport(report));
+                return this.report;
+            }
+            finally {
+                this._pendingFetches.delete(key);
+            }
+        })();
+        this._pendingFetches.set(key, promise);
+        return promise;
     }
     async importReport(report, projectPath = null) {
         if (!report || typeof report !== 'object') {
@@ -253,12 +267,25 @@ export class ScanService {
         return data;
     }
     async fetchHistory() {
-        const res = await fetchSimplebeacon(`${simplebeaconApiBase()}/history`);
-        if (!res.ok)
-            return [];
-        const history = await readJsonResponseBody(res, []);
-        this.history = Array.isArray(history) ? history : [];
-        return this.history;
+        const key = 'history';
+        if (this._pendingFetches.has(key)) {
+            return this._pendingFetches.get(key);
+        }
+        const promise = (async () => {
+            try {
+                const res = await fetchSimplebeacon(`${simplebeaconApiBase()}/history`);
+                if (!res.ok)
+                    return [];
+                const history = await readJsonResponseBody(res, []);
+                this.history = Array.isArray(history) ? history : [];
+                return this.history;
+            }
+            finally {
+                this._pendingFetches.delete(key);
+            }
+        })();
+        this._pendingFetches.set(key, promise);
+        return promise;
     }
     async fetchDashboard() {
         const dashboardHttpResponse = await fetchSimplebeacon(`${simplebeaconApiBase()}/dashboard`);

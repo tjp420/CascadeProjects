@@ -1,4 +1,4 @@
-import { scanService } from './services/scanService.js?v=20260711scanfix1';
+import { scanService } from './services/scanService.js?v=20260711dedup1';
 import { platformService } from './services/platformService.js?v=20260525jsonguard1';
 import { billingService } from './services/billingService.js?v=20260525jsonfixbilling1';
 import { authService } from './services/authService.js?v=20260709tokenfix1';
@@ -14,7 +14,7 @@ import { PlatformView } from './views/PlatformView.js?v=20260601platformmetrics1
 import { QualityView } from './views/QualityView.js';
 import { HelpView, FeaturesView } from './views/HelpView.js';
 import { AuditView } from './views/AuditView.js?v=20260618renderfix1';
-import { AnalyzeView } from './views/AnalyzeView.js?v=20260711singleflow9';
+import { AnalyzeView } from './views/AnalyzeView.js?v=20260711singleflow10';
 import { SecurityView } from './views/SecurityView.js?v=20260611fixexport1';
 import { PricingView } from './views/PricingView.js';
 import { AboutView } from './views/AboutView.js';
@@ -1249,14 +1249,18 @@ class SimplebeaconDashboard {
     startBackgroundScanWatcher() {
         var _a, _b;
         this.stopBackgroundScanWatcher();
+        // Only poll when a scan is active or just finished; otherwise there's nothing new to detect.
+        if (!this.state.scanning && !(this.state.report && (this.state.report.scanId || this.state.report.generatedAt))) {
+            return;
+        }
         const currentScanId = ((_a = this.state.report) === null || _a === void 0 ? void 0 : _a.scanId) || ((_b = this.state.report) === null || _b === void 0 ? void 0 : _b.generatedAt) || null;
         this._lastKnownScanId = currentScanId;
         this._bgScanPollStart = Date.now();
         const poll = async () => {
-            if (this._bgScanPollInProgress)
+            if (this._bgScanPollInProgress || (typeof document !== 'undefined' && document.hidden))
                 return;
             this._bgScanPollInProgress = true;
-            if (Date.now() - this._bgScanPollStart > 120000) {
+            if (Date.now() - this._bgScanPollStart > 60000) {
                 this.stopBackgroundScanWatcher();
                 this._bgScanPollInProgress = false;
                 return;
@@ -1277,7 +1281,7 @@ class SimplebeaconDashboard {
                 this._bgScanPollInProgress = false;
             }
         };
-        this._bgScanPollTimer = setInterval(poll, 15000);
+        this._bgScanPollTimer = setInterval(poll, 30000);
     }
     maybeShowOnboarding() {
         if (!shouldShowOnboarding())

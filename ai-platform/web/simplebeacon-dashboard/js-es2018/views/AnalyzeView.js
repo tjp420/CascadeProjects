@@ -1422,6 +1422,7 @@ export class AnalyzeView {
         this._cliUploadPollTimer = null;
         this._cliUploadLastSeen = null;
         this._lastAgentReport = null;
+        this._refreshReportLocks = new Map();
     }
     get vscodeEnhanced() {
         if (this._vscodeApiCached !== null)
@@ -4307,17 +4308,31 @@ export class AnalyzeView {
             this.syncAnalyzeModeUi(root);
             return;
         }
-        try {
-            const live = await this.app.scanService.fetchReport(projectPath);
-            if (live && reportMatchesPagePath(live, projectPath)) {
-                this.app.state.report = live;
+        // Deduplicate concurrent refreshes for the same path.
+        const lockKey = projectPath;
+        if (this._refreshReportLocks.has(lockKey)) {
+            return this._refreshReportLocks.get(lockKey);
+        }
+        const promise = (async () => {
+            try {
+                const live = await this.app.scanService.fetchReport(projectPath);
+                if (live && reportMatchesPagePath(live, projectPath)) {
+                    this.app.state.report = live;
+                }
             }
+            catch (_a) {
+                // No report.json on disk for this path yet — scope panel still shows config defaults.
+            }
+            await refreshPathInventory(this.app, projectPath, { fullDirectoryScan: this.fullDirectoryScan }).catch(() => null);
+            this.syncAnalyzeModeUi(root);
+        })();
+        this._refreshReportLocks.set(lockKey, promise);
+        try {
+            await promise;
         }
-        catch (_a) {
-            // No report.json on disk for this path yet — scope panel still shows config defaults.
+        finally {
+            this._refreshReportLocks.delete(lockKey);
         }
-        await refreshPathInventory(this.app, projectPath, { fullDirectoryScan: this.fullDirectoryScan }).catch(() => null);
-        this.syncAnalyzeModeUi(root);
     }
     setPathInputDisplay(pathInput, fullPath) {
         if (!pathInput)
