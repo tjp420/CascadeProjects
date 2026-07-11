@@ -24,22 +24,43 @@ const RULES = [
     id: 'SB-01',
     type: 'Exposed Credentials',
     severity: 'HIGH',
-    regex: /(sk_live_[a-zA-Z0-9]{24,}|AKIA[0-9A-Z]{16})/g,
-    msg: 'Hardcoded production API secret key leakage.'
+    regex: /(sk_live_[a-zA-Z0-9]{24,}|sk_test_[a-zA-Z0-9]{24,}|AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16}|ghp_[a-zA-Z0-9]{36}|github_pat_[a-zA-Z0-9_]{22,}|xoxb-[0-9]{10,}-[0-9]{10,}-[a-zA-Z0-9]{24}|xoxp-[0-9]{10,}-[0-9]{10,}-[a-zA-Z0-9]{24}|SG\.[a-zA-Z0-9_\-]{22}\.[a-zA-Z0-9_\-]{43}|private[_\-]?key|-----BEGIN (RSA |DSA |EC |OPENSSH )?PRIVATE KEY-----)/gi,
+    msg: 'Hardcoded API key, token, or private key detected.'
   },
   {
     id: 'SB-02',
     type: 'Placeholder Debris',
     severity: 'MEDIUM',
-    regex: /(\/\/ Add your logic here|\/\/\s*TODO:\s*AI\s*generated)/gi,
-    msg: 'Unimplemented functional logic placeholder template.'
+    regex: /(\/\/ Add your logic here|\/\/ TODO:\s*AI\s*generated|\/\/ TODO:\s*implement|\byour-api-key-here\b|\bYOUR_API_KEY\b|\bexample_api_key\b|\binsert_secret_here\b)/gi,
+    msg: 'Unimplemented stub or placeholder left by AI generation.'
   },
   {
     id: 'SB-03',
     type: 'Markdown Fences',
     severity: 'MEDIUM',
-    regex: new RegExp('(' + ['```javascript', '```json', '```html'].join('|') + ')', 'g'),
+    regex: new RegExp('(' + ['```javascript', '```json', '```html', '```css', '```python', '```typescript', '```jsx', '```tsx', '```'].join('|') + ')', 'g'),
     msg: 'Raw markdown formatting left behind from an AI chat interaction wrapper.'
+  },
+  {
+    id: 'SB-04',
+    type: 'AI Slop / Repetitive Boilerplate',
+    severity: 'MEDIUM',
+    regex: /(\/\*\*\s*\n\s*\*\s+.*\n\s*\*\/\s*\n){3,}|(\bimport\s+\{\s*[^}]+\}\s+from\s+['"]npm-[a-z0-9-]+['"])|(\balert\s*\(\s*['"]TODO['"]\s*\))|(\bconsole\.log\s*\(\s*['"]AI generated['"]\s*\))/gi,
+    msg: 'Repetitive AI-generated boilerplate or hallucinated dependency.'
+  },
+  {
+    id: 'SB-05',
+    type: 'Compliance Drift',
+    severity: 'MEDIUM',
+    regex: /(eval\s*\(|new\s+Function\s*\(|innerHTML\s*=|document\.write\s*\(|child_process|exec\s*\(|spawn\s*\()/g,
+    msg: 'Code pattern that may violate security/compliance controls (unsafe eval, innerHTML injection, process spawning).'
+  },
+  {
+    id: 'SB-06',
+    type: 'Generic Error Swallowing',
+    severity: 'LOW',
+    regex: /catch\s*\(\s*\w+\s*\)\s*\{\s*\/*\s*(TODO|FIXME|ignore)?\s*\*\/\s*\}/g,
+    msg: 'Error handler silently swallows exceptions.'
   }
 ];
 
@@ -296,4 +317,91 @@ export async function runSandboxedDirectoryScan(options = {}) {
 
   logLine(onLog, `Discovered ${picked.fileQueue.length} text/code targets.`, 'info');
   return analyzeDirectory(picked, { maxFileSize, onLog, onProgress });
+}
+
+/**
+ * Scan a dropped DataTransferItemList entirely in the browser.
+ * Uses the File System Access API when available, falling back to webkitGetAsEntry.
+ * @param {DataTransferItemList} items
+ * @param {Object} [options]
+ * @returns {Promise<Object>} Same report shape as runSandboxedDirectoryScan.
+ */
+export async function scanDroppedItems(items, options = {}) {
+  const { maxFileSize = DEFAULT_MAX_FILE_SIZE, maxFiles = DEFAULT_MAX_FILES, onLog, onProgress } = options;
+
+  if (!items || items.length === 0) {
+    throw new Error('No items were dropped.');
+  }
+
+  const first = items[0];
+  const name = (first.getAsFile && first.getAsFile().name) || 'dropped-folder';
+
+  // Preferred: File System Access API handles.
+  if (typeof first.getAsFileSystemHandle === 'function') {
+    const handle = await first.getAsFileSystemHandle();
+    if (handle && handle.kind === 'directory') {
+      const fileQueue = [];
+      await crawlSandboxedTree(handle, handle.name, fileQueue, { maxFiles, onLog });
+      logLine(onLog, `Dropped directory "${handle.name}" — ${fileQueue.length} targets queued.`, 'info');
+      return analyzeDirectory({ rootName: handle.name, fileQueue }, { maxFileSize, onLog, onProgress });
+    }
+  }
+
+  // Fallback: webkitGetAsEntry traversal.
+  const entry = typeof first.webkitGetAsEntry === 'function' ? first.webkitGetAsEntry() : null;
+  if (entry && entry.isDirectory) {
+    const fileQueue = [];
+    await crawlWebkitEntryTree(entry, entry.name, fileQueue, { maxFiles, onLog });
+    logLine(onLog, `Dropped directory "${entry.name}" — ${fileQueue.length} targets queued.`, 'info');
+    return analyzeDirectory({ rootName: entry.name, fileQueue }, { maxFileSize, onLog, onProgress });
+  }
+
+  // Not a folder drop: treat as ordinary files and scan each one.
+  const fileQueue = [];
+  for (let i = 0; i < items.length && fileQueue.length < maxFiles; i++) {
+    const item = items[i];
+    const file = item.getAsFile && item.getAsFile();
+    if (!file) continue;
+    const extIndex = file.name.lastIndexOf('.');
+    const ext = extIndex >= 0 ? file.name.substring(extIndex).toLowerCase() : '';
+    if (!ALLOWED_EXTENSIONS.has(ext)) continue;
+    const pathParts = [file.name];
+    fileQueue.push({ file, virtualPath: file.name });
+  }
+  if (fileQueue.length === 0) {
+    throw new Error('No scannable files were dropped.');
+  }
+  logLine(onLog, `Dropped ${fileQueue.length} file(s) — scanning locally.`, 'info');
+  return analyzeDirectory({ rootName: name, fileQueue }, { maxFileSize, onLog, onProgress });
+}
+
+async function crawlWebkitEntryTree(entry, currentPath, queue, options) {
+  const { maxFiles, onLog } = options || {};
+  if (!entry.isDirectory) {
+    const file = await new Promise((resolve) => entry.file(resolve));
+    const extIndex = file.name.lastIndexOf('.');
+    const ext = extIndex >= 0 ? file.name.substring(extIndex).toLowerCase() : '';
+    if (ALLOWED_EXTENSIONS.has(ext)) {
+      queue.push({ file, virtualPath: currentPath });
+    }
+    return;
+  }
+
+  if (SKIP_DIRS.has(entry.name) || entry.name.startsWith('.')) {
+    logLine(onLog, `Skipping dependency/build directory: ${currentPath}`, 'info');
+    return;
+  }
+
+  const reader = entry.createReader();
+  let batch;
+  do {
+    batch = await new Promise((resolve) => reader.readEntries(resolve));
+    for (const child of batch) {
+      if (queue.length >= maxFiles) {
+        logLine(onLog, `Reached max file limit (${maxFiles}); stopping traversal.`, 'warning');
+        break;
+      }
+      await crawlWebkitEntryTree(child, `${currentPath}/${child.name}`, queue, options);
+    }
+  } while (batch.length > 0 && queue.length < maxFiles);
 }
