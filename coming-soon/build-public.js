@@ -81,4 +81,13 @@ if (fs.existsSync(dashboardSrc)) {
   copyRecursive(dashboardSrc, dashboardDst);
 }
 
+// Ensure the marketing terminal-simulation widget is also available under /dashboard/js/
+// so any cached/embedded view resolving it under the dashboard path gets real JS instead of HTML.
+const terminalSimSrc = path.join(src, 'js', 'terminal-simulation.js');
+const dashboardJsDst = path.join(dashboardDst, 'js', 'terminal-simulation.js');
+if (fs.existsSync(terminalSimSrc) && fs.existsSync(dashboardDst)) {
+  fs.mkdirSync(path.dirname(dashboardJsDst), { recursive: true });
+  fs.copyFileSync(terminalSimSrc, dashboardJsDst);
+}
+
 process.stdout.write('Public build complete\n');
