@@ -1005,6 +1005,21 @@ async function startServer() {
   // Auth routes are always registered, even if phase 2 bootstrap partially failed
   app.use('/api/auth', authRoutes);
 
+  // CLI upload API key — returns the authenticated user's current JWT so the dashboard CLI card
+  // can poll /api/simplebeacon/history and fetch reports on the same origin.
+  app.get('/api/user/api-key', authenticate, (req, res) => {
+    try {
+      const authHeader = String(req.headers.authorization || '');
+      const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : null;
+      if (!token) {
+        return res.status(401).json({ success: false, error: 'Authentication token required' });
+      }
+      return res.json({ success: true, apiKey: token });
+    } catch (error) {
+      return res.status(500).json({ success: false, error: 'Could not retrieve API key' });
+    }
+  });
+
   // Copy the bundled report shipped with the repo into the runtime .simplebeacon directory
   // so the dashboard has data even though .simplebeacon/*.json is gitignored.
   const bundledReportPath = path.join(__dirname, 'web', 'data', 'simplebeacon-report.json');
