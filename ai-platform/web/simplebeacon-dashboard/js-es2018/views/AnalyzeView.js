@@ -6595,7 +6595,13 @@ export class AnalyzeView {
                 await this.runAgentScan(typedPath);
                 return;
             }
-            showToast('Local agent is not available. Enable Privacy mode to scan this folder locally in your browser, or start the Local Scan Agent on your machine.', 'error', { duration: 10000 });
+            showToast('Local agent is not available. Use the Secure Local Directory Scanner below to select the folder and scan it locally in your browser, or start the Local Scan Agent on your machine.', 'error', { duration: 12000 });
+            const scannerCard = this._root && this._root.querySelector('#sandbox-scanner');
+            if (scannerCard) {
+                scannerCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                scannerCard.classList.add('sandbox-scanner-highlight');
+                setTimeout(() => scannerCard.classList.remove('sandbox-scanner-highlight'), 3000);
+            }
             return;
         }
         if (this.localMode) {

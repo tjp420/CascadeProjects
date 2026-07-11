@@ -5093,3 +5093,13 @@ button.tool-card.help-page-card:hover {
 .chatbot-settings-toggle-text {
   font-weight: 500;
 }
+
+.sandbox-scanner-highlight {
+  animation: sandbox-scanner-pulse 1.5s ease-in-out 2;
+}
+
+@keyframes sandbox-scanner-pulse {
+  0% { box-shadow: 0 0 0 0 var(--primary); }
+  70% { box-shadow: 0 0 0 8px rgba(99, 102, 241, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); }
+}
