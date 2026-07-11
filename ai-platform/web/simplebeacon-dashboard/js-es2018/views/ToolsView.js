@@ -1,6 +1,6 @@
 import { escapeHtml, formatNumber, formatPercent, showToast, renderEmptyState } from '../utils.js';
 import { getScanFileMetrics, resolveDisplayScore, resolveJestTestsLabel, resolvePageSpecsLabel, formatScanScopeSummary, formatScanInventoryNote } from '../services/analyzeService.js?v=20260710inventory1';
-import { scanService } from '../services/scanService.js?v=20260711dedup1';
+import { scanService } from '../services/scanService.js?v=20260711dedup2';
 import { renderConsolidationPanel } from '../components/ConsolidationReport.js';
 /**
  * Npm audit summary.

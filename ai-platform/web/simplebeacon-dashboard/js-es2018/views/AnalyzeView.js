@@ -34,7 +34,7 @@ import { renderUnderstandingPanel, buildUnderstandingConclusion } from '../compo
 import { renderZscriptReportPanel, buildZscriptConclusion } from '../components/ZscriptReport.js';
 import { showLoginModal } from '../components/LoginModal.js';
 import { authService } from '../services/authService.js';
-import { fetchCliApiKey, fetchCliHistory, fetchCliReport, renderCliUploadCard, renderCliReport } from '../services/cliUploadService.js?v=20260711themefix1';
+import { fetchCliApiKey, fetchCliHistory, fetchCliReport, renderCliUploadCard, renderCliReport } from '../services/cliUploadService.js?v=20260711apibase1';
 import { MAX_SNIPPET_BYTES, isSupportedSourceFile, isAnalyzerCacheJson, isCleanupExportJson, isFictionDigestJson, isLockfileName, isMarkdownFileName, isScannerMetaFileName, filterSnippetFindingsForFile, scanSnippetText, computeThreatScore, redactMatch, severityLabel } from '../utils/snippetDiagnostic.js?v=20260531analyzers1';
 const SNIPPET_ACCEPT = '.json,.js,.mjs,.cjs,.ts,.tsx,.jsx,.py,.env,.yaml,.yml,.txt,.md,.html,.css,.xml,.toml,.ini,.sh,.ps1,.bat';
 const MAX_UPLOAD_BYTES = 100 * 1024 * 1024; // 100 MB — server-side directory upload limit

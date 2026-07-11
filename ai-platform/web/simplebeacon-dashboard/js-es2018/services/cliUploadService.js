@@ -1,13 +1,19 @@
 import { authService } from './authService.js';
 
 const DEFAULT_API_URL = 'https://cascadeprojects-yzzd.onrender.com';
+function apiPrefix() {
+    if (typeof location !== 'undefined' && !/^(localhost|127\.0\.0\.1)$/i.test(location.hostname) && !location.hostname.endsWith('.onrender.com')) {
+        return DEFAULT_API_URL;
+    }
+    return '';
+}
 
 let _cliApiKeyPromise = null;
 export async function fetchCliApiKey(options = {}) {
     if (!options.refresh && _cliApiKeyPromise) {
         return _cliApiKeyPromise;
     }
-    _cliApiKeyPromise = fetch('/api/user/api-key', {
+    _cliApiKeyPromise = fetch(`${apiPrefix()}/api/user/api-key`, {
         headers: authService.getAuthHeaders()
     })
         .then(async (res) => {
@@ -26,7 +32,7 @@ export async function fetchCliApiKey(options = {}) {
 }
 
 export async function fetchCliHistory(apiKey) {
-    const res = await fetch('/api/simplebeacon/history', {
+    const res = await fetch(`${apiPrefix()}/api/simplebeacon/history`, {
         headers: { 'Authorization': `Bearer ${apiKey}` }
     });
     if (!res.ok) throw new Error('Could not fetch CLI history');
@@ -35,7 +41,7 @@ export async function fetchCliHistory(apiKey) {
 }
 
 export async function fetchCliReport(reportId, apiKey) {
-    const res = await fetch(`/api/simplebeacon/report/${reportId}`, {
+    const res = await fetch(`${apiPrefix()}/api/simplebeacon/report/${reportId}`, {
         headers: { 'Authorization': `Bearer ${apiKey}` }
     });
     if (!res.ok) throw new Error('Could not fetch report');

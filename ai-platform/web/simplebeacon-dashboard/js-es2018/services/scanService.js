@@ -65,6 +65,11 @@ function simplebeaconApiBase() {
     const stored = localStorage.getItem('sb_api_host');
     if (stored)
         return stored + '/api/simplebeacon';
+    // On Cloudflare Pages / custom domains, the dashboard static files are served without the
+    // API backend. Route API calls to the Render backend instead.
+    if (typeof location !== 'undefined' && !/^(localhost|127\.0\.0\.1)$/i.test(location.hostname) && !location.hostname.endsWith('.onrender.com')) {
+        return 'https://simplebeacon.onrender.com/api/simplebeacon';
+    }
     return '/api/simplebeacon';
 }
 /**
@@ -206,7 +211,8 @@ export class ScanService {
             return null;
         }
         const params = new URLSearchParams({ projectPath: path, profile: 'explorer' });
-        const inventoryHttpResponse = await fetchWithTimeout(`/api/analyze/inventory?${params}`, { headers: mergeAuthHeaders() });
+        const base = simplebeaconApiBase().replace(/\/api\/simplebeacon$/, '');
+        const inventoryHttpResponse = await fetchWithTimeout(`${base}/api/analyze/inventory?${params}`, { headers: mergeAuthHeaders() });
         const inventoryPayload = await readJsonResponseBody(inventoryHttpResponse, {});
         if (!inventoryHttpResponse.ok || !inventoryPayload.success)
             return null;
