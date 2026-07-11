@@ -1,4 +1,4 @@
-import { escapeHtml, showToast, downloadJson, downloadBlob, downloadText, redactPathForDisplay, formatPathLabel, formatPathInputValue, formatAiSummarySkipMessage, isRedactedPathDisplay, formatNumber, renderEmptyState } from '../utils.js';
+import { escapeHtml, showToast, downloadJson, downloadBlob, downloadText, redactPathForDisplay, formatPathLabel, formatPathInputValue, formatAiSummarySkipMessage, isRedactedPathDisplay, formatNumber, formatPercent, renderEmptyState } from '../utils.js';
 import { evaluateFunnelMetrics, getFunnelCopy } from '../utils/funnelTrigger.js';
 import { LocalScanService } from '../services/localScanService.js?v=20260709noise3';
 import { fingerprintDirectory, formatFingerprint } from '../services/fingerprintService.js';
@@ -1646,7 +1646,22 @@ export class AnalyzeView {
         const report = this.app.state.report || this._lastAgentReport || null;
         const normalized = this.normalizeReportForScanStatus(report);
         if (!normalized) return '';
-        return renderCompactScanStatus(normalized);
+        return renderCompactScanStatus(normalized) + this.renderScanMetricsPanel(report);
+    }
+    renderScanMetricsPanel(report) {
+        const metrics = getScanFileMetrics(report);
+        const repoChip = metrics.repositoryFiles != null
+            ? `<div class="metric-chip" title="Repository inventory (skips node_modules, .git, build artifacts)"><strong>${formatNumber(metrics.repositoryFiles)}</strong> repo files</div>`
+            : '';
+        return `
+      <div class="analyze-scan-metrics" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+        ${repoChip}
+        <div class="metric-chip"><strong>${formatNumber(metrics.filesAnalyzed || 0)}</strong> files analyzed</div>
+        <div class="metric-chip"><strong>${formatNumber(metrics.mockSampleFiles || 0)}</strong> mock/sample</div>
+        <div class="metric-chip"><strong>${formatNumber(report && report.fictionKpiHits || 0)}</strong> fiction scanned</div>
+        <div class="metric-chip"><strong>${formatPercent(report && report.schemaCompliance)}</strong> schema compliance</div>
+      </div>
+    `;
     }
     updateLastScanCard() {
         const slot = this._root && this._root.querySelector('#analyze-last-scan-card');
@@ -1724,7 +1739,7 @@ export class AnalyzeView {
         .analyze-target-redesign .drop-zone-title { font-size: 1rem; font-weight: 600; margin-bottom: 4px; }
         .analyze-target-redesign .drop-zone-sub { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 16px; }
         .analyze-target-redesign .drop-zone-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
-        .analyze-target-redesign .path-row { display: flex; gap: 8px; align-items: center; max-width: 560px; margin: 18px auto 0; }
+        .analyze-target-redesign .path-row { display: flex; gap: 8px; align-items: center; max-width: none; margin: 18px 0 0; }
         .analyze-target-redesign .path-row input { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 8px 12px; color: var(--text-primary); font-size: 0.85rem; }
         .analyze-target-redesign .path-row button { flex-shrink: 0; }
         .analyze-target-redesign .hint { text-align: center; font-size: 0.7rem; color: var(--text-muted); margin-top: 8px; }
@@ -1746,11 +1761,11 @@ export class AnalyzeView {
         .agent-status.unavailable { color: var(--text-muted); }
         .agent-download-cta { min-height: 1.2em; margin-top: 4px; font-size: 0.85rem; text-align: center; }
         .agent-download-cta a { color: var(--primary); text-decoration: underline; }
-        .agent-install-wizard { display: inline-flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px; border: 1px dashed var(--border); border-radius: var(--radius-lg); background: var(--surface); max-width: 420px; margin: 0 auto; }
+        .agent-install-wizard { display: inline-flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px; border: 1px dashed var(--border); border-radius: var(--radius-lg); background: var(--surface); max-width: none; margin: 0; }
         .agent-wizard-title { font-weight: 600; margin: 0; }
         .agent-wizard-subtitle { color: var(--text-muted); margin: 0; font-size: 0.8rem; }
         .agent-wizard-step { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center; }
-        .agent-wizard-instructions { color: var(--text); margin: 0; max-width: 380px; }
+        .agent-wizard-instructions { color: var(--text); margin: 0; max-width: none; }
         .agent-wizard-polling { color: var(--text-muted); font-size: 0.8rem; }
         .agent-wizard-polling.hidden { display: none; }
         .an-tgt-drop-icon { font-size: 2.5rem; margin-bottom: 12px; }
