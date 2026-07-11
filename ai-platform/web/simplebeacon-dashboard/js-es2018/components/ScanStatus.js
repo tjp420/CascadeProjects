@@ -2,7 +2,7 @@ import { escapeHtml, formatPercent, showToast } from '../utils.js';
 import { resolveDisplayScore, formatScanScopeSummary, formatScanInventoryNote } from '../services/analyzeService.js?v=20260710inventory1';
 import { runLocalScan } from '../services/localScanService.js';
 import { isLocalPath, probeAgent, scanViaAgent, probeAgent4000, scanViaAgent4000, renderAgentCertificate } from '../services/localAgentService.js?v=20260710agentcache3';
-import { runSandboxedDirectoryScan } from '../services/browserSandboxScanService.js?v=20260710sandbox4';
+import { runSandboxedDirectoryScan } from '../services/browserSandboxScanService.js?v=20260711largefolder1';
 /**
  * Resolve initial scan root.
  * @param {number} report

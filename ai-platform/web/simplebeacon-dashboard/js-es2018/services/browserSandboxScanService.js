@@ -195,6 +195,12 @@ function pickLegacyDirectory({ maxFiles, onLog }) {
   });
 }
 
+const YIELD_EVERY = 50;
+
+function yieldToBrowser() {
+  return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
 async function analyzeDirectory({ rootName, fileQueue }, { maxFileSize, onLog, onProgress }) {
   const fileReport = [];
   const globalIssuesQueue = [];
@@ -204,7 +210,8 @@ async function analyzeDirectory({ rootName, fileQueue }, { maxFileSize, onLog, o
   let skippedLarge = 0;
   let skippedError = 0;
 
-  for (const item of fileQueue) {
+  for (let i = 0; i < fileQueue.length; i++) {
+    const item = fileQueue[i];
     try {
       const file = item.file || await item.handle.getFile();
       if (file.size > maxFileSize) {
@@ -232,6 +239,11 @@ async function analyzeDirectory({ rootName, fileQueue }, { maxFileSize, onLog, o
       processed += 1;
       if (typeof onProgress === 'function') {
         onProgress({ processed, total: fileQueue.length });
+      }
+
+      // Yield to the browser event loop every N files so large scans don't freeze the tab.
+      if (processed > 0 && processed % YIELD_EVERY === 0) {
+        await yieldToBrowser();
       }
     } catch (err) {
       skippedError += 1;
