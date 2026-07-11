@@ -2,14 +2,27 @@ import { authService } from './authService.js';
 
 const DEFAULT_API_URL = 'https://cascadeprojects-yzzd.onrender.com';
 
-export async function fetchCliApiKey() {
-    const res = await fetch('/api/user/api-key', {
+let _cliApiKeyPromise = null;
+export async function fetchCliApiKey(options = {}) {
+    if (!options.refresh && _cliApiKeyPromise) {
+        return _cliApiKeyPromise;
+    }
+    _cliApiKeyPromise = fetch('/api/user/api-key', {
         headers: authService.getAuthHeaders()
+    })
+        .then(async (res) => {
+        if (!res.ok)
+            throw new Error('Could not retrieve CLI token');
+        const data = await res.json();
+        if (!data.success)
+            throw new Error(data.error || 'Token unavailable');
+        return data.apiKey;
+    })
+        .catch((err) => {
+        _cliApiKeyPromise = null;
+        throw err;
     });
-    if (!res.ok) throw new Error('Could not retrieve CLI token');
-    const data = await res.json();
-    if (!data.success) throw new Error(data.error || 'Token unavailable');
-    return data.apiKey;
+    return _cliApiKeyPromise;
 }
 
 export async function fetchCliHistory(apiKey) {

@@ -13,6 +13,7 @@ const BASE = '/api/simplebeacon/user/ai-keys';
 // Cool-down after 401/403 to prevent request spam from multiple views
 let _lastAuthFailure = 0;
 const AUTH_FAILURE_COOLDOWN_MS = 30000;
+let _aiKeysPromise = null;
 /**
  * Has valid user jwt.
  * @returns {any}
@@ -51,27 +52,37 @@ export function normalizeAiKeysRecord(keysRecord = null) {
  * Fetch user ai keys.
  * @returns {any}
  */
-export async function fetchUserAiKeys() {
+export async function fetchUserAiKeys(options = {}) {
     if (!isAuthenticated() || !hasValidUserJwt()) {
         return normalizeAiKeysRecord(null);
     }
     if (Date.now() - _lastAuthFailure < AUTH_FAILURE_COOLDOWN_MS) {
         return normalizeAiKeysRecord(null);
     }
-    const keysHttpResponse = await fetch(BASE, { headers: authService.getAuthHeaders() });
-    const keysPayload = await readJsonResponseBody(keysHttpResponse, {});
-    if (!keysHttpResponse.ok || !keysPayload.success) {
-        if (keysHttpResponse.status === 404 && keysPayload.error === 'API route not found') {
-            throw new Error('AI keys API not loaded — restart the dashboard server (npm run dashboard:v1-internal).');
-        }
-        const msg = keysPayload.error || keysPayload.message || '';
-        if (keysHttpResponse.status === 401 || keysHttpResponse.status === 403 || /Authentication required/i.test(msg)) {
-            _lastAuthFailure = Date.now();
-            return normalizeAiKeysRecord(null);
-        }
-        throw new Error(msg || 'Failed to load AI keys');
+    if (!options.refresh && _aiKeysPromise) {
+        return _aiKeysPromise;
     }
-    return normalizeAiKeysRecord(keysPayload);
+    _aiKeysPromise = fetch(BASE, { headers: authService.getAuthHeaders() })
+        .then(async (keysHttpResponse) => {
+        const keysPayload = await readJsonResponseBody(keysHttpResponse, {});
+        if (!keysHttpResponse.ok || !keysPayload.success) {
+            if (keysHttpResponse.status === 404 && keysPayload.error === 'API route not found') {
+                throw new Error('AI keys API not loaded — restart the dashboard server (npm run dashboard:v1-internal).');
+            }
+            const msg = keysPayload.error || keysPayload.message || '';
+            if (keysHttpResponse.status === 401 || keysHttpResponse.status === 403 || /Authentication required/i.test(msg)) {
+                _lastAuthFailure = Date.now();
+                return normalizeAiKeysRecord(null);
+            }
+            throw new Error(msg || 'Failed to load AI keys');
+        }
+        return normalizeAiKeysRecord(keysPayload);
+    })
+        .catch((err) => {
+        _aiKeysPromise = null;
+        throw err;
+    });
+    return _aiKeysPromise;
 }
 /**
  * Save user ai keys.
@@ -82,6 +93,7 @@ export async function saveUserAiKeys(payload) {
     if (!isAuthenticated() || !hasValidUserJwt()) {
         throw new Error('Authentication required. Log in to save AI provider keys securely.');
     }
+    _aiKeysPromise = null;
     const saveHttpResponse = await fetch(BASE, {
         method: 'PUT',
         headers: {
@@ -105,6 +117,7 @@ export async function saveUserAiKeys(payload) {
  * @returns {any}
  */
 export async function clearUserAiKeys() {
+    _aiKeysPromise = null;
     const clearHttpResponse = await fetch(BASE, {
         method: 'DELETE',
         headers: authService.getAuthHeaders()

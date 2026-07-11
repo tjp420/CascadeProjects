@@ -201,7 +201,7 @@ export function isAnalyzeProviderConfigured(provider) {
  * @returns {any}
  */
 export async function fetchAnalyzeProviders(options = {}) {
-    if (!options.refresh && providersPromise) {
+    if (providersPromise) {
         return providersPromise;
     }
     const params = options.refresh ? `?${new URLSearchParams({ _: String(Date.now()) })}` : '';
