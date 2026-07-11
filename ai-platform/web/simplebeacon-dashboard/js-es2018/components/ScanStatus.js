@@ -1,8 +1,8 @@
 import { escapeHtml, formatPercent, showToast } from '../utils.js';
-import { resolveDisplayScore, formatScanScopeSummary, formatScanInventoryNote } from '../services/analyzeService.js?v=20260710inventory1';
+import { resolveDisplayScore, formatScanScopeSummary, formatScanInventoryNote, getScanFileMetrics } from '../services/analyzeService.js?v=20260710inventory1';
 import { runLocalScan } from '../services/localScanService.js';
 import { isLocalPath, probeAgent, scanViaAgent, probeAgent4000, scanViaAgent4000, renderAgentCertificate } from '../services/localAgentService.js?v=20260710agentcache3';
-import { runSandboxedDirectoryScan, isDroppedFolder, scanDroppedItems } from '../services/browserSandboxScanService.js?v=20260711scanner1';
+import { runSandboxedDirectoryScan, isDroppedFolder, scanDroppedItems } from '../services/browserSandboxScanService.js?v=20260711entropy1';
 /**
  * Resolve initial scan root.
  * @param {number} report
@@ -327,7 +327,7 @@ function renderScanPathControls(report, options = {}) {
  * @returns {any}
  */
 export function renderScanStatus(report, options = {}) {
-    const { scanning = false, config, compact = false } = options;
+    const { scanning = false, config, compact = false, redesign = false } = options;
     const gate = (report === null || report === void 0 ? void 0 : report.gate) || {};
     const gateClass = gate.pass ? 'pass' : gate.blockingCount > 0 ? 'fail' : 'warn';
     const gateLabel = gate.pass ? 'PASS' : gate.blockingCount > 0 ? 'FAIL' : 'WARN';
@@ -335,6 +335,43 @@ export function renderScanStatus(report, options = {}) {
     const scope = formatScanScopeSummary(report);
     const score = formatPercent(resolveDisplayScore(report));
     const freshness = formatFreshnessWarning(report);
+    if (redesign) {
+        const metrics = getScanFileMetrics(report);
+        const analyzed = metrics.filesAnalyzed != null ? formatNumber(metrics.filesAnalyzed) : null;
+        const total = metrics.repositoryFiles != null ? formatNumber(metrics.repositoryFiles) : null;
+        const mock = metrics.mockSampleFiles != null ? formatNumber(metrics.mockSampleFiles) : null;
+        const fiction = (report && report.fictionKpiHits) != null ? formatNumber(report.fictionKpiHits) : null;
+        const sizeBytes = (report && report.totalBytes) != null ? Number(report.totalBytes) : null;
+        const sizeText = sizeBytes != null ? `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB` : null;
+        const statsParts = [
+            analyzed ? `<span><strong>${analyzed}</strong> files analyzed</span>` : '',
+            total ? `<span>of <strong>${total}</strong> total</span>` : '',
+            mock ? `<span><strong>${mock}</strong> mock/sample</span>` : '',
+            fiction ? `<span><strong>${fiction}</strong> JSON fiction-scanned</span>` : '',
+            sizeText ? `<span><strong>${sizeText}</strong></span>` : '',
+            score ? `<span>Consistency <strong>${score}</strong></span>` : ''
+        ].filter(Boolean);
+        const statsLine = statsParts.join(' · ');
+        return `
+    <div class="dashboard-scan-redesign">
+      <div class="dashboard-scan-redesign-header">
+        <div>
+          <div class="dashboard-scan-redesign-label">LAST SCAN</div>
+          <div class="dashboard-scan-redesign-meta">
+            <span class="dashboard-scan-redesign-time">${escapeHtml((report === null || report === void 0 ? void 0 : report.generatedAt) ? new Date(report.generatedAt).toLocaleString() : 'No scan yet')}</span>
+            ${freshness ? `<span class="dashboard-scan-redesign-freshness">${escapeHtml(freshness)}</span>` : ''}
+          </div>
+        </div>
+        <span class="dashboard-scan-badge ${gateClass}">${gateLabel}</span>
+      </div>
+      ${statsLine ? `<div class="dashboard-scan-redesign-stats">${statsLine}</div>` : ''}
+      ${inventoryNote ? `<div class="dashboard-scan-redesign-inventory">${escapeHtml(inventoryNote)}</div>` : ''}
+      <div class="dashboard-scan-redesign-card">
+        ${renderScanPathControls(report, { ...options, config, scanning })}
+      </div>
+    </div>
+  `;
+    }
     return `
     <div class="card dashboard-scan-card${compact ? ' compact' : ''}">
       <div class="dashboard-scan-header">
@@ -368,6 +405,65 @@ export function renderCompactScanStatus(report, options = {}) {
 export function updateScanStatusDom(root, report) {
     if (!root)
         return false;
+    const redesign = root.querySelector('.dashboard-scan-redesign');
+    if (redesign) {
+        const gate = (report === null || report === void 0 ? void 0 : report.gate) || {};
+        const gateClass = gate.pass ? 'pass' : gate.blockingCount > 0 ? 'fail' : 'warn';
+        const gateLabel = gate.pass ? 'PASS' : gate.blockingCount > 0 ? 'FAIL' : 'WARN';
+        const inventoryNote = formatScanInventoryNote(report);
+        const timeText = (report === null || report === void 0 ? void 0 : report.generatedAt) ? new Date(report.generatedAt).toLocaleString() : 'No scan yet';
+        const badge = redesign.querySelector('.dashboard-scan-badge');
+        if (badge) {
+            const nextClass = `dashboard-scan-badge ${gateClass}`;
+            if (badge.className !== nextClass)
+                badge.className = nextClass;
+            if (badge.textContent !== gateLabel)
+                badge.textContent = gateLabel;
+        }
+        const timeEl = redesign.querySelector('.dashboard-scan-redesign-time');
+        if (timeEl && timeEl.textContent !== timeText)
+            timeEl.textContent = timeText;
+        const freshnessText = formatFreshnessWarning(report);
+        const freshnessEl = redesign.querySelector('.dashboard-scan-redesign-freshness');
+        if (freshnessText) {
+            if (freshnessEl) {
+                if (freshnessEl.textContent !== freshnessText)
+                    freshnessEl.textContent = freshnessText;
+            }
+            else {
+                const meta = redesign.querySelector('.dashboard-scan-redesign-meta');
+                if (meta) {
+                    const div = document.createElement('span');
+                    div.className = 'dashboard-scan-redesign-freshness';
+                    div.textContent = freshnessText;
+                    meta.appendChild(div);
+                }
+            }
+        }
+        else if (freshnessEl) {
+            freshnessEl.remove();
+        }
+        const invEl = redesign.querySelector('.dashboard-scan-redesign-inventory');
+        if (inventoryNote) {
+            if (invEl) {
+                if (invEl.textContent !== inventoryNote)
+                    invEl.textContent = inventoryNote;
+            }
+            else {
+                const stats = redesign.querySelector('.dashboard-scan-redesign-stats');
+                if (stats) {
+                    const div = document.createElement('div');
+                    div.className = 'dashboard-scan-redesign-inventory';
+                    div.textContent = inventoryNote;
+                    stats.insertAdjacentElement('afterend', div);
+                }
+            }
+        }
+        else if (invEl) {
+            invEl.remove();
+        }
+        return true;
+    }
     const card = root.querySelector('.dashboard-scan-card');
     if (!card)
         return false;
@@ -843,7 +939,7 @@ export function bindScanStatus(container, options = {}) {
                 terminal.textContent = 'Reading dropped items…';
             try {
                 const droppedFolder = await isDroppedFolder(items);
-                const folderName = items[0].getAsFile && items[0].getAsFile().name || 'selected';
+                const folderName = (items[0] && items[0].getAsFile && items[0].getAsFile().name) || 'selected';
                 if (droppedFolder) {
                     const report = await scanDroppedItems(items, {
                         onLog: (entry) => {

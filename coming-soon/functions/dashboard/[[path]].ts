@@ -1,48 +1,26 @@
-import type { PagesFunction } from '@cloudflare/workers-types';
-
 /**
- * Proxy /dashboard/* requests to the Render backend so the dashboard appears
- * to be served under the same simplebeacon.ai domain.
+ * Serve the SimpleBeacon dashboard SPA from Cloudflare Pages static assets.
  *
- * Set BACKEND_URL in the Cloudflare Pages dashboard (e.g. https://simplebeacon.onrender.com).
+ * Static asset requests (CSS, JS, images, fonts) are passed through to the
+ * Pages asset handler. All other /dashboard/* routes return the dashboard
+ * entry HTML so the client-side router can render the requested view.
  */
-export const onRequest: PagesFunction<{
-  BACKEND_URL?: string;
-}> = async (context) => {
-  const { request, env, params } = context;
-  const backendUrl = env.BACKEND_URL || 'https://simplebeacon.onrender.com';
-  const path = Array.isArray(params.path) ? params.path.join('/') : (params.path as string) || '';
-  const target = new URL(`/dashboard/${path}`, backendUrl.replace(/\/$/, ''));
-  target.search = new URL(request.url).search;
+export const onRequest = async (context: any) => {
+  const { request, env } = context;
+  const url = new URL(request.url);
+  const pathname = url.pathname;
 
-  const init: RequestInit = {
-    method: request.method,
-    headers: new Headers(request.headers),
-    body: request.method === 'GET' || request.method === 'HEAD' ? null : request.body,
-  };
-
-  // Forward the original host so the backend can generate correct public URLs
-  const headers = init.headers as Headers;
-  headers.set('X-Forwarded-Proto', 'https');
-  headers.set('X-Forwarded-Host', new URL(request.url).host);
-
-  try {
-    const response = await fetch(target.toString(), init);
-    const newHeaders = new Headers(response.headers);
-    // Replace backend Set-Cookie Domain with the Pages domain if present
-    const cookies = newHeaders.get('set-cookie');
-    if (cookies) {
-      newHeaders.set('set-cookie', cookies.replace(/Domain=[^;]+;?/gi, ''));
-    }
-    return new Response(response.body, {
-      status: response.status,
-      statusText: response.statusText,
-      headers: newHeaders,
-    });
-  } catch (err) {
-    return new Response(
-      `Dashboard backend unavailable: ${err instanceof Error ? err.message : String(err)}`,
-      { status: 502, headers: { 'Content-Type': 'text/plain' } }
-    );
+  // Pass static dashboard assets straight through to the asset handler.
+  if (pathname.match(/\.(css|js|mjs|svg|png|jpg|jpeg|gif|ico|woff2|woff|ttf|otf|json|map|txt|xml|webmanifest)$/i)) {
+    return env.ASSETS.fetch(request);
   }
+
+  // Serve the dashboard SPA for every other /dashboard/* route.
+  // Use the duplicated __entry file (no extension) so Cloudflare does not strip the
+  // extension and redirect, and force the response Content-Type to text/html.
+  const assetUrl = new URL('/dashboard/__entry', url.origin);
+  const response = await env.ASSETS.fetch(new Request(assetUrl.toString(), request));
+  const headers = new Headers(response.headers);
+  headers.set('Content-Type', 'text/html; charset=utf-8');
+  return new Response(response.body, { status: response.status, headers });
 };

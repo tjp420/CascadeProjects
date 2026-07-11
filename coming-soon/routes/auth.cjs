@@ -48,6 +48,25 @@ function verifySessionToken(token) {
     }
 }
 
+// Seed demo users for local development so the dashboard sign-in page works out of the box.
+function seedDemoUsers() {
+    const demoUsers = [
+        { email: 'dev@simplebeacon.ai', password: 'demo123', name: 'Dev User', tier: 'silver' },
+        { email: 'admin@simplebeacon.ai', password: 'admin123', name: 'Admin User', tier: 'gold' }
+    ];
+    for (const u of demoUsers) {
+        if (db.getUserByEmail(u.email)) continue;
+        const salt = generateSalt();
+        const passwordHash = crypto.scryptSync(u.password, salt, 64).toString('hex');
+        try {
+            db.createUser(u.email, passwordHash, salt, u.tier);
+        } catch (err) {
+            logger.error('[Auth] Failed to seed demo user:', err.message);
+        }
+    }
+}
+seedDemoUsers();
+
 // POST /api/auth/register
 router.post('/api/auth/register', express.json(), async (req, res) => {
     try {
@@ -72,6 +91,7 @@ router.post('/api/auth/register', express.json(), async (req, res) => {
         res.json({
             success: true,
             token,
+            user: { email: user.email, name: user.name, tier: user.tier },
             email: user.email,
             tier: user.tier,
             expiresInHours: SESSION_EXPIRY_HOURS,
@@ -105,6 +125,7 @@ router.post('/api/auth/login', express.json(), async (req, res) => {
         res.json({
             success: true,
             token,
+            user: { email: user.email, name: user.name, tier: user.tier },
             email: user.email,
             tier: user.tier,
             expiresInHours: SESSION_EXPIRY_HOURS,
@@ -135,6 +156,7 @@ router.get('/api/auth/me', (req, res) => {
         }
         res.json({
             authenticated: true,
+            user: { email: payload.email, tier: payload.tier },
             email: payload.email,
             tier: payload.tier
         });

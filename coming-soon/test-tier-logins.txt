@@ -1,0 +1,43 @@
+# SimpleBeacon Tier Token / Login Test Sheet
+# Use these against the coming-soon server (http://127.0.0.1:3000 or wherever PUBLIC_URL points)
+
+# ─────────────────────────────────────────────────────────────
+# EMAIL / PASSWORD LOGINS (tier comes from user record)
+# ─────────────────────────────────────────────────────────────
+
+silver : dev@simplebeacon.ai  / demo123
+  -> expected token payload: tier = "silver"
+
+gold   : admin@simplebeacon.ai / admin123
+  -> expected token payload: tier = "gold"
+
+# New email/password registrations default to community tier
+community : <register a new account at /api/auth/register>
+  -> POST /api/auth/register { "email": "test@example.com", "password": "password123" }
+  -> expected response: user.tier = "community"
+
+
+# ─────────────────────────────────────────────────────────────
+# TOKEN-ONLY LOGIN ENDPOINTS (no password, returns token directly)
+# ─────────────────────────────────────────────────────────────
+
+community-token : POST /api/free-token
+  -> body/query: { "email": "test@example.com" }
+  -> expected response: token, tier = "community"
+
+sandbox-token : POST /api/tokens/sandbox
+  -> body/query: { "email": "test@example.com" } (optional)
+  -> expected response: token, tier = "sandbox"
+
+
+# ─────────────────────────────────────────────────────────────
+# TESTING IN THE DASHBOARD
+# ─────────────────────────────────────────────────────────────
+
+# Use the token in the dashboard token-sign-in form, or call:
+# POST /api/auth/login { "token": "<paste-token-here>" }
+# Expected response: token + user.tier matching the rows above
+
+# Quick admin check:
+# POST /api/auth/login { "email": "admin@simplebeacon.ai", "password": "admin123" }
+# Expected response: token + user.tier = "gold"

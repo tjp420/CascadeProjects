@@ -2,3 +2,8 @@
   from = "/api/*"
   to = "https://cascadeprojects-yzzd.onrender.com/api/:splat"
   status = 200
+
+[[redirects]]
+  from = "/dashboard/*"
+  to = "/dashboard/index.html"
+  status = 200

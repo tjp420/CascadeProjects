@@ -323,7 +323,7 @@ export class AuditView {
             ${this.running === 'npm' ? 'Auditing…' : 'Run npm audit'}
           </button>
           <button type="button" class="btn btn-ghost btn-sm" data-action="results">View issues</button>
-          <button type="button" class="btn btn-ghost btn-sm" id="audit-send-ai-btn" title="Send audit data to AI coding agent">🤖 Send to AI Agent</button>
+          ${this.app.isCurrentUserAdmin() ? '<button type="button" class="btn btn-ghost btn-sm" id="audit-send-ai-btn" title="Send audit data to AI coding agent">🤖 Send to AI Agent</button>' : ''}
         </div>
       </div>
 

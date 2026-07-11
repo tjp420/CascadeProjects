@@ -1,0 +1,30 @@
+[package]
+name = "simplebeacon-desktop"
+version = "1.0.0"
+description = "SimpleBeacon Desktop - native file system scanning"
+authors = ["SimpleBeacon"]
+license = "MIT"
+repository = "https://github.com/simplebeacon/simplebeacon-desktop"
+edition = "2021"
+rust-version = "1.70"
+
+[lib]
+name = "simplebeacon_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "simplebeacon-desktop"
+path = "src/main.rs"
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-fs = "2"
+tauri-plugin-shell = "2"
+tauri-plugin-dialog = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.release]
+opt-level = 3
+lto = true
+strip = true

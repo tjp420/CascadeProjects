@@ -30,6 +30,54 @@
     } catch (e) {}
     try { _updateSidebarAuthState(false); } catch (e) {}
   }
+  // Append a downloaded file entry to the sidebar Downloads list
+  function _appendDownloadedFile(name, filePath, time) {
+    const dlList = document.getElementById('dlList');
+    if (!dlList) {
+      if (vscode) { try { vscode.postMessage({ command: 'sidebarError', message: 'Downloads list (#dlList) missing from sidebar DOM' }); } catch(_) {} }
+      return;
+    }
+    const dlEmpty = dlList.querySelector('.dl-empty');
+    if (dlEmpty) { dlEmpty.remove(); }
+    const item = document.createElement('div');
+    item.className = 'dl-item';
+    item.dataset.filePath = filePath || '';
+    const dlWrap = document.createElement('div');
+    dlWrap.style.overflow = 'hidden';
+    const dlName = document.createElement('div');
+    dlName.className = 'dl-item-name';
+    dlName.textContent = name || 'File';
+    const dlPath = document.createElement('div');
+    dlPath.className = 'dl-item-path';
+    dlPath.textContent = filePath || '';
+    dlWrap.appendChild(dlName);
+    dlWrap.appendChild(dlPath);
+    const dlActs = document.createElement('div');
+    dlActs.className = 'dl-actions';
+    const dlBtnOpen = document.createElement('button');
+    dlBtnOpen.className = 'dl-btn dl-open';
+    dlBtnOpen.textContent = 'Open';
+    const dlBtnCopy = document.createElement('button');
+    dlBtnCopy.className = 'dl-btn dl-copy';
+    dlBtnCopy.textContent = 'Copy';
+    dlActs.appendChild(dlBtnOpen);
+    dlActs.appendChild(dlBtnCopy);
+    item.appendChild(dlWrap);
+    item.appendChild(dlActs);
+    dlList.insertBefore(item, dlList.firstChild);
+    dlBtnOpen.addEventListener('click', function(e) {
+      e.stopPropagation();
+      if (vscode) { vscode.postMessage({ command: 'openFile', path: filePath }); }
+    });
+    dlBtnCopy.addEventListener('click', function(e) {
+      e.stopPropagation();
+      if (vscode) { vscode.postMessage({ command: 'copyPath', path: filePath }); }
+    });
+    // Clicking the row itself asks the extension to load the report back into the dashboard
+    item.addEventListener('click', function() {
+      if (vscode) { vscode.postMessage({ command: 'loadReportFile', path: filePath }); }
+    });
+  }
   // Generic dropdown toggle: works for every .settings-dropdown-header including duplicates
   document.addEventListener('click', function(e) {
     let header = e.target.closest('.settings-dropdown-header, .menu-list-item');
@@ -1331,16 +1379,9 @@
       if (tabEl) tabEl.checked = !!msg.value;
     }
     if (msg.command === 'addDownloadedFile') {
-      const dlList = document.getElementById('dlList');
-      if (!dlList) return;
-      const dlEmpty = dlList.querySelector('.dl-empty'); if (dlEmpty) dlEmpty.remove();
-      const item = document.createElement('div');
-      item.className = 'dl-item';
-      item.dataset.filePath = msg.path || '';
-      const dlWrap = document.createElement('div'); dlWrap.style.overflow = 'hidden'; const dlName = document.createElement('div'); dlName.className = 'dl-item-name'; dlName.textContent = msg.name || 'File'; const dlPath = document.createElement('div'); dlPath.className = 'dl-item-path'; dlPath.textContent = msg.path || ''; dlWrap.appendChild(dlName); dlWrap.appendChild(dlPath); const dlActs = document.createElement('div'); dlActs.className = 'dl-actions'; const dlBtnOpen = document.createElement('button'); dlBtnOpen.className = 'dl-btn dl-open'; dlBtnOpen.textContent='Open'; const dlBtnCopy = document.createElement('button'); dlBtnCopy.className = 'dl-btn dl-copy'; dlBtnCopy.textContent='Copy'; dlActs.appendChild(dlBtnOpen); dlActs.appendChild(dlBtnCopy); item.appendChild(dlWrap); item.appendChild(dlActs);
-      dlList.insertBefore(item, dlList.firstChild);
-      item.querySelector('.dl-open').addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openFile', path: msg.path}); });
-      item.querySelector('.dl-copy').addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'copyPath', path: msg.path}); });
+      // simplebeacon-ignore console-log — diagnostic visibility while debugging sidebar download relay
+      console.log('[Sidebar] addDownloadedFile received:', msg.name, msg.path);
+      _appendDownloadedFile(msg.name, msg.path, msg.time);
     }
     if (msg.command === 'clearDownloadedFiles') {
       const dlList = document.getElementById('dlList');
@@ -1615,9 +1656,9 @@
   // Team Dashboard navigation/quick links: open pages inside the IDE (webview panel or simple browser)
   (function bindWebsiteNavigation() {
     const websitePathMap = {
-      tdRoadmapSidebar: '/dashboard/roadmap',
-      tdAuditSidebar: '/dashboard/audit',
-      tdPricingSidebar: '/dashboard/pricing',
+      tdRoadmapSidebar: '/roadmap.html',
+      tdAuditSidebar: '/audit.html',
+      tdPricingSidebar: '/pricing.html',
       tdDashboardSidebar: '/dashboard',
       tdAnalyzeSidebar: '/dashboard/analyze',
       tdResultsSidebar: '/dashboard/results',
@@ -1636,11 +1677,6 @@
       tdChatbotSidebar: '/dashboard/chatbot',
       tdAboutSidebar: '/dashboard/about'
     };
-    const comingSoonMap = {
-      tdRoadmapSidebar: '/coming-soon/roadmap.html',
-      tdAuditSidebar: '/coming-soon/audit.html',
-      tdPricingSidebar: '/coming-soon/pricing.html'
-    };
     Object.keys(websitePathMap).forEach(function(id) {
       const el = document.getElementById(id);
       if (!el) return;
@@ -1648,11 +1684,7 @@
       el.addEventListener('click', function(e) {
         e.stopPropagation();
         if (!window.vscode) return;
-        if (comingSoonMap[id]) {
-          window.vscode.postMessage({ command: 'openDataServerPath', path: comingSoonMap[id] });
-        } else {
-          window.vscode.postMessage({ command: 'openTeamDashboard', route: websitePathMap[id] });
-        }
+        window.vscode.postMessage({ command: 'openTeamDashboard', route: websitePathMap[id] });
       });
     });
   })();

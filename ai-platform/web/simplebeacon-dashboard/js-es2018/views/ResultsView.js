@@ -93,9 +93,10 @@ export class ResultsView {
           <button class="btn btn-secondary btn-sm" id="export-full-btn" type="button">Export full report</button>
           <button class="btn btn-secondary btn-sm" id="export-filtered-json-btn" type="button">Export filtered JSON</button>
           <button class="btn btn-secondary btn-sm" id="export-csv-btn" type="button">Export CSV</button>
-          <button class="btn btn-primary btn-sm" id="send-ai-btn" type="button" title="Send scan data to AI coding agent">🤖 Send to AI Agent</button>
+          ${this.app.isCurrentUserAdmin() ? '<button class="btn btn-primary btn-sm" id="send-ai-btn" type="button" title="Send scan data to AI coding agent">🤖 Send to AI Agent</button>' : ''}
         </div>
       </div>
+      ${this.app.isCurrentUserAdmin() ? `
       <div id="ai-send-panel" class="card mb-4" style="display:none;padding:var(--space-3);background:rgba(99,102,241,0.06);border-color:rgba(99,102,241,0.2);">
         <p style="font-size:0.8rem;color:var(--text-muted);margin:0 0 8px;">Add notes for the AI agent (optional):</p>
         <textarea id="ai-notes-input" rows="2" style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px;background:var(--bg);color:var(--text);font-family:var(--font-mono);font-size:0.8rem;resize:vertical;" placeholder="e.g., 'Focus on critical credential leaks first, ignore test files...'"></textarea>
@@ -104,7 +105,7 @@ export class ResultsView {
           <button class="btn btn-ghost btn-sm" id="ai-send-cancel" type="button">Cancel</button>
         </div>
         <div id="ai-send-status" style="margin-top:8px;font-size:0.8rem;display:none;"></div>
-      </div>
+      </div>` : ''}
       ${fromAudit && report ? `
         <div class="card mb-4" style="padding:var(--space-4)">
           <p style="margin:0">

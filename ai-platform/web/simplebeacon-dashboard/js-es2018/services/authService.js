@@ -6,7 +6,7 @@ import { isLocalDevHost, DEMO_EMAIL } from '../demoMode.js';
  */
 export function apiBase() {
     if (typeof location !== 'undefined' && !/^(localhost|127\.0\.0\.1)$/i.test(location.hostname) && !location.hostname.endsWith('.onrender.com')) {
-        return 'https://cascadeprojects-yzzd.onrender.com';
+        return 'https://simplebeacon.ai';
     }
     return '';
 }
@@ -125,6 +125,29 @@ export class AuthService {
             return null;
         }
     }
+    isAdmin() {
+        const user = this.user || this.getUser() || {};
+        const role = String(user.role || '').toLowerCase();
+        const tier = String(user.tier || '').toLowerCase();
+        if (role === 'admin' || role === 'superuser') return true;
+        if (tier === 'admin' || tier === 'superuser') return true;
+        if (Array.isArray(user.features) && user.features.map(String).map(s => s.toLowerCase()).includes('all_modules')) return true;
+        try {
+            const token = this.getToken();
+            if (token) {
+                const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+                const tokenRole = String(payload.role || '').toLowerCase();
+                const tokenTier = String(payload.tier || payload.plan || '').toLowerCase();
+                if (tokenRole === 'admin' || tokenRole === 'superuser') return true;
+                if (tokenTier === 'admin' || tokenTier === 'superuser') return true;
+                if (Array.isArray(payload.features) && payload.features.map(String).map(s => s.toLowerCase()).includes('all_modules')) return true;
+            }
+        }
+        catch (_a) {
+            // ignore decode errors
+        }
+        return false;
+    }
     setSession(token, user) {
         localStorage.setItem(TOKEN_KEY, token);
         setCookie(TOKEN_KEY, token);
@@ -139,7 +162,8 @@ export class AuthService {
         // Notify parent VS Code webview of auth state change
         if (typeof window !== 'undefined' && window.parent !== window) {
             const tier = (user && (user.tier || user.plan)) || this.getTokenTier() || '';
-            window.parent.postMessage({ command: 'setAuthState', signedIn: true, tier }, '*');
+            const isAdmin = this.isAdmin();
+            window.parent.postMessage({ command: 'setAuthState', signedIn: true, tier, isAdmin }, '*');
         }
     }
     clearSession() {

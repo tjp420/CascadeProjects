@@ -738,11 +738,7 @@ export class WelcomeDashboard {
           break;
         }
         case 'openTeamDashboard':
-          this.showDashboardPane();
-          vscode.commands.executeCommand('simplebeacon-modern.focus');
-          setTimeout(() => {
-            postSidebarMessage({ command: 'switchSidebarTab', tab: 'dashboard' });
-          }, 300);
+          openSidebarInBrowserStatic('/dashboard');
           break;
         case 'openTeamDashboardInIDE':
           this.showTeamPane();
@@ -1222,7 +1218,7 @@ export class WelcomeDashboard {
             try { await this.authManager.setToken(String(msg.token)); } catch {}
           }
           // Forward auth state from dashboard to sidebar
-          ModernSidebarProvider.setSidebarAuthState(msg.signedIn === true, msg.tier || '', msg.token ? String(msg.token) : undefined);
+          ModernSidebarProvider.setSidebarAuthState(msg.signedIn === true, msg.tier || '', msg.token ? String(msg.token) : undefined, undefined, msg.isAdmin === true);
           break;
         case 'storeActiveLicenseToken':
           if (msg.token) {

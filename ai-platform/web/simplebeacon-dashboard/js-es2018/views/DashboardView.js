@@ -1,8 +1,8 @@
-import { formatNumber, formatPercent, escapeHtml, renderEmptyState, showToast } from '../utils.js';
+import { formatNumber, formatPercent, escapeHtml, showToast } from '../utils.js';
 import { buildScanConclusion, getScanFileMetrics, resolveDisplayScore, resolveJestTestsLabel, resolvePageSpecsLabel, renderScanScopePanel } from '../services/analyzeService.js?v=20260710inventory1';
-import { renderScanStatus, updateScanStatusDom, bindScanStatus, runDashboardScanFromInput } from '../components/ScanStatus.js?v=20260711viewresults1';
+import { renderScanStatus, updateScanStatusDom, bindScanStatus, runDashboardScanFromInput } from '../components/ScanStatus.js?v=20260711redesign1';
 import { renderIssueList } from '../components/IssueCard.js';
-import { renderQuickActions, bindQuickActions } from '../components/QuickActions.js';
+import { renderQuickActions, bindQuickActions } from '../components/QuickActions.js?v=20260711admin1';
 import { renderTrendSection, mountTrendChart } from '../components/TrendChart.js';
 import { fetchRepositoryHealth, renderRepositoryHealthSection } from './RepositoryHealthView.js';
 import { renderPathHealthDashboard, cleanupPathHealthDashboard } from '../components/PathHealthDashboard.js';
@@ -199,38 +199,83 @@ export class DashboardView {
         const el = document.createElement('div');
         el.className = 'fade-in';
         if (!report) {
-            const emptyState = scanning
-                ? renderEmptyState({
-                    icon: '<path d="M21 12a9 9 0 1 1-6.219-8.56" stroke-dasharray="2 2"/><polyline points="9 12 12 15 22 5"/>',
-                    title: 'Scanning…',
-                    body: 'Analysis is running. Switch to <a href="/dashboard/analyze">Analyze</a> to watch progress.',
-                    actions: [
-                        { label: 'Open Analyze', id: 'dash-goto-analyze', className: 'btn-secondary' }
-                    ]
-                })
-                : renderEmptyState({
-                    icon: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>',
-                    title: 'No scan report loaded',
-                    body: 'Set your repo folder on <a href="/dashboard/analyze">Analyze → Project path</a>, then run a scan. Gate mock folders live in <a href="/dashboard/settings">Settings → Scan paths</a>.',
-                    actions: [
-                        { label: 'Run Scan', id: 'dash-run-scan', className: 'btn-primary' },
-                        { label: 'Open Analyze', id: 'dash-goto-analyze', className: 'btn-secondary' }
-                    ]
-                });
-            el.innerHTML = `<h1 class="page-title">Dashboard</h1>${emptyState}`;
+            if (scanning) {
+                el.innerHTML = `
+          <h1 class="page-title">Dashboard</h1>
+          <div class="card" style="padding:var(--space-5); text-align:center;">
+            <div style="margin-bottom:var(--space-3);"><span class="loading-spinner" style="width:48px;height:48px;"></span></div>
+            <h2 style="font-size:var(--font-size-xl); margin-bottom:var(--space-2);">Scanning…</h2>
+            <p class="text-muted" style="max-width:480px; margin:0 auto var(--space-3);">Analysis is running. Switch to Analyze to watch progress.</p>
+            <button class="btn btn-secondary" id="dash-goto-analyze">Open Analyze</button>
+          </div>
+        `;
+                return el;
+            }
+            el.innerHTML = `
+        <div class="dashboard-header">
+          <h1 class="page-title">Dashboard</h1>
+        </div>
+
+        <div class="dashboard-kpi-bar">
+          <span class="dashboard-kpi muted"><i data-lucide="shield-check"></i> Gate —</span>
+          <span class="dashboard-kpi muted"><i data-lucide="alert-circle"></i> — issues</span>
+          <span class="dashboard-kpi muted"><i data-lucide="check-circle-2"></i> — consistency</span>
+          <span class="dashboard-kpi muted"><i data-lucide="files"></i> — / — files</span>
+        </div>
+
+        <div class="dashboard-hero" style="margin-bottom:var(--space-5);">
+          <div class="dashboard-panel dashboard-panel-accent">
+            <div class="dashboard-panel-header">
+              <h2 class="dashboard-panel-title">Welcome to SimpleBeacon</h2>
+            </div>
+            <p class="dashboard-panel-text">Set your repo folder, drop a file, or paste a URL, then run a scan. The dashboard will show your gate status, issue breakdown, and remediation roadmap.</p>
+            <div class="dashboard-actions-bar" style="margin-top:var(--space-3);">
+              <button class="btn btn-primary" id="dash-run-scan"><i data-lucide="play" class="icon-16"></i> Run Scan</button>
+              <button class="btn btn-secondary" id="dash-goto-analyze"><i data-lucide="folder-search" class="icon-16"></i> Open Analyze</button>
+              <a class="btn btn-ghost" href="/dashboard/settings"><i data-lucide="settings-2" class="icon-16"></i> Settings</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="dashboard-body">
+          <div class="dashboard-body-primary">
+            <div class="dashboard-panel">
+              <div class="dashboard-panel-header">
+                <h3 class="dashboard-panel-title-sm">Quick start</h3>
+              </div>
+              <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:var(--space-3); margin-top:var(--space-2);">
+                <div class="card" style="padding:var(--space-3);">
+                  <div style="font-size:1.25rem; margin-bottom:var(--space-2);">1️⃣</div>
+                  <strong style="display:block; margin-bottom:var(--space-1);">Choose a target</strong>
+                  <p class="text-muted" style="font-size:var(--font-size-sm);">Open the Analyze page and select a local folder, public repo, or drop files.</p>
+                </div>
+                <div class="card" style="padding:var(--space-3);">
+                  <div style="font-size:1.25rem; margin-bottom:var(--space-2);">2️⃣</div>
+                  <strong style="display:block; margin-bottom:var(--space-1);">Pick a scan mix</strong>
+                  <p class="text-muted" style="font-size:var(--font-size-sm);">Select the analysis engines and AI narrative that fit your review.</p>
+                </div>
+                <div class="card" style="padding:var(--space-3);">
+                  <div style="font-size:1.25rem; margin-bottom:var(--space-2);">3️⃣</div>
+                  <strong style="display:block; margin-bottom:var(--space-1);">Review results</strong>
+                  <p class="text-muted" style="font-size:var(--font-size-sm);">See issues, severity breakdown, and a remediation roadmap.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="dashboard-body-side">
+            ${renderPrivacyCard()}
+            <div class="dashboard-panel">
+              <div class="dashboard-panel-header">
+                <h3 class="dashboard-panel-title-sm">Need help?</h3>
+              </div>
+              <p class="text-muted" style="font-size:var(--font-size-sm);">Gate mock folders and scan paths can be configured in <a href="/dashboard/settings">Settings</a>.</p>
+            </div>
+          </div>
+        </div>
+      `;
             return el;
         }
         const conclusion = buildScanConclusion(report);
-        const sev = (report === null || report === void 0 ? void 0 : report.severityCounts) || {};
-        const totalIssues = (sev.high || 0) + (sev.medium || 0) + (sev.low || 0);
-        const healthClass = totalIssues === 0 ? 'success' : totalIssues <= 5 ? 'warning' : 'danger';
-        const healthLabel = totalIssues === 0 ? 'Healthy' : totalIssues <= 5 ? 'Review' : 'Attention';
-        const gate = (report === null || report === void 0 ? void 0 : report.gate) || {};
-        const gateClass = gate.pass ? 'success' : gate.blockingCount > 0 ? 'danger' : 'warning';
-        const gateLabel = gate.pass ? 'PASS' : gate.blockingCount > 0 ? 'FAIL' : 'WARN';
-        const fileMetrics = getScanFileMetrics(report);
-        const analyzedFiles = fileMetrics.analyzedFiles ?? report.filesAnalyzed ?? report.codeFilesAnalyzed ?? 0;
-        const totalFiles = fileMetrics.totalFiles ?? report.totalFiles ?? report.repoFiles ?? analyzedFiles ?? 0;
         el.innerHTML = `
       <div class="dashboard-header">
         <h1 class="page-title">Dashboard</h1>
@@ -244,34 +289,9 @@ export class DashboardView {
         </div>
       </div>
 
-      <div class="dashboard-kpi-bar">
-        <span class="dashboard-kpi ${gateClass}"><i data-lucide="shield-check"></i> ${gateLabel}</span>
-        <span class="dashboard-kpi ${healthClass}"><i data-lucide="alert-circle"></i> ${totalIssues} ${totalIssues === 1 ? 'issue' : 'issues'}</span>
-        <span class="dashboard-kpi success"><i data-lucide="check-circle-2"></i> ${formatPercent(resolveDisplayScore(report))} consistency</span>
-        <span class="dashboard-kpi"><i data-lucide="flask-conical"></i> ${(_a = resolveJestTestsLabel(baseline, this.app.state.dashboardHome)) !== null && _a !== void 0 ? _a : '—'} tests</span>
-        <span class="dashboard-kpi muted"><i data-lucide="files"></i> ${formatNumber(analyzedFiles)} / ${formatNumber(totalFiles)} files</span>
-      </div>
+      <div id="slot-scan-status" class="dashboard-scan-hero"></div>
 
       <div class="dashboard-actions-bar" id="slot-quick-actions"></div>
-
-      <div class="dashboard-bento">
-        <div class="dashboard-bento-main" id="slot-scan-status"></div>
-        <div class="dashboard-bento-side">
-          <div class="dashboard-panel" id="slot-repo-health">
-            <div class="dashboard-panel-header">
-              <h3 class="dashboard-panel-title-sm">Repository health</h3>
-              <a class="btn btn-ghost btn-xs" href="/dashboard/repository-health">Details →</a>
-            </div>
-            <p class="text-muted"><span class="loading-spinner"></span> Loading optimization metrics…</p>
-          </div>
-          <div class="dashboard-panel" id="slot-path-health">
-            <div class="dashboard-panel-header">
-              <h3 class="dashboard-panel-title-sm">System Path Health</h3>
-            </div>
-            <p class="text-muted"><span class="loading-spinner"></span> Loading path health metrics…</p>
-          </div>
-        </div>
-      </div>
 
       <div class="dashboard-body">
         <div class="dashboard-body-primary">
@@ -287,6 +307,19 @@ export class DashboardView {
           <div class="dashboard-panel" id="slot-trend"></div>
         </div>
         <div class="dashboard-body-side">
+          <div class="dashboard-panel" id="slot-repo-health">
+            <div class="dashboard-panel-header">
+              <h3 class="dashboard-panel-title-sm">Repository health</h3>
+              <a class="btn btn-ghost btn-xs" href="/dashboard/repository-health">Details →</a>
+            </div>
+            <p class="text-muted"><span class="loading-spinner"></span> Loading optimization metrics…</p>
+          </div>
+          <div class="dashboard-panel" id="slot-path-health">
+            <div class="dashboard-panel-header">
+              <h3 class="dashboard-panel-title-sm">System Path Health</h3>
+            </div>
+            <p class="text-muted"><span class="loading-spinner"></span> Loading path health metrics…</p>
+          </div>
           <div class="dashboard-panel dashboard-panel-accent">
             <div class="dashboard-panel-header">
               <h3 class="dashboard-panel-title-sm">Scan summary</h3>
@@ -345,12 +378,13 @@ export class DashboardView {
                 scanning,
                 config: this.app.state.config,
                 lastProjectPath: this.app.state.lastProjectPath,
-                defaultProjectPath: this.app.state.defaultProjectPath
+                defaultProjectPath: this.app.state.defaultProjectPath,
+                redesign: true
             });
             bindScanStatus(scanSlot, scanHandlers);
         }
         const actionsSlot = el.querySelector('#slot-quick-actions');
-        actionsSlot.innerHTML = renderQuickActions({ showSendAi: true });
+        actionsSlot.innerHTML = renderQuickActions({ showSendAi: this.app.isCurrentUserAdmin() });
         bindQuickActions(actionsSlot, {
             onRunScan: () => runDashboardScanFromInput(scanSlot.querySelector('#scan-root-input'), scanHandlers),
             onExport: () => {

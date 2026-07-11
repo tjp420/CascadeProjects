@@ -347,11 +347,11 @@
   <main class="pricing-wrap">
     <div class="pricing-gate">
       <nav class="top-nav">
-        <a href="index.html" class="brand">SimpleBeacon</a>
+        <a href="/" class="brand">SimpleBeacon</a>
         <div class="nav-links">
-          <a href="roadmap.html">Roadmap</a>
-          <a href="audit.html">Audit</a>
-          <a href="pricing.html">Pricing</a>
+          <a href="/roadmap">Roadmap</a>
+          <a href="/audit">Audit</a>
+          <a href="/pricing">Pricing</a>
           <a href="/dashboard/dashboard" id="vaultLink">Team Dashboard</a>
           <script>window.addEventListener('DOMContentLoaded', function() { if (window.SbAuth) window.SbAuth.propagateTokenToLinks(); });</script>
           <button type="button" id="nav-signin-btn" style="display:none;margin-left:8px;padding:4px 0;background:transparent;color:var(--text-muted);font-size:0.8rem;cursor:pointer;border:none;border-radius:0;">Sign in</button>
@@ -1299,7 +1299,7 @@
         var authed = hasAnyToken();
         if (signoutBtn) signoutBtn.style.display = authed ? 'inline-block' : 'none';
         if (signinBtn) signinBtn.style.display = authed ? 'none' : 'inline-block';
-        document.querySelectorAll('.nav-links a[href="pricing.html"]').forEach(function(el) { el.style.display = authed ? 'none' : ''; });
+        document.querySelectorAll('.nav-links a[href="/pricing"]').forEach(function(el) { el.style.display = authed ? 'none' : ''; });
       }
       // Persist token from URL query param
       try {

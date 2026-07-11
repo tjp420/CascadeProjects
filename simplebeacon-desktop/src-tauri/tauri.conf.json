@@ -1,0 +1,49 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "SimpleBeacon Desktop",
+  "version": "1.0.0",
+  "identifier": "com.simplebeacon.desktop",
+  "build": {
+    "beforeDevCommand": "node ../build-frontend.js dev && node ../serve.js 1420 dev",
+    "beforeBuildCommand": "node ../build-frontend.js dist",
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:1420"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "SimpleBeacon Desktop",
+        "label": "main",
+        "width": 1280,
+        "height": 900,
+        "minWidth": 640,
+        "minHeight": 480,
+        "resizable": true,
+        "maximized": false,
+        "fullscreen": false,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' http://localhost:* https://simplebeacon.ai;"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "identifier": "com.simplebeacon.desktop"
+  },
+  "plugins": {
+    "shell": {
+      "open": "^https?://",
+      "execute": [
+        {
+          "name": "simplebeacon-cli",
+          "cmd": "npx",
+          "args": ["simplebeacon"],
+          "sidecar": false
+        }
+      ]
+    }
+  }
+}

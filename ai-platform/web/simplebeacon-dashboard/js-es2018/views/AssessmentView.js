@@ -189,6 +189,13 @@ export class AssessmentView {
     }
     mount(container) {
         var _a, _b, _c;
+        if (!authService.isAdmin()) {
+            container.innerHTML = `
+                <div class="page-header"><h1>Assessments</h1></div>
+                <div class="card notice-card"><p>Admin access required.</p></div>
+            `;
+            return;
+        }
         const selectedId = (_a = this.app.state.routeParams) === null || _a === void 0 ? void 0 : _a.id;
         if (selectedId) {
             if (((_c = (_b = this.report) === null || _b === void 0 ? void 0 : _b.metadata) === null || _c === void 0 ? void 0 : _c.assessmentId) !== selectedId) {

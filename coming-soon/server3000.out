@@ -1,0 +1,18 @@
+2026-07-11T21:11:15.194Z  INFO: [token-service] JWT configuration loaded: {
+  algorithm: 'HS256',
+  issuer: 'cascade-ai-platform',
+  audience: 'cascade-ai-users',
+  expiresIn: '15m',
+  hasSecret: true,
+  secretSource: 'ephemeral',
+  secretLength: 128,
+  secretFromEnv: false
+}
+2026-07-11T21:11:15.825Z  INFO: [Simplebeacon] Registered POST and GET /api/analyze/eu-ai-act-audit-report
+[Billing] Subscription billing routes mounted
+[API] Simplebeacon dashboard API mounted
+[Auth] Authentication routes mounted
+[Email] Email management routes mounted
+[Admin] Admin routes mounted
+[EmailRetry] Background retry worker started (5 min interval).
+Server listening on port 3000

@@ -1,11 +1,12 @@
 {
   "version": 1,
-  "include": ["/api/*"],
-  "exclude": [],
-  "routes": [
-    {
-      "src": "^/dashboard(/[^.]*)?$",
-      "dest": "/dashboard/index.html"
-    }
+  "include": ["/api/*", "/dashboard/*"],
+  "exclude": [
+    "/dashboard/css/*",
+    "/dashboard/js/*",
+    "/dashboard/js-es2018/*",
+    "/dashboard/images/*",
+    "/dashboard/fonts/*",
+    "/dashboard/assets/*"
   ]
 }

@@ -3,7 +3,7 @@ import { evaluateFunnelMetrics, getFunnelCopy } from '../utils/funnelTrigger.js'
 import { LocalScanService } from '../services/localScanService.js?v=20260709noise3';
 import { fingerprintDirectory, formatFingerprint } from '../services/fingerprintService.js';
 import { probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus, getAgentDownloadUrl, detectPlatform, getPlatformLabel, getInstallInstructions, getAgentFallbackMessage, probeAgent4000, scanViaAgent4000, renderAgentCertificate } from '../services/localAgentService.js?v=20260711themefix1';
-import { runSandboxedDirectoryScan, scanDroppedItems, isDroppedFolder } from '../services/browserSandboxScanService.js?v=20260711scanner1';
+import { runSandboxedDirectoryScan, scanDroppedItems, isDroppedFolder } from '../services/browserSandboxScanService.js?v=20260711entropy1';
 // simplebeacon:production-leak-intent: sample-json - Legitimate documentation about sample file patterns in analysis results
 import { analyzePath, scanPath, summarizeReport, fetchAnalyzeProviders, fetchRepositoryInventory, fetchCodebaseAnalysis, enrichScanReport, fetchZscriptModReport, shouldFetchZscriptReport, isLegacyScanReport, buildMonorepoScopeNote, buildPathInventoryProvenance, renderInventoryProvenanceHtml, refreshPathInventory, liveInventoryForPath, renderScanScopePanel, isSimplebeaconReport, normalizeSimplebeaconReport, aiProviderSupportsSummary, getScanFileMetrics, resolveAutoAnalysisMode, buildScanConclusion, buildConsolidationConclusion, buildFictionDigestPayload, sanitizeFictionDigestExport, resolveCompleteScanTargetPath, normalizeProjectPath, filterIssuesByKind, preparePlatformResultsReport, fetchCompleteAuditReport, fetchAnalyzeExportBundleZip, fetchEuAiActAuditReport, openAuditReportPrintWindow, previewAuditExportTier, auditExportButtonLabel, fetchDataCleanupScan, ensureDashboardApiReady, assertCompleteScanComplianceFresh, assertCompleteScanFileReductionFresh, fetchUnderstandSnippet, isCodebaseReport, fetchComplianceChecklist, fetchProjectNpmAudit, prepareGithubRepo, fetchAnalyzeTestSources, isAnalyzeProviderConfigured, uploadDirectoryAndAnalyze } from '../services/analyzeService.js?v=20260711reportv11';
 import { isRemoteRepoUrl, sourceChipTitle } from '../lib/analyzePathSources.js';
@@ -15,7 +15,6 @@ import { runEuAiActSprint } from '../services/operatorService.js?v=20260531eupdf
 import { renderModeFileScopePanel, extractRoadmapFileMetrics } from '../utils/analyze-mode-file-scope.browser.js?v=20260601roadmapscope1';
 import { renderModeFileResultsPanel } from '../utils/analyze-mode-file-results.browser.js?v=20260601filereconcile1';
 import { renderScanPaywall, buildPublicSummaryFromScan, isDeliverableLocked } from '../components/ScanPaywall.js';
-import { renderCompactScanStatus } from '../components/ScanStatus.js?v=20260711viewresults1';
 import { AI_SYSTEM_ISSUES, ANALYZER_CATALOG, groupIssuesByCategory, buildAiSystemsIssueAnalysis } from '../services/aiProblemAnalyzerSuite.mjs';
 import { renderIssueList } from '../components/IssueCard.js';
 import { showDownloadCredentialsModal } from '../components/DownloadCredentialsModal.js';
@@ -1534,15 +1533,6 @@ export class AnalyzeView {
         el.className = 'fade-in';
         el.innerHTML = `
       ${renderPrivacyBanner()}
-      <!-- Hero header -->
-      <div class="analyze-hero">
-        <div class="analyze-hero-main">
-          <h1 class="page-title">Analyze</h1>
-          <span class="analyze-build-badge">${escapeHtml(String(window.__SIMPLEBEACON_DASHBOARD_BUILD__ || 'dev'))}</span>
-        </div>
-        <p class="text-muted analyze-hero-sub">Scan a repo folder, drop a file, or paste a URL. Pick your scan mix and run.</p>
-      </div>
-
       <!-- Last scan summary card -->
       <div id="analyze-last-scan-card" class="analyze-last-scan-wrap">
         ${this.renderLastScanCard()}
@@ -1764,9 +1754,8 @@ export class AnalyzeView {
     }
     renderLastScanCard() {
         const report = this.app.state.report || this._lastAgentReport || null;
-        const normalized = this.normalizeReportForScanStatus(report);
-        if (!normalized) return '';
-        return renderCompactScanStatus(normalized) + this.renderScanMetricsPanel(report);
+        if (!report) return '';
+        return this.renderScanMetricsPanel(report);
     }
     renderScanMetricsPanel(report) {
         const metrics = getScanFileMetrics(report);
@@ -1774,7 +1763,7 @@ export class AnalyzeView {
             ? `<div class="metric-chip" title="Repository inventory (skips node_modules, .git, build artifacts)"><strong>${formatNumber(metrics.repositoryFiles)}</strong> repo files</div>`
             : '';
         return `
-      <div class="analyze-scan-metrics" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+      <div class="analyze-scan-metrics">
         ${repoChip}
         <div class="metric-chip"><strong>${formatNumber(metrics.filesAnalyzed || 0)}</strong> files analyzed</div>
         <div class="metric-chip"><strong>${formatNumber(metrics.mockSampleFiles || 0)}</strong> mock/sample</div>
@@ -1848,52 +1837,6 @@ export class AnalyzeView {
         const datalist = isWeb ? '' : renderPathSuggestionsDatalistElement(collectPathSuggestions(this.app, this.testSources));
         const pathSources = isWeb ? '' : this.renderPathSourceSections(defaultPath, displayPath);
         return `
-      <style>
-        .analyze-target-redesign { border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface-elevated); overflow: hidden; }
-        .analyze-target-redesign .target-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--border); background: var(--surface); }
-        .analyze-target-redesign .target-title { font-size: 0.95rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
-        .analyze-target-redesign .target-body { padding: 20px; }
-        .analyze-target-redesign .drop-zone { border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); padding: 20px; text-align: left; transition: all .2s; position: relative; }
-        .analyze-target-redesign .drop-zone.drag-active { border-color: var(--primary); background: rgba(99,102,241,0.06); }
-        .analyze-target-redesign .drop-zone-icon { width: 48px; height: 48px; border-radius: 12px; background: rgba(99,102,241,0.1); color: var(--primary); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 8px; }
-        .analyze-target-redesign .drop-zone-title { font-size: 1rem; font-weight: 600; margin-bottom: 4px; }
-        .analyze-target-redesign .drop-zone-sub { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 16px; }
-        .analyze-target-redesign .drop-zone-actions { display: flex; gap: 10px; justify-content: flex-start; flex-wrap: wrap; }
-        .analyze-target-redesign .path-row { display: flex; gap: 8px; align-items: center; max-width: none; margin: 18px 0 0; }
-        .analyze-target-redesign .path-row input { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 8px 12px; color: var(--text-primary); font-size: 0.85rem; }
-        .analyze-target-redesign .path-row button { flex-shrink: 0; }
-        .analyze-target-redesign .hint { text-align: left; font-size: 0.7rem; color: var(--text-muted); margin-top: 8px; }
-        .analyze-target-redesign .options-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
-        .analyze-target-redesign .quick-file { border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); padding: 14px; margin-top: 14px; }
-        .analyze-target-redesign .quick-file-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-        .analyze-target-redesign .quick-file-title { font-size: 0.9rem; font-weight: 600; }
-        .analyze-target-redesign .quick-file-sub { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 10px; }
-        .analyze-target-redesign .quick-file-actions { display: flex; gap: 8px; }
-        .analyze-target-redesign .scanning-state { display: none; padding: 24px; text-align: center; }
-        .analyze-target-redesign .scanning-state.active { display: block; }
-        .analyze-target-redesign .scanning-state h3 { margin-bottom: 8px; }
-        .analyze-target-redesign .scanning-state p { color: var(--text-muted); font-size: 0.85rem; }
-        .an-tgt-drop { border: none; border-top: 1px solid var(--border); border-radius: 0; background: transparent; padding: 16px 0 0; margin-top: 16px; text-align: left; transition: all .2s; }
-        .an-tgt-drop.drag-active { border-color: var(--primary); background: rgba(99,102,241,0.06); }
-        .fingerprint-status { min-height: 1.2em; margin-top: 8px; font-size: 0.85rem; color: var(--primary); font-weight: 500; text-align: left; }
-        .agent-status { min-height: 1.2em; margin-top: 4px; font-size: 0.8rem; color: var(--text-muted); text-align: left; }
-        .agent-status.available { color: var(--success); }
-        .agent-status.unavailable { color: var(--text-muted); }
-        .agent-download-cta { min-height: 1.2em; margin-top: 4px; font-size: 0.85rem; text-align: left; }
-        .agent-download-cta a { color: var(--primary); text-decoration: underline; }
-        .agent-install-wizard { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 12px; border: 1px dashed var(--border); border-radius: var(--radius-lg); background: var(--surface); max-width: none; margin: 0; }
-        .agent-wizard-title { font-weight: 600; margin: 0; }
-        .agent-wizard-subtitle { color: var(--text-muted); margin: 0; font-size: 0.8rem; }
-        .agent-wizard-step { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-start; }
-        .agent-wizard-instructions { color: var(--text); margin: 0; max-width: none; }
-        .agent-wizard-polling { color: var(--text-muted); font-size: 0.8rem; }
-        .agent-wizard-polling.hidden { display: none; }
-        .an-tgt-drop-icon { font-size: 1.75rem; margin: 0 8px 0 0; display: inline-flex; vertical-align: middle; }
-        .an-tgt-drop h4 { font-size: 1rem; font-weight: 600; margin-bottom: 4px; }
-        .an-tgt-drop p { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 16px; }
-        .an-tgt-actions { display: flex; gap: 10px; justify-content: flex-start; flex-wrap: wrap; }
-      </style>
-
       <div class="analyze-target-redesign" id="analyze-target-card">
         <div class="target-header">
           <span class="target-title"><span>🎯</span> Target</span>
@@ -5239,7 +5182,7 @@ export class AnalyzeView {
                     analyzeTerminal.textContent = 'Reading dropped items…';
                 try {
                     const droppedFolder = await isDroppedFolder(items);
-                    const folderName = (items[0].getAsFile && items[0].getAsFile().name) || 'selected';
+                    const folderName = (items[0] && items[0].getAsFile && items[0].getAsFile().name) || 'selected';
                     if (droppedFolder) {
                         const report = await scanDroppedItems(items, {
                             onLog: (entry) => {
@@ -5340,38 +5283,13 @@ export class AnalyzeView {
                 }
             });
         }
-        // Whole-page drag overlay
-        if (typeof window !== 'undefined' && !document.getElementById('analyze-global-drag-overlay')) {
-            const overlay = document.createElement('div');
-            overlay.id = 'analyze-global-drag-overlay';
-            overlay.className = 'sb-global-drag-overlay';
-            overlay.innerHTML = `
-              <div class="sb-global-drag-overlay-card">
-                <div class="sb-global-drag-overlay-icon">📂</div>
-                <div class="sb-global-drag-overlay-title">Drop folder or files anywhere to scan</div>
-                <div class="sb-global-drag-overlay-hint">Release to scan privately in your browser</div>
-              </div>
-            `;
-            document.body.appendChild(overlay);
-            let globalDragDepth = 0;
-            window.addEventListener('dragenter', (event) => {
-                globalDragDepth++;
-                overlay.classList.add('is-visible');
-            });
-            window.addEventListener('dragover', (event) => {
-                event.preventDefault();
-            });
-            window.addEventListener('dragleave', (event) => {
-                globalDragDepth--;
-                if (globalDragDepth <= 0) {
-                    globalDragDepth = 0;
-                    overlay.classList.remove('is-visible');
-                }
-            });
-            window.addEventListener('drop', (event) => {
-                globalDragDepth = 0;
-                overlay.classList.remove('is-visible');
-            });
+        // Keep only the visible dropzone (#analyze-path-dropzone); do not install a
+        // whole-page drag overlay. The overlay duplicated the drop target, captured
+        // drops outside the intended zone, and its window drop listener failed to
+        // call preventDefault(), causing the browser to navigate to file:// URLs.
+        const existingOverlay = document.getElementById('analyze-global-drag-overlay');
+        if (existingOverlay) {
+            existingOverlay.remove();
         }
         this.bindFileDropEvents(el);
         if (!this._aiKeysListenerBound && typeof window !== 'undefined') {
@@ -7969,9 +7887,10 @@ export class AnalyzeView {
         const isComplete = kind === 'complete';
         const showGotoResults = kind === 'complete' || kind === 'simplebeacon-report' || kind === 'mock-scan';
         const gotoLabel = kind === 'complete' ? 'Open Simplebeacon Results →' : 'Open in Results →';
+        const isAdmin = this.app.isCurrentUserAdmin();
         const extraButtons = kind === 'roadmap'
             ? '<button type="button" class="btn btn-secondary btn-sm" id="copy-roadmap-json">Copy JSON</button>'
-            : '<button type="button" class="btn btn-primary btn-sm" id="analyze-send-ai-btn" title="Send scan data to AI coding agent">🤖 Send to AI Agent</button>';
+            : (isAdmin ? '<button type="button" class="btn btn-primary btn-sm" id="analyze-send-ai-btn" title="Send scan data to AI coding agent">🤖 Send to AI Agent</button>' : '');
         return `
       <div class="scan-results-export-bar card mb-4">
         ${this.renderAuditExportCallout()}
@@ -7985,6 +7904,7 @@ export class AnalyzeView {
             auditButtonLabel: this.getAuditExportButtonLabel()
         })}
         </div>
+        ${isAdmin ? `
         <div id="analyze-ai-panel" class="card mt-3" style="display:none;padding:var(--space-3);background:rgba(99,102,241,0.06);border-color:rgba(99,102,241,0.2);">
           <p style="font-size:0.8rem;color:var(--text-muted);margin:0 0 8px;">Add notes for the AI agent (optional):</p>
           <textarea id="analyze-ai-notes" rows="2" style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px;background:var(--bg);color:var(--text);font-family:var(--font-mono);font-size:0.8rem;resize:vertical;" placeholder="e.g., 'Focus on critical credential leaks first, ignore test files...'"></textarea>
@@ -7993,7 +7913,7 @@ export class AnalyzeView {
             <button class="btn btn-ghost btn-sm" id="analyze-ai-cancel" type="button">Cancel</button>
           </div>
           <div id="analyze-ai-status" style="margin-top:8px;font-size:0.8rem;display:none;"></div>
-        </div>
+        </div>` : ''}
       </div>
     `;
     }

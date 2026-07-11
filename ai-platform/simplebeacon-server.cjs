@@ -489,6 +489,13 @@ app.get(/^\/trust(\/.*)?$/, (req, res) => {
   res.redirect(302, trustHash);
 });
 
+// Serve dashboard assets under the /dashboard prefix for clients using absolute dashboard paths
+const dashboardStaticDir = path.join(webRoot, 'simplebeacon-dashboard');
+['/dashboard/css', '/dashboard/js', '/dashboard/js-es2018', '/dashboard/images', '/dashboard/fonts', '/dashboard/assets'].forEach(p => {
+  app.use(p, express.static(path.join(dashboardStaticDir, p.substring('/dashboard/'.length))));
+});
+app.use('/dashboard/site-config.js', express.static(path.join(dashboardStaticDir, 'site-config.js')));
+
 app.get('/', async (req, res) => {
   // For internal dashboard, prioritize dashboard over landing page
   if (internalDashboard) {

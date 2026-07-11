@@ -1,25 +1,25 @@
 import { scanService } from './services/scanService.js?v=20260711dedup2';
 import { platformService } from './services/platformService.js?v=20260525jsonguard1';
 import { billingService } from './services/billingService.js?v=20260525jsonfixbilling1';
-import { authService, apiBase } from './services/authService.js?v=20260709tokenfix1';
+import { authService, apiBase } from './services/authService.js?v=20260711admin1';
 import { themeService } from './services/themeService.js';
 import { Router, PUBLIC_VIEWS } from './router.js';
-import { TrustView } from './views/TrustView.js?v=20260525statictrust2';
-import { RepositoryHealthView } from './views/RepositoryHealthView.js?v=20260525mergepreview1';
-import { DashboardView } from './views/DashboardView.js?v=20260711viewresults1';
-import { ResultsView } from './views/ResultsView.js';
+import { TrustView } from './views/TrustView.js?v=20260711admin1';
+import { RepositoryHealthView } from './views/RepositoryHealthView.js?v=20260711admin1';
+import { DashboardView } from './views/DashboardView.js?v=20260711redesign1';
+import { ResultsView } from './views/ResultsView.js?v=20260711admin1';
 import { SettingsView } from './views/SettingsView.js?v=20260709ollama3';
 import { ToolsView } from './views/ToolsView.js';
 import { PlatformView } from './views/PlatformView.js?v=20260601platformmetrics1';
-import { QualityView } from './views/QualityView.js';
+import { QualityView } from './views/QualityView.js?v=20260711admin1';
 import { HelpView, FeaturesView } from './views/HelpView.js';
-import { AuditView } from './views/AuditView.js?v=20260618renderfix1';
-import { AnalyzeView } from './views/AnalyzeView.js?v=20260711viewresults2';
-import { SecurityView } from './views/SecurityView.js?v=20260611fixexport1';
+import { AuditView } from './views/AuditView.js?v=20260711admin1';
+import { AnalyzeView } from './views/AnalyzeView.js?v=20260711redesign2';
+import { SecurityView } from './views/SecurityView.js?v=20260711admin1';
 import { PricingView } from './views/PricingView.js';
 import { AboutView } from './views/AboutView.js';
-import { AssessmentView } from './views/AssessmentView.js';
-import { SignInView } from './views/SignInView.js?v=20260609token3';
+import { AssessmentView } from './views/AssessmentView.js?v=20260711admin1';
+import { SignInView } from './views/SignInView.js?v=20260711signinfix1';
 import { ChatbotView } from './views/ChatbotView.js?v=20260711singleflow11';
 import { UploadView } from './views/UploadView.js';
 import { RemediationRoadmapView } from './views/RemediationRoadmapView.js';
@@ -703,6 +703,9 @@ class SimplebeaconDashboard {
         const adminLink = document.getElementById('nav-admin-link');
         if (adminLink)
             adminLink.hidden = !authed || !this.isCurrentUserAdmin();
+        const assessmentsLink = document.getElementById('nav-assessments-link');
+        if (assessmentsLink)
+            assessmentsLink.hidden = !authed || !this.isCurrentUserAdmin();
         const profileAdminItem = document.getElementById('profile-dropdown-admin');
         if (profileAdminItem)
             profileAdminItem.hidden = !authed || !this.isCurrentUserAdmin();

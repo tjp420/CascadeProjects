@@ -57,7 +57,9 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
   private static _cachedSignedIn = false;
   private static _cachedTier = '';
   private static _cachedToken = '';
+  private static _cachedIsAdmin = false;
   public static getCachedTier(): string { return ModernSidebarProvider._cachedTier; }
+  public static getCachedIsAdmin(): boolean { return ModernSidebarProvider._cachedIsAdmin; }
   private static _tracker?: AccountTracker;
 
   public static setAccountTracker(tracker: AccountTracker) {
@@ -97,6 +99,7 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
     let signedIn = ModernSidebarProvider._cachedSignedIn;
     let token = ModernSidebarProvider._cachedSignedIn ? ModernSidebarProvider._cachedToken : '';
     let tier = ModernSidebarProvider._cachedTier;
+    let isAdmin = ModernSidebarProvider._cachedIsAdmin;
     try {
       let authManager: AuthManager | null = null;
       try { authManager = getAuthManager(); } catch { authManager = null; }
@@ -122,22 +125,24 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
       }
       ModernSidebarProvider._cachedSignedIn = signedIn;
       ModernSidebarProvider._cachedTier = tier;
-      ModernSidebarProvider.logRelay('refreshAuthState post setAuthState signedIn=' + signedIn + ' tier=' + tier + ' source=' + (source || ''));
-      const msg: any = { command: 'setAuthState', signedIn, token, tier };
+      ModernSidebarProvider._cachedIsAdmin = isAdmin;
+      ModernSidebarProvider.logRelay('refreshAuthState post setAuthState signedIn=' + signedIn + ' tier=' + tier + ' isAdmin=' + isAdmin + ' source=' + (source || ''));
+      const msg: any = { command: 'setAuthState', signedIn, token, tier, isAdmin };
       if (source) { msg.source = source; }
       inst._view.webview.postMessage(msg);
     } catch (e) {
-      inst._view.webview.postMessage({ command: 'setAuthState', signedIn: ModernSidebarProvider._cachedSignedIn, token: '', tier: ModernSidebarProvider._cachedTier });
+      inst._view.webview.postMessage({ command: 'setAuthState', signedIn: ModernSidebarProvider._cachedSignedIn, token: '', tier: ModernSidebarProvider._cachedTier, isAdmin: ModernSidebarProvider._cachedIsAdmin });
     }
   }
 
-  public static setSidebarAuthState(signedIn: boolean, tier?: string, token?: string, source?: 'signOut' | 'signIn') {
+  public static setSidebarAuthState(signedIn: boolean, tier?: string, token?: string, source?: 'signOut' | 'signIn', isAdmin?: boolean) {
     ModernSidebarProvider._cachedSignedIn = signedIn;
     if (tier) { ModernSidebarProvider._cachedTier = tier; }
     if (token) { ModernSidebarProvider._cachedToken = token; }
+    if (typeof isAdmin === 'boolean') { ModernSidebarProvider._cachedIsAdmin = isAdmin; }
     const inst = ModernSidebarProvider._instance;
     if (!inst || !inst._view) { return; }
-    const msg: any = { command: 'setAuthState', signedIn, tier: ModernSidebarProvider._cachedTier };
+    const msg: any = { command: 'setAuthState', signedIn, tier: ModernSidebarProvider._cachedTier, isAdmin: ModernSidebarProvider._cachedIsAdmin };
     if (token) { msg.token = token; }
     if (source) { msg.source = source; }
     inst._view.webview.postMessage(msg);
@@ -170,7 +175,9 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
 
   public static openSigninPanel() {
     if (ModernSidebarProvider.openInBrowserIfRemote('/dashboard/signin')) return;
-    vscode.commands.executeCommand('simpleBrowser.show', 'https://simplebeacon.ai/dashboard/signin');
+    const port = getDataServerPort();
+    const signinUrl = `http://127.0.0.1:${port}/dashboard/signin?force=1`;
+    vscode.env.openExternal(vscode.Uri.parse(signinUrl));
   }
 
   public static openTokenRegistrationPanel(extUri: vscode.Uri, token: string) {
@@ -449,10 +456,13 @@ $('cancelBtn').addEventListener('click', () => {
   }
 
   public static openSidebarInBrowserStatic(path = '/') {
-    const previewUrl = path && path !== '/'
-      ? `https://simplebeacon.ai${path.startsWith('/') ? path : '/' + path}`
-      : 'https://simplebeacon.ai/dashboard/#/dashboard';
-    vscode.commands.executeCommand('simpleBrowser.show', previewUrl);
+    if (ModernSidebarProvider.openInBrowserIfRemote(path)) return;
+    const port = getDataServerPort();
+    const safePath = path && path !== '/'
+      ? (path.startsWith('/') ? path : '/' + path)
+      : '/dashboard';
+    const url = `http://127.0.0.1:${port}${safePath}`;
+    vscode.env.openExternal(vscode.Uri.parse(url));
   }
 
   /**
@@ -848,9 +858,7 @@ $('cancelBtn').addEventListener('click', () => {
           case 'team':
           case 'openTeamDashboard': {
             const teamRoute = (message.route && typeof message.route === 'string') ? message.route : '/dashboard';
-            const dsPort = getDataServerPort();
-            const dashboardUrl = `http://127.0.0.1:${dsPort}${teamRoute}?_=${Date.now()}`;
-            vscode.commands.executeCommand('simpleBrowser.show', dashboardUrl);
+            ModernSidebarProvider.openSidebarInBrowserStatic(teamRoute);
             ModernSidebarProvider.relayCommand('showTeamDashboard');
             this._view?.webview.postMessage({ command: 'switchSidebarTab', tab: 'team' });
             break;
@@ -860,8 +868,8 @@ $('cancelBtn').addEventListener('click', () => {
             ModernSidebarProvider.relayCommand('toggleRealtimeMonitoring');
             break;
           case 'openBrowser': {
-            const brPort = getDataServerPort();
-            vscode.commands.executeCommand('simpleBrowser.show', `http://127.0.0.1:${brPort}/dashboard?_=${Date.now()}`);
+            // Open the live dashboard preview in the extension's webview preview panel
+            ModernSidebarProvider.openSidebarInBrowserStatic('/');
             ModernSidebarProvider.relayCommand('openBrowser');
             break;
           }
@@ -953,6 +961,36 @@ $('cancelBtn').addEventListener('click', () => {
               showQuietMessage('Path copied to clipboard');
             }
             break;
+          case 'loadReportFile': {
+            const reportPath = message.path;
+            if (!reportPath) { break; }
+            const resolvedPath = this.resolveWorkspacePath(reportPath);
+            if (!fs.existsSync(resolvedPath)) {
+              vscode.window.showWarningMessage('Report file not found: ' + reportPath);
+              break;
+            }
+            try {
+              const raw = fs.readFileSync(resolvedPath, 'utf8');
+              const report = JSON.parse(raw);
+              if (!report || typeof report !== 'object') {
+                vscode.window.showWarningMessage('Selected file is not a valid report JSON.');
+                break;
+              }
+              // Update the sidebar itself and push the report into the dashboard preview panel if it is open
+              this.updateReport(report);
+              try {
+                const browserPanel = ModernSidebarProvider.getBrowserPanel();
+                if (browserPanel && browserPanel.webview) {
+                  browserPanel.webview.postMessage({ command: 'updateReport', report });
+                }
+              } catch (_) { /* preview panel may not be available */ }
+              showQuietMessage(`Loaded report: ${path.basename(resolvedPath)}`);
+            } catch (err) {
+              const errMsg = err instanceof Error ? err.message : String(err);
+              vscode.window.showErrorMessage('Failed to load report: ' + errMsg);
+            }
+            break;
+          }
           case 'exportReport':
           case 'exportScanReport':
             Promise.resolve(vscode.commands.executeCommand('simplebeacon.exportReport')).catch((err: unknown) => {
@@ -1117,14 +1155,15 @@ $('cancelBtn').addEventListener('click', () => {
             break;
           case 'openDataServerUrl': {
             const dsPort = getDataServerPort();
-            vscode.commands.executeCommand('simpleBrowser.show', `http://127.0.0.1:${dsPort}`);
+            const dataUrl = `http://127.0.0.1:${dsPort}`;
+            vscode.env.openExternal(vscode.Uri.parse(dataUrl));
             break;
           }
           case 'openDataServerPath': {
             if (message.path) {
               if (message.path.startsWith('/coming-soon/')) {
-                const dsPort = getDataServerPort();
-                vscode.commands.executeCommand('simpleBrowser.show', `http://127.0.0.1:${dsPort}${message.path}`);
+                // Use the extension's webview preview so the page can postMessage back to VS Code:
+                vscode.commands.executeCommand('simplebeacon.openInPreview', `https://simplebeacon.ai${message.path}`);
               } else {
                 const routePath = message.path.replace(/^\/dashboard\/?/, '').replace(/\/$/, '') || 'dashboard';
                 ModernSidebarProvider.showDashboardRoute(this._extensionUri, '/' + routePath);
@@ -1136,7 +1175,8 @@ $('cancelBtn').addEventListener('click', () => {
             if (message.path) {
               const dsPort = getDataServerPort();
               const url = `http://127.0.0.1:${dsPort}${message.path}`;
-              vscode.commands.executeCommand('simpleBrowser.show', url);
+              // Use the extension's webview preview so the page can postMessage back to VS Code:
+              vscode.commands.executeCommand('simplebeacon.openInPreview', url);
             }
             break;
           }
@@ -1331,9 +1371,17 @@ $('cancelBtn').addEventListener('click', () => {
                 openPricingUrl: 'Pricing'
               };
               let url = message.url;
-              // Replace the deployed Render roadmap URL with the local dev server copy.
-              if (url === 'https://cascadeprojects-yzzd.onrender.com/coming-soon/roadmap.html') {
-                url = 'http://127.0.0.1:62058/coming-soon/roadmap.html';
+              // Canonicalize old /coming-soon/*.html URLs to the live simplebeacon.ai pages.
+              const canonicalMap: Record<string, string> = {
+                'https://cascadeprojects-yzzd.onrender.com/coming-soon/roadmap.html': 'https://simplebeacon.ai/roadmap',
+                'https://cascadeprojects-yzzd.onrender.com/coming-soon/audit.html': 'https://simplebeacon.ai/audit',
+                'https://cascadeprojects-yzzd.onrender.com/coming-soon/pricing.html': 'https://simplebeacon.ai/pricing',
+                'https://simplebeacon.ai/coming-soon/roadmap.html': 'https://simplebeacon.ai/roadmap',
+                'https://simplebeacon.ai/coming-soon/audit.html': 'https://simplebeacon.ai/audit',
+                'https://simplebeacon.ai/coming-soon/pricing.html': 'https://simplebeacon.ai/pricing'
+              };
+              if (canonicalMap[url]) {
+                url = canonicalMap[url];
               }
               vscode.commands.executeCommand('simplebeacon.openUrlInPreview', url, labelMap[message.command] || '');
             }
@@ -2798,6 +2846,7 @@ body.detail-panel-open #tabAdvanced {
   <div class="tc-list-item" id="tdRemediationSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F6E4;</span><span class="tc-list-name">Remediation</span></div></div>
   <div class="tc-list-item" id="tdPlatformSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F680;</span><span class="tc-list-name">Platform</span></div></div>
   <div class="tc-list-item" id="tdProfileSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F464;</span><span class="tc-list-name">Profile</span></div></div>
+  <div class="tc-list-item admin-only" id="tdAdminPanelSidebar" style="display:none;"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F6E1;</span><span class="tc-list-name">Admin Panel</span></div></div>
   <div class="tc-list-item" id="tdToolsSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F6E0;</span><span class="tc-list-name">Tools</span></div></div>
   <div class="tc-list-item" id="tdSettingsSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x2699;</span><span class="tc-list-name">Settings</span></div></div>
   <div class="tc-list-item" id="tdHelpSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x2753;</span><span class="tc-list-name">Help</span></div></div>
@@ -5152,6 +5201,7 @@ body.tabs-open #browserTabBar{display:flex !important;}
     const fromIframe = !!(mainIframe && mainIframe.contentWindow && ev.source === mainIframe.contentWindow);
     if (ev.data.command === 'setAuthState') {
       const signedIn = !!ev.data.signedIn;
+      const isAdmin = !!ev.data.isAdmin;
       const dbSignin = document.getElementById('dbSigninBtn');
       const dbSignout = document.getElementById('dbSignoutBtn');
       const tdSignin = document.getElementById('tdSignInSidebar');
@@ -5168,6 +5218,10 @@ body.tabs-open #browserTabBar{display:flex !important;}
       const headerSignOut = document.getElementById('headerSignOutBtn');
       if (headerSignIn) headerSignIn.style.display = signedIn ? 'none' : 'inline-flex';
       if (headerSignOut) headerSignOut.style.display = signedIn ? 'inline-flex' : 'none';
+      const tdAdminPanel = document.getElementById('tdAdminPanelSidebar');
+      const tdAssessments = document.getElementById('tdAssessmentsSidebar');
+      if (tdAdminPanel) tdAdminPanel.style.display = isAdmin ? '' : 'none';
+      if (tdAssessments) tdAssessments.style.display = isAdmin ? '' : 'none';
       if (fromIframe && typeof acquireVsCodeApi === 'function') {
         try { acquireVsCodeApi().postMessage(ev.data); } catch (e) {}
       }
@@ -5191,6 +5245,12 @@ body.tabs-open #browserTabBar{display:flex !important;}
   }
   _requestAuthState();
   setInterval(_requestAuthState, 3000);
+  const tdAdminPanel = document.getElementById('tdAdminPanelSidebar');
+  if (tdAdminPanel && mainIframe) {
+    tdAdminPanel.addEventListener('click', function() {
+      mainIframe.src = DASHBOARD_URL + '/#/admin';
+    });
+  }
   // Parent-level tab bar management
   let _browserTabs = [];
   let _browserTabCounter = 0;

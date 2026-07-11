@@ -131,7 +131,7 @@ export class SecurityView {
           <button class="btn btn-secondary btn-sm" id="security-export-json" type="button">
             Export JSON
           </button>
-          <button class="btn btn-ghost btn-sm" id="security-send-ai-btn" type="button" title="Send security findings to AI coding agent">🤖 Send to AI Agent</button>
+          ${this.app.isCurrentUserAdmin() ? '<button class="btn btn-ghost btn-sm" id="security-send-ai-btn" type="button" title="Send security findings to AI coding agent">🤖 Send to AI Agent</button>' : ''}
         </div>
       </div>
 

@@ -1357,6 +1357,20 @@ export function activate(context: vscode.ExtensionContext) {
     }),
     registerCmd('simplebeacon.openInPreview', async (path?: string) => {
       if (path && /^https?:\/\//.test(path)) {
+        // Local http:// URLs cannot be loaded in the HTTPS webview (mixed-content block);
+        // open them in the system browser instead.
+        if (path.startsWith('http://')) {
+          await vscode.env.openExternal(vscode.Uri.parse(path));
+          return;
+        }
+        // Dashboard URLs must be served by the local data server so the auth API is same-origin.
+        if (path.includes('/dashboard')) {
+          const port = getDataServerPort();
+          const parsed = new URL(path);
+          const localPath = parsed.pathname + parsed.search + parsed.hash;
+          await vscode.env.openExternal(vscode.Uri.parse(`http://127.0.0.1:${port}${localPath}`));
+          return;
+        }
         await openPreviewPanel(path, 'SimpleBeacon Preview');
         return;
       }
@@ -8354,6 +8368,7 @@ async function openPreviewPanel(url: string, title: string) {
         });
       } else if (msg.command === 'downloadFile' && msg.base64 && msg.filename) {
         try {
+          outputChannel.appendLine(`[Download Relay] Received downloadFile request: ${msg.filename} (${msg.mimeType || 'unknown'})`);
           const uri = await vscode.window.showSaveDialog({
             defaultUri: vscode.Uri.file(msg.filename),
           });
@@ -8364,14 +8379,25 @@ async function openPreviewPanel(url: string, title: string) {
               cancellable: false,
             }, async (progress) => {
               progress.report({ increment: 0 });
-              fs.writeFileSync(uri.fsPath, Buffer.from(msg.base64, 'base64'));
+              const buffer = Buffer.from(msg.base64, 'base64');
+              await vscode.workspace.fs.writeFile(uri, buffer);
               progress.report({ increment: 100 });
             });
+            outputChannel.appendLine(`[Download Relay] File saved to ${uri.fsPath}`);
             activePreviewPanel?.webview.postMessage({ command: 'downloadComplete', filename: path.basename(uri.fsPath), filePath: uri.fsPath });
-            modernSidebarProvider?.addDownloadedFile(path.basename(uri.fsPath), uri.fsPath);
+            if (modernSidebarProvider) {
+              outputChannel.appendLine(`[Download Relay] Dispatching to sidebar: ${path.basename(uri.fsPath)}`);
+              modernSidebarProvider.addDownloadedFile(path.basename(uri.fsPath), uri.fsPath);
+            } else {
+              outputChannel.appendLine('[Download Relay] Warning: modernSidebarProvider is undefined; file will not appear in sidebar downloads.');
+            }
+          } else {
+            outputChannel.appendLine('[Download Relay] Save dialog cancelled by user.');
           }
         } catch (err) {
-          vscode.window.showErrorMessage('Export failed: ' + (err instanceof Error ? err.message : String(err)));
+          const errMsg = err instanceof Error ? err.message : String(err);
+          outputChannel.appendLine(`[Download Relay] Export failed: ${errMsg}`);
+          vscode.window.showErrorMessage('Export failed: ' + errMsg);
         }
       } else if (msg.command === 'readLocalFile' && msg.path) {
         try {
@@ -8402,7 +8428,7 @@ async function openPreviewPanel(url: string, title: string) {
       } else if (msg.command === 'setAuthState') {
         // Forward auth state from dashboard iframe to sidebar
         const tier = msg.tier || '';
-        ModernSidebarProvider.setSidebarAuthState(msg.signedIn === true, tier);
+        ModernSidebarProvider.setSidebarAuthState(msg.signedIn === true, tier, undefined, undefined, msg.isAdmin === true);
       } else if (msg.command === 'storeActiveLicenseToken' && msg.token) {
         // Store token and forward auth state to sidebar
         try {
@@ -8416,12 +8442,13 @@ async function openPreviewPanel(url: string, title: string) {
   }
   const baseUrl = url.replace(/\?.*$/, '').replace(/#.*$/, '').replace(/\/[^\/]*$/, '/');
   const origin = url.replace(/^(https?:\/\/[^\/]+).*$/, '$1');
+  const resolvePreviewUrl = (matched: string) => matched.startsWith('/') ? origin + matched : baseUrl + matched;
   try {
     const html = await fetchHtml(url);
     let rewritten = html
-      .replace(/href="(?!https?:\/\/|\/\/|#|data:)([^"]*)"/g, 'href="' + baseUrl + '$1"')
-      .replace(/src="(?!https?:\/\/|\/\/|#|data:)([^"]*)"/g, 'src="' + baseUrl + '$1"')
-      .replace(/url\((?!https?:\/\/|\/\/|#|data:)([^\)]*)\)/g, 'url(' + baseUrl + '$1)')
+      .replace(/href="(?!https?:\/\/|\/\/|#|data:)([^"]*)"/g, (_m, p1) => 'href="' + resolvePreviewUrl(p1) + '"')
+      .replace(/src="(?!https?:\/\/|\/\/|#|data:)([^"]*)"/g, (_m, p1) => 'src="' + resolvePreviewUrl(p1) + '"')
+      .replace(/url\((?!https?:\/\/|\/\/|#|data:)([^\)]*)\)/g, (_m, p1) => 'url(' + resolvePreviewUrl(p1) + ')')
       .replace(/file:\/\/\/[^'"]*?\/(coming-soon\/[^'"]*)/g, '/$1')
       .replace(
         /<script>\s*\(\s*function\s*\(\)\s*\{\s*try\s*\{\s*var\s+key\s*=\s*['"]sb_dash_[^'"]+['"];[\s\S]*?\}\s*catch\s*\(e\)\s*\{[\s\S]*?\}\s*\}\s*\)\s*\(\s*\)\s*;?\s*<\/script>/gi,

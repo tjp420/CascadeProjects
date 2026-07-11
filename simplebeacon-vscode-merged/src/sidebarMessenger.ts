@@ -58,14 +58,15 @@ export async function openTeamDashboardPanel(_extUri: vscode.Uri, route = '/dash
   }
   panel.reveal(vscode.ViewColumn.Two);
 
-  const dashboardUrl = `https://simplebeacon.ai${route}?_=${Date.now()}`;
+  const dataServerPort = getDataServerPort();
+  const dashboardUrl = `http://127.0.0.1:${dataServerPort}${route}?_=${Date.now()}`;
   const csp = panel.webview.cspSource;
 
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-${nonce}'; style-src 'unsafe-inline'; frame-src https://simplebeacon.ai https://*.simplebeacon.ai https://*.onrender.com ${csp}; connect-src 'none'; img-src 'none';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-${nonce}'; style-src 'unsafe-inline'; frame-src http://127.0.0.1:${dataServerPort} https://simplebeacon.ai https://*.simplebeacon.ai https://*.onrender.com ${csp}; connect-src 'none'; img-src 'none';">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>${panelTitle}</title>
 <style>

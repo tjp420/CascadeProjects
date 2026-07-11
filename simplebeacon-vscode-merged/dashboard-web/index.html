@@ -10,14 +10,31 @@
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <style id="ide-preview-hide">
     /* Auto-hide sidebar + top bar when loaded inside IDE browser preview */
+    html[data-ide-preview="true"] .app-shell {
+      height: 100vh;
+      min-height: 0;
+      overflow: hidden;
+      --header-height: 0px;
+    }
     html[data-ide-preview="true"] .app-nav { display: none !important; }
     html[data-ide-preview="true"] .mobile-nav-overlay { display: none !important; }
-    html[data-ide-preview="true"] .app-body { flex-direction: column; }
     html[data-ide-preview="true"] .mobile-nav-toggle { display: none !important; }
     html[data-ide-preview="true"] .app-header { display: none !important; }
     html[data-ide-preview="true"] .sandbox-banner { display: none !important; }
-    html[data-ide-preview="true"] .app-shell { --header-height: 0px; }
-    html[data-ide-preview="true"] #app-main { height: 100vh; }
+    html[data-ide-preview="true"] .app-body {
+      flex: 1;
+      min-height: 0;
+      min-width: 0;
+    }
+    html[data-ide-preview="true"] #app-main {
+      flex: 1;
+      height: auto;
+      min-height: 0;
+      min-width: 0;
+      overflow-x: hidden;
+      overflow-y: auto;
+      padding: var(--space-4);
+    }
     /* Hide "Send to AI" buttons in standalone browser; show only in IDE */
     #audit-send-ai-btn, #security-send-ai-btn, #quality-send-ai-btn, #trust-send-ai-btn, #action-send-ai, #send-ai-btn, #send-health-ai-btn { display: none !important; }
     html[data-ide-preview="true"] #audit-send-ai-btn,

@@ -68,7 +68,7 @@ function simplebeaconApiBase() {
     // On Cloudflare Pages / custom domains, the dashboard static files are served without the
     // API backend. Route API calls to the Render backend instead.
     if (typeof location !== 'undefined' && !/^(localhost|127\.0\.0\.1)$/i.test(location.hostname) && !location.hostname.endsWith('.onrender.com')) {
-        return 'https://cascadeprojects-yzzd.onrender.com/api/simplebeacon';
+        return 'https://simplebeacon.ai/api/simplebeacon';
     }
     return '/api/simplebeacon';
 }

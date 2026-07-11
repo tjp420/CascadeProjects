@@ -100,12 +100,12 @@ export class SignInView {
     }
 
     container.innerHTML = `
-      <div class="signin-page">
-        <div class="signin-card card">
-          <div class="signin-header">
-            <span class="signin-icon" aria-hidden="true">&#128274;</span>
-            <h1 class="signin-title">Sign In</h1>
-            <p class="text-muted">Access your SimpleBeacon dashboard.</p>
+      <div class="signin-page" style="display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px;background:var(--bg-body,#0B0F19);box-sizing:border-box;">
+        <div class="signin-card card" style="width:100%;max-width:420px;background:var(--bg-card,#111827);border:1px solid var(--border,#1f2937);border-radius:14px;padding:32px;box-shadow:0 20px 60px rgba(0,0,0,0.35);box-sizing:border-box;color:var(--text-main,#e6edf3);">
+          <div class="signin-header" style="text-align:center;margin-bottom:24px;">
+            <span class="signin-icon" aria-hidden="true" style="font-size:2rem;display:block;margin-bottom:8px;">&#128274;</span>
+            <h1 class="signin-title" style="font-size:1.5rem;font-weight:600;margin:0 0 6px;color:var(--text-main,#e6edf3);">Sign In</h1>
+            <p class="text-muted" style="margin:0;color:var(--text-muted,#8b949e);">Access your SimpleBeacon dashboard.</p>
           </div>
           ${authed ? this.renderAuthed({ email, allowed, internalDev }) : this.renderSignInForm()}
         </div>
@@ -132,68 +132,81 @@ export class SignInView {
   }
 
   renderAuthed({ email, allowed, internalDev }) {
+    const actionsStyle = 'display:flex;flex-direction:column;gap:12px;';
+    const primaryStyle = 'display:block;width:100%;padding:12px 16px;border-radius:8px;background:var(--accent,#6366f1);color:#fff;text-align:center;text-decoration:none;font-weight:600;border:none;cursor:pointer;';
+    const ghostStyle = 'display:block;width:100%;padding:12px 16px;border-radius:8px;background:transparent;color:var(--text-main,#e6edf3);text-align:center;text-decoration:none;font-weight:600;border:1px solid var(--border,#1f2937);cursor:pointer;';
     if (allowed && internalDev) {
       return `
-        <p class="signin-status">Signed in as <strong>${escapeHtml(email)}</strong> (internal preview).</p>
-        <div class="signin-actions">
-          <a class="btn btn-primary" href="/dashboard/dashboard">Open Dashboard</a>
-          <button class="btn btn-ghost" id="signin-signout-btn">Sign Out</button>
+        <p class="signin-status" style="text-align:center;margin:0 0 16px;color:var(--text-main,#e6edf3);">Signed in as <strong>${escapeHtml(email)}</strong> (internal preview).</p>
+        <div class="signin-actions" style="${actionsStyle}">
+          <a class="btn btn-primary" href="/dashboard/dashboard" style="${primaryStyle}">Open Dashboard</a>
+          <button class="btn btn-ghost" id="signin-signout-btn" style="${ghostStyle}">Sign Out</button>
         </div>
       `;
     }
     if (allowed) {
       return `
-        <p class="signin-status">Signed in as <strong>${escapeHtml(email)}</strong>.</p>
-        <div class="signin-actions">
-          <a class="btn btn-primary" href="/dashboard/dashboard">Open Dashboard</a>
-          <button class="btn btn-ghost" id="signin-signout-btn">Sign Out</button>
+        <p class="signin-status" style="text-align:center;margin:0 0 16px;color:var(--text-main,#e6edf3);">Signed in as <strong>${escapeHtml(email)}</strong>.</p>
+        <div class="signin-actions" style="${actionsStyle}">
+          <a class="btn btn-primary" href="/dashboard/dashboard" style="${primaryStyle}">Open Dashboard</a>
+          <button class="btn btn-ghost" id="signin-signout-btn" style="${ghostStyle}">Sign Out</button>
         </div>
       `;
     }
     return `
-      <p class="signin-status">Signed in as <strong>${escapeHtml(email)}</strong>.</p>
-      <p class="signin-note">Your token is valid but may have limited access.</p>
-      <div class="signin-actions">
-        <a class="btn btn-primary" href="/dashboard/dashboard">Open Dashboard</a>
-        <button class="btn btn-ghost" id="signin-signout-btn">Sign Out</button>
+      <p class="signin-status" style="text-align:center;margin:0 0 8px;color:var(--text-main,#e6edf3);">Signed in as <strong>${escapeHtml(email)}</strong>.</p>
+      <p class="signin-note" style="text-align:center;margin:0 0 16px;font-size:0.85rem;color:var(--text-muted,#8b949e);">Your token is valid but may have limited access.</p>
+      <div class="signin-actions" style="${actionsStyle}">
+        <a class="btn btn-primary" href="/dashboard/dashboard" style="${primaryStyle}">Open Dashboard</a>
+        <button class="btn btn-ghost" id="signin-signout-btn" style="${ghostStyle}">Sign Out</button>
       </div>
     `;
   }
 
   renderSignInForm() {
+    const inputStyle = 'width:100%;padding:12px 14px;border:1px solid var(--border,#1f2937);border-radius:8px;background:var(--bg-input,#0B0F19);color:var(--text-main,#e6edf3);font-size:0.95rem;box-sizing:border-box;';
+    const labelStyle = 'display:block;font-size:0.85rem;color:var(--text-muted,#8b949e);margin-bottom:6px;';
+    const tabActive = 'background:var(--surface,#1f2937);color:var(--primary,#6366f1);box-shadow:0 1px 3px rgba(0,0,0,0.08);';
+    const tabBase = 'flex:1;padding:0.35rem 0.5rem;border:none;background:transparent;color:var(--text-tertiary,#8b949e);font-size:0.85rem;font-weight:500;border-radius:6px;cursor:pointer;';
+    const btnPrimary = 'width:100%;padding:12px 16px;border-radius:8px;background:var(--accent,#6366f1);color:#fff;font-weight:600;border:none;cursor:pointer;text-align:center;';
+    const btnSecondary = 'width:100%;padding:12px 16px;border-radius:8px;background:var(--surface,#1f2937);color:var(--text-main,#e6edf3);border:1px solid var(--border,#1f2937);cursor:pointer;text-align:center;';
     return `
       <div class="signin-tab-panel active" id="panel-email">
-        <div class="signin-subtabs">
-          <button type="button" class="signin-subtab ${this._emailMode === 'login' ? 'active' : ''}" data-mode="login" id="subtab-login">Sign In</button>
-          <button type="button" class="signin-subtab ${this._emailMode === 'register' ? 'active' : ''}" data-mode="register" id="subtab-register">Create Account</button>
+        <div class="signin-subtabs" style="display:flex;gap:4px;margin-bottom:16px;background:var(--bg-tertiary,#0B0F19);border-radius:8px;padding:3px;">
+          <button type="button" class="signin-subtab ${this._emailMode === 'login' ? 'active' : ''}" data-mode="login" id="subtab-login" style="${this._emailMode === 'login' ? tabActive : tabBase}">Sign In</button>
+          <button type="button" class="signin-subtab ${this._emailMode === 'register' ? 'active' : ''}" data-mode="register" id="subtab-register" style="${this._emailMode === 'register' ? tabActive : tabBase}">Create Account</button>
         </div>
-        <form id="signin-email-form" class="signin-form">
-          <label class="field-label" for="signin-email-input">Email / Username</label>
-          <input id="signin-email-input" class="input" type="text" autocomplete="email" required placeholder="email@example.com or username" />
-          <label class="field-label" for="signin-password-input">Password</label>
-          <input id="signin-password-input" class="input" type="password" autocomplete="current-password" required placeholder="Enter your password…" />
-          <div style="display:flex;justify-content:flex-end;margin:-4px 0 8px;">
-            <button type="button" id="forgot-password-btn" style="background:none;border:none;color:var(--accent);font-size:0.78rem;cursor:pointer;padding:0;">Forgot Password?</button>
+        <form id="signin-email-form" class="signin-form" style="display:flex;flex-direction:column;gap:14px;">
+          <div>
+            <label class="field-label" for="signin-email-input" style="${labelStyle}">Email / Username</label>
+            <input id="signin-email-input" class="input" type="text" autocomplete="email" required placeholder="email@example.com or username" style="${inputStyle}" />
           </div>
-          <p id="signin-email-error" class="signin-error" hidden role="alert"></p>
-          <button type="submit" class="btn btn-primary btn-block" id="signin-email-submit">${this._emailMode === 'register' ? 'Create Account' : 'Sign In'}</button>
+          <div>
+            <label class="field-label" for="signin-password-input" style="${labelStyle}">Password</label>
+            <input id="signin-password-input" class="input" type="password" autocomplete="current-password" required placeholder="Enter your password…" style="${inputStyle}" />
+          </div>
+          <div style="display:flex;justify-content:flex-end;margin:-4px 0 0;">
+            <button type="button" id="forgot-password-btn" style="background:none;border:none;color:var(--accent,#6366f1);font-size:0.78rem;cursor:pointer;padding:0;">Forgot Password?</button>
+          </div>
+          <p id="signin-email-error" class="signin-error" hidden role="alert" style="margin:0;font-size:0.85rem;color:var(--danger,#ef4444);text-align:center;line-height:1.5;"></p>
+          <button type="submit" class="btn btn-primary btn-block" id="signin-email-submit" style="${btnPrimary}">${this._emailMode === 'register' ? 'Create Account' : 'Sign In'}</button>
         </form>
-        <div class="signin-divider" style="text-align:center;margin:16px 0;font-size:0.8rem;color:var(--text-muted);position:relative;">
-          <span style="background:var(--bg-card);padding:0 12px;position:relative;z-index:1;">or</span>
-          <div style="position:absolute;top:50%;left:0;right:0;height:1px;background:var(--border);z-index:0;"></div>
+        <div class="signin-divider" style="text-align:center;margin:16px 0;font-size:0.8rem;color:var(--text-muted,#8b949e);position:relative;">
+          <span style="background:var(--bg-card,#111827);padding:0 12px;position:relative;z-index:1;">or</span>
+          <div style="position:absolute;top:50%;left:0;right:0;height:1px;background:var(--border,#1f2937);z-index:0;"></div>
         </div>
-        <button type="button" class="btn btn-secondary btn-block" id="webauthn-signin-btn" style="display:flex;align-items:center;justify-content:center;gap:8px;">
+        <button type="button" class="btn btn-secondary btn-block" id="webauthn-signin-btn" style="${btnSecondary};display:flex;align-items:center;justify-content:center;gap:8px;">
           <span>&#128274;</span> Sign in with Security Key
         </button>
-        <p class="signin-note" id="email-mode-note">${this._emailMode === 'register' ? 'Already have an account? Switch to <strong>Sign In</strong>.' : 'New here? Switch to <strong>Create Account</strong> to register.'}</p>
+        <p class="signin-note" id="email-mode-note" style="margin:16px 0 0;font-size:0.85rem;color:var(--text-muted,#8b949e);text-align:center;line-height:1.5;">${this._emailMode === 'register' ? 'Already have an account? Switch to <strong>Sign In</strong>.' : 'New here? Switch to <strong>Create Account</strong> to register.'}</p>
       </div>
 
-      <p class="signin-footer">
-        <a href="/demo">View read-only demo</a>
-        <span class="signin-footer-sep">·</span>
-        <a href="/dashboard/about">About &amp; install</a>
-        <span class="signin-footer-sep">·</span>
-        <a href="https://github.com/tjp420/simplebeacon" target="_blank" rel="noopener noreferrer">GitHub</a>
+      <p class="signin-footer" style="margin-top:24px;text-align:center;font-size:0.85rem;color:var(--text-muted,#8b949e);">
+        <a href="/demo" style="color:var(--accent,#6366f1);text-decoration:none;">View read-only demo</a>
+        <span class="signin-footer-sep" style="margin:0 6px;">·</span>
+        <a href="/dashboard/about" style="color:var(--accent,#6366f1);text-decoration:none;">About &amp; install</a>
+        <span class="signin-footer-sep" style="margin:0 6px;">·</span>
+        <a href="https://github.com/tjp420/simplebeacon" target="_blank" rel="noopener noreferrer" style="color:var(--accent,#6366f1);text-decoration:none;">GitHub</a>
       </p>
     `;
   }
@@ -203,11 +216,17 @@ export class SignInView {
     const submitBtn = container.querySelector('#signin-email-submit');
     const note = container.querySelector('#email-mode-note');
     const forgotBtn = container.querySelector('#forgot-password-btn');
+    const tabActive = 'background:var(--surface,#1f2937);color:var(--primary,#6366f1);box-shadow:0 1px 3px rgba(0,0,0,0.08);';
+    const tabBase = 'flex:1;padding:0.35rem 0.5rem;border:none;background:transparent;color:var(--text-tertiary,#8b949e);font-size:0.85rem;font-weight:500;border-radius:6px;cursor:pointer;';
     subtabs.forEach(tab => {
       tab.addEventListener('click', () => {
         const mode = tab.dataset.mode;
         this._emailMode = mode;
-        subtabs.forEach(t => t.classList.toggle('active', t.dataset.mode === mode));
+        subtabs.forEach(t => {
+          const isActive = t.dataset.mode === mode;
+          t.classList.toggle('active', isActive);
+          t.style.cssText = isActive ? tabActive : tabBase;
+        });
         if (submitBtn) submitBtn.textContent = mode === 'login' ? 'Sign In' : 'Create Account';
         if (note) note.innerHTML = mode === 'login' ? 'New here? Switch to <strong>Create Account</strong> to register.' : 'Already have an account? Switch to <strong>Sign In</strong>.';
         if (forgotBtn) forgotBtn.style.display = mode === 'login' ? 'block' : 'none';

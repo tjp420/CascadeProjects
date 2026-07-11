@@ -131,18 +131,21 @@ export function drainNotificationQueue(): NotifyEntry[] {
 let currentTheme: 'light' | 'dark' = 'light';
 let extensionContext: vscode.ExtensionContext | null = null;
 
-// Resolve the public base URL for this backend (env var wins, then forwarded host, then request host)
+// Resolve the public base URL for this backend.
+// For incoming requests, always use the request host so the local data server
+// serves API calls from the same origin. PUBLIC_URL is only used for
+// background/out-of-request links (e.g. sandbox emails) where no request host is available.
 function getPublicBaseUrl(req?: http.IncomingMessage): string {
-  const envUrl = process.env.PUBLIC_URL;
-  if (envUrl) {
-    return envUrl.replace(/\/$/, '');
-  }
   if (req) {
     const host = (req.headers['x-forwarded-host'] as string) || req.headers.host;
     if (host) {
       const proto = (req.headers['x-forwarded-proto'] as string) || 'http';
       return `${proto}://${host}`;
     }
+  }
+  const envUrl = process.env.PUBLIC_URL;
+  if (envUrl) {
+    return envUrl.replace(/\/$/, '');
   }
   return `http://127.0.0.1:${getDataServerPort()}`;
 }
@@ -1245,6 +1248,13 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     if (parsed.pathname === '/api/health' || parsed.pathname === '/health') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ status: 'ok', timestamp: Date.now(), version: serverState.extensionVersion }));
+      return;
+    }
+
+    // Ping (lightweight health probe used by dashboard local-agent bridge)
+    if (parsed.pathname === '/api/ping') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ online: true }));
       return;
     }
 
@@ -3525,6 +3535,7 @@ body{font-family:system-ui,-apple-system,sans-serif;margin:0;padding:40px;backgr
         version: serverState.extensionVersion,
         endpoints: [
           '/api/health',
+          '/api/ping',
           '/api/report',
           '/api/findings',
           '/api/status',

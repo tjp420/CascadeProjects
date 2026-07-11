@@ -107,7 +107,7 @@ export class QualityView {
       <div class="analyze-action-bar" style="position:static;margin:0 0 var(--space-4);">
         <div class="analyze-action-info"></div>
         <div class="flex gap-2">
-          <button class="btn btn-ghost btn-sm" id="quality-send-ai-btn" type="button" title="Send quality and security data to AI coding agent">🤖 Send to AI Agent</button>
+          ${this.app.isCurrentUserAdmin() ? '<button class="btn btn-ghost btn-sm" id="quality-send-ai-btn" type="button" title="Send quality and security data to AI coding agent">🤖 Send to AI Agent</button>' : ''}
         </div>
       </div>
 

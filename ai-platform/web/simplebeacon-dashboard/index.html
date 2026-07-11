@@ -4,20 +4,32 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="referrer" content="no-referrer">
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <meta http-equiv="Pragma" content="no-cache">
-  <meta http-equiv="Expires" content="0">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <style id="ide-preview-hide">
     /* Auto-hide sidebar + top bar when loaded inside IDE browser preview */
+    html[data-ide-preview="true"] .app-shell {
+      height: 100vh;
+      min-height: 0;
+      overflow: hidden;
+    }
     html[data-ide-preview="true"] .app-nav { display: none !important; }
     html[data-ide-preview="true"] .mobile-nav-overlay { display: none !important; }
-    html[data-ide-preview="true"] .app-body { flex-direction: column; }
     html[data-ide-preview="true"] .mobile-nav-toggle { display: none !important; }
-    html[data-ide-preview="true"] .app-header { display: none !important; }
     html[data-ide-preview="true"] .sandbox-banner { display: none !important; }
-    html[data-ide-preview="true"] .app-shell { --header-height: 0px; }
-    html[data-ide-preview="true"] #app-main { height: 100vh; }
+    html[data-ide-preview="true"] .app-body {
+      flex: 1;
+      min-height: 0;
+      min-width: 0;
+    }
+    html[data-ide-preview="true"] #app-main {
+      flex: 1;
+      height: auto;
+      min-height: 0;
+      min-width: 0;
+      overflow-x: hidden;
+      overflow-y: auto;
+      padding: var(--space-4);
+    }
     /* Hide "Send to AI" buttons in standalone browser; show only in IDE */
     #audit-send-ai-btn, #security-send-ai-btn, #quality-send-ai-btn, #trust-send-ai-btn, #action-send-ai, #send-ai-btn, #send-health-ai-btn { display: none !important; }
     html[data-ide-preview="true"] #audit-send-ai-btn,
@@ -124,8 +136,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" onerror="this.rel='';document.documentElement.style.fontFamily='system-ui,-apple-system,sans-serif'">
   <link rel="stylesheet" href="css/variables.css">
   <link rel="stylesheet" href="css/reset.css">
-  <link rel="stylesheet" href="css/layout.css">
-  <link rel="stylesheet" href="css/components.css?v=20260711bento1">
+  <link rel="stylesheet" href="css/layout.css?v=20260711redesign3">
+  <link rel="stylesheet" href="css/components.css?v=20260711redesign3">
   <link rel="stylesheet" href="css/utilities.css">
   <link rel="stylesheet" href="css/disable-elements.css">
   <script src="js/vendor/lucide.min.js" defer onerror="window._lucideFailed=true"></script>
@@ -297,7 +309,7 @@
             <i data-lucide="chevron-down" class="nav-group-chevron icon-16"></i>
           </button>
           <div class="nav-group-items" id="nav-group-operations">
-            <a href="/dashboard/assessments" class="nav-link" data-view="assessments">
+            <a href="/dashboard/assessments" class="nav-link" data-view="assessments" id="nav-assessments-link" hidden>
               <i data-lucide="file-text" class="nav-link-icon icon-18"></i>
               <span>Assessments</span>
             </a>
@@ -447,9 +459,9 @@
       nav.className = 'app-header-links';
       nav.setAttribute('aria-label', 'External tools');
       var links = [
-        { href: '/coming-soon/roadmap.html', icon: 'map', label: 'Roadmap' },
-        { href: '/coming-soon/audit.html', icon: 'clipboard-check', label: 'Audit' },
-        { href: '/coming-soon/pricing.html', icon: 'tag', label: 'Pricing', id: 'header-pricing-link' },
+        { href: '/roadmap', icon: 'map', label: 'Roadmap' },
+        { href: '/audit', icon: 'clipboard-check', label: 'Audit' },
+        { href: '/pricing', icon: 'tag', label: 'Pricing', id: 'header-pricing-link' },
         { href: '/dashboard/dashboard', icon: 'layout-dashboard', label: 'Teams Dashboard', id: 'vaultLink' }
       ];
       links.forEach(function(link) {
@@ -549,7 +561,7 @@
       }
     })();
   </script>
-  <script type="module" src="/dashboard/js-es2018/main.js?v=20260711viewresults2"></script>
+  <script type="module" src="/dashboard/js-es2018/main.js?v=20260711redesign3"></script>
   <script>
     // Capture script errors so the fallback page can report them without DevTools.
     window.__SB_DASHBOARD_ERRORS__ = [];

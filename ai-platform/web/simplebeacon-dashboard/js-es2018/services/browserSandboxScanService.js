@@ -11,7 +11,7 @@ const DEFAULT_MAX_FILES = 10000;
 const SKIP_DIRS = new Set([
   'node_modules', '.git', 'dist', 'build', '.simplebeacon', '.github', '.vscode',
   '.vscode-test', 'coverage', 'lcov-report', '.husky', '.windsurf', '.wrangler',
-  'packages'
+  'packages', 'vendor', 'bower_components'
 ]);
 // Source/config file types only; skip .md and .html to avoid flagging documentation/coverage output.
 const ALLOWED_EXTENSIONS = new Set([
@@ -231,53 +231,147 @@ function yieldToBrowser() {
   return new Promise((resolve) => setTimeout(resolve, 0));
 }
 
+function createScanWorker() {
+  if (typeof window === 'undefined' || typeof Worker === 'undefined') return null;
+  try {
+    return new Worker(new URL('./scanWorker.js', import.meta.url));
+  }
+  catch (err) {
+    console.warn('[SimpleBeacon] Scan worker unavailable; falling back to main-thread scan.', err);
+    return null;
+  }
+}
+
 async function analyzeDirectory({ rootName, fileQueue }, { maxFileSize, onLog, onProgress }) {
-  const fileReport = [];
-  const globalIssuesQueue = [];
+  const results = new Map();
   let highRiskCount = 0;
   let mediumRiskCount = 0;
   let processed = 0;
   let skippedLarge = 0;
   let skippedError = 0;
 
+  const worker = createScanWorker();
+
+  if (worker) {
+    logLine(onLog, 'Using background scan worker to keep the UI responsive.', 'info');
+    const pending = new Map();
+
+    worker.onmessage = (e) => {
+      const { status, result } = e.data;
+      if (status === 'FILE_COMPLETED') {
+        const resolve = pending.get(result.virtualPath);
+        if (resolve) {
+          pending.delete(result.virtualPath);
+          resolve(result);
+        }
+      }
+    };
+
+    worker.onerror = (err) => {
+      console.error('[SimpleBeacon] Scan worker error:', err);
+    };
+
+    for (let i = 0; i < fileQueue.length; i++) {
+      const item = fileQueue[i];
+      try {
+        const file = item.file || await item.handle.getFile();
+        if (file.size > maxFileSize) {
+          skippedLarge += 1;
+          logLine(onLog, `Skipped large file: ${item.virtualPath}`, 'info');
+          continue;
+        }
+
+        const content = await file.text();
+        const promise = new Promise((resolve) => {
+          pending.set(item.virtualPath, resolve);
+        });
+
+        worker.postMessage({
+          action: 'SCAN_FILE',
+          fileData: {
+            name: file.name,
+            virtualPath: item.virtualPath,
+            content,
+            size: file.size
+          }
+        });
+
+        const result = await promise;
+        results.set(item.virtualPath, result);
+        processed += 1;
+        if (typeof onProgress === 'function') {
+          onProgress({ processed, total: fileQueue.length });
+        }
+        if (processed > 0 && processed % 50 === 0) {
+          await yieldToBrowser();
+        }
+      }
+      catch (err) {
+        skippedError += 1;
+        logLine(onLog, `Could not read ${item.virtualPath}: ${err.message}`, 'warning');
+      }
+    }
+
+    worker.terminate();
+  }
+  else {
+    // Fallback: scan directly on the main thread when Workers are unavailable.
+    logLine(onLog, 'Scan worker not available; running scan on the main thread.', 'warning');
+    for (let i = 0; i < fileQueue.length; i++) {
+      const item = fileQueue[i];
+      try {
+        const file = item.file || await item.handle.getFile();
+        if (file.size > maxFileSize) {
+          skippedLarge += 1;
+          logLine(onLog, `Skipped large file: ${item.virtualPath}`, 'info');
+          continue;
+        }
+
+        const content = await file.text();
+        const { fileIssues, fileFindings } = analyzeFile(content, item.virtualPath);
+        results.set(item.virtualPath, {
+          name: file.name,
+          virtualPath: item.virtualPath,
+          size: file.size,
+          fileIssues,
+          fileFindings
+        });
+
+        processed += 1;
+        if (typeof onProgress === 'function') {
+          onProgress({ processed, total: fileQueue.length });
+        }
+        if (processed > 0 && processed % YIELD_EVERY === 0) {
+          await yieldToBrowser();
+        }
+      }
+      catch (err) {
+        skippedError += 1;
+        logLine(onLog, `Could not read ${item.virtualPath}: ${err.message}`, 'warning');
+      }
+    }
+  }
+
+  // Aggregate results from the worker (or the main-thread fallback) into the
+  // same report shape the dashboard expects.
+  const fileReport = [];
+  const globalIssuesQueue = [];
   for (let i = 0; i < fileQueue.length; i++) {
     const item = fileQueue[i];
-    try {
-      const file = item.file || await item.handle.getFile();
-      if (file.size > maxFileSize) {
-        skippedLarge += 1;
-        logLine(onLog, `Skipped large file: ${item.virtualPath}`, 'info');
-        continue;
-      }
+    const result = results.get(item.virtualPath);
+    if (!result) continue;
 
-      const content = await file.text();
-      const { fileIssues, fileFindings } = analyzeFile(content, item.virtualPath);
+    fileReport.push({
+      name: item.virtualPath.split('/').pop() || item.virtualPath,
+      absolutePath: item.virtualPath,
+      size: result.size,
+      status: result.fileIssues.length > 0 ? `Issues Flagged: ${result.fileIssues.join(', ')}` : 'Clean'
+    });
 
-      fileReport.push({
-        name: item.virtualPath.split('/').pop() || item.virtualPath,
-        absolutePath: item.virtualPath,
-        size: file.size,
-        status: fileIssues.length > 0 ? `Issues Flagged: ${fileIssues.join(', ')}` : 'Clean'
-      });
-
-      for (const finding of fileFindings) {
-        globalIssuesQueue.push(finding);
-        if (finding.severity === 'HIGH') highRiskCount += 1;
-        if (finding.severity === 'MEDIUM') mediumRiskCount += 1;
-      }
-
-      processed += 1;
-      if (typeof onProgress === 'function') {
-        onProgress({ processed, total: fileQueue.length });
-      }
-
-      // Yield to the browser event loop every N files so large scans don't freeze the tab.
-      if (processed > 0 && processed % YIELD_EVERY === 0) {
-        await yieldToBrowser();
-      }
-    } catch (err) {
-      skippedError += 1;
-      logLine(onLog, `Could not read ${item.virtualPath}: ${err.message}`, 'warning');
+    for (const finding of result.fileFindings) {
+      globalIssuesQueue.push(finding);
+      if (finding.severity === 'HIGH' || finding.severity === 'CRITICAL') highRiskCount += 1;
+      if (finding.severity === 'MEDIUM') mediumRiskCount += 1;
     }
   }
 
@@ -360,7 +454,7 @@ export async function scanDroppedItems(items, options = {}) {
   }
 
   const first = items[0];
-  const name = (first.getAsFile && first.getAsFile().name) || 'dropped-folder';
+  const name = (first && first.getAsFile && first.getAsFile().name) || 'dropped-folder';
 
   // Preferred: File System Access API handles.
   if (typeof first.getAsFileSystemHandle === 'function') {
@@ -386,7 +480,7 @@ export async function scanDroppedItems(items, options = {}) {
   const fileQueue = [];
   for (let i = 0; i < items.length && fileQueue.length < maxFiles; i++) {
     const item = items[i];
-    const file = item.getAsFile && item.getAsFile();
+    const file = item && item.getAsFile && item.getAsFile();
     if (!file) continue;
     const extIndex = file.name.lastIndexOf('.');
     const ext = extIndex >= 0 ? file.name.substring(extIndex).toLowerCase() : '';

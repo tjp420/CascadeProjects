@@ -24,6 +24,7 @@ if (!process.env.SIMPLEBEACON_LICENSE_SECRET) {
         process.exit(1);
     }
     console.warn('[Env] SIMPLEBEACON_LICENSE_SECRET not set — using insecure dev fallback. DO NOT USE IN PRODUCTION.'); // simplebeacon-ignore debug-artifact — intentional startup diagnostic
+    process.env.SIMPLEBEACON_LICENSE_SECRET = 'insecure-dev-secret-change-me';
 }
 if (!process.env.PUBLIC_URL) {
     process.env.PUBLIC_URL = 'http://localhost:' + (process.env.PORT || 3000);
@@ -1148,6 +1149,31 @@ app.get('/api/merger-tool/reduction-scan', (_req, res) => res.json({
 // Redirect old /coming-soon/ paths to root
 app.get('/coming-soon/*', (req, res) => {
     res.redirect(301, req.path.replace('/coming-soon', '') || '/');
+});
+
+// Serve dashboard static assets directly from public/dashboard
+app.use('/dashboard', express.static(path.join(__dirname, 'public', 'dashboard'), { index: false }));
+
+// Dashboard SPA fallback: serve public/dashboard/index.html for all /dashboard/* routes
+// so client-side routing works when refreshing or loading a deep dashboard URL.
+app.get('/dashboard/*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'dashboard', 'index.html'));
+});
+
+// Serve the dashboard root at /dashboard
+app.get('/dashboard', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'dashboard', 'index.html'));
+});
+
+// Pretty URLs for marketing pages: /audit -> public/audit.html, /roadmap -> public/roadmap.html, etc.
+app.get('/:page', (req, res, next) => {
+    const page = req.params.page;
+    if (!page || page.includes('/') || page.includes('.')) return next();
+    const htmlPath = path.join(__dirname, 'public', `${page}.html`);
+    if (fsSync.existsSync(htmlPath)) {
+        return res.sendFile(htmlPath);
+    }
+    next();
 });
 
 app.get('*', (req, res) => {
