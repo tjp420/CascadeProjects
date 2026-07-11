@@ -1296,6 +1296,7 @@ class SimplebeaconDashboard {
 }
 document.addEventListener('DOMContentLoaded', () => {
     try {
+        window.__SB_DASHBOARD_APP__ = true;
         const app = new SimplebeaconDashboard();
         window.simplebeaconApp = app;
         app.init().catch((err) => {

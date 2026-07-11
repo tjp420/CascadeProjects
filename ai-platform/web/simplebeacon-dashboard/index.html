@@ -551,63 +551,111 @@
   </script>
   <script type="module" src="js-es2018/main.js?v=20260711singleflow11"></script>
   <script>
+    // Capture script errors so the fallback page can report them without DevTools.
+    window.__SB_DASHBOARD_ERRORS__ = [];
+    window.addEventListener('error', function(e) {
+      window.__SB_DASHBOARD_ERRORS__.push({
+        type: 'error',
+        message: e.message,
+        filename: e.filename,
+        lineno: e.lineno,
+        colno: e.colno,
+        error: e.error && e.error.stack ? e.error.stack : String(e.error)
+      });
+    });
+    window.addEventListener('unhandledrejection', function(e) {
+      window.__SB_DASHBOARD_ERRORS__.push({
+        type: 'unhandledrejection',
+        message: e.reason && e.reason.message ? e.reason.message : String(e.reason),
+        error: e.reason && e.reason.stack ? e.reason.stack : String(e.reason)
+      });
+    });
+
     // Fallback SPA router when the main.js module is missing or fails to load
     (function() {
       const main = document.getElementById('app-main');
       if (!main) return;
-      // If the real SPA loaded, let it handle everything
-      if (window.__SB_DASHBOARD_APP__) return;
-      const items = [
-        { id: 'dashboard', label: 'Dashboard', icon: '☰' },
-        { id: 'analyze', label: 'Analyze', icon: '🕔' },
-        { id: 'report', label: 'Report', icon: '📄' },
-        { id: 'certificate', label: 'Certificate', icon: '🔒' },
-        { id: 'code-map', label: 'Code Map', icon: '🗺' },
-        { id: 'roadmap', label: 'Roadmap', icon: '🛣' },
-        { id: 'ai-context', label: 'AI Context', icon: '🤖' },
-        { id: 'upload', label: 'Upload', icon: '⭳' },
-        { id: 'audit', label: 'Audit', icon: '📝' },
-        { id: 'security', label: 'Security', icon: '🔒' },
-        { id: 'trust', label: 'Trust', icon: '🗸' },
-        { id: 'quality', label: 'Quality', icon: '⭐' },
-        { id: 'assessments', label: 'Assessments', icon: '✅' },
-        { id: 'platform', label: 'Platform', icon: '💻' },
-        { id: 'profile', label: 'Profile', icon: '👤' },
-        { id: 'compliance', label: 'Compliance', icon: '🛡' },
-        { id: 'repo-health', label: 'Repo Health', icon: '📈' },
-        { id: 'analytics', label: 'Analytics', icon: '📊' },
-        { id: 'scan', label: 'Scan', icon: '🔍' },
-        { id: 'settings', label: 'Settings', icon: '⚙' }
-      ];
-      function grid() {
-        return '<div class="dashboard-welcome"><div class="icon" style="font-size:120px">&#x1F5FA;</div><h1>SimpleBeacon Dashboard</h1><div class="subtitle">Overview of your codebase health, scan results, and quick actions.</div><div class="dashboard-grid">' +
-          items.map(it => '<a href="#/' + it.id + '" data-view="' + it.id + '"><span class="icon">' + it.icon + '</span><span>' + it.label + '</span></a>').join('') +
-          '</div></div>';
+
+      function reportPanel() {
+        const errs = window.__SB_DASHBOARD_ERRORS__ || [];
+        if (!errs.length) return '';
+        const items = errs.map(function(err) {
+          return '<li style="margin-bottom:8px;"><strong>' + escapeHtml(err.type) + '</strong>: ' + escapeHtml(err.message || 'unknown') +
+            (err.filename ? '<br><code style="font-size:12px;">' + escapeHtml(err.filename) + ':' + err.lineno + ':' + err.colno + '</code>' : '') +
+            '</li>';
+        }).join('');
+        return '<div style="margin:24px auto;max-width:640px;padding:16px;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.4);border-radius:8px;color:#e2e8f0;font-family:sans-serif;">' +
+          '<h3 style="margin-top:0;">Dashboard load error</h3>' +
+          '<p style="font-size:13px;">The full dashboard could not load. Details:</p>' +
+          '<ul style="font-size:13px;text-align:left;overflow:auto;max-height:200px;">' + items + '</ul>' +
+          '<button id="dash-retry-btn" style="padding:8px 16px;background:#2563EB;color:#fff;border:none;border-radius:6px;cursor:pointer;">Reload Dashboard</button>' +
+          '</div>';
       }
-      function placeholder(view) {
-        const it = items.find(x => x.id === view);
-        return '<div class="view-placeholder"><h2>' + (it ? it.icon + ' ' + it.label : view) + '</h2><p>This view is rendered by the fallback SPA. Build the full dashboard assets for the complete experience.</p></div>';
-      }
-      function htmlToNodes(html) {
-        return document.createRange().createContextualFragment(html.trim());
-      }
-      function render() {
-        // Bail out if the real SPA has loaded since we started
-        if (window.__SB_DASHBOARD_APP__) return;
-        const hash = location.hash.replace(/^#\//, '').split('#')[0] || 'dashboard';
-        main.textContent = '';
-        if (hash === 'dashboard') {
-          main.appendChild(htmlToNodes(grid()));
-        } else {
-          main.appendChild(htmlToNodes(placeholder(hash)));
-        }
-        document.querySelectorAll('.nav-link').forEach(function(link) {
-          const active = link.getAttribute('data-view') === hash;
-          link.classList.toggle('active', active);
+
+      function escapeHtml(str) {
+        return String(str).replace(/[&<>"']/g, function(m) {
+          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
         });
       }
-      window.addEventListener('hashchange', render);
-      render();
+
+      // Give main.js a short window to load before rendering the fallback.
+      setTimeout(function() {
+        if (window.__SB_DASHBOARD_APP__) return;
+        const items = [
+          { id: 'dashboard', label: 'Dashboard', icon: '☰' },
+          { id: 'analyze', label: 'Analyze', icon: '🕔' },
+          { id: 'report', label: 'Report', icon: '📄' },
+          { id: 'certificate', label: 'Certificate', icon: '🔒' },
+          { id: 'code-map', label: 'Code Map', icon: '🗺' },
+          { id: 'roadmap', label: 'Roadmap', icon: '🛣' },
+          { id: 'ai-context', label: 'AI Context', icon: '🤖' },
+          { id: 'upload', label: 'Upload', icon: '⭳' },
+          { id: 'audit', label: 'Audit', icon: '📝' },
+          { id: 'security', label: 'Security', icon: '🔒' },
+          { id: 'trust', label: 'Trust', icon: '🗸' },
+          { id: 'quality', label: 'Quality', icon: '⭐' },
+          { id: 'assessments', label: 'Assessments', icon: '✅' },
+          { id: 'platform', label: 'Platform', icon: '💻' },
+          { id: 'profile', label: 'Profile', icon: '👤' },
+          { id: 'compliance', label: 'Compliance', icon: '🛡' },
+          { id: 'repo-health', label: 'Repo Health', icon: '📈' },
+          { id: 'analytics', label: 'Analytics', icon: '📊' },
+          { id: 'scan', label: 'Scan', icon: '🔍' },
+          { id: 'settings', label: 'Settings', icon: '⚙' }
+        ];
+        function grid() {
+          return '<div class="dashboard-welcome"><div class="icon" style="font-size:120px">&#x1F5FA;</div><h1>SimpleBeacon Dashboard</h1><div class="subtitle">Overview of your codebase health, scan results, and quick actions.</div>' +
+            reportPanel() +
+            '<div class="dashboard-grid">' +
+            items.map(function(it) { return '<a href="#/' + it.id + '" data-view="' + it.id + '"><span class="icon">' + it.icon + '</span><span>' + it.label + '</span></a>'; }).join('') +
+            '</div></div>';
+        }
+        function placeholder(view) {
+          const it = items.find(function(x) { return x.id === view; });
+          return '<div class="view-placeholder"><h2>' + (it ? it.icon + ' ' + it.label : view) + '</h2><p>This view is rendered by the fallback SPA. Build the full dashboard assets for the complete experience.</p></div>';
+        }
+        function htmlToNodes(html) {
+          return document.createRange().createContextualFragment(html.trim());
+        }
+        function render() {
+          if (window.__SB_DASHBOARD_APP__) return;
+          const hash = location.hash.replace(/^#\//, '').split('#')[0] || 'dashboard';
+          main.textContent = '';
+          if (hash === 'dashboard') {
+            main.appendChild(htmlToNodes(grid()));
+            const retry = document.getElementById('dash-retry-btn');
+            if (retry) retry.addEventListener('click', function() { location.reload(); });
+          } else {
+            main.appendChild(htmlToNodes(placeholder(hash)));
+          }
+          document.querySelectorAll('.nav-link').forEach(function(link) {
+            const active = link.getAttribute('data-view') === hash;
+            link.classList.toggle('active', active);
+          });
+        }
+        window.addEventListener('hashchange', render);
+        render();
+      }, 1500);
     })();
   </script>
 </body>
