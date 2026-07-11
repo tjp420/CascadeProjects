@@ -226,11 +226,11 @@ function renderScanPathControls(report, options = {}) {
       </p>
       <p id="agent-4000-status" class="agent-status"></p>
       <div id="agent-4000-results"></div>
-      <div id="sandbox-scanner" class="sandbox-scanner" style="margin-top: 16px; padding: 16px; border: 1px solid #30363d; border-radius: 8px; background: #161b22; color: #c9d1d9;">
-        <h4 style="margin-top: 0; color: #f0f6fc;">Secure Local Directory Scanner</h4>
-        <p style="margin-bottom: 12px; color: #8b949e;">Select a local drive or folder. Scanning runs privately inside your browser using the File System Access API (Chrome/Edge/Brave).</p>
-        <button type="button" id="trigger-native-picker" class="btn btn-primary" style="margin-bottom: 12px;">Select Drive Target</button>
-        <pre id="sandbox-scan-terminal" style="background: #0d1117; color: #abb2bf; font-family: monospace; padding: 12px; border-radius: 4px; max-height: 240px; overflow-y: auto; margin: 0; border: 1px solid #30363d;">Awaiting drive selection...</pre>
+      <div id="sandbox-scanner" class="sandbox-scanner" style="margin-top: 16px; padding: 16px 0 0; border-top: 1px solid var(--border); color: var(--text-secondary);">
+        <h4 style="margin-top: 0; font-size: 0.9rem; color: var(--text-primary);">Secure Local Directory Scanner</h4>
+        <p style="margin-bottom: 12px; font-size: 0.75rem; color: var(--text-muted);">Select a local drive or folder. Scanning runs privately inside your browser using the File System Access API (Chrome/Edge/Brave).</p>
+        <button type="button" id="trigger-native-picker" class="btn btn-primary btn-sm" style="margin-bottom: 12px;">Select Drive Target</button>
+        <pre id="sandbox-scan-terminal" style="background: var(--surface); color: var(--text-secondary); font-family: monospace; padding: 12px; border-radius: var(--radius-md); max-height: 240px; overflow-y: auto; margin: 0; border: 1px solid var(--border);">Awaiting drive selection...</pre>
       </div>
     </div>
   `;

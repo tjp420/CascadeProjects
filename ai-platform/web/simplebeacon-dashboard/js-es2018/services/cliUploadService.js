@@ -56,33 +56,33 @@ export function renderCliUploadCard(container, apiKey) {
     container.replaceChildren();
     const card = document.createElement('div');
     card.className = 'cli-integration-card';
-    card.style.cssText = 'background:var(--card-bg,#1e1e1e); color:var(--text-color,#e0e0e0); padding:16px; border-radius:6px; border:1px solid #333; margin-bottom:20px;';
+    card.style.cssText = 'background:var(--surface); color:var(--text-primary); padding:16px; border-radius:var(--radius-lg); border:1px solid var(--border); margin-bottom:20px;';
 
     const header = document.createElement('div');
     header.style.cssText = 'display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;';
     const title = document.createElement('h4');
     setText(title, '💻 Analyze via SimpleBeacon CLI');
-    title.style.cssText = 'margin:0; color:#58a6ff;';
+    title.style.cssText = 'margin:0; color:var(--primary);';
     const badge = document.createElement('span');
     setText(badge, 'BEST FOR MONOREPOS');
-    badge.style.cssText = 'background:#238636; font-size:11px; padding:2px 6px; border-radius:4px; font-weight:bold; color:#fff;';
+    badge.style.cssText = 'background:var(--success); font-size:11px; padding:2px 6px; border-radius:4px; font-weight:bold; color:var(--text-inverse);';
     header.appendChild(title);
     header.appendChild(badge);
 
     const desc = document.createElement('p');
     setText(desc, 'Bypass browser sandboxes. Scan large codebases, external drives, or any folder directly from your terminal.');
-    desc.style.cssText = 'font-size:13px; color:#8b949e; margin:10px 0;';
+    desc.style.cssText = 'font-size:13px; color:var(--text-secondary); margin:10px 0;';
 
     const codeBox = document.createElement('div');
-    codeBox.style.cssText = 'background:#0d1117; padding:12px 70px 12px 12px; border-radius:4px; font-family:monospace; font-size:12px; border:1px solid #30363d; position:relative; overflow-x:auto;';
+    codeBox.style.cssText = 'background:var(--background); padding:12px 70px 12px 12px; border-radius:var(--radius-md); font-family:monospace; font-size:12px; border:1px solid var(--border); position:relative; overflow-x:auto;';
     const code = document.createElement('code');
     code.id = 'cli-command-string';
     setText(code, buildCliCommand('C:\\\\Projects', apiKey));
-    code.style.cssText = 'color:#abb2bf;';
+    code.style.cssText = 'color:var(--text-primary);';
     const copyBtn = document.createElement('button');
     copyBtn.id = 'cli-copy-btn';
     setText(copyBtn, 'Copy');
-    copyBtn.style.cssText = 'position:absolute; right:10px; top:8px; background:#21262d; border:1px solid #30363d; color:#c9d1d9; font-size:11px; padding:3px 8px; border-radius:4px; cursor:pointer;';
+    copyBtn.style.cssText = 'position:absolute; right:10px; top:8px; background:var(--surface); border:1px solid var(--border); color:var(--text-secondary); font-size:11px; padding:3px 8px; border-radius:var(--radius-md); cursor:pointer;';
     copyBtn.addEventListener('click', () => {
         navigator.clipboard.writeText(code.textContent);
         setText(copyBtn, 'Copied!');

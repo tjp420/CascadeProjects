@@ -242,9 +242,9 @@ export function renderAgentCertificate(report, container) {
     if (!cert)
         return;
     const wrapper = document.createElement('div');
-    wrapper.style.cssText = `border:2px solid ${cert.badgeColor}; padding:12px; border-radius:6px; background:var(--card-bg,#1e1e1e); color:var(--text-color,#e0e0e0); margin-bottom:12px; max-width:100%; box-sizing:border-box;`;
+    wrapper.style.cssText = `border:2px solid ${cert.badgeColor}; padding:12px; border-radius:var(--radius-lg); background:var(--surface); color:var(--text-primary); margin-bottom:12px; max-width:100%; box-sizing:border-box;`;
     const header = document.createElement('div');
-    header.style.cssText = 'display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; border-bottom:1px solid #444; padding-bottom:8px; margin-bottom:8px;';
+    header.style.cssText = 'display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; border-bottom:1px solid var(--border); padding-bottom:8px; margin-bottom:8px;';
     const titleBlock = document.createElement('div');
     titleBlock.style.cssText = 'min-width:0; flex:1 1 auto;';
     const title = document.createElement('h3');
@@ -296,7 +296,7 @@ export function renderAgentCertificate(report, container) {
     filesHeading.style.cssText = 'margin:12px 0 8px 0; font-size:14px;';
     container.appendChild(filesHeading);
     const filesBox = document.createElement('div');
-    filesBox.style.cssText = 'max-height:260px; overflow:auto; background:#1e1e1e; color:#abb2bf; padding:12px; font-family:monospace; font-size:12px; border-radius:4px; max-width:100%;';
+    filesBox.style.cssText = 'max-height:260px; overflow:auto; background:var(--background); color:var(--text-secondary); padding:12px; font-family:monospace; font-size:12px; border-radius:var(--radius-md); border:1px solid var(--border); max-width:100%;';
     const files = report.files || [];
     if (!files.length) {
         const empty = document.createElement('div');

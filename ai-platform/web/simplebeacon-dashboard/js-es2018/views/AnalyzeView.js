@@ -2,7 +2,7 @@ import { escapeHtml, showToast, downloadJson, downloadBlob, downloadText, redact
 import { evaluateFunnelMetrics, getFunnelCopy } from '../utils/funnelTrigger.js';
 import { LocalScanService } from '../services/localScanService.js?v=20260709noise3';
 import { fingerprintDirectory, formatFingerprint } from '../services/fingerprintService.js';
-import { probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus, getAgentDownloadUrl, detectPlatform, getPlatformLabel, getInstallInstructions, getAgentFallbackMessage, probeAgent4000, scanViaAgent4000, renderAgentCertificate } from '../services/localAgentService.js?v=20260710agentcache3';
+import { probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus, getAgentDownloadUrl, detectPlatform, getPlatformLabel, getInstallInstructions, getAgentFallbackMessage, probeAgent4000, scanViaAgent4000, renderAgentCertificate } from '../services/localAgentService.js?v=20260711themefix1';
 import { runSandboxedDirectoryScan } from '../services/browserSandboxScanService.js?v=20260710sandbox4';
 // simplebeacon:production-leak-intent: sample-json - Legitimate documentation about sample file patterns in analysis results
 import { analyzePath, scanPath, summarizeReport, fetchAnalyzeProviders, fetchRepositoryInventory, fetchCodebaseAnalysis, enrichScanReport, fetchZscriptModReport, shouldFetchZscriptReport, isLegacyScanReport, buildMonorepoScopeNote, buildPathInventoryProvenance, renderInventoryProvenanceHtml, refreshPathInventory, liveInventoryForPath, renderScanScopePanel, isSimplebeaconReport, aiProviderSupportsSummary, getScanFileMetrics, resolveAutoAnalysisMode, buildScanConclusion, buildConsolidationConclusion, buildFictionDigestPayload, sanitizeFictionDigestExport, resolveCompleteScanTargetPath, normalizeProjectPath, filterIssuesByKind, preparePlatformResultsReport, fetchCompleteAuditReport, fetchAnalyzeExportBundleZip, fetchEuAiActAuditReport, openAuditReportPrintWindow, previewAuditExportTier, auditExportButtonLabel, fetchDataCleanupScan, ensureDashboardApiReady, assertCompleteScanComplianceFresh, assertCompleteScanFileReductionFresh, fetchUnderstandSnippet, isCodebaseReport, fetchComplianceChecklist, fetchProjectNpmAudit, prepareGithubRepo, fetchAnalyzeTestSources, isAnalyzeProviderConfigured, uploadDirectoryAndAnalyze } from '../services/analyzeService.js?v=20260711cachefix1';
@@ -15,7 +15,7 @@ import { runEuAiActSprint } from '../services/operatorService.js?v=20260531eupdf
 import { renderModeFileScopePanel, extractRoadmapFileMetrics } from '../utils/analyze-mode-file-scope.browser.js?v=20260601roadmapscope1';
 import { renderModeFileResultsPanel } from '../utils/analyze-mode-file-results.browser.js?v=20260601filereconcile1';
 import { renderScanPaywall, buildPublicSummaryFromScan, isDeliverableLocked } from '../components/ScanPaywall.js';
-import { renderCompactScanStatus } from '../components/ScanStatus.js?v=20260710lastscan1';
+import { renderCompactScanStatus } from '../components/ScanStatus.js?v=20260711themefix1';
 import { AI_SYSTEM_ISSUES, ANALYZER_CATALOG, groupIssuesByCategory, buildAiSystemsIssueAnalysis } from '../services/aiProblemAnalyzerSuite.mjs';
 import { renderIssueList } from '../components/IssueCard.js';
 import { showDownloadCredentialsModal } from '../components/DownloadCredentialsModal.js';
@@ -34,7 +34,7 @@ import { renderUnderstandingPanel, buildUnderstandingConclusion } from '../compo
 import { renderZscriptReportPanel, buildZscriptConclusion } from '../components/ZscriptReport.js';
 import { showLoginModal } from '../components/LoginModal.js';
 import { authService } from '../services/authService.js';
-import { fetchCliApiKey, fetchCliHistory, fetchCliReport, renderCliUploadCard, renderCliReport } from '../services/cliUploadService.js?v=20260711cachefix1';
+import { fetchCliApiKey, fetchCliHistory, fetchCliReport, renderCliUploadCard, renderCliReport } from '../services/cliUploadService.js?v=20260711themefix1';
 import { MAX_SNIPPET_BYTES, isSupportedSourceFile, isAnalyzerCacheJson, isCleanupExportJson, isFictionDigestJson, isLockfileName, isMarkdownFileName, isScannerMetaFileName, filterSnippetFindingsForFile, scanSnippetText, computeThreatScore, redactMatch, severityLabel } from '../utils/snippetDiagnostic.js?v=20260531analyzers1';
 const SNIPPET_ACCEPT = '.json,.js,.mjs,.cjs,.ts,.tsx,.jsx,.py,.env,.yaml,.yml,.txt,.md,.html,.css,.xml,.toml,.ini,.sh,.ps1,.bat';
 const MAX_UPLOAD_BYTES = 100 * 1024 * 1024; // 100 MB — server-side directory upload limit
