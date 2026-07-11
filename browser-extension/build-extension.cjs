@@ -27,7 +27,9 @@ function main() {
   const command = `powershell -Command "Compress-Archive -Path '${source}' -DestinationPath '${ZIP_PATH}' -Force"`;
   execSync(command, { cwd: ROOT, stdio: 'inherit' });
 
-  console.log(`Built extension zip: ${ZIP_PATH}`);
+  if (process.env.SB_DEBUG === '1') {
+    console.log(`Built extension zip: ${ZIP_PATH}`);
+  }
 }
 
 main();

@@ -13,6 +13,9 @@ const mime = {
   '.svg': 'image/svg+xml',
 };
 
+const port = parseInt(process.env.CODEMAP_PORT || '8085', 10);
+const host = process.env.CODEMAP_HOST || '127.0.0.1';
+
 http.createServer((req, res) => {
   let url = decodeURIComponent(req.url).replace(/\\/g, '/');
   if (url === '/' || url === '') url = '/codemap.html';
@@ -29,4 +32,4 @@ http.createServer((req, res) => {
     if (!res.headersSent) res.writeHead(404);
     res.end('not found');
   }
-}).listen(8085, '127.0.0.1', () => console.log('http://127.0.0.1:8085'));
+}).listen(port, host, () => console.log(`http://${host}:${port}`));

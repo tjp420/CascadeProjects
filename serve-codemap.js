@@ -13,6 +13,9 @@ const mime = {
   '.svg': 'image/svg+xml',
 };
 
+const port = parseInt(process.env.CODEMAP_PORT || '8084', 10);
+const host = process.env.CODEMAP_HOST || '127.0.0.1';
+
 http.createServer((req, res) => {
   let filePath = path.join(dir, decodeURIComponent(req.url));
   if (!filePath.startsWith(dir)) filePath = dir;
@@ -26,4 +29,4 @@ http.createServer((req, res) => {
     res.writeHead(404);
     res.end('not found');
   }
-}).listen(8084, '127.0.0.1', () => console.log('http://127.0.0.1:8084'));
+}).listen(port, host, () => console.log(`http://${host}:${port}`));

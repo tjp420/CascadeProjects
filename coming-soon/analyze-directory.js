@@ -163,7 +163,6 @@ const report = {
 };
 
 // ── Console Output ──────────────────────────────────────────────
-console.log('========================================');
 console.log(`✅ TOTAL FILES:      ${totalFiles.toLocaleString()}`);
 console.log(`📁 TOTAL FOLDERS:    ${totalFolders.toLocaleString()}`);
 console.log(`📦 TOTAL SIZE:       ${formatBytes(totalBytes)}`);

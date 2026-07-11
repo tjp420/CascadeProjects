@@ -31,7 +31,9 @@ function main() {
       `$bmp.Dispose()`
     ].join('; ');
     execSync(`powershell -Command "${ps}"`, { cwd: ROOT });
-    console.log(`Created ${outPath}`);
+    if (process.env.SB_DEBUG === '1') {
+      console.log(`Created ${outPath}`);
+    }
   }
 }
 

@@ -1842,7 +1842,7 @@ export class AnalyzeView {
         const useDefaultHidden = defaultPath && !isWeb ? '' : 'hidden';
         const pathPlaceholder = isWeb
             ? 'https://example.com'
-            : 'C:\\\\dev\\\\my-app · git@github.com:org/repo · https://codeberg.org/org/repo';
+            : 'C:\\\\project\\\\my-app or git@example.com:org/repo';
         const pathAria = isWeb ? 'Website URL' : 'Project path on server';
         const pathList = isWeb ? '' : pathInputListAttr();
         const datalist = isWeb ? '' : renderPathSuggestionsDatalistElement(collectPathSuggestions(this.app, this.testSources));
@@ -1976,7 +1976,7 @@ export class AnalyzeView {
               <button type="button" class="btn btn-primary btn-sm" id="analyze-file-browse-btn-dropzone" ${this.snippetBusy ? 'disabled' : ''}><i data-lucide="upload" class="icon-16" style="margin-right:4px;"></i>Choose File</button>
               <button type="button" class="btn btn-ghost btn-sm" id="analyze-file-clear-btn" ${this.snippetResult ? '' : 'disabled'}>Clear</button>
             </div>
-            <input type="file" id="analyze-file-input" accept="${SNIPPET_ACCEPT}" hidden>
+            <input type="file" id="analyze-file-input" accept="${SNIPPET_ACCEPT}" hidden aria-label="Select source files to scan">
             ${this.snippetResult ? this.renderSnippetResults(this.snippetResult) : ''}
           </div>`}
 

@@ -75,7 +75,7 @@
         { sev: 'high',  type: 'Credential Pattern', file: 'src/config/prod.js', line: 14, msg: 'Stripe live key sk_live_... detected in source' },
         { sev: 'high',  type: 'Hallucinated Import', file: 'src/utils/ai-helpers.js', line: 3, msg: "import { magicParser } from 'npm-magic-parser-99' — not in package.json" },
         { sev: 'medium', type: 'AI Slop / Boilerplate', file: 'src/services/api.ts', line: 22, msg: 'Identical JSDoc block found in 8 other files' },
-        { sev: 'medium', type: 'Placeholder Secret', file: 'src/auth/token.ts', line: 7, msg: "const API_KEY = 'your-api-key-here'" },
+        { sev: 'medium', type: 'Placeholder Secret', file: 'src/auth/token.ts', line: 7, msg: "const API_KEY = 'SB-DEMO-xxxxxxxxxxxxxxxx'" },
         { sev: 'low',   type: 'Generic Error Swallowing', file: 'src/handlers/error.js', line: 45, msg: 'catch(e){ /* TODO */ } — error silently dropped' },
         { sev: 'low',   type: 'Unused Variable', file: 'src/components/Dashboard.tsx', line: 12, msg: 'xyz_var declared but never used (AI hallucination pattern)' },
       ]
