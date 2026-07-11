@@ -1376,7 +1376,7 @@ input[type="email"]:hover {
     padding: 14px 18px;
     font-size: 0.85rem;
     color: var(--text-main);
-    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    box-shadow: var(--shadow-lg);
     animation: toastSlideIn 0.35s ease-out;
     pointer-events: auto;
     max-width: 360px;
@@ -1436,7 +1436,7 @@ input[type="email"]:hover {
     border: 1px solid var(--border);
     border-radius: 12px;
     overflow: hidden;
-    background: var(--surface);
+    background: var(--bg-main);
     box-shadow: var(--shadow-lg);
 }
 .terminal-header {
@@ -1475,12 +1475,12 @@ input[type="email"]:hover {
     border: 2px dashed var(--border);
     margin: 16px;
     border-radius: 8px;
-    background: var(--surface-hover);
+    background: var(--bg-input);
 }
 .terminal-dropzone:hover,
 .terminal-dropzone.dragover {
     border-color: var(--accent);
-    background: var(--primary-subtle);
+    background: rgba(37, 99, 235, 0.04);
 }
 .terminal-log {
     display: none;
@@ -1515,7 +1515,7 @@ input[type="email"]:hover {
 }
 .terminal-shell.locked .terminal-dropzone {
     border-color: rgba(239, 68, 68, 0.25);
-    background: rgba(220, 38, 38, 0.06);
+    background: rgba(239, 68, 68, 0.04);
     cursor: not-allowed;
     opacity: 0.7;
 }
@@ -1525,7 +1525,7 @@ input[type="email"]:hover {
 }
 .terminal-shell.scanning .terminal-dropzone {
     border-color: var(--accent);
-    background: var(--primary-subtle);
+    background: rgba(37, 99, 235, 0.06);
     animation: pulse-border 1.5s ease-in-out infinite;
 }
 .payload-schema {
@@ -1538,7 +1538,7 @@ input[type="email"]:hover {
 .payload-schema summary {
     padding: 12px 16px;
     font-size: 0.8rem;
-    color: var(--primary);
+    color: #60A5FA;
     cursor: pointer;
     font-weight: 600;
     background: var(--bg-card);
@@ -2030,18 +2030,18 @@ div[style*="display:flex;align-items:center;justify-content:space-between"] butt
 
 /* Terminal-style Quick Commands palette */
 .terminal-palette {
-    background: var(--surface-elevated);
+    background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: 12px;
     overflow: hidden;
     margin-bottom: 4px;
 }
-.terminal-palette > .terminal-header {
+.terminal-header {
     display: flex;
     align-items: center;
     gap: 8px;
     padding: 10px 14px;
-    background: var(--surface-hover);
+    background: var(--surface-elevated);
     border-bottom: 1px solid var(--border);
     cursor: pointer;
     user-select: none;
@@ -2089,10 +2089,10 @@ div[style*="display:flex;align-items:center;justify-content:space-between"] butt
     transition: background 0.15s;
 }
 .cmd-row:hover {
-    background: var(--primary-subtle);
+    background: rgba(37, 99, 235, 0.06);
 }
 .cmd-prompt {
-    color: var(--success);
+    color: #34D399;
     font-family: var(--font-mono);
     font-size: 0.8rem;
     font-weight: 600;
@@ -2100,7 +2100,7 @@ div[style*="display:flex;align-items:center;justify-content:space-between"] butt
 .cmd-row code {
     font-family: var(--font-mono);
     font-size: 0.8rem;
-    color: var(--primary);
+    color: #60A5FA;
     word-break: break-all;
 }
 .cmd-copy {
@@ -2117,7 +2117,7 @@ div[style*="display:flex;align-items:center;justify-content:space-between"] butt
 }
 .cmd-copy:hover {
     background: var(--accent);
-    color: var(--text-inverse);
+    color: white;
 }
 .cmd-desc {
     font-size: 0.72rem;
@@ -2493,7 +2493,9 @@ html[data-theme="light"] .issue-item:hover {
     background: rgba(226, 232, 240, 0.8);
 }
 html[data-theme="light"] .analyzer-card.locked {
-    background: rgba(226, 232, 240, 0.5);
+    background: rgba(226, 232, 240, 0.6);
+    opacity: 0.85;
+    filter: grayscale(0.3);
 }
 html[data-theme="light"] .module-card .module-detail li {
     border-bottom: 1px solid rgba(148, 163, 184, 0.3);
@@ -2501,11 +2503,25 @@ html[data-theme="light"] .module-card .module-detail li {
 html[data-theme="light"] .filter-chip.active {
     background: #f1f5f9;
 }
+html[data-theme="light"] .terminal-shell {
+    background: var(--bg-main);
+    box-shadow: var(--shadow-lg);
+}
+html[data-theme="light"] .terminal-header {
+    background: var(--bg-card);
+}
 html[data-theme="light"] .terminal-dropzone {
-    background: rgba(241, 245, 249, 0.5);
+    background: var(--bg-input);
+}
+html[data-theme="light"] .terminal-dropzone:hover,
+html[data-theme="light"] .terminal-dropzone.dragover {
+    background: var(--primary-subtle);
+}
+html[data-theme="light"] .terminal-log {
+    color: var(--text-muted);
 }
 html[data-theme="light"] .terminal-palette {
-    background: #f8fafc;
+    background: var(--bg-card);
 }
 html[data-theme="light"] .drop-zone::before {
     background: linear-gradient(135deg, rgba(37,99,235,0.15), rgba(96,165,250,0.08), rgba(37,99,235,0.15));
@@ -2520,6 +2536,19 @@ html[data-theme="light"] .module-card:hover {
 html[data-theme="light"] .analyzer-card:hover {
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 }
-html[data-theme="light"] .analyzer-card.selected {
-    background: linear-gradient(145deg, rgba(37, 99, 235, 0.05), transparent);
+html[data-theme="light"] .analyzer-card {
+    background: var(--surface);
 }
+html[data-theme="light"] .analyzer-card.selected {
+    background: linear-gradient(145deg, rgba(37, 99, 235, 0.08), var(--surface));
+    box-shadow: 0 0 0 1px var(--accent), 0 4px 20px rgba(37, 99, 235, 0.1);
+}
+html[data-theme="light"] .module-card .module-detail .detail-label { color: var(--primary); }
+html[data-theme="light"] .module-card .module-detail .detail-fix { color: var(--success); background: var(--success-bg); border-left-color: var(--success); }
+html[data-theme="light"] .module-card .module-detail .detail-data-btn { color: var(--primary); background: var(--primary-subtle); border-color: rgba(99, 102, 241, 0.3); }
+html[data-theme="light"] .module-detail-panel .detail-data-btn { color: var(--primary); background: var(--primary-subtle); border-color: rgba(99, 102, 241, 0.3); }
+html[data-theme="light"] .compliance-matrix .control-id { color: var(--primary); }
+html[data-theme="light"] .status-pill.warn { color: var(--warning); background: var(--warning-bg); }
+html[data-theme="light"] .status-pill.fail { color: var(--error); background: var(--danger-bg); }
+html[data-theme="light"] .status-pill.review { color: var(--info); background: var(--info-bg); }
+html[data-theme="light"] .issue-item .severity.low { background: var(--info); }

@@ -1376,7 +1376,7 @@ input[type="email"]:hover {
     padding: 14px 18px;
     font-size: 0.85rem;
     color: var(--text-main);
-    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    box-shadow: var(--shadow-lg);
     animation: toastSlideIn 0.35s ease-out;
     pointer-events: auto;
     max-width: 360px;
@@ -1437,7 +1437,7 @@ input[type="email"]:hover {
     border-radius: 12px;
     overflow: hidden;
     background: var(--bg-main);
-    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    box-shadow: var(--shadow-lg);
 }
 .terminal-header {
     background: var(--bg-card);
@@ -1475,7 +1475,7 @@ input[type="email"]:hover {
     border: 2px dashed var(--border);
     margin: 16px;
     border-radius: 8px;
-    background: rgba(15, 22, 38, 0.5);
+    background: var(--bg-input);
 }
 .terminal-dropzone:hover,
 .terminal-dropzone.dragover {
@@ -1508,7 +1508,7 @@ input[type="email"]:hover {
 }
 .terminal-hash {
     font-size: 0.68rem;
-    color: #64748B;
+    color: var(--text-muted);
     word-break: break-all;
     max-width: 55%;
     text-align: right;
@@ -2030,7 +2030,7 @@ div[style*="display:flex;align-items:center;justify-content:space-between"] butt
 
 /* Terminal-style Quick Commands palette */
 .terminal-palette {
-    background: #0B0F19;
+    background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: 12px;
     overflow: hidden;
@@ -2041,7 +2041,7 @@ div[style*="display:flex;align-items:center;justify-content:space-between"] butt
     align-items: center;
     gap: 8px;
     padding: 10px 14px;
-    background: rgba(255,255,255,0.03);
+    background: var(--surface-elevated);
     border-bottom: 1px solid var(--border);
     cursor: pointer;
     user-select: none;
@@ -2503,11 +2503,25 @@ html[data-theme="light"] .module-card .module-detail li {
 html[data-theme="light"] .filter-chip.active {
     background: #f1f5f9;
 }
+html[data-theme="light"] .terminal-shell {
+    background: var(--bg-main);
+    box-shadow: var(--shadow-lg);
+}
+html[data-theme="light"] .terminal-header {
+    background: var(--bg-card);
+}
 html[data-theme="light"] .terminal-dropzone {
-    background: rgba(241, 245, 249, 0.5);
+    background: var(--bg-input);
+}
+html[data-theme="light"] .terminal-dropzone:hover,
+html[data-theme="light"] .terminal-dropzone.dragover {
+    background: var(--primary-subtle);
+}
+html[data-theme="light"] .terminal-log {
+    color: var(--text-muted);
 }
 html[data-theme="light"] .terminal-palette {
-    background: #f8fafc;
+    background: var(--bg-card);
 }
 html[data-theme="light"] .drop-zone::before {
     background: linear-gradient(135deg, rgba(37,99,235,0.15), rgba(96,165,250,0.08), rgba(37,99,235,0.15));
