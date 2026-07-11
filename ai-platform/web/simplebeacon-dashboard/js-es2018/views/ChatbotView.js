@@ -329,6 +329,9 @@ export class ChatbotView {
                 select.value = firstAvailable.id;
                 this.selectedProvider = firstAvailable.id;
             }
+            else {
+                this.showErrorBanner('No AI provider is configured. Add an OpenAI/Anthropic API key in Settings → AI providers, or set OLLAMA_BASE_URL to a reachable Ollama host.', false);
+            }
         }
         catch (error) {
             // Fallback to hardcoded list with all disabled

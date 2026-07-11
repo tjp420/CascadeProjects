@@ -20,7 +20,7 @@ import { PricingView } from './views/PricingView.js';
 import { AboutView } from './views/AboutView.js';
 import { AssessmentView } from './views/AssessmentView.js';
 import { SignInView } from './views/SignInView.js?v=20260609token3';
-import { ChatbotView } from './views/ChatbotView.js';
+import { ChatbotView } from './views/ChatbotView.js?v=20260711chatbotfix1';
 import { UploadView } from './views/UploadView.js';
 import { RemediationRoadmapView } from './views/RemediationRoadmapView.js';
 import { ProfileView } from './views/ProfileView.js';

@@ -209,11 +209,10 @@ function setupChatbotAPI(app) {
       const isAnthropicAvailable = Boolean(userCredentials?.anthropic || process.env.ANTHROPIC_API_KEY);
 
       if (provider === 'ollama' && !isOllamaAvailable) {
-        return res.json({
-          success: true,
-          response: `Demo mode: Ollama is not configured yet.\n\nTo use real AI responses:\n1. Install Ollama from https://ollama.ai\n2. Run \`ollama serve\` in a terminal\n3. Run \`ollama pull llama3.2\` in another terminal\n4. Configure Ollama in Settings → AI providers with URL: ${DEFAULT_OLLAMA_URL}\n\nYour message: "${message.substring(0, 200)}"`,
-          provider: 'demo',
-          timing: null
+        return res.status(400).json({
+          success: false,
+          error: 'Ollama is not configured',
+          message: `Ollama is not configured on this server.\n\nTo use the chatbot:\n• Configure OpenAI or Anthropic in Settings → AI providers, or\n• Set the OLLAMA_BASE_URL environment variable to a reachable Ollama host, or\n• Install Ollama locally from https://ollama.ai and run it with \`ollama serve\` (only works when the dashboard is served from localhost).\n\nYour message was not sent to an AI model.`
         });
       }
 
@@ -223,12 +222,11 @@ function setupChatbotAPI(app) {
         const ollamaBaseUrl = resolveOllamaBaseUrl(userCredentials);
         const reachable = await probeOllama(ollamaBaseUrl);
         if (!reachable) {
-          logger.warn(`[Chatbot API] Ollama unreachable at ${ollamaBaseUrl}; returning demo response`);
-          return res.json({
-            success: true,
-            response: `Ollama is configured at ${ollamaBaseUrl} but is not reachable from this server.\n\nTo use the chatbot:\n• Configure OpenAI or Anthropic in Settings → AI providers, or\n• Run Ollama on a network-reachable host and set OLLAMA_BASE_URL.\n\nYour message: "${message.substring(0, 200)}"`,
-            provider: 'demo',
-            timing: null
+          logger.warn(`[Chatbot API] Ollama unreachable at ${ollamaBaseUrl}; returning error`);
+          return res.status(400).json({
+            success: false,
+            error: 'Ollama is unreachable',
+            message: `Ollama is configured at ${ollamaBaseUrl} but is not reachable from this server.\n\nTo use the chatbot:\n• Configure OpenAI or Anthropic in Settings → AI providers, or\n• Run Ollama on a network-reachable host and set OLLAMA_BASE_URL.\n\nYour message was not sent to an AI model.`
           });
         }
       }
