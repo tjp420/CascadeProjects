@@ -559,10 +559,11 @@
                             </div>
                             <div id="terminal-dropzone-prompt" class="terminal-dropzone">
                                 <div style="text-align:center;">
-                                    <span style="font-size:2rem;display:block;margin-bottom:8px;transition:transform 0.2s;">&#128737;</span>
-                                    <p style="font-size:0.8rem;font-weight:700;color:var(--text-main);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:6px;">Drag &amp; Drop Project Directory</p>
-                                    <p style="font-size:0.72rem;color:var(--text-muted);max-width:320px;margin:0 auto;line-height:1.5;">Heuristic parsing executes locally inside your browser's isolated tab memory. No source code or metrics ever leave your machine.</p>
-                                    <p style="font-size:0.68rem;color:var(--text-muted);margin-top:8px;">Or click to select a directory</p>
+                                    <span style="font-size:2rem;display:block;margin-bottom:8px;transition:transform 0.2s;">&#128451;</span>
+                                    <p style="font-size:0.9rem;font-weight:700;color:var(--text-main);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:6px;">Scan a local folder</p>
+                                    <p style="font-size:0.75rem;color:var(--text-muted);max-width:320px;margin:0 auto 14px;line-height:1.5;">Select a drive or folder, or drop one here — scanning runs privately inside your browser. No source code or metrics ever leave your machine.</p>
+                                    <button type="button" id="select-drive-target-btn" class="btn btn-primary" style="margin-bottom:10px;">&#128193; Select Drive Target</button>
+                                    <p style="font-size:0.68rem;color:var(--text-muted);margin-top:6px;">Or drag &amp; drop a project directory anywhere in this box</p>
                                     <p class="file-name" id="localScanFileName"></p>
                                 </div>
                             </div>
@@ -1749,7 +1750,7 @@
         }
     })();
     </script>
-    <script src="js-es2018/dashboard/main.js?h=1781470050008" defer></script>
+    <script src="js-es2018/dashboard/main.js?h=1781470050009" defer></script>
     <script>
     // Diagnostic panel disabled by default. Add ?debug=1 to URL to enable.
     (function() {

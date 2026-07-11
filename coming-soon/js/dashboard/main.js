@@ -2160,6 +2160,15 @@ if (dropzonePrompt) dropzonePrompt.addEventListener('click', (e) => {
     e.stopPropagation();
     triggerDirectoryPicker();
 });
+const selectDriveTargetBtn = document.getElementById('select-drive-target-btn');
+if (selectDriveTargetBtn) {
+    selectDriveTargetBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        _pickerTriggeredByButton = true;
+        triggerDirectoryPicker();
+    });
+}
 let _browserDragDepth = 0;
 if (browserFolderDropzone) browserFolderDropzone.addEventListener('dragenter', (e) => {
     e.preventDefault();
