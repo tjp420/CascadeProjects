@@ -449,10 +449,10 @@ $('cancelBtn').addEventListener('click', () => {
   }
 
   public static openSidebarInBrowserStatic(path = '/') {
-    const inst = ModernSidebarProvider._instance;
-    if (inst) {
-      inst.openSidebarInBrowser(true, path);
-    }
+    const previewUrl = path && path !== '/'
+      ? `https://simplebeacon.ai${path.startsWith('/') ? path : '/' + path}`
+      : 'https://simplebeacon.ai/dashboard/#/dashboard';
+    vscode.commands.executeCommand('simpleBrowser.show', previewUrl);
   }
 
   /**
