@@ -103,8 +103,8 @@ export class Web2Panel {
     const autoScan = config.get<boolean>('autoScanOnOpen', false);
     const maxFiles = config.get<number>('maxFiles', 5000);
     const excludePatterns = config.get<string[]>('excludePatterns', []);
-    const defaultLocalApi = ['http://', '127.0.0.1', ':3000'].join('');
-    const apiUrl = config.get<string>('apiServerUrl') || config.get<string>('apiUrl', defaultLocalApi);
+    const defaultRemoteApi = 'https://simplebeacon.ai/';
+    const apiUrl = config.get<string>('apiServerUrl') || config.get<string>('apiUrl', defaultRemoteApi);
     const workspaceFolders = vscode.workspace.workspaceFolders;
     const workspaceName =
       workspaceFolders && workspaceFolders.length > 0 ? workspaceFolders[0].name : 'No workspace open';

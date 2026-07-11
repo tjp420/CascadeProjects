@@ -76,8 +76,7 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
   /** When remoteMode is active, open the given route in the browser relay window instead of the IDE. */
   private static openInBrowserIfRemote(route: string): boolean {
     if (!ModernSidebarProvider.isRemoteMode()) return false;
-    const relayPort = ModernSidebarProvider._relayPort || getSbConfig().get<number>('relayPort', 55444);
-    const url = `http://127.0.0.1:${relayPort}${route.startsWith('/') ? route : '/' + route}`;
+    const url = `https://simplebeacon.ai${route.startsWith('/') ? route : '/' + route}`;
     Promise.resolve(vscode.env.openExternal(vscode.Uri.parse(url))).catch(() => {});
     return true;
   }
@@ -171,8 +170,7 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
 
   public static openSigninPanel() {
     if (ModernSidebarProvider.openInBrowserIfRemote('/dashboard/signin')) return;
-    const port = getDataServerPort();
-    vscode.commands.executeCommand('simpleBrowser.show', `http://127.0.0.1:${port}/dashboard/signin`);
+    vscode.commands.executeCommand('simpleBrowser.show', 'https://simplebeacon.ai/dashboard/signin');
   }
 
   public static openTokenRegistrationPanel(extUri: vscode.Uri, token: string) {

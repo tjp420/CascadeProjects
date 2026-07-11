@@ -14,10 +14,7 @@ import { postSidebarMessage } from './sidebarMessenger';
 import { ModernSidebarProvider } from './modernSidebarProvider';
 import { showQuietMessage, getSbConfig } from './utils';
 
-const DEFAULT_API_PROTOCOL = 'http://';
-const DEFAULT_API_HOST = 'localhost';
-const DEFAULT_API_PORT = 55000;
-const DEFAULT_API_URL = `${DEFAULT_API_PROTOCOL}${DEFAULT_API_HOST}:${DEFAULT_API_PORT}`;
+const DEFAULT_API_URL = 'https://simplebeacon.ai/';
 
 function getVersionFromExtUri(extUri: vscode.Uri): string {
   try {
