@@ -5,7 +5,7 @@ import { fingerprintDirectory, formatFingerprint } from '../services/fingerprint
 import { probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus, getAgentDownloadUrl, detectPlatform, getPlatformLabel, getInstallInstructions, getAgentFallbackMessage, probeAgent4000, scanViaAgent4000, renderAgentCertificate } from '../services/localAgentService.js?v=20260711themefix1';
 import { runSandboxedDirectoryScan, scanDroppedItems } from '../services/browserSandboxScanService.js?v=20260711scanner1';
 // simplebeacon:production-leak-intent: sample-json - Legitimate documentation about sample file patterns in analysis results
-import { analyzePath, scanPath, summarizeReport, fetchAnalyzeProviders, fetchRepositoryInventory, fetchCodebaseAnalysis, enrichScanReport, fetchZscriptModReport, shouldFetchZscriptReport, isLegacyScanReport, buildMonorepoScopeNote, buildPathInventoryProvenance, renderInventoryProvenanceHtml, refreshPathInventory, liveInventoryForPath, renderScanScopePanel, isSimplebeaconReport, aiProviderSupportsSummary, getScanFileMetrics, resolveAutoAnalysisMode, buildScanConclusion, buildConsolidationConclusion, buildFictionDigestPayload, sanitizeFictionDigestExport, resolveCompleteScanTargetPath, normalizeProjectPath, filterIssuesByKind, preparePlatformResultsReport, fetchCompleteAuditReport, fetchAnalyzeExportBundleZip, fetchEuAiActAuditReport, openAuditReportPrintWindow, previewAuditExportTier, auditExportButtonLabel, fetchDataCleanupScan, ensureDashboardApiReady, assertCompleteScanComplianceFresh, assertCompleteScanFileReductionFresh, fetchUnderstandSnippet, isCodebaseReport, fetchComplianceChecklist, fetchProjectNpmAudit, prepareGithubRepo, fetchAnalyzeTestSources, isAnalyzeProviderConfigured, uploadDirectoryAndAnalyze } from '../services/analyzeService.js?v=20260711cachefix1';
+import { analyzePath, scanPath, summarizeReport, fetchAnalyzeProviders, fetchRepositoryInventory, fetchCodebaseAnalysis, enrichScanReport, fetchZscriptModReport, shouldFetchZscriptReport, isLegacyScanReport, buildMonorepoScopeNote, buildPathInventoryProvenance, renderInventoryProvenanceHtml, refreshPathInventory, liveInventoryForPath, renderScanScopePanel, isSimplebeaconReport, normalizeSimplebeaconReport, aiProviderSupportsSummary, getScanFileMetrics, resolveAutoAnalysisMode, buildScanConclusion, buildConsolidationConclusion, buildFictionDigestPayload, sanitizeFictionDigestExport, resolveCompleteScanTargetPath, normalizeProjectPath, filterIssuesByKind, preparePlatformResultsReport, fetchCompleteAuditReport, fetchAnalyzeExportBundleZip, fetchEuAiActAuditReport, openAuditReportPrintWindow, previewAuditExportTier, auditExportButtonLabel, fetchDataCleanupScan, ensureDashboardApiReady, assertCompleteScanComplianceFresh, assertCompleteScanFileReductionFresh, fetchUnderstandSnippet, isCodebaseReport, fetchComplianceChecklist, fetchProjectNpmAudit, prepareGithubRepo, fetchAnalyzeTestSources, isAnalyzeProviderConfigured, uploadDirectoryAndAnalyze } from '../services/analyzeService.js?v=20260711reportv11';
 import { isRemoteRepoUrl, sourceChipTitle } from '../lib/analyzePathSources.js';
 import { reportMatchesPagePath, resolvePageProjectPath, getPathInputDisplayValue } from '../lib/pageRepoScan.js';
 import { collectPathSuggestions, refreshPathSuggestionsDatalist, pathInputListAttr, renderPathSuggestionsDatalistElement, saveRecentPath, removeRecentPath, loadRecentPaths } from '../lib/analyzePathSuggestions.js';
@@ -5956,10 +5956,11 @@ export class AnalyzeView {
             return true;
         }
         if (isSimplebeaconReport(parsed)) {
-            const reportProjectPath = parsed.projectRoot || parsed.projectPath || parsed.platformRoot || '';
+            const normalizedReport = normalizeSimplebeaconReport(parsed);
+            const reportProjectPath = normalizedReport.projectRoot || normalizedReport.projectPath || normalizedReport.platformRoot || '';
             try {
-                const imported = await this.app.scanService.importReport(parsed, reportProjectPath || undefined);
-                const loadedReport = imported.report || parsed;
+                const imported = await this.app.scanService.importReport(normalizedReport, reportProjectPath || undefined);
+                const loadedReport = imported.report || normalizedReport;
                 const resolvedProjectPath = imported.response?.projectPath || reportProjectPath;
                 if (resolvedProjectPath) {
                     this.app.state.lastProjectPath = resolvedProjectPath;
@@ -5969,7 +5970,7 @@ export class AnalyzeView {
             }
             catch (err) {
                 console.warn('[AnalyzeView] Server report import failed; applying locally:', err);
-                this.applyReport(parsed, `Imported scan: ${fileName}`, { conclusion: buildScanConclusion(parsed) });
+                this.applyReport(normalizedReport, `Imported scan: ${fileName}`, { conclusion: buildScanConclusion(normalizedReport) });
                 showToast(`Saved locally — server import failed: ${err.message}`, 'warning');
             }
             if (warnings.length)

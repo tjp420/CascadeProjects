@@ -2133,6 +2133,56 @@ export function isSimplebeaconReport(obj) {
     return obj && (obj.type === 'simplebeacon-report' || obj.rawIssues != null);
 }
 /**
+ * Normalize a v1 Simplebeacon report (categories/findings shape) to the v2
+ * shape expected by the dashboard (rawIssues/detectedIssues + scan_summary).
+ * @param {any} report
+ * @returns {any}
+ */
+export function normalizeSimplebeaconReport(report) {
+    if (!report || report.reportVersion === 2 || Array.isArray(report.rawIssues) || Array.isArray(report.detectedIssues)) {
+        return report;
+    }
+    const categories = report.categories || {};
+    const detectedIssues = [];
+    for (const [category, data] of Object.entries(categories)) {
+        if (!data || !Array.isArray(data.findings))
+            continue;
+        for (const finding of data.findings) {
+            detectedIssues.push({
+                type: category,
+                filePath: finding.file || '',
+                line: finding.line || 0,
+                severity: String(finding.severity || data.severity || 'medium').toLowerCase(),
+                message: finding.message || ''
+            });
+        }
+    }
+    const severityCounts = report.severityCounts || detectedIssues.reduce((acc, issue) => {
+        const sev = issue.severity || 'medium';
+        acc[sev] = (acc[sev] || 0) + 1;
+        return acc;
+    }, { critical: 0, high: 0, medium: 0, low: 0, info: 0 });
+    const total = detectedIssues.length;
+    const scan_summary = {
+        status: 'REVIEW',
+        block_merge: false,
+        total_risks_found: total,
+        high_severity_count: severityCounts.high || 0,
+        medium_severity_count: severityCounts.medium || 0,
+        low_severity_count: severityCounts.low || 0,
+        estimated_incident_cost_saved: '$0'
+    };
+    return Object.assign({}, report, {
+        reportVersion: 2,
+        detectedIssues,
+        severityCounts,
+        scan_summary,
+        issueCount: total,
+        filesAnalyzed: report.codeFilesAnalyzed || report.filesAnalyzed || 0,
+        totalFiles: report.codeFilesAnalyzed || report.filesAnalyzed || 0
+    });
+}
+/**
  * Is codebase report.
  * @param {any} obj
  * @returns {any}
