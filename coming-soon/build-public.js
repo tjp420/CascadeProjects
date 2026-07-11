@@ -9,6 +9,7 @@ function copyRecursive(srcDir, dstDir) {
   fs.mkdirSync(dstDir, { recursive: true });
   const items = fs.readdirSync(srcDir);
   for (const item of items) {
+    if (item.endsWith('.exe')) continue;
     const srcPath = path.join(srcDir, item);
     const dstPath = path.join(dstDir, item);
     const stat = fs.statSync(srcPath);

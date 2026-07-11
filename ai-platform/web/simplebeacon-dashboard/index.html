@@ -581,7 +581,7 @@
       ];
       function grid() {
         return '<div class="dashboard-welcome"><div class="icon" style="font-size:120px">&#x1F5FA;</div><h1>SimpleBeacon Dashboard</h1><div class="subtitle">Overview of your codebase health, scan results, and quick actions.</div><div class="dashboard-grid">' +
-          items.map(it => '<a href="/dashboard/' + it.id + '" data-view="' + it.id + '"><span class="icon">' + it.icon + '</span><span>' + it.label + '</span></a>').join('') +
+          items.map(it => '<a href="#/' + it.id + '" data-view="' + it.id + '"><span class="icon">' + it.icon + '</span><span>' + it.label + '</span></a>').join('') +
           '</div></div>';
       }
       function placeholder(view) {
