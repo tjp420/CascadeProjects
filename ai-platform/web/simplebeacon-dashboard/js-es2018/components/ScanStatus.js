@@ -106,12 +106,12 @@ export async function runDashboardScanFromInput(input, options = {}) {
     const isRemoteUrl = /^https?:\/\//i.test(path);
     const isRemoteDeployment = typeof window !== 'undefined' && !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
     if (isAbsoluteLocal && isRemoteDeployment) {
-        showToast('Local agent is not available. Use the Secure Local Directory Scanner card to select the folder and scan it locally in your browser, or start the Local Scan Agent on your machine.', 'error', { duration: 12000 });
-        const scannerCard = document.getElementById('sandbox-scanner');
-        if (scannerCard) {
-            scannerCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            scannerCard.classList.add('sandbox-scanner-highlight');
-            setTimeout(() => scannerCard.classList.remove('sandbox-scanner-highlight'), 3000);
+        showToast('Local agent is not available. Click "Select Drive Target" above to choose the folder and scan it locally in your browser, or start the Local Scan Agent on your machine.', 'error', { duration: 12000 });
+        const scopeCard = document.getElementById('scan-status-scope');
+        if (scopeCard) {
+            scopeCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            scopeCard.classList.add('sandbox-scanner-highlight');
+            setTimeout(() => scopeCard.classList.remove('sandbox-scanner-highlight'), 3000);
         }
         return;
     }
@@ -132,7 +132,10 @@ export async function runDashboardScanFromInput(input, options = {}) {
 async function runSandboxedScanForDashboard(onLocalScanResult) {
     const terminal = document.getElementById('sandbox-scan-terminal');
     const resultsEl = document.getElementById('agent-4000-results');
-    if (terminal) terminal.textContent = 'Opening native OS system access window...';
+    if (terminal) {
+        terminal.style.display = 'block';
+        terminal.textContent = 'Opening native OS system access window...';
+    }
     try {
         const report = await runSandboxedDirectoryScan({
             onLog: (entry) => {
@@ -230,47 +233,60 @@ function renderScanPathControls(report, options = {}) {
         <div class="analyze-drag-overlay-icon">📂</div>
         <strong>Drop folder to scan</strong>
       </div>
-      <div class="scan-status-path-row">
-        <div class="scan-status-path-input-wrap">
-          <i data-lucide="folder" class="icon-16 scan-status-path-icon"></i>
-          <input
-            type="text"
-            id="scan-root-input"
-            class="scan-status-path-input"
-            placeholder="e.g. C:\\dev\\my-app"
-            spellcheck="false"
-            autocomplete="off"
-            aria-label="Folder path on the dashboard server"
-            value="${escapeHtml(resolvedPath)}"
-            ${scanning ? 'disabled' : ''}
-          >
+      <div class="scan-status-local-scan">
+        <div class="scan-status-local-header">
+          <i data-lucide="folder-up" class="icon-24" style="color: var(--primary);"></i>
+          <div>
+            <div style="font-weight: 700; color: var(--text-primary);">Scan a local folder</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">Select a drive or folder, or drop one here — scanning runs privately inside your browser.</div>
+          </div>
         </div>
-        <input type="file" id="scan-browse-input" webkitdirectory directory hidden aria-label="Select folder to scan">
-        <button type="button" class="btn btn-ghost btn-sm" id="scan-browse-btn" ${scanning ? 'disabled' : ''} title="Browse for folder" aria-label="Browse for folder to scan" aria-controls="scan-browse-input">
-          <i data-lucide="folder-open" class="icon-16"></i> Browse
-        </button>
-        <button type="button" class="btn btn-ghost btn-sm" id="scan-set-default-btn" ${!hasDefault || scanning ? 'disabled' : ''} title="Reset to default path">
-          <i data-lucide="rotate-ccw" class="icon-16"></i> Reset
-        </button>
-        <button type="button" class="btn btn-ghost btn-sm" id="scan-clear-btn" ${!hasSaved || scanning ? 'disabled' : ''} title="Clear saved folder">
-          <i data-lucide="x" class="icon-16"></i> Clear
-        </button>
-        <button type="button" class="btn btn-primary" id="rescan-btn" ${scanning ? 'disabled' : ''} title="Run gate scan on this folder">
-          ${scanning ? '<span class="loading-spinner"></span> Scanning…' : '<i data-lucide="play" class="icon-16"></i> Scan'}
-        </button>
+        <div class="scan-status-local-actions">
+          <button type="button" id="trigger-native-picker" class="btn btn-primary"><i data-lucide="folder-open" class="icon-16"></i> Select Drive Target</button>
+        </div>
+        <pre id="sandbox-scan-terminal" style="display:none; background: var(--surface); color: var(--text-secondary); font-family: monospace; padding: 12px; border-radius: var(--radius-md); max-height: 240px; overflow-y: auto; margin: 12px 0 0; border: 1px solid var(--border);">Awaiting drive selection...</pre>
+        <div id="sandbox-scanner" style="display:none;"></div>
       </div>
+
+      <div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border);">
+        <p style="margin: 0 0 8px; font-size: 0.75rem; color: var(--text-muted);">Or type a server path / public repo URL</p>
+        <div class="scan-status-path-row">
+          <div class="scan-status-path-input-wrap">
+            <i data-lucide="folder" class="icon-16 scan-status-path-icon"></i>
+            <input
+              type="text"
+              id="scan-root-input"
+              class="scan-status-path-input"
+              placeholder="e.g. C:\\dev\\my-app"
+              spellcheck="false"
+              autocomplete="off"
+              aria-label="Folder path on the dashboard server"
+              value="${escapeHtml(resolvedPath)}"
+              ${scanning ? 'disabled' : ''}
+            >
+          </div>
+          <input type="file" id="scan-browse-input" webkitdirectory directory hidden aria-label="Select folder to scan">
+          <button type="button" class="btn btn-ghost btn-sm" id="scan-browse-btn" ${scanning ? 'disabled' : ''} title="Browse for folder" aria-label="Browse for folder to scan" aria-controls="scan-browse-input">
+            <i data-lucide="folder-open" class="icon-16"></i> Browse
+          </button>
+          <button type="button" class="btn btn-ghost btn-sm" id="scan-set-default-btn" ${!hasDefault || scanning ? 'disabled' : ''} title="Reset to default path">
+            <i data-lucide="rotate-ccw" class="icon-16"></i> Reset
+          </button>
+          <button type="button" class="btn btn-ghost btn-sm" id="scan-clear-btn" ${!hasSaved || scanning ? 'disabled' : ''} title="Clear saved folder">
+            <i data-lucide="x" class="icon-16"></i> Clear
+          </button>
+          <button type="button" class="btn btn-secondary" id="rescan-btn" ${scanning ? 'disabled' : ''} title="Run gate scan on this folder">
+            ${scanning ? '<span class="loading-spinner"></span> Scanning…' : '<i data-lucide="play" class="icon-16"></i> Scan'}
+          </button>
+        </div>
+      </div>
+
       <p class="scan-status-scope-hint text-muted">
         Deep analysis → <a href="/dashboard/analyze" class="scan-status-link">Analyze</a> ·
         Mock folders → <a href="/dashboard/settings" class="scan-status-link">Settings → Scan paths</a>${pathCount ? ` (${pathCount})` : ''}
       </p>
       <p id="agent-4000-status" class="agent-status"></p>
       <div id="agent-4000-results"></div>
-      <div id="sandbox-scanner" class="sandbox-scanner" style="margin-top: 16px; padding: 16px 0 0; border-top: 1px solid var(--border); color: var(--text-secondary);">
-        <h4 style="margin-top: 0; font-size: 0.9rem; color: var(--text-primary);">Secure Local Directory Scanner</h4>
-        <p style="margin-bottom: 12px; font-size: 0.75rem; color: var(--text-muted);">Select a local drive or folder. Scanning runs privately inside your browser using the File System Access API (Chrome/Edge/Brave).</p>
-        <button type="button" id="trigger-native-picker" class="btn btn-primary btn-sm" style="margin-bottom: 12px;">Select Drive Target</button>
-        <pre id="sandbox-scan-terminal" style="background: var(--surface); color: var(--text-secondary); font-family: monospace; padding: 12px; border-radius: var(--radius-md); max-height: 240px; overflow-y: auto; margin: 0; border: 1px solid var(--border);">Awaiting drive selection...</pre>
-      </div>
     </div>
   `;
 }

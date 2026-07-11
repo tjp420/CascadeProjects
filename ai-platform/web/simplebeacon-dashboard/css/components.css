@@ -5103,3 +5103,20 @@ button.tool-card.help-page-card:hover {
   70% { box-shadow: 0 0 0 8px rgba(99, 102, 241, 0); }
   100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); }
 }
+
+.scan-status-local-scan {
+  padding: 16px 0 0;
+}
+
+.scan-status-local-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.scan-status-local-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
