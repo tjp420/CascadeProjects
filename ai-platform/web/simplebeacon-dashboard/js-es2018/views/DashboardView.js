@@ -256,11 +256,23 @@ export class DashboardView {
             onLocalScanResult: (report) => {
                 if (!report)
                     return;
+                const projectPath = report.projectPath || report.projectRoot || this.app.state.lastProjectPath;
                 this.app.state.report = report;
                 this.app.state.scanning = false;
-                this.app.state.lastProjectPath = report.projectPath || report.projectRoot || this.app.state.lastProjectPath;
+                this.app.state.lastProjectPath = projectPath;
                 if (this.app.scanService) {
                     this.app.scanService.report = report;
+                }
+                if (report.type === 'simplebeacon-report' || report.summary || report.findings) {
+                    const conclusion = buildScanConclusion(report);
+                    this.app.state.analyzeResult = {
+                        kind: 'simplebeacon-report',
+                        report,
+                        projectPath,
+                        repositoryInventory: report.inventory || report.repositoryInventory || null,
+                        label: `Local scan: ${projectPath}`,
+                        conclusion
+                    };
                 }
                 this.app.refreshCurrentView();
             }
