@@ -160,6 +160,13 @@ async function runSandboxedScanForDashboard(onLocalScanResult) {
         if (onLocalScanResult) {
             onLocalScanResult({ projectPath: report.verifiedAddress || report.path, summary: report.certificate, source: 'sandbox' });
         }
+        try {
+            if (typeof sessionStorage !== 'undefined') {
+                sessionStorage.setItem('sb-last-sandbox-report', JSON.stringify(report));
+                sessionStorage.setItem('sb-last-sandbox-project-path', report.verifiedAddress || report.path || '');
+            }
+        }
+        catch (_a) { }
         // Continue the single local-scan process on the Analyze page.
         if (!window.location.pathname.includes('/analyze')) {
             showToast('Scan complete — opening analysis…', 'success');
