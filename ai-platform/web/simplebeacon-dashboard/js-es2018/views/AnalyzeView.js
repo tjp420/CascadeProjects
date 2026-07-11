@@ -15,7 +15,7 @@ import { runEuAiActSprint } from '../services/operatorService.js?v=20260531eupdf
 import { renderModeFileScopePanel, extractRoadmapFileMetrics } from '../utils/analyze-mode-file-scope.browser.js?v=20260601roadmapscope1';
 import { renderModeFileResultsPanel } from '../utils/analyze-mode-file-results.browser.js?v=20260601filereconcile1';
 import { renderScanPaywall, buildPublicSummaryFromScan, isDeliverableLocked } from '../components/ScanPaywall.js';
-import { renderCompactScanStatus } from '../components/ScanStatus.js?v=20260711dropzone1';
+import { renderCompactScanStatus } from '../components/ScanStatus.js?v=20260711viewresults1';
 import { AI_SYSTEM_ISSUES, ANALYZER_CATALOG, groupIssuesByCategory, buildAiSystemsIssueAnalysis } from '../services/aiProblemAnalyzerSuite.mjs';
 import { renderIssueList } from '../components/IssueCard.js';
 import { showDownloadCredentialsModal } from '../components/DownloadCredentialsModal.js';
@@ -5284,6 +5284,11 @@ export class AnalyzeView {
         // Retry button resets the Analyze dropzone
         const analyzeRetryBtn = el.querySelector('#analyze-dropzone-retry');
         analyzeRetryBtn === null || analyzeRetryBtn === void 0 ? void 0 : analyzeRetryBtn.addEventListener('click', resetAnalyzeDropzone);
+        // View Results button navigates to the full results view
+        const analyzeViewResultsBtn = el.querySelector('#analyze-dropzone-view-results');
+        analyzeViewResultsBtn === null || analyzeViewResultsBtn === void 0 ? void 0 : analyzeViewResultsBtn.addEventListener('click', () => {
+            this.app.navigate('results');
+        });
         // Quick file picker for Analyze dropzone
         if (analyzeFilePicker) {
             const quickInput = document.createElement('input');
