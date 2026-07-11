@@ -8,6 +8,55 @@ import { fetchRepositoryHealth, renderRepositoryHealthSection } from './Reposito
 import { renderPathHealthDashboard, cleanupPathHealthDashboard } from '../components/PathHealthDashboard.js';
 import { isDemoMode } from '../demoMode.js';
 /**
+ * Convert a browser-sandbox scanner report (certificate shape) into a simplebeacon-report
+ * shape so the Analyze page can render it.
+ * @param {Object} report
+ * @param {string} projectPath
+ * @returns {Object}
+ */
+function convertSandboxReportToSimplebeacon(report, projectPath) {
+    const cert = report.certificate || {};
+    const logs = Array.isArray(cert.logs) ? cert.logs : [];
+    const high = Number(cert.highRiskCount) || 0;
+    const medium = Number(cert.mediumRiskCount) || 0;
+    const totalFiles = report.discoveredFiles || report.files.length;
+    const rawIssues = logs.map((entry) => ({
+        severity: String(entry.severity || 'medium').toLowerCase(),
+        type: entry.type || 'Security',
+        filePath: entry.filePath || '',
+        description: entry.message || '',
+        count: 1
+    }));
+    const severityCounts = { critical: 0, high, medium, low: 0, info: 0 };
+    return {
+        type: 'simplebeacon-report',
+        version: '1.0.0',
+        generatedAt: new Date().toISOString(),
+        projectPath: projectPath,
+        projectRoot: projectPath,
+        summary: {
+            totalFiles,
+            totalFindings: rawIssues.length,
+            severityCounts
+        },
+        rawIssues,
+        detectedIssues: rawIssues,
+        findings: rawIssues,
+        repositoryFilesTotal: totalFiles,
+        totalFiles,
+        filesAnalyzed: report.files.length,
+        inventory: {
+            totalFiles,
+            totalFolders: 0,
+            scannedFiles: report.files.length
+        },
+        gate: {
+            pass: cert.letterGrade !== 'F' && totalFiles > 0,
+            score: cert.score != null ? cert.score : 0
+        }
+    };
+}
+/**
  * Render insights.
  * @param {number} report
  * @param {any} baseline
@@ -256,20 +305,22 @@ export class DashboardView {
             onLocalScanResult: (report) => {
                 if (!report)
                     return;
-                const projectPath = report.projectPath || report.projectRoot || this.app.state.lastProjectPath;
+                const projectPath = report.projectPath || report.projectRoot || report.verifiedAddress || report.path || this.app.state.lastProjectPath;
                 this.app.state.report = report;
                 this.app.state.scanning = false;
                 this.app.state.lastProjectPath = projectPath;
                 if (this.app.scanService) {
                     this.app.scanService.report = report;
                 }
-                if (report.type === 'simplebeacon-report' || report.summary || report.findings) {
-                    const conclusion = buildScanConclusion(report);
+                const isSandboxReport = report.certificate && Array.isArray(report.files) && !report.type;
+                const analyzeReport = isSandboxReport ? convertSandboxReportToSimplebeacon(report, projectPath) : report;
+                if (analyzeReport.type === 'simplebeacon-report' || analyzeReport.summary || analyzeReport.findings) {
+                    const conclusion = buildScanConclusion(analyzeReport);
                     this.app.state.analyzeResult = {
                         kind: 'simplebeacon-report',
-                        report,
+                        report: analyzeReport,
                         projectPath,
-                        repositoryInventory: report.inventory || report.repositoryInventory || null,
+                        repositoryInventory: analyzeReport.inventory || analyzeReport.repositoryInventory || null,
                         label: `Local scan: ${projectPath}`,
                         conclusion
                     };

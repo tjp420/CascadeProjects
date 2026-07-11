@@ -6,7 +6,7 @@ import { themeService } from './services/themeService.js';
 import { Router, PUBLIC_VIEWS } from './router.js';
 import { TrustView } from './views/TrustView.js?v=20260525statictrust2';
 import { RepositoryHealthView } from './views/RepositoryHealthView.js?v=20260525mergepreview1';
-import { DashboardView } from './views/DashboardView.js?v=20260711driveresult1';
+import { DashboardView } from './views/DashboardView.js?v=20260711driversync1';
 import { ResultsView } from './views/ResultsView.js';
 import { SettingsView } from './views/SettingsView.js?v=20260709ollama3';
 import { ToolsView } from './views/ToolsView.js';
