@@ -104,6 +104,17 @@ export async function runDashboardScanFromInput(input, options = {}) {
     // The dashboard scan needs an absolute local path or a remote repo URL.
     const isAbsoluteLocal = /^[a-zA-Z]:[\\/]|^\\|^\//.test(path);
     const isRemoteUrl = /^https?:\/\//i.test(path);
+    const isRemoteDeployment = typeof window !== 'undefined' && !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
+    if (isAbsoluteLocal && isRemoteDeployment) {
+        showToast('Local agent is not available. Use the Secure Local Directory Scanner card to select the folder and scan it locally in your browser, or start the Local Scan Agent on your machine.', 'error', { duration: 12000 });
+        const scannerCard = document.getElementById('sandbox-scanner');
+        if (scannerCard) {
+            scannerCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            scannerCard.classList.add('sandbox-scanner-highlight');
+            setTimeout(() => scannerCard.classList.remove('sandbox-scanner-highlight'), 3000);
+        }
+        return;
+    }
     if (!isAbsoluteLocal && !isRemoteUrl) {
         const toast = document.getElementById('toast-container');
         if (toast) {

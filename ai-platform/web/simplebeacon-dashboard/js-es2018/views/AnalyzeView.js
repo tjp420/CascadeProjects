@@ -15,7 +15,7 @@ import { runEuAiActSprint } from '../services/operatorService.js?v=20260531eupdf
 import { renderModeFileScopePanel, extractRoadmapFileMetrics } from '../utils/analyze-mode-file-scope.browser.js?v=20260601roadmapscope1';
 import { renderModeFileResultsPanel } from '../utils/analyze-mode-file-results.browser.js?v=20260601filereconcile1';
 import { renderScanPaywall, buildPublicSummaryFromScan, isDeliverableLocked } from '../components/ScanPaywall.js';
-import { renderCompactScanStatus } from '../components/ScanStatus.js?v=20260711singleflow1';
+import { renderCompactScanStatus } from '../components/ScanStatus.js?v=20260711singleflow4';
 import { AI_SYSTEM_ISSUES, ANALYZER_CATALOG, groupIssuesByCategory, buildAiSystemsIssueAnalysis } from '../services/aiProblemAnalyzerSuite.mjs';
 import { renderIssueList } from '../components/IssueCard.js';
 import { showDownloadCredentialsModal } from '../components/DownloadCredentialsModal.js';
