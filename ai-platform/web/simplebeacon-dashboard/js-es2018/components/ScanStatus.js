@@ -1,7 +1,7 @@
 import { escapeHtml, formatPercent, showToast } from '../utils.js';
 import { resolveDisplayScore, formatScanScopeSummary, formatScanInventoryNote } from '../services/analyzeService.js?v=20260710inventory1';
 import { runLocalScan } from '../services/localScanService.js';
-import { isLocalPath, probeAgent4000, scanViaAgent4000, renderAgentCertificate } from '../services/localAgentService.js?v=20260710agentcache3';
+import { isLocalPath, probeAgent, scanViaAgent, probeAgent4000, scanViaAgent4000, renderAgentCertificate } from '../services/localAgentService.js?v=20260710agentcache3';
 import { runSandboxedDirectoryScan } from '../services/browserSandboxScanService.js?v=20260710sandbox4';
 /**
  * Resolve initial scan root.
@@ -77,7 +77,28 @@ export async function runDashboardScanFromInput(input, options = {}) {
                 return;
             }
         }
-        catch (_a) { /* fall through to existing server flow */ }
+        catch (_a) { /* fall through to main agent fallback */ }
+        // Fall back to the full local agent on port 55432 if the 4000 bridge is not running.
+        try {
+            const status = await probeAgent();
+            if (status.available && status.scannerAvailable) {
+                const result = await scanViaAgent(path);
+                const cert = result && result.certificate;
+                const fileCount = (result.files || []).length;
+                const message = cert
+                    ? `Local agent scan complete — Grade ${cert.letterGrade} | ${fileCount} files`
+                    : `Local agent scan complete — ${fileCount} files`;
+                showToast(message, 'success');
+                const resultsEl = document.getElementById('agent-4000-results');
+                renderAgentCertificate(result, resultsEl);
+                if (onLocalScanResult) {
+                    onLocalScanResult({ projectPath: result.projectPath || result.verifiedAddress || result.path, summary: result.certificate, source: 'agent' });
+                }
+                setLastProjectPath(result.projectPath || result.verifiedAddress || result.path || path);
+                return;
+            }
+        }
+        catch (_b) { /* fall through to existing server flow */ }
     }
     // Dropped/browsed folders without a full OS path come through as bare folder names.
     // The dashboard scan needs an absolute local path or a remote repo URL.
