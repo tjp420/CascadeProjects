@@ -2,7 +2,7 @@ import { escapeHtml, formatPercent, showToast } from '../utils.js';
 import { resolveDisplayScore, formatScanScopeSummary, formatScanInventoryNote } from '../services/analyzeService.js?v=20260710inventory1';
 import { runLocalScan } from '../services/localScanService.js';
 import { isLocalPath, probeAgent, scanViaAgent, probeAgent4000, scanViaAgent4000, renderAgentCertificate } from '../services/localAgentService.js?v=20260710agentcache3';
-import { runSandboxedDirectoryScan } from '../services/browserSandboxScanService.js?v=20260711largefolder1';
+import { runSandboxedDirectoryScan, isDroppedFolder, scanDroppedItems } from '../services/browserSandboxScanService.js?v=20260711scanner1';
 /**
  * Resolve initial scan root.
  * @param {number} report
@@ -241,23 +241,40 @@ function renderScanPathControls(report, options = {}) {
     const resolvedPath = lastProjectPath || defaultProjectPath || '';
     return `
     <div class="scan-status-scope" id="scan-status-scope">
-      <div class="analyze-drag-overlay" id="scan-drag-overlay">
-        <div class="analyze-drag-overlay-icon">📂</div>
-        <strong>Drop folder to scan</strong>
-      </div>
-      <div class="scan-status-local-scan">
-        <div class="scan-status-local-header">
-          <i data-lucide="folder-up" class="icon-24" style="color: var(--primary);"></i>
-          <div>
-            <div style="font-weight: 700; color: var(--text-primary);">Scan a local folder</div>
-            <div style="font-size: 0.75rem; color: var(--text-muted);">Select a drive or folder, or drop one here — scanning runs privately inside your browser.</div>
+      <div class="sb-dropzone is-idle" id="scan-dropzone" role="region" aria-label="Dashboard scan drop zone">
+        <input type="file" id="scan-browse-input" webkitdirectory directory hidden aria-label="Select folder to scan">
+        <div class="sb-dropzone-idle">
+          <div class="sb-dropzone-icon"><i data-lucide="folder-up" class="icon-32"></i></div>
+          <div class="sb-dropzone-title">Drop a folder or files to scan</div>
+          <div class="sb-dropzone-sub">Your source never leaves the browser. Folders are scanned recursively; files get a quick scan.</div>
+          <div class="sb-dropzone-actions">
+            <button type="button" id="trigger-native-picker" class="btn btn-primary"><i data-lucide="folder-open" class="icon-16"></i> Select Folder</button>
+            <button type="button" id="trigger-file-picker" class="btn btn-ghost">Select Files</button>
           </div>
         </div>
-        <div class="scan-status-local-actions">
-          <button type="button" id="trigger-native-picker" class="btn btn-primary"><i data-lucide="folder-open" class="icon-16"></i> Select Drive Target</button>
+        <div class="sb-dropzone-drag" aria-hidden="true">
+          <div class="sb-dropzone-drag-icon">📂</div>
+          <strong>Release to scan</strong>
+          <span class="sb-dropzone-hint">Folder → full directory scan · Files → quick file scan</span>
         </div>
-        <pre id="sandbox-scan-terminal" style="display:none; background: var(--surface); color: var(--text-secondary); font-family: monospace; padding: 12px; border-radius: var(--radius-md); max-height: 240px; overflow-y: auto; margin: 12px 0 0; border: 1px solid var(--border);">Awaiting drive selection...</pre>
-        <div id="sandbox-scanner" style="display:none;"></div>
+        <div class="sb-dropzone-progress" aria-live="polite">
+          <div class="sb-dropzone-spinner"></div>
+          <div class="sb-dropzone-progress-title">Scanning…</div>
+          <div class="sb-dropzone-progress-detail" id="scan-dropzone-progress-detail">0 / 0 files</div>
+          <pre id="sandbox-scan-terminal" class="sb-dropzone-terminal">Awaiting selection…</pre>
+        </div>
+        <div class="sb-dropzone-result" role="status" aria-live="polite">
+          <div class="sb-dropzone-result-icon">✅</div>
+          <div class="sb-dropzone-result-title">Scan complete</div>
+          <div class="sb-dropzone-result-stats" id="scan-dropzone-result-stats"></div>
+          <button type="button" class="btn btn-primary btn-sm" id="scan-dropzone-view-results">View Results</button>
+        </div>
+        <div class="sb-dropzone-error" role="alert" aria-live="assertive">
+          <div class="sb-dropzone-error-icon">⚠️</div>
+          <div class="sb-dropzone-error-title">Scan failed</div>
+          <div class="sb-dropzone-error-message" id="scan-dropzone-error-message"></div>
+          <button type="button" class="btn btn-secondary btn-sm" id="scan-dropzone-retry">Try again</button>
+        </div>
       </div>
 
       <div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border);">
@@ -773,107 +790,136 @@ export function bindScanStatus(container, options = {}) {
             runScan();
         }
     });
-    // Drag & drop on scan-status-scope
-    const scope = container.querySelector('#scan-status-scope');
-    const dragOverlay = container.querySelector('#scan-drag-overlay');
-    if (scope && dragOverlay && input) {
+    // Drag & drop on redesigned dashboard dropzone
+    const dropzone = container.querySelector('#scan-dropzone');
+    const filePicker = container.querySelector('#trigger-file-picker');
+    const dirInput = container.querySelector('#scan-browse-input');
+    const terminal = container.querySelector('#sandbox-scan-terminal');
+    const progressDetail = container.querySelector('#scan-dropzone-progress-detail');
+    const resultStats = container.querySelector('#scan-dropzone-result-stats');
+    const errorMessage = container.querySelector('#scan-dropzone-error-message');
+    if (dropzone && input) {
+        function setDropzoneState(state) {
+            dropzone.classList.remove('is-idle', 'is-drag', 'is-scanning', 'is-done', 'is-error');
+            dropzone.classList.add(`is-${state}`);
+        }
+        function resetDropzone() {
+            setDropzoneState('idle');
+        }
         let dragDepth = 0;
-        scope.addEventListener('dragenter', (event) => {
+        dropzone.addEventListener('dragenter', (event) => {
             event.preventDefault();
             event.stopPropagation();
             dragDepth++;
-            dragOverlay.classList.add('is-active');
+            setDropzoneState('drag');
         });
-        scope.addEventListener('dragover', (event) => {
+        dropzone.addEventListener('dragover', (event) => {
             event.preventDefault();
             event.stopPropagation();
             event.dataTransfer.dropEffect = 'copy';
         });
-        scope.addEventListener('dragleave', (event) => {
+        dropzone.addEventListener('dragleave', (event) => {
             event.preventDefault();
             event.stopPropagation();
             dragDepth--;
             if (dragDepth <= 0) {
-                dragOverlay.classList.remove('is-active');
                 dragDepth = 0;
+                setDropzoneState('idle');
             }
         });
-        scope.addEventListener('drop', async (event) => {
+        dropzone.addEventListener('drop', async (event) => {
             event.preventDefault();
             event.stopPropagation();
             dragDepth = 0;
-            dragOverlay.classList.remove('is-active');
             const items = event.dataTransfer && event.dataTransfer.items;
             const dtFiles = event.dataTransfer && event.dataTransfer.files;
-            let entry = null;
-            let folderName = '';
-            if (items && items.length) {
-                try {
-                    entry = items[0].webkitGetAsEntry && items[0].webkitGetAsEntry();
-                } catch (_a) {
-                    entry = null;
-                }
-            }
-            if (!entry && dtFiles && dtFiles.length && dtFiles[0].webkitRelativePath) {
-                folderName = String(dtFiles[0].webkitRelativePath).split('/')[0];
-            }
-            if (entry) {
-                folderName = entry.name || folderName;
-            }
-            if (!folderName && dtFiles && dtFiles.length) {
-                folderName = dtFiles[0].name || 'folder';
-            }
-            // Single file drop
-            if (entry && entry.isFile && dtFiles && dtFiles.length) {
-                const file = dtFiles[0];
-                input.value = file.path || file.name;
-                setLastProjectPath(input.value);
-                if (clearBtn)
-                    clearBtn.disabled = false;
+            if (!items || items.length === 0) {
+                setDropzoneState('idle');
                 return;
             }
-            let collected = [];
-            if (entry && entry.isDirectory) {
-                collected = await collectFilesFromDirectoryEntry(entry);
-            }
-            else if (dtFiles && dtFiles.length) {
-                collected = Array.from(dtFiles);
-            }
-            if (collected.length) {
-                const rawPath = deriveFallbackBase(input, folderName);
-                const isWindowsClient = typeof navigator !== 'undefined' && /Windows/i.test(navigator.userAgent);
-                const isLinuxPath = (p) => /^\//.test(p) && !/^[a-zA-Z]:/.test(p);
-                const resolvedPath = (isWindowsClient && isLinuxPath(rawPath.replace(/\\/g, '/')))
-                    ? folderName
-                    : rawPath;
-                input.value = resolvedPath;
-                setLastProjectPath(resolvedPath);
-                if (clearBtn)
-                    clearBtn.disabled = false;
-                if (onLocalScanResult) {
-                    const toast = document.getElementById('toast-container');
-                    if (toast) {
-                        const msg = document.createElement('div');
-                        msg.className = 'toast toast-info';
-                        msg.textContent = `Scanning "${folderName}" locally in your browser…`;
-                        toast.appendChild(msg);
-                        setTimeout(() => msg.remove(), 4000);
-                    }
-                    const report = await runLocalScan({ files: collected, projectPath: resolvedPath });
-                    onLocalScanResult(report);
+            setDropzoneState('scanning');
+            if (terminal)
+                terminal.textContent = 'Reading dropped items…';
+            try {
+                const droppedFolder = await isDroppedFolder(items);
+                const folderName = items[0].getAsFile && items[0].getAsFile().name || 'selected';
+                if (droppedFolder) {
+                    const report = await scanDroppedItems(items, {
+                        onLog: (entry) => {
+                            if (terminal)
+                                terminal.textContent += `\n[${entry.level.toUpperCase()}] ${entry.message}`;
+                        },
+                        onProgress: ({ processed, total }) => {
+                            if (progressDetail)
+                                progressDetail.textContent = `${processed} / ${total} files`;
+                        }
+                    });
+                    const cert = report.certificate || {};
+                    if (resultStats)
+                        resultStats.textContent = `${cert.letterGrade || 'N/A'} grade · ${report.discoveredFiles || 0} files scanned · ${cert.highRiskCount || 0} high · ${cert.mediumRiskCount || 0} medium`;
+                    setDropzoneState('done');
+                    if (onLocalScanResult)
+                        onLocalScanResult(report);
                 }
-                return;
+                else if (dtFiles && dtFiles.length) {
+                    const files = Array.from(dtFiles);
+                    const resolvedPath = (files[0].path) || files[0].name || 'selected-files';
+                    if (progressDetail)
+                        progressDetail.textContent = `${files.length} file(s) queued`;
+                    const report = await runLocalScan({ files, projectPath: resolvedPath });
+                    const cert = report.certificate || {};
+                    if (resultStats)
+                        resultStats.textContent = `${cert.letterGrade || 'N/A'} grade · ${files.length} files scanned · ${cert.highRiskCount || 0} high · ${cert.mediumRiskCount || 0} medium`;
+                    setDropzoneState('done');
+                    if (onLocalScanResult)
+                        onLocalScanResult(report);
+                }
+                else {
+                    throw new Error('No scannable files or folders detected.');
+                }
             }
-            // Nothing useful detected
-            if (dtFiles && dtFiles.length) {
-                const file = dtFiles[0];
-                input.value = file.path || file.name;
-                setLastProjectPath(input.value);
-                if (clearBtn)
-                    clearBtn.disabled = false;
+            catch (err) {
+                if (errorMessage)
+                    errorMessage.textContent = err.message || 'Scan failed.';
+                setDropzoneState('error');
             }
         });
-
+        // Retry button
+        const retryBtn = container.querySelector('#scan-dropzone-retry');
+        retryBtn === null || retryBtn === void 0 ? void 0 : retryBtn.addEventListener('click', resetDropzone);
+        // File picker button (quick file scan)
+        if (filePicker) {
+            const quickInput = document.createElement('input');
+            quickInput.type = 'file';
+            quickInput.multiple = true;
+            quickInput.style.display = 'none';
+            document.body.appendChild(quickInput);
+            quickInput.addEventListener('change', async () => {
+                const files = Array.from(quickInput.files || []);
+                if (!files.length)
+                    return;
+                setDropzoneState('scanning');
+                if (progressDetail)
+                    progressDetail.textContent = `${files.length} file(s) queued`;
+                try {
+                    const resolvedPath = files[0].path || files[0].name || 'selected-files';
+                    const report = await runLocalScan({ files, projectPath: resolvedPath });
+                    const cert = report.certificate || {};
+                    if (resultStats)
+                        resultStats.textContent = `${cert.letterGrade || 'N/A'} grade · ${files.length} files scanned · ${cert.highRiskCount || 0} high · ${cert.mediumRiskCount || 0} medium`;
+                    setDropzoneState('done');
+                    if (onLocalScanResult)
+                        onLocalScanResult(report);
+                }
+                catch (err) {
+                    if (errorMessage)
+                        errorMessage.textContent = err.message || 'Scan failed.';
+                    setDropzoneState('error');
+                }
+                quickInput.value = '';
+            });
+            filePicker.addEventListener('click', () => quickInput.click());
+        }
     }
     // Poll the lightweight localhost:4000 agent used by the provided agent.js template.
     const status4000 = container.querySelector('#agent-4000-status');

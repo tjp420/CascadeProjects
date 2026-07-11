@@ -300,6 +300,32 @@ async function analyzeDirectory({ rootName, fileQueue }, { maxFileSize, onLog, o
 }
 
 /**
+ * Determine whether a dropped DataTransferItemList represents a folder drop.
+ * @param {DataTransferItemList} items
+ * @returns {Promise<boolean>}
+ */
+export async function isDroppedFolder(items) {
+  if (!items || items.length === 0) return false;
+  const first = items[0];
+  if (typeof first.getAsFileSystemHandle === 'function') {
+    try {
+      const handle = await first.getAsFileSystemHandle();
+      if (handle && handle.kind === 'directory') return true;
+      if (handle && handle.kind === 'file') return false;
+    }
+    catch (_a) { /* ignore */ }
+  }
+  if (typeof first.webkitGetAsEntry === 'function') {
+    try {
+      const entry = first.webkitGetAsEntry();
+      return entry ? entry.isDirectory : false;
+    }
+    catch (_b) { /* ignore */ }
+  }
+  return false;
+}
+
+/**
  * Prompt the user to pick a directory, then scan it in-browser.
  * @param {Object} [options]
  * @param {number} [options.maxFileSize=1500000]

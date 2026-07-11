@@ -3,7 +3,7 @@ import { evaluateFunnelMetrics, getFunnelCopy } from '../utils/funnelTrigger.js'
 import { LocalScanService } from '../services/localScanService.js?v=20260709noise3';
 import { fingerprintDirectory, formatFingerprint } from '../services/fingerprintService.js';
 import { probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus, getAgentDownloadUrl, detectPlatform, getPlatformLabel, getInstallInstructions, getAgentFallbackMessage, probeAgent4000, scanViaAgent4000, renderAgentCertificate } from '../services/localAgentService.js?v=20260711themefix1';
-import { runSandboxedDirectoryScan, scanDroppedItems } from '../services/browserSandboxScanService.js?v=20260711scanner1';
+import { runSandboxedDirectoryScan, scanDroppedItems, isDroppedFolder } from '../services/browserSandboxScanService.js?v=20260711scanner1';
 // simplebeacon:production-leak-intent: sample-json - Legitimate documentation about sample file patterns in analysis results
 import { analyzePath, scanPath, summarizeReport, fetchAnalyzeProviders, fetchRepositoryInventory, fetchCodebaseAnalysis, enrichScanReport, fetchZscriptModReport, shouldFetchZscriptReport, isLegacyScanReport, buildMonorepoScopeNote, buildPathInventoryProvenance, renderInventoryProvenanceHtml, refreshPathInventory, liveInventoryForPath, renderScanScopePanel, isSimplebeaconReport, normalizeSimplebeaconReport, aiProviderSupportsSummary, getScanFileMetrics, resolveAutoAnalysisMode, buildScanConclusion, buildConsolidationConclusion, buildFictionDigestPayload, sanitizeFictionDigestExport, resolveCompleteScanTargetPath, normalizeProjectPath, filterIssuesByKind, preparePlatformResultsReport, fetchCompleteAuditReport, fetchAnalyzeExportBundleZip, fetchEuAiActAuditReport, openAuditReportPrintWindow, previewAuditExportTier, auditExportButtonLabel, fetchDataCleanupScan, ensureDashboardApiReady, assertCompleteScanComplianceFresh, assertCompleteScanFileReductionFresh, fetchUnderstandSnippet, isCodebaseReport, fetchComplianceChecklist, fetchProjectNpmAudit, prepareGithubRepo, fetchAnalyzeTestSources, isAnalyzeProviderConfigured, uploadDirectoryAndAnalyze } from '../services/analyzeService.js?v=20260711reportv11';
 import { isRemoteRepoUrl, sourceChipTitle } from '../lib/analyzePathSources.js';
@@ -15,7 +15,7 @@ import { runEuAiActSprint } from '../services/operatorService.js?v=20260531eupdf
 import { renderModeFileScopePanel, extractRoadmapFileMetrics } from '../utils/analyze-mode-file-scope.browser.js?v=20260601roadmapscope1';
 import { renderModeFileResultsPanel } from '../utils/analyze-mode-file-results.browser.js?v=20260601filereconcile1';
 import { renderScanPaywall, buildPublicSummaryFromScan, isDeliverableLocked } from '../components/ScanPaywall.js';
-import { renderCompactScanStatus } from '../components/ScanStatus.js?v=20260711singleflow9';
+import { renderCompactScanStatus } from '../components/ScanStatus.js?v=20260711dropzone1';
 import { AI_SYSTEM_ISSUES, ANALYZER_CATALOG, groupIssuesByCategory, buildAiSystemsIssueAnalysis } from '../services/aiProblemAnalyzerSuite.mjs';
 import { renderIssueList } from '../components/IssueCard.js';
 import { showDownloadCredentialsModal } from '../components/DownloadCredentialsModal.js';
@@ -1904,45 +1904,64 @@ export class AnalyzeView {
         </div>
 
         <div class="target-body">
-          <div class="drop-zone ${this.busy ? 'scanning' : ''}" id="analyze-path-dropzone">
-              <div class="drop-zone-idle" ${this.busy ? 'hidden' : ''}>
-              <div class="drop-zone-icon"><i data-lucide="folder-up" class="icon-24"></i></div>
-              <div class="drop-zone-title">Scan a local folder</div>
-              <div class="drop-zone-sub">Select a drive or folder, or drop one here — scanning runs privately inside your browser.</div>
-              <div class="drop-zone-actions">
-                <button type="button" id="trigger-native-picker" class="btn btn-primary"><i data-lucide="folder-open" class="icon-16"></i> Select Drive Target</button>
+          <div class="sb-dropzone is-idle" id="analyze-path-dropzone" role="region" aria-label="Analyze scan drop zone">
+            <input type="file" id="analyze-dir-input" webkitdirectory directory hidden aria-label="Select folder to scan on the analyze page">
+            <div class="sb-dropzone-idle">
+              <div class="sb-dropzone-icon"><i data-lucide="folder-up" class="icon-32"></i></div>
+              <div class="sb-dropzone-title">Drop a folder or files to scan</div>
+              <div class="sb-dropzone-sub">Your source never leaves the browser. Folders are scanned recursively; files get a quick scan.</div>
+              <div class="sb-dropzone-actions">
+                <button type="button" id="trigger-native-picker" class="btn btn-primary"><i data-lucide="folder-open" class="icon-16"></i> Select Folder</button>
+                <button type="button" id="trigger-file-picker" class="btn btn-ghost">Select Files</button>
               </div>
-              <pre id="sandbox-scan-terminal" style="display:none; background: var(--surface); color: var(--text-secondary); font-family: monospace; padding: 12px; border-radius: var(--radius-md); max-height: 240px; overflow-y: auto; margin: 12px 0 0; border: 1px solid var(--border);">Awaiting drive selection...</pre>
-
-              <div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border);">
-                <p style="margin: 0 0 8px; font-size: 0.75rem; color: var(--text-muted);">Or type a server path / public repo URL</p>
-                <div class="path-row">
-                  <input type="text" id="project-path-input" class="analyze-path-input"
-                    placeholder="${pathPlaceholder}"
-                    value="${escapeHtml(formatPathInputValue(displayPath))}"
-                    list="${pathList}"
-                    spellcheck="false"
-                    autocomplete="list"
-                    aria-label="${pathAria}">
-                  <button type="button" class="btn btn-secondary" id="dropzone-path-analyze-btn">Analyze</button>
-                </div>
-                ${datalist}
-              </div>
-
-              <p class="hint">${isWeb ? 'Enter a public URL to scan a website.' : 'For local folders, use Select Drive Target. For server paths or repos, type the path above.'}</p>
-              <p id="fingerprint-status" class="fingerprint-status"></p>
-              <p id="agent-status" class="agent-status"></p>
-              <p id="agent-4000-status" class="agent-status"></p>
-              <div id="agent-4000-results"></div>
-              <div id="sandbox-scanner" class="sandbox-scanner" style="display:none;"></div>
-              <p id="agent-download-cta" class="agent-download-cta"></p>
             </div>
-            <div class="scanning-state ${this.busy ? 'active' : ''}">
-              <div class="drop-zone-icon"><i data-lucide="loader-2" class="icon-24" style="animation:spin 1s linear infinite;"></i></div>
-              <h3>Scanning…</h3>
-              <p id="dropzone-terminal-body">${this._terminalLogLines.map((line) => `<div class="terminal-line">${line}</div>`).join('')}</p>
+            <div class="sb-dropzone-drag" aria-hidden="true">
+              <div class="sb-dropzone-drag-icon">📂</div>
+              <strong>Release to scan</strong>
+              <span class="sb-dropzone-hint">Folder → full directory scan · Files → quick file scan</span>
+            </div>
+            <div class="sb-dropzone-progress" aria-live="polite">
+              <div class="sb-dropzone-spinner"></div>
+              <div class="sb-dropzone-progress-title">Scanning…</div>
+              <div class="sb-dropzone-progress-detail" id="analyze-dropzone-progress-detail">0 / 0 files</div>
+              <pre id="sandbox-scan-terminal" class="sb-dropzone-terminal">Awaiting selection…</pre>
+            </div>
+            <div class="sb-dropzone-result" role="status" aria-live="polite">
+              <div class="sb-dropzone-result-icon">✅</div>
+              <div class="sb-dropzone-result-title">Scan complete</div>
+              <div class="sb-dropzone-result-stats" id="analyze-dropzone-result-stats"></div>
+              <button type="button" class="btn btn-primary btn-sm" id="analyze-dropzone-view-results">View Results</button>
+            </div>
+            <div class="sb-dropzone-error" role="alert" aria-live="assertive">
+              <div class="sb-dropzone-error-icon">⚠️</div>
+              <div class="sb-dropzone-error-title">Scan failed</div>
+              <div class="sb-dropzone-error-message" id="analyze-dropzone-error-message"></div>
+              <button type="button" class="btn btn-secondary btn-sm" id="analyze-dropzone-retry">Try again</button>
             </div>
           </div>
+
+          <div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border);">
+            <p style="margin: 0 0 8px; font-size: 0.75rem; color: var(--text-muted);">Or type a server path / public repo URL</p>
+            <div class="path-row">
+              <input type="text" id="project-path-input" class="analyze-path-input"
+                placeholder="${pathPlaceholder}"
+                value="${escapeHtml(formatPathInputValue(displayPath))}"
+                list="${pathList}"
+                spellcheck="false"
+                autocomplete="list"
+                aria-label="${pathAria}">
+              <button type="button" class="btn btn-secondary" id="dropzone-path-analyze-btn">Analyze</button>
+            </div>
+            ${datalist}
+          </div>
+
+          <p class="hint">${isWeb ? 'Enter a public URL to scan a website.' : 'For local folders, use Select Folder. For server paths or repos, type the path above.'}</p>
+          <p id="fingerprint-status" class="fingerprint-status"></p>
+          <p id="agent-status" class="agent-status"></p>
+          <p id="agent-4000-status" class="agent-status"></p>
+          <div id="agent-4000-results"></div>
+          <div id="sandbox-scanner" class="sandbox-scanner" style="display:none;"></div>
+          <p id="agent-download-cta" class="agent-download-cta"></p>
 
           <div class="an-tgt-drop" id="analyze-drop-zone">
             <div class="an-tgt-drop-icon">📁</div>
@@ -5170,100 +5189,179 @@ export class AnalyzeView {
                 status.textContent = text || '';
         };
         const pathDropzone = el.querySelector('#analyze-path-dropzone');
+        const analyzeTerminal = el.querySelector('#sandbox-scan-terminal');
+        const analyzeProgress = el.querySelector('#analyze-dropzone-progress-detail');
+        const analyzeResultStats = el.querySelector('#analyze-dropzone-result-stats');
+        const analyzeErrorMessage = el.querySelector('#analyze-dropzone-error-message');
+        const analyzeFilePicker = el.querySelector('#trigger-file-picker');
+        const analyzeDirInput = el.querySelector('#analyze-dir-input');
+        function setAnalyzeDropzoneState(state) {
+            pathDropzone.classList.remove('is-idle', 'is-drag', 'is-scanning', 'is-done', 'is-error');
+            pathDropzone.classList.add(`is-${state}`);
+        }
+        function resetAnalyzeDropzone() {
+            setAnalyzeDropzoneState('idle');
+        }
         if (pathDropzone) {
             let pathDragDepth = 0;
-            ['dragenter', 'dragover'].forEach((eventName) => {
-                pathDropzone.addEventListener(eventName, (event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    if (eventName === 'dragenter') {
-                        pathDragDepth++;
-                    }
-                    pathDropzone.classList.add('drag-active');
-                    if (event.dataTransfer)
-                        event.dataTransfer.dropEffect = 'copy';
-                });
+            pathDropzone.addEventListener('dragenter', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                pathDragDepth++;
+                setAnalyzeDropzoneState('drag');
+            });
+            pathDropzone.addEventListener('dragover', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                event.dataTransfer.dropEffect = 'copy';
             });
             pathDropzone.addEventListener('dragleave', (event) => {
                 event.preventDefault();
                 event.stopPropagation();
                 pathDragDepth--;
                 if (pathDragDepth <= 0) {
-                    pathDropzone.classList.remove('drag-active');
                     pathDragDepth = 0;
+                    setAnalyzeDropzoneState('idle');
                 }
             });
             pathDropzone.addEventListener('drop', async (event) => {
                 event.preventDefault();
                 event.stopPropagation();
                 pathDragDepth = 0;
-                pathDropzone.classList.remove('drag-active');
-
                 const items = event.dataTransfer && event.dataTransfer.items;
                 const dtFiles = event.dataTransfer && event.dataTransfer.files;
-                let entry = null;
-                let folderName = '';
-
-                if (items && items.length) {
-                    try {
-                        entry = items[0].webkitGetAsEntry && items[0].webkitGetAsEntry();
-                    } catch (_a) {
-                        entry = null;
-                    }
-                    if (!entry && dtFiles && dtFiles.length && dtFiles[0].webkitRelativePath) {
-                        folderName = String(dtFiles[0].webkitRelativePath).split('/')[0];
-                    }
-                    if (entry) {
-                        folderName = entry.name || folderName;
-                    }
-                }
-
-                if (!folderName && dtFiles && dtFiles.length) {
-                    folderName = dtFiles[0].name || 'folder';
-                }
-
-                // Single file drop -> use the existing file analyzer.
-                if (entry && entry.isFile && dtFiles && dtFiles.length) {
-                    void this.handleAnalyzeFiles(dtFiles);
+                if (!items || items.length === 0) {
+                    setAnalyzeDropzoneState('idle');
                     return;
                 }
-
-                const collected = [];
-                if (entry && entry.isDirectory) {
-                    await traverseDirectoryEntry(entry, '', collected);
-                } else if (dtFiles && dtFiles.length) {
-                    for (const f of Array.from(dtFiles)) {
-                        const rel = f.webkitRelativePath || f.name;
-                        collected.push({ file: f, path: rel });
+                setAnalyzeDropzoneState('scanning');
+                if (analyzeTerminal)
+                    analyzeTerminal.textContent = 'Reading dropped items…';
+                try {
+                    const droppedFolder = await isDroppedFolder(items);
+                    const folderName = (items[0].getAsFile && items[0].getAsFile().name) || 'selected';
+                    if (droppedFolder) {
+                        const report = await scanDroppedItems(items, {
+                            onLog: (entry) => {
+                                if (analyzeTerminal)
+                                    analyzeTerminal.textContent += `\n[${entry.level.toUpperCase()}] ${entry.message}`;
+                            },
+                            onProgress: ({ processed, total }) => {
+                                if (analyzeProgress)
+                                    analyzeProgress.textContent = `${processed} / ${total} files`;
+                            }
+                        });
+                        const cert = report.certificate || {};
+                        if (analyzeResultStats)
+                            analyzeResultStats.textContent = `${cert.letterGrade || 'N/A'} grade · ${report.discoveredFiles || 0} files scanned · ${cert.highRiskCount || 0} high · ${cert.mediumRiskCount || 0} medium`;
+                        setAnalyzeDropzoneState('done');
+                        this.applyAgentCertificate(report, folderName);
+                    }
+                    else if (dtFiles && dtFiles.length) {
+                        const files = Array.from(dtFiles);
+                        if (analyzeProgress)
+                            analyzeProgress.textContent = `${files.length} file(s) queued`;
+                        await this.handleAnalyzeFiles(files);
+                        if (analyzeResultStats)
+                            analyzeResultStats.textContent = `${files.length} file(s) analyzed`;
+                        setAnalyzeDropzoneState('done');
+                    }
+                    else {
+                        throw new Error('No scannable files or folders detected.');
                     }
                 }
-
-                if (collected.length) {
-                    const pathInput = el.querySelector('#project-path-input');
-                    const rawFallback = this.resolveFallbackFolderPath(folderName) || folderName;
-                    const isWindowsClient = typeof navigator !== 'undefined' && /Windows/i.test(navigator.userAgent);
-                    const isLinuxPath = (p) => /^\//.test(p) && !/^[a-zA-Z]:/.test(p);
-                    const displayPath = (isWindowsClient && isLinuxPath(rawFallback.replace(/\\/g, '/')))
-                        ? folderName
-                        : rawFallback;
-                    if (pathInput) {
-                        pathInput.value = displayPath;
-                        this.app.state.pathInputDraft = '';
-                        this.app.state.lastProjectPath = displayPath;
-                        this.setPathInputDisplay(pathInput, displayPath);
-                        this.syncAnalyzeModeUi(el);
-                    }
-                    showToast(`Scanning "${folderName}" locally in your browser…`, 'info');
-                    await this.runLocalScan(null, collected.map((item) => item.file), displayPath);
-                    return;
+                catch (err) {
+                    if (analyzeErrorMessage)
+                        analyzeErrorMessage.textContent = err.message || 'Scan failed.';
+                    setAnalyzeDropzoneState('error');
                 }
-
-                if (dtFiles && dtFiles.length) {
-                    void this.handleAnalyzeFiles(dtFiles);
+            });
+        }
+        // Retry button resets the Analyze dropzone
+        const analyzeRetryBtn = el.querySelector('#analyze-dropzone-retry');
+        analyzeRetryBtn === null || analyzeRetryBtn === void 0 ? void 0 : analyzeRetryBtn.addEventListener('click', resetAnalyzeDropzone);
+        // Quick file picker for Analyze dropzone
+        if (analyzeFilePicker) {
+            const quickInput = document.createElement('input');
+            quickInput.type = 'file';
+            quickInput.multiple = true;
+            quickInput.style.display = 'none';
+            document.body.appendChild(quickInput);
+            quickInput.addEventListener('change', async () => {
+                const files = Array.from(quickInput.files || []);
+                if (!files.length)
                     return;
+                setAnalyzeDropzoneState('scanning');
+                if (analyzeProgress)
+                    analyzeProgress.textContent = `${files.length} file(s) queued`;
+                try {
+                    await this.handleAnalyzeFiles(files);
+                    if (analyzeResultStats)
+                        analyzeResultStats.textContent = `${files.length} file(s) analyzed`;
+                    setAnalyzeDropzoneState('done');
                 }
-
-                showToast('Nothing detected. Drop a folder or file, or type a path manually.', 'warning');
+                catch (err) {
+                    if (analyzeErrorMessage)
+                        analyzeErrorMessage.textContent = err.message || 'Scan failed.';
+                    setAnalyzeDropzoneState('error');
+                }
+                quickInput.value = '';
+            });
+            analyzeFilePicker.addEventListener('click', () => quickInput.click());
+        }
+        // Legacy directory input support
+        if (analyzeDirInput) {
+            analyzeDirInput.addEventListener('change', async (e) => {
+                const files = Array.from(e.target.files || []);
+                if (!files.length)
+                    return;
+                setAnalyzeDropzoneState('scanning');
+                if (analyzeProgress)
+                    analyzeProgress.textContent = `${files.length} file(s) queued`;
+                try {
+                    await this.runLocalScan(null, files, files[0].webkitRelativePath || files[0].name);
+                    if (analyzeResultStats)
+                        analyzeResultStats.textContent = `${files.length} file(s) scanned`;
+                    setAnalyzeDropzoneState('done');
+                }
+                catch (err) {
+                    if (analyzeErrorMessage)
+                        analyzeErrorMessage.textContent = err.message || 'Scan failed.';
+                    setAnalyzeDropzoneState('error');
+                }
+            });
+        }
+        // Whole-page drag overlay
+        if (typeof window !== 'undefined' && !document.getElementById('analyze-global-drag-overlay')) {
+            const overlay = document.createElement('div');
+            overlay.id = 'analyze-global-drag-overlay';
+            overlay.className = 'sb-global-drag-overlay';
+            overlay.innerHTML = `
+              <div class="sb-global-drag-overlay-card">
+                <div class="sb-global-drag-overlay-icon">📂</div>
+                <div class="sb-global-drag-overlay-title">Drop folder or files anywhere to scan</div>
+                <div class="sb-global-drag-overlay-hint">Release to scan privately in your browser</div>
+              </div>
+            `;
+            document.body.appendChild(overlay);
+            let globalDragDepth = 0;
+            window.addEventListener('dragenter', (event) => {
+                globalDragDepth++;
+                overlay.classList.add('is-visible');
+            });
+            window.addEventListener('dragover', (event) => {
+                event.preventDefault();
+            });
+            window.addEventListener('dragleave', (event) => {
+                globalDragDepth--;
+                if (globalDragDepth <= 0) {
+                    globalDragDepth = 0;
+                    overlay.classList.remove('is-visible');
+                }
+            });
+            window.addEventListener('drop', (event) => {
+                globalDragDepth = 0;
+                overlay.classList.remove('is-visible');
             });
         }
         this.bindFileDropEvents(el);
