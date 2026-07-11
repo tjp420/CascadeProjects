@@ -1733,12 +1733,12 @@ export class AnalyzeView {
         .analyze-target-redesign .target-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--border); background: var(--surface); }
         .analyze-target-redesign .target-title { font-size: 0.95rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
         .analyze-target-redesign .target-body { padding: 20px; }
-        .analyze-target-redesign .drop-zone { border: 2px dashed var(--border); border-radius: var(--radius-lg); background: var(--surface); padding: 28px 24px; text-align: center; transition: all .2s; position: relative; }
+        .analyze-target-redesign .drop-zone { border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); padding: 20px; text-align: left; transition: all .2s; position: relative; }
         .analyze-target-redesign .drop-zone.drag-active { border-color: var(--primary); background: rgba(99,102,241,0.06); }
-        .analyze-target-redesign .drop-zone-icon { width: 48px; height: 48px; border-radius: 12px; background: rgba(99,102,241,0.1); color: var(--primary); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 12px; }
+        .analyze-target-redesign .drop-zone-icon { width: 48px; height: 48px; border-radius: 12px; background: rgba(99,102,241,0.1); color: var(--primary); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 8px; }
         .analyze-target-redesign .drop-zone-title { font-size: 1rem; font-weight: 600; margin-bottom: 4px; }
         .analyze-target-redesign .drop-zone-sub { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 16px; }
-        .analyze-target-redesign .drop-zone-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+        .analyze-target-redesign .drop-zone-actions { display: flex; gap: 10px; justify-content: flex-start; flex-wrap: wrap; }
         .analyze-target-redesign .path-row { display: flex; gap: 8px; align-items: center; max-width: none; margin: 18px 0 0; }
         .analyze-target-redesign .path-row input { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 8px 12px; color: var(--text-primary); font-size: 0.85rem; }
         .analyze-target-redesign .path-row button { flex-shrink: 0; }
@@ -1753,7 +1753,7 @@ export class AnalyzeView {
         .analyze-target-redesign .scanning-state.active { display: block; }
         .analyze-target-redesign .scanning-state h3 { margin-bottom: 8px; }
         .analyze-target-redesign .scanning-state p { color: var(--text-muted); font-size: 0.85rem; }
-        .an-tgt-drop { border: 2px dashed var(--border); border-radius: var(--radius-lg); background: var(--surface); padding: 28px 24px; text-align: center; transition: all .2s; }
+        .an-tgt-drop { border: none; border-top: 1px solid var(--border); border-radius: 0; background: transparent; padding: 16px 0 0; margin-top: 16px; text-align: left; transition: all .2s; }
         .an-tgt-drop.drag-active { border-color: var(--primary); background: rgba(99,102,241,0.06); }
         .fingerprint-status { min-height: 1.2em; margin-top: 8px; font-size: 0.85rem; color: var(--primary); font-weight: 500; text-align: left; }
         .agent-status { min-height: 1.2em; margin-top: 4px; font-size: 0.8rem; color: var(--text-muted); text-align: left; }
@@ -1768,10 +1768,10 @@ export class AnalyzeView {
         .agent-wizard-instructions { color: var(--text); margin: 0; max-width: none; }
         .agent-wizard-polling { color: var(--text-muted); font-size: 0.8rem; }
         .agent-wizard-polling.hidden { display: none; }
-        .an-tgt-drop-icon { font-size: 2.5rem; margin-bottom: 12px; }
+        .an-tgt-drop-icon { font-size: 1.75rem; margin: 0 8px 0 0; display: inline-flex; vertical-align: middle; }
         .an-tgt-drop h4 { font-size: 1rem; font-weight: 600; margin-bottom: 4px; }
         .an-tgt-drop p { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 16px; }
-        .an-tgt-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+        .an-tgt-actions { display: flex; gap: 10px; justify-content: flex-start; flex-wrap: wrap; }
       </style>
 
       <div class="analyze-target-redesign" id="analyze-target-card">
@@ -1810,11 +1810,11 @@ export class AnalyzeView {
               <p id="agent-status" class="agent-status"></p>
               <p id="agent-4000-status" class="agent-status"></p>
               <div id="agent-4000-results"></div>
-              <div id="sandbox-scanner" class="sandbox-scanner" style="margin-top: 16px; padding: 16px; border: 1px solid #30363d; border-radius: 8px; background: #161b22; color: #c9d1d9;">
-                <h4 style="margin-top: 0; color: #f0f6fc;">Secure Local Directory Scanner</h4>
-                <p style="margin-bottom: 12px; color: #8b949e;">Select a local drive or folder. Scanning runs privately inside your browser using the File System Access API (Chrome/Edge/Brave).</p>
-                <button type="button" id="trigger-native-picker" class="btn btn-primary" style="margin-bottom: 12px;">Select Drive Target</button>
-                <pre id="sandbox-scan-terminal" style="background: #0d1117; color: #abb2bf; font-family: monospace; padding: 12px; border-radius: 4px; max-height: 240px; overflow-y: auto; margin: 0; border: 1px solid #30363d;">Awaiting drive selection...</pre>
+              <div id="sandbox-scanner" class="sandbox-scanner" style="margin-top: 16px; padding: 12px 0 0; border-top: 1px solid var(--border); color: var(--text-secondary);">
+                <h4 style="margin-top: 0; font-size: 0.9rem; color: var(--text-primary);">Secure Local Directory Scanner</h4>
+                <p style="margin-bottom: 12px; font-size: 0.75rem; color: var(--text-muted);">Select a local drive or folder. Scanning runs privately inside your browser using the File System Access API (Chrome/Edge/Brave).</p>
+                <button type="button" id="trigger-native-picker" class="btn btn-primary btn-sm" style="margin-bottom: 12px;">Select Drive Target</button>
+                <pre id="sandbox-scan-terminal" style="background: var(--surface); color: var(--text-secondary); font-family: monospace; padding: 12px; border-radius: var(--radius-md); max-height: 240px; overflow-y: auto; margin: 0; border: 1px solid var(--border);">Awaiting drive selection...</pre>
               </div>
               <p id="agent-download-cta" class="agent-download-cta"></p>
             </div>
