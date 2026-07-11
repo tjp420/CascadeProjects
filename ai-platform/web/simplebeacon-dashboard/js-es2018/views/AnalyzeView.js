@@ -33,6 +33,7 @@ import { renderUnderstandingPanel, buildUnderstandingConclusion } from '../compo
 import { renderZscriptReportPanel, buildZscriptConclusion } from '../components/ZscriptReport.js';
 import { showLoginModal } from '../components/LoginModal.js';
 import { authService } from '../services/authService.js';
+import { fetchCliApiKey, fetchCliHistory, fetchCliReport, renderCliUploadCard, renderCliReport } from '../services/cliUploadService.js?v=20260710cliupload1';
 import { MAX_SNIPPET_BYTES, isSupportedSourceFile, isAnalyzerCacheJson, isCleanupExportJson, isFictionDigestJson, isLockfileName, isMarkdownFileName, isScannerMetaFileName, filterSnippetFindingsForFile, scanSnippetText, computeThreatScore, redactMatch, severityLabel } from '../utils/snippetDiagnostic.js?v=20260531analyzers1';
 const SNIPPET_ACCEPT = '.json,.js,.mjs,.cjs,.ts,.tsx,.jsx,.py,.env,.yaml,.yml,.txt,.md,.html,.css,.xml,.toml,.ini,.sh,.ps1,.bat';
 const MAX_UPLOAD_BYTES = 100 * 1024 * 1024; // 100 MB — server-side directory upload limit
@@ -1337,6 +1338,9 @@ export class AnalyzeView {
         this.localMode = prefs.localMode || false;
         this._vscodeApiCached = null;
         this.agentStatus = { available: false, scannerAvailable: false };
+        this._cliUploadApiKey = null;
+        this._cliUploadPollTimer = null;
+        this._cliUploadLastSeen = null;
     }
     get vscodeEnhanced() {
         if (this._vscodeApiCached !== null)
@@ -1424,6 +1428,9 @@ export class AnalyzeView {
         <!-- Left: Target -->
         <div class="analyze-col">
           ${this.renderTargetCard(defaultPath, displayPath)}
+
+          <!-- CLI Upload Card -->
+          <div id="cli-upload-card"></div>
 
           <!-- Quick Actions -->
           ${this.renderQuickActionsCard()}
@@ -1606,6 +1613,55 @@ export class AnalyzeView {
         </div>
       </div>
     `;
+    }
+    async initCliUploadPanel(view) {
+        if (!authService.isAuthenticated()) return;
+        const slot = view.querySelector('#cli-upload-card');
+        if (!slot) return;
+        try {
+            this._cliUploadApiKey = await fetchCliApiKey();
+        } catch (err) {
+            slot.replaceChildren();
+            const note = document.createElement('p');
+            note.style.cssText = 'font-size:12px; color:#8b949e;';
+            note.textContent = 'Sign in to enable CLI upload.';
+            slot.appendChild(note);
+            return;
+        }
+        renderCliUploadCard(slot, this._cliUploadApiKey);
+        this._startCliUploadPolling(slot);
+        const reportId = new URLSearchParams(window.location.search).get('cliReport');
+        if (reportId) {
+            try {
+                const report = await fetchCliReport(reportId, this._cliUploadApiKey);
+                this._renderCliReportInSlot(report, slot);
+            } catch (err) {
+                showToast('Could not load CLI report', 'error');
+            }
+        }
+    }
+    _startCliUploadPolling(slot) {
+        if (this._cliUploadPollTimer) clearInterval(this._cliUploadPollTimer);
+        this._cliUploadPollTimer = window.setInterval(async () => {
+            if (!this._cliUploadApiKey) return;
+            try {
+                const history = await fetchCliHistory(this._cliUploadApiKey);
+                if (history.length > 0) {
+                    const latest = history[0];
+                    if (latest.report_id !== this._cliUploadLastSeen) {
+                        this._cliUploadLastSeen = latest.report_id;
+                        const report = await fetchCliReport(latest.report_id, this._cliUploadApiKey);
+                        this._renderCliReportInSlot(report, slot);
+                    }
+                }
+            } catch {
+                // Silently ignore poll failures so the page stays usable offline.
+            }
+        }, 4000);
+    }
+    _renderCliReportInSlot(report, slot) {
+        const slotInner = slot.querySelector('#cli-report-slot') || slot;
+        renderCliReport(report, slotInner);
     }
     renderTargetCard(defaultPath, displayPath) {
         const isWeb = this.websiteMode;
@@ -9056,6 +9112,7 @@ export class AnalyzeView {
         const view = this.render();
         const el = view;
         container.appendChild(view);
+        void this.initCliUploadPanel(view);
         (_b = view.querySelector('#goto-results-btn')) === null || _b === void 0 ? void 0 : _b.addEventListener('click', () => {
             this.openResultsView();
         });

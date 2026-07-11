@@ -32,6 +32,7 @@ if (!process.env.PUBLIC_URL) {
 const express = require('express');
 const fs = require('fs').promises;
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const db = require('./lib/db.cjs');
 const { sendEmail } = require('./services/email.cjs');
 const {
@@ -795,6 +796,119 @@ try {
 } catch (err) {
     logger.warn('[Email] Email routes not loaded:', err.message);
 }
+
+// ── CLI upload pipeline ──
+function getSessionEmail(req) {
+    const token = (req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim();
+    if (!token) return null;
+    const payload = verifyLicenseToken(token, process.env.SIMPLEBEACON_LICENSE_SECRET);
+    return payload?.email || null;
+}
+
+function getApiToken(req) {
+    const bearer = (req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim();
+    if (bearer) return bearer;
+    return (req.headers['x-simplebeacon-token'] || '').trim();
+}
+
+function computeCliGrade(score, highRiskCount) {
+    if (highRiskCount > 0) return 'F';
+    if (score >= 90) return 'A';
+    if (score >= 80) return 'B';
+    if (score >= 70) return 'C';
+    if (score >= 60) return 'D';
+    return 'F';
+}
+
+app.get('/api/user/api-key', (req, res) => {
+    try {
+        const email = getSessionEmail(req);
+        if (!email) {
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
+        }
+        const customer = db.getOrCreateCustomer(email);
+        return res.json({ success: true, apiKey: customer.api_key });
+    } catch (err) {
+        logger.error('[ApiKey] Failed to retrieve API key:', err.message);
+        return res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.post('/api/simplebeacon/upload-report', express.json({ limit: '10mb' }), (req, res) => {
+    try {
+        const token = getApiToken(req);
+        if (!token) {
+            return res.status(401).json({ success: false, error: 'Missing token' });
+        }
+        const customer = db.getCustomerByApiKey(token);
+        if (!customer) {
+            return res.status(401).json({ success: false, error: 'Invalid token' });
+        }
+        const body = req.body || {};
+        const payload = body.report || body;
+        const metrics = payload.metrics || {};
+        const highRiskCount = Number(metrics.highRiskCount || 0);
+        const mediumRiskCount = Number(metrics.mediumRiskCount || 0);
+        let score = Math.max(0, 100 - (highRiskCount * 15) - (mediumRiskCount * 4));
+        if (highRiskCount > 0) score = Math.min(score, 55);
+        const grade = computeCliGrade(score, highRiskCount);
+        const reportId = 'rep_' + crypto.randomBytes(12).toString('hex');
+        const scannedPath = payload.scannedPath || payload.projectPath || payload.projectRoot || '';
+        db.saveCliReport({
+            reportId,
+            email: customer.email,
+            scannedPath,
+            title: payload.title || scannedPath || 'CLI report',
+            score,
+            letterGrade: grade,
+            reportJson: JSON.stringify(payload)
+        });
+        return res.json({ success: true, reportId, score, letterGrade: grade });
+    } catch (err) {
+        logger.error('[UploadReport] Failed to save report:', err.message);
+        return res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.get('/api/simplebeacon/history', (req, res) => {
+    try {
+        const token = getApiToken(req);
+        if (!token) {
+            return res.status(401).json({ success: false, error: 'Missing token' });
+        }
+        const customer = db.getCustomerByApiKey(token);
+        if (!customer) {
+            return res.status(401).json({ success: false, error: 'Invalid token' });
+        }
+        const rows = db.getCliReportsByEmail(customer.email, 50);
+        return res.json({ success: true, history: rows });
+    } catch (err) {
+        logger.error('[History] Failed to retrieve history:', err.message);
+        return res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.get('/api/simplebeacon/report/:id', (req, res) => {
+    try {
+        const token = getApiToken(req);
+        if (!token) {
+            return res.status(401).json({ success: false, error: 'Missing token' });
+        }
+        const customer = db.getCustomerByApiKey(token);
+        if (!customer) {
+            return res.status(401).json({ success: false, error: 'Invalid token' });
+        }
+        const row = db.getCliReportById(req.params.id);
+        if (!row || row.customer_email !== customer.email) {
+            return res.status(404).json({ success: false, error: 'Report not found' });
+        }
+        const parsed = JSON.parse(row.report_json || '{}');
+        return res.json({ success: true, report: parsed });
+    } catch (err) {
+        logger.error('[ReportFetch] Failed to retrieve report:', err.message);
+        return res.status(500).json({ success: false, error: err.message });
+    }
+});
 
 const certificateRoutes = require('./routes/certificates.cjs');
 app.use(certificateRoutes);

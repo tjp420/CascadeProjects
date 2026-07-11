@@ -109,6 +109,19 @@ function getDb() {
                 updated_at TEXT NOT NULL DEFAULT (datetime('now'))
             );
             CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+            CREATE TABLE IF NOT EXISTS cli_reports (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                report_id TEXT UNIQUE NOT NULL,
+                customer_email TEXT NOT NULL,
+                scanned_path TEXT,
+                title TEXT,
+                score INTEGER,
+                letter_grade TEXT,
+                report_json TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+            CREATE INDEX IF NOT EXISTS idx_cli_reports_email ON cli_reports(customer_email);
+            CREATE INDEX IF NOT EXISTS idx_cli_reports_created ON cli_reports(created_at DESC);
         `);
     }
     // Schema migrations for existing databases
@@ -322,6 +335,34 @@ function updateUserTier(email, tier) {
     ).run(tier, email.trim().toLowerCase());
 }
 
+function saveCliReport({ reportId, email, scannedPath, title, score, letterGrade, reportJson }) {
+    const db = getDb();
+    db.prepare(
+        'INSERT INTO cli_reports (report_id, customer_email, scanned_path, title, score, letter_grade, report_json) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    ).run(
+        reportId,
+        email.trim().toLowerCase(),
+        scannedPath || '',
+        title || '',
+        score ?? null,
+        letterGrade || '',
+        reportJson
+    );
+    return { success: true };
+}
+
+function getCliReportsByEmail(email, limit = 50) {
+    const db = getDb();
+    return db.prepare(
+        'SELECT report_id, customer_email, scanned_path, title, score, letter_grade, created_at FROM cli_reports WHERE customer_email = ? ORDER BY created_at DESC LIMIT ?'
+    ).all(email.trim().toLowerCase(), limit);
+}
+
+function getCliReportById(reportId) {
+    const db = getDb();
+    return db.prepare('SELECT * FROM cli_reports WHERE report_id = ?').get(reportId);
+}
+
 module.exports = {
     getDb,
     addSubscription,
@@ -348,5 +389,8 @@ module.exports = {
     updatePaidSubscriptionStatus,
     createUser,
     getUserByEmail,
-    updateUserTier
+    updateUserTier,
+    saveCliReport,
+    getCliReportsByEmail,
+    getCliReportById
 };

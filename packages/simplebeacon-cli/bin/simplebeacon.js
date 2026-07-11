@@ -49,7 +49,7 @@ const { runFileReductionScan } = require('../src/lib/file-reduction-orchestrator
 const { generateFileReductionReport } = require('../src/reporters/file-reduction-report');
 const { readGateStatus } = require('../src/lib/snippet-scanner');
 const { installDeveloperStack } = require('../src/lib/developer-onboarding');
-const VALID_COMMANDS = new Set(['scan', 'init', 'comment', 'baseline-sync', 'assess', 'compliance', 'report', 'hook-install', 'reduce', 'gate-status', 'pdf', 'buy-clearance', 'mcp', 'ai-plan', 'doctor']);
+const VALID_COMMANDS = new Set(['scan', 'init', 'comment', 'baseline-sync', 'assess', 'compliance', 'report', 'hook-install', 'reduce', 'gate-status', 'pdf', 'buy-clearance', 'mcp', 'ai-plan', 'doctor', 'upload']);
 
 let _cliDebugMode = false;
 
@@ -217,6 +217,7 @@ const FLAG_MAP = [
     { aliases: ['--print-only'], key: 'printOnly', type: 'boolean' },
     { aliases: ['--api-token'], key: 'apiToken', type: 'string' },
     { aliases: ['--upload'], key: 'upload', type: 'string' },
+    { aliases: ['--api-url'], key: 'apiUrl', type: 'string' },
     { aliases: ['--type'], key: 'hookType', type: 'string' },
     { aliases: ['--husky'], key: 'preferHusky', type: 'boolean' },
     { aliases: ['--offline'], key: 'offline', type: 'boolean' },
@@ -795,6 +796,88 @@ async function runScanCommand(options) {
         return exitCode;
     } finally {
         networkGuard.dispose();
+    }
+}
+
+/**
+ * Upload a scan report to the SimpleBeacon dashboard.
+ * @param {Object} options
+ * @returns {Promise<number>}
+ */
+async function runUploadCommand(options) {
+    if (!options || typeof options !== 'object') throw new TypeError('runUploadCommand requires an options object');
+    if (!options.apiToken) {
+        throw new ConfigError('--api-token is required for upload', { command: 'upload' });
+    }
+    if (!options.report && !options.path) {
+        throw new ConfigError('Provide --path to scan or --report to upload an existing report', { command: 'upload' });
+    }
+
+    let report;
+    if (options.report) {
+        report = readJsonFile(path.resolve(options.report), 'report');
+    } else {
+        const networkGuard = createNetworkGuard({ offline: options.offline });
+        printTrustBanner({ quiet: options.noTrustBanner, offline: options.offline }, paint);
+        try {
+            const scanRoot = sanitizePath(options.path);
+            const { platformRoot } = resolvePlatformRoot(scanRoot);
+            const config = loadSimplebeaconConfig(platformRoot, options.config);
+            if (options.complete || options.fullDirectoryScan) config.fullDirectoryScan = true;
+            const rawReport = await runScan(scanRoot, {
+                config,
+                configPath: options.config,
+                withJest: options.withJest,
+                fullDirectoryScan: options.fullDirectoryScan || options.deepScan,
+                ci: options.withCi,
+                tier: options.tier || 'developer',
+                tierLimits: options.tierLimits || undefined,
+                exclude: options.exclude,
+                deepScan: options.deepScan,
+                includeDeps: options.includeDeps,
+                minConfidence: options.minConfidence,
+                slopCop: options.slopCop
+            });
+            networkGuard.assertOfflineClean();
+            const gateResult = evaluateGate(rawReport, config.gate);
+            report = formatJsonReport(rawReport, gateResult);
+        } finally {
+            networkGuard.dispose();
+        }
+    }
+
+    await uploadReportToDashboard(report, options);
+    return 0;
+}
+
+async function uploadReportToDashboard(report, options) {
+    const apiUrl = (options.apiUrl || process.env.SIMPLEBEACON_API_URL || 'https://cascadeprojects-yzzd.onrender.com').replace(/\/$/, '');
+    const token = options.apiToken;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 60000);
+    try {
+        const response = await fetch(`${apiUrl}/api/simplebeacon/upload-report`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                report: sanitizeReportForCloudUpload(report),
+                scannedPath: report.projectPath || report.projectRoot || options.path || options.report || ''
+            }),
+            signal: controller.signal
+        });
+
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            throw new Error(data.error || `Upload failed (${response.status})`);
+        }
+        writeStdoutLine(`✅ Upload complete: ${data.reportId}`);
+        writeStdoutLine(`👉 View dashboard: ${apiUrl}/dashboard/analyze?cliReport=${data.reportId}`);
+        return data;
+    } finally {
+        clearTimeout(timer);
     }
 }
 
@@ -1403,6 +1486,7 @@ const COMMAND_REGISTRY = {
     },
     'ai-plan': runAiPlanCommand,
     scan: runScanCommand,
+    upload: runUploadCommand,
     pdf: runPdfCommand,
     'buy-clearance': runBuyClearanceCommand,
     doctor: runDoctorCommand
