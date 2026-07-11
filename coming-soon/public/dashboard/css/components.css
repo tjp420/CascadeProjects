@@ -5378,13 +5378,16 @@ button.tool-card.help-page-card:hover {
 
 .sb-global-drag-overlay {
   position: fixed;
-  inset: 0;
-  z-index: 9999;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 99999;
   display: none;
   align-items: center;
   justify-content: center;
-  background: rgba(2, 6, 23, 0.85);
-  backdrop-filter: blur(4px);
+  background: rgba(2, 6, 23, 0.92);
+  backdrop-filter: blur(6px);
   pointer-events: none;
 }
 
@@ -5395,15 +5398,18 @@ button.tool-card.help-page-card:hover {
 .sb-global-drag-overlay-card {
   border: 3px dashed var(--primary);
   border-radius: var(--radius-xl);
-  background: var(--surface);
-  padding: 48px 64px;
+  background: rgba(15, 23, 42, 0.98);
+  padding: 56px 72px;
   text-align: center;
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  user-select: none;
 }
 
 .sb-global-drag-overlay-icon {
   font-size: 4rem;
   margin-bottom: 16px;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
 }
 
 .sb-global-drag-overlay-title {
