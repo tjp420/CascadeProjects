@@ -164,7 +164,12 @@ async function runSandboxedScanForDashboard(onLocalScanResult) {
         if (!window.location.pathname.includes('/analyze')) {
             showToast('Scan complete — opening analysis…', 'success');
             setTimeout(() => {
-                window.location.href = '/dashboard/analyze';
+                if (typeof window !== 'undefined' && window.simplebeaconApp && typeof window.simplebeaconApp.navigate === 'function') {
+                    window.simplebeaconApp.navigate('analyze');
+                }
+                else {
+                    window.location.href = '/dashboard/analyze';
+                }
             }, 1200);
         }
     }

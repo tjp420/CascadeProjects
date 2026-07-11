@@ -83,9 +83,18 @@ async function crawlSandboxedTree(dirHandle, currentPath, queue, options) {
   }
 }
 
+const MAX_LINE_LEN = 5000;
+
 function countMatches(content, regex) {
-  const matches = content.match(regex);
-  return matches ? matches.length : 0;
+  // Skip super-long lines to avoid catastrophic regex backtracking on minified/bundled files.
+  const lines = content.split('\n');
+  let total = 0;
+  for (const line of lines) {
+    if (line.length > MAX_LINE_LEN) continue;
+    const matches = line.match(regex);
+    if (matches) total += matches.length;
+  }
+  return total;
 }
 
 function gradeFindings(highRiskCount, mediumRiskCount) {

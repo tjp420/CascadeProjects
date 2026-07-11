@@ -3,7 +3,7 @@ import { evaluateFunnelMetrics, getFunnelCopy } from '../utils/funnelTrigger.js'
 import { LocalScanService } from '../services/localScanService.js?v=20260709noise3';
 import { fingerprintDirectory, formatFingerprint } from '../services/fingerprintService.js';
 import { probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus, getAgentDownloadUrl, detectPlatform, getPlatformLabel, getInstallInstructions, getAgentFallbackMessage, probeAgent4000, scanViaAgent4000, renderAgentCertificate } from '../services/localAgentService.js?v=20260711themefix1';
-import { runSandboxedDirectoryScan } from '../services/browserSandboxScanService.js?v=20260711largefolder1';
+import { runSandboxedDirectoryScan } from '../services/browserSandboxScanService.js?v=20260711largefolder2';
 // simplebeacon:production-leak-intent: sample-json - Legitimate documentation about sample file patterns in analysis results
 import { analyzePath, scanPath, summarizeReport, fetchAnalyzeProviders, fetchRepositoryInventory, fetchCodebaseAnalysis, enrichScanReport, fetchZscriptModReport, shouldFetchZscriptReport, isLegacyScanReport, buildMonorepoScopeNote, buildPathInventoryProvenance, renderInventoryProvenanceHtml, refreshPathInventory, liveInventoryForPath, renderScanScopePanel, isSimplebeaconReport, aiProviderSupportsSummary, getScanFileMetrics, resolveAutoAnalysisMode, buildScanConclusion, buildConsolidationConclusion, buildFictionDigestPayload, sanitizeFictionDigestExport, resolveCompleteScanTargetPath, normalizeProjectPath, filterIssuesByKind, preparePlatformResultsReport, fetchCompleteAuditReport, fetchAnalyzeExportBundleZip, fetchEuAiActAuditReport, openAuditReportPrintWindow, previewAuditExportTier, auditExportButtonLabel, fetchDataCleanupScan, ensureDashboardApiReady, assertCompleteScanComplianceFresh, assertCompleteScanFileReductionFresh, fetchUnderstandSnippet, isCodebaseReport, fetchComplianceChecklist, fetchProjectNpmAudit, prepareGithubRepo, fetchAnalyzeTestSources, isAnalyzeProviderConfigured, uploadDirectoryAndAnalyze } from '../services/analyzeService.js?v=20260711cachefix1';
 import { isRemoteRepoUrl, sourceChipTitle } from '../lib/analyzePathSources.js';
@@ -15,7 +15,7 @@ import { runEuAiActSprint } from '../services/operatorService.js?v=20260531eupdf
 import { renderModeFileScopePanel, extractRoadmapFileMetrics } from '../utils/analyze-mode-file-scope.browser.js?v=20260601roadmapscope1';
 import { renderModeFileResultsPanel } from '../utils/analyze-mode-file-results.browser.js?v=20260601filereconcile1';
 import { renderScanPaywall, buildPublicSummaryFromScan, isDeliverableLocked } from '../components/ScanPaywall.js';
-import { renderCompactScanStatus } from '../components/ScanStatus.js?v=20260711singleflow7';
+import { renderCompactScanStatus } from '../components/ScanStatus.js?v=20260711singleflow8';
 import { AI_SYSTEM_ISSUES, ANALYZER_CATALOG, groupIssuesByCategory, buildAiSystemsIssueAnalysis } from '../services/aiProblemAnalyzerSuite.mjs';
 import { renderIssueList } from '../components/IssueCard.js';
 import { showDownloadCredentialsModal } from '../components/DownloadCredentialsModal.js';
@@ -4313,7 +4313,33 @@ export class AnalyzeView {
             this._stopAgentWizardPolling();
             return;
         }
-        this._renderAgentWizard(cta);
+        // Single-process guidance: prefer the in-browser Select Drive Target scanner over installing an agent.
+        cta.textContent = '';
+        const guidance = document.createElement('div');
+        guidance.className = 'agent-install-wizard';
+        guidance.style.cssText = 'display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:12px;border:1px dashed var(--border);border-radius:var(--radius-lg);background:var(--surface);';
+        const title = document.createElement('p');
+        title.className = 'agent-wizard-title';
+        title.style.margin = '0';
+        title.textContent = 'Scan locally in your browser';
+        guidance.appendChild(title);
+        const subtitle = document.createElement('p');
+        subtitle.className = 'agent-wizard-subtitle';
+        subtitle.style.margin = '0';
+        subtitle.style.color = 'var(--text-muted)';
+        subtitle.textContent = 'Click "Select Drive Target" above to choose the folder and scan it privately in your browser. No Local Scan Agent required.';
+        guidance.appendChild(subtitle);
+        const action = document.createElement('button');
+        action.type = 'button';
+        action.className = 'btn btn-primary btn-sm';
+        action.textContent = 'Open folder picker';
+        action.addEventListener('click', () => {
+            const pickerBtn = root === null || root === void 0 ? void 0 : root.querySelector('#trigger-native-picker');
+            if (pickerBtn)
+                pickerBtn.click();
+        });
+        guidance.appendChild(action);
+        cta.appendChild(guidance);
     }
     _getWizardPlatform() {
         if (this._agentWizardPlatform)
@@ -6649,7 +6675,13 @@ export class AnalyzeView {
                 await this.runAgentScan(projectPath);
                 return;
             }
-            showToast(getAgentFallbackMessage(this.agentStatus), 'error');
+            showToast('Local agent is not available. Click "Select Drive Target" above to choose the folder and scan it locally in your browser, or start the Local Scan Agent on your machine.', 'error', { duration: 12000 });
+            const dropZone = this._root && this._root.querySelector('#analyze-path-dropzone');
+            if (dropZone) {
+                dropZone.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                dropZone.classList.add('sandbox-scanner-highlight');
+                setTimeout(() => dropZone.classList.remove('sandbox-scanner-highlight'), 3000);
+            }
             return;
         }
         if (shouldUseAgent(projectPath, this.agentStatus)) {

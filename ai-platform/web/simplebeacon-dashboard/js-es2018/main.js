@@ -6,7 +6,7 @@ import { themeService } from './services/themeService.js';
 import { Router, PUBLIC_VIEWS } from './router.js';
 import { TrustView } from './views/TrustView.js?v=20260525statictrust2';
 import { RepositoryHealthView } from './views/RepositoryHealthView.js?v=20260525mergepreview1';
-import { DashboardView } from './views/DashboardView.js?v=20260711singleflow7';
+import { DashboardView } from './views/DashboardView.js?v=20260711singleflow8';
 import { ResultsView } from './views/ResultsView.js';
 import { SettingsView } from './views/SettingsView.js?v=20260709ollama3';
 import { ToolsView } from './views/ToolsView.js';
@@ -14,13 +14,13 @@ import { PlatformView } from './views/PlatformView.js?v=20260601platformmetrics1
 import { QualityView } from './views/QualityView.js';
 import { HelpView, FeaturesView } from './views/HelpView.js';
 import { AuditView } from './views/AuditView.js?v=20260618renderfix1';
-import { AnalyzeView } from './views/AnalyzeView.js?v=20260711singleflow7';
+import { AnalyzeView } from './views/AnalyzeView.js?v=20260711singleflow8';
 import { SecurityView } from './views/SecurityView.js?v=20260611fixexport1';
 import { PricingView } from './views/PricingView.js';
 import { AboutView } from './views/AboutView.js';
 import { AssessmentView } from './views/AssessmentView.js';
 import { SignInView } from './views/SignInView.js?v=20260609token3';
-import { ChatbotView } from './views/ChatbotView.js?v=20260711singleflow1';
+import { ChatbotView } from './views/ChatbotView.js?v=20260711singleflow8';
 import { UploadView } from './views/UploadView.js';
 import { RemediationRoadmapView } from './views/RemediationRoadmapView.js';
 import { ProfileView } from './views/ProfileView.js';
@@ -1293,6 +1293,7 @@ class SimplebeaconDashboard {
 document.addEventListener('DOMContentLoaded', () => {
     try {
         const app = new SimplebeaconDashboard();
+        window.simplebeaconApp = app;
         app.init().catch((err) => {
             console.error(err);
             showToast(err.message || 'Dashboard failed to start', 'error');
