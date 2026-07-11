@@ -1742,7 +1742,7 @@ export class AnalyzeView {
         .analyze-target-redesign .path-row { display: flex; gap: 8px; align-items: center; max-width: none; margin: 18px 0 0; }
         .analyze-target-redesign .path-row input { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 8px 12px; color: var(--text-primary); font-size: 0.85rem; }
         .analyze-target-redesign .path-row button { flex-shrink: 0; }
-        .analyze-target-redesign .hint { text-align: center; font-size: 0.7rem; color: var(--text-muted); margin-top: 8px; }
+        .analyze-target-redesign .hint { text-align: left; font-size: 0.7rem; color: var(--text-muted); margin-top: 8px; }
         .analyze-target-redesign .options-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
         .analyze-target-redesign .quick-file { border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); padding: 14px; margin-top: 14px; }
         .analyze-target-redesign .quick-file-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
@@ -1755,16 +1755,16 @@ export class AnalyzeView {
         .analyze-target-redesign .scanning-state p { color: var(--text-muted); font-size: 0.85rem; }
         .an-tgt-drop { border: 2px dashed var(--border); border-radius: var(--radius-lg); background: var(--surface); padding: 28px 24px; text-align: center; transition: all .2s; }
         .an-tgt-drop.drag-active { border-color: var(--primary); background: rgba(99,102,241,0.06); }
-        .fingerprint-status { min-height: 1.2em; margin-top: 8px; font-size: 0.85rem; color: var(--primary); font-weight: 500; text-align: center; }
-        .agent-status { min-height: 1.2em; margin-top: 4px; font-size: 0.8rem; color: var(--text-muted); text-align: center; }
+        .fingerprint-status { min-height: 1.2em; margin-top: 8px; font-size: 0.85rem; color: var(--primary); font-weight: 500; text-align: left; }
+        .agent-status { min-height: 1.2em; margin-top: 4px; font-size: 0.8rem; color: var(--text-muted); text-align: left; }
         .agent-status.available { color: var(--success); }
         .agent-status.unavailable { color: var(--text-muted); }
-        .agent-download-cta { min-height: 1.2em; margin-top: 4px; font-size: 0.85rem; text-align: center; }
+        .agent-download-cta { min-height: 1.2em; margin-top: 4px; font-size: 0.85rem; text-align: left; }
         .agent-download-cta a { color: var(--primary); text-decoration: underline; }
-        .agent-install-wizard { display: inline-flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px; border: 1px dashed var(--border); border-radius: var(--radius-lg); background: var(--surface); max-width: none; margin: 0; }
+        .agent-install-wizard { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 12px; border: 1px dashed var(--border); border-radius: var(--radius-lg); background: var(--surface); max-width: none; margin: 0; }
         .agent-wizard-title { font-weight: 600; margin: 0; }
         .agent-wizard-subtitle { color: var(--text-muted); margin: 0; font-size: 0.8rem; }
-        .agent-wizard-step { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center; }
+        .agent-wizard-step { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-start; }
         .agent-wizard-instructions { color: var(--text); margin: 0; max-width: none; }
         .agent-wizard-polling { color: var(--text-muted); font-size: 0.8rem; }
         .agent-wizard-polling.hidden { display: none; }

@@ -4488,6 +4488,7 @@ button.tool-card.help-page-card:hover {
 
 .analyze-main-grid {
   align-items: start;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
 }
 .analyze-col {
   display: flex;
