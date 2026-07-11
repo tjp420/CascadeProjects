@@ -6,7 +6,7 @@ import { isLocalDevHost, DEMO_EMAIL } from '../demoMode.js';
  */
 export function apiBase() {
     if (typeof location !== 'undefined' && !/^(localhost|127\.0\.0\.1)$/i.test(location.hostname) && !location.hostname.endsWith('.onrender.com')) {
-        return 'https://simplebeacon.onrender.com';
+        return 'https://cascadeprojects-yzzd.onrender.com';
     }
     return '';
 }
