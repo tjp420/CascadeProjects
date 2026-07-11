@@ -6530,15 +6530,7 @@ export class AnalyzeView {
                 await this.runAgentScan(typedPath);
                 return;
             }
-            const fallbackPath = this.app.state.defaultProjectPath || this.app.state.lastProjectPath || '';
-            if (fallbackPath && !/^[a-zA-Z]:[\\/]/i.test(fallbackPath)) {
-                showToast('Local agent is not available. Switching to the server project path.', 'info');
-                this.localMode = false;
-                saveAnalyzePrefs({ localMode: false, analysisType: this.analysisType, aiProvider: this.aiProvider, understandingMode: this.understandingMode });
-                this.syncAnalyzeModeUi(this._root);
-                return this.runPathAnalysis(fallbackPath);
-            }
-            showToast('Cannot scan a local path from the remote dashboard. Install/Start the Local Scan Agent or run SimpleBeacon locally.', 'error', { duration: 8000 });
+            showToast('Local agent is not available. Enable Privacy mode to scan this folder locally in your browser, or start the Local Scan Agent on your machine.', 'error', { duration: 10000 });
             return;
         }
         if (this.localMode) {
