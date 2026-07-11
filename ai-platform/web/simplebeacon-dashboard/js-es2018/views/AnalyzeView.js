@@ -1837,37 +1837,36 @@ export class AnalyzeView {
 
         <div class="target-body">
           <div class="drop-zone ${this.busy ? 'scanning' : ''}" id="analyze-path-dropzone">
-            <div class="drop-zone-idle" ${this.busy ? 'hidden' : ''}>
+              <div class="drop-zone-idle" ${this.busy ? 'hidden' : ''}>
               <div class="drop-zone-icon"><i data-lucide="folder-up" class="icon-24"></i></div>
-              <div class="drop-zone-title">Drop a project folder here</div>
-              <div class="drop-zone-sub">Or type a path, browse, or drop a file / JSON report</div>
+              <div class="drop-zone-title">Scan a local folder</div>
+              <div class="drop-zone-sub">Select a drive or folder, or drop one here — scanning runs privately inside your browser.</div>
               <div class="drop-zone-actions">
-                <button type="button" class="btn btn-primary btn-sm" id="browse-dir-btn"><i data-lucide="folder-open" class="icon-16"></i> Browse Folder</button>
-                <button type="button" class="btn btn-secondary btn-sm" id="analyze-file-browse-btn-main" ${this.snippetBusy ? 'disabled' : ''}><i data-lucide="file-up" class="icon-16"></i> Browse File</button>
+                <button type="button" id="trigger-native-picker" class="btn btn-primary"><i data-lucide="folder-open" class="icon-16"></i> Select Drive Target</button>
               </div>
-              <div class="path-row">
-                <input type="text" id="project-path-input" class="analyze-path-input"
-                  placeholder="${pathPlaceholder}"
-                  value="${escapeHtml(formatPathInputValue(displayPath))}"
-                  list="${pathList}"
-                  spellcheck="false"
-                  autocomplete="list"
-                  aria-label="${pathAria}">
-                <button type="button" class="btn btn-primary" id="dropzone-path-analyze-btn">Analyze</button>
+              <pre id="sandbox-scan-terminal" style="display:none; background: var(--surface); color: var(--text-secondary); font-family: monospace; padding: 12px; border-radius: var(--radius-md); max-height: 240px; overflow-y: auto; margin: 12px 0 0; border: 1px solid var(--border);">Awaiting drive selection...</pre>
+
+              <div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border);">
+                <p style="margin: 0 0 8px; font-size: 0.75rem; color: var(--text-muted);">Or type a server path / public repo URL</p>
+                <div class="path-row">
+                  <input type="text" id="project-path-input" class="analyze-path-input"
+                    placeholder="${pathPlaceholder}"
+                    value="${escapeHtml(formatPathInputValue(displayPath))}"
+                    list="${pathList}"
+                    spellcheck="false"
+                    autocomplete="list"
+                    aria-label="${pathAria}">
+                  <button type="button" class="btn btn-secondary" id="dropzone-path-analyze-btn">Analyze</button>
+                </div>
+                ${datalist}
               </div>
 
-              ${datalist}
-              <p class="hint">${isWeb ? 'Enter a public URL to scan a website.' : 'Browser drag-and-drop cannot reveal full paths — use Browse Folder or the Local Scan Agent for the correct path.'}</p>
+              <p class="hint">${isWeb ? 'Enter a public URL to scan a website.' : 'For local folders, use Select Drive Target. For server paths or repos, type the path above.'}</p>
               <p id="fingerprint-status" class="fingerprint-status"></p>
               <p id="agent-status" class="agent-status"></p>
               <p id="agent-4000-status" class="agent-status"></p>
               <div id="agent-4000-results"></div>
-              <div id="sandbox-scanner" class="sandbox-scanner" style="margin-top: 16px; padding: 12px 0 0; border-top: 1px solid var(--border); color: var(--text-secondary);">
-                <h4 style="margin-top: 0; font-size: 0.9rem; color: var(--text-primary);">Secure Local Directory Scanner</h4>
-                <p style="margin-bottom: 12px; font-size: 0.75rem; color: var(--text-muted);">Select a local drive or folder. Scanning runs privately inside your browser using the File System Access API (Chrome/Edge/Brave).</p>
-                <button type="button" id="trigger-native-picker" class="btn btn-primary btn-sm" style="margin-bottom: 12px;">Select Drive Target</button>
-                <pre id="sandbox-scan-terminal" style="background: var(--surface); color: var(--text-secondary); font-family: monospace; padding: 12px; border-radius: var(--radius-md); max-height: 240px; overflow-y: auto; margin: 0; border: 1px solid var(--border);">Awaiting drive selection...</pre>
-              </div>
+              <div id="sandbox-scanner" class="sandbox-scanner" style="display:none;"></div>
               <p id="agent-download-cta" class="agent-download-cta"></p>
             </div>
             <div class="scanning-state ${this.busy ? 'active' : ''}">
@@ -6515,7 +6514,10 @@ export class AnalyzeView {
     async runSandboxedDirectoryScan() {
         const terminal = this._root && this._root.querySelector('#sandbox-scan-terminal');
         const resultsEl = this._root && this._root.querySelector('#agent-4000-results');
-        if (terminal) terminal.textContent = 'Opening native OS system access window...';
+        if (terminal) {
+            terminal.style.display = 'block';
+            terminal.textContent = 'Opening native OS system access window...';
+        }
         try {
             const report = await runSandboxedDirectoryScan({
                 onLog: (entry) => {
@@ -6595,12 +6597,12 @@ export class AnalyzeView {
                 await this.runAgentScan(typedPath);
                 return;
             }
-            showToast('Local agent is not available. Use the Secure Local Directory Scanner below to select the folder and scan it locally in your browser, or start the Local Scan Agent on your machine.', 'error', { duration: 12000 });
-            const scannerCard = this._root && this._root.querySelector('#sandbox-scanner');
-            if (scannerCard) {
-                scannerCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                scannerCard.classList.add('sandbox-scanner-highlight');
-                setTimeout(() => scannerCard.classList.remove('sandbox-scanner-highlight'), 3000);
+            showToast('Local agent is not available. Click "Select Drive Target" above to choose the folder and scan it locally in your browser, or start the Local Scan Agent on your machine.', 'error', { duration: 12000 });
+            const dropZone = this._root && this._root.querySelector('#analyze-path-dropzone');
+            if (dropZone) {
+                dropZone.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                dropZone.classList.add('sandbox-scanner-highlight');
+                setTimeout(() => dropZone.classList.remove('sandbox-scanner-highlight'), 3000);
             }
             return;
         }
