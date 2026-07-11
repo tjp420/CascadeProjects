@@ -5255,7 +5255,11 @@ export class AnalyzeView {
                         if (analyzeResultStats)
                             analyzeResultStats.textContent = `${cert.letterGrade || 'N/A'} grade · ${report.discoveredFiles || 0} files scanned · ${cert.highRiskCount || 0} high · ${cert.mediumRiskCount || 0} medium`;
                         setAnalyzeDropzoneState('done');
-                        this.applyAgentCertificate(report, folderName);
+                        const certEl = el.querySelector('#sandbox-scanner');
+                        if (certEl) {
+                            certEl.style.display = 'block';
+                            renderAgentCertificate(report, certEl);
+                        }
                     }
                     else if (dtFiles && dtFiles.length) {
                         const files = Array.from(dtFiles);
