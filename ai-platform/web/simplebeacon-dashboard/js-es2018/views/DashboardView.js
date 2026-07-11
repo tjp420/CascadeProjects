@@ -282,9 +282,8 @@ export class DashboardView {
       </div>
 
       <div class="dashboard-hero">
-        ${renderPrivacyCard()}
-        <div id="slot-scan-status"></div>
         <div id="slot-quick-actions"></div>
+        <div id="slot-scan-status"></div>
       </div>
 
       <div class="dashboard-body">

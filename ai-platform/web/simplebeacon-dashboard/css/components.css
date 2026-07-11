@@ -2549,9 +2549,23 @@ button.tool-card.help-page-card:hover {
 /* Hero section */
 .dashboard-hero {
   display: grid;
-  grid-template-columns: 1fr 220px;
+  grid-template-columns: 1fr 260px;
   gap: var(--space-4);
   margin-bottom: var(--space-4);
+  align-items: stretch;
+}
+
+#slot-quick-actions {
+  min-width: 0;
+}
+
+#slot-quick-actions .dashboard-quick-actions {
+  height: 100%;
+  justify-content: stretch;
+}
+
+#slot-scan-status {
+  min-width: 0;
 }
 
 @media (max-width: 768px) {

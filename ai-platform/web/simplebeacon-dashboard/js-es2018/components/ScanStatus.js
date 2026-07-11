@@ -246,7 +246,7 @@ function renderScanPathControls(report, options = {}) {
         <div class="sb-dropzone-idle">
           <div class="sb-dropzone-icon"><i data-lucide="folder-up" class="icon-32"></i></div>
           <div class="sb-dropzone-title">Drop a folder or files to scan</div>
-          <div class="sb-dropzone-sub">Your source never leaves the browser. Folders are scanned recursively; files get a quick scan.</div>
+          <div class="sb-dropzone-sub">Drop a folder for a full scan, or files for a quick scan. Private — runs in your browser.</div>
           <div class="sb-dropzone-actions">
             <button type="button" id="trigger-native-picker" class="btn btn-primary"><i data-lucide="folder-open" class="icon-16"></i> Select Folder</button>
             <button type="button" id="trigger-file-picker" class="btn btn-ghost">Select Files</button>
