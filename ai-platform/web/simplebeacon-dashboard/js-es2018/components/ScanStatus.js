@@ -453,7 +453,7 @@ export function updateScanStatusDom(root, report) {
  */
 export function bindScanStatus(container, options = {}) {
     var _a, _b;
-    const { onRescan, onLocalScanResult, getLastProjectPath = () => '', setLastProjectPath = () => { }, getDefaultProjectPath = () => '' } = options;
+    const { onRescan, onLocalScanResult, onViewResults, getLastProjectPath = () => '', setLastProjectPath = () => { }, getDefaultProjectPath = () => '' } = options;
     const input = container.querySelector('#scan-root-input');
     const clearBtn = container.querySelector('#scan-clear-btn');
     const setDefaultBtn = container.querySelector('#scan-set-default-btn');
@@ -888,6 +888,12 @@ export function bindScanStatus(container, options = {}) {
         // Retry button
         const retryBtn = container.querySelector('#scan-dropzone-retry');
         retryBtn === null || retryBtn === void 0 ? void 0 : retryBtn.addEventListener('click', resetDropzone);
+        // View Results button navigates to the full results view
+        const viewResultsBtn = container.querySelector('#scan-dropzone-view-results');
+        viewResultsBtn === null || viewResultsBtn === void 0 ? void 0 : viewResultsBtn.addEventListener('click', () => {
+            if (onViewResults)
+                onViewResults();
+        });
         // File picker button (quick file scan)
         if (filePicker) {
             const quickInput = document.createElement('input');

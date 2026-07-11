@@ -1,6 +1,6 @@
 import { formatNumber, formatPercent, escapeHtml, renderEmptyState, showToast } from '../utils.js';
 import { buildScanConclusion, getScanFileMetrics, resolveDisplayScore, resolveJestTestsLabel, resolvePageSpecsLabel, renderScanScopePanel } from '../services/analyzeService.js?v=20260710inventory1';
-import { renderScanStatus, updateScanStatusDom, bindScanStatus, runDashboardScanFromInput } from '../components/ScanStatus.js?v=20260711bento1';
+import { renderScanStatus, updateScanStatusDom, bindScanStatus, runDashboardScanFromInput } from '../components/ScanStatus.js?v=20260711viewresults1';
 import { renderIssueList } from '../components/IssueCard.js';
 import { renderQuickActions, bindQuickActions } from '../components/QuickActions.js';
 import { renderTrendSection, mountTrendChart } from '../components/TrendChart.js';
@@ -311,6 +311,7 @@ export class DashboardView {
             setLastProjectPath: (path) => { this.app.state.lastProjectPath = path; },
             getDefaultProjectPath: () => this.app.state.defaultProjectPath,
             onRescan: (path) => this.app.runScan(path),
+            onViewResults: () => this.app.navigate('results'),
             onLocalScanResult: (report) => {
                 if (!report)
                     return;
