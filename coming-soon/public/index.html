@@ -4,19 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SimpleBeacon — Release hygiene for AI-assisted code</title>
-    <meta name="description" content="SimpleBeacon: local, zero-upload scans for AI-generated slop, exposed credentials, and unapproved AI integrations. Board-ready Executive Risk Certificates with A–F grades.">
+    <meta name="description" content="SimpleBeacon: browser-local scans for AI slop, token leaks, and compliance gaps. Generate board-ready hygiene certificates without uploading your source code.">
     <meta name="theme-color" content="#0d1117">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://simplebeacon.ai/">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <meta property="og:title" content="SimpleBeacon — Release hygiene for AI-assisted code">
-    <meta property="og:description" content="Local, zero-upload scans for AI slop and credential leaks. Board-ready compliance certificates.">
+    <meta property="og:description" content="Browser-local scans for AI slop, token leaks, and compliance gaps. Generate board-ready hygiene certificates without uploading your source code.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://simplebeacon.ai/">
     <meta property="og:image" content="favicon.svg">
     <meta name="twitter:card" content="summary">
     <meta name="twitter:title" content="SimpleBeacon — Release hygiene for AI-assisted code">
-    <meta name="twitter:description" content="Local, zero-upload scans for AI slop and credential leaks. Board-ready compliance certificates.">
+    <meta name="twitter:description" content="Browser-local scans for AI slop, token leaks, and compliance gaps. Generate board-ready hygiene certificates without uploading your source code.">
     <style>
         :root {
             --bg-main: #0B0F19;
@@ -715,12 +715,78 @@
         }
         .tw-speed-opt.tw-active { border-color: #3fb950; color: #3fb950; }
 
+        /* Audit Stepper */
+        .stepper {
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .stepper-item {
+            flex: 1;
+            min-width: 240px;
+            max-width: 280px;
+            text-align: center;
+            position: relative;
+        }
+
+        .stepper-number {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), #1d4ed8);
+            color: white;
+            font-size: 20px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+            box-shadow: 0 8px 24px rgba(37, 99, 235, 0.25);
+        }
+
+        .stepper-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-main);
+        }
+
+        .stepper-desc {
+            font-size: 14px;
+            color: var(--text-muted);
+            line-height: 1.5;
+            margin: 0;
+        }
+
+        .stepper-connector {
+            position: absolute;
+            top: 24px;
+            right: -8px;
+            width: 16px;
+            height: 2px;
+            background: var(--border);
+            display: none;
+        }
+
+        @media (min-width: 768px) {
+            .stepper-item:not(:last-child) .stepper-connector {
+                display: block;
+            }
+        }
+
         @media (max-width: 640px) {
             h1 { font-size: 28px; }
             h2 { font-size: 22px; }
             .hero-card { padding: 36px 24px; }
             .certificate-mockup { padding: 24px; }
             .cert-grade { font-size: 36px; }
+            .stepper-item { min-width: 100%; max-width: 100%; }
+            .stepper-connector { display: none !important; }
         }
     </style>
 </head>
@@ -738,24 +804,20 @@
     <!-- HERO -->
     <section class="hero">
         <div class="hero-card">
-            <span class="badge" style="background: rgba(16, 185, 129, 0.1); color: #34D399; border-color: rgba(16, 185, 129, 0.25);">Zero-Retention AI</span>
-            <h1>Certify Your Codebase Before Regulators Do</h1>
-            <p>Local, zero-upload scans for AI-generated slop, exposed credentials, and unapproved AI integrations. Runs completely offline using deterministic regex patterns and local AST parsing via the <code>npx simplebeacon</code> CLI — no code ever leaves your machine. Get a board-ready Executive Risk Certificate with an A–F grade and estimated financial liability.</p>
+            <span class="badge" style="background: rgba(16, 185, 129, 0.1); color: #34D399; border-color: rgba(16, 185, 129, 0.25);">Zero-Upload AI Audit</span>
+            <h1>Shipped by AI.<br>Verified by SimpleBeacon.</h1>
+            <p>Scan AI-assisted code for slop, token leaks, and compliance gaps — then generate board-ready hygiene certificates. 100% browser-local. Zero source code leaves your machine.</p>
 
-            <div style="display:flex;flex-direction:column;gap:10px;max-width:440px;margin:0 auto;">
-                <a href="audit.html" class="btn btn-primary">See it in action</a>
-                <a href="pricing.html" id="link-pricing" class="btn btn-success">View Pricing — Start Free</a>
-                <a href="community.html" id="link-community" class="btn btn-ghost">Free CLI &amp; MCP tools</a>
-            </div>
-            <div style="margin-top:18px;">
-                <a href="sample-report.html" style="display:inline-flex;align-items:center;gap:8px;color:#60A5FA;text-decoration:none;font-size:14px;font-weight:500;">&#128196; Preview a sample report</a>
+            <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-bottom:24px;">
+                <a href="audit.html" id="link-audit" class="btn btn-primary">Start Free Local Scan &rarr;</a>
+                <a href="sample-report.html" class="btn btn-ghost">View Sample Audit</a>
             </div>
             <script>
             (function() {
                 var params = new URLSearchParams(window.location.search);
                 var token = params.get('token');
                 if (token) {
-                    ['link-pricing','link-upload','link-community'].forEach(function(id) {
+                    ['link-audit','link-audit-stepper'].forEach(function(id) {
                         var a = document.getElementById(id);
                         if (a) a.href += (a.href.indexOf('?') === -1 ? '?' : '&') + 'token=' + encodeURIComponent(token);
                     });
@@ -763,9 +825,10 @@
             })();
             </script>
             <div class="pricing-tags">
-                <span class="pricing-tag">Free — 50 files/scan</span>
-                <span class="pricing-tag">Team — $49/mo flat</span>
-                <span class="pricing-tag">Enterprise — $499/mo</span>
+                <span class="pricing-tag">Free — 10 scans/mo</span>
+                <span class="pricing-tag">Pro — $9/mo</span>
+                <span class="pricing-tag">Compliance Suite — $399/mo</span>
+                <span class="pricing-tag">Enterprise Air-Gapped — Custom</span>
             </div>
         </div>
     </section>
@@ -806,26 +869,86 @@
         </div>
     </section>
 
-    <!-- FEATURES GRID -->
+    <!-- THE PROBLEM: AI DEBT -->
     <section class="section">
         <div class="container">
-            <h2>What SimpleBeacon Finds</h2>
-            <p class="section-subtitle">Three core detection engines. One unified report.</p>
+            <h2>The AI Debt Hiding in Your Codebase</h2>
+            <p class="section-subtitle">AI tools help you ship fast, but they leave invisible debt behind. SimpleBeacon finds the mess before your clients, auditors, or security team does.</p>
             <div class="features-grid">
                 <div class="feature-card">
-                    <span class="feature-icon">&#128373;</span>
-                    <h3>Slop Detection</h3>
-                    <p>Flags low-quality AI-generated code blocks, hallucinated API calls, and boilerplate patterns that increase maintenance debt and security surface area.</p>
+                    <span class="feature-icon">&#129302;</span>
+                    <h3>AI Slop</h3>
+                    <p>Repetitive boilerplate, dead comments, and hallucinated API endpoints that increase maintenance debt and security surface area.</p>
                 </div>
                 <div class="feature-card">
                     <span class="feature-icon">&#128273;</span>
-                    <h3>Leak Protection</h3>
-                    <p>Scans for exposed credentials, hardcoded secrets, tokens, and API keys across your entire repository — including commit history and dependency manifests.</p>
+                    <h3>Token Leaks</h3>
+                    <p>Accidental credentials, hardcoded secrets, and exposed keys buried in AI-generated snippets or commit history.</p>
                 </div>
                 <div class="feature-card">
-                    <span class="feature-icon">&#128721;</span>
-                    <h3>Shadow AI</h3>
-                    <p>Catches unauthorized third-party AI integrations, unapproved model endpoints, and off-policy copilot usage that bypasses your governance controls.</p>
+                    <span class="feature-icon">&#128196;</span>
+                    <h3>Markdown Artifacts</h3>
+                    <p>Leftover triple-backtick fences, prompts, and doc debris copied straight out of a chat model and into production.</p>
+                </div>
+                <div class="feature-card">
+                    <span class="feature-icon">&#9878;&#65039;</span>
+                    <h3>Compliance Drift</h3>
+                    <p>Code patterns that violate the EU AI Act, SOC 2, or your internal governance controls — before they become audit findings.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- HOW IT WORKS: 3-STEP AUDIT -->
+    <section class="section" style="background: linear-gradient(180deg, var(--bg-main), #0a0e18);">
+        <div class="container">
+            <h2>Audit in Three Steps</h2>
+            <p class="section-subtitle">Gate. Scan. Certify. No install required for the browser-local preview.</p>
+            <div class="stepper">
+                <div class="stepper-item">
+                    <div class="stepper-connector"></div>
+                    <div class="stepper-number">1</div>
+                    <div class="stepper-title">Gate</div>
+                    <p class="stepper-desc">Enter your token to verify access and unlock certificate generation.</p>
+                </div>
+                <div class="stepper-item">
+                    <div class="stepper-connector"></div>
+                    <div class="stepper-number">2</div>
+                    <div class="stepper-title">Scan</div>
+                    <p class="stepper-desc">Drop your repo folder or upload a CLI report for browser-local heuristic analysis.</p>
+                </div>
+                <div class="stepper-item">
+                    <div class="stepper-number">3</div>
+                    <div class="stepper-title">Certify</div>
+                    <p class="stepper-desc">Get a graded A–F report with actionable remediation and a shareable PDF/ZIP certificate.</p>
+                </div>
+            </div>
+            <div style="text-align:center;margin-top:40px;">
+                <a href="audit.html" id="link-audit-stepper" class="btn btn-primary">Start Your Audit &rarr;</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- WHY TEAMS CHOOSE US -->
+    <section class="section">
+        <div class="container">
+            <h2>Why Teams Choose SimpleBeacon</h2>
+            <p class="section-subtitle">Built for developers, shaped for agencies, and trusted by compliance teams.</p>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <span class="feature-icon">&#128737;</span>
+                    <h3>Privacy-First Architecture</h3>
+                    <p>Built on a lightweight, browser-local heuristic engine. Your proprietary source code never touches our servers.</p>
+                </div>
+                <div class="feature-card">
+                    <span class="feature-icon">&#127942;</span>
+                    <h3>Agency Reputation Shield</h3>
+                    <p>Hand over clean, certified repositories to clients with proof that the code is secure and compliant.</p>
+                </div>
+                <div class="feature-card">
+                    <span class="feature-icon">&#128295;</span>
+                    <h3>Deep Local Analysis</h3>
+                    <p>Need more than a quick heuristic check? Connect the page directly to a local SimpleBeacon server for advanced AST parsing and full npm audits.</p>
                 </div>
             </div>
         </div>

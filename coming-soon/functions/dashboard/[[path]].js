@@ -2,11 +2,11 @@
  * Proxy /dashboard/* requests to the Render backend so the dashboard appears
  * to be served under the same simplebeacon.ai domain.
  *
- * Set BACKEND_URL in the Cloudflare Pages dashboard (e.g. https://simplebeacon.onrender.com).
+ * Set BACKEND_URL in the Cloudflare Pages dashboard (e.g. https://cascadeprojects-yzzd.onrender.com).
  */
 export async function onRequest(context) {
   const { request, env, params } = context;
-  const backendUrl = (env && env.BACKEND_URL) || 'https://simplebeacon.onrender.com';
+  const backendUrl = (env && env.BACKEND_URL) || 'https://cascadeprojects-yzzd.onrender.com';
   const path = Array.isArray(params.path) ? params.path.join('/') : (params.path || '');
   const target = new URL(`/simplebeacon-dashboard/${path}`, backendUrl.replace(/\/$/, ''));
   target.search = new URL(request.url).search;

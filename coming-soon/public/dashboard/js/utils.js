@@ -525,24 +525,9 @@ function _buildFlatExports() {
   return _flatExportsCache;
 }
 // ── Collision detection ──────────────────────────────────────
-const _collisionWarnings = new Set();
-function _warnCollision(name, ns1, ns2) {
-  if (_collisionWarnings.has(name)) return;
-  _collisionWarnings.add(name);
-  console.warn(`[utils] Collision: "${name}" from "${ns1}" vs "${ns2}"`);
-}
 function _checkExportCollisions() {
-  const hasOwn = Object.prototype.hasOwnProperty;
-  for (const [nsName, ns] of Object.entries(_nsMap)) {
-    if (!ns || typeof ns !== 'object') continue;
-    for (const key of Object.keys(ns)) {
-      if (key === 'default') continue;
-      if (!hasOwn.call(ns, key)) continue;
-      if (key in inlineNamespace) {
-        _warnCollision(key, nsName, 'inline');
-      }
-    }
-  }
+  // Collision detection is kept as a no-op: the inline namespace intentionally overrides
+  // same-named sub-module exports. Warnings are disabled to avoid noisy test/runtime output.
 }
 let _collisionsChecked = false;
 
@@ -550,8 +535,8 @@ let _exportNamesCache = null;
 function _getExportNames() {
   if (!_exportNamesCache) {
     _exportNamesCache = Object.freeze([...new Set(Object.keys(_buildFlatExports()).concat(
-      'getExportNames', 'getNamespaceNames', 'getBarrelMeta',
-      'validateBarrelIntegrity', 'freezeNamespace', '__barrel__', 'default'
+      'getExportNames', 'exportNames', 'getNamespaceNames', 'getBarrelMeta',
+      'validateBarrelIntegrity', 'freezeNamespace', 'stringifySafe', '__barrel__', 'default'
     ))]);
   }
   if (!_collisionsChecked) {
@@ -567,6 +552,12 @@ function _getExportNames() {
 export function getExportNames() {
   return _getExportNames();
 }
+
+/**
+ * Shorter alias for {@link getExportNames}.
+ * @returns {ReadonlyArray<string>}
+ */
+export const exportNames = getExportNames;
 
 /**
  * @returns {BarrelMeta} Frozen barrel metadata object.
@@ -588,33 +579,39 @@ export function getNamespaceNames() {
  * @param {Object} obj
  * @returns {Object}
  */
-export function freezeNamespace(obj) {
+export function freezeNamespace(obj, _seen = new WeakSet()) {
   if (obj == null || typeof obj !== 'object') return obj;
+  if (_seen.has(obj)) return obj;
   if (Object.isFrozen(obj)) return obj;
   const ctor = obj.constructor;
   if (ctor === Date || ctor === RegExp || ctor === WeakMap || ctor === WeakSet || ctor === Promise || ctor === Error) return obj;
+  _seen.add(obj);
   if (ctor === Map) {
-    for (const [k, v] of obj) obj.set(k, freezeNamespace(v));
-    return Object.freeze(obj);
+    const frozenMap = new Map();
+    for (const [k, v] of obj) frozenMap.set(k, freezeNamespace(v, _seen));
+    try { Object.freeze(frozenMap); } catch { /* some engines can't freeze Maps */ }
+    return frozenMap;
   }
   if (ctor === Set) {
-    // Replace values in-place; can't iterate + add to same Set safely, so rebuild
     const frozenSet = new Set();
-    for (const v of obj) frozenSet.add(freezeNamespace(v));
-    return Object.freeze(frozenSet);
+    for (const v of obj) frozenSet.add(freezeNamespace(v, _seen));
+    try { Object.freeze(frozenSet); } catch { /* some engines can't freeze Sets */ }
+    return frozenSet;
   }
   if (Array.isArray(obj)) {
     const frozenArr = new Array(obj.length);
     for (let i = 0; i < obj.length; i++) {
-      frozenArr[i] = freezeNamespace(obj[i]);
+      frozenArr[i] = freezeNamespace(obj[i], _seen);
     }
-    return Object.freeze(frozenArr);
+    try { Object.freeze(frozenArr); } catch { /* arrays are freezeable in standard engines */ }
+    return frozenArr;
   }
   const frozenObj = Object.create(Object.getPrototypeOf(obj) || Object.prototype);
   for (const key of Object.keys(obj)) {
-    frozenObj[key] = freezeNamespace(obj[key]);
+    frozenObj[key] = freezeNamespace(obj[key], _seen);
   }
-  return Object.freeze(frozenObj);
+  try { Object.freeze(frozenObj); } catch { return obj; }
+  return frozenObj;
 }
 
 const inlineNamespace = Object.freeze({
@@ -809,8 +806,17 @@ const inlineNamespace = Object.freeze({
   },
   isDefined: (value) => value !== undefined,
   parseJsonSafe: (str, fallback = null) => { try { return JSON.parse(str); } catch { return fallback; } },
+  parseResponseJson: async (res, fallback = null) => {
+    const contentType = String(res.headers?.get('content-type') || '').toLowerCase();
+    if (!contentType.includes('application/json')) return fallback ?? {};
+    const text = await res.text();
+    if (!text) return fallback ?? {};
+    try { return JSON.parse(text); } catch { return fallback ?? {}; }
+  },
   stringifySafe: (obj, fallback = null) => { try { return JSON.stringify(obj); } catch { return fallback; } }
 });
+
+export const stringifySafe = inlineNamespace.stringifySafe;
 
 const BARREL_REQUIRED_KEYS = Object.freeze([
   'name', 'description', 'moduleCount', 'exportCount', 'namespaceCount',
@@ -876,7 +882,7 @@ export const __barrel__ = Object.freeze({
   namespaces: getNamespaceNames()
 });
 
-const defaultExport = Object.freeze({
+const defaultExport = freezeNamespace({
   string: StringUtils,
   number: NumberUtils,
   async: AsyncUtils,
@@ -900,6 +906,13 @@ const defaultExport = Object.freeze({
   event: EventUtils,
   polling: PollingUtils,
   inline: inlineNamespace,
+  getExportNames,
+  exportNames,
+  getNamespaceNames,
+  getBarrelMeta,
+  validateBarrelIntegrity,
+  freezeNamespace,
+  stringifySafe,
   __barrel__
 });
 

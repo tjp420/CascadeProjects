@@ -320,6 +320,7 @@ export function bindScanStatus(container, options = {}) {
     if (defaultPath) {
       // Strip trailing segments to get a reasonable base (e.g. .../ai-platform -> parent)
       const normalized = defaultPath.replace(/\\/g, '/');
+      const isUnixAbsolute = normalized.startsWith('/');
       const parts = normalized.split('/').filter(Boolean);
       // If last part looks like a server subfolder, remove it
       if (parts.length > 1 && /^(ai-platform|server|app|src|dist|build)$/i.test(parts[parts.length - 1])) {
@@ -330,7 +331,9 @@ export function bindScanStatus(container, options = {}) {
         if (parts[0].endsWith(':')) {
           return parts.slice(0, 3).join('/'); // e.g. C:/Users/Trevor
         }
-        return parts.slice(0, 2).join('/');
+        const base = parts.join('/');
+        // Preserve leading slash for Unix absolute paths so the fallback stays absolute.
+        return isUnixAbsolute ? `/${base}` : base;
       }
     }
     // Fallback: preserve the drive letter from defaultPath/lastProjectPath if available,

@@ -7,7 +7,7 @@ import {
   resolvePageSpecsLabel,
   renderScanScopePanel
 } from '../services/analyzeService.js';
-import { renderScanStatus, updateScanStatusDom, bindScanStatus, runDashboardScanFromInput } from '../components/ScanStatus.js?v=20260613dropfix2';
+import { renderScanStatus, updateScanStatusDom, bindScanStatus, runDashboardScanFromInput } from '../components/ScanStatus.js?v=20260710dragfix1';
 import { renderIssueList } from '../components/IssueCard.js';
 import { renderQuickActions, bindQuickActions } from '../components/QuickActions.js';
 import { renderTrendSection, mountTrendChart } from '../components/TrendChart.js';

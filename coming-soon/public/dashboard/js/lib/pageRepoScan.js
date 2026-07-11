@@ -80,6 +80,25 @@ function isSuspiciousNestedPath(candidate, defaultPath) {
 }
 
 /**
+ * Detects a client/server path mismatch: a saved local path (e.g., C:\Users\...) is being
+ * reused against a remote server whose default path is on a different OS (e.g., /opt/render/...).
+ * In that case the saved path cannot be scanned by the server, so we fall back to the default.
+ * @param {string} candidate
+ * @param {string} defaultPath
+ * @returns {boolean}
+ */
+function isClientServerPathMismatch(candidate, defaultPath) {
+  const c = String(candidate || '').trim();
+  const d = String(defaultPath || '').trim();
+  if (!c || !d) return false;
+  const cIsWindows = /^[a-zA-Z]:[\\/]/.test(c);
+  const dIsWindows = /^[a-zA-Z]:[\\/]/.test(d);
+  const cIsUnix = c.startsWith('/');
+  const dIsUnix = d.startsWith('/');
+  return (cIsWindows && dIsUnix) || (cIsUnix && dIsWindows);
+}
+
+/**
  * Resolve page project path.
  * @param {any} inputValue
  * @param {any} app
@@ -103,7 +122,7 @@ export function resolvePageProjectPath(inputValue, app) {
   }
 
   const cleanedLast = stripArtifactSuffixes(app.state.lastProjectPath || '');
-  if (cleanedLast && isPlausibleProjectPath(cleanedLast) && !isSuspiciousNestedPath(cleanedLast, defaultPath)) {
+  if (cleanedLast && isPlausibleProjectPath(cleanedLast) && !isSuspiciousNestedPath(cleanedLast, defaultPath) && !isClientServerPathMismatch(cleanedLast, defaultPath)) {
     return cleanedLast;
   }
   if (trimmed.startsWith('…')) {
@@ -118,6 +137,9 @@ export function getPathInputDisplayValue(app) {
   const candidate = app.state.pathInputDraft || app.state.lastProjectPath || '';
   const defaultPath = String(app.state.defaultProjectPath || '').trim();
   if (defaultPath && isSuspiciousNestedPath(candidate, defaultPath)) {
+    return defaultPath;
+  }
+  if (isClientServerPathMismatch(candidate, defaultPath)) {
     return defaultPath;
   }
   return stripArtifactSuffixes(candidate);

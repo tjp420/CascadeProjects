@@ -386,6 +386,14 @@ body { font-family:var(--font); background:var(--bg); color:var(--text); line-he
       --text-main: var(--text);
       --bg-input: var(--bg-hover);
       --primary-hover: #1d4ed8;
+      --surface-1: rgba(255,255,255,0.55);
+      --surface-2: rgba(241,245,249,0.70);
+      --surface-3: rgba(255,255,255,0.85);
+      --glass-border: rgba(0,0,0,0.06);
+      --glass-highlight: rgba(0,0,0,0.03);
+      --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
+      --shadow-md: 0 8px 24px rgba(0,0,0,0.08);
+      --shadow-glow: 0 0 30px rgba(37,99,235,0.08);
     }
     html[data-theme="light"] .nav,
     html[data-theme="light"] .top-nav {

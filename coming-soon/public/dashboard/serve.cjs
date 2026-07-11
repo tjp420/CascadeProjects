@@ -21,6 +21,7 @@ const mimeTypes = {
   '.woff': 'font/woff',
   '.ttf': 'font/ttf',
   '.otf': 'font/otf',
+  '.wasm': 'application/wasm',
   '.map': 'application/json'
 };
 
@@ -93,14 +94,15 @@ const server = http.createServer((req, res) => {
     // Load allowed roots from project root .simplebeacon/config.json, or fallback to sensible defaults
     let allowedRoots = [];
     let defaultProjectPath = '';
+    const repoRoot = path.resolve(path.join(__dirname, '..', '..', '..', '..'));
     try {
-      const configPath = path.join(__dirname, '..', '..', '..', '..', '.simplebeacon', 'config.json');
+      const configPath = path.join(repoRoot, '.simplebeacon', 'config.json');
       const cfg = JSON.parse(fs.readFileSync(configPath, 'utf8'));
       allowedRoots = Array.isArray(cfg.allowedAnalysisRoots) ? cfg.allowedAnalysisRoots : [];
-      defaultProjectPath = Array.isArray(allowedRoots) && allowedRoots[0] ? allowedRoots[0] : '';
+      defaultProjectPath = Array.isArray(allowedRoots) && allowedRoots[0] ? allowedRoots[0] : repoRoot;
     } catch {
-      allowedRoots = ['C:\\Users\\Trevor\\CascadeProjects'];
-      defaultProjectPath = 'C:\\Users\\Trevor\\CascadeProjects';
+      allowedRoots = [repoRoot];
+      defaultProjectPath = repoRoot;
     }
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
