@@ -3,7 +3,7 @@ import { resolvePageSpecsLabel, resolveJestTestsLabel } from '../services/analyz
 // EU AI Act transparency disclosure: This view includes AI system integration indicators per Article 50.
 import { scanService } from '../services/scanService.js?v=20260710inventory1';
 import { platformService } from '../services/platformService.js';
-import { fetchUserAiKeys, saveUserAiKeys, clearUserAiKeys, normalizeAiKeysRecord, fetchOllamaModels } from '../services/aiKeysService.js?v=20260709ollama3';
+import { fetchUserAiKeys, saveUserAiKeys, clearUserAiKeys, normalizeAiKeysRecord, fetchOllamaModels } from '../services/aiKeysService.js?v=20260711cachefix1';
 import { authService } from '../services/authService.js';
 import { OLLAMA_DEFAULT_URL } from '../config.js';
 const AI_KEY_FIELDS = [
