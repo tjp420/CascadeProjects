@@ -1330,7 +1330,12 @@ $('cancelBtn').addEventListener('click', () => {
                 openAuditUrl: 'Audit',
                 openPricingUrl: 'Pricing'
               };
-              vscode.commands.executeCommand('simplebeacon.openUrlInPreview', message.url, labelMap[message.command] || '');
+              let url = message.url;
+              // Replace the deployed Render roadmap URL with the local dev server copy.
+              if (url === 'https://cascadeprojects-yzzd.onrender.com/coming-soon/roadmap.html') {
+                url = 'http://127.0.0.1:62058/coming-soon/roadmap.html';
+              }
+              vscode.commands.executeCommand('simplebeacon.openUrlInPreview', url, labelMap[message.command] || '');
             }
             break;
           }
