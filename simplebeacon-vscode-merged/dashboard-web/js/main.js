@@ -1,32 +1,29 @@
-import { apiUrl } from './utils.js';
-import { scanService } from './services/scanService.js?v=20260525jsonguard1';
+import { scanService } from './services/scanService.js?v=20260709reportimport1';
 import { platformService } from './services/platformService.js?v=20260525jsonguard1';
 import { billingService } from './services/billingService.js?v=20260525jsonfixbilling1';
-import { authService } from './services/authService.js?v=20260626authfix1';
+import { authService } from './services/authService.js?v=20260709tokenfix1';
 import { themeService } from './services/themeService.js';
 import { Router, PUBLIC_VIEWS } from './router.js';
 import { TrustView } from './views/TrustView.js?v=20260525statictrust2';
 import { RepositoryHealthView } from './views/RepositoryHealthView.js?v=20260525mergepreview1';
-import { DashboardView } from './views/DashboardView.js?v=20260626redesign3';
+import { DashboardView } from './views/DashboardView.js?v=20260711redesign2';
 import { ResultsView } from './views/ResultsView.js';
-import { SettingsView } from './views/SettingsView.js?v=20260525aikeysguard1';
+import { SettingsView } from './views/SettingsView.js?v=20260709ollama3';
 import { ToolsView } from './views/ToolsView.js';
 import { PlatformView } from './views/PlatformView.js?v=20260601platformmetrics1';
 import { QualityView } from './views/QualityView.js';
 import { HelpView, FeaturesView } from './views/HelpView.js';
 import { AuditView } from './views/AuditView.js?v=20260618renderfix1';
-import { AnalyzeView } from './views/AnalyzeViewClean.js?v=20260628rebuild1';
+import { AnalyzeView } from './views/AnalyzeView.js?v=20260711redesign2';
 import { SecurityView } from './views/SecurityView.js?v=20260611fixexport1';
 import { PricingView } from './views/PricingView.js';
 import { AboutView } from './views/AboutView.js';
 import { AssessmentView } from './views/AssessmentView.js';
-import { SignInView } from './views/SignInView.js?v=20260609token3';
+import { SignInView } from './views/SignInView.js?v=20260711signinfix1';
 import { ChatbotView } from './views/ChatbotView.js';
 import { UploadView } from './views/UploadView.js';
 import { RemediationRoadmapView } from './views/RemediationRoadmapView.js';
 import { ProfileView } from './views/ProfileView.js';
-import { CodeMapView } from './views/CodeMapView.js';
-import { BillingLandingController } from './controllers/billingLanding.js';
 import { COMING_SOON_URL } from './config.js';
 import { shouldShowOnboarding, renderOnboarding, bindOnboarding } from './components/Onboarding.js';
 import { showUpgradeModal } from './components/UpgradeModal.js';
@@ -47,27 +44,16 @@ function vaultUnlockUrl(returnPath = '/app') {
     // Server should inject window.SIMPLEBEACON_VAULT_PASSWORD from process.env.VAULT_PASSWORD
     const vaultPassword = window.SIMPLEBEACON_VAULT_PASSWORD || '';
     if (!vaultPassword) {
+      console.warn('Vault password not configured. Set VAULT_PASSWORD environment variable on the server.');
       return `/private-dashboard-vault?returnTo=${returnTo}`;
     }
     return `/private-dashboard-vault?password=${encodeURIComponent(vaultPassword)}&returnTo=${returnTo}`;
   }
   return `/private-dashboard-vault?returnTo=${returnTo}`;
 }
-function setHtml(el, html) {
-  // simplebeacon-ignore innerhtml-xss — setHtml uses createContextualFragment for trusted view HTML; untrusted data is escaped before passing
-  el.textContent = '';
-  if (html) el.appendChild(document.createRange().createContextualFragment(html));
-}
 
 const CLOUD_TEAMS_VIEWS = new Set([
   'dashboard', 'audit', 'results', 'analyze', 'security', 'tools', 'platform', 'quality', 'settings', 'assessments'
-]);
-
-const DASHBOARD_ROUTED_VIEWS = new Set([
-  'dashboard', 'analyze', 'results', 'repository-health',
-  'audit', 'security', 'quality', 'trust',
-  'assessments', 'remediation', 'platform', 'profile',
-  'tools', 'settings', 'help', 'chatbot', 'about', 'code-map'
 ]);
 
 /**
@@ -91,8 +77,7 @@ function isLocalSelfHosted() {
  * @returns {any}
  */
 function handleSubscriptionGate() {
-  if (isLocalSelfHosted()) return;
-  if (requiresAuthGate()) {
+  if (isLocalSelfHosted() || requiresAuthGate()) {
     if (!authService.isAuthenticated()) {
       this.navigate('signin');
     } else {
@@ -104,7 +89,7 @@ function handleSubscriptionGate() {
     return;
   }
   showUpgradeModal({ onDismiss: (action) => {
-    if (action === 'signin') {
+    if (action === 'signin' || isLocalSelfHosted()) {
       this.navigate('signin');
     } else {
       this.navigate('pricing');
@@ -166,10 +151,7 @@ class SimplebeaconDashboard {
       chatbot: new ChatbotView(this),
       upload: new UploadView(this),
       remediation: new RemediationRoadmapView(this),
-      profile: new ProfileView(this),
-      'code-map': new CodeMapView(this),
-      'billing-success': new BillingLandingController(this),
-      'billing-cancel': new BillingLandingController(this)
+      profile: new ProfileView(this)
     };
 
     this.currentView = null;
@@ -183,75 +165,17 @@ class SimplebeaconDashboard {
 
   async init() {
     themeService.init();
-    window.addEventListener('message', (event) => {
-      if (!event.data) { return; }
-      if (event.data.command === 'setTheme') {
-        themeService.set(event.data.theme);
-      } else if (event.data.command === 'setIdePreview') {
-        document.documentElement.setAttribute('data-ide-preview', 'true');
-      } else if (event.data.command === 'navigate') {
-        if (event.data.url && window.__SB_DASHBOARD_APP__) {
-          try {
-            const url = new URL(event.data.url);
-            let route = url.pathname.replace(/^\/dashboard\/?/, '').replace(/\/$/, '');
-            if (!route && url.hash) {
-              route = url.hash.replace(/^#\//, '');
-            }
-            if (route) {
-              window.__SB_DASHBOARD_APP__.navigate(route);
-              return;
-            }
-          } catch (e) {}
-        }
-        if (event.data.url) { window.location.href = event.data.url; }
-      } else if (event.data.command === 'setAnalyzePath') {
-        var path = event.data.path || '';
-        if (!path) return;
-        var pathInput = document.querySelector('#project-path-input');
-        if (pathInput) {
-          pathInput.value = path;
-          pathInput.dispatchEvent(new Event('input', { bubbles: true }));
-          var app = window.__SB_DASHBOARD_APP__;
-          if (app && app.state) {
-            app.state.lastProjectPath = path;
-            app.state.pathInputDraft = '';
-          }
-        }
-        var legacyInput = document.getElementById('analyzePathInput');
-        if (legacyInput) {
-          legacyInput.value = path;
-        }
-      } else if (event.data.command === 'showLoginModal') {
-        if (typeof showLoginModal === 'function') {
-          showLoginModal();
-        }
-      }
-    });
-    try {
-      const vscode = typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi() : null;
-      if (vscode) {
-        vscode.postMessage({command: 'dashReady'});
-        vscode.postMessage({command: 'setAuthState', signedIn: authService.isAuthenticated(), tier: authService.getTier()});
-      } else if (window.parent && window.parent !== window) {
-        window.parent.postMessage({command: 'dashReady'}, '*');
-        window.parent.postMessage({command: 'setAuthState', signedIn: authService.isAuthenticated()}, '*');
-      }
-    } catch (e) {}
     this.setupShell();
     this.setupKeyboard();
     this.setupMobileNav();
     this.cleanupDisabledElements();
     this.updateAuthUi();
 
-    window.addEventListener('auth-signed-in', () => {
-      this.updateAuthUi();
-      this.updateNavVisibility(true);
-    });
-
+    // simplebeacon-ignore memory-leak — single application-wide listener on the app singleton
     window.addEventListener('auth-signed-out', () => {
       this.updateAuthUi();
       this.updateNavVisibility(false);
-      this.router.navigate('signin');
+      window.location.hash = '#/signin';
     });
 
     if (isDemoMode()) {
@@ -278,9 +202,8 @@ class SimplebeaconDashboard {
     bar.id = 'demo-banner';
     bar.className = 'demo-banner';
     const span = document.createElement('span');
-    const strong = document.createElement('strong'); strong.textContent = 'Demo';
-    span.appendChild(strong);
-    span.appendChild(document.createTextNode(' — read-only honey-pot fixture (gate FAIL). Not your workspace.'));
+    // simplebeacon-ignore innerhtml-usage — static demo banner markup
+    span.innerHTML = '<strong>Demo</strong> — read-only honey-pot fixture (gate FAIL). Not your workspace.';
     const a = document.createElement('a');
     a.className = 'demo-banner-link';
     a.href = 'https://simplebeacon.pages.dev/pricing';
@@ -300,9 +223,8 @@ class SimplebeaconDashboard {
     bar.style.background = 'linear-gradient(90deg, rgba(99,102,241,0.15), rgba(99,102,241,0.05))';
     bar.style.borderBottom = '1px solid rgba(99,102,241,0.3)';
     const span = document.createElement('span');
-    const strong = document.createElement('strong'); strong.textContent = 'Demo Mode';
-    span.appendChild(strong);
-    span.appendChild(document.createTextNode(' — You are viewing with a free token. Reports are read-only. Upgrade to unlock scans, exports, and full dashboard interaction.'));
+    // simplebeacon-ignore innerhtml-usage — static demo banner markup
+    span.innerHTML = '<strong>Demo Mode</strong> — You are viewing with a free token. Reports are read-only. Upgrade to unlock scans, exports, and full dashboard interaction.';
     const a = document.createElement('a');
     a.className = 'demo-banner-link';
     a.href = 'pricing.html';
@@ -316,14 +238,13 @@ class SimplebeaconDashboard {
 
   showVaultBanner() {
     if (document.getElementById('vault-banner')) return;
-    const returnPath = `${window.location.pathname}${window.location.search}`;
+    const returnPath = `${window.location.pathname}${window.location.hash || '#/dashboard'}`;
     const bar = document.createElement('div');
     bar.id = 'vault-banner';
     bar.className = 'demo-banner';
     const span = document.createElement('span');
-    const strong = document.createElement('strong'); strong.textContent = 'Vault locked';
-    span.appendChild(strong);
-    span.appendChild(document.createTextNode(' — unlock the internal dashboard before scan/API calls work.'));
+    // simplebeacon-ignore innerhtml-usage — static vault banner markup
+    span.innerHTML = '<strong>Vault locked</strong> — unlock the internal dashboard before scan/API calls work.';
     const a = document.createElement('a');
     a.className = 'demo-banner-link';
     a.href = vaultUnlockUrl(returnPath);
@@ -340,7 +261,8 @@ class SimplebeaconDashboard {
     overlay.id = 'token-prompt-modal';
     overlay.className = 'modal-overlay';
     overlay.style.zIndex = '300';
-    setHtml(overlay, `
+    // simplebeacon-ignore innerhtml-usage — static modal template, no user input
+    overlay.innerHTML = `
       <div class="modal-card" role="dialog" aria-labelledby="token-prompt-title" style="max-width:420px;">
         <div class="modal-header" style="text-align:center;">
           <h2 id="token-prompt-title" style="font-size:1.25rem;margin-bottom:var(--space-1);">🔐 Unlock Dashboard</h2>
@@ -382,7 +304,7 @@ class SimplebeaconDashboard {
           </div>
         </div>
       </div>
-    `);
+    `;
     document.body.appendChild(overlay);
 
     // Tab switching
@@ -486,7 +408,184 @@ class SimplebeaconDashboard {
   }
 
   showLockScreen(view) {
-    this.router.navigate('signin');
+    const main = document.getElementById('app-main');
+    if (!main) return;
+
+    const titles = {
+      dashboard: 'Dashboard',
+      analyze: 'Analyze',
+      results: 'Results',
+      'repository-health': 'Repository Health',
+      audit: 'Audit',
+      security: 'Security',
+      quality: 'Quality',
+      trust: 'Trust',
+      assessments: 'Assessments',
+      remediation: 'Remediation',
+      platform: 'Platform',
+      tools: 'Tools',
+      chatbot: 'Chatbot'
+    };
+    const title = titles[view] || view;
+
+    // simplebeacon-ignore innerhtml-usage — static lock screen template, no user input
+    main.innerHTML = `
+      <div class="lock-screen" style="display:flex;align-items:center;justify-content:center;min-height:60vh;padding:var(--space-8);">
+        <div class="lock-screen-content" style="text-align:center;max-width:420px;">
+          <div style="font-size:3rem;margin-bottom:var(--space-4);">🔒</div>
+          <h2 style="font-size:1.5rem;margin-bottom:var(--space-2);">${title} is locked</h2>
+          <p class="text-muted" style="margin-bottom:var(--space-5);">Sign in to access this page.</p>
+
+          <div class="lock-tabs" style="display:flex;gap:0;margin-bottom:var(--space-4);border-bottom:1px solid var(--border);">
+            <button type="button" class="lock-tab active" data-tab="email" style="flex:1;padding:10px 12px;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--text-muted);font-size:0.85rem;font-weight:500;cursor:pointer;">Email</button>
+            <button type="button" class="lock-tab" data-tab="token" style="flex:1;padding:10px 12px;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--text-muted);font-size:0.85rem;font-weight:500;cursor:pointer;">License Token</button>
+          </div>
+
+          <div id="lock-panel-email" class="lock-panel" style="text-align:left;">
+            <form id="lock-email-form">
+              <label class="field-label" for="lock-email">Email</label>
+              <input id="lock-email" class="input" type="email" autocomplete="email" required placeholder="email@example.com" style="margin-bottom:var(--space-2);" />
+              <label class="field-label" for="lock-password">Password</label>
+              <input id="lock-password" class="input" type="password" autocomplete="current-password" required placeholder="••••••••" style="margin-bottom:var(--space-3);" />
+              <p id="lock-email-error" class="text-danger" hidden role="alert" style="font-size:var(--font-size-sm);margin-bottom:var(--space-2);"></p>
+              <button type="submit" class="btn btn-primary btn-block" id="lock-email-submit">Sign in with email</button>
+            </form>
+          </div>
+
+          <div id="lock-panel-token" class="lock-panel" style="display:none;text-align:left;">
+            <form id="lock-token-form">
+              <label class="field-label" for="lock-token">License Token</label>
+              <input id="lock-token" class="input" type="text" autocomplete="off" required placeholder="sb-pro-XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX" style="margin-bottom:var(--space-2);" />
+              <label class="field-label" for="lock-token-password">Password</label>
+              <input id="lock-token-password" class="input" type="password" autocomplete="off" placeholder="Assign or enter a password for this token…" style="margin-bottom:var(--space-3);" />
+              <p id="lock-token-error" class="text-danger" hidden role="alert" style="font-size:var(--font-size-sm);margin-bottom:var(--space-2);"></p>
+              <button type="submit" class="btn btn-primary btn-block" id="lock-token-submit">Unlock with token</button>
+            </form>
+            <details style="margin-top:var(--space-3);">
+              <summary style="font-size:var(--font-size-xs);color:var(--text-muted);cursor:pointer;text-align:center;">Need a token?</summary>
+              <p class="text-muted" style="font-size:var(--font-size-xs);text-align:center;margin-top:var(--space-2);">
+                <a href="${COMING_SOON_URL}" target="_blank">Get a free community token</a> or <a href="${COMING_SOON_URL}pricing.html" target="_blank">purchase a license</a>. No email required.
+              </p>
+            </details>
+          </div>
+
+          <p style="margin-top:var(--space-4);"><a href="/dashboard/dashboard" class="btn btn-secondary btn-block" onclick="document.getElementById('token-prompt-modal')?.remove();window.location.hash='#/dashboard';return false;">&#8592; Return to Dashboard</a></p>
+        </div>
+      </div>
+    `;
+
+    // Tab switching
+    const tabs = main.querySelectorAll('.lock-tab');
+    const panels = {
+      email: main.querySelector('#lock-panel-email'),
+      token: main.querySelector('#lock-panel-token')
+    };
+    tabs.forEach((tab) => {
+      tab.addEventListener('click', () => {
+        const key = tab.dataset.tab;
+        tabs.forEach((t) => {
+          t.classList.toggle('active', t.dataset.tab === key);
+          t.style.borderBottomColor = t.dataset.tab === key ? 'var(--primary)' : 'transparent';
+          t.style.color = t.dataset.tab === key ? 'var(--text-primary)' : 'var(--text-muted)';
+        });
+        Object.entries(panels).forEach(([k, el]) => {
+          if (el) el.style.display = k === key ? '' : 'none';
+        });
+      });
+    });
+    // Set initial active tab styling
+    const activeTab = main.querySelector('.lock-tab.active');
+    if (activeTab) {
+      activeTab.style.borderBottomColor = 'var(--primary)';
+      activeTab.style.color = 'var(--text-primary)';
+    }
+
+    // Token form
+    const tokenForm = main.querySelector('#lock-token-form');
+    if (tokenForm) {
+      tokenForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const token = main.querySelector('#lock-token').value.trim();
+        const password = main.querySelector('#lock-token-password')?.value || '';
+        const submitBtn = main.querySelector('#lock-token-submit');
+        const errorEl = main.querySelector('#lock-token-error');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Validating…';
+        if (errorEl) { errorEl.hidden = true; errorEl.textContent = ''; }
+        if (authService.isTokenActivated(token)) {
+          const tabs = main.querySelectorAll('.lock-tab');
+          const emailPanel = main.querySelector('#lock-panel-email');
+          const tokenPanel = main.querySelector('#lock-panel-token');
+          tabs.forEach((t) => {
+            t.classList.toggle('active', t.dataset.tab === 'email');
+            t.style.borderBottomColor = t.dataset.tab === 'email' ? 'var(--primary)' : 'transparent';
+            t.style.color = t.dataset.tab === 'email' ? 'var(--text-primary)' : 'var(--text-muted)';
+          });
+          if (emailPanel) emailPanel.style.display = '';
+          if (tokenPanel) tokenPanel.style.display = 'none';
+
+          const emailErrorEl = main.querySelector('#lock-email-error');
+          if (emailErrorEl) {
+            const binding = authService.getTokenBinding(token);
+            const emailHint = binding?.email ? ` (${binding.email})` : '';
+            emailErrorEl.textContent = `This token is registered to an account${emailHint}. Please sign in with your email and password.`;
+            emailErrorEl.hidden = false;
+            if (binding?.email) {
+              const emailInput = main.querySelector('#lock-email');
+              if (emailInput) emailInput.value = binding.email;
+            }
+          }
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Unlock with token';
+          return;
+        }
+
+        try {
+          authService.setSession(token, { token, source: 'lock-screen', password });
+          const valid = await authService.validateSession(password ? { password } : undefined);
+          if (!valid) throw new Error('Invalid or expired token.');
+          showToast('Dashboard unlocked', 'success');
+          this.updateAuthUi();
+          this.bootstrapAfterAuth();
+          this.router.navigate(view);
+        } catch (err) {
+          authService.clearSession();
+          const message = err.message || 'Token validation failed';
+          if (errorEl) { errorEl.textContent = message; errorEl.hidden = false; }
+          showToast(message, 'error');
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Unlock with token';
+        }
+      });
+    }
+
+    // Email form
+    const emailForm = main.querySelector('#lock-email-form');
+    if (emailForm) {
+      emailForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = main.querySelector('#lock-email').value.trim();
+        const password = main.querySelector('#lock-password').value;
+        const submitBtn = main.querySelector('#lock-email-submit');
+        const errorEl = main.querySelector('#lock-email-error');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Signing in…';
+        if (errorEl) { errorEl.hidden = true; errorEl.textContent = ''; }
+        try {
+          await authService.login(email, password);
+          showToast('Signed in successfully', 'success');
+          this.updateAuthUi();
+          this.bootstrapAfterAuth();
+          this.router.navigate(view);
+        } catch (err) {
+          const message = err.message || 'Sign in failed';
+          if (errorEl) { errorEl.textContent = message; errorEl.hidden = false; }
+          showToast(message, 'error');
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Sign in with email';
+        }
+      });
+    }
   }
 
   updateNavVisibility(authed) {
@@ -508,7 +607,7 @@ class SimplebeaconDashboard {
   async ensureVaultSession() {
     if (isDemoMode() || !isLocalSelfHosted()) return true;
     try {
-      const res = await fetch(apiUrl('/api/auth/me'), { credentials: 'same-origin' });
+      const res = await fetch('/api/auth/me', { credentials: 'same-origin' });
       const data = await res.json().catch(() => ({}));
       if (res.status === 403 && data.error === 'vault_required') {
         this.showVaultBanner();
@@ -544,9 +643,9 @@ class SimplebeaconDashboard {
     this.state.user = authService.getUser() || {};
     const authed = authService.isAuthenticated();
     const signinBtn = document.getElementById('signin-btn');
-    const profileBtn = document.getElementById('profile-btn');
+    const signoutBtn = document.getElementById('signout-btn');
     if (signinBtn) signinBtn.hidden = authed;
-    if (profileBtn) profileBtn.hidden = !authed;
+    if (signoutBtn) signoutBtn.hidden = !authed;
     const sidebarSigninBtn = document.getElementById('sidebar-signin-btn');
     if (sidebarSigninBtn) sidebarSigninBtn.hidden = authed;
     const pricingLink = document.getElementById('header-pricing-link');
@@ -575,72 +674,6 @@ class SimplebeaconDashboard {
       })();
       sandboxBanner.hidden = !isSandbox;
     }
-    this.updateProfileDropdownHeader();
-  }
-
-  updateProfileDropdownHeader() {
-    const header = document.getElementById('profile-dropdown-header');
-    if (!header) return;
-    const user = authService.getUser() || {};
-    const email = user.email || 'Signed in user';
-    const tier = user.tier || user.plan || 'Community';
-    header.textContent = '';
-    const emailEl = document.createElement('strong');
-    emailEl.textContent = email;
-    const tierEl = document.createElement('span');
-    tierEl.textContent = tier;
-    header.appendChild(emailEl);
-    header.appendChild(tierEl);
-  }
-
-  setupProfileDropdown() {
-    const profileBtn = document.getElementById('profile-btn');
-    const menu = document.getElementById('profile-dropdown-menu');
-    const viewItem = document.getElementById('profile-dropdown-view');
-    const signoutItem = document.getElementById('profile-dropdown-signout');
-    if (!profileBtn || !menu) return;
-
-    const closeMenu = () => {
-      menu.classList.add('hidden');
-      profileBtn.setAttribute('aria-expanded', 'false');
-    };
-
-    const toggleMenu = () => {
-      const isOpen = !menu.classList.contains('hidden');
-      if (isOpen) {
-        closeMenu();
-      } else {
-        this.updateProfileDropdownHeader();
-        menu.classList.remove('hidden');
-        profileBtn.setAttribute('aria-expanded', 'true');
-      }
-    };
-
-    profileBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      toggleMenu();
-    });
-
-    viewItem?.addEventListener('click', () => {
-      closeMenu();
-      this.router.navigate('profile');
-    });
-
-    signoutItem?.addEventListener('click', async () => {
-      closeMenu();
-      try {
-        await authService.logout();
-        showToast('Signed out', 'info');
-      } catch (err) {
-        showToast('Sign out failed', 'error');
-      }
-    });
-
-    document.addEventListener('click', (e) => {
-      if (!menu.contains(e.target) && e.target !== profileBtn && !profileBtn.contains(e.target)) {
-        closeMenu();
-      }
-    });
   }
 
   async loadBillingContext() {
@@ -655,13 +688,14 @@ class SimplebeaconDashboard {
       this.state.entitlements = entitlement.status;
       await this.handleCheckoutReturn();
     } catch (err) {
-      /* billing context unavailable */
+      console.warn('Billing context unavailable:', err.message);
     }
   }
 
   async handleCheckoutReturn() {
-    const search = window.location.search;
-    const params = new URLSearchParams(search);
+    const hash = window.location.hash;
+    const query = hash.includes('?') ? hash.split('?')[1] : '';
+    const params = new URLSearchParams(query);
     if (params.get('success') === 'true' && params.get('session_id')) {
       try {
         await billingService.confirmSession(params.get('session_id'));
@@ -700,7 +734,7 @@ class SimplebeaconDashboard {
     this.refreshCurrentView();
     const safetyTimer = setTimeout(() => {
       if (this.state.dataLoading) {
-        /* safety timeout reached */
+        console.warn('[Dashboard] loadDataInBackground safety timeout — forcing dataLoading=false');
         this.state.dataLoading = false;
         this.refreshCurrentView();
       }
@@ -731,25 +765,25 @@ class SimplebeaconDashboard {
   setupShell() {
     document.getElementById('theme-toggle')?.addEventListener('click', () => {
       themeService.toggle();
-      try {
-        if (window.parent && window.parent !== window) {
-          window.parent.postMessage({command: 'toggleTheme'}, '*');
-        }
-      } catch (e) {}
     });
 
     document.getElementById('signin-btn')?.addEventListener('click', () => {
-      if (typeof showLoginModal === 'function') {
-        showLoginModal();
+      this.router.navigate('signin');
+    });
+
+    document.getElementById('signout-btn')?.addEventListener('click', async () => {
+      try {
+        await authService.logout();
+        showToast('Signed out', 'info');
+        this.updateAuthUi();
+        this.router.navigate('signin');
+      } catch (err) {
+        showToast('Sign out failed', 'error');
       }
     });
 
-    this.setupProfileDropdown();
-
     document.getElementById('sidebar-signin-btn')?.addEventListener('click', () => {
-      if (typeof showLoginModal === 'function') {
-        showLoginModal();
-      }
+      this.router.navigate('signin');
     });
 
     document.querySelectorAll('.nav-link[data-view]').forEach((link) => {
@@ -759,30 +793,9 @@ class SimplebeaconDashboard {
           this.navigate(link.dataset.view);
           this.closeMobileNav();
         } catch (navErr) {
-          /* ignore sidebar navigation errors */
+          console.error('Sidebar navigate error:', navErr);
         }
       });
-    });
-
-    document.querySelectorAll('.nav-footer-link[data-view]').forEach((link) => {
-      link.addEventListener('click', (e) => {
-        e.preventDefault();
-        try {
-          this.navigate(link.dataset.view);
-          this.closeMobileNav();
-        } catch (navErr) {
-          /* ignore footer navigation errors */
-        }
-      });
-    });
-
-    document.getElementById('sidebar-export-btn')?.addEventListener('click', () => {
-      const report = this.state.report;
-      if (!report) {
-        showToast('No report to export', 'warning');
-        return;
-      }
-      this.scanService.exportReport(report);
     });
 
     const appNav = document.getElementById('app-nav');
@@ -794,20 +807,8 @@ class SimplebeaconDashboard {
         this.navigate(link.dataset.view);
         this.closeMobileNav();
       } catch (navErr) {
-        /* ignore sidebar delegation errors */
+        console.error('Sidebar delegation navigate error:', navErr);
       }
-    });
-
-    document.addEventListener('click', (e) => {
-      const link = e.target.closest('a[href^="/dashboard/"]');
-      if (!link) { return; }
-      try {
-        const url = new URL(link.href);
-        if (url.origin !== window.location.origin) { return; }
-        e.preventDefault();
-        const route = url.pathname.replace(/^\/dashboard\/?/, '').replace(/\/$/, '') || 'dashboard';
-        this.navigate(route);
-      } catch (navErr) { /* ignore */ }
     });
 
     const searchInput = document.getElementById('global-search');
@@ -973,12 +974,9 @@ class SimplebeaconDashboard {
     }
 
     // Free tier gets read-only dashboard access (view reports, no interaction)
-    // Local dev bypass: full functionality on localhost regardless of token tier
     const isFreeTier = authService.isFreeTier();
-    const isSandbox = this.state.sandboxMode === true;
-    const isLocal = isLocalDevHost();
-    this.state.readOnly = !isLocal && (isFreeTier || isSandbox);
-    if (!isLocal && (isFreeTier || isSandbox)) {
+    this.state.readOnly = isFreeTier;
+    if (isFreeTier) {
       this.showReadOnlyBanner();
     } else {
       document.getElementById('readonly-banner')?.remove();
@@ -990,14 +988,12 @@ class SimplebeaconDashboard {
       if (plan || status) {
         const allowed = billingService.hasCloudTeamsAccess(plan, status);
         if (!allowed && !isFreeTier) {
-          if (isLocalSelfHosted()) {
-            // localhost bypass — do not redirect
-          } else if (requiresAuthGate()) {
+          if (isLocalSelfHosted() || requiresAuthGate()) {
             showToast('Sign in with a local account or use npm run dashboard:v1-internal', 'info');
-            this.router.navigate('signin');
+            window.location.hash = '#/signin';
           } else {
             showToast('Use the free CLI — see About for install', 'info');
-            this.router.navigate('about');
+            window.location.hash = '#/about';
           }
           return;
         }
@@ -1008,14 +1004,13 @@ class SimplebeaconDashboard {
       try {
         this.currentView.destroy();
       } catch (destroyErr) {
-        /* ignore view destroy errors */
+        console.error('View destroy error:', destroyErr);
       }
     }
 
     const viewInstance = this.views[view];
     if (viewInstance) {
       this.currentView = viewInstance;
-      main.innerHTML = '';
       viewInstance.mount(main);
     }
 
@@ -1078,7 +1073,7 @@ class SimplebeaconDashboard {
             score: report.gate?.score ?? report.qualityScore ?? 0
           });
         } catch (err) {
-          /* ignore VS Code: bridge errors */
+          console.warn('[VSCodeBridge] Failed to post scan stats:', err);
         }
       }
     } catch (err) {
@@ -1106,9 +1101,8 @@ class SimplebeaconDashboard {
       const hadReport = this._hadReport;
       this._hadReport = Boolean(this.state.report);
       if (this._currentViewName === 'dashboard' && this.state.report && hadReport) {
-        const updated = this.views.dashboard?.refreshScanStatus?.();
-        if (updated) return;
-        // Surgical update failed — fall back to full mount
+        this.views.dashboard?.refreshScanStatus?.();
+        return;
       }
       this.currentView.mount(main);
     });
@@ -1169,13 +1163,12 @@ class SimplebeaconDashboard {
 document.addEventListener('DOMContentLoaded', () => {
   try {
     const app = new SimplebeaconDashboard();
-    window.__SB_DASHBOARD_APP__ = app;
     app.init().catch((err) => {
-      /* ignore errors */
+      console.error(err);
       showToast(err.message || 'Dashboard failed to start', 'error');
     });
   } catch (err) {
-    /* ignore startup errors */
+    console.error(err);
     const main = document.getElementById('app-main');
     if (main) {
       main.textContent = '';

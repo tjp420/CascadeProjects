@@ -112,6 +112,18 @@ export class SignInView {
             if (incomingToken) {
                 // 1. Ingest into local SPA workspace state
                 localStorage.setItem('sb_license_token', incomingToken);
+                // 1b. If it is a JWT, bootstrap the full cascade auth session so the
+                // dashboard can be tested by opening ?token=... in the IDE simple browser.
+                if (this._looksLikeJwt(incomingToken)) {
+                    const payload = decodeJwtPayload(incomingToken);
+                    if (payload && payload.email) {
+                        authService.setSession(incomingToken, {
+                            email: payload.email,
+                            tier: payload.tier || payload.product || payload.plan || 'community',
+                            role: payload.role || payload.tier || payload.product || payload.plan || 'community'
+                        });
+                    }
+                }
                 // 2. Eradicate credentials instantly from history tracking to prevent leakage
                 const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
                 window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
@@ -258,7 +270,7 @@ export class SignInView {
             return `
         <p class="signin-status">Signed in as <strong>${escapeHtml(email)}</strong> (internal preview).</p>
         <div class="signin-actions">
-          <a class="btn btn-primary" href="/dashboard/dashboard">Open Dashboard</a>
+          <a class="btn btn-primary" href="/dashboard/#/dashboard">Open Dashboard</a>
           <button class="btn btn-ghost" id="signin-signout-btn">Sign Out</button>
         </div>
       `;
@@ -267,7 +279,7 @@ export class SignInView {
             return `
         <p class="signin-status">Signed in as <strong>${escapeHtml(email)}</strong>.</p>
         <div class="signin-actions">
-          <a class="btn btn-primary" href="/dashboard/dashboard">Open Dashboard</a>
+          <a class="btn btn-primary" href="/dashboard/#/dashboard">Open Dashboard</a>
           <button class="btn btn-ghost" id="signin-signout-btn">Sign Out</button>
         </div>
       `;
@@ -316,7 +328,7 @@ export class SignInView {
       <p class="signin-footer">
         <a href="/demo">View read-only demo</a>
         <span class="signin-footer-sep">·</span>
-        <a href="/dashboard/about">About &amp; install</a>
+        <a href="/dashboard/#/about">About &amp; install</a>
         <span class="signin-footer-sep">·</span>
         <a href="https://github.com/tjp420/simplebeacon" target="_blank" rel="noopener noreferrer">GitHub</a>
       </p>

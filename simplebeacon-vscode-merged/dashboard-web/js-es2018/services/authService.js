@@ -266,8 +266,32 @@ export class AuthService {
         const user = this.getUser();
         if (!user)
             return false;
-        const tier = String(user.tier || user.role || user.plan || '').toLowerCase();
-        return tier === 'admin' || tier === 'enterprise' || tier === 'compliance' || user.isAdmin === true;
+        const role = String(user.role || '').toLowerCase();
+        const tier = String(user.tier || '').toLowerCase();
+        if (role === 'admin' || role === 'superuser')
+            return true;
+        if (tier === 'admin' || tier === 'superuser' || tier === 'enterprise' || tier === 'compliance')
+            return true;
+        if (user.isAdmin === true)
+            return true;
+        try {
+            const token = this.getToken();
+            if (token) {
+                const payload = this._decodeJwtPayload(token);
+                if (payload) {
+                    const tokenRole = String(payload.role || '').toLowerCase();
+                    const tokenTier = String(payload.tier || payload.plan || '').toLowerCase();
+                    if (tokenRole === 'admin' || tokenRole === 'superuser')
+                        return true;
+                    if (tokenTier === 'admin' || tokenTier === 'superuser' || tokenTier === 'enterprise' || tokenTier === 'compliance')
+                        return true;
+                }
+            }
+        }
+        catch (err) {
+            // ignore decoding errors
+        }
+        return false;
     }
     getAuthHeaders() {
         const token = this.getToken();
@@ -398,10 +422,22 @@ export class AuthService {
     }
     getTierLabel() {
         const tier = String(this.getTier()).toLowerCase();
-        if (['pro'].includes(tier))
+        if (this.isAdmin())
+            return 'Admin';
+        if (tier === 'pro')
             return 'Pro';
+        if (tier === 'business')
+            return 'Business';
         if (['enterprise', 'compliance'].includes(tier))
             return 'Enterprise';
+        if (tier === 'starter')
+            return 'Starter';
+        if (tier === 'developer')
+            return 'Developer';
+        if (tier === 'sandbox')
+            return 'Sandbox';
+        if (tier === 'community')
+            return 'Community';
         return 'Solo';
     }
     isPaidTier() {
@@ -413,8 +449,8 @@ export class AuthService {
         const freeTiers = ['guest', 'community', 'developer', 'sandbox', 'instant', 'free', 'solo', 'locked', ''];
         if (freeTiers.includes(tier))
             return false;
-        const paidTiers = ['pro', 'team', 'startup', 'growth', 'enterprise', 'compliance', 'license', 'admin'];
-        return paidTiers.includes(tier) || (user === null || user === void 0 ? void 0 : user.isAdmin) === true;
+        const paidTiers = ['pro', 'team', 'startup', 'growth', 'enterprise', 'compliance', 'license', 'admin', 'superuser', 'business', 'starter'];
+        return paidTiers.includes(tier) || this.isAdmin() || (user === null || user === void 0 ? void 0 : user.isAdmin) === true;
     }
     getAllowedEngines() {
         if (this.isPaidTier())
