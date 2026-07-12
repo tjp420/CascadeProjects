@@ -506,7 +506,14 @@ app.get('/', async (req, res) => {
   return sendSimplebeaconDashboard(res);
 });
 
-app.get(['/dashboard', '/dashboard/'], async (req, res) => {
+// Redirect bare /dashboard to /dashboard/ so relative asset links resolve correctly.
+app.get('/dashboard', async (req, res) => {
+  if (internalDashboard && !isVaultAuthenticated(req)) {
+    return res.redirect(302, '/');
+  }
+  return res.redirect(302, '/dashboard/' + (req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : ''));
+});
+app.get('/dashboard/', async (req, res) => {
   if (internalDashboard && !isVaultAuthenticated(req)) {
     return res.redirect(302, '/');
   }
@@ -522,7 +529,13 @@ app.get('/dashboard/*', async (req, res) => {
 });
 
 // Compatibility: also serve dashboard at /simplebeacon-dashboard (new server/index.cjs path)
-app.get(['/simplebeacon-dashboard', '/simplebeacon-dashboard/', '/simplebeacon-dashboard/index.html'], async (req, res) => {
+app.get('/simplebeacon-dashboard', async (req, res) => {
+  if (internalDashboard && !isVaultAuthenticated(req)) {
+    return res.redirect(302, '/');
+  }
+  return res.redirect(302, '/simplebeacon-dashboard/' + (req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : ''));
+});
+app.get(['/simplebeacon-dashboard/', '/simplebeacon-dashboard/index.html'], async (req, res) => {
   if (internalDashboard && !isVaultAuthenticated(req)) {
     return res.redirect(302, '/');
   }
@@ -614,6 +627,16 @@ if (landingRootExists) {
     if (sendLandingFile(res, 'pricing.html', 'text/html')) return;
     next();
   });
+  app.get(['/roadmap', '/roadmap/'], (req, res, next) => {
+    if (!storefrontAssetsEnabled()) return next();
+    if (sendLandingFile(res, 'roadmap.html', 'text/html')) return;
+    next();
+  });
+  app.get(['/audit', '/audit/'], (req, res, next) => {
+    if (!storefrontAssetsEnabled()) return next();
+    if (sendLandingFile(res, 'audit.html', 'text/html')) return;
+    next();
+  });
   app.get(['/downloads/diagnostic-prep', '/downloads/diagnostic-prep.html'], (req, res, next) => {
     if (!storefrontAssetsEnabled()) return next();
     if (sendLandingFile(res, 'downloads/diagnostic-prep.html', 'text/html')) return;
@@ -629,6 +652,14 @@ if (landingRootExists) {
   app.get('/pricing.html', (req, res, next) => {
     if (!storefrontAssetsEnabled()) return next();
     return res.redirect(301, '/pricing');
+  });
+  app.get('/roadmap.html', (req, res, next) => {
+    if (!storefrontAssetsEnabled()) return next();
+    return res.redirect(301, '/roadmap');
+  });
+  app.get('/audit.html', (req, res, next) => {
+    if (!storefrontAssetsEnabled()) return next();
+    return res.redirect(301, '/audit');
   });
   for (const legalPage of ['terms', 'privacy', 'refund', 'contact']) {
     app.get(`/${legalPage}.html`, (req, res, next) => {
