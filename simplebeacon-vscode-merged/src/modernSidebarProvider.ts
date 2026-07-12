@@ -105,24 +105,22 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
     return true;
   }
 
-  /** Open a dashboard route in the Team Dashboard webview panel, normalizing remote routes under /dashboard/. */
+  /** Open a dashboard route in the Team Dashboard webview panel, always using the local data server. */
   public static openDashboardRouteInBrowser(route: string): void {
     const extUri = ModernSidebarProvider._extensionUri;
     if (!extUri) {
-      const host = ModernSidebarProvider.resolveDashboardHost() || `http://127.0.0.1:${getDataServerPort()}`;
-      const base = host.replace(/\/$/, '');
-      const url = `${base}${route.startsWith('/') ? route : '/' + route}`;
+      const port = getDataServerPort();
+      const url = `http://127.0.0.1:${port}${route.startsWith('/') ? route : '/' + route}?force=1`;
       Promise.resolve(vscode.commands.executeCommand('simpleBrowser.show', url)).catch(() => {});
       return;
     }
-    const baseUrl = ModernSidebarProvider.resolveDashboardHost() || undefined;
-    const isRemote = !!baseUrl && !/^(https?:\/\/)?(127\.0\.0\.1|localhost)(:\d+)?\/?$/i.test(baseUrl);
-    let normalizedRoute = route;
-    if (isRemote) {
-      normalizedRoute = normalizedRoute.replace(/^\/dashboard\/?$/, '/dashboard/dashboard');
-      if (!normalizedRoute.startsWith('/dashboard/')) {
-        normalizedRoute = '/dashboard' + (normalizedRoute.startsWith('/') ? normalizedRoute : '/' + normalizedRoute);
-      }
+    // Always use the local data server for the internal Team Dashboard panel.
+    // The remote simplebeacon.ai static site cannot handle POST auth requests.
+    const baseUrl = `http://127.0.0.1:${getDataServerPort()}`;
+    let normalizedRoute = route.startsWith('/') ? route : '/' + route;
+    normalizedRoute = normalizedRoute.replace(/^\/dashboard\/?$/, '/dashboard/dashboard');
+    if (!normalizedRoute.startsWith('/dashboard/')) {
+      normalizedRoute = '/dashboard' + normalizedRoute;
     }
     _openTeamDashboardPanel(extUri, normalizedRoute, 'Team Dashboard', baseUrl);
   }
@@ -230,7 +228,7 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
   public static openSigninPanel() {
     const extUri = ModernSidebarProvider._extensionUri;
     if (extUri) {
-      const baseUrl = ModernSidebarProvider.resolveDashboardHost() || undefined;
+      const baseUrl = `http://127.0.0.1:${getDataServerPort()}`;
       _openTeamDashboardPanel(extUri, '/dashboard/signin', 'Sign In', baseUrl);
     } else {
       const port = getDataServerPort();
