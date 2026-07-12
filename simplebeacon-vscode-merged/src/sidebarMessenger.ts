@@ -91,7 +91,7 @@ function buildDashboardBrowserHtml(url: string, nonce: string, csp: string, data
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-${nonce}'; style-src 'unsafe-inline'; frame-src http://127.0.0.1:${dataServerPort} https://simplebeacon.ai https://*.simplebeacon.ai https://*.onrender.com ${csp}; connect-src 'none'; img-src 'none';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-${nonce}' http://127.0.0.1:${dataServerPort}; style-src 'unsafe-inline' http://127.0.0.1:${dataServerPort}; frame-src http://127.0.0.1:${dataServerPort} https://simplebeacon.ai https://*.simplebeacon.ai https://*.onrender.com ${csp}; connect-src http://127.0.0.1:${dataServerPort}; img-src http://127.0.0.1:${dataServerPort} data:; font-src http://127.0.0.1:${dataServerPort} https://fonts.gstatic.com;">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>${panelTitle}</title>
 <style>
