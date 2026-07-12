@@ -1624,15 +1624,6 @@ body::-webkit-scrollbar-thumb:hover { background: rgba(128,128,128,0.6); }
   background: var(--vscode-button-secondaryHoverBackground, rgba(255,255,255,0.08));
   border-color: var(--vscode-panel-border, rgba(255,255,255,0.2));
 }
-/* Simple Browser-style address bar for the sidebar */
-.sb-url-bar { position: sticky; top: 0; z-index: 200; display: flex; align-items: center; gap: 6px; padding: 6px 10px; background: var(--vscode-editor-background, #0d1117); border-bottom: 1px solid var(--vscode-panel-border, rgba(255,255,255,0.06)); flex-shrink: 0; }
-.sb-url-bar input { flex: 1; background: var(--vscode-input-background, #161b22); border: 1px solid var(--vscode-panel-border, rgba(255,255,255,0.1)); border-radius: 12px; color: var(--vscode-foreground, #c9d1d9); padding: 5px 12px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; text-align: center; }
-.sb-url-bar input:focus { outline: none; border-color: #58a6ff; text-align: left; }
-.sb-url-bar button { display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; background: transparent; border: none; border-radius: 4px; color: var(--vscode-descriptionForeground, #9ca3af); cursor: pointer; padding: 0; }
-.sb-url-bar button:hover:not(:disabled) { background: rgba(255,255,255,0.08); color: var(--vscode-foreground, #e2e8f0); }
-.sb-url-bar button:disabled { opacity: 0.35; cursor: not-allowed; }
-.sb-url-bar .sb-nav-actions { display: flex; align-items: center; gap: 2px; }
-.sb-url-bar .sb-url-actions { display: flex; align-items: center; gap: 2px; margin-left: 4px; }
 .card {
   display: flex;
   align-items: center;
@@ -2466,17 +2457,6 @@ body.detail-panel-open #tabAdvanced {
     <button type="button" class="header-theme-toggle" id="tdThemeToggleSidebar" title="Toggle Theme" aria-label="Toggle Theme">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
     </button>
-  </div>
-</div>
-<div class="sb-url-bar" id="sbUrlBar">
-  <div class="sb-nav-actions">
-    <button id="sbBackBtn" title="Go back" aria-label="Go back"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
-    <button id="sbForwardBtn" title="Go forward" aria-label="Go forward"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
-    <button id="sbReloadBtn" title="Reload" aria-label="Reload"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/></svg></button>
-  </div>
-  <input id="sbUrlInput" type="text" value="" spellcheck="false" />
-  <div class="sb-url-actions">
-    <button id="sbOpenExternalBtn" title="Open in Simple Browser" aria-label="Open in Simple Browser"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg></button>
   </div>
 </div>
 <div class="tab-bar ${displayMode === 'sidebar' ? 'hidden' : ''}" id="mainTabBar">
