@@ -2,7 +2,7 @@ import { escapeHtml, formatPercent, formatNumber, showToast } from '../utils.js'
 import { resolveDisplayScore, formatScanScopeSummary, formatScanInventoryNote, getScanFileMetrics } from '../services/analyzeService.js?v=20260710inventory1';
 import { runLocalScan } from '../services/localScanService.js';
 import { isLocalPath, probeAgent, scanViaAgent, probeAgent4000, scanViaAgent4000, renderAgentCertificate } from '../services/localAgentService.js?v=20260710agentcache3';
-import { runSandboxedDirectoryScan, isDroppedFolder, scanDroppedItems } from '../services/browserSandboxScanService.js?v=20260713dropfix2';
+import { runSandboxedDirectoryScan, isDroppedFolder, scanDroppedItems } from '../services/browserSandboxScanService.js?v=20260713dropfix3';
 /**
  * Resolve initial scan root.
  * @param {number} report
@@ -998,6 +998,15 @@ export function bindScanStatus(container, options = {}) {
                         runScan();
                         return;
                     }
+                    // No path exposed by the IDE/webview: open the native folder picker so the
+                    // user can re-select the same folder without typing a path.
+                    if (errorMessage)
+                        errorMessage.textContent = `Drop source didn't expose a path. Select the folder to continue.`;
+                    setDropzoneState('error');
+                    if (dirInput) {
+                        setTimeout(() => dirInput.click(), 100);
+                    }
+                    return;
                 }
                 if (errorMessage)
                     errorMessage.textContent = msg || 'Scan failed.';

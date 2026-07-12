@@ -3,7 +3,7 @@ import { evaluateFunnelMetrics, getFunnelCopy } from '../utils/funnelTrigger.js'
 import { LocalScanService } from '../services/localScanService.js?v=20260709noise3';
 import { fingerprintDirectory, formatFingerprint } from '../services/fingerprintService.js';
 import { probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus, getAgentDownloadUrl, detectPlatform, getPlatformLabel, getInstallInstructions, getAgentFallbackMessage, probeAgent4000, scanViaAgent4000, renderAgentCertificate } from '../services/localAgentService.js?v=20260711themefix1';
-import { runSandboxedDirectoryScan, scanDroppedItems, isDroppedFolder } from '../services/browserSandboxScanService.js?v=20260713dropfix2';
+import { runSandboxedDirectoryScan, scanDroppedItems, isDroppedFolder } from '../services/browserSandboxScanService.js?v=20260713dropfix3';
 // simplebeacon:production-leak-intent: sample-json - Legitimate documentation about sample file patterns in analysis results
 import { analyzePath, scanPath, summarizeReport, fetchAnalyzeProviders, fetchRepositoryInventory, fetchCodebaseAnalysis, enrichScanReport, fetchZscriptModReport, shouldFetchZscriptReport, isLegacyScanReport, buildMonorepoScopeNote, buildPathInventoryProvenance, renderInventoryProvenanceHtml, refreshPathInventory, liveInventoryForPath, renderScanScopePanel, isSimplebeaconReport, normalizeSimplebeaconReport, aiProviderSupportsSummary, getScanFileMetrics, resolveAutoAnalysisMode, buildScanConclusion, buildConsolidationConclusion, buildFictionDigestPayload, sanitizeFictionDigestExport, resolveCompleteScanTargetPath, normalizeProjectPath, filterIssuesByKind, preparePlatformResultsReport, fetchCompleteAuditReport, fetchAnalyzeExportBundleZip, fetchEuAiActAuditReport, openAuditReportPrintWindow, previewAuditExportTier, auditExportButtonLabel, fetchDataCleanupScan, ensureDashboardApiReady, assertCompleteScanComplianceFresh, assertCompleteScanFileReductionFresh, fetchUnderstandSnippet, isCodebaseReport, fetchComplianceChecklist, fetchProjectNpmAudit, prepareGithubRepo, fetchAnalyzeTestSources, isAnalyzeProviderConfigured, uploadDirectoryAndAnalyze } from '../services/analyzeService.js?v=20260711reportv11';
 import { isRemoteRepoUrl, sourceChipTitle } from '../lib/analyzePathSources.js';
@@ -5241,6 +5241,16 @@ export class AnalyzeView {
                             void this.runPathAnalysis(absolutePath);
                             return;
                         }
+                        // No path exposed by the IDE/webview: open the native folder picker so the
+                        // user can re-select the same folder without typing a path.
+                        if (analyzeErrorMessage)
+                            analyzeErrorMessage.textContent = `Drop source didn't expose a path. Select the folder to continue.`;
+                        setAnalyzeDropzoneState('error');
+                        const browseInput = el.querySelector('#browse-dir-input');
+                        if (browseInput) {
+                            setTimeout(() => browseInput.click(), 100);
+                        }
+                        return;
                     }
                     if (analyzeErrorMessage)
                         analyzeErrorMessage.textContent = msg || 'Scan failed.';
