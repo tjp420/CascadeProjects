@@ -7,6 +7,8 @@
 export async function onRequest(context) {
   const { request, env, params } = context;
   const backendUrl = (env && env.BACKEND_URL) || 'https://cascadeprojects-yzzd.onrender.com';
+  // NOTE: _redirects also proxies /api/* to the same backend; this function is a fallback
+  // in case the redirect rule is bypassed or not applied in a specific Pages environment.
   const path = Array.isArray(params.path) ? params.path.join('/') : (params.path || '');
   const target = new URL(`/api/${path}`, backendUrl.replace(/\/$/, ''));
   target.search = new URL(request.url).search;

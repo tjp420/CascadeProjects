@@ -3,13 +3,9 @@ name = "simplebeacon"
 compatibility_date = "2026-07-01"
 
 # Pages build settings
-[site]
-bucket = "./public"
+pages_build_output_dir = "./public"
 
-# SPA fallback for /dashboard/* routes
-[[routes]]
-pattern = "simplebeacon.ai/dashboard/*"
-zone_name = "simplebeacon.ai"
+# SPA fallback for /dashboard/* routes is handled by public/_redirects
 
 # Environment variables (set these in Cloudflare Pages dashboard or via wrangler secret)
 # NODE_ENV = "production"

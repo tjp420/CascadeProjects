@@ -1,25 +1,14 @@
 # API calls go to the Render backend
-/api/* https://simplebeacon.onrender.com/api/:splat 200
+/api/* https://cascadeprojects-yzzd.onrender.com/api/:splat 200
+
+# Dashboard static assets (must be served with correct MIME types, not SPA fallback)
+/dashboard/css/* /dashboard/css/:splat 200
+/dashboard/js/* /dashboard/js/:splat 200
+/dashboard/js-es2018/* /dashboard/js-es2018/:splat 200
+/dashboard/images/* /dashboard/images/:splat 200
+/dashboard/fonts/* /dashboard/fonts/:splat 200
+/dashboard/assets/* /dashboard/assets/:splat 200
 
 # Dashboard SPA fallback — all /dashboard/* deep links serve the dashboard index
 /dashboard/* /dashboard/index.html 200
 
-# Pretty URLs for marketing pages
-/audit /audit.html 200
-/roadmap /roadmap.html 200
-/pricing /pricing.html 200
-/security /security.html 200
-/community /community.html 200
-/faq /faq.html 200
-/contact /contact.html 200
-/terms /terms.html 200
-/privacy /privacy.html 200
-/refund /refund.html 200
-/cloud-scan /cloud-scan.html 200
-/cloud-teams /cloud-teams.html 200
-/certificate-upload /certificate-upload.html 200
-/upload /upload.html 200
-/terminal-walkthrough /terminal-walkthrough.html 200
-/sample-report /sample-report.html 200
-/sample-certificate /sample-certificate.html 200
-/dashboard-preview /dashboard-preview.html 200
