@@ -9,7 +9,7 @@ import * as os from 'os';
 import * as path from 'path';
 import { WelcomeDashboard } from './welcomeDashboard';
 import { getDataServerPort, getBrowserSessionToken, clearBrowserSessionToken, recordBrowserSignOut, isTokenSignedOut, getTheme, setTheme } from './dataServer';
-import { registerSidebarView, registerTeamDashboardPanel, postSidebarMessage as _postSidebarMessage, openTeamDashboardPanel as _openTeamDashboardPanel, setDashboardAuthStateCallback, setDashboardLicenseTokenCallback } from './sidebarMessenger';
+import { registerSidebarView, postSidebarMessage as _postSidebarMessage, openTeamDashboardPanel as _openTeamDashboardPanel } from './sidebarMessenger';
 import { getAuthManager } from './auth/authContext';
 import type { AuthManager } from './auth/authManager';
 import { showQuietMessage, getSbConfig } from './utils/vscode';
@@ -46,7 +46,6 @@ interface SidebarMessage {
 export class ModernSidebarProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'simplebeacon-modern';
   private static browserPanel: vscode.WebviewPanel | undefined;
-  private static teamDashboardPanel: vscode.WebviewPanel | undefined;
   private static signinPanel: vscode.WebviewPanel | undefined;
   private static tokenRegistrationPanel: vscode.WebviewPanel | undefined;
   private static relayOutputChannel?: vscode.OutputChannel;
@@ -206,7 +205,6 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
   }
 
   public static postThemeToTeamDashboard(theme: string) {
-    ModernSidebarProvider._safePost(ModernSidebarProvider.teamDashboardPanel, { command: 'setTheme', theme });
     ModernSidebarProvider._safePost(ModernSidebarProvider._instance?._view, { command: 'setTheme', theme });
   }
 
@@ -5888,20 +5886,3 @@ setInterval(load,5000);
   }
 }
 
-setDashboardAuthStateCallback(async (signedIn, tier, token, isAdmin) => {
-  if (signedIn && token) {
-    try {
-      const authManager = getAuthManager();
-      if (authManager && typeof authManager.setToken === 'function') {
-        await authManager.setToken(String(token));
-      }
-    } catch {}
-  }
-  ModernSidebarProvider.setSidebarAuthState(signedIn, tier, token, 'signIn', isAdmin);
-});
-
-setDashboardLicenseTokenCallback(async (token) => {
-  try {
-    await vscode.commands.executeCommand('simplebeacon.storeLicenseToken', token);
-  } catch {}
-});
