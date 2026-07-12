@@ -9,10 +9,14 @@ import * as os from 'os';
 import * as path from 'path';
 import { WelcomeDashboard } from './welcomeDashboard';
 import { getDataServerPort, getBrowserSessionToken, clearBrowserSessionToken, recordBrowserSignOut, isTokenSignedOut, getTheme, setTheme } from './dataServer';
-import { registerSidebarView, registerTeamDashboardPanel, postSidebarMessage as _postSidebarMessage, openTeamDashboardPanel as _openTeamDashboardPanel } from './sidebarMessenger';
+import { registerSidebarView, registerTeamDashboardPanel, postSidebarMessage as _postSidebarMessage, openTeamDashboardPanel as _openTeamDashboardPanel, setDashboardAuthStateCallback, setDashboardLicenseTokenCallback } from './sidebarMessenger';
 import { getAuthManager } from './auth/authContext';
 import type { AuthManager } from './auth/authManager';
-import { showQuietMessage, escapeHtml, getSbConfig } from './utils';
+import { showQuietMessage, getSbConfig } from './utils/vscode';
+import { escapeHtml } from './utils/string';
+import { resolveTier } from './tierConstants';
+import { validateLicenseLocally } from './licenseManager';
+import { PUBLIC_KEY_PEM } from './realtimeMonitor';
 import { AccountTracker } from './accountTracker';
 
 /** Typed shape for messages received from the sidebar webview. */
@@ -87,10 +91,40 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
   private static openInBrowserIfRemote(route: string): boolean {
     const host = ModernSidebarProvider.resolveDashboardHost();
     if (!host && !ModernSidebarProvider.isRemoteMode()) return false;
-    const base = host || 'https://simplebeacon.ai';
-    const url = `${base}${route.startsWith('/') ? route : '/' + route}`;
-    Promise.resolve(vscode.env.openExternal(vscode.Uri.parse(url))).catch(() => {});
+    const base = (host || 'https://simplebeacon.ai').replace(/\/$/, '');
+    const isRemote = !/^(https?:\/\/)?(127\.0\.0\.1|localhost)(:\d+)?\/?$/i.test(base);
+    let normalizedRoute = route.startsWith('/') ? route : '/' + route;
+    if (isRemote) {
+      normalizedRoute = normalizedRoute.replace(/^\/dashboard\/?$/, '/dashboard/dashboard');
+      if (!normalizedRoute.startsWith('/dashboard/')) {
+        normalizedRoute = '/dashboard' + normalizedRoute;
+      }
+    }
+    const url = `${base}${normalizedRoute}`;
+    Promise.resolve(vscode.commands.executeCommand('simpleBrowser.show', url)).catch(() => {});
     return true;
+  }
+
+  /** Open a dashboard route in the Team Dashboard webview panel, normalizing remote routes under /dashboard/. */
+  public static openDashboardRouteInBrowser(route: string): void {
+    const extUri = ModernSidebarProvider._extensionUri;
+    if (!extUri) {
+      const host = ModernSidebarProvider.resolveDashboardHost() || `http://127.0.0.1:${getDataServerPort()}`;
+      const base = host.replace(/\/$/, '');
+      const url = `${base}${route.startsWith('/') ? route : '/' + route}`;
+      Promise.resolve(vscode.commands.executeCommand('simpleBrowser.show', url)).catch(() => {});
+      return;
+    }
+    const baseUrl = ModernSidebarProvider.resolveDashboardHost() || undefined;
+    const isRemote = !!baseUrl && !/^(https?:\/\/)?(127\.0\.0\.1|localhost)(:\d+)?\/?$/i.test(baseUrl);
+    let normalizedRoute = route;
+    if (isRemote) {
+      normalizedRoute = normalizedRoute.replace(/^\/dashboard\/?$/, '/dashboard/dashboard');
+      if (!normalizedRoute.startsWith('/dashboard/')) {
+        normalizedRoute = '/dashboard' + (normalizedRoute.startsWith('/') ? normalizedRoute : '/' + normalizedRoute);
+      }
+    }
+    _openTeamDashboardPanel(extUri, normalizedRoute, 'Team Dashboard', baseUrl);
   }
 
   public static getSidebarReport(): Record<string, unknown> | null {
@@ -133,6 +167,16 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
           ModernSidebarProvider.logRelay('Synced browser session token into extension auth state');
         }
       }
+      // Derive tier from a stored license token when no explicit tier was provided
+      if (token && (!tier || tier === 'developer')) {
+        const parts = token.split('.');
+        if (parts.length === 2) {
+          const meta = validateLicenseLocally(token, PUBLIC_KEY_PEM);
+          if (meta && meta.tier) {
+            tier = resolveTier(meta.tier);
+          }
+        }
+      }
       ModernSidebarProvider._cachedSignedIn = signedIn;
       ModernSidebarProvider._cachedTier = tier;
       ModernSidebarProvider._cachedIsAdmin = isAdmin;
@@ -147,7 +191,7 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
 
   public static setSidebarAuthState(signedIn: boolean, tier?: string, token?: string, source?: 'signOut' | 'signIn', isAdmin?: boolean) {
     ModernSidebarProvider._cachedSignedIn = signedIn;
-    if (tier) { ModernSidebarProvider._cachedTier = tier; }
+    if (tier !== undefined) { ModernSidebarProvider._cachedTier = resolveTier(tier); }
     if (token) { ModernSidebarProvider._cachedToken = token; }
     if (typeof isAdmin === 'boolean') { ModernSidebarProvider._cachedIsAdmin = isAdmin; }
     const inst = ModernSidebarProvider._instance;
@@ -184,14 +228,18 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
   }
 
   public static openSigninPanel() {
-    if (ModernSidebarProvider.openInBrowserIfRemote('/dashboard/signin')) return;
-    const port = getDataServerPort();
-    const signinUrl = `http://127.0.0.1:${port}/dashboard/signin?force=1`;
-    vscode.env.openExternal(vscode.Uri.parse(signinUrl));
+    const extUri = ModernSidebarProvider._extensionUri;
+    if (extUri) {
+      const baseUrl = ModernSidebarProvider.resolveDashboardHost() || undefined;
+      _openTeamDashboardPanel(extUri, '/dashboard/signin', 'Sign In', baseUrl);
+    } else {
+      const port = getDataServerPort();
+      const signinUrl = `http://127.0.0.1:${port}/dashboard/signin?force=1`;
+      vscode.env.openExternal(vscode.Uri.parse(signinUrl));
+    }
   }
 
-  public static openTokenRegistrationPanel(extUri: vscode.Uri, token: string) {
-    if (ModernSidebarProvider.openInBrowserIfRemote('/dashboard/signin')) return;
+  public static openTokenRegistrationPanel(_extUri: vscode.Uri, token: string) {
     const nonce = crypto.randomBytes(16).toString('base64');
     if (!ModernSidebarProvider.tokenRegistrationPanel) {
       ModernSidebarProvider.tokenRegistrationPanel = vscode.window.createWebviewPanel(
@@ -535,18 +583,11 @@ $('cancelBtn').addEventListener('click', () => {
   }
 
   public static showDashboardRoute(extUri: vscode.Uri, route: string) {
-    if (WelcomeDashboard.reveal()) {
-      WelcomeDashboard.showPaneIfOpen(route);
-      return;
-    }
-    const panel = WelcomeDashboard.createOrShow(extUri, true);
-    if (panel) {
-      WelcomeDashboard.showPaneIfOpen(route);
-    }
+    ModernSidebarProvider.openTeamDashboardPanel(extUri, route);
   }
 
-  public static async openTeamDashboardPanel(extUri: vscode.Uri, route = '/dashboard', panelTitle = 'Team Dashboard') {
-    await _openTeamDashboardPanel(extUri, route, panelTitle);
+  public static async openTeamDashboardPanel(_extUri: vscode.Uri, route = '/dashboard', _panelTitle = 'Team Dashboard') {
+    ModernSidebarProvider.openDashboardRouteInBrowser(route);
   }
 
   private resolveWorkspacePath(targetPath: string): string {
@@ -806,15 +847,8 @@ $('cancelBtn').addEventListener('click', () => {
             ModernSidebarProvider.openSidebarInBrowserStatic('/');
             break;
           case 'settings':
-            WelcomeDashboard.createOrShow(this._extensionUri, true)?.showSettingsPane();
-            ModernSidebarProvider.relayCommand('settings');
-            break;
           case 'openSettings':
-            if (ModernSidebarProvider._dashboardMode) {
-              ModernSidebarProvider.openTeamDashboardPanel(this._extensionUri, '/settings', 'Settings');
-            } else {
-              vscode.commands.executeCommand('simplebeacon.openSettings');
-            }
+            ModernSidebarProvider.openDashboardRouteInBrowser('/settings');
             ModernSidebarProvider.relayCommand('openSettings');
             break;
           case 'setServerUrl':
@@ -873,19 +907,11 @@ $('cancelBtn').addEventListener('click', () => {
             break;
           case 'dashboard':
           case 'openDashboard':
-            if (ModernSidebarProvider._dashboardMode) {
-              ModernSidebarProvider.openTeamDashboardPanel(this._extensionUri, '/dashboard', 'Dashboard');
-            } else {
-              WelcomeDashboard.createOrShow(this._extensionUri, true)?.showDashboardPane();
-            }
+            ModernSidebarProvider.openDashboardRouteInBrowser('/dashboard');
             ModernSidebarProvider.relayCommand('dashboard');
             break;
           case 'openReport':
-            if (ModernSidebarProvider._dashboardMode) {
-              ModernSidebarProvider.openTeamDashboardPanel(this._extensionUri, '/results', 'Results');
-            } else {
-              WelcomeDashboard.createOrShow(this._extensionUri, true)?.showReportPane();
-            }
+            ModernSidebarProvider.openDashboardRouteInBrowser('/results');
             ModernSidebarProvider.relayCommand('report');
             break;
           case 'analytics':
@@ -895,7 +921,7 @@ $('cancelBtn').addEventListener('click', () => {
           case 'team':
           case 'openTeamDashboard': {
             const teamRoute = (message.route && typeof message.route === 'string') ? message.route : '/dashboard';
-            ModernSidebarProvider.openTeamDashboardPanel(this._extensionUri, teamRoute, 'Team Dashboard');
+            ModernSidebarProvider.openDashboardRouteInBrowser(teamRoute);
             ModernSidebarProvider.relayCommand('showTeamDashboard');
             this._view?.webview.postMessage({ command: 'switchSidebarTab', tab: 'team' });
             break;
@@ -917,11 +943,7 @@ $('cancelBtn').addEventListener('click', () => {
             break;
           case 'roadmap':
           case 'openRoadmap':
-            if (ModernSidebarProvider._dashboardMode) {
-              ModernSidebarProvider.openTeamDashboardPanel(this._extensionUri, '/roadmap', 'Roadmap');
-            } else {
-              vscode.commands.executeCommand('simplebeacon.showRemediationGuide');
-            }
+            ModernSidebarProvider.openDashboardRouteInBrowser('/remediation');
             ModernSidebarProvider.relayCommand('showRemediationGuide');
             break;
           case 'generateRoadmap':
@@ -1180,21 +1202,13 @@ $('cancelBtn').addEventListener('click', () => {
             break;
           }
           case 'openHelp':
-            if (ModernSidebarProvider._dashboardMode) {
-              ModernSidebarProvider.openTeamDashboardPanel(this._extensionUri, '/help', 'Help');
-            } else {
-              WelcomeDashboard.createOrShow(this._extensionUri, true)?.showDashboardPane();
-            }
+            ModernSidebarProvider.openDashboardRouteInBrowser('/help');
             break;
           case 'openChatbot':
-            if (ModernSidebarProvider._dashboardMode) {
-              ModernSidebarProvider.openTeamDashboardPanel(this._extensionUri, '/aicontext', 'AI Context');
-            } else {
-              WelcomeDashboard.createOrShow(this._extensionUri, true)?.showAiContextPane();
-            }
+            ModernSidebarProvider.openDashboardRouteInBrowser('/aicontext');
             break;
           case 'openGitHub':
-            vscode.commands.executeCommand('simpleBrowser.show', 'https://github.com/simplebeacon/simplebeacon');
+            vscode.commands.executeCommand('simpleBrowser.show', 'https://github.com/simplebeacon/simplebeacon-vscode');
             break;
           case 'openDocs':
             vscode.commands.executeCommand('simpleBrowser.show', 'https://docs.simplebeacon.dev');
@@ -1231,11 +1245,7 @@ $('cancelBtn').addEventListener('click', () => {
             break;
           }
           case 'openPricing':
-            if (ModernSidebarProvider._dashboardMode) {
-              ModernSidebarProvider.openTeamDashboardPanel(this._extensionUri, '/pricing', 'Pricing');
-            } else {
-              ModernSidebarProvider.showDashboardRoute(this._extensionUri, '/pricing');
-            }
+            ModernSidebarProvider.openDashboardRouteInBrowser('/pricing');
             break;
           case 'clearDownloads':
             vscode.commands.executeCommand('simplebeacon.clearDownloads');
@@ -1357,6 +1367,7 @@ $('cancelBtn').addEventListener('click', () => {
           case 'openDiagnose':
           case 'openProfile':
           case 'openAbout':
+          case 'openAdmin':
           case 'openRepoHealth':
           case 'openAnalytics':
           case 'openTeam':
@@ -1376,6 +1387,7 @@ $('cancelBtn').addEventListener('click', () => {
               openDiagnose: 'showScanPane',
               openProfile: 'showProfilePane',
               openAbout: 'showDashboardPane',
+              openAdmin: 'showSettingsPane',
               openRepoHealth: 'showRepoHealthPane',
               openAnalytics: 'showAnalyticsPane',
               openTeam: 'showTeamPane',
@@ -1396,29 +1408,16 @@ $('cancelBtn').addEventListener('click', () => {
               openDiagnose: '/scan',
               openProfile: '/profile',
               openAbout: '/about',
+              openAdmin: '/settings',
               openRepoHealth: '/repository-health',
               openAnalytics: '/dashboard',
               openTeam: '/dashboard',
               openScan: '/scan',
               openTools: '/settings'
             };
-            if (ModernSidebarProvider._dashboardMode) {
-              const routeMapTitle: Record<string, string> = {
-                openDashboard: 'Dashboard', openAnalyze: 'Analyze', openResults: 'Results', openReport: 'Report',
-                openCertificate: 'Certificate', openCodeMap: 'Code Map', openRoadmap: 'Roadmap', openAiContext: 'AI Context',
-                openUpload: 'Upload', openAudit: 'Audit', openSecurity: 'Security', openTrust: 'Trust', openQuality: 'Quality',
-                openAssessments: 'Assessments', openPlatform: 'Platform', openProfile: 'Profile', openCompliance: 'Compliance',
-                openRepoHealth: 'Repo Health', openAnalytics: 'Analytics', openTeam: 'Team Dashboard', openScan: 'Scan',
-                openTools: 'Settings', openDiagnose: 'Scan', openAbout: 'About'
-              };
+            {
               const route = routeMap[message.command] || '/dashboard';
-              const title = routeMapTitle[message.command] || 'SimpleBeacon';
-              ModernSidebarProvider.openTeamDashboardPanel(this._extensionUri, route, title);
-            } else {
-              const pane = paneMap[message.command];
-              if (pane) {
-                (WelcomeDashboard.createOrShow(this._extensionUri, true) as any)?.[pane]();
-              }
+              ModernSidebarProvider.openDashboardRouteInBrowser(route);
             }
             break;
           }
@@ -1461,14 +1460,14 @@ $('cancelBtn').addEventListener('click', () => {
                 openPricingUrl: 'Pricing'
               };
               let url = message.url;
-              // Canonicalize old /coming-soon/*.html URLs to the live simplebeacon.ai pages.
+              // Canonicalize old /coming-soon/*.html URLs to the live dashboard SPA routes.
               const canonicalMap: Record<string, string> = {
-                'https://cascadeprojects-yzzd.onrender.com/coming-soon/roadmap.html': 'https://simplebeacon.ai/roadmap',
-                'https://cascadeprojects-yzzd.onrender.com/coming-soon/audit.html': 'https://simplebeacon.ai/audit',
-                'https://cascadeprojects-yzzd.onrender.com/coming-soon/pricing.html': 'https://simplebeacon.ai/pricing',
-                'https://simplebeacon.ai/coming-soon/roadmap.html': 'https://simplebeacon.ai/roadmap',
-                'https://simplebeacon.ai/coming-soon/audit.html': 'https://simplebeacon.ai/audit',
-                'https://simplebeacon.ai/coming-soon/pricing.html': 'https://simplebeacon.ai/pricing'
+                'https://cascadeprojects-yzzd.onrender.com/coming-soon/roadmap.html': 'https://simplebeacon.ai/dashboard/roadmap',
+                'https://cascadeprojects-yzzd.onrender.com/coming-soon/audit.html': 'https://simplebeacon.ai/dashboard/audit',
+                'https://cascadeprojects-yzzd.onrender.com/coming-soon/pricing.html': 'https://simplebeacon.ai/dashboard/pricing',
+                'https://simplebeacon.ai/coming-soon/roadmap.html': 'https://simplebeacon.ai/dashboard/roadmap',
+                'https://simplebeacon.ai/coming-soon/audit.html': 'https://simplebeacon.ai/dashboard/audit',
+                'https://simplebeacon.ai/coming-soon/pricing.html': 'https://simplebeacon.ai/dashboard/pricing'
               };
               if (canonicalMap[url]) {
                 url = canonicalMap[url];
@@ -1794,6 +1793,12 @@ body::-webkit-scrollbar-thumb:hover { background: rgba(128,128,128,0.6); }
 /* Tab section headers */
 .tab-section{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--vscode-descriptionForeground,#858585);margin:14px 12px 8px;}
 .tab-section:first-child{margin-top:8px;}
+/* Website-sync grouped nav sections */
+.sb-nav-section{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--vscode-descriptionForeground,#858585);margin:16px 12px 8px;}
+.sb-nav-section:first-child{margin-top:8px;}
+.sb-nav-item{display:flex;align-items:center;gap:8px;width:100%;padding:9px 12px;margin:0 12px 6px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);color:var(--vscode-foreground,#ccc);font-size:12px;cursor:pointer;transition:all .15s;box-sizing:border-box;}
+.sb-nav-item:hover{background:rgba(255,255,255,0.06);}
+.sb-nav-item svg{flex-shrink:0;color:var(--vscode-foreground,#ccc);}
 /* Quick links */
 .quick-links{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 12px 12px;}
 .ql-btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);color:var(--vscode-foreground,#ccc);font-size:12px;cursor:pointer;transition:all .2s;}
@@ -2456,21 +2461,27 @@ body.detail-panel-open #tabAdvanced {
     </button>
   </div>
 </div>
-<div class="tab-bar ${displayMode === 'sidebar' ? 'hidden' : ''}" id="mainTabBar">
-  <div class="tab-item active" data-tab="dashboard">Dashboard</div>
-  <div class="tab-item" data-tab="scan">Scan</div>
-  <div class="tab-item" data-tab="analyze">Analyze</div>
-  <div class="tab-item" data-tab="advanced">Advanced</div>
-  <div class="tab-item" data-tab="settings">Settings</div>
-  <div class="tab-item" data-tab="team">Team Dashboard</div>
-</div>
-<div class="sidebar-tab-bar ${displayMode === 'sidebar' ? '' : 'hidden'}" id="sidebarTabBar">
-  <div class="sidebar-tab-item active" data-tab="dashboard"><span class="sidebar-tab-icon">&#x1F3E0;</span>Dashboard</div>
-  <div class="sidebar-tab-item" data-tab="scan"><span class="sidebar-tab-icon">&#x1F50D;</span>Scan</div>
-  <div class="sidebar-tab-item" data-tab="analyze"><span class="sidebar-tab-icon">&#x1F4C8;</span>Analyze</div>
-  <div class="sidebar-tab-item" data-tab="advanced"><span class="sidebar-tab-icon">&#x2699;</span>Advanced</div>
-  <div class="sidebar-tab-item" data-tab="settings"><span class="sidebar-tab-icon">&#x1F527;</span>Settings</div>
-  <div class="sidebar-tab-item" data-tab="team"><span class="sidebar-tab-icon">&#x1F465;</span>Team</div>
+<div id="mainNavMenu">
+  <div class="sb-nav-section">Scan</div>
+  <button type="button" class="sb-nav-item" data-command="navDashboard"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>Dashboard</button>
+  <button type="button" class="sb-nav-item" data-command="navAnalyze"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4"></path><path d="M12 18v4"></path><path d="M4.93 4.93l2.83 2.83"></path><path d="M16.24 16.24l2.83 2.83"></path><path d="M2 12h4"></path><path d="M18 12h4"></path><path d="M4.93 19.07l2.83-2.83"></path><path d="M16.24 7.76l2.83-2.83"></path></svg>Analyze</button>
+  <button type="button" class="sb-nav-item" data-command="navResults"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><line x1="10" y1="9" x2="8" y2="9"></line></svg>Results</button>
+  <button type="button" class="sb-nav-item" data-command="navRepoHealth"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>Repo health</button>
+  <div class="sb-nav-section">Compliance</div>
+  <button type="button" class="sb-nav-item" data-command="navAudit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><line x1="10" y1="9" x2="8" y2="9"></line></svg>Audit</button>
+  <button type="button" class="sb-nav-item" data-command="navSecurity"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>Security</button>
+  <button type="button" class="sb-nav-item" data-command="navQuality"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>Quality</button>
+  <button type="button" class="sb-nav-item" data-command="navTrust"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="m9 12 2 2 4-4"></path></svg>Trust</button>
+  <div class="sb-nav-section">Operations</div>
+  <button type="button" class="sb-nav-item" data-command="navAssessments"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>Assessments</button>
+  <button type="button" class="sb-nav-item" data-command="navRoadmap"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>Roadmap</button>
+  <button type="button" class="sb-nav-item" data-command="navPlatform"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>Platform</button>
+  <button type="button" class="sb-nav-item" data-command="navProfile"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>Profile</button>
+  <button type="button" class="sb-nav-item" data-command="openAdmin"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="m9 12 2 2 4-4"></path></svg>Admin</button>
+  <div class="sb-nav-section">System</div>
+  <button type="button" class="sb-nav-item" data-command="openAiContext"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>AI</button>
+  <button type="button" class="sb-nav-item" data-command="openSettings"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>Settings</button>
+  <button type="button" class="sb-nav-item" data-command="openAbout"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>About</button>
 </div>
 <div class="tab-pane active" id="tabDashboard" data-sidebar-tab="dashboard">
   <div class="sidebar-dashboard-back" id="dashboardBackBtn" style="display:none;"><span>&#x25C0;</span> Back to Sidebar</div>
@@ -2920,7 +2931,7 @@ body.detail-panel-open #tabAdvanced {
   <div class="tc-list-item" id="tdPricingSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F4B0;</span><span class="tc-list-name">Pricing</span></div></div>
   <div class="tc-list-item" id="tdSignInSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg></span><span class="tc-list-name">Sign In</span></div></div>
   <div class="tc-list-item" id="tdSignOutSidebar" style="display:none;"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg></span><span class="tc-list-name">Sign Out</span></div></div>
-  <div class="tc-list-item" id="tdOfflineToggleSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F4F6;</span><span class="tc-list-name">Website</span></div></div>
+  <div class="tc-list-item" id="tdOfflineToggleSidebar" style="display:none;"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F4F6;</span><span class="tc-list-name">Website</span></div></div>
 </div>
 <div class="tab-section" style="margin-top:16px;">Navigation</div>
 <div class="tc-list" style="gap:8px;">
@@ -4803,7 +4814,7 @@ ${sidebarMainJsContent}
           break;
         case 'navAudit':
         case 'audit':
-          vscode.commands.executeCommand('simplebeacon.showReport');
+          ModernSidebarProvider.showDashboardRoute(this._extensionUri, '/audit');
           break;
         case 'navSecurity':
         case 'security':
@@ -4823,7 +4834,7 @@ ${sidebarMainJsContent}
           break;
         case 'navRoadmap':
         case 'roadmap':
-          vscode.commands.executeCommand('simplebeacon.showRemediationGuide');
+          ModernSidebarProvider.showDashboardRoute(this._extensionUri, '/remediation');
           break;
         case 'navPlatform':
         case 'platform':
@@ -5075,6 +5086,15 @@ if (!window.vscode || typeof window.vscode.postMessage !== 'function') {
     }
     const extUri = this._extensionUri;
     const sbConfig = getSbConfig();
+    const configuredBrowserUrl = sbConfig.get<string>('browserDashboardUrl') || '';
+    const localDashboardBase = `http://127.0.0.1:${getDataServerPort()}`;
+    const dashboardBaseUrl = configuredBrowserUrl
+      ? configuredBrowserUrl.replace(/\/dashboard\/?$/, '').replace(/\/$/, '')
+      : localDashboardBase;
+    const isRemoteDashboard = !/^(https?:\/\/)?(127\.0\.0\.1|localhost)(:\d+)?\/?$/i.test(dashboardBaseUrl);
+    const initialDashboardSrc = isRemoteDashboard
+      ? `${dashboardBaseUrl}/dashboard/dashboard`
+      : `${dashboardBaseUrl}/#/dashboard`;
 
     // Generate the same browser-ready sidebar HTML used by the IDE preview
     let browserHtml = '';
@@ -5148,8 +5168,15 @@ if (!window.vscode || typeof window.vscode.postMessage !== 'function') {
 html,body{height:100%;margin:0;padding:0;background:#0f1117;overflow:hidden}
 .ide{display:flex;height:100vh;width:100vw}
 .sidebar{width:280px;min-width:200px;max-width:400px;border-right:1px solid #334155;flex-shrink:0}
-.main{flex:1;min-width:0}
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
 .resizer{width:6px;background:#334155;cursor:col-resize;flex-shrink:0}
+.url-bar{display:flex;align-items:center;gap:8px;padding:6px 10px;background:#111827;border-bottom:1px solid #1f2937;flex-shrink:0}
+.url-bar button{background:transparent;border:1px solid #374151;border-radius:6px;color:#9ca3af;cursor:pointer;padding:4px 10px;font-size:13px}
+.url-bar button:hover:not(:disabled){color:#e2e8f0;border-color:#6366f1}
+.url-bar button:disabled{opacity:0.4;cursor:not-allowed}
+.url-bar input{flex:1;background:#0B0F19;border:1px solid #374151;border-radius:6px;color:#e2e8f0;padding:6px 10px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12px}
+.url-bar input:focus{outline:none;border-color:#6366f1}
+.browser-content{flex:1;min-height:0;position:relative}
 iframe{width:100%;height:100%;border:none;display:block}
 #browserTabBar{display:none;position:fixed;top:0;left:0;right:0;height:36px;background:#1e1e1e;border-bottom:1px solid rgba(255,255,255,0.06);z-index:200;align-items:center;gap:0;overflow-x:auto;scrollbar-width:thin;}
 #browserTabBar::-webkit-scrollbar{height:5px;}
@@ -5179,43 +5206,49 @@ body.tabs-open #browserTabBar{display:flex !important;}
 <div class="ide" id="ide">
   <div class="browser-sidebar" id="browserSidebar">
     <div class="sidebar-section">
-      <div class="sidebar-heading">Core</div>
-      <div class="sidebar-link" data-command="showDashboardPane"><span class="icon">&#x1F4CA;</span> Dashboard</div>
-      <div class="sidebar-link" data-command="showAnalyzePane"><span class="icon">&#x1F50D;</span> Analyze</div>
-      <div class="sidebar-link" data-command="showReportPane"><span class="icon">&#x1F4CB;</span> Report</div>
+      <div class="sidebar-heading">Navigation</div>
+      <div class="sidebar-link" data-view="dashboard"><span class="icon">&#x1F4C8;</span> Dashboard</div>
+      <div class="sidebar-link" data-view="analyze"><span class="icon">&#x1F50D;</span> Analyze</div>
+      <div class="sidebar-link" data-view="results"><span class="icon">&#x1F4CA;</span> Results</div>
+      <div class="sidebar-link" data-view="repository-health"><span class="icon">&#x2764;</span> Repo health</div>
     </div>
     <div class="sidebar-section">
-      <div class="sidebar-heading">Quality</div>
-      <div class="sidebar-link" data-command="showSecurityPane"><span class="icon">&#x1F512;</span> Security</div>
-      <div class="sidebar-link" data-command="showTrustPane"><span class="icon">&#x1F91D;</span> Trust</div>
-      <div class="sidebar-link" data-command="showQualityPane"><span class="icon">&#x2696;</span> Quality</div>
-      <div class="sidebar-link" data-command="showAuditPane"><span class="icon">&#x1F4CB;</span> Audit</div>
-      <div class="sidebar-link" data-command="showCompliancePane"><span class="icon">&#x1F4D1;</span> Compliance</div>
-      <div class="sidebar-link" data-command="showAnalyticsPane"><span class="icon">&#x1F4C8;</span> Analytics</div>
+      <div class="sidebar-heading">Quality & Trust</div>
+      <div class="sidebar-link" data-view="security"><span class="icon">&#x1F6E1;</span> Security</div>
+      <div class="sidebar-link" data-view="quality"><span class="icon">&#x2B50;</span> Quality</div>
+      <div class="sidebar-link" data-view="trust"><span class="icon">&#x1F510;</span> Trust</div>
+      <div class="sidebar-link" data-external-url="https://simplebeacon.ai/audit"><span class="icon">&#x1F4CB;</span> Audit</div>
+      <div class="sidebar-link" data-view="assessments"><span class="icon">&#x1F4DD;</span> Assessments</div>
+      <div class="sidebar-link" data-view="remediation"><span class="icon">&#x1F6E4;</span> Remediation</div>
     </div>
     <div class="sidebar-section">
       <div class="sidebar-heading">Management</div>
-      <div class="sidebar-link" data-command="showSettingsPane"><span class="icon">&#x2699;</span> Settings</div>
-      <div class="sidebar-link" data-command="showRepoHealthPane"><span class="icon">&#x1F3E0;</span> Repo Health</div>
-      <div class="sidebar-link" data-command="showTeamPane"><span class="icon">&#x1F465;</span> Team</div>
-      <div class="sidebar-link" data-command="showCertificatePane"><span class="icon">&#x1F3C6;</span> Certificate</div>
-    </div>
-    <div class="sidebar-section">
-      <div class="sidebar-heading">Tools</div>
-      <div class="sidebar-link" data-command="showCodeMapPane"><span class="icon">&#x1F5FA;</span> Code Map</div>
-      <div class="sidebar-link" data-command="showUploadPane"><span class="icon">&#x1F4E4;</span> Upload</div>
-      <div class="sidebar-link" data-command="showAiContextPane"><span class="icon">&#x1F916;</span> AI Context</div>
-      <div class="sidebar-link" data-command="showRoadmapPane"><span class="icon">&#x1F6E4;</span> Roadmap</div>
-      <div class="sidebar-link" data-command="showScanPane"><span class="icon">&#x1F50D;</span> Scan</div>
+      <div class="sidebar-link" data-view="platform"><span class="icon">&#x1F680;</span> Platform</div>
+      <div class="sidebar-link" data-view="profile"><span class="icon">&#x1F464;</span> Profile</div>
+      <div class="sidebar-link" data-view="tools"><span class="icon">&#x1F6E0;</span> Tools</div>
+      <div class="sidebar-link" data-view="settings"><span class="icon">&#x2699;</span> Settings</div>
+      <div class="sidebar-link" data-view="help"><span class="icon">&#x2753;</span> Help</div>
+      <div class="sidebar-link" data-view="chatbot"><span class="icon">&#x1F916;</span> Chatbot</div>
+      <div class="sidebar-link" data-view="about"><span class="icon">&#x2139;</span> About</div>
     </div>
     <div class="sidebar-section">
       <div class="sidebar-heading">Account</div>
+      <div class="sidebar-link" data-external-url="https://simplebeacon.ai/roadmap"><span class="icon">&#x1F5FA;</span> Roadmap</div>
+      <div class="sidebar-link" data-external-url="https://simplebeacon.ai/pricing"><span class="icon">&#x1F4B0;</span> Pricing</div>
       <div class="sidebar-link" data-command="signIn" id="sidebarSignInLink"><span class="icon">&#x1F512;</span> Sign In</div>
       <div class="sidebar-link" data-command="signOut" id="sidebarSignOutLink" style="display:none;"><span class="icon">&#x1F512;</span> Sign Out</div>
     </div>
   </div>
   <div class="resizer" id="resizer"></div>
-  <div class="main"><iframe id="mainIframe" src="${sbConfig.get('browserDashboardUrl') || `http://127.0.0.1:${getDataServerPort()}/#/dashboard`}" style="width:100%;height:100%;border:none;display:block;"></iframe></div>
+  <div class="main">
+    <div class="url-bar">
+      <button id="backBtn" title="Go back" disabled>←</button>
+      <button id="fwdBtn" title="Go forward" disabled>→</button>
+      <button id="reloadBtn" title="Reload">↻</button>
+      <input id="urlInput" type="text" value="${initialDashboardSrc}" spellcheck="false" />
+    </div>
+    <div class="browser-content"><iframe id="mainIframe" src="${initialDashboardSrc}"></iframe></div>
+  </div>
 </div>
 <script>
 (function(){
@@ -5254,29 +5287,141 @@ body.tabs-open #browserTabBar{display:flex !important;}
     window.addEventListener('mouseup', stopDrag);
     window.addEventListener('blur', stopDrag);
   });
-  const DASHBOARD_URL = window.__SB_DASHBOARD_URL__ || 'http://127.0.0.1:54358';
-  const CMD_TO_HASH = {
-    showDashboardPane: '#/dashboard', showAnalyzePane: '#/analyze', showReportPane: '#/results',
-    showSecurityPane: '#/security', showTrustPane: '#/trust', showQualityPane: '#/quality', showAuditPane: '#/audit',
-    showCompliancePane: '#/audit', showAnalyticsPane: '#/platform', showRepoHealthPane: '#/repository-health',
-    showTeamPane: '#/platform', showCertificatePane: '#/profile', showCodeMapPane: '#/code-map',
-    showUploadPane: '#/upload', showAiContextPane: '#/chatbot', showRoadmapPane: '#/remediation',
-    showScanPane: '#/analyze', showSettingsPane: '#/settings'
-  };
-  document.querySelectorAll('.sidebar-link[data-command]').forEach(function(link){
+  const DASHBOARD_URL = ${JSON.stringify(dashboardBaseUrl)};
+  const IS_REMOTE_DASHBOARD = ${isRemoteDashboard ? 'true' : 'false'};
+  function dashboardRoute(view) {
+    if (IS_REMOTE_DASHBOARD) { return '/dashboard/' + view; }
+    return '/#/' + view;
+  }
+  function viewFromUrl(url) {
+    if (!url) return 'dashboard';
+    if (IS_REMOTE_DASHBOARD) {
+      const m = url.match(/\/dashboard\/([^/?#]+)/);
+      return m ? m[1] : 'dashboard';
+    }
+    const m = url.match(/#\/([^?]+)/);
+    return m ? m[1].replace(/^\//, '') : 'dashboard';
+  }
+
+  const browserHistory = { urls: [], index: -1, pendingUrl: null };
+  const urlInput = document.getElementById('urlInput');
+  const backBtn = document.getElementById('backBtn');
+  const fwdBtn = document.getElementById('fwdBtn');
+  const reloadBtn = document.getElementById('reloadBtn');
+  function _postSidebarCmd(cmd) {
+    if (typeof acquireVsCodeApi === 'function') {
+      try { acquireVsCodeApi().postMessage({ command: cmd }); } catch (e) {}
+    }
+  }
+
+  function updateToolbar() {
+    if (urlInput) urlInput.value = browserHistory.urls[browserHistory.index] || '';
+    if (backBtn) backBtn.disabled = browserHistory.index <= 0;
+    if (fwdBtn) fwdBtn.disabled = browserHistory.index < 0 || browserHistory.index >= browserHistory.urls.length - 1;
+  }
+  function pushHistory(url) {
+    if (!url) return;
+    browserHistory.urls = browserHistory.urls.slice(0, browserHistory.index + 1);
+    if (browserHistory.urls[browserHistory.index] === url) return;
+    browserHistory.urls.push(url);
+    browserHistory.index = browserHistory.urls.length - 1;
+    updateToolbar();
+  }
+  function goBack() {
+    if (browserHistory.index > 0) {
+      browserHistory.index--;
+      navigateToUrl(browserHistory.urls[browserHistory.index], false);
+    }
+  }
+  function goForward() {
+    if (browserHistory.index < browserHistory.urls.length - 1) {
+      browserHistory.index++;
+      navigateToUrl(browserHistory.urls[browserHistory.index], false);
+    }
+  }
+  function refresh() {
+    if (mainIframe && browserHistory.index >= 0) {
+      browserHistory.pendingUrl = browserHistory.urls[browserHistory.index];
+      mainIframe.src = browserHistory.urls[browserHistory.index];
+    }
+  }
+  function navigateToUrl(url, push) {
+    if (!url || !mainIframe) return;
+    browserHistory.pendingUrl = url;
+    mainIframe.src = url;
+    if (push) pushHistory(url);
+    else updateToolbar();
+    activateLink(viewFromUrl(url));
+  }
+  function navigateToView(view, push) {
+    navigateToUrl(DASHBOARD_URL + dashboardRoute(view), push);
+  }
+  function activateLink(view) {
+    document.querySelectorAll('.sidebar-link').forEach(function(l){
+      const lv = l.dataset.view;
+      l.classList.toggle('active', !!lv && lv === view);
+    });
+  }
+
+  // Load the initial dashboard route into the browser history.
+  navigateToUrl('${initialDashboardSrc}', true);
+
+  // Sidebar navigation.
+  document.querySelectorAll('.sidebar-link').forEach(function(link){
     link.addEventListener('click', function(){
+      const externalUrl = link.dataset.externalUrl;
+      const view = link.dataset.view;
       const cmd = link.dataset.command;
-      if(mainIframe){
-        const hash = CMD_TO_HASH[cmd];
-        if (hash) {
-          mainIframe.src = DASHBOARD_URL + '/' + hash;
-        } else if (cmd === 'signIn') {
-          mainIframe.src = DASHBOARD_URL + '/#/signin';
-        }
+      if (externalUrl && mainIframe) {
+        navigateToUrl(externalUrl, true);
+      } else if (view && mainIframe) {
+        navigateToView(view, true);
+      } else if (cmd === 'signIn' && mainIframe) {
+        navigateToView('signin', true);
+      } else if (cmd === 'signOut') {
+        _postSidebarCmd('signOut');
       }
       document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
       link.classList.add('active');
     });
+  });
+
+  // Toolbar controls.
+  if (backBtn) backBtn.addEventListener('click', goBack);
+  if (fwdBtn) fwdBtn.addEventListener('click', goForward);
+  if (reloadBtn) reloadBtn.addEventListener('click', refresh);
+  if (urlInput) {
+    urlInput.addEventListener('keydown', function(e){
+      if (e.key === 'Enter') {
+        const raw = urlInput.value.trim();
+        if (!raw) return;
+        if (/^https?:\/\//i.test(raw)) {
+          navigateToUrl(raw, true);
+        } else if (raw.startsWith('/')) {
+          let path = raw;
+          if (IS_REMOTE_DASHBOARD && !path.startsWith('/dashboard/')) {
+            path = '/dashboard' + path;
+          }
+          navigateToUrl(DASHBOARD_URL + path, true);
+        } else {
+          navigateToView(raw, true);
+        }
+      }
+    });
+  }
+
+  // Listen to route changes from the iframe dashboard so the URL bar stays in sync.
+  window.addEventListener('message', function(ev){
+    if (!ev.data || ev.data.command !== 'dashboardRouteChanged' || !ev.data.url) return;
+    const url = ev.data.url;
+    if (browserHistory.pendingUrl === url) {
+      browserHistory.pendingUrl = null;
+      updateToolbar();
+      activateLink(viewFromUrl(url));
+      return;
+    }
+    pushHistory(url);
+    activateLink(viewFromUrl(url));
   });
   // Auth state messages from extension to toggle Sign In / Sign Out UI are handled by sidebar-main.js
   // Keep only the message forwarding and polling logic here to avoid duplicate click handlers.
@@ -5337,28 +5482,20 @@ body.tabs-open #browserTabBar{display:flex !important;}
   setInterval(_requestAuthState, 3000);
   const tdAdminPanel = document.getElementById('tdAdminPanelSidebar');
   if (tdAdminPanel && mainIframe) {
-    tdAdminPanel.addEventListener('click', function() {
-      mainIframe.src = DASHBOARD_URL + '/#/admin';
-    });
-  }
-  // Wire sidebar Sign In / Sign Out buttons
-  function _postSidebarCmd(cmd) {
-    if (typeof acquireVsCodeApi === 'function') {
-      try { acquireVsCodeApi().postMessage({ command: cmd }); } catch (e) {}
-    }
+    tdAdminPanel.addEventListener('click', function() { navigateToView('admin', true); });
   }
   const headerSignIn = document.getElementById('headerSignInBtn');
   const headerSignOut = document.getElementById('headerSignOutBtn');
   const tdSignIn = document.getElementById('tdSignInSidebar');
   const tdSignOut = document.getElementById('tdSignOutSidebar');
   if (headerSignIn && mainIframe) {
-    headerSignIn.addEventListener('click', function() { mainIframe.src = DASHBOARD_URL + '/#/signin'; });
+    headerSignIn.addEventListener('click', function() { navigateToView('signin', true); });
   }
   if (headerSignOut) {
     headerSignOut.addEventListener('click', function() { _postSidebarCmd('signOut'); });
   }
   if (tdSignIn && mainIframe) {
-    tdSignIn.addEventListener('click', function() { mainIframe.src = DASHBOARD_URL + '/#/signin'; });
+    tdSignIn.addEventListener('click', function() { navigateToView('signin', true); });
   }
   if (tdSignOut) {
     tdSignOut.addEventListener('click', function() { _postSidebarCmd('signOut'); });
@@ -5758,3 +5895,21 @@ setInterval(load,5000);
 </html>`;
   }
 }
+
+setDashboardAuthStateCallback(async (signedIn, tier, token, isAdmin) => {
+  if (signedIn && token) {
+    try {
+      const authManager = getAuthManager();
+      if (authManager && typeof authManager.setToken === 'function') {
+        await authManager.setToken(String(token));
+      }
+    } catch {}
+  }
+  ModernSidebarProvider.setSidebarAuthState(signedIn, tier, token, 'signIn', isAdmin);
+});
+
+setDashboardLicenseTokenCallback(async (token) => {
+  try {
+    await vscode.commands.executeCommand('simplebeacon.storeLicenseToken', token);
+  } catch {}
+});

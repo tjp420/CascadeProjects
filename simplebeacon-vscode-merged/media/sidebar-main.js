@@ -138,6 +138,14 @@
     document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');p.classList.add('hidden');});
     document.body.classList.add('detail-panel-open');
   }, true);
+  // Website-sync grouped nav items: post data-command directly to the extension
+  document.addEventListener('click', function(e) {
+    let item = e.target.closest('.sb-nav-item');
+    if (!item) return;
+    let cmd = item.getAttribute('data-command');
+    if (!cmd) return;
+    if (window.vscode) { window.vscode.postMessage({ command: cmd }); }
+  }, true);
   function _closeDetailPanels(){
     document.body.classList.remove('detail-panel-open');
     document.querySelectorAll('[id$="DetailPanel"]').forEach(function(el){el.style.display='none'; el.classList.remove('detail-active');});
@@ -244,7 +252,7 @@
   let _openContextBtn=document.getElementById('openContextBtn');if(_openContextBtn){_openContextBtn.addEventListener('click', function() { _switchSidebarTab('context'); });}
   let _openUploadBtn=document.getElementById('openUploadBtn');if(_openUploadBtn){_openUploadBtn.addEventListener('click', function() { _switchSidebarTab('upload'); });}
   let _openPlatformBtnMain=document.getElementById('openPlatformBtnMain');if(_openPlatformBtnMain){_openPlatformBtnMain.addEventListener('click', function() { _switchSidebarTab('platform'); });}
-  let _openAuditBtnMain=document.getElementById('openAuditBtnMain');if(_openAuditBtnMain){_openAuditBtnMain.addEventListener('click', function() { _switchSidebarTab('audit'); });}
+  let _openAuditBtnMain=document.getElementById('openAuditBtnMain');if(_openAuditBtnMain){_openAuditBtnMain.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openAudit'}); });}
   let _openTeamBtnMain=document.getElementById('openTeamBtnMain');if(_openTeamBtnMain){_openTeamBtnMain.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openTeam'}); });}
   let _openSecurityBtnMain=document.getElementById('openSecurityBtnMain');if(_openSecurityBtnMain){_openSecurityBtnMain.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openSecurity'}); });}
   let _openTrustBtn=document.getElementById('openTrustBtn');if(_openTrustBtn){_openTrustBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openTrust'}); });}
@@ -283,6 +291,28 @@
   let _openModelHealthBtn=document.getElementById('openModelHealthBtn');if(_openModelHealthBtn){_openModelHealthBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openModelHealth'}); });}
   let _openTeamDashboardBtnMain=document.getElementById('openTeamDashboardBtnMain');if(_openTeamDashboardBtnMain){_openTeamDashboardBtnMain.addEventListener('click', function() { if(window.vscode) window.vscode.postMessage({command:'openTeamDashboard'}); });}
   function _tdBind(id,cmd){let el=document.getElementById(id);if(el){el.addEventListener('click',function(){if(cmd==='openSigninScreen'||cmd==='signIn'){_openSigninWithClear();return;}if(window.vscode)window.vscode.postMessage({command:cmd});});}}
+  _tdBind('tdRoadmapSidebar','openRoadmap');
+  _tdBind('tdAuditSidebar','openAudit');
+  _tdBind('tdPricingSidebar','openPricing');
+  _tdBind('tdDashboardSidebar','openDashboard');
+  _tdBind('tdAnalyzeSidebar','openAnalyze');
+  _tdBind('tdResultsSidebar','openReport');
+  _tdBind('tdRepoHealthSidebar','openRepoHealth');
+  _tdBind('tdSecuritySidebar','openSecurity');
+  _tdBind('tdQualitySidebar','openQuality');
+  _tdBind('tdTrustSidebar','openTrust');
+  _tdBind('tdAuditReportSidebar','openAuditReport');
+  _tdBind('tdAssessmentsSidebar','openAssessments');
+  _tdBind('tdRemediationSidebar','openRoadmap');
+  _tdBind('tdPlatformSidebar','openPlatform');
+  _tdBind('tdProfileSidebar','openProfile');
+  _tdBind('tdToolsSidebar','openTools');
+  _tdBind('tdSettingsSidebar','openSettings');
+  _tdBind('tdHelpSidebar','openHelp');
+  _tdBind('tdChatbotSidebar','openChatbot');
+  _tdBind('tdAboutSidebar','openAbout');
+  _tdBind('tdGitHubSidebar','openGitHub');
+  _tdBind('tdDocsSidebar','openDocs');
   // Analyze, Roadmap, and AI Context buttons already send open* commands above; do not switch sidebar tabs.
   let _openSettingsBtn=document.getElementById('openSettingsBtn');if(_openSettingsBtn){_openSettingsBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openSettings'}); });}
   let _uploadDropzone=document.getElementById('uploadDropzone');let _uploadFileInput=document.getElementById('uploadFileInput');let _uploadList=document.getElementById('uploadList');let _uploadStatPending=document.getElementById('uploadStatPending');let _uploadStatValid=document.getElementById('uploadStatValid');let _uploadStatInvalid=document.getElementById('uploadStatInvalid');let _uploadValidateBtn=document.getElementById('uploadValidateBtn');let _uploadClearBtn=document.getElementById('uploadClearBtn');let _uploadProgress=document.getElementById('uploadProgress');let _uploadProgressFill=document.getElementById('uploadProgressFill');let _uploadProgressText=document.getElementById('uploadProgressText');let _uploadDetail=document.getElementById('uploadDetail');let _uploadDetailList=document.getElementById('uploadDetailList');let _uploadResultBox=document.getElementById('uploadResultBox');let _uploadResultTitle=document.getElementById('uploadResultTitle');let _uploadResultList=document.getElementById('uploadResultList');
@@ -435,12 +465,44 @@
   let _toggleMonitorSidebarBtn=document.getElementById('toggleMonitorSidebarBtn');if(_toggleMonitorSidebarBtn){_toggleMonitorSidebarBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openToggleMonitor'}); });}
   let _browserDropdownHeader=document.getElementById('browserDropdownHeader');if(_browserDropdownHeader){_browserDropdownHeader.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openBrowser'}); });}
   let _scanWorkspaceDropdownHeader=document.getElementById('scanWorkspaceDropdownHeader');if(_scanWorkspaceDropdownHeader){_scanWorkspaceDropdownHeader.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'scan', mode: 'workspace'}); });}
-  function _tdBind2(id,cmd){let el=document.getElementById(id);if(el){el.addEventListener('click',function(){if(window.vscode){window.vscode.postMessage({command:cmd});try{window.vscode.postMessage({command:'sidebarError',message:'sent: ' + id + ' -> ' + cmd});}catch(e){}} if(cmd==='signOut'){_clearSidebarAuthLocally();_callServerSignout();}});}}
+  function _tdBind2(id,cmd){let el=document.getElementById(id);if(el){el.addEventListener('click',function(){if(window.vscode){window.vscode.postMessage({command:cmd});} if(cmd==='signOut'){_clearSidebarAuthLocally();_callServerSignout();}});}}
   function _openSigninWithClear(){const base=window.__SB_DATA_SERVER_URL__||'';function _post(){if(window.vscode){try{window.vscode.postMessage({command:'openSigninPanel'});}catch(e){}}} if(base){fetch(base+'/api/auth/signout',{method:'POST',headers:{'Content-Type':'application/json'}}).finally(_post).catch(_post);}else{_post();}}
   _tdBind('tdOpenSiteSidebar','openTeamDashboard');
   _tdBind2('tdThemeToggleSidebar','toggleTheme');
   _tdBind('tdSignInSidebar','openSigninScreen');
-  _tdBind2('tdOfflineToggleSidebar','toggleOffline');
+  // Website / localhost mode switch (was offline toggle)
+  function _applyDashboardMode(mode) {
+    const el = document.getElementById('tdOfflineToggleSidebar');
+    if (!el) return;
+    const nameSpan = el.querySelector('.tc-list-name');
+    const iconSpan = el.querySelector('.icon');
+    const activeMode = mode === 'localhost' ? 'localhost' : 'website';
+    if (nameSpan) { nameSpan.textContent = activeMode === 'website' ? 'Website' : 'Localhost'; }
+    if (iconSpan) { iconSpan.textContent = activeMode === 'website' ? '\u{1F310}' : '\u{1F4E1}'; }
+    try { localStorage.setItem('sb_dashboard_mode', activeMode); } catch (e) {}
+  }
+  function _setDashboardMode(mode) {
+    const activeMode = mode === 'localhost' ? 'localhost' : 'website';
+    _applyDashboardMode(activeMode);
+    if (window.vscode) {
+      try { window.vscode.postMessage({ command: 'setDashboardMode', mode: activeMode }); } catch (e) {}
+    }
+  }
+  function _toggleDashboardMode() {
+    const current = (function(){ try { return localStorage.getItem('sb_dashboard_mode'); } catch(e){ return null; } })() || 'website';
+    _setDashboardMode(current === 'website' ? 'localhost' : 'website');
+  }
+  const _offlineToggleEl = document.getElementById('tdOfflineToggleSidebar');
+  if (_offlineToggleEl) {
+    _offlineToggleEl.addEventListener('click', _toggleDashboardMode);
+    const stored = (function(){ try { return localStorage.getItem('sb_dashboard_mode'); } catch(e){ return null; } })() || 'website';
+    _setDashboardMode(stored);
+  }
+  window.addEventListener('message', function(ev) {
+    if (ev && ev.data && ev.data.command === 'dashboardModeChanged') {
+      _applyDashboardMode(ev.data.mode || 'website');
+    }
+  });
   _tdBind2('tdSignOutSidebar','signOut');
   let _sidebarSignInLink=document.getElementById('sidebarSignInLink');if(_sidebarSignInLink){_sidebarSignInLink.addEventListener('click',function(){_openSigninWithClear();});}
   let _sidebarSignOutLink=document.getElementById('sidebarSignOutLink');if(_sidebarSignOutLink){_sidebarSignOutLink.addEventListener('click',function(){_clearSidebarAuthLocally(); if(window.vscode){window.vscode.postMessage({command:'signOut'});try{window.vscode.postMessage({command:'sidebarError',message:'signOut sent from sidebarSignOutLink'});}catch(e){}} _callServerSignout();});}
@@ -450,6 +512,28 @@
   _tdBind2('tdGitHubSidebar','openGitHub');
   let _tokenManagementCard=document.getElementById('tokenManagementCard');if(_tokenManagementCard){_tokenManagementCard.addEventListener('click',function(){if(window.vscode)window.vscode.postMessage({command:'openTokenReplacementPanel'});});}
   _tdBind2('tdDocsSidebar','openDocs');
+  // Quick Links
+  _tdBind('tdRoadmapSidebar','openRoadmap');
+  _tdBind('tdAuditSidebar','openAudit');
+  _tdBind('tdPricingSidebar','openPricing');
+  // Navigation
+  _tdBind('tdDashboardSidebar','openDashboard');
+  _tdBind('tdAnalyzeSidebar','openAnalyze');
+  _tdBind('tdResultsSidebar','openReport');
+  _tdBind('tdRepoHealthSidebar','openRepoHealth');
+  _tdBind('tdSecuritySidebar','openSecurity');
+  _tdBind('tdQualitySidebar','openQuality');
+  _tdBind('tdTrustSidebar','openTrust');
+  _tdBind('tdAuditReportSidebar','openAuditReport');
+  _tdBind('tdAssessmentsSidebar','openAssessments');
+  _tdBind('tdRemediationSidebar','openRoadmap');
+  _tdBind('tdPlatformSidebar','openPlatform');
+  _tdBind('tdProfileSidebar','openProfile');
+  _tdBind('tdToolsSidebar','openSettings');
+  _tdBind('tdSettingsSidebar','openSettings');
+  _tdBind('tdHelpSidebar','openHelp');
+  _tdBind('tdChatbotSidebar','openChatbot');
+  _tdBind('tdAboutSidebar','openAbout');
   let _dbExportBtn=document.getElementById('dbExportBtn');if(_dbExportBtn){_dbExportBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'exportReport'}); });}
   let _dbSigninBtn=document.getElementById('dbSigninBtn');if(_dbSigninBtn){_dbSigninBtn.addEventListener('click', function() { _openSigninWithClear(); });}
   let _dbSignoutBtn=document.getElementById('dbSignoutBtn');if(_dbSignoutBtn){_dbSignoutBtn.addEventListener('click', function() { _clearSidebarAuthLocally(); if (window.vscode) { window.vscode.postMessage({command: 'signOut'}); try { window.vscode.postMessage({command: 'sidebarError', message: 'signOut sent from dbSignoutBtn'}); } catch(e) {} } _callServerSignout(); });}
@@ -1562,6 +1646,8 @@
     if (headerSignInBtn) headerSignInBtn.style.display = signedIn ? 'none' : 'inline-flex';
     let headerSignOutBtn = document.getElementById('headerSignOutBtn');
     if (headerSignOutBtn) headerSignOutBtn.style.display = signedIn ? 'inline-flex' : 'none';
+    let websiteToggle = document.getElementById('tdOfflineToggleSidebar');
+    if (websiteToggle) websiteToggle.style.display = signedIn ? 'flex' : 'none';
   }
   window.addEventListener('message', function(e) {
     let msg = e.data; if (!msg) return;
@@ -1653,41 +1739,10 @@
       _updateSidebarAuthState(hasToken);
     }
   });
-  // Team Dashboard navigation/quick links: open pages inside the IDE (webview panel or simple browser)
-  (function bindWebsiteNavigation() {
-    const websitePathMap = {
-      tdRoadmapSidebar: '/roadmap.html',
-      tdAuditSidebar: '/audit.html',
-      tdPricingSidebar: '/pricing.html',
-      tdDashboardSidebar: '/dashboard',
-      tdAnalyzeSidebar: '/dashboard/analyze',
-      tdResultsSidebar: '/dashboard/results',
-      tdRepoHealthSidebar: '/dashboard/repository-health',
-      tdSecuritySidebar: '/dashboard/security',
-      tdQualitySidebar: '/dashboard/quality',
-      tdTrustSidebar: '/dashboard/trust',
-      tdAuditReportSidebar: '/dashboard/audit',
-      tdAssessmentsSidebar: '/dashboard/assessments',
-      tdRemediationSidebar: '/dashboard/remediation',
-      tdPlatformSidebar: '/dashboard/platform',
-      tdProfileSidebar: '/dashboard/profile',
-      tdToolsSidebar: '/dashboard/tools',
-      tdSettingsSidebar: '/dashboard/settings',
-      tdHelpSidebar: '/dashboard/help',
-      tdChatbotSidebar: '/dashboard/chatbot',
-      tdAboutSidebar: '/dashboard/about'
-    };
-    Object.keys(websitePathMap).forEach(function(id) {
-      const el = document.getElementById(id);
-      if (!el) return;
-      el.style.cursor = 'pointer';
-      el.addEventListener('click', function(e) {
-        e.stopPropagation();
-        if (!window.vscode) return;
-        window.vscode.postMessage({ command: 'openTeamDashboard', route: websitePathMap[id] });
-      });
-    });
-  })();
+  // Bind top tab bar (mainWindow display mode) as well as the compact sidebar tab bar
+  document.querySelectorAll('#mainTabBar .tab-item').forEach(function(t){
+    t.addEventListener('click', function(){ _switchSidebarTab(t.getAttribute('data-tab')); });
+  });
   // Request auth state from extension; retry multiple times to handle race on boot
   (function requestAuthState(attempt) {
     if (window.vscode) { window.vscode.postMessage({command: 'getAuthState'}); }
