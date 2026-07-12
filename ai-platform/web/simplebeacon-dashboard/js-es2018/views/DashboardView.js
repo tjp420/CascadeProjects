@@ -289,9 +289,14 @@ export class DashboardView {
         </div>
       </div>
 
-      <div id="slot-scan-status" class="dashboard-scan-hero"></div>
-
-      <div class="dashboard-actions-bar" id="slot-quick-actions"></div>
+      <div class="dashboard-bento">
+        <div class="dashboard-bento-main">
+          <div id="slot-scan-status" class="dashboard-scan-hero"></div>
+        </div>
+        <div class="dashboard-bento-side">
+          <div id="slot-quick-actions"></div>
+        </div>
+      </div>
 
       <div class="dashboard-body">
         <div class="dashboard-body-primary">

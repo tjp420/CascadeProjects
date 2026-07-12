@@ -1676,19 +1676,19 @@ export class AnalyzeView {
     const projectPath = this.getActiveProjectPath(pathInput?.value);
     const canRun = Boolean(projectPath) && !this.busy;
     return `
-      <div class="card analyze-quick-actions-card" style="margin-top:var(--space-3);padding:var(--space-3);">
-        <div style="display:flex;gap:var(--space-2);flex-wrap:wrap;align-items:center;">
+      <div class="card analyze-quick-actions-card">
+        <div class="analyze-quick-actions-row">
           <button type="button" class="btn btn-primary btn-sm" id="quick-action-run-btn" ${canRun ? '' : 'disabled'} title="Run analysis on the current path">
-            <i data-lucide="play" class="icon-16" style="margin-right:4px;"></i> Run Scan
+            <i data-lucide="play" class="icon-16"></i> Run Scan
           </button>
           <button type="button" class="btn btn-secondary btn-sm" id="quick-action-results-btn" ${hasResult ? '' : 'disabled'} title="Open results view">
-            <i data-lucide="bar-chart-2" class="icon-16" style="margin-right:4px;"></i> Results
+            <i data-lucide="bar-chart-2" class="icon-16"></i> Results
           </button>
           <button type="button" class="btn btn-secondary btn-sm" id="quick-action-export-btn" ${hasResult ? '' : 'disabled'} title="Export scan report">
-            <i data-lucide="download" class="icon-16" style="margin-right:4px;"></i> Export
+            <i data-lucide="download" class="icon-16"></i> Export
           </button>
           <button type="button" class="btn btn-ghost btn-sm" id="quick-action-remediation-btn" ${hasResult ? '' : 'disabled'} title="Open remediation roadmap">
-            <i data-lucide="map" class="icon-16" style="margin-right:4px;"></i> Remediate
+            <i data-lucide="map" class="icon-16"></i> Remediate
           </button>
         </div>
       </div>
@@ -1703,33 +1703,33 @@ export class AnalyzeView {
     );
     const inVsCode = hasVsCodeApi || inVsCodeHost;
     const badge = inVsCode
-      ? `<span class="ti-badge" style="background:rgba(16,185,129,0.15);color:var(--success);font-size:0.75rem;">● Active</span>`
-      : `<a href="https://marketplace.visualstudio.com/items?itemName=SimpleBeacon.simplebeacon-vscode" target="_blank" rel="noopener" class="btn btn-primary btn-sm" style="flex-shrink:0;">Install</a>`;
+      ? `<span class="ti-badge analyze-vscode-active-badge">● Active</span>`
+      : `<a href="https://marketplace.visualstudio.com/items?itemName=SimpleBeacon.simplebeacon-vscode" target="_blank" rel="noopener" class="btn btn-primary btn-sm">Install</a>`;
     const subtitle = inVsCode
       ? (hasVsCodeApi
         ? 'Extension is running in this editor. Enhanced analysis active: full-directory scan, real-time monitoring, and deep code insights.'
         : 'Extension is running in this editor. Real-time monitoring, AI analysis, code map, and remediation guide are active.')
       : 'Real-time file monitoring, enhanced AI analysis, code map, and remediation guide — directly in your editor.';
     const sendToVscodeBtn = (!inVsCode && this.projectPath)
-      ? `<a href="vscode://simplebeacon.fix?projectPath=${encodeURIComponent(this.projectPath)}&scanId=${encodeURIComponent(this.lastScanId || '')}" class="btn btn-primary btn-sm" style="flex-shrink:0;margin-left:8px;">Open in VS Code</a>`
+      ? `<a href="vscode://simplebeacon.fix?projectPath=${encodeURIComponent(this.projectPath)}&scanId=${encodeURIComponent(this.lastScanId || '')}" class="btn btn-primary btn-sm">Open in VS Code</a>`
       : '';
     // Only show sync button when acquireVsCodeApi is available (true webview panel)
     // Simple Browser has no API access, so sync is not available there
     const syncBtn = hasVsCodeApi
-      ? `<button type="button" class="btn btn-ghost btn-sm" id="vscode-sync-report-btn" style="flex-shrink:0;margin-left:8px;font-size:0.75rem;" title="Push current scan report to the sidebar">🔄 Sync</button>`
+      ? `<button type="button" class="btn btn-ghost btn-sm analyze-vscode-sync-btn" id="vscode-sync-report-btn" title="Push current scan report to the sidebar">🔄 Sync</button>`
       : '';
     return `
-      <div class="card analyze-vscode-card" style="margin-top:var(--space-3);padding:var(--space-3);background:linear-gradient(135deg,rgba(99,102,241,0.06) 0%,rgba(139,92,246,0.04) 100%);border-color:rgba(99,102,241,0.15);">
-        <div style="display:flex;align-items:flex-start;gap:var(--space-3);">
-          <div style="flex-shrink:0;width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.25rem;">
+      <div class="card analyze-vscode-card">
+        <div class="analyze-vscode-inner">
+          <div class="analyze-vscode-icon">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m4 4 16 16"/><path d="m20 4-16 16"/></svg>
           </div>
-          <div style="flex:1;min-width:0;">
-            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--space-2);">
-              <p class="card-title" style="margin:0;font-size:0.95rem;">VS Code Extension</p>
-              <div style="display:flex;align-items:center;">${badge}${syncBtn}${sendToVscodeBtn}</div>
+          <div class="analyze-vscode-content">
+            <div class="analyze-vscode-header">
+              <p class="analyze-vscode-title">VS Code Extension</p>
+              <div class="analyze-vscode-actions">${badge}${syncBtn}${sendToVscodeBtn}</div>
             </div>
-            <p class="text-muted" style="font-size:var(--font-size-xs);margin:var(--space-1) 0 0;">
+            <p class="analyze-vscode-subtitle text-muted">
               ${escapeHtml(subtitle)}
             </p>
           </div>

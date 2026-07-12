@@ -6,7 +6,7 @@ import { themeService } from './services/themeService.js';
 import { Router, PUBLIC_VIEWS } from './router.js';
 import { TrustView } from './views/TrustView.js?v=20260711admin1';
 import { RepositoryHealthView } from './views/RepositoryHealthView.js?v=20260711admin1';
-import { DashboardView } from './views/DashboardView.js?v=20260711redesign1';
+import { DashboardView } from './views/DashboardView.js?v=20260711redesign2';
 import { ResultsView } from './views/ResultsView.js?v=20260711admin1';
 import { SettingsView } from './views/SettingsView.js?v=20260709ollama3';
 import { ToolsView } from './views/ToolsView.js';
@@ -157,6 +157,8 @@ class SimplebeaconDashboard {
         this._currentViewName = 'dashboard';
     }
     async init() {
+        // Remove any stale full-page drag overlay that may have leaked from a previous session.
+        document.querySelectorAll('.sb-global-drag-overlay').forEach(el => el.remove());
         themeService.init();
         this.setupShell();
         this.setupKeyboard();
@@ -476,7 +478,7 @@ class SimplebeaconDashboard {
             </details>
           </div>
 
-          <p style="margin-top:var(--space-4);"><a href="/dashboard/dashboard" class="btn btn-secondary btn-block" onclick="document.getElementById('token-prompt-modal')?.remove();window.location.hash='#/dashboard';return false;">&#8592; Return to Dashboard</a></p>
+          <p style="margin-top:var(--space-4);"><a href="/dashboard/#/dashboard" class="btn btn-secondary btn-block" onclick="document.getElementById('token-prompt-modal')?.remove();window.location.hash='#/dashboard';return false;">&#8592; Return to Dashboard</a></p>
         </div>
       </div>
     `;
