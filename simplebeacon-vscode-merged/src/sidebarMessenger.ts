@@ -137,12 +137,14 @@ function buildDashboardBrowserHtml(url: string, nonce: string, csp: string, data
 <style>
 html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #0B0F19; }
 body { display: flex; flex-direction: column; }
-.url-bar { display: flex; align-items: center; gap: 4px; padding: 6px 10px; background: #0d1117; border-bottom: 1px solid #21262d; flex-shrink: 0; }
-.url-bar input { flex: 1; background: #161b22; border: 1px solid #30363d; border-radius: 6px; color: #c9d1d9; padding: 4px 10px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; text-align: center; }
+.url-bar { display: flex; align-items: center; gap: 6px; padding: 6px 10px; background: #0d1117; border-bottom: 1px solid #21262d; flex-shrink: 0; }
+.url-bar input { flex: 1; background: #161b22; border: 1px solid #30363d; border-radius: 12px; color: #c9d1d9; padding: 5px 12px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; text-align: center; }
 .url-bar input:focus { outline: none; border-color: #58a6ff; text-align: left; }
 .url-bar button { display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; background: transparent; border: none; border-radius: 4px; color: #9ca3af; cursor: pointer; padding: 0; }
 .url-bar button:hover:not(:disabled) { background: #21262d; color: #e2e8f0; }
 .url-bar button:disabled { opacity: 0.35; cursor: not-allowed; }
+.url-bar .nav-actions { display: flex; align-items: center; gap: 2px; }
+.url-bar .url-actions { display: flex; align-items: center; gap: 2px; margin-left: 4px; }
 iframe { border: 0; width: 100%; flex: 1; display: block; }
 .fallback { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #e2e8f0; font-family: sans-serif; padding: 20px; text-align: center; display: none; }
 .fallback a { color: #60a5fa; }
@@ -150,11 +152,15 @@ iframe { border: 0; width: 100%; flex: 1; display: block; }
 </head>
 <body>
 <div class="url-bar">
-  <button id="backBtn" title="Go back" aria-label="Go back"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
-  <button id="fwdBtn" title="Go forward" aria-label="Go forward"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
-  <button id="reloadBtn" title="Reload" aria-label="Reload"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/></svg></button>
+  <div class="nav-actions">
+    <button id="backBtn" title="Go back" aria-label="Go back"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <button id="fwdBtn" title="Go forward" aria-label="Go forward"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+    <button id="reloadBtn" title="Reload" aria-label="Reload"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/></svg></button>
+  </div>
   <input id="urlInput" type="text" value="${url}" spellcheck="false" />
-  <button id="openExternalBtn" title="Open in Browser" aria-label="Open in Browser"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></button>
+  <div class="url-actions">
+    <button id="openExternalBtn" title="Open in Simple Browser" aria-label="Open in Simple Browser"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg></button>
+  </div>
 </div>
 <iframe id="dashFrame" src="${url}" ${sandboxAttr} allow="fullscreen"></iframe>
 <div id="dashFallback" class="fallback">
@@ -219,19 +225,26 @@ iframe { border: 0; width: 100%; flex: 1; display: block; }
       });
     }
   });
+  function navigateToUrl(url) {
+    if (!url) return;
+    if (!/^https?:\/\//i.test(url) && !/^\//.test(url)) { url = 'http://' + url; }
+    if (!/^https?:\/\//i.test(url)) { url = dashboardOrigin + url; }
+    if (isDashboardUrl(url)) {
+      if (urlInput) urlInput.value = url;
+      if (frame) frame.src = url;
+      vscode.postMessage({ command: 'navigate', url });
+    } else {
+      vscode.postMessage({ command: 'openTeamDashboardInSimpleBrowser', url });
+    }
+  }
   if (urlInput) {
     urlInput.addEventListener('keydown', function(e) {
       if (e.key === 'Enter') {
-        let url = urlInput.value.trim();
-        if (!url) return;
-        if (!/^https?:\/\//i.test(url) && !/^\//.test(url)) { url = 'http://' + url; }
-        if (!/^https?:\/\//i.test(url)) { url = dashboardOrigin + url; }
-        if (isDashboardUrl(url)) {
-          vscode.postMessage({ command: 'navigate', url });
-        } else {
-          vscode.postMessage({ command: 'openTeamDashboardInSimpleBrowser', url });
-        }
+        navigateToUrl(urlInput.value.trim());
       }
+    });
+    urlInput.addEventListener('change', function() {
+      navigateToUrl(urlInput.value.trim());
     });
   }
   if (backBtn) {
@@ -250,6 +263,20 @@ iframe { border: 0; width: 100%; flex: 1; display: block; }
     reloadBtn.addEventListener('click', function() {
       try { if (frame && frame.contentWindow) frame.contentWindow.location.reload(); } catch (err) {}
       vscode.postMessage({ command: 'reload' });
+    });
+  }
+  // Keep the URL input in sync when the iframe finishes a same-origin navigation.
+  if (frame) {
+    frame.addEventListener('load', function() {
+      try {
+        if (frame.contentWindow && frame.contentWindow.location) {
+          const loc = frame.contentWindow.location;
+          const current = loc.href;
+          if (current && urlInput && urlInput.value !== current) {
+            urlInput.value = current;
+          }
+        }
+      } catch (err) {}
     });
   }
   if (openExternalBtn) { openExternalBtn.addEventListener('click', function() { vscode.postMessage({ command: 'openTeamDashboardInSimpleBrowser', url: urlInput.value || baseUrl }); }); }
