@@ -1,12 +1,12 @@
 import { scanService } from './services/scanService.js?v=20260711dedup2';
 import { platformService } from './services/platformService.js?v=20260525jsonguard1';
 import { billingService } from './services/billingService.js?v=20260525jsonfixbilling1';
-import { authService, apiBase } from './services/authService.js?v=20260711admin1';
+import { authService, apiBase } from './services/authService.js?v=20260711signinsync1';
 import { themeService } from './services/themeService.js';
 import { Router, PUBLIC_VIEWS } from './router.js';
 import { TrustView } from './views/TrustView.js?v=20260711admin1';
 import { RepositoryHealthView } from './views/RepositoryHealthView.js?v=20260711admin1';
-import { DashboardView } from './views/DashboardView.js?v=20260711redesign2';
+import { DashboardView } from './views/DashboardView.js?v=20260713dropfix1';
 import { ResultsView } from './views/ResultsView.js?v=20260711admin1';
 import { SettingsView } from './views/SettingsView.js?v=20260709ollama3';
 import { ToolsView } from './views/ToolsView.js';
@@ -14,7 +14,7 @@ import { PlatformView } from './views/PlatformView.js?v=20260601platformmetrics1
 import { QualityView } from './views/QualityView.js?v=20260711admin1';
 import { HelpView, FeaturesView } from './views/HelpView.js';
 import { AuditView } from './views/AuditView.js?v=20260711admin1';
-import { AnalyzeView } from './views/AnalyzeView.js?v=20260711redesign2';
+import { AnalyzeView } from './views/AnalyzeView.js?v=20260713dropfix1';
 import { SecurityView } from './views/SecurityView.js?v=20260711admin1';
 import { PricingView } from './views/PricingView.js';
 import { AboutView } from './views/AboutView.js';
@@ -30,7 +30,8 @@ import { shouldShowOnboarding, renderOnboarding, bindOnboarding } from './compon
 import { showUpgradeModal } from './components/UpgradeModal.js';
 import { showLoginModal } from './components/LoginModal.js?v=20260609token4';
 import { isDemoMode, isSignedOffMode, isLocalDevHost, demoReadOnlyMessage } from './demoMode.js';
-import { showToast, resolveDashboardProjectPath } from './utils.js';
+import { showToast } from './utils/dom.js';
+import { resolveDashboardProjectPath } from './utils-lib/path.js';
 import { fetchAnalyzeProviders } from './services/analyzeService.js?v=20260710inventory1';
 /**
  * Vault unlock url.
@@ -1113,20 +1114,23 @@ class SimplebeaconDashboard {
             (_a = document.getElementById('readonly-banner')) === null || _a === void 0 ? void 0 : _a.remove();
         }
         if (!readOnlyPreview && CLOUD_TEAMS_VIEWS.has(view) && authService.isAuthenticated()) {
-            const plan = this.state.billingPlan || billingService.plan;
-            const status = this.state.billingStatus || billingService.status;
-            if (plan || status) {
-                const allowed = billingService.hasCloudTeamsAccess(plan, status);
-                if (!allowed && !isFreeTier) {
-                    if (isLocalSelfHosted() || requiresAuthGate()) {
-                        showToast('Sign in with a local account or use npm run dashboard:v1-internal', 'info');
-                        window.location.hash = '#/signin';
+            // Admin bypass: admins can access all Cloud Teams views regardless of subscription
+            if (!this.isCurrentUserAdmin()) {
+                const plan = this.state.billingPlan || billingService.plan;
+                const status = this.state.billingStatus || billingService.status;
+                if (plan || status) {
+                    const allowed = billingService.hasCloudTeamsAccess(plan, status);
+                    if (!allowed && !isFreeTier) {
+                        if (isLocalSelfHosted() || requiresAuthGate()) {
+                            showToast('Sign in with a local account or use npm run dashboard:v1-internal', 'info');
+                            window.location.hash = '#/signin';
+                        }
+                        else {
+                            showToast('Use the free CLI — see About for install', 'info');
+                            window.location.hash = '#/about';
+                        }
+                        return;
                     }
-                    else {
-                        showToast('Use the free CLI — see About for install', 'info');
-                        window.location.hash = '#/about';
-                    }
-                    return;
                 }
             }
         }

@@ -1,4 +1,7 @@
-import { escapeHtml, formatPercent, showToast, apiUrl } from '../utils.js';
+import { escapeHtml } from '../utils/string.js';
+import { formatPercent } from '../utils/number.js';
+import { showToast } from '../utils/dom.js';
+import { apiUrl } from '../utils/url.js';
 import { resolveDisplayScore, formatScanScopeSummary, formatScanInventoryNote } from '../services/analyzeService.js';
 /** One-time migration: convert old string-format sb_drop_paths to array format,
  *  and remove self-referential bogus entries (stored path equals folder name). */
@@ -707,15 +710,17 @@ export function bindScanStatus(container, options = {}) {
             dragDepth = 0;
             dragOverlay.classList.remove('is-active');
             const dt = event.dataTransfer;
-            const items = (_a = dt) === null || _a === void 0 ? void 0 : _a.items;
-            const files = (_b = dt) === null || _b === void 0 ? void 0 : _b.files;
+            // Snapshot data transfer objects immediately; some browsers/webviews clear the live
+            // DataTransferItemList once the event handler yields.
+            const itemArray = ((_a = dt) === null || _a === void 0 ? void 0 : _a.items) ? Array.from(dt.items) : [];
+            const fileArray = ((_b = dt) === null || _b === void 0 ? void 0 : _b.files) ? Array.from(dt.files) : [];
             let entryName = '';
             let actualPath = '';
 
             // 0. Try modern File System Access API (Chrome/Edge) — gives reliable directory handle and name
-            if (items && items.length > 0 && typeof items[0].getAsFileSystemHandle === 'function') {
+            if (itemArray.length > 0 && typeof itemArray[0].getAsFileSystemHandle === 'function') {
                 try {
-                    const handle = await items[0].getAsFileSystemHandle();
+                    const handle = await itemArray[0].getAsFileSystemHandle();
                     if (handle && handle.kind === 'directory') {
                         entryName = handle.name || '';
                     }
@@ -723,14 +728,14 @@ export function bindScanStatus(container, options = {}) {
             }
 
             // 1. Try webkitGetAsEntry + getAsFile().path (Electron / VS Code: webview with enableDragAndDrop)
-            if (items === null || items === void 0 ? void 0 : items.length) {
-                const entry = (_d = (_c = items[0]).webkitGetAsEntry) === null || _d === void 0 ? void 0 : _d.call(_c);
+            if (itemArray === null || itemArray === void 0 ? void 0 : itemArray.length) {
+                const entry = (_d = (_c = itemArray[0]).webkitGetAsEntry) === null || _d === void 0 ? void 0 : _d.call(_c);
                 if (entry === null || entry === void 0 ? void 0 : entry.isDirectory) {
                     if (!entryName) entryName = entry.name || '';
                     // Try to derive real path from files inside the directory (Electron/VS Code webviews expose .path)
-                    if (files === null || files === void 0 ? void 0 : files.length) {
-                        for (let i = 0; i < files.length; i++) {
-                            const file = files[i];
+                    if (fileArray === null || fileArray === void 0 ? void 0 : fileArray.length) {
+                        for (let i = 0; i < fileArray.length; i++) {
+                            const file = fileArray[i];
                             if (file.path) {
                                 const normalized = file.path.replace(/\\/g, '/');
                                 const lastSlash = normalized.lastIndexOf('/');
@@ -860,8 +865,8 @@ export function bindScanStatus(container, options = {}) {
                         return;
                     }
                 }
-                if ((entry === null || entry === void 0 ? void 0 : entry.isFile) && (files === null || files === void 0 ? void 0 : files.length)) {
-                    const file = files[0];
+                if ((entry === null || entry === void 0 ? void 0 : entry.isFile) && (fileArray === null || fileArray === void 0 ? void 0 : fileArray.length)) {
+                    const file = fileArray[0];
                     const path = file.path || file.name;
                     if (path) {
                         input.value = path;
@@ -874,8 +879,8 @@ export function bindScanStatus(container, options = {}) {
                 }
             }
             // Fallback for browsers without File System API
-            if (files === null || files === void 0 ? void 0 : files.length) {
-                const file = files[0];
+            if (fileArray === null || fileArray === void 0 ? void 0 : fileArray.length) {
+                const file = fileArray[0];
                 const path = file.path || file.name;
                 if (path) {
                     input.value = path;
