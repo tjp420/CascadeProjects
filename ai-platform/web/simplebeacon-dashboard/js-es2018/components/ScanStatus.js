@@ -1,8 +1,8 @@
-import { escapeHtml, formatPercent, showToast } from '../utils.js';
+import { escapeHtml, formatPercent, formatNumber, showToast } from '../utils.js';
 import { resolveDisplayScore, formatScanScopeSummary, formatScanInventoryNote, getScanFileMetrics } from '../services/analyzeService.js?v=20260710inventory1';
 import { runLocalScan } from '../services/localScanService.js';
 import { isLocalPath, probeAgent, scanViaAgent, probeAgent4000, scanViaAgent4000, renderAgentCertificate } from '../services/localAgentService.js?v=20260710agentcache3';
-import { runSandboxedDirectoryScan, isDroppedFolder, scanDroppedItems } from '../services/browserSandboxScanService.js?v=20260711entropy1';
+import { runSandboxedDirectoryScan, isDroppedFolder, scanDroppedItems } from '../services/browserSandboxScanService.js?v=20260711scanfix1';
 /**
  * Resolve initial scan root.
  * @param {number} report
@@ -939,7 +939,8 @@ export function bindScanStatus(container, options = {}) {
                 terminal.textContent = 'Reading dropped items…';
             try {
                 const droppedFolder = await isDroppedFolder(items);
-                const folderName = (items[0] && items[0].getAsFile && items[0].getAsFile().name) || 'selected';
+                const firstFile = items[0] && typeof items[0].getAsFile === 'function' ? items[0].getAsFile() : null;
+                const folderName = (firstFile && firstFile.name) || 'selected';
                 if (droppedFolder) {
                     const report = await scanDroppedItems(items, {
                         onLog: (entry) => {
@@ -976,8 +977,9 @@ export function bindScanStatus(container, options = {}) {
                 }
             }
             catch (err) {
+                console.error('[ScanStatus] Sandbox scan failed:', err);
                 if (errorMessage)
-                    errorMessage.textContent = err.message || 'Scan failed.';
+                    errorMessage.textContent = (err && err.message) || 'Scan failed.';
                 setDropzoneState('error');
             }
         });

@@ -269,6 +269,18 @@ async function analyzeDirectory({ rootName, fileQueue }, { maxFileSize, onLog, o
 
     worker.onerror = (err) => {
       console.error('[SimpleBeacon] Scan worker error:', err);
+      for (const [virtualPath, resolve] of pending) {
+        resolve({ name: virtualPath.split('/').pop() || virtualPath, virtualPath, size: 0, fileIssues: [], fileFindings: [] });
+      }
+      pending.clear();
+    };
+
+    worker.onmessageerror = (err) => {
+      console.error('[SimpleBeacon] Scan worker message error:', err);
+      for (const [virtualPath, resolve] of pending) {
+        resolve({ name: virtualPath.split('/').pop() || virtualPath, virtualPath, size: 0, fileIssues: [], fileFindings: [] });
+      }
+      pending.clear();
     };
 
     for (let i = 0; i < fileQueue.length; i++) {
@@ -284,6 +296,12 @@ async function analyzeDirectory({ rootName, fileQueue }, { maxFileSize, onLog, o
         const content = await file.text();
         const promise = new Promise((resolve) => {
           pending.set(item.virtualPath, resolve);
+          setTimeout(() => {
+            if (pending.has(item.virtualPath)) {
+              pending.delete(item.virtualPath);
+              resolve({ name: file.name, virtualPath: item.virtualPath, size: file.size, fileIssues: [], fileFindings: [] });
+            }
+          }, 10000);
         });
 
         worker.postMessage({
@@ -454,7 +472,8 @@ export async function scanDroppedItems(items, options = {}) {
   }
 
   const first = items[0];
-  const name = (first && first.getAsFile && first.getAsFile().name) || 'dropped-folder';
+  const firstFile = first && typeof first.getAsFile === 'function' ? first.getAsFile() : null;
+  const name = (firstFile && firstFile.name) || 'dropped-folder';
 
   // Preferred: File System Access API handles.
   if (typeof first.getAsFileSystemHandle === 'function') {

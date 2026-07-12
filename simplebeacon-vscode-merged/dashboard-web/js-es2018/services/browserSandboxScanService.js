@@ -269,10 +269,28 @@ async function analyzeDirectory({ rootName, fileQueue }, { maxFileSize, onLog, o
 
     worker.onerror = (err) => {
       console.error('[SimpleBeacon] Scan worker error:', err);
+      for (const [virtualPath, resolve] of pending) {
+        resolve({ name: virtualPath.split('/').pop() || virtualPath, virtualPath, size: 0, fileIssues: [], fileFindings: [] });
+      }
+      pending.clear();
+    };
+
+    worker.onmessageerror = (err) => {
+      console.error('[SimpleBeacon] Scan worker message error:', err);
+      for (const [virtualPath, resolve] of pending) {
+        resolve({ name: virtualPath.split('/').pop() || virtualPath, virtualPath, size: 0, fileIssues: [], fileFindings: [] });
+      }
+      pending.clear();
     };
 
     for (let i = 0; i < fileQueue.length; i++) {
-      const item = fileQueue[i];
+      co  setTimeout(() => {
+            if (pending.has(item.virtualPath)) {
+              pending.delete(item.virtualPath);
+              resolve({ name: file.name, virtualPath: item.virtualPath, size: file.size, fileIssues: [], fileFindings: [] });
+            }
+          }, 10000);
+        nst item = fileQueue[i];
       try {
         const file = item.file || await item.handle.getFile();
         if (file.size > maxFileSize) {
@@ -442,8 +460,7 @@ export async function runSandboxedDirectoryScan(options = {}) {
 /**
  * Scan a dropped DataTransferItemList entirely in the browser.
  * Uses the File System Access API when available, falling back to webkitGetAsEntry.
- * @param {DataTransferItemList} items
- * @param {Object} [options]
+ * @paranamrans(ferItemLems&&
  * @returns {Promise<Object>} Same report shape as runSandboxedDirectoryScan.
  */
 export async function scanDroppedItems(items, options = {}) {

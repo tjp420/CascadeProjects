@@ -3,7 +3,7 @@ import { evaluateFunnelMetrics, getFunnelCopy } from '../utils/funnelTrigger.js'
 import { LocalScanService } from '../services/localScanService.js?v=20260709noise3';
 import { fingerprintDirectory, formatFingerprint } from '../services/fingerprintService.js';
 import { probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus, getAgentDownloadUrl, detectPlatform, getPlatformLabel, getInstallInstructions, getAgentFallbackMessage, probeAgent4000, scanViaAgent4000, renderAgentCertificate } from '../services/localAgentService.js?v=20260711themefix1';
-import { runSandboxedDirectoryScan, scanDroppedItems, isDroppedFolder } from '../services/browserSandboxScanService.js?v=20260711entropy1';
+import { runSandboxedDirectoryScan, scanDroppedItems, isDroppedFolder } from '../services/browserSandboxScanService.js?v=20260711scanfix1';
 // simplebeacon:production-leak-intent: sample-json - Legitimate documentation about sample file patterns in analysis results
 import { analyzePath, scanPath, summarizeReport, fetchAnalyzeProviders, fetchRepositoryInventory, fetchCodebaseAnalysis, enrichScanReport, fetchZscriptModReport, shouldFetchZscriptReport, isLegacyScanReport, buildMonorepoScopeNote, buildPathInventoryProvenance, renderInventoryProvenanceHtml, refreshPathInventory, liveInventoryForPath, renderScanScopePanel, isSimplebeaconReport, normalizeSimplebeaconReport, aiProviderSupportsSummary, getScanFileMetrics, resolveAutoAnalysisMode, buildScanConclusion, buildConsolidationConclusion, buildFictionDigestPayload, sanitizeFictionDigestExport, resolveCompleteScanTargetPath, normalizeProjectPath, filterIssuesByKind, preparePlatformResultsReport, fetchCompleteAuditReport, fetchAnalyzeExportBundleZip, fetchEuAiActAuditReport, openAuditReportPrintWindow, previewAuditExportTier, auditExportButtonLabel, fetchDataCleanupScan, ensureDashboardApiReady, assertCompleteScanComplianceFresh, assertCompleteScanFileReductionFresh, fetchUnderstandSnippet, isCodebaseReport, fetchComplianceChecklist, fetchProjectNpmAudit, prepareGithubRepo, fetchAnalyzeTestSources, isAnalyzeProviderConfigured, uploadDirectoryAndAnalyze } from '../services/analyzeService.js?v=20260711reportv11';
 import { isRemoteRepoUrl, sourceChipTitle } from '../lib/analyzePathSources.js';
@@ -5182,7 +5182,8 @@ export class AnalyzeView {
                     analyzeTerminal.textContent = 'Reading dropped items…';
                 try {
                     const droppedFolder = await isDroppedFolder(items);
-                    const folderName = (items[0] && items[0].getAsFile && items[0].getAsFile().name) || 'selected';
+                    const firstFile = items[0] && typeof items[0].getAsFile === 'function' ? items[0].getAsFile() : null;
+                    const folderName = (firstFile && firstFile.name) || 'selected';
                     if (droppedFolder) {
                         const report = await scanDroppedItems(items, {
                             onLog: (entry) => {
@@ -5218,8 +5219,9 @@ export class AnalyzeView {
                     }
                 }
                 catch (err) {
+                    console.error('[AnalyzeView] Sandbox scan failed:', err);
                     if (analyzeErrorMessage)
-                        analyzeErrorMessage.textContent = err.message || 'Scan failed.';
+                        analyzeErrorMessage.textContent = (err && err.message) || 'Scan failed.';
                     setAnalyzeDropzoneState('error');
                 }
             });
