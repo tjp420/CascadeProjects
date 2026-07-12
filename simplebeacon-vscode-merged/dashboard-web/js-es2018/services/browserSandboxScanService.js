@@ -515,7 +515,7 @@ export async function scanDroppedItems(items, options = {}) {
   const { maxFileSize = DEFAULT_MAX_FILE_SIZE, maxFiles = DEFAULT_MAX_FILES, onLog, onProgress } = options;
 
   if (!items || items.length === 0) {
-    throw new Error('No items were dropped.');
+    throw new Error('No items were dropped. Drop a folder or supported code files to scan.');
   }
 
   const first = items[0];
