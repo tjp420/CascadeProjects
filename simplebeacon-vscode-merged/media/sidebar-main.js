@@ -227,7 +227,118 @@
     if(tab==='settings'){let sm=document.getElementById('settingsMenuTab'); if(sm){sm.classList.remove('hidden');sm.style.display='block';}}
   }
   document.querySelectorAll('#sidebarTabBar .sidebar-tab-item').forEach(function(t){t.addEventListener('click', function(){_switchSidebarTab(t.getAttribute('data-tab'));});});
-  _switchSidebarTab('dashboard');
+  // Sidebar address bar state and helpers
+  const _sbBaseUrl = (typeof window !== 'undefined' && window.__SB_DATA_SERVER_URL__) ? window.__SB_DATA_SERVER_URL__ : 'http://127.0.0.1:54358';
+  const _sbPagePaths = {
+    'dashboard': '/dashboard/dashboard',
+    'scan': '/scan',
+    'analyze': '/dashboard/analyze',
+    'advanced': '/advanced',
+    'settings': '/settings',
+    'team': '/dashboard/team',
+    'analyzeDetailPanel': '/dashboard/analyze',
+    'certificateDetailPanel': '/dashboard/certificate',
+    'codeMapDetailPanel': '/dashboard/code-map',
+    'roadmapDetailPanel': '/dashboard/roadmap',
+    'aiContextDetailPanel': '/dashboard/ai-context',
+    'uploadDetailPanel': '/dashboard/upload',
+    'securityDetailPanel': '/dashboard/security',
+    'trustDetailPanel': '/dashboard/trust',
+    'auditDetailPanel': '/dashboard/audit',
+    'qualityDetailPanel': '/dashboard/quality',
+    'assessmentsDetailPanel': '/dashboard/assessments',
+    'platformDetailPanel': '/dashboard/platform',
+    'profileDetailPanel': '/dashboard/profile',
+    'complianceDetailPanel': '/dashboard/compliance',
+    'repoHealthDetailPanel': '/dashboard/repository-health',
+    'analyticsDetailPanel': '/dashboard/analytics',
+    'teamDetailPanel': '/dashboard/team',
+    'settingsDetailPanelTab': '/settings',
+    'diagnoseDetailPanel': '/diagnose'
+  };
+  function _sbPathFor(key) {
+    return _sbPagePaths[key] || '/dashboard/dashboard';
+  }
+  let _sbHistory = [];
+  let _sbHistoryIndex = -1;
+  function _updateAddressBar(key) {
+    const path = _sbPathFor(key);
+    const fullUrl = _sbBaseUrl.replace(/\/$/, '') + (path.startsWith('/') ? path : '/' + path);
+    const input = document.getElementById('sbUrlInput');
+    const backBtn = document.getElementById('sbBackBtn');
+    const fwdBtn = document.getElementById('sbForwardBtn');
+    if (input) input.value = fullUrl;
+    if (backBtn) backBtn.disabled = _sbHistoryIndex <= 0;
+    if (fwdBtn) fwdBtn.disabled = _sbHistoryIndex >= _sbHistory.length - 1;
+  }
+  function _pushSidebarHistory(key) {
+    if (_sbHistoryIndex >= 0 && _sbHistory[_sbHistoryIndex] === key) return;
+    _sbHistory = _sbHistory.slice(0, _sbHistoryIndex + 1);
+    _sbHistory.push(key);
+    _sbHistoryIndex++;
+    _updateAddressBar(key);
+  }
+  function _goSidebarHistory(delta) {
+    const next = _sbHistoryIndex + delta;
+    if (next < 0 || next >= _sbHistory.length) return;
+    _sbHistoryIndex = next;
+    const key = _sbHistory[next];
+    if (key && key.endsWith('DetailPanel')) {
+      const detail = document.getElementById(key);
+      if (detail) {
+        _closeDetailPanels();
+        detail.classList.remove('hidden'); detail.classList.add('detail-active'); detail.style.display = 'block';
+        document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');p.classList.add('hidden');});
+        document.body.classList.add('detail-panel-open');
+      } else {
+        _switchSidebarTab('dashboard');
+      }
+    } else {
+      _switchSidebarTab(key);
+    }
+    _updateAddressBar(key);
+  }
+  const _origSwitchSidebarTab = _switchSidebarTab;
+  _switchSidebarTab = function(tab) {
+    _origSwitchSidebarTab(tab);
+    _pushSidebarHistory(tab);
+  };
+  const _origOpenSidebarMenu = _openSidebarMenu;
+  _openSidebarMenu = function(containerId, detailPanelId, mainWindowCommand) {
+    _origOpenSidebarMenu(containerId, detailPanelId, mainWindowCommand);
+    if (detailPanelId) _pushSidebarHistory(detailPanelId);
+  };
+  const _sbBackBtn = document.getElementById('sbBackBtn');
+  const _sbForwardBtn = document.getElementById('sbForwardBtn');
+  const _sbReloadBtn = document.getElementById('sbReloadBtn');
+  const _sbOpenExternalBtn = document.getElementById('sbOpenExternalBtn');
+  const _sbUrlInput = document.getElementById('sbUrlInput');
+  if (_sbBackBtn) _sbBackBtn.addEventListener('click', function() { _goSidebarHistory(-1); });
+  if (_sbForwardBtn) _sbForwardBtn.addEventListener('click', function() { _goSidebarHistory(1); });
+  if (_sbReloadBtn) _sbReloadBtn.addEventListener('click', function() { if (_sbHistoryIndex >= 0) _goSidebarHistory(0); });
+  if (_sbOpenExternalBtn && _sbUrlInput) _sbOpenExternalBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openExternalUrl', url: _sbUrlInput.value}); });
+  if (_sbUrlInput) {
+    _sbUrlInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && window.vscode) {
+        window.vscode.postMessage({command: 'openExternalUrl', url: _sbUrlInput.value.trim()});
+      }
+    });
+  }
+  // Watch for detail panels becoming active and update the address bar.
+  const _sbObserver = new MutationObserver(function(mutations) {
+    mutations.forEach(function(mutation) {
+      if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+        const el = mutation.target;
+        if (el.id && el.id.endsWith('DetailPanel') && el.classList.contains('detail-active') && el.style.display !== 'none') {
+          _pushSidebarHistory(el.id);
+        }
+      }
+    });
+  });
+  document.querySelectorAll('[id$="DetailPanel"]').forEach(function(el) {
+    _sbObserver.observe(el, { attributes: true, attributeFilter: ['class'] });
+  });
+  _pushSidebarHistory('dashboard');
   let _statusCard=document.getElementById('statusCard');if(_statusCard){_statusCard.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'diagnose'}); });}
   let _serverCard=document.getElementById('serverCard');if(_serverCard){_serverCard.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openCloudInBrowser'}); });}
   let _analyzeDropdownHeader=document.getElementById('analyzeDropdownHeader');if(_analyzeDropdownHeader){_analyzeDropdownHeader.addEventListener('click', function() { const header=document.getElementById('analyzeDropdownHeader'); const detail=document.getElementById('analyzeDetailPanel'); _closeDetailPanels(); if(header){header.style.display='none';} if(detail){detail.classList.remove('hidden');detail.classList.add('detail-active');detail.style.display='block';} document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');p.classList.add('hidden');}); document.body.classList.add('detail-panel-open'); });}
