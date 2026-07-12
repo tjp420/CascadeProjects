@@ -182,25 +182,13 @@ iframe { border: 0; width: 100%; flex: 1; display: block; }
       return false;
     }
   }
-  function normalizeUrl(url) {
-    try {
-      const u = new URL(url);
-      if (u.searchParams.has('_')) {
-        u.searchParams.delete('_');
-      }
-      return u.toString();
-    } catch (err) {
-      return url;
-    }
-  }
   function updateUrlBar(url, canGoBack, canGoForward) {
     if (urlInput) urlInput.value = url;
     if (backBtn) backBtn.disabled = !canGoBack;
     if (fwdBtn) fwdBtn.disabled = !canGoForward;
   }
-  // Listen for extension messages. updateUrl updates the URL bar/buttons only;
-  // navigateFrame actually changes the iframe src so route-change messages don't
-  // cause reload loops.
+  // Listen for extension messages. updateUrl updates the URL bar/buttons;
+  // navigateFrame changes the iframe src when the extension requests it.
   window.addEventListener('message', function(e) {
     if (e.data && e.data.command === 'updateUrl') {
       updateUrlBar(e.data.url, e.data.canGoBack, e.data.canGoForward);
@@ -246,9 +234,24 @@ iframe { border: 0; width: 100%; flex: 1; display: block; }
       }
     });
   }
-  if (backBtn) { backBtn.addEventListener('click', function() { vscode.postMessage({ command: 'back' }); }); }
-  if (fwdBtn) { fwdBtn.addEventListener('click', function() { vscode.postMessage({ command: 'forward' }); }); }
-  if (reloadBtn) { reloadBtn.addEventListener('click', function() { vscode.postMessage({ command: 'reload' }); }); }
+  if (backBtn) {
+    backBtn.addEventListener('click', function() {
+      try { if (frame && frame.contentWindow) frame.contentWindow.history.back(); } catch (err) {}
+      vscode.postMessage({ command: 'back' });
+    });
+  }
+  if (fwdBtn) {
+    fwdBtn.addEventListener('click', function() {
+      try { if (frame && frame.contentWindow) frame.contentWindow.history.forward(); } catch (err) {}
+      vscode.postMessage({ command: 'forward' });
+    });
+  }
+  if (reloadBtn) {
+    reloadBtn.addEventListener('click', function() {
+      try { if (frame && frame.contentWindow) frame.contentWindow.location.reload(); } catch (err) {}
+      vscode.postMessage({ command: 'reload' });
+    });
+  }
   if (openExternalBtn) { openExternalBtn.addEventListener('click', function() { vscode.postMessage({ command: 'openTeamDashboardInSimpleBrowser', url: urlInput.value || baseUrl }); }); }
   if (openLink) {
     openLink.addEventListener('click', function(e) {
