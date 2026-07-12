@@ -2,7 +2,7 @@ import { escapeHtml, formatPercent, formatNumber, showToast } from '../utils.js'
 import { resolveDisplayScore, formatScanScopeSummary, formatScanInventoryNote, getScanFileMetrics } from '../services/analyzeService.js?v=20260710inventory1';
 import { runLocalScan } from '../services/localScanService.js';
 import { isLocalPath, probeAgent, scanViaAgent, probeAgent4000, scanViaAgent4000, renderAgentCertificate } from '../services/localAgentService.js?v=20260710agentcache3';
-import { runSandboxedDirectoryScan, isDroppedFolder, scanDroppedItems } from '../services/browserSandboxScanService.js?v=20260713dropfix1';
+import { runSandboxedDirectoryScan, isDroppedFolder, scanDroppedItems } from '../services/browserSandboxScanService.js?v=20260713dropfix2';
 /**
  * Resolve initial scan root.
  * @param {number} report
@@ -981,8 +981,26 @@ export function bindScanStatus(container, options = {}) {
             }
             catch (err) {
                 console.error('[ScanStatus] Sandbox scan failed:', err);
+                const msg = (err && err.message) || '';
+                // IDE/webview drag sources often expose the absolute path via text/uri-list
+                // or file.path even though DataTransfer items are not readable for the sandbox.
+                if (msg.includes('No items were dropped') || msg.includes('No scannable files or folders detected')) {
+                    const folderName = (fileArray[0] && fileArray[0].name) || 'selected';
+                    const fallbackPath = extractAbsoluteDroppedFolderPath(event, folderName);
+                    if (fallbackPath) {
+                        if (input) {
+                            input.value = fallbackPath;
+                            input.dataset.userModified = 'true';
+                            setLastProjectPath(fallbackPath);
+                            if (clearBtn)
+                                clearBtn.disabled = false;
+                        }
+                        runScan();
+                        return;
+                    }
+                }
                 if (errorMessage)
-                    errorMessage.textContent = (err && err.message) || 'Scan failed.';
+                    errorMessage.textContent = msg || 'Scan failed.';
                 setDropzoneState('error');
             }
         });

@@ -3,7 +3,7 @@ import { evaluateFunnelMetrics, getFunnelCopy } from '../utils/funnelTrigger.js'
 import { LocalScanService } from '../services/localScanService.js?v=20260709noise3';
 import { fingerprintDirectory, formatFingerprint } from '../services/fingerprintService.js';
 import { probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus, getAgentDownloadUrl, detectPlatform, getPlatformLabel, getInstallInstructions, getAgentFallbackMessage, probeAgent4000, scanViaAgent4000, renderAgentCertificate } from '../services/localAgentService.js?v=20260711themefix1';
-import { runSandboxedDirectoryScan, scanDroppedItems, isDroppedFolder } from '../services/browserSandboxScanService.js?v=20260713dropfix1';
+import { runSandboxedDirectoryScan, scanDroppedItems, isDroppedFolder } from '../services/browserSandboxScanService.js?v=20260713dropfix2';
 // simplebeacon:production-leak-intent: sample-json - Legitimate documentation about sample file patterns in analysis results
 import { analyzePath, scanPath, summarizeReport, fetchAnalyzeProviders, fetchRepositoryInventory, fetchCodebaseAnalysis, enrichScanReport, fetchZscriptModReport, shouldFetchZscriptReport, isLegacyScanReport, buildMonorepoScopeNote, buildPathInventoryProvenance, renderInventoryProvenanceHtml, refreshPathInventory, liveInventoryForPath, renderScanScopePanel, isSimplebeaconReport, normalizeSimplebeaconReport, aiProviderSupportsSummary, getScanFileMetrics, resolveAutoAnalysisMode, buildScanConclusion, buildConsolidationConclusion, buildFictionDigestPayload, sanitizeFictionDigestExport, resolveCompleteScanTargetPath, normalizeProjectPath, filterIssuesByKind, preparePlatformResultsReport, fetchCompleteAuditReport, fetchAnalyzeExportBundleZip, fetchEuAiActAuditReport, openAuditReportPrintWindow, previewAuditExportTier, auditExportButtonLabel, fetchDataCleanupScan, ensureDashboardApiReady, assertCompleteScanComplianceFresh, assertCompleteScanFileReductionFresh, fetchUnderstandSnippet, isCodebaseReport, fetchComplianceChecklist, fetchProjectNpmAudit, prepareGithubRepo, fetchAnalyzeTestSources, isAnalyzeProviderConfigured, uploadDirectoryAndAnalyze } from '../services/analyzeService.js?v=20260711reportv11';
 import { isRemoteRepoUrl, sourceChipTitle } from '../lib/analyzePathSources.js';
@@ -5223,8 +5223,27 @@ export class AnalyzeView {
                 }
                 catch (err) {
                     console.error('[AnalyzeView] Sandbox scan failed:', err);
+                    const msg = (err && err.message) || '';
+                    // IDE/webview drag sources often expose the absolute path via text/uri-list
+                    // or file.path even though DataTransfer items are not readable for the sandbox.
+                    if (msg.includes('No items were dropped') || msg.includes('No scannable files or folders detected')) {
+                        const folderName = (fileArray[0] && fileArray[0].name) || 'selected';
+                        const absolutePath = this.extractAbsoluteDroppedPath(event, folderName);
+                        if (absolutePath) {
+                            const pathInput = el.querySelector('#project-path-input');
+                            if (pathInput) {
+                                pathInput.value = absolutePath;
+                                this.app.state.pathInputDraft = '';
+                                this.app.state.lastProjectPath = absolutePath;
+                                this.setPathInputDisplay(pathInput, absolutePath);
+                                this.syncAnalyzeModeUi(el);
+                            }
+                            void this.runPathAnalysis(absolutePath);
+                            return;
+                        }
+                    }
                     if (analyzeErrorMessage)
-                        analyzeErrorMessage.textContent = (err && err.message) || 'Scan failed.';
+                        analyzeErrorMessage.textContent = msg || 'Scan failed.';
                     setAnalyzeDropzoneState('error');
                 }
             });
