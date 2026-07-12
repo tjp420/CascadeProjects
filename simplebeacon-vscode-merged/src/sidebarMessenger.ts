@@ -115,6 +115,15 @@ function postDashboardUrlUpdate(panel: vscode.WebviewPanel, url: string) {
   } catch { /* ignore */ }
 }
 
+function postDashboardFrameNavigate(panel: vscode.WebviewPanel, url: string) {
+  try {
+    panel.webview.postMessage({
+      command: 'navigateFrame',
+      url
+    });
+  } catch { /* ignore */ }
+}
+
 function buildDashboardBrowserHtml(url: string, nonce: string, csp: string, dataServerPort: number, panelTitle: string): string {
   const dashboardOrigin = url.replace(/^([a-z]+:\/\/[^\/]+).*/i, '$1');
   const sandboxAttr = 'sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads"';
@@ -189,17 +198,15 @@ iframe { border: 0; width: 100%; flex: 1; display: block; }
     if (backBtn) backBtn.disabled = !canGoBack;
     if (fwdBtn) fwdBtn.disabled = !canGoForward;
   }
-  // Listen for extension messages that update the URL bar. Only set the iframe src
-  // when the user explicitly requested navigation; dashboard route-change messages
-  // should only update the address bar to avoid reload loops.
-  let _pendingFrameNavigation = false;
+  // Listen for extension messages. updateUrl updates the URL bar/buttons only;
+  // navigateFrame actually changes the iframe src so route-change messages don't
+  // cause reload loops.
   window.addEventListener('message', function(e) {
     if (e.data && e.data.command === 'updateUrl') {
       updateUrlBar(e.data.url, e.data.canGoBack, e.data.canGoForward);
-      if (_pendingFrameNavigation && frame && normalizeUrl(frame.src) !== normalizeUrl(e.data.url)) {
-        _pendingFrameNavigation = false;
-        frame.src = e.data.url;
-      }
+    }
+    if (e.data && e.data.command === 'navigateFrame' && frame) {
+      frame.src = e.data.url;
     }
   });
   // Forward dashboard route-change and auth-state messages from the iframe to the extension.
@@ -232,7 +239,6 @@ iframe { border: 0; width: 100%; flex: 1; display: block; }
         if (!/^https?:\/\//i.test(url) && !/^\//.test(url)) { url = 'http://' + url; }
         if (!/^https?:\/\//i.test(url)) { url = dashboardOrigin + url; }
         if (isDashboardUrl(url)) {
-          _pendingFrameNavigation = true;
           vscode.postMessage({ command: 'navigate', url });
         } else {
           vscode.postMessage({ command: 'openTeamDashboardInSimpleBrowser', url });
@@ -240,9 +246,9 @@ iframe { border: 0; width: 100%; flex: 1; display: block; }
       }
     });
   }
-  if (backBtn) { backBtn.addEventListener('click', function() { _pendingFrameNavigation = true; vscode.postMessage({ command: 'back' }); }); }
-  if (fwdBtn) { fwdBtn.addEventListener('click', function() { _pendingFrameNavigation = true; vscode.postMessage({ command: 'forward' }); }); }
-  if (reloadBtn) { reloadBtn.addEventListener('click', function() { _pendingFrameNavigation = true; vscode.postMessage({ command: 'reload' }); }); }
+  if (backBtn) { backBtn.addEventListener('click', function() { vscode.postMessage({ command: 'back' }); }); }
+  if (fwdBtn) { fwdBtn.addEventListener('click', function() { vscode.postMessage({ command: 'forward' }); }); }
+  if (reloadBtn) { reloadBtn.addEventListener('click', function() { vscode.postMessage({ command: 'reload' }); }); }
   if (openExternalBtn) { openExternalBtn.addEventListener('click', function() { vscode.postMessage({ command: 'openTeamDashboardInSimpleBrowser', url: urlInput.value || baseUrl }); }); }
   if (openLink) {
     openLink.addEventListener('click', function(e) {
@@ -304,7 +310,10 @@ export async function openTeamDashboardPanel(_extUri: vscode.Uri, route = '/dash
         else if (msg.command === 'forward') url = goForwardDashboardUrl();
         else if (msg.command === 'navigate' && msg.url) url = pushDashboardUrl(msg.url);
         else if (msg.command === 'reload') url = getCurrentDashboardUrl();
-        if (url) postDashboardUrlUpdate(currentPanel, url);
+        if (url) {
+          postDashboardUrlUpdate(currentPanel, url);
+          postDashboardFrameNavigate(currentPanel, url);
+        }
         return;
       }
       if (msg.command === 'dashboardRouteChanged' && msg.url) {
