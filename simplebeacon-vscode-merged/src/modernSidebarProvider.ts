@@ -894,7 +894,7 @@ $('cancelBtn').addEventListener('click', () => {
             break;
           case 'team':
           case 'openTeamDashboard': {
-            const teamRoute = (message.route && typeof message.route === 'string') ? message.route : '/team';
+            const teamRoute = (message.route && typeof message.route === 'string') ? message.route : '/dashboard';
             ModernSidebarProvider.openTeamDashboardPanel(this._extensionUri, teamRoute, 'Team Dashboard');
             ModernSidebarProvider.relayCommand('showTeamDashboard');
             this._view?.webview.postMessage({ command: 'switchSidebarTab', tab: 'team' });
@@ -1384,10 +1384,10 @@ $('cancelBtn').addEventListener('click', () => {
             };
             const routeMap: Record<string, string> = {
               openAnalyze: '/analyze',
-              openCertificate: '/certificate',
-              openAiContext: '/aicontext',
+              openCertificate: '/dashboard',
+              openAiContext: '/dashboard',
               openAudit: '/audit',
-              openAuditReport: '/report',
+              openAuditReport: '/results',
               openSecurity: '/security',
               openTrust: '/trust',
               openQuality: '/quality',
@@ -1396,9 +1396,9 @@ $('cancelBtn').addEventListener('click', () => {
               openDiagnose: '/scan',
               openProfile: '/profile',
               openAbout: '/about',
-              openRepoHealth: '/repohealth',
-              openAnalytics: '/analytics',
-              openTeam: '/team',
+              openRepoHealth: '/repository-health',
+              openAnalytics: '/dashboard',
+              openTeam: '/dashboard',
               openScan: '/scan',
               openTools: '/settings'
             };
