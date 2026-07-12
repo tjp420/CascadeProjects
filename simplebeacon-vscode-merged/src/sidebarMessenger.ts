@@ -189,11 +189,15 @@ iframe { border: 0; width: 100%; flex: 1; display: block; }
     if (backBtn) backBtn.disabled = !canGoBack;
     if (fwdBtn) fwdBtn.disabled = !canGoForward;
   }
-  // Listen for extension messages that update the URL bar and iframe src.
+  // Listen for extension messages that update the URL bar. Only set the iframe src
+  // when the user explicitly requested navigation; dashboard route-change messages
+  // should only update the address bar to avoid reload loops.
+  let _pendingFrameNavigation = false;
   window.addEventListener('message', function(e) {
     if (e.data && e.data.command === 'updateUrl') {
       updateUrlBar(e.data.url, e.data.canGoBack, e.data.canGoForward);
-      if (frame && normalizeUrl(frame.src) !== normalizeUrl(e.data.url)) {
+      if (_pendingFrameNavigation && frame && normalizeUrl(frame.src) !== normalizeUrl(e.data.url)) {
+        _pendingFrameNavigation = false;
         frame.src = e.data.url;
       }
     }
@@ -228,6 +232,7 @@ iframe { border: 0; width: 100%; flex: 1; display: block; }
         if (!/^https?:\/\//i.test(url) && !/^\//.test(url)) { url = 'http://' + url; }
         if (!/^https?:\/\//i.test(url)) { url = dashboardOrigin + url; }
         if (isDashboardUrl(url)) {
+          _pendingFrameNavigation = true;
           vscode.postMessage({ command: 'navigate', url });
         } else {
           vscode.postMessage({ command: 'openTeamDashboardInSimpleBrowser', url });
@@ -235,9 +240,9 @@ iframe { border: 0; width: 100%; flex: 1; display: block; }
       }
     });
   }
-  if (backBtn) { backBtn.addEventListener('click', function() { vscode.postMessage({ command: 'back' }); }); }
-  if (fwdBtn) { fwdBtn.addEventListener('click', function() { vscode.postMessage({ command: 'forward' }); }); }
-  if (reloadBtn) { reloadBtn.addEventListener('click', function() { vscode.postMessage({ command: 'reload' }); }); }
+  if (backBtn) { backBtn.addEventListener('click', function() { _pendingFrameNavigation = true; vscode.postMessage({ command: 'back' }); }); }
+  if (fwdBtn) { fwdBtn.addEventListener('click', function() { _pendingFrameNavigation = true; vscode.postMessage({ command: 'forward' }); }); }
+  if (reloadBtn) { reloadBtn.addEventListener('click', function() { _pendingFrameNavigation = true; vscode.postMessage({ command: 'reload' }); }); }
   if (openExternalBtn) { openExternalBtn.addEventListener('click', function() { vscode.postMessage({ command: 'openTeamDashboardInSimpleBrowser', url: urlInput.value || baseUrl }); }); }
   if (openLink) {
     openLink.addEventListener('click', function(e) {
@@ -246,10 +251,17 @@ iframe { border: 0; width: 100%; flex: 1; display: block; }
     });
   }
   // If the iframe hasn't loaded after 6 seconds, show the fallback.
-  setTimeout(function() {
+  let iframeLoaded = false;
+  function showFallback() {
+    if (iframeLoaded) return;
     if (fallback) fallback.style.display = 'block';
     if (frame) frame.style.display = 'none';
-  }, 6000);
+  }
+  if (frame) {
+    frame.addEventListener('load', function() { iframeLoaded = true; });
+    frame.addEventListener('error', function() { showFallback(); });
+  }
+  setTimeout(showFallback, 6000);
   document.addEventListener('visibilitychange', function() {
     if (frame && !frame.src) { frame.src = frame.dataset.src || baseUrl; }
   });
@@ -327,8 +339,8 @@ export async function openTeamDashboardPanel(_extUri: vscode.Uri, route = '/dash
     }
   }
   const dashboardUrl = baseUrl
-    ? `${baseUrl.replace(/\/$/, '')}${normalizedRoute.startsWith('/') ? normalizedRoute : '/' + normalizedRoute}?_=${Date.now()}`
-    : `http://127.0.0.1:${dataServerPort}${normalizedRoute}?_=${Date.now()}`;
+    ? `${baseUrl.replace(/\/$/, '')}${normalizedRoute.startsWith('/') ? normalizedRoute : '/' + normalizedRoute}`
+    : `http://127.0.0.1:${dataServerPort}${normalizedRoute}`;
   pushDashboardUrl(normalizeDashboardUrl(dashboardUrl));
   const csp = panel.webview.cspSource;
   const nonce = crypto.randomBytes(16).toString('hex');
