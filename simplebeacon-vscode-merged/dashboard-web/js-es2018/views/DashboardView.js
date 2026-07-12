@@ -2,7 +2,7 @@ import { formatNumber, formatPercent } from '../utils/number.js';
 import { escapeHtml } from '../utils/string.js';
 import { showToast } from '../utils/dom.js';
 import { buildScanConclusion, getScanFileMetrics, resolveDisplayScore, resolveJestTestsLabel, resolvePageSpecsLabel, renderScanScopePanel } from '../services/analyzeService.js?v=20260710inventory1';
-import { renderScanStatus, updateScanStatusDom, bindScanStatus, runDashboardScanFromInput } from '../components/ScanStatus.js?v=20260713dropfix1';
+import { renderScanStatus, updateScanStatusDom, bindScanStatus, runDashboardScanFromInput } from '../components/ScanStatus.js?v=20260713dropfix2';
 import { renderIssueList } from '../components/IssueCard.js';
 import { renderQuickActions, bindQuickActions } from '../components/QuickActions.js?v=20260711admin1';
 import { renderTrendSection, mountTrendChart } from '../components/TrendChart.js';

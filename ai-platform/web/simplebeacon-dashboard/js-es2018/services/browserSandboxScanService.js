@@ -96,7 +96,23 @@ const RULES = [
 ];
 
 function isSupported() {
-  return typeof window !== 'undefined' && typeof window.showDirectoryPicker === 'function';
+  if (typeof window === 'undefined' || typeof window.showDirectoryPicker !== 'function')
+    return false;
+  // Cross-origin iframes (e.g. VS Code: webviews) expose showDirectoryPicker but calling it
+  // throws "Cross origin sub frames aren't allowed to show a file picker". Fall back to the
+  // legacy webkitdirectory input in those contexts.
+  try {
+    if (window.self !== window.top) {
+      const topOrigin = window.top.location.origin;
+      if (topOrigin !== window.location.origin)
+        return false;
+    }
+  }
+  catch (_a) {
+    // Accessing window.top.location throws in a cross-origin frame.
+    return false;
+  }
+  return true;
 }
 
 function logLine(logger, message, level) {

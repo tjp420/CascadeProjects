@@ -1,6 +1,6 @@
 import { formatNumber, formatPercent, escapeHtml, showToast } from '../utils.js';
 import { buildScanConclusion, getScanFileMetrics, resolveDisplayScore, resolveJestTestsLabel, resolvePageSpecsLabel, renderScanScopePanel } from '../services/analyzeService.js?v=20260710inventory1';
-import { renderScanStatus, updateScanStatusDom, bindScanStatus, runDashboardScanFromInput } from '../components/ScanStatus.js?v=20260713dropfix3';
+import { renderScanStatus, updateScanStatusDom, bindScanStatus, runDashboardScanFromInput } from '../components/ScanStatus.js?v=20260713dropfix4';
 import { renderIssueList } from '../components/IssueCard.js';
 import { renderQuickActions, bindQuickActions } from '../components/QuickActions.js?v=20260711admin1';
 import { renderTrendSection, mountTrendChart } from '../components/TrendChart.js';

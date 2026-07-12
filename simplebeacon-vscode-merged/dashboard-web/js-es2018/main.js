@@ -6,7 +6,7 @@ import { themeService } from './services/themeService.js';
 import { Router, PUBLIC_VIEWS } from './router.js';
 import { TrustView } from './views/TrustView.js?v=20260711admin1';
 import { RepositoryHealthView } from './views/RepositoryHealthView.js?v=20260711admin1';
-import { DashboardView } from './views/DashboardView.js?v=20260713dropfix1';
+import { DashboardView } from './views/DashboardView.js?v=20260713dropfix2';
 import { ResultsView } from './views/ResultsView.js?v=20260711admin1';
 import { SettingsView } from './views/SettingsView.js?v=20260709ollama3';
 import { ToolsView } from './views/ToolsView.js';
@@ -14,7 +14,7 @@ import { PlatformView } from './views/PlatformView.js?v=20260601platformmetrics1
 import { QualityView } from './views/QualityView.js?v=20260711admin1';
 import { HelpView, FeaturesView } from './views/HelpView.js';
 import { AuditView } from './views/AuditView.js?v=20260711admin1';
-import { AnalyzeView } from './views/AnalyzeView.js?v=20260713dropfix1';
+import { AnalyzeView } from './views/AnalyzeView.js?v=20260713dropfix2';
 import { SecurityView } from './views/SecurityView.js?v=20260711admin1';
 import { PricingView } from './views/PricingView.js';
 import { AboutView } from './views/AboutView.js';
