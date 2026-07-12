@@ -7,7 +7,7 @@
     "type": "git",
     "url": "https://github.com/simplebeacon/simplebeacon-vscode.git"
   },
-  "version": "3.0.399",
+  "version": "3.0.400",
   "publisher": "simplebeacon",
   "engines": {
     "vscode": "^1.84.0",
@@ -587,7 +587,7 @@
             "externalBrowser",
             "preview"
           ],
-          "default": "externalBrowser",
+          "default": "vscodeSimpleBrowser",
           "description": "How to open dashboard and sidebar pages: simpleBrowser = VS Code webview panel, vscodeSimpleBrowser = VS Code Simple Browser with URL bar, externalBrowser = system default browser"
         },
         "simplebeacon.previewOpenMode": {
