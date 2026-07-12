@@ -2,7 +2,7 @@ import { escapeHtml, formatPercent, formatNumber, showToast } from '../utils.js'
 import { resolveDisplayScore, formatScanScopeSummary, formatScanInventoryNote, getScanFileMetrics } from '../services/analyzeService.js?v=20260710inventory1';
 import { runLocalScan } from '../services/localScanService.js';
 import { isLocalPath, probeAgent, scanViaAgent, probeAgent4000, scanViaAgent4000, renderAgentCertificate } from '../services/localAgentService.js?v=20260710agentcache3';
-import { runSandboxedDirectoryScan, isDroppedFolder, scanDroppedItems } from '../services/browserSandboxScanService.js?v=20260711scanfix1';
+import { runSandboxedDirectoryScan, isDroppedFolder, scanDroppedItems } from '../services/browserSandboxScanService.js?v=20260713dropfix1';
 /**
  * Resolve initial scan root.
  * @param {number} report
@@ -252,6 +252,38 @@ function renderScanPathControls(report, options = {}) {
             <button type="button" id="trigger-file-picker" class="btn btn-ghost">Select Files</button>
           </div>
           <p class="sb-dropzone-privacy">🔒 Scans run privately in your browser.</p>
+          <div class="sb-dropzone-path">
+            <p class="sb-dropzone-path-label">Or type a server path / public repo URL</p>
+            <div class="scan-status-path-row">
+              <div class="scan-status-path-input-wrap">
+                <i data-lucide="folder" class="icon-16 scan-status-path-icon"></i>
+                <input
+                  type="text"
+                  id="scan-root-input"
+                  class="scan-status-path-input"
+                  placeholder="e.g. C:\\\\dev\\\\my-app"
+                  spellcheck="false"
+                  autocomplete="off"
+                  aria-label="Folder path on the dashboard server"
+                  value="${escapeHtml(resolvedPath)}"
+                  ${scanning ? 'disabled' : ''}
+                >
+              </div>
+              <input type="file" id="scan-browse-input" webkitdirectory directory hidden aria-label="Select folder to scan">
+              <button type="button" class="btn btn-ghost btn-sm" id="scan-browse-btn" ${scanning ? 'disabled' : ''} title="Browse for folder" aria-label="Browse for folder to scan" aria-controls="scan-browse-input">
+                <i data-lucide="folder-open" class="icon-16"></i> Browse
+              </button>
+              <button type="button" class="btn btn-ghost btn-sm" id="scan-set-default-btn" ${!hasDefault || scanning ? 'disabled' : ''} title="Reset to default path">
+                <i data-lucide="rotate-ccw" class="icon-16"></i> Reset
+              </button>
+              <button type="button" class="btn btn-ghost btn-sm" id="scan-clear-btn" ${!hasSaved || scanning ? 'disabled' : ''} title="Clear saved folder">
+                <i data-lucide="x" class="icon-16"></i> Clear
+              </button>
+              <button type="button" class="btn btn-secondary" id="rescan-btn" ${scanning ? 'disabled' : ''} title="Run gate scan on this folder">
+                ${scanning ? '<span class="loading-spinner"></span> Scanning…' : '<i data-lucide="play" class="icon-16"></i> Scan'}
+              </button>
+            </div>
+          </div>
         </div>
         <div class="sb-dropzone-drag" aria-hidden="true">
           <div class="sb-dropzone-drag-icon">📂</div>
@@ -275,39 +307,6 @@ function renderScanPathControls(report, options = {}) {
           <div class="sb-dropzone-error-title">Scan failed</div>
           <div class="sb-dropzone-error-message" id="scan-dropzone-error-message"></div>
           <button type="button" class="btn btn-secondary btn-sm" id="scan-dropzone-retry">Try again</button>
-        </div>
-      </div>
-
-      <div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border);">
-        <p style="margin: 0 0 8px; font-size: 0.75rem; color: var(--text-muted);">Or type a server path / public repo URL</p>
-        <div class="scan-status-path-row">
-          <div class="scan-status-path-input-wrap">
-            <i data-lucide="folder" class="icon-16 scan-status-path-icon"></i>
-            <input
-              type="text"
-              id="scan-root-input"
-              class="scan-status-path-input"
-              placeholder="e.g. C:\\dev\\my-app"
-              spellcheck="false"
-              autocomplete="off"
-              aria-label="Folder path on the dashboard server"
-              value="${escapeHtml(resolvedPath)}"
-              ${scanning ? 'disabled' : ''}
-            >
-          </div>
-          <input type="file" id="scan-browse-input" webkitdirectory directory hidden aria-label="Select folder to scan">
-          <button type="button" class="btn btn-ghost btn-sm" id="scan-browse-btn" ${scanning ? 'disabled' : ''} title="Browse for folder" aria-label="Browse for folder to scan" aria-controls="scan-browse-input">
-            <i data-lucide="folder-open" class="icon-16"></i> Browse
-          </button>
-          <button type="button" class="btn btn-ghost btn-sm" id="scan-set-default-btn" ${!hasDefault || scanning ? 'disabled' : ''} title="Reset to default path">
-            <i data-lucide="rotate-ccw" class="icon-16"></i> Reset
-          </button>
-          <button type="button" class="btn btn-ghost btn-sm" id="scan-clear-btn" ${!hasSaved || scanning ? 'disabled' : ''} title="Clear saved folder">
-            <i data-lucide="x" class="icon-16"></i> Clear
-          </button>
-          <button type="button" class="btn btn-secondary" id="rescan-btn" ${scanning ? 'disabled' : ''} title="Run gate scan on this folder">
-            ${scanning ? '<span class="loading-spinner"></span> Scanning…' : '<i data-lucide="play" class="icon-16"></i> Scan'}
-          </button>
         </div>
       </div>
 
@@ -930,7 +929,11 @@ export function bindScanStatus(container, options = {}) {
             dragDepth = 0;
             const items = event.dataTransfer && event.dataTransfer.items;
             const dtFiles = event.dataTransfer && event.dataTransfer.files;
-            if (!items || items.length === 0) {
+            // Snapshot data transfer objects immediately; some browsers clear the live
+            // DataTransferItemList once the event handler yields.
+            const itemArray = items ? Array.from(items) : [];
+            const fileArray = dtFiles ? Array.from(dtFiles) : [];
+            if (itemArray.length === 0 && fileArray.length === 0) {
                 setDropzoneState('idle');
                 return;
             }
@@ -938,11 +941,11 @@ export function bindScanStatus(container, options = {}) {
             if (terminal)
                 terminal.textContent = 'Reading dropped items…';
             try {
-                const droppedFolder = await isDroppedFolder(items);
-                const firstFile = items[0] && typeof items[0].getAsFile === 'function' ? items[0].getAsFile() : null;
+                const droppedFolder = await isDroppedFolder(itemArray);
+                const firstFile = itemArray[0] && typeof itemArray[0].getAsFile === 'function' ? itemArray[0].getAsFile() : null;
                 const folderName = (firstFile && firstFile.name) || 'selected';
                 if (droppedFolder) {
-                    const report = await scanDroppedItems(items, {
+                    const report = await scanDroppedItems(itemArray, {
                         onLog: (entry) => {
                             if (terminal)
                                 terminal.textContent += `\n[${entry.level.toUpperCase()}] ${entry.message}`;
@@ -959,8 +962,8 @@ export function bindScanStatus(container, options = {}) {
                     if (onLocalScanResult)
                         onLocalScanResult(report);
                 }
-                else if (dtFiles && dtFiles.length) {
-                    const files = Array.from(dtFiles);
+                else if (fileArray.length) {
+                    const files = fileArray;
                     const resolvedPath = (files[0].path) || files[0].name || 'selected-files';
                     if (progressDetail)
                         progressDetail.textContent = `${files.length} file(s) queued`;

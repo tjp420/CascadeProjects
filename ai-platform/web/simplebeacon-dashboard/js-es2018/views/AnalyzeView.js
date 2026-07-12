@@ -3,7 +3,7 @@ import { evaluateFunnelMetrics, getFunnelCopy } from '../utils/funnelTrigger.js'
 import { LocalScanService } from '../services/localScanService.js?v=20260709noise3';
 import { fingerprintDirectory, formatFingerprint } from '../services/fingerprintService.js';
 import { probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus, getAgentDownloadUrl, detectPlatform, getPlatformLabel, getInstallInstructions, getAgentFallbackMessage, probeAgent4000, scanViaAgent4000, renderAgentCertificate } from '../services/localAgentService.js?v=20260711themefix1';
-import { runSandboxedDirectoryScan, scanDroppedItems, isDroppedFolder } from '../services/browserSandboxScanService.js?v=20260711scanfix1';
+import { runSandboxedDirectoryScan, scanDroppedItems, isDroppedFolder } from '../services/browserSandboxScanService.js?v=20260713dropfix1';
 // simplebeacon:production-leak-intent: sample-json - Legitimate documentation about sample file patterns in analysis results
 import { analyzePath, scanPath, summarizeReport, fetchAnalyzeProviders, fetchRepositoryInventory, fetchCodebaseAnalysis, enrichScanReport, fetchZscriptModReport, shouldFetchZscriptReport, isLegacyScanReport, buildMonorepoScopeNote, buildPathInventoryProvenance, renderInventoryProvenanceHtml, refreshPathInventory, liveInventoryForPath, renderScanScopePanel, isSimplebeaconReport, normalizeSimplebeaconReport, aiProviderSupportsSummary, getScanFileMetrics, resolveAutoAnalysisMode, buildScanConclusion, buildConsolidationConclusion, buildFictionDigestPayload, sanitizeFictionDigestExport, resolveCompleteScanTargetPath, normalizeProjectPath, filterIssuesByKind, preparePlatformResultsReport, fetchCompleteAuditReport, fetchAnalyzeExportBundleZip, fetchEuAiActAuditReport, openAuditReportPrintWindow, previewAuditExportTier, auditExportButtonLabel, fetchDataCleanupScan, ensureDashboardApiReady, assertCompleteScanComplianceFresh, assertCompleteScanFileReductionFresh, fetchUnderstandSnippet, isCodebaseReport, fetchComplianceChecklist, fetchProjectNpmAudit, prepareGithubRepo, fetchAnalyzeTestSources, isAnalyzeProviderConfigured, uploadDirectoryAndAnalyze } from '../services/analyzeService.js?v=20260711reportv11';
 import { isRemoteRepoUrl, sourceChipTitle } from '../lib/analyzePathSources.js';
@@ -1857,6 +1857,20 @@ export class AnalyzeView {
                 <button type="button" id="trigger-native-picker" class="btn btn-primary"><i data-lucide="folder-open" class="icon-16"></i> Select Folder</button>
                 <button type="button" id="trigger-file-picker" class="btn btn-ghost">Select Files</button>
               </div>
+              <div class="sb-dropzone-path">
+                <p class="sb-dropzone-path-label">Or type a server path / public repo URL</p>
+                <div class="path-row">
+                  <input type="text" id="project-path-input" class="analyze-path-input"
+                    placeholder="${pathPlaceholder}"
+                    value="${escapeHtml(formatPathInputValue(displayPath))}"
+                    list="${pathList}"
+                    spellcheck="false"
+                    autocomplete="list"
+                    aria-label="${pathAria}">
+                  <button type="button" class="btn btn-secondary" id="dropzone-path-analyze-btn">Analyze</button>
+                </div>
+                ${datalist}
+              </div>
             </div>
             <div class="sb-dropzone-drag" aria-hidden="true">
               <div class="sb-dropzone-drag-icon">📂</div>
@@ -1883,22 +1897,7 @@ export class AnalyzeView {
             </div>
           </div>
 
-          <div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border);">
-            <p style="margin: 0 0 8px; font-size: 0.75rem; color: var(--text-muted);">Or type a server path / public repo URL</p>
-            <div class="path-row">
-              <input type="text" id="project-path-input" class="analyze-path-input"
-                placeholder="${pathPlaceholder}"
-                value="${escapeHtml(formatPathInputValue(displayPath))}"
-                list="${pathList}"
-                spellcheck="false"
-                autocomplete="list"
-                aria-label="${pathAria}">
-              <button type="button" class="btn btn-secondary" id="dropzone-path-analyze-btn">Analyze</button>
-            </div>
-            ${datalist}
-          </div>
-
-          <p class="hint">${isWeb ? 'Enter a public URL to scan a website.' : 'For local folders, use Select Folder. For server paths or repos, type the path above.'}</p>
+          <p class="hint">${isWeb ? 'Enter a public URL to scan a website.' : 'For local folders, use Select Folder. For server paths or repos, type the path in the target area above.'}</p>
           <p id="fingerprint-status" class="fingerprint-status"></p>
           <p id="agent-status" class="agent-status"></p>
           <p id="agent-4000-status" class="agent-status"></p>
@@ -5173,7 +5172,11 @@ export class AnalyzeView {
                 pathDragDepth = 0;
                 const items = event.dataTransfer && event.dataTransfer.items;
                 const dtFiles = event.dataTransfer && event.dataTransfer.files;
-                if (!items || items.length === 0) {
+                // Snapshot data transfer objects immediately; some browsers clear the live
+                // DataTransferItemList once the event handler yields.
+                const itemArray = items ? Array.from(items) : [];
+                const fileArray = dtFiles ? Array.from(dtFiles) : [];
+                if (itemArray.length === 0 && fileArray.length === 0) {
                     setAnalyzeDropzoneState('idle');
                     return;
                 }
@@ -5181,11 +5184,11 @@ export class AnalyzeView {
                 if (analyzeTerminal)
                     analyzeTerminal.textContent = 'Reading dropped items…';
                 try {
-                    const droppedFolder = await isDroppedFolder(items);
-                    const firstFile = items[0] && typeof items[0].getAsFile === 'function' ? items[0].getAsFile() : null;
+                    const droppedFolder = await isDroppedFolder(itemArray);
+                    const firstFile = itemArray[0] && typeof itemArray[0].getAsFile === 'function' ? itemArray[0].getAsFile() : null;
                     const folderName = (firstFile && firstFile.name) || 'selected';
                     if (droppedFolder) {
-                        const report = await scanDroppedItems(items, {
+                        const report = await scanDroppedItems(itemArray, {
                             onLog: (entry) => {
                                 if (analyzeTerminal)
                                     analyzeTerminal.textContent += `\n[${entry.level.toUpperCase()}] ${entry.message}`;
@@ -5205,8 +5208,8 @@ export class AnalyzeView {
                             renderAgentCertificate(report, certEl);
                         }
                     }
-                    else if (dtFiles && dtFiles.length) {
-                        const files = Array.from(dtFiles);
+                    else if (fileArray.length) {
+                        const files = fileArray;
                         if (analyzeProgress)
                             analyzeProgress.textContent = `${files.length} file(s) queued`;
                         await this.handleAnalyzeFiles(files);

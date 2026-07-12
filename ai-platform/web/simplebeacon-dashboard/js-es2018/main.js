@@ -3,7 +3,7 @@ import { platformService } from './services/platformService.js?v=20260525jsongua
 import { billingService } from './services/billingService.js?v=20260525jsonfixbilling1';
 import { authService, apiBase } from './services/authService.js?v=20260711admin1';
 import { themeService } from './services/themeService.js';
-import { Router, PUBLIC_VIEWS } from './router.js';
+import { Router, PUBLIC_VIEWS } from './router.js?v=20260713authfix1';
 import { TrustView } from './views/TrustView.js?v=20260711admin1';
 import { RepositoryHealthView } from './views/RepositoryHealthView.js?v=20260711admin1';
 import { DashboardView } from './views/DashboardView.js?v=20260711redesign2';
@@ -14,7 +14,7 @@ import { PlatformView } from './views/PlatformView.js?v=20260601platformmetrics1
 import { QualityView } from './views/QualityView.js?v=20260711admin1';
 import { HelpView, FeaturesView } from './views/HelpView.js';
 import { AuditView } from './views/AuditView.js?v=20260711admin1';
-import { AnalyzeView } from './views/AnalyzeView.js?v=20260711redesign2';
+import { AnalyzeView } from './views/AnalyzeView.js?v=20260713dropfix1';
 import { SecurityView } from './views/SecurityView.js?v=20260711admin1';
 import { PricingView } from './views/PricingView.js';
 import { AboutView } from './views/AboutView.js';
@@ -145,6 +145,7 @@ class SimplebeaconDashboard {
             chatbot: new ChatbotView(this),
             upload: new UploadView(this),
             remediation: new RemediationRoadmapView(this),
+            roadmap: new RemediationRoadmapView(this),
             profile: new ProfileView(this),
             admin: new AdminPanelView(this)
         };
@@ -1087,7 +1088,7 @@ class SimplebeaconDashboard {
     navigate(view, params = {}) {
         this.router.navigate(view, params);
     }
-    onRoute(view, params) {
+    async onRoute(view, params) {
         var _a, _b;
         this._currentViewName = view;
         this.state.routeParams = params;
@@ -1099,6 +1100,17 @@ class SimplebeaconDashboard {
             this.state.dataLoading = false;
         }
         const readOnlyPreview = isDemoMode();
+        if (!readOnlyPreview) {
+            // Ensure auth state is resolved before gating routes. In local dev the
+            // dashboard auto-probes the vault operator session; waiting here prevents
+            // direct links to protected routes from flashing the sign-in screen.
+            if (!authService.isAuthenticated()) {
+                await authService.ensureAuthenticated();
+            }
+            if (this._currentViewName !== view)
+                return;
+            this.updateAuthUi();
+        }
         if (!readOnlyPreview && !PUBLIC_VIEWS.has(view) && !authService.isAuthenticated()) {
             this.showLockScreen(view);
             return;
