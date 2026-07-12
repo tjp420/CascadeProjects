@@ -54,19 +54,32 @@ interface DashboardHistory {
 
 const _dashboardHistory: DashboardHistory = { urls: [], index: -1 };
 
+function normalizeDashboardUrl(url: string): string {
+  try {
+    const u = new URL(url);
+    if (u.searchParams.has('_')) {
+      u.searchParams.delete('_');
+    }
+    return u.toString();
+  } catch {
+    return url;
+  }
+}
+
 function getCurrentDashboardUrl(): string | undefined {
   return _dashboardHistory.urls[_dashboardHistory.index];
 }
 
 function pushDashboardUrl(url: string): string {
+  const normalized = normalizeDashboardUrl(url);
   // Remove any forward history before pushing a new URL.
   _dashboardHistory.urls = _dashboardHistory.urls.slice(0, _dashboardHistory.index + 1);
-  if (_dashboardHistory.urls[_dashboardHistory.index] === url) {
-    return url;
+  if (_dashboardHistory.urls[_dashboardHistory.index] === normalized) {
+    return normalized;
   }
-  _dashboardHistory.urls.push(url);
+  _dashboardHistory.urls.push(normalized);
   _dashboardHistory.index = _dashboardHistory.urls.length - 1;
-  return url;
+  return normalized;
 }
 
 function goBackDashboardUrl(): string | undefined {
@@ -103,11 +116,8 @@ function postDashboardUrlUpdate(panel: vscode.WebviewPanel, url: string) {
 }
 
 function buildDashboardBrowserHtml(url: string, nonce: string, csp: string, dataServerPort: number, panelTitle: string): string {
-  const isLocalDashboard = /^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?\/?$/i.test(url);
   const dashboardOrigin = url.replace(/^([a-z]+:\/\/[^\/]+).*/i, '$1');
-  const sandboxAttr = isLocalDashboard
-    ? 'sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads"'
-    : '';
+  const sandboxAttr = 'sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads"';
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -163,6 +173,17 @@ iframe { border: 0; width: 100%; flex: 1; display: block; }
       return false;
     }
   }
+  function normalizeUrl(url) {
+    try {
+      const u = new URL(url);
+      if (u.searchParams.has('_')) {
+        u.searchParams.delete('_');
+      }
+      return u.toString();
+    } catch (err) {
+      return url;
+    }
+  }
   function updateUrlBar(url, canGoBack, canGoForward) {
     if (urlInput) urlInput.value = url;
     if (backBtn) backBtn.disabled = !canGoBack;
@@ -172,7 +193,9 @@ iframe { border: 0; width: 100%; flex: 1; display: block; }
   window.addEventListener('message', function(e) {
     if (e.data && e.data.command === 'updateUrl') {
       updateUrlBar(e.data.url, e.data.canGoBack, e.data.canGoForward);
-      if (frame && frame.src !== e.data.url) frame.src = e.data.url;
+      if (frame && normalizeUrl(frame.src) !== normalizeUrl(e.data.url)) {
+        frame.src = e.data.url;
+      }
     }
   });
   // Forward dashboard route-change and auth-state messages from the iframe to the extension.
@@ -306,7 +329,7 @@ export async function openTeamDashboardPanel(_extUri: vscode.Uri, route = '/dash
   const dashboardUrl = baseUrl
     ? `${baseUrl.replace(/\/$/, '')}${normalizedRoute.startsWith('/') ? normalizedRoute : '/' + normalizedRoute}?_=${Date.now()}`
     : `http://127.0.0.1:${dataServerPort}${normalizedRoute}?_=${Date.now()}`;
-  pushDashboardUrl(dashboardUrl);
+  pushDashboardUrl(normalizeDashboardUrl(dashboardUrl));
   const csp = panel.webview.cspSource;
   const nonce = crypto.randomBytes(16).toString('hex');
 
