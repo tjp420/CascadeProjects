@@ -38,7 +38,7 @@ export async function openTeamDashboardPanel(_extUri: vscode.Uri, route = '/dash
     panel = vscode.window.createWebviewPanel(
       'simplebeaconTeamDashboard',
       panelTitle,
-      vscode.ViewColumn.Two,
+      vscode.ViewColumn.Active,
       {
         enableScripts: true,
         retainContextWhenHidden: true,
@@ -56,7 +56,7 @@ export async function openTeamDashboardPanel(_extUri: vscode.Uri, route = '/dash
       }
     });
   }
-  panel.reveal(vscode.ViewColumn.Two);
+  panel.reveal(vscode.ViewColumn.Active);
 
   const dataServerPort = getDataServerPort();
   const dashboardUrl = `http://127.0.0.1:${dataServerPort}${route}?_=${Date.now()}`;
@@ -71,27 +71,60 @@ export async function openTeamDashboardPanel(_extUri: vscode.Uri, route = '/dash
 <title>${panelTitle}</title>
 <style>
 html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #0B0F19; }
-iframe { border: 0; width: 100%; height: 100%; display: block; }
+body { display: flex; flex-direction: column; }
+.url-bar { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: #111827; border-bottom: 1px solid #1f2937; flex-shrink: 0; }
+.url-bar input { flex: 1; background: #0B0F19; border: 1px solid #374151; border-radius: 6px; color: #e2e8f0; padding: 6px 10px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; }
+.url-bar input:focus { outline: none; border-color: #6366f1; }
+.url-bar button { background: transparent; border: 1px solid #374151; border-radius: 6px; color: #9ca3af; cursor: pointer; padding: 4px 8px; font-size: 12px; }
+.url-bar button:hover { color: #e2e8f0; border-color: #6366f1; }
+iframe { border: 0; width: 100%; flex: 1; display: block; }
 .fallback { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #e2e8f0; font-family: sans-serif; padding: 20px; text-align: center; display: none; }
 .fallback a { color: #60a5fa; }
 </style>
 </head>
 <body>
+<div class="url-bar">
+  <button id="backBtn" title="Go back">←</button>
+  <button id="fwdBtn" title="Go forward">→</button>
+  <button id="reloadBtn" title="Reload">↻</button>
+  <input id="urlInput" type="text" value="${dashboardUrl}" spellcheck="false" />
+</div>
 <iframe id="dashFrame" src="${dashboardUrl}" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads" allow="fullscreen"></iframe>
 <div id="dashFallback" class="fallback">
   <p>Dashboard did not load in the sidebar iframe.</p>
-  <p><a href="#" id="openDashLink">Open Team Dashboard in Simple Browser</a></p>
+  <p><a href="#" id="openDashLink">Open Dashboard in Simple Browser</a></p>
 </div>
 <script nonce="${nonce}">
 (function(){
   const vscode = acquireVsCodeApi();
   const frame = document.getElementById('dashFrame');
+  const urlInput = document.getElementById('urlInput');
+  const backBtn = document.getElementById('backBtn');
+  const fwdBtn = document.getElementById('fwdBtn');
+  const reloadBtn = document.getElementById('reloadBtn');
   const fallback = document.getElementById('dashFallback');
   const openLink = document.getElementById('openDashLink');
+  const baseUrl = '${dashboardUrl}';
+  function updateUrlBar() {
+    try { if (urlInput && frame && frame.contentWindow && frame.contentWindow.location) { urlInput.value = frame.contentWindow.location.href; } } catch (e) {}
+  }
+  if (frame) { frame.addEventListener('load', updateUrlBar); }
+  if (urlInput) {
+    urlInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        let url = urlInput.value.trim();
+        if (url && !/^https?:\/\//i.test(url) && !/^\//.test(url)) { url = 'http://' + url; }
+        if (frame) { frame.src = url; }
+      }
+    });
+  }
+  if (backBtn) { backBtn.addEventListener('click', function() { try { frame.contentWindow.history.back(); } catch (e) {} }); }
+  if (fwdBtn) { fwdBtn.addEventListener('click', function() { try { frame.contentWindow.history.forward(); } catch (e) {} }); }
+  if (reloadBtn) { reloadBtn.addEventListener('click', function() { if (frame) { frame.src = urlInput.value || baseUrl; } }); }
   if (openLink) {
     openLink.addEventListener('click', function(e) {
       e.preventDefault();
-      vscode.postMessage({ command: 'openTeamDashboardInSimpleBrowser', url: '${dashboardUrl}' });
+      vscode.postMessage({ command: 'openTeamDashboardInSimpleBrowser', url: urlInput.value || '${dashboardUrl}' });
     });
   }
   // If the iframe hasn't loaded after 6 seconds, show the fallback.
