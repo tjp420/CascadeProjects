@@ -154,7 +154,12 @@ iframe { border: 0; width: 100%; flex: 1; display: block; }
       if (e.key === 'Enter') {
         let url = urlInput.value.trim();
         if (url && !/^https?:\/\//i.test(url) && !/^\//.test(url)) { url = 'http://' + url; }
-        vscode.postMessage({ command: 'navigate', url });
+        const isLocalDashboard = /^https?:\/\/(127\.0\.0\.1|localhost):/i.test(url);
+        if (url && !isLocalDashboard) {
+          vscode.postMessage({ command: 'openTeamDashboardInSimpleBrowser', url });
+        } else {
+          vscode.postMessage({ command: 'navigate', url });
+        }
       }
     });
   }
