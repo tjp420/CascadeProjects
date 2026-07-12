@@ -110,6 +110,10 @@ export class Router {
             if (window.location.pathname + window.location.search !== newUrl) {
                 window.history.pushState({}, '', newUrl);
             }
+            // Notify IDE webview parent of the current URL so the URL bar stays in sync.
+            if (window.parent && window.parent !== window) {
+                try { window.parent.postMessage({ command: 'dashboardRouteChanged', url: window.location.href }, '*'); } catch (e) { /* ignore */ }
+            }
         }
         catch (e) { /* webview may restrict this */ }
     }

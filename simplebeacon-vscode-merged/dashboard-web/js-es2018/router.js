@@ -116,7 +116,7 @@ export class Router {
     notifyParentUrl() {
         try {
             if (window.parent && window.parent !== window) {
-                window.parent.postMessage({ command: 'updateUrl', url: window.location.href }, '*');
+                window.parent.postMessage({ command: 'dashboardRouteChanged', url: window.location.href }, '*');
             }
         }
         catch (e) { /* ignore cross-origin restrictions */ }
