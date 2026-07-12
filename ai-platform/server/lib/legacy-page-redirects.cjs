@@ -96,11 +96,8 @@ function registerLegacyPageRedirects(app) {
     });
   }
 
-  if (landingEnabled) {
-    const auditTarget = internalDashboard ? '/#/audit' : '/app#/audit';
-    app.get('/audit', (_req, res) => res.redirect(301, auditTarget));
-    app.get('/compliance-audit', (_req, res) => res.redirect(301, auditTarget));
-  }
+  // /audit and /compliance-audit are now served by the marketing landing pages (coming-soon/public/audit.html)
+  // so no legacy dashboard redirects should intercept them.
 
   if (shouldLogRuntimeInfo()) {
     logger.info(`[Legacy] ${Object.keys(LEGACY_REDIRECTS).length} HTML routes redirect to Simplebeacon SPA`);

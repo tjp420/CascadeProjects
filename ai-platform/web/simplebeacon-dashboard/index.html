@@ -136,8 +136,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" onerror="this.rel='';document.documentElement.style.fontFamily='system-ui,-apple-system,sans-serif'">
   <link rel="stylesheet" href="css/variables.css">
   <link rel="stylesheet" href="css/reset.css">
-  <link rel="stylesheet" href="css/layout.css?v=20260711redesign3">
-  <link rel="stylesheet" href="css/components.css?v=20260711redesign3">
+  <link rel="stylesheet" href="css/layout.css?v=20260711dragfix1">
+  <link rel="stylesheet" href="css/components.css?v=20260711dragfix1">
   <link rel="stylesheet" href="css/utilities.css">
   <link rel="stylesheet" href="css/disable-elements.css">
   <script src="js/vendor/lucide.min.js" defer onerror="window._lucideFailed=true"></script>
@@ -218,7 +218,7 @@
   <div class="app-shell">
     <header class="app-header">
       <button class="icon-btn mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Open navigation"><i data-lucide="menu" class="icon-20"></i></button>
-      <a href="/dashboard/dashboard" class="app-brand">
+      <a href="/dashboard/#/dashboard" class="app-brand">
         <span class="app-brand-icon"><i data-lucide="shield-check" class="icon-20"></i></span>
         <span>Simplebeacon</span>
       </a>
@@ -246,7 +246,7 @@
 
     <div class="sandbox-banner" id="sandbox-banner" hidden>
       <i data-lucide="flask-conical" class="icon-16"></i>
-      <span><strong>Developer Sandbox</strong> — 100 requests/day limit. <a href="/dashboard/signin">Upgrade</a></span>
+      <span><strong>Developer Sandbox</strong> — 100 requests/day limit. <a href="/dashboard/#/signin">Upgrade</a></span>
     </div>
 
     <div class="mobile-nav-overlay" id="mobile-nav-overlay"></div>
@@ -259,19 +259,19 @@
             <i data-lucide="chevron-down" class="nav-group-chevron icon-16"></i>
           </button>
           <div class="nav-group-items" id="nav-group-scan">
-            <a href="/dashboard/dashboard" class="nav-link active" data-view="dashboard">
+            <a href="/dashboard/#/dashboard" class="nav-link active" data-view="dashboard">
               <i data-lucide="layout-dashboard" class="nav-link-icon icon-18"></i>
               <span>Dashboard</span>
             </a>
-            <a href="/dashboard/analyze" class="nav-link" data-view="analyze">
+            <a href="/dashboard/#/analyze" class="nav-link" data-view="analyze">
               <i data-lucide="folder-search" class="nav-link-icon icon-18"></i>
               <span>Analyze</span>
             </a>
-            <a href="/dashboard/results" class="nav-link" data-view="results">
+            <a href="/dashboard/#/results" class="nav-link" data-view="results">
               <i data-lucide="clipboard-list" class="nav-link-icon icon-18"></i>
               <span>Results</span>
             </a>
-            <a href="/dashboard/repository-health" class="nav-link" data-view="repository-health">
+            <a href="/dashboard/#/repository-health" class="nav-link" data-view="repository-health">
               <i data-lucide="package" class="nav-link-icon icon-18"></i>
               <span>Repo health</span>
             </a>
@@ -284,19 +284,19 @@
             <i data-lucide="chevron-down" class="nav-group-chevron icon-16"></i>
           </button>
           <div class="nav-group-items" id="nav-group-compliance">
-            <a href="/dashboard/audit" class="nav-link" data-view="audit">
+            <a href="/dashboard/#/audit" class="nav-link" data-view="audit">
               <i data-lucide="shield-check" class="nav-link-icon icon-18"></i>
               <span>Audit</span>
             </a>
-            <a href="/dashboard/security" class="nav-link" data-view="security">
+            <a href="/dashboard/#/security" class="nav-link" data-view="security">
               <i data-lucide="lock" class="nav-link-icon icon-18"></i>
               <span>Security</span>
             </a>
-            <a href="/dashboard/quality" class="nav-link" data-view="quality">
+            <a href="/dashboard/#/quality" class="nav-link" data-view="quality">
               <i data-lucide="award" class="nav-link-icon icon-18"></i>
               <span>Quality</span>
             </a>
-            <a href="/dashboard/trust" class="nav-link" data-view="trust">
+            <a href="/dashboard/#/trust" class="nav-link" data-view="trust">
               <i data-lucide="badge-check" class="nav-link-icon icon-18"></i>
               <span>Trust</span>
             </a>
@@ -309,23 +309,23 @@
             <i data-lucide="chevron-down" class="nav-group-chevron icon-16"></i>
           </button>
           <div class="nav-group-items" id="nav-group-operations">
-            <a href="/dashboard/assessments" class="nav-link" data-view="assessments" id="nav-assessments-link" hidden>
+            <a href="/dashboard/#/assessments" class="nav-link" data-view="assessments" id="nav-assessments-link" hidden>
               <i data-lucide="file-text" class="nav-link-icon icon-18"></i>
               <span>Assessments</span>
             </a>
-            <a href="/dashboard/remediation" class="nav-link" data-view="remediation">
+            <a href="/dashboard/#/remediation" class="nav-link" data-view="remediation">
               <i data-lucide="map" class="nav-link-icon icon-18"></i>
               <span>Roadmap</span>
             </a>
-            <a href="/dashboard/platform" class="nav-link" data-view="platform">
+            <a href="/dashboard/#/platform" class="nav-link" data-view="platform">
               <i data-lucide="bar-chart-3" class="nav-link-icon icon-18"></i>
               <span>Platform</span>
             </a>
-            <a href="/dashboard/profile" class="nav-link" data-view="profile">
+            <a href="/dashboard/#/profile" class="nav-link" data-view="profile">
               <i data-lucide="user" class="nav-link-icon icon-18"></i>
               <span>Profile</span>
             </a>
-            <a href="/dashboard/admin" class="nav-link" data-view="admin" id="nav-admin-link" hidden>
+            <a href="/dashboard/#/admin" class="nav-link" data-view="admin" id="nav-admin-link" hidden>
               <i data-lucide="users" class="nav-link-icon icon-18"></i>
               <span>Admin</span>
             </a>
@@ -338,19 +338,19 @@
             <i data-lucide="chevron-down" class="nav-group-chevron icon-16"></i>
           </button>
           <div class="nav-group-items" id="nav-group-system">
-            <a href="/dashboard/tools" class="nav-link" data-view="tools">
+            <a href="/dashboard/#/tools" class="nav-link" data-view="tools">
               <i data-lucide="wrench" class="nav-link-icon icon-18"></i>
               <span>Tools</span>
             </a>
-            <a href="/dashboard/settings" class="nav-link" data-view="settings">
+            <a href="/dashboard/#/settings" class="nav-link" data-view="settings">
               <i data-lucide="settings" class="nav-link-icon icon-18"></i>
               <span>Settings</span>
             </a>
-            <a href="/dashboard/help" class="nav-link" data-view="help">
+            <a href="/dashboard/#/help" class="nav-link" data-view="help">
               <i data-lucide="help-circle" class="nav-link-icon icon-18"></i>
               <span>Help</span>
             </a>
-            <a href="/dashboard/chatbot" class="nav-link" data-view="chatbot">
+            <a href="/dashboard/#/chatbot" class="nav-link" data-view="chatbot">
               <i data-lucide="bot" class="nav-link-icon icon-18"></i>
               <span>Chatbot</span>
             </a>
@@ -375,10 +375,10 @@
           <button type="button" class="nav-footer-link" id="sidebar-export-btn" title="Export current scan report">
             <i data-lucide="download" class="icon-16"></i>
           </button>
-          <a href="/dashboard/about" class="nav-footer-link" data-view="about" title="About">
+          <a href="/dashboard/#/about" class="nav-footer-link" data-view="about" title="About">
             <i data-lucide="info" class="icon-16"></i>
           </a>
-          <a href="/dashboard/audit" class="nav-footer-link" data-view="audit" title="Audit Report">
+          <a href="/dashboard/#/audit" class="nav-footer-link" data-view="audit" title="Audit Report">
             <i data-lucide="clipboard-check" class="icon-16"></i>
           </a>
         </div>
@@ -561,7 +561,7 @@
       }
     })();
   </script>
-  <script type="module" src="/dashboard/js-es2018/main.js?v=20260711redesign3"></script>
+  <script type="module" src="/dashboard/js-es2018/main.js?v=20260711dragfix1"></script>
   <script>
     // Capture script errors so the fallback page can report them without DevTools.
     window.__SB_DASHBOARD_ERRORS__ = [];
