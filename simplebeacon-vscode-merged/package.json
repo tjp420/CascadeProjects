@@ -7,7 +7,7 @@
     "type": "git",
     "url": "https://github.com/simplebeacon/simplebeacon-vscode.git"
   },
-  "version": "3.0.410",
+  "version": "3.0.411",
   "publisher": "simplebeacon",
   "engines": {
     "vscode": "^1.84.0",

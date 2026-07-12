@@ -34,8 +34,11 @@ export function openTeamDashboardPanel(_extUri: vscode.Uri, route = '/dashboard'
       normalizedRoute = '/dashboard' + (normalizedRoute.startsWith('/') ? normalizedRoute : '/' + normalizedRoute);
     }
   }
-  const dashboardUrl = baseUrl
+  let dashboardUrl = baseUrl
     ? `${baseUrl.replace(/\/$/, '')}${normalizedRoute.startsWith('/') ? normalizedRoute : '/' + normalizedRoute}`
     : `http://127.0.0.1:${dataServerPort}${normalizedRoute}`;
+  // Append a cache-buster to force the browser to fetch the latest index.html/module graph.
+  const cacheBuster = `_=${Date.now()}`;
+  dashboardUrl += dashboardUrl.includes('?') ? `&${cacheBuster}` : `?${cacheBuster}`;
   Promise.resolve(vscode.commands.executeCommand('simpleBrowser.show', dashboardUrl)).catch(() => {});
 }
