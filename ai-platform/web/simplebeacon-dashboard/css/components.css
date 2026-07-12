@@ -2629,8 +2629,46 @@ button.tool-card.help-page-card:hover {
   margin-bottom: 0;
 }
 
+.dashboard-bento-side .dashboard-quick-actions {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.dashboard-bento-side .dashboard-action-btn {
+  flex: 1 1 auto;
+  justify-content: center;
+}
+
+/* Legacy hero section (kept for deployed JS that still renders .dashboard-hero) */
+.dashboard-hero {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+  align-items: stretch;
+}
+
+.dashboard-hero > div {
+  min-width: 0;
+}
+
+.dashboard-hero #slot-quick-actions .dashboard-quick-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  height: 100%;
+}
+
+.dashboard-hero #slot-quick-actions .dashboard-action-btn {
+  flex: 1 1 auto;
+  justify-content: center;
+}
+
 @media (max-width: 768px) {
-  .dashboard-bento {
+  .dashboard-bento,
+  .dashboard-hero {
     grid-template-columns: 1fr;
   }
   .dashboard-actions-bar .dashboard-quick-actions {
@@ -3030,6 +3068,19 @@ button.tool-card.help-page-card:hover {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+}
+
+/* Bottom grid */
+.dashboard-bottom-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+@media (max-width: 768px) {
+  .dashboard-bottom-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Dashboard panels */
@@ -5635,18 +5686,78 @@ button.tool-card.help-page-card:hover {
 /* Analyze page quick actions card */
 .analyze-quick-actions-card {
   padding: var(--space-3);
+  margin-top: 0;
 }
 .analyze-quick-actions-card .btn {
   white-space: nowrap;
 }
+.analyze-quick-actions-row {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  align-items: center;
+}
 
 /* Analyze page VS Code extension promo card */
 .analyze-vscode-card {
+  margin-top: var(--space-3);
+  padding: var(--space-3);
   background: linear-gradient(135deg, rgba(99,102,241,0.06) 0%, rgba(139,92,246,0.04) 100%);
   border-color: rgba(99,102,241,0.15);
 }
 .analyze-vscode-card:hover {
   border-color: rgba(99,102,241,0.3);
+}
+.analyze-vscode-inner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+.analyze-vscode-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 1.25rem;
+}
+.analyze-vscode-content {
+  flex: 1;
+  min-width: 0;
+}
+.analyze-vscode-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.analyze-vscode-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.analyze-vscode-subtitle {
+  font-size: var(--font-size-xs);
+  margin: var(--space-1) 0 0;
+}
+.analyze-vscode-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.analyze-vscode-active-badge {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--success);
+  font-size: 0.75rem;
+}
+.analyze-vscode-sync-btn {
+  font-size: 0.75rem;
 }
 
 /* Analyze page empty state tips */

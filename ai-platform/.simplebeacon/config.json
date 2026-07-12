@@ -76,6 +76,16 @@
     "C:/Users/Trevor/CascadeProjects/simplebeacon-vscode-merged/src/rules/llm-slop-catalog.json",
     "C:/Users/Trevor/CascadeProjects/simplebeacon-vscode-merged/out/rules/llm-slop-catalog.json",
     "C:/Users/Trevor/CascadeProjects/simplebeacon-vscode-merged/.vsix-patch-temp/**",
+    "C:/Users/Trevor/CascadeProjects/simplebeacon-vscode-merged/.vsix-final-verify/**",
+    "C:/Users/Trevor/CascadeProjects/simplebeacon-vscode-merged/.vsix-*",
+    "test-tokens/**",
+    "C:/Users/Trevor/CascadeProjects/test-tokens/**",
+    "C:/Users/Trevor/CascadeProjects/simplebeacon-vscode-merged/.orig-*",
+    "**/.vsix-check-temp/**",
+    "**/.vsix-*/**",
+    "**/.orig-*/**",
+    "C:/Users/Trevor/CascadeProjects/simplebeacon-test-tokens.txt",
+    "simplebeacon-test-tokens.txt",
     "**/llm-slop-catalog.json",
     "**/code-map.json",
     "C:/Users/Trevor/CascadeProjects/ai-platform/web/simplebeacon-dashboard/js-es2018/views/SettingsView.js",
@@ -91,7 +101,14 @@
     "C:/Users/Trevor/CascadeProjects/coming-soon/audit.html",
     "C:/Users/Trevor/CascadeProjects/coming-soon/public/audit.html",
     "C:/Users/Trevor/CascadeProjects/coming-soon/pricing.html",
-    "C:/Users/Trevor/CascadeProjects/ai-agent-report-for-dashboard.json"
+    "C:/Users/Trevor/CascadeProjects/ai-agent-report-for-dashboard.json",
+    "C:/Users/Trevor/CascadeProjects/coming-soon/public/dashboard/data/re-attestation-metadata.json",
+    "C:/Users/Trevor/CascadeProjects/coming-soon/public/dashboard/data/roadmap-ai-agent-2026-06-12.json",
+    "C:/Users/Trevor/CascadeProjects/coming-soon/public/dashboard/js/utils-lib/package.json",
+    "C:/Users/Trevor/CascadeProjects/coming-soon/public/dashboard/js-es2018/utils-lib/package.json",
+    "C:/Users/Trevor/CascadeProjects/simplebeacon-vscode-merged/dashboard-web/data/re-attestation-metadata.json",
+    "C:/Users/Trevor/CascadeProjects/simplebeacon-vscode-merged/dashboard-web/data/roadmap-ai-agent-2026-06-12.json",
+    "C:/Users/Trevor/CascadeProjects/simplebeacon-vscode-merged/dashboard-web/js-es2018/utils-lib/package.json"
   ],
   "rules": {
     "credentials": {
@@ -171,6 +188,26 @@
           "type": "duplicate-data",
           "path": "C:/Users/Trevor/CascadeProjects/coming-soon/public/dashboard/js/utils-lib/package.json",
           "reason": "Intentional build copy of utils-lib package.json in coming-soon public assets"
+        },
+        {
+          "type": "duplicate-data",
+          "path": "C:/Users/Trevor/CascadeProjects/coming-soon/public/dashboard/js-es2018/utils-lib/package.json",
+          "reason": "Intentional build copy of utils-lib package.json in coming-soon public assets"
+        },
+        {
+          "type": "duplicate-data",
+          "path": "C:/Users/Trevor/CascadeProjects/simplebeacon-vscode-merged/dashboard-web/data/re-attestation-metadata.json",
+          "reason": "Intentional build copy of dashboard data in VS Code: extension assets"
+        },
+        {
+          "type": "duplicate-data",
+          "path": "C:/Users/Trevor/CascadeProjects/simplebeacon-vscode-merged/dashboard-web/data/roadmap-ai-agent-2026-06-12.json",
+          "reason": "Intentional build copy of dashboard data in VS Code: extension assets"
+        },
+        {
+          "type": "duplicate-data",
+          "path": "C:/Users/Trevor/CascadeProjects/simplebeacon-vscode-merged/dashboard-web/js-es2018/utils-lib/package.json",
+          "reason": "Intentional build copy of utils-lib package.json in VS Code: extension assets"
         }
       ]
     },
@@ -200,10 +237,25 @@
     "out",
     "releases",
     ".vsix-patch-temp",
+    ".vsix-final-verify",
+    ".vsix-check-temp",
+    ".vsix-buttons-temp",
+    ".vsix-*",
+    ".orig-*",
+    "test-tokens",
     "dist",
     "build",
     ".next",
     ".cache",
-    "coverage"
+    "coverage",
+    "simplebeacon-vscode-merged",
+    "ai-tools",
+    "ai-agent",
+    ".vsix-rebuild-all",
+    ".vsix-team-verify",
+    ".vsix-team-verify1",
+    ".vsix-team-verify2",
+    ".vsix-team-verify3",
+    ".vsix-team-verify4"
   ]
 }
