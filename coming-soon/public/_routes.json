@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "include": ["/dashboard/*"],
+  "include": ["/api/*", "/dashboard/*"],
   "exclude": [
     "/dashboard/css/*",
     "/dashboard/js/*",
