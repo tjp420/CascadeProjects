@@ -7,7 +7,7 @@
     "type": "git",
     "url": "https://github.com/simplebeacon/simplebeacon-vscode.git"
   },
-  "version": "3.0.415",
+  "version": "3.0.416",
   "publisher": "simplebeacon",
   "engines": {
     "vscode": "^1.84.0",
@@ -915,7 +915,8 @@
     "format:check": "prettier --check \"src/**/*.ts\"",
     "verify:scan": "node ../scripts/verify-scan.js",
     "verify:all": "npm run compile && node ../scripts/verify-scan.js && npx @vscode/vsce package --out simplebeacon-test.vsix",
-    "package:vsix": "npm run compile && npx @vscode/vsce package",
+    "sync:dashboard-web": "node scripts/sync-dashboard-web.cjs",
+    "package:vsix": "npm run compile && npm run sync:dashboard-web && npx @vscode/vsce package",
     "test:dashboard": "node ./__extract_html.cjs && node ./__test_server.cjs",
     "arch": "depcruise src --config .dependency-cruiser.js",
     "arch:validate": "depcruise src --config .dependency-cruiser.js --output-type err",

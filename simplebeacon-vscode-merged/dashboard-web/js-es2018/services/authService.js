@@ -1,6 +1,7 @@
 import { hasJsonContentType, readJsonResponseBody, withRecoverableFallback, logRecoverableDashboardError } from '../lib/recoverable-fetch.js';
 import { isLocalDevHost, DEMO_EMAIL } from '../demoMode.js';
 import { apiUrl } from '../utils/url.js';
+import { apiBaseUrl } from '../utils/url.js';
 const TOKEN_KEY = 'cascadeAuthToken';
 const USER_KEY = 'cascadeAuthUser';
 const TOKEN_REGISTRY_KEY = 'sb-token-registry';
@@ -949,3 +950,8 @@ export class AuthService {
  * Auth service.
  */
 export const authService = new AuthService();
+
+
+export function apiBase() {
+  return apiBaseUrl();
+}
