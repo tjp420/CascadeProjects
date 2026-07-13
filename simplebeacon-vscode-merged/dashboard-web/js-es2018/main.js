@@ -635,7 +635,7 @@ class SimplebeaconDashboard {
         if (isDemoMode() || !isLocalSelfHosted())
             return true;
         try {
-            const res = await fetch(`${apiBase()}/api/auth/me`, { credentials: 'same-origin' });
+            const res = await fetch(`${apiBase()}/auth/me`, { credentials: 'same-origin' });
             const data = await res.json().catch(() => ({}));
             if (res.status === 403 && data.error === 'vault_required') {
                 this.showVaultBanner();
