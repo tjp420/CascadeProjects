@@ -56,7 +56,7 @@ import {
   fetchAnalyzeTestSources,
   isAnalyzeProviderConfigured,
   uploadDirectoryAndAnalyze
-} from '../services/analyzeService.js?v=20260531pathfix1';
+} from '../services/analyzeService.js?v=20260713dropfix5';
 import { isRemoteRepoUrl, sourceChipTitle } from '../lib/analyzePathSources.js';
 import { reportMatchesPagePath, resolvePageProjectPath, getPathInputDisplayValue } from '../lib/pageRepoScan.js';
 import {

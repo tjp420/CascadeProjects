@@ -7,7 +7,6 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <base href="/">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <style id="ide-preview-hide">
     /* Auto-hide sidebar + top bar when loaded inside IDE browser preview */
@@ -15,12 +14,10 @@
       height: 100vh;
       min-height: 0;
       overflow: hidden;
-      --header-height: 0px;
     }
     html[data-ide-preview="true"] .app-nav { display: none !important; }
     html[data-ide-preview="true"] .mobile-nav-overlay { display: none !important; }
     html[data-ide-preview="true"] .mobile-nav-toggle { display: none !important; }
-    html[data-ide-preview="true"] .app-header { display: none !important; }
     html[data-ide-preview="true"] .sandbox-banner { display: none !important; }
     html[data-ide-preview="true"] .app-body {
       flex: 1;
@@ -142,8 +139,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" onerror="this.rel='';document.documentElement.style.fontFamily='system-ui,-apple-system,sans-serif'">
   <link rel="stylesheet" href="css/variables.css">
   <link rel="stylesheet" href="css/reset.css">
-  <link rel="stylesheet" href="css/layout.css">
-  <link rel="stylesheet" href="css/components.css?v=20260703dragfix1">
+  <link rel="stylesheet" href="css/layout.css?v=20260712merge1">
+  <link rel="stylesheet" href="css/components.css?v=20260712merge1">
   <link rel="stylesheet" href="css/utilities.css">
   <link rel="stylesheet" href="css/disable-elements.css">
   <script src="js/vendor/lucide.min.js" defer onerror="window._lucideFailed=true"></script>
@@ -241,10 +238,12 @@
             <div class="profile-dropdown-header" id="profile-dropdown-header"></div>
             <div class="profile-dropdown-divider"></div>
             <button class="profile-dropdown-item" id="profile-dropdown-view" role="menuitem"><i data-lucide="user" class="icon-16"></i><span>View Profile</span></button>
+            <button class="profile-dropdown-item" id="profile-dropdown-admin" role="menuitem" hidden><i data-lucide="shield" class="icon-16"></i><span>Admin Panel</span></button>
             <button class="profile-dropdown-item" id="profile-dropdown-signout" role="menuitem"><i data-lucide="log-out" class="icon-16"></i><span>Sign Out</span></button>
           </div>
         </div>
         <button class="icon-btn" id="signin-btn" aria-label="Sign in" hidden><i data-lucide="log-in" class="icon-20"></i></button>
+        <button class="icon-btn" id="signout-btn" aria-label="Sign out" hidden><i data-lucide="log-out" class="icon-20"></i></button>
       </div>
     </header>
 
@@ -313,11 +312,11 @@
             <i data-lucide="chevron-down" class="nav-group-chevron icon-16"></i>
           </button>
           <div class="nav-group-items" id="nav-group-operations">
-            <a href="/dashboard/#/assessments" class="nav-link" data-view="assessments">
+            <a href="/dashboard/#/assessments" class="nav-link" data-view="assessments" id="nav-assessments-link" hidden>
               <i data-lucide="file-text" class="nav-link-icon icon-18"></i>
               <span>Assessments</span>
             </a>
-            <a href="/dashboard/#/remediation" class="nav-link" data-view="remediation">
+            <a href="/dashboard/#/roadmap" class="nav-link" data-view="roadmap">
               <i data-lucide="map" class="nav-link-icon icon-18"></i>
               <span>Roadmap</span>
             </a>
@@ -328,6 +327,10 @@
             <a href="/dashboard/#/profile" class="nav-link" data-view="profile">
               <i data-lucide="user" class="nav-link-icon icon-18"></i>
               <span>Profile</span>
+            </a>
+            <a href="/dashboard/#/admin" class="nav-link" data-view="admin" id="nav-admin-link" hidden>
+              <i data-lucide="users" class="nav-link-icon icon-18"></i>
+              <span>Admin</span>
             </a>
           </div>
         </div>
@@ -361,6 +364,10 @@
           <i data-lucide="log-in" class="icon-18"></i>
           <span>Sign In</span>
         </button>
+        <button type="button" class="sidebar-auth-btn" id="sidebar-signout-btn" hidden>
+          <i data-lucide="log-out" class="icon-18"></i>
+          <span>Sign Out</span>
+        </button>
         <div class="nav-footer">
           <a href="https://github.com/tjp420/simplebeacon" class="nav-footer-link" target="_blank" rel="noopener noreferrer" title="GitHub">
             <i data-lucide="code-2" class="icon-16"></i>
@@ -380,18 +387,10 @@
         </div>
       </nav>
 
-      <div class="app-resizer" id="app-resizer" aria-label="Resize sidebar" role="separator" tabindex="0"></div>
-
       <main class="app-main" id="app-main" aria-live="polite"></main>
     </div>
   </div>
 
-  <script>
-    // Auto-set IDE preview mode when loaded inside the relay iframe
-    if (window.self !== window.top || window.location.search.includes('ide-preview=true')) {
-      document.documentElement.setAttribute('data-ide-preview', 'true');
-    }
-  </script>
   <script>
     if (typeof lucide !== 'undefined') {
       lucide.createIcons();
@@ -463,15 +462,15 @@
       nav.className = 'app-header-links';
       nav.setAttribute('aria-label', 'External tools');
       var links = [
-        { href: 'http://127.0.0.1:54358/coming-soon/roadmap.html', icon: 'map', label: 'Roadmap' },
-        { href: 'http://127.0.0.1:54358/coming-soon/audit.html', icon: 'clipboard-check', label: 'Audit' },
-        { href: '/pricing.html', icon: 'tag', label: 'Pricing', id: 'header-pricing-link' },
-        { href: 'http://127.0.0.1:54358/ai-platform/web/simplebeacon-dashboard/?_=' + Date.now() + '#/dashboard', icon: 'layout-dashboard', label: 'Teams Dashboard', id: 'vaultLink' }
+        { href: '/roadmap', icon: 'map', label: 'Roadmap' },
+        { href: '/audit', icon: 'clipboard-check', label: 'Audit' },
+        { href: '/pricing', icon: 'tag', label: 'Pricing', id: 'header-pricing-link' },
+        { href: '/dashboard/dashboard', icon: 'layout-dashboard', label: 'Teams Dashboard', id: 'vaultLink' }
       ];
       links.forEach(function(link) {
         var a = document.createElement('a');
         a.href = link.href;
-        if (!link.href.startsWith('#')) {
+        if (!link.href.startsWith('#') && !link.href.startsWith('/dashboard')) {
           a.target = '_blank';
           a.rel = 'noopener';
         }
@@ -565,65 +564,113 @@
       }
     })();
   </script>
-  <script type="module" src="js-es2018/main.js?v=20260713dropfix2"></script>
+  <script type="module" src="/dashboard/js-es2018/main.js?v=20260713dropfix5"></script>
   <script>
+    // Capture script errors so the fallback page can report them without DevTools.
+    window.__SB_DASHBOARD_ERRORS__ = [];
+    window.addEventListener('error', function(e) {
+      window.__SB_DASHBOARD_ERRORS__.push({
+        type: 'error',
+        message: e.message,
+        filename: e.filename,
+        lineno: e.lineno,
+        colno: e.colno,
+        error: e.error && e.error.stack ? e.error.stack : String(e.error)
+      });
+    });
+    window.addEventListener('unhandledrejection', function(e) {
+      window.__SB_DASHBOARD_ERRORS__.push({
+        type: 'unhandledrejection',
+        message: e.reason && e.reason.message ? e.reason.message : String(e.reason),
+        error: e.reason && e.reason.stack ? e.reason.stack : String(e.reason)
+      });
+    });
+
     // Fallback SPA router when the main.js module is missing or fails to load
     (function() {
       const main = document.getElementById('app-main');
       if (!main) return;
-      // If the real SPA loaded, let it handle everything
-      if (window.__SB_DASHBOARD_APP__) return;
-      const items = [
-        { id: 'dashboard', label: 'Dashboard', icon: '☰' },
-        { id: 'analyze', label: 'Analyze', icon: '🕔' },
-        { id: 'report', label: 'Report', icon: '📄' },
-        { id: 'certificate', label: 'Certificate', icon: '🔒' },
-        { id: 'code-map', label: 'Code Map', icon: '🗺' },
-        { id: 'roadmap', label: 'Roadmap', icon: '🛣' },
-        { id: 'ai-context', label: 'AI Context', icon: '🤖' },
-        { id: 'upload', label: 'Upload', icon: '⭳' },
-        { id: 'audit', label: 'Audit', icon: '📝' },
-        { id: 'security', label: 'Security', icon: '🔒' },
-        { id: 'trust', label: 'Trust', icon: '🗸' },
-        { id: 'quality', label: 'Quality', icon: '⭐' },
-        { id: 'assessments', label: 'Assessments', icon: '✅' },
-        { id: 'platform', label: 'Platform', icon: '💻' },
-        { id: 'profile', label: 'Profile', icon: '👤' },
-        { id: 'compliance', label: 'Compliance', icon: '🛡' },
-        { id: 'repo-health', label: 'Repo Health', icon: '📈' },
-        { id: 'analytics', label: 'Analytics', icon: '📊' },
-        { id: 'scan', label: 'Scan', icon: '🔍' },
-        { id: 'settings', label: 'Settings', icon: '⚙' }
-      ];
-      function grid() {
-        return '<div class="dashboard-welcome"><div class="icon" style="font-size:120px">&#x1F5FA;</div><h1>SimpleBeacon Dashboard</h1><div class="subtitle">Overview of your codebase health, scan results, and quick actions.</div><div class="dashboard-grid">' +
-          items.map(it => '<a href="/dashboard/#/' + it.id + '" data-view="' + it.id + '"><span class="icon">' + it.icon + '</span><span>' + it.label + '</span></a>').join('') +
-          '</div></div>';
+
+      function reportPanel() {
+        const errs = window.__SB_DASHBOARD_ERRORS__ || [];
+        if (!errs.length) return '';
+        const items = errs.map(function(err) {
+          return '<li style="margin-bottom:8px;"><strong>' + escapeHtml(err.type) + '</strong>: ' + escapeHtml(err.message || 'unknown') +
+            (err.filename ? '<br><code style="font-size:12px;">' + escapeHtml(err.filename) + ':' + err.lineno + ':' + err.colno + '</code>' : '') +
+            '</li>';
+        }).join('');
+        return '<div style="margin:24px auto;max-width:640px;padding:16px;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.4);border-radius:8px;color:#e2e8f0;font-family:sans-serif;">' +
+          '<h3 style="margin-top:0;">Dashboard load error</h3>' +
+          '<p style="font-size:13px;">The full dashboard could not load. Details:</p>' +
+          '<ul style="font-size:13px;text-align:left;overflow:auto;max-height:200px;">' + items + '</ul>' +
+          '<button id="dash-retry-btn" style="padding:8px 16px;background:#2563EB;color:#fff;border:none;border-radius:6px;cursor:pointer;">Reload Dashboard</button>' +
+          '</div>';
       }
-      function placeholder(view) {
-        const it = items.find(x => x.id === view);
-        return '<div class="view-placeholder"><h2>' + (it ? it.icon + ' ' + it.label : view) + '</h2><p>This view is rendered by the fallback SPA. Build the full dashboard assets for the complete experience.</p></div>';
-      }
-      function htmlToNodes(html) {
-        return document.createRange().createContextualFragment(html.trim());
-      }
-      function render() {
-        // Bail out if the real SPA has loaded since we started
-        if (window.__SB_DASHBOARD_APP__) return;
-        const hash = location.hash.replace(/^#\//, '').split('#')[0] || 'dashboard';
-        main.textContent = '';
-        if (hash === 'dashboard') {
-          main.appendChild(htmlToNodes(grid()));
-        } else {
-          main.appendChild(htmlToNodes(placeholder(hash)));
-        }
-        document.querySelectorAll('.nav-link').forEach(function(link) {
-          const active = link.getAttribute('data-view') === hash;
-          link.classList.toggle('active', active);
+
+      function escapeHtml(str) {
+        return String(str).replace(/[&<>"']/g, function(m) {
+          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
         });
       }
-      window.addEventListener('hashchange', render);
-      render();
+
+      // Give main.js a short window to load before rendering the fallback.
+      setTimeout(function() {
+        if (window.__SB_DASHBOARD_APP__) return;
+        const items = [
+          { id: 'dashboard', label: 'Dashboard', icon: '☰' },
+          { id: 'analyze', label: 'Analyze', icon: '🕔' },
+          { id: 'report', label: 'Report', icon: '📄' },
+          { id: 'certificate', label: 'Certificate', icon: '🔒' },
+          { id: 'code-map', label: 'Code Map', icon: '🗺' },
+          { id: 'roadmap', label: 'Roadmap', icon: '🛣' },
+          { id: 'ai-context', label: 'AI Context', icon: '🤖' },
+          { id: 'upload', label: 'Upload', icon: '⭳' },
+          { id: 'audit', label: 'Audit', icon: '📝' },
+          { id: 'security', label: 'Security', icon: '🔒' },
+          { id: 'trust', label: 'Trust', icon: '🗸' },
+          { id: 'quality', label: 'Quality', icon: '⭐' },
+          { id: 'assessments', label: 'Assessments', icon: '✅' },
+          { id: 'platform', label: 'Platform', icon: '💻' },
+          { id: 'profile', label: 'Profile', icon: '👤' },
+          { id: 'compliance', label: 'Compliance', icon: '🛡' },
+          { id: 'repo-health', label: 'Repo Health', icon: '📈' },
+          { id: 'analytics', label: 'Analytics', icon: '📊' },
+          { id: 'scan', label: 'Scan', icon: '🔍' },
+          { id: 'settings', label: 'Settings', icon: '⚙' }
+        ];
+        function grid() {
+          return '<div class="dashboard-welcome"><div class="icon" style="font-size:120px">&#x1F5FA;</div><h1>SimpleBeacon Dashboard</h1><div class="subtitle">Overview of your codebase health, scan results, and quick actions.</div>' +
+            reportPanel() +
+            '<div class="dashboard-grid">' +
+            items.map(function(it) { return '<a href="#/' + it.id + '" data-view="' + it.id + '"><span class="icon">' + it.icon + '</span><span>' + it.label + '</span></a>'; }).join('') +
+            '</div></div>';
+        }
+        function placeholder(view) {
+          const it = items.find(function(x) { return x.id === view; });
+          return '<div class="view-placeholder"><h2>' + (it ? it.icon + ' ' + it.label : view) + '</h2><p>This view is rendered by the fallback SPA. Build the full dashboard assets for the complete experience.</p></div>';
+        }
+        function htmlToNodes(html) {
+          return document.createRange().createContextualFragment(html.trim());
+        }
+        function render() {
+          if (window.__SB_DASHBOARD_APP__) return;
+          const hash = location.hash.replace(/^#\//, '').split('#')[0] || 'dashboard';
+          main.textContent = '';
+          if (hash === 'dashboard') {
+            main.appendChild(htmlToNodes(grid()));
+            const retry = document.getElementById('dash-retry-btn');
+            if (retry) retry.addEventListener('click', function() { location.reload(); });
+          } else {
+            main.appendChild(htmlToNodes(placeholder(hash)));
+          }
+          document.querySelectorAll('.nav-link').forEach(function(link) {
+            const active = link.getAttribute('data-view') === hash;
+            link.classList.toggle('active', active);
+          });
+        }
+        window.addEventListener('hashchange', render);
+        render();
+      }, 1500);
     })();
   </script>
 </body>
