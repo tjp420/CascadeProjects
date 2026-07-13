@@ -1,11 +1,63 @@
 import { authService } from './authService.js';
-import { fetchUserAiKeys } from './aiKeysService.js';
-import { scanService } from './scanService.js';
-import { formatNumber, escapeHtml, fetchWithTimeout, apiUrl } from '../utils.js';
+import { fetchUserAiKeys } from './aiKeysService.js?v=20260711cachefix1';
+import { scanService } from './scanService.js?v=20260711scanfix1';
+import { formatNumber, escapeHtml, fetchWithTimeout } from '../utils.js';
 import { isRemoteRepoUrl } from '../lib/analyzePathSources.js';
 import { isBenchmarkCachePath } from '../utils/complete-scan-artifact-profile.browser.js';
 import { DEMO_EMAIL } from '../demoMode.js';
 import { DASHBOARD_BASE_URL } from '../config.js';
+import { isLocalPath, fetchInventoryViaAgent, probeAgent } from './localAgentService.js';
+/**
+ * Upgrade a v1 ("version": "1.0.0" and no reportVersion) scan report so the
+ * dashboard treats it as current and can render aligned file-count metrics.
+ * @param {Object} rawReport
+ * @returns {Object}
+ */
+function normalizeScanReport(rawReport) {
+    if (!rawReport || typeof rawReport !== 'object') {
+        return rawReport;
+    }
+    if (rawReport.reportVersion && Number(rawReport.reportVersion) >= 2) {
+        return rawReport;
+    }
+    if (rawReport.version !== '1.0.0' && rawReport.reportVersion == null) {
+        return rawReport;
+    }
+    const summary = rawReport.summary || {};
+    const repositoryInventory = rawReport.repositoryInventory || null;
+    const repositoryFilesTotal = rawReport.repositoryFilesTotal
+        ?? repositoryInventory?.totalFiles
+        ?? summary.repositoryFilesTotal
+        ?? null;
+    const repositoryFoldersTotal = rawReport.repositoryFoldersTotal
+        ?? repositoryInventory?.totalFolders
+        ?? summary.repositoryFoldersTotal
+        ?? null;
+    const ruleScopedFilesAnalyzed = rawReport.ruleScopedFilesAnalyzed
+        ?? summary.ruleScopedFilesAnalyzed
+        ?? null;
+    const codeFilesAnalyzed = summary.codeFilesAnalyzed
+        ?? summary.codeFilesDiscovered
+        ?? rawReport.filesAnalyzed
+        ?? null;
+    let filesAnalyzed = rawReport.filesAnalyzed ?? null;
+    if (filesAnalyzed == null) {
+        filesAnalyzed = rawReport.fullDirectoryScan
+            ? repositoryFilesTotal
+            : (ruleScopedFilesAnalyzed ?? codeFilesAnalyzed ?? repositoryFilesTotal);
+    }
+    return {
+        ...rawReport,
+        reportVersion: 2,
+        filesAnalyzed,
+        ruleScopedFilesAnalyzed: ruleScopedFilesAnalyzed ?? filesAnalyzed,
+        repositoryFilesTotal,
+        repositoryFoldersTotal,
+        repositoryInventory: repositoryInventory || (repositoryFilesTotal != null
+            ? { totalFiles: repositoryFilesTotal, totalFolders: repositoryFoldersTotal }
+            : null)
+    };
+}
 // simplebeacon:production-leak-intent: web-data-sample - Legitimate web data path detection for analysis mode resolution
 let providersPromise = null;
 /**
@@ -149,7 +201,7 @@ export function isAnalyzeProviderConfigured(provider) {
  * @returns {any}
  */
 export async function fetchAnalyzeProviders(options = {}) {
-    if (!options.refresh && providersPromise) {
+    if (providersPromise) {
         return providersPromise;
     }
     const params = options.refresh ? `?${new URLSearchParams({ _: String(Date.now()) })}` : '';
@@ -225,32 +277,6 @@ export async function fetchUnderstandSnippet(code, options = {}) {
  */
 export async function scanPath(projectPath, options = {}) {
     return scanService.runScan(projectPath, options);
-}
-/**
- * Run a full scan, persist the report locally, export it to the server, and navigate to the roadmap view.
- * @param {string} projectPath
- * @returns {any}
- */
-export async function orchestrateFullCoveragePipeline(projectPath) {
-    try {
-        const rawReport = await scanPath(projectPath, { mode: 'full', fullDirectoryScan: true, gate: true });
-        localStorage.setItem('simplebeacon_latest_raw_report', JSON.stringify(rawReport));
-        const saveResponse = await fetch('/api/optimization/export', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ path: projectPath, data: rawReport })
-        });
-        if (!saveResponse.ok)
-            throw new Error(`Export sync drop: HTTP ${saveResponse.status}`);
-        if (typeof window !== 'undefined' && window.app && typeof window.app.navigate === 'function') {
-            window.app.navigate('remediation');
-        }
-        return { success: true, report: rawReport };
-    }
-    catch (error) {
-        console.error('SimpleBeacon Pipeline Automation Exception:', error);
-        throw error;
-    }
 }
 /** Strip large arrays before POST /api/analyze/summary (Express body limit). */
 export function slimReportForSummary(report) {
@@ -345,7 +371,7 @@ export function slimReportForSummary(report) {
             }))
         };
     }
-    return report;
+    return { ...report };
 }
 /**
  * Summarize report.
@@ -355,7 +381,7 @@ export function slimReportForSummary(report) {
  */
 export async function summarizeReport(report, options = {}) {
     const slim = slimReportForSummary(report);
-    const res = await fetch(apiUrl('/api/analyze/summary'), {
+    const res = await fetch('/api/analyze/summary', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -887,8 +913,8 @@ export async function fetchAnalyzeExportBundleZip(completeScan, options = {}) {
  * @returns {any}
  */
 export function downloadAuditReportHtml(html, filename = 'simplebeacon-audit.html') {
-    if (typeof document === 'undefined' || !html) {
-        throw new Error('Audit report HTML is empty.');
+    if (typeof document === 'undefined' || !document.body || !html) {
+        throw new Error('Audit report HTML is empty or download unavailable.');
     }
     const safeName = filename.endsWith('.html') ? filename : `${filename}.html`;
     const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
@@ -898,9 +924,13 @@ export function downloadAuditReportHtml(html, filename = 'simplebeacon-audit.htm
     link.download = safeName;
     link.rel = 'noopener';
     document.body.appendChild(link);
-    link.click();
-    link.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    try {
+        link.click();
+    }
+    finally {
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+    }
     return safeName;
 }
 /**
@@ -913,7 +943,7 @@ export async function fetchComplianceTrailExportJson(windowDays = 90) {
         window: `${windowDays}d`,
         _: String(Date.now())
     });
-    const res = await fetch(apiUrl(`/api/compliance-trail/export/json?${params}`), {
+    const res = await fetch(`/api/compliance-trail/export/json?${params}`, {
         cache: 'no-store',
         headers: authService.getAuthHeaders()
     });
@@ -938,7 +968,7 @@ export async function fetchComplianceTrailExportHtml(windowDays = 90) {
         disposition: 'inline',
         _: String(Date.now())
     });
-    const res = await fetch(apiUrl(`/api/compliance-trail/export/pdf?${params}`), {
+    const res = await fetch(`/api/compliance-trail/export/pdf?${params}`, {
         cache: 'no-store',
         headers: authService.getAuthHeaders()
     });
@@ -1144,6 +1174,23 @@ export async function fetchZscriptModReport(projectPath, options = {}) {
  * @param {Object} options
  * @returns {any}
  */
+const _inventoryCache = new Map();
+const INVENTORY_CACHE_TTL_MS = 30000;
+function getInventoryCacheKey(projectPath, options) {
+    return `${projectPath}|${options.profile || 'all'}|${options.fullDirectoryScan ? '1' : '0'}`;
+}
+function getCachedInventory(projectPath, options) {
+    const key = getInventoryCacheKey(projectPath, options);
+    const entry = _inventoryCache.get(key);
+    if (entry && Date.now() - entry.ts < INVENTORY_CACHE_TTL_MS) {
+        return entry.inventory;
+    }
+    return undefined;
+}
+function setCachedInventory(projectPath, options, inventory) {
+    const key = getInventoryCacheKey(projectPath, options);
+    _inventoryCache.set(key, { inventory, ts: Date.now() });
+}
 export async function fetchRepositoryInventory(projectPath, options = {}) {
     const path = String(projectPath || '').trim();
     if (!path)
@@ -1153,6 +1200,24 @@ export async function fetchRepositoryInventory(projectPath, options = {}) {
     if (/^https?:\/\//i.test(path) && !isRemoteRepoUrl(path)) {
         throw new Error('Enter a folder path (not a file like .bat or .json) or a supported public repo URL');
     }
+    // Avoid hitting the server for obviously incomplete paths while the user is still typing.
+    if (path.length < 3)
+        return null;
+    const cached = getCachedInventory(path, options);
+    if (cached !== undefined) {
+        return cached;
+    }
+    // Local paths must be inventoried by the agent, not the remote server.
+    if (isLocalPath(path)) {
+        const agentStatus = await probeAgent();
+        if (agentStatus.available && agentStatus.scannerAvailable) {
+            const inventory = await fetchInventoryViaAgent(path, { fullDirectoryScan: options.fullDirectoryScan });
+            setCachedInventory(path, options, inventory);
+            return inventory;
+        }
+        setCachedInventory(path, options, null);
+        return null;
+    }
     const params = new URLSearchParams({
         projectPath: path,
         profile: options.profile || 'all'
@@ -1160,16 +1225,29 @@ export async function fetchRepositoryInventory(projectPath, options = {}) {
     if (options.fullDirectoryScan) {
         params.set('fullDirectoryScan', 'true');
     }
-    const data = await fetchJsonWithGuidance(`/api/analyze/inventory?${params}`, {
-        headers: authService.getAuthHeaders()
-    });
+    let data;
+    try {
+        data = await fetchJsonWithGuidance(`/api/analyze/inventory?${params}`, {
+            headers: authService.getAuthHeaders()
+        });
+    }
+    catch (_a) {
+        // Inventory is optional metadata; a 400/404 from an invalid/missing path is not fatal.
+        setCachedInventory(path, options, null);
+        return null;
+    }
     if (!data.success) {
         if (data.pathMissing)
             return null;
-        throw new Error(data.error || 'Repository inventory failed');
-    }
-    if (data.pathMissing || !data.inventory)
+        // Treat validation errors as missing inventory so the dashboard degrades gracefully.
+        setCachedInventory(path, options, null);
         return null;
+    }
+    if (data.pathMissing || !data.inventory) {
+        setCachedInventory(path, options, null);
+        return null;
+    }
+    setCachedInventory(path, options, data.inventory);
     return data.inventory;
 }
 let _inventoryInflight = null;
@@ -1311,9 +1389,15 @@ export async function fetchScanReport(projectPath) {
         throw new Error('Enter a folder path (not a file like .bat or .json) or a supported public repo URL');
     }
     const params = `?projectPath=${encodeURIComponent(path)}`;
-    const res = await fetch(apiUrl(`/api/simplebeacon/report${params}`), {
-        headers: authService.getAuthHeaders()
-    });
+    let res;
+    try {
+        res = await fetchWithTimeout(`/api/simplebeacon/report${params}`, {
+            headers: authService.getAuthHeaders()
+        }, 30000);
+    }
+    catch (_a) {
+        return null;
+    }
     if (res.status === 404)
         return null;
     if (!res.ok)
@@ -1727,16 +1811,17 @@ export function isLegacyScanReport(report, projectPath = '') {
     var _a;
     if (!report)
         return true;
-    if (report.reportVersion == null || report.reportVersion < 2)
+    const normalized = normalizeScanReport(report);
+    if (normalized.reportVersion == null || normalized.reportVersion < 2)
         return true;
-    if (!projectPath || !report.projectRoot)
+    if (!projectPath || !normalized.projectRoot)
         return false;
-    if (projectPathMatchesReportRoot(projectPath, report.projectRoot))
+    if (projectPathMatchesReportRoot(projectPath, normalized.projectRoot))
         return false;
-    const inventoryRoot = (_a = report.repositoryInventory) === null || _a === void 0 ? void 0 : _a.projectRoot;
+    const inventoryRoot = (_a = normalized.repositoryInventory) === null || _a === void 0 ? void 0 : _a.projectRoot;
     if (inventoryRoot && projectPathMatchesReportRoot(projectPath, inventoryRoot))
         return false;
-    const scanTargetRoot = report.scanTargetRoot || report.platformRoot;
+    const scanTargetRoot = normalized.scanTargetRoot || normalized.platformRoot;
     if (scanTargetRoot && projectPathMatchesReportRoot(projectPath, scanTargetRoot))
         return false;
     return true;
@@ -1749,8 +1834,9 @@ export function isLegacyScanReport(report, projectPath = '') {
  */
 export function getScanFileMetrics(report, options = {}) {
     var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11;
+    const normalizedReport = normalizeScanReport(report);
     const inventory = options.repositoryInventory
-        || (report === null || report === void 0 ? void 0 : report.repositoryInventory)
+        || (normalizedReport === null || normalizedReport === void 0 ? void 0 : normalizedReport.repositoryInventory)
         || null;
     if (!report || typeof report !== 'object') {
         return {
@@ -1762,33 +1848,33 @@ export function getScanFileMetrics(report, options = {}) {
             repositoryRoot: (_c = inventory === null || inventory === void 0 ? void 0 : inventory.projectRoot) !== null && _c !== void 0 ? _c : null
         };
     }
-    if (report.type === 'file-merger-reduction-report') {
-        const sampleDataFiles = (_g = (_e = (_d = report.summary) === null || _d === void 0 ? void 0 : _d.sampleDataFilesAnalyzed) !== null && _e !== void 0 ? _e : (_f = report.summary) === null || _f === void 0 ? void 0 : _f.filesAnalyzed) !== null && _g !== void 0 ? _g : 0;
-        const repoFiles = (_o = (_l = (_j = (_h = report.summary) === null || _h === void 0 ? void 0 : _h.repositoryFilesTotal) !== null && _j !== void 0 ? _j : (_k = report.repositoryInventory) === null || _k === void 0 ? void 0 : _k.totalFiles) !== null && _l !== void 0 ? _l : (_m = report.summary) === null || _m === void 0 ? void 0 : _m.filesAnalyzed) !== null && _o !== void 0 ? _o : null;
+    if (normalizedReport.type === 'file-merger-reduction-report') {
+        const sampleDataFiles = (_g = (_e = (_d = normalizedReport.summary) === null || _d === void 0 ? void 0 : _d.sampleDataFilesAnalyzed) !== null && _e !== void 0 ? _e : (_f = normalizedReport.summary) === null || _f === void 0 ? void 0 : _f.filesAnalyzed) !== null && _g !== void 0 ? _g : 0;
+        const repoFiles = (_o = (_l = (_j = (_h = normalizedReport.summary) === null || _h === void 0 ? void 0 : _h.repositoryFilesTotal) !== null && _j !== void 0 ? _j : (_k = normalizedReport.repositoryInventory) === null || _k === void 0 ? void 0 : _k.totalFiles) !== null && _l !== void 0 ? _l : (_m = normalizedReport.summary) === null || _m === void 0 ? void 0 : _m.filesAnalyzed) !== null && _o !== void 0 ? _o : null;
         return {
             filesAnalyzed: repoFiles !== null && repoFiles !== void 0 ? repoFiles : sampleDataFiles,
             mockSampleFiles: sampleDataFiles,
-            jsonFilesAnalyzed: (_q = (_p = report.summary) === null || _p === void 0 ? void 0 : _p.jsonFilesAnalyzed) !== null && _q !== void 0 ? _q : null,
+            jsonFilesAnalyzed: (_q = (_p = normalizedReport.summary) === null || _p === void 0 ? void 0 : _p.jsonFilesAnalyzed) !== null && _q !== void 0 ? _q : null,
             credentialScanned: null,
             productionLeakScanned: null,
             repositoryFiles: repoFiles,
-            repositoryFolders: (_u = (_s = (_r = report.summary) === null || _r === void 0 ? void 0 : _r.repositoryFoldersTotal) !== null && _s !== void 0 ? _s : (_t = report.repositoryInventory) === null || _t === void 0 ? void 0 : _t.totalFolders) !== null && _u !== void 0 ? _u : null,
-            repositoryRoot: (_w = (_v = report.repositoryInventory) === null || _v === void 0 ? void 0 : _v.projectRoot) !== null && _w !== void 0 ? _w : null
+            repositoryFolders: (_u = (_s = (_r = normalizedReport.summary) === null || _r === void 0 ? void 0 : _r.repositoryFoldersTotal) !== null && _s !== void 0 ? _s : (_t = normalizedReport.repositoryInventory) === null || _t === void 0 ? void 0 : _t.totalFolders) !== null && _u !== void 0 ? _u : null,
+            repositoryRoot: (_w = (_v = normalizedReport.repositoryInventory) === null || _v === void 0 ? void 0 : _v.projectRoot) !== null && _w !== void 0 ? _w : null
         };
     }
-    const mockSampleFiles = (_x = report.mockSampleFiles) !== null && _x !== void 0 ? _x : 0;
-    const ruleScopedFilesAnalyzed = (_z = (_y = report.ruleScopedFilesAnalyzed) !== null && _y !== void 0 ? _y : report.filesAnalyzed) !== null && _z !== void 0 ? _z : 0;
-    const repositoryFiles = (_1 = (_0 = report.repositoryFilesTotal) !== null && _0 !== void 0 ? _0 : inventory === null || inventory === void 0 ? void 0 : inventory.totalFiles) !== null && _1 !== void 0 ? _1 : null;
+    const mockSampleFiles = (_x = normalizedReport.mockSampleFiles) !== null && _x !== void 0 ? _x : 0;
+    const ruleScopedFilesAnalyzed = (_z = (_y = normalizedReport.ruleScopedFilesAnalyzed) !== null && _y !== void 0 ? _y : normalizedReport.filesAnalyzed) !== null && _z !== void 0 ? _z : 0;
+    const repositoryFiles = (_1 = (_0 = normalizedReport.repositoryFilesTotal) !== null && _0 !== void 0 ? _0 : inventory === null || inventory === void 0 ? void 0 : inventory.totalFiles) !== null && _1 !== void 0 ? _1 : null;
     return {
         filesAnalyzed: ruleScopedFilesAnalyzed,
         ruleScopedFilesAnalyzed,
         mockSampleFiles,
-        fictionJsonFilesScanned: (_4 = (_2 = report.fictionJsonFilesScanned) !== null && _2 !== void 0 ? _2 : (_3 = report.scanScope) === null || _3 === void 0 ? void 0 : _3.fictionJsonFilesScanned) !== null && _4 !== void 0 ? _4 : null,
-        credentialScanned: (_5 = report.credentialScanned) !== null && _5 !== void 0 ? _5 : 0,
-        productionLeakScanned: (_6 = report.productionLeakScanned) !== null && _6 !== void 0 ? _6 : 0,
+        fictionJsonFilesScanned: (_4 = (_2 = normalizedReport.fictionJsonFilesScanned) !== null && _2 !== void 0 ? _2 : (_3 = normalizedReport.scanScope) === null || _3 === void 0 ? void 0 : _3.fictionJsonFilesScanned) !== null && _4 !== void 0 ? _4 : null,
+        credentialScanned: (_5 = normalizedReport.credentialScanned) !== null && _5 !== void 0 ? _5 : 0,
+        productionLeakScanned: (_6 = normalizedReport.productionLeakScanned) !== null && _6 !== void 0 ? _6 : 0,
         repositoryFiles,
-        repositoryFolders: (_8 = (_7 = report.repositoryFoldersTotal) !== null && _7 !== void 0 ? _7 : inventory === null || inventory === void 0 ? void 0 : inventory.totalFolders) !== null && _8 !== void 0 ? _8 : null,
-        repositoryRoot: (_11 = (_9 = inventory === null || inventory === void 0 ? void 0 : inventory.projectRoot) !== null && _9 !== void 0 ? _9 : (_10 = report.repositoryInventory) === null || _10 === void 0 ? void 0 : _10.projectRoot) !== null && _11 !== void 0 ? _11 : null
+        repositoryFolders: (_8 = (_7 = normalizedReport.repositoryFoldersTotal) !== null && _7 !== void 0 ? _7 : inventory === null || inventory === void 0 ? void 0 : inventory.totalFolders) !== null && _8 !== void 0 ? _8 : null,
+        repositoryRoot: (_11 = (_9 = inventory === null || inventory === void 0 ? void 0 : inventory.projectRoot) !== null && _9 !== void 0 ? _9 : (_10 = normalizedReport.repositoryInventory) === null || _10 === void 0 ? void 0 : _10.projectRoot) !== null && _11 !== void 0 ? _11 : null
     };
 }
 /**
@@ -2047,6 +2133,56 @@ export function isSimplebeaconReport(obj) {
     return obj && (obj.type === 'simplebeacon-report' || obj.rawIssues != null);
 }
 /**
+ * Normalize a v1 Simplebeacon report (categories/findings shape) to the v2
+ * shape expected by the dashboard (rawIssues/detectedIssues + scan_summary).
+ * @param {any} report
+ * @returns {any}
+ */
+export function normalizeSimplebeaconReport(report) {
+    if (!report || report.reportVersion === 2 || Array.isArray(report.rawIssues) || Array.isArray(report.detectedIssues)) {
+        return report;
+    }
+    const categories = report.categories || {};
+    const detectedIssues = [];
+    for (const [category, data] of Object.entries(categories)) {
+        if (!data || !Array.isArray(data.findings))
+            continue;
+        for (const finding of data.findings) {
+            detectedIssues.push({
+                type: category,
+                filePath: finding.file || '',
+                line: finding.line || 0,
+                severity: String(finding.severity || data.severity || 'medium').toLowerCase(),
+                message: finding.message || ''
+            });
+        }
+    }
+    const severityCounts = report.severityCounts || detectedIssues.reduce((acc, issue) => {
+        const sev = issue.severity || 'medium';
+        acc[sev] = (acc[sev] || 0) + 1;
+        return acc;
+    }, { critical: 0, high: 0, medium: 0, low: 0, info: 0 });
+    const total = detectedIssues.length;
+    const scan_summary = {
+        status: 'REVIEW',
+        block_merge: false,
+        total_risks_found: total,
+        high_severity_count: severityCounts.high || 0,
+        medium_severity_count: severityCounts.medium || 0,
+        low_severity_count: severityCounts.low || 0,
+        estimated_incident_cost_saved: '$0'
+    };
+    return Object.assign({}, report, {
+        reportVersion: 2,
+        detectedIssues,
+        severityCounts,
+        scan_summary,
+        issueCount: total,
+        filesAnalyzed: report.codeFilesAnalyzed || report.filesAnalyzed || 0,
+        totalFiles: report.codeFilesAnalyzed || report.filesAnalyzed || 0
+    });
+}
+/**
  * Is codebase report.
  * @param {any} obj
  * @returns {any}
@@ -2303,8 +2439,19 @@ export function normalizeImportedReport(payload) {
  * @returns {any}
  */
 export async function readFileAsJson(file) {
-    const text = await file.text();
-    return JSON.parse(text);
+    let text;
+    try {
+        text = await file.text();
+    }
+    catch (err) {
+        throw new Error(`Failed to read file: ${err.message}`);
+    }
+    try {
+        return JSON.parse(text);
+    }
+    catch (err) {
+        throw new Error(`Failed to parse JSON: ${err.message}`);
+    }
 }
 /**
  * Read dropped files.
@@ -2484,4 +2631,36 @@ export function assertCompleteScanFileReductionFresh(scan) {
     if (!hasSignal) {
         throw new Error('File reduction scan returned no findings — restart the SimpleBeacon server and retry.');
     }
+}
+/**
+ * Upload a directory of files to the server and run a SimpleBeacon scan.
+ * @param {FileList|Array<File>} files
+ * @param {Object} options
+ * @param {string} options.analysisType
+ * @param {number} [options.timeoutMs]
+ * @returns {Promise<Object>}
+ */
+export async function uploadDirectoryAndAnalyze(files, options = {}) {
+    var _a;
+    if (!files || files.length === 0) {
+        throw new Error('No files selected for upload');
+    }
+    const fileArray = Array.from(files);
+    const filePaths = fileArray.map((file) => {
+        // webkitdirectory and drag-and-drop folders expose the relative path
+        return file.webkitRelativePath || file.name || file.fieldname || 'file';
+    });
+    const formData = new FormData();
+    fileArray.forEach((file) => formData.append('files', file));
+    formData.append('filePaths', JSON.stringify(filePaths));
+    formData.append('analysisType', options.analysisType || 'simplebeacon');
+    const data = await fetchJsonWithGuidance('/api/analyze/upload-directory', {
+        method: 'POST',
+        headers: authService.getAuthHeaders(),
+        body: formData
+    }, (_a = options.timeoutMs) !== null && _a !== void 0 ? _a : 600000);
+    if (!data.success) {
+        throw new Error(data.error || 'Directory upload scan failed');
+    }
+    return data;
 }
