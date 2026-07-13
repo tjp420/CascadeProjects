@@ -4,6 +4,14 @@
  */
 export function apiBaseUrl() {
     if (typeof document !== 'undefined') {
+        // Extension can pass a local API base when the dashboard is loaded from the static website.
+        try {
+            const params = new URLSearchParams(window.location.search);
+            const override = params.get('sb_api_base');
+            if (override)
+                return override;
+        }
+        catch (_a) { /* ignore */ }
         const meta = document.querySelector('meta[name="api-base-url"]');
         if (meta)
             return meta.getAttribute('content') || '';

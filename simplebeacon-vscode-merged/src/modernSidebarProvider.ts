@@ -104,13 +104,16 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
     return true;
   }
 
-  /** Open a dashboard route in the Team Dashboard webview panel using the active dashboard mode. */
+  /** Open a dashboard route in the Team Dashboard webview panel. */
   public static openDashboardRouteInBrowser(route: string): void {
     const extUri = ModernSidebarProvider._extensionUri;
+    const localBaseUrl = `http://127.0.0.1:${getDataServerPort()}`;
     const host = ModernSidebarProvider.resolveDashboardHost();
-    const baseUrl = host || `http://127.0.0.1:${getDataServerPort()}`;
+    const baseUrl = host || localBaseUrl;
+    const isRemote = !/^(https?:\/\/)?(127\.0\.0\.1|localhost)(:\d+)?\/?$/i.test(baseUrl);
     if (!extUri) {
-      const url = `${baseUrl}${route.startsWith('/') ? route : '/' + route}?force=1`;
+      const sep = isRemote ? '?' : '?force=1';
+      const url = `${baseUrl}${route.startsWith('/') ? route : '/' + route}${sep}${isRemote ? `sb_api_base=${encodeURIComponent(localBaseUrl + '/api')}&force=1` : ''}`;
       Promise.resolve(vscode.commands.executeCommand('simpleBrowser.show', url)).catch(() => {});
       return;
     }
@@ -118,6 +121,11 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
     normalizedRoute = normalizedRoute.replace(/^\/dashboard\/?$/, '/dashboard/dashboard');
     if (!normalizedRoute.startsWith('/dashboard/')) {
       normalizedRoute = '/dashboard' + normalizedRoute;
+    }
+    if (isRemote) {
+      const url = `${baseUrl}${normalizedRoute}?sb_api_base=${encodeURIComponent(localBaseUrl + '/api')}&force=1`;
+      Promise.resolve(vscode.commands.executeCommand('simpleBrowser.show', url)).catch(() => {});
+      return;
     }
     _openTeamDashboardPanel(extUri, normalizedRoute, 'Team Dashboard', baseUrl);
   }

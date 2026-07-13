@@ -3,6 +3,15 @@
  */
 
 export function apiBaseUrl() {
+    // Extension can pass a local API base when the dashboard is loaded from the static website.
+    if (typeof window !== 'undefined' && window.location && window.location.search) {
+        try {
+            const params = new URLSearchParams(window.location.search);
+            const override = params.get('sb_api_base');
+            if (override) return override;
+        }
+        catch (_a) { /* ignore */ }
+    }
     const env = typeof window !== 'undefined' && window.__SIMPLEBEACON_ENV__;
     return (env && env.API_BASE_URL) || '';
 }
