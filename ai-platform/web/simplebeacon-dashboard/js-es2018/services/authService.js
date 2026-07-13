@@ -3,10 +3,21 @@ import { isLocalDevHost, DEMO_EMAIL } from '../demoMode.js';
 /**
  * API base prefix: use the Render backend when the dashboard is served from
  * a custom domain (simplebeacon.ai / Cloudflare Pages), otherwise use relative paths.
+ * The ?sb_api_base= query parameter overrides this for extension-driven website sign-in.
  */
 export function apiBase() {
-    if (typeof location !== 'undefined' && !/^(localhost|127\.0\.0\.1)$/i.test(location.hostname) && !location.hostname.endsWith('.onrender.com')) {
-        return 'https://simplebeacon.ai';
+    if (typeof location !== 'undefined') {
+        try {
+            const params = new URLSearchParams(location.search);
+            const override = params.get('sb_api_base');
+            if (override) {
+                return override;
+            }
+        }
+        catch (_a) { /* ignore */ }
+        if (!/^(localhost|127\.0\.0\.1)$/i.test(location.hostname) && !location.hostname.endsWith('.onrender.com')) {
+            return 'https://simplebeacon.ai';
+        }
     }
     return '';
 }
@@ -163,7 +174,7 @@ export class AuthService {
         if (typeof window !== 'undefined' && window.parent !== window) {
             const tier = (user && (user.tier || user.plan)) || this.getTokenTier() || '';
             const isAdmin = this.isAdmin();
-            window.parent.postMessage({ command: 'setAuthState', signedIn: true, tier, isAdmin }, '*');
+            window.parent.postMessage({ command: 'setAuthState', signedIn: true, tier, token, isAdmin }, '*');
         }
     }
     clearSession() {
