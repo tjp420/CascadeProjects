@@ -1,7 +1,7 @@
 import { scanService } from './services/scanService.js?v=20260711dedup2';
 import { platformService } from './services/platformService.js?v=20260525jsonguard1';
 import { billingService } from './services/billingService.js?v=20260525jsonfixbilling1';
-import { authService, apiBase } from './services/authService.js?v=20260711admin1';
+import { authService, apiBase } from './services/authService.js?v=20260713authsync1';
 import { themeService } from './services/themeService.js';
 import { Router, PUBLIC_VIEWS } from './router.js?v=20260713authfix1';
 import { TrustView } from './views/TrustView.js?v=20260711admin1';

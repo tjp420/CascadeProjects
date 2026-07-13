@@ -95,6 +95,14 @@ export class AuthService {
     this._onCrossTabSignout = this._onCrossTabSignout.bind(this);
     if (typeof window !== 'undefined') {
       window.addEventListener('storage', this._onCrossTabSignout);
+      window.addEventListener('message', (event) => {
+        if (event.data && event.data.command === 'getAuthState') {
+          this._broadcastAuthState();
+        }
+      });
+      // Broadcast the current auth state shortly after load so the VS Code: sidebar
+      // stays in sync even when sign-in happened in another tab or window.
+      setTimeout(() => this._broadcastAuthState(), 500);
     }
   }
 
@@ -167,7 +175,7 @@ export class AuthService {
     if (typeof window !== 'undefined' && window.parent !== window) {
       const tier = (user && (user.tier || user.plan)) || this.getTokenTier() || '';
       const isAdmin = this.isAdmin();
-      window.parent.postMessage({ command: 'setAuthState', signedIn: true, tier, isAdmin }, '*');
+      window.parent.postMessage({ command: 'setAuthState', signedIn: true, tier, token, isAdmin }, '*');
     }
   }
 
@@ -187,6 +195,18 @@ export class AuthService {
     if (typeof window !== 'undefined' && window.parent !== window) {
       window.parent.postMessage({ command: 'setAuthState', signedIn: false }, '*');
     }
+  }
+
+  _broadcastAuthState() {
+    if (typeof window === 'undefined' || window.parent === window) {
+      return;
+    }
+    const signedIn = this.isAuthenticated();
+    const token = signedIn ? this.getToken() : '';
+    const user = this.getUser() || {};
+    const tier = (user && (user.tier || user.plan)) || this.getTokenTier() || '';
+    const isAdmin = this.isAdmin();
+    window.parent.postMessage({ command: 'setAuthState', signedIn, tier, token, isAdmin }, '*');
   }
 
   isAuthenticated() {

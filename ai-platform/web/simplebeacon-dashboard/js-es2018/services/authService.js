@@ -11,7 +11,9 @@ export function apiBase() {
             const params = new URLSearchParams(location.search);
             const override = params.get('sb_api_base');
             if (override) {
-                return override;
+                // Extension passes the full API base (e.g. http://127.0.0.1:PORT/api).
+                // This function is used with /api/... appended, so strip the trailing /api.
+                return override.replace(/\/api\/?$/, '');
             }
         }
         catch (_a) { /* ignore */ }
@@ -102,6 +104,14 @@ export class AuthService {
         this._onCrossTabSignout = this._onCrossTabSignout.bind(this);
         if (typeof window !== 'undefined') {
             window.addEventListener('storage', this._onCrossTabSignout);
+            window.addEventListener('message', (event) => {
+                if (event.data && event.data.command === 'getAuthState') {
+                    this._broadcastAuthState();
+                }
+            });
+            // Broadcast the current auth state shortly after load so the VS Code: sidebar
+            // stays in sync even when sign-in happened in another tab or window.
+            setTimeout(() => this._broadcastAuthState(), 500);
         }
     }
     _onCrossTabSignout(event) {
@@ -194,6 +204,17 @@ export class AuthService {
         if (typeof window !== 'undefined' && window.parent !== window) {
             window.parent.postMessage({ command: 'setAuthState', signedIn: false }, '*');
         }
+    }
+    _broadcastAuthState() {
+        if (typeof window === 'undefined' || window.parent === window) {
+            return;
+        }
+        const signedIn = this.isAuthenticated();
+        const token = signedIn ? this.getToken() : '';
+        const user = this.getUser() || {};
+        const tier = (user && (user.tier || user.plan)) || this.getTokenTier() || '';
+        const isAdmin = this.isAdmin();
+        window.parent.postMessage({ command: 'setAuthState', signedIn, tier, token, isAdmin }, '*');
     }
     isAuthenticated() {
         var _a;
