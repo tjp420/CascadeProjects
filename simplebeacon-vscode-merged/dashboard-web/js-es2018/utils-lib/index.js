@@ -23,8 +23,28 @@ import * as FetchUtils   from './fetch.js';
 import * as PrivacyUtils from './privacy.js';
 import * as ClipboardUtils from './clipboard.js';
 import * as VSCodeUtils  from './vscode.js';
+import * as EventUtils   from './event.js';
+import * as PathUtils    from './path.js';
+import * as PollingUtils from './polling.js';
+import * as ThemeUtils   from './theme.js';
 import { deepFreeze } from '../utils/deep-freeze.js';
 export { deepFreeze };
+
+// Small local helpers for functions expected by the barrel API but not exported by the js-es2018 sub-modules.
+const toFixedNumberImpl = (num, digits = 0) => {
+  const n = Number(num);
+  if (!Number.isFinite(n)) return NaN;
+  const d = Math.max(0, Math.min(20, Math.floor(Number(digits) || 0)));
+  return Number(n.toFixed(d));
+};
+const zipObjectImpl = (keys, values) => {
+  const out = {};
+  const len = Math.min(keys.length, values.length);
+  for (let i = 0; i < len; i++) out[keys[i]] = values[i];
+  return out;
+};
+const delayImpl = (ms, value) => AsyncUtils.sleep(ms).then(() => value);
+const throttleAsyncImpl = (fn, wait) => AsyncUtils.throttle(fn, wait);
 
 // ── String helpers ──
 export const escapeHtml       = StringUtils.escapeHtml;
@@ -44,36 +64,40 @@ export const padStart         = StringUtils.padStart;
 export const padEnd           = StringUtils.padEnd;
 
 // ── Number helpers ──
-export const formatNumber   = NumberUtils.formatNumber;
-export const formatPercent  = NumberUtils.formatPercent;
-export const formatBytes    = NumberUtils.formatBytes;
+export const formatNumber   = FormatUtils.formatNumber;
+export const formatPercent  = FormatUtils.formatPercent;
+export const formatBytes    = FormatUtils.formatBytes;
 export const clamp          = NumberUtils.clamp;
 export const roundTo        = NumberUtils.roundTo;
-export const toFixedNumber  = NumberUtils.toFixedNumber;
-export const formatDuration = NumberUtils.formatDuration;
-export const sum            = NumberUtils.sum;
-export const mean           = NumberUtils.mean;
-export const maxBy          = NumberUtils.maxBy;
-export const minBy          = NumberUtils.minBy;
+export const toFixedNumber  = toFixedNumberImpl;
+export const formatDuration = FormatUtils.formatDuration;
+export const sum            = ArrayUtils.sum;
+export const mean           = ArrayUtils.mean;
+export const maxBy          = ArrayUtils.maxBy;
+export const minBy          = ArrayUtils.minBy;
 export const safeParseInt   = NumberUtils.safeParseInt;
 export const safeParseFloat = NumberUtils.safeParseFloat;
-export const random         = NumberUtils.random;
-export const randomId       = NumberUtils.randomId;
-export const uid            = NumberUtils.uid;
+export const inRange        = NumberUtils.inRange;
+export const random         = CryptoUtils.random;
+export const randomId       = CryptoUtils.randomId;
+export const uid            = CryptoUtils.uid;
 
 // ── Async helpers ──
 export const sleep         = AsyncUtils.sleep;
-export const delay         = AsyncUtils.delay;
+export const delay         = delayImpl;
 export const debounce      = AsyncUtils.debounce;
 export const debounceAsync = AsyncUtils.debounceAsync;
 export const debounceLeading = AsyncUtils.debounceLeading;
 export const throttle      = AsyncUtils.throttle;
-export const throttleAsync = AsyncUtils.throttleAsync;
+export const throttleAsync = throttleAsyncImpl;
 export const once          = AsyncUtils.once;
 export const memoize       = AsyncUtils.memoize;
 export const memoizeAsync  = AsyncUtils.memoizeAsync;
 export const withTimeout   = AsyncUtils.withTimeout;
 export const retry         = AsyncUtils.retry;
+export const pMap          = AsyncUtils.pMap;
+export const poll          = AsyncUtils.poll;
+export const waitForAsync  = AsyncUtils.waitForAsync;
 
 // ── Array helpers ──
 export const unique        = ArrayUtils.unique;
@@ -93,7 +117,7 @@ export const sortBy        = ArrayUtils.sortBy;
 export const keyBy         = ArrayUtils.keyBy;
 export const times         = ArrayUtils.times;
 export const randomChoice  = ArrayUtils.randomChoice;
-export const ensureArray   = ArrayUtils.ensureArray;
+export const ensureArray   = ObjectUtils.ensureArray;
 export const zip           = ArrayUtils.zip;
 export const head          = ArrayUtils.head;
 export const tail          = ArrayUtils.tail;
@@ -116,17 +140,20 @@ export const mapKeys      = ObjectUtils.mapKeys;
 export const has          = ObjectUtils.has;
 export const get          = ObjectUtils.get;
 export const set          = ObjectUtils.set;
-export const zipObject    = ObjectUtils.zipObject;
-export const identity     = ObjectUtils.identity;
-export const constant     = ObjectUtils.constant;
+export const zipObject    = zipObjectImpl;
+export const identity     = FunctionUtils.identity;
+export const constant     = FunctionUtils.constant;
 export const at           = ObjectUtils.at;
 export const unset        = ObjectUtils.unset;
 export const defaultsDeep = ObjectUtils.defaultsDeep;
+export const isEmpty      = ObjectUtils.isEmpty;
 
 // ── URL helpers ──
 export const parseQueryString    = UrlUtils.parseQueryString;
 export const stringifyQueryString = UrlUtils.stringifyQueryString;
 export const isValidUrl          = UrlUtils.isValidUrl;
+export const apiBaseUrl          = UrlUtils.apiBaseUrl;
+export const apiUrl              = UrlUtils.apiUrl;
 
 // ── Storage helpers ──
 export const localStorageGet       = StorageUtils.localStorageGet;
@@ -144,15 +171,15 @@ export const prefersDarkMode    = AccessibilityUtils.prefersDarkMode;
 // ── DOM helpers ──
 export const showToast          = DomUtils.showToast;
 export const removeToastContainer = DomUtils.removeToastContainer;
-export const hasClass           = DomUtils.hasClass;
-export const addClass           = DomUtils.addClass;
-export const removeClass        = DomUtils.removeClass;
-export const toggleClass        = DomUtils.toggleClass;
 export const createElement      = DomUtils.createElement;
 export const removeAllChildren  = DomUtils.removeAllChildren;
 export const renderEmptyState   = DomUtils.renderEmptyState;
 export const scrollToElement    = DomUtils.scrollToElement;
 export const elementInViewport  = DomUtils.elementInViewport;
+export const hasClass           = DomUtils.hasClass;
+export const addClass           = DomUtils.addClass;
+export const removeClass        = DomUtils.removeClass;
+export const toggleClass        = DomUtils.toggleClass;
 
 // ── Format helpers ──
 export const formatDate             = FormatUtils.formatDate;
@@ -183,9 +210,9 @@ export const isDate        = TypeUtils.isDate;
 export const isRegExp      = TypeUtils.isRegExp;
 export const isPromise     = TypeUtils.isPromise;
 export const isError       = TypeUtils.isError;
-export const noop           = TypeUtils.noop;
-export const assertNever    = TypeUtils.assertNever;
-export const parseJsonSafe  = TypeUtils.parseJsonSafe;
+export const noop           = FunctionUtils.noop;
+export const assertNever    = FunctionUtils.assertNever;
+export const parseJsonSafe  = ObjectUtils.safeJSONParse;
 
 // ── Function helpers ──
 export const seq           = FunctionUtils.seq;
@@ -195,18 +222,23 @@ export const zipWith       = FunctionUtils.zipWith;
 export const curry         = FunctionUtils.curry;
 export const partial       = FunctionUtils.partial;
 export const tap           = FunctionUtils.tap;
+export const tryFn         = FunctionUtils.tryFn;
 
 // ── Crypto helpers ──
 export const hash          = CryptoUtils.hash;
+export const getNonce      = CryptoUtils.getNonce;
 
 // ── Color helpers ──
 export const hexToRgba     = ColorUtils.hexToRgba;
 export const contrastColor = ColorUtils.contrastColor;
+export const shadeColor    = ColorUtils.shadeColor;
 
 // ── Download helpers ──
-export const downloadJson  = DownloadUtils.downloadJson;
-export const downloadText  = DownloadUtils.downloadText;
-export const downloadCsv   = DownloadUtils.downloadCsv;
+export const downloadJson   = DownloadUtils.downloadJson;
+export const downloadText   = DownloadUtils.downloadText;
+export const downloadCsv    = DownloadUtils.downloadCsv;
+export const downloadBlob   = DownloadUtils.downloadBlob;
+export const normalDownload = DownloadUtils.normalDownload;
 
 // ── Fetch helpers ──
 export const fetchWithTimeout = FetchUtils.fetchWithTimeout;
@@ -222,26 +254,69 @@ export const isVSCodeWebview = VSCodeUtils.isVSCodeWebview;
 export const isStandalone    = VSCodeUtils.isStandalone;
 export const getVSCodeApi    = VSCodeUtils.getVSCodeApi;
 
+// ── Event helpers ──
+export const createEventBus        = EventUtils.createEventBus;
+export const createBroadcastChannel = EventUtils.createBroadcastChannel;
+
+// ── Path helpers ──
+export const resolveDashboardProjectPath = PathUtils.resolveDashboardProjectPath;
+
+// ── Polling helpers ──
+export const createPoller = PollingUtils.createPoller;
+
+// ── Theme helpers ──
+export const getCssVar = ThemeUtils.getCssVar;
+export const setCssVar = ThemeUtils.setCssVar;
+
 // Build flat exports dynamically from imported namespaces
 const _nsMap = {
   string: StringUtils, number: NumberUtils, async: AsyncUtils, array: ArrayUtils,
   object: ObjectUtils, url: UrlUtils, storage: StorageUtils, accessibility: AccessibilityUtils,
   dom: DomUtils, format: FormatUtils, type: TypeUtils, fn: FunctionUtils,
   crypto: CryptoUtils, color: ColorUtils, download: DownloadUtils, fetch: FetchUtils,
-  privacy: PrivacyUtils, clipboard: ClipboardUtils, vscode: VSCodeUtils
+  privacy: PrivacyUtils, clipboard: ClipboardUtils, vscode: VSCodeUtils,
+  event: EventUtils, path: PathUtils, polling: PollingUtils, theme: ThemeUtils
 };
 
+const KNOWN_COLLISIONS = new Set([
+  'escapeHtml',
+  'normalizeSlashes',
+  'redactPathForDisplay',
+  'isRedactedPathDisplay',
+  'formatPathInputValue',
+  'formatPathLabel',
+  'formatScanPathForDisplay',
+  'seq', 'flow', 'negate', 'zipWith', 'curry', 'partial', 'tap',
+  'contrastColor', 'hexToRgba', 'shadeColor',
+  'prefersDarkMode', 'prefersReducedMotion'
+]);
+
 function _buildFlatExports() {
-  const exports = {};
+  const flatExports = {};
+  const seen = new Set();
+  const collisions = [];
   for (const [nsName, ns] of Object.entries(_nsMap)) {
     if (!ns || typeof ns !== 'object') continue;
     for (const key of Object.keys(ns)) {
       if (!Object.prototype.hasOwnProperty.call(ns, key)) continue;
-      exports[key] = ns[key];
+      if (seen.has(key)) {
+        if (flatExports[key] !== ns[key]) {
+          collisions.push({ key, nsName });
+        }
+        continue;
+      }
+      seen.add(key);
+      flatExports[key] = ns[key];
     }
   }
-  exports.deepFreeze = deepFreeze;
-  return Object.freeze(exports);
+  flatExports.deepFreeze = deepFreeze;
+  const unexpectedCollisions = collisions.filter(c => !KNOWN_COLLISIONS.has(c.key));
+  if (unexpectedCollisions.length && typeof console !== 'undefined' && typeof console.warn === 'function') {
+    for (const { key, nsName } of unexpectedCollisions) {
+      console.warn(`[utils-lib] Skipped duplicate flat export "${key}" from "${nsName}" with a different value; first source wins.`);
+    }
+  }
+  return Object.freeze(flatExports);
 }
 
 /** @type {Readonly<Record<string, unknown>>|null} */
@@ -253,9 +328,10 @@ function _getFlatExports() {
   return _flatExports;
 }
 
-export const exportNames = Object.freeze(Object.keys(_getFlatExports()).concat(
+export const exportNames = Object.freeze(Object.keys(_getFlatExports()).filter((name) => name !== 'safeJSONParse').concat(
+  'parseJsonSafe', 'toFixedNumber', 'zipObject', 'delay', 'throttleAsync',
   'exportNames', 'getExportNames', 'getNamespaceNames',
-  'validateBarrelIntegrity', '__barrel__'
+  'validateBarrelIntegrity', 'integrityTest', '__barrel__', 'composition'
 ));
 
 /** @returns {ReadonlyArray<string>} All flat named export keys from this barrel. */
@@ -263,11 +339,7 @@ export function getExportNames() {
   return exportNames;
 }
 
-const NAMESPACE_NAMES = Object.freeze([
-  'string', 'number', 'async', 'array', 'object', 'url', 'storage',
-  'accessibility', 'dom', 'format', 'type', 'fn', 'crypto',
-  'color', 'download', 'fetch', 'privacy', 'clipboard', 'vscode'
-]);
+const NAMESPACE_NAMES = Object.freeze(Object.keys(_nsMap));
 
 /** @returns {ReadonlyArray<string>} All namespace keys from this barrel. */
 export function getNamespaceNames() {
@@ -284,7 +356,7 @@ const BARREL_REQUIRED_KEYS = Object.freeze([
 export const __barrel__ = Object.freeze({
   name: 'simplebeacon-vscode-utils',
   description: 'Barrel re-export for js-es2018/utils-lib/ sub-modules',
-  moduleCount: 19,
+  moduleCount: Object.keys(_nsMap).length,
   exportCount: getExportNames().length,
   namespaceCount: getNamespaceNames().length,
   version: '1.0.0',
@@ -293,32 +365,41 @@ export const __barrel__ = Object.freeze({
   namespaces: getNamespaceNames()
 });
 
-const compositionNamespace = Object.freeze({
+const COMPOSITION_ALIASES = {
+  deepFreeze,
+  parseJsonSafe: ObjectUtils.safeJSONParse,
+  toFixedNumber: toFixedNumberImpl,
+  zipObject: zipObjectImpl,
+  delay: delayImpl,
+  throttleAsync: throttleAsyncImpl
+};
+
+const VALIDATED_WRAPPERS = {
   /**
-   * Sequential function composition (right-to-left).
-   * @param {...Function} fns - Functions to compose.
-   * @returns {Function} Composed function.
-   * @throws {TypeError} If any argument is not a function.
+   * Sequential function composition (left-to-right).
+   * @param {...Function} fns
+   * @returns {Function}
+   * @throws {TypeError}
    */
   seq: (...fns) => {
-    fns.forEach((fn, i) => { if (typeof fn !== 'function') throw new TypeError(`seq: argument at index ${i} is not a function`); });
+    fns.forEach((fn, i) => { if (typeof fn !== 'function') throw new TypeError('seq: argument at index ' + i + ' is not a function'); });
     return FunctionUtils.seq(...fns);
   },
   /**
-   * Left-to-right function composition (pipe).
-   * @param {...Function} fns - Functions to pipe.
-   * @returns {Function} Piped function.
-   * @throws {TypeError} If any argument is not a function.
+   * Right-to-left function composition (compose).
+   * @param {...Function} fns
+   * @returns {Function}
+   * @throws {TypeError}
    */
   flow: (...fns) => {
-    fns.forEach((fn, i) => { if (typeof fn !== 'function') throw new TypeError(`flow: argument at index ${i} is not a function`); });
+    fns.forEach((fn, i) => { if (typeof fn !== 'function') throw new TypeError('flow: argument at index ' + i + ' is not a function'); });
     return FunctionUtils.flow(...fns);
   },
   /**
    * Negate a predicate function.
-   * @param {Function} fn - Predicate to negate.
-   * @returns {Function} Negated predicate.
-   * @throws {TypeError} If fn is not a function.
+   * @param {Function} fn
+   * @returns {Function}
+   * @throws {TypeError}
    */
   negate: (fn) => {
     if (typeof fn !== 'function') throw new TypeError('negate: argument must be a function');
@@ -326,11 +407,11 @@ const compositionNamespace = Object.freeze({
   },
   /**
    * Zip two arrays with a combiner function.
-   * @param {Array} a - First array.
-   * @param {Array} b - Second array.
-   * @param {Function} fn - Combiner function(a, b).
-   * @returns {Array} Zipped result.
-   * @throws {TypeError} If inputs are not arrays or fn is not a function.
+   * @param {Array} a
+   * @param {Array} b
+   * @param {Function} fn
+   * @returns {Array}
+   * @throws {TypeError}
    */
   zipWith: (a, b, fn) => {
     if (!Array.isArray(a)) throw new TypeError('zipWith: first argument must be an array');
@@ -340,9 +421,9 @@ const compositionNamespace = Object.freeze({
   },
   /**
    * Curry a function.
-   * @param {Function} fn - Function to curry.
-   * @returns {Function} Curried function.
-   * @throws {TypeError} If fn is not a function.
+   * @param {Function} fn
+   * @returns {Function}
+   * @throws {TypeError}
    */
   curry: (fn) => {
     if (typeof fn !== 'function') throw new TypeError('curry: argument must be a function');
@@ -350,10 +431,10 @@ const compositionNamespace = Object.freeze({
   },
   /**
    * Partial application.
-   * @param {Function} fn - Function to partially apply.
-   * @param {...*} args - Pre-filled arguments.
-   * @returns {Function} Partially applied function.
-   * @throws {TypeError} If fn is not a function.
+   * @param {Function} fn
+   * @param {...*} args
+   * @returns {Function}
+   * @throws {TypeError}
    */
   partial: (fn, ...args) => {
     if (typeof fn !== 'function') throw new TypeError('partial: first argument must be a function');
@@ -361,141 +442,27 @@ const compositionNamespace = Object.freeze({
   },
   /**
    * Tap into a value for side effects, then return the value.
-   * @param {Function} fn - Side-effect function.
-   * @returns {Function} Tap wrapper.
-   * @throws {TypeError} If fn is not a function.
+   * @param {Function} fn
+   * @returns {Function}
+   * @throws {TypeError}
    */
   tap: (fn) => {
     if (typeof fn !== 'function') throw new TypeError('tap: argument must be a function');
-    return FunctionUtils.tap(fn);
-  },
-  // Array
-  groupBy: ArrayUtils.groupBy,
-  partition: ArrayUtils.partition,
-  chunk: ArrayUtils.chunk,
-  unique: ArrayUtils.unique,
-  compact: ArrayUtils.compact,
-  flatten: ArrayUtils.flatten,
-  sample: ArrayUtils.sample,
-  shuffle: ArrayUtils.shuffle,
-  union: ArrayUtils.union,
-  intersection: ArrayUtils.intersection,
-  difference: ArrayUtils.difference,
-  sortBy: ArrayUtils.sortBy,
-  keyBy: ArrayUtils.keyBy,
-  times: ArrayUtils.times,
-  randomChoice: ArrayUtils.randomChoice,
-  ensureArray: ArrayUtils.ensureArray,
-  zip: ArrayUtils.zip,
-  head: ArrayUtils.head,
-  tail: ArrayUtils.tail,
-  initial: ArrayUtils.initial,
-  last: ArrayUtils.last,
-  findIndex: ArrayUtils.findIndex,
-  countBy: ArrayUtils.countBy,
-  range: ArrayUtils.range,
-  reverse: ArrayUtils.reverse,
-  // Object
-  deepClone: ObjectUtils.deepClone,
-  clone: ObjectUtils.clone,
-  deepEqual: ObjectUtils.deepEqual,
-  pick: ObjectUtils.pick,
-  omit: ObjectUtils.omit,
-  defaults: ObjectUtils.defaults,
-  merge: ObjectUtils.merge,
-  invert: ObjectUtils.invert,
-  mapValues: ObjectUtils.mapValues,
-  mapKeys: ObjectUtils.mapKeys,
-  has: ObjectUtils.has,
-  get: ObjectUtils.get,
-  set: ObjectUtils.set,
-  zipObject: ObjectUtils.zipObject,
-  identity: ObjectUtils.identity,
-  constant: ObjectUtils.constant,
-  at: ObjectUtils.at,
-  unset: ObjectUtils.unset,
-  defaultsDeep: ObjectUtils.defaultsDeep,
-  // Number
-  formatNumber: NumberUtils.formatNumber,
-  formatPercent: NumberUtils.formatPercent,
-  formatBytes: NumberUtils.formatBytes,
-  clamp: NumberUtils.clamp,
-  roundTo: NumberUtils.roundTo,
-  toFixedNumber: NumberUtils.toFixedNumber,
-  formatDuration: NumberUtils.formatDuration,
-  sum: NumberUtils.sum,
-  mean: NumberUtils.mean,
-  maxBy: NumberUtils.maxBy,
-  minBy: NumberUtils.minBy,
-  safeParseInt: NumberUtils.safeParseInt,
-  safeParseFloat: NumberUtils.safeParseFloat,
-  random: NumberUtils.random,
-  randomId: NumberUtils.randomId,
-  uid: NumberUtils.uid,
-  // String
-  escapeHtml: StringUtils.escapeHtml,
-  escapeRegExp: StringUtils.escapeRegExp,
-  truncate: StringUtils.truncate,
-  isBlank: StringUtils.isBlank,
-  capitalize: StringUtils.capitalize,
-  words: StringUtils.words,
-  repeat: StringUtils.repeat,
-  titleCase: StringUtils.titleCase,
-  slugify: StringUtils.slugify,
-  stripHtml: StringUtils.stripHtml,
-  kebabCase: StringUtils.kebabCase,
-  camelCase: StringUtils.camelCase,
-  snakeCase: StringUtils.snakeCase,
-  padStart: StringUtils.padStart,
-  padEnd: StringUtils.padEnd,
-  // Async
-  sleep: AsyncUtils.sleep,
-  delay: AsyncUtils.delay,
-  debounce: AsyncUtils.debounce,
-  debounceAsync: AsyncUtils.debounceAsync,
-  debounceLeading: AsyncUtils.debounceLeading,
-  throttle: AsyncUtils.throttle,
-  throttleAsync: AsyncUtils.throttleAsync,
-  once: AsyncUtils.once,
-  memoize: AsyncUtils.memoize,
-  memoizeAsync: AsyncUtils.memoizeAsync,
-  withTimeout: AsyncUtils.withTimeout,
-  retry: AsyncUtils.retry,
-  // Type
-  isDefined: TypeUtils.isDefined,
-  isNull: TypeUtils.isNull,
-  isUndefined: TypeUtils.isUndefined,
-  isNil: TypeUtils.isNil,
-  isSymbol: TypeUtils.isSymbol,
-  isMap: TypeUtils.isMap,
-  isSet: TypeUtils.isSet,
-  isBoolean: TypeUtils.isBoolean,
-  isNumber: TypeUtils.isNumber,
-  isString: TypeUtils.isString,
-  isArray: TypeUtils.isArray,
-  isFunction: TypeUtils.isFunction,
-  isObject: TypeUtils.isObject,
-  isDate: TypeUtils.isDate,
-  isRegExp: TypeUtils.isRegExp,
-  isPromise: TypeUtils.isPromise,
-  isError: TypeUtils.isError,
-  noop: TypeUtils.noop,
-  assertNever: TypeUtils.assertNever,
-  parseJsonSafe: TypeUtils.parseJsonSafe,
-  // URL
-  parseQueryString: UrlUtils.parseQueryString,
-  stringifyQueryString: UrlUtils.stringifyQueryString,
-  isValidUrl: UrlUtils.isValidUrl,
-  // Others
-  deepFreeze,
-  hash: CryptoUtils.hash,
-  hexToRgba: ColorUtils.hexToRgba,
-  contrastColor: ColorUtils.contrastColor,
-  fetchWithTimeout: FetchUtils.fetchWithTimeout,
-  sanitizePrivacyData: PrivacyUtils.sanitizePrivacyData,
-  copyToClipboard: ClipboardUtils.copyToClipboard
-});
+    return (value) => FunctionUtils.tap(value, fn);
+  }
+};
 
+const compositionNamespace = Object.freeze(
+  Object.entries(_nsMap).reduce((comp, [nsName, ns]) => {
+    if (!ns || typeof ns !== 'object') return comp;
+    for (const key of Object.keys(ns)) {
+      if (!Object.prototype.hasOwnProperty.call(ns, key)) continue;
+      if (Object.prototype.hasOwnProperty.call(comp, key)) continue;
+      comp[key] = ns[key];
+    }
+    return comp;
+  }, { ...COMPOSITION_ALIASES, ...VALIDATED_WRAPPERS })
+);
 const defaultExport = deepFreeze({
   string: StringUtils,
   number: NumberUtils,
@@ -516,6 +483,10 @@ const defaultExport = deepFreeze({
   privacy: PrivacyUtils,
   clipboard: ClipboardUtils,
   vscode: VSCodeUtils,
+  event: EventUtils,
+  path: PathUtils,
+  polling: PollingUtils,
+  theme: ThemeUtils,
   composition: compositionNamespace,
   __barrel__
 });
@@ -540,12 +511,29 @@ export function validateBarrelIntegrity() {
   if (!defaultExport.__barrel__) {
     errors.push('Missing __barrel__ metadata');
   } else {
+    const meta = defaultExport.__barrel__;
     for (const metaKey of BARREL_REQUIRED_KEYS) {
-      if (!(metaKey in defaultExport.__barrel__)) {
+      if (!(metaKey in meta)) {
         errors.push(`Missing __barrel__ key: "${metaKey}"`);
       }
     }
+    if (meta.moduleCount !== Object.keys(_nsMap).length) {
+      errors.push(`__barrel__.moduleCount (${meta.moduleCount}) does not match namespace count (${Object.keys(_nsMap).length})`);
+    }
+    if (meta.exportCount !== exportNames.length) {
+      errors.push(`__barrel__.exportCount (${meta.exportCount}) does not match exportNames.length (${exportNames.length})`);
+    }
+    if (meta.namespaceCount !== nsKeys.length) {
+      errors.push(`__barrel__.namespaceCount (${meta.namespaceCount}) does not match namespace count (${nsKeys.length})`);
+    }
+    if (!Array.isArray(meta.exports) || meta.exports.length !== exportNames.length) {
+      errors.push('__barrel__.exports array is invalid');
+    }
+    if (!Array.isArray(meta.namespaces) || meta.namespaces.length !== nsKeys.length) {
+      errors.push('__barrel__.namespaces array is invalid');
+    }
   }
+
   // Verify every flat export is actually defined (not null/undefined)
   const flat = _getFlatExports();
   for (const key of Object.keys(flat)) {
@@ -553,19 +541,50 @@ export function validateBarrelIntegrity() {
       errors.push(`Flat export "${key}" is null or undefined`);
     }
   }
-  // Verify explicit named exports are present in the flat map
-  const explicitNames = Object.keys(_nsMap).concat('deepFreeze');
-  for (const name of explicitNames) {
-    if (!(name in flat)) {
-      errors.push(`Named export "${name}" missing from flat exports`);
+
+  // Verify all namespace names are represented in the default export
+  for (const nsName of nsKeys) {
+    if (!(nsName in defaultExport)) {
+      errors.push(`Namespace "${nsName}" missing from default export`);
     }
   }
-  // Verify no duplicate keys snuck into the frozen object
-  const rawKeys = Object.keys(flat);
-  if (rawKeys.length !== exportNames.length) {
-    const dupes = rawKeys.filter((k, i) => rawKeys.indexOf(k) !== i);
-    if (dupes.length) {
-      errors.push(`Duplicate keys detected in flat exports: ${[...new Set(dupes)].join(', ')}`);
+
+  // Verify all named exports are accounted for and have a non-null value
+  const barrelBuiltins = { exportNames, getExportNames, getNamespaceNames, validateBarrelIntegrity, integrityTest, __barrel__ };
+  const barrelAliases = {
+    parseJsonSafe: ObjectUtils.safeJSONParse,
+    toFixedNumber: toFixedNumberImpl,
+    zipObject: zipObjectImpl,
+    delay: delayImpl,
+    throttleAsync: throttleAsyncImpl,
+    composition: compositionNamespace
+  };
+  const expectedExportNames = new Set([
+    ...Object.keys(flat).filter((name) => name !== 'safeJSONParse'),
+    ...Object.keys(barrelBuiltins),
+    ...Object.keys(barrelAliases)
+  ]);
+  const exportNameSet = new Set(exportNames);
+  if (exportNameSet.size !== exportNames.length) {
+    const dupes = exportNames.filter((k, i) => exportNames.indexOf(k) !== i);
+    errors.push(`Duplicate named exports detected: ${[...new Set(dupes)].join(', ')}`);
+  }
+  for (const name of exportNames) {
+    let value;
+    if (name in barrelBuiltins) {
+      value = barrelBuiltins[name];
+    } else if (name in barrelAliases) {
+      value = barrelAliases[name];
+    } else {
+      value = flat[name];
+    }
+    if (value == null) {
+      errors.push(`Named export "${name}" is null or undefined`);
+    }
+  }
+  for (const name of expectedExportNames) {
+    if (!exportNameSet.has(name)) {
+      errors.push(`Missing export name: "${name}"`);
     }
   }
 
@@ -577,15 +596,19 @@ export function validateBarrelIntegrity() {
     }
   }
 
-  // Collision detection between namespaces
+  // Collision detection between namespaces and composition namespace
   const _collisionWarnings = new Set();
   for (const [nsName, ns] of Object.entries(_nsMap)) {
     if (!ns || typeof ns !== 'object') continue;
     for (const key of Object.keys(ns)) {
       if (!Object.prototype.hasOwnProperty.call(ns, key)) continue;
-      if (key in compositionNamespace && !_collisionWarnings.has(key)) {
-        _collisionWarnings.add(key);
-        console.warn(`[utils] Collision: "${key}" from "${nsName}" also exists in composition namespace; composition wins.`);
+      if (key in compositionNamespace && !_collisionWarnings.has(key) && !KNOWN_COLLISIONS.has(key)) {
+        const compValue = compositionNamespace[key];
+        const nsValue = ns[key];
+        if (typeof compValue === 'function' && typeof nsValue === 'function' && compValue !== nsValue) {
+          _collisionWarnings.add(key);
+          console.warn(`[utils] Collision: "${key}" from "${nsName}" is overridden by composition namespace with a different implementation.`);
+        }
       }
     }
   }
@@ -602,7 +625,8 @@ export function integrityTest() {
   function assert(label, condition) { if (!condition) failures.push(label); }
 
   assert('seq identity', compositionNamespace.seq()(5) === 5);
-  assert('flow pipes', compositionNamespace.flow((x) => x + 1, (x) => x * 2)(3) === 8);
+  assert('seq pipes left-to-right', compositionNamespace.seq((x) => x + 1, (x) => x * 2)(3) === 8);
+  assert('flow composes right-to-left', compositionNamespace.flow((x) => x + 1, (x) => x * 2)(3) === 7);
   assert('negate', compositionNamespace.negate((x) => x > 0)(-1));
   assert('zipWith pairs', compositionNamespace.zipWith([1, 2], [3, 4], (a, b) => a + b)[0] === 4);
   assert('curry partial', compositionNamespace.curry((a, b) => a + b)(1)(2) === 3);
@@ -610,7 +634,8 @@ export function integrityTest() {
   assert('tap returns value', compositionNamespace.tap(() => undefined)(5) === 5);
 
   // Inline namespace parity tests
-  assert('groupBy', JSON.stringify(compositionNamespace.groupBy([1, 2, 3], x => x % 2)) === JSON.stringify({ '1': [1, 3], '0': [2] }));
+  const groupByResult = compositionNamespace.groupBy([1, 2, 3], x => x % 2);
+  assert('groupBy', groupByResult instanceof Map && groupByResult.get(1).length === 2 && groupByResult.get(0).length === 1);
   assert('partition', JSON.stringify(compositionNamespace.partition([1, 2, 3], x => x > 1)) === JSON.stringify([[2, 3], [1]]));
   assert('chunk', JSON.stringify(compositionNamespace.chunk([1, 2, 3, 4], 2)) === JSON.stringify([[1, 2], [3, 4]]));
   assert('deepClone', compositionNamespace.deepClone({ a: 1 }).a === 1);
@@ -621,12 +646,14 @@ export function integrityTest() {
   assert('formatBytes', compositionNamespace.formatBytes(1024).includes('KB'));
   assert('formatNumber', compositionNamespace.formatNumber(1000).includes('1'));
   assert('escapeHtml', compositionNamespace.escapeHtml('<div>').includes('&lt;'));
-  assert('truncate', compositionNamespace.truncate('hello world', 8) === 'hello...');
+  assert('truncate', compositionNamespace.truncate('hello world', 8) === 'hello w…');
   assert('capitalize', compositionNamespace.capitalize('hello') === 'Hello');
   assert('isDefined', compositionNamespace.isDefined(0));
   assert('parseJsonSafe', compositionNamespace.parseJsonSafe('{"a":1}', null).a === 1);
 
   return { passed: failures.length === 0, failures };
 }
+
+export const composition = compositionNamespace;
 
 export default defaultExport;

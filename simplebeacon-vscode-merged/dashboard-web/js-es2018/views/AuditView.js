@@ -1,4 +1,7 @@
-import { escapeHtml, formatNumber, formatPercent, showToast, downloadJson, renderEmptyState, apiUrl } from '../utils.js';
+import { escapeHtml } from '../utils/string.js';
+import { formatNumber, formatPercent } from '../utils/number.js';
+import { showToast, downloadJson, renderEmptyState } from '../utils/dom.js';
+import { apiUrl } from '../utils/url.js';
 import { renderComplianceBadges, renderComplianceSummary } from '../lib/complianceMapper.js';
 const LAYER_LABELS = {
     credentials: 'Credential patterns',

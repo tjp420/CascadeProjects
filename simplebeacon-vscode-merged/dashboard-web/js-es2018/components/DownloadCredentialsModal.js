@@ -1,4 +1,4 @@
-import { showToast } from '../utils.js';
+import { showToast } from '../utils/dom.js';
 /**
  * Show download credentials modal.
  * @param {Object} options

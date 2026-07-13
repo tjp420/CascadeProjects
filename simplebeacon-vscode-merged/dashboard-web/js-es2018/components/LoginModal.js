@@ -1,5 +1,6 @@
 import { authService } from '../services/authService.js';
-import { showToast, apiUrl } from '../utils.js';
+import { showToast } from '../utils/dom.js';
+import { apiUrl } from '../utils/url.js';
 /**
  * Show login modal.
  * @param {Object} options

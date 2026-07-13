@@ -1,4 +1,6 @@
-import { escapeHtml, formatNumber, formatPercent, showToast, downloadJson } from '../utils.js';
+import { escapeHtml } from '../utils/string.js';
+import { formatNumber, formatPercent } from '../utils/number.js';
+import { showToast, downloadJson } from '../utils/dom.js';
 import { renderIssueList } from '../components/IssueCard.js';
 import { renderConsolidationPanel } from '../components/ConsolidationReport.js';
 import { renderDataCleanupPanel, buildDataCleanupConclusion } from '../components/DataCleanupReport.js?v=20260527exec5';

@@ -1,7 +1,8 @@
 /**
  * Per-file (or per-target) pass/fail rows for Analyze mode pills — from lastResult / report payloads.
  */
-import { escapeHtml, formatNumber } from '../utils.js';
+import { escapeHtml } from '../utils/string.js';
+import { formatNumber } from '../utils/number.js';
 const MAX_ROWS = 200;
 /**
  * Normalize rel path.

@@ -1,6 +1,7 @@
 import { authService } from './authService.js';
 import { readJsonResponseBody, withRecoverableFallback } from '../lib/recoverable-fetch.js';
-import { apiUrl, showToast } from '../utils.js';
+import { apiUrl } from '../utils/url.js';
+import { showToast } from '../utils/dom.js';
 /**
  * Open-source pivot: community CLI is the product. Billing API calls are stubbed;
  * the optional dashboard runs without Stripe or subscription gates.

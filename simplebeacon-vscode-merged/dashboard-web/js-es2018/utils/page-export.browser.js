@@ -1,7 +1,7 @@
 /**
  * SPA portal page exports — browser mirror of server/lib/spa-page-export.js
  */
-import { downloadJson, showToast } from '../utils.js';
+import { downloadJson, showToast } from '../utils/dom.js';
 import { FEATURE_CATALOG } from '../services/platformService.js?v=20260531pageexport1';
 import { getScanFileMetrics, resolveDisplayScore, resolveJestTestsLabel, resolvePageSpecsLabel, formatScanScopeSummary } from '../services/analyzeService.js';
 import { pipelineStats, prospectsWithSentLog, OUTREACH_PROSPECTS } from '../data/outreach-prospects.js?v=20260531pageexport1';

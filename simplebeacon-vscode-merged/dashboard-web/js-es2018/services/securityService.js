@@ -1,5 +1,5 @@
 /** Security findings extracted from live Simplebeacon report (credential + production-leak rules). */
-import { apiUrl } from '../utils.js';
+import { apiUrl } from '../utils/url.js';
 export const SECURITY_ISSUE_PATTERN = /credential|production leak/i;
 /**
  * Is security issue.

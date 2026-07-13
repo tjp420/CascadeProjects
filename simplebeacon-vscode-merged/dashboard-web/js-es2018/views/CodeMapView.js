@@ -1,4 +1,6 @@
-import { escapeHtml, formatNumber, showToast } from '../utils.js';
+import { escapeHtml } from '../utils/string.js';
+import { formatNumber } from '../utils/number.js';
+import { showToast } from '../utils/dom.js';
 import { scanService } from '../services/scanService.js';
 import { fetchRepositoryInventory, fetchUnderstandSnippet } from '../services/analyzeService.js';
 /**

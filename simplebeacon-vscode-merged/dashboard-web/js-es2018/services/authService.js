@@ -1,6 +1,6 @@
 import { hasJsonContentType, readJsonResponseBody, withRecoverableFallback, logRecoverableDashboardError } from '../lib/recoverable-fetch.js';
 import { isLocalDevHost, DEMO_EMAIL } from '../demoMode.js';
-import { apiUrl } from '../utils.js';
+import { apiUrl } from '../utils/url.js';
 const TOKEN_KEY = 'cascadeAuthToken';
 const USER_KEY = 'cascadeAuthUser';
 const TOKEN_REGISTRY_KEY = 'sb-token-registry';
@@ -162,8 +162,10 @@ export class AuthService {
             const vscode = typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi() : null;
             if (vscode) {
                 vscode.postMessage({ command: 'setAuthState', signedIn: true, tier: this.getTier(), token });
+                vscode.postMessage({ command: 'storeActiveLicenseToken', token });
             } else if (window.parent && window.parent !== window) {
                 window.parent.postMessage({ command: 'setAuthState', signedIn: true, tier: this.getTier(), token }, '*');
+                window.parent.postMessage({ command: 'storeActiveLicenseToken', token }, '*');
             }
         }
         catch (e) { }

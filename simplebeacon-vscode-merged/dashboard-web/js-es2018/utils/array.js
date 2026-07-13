@@ -2,6 +2,8 @@
  * @module array
  */
 
+import { isDefined } from './type.js';
+
 export function unique(arr, keyFn) {
     if (!Array.isArray(arr))
         return [];
@@ -195,4 +197,148 @@ export function countBy(arr, iteratee) {
         map.set(key, (map.get(key) || 0) + 1);
     }
     return Object.fromEntries(map);
+}
+
+// ── Data-last list primitives (migrated from utils.js barrel) ───────────
+
+export function head(list) {
+    if (list == null || typeof list.length !== 'number') return undefined;
+    return list[0];
+}
+
+export function tail(list) {
+    if (list == null || typeof list.length !== 'number') return [];
+    return Array.prototype.slice.call(list, 1);
+}
+
+export function last(list) {
+    if (list == null || typeof list.length !== 'number') return undefined;
+    return list[list.length - 1];
+}
+
+export function init(list) {
+    if (list == null || typeof list.length !== 'number') return [];
+    return Array.prototype.slice.call(list, 0, -1);
+}
+
+export function take(n, list) {
+    if (list == null || typeof list.length !== 'number') return [];
+    return typeof list === 'string' ? list.slice(0, n) : Array.prototype.slice.call(list, 0, n);
+}
+
+export function drop(n, list) {
+    if (list == null || typeof list.length !== 'number') return [];
+    return typeof list === 'string' ? list.slice(n) : Array.prototype.slice.call(list, n);
+}
+
+export function takeLast(n, list) {
+    if (list == null || typeof list.length !== 'number') return [];
+    return typeof list === 'string' ? list.slice(-n) : Array.prototype.slice.call(list, -n);
+}
+
+export function dropLast(n, list) {
+    if (list == null || typeof list.length !== 'number') return [];
+    return typeof list === 'string' ? list.slice(0, -n) : Array.prototype.slice.call(list, 0, -n);
+}
+
+export function pluck(key, list) {
+    if (list == null || typeof list.length !== 'number') return [];
+    return Array.prototype.map.call(list, obj => obj == null ? undefined : obj[key]);
+}
+
+export function find(pred, list) {
+    if (typeof pred !== 'function') return undefined;
+    if (list == null || typeof list.length !== 'number') return undefined;
+    return Array.prototype.find.call(list, pred);
+}
+
+export function findIndex(pred, list) {
+    if (typeof pred !== 'function' || list == null || typeof list.length !== 'number') return -1;
+    return Array.prototype.findIndex.call(list, pred);
+}
+
+export function sort(list) {
+    if (list == null || typeof list.length !== 'number') return [];
+    return Array.prototype.slice.call(list).sort();
+}
+
+export function contains(value, list) {
+    if (list == null || typeof list.length !== 'number') return false;
+    return Array.prototype.indexOf.call(list, value) >= 0;
+}
+
+export function uniqBy(iteratee, list) {
+    if (typeof iteratee !== 'function') return [];
+    if (list == null || typeof list.length !== 'number') return [];
+    const seen = new Set();
+    return Array.prototype.filter.call(list, item => {
+        const key = iteratee(item);
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    });
+}
+
+export function sortByInline(iteratee, list) {
+    if (typeof iteratee !== 'function') return [];
+    if (list == null || typeof list.length !== 'number') return [];
+    return Array.prototype.slice.call(list).sort((a, b) => {
+        const av = iteratee(a), bv = iteratee(b);
+        if (av < bv) return -1;
+        if (av > bv) return 1;
+        return 0;
+    });
+}
+
+export function flattenInline(depth, list) {
+    if (list == null || typeof list.length !== 'number') return [];
+    const result = [];
+    const stack = [];
+    // Push initial list in reverse so the first element is popped first.
+    for (let i = list.length - 1; i >= 0; i--) stack.push([list[i], 1]);
+    while (stack.length) {
+        const [item, d] = stack.pop();
+        if (Array.isArray(item) && d < depth) {
+            // Push children in reverse so the first child is popped first.
+            for (let i = item.length - 1; i >= 0; i--) stack.push([item[i], d + 1]);
+        } else {
+            result.push(item);
+        }
+    }
+    return result;
+}
+
+export function zip(arr1, arr2) {
+    if (!arr1 || !arr2 || typeof arr1.length !== 'number' || typeof arr2.length !== 'number') return [];
+    const len = Math.min(arr1.length, arr2.length);
+    const result = new Array(len);
+    for (let i = 0; i < len; i++) result[i] = [arr1[i], arr2[i]];
+    return result;
+}
+
+export function unzip(arr) {
+    if (!arr || typeof arr.length !== 'number') return [[], []];
+    const a = new Array(arr.length), b = new Array(arr.length);
+    for (let i = 0; i < arr.length; i++) {
+        const pair = arr[i];
+        a[i] = pair != null ? pair[0] : undefined;
+        b[i] = pair != null ? pair[1] : undefined;
+    }
+    return [a, b];
+}
+
+export function project(keys, list) {
+    if (!Array.isArray(keys)) return [];
+    if (list == null || typeof list.length !== 'number') return [];
+    return Array.prototype.map.call(list, obj => {
+        const result = {};
+        for (const k of keys) { if (k in obj) result[k] = obj[k]; }
+        return result;
+    });
+}
+
+export function reverseInline(list) {
+    if (list == null || typeof list.length !== 'number') return [];
+    if (typeof list === 'string') return list.split('').reverse().join('');
+    return Array.prototype.slice.call(list).reverse();
 }

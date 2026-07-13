@@ -1,4 +1,6 @@
-import { escapeHtml, sanitizePrivacyData, apiUrl } from '../utils.js';
+import { escapeHtml } from '../utils/string.js';
+import { sanitizePrivacyData } from '../utils/format.js';
+import { apiUrl } from '../utils/url.js';
 /**
  * Chatbot view.
  */

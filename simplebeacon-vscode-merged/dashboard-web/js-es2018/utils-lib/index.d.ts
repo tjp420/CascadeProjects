@@ -23,7 +23,6 @@ export interface IntegrityResult {
 
 export function escapeHtml(str: string | null | undefined): string;
 export function escapeRegExp(str: string | null | undefined): string;
-export function normalizeSlashes(path: string, opts?: { stripLeadingDot?: boolean; lowercase?: boolean }): string;
 export function truncate(str: string | null | undefined, maxLen?: number, suffix?: string): string;
 export function capitalize(str: string | null | undefined): string;
 export function words(str: string): string[];
@@ -36,6 +35,7 @@ export function camelCase(str: string): string;
 export function snakeCase(str: string): string;
 export function padStart(str: string, length: number, padStr?: string): string;
 export function padEnd(str: string, length: number, padStr?: string): string;
+export function isBlank(value: any): boolean;
 
 // ── Number helpers ────────────────────────────────────────────
 
@@ -52,6 +52,7 @@ export function maxBy<T>(arr: T[], keyFn: (item: T) => number): T | undefined;
 export function minBy<T>(arr: T[], keyFn: (item: T) => number): T | undefined;
 export function safeParseInt(value: string | number | null | undefined, fallback?: number): number;
 export function safeParseFloat(value: string | number | null | undefined, fallback?: number): number;
+export function inRange(value: number, start: number, end?: number): boolean;
 export function random(min?: number, max?: number): number;
 export function randomId(prefix?: string): string;
 export function uid(): string;
@@ -70,9 +71,9 @@ export function memoize<T extends (...args: any[]) => any>(fn: T, maxSize?: numb
 export function memoizeAsync<T extends (...args: any[]) => Promise<any>>(fn: T, maxSize?: number): T & { clear(): void };
 export function withTimeout<T>(promise: Promise<T>, ms: number, message?: string): Promise<T>;
 export function retry<T>(fn: () => Promise<T>, options?: { attempts?: number; delay?: number }): Promise<T>;
-export function seq<T>(...fns: Array<(v: T) => T>): (value: T) => T;
-export function flow<T>(...fns: Array<(v: T) => T>): (value: T) => T;
-export function negate(predicate: (...args: any[]) => boolean): (...args: any[]) => boolean;
+export function pMap<T, R>(arr: T[], fn: (item: T) => Promise<R>, concurrency?: number): Promise<R[]>;
+export function poll<T>(fn: () => T, intervalMs?: number, timeoutMs?: number): Promise<T | undefined>;
+export function waitForAsync(predicate: () => Promise<boolean>, intervalMs?: number, timeoutMs?: number, message?: string): Promise<void>;
 
 // ── Array helpers ────────────────────────────────────────────
 
@@ -118,12 +119,15 @@ export function constant<T>(value: T): () => T;
 export function at<T>(obj: T, paths: string[]): any[];
 export function unset<T>(obj: T, path: string | string[]): boolean;
 export function defaultsDeep<T>(obj: T, ...sources: Partial<T>[]): T;
+export function isEmpty(value: any): boolean;
 
 // ── URL helpers ──────────────────────────────────────────────
 
 export function parseQueryString(query: string): Record<string, string>;
 export function stringifyQueryString(params: Record<string, string | number | boolean>): string;
 export function isValidUrl(url: string): boolean;
+export function apiBaseUrl(): string;
+export function apiUrl(path: string): string;
 
 // ── Storage helpers ───────────────────────────────────────────
 
@@ -144,10 +148,15 @@ export function prefersDarkMode(): boolean;
 
 export function showToast(message: string, type?: 'info' | 'success' | 'error' | 'warning'): void;
 export function removeToastContainer(): void;
-export function hasClass(el: Element, className: string): boolean;
-export function addClass(el: Element, className: string): void;
-export function removeClass(el: Element, className: string): void;
-export function toggleClass(el: Element, className: string): void;
+export function createElement(tag: string, attrs?: Record<string, any>, children?: (string | HTMLElement)[]): HTMLElement | null;
+export function removeAllChildren(el: HTMLElement): void;
+export function renderEmptyState(opts: any): string | { html: string; attach(container: HTMLElement): void };
+export function scrollToElement(selector: string, behavior?: string): boolean;
+export function elementInViewport(el: HTMLElement): boolean;
+export function hasClass(el: HTMLElement, className: string): boolean;
+export function addClass(el: HTMLElement, className: string): void;
+export function removeClass(el: HTMLElement, className: string): void;
+export function toggleClass(el: HTMLElement, className: string): boolean;
 
 // ── Format helpers ───────────────────────────────────────────
 
@@ -156,10 +165,13 @@ export function relativeTime(date: Date | string | number): string;
 export function redactPathForDisplay(projectPath: string): string;
 export function isRedactedPathDisplay(displayPath: string): boolean;
 export function formatPathLabel(projectPath: string): string;
+export function normalizeSlashes(path: string): string;
+export function formatPathInputValue(projectPath: string): string;
+export function formatScanPathForDisplay(scanPath: string, projectRoot?: string): string;
+export function formatAiSummarySkipMessage(errorMessage: string): string;
 
 // ── Type guards ──────────────────────────────────────────────
 
-export function isBlank(value: any): boolean;
 export function isDefined<T>(value: T | null | undefined): value is T;
 export function isNil(value: any): boolean;
 export function noop(): void;
@@ -169,17 +181,21 @@ export function parseJsonSafe<T>(json: string, fallback?: T): T | undefined;
 // ── Crypto helpers ───────────────────────────────────────────
 
 export function hash(str: string): number;
+export function getNonce(): string;
 
 // ── Color helpers ────────────────────────────────────────────
 
 export function hexToRgba(hex: string, alpha?: number): string;
 export function contrastColor(hex: string): string;
+export function shadeColor(color: string, percent: number): string;
 
 // ── Download helpers ─────────────────────────────────────────
 
 export function downloadJson(data: any, filename: string): void;
 export function downloadText(content: string, filename: string): void;
 export function downloadCsv(content: string, filename: string): void;
+export function downloadBlob(blob: Blob, filename: string): void;
+export function normalDownload(blob: Blob, filename: string): void;
 
 // ── Fetch helpers ──────────────────────────────────────────
 
@@ -199,12 +215,34 @@ export function isVSCodeWebview(): boolean;
 export function isStandalone(): boolean;
 export function getVSCodeApi(): any;
 
+// ── Event helpers ────────────────────────────────────────────
+
+export function createEventBus(): { on(event: string, handler: (payload: any) => void): () => void; off(event: string, handler: (payload: any) => void): void; emit(event: string, payload?: any): void; once(event: string, handler: (payload: any) => void): () => void };
+export function createBroadcastChannel(name: string): { post(data: any): void; on(handler: (data: any) => void): void; off(): void; close(): void };
+
+// ── Path helpers ───────────────────────────────────────────────
+
+export function resolveDashboardProjectPath(projectPath: string, defaultProjectPath?: string): string;
+
+// ── Polling helpers ────────────────────────────────────────────
+
+export function createPoller(fn: () => void | Promise<void>, intervalMs: number, opts?: { immediate?: boolean; onError?: (err: any, count: number) => void; maxRetries?: number }): { start(): void; stop(): void; isRunning(): boolean };
+
+// ── Theme helpers ──────────────────────────────────────────────
+
+export function getCssVar(name: string, fallback?: string): string;
+export function setCssVar(name: string, value: string): void;
+
 // ── Barrel-native utilities ──────────────────────────────────
 
+export function seq<T>(...fns: Array<(v: T) => T>): (value: T) => T;
+export function flow<T>(...fns: Array<(v: T) => T>): (value: T) => T;
+export function negate(predicate: (...args: any[]) => boolean): (...args: any[]) => boolean;
 export function zipWith<T, U, V>(arr1: T[], arr2: U[], fn: (a: T, b: U) => V): V[];
 export function curry<T extends (...args: any[]) => any>(fn: T): T;
 export function partial<T extends (...args: any[]) => any>(fn: T, ...presetArgs: any[]): T;
 export function tap<T>(value: T, fn: (value: T) => void): T;
+export function tryFn<T>(fn: () => T): { ok: true; value: T } | { ok: false; error: Error };
 
 // ── Metadata & discovery ─────────────────────────────────────
 
@@ -217,22 +255,22 @@ export const __barrel__: BarrelMeta;
 // ── Namespaces ───────────────────────────────────────────────
 
 export namespace string {
-  export { escapeHtml, escapeRegExp, normalizeSlashes, truncate, capitalize, words, repeat, titleCase, slugify, stripHtml, kebabCase, camelCase, snakeCase, padStart, padEnd };
+  export { escapeHtml, escapeRegExp, truncate, capitalize, words, repeat, titleCase, slugify, stripHtml, kebabCase, camelCase, snakeCase, padStart, padEnd, isBlank };
 }
 export namespace number {
-  export { formatNumber, formatPercent, formatBytes, clamp, roundTo, toFixedNumber, formatDuration, sum, mean, maxBy, minBy, safeParseInt, safeParseFloat, random, randomId, uid };
+  export { formatNumber, formatPercent, formatBytes, clamp, roundTo, toFixedNumber, formatDuration, sum, mean, maxBy, minBy, safeParseInt, safeParseFloat, inRange, random, randomId, uid };
 }
 export namespace async {
-  export { sleep, delay, debounce, debounceAsync, debounceLeading, throttle, throttleAsync, once, memoize, memoizeAsync, withTimeout, retry };
+  export { sleep, delay, debounce, debounceAsync, debounceLeading, throttle, throttleAsync, once, memoize, memoizeAsync, withTimeout, retry, pMap, poll, waitForAsync };
 }
 export namespace array {
   export { unique, compact, flatten, range, chunk, sample, shuffle, reverse, union, intersection, difference, groupBy, partition, sortBy, keyBy, times, randomChoice, ensureArray, countBy };
 }
 export namespace object {
-  export { deepClone, clone, deepEqual, pick, omit, defaults, merge, invert, mapValues, mapKeys, has, get, set, zipObject, identity, constant, at, unset, defaultsDeep };
+  export { deepClone, clone, deepEqual, pick, omit, defaults, merge, invert, mapValues, mapKeys, has, get, set, zipObject, identity, constant, at, unset, defaultsDeep, isEmpty };
 }
 export namespace url {
-  export { parseQueryString, stringifyQueryString, isValidUrl };
+  export { parseQueryString, stringifyQueryString, isValidUrl, apiBaseUrl, apiUrl };
 }
 export namespace storage {
   export { localStorageGet, localStorageSet, localStorageRemove, localStorageGetString, localStorageSetString, sessionStorageGet, sessionStorageSet };
@@ -244,19 +282,19 @@ export namespace dom {
   export { showToast, removeToastContainer, hasClass, addClass, removeClass, toggleClass };
 }
 export namespace format {
-  export { formatDate, relativeTime, redactPathForDisplay, isRedactedPathDisplay, formatPathLabel };
+  export { formatDate, relativeTime, redactPathForDisplay, isRedactedPathDisplay, formatPathLabel, normalizeSlashes, formatPathInputValue, formatScanPathForDisplay, formatAiSummarySkipMessage };
 }
 export namespace type {
-  export { isBlank, isDefined, isNil, noop, assertNever, parseJsonSafe };
+  export { isDefined, isNil, noop, assertNever, parseJsonSafe };
 }
 export namespace crypto {
-  export { hash };
+  export { hash, getNonce };
 }
 export namespace color {
-  export { hexToRgba, contrastColor };
+  export { hexToRgba, contrastColor, shadeColor };
 }
 export namespace download {
-  export { downloadJson, downloadText, downloadCsv };
+  export { downloadJson, downloadText, downloadCsv, downloadBlob, normalDownload };
 }
 export namespace fetch {
   export { fetchWithTimeout };
@@ -270,8 +308,26 @@ export namespace clipboard {
 export namespace vscode {
   export { isVSCodeWebview, isStandalone, getVSCodeApi };
 }
-export namespace composition {
-  export { seq, flow, negate, zipWith, curry, partial, tap };
+export const composition: Readonly<Record<string, (...args: any[]) => any>>;
+
+export namespace fn {
+  export { seq, flow, negate, identity, constant, assertNever, tryFn, noop, zipWith, curry, partial, tap };
+}
+
+export namespace event {
+  export { createEventBus, createBroadcastChannel };
+}
+
+export namespace path {
+  export { resolveDashboardProjectPath };
+}
+
+export namespace polling {
+  export { createPoller };
+}
+
+export namespace theme {
+  export { getCssVar, setCssVar };
 }
 
 // ── Default export ───────────────────────────────────────────
@@ -295,6 +351,11 @@ declare const _default: Readonly<{
   privacy: typeof privacy;
   clipboard: typeof clipboard;
   vscode: typeof vscode;
+  event: typeof event;
+  path: typeof path;
+  polling: typeof polling;
+  theme: typeof theme;
+  fn: typeof fn;
   composition: typeof composition;
   __barrel__: BarrelMeta;
 }>;

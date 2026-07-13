@@ -82,13 +82,16 @@ export class ThemeService {
     toggle() {
         this.manualOverride = true;
         localStorage.setItem(MANUAL_KEY, '1');
-        this.theme = this.theme === 'dark' ? 'light' : 'dark';
+        const cycle = ['dark', 'light', 'fox'];
+        const idx = cycle.indexOf(this.theme);
+        this.theme = cycle[(idx + 1) % cycle.length];
         localStorage.setItem(THEME_KEY, this.theme);
         this.apply(this.theme);
         return this.theme;
     }
     set(theme) {
-        if (theme !== 'dark' && theme !== 'light') {
+        const valid = ['dark', 'light', 'fox'];
+        if (!valid.includes(theme)) {
             return this.theme;
         }
         this.theme = theme;
@@ -100,7 +103,9 @@ export class ThemeService {
         document.documentElement.setAttribute('data-theme', theme);
         const btn = document.getElementById('theme-toggle');
         if (btn) {
-            const iconName = theme === 'dark' ? 'sun' : 'moon';
+            const icons = { dark: 'sun', light: 'moon', fox: 'flame' };
+            const labels = { dark: 'Switch to light mode', light: 'Switch to fox mode', fox: 'Switch to dark mode' };
+            const iconName = icons[theme] || 'moon';
             const icon = btn.querySelector('i[data-lucide]');
             if (icon) {
                 icon.textContent = '';
@@ -113,9 +118,10 @@ export class ThemeService {
                 }
             }
             else if (btn.children.length === 0) {
-                btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+                const emoji = { dark: '☀️', light: '🌙', fox: '🦊' };
+                btn.textContent = emoji[theme] || '🌙';
             }
-            btn.setAttribute('aria-label', theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
+            btn.setAttribute('aria-label', labels[theme] || 'Switch theme');
         }
     }
 }

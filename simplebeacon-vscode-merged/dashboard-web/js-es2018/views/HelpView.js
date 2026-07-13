@@ -1,4 +1,6 @@
-import { escapeHtml, formatNumber, formatPercent, renderEmptyState, showToast } from '../utils.js';
+import { escapeHtml } from '../utils/string.js';
+import { formatNumber, formatPercent } from '../utils/number.js';
+import { renderEmptyState, showToast } from '../utils/dom.js';
 import { FEATURE_CATALOG } from '../services/platformService.js';
 // EU AI Act transparency disclosure: This view includes AI system integration indicators per Article 50.
 import { getScanFileMetrics, resolveDisplayScore, resolveJestTestsLabel, resolvePageSpecsLabel, formatScanScopeSummary, formatScanInventoryNote } from '../services/analyzeService.js';

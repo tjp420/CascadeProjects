@@ -1,4 +1,4 @@
-import { showToast } from '../utils.js';
+import { showToast } from '../utils/dom.js';
 /**
  * Reusable pending-activation fallback card.
  *

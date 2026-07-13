@@ -1,4 +1,8 @@
-import { escapeHtml, formatNumber, redactPathForDisplay, showToast, apiUrl } from '../utils.js';
+import { escapeHtml } from '../utils/string.js';
+import { formatNumber } from '../utils/number.js';
+import { redactPathForDisplay } from '../utils/format.js';
+import { showToast } from '../utils/dom.js';
+import { apiUrl } from '../utils/url.js';
 import { renderRepositoryHealthSection } from './RepositoryHealthView.js';
 /**
  * Normalize static trust payload.

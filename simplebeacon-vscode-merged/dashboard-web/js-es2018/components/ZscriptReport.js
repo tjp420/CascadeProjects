@@ -1,4 +1,4 @@
-import { escapeHtml } from '../utils.js';
+import { escapeHtml } from '../utils/string.js';
 /**
  * Render zscript report panel.
  * @param {number} zscriptReport

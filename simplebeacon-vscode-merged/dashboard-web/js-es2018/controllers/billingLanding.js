@@ -1,6 +1,6 @@
 import { billingService } from '../services/billingService.js';
 import { authService } from '../services/authService.js';
-import { showToast } from '../utils.js';
+import { showToast } from '../utils/dom.js';
 import { PendingActivationCard } from '../components/PendingActivationCard.js';
 /**
  * Post-checkout landing controller.

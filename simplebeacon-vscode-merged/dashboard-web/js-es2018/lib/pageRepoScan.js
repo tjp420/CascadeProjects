@@ -1,4 +1,6 @@
-import { formatPathLabel, redactPathForDisplay, showToast, escapeHtml } from '../utils.js';
+import { formatPathLabel, redactPathForDisplay } from '../utils/format.js';
+import { showToast } from '../utils/dom.js';
+import { escapeHtml } from '../utils/string.js';
 import { refreshLiveReport, normalizeProjectPath, shouldPreferLiveReport } from '../services/analyzeService.js';
 import { isDemoMode, demoReadOnlyMessage } from '../demoMode.js';
 import { isBenchmarkCachePath } from '../utils/complete-scan-artifact-profile.browser.js';

@@ -555,7 +555,7 @@ export async function scanDroppedItems(items, options = {}) {
     fileQueue.push({ file, virtualPath: file.name });
   }
   if (fileQueue.length === 0) {
-    throw new Error('No scannable files were dropped.');
+    throw new Error('No scannable files or folders detected.');
   }
   logLine(onLog, `Dropped ${fileQueue.length} file(s) — scanning locally.`, 'info');
   return analyzeDirectory({ rootName: name, fileQueue }, { maxFileSize, onLog, onProgress });

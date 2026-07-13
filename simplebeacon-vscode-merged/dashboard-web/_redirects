@@ -1,0 +1,8 @@
+# Dashboard SPA redirects: send direct deep links to the dashboard app path so the
+# server serves the dashboard instead of the marketing landing page.
+/analyze /dashboard/analyze 302
+/results /dashboard/results 302
+/repository-health /dashboard/repository-health 302
+/quality /dashboard/quality 302
+/trust /dashboard/trust 302
+/security /dashboard/security 302

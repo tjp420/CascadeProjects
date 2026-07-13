@@ -267,3 +267,56 @@ export function invert(obj) {
     }
     return result;
 }
+
+export function evolve(transformations, obj) {
+    if (obj == null || typeof obj !== 'object') return obj;
+    if (transformations == null || typeof transformations !== 'object') return obj;
+    const result = {};
+    for (const key of Object.keys(obj)) {
+        const fn = transformations[key];
+        result[key] = typeof fn === 'function' ? fn(obj[key]) : obj[key];
+    }
+    return result;
+}
+
+export function dissoc(key, obj) {
+    if (obj == null || typeof obj !== 'object') return {};
+    const result = {};
+    for (const k of Object.keys(obj)) { if (k !== key) result[k] = obj[k]; }
+    return result;
+}
+
+function _mergeDeep(leftPrecedence, a, b) {
+    if (a == null || typeof a !== 'object') return b;
+    if (b == null || typeof b !== 'object') return a;
+    if (Array.isArray(a) || Array.isArray(b)) return leftPrecedence ? a : b;
+    const result = {};
+    for (const k of new Set([...Object.keys(a), ...Object.keys(b)])) {
+        if (k in a && k in b && a[k] != null && typeof a[k] === 'object' && b[k] != null && typeof b[k] === 'object') {
+            result[k] = _mergeDeep(leftPrecedence, a[k], b[k]);
+        } else {
+            result[k] = leftPrecedence ? (k in a ? a[k] : b[k]) : (k in b ? b[k] : a[k]);
+        }
+    }
+    return result;
+}
+
+export function mergeDeepLeft(a, b) {
+    return _mergeDeep(true, a, b);
+}
+
+export function mergeDeepRight(a, b) {
+    return _mergeDeep(false, a, b);
+}
+
+export function memoizeBy(fn, keyFn) {
+    if (typeof fn !== 'function' || typeof keyFn !== 'function') return fn;
+    const cache = new Map();
+    return (...args) => {
+        const key = keyFn(...args);
+        if (cache.has(key)) return cache.get(key);
+        const result = fn(...args);
+        cache.set(key, result);
+        return result;
+    };
+}

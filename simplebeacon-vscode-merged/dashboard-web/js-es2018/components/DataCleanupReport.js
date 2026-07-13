@@ -1,4 +1,5 @@
-import { escapeHtml, formatNumber, formatBytes } from '../utils.js';
+import { escapeHtml } from '../utils/string.js';
+import { formatNumber, formatBytes } from '../utils/number.js';
 const SCANNER_LABELS = {
     'build-artifacts': 'Build artifacts',
     'asset-consolidation': 'Duplicate assets',

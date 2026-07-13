@@ -1,4 +1,8 @@
-import { escapeHtml, showToast, downloadJson, redactPathForDisplay, formatNumber, renderEmptyState, apiUrl } from '../utils.js';
+import { escapeHtml } from '../utils/string.js';
+import { showToast, downloadJson, renderEmptyState } from '../utils/dom.js';
+import { redactPathForDisplay } from '../utils/format.js';
+import { formatNumber } from '../utils/number.js';
+import { apiUrl } from '../utils/url.js';
 import { extractSecurityFindings, buildSecuritySummary, buildSecurityExportPayload, fetchComplianceHeadline } from '../services/securityService.js';
 /**
  * Security view.

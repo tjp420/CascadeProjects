@@ -1,4 +1,4 @@
-const ROUTES = ['dashboard', 'audit', 'assessments', 'analyze', 'results', 'remediation', 'security', 'tools', 'platform', 'quality', 'help', 'features', 'trust', 'repository-health', 'settings', 'pricing', 'about', 'signin', 'chatbot', 'upload', 'eu-ai-act', 'profile', 'code-map', 'billing-success', 'billing-cancel'];
+const ROUTES = ['dashboard', 'audit', 'assessments', 'analyze', 'results', 'remediation', 'roadmap', 'security', 'tools', 'platform', 'quality', 'help', 'features', 'trust', 'repository-health', 'settings', 'pricing', 'about', 'signin', 'chatbot', 'upload', 'eu-ai-act', 'profile', 'admin'];
 /**
  * P u b l i c  v i e w s.
  */
@@ -10,15 +10,19 @@ const DASHBOARD_BASE = '/dashboard';
 export class Router {
     constructor(onNavigate) {
         this.onNavigate = onNavigate;
-        window.addEventListener('popstate', () => this.handlePath());
-        window.addEventListener('hashchange', () => this.handleHash());
+        this._popstateHandler = () => this.handlePath();
+        this._hashchangeHandler = () => this.handleHash();
+        window.addEventListener('popstate', this._popstateHandler);
+        window.addEventListener('hashchange', this._hashchangeHandler);
+    }
+    dispose() {
+        window.removeEventListener('popstate', this._popstateHandler);
+        window.removeEventListener('hashchange', this._hashchangeHandler);
     }
     init() {
         const forced = typeof window !== 'undefined' && window.__SB_INITIAL_ROUTE__;
-        
         if (forced && ROUTES.includes(forced)) {
             delete window.__SB_INITIAL_ROUTE__;
-            
             this.onNavigate(forced, {});
             this.updateNav(forced);
             this.pushPath(forced);
@@ -59,16 +63,13 @@ export class Router {
             const searchParams = new URLSearchParams(search);
             searchParams.forEach((v, k) => { params[k] = v; });
         }
-        const result = { view: ROUTES.includes(view) ? view : 'dashboard', params };
-        
-        return result;
+        return { view: ROUTES.includes(view) ? view : 'dashboard', params };
     }
     handlePath() {
         try {
             const { view, params } = this.parsePath();
             this.onNavigate(view, params);
             this.updateNav(view);
-            this.notifyParentUrl();
         }
         catch (err) {
             const msg = (err === null || err === void 0 ? void 0 : err.message) || String(err);
@@ -109,20 +110,14 @@ export class Router {
             if (window.location.pathname + window.location.search !== newUrl) {
                 window.history.pushState({}, '', newUrl);
             }
-            this.notifyParentUrl();
+            // Notify IDE webview parent of the current URL so the URL bar stays in sync.
+            if (window.parent && window.parent !== window) {
+                try { window.parent.postMessage({ command: 'dashboardRouteChanged', url: window.location.href }, '*'); } catch (e) { /* ignore */ }
+            }
         }
         catch (e) { /* webview may restrict this */ }
     }
-    notifyParentUrl() {
-        try {
-            if (window.parent && window.parent !== window) {
-                window.parent.postMessage({ command: 'dashboardRouteChanged', url: window.location.href }, '*');
-            }
-        }
-        catch (e) { /* ignore cross-origin restrictions */ }
-    }
     navigate(view, params = {}) {
-        console.log('[SB DEBUG] Router.navigate called with view:', view);
         this.pushPath(view, params);
         this.onNavigate(view, params);
         this.updateNav(view);

@@ -1,4 +1,4 @@
-import { escapeHtml } from '../utils.js';
+import { escapeHtml } from '../utils/string.js';
 import { authService } from '../services/authService.js';
 /**
  * Render a small inline locked/upgrade badge for a paid feature.

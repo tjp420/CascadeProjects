@@ -1,4 +1,6 @@
-import { escapeHtml, formatPathLabel, formatNumber } from '../utils.js';
+import { escapeHtml } from '../utils/string.js';
+import { formatPathLabel } from '../utils/format.js';
+import { formatNumber } from '../utils/number.js';
 import { severityLabel, redactMatch } from '../utils/snippetDiagnostic.js?v=20260531analyzers1';
 import { loadRecentPaths } from '../lib/analyzePathSuggestions.js';
 import { sourceChipTitle } from '../lib/analyzePathSources.js';

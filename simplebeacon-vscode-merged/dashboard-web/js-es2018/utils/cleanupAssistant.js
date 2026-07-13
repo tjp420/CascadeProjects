@@ -1,7 +1,8 @@
 /**
  * Cleanup assistant — tier scan results for safe deletion and agent handoff.
  */
-import { escapeHtml, formatNumber, normalizeSlashes } from '../utils.js';
+import { escapeHtml, normalizeSlashes } from '../utils/string.js';
+import { formatNumber } from '../utils/number.js';
 import { buildCompleteScanAnalysis } from './completeScanAnalysis.js?v=20260527cleanup1';
 /**
  * C l e a n u p  a s s i s t a n t  p r e f s  k e y.

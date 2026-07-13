@@ -1,4 +1,4 @@
-import { showToast } from '../utils.js';
+import { showToast } from '../utils/dom.js';
 import { ensureAllowedAnalysisRoots } from '../lib/analyzePathAllowlist.js';
 
 function readDataTransferData(dt, type) {

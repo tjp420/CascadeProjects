@@ -2,7 +2,10 @@
  * Drive Scanner Analyze View
  * Replaces the old code-analysis Analyze page with a filesystem scanner.
  */
-import { escapeHtml, showToast, formatNumber, formatBytes, formatDate } from '../utils.js';
+import { escapeHtml } from '../utils/string.js';
+import { showToast } from '../utils/dom.js';
+import { formatNumber, formatBytes } from '../utils/number.js';
+import { formatDate } from '../utils/format.js';
 import { authService } from '../services/authService.js?v=20260703tier1';
 
 const LS_SCAN_PATHS = 'sb_analyze_scan_paths';

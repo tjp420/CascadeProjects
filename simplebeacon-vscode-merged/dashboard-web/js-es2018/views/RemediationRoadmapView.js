@@ -1,4 +1,6 @@
-import { escapeHtml, formatNumber, showToast, renderEmptyState } from '../utils.js';
+import { escapeHtml } from '../utils/string.js';
+import { formatNumber } from '../utils/number.js';
+import { showToast, renderEmptyState } from '../utils/dom.js';
 import { getScanFileMetrics, resolveDisplayScore } from '../services/analyzeService.js';
 const SEVERITY_ORDER = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
 /**

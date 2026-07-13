@@ -241,3 +241,73 @@ export function elementInViewport(el) {
   return rect.top >= 0 && rect.left >= 0 && rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) && rect.right <= (window.innerWidth || document.documentElement.clientWidth);
 }
 
+
+/**
+ * Check whether an element has a CSS class.
+ * @param {HTMLElement} el
+ * @param {string} className
+ * @returns {boolean}
+ */
+export function hasClass(el, className) {
+  if (!el || !className) return false;
+  if (el.classList && typeof el.classList.contains === 'function') {
+    return el.classList.contains(className);
+  }
+  const classes = String(el.className || '').split(/\s+/);
+  return classes.includes(className);
+}
+
+
+/**
+ * Add a CSS class to an element.
+ * @param {HTMLElement} el
+ * @param {string} className
+ * @returns {void}
+ */
+export function addClass(el, className) {
+  if (!el || !className) return;
+  if (el.classList && typeof el.classList.add === 'function') {
+    el.classList.add(className);
+    return;
+  }
+  const classes = String(el.className || '').split(/\s+/).filter(Boolean);
+  if (!classes.includes(className)) {
+    el.className = classes.concat(className).join(' ');
+  }
+}
+
+
+/**
+ * Remove a CSS class from an element.
+ * @param {HTMLElement} el
+ * @param {string} className
+ * @returns {void}
+ */
+export function removeClass(el, className) {
+  if (!el || !className) return;
+  if (el.classList && typeof el.classList.remove === 'function') {
+    el.classList.remove(className);
+    return;
+  }
+  const classes = String(el.className || '').split(/\s+/).filter((c) => c && c !== className);
+  el.className = classes.join(' ');
+}
+
+
+/**
+ * Toggle a CSS class on an element.
+ * @param {HTMLElement} el
+ * @param {string} className
+ * @returns {boolean} True when the class is present after toggling.
+ */
+export function toggleClass(el, className) {
+  if (!el || !className) return false;
+  const hasIt = hasClass(el, className);
+  if (hasIt) {
+    removeClass(el, className);
+    return false;
+  }
+  addClass(el, className);
+  return true;
+}
+

@@ -1,4 +1,6 @@
-import { escapeHtml, formatNumber, formatPathInputValue, redactPathForDisplay } from '../utils.js';
+import { escapeHtml } from '../utils/string.js';
+import { formatNumber } from '../utils/number.js';
+import { formatPathInputValue, redactPathForDisplay } from '../utils/format.js';
 import { getScanFileMetrics } from '../services/analyzeService.js?v=20260710inventory1';
 import { getCompleteEngineLabel } from './AnalyzeEngineGrid.js';
 

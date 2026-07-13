@@ -1,4 +1,6 @@
-import { escapeHtml, apiUrl, showToast } from '../utils.js';
+import { escapeHtml } from '../utils/string.js';
+import { apiUrl } from '../utils/url.js';
+import { showToast } from '../utils/dom.js';
 import { pathInputListAttr, renderPathSuggestionsDatalistElement, collectPathSuggestions } from '../lib/analyzePathSuggestions.js';
 import { authService } from '../services/authService.js';
 /** One-time migration: convert old string-format sb_drop_paths to array format,

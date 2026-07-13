@@ -1,4 +1,4 @@
-import { formatNumber } from '../utils.js';
+import { formatNumber } from '../utils/number.js';
 import { COMPLETE_STEPS, COMPLETE_ENGINE_ORDER } from './AnalyzeEngineGrid.js';
 
 /**

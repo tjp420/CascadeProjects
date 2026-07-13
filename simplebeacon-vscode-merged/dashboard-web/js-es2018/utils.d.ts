@@ -31,6 +31,15 @@ export function padStart(str: string, length: number, padStr?: string): string;
 export function padEnd(str: string, length: number, padStr?: string): string;
 export function stripHtml(str: string): string;
 export function pluralize(count: number, singular: string, plural?: string): string;
+export function isBlank(value: any): boolean;
+export function words(str: string | null | undefined): string[];
+export function wordCount(str: string | null | undefined): number;
+export function repeat(str: string | null | undefined, count: number): string;
+export function titleCase(str: string | null | undefined): string;
+export function slugify(str: string | null | undefined): string;
+export function reverse(str: string | null | undefined): string;
+export function splitLines(str: string | null | undefined): string[];
+export function stripAnsi(str: string | null | undefined): string;
 
 // ── Number helpers ────────────────────────────────────────────
 

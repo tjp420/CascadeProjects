@@ -1,7 +1,8 @@
 /**
  * Shared path suggestion datalist for Analyze path bar + Dashboard scan input.
  */
-import { escapeHtml, redactPathForDisplay, formatPathLabel } from '../utils.js';
+import { escapeHtml } from '../utils/string.js';
+import { redactPathForDisplay, formatPathLabel } from '../utils/format.js';
 import { normalizeProjectPath } from '../services/analyzeService.js';
 import { isRemoteRepoUrl } from './analyzePathSources.js';
 /**

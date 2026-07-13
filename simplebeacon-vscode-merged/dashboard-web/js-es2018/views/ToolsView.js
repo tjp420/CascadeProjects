@@ -1,4 +1,6 @@
-import { escapeHtml, formatNumber, formatPercent, showToast, renderEmptyState } from '../utils.js';
+import { escapeHtml } from '../utils/string.js';
+import { formatNumber, formatPercent } from '../utils/number.js';
+import { showToast, renderEmptyState } from '../utils/dom.js';
 import { getScanFileMetrics, resolveDisplayScore, resolveJestTestsLabel, resolvePageSpecsLabel, formatScanScopeSummary, formatScanInventoryNote } from '../services/analyzeService.js';
 import { scanService } from '../services/scanService.js';
 import { renderConsolidationPanel } from '../components/ConsolidationReport.js';

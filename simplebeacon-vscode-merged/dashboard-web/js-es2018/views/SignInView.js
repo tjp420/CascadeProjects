@@ -1,6 +1,7 @@
 import { authService } from '../services/authService.js';
 import { billingService } from '../services/billingService.js';
-import { showToast, apiUrl } from '../utils.js';
+import { showToast } from '../utils/dom.js';
+import { apiUrl } from '../utils/url.js';
 import { COMING_SOON_URL } from '../config.js';
 import { verifyCheckoutSessionFromUrl } from '../lib/stripe-checkout-verifier.js';
 /**

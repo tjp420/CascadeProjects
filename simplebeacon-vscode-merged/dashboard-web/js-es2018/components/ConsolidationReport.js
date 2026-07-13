@@ -1,4 +1,5 @@
-import { escapeHtml, formatNumber } from '../utils.js';
+import { escapeHtml } from '../utils/string.js';
+import { formatNumber } from '../utils/number.js';
 /**
  * Render consolidation panel.
  * @param {Object} options

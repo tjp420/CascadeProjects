@@ -1,4 +1,6 @@
-import { fetchWithTimeout, downloadJson, downloadText, apiUrl } from '../utils.js';
+import { fetchWithTimeout } from '../utils-lib/fetch.js';
+import { downloadJson, downloadText } from '../utils/dom.js';
+import { apiUrl } from '../utils/url.js';
 import { billingService } from './billingService.js';
 import { authService } from './authService.js';
 import { isDemoMode, isLocalDevHost, DEMO_API_BASE } from '../demoMode.js';

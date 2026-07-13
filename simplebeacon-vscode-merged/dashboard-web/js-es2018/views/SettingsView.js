@@ -1,4 +1,5 @@
-import { escapeHtml, showToast, downloadJson, renderEmptyState } from '../utils.js';
+import { escapeHtml } from '../utils/string.js';
+import { showToast, downloadJson, renderEmptyState } from '../utils/dom.js';
 import { resolvePageSpecsLabel, resolveJestTestsLabel } from '../services/analyzeService.js';
 // EU AI Act transparency disclosure: This view includes AI system integration indicators per Article 50.
 import { scanService } from '../services/scanService.js';

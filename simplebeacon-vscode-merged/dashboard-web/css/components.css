@@ -3145,6 +3145,29 @@ button.tool-card.help-page-card:hover {
   gap: 4px;
 }
 
+/* Path input merged into the dropzone idle panel */
+.sb-dropzone-path {
+  width: 100%;
+  max-width: 560px;
+  margin-top: 20px;
+}
+
+.sb-dropzone-path-label {
+  margin: 0 0 8px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-align: left;
+}
+
+.sb-dropzone-path .path-row,
+.sb-dropzone-path .scan-status-path-row {
+  margin-top: 0;
+}
+
+.sb-dropzone-path .scan-status-path-row {
+  justify-content: center;
+}
+
 /* Utility */
 .btn-xs {
   padding: 0.2rem 0.5rem;
@@ -4871,6 +4894,19 @@ button.tool-card.help-page-card:hover {
   padding: 28px 24px;
   text-align: center;
   transition: all 0.2s;
+  min-height: 220px;
+}
+
+/* Hide legacy 4000-agent status; the main #agent-status already covers the local agent on 55432 */
+#agent-4000-status,
+.analyze-target-redesign #agent-4000-status {
+  display: none;
+}
+
+/* Give the compliance report / agent results container room so it doesn't crowd the input area */
+#agent-4000-results,
+.analyze-target-redesign #agent-4000-results {
+  margin-top: 20px;
 }
 
 .analyze-target-redesign .sb-dropzone.drag-active {
@@ -6010,6 +6046,13 @@ button.tool-card.help-page-card:hover {
   gap: 12px;
   justify-content: center;
   flex-wrap: wrap;
+}
+
+.sb-dropzone-idle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .sb-dropzone-drag,

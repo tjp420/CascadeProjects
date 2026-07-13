@@ -2,7 +2,8 @@
  * Per-mode file/path scope for Analyze page mode pills — mirrors SimpleBeacon config + scanScope.
  * simplebeacon:production-leak-intent: web-data-sample - Legitimate web data path configuration for analysis mode file scope
  */
-import { escapeHtml, formatNumber } from '../utils.js';
+import { escapeHtml } from '../utils/string.js';
+import { formatNumber } from '../utils/number.js';
 import { isBenchmarkCachePath } from './complete-scan-artifact-profile.browser.js';
 // simplebeacon:production-leak-intent: web-data-sample - Scan path configuration reference for analysis mode
 const DEFAULT_SCAN_PATHS = ['web/data', 'data/mock', 'tests/fixtures', 'data'];

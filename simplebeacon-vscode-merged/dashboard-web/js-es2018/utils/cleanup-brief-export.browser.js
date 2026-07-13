@@ -1,4 +1,5 @@
-import { formatNumber, normalizeSlashes } from '../utils.js';
+import { formatNumber } from '../utils/number.js';
+import { normalizeSlashes } from '../utils/string.js';
 /**
  * Browser mirror of cleanup-brief export sanitization (packages/simplebeacon-cli).
  */

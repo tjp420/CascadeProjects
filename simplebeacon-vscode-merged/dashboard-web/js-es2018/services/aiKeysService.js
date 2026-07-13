@@ -1,5 +1,5 @@
 import { authService } from './authService.js';
-import { apiUrl } from '../utils.js';
+import { apiUrl } from '../utils/url.js';
 /**
  * Is authenticated.
  * @returns {any}

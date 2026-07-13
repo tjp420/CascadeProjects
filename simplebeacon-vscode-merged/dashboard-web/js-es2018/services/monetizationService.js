@@ -1,4 +1,4 @@
-import { apiUrl } from '../utils.js';
+import { apiUrl } from '../utils/url.js';
 import { authService } from './authService.js';
 
 const EARNINGS_KEY = 'simplebeacon_monetization_earnings';

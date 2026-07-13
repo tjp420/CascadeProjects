@@ -153,3 +153,35 @@
   --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.32), 0 4px 6px rgba(0, 0, 0, 0.24);
   --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.4), 0 8px 10px rgba(0, 0, 0, 0.32);
 }
+
+[data-theme='fox'] {
+  /* Brand */
+  --primary: #f97316;
+  --primary-hover: #fb923c;
+  --primary-subtle: rgba(249, 115, 22, 0.15);
+  --accent: #fbbf24;
+
+  /* Surfaces */
+  --background: #0f0a05;
+  --surface: #1a1208;
+  --surface-elevated: #24180d;
+  --surface-hover: #332214;
+  --surface-active: #452c17;
+  --border: #3d2614;
+  --border-subtle: #2a1a0d;
+  --bg-main: var(--background);
+  --bg-card: var(--surface);
+  --bg-elevated: var(--surface-elevated);
+
+  /* Text */
+  --text-primary: #fff7ed;
+  --text-secondary: #fdba74;
+  --text-muted: #9a3412;
+  --text-inverse: #0f0a05;
+
+  /* Shadows */
+  --shadow: 0 1px 2px rgba(20, 10, 0, 0.24), 0 1px 3px rgba(20, 10, 0, 0.32);
+  --shadow-md: 0 4px 6px rgba(20, 10, 0, 0.24), 0 2px 4px rgba(20, 10, 0, 0.32);
+  --shadow-lg: 0 10px 15px rgba(20, 10, 0, 0.32), 0 4px 6px rgba(20, 10, 0, 0.24);
+  --shadow-xl: 0 20px 25px rgba(20, 10, 0, 0.4), 0 8px 10px rgba(20, 10, 0, 0.32);
+}

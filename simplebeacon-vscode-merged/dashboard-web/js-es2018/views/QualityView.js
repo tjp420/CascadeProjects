@@ -1,4 +1,7 @@
-import { escapeHtml, showToast, formatNumber, apiUrl } from '../utils.js';
+import { escapeHtml } from '../utils/string.js';
+import { showToast } from '../utils/dom.js';
+import { formatNumber } from '../utils/number.js';
+import { apiUrl } from '../utils/url.js';
 import { resolveJestTestsLabel } from '../services/analyzeService.js';
 /**
  * Parse jest total.

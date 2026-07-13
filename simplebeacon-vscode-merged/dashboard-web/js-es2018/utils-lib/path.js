@@ -121,9 +121,7 @@ export function formatPathLabel(projectPath) {
         }
     }
     const redacted = redactPathForDisplay(projectPath);
-    if (redacted && redacted !== projectPath)
-        return redacted;
-    const normalized = normalizeSlashes(projectPath);
+    const normalized = normalizeSlashes(redacted);
     const parts = normalized.split('/').filter(Boolean);
     if (parts.length <= 2 && /^[a-zA-Z]:$/.test(parts[0]))
         return normalized;

@@ -1,4 +1,5 @@
-import { escapeHtml, showToast } from '../utils.js';
+import { escapeHtml } from '../utils/string.js';
+import { showToast } from '../utils/dom.js';
 import { authService } from '../services/authService.js';
 function loadProfile() {
     try {

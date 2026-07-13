@@ -1,4 +1,7 @@
-import { escapeHtml, showToast, formatPercent, formatNumber, renderEmptyState, apiUrl } from '../utils.js';
+import { escapeHtml } from '../utils/string.js';
+import { showToast, renderEmptyState } from '../utils/dom.js';
+import { formatPercent, formatNumber } from '../utils/number.js';
+import { apiUrl } from '../utils/url.js';
 import { getScanFileMetrics, resolveDisplayScore } from '../services/analyzeService.js';
 import { authService } from '../services/authService.js';
 const SEVERITIES = ['all', 'high', 'medium', 'low'];

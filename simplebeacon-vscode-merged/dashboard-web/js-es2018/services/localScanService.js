@@ -1,4 +1,4 @@
-import { showToast } from '../utils.js';
+import { showToast } from '../utils/dom.js';
 const WORKER_URL = new URL('../workers/scan-worker.js?v=20260709noise3', import.meta.url);
 const MAX_FILES = 50000;
 const SKIP_DIRS = /(^|[\\/])(node_modules|\.git|\.github|\.husky|dist|build|\.next|out|coverage|frontend-build|\.github-sync|github-cache|\.simplebeacon|\.cursor|\.windsurf|deployments|backups|\.vscode-test|\.vsix-patch-temp|logs|cache|\.cache|tmp|temp)([\\/]|$)/i;

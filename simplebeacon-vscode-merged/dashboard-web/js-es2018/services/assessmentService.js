@@ -1,6 +1,6 @@
 import { authService } from './authService.js';
 import { readJsonResponseBody, logRecoverableDashboardError } from '../lib/recoverable-fetch.js';
-import { apiUrl } from '../utils.js';
+import { apiUrl } from '../utils/url.js';
 const RECENT_KEY = 'simplebeaconRecentAssessments';
 const MAX_RECENT = 20;
 /**

@@ -1,4 +1,4 @@
-import { escapeHtml } from '../utils.js';
+import { escapeHtml } from '../utils/string.js';
 
 /**
  * AiMathAuditView — renders AI Math Audit findings with severity cards,

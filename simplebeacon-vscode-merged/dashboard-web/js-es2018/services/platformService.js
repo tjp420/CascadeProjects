@@ -1,4 +1,5 @@
-import { fetchWithTimeout, apiUrl } from '../utils.js';
+import { fetchWithTimeout } from '../utils-lib/fetch.js';
+import { apiUrl } from '../utils/url.js';
 import { authService } from './authService.js';
 import { billingService } from './billingService.js';
 import { fetchDataCleanupScan as fetchDataCleanupAnalysis } from './analyzeService.js';

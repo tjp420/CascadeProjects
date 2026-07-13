@@ -39,7 +39,7 @@ export function formatNumber(n) {
   if (n == null) return '—';
   const numericCount = Number(n);
   if (!Number.isFinite(numericCount)) return '—';
-  return numericCount.toLocaleString();
+  return Math.round(numericCount).toLocaleString();
 }
 
 
@@ -242,8 +242,7 @@ export function formatPathLabel(projectPath) {
     try { return String(projectPath ?? ''); } catch { return ''; }
   }
   const redacted = redactPathForDisplay(projectPath);
-  if (redacted && redacted !== projectPath) return redacted;
-  const normalized = normalizeSlashes(projectPath);
+  const normalized = normalizeSlashes(redacted);
   const parts = normalized.split('/').filter(Boolean);
   // Preserve drive letter for Windows paths that are just a drive + one folder
   // (e.g. I:/AGI Chatbot should stay readable, not collapse to AGI Chatbot)
