@@ -5198,35 +5198,36 @@ body.tabs-open #browserTabBar{display:flex !important;}
 <div class="ide" id="ide">
   <div class="browser-sidebar" id="browserSidebar">
     <div class="sidebar-section">
-      <div class="sidebar-heading">Navigation</div>
+      <div class="sidebar-heading">Scan</div>
       <div class="sidebar-link" data-view="dashboard"><span class="icon">&#x1F4C8;</span> Dashboard</div>
       <div class="sidebar-link" data-view="analyze"><span class="icon">&#x1F50D;</span> Analyze</div>
       <div class="sidebar-link" data-view="results"><span class="icon">&#x1F4CA;</span> Results</div>
       <div class="sidebar-link" data-view="repository-health"><span class="icon">&#x2764;</span> Repo health</div>
     </div>
     <div class="sidebar-section">
-      <div class="sidebar-heading">Quality & Trust</div>
+      <div class="sidebar-heading">Compliance</div>
+      <div class="sidebar-link" data-view="audit"><span class="icon">&#x1F4CB;</span> Audit</div>
       <div class="sidebar-link" data-view="security"><span class="icon">&#x1F6E1;</span> Security</div>
       <div class="sidebar-link" data-view="quality"><span class="icon">&#x2B50;</span> Quality</div>
       <div class="sidebar-link" data-view="trust"><span class="icon">&#x1F510;</span> Trust</div>
-      <div class="sidebar-link" data-external-url="https://simplebeacon.ai/audit"><span class="icon">&#x1F4CB;</span> Audit</div>
-      <div class="sidebar-link" data-view="assessments"><span class="icon">&#x1F4DD;</span> Assessments</div>
-      <div class="sidebar-link" data-view="remediation"><span class="icon">&#x1F6E4;</span> Remediation</div>
     </div>
     <div class="sidebar-section">
-      <div class="sidebar-heading">Management</div>
+      <div class="sidebar-heading">Operations</div>
+      <div class="sidebar-link" data-view="assessments"><span class="icon">&#x1F4DD;</span> Assessments</div>
+      <div class="sidebar-link" data-view="roadmap"><span class="icon">&#x1F6E4;</span> Roadmap</div>
       <div class="sidebar-link" data-view="platform"><span class="icon">&#x1F680;</span> Platform</div>
       <div class="sidebar-link" data-view="profile"><span class="icon">&#x1F464;</span> Profile</div>
+      <div class="sidebar-link" data-view="admin" id="sidebarAdminLink" style="display:none;"><span class="icon">&#x1F465;</span> Admin</div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-heading">System</div>
       <div class="sidebar-link" data-view="tools"><span class="icon">&#x1F6E0;</span> Tools</div>
       <div class="sidebar-link" data-view="settings"><span class="icon">&#x2699;</span> Settings</div>
       <div class="sidebar-link" data-view="help"><span class="icon">&#x2753;</span> Help</div>
       <div class="sidebar-link" data-view="chatbot"><span class="icon">&#x1F916;</span> Chatbot</div>
-      <div class="sidebar-link" data-view="about"><span class="icon">&#x2139;</span> About</div>
     </div>
     <div class="sidebar-section">
       <div class="sidebar-heading">Account</div>
-      <div class="sidebar-link" data-external-url="https://simplebeacon.ai/roadmap"><span class="icon">&#x1F5FA;</span> Roadmap</div>
-      <div class="sidebar-link" data-external-url="https://simplebeacon.ai/pricing"><span class="icon">&#x1F4B0;</span> Pricing</div>
       <div class="sidebar-link" data-command="signIn" id="sidebarSignInLink"><span class="icon">&#x1F512;</span> Sign In</div>
       <div class="sidebar-link" data-command="signOut" id="sidebarSignOutLink" style="display:none;"><span class="icon">&#x1F512;</span> Sign Out</div>
     </div>
