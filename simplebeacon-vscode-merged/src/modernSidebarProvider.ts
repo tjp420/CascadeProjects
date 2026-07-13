@@ -2449,7 +2449,7 @@ body.detail-panel-open #tabAdvanced {
   <div class="header-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M12 2c3 3 5 7 5 12"/><path d="M12 22c-3-3-5-7-5-12"/></svg></div>
   <div class="header-text">
     <div class="header-title">SimpleBeacon</div>
-    <div class="header-subtitle">AI Slop Cop</div>
+    <div class="header-subtitle">Shipped by AI. Verified by SimpleBeacon.</div>
   </div>
   <div class="header-actions">
     <button type="button" id="headerSignInBtn" style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:6px;border:1px solid rgba(99,102,241,0.3);background:rgba(99,102,241,0.12);color:#818cf8;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;" data-command="signIn">&#x1F512; Sign In</button>
@@ -2744,7 +2744,7 @@ body.detail-panel-open #tabAdvanced {
   <button type="button" id="openToggleMonitorBtn" class="analyze-list-item">
     <div class="analyze-list-item-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
     <div class="analyze-list-item-text">
-      <div class="analyze-list-item-label">Toggle AI Slop Monitor</div>
+      <div class="analyze-list-item-label">Toggle AI Quality Monitor</div>
       <div class="analyze-list-item-desc">Enable/disable quality guard</div>
     </div>
   </button>
@@ -3259,7 +3259,7 @@ body.detail-panel-open #tabAdvanced {
       <input type="text" class="settings-input" id="settingsApiInputTab" value="http://127.0.0.1:54358">
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 8px;">
         <button type="button" id="apiPresetLocal" class="menu-list-item" style="padding:6px 10px;font-size:11px;width:auto;flex:0;">Local (54358)</button>
-        <button type="button" id="apiPresetSlopCop" class="menu-list-item" style="padding:6px 10px;font-size:11px;width:auto;flex:0;">AI Slop Cop (3004)</button>
+        <button type="button" id="apiPresetSlopCop" class="menu-list-item" style="padding:6px 10px;font-size:11px;width:auto;flex:0;">AI Quality Monitor (3004)</button>
         <button type="button" id="apiPresetRemote" class="menu-list-item" style="padding:6px 10px;font-size:11px;width:auto;flex:0;">Remote (30011)</button>
       </div>
       <div class="menu-list" style="display:flex;flex-direction:column;gap:6px;">
@@ -4511,7 +4511,7 @@ body.detail-panel-open #tabAdvanced {
     </div>
   </div>
 </div>
-<button type="button" id="toggleMonitorSidebarBtn" data-sidebar-tab="dashboard" class="menu-list-item ${displayMode === 'sidebar' ? '' : 'hidden'}">Toggle AI Slop Monitor</button>
+<button type="button" id="toggleMonitorSidebarBtn" data-sidebar-tab="dashboard" class="menu-list-item ${displayMode === 'sidebar' ? '' : 'hidden'}">Toggle AI Quality Monitor</button>
 <div id="diagnoseResultsContainer" style="display:none; background: var(--vscode-editor-background, #1e1e1e); overflow-y: auto;">
   <div class="diag-back-bar" id="diagnoseBackBtn" role="button" tabindex="0">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
