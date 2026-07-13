@@ -290,9 +290,10 @@
   let _openModelHealthBtn=document.getElementById('openModelHealthBtn');if(_openModelHealthBtn){_openModelHealthBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openModelHealth'}); });}
   let _openTeamDashboardBtnMain=document.getElementById('openTeamDashboardBtnMain');if(_openTeamDashboardBtnMain){_openTeamDashboardBtnMain.addEventListener('click', function() { if(window.vscode) window.vscode.postMessage({command:'openTeamDashboard'}); });}
   function _tdBind(id,cmd){let el=document.getElementById(id);if(el){el.addEventListener('click',function(){if(cmd==='openSigninScreen'||cmd==='signIn'){_openSigninWithClear();return;}if(window.vscode)window.vscode.postMessage({command:cmd});});}}
-  _tdBind('tdRoadmapSidebar','openRoadmap');
-  _tdBind('tdAuditSidebar','openAudit');
-  _tdBind('tdPricingSidebar','openPricing');
+  function _tdBindUrl(id,cmd,url){let el=document.getElementById(id);if(el){el.addEventListener('click',function(){if(window.vscode)window.vscode.postMessage({command:cmd,url:url});});}}
+  _tdBindUrl('tdRoadmapSidebar','openRoadmapUrl','https://simplebeacon.ai/roadmap');
+  _tdBindUrl('tdAuditSidebar','openAuditUrl','https://simplebeacon.ai/audit');
+  _tdBindUrl('tdPricingSidebar','openPricingUrl','https://simplebeacon.ai/pricing');
   _tdBind('tdDashboardSidebar','openDashboard');
   _tdBind('tdAnalyzeSidebar','openAnalyze');
   _tdBind('tdResultsSidebar','openReport');
@@ -512,9 +513,9 @@
   let _tokenManagementCard=document.getElementById('tokenManagementCard');if(_tokenManagementCard){_tokenManagementCard.addEventListener('click',function(){if(window.vscode)window.vscode.postMessage({command:'openTokenReplacementPanel'});});}
   _tdBind2('tdDocsSidebar','openDocs');
   // Quick Links
-  _tdBind('tdRoadmapSidebar','openRoadmap');
-  _tdBind('tdAuditSidebar','openAudit');
-  _tdBind('tdPricingSidebar','openPricing');
+  _tdBindUrl('tdRoadmapSidebar','openRoadmapUrl','https://simplebeacon.ai/roadmap');
+  _tdBindUrl('tdAuditSidebar','openAuditUrl','https://simplebeacon.ai/audit');
+  _tdBindUrl('tdPricingSidebar','openPricingUrl','https://simplebeacon.ai/pricing');
   // Navigation
   _tdBind('tdDashboardSidebar','openDashboard');
   _tdBind('tdAnalyzeSidebar','openAnalyze');
