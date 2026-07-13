@@ -76,9 +76,42 @@ export class SignInView {
         this._activeTab = 'email';
         this._emailMode = 'login';
     }
+    _looksLikeJwt(val) {
+        if (!val || typeof val !== 'string')
+            return false;
+        const parts = val.split('.');
+        return parts.length >= 2 && parts.length <= 3 && parts.every(p => /^[A-Za-z0-9_-]+$/.test(p) && p.length > 4);
+    }
+    _ingestUrlToken() {
+        try {
+            const urlParams = new URLSearchParams(window.location.search);
+            const token = urlParams.get('token');
+            if (token && this._looksLikeJwt(token)) {
+                const payload = decodeJwtPayload(token);
+                if (payload && payload.email) {
+                    authService.setSession(token, {
+                        email: payload.email,
+                        tier: payload.tier || payload.product || payload.plan || 'community',
+                        role: payload.role || payload.tier || payload.product || payload.plan || 'community'
+                    });
+                    const params = new URLSearchParams(window.location.search);
+                    params.delete('token');
+                    const query = params.toString();
+                    const cleanUrl = window.location.protocol + '//' + window.location.host + window.location.pathname + (query ? '?' + query : '');
+                    window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+                    return true;
+                }
+            }
+        }
+        catch (err) {
+            console.error('Token ingestion fault:', err);
+        }
+        return false;
+    }
     async mount(container) {
         var _a, _b, _c, _d, _e;
         container.innerHTML = `<div class="signin-page"><div class="signin-card card"><p class="text-muted">Loading…</p></div></div>`;
+        this._ingestUrlToken();
         const authed = authService.isAuthenticated();
         const email = ((_a = authService.getUser()) === null || _a === void 0 ? void 0 : _a.email) || decodeEmailFromToken(authService.getToken()) || '';
         let entitlement = { allowed: false, plan: {}, status: {} };
@@ -99,12 +132,12 @@ export class SignInView {
             return;
         }
         container.innerHTML = `
-      <div class="signin-page" style="display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px;background:var(--bg-body,#0B0F19);box-sizing:border-box;">
-        <div class="signin-card card" style="width:100%;max-width:420px;background:var(--bg-card,#111827);border:1px solid var(--border,#1f2937);border-radius:14px;padding:32px;box-shadow:0 20px 60px rgba(0,0,0,0.35);box-sizing:border-box;color:var(--text-main,#e6edf3);">
+      <div class="signin-page" style="display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px;background:var(--background);box-sizing:border-box;">
+        <div class="signin-card card" style="width:100%;max-width:420px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:32px;box-shadow:0 20px 60px rgba(0,0,0,0.35);box-sizing:border-box;color:var(--text-primary);">
           <div class="signin-header" style="text-align:center;margin-bottom:24px;">
             <span class="signin-icon" aria-hidden="true" style="font-size:2rem;display:block;margin-bottom:8px;">&#128274;</span>
-            <h1 class="signin-title" style="font-size:1.5rem;font-weight:600;margin:0 0 6px;color:var(--text-main,#e6edf3);">Sign In</h1>
-            <p class="text-muted" style="margin:0;color:var(--text-muted,#8b949e);">Access your SimpleBeacon dashboard.</p>
+            <h1 class="signin-title" style="font-size:1.5rem;font-weight:600;margin:0 0 6px;color:var(--text-primary);">Sign In</h1>
+            <p class="text-muted" style="margin:0;color:var(--text-muted);">Access your SimpleBeacon dashboard.</p>
           </div>
           ${authed ? this.renderAuthed({ email, allowed, internalDev }) : this.renderSignInForm()}
         </div>
@@ -132,45 +165,45 @@ export class SignInView {
     }
     renderAuthed({ email, allowed, internalDev }) {
         const actionsStyle = 'display:flex;flex-direction:column;gap:12px;';
-        const primaryStyle = 'display:block;width:100%;padding:12px 16px;border-radius:8px;background:var(--accent,#6366f1);color:#fff;text-align:center;text-decoration:none;font-weight:600;border:none;cursor:pointer;';
-        const ghostStyle = 'display:block;width:100%;padding:12px 16px;border-radius:8px;background:transparent;color:var(--text-main,#e6edf3);text-align:center;text-decoration:none;font-weight:600;border:1px solid var(--border,#1f2937);cursor:pointer;';
+        const primaryStyle = 'display:block;width:100%;padding:12px 16px;border-radius:8px;background:var(--primary);color:#fff;text-align:center;text-decoration:none;font-weight:600;border:none;cursor:pointer;';
+        const ghostStyle = 'display:block;width:100%;padding:12px 16px;border-radius:8px;background:transparent;color:var(--text-primary);text-align:center;text-decoration:none;font-weight:600;border:1px solid var(--border);cursor:pointer;';
         if (allowed && internalDev) {
             return `
-        <p class="signin-status" style="text-align:center;margin:0 0 16px;color:var(--text-main,#e6edf3);">Signed in as <strong>${escapeHtml(email)}</strong> (internal preview).</p>
+        <p class="signin-status" style="text-align:center;margin:0 0 16px;color:var(--text-primary);">Signed in as <strong>${escapeHtml(email)}</strong> (internal preview).</p>
         <div class="signin-actions" style="${actionsStyle}">
-          <a class="btn btn-primary" href="/dashboard/dashboard" style="${primaryStyle}">Open Dashboard</a>
+          <a class="btn btn-primary" href="/dashboard/#/dashboard" style="${primaryStyle}">Open Dashboard</a>
           <button class="btn btn-ghost" id="signin-signout-btn" style="${ghostStyle}">Sign Out</button>
         </div>
       `;
         }
         if (allowed) {
             return `
-        <p class="signin-status" style="text-align:center;margin:0 0 16px;color:var(--text-main,#e6edf3);">Signed in as <strong>${escapeHtml(email)}</strong>.</p>
+        <p class="signin-status" style="text-align:center;margin:0 0 16px;color:var(--text-primary);">Signed in as <strong>${escapeHtml(email)}</strong>.</p>
         <div class="signin-actions" style="${actionsStyle}">
-          <a class="btn btn-primary" href="/dashboard/dashboard" style="${primaryStyle}">Open Dashboard</a>
+          <a class="btn btn-primary" href="/dashboard/#/dashboard" style="${primaryStyle}">Open Dashboard</a>
           <button class="btn btn-ghost" id="signin-signout-btn" style="${ghostStyle}">Sign Out</button>
         </div>
       `;
         }
         return `
-      <p class="signin-status" style="text-align:center;margin:0 0 8px;color:var(--text-main,#e6edf3);">Signed in as <strong>${escapeHtml(email)}</strong>.</p>
-      <p class="signin-note" style="text-align:center;margin:0 0 16px;font-size:0.85rem;color:var(--text-muted,#8b949e);">Your token is valid but may have limited access.</p>
+      <p class="signin-status" style="text-align:center;margin:0 0 8px;color:var(--text-primary);">Signed in as <strong>${escapeHtml(email)}</strong>.</p>
+      <p class="signin-note" style="text-align:center;margin:0 0 16px;font-size:0.85rem;color:var(--text-muted);">Your token is valid but may have limited access.</p>
       <div class="signin-actions" style="${actionsStyle}">
-        <a class="btn btn-primary" href="/dashboard/dashboard" style="${primaryStyle}">Open Dashboard</a>
+        <a class="btn btn-primary" href="/dashboard/#/dashboard" style="${primaryStyle}">Open Dashboard</a>
         <button class="btn btn-ghost" id="signin-signout-btn" style="${ghostStyle}">Sign Out</button>
       </div>
     `;
     }
     renderSignInForm() {
-        const inputStyle = 'width:100%;padding:12px 14px;border:1px solid var(--border,#1f2937);border-radius:8px;background:var(--bg-input,#0B0F19);color:var(--text-main,#e6edf3);font-size:0.95rem;box-sizing:border-box;';
-        const labelStyle = 'display:block;font-size:0.85rem;color:var(--text-muted,#8b949e);margin-bottom:6px;';
-        const tabActive = 'background:var(--surface,#1f2937);color:var(--primary,#6366f1);box-shadow:0 1px 3px rgba(0,0,0,0.08);';
-        const tabBase = 'flex:1;padding:0.35rem 0.5rem;border:none;background:transparent;color:var(--text-tertiary,#8b949e);font-size:0.85rem;font-weight:500;border-radius:6px;cursor:pointer;';
-        const btnPrimary = 'width:100%;padding:12px 16px;border-radius:8px;background:var(--accent,#6366f1);color:#fff;font-weight:600;border:none;cursor:pointer;text-align:center;';
-        const btnSecondary = 'width:100%;padding:12px 16px;border-radius:8px;background:var(--surface,#1f2937);color:var(--text-main,#e6edf3);border:1px solid var(--border,#1f2937);cursor:pointer;text-align:center;';
+        const inputStyle = 'width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:var(--background);color:var(--text-primary);font-size:0.95rem;box-sizing:border-box;';
+        const labelStyle = 'display:block;font-size:0.85rem;color:var(--text-muted);margin-bottom:6px;';
+        const tabActive = 'background:var(--surface);color:var(--primary);box-shadow:0 1px 3px rgba(0,0,0,0.08);';
+        const tabBase = 'flex:1;padding:0.35rem 0.5rem;border:none;background:transparent;color:var(--text-muted);font-size:0.85rem;font-weight:500;border-radius:6px;cursor:pointer;';
+        const btnPrimary = 'width:100%;padding:12px 16px;border-radius:8px;background:var(--primary);color:#fff;font-weight:600;border:none;cursor:pointer;text-align:center;';
+        const btnSecondary = 'width:100%;padding:12px 16px;border-radius:8px;background:var(--surface);color:var(--text-primary);border:1px solid var(--border);cursor:pointer;text-align:center;';
         return `
       <div class="signin-tab-panel active" id="panel-email">
-        <div class="signin-subtabs" style="display:flex;gap:4px;margin-bottom:16px;background:var(--bg-tertiary,#0B0F19);border-radius:8px;padding:3px;">
+        <div class="signin-subtabs" style="display:flex;gap:4px;margin-bottom:16px;background:var(--surface-hover);border-radius:8px;padding:3px;">
           <button type="button" class="signin-subtab ${this._emailMode === 'login' ? 'active' : ''}" data-mode="login" id="subtab-login" style="${this._emailMode === 'login' ? tabActive : tabBase}">Sign In</button>
           <button type="button" class="signin-subtab ${this._emailMode === 'register' ? 'active' : ''}" data-mode="register" id="subtab-register" style="${this._emailMode === 'register' ? tabActive : tabBase}">Create Account</button>
         </div>
@@ -184,27 +217,27 @@ export class SignInView {
             <input id="signin-password-input" class="input" type="password" autocomplete="current-password" required placeholder="Enter your password…" style="${inputStyle}" />
           </div>
           <div style="display:flex;justify-content:flex-end;margin:-4px 0 0;">
-            <button type="button" id="forgot-password-btn" style="background:none;border:none;color:var(--accent,#6366f1);font-size:0.78rem;cursor:pointer;padding:0;">Forgot Password?</button>
+            <button type="button" id="forgot-password-btn" style="background:none;border:none;color:var(--primary);font-size:0.78rem;cursor:pointer;padding:0;">Forgot Password?</button>
           </div>
-          <p id="signin-email-error" class="signin-error" hidden role="alert" style="margin:0;font-size:0.85rem;color:var(--danger,#ef4444);text-align:center;line-height:1.5;"></p>
+          <p id="signin-email-error" class="signin-error" hidden role="alert" style="margin:0;font-size:0.85rem;color:var(--danger);text-align:center;line-height:1.5;"></p>
           <button type="submit" class="btn btn-primary btn-block" id="signin-email-submit" style="${btnPrimary}">${this._emailMode === 'register' ? 'Create Account' : 'Sign In'}</button>
         </form>
-        <div class="signin-divider" style="text-align:center;margin:16px 0;font-size:0.8rem;color:var(--text-muted,#8b949e);position:relative;">
-          <span style="background:var(--bg-card,#111827);padding:0 12px;position:relative;z-index:1;">or</span>
-          <div style="position:absolute;top:50%;left:0;right:0;height:1px;background:var(--border,#1f2937);z-index:0;"></div>
+        <div class="signin-divider" style="text-align:center;margin:16px 0;font-size:0.8rem;color:var(--text-muted);position:relative;">
+          <span style="background:var(--surface);padding:0 12px;position:relative;z-index:1;">or</span>
+          <div style="position:absolute;top:50%;left:0;right:0;height:1px;background:var(--border);z-index:0;"></div>
         </div>
         <button type="button" class="btn btn-secondary btn-block" id="webauthn-signin-btn" style="${btnSecondary};display:flex;align-items:center;justify-content:center;gap:8px;">
           <span>&#128274;</span> Sign in with Security Key
         </button>
-        <p class="signin-note" id="email-mode-note" style="margin:16px 0 0;font-size:0.85rem;color:var(--text-muted,#8b949e);text-align:center;line-height:1.5;">${this._emailMode === 'register' ? 'Already have an account? Switch to <strong>Sign In</strong>.' : 'New here? Switch to <strong>Create Account</strong> to register.'}</p>
+        <p class="signin-note" id="email-mode-note" style="margin:16px 0 0;font-size:0.85rem;color:var(--text-muted);text-align:center;line-height:1.5;">${this._emailMode === 'register' ? 'Already have an account? Switch to <strong>Sign In</strong>.' : 'New here? Switch to <strong>Create Account</strong> to register.'}</p>
       </div>
 
-      <p class="signin-footer" style="margin-top:24px;text-align:center;font-size:0.85rem;color:var(--text-muted,#8b949e);">
-        <a href="/demo" style="color:var(--accent,#6366f1);text-decoration:none;">View read-only demo</a>
+      <p class="signin-footer" style="margin-top:24px;text-align:center;font-size:0.85rem;color:var(--text-muted);">
+        <a href="/demo" style="color:var(--primary);text-decoration:none;">View read-only demo</a>
         <span class="signin-footer-sep" style="margin:0 6px;">·</span>
-        <a href="/dashboard/about" style="color:var(--accent,#6366f1);text-decoration:none;">About &amp; install</a>
+        <a href="/dashboard/about" style="color:var(--primary);text-decoration:none;">About &amp; install</a>
         <span class="signin-footer-sep" style="margin:0 6px;">·</span>
-        <a href="https://github.com/tjp420/simplebeacon" target="_blank" rel="noopener noreferrer" style="color:var(--accent,#6366f1);text-decoration:none;">GitHub</a>
+        <a href="https://github.com/tjp420/simplebeacon" target="_blank" rel="noopener noreferrer" style="color:var(--primary);text-decoration:none;">GitHub</a>
       </p>
     `;
     }
@@ -213,8 +246,8 @@ export class SignInView {
         const submitBtn = container.querySelector('#signin-email-submit');
         const note = container.querySelector('#email-mode-note');
         const forgotBtn = container.querySelector('#forgot-password-btn');
-        const tabActive = 'background:var(--surface,#1f2937);color:var(--primary,#6366f1);box-shadow:0 1px 3px rgba(0,0,0,0.08);';
-        const tabBase = 'flex:1;padding:0.35rem 0.5rem;border:none;background:transparent;color:var(--text-tertiary,#8b949e);font-size:0.85rem;font-weight:500;border-radius:6px;cursor:pointer;';
+        const tabActive = 'background:var(--surface);color:var(--primary);box-shadow:0 1px 3px rgba(0,0,0,0.08);';
+        const tabBase = 'flex:1;padding:0.35rem 0.5rem;border:none;background:transparent;color:var(--text-muted);font-size:0.85rem;font-weight:500;border-radius:6px;cursor:pointer;';
         subtabs.forEach(tab => {
             tab.addEventListener('click', () => {
                 const mode = tab.dataset.mode;
@@ -292,16 +325,16 @@ export class SignInView {
         overlay.id = 'recovery-modal-overlay';
         overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);z-index:9999;display:flex;align-items:center;justify-content:center;';
         overlay.innerHTML = `
-      <div style="position:relative;z-index:1;background:var(--bg-card);padding:28px 32px;border-radius:14px;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);border:1px solid var(--border);">
-        <h3 style="margin:0 0 8px;font-size:1.15rem;color:var(--text-main);">&#128273; Account Recovery</h3>
+      <div style="position:relative;z-index:1;background:var(--surface);padding:28px 32px;border-radius:14px;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);border:1px solid var(--border);">
+        <h3 style="margin:0 0 8px;font-size:1.15rem;color:var(--text-primary);">&#128273; Account Recovery</h3>
         <p style="margin:0 0 18px;font-size:0.85rem;color:var(--text-muted);line-height:1.5;">Enter your email address and we'll send you instructions to reset your password.</p>
         <label style="display:block;font-size:0.78rem;color:var(--text-muted);margin-bottom:6px;">Email</label>
-        <input id="recovery-email-input" type="email" placeholder="you@example.com" style="width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:var(--bg-input);color:var(--text-main);font-size:0.95rem;margin-bottom:10px;" />
+        <input id="recovery-email-input" type="email" placeholder="you@example.com" style="width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:var(--background);color:var(--text-primary);font-size:0.95rem;margin-bottom:10px;" />
         <div id="recovery-error" style="color:var(--error);font-size:0.8rem;margin-bottom:12px;display:none;"></div>
         <div id="recovery-success" style="color:var(--success);font-size:0.8rem;margin-bottom:12px;display:none;"></div>
         <div style="display:flex;gap:10px;justify-content:flex-end;">
-          <button id="recovery-cancel" style="padding:10px 18px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text-main);font-size:0.85rem;cursor:pointer;">Cancel</button>
-          <button id="recovery-submit" style="padding:10px 18px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:0.85rem;font-weight:600;cursor:pointer;">Send Instructions</button>
+          <button id="recovery-cancel" style="padding:10px 18px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text-primary);font-size:0.85rem;cursor:pointer;">Cancel</button>
+          <button id="recovery-submit" style="padding:10px 18px;border-radius:8px;border:none;background:var(--primary);color:#fff;font-size:0.85rem;font-weight:600;cursor:pointer;">Send Instructions</button>
         </div>
       </div>
     `;
