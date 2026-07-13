@@ -230,15 +230,11 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
   }
 
   public static openSigninPanel() {
-    const extUri = ModernSidebarProvider._extensionUri;
-    if (extUri) {
-      const baseUrl = `http://127.0.0.1:${getDataServerPort()}`;
-      _openTeamDashboardPanel(extUri, '/dashboard/signin', 'Sign In', baseUrl);
-    } else {
-      const port = getDataServerPort();
-      const signinUrl = `http://127.0.0.1:${port}/dashboard/signin?force=1`;
-      vscode.env.openExternal(vscode.Uri.parse(signinUrl));
-    }
+    // Sidebar Sign In button opens the website sign-in screen.
+    // The live dashboard reads ?sb_api_base= to route auth/API to the local data server.
+    const localBase = `http://127.0.0.1:${getDataServerPort()}`;
+    const signinUrl = `https://simplebeacon.ai/dashboard/signin?sb_api_base=${encodeURIComponent(localBase + '/api')}&force=1`;
+    Promise.resolve(vscode.commands.executeCommand('simpleBrowser.show', signinUrl)).catch(() => {});
   }
 
   public static openTokenRegistrationPanel(_extUri: vscode.Uri, token: string) {
