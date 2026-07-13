@@ -121,8 +121,6 @@ export const join             = StringUtils.join;
 export const match            = StringUtils.match;
 /** @param {string|RegExp} pattern @param {string|Function} replacement @param {string} str @returns {string} */
 export const replace          = StringUtils.replace;
-/** @param {any} value @returns {boolean} */
-export const isBlank          = StringUtils.isBlank;
 /** @param {string} str @returns {string[]} */
 export const words            = StringUtils.words;
 /** @param {string} str @returns {number} */
