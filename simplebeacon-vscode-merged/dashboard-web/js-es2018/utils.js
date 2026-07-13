@@ -7,11 +7,31 @@
 // ── Sub-module imports with error boundaries ──────────────────
 // If a sub-module fails to load, export a stub so the dashboard doesn't crash.
 
-/** @param {string} name @returns {object} */
+/**
+ * Wrap a submodule namespace so the dashboard doesn't crash if a helper is missing.
+ * Note: ES static imports at the top of this module cannot be caught; a broken submodule
+ * will still fail to load. This wrapper only guards against missing or malformed exports.
+ * @param {string} name @returns {object}
+ */
 function safeImport(name, module) {
   if (module && typeof module === 'object') return module;
-  console.warn('[utils] Failed to load module:', name);
-  return new Proxy({}, { get: (_t, prop) => { console.warn('[utils] Missing export from ' + name + ': ' + String(prop)); return () => undefined; } });
+  if (typeof __SB_DEBUG_UTILS__ !== 'undefined' && __SB_DEBUG_UTILS__) {
+    console.warn('[utils] Failed to load module:', name);
+  }
+  return new Proxy({}, {
+    get: (_t, prop) => {
+      // Never intercept well-known Symbol properties or internal inspection keys.
+      if (typeof prop === 'symbol') return undefined;
+      const key = String(prop);
+      if (key === 'then' || key === 'toString' || key === 'valueOf' || key === 'constructor' || key === 'toJSON') return undefined;
+      if (typeof __SB_DEBUG_UTILS__ !== 'undefined' && __SB_DEBUG_UTILS__) {
+        console.warn('[utils] Missing export from ' + name + ': ' + key);
+      }
+      return () => undefined;
+    },
+    has: () => false,
+    ownKeys: () => []
+  });
 }
 
 import * as _StringUtils     from './utils/string.js';
@@ -81,6 +101,42 @@ export const padEnd           = StringUtils.padEnd;
 export const stripHtml        = StringUtils.stripHtml;
 /** @param {string} word @param {number} count @returns {string} */
 export const pluralize        = StringUtils.pluralize;
+/** @param {string} str @returns {string} */
+export const trim             = StringUtils.trim;
+/** @param {string} str @returns {string} */
+export const toLower          = StringUtils.toLower;
+/** @param {string} str @returns {string} */
+export const toUpper          = StringUtils.toUpper;
+/** @param {string} prefix @param {string} str @returns {boolean} */
+export const startsWith       = StringUtils.startsWith;
+/** @param {string} suffix @param {string} str @returns {boolean} */
+export const endsWith         = StringUtils.endsWith;
+/** @param {string} substr @param {string} str @returns {boolean} */
+export const includes         = StringUtils.includes;
+/** @param {string|RegExp} sep @param {string} str @returns {string[]} */
+export const split            = StringUtils.split;
+/** @param {string} sep @param {Array} list @returns {string} */
+export const join             = StringUtils.join;
+/** @param {RegExp} regex @param {string} str @returns {Array|null} */
+export const match            = StringUtils.match;
+/** @param {string|RegExp} pattern @param {string|Function} replacement @param {string} str @returns {string} */
+export const replace          = StringUtils.replace;
+/** @param {any} value @returns {boolean} */
+export const isBlank          = StringUtils.isBlank;
+/** @param {string} str @returns {string[]} */
+export const words            = StringUtils.words;
+/** @param {string} str @returns {number} */
+export const wordCount        = StringUtils.wordCount;
+/** @param {string} str @param {number} count @returns {string} */
+export const repeat           = StringUtils.repeat;
+/** @param {string} str @returns {string} */
+export const titleCase        = StringUtils.titleCase;
+/** @param {string} str @returns {string} */
+export const slugify          = StringUtils.slugify;
+/** @param {string} str @returns {string[]} */
+export const splitLines       = StringUtils.splitLines;
+/** @param {string} str @returns {string} */
+export const stripAnsi        = StringUtils.stripAnsi;
 
 // ── Number helpers ────────────────────────────────────────────
 /** @param {number} n @returns {string} */
@@ -218,6 +274,25 @@ export const randomChoice  = ArrayUtils.randomChoice;
 export const ensureArray   = ArrayUtils.ensureArray;
 /** @param {Array} arr @param {Function|string} iteratee @returns {Object<string, number>} */
 export const countBy       = ArrayUtils.countBy;
+export const head          = ArrayUtils.head;
+export const tail          = ArrayUtils.tail;
+export const last          = ArrayUtils.last;
+export const init          = ArrayUtils.init;
+export const take          = ArrayUtils.take;
+export const drop          = ArrayUtils.drop;
+export const takeLast      = ArrayUtils.takeLast;
+export const dropLast      = ArrayUtils.dropLast;
+export const pluck         = ArrayUtils.pluck;
+export const find          = ArrayUtils.find;
+export const contains      = ArrayUtils.contains;
+export const uniqBy        = ArrayUtils.uniqBy;
+export const sortByInline  = ArrayUtils.sortByInline;
+export const flattenInline = ArrayUtils.flattenInline;
+export const zip           = ArrayUtils.zip;
+export const unzip         = ArrayUtils.unzip;
+export const project       = ArrayUtils.project;
+export const reverseInline = ArrayUtils.reverseInline;
+export const sort          = ArrayUtils.sort;
 
 // ── Object helpers ───────────────────────────────────────────
 /**
@@ -282,6 +357,11 @@ export const at           = ObjectUtils.at;
 export const unset        = ObjectUtils.unset;
 /** @param {object} obj @param {...object} sources @returns {object} */
 export const defaultsDeep = ObjectUtils.defaultsDeep;
+export const evolve       = ObjectUtils.evolve;
+export const dissoc       = ObjectUtils.dissoc;
+export const mergeDeepLeft = ObjectUtils.mergeDeepLeft;
+export const mergeDeepRight = ObjectUtils.mergeDeepRight;
+export const memoizeBy    = ObjectUtils.memoizeBy;
 
 // ── Format helpers ───────────────────────────────────────────
 /**
@@ -369,10 +449,24 @@ export const isFunction     = TypeUtils.isFunction;
 export const isObject       = TypeUtils.isObject;
 export const isDate         = TypeUtils.isDate;
 export const isRegExp       = TypeUtils.isRegExp;
-export function isPromise(value) {
-  return value != null && (value instanceof Promise || Object.prototype.toString.call(value) === '[object Promise]');
-}
+export const isPromise      = TypeUtils.isPromise;
 export const isError        = TypeUtils.isError;
+export const isPlainObject  = TypeUtils.isPlainObject;
+export const isElement      = TypeUtils.isElement;
+export const isFormData     = TypeUtils.isFormData;
+export const isBlob         = TypeUtils.isBlob;
+export const isFile         = TypeUtils.isFile;
+export const isArrayLike    = TypeUtils.isArrayLike;
+export const isWeakMap      = TypeUtils.isWeakMap;
+export const isWeakSet      = TypeUtils.isWeakSet;
+export const isArrayBuffer  = TypeUtils.isArrayBuffer;
+export const isSharedArrayBuffer = TypeUtils.isSharedArrayBuffer;
+export const isDataView     = TypeUtils.isDataView;
+export const isTypedArray  = TypeUtils.isTypedArray;
+export const isGenerator    = TypeUtils.isGenerator;
+export const isAsyncGenerator = TypeUtils.isAsyncGenerator;
+export const isIterable     = TypeUtils.isIterable;
+export const isAsyncIterable = TypeUtils.isAsyncIterable;
 
 // ── Functional helpers ───────────────────────────────────────
 export const compose       = FunctionalUtils.compose;
@@ -381,786 +475,27 @@ export const zipWith       = FunctionalUtils.zipWith;
 export const curry         = FunctionalUtils.curry;
 export const partial       = FunctionalUtils.partial;
 export const tap           = FunctionalUtils.tap;
-
-/**
- * Flip the first two arguments of a binary function.
- * `flip(fn)(a, b)` is equivalent to `fn(b, a)`.
- * @param {Function} fn
- * @returns {Function}
- */
-export function flip(fn) {
-  return (b, a) => fn(a, b);
-}
-
-/**
- * Safely execute a function; on throw, return the handler's result.
- * @param {Function} fn
- * @param {Function} handler
- * @returns {Function}
- */
-export function tryCatch(fn, handler) {
-  if (typeof fn !== 'function' || typeof handler !== 'function') return fn;
-  return (...args) => { try { return fn(...args); } catch (e) { return handler(e); } };
-}
-
-/**
- * Return a default value when the input is null, undefined, or NaN.
- * @param {any} defaultValue
- * @param {any} value
- * @returns {any}
- */
-export function defaultTo(defaultValue, value) {
-  return value == null || (typeof value === 'number' && Number.isNaN(value)) ? defaultValue : value;
-}
-
-/**
- * Safely read a property from an object.
- * @param {string} key
- * @param {object} obj
- * @returns {any}
- */
-export function prop(key, obj) {
-  if (obj == null) return undefined;
-  if (typeof key !== 'string' && typeof key !== 'number' && typeof key !== 'symbol') return undefined;
-  return obj[key];
-}
-
-/**
- * Safely read a deep path from an object using an array of keys.
- * @param {string[]} keys
- * @param {object} obj
- * @returns {any}
- */
-export function getPath(keys, obj) {
-  if (keys == null) return undefined;
-  const keyList = Array.isArray(keys) ? keys : String(keys).split('.');
-  let val = obj;
-  for (const k of keyList) { if (val == null) return undefined; val = val[k]; }
-  return val;
-}
-
-/**
- * Safely read a deep path with a fallback default.
- * @param {any} defaultValue
- * @param {string[]} keys
- * @param {object} obj
- * @returns {any}
- */
-export function pathOr(defaultValue, keys, obj) {
-  const result = getPath(keys, obj);
-  return result === undefined ? defaultValue : result;
-}
-
-/**
- * Apply a function to a value only when a predicate returns true.
- * @param {Function} pred
- * @param {Function} fn
- * @param {any} value
- * @returns {any}
- */
-export function when(pred, fn, value) {
-  if (typeof pred !== 'function' || typeof fn !== 'function') return value;
-  return pred(value) ? fn(value) : value;
-}
-
-/**
- * Apply a function to a value only when a predicate returns false.
- * @param {Function} pred
- * @param {Function} fn
- * @param {any} value
- * @returns {any}
- */
-export function unless(pred, fn, value) {
-  if (typeof pred !== 'function' || typeof fn !== 'function') return value;
-  return pred(value) ? value : fn(value);
-}
-
-/**
- * Branch between two functions based on a predicate.
- * @param {Function} pred
- * @param {Function} onTrue
- * @param {Function} onFalse
- * @param {any} value
- * @returns {any}
- */
-export function ifElse(pred, onTrue, onFalse, value) {
-  if (typeof pred !== 'function' || typeof onTrue !== 'function' || typeof onFalse !== 'function') return value;
-  return pred(value) ? onTrue(value) : onFalse(value);
-}
-
-/**
- * Multi-way conditional: return the first matching [pred, fn] pair.
- * @param {Array<[Function,Function]>} pairs
- * @returns {Function}
- */
-export function cond(pairs) {
-  if (!Array.isArray(pairs)) return () => undefined;
-  return (value) => {
-    for (const [pred, fn] of pairs) {
-      if (typeof pred !== 'function' || typeof fn !== 'function') continue;
-      if (pred(value)) return fn(value);
-    }
-    return undefined;
-  };
-}
-
-/**
- * True only if every predicate returns true.
- * @param {Function[]} preds
- * @returns {Function}
- */
-export function allPass(preds) {
-  if (!Array.isArray(preds)) return () => false;
-  return (value) => preds.every(p => typeof p === 'function' && p(value));
-}
-
-/**
- * True if any predicate returns true.
- * @param {Function[]} preds
- * @returns {Function}
- */
-export function anyPass(preds) {
-  if (!Array.isArray(preds)) return () => false;
-  return (value) => preds.some(p => typeof p === 'function' && p(value));
-}
-
-/**
- * Logical negation of a predicate function.
- * @param {Function} pred
- * @returns {Function}
- */
-export function complement(pred) {
-  if (typeof pred !== 'function') return () => true;
-  return (...args) => !pred(...args);
-}
-
-/**
- * Return a function that always returns the given value.
- * @param {any} value
- * @returns {Function}
- */
-export function always(value) {
-  return () => value;
-}
-
-/** Constant function that always returns true. @returns {Function} */
-export function T() { return () => true; }
-
-/** Constant function that always returns false. @returns {Function} */
-export function F() { return () => false; }
-
-/**
- * First element of an array or string.
- * @param {Array|string} list
- * @returns {any}
- */
-export function head(list) {
-  if (list == null || typeof list.length !== 'number') return undefined;
-  return list[0];
-}
-
-/**
- * All elements after the first.
- * @param {Array} list
- * @returns {Array}
- */
-export function tail(list) {
-  if (list == null || typeof list.length !== 'number') return [];
-  return Array.prototype.slice.call(list, 1);
-}
-
-/**
- * Last element of an array or string.
- * @param {Array|string} list
- * @returns {any}
- */
-export function last(list) {
-  if (list == null || typeof list.length !== 'number') return undefined;
-  return list[list.length - 1];
-}
-
-/**
- * All elements except the last.
- * @param {Array} list
- * @returns {Array}
- */
-export function init(list) {
-  if (list == null || typeof list.length !== 'number') return [];
-  return Array.prototype.slice.call(list, 0, -1);
-}
-
-/**
- * First n elements of a list.
- * @param {number} n
- * @param {Array|string} list
- * @returns {Array|string}
- */
-export function take(n, list) {
-  if (list == null || typeof list.length !== 'number') return [];
-  return typeof list === 'string' ? list.slice(0, n) : Array.prototype.slice.call(list, 0, n);
-}
-
-/**
- * Elements after the first n.
- * @param {number} n
- * @param {Array|string} list
- * @returns {Array|string}
- */
-export function drop(n, list) {
-  if (list == null || typeof list.length !== 'number') return [];
-  return typeof list === 'string' ? list.slice(n) : Array.prototype.slice.call(list, n);
-}
-
-/**
- * Last n elements of a list.
- * @param {number} n
- * @param {Array|string} list
- * @returns {Array|string}
- */
-export function takeLast(n, list) {
-  if (list == null || typeof list.length !== 'number') return [];
-  return typeof list === 'string' ? list.slice(-n) : Array.prototype.slice.call(list, -n);
-}
-
-/**
- * All but the last n elements.
- * @param {number} n
- * @param {Array|string} list
- * @returns {Array|string}
- */
-export function dropLast(n, list) {
-  if (list == null || typeof list.length !== 'number') return [];
-  return typeof list === 'string' ? list.slice(0, -n) : Array.prototype.slice.call(list, 0, -n);
-}
-
-/**
- * Extract a property from each object in a list.
- * @param {string} key
- * @param {Array<object>} list
- * @returns {Array}
- */
-export function pluck(key, list) {
-  if (list == null || typeof list.length !== 'number') return [];
-  return Array.prototype.map.call(list, obj => obj == null ? undefined : obj[key]);
-}
-
-/**
- * First element matching a predicate.
- * @param {Function} pred
- * @param {Array} list
- * @returns {any}
- */
-export function find(pred, list) {
-  if (typeof pred !== 'function') return undefined;
-  if (list == null || typeof list.length !== 'number') return undefined;
-  return Array.prototype.find.call(list, pred);
-}
-
-/**
- * Check if obj[key] strictly equals val.
- * @param {string} key
- * @param {any} val
- * @param {object} obj
- * @returns {boolean}
- */
-export function propEq(key, val, obj) {
-  if (obj == null || typeof obj !== 'object') return false;
-  return obj[key] === val;
-}
-
-/**
- * Check if a deep path strictly equals val.
- * @param {string[]} keys
- * @param {any} val
- * @param {object} obj
- * @returns {boolean}
- */
-export function pathEq(keys, val, obj) {
-  return getPath(keys, obj) === val;
-}
-
-/**
- * Strict-equality membership test for a list.
- * @param {any} value
- * @param {Array} list
- * @returns {boolean}
- */
-export function contains(value, list) {
-  if (list == null || typeof list.length !== 'number') return false;
-  return Array.prototype.indexOf.call(list, value) >= 0;
-}
-
-/**
- * True for plain {} objects (not Date, Array, RegExp, etc.).
- * @param {any} value
- * @returns {boolean}
- */
-export function isPlainObject(value) {
-  return value != null && Object.prototype.toString.call(value) === '[object Object]' && value.constructor === Object;
-}
-
-/**
- * True for DOM Element nodes.
- * @param {any} value
- * @returns {boolean}
- */
-export function isElement(value) {
-  return value != null && typeof value === 'object' && value.nodeType === 1;
-}
-
-/**
- * True for FormData instances.
- * @param {any} value
- * @returns {boolean}
- */
-export function isFormData(value) {
-  return value != null && typeof value === 'object' && value.constructor === FormData;
-}
-
-/**
- * True for Blob instances.
- * @param {any} value
- * @returns {boolean}
- */
-export function isBlob(value) {
-  return value != null && typeof value === 'object' && value.constructor === Blob;
-}
-
-/**
- * True for File instances.
- * @param {any} value
- * @returns {boolean}
- */
-export function isFile(value) {
-  return value != null && typeof value === 'object' && value.constructor === File;
-}
-
-/**
- * True for array-like objects (has numeric length).
- * @param {any} value
- * @returns {boolean}
- */
-export function isArrayLike(value) {
-  return value != null && typeof value.length === 'number' && value.length >= 0;
-}
-
-/**
- * Transform object properties by applying functions from a template.
- * @param {object} transformations
- * @param {object} obj
- * @returns {object}
- */
-export function evolve(transformations, obj) {
-  if (obj == null || typeof obj !== 'object') return obj;
-  if (transformations == null || typeof transformations !== 'object') return obj;
-  const result = {};
-  for (const key of Object.keys(obj)) {
-    const fn = transformations[key];
-    result[key] = typeof fn === 'function' ? fn(obj[key]) : obj[key];
-  }
-  return result;
-}
-
-/**
- * Shallow clone of object without the given key.
- * @param {string} key
- * @param {object} obj
- * @returns {object}
- */
-export function dissoc(key, obj) {
-  if (obj == null || typeof obj !== 'object') return {};
-  const result = {};
-  for (const k of Object.keys(obj)) { if (k !== key) result[k] = obj[k]; }
-  return result;
-}
-
-/**
- * Deep merge where `a` values take precedence.
- * @param {object} a
- * @param {object} b
- * @returns {object}
- */
-export function mergeDeepLeft(a, b) {
-  if (a == null || typeof a !== 'object') return b;
-  if (b == null || typeof b !== 'object') return a;
-  if (Array.isArray(a) || Array.isArray(b)) return a;
-  const result = {};
-  for (const k of new Set([...Object.keys(a), ...Object.keys(b)])) {
-    if (k in a && k in b && a[k] != null && typeof a[k] === 'object' && b[k] != null && typeof b[k] === 'object') {
-      result[k] = mergeDeepLeft(a[k], b[k]);
-    } else { result[k] = k in a ? a[k] : b[k]; }
-  }
-  return result;
-}
-
-/**
- * Deep merge where `b` values take precedence.
- * @param {object} a
- * @param {object} b
- * @returns {object}
- */
-export function mergeDeepRight(a, b) {
-  if (a == null || typeof a !== 'object') return b;
-  if (b == null || typeof b !== 'object') return a;
-  if (Array.isArray(a) || Array.isArray(b)) return b;
-  const result = {};
-  for (const k of new Set([...Object.keys(a), ...Object.keys(b)])) {
-    if (k in a && k in b && a[k] != null && typeof a[k] === 'object' && b[k] != null && typeof b[k] === 'object') {
-      result[k] = mergeDeepRight(a[k], b[k]);
-    } else { result[k] = k in b ? b[k] : a[k]; }
-  }
-  return result;
-}
-
-/**
- * Pick the specified keys from every object in a list.
- * @param {string[]} keys
- * @param {Array<object>} list
- * @returns {Array<object>}
- */
-export function project(keys, list) {
-  if (!Array.isArray(keys)) return [];
-  if (list == null || typeof list.length !== 'number') return [];
-  return Array.prototype.map.call(list, obj => {
-    const result = {};
-    for (const k of keys) { if (k in obj) result[k] = obj[k]; }
-    return result;
-  });
-}
-
-/**
- * Memoize a function with a custom cache-key generator.
- * @param {Function} fn
- * @param {Function} keyFn
- * @returns {Function}
- */
-export function memoizeBy(fn, keyFn) {
-  if (typeof fn !== 'function' || typeof keyFn !== 'function') return fn;
-  const cache = new Map();
-  return (...args) => {
-    const key = keyFn(...args);
-    if (cache.has(key)) return cache.get(key);
-    const result = fn(...args);
-    cache.set(key, result);
-    return result;
-  };
-}
-
-/**
- * Ensure a function runs at most once.
- * @param {Function} fn
- * @returns {Function}
- */
-export function onceInline(fn) {
-  if (typeof fn !== 'function') return () => undefined;
-  let ran = false;
-  let result;
-  return (...args) => {
-    if (ran) return result;
-    ran = true;
-    result = fn(...args);
-    return result;
-  };
-}
-
-/**
- * Safe RegExp match returning an array or null.
- * @param {RegExp} regex
- * @param {string} str
- * @returns {Array|null}
- */
-export function match(regex, str) {
-  if (typeof str !== 'string') return null;
-  return str.match(regex);
-}
-
-/**
- * Safe string replace.
- * @param {string|RegExp} pattern
- * @param {string|Function} replacement
- * @param {string} str
- * @returns {string}
- */
-export function replace(pattern, replacement, str) {
-  if (typeof str !== 'string') return '';
-  return str.replace(pattern, /** @type {string|Function} */ (replacement));
-}
-
-/**
- * Trim whitespace from both ends of a string.
- * @param {string} str
- * @returns {string}
- */
-export function trim(str) {
-  return typeof str === 'string' ? str.trim() : '';
-}
-
-/**
- * Convert a string to lowercase.
- * @param {string} str
- * @returns {string}
- */
-export function toLower(str) {
-  return typeof str === 'string' ? str.toLowerCase() : '';
-}
-
-/**
- * Convert a string to uppercase.
- * @param {string} str
- * @returns {string}
- */
-export function toUpper(str) {
-  return typeof str === 'string' ? str.toUpperCase() : '';
-}
-
-/**
- * Safe startsWith check.
- * @param {string} prefix
- * @param {string} str
- * @returns {boolean}
- */
-export function startsWith(prefix, str) {
-  return typeof str === 'string' && str.startsWith(prefix);
-}
-
-/**
- * Safe endsWith check.
- * @param {string} suffix
- * @param {string} str
- * @returns {boolean}
- */
-export function endsWith(suffix, str) {
-  return typeof str === 'string' && str.endsWith(suffix);
-}
-
-/**
- * Safe substring inclusion check.
- * @param {string} substr
- * @param {string} str
- * @returns {boolean}
- */
-export function includes(substr, str) {
-  return typeof str === 'string' && str.includes(substr);
-}
-
-/**
- * Safe string split.
- * @param {string|RegExp} sep
- * @param {string} str
- * @returns {string[]}
- */
-export function split(sep, str) {
-  return typeof str === 'string' ? str.split(sep) : [];
-}
-
-/**
- * Safe array join.
- * @param {string} sep
- * @param {Array} list
- * @returns {string}
- */
-export function join(sep, list) {
-  if (list == null || typeof list.length !== 'number') return '';
-  return Array.prototype.join.call(list, sep);
-}
-
-/**
- * Reverse a copy of an array or string.
- * @param {Array|string} list
- * @returns {Array|string}
- */
-export function reverseInline(list) {
-  if (list == null || typeof list.length !== 'number') return [];
-  if (typeof list === 'string') return list.split('').reverse().join('');
-  return Array.prototype.slice.call(list).reverse();
-}
-
-/**
- * Sort a copy of an array.
- * @param {Array} list
- * @returns {Array}
- */
-export function sort(list) {
-  if (list == null || typeof list.length !== 'number') return [];
-  return Array.prototype.slice.call(list).sort();
-}
-
-/**
- * Sort by iteratee result.
- * @param {Function} iteratee
- * @param {Array} list
- * @returns {Array}
- */
-export function sortByInline(iteratee, list) {
-  if (typeof iteratee !== 'function') return [];
-  if (list == null || typeof list.length !== 'number') return [];
-  return Array.prototype.slice.call(list).sort((a, b) => {
-    const av = iteratee(a), bv = iteratee(b);
-    if (av < bv) return -1;
-    if (av > bv) return 1;
-    return 0;
-  });
-}
-
-/**
- * Unique items by iteratee result.
- * @param {Function} iteratee
- * @param {Array} list
- * @returns {Array}
- */
-export function uniqBy(iteratee, list) {
-  if (typeof iteratee !== 'function') return [];
-  if (list == null || typeof list.length !== 'number') return [];
-  const seen = new Set();
-  return Array.prototype.filter.call(list, item => {
-    const key = iteratee(item);
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-}
-
-/**
- * Flatten array to a given depth.
- * @param {number} depth
- * @param {Array} list
- * @returns {Array}
- */
-export function flattenInline(depth, list) {
-  if (list == null || typeof list.length !== 'number') return [];
-  const result = [];
-  const stack = list.map ? list.map(x => [x, 1]) : [];
-  if (!stack.length) return [];
-  while (stack.length) {
-    const [item, d] = stack.pop();
-    if (Array.isArray(item) && d < depth) {
-      for (let i = item.length - 1; i >= 0; i--) stack.push([item[i], d + 1]);
-    } else {
-      result.push(item);
-    }
-  }
-  return result;
-}
-
-/**
- * Pairwise zip two arrays into an array of pairs.
- * @param {Array} arr1
- * @param {Array} arr2
- * @returns {Array<[any,any]>}
- */
-export function zip(arr1, arr2) {
-  if (!arr1 || !arr2 || typeof arr1.length !== 'number' || typeof arr2.length !== 'number') return [];
-  const len = Math.min(arr1.length, arr2.length);
-  const result = new Array(len);
-  for (let i = 0; i < len; i++) result[i] = [arr1[i], arr2[i]];
-  return result;
-}
-
-/**
- * Unzip an array of pairs into two arrays.
- * @param {Array<[any,any]>} arr
- * @returns {[Array, Array]}
- */
-export function unzip(arr) {
-  if (!arr || typeof arr.length !== 'number') return [[], []];
-  const a = new Array(arr.length), b = new Array(arr.length);
-  for (let i = 0; i < arr.length; i++) {
-    const pair = arr[i];
-    a[i] = pair != null ? pair[0] : undefined;
-    b[i] = pair != null ? pair[1] : undefined;
-  }
-  return [a, b];
-}
-
-/**
- * True for WeakMap instances.
- * @param {any} value
- * @returns {boolean}
- */
-export function isWeakMap(value) {
-  return value != null && typeof value === 'object' && value.constructor === WeakMap;
-}
-
-/**
- * True for WeakSet instances.
- * @param {any} value
- * @returns {boolean}
- */
-export function isWeakSet(value) {
-  return value != null && typeof value === 'object' && value.constructor === WeakSet;
-}
-
-/**
- * True for ArrayBuffer instances.
- * @param {any} value
- * @returns {boolean}
- */
-export function isArrayBuffer(value) {
-  return value != null && typeof value === 'object' && value.constructor === ArrayBuffer;
-}
-
-/**
- * True for SharedArrayBuffer instances.
- * @param {any} value
- * @returns {boolean}
- */
-export function isSharedArrayBuffer(value) {
-  return value != null && typeof value === 'object' && value.constructor === SharedArrayBuffer;
-}
-
-/**
- * True for DataView instances.
- * @param {any} value
- * @returns {boolean}
- */
-export function isDataView(value) {
-  return value != null && typeof value === 'object' && value.constructor === DataView;
-}
-
-/**
- * True for any TypedArray instance.
- * @param {any} value
- * @returns {boolean}
- */
-export function isTypedArray(value) {
-  return value != null && ArrayBuffer.isView(value) && !(value instanceof DataView);
-}
-
-/**
- * True for generator functions.
- * @param {any} value
- * @returns {boolean}
- */
-export function isGenerator(value) {
-  return typeof value === 'function' && value.constructor && value.constructor.name === 'GeneratorFunction';
-}
-
-/**
- * True for async generator functions.
- * @param {any} value
- * @returns {boolean}
- */
-export function isAsyncGenerator(value) {
-  return typeof value === 'function' && value.constructor && value.constructor.name === 'AsyncGeneratorFunction';
-}
-
-/**
- * Check if a value has Symbol.iterator.
- * @param {any} value
- * @returns {boolean}
- */
-export function isIterable(value) {
-  return value != null && typeof value[Symbol.iterator] === 'function';
-}
-
-/**
- * Check if a value has Symbol.asyncIterator.
- * @param {any} value
- * @returns {boolean}
- */
-export function isAsyncIterable(value) {
-  return value != null && typeof value[Symbol.asyncIterator] === 'function';
-}
+export const flip          = FunctionalUtils.flip;
+export const tryCatch      = FunctionalUtils.tryCatch;
+export const defaultTo     = FunctionalUtils.defaultTo;
+export const prop          = FunctionalUtils.prop;
+export const getPath       = FunctionalUtils.getPath;
+export const pathOr        = FunctionalUtils.pathOr;
+export const when          = FunctionalUtils.when;
+export const unless        = FunctionalUtils.unless;
+export const ifElse        = FunctionalUtils.ifElse;
+export const cond          = FunctionalUtils.cond;
+export const allPass       = FunctionalUtils.allPass;
+export const anyPass       = FunctionalUtils.anyPass;
+export const complement    = FunctionalUtils.complement;
+export const always        = FunctionalUtils.always;
+export const T             = FunctionalUtils.T;
+export const F             = FunctionalUtils.F;
+export const propEq        = FunctionalUtils.propEq;
+export const pathEq        = FunctionalUtils.pathEq;
+export const onceInline    = FunctionalUtils.onceInline;
+
+// Inline helpers are re-exported from the utils/ submodules above.
 
 // ── Storage helpers ──────────────────────────────────────────
 /** @param {string} key @returns {any} */
@@ -1221,6 +556,8 @@ import { fetchWithTimeout } from './utils-lib/fetch.js';
 export { fetchWithTimeout };
 import { waitForAsync } from './utils-lib/async.js';
 export { waitForAsync };
+import { resolveDashboardProjectPath } from './utils-lib/path.js';
+export { resolveDashboardProjectPath };
 
 // ── Event bus helpers ────────────────────────────────────────
 /** @returns {object} Event bus with on/off/emit/once/clear */
@@ -1292,12 +629,16 @@ const _collisionWarnings = new Set();
 function _warnCollision(name, ns1, ns2) {
   if (_collisionWarnings.has(name)) return;
   _collisionWarnings.add(name);
+  if (typeof __SB_DEBUG_UTILS__ !== 'undefined' && __SB_DEBUG_UTILS__) {
+    console.warn(`[utils] Export collision: "${name}" exists in both "${ns1}" and "${ns2}" namespaces.`);
+  }
 }
 
 function _checkExportCollisions() {
   const hasOwn = Object.prototype.hasOwnProperty;
-  for (const [nsName, ns] of Object.entries(_namespaceRegistry)) {
-    if (!ns || typeof ns !== 'object') continue;
+  const namespaces = Object.entries(_namespaceRegistry).filter(([, ns]) => ns && typeof ns === 'object');
+  // Namespace vs inline namespace.
+  for (const [nsName, ns] of namespaces) {
     for (const key of Object.keys(ns)) {
       if (key === 'default') continue;
       if (!hasOwn.call(ns, key)) continue;
@@ -1306,45 +647,64 @@ function _checkExportCollisions() {
       }
     }
   }
+  // Namespace vs namespace (check each pair once).
+  for (let i = 0; i < namespaces.length; i++) {
+    const [nsNameA, nsA] = namespaces[i];
+    for (let j = i + 1; j < namespaces.length; j++) {
+      const [nsNameB, nsB] = namespaces[j];
+      for (const key of Object.keys(nsA)) {
+        if (key === 'default') continue;
+        if (!hasOwn.call(nsA, key)) continue;
+        if (hasOwn.call(nsB, key)) {
+          _warnCollision(key, nsNameA, nsNameB);
+        }
+      }
+    }
+  }
 }
 
 function deepFreeze(obj) {
   if (obj == null || typeof obj !== 'object') return obj;
   if (Object.isFrozen(obj)) return obj;
-  const ctor = obj.constructor;
+  let ctor;
+  try { ctor = obj.constructor; } catch { return obj; }
   if (ctor === Date || ctor === RegExp || ctor === WeakMap || ctor === WeakSet || ctor === Promise || ctor === Error) return obj;
   if (ctor === BigInt) return obj;
   if (ctor === URL || ctor === URLSearchParams) return obj;
   if (ArrayBuffer.isView(obj)) return obj;
   if (ctor === ArrayBuffer || (typeof SharedArrayBuffer !== 'undefined' && ctor === SharedArrayBuffer)) return obj;
-  if (ctor === Map) {
-    const frozenMap = new Map();
-    for (const [k, v] of obj) frozenMap.set(k, deepFreeze(v));
-    try { Object.freeze(frozenMap); } catch { return obj; }
-    return frozenMap;
-  }
-  if (ctor === Set) {
-    const frozenSet = new Set();
-    for (const v of obj) frozenSet.add(deepFreeze(v));
-    try { Object.freeze(frozenSet); } catch { return obj; }
-    return frozenSet;
-  }
-  if (Array.isArray(obj)) {
-    const frozenArr = new Array(obj.length);
-    for (let i = 0; i < obj.length; i++) {
-      frozenArr[i] = deepFreeze(obj[i]);
+  try {
+    if (ctor === Map) {
+      const frozenMap = new Map();
+      for (const [k, v] of obj) frozenMap.set(k, deepFreeze(v));
+      Object.freeze(frozenMap);
+      return frozenMap;
     }
-    try { Object.freeze(frozenArr); } catch { return obj; }
-    return frozenArr;
+    if (ctor === Set) {
+      const frozenSet = new Set();
+      for (const v of obj) frozenSet.add(deepFreeze(v));
+      Object.freeze(frozenSet);
+      return frozenSet;
+    }
+    if (Array.isArray(obj)) {
+      const frozenArr = new Array(obj.length);
+      for (let i = 0; i < obj.length; i++) {
+        frozenArr[i] = deepFreeze(obj[i]);
+      }
+      Object.freeze(frozenArr);
+      return frozenArr;
+    }
+    const frozenObj = {};
+    const hasOwn = Object.prototype.hasOwnProperty;
+    for (const key of Object.keys(obj)) {
+      if (!hasOwn.call(obj, key)) continue;
+      frozenObj[key] = deepFreeze(obj[key]);
+    }
+    Object.freeze(frozenObj);
+    return frozenObj;
+  } catch {
+    return obj;
   }
-  const frozenObj = {};
-  const hasOwn = Object.prototype.hasOwnProperty;
-  for (const key of Object.keys(obj)) {
-    if (!hasOwn.call(obj, key)) continue;
-    frozenObj[key] = deepFreeze(obj[key]);
-  }
-  try { Object.freeze(frozenObj); } catch { return obj; }
-  return frozenObj;
 }
 
 export { deepFreeze };
@@ -1360,17 +720,77 @@ const inlineNamespace = /*#__PURE__*/ Object.freeze({
   curry: FunctionalUtils.curry,
   partial: FunctionalUtils.partial,
   tap: FunctionalUtils.tap,
-  flip, tryCatch, defaultTo, prop, getPath, pathOr, when, unless, ifElse, cond,
-  allPass, anyPass, complement, always, T, F,
-  head, tail, last, init, take, drop, takeLast, dropLast,
-  pluck, find, findIndex, propEq, pathEq, contains,
-  isPlainObject, isElement, isPromise, isFormData, isBlob, isFile, isArrayLike,
-  evolve, dissoc, mergeDeepLeft, mergeDeepRight, project,
-  memoizeBy, once: onceInline, match, replace, trim, toLower, toUpper,
-  startsWith, endsWith, includes, split, join, reverse: reverseInline, sort,
-  sortBy: sortByInline, uniqBy, flatten: flattenInline, zip, unzip,
-  isWeakMap, isWeakSet, isArrayBuffer, isSharedArrayBuffer, isDataView,
-  isTypedArray, isGenerator, isAsyncGenerator, isIterable, isAsyncIterable,
+  flip: FunctionalUtils.flip,
+  tryCatch: FunctionalUtils.tryCatch,
+  defaultTo: FunctionalUtils.defaultTo,
+  prop: FunctionalUtils.prop,
+  getPath: FunctionalUtils.getPath,
+  pathOr: FunctionalUtils.pathOr,
+  when: FunctionalUtils.when,
+  unless: FunctionalUtils.unless,
+  ifElse: FunctionalUtils.ifElse,
+  cond: FunctionalUtils.cond,
+  allPass: FunctionalUtils.allPass,
+  anyPass: FunctionalUtils.anyPass,
+  complement: FunctionalUtils.complement,
+  always: FunctionalUtils.always,
+  T: FunctionalUtils.T,
+  F: FunctionalUtils.F,
+  propEq: FunctionalUtils.propEq,
+  pathEq: FunctionalUtils.pathEq,
+  once: FunctionalUtils.onceInline,
+  head: ArrayUtils.head,
+  tail: ArrayUtils.tail,
+  last: ArrayUtils.last,
+  init: ArrayUtils.init,
+  take: ArrayUtils.take,
+  drop: ArrayUtils.drop,
+  takeLast: ArrayUtils.takeLast,
+  dropLast: ArrayUtils.dropLast,
+  pluck: ArrayUtils.pluck,
+  find: ArrayUtils.find,
+  findIndex: ArrayUtils.findIndex,
+  contains: ArrayUtils.contains,
+  isPlainObject: TypeUtils.isPlainObject,
+  isElement: TypeUtils.isElement,
+  isPromise: TypeUtils.isPromise,
+  isFormData: TypeUtils.isFormData,
+  isBlob: TypeUtils.isBlob,
+  isFile: TypeUtils.isFile,
+  isArrayLike: TypeUtils.isArrayLike,
+  evolve: ObjectUtils.evolve,
+  dissoc: ObjectUtils.dissoc,
+  mergeDeepLeft: ObjectUtils.mergeDeepLeft,
+  mergeDeepRight: ObjectUtils.mergeDeepRight,
+  project: ArrayUtils.project,
+  memoizeBy: ObjectUtils.memoizeBy,
+  match: StringUtils.match,
+  replace: StringUtils.replace,
+  trim: StringUtils.trim,
+  toLower: StringUtils.toLower,
+  toUpper: StringUtils.toUpper,
+  startsWith: StringUtils.startsWith,
+  endsWith: StringUtils.endsWith,
+  includes: StringUtils.includes,
+  split: StringUtils.split,
+  join: StringUtils.join,
+  reverse: ArrayUtils.reverseInline,
+  sort: ArrayUtils.sort,
+  sortBy: ArrayUtils.sortByInline,
+  uniqBy: ArrayUtils.uniqBy,
+  flatten: ArrayUtils.flattenInline,
+  zip: ArrayUtils.zip,
+  unzip: ArrayUtils.unzip,
+  isWeakMap: TypeUtils.isWeakMap,
+  isWeakSet: TypeUtils.isWeakSet,
+  isArrayBuffer: TypeUtils.isArrayBuffer,
+  isSharedArrayBuffer: TypeUtils.isSharedArrayBuffer,
+  isDataView: TypeUtils.isDataView,
+  isTypedArray: TypeUtils.isTypedArray,
+  isGenerator: TypeUtils.isGenerator,
+  isAsyncGenerator: TypeUtils.isAsyncGenerator,
+  isIterable: TypeUtils.isIterable,
+  isAsyncIterable: TypeUtils.isAsyncIterable,
   parseJsonSafe: MiscUtils.parseJsonSafe,
   parseResponseJson: MiscUtils.parseResponseJson,
   stringifySafe: MiscUtils.stringifySafe,
@@ -1431,6 +851,65 @@ export function integrityTest() {
   assert('zip pairs', JSON.stringify(zipped) === JSON.stringify([[1, 'a'], [2, 'b']]));
   const [ua, ub] = unzip(zipped);
   assert('unzip roundtrip', JSON.stringify(ua) === JSON.stringify([1, 2]) && JSON.stringify(ub) === JSON.stringify(['a', 'b']));
+
+  // String helpers
+  assert('trim removes whitespace', trim('  hello  ') === 'hello');
+  assert('toLower lowercases', toLower('Hello') === 'hello');
+  assert('startsWith true', startsWith('he', 'hello'));
+  assert('endsWith true', endsWith('lo', 'hello'));
+  assert('includes true', includes('ell', 'hello'));
+  assert('split works', JSON.stringify(split('-', 'a-b')) === JSON.stringify(['a', 'b']));
+  assert('join works', join('-', ['a', 'b']) === 'a-b');
+  assert('match works', match(/h.l/, 'hello') !== null);
+  assert('replace works', replace('l', 'L', 'hello') === 'heLlo');
+
+  // Array helpers
+  assert('head first', head([1, 2, 3]) === 1);
+  assert('tail rest', JSON.stringify(tail([1, 2, 3])) === JSON.stringify([2, 3]));
+  assert('last last', last([1, 2, 3]) === 3);
+  assert('take', JSON.stringify(take(2, [1, 2, 3])) === JSON.stringify([1, 2]));
+  assert('drop', JSON.stringify(drop(1, [1, 2, 3])) === JSON.stringify([2, 3]));
+  assert('pluck', JSON.stringify(pluck('a', [{ a: 1 }, { a: 2 }])) === JSON.stringify([1, 2]));
+  assert('find', find(x => x > 1, [1, 2, 3]) === 2);
+  assert('uniqBy', JSON.stringify(uniqBy(x => x, [1, 2, 2, 3])) === JSON.stringify([1, 2, 3]));
+  assert('sortByInline', JSON.stringify(sortByInline(x => x, [3, 1, 2])) === JSON.stringify([1, 2, 3]));
+  assert('flattenInline', JSON.stringify(flattenInline(2, [[1, 2], [3, [4]]])) === JSON.stringify([1, 2, 3, [4]]));
+  assert('reverseInline', JSON.stringify(reverseInline([1, 2, 3])) === JSON.stringify([3, 2, 1]));
+  assert('project', JSON.stringify(project(['a'], [{ a: 1, b: 2 }])) === JSON.stringify([{ a: 1 }]));
+
+  // Type helpers
+  assert('isFormData', isFormData(new FormData()));
+  assert('isBlob', isBlob(new Blob()));
+  assert('isFile', isFile(new File([], 'x')));
+  assert('isArrayLike', isArrayLike([1, 2, 3]));
+  assert('isTypedArray', isTypedArray(new Uint8Array(1)));
+  assert('isGenerator', isGenerator(function* () {}));
+  assert('isIterable', isIterable([1, 2, 3]));
+  assert('isAsyncIterable', isAsyncIterable({ [Symbol.asyncIterator]: () => ({ next: () => Promise.resolve({ done: true }) }) }));
+
+  // Functional helpers
+  assert('flip', flip((a, b) => a - b)(2, 5) === 3);
+  assert('tryCatch', tryCatch(() => { throw new Error('x'); }, () => 'caught')() === 'caught');
+  assert('defaultTo NaN', defaultTo('def', NaN) === 'def');
+  assert('prop', prop('a', { a: 1 }) === 1);
+  assert('pathOr', pathOr('def', ['a', 'b'], { a: {} }) === 'def');
+  assert('when', when(x => x > 0, x => x * 2, 5) === 10);
+  assert('ifElse false', ifElse(x => x > 0, x => x * 2, x => x * 3, -5) === -15);
+  assert('allPass', allPass([x => x > 0, x => x < 10])(5));
+  assert('anyPass', anyPass([x => x > 0, x => x > 10])(5));
+  assert('complement', complement(x => x > 0)(-1));
+  assert('always', always(7)() === 7);
+  assert('T', T()());
+  assert('F', !F()());
+  assert('propEq', propEq('a', 1, { a: 1 }));
+  assert('pathEq', pathEq(['a', 'b'], 2, { a: { b: 2 } }));
+  const onceFn = onceInline(() => Math.random());
+  assert('onceInline first equals second', onceFn() === onceFn());
+
+  // Object helpers
+  assert('evolve', JSON.stringify(evolve({ a: x => x + 1 }, { a: 1, b: 2 })) === JSON.stringify({ a: 2, b: 2 }));
+  assert('dissoc', JSON.stringify(dissoc('a', { a: 1, b: 2 })) === JSON.stringify({ b: 2 }));
+  assert('memoizeBy', memoizeBy(x => x * 2, x => x)(3) === 6);
 
   return { passed: failures.length === 0, failures };
 }
