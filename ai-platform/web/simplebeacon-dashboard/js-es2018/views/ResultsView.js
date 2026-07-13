@@ -89,12 +89,7 @@ export class ResultsView {
         el.innerHTML = `
       <div class="section-heading mb-4">
         <h1 class="page-title" style="margin:0">Results</h1>
-        <div class="flex gap-2">
-          <button class="btn btn-secondary btn-sm" id="export-full-btn" type="button">Export full report</button>
-          <button class="btn btn-secondary btn-sm" id="export-filtered-json-btn" type="button">Export filtered JSON</button>
-          <button class="btn btn-secondary btn-sm" id="export-csv-btn" type="button">Export CSV</button>
-          ${this.app.isCurrentUserAdmin() ? '<button class="btn btn-primary btn-sm" id="send-ai-btn" type="button" title="Send scan data to AI coding agent">🤖 Send to AI Agent</button>' : ''}
-        </div>
+        ${this.app.isCurrentUserAdmin() ? '<button class="btn btn-primary btn-sm" id="send-ai-btn" type="button" title="Send scan data to AI coding agent">🤖 Send to AI Agent</button>' : ''}
       </div>
       ${this.app.isCurrentUserAdmin() ? `
       <div id="ai-send-panel" class="card mb-4" style="display:none;padding:var(--space-3);background:rgba(99,102,241,0.06);border-color:rgba(99,102,241,0.2);">
@@ -118,56 +113,75 @@ export class ResultsView {
       ` : ''}
       ${report ? this.renderScanSummary(report) : ''}
       ${((_f = this.app.state.routeParams) === null || _f === void 0 ? void 0 : _f.q) ? `<p class="text-muted mb-4">Search: “${escapeHtml(this.app.state.routeParams.q)}”</p>` : ''}
-      <div class="results-toolbar" id="severity-filters">
-        ${SEVERITIES.map((s) => `
-          <button type="button" class="filter-chip ${this.filterSeverity === s ? 'active' : ''}" data-severity="${s}">
-            ${s === 'all' ? 'All severities' : s.charAt(0).toUpperCase() + s.slice(1)}
-          </button>
-        `).join('')}
-      </div>
-      <div class="results-toolbar" id="category-filters">
-        <button type="button" class="filter-chip ${this.filterCategory === 'all' ? 'active' : ''}" data-category="all">All types</button>
-        ${categories.map((c) => `
-          <button type="button" class="filter-chip ${this.filterCategory === c.id ? 'active' : ''}" data-category="${c.id}">
-            ${c.icon} ${escapeHtml(c.title)} (${c.count})
-          </button>
-        `).join('')}
-      </div>
-      ${!report ? `
-        ${renderEmptyState({
-            icon: '📋',
-            title: 'No scan report loaded yet',
-            body: 'Run a Simplebeacon or Complete scan from Analyze, or use Dashboard → Run scan.',
-            iconWrapper: 'emoji'
-        })}
-      ` : issues.length === 0 ? `
-        ${renderEmptyState({
-            icon: totalIssues === 0 && ((_g = report.gate) === null || _g === void 0 ? void 0 : _g.pass) && !filtersActive ? '✅' : '🔍',
-            title: this.emptyStateMessage(report, totalIssues, filtersActive, activeCategory),
-            iconWrapper: 'emoji'
-        })}
-        ${filtersActive
-            ? '<p class="text-muted" style="margin-top:var(--space-2)"><button type="button" class="btn btn-secondary btn-sm" id="clear-results-filters">Clear filters</button></p>'
-            : ''}
-      ` : `
-        <div class="card" style="padding: 0; overflow: hidden;">
-          <table class="results-table">
-            <thead>
-              <tr>
-                <th>Severity</th>
-                <th>Type</th>
-                <th>Description</th>
-                <th>File</th>
-                <th>Count</th>
-              </tr>
-            </thead>
-            <tbody id="results-body"></tbody>
-          </table>
-        </div>
-        <div id="issue-detail"></div>
-      `}
 
-      ${this.renderSampleFiles()}
+      <div class="results-layout" style="display:grid;grid-template-columns:260px 1fr;gap:var(--space-4);align-items:start;">
+        <aside class="results-sidebar" style="position:sticky;top:var(--space-4);">
+          <div class="card mb-4" style="padding:var(--space-3);">
+            <h3 class="text-sm font-semibold mb-3" style="margin:0 0 12px;">Severity</h3>
+            <div class="flex flex-col gap-2" id="severity-filters">
+              ${SEVERITIES.map((s) => `
+                <button type="button" class="filter-chip justify-start ${this.filterSeverity === s ? 'active' : ''}" data-severity="${s}">
+                  ${s === 'all' ? 'All severities' : s.charAt(0).toUpperCase() + s.slice(1)}
+                </button>
+              `).join('')}
+            </div>
+          </div>
+          <div class="card mb-4" style="padding:var(--space-3);">
+            <h3 class="text-sm font-semibold mb-3" style="margin:0 0 12px;">Issue Type</h3>
+            <div class="flex flex-col gap-2" id="category-filters">
+              <button type="button" class="filter-chip justify-start ${this.filterCategory === 'all' ? 'active' : ''}" data-category="all">All types</button>
+              ${categories.map((c) => `
+                <button type="button" class="filter-chip justify-start ${this.filterCategory === c.id ? 'active' : ''}" data-category="${c.id}">
+                  ${c.icon} ${escapeHtml(c.title)} (${c.count})
+                </button>
+              `).join('')}
+            </div>
+          </div>
+          <div class="card" style="padding:var(--space-3);">
+            <h3 class="text-sm font-semibold mb-3" style="margin:0 0 12px;">Actions</h3>
+            <div class="flex flex-col gap-2">
+              <button class="btn btn-secondary btn-sm w-full" id="export-full-btn" type="button">Export full report</button>
+              <button class="btn btn-secondary btn-sm w-full" id="export-filtered-json-btn" type="button">Export filtered JSON</button>
+              <button class="btn btn-secondary btn-sm w-full" id="export-csv-btn" type="button">Export CSV</button>
+              ${filtersActive ? '<button type="button" class="btn btn-ghost btn-sm w-full" id="clear-results-filters">Clear filters</button>' : ''}
+            </div>
+          </div>
+        </aside>
+
+        <div class="results-main">
+          ${!report ? `
+            ${renderEmptyState({
+                icon: '📋',
+                title: 'No scan report loaded yet',
+                body: 'Run a Simplebeacon or Complete scan from Analyze, or use Dashboard → Run scan.',
+                iconWrapper: 'emoji'
+            })}
+          ` : issues.length === 0 ? `
+            ${renderEmptyState({
+                icon: totalIssues === 0 && ((_g = report.gate) === null || _g === void 0 ? void 0 : _g.pass) && !filtersActive ? '✅' : '🔍',
+                title: this.emptyStateMessage(report, totalIssues, filtersActive, activeCategory),
+                iconWrapper: 'emoji'
+            })}
+          ` : `
+            <div class="card" style="padding: 0; overflow: hidden;">
+              <table class="results-table">
+                <thead>
+                  <tr>
+                    <th>Severity</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                    <th>File</th>
+                    <th>Count</th>
+                  </tr>
+                </thead>
+                <tbody id="results-body"></tbody>
+              </table>
+            </div>
+            <div id="issue-detail"></div>
+          `}
+          ${this.renderSampleFiles()}
+        </div>
+      </div>
     `;
         this.bindFilters(el);
         this.bindExport(el, issues);
