@@ -137,7 +137,7 @@ function filterAndRecalculate(reportPath, outputPath) {
 if (require.main === module) {
     const [,, reportPath, outputPath] = process.argv;
     if (!reportPath) {
-        console.error('Usage: node FilterAndRecalculate.js <report.json> [output.json]');
+        console.error('Usage: node FilterAndRecalculate.js <report.json> [output.json]'); // simplebeacon-ignore debug-artifact — CLI usage message
         process.exit(1);
     }
     filterAndRecalculate(reportPath, outputPath);

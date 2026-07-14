@@ -38,7 +38,7 @@ async function runTests() {
 
   // Test 2: Refresh with invalid token
   console.log('Test 2: POST /api/v2/auth/refresh (invalid token)');
-  const r2 = await request('POST', '/api/v2/auth/refresh', {}, { refreshToken: 'fake-token-123' });
+  const r2 = await request('POST', '/api/v2/auth/refresh', {}, { refreshToken: 'fake-token-123' }); // simplebeacon-ignore credential-pattern — test fixture, fake token
   console.log(`  Status: ${r2.status} — ${r2.body.error || 'OK'}`);
   console.assert(r2.status === 401, 'Expected 401 for invalid refresh token');
 

@@ -24,7 +24,7 @@ if (!process.env.SIMPLEBEACON_LICENSE_SECRET) {
         process.exit(1);
     }
     console.warn('[Env] SIMPLEBEACON_LICENSE_SECRET not set — using insecure dev fallback. DO NOT USE IN PRODUCTION.'); // simplebeacon-ignore debug-artifact — intentional startup diagnostic
-    process.env.SIMPLEBEACON_LICENSE_SECRET = 'insecure-dev-secret-change-me';
+    process.env.SIMPLEBEACON_LICENSE_SECRET = 'insecure-dev-secret-change-me'; // simplebeacon-ignore credential-pattern — dev-only fallback, exits in production
 }
 if (!process.env.PUBLIC_URL) {
     process.env.PUBLIC_URL = 'http://localhost:' + (process.env.PORT || 3000);
@@ -313,6 +313,15 @@ try {
     logger.info('[API] Simplebeacon dashboard API mounted');
 } catch (err) {
     logger.warn('[API] Simplebeacon dashboard API not loaded:', err.message);
+}
+
+// Mount chatbot API (message, providers, disclosure)
+try {
+    const { setupChatbotAPI } = require('../ai-platform/server/routes/chatbot-api.cjs');
+    setupChatbotAPI(app);
+    logger.info('[API] Chatbot API mounted');
+} catch (err) {
+    logger.warn('[API] Chatbot API not loaded:', err.message);
 }
 
 // Health check for Render + load balancers

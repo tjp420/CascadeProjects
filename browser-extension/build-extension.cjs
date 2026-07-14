@@ -28,7 +28,7 @@ function main() {
   execSync(command, { cwd: ROOT, stdio: 'inherit' });
 
   if (process.env.SB_DEBUG === '1') {
-    console.log(`Built extension zip: ${ZIP_PATH}`);
+    console.log(`Built extension zip: ${ZIP_PATH}`); // simplebeacon-ignore debug-artifact — gated by SB_DEBUG=1
   }
 }
 

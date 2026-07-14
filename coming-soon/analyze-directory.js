@@ -163,7 +163,7 @@ const report = {
 };
 
 // ── Console Output ──────────────────────────────────────────────
-console.log(`✅ TOTAL FILES:      ${totalFiles.toLocaleString()}`);
+console.log(`✅ TOTAL FILES:      ${totalFiles.toLocaleString()}`); // simplebeacon-ignore debug-artifact — CLI output
 console.log(`📁 TOTAL FOLDERS:    ${totalFolders.toLocaleString()}`);
 console.log(`📦 TOTAL SIZE:       ${formatBytes(totalBytes)}`);
 console.log(`📝 TOTAL LINES:      ${totalLines.toLocaleString()}`);

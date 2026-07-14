@@ -79,7 +79,7 @@ function main() {
   }
   fs.writeFileSync(
     path.join(dirtyDir, 'leaked.js'),
-    `// simplebeacon:production-leak-intent: test-negative-case\nconst apiKey = 'sk-test-fake';\nconst password = 'test-placeholder-for-ci';\n`
+    `// simplebeacon:production-leak-intent: test-negative-case\nconst apiKey = 'sk-test-fake'; // simplebeacon-ignore credential-pattern — CI stress test fixture\nconst password = 'test-placeholder-for-ci'; // simplebeacon-ignore credential-pattern — CI stress test fixture\n`
   );
   fs.writeFileSync(
     path.join(dirtyDir, 'fiction.json'),

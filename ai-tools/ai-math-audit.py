@@ -523,7 +523,7 @@ def main() -> None:
     if not source:
         parser.error("Provide --log-file or --log-dir")
     if not Path(source).exists():
-        print(f"Error: path not found: {source}", file=sys.stderr)
+        print(f"Error: path not found: {source}", file=sys.stderr)  # simplebeacon-ignore debug-artifact — CLI error output
         sys.exit(1)
 
     report = run_audit(source, args)

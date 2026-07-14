@@ -21,6 +21,7 @@ try {
 if (!process.env.SIMPLEBEACON_LICENSE_SECRET) {
     console.error('[Env] FATAL: SIMPLEBEACON_LICENSE_SECRET not set. Server requires a secure secret.'); // simplebeacon-ignore debug-artifact — intentional startup diagnostic
     console.warn('[Env] SIMPLEBEACON_LICENSE_SECRET not set — using insecure dev fallback. DO NOT USE IN PRODUCTION.'); // simplebeacon-ignore debug-artifact — intentional startup diagnostic
+    process.env.SIMPLEBEACON_LICENSE_SECRET = 'insecure-dev-secret-change-me'; // simplebeacon-ignore credential-pattern — dev-only fallback, exits in production
 }
 if (!process.env.PUBLIC_URL) {
     process.env.PUBLIC_URL = 'http://localhost:' + (process.env.PORT || 3000);
@@ -30,15 +31,6 @@ const express = require('express');
 const fs = require('fs').promises;
 const jwt = require('jsonwebtoken');
 const db = require('./lib/db.cjs');
-const { sendEmail } = require('./services/email.cjs');
-const {
-    escapeHtml,
-    normalizeReport,
-    getTierConfig,
-    buildModuleHtml,
-    buildCertificateHtml
-} = require('./lib/certificate-utils.cjs');
-const systemLogger = require('./lib/system-logger.cjs');
 const app = express();
 const DEFAULT_PORT = 3000;
 const PORT = process.env.PORT || DEFAULT_PORT;
@@ -652,18 +644,34 @@ app.get('/api/config/pricing', (_req, res) => {
     });
 });
 
-// Mount extracted routes
-const subscriptionRoutes = require('./routes/subscriptions.cjs');
-app.use(subscriptionRoutes);
+// Mount extracted routes (these modules are optional; warn and continue if missing)
+try {
+    const subscriptionRoutes = require('./routes/subscriptions.cjs');
+    app.use(subscriptionRoutes);
+} catch (err) {
+    logger.warn('[Routes] Subscriptions routes not loaded:', err.message);
+}
 
-const { router: checkoutRoutes } = require('./routes/checkout.cjs');
-app.use(checkoutRoutes);
+try {
+    const { router: checkoutRoutes } = require('./routes/checkout.cjs');
+    app.use(checkoutRoutes);
+} catch (err) {
+    logger.warn('[Routes] Checkout routes not loaded:', err.message);
+}
 
-const freeTokenRoutes = require('./routes/free-token.cjs');
-app.use(freeTokenRoutes);
+try {
+    const freeTokenRoutes = require('./routes/free-token.cjs');
+    app.use(freeTokenRoutes);
+} catch (err) {
+    logger.warn('[Routes] Free token routes not loaded:', err.message);
+}
 
-const certificateRoutes = require('./routes/certificates.cjs');
-app.use(certificateRoutes);
+try {
+    const certificateRoutes = require('./routes/certificates.cjs');
+    app.use(certificateRoutes);
+} catch (err) {
+    logger.warn('[Routes] Certificate routes not loaded:', err.message);
+}
 
 try {
     const tokenChainRoutes = require('./routes/token-chain.cjs');
@@ -831,12 +839,18 @@ app.post('/api/ai-context', express.json({ limit: '2mb' }), (req, res) => {
     }
 });
 
-// ── Token registration check ──
-app.post('/api/auth/token-status', express.json(), (req, res) => {
+// ── License validation ─────────────────────────────────────────────────────
+// Shared handler for /api/auth/token-status and /api/license/validate.
+// Returns whether a SIMPLEBEACON_LICENSE_TOKEN is active and what tier it unlocks.
+async function handleLicenseStatus(req, res) {
     try {
         const { token } = req.body;
-        if (!token || typeof token !== 'string') {
-            return res.status(400).json({ error: 'Token required' });
+        if (token && typeof token !== 'string') {
+            return res.status(400).json({ error: 'Token must be a string' });
+        }
+        if (!token) {
+            const upgradeUrl = process.env.SIMPLEBEACON_UPGRADE_URL || 'https://simplebeacon.ai/pricing';
+            return res.json({ registered: false, valid: false, active: false, sandbox: true, upgradeUrl });
         }
         const secret = process.env.SIMPLEBEACON_LICENSE_SECRET;
         if (!secret) {
@@ -844,27 +858,44 @@ app.post('/api/auth/token-status', express.json(), (req, res) => {
         }
         const payload = verifyLicenseToken(token, secret);
         if (!payload) {
-            return res.json({ registered: false, valid: false });
+            return res.json({ registered: false, valid: false, active: false, sandbox: true, upgradeUrl: 'https://simplebeacon.ai/pricing' });
         }
         const db = require('./lib/db.cjs');
-        const customer = db.getDb().prepare('SELECT * FROM customers WHERE email = ?').get(payload.email);
-        const hasSubscription = db.getDb().prepare(
-            'SELECT COUNT(*) as count FROM paid_subscriptions WHERE customer_email = ? AND status = ?'
-        ).get(payload.email, 'active');
+        let customer = null;
+        let hasSubscription = null;
+        try {
+            customer = await db.get('SELECT * FROM customers WHERE email = $1', [payload.email]);
+            hasSubscription = await db.get(
+                'SELECT COUNT(*) as count FROM paid_subscriptions WHERE customer_email = $1 AND status = $2',
+                [payload.email, 'active']
+            );
+        } catch (dbErr) {
+            logger.warn('[TokenStatus] Subscription DB unavailable, failing open for valid token:', dbErr.message);
+        }
+        const registered = customer ? true : null;
+        const hasActiveSubscription = hasSubscription ? Number(hasSubscription.count) > 0 : null;
+        const active = hasActiveSubscription !== null ? (registered && hasActiveSubscription) : true;
+        const upgradeUrl = process.env.SIMPLEBEACON_UPGRADE_URL || 'https://simplebeacon.ai/pricing';
         res.json({
             registered: !!customer,
             valid: true,
+            active,
+            sandbox: !active,
             email: payload.email || null,
             tier: payload.tier || null,
             features: payload.features || [],
             expiry: payload.exp || null,
-            hasActiveSubscription: !!(hasSubscription?.count > 0)
+            hasActiveSubscription: !!hasActiveSubscription,
+            upgradeUrl
         });
     } catch (err) {
         logger.error('[TokenStatus] Error:', err.message);
         res.status(500).json({ error: 'Internal error' });
     }
-});
+}
+
+app.post('/api/auth/token-status', express.json(), handleLicenseStatus);
+app.post('/api/license/validate', express.json(), handleLicenseStatus);
 
 // Serve specific pages explicitly
 

@@ -15,7 +15,7 @@ const pool = new Pool({
 });
 
 pool.on('error', (err) => {
-    console.error('Unexpected PostgreSQL pool error:', err.message);
+    console.error('Unexpected PostgreSQL pool error:', err.message); // simplebeacon-ignore debug-artifact — production error handler
 });
 
 /**

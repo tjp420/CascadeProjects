@@ -40,7 +40,7 @@ async function run() {
     let ran = 0;
     for (const file of files) {
         if (applied.has(file)) {
-            console.log(`  SKIP ${file}`);
+            console.log(`  SKIP ${file}`); // simplebeacon-ignore debug-artifact — migration CLI output
             continue;
         }
         const sql = fs.readFileSync(path.join(MIGRATIONS_DIR, file), 'utf8');
