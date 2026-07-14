@@ -26,6 +26,18 @@ const PUBLIC_API_PATHS = new Set([
     'waitlist/event',
     'audit-booking',
     'audit-bookings',
+    'free-token',
+    'tokens/sandbox',
+    'simplebeacon/billing/resend-token',
+    'simplebeacon/billing/status',
+    'simplebeacon/billing/session',
+    'simplebeacon/billing/license',
+    'simplebeacon/billing/portal',
+    'simplebeacon/ci/telemetry',
+    'simplebeacon/ci/telemetry/summary',
+    'quota/check',
+    'quota/consume',
+    'reports/upload',
     'trust/verification',
     'trust/verify',
     'trust/history',
@@ -38,9 +50,7 @@ const PUBLIC_API_PATHS = new Set([
     'optimization/candidates',
     'analyze/upload-directory',
     'reports/download',
-    'chatbot/providers',
     'chatbot/disclosure',
-    'chatbot/message',
     // Legacy dashboard.html scanner wiring (read-only repository scans)
     'project-structure',
     'backlog',
@@ -104,7 +114,7 @@ function isPublicSimplebeaconDemoRoute(relativePath) {
  * @returns {any}
  */
 function resolveApiRelativePath(req) {
-    const mounted = String(req.path || '').replace(/^\/+/, '');
+    const mounted = String(req.path || '').replace(/^\/+/, '').replace(/^api\/?/i, '');
     if (mounted) return mounted;
     const raw = String(req.originalUrl || req.url || '').split('?')[0];
     return raw.replace(/^\/api\/?/i, '').replace(/^\/+/, '');
