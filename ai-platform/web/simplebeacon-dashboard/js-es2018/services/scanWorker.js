@@ -113,6 +113,14 @@ function isCommonFalsePositive(str) {
   const lower = str.toLowerCase();
   if (lower.includes('content') || lower.includes('loading') || lower.includes('element')) return true;
   if (/^(0000|1111|aaaa|bbbb|1234|abcd|test|example)/i.test(str)) return true;
+  // npm integrity hashes: sha512-XXXX, sha256-XXXX
+  if (/^sha(?:512|256|384|1)-[a-z0-9]/i.test(str)) return true;
+  // Hex-only strings (device IDs, hash digests) — no mixed-case alpha
+  if (/^[0-9a-f]{32,64}$/i.test(str) && !/[g-z]/i.test(str)) return true;
+  // Base64 padding-heavy strings (JSON content blocks)
+  if (str.endsWith('==') || str.endsWith('P==') || str.endsWith('A==')) return true;
+  // Repeated character patterns (device ID fragments)
+  if (/^(.)\1{8,}/.test(str)) return true;
   return false;
 }
 
@@ -141,14 +149,27 @@ self.onmessage = function (e) {
 
   // Entropy-based secret detection for high-randomness strings that rigid
   // regexes typically miss.
+  // Skip entropy scanning for file types that are predominantly high-entropy data
+  // (lock files, prior scan reports, Windows device ID text files).
+  const lowerPath = (virtualPath || '').toLowerCase();
+  const skipEntropyForFile =
+    lowerPath.endsWith('package-lock.json') ||
+    lowerPath.endsWith('yarn.lock') ||
+    lowerPath.endsWith('pnpm-lock.yaml') ||
+    lowerPath.endsWith('pcmdevs.txt') ||
+    lowerPath.endsWith('pnpdevs.txt') ||
+    /(?:^|\/)(?:complete-scan|consolidation|report|data-quality|codebase-health|roadmap-analysis|scan-bundle)[^/]*\.json$/i.test(lowerPath);
   const ENTROPY_CHUNK_REGEX = /[A-Za-z0-9+/=_\-]{32,64}/g;
   ENTROPY_CHUNK_REGEX.lastIndex = 0;
   const entropyFindings = [];
+  const MAX_ENTROPY_PER_FILE = 5;
   let entropyMatch;
+  if (!skipEntropyForFile) {
   while ((entropyMatch = ENTROPY_CHUNK_REGEX.exec(content)) !== null) {
+    if (entropyFindings.length >= MAX_ENTROPY_PER_FILE) break;
     const candidateString = entropyMatch[0];
     const entropyScore = calculateShannonEntropy(candidateString);
-    if (entropyScore > 4.3 && !isCommonFalsePositive(candidateString)) {
+    if (entropyScore > 4.5 && !isCommonFalsePositive(candidateString)) {
       entropyFindings.push({
         severity: 'HIGH',
         filePath: virtualPath,
@@ -160,6 +181,7 @@ self.onmessage = function (e) {
         meta: { entropy: entropyScore.toFixed(2) }
       });
     }
+  }
   }
   if (entropyFindings.length > 0) {
     fileIssues.push(`High-Entropy Secrets (${entropyFindings.length}x)`);
