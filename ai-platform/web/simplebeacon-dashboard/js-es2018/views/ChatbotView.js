@@ -1,4 +1,5 @@
 import { escapeHtml, sanitizePrivacyData } from '../utils.js';
+import { authService, apiBase } from '../services/authService.js?v=20260713sync6';
 /**
  * Chatbot view.
  */
@@ -122,16 +123,30 @@ export class ChatbotView {
         const input = document.getElementById('chatbot-input');
         const sendBtn = document.getElementById('chatbot-send');
         try {
-            const res = await fetch('/api/chatbot/providers', { method: 'GET', signal: AbortSignal.timeout(3000) });
+            const res = await fetch(apiBase() + '/api/chatbot/providers', { method: 'GET', signal: AbortSignal.timeout(3000), headers: authService.getAuthHeaders() });
             if (res.ok) {
+                const data = await res.json().catch(() => ({}));
+                const available = Array.isArray(data.providers) ? data.providers.filter(p => p.available) : [];
+                if (available.length > 0) {
+                    if (dot)
+                        dot.className = 'chatbot-connection-dot chatbot-connection-online';
+                    if (text)
+                        text.textContent = `Ready — ${available.map(p => p.label).join(', ')}`;
+                    if (input)
+                        input.disabled = false;
+                    if (sendBtn)
+                        sendBtn.disabled = false;
+                    return;
+                }
                 if (dot)
-                    dot.className = 'chatbot-connection-dot chatbot-connection-online';
+                    dot.className = 'chatbot-connection-dot chatbot-connection-offline';
                 if (text)
-                    text.textContent = 'Server connected';
+                    text.textContent = 'No AI provider configured';
                 if (input)
-                    input.disabled = false;
+                    input.disabled = true;
                 if (sendBtn)
-                    sendBtn.disabled = false;
+                    sendBtn.disabled = true;
+                this.showErrorBanner('No AI provider is configured on this server. Add OpenAI or Anthropic keys in Settings → AI providers, or ask your admin to set OPENAI_API_KEY / ANTHROPIC_API_KEY on the server.');
                 return;
             }
         }
@@ -141,7 +156,7 @@ export class ChatbotView {
         if (dot)
             dot.className = 'chatbot-connection-dot chatbot-connection-offline';
         if (text)
-            text.textContent = 'Server offline — run npm start in ai-platform';
+            text.textContent = 'Chatbot API unavailable';
         if (input)
             input.disabled = true;
         if (sendBtn)
@@ -206,9 +221,9 @@ export class ChatbotView {
                 const prompt = promptTextarea.value.trim();
                 const userId = ((_c = (_b = (_a = this.app) === null || _a === void 0 ? void 0 : _a.state) === null || _b === void 0 ? void 0 : _b.user) === null || _c === void 0 ? void 0 : _c.email) || localStorage.getItem('simplebeacon_user_id') || 'anonymous';
                 try {
-                    await fetch('/api/prompts/set', {
+                    await fetch(apiBase() + '/api/prompts/set', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { ...authService.getAuthHeaders(), 'Content-Type': 'application/json' },
                         body: JSON.stringify({ userId, prompt })
                     });
                     this.showPromptToast('Custom prompt saved');
@@ -285,7 +300,7 @@ export class ChatbotView {
             return;
         const userId = ((_c = (_b = (_a = this.app) === null || _a === void 0 ? void 0 : _a.state) === null || _b === void 0 ? void 0 : _b.user) === null || _c === void 0 ? void 0 : _c.email) || localStorage.getItem('simplebeacon_user_id') || 'anonymous';
         try {
-            const res = await fetch('/api/prompts/get?userId=' + encodeURIComponent(userId));
+            const res = await fetch(apiBase() + '/api/prompts/get?userId=' + encodeURIComponent(userId), { headers: authService.getAuthHeaders() });
             if (res.ok) {
                 const data = await res.json();
                 if (data.prompt)
@@ -309,7 +324,7 @@ export class ChatbotView {
             { id: 'anthropic', label: 'Anthropic' }
         ];
         try {
-            const res = await fetch('/api/chatbot/providers', { signal: AbortSignal.timeout(3000) });
+            const res = await fetch(apiBase() + '/api/chatbot/providers', { signal: AbortSignal.timeout(3000), headers: authService.getAuthHeaders() });
             if (!res.ok)
                 throw new Error('Providers endpoint unreachable');
             const data = await res.json();
@@ -330,6 +345,7 @@ export class ChatbotView {
                 this.selectedProvider = firstAvailable.id;
             }
             else {
+                this.selectedProvider = '';
                 this.showErrorBanner('No AI provider is configured. Add an OpenAI/Anthropic API key in Settings → AI providers, or set OLLAMA_BASE_URL to a reachable Ollama host.', false);
             }
         }
@@ -351,6 +367,10 @@ export class ChatbotView {
         const rawMessage = input.value.trim();
         if (!rawMessage || this.isLoading)
             return;
+        if (!this.selectedProvider) {
+            this.showErrorBanner('No AI provider is configured. Go to Settings → AI providers and add OpenAI or Anthropic keys.');
+            return;
+        }
         // Sanitize message to remove PII before processing
         const message = sanitizePrivacyData(rawMessage);
         // Add user message to history
@@ -364,9 +384,9 @@ export class ChatbotView {
         // Show typing indicator
         this.showTypingIndicator();
         try {
-            const res = await fetch('/api/chatbot/message', {
+            const res = await fetch(apiBase() + '/api/chatbot/message', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { ...authService.getAuthHeaders(), 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     message,
                     conversationHistory: this.conversationHistory.slice(0, -1),
@@ -383,7 +403,9 @@ export class ChatbotView {
                 if (res.status === 404) {
                     throw new Error('Chatbot API not found. Ensure the ai-platform server is running on port 54355.');
                 }
-                throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+                const errData = await res.json().catch(() => ({}));
+                const errMessage = errData.message || errData.error || `HTTP ${res.status}: ${res.statusText}`;
+                throw new Error(errMessage);
             }
             // Create placeholder for assistant response
             const assistantMessageIndex = this.conversationHistory.length;

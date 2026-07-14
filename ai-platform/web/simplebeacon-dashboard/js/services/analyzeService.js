@@ -1,7 +1,8 @@
-import { authService } from './authService.js';
+import { authService } from './authService.js?v=20260713sync6';
 import { fetchUserAiKeys } from './aiKeysService.js';
 import { scanService } from './scanService.js';
 import { formatNumber, escapeHtml, fetchWithTimeout } from '../utils.js';
+import { notifyDownloadComplete } from '../utils-lib/notify.js';
 import { isRemoteRepoUrl } from '../lib/analyzePathSources.js';
 import { isBenchmarkCachePath } from '../utils/complete-scan-artifact-profile.browser.js';
 import { DEMO_EMAIL } from '../demoMode.js';
@@ -885,6 +886,7 @@ export function downloadAuditReportHtml(html, filename = 'simplebeacon-audit.htm
     link.remove();
     setTimeout(() => URL.revokeObjectURL(url), 60_000);
   }
+  notifyDownloadComplete(safeName);
   return safeName;
 }
 

@@ -110,6 +110,7 @@ universal.tokenkey
 
 # Loose scan report artifacts
 simplebeacon-report.json
+ai-agent-report-for-dashboard.json
 !ai-platform/web/data/simplebeacon-report.json
 
 # Development script residue accumulation
@@ -183,6 +184,18 @@ __tmp_*.js
 # Root generated reports
 ts-prune-report*.txt
 ai-platform-test-output.txt
+gate-status*.txt
+gate-help.txt
+gate-commit-check.json
+scan-output*.txt
+tier-tokens.txt
+tier-accounts.txt
+scan-help.txt
+backup-preview.txt
+report-preview.txt
+git-status.txt
+orig-dirs.txt
+dashboard-preview.html
 
 # ai-platform generated output
 ai-platform/test-output.txt

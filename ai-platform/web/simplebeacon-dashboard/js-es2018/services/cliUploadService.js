@@ -1,4 +1,4 @@
-import { authService } from './authService.js';
+import { authService } from './authService.js?v=20260713sync6';
 
 const DEFAULT_API_URL = 'https://simplebeacon.ai';
 function apiPrefix() {

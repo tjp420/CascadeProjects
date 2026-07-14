@@ -1,8 +1,8 @@
 import { escapeHtml, formatPercent, formatNumber, showToast } from '../utils.js';
 import { resolveDisplayScore, formatScanScopeSummary, formatScanInventoryNote, getScanFileMetrics } from '../services/analyzeService.js?v=20260710inventory1';
 import { runLocalScan } from '../services/localScanService.js';
-import { isLocalPath, probeAgent, scanViaAgent, probeAgent4000, scanViaAgent4000, renderAgentCertificate } from '../services/localAgentService.js?v=20260710agentcache3';
-import { runSandboxedDirectoryScan, isDroppedFolder, scanDroppedItems } from '../services/browserSandboxScanService.js?v=20260713dropfix4';
+import { isLocalPath, probeAgent, scanViaAgent, probeAgent4000, scanViaAgent4000, renderAgentCertificate, hasExtensionBridgeConfigured } from '../services/localAgentService.js?v=20260710agentcache3';
+import { runSandboxedDirectoryScan, isDroppedFolder, scanDroppedItems, captureDroppedEntry } from '../services/browserSandboxScanService.js?v=20260713dropfix7';
 /**
  * Resolve initial scan root.
  * @param {number} report
@@ -50,11 +50,11 @@ export async function runDashboardScanFromInput(input, options = {}) {
         onRescan(undefined);
         return;
     }
-    // Lightweight localhost:4000 bridge from the provided agent.js template.
+    // Lightweight localhost bridge: extension data server (sb_api_base) or agent.js:4000.
     if (isLocalPath(path)) {
         try {
             const status = await probeAgent4000();
-            if (status.available) {
+            if (status.available && !status.extensionBridge) {
                 const result = await scanViaAgent4000(path);
                 const cert = result && result.certificate;
                 const fileCount = (result.files || []).length;
@@ -244,44 +244,47 @@ function renderScanPathControls(report, options = {}) {
       <div class="sb-dropzone is-idle" id="scan-dropzone" role="region" aria-label="Dashboard scan drop zone">
         <input type="file" id="scan-browse-input" webkitdirectory directory hidden aria-label="Select folder to scan">
         <div class="sb-dropzone-idle">
-          <div class="sb-dropzone-icon"><i data-lucide="folder-up" class="icon-32"></i></div>
-          <div class="sb-dropzone-title">Drop a folder or files to scan</div>
-          <div class="sb-dropzone-sub">Drop a folder for a full scan, or files for a quick scan. Private — runs in your browser.</div>
-          <div class="sb-dropzone-actions">
-            <button type="button" id="trigger-native-picker" class="btn btn-primary"><i data-lucide="folder-open" class="icon-16"></i> Select Folder</button>
-            <button type="button" id="trigger-file-picker" class="btn btn-ghost">Select Files</button>
+          <div class="sb-dropzone-pitch">
+            <div class="sb-dropzone-icon"><i data-lucide="folder-up" class="icon-32"></i></div>
+            <div class="sb-dropzone-title">Drop a folder or files to scan</div>
+            <div class="sb-dropzone-sub">Drop a folder for a full scan, or files for a quick scan.</div>
+            <div class="sb-dropzone-privacy"><span aria-hidden="true">🔒</span> Scans run privately in your browser.</div>
           </div>
-          <p class="sb-dropzone-privacy">🔒 Scans run privately in your browser.</p>
-          <div class="sb-dropzone-path">
-            <p class="sb-dropzone-path-label">Or type a server path / public repo URL</p>
-            <div class="scan-status-path-row">
-              <div class="scan-status-path-input-wrap">
-                <i data-lucide="folder" class="icon-16 scan-status-path-icon"></i>
-                <input
-                  type="text"
-                  id="scan-root-input"
-                  class="scan-status-path-input"
-                  placeholder="e.g. C:\\\\dev\\\\my-app"
-                  spellcheck="false"
-                  autocomplete="off"
-                  aria-label="Folder path on the dashboard server"
-                  value="${escapeHtml(resolvedPath)}"
-                  ${scanning ? 'disabled' : ''}
-                >
+          <div class="sb-dropzone-form">
+            <div class="sb-dropzone-actions">
+              <button type="button" id="trigger-native-picker" class="btn btn-primary"><i data-lucide="folder-open" class="icon-16"></i> Select Folder</button>
+              <button type="button" id="trigger-file-picker" class="btn btn-ghost"><i data-lucide="upload" class="icon-16"></i> Select Files</button>
+            </div>
+            <div class="sb-dropzone-path">
+              <p class="sb-dropzone-path-label">Or type a server path / public repo URL</p>
+              <div class="scan-status-path-row">
+                <div class="scan-status-path-input-wrap">
+                  <i data-lucide="folder" class="icon-16 scan-status-path-icon"></i>
+                  <input
+                    type="text"
+                    id="scan-root-input"
+                    class="scan-status-path-input"
+                    placeholder="e.g. C:\\dev\\my-app"
+                    spellcheck="false"
+                    autocomplete="off"
+                    aria-label="Folder path on the dashboard server"
+                    value="${escapeHtml(resolvedPath)}"
+                    ${scanning ? 'disabled' : ''}
+                  >
+                </div>
+                <button type="button" class="btn btn-ghost btn-sm" id="scan-browse-btn" ${scanning ? 'disabled' : ''} title="Browse for folder" aria-label="Browse for folder to scan" aria-controls="scan-browse-input">
+                  <i data-lucide="folder-open" class="icon-16"></i> Browse
+                </button>
+                <button type="button" class="btn btn-ghost btn-sm" id="scan-set-default-btn" ${!hasDefault || scanning ? 'disabled' : ''} title="Reset to default path">
+                  <i data-lucide="rotate-ccw" class="icon-16"></i> Reset
+                </button>
+                <button type="button" class="btn btn-ghost btn-sm" id="scan-clear-btn" ${!hasSaved || scanning ? 'disabled' : ''} title="Clear saved folder">
+                  <i data-lucide="x" class="icon-16"></i> Clear
+                </button>
+                <button type="button" class="btn btn-secondary" id="rescan-btn" ${scanning ? 'disabled' : ''} title="Run gate scan on this folder">
+                  ${scanning ? '<span class="loading-spinner"></span> Scanning…' : '<i data-lucide="play" class="icon-16"></i> Scan'}
+                </button>
               </div>
-              <input type="file" id="scan-browse-input" webkitdirectory directory hidden aria-label="Select folder to scan">
-              <button type="button" class="btn btn-ghost btn-sm" id="scan-browse-btn" ${scanning ? 'disabled' : ''} title="Browse for folder" aria-label="Browse for folder to scan" aria-controls="scan-browse-input">
-                <i data-lucide="folder-open" class="icon-16"></i> Browse
-              </button>
-              <button type="button" class="btn btn-ghost btn-sm" id="scan-set-default-btn" ${!hasDefault || scanning ? 'disabled' : ''} title="Reset to default path">
-                <i data-lucide="rotate-ccw" class="icon-16"></i> Reset
-              </button>
-              <button type="button" class="btn btn-ghost btn-sm" id="scan-clear-btn" ${!hasSaved || scanning ? 'disabled' : ''} title="Clear saved folder">
-                <i data-lucide="x" class="icon-16"></i> Clear
-              </button>
-              <button type="button" class="btn btn-secondary" id="rescan-btn" ${scanning ? 'disabled' : ''} title="Run gate scan on this folder">
-                ${scanning ? '<span class="loading-spinner"></span> Scanning…' : '<i data-lucide="play" class="icon-16"></i> Scan'}
-              </button>
             </div>
           </div>
         </div>
@@ -933,19 +936,37 @@ export function bindScanStatus(container, options = {}) {
             // DataTransferItemList once the event handler yields.
             const itemArray = items ? Array.from(items) : [];
             const fileArray = dtFiles ? Array.from(dtFiles) : [];
-            if (itemArray.length === 0 && fileArray.length === 0) {
+            const webkitEntry = captureDroppedEntry(itemArray);
+            const folderHint = (webkitEntry && webkitEntry.name) || (fileArray[0] && fileArray[0].name) || 'selected';
+            const snapshotPath = extractAbsoluteDroppedFolderPath(event, folderHint);
+            if (itemArray.length === 0 && fileArray.length === 0 && !snapshotPath) {
                 setDropzoneState('idle');
+                return;
+            }
+            if (snapshotPath) {
+                setDropzoneState('scanning');
+                if (terminal)
+                    terminal.textContent = `Using dropped path: ${snapshotPath}`;
+                if (input) {
+                    input.value = snapshotPath;
+                    input.dataset.userModified = 'true';
+                    setLastProjectPath(snapshotPath);
+                    if (clearBtn)
+                        clearBtn.disabled = false;
+                }
+                runScan();
                 return;
             }
             setDropzoneState('scanning');
             if (terminal)
                 terminal.textContent = 'Reading dropped items…';
             try {
-                const droppedFolder = await isDroppedFolder(itemArray);
+                const droppedFolder = (webkitEntry && webkitEntry.isDirectory) || await isDroppedFolder(itemArray);
                 const firstFile = itemArray[0] && typeof itemArray[0].getAsFile === 'function' ? itemArray[0].getAsFile() : null;
-                const folderName = (firstFile && firstFile.name) || 'selected';
+                const folderName = (firstFile && firstFile.name) || (webkitEntry && webkitEntry.name) || 'selected';
                 if (droppedFolder) {
                     const report = await scanDroppedItems(itemArray, {
+                        webkitEntry,
                         onLog: (entry) => {
                             if (terminal)
                                 terminal.textContent += `\n[${entry.level.toUpperCase()}] ${entry.message}`;
@@ -984,9 +1005,9 @@ export function bindScanStatus(container, options = {}) {
                 const msg = (err && err.message) || '';
                 // IDE/webview drag sources often expose the absolute path via text/uri-list
                 // or file.path even though DataTransfer items are not readable for the sandbox.
-                if (msg.includes('No items were dropped') || msg.includes('No scannable files or folders detected')) {
-                    const folderName = (fileArray[0] && fileArray[0].name) || 'selected';
-                    const fallbackPath = extractAbsoluteDroppedFolderPath(event, folderName);
+                if (msg.includes('No items were dropped') || msg.includes('No scannable files or folders detected') || msg.includes('No scannable files were dropped')) {
+                    const folderName = (fileArray[0] && fileArray[0].name) || (webkitEntry && webkitEntry.name) || 'selected';
+                    const fallbackPath = snapshotPath || extractAbsoluteDroppedFolderPath(event, folderName);
                     if (fallbackPath) {
                         if (input) {
                             input.value = fallbackPath;
@@ -1056,25 +1077,31 @@ export function bindScanStatus(container, options = {}) {
             filePicker.addEventListener('click', () => quickInput.click());
         }
     }
-    // Poll the lightweight localhost:4000 agent used by the provided agent.js template.
+    // Poll the localhost scan bridge (extension data server or agent.js:4000).
     const status4000 = container.querySelector('#agent-4000-status');
     if (status4000) {
         const update4000 = async () => {
             try {
                 const s = await probeAgent4000();
                 if (s.available) {
-                    status4000.textContent = 'Localhost:4000 agent connected — typed local paths will be scanned locally'; // simplebeacon-ignore deploy-leak — user-facing status label
+                    status4000.textContent = s.extensionBridge
+                        ? 'IDE scan bridge connected — typed local paths scan via extension'
+                        : 'Localhost:4000 agent connected — typed local paths will be scanned locally'; // simplebeacon-ignore deploy-leak — user-facing status label
                     status4000.classList.remove('unavailable');
                     status4000.classList.add('available');
                 }
                 else {
-                    status4000.textContent = 'Localhost:4000 agent offline (run node agent.js to enable local path scans)'; // simplebeacon-ignore deploy-leak — user-facing status label
+                    status4000.textContent = hasExtensionBridgeConfigured()
+                        ? 'IDE scan bridge offline — reload the SimpleBeacon window'
+                        : 'Localhost:4000 agent offline (run node agent.js to enable local path scans)'; // simplebeacon-ignore deploy-leak — user-facing status label
                     status4000.classList.remove('available');
                     status4000.classList.add('unavailable');
                 }
             }
             catch (_a) {
-                status4000.textContent = 'Localhost:4000 agent offline (run node agent.js to enable local path scans)'; // simplebeacon-ignore deploy-leak — user-facing status label
+                status4000.textContent = hasExtensionBridgeConfigured()
+                    ? 'IDE scan bridge offline — reload the SimpleBeacon window'
+                    : 'Localhost:4000 agent offline (run node agent.js to enable local path scans)'; // simplebeacon-ignore deploy-leak — user-facing status label
                 status4000.classList.remove('available');
                 status4000.classList.add('unavailable');
             }

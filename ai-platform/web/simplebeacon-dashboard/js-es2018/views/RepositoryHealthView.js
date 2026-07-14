@@ -1,5 +1,5 @@
 import { escapeHtml, formatNumber, redactPathForDisplay, showToast } from '../utils.js';
-import { authService } from '../services/authService.js';
+import { authService } from '../services/authService.js?v=20260713sync6';
 /**
  * Auth headers.
  * @param {any} extra

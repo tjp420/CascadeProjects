@@ -1,4 +1,5 @@
 import { escapeHtml } from './string.js';
+import { notifyDownloadComplete } from './notify.js';
 let _toastId = 0;
 function _renderToast(container, message, type, duration) {
     const id = `toast-${++_toastId}`;
@@ -55,6 +56,7 @@ export function downloadFile(content, filename, mimeType = 'text/plain') {
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
+    notifyDownloadComplete(String(filename || 'download'));
 }
 /**
  * Download json.
@@ -142,6 +144,7 @@ function normalDownload(blob, filename) {
         // revoke on next tick — download starts synchronously from click()
         setTimeout(() => URL.revokeObjectURL(url), 0);
     }
+    notifyDownloadComplete(filename || 'download');
 }
 /**
  * Download text.

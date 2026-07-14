@@ -2,8 +2,71 @@
  * Get the dashboard API base URL from a meta tag or fall back to relative root.
  * @returns {string}
  */
+const SB_API_BASE_KEY = 'sb_api_base';
+const SB_NOTIFY_BASE_KEY = 'sb_notify_base';
+
+function _normalizeApiBase(value) {
+  if (!value) return '';
+  return String(value).replace(/\/api\/?$/, '');
+}
+
+function _readStoredApiBase() {
+  if (typeof sessionStorage !== 'undefined') {
+    try {
+      return sessionStorage.getItem(SB_API_BASE_KEY);
+    }
+    catch (_a) { /* ignore */ }
+  }
+  return null;
+}
+
+function _storeApiBase(value) {
+  if (typeof sessionStorage !== 'undefined' && value) {
+    try {
+      sessionStorage.setItem(SB_API_BASE_KEY, value);
+    }
+    catch (_a) { /* ignore */ }
+  }
+}
+
+function _storeNotifyBase(value) {
+  if (typeof sessionStorage !== 'undefined' && value) {
+    try {
+      sessionStorage.setItem(SB_NOTIFY_BASE_KEY, value);
+    }
+    catch (_a) { /* ignore */ }
+  }
+}
+
+function _readEmbedApiBaseFromQuery() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const override = params.get(SB_API_BASE_KEY) || params.get(SB_NOTIFY_BASE_KEY);
+    if (override) {
+      const normalized = _normalizeApiBase(override);
+      _storeApiBase(normalized);
+      if (params.get(SB_NOTIFY_BASE_KEY)) {
+        _storeNotifyBase(_normalizeApiBase(params.get(SB_NOTIFY_BASE_KEY)));
+      }
+      return normalized;
+    }
+  }
+  catch (_a) {
+    return null;
+  }
+  return null;
+}
+
 export function apiBaseUrl() {
   if (typeof document !== 'undefined') {
+    const fromQuery = _readEmbedApiBaseFromQuery();
+    if (fromQuery) {
+      _storeApiBase(fromQuery);
+      return fromQuery;
+    }
+    const stored = _readStoredApiBase();
+    if (stored) return stored;
     const meta = document.querySelector('meta[name="api-base-url"]');
     if (meta) return meta.getAttribute('content') || '';
   }

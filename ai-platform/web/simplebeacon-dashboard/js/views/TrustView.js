@@ -1,4 +1,4 @@
-import { escapeHtml, formatNumber, redactPathForDisplay, showToast } from '../utils.js';
+import { escapeHtml, formatNumber, redactPathForDisplay, showToast, downloadJson } from '../utils.js';
 import { renderRepositoryHealthSection } from './RepositoryHealthView.js';
 
 /**
@@ -338,15 +338,7 @@ export class TrustView {
       exportedAt: new Date().toISOString(),
       ...this.data
     };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `trust-verification-${new Date().toISOString().slice(0, 10)}.json`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+    downloadJson(payload, `trust-verification-${new Date().toISOString().slice(0, 10)}.json`);
   }
 
   async mount(container) {

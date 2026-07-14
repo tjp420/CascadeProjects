@@ -1,5 +1,6 @@
 import { escapeHtml, showToast, formatPercent, formatNumber, renderEmptyState } from '../utils.js';
-import { getScanFileMetrics, resolveDisplayScore } from '../services/analyzeService.js?v=20260710inventory1';
+import { getScanFileMetrics, resolveDisplayScore, hydrateClientScanReport, isClientScanReport } from '../services/analyzeService.js?v=20260714results1';
+import { openInIde, renderIdeFileLink, resolveProjectRootFromApp } from '../utils-lib/ideDeepLink.js';
 const SEVERITIES = ['all', 'high', 'medium', 'low'];
 /**
  * Results view.
@@ -55,21 +56,28 @@ export class ResultsView {
         return issues;
     }
     renderScanSummary(report) {
-        var _a, _b, _c, _d, _e;
+        var _a, _b, _c, _d, _e, _f;
         if (!report)
             return '';
         const metrics = getScanFileMetrics(report);
-        const gateLabel = ((_a = report.gate) === null || _a === void 0 ? void 0 : _a.pass) ? 'PASS' : report.gate ? 'REVIEW' : '—';
-        const gateClass = ((_b = report.gate) === null || _b === void 0 ? void 0 : _b.pass) ? 'pass' : 'warn';
+        const blockingCount = (_b = (_a = report.gate) === null || _a === void 0 ? void 0 : _a.blockingCount) !== null && _b !== void 0 ? _b : 0;
+        const gatePass = ((_c = report.gate) === null || _c === void 0 ? void 0 : _c.pass) === true && blockingCount === 0;
+        const gateLabel = gatePass ? 'PASS' : (blockingCount > 0 ? 'FAIL' : 'REVIEW');
+        const gateClass = gatePass ? 'pass' : (blockingCount > 0 ? 'fail' : 'warn');
+        const clientScan = isClientScanReport(report);
         return `
+      ${clientScan ? `<div class="card mb-4 results-post-scan-banner" style="padding:var(--space-3);border-color:rgba(99,102,241,0.35);">
+        <strong>Local browser scan</strong> — ${formatNumber((_d = report.issueCount) !== null && _d !== void 0 ? _d : 0)} finding(s) from your selected folder.
+        ${gatePass ? 'No high-severity gate blockers under <code>failOn: high</code>.' : `${formatNumber(blockingCount)} blocking issue(s) — review before merge.`}
+      </div>` : ''}
       <div class="metrics-row mb-4">
         <div class="metric-chip gate-badge ${gateClass}">${gateLabel}</div>
         <div class="metric-chip"><strong>${formatPercent(resolveDisplayScore(report))}</strong> consistency</div>
-        <div class="metric-chip"><strong>${formatNumber((_c = metrics.mockSampleFiles) !== null && _c !== void 0 ? _c : report.totalFiles)}</strong> mock/sample</div>
+        <div class="metric-chip"><strong>${formatNumber((_e = metrics.mockSampleFiles) !== null && _e !== void 0 ? _e : report.totalFiles)}</strong> mock/sample</div>
         ${metrics.repositoryFiles != null ? `<div class="metric-chip"><strong>${formatNumber(metrics.repositoryFiles)}</strong> repo files</div>` : ''}
-        <div class="metric-chip"><strong>${formatNumber((_d = metrics.ruleScopedFilesAnalyzed) !== null && _d !== void 0 ? _d : metrics.credentialScanned)}</strong> gate rules checked</div>
+        <div class="metric-chip"><strong>${formatNumber((_f = metrics.ruleScopedFilesAnalyzed) !== null && _f !== void 0 ? _f : metrics.credentialScanned)}</strong> gate rules checked</div>
         <div class="metric-chip"><strong>${formatPercent(report.schemaCompliance)}</strong> schema</div>
-        <div class="metric-chip"><strong>${(_e = report.issueCount) !== null && _e !== void 0 ? _e : 0}</strong> issue groups</div>
+        <div class="metric-chip"><strong>${report.issueCount != null ? report.issueCount : 0}</strong> issue groups</div>
       </div>
     `;
     }
@@ -157,13 +165,16 @@ export class ResultsView {
                 iconWrapper: 'emoji'
             })}
           ` : issues.length === 0 ? `
+            <div class="results-empty-wrap">
             ${renderEmptyState({
                 icon: totalIssues === 0 && ((_g = report.gate) === null || _g === void 0 ? void 0 : _g.pass) && !filtersActive ? '✅' : '🔍',
                 title: this.emptyStateMessage(report, totalIssues, filtersActive, activeCategory),
                 iconWrapper: 'emoji'
             })}
+            </div>
           ` : `
-            <div class="card" style="padding: 0; overflow: hidden;">
+            <div class="card results-table-card" style="padding: 0; overflow: hidden;">
+              <div class="results-table-scroll">
               <table class="results-table">
                 <thead>
                   <tr>
@@ -176,6 +187,7 @@ export class ResultsView {
                 </thead>
                 <tbody id="results-body"></tbody>
               </table>
+              </div>
             </div>
             <div id="issue-detail"></div>
           `}
@@ -192,34 +204,68 @@ export class ResultsView {
             this.app.router.navigate('results');
         });
         const tbody = el.querySelector('#results-body');
+        const projectRoot = resolveProjectRootFromApp(this.app);
+        const DISPLAY_CAP = 500;
+        const displayIssues = issues.slice(0, DISPLAY_CAP);
         if (tbody) {
-            issues.forEach((issue) => {
+            if (issues.length > DISPLAY_CAP) {
+                const note = document.createElement('p');
+                note.className = 'text-muted mb-3';
+                note.style.padding = 'var(--space-3) var(--space-4) 0';
+                note.textContent = `Showing first ${DISPLAY_CAP} of ${issues.length} filtered issue(s). Export CSV/JSON for the full set.`;
+                tbody.closest('.results-table-scroll').insertAdjacentElement('beforebegin', note);
+            }
+            displayIssues.forEach((issue) => {
                 var _a;
                 const tr = document.createElement('tr');
                 tr.dataset.issueId = issue.id;
-                tr.innerHTML = `
-          <td><span class="severity-pill ${issue.severity}">${issue.severity}</span></td>
-          <td>${escapeHtml(issue.type)}</td>
-          <td>${escapeHtml(issue.description)}</td>
-          <td><code>${escapeHtml(this.app.scanService.basename(issue.filePath))}</code></td>
-          <td>${(_a = issue.count) !== null && _a !== void 0 ? _a : 1}</td>
-        `;
-                tr.addEventListener('click', () => this.showDetail(el, issue));
+                const sevCell = document.createElement('td');
+                sevCell.innerHTML = `<span class="severity-pill ${issue.severity}">${issue.severity}</span>`;
+                const typeCell = document.createElement('td');
+                typeCell.textContent = issue.type;
+                const descCell = document.createElement('td');
+                descCell.textContent = issue.description;
+                const fileCell = document.createElement('td');
+                if (issue.filePath) {
+                    fileCell.appendChild(renderIdeFileLink(issue.filePath, issue.line || 1, {
+                        projectRoot,
+                        label: this.app.scanService.basename(issue.filePath)
+                    }));
+                }
+                else {
+                    fileCell.innerHTML = '<code>—</code>';
+                }
+                const countCell = document.createElement('td');
+                countCell.textContent = String((_a = issue.count) !== null && _a !== void 0 ? _a : 1);
+                tr.appendChild(sevCell);
+                tr.appendChild(typeCell);
+                tr.appendChild(descCell);
+                tr.appendChild(fileCell);
+                tr.appendChild(countCell);
+                tr.addEventListener('click', (e) => {
+                    if (e.target.closest('.ide-file-link-btn'))
+                        return;
+                    this.showDetail(el, issue);
+                });
                 tbody.appendChild(tr);
             });
         }
         return el;
     }
     emptyStateMessage(report, totalIssues, filtersActive, activeCategory) {
-        var _a;
+        var _a, _b;
         if (filtersActive && activeCategory) {
             return `No ${activeCategory.title.toLowerCase()} issues match the current filters.`;
         }
         if (filtersActive) {
             return 'No issues match the current filters.';
         }
-        if (totalIssues === 0 && ((_a = report.gate) === null || _a === void 0 ? void 0 : _a.pass)) {
+        const blockingCount = (_b = (_a = report.gate) === null || _a === void 0 ? void 0 : _a.blockingCount) !== null && _b !== void 0 ? _b : 0;
+        if (totalIssues === 0 && report.gate && report.gate.pass && blockingCount === 0) {
             return 'Simplebeacon gate passed — no blocking issues in the latest scan. This is expected when paths are clean. Scroll down for the sample file inventory, or open Compliance Audit for per-layer metrics.';
+        }
+        if (totalIssues === 0 && isClientScanReport(report)) {
+            return 'Local scan finished but no findings were mapped into the results table. Return to Analyze and click View Results again, or re-run the folder scan.';
         }
         return 'No issues in the loaded report.';
     }
@@ -392,21 +438,48 @@ export class ResultsView {
         const slot = container.querySelector('#issue-detail');
         if (!slot)
             return;
-        slot.innerHTML = `
-      <div class="detail-panel">
-        <h3>${escapeHtml(issue.type)}</h3>
-        <p>${escapeHtml(issue.description)}</p>
-        <p><strong>Recommended:</strong> ${escapeHtml(issue.recommendedAction || 'Review and fix manually')}</p>
-        <p><strong>File:</strong> <code>${escapeHtml(issue.filePath)}</code></p>
-        ${((_a = issue.affectedFiles) === null || _a === void 0 ? void 0 : _a.length) ? `<p><strong>Affected:</strong> ${issue.affectedFiles.map(escapeHtml).join(', ')}</p>` : ''}
-        ${((_c = (_b = issue.metadata) === null || _b === void 0 ? void 0 : _b.duplicatePaths) === null || _c === void 0 ? void 0 : _c.length) ? `
+        const projectRoot = resolveProjectRootFromApp(this.app);
+        slot.replaceChildren();
+        const panel = document.createElement('div');
+        panel.className = 'detail-panel';
+        const h3 = document.createElement('h3');
+        h3.textContent = issue.type || 'Issue';
+        panel.appendChild(h3);
+        const desc = document.createElement('p');
+        desc.textContent = issue.description || '';
+        panel.appendChild(desc);
+        const rec = document.createElement('p');
+        rec.innerHTML = `<strong>Recommended:</strong> ${escapeHtml(issue.recommendedAction || 'Review and fix manually')}`;
+        panel.appendChild(rec);
+        const fileRow = document.createElement('p');
+        fileRow.appendChild(document.createTextNode('File: '));
+        if (issue.filePath) {
+            fileRow.appendChild(renderIdeFileLink(issue.filePath, issue.line || 1, { projectRoot, label: issue.filePath }));
+            const openBtn = document.createElement('button');
+            openBtn.type = 'button';
+            openBtn.className = 'btn btn-secondary btn-xs ml-2';
+            openBtn.textContent = 'Open in editor';
+            openBtn.addEventListener('click', () => openInIde(issue.filePath, issue.line || 1, { projectRoot }));
+            fileRow.appendChild(openBtn);
+        }
+        else {
+            fileRow.innerHTML += '<code>—</code>';
+        }
+        panel.appendChild(fileRow);
+        if ((_a = issue.affectedFiles) === null || _a === void 0 ? void 0 : _a.length) {
+            const aff = document.createElement('p');
+            aff.innerHTML = `<strong>Affected:</strong> ${issue.affectedFiles.map(escapeHtml).join(', ')}`;
+            panel.appendChild(aff);
+        }
+        if ((_c = (_b = issue.metadata) === null || _b === void 0 ? void 0 : _b.duplicatePaths) === null || _c === void 0 ? void 0 : _c.length) {
+            panel.insertAdjacentHTML('beforeend', `
           <p><strong>Duplicate paths:</strong></p>
           <ul class="settings-path-list">
             ${issue.metadata.duplicatePaths.map((p) => `<li><code>${escapeHtml(p)}</code></li>`).join('')}
           </ul>
-        ` : ''}
-      </div>
-    `;
+        `);
+        }
+        slot.appendChild(panel);
         slot.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
     paint(container = this._container) {
@@ -419,6 +492,7 @@ export class ResultsView {
     mount(container) {
         this._container = container;
         this.applyRouteParams(this.app.state.routeParams || {});
+        hydrateClientScanReport(this.app);
         this.paint(container);
     }
 }

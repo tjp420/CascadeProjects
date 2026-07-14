@@ -106,8 +106,28 @@ export class Router {
 
   pushPath(view, params = {}) {
     try {
+      const embedKeys = ['sb_parent_urlbar', 'sb_notify_base', 'sb_api_base', 'sb_website_mode', 'force'];
       const searchParams = new URLSearchParams();
+      try {
+        const current = new URLSearchParams(window.location.search || '');
+        embedKeys.forEach((k) => {
+          if (current.has(k)) searchParams.set(k, current.get(k));
+        });
+        if (typeof sessionStorage !== 'undefined') {
+          if (!searchParams.has('sb_notify_base')) {
+            const storedNotify = sessionStorage.getItem('sb_notify_base');
+            if (storedNotify) searchParams.set('sb_notify_base', storedNotify);
+          }
+          if (!searchParams.has('sb_api_base')) {
+            const storedApi = sessionStorage.getItem('sb_api_base');
+            if (storedApi) searchParams.set('sb_api_base', storedApi);
+          }
+        }
+      } catch (e) { /* ignore */ }
       Object.entries(params).forEach(([k, v]) => { if (v != null && v !== '') searchParams.set(k, v); });
+      if (window.self !== window.top && !searchParams.has('sb_parent_urlbar')) {
+        searchParams.set('sb_parent_urlbar', '1');
+      }
       const search = searchParams.toString();
       const base = this.getDashboardBase();
       const newUrl = `${base}/${view}${search ? '?' + search : ''}`;

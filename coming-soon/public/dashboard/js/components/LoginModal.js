@@ -1,4 +1,4 @@
-import { authService } from '../services/authService.js';
+import { authService } from '../services/authService.js?v=20260713sync6';
 import { showToast } from '../utils.js';
 
 /**

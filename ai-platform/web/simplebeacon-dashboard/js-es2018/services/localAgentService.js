@@ -11,9 +11,11 @@
  * a secure context, but Firefox/Safari may require the agent to be paired with
  * a browser extension or an Electron wrapper for full compatibility.
  */
+import { openInIde } from '../utils-lib/ideDeepLink.js';
 // simplebeacon:production-leak-intent: localhost-agent-origins - These hardcoded loopback origins are required by the local agent bridge; they are not deploy leaks.
 const DEFAULT_AGENT_ORIGIN = 'http://127.0.0.1:55432'; // simplebeacon-ignore hardcoded-url
 const AGENT_4000_ORIGIN = 'http://127.0.0.1:4000'; // simplebeacon-ignore hardcoded-url deploy-leak
+const SB_API_BASE_KEY = 'sb_api_base';
 const AGENT_TIMEOUT_MS = 3000;
 const AGENT_DOWNLOAD_URLS = {
     windows: '/downloads/simplebeacon-scanner.exe',
@@ -33,6 +35,52 @@ function hasAgentBridge() {
 }
 function getAgentFetch() {
     return hasAgentBridge() ? window.simplebeaconAgentBridge.fetch.bind(window.simplebeaconAgentBridge) : fetch;
+}
+function readSbApiBaseOverride() {
+    if (typeof window === 'undefined')
+        return null;
+    try {
+        const params = new URLSearchParams(window.location.search);
+        const fromQuery = params.get(SB_API_BASE_KEY) || params.get('sb_notify_base');
+        if (fromQuery)
+            return fromQuery;
+    }
+    catch (_a) { /* ignore */ }
+    if (typeof sessionStorage !== 'undefined') {
+        try {
+            return sessionStorage.getItem(SB_API_BASE_KEY) || sessionStorage.getItem('sb_notify_base');
+        }
+        catch (_b) { /* ignore */ }
+    }
+    return null;
+}
+/** Extension IDE data-server origin (dynamic port), when sb_api_base is injected. */
+function getExtensionBridgeOrigin() {
+    const override = readSbApiBaseOverride();
+    if (!override)
+        return null;
+    try {
+        const base = override.replace(/\/api\/?$/, '');
+        const parsed = new URL(base);
+        const host = parsed.hostname.toLowerCase();
+        if (host !== '127.0.0.1' && host !== 'localhost')
+            return null;
+        return parsed.origin;
+    }
+    catch (_a) {
+        return null;
+    }
+}
+function resolveBridgeOrigin() {
+    return getExtensionBridgeOrigin() || AGENT_4000_ORIGIN;
+}
+function isExtensionBridgeOrigin(origin) {
+    const bridge = getExtensionBridgeOrigin();
+    return !!bridge && bridge === origin;
+}
+/** True when the dashboard was loaded with sb_api_base (VS Code / Windsurf extension). */
+export function hasExtensionBridgeConfigured() {
+    return !!getExtensionBridgeOrigin();
 }
 async function agentFetchWithTimeout(url, options = {}, timeoutMs = 300000) {
     const doFetch = getAgentFetch();
@@ -168,12 +216,14 @@ export async function scanViaAgent(projectPath, origin = DEFAULT_AGENT_ORIGIN) {
     return data.report;
 }
 /**
- * Probe the lightweight localhost:4000 agent used by the provided agent.js bridge.
+ * Probe the lightweight localhost bridge used for typed local path scans.
+ * Prefers the VS Code extension data server (sb_api_base) over standalone agent.js:4000.
  * @param {string} [origin]
  */
-export async function probeAgent4000(origin = AGENT_4000_ORIGIN) {
+export async function probeAgent4000(origin = resolveBridgeOrigin()) {
     const now = Date.now();
-    if (cachedAgent4000Status && cachedAgent4000At + CACHE_TTL_MS > now) {
+    const extensionBridge = isExtensionBridgeOrigin(origin);
+    if (cachedAgent4000Status && cachedAgent4000At + CACHE_TTL_MS > now && cachedAgent4000Status.origin === origin) {
         return cachedAgent4000Status;
     }
     if (pendingProbe4000) {
@@ -183,7 +233,7 @@ export async function probeAgent4000(origin = AGENT_4000_ORIGIN) {
         // When served over HTTPS, plain HTTP localhost fetches are blocked by
         // mixed-content rules in Firefox/Safari. Skip the doomed network call.
         if (!hasAgentBridge() && isMixedContent(origin)) {
-            const status = { available: false, likelyBlocked: true };
+            const status = { available: false, likelyBlocked: true, extensionBridge, origin };
             cachedAgent4000Status = status;
             cachedAgent4000At = Date.now();
             return status;
@@ -194,13 +244,17 @@ export async function probeAgent4000(origin = AGENT_4000_ORIGIN) {
                 headers: { Accept: 'application/json' }
             }, AGENT_TIMEOUT_MS);
             const body = await response.json().catch(() => ({}));
-            const status = { available: response.ok && body.online === true };
+            const status = {
+                available: response.ok && body.online === true,
+                extensionBridge,
+                origin
+            };
             cachedAgent4000Status = status;
             cachedAgent4000At = Date.now();
             return status;
         }
         catch (_a) {
-            const status = { available: false };
+            const status = { available: false, extensionBridge, origin };
             cachedAgent4000Status = status;
             cachedAgent4000At = Date.now();
             return status;
@@ -212,11 +266,30 @@ export async function probeAgent4000(origin = AGENT_4000_ORIGIN) {
     return pendingProbe4000;
 }
 /**
- * Run a scan through the lightweight localhost:4000 agent.
+ * Run a scan through the localhost bridge (extension data server or agent.js:4000).
  * @param {string} projectPath
  * @param {string} [origin]
  */
-export async function scanViaAgent4000(projectPath, origin = AGENT_4000_ORIGIN) {
+export async function scanViaAgent4000(projectPath, origin = resolveBridgeOrigin()) {
+    if (isExtensionBridgeOrigin(origin)) {
+        const response = await agentFetchWithTimeout(`${origin}/api/scan`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+            body: JSON.stringify({ path: projectPath })
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.success) {
+            throw new Error(data.error || data.warning || `Extension scan failed (${response.status})`);
+        }
+        return {
+            success: true,
+            extensionBridge: true,
+            report: data.report,
+            path: projectPath,
+            scannedPath: data.scannedPath || projectPath,
+            metrics: data.metrics
+        };
+    }
     const response = await agentFetchWithTimeout(`${origin}/api/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
@@ -229,7 +302,7 @@ export async function scanViaAgent4000(projectPath, origin = AGENT_4000_ORIGIN) 
     return data;
 }
 /**
- * Render the A-F compliance certificate from the localhost:4000 agent into a container.
+ * Render the A-F compliance certificate from the local agent into a container.
  * Uses DOM APIs instead of innerHTML to avoid XSS vectors from local path/file names.
  * @param {Object} report
  * @param {HTMLElement} [container]
@@ -241,77 +314,190 @@ export function renderAgentCertificate(report, container) {
     const cert = report && report.certificate;
     if (!cert)
         return;
-    const wrapper = document.createElement('div');
-    wrapper.style.cssText = `border:2px solid ${cert.badgeColor}; padding:12px; border-radius:var(--radius-lg); background:var(--surface); color:var(--text-primary); margin-bottom:12px; max-width:100%; box-sizing:border-box;`;
-    const header = document.createElement('div');
-    header.style.cssText = 'display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; border-bottom:1px solid var(--border); padding-bottom:8px; margin-bottom:8px;';
-    const titleBlock = document.createElement('div');
-    titleBlock.style.cssText = 'min-width:0; flex:1 1 auto;';
-    const title = document.createElement('h3');
-    title.textContent = 'SIMPLEBEACON COMPLIANCE REPORT';
-    title.style.cssText = 'margin:0 0 4px 0; font-size:1.1rem; overflow-wrap:anywhere;';
-    const status = document.createElement('span');
-    status.textContent = cert.complianceStatus || '';
-    status.style.cssText = `font-weight:600; color:${cert.badgeColor};`;
-    titleBlock.appendChild(title);
-    titleBlock.appendChild(status);
-    const badge = document.createElement('div');
-    badge.textContent = cert.letterGrade;
-    badge.style.cssText = `background:${cert.badgeColor}; color:#fff; width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:bold; flex:0 0 auto;`;
-    header.appendChild(titleBlock);
-    header.appendChild(badge);
-    wrapper.appendChild(header);
-    const grid = document.createElement('div');
-    grid.style.cssText = 'display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:8px; font-size:13px;';
-    function makePair(labelText, valueText, valueColor) {
-        const p = document.createElement('p');
-        p.style.cssText = 'margin:0 0 4px 0; overflow-wrap:anywhere;';
-        const label = document.createElement('b');
-        label.textContent = labelText;
-        const value = document.createElement('span');
-        value.textContent = ` ${valueText}`;
-        if (valueColor)
-            value.style.color = valueColor;
-        p.appendChild(label);
-        p.appendChild(value);
-        return p;
-    }
-    const discovered = typeof report.discoveredFiles === 'number' ? report.discoveredFiles : (report.files || []).length;
-    const skipped = typeof report.skippedFiles === 'number' ? report.skippedFiles : 0;
-    const left = document.createElement('div');
-    left.appendChild(makePair('Scanned Path:', report.verifiedAddress || report.path || '', null));
-    left.appendChild(makePair('Files Scanned:', `${(report.files || []).length} / ${discovered} candidates`, null));
-    const right = document.createElement('div');
-    right.appendChild(makePair('Heuristic Score:', `${cert.score || 0}/100`, null));
-    right.appendChild(makePair('Estimated Risk Liability:', cert.liabilityStr || '$0', '#dc3545'));
-    if (skipped > 0) {
-        right.appendChild(makePair('Skipped Files:', `${skipped} (large or unreadable)`, null));
-    }
-    grid.appendChild(left);
-    grid.appendChild(right);
-    wrapper.appendChild(grid);
-    container.appendChild(wrapper);
-    const filesHeading = document.createElement('h4');
-    filesHeading.textContent = 'Mapped System File Trees:';
-    filesHeading.style.cssText = 'margin:12px 0 8px 0; font-size:14px;';
-    container.appendChild(filesHeading);
-    const filesBox = document.createElement('div');
-    filesBox.style.cssText = 'max-height:260px; overflow:auto; background:var(--background); color:var(--text-secondary); padding:12px; font-family:monospace; font-size:12px; border-radius:var(--radius-md); border:1px solid var(--border); max-width:100%;';
     const files = report.files || [];
-    if (!files.length) {
-        const empty = document.createElement('div');
-        empty.textContent = 'No files returned.';
-        filesBox.appendChild(empty);
+    const issueFiles = files.filter((f) => f.status && f.status !== 'Clean');
+    const cleanCount = files.length - issueFiles.length;
+    const discovered = typeof report.discoveredFiles === 'number' ? report.discoveredFiles : files.length;
+    const skipped = typeof report.skippedFiles === 'number' ? report.skippedFiles : 0;
+    const scannedPath = report.verifiedAddress || report.path || '';
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'sb-compliance-report';
+    wrapper.style.setProperty('--sb-grade-color', cert.badgeColor || '#6366f1');
+
+    const hero = document.createElement('div');
+    hero.className = 'sb-compliance-hero';
+    const heroMain = document.createElement('div');
+    heroMain.className = 'sb-compliance-hero-main';
+    const eyebrow = document.createElement('div');
+    eyebrow.className = 'sb-compliance-eyebrow';
+    eyebrow.textContent = 'Scan complete';
+    const title = document.createElement('h3');
+    title.className = 'sb-compliance-title';
+    title.textContent = 'Compliance summary';
+    const status = document.createElement('p');
+    status.className = 'sb-compliance-status';
+    status.textContent = cert.complianceStatus || 'Review required';
+    heroMain.appendChild(eyebrow);
+    heroMain.appendChild(title);
+    heroMain.appendChild(status);
+    const grade = document.createElement('div');
+    grade.className = 'sb-compliance-grade';
+    grade.setAttribute('aria-label', `Grade ${cert.letterGrade || '?'}`);
+    grade.textContent = cert.letterGrade || '?';
+    hero.appendChild(heroMain);
+    hero.appendChild(grade);
+    wrapper.appendChild(hero);
+
+    const metrics = document.createElement('div');
+    metrics.className = 'sb-compliance-metrics';
+    const metricDefs = [
+        { label: 'Files scanned', value: `${files.length} / ${discovered}` },
+        { label: 'Heuristic score', value: `${cert.score || 0}/100` },
+        { label: 'Issues flagged', value: String(issueFiles.length) },
+        { label: 'Risk liability', value: cert.liabilityStr || '$0', danger: true },
+        ...(skipped > 0 ? [{ label: 'Skipped', value: `${skipped} unreadable` }] : [])
+    ];
+    metricDefs.forEach((item) => {
+        const chip = document.createElement('div');
+        chip.className = 'sb-compliance-metric';
+        const label = document.createElement('span');
+        label.className = 'sb-compliance-metric-label';
+        label.textContent = item.label;
+        const value = document.createElement('strong');
+        value.className = item.danger ? 'sb-compliance-metric-danger' : '';
+        value.textContent = item.value;
+        chip.appendChild(label);
+        chip.appendChild(value);
+        metrics.appendChild(chip);
+    });
+    wrapper.appendChild(metrics);
+
+    if (scannedPath) {
+        const pathRow = document.createElement('div');
+        pathRow.className = 'sb-compliance-path';
+        pathRow.textContent = scannedPath;
+        wrapper.appendChild(pathRow);
     }
-    else {
-        files.forEach((f) => {
-            const row = document.createElement('div');
-            row.style.cssText = 'margin-bottom:4px; white-space:nowrap;';
-            row.textContent = `[${f.status || 'Clean'}] - ${f.absolutePath || f.name} (${f.size || 0} bytes)`;
-            filesBox.appendChild(row);
+
+    const actions = document.createElement('div');
+    actions.className = 'sb-compliance-actions';
+    const actionDefs = [
+        { label: 'View all findings', route: 'results' },
+        { label: 'Remediation roadmap', route: 'roadmap' },
+        { label: 'Export report', route: 'export' }
+    ];
+    actionDefs.forEach((item) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = item.route === 'results' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
+        btn.textContent = item.label;
+        btn.addEventListener('click', () => {
+            const app = typeof window !== 'undefined' ? window.simplebeaconApp : null;
+            if (item.route === 'export') {
+                if (app && app.scanService && typeof app.scanService.exportReport === 'function') {
+                    app.scanService.exportReport();
+                }
+                return;
+            }
+            if (app && typeof app.navigate === 'function') {
+                app.navigate(item.route);
+            }
         });
+        actions.appendChild(btn);
+    });
+    wrapper.appendChild(actions);
+
+    if (files.length) {
+        const details = document.createElement('details');
+        details.className = 'sb-compliance-files';
+        details.open = issueFiles.length > 0 && issueFiles.length <= 12;
+        const summary = document.createElement('summary');
+        summary.textContent = `File inventory (${issueFiles.length} flagged · ${cleanCount} clean)`;
+        details.appendChild(summary);
+        const toolbar = document.createElement('div');
+        toolbar.className = 'sb-compliance-files-toolbar';
+        let activeFilter = 'issues';
+        const filters = [
+            { id: 'issues', label: `Issues (${issueFiles.length})` },
+            { id: 'all', label: `All (${files.length})` },
+            { id: 'clean', label: `Clean (${cleanCount})` }
+        ];
+        const list = document.createElement('div');
+        list.className = 'sb-compliance-files-list';
+        const renderList = () => {
+            list.replaceChildren();
+            let rows = files;
+            if (activeFilter === 'issues')
+                rows = issueFiles;
+            else if (activeFilter === 'clean')
+                rows = files.filter((f) => !f.status || f.status === 'Clean');
+            const limit = activeFilter === 'all' ? 80 : 120;
+            rows.slice(0, limit).forEach((f) => {
+                const row = document.createElement('div');
+                const isClean = !f.status || f.status === 'Clean';
+                row.className = `sb-compliance-file-row${isClean ? ' is-clean' : ' is-issue'}`;
+                const badge = document.createElement('span');
+                badge.className = 'sb-compliance-file-badge';
+                badge.textContent = isClean ? 'Clean' : String(f.status);
+                const path = document.createElement('span');
+                path.className = 'sb-compliance-file-path';
+                path.textContent = f.absolutePath || f.name || '';
+                if (f.absolutePath || f.name) {
+                    path.style.cursor = 'pointer';
+                    path.title = 'Open in editor';
+                    path.addEventListener('click', () => {
+                        openInIde(f.absolutePath || f.name, f.line || 1, { projectRoot: scannedPath });
+                    });
+                }
+                const openBtn = document.createElement('button');
+                openBtn.type = 'button';
+                openBtn.className = 'btn btn-ghost btn-xs';
+                openBtn.textContent = 'Open';
+                openBtn.addEventListener('click', () => {
+                    openInIde(f.absolutePath || f.name, f.line || 1, { projectRoot: scannedPath });
+                });
+                const size = document.createElement('span');
+                size.className = 'sb-compliance-file-size';
+                size.textContent = `${f.size || 0} B`;
+                row.appendChild(badge);
+                row.appendChild(path);
+                row.appendChild(openBtn);
+                row.appendChild(size);
+                list.appendChild(row);
+            });
+            if (rows.length > limit) {
+                const more = document.createElement('div');
+                more.className = 'sb-compliance-files-more text-muted';
+                more.textContent = `+ ${rows.length - limit} more files — run a full export for the complete inventory.`;
+                list.appendChild(more);
+            }
+        };
+        filters.forEach((filter) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = `btn btn-ghost btn-xs sb-compliance-filter${filter.id === activeFilter ? ' is-active' : ''}`;
+            btn.textContent = filter.label;
+            btn.addEventListener('click', () => {
+                activeFilter = filter.id;
+                toolbar.querySelectorAll('.sb-compliance-filter').forEach((el) => el.classList.remove('is-active'));
+                btn.classList.add('is-active');
+                renderList();
+            });
+            toolbar.appendChild(btn);
+        });
+        details.appendChild(toolbar);
+        details.appendChild(list);
+        renderList();
+        wrapper.appendChild(details);
     }
-    container.appendChild(filesBox);
+
+    container.appendChild(wrapper);
+
+    const dropzone = container.closest('#analyze-path-dropzone');
+    if (dropzone) {
+        dropzone.classList.add('has-compliance-report');
+    }
 }
 /**
  * Decide whether a given path should be routed to the local agent rather than

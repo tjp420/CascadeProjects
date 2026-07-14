@@ -1,3 +1,7 @@
+# Local tier token test fixtures — never commit
+tier-tokens.txt
+tier-accounts.txt
+
 # Dependencies — never scan third-party code
 node_modules/
 **/node_modules/
@@ -61,6 +65,7 @@ coming-soon/js/vendor/html2canvas.min.js
 
 # coming-soon intentional mirror data files — duplicate JSON and package.json copies are expected
 coming-soon/public/data/
+coming-soon/public/dashboard/data/re-attestation-metadata.json
 coming-soon/public/dashboard/data/roadmap-ai-agent-2026-06-12.json
 coming-soon/public/dashboard/js/utils-lib/package.json
 coming-soon/public/dashboard/js-es2018/utils-lib/package.json
@@ -77,6 +82,14 @@ benchmark-*/
 
 # Ignore verification scan dumps
 verify*.json
+gate-status*.txt
+scan-output*.txt
+gate-help.txt
+scan-help.txt
+backup-preview.txt
+report-preview.txt
+git-status.txt
+orig-dirs.txt
 
 # Ignore delivery receipts
 report-deliveries/
@@ -353,6 +366,10 @@ scripts/
 
 # Coming-soon is pre-production staging code
 coming-soon/
+coming-soon/js-es2018/
+coming-soon/public/content/social-posts.md
+**/social-posts.md
+**/scan-wasm-bridge.test.js
 coming-soon/server.cjs
 coming-soon/public/data/report.json
 

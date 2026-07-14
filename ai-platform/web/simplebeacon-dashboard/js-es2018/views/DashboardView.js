@@ -1,11 +1,9 @@
 import { formatNumber, formatPercent, escapeHtml, showToast } from '../utils.js';
 import { buildScanConclusion, getScanFileMetrics, resolveDisplayScore, resolveJestTestsLabel, resolvePageSpecsLabel, renderScanScopePanel } from '../services/analyzeService.js?v=20260710inventory1';
-import { renderScanStatus, updateScanStatusDom, bindScanStatus, runDashboardScanFromInput } from '../components/ScanStatus.js?v=20260713dropfix4';
 import { renderIssueList } from '../components/IssueCard.js';
-import { renderQuickActions, bindQuickActions } from '../components/QuickActions.js?v=20260711admin1';
 import { renderTrendSection, mountTrendChart } from '../components/TrendChart.js';
-import { fetchRepositoryHealth, renderRepositoryHealthSection } from './RepositoryHealthView.js';
-import { renderPathHealthDashboard, cleanupPathHealthDashboard } from '../components/PathHealthDashboard.js';
+import { renderScanStatus, bindScanStatus, updateScanStatusDom } from '../components/ScanStatus.js';
+import { renderAnalysisWorkflow, resolveAnalysisWorkflowStep } from '../components/AnalysisWorkflow.js';
 import { isDemoMode } from '../demoMode.js';
 const PRIVACY_NOTICE_KEY = 'sb_privacy_notice_dismissed';
 const PRIVACY_NOTICE_TEXT = '100% private. Your source code never leaves your browser. Browser scans use a lightweight heuristic engine (no npm audit, no AST). For full analysis, run the server dashboard, open analyzer (auto-detected port), or upload a CLI report JSON.';
@@ -191,310 +189,478 @@ export class DashboardView {
     constructor(app) {
         this.app = app;
         this._trendCleanup = null;
+        this._scanProgressTimer = null;
+        this._scanProgress = null;
     }
+
     render() {
-        var _a, _b, _c, _d;
-        const { report, baseline, history, scanning, dataLoading } = this.app.state;
-        const categories = this.app.scanService.getIssueCategories(report);
-        const el = document.createElement('div');
-        el.className = 'fade-in';
-        if (!report) {
-            if (scanning) {
-                el.innerHTML = `
-          <h1 class="page-title">Dashboard</h1>
-          <div class="card" style="padding:var(--space-5); text-align:center;">
-            <div style="margin-bottom:var(--space-3);"><span class="loading-spinner" style="width:48px;height:48px;"></span></div>
-            <h2 style="font-size:var(--font-size-xl); margin-bottom:var(--space-2);">Scanning…</h2>
-            <p class="text-muted" style="max-width:480px; margin:0 auto var(--space-3);">Analysis is running. Switch to Analyze to watch progress.</p>
-            <button class="btn btn-secondary" id="dash-goto-analyze">Open Analyze</button>
-          </div>
-        `;
-                return el;
-            }
-            el.innerHTML = `
-        <div class="dashboard-header">
-          <h1 class="page-title">Dashboard</h1>
-        </div>
+        const { report, scanning } = this.app.state;
+        const container = document.createElement('div');
+        container.className = 'fade-in dashboard-page';
 
-        <div class="dashboard-kpi-bar">
-          <span class="dashboard-kpi muted"><i data-lucide="shield-check"></i> Gate —</span>
-          <span class="dashboard-kpi muted"><i data-lucide="alert-circle"></i> — issues</span>
-          <span class="dashboard-kpi muted"><i data-lucide="check-circle-2"></i> — consistency</span>
-          <span class="dashboard-kpi muted"><i data-lucide="files"></i> — / — files</span>
-        </div>
+        container.appendChild(this.renderHeader(report));
 
-        <div class="dashboard-hero" style="margin-bottom:var(--space-5);">
-          <div class="dashboard-panel dashboard-panel-accent">
-            <div class="dashboard-panel-header">
-              <h2 class="dashboard-panel-title">Welcome to SimpleBeacon</h2>
-            </div>
-            <p class="dashboard-panel-text">Set your repo folder, drop a file, or paste a URL, then run a scan. The dashboard will show your gate status, issue breakdown, and remediation roadmap.</p>
-            <div class="dashboard-actions-bar" style="margin-top:var(--space-3);">
-              <button class="btn btn-primary" id="dash-run-scan"><i data-lucide="play" class="icon-16"></i> Run Scan</button>
-              <button class="btn btn-secondary" id="dash-goto-analyze"><i data-lucide="folder-search" class="icon-16"></i> Open Analyze</button>
-              <a class="btn btn-ghost" href="/dashboard/settings"><i data-lucide="settings-2" class="icon-16"></i> Settings</a>
-            </div>
-          </div>
-        </div>
+        const workflowStep = resolveAnalysisWorkflowStep(this.app.state);
+        const workflowEl = document.createElement('div');
+        workflowEl.innerHTML = renderAnalysisWorkflow(workflowStep, { pageLabel: 'Analysis workflow' });
+        container.appendChild(workflowEl.firstElementChild);
 
-        <div class="dashboard-body">
-          <div class="dashboard-body-primary">
-            <div class="dashboard-panel">
-              <div class="dashboard-panel-header">
-                <h3 class="dashboard-panel-title-sm">Quick start</h3>
-              </div>
-              <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:var(--space-3); margin-top:var(--space-2);">
-                <div class="card" style="padding:var(--space-3);">
-                  <div style="font-size:1.25rem; margin-bottom:var(--space-2);">1️⃣</div>
-                  <strong style="display:block; margin-bottom:var(--space-1);">Choose a target</strong>
-                  <p class="text-muted" style="font-size:var(--font-size-sm);">Open the Analyze page and select a local folder, public repo, or drop files.</p>
-                </div>
-                <div class="card" style="padding:var(--space-3);">
-                  <div style="font-size:1.25rem; margin-bottom:var(--space-2);">2️⃣</div>
-                  <strong style="display:block; margin-bottom:var(--space-1);">Pick a scan mix</strong>
-                  <p class="text-muted" style="font-size:var(--font-size-sm);">Select the analysis engines and AI narrative that fit your review.</p>
-                </div>
-                <div class="card" style="padding:var(--space-3);">
-                  <div style="font-size:1.25rem; margin-bottom:var(--space-2);">3️⃣</div>
-                  <strong style="display:block; margin-bottom:var(--space-1);">Review results</strong>
-                  <p class="text-muted" style="font-size:var(--font-size-sm);">See issues, severity breakdown, and a remediation roadmap.</p>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="dashboard-body-side">
-            ${renderPrivacyCard()}
-            <div class="dashboard-panel">
-              <div class="dashboard-panel-header">
-                <h3 class="dashboard-panel-title-sm">Need help?</h3>
-              </div>
-              <p class="text-muted" style="font-size:var(--font-size-sm);">Gate mock folders and scan paths can be configured in <a href="/dashboard/settings">Settings</a>.</p>
-            </div>
-          </div>
-        </div>
-      `;
-            return el;
-        }
-        const conclusion = buildScanConclusion(report);
-        el.innerHTML = `
-      <div class="dashboard-header">
-        <h1 class="page-title">Dashboard</h1>
-        <div class="dashboard-header-actions">
-          <button class="btn btn-ghost btn-sm" id="dash-open-settings">
-            <i data-lucide="settings-2" class="icon-16"></i> Settings
-          </button>
-          <button class="btn btn-primary btn-sm" id="view-all-results">
-            <i data-lucide="arrow-right" class="icon-16"></i> View all results
-          </button>
-        </div>
-      </div>
+        const metricsSlot = document.createElement('div');
+        metricsSlot.id = 'ci-team-metrics-slot';
+        container.appendChild(metricsSlot);
 
-      <div class="dashboard-bento">
-        <div class="dashboard-bento-main">
-          <div id="slot-scan-status" class="dashboard-scan-hero"></div>
-        </div>
-        <div class="dashboard-bento-side">
-          <div id="slot-quick-actions"></div>
-        </div>
-      </div>
-
-      <div class="dashboard-body">
-        <div class="dashboard-body-primary">
-          <div class="dashboard-panel">
-            <div class="dashboard-panel-header">
-              <h2 class="dashboard-panel-title">
-                <i data-lucide="list" class="icon-18"></i>
-                Scan Results
-              </h2>
-            </div>
-            <div id="slot-issue-list"></div>
-          </div>
-          <div class="dashboard-panel" id="slot-trend"></div>
-        </div>
-        <div class="dashboard-body-side">
-          <div class="dashboard-panel" id="slot-repo-health">
-            <div class="dashboard-panel-header">
-              <h3 class="dashboard-panel-title-sm">Repository health</h3>
-              <a class="btn btn-ghost btn-xs" href="/dashboard/repository-health">Details →</a>
-            </div>
-            <p class="text-muted"><span class="loading-spinner"></span> Loading optimization metrics…</p>
-          </div>
-          <div class="dashboard-panel" id="slot-path-health">
-            <div class="dashboard-panel-header">
-              <h3 class="dashboard-panel-title-sm">System Path Health</h3>
-            </div>
-            <p class="text-muted"><span class="loading-spinner"></span> Loading path health metrics…</p>
-          </div>
-          <div class="dashboard-panel dashboard-panel-accent">
-            <div class="dashboard-panel-header">
-              <h3 class="dashboard-panel-title-sm">Scan summary</h3>
-            </div>
-            <p class="dashboard-panel-text">${conclusion}</p>
-          </div>
-          ${renderScanScopePanel(report)}
-          <div class="dashboard-panel">
-            <div class="dashboard-panel-header">
-              <h3 class="dashboard-panel-title-sm">Scan Metrics</h3>
-              <button class="btn btn-ghost btn-xs" id="dash-open-analyze">Analyze →</button>
-            </div>
-            ${renderScanMetrics(report)}
-          </div>
-          ${this.app.state.reAttestation ? renderReAttestationPreview(this.app.state.reAttestation) : ''}
-        </div>
-      </div>
-    `;
-        const scanSlot = el.querySelector('#slot-scan-status');
-        const scanHandlers = {
-            getLastProjectPath: () => this.app.state.lastProjectPath,
-            setLastProjectPath: (path) => { this.app.state.lastProjectPath = path; },
-            getDefaultProjectPath: () => this.app.state.defaultProjectPath,
-            onRescan: (path) => this.app.runScan(path),
-            onViewResults: () => this.app.navigate('results'),
-            onLocalScanResult: (report) => {
-                if (!report)
-                    return;
-                const projectPath = report.projectPath || report.projectRoot || report.verifiedAddress || report.path || this.app.state.lastProjectPath;
-                this.app.state.report = report;
-                this.app.state.scanning = false;
-                this.app.state.lastProjectPath = projectPath;
-                if (this.app.scanService) {
-                    this.app.scanService.report = report;
-                }
-                const isSandboxReport = report.certificate && Array.isArray(report.files) && !report.type;
-                const analyzeReport = isSandboxReport ? convertSandboxReportToSimplebeacon(report, projectPath) : report;
-                if (analyzeReport.type === 'simplebeacon-report' || analyzeReport.summary || analyzeReport.findings) {
-                    const conclusion = buildScanConclusion(analyzeReport);
-                    this.app.state.analyzeResult = {
-                        kind: 'simplebeacon-report',
-                        report: analyzeReport,
-                        projectPath,
-                        repositoryInventory: analyzeReport.inventory || analyzeReport.repositoryInventory || null,
-                        label: `Local scan: ${projectPath}`,
-                        conclusion
-                    };
-                }
-                this.app.refreshCurrentView();
-            }
-        };
-        // Use surgical DOM update if card already exists to prevent flicker
-        const updated = updateScanStatusDom(scanSlot, report);
-        if (!updated) {
-            scanSlot.innerHTML = renderScanStatus(report, {
-                scanning,
-                config: this.app.state.config,
-                lastProjectPath: this.app.state.lastProjectPath,
-                defaultProjectPath: this.app.state.defaultProjectPath,
-                redesign: true
-            });
-            bindScanStatus(scanSlot, scanHandlers);
-        }
-        const actionsSlot = el.querySelector('#slot-quick-actions');
-        actionsSlot.innerHTML = renderQuickActions({ showSendAi: this.app.isCurrentUserAdmin() });
-        bindQuickActions(actionsSlot, {
-            onRunScan: () => runDashboardScanFromInput(scanSlot.querySelector('#scan-root-input'), scanHandlers),
-            onExport: () => {
-                if (isDemoMode()) {
-                    this.app.scanService.exportDashboard({
-                        report: this.app.state.report,
-                        baseline: this.app.state.baseline,
-                        config: this.app.state.config,
-                        history: this.app.state.history,
-                        dashboardHome: this.app.state.dashboardHome
-                    });
-                }
-                else {
-                    this.app.scanService.exportReport();
-                }
-            },
-            onSendAi: async () => {
-                var _a, _b, _c, _d, _e;
-                const report = this.app.state.report;
-                if (!report) {
-                    showToast('No report loaded — run a scan first', 'error');
-                    return;
-                }
-                const allIssues = report.rawIssues || report.detectedIssues || [];
-                const reportSummary = {
-                    gatePass: (_b = (_a = report.gate) === null || _a === void 0 ? void 0 : _a.pass) !== null && _b !== void 0 ? _b : 'N/A',
-                    qualityScore: (_c = report.qualityScore) !== null && _c !== void 0 ? _c : 'N/A',
-                    totalIssues: allIssues.length,
-                    filesScanned: (_e = (_d = report.repositoryFilesTotal) !== null && _d !== void 0 ? _d : report.totalFiles) !== null && _e !== void 0 ? _e : 'N/A',
-                    reportType: report.type || 'simplebeacon'
-                };
-                // If running inside a VS Code-family webview, message the extension directly
-                const hasVsCodeApi = typeof window !== 'undefined' && typeof window.acquireVsCodeApi === 'function';
-                if (hasVsCodeApi) {
-                    try {
-                        const vscode = window.acquireVsCodeApi();
-                        vscode.postMessage({
-                            command: 'sendToAI',
-                            data: {
-                                projectPath: report.projectRoot || report.projectPath || window.location.origin,
-                                notes: '',
-                                reportSummary,
-                                issues: allIssues
-                            }
-                        });
-                        showToast('Scan data sent to your AI coding agent. Check the editor chat panel.', 'success');
-                        return;
-                    }
-                    catch (err) {
-                        console.warn('[AI-Send] vscode.postMessage failed:', err);
-                    }
-                }
-                try {
-                    const res = await fetch('/api/ai-context', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            projectPath: report.projectRoot || report.projectPath || window.location.origin,
-                            notes: '',
-                            reportSummary,
-                            issues: allIssues
-                        })
-                    });
-                    const json = await res.json();
-                    if (json.success) {
-                        if (json.content) {
-                            try {
-                                await navigator.clipboard.writeText(json.content);
-                                showToast('Copied to clipboard — paste into your AI coding agent with Ctrl+V', 'success');
-                            }
-                            catch (clipErr) {
-                                showToast('AI context saved. Use sidebar 🤖 button or mention @.simplebeacon/ai-context.md', 'success');
-                            }
-                        }
-                        else {
-                            showToast('AI context saved. Mention @.simplebeacon/ai-context.md in chat.', 'success');
-                        }
-                    }
-                    else {
-                        showToast('Failed: ' + (json.error || 'Unknown'), 'error');
-                    }
-                }
-                catch (err) {
-                    showToast('Network error: ' + err.message, 'error');
-                }
-            },
-            onLegacy: () => { this.app.navigate('platform'); }
+        const scanSlot = document.createElement('div');
+        scanSlot.id = 'dashboard-scan-slot';
+        scanSlot.innerHTML = renderScanStatus(report, {
+            redesign: true,
+            scanning,
+            config: this.app.state.config,
+            lastProjectPath: this.app.state.lastProjectPath,
+            defaultProjectPath: this.app.state.defaultProjectPath
         });
-        const issueSlot = el.querySelector('#slot-issue-list');
+        container.appendChild(scanSlot);
+
+        if (scanning) {
+            container.appendChild(this.renderScanProgress());
+        }
+
+        if (!report && !scanning) {
+            container.appendChild(this.renderQuickStart());
+            return container;
+        }
+
+        if (report) {
+            const categories = this.app.scanService.getIssueCategories(report);
+            container.appendChild(this.renderResultsState(report, categories));
+        }
+
+        return container;
+    }
+
+    renderHeader(report) {
+        const header = document.createElement('div');
+        header.className = 'dashboard-header d-flex justify-content-between align-items-center mb-4';
+
+        const projectName = report
+            ? (report.projectRoot || report.projectPath || 'Active Project').split(/[\\/]/).pop()
+            : 'No Active Project';
+        const statusChip = report && report.gate
+            ? `<span class="badge gate-badge ${report.gate.pass ? 'bg-success' : 'bg-danger'}">${report.gate.pass ? 'Healthy' : 'Attention Required'}</span>`
+            : '';
+
+        header.innerHTML = `
+            <div>
+                <h1 class="h2 mb-1">Dashboard</h1>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="text-muted text-xs">${escapeHtml(projectName)}</span>
+                    ${statusChip}
+                </div>
+            </div>
+            <div class="header-actions d-flex gap-2">
+                <button class="btn btn-ghost btn-sm" data-action="open-analyze">Advanced analyze</button>
+            </div>
+        `;
+        return header;
+    }
+
+    renderScanProgress() {
+        const progress = this._scanProgress || {};
+        const pct = progress.total && progress.processed != null
+            ? Math.min(100, Math.round((progress.processed / progress.total) * 100))
+            : (this.app.state.scanning ? 12 : 0);
+        const label = progress.label || 'Running SimpleBeacon scan…';
+        const detail = progress.currentFile
+            ? escapeHtml(String(progress.currentFile).split(/[\\/]/).pop() || '')
+            : (progress.processed != null && progress.total
+                ? `${formatNumber(progress.processed)} / ${formatNumber(progress.total)} files`
+                : 'Initializing engines…');
+
+        const card = document.createElement('div');
+        card.className = 'card dashboard-scan-progress-card';
+        card.id = 'dashboard-scan-progress';
+        card.innerHTML = `
+            <div class="dashboard-scan-progress-header">
+                <span class="loading-spinner dashboard-scan-progress-spinner"></span>
+                <div>
+                    <div class="dashboard-scan-progress-label">${escapeHtml(label)}</div>
+                    <div class="text-muted text-xs dashboard-scan-progress-detail">${detail}</div>
+                </div>
+                <button class="btn btn-secondary btn-sm" data-action="open-analyze">Live log</button>
+            </div>
+            <div class="analyze-progress-bar"><div class="analyze-progress-fill" style="width:${pct}%"></div></div>
+        `;
+        return card;
+    }
+
+    renderQuickStart() {
+        const view = document.createElement('div');
+        view.className = 'dashboard-quickstart card p-4';
+        view.innerHTML = `
+            <h3 class="h5 mb-2">How to run your first scan</h3>
+            <ol class="dashboard-quickstart-steps text-sm text-muted">
+                <li><strong>Drop or browse</strong> a folder in the scan panel above, or paste an absolute server path.</li>
+                <li>Click <strong>Scan</strong> — engines run locally or on your SimpleBeacon server.</li>
+                <li>Review the gate score, findings, and remediation roadmap below when complete.</li>
+            </ol>
+            <div class="dashboard-quickstart-actions d-flex flex-wrap gap-2 mt-3">
+                <button class="btn btn-primary btn-sm" data-action="open-analyze" data-mode="folder">Open Analyze (full modes)</button>
+                <button class="btn btn-outline btn-sm" data-action="open-analyze" data-mode="upload">Import CLI report</button>
+            </div>
+        `;
+        return view;
+    }
+
+    renderTeamCiMetrics(metrics) {
+        const card = document.createElement('div');
+        card.className = 'card ci-team-metrics-card mb-4';
+        const blocked = metrics.merges_blocked_this_week ?? metrics.gates_tripped ?? 0;
+        const criticals = metrics.criticals_blocked ?? 0;
+        card.innerHTML = `
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="card-title">Team CI — Last ${metrics.periodDays || 7} days</span>
+                <span class="badge bg-primary">AI Circuit Breaker</span>
+            </div>
+            <div class="ci-team-metrics-grid">
+                <div class="ci-metric">
+                    <div class="ci-metric-value">${formatNumber(metrics.total_scans || 0)}</div>
+                    <div class="ci-metric-label">Total scans</div>
+                    <div class="ci-metric-sub">${formatNumber(metrics.repositories || 0)} repos</div>
+                </div>
+                <div class="ci-metric ci-metric-highlight">
+                    <div class="ci-metric-value">${formatNumber(blocked)}</div>
+                    <div class="ci-metric-label">Merges blocked this week</div>
+                    <div class="ci-metric-sub">Gates tripped in CI</div>
+                </div>
+                <div class="ci-metric">
+                    <div class="ci-metric-value text-danger">${formatNumber(criticals)}</div>
+                    <div class="ci-metric-label">Criticals blocked</div>
+                    <div class="ci-metric-sub">Prevented master branch fail</div>
+                </div>
+                <div class="ci-metric">
+                    <div class="ci-metric-value">${formatNumber(metrics.diffs_analyzed || 0)}</div>
+                    <div class="ci-metric-label">Diff files analyzed</div>
+                    <div class="ci-metric-sub">PR-scoped coverage</div>
+                </div>
+            </div>
+        `;
+        return card;
+    }
+
+    async loadCiTeamMetrics(view) {
+        const slot = view.querySelector('#ci-team-metrics-slot');
+        if (!slot)
+            return;
+        const metrics = await this.app.scanService.fetchCiTeamMetrics({ days: 7 });
+        if (!metrics || !metrics.total_scans)
+            return;
+        slot.innerHTML = '';
+        slot.appendChild(this.renderTeamCiMetrics(metrics));
+    }
+
+    renderResultsState(report, categories) {
+        const grid = document.createElement('div');
+        grid.className = 'dashboard-grid';
+
+        const gatePass = !!(report.gate && report.gate.pass);
+        const sev = report.severityCounts || {};
+        const qualityScore = typeof report.qualityScore === 'number' ? report.qualityScore : 0;
+        const filesEvaluated = report.ruleScopedFilesAnalyzed != null
+            ? report.ruleScopedFilesAnalyzed
+            : (report.repositoryFilesTotal || 0);
+        const repoTotal = report.repositoryFilesTotal || 0;
+        const metrics = getScanFileMetrics(report);
+
+        grid.innerHTML = `
+            <div class="card bento-hero p-4 justify-content-between">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h4 class="text-muted text-xs uppercase mb-1">Gate Quality Score</h4>
+                        <div class="display-3 font-weight-bold">${qualityScore}%</div>
+                        <p class="text-muted text-xs mb-0 mt-1">${formatNumber(metrics.filesAnalyzed || filesEvaluated)} files analyzed · ${formatNumber(repoTotal)} in repo</p>
+                    </div>
+                    <span class="badge p-3 ${gatePass ? 'bg-success' : 'bg-danger'} font-weight-bold">
+                        ${gatePass ? 'PASSED' : 'FAILED'}
+                    </span>
+                </div>
+                <div class="mt-4 pt-3 border-top d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div class="d-flex gap-3 flex-wrap">
+                        <span class="text-sm"><strong class="text-danger">${sev.critical || 0}</strong> Critical</span>
+                        <span class="text-sm"><strong class="text-warning">${sev.high || 0}</strong> High</span>
+                        <span class="text-sm"><strong class="text-info">${sev.medium || 0}</strong> Med</span>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-outline btn-sm" data-action="view-results">All findings</button>
+                        <button class="btn btn-primary btn-sm" data-action="rescan">Re-scan</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card bento-actions p-4 d-flex flex-column justify-content-between">
+                <h4 class="text-muted text-xs uppercase mb-3">Next steps</h4>
+                <div class="d-flex flex-column gap-2">
+                    <button class="btn btn-outline btn-sm text-start w-100" data-action="roadmap">Remediation roadmap</button>
+                    <button class="btn btn-outline btn-sm text-start w-100" data-action="export">Export JSON report</button>
+                    <button class="btn btn-outline btn-sm text-start w-100" data-action="send-ai">Send findings to AI</button>
+                    <button class="btn btn-outline btn-sm text-start w-100" data-action="open-analyze">Deep analysis modes</button>
+                </div>
+            </div>
+
+            <div class="card bento-issues p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4 class="h5 mb-0">Latest findings</h4>
+                    <button class="btn btn-link btn-sm p-0" data-action="view-results">View all →</button>
+                </div>
+                <div id="dashboard-issue-list-slot"></div>
+            </div>
+
+            <div class="card bento-trends p-4">
+                <h4 class="h6 mb-3">Scan history & trends</h4>
+                <div id="slot-trend"></div>
+            </div>
+
+            <div class="card bento-summary p-4 justify-content-between">
+                <h4 class="text-muted text-xs uppercase mb-2">Health snapshot</h4>
+                <div class="flex-grow-1 d-flex flex-column justify-content-around gap-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-sm">Repo footprint</span>
+                        <span class="text-sm font-weight-bold text-muted">${repoTotal} files</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-sm">Mock / sample paths</span>
+                        <span class="text-sm font-weight-bold">${formatNumber(metrics.mockSampleFiles || 0)}</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-sm">Gate engines</span>
+                        <span class="text-sm font-weight-bold text-success">Active</span>
+                    </div>
+                </div>
+                <div class="pt-2 border-top mt-2">
+                    <button class="btn btn-link text-xs text-primary p-0" data-action="system-health">Platform details →</button>
+                </div>
+            </div>
+        `;
+
+        const issueSlot = grid.querySelector('#dashboard-issue-list-slot');
         issueSlot.appendChild(renderIssueList(categories, {
             onSelect: (cat) => this.app.navigate('results', { filter: cat })
         }));
-        (_b = el.querySelector('#view-all-results')) === null || _b === void 0 ? void 0 : _b.addEventListener('click', () => {
-            this.app.navigate('results');
-        });
-        (_c = el.querySelector('#dash-open-settings')) === null || _c === void 0 ? void 0 : _c.addEventListener('click', () => {
-            this.app.navigate('settings');
-        });
-        (_d = el.querySelector('#dash-open-analyze')) === null || _d === void 0 ? void 0 : _d.addEventListener('click', () => {
-            this.app.navigate('analyze');
-        });
-        const trendSlot = el.querySelector('#slot-trend');
-        trendSlot.innerHTML = renderTrendSection(history);
-        return el;
+
+        const trendSlot = grid.querySelector('#slot-trend');
+        trendSlot.innerHTML = renderTrendSection(this.app.state.history);
+
+        return grid;
     }
+
+    bindEvents(view) {
+        view.querySelectorAll('[data-action]').forEach((el) => {
+            const action = el.getAttribute('data-action');
+            const mode = el.getAttribute('data-mode');
+            const handler = () => {
+                switch (action) {
+                    case 'run-scan':
+                        this.app.runScan();
+                        break;
+                    case 'open-analyze':
+                        this.app.navigate('analyze', mode ? { mode } : undefined);
+                        break;
+                    case 'rescan':
+                        this.app.runScan();
+                        break;
+                    case 'export':
+                        this.handleExport();
+                        break;
+                    case 'send-ai':
+                        this.handleSendAi();
+                        break;
+                    case 'roadmap':
+                        this.app.navigate('roadmap');
+                        break;
+                    case 'view-results':
+                        this.app.navigate('results');
+                        break;
+                    case 'system-health':
+                        this.app.navigate('platform');
+                        break;
+                }
+            };
+            el.addEventListener('click', handler);
+            if (el.classList.contains('bento-card-interactive')) {
+                el.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handler();
+                    }
+                });
+            }
+        });
+    }
+
+    bindScanPanel(view) {
+        const scanSlot = view.querySelector('#dashboard-scan-slot');
+        if (!scanSlot)
+            return;
+        bindScanStatus(scanSlot, {
+            onRescan: (path) => this.app.runScan(path),
+            onLocalScanResult: (payload) => {
+                if (payload && payload.projectPath) {
+                    this.app.state.lastProjectPath = payload.projectPath;
+                }
+                this.app.navigate('analyze');
+            },
+            onViewResults: () => this.app.navigate('results'),
+            getLastProjectPath: () => this.app.state.lastProjectPath || '',
+            setLastProjectPath: (path) => { this.app.state.lastProjectPath = path; },
+            getDefaultProjectPath: () => this.app.state.defaultProjectPath || ''
+        });
+    }
+
+    refreshScanStatus() {
+        const main = document.getElementById('app-main');
+        const scanSlot = main && main.querySelector('#dashboard-scan-slot');
+        if (!scanSlot)
+            return;
+        const updated = updateScanStatusDom(scanSlot, this.app.state.report);
+        if (!updated) {
+            scanSlot.innerHTML = renderScanStatus(this.app.state.report, {
+                redesign: true,
+                scanning: this.app.state.scanning,
+                config: this.app.state.config,
+                lastProjectPath: this.app.state.lastProjectPath,
+                defaultProjectPath: this.app.state.defaultProjectPath
+            });
+            this.bindScanPanel(main.querySelector('.fade-in') || main);
+        }
+    }
+
+    startScanProgressPolling() {
+        this.stopScanProgressPolling();
+        if (!this.app.state.scanning)
+            return;
+        const poll = async () => {
+            try {
+                const progress = await this.app.scanService.fetchScanProgress();
+                if (!progress)
+                    return;
+                this._scanProgress = progress;
+                const card = document.getElementById('dashboard-scan-progress');
+                if (!card)
+                    return;
+                const pct = progress.total && progress.processed != null
+                    ? Math.min(100, Math.round((progress.processed / progress.total) * 100))
+                    : 12;
+                const fill = card.querySelector('.analyze-progress-fill');
+                if (fill)
+                    fill.style.width = `${pct}%`;
+                const label = card.querySelector('.dashboard-scan-progress-label');
+                if (label && progress.label)
+                    label.textContent = progress.label;
+                const detail = card.querySelector('.dashboard-scan-progress-detail');
+                if (detail) {
+                    detail.textContent = progress.currentFile
+                        ? String(progress.currentFile).split(/[\\/]/).pop()
+                        : (progress.processed != null && progress.total
+                            ? `${formatNumber(progress.processed)} / ${formatNumber(progress.total)} files`
+                            : 'Initializing engines…');
+                }
+            }
+            catch (_a) { /* ignore transient errors */ }
+        };
+        poll();
+        this._scanProgressTimer = setInterval(poll, 1500);
+    }
+
+    stopScanProgressPolling() {
+        if (this._scanProgressTimer) {
+            clearInterval(this._scanProgressTimer);
+            this._scanProgressTimer = null;
+        }
+        this._scanProgress = null;
+    }
+
+    handleExport() {
+        if (isDemoMode()) {
+            this.app.scanService.exportDashboard({
+                report: this.app.state.report,
+                baseline: this.app.state.baseline,
+                config: this.app.state.config,
+                history: this.app.state.history,
+                dashboardHome: this.app.state.dashboardHome
+            });
+        }
+        else {
+            this.app.scanService.exportReport();
+        }
+    }
+
+    async handleSendAi() {
+        const report = this.app.state.report;
+        if (!report) {
+            showToast('No report loaded — run a scan first', 'error');
+            return;
+        }
+        const allIssues = report.rawIssues || report.detectedIssues || [];
+        const reportSummary = {
+            gatePass: report.gate ? report.gate.pass : 'N/A',
+            qualityScore: report.qualityScore != null ? report.qualityScore : 'N/A',
+            totalIssues: allIssues.length,
+            filesScanned: report.repositoryFilesTotal != null ? report.repositoryFilesTotal : (report.totalFiles || 'N/A'),
+            reportType: report.type || 'simplebeacon'
+        };
+        const hasVsCodeApi = typeof window !== 'undefined' && typeof window.acquireVsCodeApi === 'function';
+        if (hasVsCodeApi) {
+            try {
+                const vscode = window.acquireVsCodeApi();
+                vscode.postMessage({
+                    command: 'sendToAI',
+                    data: {
+                        projectPath: report.projectRoot || report.projectPath || window.location.origin,
+                        notes: '',
+                        reportSummary,
+                        issues: allIssues
+                    }
+                });
+                showToast('Scan data sent to your AI coding agent. Check the editor chat panel.', 'success');
+                return;
+            }
+            catch (err) {
+                console.warn('[AI-Send] vscode.postMessage failed:', err);
+            }
+        }
+        try {
+            const res = await fetch('/api/ai-context', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    projectPath: report.projectRoot || report.projectPath || window.location.origin,
+                    notes: '',
+                    reportSummary,
+                    issues: allIssues
+                })
+            });
+            const json = await res.json();
+            if (json.success) {
+                if (json.content) {
+                    try {
+                        await navigator.clipboard.writeText(json.content);
+                        showToast('Copied to clipboard — paste into your AI coding agent with Ctrl+V', 'success');
+                    }
+                    catch (clipErr) {
+                        showToast('AI context saved. Use sidebar 🤖 button or mention @.simplebeacon/ai-context.md', 'success');
+                    }
+                }
+                else {
+                    showToast('AI context saved. Mention @.simplebeacon/ai-context.md in chat.', 'success');
+                }
+            }
+            else {
+                showToast('Failed: ' + (json.error || 'Unknown'), 'error');
+            }
+        }
+        catch (err) {
+            showToast('Network error: ' + err.message, 'error');
+        }
+    }
+
     async ensureReportEnriched() {
         const report = this.app.state.report;
         if (!report)
@@ -503,59 +669,26 @@ export class DashboardView {
         if (enriched !== report) {
             this.app.state.report = enriched;
             this.app.scanService.report = enriched;
-            // Surgical DOM update avoids full re-render flicker
-            const scanSlot = document.querySelector('#slot-scan-status');
-            if (scanSlot) {
-                updateScanStatusDom(scanSlot, enriched);
-            }
-            else {
-                this.app.refreshCurrentView();
-            }
+            this.app.refreshCurrentView();
         }
     }
-    /**
-     * Surgical scan-status refresh — avoids full mount flicker during active scans.
-     * Returns true if the scan slot was updated in-place.
-     */
-    refreshScanStatus() {
-        const scanSlot = document.querySelector('#slot-scan-status');
-        if (!scanSlot)
-            return false;
-        const report = this.app.state.report;
-        const scanning = this.app.state.scanning;
-        const updated = updateScanStatusDom(scanSlot, report);
-        if (updated) {
-            // Update scanning state on rescan button
-            const rescanBtn = scanSlot.querySelector('#rescan-btn');
-            if (rescanBtn) {
-                const expectedHtml = scanning
-                    ? '<span class="loading-spinner"></span> Scanning…'
-                    : '<i data-lucide="play" class="icon-16"></i> Scan';
-                if (rescanBtn.innerHTML !== expectedHtml) {
-                    rescanBtn.innerHTML = expectedHtml;
-                }
-                if (rescanBtn.disabled !== scanning) {
-                    rescanBtn.disabled = scanning;
-                }
-            }
-        }
-        return updated;
-    }
+
     mount(container) {
-        var _a, _b;
         if (this._trendCleanup)
             this._trendCleanup();
+        this.stopScanProgressPolling();
         container.innerHTML = '';
         const view = this.render();
         container.appendChild(view);
-        bindPrivacyBanner(view);
-        (_a = view.querySelector('#dash-run-scan')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => this.app.runScan());
-        (_b = view.querySelector('#dash-goto-analyze')) === null || _b === void 0 ? void 0 : _b.addEventListener('click', () => this.app.navigate('analyze'));
+        this.bindEvents(view);
+        this.bindScanPanel(view);
+        void this.loadCiTeamMetrics(view);
+        if (this.app.state.scanning) {
+            this.startScanProgressPolling();
+        }
         if (!this.app.state.report)
             return;
         this.ensureReportEnriched();
-        this.loadRepositoryHealth(view);
-        this.loadPathHealth(view);
         requestAnimationFrame(() => {
             const trendSlot = view.querySelector('#slot-trend');
             this._trendCleanup = mountTrendChart(trendSlot, this.app.state.history) || null;
@@ -563,49 +696,10 @@ export class DashboardView {
         if (typeof window.lucide !== 'undefined')
             window.lucide.createIcons();
     }
-    async loadRepositoryHealth(view) {
-        const slot = view.querySelector('#slot-repo-health');
-        if (!slot)
-            return;
-        try {
-            const health = await fetchRepositoryHealth();
-            slot.innerHTML = `
-        <div class="section-heading">
-          <h2>Repository health</h2>
-          <a class="btn btn-ghost btn-sm" href="/dashboard/repository-health">Details →</a>
-        </div>
-        ${(health === null || health === void 0 ? void 0 : health.headline)
-                ? renderRepositoryHealthSection(health, { compact: true })
-                : '<p class="text-muted">No consolidation scan yet — run Analyze → Consolidation.</p>'}
-      `;
-        }
-        catch (_a) {
-            slot.innerHTML = `
-        <div class="section-heading">
-          <h2>Repository health</h2>
-          <a class="btn btn-ghost btn-sm" href="/dashboard/repository-health">Details →</a>
-        </div>
-        <p class="text-muted">Repository health unavailable — run consolidation scan from Analyze.</p>
-      `;
-        }
-    }
-    loadPathHealth(view) {
-        const slot = view.querySelector('#slot-path-health');
-        if (!slot)
-            return;
-        try {
-            slot.innerHTML = '';
-            const pathHealthComponent = renderPathHealthDashboard();
-            slot.appendChild(pathHealthComponent);
-        }
-        catch (error) {
-            console.error('Error loading path health dashboard:', error);
-            slot.innerHTML = '<p class="text-muted">Path health metrics unavailable.</p>';
-        }
-    }
+
     destroy() {
         if (this._trendCleanup)
             this._trendCleanup();
-        cleanupPathHealthDashboard();
+        this.stopScanProgressPolling();
     }
 }

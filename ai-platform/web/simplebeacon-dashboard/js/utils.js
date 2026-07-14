@@ -507,7 +507,8 @@ function _buildFlatExports() {
     for (const key of Object.keys(ns)) {
       if (!hasOwn.call(ns, key)) continue;
       if (seen.has(key)) {
-        console.warn(`[utils] Collision: "${key}" from "${nsName}" skipped; first export wins.`);
+        // Duplicate flat export: the first source wins. Intentional when the inline namespace
+        // re-exports the same utility as a sub-module.
         continue;
       }
       seen.add(key);

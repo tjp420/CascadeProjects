@@ -1,5 +1,6 @@
 import { hasJsonContentType, readJsonResponseBody, withRecoverableFallback, logRecoverableDashboardError } from '../lib/recoverable-fetch.js';
 import { isLocalDevHost, DEMO_EMAIL } from '../demoMode.js';
+import { notifyAuthState } from '../utils-lib/notify.js?v=20260713sync6';
 /**
  * API base prefix: use the Render backend when the dashboard is served from
  * a custom domain (simplebeacon.ai / Cloudflare Pages), otherwise use relative paths.
@@ -105,8 +106,26 @@ export class AuthService {
         if (typeof window !== 'undefined') {
             window.addEventListener('storage', this._onCrossTabSignout);
             window.addEventListener('message', (event) => {
-                if (event.data && event.data.command === 'getAuthState') {
+                if (!event.data)
+                    return;
+                if (event.data.command === 'getAuthState') {
                     this._broadcastAuthState();
+                }
+                else if (event.data.command === 'setAuthState') {
+                    if (event.data.signedIn === true && event.data.token) {
+                        this.setSession(event.data.token, this.getUser() || {}, { notify: false });
+                        window.dispatchEvent(new CustomEvent('auth-signed-in', { detail: event.data }));
+                    }
+                    else if (event.data.signedIn === false) {
+                        // Ignore sign-out messages from the VS Code: wrapper/extension polls unless they are
+                        // explicitly user-initiated or the dashboard has no token of its own. This prevents
+                        // a no-token extension refresh from wiping a website sign-in the extension didn't see.
+                        const hasToken = !!this.getToken();
+                        if (event.data.source === 'signOut' || !hasToken) {
+                            this.clearSession({ notify: false });
+                            window.dispatchEvent(new CustomEvent('auth-signed-out', { detail: event.data }));
+                        }
+                    }
                 }
             });
             // Broadcast the current auth state shortly after load so the VS Code: sidebar
@@ -169,7 +188,7 @@ export class AuthService {
         }
         return false;
     }
-    setSession(token, user) {
+    setSession(token, user, options = {}) {
         localStorage.setItem(TOKEN_KEY, token);
         setCookie(TOKEN_KEY, token);
         for (const key of LEGACY_TOKEN_KEYS) {
@@ -180,14 +199,30 @@ export class AuthService {
         localStorage.setItem(USER_KEY, userJson);
         setCookie(USER_KEY, userJson);
         this.user = user;
+        if (options.notify === false)
+            return;
         // Notify parent VS Code webview of auth state change
+        const tier = (user && (user.tier || user.plan)) || this.getTokenTier() || '';
+        const isAdmin = this.isAdmin();
         if (typeof window !== 'undefined' && window.parent !== window) {
-            const tier = (user && (user.tier || user.plan)) || this.getTokenTier() || '';
-            const isAdmin = this.isAdmin();
             window.parent.postMessage({ command: 'setAuthState', signedIn: true, tier, token, isAdmin }, '*');
         }
+        // Also bridge through the local data-server /api/notify endpoint so external
+        // browsers and Simple Browser webviews can keep the sidebar in sync.
+        notifyAuthState(true, tier, token, isAdmin);
+        // If opened from the VS Code: "Sign In via Website" flow, redirect back to the extension.
+        if (typeof window !== 'undefined' && window.parent === window) {
+            try {
+                const redirectUri = new URLSearchParams(window.location.search).get('redirect_uri');
+                if (redirectUri && redirectUri.startsWith('vscode://simplebeacon.simplebeacon-vscode/relay/auth')) {
+                    const finalUri = `${redirectUri}?token=${encodeURIComponent(token)}&signedIn=true&tier=${encodeURIComponent(tier)}&isAdmin=${isAdmin}`;
+                    window.location.href = finalUri;
+                }
+            }
+            catch (e) { /* ignore malformed redirect_uri */ }
+        }
     }
-    clearSession() {
+    clearSession(options = {}) {
         const token = this.getToken();
         if (token)
             this.unbindToken(token);
@@ -200,13 +235,17 @@ export class AuthService {
         localStorage.removeItem(USER_KEY);
         clearCookie(USER_KEY);
         this.user = null;
+        if (options.notify === false)
+            return;
         // Notify parent VS Code webview of sign-out
         if (typeof window !== 'undefined' && window.parent !== window) {
             window.parent.postMessage({ command: 'setAuthState', signedIn: false }, '*');
         }
+        // Also bridge through the local data-server /api/notify endpoint.
+        notifyAuthState(false);
     }
     _broadcastAuthState() {
-        if (typeof window === 'undefined' || window.parent === window) {
+        if (typeof window === 'undefined') {
             return;
         }
         const signedIn = this.isAuthenticated();
@@ -214,7 +253,13 @@ export class AuthService {
         const user = this.getUser() || {};
         const tier = (user && (user.tier || user.plan)) || this.getTokenTier() || '';
         const isAdmin = this.isAdmin();
-        window.parent.postMessage({ command: 'setAuthState', signedIn, tier, token, isAdmin }, '*');
+        if (window.parent !== window) {
+            window.parent.postMessage({ command: 'setAuthState', signedIn, tier, token, isAdmin }, '*');
+        } else if (/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname)) {
+            // Only use the /api/notify bridge when the dashboard is not inside a webview iframe
+            // (e.g. external browser on localhost). Inside VS Code:'s iframe, postMessage is used.
+            notifyAuthState(signedIn, tier, token, isAdmin);
+        }
     }
     isAuthenticated() {
         var _a;

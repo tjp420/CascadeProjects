@@ -1,6 +1,6 @@
 import { OLLAMA_DEFAULT_URL } from '../config.js';
 
-import { authService } from './authService.js';
+import { authService } from './authService.js?v=20260713sync6';
 
 /**
  * Is authenticated.

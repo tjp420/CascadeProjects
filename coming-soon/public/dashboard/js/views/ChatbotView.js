@@ -131,10 +131,20 @@ export class ChatbotView {
     try {
       const res = await fetch('/api/chatbot/providers', { method: 'GET', signal: AbortSignal.timeout(3000) });
       if (res.ok) {
-        if (dot) dot.className = 'chatbot-connection-dot chatbot-connection-online';
-        if (text) text.textContent = 'Server connected';
-        if (input) input.disabled = false;
-        if (sendBtn) sendBtn.disabled = false;
+        const data = await res.json().catch(() => ({}));
+        const available = Array.isArray(data.providers) ? data.providers.filter(p => p.available) : [];
+        if (available.length > 0) {
+          if (dot) dot.className = 'chatbot-connection-dot chatbot-connection-online';
+          if (text) text.textContent = `Ready — ${available.map(p => p.label).join(', ')}`;
+          if (input) input.disabled = false;
+          if (sendBtn) sendBtn.disabled = false;
+          return;
+        }
+        if (dot) dot.className = 'chatbot-connection-dot chatbot-connection-offline';
+        if (text) text.textContent = 'No AI provider configured';
+        if (input) input.disabled = true;
+        if (sendBtn) sendBtn.disabled = true;
+        this.showErrorBanner('No AI provider is configured on this server. Add OpenAI or Anthropic keys in Settings → AI providers, or ask your admin to set OPENAI_API_KEY / ANTHROPIC_API_KEY on the server.');
         return;
       }
     } catch (e) {
@@ -142,7 +152,7 @@ export class ChatbotView {
     }
 
     if (dot) dot.className = 'chatbot-connection-dot chatbot-connection-offline';
-    if (text) text.textContent = 'Server offline — run npm start in ai-platform';
+    if (text) text.textContent = 'Chatbot API unavailable';
     if (input) input.disabled = true;
     if (sendBtn) sendBtn.disabled = true;
   }
@@ -335,6 +345,8 @@ export class ChatbotView {
       if (firstAvailable) {
         select.value = firstAvailable.id;
         this.selectedProvider = firstAvailable.id;
+      } else {
+        this.selectedProvider = '';
       }
     } catch (error) {
       // Fallback to hardcoded list with all disabled
@@ -354,6 +366,11 @@ export class ChatbotView {
     const rawMessage = input.value.trim();
 
     if (!rawMessage || this.isLoading) return;
+
+    if (!this.selectedProvider) {
+      this.showErrorBanner('No AI provider is configured. Go to Settings → AI providers and add OpenAI or Anthropic keys.');
+      return;
+    }
 
     // Sanitize message to remove PII before processing
     const message = sanitizePrivacyData(rawMessage);
@@ -391,9 +408,10 @@ export class ChatbotView {
 
       if (!res.ok) {
         if (res.status === 404) {
-          throw new Error('Chatbot API not found. Ensure the ai-platform server is running on port 54355.');
+          throw new Error('Chatbot API not found. Ensure the ai-platform server is running.');
         }
-        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.message || errData.error || `HTTP ${res.status}: ${res.statusText}`);
       }
 
       // Create placeholder for assistant response

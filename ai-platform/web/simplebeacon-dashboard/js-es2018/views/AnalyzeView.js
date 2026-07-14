@@ -2,10 +2,10 @@ import { escapeHtml, showToast, downloadJson, downloadBlob, downloadText, redact
 import { evaluateFunnelMetrics, getFunnelCopy } from '../utils/funnelTrigger.js';
 import { LocalScanService } from '../services/localScanService.js?v=20260709noise3';
 import { fingerprintDirectory, formatFingerprint } from '../services/fingerprintService.js';
-import { probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus, getAgentDownloadUrl, detectPlatform, getPlatformLabel, getInstallInstructions, getAgentFallbackMessage, probeAgent4000, scanViaAgent4000, renderAgentCertificate } from '../services/localAgentService.js?v=20260711themefix1';
-import { runSandboxedDirectoryScan, scanDroppedItems, isDroppedFolder } from '../services/browserSandboxScanService.js?v=20260713dropfix4';
+import { probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus, getAgentDownloadUrl, detectPlatform, getPlatformLabel, getInstallInstructions, getAgentFallbackMessage, probeAgent4000, scanViaAgent4000, renderAgentCertificate, hasExtensionBridgeConfigured } from '../services/localAgentService.js?v=20260711themefix1';
+import { runSandboxedDirectoryScan, scanDroppedItems, isDroppedFolder, captureDroppedEntry } from '../services/browserSandboxScanService.js?v=20260713dropfix7';
 // simplebeacon:production-leak-intent: sample-json - Legitimate documentation about sample file patterns in analysis results
-import { analyzePath, scanPath, summarizeReport, fetchAnalyzeProviders, fetchRepositoryInventory, fetchCodebaseAnalysis, enrichScanReport, fetchZscriptModReport, shouldFetchZscriptReport, isLegacyScanReport, buildMonorepoScopeNote, buildPathInventoryProvenance, renderInventoryProvenanceHtml, refreshPathInventory, liveInventoryForPath, renderScanScopePanel, isSimplebeaconReport, normalizeSimplebeaconReport, aiProviderSupportsSummary, getScanFileMetrics, resolveAutoAnalysisMode, buildScanConclusion, buildConsolidationConclusion, buildFictionDigestPayload, sanitizeFictionDigestExport, resolveCompleteScanTargetPath, normalizeProjectPath, filterIssuesByKind, preparePlatformResultsReport, fetchCompleteAuditReport, fetchAnalyzeExportBundleZip, fetchEuAiActAuditReport, openAuditReportPrintWindow, previewAuditExportTier, auditExportButtonLabel, fetchDataCleanupScan, ensureDashboardApiReady, assertCompleteScanComplianceFresh, assertCompleteScanFileReductionFresh, fetchUnderstandSnippet, isCodebaseReport, fetchComplianceChecklist, fetchProjectNpmAudit, prepareGithubRepo, fetchAnalyzeTestSources, isAnalyzeProviderConfigured, uploadDirectoryAndAnalyze } from '../services/analyzeService.js?v=20260713dropfix5';
+import { analyzePath, scanPath, summarizeReport, fetchAnalyzeProviders, fetchRepositoryInventory, fetchCodebaseAnalysis, enrichScanReport, fetchZscriptModReport, shouldFetchZscriptReport, isLegacyScanReport, buildMonorepoScopeNote, buildPathInventoryProvenance, renderInventoryProvenanceHtml, refreshPathInventory, liveInventoryForPath, renderScanScopePanel, isSimplebeaconReport, normalizeSimplebeaconReport, aiProviderSupportsSummary, getScanFileMetrics, resolveAutoAnalysisMode, buildScanConclusion, buildConsolidationConclusion, buildFictionDigestPayload, sanitizeFictionDigestExport, resolveCompleteScanTargetPath, normalizeProjectPath, filterIssuesByKind, preparePlatformResultsReport, convertSandboxReportToSimplebeacon, fetchCompleteAuditReport, fetchAnalyzeExportBundleZip, fetchEuAiActAuditReport, openAuditReportPrintWindow, previewAuditExportTier, auditExportButtonLabel, fetchDataCleanupScan, ensureDashboardApiReady, assertCompleteScanComplianceFresh, assertCompleteScanFileReductionFresh, fetchUnderstandSnippet, isCodebaseReport, fetchComplianceChecklist, fetchProjectNpmAudit, prepareGithubRepo, fetchAnalyzeTestSources, isAnalyzeProviderConfigured, uploadDirectoryAndAnalyze } from '../services/analyzeService.js?v=20260714results1';
 import { isRemoteRepoUrl, sourceChipTitle } from '../lib/analyzePathSources.js';
 import { reportMatchesPagePath, resolvePageProjectPath, getPathInputDisplayValue } from '../lib/pageRepoScan.js';
 import { collectPathSuggestions, refreshPathSuggestionsDatalist, pathInputListAttr, renderPathSuggestionsDatalistElement, saveRecentPath, removeRecentPath, loadRecentPaths } from '../lib/analyzePathSuggestions.js';
@@ -13,6 +13,7 @@ import { validateProjectPathAllowlist, ensureAllowedAnalysisRoots } from '../lib
 import { isBenchmarkCachePath } from '../utils/complete-scan-artifact-profile.browser.js';
 import { runEuAiActSprint } from '../services/operatorService.js?v=20260531eupdf1';
 import { renderModeFileScopePanel, extractRoadmapFileMetrics } from '../utils/analyze-mode-file-scope.browser.js?v=20260601roadmapscope1';
+import { renderAnalysisWorkflow, resolveAnalysisWorkflowStep } from '../components/AnalysisWorkflow.js';
 import { renderModeFileResultsPanel } from '../utils/analyze-mode-file-results.browser.js?v=20260601filereconcile1';
 import { renderScanPaywall, buildPublicSummaryFromScan, isDeliverableLocked } from '../components/ScanPaywall.js';
 import { AI_SYSTEM_ISSUES, ANALYZER_CATALOG, groupIssuesByCategory, buildAiSystemsIssueAnalysis } from '../services/aiProblemAnalyzerSuite.mjs';
@@ -32,45 +33,8 @@ import { renderCodebasePanel, buildCodebaseConclusion } from '../components/Code
 import { renderUnderstandingPanel, buildUnderstandingConclusion } from '../components/UnderstandingReport.js';
 import { renderZscriptReportPanel, buildZscriptConclusion } from '../components/ZscriptReport.js';
 import { showLoginModal } from '../components/LoginModal.js';
-import { authService } from '../services/authService.js';
+import { authService } from '../services/authService.js?v=20260713sync6';
 import { fetchCliApiKey, fetchCliHistory, fetchCliReport, renderCliUploadCard, renderCliReport } from '../services/cliUploadService.js?v=20260711apibase1';
-const PRIVACY_NOTICE_KEY = 'sb_privacy_notice_dismissed';
-const PRIVACY_NOTICE_TEXT = '100% private. Your source code never leaves your browser. Browser scans use a lightweight heuristic engine (no npm audit, no AST). For full analysis, run the server dashboard, open analyzer (auto-detected port), or upload a CLI report JSON.';
-function renderPrivacyBanner() {
-    if (typeof localStorage !== 'undefined' && localStorage.getItem(PRIVACY_NOTICE_KEY) === '1') {
-        return '';
-    }
-    return `
-    <div class="privacy-banner" id="analyze-privacy-banner">
-      <span class="privacy-banner-icon">🔒</span>
-      <span class="privacy-banner-text">${PRIVACY_NOTICE_TEXT}</span>
-      <button class="privacy-banner-close" id="analyze-privacy-banner-close" aria-label="Dismiss privacy notice">✕</button>
-    </div>
-  `;
-}
-function renderPrivacyCard() {
-    return `
-    <div class="card privacy-card">
-      <div class="privacy-card-header">
-        <span class="privacy-card-icon">🔒</span>
-        <span class="privacy-card-title">Privacy-first scanning</span>
-      </div>
-      <p class="privacy-card-text">${PRIVACY_NOTICE_TEXT}</p>
-    </div>
-  `;
-}
-function bindPrivacyBanner(container) {
-    const banner = container.querySelector('#analyze-privacy-banner');
-    const closeBtn = container.querySelector('#analyze-privacy-banner-close');
-    if (!banner || !closeBtn)
-        return;
-    closeBtn.addEventListener('click', () => {
-        banner.style.display = 'none';
-        if (typeof localStorage !== 'undefined') {
-            localStorage.setItem(PRIVACY_NOTICE_KEY, '1');
-        }
-    });
-}
 import { MAX_SNIPPET_BYTES, isSupportedSourceFile, isAnalyzerCacheJson, isCleanupExportJson, isFictionDigestJson, isLockfileName, isMarkdownFileName, isScannerMetaFileName, filterSnippetFindingsForFile, scanSnippetText, computeThreatScore, redactMatch, severityLabel } from '../utils/snippetDiagnostic.js?v=20260531analyzers1';
 const SNIPPET_ACCEPT = '.json,.js,.mjs,.cjs,.ts,.tsx,.jsx,.py,.env,.yaml,.yml,.txt,.md,.html,.css,.xml,.toml,.ini,.sh,.ps1,.bat';
 const MAX_UPLOAD_BYTES = 100 * 1024 * 1024; // 100 MB — server-side directory upload limit
@@ -104,55 +68,6 @@ function pathToFileSlug(projectPath) {
  */
 function dateStamp() {
     return new Date().toISOString().slice(0, 10);
-}
-/**
- * Convert a browser-sandbox scanner report (certificate shape) into a simplebeacon-report
- * shape so the Analyze page can render it.
- * @param {Object} report
- * @param {string} projectPath
- * @returns {Object}
- */
-function convertSandboxReportToSimplebeacon(report, projectPath) {
-    const cert = report.certificate || {};
-    const logs = Array.isArray(cert.logs) ? cert.logs : [];
-    const high = Number(cert.highRiskCount) || 0;
-    const medium = Number(cert.mediumRiskCount) || 0;
-    const totalFiles = report.discoveredFiles || report.files.length;
-    const rawIssues = logs.map((entry) => ({
-        severity: String(entry.severity || 'medium').toLowerCase(),
-        type: entry.type || 'Security',
-        filePath: entry.filePath || '',
-        description: entry.message || '',
-        count: 1
-    }));
-    const severityCounts = { critical: 0, high, medium, low: 0, info: 0 };
-    return {
-        type: 'simplebeacon-report',
-        version: '1.0.0',
-        generatedAt: new Date().toISOString(),
-        projectPath: projectPath,
-        projectRoot: projectPath,
-        summary: {
-            totalFiles,
-            totalFindings: rawIssues.length,
-            severityCounts
-        },
-        rawIssues,
-        detectedIssues: rawIssues,
-        findings: rawIssues,
-        repositoryFilesTotal: totalFiles,
-        totalFiles,
-        filesAnalyzed: report.files.length,
-        inventory: {
-            totalFiles,
-            totalFolders: 0,
-            scannedFiles: report.files.length
-        },
-        gate: {
-            pass: cert.letterGrade !== 'F' && totalFiles > 0,
-            score: cert.score != null ? cert.score : 0
-        }
-    };
 }
 const ANALYZE_PREFS_KEY = 'simplebeaconAnalyzePrefs';
 const PREFERRED_PROJECT_BASE_KEY = 'simplebeaconPreferredProjectBase';
@@ -1374,7 +1289,7 @@ export class AnalyzeView {
                         ? 'workspace-health'
                         : ((_e = app.state.analyzeResult) === null || _e === void 0 ? void 0 : _e.kind) === 'eu-ai-act'
                             ? 'eu-ai-act'
-                            : (prefs.analysisType || ((_g = (_f = app.state.analyzeResult) === null || _f === void 0 ? void 0 : _f.data) === null || _g === void 0 ? void 0 : _g.analysisType) || 'complete');
+                            : (prefs.analysisType || ((_g = (_f = app.state.analyzeResult) === null || _f === void 0 ? void 0 : _f.data) === null || _g === void 0 ? void 0 : _g.analysisType) || 'simplebeacon');
         // Recover sandbox scan data if the dashboard-to-analyze handoff lost in-memory state.
         if (!app.state.analyzeResult) {
             try {
@@ -1451,7 +1366,7 @@ export class AnalyzeView {
         this._queueExpanded = false;
         this.websiteMode = false;
         this.realtimeMonitorEnabled = false;
-        this.localMode = prefs.localMode || false;
+        this.localMode = typeof prefs.localMode === 'boolean' ? prefs.localMode : true;
         this._vscodeApiCached = null;
         this.agentStatus = { available: false, scannerAvailable: false };
         this._cliUploadApiKey = null;
@@ -1459,6 +1374,23 @@ export class AnalyzeView {
         this._cliUploadLastSeen = null;
         this._lastAgentReport = null;
         this._refreshReportLocks = new Map();
+        AnalyzeView._activeInstance = this;
+        if (!AnalyzeView._ideDropListenerBound) {
+            AnalyzeView._ideDropListenerBound = true;
+            window.addEventListener('message', (event) => {
+                const data = event.data;
+                if (!data || typeof data !== 'object')
+                    return;
+                if (data.command === 'ideDropPath' && data.path) {
+                    const inst = AnalyzeView._activeInstance;
+                    if (inst)
+                        inst.handleIdeDropPath(data.path, data.name);
+                }
+                else if (data.command === 'ideDropFailed' && data.reason) {
+                    showToast(String(data.reason), 'warning');
+                }
+            });
+        }
     }
     get vscodeEnhanced() {
         if (this._vscodeApiCached !== null)
@@ -1529,105 +1461,28 @@ export class AnalyzeView {
     render() {
         const defaultPath = this.app.state.defaultProjectPath || '';
         const displayPath = this.getPathInputDisplayValue();
+        const workflowStep = resolveAnalysisWorkflowStep(this.app.state, {
+            busy: this.busy,
+            hasResult: !!this.lastResult
+        });
         const el = document.createElement('div');
         el.className = 'fade-in';
         el.innerHTML = `
-      ${renderPrivacyBanner()}
-      <!-- Last scan summary card -->
-      <div id="analyze-last-scan-card" class="analyze-last-scan-wrap">
-        ${this.renderLastScanCard()}
-      </div>
+      <div class="analyze-page">
+        ${renderAnalysisWorkflow(workflowStep, { pageLabel: 'Analysis workflow' })}
+        ${this.renderTargetCard(defaultPath, displayPath)}
 
-      <!-- Two-column layout: Target + Scan Config -->
-      <div class="grid-2 analyze-main-grid">
-        <!-- Left: Target -->
-        <div class="analyze-col">
-          ${this.renderTargetCard(defaultPath, displayPath)}
-
-          ${renderPrivacyCard()}
-
-          <!-- CLI Upload Card -->
-          <div id="cli-upload-card"></div>
-
-          <!-- Quick Actions -->
-          ${this.renderQuickActionsCard()}
-
-          <!-- VS Code Extension Integration -->
-          ${this.renderVscodeExtensionCard()}
-
-          <!-- Advanced Options -->
-          <div class="card analyze-options-card">
-            <details class="analyze-options-details" ${this.showAiProviderSelect() || this.analysisType === 'complete' ? 'open' : ''}>
-              <summary class="analyze-options-summary">
-                <span class="analyze-options-summary-label">Advanced options</span>
-                <span class="text-muted" style="font-size:var(--font-size-xs);">AI provider, understanding mode, roadmap insights</span>
-              </summary>
-              <div class="analyze-options-body">
-                <div class="analyze-options-grid">
-                  <div id="analyze-ai-provider-wrap" class="analyze-ai-provider-wrap${this.showAiProviderSelect() ? '' : ' is-hidden'}">
-                    <label for="ai-provider-select" class="text-muted" style="font-size: var(--font-size-xs);">AI narrative</label>
-                    <select id="ai-provider-select" class="analyze-select" aria-label="AI provider">
-                      <option value="demo">Filesystem scan (no AI)</option>
-                      <option value="active">Active model</option>
-                      <option value="ollama">Ollama</option>
-                      <option value="openai">OpenAI</option>
-                      <option value="anthropic">Anthropic</option>
-                    </select>
-                    <p id="analyze-ai-provider-note" class="text-muted analyze-roadmap-note" style="font-size: var(--font-size-xs); margin: 0.25rem 0 0;"></p>
-                    <button type="button" class="btn btn-ghost btn-sm" id="refresh-analyze-providers-btn" style="margin-top: 0.25rem;">Refresh providers</button>
-                  </div>
-                  <div id="analyze-understanding-wrap" class="analyze-roadmap-insights-wrap${analysisTypeSupportsUnderstanding(this.analysisType) ? '' : ' is-hidden'}">
-                    <label for="understanding-mode-select" class="text-muted" style="font-size: var(--font-size-xs);">Code understanding</label>
-                    <select id="understanding-mode-select" class="analyze-select" aria-label="Code understanding mode">
-                      <option value="off" ${this.understandingMode === 'off' ? 'selected' : ''}>Static scan only</option>
-                      <option value="deterministic" ${this.understandingMode === 'deterministic' ? 'selected' : ''}>Semantic + context</option>
-                      <option value="llm" ${this.understandingMode === 'llm' ? 'selected' : ''}>+ LLM explanation</option>
-                    </select>
-                  </div>
-                  <div id="analyze-roadmap-insights-wrap" class="analyze-roadmap-insights-wrap${analysisTypeSupportsRoadmapInsights(this.analysisType) ? '' : ' is-hidden'}">
-                    <label for="roadmap-insights-select" class="text-muted" style="font-size: var(--font-size-xs);">Roadmap insights</label>
-                    <select id="roadmap-insights-select" class="analyze-select" aria-label="Roadmap insights mode">
-                      <option value="off" ${this.roadmapInsightsMode === 'off' ? 'selected' : ''}>Filesystem only</option>
-                      <option value="deterministic" ${this.roadmapInsightsMode === 'deterministic' ? 'selected' : ''}>Deterministic (no LLM)</option>
-                      <option value="llm" ${this.roadmapInsightsMode === 'llm' ? 'selected' : ''}>+ LLM strategic layer</option>
-                    </select>
-                  </div>
-                  <div class="analyze-realtime-monitor-wrap">
-                    <label class="text-muted" style="font-size: var(--font-size-xs);">Real-time monitoring</label>
-                    <label style="display:flex;align-items:center;gap:0.5rem;font-size:var(--font-size-xs);color:var(--text-muted);cursor:pointer;margin-top:0.25rem;">
-                      <input type="checkbox" id="analyze-realtime-monitor" aria-label="Enable real-time file monitoring" ${this.realtimeMonitorEnabled ? 'checked' : ''}>
-                      <span>Watch filesystem changes and auto-rescan (requires VS Code extension or server watcher)</span>
-                    </label>
-                  </div>
-                  <div class="analyze-local-mode-wrap">
-                    <label class="text-muted" style="font-size: var(--font-size-xs);">Privacy mode</label>
-                    <label style="display:flex;align-items:center;gap:0.5rem;font-size:var(--font-size-xs);color:var(--text-muted);cursor:pointer;margin-top:0.25rem;">
-                      <input type="checkbox" id="analyze-local-mode" aria-label="Scan locally in browser" ${this.localMode ? 'checked' : ''}>
-                      <span>Scan locally in browser — no file data sent to server</span>
-                    </label>
-                  </div>
-                </div>
-                <p id="analyze-roadmap-no-ai-note" class="text-muted analyze-roadmap-note${this.showRoadmapInsightsNote() ? '' : ' is-hidden'}" style="font-size: var(--font-size-xs); margin: var(--space-2) 0 0;">
-                  Roadmap data is always from <code>code-roadmap-generator</code>. Insights layer adds executive summary + risk.
-                </p>
-              </div>
-            </details>
-          </div>
-        </div>
-
-        <!-- Right: Scan Configuration -->
-        <div class="analyze-col">
+        <div class="analyze-config-section">
           ${this.renderSelectedModeDetail()}
         </div>
+
+        <div id="cli-upload-card"></div>
+
+        ${this.busy ? this.renderProgress() : ''}
+
+        <div id="analyze-file-results-section" class="analyze-file-results-section"></div>
+        <div id="analyze-results">${this.renderResults()}</div>
       </div>
-
-      ${this.busy ? this.renderProgress() : ''}
-
-      <!-- Per-file Results -->
-      ${this.renderFileResultsSection()}
-
-      <!-- Results -->
-      <div id="analyze-results">${this.renderResults()}</div>
 
       <!-- Directory browser modal -->
       <div class="modal-overlay hidden" id="dir-browser-modal" aria-hidden="true">
@@ -1837,39 +1692,51 @@ export class AnalyzeView {
         const datalist = isWeb ? '' : renderPathSuggestionsDatalistElement(collectPathSuggestions(this.app, this.testSources));
         const pathSources = isWeb ? '' : this.renderPathSourceSections(defaultPath, displayPath);
         return `
-      <div class="analyze-target-redesign" id="analyze-target-card">
+      <fieldset class="card analyze-target-redesign" id="analyze-target-card" ${this.busy ? 'disabled' : ''}>
         <div class="target-header">
           <span class="target-title"><span>🎯</span> Target</span>
+          <span class="analyze-privacy-badge" title="Privacy mode is on — nothing leaves your browser unless you turn it off"><span aria-hidden="true">🔒</span> Private</span>
           <div class="analyze-path-header-actions">
             <button type="button" class="btn btn-ghost btn-sm" id="use-default-path-btn" ${useDefaultHidden}>Use default</button>
             <button type="button" class="btn btn-ghost btn-sm" id="clear-path-btn">Clear</button>
           </div>
         </div>
 
+        <div class="analyze-target-mode-tabs">
+          <button type="button" class="analyze-target-mode-tab${!isWeb ? ' is-active' : ''}" data-target-mode="path">Local / Server path</button>
+          <button type="button" class="analyze-target-mode-tab${isWeb ? ' is-active' : ''}" data-target-mode="url">Website URL</button>
+          <button type="button" class="analyze-target-mode-tab" data-target-mode="upload">Upload report</button>
+        </div>
+
         <div class="target-body">
           <div class="sb-dropzone is-idle" id="analyze-path-dropzone" role="region" aria-label="Analyze scan drop zone">
             <input type="file" id="analyze-dir-input" webkitdirectory directory hidden aria-label="Select folder to scan on the analyze page">
             <div class="sb-dropzone-idle">
-              <div class="sb-dropzone-icon"><i data-lucide="folder-up" class="icon-32"></i></div>
-              <div class="sb-dropzone-title">Drop a folder or files to scan</div>
-              <div class="sb-dropzone-sub">Your source never leaves the browser. Folders are scanned recursively; files get a quick scan.</div>
-              <div class="sb-dropzone-actions">
-                <button type="button" id="trigger-native-picker" class="btn btn-primary"><i data-lucide="folder-open" class="icon-16"></i> Select Folder</button>
-                <button type="button" id="trigger-file-picker" class="btn btn-ghost">Select Files</button>
+              <div class="sb-dropzone-pitch">
+                <div class="sb-dropzone-icon"><i data-lucide="folder-up" class="icon-32"></i></div>
+                <div class="sb-dropzone-title">Drop a folder, files, or report</div>
+                <div class="sb-dropzone-sub">Folders get a full recursive scan; files get a quick scan; JSON/ZIP reports are imported.</div>
+                <div class="sb-dropzone-privacy"><span aria-hidden="true">🔒</span> Private — nothing leaves your machine unless you turn off Privacy mode.</div>
               </div>
-              <div class="sb-dropzone-path">
-                <p class="sb-dropzone-path-label">Or type a server path / public repo URL</p>
-                <div class="path-row">
-                  <input type="text" id="project-path-input" class="analyze-path-input"
-                    placeholder="${pathPlaceholder}"
-                    value="${escapeHtml(formatPathInputValue(displayPath))}"
-                    list="${pathList}"
-                    spellcheck="false"
-                    autocomplete="list"
-                    aria-label="${pathAria}">
-                  <button type="button" class="btn btn-secondary" id="dropzone-path-analyze-btn">Analyze</button>
+              <div class="sb-dropzone-form">
+                <div class="sb-dropzone-actions">
+                  <button type="button" id="trigger-native-picker" class="btn btn-primary"><i data-lucide="folder-open" class="icon-16"></i> Select Folder</button>
+                  <button type="button" id="trigger-file-picker" class="btn btn-ghost"><i data-lucide="upload" class="icon-16"></i> Select Files</button>
                 </div>
-                ${datalist}
+                <div class="sb-dropzone-path">
+                  <p class="sb-dropzone-path-label">Or type a server path / public repo URL</p>
+                  <div class="path-row">
+                    <input type="text" id="project-path-input" class="analyze-path-input"
+                      placeholder="${pathPlaceholder}"
+                      value="${escapeHtml(formatPathInputValue(displayPath))}"
+                      list="${pathList}"
+                      spellcheck="false"
+                      autocomplete="list"
+                      aria-label="${pathAria}">
+                    <button type="button" class="btn btn-secondary" id="dropzone-path-analyze-btn">Analyze</button>
+                  </div>
+                  ${datalist}
+                </div>
               </div>
             </div>
             <div class="sb-dropzone-drag" aria-hidden="true">
@@ -1898,22 +1765,15 @@ export class AnalyzeView {
           </div>
 
           <p class="hint">${isWeb ? 'Enter a public URL to scan a website.' : 'For local folders, use Select Folder. For server paths or repos, type the path in the target area above.'}</p>
-          <p id="fingerprint-status" class="fingerprint-status"></p>
-          <p id="agent-status" class="agent-status"></p>
+          <p id="fingerprint-status" class="fingerprint-status" hidden></p>
+          <div id="agent-status-wrap" class="analyze-agent-alert" hidden>
+            <span class="analyze-agent-alert-icon" aria-hidden="true">ℹ️</span>
+            <p id="agent-status" class="agent-status"></p>
+          </div>
           <p id="agent-4000-status" class="agent-status"></p>
-          <div id="agent-4000-results"></div>
+          <div id="agent-4000-results" class="analyze-compliance-slot"></div>
           <div id="sandbox-scanner" class="sandbox-scanner" style="display:none;"></div>
           <p id="agent-download-cta" class="agent-download-cta"></p>
-
-          <div class="an-tgt-drop" id="analyze-drop-zone">
-            <div class="an-tgt-drop-icon">📁</div>
-            <h4>Drop a scan report or source file</h4>
-            <p>JSON reports, ZIP bundles, or individual source files</p>
-            <div class="an-tgt-actions">
-              <button type="button" class="btn btn-primary btn-sm" id="analyze-select-file-btn">Select File</button>
-              <button type="button" class="btn btn-secondary btn-sm" id="quick-file-scan-btn">Quick Scan</button>
-            </div>
-          </div>
 
           <div class="options-row">
             ${isWeb ? '' : `
@@ -1945,7 +1805,23 @@ export class AnalyzeView {
         </div>
 
         <input type="file" id="browse-dir-input" webkitdirectory directory hidden>
-      </div>
+        <div class="analyze-target-footer">
+          <div class="analyze-target-footer-row">
+            <button type="button" class="btn btn-primary btn-sm" id="quick-action-run-btn" ${!displayPath || this.busy ? 'disabled' : ''} title="Run analysis on the current path">
+              <i data-lucide="play" class="icon-16"></i> Run Scan
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" id="quick-action-results-btn" ${!this.lastResult ? 'disabled' : ''} title="Open results view">
+              <i data-lucide="bar-chart-2" class="icon-16"></i> Results
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" id="quick-action-export-btn" ${!this.lastResult ? 'disabled' : ''} title="Export scan report">
+              <i data-lucide="download" class="icon-16"></i> Export
+            </button>
+            <button type="button" class="btn btn-ghost btn-sm" id="quick-action-remediation-btn" ${!this.lastResult ? 'disabled' : ''} title="Open remediation roadmap">
+              <i data-lucide="map" class="icon-16"></i> Remediate
+            </button>
+          </div>
+        </div>
+      </fieldset>
     `;
     }
     renderSnippetResults(result) {
@@ -2696,8 +2572,18 @@ export class AnalyzeView {
                 ? `~${Math.max(1, Math.round(selectedCount * 0.15))} min`
                 : '~30 sec'
             : '';
+        const modeChips = ANALYSIS_MODES.map((m) => `
+            <button type="button" class="analyze-mode-chip ${this.analysisType === m.value ? 'is-active' : ''}" data-mode="${escapeHtml(m.value)}" title="${escapeHtml(m.desc)}">
+              <span class="analyze-mode-chip-icon">${m.icon}</span>
+              <span class="analyze-mode-chip-label">${escapeHtml(m.label)}</span>
+            </button>`).join('');
+        const upgradeChip = this.analysisType !== 'complete'
+            ? `<button type="button" class="btn btn-accent btn-sm analyze-upgrade-chip" data-upgrade-mode="complete" title="Run all engines for a complete audit">⚡ Upgrade to Complete</button>`
+            : '';
+        const displayPath = this.getPathInputDisplayValue();
+        const runDisabled = !displayPath || this.busy;
         return `
-      <div class="analyze-mode-detail card" id="analyze-mode-detail">
+      <fieldset class="analyze-mode-detail card" id="analyze-mode-detail" ${this.busy ? 'disabled' : ''}>
         <div class="analyze-mode-hero">
           <div class="analyze-mode-hero-main">
             <span class="analyze-mode-hero-icon">${mode.icon}</span>
@@ -2713,13 +2599,77 @@ export class AnalyzeView {
             </div>
             ${estimatedTime ? `<div class="analyze-mode-stat"><span class="analyze-mode-stat-value">${estimatedTime}</span><span class="analyze-mode-stat-label">est.</span></div>` : ''}
           </div>
+          <button type="button" class="btn btn-primary analyze-mode-run-btn" id="analyze-mode-run-btn" ${runDisabled ? 'disabled' : ''}>
+            <i data-lucide="play" class="icon-16"></i> Run ${escapeHtml(mode.label)}
+          </button>
+        </div>
+        <div class="analyze-mode-selector-row">
+          <div class="analyze-mode-chip-row">
+            ${modeChips}
+          </div>
+          ${upgradeChip}
         </div>
         <p class="analyze-mode-desc">${escapeHtml(mode.desc)}</p>
         ${engineQueueHtml}
         ${stepsHtml}
         ${fileScopeHtml}
+        <details class="analyze-options-details" ${this.showAiProviderSelect() || this.analysisType === 'complete' ? 'open' : ''}>
+          <summary class="analyze-options-summary">
+            <span class="analyze-options-summary-label">Advanced options</span>
+            <span class="text-muted" style="font-size:var(--font-size-xs);">AI provider, understanding, roadmap, real-time, privacy</span>
+          </summary>
+          <div class="analyze-options-body">
+            <div class="analyze-options-grid">
+              <div id="analyze-ai-provider-wrap" class="analyze-ai-provider-wrap${this.showAiProviderSelect() ? '' : ' is-hidden'}">
+                <label for="ai-provider-select" class="text-muted" style="font-size: var(--font-size-xs);">AI narrative</label>
+                <select id="ai-provider-select" class="analyze-select" aria-label="AI provider">
+                  <option value="demo" ${this.aiProvider === 'demo' ? 'selected' : ''}>Filesystem scan (no AI)</option>
+                  <option value="active" ${this.aiProvider === 'active' ? 'selected' : ''}>Active model</option>
+                  <option value="ollama" ${this.aiProvider === 'ollama' ? 'selected' : ''}>Ollama</option>
+                  <option value="openai" ${this.aiProvider === 'openai' ? 'selected' : ''}>OpenAI</option>
+                  <option value="anthropic" ${this.aiProvider === 'anthropic' ? 'selected' : ''}>Anthropic</option>
+                </select>
+                <p id="analyze-ai-provider-note" class="text-muted analyze-roadmap-note" style="font-size: var(--font-size-xs); margin: 0.25rem 0 0;"></p>
+                <button type="button" class="btn btn-ghost btn-sm" id="refresh-analyze-providers-btn" style="margin-top: 0.25rem;">Refresh providers</button>
+              </div>
+              <div id="analyze-understanding-wrap" class="analyze-roadmap-insights-wrap${analysisTypeSupportsUnderstanding(this.analysisType) ? '' : ' is-hidden'}">
+                <label for="understanding-mode-select" class="text-muted" style="font-size: var(--font-size-xs);">Code understanding</label>
+                <select id="understanding-mode-select" class="analyze-select" aria-label="Code understanding mode">
+                  <option value="off" ${this.understandingMode === 'off' ? 'selected' : ''}>Static scan only</option>
+                  <option value="deterministic" ${this.understandingMode === 'deterministic' ? 'selected' : ''}>Semantic + context</option>
+                  <option value="llm" ${this.understandingMode === 'llm' ? 'selected' : ''}>+ LLM explanation</option>
+                </select>
+              </div>
+              <div id="analyze-roadmap-insights-wrap" class="analyze-roadmap-insights-wrap${analysisTypeSupportsRoadmapInsights(this.analysisType) ? '' : ' is-hidden'}">
+                <label for="roadmap-insights-select" class="text-muted" style="font-size: var(--font-size-xs);">Roadmap insights</label>
+                <select id="roadmap-insights-select" class="analyze-select" aria-label="Roadmap insights mode">
+                  <option value="off" ${this.roadmapInsightsMode === 'off' ? 'selected' : ''}>Filesystem only</option>
+                  <option value="deterministic" ${this.roadmapInsightsMode === 'deterministic' ? 'selected' : ''}>Deterministic (no LLM)</option>
+                  <option value="llm" ${this.roadmapInsightsMode === 'llm' ? 'selected' : ''}>+ LLM strategic layer</option>
+                </select>
+              </div>
+              <div class="analyze-realtime-monitor-wrap">
+                <label class="text-muted" style="font-size: var(--font-size-xs);">Real-time monitoring</label>
+                <label style="display:flex;align-items:center;gap:0.5rem;font-size:var(--font-size-xs);color:var(--text-muted);cursor:pointer;margin-top:0.25rem;">
+                  <input type="checkbox" id="analyze-realtime-monitor" aria-label="Enable real-time file monitoring" ${this.realtimeMonitorEnabled ? 'checked' : ''}>
+                  <span>Watch filesystem changes and auto-rescan</span>
+                </label>
+              </div>
+              <div class="analyze-local-mode-wrap">
+                <label class="text-muted" style="font-size: var(--font-size-xs);">Privacy mode</label>
+                <label style="display:flex;align-items:center;gap:0.5rem;font-size:var(--font-size-xs);color:var(--text-muted);cursor:pointer;margin-top:0.25rem;">
+                  <input type="checkbox" id="analyze-local-mode" aria-label="Scan locally in browser" ${this.localMode ? 'checked' : ''}>
+                  <span>Scan locally in browser — no file data sent to server</span>
+                </label>
+              </div>
+            </div>
+            <p id="analyze-roadmap-no-ai-note" class="text-muted analyze-roadmap-note${this.showRoadmapInsightsNote() ? '' : ' is-hidden'}" style="font-size: var(--font-size-xs); margin: var(--space-2) 0 0;">
+              Roadmap data is always from <code>code-roadmap-generator</code>. Insights layer adds executive summary + risk.
+            </p>
+          </div>
+        </details>
         ${alsoAvailable}
-      </div>
+      </fieldset>
     `;
     }
     renderFileResultsSection() {
@@ -2810,7 +2760,7 @@ export class AnalyzeView {
         const upgradePrompt = isStarter && totalFindings > maxFindings
             ? `<div class="mb-4" style="padding:var(--space-3);background:var(--warning-bg, #fffbeb);border:1px solid var(--warning-border, #f59e0b);border-radius:8px;color:var(--warning-text, #92400e);font-size:var(--font-size-sm);">
           <strong>🔒 Pro feature</strong> — ${totalFindings} findings detected. Upgrade to Pro to see all findings and the quality score.
-          <a href="/pricing" style="color:var(--link-color, #2563eb);text-decoration:underline;font-weight:600;">Upgrade</a>
+          <a href="/dashboard/pricing" data-pricing-cta="1" style="color:var(--link-color, #2563eb);text-decoration:underline;font-weight:600;">Upgrade</a>
          </div>`
             : '';
         return `
@@ -3354,7 +3304,7 @@ export class AnalyzeView {
                 : '';
         if (this.analysisType !== 'complete' || !steps.length) {
             return `
-        <div class="analyze-progress" id="analyze-progress">
+        <div class="analyze-progress analyze-progress-sticky" id="analyze-progress">
           <div class="analyze-progress-header">
             <span class="analyze-progress-label">${escapeHtml(label)}</span>
             <span class="text-muted analyze-progress-elapsed">${elapsed}</span>
@@ -3363,11 +3313,17 @@ export class AnalyzeView {
           ${counter ? `<div class="analyze-progress-counter text-muted">${escapeHtml(counter)}</div>` : '<div class="analyze-progress-counter text-muted" hidden></div>'}
           ${scopeNote ? `<div class="analyze-progress-scope-note text-muted">${escapeHtml(scopeNote)}</div>` : '<div class="analyze-progress-scope-note text-muted" hidden></div>'}
           ${currentFile ? `<div class="analyze-progress-current-file" title="${escapeHtml((sp === null || sp === void 0 ? void 0 : sp.currentFile) || '')}">${escapeHtml(currentFile)}</div>` : '<div class="analyze-progress-current-file" hidden></div>'}
+          <details class="analyze-progress-log">
+            <summary>Live log</summary>
+            <div class="analyze-progress-log-body" id="analyze-progress-log-body">
+              ${this._terminalLogLines.map((ln) => `<div class="terminal-line">${ln}</div>`).join('')}
+            </div>
+          </details>
         </div>
       `;
         }
         return `
-      <div class="analyze-progress" id="analyze-progress">
+      <div class="analyze-progress analyze-progress-sticky" id="analyze-progress">
         <div class="analyze-progress-header">
           <span class="analyze-progress-label">${runningStep ? `Step ${doneCount + 1}/${total}: ${runningStep.label}…` : `Complete scan — ${doneCount}/${total} steps`}</span>
           <span class="text-muted analyze-progress-elapsed">${elapsed}</span>
@@ -3384,6 +3340,12 @@ export class AnalyzeView {
             </div>
           `).join('')}
         </div>
+        <details class="analyze-progress-log">
+          <summary>Live log</summary>
+          <div class="analyze-progress-log-body" id="analyze-progress-log-body">
+            ${this._terminalLogLines.map((ln) => `<div class="terminal-line">${ln}</div>`).join('')}
+          </div>
+        </details>
       </div>
     `;
     }
@@ -3628,10 +3590,16 @@ export class AnalyzeView {
                         this._terminalLogLines.shift();
                     }
                     // Re-render terminal body content
+                    const logHtml = this._terminalLogLines.map((ln) => `<div class="terminal-line">${ln}</div>`).join('');
                     const dropzoneTerminal = (_f = this._root) === null || _f === void 0 ? void 0 : _f.querySelector('#dropzone-terminal-body');
                     if (dropzoneTerminal) {
-                        dropzoneTerminal.innerHTML = this._terminalLogLines.map((ln) => `<div class="terminal-line">${ln}</div>`).join('');
+                        dropzoneTerminal.innerHTML = logHtml;
                         dropzoneTerminal.scrollTop = dropzoneTerminal.scrollHeight;
+                    }
+                    const progressLogBody = (_g = this._root) === null || _g === void 0 ? void 0 : _g.querySelector('#analyze-progress-log-body');
+                    if (progressLogBody) {
+                        progressLogBody.innerHTML = logHtml;
+                        progressLogBody.scrollTop = progressLogBody.scrollHeight;
                     }
                 }
             }
@@ -4342,12 +4310,18 @@ export class AnalyzeView {
     }
     updateAgentStatusUI(root, text = '', available = false) {
         var _a;
+        const wrap = root === null || root === void 0 ? void 0 : root.querySelector('#agent-status-wrap');
         const status = root === null || root === void 0 ? void 0 : root.querySelector('#agent-status');
         if (!status)
             return;
         status.textContent = text;
         status.classList.remove('available', 'unavailable');
         status.classList.add(available ? 'available' : 'unavailable');
+        if (wrap) {
+            wrap.hidden = !text;
+            wrap.classList.toggle('is-available', !!available);
+            wrap.classList.toggle('is-unavailable', !available && !!text);
+        }
         const cta = root === null || root === void 0 ? void 0 : root.querySelector('#agent-download-cta');
         if (!cta)
             return;
@@ -4522,18 +4496,24 @@ export class AnalyzeView {
                 try {
                     const s = await probeAgent4000();
                     if (s.available) {
-                        status4000.textContent = 'Localhost:4000 agent connected — typed local paths will be scanned locally';
+                        status4000.textContent = s.extensionBridge
+                            ? 'IDE scan bridge connected — typed local paths scan via extension'
+                            : 'Localhost:4000 agent connected — typed local paths will be scanned locally';
                         status4000.classList.remove('unavailable');
                         status4000.classList.add('available');
                     }
                     else {
-                        status4000.textContent = 'Localhost:4000 agent offline (run node agent.js to enable local path scans)';
+                        status4000.textContent = hasExtensionBridgeConfigured()
+                            ? 'IDE scan bridge offline — reload the SimpleBeacon window'
+                            : 'Localhost:4000 agent offline (run node agent.js to enable local path scans)';
                         status4000.classList.remove('available');
                         status4000.classList.add('unavailable');
                     }
                 }
                 catch (_a) {
-                    status4000.textContent = 'Localhost:4000 agent offline (run node agent.js to enable local path scans)';
+                    status4000.textContent = hasExtensionBridgeConfigured()
+                        ? 'IDE scan bridge offline — reload the SimpleBeacon window'
+                        : 'Localhost:4000 agent offline (run node agent.js to enable local path scans)';
                     status4000.classList.remove('available');
                     status4000.classList.add('unavailable');
                 }
@@ -4542,8 +4522,46 @@ export class AnalyzeView {
             this._agent4000Timer = window.setInterval(update4000, 5000);
         }
         const pathInput = el.querySelector('#project-path-input');
-        const typeSelect = el.querySelector('#analysis-type-select');
         const providerSelect = el.querySelector('#ai-provider-select');
+        // Event delegation for select fields that live inside re-rendered config card
+        el.addEventListener('change', (event) => {
+            const target = event.target;
+            if (!target || !target.id)
+                return;
+            if (target.id === 'analysis-type-select') {
+                this.setAnalysisType(target.value, { typeSelect: target });
+            }
+            else if (target.id === 'ai-provider-select') {
+                this.aiProvider = target.value;
+                saveAnalyzePrefs({
+                    analysisType: this.analysisType,
+                    aiProvider: this.aiProvider,
+                    roadmapInsightsMode: this.roadmapInsightsMode,
+                    understandingMode: this.understandingMode
+                });
+                this.syncAiProviderNote(el);
+            }
+            else if (target.id === 'understanding-mode-select') {
+                this.understandingMode = target.value;
+                saveAnalyzePrefs({
+                    analysisType: this.analysisType,
+                    aiProvider: this.aiProvider,
+                    roadmapInsightsMode: this.roadmapInsightsMode,
+                    understandingMode: this.understandingMode
+                });
+                this.syncAnalyzeModeUi(el);
+            }
+            else if (target.id === 'roadmap-insights-select') {
+                this.roadmapInsightsMode = target.value;
+                saveAnalyzePrefs({
+                    analysisType: this.analysisType,
+                    aiProvider: this.aiProvider,
+                    roadmapInsightsMode: this.roadmapInsightsMode,
+                    understandingMode: this.understandingMode
+                });
+                this.syncAnalyzeModeUi(el);
+            }
+        });
         (_a = el.querySelector('#analyze-full-directory')) === null || _a === void 0 ? void 0 : _a.addEventListener('change', (event) => {
             // Full-tree scanning is now the enforced default so analyzed-file counts match repository inventory.
             this.fullDirectoryScan = true;
@@ -4569,39 +4587,6 @@ export class AnalyzeView {
         this.bindClientDeliverablePicker(el);
         this.bindCodebaseSectionEvents(el);
         this.bindFileReductionSectionEvents(el);
-        typeSelect === null || typeSelect === void 0 ? void 0 : typeSelect.addEventListener('change', () => {
-            this.setAnalysisType(typeSelect.value, { typeSelect });
-        });
-        providerSelect === null || providerSelect === void 0 ? void 0 : providerSelect.addEventListener('change', () => {
-            this.aiProvider = providerSelect.value;
-            saveAnalyzePrefs({
-                analysisType: this.analysisType,
-                aiProvider: this.aiProvider,
-                roadmapInsightsMode: this.roadmapInsightsMode,
-                understandingMode: this.understandingMode
-            });
-            this.syncAiProviderNote(el);
-        });
-        (_c = el.querySelector('#roadmap-insights-select')) === null || _c === void 0 ? void 0 : _c.addEventListener('change', (e) => {
-            this.roadmapInsightsMode = e.target.value;
-            saveAnalyzePrefs({
-                analysisType: this.analysisType,
-                aiProvider: this.aiProvider,
-                roadmapInsightsMode: this.roadmapInsightsMode,
-                understandingMode: this.understandingMode
-            });
-            this.syncAnalyzeModeUi(el);
-        });
-        (_d = el.querySelector('#understanding-mode-select')) === null || _d === void 0 ? void 0 : _d.addEventListener('change', (e) => {
-            this.understandingMode = e.target.value;
-            saveAnalyzePrefs({
-                analysisType: this.analysisType,
-                aiProvider: this.aiProvider,
-                roadmapInsightsMode: this.roadmapInsightsMode,
-                understandingMode: this.understandingMode
-            });
-            this.syncAnalyzeModeUi(el);
-        });
         (_e = el.querySelector('#use-default-path-btn')) === null || _e === void 0 ? void 0 : _e.addEventListener('click', () => {
             const path = this.app.state.defaultProjectPath;
             if (path && pathInput) {
@@ -4655,6 +4640,61 @@ export class AnalyzeView {
             this.app.state.remediationPayload = payload;
             this.app.navigate('remediation');
         });
+        // Mode chip selector and config card Run button
+        el.addEventListener('click', (event) => {
+            const chip = event.target.closest('.analyze-mode-chip');
+            if (chip && chip.dataset.mode) {
+                this.setAnalysisType(chip.dataset.mode, { typeSelect: null });
+                return;
+            }
+            const runBtn = event.target.closest('#analyze-mode-run-btn');
+            if (runBtn) {
+                const pathInput = el.querySelector('#project-path-input');
+                const raw = pathInput === null || pathInput === void 0 ? void 0 : pathInput.value;
+                if (raw) {
+                    const resolved = this.resolveProjectPath(raw.trim());
+                    if (resolved)
+                        void this.runPathAnalysis(resolved);
+                }
+            }
+        });
+        // Upgrade to Complete chip
+        (_l = el.querySelector('.analyze-upgrade-chip')) === null || _l === void 0 ? void 0 : _l.addEventListener('click', () => {
+            this.setAnalysisType('complete', { typeSelect: null });
+        });
+        // Tabbed results dashboard
+        el.addEventListener('click', (event) => {
+            const tab = event.target.closest('.analyze-results-tab');
+            if (!tab || !tab.dataset.tab)
+                return;
+            const tabId = tab.dataset.tab;
+            const dashboard = el.querySelector('.analyze-results-dashboard');
+            if (!dashboard)
+                return;
+            dashboard.querySelectorAll('.analyze-results-tab').forEach((t) => t.classList.toggle('is-active', t.dataset.tab === tabId));
+            dashboard.querySelectorAll('.analyze-results-panel').forEach((p) => p.classList.toggle('is-hidden', p.dataset.panel !== tabId));
+        });
+        // Target mode tabs (path / url / upload)
+        const targetModeTabs = el.querySelector('.analyze-target-mode-tabs');
+        if (targetModeTabs) {
+            targetModeTabs.addEventListener('click', (event) => {
+                const tab = event.target.closest('.analyze-target-mode-tab');
+                if (!tab)
+                    return;
+                const mode = tab.dataset.targetMode;
+                if (mode === 'upload') {
+                    this.websiteMode = false;
+                    showToast('Upload mode: use Select Files or drop a report into the target area.', 'info');
+                }
+                else if (mode === 'url') {
+                    this.websiteMode = true;
+                }
+                else {
+                    this.websiteMode = false;
+                }
+                this.refresh();
+            });
+        }
         // VS Code Extension card — sync report to sidebar
         (_l = el.querySelector('#vscode-sync-report-btn')) === null || _l === void 0 ? void 0 : _l.addEventListener('click', () => {
             var _a, _b, _c, _d;
@@ -5176,19 +5216,39 @@ export class AnalyzeView {
                 // DataTransferItemList once the event handler yields.
                 const itemArray = items ? Array.from(items) : [];
                 const fileArray = dtFiles ? Array.from(dtFiles) : [];
-                if (itemArray.length === 0 && fileArray.length === 0) {
+                const webkitEntry = captureDroppedEntry(itemArray);
+                const folderHint = (webkitEntry && webkitEntry.name) || (fileArray[0] && fileArray[0].name) || 'selected';
+                const snapshotPath = this.extractAbsoluteDroppedPath(event, folderHint);
+                if (itemArray.length === 0 && fileArray.length === 0 && !snapshotPath) {
                     setAnalyzeDropzoneState('idle');
+                    return;
+                }
+                // IDE/webview drops often expose only an absolute path — route to server/agent scan.
+                if (snapshotPath) {
+                    setAnalyzeDropzoneState('scanning');
+                    if (analyzeTerminal)
+                        analyzeTerminal.textContent = `Using dropped path: ${snapshotPath}`;
+                    const pathInput = el.querySelector('#project-path-input');
+                    if (pathInput) {
+                        pathInput.value = snapshotPath;
+                        this.app.state.pathInputDraft = '';
+                        this.app.state.lastProjectPath = snapshotPath;
+                        this.setPathInputDisplay(pathInput, snapshotPath);
+                        this.syncAnalyzeModeUi(el);
+                    }
+                    void this.runPathAnalysis(snapshotPath);
                     return;
                 }
                 setAnalyzeDropzoneState('scanning');
                 if (analyzeTerminal)
                     analyzeTerminal.textContent = 'Reading dropped items…';
                 try {
-                    const droppedFolder = await isDroppedFolder(itemArray);
+                    const droppedFolder = (webkitEntry && webkitEntry.isDirectory) || await isDroppedFolder(itemArray);
                     const firstFile = itemArray[0] && typeof itemArray[0].getAsFile === 'function' ? itemArray[0].getAsFile() : null;
-                    const folderName = (firstFile && firstFile.name) || 'selected';
+                    const folderName = (firstFile && firstFile.name) || (webkitEntry && webkitEntry.name) || 'selected';
                     if (droppedFolder) {
                         const report = await scanDroppedItems(itemArray, {
+                            webkitEntry,
                             onLog: (entry) => {
                                 if (analyzeTerminal)
                                     analyzeTerminal.textContent += `\n[${entry.level.toUpperCase()}] ${entry.message}`;
@@ -5207,6 +5267,7 @@ export class AnalyzeView {
                             certEl.style.display = 'block';
                             renderAgentCertificate(report, certEl);
                         }
+                        this.applySandboxScanResult(report);
                     }
                     else if (fileArray.length) {
                         const files = fileArray;
@@ -5222,13 +5283,17 @@ export class AnalyzeView {
                     }
                 }
                 catch (err) {
-                    console.error('[AnalyzeView] Sandbox scan failed:', err);
                     const msg = (err && err.message) || '';
+                    if (msg.includes('No scannable files or folders detected') || msg.includes('No items were dropped')) {
+                        console.warn('[AnalyzeView] Sandbox scan unavailable in this context — falling back to path-based scan.');
+                    } else {
+                        console.error('[AnalyzeView] Sandbox scan failed:', err);
+                    }
                     // IDE/webview drag sources often expose the absolute path via text/uri-list
                     // or file.path even though DataTransfer items are not readable for the sandbox.
                     if (msg.includes('No items were dropped') || msg.includes('No scannable files or folders detected') || msg.includes('No scannable files were dropped')) {
-                        const folderName = (fileArray[0] && fileArray[0].name) || 'selected';
-                        const absolutePath = this.extractAbsoluteDroppedPath(event, folderName);
+                        const folderName = (fileArray[0] && fileArray[0].name) || (webkitEntry && webkitEntry.name) || 'selected';
+                        const absolutePath = snapshotPath || this.extractAbsoluteDroppedPath(event, folderName);
                         if (absolutePath) {
                             const pathInput = el.querySelector('#project-path-input');
                             if (pathInput) {
@@ -5264,7 +5329,7 @@ export class AnalyzeView {
         // View Results button navigates to the full results view
         const analyzeViewResultsBtn = el.querySelector('#analyze-dropzone-view-results');
         analyzeViewResultsBtn === null || analyzeViewResultsBtn === void 0 ? void 0 : analyzeViewResultsBtn.addEventListener('click', () => {
-            this.app.navigate('results');
+            this.openResultsView();
         });
         // Quick file picker for Analyze dropzone
         if (analyzeFilePicker) {
@@ -6571,6 +6636,7 @@ export class AnalyzeView {
         this._terminalLogLines = [];
         this.app.state.analyzeResult = null;
         this.app.state.report = null;
+        await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
         this.refresh();
         if (!dirHandle && !files) {
             showToast('Select a local folder to scan privately…', 'info');
@@ -6679,6 +6745,78 @@ export class AnalyzeView {
             this.refresh();
         }
     }
+    /**
+     * Handle folder path forwarded from the IDE wrapper overlay (VS Code webview).
+     * @param {string} rawPath
+     * @param {string} [name]
+     */
+    handleIdeDropPath(rawPath, name) {
+        const path = String(rawPath || '').trim();
+        if (!path)
+            return;
+        const normalized = path.replace(/\\/g, '/');
+        const resolved = this.resolveProjectPath(normalized) || normalized;
+        const root = this._root;
+        const pathInput = root === null || root === void 0 ? void 0 : root.querySelector('#project-path-input');
+        if (pathInput) {
+            this.setPathInputDisplay(pathInput, resolved);
+            this.app.state.lastProjectPath = resolved;
+            this.app.state.pathInputDraft = '';
+            if (root)
+                this.syncAnalyzeModeUi(root);
+        }
+        showToast(name ? `Scanning dropped folder: ${name}` : 'Scanning dropped folder…', 'info');
+        void this.runPathAnalysis(resolved);
+    }
+    /**
+     * Persist a browser sandbox scan as lastResult so export/remediation actions work.
+     * @param {Object} report
+     * @param {HTMLElement} [resultsEl]
+     */
+    applySandboxScanResult(report, resultsEl) {
+        if (!report)
+            return;
+        this._lastAgentReport = report;
+        const cert = report.certificate;
+        const message = cert
+            ? `Sandbox scan complete — Grade ${cert.letterGrade} | ${report.files.length} files | Liability ${cert.liabilityStr}`
+            : `Sandbox scan complete — ${report.files.length} files`;
+        showToast(message, 'success');
+        if (resultsEl)
+            renderAgentCertificate(report, resultsEl);
+        const projectPath = report.verifiedAddress || report.path || this.getActiveProjectPath() || 'local-scan';
+        const simplebeaconReport = convertSandboxReportToSimplebeacon(report, projectPath);
+        const conclusion = buildScanConclusion(simplebeaconReport);
+        this.repositoryInventory = simplebeaconReport.inventory || null;
+        this.lastResult = {
+            kind: 'simplebeacon-report',
+            report: simplebeaconReport,
+            projectPath,
+            repositoryInventory: simplebeaconReport.inventory || null,
+            label: `Local scan: ${projectPath}`,
+            conclusion
+        };
+        this.applyReport(simplebeaconReport, this.lastResult.label, { conclusion });
+        this.app.state.analyzeResult = this.lastResult;
+        this.app.state.report = simplebeaconReport;
+        this.app.scanService.report = simplebeaconReport;
+        try {
+            if (typeof sessionStorage !== 'undefined') {
+                sessionStorage.setItem('sb-last-sandbox-report', JSON.stringify(report));
+                sessionStorage.setItem('sb-last-sandbox-project-path', projectPath);
+                const storagePayload = {
+                    ...simplebeaconReport,
+                    rawIssues: (simplebeaconReport.rawIssues || []).slice(0, 3000),
+                    detectedIssues: (simplebeaconReport.rawIssues || []).slice(0, 3000)
+                };
+                sessionStorage.setItem('sb-last-sandbox-simplebeacon', JSON.stringify(storagePayload));
+            }
+        }
+        catch (_storageErr) {
+            /* quota or private mode — in-memory state still valid for this session */
+        }
+        this.updateLastScanCard();
+    }
     async runSandboxedDirectoryScan() {
         const terminal = this._root && this._root.querySelector('#sandbox-scan-terminal');
         const resultsEl = this._root && this._root.querySelector('#agent-4000-results');
@@ -6701,30 +6839,7 @@ export class AnalyzeView {
                     }
                 }
             });
-            this._lastAgentReport = report;
-            const cert = report && report.certificate;
-            const message = cert
-                ? `Sandbox scan complete — Grade ${cert.letterGrade} | ${report.files.length} files | Liability ${cert.liabilityStr}`
-                : `Sandbox scan complete — ${report.files.length} files`;
-            showToast(message, 'success');
-            renderAgentCertificate(report, resultsEl);
-            const projectPath = report.verifiedAddress || report.path || this.getActiveProjectPath() || 'local-scan';
-            const simplebeaconReport = convertSandboxReportToSimplebeacon(report, projectPath);
-            const conclusion = buildScanConclusion(simplebeaconReport);
-            this.repositoryInventory = simplebeaconReport.inventory || null;
-            this.lastResult = {
-                kind: 'simplebeacon-report',
-                report: simplebeaconReport,
-                projectPath,
-                repositoryInventory: simplebeaconReport.inventory || null,
-                label: `Local scan: ${projectPath}`,
-                conclusion
-            };
-            this.applyReport(simplebeaconReport, this.lastResult.label, { conclusion });
-            this.app.state.analyzeResult = this.lastResult;
-            this.app.state.report = simplebeaconReport;
-            this.app.scanService.report = simplebeaconReport;
-            this.updateLastScanCard();
+            this.applySandboxScanResult(report, resultsEl);
         }
         catch (err) {
             const msg = err.message || 'Sandbox scan failed';
@@ -6735,13 +6850,19 @@ export class AnalyzeView {
     async runPathAnalysis(inputPath) {
         var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p;
         const typedPath = String(inputPath || '').trim();
-        // Lightweight localhost:4000 bridge from the provided agent.js template.
+        let extensionBridgeActive = false;
+        // Lightweight localhost bridge: extension data server (sb_api_base) or agent.js:4000.
         if (isLocalPath(typedPath)) {
             try {
                 const status4000 = await probeAgent4000();
                 if (status4000.available) {
-                    await this.runAgent4000Scan(typedPath);
-                    return;
+                    if (status4000.extensionBridge) {
+                        extensionBridgeActive = true;
+                    }
+                    else {
+                        await this.runAgent4000Scan(typedPath);
+                        return;
+                    }
                 }
             }
             catch (_r) { /* fall through to existing agent/server flow */ }
@@ -6804,7 +6925,7 @@ export class AnalyzeView {
         }
         let projectPath = String(inputPath || '').trim();
         const isLocal = isLocalPath(projectPath);
-        if (isLocal) {
+        if (isLocal && !extensionBridgeActive) {
             // Re-probe in case the agent was started after the page loaded.
             try {
                 this.agentStatus = await probeAgent();
@@ -8782,6 +8903,39 @@ export class AnalyzeView {
         var _a;
         return preparePlatformResultsReport(report, options.projectPath || ((_a = this.lastResult) === null || _a === void 0 ? void 0 : _a.projectPath) || (report === null || report === void 0 ? void 0 : report.projectRoot), options);
     }
+    /**
+     * Render a tabbed results dashboard.
+     * @param {Record<string, string>} panels
+     * @param {string} activeTab
+     * @returns {string}
+     */
+    renderResultsDashboard(panels = {}, activeTab = 'summary') {
+        const tabs = [
+            { id: 'summary', label: 'Summary', always: true },
+            { id: 'findings', label: 'Findings', always: false },
+            { id: 'files', label: 'Files', always: false },
+            { id: 'remediation', label: 'Remediation', always: false },
+            { id: 'export', label: 'Export', always: true }
+        ];
+        const visibleTabs = tabs.filter((t) => t.always || (panels[t.id] && String(panels[t.id]).trim()));
+        const activeTabId = visibleTabs.some((t) => t.id === activeTab) ? activeTab : visibleTabs[0].id;
+        const tabHtml = visibleTabs.map((t) => {
+            const count = t.id === 'findings' ? (panels.findingCount || '') : '';
+            return `<button type="button" class="analyze-results-tab ${t.id === activeTabId ? 'is-active' : ''}" data-tab="${t.id}">${escapeHtml(t.label)}${count ? ` <span class="tab-count">${count}</span>` : ''}</button>`;
+        }).join('');
+        const panelHtml = visibleTabs.map((t) => {
+            const content = panels[t.id] || '';
+            const isHidden = t.id !== activeTabId ? ' is-hidden' : '';
+            return `<div class="analyze-results-panel${isHidden}" data-panel="${t.id}">${content}</div>`;
+        }).join('');
+        return `
+      <div class="section-block analyze-results-dashboard">
+        <div class="analyze-results-tabs">${tabHtml}</div>
+        <div class="analyze-results-panels">${panelHtml}</div>
+        ${this.renderFunnelTrigger()}
+      </div>
+    `;
+    }
     openResultsView(params = {}) {
         const report = this.prepareReportForResults(this.resolveResultsReport());
         if (!report) {
@@ -8817,7 +8971,7 @@ export class AnalyzeView {
         }
         const { kind, report, data, label, projectPath, conclusion } = this.lastResult;
         if (kind === 'complete') {
-            return this.wrapAnalyzeResults(this.renderCompleteResults());
+            return this.renderResultsDashboard({ summary: this.renderCompleteResults(), export: this.renderResultsExportBar() });
         }
         if (kind === 'mock-scan' && report) {
             const fictionCount = (this.lastResult.fictionIssues || filterIssuesByKind(report, 'fiction'))
@@ -8842,11 +8996,8 @@ export class AnalyzeView {
         if (kind === 'simplebeacon-report' || isSimplebeaconReport(report)) {
             const r = report || this.lastResult.report;
             const rawIssues = r.rawIssues || r.detectedIssues || [];
-            return this.wrapAnalyzeResults(`
-        <div class="section-block">
-          <div class="section-heading">
-            <h2>${escapeHtml(label || 'Scan results')}</h2>
-          </div>
+            const summary = `
+          <div class="section-heading"><h2>${escapeHtml(label || 'Scan results')}</h2></div>
           ${this.renderScanScopeBanner(r, projectPath)}
           ${this.renderScanSummary(r, conclusion || buildScanConclusion(r))}
           <div class="metrics-row mb-4">
@@ -8854,9 +9005,9 @@ export class AnalyzeView {
             ${this.renderScanFileMetrics(r)}
             <div class="metric-chip gate-badge ${((_e = r.gate) === null || _e === void 0 ? void 0 : _e.pass) ? 'pass' : 'warn'}">${((_f = r.gate) === null || _f === void 0 ? void 0 : _f.pass) ? 'PASS' : 'REVIEW'}</div>
           </div>
-          ${this.renderIssueFilterToolbar(rawIssues)}
-          <div id="inline-issue-list"></div>
-          ${r.fileNaming ? `
+        `;
+            const findings = this.renderIssueFilterToolbar(rawIssues) + '<div id="inline-issue-list"></div>';
+            const filesContent = `${r.fileNaming ? `
             <div class="card mb-4">
               <div class="section-heading"><h3>File Naming Analysis</h3></div>
               ${this.renderFileNamingPanel(r.fileNaming)}
@@ -8867,9 +9018,13 @@ export class AnalyzeView {
               <div class="section-heading"><h3>Removable Files Analysis</h3></div>
               ${this.renderRemovableFilesPanel(r.removableFiles)}
             </div>
-          ` : ''}
-        </div>
-      `);
+          ` : ''}`;
+            const files = filesContent.trim()
+                ? filesContent
+                : '<p class="text-muted">No file naming or removable file analysis in this scan.</p>';
+            const remediation = `<p class="text-muted">Run a <strong>Complete scan</strong> or <strong>Cleanup assistant</strong> to generate a remediation plan.</p>`;
+            const exportBar = this.renderResultsExportBar();
+            return this.renderResultsDashboard({ summary, findings, files, remediation, export: exportBar, findingCount: rawIssues.length });
         }
         if (kind === 'consolidation' && this.lastResult.scan) {
             return this.wrapAnalyzeResults(`
@@ -9413,7 +9568,6 @@ export class AnalyzeView {
         const view = this.render();
         const el = view;
         container.appendChild(view);
-        bindPrivacyBanner(view);
         void this.initCliUploadPanel(view);
         (_b = view.querySelector('#goto-results-btn')) === null || _b === void 0 ? void 0 : _b.addEventListener('click', () => {
             this.openResultsView();

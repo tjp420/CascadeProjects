@@ -1,4 +1,4 @@
-import { authService } from './authService.js';
+import { authService } from './authService.js?v=20260713sync6';
 import { readJsonResponseBody, withRecoverableFallback } from '../lib/recoverable-fetch.js';
 /**
  * Open-source pivot: community CLI is the product. Billing API calls are stubbed;
@@ -124,15 +124,71 @@ export class BillingService {
         const resolved = await this.resolveEntitlement();
         return resolved.status;
     }
-    async startCheckout() {
-        const err = new Error('Simplebeacon CLI is free — use npx simplebeacon init (no checkout required).');
-        err.code = 'billing_unavailable';
-        throw err;
+    async startCheckout(product = 'startup_monthly', email = '') {
+        const normalizedEmail = this.setEmail(email || this.getEmail());
+        if (!normalizedEmail) {
+            const err = new Error('Email is required for checkout');
+            err.code = 'email_required';
+            throw err;
+        }
+        const response = await fetch('/api/simplebeacon/billing/checkout', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...this.getRequestHeaders()
+            },
+            body: JSON.stringify({ email: normalizedEmail, product })
+        });
+        const data = await readJsonResponseBody(response, {});
+        if (!response.ok) {
+            const err = new Error(data.message || data.error || 'Checkout failed');
+            err.code = data.error || 'checkout_failed';
+            throw err;
+        }
+        if (data.url) {
+            window.location.href = data.url;
+            return data;
+        }
+        throw new Error('Stripe checkout URL missing — set STRIPE_PRICE_ID_STARTUP_MONTHLY on server');
     }
-    async confirmSession() {
-        this.status = COMMUNITY_STATUS;
-        return { subscription: this.status };
+
+    async fetchCheckoutSession(sessionId) {
+        const response = await fetch(`/api/simplebeacon/billing/session?session_id=${encodeURIComponent(sessionId)}`, {
+            headers: {
+                Accept: 'application/json',
+                ...this.getRequestHeaders()
+            }
+        });
+        const data = await readJsonResponseBody(response, {});
+        if (!response.ok) {
+            const err = new Error(data.message || data.error || 'Session lookup failed');
+            err.code = data.error || 'session_lookup_failed';
+            throw err;
+        }
+        return data;
     }
+
+    async confirmSession(sessionId) {
+        if (!sessionId) {
+            return { subscription: this.status };
+        }
+        const data = await this.fetchCheckoutSession(sessionId);
+        const token = data?.token || data?.licenseToken;
+        if (token) {
+            this.setApiToken(token);
+            if (data.email) {
+                this.setEmail(data.email);
+            }
+            this.status = {
+                ...COMMUNITY_STATUS,
+                tier: data.tier || data.subscription?.tier || 'team',
+                subscriptionActive: true,
+                bypass: false
+            };
+        }
+        return { subscription: this.status, ...data };
+    }
+
     async openPortal() {
         const err = new Error('No billing portal — community CLI is open source.');
         err.code = 'billing_unavailable';

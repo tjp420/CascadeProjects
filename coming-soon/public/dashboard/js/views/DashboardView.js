@@ -1,20 +1,94 @@
-import { formatNumber, formatPercent, escapeHtml, renderEmptyState, showToast } from '../utils.js';
-import {
-  buildScanConclusion,
-  getScanFileMetrics,
-  resolveDisplayScore,
-  resolveJestTestsLabel,
-  resolvePageSpecsLabel,
-  renderScanScopePanel
-} from '../services/analyzeService.js';
-import { renderScanStatus, updateScanStatusDom, bindScanStatus, runDashboardScanFromInput } from '../components/ScanStatus.js?v=20260710dragfix1';
+import { formatNumber, formatPercent, escapeHtml, showToast } from '../utils.js';
+import { buildScanConclusion, getScanFileMetrics, resolveDisplayScore, resolveJestTestsLabel, resolvePageSpecsLabel, renderScanScopePanel } from '../services/analyzeService.js?v=20260710inventory1';
 import { renderIssueList } from '../components/IssueCard.js';
-import { renderQuickActions, bindQuickActions } from '../components/QuickActions.js';
 import { renderTrendSection, mountTrendChart } from '../components/TrendChart.js';
-import { fetchRepositoryHealth, renderRepositoryHealthSection } from './RepositoryHealthView.js';
-import { renderPathHealthDashboard, cleanupPathHealthDashboard } from '../components/PathHealthDashboard.js';
 import { isDemoMode } from '../demoMode.js';
-
+const PRIVACY_NOTICE_KEY = 'sb_privacy_notice_dismissed';
+const PRIVACY_NOTICE_TEXT = '100% private. Your source code never leaves your browser. Browser scans use a lightweight heuristic engine (no npm audit, no AST). For full analysis, run the server dashboard, open analyzer (auto-detected port), or upload a CLI report JSON.';
+function renderPrivacyBanner() {
+    if (typeof localStorage !== 'undefined' && localStorage.getItem(PRIVACY_NOTICE_KEY) === '1') {
+        return '';
+    }
+    return `
+    <div class="privacy-banner" id="dash-privacy-banner">
+      <span class="privacy-banner-icon">🔒</span>
+      <span class="privacy-banner-text">${PRIVACY_NOTICE_TEXT}</span>
+      <button class="privacy-banner-close" id="dash-privacy-banner-close" aria-label="Dismiss privacy notice">✕</button>
+    </div>
+  `;
+}
+function renderPrivacyCard() {
+    return `
+    <div class="card privacy-card">
+      <div class="privacy-card-header">
+        <span class="privacy-card-icon">🔒</span>
+        <span class="privacy-card-title">Privacy-first scanning</span>
+      </div>
+      <p class="privacy-card-text">${PRIVACY_NOTICE_TEXT}</p>
+    </div>
+  `;
+}
+function bindPrivacyBanner(container) {
+    const banner = container.querySelector('#dash-privacy-banner');
+    const closeBtn = container.querySelector('#dash-privacy-banner-close');
+    if (!banner || !closeBtn)
+        return;
+    closeBtn.addEventListener('click', () => {
+        banner.style.display = 'none';
+        if (typeof localStorage !== 'undefined') {
+            localStorage.setItem(PRIVACY_NOTICE_KEY, '1');
+        }
+    });
+}
+/**
+ * Convert a browser-sandbox scanner report (certificate shape) into a simplebeacon-report
+ * shape so the Analyze page can render it.
+ * @param {Object} report
+ * @param {string} projectPath
+ * @returns {Object}
+ */
+function convertSandboxReportToSimplebeacon(report, projectPath) {
+    const cert = report.certificate || {};
+    const logs = Array.isArray(cert.logs) ? cert.logs : [];
+    const high = Number(cert.highRiskCount) || 0;
+    const medium = Number(cert.mediumRiskCount) || 0;
+    const totalFiles = report.discoveredFiles || report.files.length;
+    const rawIssues = logs.map((entry) => ({
+        severity: String(entry.severity || 'medium').toLowerCase(),
+        type: entry.type || 'Security',
+        filePath: entry.filePath || '',
+        description: entry.message || '',
+        count: 1
+    }));
+    const severityCounts = { critical: 0, high, medium, low: 0, info: 0 };
+    return {
+        type: 'simplebeacon-report',
+        version: '1.0.0',
+        generatedAt: new Date().toISOString(),
+        projectPath: projectPath,
+        projectRoot: projectPath,
+        summary: {
+            totalFiles,
+            totalFindings: rawIssues.length,
+            severityCounts
+        },
+        rawIssues,
+        detectedIssues: rawIssues,
+        findings: rawIssues,
+        repositoryFilesTotal: totalFiles,
+        totalFiles,
+        filesAnalyzed: report.files.length,
+        inventory: {
+            totalFiles,
+            totalFolders: 0,
+            scannedFiles: report.files.length
+        },
+        gate: {
+            pass: cert.letterGrade !== 'F' && totalFiles > 0,
+            score: cert.score != null ? cert.score : 0
+        }
+    };
+}
 /**
  * Render insights.
  * @param {number} report
@@ -23,12 +97,12 @@ import { isDemoMode } from '../demoMode.js';
  * @returns {any}
  */
 export function renderInsights(report, baseline, dashboardHome) {
-  const sev = report?.severityCounts || {};
-  const totalIssues = (sev.high || 0) + (sev.medium || 0) + (sev.low || 0);
-  const healthClass = totalIssues === 0 ? 'success' : totalIssues <= 5 ? 'warning' : 'danger';
-  const healthLabel = totalIssues === 0 ? 'Healthy' : totalIssues <= 5 ? 'Review' : 'Attention';
-
-  return `
+    var _a;
+    const sev = (report === null || report === void 0 ? void 0 : report.severityCounts) || {};
+    const totalIssues = (sev.high || 0) + (sev.medium || 0) + (sev.low || 0);
+    const healthClass = totalIssues === 0 ? 'success' : totalIssues <= 5 ? 'warning' : 'danger';
+    const healthLabel = totalIssues === 0 ? 'Healthy' : totalIssues <= 5 ? 'Review' : 'Attention';
+    return `
     <div class="card">
       <div class="card-header">
         <span class="card-title">Insights</span>
@@ -43,7 +117,7 @@ export function renderInsights(report, baseline, dashboardHome) {
           <div class="insight-stat-label">Consistency</div>
         </div>
         <div class="insight-stat">
-          <div class="insight-stat-value">${resolveJestTestsLabel(baseline, dashboardHome) ?? '—'}</div>
+          <div class="insight-stat-value">${(_a = resolveJestTestsLabel(baseline, dashboardHome)) !== null && _a !== void 0 ? _a : '—'}</div>
           <div class="insight-stat-label">Jest tests</div>
         </div>
         <div class="insight-stat">
@@ -54,17 +128,17 @@ export function renderInsights(report, baseline, dashboardHome) {
     </div>
   `;
 }
-
 /**
  * Render re attestation preview.
  * @param {any} meta
  * @returns {any}
  */
 function renderReAttestationPreview(meta) {
-  const gate = meta.currentGate || {};
-  const hygiene = meta.hygieneSummary || {};
-  const gateClass = gate.pass ? 'success' : gate.blockingCount > 0 ? 'danger' : 'warning';
-  return `
+    var _a, _b, _c, _d, _e, _f;
+    const gate = meta.currentGate || {};
+    const hygiene = meta.hygieneSummary || {};
+    const gateClass = gate.pass ? 'success' : gate.blockingCount > 0 ? 'danger' : 'warning';
+    return `
     <div class="dashboard-panel">
       <div class="dashboard-panel-header">
         <h3 class="dashboard-panel-title-sm">Re-attestation</h3>
@@ -72,10 +146,10 @@ function renderReAttestationPreview(meta) {
       </div>
       <div class="metrics-row mb-2">
         <div class="metric-chip"><span class="gate-badge ${gateClass}">${gate.pass ? 'PASS' : gate.blockingCount > 0 ? 'FAIL' : 'WARN'}</span></div>
-        <div class="metric-chip"><strong>${formatNumber(gate.blockingCount ?? 0)}</strong> blocking</div>
-        <div class="metric-chip"><strong>${gate.qualityScore ?? '—'}%</strong> quality</div>
-        <div class="metric-chip"><strong>${formatNumber(gate.ruleScopedFilesAnalyzed ?? hygiene.ruleScopedFilesAnalyzed ?? 0)}</strong> checked</div>
-        <div class="metric-chip"><strong>${formatNumber(gate.repositoryFilesTotal ?? hygiene.repositoryFilesTotal ?? 0)}</strong> repo files</div>
+        <div class="metric-chip"><strong>${formatNumber((_a = gate.blockingCount) !== null && _a !== void 0 ? _a : 0)}</strong> blocking</div>
+        <div class="metric-chip"><strong>${(_b = gate.qualityScore) !== null && _b !== void 0 ? _b : '—'}%</strong> quality</div>
+        <div class="metric-chip"><strong>${formatNumber((_d = (_c = gate.ruleScopedFilesAnalyzed) !== null && _c !== void 0 ? _c : hygiene.ruleScopedFilesAnalyzed) !== null && _d !== void 0 ? _d : 0)}</strong> checked</div>
+        <div class="metric-chip"><strong>${formatNumber((_f = (_e = gate.repositoryFilesTotal) !== null && _e !== void 0 ? _e : hygiene.repositoryFilesTotal) !== null && _f !== void 0 ? _f : 0)}</strong> repo files</div>
       </div>
       <p class="text-muted" style="font-size:var(--font-size-xs);margin:0;">
         ${escapeHtml(meta.message || '')}
@@ -84,421 +158,378 @@ function renderReAttestationPreview(meta) {
     </div>
   `;
 }
-
 /**
  * Render scan metrics.
  * @param {number} report
  * @returns {any}
  */
 function renderScanMetrics(report) {
-  const metrics = getScanFileMetrics(report);
-  return `
+    var _a, _b, _c, _d, _e, _f;
+    const metrics = getScanFileMetrics(report);
+    return `
     <div class="metrics-row">
       ${metrics.repositoryFiles != null ? `<div class="metric-chip" title="Repository inventory (skips node_modules, .git, build artifacts)"><strong>${formatNumber(metrics.repositoryFiles)}</strong> repo files</div>` : ''}
-      <div class="metric-chip"><strong>${formatNumber(metrics.filesAnalyzed ?? 0)}</strong> files analyzed</div>
-      <div class="metric-chip"><strong>${formatNumber(metrics.mockSampleFiles ?? 0)}</strong> mock/sample</div>
-      <div class="metric-chip"><strong>${formatNumber(report?.fictionKpiHits ?? 0)}</strong> fiction scanned</div>
-      <div class="metric-chip"><strong>${formatPercent(report?.schemaCompliance)}</strong> schema compliance</div>
-      <div class="metric-chip"><strong>${resolvePageSpecsLabel(report) ?? '—'}</strong> page specs</div>
-      <div class="metric-chip"><strong>${formatPercent(report?.consistencyScore)}</strong> consistency</div>
-      <div class="metric-chip"><strong>${report?.credentialFindings ?? 0}</strong> credential hits</div>
-      <div class="metric-chip"><strong>${report?.productionLeakFindings ?? 0}</strong> prod leaks</div>
+      <div class="metric-chip"><strong>${formatNumber((_a = metrics.filesAnalyzed) !== null && _a !== void 0 ? _a : 0)}</strong> files analyzed</div>
+      <div class="metric-chip"><strong>${formatNumber((_b = metrics.mockSampleFiles) !== null && _b !== void 0 ? _b : 0)}</strong> mock/sample</div>
+      <div class="metric-chip"><strong>${formatNumber((_c = report === null || report === void 0 ? void 0 : report.fictionKpiHits) !== null && _c !== void 0 ? _c : 0)}</strong> fiction scanned</div>
+      <div class="metric-chip"><strong>${formatPercent(report === null || report === void 0 ? void 0 : report.schemaCompliance)}</strong> schema compliance</div>
+      <div class="metric-chip"><strong>${(_d = resolvePageSpecsLabel(report)) !== null && _d !== void 0 ? _d : '—'}</strong> page specs</div>
+      <div class="metric-chip"><strong>${formatPercent(report === null || report === void 0 ? void 0 : report.consistencyScore)}</strong> consistency</div>
+      <div class="metric-chip"><strong>${(_e = report === null || report === void 0 ? void 0 : report.credentialFindings) !== null && _e !== void 0 ? _e : 0}</strong> credential hits</div>
+      <div class="metric-chip"><strong>${(_f = report === null || report === void 0 ? void 0 : report.productionLeakFindings) !== null && _f !== void 0 ? _f : 0}</strong> prod leaks</div>
     </div>
   `;
 }
-
 /**
  * Dashboard view.
  */
 export class DashboardView {
-  constructor(app) {
-    this.app = app;
-    this._trendCleanup = null;
-  }
-
-  render() {
-    const { report, baseline, history, scanning, dataLoading } = this.app.state;
-    const categories = this.app.scanService.getIssueCategories(report);
-
-    const el = document.createElement('div');
-    el.className = 'fade-in';
-
-    if (!report) {
-      const emptyState = scanning
-        ? renderEmptyState({
-            icon: '<path d="M21 12a9 9 0 1 1-6.219-8.56" stroke-dasharray="2 2"/><polyline points="9 12 12 15 22 5"/>',
-            title: 'Scanning…',
-            body: 'Analysis is running. Switch to <a href="/dashboard/analyze">Analyze</a> to watch progress.',
-            actions: [
-              { label: 'Open Analyze', id: 'dash-goto-analyze', className: 'btn-secondary' }
-            ]
-          })
-        : renderEmptyState({
-            icon: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>',
-            title: 'No scan report loaded',
-            body: 'Set your repo folder on <a href="/dashboard/analyze">Analyze → Project path</a>, then run a scan. Gate mock folders live in <a href="/dashboard/settings">Settings → Scan paths</a>.',
-            actions: [
-              { label: 'Run Scan', id: 'dash-run-scan', className: 'btn-primary' },
-              { label: 'Open Analyze', id: 'dash-goto-analyze', className: 'btn-secondary' }
-            ]
-          });
-      el.innerHTML = `<h1 class="page-title">Dashboard</h1>${emptyState}`;
-      return el;
+    constructor(app) {
+        this.app = app;
+        this._trendCleanup = null;
     }
 
-    const conclusion = buildScanConclusion(report);
-    const sev = report?.severityCounts || {};
-    const totalIssues = (sev.high || 0) + (sev.medium || 0) + (sev.low || 0);
-    const healthClass = totalIssues === 0 ? 'success' : totalIssues <= 5 ? 'warning' : 'danger';
-    const healthLabel = totalIssues === 0 ? 'Healthy' : totalIssues <= 5 ? 'Review' : 'Attention';
-    const gate = report?.gate || {};
-    const gateClass = gate.pass ? 'success' : gate.blockingCount > 0 ? 'danger' : 'warning';
-    const gateLabel = gate.pass ? 'PASS' : gate.blockingCount > 0 ? 'FAIL' : 'WARN';
+    render() {
+        const { report, scanning } = this.app.state;
+        const container = document.createElement('div');
+        container.className = 'fade-in';
 
-    el.innerHTML = `
-      <div class="dashboard-header">
-        <h1 class="page-title">Dashboard</h1>
-        <div class="dashboard-header-actions">
-          <button class="btn btn-ghost btn-sm" id="dash-open-settings">
-            <i data-lucide="settings-2" class="icon-16"></i> Settings
-          </button>
-          <button class="btn btn-primary btn-sm" id="view-all-results">
-            <i data-lucide="arrow-right" class="icon-16"></i> View all results
-          </button>
-        </div>
-      </div>
+        container.appendChild(this.renderHeader(report));
 
-      <div class="dashboard-stats-row">
-        <div class="dashboard-stat-card">
-          <div class="dashboard-stat-icon-wrapper ${gateClass}">
-            <i data-lucide="shield-check" class="icon-20"></i>
-          </div>
-          <div class="dashboard-stat-body">
-            <div class="dashboard-stat-value ${gateClass}">${gateLabel}</div>
-            <div class="dashboard-stat-label">Gate status</div>
-          </div>
-        </div>
-        <div class="dashboard-stat-card">
-          <div class="dashboard-stat-icon-wrapper ${healthClass}">
-            <i data-lucide="alert-circle" class="icon-20"></i>
-          </div>
-          <div class="dashboard-stat-body">
-            <div class="dashboard-stat-value ${healthClass}">${totalIssues}</div>
-            <div class="dashboard-stat-label">${totalIssues === 1 ? 'Open issue' : 'Open issues'}</div>
-          </div>
-        </div>
-        <div class="dashboard-stat-card">
-          <div class="dashboard-stat-icon-wrapper success">
-            <i data-lucide="check-circle-2" class="icon-20"></i>
-          </div>
-          <div class="dashboard-stat-body">
-            <div class="dashboard-stat-value success">${formatPercent(resolveDisplayScore(report))}</div>
-            <div class="dashboard-stat-label">Consistency</div>
-          </div>
-        </div>
-        <div class="dashboard-stat-card">
-          <div class="dashboard-stat-icon-wrapper">
-            <i data-lucide="flask-conical" class="icon-20"></i>
-          </div>
-          <div class="dashboard-stat-body">
-            <div class="dashboard-stat-value">${resolveJestTestsLabel(baseline, this.app.state.dashboardHome) ?? '—'}</div>
-            <div class="dashboard-stat-label">Tests</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="dashboard-bento">
-        <div class="dashboard-bento-main">
-          <div id="slot-scan-status"></div>
-        </div>
-        <div class="dashboard-bento-side">
-          <div id="slot-quick-actions"></div>
-        </div>
-      </div>
-
-      <div class="dashboard-body">
-        <div class="dashboard-body-primary">
-          <div class="dashboard-panel">
-            <div class="dashboard-panel-header">
-              <h2 class="dashboard-panel-title">
-                <i data-lucide="list" class="icon-18"></i>
-                Scan Results
-              </h2>
-            </div>
-            <div id="slot-issue-list"></div>
-          </div>
-          <div class="dashboard-panel" id="slot-trend"></div>
-        </div>
-        <div class="dashboard-body-side">
-          <div class="dashboard-panel dashboard-panel-accent">
-            <div class="dashboard-panel-header">
-              <h3 class="dashboard-panel-title-sm">Scan summary</h3>
-            </div>
-            <p class="dashboard-panel-text">${conclusion}</p>
-          </div>
-          ${renderScanScopePanel(report)}
-          <div class="dashboard-panel">
-            <div class="dashboard-panel-header">
-              <h3 class="dashboard-panel-title-sm">Scan Metrics</h3>
-              <button class="btn btn-ghost btn-xs" id="dash-open-analyze">Analyze →</button>
-            </div>
-            ${renderScanMetrics(report)}
-          </div>
-          ${this.app.state.reAttestation ? renderReAttestationPreview(this.app.state.reAttestation) : ''}
-        </div>
-      </div>
-
-      <div class="dashboard-bottom-grid">
-        <div class="dashboard-panel" id="slot-repo-health">
-          <div class="dashboard-panel-header">
-            <h3 class="dashboard-panel-title-sm">Repository health</h3>
-            <a class="btn btn-ghost btn-xs" href="/dashboard/repository-health">Details →</a>
-          </div>
-          <p class="text-muted"><span class="loading-spinner"></span> Loading optimization metrics…</p>
-        </div>
-        <div class="dashboard-panel" id="slot-path-health">
-          <div class="dashboard-panel-header">
-            <h3 class="dashboard-panel-title-sm">System Path Health</h3>
-          </div>
-          <p class="text-muted"><span class="loading-spinner"></span> Loading path health metrics…</p>
-        </div>
-      </div>
-    `;
-
-    const scanSlot = el.querySelector('#slot-scan-status');
-    const scanHandlers = {
-      getLastProjectPath: () => this.app.state.lastProjectPath,
-      setLastProjectPath: (path) => { this.app.state.lastProjectPath = path; },
-      getDefaultProjectPath: () => this.app.state.defaultProjectPath,
-      onRescan: (path) => this.app.runScan(path)
-    };
-    // Use surgical DOM update if card already exists to prevent flicker
-    const updated = updateScanStatusDom(scanSlot, report);
-    if (!updated) {
-      scanSlot.innerHTML = renderScanStatus(report, {
-        scanning,
-        config: this.app.state.config,
-        lastProjectPath: this.app.state.lastProjectPath,
-        defaultProjectPath: this.app.state.defaultProjectPath
-      });
-      bindScanStatus(scanSlot, scanHandlers);
-    }
-
-    const actionsSlot = el.querySelector('#slot-quick-actions');
-    actionsSlot.innerHTML = renderQuickActions({ showSendAi: true });
-    bindQuickActions(actionsSlot, {
-      onRunScan: () => runDashboardScanFromInput(
-        scanSlot.querySelector('#scan-root-input'),
-        scanHandlers
-      ),
-      onExport: () => {
-        if (isDemoMode()) {
-          this.app.scanService.exportDashboard({
-            report: this.app.state.report,
-            baseline: this.app.state.baseline,
-            config: this.app.state.config,
-            history: this.app.state.history,
-            dashboardHome: this.app.state.dashboardHome
-          });
-        } else {
-          this.app.scanService.exportReport();
+        if (!report) {
+            if (scanning) {
+                container.appendChild(this.renderScanningState());
+                return container;
+            }
+            container.appendChild(this.renderEmptyState());
+            return container;
         }
-      },
-      onSendAi: async () => {
+
+        const categories = this.app.scanService.getIssueCategories(report);
+        container.appendChild(this.renderResultsState(report, categories));
+        return container;
+    }
+
+    renderHeader(report) {
+        const header = document.createElement('div');
+        header.className = 'dashboard-header d-flex justify-content-between align-items-center mb-4';
+
+        const projectName = report
+            ? (report.projectRoot || report.projectPath || 'Active Project').split(/[\\/]/).pop()
+            : 'No Active Project';
+        const statusChip = report && report.gate
+            ? `<span class="badge gate-badge ${report.gate.pass ? 'bg-success' : 'bg-danger'}">${report.gate.pass ? 'Healthy' : 'Attention Required'}</span>`
+            : '';
+
+        header.innerHTML = `
+            <div>
+                <h1 class="h2 mb-1">Dashboard</h1>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="text-muted text-xs">${escapeHtml(projectName)}</span>
+                    ${statusChip}
+                </div>
+            </div>
+            <div class="header-actions"></div>
+        `;
+        return header;
+    }
+
+    renderScanningState() {
+        const card = document.createElement('div');
+        card.className = 'card text-center p-5 mx-auto my-4';
+        card.style.maxWidth = '480px';
+        card.innerHTML = `
+            <div style="margin-bottom:var(--space-3);"><span class="loading-spinner" style="width:48px;height:48px;"></span></div>
+            <h2 style="font-size:var(--font-size-xl); margin-bottom:var(--space-2);">Scanning…</h2>
+            <p class="text-muted" style="max-width:480px; margin:0 auto var(--space-3);">Analysis is running. Switch to Analyze to watch progress.</p>
+            <button class="btn btn-secondary" data-action="open-analyze">Open Analyze</button>
+        `;
+        return card;
+    }
+
+    renderEmptyState() {
+        const view = document.createElement('div');
+        view.className = 'card text-center p-5 mx-auto my-4';
+        view.style.maxWidth = '680px';
+
+        view.innerHTML = `
+            <div class="mb-4">
+                <i data-lucide="folder-search" class="text-muted" style="width:48px;height:48px;"></i>
+            </div>
+            <h3 class="h4 mb-2">Start your first scan</h3>
+            <p class="text-muted text-sm mb-4">No scan yet — pick a target to get a pass/fail grade and remediation roadmap.</p>
+
+            <div class="row g-3 text-start justify-content-center">
+                <div class="col-sm-4">
+                    <div class="card p-3 bento-card-interactive text-center" data-action="open-analyze" data-mode="folder">
+                        <i data-lucide="folder" class="mb-2 text-primary" style="width:24px;height:24px;margin:0 auto;"></i>
+                        <h5 class="text-xs font-weight-bold mb-1">Select folder</h5>
+                        <span class="text-muted text-xxs">Scan local workspace</span>
+                    </div>
+                </div>
+                <div class="col-sm-4">
+                    <div class="card p-3 bento-card-interactive text-center" data-action="open-analyze" data-mode="files">
+                        <i data-lucide="file-up" class="mb-2 text-success" style="width:24px;height:24px;margin:0 auto;"></i>
+                        <h5 class="text-xs font-weight-bold mb-1">Drop files</h5>
+                        <span class="text-muted text-xxs">Quick single file pass</span>
+                    </div>
+                </div>
+                <div class="col-sm-4">
+                    <div class="card p-3 bento-card-interactive text-center" data-action="open-analyze" data-mode="url">
+                        <i data-lucide="globe" class="mb-2 text-warning" style="width:24px;height:24px;margin:0 auto;"></i>
+                        <h5 class="text-xs font-weight-bold mb-1">Paste repo URL</h5>
+                        <span class="text-muted text-xxs">Analyze public git path</span>
+                    </div>
+                </div>
+            </div>
+        `;
+        return view;
+    }
+
+    renderResultsState(report, categories) {
+        const grid = document.createElement('div');
+        grid.className = 'dashboard-grid';
+
+        const gatePass = !!(report.gate && report.gate.pass);
+        const sev = report.severityCounts || {};
+        const qualityScore = typeof report.qualityScore === 'number' ? report.qualityScore : 0;
+        const filesEvaluated = report.ruleScopedFilesAnalyzed != null
+            ? report.ruleScopedFilesAnalyzed
+            : (report.repositoryFilesTotal || 0);
+        const repoTotal = report.repositoryFilesTotal || 0;
+
+        grid.innerHTML = `
+            <div class="card bento-hero p-4 justify-content-between">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h4 class="text-muted text-xs uppercase mb-1">Gate Quality Score</h4>
+                        <div class="display-3 font-weight-bold">${qualityScore}%</div>
+                    </div>
+                    <span class="badge p-3 ${gatePass ? 'bg-success' : 'bg-danger'} font-weight-bold">
+                        ${gatePass ? 'PASSED' : 'FAILED'}
+                    </span>
+                </div>
+                <div class="mt-4 pt-3 border-top d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div class="d-flex gap-3">
+                        <span class="text-sm"><strong class="text-danger">${sev.critical || 0}</strong> Critical</span>
+                        <span class="text-sm"><strong class="text-warning">${sev.high || 0}</strong> High</span>
+                        <span class="text-sm"><strong class="text-info">${sev.medium || 0}</strong> Med</span>
+                    </div>
+                    <button class="btn btn-primary btn-sm" data-action="rescan">Re-scan Target</button>
+                </div>
+            </div>
+
+            <div class="card bento-actions p-4 d-flex flex-column justify-content-between">
+                <h4 class="text-muted text-xs uppercase mb-3">Quick Actions</h4>
+                <div class="d-flex flex-column gap-2">
+                    <button class="btn btn-outline btn-sm text-start w-100" data-action="export">Export JSON Report</button>
+                    <button class="btn btn-outline btn-sm text-start w-100" data-action="send-ai">Send Findings to AI</button>
+                    <button class="btn btn-outline btn-sm text-start w-100" data-action="roadmap">View Remediation Roadmap</button>
+                </div>
+            </div>
+
+            <div class="card bento-issues p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4 class="h5 mb-0">Latest findings</h4>
+                    <span class="text-muted text-xs">${filesEvaluated} files evaluated</span>
+                </div>
+                <div id="dashboard-issue-list-slot"></div>
+            </div>
+
+            <div class="card bento-trends p-4">
+                <h4 class="h6 mb-3">Scan History & Trends</h4>
+                <div id="slot-trend"></div>
+            </div>
+
+            <div class="card bento-summary p-4 justify-content-between">
+                <h4 class="text-muted text-xs uppercase mb-2">Health Snapshot</h4>
+                <div class="flex-grow-1 d-flex flex-column justify-content-around">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-sm">Repo File Footprint</span>
+                        <span class="text-sm font-weight-bold text-muted">${repoTotal} total files</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-sm">System Engine Path</span>
+                        <span class="text-sm font-weight-bold text-success">Configured</span>
+                    </div>
+                </div>
+                <div class="pt-2 border-top mt-2">
+                    <button class="btn btn-link text-xs text-primary p-0" data-action="system-health">View environmental details →</button>
+                </div>
+            </div>
+        `;
+
+        const issueSlot = grid.querySelector('#dashboard-issue-list-slot');
+        issueSlot.appendChild(renderIssueList(categories, {
+            onSelect: (cat) => this.app.navigate('results', { filter: cat })
+        }));
+
+        const trendSlot = grid.querySelector('#slot-trend');
+        trendSlot.innerHTML = renderTrendSection(this.app.state.history);
+
+        return grid;
+    }
+
+    bindEvents(view) {
+        view.querySelectorAll('[data-action]').forEach((el) => {
+            const action = el.getAttribute('data-action');
+            const mode = el.getAttribute('data-mode');
+            const handler = () => {
+                switch (action) {
+                    case 'run-scan':
+                        this.app.runScan();
+                        break;
+                    case 'open-analyze':
+                        this.app.navigate('analyze', mode ? { mode } : undefined);
+                        break;
+                    case 'rescan':
+                        this.app.runScan();
+                        break;
+                    case 'export':
+                        this.handleExport();
+                        break;
+                    case 'send-ai':
+                        this.handleSendAi();
+                        break;
+                    case 'roadmap':
+                        this.app.navigate('roadmap');
+                        break;
+                    case 'view-results':
+                        this.app.navigate('results');
+                        break;
+                    case 'system-health':
+                        this.app.navigate('platform');
+                        break;
+                }
+            };
+            el.addEventListener('click', handler);
+            if (el.classList.contains('bento-card-interactive')) {
+                el.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handler();
+                    }
+                });
+            }
+        });
+    }
+
+    handleExport() {
+        if (isDemoMode()) {
+            this.app.scanService.exportDashboard({
+                report: this.app.state.report,
+                baseline: this.app.state.baseline,
+                config: this.app.state.config,
+                history: this.app.state.history,
+                dashboardHome: this.app.state.dashboardHome
+            });
+        }
+        else {
+            this.app.scanService.exportReport();
+        }
+    }
+
+    async handleSendAi() {
         const report = this.app.state.report;
-        if (!report) { showToast('No report loaded — run a scan first', 'error'); return; }
+        if (!report) {
+            showToast('No report loaded — run a scan first', 'error');
+            return;
+        }
         const allIssues = report.rawIssues || report.detectedIssues || [];
         const reportSummary = {
-          gatePass: report.gate?.pass ?? 'N/A',
-          qualityScore: report.qualityScore ?? 'N/A',
-          totalIssues: allIssues.length,
-          filesScanned: report.repositoryFilesTotal ?? report.totalFiles ?? 'N/A',
-          reportType: report.type || 'simplebeacon'
+            gatePass: report.gate ? report.gate.pass : 'N/A',
+            qualityScore: report.qualityScore != null ? report.qualityScore : 'N/A',
+            totalIssues: allIssues.length,
+            filesScanned: report.repositoryFilesTotal != null ? report.repositoryFilesTotal : (report.totalFiles || 'N/A'),
+            reportType: report.type || 'simplebeacon'
         };
-
-        // If running inside a VS Code-family webview, message the extension directly
         const hasVsCodeApi = typeof window !== 'undefined' && typeof window.acquireVsCodeApi === 'function';
         if (hasVsCodeApi) {
-          try {
-            const vscode = window.acquireVsCodeApi();
-            vscode.postMessage({
-              command: 'sendToAI',
-              data: {
-                projectPath: report.projectRoot || report.projectPath || window.location.origin,
-                notes: '',
-                reportSummary,
-                issues: allIssues
-              }
-            });
-            showToast('Scan data sent to your AI coding agent. Check the editor chat panel.', 'success');
-            return;
-          } catch (err) {
-            console.warn('[AI-Send] vscode.postMessage failed:', err);
-          }
-        }
-
-        try {
-          const res = await fetch('/api/ai-context', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              projectPath: report.projectRoot || report.projectPath || window.location.origin,
-              notes: '',
-              reportSummary,
-              issues: allIssues
-            })
-          });
-          const json = await res.json();
-          if (json.success) {
-            if (json.content) {
-              try {
-                await navigator.clipboard.writeText(json.content);
-                showToast('Copied to clipboard — paste into your AI coding agent with Ctrl+V', 'success');
-              } catch (clipErr) {
-                showToast('AI context saved. Use sidebar 🤖 button or mention @.simplebeacon/ai-context.md', 'success');
-              }
-            } else {
-              showToast('AI context saved. Mention @.simplebeacon/ai-context.md in chat.', 'success');
+            try {
+                const vscode = window.acquireVsCodeApi();
+                vscode.postMessage({
+                    command: 'sendToAI',
+                    data: {
+                        projectPath: report.projectRoot || report.projectPath || window.location.origin,
+                        notes: '',
+                        reportSummary,
+                        issues: allIssues
+                    }
+                });
+                showToast('Scan data sent to your AI coding agent. Check the editor chat panel.', 'success');
+                return;
             }
-          } else {
-            showToast('Failed: ' + (json.error || 'Unknown'), 'error');
-          }
-        } catch (err) {
-          showToast('Network error: ' + err.message, 'error');
+            catch (err) {
+                console.warn('[AI-Send] vscode.postMessage failed:', err);
+            }
         }
-      },
-      onLegacy: () => { this.app.navigate('platform'); }
-    });
-
-    const issueSlot = el.querySelector('#slot-issue-list');
-    issueSlot.appendChild(renderIssueList(categories, {
-      onSelect: (cat) => this.app.navigate('results', { filter: cat })
-    }));
-
-    el.querySelector('#view-all-results')?.addEventListener('click', () => {
-      this.app.navigate('results');
-    });
-    el.querySelector('#dash-open-settings')?.addEventListener('click', () => {
-      this.app.navigate('settings');
-    });
-    el.querySelector('#dash-open-analyze')?.addEventListener('click', () => {
-      this.app.navigate('analyze');
-    });
-
-    const trendSlot = el.querySelector('#slot-trend');
-    trendSlot.innerHTML = renderTrendSection(history);
-
-    return el;
-  }
-
-  async ensureReportEnriched() {
-    const report = this.app.state.report;
-    if (!report) return;
-    const enriched = await this.app.scanService.enrichReport(report);
-    if (enriched !== report) {
-      this.app.state.report = enriched;
-      this.app.scanService.report = enriched;
-      // Surgical DOM update avoids full re-render flicker
-      const scanSlot = document.querySelector('#slot-scan-status');
-      if (scanSlot) {
-        updateScanStatusDom(scanSlot, enriched);
-      } else {
-        this.app.refreshCurrentView();
-      }
-    }
-  }
-
-  /**
-   * Surgical scan-status refresh — avoids full mount flicker during active scans.
-   * Returns true if the scan slot was updated in-place.
-   */
-  refreshScanStatus() {
-    const scanSlot = document.querySelector('#slot-scan-status');
-    if (!scanSlot) return false;
-    const report = this.app.state.report;
-    const scanning = this.app.state.scanning;
-    const updated = updateScanStatusDom(scanSlot, report);
-    if (updated) {
-      // Update scanning state on rescan button
-      const rescanBtn = scanSlot.querySelector('#rescan-btn');
-      if (rescanBtn) {
-        const expectedHtml = scanning
-          ? '<span class="loading-spinner"></span> Scanning…'
-          : '<i data-lucide="play" class="icon-16"></i> Scan';
-        if (rescanBtn.innerHTML !== expectedHtml) {
-          rescanBtn.innerHTML = expectedHtml;
+        try {
+            const res = await fetch('/api/ai-context', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    projectPath: report.projectRoot || report.projectPath || window.location.origin,
+                    notes: '',
+                    reportSummary,
+                    issues: allIssues
+                })
+            });
+            const json = await res.json();
+            if (json.success) {
+                if (json.content) {
+                    try {
+                        await navigator.clipboard.writeText(json.content);
+                        showToast('Copied to clipboard — paste into your AI coding agent with Ctrl+V', 'success');
+                    }
+                    catch (clipErr) {
+                        showToast('AI context saved. Use sidebar 🤖 button or mention @.simplebeacon/ai-context.md', 'success');
+                    }
+                }
+                else {
+                    showToast('AI context saved. Mention @.simplebeacon/ai-context.md in chat.', 'success');
+                }
+            }
+            else {
+                showToast('Failed: ' + (json.error || 'Unknown'), 'error');
+            }
         }
-        if (rescanBtn.disabled !== scanning) {
-          rescanBtn.disabled = scanning;
+        catch (err) {
+            showToast('Network error: ' + err.message, 'error');
         }
-      }
     }
-    return updated;
-  }
 
-  mount(container) {
-    if (this._trendCleanup) this._trendCleanup();
-    container.innerHTML = '';
-    const view = this.render();
-    container.appendChild(view);
-
-    view.querySelector('#dash-run-scan')?.addEventListener('click', () => this.app.runScan());
-    view.querySelector('#dash-goto-analyze')?.addEventListener('click', () => this.app.navigate('analyze'));
-
-    if (!this.app.state.report) return;
-
-    this.ensureReportEnriched();
-    this.loadRepositoryHealth(view);
-    this.loadPathHealth(view);
-
-    requestAnimationFrame(() => {
-      const trendSlot = view.querySelector('#slot-trend');
-      this._trendCleanup = mountTrendChart(trendSlot, this.app.state.history) || null;
-    });
-
-    if (typeof window.lucide !== 'undefined') window.lucide.createIcons();
-  }
-
-  async loadRepositoryHealth(view) {
-    const slot = view.querySelector('#slot-repo-health');
-    if (!slot) return;
-    try {
-      const health = await fetchRepositoryHealth();
-      slot.innerHTML = `
-        <div class="section-heading">
-          <h2>Repository health</h2>
-          <a class="btn btn-ghost btn-sm" href="/dashboard/repository-health">Details →</a>
-        </div>
-        ${health?.headline
-          ? renderRepositoryHealthSection(health, { compact: true })
-          : '<p class="text-muted">No consolidation scan yet — run Analyze → Consolidation.</p>'}
-      `;
-    } catch {
-      slot.innerHTML = `
-        <div class="section-heading">
-          <h2>Repository health</h2>
-          <a class="btn btn-ghost btn-sm" href="/dashboard/repository-health">Details →</a>
-        </div>
-        <p class="text-muted">Repository health unavailable — run consolidation scan from Analyze.</p>
-      `;
+    async ensureReportEnriched() {
+        const report = this.app.state.report;
+        if (!report)
+            return;
+        const enriched = await this.app.scanService.enrichReport(report);
+        if (enriched !== report) {
+            this.app.state.report = enriched;
+            this.app.scanService.report = enriched;
+            this.app.refreshCurrentView();
+        }
     }
-  }
 
-  loadPathHealth(view) {
-    const slot = view.querySelector('#slot-path-health');
-    if (!slot) return;
-    try {
-      slot.innerHTML = '';
-      const pathHealthComponent = renderPathHealthDashboard();
-      slot.appendChild(pathHealthComponent);
-    } catch (error) {
-      console.error('Error loading path health dashboard:', error);
-      slot.innerHTML = '<p class="text-muted">Path health metrics unavailable.</p>';
+    mount(container) {
+        if (this._trendCleanup)
+            this._trendCleanup();
+        container.innerHTML = '';
+        const view = this.render();
+        container.appendChild(view);
+        this.bindEvents(view);
+        if (!this.app.state.report)
+            return;
+        this.ensureReportEnriched();
+        requestAnimationFrame(() => {
+            const trendSlot = view.querySelector('#slot-trend');
+            this._trendCleanup = mountTrendChart(trendSlot, this.app.state.history) || null;
+        });
+        if (typeof window.lucide !== 'undefined')
+            window.lucide.createIcons();
     }
-  }
 
-  destroy() {
-    if (this._trendCleanup) this._trendCleanup();
-    cleanupPathHealthDashboard();
-  }
+    destroy() {
+        if (this._trendCleanup)
+            this._trendCleanup();
+    }
 }

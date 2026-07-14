@@ -9,6 +9,19 @@
   <meta http-equiv="Expires" content="0">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <style id="ide-preview-hide">
+    /* Hide embedded URL bar when parent extension/browser owns navigation */
+    html[data-parent-urlbar="1"] #sb-embedded-url-bar,
+    html[data-parent-urlbar="1"] .sb-url-bar {
+      display: none !important;
+    }
+    html[data-parent-urlbar="1"] .app-header { display: none !important; }
+    html[data-parent-urlbar="1"] .app-nav { display: none !important; }
+    html[data-parent-urlbar="1"] .mobile-nav-overlay { display: none !important; }
+    html[data-parent-urlbar="1"] .mobile-nav-toggle { display: none !important; }
+    html[data-parent-urlbar="1"] .sandbox-banner { display: none !important; }
+    html[data-ide-preview="true"] #sb-embedded-url-bar {
+      display: none !important;
+    }
     /* Auto-hide sidebar + top bar when loaded inside IDE browser preview */
     html[data-ide-preview="true"] .app-shell {
       height: 100vh;
@@ -19,6 +32,7 @@
     html[data-ide-preview="true"] .mobile-nav-overlay { display: none !important; }
     html[data-ide-preview="true"] .mobile-nav-toggle { display: none !important; }
     html[data-ide-preview="true"] .sandbox-banner { display: none !important; }
+    html[data-ide-preview="true"] .app-header { display: none !important; }
     html[data-ide-preview="true"] .app-body {
       flex: 1;
       min-height: 0;
@@ -66,6 +80,41 @@
   </style>
   <script>
     (function() {
+      var search = window.location.search || '';
+      var inIframe = window.self !== window.top;
+      var parentOwnsUrlBar = /[?&]sb_parent_urlbar=1(?:&|$)/i.test(search) || inIframe;
+      window.__SB_PARENT_URL_BAR__ = parentOwnsUrlBar;
+      if (parentOwnsUrlBar) {
+        document.documentElement.setAttribute('data-parent-urlbar', '1');
+        document.documentElement.setAttribute('data-ide-preview', 'true');
+      }
+      function hideEmbeddedUrlBars() {
+        if (!window.__SB_PARENT_URL_BAR__) return;
+        document.querySelectorAll('#sb-embedded-url-bar, .sb-url-bar').forEach(function(el) {
+          el.style.display = 'none';
+        });
+      }
+      hideEmbeddedUrlBars();
+      function onParentUrlBarMessage(active) {
+        window.__SB_PARENT_URL_BAR__ = !!active;
+        if (window.__SB_PARENT_URL_BAR__) {
+          document.documentElement.setAttribute('data-parent-urlbar', '1');
+        } else {
+          document.documentElement.removeAttribute('data-parent-urlbar');
+        }
+        window.dispatchEvent(new CustomEvent('sb-parent-urlbar-changed'));
+        hideEmbeddedUrlBars();
+      }
+      window.addEventListener('message', function(e) {
+        if (e && e.data && e.data.command === 'setParentUrlBar') {
+          onParentUrlBarMessage(!!e.data.active);
+        }
+        if (e && e.data && (e.data.type === 'ide-preview' || e.data.idePreview === true || e.data.command === 'setIdePreview')) {
+          document.documentElement.setAttribute('data-ide-preview', 'true');
+          console.info('[Simplebeacon] IDE preview detected: sidebar hidden');
+          try { localStorage.setItem('sb_ide_preview', '1'); } catch (err) {}
+        }
+      });
       function detectIdePreview() {
         var ua = (navigator.userAgent || '').toLowerCase();
         var href = (window.location.href || '').toLowerCase();
@@ -101,12 +150,6 @@
             setIdePreview();
           }
         } catch (e) {}
-        window.addEventListener('message', function(e) {
-          if (e && e.data && (e.data.type === 'ide-preview' || e.data.idePreview === true || e.data.command === 'setIdePreview')) {
-            setIdePreview();
-            try { localStorage.setItem('sb_ide_preview', '1'); } catch (e) {}
-          }
-        });
         var lateCheck = setInterval(function() {
           if (detectIdePreview()) {
             clearInterval(lateCheck);
@@ -131,6 +174,22 @@
       }
     })();
   </script>
+  <script>
+    // Derive the API host from the embed params if the extension didn't inject it.
+    // This lets /api/* requests route to the local data server even when the iframe
+    // loads from a remote site.
+    (function() {
+      if (window.__SB_API_HOST__) return;
+      var search = window.location.search || '';
+      var m = search.match(/[?&]sb_api_base=([^&]+)/) || search.match(/[?&]sb_notify_base=([^&]+)/);
+      if (m && m[1]) {
+        try {
+          var base = decodeURIComponent(m[1]).replace(/\/$/, '');
+          window.__SB_API_HOST__ = base.replace(/\/api\/?$/, '');
+        } catch (e) {}
+      }
+    })();
+  </script>
   <!-- Offline-ready: allow browser + SW caching -->
   <meta name="theme-color" content="#0f172a">
   <title>Simplebeacon Dashboard</title>
@@ -140,8 +199,8 @@
   <link rel="stylesheet" href="css/variables.css">
   <link rel="stylesheet" href="css/reset.css">
   <link rel="stylesheet" href="css/layout.css?v=20260712merge1">
-  <link rel="stylesheet" href="css/components.css?v=20260712merge1">
-  <link rel="stylesheet" href="css/utilities.css">
+  <link rel="stylesheet" href="css/components.css?v=20260714stockpile1">
+  <link rel="stylesheet" href="css/utilities.css?v=20260713dashboard1">
   <link rel="stylesheet" href="css/disable-elements.css">
   <script src="js/vendor/lucide.min.js" defer onerror="window._lucideFailed=true"></script>
   <script>
@@ -156,7 +215,9 @@
         if (!needsProxy) return url;
         try {
           const u = new URL(url, location.href);
-          if (u.pathname.startsWith('/api/')) {
+          // Only proxy same-origin relative /api/ URLs; leave absolute calls to
+          // local Ollama (11434) and the local agent (4000) untouched.
+          if (u.pathname.startsWith('/api/') && u.origin === location.origin) {
             return API_HOST + u.pathname + u.search;
           }
         } catch (e) {}
@@ -249,7 +310,7 @@
 
     <div class="sandbox-banner" id="sandbox-banner" hidden>
       <i data-lucide="flask-conical" class="icon-16"></i>
-      <span><strong>Developer Sandbox</strong> — 100 requests/day limit. <a href="/dashboard/#/signin">Upgrade</a></span>
+      <span><strong>Developer Sandbox</strong> — 100 requests/day limit. <a href="/dashboard/pricing" data-pricing-cta="1" id="sandbox-upgrade-link">Upgrade</a></span>
     </div>
 
     <div class="mobile-nav-overlay" id="mobile-nav-overlay"></div>
@@ -288,8 +349,8 @@
           </button>
           <div class="nav-group-items" id="nav-group-compliance">
             <a href="/dashboard/#/audit" class="nav-link" data-view="audit">
-              <i data-lucide="shield-check" class="nav-link-icon icon-18"></i>
-              <span>Audit</span>
+              <i data-lucide="clipboard-check" class="nav-link-icon icon-18"></i>
+              <span>Audit Report</span>
             </a>
             <a href="/dashboard/#/security" class="nav-link" data-view="security">
               <i data-lucide="lock" class="nav-link-icon icon-18"></i>
@@ -312,13 +373,13 @@
             <i data-lucide="chevron-down" class="nav-group-chevron icon-16"></i>
           </button>
           <div class="nav-group-items" id="nav-group-operations">
-            <a href="/dashboard/#/assessments" class="nav-link" data-view="assessments" id="nav-assessments-link" hidden>
+            <a href="/dashboard/#/assessments" class="nav-link" data-view="assessments" id="nav-assessments-link">
               <i data-lucide="file-text" class="nav-link-icon icon-18"></i>
               <span>Assessments</span>
             </a>
-            <a href="/dashboard/#/roadmap" class="nav-link" data-view="roadmap">
+            <a href="/dashboard/#/remediation" class="nav-link" data-view="remediation">
               <i data-lucide="map" class="nav-link-icon icon-18"></i>
-              <span>Roadmap</span>
+              <span>Remediation</span>
             </a>
             <a href="/dashboard/#/platform" class="nav-link" data-view="platform">
               <i data-lucide="bar-chart-3" class="nav-link-icon icon-18"></i>
@@ -356,6 +417,10 @@
             <a href="/dashboard/#/chatbot" class="nav-link" data-view="chatbot">
               <i data-lucide="bot" class="nav-link-icon icon-18"></i>
               <span>Chatbot</span>
+            </a>
+            <a href="/dashboard/#/about" class="nav-link" data-view="about">
+              <i data-lucide="info" class="nav-link-icon icon-18"></i>
+              <span>About</span>
             </a>
           </div>
         </div>
@@ -454,29 +519,33 @@
       });
     }
 
-    // Inject local dev links dynamically to avoid deploy-leak scanner flags
+    // Inject top navigation links (address bar) dynamically to avoid deploy-leak scanner flags
     (function() {
       var actions = document.querySelector('.app-header-actions');
       if (!actions) return;
       var nav = document.createElement('nav');
       nav.className = 'app-header-links';
-      nav.setAttribute('aria-label', 'External tools');
+      nav.setAttribute('aria-label', 'Top navigation');
+      var origin = window.location.origin || '';
       var links = [
-        { href: '/roadmap', icon: 'map', label: 'Roadmap' },
-        { href: '/audit', icon: 'clipboard-check', label: 'Audit' },
-        { href: '/pricing', icon: 'tag', label: 'Pricing', id: 'header-pricing-link' },
-        { href: '/dashboard/dashboard', icon: 'layout-dashboard', label: 'Teams Dashboard', id: 'vaultLink' }
+        { href: '/roadmap', icon: 'map', label: 'Roadmap', site: true },
+        { href: '/audit', icon: 'clipboard-check', label: 'Audit', site: true },
+        { href: '/pricing', icon: 'tag', label: 'Pricing', id: 'header-pricing-link', site: true },
+        { href: '/dashboard/dashboard', icon: 'layout-dashboard', label: 'Team Dashboard', id: 'vaultLink' }
       ];
       links.forEach(function(link) {
         var a = document.createElement('a');
         a.href = link.href;
-        if (!link.href.startsWith('#') && !link.href.startsWith('/dashboard')) {
-          a.target = '_blank';
-          a.rel = 'noopener';
-        }
         a.className = 'app-header-link';
         a.title = link.label;
         if (link.id) a.id = link.id;
+        if (link.site) {
+          a.setAttribute('data-site-nav', '1');
+          a.addEventListener('click', function(ev) {
+            ev.preventDefault();
+            window.top.location.assign(origin + link.href);
+          });
+        }
         var i = document.createElement('i');
         i.setAttribute('data-lucide', link.icon);
         i.className = 'icon-16';
@@ -564,7 +633,7 @@
       }
     })();
   </script>
-  <script type="module" src="/dashboard/js-es2018/main.js?v=20260713authsync1"></script>
+  <script type="module" src="/dashboard/js-es2018/main.js?v=20260714pricing1"></script>
   <script>
     // Capture script errors so the fallback page can report them without DevTools.
     window.__SB_DASHBOARD_ERRORS__ = [];

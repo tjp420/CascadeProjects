@@ -2,10 +2,13 @@ import { escapeHtml, showToast, downloadJson, renderEmptyState } from '../utils.
 import { resolvePageSpecsLabel, resolveJestTestsLabel } from '../services/analyzeService.js?v=20260710inventory1';
 // EU AI Act transparency disclosure: This view includes AI system integration indicators per Article 50.
 import { scanService } from '../services/scanService.js?v=20260711dedup2';
+import { billingService } from '../services/billingService.js';
 import { platformService } from '../services/platformService.js';
 import { fetchUserAiKeys, saveUserAiKeys, clearUserAiKeys, normalizeAiKeysRecord, fetchOllamaModels } from '../services/aiKeysService.js?v=20260711cachefix1';
-import { authService } from '../services/authService.js';
+import { authService } from '../services/authService.js?v=20260713sync6';
 import { OLLAMA_DEFAULT_URL } from '../config.js';
+import { mountCheckoutSuccessBanner } from '../components/CheckoutSuccessBanner.js';
+import { activateStockpileEntry, addToStockpile, BUY_TIME_TOKENS_URL, decodeTokenMeta, isStockpiledEntry, loadStockpileEntries, tokenHint, } from '../services/tokenStockpileService.js';
 const AI_KEY_FIELDS = [
     { id: 'openai', label: 'OpenAI API key', placeholder: 'sk-...' },
     { id: 'anthropic', label: 'Anthropic API key', placeholder: 'sk-ant-...' }
@@ -45,24 +48,14 @@ export class SettingsView {
         this.tokenVault = this.loadTokenVault();
     }
     loadTokenVault() {
-        try {
-            const raw = localStorage.getItem('sb-token-vault');
-            return raw ? JSON.parse(raw) : [];
-        }
-        catch (_a) {
-            return [];
-        }
+        return loadStockpileEntries();
     }
     saveTokenVault() {
         localStorage.setItem('sb-token-vault', JSON.stringify(this.tokenVault));
     }
-    addToVault(token, user) {
-        // Dedupe by token prefix/suffix
-        const exists = this.tokenVault.some((v) => v.token === token);
-        if (!exists) {
-            this.tokenVault.push({ token, user, addedAt: new Date().toISOString(), usedAt: null });
-            this.saveTokenVault();
-        }
+    addToVault(token, user, options = {}) {
+        addToStockpile(token, user, options);
+        this.tokenVault = loadStockpileEntries();
     }
     markTokenUsed(token) {
         const entry = this.tokenVault.find((v) => v.token === token);
@@ -76,11 +69,7 @@ export class SettingsView {
         if (!entry)
             return false;
         const activeToken = authService.getToken();
-        if (entry.token === activeToken)
-            return false;
-        if (entry.usedAt || entry.activatedAt)
-            return false;
-        return true;
+        return isStockpiledEntry(entry, activeToken);
     }
     returnVaultToken(index, rerender) {
         const entry = this.tokenVault[index];
@@ -102,14 +91,13 @@ export class SettingsView {
         this.saveTokenVault();
     }
     activateVaultToken(index) {
-        const entry = this.tokenVault[index];
-        if (!entry)
+        const result = activateStockpileEntry(index, authService);
+        if (!result.ok) {
+            showToast(result.error || 'Could not load token', 'error');
             return;
-        entry.activatedAt = new Date().toISOString();
-        entry.usedAt = new Date().toISOString();
-        this.saveTokenVault();
-        authService.setSession(entry.token, entry.user);
-        showToast('Switched to stored token', 'success');
+        }
+        this.tokenVault = loadStockpileEntries();
+        showToast('Time token loaded into this session', 'success');
     }
     _formatRelativeTime(iso) {
         if (!iso)
@@ -136,7 +124,8 @@ export class SettingsView {
         const total = this.tokenVault.length;
         const activeToken = authService.getToken();
         const activeIndex = this.tokenVault.findIndex((v) => v.token === activeToken);
-        return { total, activeIndex };
+        const stockpiled = this.tokenVault.filter((v) => isStockpiledEntry(v, activeToken)).length;
+        return { total, activeIndex, stockpiled };
     }
     matchOllamaModelOption(selected, models = []) {
         const want = String(selected || '').trim();
@@ -316,6 +305,7 @@ export class SettingsView {
         <h1 class="page-title">Settings</h1>
         <p class="text-muted analyze-hero-sub">Scan paths, rule profiles, and AI provider keys.</p>
       </div>
+      <div id="settings-notification-zone"></div>
       ${this.renderSettingsNav(dirty)}
 
       <p class="text-muted mb-4">Edits write to <code>.simplebeacon/config.json</code> on the server. Save before running a scan.</p>
@@ -532,31 +522,36 @@ export class SettingsView {
             : '—';
         const email = (user === null || user === void 0 ? void 0 : user.email) || (payload === null || payload === void 0 ? void 0 : payload.sub) || '—';
         const plan = (user === null || user === void 0 ? void 0 : user.plan) || (payload === null || payload === void 0 ? void 0 : payload.plan) || (payload === null || payload === void 0 ? void 0 : payload.tier) || '—';
-        const { total, activeIndex } = this.computeVaultMetrics();
+        const { total, activeIndex, stockpiled } = this.computeVaultMetrics();
         const vaultRows = this.tokenVault.map((entry, idx) => {
             var _a, _b;
             const isActive = idx === activeIndex;
-            const tHint = entry.token.length > 24 ? `${entry.token.slice(0, 8)}…${entry.token.slice(-8)}` : entry.token;
-            const u = ((_a = entry.user) === null || _a === void 0 ? void 0 : _a.email) || ((_b = entry.user) === null || _b === void 0 ? void 0 : _b.sub) || '—';
+            const meta = entry.meta || decodeTokenMeta(entry.token);
+            const tHint = tokenHint(entry.token);
+            const u = ((_a = entry.user) === null || _a === void 0 ? void 0 : _a.email) || ((_b = entry.user) === null || _b === void 0 ? void 0 : _b.sub) || meta.email || '—';
             const activeLabel = isActive
                 ? `<span class="badge badge-success" style="margin-left:var(--space-2);">active</span>`
                 : '';
-            const timeLabel = entry.activatedAt
-                ? `<span style="color:var(--text-muted);font-size:0.7rem;margin-left:var(--space-2);">• ${this._formatRelativeTime(entry.activatedAt)}</span>`
+            const stockpileLabel = isStockpiledEntry(entry, authService.getToken())
+                ? `<span class="badge" style="margin-left:var(--space-2);background:var(--primary-subtle);color:var(--primary);">stockpiled</span>`
                 : '';
+            const timeLabel = entry.activatedAt
+                ? `<span style="color:var(--text-muted);font-size:0.7rem;margin-left:var(--space-2);">• loaded ${this._formatRelativeTime(entry.activatedAt)}</span>`
+                : `<span style="color:var(--text-muted);font-size:0.7rem;margin-left:var(--space-2);">• expires ${escapeHtml(meta.expiresLabel)}</span>`;
             const canReturn = this.canReturnToken(idx);
             const returnBtn = canReturn
                 ? `<button type="button" class="btn btn-ghost btn-sm" data-vault-return="${idx}" style="white-space:nowrap;color:var(--success);">Return</button>`
                 : `<span class="text-muted" style="font-size:0.7rem;white-space:nowrap;padding:var(--space-1) var(--space-2);">Used • no return</span>`;
+            const loadLabel = isStockpiledEntry(entry, authService.getToken()) ? 'Load' : 'Use';
             return `
         <div class="settings-row" style="align-items:center;gap:var(--space-2);">
           <span class="settings-value" style="flex:1;min-width:0;">
             <code>${escapeHtml(tHint)}</code>
-            <span style="color:var(--text-muted);font-size:0.75rem;margin-left:var(--space-2);">${escapeHtml(u)}</span>
-            ${activeLabel}${timeLabel}
+            <span style="color:var(--text-muted);font-size:0.75rem;margin-left:var(--space-2);">${escapeHtml(String(meta.tier))} · ${escapeHtml(u)}</span>
+            ${activeLabel}${stockpileLabel}${timeLabel}
           </span>
           ${returnBtn}
-          <button type="button" class="btn btn-secondary btn-sm" data-vault-activate="${idx}" ${isActive ? 'disabled' : ''} style="white-space:nowrap;">Use</button>
+          <button type="button" class="btn btn-secondary btn-sm" data-vault-activate="${idx}" ${isActive ? 'disabled' : ''} style="white-space:nowrap;">${loadLabel}</button>
           <button type="button" class="btn btn-ghost btn-sm" data-vault-remove="${idx}" style="white-space:nowrap;color:var(--danger);">Remove</button>
         </div>
       `;
@@ -581,9 +576,10 @@ export class SettingsView {
           <span class="settings-value">${escapeHtml(expiresAt)}</span>
         </div>
         <div class="settings-row">
-          <span class="settings-label">Token vault</span>
-          <span class="settings-value">${total} stored</span>
+          <span class="settings-label">Token stockpile</span>
+          <span class="settings-value">${stockpiled} reserved · ${total} total</span>
         </div>
+        <p class="text-muted" style="font-size:var(--font-size-xs);margin:0 0 var(--space-3);">Buy time tokens for future use — they stay in your loader until you click Load.</p>
         <div class="settings-field settings-field-stack" style="margin-top:var(--space-3)">
           <label class="settings-label" for="settings-token-input">Paste new token</label>
           <input
@@ -595,20 +591,75 @@ export class SettingsView {
             placeholder="enter token">
         </div>
         <div class="settings-field-actions">
-          <button type="button" class="btn btn-primary btn-sm" id="settings-token-update">Add / update token</button>
-          <button type="button" class="btn btn-sm" id="settings-token-get">Get token</button>
+          <button type="button" class="btn btn-primary btn-sm" id="settings-token-update">Activate token</button>
+          <button type="button" class="btn btn-secondary btn-sm" id="settings-token-stockpile">Stockpile only</button>
+          <button type="button" class="btn btn-sm" id="settings-token-buy">Buy time tokens</button>
+          <button type="button" class="btn btn-sm" id="settings-token-get">Copy active token</button>
           <button type="button" class="btn btn-secondary btn-sm" id="settings-token-clear">Clear active token</button>
           <button type="button" class="btn btn-info btn-sm" id="settings-token-register-email">Register with email</button>
-          ${total > 0 ? `<button type="button" class="btn btn-ghost btn-sm" id="settings-token-clear-vault" style="color:var(--danger);">Clear vault (${total})</button>` : ''}
+          ${total > 0 ? `<button type="button" class="btn btn-ghost btn-sm" id="settings-token-clear-vault" style="color:var(--danger);">Clear stockpile (${total})</button>` : ''}
         </div>
         ${total > 0 ? `
           <div style="margin-top:var(--space-4);border-top:1px solid var(--border);padding-top:var(--space-3);">
-            <p class="text-muted" style="font-size:0.75rem;margin:0 0 var(--space-2);">Stored tokens — click Use to switch active token</p>
+            <p class="text-muted" style="font-size:0.75rem;margin:0 0 var(--space-2);">Token loader — reserved time tokens (Load when you need them)</p>
             ${vaultRows}
           </div>
         ` : ''}
       </div>
     `;
+    }
+    stockpileTokenFromInput(root, rerender) {
+        var _a, _b, _c;
+        const input = (_a = (root || this._root)) === null || _a === void 0 ? void 0 : _a.querySelector('#settings-token-input');
+        const newToken = ((_b = input === null || input === void 0 ? void 0 : input.value) === null || _b === void 0 ? void 0 : _b.trim()) || '';
+        if (!newToken) {
+            showToast('Paste a token first', 'error');
+            return;
+        }
+        const parts = newToken.split('.');
+        if (parts.length !== 3) {
+            showToast('Invalid token format — expected JWT with 3 parts', 'error');
+            return;
+        }
+        let payload;
+        try {
+            payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+        }
+        catch (_d) {
+            showToast('Invalid token — could not decode JWT payload', 'error');
+            return;
+        }
+        const user = {
+            email: payload.sub || payload.email || 'token-user',
+            plan: payload.plan || payload.tier || 'free',
+            tokenSession: true
+        };
+        const result = addToStockpile(newToken, user);
+        this.tokenVault = loadStockpileEntries();
+        if (result.duplicate) {
+            showToast('Token already in stockpile', 'info');
+        }
+        else {
+            showToast('Time token stockpiled for future use', 'success');
+        }
+        if (input)
+            input.value = '';
+        rerender();
+    }
+    copyActiveToken() {
+        const token = authService.getToken();
+        if (!token) {
+            showToast('No active token to copy', 'error');
+            return;
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            void navigator.clipboard.writeText(token).then(() => showToast('Active token copied', 'success')).catch(() => showToast('Copy failed', 'error'));
+            return;
+        }
+        showToast('Clipboard unavailable — copy from Profile', 'error');
+    }
+    openBuyTimeTokens() {
+        window.open(BUY_TIME_TOKENS_URL, '_blank', 'noopener,noreferrer');
     }
     updateToken(root, rerender) {
         var _a, _b;
@@ -643,8 +694,8 @@ export class SettingsView {
             this.addToVault(currentToken, currentUser);
         }
         authService.setSession(newToken, user);
-        this.addToVault(newToken, user);
-        showToast('Token updated and saved to vault', 'success');
+        this.addToVault(newToken, user, { stockpile: false });
+        showToast('Token activated and saved to stockpile history', 'success');
         if (input)
             input.value = '';
         rerender();
@@ -1113,6 +1164,12 @@ export class SettingsView {
         container.appendChild(root);
         this._root = root;
         this.bindEvents(root);
+        void mountCheckoutSuccessBanner(root, {
+            onTokenReady: (token, email) => {
+                this.addToVault(token, { email: email || billingService.getEmail(), tier: 'team' });
+                this.markTokenUsed(token);
+            }
+        });
         if (!this.aiKeys) {
             void this.loadAiKeys().then(() => {
                 if (container.contains(root))
@@ -1253,19 +1310,13 @@ export class SettingsView {
                 (_a = root.querySelector(`[data-cred-panel="${target}"]`)) === null || _a === void 0 ? void 0 : _a.classList.add('active');
             });
         });
-        (_t = root.querySelector('#settings-token-update')) === null || _t === void 0 ? void 0 : _t.addEventListener('click', () => {
-            const discountCode = 'SB-FRIEND-25';
-            const salesUrl = `https://simplebeacon.ai/checkout/tokens?code=${encodeURIComponent(discountCode)}&ref=dashboard`;
-            window.open(salesUrl, '_blank', 'noopener,noreferrer');
-        });
-        (_u = root.querySelector('#settings-token-get')) === null || _u === void 0 ? void 0 : _u.addEventListener('click', () => {
-            const discountCode = 'SB-FRIEND-25';
-            const salesUrl = `https://simplebeacon.ai/checkout/tokens?code=${encodeURIComponent(discountCode)}&ref=dashboard`;
-            window.open(salesUrl, '_blank', 'noopener,noreferrer');
-        });
-        (_v = root.querySelector('#settings-token-clear')) === null || _v === void 0 ? void 0 : _v.addEventListener('click', () => this.clearToken(rerender));
-        (_w = root.querySelector('#settings-token-register-email')) === null || _w === void 0 ? void 0 : _w.addEventListener('click', () => this.registerTokenWithEmail(rerender));
-        (_x = root.querySelector('#settings-token-clear-vault')) === null || _x === void 0 ? void 0 : _x.addEventListener('click', () => this.confirmAndClearVault(rerender));
+        (_t = root.querySelector('#settings-token-update')) === null || _t === void 0 ? void 0 : _t.addEventListener('click', () => this.updateToken(root, rerender));
+        (_u = root.querySelector('#settings-token-stockpile')) === null || _u === void 0 ? void 0 : _u.addEventListener('click', () => this.stockpileTokenFromInput(root, rerender));
+        (_v = root.querySelector('#settings-token-buy')) === null || _v === void 0 ? void 0 : _v.addEventListener('click', () => this.openBuyTimeTokens());
+        (_w = root.querySelector('#settings-token-get')) === null || _w === void 0 ? void 0 : _w.addEventListener('click', () => this.copyActiveToken());
+        (_x = root.querySelector('#settings-token-clear')) === null || _x === void 0 ? void 0 : _x.addEventListener('click', () => this.clearToken(rerender));
+        (_y = root.querySelector('#settings-token-register-email')) === null || _y === void 0 ? void 0 : _y.addEventListener('click', () => this.registerTokenWithEmail(rerender));
+        (_z = root.querySelector('#settings-token-clear-vault')) === null || _z === void 0 ? void 0 : _z.addEventListener('click', () => this.confirmAndClearVault(rerender));
         root.querySelectorAll('[data-vault-activate]').forEach((btn) => {
             btn.addEventListener('click', () => {
                 const idx = parseInt(btn.dataset.vaultActivate, 10);

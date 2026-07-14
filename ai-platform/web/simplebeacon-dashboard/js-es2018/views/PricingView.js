@@ -1,70 +1,132 @@
-const GITHUB_REPO = 'https://github.com/tjp420/simplebeacon';
-const CLI_DOCS = 'https://github.com/tjp420/simplebeacon/blob/main/README.md';
-/** Community-first install page — no enterprise tiers or Stripe checkout. */
+import { billingService } from './billingService.js';
+import { authService } from './authService.js?v=20260713sync6';
+import { showToast } from '../utils.js';
+
+const MARKETPLACE_URL = 'https://github.com/marketplace/actions/simplebeacon-ai-guardrails';
+const QUICKSTART_URL = 'https://github.com/simplebeacon/guardrails#readme';
+
+/**
+ * Team pricing + self-serve Stripe checkout for AI Guardrails CI tier.
+ */
 export class PricingView {
     constructor(app) {
         this.app = app;
     }
+
     mount(container) {
-        var _a;
         container.innerHTML = `
       <div class="page-header">
-        <h1>Install</h1>
+        <h1>Team Pricing</h1>
         <p class="page-subtitle">
-          Free CLI · local scans · GitHub Action · zero runtime dependencies. No credit card, no account required.
+          Free community guardrails for every repo. Upgrade when you need team dashboards, CI telemetry, and multi-repo ROI reporting.
         </p>
       </div>
 
-      <div class="card about-hero mb-6">
-        <div class="about-install-block">
-          <code>npx simplebeacon init</code>
-          <code>npx simplebeacon scan --gate</code>
-        </div>
-        <p class="text-muted" style="margin:var(--space-4) 0 0">
-          Add <code>examples/github-action/simplebeacon.yml</code> from the repo to fail CI on high-severity findings.
+      <div class="card notice-card mb-4">
+        <p style="margin:0">
+          <strong>Community stays free.</strong> Install the GitHub Action with no token — PR comments and merge gates work on every pull request.
+          Team tier adds centralized metrics like <em>Merges Blocked This Week</em>.
         </p>
       </div>
 
-      <div class="pricing-grid pricing-grid-compact mb-6">
+      <div class="pricing-grid mb-6">
         <div class="pricing-card card">
-          <h2>Community CLI</h2>
-          <p class="pricing-tier-label">Self-hosted utility</p>
+          <h2>Community</h2>
+          <p class="pricing-tier-label">Open source · no account</p>
           <p class="pricing-price">$0</p>
           <ul class="pricing-features">
-            <li>Unlimited local scans</li>
-            <li>JSON + text reports</li>
-            <li><code>--gate</code> for CI fail on high severity</li>
-            <li>GitHub Action + pre-commit hooks</li>
-            <li>Offline mode (<code>--offline</code>)</li>
+            <li>PR diff scan + merge gate</li>
+            <li>Structured AI Circuit Breaker comments</li>
+            <li>Fail-open if license server is down</li>
+            <li><code>npx simplebeacon scan --gate --diff</code></li>
           </ul>
-          <a class="btn btn-primary" href="${GITHUB_REPO}" target="_blank" rel="noopener noreferrer">GitHub</a>
+          <a class="btn btn-secondary" href="${MARKETPLACE_URL}" target="_blank" rel="noopener noreferrer">GitHub Marketplace</a>
         </div>
-        <div class="pricing-card card">
-          <h2>Documentation</h2>
-          <p class="pricing-tier-label">Technical docs</p>
+
+        <div class="pricing-card card pricing-card-featured">
+          <h2>Team Guardrails</h2>
+          <p class="pricing-tier-label">For engineering leads</p>
+          <p class="pricing-price">$49<span class="pricing-period">/mo</span></p>
           <ul class="pricing-features">
-            <li>Anti-bloat manifesto + benchmarks</li>
-            <li>GitHub Action quickstart</li>
-            <li>Trust & privacy guarantees</li>
-            <li>Launch templates for Show HN</li>
+            <li>Everything in Community</li>
+            <li>License token for CI + dashboard</li>
+            <li>Team dashboard &amp; gate telemetry</li>
+            <li>Email delivery in under 60 seconds</li>
           </ul>
-          <a class="btn btn-secondary" href="${CLI_DOCS}" target="_blank" rel="noopener noreferrer">Read docs</a>
-          <button type="button" class="btn btn-ghost btn-sm mt-2" id="goto-about">About the project</button>
+          <button type="button" class="btn btn-primary" data-checkout="startup_monthly">Start Team — $49/mo</button>
+        </div>
+
+        <div class="pricing-card card">
+          <h2>Team Growth</h2>
+          <p class="pricing-tier-label">Multi-repo engineering orgs</p>
+          <p class="pricing-price">$149<span class="pricing-period">/mo</span></p>
+          <ul class="pricing-features">
+            <li>Everything in Team Guardrails</li>
+            <li>Consolidated multi-repo metrics</li>
+            <li>Compliance trend reporting</li>
+            <li>Priority support</li>
+          </ul>
+          <button type="button" class="btn btn-primary" data-checkout="growth_monthly">Start Growth — $149/mo</button>
         </div>
       </div>
 
-      <div class="card notice-card">
-        <p style="margin:0">
-          <strong>Radical honesty:</strong> this dashboard is optional tooling around the same scan engine.
-          I am not selling you a required SaaS subscription to use the CLI.
-          For the full story — including what Simplebeacon is <em>bad</em> at — see
-          <a href="/dashboard/about">About the project</a>.
-        </p>
+      <div class="card mb-6">
+        <h3 class="h5 mb-2">Self-serve checkout</h3>
+        <p class="text-muted text-sm mb-3">Pay on Stripe → receive your license token by email → paste into <code>SIMPLEBEACON_LICENSE_TOKEN</code> in GitHub secrets.</p>
+        <label class="form-label" for="checkout-email">Work email</label>
+        <div class="d-flex gap-2 flex-wrap align-items-center">
+          <input type="email" id="checkout-email" class="form-input" placeholder="lead@yourcompany.com" autocomplete="email" style="max-width:320px">
+          <span class="text-muted text-xs">Token also appears in Settings after payment.</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 class="h5 mb-2">Quickstart after purchase</h3>
+        <pre class="code-block text-sm"><code>- uses: actions/checkout@v4
+  with:
+    fetch-depth: 0
+
+- uses: simplebeacon/guardrails@v1
+  with:
+    license-token: \${{ secrets.SIMPLEBEACON_LICENSE_TOKEN }}
+    fail-on: high</code></pre>
+        <a class="btn btn-ghost btn-sm mt-2" href="${QUICKSTART_URL}" target="_blank" rel="noopener noreferrer">Full docs</a>
       </div>
     `;
-        (_a = container.querySelector('#goto-about')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => {
-            this.app.navigate('about');
+
+        const emailInput = container.querySelector('#checkout-email');
+        const stored = billingService.getEmail() || authService.getUser()?.email || '';
+        if (emailInput && stored) {
+            emailInput.value = stored;
+        }
+
+        container.querySelectorAll('[data-checkout]').forEach((btn) => {
+            btn.addEventListener('click', async () => {
+                const product = btn.getAttribute('data-checkout');
+                const email = (emailInput?.value || billingService.getEmail() || '').trim();
+                if (!email || !email.includes('@')) {
+                    showToast('Enter your work email before checkout', 'error');
+                    emailInput?.focus();
+                    return;
+                }
+                btn.disabled = true;
+                try {
+                    await billingService.startCheckout(product, email);
+                }
+                catch (err) {
+                    showToast(err.message || 'Checkout unavailable', 'error');
+                }
+                finally {
+                    btn.disabled = false;
+                }
+            });
         });
+
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('canceled') === 'true') {
+            showToast('Checkout canceled — Community tier is still free', 'info');
+        }
     }
+
     destroy() { }
 }

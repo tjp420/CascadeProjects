@@ -1,4 +1,5 @@
-import { escapeHtml, formatNumber, showToast, renderEmptyState } from '../utils.js';
+import { escapeHtml, formatNumber, showToast, renderEmptyState, downloadJson } from '../utils.js';
+import { openInIde, resolveProjectRootFromApp } from '../utils-lib/ideDeepLink.js';
 const SEVERITY_ORDER = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
 /**
  * Get remediation plan.
@@ -316,7 +317,10 @@ export class RemediationRoadmapView {
             </div>
             <div style="font-weight:500;margin-bottom:3px;word-break:break-word;">${escapeHtml(issue.type || 'Issue')}</div>
             <div style="font-size:var(--font-size-sm);color:var(--text-secondary);margin-bottom:4px;">${escapeHtml(issue.description || '')}</div>
-            <div style="font-size:var(--font-size-xs);color:var(--text-muted);font-family:var(--font-mono);">${escapeHtml(issue.filePath || '—')}</div>
+            <div style="font-size:var(--font-size-xs);color:var(--text-muted);font-family:var(--font-mono);display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <span>${escapeHtml(issue.filePath || '—')}</span>
+              ${issue.filePath ? `<button type="button" class="btn btn-ghost btn-xs roadmap-open-file" data-file="${escapeHtml(issue.filePath)}" data-line="${issue.line || 1}">Open in editor</button>` : ''}
+            </div>
             ${issue._codeSnippet ? `<pre style="margin:8px 0 0;padding:8px 10px;background:var(--background);border:1px solid var(--border);border-radius:var(--radius-md);font-size:var(--font-size-xs);font-family:var(--font-mono);overflow-x:auto;"><code>${escapeHtml(issue._codeSnippet)}</code></pre>` : ''}
           </div>
         </div>
@@ -346,15 +350,7 @@ export class RemediationRoadmapView {
                 };
             })
         };
-        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `remediation-roadmap-${new Date().toISOString().slice(0, 10)}.json`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
+        downloadJson(payload, `remediation-roadmap-${new Date().toISOString().slice(0, 10)}.json`);
         showToast('Remediation roadmap exported as JSON');
     }
     importFromJson(file) {
@@ -792,6 +788,14 @@ export class RemediationRoadmapView {
                 }
                 localStorage.setItem('sb-remediation-completed', JSON.stringify([...this.completed]));
                 this.refreshView();
+            });
+        });
+        const projectRoot = resolveProjectRootFromApp(this.app);
+        el.querySelectorAll('.roadmap-open-file').forEach((btn) => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                openInIde(btn.dataset.file, Number(btn.dataset.line) || 1, { projectRoot });
             });
         });
         const prevBtn = el.querySelector('#remediation-prev-page');

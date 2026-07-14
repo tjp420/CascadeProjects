@@ -1,178 +1,165 @@
 import { escapeHtml, showToast, downloadJson, renderEmptyState } from '../utils.js';
-import { resolvePageSpecsLabel, resolveJestTestsLabel } from '../services/analyzeService.js';
+import { resolvePageSpecsLabel, resolveJestTestsLabel } from '../services/analyzeService.js?v=20260710inventory1';
 // EU AI Act transparency disclosure: This view includes AI system integration indicators per Article 50.
-import { scanService } from '../services/scanService.js';
+import { scanService } from '../services/scanService.js?v=20260711dedup2';
+import { billingService } from '../services/billingService.js';
 import { platformService } from '../services/platformService.js';
-import { fetchUserAiKeys, saveUserAiKeys, clearUserAiKeys, normalizeAiKeysRecord, fetchOllamaModels } from '../services/aiKeysService.js?v=20260709ollama3';
-import { authService } from '../services/authService.js';
+import { fetchUserAiKeys, saveUserAiKeys, clearUserAiKeys, normalizeAiKeysRecord, fetchOllamaModels } from '../services/aiKeysService.js?v=20260711cachefix1';
+import { authService } from '../services/authService.js?v=20260713sync6';
 import { OLLAMA_DEFAULT_URL } from '../config.js';
-
+import { mountCheckoutSuccessBanner } from '../components/CheckoutSuccessBanner.js';
+import { activateStockpileEntry, addToStockpile, BUY_TIME_TOKENS_URL, decodeTokenMeta, isStockpiledEntry, loadStockpileEntries, tokenHint, } from '../services/tokenStockpileService.js';
 const AI_KEY_FIELDS = [
-  { id: 'openai', label: 'OpenAI API key', placeholder: 'sk-...' },
-  { id: 'anthropic', label: 'Anthropic API key', placeholder: 'sk-ant-...' }
+    { id: 'openai', label: 'OpenAI API key', placeholder: 'sk-...' },
+    { id: 'anthropic', label: 'Anthropic API key', placeholder: 'sk-ant-...' }
 ];
-
 const RULE_ORDER = [
-  'credentials',
-  'json-schema',
-  'sample-consistency',
-  'roadmap',
-  'production-leak',
-  'jest-baseline',
-  'javascript-ast-patterns',
-  'python-ast-patterns'
+    'credentials',
+    'json-schema',
+    'sample-consistency',
+    'roadmap',
+    'production-leak',
+    'jest-baseline',
+    'javascript-ast-patterns',
+    'python-ast-patterns'
 ];
-
 const SEVERITIES = ['high', 'medium', 'low'];
 const PROFILES = ['minimal', 'standard', 'cascade'];
-
 /**
  * Settings view.
  */
 export class SettingsView {
-  constructor(app) {
-    this.app = app;
-    this.draft = null;
-    this.savedSnapshot = null;
-    this.busy = false;
-    this.loading = false;
-    this.error = null;
-    this.presets = null;
-    this._root = null;
-    this.aiKeys = null;
-    this.aiKeysFormDraft = { ollamaBaseUrl: '', ollamaModel: '' };
-    this.aiKeysBusy = false;
-    this.ollamaModels = [];
-    this.ollamaModelsLoading = false;
-    this.ollamaModelsError = null;
-    this._ollamaModelsTimer = null;
-    this.tokenVault = this.loadTokenVault();
-  }
-
-  loadTokenVault() {
-    try {
-      const raw = localStorage.getItem('sb-token-vault');
-      return raw ? JSON.parse(raw) : [];
-    } catch {
-      return [];
+    constructor(app) {
+        this.app = app;
+        this.draft = null;
+        this.savedSnapshot = null;
+        this.busy = false;
+        this.loading = false;
+        this.error = null;
+        this.presets = null;
+        this._root = null;
+        this.aiKeys = null;
+        this.aiKeysFormDraft = { ollamaBaseUrl: '', ollamaModel: '' };
+        this.aiKeysBusy = false;
+        this.ollamaModels = [];
+        this.ollamaModelsLoading = false;
+        this.ollamaModelsError = null;
+        this._ollamaModelsTimer = null;
+        this.tokenVault = this.loadTokenVault();
     }
-  }
-
-  saveTokenVault() {
-    localStorage.setItem('sb-token-vault', JSON.stringify(this.tokenVault));
-  }
-
-  addToVault(token, user) {
-    // Dedupe by token prefix/suffix
-    const exists = this.tokenVault.some((v) => v.token === token);
-    if (!exists) {
-      this.tokenVault.push({ token, user, addedAt: new Date().toISOString(), usedAt: null });
-      this.saveTokenVault();
+    loadTokenVault() {
+        return loadStockpileEntries();
     }
-  }
-
-  markTokenUsed(token) {
-    const entry = this.tokenVault.find((v) => v.token === token);
-    if (entry && !entry.usedAt) {
-      entry.usedAt = new Date().toISOString();
-      this.saveTokenVault();
+    saveTokenVault() {
+        localStorage.setItem('sb-token-vault', JSON.stringify(this.tokenVault));
     }
-  }
-
-  canReturnToken(index) {
-    const entry = this.tokenVault[index];
-    if (!entry) return false;
-    const activeToken = authService.getToken();
-    if (entry.token === activeToken) return false;
-    if (entry.usedAt || entry.activatedAt) return false;
-    return true;
-  }
-
-  returnVaultToken(index, rerender) {
-    const entry = this.tokenVault[index];
-    if (!entry) return;
-    if (!this.canReturnToken(index)) {
-      showToast('This token has already been used and cannot be returned', 'error');
-      return;
+    addToVault(token, user, options = {}) {
+        addToStockpile(token, user, options);
+        this.tokenVault = loadStockpileEntries();
     }
-    const tHint = entry.token.length > 24 ? `${entry.token.slice(0, 8)}…${entry.token.slice(-8)}` : entry.token;
-    if (!globalThis.confirm(`Return unused token ${tHint}?\n\nThis will remove it from your vault. Tokens that have been activated or used cannot be returned.`)) return;
-    this.removeFromVault(index);
-    showToast('Token returned and removed from vault', 'success');
-    rerender();
-  }
-
-  removeFromVault(index) {
-    this.tokenVault.splice(index, 1);
-    this.saveTokenVault();
-  }
-
-  activateVaultToken(index) {
-    const entry = this.tokenVault[index];
-    if (!entry) return;
-    entry.activatedAt = new Date().toISOString();
-    entry.usedAt = new Date().toISOString();
-    this.saveTokenVault();
-    authService.setSession(entry.token, entry.user);
-    showToast('Switched to stored token', 'success');
-  }
-
-  _formatRelativeTime(iso) {
-    if (!iso) return '';
-    const then = new Date(iso).getTime();
-    const now = Date.now();
-    const diff = Math.max(0, now - then);
-    const mins = Math.floor(diff / 60000);
-    if (mins < 1) return 'just now';
-    if (mins < 60) return `${mins}m ago`;
-    const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return `${hrs}h ago`;
-    const days = Math.floor(hrs / 24);
-    return `${days}d ago`;
-  }
-
-  clearVault() {
-    this.tokenVault = [];
-    localStorage.removeItem('sb-token-vault');
-  }
-
-  computeVaultMetrics() {
-    const total = this.tokenVault.length;
-    const activeToken = authService.getToken();
-    const activeIndex = this.tokenVault.findIndex((v) => v.token === activeToken);
-    return { total, activeIndex };
-  }
-
-  matchOllamaModelOption(selected, models = []) {
-    const want = String(selected || '').trim();
-    if (!want) return '';
-    if (models.includes(want)) return want;
-    const prefixed = models.find((name) => name.startsWith(`${want}:`));
-    if (prefixed) return prefixed;
-    const byBase = models.find((name) => name.split(':')[0] === want);
-    if (byBase) return byBase;
-    return want;
-  }
-
-  renderOllamaModelSelect(keys) {
-    const selected = this.matchOllamaModelOption(keys.ollamaModel, this.ollamaModels);
-    const models = [...this.ollamaModels];
-    if (selected && !models.includes(selected)) {
-      models.unshift(selected);
+    markTokenUsed(token) {
+        const entry = this.tokenVault.find((v) => v.token === token);
+        if (entry && !entry.usedAt) {
+            entry.usedAt = new Date().toISOString();
+            this.saveTokenVault();
+        }
     }
-
-    let options = '';
-    if (this.ollamaModelsLoading) {
-      options = '<option value="">Loading models…</option>';
-    } else if (!models.length) {
-      options = `<option value="">${this.ollamaModelsError ? 'Ollama unreachable' : 'No models found'}</option>`;
-    } else {
-      options = `<option value="">— Select a model —</option>${models.map((name) => `
+    canReturnToken(index) {
+        const entry = this.tokenVault[index];
+        if (!entry)
+            return false;
+        const activeToken = authService.getToken();
+        return isStockpiledEntry(entry, activeToken);
+    }
+    returnVaultToken(index, rerender) {
+        const entry = this.tokenVault[index];
+        if (!entry)
+            return;
+        if (!this.canReturnToken(index)) {
+            showToast('This token has already been used and cannot be returned', 'error');
+            return;
+        }
+        const tHint = entry.token.length > 24 ? `${entry.token.slice(0, 8)}…${entry.token.slice(-8)}` : entry.token;
+        if (!globalThis.confirm(`Return unused token ${tHint}?\n\nThis will remove it from your vault. Tokens that have been activated or used cannot be returned.`))
+            return;
+        this.removeFromVault(index);
+        showToast('Token returned and removed from vault', 'success');
+        rerender();
+    }
+    removeFromVault(index) {
+        this.tokenVault.splice(index, 1);
+        this.saveTokenVault();
+    }
+    activateVaultToken(index) {
+        const result = activateStockpileEntry(index, authService);
+        if (!result.ok) {
+            showToast(result.error || 'Could not load token', 'error');
+            return;
+        }
+        this.tokenVault = loadStockpileEntries();
+        showToast('Time token loaded into this session', 'success');
+    }
+    _formatRelativeTime(iso) {
+        if (!iso)
+            return '';
+        const then = new Date(iso).getTime();
+        const now = Date.now();
+        const diff = Math.max(0, now - then);
+        const mins = Math.floor(diff / 60000);
+        if (mins < 1)
+            return 'just now';
+        if (mins < 60)
+            return `${mins}m ago`;
+        const hrs = Math.floor(mins / 60);
+        if (hrs < 24)
+            return `${hrs}h ago`;
+        const days = Math.floor(hrs / 24);
+        return `${days}d ago`;
+    }
+    clearVault() {
+        this.tokenVault = [];
+        localStorage.removeItem('sb-token-vault');
+    }
+    computeVaultMetrics() {
+        const total = this.tokenVault.length;
+        const activeToken = authService.getToken();
+        const activeIndex = this.tokenVault.findIndex((v) => v.token === activeToken);
+        const stockpiled = this.tokenVault.filter((v) => isStockpiledEntry(v, activeToken)).length;
+        return { total, activeIndex, stockpiled };
+    }
+    matchOllamaModelOption(selected, models = []) {
+        const want = String(selected || '').trim();
+        if (!want)
+            return '';
+        if (models.includes(want))
+            return want;
+        const prefixed = models.find((name) => name.startsWith(`${want}:`));
+        if (prefixed)
+            return prefixed;
+        const byBase = models.find((name) => name.split(':')[0] === want);
+        if (byBase)
+            return byBase;
+        return want;
+    }
+    renderOllamaModelSelect(keys) {
+        const selected = this.matchOllamaModelOption(keys.ollamaModel, this.ollamaModels);
+        const models = [...this.ollamaModels];
+        if (selected && !models.includes(selected)) {
+            models.unshift(selected);
+        }
+        let options = '';
+        if (this.ollamaModelsLoading) {
+            options = '<option value="">Loading models…</option>';
+        }
+        else if (!models.length) {
+            options = `<option value="">${this.ollamaModelsError ? 'Ollama unreachable' : 'No models found'}</option>`;
+        }
+        else {
+            options = `<option value="">— Select a model —</option>${models.map((name) => `
         <option value="${escapeHtml(name)}" ${name === selected ? 'selected' : ''}>${escapeHtml(name)}</option>
       `).join('')}`;
-    }
-
-    return `
+        }
+        return `
       <div class="settings-ollama-model-row">
         <select
           class="settings-input settings-select"
@@ -191,134 +178,134 @@ export class SettingsView {
       ${this.ollamaModelsError ? `<p class="text-muted settings-secret-hint">${escapeHtml(this.ollamaModelsError)}</p>` : ''}
       ${keys.ollamaModel && !this.ollamaModelsLoading ? `<p class="text-muted settings-secret-hint">Saved model: <code>${escapeHtml(keys.ollamaModel)}</code></p>` : ''}
     `;
-  }
-
-  refreshOllamaModelSelect() {
-    const wrap = this._root?.querySelector('#settings-ai-ollama-model-wrap');
-    if (!wrap) return;
-    wrap.innerHTML = this.renderOllamaModelSelect(this.displayAiKeys());
-    this.bindOllamaModelEvents(this._root);
-  }
-
-  bindOllamaModelEvents(root = this._root) {
-    if (!root) return;
-    root.querySelector('#settings-ai-ollama-model')?.addEventListener('change', (e) => {
-      this.aiKeysFormDraft.ollamaModel = e.target.value;
-    });
-    root.querySelector('#settings-ai-refresh-models')?.addEventListener('click', () => {
-      const baseUrl = root.querySelector('#settings-ai-ollama')?.value?.trim()
-        || this.displayAiKeys().ollamaBaseUrl
-        || OLLAMA_DEFAULT_URL;
-      void this.loadOllamaModels(baseUrl);
-    });
-  }
-
-  scheduleOllamaModelsReload(baseUrl) {
-    clearTimeout(this._ollamaModelsTimer);
-    this._ollamaModelsTimer = setTimeout(() => {
-      void this.loadOllamaModels(baseUrl);
-    }, 500);
-  }
-
-  async loadOllamaModels(baseUrl, options = {}) {
-    const url = String(baseUrl || OLLAMA_DEFAULT_URL).trim() || OLLAMA_DEFAULT_URL;
-    this.ollamaModelsLoading = true;
-    this.ollamaModelsError = null;
-    this.refreshOllamaModelSelect();
-
-    try {
-      const result = await fetchOllamaModels(url);
-      this.ollamaModels = result.models;
-      if (!result.models.length) {
-        this.ollamaModelsError = result.message || 'No models returned — run `ollama pull <model>`';
-      } else if (!result.ok) {
-        this.ollamaModelsError = result.message;
-      }
-
-      const current = this.displayAiKeys().ollamaModel;
-      if (!current && result.models.length) {
-        const picked = String(result.models[0]).split(':')[0];
-        this.syncAiKeysFormDraft({ ollamaBaseUrl: url, ollamaModel: picked });
-      }
-    } catch (err) {
-      this.ollamaModels = [];
-      this.ollamaModelsError = err.message;
-    } finally {
-      this.ollamaModelsLoading = false;
-      this.refreshOllamaModelSelect();
-      if (options.toastOnSuccess && this.ollamaModels.length) {
-        showToast(`${this.ollamaModels.length} Ollama model(s) loaded`, 'success');
-      }
     }
-  }
-
-  syncAiKeysFormDraft(source = {}) {
-    this.aiKeysFormDraft = {
-      ollamaBaseUrl: source.ollamaBaseUrl ?? this.aiKeysFormDraft?.ollamaBaseUrl ?? '',
-      ollamaModel: source.ollamaModel ?? this.aiKeysFormDraft?.ollamaModel ?? ''
-    };
-  }
-
-  captureAiKeysFormDraft(root = this._root) {
-    if (!root) return;
-    this.syncAiKeysFormDraft({
-      ollamaBaseUrl: root.querySelector('#settings-ai-ollama')?.value?.trim() ?? '',
-      ollamaModel: root.querySelector('#settings-ai-ollama-model')?.value?.trim() ?? ''
-    });
-  }
-
-  displayAiKeys() {
-    const saved = this.aiKeys || {};
-    const draft = this.aiKeysFormDraft || {};
-    return {
-      ...saved,
-      ollamaBaseUrl: draft.ollamaBaseUrl || saved.ollamaBaseUrl || '',
-      ollamaModel: draft.ollamaModel || saved.ollamaModel || ''
-    };
-  }
-
-  render() {
-    const { baseline, report } = this.app.state;
-    const config = this.draft || this.app.state.config || {};
-    const dirty = this.isDirty();
-
-    const el = document.createElement('div');
-    el.className = 'fade-in';
-
-    if (this.loading && !this.draft) {
-      el.innerHTML = `
+    refreshOllamaModelSelect() {
+        var _a;
+        const wrap = (_a = this._root) === null || _a === void 0 ? void 0 : _a.querySelector('#settings-ai-ollama-model-wrap');
+        if (!wrap)
+            return;
+        wrap.innerHTML = this.renderOllamaModelSelect(this.displayAiKeys());
+        this.bindOllamaModelEvents(this._root);
+    }
+    bindOllamaModelEvents(root = this._root) {
+        var _a, _b;
+        if (!root)
+            return;
+        (_a = root.querySelector('#settings-ai-ollama-model')) === null || _a === void 0 ? void 0 : _a.addEventListener('change', (e) => {
+            this.aiKeysFormDraft.ollamaModel = e.target.value;
+        });
+        (_b = root.querySelector('#settings-ai-refresh-models')) === null || _b === void 0 ? void 0 : _b.addEventListener('click', () => {
+            var _a, _b;
+            const baseUrl = ((_b = (_a = root.querySelector('#settings-ai-ollama')) === null || _a === void 0 ? void 0 : _a.value) === null || _b === void 0 ? void 0 : _b.trim())
+                || this.displayAiKeys().ollamaBaseUrl
+                || OLLAMA_DEFAULT_URL;
+            void this.loadOllamaModels(baseUrl);
+        });
+    }
+    scheduleOllamaModelsReload(baseUrl) {
+        clearTimeout(this._ollamaModelsTimer);
+        this._ollamaModelsTimer = setTimeout(() => {
+            void this.loadOllamaModels(baseUrl);
+        }, 500);
+    }
+    async loadOllamaModels(baseUrl, options = {}) {
+        const url = String(baseUrl || OLLAMA_DEFAULT_URL).trim() || OLLAMA_DEFAULT_URL;
+        this.ollamaModelsLoading = true;
+        this.ollamaModelsError = null;
+        this.refreshOllamaModelSelect();
+        try {
+            const result = await fetchOllamaModels(url);
+            this.ollamaModels = result.models;
+            if (!result.models.length) {
+                this.ollamaModelsError = result.message || 'No models returned — run `ollama pull <model>`';
+            }
+            else if (!result.ok) {
+                this.ollamaModelsError = result.message;
+            }
+            const current = this.displayAiKeys().ollamaModel;
+            if (!current && result.models.length) {
+                const picked = String(result.models[0]).split(':')[0];
+                this.syncAiKeysFormDraft({ ollamaBaseUrl: url, ollamaModel: picked });
+            }
+        }
+        catch (err) {
+            this.ollamaModels = [];
+            this.ollamaModelsError = err.message;
+        }
+        finally {
+            this.ollamaModelsLoading = false;
+            this.refreshOllamaModelSelect();
+            if (options.toastOnSuccess && this.ollamaModels.length) {
+                showToast(`${this.ollamaModels.length} Ollama model(s) loaded`, 'success');
+            }
+        }
+    }
+    syncAiKeysFormDraft(source = {}) {
+        var _a, _b, _c, _d, _e, _f;
+        this.aiKeysFormDraft = {
+            ollamaBaseUrl: (_c = (_a = source.ollamaBaseUrl) !== null && _a !== void 0 ? _a : (_b = this.aiKeysFormDraft) === null || _b === void 0 ? void 0 : _b.ollamaBaseUrl) !== null && _c !== void 0 ? _c : '',
+            ollamaModel: (_f = (_d = source.ollamaModel) !== null && _d !== void 0 ? _d : (_e = this.aiKeysFormDraft) === null || _e === void 0 ? void 0 : _e.ollamaModel) !== null && _f !== void 0 ? _f : ''
+        };
+    }
+    captureAiKeysFormDraft(root = this._root) {
+        var _a, _b, _c, _d, _e, _f;
+        if (!root)
+            return;
+        this.syncAiKeysFormDraft({
+            ollamaBaseUrl: (_c = (_b = (_a = root.querySelector('#settings-ai-ollama')) === null || _a === void 0 ? void 0 : _a.value) === null || _b === void 0 ? void 0 : _b.trim()) !== null && _c !== void 0 ? _c : '',
+            ollamaModel: (_f = (_e = (_d = root.querySelector('#settings-ai-ollama-model')) === null || _d === void 0 ? void 0 : _d.value) === null || _e === void 0 ? void 0 : _e.trim()) !== null && _f !== void 0 ? _f : ''
+        });
+    }
+    displayAiKeys() {
+        const saved = this.aiKeys || {};
+        const draft = this.aiKeysFormDraft || {};
+        return {
+            ...saved,
+            ollamaBaseUrl: draft.ollamaBaseUrl || saved.ollamaBaseUrl || '',
+            ollamaModel: draft.ollamaModel || saved.ollamaModel || ''
+        };
+    }
+    render() {
+        var _a, _b, _c;
+        const { baseline, report } = this.app.state;
+        const config = this.draft || this.app.state.config || {};
+        const dirty = this.isDirty();
+        const el = document.createElement('div');
+        el.className = 'fade-in';
+        if (this.loading && !this.draft) {
+            el.innerHTML = `
         <div class="analyze-hero"><h1 class="page-title">Settings</h1><p class="text-muted analyze-hero-sub">Loading configuration…</p></div>
         ${renderEmptyState({
-          icon: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
-          title: 'Loading configuration…',
-          body: '<div class="loading-spinner" style="width:32px;height:32px;margin:0 auto var(--space-4)"></div>'
-        })}
+                icon: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+                title: 'Loading configuration…',
+                body: '<div class="loading-spinner" style="width:32px;height:32px;margin:0 auto var(--space-4)"></div>'
+            })}
       `;
-      return el;
-    }
-
-    if (this.error && !this.draft) {
-      el.innerHTML = `
+            return el;
+        }
+        if (this.error && !this.draft) {
+            el.innerHTML = `
         <div class="analyze-hero"><h1 class="page-title">Settings</h1><p class="text-muted analyze-hero-sub">Configuration unavailable</p></div>
         ${renderEmptyState({
-          icon: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
-          title: 'Configuration unavailable',
-          body: escapeHtml(this.error),
-          actions: [{ label: 'Retry', id: 'settings-reload', className: 'btn-primary' }]
-        })}
+                icon: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
+                title: 'Configuration unavailable',
+                body: escapeHtml(this.error),
+                actions: [{ label: 'Retry', id: 'settings-reload', className: 'btn-primary' }]
+            })}
       `;
-      el.querySelector('#settings-reload')?.addEventListener('click', () => {
-        const container = el.parentElement;
-        if (container) this.loadAndMount(container);
-      });
-      return el;
-    }
-
-    el.innerHTML = `
+            (_a = el.querySelector('#settings-reload')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => {
+                const container = el.parentElement;
+                if (container)
+                    this.loadAndMount(container);
+            });
+            return el;
+        }
+        el.innerHTML = `
       <div class="analyze-hero">
         <h1 class="page-title">Settings</h1>
         <p class="text-muted analyze-hero-sub">Scan paths, rule profiles, and AI provider keys.</p>
       </div>
+      <div id="settings-notification-zone"></div>
       ${this.renderSettingsNav(dirty)}
 
       <p class="text-muted mb-4">Edits write to <code>.simplebeacon/config.json</code> on the server. Save before running a scan.</p>
@@ -380,7 +367,7 @@ export class SettingsView {
 
       <div class="card settings-grid mb-6" id="settings-section-rules">
         <h2 class="card-title">Rules</h2>
-        ${RULE_ORDER.map((name) => renderRuleRow(name, config.rules?.[name])).join('')}
+        ${RULE_ORDER.map((name) => { var _a; return renderRuleRow(name, (_a = config.rules) === null || _a === void 0 ? void 0 : _a[name]); }).join('')}
       </div>
 
       <div class="card settings-grid mb-6" id="settings-section-gate">
@@ -388,13 +375,13 @@ export class SettingsView {
         <div class="settings-field settings-field-stack">
           <span class="settings-label">Fail on</span>
           <div class="settings-checkbox-group">
-            ${SEVERITIES.map((sev) => checkbox('fail', sev, config.gate?.failOn)).join('')}
+            ${SEVERITIES.map((sev) => { var _a; return checkbox('fail', sev, (_a = config.gate) === null || _a === void 0 ? void 0 : _a.failOn); }).join('')}
           </div>
         </div>
         <div class="settings-field settings-field-stack">
           <span class="settings-label">Warn on</span>
           <div class="settings-checkbox-group">
-            ${SEVERITIES.map((sev) => checkbox('warn', sev, config.gate?.warnOn)).join('')}
+            ${SEVERITIES.map((sev) => { var _a; return checkbox('warn', sev, (_a = config.gate) === null || _a === void 0 ? void 0 : _a.warnOn); }).join('')}
           </div>
         </div>
       </div>
@@ -411,7 +398,7 @@ export class SettingsView {
         </div>
         <div class="settings-row">
           <span class="settings-label">Production-leak allowlist</span>
-          <span class="settings-value">${(config.rules?.['production-leak']?.allowlistFiles || []).length} file(s)</span>
+          <span class="settings-value">${(((_c = (_b = config.rules) === null || _b === void 0 ? void 0 : _b['production-leak']) === null || _c === void 0 ? void 0 : _c.allowlistFiles) || []).length} file(s)</span>
         </div>
         <p class="text-muted" style="font-size:var(--font-size-sm);margin:0">Edit these in <code>.simplebeacon/config.json</code> directly or via Export → edit → manual merge.</p>
       </div>
@@ -428,11 +415,11 @@ export class SettingsView {
         </div>
         <div class="settings-row">
           <span class="settings-label">Baseline page label</span>
-          <span class="settings-value">${escapeHtml(baseline?.pageSamplesLabel || '—')}</span>
+          <span class="settings-value">${escapeHtml((baseline === null || baseline === void 0 ? void 0 : baseline.pageSamplesLabel) || '—')}</span>
         </div>
         <div class="settings-row">
           <span class="settings-label">Last synced</span>
-          <span class="settings-value" id="baseline-synced-at">${baseline?.syncedAt ? new Date(baseline.syncedAt).toLocaleString() : '—'}</span>
+          <span class="settings-value" id="baseline-synced-at">${(baseline === null || baseline === void 0 ? void 0 : baseline.syncedAt) ? new Date(baseline.syncedAt).toLocaleString() : '—'}</span>
         </div>
         <div class="settings-field-actions">
           <button type="button" class="btn btn-secondary btn-sm" id="settings-baseline-sync" ${this.busy ? 'disabled' : ''}>
@@ -460,23 +447,21 @@ export class SettingsView {
         </div>
       </div>
     `;
-
-    return el;
-  }
-
-  renderSettingsNav(dirty) {
-    const sections = [
-      { id: 'settings-section-scan', label: 'Scan' },
-      { id: 'settings-download-card', label: 'Downloads' },
-      { id: 'settings-ai-keys-card', label: 'AI Keys' },
-      { id: 'settings-token-card', label: 'Token' },
-      { id: 'settings-section-rules', label: 'Rules' },
-      { id: 'settings-section-gate', label: 'Gate' },
-      { id: 'settings-section-advanced', label: 'Advanced' },
-      { id: 'settings-section-baseline', label: 'Baseline' },
-      { id: 'settings-section-shortcuts', label: 'Shortcuts' }
-    ];
-    return `
+        return el;
+    }
+    renderSettingsNav(dirty) {
+        const sections = [
+            { id: 'settings-section-scan', label: 'Scan' },
+            { id: 'settings-download-card', label: 'Downloads' },
+            { id: 'settings-ai-keys-card', label: 'AI Keys' },
+            { id: 'settings-token-card', label: 'Token' },
+            { id: 'settings-section-rules', label: 'Rules' },
+            { id: 'settings-section-gate', label: 'Gate' },
+            { id: 'settings-section-advanced', label: 'Advanced' },
+            { id: 'settings-section-baseline', label: 'Baseline' },
+            { id: 'settings-section-shortcuts', label: 'Shortcuts' }
+        ];
+        return `
       <nav class="settings-nav" style="
         position:sticky;
         top:0;
@@ -515,61 +500,63 @@ export class SettingsView {
         </div>
       </nav>
     `;
-  }
-
-  renderTokenSection() {
-    const token = authService.getToken();
-    const user = authService.getUser();
-
-    let payload = null;
-    if (token) {
-      try {
-        const [, payloadB64] = token.split('.');
-        if (payloadB64) {
-          payload = JSON.parse(atob(payloadB64.replace(/-/g, '+').replace(/_/g, '/')));
-        }
-      } catch {
-        payload = null;
-      }
     }
-
-    const hint = token && token.length > 24 ? `${token.slice(0, 8)}…${token.slice(-8)}` : (token || '—');
-    const expiresAt = payload?.exp
-      ? new Date(payload.exp * 1000).toLocaleString()
-      : '—';
-    const email = user?.email || payload?.sub || '—';
-    const plan = user?.plan || payload?.plan || payload?.tier || '—';
-    const { total, activeIndex } = this.computeVaultMetrics();
-
-    const vaultRows = this.tokenVault.map((entry, idx) => {
-      const isActive = idx === activeIndex;
-      const tHint = entry.token.length > 24 ? `${entry.token.slice(0, 8)}…${entry.token.slice(-8)}` : entry.token;
-      const u = entry.user?.email || entry.user?.sub || '—';
-      const activeLabel = isActive
-        ? `<span class="badge badge-success" style="margin-left:var(--space-2);">active</span>`
-        : '';
-      const timeLabel = entry.activatedAt
-        ? `<span style="color:var(--text-muted);font-size:0.7rem;margin-left:var(--space-2);">• ${this._formatRelativeTime(entry.activatedAt)}</span>`
-        : '';
-      const canReturn = this.canReturnToken(idx);
-      const returnBtn = canReturn
-        ? `<button type="button" class="btn btn-ghost btn-sm" data-vault-return="${idx}" style="white-space:nowrap;color:var(--success);">Return</button>`
-        : `<span class="text-muted" style="font-size:0.7rem;white-space:nowrap;padding:var(--space-1) var(--space-2);">Used • no return</span>`;
-      return `
+    renderTokenSection() {
+        const token = authService.getToken();
+        const user = authService.getUser();
+        let payload = null;
+        if (token) {
+            try {
+                const [, payloadB64] = token.split('.');
+                if (payloadB64) {
+                    payload = JSON.parse(atob(payloadB64.replace(/-/g, '+').replace(/_/g, '/')));
+                }
+            }
+            catch (_a) {
+                payload = null;
+            }
+        }
+        const hint = token && token.length > 24 ? `${token.slice(0, 8)}…${token.slice(-8)}` : (token || '—');
+        const expiresAt = (payload === null || payload === void 0 ? void 0 : payload.exp)
+            ? new Date(payload.exp * 1000).toLocaleString()
+            : '—';
+        const email = (user === null || user === void 0 ? void 0 : user.email) || (payload === null || payload === void 0 ? void 0 : payload.sub) || '—';
+        const plan = (user === null || user === void 0 ? void 0 : user.plan) || (payload === null || payload === void 0 ? void 0 : payload.plan) || (payload === null || payload === void 0 ? void 0 : payload.tier) || '—';
+        const { total, activeIndex, stockpiled } = this.computeVaultMetrics();
+        const vaultRows = this.tokenVault.map((entry, idx) => {
+            var _a, _b;
+            const isActive = idx === activeIndex;
+            const meta = entry.meta || decodeTokenMeta(entry.token);
+            const tHint = tokenHint(entry.token);
+            const u = ((_a = entry.user) === null || _a === void 0 ? void 0 : _a.email) || ((_b = entry.user) === null || _b === void 0 ? void 0 : _b.sub) || meta.email || '—';
+            const activeLabel = isActive
+                ? `<span class="badge badge-success" style="margin-left:var(--space-2);">active</span>`
+                : '';
+            const stockpileLabel = isStockpiledEntry(entry, authService.getToken())
+                ? `<span class="badge" style="margin-left:var(--space-2);background:var(--primary-subtle);color:var(--primary);">stockpiled</span>`
+                : '';
+            const timeLabel = entry.activatedAt
+                ? `<span style="color:var(--text-muted);font-size:0.7rem;margin-left:var(--space-2);">• loaded ${this._formatRelativeTime(entry.activatedAt)}</span>`
+                : `<span style="color:var(--text-muted);font-size:0.7rem;margin-left:var(--space-2);">• expires ${escapeHtml(meta.expiresLabel)}</span>`;
+            const canReturn = this.canReturnToken(idx);
+            const returnBtn = canReturn
+                ? `<button type="button" class="btn btn-ghost btn-sm" data-vault-return="${idx}" style="white-space:nowrap;color:var(--success);">Return</button>`
+                : `<span class="text-muted" style="font-size:0.7rem;white-space:nowrap;padding:var(--space-1) var(--space-2);">Used • no return</span>`;
+            const loadLabel = isStockpiledEntry(entry, authService.getToken()) ? 'Load' : 'Use';
+            return `
         <div class="settings-row" style="align-items:center;gap:var(--space-2);">
           <span class="settings-value" style="flex:1;min-width:0;">
             <code>${escapeHtml(tHint)}</code>
-            <span style="color:var(--text-muted);font-size:0.75rem;margin-left:var(--space-2);">${escapeHtml(u)}</span>
-            ${activeLabel}${timeLabel}
+            <span style="color:var(--text-muted);font-size:0.75rem;margin-left:var(--space-2);">${escapeHtml(String(meta.tier))} · ${escapeHtml(u)}</span>
+            ${activeLabel}${stockpileLabel}${timeLabel}
           </span>
           ${returnBtn}
-          <button type="button" class="btn btn-secondary btn-sm" data-vault-activate="${idx}" ${isActive ? 'disabled' : ''} style="white-space:nowrap;">Use</button>
+          <button type="button" class="btn btn-secondary btn-sm" data-vault-activate="${idx}" ${isActive ? 'disabled' : ''} style="white-space:nowrap;">${loadLabel}</button>
           <button type="button" class="btn btn-ghost btn-sm" data-vault-remove="${idx}" style="white-space:nowrap;color:var(--danger);">Remove</button>
         </div>
       `;
-    }).join('');
-
-    return `
+        }).join('');
+        return `
       <div class="card settings-grid mb-6" id="settings-token-card">
         <h2 class="card-title">Token</h2>
         <div class="settings-row">
@@ -589,9 +576,10 @@ export class SettingsView {
           <span class="settings-value">${escapeHtml(expiresAt)}</span>
         </div>
         <div class="settings-row">
-          <span class="settings-label">Token vault</span>
-          <span class="settings-value">${total} stored</span>
+          <span class="settings-label">Token stockpile</span>
+          <span class="settings-value">${stockpiled} reserved · ${total} total</span>
         </div>
+        <p class="text-muted" style="font-size:var(--font-size-xs);margin:0 0 var(--space-3);">Buy time tokens for future use — they stay in your loader until you click Load.</p>
         <div class="settings-field settings-field-stack" style="margin-top:var(--space-3)">
           <label class="settings-label" for="settings-token-input">Paste new token</label>
           <input
@@ -603,155 +591,210 @@ export class SettingsView {
             placeholder="enter token">
         </div>
         <div class="settings-field-actions">
-          <button type="button" class="btn btn-primary btn-sm" id="settings-token-update">Add / update token</button>
-          <button type="button" class="btn btn-sm" id="settings-token-get">Get token</button>
+          <button type="button" class="btn btn-primary btn-sm" id="settings-token-update">Activate token</button>
+          <button type="button" class="btn btn-secondary btn-sm" id="settings-token-stockpile">Stockpile only</button>
+          <button type="button" class="btn btn-sm" id="settings-token-buy">Buy time tokens</button>
+          <button type="button" class="btn btn-sm" id="settings-token-get">Copy active token</button>
           <button type="button" class="btn btn-secondary btn-sm" id="settings-token-clear">Clear active token</button>
           <button type="button" class="btn btn-info btn-sm" id="settings-token-register-email">Register with email</button>
-          ${total > 0 ? `<button type="button" class="btn btn-ghost btn-sm" id="settings-token-clear-vault" style="color:var(--danger);">Clear vault (${total})</button>` : ''}
+          ${total > 0 ? `<button type="button" class="btn btn-ghost btn-sm" id="settings-token-clear-vault" style="color:var(--danger);">Clear stockpile (${total})</button>` : ''}
         </div>
         ${total > 0 ? `
           <div style="margin-top:var(--space-4);border-top:1px solid var(--border);padding-top:var(--space-3);">
-            <p class="text-muted" style="font-size:0.75rem;margin:0 0 var(--space-2);">Stored tokens — click Use to switch active token</p>
+            <p class="text-muted" style="font-size:0.75rem;margin:0 0 var(--space-2);">Token loader — reserved time tokens (Load when you need them)</p>
             ${vaultRows}
           </div>
         ` : ''}
       </div>
     `;
-  }
-
-  updateToken(root, rerender) {
-    const input = (root || this._root)?.querySelector('#settings-token-input');
-    const newToken = input?.value?.trim() || '';
-    if (!newToken) {
-      showToast('Paste a token first', 'error');
-      return;
     }
-    const parts = newToken.split('.');
-    if (parts.length !== 3) {
-      showToast('Invalid token format — expected JWT with 3 parts', 'error');
-      return;
-    }
-    let payload;
-    try {
-      payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
-    } catch {
-      showToast('Invalid token — could not decode JWT payload', 'error');
-      return;
-    }
-    const user = {
-      email: payload.sub || 'token-user',
-      plan: payload.plan || payload.tier || 'free',
-      tokenSession: true
-    };
-    // Save current token to vault before replacing (if different)
-    const currentToken = authService.getToken();
-    if (currentToken && currentToken !== newToken) {
-      const currentUser = authService.getUser() || { email: payload.sub || 'token-user', plan: payload.plan || payload.tier || 'free' };
-      this.addToVault(currentToken, currentUser);
-    }
-    authService.setSession(newToken, user);
-    this.addToVault(newToken, user);
-    showToast('Token updated and saved to vault', 'success');
-    if (input) input.value = '';
-    rerender();
-  }
-
-  clearToken(rerender) {
-    if (!globalThis.confirm('Remove saved active token?')) return;
-    authService.clearSession();
-    showToast('Active token cleared', 'info');
-    rerender();
-  }
-
-  registerTokenWithEmail(rerender) {
-    const token = authService.getToken();
-    if (!token) {
-      showToast('No active token to register. Add a token first.', 'error');
-      return;
-    }
-    const email = window.prompt('Enter email address to associate with this token (for recovery):', '');
-    if (!email || !email.trim()) {
-      showToast('Registration cancelled', 'info');
-      return;
-    }
-    const trimmed = email.trim();
-    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailPattern.test(trimmed)) {
-      showToast('Invalid email address format', 'error');
-      return;
-    }
-    const user = authService.getUser() || {};
-    user.email = trimmed;
-    authService.setSession(token, user);
-    this.updateVaultEmail(token, trimmed);
-    showToast(`Token registered to ${trimmed}`, 'success');
-    rerender();
-  }
-
-  updateVaultEmail(token, email) {
-    const entry = this.tokenVault.find((e) => e.token === token);
-    if (entry) {
-      entry.user = entry.user || {};
-      entry.user.email = email;
-      this.saveVault();
-    }
-  }
-
-  confirmAndClearVault(rerender) {
-    if (!globalThis.confirm('Remove all stored tokens from vault?')) return;
-    this.clearVault();
-    showToast('Token vault cleared', 'info');
-    rerender();
-  }
-
-  loadDownloadSettings() {
-    try {
-      const raw = localStorage.getItem('sb-download-settings');
-      const parsed = raw ? JSON.parse(raw) : {};
-      const today = new Date().toISOString().split('T')[0];
-      return {
-        autoGeneratePdf: parsed.autoGeneratePdf === true,
-        promptForCredentials: parsed.promptForCredentials !== false,
-        credentials: {
-          projectName: parsed.credentials?.projectName || '',
-          signatoryName: parsed.credentials?.signatoryName || '',
-          signatoryTitle: parsed.credentials?.signatoryTitle || '',
-          contactEmail: parsed.credentials?.contactEmail || ''
-        },
-        agency: {
-          projectName: parsed.agency?.projectName || 'CascadeProjects',
-          devAgency: parsed.agency?.devAgency || 'Agency',
-          client: parsed.agency?.client || '',
-          milestone: parsed.agency?.milestone || 'Release',
-          date: parsed.agency?.date || today,
-          scanId: parsed.agency?.scanId || '',
-          score: parsed.agency?.score ?? 100,
-          status: parsed.agency?.status || 'PASS'
-        },
-        executive: {
-          projectName: parsed.executive?.projectName || 'CascadeProjects',
-          assessor: parsed.executive?.assessor || 'SimpleBeacon Operator',
-          date: parsed.executive?.date || today,
-          reportId: parsed.executive?.reportId || '',
-          summary: parsed.executive?.summary || '',
-          verdict: parsed.executive?.verdict || 'READY'
+    stockpileTokenFromInput(root, rerender) {
+        var _a, _b, _c;
+        const input = (_a = (root || this._root)) === null || _a === void 0 ? void 0 : _a.querySelector('#settings-token-input');
+        const newToken = ((_b = input === null || input === void 0 ? void 0 : input.value) === null || _b === void 0 ? void 0 : _b.trim()) || '';
+        if (!newToken) {
+            showToast('Paste a token first', 'error');
+            return;
         }
-      };
-    } catch {
-      return { promptForCredentials: true, credentials: {}, agency: {}, executive: {} };
+        const parts = newToken.split('.');
+        if (parts.length !== 3) {
+            showToast('Invalid token format — expected JWT with 3 parts', 'error');
+            return;
+        }
+        let payload;
+        try {
+            payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+        }
+        catch (_d) {
+            showToast('Invalid token — could not decode JWT payload', 'error');
+            return;
+        }
+        const user = {
+            email: payload.sub || payload.email || 'token-user',
+            plan: payload.plan || payload.tier || 'free',
+            tokenSession: true
+        };
+        const result = addToStockpile(newToken, user);
+        this.tokenVault = loadStockpileEntries();
+        if (result.duplicate) {
+            showToast('Token already in stockpile', 'info');
+        }
+        else {
+            showToast('Time token stockpiled for future use', 'success');
+        }
+        if (input)
+            input.value = '';
+        rerender();
     }
-  }
-
-  saveDownloadSettings(settings) {
-    localStorage.setItem('sb-download-settings', JSON.stringify(settings));
-  }
-
-  renderDownloadSettingsSection() {
-    const settings = this.loadDownloadSettings();
-    const creds = settings.credentials || {};
-    const agency = settings.agency || {};
-    const executive = settings.executive || {};
-    return `
+    copyActiveToken() {
+        const token = authService.getToken();
+        if (!token) {
+            showToast('No active token to copy', 'error');
+            return;
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            void navigator.clipboard.writeText(token).then(() => showToast('Active token copied', 'success')).catch(() => showToast('Copy failed', 'error'));
+            return;
+        }
+        showToast('Clipboard unavailable — copy from Profile', 'error');
+    }
+    openBuyTimeTokens() {
+        window.open(BUY_TIME_TOKENS_URL, '_blank', 'noopener,noreferrer');
+    }
+    updateToken(root, rerender) {
+        var _a, _b;
+        const input = (_a = (root || this._root)) === null || _a === void 0 ? void 0 : _a.querySelector('#settings-token-input');
+        const newToken = ((_b = input === null || input === void 0 ? void 0 : input.value) === null || _b === void 0 ? void 0 : _b.trim()) || '';
+        if (!newToken) {
+            showToast('Paste a token first', 'error');
+            return;
+        }
+        const parts = newToken.split('.');
+        if (parts.length !== 3) {
+            showToast('Invalid token format — expected JWT with 3 parts', 'error');
+            return;
+        }
+        let payload;
+        try {
+            payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+        }
+        catch (_c) {
+            showToast('Invalid token — could not decode JWT payload', 'error');
+            return;
+        }
+        const user = {
+            email: payload.sub || 'token-user',
+            plan: payload.plan || payload.tier || 'free',
+            tokenSession: true
+        };
+        // Save current token to vault before replacing (if different)
+        const currentToken = authService.getToken();
+        if (currentToken && currentToken !== newToken) {
+            const currentUser = authService.getUser() || { email: payload.sub || 'token-user', plan: payload.plan || payload.tier || 'free' };
+            this.addToVault(currentToken, currentUser);
+        }
+        authService.setSession(newToken, user);
+        this.addToVault(newToken, user, { stockpile: false });
+        showToast('Token activated and saved to stockpile history', 'success');
+        if (input)
+            input.value = '';
+        rerender();
+    }
+    clearToken(rerender) {
+        if (!globalThis.confirm('Remove saved active token?'))
+            return;
+        authService.clearSession();
+        showToast('Active token cleared', 'info');
+        rerender();
+    }
+    registerTokenWithEmail(rerender) {
+        const token = authService.getToken();
+        if (!token) {
+            showToast('No active token to register. Add a token first.', 'error');
+            return;
+        }
+        const email = window.prompt('Enter email address to associate with this token (for recovery):', '');
+        if (!email || !email.trim()) {
+            showToast('Registration cancelled', 'info');
+            return;
+        }
+        const trimmed = email.trim();
+        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailPattern.test(trimmed)) {
+            showToast('Invalid email address format', 'error');
+            return;
+        }
+        const user = authService.getUser() || {};
+        user.email = trimmed;
+        authService.setSession(token, user);
+        this.updateVaultEmail(token, trimmed);
+        showToast(`Token registered to ${trimmed}`, 'success');
+        rerender();
+    }
+    updateVaultEmail(token, email) {
+        const entry = this.tokenVault.find((e) => e.token === token);
+        if (entry) {
+            entry.user = entry.user || {};
+            entry.user.email = email;
+            this.saveVault();
+        }
+    }
+    confirmAndClearVault(rerender) {
+        if (!globalThis.confirm('Remove all stored tokens from vault?'))
+            return;
+        this.clearVault();
+        showToast('Token vault cleared', 'info');
+        rerender();
+    }
+    loadDownloadSettings() {
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u;
+        try {
+            const raw = localStorage.getItem('sb-download-settings');
+            const parsed = raw ? JSON.parse(raw) : {};
+            const today = new Date().toISOString().split('T')[0];
+            return {
+                autoGeneratePdf: parsed.autoGeneratePdf === true,
+                promptForCredentials: parsed.promptForCredentials !== false,
+                credentials: {
+                    projectName: ((_a = parsed.credentials) === null || _a === void 0 ? void 0 : _a.projectName) || '',
+                    signatoryName: ((_b = parsed.credentials) === null || _b === void 0 ? void 0 : _b.signatoryName) || '',
+                    signatoryTitle: ((_c = parsed.credentials) === null || _c === void 0 ? void 0 : _c.signatoryTitle) || '',
+                    contactEmail: ((_d = parsed.credentials) === null || _d === void 0 ? void 0 : _d.contactEmail) || ''
+                },
+                agency: {
+                    projectName: ((_e = parsed.agency) === null || _e === void 0 ? void 0 : _e.projectName) || 'CascadeProjects',
+                    devAgency: ((_f = parsed.agency) === null || _f === void 0 ? void 0 : _f.devAgency) || 'Agency',
+                    client: ((_g = parsed.agency) === null || _g === void 0 ? void 0 : _g.client) || '',
+                    milestone: ((_h = parsed.agency) === null || _h === void 0 ? void 0 : _h.milestone) || 'Release',
+                    date: ((_j = parsed.agency) === null || _j === void 0 ? void 0 : _j.date) || today,
+                    scanId: ((_k = parsed.agency) === null || _k === void 0 ? void 0 : _k.scanId) || '',
+                    score: (_m = (_l = parsed.agency) === null || _l === void 0 ? void 0 : _l.score) !== null && _m !== void 0 ? _m : 100,
+                    status: ((_o = parsed.agency) === null || _o === void 0 ? void 0 : _o.status) || 'PASS'
+                },
+                executive: {
+                    projectName: ((_p = parsed.executive) === null || _p === void 0 ? void 0 : _p.projectName) || 'CascadeProjects',
+                    assessor: ((_q = parsed.executive) === null || _q === void 0 ? void 0 : _q.assessor) || 'SimpleBeacon Operator',
+                    date: ((_r = parsed.executive) === null || _r === void 0 ? void 0 : _r.date) || today,
+                    reportId: ((_s = parsed.executive) === null || _s === void 0 ? void 0 : _s.reportId) || '',
+                    summary: ((_t = parsed.executive) === null || _t === void 0 ? void 0 : _t.summary) || '',
+                    verdict: ((_u = parsed.executive) === null || _u === void 0 ? void 0 : _u.verdict) || 'READY'
+                }
+            };
+        }
+        catch (_v) {
+            return { promptForCredentials: true, credentials: {}, agency: {}, executive: {} };
+        }
+    }
+    saveDownloadSettings(settings) {
+        localStorage.setItem('sb-download-settings', JSON.stringify(settings));
+    }
+    renderDownloadSettingsSection() {
+        var _a;
+        const settings = this.loadDownloadSettings();
+        const creds = settings.credentials || {};
+        const agency = settings.agency || {};
+        const executive = settings.executive || {};
+        return `
       <div class="card settings-grid mb-6" id="settings-download-card">
         <h2 class="card-title">Report Credentials</h2>
         <p class="text-muted" style="font-size:var(--font-size-sm);margin:0 0 var(--space-3)">
@@ -833,7 +876,7 @@ export class SettingsView {
           </div>
           <div class="settings-field settings-field-stack">
             <label class="settings-label" for="settings-agency-score">Quality Score</label>
-            <input class="settings-input" id="settings-agency-score" type="number" min="0" max="100" value="${Number(agency.score ?? 100)}" />
+            <input class="settings-input" id="settings-agency-score" type="number" min="0" max="100" value="${Number((_a = agency.score) !== null && _a !== void 0 ? _a : 100)}" />
           </div>
           <div class="settings-field settings-field-stack">
             <label class="settings-label" for="settings-agency-status">Status</label>
@@ -881,13 +924,11 @@ export class SettingsView {
         </div>
       </div>
     `;
-  }
-
-  renderAiKeysSection() {
-    const keys = this.displayAiKeys();
-    const providers = keys.providers || {};
-
-    return `
+    }
+    renderAiKeysSection() {
+        const keys = this.displayAiKeys();
+        const providers = keys.providers || {};
+        return `
       <div class="card settings-grid mb-6" id="settings-ai-keys-card">
         <h2 class="card-title">AI providers (optional)</h2>
         <p class="text-muted" style="font-size:var(--font-size-sm);margin:0 0 var(--space-3)">
@@ -896,8 +937,8 @@ export class SettingsView {
           Keys are encrypted on the server and tied to your account.
         </p>
         ${AI_KEY_FIELDS.map((field) => {
-          const status = providers[field.id] || {};
-          return `
+            const status = providers[field.id] || {};
+            return `
             <div class="settings-field settings-field-stack">
               <label class="settings-label" for="settings-ai-${field.id}">${escapeHtml(field.label)}</label>
               <input
@@ -947,565 +988,561 @@ export class SettingsView {
         ${keys.updatedAt ? `<p class="text-muted settings-secret-hint">Last updated ${new Date(keys.updatedAt).toLocaleString()}</p>` : ''}
       </div>
     `;
-  }
-
-  async loadAiKeys() {
-    const generation = (this._aiKeysLoadGen || 0) + 1;
-    this._aiKeysLoadGen = generation;
-    try {
-      const keys = await fetchUserAiKeys();
-      if (generation !== this._aiKeysLoadGen) return keys;
-      this.aiKeys = normalizeAiKeysRecord(keys);
-      this.syncAiKeysFormDraft(this.aiKeys);
-      return this.aiKeys;
-    } catch (err) {
-      if (generation !== this._aiKeysLoadGen) return null;
-      this.aiKeys = normalizeAiKeysRecord(null);
-      this.syncAiKeysFormDraft(this.aiKeys);
-      const isAuthError = err.code === 'auth_required' || /Authentication required|Unauthorized/i.test(err.message);
-      if (!isAuthError) {
-        console.warn('AI keys unavailable:', err.message);
-      }
-      return null;
     }
-  }
-
-  updateAiKeysBusyUi() {
-    const root = this._root;
-    if (!root) return;
-    root.querySelector('#settings-ai-save')?.toggleAttribute('disabled', Boolean(this.aiKeysBusy));
-    root.querySelector('#settings-ai-clear')?.toggleAttribute('disabled', Boolean(this.aiKeysBusy));
-    root.querySelector('#settings-ai-test-ollama')?.toggleAttribute('disabled', Boolean(this.aiKeysBusy));
-    const saveBtn = root.querySelector('#settings-ai-save');
-    if (saveBtn) {
-      saveBtn.textContent = this.aiKeysBusy === 'save' ? 'Saving…' : 'Save AI keys';
-    }
-    const testBtn = root.querySelector('#settings-ai-test-ollama');
-    if (testBtn) {
-      testBtn.textContent = this.aiKeysBusy === 'test-ollama' ? 'Testing…' : 'Test Ollama';
-    }
-  }
-
-  collectAiKeysPayload(root = this._root) {
-    this.captureAiKeysFormDraft(root);
-    const draft = this.aiKeysFormDraft || {};
-    const payload = {
-      ollamaBaseUrl: draft.ollamaBaseUrl || '',
-      ollamaModel: draft.ollamaModel || ''
-    };
-    if (root) {
-      for (const field of AI_KEY_FIELDS) {
-        const input = root.querySelector(`#settings-ai-${field.id}`);
-        const value = input?.value?.trim() || '';
-        if (value) payload[field.id] = value;
-      }
-    }
-    return payload;
-  }
-
-  async testOllamaConnection(root, rerender) {
-    const payloadRoot = root || this._root;
-    const baseUrl = payloadRoot?.querySelector('#settings-ai-ollama')?.value?.trim() || 'http://127.0.0.1:11434';
-    const model = payloadRoot?.querySelector('#settings-ai-ollama-model')?.value?.trim() || '';
-    this.aiKeysBusy = 'test-ollama';
-    this.updateAiKeysBusyUi();
-    try {
-      await this.loadOllamaModels(baseUrl);
-      if (!this.ollamaModels.length) {
-        showToast(this.ollamaModelsError || 'Ollama connection failed', 'error');
-        return;
-      }
-      const picked = model || this.displayAiKeys().ollamaModel || String(this.ollamaModels[0]).split(':')[0];
-      this.syncAiKeysFormDraft({ ollamaBaseUrl: baseUrl, ollamaModel: picked });
-      showToast(`Ollama connected — ${this.ollamaModels.length} model(s) available`, 'success');
-      rerender();
-    } catch (err) {
-      showToast(err.message, 'error');
-    } finally {
-      this.aiKeysBusy = false;
-      this.updateAiKeysBusyUi();
-    }
-  }
-
-  async saveAiKeys(root, rerender) {
-    const payload = this.collectAiKeysPayload(root || this._root);
-    this.aiKeysBusy = 'save';
-    this.updateAiKeysBusyUi();
-    try {
-      const saved = normalizeAiKeysRecord(await saveUserAiKeys(payload));
-      this.aiKeys = {
-        ...saved,
-        ollamaBaseUrl: saved.ollamaBaseUrl || payload.ollamaBaseUrl,
-        ollamaModel: saved.ollamaModel || payload.ollamaModel
-      };
-      this.syncAiKeysFormDraft(this.aiKeys);
-      const payloadRoot = root || this._root;
-      for (const field of AI_KEY_FIELDS) {
-        const input = payloadRoot?.querySelector(`#settings-ai-${field.id}`);
-        if (input) input.value = '';
-      }
-      showToast('AI provider keys saved', 'success');
-      rerender();
-    } catch (err) {
-      showToast(err.message, 'error');
-    } finally {
-      this.aiKeysBusy = false;
-    }
-  }
-
-  async clearAllAiKeys(rerender) {
-    if (!globalThis.confirm('Remove all saved AI provider keys for your account?')) return;
-    this.aiKeysBusy = 'clear';
-    this.updateAiKeysBusyUi();
-    try {
-      this.aiKeys = await clearUserAiKeys();
-      this.syncAiKeysFormDraft(this.aiKeys);
-      showToast('AI provider keys cleared', 'info');
-      rerender();
-    } catch (err) {
-      showToast(err.message, 'error');
-    } finally {
-      this.aiKeysBusy = false;
-    }
-  }
-
-  async loadAndMount(container) {
-    this.loading = true;
-    this.error = null;
-    container.innerHTML = '';
-    container.appendChild(this.render());
-
-    try {
-      const projectPath = this.app.state.lastProjectPath || null;
-      const [config, presets] = await Promise.all([
-        scanService.fetchConfig(projectPath),
-        this.presets ? Promise.resolve(this.presets) : scanService.fetchConfigPresets(),
-        this.loadAiKeys()
-      ]);
-      this.app.state.config = config;
-      this.presets = presets;
-      this.draft = cloneConfig(config);
-      this.savedSnapshot = JSON.stringify(this.buildConfigFromDom(this.draft, null));
-    } catch (err) {
-      this.error = err.message;
-      this.draft = this.draft || cloneConfig(this.app.state.config || {});
-    } finally {
-      this.loading = false;
-      this.mount(container);
-    }
-  }
-
-  mount(container) {
-    if (!this.draft && !this.loading && !this.error) {
-      this.loadAndMount(container);
-      return;
-    }
-
-    const incoming = this.app.state.config;
-    if (incoming && (!this.draft || !this.isDirty())) {
-      this.draft = cloneConfig(incoming);
-      this.savedSnapshot = JSON.stringify(this.buildConfigFromDom(this.draft, null));
-    } else if (!this.draft) {
-      this.draft = cloneConfig(incoming || {});
-      this.savedSnapshot = JSON.stringify(this.buildConfigFromDom(this.draft, null));
-    }
-
-    container.innerHTML = '';
-    const root = this.render();
-    container.appendChild(root);
-    this._root = root;
-    this.bindEvents(root);
-    if (!this.aiKeys) {
-      void this.loadAiKeys().then(() => {
-        if (container.contains(root)) this.mount(container);
-      });
-    }
-    if (!this.isDirty()) {
-      this.savedSnapshot = JSON.stringify(this.buildConfigFromDom(this.draft, this._root));
-    }
-  }
-
-  resetDraft() {
-    this.draft = cloneConfig(this.app.state.config);
-    this.savedSnapshot = JSON.stringify(this.buildConfigFromDom(this.draft, null));
-  }
-
-  isDirty() {
-    if (!this.draft || !this.savedSnapshot || !this._root) return false;
-    return JSON.stringify(this.buildConfigFromDom(this.draft, this._root)) !== this.savedSnapshot;
-  }
-
-  bindEvents(root) {
-    const container = root.parentElement;
-/**
- * Rerender.
- * @returns {any}
- */
-    const rerender = () => {
-      this.captureAiKeysFormDraft(this._root);
-      if (container) this.mount(container);
-    };
-
-    root.querySelector('#settings-ai-ollama')?.addEventListener('input', (e) => {
-      this.aiKeysFormDraft.ollamaBaseUrl = e.target.value;
-      this.scheduleOllamaModelsReload(e.target.value);
-    });
-    this.bindOllamaModelEvents(root);
-
-    root.querySelectorAll('.settings-nav-link[data-scroll-to]').forEach((link) => {
-      link.addEventListener('click', (e) => {
-        e.preventDefault();
-        const targetId = link.dataset.scrollTo;
-        const target = root.querySelector(`#${targetId}`);
-        if (target) {
-          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    async loadAiKeys() {
+        const generation = (this._aiKeysLoadGen || 0) + 1;
+        this._aiKeysLoadGen = generation;
+        try {
+            const keys = await fetchUserAiKeys();
+            if (generation !== this._aiKeysLoadGen)
+                return keys;
+            this.aiKeys = normalizeAiKeysRecord(keys);
+            this.syncAiKeysFormDraft(this.aiKeys);
+            return this.aiKeys;
         }
-      });
-    });
-
-/**
- * On field change.
- * @returns {any}
- */
-    const onFieldChange = () => {
-      this.draft = this.buildConfigFromDom(this.draft, root);
-      rerender();
-    };
-
-    root.querySelector('#settings-profile-select')?.addEventListener('change', (e) => {
-      this.applyProfilePreset(e.target.value, rerender);
-    });
-    root.querySelector('#settings-sample-dir')?.addEventListener('input', onFieldChange);
-    root.querySelector('#settings-scan-paths')?.addEventListener('input', onFieldChange);
-    root.querySelector('#settings-production-paths')?.addEventListener('input', onFieldChange);
-    root.querySelector('#settings-full-directory-scan')?.addEventListener('change', onFieldChange);
-
-    root.querySelectorAll('[data-rule-toggle]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const name = btn.dataset.ruleToggle;
-        const enabled = btn.dataset.enabled !== 'true';
-        this.draft.rules = this.draft.rules || {};
-        this.draft.rules[name] = { ...(this.draft.rules[name] || {}), enabled };
-        rerender();
-      });
-    });
-
-    root.querySelectorAll('[data-gate-group]').forEach((input) => {
-      input.addEventListener('change', onFieldChange);
-    });
-
-    root.querySelector('#settings-reset')?.addEventListener('click', () => {
-      this.resetDraft();
-      rerender();
-      showToast('Changes discarded', 'info');
-    });
-
-    root.querySelector('#settings-export')?.addEventListener('click', () => {
-      const config = this.buildConfigFromDom(this.draft, root);
-      downloadJson(config, 'simplebeacon-config.json');
-      showToast('Config exported', 'success');
-    });
-
-    root.querySelector('#settings-save')?.addEventListener('click', () => this.save(rerender));
-    root.querySelector('#settings-discover-paths')?.addEventListener('click', () => this.discoverPathsFromProject(rerender));
-    root.querySelector('#settings-sync-paths')?.addEventListener('click', () => this.syncPathsFromProject(rerender));
-    root.querySelector('#settings-baseline-sync')?.addEventListener('click', () => this.syncBaseline(rerender));
-    root.querySelector('#settings-run-scan')?.addEventListener('click', () => this.runScan(rerender));
-    root.querySelector('#settings-ai-save')?.addEventListener('click', () => this.saveAiKeys(root, rerender));
-    root.querySelector('#settings-ai-clear')?.addEventListener('click', () => this.clearAllAiKeys(rerender));
-    root.querySelector('#settings-ai-test-ollama')?.addEventListener('click', () => this.testOllamaConnection(root, rerender));
-
-    root.querySelector('#settings-download-save')?.addEventListener('click', () => {
-      const autoPdfCheckbox = root.querySelector('#settings-download-auto-pdf');
-      const promptCheckbox = root.querySelector('#settings-download-prompt-credentials');
-      const projectInput = root.querySelector('#settings-download-default-project');
-      const signatoryInput = root.querySelector('#settings-download-default-signatory');
-      const titleInput = root.querySelector('#settings-download-default-title');
-      const emailInput = root.querySelector('#settings-download-default-email');
-      this.saveDownloadSettings({
-        autoGeneratePdf: autoPdfCheckbox ? autoPdfCheckbox.checked : false,
-        promptForCredentials: promptCheckbox ? promptCheckbox.checked : true,
-        credentials: {
-          projectName: projectInput ? projectInput.value.trim() : '',
-          signatoryName: signatoryInput ? signatoryInput.value.trim() : '',
-          signatoryTitle: titleInput ? titleInput.value.trim() : '',
-          contactEmail: emailInput ? emailInput.value.trim() : ''
-        },
-        agency: {
-          projectName: root.querySelector('#settings-agency-project')?.value.trim() || '',
-          devAgency: root.querySelector('#settings-agency-dev')?.value.trim() || '',
-          client: root.querySelector('#settings-agency-client')?.value.trim() || '',
-          milestone: root.querySelector('#settings-agency-milestone')?.value || 'Release',
-          date: root.querySelector('#settings-agency-date')?.value || '',
-          scanId: root.querySelector('#settings-agency-scan-id')?.value.trim() || '',
-          score: Number(root.querySelector('#settings-agency-score')?.value || 100),
-          status: root.querySelector('#settings-agency-status')?.value || 'PASS'
-        },
-        executive: {
-          projectName: root.querySelector('#settings-exec-project')?.value.trim() || '',
-          assessor: root.querySelector('#settings-exec-assessor')?.value.trim() || '',
-          date: root.querySelector('#settings-exec-date')?.value || '',
-          reportId: root.querySelector('#settings-exec-report-id')?.value.trim() || '',
-          summary: root.querySelector('#settings-exec-summary')?.value || '',
-          verdict: root.querySelector('#settings-exec-verdict')?.value || 'READY'
+        catch (err) {
+            if (generation !== this._aiKeysLoadGen)
+                return null;
+            this.aiKeys = normalizeAiKeysRecord(null);
+            this.syncAiKeysFormDraft(this.aiKeys);
+            const isAuthError = err.code === 'auth_required' || /Authentication required|Unauthorized/i.test(err.message);
+            if (!isAuthError) {
+                console.warn('AI keys unavailable:', err.message);
+            }
+            return null;
         }
-      });
-      showToast('Report credentials saved', 'success');
-    });
-
-    // Credential editor tab switching
-    root.querySelectorAll('[data-cred-tab]').forEach((tab) => {
-      tab.addEventListener('click', () => {
-        const target = tab.dataset.credTab;
-        root.querySelectorAll('[data-cred-tab]').forEach((t) => t.classList.remove('active'));
-        root.querySelectorAll('[data-cred-panel]').forEach((p) => p.classList.remove('active'));
-        tab.classList.add('active');
-        root.querySelector(`[data-cred-panel="${target}"]`)?.classList.add('active');
-      });
-    });
-    root.querySelector('#settings-token-update')?.addEventListener('click', () => {
-      const discountCode = 'SB-FRIEND-25';
-      const salesUrl = `https://simplebeacon.ai/checkout/tokens?code=${encodeURIComponent(discountCode)}&ref=dashboard`;
-      window.open(salesUrl, '_blank', 'noopener,noreferrer');
-    });
-    root.querySelector('#settings-token-get')?.addEventListener('click', () => {
-      const discountCode = 'SB-FRIEND-25';
-      const salesUrl = `https://simplebeacon.ai/checkout/tokens?code=${encodeURIComponent(discountCode)}&ref=dashboard`;
-      window.open(salesUrl, '_blank', 'noopener,noreferrer');
-    });
-    root.querySelector('#settings-token-clear')?.addEventListener('click', () => this.clearToken(rerender));
-    root.querySelector('#settings-token-register-email')?.addEventListener('click', () => this.registerTokenWithEmail(rerender));
-    root.querySelector('#settings-token-clear-vault')?.addEventListener('click', () => this.confirmAndClearVault(rerender));
-
-    root.querySelectorAll('[data-vault-activate]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const idx = parseInt(btn.dataset.vaultActivate, 10);
-        this.activateVaultToken(idx);
-        rerender();
-      });
-    });
-    root.querySelectorAll('[data-vault-return]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const idx = parseInt(btn.dataset.vaultReturn, 10);
-        this.returnVaultToken(idx, rerender);
-      });
-    });
-    root.querySelectorAll('[data-vault-remove]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const idx = parseInt(btn.dataset.vaultRemove, 10);
-        this.removeFromVault(idx);
-        showToast('Token removed from vault', 'info');
-        rerender();
-      });
-    });
-
-    if (root.querySelector('#settings-ai-keys-card')) {
-      const baseUrl = this.displayAiKeys().ollamaBaseUrl || 'http://127.0.0.1:11434';
-      if (!this.ollamaModels.length && !this.ollamaModelsLoading) {
-        void this.loadOllamaModels(baseUrl);
-      }
     }
-  }
-
-  async applyProfilePreset(profile, rerender) {
-    try {
-      if (!this.presets) {
-        this.presets = await scanService.fetchConfigPresets();
-      }
-      const preset = this.presets[profile];
-      if (!preset) {
-        this.draft.profile = profile;
-        rerender();
-        return;
-      }
-
-      this.draft = {
-        ...this.draft,
-        profile,
-        rules: mergeRules(this.draft.rules, preset.rules),
-        gate: { ...(this.draft.gate || {}), ...(preset.gate || {}) },
-        productionPaths: preset.productionPaths?.length
-          ? [...preset.productionPaths]
-          : this.draft.productionPaths
-      };
-      if (this.draft.rules?.['production-leak']) {
-        this.draft.rules['production-leak'].productionPaths = [...(this.draft.productionPaths || [])];
-      }
-      showToast(`Applied ${profile} rule presets`, 'info');
-      rerender();
-    } catch (err) {
-      showToast(err.message, 'error');
-    }
-  }
-
-  buildConfigFromDom(base, rootEl) {
-    const root = rootEl || this._root;
-    const config = cloneConfig(base);
-
-    if (root) {
-      config.sampleDir = root.querySelector('#settings-sample-dir')?.value?.trim() || config.sampleDir;
-      const scanPaths = textToPaths(root.querySelector('#settings-scan-paths')?.value);
-      const productionPaths = textToPaths(root.querySelector('#settings-production-paths')?.value);
-      config.scanPaths = scanPaths;
-      config.productionPaths = productionPaths;
-      config.fullDirectoryScan = root.querySelector('#settings-full-directory-scan')?.checked ?? config.fullDirectoryScan;
-
-      config.gate = config.gate || { failOn: [], warnOn: [] };
-      config.gate.failOn = readGateSelection(root, 'fail');
-      config.gate.warnOn = readGateSelection(root, 'warn');
-
-      config.rules = config.rules || {};
-      for (const name of RULE_ORDER) {
-        const btn = root.querySelector(`[data-rule-toggle="${name}"]`);
-        if (btn) {
-          const enabled = btn.classList.contains('on');
-          config.rules[name] = { ...(config.rules[name] || {}), enabled };
+    updateAiKeysBusyUi() {
+        var _a, _b, _c;
+        const root = this._root;
+        if (!root)
+            return;
+        (_a = root.querySelector('#settings-ai-save')) === null || _a === void 0 ? void 0 : _a.toggleAttribute('disabled', Boolean(this.aiKeysBusy));
+        (_b = root.querySelector('#settings-ai-clear')) === null || _b === void 0 ? void 0 : _b.toggleAttribute('disabled', Boolean(this.aiKeysBusy));
+        (_c = root.querySelector('#settings-ai-test-ollama')) === null || _c === void 0 ? void 0 : _c.toggleAttribute('disabled', Boolean(this.aiKeysBusy));
+        const saveBtn = root.querySelector('#settings-ai-save');
+        if (saveBtn) {
+            saveBtn.textContent = this.aiKeysBusy === 'save' ? 'Saving…' : 'Save AI keys';
         }
-      }
+        const testBtn = root.querySelector('#settings-ai-test-ollama');
+        if (testBtn) {
+            testBtn.textContent = this.aiKeysBusy === 'test-ollama' ? 'Testing…' : 'Test Ollama';
+        }
     }
-
-    if (config.rules?.['production-leak']) {
-      config.rules['production-leak'].productionPaths = [...(config.productionPaths || [])];
+    collectAiKeysPayload(root = this._root) {
+        var _a;
+        this.captureAiKeysFormDraft(root);
+        const draft = this.aiKeysFormDraft || {};
+        const payload = {
+            ollamaBaseUrl: draft.ollamaBaseUrl || '',
+            ollamaModel: draft.ollamaModel || ''
+        };
+        if (root) {
+            for (const field of AI_KEY_FIELDS) {
+                const input = root.querySelector(`#settings-ai-${field.id}`);
+                const value = ((_a = input === null || input === void 0 ? void 0 : input.value) === null || _a === void 0 ? void 0 : _a.trim()) || '';
+                if (value)
+                    payload[field.id] = value;
+            }
+        }
+        return payload;
     }
-
-    return config;
-  }
-
-  async save(rerender) {
-    this.busy = 'save';
-    rerender();
-    try {
-      const config = this.buildConfigFromDom(this.draft, this._root);
-      const result = await scanService.saveConfig(config);
-      this.app.state.config = result.config;
-      this.draft = cloneConfig(result.config);
-      this.savedSnapshot = JSON.stringify(this.buildConfigFromDom(this.draft, null));
-      showToast(
-        result.warnings?.length ? `Saved (${result.warnings.length} warning(s))` : 'Settings saved',
-        'success'
-      );
-    } catch (err) {
-      showToast(err.message, 'error');
-    } finally {
-      this.busy = false;
-      rerender();
+    async testOllamaConnection(root, rerender) {
+        var _a, _b, _c, _d;
+        const payloadRoot = root || this._root;
+        const baseUrl = ((_b = (_a = payloadRoot === null || payloadRoot === void 0 ? void 0 : payloadRoot.querySelector('#settings-ai-ollama')) === null || _a === void 0 ? void 0 : _a.value) === null || _b === void 0 ? void 0 : _b.trim()) || 'http://127.0.0.1:11434';
+        const model = ((_d = (_c = payloadRoot === null || payloadRoot === void 0 ? void 0 : payloadRoot.querySelector('#settings-ai-ollama-model')) === null || _c === void 0 ? void 0 : _c.value) === null || _d === void 0 ? void 0 : _d.trim()) || '';
+        this.aiKeysBusy = 'test-ollama';
+        this.updateAiKeysBusyUi();
+        try {
+            await this.loadOllamaModels(baseUrl);
+            if (!this.ollamaModels.length) {
+                showToast(this.ollamaModelsError || 'Ollama connection failed', 'error');
+                return;
+            }
+            const picked = model || this.displayAiKeys().ollamaModel || String(this.ollamaModels[0]).split(':')[0];
+            this.syncAiKeysFormDraft({ ollamaBaseUrl: baseUrl, ollamaModel: picked });
+            showToast(`Ollama connected — ${this.ollamaModels.length} model(s) available`, 'success');
+            rerender();
+        }
+        catch (err) {
+            showToast(err.message, 'error');
+        }
+        finally {
+            this.aiKeysBusy = false;
+            this.updateAiKeysBusyUi();
+        }
     }
-  }
-
-  async syncPathsFromProject(rerender) {
-    this.busy = 'sync-paths';
-    rerender();
-    try {
-      const projectPath = this.app.state.lastProjectPath || null;
-      const config = await scanService.fetchConfig(projectPath);
-      this.app.state.config = config;
-      this.draft = cloneConfig(config);
-      this.savedSnapshot = JSON.stringify(this.buildConfigFromDom(this.draft, null));
-      showToast('Scan paths synced from current project', 'success');
-    } catch (err) {
-      showToast(err.message, 'error');
-    } finally {
-      this.busy = false;
-      rerender();
+    async saveAiKeys(root, rerender) {
+        const payload = this.collectAiKeysPayload(root || this._root);
+        this.aiKeysBusy = 'save';
+        this.updateAiKeysBusyUi();
+        try {
+            const saved = normalizeAiKeysRecord(await saveUserAiKeys(payload));
+            this.aiKeys = {
+                ...saved,
+                ollamaBaseUrl: saved.ollamaBaseUrl || payload.ollamaBaseUrl,
+                ollamaModel: saved.ollamaModel || payload.ollamaModel
+            };
+            this.syncAiKeysFormDraft(this.aiKeys);
+            const payloadRoot = root || this._root;
+            for (const field of AI_KEY_FIELDS) {
+                const input = payloadRoot === null || payloadRoot === void 0 ? void 0 : payloadRoot.querySelector(`#settings-ai-${field.id}`);
+                if (input)
+                    input.value = '';
+            }
+            showToast('AI provider keys saved', 'success');
+            rerender();
+        }
+        catch (err) {
+            showToast(err.message, 'error');
+        }
+        finally {
+            this.aiKeysBusy = false;
+        }
     }
-  }
-
-  inferScanPaths(dirs, root) {
-    const rootNorm = String(root || '').replace(/\\/g, '/').replace(/\/+$/, '');
-    const candidates = new Set();
-    const scanPatterns = ['src', 'server', 'web', 'lib', 'app', 'api', 'routes', 'services', 'packages', 'js', 'ts', 'client', 'frontend', 'core', 'ui', 'components', 'utils', 'helpers'];
-    for (const dir of dirs) {
-      const rel = String(dir).replace(/\\/g, '/').replace(rootNorm, '').replace(/^\/+/, '');
-      const firstPart = rel.split('/')[0];
-      if (scanPatterns.includes(firstPart)) candidates.add(firstPart);
+    async clearAllAiKeys(rerender) {
+        if (!globalThis.confirm('Remove all saved AI provider keys for your account?'))
+            return;
+        this.aiKeysBusy = 'clear';
+        this.updateAiKeysBusyUi();
+        try {
+            this.aiKeys = await clearUserAiKeys();
+            this.syncAiKeysFormDraft(this.aiKeys);
+            showToast('AI provider keys cleared', 'info');
+            rerender();
+        }
+        catch (err) {
+            showToast(err.message, 'error');
+        }
+        finally {
+            this.aiKeysBusy = false;
+        }
     }
-    return Array.from(candidates);
-  }
-
-  inferProductionPaths(dirs, root) {
-    const rootNorm = String(root || '').replace(/\\/g, '/').replace(/\/+$/, '');
-    const candidates = new Set();
-    const prodPatterns = ['dist', 'build', 'public', 'out', '.next', 'static', 'deploy', 'release', 'bundle', 'production', 'prod'];
-    for (const dir of dirs) {
-      const rel = String(dir).replace(/\\/g, '/').replace(rootNorm, '').replace(/^\/+/, '');
-      const firstPart = rel.split('/')[0];
-      if (prodPatterns.includes(firstPart)) candidates.add(firstPart);
+    async loadAndMount(container) {
+        this.loading = true;
+        this.error = null;
+        container.innerHTML = '';
+        container.appendChild(this.render());
+        try {
+            const projectPath = this.app.state.lastProjectPath || null;
+            const [config, presets] = await Promise.all([
+                scanService.fetchConfig(projectPath),
+                this.presets ? Promise.resolve(this.presets) : scanService.fetchConfigPresets(),
+                this.loadAiKeys()
+            ]);
+            this.app.state.config = config;
+            this.presets = presets;
+            this.draft = cloneConfig(config);
+            this.savedSnapshot = JSON.stringify(this.buildConfigFromDom(this.draft, null));
+        }
+        catch (err) {
+            this.error = err.message;
+            this.draft = this.draft || cloneConfig(this.app.state.config || {});
+        }
+        finally {
+            this.loading = false;
+            this.mount(container);
+        }
     }
-    return Array.from(candidates);
-  }
-
-  async discoverPathsFromProject(rerender) {
-    this.busy = 'discover-paths';
-    rerender();
-    try {
-      const projectPath = this.app.state.lastProjectPath;
-      if (!projectPath) {
-        showToast('Set a project path on the Analyze page first', 'error');
-        return;
-      }
-      const inventory = await this.app.scanService.fetchRepositoryInventory(projectPath);
-      if (!inventory?.directoryTree) {
-        showToast('Could not read project structure', 'error');
-        return;
-      }
-      const dirs = inventory.directoryTree.map((d) => String(d.path || d.name || ''));
-      const scanPaths = this.inferScanPaths(dirs, projectPath);
-      const productionPaths = this.inferProductionPaths(dirs, projectPath);
-      this.draft = this.draft || cloneConfig(this.app.state.config || {});
-      this.draft.scanPaths = scanPaths;
-      this.draft.productionPaths = productionPaths;
-      this.savedSnapshot = JSON.stringify(this.buildConfigFromDom(this.draft, null));
-      showToast(`Discovered ${scanPaths.length} scan path(s), ${productionPaths.length} production path(s)`, 'success');
-    } catch (err) {
-      showToast(err.message, 'error');
-    } finally {
-      this.busy = false;
-      rerender();
+    mount(container) {
+        if (!this.draft && !this.loading && !this.error) {
+            this.loadAndMount(container);
+            return;
+        }
+        const incoming = this.app.state.config;
+        if (incoming && (!this.draft || !this.isDirty())) {
+            this.draft = cloneConfig(incoming);
+            this.savedSnapshot = JSON.stringify(this.buildConfigFromDom(this.draft, null));
+        }
+        else if (!this.draft) {
+            this.draft = cloneConfig(incoming || {});
+            this.savedSnapshot = JSON.stringify(this.buildConfigFromDom(this.draft, null));
+        }
+        container.innerHTML = '';
+        const root = this.render();
+        container.appendChild(root);
+        this._root = root;
+        this.bindEvents(root);
+        void mountCheckoutSuccessBanner(root, {
+            onTokenReady: (token, email) => {
+                this.addToVault(token, { email: email || billingService.getEmail(), tier: 'team' });
+                this.markTokenUsed(token);
+            }
+        });
+        if (!this.aiKeys) {
+            void this.loadAiKeys().then(() => {
+                if (container.contains(root))
+                    this.mount(container);
+            });
+        }
+        if (!this.isDirty()) {
+            this.savedSnapshot = JSON.stringify(this.buildConfigFromDom(this.draft, this._root));
+        }
     }
-  }
-
-  async syncBaseline(rerender) {
-    this.busy = 'baseline';
-    rerender();
-    try {
-      const result = await platformService.runBaselineSync();
-      this.app.state.baseline = result.baseline;
-      scanService.baseline = result.baseline;
-      await this.app.platformService.fetchAll();
-      this.app.state.dashboardHome = this.app.platformService.dashboardHome;
-      this.app.refreshCurrentView();
-      showToast(`Baseline synced — ${result.baseline?.jestTestsLabel || 'Jest updated'}`, 'success');
-    } catch (err) {
-      showToast(err.message, 'error');
-    } finally {
-      this.busy = false;
-      rerender();
+    resetDraft() {
+        this.draft = cloneConfig(this.app.state.config);
+        this.savedSnapshot = JSON.stringify(this.buildConfigFromDom(this.draft, null));
     }
-  }
-
-  async runScan(rerender) {
-    if (this.isDirty()) {
-      showToast('Save settings before running a scan', 'error');
-      return;
+    isDirty() {
+        if (!this.draft || !this.savedSnapshot || !this._root)
+            return false;
+        return JSON.stringify(this.buildConfigFromDom(this.draft, this._root)) !== this.savedSnapshot;
     }
-    this.busy = 'scan';
-    rerender();
-    try {
-      showToast('Running Simplebeacon scan…', 'info');
-      const config = this.app.state.config || {};
-      await scanService.runScan(null, { fullDirectoryScan: config.fullDirectoryScan === true });
-      const data = await scanService.fetchAll();
-      Object.assign(this.app.state, data);
-      showToast('Scan complete — dashboard metrics updated', 'success');
-    } catch (err) {
-      showToast(err.message, 'error');
-    } finally {
-      this.busy = false;
-      rerender();
+    bindEvents(root) {
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x;
+        const container = root.parentElement;
+        /**
+         * Rerender.
+         * @returns {any}
+         */
+        const rerender = () => {
+            this.captureAiKeysFormDraft(this._root);
+            if (container)
+                this.mount(container);
+        };
+        (_a = root.querySelector('#settings-ai-ollama')) === null || _a === void 0 ? void 0 : _a.addEventListener('input', (e) => {
+            this.aiKeysFormDraft.ollamaBaseUrl = e.target.value;
+            this.scheduleOllamaModelsReload(e.target.value);
+        });
+        this.bindOllamaModelEvents(root);
+        root.querySelectorAll('.settings-nav-link[data-scroll-to]').forEach((link) => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const targetId = link.dataset.scrollTo;
+                const target = root.querySelector(`#${targetId}`);
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+        /**
+         * On field change.
+         * @returns {any}
+         */
+        const onFieldChange = () => {
+            this.draft = this.buildConfigFromDom(this.draft, root);
+            rerender();
+        };
+        (_b = root.querySelector('#settings-profile-select')) === null || _b === void 0 ? void 0 : _b.addEventListener('change', (e) => {
+            this.applyProfilePreset(e.target.value, rerender);
+        });
+        (_c = root.querySelector('#settings-sample-dir')) === null || _c === void 0 ? void 0 : _c.addEventListener('input', onFieldChange);
+        (_d = root.querySelector('#settings-scan-paths')) === null || _d === void 0 ? void 0 : _d.addEventListener('input', onFieldChange);
+        (_e = root.querySelector('#settings-production-paths')) === null || _e === void 0 ? void 0 : _e.addEventListener('input', onFieldChange);
+        (_f = root.querySelector('#settings-full-directory-scan')) === null || _f === void 0 ? void 0 : _f.addEventListener('change', onFieldChange);
+        root.querySelectorAll('[data-rule-toggle]').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const name = btn.dataset.ruleToggle;
+                const enabled = btn.dataset.enabled !== 'true';
+                this.draft.rules = this.draft.rules || {};
+                this.draft.rules[name] = { ...(this.draft.rules[name] || {}), enabled };
+                rerender();
+            });
+        });
+        root.querySelectorAll('[data-gate-group]').forEach((input) => {
+            input.addEventListener('change', onFieldChange);
+        });
+        (_g = root.querySelector('#settings-reset')) === null || _g === void 0 ? void 0 : _g.addEventListener('click', () => {
+            this.resetDraft();
+            rerender();
+            showToast('Changes discarded', 'info');
+        });
+        (_h = root.querySelector('#settings-export')) === null || _h === void 0 ? void 0 : _h.addEventListener('click', () => {
+            const config = this.buildConfigFromDom(this.draft, root);
+            downloadJson(config, 'simplebeacon-config.json');
+            showToast('Config exported', 'success');
+        });
+        (_j = root.querySelector('#settings-save')) === null || _j === void 0 ? void 0 : _j.addEventListener('click', () => this.save(rerender));
+        (_k = root.querySelector('#settings-discover-paths')) === null || _k === void 0 ? void 0 : _k.addEventListener('click', () => this.discoverPathsFromProject(rerender));
+        (_l = root.querySelector('#settings-sync-paths')) === null || _l === void 0 ? void 0 : _l.addEventListener('click', () => this.syncPathsFromProject(rerender));
+        (_m = root.querySelector('#settings-baseline-sync')) === null || _m === void 0 ? void 0 : _m.addEventListener('click', () => this.syncBaseline(rerender));
+        (_o = root.querySelector('#settings-run-scan')) === null || _o === void 0 ? void 0 : _o.addEventListener('click', () => this.runScan(rerender));
+        (_p = root.querySelector('#settings-ai-save')) === null || _p === void 0 ? void 0 : _p.addEventListener('click', () => this.saveAiKeys(root, rerender));
+        (_q = root.querySelector('#settings-ai-clear')) === null || _q === void 0 ? void 0 : _q.addEventListener('click', () => this.clearAllAiKeys(rerender));
+        (_r = root.querySelector('#settings-ai-test-ollama')) === null || _r === void 0 ? void 0 : _r.addEventListener('click', () => this.testOllamaConnection(root, rerender));
+        (_s = root.querySelector('#settings-download-save')) === null || _s === void 0 ? void 0 : _s.addEventListener('click', () => {
+            var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p;
+            const autoPdfCheckbox = root.querySelector('#settings-download-auto-pdf');
+            const promptCheckbox = root.querySelector('#settings-download-prompt-credentials');
+            const projectInput = root.querySelector('#settings-download-default-project');
+            const signatoryInput = root.querySelector('#settings-download-default-signatory');
+            const titleInput = root.querySelector('#settings-download-default-title');
+            const emailInput = root.querySelector('#settings-download-default-email');
+            this.saveDownloadSettings({
+                autoGeneratePdf: autoPdfCheckbox ? autoPdfCheckbox.checked : false,
+                promptForCredentials: promptCheckbox ? promptCheckbox.checked : true,
+                credentials: {
+                    projectName: projectInput ? projectInput.value.trim() : '',
+                    signatoryName: signatoryInput ? signatoryInput.value.trim() : '',
+                    signatoryTitle: titleInput ? titleInput.value.trim() : '',
+                    contactEmail: emailInput ? emailInput.value.trim() : ''
+                },
+                agency: {
+                    projectName: ((_a = root.querySelector('#settings-agency-project')) === null || _a === void 0 ? void 0 : _a.value.trim()) || '',
+                    devAgency: ((_b = root.querySelector('#settings-agency-dev')) === null || _b === void 0 ? void 0 : _b.value.trim()) || '',
+                    client: ((_c = root.querySelector('#settings-agency-client')) === null || _c === void 0 ? void 0 : _c.value.trim()) || '',
+                    milestone: ((_d = root.querySelector('#settings-agency-milestone')) === null || _d === void 0 ? void 0 : _d.value) || 'Release',
+                    date: ((_e = root.querySelector('#settings-agency-date')) === null || _e === void 0 ? void 0 : _e.value) || '',
+                    scanId: ((_f = root.querySelector('#settings-agency-scan-id')) === null || _f === void 0 ? void 0 : _f.value.trim()) || '',
+                    score: Number(((_g = root.querySelector('#settings-agency-score')) === null || _g === void 0 ? void 0 : _g.value) || 100),
+                    status: ((_h = root.querySelector('#settings-agency-status')) === null || _h === void 0 ? void 0 : _h.value) || 'PASS'
+                },
+                executive: {
+                    projectName: ((_j = root.querySelector('#settings-exec-project')) === null || _j === void 0 ? void 0 : _j.value.trim()) || '',
+                    assessor: ((_k = root.querySelector('#settings-exec-assessor')) === null || _k === void 0 ? void 0 : _k.value.trim()) || '',
+                    date: ((_l = root.querySelector('#settings-exec-date')) === null || _l === void 0 ? void 0 : _l.value) || '',
+                    reportId: ((_m = root.querySelector('#settings-exec-report-id')) === null || _m === void 0 ? void 0 : _m.value.trim()) || '',
+                    summary: ((_o = root.querySelector('#settings-exec-summary')) === null || _o === void 0 ? void 0 : _o.value) || '',
+                    verdict: ((_p = root.querySelector('#settings-exec-verdict')) === null || _p === void 0 ? void 0 : _p.value) || 'READY'
+                }
+            });
+            showToast('Report credentials saved', 'success');
+        });
+        // Credential editor tab switching
+        root.querySelectorAll('[data-cred-tab]').forEach((tab) => {
+            tab.addEventListener('click', () => {
+                var _a;
+                const target = tab.dataset.credTab;
+                root.querySelectorAll('[data-cred-tab]').forEach((t) => t.classList.remove('active'));
+                root.querySelectorAll('[data-cred-panel]').forEach((p) => p.classList.remove('active'));
+                tab.classList.add('active');
+                (_a = root.querySelector(`[data-cred-panel="${target}"]`)) === null || _a === void 0 ? void 0 : _a.classList.add('active');
+            });
+        });
+        (_t = root.querySelector('#settings-token-update')) === null || _t === void 0 ? void 0 : _t.addEventListener('click', () => this.updateToken(root, rerender));
+        (_u = root.querySelector('#settings-token-stockpile')) === null || _u === void 0 ? void 0 : _u.addEventListener('click', () => this.stockpileTokenFromInput(root, rerender));
+        (_v = root.querySelector('#settings-token-buy')) === null || _v === void 0 ? void 0 : _v.addEventListener('click', () => this.openBuyTimeTokens());
+        (_w = root.querySelector('#settings-token-get')) === null || _w === void 0 ? void 0 : _w.addEventListener('click', () => this.copyActiveToken());
+        (_x = root.querySelector('#settings-token-clear')) === null || _x === void 0 ? void 0 : _x.addEventListener('click', () => this.clearToken(rerender));
+        (_y = root.querySelector('#settings-token-register-email')) === null || _y === void 0 ? void 0 : _y.addEventListener('click', () => this.registerTokenWithEmail(rerender));
+        (_z = root.querySelector('#settings-token-clear-vault')) === null || _z === void 0 ? void 0 : _z.addEventListener('click', () => this.confirmAndClearVault(rerender));
+        root.querySelectorAll('[data-vault-activate]').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const idx = parseInt(btn.dataset.vaultActivate, 10);
+                this.activateVaultToken(idx);
+                rerender();
+            });
+        });
+        root.querySelectorAll('[data-vault-return]').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const idx = parseInt(btn.dataset.vaultReturn, 10);
+                this.returnVaultToken(idx, rerender);
+            });
+        });
+        root.querySelectorAll('[data-vault-remove]').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const idx = parseInt(btn.dataset.vaultRemove, 10);
+                this.removeFromVault(idx);
+                showToast('Token removed from vault', 'info');
+                rerender();
+            });
+        });
+        if (root.querySelector('#settings-ai-keys-card')) {
+            const baseUrl = this.displayAiKeys().ollamaBaseUrl || 'http://127.0.0.1:11434';
+            if (!this.ollamaModels.length && !this.ollamaModelsLoading) {
+                void this.loadOllamaModels(baseUrl);
+            }
+        }
     }
-  }
+    async applyProfilePreset(profile, rerender) {
+        var _a, _b;
+        try {
+            if (!this.presets) {
+                this.presets = await scanService.fetchConfigPresets();
+            }
+            const preset = this.presets[profile];
+            if (!preset) {
+                this.draft.profile = profile;
+                rerender();
+                return;
+            }
+            this.draft = {
+                ...this.draft,
+                profile,
+                rules: mergeRules(this.draft.rules, preset.rules),
+                gate: { ...(this.draft.gate || {}), ...(preset.gate || {}) },
+                productionPaths: ((_a = preset.productionPaths) === null || _a === void 0 ? void 0 : _a.length)
+                    ? [...preset.productionPaths]
+                    : this.draft.productionPaths
+            };
+            if ((_b = this.draft.rules) === null || _b === void 0 ? void 0 : _b['production-leak']) {
+                this.draft.rules['production-leak'].productionPaths = [...(this.draft.productionPaths || [])];
+            }
+            showToast(`Applied ${profile} rule presets`, 'info');
+            rerender();
+        }
+        catch (err) {
+            showToast(err.message, 'error');
+        }
+    }
+    buildConfigFromDom(base, rootEl) {
+        var _a, _b, _c, _d, _e, _f, _g;
+        const root = rootEl || this._root;
+        const config = cloneConfig(base);
+        if (root) {
+            config.sampleDir = ((_b = (_a = root.querySelector('#settings-sample-dir')) === null || _a === void 0 ? void 0 : _a.value) === null || _b === void 0 ? void 0 : _b.trim()) || config.sampleDir;
+            const scanPaths = textToPaths((_c = root.querySelector('#settings-scan-paths')) === null || _c === void 0 ? void 0 : _c.value);
+            const productionPaths = textToPaths((_d = root.querySelector('#settings-production-paths')) === null || _d === void 0 ? void 0 : _d.value);
+            config.scanPaths = scanPaths;
+            config.productionPaths = productionPaths;
+            config.fullDirectoryScan = (_f = (_e = root.querySelector('#settings-full-directory-scan')) === null || _e === void 0 ? void 0 : _e.checked) !== null && _f !== void 0 ? _f : config.fullDirectoryScan;
+            config.gate = config.gate || { failOn: [], warnOn: [] };
+            config.gate.failOn = readGateSelection(root, 'fail');
+            config.gate.warnOn = readGateSelection(root, 'warn');
+            config.rules = config.rules || {};
+            for (const name of RULE_ORDER) {
+                const btn = root.querySelector(`[data-rule-toggle="${name}"]`);
+                if (btn) {
+                    const enabled = btn.classList.contains('on');
+                    config.rules[name] = { ...(config.rules[name] || {}), enabled };
+                }
+            }
+        }
+        if ((_g = config.rules) === null || _g === void 0 ? void 0 : _g['production-leak']) {
+            config.rules['production-leak'].productionPaths = [...(config.productionPaths || [])];
+        }
+        return config;
+    }
+    async save(rerender) {
+        var _a;
+        this.busy = 'save';
+        rerender();
+        try {
+            const config = this.buildConfigFromDom(this.draft, this._root);
+            const result = await scanService.saveConfig(config);
+            this.app.state.config = result.config;
+            this.draft = cloneConfig(result.config);
+            this.savedSnapshot = JSON.stringify(this.buildConfigFromDom(this.draft, null));
+            showToast(((_a = result.warnings) === null || _a === void 0 ? void 0 : _a.length) ? `Saved (${result.warnings.length} warning(s))` : 'Settings saved', 'success');
+        }
+        catch (err) {
+            showToast(err.message, 'error');
+        }
+        finally {
+            this.busy = false;
+            rerender();
+        }
+    }
+    async syncPathsFromProject(rerender) {
+        this.busy = 'sync-paths';
+        rerender();
+        try {
+            const projectPath = this.app.state.lastProjectPath || null;
+            const config = await scanService.fetchConfig(projectPath);
+            this.app.state.config = config;
+            this.draft = cloneConfig(config);
+            this.savedSnapshot = JSON.stringify(this.buildConfigFromDom(this.draft, null));
+            showToast('Scan paths synced from current project', 'success');
+        }
+        catch (err) {
+            showToast(err.message, 'error');
+        }
+        finally {
+            this.busy = false;
+            rerender();
+        }
+    }
+    inferScanPaths(dirs, root) {
+        const rootNorm = String(root || '').replace(/\\/g, '/').replace(/\/+$/, '');
+        const candidates = new Set();
+        const scanPatterns = ['src', 'server', 'web', 'lib', 'app', 'api', 'routes', 'services', 'packages', 'js', 'ts', 'client', 'frontend', 'core', 'ui', 'components', 'utils', 'helpers'];
+        for (const dir of dirs) {
+            const rel = String(dir).replace(/\\/g, '/').replace(rootNorm, '').replace(/^\/+/, '');
+            const firstPart = rel.split('/')[0];
+            if (scanPatterns.includes(firstPart))
+                candidates.add(firstPart);
+        }
+        return Array.from(candidates);
+    }
+    inferProductionPaths(dirs, root) {
+        const rootNorm = String(root || '').replace(/\\/g, '/').replace(/\/+$/, '');
+        const candidates = new Set();
+        const prodPatterns = ['dist', 'build', 'public', 'out', '.next', 'static', 'deploy', 'release', 'bundle', 'production', 'prod'];
+        for (const dir of dirs) {
+            const rel = String(dir).replace(/\\/g, '/').replace(rootNorm, '').replace(/^\/+/, '');
+            const firstPart = rel.split('/')[0];
+            if (prodPatterns.includes(firstPart))
+                candidates.add(firstPart);
+        }
+        return Array.from(candidates);
+    }
+    async discoverPathsFromProject(rerender) {
+        this.busy = 'discover-paths';
+        rerender();
+        try {
+            const projectPath = this.app.state.lastProjectPath;
+            if (!projectPath) {
+                showToast('Set a project path on the Analyze page first', 'error');
+                return;
+            }
+            const inventory = await this.app.scanService.fetchRepositoryInventory(projectPath);
+            if (!(inventory === null || inventory === void 0 ? void 0 : inventory.directoryTree)) {
+                showToast('Could not read project structure', 'error');
+                return;
+            }
+            const dirs = inventory.directoryTree.map((d) => String(d.path || d.name || ''));
+            const scanPaths = this.inferScanPaths(dirs, projectPath);
+            const productionPaths = this.inferProductionPaths(dirs, projectPath);
+            this.draft = this.draft || cloneConfig(this.app.state.config || {});
+            this.draft.scanPaths = scanPaths;
+            this.draft.productionPaths = productionPaths;
+            this.savedSnapshot = JSON.stringify(this.buildConfigFromDom(this.draft, null));
+            showToast(`Discovered ${scanPaths.length} scan path(s), ${productionPaths.length} production path(s)`, 'success');
+        }
+        catch (err) {
+            showToast(err.message, 'error');
+        }
+        finally {
+            this.busy = false;
+            rerender();
+        }
+    }
+    async syncBaseline(rerender) {
+        var _a;
+        this.busy = 'baseline';
+        rerender();
+        try {
+            const result = await platformService.runBaselineSync();
+            this.app.state.baseline = result.baseline;
+            scanService.baseline = result.baseline;
+            await this.app.platformService.fetchAll();
+            this.app.state.dashboardHome = this.app.platformService.dashboardHome;
+            this.app.refreshCurrentView();
+            showToast(`Baseline synced — ${((_a = result.baseline) === null || _a === void 0 ? void 0 : _a.jestTestsLabel) || 'Jest updated'}`, 'success');
+        }
+        catch (err) {
+            showToast(err.message, 'error');
+        }
+        finally {
+            this.busy = false;
+            rerender();
+        }
+    }
+    async runScan(rerender) {
+        if (this.isDirty()) {
+            showToast('Save settings before running a scan', 'error');
+            return;
+        }
+        this.busy = 'scan';
+        rerender();
+        try {
+            showToast('Running Simplebeacon scan…', 'info');
+            const config = this.app.state.config || {};
+            await scanService.runScan(null, { fullDirectoryScan: config.fullDirectoryScan === true });
+            const data = await scanService.fetchAll();
+            Object.assign(this.app.state, data);
+            showToast('Scan complete — dashboard metrics updated', 'success');
+        }
+        catch (err) {
+            showToast(err.message, 'error');
+        }
+        finally {
+            this.busy = false;
+            rerender();
+        }
+    }
 }
-
 /**
  * Render rule row.
  * @param {string} name
@@ -1513,8 +1550,8 @@ export class SettingsView {
  * @returns {any}
  */
 function renderRuleRow(name, rule = {}) {
-  const enabled = rule.enabled !== false;
-  return `
+    const enabled = rule.enabled !== false;
+    return `
     <div class="settings-row">
       <span class="settings-label">${escapeHtml(formatRuleName(name))}</span>
       <button
@@ -1530,7 +1567,6 @@ function renderRuleRow(name, rule = {}) {
     </div>
   `;
 }
-
 /**
  * Checkbox.
  * @param {any} group
@@ -1539,15 +1575,14 @@ function renderRuleRow(name, rule = {}) {
  * @returns {any}
  */
 function checkbox(group, severity, list = []) {
-  const checked = (list || []).includes(severity);
-  return `
+    const checked = (list || []).includes(severity);
+    return `
     <label class="settings-checkbox">
       <input type="checkbox" data-gate-group="${group}" value="${severity}" ${checked ? 'checked' : ''} aria-label="${severity} severity filter" />
       <span>${severity}</span>
     </label>
   `;
 }
-
 /**
  * Read gate selection.
  * @param {any} root
@@ -1555,12 +1590,11 @@ function checkbox(group, severity, list = []) {
  * @returns {any}
  */
 function readGateSelection(root, group) {
-  return SEVERITIES.filter((sev) => {
-    const input = root.querySelector(`[data-gate-group="${group}"][value="${sev}"]`);
-    return input?.checked;
-  });
+    return SEVERITIES.filter((sev) => {
+        const input = root.querySelector(`[data-gate-group="${group}"][value="${sev}"]`);
+        return input === null || input === void 0 ? void 0 : input.checked;
+    });
 }
-
 /**
  * Merge rules.
  * @param {any} existing
@@ -1568,48 +1602,44 @@ function readGateSelection(root, group) {
  * @returns {any}
  */
 function mergeRules(existing = {}, preset = {}) {
-  const merged = { ...existing };
-  for (const [name, rule] of Object.entries(preset)) {
-    merged[name] = { ...(existing[name] || {}), ...rule };
-  }
-  return merged;
+    const merged = { ...existing };
+    for (const [name, rule] of Object.entries(preset)) {
+        merged[name] = { ...(existing[name] || {}), ...rule };
+    }
+    return merged;
 }
-
 /**
  * Format rule name.
  * @param {string} name
  * @returns {any}
  */
 function formatRuleName(name) {
-  return name.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+    return name.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
-
 /**
  * Paths to text.
  * @param {Array} paths
  * @returns {any}
  */
 function pathsToText(paths) {
-  return (paths || []).join('\n');
+    return (paths || []).join('\n');
 }
-
 /**
  * Text to paths.
  * @param {string} text
  * @returns {any}
  */
 function textToPaths(text) {
-  return String(text || '')
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
+    return String(text || '')
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean);
 }
-
 /**
  * Clone config.
  * @param {Object} config
  * @returns {any}
  */
 function cloneConfig(config) {
-  return JSON.parse(JSON.stringify(config || {}));
+    return JSON.parse(JSON.stringify(config || {}));
 }

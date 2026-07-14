@@ -1,4 +1,4 @@
-import { authService } from '../services/authService.js';
+import { authService } from '../services/authService.js?v=20260713sync6';
 import { billingService } from '../services/billingService.js';
 import { showToast } from '../utils.js';
 /**
@@ -276,9 +276,10 @@ export class SignInView {
         const errorEl = form.querySelector('#signin-email-error');
         // Client-side validation
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
+        const identifierValid = this._emailMode === 'register' ? emailRegex.test(email) : /^[^\s]+$/.test(email);
+        if (!identifierValid) {
             if (errorEl) {
-                errorEl.textContent = 'Please enter a valid email address.';
+                errorEl.textContent = this._emailMode === 'register' ? 'Please enter a valid email address.' : 'Please enter your email or username.';
                 errorEl.hidden = false;
             }
             return;

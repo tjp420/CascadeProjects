@@ -459,11 +459,40 @@ async function analyzeDirectory({ rootName, fileQueue }, { maxFileSize, onLog, o
 }
 
 /**
+ * Capture a webkit directory entry synchronously during a drop event.
+ * DataTransferItemList entries become invalid after the handler yields.
+ * @param {DataTransferItem[]|DataTransferItemList} items
+ * @returns {FileSystemEntry|null}
+ */
+export function captureDroppedEntry(items) {
+  if (!items || items.length === 0) return null;
+  const first = items[0];
+  if (typeof first.webkitGetAsEntry !== 'function') return null;
+  try {
+    return first.webkitGetAsEntry();
+  }
+  catch (_a) {
+    return null;
+  }
+}
+
+/**
+ * Determine whether dropped items represent a folder without awaiting.
+ * @param {DataTransferItem[]|DataTransferItemList} items
+ * @returns {boolean}
+ */
+export function isDroppedFolderSync(items) {
+  const entry = captureDroppedEntry(items);
+  return entry ? entry.isDirectory : false;
+}
+
+/**
  * Determine whether a dropped DataTransferItemList represents a folder drop.
  * @param {DataTransferItemList} items
  * @returns {Promise<boolean>}
  */
 export async function isDroppedFolder(items) {
+  if (isDroppedFolderSync(items)) return true;
   if (!items || items.length === 0) return false;
   const first = items[0];
   if (typeof first.getAsFileSystemHandle === 'function') {
@@ -473,13 +502,6 @@ export async function isDroppedFolder(items) {
       if (handle && handle.kind === 'file') return false;
     }
     catch (_a) { /* ignore */ }
-  }
-  if (typeof first.webkitGetAsEntry === 'function') {
-    try {
-      const entry = first.webkitGetAsEntry();
-      return entry ? entry.isDirectory : false;
-    }
-    catch (_b) { /* ignore */ }
   }
   return false;
 }
@@ -512,7 +534,13 @@ export async function runSandboxedDirectoryScan(options = {}) {
  * @returns {Promise<Object>} Same report shape as runSandboxedDirectoryScan.
  */
 export async function scanDroppedItems(items, options = {}) {
-  const { maxFileSize = DEFAULT_MAX_FILE_SIZE, maxFiles = DEFAULT_MAX_FILES, onLog, onProgress } = options;
+  const {
+    maxFileSize = DEFAULT_MAX_FILE_SIZE,
+    maxFiles = DEFAULT_MAX_FILES,
+    onLog,
+    onProgress,
+    webkitEntry: capturedEntry = null
+  } = options;
 
   if (!items || items.length === 0) {
     throw new Error('No items were dropped. Drop a folder or supported code files to scan.');
@@ -522,24 +550,42 @@ export async function scanDroppedItems(items, options = {}) {
   const firstFile = first && typeof first.getAsFile === 'function' ? first.getAsFile() : null;
   const name = (firstFile && firstFile.name) || 'dropped-folder';
 
+  // Use a synchronously captured webkit entry first — async hops invalidate DataTransfer items.
+  const entry = capturedEntry || captureDroppedEntry(items);
+  if (entry && entry.isDirectory) {
+    const fileQueue = [];
+    await crawlWebkitEntryTree(entry, entry.name, fileQueue, { maxFiles, onLog });
+    if (fileQueue.length === 0) {
+      throw new Error('No scannable files or folders detected.');
+    }
+    logLine(onLog, `Dropped directory "${entry.name}" — ${fileQueue.length} targets queued.`, 'info');
+    return analyzeDirectory({ rootName: entry.name, fileQueue }, { maxFileSize, onLog, onProgress });
+  }
+
   // Preferred: File System Access API handles.
   if (typeof first.getAsFileSystemHandle === 'function') {
     const handle = await first.getAsFileSystemHandle();
     if (handle && handle.kind === 'directory') {
       const fileQueue = [];
       await crawlSandboxedTree(handle, handle.name, fileQueue, { maxFiles, onLog });
+      if (fileQueue.length === 0) {
+        throw new Error('No scannable files or folders detected.');
+      }
       logLine(onLog, `Dropped directory "${handle.name}" — ${fileQueue.length} targets queued.`, 'info');
       return analyzeDirectory({ rootName: handle.name, fileQueue }, { maxFileSize, onLog, onProgress });
     }
   }
 
-  // Fallback: webkitGetAsEntry traversal.
-  const entry = typeof first.webkitGetAsEntry === 'function' ? first.webkitGetAsEntry() : null;
-  if (entry && entry.isDirectory) {
+  // Fallback: webkitGetAsEntry traversal (may already be stale if not captured synchronously).
+  const staleEntry = typeof first.webkitGetAsEntry === 'function' ? first.webkitGetAsEntry() : null;
+  if (staleEntry && staleEntry.isDirectory) {
     const fileQueue = [];
-    await crawlWebkitEntryTree(entry, entry.name, fileQueue, { maxFiles, onLog });
-    logLine(onLog, `Dropped directory "${entry.name}" — ${fileQueue.length} targets queued.`, 'info');
-    return analyzeDirectory({ rootName: entry.name, fileQueue }, { maxFileSize, onLog, onProgress });
+    await crawlWebkitEntryTree(staleEntry, staleEntry.name, fileQueue, { maxFiles, onLog });
+    if (fileQueue.length === 0) {
+      throw new Error('No scannable files or folders detected.');
+    }
+    logLine(onLog, `Dropped directory "${staleEntry.name}" — ${fileQueue.length} targets queued.`, 'info');
+    return analyzeDirectory({ rootName: staleEntry.name, fileQueue }, { maxFileSize, onLog, onProgress });
   }
 
   // Not a folder drop: treat as ordinary files and scan each one.
@@ -555,7 +601,7 @@ export async function scanDroppedItems(items, options = {}) {
     fileQueue.push({ file, virtualPath: file.name });
   }
   if (fileQueue.length === 0) {
-    throw new Error('No scannable files were dropped.');
+    throw new Error('No scannable files or folders detected.');
   }
   logLine(onLog, `Dropped ${fileQueue.length} file(s) — scanning locally.`, 'info');
   return analyzeDirectory({ rootName: name, fileQueue }, { maxFileSize, onLog, onProgress });

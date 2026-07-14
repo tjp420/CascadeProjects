@@ -1,6 +1,6 @@
 import { fetchWithTimeout, downloadJson, downloadText, resolveDashboardProjectPath } from '../utils.js';
 import { billingService } from './billingService.js';
-import { authService } from './authService.js';
+import { authService } from './authService.js?v=20260713sync6';
 import { isDemoMode, DEMO_API_BASE } from '../demoMode.js';
 import { readJsonResponseBody } from '../lib/recoverable-fetch.js';
 import { buildDashboardExportBundle } from '../utils/dashboard-export.browser.js?v=20260616demodashboard1';
@@ -374,6 +374,9 @@ export class ScanService {
             throw err;
         }
         const safePath = resolveDashboardProjectPath(projectPath) || undefined;
+        if (!safePath) {
+            throw new Error('No project path selected. Open a folder or set a project path before scanning.');
+        }
         const res = await fetchSimplebeacon(`${simplebeaconApiBase()}/scan`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -581,6 +584,29 @@ export class ScanService {
             return '—';
         const parts = filePath.replace(/\\/g, '/').split('/');
         return parts[parts.length - 1];
+    }
+
+    /**
+     * Team CI telemetry summary (paid tier — merges blocked, gates tripped).
+     * @param {{ days?: number }} [options]
+     * @returns {Promise<Object|null>}
+     */
+    async fetchCiTeamMetrics(options = {}) {
+        const days = options.days || 7;
+        try {
+            const res = await fetchWithTimeout(`${simplebeaconApiBase()}/ci/telemetry/summary?days=${days}`, {
+                headers: mergeAuthHeaders({ Accept: 'application/json' })
+            });
+            if (!res.ok)
+                return null;
+            const data = await readJsonResponseBody(res);
+            if (!data || typeof data.total_scans !== 'number')
+                return null;
+            return data;
+        }
+        catch {
+            return null;
+        }
     }
 }
 /**

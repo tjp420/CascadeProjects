@@ -553,7 +553,7 @@ function _buildFlatExports() {
             if (!hasOwn.call(ns, key))
                 continue;
             if (seen.has(key)) {
-                console.warn(`[utils] Collision: "${key}" from "${nsName}" skipped; first export wins.`);
+                // Collision: the inline namespace will override same-named sub-module exports below.
                 continue;
             }
             seen.add(key);
@@ -579,7 +579,7 @@ let _collisionsChecked = false;
 let _exportNamesCache = null;
 function _getExportNames() {
     if (!_exportNamesCache) {
-        _exportNamesCache = Object.freeze([...new Set(Object.keys(_buildFlatExports()).concat('getExportNames', 'exportNames', 'getNamespaceNames', 'getBarrelMeta', 'validateBarrelIntegrity', 'freezeNamespace', 'stringifySafe', '__barrel__', 'default'))]);
+        _exportNamesCache = Object.freeze([...new Set(Object.keys(_buildFlatExports()).concat('getExportNames', 'exportNames', 'getNamespaceNames', 'getBarrelMeta', 'validateBarrelIntegrity', '__barrel__', 'default'))]);
     }
     if (!_collisionsChecked) {
         _collisionsChecked = true;
@@ -670,321 +670,30 @@ export function freezeNamespace(obj, _seen = new WeakSet()) {
     }
     return frozenObj;
 }
-const inlineNamespace = Object.freeze({
-    compose: (...fns) => {
-        fns.forEach((fn, i) => { if (typeof fn !== 'function')
-            throw new TypeError(`compose: argument at index ${i} is not a function`); });
-        return fns.length === 0 ? ObjectUtils.identity : FunctionUtils.compose(...fns);
-    },
-    pipe: (...fns) => {
-        fns.forEach((fn, i) => { if (typeof fn !== 'function')
-            throw new TypeError(`pipe: argument at index ${i} is not a function`); });
-        return fns.length === 0 ? ObjectUtils.identity : FunctionUtils.pipe(...fns);
-    },
-    zipWith: (a, b, fn) => {
-        if (!Array.isArray(a))
-            throw new TypeError('zipWith: first argument must be an array');
-        if (!Array.isArray(b))
-            throw new TypeError('zipWith: second argument must be an array');
-        if (typeof fn !== 'function')
-            throw new TypeError('zipWith: third argument must be a function');
-        return FunctionUtils.zipWith(a, b, fn);
-    },
-    curry: (fn) => { if (typeof fn !== 'function')
-        throw new TypeError('curry: argument must be a function'); return FunctionUtils.curry(fn); },
-    partial: (fn, ...args) => { if (typeof fn !== 'function')
-        throw new TypeError('partial: first argument must be a function'); return FunctionUtils.partial(fn, ...args); },
-    tap: (fn) => { if (typeof fn !== 'function')
-        throw new TypeError('tap: argument must be a function'); return FunctionUtils.tap(fn); },
-    deepFreeze: FunctionUtils.deepFreeze,
-    freezeNamespace,
-    tryCatch: (fn, handler) => (...args) => { try {
-        return fn(...args);
-    }
-    catch (e) {
-        return handler(e);
-    } },
-    defaultTo: (defaultValue, value) => value == null || (typeof value === 'number' && Number.isNaN(value)) ? defaultValue : value,
-    prop: (key, obj) => { if (obj == null)
-        return undefined; return obj[key]; },
-    getPath: (keys, obj) => {
-        if (keys == null)
-            return undefined;
-        const keyList = Array.isArray(keys) ? keys : String(keys).split('.');
-        let val = obj;
-        for (const k of keyList) {
-            if (val == null)
-                return undefined;
-            val = val[k];
-        }
-        return val;
-    },
-    pathOr: (defaultValue, keys, obj) => { const result = inlineNamespace.getPath(keys, obj); return result === undefined ? defaultValue : result; },
-    when: (pred, fn, value) => (typeof pred !== 'function' || typeof fn !== 'function') ? value : pred(value) ? fn(value) : value,
-    unless: (pred, fn, value) => (typeof pred !== 'function' || typeof fn !== 'function') ? value : pred(value) ? value : fn(value),
-    ifElse: (pred, onTrue, onFalse, value) => (typeof pred !== 'function' || typeof onTrue !== 'function' || typeof onFalse !== 'function') ? value : pred(value) ? onTrue(value) : onFalse(value),
-    cond: (pairs) => {
-        if (!Array.isArray(pairs))
-            return () => undefined;
-        return (value) => { for (const [p, fn] of pairs) {
-            if (typeof p === 'function' && typeof fn === 'function' && p(value))
-                return fn(value);
-        } return undefined; };
-    },
-    allPass: (preds) => (!Array.isArray(preds)) ? () => false : (value) => preds.every(p => typeof p === 'function' && p(value)),
-    anyPass: (preds) => (!Array.isArray(preds)) ? () => false : (value) => preds.some(p => typeof p === 'function' && p(value)),
-    complement: (pred) => typeof pred !== 'function' ? () => true : (...args) => !pred(...args),
-    always: (value) => () => value,
-    T: () => () => true,
-    F: () => () => false,
-    flip: (fn) => (b, a) => fn(a, b),
-    head: (list) => (list == null || typeof list.length !== 'number') ? undefined : list[0],
-    tail: (list) => (list == null || typeof list.length !== 'number') ? [] : Array.prototype.slice.call(list, 1),
-    last: (list) => (list == null || typeof list.length !== 'number') ? undefined : list[list.length - 1],
-    init: (list) => (list == null || typeof list.length !== 'number') ? [] : Array.prototype.slice.call(list, 0, -1),
-    take: (n, list) => (list == null || typeof list.length !== 'number') ? [] : typeof list === 'string' ? list.slice(0, n) : Array.prototype.slice.call(list, 0, n),
-    drop: (n, list) => (list == null || typeof list.length !== 'number') ? [] : typeof list === 'string' ? list.slice(n) : Array.prototype.slice.call(list, n),
-    takeLast: (n, list) => (list == null || typeof list.length !== 'number') ? [] : typeof list === 'string' ? list.slice(-n) : Array.prototype.slice.call(list, -n),
-    dropLast: (n, list) => (list == null || typeof list.length !== 'number') ? [] : typeof list === 'string' ? list.slice(0, -n) : Array.prototype.slice.call(list, 0, -n),
-    pluck: (key, list) => (list == null || typeof list.length !== 'number') ? [] : Array.prototype.map.call(list, obj => obj == null ? undefined : obj[key]),
-    find: (pred, list) => { if (typeof pred !== 'function')
-        return undefined; if (list == null || typeof list.length !== 'number')
-        return undefined; return Array.prototype.find.call(list, pred); },
-    findIndex: (pred, list) => { if (typeof pred !== 'function')
-        return -1; if (list == null || typeof list.length !== 'number')
-        return -1; return Array.prototype.findIndex.call(list, pred); },
-    propEq: (key, val, obj) => (obj == null || typeof obj !== 'object') ? false : obj[key] === val,
-    pathEq: (keys, val, obj) => inlineNamespace.getPath(keys, obj) === val,
-    contains: (value, list) => (list == null || typeof list.length !== 'number') ? false : Array.prototype.indexOf.call(list, value) >= 0,
-    isPlainObject: (value) => value != null && Object.prototype.toString.call(value) === '[object Object]',
-    isElement: (value) => value != null && typeof value === 'object' && typeof value.nodeType === 'number' && value.nodeType === 1,
-    isPromise: (value) => value != null && (value instanceof Promise || Object.prototype.toString.call(value) === '[object Promise]'),
-    isFormData: (value) => value != null && Object.prototype.toString.call(value) === '[object FormData]',
-    isBlob: (value) => value != null && Object.prototype.toString.call(value) === '[object Blob]',
-    isFile: (value) => value != null && Object.prototype.toString.call(value) === '[object File]',
-    isArrayLike: (value) => value != null && typeof value.length === 'number' && value.length >= 0,
-    evolve: (transformations, obj) => {
-        if (obj == null || typeof obj !== 'object')
-            return obj;
-        if (transformations == null || typeof transformations !== 'object')
-            return obj;
-        const result = {};
-        for (const key of Object.keys(obj)) {
-            const fn = transformations[key];
-            result[key] = typeof fn === 'function' ? fn(obj[key]) : obj[key];
-        }
-        return result;
-    },
-    dissoc: (key, obj) => {
-        if (obj == null || typeof obj !== 'object')
-            return {};
-        const result = {};
-        for (const k of Object.keys(obj)) {
-            if (k !== key)
-                result[k] = obj[k];
-        }
-        return result;
-    },
-    mergeDeepLeft: (a, b) => {
-        if (a == null || typeof a !== 'object')
-            return b;
-        if (b == null || typeof b !== 'object')
-            return a;
-        if (Array.isArray(a) || Array.isArray(b))
-            return a;
-        const result = {};
-        for (const k of new Set([...Object.keys(a), ...Object.keys(b)])) {
-            if (k in a && k in b && a[k] != null && typeof a[k] === 'object' && b[k] != null && typeof b[k] === 'object') {
-                result[k] = inlineNamespace.mergeDeepLeft(a[k], b[k]);
-            }
-            else {
-                result[k] = k in a ? a[k] : b[k];
-            }
-        }
-        return result;
-    },
-    mergeDeepRight: (a, b) => {
-        if (a == null || typeof a !== 'object')
-            return b;
-        if (b == null || typeof b !== 'object')
-            return a;
-        if (Array.isArray(a) || Array.isArray(b))
-            return b;
-        const result = {};
-        for (const k of new Set([...Object.keys(a), ...Object.keys(b)])) {
-            if (k in a && k in b && a[k] != null && typeof a[k] === 'object' && b[k] != null && typeof b[k] === 'object') {
-                result[k] = inlineNamespace.mergeDeepRight(a[k], b[k]);
-            }
-            else {
-                result[k] = k in b ? b[k] : a[k];
-            }
-        }
-        return result;
-    },
-    project: (keys, list) => {
-        if (!Array.isArray(keys))
-            return [];
-        if (list == null || typeof list.length !== 'number')
-            return [];
-        return Array.prototype.map.call(list, obj => { const result = {}; for (const k of keys) {
-            if (k in obj)
-                result[k] = obj[k];
-        } return result; });
-    },
-    memoizeBy: (fn, keyFn) => {
-        if (typeof fn !== 'function' || typeof keyFn !== 'function')
-            return fn;
-        const cache = new Map();
-        return (...args) => { const key = keyFn(...args); if (cache.has(key))
-            return cache.get(key); const result = fn(...args); cache.set(key, result); return result; };
-    },
-    groupBy: (fn, list) => {
-        if (typeof fn !== 'function')
-            return {};
-        if (list == null || typeof list.length !== 'number')
-            return {};
-        const result = {};
-        Array.prototype.forEach.call(list, item => { const key = fn(item); result[key] = result[key] || []; result[key].push(item); });
-        return result;
-    },
-    partition: (pred, list) => {
-        if (typeof pred !== 'function')
-            return [[], []];
-        if (list == null || typeof list.length !== 'number')
-            return [[], []];
-        const pass = [];
-        const fail = [];
-        Array.prototype.forEach.call(list, item => { if (pred(item))
-            pass.push(item);
-        else
-            fail.push(item); });
-        return [pass, fail];
-    },
-    chunk: (size, list) => {
-        if (size <= 0 || list == null || typeof list.length !== 'number')
-            return [];
-        const result = [];
-        for (let i = 0; i < list.length; i += size) {
-            result.push(Array.prototype.slice.call(list, i, i + size));
-        }
-        return result;
-    },
-    deepClone: (obj) => {
-        if (obj == null || typeof obj !== 'object')
-            return obj;
-        if (obj instanceof Date)
-            return new Date(obj.getTime());
-        if (obj instanceof RegExp)
-            return new RegExp(obj.source, obj.flags);
-        if (Array.isArray(obj))
-            return obj.map(deepClone);
-        const result = {};
-        for (const key of Object.keys(obj))
-            result[key] = deepClone(obj[key]);
-        return result;
-    },
-    deepEqual: (a, b) => {
-        if (a === b)
-            return true;
-        if (a == null || b == null || typeof a !== 'object' || typeof b !== 'object')
-            return false;
-        const keysA = Object.keys(a);
-        const keysB = Object.keys(b);
-        if (keysA.length !== keysB.length)
-            return false;
-        return keysA.every(k => keysB.includes(k) && inlineNamespace.deepEqual(a[k], b[k]));
-    },
-    pick: (keys, obj) => {
-        if (obj == null || typeof obj !== 'object')
-            return {};
-        const result = {};
-        for (const k of keys) {
-            if (k in obj)
-                result[k] = obj[k];
-        }
-        return result;
-    },
-    omit: (keys, obj) => {
-        if (obj == null || typeof obj !== 'object')
-            return {};
-        const keySet = new Set(keys);
-        const result = {};
-        for (const k of Object.keys(obj)) {
-            if (!keySet.has(k))
-                result[k] = obj[k];
-        }
-        return result;
-    },
-    clamp: (min, max, value) => Math.min(max, Math.max(min, value)),
-    formatBytes: (bytes, decimals = 2) => {
-        if (bytes === 0)
-            return '0 B';
-        const k = 1024;
-        const dm = decimals < 0 ? 0 : decimals;
-        const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
-    },
-    formatNumber: (n, locale = 'en-US') => new Intl.NumberFormat(locale).format(n),
-    escapeHtml: (str) => {
-        const div = typeof document !== 'undefined' ? document.createElement('div') : null;
-        if (div) {
-            div.textContent = str;
-            return div.innerHTML;
-        }
-        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-    },
-    truncate: (str, maxLen = 30, suffix = '...') => String(str).length > maxLen ? String(str).slice(0, maxLen - suffix.length) + suffix : String(str),
-    capitalize: (str) => String(str).charAt(0).toUpperCase() + String(str).slice(1),
-    sleep: (ms) => new Promise(resolve => setTimeout(resolve, ms)),
-    debounce: (fn, wait = 300) => {
-        let timeout;
-        return (...args) => { clearTimeout(timeout); timeout = setTimeout(() => fn(...args), wait); };
-    },
-    throttle: (fn, limit = 300) => {
-        let inThrottle;
-        return (...args) => { if (!inThrottle) {
-            fn(...args);
-            inThrottle = true;
-            setTimeout(() => inThrottle = false, limit);
-        } };
-    },
-    retry: (fn, retries = 3, delayMs = 500) => {
-        return new Promise((resolve, reject) => {
-            const attempt = (n) => fn().then(resolve).catch(err => n <= 0 ? reject(err) : setTimeout(() => attempt(n - 1), delayMs));
-            attempt(retries);
-        });
-    },
-    isDefined: (value) => value !== undefined,
-    parseJsonSafe: (str, fallback = null) => { try {
-        return JSON.parse(str);
-    }
-    catch (_a) {
-        return fallback;
-    } },
-    parseResponseJson: async (res, fallback = null) => {
-        var _a;
-        const contentType = String(((_a = res.headers) === null || _a === void 0 ? void 0 : _a.get('content-type')) || '').toLowerCase();
-        if (!contentType.includes('application/json'))
-            return fallback !== null && fallback !== void 0 ? fallback : {};
-        const text = await res.text();
-        if (!text)
-            return fallback !== null && fallback !== void 0 ? fallback : {};
-        try {
-            return JSON.parse(text);
-        }
-        catch (_b) {
-            return fallback !== null && fallback !== void 0 ? fallback : {};
-        }
-    },
-    stringifySafe: (obj, fallback = null) => { try {
+/** Safely stringify a value, returning a fallback on circular references or errors. */
+export const stringifySafe = (obj, fallback = null) => {
+    try {
         return JSON.stringify(obj);
     }
-    catch (_a) {
+    catch (_) {
         return fallback;
-    } }
+    }
+};
+const inlineNamespace = Object.freeze({
+    compose, pipe, zipWith, curry, partial, tap, deepFreeze, freezeNamespace,
+    tryCatch, defaultTo, prop, getPath, pathOr, when, unless, ifElse, cond,
+    allPass, anyPass, complement, always, T, F, flip,
+    head, tail, last, init, take, drop, takeLast, dropLast,
+    pluck, find, findIndex, propEq, pathEq, contains,
+    isPlainObject, isElement, isPromise, isFormData, isBlob, isFile, isArrayLike,
+    evolve, dissoc, mergeDeepLeft, mergeDeepRight, project, memoizeBy,
+    groupBy, partition, chunk,
+    deepClone, deepEqual, pick, omit,
+    clamp, formatBytes, formatNumber,
+    escapeHtml, truncate, capitalize,
+    sleep, debounce, throttle, retry,
+    isDefined, parseJsonSafe, parseResponseJson, stringifySafe
 });
-export const stringifySafe = inlineNamespace.stringifySafe;
 const BARREL_REQUIRED_KEYS = Object.freeze([
     'name', 'description', 'moduleCount', 'exportCount', 'namespaceCount',
     'version', 'timestamp', 'exports', 'namespaces'
@@ -1041,13 +750,13 @@ export function validateBarrelIntegrity() {
 export const __barrel__ = Object.freeze({
     name: 'simplebeacon-dashboard-utils',
     description: 'Barrel re-export for js/utils-lib/ sub-modules',
-    moduleCount: getNamespaceNames().length,
-    exportCount: getExportNames().length,
-    namespaceCount: getNamespaceNames().length,
+    get moduleCount() { return getNamespaceNames().length; },
+    get exportCount() { return getExportNames().length; },
+    get namespaceCount() { return getNamespaceNames().length; },
     version: '1.0.0',
     timestamp: new Date().toISOString(),
-    exports: getExportNames(),
-    namespaces: getNamespaceNames()
+    get exports() { return getExportNames(); },
+    get namespaces() { return getNamespaceNames(); }
 });
 const defaultExport = freezeNamespace({
     string: StringUtils,
@@ -1082,59 +791,4 @@ const defaultExport = freezeNamespace({
     stringifySafe,
     __barrel__
 });
-/**
- * Run inline smoke tests for critical barrel utilities.
- * @returns {{ passed: boolean, failures: string[] }}
- */
-export function integrityTest() {
-    const failures = [];
-    function assert(label, condition) { if (!condition)
-        failures.push(label); }
-    assert('compose identity', compose()(5) === 5);
-    assert('compose composes', compose(x => x + 1, x => x * 2)(3) === 7);
-    assert('pipe identity', pipe()(5) === 5);
-    assert('pipe pipes', pipe(x => x + 1, x => x * 2)(3) === 8);
-    assert('mergeDeepLeft precedence', JSON.stringify(mergeDeepLeft({ a: 1 }, { a: 2, b: 3 })) === JSON.stringify({ a: 1, b: 3 }));
-    assert('mergeDeepRight precedence', JSON.stringify(mergeDeepRight({ a: 1 }, { a: 2, b: 3 })) === JSON.stringify({ a: 2, b: 3 }));
-    assert('cond multiway', cond([[x => x > 0, x => x * 2]])(5) === 10);
-    assert('allPass true', allPass([x => x > 0, x => x < 10])(5));
-    assert('anyPass true', anyPass([x => x > 0, x => x > 10])(5));
-    assert('getPath nested', getPath(['a', 'b'], { a: { b: 1 } }) === 1);
-    assert('getPath string key', getPath('a.b', { a: { b: 1 } }) === 1);
-    assert('when applies', when(x => x > 0, x => x * 2, 5) === 10);
-    assert('unless skips', unless(x => x > 0, x => x * 2, 5) === 5);
-    assert('ifElse true branch', ifElse(x => x > 0, x => x * 2, x => x * 3, 5) === 10);
-    assert('ifElse false branch', ifElse(x => x > 0, x => x * 2, x => x * 3, -5) === -15);
-    assert('evolve transforms', JSON.stringify(evolve({ a: x => x + 1 }, { a: 1, b: 2 })) === JSON.stringify({ a: 2, b: 2 }));
-    assert('project picks', JSON.stringify(project(['a'], [{ a: 1, b: 2 }])) === JSON.stringify([{ a: 1 }]));
-    assert('contains membership', contains(2, [1, 2, 3]));
-    assert('isPlainObject true', isPlainObject({}));
-    assert('isPlainObject false for array', !isPlainObject([]));
-    assert('isPromise cross-realm safe', isPromise(Promise.resolve(1)));
-    assert('defaultTo null', defaultTo(42, null) === 42);
-    assert('prop exists', prop('a', { a: 1 }) === 1);
-    assert('head', head([1, 2, 3]) === 1);
-    assert('last', last([1, 2, 3]) === 3);
-    assert('pluck', JSON.stringify(pluck('a', [{ a: 1 }, { a: 2 }])) === JSON.stringify([1, 2]));
-    assert('find', find(x => x > 1, [1, 2, 3]) === 2);
-    assert('complement', complement(x => x > 0)(-1));
-    // Inline namespace parity tests
-    assert('groupBy', JSON.stringify(inlineNamespace.groupBy(x => x % 2, [1, 2, 3])) === JSON.stringify({ '1': [1, 3], '0': [2] }));
-    assert('partition', JSON.stringify(inlineNamespace.partition(x => x > 1, [1, 2, 3])) === JSON.stringify([[2, 3], [1]]));
-    assert('chunk', JSON.stringify(inlineNamespace.chunk(2, [1, 2, 3, 4])) === JSON.stringify([[1, 2], [3, 4]]));
-    assert('deepClone', inlineNamespace.deepClone({ a: 1 }).a === 1);
-    assert('deepEqual', inlineNamespace.deepEqual({ a: 1 }, { a: 1 }));
-    assert('pick', JSON.stringify(inlineNamespace.pick(['a'], { a: 1, b: 2 })) === JSON.stringify({ a: 1 }));
-    assert('omit', JSON.stringify(inlineNamespace.omit(['b'], { a: 1, b: 2 })) === JSON.stringify({ a: 1 }));
-    assert('clamp', inlineNamespace.clamp(0, 10, 15) === 10);
-    assert('formatBytes', inlineNamespace.formatBytes(1024).includes('KB'));
-    assert('formatNumber', inlineNamespace.formatNumber(1000).includes('1'));
-    assert('escapeHtml', inlineNamespace.escapeHtml('<div>').includes('&lt;'));
-    assert('truncate', inlineNamespace.truncate('hello world', 8) === 'hello...');
-    assert('capitalize', inlineNamespace.capitalize('hello') === 'Hello');
-    assert('isDefined', inlineNamespace.isDefined(0));
-    assert('parseJsonSafe', inlineNamespace.parseJsonSafe('{"a":1}', null).a === 1);
-    assert('stringifySafe', inlineNamespace.stringifySafe({ a: 1 }).includes('a'));
-    return { passed: failures.length === 0, failures };
-}
 export default defaultExport;

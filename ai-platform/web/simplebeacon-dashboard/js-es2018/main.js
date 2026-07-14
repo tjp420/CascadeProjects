@@ -1,20 +1,20 @@
 import { scanService } from './services/scanService.js?v=20260711dedup2';
 import { platformService } from './services/platformService.js?v=20260525jsonguard1';
 import { billingService } from './services/billingService.js?v=20260525jsonfixbilling1';
-import { authService, apiBase } from './services/authService.js?v=20260713authsync1';
+import { authService, apiBase } from './services/authService.js?v=20260713sync6';
 import { themeService } from './services/themeService.js';
 import { Router, PUBLIC_VIEWS } from './router.js?v=20260713authfix1';
 import { TrustView } from './views/TrustView.js?v=20260711admin1';
 import { RepositoryHealthView } from './views/RepositoryHealthView.js?v=20260711admin1';
-import { DashboardView } from './views/DashboardView.js?v=20260711redesign2';
-import { ResultsView } from './views/ResultsView.js?v=20260711admin1';
+import { DashboardView } from './views/DashboardView.js?v=20260713dashboard1';
+import { ResultsView } from './views/ResultsView.js?v=20260714results1';
 import { SettingsView } from './views/SettingsView.js?v=20260709ollama3';
 import { ToolsView } from './views/ToolsView.js';
 import { PlatformView } from './views/PlatformView.js?v=20260601platformmetrics1';
 import { QualityView } from './views/QualityView.js?v=20260711admin1';
 import { HelpView, FeaturesView } from './views/HelpView.js';
 import { AuditView } from './views/AuditView.js?v=20260711admin1';
-import { AnalyzeView } from './views/AnalyzeView.js?v=20260713dropfix5';
+import { AnalyzeView } from './views/AnalyzeView.js?v=20260713dropfix7';
 import { SecurityView } from './views/SecurityView.js?v=20260711admin1';
 import { PricingView } from './views/PricingView.js';
 import { AboutView } from './views/AboutView.js';
@@ -31,7 +31,7 @@ import { showUpgradeModal } from './components/UpgradeModal.js';
 import { showLoginModal } from './components/LoginModal.js?v=20260609token4';
 import { isDemoMode, isSignedOffMode, isLocalDevHost, demoReadOnlyMessage } from './demoMode.js';
 import { showToast, resolveDashboardProjectPath } from './utils.js';
-import { fetchAnalyzeProviders } from './services/analyzeService.js?v=20260710inventory1';
+import { fetchAnalyzeProviders, isClientScanReport } from './services/analyzeService.js?v=20260714results1';
 /**
  * Vault unlock url.
  * @param {string} returnPath
@@ -167,6 +167,10 @@ class SimplebeaconDashboard {
         this.cleanupDisabledElements();
         this.updateAuthUi();
         // simplebeacon-ignore memory-leak — single application-wide listener on the app singleton
+        window.addEventListener('auth-signed-in', () => {
+            this.updateAuthUi();
+            this.updateNavVisibility(true);
+        });
         window.addEventListener('auth-signed-out', () => {
             this.updateAuthUi();
             this.updateNavVisibility(false);
@@ -204,13 +208,13 @@ class SimplebeaconDashboard {
         span.innerHTML = '<strong>Demo</strong> — read-only honey-pot fixture (gate FAIL). Not your workspace.';
         const a = document.createElement('a');
         a.className = 'demo-banner-link';
-        a.href = 'https://simplebeacon.pages.dev/pricing';
-        a.target = '_blank';
-        a.rel = 'noopener noreferrer';
+        a.dataset.pricingCta = '1';
+        a.href = '/dashboard/pricing';
         a.textContent = 'View pricing →';
         bar.appendChild(span);
         bar.appendChild(a);
         document.body.prepend(bar);
+        this.bindPricingCta(a);
     }
     showReadOnlyBanner() {
         if (document.getElementById('readonly-banner'))
@@ -225,13 +229,13 @@ class SimplebeaconDashboard {
         span.innerHTML = '<strong>Demo Mode</strong> — You are viewing with a free token. Reports are read-only. Upgrade to unlock scans, exports, and full dashboard interaction.';
         const a = document.createElement('a');
         a.className = 'demo-banner-link';
-        a.href = 'pricing.html';
-        a.target = '_blank';
-        a.rel = 'noopener noreferrer';
+        a.dataset.pricingCta = '1';
+        a.href = '/dashboard/pricing';
         a.textContent = 'View pricing →';
         bar.appendChild(span);
         bar.appendChild(a);
         document.body.prepend(bar);
+        this.bindPricingCta(a);
     }
     showVaultBanner() {
         if (document.getElementById('vault-banner'))
@@ -708,7 +712,7 @@ class SimplebeaconDashboard {
             adminLink.hidden = !authed || !this.isCurrentUserAdmin();
         const assessmentsLink = document.getElementById('nav-assessments-link');
         if (assessmentsLink)
-            assessmentsLink.hidden = !authed || !this.isCurrentUserAdmin();
+            assessmentsLink.hidden = !authed;
         const profileAdminItem = document.getElementById('profile-dropdown-admin');
         if (profileAdminItem)
             profileAdminItem.hidden = !authed || !this.isCurrentUserAdmin();
@@ -840,6 +844,7 @@ class SimplebeaconDashboard {
     }
     setupShell() {
         var _a, _b, _c, _d;
+        this.setupPricingCtas();
         (_a = document.getElementById('theme-toggle')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => {
             themeService.toggle();
         });
@@ -893,6 +898,29 @@ class SimplebeaconDashboard {
             }
         });
         this.setupProfileDropdown();
+    }
+    /** In-app route for Team Pricing / Stripe checkout (path-based SPA, not pricing.html). */
+    bindPricingCta(anchor) {
+        if (!anchor || anchor.dataset.pricingBound === '1')
+            return;
+        anchor.dataset.pricingBound = '1';
+        anchor.dataset.pricingCta = '1';
+        anchor.href = '/dashboard/pricing';
+        anchor.removeAttribute('target');
+        anchor.addEventListener('click', (event) => {
+            event.preventDefault();
+            this.navigate('pricing');
+        });
+    }
+    setupPricingCtas() {
+        this.bindPricingCta(document.querySelector('#sandbox-banner a'));
+        document.addEventListener('click', (event) => {
+            const link = event.target.closest('[data-pricing-cta]');
+            if (!link || link.dataset.pricingBound === '1')
+                return;
+            event.preventDefault();
+            this.navigate('pricing');
+        });
     }
     setupProfileDropdown() {
         const profileBtn = document.getElementById('profile-btn');
@@ -1045,7 +1073,20 @@ class SimplebeaconDashboard {
             // No re-attestation metadata available
         }
         Object.assign(this.state, {
-            report: (_a = data.report) !== null && _a !== void 0 ? _a : (this.state.scanning ? this.state.report : null),
+            report: (() => {
+                const serverReport = data.report;
+                const localReport = this.state.report;
+                const analyzeReport = this.state.analyzeResult && this.state.analyzeResult.report;
+                const clientReport = isClientScanReport(localReport) ? localReport
+                    : (isClientScanReport(analyzeReport) ? analyzeReport : null);
+                if (clientReport && (clientReport.rawIssues || clientReport.detectedIssues || []).length) {
+                    return clientReport;
+                }
+                if (this.state.scanning && localReport) {
+                    return localReport;
+                }
+                return serverReport != null ? serverReport : localReport;
+            })(),
             baseline: (_b = data.baseline) !== null && _b !== void 0 ? _b : this.state.baseline,
             config: (_c = data.config) !== null && _c !== void 0 ? _c : this.state.config,
             history: (_d = data.history) !== null && _d !== void 0 ? _d : this.state.history,
@@ -1178,6 +1219,10 @@ class SimplebeaconDashboard {
             String(projectPath || this.state.lastProjectPath || this.state.defaultProjectPath || '').trim(),
             this.state.defaultProjectPath
         ) || undefined;
+        if (!resolvedPath) {
+            showToast('No project path selected. Open a folder or set a project path before scanning.', 'error');
+            return;
+        }
         this.state.scanning = true;
         this.refreshCurrentView();
         showToast('Running SimpleBeacon scan…', 'info');

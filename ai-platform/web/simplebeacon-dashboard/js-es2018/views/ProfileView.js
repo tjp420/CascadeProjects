@@ -1,5 +1,6 @@
 import { escapeHtml, showToast } from '../utils.js';
-import { authService } from '../services/authService.js';
+import { authService } from '../services/authService.js?v=20260713sync6';
+import { activateStockpileEntry, addToStockpile, BUY_TIME_TOKENS_URL, decodeTokenMeta, listStockpiled, stockpileCount, tokenHint, } from '../services/tokenStockpileService.js';
 function loadProfile() {
     try {
         const raw = localStorage.getItem('sb_profile');
@@ -58,7 +59,7 @@ function formatExpiry(exp) {
     const expiryMs = exp * 1000;
     const diff = expiryMs - Date.now();
     if (diff <= 0)
-        return { label: 'Expired', color: 'var(--error)' };
+        return { label: 'Expired', color: 'var(--danger)' };
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     if (days > 30)
         return { label: `${Math.floor(days / 30)} months`, color: 'var(--success)' };
@@ -102,180 +103,186 @@ export class ProfileView {
         const accountAge = boundAt ? formatTimeAgo(boundAt) : (tokenIat ? formatTimeAgo(new Date(tokenIat * 1000).toISOString()) : 'Unknown');
         const isActive = token ? (tokenExp ? tokenExp * 1000 > Date.now() : true) : false;
         const subLabel = (payload === null || payload === void 0 ? void 0 : payload.sub) || (payload === null || payload === void 0 ? void 0 : payload.email) || email || 'Not set';
+        const activeToken = token;
+        const reservedCount = stockpileCount(activeToken);
+        const stockpiledRows = listStockpiled(activeToken).map(({ entry, index }) => {
+            const meta = entry.meta || decodeTokenMeta(entry.token);
+            return `
+          <div class="profile-stockpile-row" data-stockpile-index="${index}">
+            <div class="profile-stockpile-meta">
+              <code>${escapeHtml(tokenHint(entry.token))}</code>
+              <span class="profile-stockpile-tier">${escapeHtml(String(meta.tier))}</span>
+              <span class="profile-stockpile-expiry">expires ${escapeHtml(meta.expiresLabel)}</span>
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm profile-stockpile-load" data-stockpile-load="${index}">Load</button>
+          </div>`;
+        }).join('');
         const fragment = document.createRange().createContextualFragment(`
-      <style>
-        .profile-page { max-width: 720px; margin: 0 auto; padding: 24px 16px 48px; }
-        .profile-hero { text-align: center; margin-bottom: 32px; }
-        .profile-hero h1 { font-size: 1.75rem; font-weight: 700; margin: 0 0 8px; color: var(--text-primary); background: linear-gradient(135deg, var(--accent), var(--accent-secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .profile-hero p { color: var(--text-muted); font-size: 0.9rem; margin: 0; }
-        .profile-avatar { width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-secondary)); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin: 0 auto 16px; color: #fff; font-weight: 600; }
-        .profile-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; margin-bottom: 20px; overflow: hidden; }
-        .profile-card-header { padding: 18px 24px 0; display: flex; align-items: center; gap: 10px; }
-        .profile-card-header .icon { font-size: 1.1rem; }
-        .profile-card-header h2 { font-size: 0.95rem; font-weight: 600; margin: 0; color: var(--text-main); }
-        .profile-card-body { padding: 16px 24px 20px; }
-        .profile-field { margin-bottom: 16px; }
-        .profile-field:last-child { margin-bottom: 0; }
-        .profile-field label { display: block; font-size: 0.72rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; }
-        .profile-field input { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-input); color: var(--text-main); font-size: 0.9rem; transition: border-color 150ms, box-shadow 150ms; }
-        .profile-field input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1); }
-        .profile-input-group { display: flex; gap: 8px; align-items: stretch; }
-        .profile-input-group input { flex: 1; }
-        .profile-input-group .input-action { padding: 0 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text-secondary); font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 150ms; }
-        .profile-input-group .input-action:hover { background: var(--primary-subtle); color: var(--accent); border-color: var(--accent); }
-        .profile-help { font-size: 0.75rem; color: var(--text-muted); margin: 6px 0 0; }
-        .login-method-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-        .login-method-card { position: relative; padding: 14px 12px; border: 1.5px solid var(--border); border-radius: 10px; cursor: pointer; text-align: center; transition: all 150ms; background: var(--surface); }
-        .login-method-card:hover { border-color: var(--accent); }
-        .login-method-card.active { border-color: var(--accent); background: var(--primary-subtle); }
-        .login-method-card input { position: absolute; top: 8px; right: 8px; accent-color: var(--accent); }
-        .login-method-card .method-icon { font-size: 1.3rem; margin-bottom: 6px; }
-        .login-method-card .method-label { font-size: 0.8rem; font-weight: 600; color: var(--text-main); }
-        .login-method-card .method-desc { font-size: 0.7rem; color: var(--text-muted); margin-top: 2px; }
-        .session-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-        .session-badge { padding: 10px 14px; border-radius: 10px; background: var(--bg-input); border: 1px solid var(--border); }
-        .session-badge .label { font-size: 0.65rem; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.05em; margin-bottom: 4px; }
-        .session-badge .value { font-size: 0.9rem; font-weight: 600; color: var(--text-main); }
-        .profile-actions { display: flex; gap: 10px; flex-wrap: wrap; padding: 20px 24px; }
-        .profile-actions .btn { flex: 1; min-width: 120px; }
-        .profile-status { padding: 0 24px 20px; margin: 0; font-size: 0.85rem; min-height: 1.2em; color: var(--success); }
-      </style>
-
       <div class="profile-page">
-        <div class="profile-hero">
-          <div class="profile-avatar">${email ? escapeHtml(email[0].toUpperCase()) : '?'}</div>
-          <h1>Account Profile</h1>
-          <p>Manage your credentials, license token, and session settings</p>
-        </div>
-
-        <!-- Login Method -->
-        <div class="profile-card">
-          <div class="profile-card-header">
-            <span class="icon">🔐</span>
-            <h2>Preferred Login Method</h2>
-          </div>
-          <div class="profile-card-body">
-            <div class="login-method-grid" id="login-method-options">
-              <label class="login-method-card ${loginMethod === 'email' ? 'active' : ''}">
-                <input type="radio" name="loginMethod" value="email" aria-label="Email login method" ${loginMethod === 'email' ? 'checked' : ''}>
-                <div class="method-icon">📧</div>
-                <div class="method-label">Email</div>
-                <div class="method-desc">Email + Password</div>
-              </label>
-              <label class="login-method-card ${loginMethod === 'token' ? 'active' : ''}">
-                <input type="radio" name="loginMethod" value="token" aria-label="Token login method" ${loginMethod === 'token' ? 'checked' : ''}>
-                <div class="method-icon">🔑</div>
-                <div class="method-label">Token</div>
-                <div class="method-desc">Token + Password</div>
-              </label>
-              <label class="login-method-card ${loginMethod === 'both' ? 'active' : ''}">
-                <input type="radio" name="loginMethod" value="both" aria-label="Both login methods" ${loginMethod === 'both' ? 'checked' : ''}>
-                <div class="method-icon">🔓</div>
-                <div class="method-label">Both</div>
-                <div class="method-desc">Any method works</div>
-              </label>
+        <div class="profile-hero-card">
+          <div class="profile-hero-main">
+            <div class="profile-avatar" aria-hidden="true">${email ? escapeHtml(email[0].toUpperCase()) : '?'}</div>
+            <div class="profile-hero-text">
+              <h1 class="page-title">Account Profile</h1>
+              <p class="page-subtitle">Manage your credentials, license token, and session settings.</p>
             </div>
-            <p class="profile-help" style="margin-top:12px;">Choose how you want to authenticate on this device. Your choice is saved locally.</p>
+          </div>
+          <div class="profile-hero-badges">
+            <span class="profile-tier-badge">${escapeHtml(tokenTier)}</span>
+            <span class="profile-status-pill ${isActive ? 'is-active' : 'is-inactive'}">${isActive ? 'Active' : 'Inactive'}</span>
           </div>
         </div>
 
-        <!-- Email Credentials -->
-        <div class="profile-card">
-          <div class="profile-card-header">
-            <span class="icon">📧</span>
-            <h2>Email Credentials</h2>
-          </div>
-          <div class="profile-card-body">
-            <div class="profile-field">
-              <label for="profile-email">Email Address</label>
-              <input type="email" id="profile-email" value="${escapeHtml(email)}" placeholder="you@company.com" autocomplete="email">
+        <div class="profile-layout">
+          <div class="profile-main">
+            <div class="profile-card">
+              <div class="profile-card-header">
+                <i data-lucide="shield" class="icon-18 profile-card-icon"></i>
+                <h2>Preferred Login Method</h2>
+              </div>
+              <div class="profile-card-body">
+                <div class="login-method-grid" id="login-method-options">
+                  <label class="login-method-card ${loginMethod === 'email' ? 'active' : ''}">
+                    <input type="radio" name="loginMethod" value="email" aria-label="Email login method" ${loginMethod === 'email' ? 'checked' : ''}>
+                    <div class="method-icon"><i data-lucide="mail" class="icon-20"></i></div>
+                    <div class="method-label">Email</div>
+                    <div class="method-desc">Email + Password</div>
+                  </label>
+                  <label class="login-method-card ${loginMethod === 'token' ? 'active' : ''}">
+                    <input type="radio" name="loginMethod" value="token" aria-label="Token login method" ${loginMethod === 'token' ? 'checked' : ''}>
+                    <div class="method-icon"><i data-lucide="key-round" class="icon-20"></i></div>
+                    <div class="method-label">Token</div>
+                    <div class="method-desc">Token + Password</div>
+                  </label>
+                  <label class="login-method-card ${loginMethod === 'both' ? 'active' : ''}">
+                    <input type="radio" name="loginMethod" value="both" aria-label="Both login methods" ${loginMethod === 'both' ? 'checked' : ''}>
+                    <div class="method-icon"><i data-lucide="unlock" class="icon-20"></i></div>
+                    <div class="method-label">Both</div>
+                    <div class="method-desc">Any method works</div>
+                  </label>
+                </div>
+                <p class="profile-help">Choose how you want to authenticate on this device. Your choice is saved locally.</p>
+              </div>
             </div>
-            <div class="profile-field">
-              <label for="profile-email-password">Email Password</label>
-              <input type="password" id="profile-email-password" value="${escapeHtml(profile.emailPassword || '')}" placeholder="Set a password for email login…" autocomplete="new-password">
-              <p class="profile-help">Used when signing in with Email + Password.</p>
-            </div>
-          </div>
-        </div>
 
-        <!-- Token Credentials -->
-        <div class="profile-card" id="token-section">
-          <div class="profile-card-header">
-            <span class="icon">🔑</span>
-            <h2>License Token</h2>
-          </div>
-          <div class="profile-card-body">
-            <div class="profile-field">
-              <label for="profile-token">Token</label>
-              <div class="profile-input-group">
-                <input type="password" id="profile-token" value="${escapeHtml(token)}" placeholder="Paste your license token…" autocomplete="off">
-                <button type="button" class="input-action" id="profile-token-toggle" title="Show/Hide">👁</button>
-                <button type="button" class="input-action" id="profile-token-copy" title="Copy">📋</button>
+            <div class="profile-card">
+              <div class="profile-card-header">
+                <i data-lucide="mail" class="icon-18 profile-card-icon"></i>
+                <h2>Email Credentials</h2>
               </div>
-              <p class="profile-help">Your SimpleBeacon license token. Click 👁 to reveal, 📋 to copy.</p>
+              <div class="profile-card-body">
+                <div class="profile-field">
+                  <label for="profile-email">Email Address</label>
+                  <input type="email" id="profile-email" value="${escapeHtml(email)}" placeholder="you@company.com" autocomplete="email">
+                </div>
+                <div class="profile-field">
+                  <label for="profile-email-password">Email Password</label>
+                  <input type="password" id="profile-email-password" value="${escapeHtml(profile.emailPassword || '')}" placeholder="Set a password for email login…" autocomplete="new-password">
+                  <p class="profile-help">Used when signing in with Email + Password.</p>
+                </div>
+              </div>
             </div>
-            <div class="profile-field">
-              <label for="profile-token-password">Token Password</label>
-              <input type="password" id="profile-token-password" value="${escapeHtml(profile.tokenPassword || '')}" placeholder="Set a password for token login…" autocomplete="new-password">
-              <p class="profile-help">Used when signing in with Token + Password.</p>
-            </div>
-          </div>
-        </div>
 
-        <!-- Account & Token Status -->
-        <div class="profile-card">
-          <div class="profile-card-header">
-            <span class="icon">🎫</span>
-            <h2>Account & Token Status</h2>
-          </div>
-          <div class="profile-card-body">
-            <div class="session-grid">
-              <div class="session-badge">
-                <div class="label">Token Type</div>
-                <div class="value">${escapeHtml(tokenType)}</div>
+            <div class="profile-card" id="token-section">
+              <div class="profile-card-header">
+                <i data-lucide="key-round" class="icon-18 profile-card-icon"></i>
+                <h2>License Token</h2>
               </div>
-              <div class="session-badge">
-                <div class="label">Tier</div>
-                <div class="value" style="text-transform:capitalize;color:var(--accent);">${escapeHtml(tokenTier)}</div>
-              </div>
-              <div class="session-badge">
-                <div class="label">Account Age</div>
-                <div class="value">${escapeHtml(accountAge)}</div>
-              </div>
-              <div class="session-badge">
-                <div class="label">Expires In</div>
-                <div class="value" style="color:${expiryInfo.color};">${escapeHtml(expiryInfo.label)}</div>
-              </div>
-              <div class="session-badge">
-                <div class="label">Active</div>
-                <div class="value" style="color:${isActive ? 'var(--success)' : 'var(--error)'};">${isActive ? '● Active' : '● Inactive'}</div>
-              </div>
-              <div class="session-badge">
-                <div class="label">Subject</div>
-                <div class="value" style="font-size:0.75rem;">${escapeHtml(subLabel)}</div>
+              <div class="profile-card-body">
+                <div class="profile-field">
+                  <label for="profile-token">Token</label>
+                  <div class="profile-input-group">
+                    <input type="password" id="profile-token" value="${escapeHtml(token)}" placeholder="Paste your license token…" autocomplete="off">
+                    <button type="button" class="input-action" id="profile-token-toggle" title="Show token" aria-label="Show token"><i data-lucide="eye" class="icon-16"></i></button>
+                    <button type="button" class="input-action" id="profile-token-copy" title="Copy token" aria-label="Copy token"><i data-lucide="copy" class="icon-16"></i></button>
+                  </div>
+                  <p class="profile-help">Your SimpleBeacon license token. Use the eye icon to reveal or copy to clipboard.</p>
+                </div>
+                <div class="profile-field">
+                  <label for="profile-token-password">Token Password</label>
+                  <input type="password" id="profile-token-password" value="${escapeHtml(profile.tokenPassword || '')}" placeholder="Set a password for token login…" autocomplete="new-password">
+                  <p class="profile-help">Used when signing in with Token + Password.</p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- Actions -->
-        <div class="profile-card">
-          <div class="profile-card-header">
-            <span class="icon">⚡</span>
-            <h2>Actions</h2>
-          </div>
-          <div class="profile-actions">
-            <button type="button" class="btn btn-primary" id="profile-save-btn">💾 Save Changes</button>
-            <button type="button" class="btn btn-secondary" id="profile-clear-cache-btn">🗑️ Clear Cache</button>
-            <button type="button" class="btn btn-primary" id="profile-signout-btn" style="background:var(--error);border-color:var(--error);">🚪 Sign Out</button>
-          </div>
-          <p class="profile-status" id="profile-save-status"></p>
+          <aside class="profile-aside">
+            <div class="profile-card">
+              <div class="profile-card-header">
+                <i data-lucide="badge-check" class="icon-18 profile-card-icon"></i>
+                <h2>Account Status</h2>
+              </div>
+              <div class="profile-card-body">
+                <div class="profile-stat-grid">
+                  <div class="profile-stat">
+                    <div class="label">Token Type</div>
+                    <div class="value">${escapeHtml(tokenType)}</div>
+                  </div>
+                  <div class="profile-stat">
+                    <div class="label">Project</div>
+                    <div class="value">${escapeHtml(project)}</div>
+                  </div>
+                  <div class="profile-stat">
+                    <div class="label">Account Age</div>
+                    <div class="value">${escapeHtml(accountAge)}</div>
+                  </div>
+                  <div class="profile-stat">
+                    <div class="label">Expires In</div>
+                    <div class="value" style="color:${expiryInfo.color};">${escapeHtml(expiryInfo.label)}</div>
+                  </div>
+                  <div class="profile-stat">
+                    <div class="label">Subject</div>
+                    <div class="value" style="font-size:var(--font-size-xs);">${escapeHtml(subLabel)}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="profile-card" id="profile-stockpile-card">
+              <div class="profile-card-header">
+                <i data-lucide="layers" class="icon-18 profile-card-icon"></i>
+                <h2>Token Loader (${reservedCount} reserved)</h2>
+              </div>
+              <div class="profile-card-body">
+                <p class="profile-help" style="margin-top:0;">Buy time tokens now and stockpile them here. They stay inactive until you click Load — useful for renewing before your current token expires.</p>
+                <div class="profile-field">
+                  <label for="profile-stockpile-input">Paste token to stockpile</label>
+                  <div class="profile-input-group">
+                    <input type="password" id="profile-stockpile-input" placeholder="Paste purchased time token…" autocomplete="off">
+                    <button type="button" class="btn btn-secondary btn-sm" id="profile-stockpile-add">Stockpile</button>
+                  </div>
+                </div>
+                ${reservedCount > 0 ? `<div class="profile-stockpile-list">${stockpiledRows}</div>` : '<p class="profile-help">No reserved tokens yet.</p>'}
+                <div class="profile-stockpile-actions">
+                  <button type="button" class="btn btn-primary btn-sm" id="profile-buy-tokens"><i data-lucide="shopping-cart" class="icon-16"></i> Buy time tokens</button>
+                  <a class="btn btn-ghost btn-sm" href="/dashboard/settings">Manage in Settings</a>
+                </div>
+              </div>
+            </div>
+
+            <div class="profile-card">
+              <div class="profile-card-header">
+                <i data-lucide="zap" class="icon-18 profile-card-icon"></i>
+                <h2>Actions</h2>
+              </div>
+              <div class="profile-card-body">
+                <div class="profile-actions">
+                  <button type="button" class="btn btn-primary" id="profile-save-btn"><i data-lucide="save" class="icon-16"></i> Save Changes</button>
+                  <button type="button" class="btn btn-secondary" id="profile-clear-cache-btn"><i data-lucide="trash-2" class="icon-16"></i> Clear Cache</button>
+                  <button type="button" class="btn btn-danger" id="profile-signout-btn"><i data-lucide="log-out" class="icon-16"></i> Sign Out</button>
+                </div>
+                <p class="profile-status-msg" id="profile-save-status"></p>
+              </div>
+            </div>
+          </aside>
         </div>
       </div>
-
     `);
         container.innerHTML = '';
         container.appendChild(fragment);
+        if (typeof window.lucide !== 'undefined')
+            window.lucide.createIcons();
         // Style active login method
         const updateLoginMethodStyles = () => {
             container.querySelectorAll('.login-method-card').forEach((card) => {
@@ -324,7 +331,7 @@ export class ProfileView {
                 if (confirmPassword !== currentPassword) {
                     const status = container.querySelector('#profile-save-status');
                     status.textContent = 'Password mismatch — changes not saved.';
-                    status.style.color = 'var(--error)';
+                    status.style.color = 'var(--danger)';
                     setTimeout(() => { status.textContent = ''; status.style.color = ''; }, 3000);
                     return;
                 }
@@ -362,14 +369,18 @@ export class ProfileView {
                         return;
                     if (input.type === 'password') {
                         input.type = 'text';
-                        toggleBtn.textContent = '🙈';
+                        toggleBtn.innerHTML = '<i data-lucide="eye-off" class="icon-16"></i>';
                         toggleBtn.title = 'Hide token';
+                        toggleBtn.setAttribute('aria-label', 'Hide token');
                     }
                     else {
                         input.type = 'password';
-                        toggleBtn.textContent = '👁';
+                        toggleBtn.innerHTML = '<i data-lucide="eye" class="icon-16"></i>';
                         toggleBtn.title = 'Show token';
+                        toggleBtn.setAttribute('aria-label', 'Show token');
                     }
+                    if (typeof window.lucide !== 'undefined')
+                        window.lucide.createIcons();
                 }
                 catch (e) {
                     console.error('[Profile] Toggle failed:', e);
@@ -412,9 +423,15 @@ export class ProfileView {
                     }
                 }
                 if (copied) {
-                    const original = copyBtn.textContent;
-                    copyBtn.textContent = '✓';
-                    setTimeout(() => { copyBtn.textContent = original; }, 1500);
+                    const original = copyBtn.innerHTML;
+                    copyBtn.innerHTML = '<i data-lucide="check" class="icon-16"></i>';
+                    if (typeof window.lucide !== 'undefined')
+                        window.lucide.createIcons();
+                    setTimeout(() => {
+                        copyBtn.innerHTML = original;
+                        if (typeof window.lucide !== 'undefined')
+                            window.lucide.createIcons();
+                    }, 1500);
                     (_d = (_c = this.app).showToast) === null || _d === void 0 ? void 0 : _d.call(_c, 'Token copied', 'success');
                 }
                 else {
@@ -428,6 +445,41 @@ export class ProfileView {
             const keys = Object.keys(localStorage).filter((k) => k.startsWith('sb_') || k.includes('simplebeacon'));
             keys.forEach((k) => localStorage.removeItem(k));
             ((_b = (_a = this.app).showToast) === null || _b === void 0 ? void 0 : _b.call(_a, 'Local cache cleared', 'success')) || alert('Local cache cleared');
+        });
+        container.querySelector('#profile-stockpile-add')?.addEventListener('click', () => {
+            const input = container.querySelector('#profile-stockpile-input');
+            const value = (input === null || input === void 0 ? void 0 : input.value.trim()) || '';
+            if (!value) {
+                showToast('Paste a token to stockpile', 'error');
+                return;
+            }
+            const result = addToStockpile(value, { email, tier: tokenTier });
+            if (result.ok) {
+                showToast(result.duplicate ? 'Token already stockpiled' : 'Time token added to loader', 'success');
+                if (input)
+                    input.value = '';
+                this.mount(container);
+            }
+            else {
+                showToast(result.error || 'Could not stockpile token', 'error');
+            }
+        });
+        container.querySelector('#profile-buy-tokens')?.addEventListener('click', () => {
+            window.open(BUY_TIME_TOKENS_URL, '_blank', 'noopener,noreferrer');
+        });
+        container.querySelectorAll('[data-stockpile-load]').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const index = parseInt(btn.getAttribute('data-stockpile-load') || '-1', 10);
+                const result = activateStockpileEntry(index, authService);
+                if (!result.ok) {
+                    showToast(result.error || 'Could not load token', 'error');
+                    return;
+                }
+                showToast('Time token loaded — session updated', 'success');
+                this.mount(container);
+                if (this.app.updateAuthUi)
+                    this.app.updateAuthUi();
+            });
         });
     }
     destroy() { }

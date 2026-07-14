@@ -1,4 +1,4 @@
-import { escapeHtml, formatNumber, showToast, renderEmptyState } from '../utils.js';
+import { escapeHtml, formatNumber, showToast, renderEmptyState, downloadJson } from '../utils.js';
 
 const SEVERITY_ORDER = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
 
@@ -357,15 +357,7 @@ export class RemediationRoadmapView {
         };
       })
     };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `remediation-roadmap-${new Date().toISOString().slice(0, 10)}.json`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+    downloadJson(payload, `remediation-roadmap-${new Date().toISOString().slice(0, 10)}.json`);
     showToast('Remediation roadmap exported as JSON');
   }
 

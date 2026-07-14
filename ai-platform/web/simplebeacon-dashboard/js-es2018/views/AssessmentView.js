@@ -1,6 +1,6 @@
 import { escapeHtml, showToast } from '../utils.js';
 import { assessmentService } from '../services/assessmentService.js';
-import { authService } from '../services/authService.js';
+import { authService } from '../services/authService.js?v=20260713sync6';
 import { showLoginModal } from '../components/LoginModal.js';
 /**
  * Assessment view.

@@ -1,6 +1,7 @@
 /**
  * @module download
  */
+import { notifyDownloadComplete } from './notify.js';
 /**
  * Download a Blob as a file.
  * Uses VS Code webview message passing when in a sandboxed webview,
@@ -10,30 +11,41 @@
  * @returns {void}
  * @throws {Error} When blob is missing or document is unavailable.
  */
+export function normalDownload(blob, filename) {
+    if (!(blob instanceof Blob)) {
+        throw new Error('Download is unavailable: invalid blob.');
+    }
+    if (typeof document === 'undefined' || !document.body) {
+        throw new Error('Download is unavailable in this environment.');
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename || 'download';
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    try {
+        a.click();
+    }
+    finally {
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 0);
+    }
+    notifyDownloadComplete(filename || 'download');
+}
 export function downloadBlob(blob, filename) {
     if (!(blob instanceof Blob)) {
         throw new Error('Download is unavailable: no valid blob provided.');
     }
-    function _anchorDownload() {
-        if (typeof document === 'undefined' || !document.body) {
-            throw new Error('Download is unavailable in this environment.');
-        }
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename || 'download';
-        a.rel = 'noopener';
-        document.body.appendChild(a);
-        try {
-            a.click();
-        }
-        finally {
-            a.remove();
-            setTimeout(() => URL.revokeObjectURL(url), 0);
-        }
-    }
     if (typeof window !== 'undefined' && typeof window.acquireVsCodeApi === 'function') {
-        const vscode = window.acquireVsCodeApi();
+        let vscode;
+        try {
+            vscode = window.acquireVsCodeApi();
+        }
+        catch (_a) {
+            // VS Code API unavailable — fall through to normal download
+            return normalDownload(blob, filename);
+        }
         const reader = new FileReader();
         reader.onload = () => {
             const result = String(reader.result || '');
@@ -44,7 +56,7 @@ export function downloadBlob(blob, filename) {
         reader.onerror = () => {
             console.error('FileReader failed to convert blob for VS Code download. Falling back to normal download.');
             try {
-                _anchorDownload();
+                normalDownload(blob, filename);
             }
             catch (err) {
                 console.error('Fallback download failed:', err);
@@ -53,7 +65,7 @@ export function downloadBlob(blob, filename) {
         reader.readAsDataURL(blob);
         return;
     }
-    _anchorDownload();
+    normalDownload(blob, filename);
 }
 /**
  * Serialize data to JSON and trigger a download.

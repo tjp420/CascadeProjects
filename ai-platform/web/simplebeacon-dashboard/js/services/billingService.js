@@ -1,4 +1,4 @@
-import { authService } from './authService.js';
+import { authService } from './authService.js?v=20260713sync6';
 import { readJsonResponseBody, withRecoverableFallback } from '../lib/recoverable-fetch.js';
 
 /**
