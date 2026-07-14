@@ -698,7 +698,7 @@ function detectDominantLanguage(paths) {
         }
     }
     const entries = Object.entries(counts);
-    if (entries.length === 0) return 'javascript';
+    if (entries.length === 0) return null;
     entries.sort((a, b) => b[1] - a[1]);
     return entries[0][0];
 }
@@ -1518,12 +1518,29 @@ async function processLocalCLIScan(files) {
     const skipReasons = {};
     let filterIdx = 0;
     const MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024; // 2GB hard safety limit
+    const BINARY_EXTENSIONS = new Set([
+        '.gguf', '.bin', '.pt', '.pth', '.onnx', '.safetensors', '.model', '.weights', // ML models
+        '.rlib', '.rmeta', '.o', '.a', '.so', '.dylib', '.lib', '.dll', '.exe', // compiled libs
+        '.cab', '.msi', '.deb', '.rpm', '.dmg', '.pkg', // installers
+        '.png', '.jpg', '.jpeg', '.gif', '.webp', '.ico', '.bmp', '.tiff', '.heic', // images
+        '.mp3', '.mp4', '.wav', '.avi', '.mov', '.mkv', '.flv', '.webm', // media
+        '.zip', '.tar', '.gz', '.tgz', '.bz2', '.7z', '.rar', '.xz', // archives
+        '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', // documents
+        '.pyc', '.class', '.jar', '.war', '.wasm', '.bc' // bytecode
+    ]);
     for (const f of files) {
         filterIdx++;
         const path = (f.webkitRelativePath || f.name).replace(/\\/g, '/');
         let reason = null;
         if (f.size >= MAX_FILE_SIZE) {
             reason = 'File > 2GB';
+        }
+        if (!reason) {
+            const extIdx = path.lastIndexOf('.');
+            const ext = extIdx >= 0 ? path.substring(extIdx).toLowerCase() : '';
+            if (BINARY_EXTENSIONS.has(ext)) {
+                reason = 'Binary file';
+            }
         }
         const includeVendorDirs = window._scanOptions?.includeVendorDirs || false;
         if (skipDeps && !includeVendorDirs && !reason && /(^|\/)(node_modules|\.git|\.github-sync|github-cache|\.cursor|\.windsurf|\.cursor-tutor|\.vscode|\.idea|\.husky|\.simplebeacon|backups|java-ai-vulnerable|out)\//i.test(path)) {
@@ -1776,6 +1793,7 @@ async function processLocalCLIScan(files) {
         const isScannerArtifact = /(?:^|\/)upload\.html$|(?:^|\/)report\.json$|(?:^|\/)report-deliveries\/|(?:^|\/)explainability\.md$|(?:^|\/)certificate\.html$|(?:^|\/)certificate\.png$|(?:^|\/)executive-summary\.md$|(?:^|\/)remediation-checklist\.md$|(?:^|\/)dev-report\.html$|(?:^|\/)manifest\.json$|(?:^|\/)findings\.md$|(?:^|\/)scanner-patterns\.js$|(?:^|\/)scanner-engine\.js$|(?:^|\/)main\.js$|(?:^|\/)ui-renderer\.js$|(?:^|\/)token-manager\.js$|(?:^|\/)scan-worker\.js$|(?:^|\/)certificate-module\.js$|(?:^|\/)generate-token\.js$|(?:^|\/)server\.cjs$|(?:^|\/)run-all-tier-scans\.cjs$|(?:^|\/)free-token\.cjs$|(?:^|\/)lib\/db\.cjs$|(?:^|\/)trello-roadmap-export\.js$|(?:^|\/)site-config\.js$|(?:^|\/)contact\.js$|(?:^|\/)roadmap\.html$|(?:^|\/)routes\/(certificates|checkout|subscriptions)\.cjs$|(?:^|\/)services\/email\.cjs$|(?:^|\/)modules\/(gate|consolidation|mock-data|roadmap|codebase|file-reduction|data-quality|cleanup|npm-audit|compliance|ai-indicators|governance|dependency-vulns|build-readiness|eu-ai-act|ai-residue|index)\.json$|eslint-report\.json$|pattern-documentation\.js$|quick-actions\.js$|(?:^|\/)scan-utils\.js$|(?:^|\/)phase-registry\.js$|(?:^|\/)scan-directory\.js$|(?:^|\/)local-scanner-bridge\.cjs$|(?:^|\/)analyze-directory\.js$|(?:^|\/)count-all-files\.js$|(?:^|\/)count-files\.js$|(?:^|\/)test-all-patterns\.js$|(?:^|\/)run-cli-scan\.js$|(?:^|\/)update-cache\.js$|(?:^|\/)fix-.*\.cjs$|(?:^|\/)repair-.*\.cjs$|(?:^|\/)js\/dashboard\/utils\.js$|(?:^|\/)ai-slop-cop-report\.json$|(?:^|\/)full-audit-report\.json$|(?:^|\/)cascade-root-report\.json$|(?:^|\/)cli-test-report\.json$|(?:^|\/)coming-soon-report\.json$|(?:^|\/)coming-soon-final\.json$|(?:^|\/)ai-platform-report\.json$|(?:^|\/)report-gate-pass-.*\.json$|(?:^|\/)New folder\/|(?:^|\/)simplebeacon-export-operator/i.test(path);
         // Determine language and active analyzers for this file
         const fileLang = detectDominantLanguage([path]);
+        if (!fileLang) { processed++; continue; }
         const activeAnalyzers = getAnalyzersForLanguage(fileLang, profile);
         const isTestFile = /test-.*\.js$|\.test\.|\.spec\./i.test(path);
         const isTestOutput = /test-(output|debug|failures|log|complete|auto)\.(txt|log)$/i.test(path) || /\.(txt|log)$/i.test(path) && /test|debug|output|log/i.test(path.split('/').pop());

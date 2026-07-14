@@ -18,16 +18,17 @@
     </script>
     <title>SimpleBeacon — Audit</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <script src="js/token-entry-guard.js" defer></script>
     <script src="site-config.js?h=1781475000000" defer></script>
     <script src="js-es2018/scan-utils.js?h=1781475000001" defer></script>
     <script src="js-es2018/dashboard/utils.js?h=1781475000000" defer></script>
-    <script src="js-es2018/dashboard/token-manager.js?h=1781475000002" defer></script>
+    <script src="js-es2018/dashboard/token-manager.js?h=1781475000300" defer></script>
     <script src="js-es2018/dashboard/token-file-system.js?h=1781475000003" defer></script>
     <script src="js-es2018/dashboard/usb-token-manager.js?h=1781475000003" defer></script>
     <script src="js-es2018/dashboard/scanner-patterns.js?h=1781475000004" defer></script>
     <script src="js-es2018/dashboard/quick-actions.js?h=1781475000005" defer></script>
     <script src="js-es2018/dashboard/pattern-documentation.js?h=1781475000005" defer></script>
-    <script src="js-es2018/dashboard/scanner-engine.js?h=1781475000011" defer></script>
+    <script src="js-es2018/dashboard/scanner-engine.js?h=1781475000012" defer></script>
     <script src="js-es2018/dashboard/ui-renderer.js?h=1781475000000" defer></script>
     <script src="js-es2018/dashboard/certificate-module.js?h=1781475000007" defer></script>
     <script src="js/vendor/jszip.min.js?h=1781475000000" defer></script>
@@ -72,7 +73,7 @@
                 <a href="/roadmap">Roadmap</a>
                 <a href="/audit">Audit</a>
                 <a href="/pricing">Pricing</a>
-                <a href="/dashboard/dashboard" id="vaultLink">Team Dashboard</a>
+                <a href="/dashboard/" id="vaultLink">Team Dashboard</a>
                 <script>window.addEventListener('DOMContentLoaded', function() { if (window.SbAuth) window.SbAuth.propagateTokenToLinks(); });</script>
                 <button type="button" id="nav-signin-btn" style="display:none;margin-left:8px;padding:4px 0;background:transparent;color:var(--text-muted);font-size:0.8rem;cursor:pointer;border:none;border-radius:0;">Sign in</button>
                 <button type="button" id="nav-signout-btn" style="margin-left:8px;padding:4px 0;background:transparent;color:var(--text-muted);font-size:0.8rem;cursor:pointer;border:none;border-radius:0;">Sign out</button>
@@ -141,14 +142,35 @@
                 <h3 style="margin:0;font-size:0.9rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--accent-hover);">License Token</h3>
             </div>
             <style>
-              .token-bar-wrap { padding: 20px 24px; }
-              .token-bar { display: flex; gap: 10px; align-items: stretch; }
-              .token-bar input#licenseToken { flex: 1; padding: 12px 18px; border: 2px solid var(--border); border-radius: 10px; background: var(--bg-input); color: var(--text-main); font-size: 1rem; transition: border-color 150ms, box-shadow 150ms; min-width: 0; }
-              .token-bar input#licenseToken:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(99,102,241,0.12); }
-              .token-bar .btn-sandbox { white-space: nowrap; padding: 0 18px; border-radius: 10px; border: 1.5px solid var(--accent); background: transparent; color: var(--accent); font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: all 150ms; }
-              .token-bar .btn-sandbox:hover { background: rgba(99,102,241,0.08); }
-              .token-bar-help { font-size: 0.75rem; color: var(--text-muted); margin-top: 8px; }
+              .token-gate-body { padding: 20px 24px 24px; display: grid; gap: 18px; }
+              @media (min-width: 760px) {
+                .token-gate-body { grid-template-columns: minmax(0, 1fr) auto minmax(220px, 280px); align-items: start; gap: 20px; }
+              }
+              .token-gate-path { min-width: 0; }
+              .token-gate-label { display: block; font-size: 0.72rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+              .token-gate-input-wrap { position: relative; }
+              .token-gate-input-wrap input#licenseToken { width: 100%; padding: 14px 16px 14px 42px; border: 2px solid var(--border); border-radius: 12px; background: var(--bg-input); color: var(--text-main); font-size: 0.95rem; transition: border-color 150ms, box-shadow 150ms; min-width: 0; box-sizing: border-box; }
+              .token-gate-input-wrap input#licenseToken:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(99,102,241,0.12); }
+              .token-gate-input-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 1rem; opacity: 0.55; pointer-events: none; }
+              .token-bar-help { font-size: 0.75rem; color: var(--text-muted); margin: 8px 0 0; line-height: 1.45; }
               .token-error-bar { color: var(--error); font-size: 0.8rem; margin-top: 8px; }
+              .token-gate-divider { display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; }
+              @media (min-width: 760px) {
+                .token-gate-divider { flex-direction: column; padding-top: 28px; }
+                .token-gate-divider::before, .token-gate-divider::after { content: ''; flex: 1; width: 1px; background: var(--border); min-height: 24px; }
+                .token-gate-divider span { padding: 8px 0; }
+              }
+              @media (max-width: 759px) {
+                .token-gate-divider::before, .token-gate-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+                .token-gate-divider span { padding: 0 10px; }
+              }
+              .token-gate-free { padding: 16px; border-radius: 12px; border: 1px solid rgba(99,102,241,0.22); background: linear-gradient(145deg, rgba(99,102,241,0.08), rgba(5,150,105,0.04)); }
+              .token-gate-free-title { margin: 0 0 4px; font-size: 0.9rem; font-weight: 600; color: var(--text-main); }
+              .token-gate-free-desc { margin: 0 0 12px; font-size: 0.78rem; color: var(--text-muted); line-height: 1.45; }
+              .token-gate-free .btn-sandbox { width: 100%; padding: 11px 16px; border-radius: 10px; border: none; background: var(--accent); color: #fff; font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: opacity 150ms, transform 150ms; }
+              .token-gate-free .btn-sandbox:hover { opacity: 0.92; transform: translateY(-1px); }
+              .token-gate-free .btn-sandbox:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+              .token-gate-trust { margin: 0; padding: 10px 12px; border-radius: 8px; background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.18); font-size: 0.72rem; color: var(--text-secondary); line-height: 1.45; }
 
               .auth-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(4px); }
               .auth-modal-overlay.active { display: flex; }
@@ -175,15 +197,37 @@
               .token-password-wrap input { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-input); color: var(--text-main); font-size: 0.9rem; }
               .token-actions-redesign { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
               .token-actions-redesign .btn { flex: 1; min-width: 140px; }
+              .product-plan-strip { margin: 0 24px 20px; padding: 14px 16px; border-radius: 12px; border: 1px solid rgba(99,102,241,0.22); background: linear-gradient(135deg, rgba(99,102,241,0.07), rgba(5,150,105,0.04)); }
+              .product-plan-strip--free { border-color: rgba(16,185,129,0.28); background: linear-gradient(135deg, rgba(16,185,129,0.1), rgba(99,102,241,0.05)); }
+              .product-plan-eyebrow { display: block; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; }
+              .product-plan-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+              .product-plan-name { font-size: 1rem; color: var(--text-main); }
+              .product-plan-price { font-size: 0.85rem; font-weight: 700; color: var(--success); white-space: nowrap; }
+              .product-plan-desc { margin: 0; font-size: 0.78rem; line-height: 1.45; color: var(--text-muted); }
             </style>
 
-            <div class="token-bar-wrap">
-              <div class="token-bar">
-                <input id="licenseToken" type="text" autocomplete="off" placeholder="Paste your license token here…" />
-                <button type="button" class="btn-sandbox" id="tryFreeBtn">Try Free Sandbox</button>
+            <div class="token-gate-body">
+              <div class="token-gate-path token-gate-path--paste">
+                <label class="token-gate-label" for="licenseToken">Paste license token</label>
+                <div class="token-gate-input-wrap">
+                  <span class="token-gate-input-icon" aria-hidden="true">🔑</span>
+                  <input id="licenseToken" type="text" autocomplete="off" spellcheck="false" placeholder="Paste a new token from email or checkout…" />
+                </div>
+                <p class="token-bar-help">Press <kbd>Enter</kbd> to unlock scan modules. Your token stays in this browser only.</p>
+                <p id="tokenError" class="token-error-bar hidden-display" role="alert"></p>
               </div>
-              <p class="token-bar-help">Enter your license token and press Enter to authenticate.</p>
-              <p id="tokenError" class="token-error-bar hidden-display" role="alert"></p>
+              <div class="token-gate-divider" aria-hidden="true"><span>or</span></div>
+              <div class="token-gate-path token-gate-path--free">
+                <p class="token-gate-free-title">No token yet?</p>
+                <p class="token-gate-free-desc">Get a free 14-day sandbox token emailed to you — no payment required.</p>
+                <button type="button" class="btn-sandbox" id="tryFreeBtn">Try Free Sandbox</button>
+                <p class="token-gate-trust" style="margin-top:12px;">Zero-trust: scans run locally in your browser. No source code is uploaded.</p>
+              </div>
+            </div>
+
+            <div id="productInfoCard" class="product-plan-strip" style="display:none;" aria-live="polite">
+              <span id="productInfoHeading" class="product-plan-eyebrow">Active Plan</span>
+              <div id="productDetails"></div>
             </div>
 
             <!-- Sandbox Email Modal -->
@@ -457,13 +501,6 @@
             </div>
             <div id="sprintExpiryBar" style="margin-top:10px;height:6px;background:var(--bg-input);border-radius:3px;overflow:hidden;">
                 <div id="sprintExpiryFill" style="height:100%;width:100%;background:linear-gradient(90deg,var(--accent),var(--success));border-radius:3px;transition:width 0.5s;"></div>
-            </div>
-        </div>
-
-        <div class="card" id="productInfoCard" style="display:none;">
-            <h2><svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:-2px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg> Your Purchase</h2>
-            <div class="form-group">
-                <div id="productDetails" style="font-size:0.95rem;color:var(--text-muted);"></div>
             </div>
         </div>
 
@@ -1350,6 +1387,10 @@
                         e.preventDefault();
                         const token = tokenInput.value.trim();
                         if (!token) { showError('Please enter a license token.'); return; }
+                        if (window.TokenEntryGuard) {
+                            const entryCheck = window.TokenEntryGuard.validateNewTokenEntry(token);
+                            if (!entryCheck.ok) { showError(entryCheck.error); return; }
+                        }
                         clearError();
                         try {
                             const res = await fetch('/api/auth/token-status', {
@@ -1419,16 +1460,26 @@
                         sandboxSendBtn.disabled = true;
                         sandboxSendBtn.textContent = 'Sending…';
                         try {
-                            const res = await fetch('/api/tokens/sandbox', {
+                            const apiBase = (typeof window.resolveApiBase === 'function') ? window.resolveApiBase() : location.origin.replace(/\/$/, '');
+                            const res = await fetch(apiBase + '/api/tokens/sandbox', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({ email: email })
                             });
                             const data = await res.json();
                             if (data.success && data.token) {
+                                if (window.TokenEntryGuard) window.TokenEntryGuard.registerFreshToken(data.token);
                                 if (tokenInput) {
-                                    tokenInput.value = data.token;
-                                    tokenInput.dispatchEvent(new Event('input'));
+                                    if (window.TokenEntryGuard) {
+                                        const applied = window.TokenEntryGuard.applyTokenToInput(tokenInput, data.token, { allowFresh: true });
+                                        if (!applied.ok) {
+                                            if (sandboxModalError) { sandboxModalError.textContent = applied.error; sandboxModalError.style.display = 'block'; }
+                                            return;
+                                        }
+                                    } else {
+                                        tokenInput.value = data.token;
+                                        tokenInput.dispatchEvent(new Event('input'));
+                                    }
                                     const enterEvent = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true });
                                     tokenInput.dispatchEvent(enterEvent);
                                 }
@@ -1750,7 +1801,7 @@
         }
     })();
     </script>
-    <script src="js-es2018/dashboard/main.js?h=1781470050010" defer></script>
+    <script src="js-es2018/dashboard/main.js?h=1781475000200" defer></script>
     <script>
     // Diagnostic panel disabled by default. Add ?debug=1 to URL to enable.
     (function() {
