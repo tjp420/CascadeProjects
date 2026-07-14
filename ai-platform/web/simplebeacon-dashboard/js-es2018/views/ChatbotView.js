@@ -1,5 +1,36 @@
 import { escapeHtml, sanitizePrivacyData } from '../utils.js';
 import { authService, apiBase } from '../services/authService.js?v=20260713sync6';
+
+const BROWSER_OLLAMA_URL = 'http://127.0.0.1:11434';
+
+function canUseBrowserOllama() {
+    if (typeof window === 'undefined')
+        return false;
+    const host = window.location.hostname;
+    return /^(localhost|127\.0\.0\.1)$/i.test(host) && window.location.protocol === 'http:';
+}
+
+async function probeBrowserOllama() {
+    if (!canUseBrowserOllama())
+        return false;
+    try {
+        const res = await fetch(`${BROWSER_OLLAMA_URL}/api/tags`, { signal: AbortSignal.timeout(2500) });
+        return res.ok;
+    }
+    catch {
+        return false;
+    }
+}
+
+const PERSONALITY_PROMPTS = {
+    helpful: 'You are a helpful code assistant for the SimpleBeacon platform.',
+    professional: 'You are a professional, concise code assistant for the SimpleBeacon platform.',
+    casual: 'You are a friendly, relaxed code assistant for the SimpleBeacon platform.',
+    sarcastic: 'You are a witty, sarcastic code assistant for the SimpleBeacon platform.',
+    technical: 'You are a deeply technical code assistant for the SimpleBeacon platform.',
+    creative: 'You are a creative, exploratory code assistant for the SimpleBeacon platform.',
+    oracle: 'You are The Unbreakable Oracle, an omniscient code assistant for the SimpleBeacon platform.'
+};
 /**
  * Chatbot view.
  */
@@ -13,6 +44,7 @@ export class ChatbotView {
         this.SETTINGS_KEY = 'simplebeacon_chatbot_settings';
         this.personality = 'helpful';
         this.removeFilters = false;
+        this.useBrowserOllama = false;
         this.loadConversationHistory();
         this.loadSettings();
     }
@@ -123,10 +155,26 @@ export class ChatbotView {
         const input = document.getElementById('chatbot-input');
         const sendBtn = document.getElementById('chatbot-send');
         try {
-            const res = await fetch(apiBase() + '/api/chatbot/providers', { method: 'GET', signal: AbortSignal.timeout(3000), headers: authService.getAuthHeaders() });
+            const res = await fetch(apiBase() + '/api/chatbot/providers', { method: 'GET', signal: AbortSignal.timeout(5000), headers: authService.getAuthHeaders() });
+            if (res.status === 401) {
+                if (dot)
+                    dot.className = 'chatbot-connection-dot chatbot-connection-offline';
+                if (text)
+                    text.textContent = 'Sign in required';
+                if (input)
+                    input.disabled = true;
+                if (sendBtn)
+                    sendBtn.disabled = true;
+                this.showErrorBanner('Sign in to use the chatbot with your saved AI provider keys.', true, { showSignInLink: true });
+                return;
+            }
             if (res.ok) {
                 const data = await res.json().catch(() => ({}));
-                const available = Array.isArray(data.providers) ? data.providers.filter(p => p.available) : [];
+                let available = Array.isArray(data.providers) ? data.providers.filter(p => p.available) : [];
+                if (available.length === 0 && await probeBrowserOllama()) {
+                    this.useBrowserOllama = true;
+                    available = [{ id: 'ollama', label: 'Ollama (browser-local)' }];
+                }
                 if (available.length > 0) {
                     if (dot)
                         dot.className = 'chatbot-connection-dot chatbot-connection-online';
@@ -136,6 +184,7 @@ export class ChatbotView {
                         input.disabled = false;
                     if (sendBtn)
                         sendBtn.disabled = false;
+                    this.hideErrorBanner();
                     return;
                 }
                 if (dot)
@@ -146,12 +195,25 @@ export class ChatbotView {
                     input.disabled = true;
                 if (sendBtn)
                     sendBtn.disabled = true;
-                this.showErrorBanner('No AI provider is configured on this server. Add OpenAI or Anthropic keys in Settings → AI providers, or ask your admin to set OPENAI_API_KEY / ANTHROPIC_API_KEY on the server.');
+                this.showErrorBanner('No AI provider is configured. Add an OpenAI or Anthropic API key in Settings → AI providers. Ollama only works when the dashboard runs on localhost over HTTP.', false, { showSettingsLink: true });
                 return;
             }
         }
         catch (e) {
-            // API unreachable
+            // API unreachable — try browser-local Ollama below
+        }
+        if (await probeBrowserOllama()) {
+            this.useBrowserOllama = true;
+            if (dot)
+                dot.className = 'chatbot-connection-dot chatbot-connection-online';
+            if (text)
+                text.textContent = 'Ready — Ollama (browser-local)';
+            if (input)
+                input.disabled = false;
+            if (sendBtn)
+                sendBtn.disabled = false;
+            this.hideErrorBanner();
+            return;
         }
         if (dot)
             dot.className = 'chatbot-connection-dot chatbot-connection-offline';
@@ -161,15 +223,21 @@ export class ChatbotView {
             input.disabled = true;
         if (sendBtn)
             sendBtn.disabled = true;
+        this.showErrorBanner('Could not reach the chatbot API. Add AI provider keys in Settings → AI providers, or run Ollama locally when using the dashboard on localhost.', true, { showSettingsLink: true });
     }
-    showErrorBanner(message, isRecoverable = true) {
+    showErrorBanner(message, isRecoverable = true, options = {}) {
         const banner = document.getElementById('chatbot-error-banner');
         if (!banner)
             return;
+        const actionLink = options.showSettingsLink
+            ? ' <a href="/dashboard/settings" class="chatbot-settings-link">Open Settings → AI providers</a>'
+            : options.showSignInLink
+                ? ' <a href="/dashboard/signin" class="chatbot-settings-link">Sign in</a>'
+                : '';
         banner.innerHTML = `
       <div class="chatbot-error-content">
         <span class="chatbot-error-icon">⚠️</span>
-        <span class="chatbot-error-text">${escapeHtml(message)}</span>
+        <span class="chatbot-error-text">${escapeHtml(message)}${actionLink}</span>
         ${isRecoverable ? '<button class="chatbot-error-dismiss" title="Dismiss">×</button>' : ''}
       </div>
     `;
@@ -323,42 +391,50 @@ export class ChatbotView {
             { id: 'openai', label: 'OpenAI' },
             { id: 'anthropic', label: 'Anthropic' }
         ];
+        let providers = [];
         try {
-            const res = await fetch(apiBase() + '/api/chatbot/providers', { signal: AbortSignal.timeout(3000), headers: authService.getAuthHeaders() });
-            if (!res.ok)
-                throw new Error('Providers endpoint unreachable');
-            const data = await res.json();
-            if (!Array.isArray(data.providers) || data.providers.length === 0) {
-                throw new Error('No providers returned');
-            }
-            select.innerHTML = '';
-            data.providers.forEach(provider => {
-                const option = document.createElement('option');
-                option.value = provider.id;
-                option.textContent = provider.label + (provider.available ? '' : ' (not configured)');
-                option.disabled = !provider.available;
-                select.appendChild(option);
-            });
-            const firstAvailable = data.providers.find(p => p.available);
-            if (firstAvailable) {
-                select.value = firstAvailable.id;
-                this.selectedProvider = firstAvailable.id;
-            }
-            else {
-                this.selectedProvider = '';
-                this.showErrorBanner('No AI provider is configured. Add an OpenAI/Anthropic API key in Settings → AI providers, or set OLLAMA_BASE_URL to a reachable Ollama host.', false);
+            const res = await fetch(apiBase() + '/api/chatbot/providers', { signal: AbortSignal.timeout(5000), headers: authService.getAuthHeaders() });
+            if (res.ok) {
+                const data = await res.json();
+                if (Array.isArray(data.providers) && data.providers.length > 0) {
+                    providers = data.providers;
+                }
             }
         }
         catch (error) {
-            // Fallback to hardcoded list with all disabled
-            select.innerHTML = '';
-            hardcoded.forEach(p => {
-                const option = document.createElement('option');
-                option.value = p.id;
-                option.textContent = p.label + ' (server offline)';
-                option.disabled = true;
-                select.appendChild(option);
-            });
+            // Fall through to browser Ollama / hardcoded list
+        }
+        if (providers.length === 0) {
+            providers = hardcoded.map(p => ({ ...p, available: false }));
+        }
+        if (await probeBrowserOllama()) {
+            this.useBrowserOllama = true;
+            const ollama = providers.find(p => p.id === 'ollama');
+            if (ollama) {
+                ollama.available = true;
+                ollama.label = 'Ollama (browser-local)';
+            }
+            else {
+                providers.unshift({ id: 'ollama', label: 'Ollama (browser-local)', available: true });
+            }
+        }
+        select.innerHTML = '';
+        providers.forEach(provider => {
+            const option = document.createElement('option');
+            option.value = provider.id;
+            option.textContent = provider.label + (provider.available ? '' : ' (not configured)');
+            option.disabled = !provider.available;
+            select.appendChild(option);
+        });
+        const firstAvailable = providers.find(p => p.available);
+        if (firstAvailable) {
+            select.value = firstAvailable.id;
+            this.selectedProvider = firstAvailable.id;
+            this.hideErrorBanner();
+        }
+        else {
+            this.selectedProvider = '';
+            this.showErrorBanner('No AI provider is configured. Add an OpenAI or Anthropic API key in Settings → AI providers.', false, { showSettingsLink: true });
         }
     }
     async sendMessage() {
@@ -368,7 +444,7 @@ export class ChatbotView {
         if (!rawMessage || this.isLoading)
             return;
         if (!this.selectedProvider) {
-            this.showErrorBanner('No AI provider is configured. Go to Settings → AI providers and add OpenAI or Anthropic keys.');
+            this.showErrorBanner('No AI provider is configured. Go to Settings → AI providers and add OpenAI or Anthropic keys.', true, { showSettingsLink: true });
             return;
         }
         // Sanitize message to remove PII before processing
@@ -383,13 +459,28 @@ export class ChatbotView {
         this.hideErrorBanner();
         // Show typing indicator
         this.showTypingIndicator();
+        const assistantMessageIndex = this.conversationHistory.length;
+        this.conversationHistory.push({ role: 'assistant', content: '' });
         try {
+            if (this.useBrowserOllama && this.selectedProvider === 'ollama') {
+                this.hideTypingIndicator();
+                this.renderMessages();
+                const container = document.getElementById('chatbot-messages');
+                const messageElements = container.querySelectorAll('.chatbot-message');
+                const targetBubble = messageElements[assistantMessageIndex]?.querySelector('.chatbot-message-text');
+                if (!targetBubble) {
+                    throw new Error('Could not render chat response area.');
+                }
+                await this.sendBrowserOllamaMessage(message, targetBubble);
+                this.conversationHistory[assistantMessageIndex].content = targetBubble.textContent || '';
+                return;
+            }
             const res = await fetch(apiBase() + '/api/chatbot/message', {
                 method: 'POST',
                 headers: { ...authService.getAuthHeaders(), 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     message,
-                    conversationHistory: this.conversationHistory.slice(0, -1),
+                    conversationHistory: this.conversationHistory.slice(0, -2),
                     provider: this.selectedProvider,
                     projectPath: this.app.state.defaultProjectPath || null,
                     userId: ((_c = (_b = (_a = this.app) === null || _a === void 0 ? void 0 : _a.state) === null || _b === void 0 ? void 0 : _b.user) === null || _c === void 0 ? void 0 : _c.email) || localStorage.getItem('simplebeacon_user_id') || 'anonymous',
@@ -407,10 +498,7 @@ export class ChatbotView {
                 const errMessage = errData.message || errData.error || `HTTP ${res.status}: ${res.statusText}`;
                 throw new Error(errMessage);
             }
-            // Create placeholder for assistant response
-            const assistantMessageIndex = this.conversationHistory.length;
-            this.conversationHistory.push({ role: 'assistant', content: '' });
-            // Get the message container for streaming updates
+            this.renderMessages();
             const container = document.getElementById('chatbot-messages');
             const messageElements = container.querySelectorAll('.chatbot-message');
             const targetBubble = (_d = messageElements[assistantMessageIndex]) === null || _d === void 0 ? void 0 : _d.querySelector('.chatbot-message-text');
@@ -448,6 +536,61 @@ export class ChatbotView {
             this.saveConversationHistory();
         }
     }
+    async sendBrowserOllamaMessage(message, targetBubble) {
+        const model = localStorage.getItem('sb_ollama_model') || 'llama3.2';
+        const personalityPrompt = PERSONALITY_PROMPTS[this.personality] || PERSONALITY_PROMPTS.helpful;
+        const customPrompt = document.getElementById('chatbot-custom-prompt')?.value?.trim();
+        const systemParts = [];
+        if (customPrompt)
+            systemParts.push(customPrompt);
+        systemParts.push(personalityPrompt);
+        const messages = [
+            { role: 'system', content: systemParts.join('\n\n') },
+            ...this.conversationHistory.slice(0, -2).map(msg => ({ role: msg.role, content: msg.content })),
+            { role: 'user', content: message }
+        ];
+        const res = await fetch(`${BROWSER_OLLAMA_URL}/api/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ model, messages, stream: true })
+        });
+        if (!res.ok) {
+            const errText = await res.text().catch(() => '');
+            throw new Error(errText || `Ollama request failed (${res.status})`);
+        }
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        let accumulatedText = '';
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done)
+                break;
+            const chunkText = decoder.decode(value, { stream: true });
+            for (const line of chunkText.split('\n')) {
+                if (!line.trim())
+                    continue;
+                try {
+                    const parsed = JSON.parse(line);
+                    const token = parsed.message?.content || '';
+                    if (token) {
+                        accumulatedText += token;
+                        targetBubble.innerHTML = this.formatStreamedMessage(accumulatedText);
+                        const container = document.getElementById('chatbot-messages');
+                        if (container) {
+                            container.scrollTo({ top: container.scrollHeight, behavior: 'auto' });
+                        }
+                    }
+                }
+                catch {
+                    // Ignore partial JSON lines from Ollama stream
+                }
+            }
+        }
+        reader.releaseLock();
+        if (!accumulatedText) {
+            throw new Error('Ollama returned an empty response. Check that the model is installed (`ollama pull llama3.2`).');
+        }
+    }
     /**
      * Consumes the streaming response chunks from the chatbot api
      * and renders tokens incrementally on screen.
@@ -457,38 +600,51 @@ export class ChatbotView {
     async consumeTokenStream(response, targetBubble) {
         const reader = response.body.getReader();
         const decoder = new TextDecoder('utf-8');
-        let accumulatedText = '';
+        let buffered = '';
         try {
             while (true) {
                 const { done, value } = await reader.read();
                 if (done)
                     break;
-                // Decode the binary stream chunk
-                const chunkText = decoder.decode(value, { stream: true });
-                // Handle server-sent chunk structures (e.g. splitting text lines if SSE formatted)
-                const lines = chunkText.split('\n');
-                for (const line of lines) {
-                    if (!line.trim())
-                        continue;
-                    try {
-                        const parsed = JSON.parse(line);
-                        if (parsed.response) {
-                            accumulatedText += parsed.response;
-                            // Incrementally render and update the active bubble using stream-safe formatter
-                            targetBubble.innerHTML = this.formatStreamedMessage(accumulatedText);
-                            // Smoothly anchor view to latest token
-                            const container = document.getElementById('chatbot-messages');
-                            if (container) {
-                                container.scrollTo({
-                                    top: container.scrollHeight,
-                                    behavior: 'auto'
-                                });
-                            }
+                buffered += decoder.decode(value, { stream: true });
+            }
+            buffered += decoder.decode();
+            // Try parsing the full buffered response as a single JSON object first.
+            // The server returns res.json() (not NDJSON streaming), so the entire
+            // response is one JSON object that may span multiple lines.
+            try {
+                const parsed = JSON.parse(buffered);
+                if (parsed.response) {
+                    targetBubble.innerHTML = this.formatStreamedMessage(parsed.response);
+                    const container = document.getElementById('chatbot-messages');
+                    if (container) {
+                        container.scrollTo({ top: container.scrollHeight, behavior: 'auto' });
+                    }
+                    return;
+                }
+            }
+            catch (e) {
+                // Not a single JSON object — try line-by-line NDJSON parsing
+            }
+            // Fallback: parse as newline-delimited JSON (NDJSON) for streaming responses
+            const lines = buffered.split('\n');
+            let accumulatedText = '';
+            for (const line of lines) {
+                if (!line.trim())
+                    continue;
+                try {
+                    const parsed = JSON.parse(line);
+                    if (parsed.response) {
+                        accumulatedText += parsed.response;
+                        targetBubble.innerHTML = this.formatStreamedMessage(accumulatedText);
+                        const container = document.getElementById('chatbot-messages');
+                        if (container) {
+                            container.scrollTo({ top: container.scrollHeight, behavior: 'auto' });
                         }
                     }
-                    catch (e) {
-                        // Ignore partial or trailing newline evaluation errors
-                    }
+                }
+                catch (e) {
+                    // Ignore unparseable lines (partial chunks, keep-alives)
                 }
             }
         }

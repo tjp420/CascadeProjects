@@ -464,41 +464,50 @@ export class ChatbotView {
   async consumeTokenStream(response, targetBubble) {
     const reader = response.body.getReader();
     const decoder = new TextDecoder('utf-8');
-    let accumulatedText = '';
+    let buffered = '';
 
     try {
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
+        buffered += decoder.decode(value, { stream: true });
+      }
+      buffered += decoder.decode();
 
-        // Decode the binary stream chunk
-        const chunkText = decoder.decode(value, { stream: true });
-        
-        // Handle server-sent chunk structures (e.g. splitting text lines if SSE formatted)
-        const lines = chunkText.split('\n');
-        for (const line of lines) {
-          if (!line.trim()) continue;
-          
-          try {
-            const parsed = JSON.parse(line);
-            if (parsed.response) {
-              accumulatedText += parsed.response;
-              
-              // Incrementally render and update the active bubble using stream-safe formatter
-              targetBubble.innerHTML = this.formatStreamedMessage(accumulatedText);
-              
-              // Smoothly anchor view to latest token
-              const container = document.getElementById('chatbot-messages');
-              if (container) {
-                container.scrollTo({
-                  top: container.scrollHeight,
-                  behavior: 'auto'
-                });
-              }
-            }
-          } catch (e) {
-            // Ignore partial or trailing newline evaluation errors
+      // Try parsing the full buffered response as a single JSON object first.
+      // The server returns res.json() (not NDJSON streaming), so the entire
+      // response is one JSON object that may span multiple lines.
+      try {
+        const parsed = JSON.parse(buffered);
+        if (parsed.response) {
+          targetBubble.innerHTML = this.formatStreamedMessage(parsed.response);
+          const container = document.getElementById('chatbot-messages');
+          if (container) {
+            container.scrollTo({ top: container.scrollHeight, behavior: 'auto' });
           }
+          return;
+        }
+      } catch (e) {
+        // Not a single JSON object — try line-by-line NDJSON parsing
+      }
+
+      // Fallback: parse as newline-delimited JSON (NDJSON) for streaming responses
+      const lines = buffered.split('\n');
+      let accumulatedText = '';
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        try {
+          const parsed = JSON.parse(line);
+          if (parsed.response) {
+            accumulatedText += parsed.response;
+            targetBubble.innerHTML = this.formatStreamedMessage(accumulatedText);
+            const container = document.getElementById('chatbot-messages');
+            if (container) {
+              container.scrollTo({ top: container.scrollHeight, behavior: 'auto' });
+            }
+          }
+        } catch (e) {
+          // Ignore unparseable lines (partial chunks, keep-alives)
         }
       }
     } catch (error) {
