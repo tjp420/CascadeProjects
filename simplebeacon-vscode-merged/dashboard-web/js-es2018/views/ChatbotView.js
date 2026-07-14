@@ -1,6 +1,36 @@
-import { escapeHtml } from '../utils/string.js';
-import { sanitizePrivacyData } from '../utils/format.js';
-import { apiUrl } from '../utils/url.js';
+import { escapeHtml, sanitizePrivacyData } from '../utils.js';
+import { authService, apiBase } from '../services/authService.js?v=20260713sync6';
+
+const BROWSER_OLLAMA_URL = 'http://127.0.0.1:11434';
+
+function canUseBrowserOllama() {
+    if (typeof window === 'undefined')
+        return false;
+    const host = window.location.hostname;
+    return /^(localhost|127\.0\.0\.1)$/i.test(host) && window.location.protocol === 'http:';
+}
+
+async function probeBrowserOllama() {
+    if (!canUseBrowserOllama())
+        return false;
+    try {
+        const res = await fetch(`${BROWSER_OLLAMA_URL}/api/tags`, { signal: AbortSignal.timeout(2500) });
+        return res.ok;
+    }
+    catch {
+        return false;
+    }
+}
+
+const PERSONALITY_PROMPTS = {
+    helpful: 'You are a helpful code assistant for the SimpleBeacon platform.',
+    professional: 'You are a professional, concise code assistant for the SimpleBeacon platform.',
+    casual: 'You are a friendly, relaxed code assistant for the SimpleBeacon platform.',
+    sarcastic: 'You are a witty, sarcastic code assistant for the SimpleBeacon platform.',
+    technical: 'You are a deeply technical code assistant for the SimpleBeacon platform.',
+    creative: 'You are a creative, exploratory code assistant for the SimpleBeacon platform.',
+    oracle: 'You are The Unbreakable Oracle, an omniscient code assistant for the SimpleBeacon platform.'
+};
 /**
  * Chatbot view.
  */
@@ -14,299 +44,213 @@ export class ChatbotView {
         this.SETTINGS_KEY = 'simplebeacon_chatbot_settings';
         this.personality = 'helpful';
         this.removeFilters = false;
-        this.username = localStorage.getItem('simplebeacon_chatbot_username') || '';
-        this._mentions = []; // { filePath, content }
-        this._attachedFindings = []; // { id, severity, type, filePath, description, snippet }
-        this._diffOpenIndex = null;
+        this.useBrowserOllama = false;
         this.loadConversationHistory();
         this.loadSettings();
     }
-    /**
-     * Extract inventory files from report for @mentions.
-     * @returns {Array<{path:string}>}
-     */
-    _getMentionableFiles() {
-        var _a;
-        const report = this.app.state.report;
-        const files = [];
-        const seen = new Set();
-        const add = (p) => { if (p && !seen.has(p)) {
-            seen.add(p);
-            files.push({ path: p });
-        } };
-        // From rawIssues filePaths
-        ((report === null || report === void 0 ? void 0 : report.rawIssues) || []).forEach((i) => {
-            add(i.filePath);
-            (i.filePaths || []).forEach(add);
-            (i.affectedFiles || []).forEach(add);
-        });
-        // From detectedIssues
-        ((report === null || report === void 0 ? void 0 : report.detectedIssues) || []).forEach((i) => {
-            add(i.filePath);
-            (i.filePaths || []).forEach(add);
-            (i.affectedFiles || []).forEach(add);
-        });
-        // From scan paths
-        (((_a = this.app.state.config) === null || _a === void 0 ? void 0 : _a.scanPaths) || []).forEach((p) => add(p));
-        // From report inventory
-        ((report === null || report === void 0 ? void 0 : report.inventory) || []).forEach((item) => add(item.path || item.filePath));
-        return files.slice(0, 200);
+    getTitle() {
+        return this.personality === 'oracle' ? '🔮 The Unbreakable Oracle' : '🤖 Chatbot';
     }
-    /**
-     * Get high-severity findings for attachment.
-     * @returns {Array}
-     */
-    _getAttachableFindings() {
-        const report = this.app.state.report;
-        const raw = (report === null || report === void 0 ? void 0 : report.rawIssues) || [];
-        const detected = (report === null || report === void 0 ? void 0 : report.detectedIssues) || [];
-        const all = [...raw, ...detected];
-        return all
-            .filter((i) => ['critical', 'high'].includes(i.severity))
-            .slice(0, 20)
-            .map((i) => {
-            var _a, _b;
-            return ({
-                id: i.id || `${i.severity}-${i.type}`,
-                severity: i.severity,
-                type: i.type || 'Issue',
-                filePath: i.filePath || ((_a = i.filePaths) === null || _a === void 0 ? void 0 : _a[0]) || ((_b = i.affectedFiles) === null || _b === void 0 ? void 0 : _b[0]) || '—',
-                description: i.description || '',
-                snippet: i._codeSnippet || ''
-            });
-        });
+    getSubtitle() {
+        return this.personality === 'oracle'
+            ? 'Mortal, seek divine wisdom about your codebase'
+            : 'AI-powered assistance for your codebase';
     }
-    _addMention(path) {
-        if (!path)
-            return;
-        if (!this._mentions.some((m) => m.filePath === path)) {
-            this._mentions.push({ filePath: path, content: '' });
-        }
-    }
-    _removeMention(path) {
-        this._mentions = this._mentions.filter((m) => m.filePath !== path);
-        this._renderInputChips();
-    }
-    _removeFinding(id) {
-        this._attachedFindings = this._attachedFindings.filter((f) => f.id !== id);
-        this._renderInputChips();
-    }
-    _renderInputChips() {
-        const container = document.getElementById('cb-input-chips');
-        if (!container)
-            return;
-        const chips = [];
-        container.style.display = 'none';
-        this._mentions.forEach((m) => {
-            const name = m.filePath.split('/').pop() || m.filePath;
-            chips.push(`<span class="cb-v3-mention-chip" title="${escapeHtml(m.filePath)}">📎 ${escapeHtml(name)}<button type="button" class="cb-v3-chip-remove" data-remove-mention="${escapeHtml(m.filePath)}" aria-label="Remove mention">×</button></span>`);
-        });
-        this._attachedFindings.forEach((f) => {
-            chips.push(`<span class="cb-v3-mention-chip" style="background:rgba(239,68,68,0.12);color:#f87171;" title="${escapeHtml(f.filePath)}">🐛 ${escapeHtml(f.type)}<button type="button" class="cb-v3-chip-remove" data-remove-finding="${escapeHtml(f.id)}" aria-label="Remove finding">×</button></span>`);
-        });
-        container.innerHTML = chips.join('');
-        container.style.display = chips.length ? 'flex' : 'none';
-        container.querySelectorAll('[data-remove-mention]').forEach((btn) => {
-            btn.addEventListener('click', () => this._removeMention(btn.dataset.removeMention));
-        });
-        container.querySelectorAll('[data-remove-finding]').forEach((btn) => {
-            btn.addEventListener('click', () => this._removeFinding(btn.dataset.removeFinding));
-        });
+    getTransparencyText() {
+        return this.personality === 'oracle'
+            ? 'You commune with The Unbreakable Oracle, an omniscient AI entity. Revelations may contain divine inaccuracies.'
+            : 'You are interacting with an AI system. Responses are generated by AI models and may contain inaccuracies.';
     }
     mount(container) {
         container.innerHTML = `
-      <style>
-        @keyframes cb-fade-up { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
-        .cb-v3 { animation:cb-fade-up .5s ease both; display:flex; flex-direction:column; height:100%; }
-        .cb-v3-header { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:8px; }
-        .cb-v3-header h1 { font-size:2.2rem; font-weight:800; margin:0; letter-spacing:-0.03em; background:linear-gradient(135deg,var(--text-primary) 0%,var(--accent) 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
-        .cb-v3-header p { color:var(--text-muted); font-size:0.9rem; margin:6px 0 0; }
-        .cb-v3-card { background:linear-gradient(145deg, rgba(30,41,59,0.7), rgba(15,23,42,0.6)); border:1px solid rgba(148,163,184,0.08); border-radius:20px; overflow:hidden; backdrop-filter:blur(12px); transition:box-shadow .3s ease; display:flex; flex-direction:column; flex:1; min-height:0; }
-        [data-theme='light'] .cb-v3-card { background:linear-gradient(145deg, rgba(255,255,255,0.85), rgba(248,250,252,0.9)); border-color:rgba(148,163,184,0.15); }
-        @media (max-width: 768px) {
-          .cb-v3-card { height:calc(100vh - 120px); min-height:360px; border-radius:14px; }
-          .cb-v3-header h1 { font-size:1.6rem; }
-          .cb-v3-toolbar { padding:10px 12px; }
-          .cb-v3-msg { max-width:95%; }
-        }
-        .cb-v3-card:hover { box-shadow:0 8px 32px rgba(2,8,20,0.35); }
-        [data-theme='light'] .cb-v3-card:hover { box-shadow:0 8px 32px rgba(0,0,0,0.08); }
-        .cb-v3-toolbar { display:flex; align-items:center; gap:8px; padding:12px 18px; border-bottom:1px solid rgba(148,163,184,0.08); flex-wrap:wrap; }
-        .cb-v3-select { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:8px 12px; font-size:0.8rem; color:var(--text-primary); cursor:pointer; }
-        .cb-v3-btn { background:rgba(148,163,184,0.06); border:1px solid rgba(148,163,184,0.1); border-radius:10px; padding:8px 14px; font-size:0.78rem; color:var(--text-secondary); cursor:pointer; transition:all .2s; font-weight:600; }
-        .cb-v3-btn:hover { background:rgba(148,163,184,0.12); color:var(--text-primary); }
-        .cb-v3-panel { padding:16px 18px; border-bottom:1px solid rgba(148,163,184,0.08); background:rgba(148,163,184,0.03); }
-        .cb-v3-messages { flex:1; overflow-y:auto; padding:18px; display:flex; flex-direction:column; gap:14px; }
-        .cb-v3-msg { display:flex; gap:12px; max-width:90%; }
-        .cb-v3-msg.user { align-self:flex-end; flex-direction:row-reverse; }
-        .cb-v3-msg.assistant { align-self:flex-start; }
-        .cb-v3-avatar { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0; }
-        .cb-v3-avatar.user { background:var(--accent); }
-        .cb-v3-avatar.assistant { background:rgba(34,197,94,0.2); }
-        .cb-v3-bubble { padding:12px 16px; border-radius:16px; font-size:0.85rem; line-height:1.6; word-break:break-word; }
-        .cb-v3-bubble.user { background:var(--accent); color:#fff; border-bottom-right-radius:4px; }
-        .cb-v3-bubble.assistant { background:linear-gradient(145deg, rgba(30,41,59,0.6), rgba(15,23,42,0.5)); border:1px solid rgba(148,163,184,0.08); color:var(--text-primary); border-bottom-left-radius:4px; }
-        [data-theme='light'] .cb-v3-bubble.assistant { background:linear-gradient(145deg, rgba(255,255,255,0.9), rgba(248,250,252,0.95)); }
-        .cb-v3-bubble pre { background:rgba(0,0,0,0.35); padding:10px 14px; border-radius:10px; overflow-x:auto; font-size:0.78rem; margin:8px 0; }
-        [data-theme='light'] .cb-v3-bubble pre { background:rgba(0,0,0,0.06); }
-        .cb-v3-bubble code { font-family:var(--font-mono); font-size:0.8rem; }
-        .cb-v3-bubble pre code { font-size:0.78rem; }
-        .cb-v3-inline-code { background:rgba(148,163,184,0.12); padding:2px 6px; border-radius:4px; font-size:0.8rem; }
-        .cb-v3-input-area { padding:10px 14px; border-top:1px solid rgba(148,163,184,0.08); display:flex; gap:8px; align-items:flex-end; flex-shrink:0; }
-        .cb-v3-mention-wrap { flex:1; display:flex; flex-direction:column; }
-        .cb-v3-textarea { width:100%; box-sizing:border-box; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:8px 12px; font-size:0.85rem; color:var(--text-primary); resize:none; min-height:36px; max-height:200px; overflow-y:auto; transition:border-color .2s,box-shadow .2s; line-height:1.5; }
-        .cb-v3-textarea:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(99,102,241,0.15); }
-        .cb-v3-send { background:var(--accent); color:#fff; border:none; border-radius:12px; padding:8px 18px; font-size:0.85rem; font-weight:700; cursor:pointer; transition:transform .2s,box-shadow .2s; }
-        .cb-v3-send:hover:not(:disabled) { transform:translateY(-2px); box-shadow:0 4px 16px rgba(99,102,241,0.3); }
-        .cb-v3-send:disabled { opacity:.5; cursor:not-allowed; }
-        .cb-v3-welcome { text-align:center; padding:40px 20px; }
-        .cb-v3-welcome-icon { font-size:48px; margin-bottom:14px; }
-        .cb-v3-welcome h3 { margin:0 0 8px; font-size:1.1rem; color:var(--text-primary); }
-        .cb-v3-welcome p { margin:0; color:var(--text-muted); font-size:0.85rem; }
-        .cb-v3-notice { display:flex; align-items:center; gap:8px; padding:10px 14px; background:rgba(245,158,11,0.05); border:1px solid rgba(245,158,11,0.1); border-radius:12px; margin-bottom:16px; font-size:0.78rem; color:var(--text-muted); }
-        .cb-v3-typing { display:flex; gap:6px; padding:12px 16px; }
-        .cb-v3-typing-dot { width:8px; height:8px; border-radius:50%; background:var(--text-muted); animation:cb-typing 1.4s infinite; }
-        .cb-v3-typing-dot:nth-child(2) { animation-delay:.2s; }
-        .cb-v3-typing-dot:nth-child(3) { animation-delay:.4s; }
-        @keyframes cb-typing { 0%,80%,100% { transform:scale(0); opacity:.5; } 40% { transform:scale(1); opacity:1; } }
-        .cb-v3-copy { background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:12px; padding:2px 6px; border-radius:4px; transition:all .2s; margin-left:8px; }
-        .cb-v3-copy:hover { background:rgba(148,163,184,0.12); color:var(--text-primary); }
-        .cb-v3-copy.copied { color:#22c55e; }
-        .cb-v3-label { font-size:0.72rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:6px; display:block; }
-        .cb-v3-help { font-size:0.75rem; color:var(--text-muted); margin:4px 0 10px; line-height:1.4; }
-        .cb-v3-textarea-prompt { width:100%; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:10px 14px; font-size:0.82rem; color:var(--text-primary); resize:vertical; min-height:80px; transition:border-color .2s,box-shadow .2s; }
-        .cb-v3-textarea-prompt:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(99,102,241,0.15); }
-        .cb-v3-mentions-dropdown { position:absolute; bottom:100%; left:0; right:0; margin-bottom:6px; max-height:180px; overflow:auto; background:var(--surface-elevated); border:1px solid var(--border); border-radius:12px; padding:6px; box-shadow:0 8px 32px rgba(0,0,0,0.2); z-index:10; }
-        .cb-v3-mention-item { padding:8px 12px; border-radius:8px; cursor:pointer; font-size:0.8rem; color:var(--text-secondary); display:flex; align-items:center; gap:8px; transition:background .15s; }
-        .cb-v3-mention-item:hover { background:rgba(99,102,241,0.08); color:var(--text-primary); }
-        .cb-v3-mention-chip { display:inline-flex; align-items:center; gap:4px; padding:2px 6px 2px 8px; border-radius:999px; background:rgba(99,102,241,0.15); color:var(--accent); font-size:0.78rem; font-weight:600; margin:0 2px; }
-        .cb-v3-chip-remove { display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; border-radius:50%; border:none; background:rgba(148,163,184,0.15); color:var(--text-secondary); font-size:0.75rem; line-height:1; cursor:pointer; margin-left:2px; transition:all .15s; }
-        .cb-v3-chip-remove:hover { background:rgba(239,68,68,0.2); color:#ef4444; }
-        .cb-v3-finding-dropdown { position:absolute; bottom:100%; left:auto; right:0; margin-bottom:6px; max-height:220px; overflow:auto; width:320px; background:var(--surface-elevated); border:1px solid var(--border); border-radius:12px; padding:8px; box-shadow:0 8px 32px rgba(0,0,0,0.2); z-index:10; }
-        .cb-v3-finding-item { padding:8px 10px; border-radius:8px; cursor:pointer; font-size:0.78rem; margin-bottom:4px; border-left:3px solid transparent; transition:background .15s; }
-        .cb-v3-finding-item:hover { background:rgba(148,163,184,0.06); }
-        .cb-v3-finding-item.critical { border-left-color:#ef4444; }
-        .cb-v3-finding-item.high { border-left-color:#f97316; }
-        .cb-v3-diff-banner { display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:rgba(99,102,241,0.08); border:1px solid rgba(99,102,241,0.15); border-radius:10px; margin-top:8px; font-size:0.78rem; }
-        .cb-v3-diff-panel { margin-top:8px; padding:10px 14px; background:rgba(15,23,42,0.5); border:1px solid rgba(148,163,184,0.1); border-radius:10px; font-family:var(--font-mono); font-size:0.72rem; overflow:auto; max-height:200px; }
-        .cb-v3-diff-line { white-space:pre-wrap; line-height:1.5; }
-        .cb-v3-diff-add { color:#4ade80; }
-        .cb-v3-diff-del { color:#f87171; }
-        .cb-v3-apply-btn { background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.3); color:#4ade80; padding:4px 12px; border-radius:8px; font-size:0.72rem; font-weight:700; cursor:pointer; transition:all .2s; }
-        .cb-v3-apply-btn:hover { background:rgba(34,197,94,0.25); }
-        .cb-v3-mention-wrap { position:relative; }
-      </style>
-
-      <div class="cb-v3-header">
-        <div>
-          <h1>🤖 Chatbot</h1>
-          <p>AI-powered assistance for your codebase</p>
+      <div class="view-container">
+        <div class="analyze-hero" style="margin-bottom:var(--space-4);">
+          <h1 class="page-title" id="chatbot-page-title">${this.getTitle()}</h1>
+          <p class="text-muted analyze-hero-sub" id="chatbot-page-subtitle">${this.getSubtitle()}</p>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <span id="cb-username-display" style="font-size:0.78rem;color:var(--text-muted);font-weight:600;">${this.username ? escapeHtml(this.username) : 'You'}</span>
-          <button id="cb-username-edit" class="cb-v3-btn" title="Change display name" style="padding:4px 8px;font-size:0.7rem;">✏️</button>
+        <div class="ai-transparency-notice" style="margin-bottom:var(--space-4);">
+          <span class="ai-transparency-icon">${this.personality === 'oracle' ? '🔮' : '🤖'}</span>
+          <span class="ai-transparency-text" id="chatbot-transparency-text">${this.getTransparencyText()}</span>
         </div>
-      </div>
-
-      <div class="cb-v3-notice">
-        <span>🤖</span>
-        <span>You are interacting with an AI system. Responses are generated by AI models and may contain inaccuracies.</span>
-      </div>
-
-      <div class="cb-v3-card">
-        <div class="cb-v3-toolbar">
-          <label for="chatbot-provider" class="visually-hidden">AI Provider</label>
-          <select id="chatbot-provider" class="cb-v3-select" aria-label="AI Provider">
-            <option value="ollama">Ollama</option>
-            <option value="openai">OpenAI</option>
-            <option value="anthropic">Anthropic</option>
-          </select>
-          <button id="chatbot-prompt-toggle" class="cb-v3-btn" title="Toggle custom system prompt">📝 Prompt</button>
-          <button id="chatbot-settings-toggle" class="cb-v3-btn" title="Chatbot settings">⚙️ Settings</button>
-          <button id="chatbot-attach-finding" class="cb-v3-btn" title="Attach scan finding">🐛 Attach Finding</button>
-          <button id="chatbot-clear" class="cb-v3-btn">🗑️ Clear</button>
+        <div id="chatbot-error-banner" class="chatbot-error-banner" style="display:none;"></div>
+        <div id="chatbot-connection-status" class="chatbot-connection-status" style="margin-bottom:var(--space-4);">
+          <span class="chatbot-connection-dot" id="chatbot-connection-dot"></span>
+          <span class="chatbot-connection-text" id="chatbot-connection-text">Checking connection...</span>
         </div>
-
-        <div id="chatbot-settings-panel" class="cb-v3-panel" style="display:none;">
-          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;">
-            <div>
-              <label class="cb-v3-label">Personality</label>
-              <p class="cb-v3-help">Choose how the chatbot responds to you.</p>
-              <select id="chatbot-personality" class="cb-v3-select" style="width:100%;" aria-label="Personality">
-                <option value="helpful">Helpful (default)</option>
-                <option value="professional">Professional</option>
-                <option value="casual">Casual / Friendly</option>
-                <option value="sarcastic">Sarcastic / Witty</option>
-                <option value="technical">Deep Technical</option>
-                <option value="creative">Creative / Exploratory</option>
+        <div class="view-content">
+          <div class="chatbot-container">
+            <div class="chatbot-toolbar">
+              <label for="chatbot-provider" class="visually-hidden">AI Provider</label>
+              <select id="chatbot-provider" class="chatbot-provider-select" aria-label="AI Provider">
+                <option value="ollama">Ollama</option>
+                <option value="openai">OpenAI</option>
+                <option value="anthropic">Anthropic</option>
               </select>
+              <button id="chatbot-prompt-toggle" class="chatbot-clear-btn" title="Toggle custom system prompt">📝 Custom Prompt</button>
+              <button id="chatbot-settings-toggle" class="chatbot-clear-btn" title="Chatbot settings">⚙️ Settings</button>
+              <button id="chatbot-clear" class="chatbot-clear-btn">Clear History</button>
             </div>
-            <div>
-              <label class="cb-v3-label">Display Name</label>
-              <p class="cb-v3-help">Name shown next to your messages.</p>
-              <input type="text" id="chatbot-username" class="cb-v3-select" style="width:100%;padding:8px 12px;" value="${escapeHtml(this.username)}" placeholder="Your name..." />
+            <div id="chatbot-settings-panel" class="chatbot-settings-panel" style="display:none;">
+              <div class="chatbot-settings-group">
+                <label class="chatbot-settings-label">Personality</label>
+                <p class="chatbot-settings-help">Choose how the chatbot responds to you.</p>
+                <select id="chatbot-personality" class="chatbot-provider-select" aria-label="Personality">
+                  <option value="helpful">Helpful (default)</option>
+                  <option value="professional">Professional</option>
+                  <option value="casual">Casual / Friendly</option>
+                  <option value="sarcastic">Sarcastic / Witty</option>
+                  <option value="technical">Deep Technical</option>
+                  <option value="creative">Creative / Exploratory</option>
+                  <option value="oracle">&#x1F52E; The Unbreakable Oracle</option>
+                </select>
+              </div>
+              <div class="chatbot-settings-group">
+                <label class="chatbot-settings-toggle">
+                  <input type="checkbox" id="chatbot-remove-filters" aria-label="Remove all content filters" />
+                  <span class="chatbot-settings-toggle-text">Remove all content filters</span>
+                </label>
+                <p class="chatbot-settings-help">When enabled, the AI will not apply safety or content filtering. Use with caution.</p>
+              </div>
+              <div class="chatbot-prompt-actions">
+                <button type="button" id="chatbot-settings-save" class="btn btn-primary btn-sm">Save Settings</button>
+              </div>
             </div>
-            <div>
-              <label class="cb-v3-label">Content Filters</label>
-              <p class="cb-v3-help">When disabled, the AI will not apply safety or content filtering.</p>
-              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.82rem;color:var(--text-secondary);">
-                <input type="checkbox" id="chatbot-remove-filters" aria-label="Remove all content filters" />
-                <span>Remove all content filters</span>
-              </label>
+            <div id="chatbot-prompt-panel" class="chatbot-prompt-panel" style="display:none;">
+              <label for="chatbot-custom-prompt" class="chatbot-prompt-label">Custom System Prompt (overrides default AI behavior)</label>
+              <p class="chatbot-prompt-help">The system prompt is an invisible instruction sent at the start of every conversation. Use it to tell the AI what to prioritize — for example: <em>"Focus on security vulnerabilities"</em>, <em>"Explain concepts for a junior developer"</em>, or <em>"Suggest performance optimizations"</em>. Your prompt is saved to your account and applied to all future chatbot sessions.</p>
+              <textarea id="chatbot-custom-prompt" class="chatbot-prompt-textarea" rows="4" placeholder="e.g. Focus on security vulnerabilities and OWASP compliance..."></textarea>
+              <div class="chatbot-prompt-actions">
+                <button type="button" id="chatbot-prompt-save" class="btn btn-primary btn-sm">Save Prompt</button>
+                <button type="button" id="chatbot-prompt-reset" class="btn btn-ghost btn-sm">Reset to Default</button>
+              </div>
+            </div>
+            <div id="chatbot-messages" class="chatbot-messages"></div>
+            <div class="chatbot-input-container">
+              <textarea 
+                id="chatbot-input" 
+                class="chatbot-input" 
+                placeholder="Ask about your codebase..."
+                rows="3"
+              ></textarea>
+              <button id="chatbot-send" class="chatbot-send-btn" ${this.isLoading ? 'disabled' : ''}>
+                ${this.isLoading ? 'Sending...' : 'Send'}
+              </button>
             </div>
           </div>
-          <div style="margin-top:12px;">
-            <button type="button" id="chatbot-settings-save" class="btn btn-primary btn-sm">Save Settings</button>
-          </div>
-        </div>
-
-        <div id="chatbot-prompt-panel" class="cb-v3-panel" style="display:none;">
-          <label for="chatbot-custom-prompt" class="cb-v3-label">Custom System Prompt</label>
-          <p class="cb-v3-help">An invisible instruction sent at the start of every conversation. Example: <em>"Focus on security vulnerabilities"</em> or <em>"Explain for a junior developer"</em>.</p>
-          <textarea id="chatbot-custom-prompt" class="cb-v3-textarea-prompt" rows="3" placeholder="e.g. Focus on security vulnerabilities and OWASP compliance..."></textarea>
-          <div style="display:flex;gap:8px;margin-top:10px;">
-            <button type="button" id="chatbot-prompt-save" class="btn btn-primary btn-sm">Save Prompt</button>
-            <button type="button" id="chatbot-prompt-reset" class="btn btn-ghost btn-sm">Reset to Default</button>
-          </div>
-        </div>
-
-        <div id="chatbot-messages" class="cb-v3-messages"></div>
-
-        <div class="cb-v3-input-area">
-          <div class="cb-v3-mention-wrap" style="position:relative;">
-            <textarea id="chatbot-input" class="cb-v3-textarea" placeholder="Ask about your codebase... Type @ to mention a file" rows="1"></textarea>
-            <div id="cb-mentions-dropdown" class="cb-v3-mentions-dropdown" style="display:none;"></div>
-            <div id="cb-findings-dropdown" class="cb-v3-finding-dropdown" style="display:none;"></div>
-            <div id="cb-input-chips" style="display:none;flex-wrap:wrap;gap:4px;margin-top:4px;"></div>
-          </div>
-          <button id="chatbot-send" class="cb-v3-send" ${this.isLoading ? 'disabled' : ''}>
-            ${this.isLoading ? '⏳' : 'Send'}
-          </button>
         </div>
       </div>
     `;
         this.bindEvents();
         this.loadProviders();
         this.renderMessages();
-        this._renderInputChips();
-        const input = document.getElementById('chatbot-input');
-        if (input)
-            this.autoResizeTextarea(input);
-        // Lock viewport: remove page scroll and padding so chat fills the screen
-        const appMain = document.getElementById('app-main');
-        if (appMain) {
-            this._savedAppMainStyles = {
-                padding: appMain.style.padding,
-                overflow: appMain.style.overflow,
-                display: appMain.style.display,
-                flexDirection: appMain.style.flexDirection
-            };
-            appMain.style.padding = '0';
-            appMain.style.overflow = 'hidden';
-            appMain.style.display = 'flex';
-            appMain.style.flexDirection = 'column';
-        }
+        this.checkConnection();
         return container;
+    }
+    /**
+     * Health-check the chatbot API before the user sends a message.
+     */
+    async checkConnection() {
+        const dot = document.getElementById('chatbot-connection-dot');
+        const text = document.getElementById('chatbot-connection-text');
+        const input = document.getElementById('chatbot-input');
+        const sendBtn = document.getElementById('chatbot-send');
+        try {
+            const res = await fetch(apiBase() + '/api/chatbot/providers', { method: 'GET', signal: AbortSignal.timeout(5000), headers: authService.getAuthHeaders() });
+            if (res.status === 401) {
+                if (dot)
+                    dot.className = 'chatbot-connection-dot chatbot-connection-offline';
+                if (text)
+                    text.textContent = 'Sign in required';
+                if (input)
+                    input.disabled = true;
+                if (sendBtn)
+                    sendBtn.disabled = true;
+                this.showErrorBanner('Sign in to use the chatbot with your saved AI provider keys.', true, { showSignInLink: true });
+                return;
+            }
+            if (res.ok) {
+                const data = await res.json().catch(() => ({}));
+                let available = Array.isArray(data.providers) ? data.providers.filter(p => p.available) : [];
+                if (available.length === 0 && await probeBrowserOllama()) {
+                    this.useBrowserOllama = true;
+                    available = [{ id: 'ollama', label: 'Ollama (browser-local)' }];
+                }
+                if (available.length > 0) {
+                    if (dot)
+                        dot.className = 'chatbot-connection-dot chatbot-connection-online';
+                    if (text)
+                        text.textContent = `Ready — ${available.map(p => p.label).join(', ')}`;
+                    if (input)
+                        input.disabled = false;
+                    if (sendBtn)
+                        sendBtn.disabled = false;
+                    this.hideErrorBanner();
+                    return;
+                }
+                if (dot)
+                    dot.className = 'chatbot-connection-dot chatbot-connection-offline';
+                if (text)
+                    text.textContent = 'No AI provider configured';
+                if (input)
+                    input.disabled = true;
+                if (sendBtn)
+                    sendBtn.disabled = true;
+                this.showErrorBanner('No AI provider is configured. Add an OpenAI or Anthropic API key in Settings → AI providers. Ollama only works when the dashboard runs on localhost over HTTP.', false, { showSettingsLink: true });
+                return;
+            }
+        }
+        catch (e) {
+            // API unreachable — try browser-local Ollama below
+        }
+        if (await probeBrowserOllama()) {
+            this.useBrowserOllama = true;
+            if (dot)
+                dot.className = 'chatbot-connection-dot chatbot-connection-online';
+            if (text)
+                text.textContent = 'Ready — Ollama (browser-local)';
+            if (input)
+                input.disabled = false;
+            if (sendBtn)
+                sendBtn.disabled = false;
+            this.hideErrorBanner();
+            return;
+        }
+        if (dot)
+            dot.className = 'chatbot-connection-dot chatbot-connection-offline';
+        if (text)
+            text.textContent = 'Chatbot API unavailable';
+        if (input)
+            input.disabled = true;
+        if (sendBtn)
+            sendBtn.disabled = true;
+        this.showErrorBanner('Could not reach the chatbot API. Add AI provider keys in Settings → AI providers, or run Ollama locally when using the dashboard on localhost.', true, { showSettingsLink: true });
+    }
+    showErrorBanner(message, isRecoverable = true, options = {}) {
+        const banner = document.getElementById('chatbot-error-banner');
+        if (!banner)
+            return;
+        const actionLink = options.showSettingsLink
+            ? ' <a href="/dashboard/settings" class="chatbot-settings-link">Open Settings → AI providers</a>'
+            : options.showSignInLink
+                ? ' <a href="/dashboard/signin" class="chatbot-settings-link">Sign in</a>'
+                : '';
+        banner.innerHTML = `
+      <div class="chatbot-error-content">
+        <span class="chatbot-error-icon">⚠️</span>
+        <span class="chatbot-error-text">${escapeHtml(message)}${actionLink}</span>
+        ${isRecoverable ? '<button class="chatbot-error-dismiss" title="Dismiss">×</button>' : ''}
+      </div>
+    `;
+        banner.style.display = 'block';
+        const dismiss = banner.querySelector('.chatbot-error-dismiss');
+        if (dismiss) {
+            dismiss.addEventListener('click', () => { banner.style.display = 'none'; });
+        }
+    }
+    hideErrorBanner() {
+        const banner = document.getElementById('chatbot-error-banner');
+        if (banner)
+            banner.style.display = 'none';
     }
     bindEvents() {
         const sendBtn = document.getElementById('chatbot-send');
@@ -314,107 +258,20 @@ export class ChatbotView {
         const clearBtn = document.getElementById('chatbot-clear');
         const providerSelect = document.getElementById('chatbot-provider');
         sendBtn.addEventListener('click', () => this.sendMessage());
-        // Mention autocomplete
-        const mentionDropdown = document.getElementById('cb-mentions-dropdown');
-        const findingDropdown = document.getElementById('cb-findings-dropdown');
-        input.addEventListener('input', (e) => {
-            this.autoResizeTextarea(input);
-            const val = input.value;
-            const lastAt = val.lastIndexOf('@');
-            if (lastAt >= 0 && (lastAt === val.length - 1 || /[@a-zA-Z0-9_.\/\-]/.test(val.slice(lastAt + 1, lastAt + 2)))) {
-                const query = val.slice(lastAt + 1).toLowerCase();
-                const files = this._getMentionableFiles().filter((f) => f.path.toLowerCase().includes(query));
-                if (files.length && mentionDropdown) {
-                    mentionDropdown.style.display = 'block';
-                    mentionDropdown.innerHTML = files.slice(0, 8).map((f) => `
-            <div class="cb-v3-mention-item" data-mention-path="${escapeHtml(f.path)}">📎 ${escapeHtml(f.path)}</div>
-          `).join('');
-                    mentionDropdown.querySelectorAll('.cb-v3-mention-item').forEach((item) => {
-                        item.addEventListener('click', () => {
-                            const path = item.dataset.mentionPath;
-                            const before = val.slice(0, lastAt);
-                            input.value = before + '@' + path + ' ';
-                            this._addMention(path);
-                            mentionDropdown.style.display = 'none';
-                            input.focus();
-                            this._renderInputChips();
-                        });
-                    });
-                }
-                else if (mentionDropdown) {
-                    mentionDropdown.style.display = 'none';
-                }
-            }
-            else if (mentionDropdown) {
-                mentionDropdown.style.display = 'none';
-            }
-        });
         input.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 this.sendMessage();
             }
-            if (e.key === 'Escape') {
-                if (mentionDropdown)
-                    mentionDropdown.style.display = 'none';
-                if (findingDropdown)
-                    findingDropdown.style.display = 'none';
-            }
-        });
-        // Hide dropdowns on click outside
-        document.addEventListener('click', (e) => {
-            if (!input.contains(e.target) && mentionDropdown && !mentionDropdown.contains(e.target)) {
-                mentionDropdown.style.display = 'none';
-            }
-            if (findingDropdown && !findingDropdown.contains(e.target)) {
-                const btn = document.getElementById('chatbot-attach-finding');
-                if (btn && !btn.contains(e.target))
-                    findingDropdown.style.display = 'none';
-            }
         });
         clearBtn.addEventListener('click', () => {
             this.conversationHistory = [];
-            this._mentions = [];
-            this._attachedFindings = [];
             this.saveConversationHistory();
             this.renderMessages();
-            this._renderInputChips();
         });
         providerSelect.addEventListener('change', (e) => {
             this.selectedProvider = e.target.value;
-            this.saveSettings();
         });
-        // Attach finding dropdown
-        const attachFindingBtn = document.getElementById('chatbot-attach-finding');
-        if (attachFindingBtn && findingDropdown) {
-            attachFindingBtn.addEventListener('click', () => {
-                const findings = this._getAttachableFindings();
-                if (!findings.length) {
-                    this.showPromptToast('No critical/high findings available — run a scan first');
-                    return;
-                }
-                findingDropdown.style.display = findingDropdown.style.display === 'none' ? 'block' : 'none';
-                findingDropdown.innerHTML = findings.map((f) => `
-          <div class="cb-v3-finding-item ${escapeHtml(f.severity)}" data-finding-id="${escapeHtml(f.id)}">
-            <div style="font-weight:700;color:var(--text-primary);">${escapeHtml(f.type)}</div>
-            <div style="color:var(--text-muted);font-size:0.72rem;">${escapeHtml(f.filePath)}</div>
-            <div style="color:var(--text-secondary);margin-top:2px;">${escapeHtml(f.description.slice(0, 60))}${f.description.length > 60 ? '…' : ''}</div>
-          </div>
-        `).join('');
-                findingDropdown.querySelectorAll('.cb-v3-finding-item').forEach((item) => {
-                    item.addEventListener('click', () => {
-                        const id = item.dataset.findingId;
-                        const finding = findings.find((f) => f.id === id);
-                        if (finding && !this._attachedFindings.some((af) => af.id === id)) {
-                            this._attachedFindings.push(finding);
-                            this.showPromptToast(`Attached ${finding.severity} finding: ${finding.type}`);
-                        }
-                        findingDropdown.style.display = 'none';
-                        this._renderInputChips();
-                    });
-                });
-            });
-        }
         // Custom prompt panel
         const promptToggle = document.getElementById('chatbot-prompt-toggle');
         const promptPanel = document.getElementById('chatbot-prompt-panel');
@@ -432,9 +289,9 @@ export class ChatbotView {
                 const prompt = promptTextarea.value.trim();
                 const userId = ((_c = (_b = (_a = this.app) === null || _a === void 0 ? void 0 : _a.state) === null || _b === void 0 ? void 0 : _b.user) === null || _c === void 0 ? void 0 : _c.email) || localStorage.getItem('simplebeacon_user_id') || 'anonymous';
                 try {
-                    await fetch(apiUrl('/api/prompts/set'), {
+                    await fetch(apiBase() + '/api/prompts/set', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { ...authService.getAuthHeaders(), 'Content-Type': 'application/json' },
                         body: JSON.stringify({ userId, prompt })
                     });
                     this.showPromptToast('Custom prompt saved');
@@ -473,33 +330,27 @@ export class ChatbotView {
         if (removeFiltersCheckbox) {
             removeFiltersCheckbox.checked = this.removeFilters;
         }
-        const usernameInput = document.getElementById('chatbot-username');
-        if (usernameInput) {
-            usernameInput.value = this.username;
-        }
         if (settingsSave) {
             settingsSave.addEventListener('click', () => {
                 this.personality = (personalitySelect === null || personalitySelect === void 0 ? void 0 : personalitySelect.value) || 'helpful';
                 this.removeFilters = (removeFiltersCheckbox === null || removeFiltersCheckbox === void 0 ? void 0 : removeFiltersCheckbox.checked) || false;
-                this.username = (usernameInput === null || usernameInput === void 0 ? void 0 : usernameInput.value.trim()) || '';
-                localStorage.setItem('simplebeacon_chatbot_username', this.username);
                 this.saveSettings();
+                // Update page title/subtitle/transparency based on new personality
+                const titleEl = document.getElementById('chatbot-page-title');
+                const subEl = document.getElementById('chatbot-page-subtitle');
+                const transText = document.getElementById('chatbot-transparency-text');
+                const transIcon = document.querySelector('.ai-transparency-icon');
+                if (titleEl)
+                    titleEl.textContent = this.getTitle();
+                if (subEl)
+                    subEl.textContent = this.getSubtitle();
+                if (transText)
+                    transText.textContent = this.getTransparencyText();
+                if (transIcon)
+                    transIcon.textContent = this.personality === 'oracle' ? '🔮' : '🤖';
                 this.showPromptToast('Settings saved');
                 if (settingsPanel)
                     settingsPanel.style.display = 'none';
-                // Update username display
-                const display = document.getElementById('cb-username-display');
-                if (display)
-                    display.textContent = this.username || 'You';
-            });
-        }
-        // Username quick-edit button
-        const usernameEditBtn = document.getElementById('cb-username-edit');
-        if (usernameEditBtn && settingsPanel) {
-            usernameEditBtn.addEventListener('click', () => {
-                settingsPanel.style.display = 'block';
-                if (usernameInput)
-                    usernameInput.focus();
             });
         }
     }
@@ -517,7 +368,7 @@ export class ChatbotView {
             return;
         const userId = ((_c = (_b = (_a = this.app) === null || _a === void 0 ? void 0 : _a.state) === null || _b === void 0 ? void 0 : _b.user) === null || _c === void 0 ? void 0 : _c.email) || localStorage.getItem('simplebeacon_user_id') || 'anonymous';
         try {
-            const res = await fetch(apiUrl('/api/prompts/get?userId=' + encodeURIComponent(userId)));
+            const res = await fetch(apiBase() + '/api/prompts/get?userId=' + encodeURIComponent(userId), { headers: authService.getAuthHeaders() });
             if (res.ok) {
                 const data = await res.json();
                 if (data.prompt)
@@ -534,42 +385,56 @@ export class ChatbotView {
             promptTextarea.value = localPrompt;
     }
     async loadProviders() {
+        const select = document.getElementById('chatbot-provider');
+        const hardcoded = [
+            { id: 'ollama', label: 'Ollama' },
+            { id: 'openai', label: 'OpenAI' },
+            { id: 'anthropic', label: 'Anthropic' }
+        ];
+        let providers = [];
         try {
-            const res = await fetch(apiUrl('/api/chatbot/providers'));
-            const data = await res.json();
-            const select = document.getElementById('chatbot-provider');
-            select.innerHTML = '';
-            if (!Array.isArray(data.providers)) {
-                console.warn('No providers available or unauthorized');
-                return;
-            }
-            data.providers.forEach(provider => {
-                const option = document.createElement('option');
-                option.value = provider.id;
-                option.textContent = provider.label;
-                option.disabled = !provider.available;
-                if (!provider.available) {
-                    option.textContent += ' (not configured)';
-                }
-                select.appendChild(option);
-            });
-            // Select first available provider
-            const firstAvailable = data.providers.find(p => p.available);
-            if (firstAvailable) {
-                select.value = firstAvailable.id;
-                this.selectedProvider = firstAvailable.id;
-            }
-            // Restore saved provider selection if it is still available
-            if (this.selectedProvider) {
-                const saved = data.providers.find(p => p.id === this.selectedProvider && p.available);
-                if (saved) {
-                    select.value = saved.id;
-                    this.selectedProvider = saved.id;
+            const res = await fetch(apiBase() + '/api/chatbot/providers', { signal: AbortSignal.timeout(5000), headers: authService.getAuthHeaders() });
+            if (res.ok) {
+                const data = await res.json();
+                if (Array.isArray(data.providers) && data.providers.length > 0) {
+                    providers = data.providers;
                 }
             }
         }
         catch (error) {
-            console.error('Failed to load providers:', error);
+            // Fall through to browser Ollama / hardcoded list
+        }
+        if (providers.length === 0) {
+            providers = hardcoded.map(p => ({ ...p, available: false }));
+        }
+        if (await probeBrowserOllama()) {
+            this.useBrowserOllama = true;
+            const ollama = providers.find(p => p.id === 'ollama');
+            if (ollama) {
+                ollama.available = true;
+                ollama.label = 'Ollama (browser-local)';
+            }
+            else {
+                providers.unshift({ id: 'ollama', label: 'Ollama (browser-local)', available: true });
+            }
+        }
+        select.innerHTML = '';
+        providers.forEach(provider => {
+            const option = document.createElement('option');
+            option.value = provider.id;
+            option.textContent = provider.label + (provider.available ? '' : ' (not configured)');
+            option.disabled = !provider.available;
+            select.appendChild(option);
+        });
+        const firstAvailable = providers.find(p => p.available);
+        if (firstAvailable) {
+            select.value = firstAvailable.id;
+            this.selectedProvider = firstAvailable.id;
+            this.hideErrorBanner();
+        }
+        else {
+            this.selectedProvider = '';
+            this.showErrorBanner('No AI provider is configured. Add an OpenAI or Anthropic API key in Settings → AI providers.', false, { showSettingsLink: true });
         }
     }
     async sendMessage() {
@@ -578,6 +443,10 @@ export class ChatbotView {
         const rawMessage = input.value.trim();
         if (!rawMessage || this.isLoading)
             return;
+        if (!this.selectedProvider) {
+            this.showErrorBanner('No AI provider is configured. Go to Settings → AI providers and add OpenAI or Anthropic keys.', true, { showSettingsLink: true });
+            return;
+        }
         // Sanitize message to remove PII before processing
         const message = sanitizePrivacyData(rawMessage);
         // Add user message to history
@@ -585,45 +454,54 @@ export class ChatbotView {
         this.renderMessages();
         this.saveConversationHistory();
         input.value = '';
-        const mentionsToSend = this._mentions.map((m) => ({ filePath: m.filePath, content: m.content }));
-        const findingsToSend = this._attachedFindings.map((f) => ({ id: f.id, severity: f.severity, type: f.type, filePath: f.filePath, description: f.description, snippet: f.snippet }));
-        this._mentions = [];
-        this._attachedFindings = [];
-        this._renderInputChips();
         this.isLoading = true;
         this.updateSendButton();
+        this.hideErrorBanner();
         // Show typing indicator
         this.showTypingIndicator();
+        const assistantMessageIndex = this.conversationHistory.length;
+        this.conversationHistory.push({ role: 'assistant', content: '' });
         try {
-            const res = await fetch(apiUrl('/api/chatbot/message'), {
+            if (this.useBrowserOllama && this.selectedProvider === 'ollama') {
+                this.hideTypingIndicator();
+                this.renderMessages();
+                const container = document.getElementById('chatbot-messages');
+                const messageElements = container.querySelectorAll('.chatbot-message');
+                const targetBubble = messageElements[assistantMessageIndex]?.querySelector('.chatbot-message-text');
+                if (!targetBubble) {
+                    throw new Error('Could not render chat response area.');
+                }
+                await this.sendBrowserOllamaMessage(message, targetBubble);
+                this.conversationHistory[assistantMessageIndex].content = targetBubble.textContent || '';
+                return;
+            }
+            const res = await fetch(apiBase() + '/api/chatbot/message', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { ...authService.getAuthHeaders(), 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     message,
-                    conversationHistory: this.conversationHistory.slice(0, -1),
+                    conversationHistory: this.conversationHistory.slice(0, -2),
                     provider: this.selectedProvider,
                     projectPath: this.app.state.defaultProjectPath || null,
                     userId: ((_c = (_b = (_a = this.app) === null || _a === void 0 ? void 0 : _a.state) === null || _b === void 0 ? void 0 : _b.user) === null || _c === void 0 ? void 0 : _c.email) || localStorage.getItem('simplebeacon_user_id') || 'anonymous',
                     personality: this.personality,
-                    removeFilters: this.removeFilters,
-                    username: this.username,
-                    mentions: mentionsToSend,
-                    findings: findingsToSend
+                    removeFilters: this.removeFilters
                 })
             });
             // Remove typing indicator
             this.hideTypingIndicator();
             if (!res.ok) {
-                throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+                if (res.status === 404) {
+                    throw new Error('Chatbot API not found. Ensure the ai-platform server is running on port 54355.');
+                }
+                const errData = await res.json().catch(() => ({}));
+                const errMessage = errData.message || errData.error || `HTTP ${res.status}: ${res.statusText}`;
+                throw new Error(errMessage);
             }
-            // Create placeholder for assistant response
-            const assistantMessageIndex = this.conversationHistory.length;
-            this.conversationHistory.push({ role: 'assistant', content: '' });
             this.renderMessages();
-            // Get the message container for streaming updates
             const container = document.getElementById('chatbot-messages');
-            const messageElements = container.querySelectorAll('.cb-v3-msg');
-            const targetBubble = (_d = messageElements[assistantMessageIndex]) === null || _d === void 0 ? void 0 : _d.querySelector('.cb-v3-bubble');
+            const messageElements = container.querySelectorAll('.chatbot-message');
+            const targetBubble = (_d = messageElements[assistantMessageIndex]) === null || _d === void 0 ? void 0 : _d.querySelector('.chatbot-message-text');
             if (targetBubble) {
                 // Consume streaming response
                 await this.consumeTokenStream(res, targetBubble);
@@ -637,22 +515,80 @@ export class ChatbotView {
                     this.conversationHistory[assistantMessageIndex].content = data.response;
                 }
                 else {
-                    this.conversationHistory[assistantMessageIndex].content = `Error: ${data.message || 'Failed to get response'}`;
+                    this.showErrorBanner(data.message || 'The AI provider returned an error. Check provider configuration.');
+                    this.conversationHistory.pop(); // remove empty assistant placeholder
                 }
             }
         }
         catch (error) {
             this.hideTypingIndicator();
-            this.conversationHistory.push({
-                role: 'assistant',
-                content: `Error: ${error.message}`
-            });
+            // Remove the empty assistant placeholder if we added one
+            const last = this.conversationHistory[this.conversationHistory.length - 1];
+            if (last && last.role === 'assistant' && last.content === '') {
+                this.conversationHistory.pop();
+            }
+            this.showErrorBanner(error.message);
         }
         finally {
             this.isLoading = false;
             this.updateSendButton();
             this.renderMessages();
             this.saveConversationHistory();
+        }
+    }
+    async sendBrowserOllamaMessage(message, targetBubble) {
+        const model = localStorage.getItem('sb_ollama_model') || 'llama3.2';
+        const personalityPrompt = PERSONALITY_PROMPTS[this.personality] || PERSONALITY_PROMPTS.helpful;
+        const customPrompt = document.getElementById('chatbot-custom-prompt')?.value?.trim();
+        const systemParts = [];
+        if (customPrompt)
+            systemParts.push(customPrompt);
+        systemParts.push(personalityPrompt);
+        const messages = [
+            { role: 'system', content: systemParts.join('\n\n') },
+            ...this.conversationHistory.slice(0, -2).map(msg => ({ role: msg.role, content: msg.content })),
+            { role: 'user', content: message }
+        ];
+        const res = await fetch(`${BROWSER_OLLAMA_URL}/api/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ model, messages, stream: true })
+        });
+        if (!res.ok) {
+            const errText = await res.text().catch(() => '');
+            throw new Error(errText || `Ollama request failed (${res.status})`);
+        }
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        let accumulatedText = '';
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done)
+                break;
+            const chunkText = decoder.decode(value, { stream: true });
+            for (const line of chunkText.split('\n')) {
+                if (!line.trim())
+                    continue;
+                try {
+                    const parsed = JSON.parse(line);
+                    const token = parsed.message?.content || '';
+                    if (token) {
+                        accumulatedText += token;
+                        targetBubble.innerHTML = this.formatStreamedMessage(accumulatedText);
+                        const container = document.getElementById('chatbot-messages');
+                        if (container) {
+                            container.scrollTo({ top: container.scrollHeight, behavior: 'auto' });
+                        }
+                    }
+                }
+                catch {
+                    // Ignore partial JSON lines from Ollama stream
+                }
+            }
+        }
+        reader.releaseLock();
+        if (!accumulatedText) {
+            throw new Error('Ollama returned an empty response. Check that the model is installed (`ollama pull llama3.2`).');
         }
     }
     /**
@@ -664,38 +600,51 @@ export class ChatbotView {
     async consumeTokenStream(response, targetBubble) {
         const reader = response.body.getReader();
         const decoder = new TextDecoder('utf-8');
-        let accumulatedText = '';
+        let buffered = '';
         try {
             while (true) {
                 const { done, value } = await reader.read();
                 if (done)
                     break;
-                // Decode the binary stream chunk
-                const chunkText = decoder.decode(value, { stream: true });
-                // Handle server-sent chunk structures (e.g. splitting text lines if SSE formatted)
-                const lines = chunkText.split('\n');
-                for (const line of lines) {
-                    if (!line.trim())
-                        continue;
-                    try {
-                        const parsed = JSON.parse(line);
-                        if (parsed.response) {
-                            accumulatedText += parsed.response;
-                            // Incrementally render and update the active bubble using stream-safe formatter
-                            targetBubble.innerHTML = this.formatStreamedMessage(accumulatedText);
-                            // Smoothly anchor view to latest token
-                            const container = document.getElementById('chatbot-messages');
-                            if (container) {
-                                container.scrollTo({
-                                    top: container.scrollHeight,
-                                    behavior: 'auto'
-                                });
-                            }
+                buffered += decoder.decode(value, { stream: true });
+            }
+            buffered += decoder.decode();
+            // Try parsing the full buffered response as a single JSON object first.
+            // The server returns res.json() (not NDJSON streaming), so the entire
+            // response is one JSON object that may span multiple lines.
+            try {
+                const parsed = JSON.parse(buffered);
+                if (parsed.response) {
+                    targetBubble.innerHTML = this.formatStreamedMessage(parsed.response);
+                    const container = document.getElementById('chatbot-messages');
+                    if (container) {
+                        container.scrollTo({ top: container.scrollHeight, behavior: 'auto' });
+                    }
+                    return;
+                }
+            }
+            catch (e) {
+                // Not a single JSON object — try line-by-line NDJSON parsing
+            }
+            // Fallback: parse as newline-delimited JSON (NDJSON) for streaming responses
+            const lines = buffered.split('\n');
+            let accumulatedText = '';
+            for (const line of lines) {
+                if (!line.trim())
+                    continue;
+                try {
+                    const parsed = JSON.parse(line);
+                    if (parsed.response) {
+                        accumulatedText += parsed.response;
+                        targetBubble.innerHTML = this.formatStreamedMessage(accumulatedText);
+                        const container = document.getElementById('chatbot-messages');
+                        if (container) {
+                            container.scrollTo({ top: container.scrollHeight, behavior: 'auto' });
                         }
                     }
-                    catch (e) {
-                        // Ignore partial or trailing newline evaluation errors
-                    }
+                }
+                catch (e) {
+                    // Ignore unparseable lines (partial chunks, keep-alives)
                 }
             }
         }
@@ -713,8 +662,8 @@ export class ChatbotView {
             return;
         if (this.conversationHistory.length === 0) {
             container.innerHTML = `
-        <div class="cb-v3-welcome">
-          <div class="cb-v3-welcome-icon">🤖</div>
+        <div class="chatbot-welcome">
+          <div class="chatbot-welcome-icon">🤖</div>
           <h3>Start a conversation</h3>
           <p>Ask about your codebase, get help with issues, or request code improvements.</p>
         </div>
@@ -722,26 +671,23 @@ export class ChatbotView {
             return;
         }
         container.innerHTML = this.conversationHistory.map((msg, index) => `
-      <div class="cb-v3-msg ${msg.role}">
-        <div class="cb-v3-avatar ${msg.role}">${msg.role === 'user' ? '👤' : '🤖'}</div>
-        <div style="min-width:0;">
-          <div style="display:flex;align-items:center;margin-bottom:4px;">
-            <span style="font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;">${msg.role === 'user' ? escapeHtml(this.username || 'You') : 'AI'}</span>
-            ${msg.role === 'assistant' ? `<button class="cb-v3-copy" data-index="${index}" title="Copy response">📋</button>` : ''}
+      <div class="chatbot-message chatbot-message-${msg.role}">
+        <div class="chatbot-message-content">
+          <div class="chatbot-message-role">
+            ${msg.role === 'user' ? 'You' : 'AI'}
+            ${msg.role === 'assistant' ? `<button class="chatbot-copy-btn" data-index="${index}" title="Copy response">📋</button>` : ''}
           </div>
-          <div class="cb-v3-bubble ${msg.role}">${this.formatMessage(msg.content)}</div>
+          <div class="chatbot-message-text">${this.formatMessage(msg.content)}</div>
         </div>
       </div>
     `).join('');
         // Add copy button event listeners
-        container.querySelectorAll('.cb-v3-copy').forEach(btn => {
+        container.querySelectorAll('.chatbot-copy-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const index = parseInt(e.target.dataset.index);
                 this.copyMessage(index);
             });
         });
-        // Bind diff reviewer events
-        this._bindDiffEvents(container);
         // Smooth scroll to bottom
         this.scrollToBottom(container);
     }
@@ -762,22 +708,13 @@ export class ChatbotView {
         });
         // Escape remaining content
         processed = escapeHtml(processed);
-        // Restore code blocks with proper HTML + diff reviewer
+        // Restore code blocks with proper HTML
         processed = processed.replace(/__CODEBLOCK_(\d+)__/g, (match, index) => {
-            const code = codeBlocks[index];
-            const isPatch = /^\s*[\+\-@]/.test(code) || /^(diff |--- |\+\+\+ )/m.test(code);
-            const blockId = `cb-code-${index}`;
-            const diffHtml = isPatch ? this._renderDiffPreview(code, blockId) : '';
-            return `
-        <div style="position:relative;">
-          <pre class="chatbot-code-block" id="${blockId}"><code>${code}</code></pre>
-          ${diffHtml}
-        </div>
-      `;
+            return `<pre class="chatbot-code-block"><code>${codeBlocks[index]}</code></pre>`;
         });
         // Restore inline code
         processed = processed.replace(/__INLINECODE_(\d+)__/g, (match, index) => {
-            return `<code class="cb-v3-inline-code">${inlineCodes[index]}</code>`;
+            return `<code class="chatbot-inline-code">${inlineCodes[index]}</code>`;
         });
         // Preserve line breaks (but not in code blocks)
         processed = processed.replace(/<pre class="chatbot-code-block">[\s\S]*?<\/pre>/g, (match) => {
@@ -794,82 +731,6 @@ export class ChatbotView {
      * @param {string} text - The raw, accumulating token stream text.
      * @returns {string} Safe, rendered HTML layout content.
      */
-    _renderDiffPreview(code, blockId) {
-        const lines = code.split('\n');
-        const diffLines = [];
-        let hasDiff = false;
-        for (const line of lines) {
-            if (line.startsWith('+') && !line.startsWith('+++')) {
-                diffLines.push(`<div class="cb-v3-diff-line cb-v3-diff-add">${escapeHtml(line)}</div>`);
-                hasDiff = true;
-            }
-            else if (line.startsWith('-') && !line.startsWith('---')) {
-                diffLines.push(`<div class="cb-v3-diff-line cb-v3-diff-del">${escapeHtml(line)}</div>`);
-                hasDiff = true;
-            }
-            else if (line.startsWith('@@')) {
-                diffLines.push(`<div class="cb-v3-diff-line" style="color:#a78bfa;">${escapeHtml(line)}</div>`);
-                hasDiff = true;
-            }
-            else {
-                diffLines.push(`<div class="cb-v3-diff-line">${escapeHtml(line)}</div>`);
-            }
-        }
-        if (!hasDiff)
-            return '';
-        return `
-      <div class="cb-v3-diff-banner">
-        <span>🔍 AI Suggestion Detected</span>
-        <button type="button" class="cb-v3-btn" data-diff-toggle="${blockId}" style="font-size:0.72rem;padding:4px 10px;">Review Diff</button>
-      </div>
-      <div class="cb-v3-diff-panel" id="${blockId}-diff" style="display:none;">
-        ${diffLines.join('')}
-        <div style="margin-top:8px;display:flex;gap:8px;">
-          <button type="button" class="cb-v3-apply-btn" data-apply-patch="${blockId}">✓ Apply Fix to Workspace</button>
-          <button type="button" class="cb-v3-btn" data-dismiss-diff="${blockId}" style="font-size:0.72rem;padding:4px 10px;">Dismiss</button>
-        </div>
-      </div>
-    `;
-    }
-    _applyPatch(blockId) {
-        const pre = document.getElementById(blockId);
-        if (!pre)
-            return;
-        const code = pre.textContent || '';
-        const vscode = typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi() : null;
-        if (!vscode) {
-            this.showPromptToast('VS Code: API not available — copy patch manually');
-            return;
-        }
-        // Post message to extension host
-        vscode.postMessage({
-            command: 'applyPatch',
-            patch: code,
-            projectPath: this.app.state.defaultProjectPath || this.app.state.lastProjectPath || ''
-        });
-        this.showPromptToast('Patch sent to VS Code: extension — applying…');
-    }
-    _bindDiffEvents(container) {
-        container.querySelectorAll('[data-diff-toggle]').forEach((btn) => {
-            btn.addEventListener('click', () => {
-                const id = btn.dataset.diffToggle;
-                const panel = document.getElementById(`${id}-diff`);
-                if (panel)
-                    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-            });
-        });
-        container.querySelectorAll('[data-apply-patch]').forEach((btn) => {
-            btn.addEventListener('click', () => this._applyPatch(btn.dataset.applyPatch));
-        });
-        container.querySelectorAll('[data-dismiss-diff]').forEach((btn) => {
-            btn.addEventListener('click', () => {
-                const id = btn.dataset.dismissDiff;
-                const panel = document.getElementById(`${id}-diff`);
-                if (panel)
-                    panel.style.display = 'none';
-            });
-        });
-    }
     formatStreamedMessage(text) {
         if (!text)
             return '';
@@ -903,7 +764,7 @@ export class ChatbotView {
         processedText = escapeHtml(processedText);
         // 6. Restore protected inline code with safe text nodes
         inlineBlocks.forEach((code, index) => {
-            const safeInline = `<code class="cb-v3-inline-code">${escapeHtml(code)}</code>`;
+            const safeInline = `<code class="chatbot-inline-code">${escapeHtml(code)}</code>`;
             processedText = processedText.replace(`__INLINE_PLACEHOLDER_${index}__`, safeInline);
         });
         // 7. Restore protected structural code blocks with syntax wrappers
@@ -924,7 +785,7 @@ export class ChatbotView {
         const btn = document.getElementById('chatbot-send');
         if (btn) {
             btn.disabled = this.isLoading;
-            btn.textContent = this.isLoading ? '⏳' : 'Send';
+            btn.textContent = this.isLoading ? 'Sending...' : 'Send';
         }
     }
     showTypingIndicator() {
@@ -933,17 +794,14 @@ export class ChatbotView {
             return;
         const indicator = document.createElement('div');
         indicator.id = 'chatbot-typing-indicator';
-        indicator.className = 'cb-v3-msg assistant';
+        indicator.className = 'chatbot-message chatbot-message-assistant';
         indicator.innerHTML = `
-      <div class="cb-v3-avatar assistant">🤖</div>
-      <div style="min-width:0;">
-        <div style="font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">AI</div>
-        <div class="cb-v3-bubble assistant">
-          <div class="cb-v3-typing">
-            <span class="cb-v3-typing-dot"></span>
-            <span class="cb-v3-typing-dot"></span>
-            <span class="cb-v3-typing-dot"></span>
-          </div>
+      <div class="chatbot-message-content">
+        <div class="chatbot-message-role">AI</div>
+        <div class="chatbot-typing">
+          <span class="chatbot-typing-dot"></span>
+          <span class="chatbot-typing-dot"></span>
+          <span class="chatbot-typing-dot"></span>
         </div>
       </div>
     `;
@@ -991,8 +849,6 @@ export class ChatbotView {
                 const settings = JSON.parse(stored);
                 this.personality = settings.personality || 'helpful';
                 this.removeFilters = settings.removeFilters || false;
-                this.selectedProvider = settings.selectedProvider || this.selectedProvider || 'ollama';
-                this.username = settings.username || localStorage.getItem('simplebeacon_chatbot_username') || '';
             }
         }
         catch (error) {
@@ -1003,9 +859,7 @@ export class ChatbotView {
         try {
             localStorage.setItem(this.SETTINGS_KEY, JSON.stringify({
                 personality: this.personality,
-                removeFilters: this.removeFilters,
-                selectedProvider: this.selectedProvider,
-                username: this.username
+                removeFilters: this.removeFilters
             }));
         }
         catch (error) {
@@ -1018,7 +872,7 @@ export class ChatbotView {
             return;
         navigator.clipboard.writeText(message.content).then(() => {
             // Show brief success feedback
-            const btn = document.querySelector(`.cb-v3-copy[data-index="${index}"]`);
+            const btn = document.querySelector(`.chatbot-copy-btn[data-index="${index}"]`);
             if (btn) {
                 const originalText = btn.textContent;
                 btn.textContent = '✓';
@@ -1032,20 +886,7 @@ export class ChatbotView {
             console.error('Failed to copy message:', err);
         });
     }
-    autoResizeTextarea(textarea) {
-        if (!textarea)
-            return;
-        textarea.style.height = 'auto';
-        const newHeight = Math.min(Math.max(textarea.scrollHeight, 44), 200);
-        textarea.style.height = `${newHeight}px`;
-    }
     destroy() {
-        const appMain = document.getElementById('app-main');
-        if (appMain && this._savedAppMainStyles) {
-            appMain.style.padding = this._savedAppMainStyles.padding;
-            appMain.style.overflow = this._savedAppMainStyles.overflow;
-            appMain.style.display = this._savedAppMainStyles.display;
-            appMain.style.flexDirection = this._savedAppMainStyles.flexDirection;
-        }
+        // Cleanup event listeners if needed
     }
 }
