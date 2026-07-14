@@ -16,7 +16,7 @@ import { HelpView, FeaturesView } from './views/HelpView.js';
 import { AuditView } from './views/AuditView.js?v=20260711admin1';
 import { AnalyzeView } from './views/AnalyzeView.js?v=20260713dropfix7';
 import { SecurityView } from './views/SecurityView.js?v=20260711admin1';
-import { PricingView } from './views/PricingView.js';
+import { PricingView } from './views/PricingView.js?v=20260714importfix1';
 import { AboutView } from './views/AboutView.js';
 import { AssessmentView } from './views/AssessmentView.js?v=20260711admin1';
 import { SignInView } from './views/SignInView.js?v=20260711signinfix1';

@@ -1,5 +1,5 @@
-import { billingService } from './billingService.js';
-import { authService } from './authService.js?v=20260713sync6';
+import { billingService } from '../services/billingService.js';
+import { authService } from '../services/authService.js?v=20260713sync6';
 import { showToast } from '../utils.js';
 
 const MARKETPLACE_URL = 'https://github.com/marketplace/actions/simplebeacon-ai-guardrails';
