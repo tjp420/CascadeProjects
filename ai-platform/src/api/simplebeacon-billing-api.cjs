@@ -80,6 +80,10 @@ const {
 } = require('./billing/license-utils.cjs');
 
 const { validateProjectToken } = require('./billing/validate-project-token.cjs');
+const { verifyLicenseToken } = require('../../server/lib/simplebeacon-proxy.cjs');
+const { getLicenseToken } = require('../../server/lib/token-db.cjs');
+const { verifyToken } = require('../../server/lib/auth/token-service.cjs');
+const { recordCiTelemetryEvent, summarizeCiTelemetry } = require('../../server/lib/ci-telemetry-store.cjs');
 
 
 
@@ -417,6 +421,13 @@ function setupSimplebeaconBillingRoutes(app) {
 
     const baseUrl = getAppBaseUrl();
     const mode = checkoutModeForProduct(product);
+    const teamCheckoutProducts = new Set([
+      'startup_monthly', 'startup_annual', 'growth_monthly', 'growth_annual',
+      'teams_monthly', 'teams_annual', 'team_monthly', 'team_annual'
+    ]);
+    const successPath = teamCheckoutProducts.has(product)
+      ? '/dashboard/settings?checkout=success&session_id={CHECKOUT_SESSION_ID}'
+      : '/coming-soon/certificate-upload.html?session_id={CHECKOUT_SESSION_ID}';
 
     try {
       const projectName = String(req.body?.projectName || req.body?.certProjectName || '').trim();
@@ -426,8 +437,8 @@ function setupSimplebeaconBillingRoutes(app) {
         mode,
         customer_email: email,
         line_items: [{ price: priceId, quantity: 1 }],
-        success_url: `${baseUrl}/coming-soon/certificate-upload.html?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${baseUrl}/app#/pricing?canceled=true`,
+        success_url: `${baseUrl}${successPath}`,
+        cancel_url: `${baseUrl}/dashboard/pricing?canceled=true`,
         metadata: { email, product, projectName, certClientName }
       };
 
@@ -482,12 +493,48 @@ function setupSimplebeaconBillingRoutes(app) {
         }
       }
 
+      // Webhook race fallback: mint team token if payment succeeded but webhook hasn't yet
+      if (email && session.payment_status === 'paid' && !record?.licenseToken) {
+        const product = session.metadata?.product || '';
+        const teamProducts = new Set([
+          'startup_monthly', 'startup_annual', 'growth_monthly', 'growth_annual',
+          'teams_monthly', 'teams_annual', 'team_monthly', 'team_annual'
+        ]);
+        if (teamProducts.has(product) || session.mode === 'subscription') {
+          const isGrowth = /growth|team_annual|team_monthly|teams/.test(product);
+          const tier = isGrowth ? 'team' : 'pro';
+          const licenseToken = generateLicenseToken(
+            { email, tier, product: product || 'startup_monthly', features: ['team-management', 'pdf-generation'] },
+            process.env.SIMPLEBEACON_LICENSE_SECRET || 'simplebeacon-dev-insecure',
+            365 * 24 * 60
+          );
+          record = await upsertSubscription(email, {
+            stripeCustomerId: session.customer || null,
+            subscriptionId: session.subscription || null,
+            product: product || 'startup_monthly',
+            licenseToken,
+            licenseTier: tier,
+            subscriptionActive: true
+          });
+          insertLicenseToken({
+            token: licenseToken,
+            email: email.toLowerCase(),
+            tier,
+            registered_at: new Date().toISOString()
+          });
+          await syncSubscriptionToDb(req.app?.locals?.db || null, record);
+        }
+      }
+
+      const licenseToken = record?.licenseToken || null;
       res.json({
         email,
         paymentStatus: session.payment_status,
         product: session.metadata?.product || null,
         subscription: publicSubscriptionStatus(record),
-        licenseToken: record?.licenseTier === 'executive' ? record.licenseToken : null,
+        licenseToken,
+        token: licenseToken,
+        tier: record?.licenseTier || record?.tier || null,
         certProfile: {
           clientName: record?.certClientName || null,
           projectName: record?.certProjectName || null,
@@ -733,6 +780,99 @@ function setupSimplebeaconBillingRoutes(app) {
       console.error('[Simplebeacon billing] Resend token failed');
       res.status(500).json({ success: false, error: 'Failed to resend token' });
     }
+  });
+
+  /**
+   * Resolve account email from a license bearer token (JWT or registered token).
+   * @param {string} token
+   * @returns {string|null}
+   */
+  function resolveTelemetryEmail(token) {
+    const secret = process.env.SIMPLEBEACON_LICENSE_SECRET || 'simplebeacon-dev-insecure';
+    const payload = verifyLicenseToken(token, secret);
+    if (payload?.email) {
+      return normalizeEmail(payload.email);
+    }
+    const entry = getLicenseToken(token);
+    if (entry?.email) {
+      return normalizeEmail(entry.email);
+    }
+    return null;
+  }
+
+  /**
+   * Resolve account email for CI telemetry reads from dashboard session or license token.
+   * @param {import('express').Request} req
+   * @param {string} bearerToken
+   * @returns {Promise<string|null>}
+   */
+  async function resolveCiTelemetryAccountEmail(req, bearerToken) {
+    if (req.user?.email) {
+      return normalizeEmail(req.user.email);
+    }
+    const token = String(bearerToken || '').trim();
+    if (!token) {
+      return null;
+    }
+    const licenseEmail = resolveTelemetryEmail(token);
+    if (licenseEmail) {
+      return licenseEmail;
+    }
+    try {
+      const decoded = await verifyToken(token);
+      if (decoded?.email) {
+        return normalizeEmail(decoded.email);
+      }
+    } catch {
+      // Bearer token is not a platform session JWT.
+    }
+    return null;
+  }
+
+  const CI_TELEMETRY_FIELDS = [
+    'event', 'timestamp', 'tier', 'repository', 'workflow', 'run_id', 'ref',
+    'pull_request', 'gate_pass', 'gates_tripped', 'blocking_count', 'critical_blocked',
+    'high_blocked', 'medium_count', 'files_scanned', 'diff_only', 'diff_files', 'quality_score'
+  ];
+
+  app.post('/api/simplebeacon/ci/telemetry', async (req, res) => {
+    const authHeader = String(req.headers.authorization || '');
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : String(req.body?.licenseToken || '').trim();
+    if (!token) {
+      return res.status(401).json({ error: 'missing_token', message: 'Bearer license token required.' });
+    }
+    const email = resolveTelemetryEmail(token);
+    if (!email) {
+      return res.status(403).json({ error: 'invalid_token', message: 'License token is invalid or not registered.' });
+    }
+    const payload = {};
+    for (const key of CI_TELEMETRY_FIELDS) {
+      if (req.body && req.body[key] !== undefined) {
+        payload[key] = req.body[key];
+      }
+    }
+    const event = recordCiTelemetryEvent(email, payload);
+    return res.json({ ok: true, id: event.id, recordedAt: event.recordedAt });
+  });
+
+  app.get('/api/simplebeacon/ci/telemetry/summary', async (req, res) => {
+    const authHeader = String(req.headers.authorization || '');
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+    let email = await resolveCiTelemetryAccountEmail(req, token);
+    if (!email) {
+      const qEmail = normalizeEmail(req.query.email);
+      if (qEmail) {
+        const record = await getSubscriptionByEmail(qEmail);
+        if (record?.subscriptionActive || record?.licenseToken) {
+          email = qEmail;
+        }
+      }
+    }
+    if (!email) {
+      return res.status(401).json({ error: 'auth_required', message: 'Sign in or provide a valid license token.' });
+    }
+    const days = Math.min(90, Math.max(1, Number(req.query.days) || 7));
+    return res.json(summarizeCiTelemetry(email, { days }));
   });
 
 }
