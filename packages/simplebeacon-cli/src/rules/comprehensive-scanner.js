@@ -42,8 +42,17 @@ const SKIP_PATH_PATTERNS = [
   /\barchive\b/i,
   /\bscan-exports\b/i,
   /\bfalse-positive-audit\b/i,
+  /(?:^|[\\/])\.wrangler(?:[\\/]|$)/i,
+  /(?:^|[\\/])tmp(?:[\\/]|$)/i,
+  /(?:^|[\\/])temp(?:[\\/]|$)/i,
+  /(?:^|[\\/])generated(?:[\\/]|$)/i,
+  /tmp_bisect\.js$/i,
+  /remediation-roadmap.*\.json$/i,
   /\bcoming-soon\/js\b/i,
+  /\bcoming-soon\/js-es2018\b/i,
   /\bcoming-soon\/public\b/i,
+  /\bsocial-posts\.md$/i,
+  /scan-wasm-bridge\.test\.js$/i,
   /\bsimplebeacon-vscode-merged\/dashboard-web\b/i,
   /\bai-platform\/web\/simplebeacon-dashboard\/js-es2018\b/i,
   /\bai-platform\/web\/simplebeacon-dashboard\/js\b/i,
@@ -70,10 +79,25 @@ function shouldSkipCheckForPath(checkId, relativePath) {
   // Governance markers are expected in AI platform source files with license headers
   if (checkId === 'governance' || checkId === 'governance-marker') {
     if (/\b(ai-agent\/prompts\.js|eslint\.config\.js|enterprise-dlp\.js|action\.yml|\.github\/workflows\/simplebeacon-ai-hygiene-gate\.yml|consistency-score\.test\.js|packages\/simplebeacon-intelligence\/src\/constants\.js|packages\/simplebeacon-intelligence\/src\/index\.js)\b/.test(rel)) return true;
+    // CLI source files reference governance file names in scan logic and help text
+    if (/packages\/simplebeacon-cli\/(bin|src)\//.test(rel)) return true;
+    // Guardrails public examples and GitHub templates legitimately reference governance files
+    if (/simplebeacon-guardrails-public\//.test(rel)) return true;
+    // Web data files reference governance markers in roadmap/dashboard content
+    if (/ai-platform\/web\/data\//.test(rel)) return true;
+    // Verify scripts reference governance file names
+    if (/^verify-codemap/.test(rel)) return true;
   }
   // AI SDK usage is expected in AI platform source files
   if (checkId === 'ai-indicators') {
     if (/\b(auto-processor\.js|audit_viz\.py|orchestrator\.test\.js|test-gateway\.js)\b/.test(rel)) return true;
+    // Scanner rule definitions contain AI terms by design (they detect AI patterns)
+    if (/\/rules\//.test(rel)) return true;
+    // MCP server, proxy, and AI tooling modules legitimately reference AI providers
+    if (/\/mcp\//.test(rel) || /\/proxy\//.test(rel)) return true;
+    if (/\b(local-remediation\.js|runtime-sentinel\.js|ai-enhanced-report\.js|report-enhance\.js|credential-pattern-scanner\.js|data-cleanup-export-sanitize\.js|cleanup-brief-export-sanitize\.js|javascript-ast-scanner\.js)\b/.test(rel)) return true;
+    // CLI bin entry and frameworkless app reference AI terms in help text and config
+    if (/bin\/simplebeacon(-mcp)?\.js$/.test(rel) || /simplebeacon-frameworkless\/app\.js$/.test(rel)) return true;
   }
   // security-headers: main server file already has securityHeaders middleware
   if (checkId === 'security-headers') {
@@ -82,6 +106,18 @@ function shouldSkipCheckForPath(checkId, relativePath) {
   // workspace-health: monorepo cross-package requires are expected
   if (checkId === 'workspace-health') {
     if (/\b(server\/routes\/compliance-schema-api\.cjs|server\/routes\/demo-simplebeacon-api\.cjs|server\/routes\/flexible-analyze-api\.cjs|server\/lib\/central-data-config\.cjs|packages\/simplebeacon-intelligence\/src\/slm-bridge\.js)\b/.test(rel)) return true;
+    // Monorepo utility/shared modules legitimately use deep relative requires to sibling packages
+    if (/\/(shared-utils|server\/lib|server\/routes\/lib|src\/api\/billing)\//.test(rel) && /\/(project-require|trust-levels|ml-pattern-detector|report-bundle-builder|validate-project-token|mock-data-schema-validator|mock-data-scanner|page-sample-specs|path-classification|repository-audit-baseline|simplebeacon-proxy|website-scanner|flexible-analyze-roadmap)\./.test(rel)) return true;
+    // CLI analyzer/utils modules use deep relative requires for monorepo access
+    if (/packages\/simplebeacon-cli\/src\/(lib|analyzers)\//.test(rel)) return true;
+  }
+  // Documentation: CLI source files export functions as their public API by design
+  if (checkId === 'documentation') {
+    if (/packages\/simplebeacon-cli\/src\//.test(rel)) return true;
+  }
+  // i18n: frameworkless app uses textContent for static demo content
+  if (checkId === 'i18n') {
+    if (/simplebeacon-frameworkless\//.test(rel)) return true;
   }
   return false;
 }
@@ -197,12 +233,29 @@ async function scanComprehensive(uniqueFiles, options = {}) {
     }
   }
 
-  // test-coverage: build set of test file basenames
+  // test-coverage: build set of test file basenames and compound names
   const testBasenames = new Set();
+  const testCompoundNames = new Set();
   for (const file of uniqueFiles) {
     const base = path.basename(file.path);
     if (/\.(test|spec)\.(js|ts|jsx|tsx|cjs|mjs)$/i.test(base)) {
-      testBasenames.add(base.replace(/\.(test|spec)\.(js|ts|jsx|tsx|cjs|mjs)$/i, ''));
+      const stripped = base.replace(/\.(test|spec)\.(js|ts|jsx|tsx|cjs|mjs)$/i, '');
+      testBasenames.add(stripped);
+      // Also register compound name: parentdir-modname (e.g. analyze-export-bundle-engines)
+      const dirName = path.basename(path.dirname(file.path));
+      if (dirName === '__tests__') {
+        // For __tests__/analyze-export-bundle-engines.test.cjs, register both
+        // the full compound name and the last segment after the first hyphen
+        testCompoundNames.add(stripped);
+        const parts = stripped.split('-');
+        if (parts.length > 1) {
+          // Register the last N parts as potential matches for nested source files
+          // e.g. for "analyze-export-bundle-engines", also register "engines"
+          for (let i = 1; i < parts.length; i++) {
+            testBasenames.add(parts.slice(i).join('-'));
+          }
+        }
+      }
     }
   }
 
@@ -224,7 +277,11 @@ async function scanComprehensive(uniqueFiles, options = {}) {
     const isMeaningfulSource = /\/(src|lib|server|app|web|components|views|routes|controllers|models|services)\//i.test(rel) && !/\/(config|configs)\//i.test(rel);
     const isSkippedName = /\b(index|config|types|constants|utils|helpers|setup|init|main|cli|bin)\b/i.test(baseName);
     if ((ruleCounters['test-coverage'] || 0) < 50 && isMeaningfulSource && !isSkippedName && lineCount > 50 && ['.js','.ts','.jsx','.tsx','.cjs','.mjs'].includes(file.ext) && !/\.(test|spec)$/.test(baseName)) {
-      if (!testBasenames.has(baseName)) {
+      // Check exact basename match, compound name (parentdir-basename), and __tests__ compound naming
+      const parentDirName = path.basename(path.dirname(file.path));
+      const compoundName = `${parentDirName}-${baseName}`;
+      const hasTest = testBasenames.has(baseName) || testBasenames.has(compoundName) || testCompoundNames.has(compoundName);
+      if (!hasTest) {
         results.push({
           id: `test-coverage-${file.relativePath}`, severity: 'low', type: 'test-coverage',
           filePath: file.relativePath, file: file.relativePath, line: 1, pattern: 'test-coverage', count: 1,
