@@ -1,5 +1,18 @@
 # SimpleBeacon VSCode Extension Changelog
 
+## [3.0.438] - 2026-07-15
+
+### Fixed
+- Expanded false positive exclusions for 2,500+ scan report findings
+- Excluded package-lock.json files from high-entropy secret scanning (1,026 false positives)
+- Excluded generated scan report exports from credential scanning (834 false positives)
+- Excluded knip-report.txt and other generated tool outputs (88 false positives)
+- Excluded dashboard view/component/service files with legitimate innerHTML usage (280+ false positives)
+- Excluded scanner pattern/rule definition files from dangerous-function detection (34 false positives)
+- Excluded test files with test JWTs and token strings (15+ false positives)
+- Excluded certificate generator templates and remediation payload files
+- Added credential-specific ignoreGlobs for test files containing test secrets
+
 ## [3.0.437] - 2026-07-14
 
 ### Added

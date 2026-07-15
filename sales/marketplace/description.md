@@ -144,6 +144,12 @@ This extension is licensed under the MIT License. See LICENSE file for details.
 
 ## Changelog
 
+### Version 3.0.438
+- Expanded false positive exclusions for 2,500+ scan report findings
+- Excluded package-lock.json, generated reports, knip output from secret scanning
+- Excluded dashboard views, scanner pattern files, and test fixtures from false positives
+- Added credential-specific ignoreGlobs for test files with test secrets
+
 ### Version 3.0.437
 - 38 analyzer engines: 24 real-time IDE rules + 14 batch CLI engines
 - Enhanced AI analysis with progressive multi-layer scanning
