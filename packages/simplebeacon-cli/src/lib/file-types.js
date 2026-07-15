@@ -1,0 +1,89 @@
+'use strict';
+
+const EXTENSIONS = Object.freeze({
+    CODE: Object.freeze([
+        '.js', '.ts', '.jsx', '.tsx', '.py', '.cjs', '.mjs',
+        '.vue', '.svelte', '.css', '.scss', '.sass', '.less',
+        '.java', '.go', '.rs', '.rb', '.php', '.sql',
+        '.sh', '.bash', '.zsh', '.fish', '.ps1', '.bat', '.cmd',
+        '.cpp', '.c', '.h', '.hpp', '.cs', '.swift', '.kt', '.dart',
+        '.coffee', '.wat', '.wasm', '.jl', '.cr', '.f', '.f90', '.f95',
+        '.r', '.pl', '.lua', '.elm', '.clj', '.scala', '.groovy',
+        '.gradle', '.d', '.erl', '.ex', '.fs', '.hs', '.ml',
+        '.nim', '.pas', '.pp', '.tcl', '.v', '.zig',
+        '.zs', '.acs', '.dec', '.decorate', '.glsl', '.vert', '.frag', '.geo', '.wgsl'
+    ]),
+    CONFIG: Object.freeze([
+        '.json', '.yaml', '.yml', '.ini', '.toml', '.env',
+        '.lock', '.conf', '.cfg', '.properties', '.nix', '.tf',
+        '.hcl', '.editorconfig', '.gitignore', '.dockerignore'
+    ]),
+    MARKUP: Object.freeze([
+        '.html', '.htm', '.xml', '.svg', '.xsl', '.xhtml', '.dtd',
+        '.erb', '.ejs', '.pug', '.jade', '.hbs', '.handlebars',
+        '.liquid', '.njk', '.mustache', '.slim'
+    ]),
+    DOCUMENT: Object.freeze([
+        '.md', '.txt', '.rst', '.adoc', '.org', '.wiki',
+        '.tex', '.ltx', '.ipynb', '.qmd', '.rmd'
+    ]),
+    DATA: Object.freeze([
+        '.csv', '.tsv', '.json', '.xml', '.yaml', '.yml',
+        '.parquet', '.avro', '.proto', '.sql', '.sqlite',
+        '.db', '.dbf', '.accdb', '.mdb'
+    ]),
+    STYLESHEET: Object.freeze([
+        '.css', '.scss', '.sass', '.less', '.styl', '.pcss', '.postcss'
+    ]),
+    IMAGE: Object.freeze([
+        '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg', '.ico',
+        '.tiff', '.tif', '.heic', '.heif', '.avif', '.jxl', '.raw', '.cr2',
+        '.nef', '.orf', '.sr2', '.dng', '.eps', '.psd', '.xcf', '.ai'
+    ]),
+    MEDIA: Object.freeze([
+        '.mp3', '.mp4', '.wav', '.ogg', '.oga', '.ogv', '.webm', '.avi',
+        '.mov', '.mkv', '.flac', '.aac', '.m4a', '.wma', '.mid', '.midi',
+        '.opus', '.m4v', '.wmv', '.flv', '.swf', '.3gp', '.aiff'
+    ]),
+    BINARY: Object.freeze([
+        '.exe', '.dll', '.so', '.dylib', '.bin', '.dat', '.db', '.dbf',
+        '.zip', '.tar', '.gz', '.bz2', '.xz', '.7z', '.rar', '.cab',
+        '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
+        '.odt', '.ods', '.odp', '.epub', '.mobi', '.azw', '.azw3',
+        '.ttf', '.otf', '.woff', '.woff2', '.eot',
+        '.gguf', '.safetensors', '.pt', '.pth', '.onnx', '.model', '.weights',
+        '.rlib', '.rmeta', '.o', '.a', '.lib',
+        '.msi', '.deb', '.rpm', '.dmg', '.pkg',
+        '.bad', '.lock', '.sqlite', '.accdb', '.mdb',
+        '.parquet', '.avro', '.proto'
+    ])
+});
+
+const ALL_EXTENSIONS = Object.freeze(
+    [...new Set(Object.values(EXTENSIONS).flat())].sort()
+);
+
+const ALL_EXTENSION_SET = Object.freeze(new Set(ALL_EXTENSIONS));
+
+const EXT_TO_CATEGORY = Object.freeze(
+    Object.entries(EXTENSIONS).reduce((map, [cat, exts]) => {
+        for (const ext of exts) {
+            if (!(ext in map)) map[ext] = cat;
+        }
+        return map;
+    }, {})
+);
+
+function getExtensionCategory(ext) {
+    if (!ext || typeof ext !== 'string') return undefined;
+    const lower = ext.toLowerCase();
+    return EXT_TO_CATEGORY[lower];
+}
+
+module.exports = Object.freeze({
+    EXTENSIONS,
+    ALL_EXTENSIONS,
+    ALL_EXTENSION_SET,
+    EXT_TO_CATEGORY,
+    getExtensionCategory
+});

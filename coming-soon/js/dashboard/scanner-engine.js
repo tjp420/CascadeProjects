@@ -1647,6 +1647,18 @@ async function processLocalCLIScan(files) {
         if (!reason && /(^|\/)audit-report\/__tests__\.cjs$/i.test(path)) {
             reason = 'Audit report tests';
         }
+        if (!reason && !deepScan && /(^|\/)Desktop\//i.test(path)) {
+            reason = 'Desktop folder (external projects)';
+        }
+        if (!reason && /(^|\/)complete-scan.*\.json$/i.test(path)) {
+            reason = 'Generated scan export';
+        }
+        if (!reason && !deepScan && /(^|\/)claw-code-main\//i.test(path)) {
+            reason = 'External project (claw-code-main)';
+        }
+        if (!reason && !deepScan && /(^|\/)New folder\//i.test(path)) {
+            reason = 'External project (New folder)';
+        }
         // Apply .simplebeaconignore patterns to skip ignored files
         if (!reason && ignorePatterns.length) {
             const isIgnoredBySimplebeacon = ignorePatterns.some(pat => {

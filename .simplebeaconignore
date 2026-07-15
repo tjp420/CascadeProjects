@@ -731,3 +731,13 @@ ai-platform/server-start-log2.txt
 ai-platform/tests/integration/server-integration.test.js
 ai-platform/tests/secret-config.test.js
 
+# Desktop folder — external projects, model files, installers (not CascadeProjects code)
+Desktop/
+
+# Self-referencing JSON scan exports (generated artifacts)
+complete-scan*.json
+
+# External projects on Render Desktop (not part of CascadeProjects)
+claw-code-main/
+New folder/
+

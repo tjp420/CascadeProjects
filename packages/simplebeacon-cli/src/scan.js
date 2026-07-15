@@ -55,14 +55,15 @@ const {
     MOCK_WALK_SKIP_DIRS,
     FULL_SCAN_SKIP_DIRS
 } = require('./lib/benchmark-cache-paths');
-const { normalizePlatformScanReport } = require('./lib/normalize-scan-report');
+const { normalizePlatformScanReport, reconcileScanReport } = require('./lib/normalize-scan-report');
 const { evaluateGate } = require('./gate');
 const { isBlockingIssue, groupIssues, countBySeverity, computeQualityScoreFromIssues } = require('./lib/issue-utils');
-const { clearJsonFileCache } = require('../../../ai-platform/server/lib/json-file-cache.cjs');
-const { ALL_EXTENSION_SET } = require('../../../ai-platform/server/config/file-types.cjs');
+const { clearJsonFileCache } = require('./lib/json-file-cache');
+const { ALL_EXTENSION_SET } = require('./lib/file-types');
 const { LRUCache } = require('./lib/lru-cache');
 const { formatBytes } = require('./lib/format-utils');
-const { cachedGlobToRegex } = require('./lib/glob-utils');
+const { globToRegex, cachedGlobToRegex } = require('./lib/glob-utils');
+const { createScanProgressWriter, resolveScanProgressPath } = require('./lib/scan-progress');
 
 // Scan-session file content cache — eliminates redundant I/O when multiple rules read the same file
 const fileContentCache = new LRUCache({ maxBytes: 256 * 1024 * 1024 });
@@ -105,12 +106,22 @@ function clearFileContentCache() {
 
 const BINARY_EXTENSIONS = new Set([
     '.png', '.jpg', '.jpeg', '.gif', '.bmp', '.ico', '.svg', '.webp', '.avif',
-    '.pdf', '.zip', '.tar', '.gz', '.rar', '.7z', '.bz2',
+    '.pdf', '.zip', '.tar', '.gz', '.rar', '.7z', '.bz2', '.xz',
     '.exe', '.dll', '.so', '.dylib', '.bin',
-    '.mp3', '.mp4', '.wav', '.avi', '.mov', '.mkv',
+    '.mp3', '.mp4', '.wav', '.avi', '.mov', '.mkv', '.flv', '.webm',
     '.woff', '.woff2', '.ttf', '.otf', '.eot',
     '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
-    '.sqlite', '.db', '.lock'
+    '.sqlite', '.db', '.lock',
+    '.gguf', '.safetensors', '.pt', '.pth', '.onnx', '.model', '.weights',
+    '.rlib', '.rmeta', '.o', '.a', '.lib',
+    '.msi', '.deb', '.rpm', '.dmg', '.pkg', '.cab',
+    '.bad', '.dat', '.dbf',
+    '.tiff', '.tif', '.heic', '.heif', '.jxl', '.raw', '.cr2',
+    '.nef', '.orf', '.sr2', '.dng', '.eps', '.psd', '.xcf',
+    '.ogg', '.oga', '.ogv', '.flac', '.aac', '.m4a', '.wma',
+    '.mid', '.midi', '.opus', '.m4v', '.wmv', '.swf', '.3gp', '.aiff',
+    '.odt', '.ods', '.odp', '.epub', '.mobi', '.azw', '.azw3',
+    '.parquet', '.avro', '.proto', '.accdb', '.mdb'
 ]);
 
 /**
@@ -288,7 +299,7 @@ function normalizeScannerOutput(issues, scanResult, type, defaultId, defaultDesc
 
 /** Patterns for known false-positive suppression. */
 const FP_PATH_PATTERNS = Object.freeze([
-    { type: 'Duplicate Data', pathIncludes: ['simplebeacon-dashboard/js-es2018/', 'simplebeacon-dashboard/js/', 'simplebeacon-dashboard/data/', 'tsconfig.json', 'coming-soon/public/dashboard/data/', 'coming-soon/public/dashboard/js/utils-lib/', 'coming-soon/public/dashboard/js-es2018/utils-lib/', 'simplebeacon-vscode-merged/dashboard-web/data/', 'simplebeacon-vscode-merged/dashboard-web/js-es2018/utils-lib/'] },
+    { type: 'Duplicate Data', pathIncludes: ['simplebeacon-dashboard/js-es2018/', 'simplebeacon-dashboard/js/', 'simplebeacon-dashboard/data/', 'tsconfig.json', 'simplebeacon-vscode-merged/dashboard-web/data/', 'simplebeacon-vscode-merged/dashboard-web/js-es2018/utils-lib/'] },
     { type: 'Credential Pattern', pathIncludes: ['ai-agent-report-for-dashboard.json'] },
     { type: 'cleanup', pathIncludes: ['simplebeacon-dashboard/js-es2018/'] },
     { type: 'performance', pathIncludes: ['simplebeacon-dashboard/js-es2018/'] },
@@ -384,6 +395,9 @@ function findingsCount(scan) {
  * @param {Object} [options={}]
  * @param {string} [options.tier='developer']
  * @param {Object} [options.tierLimits={}]
+ * @param {boolean} [options.sandboxMode=false]
+ * @param {boolean} [options.active=false]
+ * @param {string} [options.upgradeUrl]
  * @returns {Object} Mutated report.
  */
 function applyTierLimits(report, options = {}) {
@@ -393,6 +407,8 @@ function applyTierLimits(report, options = {}) {
     const maxFiles = limits.maxFilesPerScan;
     const maxFindings = limits.maxFindingsShown;
     const showScore = limits.showQualityScore;
+    const sandboxMode = options.sandboxMode === true;
+    const upgradeUrl = options.upgradeUrl || 'https://simplebeacon.ai/pricing';
 
     if (typeof maxFiles === 'number' && maxFiles >= 0 && typeof report.totalFiles === 'number' && report.totalFiles > maxFiles) {
         report.filesAnalyzed = Math.min(report.filesAnalyzed || 0, maxFiles);
@@ -421,7 +437,131 @@ function applyTierLimits(report, options = {}) {
     }
 
     report.tier = tier;
+    report.sandbox = {
+        active: sandboxMode,
+        upgradeUrl,
+        message: sandboxMode ? 'Running in Sandbox Mode. Upgrade to unlock team tier features.' : undefined
+    };
+    if (report.scan_summary && typeof report.scan_summary === 'object') {
+        report.scan_summary.sandbox = report.sandbox;
+    }
+
     return report;
+}
+
+/**
+ * Collect all findings from a report, flattening categories/findings if needed.
+ * @param {Object} report
+ * @returns {Array<Object>}
+ */
+function getReportFindings(report) {
+    if (!report || typeof report !== 'object') return [];
+    if (Array.isArray(report.rawIssues) && report.rawIssues.length > 0) return report.rawIssues;
+    if (Array.isArray(report.findings) && report.findings.length > 0) return report.findings;
+    if (Array.isArray(report.detectedIssues) && report.detectedIssues.length > 0) return report.detectedIssues;
+    if (report.categories && typeof report.categories === 'object') {
+        const all = [];
+        for (const cat of Object.values(report.categories)) {
+            if (cat && Array.isArray(cat.findings)) all.push(...cat.findings);
+            else if (Array.isArray(cat)) all.push(...cat);
+        }
+        return all;
+    }
+    return [];
+}
+
+/**
+ * Normalize a report finding into the internal issue shape.
+ * @param {Object} finding
+ * @returns {Object|null}
+ */
+function normalizeFinding(finding) {
+    if (!finding || typeof finding !== 'object') return null;
+    const severity = String(finding.severity || finding.severityBand || 'medium').toLowerCase();
+    const type = finding.category || finding.type || 'finding';
+    return {
+        id: finding.id || null,
+        type,
+        severity,
+        severityBand: severity,
+        filePath: finding.file || finding.filePath || finding.path || null,
+        file: finding.file || finding.filePath || finding.path || null,
+        line: finding.line || null,
+        description: finding.message || finding.description || finding.snippet || `${type} finding`,
+        count: finding.count || 1,
+        affectedFiles: finding.file ? [finding.file] : (finding.affectedFiles || []),
+        filePaths: finding.file ? [finding.file] : (finding.filePaths || []),
+        metadata: finding.metadata || {}
+    };
+}
+
+/**
+ * SimpleBeacon Global Gate Correction Loop
+ * Ensures the gate reflects the full findings database, regardless of scope.
+ * @param {Object} report
+ * @param {Object} [gateConfig={}]
+ * @returns {Object} Mutated report.
+ */
+function compileGateStatus(report, gateConfig = {}) {
+    if (!report || typeof report !== 'object') return report;
+
+    const allFindings = getReportFindings(report);
+    const allIssues = allFindings.map(normalizeFinding).filter(Boolean);
+
+    const failOn = Array.isArray(gateConfig.failOn) ? gateConfig.failOn : (gateConfig.failOn ? [gateConfig.failOn] : ['high']);
+    const warnOn = Array.isArray(gateConfig.warnOn) ? gateConfig.warnOn : (gateConfig.warnOn ? [gateConfig.warnOn] : ['medium', 'low']);
+    const severityWeights = { critical: 4, high: 3, medium: 2, low: 1 };
+    const failWeights = failOn.map((s) => severityWeights[s.toLowerCase()] || 3).filter(Boolean);
+    const targetWeight = failWeights.length ? Math.min(...failWeights) : 3;
+
+    const blockingIssues = [];
+    const warningIssues = [];
+    for (const issue of allIssues) {
+        if (!isBlockingIssue(issue)) continue;
+        const weight = severityWeights[issue.severity] || 1;
+        if (weight >= targetWeight) {
+            blockingIssues.push(issue);
+        } else if (warnOn.includes(issue.severity)) {
+            warningIssues.push(issue);
+        }
+    }
+
+    const blockingCount = blockingIssues.reduce((sum, i) => sum + (i.count || 1), 0);
+    const warningCount = warningIssues.reduce((sum, i) => sum + (i.count || 1), 0);
+    const severityCounts = countBySeverity(allIssues);
+    const qualityScore = computeQualityScoreFromIssues(allIssues, gateConfig);
+
+    report.gate = {
+        pass: blockingCount === 0,
+        failOn,
+        warnOn,
+        blockingCount,
+        warningCount,
+        blockingIssues,
+        warningIssues
+    };
+
+    report.scan_summary = report.scan_summary || {};
+    report.scan_summary.status = blockingCount === 0 ? 'PASSED' : 'FAILED';
+    report.scan_summary.block_merge = blockingCount > 0;
+    report.scan_summary.total_risks_found = blockingCount;
+    report.scan_summary.critical_severity_count = severityCounts.critical || 0;
+    report.scan_summary.high_severity_count = severityCounts.high || 0;
+    report.scan_summary.medium_severity_count = severityCounts.medium || 0;
+    report.scan_summary.low_severity_count = severityCounts.low || 0;
+
+    report.issueCount = blockingCount;
+    report.severityCounts = severityCounts;
+    if (report.summary && typeof report.summary === 'object') {
+        report.summary.totalFindings = allIssues.length;
+        report.summary.severityCounts = severityCounts;
+    }
+
+    report.qualityScore = qualityScore;
+    report.rawIssues = blockingIssues;
+    report.detectedIssues = groupIssues(blockingIssues).slice(0, 12);
+
+    return reconcileScanReport(report);
 }
 
 /**
@@ -497,12 +637,24 @@ function computeFilesAnalyzed(mockCount, credentialScan, productionLeakScan, sou
  * @param {Set<string>} [opts.skipDirs]
  * @param {number} [opts.maxFiles=500000]
  * @param {boolean} [opts.quiet=false]
+ * @param {Function} [opts.onProgress]
  * @returns {Promise<Array<{path:string,name:string,ext:string,size:number,relativePath:string}>>}
  */
 const NODE_MODULES_RE = /(^|[\\/])node_modules([\\/]|$)/i;
+const WALK_PROGRESS_EVERY = Number(process.env.SIMPLEBEACON_WALK_PROGRESS_EVERY) || 250;
+
+function notifyWalkProgress(results, onProgress) {
+    if (typeof onProgress !== 'function' || !results.length) return;
+    if (results.length % WALK_PROGRESS_EVERY !== 0) return;
+    try {
+        onProgress({ processed: results.length });
+    } catch {
+        /* best-effort */
+    }
+}
 
 async function walkAndCollectFiles(opts) {
-    const { dir, results = [], depth = 0, rootDir = null, maxDepth = 6, skipDirs = MOCK_WALK_SKIP_DIRS, maxFiles = 500000, quiet = false } = opts;
+    const { dir, results = [], depth = 0, rootDir = null, maxDepth = 6, skipDirs = MOCK_WALK_SKIP_DIRS, maxFiles = 500000, quiet = false, onProgress = null } = opts;
     if (typeof dir !== 'string') return results;
     if (depth > maxDepth) return results;
     if (results.length >= maxFiles) return results;
@@ -535,6 +687,7 @@ async function walkAndCollectFiles(opts) {
             if (batch.length >= CONCURRENCY) {
                 await Promise.all(batch);
                 batch.length = 0;
+                notifyWalkProgress(results, onProgress);
                 if (results.length >= maxFiles) return results;
             }
             continue;
@@ -566,6 +719,7 @@ async function walkAndCollectFiles(opts) {
             if (batch.length >= CONCURRENCY) {
                 await Promise.all(batch);
                 batch.length = 0;
+                notifyWalkProgress(results, onProgress);
             }
             continue;
         }
@@ -586,14 +740,17 @@ async function walkAndCollectFiles(opts) {
                 size,
                 relativePath
             });
+            notifyWalkProgress(results, onProgress);
         })());
         if (batch.length >= CONCURRENCY) {
             await Promise.all(batch);
             batch.length = 0;
+            notifyWalkProgress(results, onProgress);
         }
     }
     if (batch.length > 0) {
         await Promise.all(batch);
+        notifyWalkProgress(results, onProgress);
     }
     return results;
 }
@@ -800,6 +957,8 @@ function buildScanReport(opts) {
         scannerVersion: '1.0.0',
         rulesEnabled,
         gatePolicy: config.gate || { failOn: ['high'], warnOn: ['medium', 'low'] },
+        diffOnly: Array.isArray(opts.diffFiles) && opts.diffFiles.length > 0,
+        diffFileCount: Array.isArray(opts.diffFiles) ? opts.diffFiles.length : 0,
         mockSampleFilesInScanPaths: uniqueFiles.length,
         pageSpecCatalogSize,
         pageSpecsValidated: schemaStats.pageSampleSchemaChecked,
@@ -967,7 +1126,7 @@ function buildScanReport(opts) {
         warningIssues: gateSummary.warningIssues || []
     };
 
-    return draftReport;
+    return reconcileScanReport(draftReport);
 }
 
 async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
@@ -985,7 +1144,7 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         /* best-effort cache clear — file may not exist */
     }
     const { platformRoot } = resolvePlatformRoot(scanRoot);
-    const root = platformRoot;
+    const root = scanRoot;
     const rawConfig = options.config || loadSimplebeaconConfig(root, options.configPath);
     // Deep-clone to avoid mutating the caller's config object on tier-sanitize / flag overrides
     const config = JSON.parse(JSON.stringify(rawConfig || {}));
@@ -997,19 +1156,12 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
     }
 
     // --- Scan quota enforcement ---
-    const tierInfo = detectTier();
+    const tierInfo = options.tierLimits && options.tier
+        ? { tier: options.tier, paid: Boolean(options.paidLicense), limits: options.tierLimits }
+        : detectTier();
     const isPipeline = options.ci || isPipelineScan();
 
-    if (isPipeline && !tierInfo.paid) {
-        return {
-            type: 'simplebeacon-report',
-            reportVersion: 2,
-            generatedAt: new Date().toISOString(),
-            error: 'Pipeline scans require a paid license. Upgrade at https://simplebeacon.ai/pricing',
-            tier: tierInfo.tier,
-            scan_summary: { status: 'BLOCKED', block_merge: true, reason: 'tier_too_low' }
-        };
-    }
+    // Community CI gate is allowed; paid tokens unlock higher limits via resolveCiLicense in the CLI entrypoint.
 
     const quotaCheck = isPipeline
         ? { allowed: true, scansRemaining: tierInfo.limits.maxScansPerPeriod } // Pipeline: validate via token on server
@@ -1056,13 +1208,20 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         .filter(Boolean);
     const scanPaths = resolveEffectiveScanPaths(scanRoot, root, config, sanitizedExtraPaths);
     const schemaEnabled = isRuleEnabled(config, 'json-schema');
-    const FULL_TREE_MINIMAL_SKIP_DIRS = ['.git', 'github-cache', '.simplebeacon', '.vscode-test', 'simplebeacon-vscode-merged', 'ai-tools', 'ai-agent'];
-    const inventoryPromise = countRepositoryInventory(root, {
+    const FULL_TREE_MINIMAL_SKIP_DIRS = ['.git', 'github-cache', '.simplebeacon', '.vscode-test', 'simplebeacon-vscode-merged', 'ai-tools', 'ai-agent', 'node_modules', 'dist', 'build', 'out', 'coverage', '.next', '.cache'];
+    const inventoryPromise = countRepositoryInventory(platformRoot, {
         profile: config.fullDirectoryScan ? 'all' : (options.inventoryProfile || 'universal'),
         skipDirs: config.fullDirectoryScan
             ? (config.fullDirectoryScanSkipDirs ? [...config.fullDirectoryScanSkipDirs] : FULL_TREE_MINIMAL_SKIP_DIRS)
             : [...MOCK_WALK_SKIP_DIRS]
     });
+
+    const progressWriter = options.noProgress
+        ? { update() {}, clear() {} }
+        : createScanProgressWriter(resolveScanProgressPath(scanRoot, options), {
+            projectPath: scanRoot,
+            fileKind: config.fullDirectoryScan ? 'full-tree' : 'scan-scoped'
+        });
 
     const files = [];
     const scanMaxDepth = config.fullDirectoryScan ? 100 : (config.scanMaxDepth || 12);
@@ -1070,20 +1229,74 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
     if (config.fullDirectoryScan) {
         skipDirs = config.fullDirectoryScanSkipDirs ? new Set(config.fullDirectoryScanSkipDirs) : new Set(FULL_TREE_MINIMAL_SKIP_DIRS);
     }
-    const walkQuiet = options.quiet || process.env.SIMPLEBEACON_QUIET === '1';
-    for (const scanPath of scanPaths) {
-        if (fs.existsSync(scanPath)) { // simplebeacon-ignore sync-io — path validation before async walk
-            await walkAndCollectFiles({ dir: scanPath, results: files, depth: 0, rootDir: null, maxDepth: scanMaxDepth, skipDirs, maxFiles: undefined, quiet: walkQuiet });
-        }
-    }
-    let uniqueFiles = dedupeScannedFiles(files);
-    if (Array.isArray(options.exclude) && options.exclude.length > 0) {
-        const excludePatterns = options.exclude.map((p) => p.replace(/\\/g, '/'));
-        uniqueFiles = uniqueFiles.filter((f) => {
-            const rel = f.relativePath || '';
-            return !excludePatterns.some((pat) => rel.includes(pat));
+    const skipDirsList = [...skipDirs];
+    let walkTotalHint = null;
+
+    try {
+        inventoryPromise.then((inv) => {
+            if (inv && typeof inv.totalFiles === 'number') {
+                walkTotalHint = inv.totalFiles;
+                progressWriter.update({
+                    repositoryAuditFiles: inv.totalFiles,
+                    total: walkTotalHint
+                });
+            }
+        }).catch(() => {});
+
+        progressWriter.update({
+            active: true,
+            phase: 'walk',
+            label: config.fullDirectoryScan ? 'Full-tree gate walk' : 'Gate walk',
+            skipDirs: skipDirsList,
+            processed: 0,
+            total: walkTotalHint
         });
-    }
+
+        const walkQuiet = options.quiet || process.env.SIMPLEBEACON_QUIET === '1';
+        for (const scanPath of scanPaths) {
+            if (fs.existsSync(scanPath)) { // simplebeacon-ignore sync-io — path validation before async walk
+                await walkAndCollectFiles({
+                    dir: scanPath,
+                    results: files,
+                    depth: 0,
+                    rootDir: null,
+                    maxDepth: scanMaxDepth,
+                    skipDirs,
+                    maxFiles: undefined,
+                    quiet: walkQuiet,
+                    onProgress: ({ processed }) => {
+                        progressWriter.update({
+                            phase: 'walk',
+                            label: config.fullDirectoryScan ? 'Full-tree gate walk' : 'Gate walk',
+                            processed,
+                            total: walkTotalHint || processed,
+                            skipDirs: skipDirsList
+                        });
+                    }
+                });
+            }
+        }
+        let uniqueFiles = dedupeScannedFiles(files);
+        if (Array.isArray(options.exclude) && options.exclude.length > 0) {
+            const excludePatterns = options.exclude.map((p) => p.replace(/\\/g, '/'));
+            uniqueFiles = uniqueFiles.filter((f) => {
+                const rel = f.relativePath || '';
+                return !excludePatterns.some((pat) => rel.includes(pat));
+            });
+        }
+        if (Array.isArray(options.diffFiles) && options.diffFiles.length > 0) {
+            const diffSet = new Set(options.diffFiles.map((entry) => String(entry).replace(/\\/g, '/')));
+            uniqueFiles = uniqueFiles.filter((f) => diffSet.has((f.relativePath || '').replace(/\\/g, '/')));
+        }
+
+        walkTotalHint = uniqueFiles.length;
+        progressWriter.update({
+            phase: 'walk',
+            label: config.fullDirectoryScan ? 'Full-tree gate walk' : 'Gate walk',
+            processed: uniqueFiles.length,
+            total: uniqueFiles.length,
+            skipDirs: skipDirsList
+        });
 
     const categories = new Map();
     const issues = [];
@@ -1459,6 +1672,13 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         if (!quiet && process.stderr.isTTY && totalRules > 0) {
             process.stderr.write(`\rScanning: ${completedRules}/${totalRules} rules complete (${name})... `);
         }
+        progressWriter.update({
+            phase: 'rules',
+            label: `Rule scan: ${name}`,
+            processed: completedRules,
+            total: totalRules,
+            skipDirs: skipDirsList
+        });
         if (onProgress) {
             try { onProgress({ completed: completedRules, total: totalRules, currentRule: name }); } catch {}
         }
@@ -1612,13 +1832,17 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
         tierInfo, quotaCheck, isPipeline, scoringIssues,
         benchmarkCacheIssues, pageSpecCatalogSize, pageSpecsFromAlias,
         rulesEnabled, gateResult, scanErrors,
-        ruleTimings, categories
+        ruleTimings, categories, diffFiles: options.diffFiles
     });
 
     const normalizedReport = normalizePlatformScanReport(draftReport, { gateConfig: config.gate });
     const totalElapsedMs = Math.round(Number(process.hrtime.bigint() - scanStart) / 1_000_000);
     normalizedReport.totalScanDurationMs = totalElapsedMs;
+    compileGateStatus(normalizedReport, config.gate || {});
     return applyTierLimits(normalizedReport, options);
+    } finally {
+        progressWriter.clear();
+    }
 }
 
 /**
@@ -1646,9 +1870,13 @@ module.exports = {
     resolveEffectiveScanPaths,
     computeFilesAnalyzed,
     applyTierLimits,
+    compileGateStatus,
     readFileCached,
     readFileCachedAsync,
     clearFileContentCache,
     loadSimplebeaconIgnorePatterns,
-    isIgnoredPath
+    isIgnoredPath,
+    globToRegex,
+    cachedGlobToRegex,
+    formatBytes
 };

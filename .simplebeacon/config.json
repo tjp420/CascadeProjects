@@ -59,6 +59,11 @@
     "**/*-test-bench/**",
     "**/benchmark-*/**",
     "**/logs/**",
+    "**/.wrangler/**",
+    "**/tmp/**",
+    "**/temp/**",
+    "**/generated/**",
+    "**/*-roadmap-*.json",
     "**/github-action/**",
     "**/browser-local/**",
     "**/.vscode/**",
@@ -101,7 +106,13 @@
     "**/ai-platform/web/simplebeacon-dashboard/js/**",
     "**/ai-platform/web/simplebeacon-dashboard/data/**",
     "**/logs/**",
-    "**/test-output.log"
+    "**/test-output.log",
+    "**/auth-test-output.txt",
+    "**/*-test-output.txt",
+    "**/Desktop/**",
+    "**/complete-scan*.json",
+    "**/claw-code-main/**",
+    "**/New folder/**"
   ],
   "rules": {
     "credentials": {
