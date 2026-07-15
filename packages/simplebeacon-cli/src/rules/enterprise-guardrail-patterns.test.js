@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
 /**
  * Enterprise guardrail patterns — unit tests for cost-prevention rules.
  */

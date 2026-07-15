@@ -21,7 +21,7 @@ const _repoInventoryPath = '../../../packages/simplebeacon-cli/src/lib/repositor
 const { countRepositoryInventory } = require(_repoInventoryPath);
 const _platformRootPath = '../../../packages/simplebeacon-cli/src/project-detect';
 const { resolvePlatformRoot } = require(_platformRootPath);
-const { formatBytes } = require('./format-bytes.cjs');
+const { formatBytes } = require('../../shared-utils/index.cjs');
 const {
     PRODUCTION_DIR_HINTS,
     NON_PRODUCTION_PATH_HINTS,
@@ -2853,6 +2853,7 @@ function detectLicenseHeaders(content, relativePath) {
  * @returns {any}
  */
 function detectMarkdownFenceLeaks(content, relativePath) {
+    if (isMetaScannerPath(relativePath)) return [];
     const isJsLike = /\.(js|mjs|cjs|ts|tsx|jsx)$/i.test(relativePath);
     const isHtml = /\.(html|htm|vue|svelte)$/i.test(relativePath);
     const isJson = /\.json$/i.test(relativePath);

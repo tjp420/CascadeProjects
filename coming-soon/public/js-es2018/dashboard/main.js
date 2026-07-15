@@ -1967,14 +1967,7 @@ function triggerDirectoryPicker() {
     const isSecureContext = typeof window.isSecureContext !== 'undefined'
         ? window.isSecureContext
         : location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-    // Cross-origin iframes (e.g. VS Code embed) block showDirectoryPicker — skip to fallback
-    var isCrossOriginIframe = false;
-    try {
-        isCrossOriginIframe = window.self !== window.top && window.top.location.origin !== window.location.origin;
-    } catch (e) {
-        isCrossOriginIframe = true;
-    }
-    if (typeof showDirectoryPicker === 'function' && isSecureContext && !isCrossOriginIframe) {
+    if (typeof showDirectoryPicker === 'function' && isSecureContext) {
         console.log('[triggerDirectoryPicker] calling showDirectoryPicker synchronously');
         var pickerTimeout = setTimeout(function() {
             if (isPickerActive) {

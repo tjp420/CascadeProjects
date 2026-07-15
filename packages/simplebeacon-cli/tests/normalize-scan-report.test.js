@@ -124,3 +124,29 @@ test('critical credential issues always block gate', () => {
     assert.equal(normalized.gate.pass, false);
     assert.equal(normalized.gate.blockingCount, 1);
 });
+
+test('reconcileScanReport aligns scan_summary with gate blockingCount', () => {
+    const { reconcileScanReport } = require('../src/lib/normalize-scan-report');
+    const report = reconcileScanReport({
+        type: 'simplebeacon-report',
+        scan_summary: { status: 'PASSED', block_merge: false },
+        summary: { gatePass: true },
+        metrics: { status: 'OK' },
+        gate: {
+            pass: true,
+            blockingCount: 1,
+            blockingIssues: [{
+                file: 'server/lib/__tests__/audit-remediation-classify.test.cjs',
+                type: 'hardcoded-api-key',
+                severity: 'high',
+                line: 26,
+                message: 'Hardcoded API key detected'
+            }]
+        }
+    });
+    assert.equal(report.scan_summary.status, 'FAILED');
+    assert.equal(report.scan_summary.block_merge, true);
+    assert.equal(report.gate.pass, false);
+    assert.equal(report.metrics.status, 'CRITICAL_BLOCK');
+    assert.equal(report.summary.gatePass, false);
+});

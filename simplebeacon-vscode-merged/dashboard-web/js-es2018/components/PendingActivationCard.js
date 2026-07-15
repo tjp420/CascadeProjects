@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
 import { showToast } from '../utils/dom.js';
 /**
  * Reusable pending-activation fallback card.

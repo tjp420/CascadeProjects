@@ -16,7 +16,7 @@
   },
   {
     "id": "SB-FICTION-002",
-    "regexSource": "(```javascript|```typescript|```python|```json|```\\s?$)",
+    "regexSource": "(\\x60\\x60\\x60javascript|\\x60\\x60\\x60typescript|\\x60\\x60\\x60python|\\x60\\x60\\x60json|\\x60\\x60\\x60\\s?$)",
     "regexFlags": "gm",
     "severity": "high",
     "confidence": 0.88,

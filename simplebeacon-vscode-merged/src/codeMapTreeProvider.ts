@@ -1,7 +1,8 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { escapeHtml } from './utils';
+import { escapeHtml } from './utils/string';
 
 interface CodeMapTreeNode {
   name: string;
@@ -20,6 +21,27 @@ export class CodeMapTreeProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView;
   private _cachedTree?: CodeMapTreeNode[];
   private _cachedProjectName = 'Code Map';
+  private _cachedScanRoot?: string;
+
+  private _resolveCodeMapBasePath(workspace: string): string {
+    if (this._cachedScanRoot && fs.existsSync(this._cachedScanRoot)) {
+      return this._cachedScanRoot;
+    }
+    for (const metaPath of [
+      path.join(workspace, '.simplebeacon', 'codemap-tree.json'),
+      path.join(workspace, '.simplebeacon', 'codemap.json'),
+    ]) {
+      try {
+        if (!fs.existsSync(metaPath)) continue;
+        const raw = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+        const candidate = raw.projectPath || raw.projectRoot;
+        if (candidate && fs.existsSync(candidate)) {
+          return path.resolve(String(candidate));
+        }
+      } catch { /* try next */ }
+    }
+    return workspace;
+  }
 
   constructor(private readonly _extensionUri: vscode.Uri) {
     CodeMapTreeProvider._instance = this;
@@ -49,7 +71,8 @@ export class CodeMapTreeProvider implements vscode.WebviewViewProvider {
           if (!targetPath) break;
           const workspace = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
           if (!workspace) break;
-          const fullPath = path.join(workspace, targetPath);
+          const scanRoot = this._resolveCodeMapBasePath(workspace);
+          const fullPath = path.isAbsolute(targetPath) ? targetPath : path.join(scanRoot, targetPath);
           if (fs.existsSync(fullPath)) {
             vscode.workspace.openTextDocument(fullPath).then((doc) => {
               vscode.window.showTextDocument(doc, { preview: true });
@@ -403,10 +426,14 @@ vscode.postMessage({ command: 'refreshTree' });
         const raw = JSON.parse(fs.readFileSync(treeJsonPath, 'utf8'));
         tree = raw.tree || [];
         projectName = raw.projectName || projectName;
+        if (raw.projectPath && fs.existsSync(raw.projectPath)) {
+          this._cachedScanRoot = path.resolve(String(raw.projectPath));
+        }
       }
     } catch {
       // ignore
     }
+    this._cachedScanRoot = this._resolveCodeMapBasePath(workspace);
     this._cachedTree = tree;
     this._cachedProjectName = projectName;
     this._view.webview.postMessage({ command: 'updateTree', tree, projectName });

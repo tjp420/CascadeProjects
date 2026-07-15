@@ -21,7 +21,8 @@ const META_SCANNER_PATHS = new Set([
     'server/lib/codebase-analyzer.js',
     'server/lib/codebase-analyzer.cjs',
     'server/lib/file-quality-heuristics.js',
-    'packages/simplebeacon-cli/python/simplebeacon_ast_scan.py'
+    'packages/simplebeacon-cli/python/simplebeacon_ast_scan.py',
+    'web/simplebeacon-dashboard/js-es2018/services/scanWorker.js'
 ]);
 const DUPLICATE_MIRROR_PREFIXES = [
     'src/web/', 'src/ai-system/', 'deployments/', 'coming-soon/', '.github-sync/'

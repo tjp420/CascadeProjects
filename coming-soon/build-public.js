@@ -36,7 +36,7 @@ const files = [
   'faq.html', 'privacy.html', 'refund.html', 'roadmap.html',
   'security.html', 'terms.html', 'unlock.html',
   'styles.css', 'app-links.js', 'site-config.js',
-  'js/auth.js', 'js/roadmap-app.js', 'js/scan-worker.js', 'js/terminal-simulation.js',
+  'js/auth.js', 'js/roadmap-app.js', 'js/scan-worker.js', 'js/terminal-simulation.js', 'js/token-entry-guard.js',
   'favicon.svg', 'robots.txt', 'sitemap.xml', '_redirects'
 ];
 
@@ -72,6 +72,14 @@ for (const d of dirs) {
   }
 }
 
+// Audit page scripts live under js/dashboard — mirror to js-es2018/dashboard for Pages
+const auditDashSrc = path.join(src, 'js', 'dashboard');
+const auditDashDst = path.join(dst, 'js-es2018', 'dashboard');
+if (fs.existsSync(auditDashSrc)) {
+  fs.mkdirSync(auditDashDst, { recursive: true });
+  copyRecursive(auditDashSrc, auditDashDst);
+}
+
 // Copy the full ai-platform dashboard app into public/dashboard
 const dashboardSrc = path.resolve(__dirname, '..', 'ai-platform', 'web', 'simplebeacon-dashboard');
 const dashboardDst = path.join(dst, 'dashboard');
@@ -92,9 +100,15 @@ if (fs.existsSync(dashboardSrc)) {
 // so any cached/embedded view resolving it under the dashboard path gets real JS instead of HTML.
 const terminalSimSrc = path.join(src, 'js', 'terminal-simulation.js');
 const dashboardJsDst = path.join(dashboardDst, 'js', 'terminal-simulation.js');
-if (fs.existsSync(terminalSimSrc) && fs.existsSync(dashboardDst)) {
+  if (fs.existsSync(terminalSimSrc) && fs.existsSync(dashboardDst)) {
   fs.mkdirSync(path.dirname(dashboardJsDst), { recursive: true });
   fs.copyFileSync(terminalSimSrc, dashboardJsDst);
+}
+
+const dashboardMain = path.join(dashboardDst, 'js-es2018', 'main.js');
+if (!fs.existsSync(dashboardMain)) {
+  console.error('FATAL: dashboard js-es2018/main.js missing after copy — Analyze page will not load.');
+  process.exit(1);
 }
 
 process.stdout.write('Public build complete\n');

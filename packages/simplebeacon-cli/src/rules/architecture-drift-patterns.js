@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
 /**
  * Architecture drift — hybrid/SSM model identifiers without schema validators (gate when enabled).
  * Production paths only; opt-in via config.rules['architecture-drift-patterns'].

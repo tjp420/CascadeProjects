@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 import * as http from 'http';
 import * as fs from 'fs';
 import * as path from 'path';
-import { getSbConfig } from '../utils';
+import { getSbConfig } from '../utils/vscode';
 import { SimpleBeaconProvider, ScanIssue } from './simplebeaconProvider';
 import { ScanPanel } from './scanPanel';
 import { UploadPanel } from './uploadPanel';

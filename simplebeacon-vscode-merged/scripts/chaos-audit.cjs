@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
 /**
  * SimpleBeacon Real-World Chaos Fuzzing Suite
  * Clones massive public repositories and runs full 56-engine scans.

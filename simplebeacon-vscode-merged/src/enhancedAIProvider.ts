@@ -5,7 +5,7 @@ import * as fs from 'fs';
 import * as crypto from 'crypto';
 import { analyzeWorkspace, ScanResult, Finding, ScanProfile, ANALYZER_PRESETS } from './analyzers/workspaceAnalyzer';
 import { RawIssue } from './scanProvider';
-import { pickWorkspaceFolder, showQuietMessage, getSbConfig } from './utils';
+import { pickWorkspaceFolder, showQuietMessage, getSbConfig } from './utils/vscode';
 
 interface LooseScanReport {
   findings?: Finding[];

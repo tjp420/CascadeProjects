@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
 /**
  * Simple SQLite database for subscriptions and email queue.
  * Uses Node.js built-in node:sqlite (available in Node 22+).

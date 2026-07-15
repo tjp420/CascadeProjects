@@ -407,6 +407,77 @@ export function freezeDeep<T>(obj: T): T {
 }
 
 /**
+ * Recursively freeze every object in a namespace map.
+ * Safely handles Date, RegExp, Map, Set, WeakMap, WeakSet, Promise, and Error.
+ * @template T
+ * @param {T} ns Namespace object whose values are objects to freeze.
+ * @returns {T} Deeply frozen copy of the namespace.
+ */
+export function freezeNamespace<T extends Record<string, unknown>>(ns: T): T {
+  if (ns == null || typeof ns !== 'object') return ns;
+  if (Object.isFrozen(ns)) return ns;
+
+  const seen = new WeakMap<object, unknown>();
+
+  function deepFreeze(val: unknown): unknown {
+    if (val == null || typeof val !== 'object') return val;
+    if (seen.has(val)) return seen.get(val);
+    if (Object.isFrozen(val)) return val;
+
+    const ctor = (val as Record<string, unknown>).constructor;
+    if (ctor === Date || ctor === RegExp || ctor === WeakMap || ctor === WeakSet || ctor === Promise || ctor === Error) return val;
+    if (ctor === BigInt) return val;
+    if (ctor === URL || ctor === URLSearchParams) return val;
+    if (ArrayBuffer.isView(val)) return val;
+    if (ctor === ArrayBuffer || ctor === SharedArrayBuffer) return val;
+
+    if (ctor === Map) {
+      const frozenMap = new Map<unknown, unknown>();
+      seen.set(val, frozenMap);
+      for (const [k, v] of val as Map<unknown, unknown>) {
+        frozenMap.set(k, deepFreeze(v));
+      }
+      try { Object.freeze(frozenMap); } catch (_e) { /* ignore */ }
+      return frozenMap;
+    }
+
+    if (ctor === Set) {
+      const frozenSet = new Set<unknown>();
+      seen.set(val, frozenSet);
+      for (const v of val as Set<unknown>) {
+        frozenSet.add(deepFreeze(v));
+      }
+      try { Object.freeze(frozenSet); } catch (_e) { /* ignore */ }
+      return frozenSet;
+    }
+
+    if (Array.isArray(val)) {
+      const frozenArr = new Array(val.length);
+      seen.set(val, frozenArr);
+      for (let i = 0; i < val.length; i++) {
+        frozenArr[i] = deepFreeze(val[i]);
+      }
+      try { Object.freeze(frozenArr); } catch (_e) { /* ignore */ }
+      return frozenArr;
+    }
+
+    const frozenObj: Record<PropertyKey, unknown> = {};
+    seen.set(val, frozenObj);
+    for (const key of Reflect.ownKeys(val as object)) {
+      frozenObj[key] = deepFreeze((val as Record<PropertyKey, unknown>)[key]);
+    }
+    try { Object.freeze(frozenObj); } catch (_e) { /* ignore */ }
+    return frozenObj;
+  }
+
+  const frozen: Record<string, unknown> = {};
+  for (const key of Object.keys(ns)) {
+    frozen[key] = deepFreeze(ns[key]);
+  }
+  return Object.freeze(frozen) as T;
+}
+
+/**
  * Map over object values, returning a new object.
  * @template T, R
  * @param {Record<string, T>} obj

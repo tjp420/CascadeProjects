@@ -79,10 +79,10 @@ export function formatScanProgressDetails(sp, options = {}) {
     const explorer = options.explorerInventory;
     if (fullTree && total != null) {
         const skipped = Array.isArray(sp.skipDirs) ? sp.skipDirs : [];
-        const strictFullTree = Boolean(options.fullDirectoryScan && skipped.length <= 1);
-        scopeParts.push(strictFullTree
+        const includesNodeModules = skipped.length > 0 && !skipped.includes('node_modules');
+        scopeParts.push(includesNodeModules
             ? 'Every file under the selected path is included (node_modules, etc.) — skips .git, .github-sync CLI mirror, and github-cache benchmark clones only.'
-            : `This step scans ${formatNumber(total)} files after skipping ${skipped.length ? skipped.join(', ') : 'configured dirs'}.`);
+            : `This step scans ${formatNumber(total)} files after skipping ${skipped.length ? skipped.join(', ') : 'node_modules, .git, and build artifacts'}.`);
         if ((explorer === null || explorer === void 0 ? void 0 : explorer.totalFiles) != null && Math.abs(explorer.totalFiles - total) > 50) {
             const folderPart = explorer.totalFolders != null
                 ? ` / ${formatNumber(explorer.totalFolders)} folders`

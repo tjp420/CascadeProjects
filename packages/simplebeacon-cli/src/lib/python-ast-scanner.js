@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
 /**
  * Optional Python AST sidecar — spawns local simplebeacon_ast_scan.py, merges into rawIssues shape.
  */
@@ -7,7 +8,7 @@ const fs = require('fs');
 const path = require('path');
 const { globMatch } = require('../rules/production-leak');
 const { isExcludedPath, isUnderProductionPaths } = require('../rules/ai-runtime-scan-common');
-const constants = require('../../../../ai-platform/server/config/constants.cjs');
+const constants = require('./constants');
 
 const SCRIPT_REL = path.join('python', 'simplebeacon_ast_scan.py');
 const SCAN_TIMEOUT_MS = 120000;

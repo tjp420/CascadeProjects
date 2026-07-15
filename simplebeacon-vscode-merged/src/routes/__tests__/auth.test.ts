@@ -1,5 +1,4 @@
 import { handleAuthRoutes } from '../auth';
-import { describe, it } from 'node:test';
 import assert from 'node:assert';
 import { IncomingMessage, ServerResponse } from 'http';
 
@@ -31,72 +30,46 @@ function mockRes(): ServerResponse {
   return res as ServerResponse;
 }
 
-describe('Auth route stubs', () => {
+describe('Auth route fallback', () => {
   it('returns false for non-auth paths', () => {
     const req = mockReq('GET', '/api/health');
     const res = mockRes();
     const parsed = new URL('http://localhost/api/health');
-    const handled = handleAuthRoutes(req, res, parsed);
-    assert.strictEqual(handled, false);
+    assert.strictEqual(handleAuthRoutes(req, res, parsed), false);
   });
 
-  it('handles /api/auth/login', () => {
+  it('returns false for /api/auth/login (handled upstream)', () => {
     const req = mockReq('POST', '/api/auth/login');
     const res = mockRes();
     const parsed = new URL('http://localhost/api/auth/login');
-    const handled = handleAuthRoutes(req, res, parsed);
-    assert.strictEqual(handled, true);
-    assert.strictEqual((res as any).statusCode, 200);
-    const body = JSON.parse((res as any).body);
-    assert.strictEqual(body.success, true);
-    assert.ok(body.token);
-    assert.ok(body.user);
+    assert.strictEqual(handleAuthRoutes(req, res, parsed), false);
   });
 
-  it('handles /api/auth/me', () => {
+  it('returns false for /api/auth/me (handled upstream)', () => {
     const req = mockReq('GET', '/api/auth/me');
     const res = mockRes();
     const parsed = new URL('http://localhost/api/auth/me');
-    const handled = handleAuthRoutes(req, res, parsed);
-    assert.strictEqual(handled, true);
-    assert.strictEqual((res as any).statusCode, 200);
-    const body = JSON.parse((res as any).body);
-    assert.strictEqual(body.success, true);
-    assert.ok(body.user);
-    assert.strictEqual(body.user.plan, 'pro');
+    assert.strictEqual(handleAuthRoutes(req, res, parsed), false);
   });
 
-  it('handles /api/auth/logout', () => {
+  it('returns false for /api/auth/logout (handled upstream)', () => {
     const req = mockReq('POST', '/api/auth/logout');
     const res = mockRes();
     const parsed = new URL('http://localhost/api/auth/logout');
-    const handled = handleAuthRoutes(req, res, parsed);
-    assert.strictEqual(handled, true);
-    assert.strictEqual((res as any).statusCode, 200);
-    const body = JSON.parse((res as any).body);
-    assert.strictEqual(body.success, true);
+    assert.strictEqual(handleAuthRoutes(req, res, parsed), false);
   });
 
-  it('handles /api/auth/check-token-password', () => {
+  it('returns false for /api/auth/check-token-password (handled upstream)', () => {
     const req = mockReq('POST', '/api/auth/check-token-password');
     const res = mockRes();
     const parsed = new URL('http://localhost/api/auth/check-token-password');
-    const handled = handleAuthRoutes(req, res, parsed);
-    assert.strictEqual(handled, true);
-    assert.strictEqual((res as any).statusCode, 200);
-    const body = JSON.parse((res as any).body);
-    assert.strictEqual(body.hasPassword, false);
-    assert.strictEqual(body.success, true);
+    assert.strictEqual(handleAuthRoutes(req, res, parsed), false);
   });
 
-  it('handles /api/auth/set-token-password', () => {
+  it('returns false for /api/auth/set-token-password (handled upstream)', () => {
     const req = mockReq('POST', '/api/auth/set-token-password');
     const res = mockRes();
     const parsed = new URL('http://localhost/api/auth/set-token-password');
-    const handled = handleAuthRoutes(req, res, parsed);
-    assert.strictEqual(handled, true);
-    assert.strictEqual((res as any).statusCode, 200);
-    const body = JSON.parse((res as any).body);
-    assert.strictEqual(body.success, true);
+    assert.strictEqual(handleAuthRoutes(req, res, parsed), false);
   });
 });

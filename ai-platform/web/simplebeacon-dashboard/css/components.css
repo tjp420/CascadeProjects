@@ -4960,10 +4960,112 @@ button.tool-card.help-page-card:hover {
   min-height: 220px;
 }
 
-/* Hide legacy 4000-agent status; the main #agent-status already covers the local agent on 55432 */
+/* Hide legacy 4000-agent status on localhost; show on hosted dashboard for IDE bridge */
 #agent-4000-status,
 .analyze-target-redesign #agent-4000-status {
   display: none;
+}
+
+.analyze-target-redesign.is-hosted-scan #agent-4000-status {
+  display: block;
+  margin-top: 8px;
+  font-size: var(--font-size-sm);
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background: var(--surface);
+}
+
+.analyze-target-redesign.is-hosted-scan #agent-4000-status.available {
+  border-color: rgba(34, 197, 94, 0.35);
+  color: var(--text);
+}
+
+.analyze-target-redesign.is-hosted-scan #agent-4000-status.unavailable {
+  border-color: rgba(234, 179, 8, 0.35);
+  color: var(--text-muted);
+}
+
+.analyze-hosted-guide {
+  margin-bottom: var(--space-4);
+  padding: 12px 14px;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  background: rgba(99, 102, 241, 0.06);
+}
+
+.analyze-hosted-guide-title {
+  margin: 0 0 6px;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.analyze-hosted-guide-body {
+  margin: 0 0 10px;
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.analyze-hosted-steps {
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+
+.analyze-hosted-steps li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary, var(--text-muted));
+}
+
+.analyze-hosted-step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 999px;
+  background: rgba(99, 102, 241, 0.18);
+  color: var(--accent, #818cf8);
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.analyze-cap-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.analyze-cap-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+  border: 1px solid var(--border-color);
+  background: var(--surface);
+  color: var(--text-muted);
+}
+
+.analyze-cap-pill.is-ok {
+  border-color: rgba(34, 197, 94, 0.35);
+  color: rgb(22, 163, 74);
+}
+
+.analyze-cap-pill.is-warn {
+  border-color: rgba(234, 179, 8, 0.45);
+  color: rgb(180, 83, 9);
 }
 
 /* Give the compliance report / agent results container room so it doesn't crowd the input area */

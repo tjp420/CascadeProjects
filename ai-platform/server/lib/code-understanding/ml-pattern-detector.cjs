@@ -175,8 +175,7 @@ class StatisticalPatternDetector {
         const contentLower = content.toLowerCase();
         
         for (const [patternId, pattern] of this.patterns) {
-            const detection = this.analyzePattern(content, contentLower, pattern, context);
-            
+            const detection = this.analyzePattern(content, contentLower, pattern, context);            
             if (detection.confidence > 0.3) { // Minimum confidence threshold
                 detectedPatterns.push({
                     id: patternId,
@@ -205,7 +204,7 @@ class StatisticalPatternDetector {
         const locations = [];
         
         for (const indicator of pattern.indicators) {
-            const match = this.checkIndicator(content, contentLower, indicator);
+            const match = this.checkIndicator(content, contentLower, indicator, context);
             
             if (match.found) {
                 totalScore += match.score * indicator.weight;
@@ -236,7 +235,7 @@ class StatisticalPatternDetector {
     /**
      * Check specific indicator
      */
-    checkIndicator(content, contentLower, indicator) {
+    checkIndicator(content, contentLower, indicator, context = {}) {
         const { type, pattern } = indicator;
         const regex = new RegExp(pattern, 'gi');
         const matches = [];

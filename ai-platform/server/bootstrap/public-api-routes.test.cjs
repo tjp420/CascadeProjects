@@ -7,9 +7,9 @@ describe('public-api-routes', () => {
     assert.ok(mod, 'module should export something');
   });
 
-  it('has expected exports', () => {
-    const keys = Object.keys(mod || {});
-    // Add assertions for expected named exports here
-    assert.ok(Array.isArray(keys), 'should have enumerable exports');
+  it('allows free token routes without auth', () => {
+    assert.strictEqual(mod.isPublicApiRoute('free-token', 'POST'), true);
+    assert.strictEqual(mod.isPublicApiRoute('tokens/sandbox', 'POST'), true);
+    assert.strictEqual(mod.isPublicApiRoute('simplebeacon/billing/resend-token', 'POST'), true);
   });
 });

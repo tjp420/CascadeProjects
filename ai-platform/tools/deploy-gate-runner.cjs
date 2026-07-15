@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
 /**
  * Cross-platform deploy gate runner
  * Selects the appropriate deploy script for the current platform.

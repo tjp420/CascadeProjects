@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { WelcomeDashboard, EnhancedDashboard30, Dashboard40 } from './providers';
 import { updateServerState } from './dataServer';
-import { getExtensionVersion } from './utils';
+import { getExtensionVersion } from './utils/vscode';
 
 export interface DashboardDeps {
   outputChannel: vscode.OutputChannel;
@@ -96,7 +96,8 @@ export function safeUpdateUIs(
       file: f.file || 'unknown'
     }));
 
-    WelcomeDashboard.updateDashboardIfOpen({ files, gate, issues, score, severity: sev, findings: dashboardFindings });
+    const panes: Record<string, Record<string, unknown>> = {};
+    panes.dashboard = { files, gate, issues, score, severity: sev, findings: dashboardFindings };
     modernSidebarProvider.updateReport({ gate, issues, score, qualityScore: score, totalFiles: files, severityCounts: sev });
     outputChannel.appendLine(`[SimpleBeacon] Dashboard update: gate=${gate}, issues=${issues}, score=${score}, files=${files}, severity=${JSON.stringify(sev)}, findings=${dashboardFindings.length}`);
 
@@ -115,7 +116,7 @@ export function safeUpdateUIs(
       { text: 'AI & LLM compliance verified', status: 'Pass' },
       { text: 'Repository files scanned', status: files !== '--' ? 'Pass' : 'Fail' }
     ];
-    WelcomeDashboard.updateCertificatePaneIfOpen({ status: gate === 'PASS' ? 'Pass' : 'Fail', score: certScore, modules: certModules, date: certDate, expiry: certExpiry, gate, severity: sev, requirements: certRequirements });
+    panes.certificate = { status: gate === 'PASS' ? 'Pass' : 'Fail', score: certScore, modules: certModules, date: certDate, expiry: certExpiry, gate, severity: sev, requirements: certRequirements };
 
     // Roadmap pane
     const targetDate = new Date();
@@ -140,7 +141,7 @@ export function safeUpdateUIs(
       description: f.description || f.detail || f.message || ''
     }));
 
-    WelcomeDashboard.updateRoadmapPaneIfOpen({ open: String(openVulns), risk, done: '0', target, status: gate === 'PASS' ? 'Active' : 'Blocked', severity: sev, findings: mappedFindings });
+    panes.roadmap = { open: String(openVulns), risk, done: '0', target, status: gate === 'PASS' ? 'Active' : 'Blocked', severity: sev, findings: mappedFindings };
 
     // AI Context pane
     const aiFindings = findings.filter(f =>
@@ -158,9 +159,9 @@ export function safeUpdateUIs(
       { name: 'Code Generator', meta: 'Stub / boilerplate patterns', status: findings.some(f => (f.type || '').includes('Stub')) ? 'Detected' : 'Monitoring' },
       { name: 'Documentation Bot', meta: 'Inline comment patterns', status: findings.some(f => (f.type || '').includes('Comment')) ? 'Detected' : 'Monitoring' }
     ];
-    WelcomeDashboard.updateAiContextPaneIfOpen({ files, issues, score, severity: sev, status: gate === 'PASS' ? 'Clear' : 'Issues Found', models: String(aiFindings.length > 0 ? aiFindings.length : '0'), aiFindings, aiModels });
+    panes.aiContext = { files, issues, score, severity: sev, status: gate === 'PASS' ? 'Clear' : 'Issues Found', models: String(aiFindings.length > 0 ? aiFindings.length : '0'), aiFindings, aiModels };
 
-    WelcomeDashboard.updateUploadPaneIfOpen({ status: 'Ready', files, gate });
+    panes.upload = { status: 'Ready', files, gate };
 
     // Audit pane
     const vulnCount = findings.filter((f) =>
@@ -186,7 +187,7 @@ export function safeUpdateUIs(
     if (high > 0) recommendations.push(`Prioritize ${high} high severity findings`);
     if (recommendations.length === 0) recommendations.push('All checks passed. Maintain regular scanning schedule.');
 
-    WelcomeDashboard.updateAuditPaneIfOpen({
+    panes.audit = {
       vulnerabilities: String(vulnCount),
       secrets: String(secretCount),
       passed: checksPassed,
@@ -203,7 +204,7 @@ export function safeUpdateUIs(
       findings: auditFindings,
       recommendations,
       gate
-    });
+    };
 
     // Security pane
     const rawSevCounts = ((r?.summary as any)?.severityCounts) || (r?.severityCounts as any) || {};
@@ -233,7 +234,7 @@ export function safeUpdateUIs(
       file: f.file || '',
       line: f.line || 1
     }));
-    WelcomeDashboard.updateSecurityPaneIfOpen({
+    panes.security = {
       critical: String(sevCounts.critical || '0'),
       high: String(sevCounts.high || '0'),
       medium: String(sevCounts.medium || '0'),
@@ -245,7 +246,7 @@ export function safeUpdateUIs(
       repoFiles: files,
       gateChecked: gate,
       lastScan: new Date().toLocaleString()
-    });
+    };
 
     // Trust pane
     const trustScore = String((r?.summary as any)?.qualityScore ?? (r?.summary as any)?.score ?? (r?.qualityScore as any) ?? (r?.score as any) ?? '--');
@@ -279,7 +280,7 @@ export function safeUpdateUIs(
       badges: trustBadges,
       gate
     };
-    WelcomeDashboard.updateTrustPaneIfOpen(trustPayload);
+    panes.trust = trustPayload;
     updateServerState({ lastTrustData: trustPayload });
 
     // Quality pane
@@ -295,7 +296,7 @@ export function safeUpdateUIs(
     const qualityScore = String(computedScore);
     const qualityIssues = String((r?.summary as any)?.issueCount ?? (r?.issues as any)?.length ?? totalIssues ?? '0');
     const qScoreNum = computedScore;
-    WelcomeDashboard.updateQualityPaneIfOpen({
+    panes.quality = {
       qualityScore, issues: qualityIssues, coverage: String((r?.summary as any)?.coverage ?? '--'), files,
       status: gate === 'PASS' ? 'Pass' : 'Fail',
       maintainability: String(Math.min(100, qScoreNum + 5)),
@@ -303,7 +304,7 @@ export function safeUpdateUIs(
       complexity: String(qScoreNum),
       duplication: String(Math.max(0, qScoreNum - 5)),
       gate
-    });
+    };
 
     // Assessments pane
     const asstScoreNum = qualityScore === '--' ? 0 : parseInt(qualityScore, 10) || 0;
@@ -317,7 +318,7 @@ export function safeUpdateUIs(
       { text: 'Documentation review', checked: true, status: 'Complete' },
       { text: 'Test coverage threshold', checked: asstScoreNum >= 70, status: asstScoreNum >= 70 ? 'Pass' : 'Pending' }
     ];
-    WelcomeDashboard.updateAssessmentsPaneIfOpen({
+    panes.assessments = {
       completed: asstCompleted,
       pending: asstPending,
       progress: asstProgress,
@@ -332,19 +333,19 @@ export function safeUpdateUIs(
       qualityScore,
       issues: qualityIssues,
       gate
-    });
+    };
 
     // Platform pane
-    WelcomeDashboard.updatePlatformPaneIfOpen({
+    panes.platform = {
       version: getExtensionVersion(context), engine: 'VS Code', uptime: 'Active', status: 'Connected',
       os: process.platform, node: process.version, ext: getExtensionVersion(context),
       workspace: vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath || 'No workspace',
       badge: 'Online', severity: sev, qualityScore, issues: qualityIssues, gate
-    });
+    };
 
     // Profile pane
     const profileScore = qualityScore === '--' ? '0' : qualityScore;
-    WelcomeDashboard.updateProfilePaneIfOpen({
+    panes.profile = {
       qualityScore: profileScore,
       issues: qualityIssues,
       scans: '1',
@@ -353,7 +354,7 @@ export function safeUpdateUIs(
       severity: sev,
       activity: [{ icon: '\u{1F50D}', text: 'Scan completed — ' + (findings.length) + ' issues found', time: new Date().toLocaleTimeString() }],
       gate
-    });
+    };
 
     // Compliance pane
     const compRules = [
@@ -366,7 +367,7 @@ export function safeUpdateUIs(
     const passed = compRules.filter(r => r.pass).length;
     const failed = compRules.filter(r => !r.pass).length;
     const progress = String(Math.round((passed / compRules.length) * 100)) + '%';
-    WelcomeDashboard.updateCompliancePaneIfOpen({ passed: String(passed), failed: String(failed), progress, total: String(compRules.length), status: failed === 0 ? 'Pass' : 'Fail', rules: compRules, severity: sev, qualityScore, issues: qualityIssues, gate });
+    panes.compliance = { passed: String(passed), failed: String(failed), progress, total: String(compRules.length), status: failed === 0 ? 'Pass' : 'Fail', rules: compRules, severity: sev, qualityScore, issues: qualityIssues, gate };
 
     // Repo Health pane
     const rhScore = qualityScore === '--' ? '0' : qualityScore;
@@ -379,7 +380,7 @@ export function safeUpdateUIs(
     if (vulnCount > 0) rhRecs.push({ text: 'Fix ' + vulnCount + ' security vulnerabilities' });
     if (rhScoreNum < 70) rhRecs.push({ text: 'Improve code quality score (currently ' + rhScore + ')' });
     if (rhRecs.length === 0) rhRecs.push({ text: 'Repository health is good. Keep up the regular scanning.' });
-    WelcomeDashboard.updateRepoHealthPaneIfOpen({
+    panes.repoHealth = {
       score: rhScore,
       qualityScore: rhScore,
       gate,
@@ -396,62 +397,30 @@ export function safeUpdateUIs(
       duplication: String(Math.max(0, rhScoreNum - 15)),
       findings: rhFindings,
       recommendations: rhRecs
-    });
+    };
 
     // Team, Scan, Analytics, Settings panes
     scanCountRef.value += 1;
-    WelcomeDashboard.updateTeamPaneIfOpen({ members: '1', scans: String(scanCountRef.value), resolved: '0', score: qualityScore, status: 'Active', membersList: [{ name: 'Admin', role: 'Project Owner', status: 'Active' }], severity: sev, qualityScore, issues: qualityIssues, gate });
+    panes.team = { members: '1', scans: String(scanCountRef.value), resolved: '0', score: qualityScore, status: 'Active', membersList: [{ name: 'Admin', role: 'Project Owner', status: 'Active' }], severity: sev, qualityScore, issues: qualityIssues, gate };
 
     const scResults = findings.slice(0, 10).map(f => ({ severity: f.severity || 'low', type: f.type || 'Finding', text: f.message || f.type || 'Finding', file: f.file || 'unknown', line: f.line != null ? f.line : undefined }));
     const scHistory = [{ text: 'Workspace scan completed', time: new Date().toLocaleTimeString(), score: qualityScore }];
-    WelcomeDashboard.updateScanPaneIfOpen({
+    panes.scan = {
       total: String(scanCountRef.value), issues, fixed: '0', score: qualityScore, qualityScore,
       status: 'Complete', scanning: false, hasResults: true, progress: '100',
       critical: String(sevCounts.critical || '0'), high: String(sevCounts.high || '0'),
       medium: String(sevCounts.medium || '0'), low: String(sevCounts.low || '0'),
       results: scResults, history: scHistory, gate
-    });
+    };
 
     const lastScan = new Date().toLocaleDateString();
-    WelcomeDashboard.updateAnalyticsPaneIfOpen({ scans: String(scanCountRef.value), issues: qualityIssues, avgScore: qualityScore, lastScan, trend: '+' + scanCountRef.value, issueTrend: qualityIssues, status: 'Ready', severity: sev });
-    WelcomeDashboard.updateSettingsPaneIfOpen({ severity: sev, qualityScore, issues: qualityIssues, gate });
+    panes.analytics = { scans: String(scanCountRef.value), issues: qualityIssues, avgScore: qualityScore, lastScan, trend: '+' + scanCountRef.value, issueTrend: qualityIssues, status: 'Ready', severity: sev };
+    panes.settings = { severity: sev, qualityScore, issues: qualityIssues, gate };
 
     // Report pane
     const filesList = (r?.files as any[]) || [];
-    WelcomeDashboard.updateReportPaneIfOpen({ files, gate, issues, score, severity: sev, findings: mappedFindings, filesList, totalScans: String(scanCountRef.value) });
+    panes.report = { files, gate, issues, score, severity: sev, findings: mappedFindings, filesList, totalScans: String(scanCountRef.value) };
 
-  } catch (e) {
-    outputChannel.appendLine(`[SimpleBeacon] Welcome dashboard update failed: ${e}`);
-  }
-
-  // Analyze pane (separate try block in original)
-  try {
-    const r = report as Record<string, unknown>;
-    const summary = (r?.summary as Record<string, unknown>) || {};
-    const issueCount = String(
-      (r?.issueCount as number) ||
-      (r?.issues as any)?.length ||
-      (r?.totalIssues as number) ||
-      summary?.totalIssues ||
-      summary?.issueCount ||
-      '0'
-    );
-    const analyzeScore = String(
-      (r?.qualityScore as number) ||
-      (r?.score as number) ||
-      summary?.qualityScore ||
-      summary?.score ||
-      '--'
-    );
-    const analyzeFiles = String(
-      (r?.files as any[])?.length ||
-      (r?.fileCount as number) ||
-      summary?.filesAnalyzed ||
-      summary?.fileCount ||
-      '0'
-    );
-    const gateRaw = r?.gate as any;
-    const analyzeGate = typeof gateRaw === 'object' && gateRaw !== null ? (gateRaw.pass ? 'PASS' : 'FAIL') : String(gateRaw || 'PENDING');
     const analyzeSev = (r?.summary as Record<string, unknown>)?.severityCounts as Record<string, number> || {};
     const analyzeFindings = ((r?.findings as any[]) || []).slice(0, 30).map(f => ({
       title: f.title || f.type || f.message || 'Issue',
@@ -459,17 +428,20 @@ export function safeUpdateUIs(
       type: f.type || '',
       file: f.file || ''
     }));
-    WelcomeDashboard.updateAnalyzePaneIfOpen({
+    panes.analyze = {
       lastAnalysis: new Date().toLocaleString(),
-      score: analyzeScore,
-      gate: analyzeGate,
-      issues: issueCount,
-      files: analyzeFiles,
+      score: qualityScore,
+      gate,
+      issues: qualityIssues,
+      files,
       severity: analyzeSev,
       findings: analyzeFindings
-    });
+    };
+
+    WelcomeDashboard.batchUpdatePanesIfOpen(panes);
+
   } catch (e) {
-    outputChannel.appendLine(`[SimpleBeacon] Analyze pane update failed: ${e}`);
+    outputChannel.appendLine(`[SimpleBeacon] Welcome dashboard update failed: ${e}`);
   }
 
   // Status message on sidebar

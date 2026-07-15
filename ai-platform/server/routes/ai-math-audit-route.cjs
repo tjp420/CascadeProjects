@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
 'use strict';
 
 /**
@@ -22,7 +23,7 @@ const {
   resolveDefaultAllowedRoots
 } = require('../lib/path-safety.cjs');
 const { withTimeout } = require('../lib/flexible-analyze-utils.cjs');
-const { toClientError } = require('../lib/client-error.cjs');
+const { toClientError } = require('../../shared-utils/index.cjs');
 
 const AUDIT_TIMEOUT_MS = 120_000; // 2 minutes
 

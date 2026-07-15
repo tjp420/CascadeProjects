@@ -1,7 +1,9 @@
-import { authService } from './authService.js';
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
+import { authService } from './authService.js?v=20260713sync6';
 import { fetchUserAiKeys } from './aiKeysService.js?v=20260711cachefix1';
 import { scanService } from './scanService.js?v=20260711scanfix1';
 import { formatNumber, escapeHtml, fetchWithTimeout } from '../utils.js';
+import { notifyDownloadComplete } from '../utils-lib/notify.js';
 import { isRemoteRepoUrl } from '../lib/analyzePathSources.js';
 import { isBenchmarkCachePath } from '../utils/complete-scan-artifact-profile.browser.js';
 import { DEMO_EMAIL } from '../demoMode.js';
@@ -20,7 +22,7 @@ function normalizeScanReport(rawReport) {
     if (rawReport.reportVersion && Number(rawReport.reportVersion) >= 2) {
         return rawReport;
     }
-    if (rawReport.version !== '1.0.0' && rawReport.reportVersion == null) {
+    if (rawReport.reportVersion == null && rawReport.version !== '1.0.0' && rawReport.type !== 'simplebeacon-report') {
         return rawReport;
     }
     const summary = rawReport.summary || {};
@@ -931,6 +933,7 @@ export function downloadAuditReportHtml(html, filename = 'simplebeacon-audit.htm
         link.remove();
         setTimeout(() => URL.revokeObjectURL(url), 60000);
     }
+    notifyDownloadComplete(safeName);
     return safeName;
 }
 /**
@@ -1443,7 +1446,155 @@ export function preferPlatformAnalyzePath(candidatePath, defaultPath) {
 function isGateBlockingIssue(issue, gate = {}) {
     const failOn = gate.failOn || ['high'];
     const severity = issue.severityBand || issue.severity || 'low';
+    if (severity === 'critical')
+        return true;
     return failOn.includes(severity);
+}
+
+/**
+ * Browser-sandbox certificate report → simplebeacon-report for Results / exports.
+ * @param {Object} report
+ * @param {string} projectPath
+ * @returns {Object}
+ */
+export function convertSandboxReportToSimplebeacon(report, projectPath) {
+    const cert = report.certificate || {};
+    const logs = Array.isArray(cert.logs) ? cert.logs : [];
+    const high = Number(cert.highRiskCount) || 0;
+    const medium = Number(cert.mediumRiskCount) || 0;
+    const low = Number(cert.lowRiskCount) || 0;
+    const totalFiles = report.discoveredFiles || (report.files && report.files.length) || 0;
+    const scannedFiles = (report.files && report.files.length) || totalFiles;
+    const rawIssues = logs.map((entry) => ({
+        severity: String(entry.severity || 'medium').toLowerCase(),
+        type: entry.type || 'Security',
+        filePath: entry.filePath || entry.file || '',
+        description: entry.message || entry.type || '',
+        count: 1
+    }));
+    const blockingCount = rawIssues.filter((issue) => issue.severity === 'high' || issue.severity === 'critical').length;
+    const warningCount = rawIssues.filter((issue) => issue.severity === 'medium' || issue.severity === 'low').length;
+    const severityCounts = { critical: 0, high, medium, low, info: 0 };
+    const gatePass = blockingCount === 0 && high === 0 && cert.letterGrade !== 'F';
+    const sampleFiles = (report.files || [])
+        .slice(0, 96)
+        .map((f) => (typeof f === 'string' ? f : f.path || f.name || f.relativePath || ''))
+        .filter(Boolean);
+    return {
+        type: 'simplebeacon-report',
+        version: '1.0.0',
+        generatedAt: new Date().toISOString(),
+        scanSource: 'browser-sandbox',
+        projectPath,
+        projectRoot: projectPath,
+        summary: {
+            totalFiles,
+            totalFindings: rawIssues.length,
+            severityCounts
+        },
+        rawIssues,
+        detectedIssues: rawIssues,
+        findings: rawIssues,
+        repositoryFilesTotal: totalFiles,
+        totalFiles,
+        filesAnalyzed: scannedFiles,
+        ruleScopedFilesAnalyzed: scannedFiles,
+        credentialScanned: scannedFiles,
+        issueCount: rawIssues.length,
+        severityCounts,
+        sampleFiles,
+        inventory: {
+            totalFiles,
+            totalFolders: 0,
+            scannedFiles
+        },
+        gate: {
+            pass: gatePass,
+            blockingCount,
+            warningCount,
+            failOn: ['high'],
+            warnOn: ['medium', 'low'],
+            score: cert.score != null ? cert.score : 0
+        },
+        scan_summary: {
+            status: gatePass ? 'PASSED' : 'FAILED',
+            block_merge: !gatePass,
+            total_risks_found: rawIssues.length,
+            high_severity_count: high,
+            medium_severity_count: medium,
+            low_severity_count: low
+        }
+    };
+}
+
+/** True when report was produced client-side (browser sandbox) and must not be replaced by server snapshot. */
+export function isClientScanReport(report) {
+    return Boolean(report && (report.scanSource === 'browser-sandbox' || report.clientScan === true));
+}
+
+/**
+ * Prefer in-memory or session-stored client scan over stale server demo reports.
+ * @param {Object} app Dashboard app instance
+ * @returns {Object|null}
+ */
+export function hydrateClientScanReport(app) {
+    if (!app || typeof app !== 'object')
+        return null;
+    const analyze = app.views && app.views.analyze;
+    if (analyze && typeof analyze.resolveResultsReport === 'function') {
+        const resolved = analyze.resolveResultsReport();
+        const issueList = (resolved && (resolved.rawIssues || resolved.detectedIssues)) || [];
+        if (issueList.length) {
+            const prepared = preparePlatformResultsReport(typeof analyze.prepareReportForResults === 'function'
+                ? analyze.prepareReportForResults(resolved)
+                : resolved);
+            app.state.report = prepared;
+            if (app.scanService)
+                app.scanService.report = prepared;
+            return prepared;
+        }
+    }
+    const analyzeResult = app.state && app.state.analyzeResult;
+    if (analyzeResult && analyzeResult.report) {
+        const issues = analyzeResult.report.rawIssues || analyzeResult.report.detectedIssues || [];
+        if (issues.length) {
+            const prepared = preparePlatformResultsReport(analyzeResult.report);
+            app.state.report = prepared;
+            if (app.scanService)
+                app.scanService.report = prepared;
+            return prepared;
+        }
+    }
+    if (isClientScanReport(app.state && app.state.report)) {
+        const issues = app.state.report.rawIssues || app.state.report.detectedIssues || [];
+        if (issues.length)
+            return app.state.report;
+    }
+    try {
+        if (typeof sessionStorage !== 'undefined') {
+            const savedSimple = sessionStorage.getItem('sb-last-sandbox-simplebeacon');
+            if (savedSimple) {
+                const parsed = preparePlatformResultsReport(JSON.parse(savedSimple));
+                app.state.report = parsed;
+                if (app.scanService)
+                    app.scanService.report = parsed;
+                return parsed;
+            }
+            const savedCert = sessionStorage.getItem('sb-last-sandbox-report');
+            const savedPath = sessionStorage.getItem('sb-last-sandbox-project-path') || 'local-scan';
+            if (savedCert) {
+                const parsed = preparePlatformResultsReport(convertSandboxReportToSimplebeacon(JSON.parse(savedCert), savedPath));
+                app.state.report = parsed;
+                if (app.scanService)
+                    app.scanService.report = parsed;
+                return parsed;
+            }
+        }
+    }
+    catch (_err) {
+        /* ignore corrupt session payload */
+    }
+    return (app.state && app.state.report) || null;
 }
 /**
  * Partition platform scan issues.
@@ -1489,16 +1640,38 @@ export function preparePlatformResultsReport(report) {
         .reduce((sum, issue) => sum + (issue.count || 1), 0);
     const repoFiles = (_e = (_c = report.repositoryFilesTotal) !== null && _c !== void 0 ? _c : (_d = report.repositoryInventory) === null || _d === void 0 ? void 0 : _d.totalFiles) !== null && _e !== void 0 ? _e : 0;
     const staleFullTreeScan = repoFiles > 15000 || ((_g = (_f = report.mockSampleFiles) !== null && _f !== void 0 ? _f : report.totalFiles) !== null && _g !== void 0 ? _g : 0) > 500;
+    const totalIssueGroups = platformIssues.reduce((sum, issue) => sum + (issue.count || 1), 0);
+    const gatePass = blockingCount === 0;
+    const highCount = platformIssues
+        .filter((issue) => (issue.severityBand || issue.severity) === 'high' || (issue.severityBand || issue.severity) === 'critical')
+        .reduce((sum, issue) => sum + (issue.count || 1), 0);
+    const mediumCount = platformIssues
+        .filter((issue) => (issue.severityBand || issue.severity) === 'medium')
+        .reduce((sum, issue) => sum + (issue.count || 1), 0);
+    const lowCount = platformIssues
+        .filter((issue) => (issue.severityBand || issue.severity) === 'low')
+        .reduce((sum, issue) => sum + (issue.count || 1), 0);
     return {
         ...report,
         rawIssues: platformIssues,
         benchmarkCacheIssues,
-        issueCount: blockingCount,
+        issueCount: totalIssueGroups,
+        severityCounts: report.severityCounts || { critical: 0, high: highCount, medium: mediumCount, low: lowCount },
         gate: {
+            ...(report.gate || {}),
             ...gateConfig,
-            pass: blockingCount === 0,
+            pass: gatePass,
             blockingCount,
             warningCount
+        },
+        scan_summary: {
+            ...(report.scan_summary || {}),
+            status: gatePass ? 'PASSED' : 'FAILED',
+            block_merge: !gatePass,
+            total_risks_found: totalIssueGroups,
+            high_severity_count: highCount,
+            medium_severity_count: mediumCount,
+            low_severity_count: lowCount
         },
         scanScope: {
             ...(report.scanScope || {}),
@@ -1779,6 +1952,10 @@ function projectPathMatchesReportRoot(projectPath, reportRoot) {
         return true;
     }
     if (!normPath.includes('/') && (normRoot === normPath || normRoot.endsWith(`/${normPath}`))) {
+        return true;
+    }
+    // Render / monorepo layout: parent path in UI vs nested scan root (or vice versa).
+    if (normPath.startsWith(`${normRoot}/`) || normRoot.startsWith(`${normPath}/`)) {
         return true;
     }
     return false;

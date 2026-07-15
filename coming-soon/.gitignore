@@ -17,7 +17,7 @@ build/
 out/
 coverage/
 public/js/
-js-es2018/
+/js-es2018/
 
 # Logs
 *.log

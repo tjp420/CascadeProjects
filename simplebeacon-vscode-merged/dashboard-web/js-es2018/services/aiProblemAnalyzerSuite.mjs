@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
 import { createExtendedAnalyzers } from './extendedAnalyzers.mjs';
 const CATEGORY_DEFINITIONS = [
     {

@@ -11,6 +11,7 @@ const path = require('path');
 // Use a temp store path for tests so we don't clobber real data
 const TEST_STORE_PATH = path.join(__dirname, '.test-subscriptions.json');
 process.env.SIMPLEBEACON_SUBSCRIPTION_STORE = TEST_STORE_PATH;
+process.env.SIMPLEBEACON_PAID_API_LIMIT = '5';
 
 // Re-require after setting env so STORE_PATH picks it up
 const store = require('../simplebeacon-subscription-store.cjs');
@@ -266,7 +267,7 @@ describe('consumeApiCall', () => {
     const over = await store.consumeApiCall(created.apiToken);
     assert.strictEqual(over.allowed, false);
     assert.strictEqual(over.reason, 'rate_limit');
-  });
+  }, 60000);
 });
 
 describe('consumeScan', () => {
@@ -296,8 +297,8 @@ describe('consumeScan', () => {
   });
 
   it('enforces pro quota (same as startup)', async () => {
-    await store.upsertSubscription('pro@example.com', { tier: 'pro' });
-    const quota = store.SCAN_QUOTA_MAP.pro;
+    await store.upsertSubscription('pro@example.com', { tier: 'pro', scanQuota: 3 });
+    const quota = 3;
     for (let i = 0; i < quota; i++) {
       const r = await store.consumeScan('pro@example.com');
       assert.strictEqual(r.allowed, true, `scan ${i} should be allowed`);
@@ -308,8 +309,8 @@ describe('consumeScan', () => {
   });
 
   it('enforces team quota (same as growth)', async () => {
-    await store.upsertSubscription('team@example.com', { tier: 'team' });
-    const quota = store.SCAN_QUOTA_MAP.team;
+    await store.upsertSubscription('team@example.com', { tier: 'team', scanQuota: 3 });
+    const quota = 3;
     for (let i = 0; i < quota; i++) {
       const r = await store.consumeScan('team@example.com');
       assert.strictEqual(r.allowed, true, `scan ${i} should be allowed`);

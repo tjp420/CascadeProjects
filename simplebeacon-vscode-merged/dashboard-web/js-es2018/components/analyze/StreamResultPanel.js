@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
 /**
  * StreamResultPanel — Sub-component for AnalyzeView
  * Displays real-time scan progress, terminal output, and final results.

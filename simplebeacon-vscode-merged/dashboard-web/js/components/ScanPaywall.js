@@ -1,5 +1,5 @@
 import { escapeHtml, formatNumber } from '../utils.js';
-import { authService } from '../services/authService.js';
+import { authService } from '../services/authService.js?v=20260713sync5';
 
 const DEFAULT_CHECKOUT = 'mailto:audit@simplebeacon.ai?subject=Unlock%20Pre-Launch%20Audit%20Report';
 

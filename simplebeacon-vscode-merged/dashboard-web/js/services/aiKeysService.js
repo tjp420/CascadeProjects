@@ -1,5 +1,6 @@
-import { authService } from './authService.js';
-import { apiUrl } from '../utils.js';
+import { OLLAMA_DEFAULT_URL } from '../config.js';
+
+import { authService } from './authService.js?v=20260713sync6';
 
 /**
  * Is authenticated.
@@ -84,6 +85,9 @@ export async function fetchUserAiKeys() {
  * @returns {any}
  */
 export async function saveUserAiKeys(payload) {
+  if (!isAuthenticated() || !hasValidUserJwt()) {
+    throw new Error('Authentication required. Log in to save AI provider keys securely.');
+  }
   const saveHttpResponse = await fetch(BASE, {
     method: 'PUT',
     headers: {
@@ -97,7 +101,8 @@ export async function saveUserAiKeys(payload) {
     if (saveHttpResponse.status === 404 && savePayload.error === 'API route not found') {
       throw new Error('AI keys API not loaded — restart the dashboard server (npm run dashboard:v1-internal).');
     }
-    throw new Error(savePayload.error || savePayload.message || 'Failed to save AI keys');
+    const debugPart = savePayload.debug ? ` (${savePayload.debug})` : '';
+    throw new Error((savePayload.error || savePayload.message || 'Failed to save AI keys') + debugPart);
   }
   return normalizeAiKeysRecord(savePayload);
 }
@@ -121,40 +126,116 @@ export async function clearUserAiKeys() {
   return normalizeAiKeysRecord(clearPayload);
 }
 
-import { OLLAMA_DEFAULT_URL } from '../config.js';
-
 /**
- * Fetch ollama models.
+ * List Ollama models. When the dashboard is served over HTTPS, the browser
+ * cannot directly fetch http://127.0.0.1:11434 (mixed content / private network),
+ * so we route the request through the server proxy. On HTTP pages we try the
+ * direct browser fetch first and fall back to the proxy.
  * @param {string} ollamaBaseUrl
  * @returns {any}
  */
-export async function fetchOllamaModels(ollamaBaseUrl = OLLAMA_DEFAULT_URL) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 15000); // 15 second timeout
-
+function isLocalOllamaUrl(url) {
   try {
-    const ollamaHttpResponse = await fetch(apiUrl('/api/models/test-ollama'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ollamaBaseUrl }),
-      signal: controller.signal
-    });
-    clearTimeout(timeout);
+    const parsed = new URL(url);
+    return parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1';
+  } catch {
+    return false;
+  }
+}
 
-    const ollamaProbe = await readJsonResponseBody(ollamaHttpResponse, {});
-    if (!ollamaHttpResponse.ok || ollamaProbe.success === false) {
-      throw new Error(ollamaProbe.error || ollamaProbe.message || 'Failed to list Ollama models');
+export async function fetchOllamaModels(ollamaBaseUrl = OLLAMA_DEFAULT_URL) {
+  const baseUrl = String(ollamaBaseUrl || OLLAMA_DEFAULT_URL).trim().replace(/\/$/, '') || OLLAMA_DEFAULT_URL;
+  const isHttpsPage = typeof window !== 'undefined' && window.location.protocol === 'https:';
+
+  if (isHttpsPage && isLocalOllamaUrl(baseUrl)) {
+    throw new Error(
+      'The hosted HTTPS dashboard cannot reach Ollama on your local machine. ' +
+      'Run the dashboard locally (npm run dashboard:v1-internal) or use a cloud/network-accessible Ollama instance.'
+    );
+  }
+
+  async function fetchDirect() {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+    try {
+      const response = await fetch(`${baseUrl}/api/tags`, {
+        method: 'GET',
+        signal: controller.signal,
+        headers: { Accept: 'application/json' }
+      });
+      if (!response.ok) {
+        throw new Error(`Ollama returned HTTP ${response.status}`);
+      }
+      const data = await response.json().catch(() => ({}));
+      const models = Array.isArray(data.models) ? data.models.map((m) => m.name || m.model) : [];
+      return {
+        ok: true,
+        models,
+        message: models.length ? `${models.length} model(s) available` : 'Ollama is running but has no models pulled',
+        source: 'browser'
+      };
+    } finally {
+      clearTimeout(timeout);
     }
-    return {
-      ok: Boolean(ollamaProbe.ok),
-      models: Array.isArray(ollamaProbe.availableModels) ? ollamaProbe.availableModels : [],
-      message: ollamaProbe.message || ''
-    };
-  } catch (error) {
-    clearTimeout(timeout);
-    if (error.name === 'AbortError') {
-      throw new Error('Ollama connection timed out - is Ollama running?');
+  }
+
+  async function fetchProxy() {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    try {
+      const response = await fetch(`/api/simplebeacon/ollama/models?baseUrl=${encodeURIComponent(baseUrl)}`, {
+        method: 'GET',
+        signal: controller.signal,
+        headers: { Accept: 'application/json' }
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || data.message || `Server proxy returned HTTP ${response.status}`);
+      }
+      const models = Array.isArray(data.models) ? data.models.map((m) => m.name || m.model) : [];
+      return {
+        ok: true,
+        models,
+        message: models.length ? `${models.length} model(s) available` : 'Ollama is running but has no models pulled',
+        source: 'server'
+      };
+    } finally {
+      clearTimeout(timeout);
     }
-    throw error;
+  }
+
+  if (isHttpsPage) {
+    try {
+      return await fetchProxy();
+    } catch (proxyErr) {
+      throw new Error(`Ollama proxy failed: ${proxyErr.message}`);
+    }
+  }
+
+  // HTTP page: try direct browser fetch first, then fall back to the proxy.
+  try {
+    return await fetchDirect();
+  } catch (browserErr) {
+    const isCors = String(browserErr.message).toLowerCase().includes('cors') ||
+                   String(browserErr.message).includes('Failed to fetch');
+    try {
+      return await fetchProxy();
+    } catch (proxyErr) {
+      if (proxyErr.name === 'AbortError') {
+        throw new Error('Ollama connection timed out - is Ollama running?');
+      }
+      if (isCors) {
+        throw new Error(
+          `Ollama is reachable from the browser but CORS is blocked. ` +
+          `Start Ollama with CORS enabled: OLLAMA_ORIGINS=* ollama serve. ` +
+          `Server proxy also failed: ${proxyErr.message}`
+        );
+      }
+      throw new Error(
+        browserErr.message === proxyErr.message
+          ? proxyErr.message
+          : `${browserErr.message} (server proxy: ${proxyErr.message})`
+      );
+    }
   }
 }

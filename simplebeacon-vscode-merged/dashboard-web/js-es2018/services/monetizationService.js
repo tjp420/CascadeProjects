@@ -1,5 +1,5 @@
-import { apiUrl } from '../utils/url.js';
-import { authService } from './authService.js';
+import { apiUrl } from '../utils/url.js?v=20260713website1';
+import { authService } from './authService.js?v=20260713sync5';
 
 const EARNINGS_KEY = 'simplebeacon_monetization_earnings';
 const SETTINGS_KEY = 'simplebeacon_monetization_settings';

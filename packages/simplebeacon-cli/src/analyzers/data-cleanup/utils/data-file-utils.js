@@ -1,8 +1,9 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
 /**
  * Shared helpers for data-quality analyzers.
  */
 
-const constants = require('../../../../../../ai-platform/server/config/constants.cjs');
+const constants = require('../../../lib/constants');
 const DATA_EXTENSIONS = new Set(['.json', '.csv', '.yaml', '.yml', '.xml', '.sql', '.sqlite', '.db']);
 const DATA_PATH_HINTS = [
     'web/data', // simplebeacon:production-leak-intent: analyzer-classifier - Analyzer-internal data file classification hints

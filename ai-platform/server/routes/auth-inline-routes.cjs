@@ -14,6 +14,7 @@ const {
 const { validateInput } = require('../middleware/security.cjs');
 const { registerUser } = require('../services/user-service.cjs');
 const { getLicenseToken, insertLicenseToken } = require('../lib/token-db.cjs');
+const { verifyLicenseToken } = require('../lib/simplebeacon-proxy.cjs');
 const { isDatabaseEnabled, getDatabaseConfig } = require('../config/database.cjs');
 const DatabaseAdapter = require('../lib/database-adapter.cjs');
 
@@ -92,17 +93,68 @@ router.post('/auth/logout', (req, res) => {
   res.json({ message: 'Logged out', timestamp: new Date().toISOString() });
 });
 
-// License token status check (known = login, unknown = register)
+// License token status check (cryptographic validation + registry lookup)
 router.post('/auth/token-status', (req, res) => {
   const { token } = req.body || {};
   if (!token || typeof token !== 'string') {
-    return res.status(400).json({ registered: false, error: 'Token required' });
+    return res.status(400).json({ registered: false, valid: false, error: 'Token required' });
   }
+
+  const secret = process.env.SIMPLEBEACON_LICENSE_SECRET || 'simplebeacon-dev-insecure';
+  const claims = verifyLicenseToken(token, secret);
+  if (claims) {
+    const email = claims.sub || claims.email || null;
+    const tier = claims.tier || 'developer';
+    const entry = getLicenseToken(token);
+    return res.json({
+      registered: true,
+      valid: true,
+      email: entry?.email || email,
+      tier: entry?.tier || tier,
+      registeredAt: entry?.registered_at || (claims.iat ? new Date(claims.iat * 1000).toISOString() : null),
+      expiresAt: claims.exp ? new Date(claims.exp * 1000).toISOString() : null
+    });
+  }
+
   const entry = getLicenseToken(token);
   if (entry) {
-    return res.json({ registered: true, email: entry.email, tier: entry.tier, registeredAt: entry.registered_at });
+    return res.json({
+      registered: true,
+      valid: false,
+      email: entry.email,
+      tier: entry.tier,
+      registeredAt: entry.registered_at
+    });
   }
-  return res.json({ registered: false });
+  return res.json({ registered: false, valid: false });
+});
+
+// Public license validation endpoint used by CLI/GitHub Action in CI
+router.post('/license/validate', (req, res) => {
+  const { token } = req.body || {};
+  if (!token || typeof token !== 'string') {
+    return res.status(400).json({ active: false, sandbox: true, registered: false, valid: false, error: 'Token required' });
+  }
+
+  const secret = process.env.SIMPLEBEACON_LICENSE_SECRET || 'simplebeacon-dev-insecure';
+  const claims = verifyLicenseToken(token, secret);
+  const entry = getLicenseToken(token);
+  const registered = !!claims || !!entry;
+  const active = registered && claims !== null;
+  const tier = entry?.tier || claims?.tier || 'developer';
+  const upgradeUrl = process.env.SIMPLEBEACON_UPGRADE_URL || 'https://simplebeacon.ai/pricing';
+
+  res.json({
+    active,
+    sandbox: !active,
+    registered,
+    valid: !!claims,
+    email: entry?.email || claims?.sub || claims?.email || null,
+    tier,
+    features: claims?.features || [],
+    expiry: claims?.exp || null,
+    upgradeUrl
+  });
 });
 
 router.post('/auth/register-token', (req, res) => {

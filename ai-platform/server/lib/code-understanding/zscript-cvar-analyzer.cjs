@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
 /**
  * Parse GZDoom CVARINFO definitions and map FindCVar usage in ZScript sources.
  */

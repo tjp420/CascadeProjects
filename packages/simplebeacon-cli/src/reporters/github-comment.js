@@ -2,73 +2,153 @@
  * GitHub pull-request comment formatter for simplebeacon reports.
  */
 
+const { GUIDE_PLAYBOOKS, issueKind } = require('./remediation-guides');
+
 function isAnonymizedReport(report) {
     return report.schemaVersion === 'anonymized-v1' || report.repoFingerprint != null;
 }
 
-function formatGithubComment(report, gateResult = null) {
+function severityRank(severity) {
+    const band = String(severity || 'medium').toLowerCase();
+    if (band === 'critical') return 0;
+    if (band === 'high') return 1;
+    if (band === 'medium') return 2;
+    if (band === 'low') return 3;
+    return 4;
+}
+
+function normalizeIssues(report) {
+    const raw = report.rawIssues || report.detectedIssues || report.issues || [];
+    return raw.map((issue) => ({
+        severity: String(issue.severity || issue.severityBand || 'medium').toLowerCase(),
+        type: issue.type || issue.pattern || issue.category || 'Finding',
+        pattern: issue.pattern || issue.type || '',
+        filePath: issue.filePath || issue.file || '',
+        line: issue.line || issue.lineNumber || null,
+        description: issue.description || issue.message || issue.summary || '',
+        remediation: issue.remediation || issue.fix || ''
+    }));
+}
+
+function githubFileLink(filePath, line, options = {}) {
+    if (!filePath) return '';
+    const repo = options.repo || process.env.GITHUB_REPOSITORY || '';
+    const server = (options.serverUrl || process.env.GITHUB_SERVER_URL || 'https://github.com').replace(/\/$/, '');
+    const ref = options.ref || process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME || 'main';
+    const normalized = String(filePath).replace(/\\/g, '/');
+    if (!repo) {
+        return line ? `\`${normalized}:${line}\`` : `\`${normalized}\``;
+    }
+    const anchor = line ? `#L${line}` : '';
+    return `[${normalized}${line ? `:${line}` : ''}](${server}/${repo}/blob/${ref}/${normalized}${anchor})`;
+}
+
+function fixHint(issue) {
+    if (issue.remediation) return issue.remediation;
+    const kind = issueKind(issue);
+    const guide = GUIDE_PLAYBOOKS[kind];
+    if (guide && guide.steps && guide.steps[0]) {
+        return guide.steps[0];
+    }
+    if (kind === 'credentials') return 'Rotate the secret and move it to an environment variable.';
+    if (kind === 'production-leak') return 'Replace mock/sample JSON imports with API-backed config.';
+    if (kind === 'fiction-kpi') return 'Replace placeholder KPI literals with measured baseline values.';
+    return 'Run `npx simplebeacon scan --gate` locally and review the flagged pattern.';
+}
+
+function formatIssueRow(issue, options) {
+    const sev = issue.severity.toUpperCase();
+    const where = githubFileLink(issue.filePath, issue.line, options);
+    const hint = fixHint(issue);
+    return [
+        `**${sev} · ${issue.type}**`,
+        `- **Where:** ${where}`,
+        `- **Why:** ${issue.description || 'Policy violation detected in changed code.'}`,
+        `- **Fix:** ${hint}`
+    ].join('\n');
+}
+
+function formatGithubComment(report, gateResult = null, options = {}) {
     const anonymized = isAnonymizedReport(report);
     const counts = report.severityCounts || { critical: 0, high: 0, medium: 0, low: 0 };
     const gate = gateResult || report.gate || null;
-    const gateLine = gate
-        ? (gate.pass ? '✅ **Gate: PASS**' : '❌ **Gate: FAIL**')
-        : null;
+    const pass = Boolean(gate?.pass);
+    const diffOnly = Boolean(report.scanScope?.diffOnly);
+    const diffCount = report.scanScope?.diffFileCount || 0;
+    const dashboardUrl = options.dashboardUrl || 'https://simplebeacon.ai/dashboard/dashboard';
+    const pricingUrl = report.sandbox?.upgradeUrl || options.pricingUrl || 'https://simplebeacon.ai/pricing';
+
+    const headline = pass
+        ? '✅ SimpleBeacon gate **passed** — safe to merge from a policy perspective.'
+        : '❌ SimpleBeacon gate **failed** — merge blocked until blocking findings are resolved.';
 
     const lines = [
-        '## Simplebeacon',
+        '## 🔦 SimpleBeacon — AI Circuit Breaker',
         '',
-        gateLine,
-        gate?.failOn?.length ? `_Fails on: ${gate.failOn.join(', ')}_` : null,
-        '',
-        '| Severity | Count |',
-        '|----------|-------|',
-        `| 🚨 Critical | ${counts.critical || 0} |`,
-        `| 🔴 High | ${counts.high || 0} |`,
-        `| 🟡 Medium | ${counts.medium || 0} |`,
-        `| 🟢 Low | ${counts.low || 0} |`,
-        '',
-        `- **Files scanned:** ${report.totalFiles ?? report.metrics?.ruleScopedFilesAnalyzed ?? 0}`,
-        `- **Quality score:** ${report.qualityScore ?? report.metrics?.qualityScore ?? '—'}/100`,
-        `- **Schema compliance:** ${report.schemaCompliance ?? report.metrics?.schemaCompliance ?? '—'}%`,
-        `- **Duplicate groups:** ${report.duplicateGroups ?? report.metrics?.duplicateGroups ?? 0}`
-    ].filter(Boolean);
+        headline,
+        ''
+    ];
 
-    if (!anonymized && report.scanPaths?.length) {
-        lines.push('', '**Scan paths:**', ...report.scanPaths.map((p) => `- \`${p}\``));
-    }
-
-    if (anonymized) {
-        lines.push('', '🔒 **Privacy-blind scan** — no source code, file paths, or descriptions were transmitted to this CI runner.');
-        const agg = report.aggregate || {};
-        if (agg.byType && Object.keys(agg.byType).length) {
-            lines.push('', '### Error codes detected');
-            for (const [code, count] of Object.entries(agg.byType).slice(0, 12)) {
-                lines.push(`- \`${code}\`: ${count}`);
-            }
-        }
-    } else {
-        const blocking = gate?.blockingIssues
-            || report.rawIssues?.filter((i) => i.severity === 'high') || [];
-        if (blocking.length) {
-            lines.push('', '### Blocking issues');
-            for (const issue of blocking.slice(0, 10)) {
-                const file = issue.filePath ? ` (\`${issue.filePath.split(/[/\\]/).pop()}\`)` : '';
-                lines.push(`- **${issue.type}**${file} — ${issue.description}`);
-            }
-            if (blocking.length > 10) {
-                lines.push(`- …and ${blocking.length - 10} more`);
-            }
-            lines.push('', '**Suggested fixes:** fiction KPIs → baseline values; production leaks → API/scanner; credentials → rotate + env vars.');
-        } else {
-            lines.push('', 'No blocking issues detected.');
-        }
+    if (report.sandbox?.active) {
+        lines.push(
+            `> 💡 **Running in Sandbox Mode.** To unlock full multi-repo dashboards, team alert integrations, and custom policy rules for your engineering team, [upgrade at ${pricingUrl}](${pricingUrl}).`
+        );
+        lines.push('');
     }
 
     lines.push(
-        '',
-        '---',
-        '*Complements Snyk/GHAS (CVEs) — gates mock/fiction sample drift. Configure via `.simplebeacon/config.json`.*'
+        '| Metric | Value |',
+        '|--------|-------|',
+        `| Gate | ${pass ? 'PASS' : 'FAIL'} |`,
+        `| Quality score | ${report.qualityScore ?? '—'}/100 |`,
+        `| Critical | ${counts.critical || 0} |`,
+        `| High | ${counts.high || 0} |`,
+        `| Medium | ${counts.medium || 0} |`,
+        `| Scope | ${diffOnly ? `PR diff (${diffCount} files)` : 'Full configured scan paths'} |`,
+        ''
     );
+
+    if (anonymized) {
+        lines.push('🔒 **Privacy-blind scan** — no source paths were transmitted.');
+        lines.push('');
+    }
+
+    const failOn = gate?.failOn || report.scanScope?.gatePolicy?.failOn || ['high'];
+    lines.push(`<details${pass ? '' : ' open'}>`);
+    lines.push(`<summary><strong>${pass ? 'Scan summary' : `Blocking findings (${gate?.blockingCount || 0})`}</strong></summary>`);
+    lines.push('');
+    lines.push(`_Fails on: ${Array.isArray(failOn) ? failOn.join(', ') : failOn}_`);
+    lines.push('');
+
+    const issues = normalizeIssues(report)
+        .filter((issue) => pass || severityRank(issue.severity) <= 1)
+        .sort((a, b) => severityRank(a.severity) - severityRank(b.severity));
+
+    if (!issues.length) {
+        lines.push('No blocking findings in this scan scope.');
+    } else {
+        const top = issues.slice(0, 8);
+        top.forEach((issue, index) => {
+            lines.push(`### ${index + 1}. ${issue.type}`);
+            lines.push(formatIssueRow(issue, options));
+            lines.push('');
+        });
+        if (issues.length > top.length) {
+            lines.push(`<details><summary>+ ${issues.length - top.length} more finding(s)</summary>`);
+            lines.push('');
+            issues.slice(top.length, 20).forEach((issue, index) => {
+                lines.push(`**${index + top.length + 1}.** ${formatIssueRow(issue, options)}`);
+                lines.push('');
+            });
+            lines.push('</details>');
+        }
+    }
+    lines.push('</details>');
+    lines.push('');
+    lines.push('---');
+    lines.push(`[Team dashboard](${dashboardUrl}) · [Upgrade for org-wide CI history](${pricingUrl})`);
+    lines.push('');
+    lines.push('_SimpleBeacon gates AI slop, credential leaks, and mock-path drift — complementary to Snyk/GHAS._');
 
     return lines.join('\n');
 }
@@ -76,13 +156,19 @@ function formatGithubComment(report, gateResult = null) {
 function formatGithubStepSummary(report, gateResult = null) {
     const gate = gateResult || report.gate || null;
     const counts = report.severityCounts || { critical: 0, high: 0, medium: 0, low: 0 };
+    const diffNote = report.scanScope?.diffOnly
+        ? ` · diff-only (${report.scanScope.diffFileCount || 0} files)`
+        : '';
+    const sandboxNote = report.sandbox?.active
+        ? ` · 🏖️ Sandbox Mode — [upgrade to unlock team features](${report.sandbox.upgradeUrl || 'https://simplebeacon.ai/pricing'})`
+        : '';
     return [
-        '## Simplebeacon',
+        '## SimpleBeacon',
         '',
         gate ? (gate.pass ? '✅ Gate **PASS**' : '❌ Gate **FAIL**') : 'Gate not evaluated',
         '',
-        `- Critical: ${counts.critical || 0} · High: ${counts.high || 0} · Medium: ${counts.medium || 0} · Low: ${counts.low || 0}`,
-        `- Files: ${report.totalFiles ?? 0} · Quality: ${report.qualityScore ?? '—'}%`,
+        `- Critical: ${counts.critical || 0} · High: ${counts.high || 0} · Medium: ${counts.medium || 0} · Low: ${counts.low || 0}${diffNote}`,
+        `- Files: ${report.totalFiles ?? 0} · Quality: ${report.qualityScore ?? '—'}%${sandboxNote}`,
         ''
     ].join('\n');
 }
@@ -99,7 +185,7 @@ async function postGithubComment(reportPath, options = {}) {
 
     const fs = require('fs');
     const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
-    const body = formatGithubComment(report, report.gate || null);
+    const body = formatGithubComment(report, report.gate || null, options);
 
     const url = `https://api.github.com/repos/${repo}/issues/${issueNumber}/comments`;
     const response = await globalThis.fetch(url, {
@@ -124,5 +210,7 @@ async function postGithubComment(reportPath, options = {}) {
 module.exports = {
     formatGithubComment,
     formatGithubStepSummary,
-    postGithubComment
+    postGithubComment,
+    githubFileLink,
+    fixHint
 };

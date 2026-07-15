@@ -1,6 +1,6 @@
 // simplebeacon-ignore memory-leak — static UI bindings and file upload handlers
 import * as vscode from 'vscode';
-import { getSbConfig, getNonce } from '../utils';
+import { getSbConfig, getNonce } from '../utils/vscode';
 
 /**
  * Webview panel for uploading scan reports to the SimpleBeacon platform.

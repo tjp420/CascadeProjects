@@ -4,7 +4,7 @@
 
 const { isExternalBenchmarkCachePath } = require('./benchmark-cache-paths');
 const { redactProjectPathForExport, projectLabelFromPath } = require('./assessment-export-sanitize');
-const constants = require('../../../../ai-platform/server/config/constants.cjs');
+const constants = require('./constants');
 
 function isBenchmarkCacheProjectPath(projectPath) {
     return isExternalBenchmarkCachePath(String(projectPath || '').replace(/\\/g, '/'));

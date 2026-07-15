@@ -15,7 +15,7 @@
  * Backward compatible: all previous exports are re-exported.
  */
 
-const { toClientError } = require('../lib/client-error.cjs');
+const { toClientError } = require('../../shared-utils/index.cjs');
 const createError = require('http-errors');
 const { jwtConfig } = require('../lib/jwt-config.cjs');
 const { recordActivity } = require('../lib/session-activity.cjs');

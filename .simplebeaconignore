@@ -719,6 +719,20 @@ simplebeacon-vscode-merged/media/sidebar-main.js
 
 # Temp debug scripts
 _find_codemap_syntax_error.js
+_analyze-report-temp.cjs
+_create_tests.cjs
+_add_*.js
+_*.cjs
+__check_analyzeview.mjs
+__cs_analyzeview.mjs
+__cs_dashboardview.mjs
+
+# Browser dashboard results exports (generated artifacts)
+simplebeacon-results-*.json
+**/simplebeacon-results-*.json
+
+# One-off patch scripts (intentional console output)
+scripts/patch-codemap-graph-fallback.cjs
 
 # Local agent build scripts
 ai-platform/local-agent/build-deb.cjs

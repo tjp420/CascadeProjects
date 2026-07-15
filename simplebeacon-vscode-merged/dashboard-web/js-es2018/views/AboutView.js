@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
 import { escapeHtml } from '../utils/string.js';
 // simplebeacon:production-leak-intent: mock-path - Legitimate documentation about mock data detection in About page
 const GITHUB_REPO = 'https://github.com/tjp420/simplebeacon';

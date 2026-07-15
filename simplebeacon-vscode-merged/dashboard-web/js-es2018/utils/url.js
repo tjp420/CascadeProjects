@@ -2,15 +2,72 @@
  * @module url
  */
 
+const SB_API_BASE_KEY = 'sb_api_base';
+
+function _isLocalDevHost() {
+    if (typeof location === 'undefined') return false;
+    return /^(localhost|127\.0\.0\.1|\[::1\])$/i.test(location.hostname);
+}
+function _isAllowedApiBase(value) {
+    if (!value) return false;
+    try {
+        const url = new URL(value, location.href);
+        // HTTPS pages cannot call a local HTTP data server (mixed-content / LAN access).
+        if (location.protocol === 'https:' && url.protocol === 'http:') return false;
+        // Never bridge a localhost/loopback base from a remote production host.
+        if (!_isLocalDevHost() && /^(localhost|127\.0\.0\.1|\[::1\])$/i.test(url.hostname)) return false;
+        return true;
+    }
+    catch (_a) { return false; }
+}
+
+function _readStoredApiBase() {
+    if (typeof localStorage !== 'undefined') {
+        try { return localStorage.getItem(SB_API_BASE_KEY); }
+        catch (_a) { /* ignore */ }
+    }
+    return null;
+}
+
+function _storeApiBase(value) {
+    if (typeof localStorage !== 'undefined' && value) {
+        try { localStorage.setItem(SB_API_BASE_KEY, value); }
+        catch (_a) { /* ignore */ }
+    }
+}
+
+function _readHashApiBase() {
+    if (typeof location === 'undefined' || !location.hash) return null;
+    try {
+        const hashParts = location.hash.split('?');
+        if (hashParts.length < 2) return null;
+        const params = new URLSearchParams(hashParts[hashParts.length - 1]);
+        return params.get(SB_API_BASE_KEY);
+    }
+    catch (_a) { /* ignore */ }
+    return null;
+}
+
 export function apiBaseUrl() {
     // Extension can pass a local API base when the dashboard is loaded from the static website.
-    if (typeof window !== 'undefined' && window.location && window.location.search) {
+    if (typeof window !== 'undefined' && window.location) {
         try {
             const params = new URLSearchParams(window.location.search);
-            const override = params.get('sb_api_base');
-            if (override) return override;
+            const override = params.get(SB_API_BASE_KEY) || _readHashApiBase();
+            if (override && _isAllowedApiBase(override)) {
+                const base = override.replace(/\/api\/?$/, '');
+                _storeApiBase(base);
+                return base;
+            }
         }
         catch (_a) { /* ignore */ }
+        // When served from the local data server, prefer same-origin relative paths
+        // so a stale stored port (e.g. 4000) does not break calls to the current port.
+        if (/^(localhost|127\.0\.0\.1)$/i.test(location.hostname)) {
+            return '';
+        }
+        // On remote hosts ignore any stored localhost sb_api_base; HTTPS pages cannot
+        // reach a local HTTP data server due to mixed-content / LAN access restrictions.
     }
     const env = typeof window !== 'undefined' && window.__SIMPLEBEACON_ENV__;
     return (env && env.API_BASE_URL) || '';

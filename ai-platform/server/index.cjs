@@ -238,9 +238,13 @@ app.get('/sample-report', (req, res) => {
 
 const VAULT_AUTH_EXACT_PATHS = new Set([
   '/api/health',
+  '/api/theme',
   '/api/platform/status',
   '/api/security/npm-audit',
-  '/api/reports/upload'
+  '/api/reports/upload',
+  '/api/analyze',
+  '/api/free-token',
+  '/api/tokens/sandbox'
 ]);
 
 const VAULT_AUTH_PREFIX_PATHS = [
@@ -359,6 +363,10 @@ app.use('/site-config.js', express.static(path.join(dashDir, 'site-config.js')))
 for (const p of ['/css', '/js', '/images', '/fonts', '/assets']) {
   app.use(p, express.static(path.join(comingSoonRoot, p.substring(1))));
 }
+
+// Public data files (e.g. trust-verification.json)
+const publicDir = path.join(__dirname, '..', 'public');
+app.use('/public', express.static(publicDir, { index: false }));
 
 // Inject runtime configuration into dashboard HTML
 // This route MUST come before catch-all static middleware
@@ -495,6 +503,14 @@ app.post('/api/security/npm-audit', async (req, res) => {
 });
 
 // Flexible analyze API — codebase scan and inventory (shared path-safety with simplebeacon-server)
+// Proxy legacy bare POST /api/analyze to the flexible analysis endpoint.
+app.use((req, res, next) => {
+    if (req.method === 'POST' && req.path === '/api/analyze') {
+        req.url = '/api/analyze/flexible';
+    }
+    next();
+});
+
 const platformRoot = path.join(__dirname, '..');
 setupFlexibleAnalyzeAPI(app, {
     baseDir: platformRoot,
@@ -522,11 +538,16 @@ app.get('/api/config/pricing', (_req, res) => {
     });
 });
 
+// Theme endpoint for the dashboard to poll the server-side default theme.
+app.get('/api/theme', (_req, res) => {
+    res.json({ theme: process.env.DEFAULT_THEME || 'dark' });
+});
+
 // Chatbot API — AI-powered code assistance
 setupChatbotAPI(app);
 
 // Stub endpoints for dashboard client features not available in local dev
-app.get('/api/chatbot/providers', (_req, res) => res.json({ providers: [], enabled: false }));
+// Note: /api/chatbot/providers is handled by setupChatbotAPI using actual provider credentials.
 app.get('/api/prompts/get', (_req, res) => res.json({ prompts: [], userId: _req.query.userId || 'anonymous' }));
 app.get('/data/re-attestation-metadata.json', (_req, res) => res.json({ attestations: [], generatedAt: new Date().toISOString() }));
 

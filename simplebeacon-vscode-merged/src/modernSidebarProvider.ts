@@ -8,8 +8,8 @@ import * as http from 'http';
 import * as os from 'os';
 import * as path from 'path';
 import { WelcomeDashboard } from './welcomeDashboard';
-import { getDataServerPort, getBrowserSessionToken, clearBrowserSessionToken, recordBrowserSignOut, isTokenSignedOut, getTheme, setTheme } from './dataServer';
-import { registerSidebarView, postSidebarMessage as _postSidebarMessage, openTeamDashboardPanel as _openTeamDashboardPanel } from './sidebarMessenger';
+import { getDataServerPort, getBrowserSessionToken, setBrowserSessionToken, clearBrowserSessionToken, recordBrowserSignOut, isTokenSignedOut, getTheme, setTheme } from './dataServer';
+import { registerSidebarView, postSidebarMessage as _postSidebarMessage, openTeamDashboardPanel as _openTeamDashboardPanel, openWebsiteDashboardPanel, postWebsiteDashboardMessage, navigateWebsiteDashboardPanel, isWebsiteDashboardPanelOpen, buildDashboardUrl, appendDashboardEmbedParams, getDashboardUrlBarStyles, getDashboardUrlBarHtml } from './sidebarMessenger';
 import { getAuthManager } from './auth/authContext';
 import type { AuthManager } from './auth/authManager';
 import { showQuietMessage, getSbConfig } from './utils/vscode';
@@ -18,6 +18,65 @@ import { resolveTier } from './tierConstants';
 import { validateLicenseLocally } from './licenseManager';
 import { PUBLIC_KEY_PEM } from './realtimeMonitor';
 import { AccountTracker } from './accountTracker';
+
+/** Resolve IDE color theme for sidebar/dashboard sync. */
+function getIdeThemeKind(): 'dark' | 'light' {
+  const kind = vscode.window.activeColorTheme?.kind;
+  return kind === vscode.ColorThemeKind.Dark || kind === vscode.ColorThemeKind.HighContrast ? 'dark' : 'light';
+}
+
+/** CSS variable overrides so the sidebar matches IDE dark/light (not stale webview tokens). */
+function buildSidebarThemeStyles(theme: 'dark' | 'light'): string {
+  const dark = {
+    '--vscode-editor-background': '#252526',
+    '--vscode-sideBar-background': '#252526',
+    '--vscode-sideBar-foreground': '#cccccc',
+    '--vscode-foreground': '#cccccc',
+    '--vscode-descriptionForeground': '#858585',
+    '--vscode-panel-border': '#3c3c3c',
+    '--vscode-input-background': '#3c3c3c',
+    '--vscode-list-hoverBackground': '#2a2d2e',
+    '--vscode-button-secondaryBackground': '#3c3c3c',
+    '--vscode-button-background': '#0e639c',
+    '--vscode-button-foreground': '#ffffff',
+    '--vscode-focusBorder': '#007acc',
+  };
+  const light = {
+    '--vscode-editor-background': '#f3f3f3',
+    '--vscode-sideBar-background': '#f3f3f3',
+    '--vscode-sideBar-foreground': '#333333',
+    '--vscode-foreground': '#333333',
+    '--vscode-descriptionForeground': '#6c6c6c',
+    '--vscode-panel-border': '#e0e0e0',
+    '--vscode-input-background': '#ffffff',
+    '--vscode-list-hoverBackground': '#e8e8e8',
+    '--vscode-button-secondaryBackground': '#e8e8e8',
+    '--vscode-button-background': '#0078d4',
+    '--vscode-button-foreground': '#ffffff',
+    '--vscode-focusBorder': '#007acc',
+  };
+  const palette = theme === 'dark' ? dark : light;
+  const vars = Object.entries(palette).map(([k, v]) => `${k}:${v}`).join(';');
+  return `
+html[data-theme="${theme}"] { color-scheme: ${theme}; ${vars}; }
+html[data-theme="${theme}"], html[data-theme="${theme}"] body {
+  background: var(--vscode-sideBar-background);
+  color: var(--vscode-sideBar-foreground, var(--vscode-foreground));
+}
+html[data-theme="light"] .tc-list-item,
+html[data-theme="light"] .card,
+html[data-theme="light"] .db-score-card,
+html[data-theme="light"] .analyze-card,
+html[data-theme="light"] .report-card {
+  background: var(--vscode-input-background);
+  border-color: var(--vscode-panel-border);
+}
+html[data-theme="light"] .tc-list-item:hover,
+html[data-theme="light"] .card:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+`;
+}
 
 /** Typed shape for messages received from the sidebar webview. */
 interface SidebarMessage {
@@ -61,7 +120,13 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
   private static _cachedTier = '';
   private static _cachedToken = '';
   private static _cachedIsAdmin = false;
-  private static _dashboardMode: 'website' | 'localhost' | null = null;
+  private static _authRefreshTimer: ReturnType<typeof setTimeout> | undefined;
+  private static _authRefreshPendingSource?: string;
+  private static _lastAuthRefreshAt = 0;
+  private static _dashboardMode: 'website' | 'localhost' | null = 'localhost';
+  public static getDashboardMode(): 'website' | 'localhost' {
+    return ModernSidebarProvider._dashboardMode === 'website' ? 'website' : 'localhost';
+  }
   public static getCachedTier(): string { return ModernSidebarProvider._cachedTier; }
   public static getCachedIsAdmin(): boolean { return ModernSidebarProvider._cachedIsAdmin; }
   private static _tracker?: AccountTracker;
@@ -79,17 +144,23 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
     return getSbConfig().get<boolean>('remoteMode', false);
   }
 
-  /** Return the active dashboard host: explicit website/localhost override, then remoteMode fallback. */
+  /** Return the active dashboard host: explicit website/localhost override, then local fallback. */
   private static resolveDashboardHost(): string | null {
     if (ModernSidebarProvider._dashboardMode === 'website') { return 'https://simplebeacon.ai'; }
     if (ModernSidebarProvider._dashboardMode === 'localhost') { return `http://127.0.0.1:${getDataServerPort()}`; }
     return null;
   }
 
-  /** When remoteMode is active or the user selected website mode, open the route in the browser. */
+  /** Open a dashboard route in the Simple Browser using the active dashboard host. */
   private static openInBrowserIfRemote(route: string): boolean {
     const host = ModernSidebarProvider.resolveDashboardHost();
     if (!host && !ModernSidebarProvider.isRemoteMode()) return false;
+    ModernSidebarProvider._openRemoteRouteInBrowserAsync(route, host).catch(() => {});
+    return true;
+  }
+
+  /** Async helper that builds a remote dashboard URL and optionally injects the current token. */
+  private static async _openRemoteRouteInBrowserAsync(route: string, host: string | null): Promise<void> {
     const base = (host || 'https://simplebeacon.ai').replace(/\/$/, '');
     const isRemote = !/^(https?:\/\/)?(127\.0\.0\.1|localhost)(:\d+)?\/?$/i.test(base);
     let normalizedRoute = route.startsWith('/') ? route : '/' + route;
@@ -99,35 +170,71 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
         normalizedRoute = '/dashboard' + normalizedRoute;
       }
     }
-    const url = `${base}${normalizedRoute}`;
-    Promise.resolve(vscode.commands.executeCommand('simpleBrowser.show', url)).catch(() => {});
-    return true;
-  }
-
-  /** Open a dashboard route in the Team Dashboard webview panel. */
-  public static openDashboardRouteInBrowser(route: string): void {
-    const extUri = ModernSidebarProvider._extensionUri;
+    // Only inject the local API base for localhost dashboards. Website mode uses the remote API.
+    // Do NOT inject the auth token into remote URLs; it leaks in the address bar and the
+    // website should receive it through the postMessage /api/notify bridge instead.
     const localBaseUrl = `http://127.0.0.1:${getDataServerPort()}`;
-    const host = ModernSidebarProvider.resolveDashboardHost();
-    const baseUrl = host || localBaseUrl;
-    const isRemote = !/^(https?:\/\/)?(127\.0\.0\.1|localhost)(:\d+)?\/?$/i.test(baseUrl);
-    if (!extUri) {
-      const sep = isRemote ? '?' : '?force=1';
-      const url = `${baseUrl}${route.startsWith('/') ? route : '/' + route}${sep}${isRemote ? `sb_api_base=${encodeURIComponent(localBaseUrl + '/api')}&force=1` : ''}`;
-      Promise.resolve(vscode.commands.executeCommand('simpleBrowser.show', url)).catch(() => {});
+    const apiBaseQuery = !isRemote ? `sb_api_base=${encodeURIComponent(localBaseUrl + '/api')}` : '';
+    const notifyBaseQuery = isRemote ? `sb_notify_base=${encodeURIComponent(localBaseUrl + '/api')}` : '';
+    const query = [apiBaseQuery, notifyBaseQuery].filter(Boolean).join('&');
+    const url = `${base}${normalizedRoute}${query ? (normalizedRoute.includes('?') ? '&' : '?') + query : ''}`;
+    if (isWebsiteDashboardPanelOpen() && navigateWebsiteDashboardPanel(url)) {
       return;
     }
+    if (isRemote) {
+      openWebsiteDashboardPanel(url, 'Team Dashboard');
+      return;
+    }
+    _openTeamDashboardPanel(ModernSidebarProvider._extensionUri!, normalizedRoute, 'Team Dashboard', base, apiBaseQuery);
+  }
+
+  /** Safely read the current auth token from AuthManager. */
+  private static async _getCurrentToken(): Promise<string | undefined> {
+    try {
+      const authManager = getAuthManager();
+      if (authManager && typeof authManager.getToken === 'function') {
+        return await authManager.getToken();
+      }
+    } catch { /* auth manager may not be initialized */ }
+    return undefined;
+  }
+
+  /** Open a dashboard route in the active dashboard host (local webview panel or remote Simple Browser). */
+  public static openDashboardRouteInBrowser(route: string): void {
+    ModernSidebarProvider._openDashboardRouteInBrowserAsync(route).catch(() => {});
+  }
+
+  /** Async helper that opens a dashboard route in the configured host. */
+  private static async _openDashboardRouteInBrowserAsync(route: string): Promise<void> {
+    const extUri = ModernSidebarProvider._extensionUri;
+    const localBaseUrl = `http://127.0.0.1:${getDataServerPort()}`;
+    const configuredHost = ModernSidebarProvider.resolveDashboardHost();
+    // Default to local IDE dashboard; remote is used only when website mode is explicitly selected.
+    const baseUrl = configuredHost || localBaseUrl;
+    const isRemote = Boolean(configuredHost) && !/^(https?:\/\/)?(127\.0\.0\.1|localhost)(:\d+)?\/?$/i.test(configuredHost || '');
+    // Auth relay only goes through the local data server in localhost mode. Website mode uses the remote API.
+    // Do NOT inject the auth token into remote URLs; it leaks in the address bar.
+    const apiBaseQuery = !isRemote ? `sb_api_base=${encodeURIComponent(localBaseUrl + '/api')}&force=1` : '';
+    const notifyBaseQuery = isRemote ? `sb_notify_base=${encodeURIComponent(localBaseUrl + '/api')}` : '';
     let normalizedRoute = route.startsWith('/') ? route : '/' + route;
     normalizedRoute = normalizedRoute.replace(/^\/dashboard\/?$/, '/dashboard/dashboard');
     if (!normalizedRoute.startsWith('/dashboard/')) {
       normalizedRoute = '/dashboard' + normalizedRoute;
     }
-    if (isRemote) {
-      const url = `${baseUrl}${normalizedRoute}?sb_api_base=${encodeURIComponent(localBaseUrl + '/api')}&force=1`;
-      Promise.resolve(vscode.commands.executeCommand('simpleBrowser.show', url)).catch(() => {});
+    const remoteQuery = [apiBaseQuery, notifyBaseQuery].filter(Boolean).join('&');
+    const navigateUrl = isRemote
+      ? `${baseUrl.replace(/\/$/, '')}${normalizedRoute}${remoteQuery ? '?' + remoteQuery : ''}`
+      : buildDashboardUrl(baseUrl, normalizedRoute, apiBaseQuery);
+
+    if (isWebsiteDashboardPanelOpen() && navigateWebsiteDashboardPanel(navigateUrl)) {
       return;
     }
-    _openTeamDashboardPanel(extUri, normalizedRoute, 'Team Dashboard', baseUrl);
+
+    if (isRemote) {
+      openWebsiteDashboardPanel(navigateUrl, 'Team Dashboard');
+      return;
+    }
+    _openTeamDashboardPanel(extUri || ModernSidebarProvider._extensionUri!, normalizedRoute, 'Team Dashboard', baseUrl, apiBaseQuery);
   }
 
   public static getSidebarReport(): Record<string, unknown> | null {
@@ -139,9 +246,27 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
     _postSidebarMessage(message);
   }
 
-  public static async refreshAuthState(source?: 'signOut' | 'signIn') {
+  public static refreshAuthState(source?: string) {
+    const force = source === 'signIn' || source === 'signOut' || source === 'websitePanel';
+    if (!force && Date.now() - ModernSidebarProvider._lastAuthRefreshAt < 2000) {
+      return;
+    }
+    ModernSidebarProvider._authRefreshPendingSource = source ?? ModernSidebarProvider._authRefreshPendingSource;
+    if (ModernSidebarProvider._authRefreshTimer) {
+      return;
+    }
+    ModernSidebarProvider._authRefreshTimer = setTimeout(() => {
+      ModernSidebarProvider._authRefreshTimer = undefined;
+      const pendingSource = ModernSidebarProvider._authRefreshPendingSource;
+      ModernSidebarProvider._authRefreshPendingSource = undefined;
+      ModernSidebarProvider._refreshAuthStateNow(pendingSource).catch(() => {});
+    }, force ? 0 : 150);
+  }
+
+  private static async _refreshAuthStateNow(source?: string) {
     const inst = ModernSidebarProvider._instance;
     if (!inst || !inst._view) { return; }
+    ModernSidebarProvider._lastAuthRefreshAt = Date.now();
     // Prefer cached auth state from webview (set via setSidebarAuthState) over the stub AuthManager
     let signedIn = ModernSidebarProvider._cachedSignedIn;
     let token = ModernSidebarProvider._cachedSignedIn ? ModernSidebarProvider._cachedToken : '';
@@ -180,29 +305,43 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
           }
         }
       }
-      ModernSidebarProvider._cachedSignedIn = signedIn;
-      ModernSidebarProvider._cachedTier = tier;
-      ModernSidebarProvider._cachedIsAdmin = isAdmin;
-      ModernSidebarProvider.logRelay('refreshAuthState post setAuthState signedIn=' + signedIn + ' tier=' + tier + ' isAdmin=' + isAdmin + ' source=' + (source || ''));
-      const msg: any = { command: 'setAuthState', signedIn, token, tier, isAdmin };
-      if (source) { msg.source = source; }
-      inst._view.webview.postMessage(msg);
+      ModernSidebarProvider.logRelay('refreshAuthState setAuthState signedIn=' + signedIn + ' tier=' + tier + ' isAdmin=' + isAdmin + ' source=' + (source || ''));
+      ModernSidebarProvider.setSidebarAuthState(signedIn, tier, token, source, isAdmin);
     } catch (e) {
-      inst._view.webview.postMessage({ command: 'setAuthState', signedIn: ModernSidebarProvider._cachedSignedIn, token: '', tier: ModernSidebarProvider._cachedTier, isAdmin: ModernSidebarProvider._cachedIsAdmin });
+      ModernSidebarProvider.logRelay('refreshAuthState error: ' + (e instanceof Error ? e.message : String(e)));
+      ModernSidebarProvider.setSidebarAuthState(ModernSidebarProvider._cachedSignedIn, ModernSidebarProvider._cachedTier, '', source, ModernSidebarProvider._cachedIsAdmin);
     }
   }
 
-  public static setSidebarAuthState(signedIn: boolean, tier?: string, token?: string, source?: 'signOut' | 'signIn', isAdmin?: boolean) {
+  private static _isWebsiteSource(source?: string): boolean {
+    return typeof source === 'string' && (source === 'websitePanel' || source === 'website' || source.startsWith('website'));
+  }
+
+  public static setSidebarAuthState(signedIn: boolean, tier?: string, token?: string, source?: string, isAdmin?: boolean) {
+    const newTier = tier !== undefined ? resolveTier(tier) : ModernSidebarProvider._cachedTier;
+    // Preserve the existing token when a caller confirms sign-in without passing the token again.
+    const newToken = token || (signedIn ? ModernSidebarProvider._cachedToken : '');
+    const newIsAdmin = !!isAdmin;
+    // Avoid re-posting the same state to the webviews on every auth poll.
+    if (source !== 'signOut' && signedIn === ModernSidebarProvider._cachedSignedIn && newTier === ModernSidebarProvider._cachedTier && newToken === ModernSidebarProvider._cachedToken && newIsAdmin === ModernSidebarProvider._cachedIsAdmin) {
+      return;
+    }
     ModernSidebarProvider._cachedSignedIn = signedIn;
-    if (tier !== undefined) { ModernSidebarProvider._cachedTier = resolveTier(tier); }
-    if (token) { ModernSidebarProvider._cachedToken = token; }
-    if (typeof isAdmin === 'boolean') { ModernSidebarProvider._cachedIsAdmin = isAdmin; }
+    if (tier !== undefined) { ModernSidebarProvider._cachedTier = newTier; }
+    ModernSidebarProvider._cachedToken = newToken;
+    if (typeof isAdmin === 'boolean') { ModernSidebarProvider._cachedIsAdmin = newIsAdmin; }
+    if (signedIn && token) { setBrowserSessionToken(token); }
+    if (!signedIn) { clearBrowserSessionToken(); }
     const inst = ModernSidebarProvider._instance;
-    if (!inst || !inst._view) { return; }
     const msg: any = { command: 'setAuthState', signedIn, tier: ModernSidebarProvider._cachedTier, isAdmin: ModernSidebarProvider._cachedIsAdmin };
     if (token) { msg.token = token; }
     if (source) { msg.source = source; }
-    inst._view.webview.postMessage(msg);
+    if (inst?._view) { inst._view.webview.postMessage(msg); }
+    // Only echo sign-outs to the website dashboard when they are explicit. Otherwise the
+    // extension's periodic no-token refresh could wipe a website sign-in that it doesn't know about.
+    if (!ModernSidebarProvider._isWebsiteSource(source) && (signedIn || source === 'signOut')) {
+      postWebsiteDashboardMessage({ ...msg, source: source || 'ide' });
+    }
   }
 
   private static _safePost(target: { webview: vscode.Webview } | undefined, message: unknown) {
@@ -212,6 +351,7 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
 
   public static postThemeToTeamDashboard(theme: string) {
     ModernSidebarProvider._safePost(ModernSidebarProvider._instance?._view, { command: 'setTheme', theme });
+    postWebsiteDashboardMessage({ command: 'setTheme', theme });
   }
 
   public static isViewReady(): boolean {
@@ -230,11 +370,42 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
   }
 
   public static openSigninPanel() {
-    // Sidebar Sign In button opens the website sign-in screen.
-    // The live dashboard reads ?sb_api_base= to route auth/API to the local data server.
+    ModernSidebarProvider._openSigninPanelAsync().catch(() => {});
+  }
+
+  public static signInViaWebsite() {
+    ModernSidebarProvider._signInViaWebsiteAsync().catch(() => {});
+  }
+
+  /** Open sign-in in the IDE dashboard webview panel (same surface as Quick Links / Team Dashboard). */
+  private static _openSigninInPreview(): void {
     const localBase = `http://127.0.0.1:${getDataServerPort()}`;
-    const signinUrl = `https://5d36969a.simplebeacon.pages.dev/dashboard/signin?sb_api_base=${encodeURIComponent(localBase + '/api')}&force=1`;
-    Promise.resolve(vscode.commands.executeCommand('simpleBrowser.show', signinUrl)).catch(() => {});
+    const notifyBase = `${localBase}/api`;
+    const websiteMode = ModernSidebarProvider.getDashboardMode() === 'website';
+    const callbackUri = `${vscode.env.uriScheme}://simplebeacon.simplebeacon-vscode/relay/auth`;
+    const extraParts = [
+      `redirect_uri=${encodeURIComponent(callbackUri)}`,
+      `sb_notify_base=${encodeURIComponent(notifyBase)}`,
+      'force=1',
+      `_${Date.now()}`
+    ];
+    // Sign-in always loads from the local data-server in the IDE (live site adds a 2nd URL bar).
+    let signinUrl = buildDashboardUrl(localBase, '/signin', extraParts.join('&'));
+    signinUrl = appendDashboardEmbedParams(signinUrl, notifyBase, websiteMode);
+    if (isWebsiteDashboardPanelOpen() && navigateWebsiteDashboardPanel(signinUrl)) {
+      return;
+    }
+    openWebsiteDashboardPanel(signinUrl, 'Sign In');
+  }
+
+  /** Async helper that opens the sign-in page in the IDE preview panel. */
+  private static async _openSigninPanelAsync(): Promise<void> {
+    ModernSidebarProvider._openSigninInPreview();
+  }
+
+  /** Async helper that opens sign-in in the IDE preview panel with VS Code: relay callback. */
+  private static async _signInViaWebsiteAsync(): Promise<void> {
+    ModernSidebarProvider._openSigninInPreview();
   }
 
   public static openTokenRegistrationPanel(_extUri: vscode.Uri, token: string) {
@@ -534,12 +705,10 @@ $('cancelBtn').addEventListener('click', () => {
       const authManager = getAuthManager();
       const storedToken = authManager && typeof authManager.getToken === 'function' ? await authManager.getToken() : undefined;
       if (storedToken) {
-        webview.postMessage({ command: 'rehydrateCachedSession', token: storedToken });
-      } else {
-        webview.postMessage({ command: 'setAuthState', signedIn: false, token: '' });
+        ModernSidebarProvider._safePost({ webview }, { command: 'rehydrateCachedSession', token: storedToken });
       }
+      // Signed-out state is reconciled once via refreshAuthState; avoid spamming setAuthState on boot.
     } catch (err) {
-      webview.postMessage({ command: 'setAuthState', signedIn: false, token: '' });
       ModernSidebarProvider.logRelay('Failed to rehydrate panel session tokens: ' + (err instanceof Error ? err.message : String(err)));
     }
   }
@@ -553,7 +722,9 @@ $('cancelBtn').addEventListener('click', () => {
     ModernSidebarProvider._extensionUri = _extensionUri;
     // Sync data-server theme with VS Code: theme on startup and on changes
     const syncServerTheme = (theme: vscode.ColorTheme) => {
-      setTheme(theme.kind === vscode.ColorThemeKind.Dark ? 'dark' : 'light');
+      const kind = theme.kind === vscode.ColorThemeKind.Dark || theme.kind === vscode.ColorThemeKind.HighContrast ? 'dark' : 'light';
+      setTheme(kind);
+      ModernSidebarProvider.postThemeToTeamDashboard(kind);
     };
     syncServerTheme(vscode.window.activeColorTheme);
     vscode.window.onDidChangeActiveColorTheme((theme) => syncServerTheme(theme));
@@ -645,6 +816,8 @@ $('cancelBtn').addEventListener('click', () => {
       const html = this._getHtmlForWebview(webviewView.webview);
       webviewView.webview.html = html;
       ModernSidebarProvider.logRelay(`Sidebar HTML set: ${html.length} chars`);
+      setTheme(getIdeThemeKind());
+      ModernSidebarProvider.postThemeToTeamDashboard(getIdeThemeKind());
       // Health-check: if the webview does not post back within 3s, log a warning
       setTimeout(() => {
         webviewView.webview.postMessage({ command: 'pingSidebarHealth' });
@@ -679,7 +852,7 @@ $('cancelBtn').addEventListener('click', () => {
 
     // Restore any previously tracked downloads into the new webview
     this._downloads.forEach((dl) => {
-      webviewView.webview.postMessage({ command: 'addDownloadedFile', ...dl });
+      webviewView.webview.postMessage({ command: 'addDownloadedFile', name: dl.name, path: ModernSidebarProvider._displayDownloadPath(dl.path), time: dl.time });
     });
 
     // Phase 3: Rehydrate cached license token from secure storage into the webview on boot
@@ -717,7 +890,9 @@ $('cancelBtn').addEventListener('click', () => {
     }, 100);
 
     webviewView.webview.onDidReceiveMessage(async (message: SidebarMessage) => {
-      ModernSidebarProvider.logRelay(`Sidebar received message: command="${message.command}"`);
+      if (message.command !== 'getAuthState' && message.command !== 'pongSidebarHealth') {
+        ModernSidebarProvider.logRelay(`Sidebar received message: command="${message.command}"`);
+      }
       // Forward sidebar commands to browser preview relay server only if it is running
       const relayPort = ModernSidebarProvider._relayPort;
       if (relayPort) {
@@ -860,8 +1035,10 @@ $('cancelBtn').addEventListener('click', () => {
           }
           case 'setDashboardMode': {
             const mode = message.mode === 'website' || message.mode === 'localhost' ? message.mode : null;
+            if (!mode) { break; }
             ModernSidebarProvider._dashboardMode = mode;
             _postSidebarMessage({ command: 'dashboardModeChanged', mode });
+            ModernSidebarProvider.openDashboardRouteInBrowser('/dashboard/dashboard');
             break;
           }
           case 'getDashboardMode': {
@@ -1110,16 +1287,21 @@ $('cancelBtn').addEventListener('click', () => {
             break;
           }
           case 'toggleTheme': {
-            const newTheme = getTheme() === 'dark' ? 'light' : 'dark';
-            setTheme(newTheme);
-            ModernSidebarProvider.postThemeToTeamDashboard(newTheme);
             vscode.commands.executeCommand('workbench.action.toggleLightDarkThemes');
+            setTimeout(() => {
+              const kind = getIdeThemeKind();
+              setTheme(kind);
+              ModernSidebarProvider.postThemeToTeamDashboard(kind);
+            }, 150);
             break;
           }
           case 'signIn':
           case 'openSigninScreen':
           case 'openSigninPanel':
             ModernSidebarProvider.openSigninPanel();
+            break;
+          case 'signInViaWebsite':
+            ModernSidebarProvider.signInViaWebsite();
             break;
           case 'signOut': {
             ModernSidebarProvider.logRelay('sidebar signOut received, handling directly');
@@ -1184,8 +1366,22 @@ $('cancelBtn').addEventListener('click', () => {
           case 'setAuthState': {
             const msg = message as any;
             const signedIn = !!msg.signedIn;
+            const token = typeof msg.token === 'string' ? msg.token : '';
             const tier = msg.tier || '';
-            ModernSidebarProvider.setSidebarAuthState(signedIn, tier);
+            const isAdmin = !!msg.isAdmin;
+            // Persist sign-in tokens from the sidebar iframe so refreshAuthState can use them as truth.
+            // Do not blindly clear on sign-out; let refreshAuthState reconcile against AuthManager/browser token
+            // so a stale local-dashboard sign-out cannot wipe a website sign-in.
+            try {
+              const authManager = getAuthManager();
+              if (signedIn && token) {
+                await authManager.setToken(token);
+                if (typeof msg.userEmail === 'string') { await authManager.setUserEmail(msg.userEmail); }
+                if (typeof msg.userName === 'string') { await authManager.setUserName(msg.userName); }
+              }
+            } catch { /* auth manager may not be initialized */ }
+            ModernSidebarProvider.setSidebarAuthState(signedIn, tier, token, undefined, isAdmin);
+            setTimeout(() => ModernSidebarProvider.refreshAuthState(), 50);
             break;
           }
           case 'sidebarError':
@@ -1203,7 +1399,7 @@ $('cancelBtn').addEventListener('click', () => {
             ModernSidebarProvider.openDashboardRouteInBrowser('/help');
             break;
           case 'openChatbot':
-            ModernSidebarProvider.openDashboardRouteInBrowser('/aicontext');
+            ModernSidebarProvider.openDashboardRouteInBrowser('/chatbot');
             break;
           case 'openGitHub':
             vscode.commands.executeCommand('simpleBrowser.show', 'https://github.com/simplebeacon/simplebeacon-vscode');
@@ -1212,7 +1408,26 @@ $('cancelBtn').addEventListener('click', () => {
             vscode.commands.executeCommand('simpleBrowser.show', 'https://docs.simplebeacon.dev');
             break;
           case 'openExternalUrl':
-            if (message.url) { vscode.commands.executeCommand('simpleBrowser.show', message.url); }
+            if (message.url) {
+              try {
+                const parsed = new URL(message.url);
+                ['sb_parent_urlbar', 'sb_notify_base', 'sb_api_base', 'sb_website_mode'].forEach((k) => parsed.searchParams.delete(k));
+                vscode.env.openExternal(vscode.Uri.parse(parsed.toString()));
+              } catch {
+                vscode.env.openExternal(vscode.Uri.parse(message.url));
+              }
+            }
+            break;
+          case 'openInSimpleBrowser':
+            if (message.url) {
+              try {
+                const parsed = new URL(message.url);
+                ['sb_parent_urlbar', 'sb_notify_base', 'sb_api_base', 'sb_website_mode'].forEach((k) => parsed.searchParams.delete(k));
+                vscode.commands.executeCommand('simpleBrowser.show', parsed.toString());
+              } catch {
+                vscode.commands.executeCommand('simpleBrowser.show', message.url);
+              }
+            }
             break;
           case 'openDataServerUrl': {
             const dsPort = getDataServerPort();
@@ -1236,9 +1451,20 @@ $('cancelBtn').addEventListener('click', () => {
             if (message.path) {
               const host = ModernSidebarProvider.resolveDashboardHost();
               const base = host || `http://127.0.0.1:${getDataServerPort()}`;
-              const url = `${base}${message.path}`;
-              // Use the extension's webview preview so the page can postMessage back to VS Code:
-              vscode.commands.executeCommand('simplebeacon.openInPreview', url);
+              const isRemote = !!host && !/^(https?:\/\/)?(127\.0\.0\.1|localhost)(:\d+)?\/?$/i.test(host);
+              const localBaseUrl = `http://127.0.0.1:${getDataServerPort()}`;
+              const apiBaseQuery = !isRemote ? `sb_api_base=${encodeURIComponent(localBaseUrl + '/api')}&force=1` : '';
+              const url = isRemote
+                ? `${base}${message.path}`
+                : buildDashboardUrl(base, message.path, apiBaseQuery);
+              if (isWebsiteDashboardPanelOpen() && navigateWebsiteDashboardPanel(url)) {
+                break;
+              }
+              if (isRemote) {
+                openWebsiteDashboardPanel(url, 'SimpleBeacon Dashboard');
+              } else {
+                _openTeamDashboardPanel(this._extensionUri!, message.path, 'Team Dashboard', base, apiBaseQuery);
+              }
             }
             break;
           }
@@ -1403,15 +1629,15 @@ $('cancelBtn').addEventListener('click', () => {
               openQuality: '/quality',
               openAssessments: '/assessments',
               openPlatform: '/platform',
-              openDiagnose: '/scan',
+              openDiagnose: '/dashboard',
               openProfile: '/profile',
               openAbout: '/about',
-              openAdmin: '/settings',
+              openAdmin: '/admin',
               openRepoHealth: '/repository-health',
               openAnalytics: '/dashboard',
               openTeam: '/dashboard',
-              openScan: '/scan',
-              openTools: '/settings'
+              openScan: '/dashboard',
+              openTools: '/tools'
             };
             {
               const route = routeMap[message.command] || '/dashboard';
@@ -1450,25 +1676,59 @@ $('cancelBtn').addEventListener('click', () => {
             break;
           case 'openRoadmapUrl':
           case 'openAuditUrl':
-          case 'openPricingUrl': {
+          case 'openPricingUrl':
+          case 'openTeamDashboardUrl': {
             if (message.url) {
               const labelMap: Record<string, string> = {
                 openRoadmapUrl: 'Roadmap',
                 openAuditUrl: 'Audit',
-                openPricingUrl: 'Pricing'
+                openPricingUrl: 'Pricing',
+                openTeamDashboardUrl: 'Team Dashboard'
               };
               let url = message.url;
-              // Canonicalize old /coming-soon/*.html URLs to the live dashboard SPA routes.
-              const canonicalMap: Record<string, string> = {
-                'https://cascadeprojects-yzzd.onrender.com/coming-soon/roadmap.html': 'https://simplebeacon.ai/dashboard/roadmap',
-                'https://cascadeprojects-yzzd.onrender.com/coming-soon/audit.html': 'https://simplebeacon.ai/dashboard/audit',
-                'https://cascadeprojects-yzzd.onrender.com/coming-soon/pricing.html': 'https://simplebeacon.ai/dashboard/pricing',
-                'https://simplebeacon.ai/coming-soon/roadmap.html': 'https://simplebeacon.ai/dashboard/roadmap',
-                'https://simplebeacon.ai/coming-soon/audit.html': 'https://simplebeacon.ai/dashboard/audit',
-                'https://simplebeacon.ai/coming-soon/pricing.html': 'https://simplebeacon.ai/dashboard/pricing'
+              // Canonicalize legacy /coming-soon/*.html URLs to live marketing routes.
+              const legacyMap: Record<string, string> = {
+                'https://cascadeprojects-yzzd.onrender.com/coming-soon/roadmap.html': 'https://simplebeacon.ai/roadmap',
+                'https://cascadeprojects-yzzd.onrender.com/coming-soon/audit.html': 'https://simplebeacon.ai/audit',
+                'https://cascadeprojects-yzzd.onrender.com/coming-soon/pricing.html': 'https://simplebeacon.ai/pricing',
+                'https://simplebeacon.ai/coming-soon/roadmap.html': 'https://simplebeacon.ai/roadmap',
+                'https://simplebeacon.ai/coming-soon/audit.html': 'https://simplebeacon.ai/audit',
+                'https://simplebeacon.ai/coming-soon/pricing.html': 'https://simplebeacon.ai/pricing',
+                'https://simplebeacon.ai/dashboard/roadmap': 'https://simplebeacon.ai/roadmap',
+                'https://simplebeacon.ai/dashboard/audit': 'https://simplebeacon.ai/audit',
+                'https://simplebeacon.ai/dashboard/pricing': 'https://simplebeacon.ai/pricing'
               };
-              if (canonicalMap[url]) {
-                url = canonicalMap[url];
+              if (legacyMap[url]) {
+                url = legacyMap[url];
+              }
+              try {
+                const parsedDash = new URL(url);
+                const dashPath = parsedDash.pathname || '';
+                if (dashPath === '/dashboard' || dashPath.startsWith('/dashboard/')) {
+                  let route = dashPath.replace(/^\/dashboard\/?/, '');
+                  if (!route || route === '/') {
+                    route = '/dashboard/dashboard';
+                  } else {
+                    route = '/dashboard' + (route.startsWith('/') ? route : '/' + route);
+                  }
+                  ModernSidebarProvider.openDashboardRouteInBrowser(route);
+                  break;
+                }
+              } catch { /* not a dashboard URL — fall through to preview */ }
+              const host = ModernSidebarProvider.resolveDashboardHost();
+              const websiteMode = ModernSidebarProvider.getDashboardMode() === 'website';
+              const isLocalHost = !host || /^(https?:\/\/)?(127\.0\.0\.1|localhost)(:\d+)?\/?$/i.test(host || '');
+              if (isLocalHost && !websiteMode && url.startsWith('https://simplebeacon.ai/')) {
+                const localBase = `http://127.0.0.1:${getDataServerPort()}`;
+                const localMap: Record<string, string> = {
+                  'https://simplebeacon.ai/roadmap': `${localBase}/roadmap.html`,
+                  'https://simplebeacon.ai/audit': `${localBase}/audit.html`,
+                  'https://simplebeacon.ai/pricing': `${localBase}/pricing.html`,
+                  'https://simplebeacon.ai/dashboard': `${localBase}/dashboard/dashboard`,
+                  'https://simplebeacon.ai/dashboard/': `${localBase}/dashboard/dashboard`
+                };
+                const normalized = url.replace(/\/$/, '');
+                url = localMap[url] || localMap[normalized] || localMap[normalized + '/'] || url;
               }
               vscode.commands.executeCommand('simplebeacon.openUrlInPreview', url, labelMap[message.command] || '');
             }
@@ -1554,10 +1814,11 @@ $('cancelBtn').addEventListener('click', () => {
     const savedProjectPath = sbConfig.get<string>('projectPath', '');
     const isWorkspaceMode = savedScanMode === 'workspace';
     const dataServerUrl = `http://127.0.0.1:${getDataServerPort()}`;
+    const ideTheme = getIdeThemeKind();
     const apiUrlScript = apiUrl ? `<script nonce="${nonce}">window.__SB_API_URL__=${JSON.stringify(apiUrl)};</script>` : '';
     const dataServerUrlScript = `<script nonce="${nonce}">window.__SB_DATA_SERVER_URL__=${JSON.stringify(dataServerUrl)};</script>`;
     return `<!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="${ideTheme}">
 <head>
 <meta charset="UTF-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${csp} 'unsafe-inline'; script-src ${csp} 'nonce-${nonce}'; img-src ${csp} data:; font-src ${csp}; frame-src ${csp}; connect-src ${csp} http://127.0.0.1:*;">
@@ -1569,8 +1830,8 @@ html, body {
   margin: 0;
   font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
   font-size: 13px;
-  color: var(--vscode-foreground, #ccc);
-  background: var(--vscode-editor-background, #1e1e1e);
+  color: var(--vscode-sideBar-foreground, var(--vscode-foreground, #ccc));
+  background: var(--vscode-sideBar-background, var(--vscode-editor-background, #252526));
   padding: 0;
   overflow-y: auto;
   height: 100%;
@@ -1764,8 +2025,10 @@ body::-webkit-scrollbar-thumb:hover { background: rgba(128,128,128,0.6); }
 .tc-list{padding:0 12px 12px;display:flex;flex-direction:column;gap:6px;}
 .tc-list-item{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:6px;background:var(--vscode-input-background, rgba(255,255,255,0.03));border:1px solid var(--vscode-panel-border, rgba(255,255,255,0.06));font-size:12px;cursor:pointer;transition:all .15s;}
 .tc-list-item:hover{background:var(--vscode-list-hoverBackground, rgba(255,255,255,0.06));}
-#tdSignInSidebar{background:var(--vscode-input-background, rgba(255,255,255,0.03)) !important;border-color:var(--vscode-panel-border, rgba(255,255,255,0.06)) !important;}
-#tdSignInSidebar:hover{background:var(--vscode-list-hoverBackground, rgba(255,255,255,0.06)) !important;}
+#tdTeamDashboardSidebar{background:var(--vscode-input-background, rgba(255,255,255,0.03)) !important;border-color:var(--vscode-panel-border, rgba(255,255,255,0.06)) !important;}
+#tdTeamDashboardSidebar:hover{background:var(--vscode-list-hoverBackground, rgba(255,255,255,0.06)) !important;}
+#tdSignInSidebar{background:rgba(99,102,241,0.08) !important;border-color:rgba(99,102,241,0.25) !important;}
+#tdSignInSidebar:hover{background:rgba(99,102,241,0.14) !important;}
 .tc-list-item-left{display:flex;align-items:center;gap:8px;}
 .tc-list-dot{width:6px;height:6px;border-radius:50%;}
 .tc-list-dot.green{background:#22c55e;}
@@ -2442,6 +2705,7 @@ body.detail-panel-open #tabAdvanced {
 }
 /* Ensure dashboard is visible by default before JS runs */
 #tabDashboard { display: block; }
+${buildSidebarThemeStyles(ideTheme)}
 </style>
 </head>
 <body>
@@ -2921,9 +3185,10 @@ body.detail-panel-open #tabAdvanced {
   <div class="tc-list-item" id="tdRoadmapSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F5FA;</span><span class="tc-list-name">Roadmap</span></div></div>
   <div class="tc-list-item" id="tdAuditSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F4CB;</span><span class="tc-list-name">Audit</span></div></div>
   <div class="tc-list-item" id="tdPricingSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F4B0;</span><span class="tc-list-name">Pricing</span></div></div>
-  <div class="tc-list-item" id="tdSignInSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg></span><span class="tc-list-name">Sign In</span></div></div>
+  <div class="tc-list-item" id="tdOfflineToggleSidebar" style="display:none;"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F3E0;</span><span class="tc-list-name">Local host</span></div></div>
+  <div class="tc-list-item" id="tdTeamDashboardSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F4CA;</span><span class="tc-list-name">Team Dashboard</span></div></div>
+  <div class="tc-list-item" id="tdSignInSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F512;</span><span class="tc-list-name">Sign In</span></div></div>
   <div class="tc-list-item" id="tdSignOutSidebar" style="display:none;"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg></span><span class="tc-list-name">Sign Out</span></div></div>
-  <div class="tc-list-item" id="tdOfflineToggleSidebar" style="display:none;"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F4F6;</span><span class="tc-list-name">Website</span></div></div>
 </div>
 <div class="tab-section" style="margin-top:16px;">Navigation</div>
 <div class="tc-list" style="gap:8px;">
@@ -3494,9 +3759,6 @@ body.detail-panel-open #tabAdvanced {
       <div class="settings-kpi-value" id="codeMapLastScan">--</div>
       <div class="settings-kpi-label">Last Scan</div>
     </div>
-  </div>
-  <div id="codeMapUpgradeMsg" style="display:none;margin:12px;padding:12px;border-radius:8px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);color:#818cf8;font-size:12px;text-align:center;">
-    Upgrade to Pro for full dependency analysis, language breakdown, and detailed architecture insights.
   </div>
   <div class="code-map-detail-section">
     <div class="settings-section-card">
@@ -4621,7 +4883,9 @@ ${sidebarMainJsContent}
 
   public updateReport(report: Record<string, unknown> | null) {
     this._currentReport = report;
-    this._view?.webview.postMessage({ command: 'updateReport', report });
+    try {
+      this._view?.webview.postMessage({ command: 'updateReport', report });
+    } catch { /* webview disposed */ }
     // Push report data to relay so browser dashboard can display it
     const relayPort = ModernSidebarProvider._relayPort;
     if (relayPort && report) {
@@ -4667,7 +4931,16 @@ ${sidebarMainJsContent}
     // Avoid duplicate entries for the same path
     this._downloads = this._downloads.filter((d) => d.path !== path);
     this._downloads.unshift(dl);
-    this._view?.webview.postMessage({ command: 'addDownloadedFile', ...dl });
+    this._view?.webview.postMessage({ command: 'addDownloadedFile', name: dl.name, path: ModernSidebarProvider._displayDownloadPath(dl.path), time: dl.time });
+  }
+
+  public static addDownloadedFile(name: string, path: string): void {
+    ModernSidebarProvider._instance?.addDownloadedFile(name, path);
+  }
+
+  private static _displayDownloadPath(path: string): string {
+    // Browser downloads use a pseudo-path for unique deduplication; don't show it in the sidebar.
+    return path && path.startsWith('browser://') ? '' : path;
   }
 
   public clearDownloadedFiles() {
@@ -5077,16 +5350,10 @@ if (!window.vscode || typeof window.vscode.postMessage !== 'function') {
       return;
     }
     const extUri = this._extensionUri;
-    const sbConfig = getSbConfig();
-    const configuredBrowserUrl = sbConfig.get<string>('browserDashboardUrl') || '';
+    // Always use the local IDE dashboard so auth relay and dropzone fixes apply.
     const localDashboardBase = `http://127.0.0.1:${getDataServerPort()}`;
-    const dashboardBaseUrl = configuredBrowserUrl
-      ? configuredBrowserUrl.replace(/\/dashboard\/?$/, '').replace(/\/$/, '')
-      : localDashboardBase;
-    const isRemoteDashboard = !/^(https?:\/\/)?(127\.0\.0\.1|localhost)(:\d+)?\/?$/i.test(dashboardBaseUrl);
-    const initialDashboardSrc = isRemoteDashboard
-      ? `${dashboardBaseUrl}/dashboard/dashboard`
-      : `${dashboardBaseUrl}/#/dashboard`;
+    const dashboardBaseUrl = localDashboardBase;
+    const initialDashboardSrc = `${dashboardBaseUrl}/dashboard/dashboard`;
 
     // Generate the same browser-ready sidebar HTML used by the IDE preview
     let browserHtml = '';
@@ -5119,6 +5386,7 @@ if (!window.vscode || typeof window.vscode.postMessage !== 'function') {
     }
 
     // Start minimal relay server if not already running
+    const sbConfig = getSbConfig();
     const RELAY_PORT = sbConfig.get<number>('relayPort', 3004);
     if (ModernSidebarProvider._relayServer) {
       const port = ModernSidebarProvider._relayPort || RELAY_PORT;
@@ -5162,12 +5430,7 @@ html,body{height:100%;margin:0;padding:0;background:#0f1117;overflow:hidden}
 .sidebar{width:280px;min-width:200px;max-width:400px;border-right:1px solid #334155;flex-shrink:0}
 .main{flex:1;min-width:0;display:flex;flex-direction:column}
 .resizer{width:6px;background:#334155;cursor:col-resize;flex-shrink:0}
-.url-bar{display:flex;align-items:center;gap:8px;padding:6px 10px;background:#111827;border-bottom:1px solid #1f2937;flex-shrink:0}
-.url-bar button{background:transparent;border:1px solid #374151;border-radius:6px;color:#9ca3af;cursor:pointer;padding:4px 10px;font-size:13px}
-.url-bar button:hover:not(:disabled){color:#e2e8f0;border-color:#6366f1}
-.url-bar button:disabled{opacity:0.4;cursor:not-allowed}
-.url-bar input{flex:1;background:#0B0F19;border:1px solid #374151;border-radius:6px;color:#e2e8f0;padding:6px 10px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12px}
-.url-bar input:focus{outline:none;border-color:#6366f1}
+${getDashboardUrlBarStyles()}
 .browser-content{flex:1;min-height:0;position:relative}
 iframe{width:100%;height:100%;border:none;display:block}
 #browserTabBar{display:none;position:fixed;top:0;left:0;right:0;height:36px;background:#1e1e1e;border-bottom:1px solid rgba(255,255,255,0.06);z-index:200;align-items:center;gap:0;overflow-x:auto;scrollbar-width:thin;}
@@ -5206,7 +5469,7 @@ body.tabs-open #browserTabBar{display:flex !important;}
     </div>
     <div class="sidebar-section">
       <div class="sidebar-heading">Compliance</div>
-      <div class="sidebar-link" data-view="audit"><span class="icon">&#x1F4CB;</span> Audit</div>
+      <div class="sidebar-link" data-view="audit"><span class="icon">&#x1F4CB;</span> Audit Report</div>
       <div class="sidebar-link" data-view="security"><span class="icon">&#x1F6E1;</span> Security</div>
       <div class="sidebar-link" data-view="quality"><span class="icon">&#x2B50;</span> Quality</div>
       <div class="sidebar-link" data-view="trust"><span class="icon">&#x1F510;</span> Trust</div>
@@ -5214,7 +5477,7 @@ body.tabs-open #browserTabBar{display:flex !important;}
     <div class="sidebar-section">
       <div class="sidebar-heading">Operations</div>
       <div class="sidebar-link" data-view="assessments"><span class="icon">&#x1F4DD;</span> Assessments</div>
-      <div class="sidebar-link" data-view="roadmap"><span class="icon">&#x1F6E4;</span> Roadmap</div>
+      <div class="sidebar-link" data-view="remediation"><span class="icon">&#x1F6E4;</span> Remediation</div>
       <div class="sidebar-link" data-view="platform"><span class="icon">&#x1F680;</span> Platform</div>
       <div class="sidebar-link" data-view="profile"><span class="icon">&#x1F464;</span> Profile</div>
       <div class="sidebar-link" data-view="admin" id="sidebarAdminLink" style="display:none;"><span class="icon">&#x1F465;</span> Admin</div>
@@ -5225,6 +5488,7 @@ body.tabs-open #browserTabBar{display:flex !important;}
       <div class="sidebar-link" data-view="settings"><span class="icon">&#x2699;</span> Settings</div>
       <div class="sidebar-link" data-view="help"><span class="icon">&#x2753;</span> Help</div>
       <div class="sidebar-link" data-view="chatbot"><span class="icon">&#x1F916;</span> Chatbot</div>
+      <div class="sidebar-link" data-view="about"><span class="icon">&#x2139;</span> About</div>
     </div>
     <div class="sidebar-section">
       <div class="sidebar-heading">Account</div>
@@ -5234,12 +5498,7 @@ body.tabs-open #browserTabBar{display:flex !important;}
   </div>
   <div class="resizer" id="resizer"></div>
   <div class="main">
-    <div class="url-bar">
-      <button id="backBtn" title="Go back" disabled>←</button>
-      <button id="fwdBtn" title="Go forward" disabled>→</button>
-      <button id="reloadBtn" title="Reload">↻</button>
-      <input id="urlInput" type="text" value="${initialDashboardSrc}" spellcheck="false" />
-    </div>
+    ${getDashboardUrlBarHtml({ back: 'backBtn', fwd: 'fwdBtn', reload: 'reloadBtn', input: 'urlInput', external: 'externalBtn' }, initialDashboardSrc)}
     <div class="browser-content"><iframe id="mainIframe" src="${initialDashboardSrc}"></iframe></div>
   </div>
 </div>
@@ -5281,10 +5540,68 @@ body.tabs-open #browserTabBar{display:flex !important;}
     window.addEventListener('blur', stopDrag);
   });
   const DASHBOARD_URL = ${JSON.stringify(dashboardBaseUrl)};
-  const IS_REMOTE_DASHBOARD = ${isRemoteDashboard ? 'true' : 'false'};
+  const MARKETING_URL = 'https://simplebeacon.ai';
+  const IS_REMOTE_DASHBOARD = false;
+  const SITE_PATHS = ['/roadmap', '/audit', '/pricing', '/contact', '/team', '/security', '/terms', '/privacy', '/refund', '/faq'];
+  function isSitePath(path) {
+    if (!path || path.charAt(0) !== '/') return false;
+    return SITE_PATHS.some(function(p) { return path === p || path.indexOf(p + '/') === 0 || path.indexOf(p + '?') === 0; });
+  }
+  function resolveUrlInput(raw) {
+    if (!raw) return '';
+    var trimmed = raw.trim();
+    if (!trimmed) return '';
+    if (/^https?:\\/\\//i.test(trimmed)) return trimmed;
+    if (trimmed.charAt(0) === '/') {
+      if (trimmed.indexOf('/dashboard/') === 0 || trimmed === '/dashboard') return DASHBOARD_URL + trimmed;
+      if (isSitePath(trimmed)) return MARKETING_URL + trimmed;
+      return DASHBOARD_URL + '/dashboard' + trimmed;
+    }
+    if (/^[a-z0-9.-]+\\.[a-z]{2,}/i.test(trimmed)) return 'https://' + trimmed.replace(/^\\/+/, '');
+    return DASHBOARD_URL + '/dashboard/' + trimmed.replace(/^#?\\/?/, '');
+  }
+  function canEmbed(url) {
+    try {
+      var host = new URL(url).hostname.toLowerCase();
+      if (host === 'simplebeacon.ai' || host.endsWith('.simplebeacon.ai')) return true;
+      if (host === 'localhost' || host === '127.0.0.1') return true;
+      if (host.endsWith('.onrender.com')) return true;
+      return false;
+    } catch (e) { return false; }
+  }
+  function ensureEmbedParams(url) {
+    if (!url || url.indexOf('sb_parent_urlbar=') !== -1) return url;
+    try {
+      var parsed = new URL(url);
+      parsed.searchParams.set('sb_parent_urlbar', '1');
+      return parsed.toString();
+    } catch (e) {
+      return url + (url.indexOf('?') === -1 ? '?' : '&') + 'sb_parent_urlbar=1';
+    }
+  }
+  function preferLocalDashboardUrl(url) {
+    if (!url) return url;
+    try {
+      var parsed = new URL(url);
+      var host = parsed.hostname.toLowerCase();
+      if ((host === 'simplebeacon.ai' || host.endsWith('.simplebeacon.ai')) && parsed.pathname.indexOf('/dashboard') === 0) {
+        if (DASHBOARD_URL && (DASHBOARD_URL.indexOf('127.0.0.1') >= 0 || DASHBOARD_URL.indexOf('localhost') >= 0)) {
+          return DASHBOARD_URL.replace(/\/$/, '') + parsed.pathname + parsed.search + parsed.hash;
+        }
+      }
+    } catch (e) { /* ignore */ }
+    return url;
+  }
+  function notifyParentUrlBar() {
+    if (mainIframe && mainIframe.contentWindow) {
+      mainIframe.contentWindow.postMessage({ command: 'setParentUrlBar', active: true }, '*');
+    }
+  }
   function dashboardRoute(view) {
-    if (IS_REMOTE_DASHBOARD) { return '/dashboard/' + view; }
-    return '/#/' + view;
+    const routes = { remediation: 'remediation' };
+    const target = routes[view] || view;
+    if (IS_REMOTE_DASHBOARD) { return '/dashboard/' + target; }
+    return '/#/' + target;
   }
   function viewFromUrl(url) {
     if (!url) return 'dashboard';
@@ -5301,6 +5618,7 @@ body.tabs-open #browserTabBar{display:flex !important;}
   const backBtn = document.getElementById('backBtn');
   const fwdBtn = document.getElementById('fwdBtn');
   const reloadBtn = document.getElementById('reloadBtn');
+  const externalBtn = document.getElementById('externalBtn');
   function _postSidebarCmd(cmd) {
     if (typeof acquireVsCodeApi === 'function') {
       try { acquireVsCodeApi().postMessage({ command: cmd }); } catch (e) {}
@@ -5340,11 +5658,23 @@ body.tabs-open #browserTabBar{display:flex !important;}
   }
   function navigateToUrl(url, push) {
     if (!url || !mainIframe) return;
-    browserHistory.pendingUrl = url;
-    mainIframe.src = url;
-    if (push) pushHistory(url);
+    var resolved = preferLocalDashboardUrl(resolveUrlInput(url) || url);
+    if (!canEmbed(resolved)) {
+      if (typeof acquireVsCodeApi === 'function') {
+        try { acquireVsCodeApi().postMessage({ command: 'openInSimpleBrowser', url: resolved }); } catch (e) {}
+      }
+      if (urlInput) urlInput.value = resolved;
+      if (push) pushHistory(resolved);
+      else updateToolbar();
+      return;
+    }
+    resolved = ensureEmbedParams(resolved);
+    browserHistory.pendingUrl = resolved;
+    mainIframe.src = resolved;
+    if (urlInput) urlInput.value = resolved;
+    if (push) pushHistory(resolved);
     else updateToolbar();
-    activateLink(viewFromUrl(url));
+    activateLink(viewFromUrl(resolved));
   }
   function navigateToView(view, push) {
     navigateToUrl(DASHBOARD_URL + dashboardRoute(view), push);
@@ -5357,6 +5687,13 @@ body.tabs-open #browserTabBar{display:flex !important;}
   }
 
   // Load the initial dashboard route into the browser history.
+  if (mainIframe) {
+    mainIframe.addEventListener('load', function() {
+      notifyParentUrlBar();
+    });
+    notifyParentUrlBar();
+    setInterval(notifyParentUrlBar, 2000);
+  }
   navigateToUrl('${initialDashboardSrc}', true);
 
   // Sidebar navigation.
@@ -5369,8 +5706,8 @@ body.tabs-open #browserTabBar{display:flex !important;}
         navigateToUrl(externalUrl, true);
       } else if (view && mainIframe) {
         navigateToView(view, true);
-      } else if (cmd === 'signIn' && mainIframe) {
-        navigateToView('signin', true);
+      } else if (cmd === 'signIn') {
+        _postSidebarCmd('signIn');
       } else if (cmd === 'signOut') {
         _postSidebarCmd('signOut');
       }
@@ -5383,22 +5720,23 @@ body.tabs-open #browserTabBar{display:flex !important;}
   if (backBtn) backBtn.addEventListener('click', goBack);
   if (fwdBtn) fwdBtn.addEventListener('click', goForward);
   if (reloadBtn) reloadBtn.addEventListener('click', refresh);
+  if (externalBtn) {
+    externalBtn.addEventListener('click', function() {
+      const url = browserHistory.index >= 0 ? browserHistory.urls[browserHistory.index] : (urlInput ? urlInput.value : '');
+      if (!url) return;
+      if (typeof acquireVsCodeApi === 'function') {
+        try { acquireVsCodeApi().postMessage({ command: 'openExternalUrl', url }); } catch (e) {}
+      } else {
+        window.open(url, '_blank');
+      }
+    });
+  }
   if (urlInput) {
     urlInput.addEventListener('keydown', function(e){
       if (e.key === 'Enter') {
         const raw = urlInput.value.trim();
         if (!raw) return;
-        if (/^https?:\/\//i.test(raw)) {
-          navigateToUrl(raw, true);
-        } else if (raw.startsWith('/')) {
-          let path = raw;
-          if (IS_REMOTE_DASHBOARD && !path.startsWith('/dashboard/')) {
-            path = '/dashboard' + path;
-          }
-          navigateToUrl(DASHBOARD_URL + path, true);
-        } else {
-          navigateToView(raw, true);
-        }
+        navigateToUrl(raw, true);
       }
     });
   }
@@ -5438,8 +5776,12 @@ body.tabs-open #browserTabBar{display:flex !important;}
       const sidebarSignOut = document.getElementById('sidebarSignOutLink');
       if (dbSignin) dbSignin.style.display = signedIn ? 'none' : '';
       if (dbSignout) dbSignout.style.display = signedIn ? '' : 'none';
-      if (tdSignin) tdSignin.style.display = signedIn ? 'none' : '';
-      if (tdSignout) tdSignout.style.display = signedIn ? '' : '';
+      if (tdSignin) tdSignin.style.display = signedIn ? 'none' : 'flex';
+      if (tdSignout) tdSignout.style.display = signedIn ? 'flex' : 'none';
+      const tdPricing = document.getElementById('tdPricingSidebar');
+      const tdWebsiteToggle = document.getElementById('tdOfflineToggleSidebar');
+      if (tdPricing) tdPricing.style.display = signedIn ? 'none' : 'flex';
+      if (tdWebsiteToggle) tdWebsiteToggle.style.display = signedIn ? 'flex' : 'none';
       if (sidebarSignIn) sidebarSignIn.style.display = signedIn ? 'none' : '';
       if (sidebarSignOut) sidebarSignOut.style.display = signedIn ? '' : 'none';
       const headerSignIn = document.getElementById('headerSignInBtn');
@@ -5455,12 +5797,12 @@ body.tabs-open #browserTabBar{display:flex !important;}
       }
       return;
     }
-    if (!fromIframe && mainIframe && mainIframe.contentWindow) {
+    if (!fromIframe && mainIframe && mainIframe.contentWindow && ev.data.command !== 'setAuthState') {
       mainIframe.contentWindow.postMessage(ev.data, '*');
     }
   });
-  // Poll auth state so the sidebar updates after external sign-in/out
-  function _requestAuthState(){
+  // Request auth state once on load; subsequent updates are pushed by the extension/dashboard.
+  (function _requestAuthState(){
     if (typeof acquireVsCodeApi === 'function') {
       try { acquireVsCodeApi().postMessage({ command: 'getAuthState' }); } catch (e) {}
     }
@@ -5470,9 +5812,7 @@ body.tabs-open #browserTabBar{display:flex !important;}
     if (mainIframe && mainIframe.contentWindow) {
       try { mainIframe.contentWindow.postMessage({ command: 'getAuthState' }, '*'); } catch (e) {}
     }
-  }
-  _requestAuthState();
-  setInterval(_requestAuthState, 3000);
+  })();
   const tdAdminPanel = document.getElementById('tdAdminPanelSidebar');
   if (tdAdminPanel && mainIframe) {
     tdAdminPanel.addEventListener('click', function() { navigateToView('admin', true); });
@@ -5481,14 +5821,14 @@ body.tabs-open #browserTabBar{display:flex !important;}
   const headerSignOut = document.getElementById('headerSignOutBtn');
   const tdSignIn = document.getElementById('tdSignInSidebar');
   const tdSignOut = document.getElementById('tdSignOutSidebar');
-  if (headerSignIn && mainIframe) {
-    headerSignIn.addEventListener('click', function() { navigateToView('signin', true); });
+  if (headerSignIn) {
+    headerSignIn.addEventListener('click', function() { _postSidebarCmd('signIn'); });
   }
   if (headerSignOut) {
     headerSignOut.addEventListener('click', function() { _postSidebarCmd('signOut'); });
   }
-  if (tdSignIn && mainIframe) {
-    tdSignIn.addEventListener('click', function() { navigateToView('signin', true); });
+  if (tdSignIn) {
+    tdSignIn.addEventListener('click', function() { _postSidebarCmd('signIn'); });
   }
   if (tdSignOut) {
     tdSignOut.addEventListener('click', function() { _postSidebarCmd('signOut'); });
@@ -5790,8 +6130,8 @@ footer{padding:10px 20px;border-top:1px solid var(--border);font-size:11px;color
     <div class="metric info"><span>Info</span><span class="count" id="c-info">-</span></div>
     <div id="gate-box" class="gate" style="display:none"></div>
     <h2 style="margin-top:20px">Actions</h2>
-    <a class="cm-link" href="http://localhost:${port}/api/report" target="_blank">View Raw Report</a>
-    <div style="margin-top:8px"><a class="cm-link" style="background:#22c55e" href="http://localhost:${port}/api/stream" target="_blank">Event Stream</a></div>
+    <a class="cm-link" href="http://127.0.0.1:${port}/api/report" target="_blank">View Raw Report</a>
+    <div style="margin-top:8px"><a class="cm-link" style="background:#22c55e" href="http://127.0.0.1:${port}/api/stream" target="_blank">Event Stream</a></div>
     <div style="margin-top:8px"><button type="button" class="cm-link" style="background:#ef4444;border:none;width:100%" data-action="trigger-analysis">📊 Run Analysis</button></div>
   </aside>
   <section class="content">

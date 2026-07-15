@@ -1,6 +1,6 @@
 'use strict';
 
-const { toClientError } = require('../client-error.cjs');
+const { toClientError } = require('../../../shared-utils/index.cjs');
 const createError = require('http-errors');
 
 // Trust levels and their permissions

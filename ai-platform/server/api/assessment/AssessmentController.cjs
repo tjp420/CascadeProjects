@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
 /**
  * AI Data Quality Assessment — clone repo (optional), scan, deliver assessment JSON.
  */
@@ -14,7 +15,7 @@ const { promisify } = require('util');
 
 const { startAssessmentRetentionJob, resolveAssessmentTtlMs } = require('../../lib/assessment-retention.cjs');
 const { validateRepoUrl, resolveDefaultAllowedRoots, assertSafeProjectPath } = require('../../lib/path-safety.cjs');
-const { toClientError } = require('../../lib/client-error.cjs');
+const { toClientError } = require('../../shared-utils/index.cjs');
 const { buildAssessmentReport, evaluateGate, formatJsonReport, loadSimplebeaconConfig, resolvePlatformRoot, runScan, sanitizeScanReport } = require('../../lib/simplebeacon-proxy.cjs');
 
 

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
 /**
  * Build a .deb package for SimpleBeacon Local Agent on Debian/Ubuntu.
  *

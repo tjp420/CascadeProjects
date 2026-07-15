@@ -407,6 +407,11 @@ app.get('/api/health', (_req, res) => {
   res.status(200).json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
 
+app.get('/api/ping', (_req, res) => {
+  res.set('Content-Type', 'application/json');
+  res.status(200).json({ online: true, timestamp: new Date().toISOString() });
+});
+
 app.get('/api/health/routes', (_req, res) => {
   res.json({
     status: 'ok',
@@ -843,6 +848,7 @@ app.use((req, res, next) => {
   if (req.path.startsWith('/api/auth/')) return next();
   if (req.path === '/api/platform/status') return next();
   if (req.path === '/api/health' || req.path === '/health') return next();
+  if (req.path === '/api/analyze') return next();
   if (req.path.startsWith('/api/analyze/')) return next();
   if (req.path === '/api/simplebeacon/report') return next();
   if (req.path === '/api/simplebeacon/report/import') return next();
@@ -974,6 +980,14 @@ function setupMergerToolRoutes(app, baseDir) {
 
 // Phase 2 bootstrap + dashboard stub APIs (initialized in startServer) // simplebeacon-ignore production-leak — real production dashboard API module
 async function bootstrapPhase2Routes() {
+    // Proxy legacy bare /api/analyze POST to the flexible analysis endpoint.
+    app.use((req, res, next) => {
+        if (req.method === 'POST' && req.path === '/api/analyze') {
+            req.url = '/api/analyze/flexible';
+        }
+        next();
+    });
+
     const routeSetups = [
         { name: 'localModels', fn: () => setupLocalModelsAPI(app, { baseDir: __dirname }) },
         { name: 'flexibleAnalyze', fn: () => setupFlexibleAnalyzeAPI(app, {

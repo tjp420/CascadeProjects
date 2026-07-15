@@ -1,0 +1,8 @@
+{
+  "name": "@simplebeacon/shared-utils",
+  "version": "1.0.0",
+  "description": "Leaf-level shared utilities for the SimpleBeacon platform",
+  "main": "index.cjs",
+  "type": "commonjs",
+  "private": true
+}

@@ -17,6 +17,7 @@ export interface BarrelMeta {
 export interface IntegrityResult {
   valid: boolean;
   errors: string[];
+  collisionCount: number;
 }
 
 // ── String helpers ─────────────────────────────────────────────
@@ -62,15 +63,15 @@ export function uid(): string;
 export function sleep(ms: number): Promise<void>;
 export function delay<T>(ms: number, value?: T): Promise<T | undefined>;
 export function debounce<T extends (...args: any[]) => any>(fn: T, ms?: number): T & { cancel(): void; flush(): void; pending(): boolean };
-export function debounceAsync<T extends (...args: any[]) => any>(fn: T, ms?: number): T & { cancel(): void };
+export function debounceAsync<T extends (...args: any[]) => Promise<any>>(fn: T, ms?: number): T & { cancel(): void; flush(): Promise<ReturnType<T> | undefined>; pending(): boolean };
 export function debounceLeading<T extends (...args: any[]) => any>(fn: T, ms?: number): T & { cancel(): void };
 export function throttle<T extends (...args: any[]) => any>(fn: T, wait?: number): T & { cancel(): void; flush(): void; pending(): boolean };
-export function throttleAsync<T extends (...args: any[]) => any>(fn: T, wait?: number): T & { cancel(): void };
+export function throttleAsync<T extends (...args: any[]) => any>(fn: T, wait?: number): T & { cancel(): void; flush(): void; pending(): boolean };
 export function once<T extends (...args: any[]) => any>(fn: T): T;
 export function memoize<T extends (...args: any[]) => any>(fn: T, maxSize?: number): T & { clear(): void; size: number; has(...args: any[]): boolean };
-export function memoizeAsync<T extends (...args: any[]) => Promise<any>>(fn: T, maxSize?: number): T & { clear(): void };
+export function memoizeAsync<T extends (...args: any[]) => Promise<any>>(fn: T, maxSize?: number): T & { clear(): void; readonly size: number; has(...args: any[]): boolean };
 export function withTimeout<T>(promise: Promise<T>, ms: number, message?: string): Promise<T>;
-export function retry<T>(fn: () => Promise<T>, options?: { attempts?: number; delay?: number }): Promise<T>;
+export function retry<T>(fn: () => Promise<T>, retries?: number, delayMs?: number, backoff?: number, maxDelayMs?: number, shouldRetry?: (err: Error) => boolean): Promise<T>;
 export function pMap<T, R>(arr: T[], fn: (item: T) => Promise<R>, concurrency?: number): Promise<R[]>;
 export function poll<T>(fn: () => T, intervalMs?: number, timeoutMs?: number): Promise<T | undefined>;
 export function waitForAsync(predicate: () => Promise<boolean>, intervalMs?: number, timeoutMs?: number, message?: string): Promise<void>;
@@ -128,6 +129,10 @@ export function stringifyQueryString(params: Record<string, string | number | bo
 export function isValidUrl(url: string): boolean;
 export function apiBaseUrl(): string;
 export function apiUrl(path: string): string;
+export function buildUrl(base: string, params: Record<string, string | number | boolean | null | undefined>): string;
+export function getQueryParam(key: string): string | null;
+export function setQueryParam(key: string, value: string): void;
+export function isUrl(value: any): boolean;
 
 // ── Storage helpers ───────────────────────────────────────────
 
@@ -157,6 +162,13 @@ export function hasClass(el: HTMLElement, className: string): boolean;
 export function addClass(el: HTMLElement, className: string): void;
 export function removeClass(el: HTMLElement, className: string): void;
 export function toggleClass(el: HTMLElement, className: string): boolean;
+export function observeIntersection(el: HTMLElement, callback: (entry: IntersectionObserverEntry) => void, options?: IntersectionObserverInit): IntersectionObserver | null;
+export function preloadImage(src: string): Promise<HTMLImageElement>;
+export function downloadFile(content: string | Blob, filename: string, mimeType?: string): void;
+export function focusFirst(container: HTMLElement): HTMLElement | null;
+export function getFocusableElements(container: HTMLElement): HTMLElement[];
+export function isCrossOriginEmbeddedFrame(): boolean;
+export function canUseDirectoryPicker(): boolean;
 
 // ── Format helpers ───────────────────────────────────────────
 
@@ -173,7 +185,22 @@ export function formatAiSummarySkipMessage(errorMessage: string): string;
 // ── Type guards ──────────────────────────────────────────────
 
 export function isDefined<T>(value: T | null | undefined): value is T;
+export function isNull(value: any): boolean;
+export function isUndefined(value: any): boolean;
 export function isNil(value: any): boolean;
+export function isSymbol(value: any): boolean;
+export function isMap(value: any): boolean;
+export function isSet(value: any): boolean;
+export function isBoolean(value: any): boolean;
+export function isNumber(value: any): boolean;
+export function isString(value: any): boolean;
+export function isArray(value: any): value is any[];
+export function isFunction(value: any): value is (...args: any[]) => any;
+export function isObject(value: any): boolean;
+export function isDate(value: any): boolean;
+export function isRegExp(value: any): boolean;
+export function isPromise(value: any): boolean;
+export function isError(value: any): boolean;
 export function noop(): void;
 export function assertNever(value: never, message?: string): never;
 export function parseJsonSafe<T>(json: string, fallback?: T): T | undefined;
@@ -193,7 +220,7 @@ export function shadeColor(color: string, percent: number): string;
 
 export function downloadJson(data: any, filename: string): void;
 export function downloadText(content: string, filename: string): void;
-export function downloadCsv(content: string, filename: string): void;
+export function downloadCsv(rows: Record<string, any>[], filename: string, headers?: string[]): void;
 export function downloadBlob(blob: Blob, filename: string): void;
 export function normalDownload(blob: Blob, filename: string): void;
 
@@ -214,6 +241,18 @@ export function copyToClipboard(text: string): Promise<void>;
 export function isVSCodeWebview(): boolean;
 export function isStandalone(): boolean;
 export function getVSCodeApi(): any;
+
+// ── Notify helpers ───────────────────────────────────────────
+
+export function notifyVSCode(entry: { type: string; payload?: any; ts?: number }): void;
+export function notifyDownloadComplete(filename: string, filePath?: string): void;
+export function notifyAuthState(signedIn: boolean, tier?: string, token?: string, isAdmin?: boolean): void;
+
+export function resolveAbsoluteFilePath(filePath: string, projectRoot?: string): string;
+export function buildIdeFileUrl(filePath: string, line?: number, options?: { projectRoot?: string; scheme?: string }): string | null;
+export function openInIde(filePath: string, line?: number, options?: { projectRoot?: string }): boolean;
+export function renderIdeFileLink(filePath: string, line?: number, options?: { projectRoot?: string; label?: string }): HTMLElement;
+export function resolveProjectRootFromApp(app: { state?: Record<string, unknown> }): string;
 
 // ── Event helpers ────────────────────────────────────────────
 
@@ -246,10 +285,13 @@ export function tryFn<T>(fn: () => T): { ok: true; value: T } | { ok: false; err
 
 // ── Metadata & discovery ─────────────────────────────────────
 
-export const exportNames: ReadonlyArray<string>;
+export const exportNames: typeof getExportNames;
 export function getExportNames(): ReadonlyArray<string>;
 export function getNamespaceNames(): ReadonlyArray<string>;
+export function getBarrelMeta(): BarrelMeta;
+export function getCollisionCount(): number;
 export function validateBarrelIntegrity(): IntegrityResult;
+export function integrityTest(): { passed: boolean; failures: string[] };
 export const __barrel__: BarrelMeta;
 
 // ── Namespaces ───────────────────────────────────────────────
@@ -270,7 +312,7 @@ export namespace object {
   export { deepClone, clone, deepEqual, pick, omit, defaults, merge, invert, mapValues, mapKeys, has, get, set, zipObject, identity, constant, at, unset, defaultsDeep, isEmpty };
 }
 export namespace url {
-  export { parseQueryString, stringifyQueryString, isValidUrl, apiBaseUrl, apiUrl };
+  export { parseQueryString, stringifyQueryString, isValidUrl, apiBaseUrl, apiUrl, buildUrl, getQueryParam, setQueryParam, isUrl };
 }
 export namespace storage {
   export { localStorageGet, localStorageSet, localStorageRemove, localStorageGetString, localStorageSetString, sessionStorageGet, sessionStorageSet };
@@ -279,13 +321,13 @@ export namespace accessibility {
   export { prefersReducedMotion, prefersDarkMode };
 }
 export namespace dom {
-  export { showToast, removeToastContainer, hasClass, addClass, removeClass, toggleClass };
+  export { showToast, removeToastContainer, createElement, removeAllChildren, renderEmptyState, scrollToElement, elementInViewport, hasClass, addClass, removeClass, toggleClass, observeIntersection, preloadImage, downloadFile, focusFirst, getFocusableElements, isCrossOriginEmbeddedFrame, canUseDirectoryPicker };
 }
 export namespace format {
   export { formatDate, relativeTime, redactPathForDisplay, isRedactedPathDisplay, formatPathLabel, normalizeSlashes, formatPathInputValue, formatScanPathForDisplay, formatAiSummarySkipMessage };
 }
 export namespace type {
-  export { isDefined, isNil, noop, assertNever, parseJsonSafe };
+  export { isDefined, isNull, isUndefined, isNil, isSymbol, isMap, isSet, isBoolean, isNumber, isString, isArray, isFunction, isObject, isDate, isRegExp, isPromise, isError, noop, assertNever, parseJsonSafe };
 }
 export namespace crypto {
   export { hash, getNonce };
@@ -330,6 +372,14 @@ export namespace theme {
   export { getCssVar, setCssVar };
 }
 
+export namespace notify {
+  export { notifyVSCode, notifyDownloadComplete, notifyAuthState };
+}
+
+export namespace ideDeepLink {
+  export { resolveAbsoluteFilePath, buildIdeFileUrl, openInIde, renderIdeFileLink, resolveProjectRootFromApp };
+}
+
 // ── Default export ───────────────────────────────────────────
 
 declare const _default: Readonly<{
@@ -356,6 +406,8 @@ declare const _default: Readonly<{
   polling: typeof polling;
   theme: typeof theme;
   fn: typeof fn;
+  notify: typeof notify;
+  ideDeepLink: typeof ideDeepLink;
   composition: typeof composition;
   __barrel__: BarrelMeta;
 }>;

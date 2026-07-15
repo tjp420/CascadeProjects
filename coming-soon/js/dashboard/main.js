@@ -89,25 +89,38 @@ const FILE_COUNT_VERY_HIGH = 100000;
 // Local server ports to probe
 const LOCAL_SERVER_PORTS = [38000, 50559, 3002, 3001, 3000, 5000];
 
-// API base URL — localhost uses same-origin; production uses Render backend
+// API base URL — same-origin on marketing hosts (Cloudflare /api proxy); Render when embedded elsewhere
 const API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.hostname.endsWith('.onrender.com')) ? '' : 'https://cascadeprojects-yzzd.onrender.com';
 const IS_LOCAL_HOST = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
 
+function isSameOriginApiHost() {
+    const host = location.hostname;
+    return host === 'simplebeacon.ai'
+        || host.endsWith('.simplebeacon.pages.dev')
+        || host.endsWith('.pages.dev');
+}
+
+function resolveApiBase() {
+    if (serverUploadUrl) return serverUploadUrl.replace(/\/$/, '');
+    const storedHost = localStorage.getItem('sb_api_host');
+    if (storedHost) return storedHost.replace(/\/$/, '');
+    if (IS_LOCAL_HOST || isSameOriginApiHost() || location.hostname.endsWith('.onrender.com')) {
+        return location.origin.replace(/\/$/, '');
+    }
+    return (API_BASE || location.origin).replace(/\/$/, '');
+}
+
+if (typeof window !== 'undefined') {
+    window.resolveApiBase = resolveApiBase;
+}
+
 // Free-token endpoint — resolved at request time so probeLocalServer() can set serverUploadUrl
 function getFreeTokenUrl() {
-    if (serverUploadUrl) return serverUploadUrl + '/api/free-token';
-    const storedHost = localStorage.getItem('sb_api_host');
-    if (storedHost) return storedHost + '/api/free-token';
-    const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-    const knownPorts = [38000, 50559, 54358, 3002, 3001, 3000, 5000];
-    const currentPort = parseInt(location.port, 10);
-    if (isLocal && knownPorts.includes(currentPort)) {
-        return location.origin + '/api/free-token';
-    }
-    if (isLocal) {
-        return location.origin + '/api/free-token';
-    }
-    return API_BASE + '/api/free-token';
+    return resolveApiBase() + '/api/free-token';
+}
+
+function getSandboxTokenUrl() {
+    return resolveApiBase() + '/api/tokens/sandbox';
 }
 
 // DOM element declarations — licenseInput declared in token-manager.js (same global scope)
@@ -1170,20 +1183,21 @@ function syncModuleSelectionFromTier() {
     if (!analyzerCardGrid) return;
     const token = document.getElementById('licenseToken')?.value || '';
     let tier = 'locked';
-    let allowed = null;
+    let allowed = TIER_MODULE_MAP.locked || [];
     if (token) {
         const json = decodeJwtPayload(token);
         if (json) {
-            tier = json.tier || 'locked';
-            const customModules = Array.isArray(json.features) ? json.features : (Array.isArray(json.modules) ? json.modules : null);
-            if (customModules && customModules.length > 0) {
-                const all = TIER_MODULE_MAP.universal || [];
-                const numToId = {'1':'gate','2':'consolidation','3':'mock-data','4':'roadmap','5':'codebase','6':'file-reduction','7':'data-quality','8':'cleanup','9':'npm-audit','10':'compliance','11':'eu-ai-act','12':'dependency-vulns','13':'build-readiness','14':'ai-indicators','15':'governance','16':'junk-files','17':'ai-residue','18':'performance','19':'type-safety','20':'documentation','21':'test-coverage','22':'accessibility','23':'i18n','24':'sensitive-data','25':'config-drift','26':'security-headers','27':'database-patterns','28':'framework-practices','29':'workspace-health','30':'unused-deps','31':'api-contract','32':'complexity'};
-                allowed = customModules.map(m => numToId[m] || m).filter(m => all.includes(m));
+            tier = json.tier || json.product || 'locked';
+            if (typeof resolveAllowedModules === 'function') {
+                allowed = resolveAllowedModules(tier, json);
+            } else {
+                const paidTiers = ['developer', 'pro', 'team', 'enterprise', 'startup', 'growth', 'executive', 'euai', 'euSprint', 'admin', 'superuser', 'operator', 'starter'];
+                allowed = paidTiers.includes(tier)
+                    ? (TIER_MODULE_MAP.universal || TIER_MODULE_MAP.admin || [])
+                    : (TIER_MODULE_MAP[tier] || TIER_MODULE_MAP.locked || []);
             }
         }
     }
-    if (!allowed) allowed = TIER_MODULE_MAP[tier] || TIER_MODULE_MAP.locked;
     selectedModules.clear();
     Array.from(analyzerCardGrid.children).forEach(card => {
         const ok = allowed.includes(card.dataset.value);
@@ -1191,7 +1205,7 @@ function syncModuleSelectionFromTier() {
         card.classList.toggle('locked', !ok);
         card.title = ok ? '' : (mod ? mod.desc : '');
         const hint = card.querySelector('.card-hint');
-        if (hint) hint.textContent = ok ? '' : 'Upgrade to Team or Enterprise to unlock';
+        if (hint) hint.textContent = ok ? '' : 'Upgrade your plan to unlock this module';
         if (ok) {
             selectedModules.add(card.dataset.value);
             card.classList.add('selected');
@@ -1283,7 +1297,9 @@ function applyProductFromToken(token) {
         filterScanProfiles(tier, payload.features);
         syncModuleSelectionFromTier();
 
-        const config = PRODUCT_CONFIG[tier] || PRODUCT_CONFIG.universal || {};
+        const config = (typeof resolveProductConfig === 'function')
+            ? resolveProductConfig(tier)
+            : (PRODUCT_CONFIG[tier] || PRODUCT_CONFIG.universal || {});
         const productLabelEl = document.getElementById('productLabel');
         if (productLabelEl) productLabelEl.textContent = config.label || '';
         const pageTitleEl = document.getElementById('pageTitle');
@@ -1304,14 +1320,18 @@ function applyProductFromToken(token) {
                 }
             });
         }
-        const infoCard = document.getElementById('productInfoCard');
-        if (infoCard) {
-            infoCard.style.display = 'block';
-            document.getElementById('productDetails').innerHTML = `
+        if (typeof renderProductInfoCard === 'function') {
+            renderProductInfoCard(tier, config);
+        } else {
+            const infoCard = document.getElementById('productInfoCard');
+            if (infoCard) {
+                infoCard.style.display = 'block';
+                document.getElementById('productDetails').innerHTML = `
                 <strong style="color:var(--text-main);font-size:1.1rem;">${config.label}</strong><br>
                 <span style="color:var(--accent);font-weight:700;font-size:1.05rem;">${config.price || ''}</span><br>
                 <span style="color:var(--text-muted);font-size:0.85rem;">${config.subtitle}</span>
             `;
+            }
         }
 
         // Sprint banner: show days remaining for paid tiers
@@ -1423,10 +1443,10 @@ resendBtn.addEventListener('click', async () => {
 });
 }
 
-// Developer Sandbox — generate a community token without payment
-// Reads optional email from inline input for token recovery
+// Developer Sandbox — certificate-upload only (audit page uses sandboxEmailModal inline flow)
 const tryFreeBtn = document.getElementById('tryFreeBtn');
-if (tryFreeBtn) {
+const sandboxEmailModalEl = document.getElementById('sandboxEmailModal');
+if (tryFreeBtn && !sandboxEmailModalEl) {
 tryFreeBtn.addEventListener('click', async () => {
     const btn = document.getElementById('tryFreeBtn');
     const originalText = '\u2699\uFE0F Try Free Sandbox';
@@ -1481,6 +1501,9 @@ tryFreeBtn.addEventListener('click', async () => {
 }
 
 // Wire up token input to both product detection AND button state
+if (typeof window.TokenEntryGuard !== 'undefined') {
+    window.TokenEntryGuard.bindLicenseTokenInput(licenseInput, document.getElementById('tokenError'));
+}
 licenseInput.addEventListener('input', () => {
     const tokenError = document.getElementById('tokenError');
     if (tokenError) tokenError.classList.add('hidden-display');
@@ -1555,21 +1578,8 @@ function hideTokenSection() {
     }
 }
 
-// Auto-restore sign-in on page load
-(function restoreTokenSignIn() {
-    const savedToken = localStorage.getItem('cascadeAuthToken');
-    if (savedToken && savedToken.length > 20 && savedToken.includes('.')) {
-        licenseInput.value = savedToken;
-        applyProductFromToken(savedToken);
-        updateDropzoneGate();
-        const payload = decodeJwtPayload(savedToken);
-        const tier = payload?.tier || payload?.product || '';
-        const freeTiers = ['community','starter','instant','free','developer','sandbox'];
-        if (!freeTiers.includes(tier)) {
-            hideTokenSection();
-        }
-    }
-})();
+// Auto-restore disabled on audit/certificate pages — only fresh (unused) tokens may be entered.
+// Users must paste a new token from email or request one via Try for Free / Send a Token.
 
 // Token gate — browser scan requires a valid token
 function hasValidToken() {
@@ -3154,7 +3164,7 @@ async function probeLocalServer() {
                 banner.style.display = 'flex';
                 if (link) link.href = `http://127.0.0.1:${port}/dashboard/analyze`;
             }
-            if (vaultLink) vaultLink.href = `http://127.0.0.1:${port}/dashboard/dashboard`;
+            if (vaultLink) vaultLink.href = `http://127.0.0.1:${port}/dashboard/`;
             return;
         } catch (_) {
             // Server not running on this port

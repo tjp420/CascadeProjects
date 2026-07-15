@@ -3,8 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SimpleBeacon — Audit</title>
+    <title>SimpleBeacon — Certificate Upload</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="css/dashboard.css">
     <script src="site-config.js"></script>
+    <script src="js/token-entry-guard.js"></script>
+    <script src="js/auth.js" defer></script>
     <style>
         :root {
             --bg-main: #0B0F19;
@@ -30,11 +34,16 @@
             background-color: var(--bg-main);
             color: var(--text-main);
             min-height: 100vh;
-            padding: 24px;
             line-height: 1.6;
         }
 
         .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 24px 60px;
+        }
+
+        .page-content {
             max-width: 720px;
             margin: 0 auto;
         }
@@ -387,6 +396,19 @@
 </head>
 <body>
     <div class="container">
+        <nav class="top-nav">
+            <a href="/" class="brand">SimpleBeacon</a>
+            <div class="nav-links">
+                <a href="/roadmap">Roadmap</a>
+                <a href="/audit">Audit</a>
+                <a href="/pricing">Pricing</a>
+                <a href="/dashboard/" id="vaultLink">Team Dashboard</a>
+                <script>window.addEventListener('DOMContentLoaded', function() { if (window.SbAuth) window.SbAuth.propagateTokenToLinks(); });</script>
+                <button type="button" id="nav-signin-btn" style="display:none;margin-left:8px;padding:4px 0;background:transparent;color:var(--text-muted);font-size:0.8rem;cursor:pointer;border:none;border-radius:0;">Sign in</button>
+                <button type="button" id="nav-signout-btn" style="margin-left:8px;padding:4px 0;background:transparent;color:var(--text-muted);font-size:0.8rem;cursor:pointer;border:none;border-radius:0;">Sign out</button>
+            </div>
+        </nav>
+        <div class="page-content">
         <header>
             <div class="step-badge">
                 <span>Step 2 of 2</span>
@@ -426,8 +448,9 @@
             <h2><span>1</span> License Token</h2>
             <div class="form-group">
                 <label for="licenseToken">License Token</label>
-                <input type="text" id="licenseToken" placeholder="Paste your license token here..." autocomplete="off">
-                <p class="help-text" id="tokenHelp">Paste the license token from your payment confirmation email.</p>
+                <input type="text" id="licenseToken" placeholder="Paste a new license token from your email…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+                <p class="help-text" id="tokenHelp">Paste a new license token from your payment confirmation email. Used tokens cannot be re-entered.</p>
+                <p id="tokenError" class="help-text" style="display:none;color:var(--error);margin-top:8px;"></p>
                 <div style="margin-top:10px;text-align:center;">
                     <button id="tryFreeBtn" style="padding:8px 16px;background:transparent;border:1px solid var(--accent);color:var(--accent);border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;">Try for Free →</button>
                     <p style="font-size:0.75rem;color:var(--text-muted);margin:6px 0 0;">No payment required. Runs the Simplebeacon Gate scan locally.</p>
@@ -535,14 +558,114 @@
             <p>SimpleBeacon Engine v1.3.0 &mdash; Zero-Dependency Static Analysis</p>
             <p style="margin-top: 4px; opacity: 0.7;">Questions? <a href="mailto:contact@simplebeacon.ai" style="color: #60A5FA; text-decoration: none;">contact@simplebeacon.ai</a></p>
         </footer>
+        </div>
     </div>
 
     <script>
-        // API base URL — localhost uses same-origin; production uses Render backend
-        const API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? '' : 'https://cascadeprojects-yzzd.onrender.com';
+        (function initAuthNav() {
+            const signoutBtn = document.getElementById('nav-signout-btn');
+            const signinBtn = document.getElementById('nav-signin-btn');
+            const TOKEN_KEYS = ['cascadeAuthToken', 'cascadeAuthUser', 'access_token', 'token', 'authToken', 'simplebeacon_token', 'sb-token', 'sb_token'];
+            function getCookie(name) {
+                const m = document.cookie.match('(?:^|; )' + name + '=([^;]*)');
+                return m ? decodeURIComponent(m[1]) : '';
+            }
+            function clearCookie(name) {
+                document.cookie = name + '=;path=/;max-age=0;SameSite=Lax';
+            }
+            function hasAnyToken() {
+                return TOKEN_KEYS.some(function(k) {
+                    const val = localStorage.getItem(k) || getCookie(k);
+                    return val && val.length > 10;
+                });
+            }
+            function updateAuthNav() {
+                const authed = hasAnyToken();
+                if (signoutBtn) signoutBtn.style.display = authed ? 'inline-block' : 'none';
+                if (signinBtn) signinBtn.style.display = authed ? 'none' : 'inline-block';
+                document.querySelectorAll('.nav-links a[href="/pricing"]').forEach(function(el) {
+                    el.style.display = authed ? 'none' : '';
+                });
+            }
+            window.updateAuthNav = updateAuthNav;
+            if (signinBtn) {
+                signinBtn.addEventListener('click', function() {
+                    window.location.href = '/dashboard/signin?returnTo=' + encodeURIComponent(window.location.pathname);
+                });
+            }
+            if (signoutBtn) {
+                signoutBtn.addEventListener('click', function() {
+                    TOKEN_KEYS.forEach(function(key) {
+                        localStorage.removeItem(key);
+                        clearCookie(key);
+                    });
+                    updateAuthNav();
+                    if (window.SbAuth && typeof window.SbAuth.signOut === 'function') {
+                        window.SbAuth.signOut();
+                    }
+                });
+            }
+            updateAuthNav();
+            setInterval(updateAuthNav, 2000);
+        })();
+    </script>
+
+    <script>
+        // API base — same-origin on Pages/production; direct only for local dev fallback
+        function resolveApiBase() {
+            if (typeof location === 'undefined') return '';
+            const host = location.hostname;
+            if (host === 'localhost' || host === '127.0.0.1') return '';
+            if (host === 'simplebeacon.ai' || host.endsWith('.simplebeacon.pages.dev')) return '';
+            return 'https://simplebeacon.ai';
+        }
+        const API_BASE = resolveApiBase();
+
+        async function requestFreeTokenEmail(email) {
+            const response = await fetch(API_BASE + '/api/free-token', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, sendEmail: true, referrer: 'certificate-upload' })
+            });
+            const data = await response.json().catch(() => ({}));
+            return { response, data };
+        }
+
+        async function requestPaidTokenResend(email) {
+            const response = await fetch(API_BASE + '/api/simplebeacon/billing/resend-token', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email })
+            });
+            const data = await response.json().catch(() => ({}));
+            return { response, data };
+        }
 
         // Original DOM element declarations
         const licenseInput = document.getElementById('licenseToken');
+        const tokenError = document.getElementById('tokenError');
+        if (window.TokenEntryGuard) {
+            window.TokenEntryGuard.bindLicenseTokenInput(licenseInput, tokenError);
+        }
+
+        function applyTokenFromEmail(token) {
+            if (!token || !licenseInput) return false;
+            if (window.TokenEntryGuard) {
+                window.TokenEntryGuard.registerFreshToken(token);
+                const applied = window.TokenEntryGuard.applyTokenToInput(licenseInput, token, { allowFresh: true });
+                if (!applied.ok && tokenError) {
+                    tokenError.textContent = applied.error;
+                    tokenError.style.display = 'block';
+                    return false;
+                }
+            } else {
+                licenseInput.value = token;
+                licenseInput.dispatchEvent(new Event('input'));
+            }
+            applyProductFromToken(token);
+            updateSubmit();
+            return true;
+        }
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
         const fileName = document.getElementById('fileName');
@@ -666,9 +789,7 @@
         const sessionId = urlParams.get('session_id');
         const urlToken = urlParams.get('token');
         if (urlToken) {
-            licenseInput.value = urlToken;
-            applyProductFromToken(urlToken);
-            updateSubmit();
+            applyTokenFromEmail(urlToken);
         }
         if (sessionId) {
             (async () => {
@@ -677,9 +798,7 @@
                     if (res.ok) {
                         const data = await res.json();
                         if (data.success && data.token) {
-                            licenseInput.value = data.token;
-                            applyProductFromToken(data.token);
-                            updateSubmit();
+                            applyTokenFromEmail(data.token);
                             document.getElementById('pageSubtitle').innerHTML += '<br><em style="color:var(--accent);">Token auto-filled from your payment session.</em>';
                         } else {
                             document.getElementById('pageSubtitle').innerHTML += '<br><em style="color:var(--accent);">Payment confirmed. Check your email for the license token.</em>';
@@ -708,54 +827,50 @@
             }
             resendBtn.disabled = true;
             resendBtn.textContent = 'Sending...';
+            resendStatus.style.display = 'none';
             try {
-                const response = await fetch(API_BASE + '/api/simplebeacon/billing/resend-token', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email })
-                });
-                const result = await response.json();
-                if (result.success) {
-                    resendStatus.textContent = 'Token resent! Check your inbox (and spam folder).';
+                let paidRes = await requestPaidTokenResend(email);
+                if (paidRes.response.ok && paidRes.data.success) {
+                    resendStatus.textContent = paidRes.data.message || 'Token resent! Check your inbox (and spam folder).';
                     resendStatus.style.color = 'var(--success)';
-                } else if (result.redirectToPricing) {
-                    // No existing token — generate a free one instead
-                    try {
-                        const freeRes = await fetch(API_BASE + '/api/free-token', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ email })
-                        });
-                        const freeData = await freeRes.json();
-                        if (freeData.success && freeData.token) {
-                            resendStatus.textContent = 'Free token generated! Paste it above to unlock scanning.';
-                            resendStatus.style.color = 'var(--success)';
-                            if (licenseInput) {
-                                licenseInput.value = freeData.token;
-                                licenseInput.dispatchEvent(new Event('input'));
-                            }
-                        } else {
-                            resendStatus.textContent = freeData.error || 'Could not generate token. Please email contact@simplebeacon.ai for help.';
-                            resendStatus.style.color = 'var(--error)';
-                        }
-                    } catch (freeErr) {
-                        resendStatus.textContent = 'Network error. Please email contact@simplebeacon.ai for help.';
-                        resendStatus.style.color = 'var(--error)';
-                    }
-                } else if (!response.ok) {
-                    window.location.href = 'pricing.html';
                     return;
-                } else {
-                    resendStatus.textContent = result.error || 'Could not resend token. Please email contact@simplebeacon.ai for help.';
-                    resendStatus.style.color = 'var(--error)';
                 }
-            } catch (err) {
-                resendStatus.textContent = 'Network error. Please email contact@simplebeacon.ai for help.';
+
+                const shouldTryFree = !paidRes.response.ok
+                    || paidRes.data.redirectToPricing
+                    || paidRes.response.status === 401
+                    || paidRes.response.status === 404;
+
+                if (shouldTryFree) {
+                    const freeRes = await requestFreeTokenEmail(email);
+                    if (freeRes.response.ok && freeRes.data.success && freeRes.data.token) {
+                        resendStatus.textContent = freeRes.data.emailed
+                            ? 'Free token emailed! Check your inbox (and spam folder). It is also pasted above.'
+                            : 'Free token generated and pasted above.';
+                        resendStatus.style.color = 'var(--success)';
+                        applyTokenFromEmail(freeRes.data.token);
+                        return;
+                    }
+                    if (freeRes.response.status === 429) {
+                        resendStatus.textContent = freeRes.data.message || 'Please wait before requesting another token.';
+                        resendStatus.style.color = 'var(--error)';
+                        return;
+                    }
+                    resendStatus.textContent = freeRes.data.error || freeRes.data.message || paidRes.data.error || 'Could not send token email. Try again or contact contact@simplebeacon.ai.';
+                    resendStatus.style.color = 'var(--error)';
+                    return;
+                }
+
+                resendStatus.textContent = paidRes.data.error || 'Could not resend token. Please email contact@simplebeacon.ai for help.';
                 resendStatus.style.color = 'var(--error)';
+            } catch (err) {
+                resendStatus.textContent = 'Network error. Please try again or email contact@simplebeacon.ai for help.';
+                resendStatus.style.color = 'var(--error)';
+            } finally {
+                resendStatus.style.display = 'block';
+                resendBtn.disabled = false;
+                resendBtn.textContent = 'Send a Token';
             }
-            resendStatus.style.display = 'block';
-            resendBtn.disabled = false;
-            resendBtn.textContent = 'Send a Token';
         });
 
         // Try for Free — generate a community token and email it
@@ -770,16 +885,9 @@
             btn.disabled = true;
             btn.textContent = 'Sending…';
             try {
-                const response = await fetch(API_BASE + '/api/free-token', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: email, sendEmail: true, referrer: 'certificate-upload' })
-                });
-                const data = await response.json();
-                if (data.success && data.token) {
-                    licenseInput.value = data.token;
-                    applyProductFromToken(data.token);
-                    updateSubmit();
+                const { response, data } = await requestFreeTokenEmail(email);
+                if (response.ok && data.success && data.token) {
+                    applyTokenFromEmail(data.token);
                     btn.textContent = 'Token Sent ✓';
                     btn.style.borderColor = 'var(--success)';
                     btn.style.color = 'var(--success)';
@@ -1263,6 +1371,7 @@
                 URL.revokeObjectURL(url);
                 uploadProgress.style.width = '100%';
                 showStatus('Certificate ZIP downloaded! Open the ZIP and browse to reports/*.html → Print → Save as PDF.', 'success');
+                if (window.TokenEntryGuard) window.TokenEntryGuard.markTokenConsumed(token);
             } catch (err) {
                 showStatus('Network error — ' + err.message, 'error');
             } finally {
@@ -1302,6 +1411,7 @@
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
                 showStatus('Certificate ZIP downloaded! Open the ZIP and browse to reports/*.html → Print → Save as PDF.', 'success');
+                if (window.TokenEntryGuard) window.TokenEntryGuard.markTokenConsumed(token);
             } catch (err) {
                 showStatus('Network error — please check your connection and try again. (' + err.message + ')', 'error');
             } finally {

@@ -33,8 +33,25 @@ module.exports = {
     '/.github-sync/',
     '/packages/simplebeacon-cli/tests/',
     '/packages/simplebeacon-intelligence/tests/',
-    '/tests/integration/'
+    '/tests/integration/',
+    'services/__tests__/prompt-service\\.test\\.cjs$',
+    'services/__tests__/ollama-client\\.test\\.cjs$',
+    'services/__tests__/model-inference-service\\.test\\.cjs$',
+    'services/__tests__/enhanced-model-manager\\.test\\.cjs$',
+    'services/__tests__/local-model-service\\.test\\.cjs$',
+    'services/__tests__/cloud-inference-service\\.test\\.cjs$',
+    'middleware/__tests__/upload-security\\.test\\.cjs$',
+    'middleware/__tests__/simplebeacon-subscription\\.test\\.cjs$',
+    'middleware/__tests__/audit\\.test\\.cjs$',
+    'bootstrap/__tests__/phase2-integration\\.test\\.cjs$'
   ],
+  moduleFileExtensions: ['js', 'cjs', 'json', 'jsx', 'ts', 'tsx', 'node'],
+  moduleNameMapper: {
+    '\\.\\./shared-utils/index\\.cjs$': '<rootDir>/shared-utils/index.cjs',
+    '^node:test$': '<rootDir>/tests/shims/node-test-shim.cjs',
+    '^node:assert/strict$': '<rootDir>/tests/shims/node-assert-shim.cjs',
+    '^node:assert$': '<rootDir>/tests/shims/node-assert-shim.cjs'
+  },
   passWithNoTests: true,
   setupFilesAfterEnv: [
     '<rootDir>/tests/setup.js'

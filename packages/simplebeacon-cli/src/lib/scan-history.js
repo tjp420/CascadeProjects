@@ -6,7 +6,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const { countFictionIssues } = require('../rules/ai-fiction-detection');
-const constants = require('../../../../ai-platform/server/config/constants.cjs');
+const constants = require('./constants');
 
 function repairHistoryEntry(entry = {}) {
     if (!entry || typeof entry !== 'object') return entry;

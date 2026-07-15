@@ -11,7 +11,7 @@ const { URL } = require('url');
 const { scanOutboundText, extractPromptText } = require('./outbound-scanner');
 const { enforceInboundResponse } = require('./inbound-enforcer');
 const { appendViolationLog } = require('./violation-log');
-const constants = require('../../../../ai-platform/server/config/constants.cjs');
+const constants = require('../lib/constants');
 
 const DEFAULT_PORT = constants.DEFAULT_PORT;
 const MAX_BODY_BYTES = Number(process.env.SIMPLEBEACON_PROXY_MAX_BODY || 8 * constants.BYTES_PER_KB * 1024);

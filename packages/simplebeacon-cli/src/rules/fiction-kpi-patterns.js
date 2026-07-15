@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
 /**
  * Line-based fiction KPI detection in source files (.js, .ts, .jsx, .tsx, .py).
  * Uses baseline rejectedFiction values — excludes tests, docs, and pattern catalogs.

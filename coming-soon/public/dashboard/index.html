@@ -193,13 +193,12 @@
   <!-- Offline-ready: allow browser + SW caching -->
   <meta name="theme-color" content="#0f172a">
   <title>Simplebeacon Dashboard</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" onerror="this.rel='';document.documentElement.style.fontFamily='system-ui,-apple-system,sans-serif'">
+  <base href="/dashboard/">
+  <!-- System fonts only: VS Code webviews block external fonts.googleapis.com -->
   <link rel="stylesheet" href="css/variables.css">
   <link rel="stylesheet" href="css/reset.css">
   <link rel="stylesheet" href="css/layout.css?v=20260712merge1">
-  <link rel="stylesheet" href="css/components.css?v=20260714stockpile1">
+  <link rel="stylesheet" href="css/components.css?v=20260714hosted2">
   <link rel="stylesheet" href="css/utilities.css?v=20260713dashboard1">
   <link rel="stylesheet" href="css/disable-elements.css">
   <script src="js/vendor/lucide.min.js" defer onerror="window._lucideFailed=true"></script>
@@ -531,7 +530,7 @@
         { href: '/roadmap', icon: 'map', label: 'Roadmap', site: true },
         { href: '/audit', icon: 'clipboard-check', label: 'Audit', site: true },
         { href: '/pricing', icon: 'tag', label: 'Pricing', id: 'header-pricing-link', site: true },
-        { href: '/dashboard/dashboard', icon: 'layout-dashboard', label: 'Team Dashboard', id: 'vaultLink' }
+        { href: '/dashboard/', icon: 'layout-dashboard', label: 'Team Dashboard', id: 'vaultLink' }
       ];
       links.forEach(function(link) {
         var a = document.createElement('a');
@@ -633,7 +632,7 @@
       }
     })();
   </script>
-  <script type="module" src="/dashboard/js-es2018/main.js?v=20260714pricing1"></script>
+  <script type="module" src="/dashboard/js-es2018/main.js?v=20260715scanfix1"></script>
   <script>
     // Capture script errors so the fallback page can report them without DevTools.
     window.__SB_DASHBOARD_ERRORS__ = [];

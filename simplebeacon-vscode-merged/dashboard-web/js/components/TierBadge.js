@@ -1,5 +1,5 @@
 import { escapeHtml } from '../utils.js';
-import { authService } from '../services/authService.js';
+import { authService } from '../services/authService.js?v=20260713sync5';
 
 /**
  * Render a small inline locked/upgrade badge for a paid feature.

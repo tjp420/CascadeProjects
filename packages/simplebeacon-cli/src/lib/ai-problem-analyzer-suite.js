@@ -1,4 +1,4 @@
-const constants = require('../../../../ai-platform/server/config/constants.cjs');
+const constants = require('./constants');
 /**
  * Server-side AI Problem Analyzer Suite — deterministic 48-analyzer engine.
  * Ported from browser dashboard; runs locally against scan reports and codebase context.

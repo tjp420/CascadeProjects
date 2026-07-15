@@ -51,7 +51,7 @@ const {
     logResolvedAllowedRoots,
     formatAllowedRootsSummary
 } = require('../lib/path-safety.cjs');
-const { toClientError } = require('../lib/client-error.cjs');
+const { toClientError } = require('../../shared-utils/index.cjs');
 const {
     sanitizeHttpHeaderValue,
     shouldLogRuntimeInfo,
@@ -1636,7 +1636,14 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             }
             const profile = req.query.profile || 'all';
             const inventoryOptions = { profile };
-            if (profile !== 'all' && req.query.fullDirectoryScan !== 'true' && req.query.fullDirectoryScan !== '1') {
+            const fullTree = req.query.fullDirectoryScan === 'true' || req.query.fullDirectoryScan === '1';
+            if (fullTree) {
+                inventoryOptions.profile = 'audit';
+                inventoryOptions.skipDirs = [
+                    '.git', 'github-cache', '.simplebeacon', '.vscode-test', 'simplebeacon-vscode-merged',
+                    'ai-tools', 'ai-agent', 'node_modules', 'dist', 'build', 'out', 'coverage', '.next', '.cache'
+                ];
+            } else if (profile !== 'all') {
                 inventoryOptions.skipDirs = ['node_modules', '.git'];
             }
             const inventory = await countRepositoryInventory(projectPath, inventoryOptions);

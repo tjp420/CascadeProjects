@@ -3,7 +3,8 @@ import * as vscode from 'vscode';
 import * as crypto from 'crypto';
 import * as path from 'path';
 import * as fs from 'fs';
-import { getSbConfig, escapeHtml } from './utils';
+import { getSbConfig } from './utils/vscode';
+import { escapeHtml } from './utils/string';
 
 function getVersionFromExtUri(extUri: vscode.Uri): string {
   try {

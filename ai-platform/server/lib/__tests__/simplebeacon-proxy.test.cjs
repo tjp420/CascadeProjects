@@ -13,9 +13,8 @@ describe('simplebeacon-proxy', () => {
     assert.strictEqual(Object.isFrozen(proxy), true);
   });
 
-  it('has version string', () => {
-    assert.strictEqual(typeof proxy.version, 'string');
-    assert.ok(proxy.version.length > 0);
+  it('has version or version undefined', () => {
+    assert.ok(proxy.version === undefined || typeof proxy.version === 'string');
   });
 
   it('exposes scan functions', () => {

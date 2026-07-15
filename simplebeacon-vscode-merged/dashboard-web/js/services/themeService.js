@@ -2,6 +2,7 @@ const THEME_KEY = 'simplebeacon-theme';
 const MANUAL_KEY = 'simplebeacon-theme-manual';
 let _globalPollInterval = null;
 let _initCalled = false;
+let _themeMessageReceived = false;
 
 function detectIdeTheme() {
   try {
@@ -32,9 +33,10 @@ export class ThemeService {
   init() {
     if (_initCalled) return;
     _initCalled = true;
+    this._listenForParentTheme();
     if (this.manualOverride) {
       this.apply(this.theme);
-      if (window.__SIMPLEBEACON_ENV__ || /^127\.0\.0\.1:\d+$/.test(window.location.host)) { this.pollServerTheme(); }
+      if (window.__SIMPLEBEACON_ENV__) { this.pollServerTheme(); }
       return;
     }
     const ideTheme = detectIdeTheme();
@@ -42,13 +44,25 @@ export class ThemeService {
       this.apply(ideTheme);
       return;
     }
-    if (window.__SIMPLEBEACON_ENV__ || /^127\.0\.0\.1:\d+$/.test(window.location.host)) {
+    if (window.__SIMPLEBEACON_ENV__) {
       this.apply(this.theme);
       this.pollServerTheme();
       return;
     }
     this.apply(this.theme);
     this.followIde();
+  }
+
+  _listenForParentTheme() {
+    if (typeof window === 'undefined') return;
+    window.addEventListener('message', (ev) => {
+      if (ev.data && ev.data.command === 'setTheme' && ev.data.theme) {
+        _themeMessageReceived = true;
+        // Accept theme changes from the VS Code: webview wrapper even when a manual override exists,
+        // so the sidebar theme toggle keeps the website in sync.
+        this.set(ev.data.theme);
+      }
+    });
   }
 
   pollServerTheme() {
@@ -58,12 +72,14 @@ export class ThemeService {
     const poll = () => {
       if (typeof fetch !== 'function') return;
       if (this.manualOverride) return;
+      if (_themeMessageReceived) return;
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
       fetch('/api/theme').then(r => r.json()).then(d => {
         if (d && d.theme && !this.manualOverride) this.apply(d.theme);
       }).catch(() => {});
     };
     poll();
-    _globalPollInterval = setInterval(poll, 5000);
+    _globalPollInterval = setInterval(poll, 30000);
   }
 
   followIde() {

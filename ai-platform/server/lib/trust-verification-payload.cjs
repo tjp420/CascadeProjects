@@ -5,11 +5,16 @@
 
 const path = require('path');
 const crypto = require('crypto');
+const fs = require('fs');
 const { readJsonFileCached } = require('./json-file-cache.cjs');
 
 const {
     buildRepositoryHealthPayload
 } = require('./repository-health-payload.cjs');
+const {
+    appendTrustSnapshot,
+    resolveTrustHistoryPath
+} = require('./trust-history-store.cjs');
 
 /**
  * Read json if exists.
@@ -308,6 +313,38 @@ function buildTrustVerificationPayload(options = {}) {
 }
 
 /**
+ * Publish trust verification payload to public file and history.
+ * @param {Object} options
+ * @returns {any}
+ */
+function publishTrustVerification(options = {}) {
+    const platformRoot = path.resolve(options.platformRoot || options.projectRoot || process.cwd());
+    const monorepoRoot = options.monorepoRoot
+        ? path.resolve(options.monorepoRoot)
+        : path.resolve(platformRoot, '..');
+    const publicDir = path.resolve(options.publicDir || path.join(platformRoot, 'public'));
+    const trustHistoryPath = resolveTrustHistoryPath(platformRoot, options.trustHistoryPath);
+
+    const payload = buildTrustVerificationPayload({ platformRoot, monorepoRoot });
+    const publishPath = path.join(publicDir, 'trust-verification.json');
+
+    fs.mkdirSync(publicDir, { recursive: true });
+    fs.writeFileSync(
+        publishPath,
+        `${JSON.stringify(payload, null, 2)}\n`,
+        'utf8'
+    );
+
+    const history = appendTrustSnapshot({
+        payload,
+        historyPath: trustHistoryPath,
+        source: options.source || 'trust:publish'
+    });
+
+    return { payload, publishPath, history, generatedAt: payload.generatedAt };
+}
+
+/**
  * Build trust badge svg.
  * @param {any} payload
  * @param {Object} options
@@ -569,6 +606,7 @@ function buildTrustVerifyCompact(payload) {
 
 module.exports = {
     buildTrustVerificationPayload,
+    publishTrustVerification,
     buildTrustBadgeSvg,
     buildReportSnapshot,
     buildTrustMethodology,

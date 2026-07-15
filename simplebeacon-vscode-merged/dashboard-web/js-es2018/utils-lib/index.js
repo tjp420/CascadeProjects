@@ -27,8 +27,16 @@ import * as EventUtils   from './event.js';
 import * as PathUtils    from './path.js';
 import * as PollingUtils from './polling.js';
 import * as ThemeUtils   from './theme.js';
+import * as NotifyUtils  from './notify.js';
+import * as IdeDeepLinkUtils from './ideDeepLink.js';
 import { deepFreeze } from '../utils/deep-freeze.js';
 export { deepFreeze };
+
+const BARREL_BUILTIN_EXPORTS = Object.freeze([
+  'deepFreeze', 'parseJsonSafe', 'toFixedNumber', 'zipObject', 'delay', 'throttleAsync',
+  'exportNames', 'getExportNames', 'getNamespaceNames', 'getBarrelMeta', 'getCollisionCount',
+  'validateBarrelIntegrity', 'integrityTest', 'composition', '__barrel__', 'default'
+]);
 
 // Small local helpers for functions expected by the barrel API but not exported by the js-es2018 sub-modules.
 const toFixedNumberImpl = (num, digits = 0) => {
@@ -154,6 +162,10 @@ export const stringifyQueryString = UrlUtils.stringifyQueryString;
 export const isValidUrl          = UrlUtils.isValidUrl;
 export const apiBaseUrl          = UrlUtils.apiBaseUrl;
 export const apiUrl              = UrlUtils.apiUrl;
+export const buildUrl            = UrlUtils.buildUrl;
+export const getQueryParam       = UrlUtils.getQueryParam;
+export const setQueryParam       = UrlUtils.setQueryParam;
+export const isUrl               = UrlUtils.isUrl;
 
 // ── Storage helpers ──
 export const localStorageGet       = StorageUtils.localStorageGet;
@@ -180,6 +192,13 @@ export const hasClass           = DomUtils.hasClass;
 export const addClass           = DomUtils.addClass;
 export const removeClass        = DomUtils.removeClass;
 export const toggleClass        = DomUtils.toggleClass;
+export const observeIntersection = DomUtils.observeIntersection;
+export const preloadImage        = DomUtils.preloadImage;
+export const downloadFile        = DomUtils.downloadFile;
+export const focusFirst          = DomUtils.focusFirst;
+export const getFocusableElements = DomUtils.getFocusableElements;
+export const isCrossOriginEmbeddedFrame = DomUtils.isCrossOriginEmbeddedFrame;
+export const canUseDirectoryPicker = DomUtils.canUseDirectoryPicker;
 
 // ── Format helpers ──
 export const formatDate             = FormatUtils.formatDate;
@@ -249,6 +268,18 @@ export const sanitizePrivacyData = PrivacyUtils.sanitizePrivacyData;
 // ── Clipboard helpers ──
 export const copyToClipboard = ClipboardUtils.copyToClipboard;
 
+// ── Notify helpers ──
+export const notifyVSCode = NotifyUtils.notifyVSCode;
+export const notifyDownloadComplete = NotifyUtils.notifyDownloadComplete;
+export const notifyAuthState = NotifyUtils.notifyAuthState;
+
+// ── IDE deep-link helpers ──
+export const resolveAbsoluteFilePath = IdeDeepLinkUtils.resolveAbsoluteFilePath;
+export const buildIdeFileUrl = IdeDeepLinkUtils.buildIdeFileUrl;
+export const openInIde = IdeDeepLinkUtils.openInIde;
+export const renderIdeFileLink = IdeDeepLinkUtils.renderIdeFileLink;
+export const resolveProjectRootFromApp = IdeDeepLinkUtils.resolveProjectRootFromApp;
+
 // ── VS Code helpers ──
 export const isVSCodeWebview = VSCodeUtils.isVSCodeWebview;
 export const isStandalone    = VSCodeUtils.isStandalone;
@@ -275,8 +306,12 @@ const _nsMap = {
   dom: DomUtils, format: FormatUtils, type: TypeUtils, fn: FunctionUtils,
   crypto: CryptoUtils, color: ColorUtils, download: DownloadUtils, fetch: FetchUtils,
   privacy: PrivacyUtils, clipboard: ClipboardUtils, vscode: VSCodeUtils,
-  event: EventUtils, path: PathUtils, polling: PollingUtils, theme: ThemeUtils
+  event: EventUtils, path: PathUtils, polling: PollingUtils, theme: ThemeUtils,
+  notify: NotifyUtils,
+  ideDeepLink: IdeDeepLinkUtils
 };
+
+let _collisionCount = 0;
 
 const KNOWN_COLLISIONS = new Set([
   'escapeHtml',
@@ -310,6 +345,12 @@ function _buildFlatExports() {
     }
   }
   flatExports.deepFreeze = deepFreeze;
+  flatExports.parseJsonSafe = ObjectUtils.safeJSONParse;
+  flatExports.toFixedNumber = toFixedNumberImpl;
+  flatExports.zipObject = zipObjectImpl;
+  flatExports.delay = delayImpl;
+  flatExports.throttleAsync = throttleAsyncImpl;
+  _collisionCount = collisions.length;
   const unexpectedCollisions = collisions.filter(c => !KNOWN_COLLISIONS.has(c.key));
   if (unexpectedCollisions.length && typeof console !== 'undefined' && typeof console.warn === 'function') {
     for (const { key, nsName } of unexpectedCollisions) {
@@ -328,15 +369,31 @@ function _getFlatExports() {
   return _flatExports;
 }
 
-export const exportNames = Object.freeze(Object.keys(_getFlatExports()).filter((name) => name !== 'safeJSONParse').concat(
-  'parseJsonSafe', 'toFixedNumber', 'zipObject', 'delay', 'throttleAsync',
-  'exportNames', 'getExportNames', 'getNamespaceNames',
-  'validateBarrelIntegrity', 'integrityTest', '__barrel__', 'composition'
-));
+let _exportNames = null;
+function _buildExportNameList() {
+  return Object.freeze([...new Set([
+    ...Object.keys(_getFlatExports()),
+    ...BARREL_BUILTIN_EXPORTS
+  ])].sort());
+}
 
 /** @returns {ReadonlyArray<string>} All flat named export keys from this barrel. */
 export function getExportNames() {
-  return exportNames;
+  return _exportNames || (_exportNames = _buildExportNameList());
+}
+
+/** Shorter alias for {@link getExportNames}. */
+export const exportNames = getExportNames;
+
+/** @returns {number} Count of duplicate export keys skipped while building the flat map. */
+export function getCollisionCount() {
+  _getFlatExports();
+  return _collisionCount;
+}
+
+/** @returns {Readonly<typeof __barrel__>} Frozen barrel metadata object. */
+export function getBarrelMeta() {
+  return __barrel__;
 }
 
 const NAMESPACE_NAMES = Object.freeze(Object.keys(_nsMap));
@@ -346,7 +403,7 @@ export function getNamespaceNames() {
   return NAMESPACE_NAMES;
 }
 
-const BARREL_TIMESTAMP = '2026-07-03T00:00:00.000Z';
+const BARREL_TIMESTAMP = '2026-07-14T00:00:00.000Z';
 
 const BARREL_REQUIRED_KEYS = Object.freeze([
   'name', 'description', 'moduleCount', 'exportCount', 'namespaceCount',
@@ -452,17 +509,31 @@ const VALIDATED_WRAPPERS = {
   }
 };
 
-const compositionNamespace = Object.freeze(
-  Object.entries(_nsMap).reduce((comp, [nsName, ns]) => {
-    if (!ns || typeof ns !== 'object') return comp;
+let _compositionNamespace = null;
+function _buildCompositionNamespace() {
+  const comp = { ...COMPOSITION_ALIASES, ...VALIDATED_WRAPPERS };
+  for (const ns of Object.values(_nsMap)) {
+    if (!ns || typeof ns !== 'object') continue;
     for (const key of Object.keys(ns)) {
-      if (!Object.prototype.hasOwnProperty.call(ns, key)) continue;
-      if (Object.prototype.hasOwnProperty.call(comp, key)) continue;
-      comp[key] = ns[key];
+      if (Object.prototype.hasOwnProperty.call(ns, key) && !Object.prototype.hasOwnProperty.call(comp, key)) {
+        comp[key] = ns[key];
+      }
     }
-    return comp;
-  }, { ...COMPOSITION_ALIASES, ...VALIDATED_WRAPPERS })
-);
+  }
+  return Object.freeze(comp);
+}
+function _getCompositionNamespace() {
+  if (!_compositionNamespace) {
+    _compositionNamespace = _buildCompositionNamespace();
+  }
+  return _compositionNamespace;
+}
+const compositionNamespace = new Proxy({}, {
+  get(_, prop) { return _getCompositionNamespace()[prop]; },
+  has(_, prop) { return prop in _getCompositionNamespace(); },
+  ownKeys() { return Reflect.ownKeys(_getCompositionNamespace()); },
+  getOwnPropertyDescriptor(_, prop) { return Object.getOwnPropertyDescriptor(_getCompositionNamespace(), prop); },
+});
 const defaultExport = deepFreeze({
   string: StringUtils,
   number: NumberUtils,
@@ -487,6 +558,8 @@ const defaultExport = deepFreeze({
   path: PathUtils,
   polling: PollingUtils,
   theme: ThemeUtils,
+  notify: NotifyUtils,
+  ideDeepLink: IdeDeepLinkUtils,
   composition: compositionNamespace,
   __barrel__
 });
@@ -510,110 +583,37 @@ export function validateBarrelIntegrity() {
   }
   if (!defaultExport.__barrel__) {
     errors.push('Missing __barrel__ metadata');
-  } else {
-    const meta = defaultExport.__barrel__;
+  }
+  const meta = defaultExport.__barrel__;
+  const names = getExportNames();
+  if (meta) {
     for (const metaKey of BARREL_REQUIRED_KEYS) {
-      if (!(metaKey in meta)) {
-        errors.push(`Missing __barrel__ key: "${metaKey}"`);
-      }
+      if (!(metaKey in meta)) errors.push(`Missing __barrel__ key: "${metaKey}"`);
     }
     if (meta.moduleCount !== Object.keys(_nsMap).length) {
-      errors.push(`__barrel__.moduleCount (${meta.moduleCount}) does not match namespace count (${Object.keys(_nsMap).length})`);
+      errors.push('__barrel__.moduleCount mismatch');
     }
-    if (meta.exportCount !== exportNames.length) {
-      errors.push(`__barrel__.exportCount (${meta.exportCount}) does not match exportNames.length (${exportNames.length})`);
+    if (meta.exportCount !== names.length) {
+      errors.push('__barrel__.exportCount mismatch');
     }
     if (meta.namespaceCount !== nsKeys.length) {
-      errors.push(`__barrel__.namespaceCount (${meta.namespaceCount}) does not match namespace count (${nsKeys.length})`);
-    }
-    if (!Array.isArray(meta.exports) || meta.exports.length !== exportNames.length) {
-      errors.push('__barrel__.exports array is invalid');
-    }
-    if (!Array.isArray(meta.namespaces) || meta.namespaces.length !== nsKeys.length) {
-      errors.push('__barrel__.namespaces array is invalid');
+      errors.push('__barrel__.namespaceCount mismatch');
     }
   }
-
-  // Verify every flat export is actually defined (not null/undefined)
+  const exportNameSet = new Set(names);
+  if (exportNameSet.size !== names.length) {
+    errors.push('Duplicate named exports detected');
+  }
   const flat = _getFlatExports();
   for (const key of Object.keys(flat)) {
-    if (flat[key] == null) {
-      errors.push(`Flat export "${key}" is null or undefined`);
+    if (flat[key] == null) errors.push(`Flat export "${key}" is null or undefined`);
+  }
+  for (const key of ['resolveAbsoluteFilePath', 'openInIde', 'canUseDirectoryPicker']) {
+    if (typeof flat[key] !== 'function') {
+      errors.push(`Expected flat export "${key}" to be a function`);
     }
   }
-
-  // Verify all namespace names are represented in the default export
-  for (const nsName of nsKeys) {
-    if (!(nsName in defaultExport)) {
-      errors.push(`Namespace "${nsName}" missing from default export`);
-    }
-  }
-
-  // Verify all named exports are accounted for and have a non-null value
-  const barrelBuiltins = { exportNames, getExportNames, getNamespaceNames, validateBarrelIntegrity, integrityTest, __barrel__ };
-  const barrelAliases = {
-    parseJsonSafe: ObjectUtils.safeJSONParse,
-    toFixedNumber: toFixedNumberImpl,
-    zipObject: zipObjectImpl,
-    delay: delayImpl,
-    throttleAsync: throttleAsyncImpl,
-    composition: compositionNamespace
-  };
-  const expectedExportNames = new Set([
-    ...Object.keys(flat).filter((name) => name !== 'safeJSONParse'),
-    ...Object.keys(barrelBuiltins),
-    ...Object.keys(barrelAliases)
-  ]);
-  const exportNameSet = new Set(exportNames);
-  if (exportNameSet.size !== exportNames.length) {
-    const dupes = exportNames.filter((k, i) => exportNames.indexOf(k) !== i);
-    errors.push(`Duplicate named exports detected: ${[...new Set(dupes)].join(', ')}`);
-  }
-  for (const name of exportNames) {
-    let value;
-    if (name in barrelBuiltins) {
-      value = barrelBuiltins[name];
-    } else if (name in barrelAliases) {
-      value = barrelAliases[name];
-    } else {
-      value = flat[name];
-    }
-    if (value == null) {
-      errors.push(`Named export "${name}" is null or undefined`);
-    }
-  }
-  for (const name of expectedExportNames) {
-    if (!exportNameSet.has(name)) {
-      errors.push(`Missing export name: "${name}"`);
-    }
-  }
-
-  // Verify compositionNamespace exports are valid
-  for (const key of Object.keys(compositionNamespace)) {
-    const value = compositionNamespace[key];
-    if (typeof value !== 'function' && typeof value !== 'object') {
-      errors.push(`Composition namespace export "${key}" has unsupported type: ${typeof value}`);
-    }
-  }
-
-  // Collision detection between namespaces and composition namespace
-  const _collisionWarnings = new Set();
-  for (const [nsName, ns] of Object.entries(_nsMap)) {
-    if (!ns || typeof ns !== 'object') continue;
-    for (const key of Object.keys(ns)) {
-      if (!Object.prototype.hasOwnProperty.call(ns, key)) continue;
-      if (key in compositionNamespace && !_collisionWarnings.has(key) && !KNOWN_COLLISIONS.has(key)) {
-        const compValue = compositionNamespace[key];
-        const nsValue = ns[key];
-        if (typeof compValue === 'function' && typeof nsValue === 'function' && compValue !== nsValue) {
-          _collisionWarnings.add(key);
-          console.warn(`[utils] Collision: "${key}" from "${nsName}" is overridden by composition namespace with a different implementation.`);
-        }
-      }
-    }
-  }
-
-  return { valid: errors.length === 0, errors };
+  return { valid: errors.length === 0, errors, collisionCount: getCollisionCount() };
 }
 
 /**
@@ -623,6 +623,13 @@ export function validateBarrelIntegrity() {
 export function integrityTest() {
   const failures = [];
   function assert(label, condition) { if (!condition) failures.push(label); }
+
+  const integrity = validateBarrelIntegrity();
+  assert('barrel integrity valid', integrity.valid);
+  assert('ideDeepLink namespace present', Boolean(defaultExport.ideDeepLink));
+  assert('resolveAbsoluteFilePath', typeof resolveAbsoluteFilePath === 'function');
+  assert('openInIde', typeof openInIde === 'function');
+  assert('canUseDirectoryPicker', typeof canUseDirectoryPicker === 'function');
 
   assert('seq identity', compositionNamespace.seq()(5) === 5);
   assert('seq pipes left-to-right', compositionNamespace.seq((x) => x + 1, (x) => x * 2)(3) === 8);

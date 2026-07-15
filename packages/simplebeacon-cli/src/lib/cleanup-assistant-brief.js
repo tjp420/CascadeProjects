@@ -3,7 +3,7 @@
  */
 
 const { buildCompleteScanAnalysis } = require('./enrich-complete-scan');
-const constants = require('../../../../ai-platform/server/config/constants.cjs');
+const constants = require('./constants');
 
 const DEFAULT_PROTECTED_PATHS = [
     'web/data',

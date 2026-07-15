@@ -1,4 +1,4 @@
-import { apiUrl } from '../utils/url.js';
+import { apiUrl } from '../utils/url.js?v=20260713website1';
 /**
  * Path Health Service
  * Fetches repository path health and scan summary metrics from the dashboard API

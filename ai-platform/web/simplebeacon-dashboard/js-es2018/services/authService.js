@@ -6,19 +6,36 @@ import { notifyAuthState } from '../utils-lib/notify.js?v=20260713sync6';
  * a custom domain (simplebeacon.ai / Cloudflare Pages), otherwise use relative paths.
  * The ?sb_api_base= query parameter overrides this for extension-driven website sign-in.
  */
+function _isAllowedApiBase(value) {
+    if (!value) return false;
+    try {
+        const url = new URL(value, location.href);
+        // HTTPS pages cannot call a local HTTP data server (mixed-content / LAN access).
+        if (location.protocol === 'https:' && url.protocol === 'http:') return false;
+        // Never bridge a localhost/loopback base from a remote production host.
+        if (!isLocalDevHost() && /^(localhost|127\.0\.0\.1)$/i.test(url.hostname)) return false;
+        return true;
+    }
+    catch (_a) { return false; }
+}
 export function apiBase() {
     if (typeof location !== 'undefined') {
         try {
             const params = new URLSearchParams(location.search);
             const override = params.get('sb_api_base');
-            if (override) {
+            if (override && _isAllowedApiBase(override)) {
                 // Extension passes the full API base (e.g. http://127.0.0.1:PORT/api).
                 // This function is used with /api/... appended, so strip the trailing /api.
                 return override.replace(/\/api\/?$/, '');
             }
         }
         catch (_a) { /* ignore */ }
-        if (!/^(localhost|127\.0\.0\.1)$/i.test(location.hostname) && !location.hostname.endsWith('.onrender.com')) {
+        const host = location.hostname;
+        if (!/^(localhost|127\.0\.0\.1)$/i.test(host) && !host.endsWith('.onrender.com')) {
+            // Same-origin API proxy on Cloudflare Pages / production domain (matches scanService).
+            if (host === 'simplebeacon.ai' || host.endsWith('.simplebeacon.pages.dev')) {
+                return location.origin;
+            }
             return 'https://simplebeacon.ai';
         }
     }
@@ -598,12 +615,17 @@ export class AuthService {
             if (body === null || body === void 0 ? void 0 : body.user) {
                 this.user = body.user;
                 localStorage.setItem(USER_KEY, JSON.stringify(body.user));
+                // Bind JWT token to the authenticated account
+                this.bindTokenToAccount(token, 'account');
+                return true;
             }
-            // Bind JWT token to the authenticated account
-            this.bindTokenToAccount(token, 'account');
-            return true;
+            // If the server explicitly says the token is not authenticated, treat it as invalid.
+            if (body && body.authenticated === false) {
+                this.clearSession();
+                return this.tryRotateVaultToken();
+            }
         }
-        // Server rejected — try client-side decode for unsigned/development tokens
+        // Server rejected or no user returned — try client-side decode for unsigned/development tokens only when auth is not required (local dev).
         if (this.authRequired) {
             this.clearSession();
             return this.tryRotateVaultToken();

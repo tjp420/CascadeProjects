@@ -11,7 +11,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const constants = require('../../../../ai-platform/server/config/constants.cjs');
+const constants = require('./constants');
 const { access, readFile } = fs.promises;
 
 const DEFAULT_WINDOW_MS = 60 * constants.MS_PER_SECOND;        // 1 minute

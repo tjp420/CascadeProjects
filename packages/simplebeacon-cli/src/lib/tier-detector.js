@@ -4,7 +4,7 @@
  * Now delegates to tier-constants.js for canonical definitions.
  */
 
-const { validateLicenseToken } = require('./license-token');
+const { validateLicenseToken, resolveLicenseToken } = require('./license-token');
 const {
     TIER_DEFINITIONS,
     TIER_ALIASES,
@@ -28,23 +28,37 @@ function migrateTierName(tier) {
 const TIER_LIMITS = TIER_DEFINITIONS;
 
 function detectTier() {
-    const token = process.env.SIMPLEBEACON_LICENSE_TOKEN || '';
-    const secret = process.env.SIMPLEBEACON_LICENSE_SECRET || '';
+    const token = process.env.SIMPLEBEACON_LICENSE_TOKEN || resolveLicenseToken() || '';
+    const secrets = verificationSecrets();
 
-    if (!token || !secret) {
+    if (!token) {
         return { tier: 'developer', paid: false, limits: TIER_LIMITS.developer };
     }
 
-    const result = validateLicenseToken(token, secret);
-    if (!result.valid) {
-        return { tier: 'developer', paid: false, error: result.error, limits: TIER_LIMITS.developer };
+    for (const secret of secrets) {
+        const result = validateLicenseToken(token, secret);
+        if (result.valid) {
+            const rawTier = String(result.claims.tier || result.claims.product || 'developer').toLowerCase();
+            const tier = resolveTier(rawTier);
+            const paid = isPaidTier(tier);
+            const limits = getTierLimits(tier);
+            return { tier, paid, claims: result.claims, limits };
+        }
     }
 
-    const rawTier = String(result.claims.tier || result.claims.product || 'developer').toLowerCase();
-    const tier = resolveTier(rawTier);
-    const paid = isPaidTier(tier);
-    const limits = getTierLimits(tier);
-    return { tier, paid, claims: result.claims, limits };
+    if (secrets.length) {
+        return { tier: 'developer', paid: false, error: 'Invalid license token signature', limits: TIER_LIMITS.developer, tokenPresent: true };
+    }
+
+    return { tier: 'developer', paid: false, limits: TIER_LIMITS.developer, tokenPresent: true, needsRemoteValidation: true };
+}
+
+function verificationSecrets() {
+    const secrets = [];
+    if (process.env.SIMPLEBEACON_LICENSE_SECRET) {
+        secrets.push(process.env.SIMPLEBEACON_LICENSE_SECRET);
+    }
+    return secrets;
 }
 
 module.exports = {

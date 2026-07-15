@@ -7,5 +7,7 @@
 /dashboard/assets/* /dashboard/assets/:splat 200
 
 # Dashboard SPA fallback — all /dashboard/* deep links serve the dashboard index
+/dashboard /dashboard/ 301
+/dashboard/ /dashboard/index.html 200
 /dashboard/* /dashboard/index.html 200
 

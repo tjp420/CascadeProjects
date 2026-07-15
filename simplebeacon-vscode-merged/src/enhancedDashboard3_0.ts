@@ -13,10 +13,10 @@ import * as crypto from 'crypto';
 // Local modules
 import { designTokens, themeColors } from './designSystem';
 import { RawIssue } from './scanProvider';
-import { getSbConfig } from './utils';
+import { getSbConfig } from './utils/vscode';
 import { ModernSidebarProvider } from './modernSidebarProvider';
 import { extractCategories, extractAllFindings, extractFailingFiles } from './dashboardDataExtractor';
-import { escapeHtml } from './utils';
+import { escapeHtml } from './utils/string';
 
 /**
  * Enhanced dashboard webview panel (v2.0) with modern UI/UX for scan visualization.

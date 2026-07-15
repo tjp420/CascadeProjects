@@ -14,7 +14,7 @@ const {
     isExcludedPath
 } = require('../rules/eu-ai-act-patterns');
 const { globMatch } = require('../rules/production-leak');
-const constants = require('../../../../ai-platform/server/config/constants.cjs');
+const constants = require('./constants');
 
 const DEFAULT_SKIP_DIRS = new Set([]);
 const DEFAULT_MAX_FILES = Number(process.env.SIMPLEBEACON_FULL_SCAN_MAX_FILES) || 2_000_000;

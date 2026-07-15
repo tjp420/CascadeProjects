@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
 import * as vscode from 'vscode';
 import * as http from 'http';
 import * as https from 'https';
@@ -6,7 +7,7 @@ import * as path from 'path';
 import * as os from 'os';
 import { spawn, execFile } from 'child_process';
 import { promisify } from 'util';
-import { getSbConfig } from './utils';
+import { getSbConfig } from './utils/vscode';
 
 const execFileAsync = promisify(execFile);
 

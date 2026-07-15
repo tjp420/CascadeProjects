@@ -67,7 +67,7 @@ function sanitizeEmbeddedEuAiActSprint(sprint, nestedOptions = {}) {
     if (!sprint || typeof sprint !== 'object' || sprint.ok === false) return sprint;
     try {
         const { sanitizeEuAiActSprintArtifactExport } = require('../../../../server/lib/eu-ai-act-export.js');
-const constants = require('../../../../ai-platform/server/config/constants.cjs');
+const constants = require('./constants');
         return sanitizeEuAiActSprintArtifactExport(sprint, nestedOptions);
     } catch {
         const label = projectLabelFromPath(nestedOptions.projectPath || sprint.projectPath || '');

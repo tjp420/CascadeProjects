@@ -174,22 +174,10 @@ export {
 } from './utils/fs';
 
 // ── Network helpers ──────────────────────────────────────────────
-export {
-  isValidUrl,
-  parseQueryString,
-  stringifyQueryString,
-  buildUrl,
-  resolveUrl,
-} from './utils/network';
+export { isValidUrl, parseQueryString, stringifyQueryString, buildUrl, resolveUrl } from './utils/network';
 
 // ── Path helpers ─────────────────────────────────────────────────
-export {
-  normalizeScanPath,
-  relativePath,
-  isSubPath,
-  getExt,
-  ensureExt,
-} from './utils/path';
+export { normalizeScanPath, relativePath, isSubPath, getExt, ensureExt } from './utils/path';
 
 // ── Type guards ──────────────────────────────────────────────────
 export {
@@ -231,18 +219,10 @@ export {
 } from './utils/misc';
 
 // ── JSON helpers ─────────────────────────────────────────────────
-export {
-  parseJsonSafe,
-  parseResponseJson,
-  stringifySafe,
-  isJson,
-} from './utils/json';
+export { parseJsonSafe, parseResponseJson, stringifySafe, isJson } from './utils/json';
 
 // ── Clipboard helpers ────────────────────────────────────────────
-export {
-  copyToClipboard,
-  readFromClipboard,
-} from './utils/clipboard';
+export { copyToClipboard, readFromClipboard } from './utils/clipboard';
 
 // ── Theme helpers ──────────────────────────────────────────────────
 export {
@@ -256,28 +236,13 @@ export {
 } from './utils/theme';
 
 // ── Event helpers ─────────────────────────────────────────────────
-export {
-  createEventBus,
-  createBroadcastChannel,
-} from './utils/event';
+export { createEventBus, createBroadcastChannel } from './utils/event';
 
 // ── Polling helpers ──────────────────────────────────────────────
-export {
-  createPoller,
-} from './utils/polling';
+export { createPoller } from './utils/polling';
 
 // ── Inline barrel-native utilities ────────────────────────────────
-export {
-  compose,
-  pipe,
-  zipWith,
-  curry,
-  partial,
-  tap,
-  flip,
-  assert,
-  tryCatch,
-} from './utils/index';
+export { compose, pipe, zipWith, curry, partial, tap, flip, assert, tryCatch } from './utils/index';
 
 // ── Namespace for grouped access ─────────────────────────────────
 /**
@@ -288,6 +253,16 @@ export {
 export { Utils } from './utils/index';
 
 // Re-export barrel helpers from index.ts for API consistency
-export { freezeNamespace, getExportNames, getNamespaceNames, getBarrelMeta, validateBarrelIntegrity, integrityTest } from './utils/index';
+export {
+  freezeNamespace,
+  getExportNames,
+  getNamespaceNames,
+  getInlineSelection,
+  getBarrelMeta,
+  getCollisionCount,
+  validateBarrelIntegrity,
+  integrityTest,
+} from './utils/index';
 export type { BarrelMeta } from './utils/index';
+export type { Unary, AnyFunction, Curried } from './utils/index';
 export { __barrel__ } from './utils/index';

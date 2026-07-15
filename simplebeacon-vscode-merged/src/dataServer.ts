@@ -79,7 +79,7 @@ async function _sendSandboxEmail(to: string, token: string, referrer: string): P
   }
 }
 import { ScanReport } from './scanProvider';
-import { correctScanPath, getSbConfig } from './utils';
+import { correctScanPath, getSbConfig } from './utils/vscode';
 import { validateLicenseLocally } from './licenseManager';
 import { PUBLIC_KEY_PEM } from './realtimeMonitor';
 import { handleAuthRoutes } from './routes/auth';
@@ -95,6 +95,9 @@ export interface ServerState {
   workspacePath: string;
   extensionVersion: string;
   lastTrustData: any;
+  scanProgressProcessed?: number;
+  scanProgressTotal?: number;
+  scanProgressFile?: string;
 }
 
 let serverState: ServerState = {
@@ -137,8 +140,10 @@ let extensionContext: vscode.ExtensionContext | null = null;
 // background/out-of-request links (e.g. sandbox emails) where no request host is available.
 function getPublicBaseUrl(req?: http.IncomingMessage): string {
   if (req) {
-    const host = (req.headers['x-forwarded-host'] as string) || req.headers.host;
+    let host = (req.headers['x-forwarded-host'] as string) || req.headers.host;
     if (host) {
+      // X-Forwarded-Host should only be a host; ignore any accidental path/query.
+      host = host.split('/')[0].replace(/^https?:\/\//i, '');
       const proto = (req.headers['x-forwarded-proto'] as string) || 'http';
       return `${proto}://${host}`;
     }
@@ -238,7 +243,7 @@ const DOWNLOAD_NOTIFY_SCRIPT = `<script>
 })();
 </script>`;
 
-const THEME_SCRIPT = `<script>(function(){const h=document.documentElement;if(!h)return;function s(t){h.setAttribute('data-theme',t);}function p(){if(typeof fetch!=='function')return;fetch('/api/theme').then(r=>r.json()).then(d=>{if(d&&d.theme){s(d.theme);try{const bc=new BroadcastChannel('sb-theme');bc.postMessage({theme:d.theme});bc.close();}catch(e){}}}).catch(()=>{});}p();setInterval(p,1000);try{const bc=new BroadcastChannel('sb-theme');bc.onmessage=function(e){if(e.data&&e.data.theme)s(e.data.theme);};}catch(e){}})();</script>`;
+const THEME_SCRIPT = `<script>(function(){const h=document.documentElement;if(!h)return;function s(t){h.setAttribute('data-theme',t);}function p(){if(typeof fetch!=='function')return;if(typeof document!=='undefined'&&document.visibilityState==='hidden')return;fetch('/api/theme').then(r=>r.json()).then(d=>{if(d&&d.theme){s(d.theme);try{const bc=new BroadcastChannel('sb-theme');bc.postMessage({theme:d.theme});bc.close();}catch(e){}}}).catch(()=>{});}p();setInterval(p,30000);try{const bc=new BroadcastChannel('sb-theme');bc.onmessage=function(e){if(e.data&&e.data.theme)s(e.data.theme);};}catch(e){}})();</script>`;
 
 const HIDE_PRICING_SCRIPT = `<script>
 (function() {
@@ -266,12 +271,28 @@ const SIGNIN_MODAL_SCRIPT = `<script>
   }
   function setToken(t) { for (const k of TOKEN_KEYS) { localStorage.setItem(k, t); } }
   function clearToken() { for (const k of TOKEN_KEYS) { localStorage.removeItem(k); } }
-  function postAuthState(signedIn, tier) {
+  function postAuthState(signedIn, tier, token, isAdmin) {
     try {
       const vscode = typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi() : null;
-      if (vscode) { vscode.postMessage({command:'setAuthState',signedIn,tier:tier||''}); }
-      else if (window.parent && window.parent !== window) { window.parent.postMessage({command:'setAuthState',signedIn,tier:tier||''},'*'); }
+      const payload = {command:'setAuthState',signedIn,tier:tier||'',token:token||'',isAdmin:!!isAdmin};
+      if (vscode) { vscode.postMessage(payload); }
+      else if (window.parent && window.parent !== window) { window.parent.postMessage(payload,'*'); }
     } catch (e) {}
+  }
+  function apiUrl(path) {
+    if (typeof location === 'undefined') return path;
+    try {
+      const params = new URLSearchParams(location.search);
+      const override = params.get('sb_api_base');
+      if (override) {
+        const base = override.replace(/\/api\/?$/, '');
+        return base + path;
+      }
+      if (!/^(localhost|127\.0\.0\.1)$/i.test(location.hostname) && !location.hostname.endsWith('.onrender.com')) {
+        return 'https://simplebeacon.ai' + path;
+      }
+    } catch (e) {}
+    return path;
   }
   const CSS = \`<style id="sb-signin-modal-style">
     .sb-signin-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.8); display:none; align-items:center; justify-content:center; z-index:99999; font-family:system-ui,-apple-system,sans-serif; }
@@ -350,16 +371,37 @@ const SIGNIN_MODAL_SCRIPT = `<script>
         if (target) target.classList.add('active');
       });
     });
-    function doSignIn(token) {
-      if (token && token.length > 5) { setToken(token); }
-      postAuthState(true, '');
+    function finishSignIn(token, user) {
+      setToken(token);
+      const u = user || {};
+      const tier = u.tier || u.plan || '';
+      const isAdmin = String(u.role || '').toLowerCase() === 'admin' || String(tier).toLowerCase() === 'admin';
+      postAuthState(true, tier, token, isAdmin);
       overlay.classList.remove('active');
+    }
+    function showAuthError(label, err) {
+      alert((label || 'Authentication failed') + ': ' + (err && err.message ? err.message : 'Unable to reach server'));
     }
     document.getElementById('sbSigninBtn').addEventListener('click', function() {
       const email = document.getElementById('sbEmailInput').value.trim();
       const pass = document.getElementById('sbPasswordInput').value;
       if (!email || !pass) { alert('Please enter email/username and password'); return; }
-      doSignIn('auth-' + email);
+      const btn = document.getElementById('sbSigninBtn');
+      const originalText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Signing in...';
+      fetch(apiUrl('/api/auth/login'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password: pass }) })
+        .then(function(r) { return r.json().catch(function() { return { success: false, error: 'Invalid response from server' }; }); })
+        .then(function(data) {
+          btn.disabled = false;
+          btn.textContent = originalText;
+          if (data && data.success && data.token) {
+            finishSignIn(data.token, data.user);
+          } else {
+            alert(data && data.error ? data.error : 'Login failed');
+          }
+        })
+        .catch(function(err) { btn.disabled = false; btn.textContent = originalText; showAuthError('Login failed', err); });
     });
     document.getElementById('sbCreateBtn').addEventListener('click', function() {
       const email = document.getElementById('sbCreateEmail').value.trim();
@@ -367,7 +409,22 @@ const SIGNIN_MODAL_SCRIPT = `<script>
       const confirm = document.getElementById('sbCreateConfirm').value;
       if (!email || !pass) { alert('Please fill in all fields'); return; }
       if (pass !== confirm) { alert('Passwords do not match'); return; }
-      doSignIn('auth-' + email);
+      const btn = document.getElementById('sbCreateBtn');
+      const originalText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Creating account...';
+      fetch(apiUrl('/api/auth/register'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password: pass, confirmPassword: confirm }) })
+        .then(function(r) { return r.json().catch(function() { return { success: false, error: 'Invalid response from server' }; }); })
+        .then(function(data) {
+          btn.disabled = false;
+          btn.textContent = originalText;
+          if (data && data.success && data.token) {
+            finishSignIn(data.token, data.user);
+          } else {
+            alert(data && data.error ? data.error : 'Registration failed');
+          }
+        })
+        .catch(function(err) { btn.disabled = false; btn.textContent = originalText; showAuthError('Registration failed', err); });
     });
     document.getElementById('sbSecurityBtn').addEventListener('click', function() {
       alert('Security key sign-in coming soon');
@@ -376,19 +433,24 @@ const SIGNIN_MODAL_SCRIPT = `<script>
   }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', init); } else { init(); }
   // Always broadcast current auth state to parent on load so sidebar buttons sync after reload
-  try { postAuthState(hasAnyToken(), ''); } catch(e) {}
+  try { postAuthState(hasAnyToken(), '', '', false); } catch(e) {}
   // Listen for parent auth-state queries (sidebar/webview asking iframe for current state)
   window.addEventListener('message', function(ev) {
     if (ev.data && ev.data.command === 'getAuthState') {
-      try { postAuthState(hasAnyToken(), ''); } catch(e) {}
+      try { postAuthState(hasAnyToken(), '', '', false); } catch(e) {}
     }
-    if (ev.data && ev.data.command === 'setAuthState' && ev.data.signedIn === false) {
-      clearToken();
-      try { postAuthState(false, ev.data.tier || ''); } catch(e) {}
+    if (ev.data && ev.data.command === 'setAuthState') {
+      if (ev.data.signedIn === true && ev.data.token) {
+        setToken(ev.data.token);
+        try { postAuthState(true, ev.data.tier || '', ev.data.token, !!ev.data.isAdmin); } catch(e) {}
+      } else if (ev.data.signedIn === false) {
+        clearToken();
+        try { postAuthState(false, ev.data.tier || '', '', false); } catch(e) {}
+      }
     }
     if (ev.data && ev.data.command === 'signOut') {
       clearToken();
-      try { postAuthState(false, ev.data.tier || ''); } catch(e) {}
+      try { postAuthState(false, ev.data.tier || '', '', false); } catch(e) {}
     }
   });
 })();
@@ -419,6 +481,17 @@ const DASHBOARD_ASSET_EXTENSIONS = /\.(js|mjs|css|png|jpg|jpeg|gif|svg|ico|woff2
 
 function isDashboardStaticAsset(pathname: string): boolean {
   return DASHBOARD_ASSET_EXTENSIONS.test(pathname);
+}
+
+const DASHBOARD_SPA_ROUTES = new Set([
+  '/dashboard', '/analyze', '/certificate', '/aicontext', '/audit', '/report',
+  '/security', '/trust', '/quality', '/assessments', '/platform', '/scan',
+  '/profile', '/about', '/repohealth', '/analytics', '/team', '/settings',
+  '/help', '/roadmap', '/pricing', '/upload', '/compliance', '/results'
+]);
+
+function isDashboardSpaRoute(pathname: string): boolean {
+  return DASHBOARD_SPA_ROUTES.has(pathname) || pathname === '/dashboard' || pathname.startsWith('/dashboard/');
 }
 
 let lastBrowserSessionToken: string | undefined = undefined;
@@ -554,6 +627,20 @@ export function getBrowserSessionToken(): string | undefined {
 export function clearBrowserSessionToken(): void {
   lastBrowserSessionToken = undefined;
   lastBrowserSessionTime = 0;
+}
+
+/** Sets the browser session token tracked by the data server (used when the dashboard signs in via /api/notify). */
+export function setBrowserSessionToken(token: string): void {
+  if (token && token.length > 10) {
+    lastBrowserSessionToken = token;
+    lastBrowserSessionTime = Date.now();
+    // If the user signs back in with the same token they just signed out with,
+    // clear the sign-out record so the grace period doesn't block the session.
+    if (lastSignOutToken === token) {
+      lastSignOutToken = undefined;
+      lastSignOutTime = 0;
+    }
+  }
 }
 
 /** Records a token as having been signed out so the dashboard can be told to clear it. */
@@ -1200,14 +1287,13 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     const host = req.headers.host || `127.0.0.1:${dataServerPort}`;
     const parsed = new URL(req.url || '', `http://${host}`);
 
-    // CORS: echo origin for local dev; in production, restrict to the configured allowed origin
-    const allowedOrigin = process.env.ALLOWED_ORIGIN;
+    // CORS: echo the actual request origin so the local bridge works from any dashboard host
+    // (external browser, Simple Browser webview, Render preview, etc.).
     const requestOrigin = req.headers.origin || '*';
-    const corsOrigin = allowedOrigin || requestOrigin;
-    res.setHeader('Access-Control-Allow-Origin', corsOrigin);
+    res.setHeader('Access-Control-Allow-Origin', requestOrigin);
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Cache-Control, Authorization, X-Requested-With');
-    if (corsOrigin !== '*') {
+    if (requestOrigin !== '*') {
       res.setHeader('Access-Control-Allow-Credentials', 'true');
     }
     if (req.method === 'OPTIONS') {
@@ -1347,6 +1433,31 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: false, error: (err as Error).message || 'Failed to open folder picker' }));
       }
+      return;
+    }
+
+    // Analyze progress polling — mirrors /api/simplebeacon/scan/progress for dashboard compatibility
+    if (parsed.pathname === '/api/analyze/progress') {
+      const projectPath = parsed.searchParams.get('projectPath') || serverState.workspacePath || '';
+      const scanning = serverState.scanStatus === 'scanning';
+      let progress: Record<string, unknown> = {
+        active: scanning,
+        label: serverState.scanMessage || (scanning ? 'Scanning…' : 'Idle'),
+        processed: serverState.scanProgressProcessed ?? (scanning ? 0 : 100),
+        total: serverState.scanProgressTotal ?? 100,
+        currentFile: serverState.scanProgressFile || '',
+      };
+      try {
+        const progressPath = path.join(path.resolve(projectPath || serverState.workspacePath || '.'), '.simplebeacon', 'scan-progress.json');
+        if (projectPath && fs.existsSync(progressPath)) {
+          const fileData = JSON.parse(fs.readFileSync(progressPath, 'utf8'));
+          if (fileData && typeof fileData === 'object' && fileData.active !== false) {
+            progress = { active: true, ...fileData };
+          }
+        }
+      } catch { /* use serverState fallback */ }
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, progress, steps: [] }));
       return;
     }
 
@@ -2022,12 +2133,25 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
         try {
           const payload = body ? JSON.parse(body) : {};
           let rawProjectPath = payload.projectPath || serverState.workspacePath || undefined;
+          if (!rawProjectPath) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: 'No projectPath provided and no workspace is open.' }));
+            return;
+          }
           const args = {
             projectPath: rawProjectPath ? resolveRealPath(rawProjectPath) : undefined,
             fullDirectory: payload.fullDirectoryScan !== false,
           };
           const report = await vscode.commands.executeCommand('simplebeacon.scanWorkspace', args);
           if (!report) {
+            const fallback = serverState.currentReport;
+            if (fallback && Object.keys(fallback).length > 0) {
+              const msg = 'Scan command returned no report — returning cached report.';
+              if (outputChannel) { outputChannel.appendLine(`[SimpleBeacon DataServer] ${msg}`); }
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ success: true, fallback: true, warning: msg, report: fallback }));
+              return;
+            }
             const msg = 'Scan command returned no report. Check that the SimpleBeacon CLI is installed and the workspace path is valid.';
             if (outputChannel) { outputChannel.appendLine(`[SimpleBeacon DataServer] ${msg}`); }
             res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -2038,7 +2162,10 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
           res.end(JSON.stringify({ success: true, report }));
         } catch (err: any) {
           const msg = err.message || 'Scan failed';
-          if (outputChannel) { outputChannel.appendLine(`[SimpleBeacon DataServer] Scan endpoint error: ${msg}`); }
+          if (outputChannel) {
+            outputChannel.appendLine(`[SimpleBeacon DataServer] Scan endpoint error: ${msg}`);
+            if (err.stack) { outputChannel.appendLine(err.stack); }
+          }
           // Only return a cached fallback if we actually have one
           const fallback = serverState.currentReport;
           if (fallback && Object.keys(fallback).length > 0) {
@@ -2692,6 +2819,13 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       return;
     }
 
+    // /api/user/api-key — CLI upload token (local extension has no CLI key, return empty)
+    if (parsed.pathname === '/api/user/api-key' && req.method === 'GET') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, apiKey: '' }));
+      return;
+    }
+
     // ─── Admin Endpoints ───
     // Verify any valid token (JWT or license) as the admin key
     if (parsed.pathname === '/api/admin/verify' && req.method === 'POST') {
@@ -2990,6 +3124,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
         try {
           const data = JSON.parse(body);
           const entry: NotifyEntry = { type: data.type || 'unknown', payload: data.payload || data, ts: Date.now() };
+          if (outputChannel) { outputChannel.appendLine(`[DataServer] /api/notify received type=${entry.type}`); }
           notificationQueue.push(entry);
           if (notifyCallback) { try { notifyCallback(entry); } catch { /* ignore */ } }
           res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -3290,7 +3425,7 @@ body{font-family:system-ui,-apple-system,sans-serif;margin:0;padding:40px;backgr
     }
 
     // Dashboard route (Open Browser button navigates here)
-    if (parsed.pathname === '/dashboard' || parsed.pathname.startsWith('/dashboard/')) {
+    if (isDashboardSpaRoute(parsed.pathname)) {
       const isPublicDashboardPath = parsed.pathname === '/dashboard/signin' || parsed.pathname === '/dashboard/signup';
       const remoteAddr = (req.socket && (req.socket as any).remoteAddress) || '';
       const isLocalhost = remoteAddr === '127.0.0.1' || remoteAddr === '::1' || remoteAddr === '::ffff:127.0.0.1' || remoteAddr === 'localhost';
@@ -3440,28 +3575,28 @@ body{font-family:system-ui,-apple-system,sans-serif;margin:0;padding:40px;backgr
       return;
     }
 
-    // Redirect legacy dashboard HTML links to the SPA path routes
+    // Redirect legacy dashboard HTML links to the SPA hash routes
     const htmlToRoute: Record<string, string> = {
-      '/audit.html': '/dashboard/audit',
-      '/security.html': '/dashboard/security',
-      '/quality.html': '/dashboard/quality',
-      '/trust.html': '/dashboard/trust',
-      '/assessments.html': '/dashboard/assessments',
-      '/platform.html': '/dashboard/platform',
-      '/profile.html': '/dashboard/profile',
-      '/compliance.html': '/dashboard/compliance',
-      '/repository-health.html': '/dashboard/repository-health',
-      '/analytics.html': '/dashboard/analytics',
-      '/team.html': '/dashboard/team',
-      '/remediation.html': '/dashboard/remediation',
-      '/roadmap.html': '/dashboard/remediation',
-      '/results.html': '/dashboard/results',
-      '/report.html': '/dashboard/results',
-      '/upload.html': '/dashboard/upload',
-      '/certificate.html': '/dashboard/certificate',
-      '/settings.html': '/dashboard/settings',
-      '/dashboard.html': '/dashboard/dashboard',
-      '/index.html': '/dashboard/dashboard',
+      '/audit.html': '/dashboard/#/audit',
+      '/security.html': '/dashboard/#/security',
+      '/quality.html': '/dashboard/#/quality',
+      '/trust.html': '/dashboard/#/trust',
+      '/assessments.html': '/dashboard/#/assessments',
+      '/platform.html': '/dashboard/#/platform',
+      '/profile.html': '/dashboard/#/profile',
+      '/compliance.html': '/dashboard/#/compliance',
+      '/repository-health.html': '/dashboard/#/repository-health',
+      '/analytics.html': '/dashboard/#/analytics',
+      '/team.html': '/dashboard/#/team',
+      '/remediation.html': '/dashboard/#/remediation',
+      '/roadmap.html': '/dashboard/#/remediation',
+      '/results.html': '/dashboard/#/results',
+      '/report.html': '/dashboard/#/results',
+      '/upload.html': '/dashboard/#/upload',
+      '/certificate.html': '/dashboard/#/certificate',
+      '/settings.html': '/dashboard/#/settings',
+      '/dashboard.html': '/dashboard/#/dashboard',
+      '/index.html': '/dashboard/#/dashboard',
     };
     const spaRedirect = htmlToRoute[parsed.pathname];
     if (spaRedirect) {
@@ -3718,7 +3853,9 @@ body{font-family:system-ui,-apple-system,sans-serif;margin:0;padding:40px;backgr
   const listenPort = process.env.PORT ? parseInt(process.env.PORT, 10) : dataServerPort;
   dataServer.listen(listenPort, listenHost, () => {
       if (outputChannel) {
-        outputChannel.appendLine(`[SimpleBeacon DataServer] listen() callback fired`);
+        const addr = dataServer?.address();
+        const actualPort = addr && typeof addr === 'object' ? addr.port : listenPort;
+        outputChannel.appendLine(`[SimpleBeacon DataServer] listen() callback fired on port ${actualPort}`);
       }
     });
   } catch (listenErr: any) {

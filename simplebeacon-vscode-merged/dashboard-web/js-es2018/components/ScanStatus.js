@@ -1,8 +1,16 @@
 import { escapeHtml, formatPercent, formatNumber, showToast } from '../utils.js';
+import { canUseDirectoryPicker } from '../utils-lib/dom.js';
 import { resolveDisplayScore, formatScanScopeSummary, formatScanInventoryNote, getScanFileMetrics } from '../services/analyzeService.js?v=20260710inventory1';
 import { runLocalScan } from '../services/localScanService.js';
-import { isLocalPath, probeAgent, scanViaAgent, probeAgent4000, scanViaAgent4000, renderAgentCertificate } from '../services/localAgentService.js?v=20260710agentcache3';
-import { runSandboxedDirectoryScan, isDroppedFolder, scanDroppedItems } from '../services/browserSandboxScanService.js?v=20260713dropfix4';
+import { isLocalPath, probeAgent, scanViaAgent, probeAgent4000, scanViaAgent4000, renderAgentCertificate, hasExtensionBridgeConfigured, pickFolderViaExtensionBridge as requestExtensionFolderPick } from '../services/localAgentService.js?v=20260710agentcache3';
+import { runSandboxedDirectoryScan, isDroppedFolder, scanDroppedItems, captureDroppedEntry } from '../services/browserSandboxScanService.js?v=20260713dropfix7';
+function isRemoteDashboardHost() {
+    return typeof window !== 'undefined' && !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
+}
+function isAbsoluteLocalPath(path) {
+    const raw = String(path || '').trim();
+    return /^[a-zA-Z]:[\\/]|^\\|^\//.test(raw) && !/^https?:\/\//i.test(raw);
+}
 /**
  * Resolve initial scan root.
  * @param {number} report
@@ -50,11 +58,11 @@ export async function runDashboardScanFromInput(input, options = {}) {
         onRescan(undefined);
         return;
     }
-    // Lightweight localhost:4000 bridge from the provided agent.js template.
+    // Lightweight localhost bridge: extension data server (sb_api_base) or agent.js:4000.
     if (isLocalPath(path)) {
         try {
             const status = await probeAgent4000();
-            if (status.available) {
+            if (status.available && !status.extensionBridge) {
                 const result = await scanViaAgent4000(path);
                 const cert = result && result.certificate;
                 const fileCount = (result.files || []).length;
@@ -102,16 +110,21 @@ export async function runDashboardScanFromInput(input, options = {}) {
     }
     // Dropped/browsed folders without a full OS path come through as bare folder names.
     // The dashboard scan needs an absolute local path or a remote repo URL.
-    const isAbsoluteLocal = /^[a-zA-Z]:[\\/]|^\\|^\//.test(path);
+    const isAbsoluteLocal = isAbsoluteLocalPath(path);
     const isRemoteUrl = /^https?:\/\//i.test(path);
-    const isRemoteDeployment = typeof window !== 'undefined' && !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
+    const isRemoteDeployment = isRemoteDashboardHost();
     if (isAbsoluteLocal && isRemoteDeployment) {
-        showToast('Local agent is not available. Click "Select Drive Target" above to choose the folder and scan it locally in your browser, or start the Local Scan Agent on your machine.', 'error', { duration: 12000 });
-        const scopeCard = document.getElementById('scan-status-scope');
-        if (scopeCard) {
-            scopeCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            scopeCard.classList.add('sandbox-scanner-highlight');
-            setTimeout(() => scopeCard.classList.remove('sandbox-scanner-highlight'), 3000);
+        showToast('This hosted dashboard cannot read typed PC paths. Opening folder picker to scan privately in your browser…', 'info', { duration: 8000 });
+        if (typeof options.onBrowserSandboxScan === 'function') {
+            await options.onBrowserSandboxScan();
+        }
+        else {
+            const scopeCard = document.getElementById('scan-status-scope');
+            if (scopeCard) {
+                scopeCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                scopeCard.classList.add('sandbox-scanner-highlight');
+                setTimeout(() => scopeCard.classList.remove('sandbox-scanner-highlight'), 3000);
+            }
         }
         return;
     }
@@ -129,12 +142,21 @@ export async function runDashboardScanFromInput(input, options = {}) {
     setLastProjectPath(path);
     onRescan(path);
 }
-async function runSandboxedScanForDashboard(onLocalScanResult) {
-    const terminal = document.getElementById('sandbox-scan-terminal');
-    const resultsEl = document.getElementById('agent-4000-results');
+async function runSandboxedScanForDashboard(onLocalScanResult, container) {
+    const root = container || document;
+    const dropzone = root.querySelector('#scan-dropzone');
+    const progressDetail = root.querySelector('#scan-dropzone-progress-detail');
+    const resultStats = root.querySelector('#scan-dropzone-result-stats');
+    const errorMessage = root.querySelector('#scan-dropzone-error-message');
+    const terminal = root.querySelector('#sandbox-scan-terminal') || document.getElementById('sandbox-scan-terminal');
+    const resultsEl = root.querySelector('#agent-4000-results') || document.getElementById('agent-4000-results');
+    if (dropzone) {
+        dropzone.classList.remove('is-idle', 'is-drag', 'is-done', 'is-error');
+        dropzone.classList.add('is-scanning');
+    }
     if (terminal) {
         terminal.style.display = 'block';
-        terminal.textContent = 'Opening native OS system access window...';
+        terminal.textContent = 'Opening folder picker…';
     }
     try {
         const report = await runSandboxedDirectoryScan({
@@ -145,6 +167,8 @@ async function runSandboxedScanForDashboard(onLocalScanResult) {
                 }
             },
             onProgress: ({ processed, total }) => {
+                if (progressDetail)
+                    progressDetail.textContent = `${processed} / ${total} files`;
                 if (terminal) {
                     terminal.textContent += `\n...${processed}/${total} files analyzed`;
                     terminal.scrollTop = terminal.scrollHeight;
@@ -157,6 +181,13 @@ async function runSandboxedScanForDashboard(onLocalScanResult) {
             : `Sandbox scan complete — ${report.files.length} files`;
         showToast(message, 'success');
         renderAgentCertificate(report, resultsEl);
+        if (resultStats && cert) {
+            resultStats.textContent = `${cert.letterGrade || 'N/A'} grade · ${report.discoveredFiles || report.files.length || 0} files scanned · ${cert.highRiskCount || 0} high · ${cert.mediumRiskCount || 0} medium`;
+        }
+        if (dropzone) {
+            dropzone.classList.remove('is-scanning');
+            dropzone.classList.add('is-done');
+        }
         if (onLocalScanResult) {
             onLocalScanResult({ projectPath: report.verifiedAddress || report.path, summary: report.certificate, source: 'sandbox' });
         }
@@ -182,7 +213,20 @@ async function runSandboxedScanForDashboard(onLocalScanResult) {
     }
     catch (err) {
         const msg = err.message || 'Sandbox scan failed';
+        if (err && err.name === 'AbortError') {
+            if (dropzone) {
+                dropzone.classList.remove('is-scanning');
+                dropzone.classList.add('is-idle');
+            }
+            return;
+        }
         showToast(msg, 'error');
+        if (errorMessage)
+            errorMessage.textContent = msg;
+        if (dropzone) {
+            dropzone.classList.remove('is-scanning');
+            dropzone.classList.add('is-error');
+        }
         if (terminal) terminal.textContent = `❌ ${msg}`;
     }
 }
@@ -244,44 +288,47 @@ function renderScanPathControls(report, options = {}) {
       <div class="sb-dropzone is-idle" id="scan-dropzone" role="region" aria-label="Dashboard scan drop zone">
         <input type="file" id="scan-browse-input" webkitdirectory directory hidden aria-label="Select folder to scan">
         <div class="sb-dropzone-idle">
-          <div class="sb-dropzone-icon"><i data-lucide="folder-up" class="icon-32"></i></div>
-          <div class="sb-dropzone-title">Drop a folder or files to scan</div>
-          <div class="sb-dropzone-sub">Drop a folder for a full scan, or files for a quick scan. Private — runs in your browser.</div>
-          <div class="sb-dropzone-actions">
-            <button type="button" id="trigger-native-picker" class="btn btn-primary"><i data-lucide="folder-open" class="icon-16"></i> Select Folder</button>
-            <button type="button" id="trigger-file-picker" class="btn btn-ghost">Select Files</button>
+          <div class="sb-dropzone-pitch">
+            <div class="sb-dropzone-icon"><i data-lucide="folder-up" class="icon-32"></i></div>
+            <div class="sb-dropzone-title">Drop a folder or files to scan</div>
+            <div class="sb-dropzone-sub">Drop a folder for a full scan, or files for a quick scan.</div>
+            <div class="sb-dropzone-privacy"><span aria-hidden="true">🔒</span> Scans run privately in your browser.</div>
           </div>
-          <p class="sb-dropzone-privacy">🔒 Scans run privately in your browser.</p>
-          <div class="sb-dropzone-path">
-            <p class="sb-dropzone-path-label">Or type a server path / public repo URL</p>
-            <div class="scan-status-path-row">
-              <div class="scan-status-path-input-wrap">
-                <i data-lucide="folder" class="icon-16 scan-status-path-icon"></i>
-                <input
-                  type="text"
-                  id="scan-root-input"
-                  class="scan-status-path-input"
-                  placeholder="e.g. C:\\\\dev\\\\my-app"
-                  spellcheck="false"
-                  autocomplete="off"
-                  aria-label="Folder path on the dashboard server"
-                  value="${escapeHtml(resolvedPath)}"
-                  ${scanning ? 'disabled' : ''}
-                >
+          <div class="sb-dropzone-form">
+            <div class="sb-dropzone-actions">
+              <button type="button" id="trigger-native-picker" class="btn btn-primary"><i data-lucide="folder-open" class="icon-16"></i> Select Folder</button>
+              <button type="button" id="trigger-file-picker" class="btn btn-ghost"><i data-lucide="upload" class="icon-16"></i> Select Files</button>
+            </div>
+            <div class="sb-dropzone-path">
+              <p class="sb-dropzone-path-label">Or type a server path / public repo URL (local PC paths require Select Folder above)</p>
+              <div class="scan-status-path-row">
+                <div class="scan-status-path-input-wrap">
+                  <i data-lucide="folder" class="icon-16 scan-status-path-icon"></i>
+                  <input
+                    type="text"
+                    id="scan-root-input"
+                    class="scan-status-path-input"
+                    placeholder="e.g. C:\\dev\\my-app"
+                    spellcheck="false"
+                    autocomplete="off"
+                    aria-label="Folder path on the dashboard server"
+                    value="${escapeHtml(resolvedPath)}"
+                    ${scanning ? 'disabled' : ''}
+                  >
+                </div>
+                <button type="button" class="btn btn-ghost btn-sm" id="scan-browse-btn" ${scanning ? 'disabled' : ''} title="Browse for folder" aria-label="Browse for folder to scan" aria-controls="scan-browse-input">
+                  <i data-lucide="folder-open" class="icon-16"></i> Browse
+                </button>
+                <button type="button" class="btn btn-ghost btn-sm" id="scan-set-default-btn" ${!hasDefault || scanning ? 'disabled' : ''} title="Reset to default path">
+                  <i data-lucide="rotate-ccw" class="icon-16"></i> Reset
+                </button>
+                <button type="button" class="btn btn-ghost btn-sm" id="scan-clear-btn" ${!hasSaved || scanning ? 'disabled' : ''} title="Clear saved folder">
+                  <i data-lucide="x" class="icon-16"></i> Clear
+                </button>
+                <button type="button" class="btn btn-secondary" id="rescan-btn" ${scanning ? 'disabled' : ''} title="Run gate scan on this folder">
+                  ${scanning ? '<span class="loading-spinner"></span> Scanning…' : '<i data-lucide="play" class="icon-16"></i> Scan'}
+                </button>
               </div>
-              <input type="file" id="scan-browse-input" webkitdirectory directory hidden aria-label="Select folder to scan">
-              <button type="button" class="btn btn-ghost btn-sm" id="scan-browse-btn" ${scanning ? 'disabled' : ''} title="Browse for folder" aria-label="Browse for folder to scan" aria-controls="scan-browse-input">
-                <i data-lucide="folder-open" class="icon-16"></i> Browse
-              </button>
-              <button type="button" class="btn btn-ghost btn-sm" id="scan-set-default-btn" ${!hasDefault || scanning ? 'disabled' : ''} title="Reset to default path">
-                <i data-lucide="rotate-ccw" class="icon-16"></i> Reset
-              </button>
-              <button type="button" class="btn btn-ghost btn-sm" id="scan-clear-btn" ${!hasSaved || scanning ? 'disabled' : ''} title="Clear saved folder">
-                <i data-lucide="x" class="icon-16"></i> Clear
-              </button>
-              <button type="button" class="btn btn-secondary" id="rescan-btn" ${scanning ? 'disabled' : ''} title="Run gate scan on this folder">
-                ${scanning ? '<span class="loading-spinner"></span> Scanning…' : '<i data-lucide="play" class="icon-16"></i> Scan'}
-              </button>
             </div>
           </div>
         </div>
@@ -565,7 +612,10 @@ export function bindScanStatus(container, options = {}) {
      * Run scan.
      * @returns {any}
      */
-    const runScan = () => runDashboardScanFromInput(input, options);
+    const runScan = () => runDashboardScanFromInput(input, {
+        ...options,
+        onBrowserSandboxScan: () => runSandboxedScanForDashboard(onLocalScanResult, container)
+    });
     /**
      * Extract the absolute folder path from a drop event using every available source.
      * Browsers may expose the path via file.path, text/uri-list, text/plain, etc.
@@ -756,10 +806,11 @@ export function bindScanStatus(container, options = {}) {
     }
     scanBtn === null || scanBtn === void 0 ? void 0 : scanBtn.addEventListener('click', runScan);
     // Hidden file input for webkitdirectory fallback
-    browseInput === null || browseInput === void 0 ? void 0 : browseInput.addEventListener('change', (e) => {
+    browseInput === null || browseInput === void 0 ? void 0 : browseInput.addEventListener('change', async (e) => {
         const files = e.target.files;
         if (!files || files.length === 0)
             return;
+        const fileArray = Array.from(files);
         // In Electron / Tauri the file objects expose the absolute filesystem path.
         const filePath = files[0].path;
         const relPath = files[0].webkitRelativePath || '';
@@ -785,6 +836,10 @@ export function bindScanStatus(container, options = {}) {
                     setTimeout(() => msg.remove(), 4000);
                 }
                 browseInput.value = '';
+                if (isRemoteDashboardHost() && isAbsoluteLocalPath(resolvedPath)) {
+                    showToast('Hosted dashboard cannot scan typed PC paths. Scanning the selected folder in your browser…', 'info');
+                    void runSandboxedScanForDashboard(onLocalScanResult, container);
+                }
                 return;
             }
         }
@@ -809,15 +864,56 @@ export function bindScanStatus(container, options = {}) {
             setTimeout(() => msg.remove(), 4000);
         }
         browseInput.value = '';
+        if (isRemoteDashboardHost()) {
+            showToast(`Scanning "${folderName}" in your browser…`, 'info');
+            const dropzone = container.querySelector('#scan-dropzone');
+            if (dropzone) {
+                dropzone.classList.remove('is-idle', 'is-drag', 'is-done', 'is-error');
+                dropzone.classList.add('is-scanning');
+            }
+            try {
+                const report = await runLocalScan({ files: fileArray, projectPath: folderName });
+                showToast(`Browser scan complete — ${report.summary?.codeFilesAnalyzed || fileArray.length} files analyzed`, 'success');
+                if (onLocalScanResult) {
+                    onLocalScanResult({ projectPath: folderName, summary: report.summary, source: 'browser' });
+                }
+            }
+            catch (err) {
+                showToast(err.message || 'Browser scan failed', 'error');
+                if (dropzone) {
+                    dropzone.classList.remove('is-scanning');
+                    dropzone.classList.add('is-error');
+                }
+            }
+        }
     });
     // Detect environments (e.g. Electron) where file inputs expose real absolute paths.
     const isElectronLike = Boolean(typeof window !== 'undefined' &&
         (((_b = (_a = window.process) === null || _a === void 0 ? void 0 : _a.versions) === null || _b === void 0 ? void 0 : _b.electron) || /Electron/.test(navigator.userAgent)));
     // Browse button — use File System Access API when available, fall back to hidden file input
     browseBtn === null || browseBtn === void 0 ? void 0 : browseBtn.addEventListener('click', async () => {
+        if (hasExtensionBridgeConfigured()) {
+            try {
+                const pickedPath = await requestExtensionFolderPick();
+                if (pickedPath && input) {
+                    input.value = pickedPath;
+                    setLastProjectPath(pickedPath);
+                    if (clearBtn)
+                        clearBtn.disabled = false;
+                    showToast(`Folder selected — path set to ${pickedPath}`, 'info');
+                    return;
+                }
+                if (pickedPath === null)
+                    return;
+            }
+            catch (err) {
+                showToast((err === null || err === void 0 ? void 0 : err.message) || 'Extension folder picker failed', 'error');
+                return;
+            }
+        }
         // In Electron-like environments skip showDirectoryPicker because it cannot
         // reveal absolute paths; the webkitdirectory fallback gives files with .path.
-        if (window.showDirectoryPicker && !isElectronLike) {
+        if (canUseDirectoryPicker() && !isElectronLike) {
             try {
                 const dirHandle = await window.showDirectoryPicker();
                 const folderName = dirHandle.name || '';
@@ -827,6 +923,25 @@ export function bindScanStatus(container, options = {}) {
                     setLastProjectPath(fallbackPath);
                     if (clearBtn)
                         clearBtn.disabled = false;
+                }
+                if (isRemoteDashboardHost()) {
+                    showToast(`Scanning "${folderName}" in your browser…`, 'info');
+                    const dropzone = container.querySelector('#scan-dropzone');
+                    if (dropzone) {
+                        dropzone.classList.remove('is-idle', 'is-drag', 'is-done', 'is-error');
+                        dropzone.classList.add('is-scanning');
+                    }
+                    try {
+                        const report = await runLocalScan({ dirHandle, projectPath: folderName });
+                        showToast(`Browser scan complete — ${report.summary?.codeFilesAnalyzed || 0} files analyzed`, 'success');
+                        if (onLocalScanResult) {
+                            onLocalScanResult({ projectPath: folderName, summary: report.summary, source: 'browser' });
+                        }
+                    }
+                    catch (scanErr) {
+                        showToast(scanErr.message || 'Browser scan failed', 'error');
+                    }
+                    return;
                 }
                 const toast = document.getElementById('toast-container');
                 if (toast) {
@@ -872,7 +987,7 @@ export function bindScanStatus(container, options = {}) {
     });
     const sandboxPickerBtn = container.querySelector('#trigger-native-picker');
     sandboxPickerBtn === null || sandboxPickerBtn === void 0 ? void 0 : sandboxPickerBtn.addEventListener('click', () => {
-        void runSandboxedScanForDashboard(onLocalScanResult);
+        void runSandboxedScanForDashboard(onLocalScanResult, container);
     });
     input === null || input === void 0 ? void 0 : input.addEventListener('input', () => {
         const value = input.value.trim();
@@ -933,19 +1048,48 @@ export function bindScanStatus(container, options = {}) {
             // DataTransferItemList once the event handler yields.
             const itemArray = items ? Array.from(items) : [];
             const fileArray = dtFiles ? Array.from(dtFiles) : [];
-            if (itemArray.length === 0 && fileArray.length === 0) {
+            const webkitEntry = captureDroppedEntry(itemArray);
+            const folderHint = (webkitEntry && webkitEntry.name) || (fileArray[0] && fileArray[0].name) || 'selected';
+            const snapshotPath = extractAbsoluteDroppedFolderPath(event, folderHint);
+            if (itemArray.length === 0 && fileArray.length === 0 && !snapshotPath) {
                 setDropzoneState('idle');
+                return;
+            }
+            if (snapshotPath && !(isRemoteDashboardHost() && isAbsoluteLocalPath(snapshotPath) && itemArray.length > 0)) {
+                if (isRemoteDashboardHost() && isAbsoluteLocalPath(snapshotPath)) {
+                    if (input) {
+                        input.value = snapshotPath;
+                        input.dataset.userModified = 'true';
+                        setLastProjectPath(snapshotPath);
+                        if (clearBtn)
+                            clearBtn.disabled = false;
+                    }
+                    void runSandboxedScanForDashboard(onLocalScanResult, container);
+                    return;
+                }
+                setDropzoneState('scanning');
+                if (terminal)
+                    terminal.textContent = `Using dropped path: ${snapshotPath}`;
+                if (input) {
+                    input.value = snapshotPath;
+                    input.dataset.userModified = 'true';
+                    setLastProjectPath(snapshotPath);
+                    if (clearBtn)
+                        clearBtn.disabled = false;
+                }
+                runScan();
                 return;
             }
             setDropzoneState('scanning');
             if (terminal)
                 terminal.textContent = 'Reading dropped items…';
             try {
-                const droppedFolder = await isDroppedFolder(itemArray);
+                const droppedFolder = (webkitEntry && webkitEntry.isDirectory) || await isDroppedFolder(itemArray);
                 const firstFile = itemArray[0] && typeof itemArray[0].getAsFile === 'function' ? itemArray[0].getAsFile() : null;
-                const folderName = (firstFile && firstFile.name) || 'selected';
+                const folderName = (firstFile && firstFile.name) || (webkitEntry && webkitEntry.name) || 'selected';
                 if (droppedFolder) {
                     const report = await scanDroppedItems(itemArray, {
+                        webkitEntry,
                         onLog: (entry) => {
                             if (terminal)
                                 terminal.textContent += `\n[${entry.level.toUpperCase()}] ${entry.message}`;
@@ -985,8 +1129,8 @@ export function bindScanStatus(container, options = {}) {
                 // IDE/webview drag sources often expose the absolute path via text/uri-list
                 // or file.path even though DataTransfer items are not readable for the sandbox.
                 if (msg.includes('No items were dropped') || msg.includes('No scannable files or folders detected') || msg.includes('No scannable files were dropped')) {
-                    const folderName = (fileArray[0] && fileArray[0].name) || 'selected';
-                    const fallbackPath = extractAbsoluteDroppedFolderPath(event, folderName);
+                    const folderName = (fileArray[0] && fileArray[0].name) || (webkitEntry && webkitEntry.name) || 'selected';
+                    const fallbackPath = snapshotPath || extractAbsoluteDroppedFolderPath(event, folderName);
                     if (fallbackPath) {
                         if (input) {
                             input.value = fallbackPath;
@@ -1056,25 +1200,31 @@ export function bindScanStatus(container, options = {}) {
             filePicker.addEventListener('click', () => quickInput.click());
         }
     }
-    // Poll the lightweight localhost:4000 agent used by the provided agent.js template.
+    // Poll the localhost scan bridge (extension data server or agent.js:4000).
     const status4000 = container.querySelector('#agent-4000-status');
     if (status4000) {
         const update4000 = async () => {
             try {
                 const s = await probeAgent4000();
                 if (s.available) {
-                    status4000.textContent = 'Localhost:4000 agent connected — typed local paths will be scanned locally'; // simplebeacon-ignore deploy-leak — user-facing status label
+                    status4000.textContent = s.extensionBridge
+                        ? 'IDE scan bridge connected — typed local paths scan via extension'
+                        : 'Localhost:4000 agent connected — typed local paths will be scanned locally'; // simplebeacon-ignore deploy-leak — user-facing status label
                     status4000.classList.remove('unavailable');
                     status4000.classList.add('available');
                 }
                 else {
-                    status4000.textContent = 'Localhost:4000 agent offline (run node agent.js to enable local path scans)'; // simplebeacon-ignore deploy-leak — user-facing status label
+                    status4000.textContent = hasExtensionBridgeConfigured()
+                        ? 'IDE scan bridge offline — reload the SimpleBeacon window'
+                        : 'Localhost:4000 agent offline (run node agent.js to enable local path scans)'; // simplebeacon-ignore deploy-leak — user-facing status label
                     status4000.classList.remove('available');
                     status4000.classList.add('unavailable');
                 }
             }
             catch (_a) {
-                status4000.textContent = 'Localhost:4000 agent offline (run node agent.js to enable local path scans)'; // simplebeacon-ignore deploy-leak — user-facing status label
+                status4000.textContent = hasExtensionBridgeConfigured()
+                    ? 'IDE scan bridge offline — reload the SimpleBeacon window'
+                    : 'Localhost:4000 agent offline (run node agent.js to enable local path scans)'; // simplebeacon-ignore deploy-leak — user-facing status label
                 status4000.classList.remove('available');
                 status4000.classList.add('unavailable');
             }

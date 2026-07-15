@@ -6,6 +6,7 @@
  */
 
 const { sanitizeScanReport } = require('../lib/report-sanitizer');
+const { reconcileScanReport } = require('../lib/normalize-scan-report');
 const { detectTier } = require('../lib/tier-detector');
 
 function formatJsonReport(report, gateResult = null) {
@@ -404,7 +405,7 @@ function formatJsonReport(report, gateResult = null) {
     //     enrichedGate.remediation = (enrichedGate.remediation || []).slice(0, 1);
     // }
 
-    const payload = {
+    const payload = reconcileScanReport({
         ...report,
         gate: enrichedGate,
         consolidation,
@@ -431,7 +432,7 @@ function formatJsonReport(report, gateResult = null) {
         //     upgradeUrl: 'https://simplebeacon.ai/pricing',
         //     upgradeMessage: 'Upgrade to Executive Clearance ($499) for full findings, quality score, and board-ready PDF certificate.'
         // } : {})
-    };
+    });
 
     return sanitizeScanReport(payload);
 }

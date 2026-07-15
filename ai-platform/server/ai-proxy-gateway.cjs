@@ -17,7 +17,7 @@ const https = require('https');
 const fs = require('fs');
 const { scanEnterprisePatterns, isBlockingFinding } = require('./enterprise-patterns');
 const logger = require('./lib/app-logger');
-const requireProject = require('./lib/project-require.cjs');
+const requireProject = require('../shared-utils/index.cjs');
 const { scanTextContent } = requireProject('packages/simplebeacon-cli/src/lib/credential-pattern-scanner.js');
 
 

@@ -104,11 +104,12 @@ describe('getNamespaceNames discovery helper', () => {
     expect(names).toContain('misc');
     expect(names).toContain('json');
     expect(names).toContain('typeGuards');
+    expect(names).toContain('functional');
     expect(names).toContain('inline');
   });
 
-  test('returns 17 namespaces including inline', () => {
-    expect(getNamespaceNames().length).toBe(17);
+  test('returns 18 namespaces including inline', () => {
+    expect(getNamespaceNames().length).toBe(18);
   });
 
   test('returned array is frozen', () => {
@@ -126,10 +127,10 @@ describe('__barrel__ metadata', () => {
   test('__barrel__ has all required metadata fields', () => {
     expect(__barrel__.name).toBe('simplebeacon-utils-barrel');
     expect(typeof __barrel__.description).toBe('string');
-    expect(__barrel__.moduleCount).toBe(16);
+    expect(__barrel__.moduleCount).toBe(17);
     expect(typeof __barrel__.exportCount).toBe('number');
     expect(typeof __barrel__.namespaceCount).toBe('number');
-    expect(__barrel__.namespaceCount).toBe(17);
+    expect(__barrel__.namespaceCount).toBe(18);
     expect(__barrel__.version).not.toBe('1.0.0');
     expect(typeof __barrel__.version).toBe('string');
     expect(__barrel__.version.split('.').length).toBeGreaterThanOrEqual(2);

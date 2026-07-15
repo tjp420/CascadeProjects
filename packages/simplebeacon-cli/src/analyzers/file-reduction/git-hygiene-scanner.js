@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
 /**
  * Scan repository for git hygiene issues:
  * - Large files in git history
@@ -9,7 +10,7 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 const { walkProjectFiles } = require('./utils/project-walker');
-const constants = require('../../../../../ai-platform/server/config/constants.cjs');
+const constants = require('../../lib/constants');
 
 const SENSITIVE_FILE_PATTERNS = [
     /^\.env(?!\.example)/,          // .env, .env.local, .env.production — but NOT .env.example

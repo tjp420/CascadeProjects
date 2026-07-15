@@ -11,7 +11,7 @@ const {
     findDuplicateContentGroups
 } = require('./mock-data-schema-validator.cjs');
 const { resolveMockDataScanPaths } = require('./central-data-config.cjs');
-const { formatBytes } = require('./format-bytes.cjs');
+const { formatBytes } = require('../../shared-utils/index.cjs');
 const { SAMPLE_FILE_OVERRIDES } = require('./sample-path-resolver.cjs');
 const {
     buildAdvancedAnalysis,

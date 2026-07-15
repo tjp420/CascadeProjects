@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
 /**
  * Dependency graph scanner — detects circular dependencies, unused exports,
  * and orphaned modules by analyzing import/require and export relationships.

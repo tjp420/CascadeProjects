@@ -1,43 +1,37 @@
 /**
- * Proxy /dashboard/* requests to the Render backend so the dashboard appears
- * to be served under the same simplebeacon.ai domain.
+ * Serve the SimpleBeacon dashboard SPA from Cloudflare Pages static assets.
  *
- * Set BACKEND_URL in the Cloudflare Pages dashboard (e.g. https://cascadeprojects-yzzd.onrender.com).
+ * Static asset requests (CSS, JS, images, fonts) are passed through to the
+ * Pages asset handler. All other /dashboard/* routes return the dashboard
+ * entry HTML so the client-side router can render the requested view.
  */
 export async function onRequest(context) {
-  const { request, env, params } = context;
-  const backendUrl = (env && env.BACKEND_URL) || 'https://cascadeprojects-yzzd.onrender.com';
-  const path = Array.isArray(params.path) ? params.path.join('/') : (params.path || '');
-  const target = new URL(`/simplebeacon-dashboard/${path}`, backendUrl.replace(/\/$/, ''));
-  target.search = new URL(request.url).search;
+  const { request, env } = context;
+  const url = new URL(request.url);
+  const pathname = url.pathname;
 
-  const init = {
-    method: request.method,
-    headers: new Headers(request.headers),
-    body: request.method === 'GET' || request.method === 'HEAD' ? null : request.body,
-  };
-
-  // Forward the original host so the backend can generate correct public URLs
-  init.headers.set('X-Forwarded-Proto', 'https');
-  init.headers.set('X-Forwarded-Host', new URL(request.url).host);
-
-  try {
-    const response = await fetch(target.toString(), init);
-    const newHeaders = new Headers(response.headers);
-    // Replace backend Set-Cookie Domain with the Pages domain if present
-    const cookies = newHeaders.get('set-cookie');
-    if (cookies) {
-      newHeaders.set('set-cookie', cookies.replace(/Domain=[^;]+;?/gi, ''));
-    }
-    return new Response(response.body, {
-      status: response.status,
-      statusText: response.statusText,
-      headers: newHeaders,
-    });
-  } catch (err) {
-    return new Response(
-      `Dashboard backend unavailable: ${err && err.message ? err.message : String(err)}`,
-      { status: 502, headers: { 'Content-Type': 'text/plain' } }
-    );
+  if (pathname.match(/\.(css|js|mjs|svg|png|jpg|jpeg|gif|ico|woff2|woff|ttf|otf|json|map|txt|xml|webmanifest)$/i)) {
+    return env.ASSETS.fetch(request);
   }
+
+  if (pathname === '/dashboard') {
+    return Response.redirect(new URL('/dashboard/', url.origin), 301);
+  }
+
+  const entryCandidates = ['/dashboard/__entry', '/dashboard/index.html'];
+  let response = null;
+  for (const entryPath of entryCandidates) {
+    const assetUrl = new URL(entryPath, url.origin);
+    const candidate = await env.ASSETS.fetch(new Request(assetUrl.toString(), request));
+    if (candidate.ok) {
+      response = candidate;
+      break;
+    }
+  }
+  if (!response) {
+    return new Response('Dashboard entry not found', { status: 404 });
+  }
+  const headers = new Headers(response.headers);
+  headers.set('Content-Type', 'text/html; charset=utf-8');
+  return new Response(response.body, { status: response.status, headers });
 }

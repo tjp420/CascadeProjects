@@ -1,5 +1,5 @@
 import { escapeHtml } from '../utils/string.js';
-import { authService } from '../services/authService.js';
+import { authService } from '../services/authService.js?v=20260713sync5';
 /**
  * Render a small inline locked/upgrade badge for a paid feature.
  * @param {string} featureLabel Human-readable feature name (e.g. 'Remote Clones')

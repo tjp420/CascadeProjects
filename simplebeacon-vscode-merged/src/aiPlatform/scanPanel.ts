@@ -2,7 +2,8 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as http from 'http';
-import { getSbConfig, getNonce, escapeHtml } from '../utils';
+import { getSbConfig, getNonce } from '../utils/vscode';
+import { escapeHtml } from '../utils/string';
 import { SimpleBeaconProvider, ScanResult, ScanIssue } from './simplebeaconProvider';
 import { DiagnosticsManager } from './diagnostics';
 import { provider, diagnosticsManager } from '../extension';

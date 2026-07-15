@@ -6,7 +6,7 @@ const path = require('path');
 const fs = require('fs');
 
 const { assertSafeProjectPath, resolveDefaultAllowedRoots } = require('../lib/path-safety.cjs');
-const { toClientError } = require('../lib/client-error.cjs');
+const { toClientError } = require('../../shared-utils/index.cjs');
 const logger = require('../lib/app-logger.cjs');
 const { resolvePlatformRoot } = require('../lib/simplebeacon-proxy.cjs');
 const { optionalAuthenticate } = require('../middleware/auth.cjs');

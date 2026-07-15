@@ -1,5 +1,5 @@
-import { fetchWithTimeout, apiUrl } from '../utils.js';
-import { authService } from './authService.js';
+import { fetchWithTimeout } from '../utils.js';
+import { authService } from './authService.js?v=20260713sync6';
 import { billingService } from './billingService.js';
 import { fetchDataCleanupScan as fetchDataCleanupAnalysis } from './analyzeService.js';
 import { spaUrl } from '../platformRoutes.js';
@@ -11,14 +11,14 @@ import { DEMO_EMAIL } from '../demoMode.js';
 export { spaUrl };
 
 const PLATFORM = {
-  dashboardHome: apiUrl('/api/dashboard-home'),
-  devTools: apiUrl('/api/dev-tools/tools'),
-  devWorkflows: apiUrl('/api/dev-tools/workflows'),
-  coverageOverview: apiUrl('/api/coverage-reports/overview'),
-  securityOverview: apiUrl('/api/security/overview'),
-  securityNpmAudit: apiUrl('/api/security/npm-audit'),
-  qualityOverview: apiUrl('/api/quality/overview'),
-  help: apiUrl('/api/help')
+  dashboardHome: '/api/dashboard-home',
+  devTools: '/api/dev-tools/tools',
+  devWorkflows: '/api/dev-tools/workflows',
+  coverageOverview: '/api/coverage-reports/overview',
+  securityOverview: '/api/security/overview',
+  securityNpmAudit: '/api/security/npm-audit',
+  qualityOverview: '/api/quality/overview',
+  help: '/api/help'
 };
 
 /**
@@ -103,7 +103,7 @@ export class PlatformService {
   }
 
   async runBaselineSync() {
-    const syncHttpResponse = await fetch(apiUrl('/api/simplebeacon/tools/baseline-sync'), {
+    const syncHttpResponse = await fetch('/api/simplebeacon/tools/baseline-sync', {
       method: 'POST',
       headers: {
         ...authService.getAuthHeaders(),
@@ -118,7 +118,7 @@ export class PlatformService {
   async fetchMergerReductionScan(projectPath) {
     const params = new URLSearchParams({ scope: 'repository', _: String(Date.now()) });
     if (projectPath) params.set('projectPath', projectPath);
-    const data = await fetchJson(apiUrl(`/api/merger-tool/reduction-scan?${params}`), 180000);
+    const data = await fetchJson(`/api/merger-tool/reduction-scan?${params}`, 180000);
     const report = data.data || data;
     this.mergerReductionScan = report;
     return report;

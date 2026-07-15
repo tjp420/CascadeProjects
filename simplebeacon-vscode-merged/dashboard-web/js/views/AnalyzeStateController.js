@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
 /**
  * AnalyzeStateController — Dedicated state engine for streaming AI responses,
  * multi-engine processing pipelines, and progress tracking.

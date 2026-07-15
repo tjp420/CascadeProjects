@@ -1,7 +1,7 @@
 import { escapeHtml } from '../utils/string.js';
 import { formatNumber, formatPercent } from '../utils/number.js';
 import { showToast, downloadJson, renderEmptyState } from '../utils/dom.js';
-import { apiUrl } from '../utils/url.js';
+import { apiUrl } from '../utils/url.js?v=20260713website1';
 import { renderComplianceBadges, renderComplianceSummary } from '../lib/complianceMapper.js';
 const LAYER_LABELS = {
     credentials: 'Credential patterns',

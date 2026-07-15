@@ -10,9 +10,9 @@ import { ScanProfile } from './analyzers/workspaceAnalyzer';
 import { AuthManager } from './auth/authManager';
 import { buildDashboardHtml } from './welcomeDashboardHtml';
 import { showDashboardInSidebar, openSidebarInBrowserStatic, isSidebarReady } from './sidebarBridge';
-import { postSidebarMessage } from './sidebarMessenger';
+import { postSidebarMessage, openTeamDashboardPanel } from './sidebarMessenger';
 import { ModernSidebarProvider } from './modernSidebarProvider';
-import { showQuietMessage, getSbConfig } from './utils';
+import { showQuietMessage, getSbConfig } from './utils/vscode';
 
 const DEFAULT_API_URL = 'https://simplebeacon.ai/';
 
@@ -666,21 +666,68 @@ export class WelcomeDashboard {
     }
   }
 
+  /** Push many pane updates in one webview message to avoid extension-host stalls. */
+  private static _pendingBatchPanes: Record<string, Record<string, unknown>> = {};
+  private static _batchFlushTimer: ReturnType<typeof setTimeout> | undefined;
+
+  static batchUpdatePanesIfOpen(panes: Record<string, Record<string, unknown>>) {
+    if (panes.dashboard) { WelcomeDashboard._lastDashboardData = panes.dashboard as typeof WelcomeDashboard._lastDashboardData; }
+    if (panes.report) { WelcomeDashboard._lastReportData = panes.report as typeof WelcomeDashboard._lastReportData; }
+    if (panes.roadmap) { WelcomeDashboard._lastRoadmapData = panes.roadmap as typeof WelcomeDashboard._lastRoadmapData; }
+    if (panes.security) { WelcomeDashboard._lastSecurityData = panes.security as typeof WelcomeDashboard._lastSecurityData; }
+    if (panes.trust) { WelcomeDashboard._lastTrustData = panes.trust as typeof WelcomeDashboard._lastTrustData; }
+    if (panes.quality) { WelcomeDashboard._lastQualityData = panes.quality as typeof WelcomeDashboard._lastQualityData; }
+    if (panes.compliance) { WelcomeDashboard._lastComplianceData = panes.compliance as typeof WelcomeDashboard._lastComplianceData; }
+    if (panes.repoHealth) { WelcomeDashboard._lastRepoHealthData = panes.repoHealth as typeof WelcomeDashboard._lastRepoHealthData; }
+    if (panes.team) { WelcomeDashboard._lastTeamData = panes.team as typeof WelcomeDashboard._lastTeamData; }
+    if (panes.scan) { WelcomeDashboard._lastScanData = panes.scan as typeof WelcomeDashboard._lastScanData; }
+    if (panes.analytics) { WelcomeDashboard._lastAnalyticsData = panes.analytics as typeof WelcomeDashboard._lastAnalyticsData; }
+    if (panes.analyze) { WelcomeDashboard._lastAnalyzeData = panes.analyze as typeof WelcomeDashboard._lastAnalyzeData; }
+    const panel = WelcomeDashboard.currentPanel;
+    if (!panel || Object.keys(panes).length === 0) { return; }
+    WelcomeDashboard._pendingBatchPanes = { ...WelcomeDashboard._pendingBatchPanes, ...panes };
+    if (WelcomeDashboard._batchFlushTimer) {
+      clearTimeout(WelcomeDashboard._batchFlushTimer);
+    }
+    WelcomeDashboard._batchFlushTimer = setTimeout(() => {
+      WelcomeDashboard._batchFlushTimer = undefined;
+      const merged = WelcomeDashboard._pendingBatchPanes;
+      WelcomeDashboard._pendingBatchPanes = {};
+      const active = WelcomeDashboard.currentPanel;
+      if (!active || Object.keys(merged).length === 0) { return; }
+      active.queueOrPostMessage({ command: 'updateAllPanes', panes: merged });
+    }, 400);
+  }
+
   private isReady = false;
   private messageQueue: Array<{ command: string; [key: string]: unknown }> = [];
 
   private flushMessageQueue() {
+    if (!this.panel?.webview) {
+      this.messageQueue = [];
+      return;
+    }
     while (this.messageQueue.length > 0) {
       const msg = this.messageQueue.shift();
       if (msg) {
-        this.panel.webview.postMessage(msg);
+        try {
+          void this.panel.webview.postMessage(msg);
+        } catch {
+          break;
+        }
       }
     }
   }
 
   private queueOrPostMessage(msg: { command: string; [key: string]: unknown }) {
+    if (!this.panel?.webview) { return; }
+    if (this.messageQueue.length > 48) {
+      this.messageQueue = this.messageQueue.slice(-24);
+    }
     if (this.isReady) {
-      this.panel.webview.postMessage(msg);
+      try {
+        void this.panel.webview.postMessage(msg);
+      } catch { /* panel disposed */ }
     } else {
       this.messageQueue.push(msg);
     }
@@ -738,7 +785,11 @@ export class WelcomeDashboard {
           break;
         }
         case 'openTeamDashboard':
-          openSidebarInBrowserStatic('/dashboard');
+          ModernSidebarProvider.openDashboardRouteInBrowser('/dashboard');
+          vscode.commands.executeCommand('simplebeacon-modern.focus');
+          setTimeout(() => {
+            postSidebarMessage({ command: 'switchSidebarTab', tab: 'team' });
+          }, 300);
           break;
         case 'openTeamDashboardInIDE':
           this.showTeamPane();
@@ -750,6 +801,16 @@ export class WelcomeDashboard {
         case 'openExternal': {
           const extUrl = msg.url || '';
           if (extUrl) {
+            try {
+              const parsed = new URL(extUrl);
+              const isSimpleBeaconDashboard = /simplebeacon\.ai/i.test(parsed.hostname) && parsed.pathname.startsWith('/dashboard/');
+              if (isSimpleBeaconDashboard) {
+                const baseUrl = `${parsed.protocol}//${parsed.host}`;
+                const extraQuery = parsed.search ? parsed.search.slice(1) : '';
+                openTeamDashboardPanel(this.extUri, parsed.pathname, 'SimpleBeacon Dashboard', baseUrl, extraQuery);
+                break;
+              }
+            } catch { /* ignore invalid URL; fall through to simpleBrowser */ }
             const resolved = extUrl.startsWith('http')
               ? extUrl
               : `http://127.0.0.1:${getDataServerPort()}${extUrl.startsWith('/') ? extUrl : '/' + extUrl}`;

@@ -19,6 +19,7 @@ const MODULE_MAP: Record<string, string> = {
   theme: '../theme',
   event: '../event',
   polling: '../polling',
+  functional: '../functional',
 };
 
 describe('Utils namespace integrity', () => {

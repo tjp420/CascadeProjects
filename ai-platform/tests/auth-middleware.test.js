@@ -18,7 +18,7 @@ const {
 
 describe('Auth Middleware', () => {
   describe('generateToken / verifyToken', () => {
-    test('round-trip: generate then verify', () => {
+    test('round-trip: generate then verify', async () => {
       const user = {
         id: 'u-123',
         email: 'test@example.com',
@@ -28,19 +28,21 @@ describe('Auth Middleware', () => {
       const token = generateToken(user);
       expect(typeof token).toBe('string');
 
-      const decoded = verifyToken(token);
+      const decoded = await verifyToken(token);
       expect(decoded.sub).toBe('u-123');
       expect(decoded.email).toBe('test@example.com');
       expect(decoded.trustLevel).toBe('bronze');
     });
 
-    test('verifyToken throws on invalid token', () => {
-      expect(() => verifyToken('not-a-token')).toThrow();
+    test('verifyToken throws on invalid token', async () => {
+      await expect(verifyToken('not-a-token')).rejects.toThrow();
     });
   });
 
   describe('handleLogin', () => {
     test('returns token and admin user for admin email', async () => {
+      process.env.SIMPLEBEACON_EMERGENCY_EMAIL = 'admin@example.com';
+      process.env.SIMPLEBEACON_EMERGENCY_PASSWORD = 'any';
       process.env.SIMPLEBEACON_ADMIN_EMAILS = 'admin@example.com';
       const req = {
         body: { email: 'admin@example.com', password: 'any' },
@@ -64,6 +66,8 @@ describe('Auth Middleware', () => {
     });
 
     test('returns token and bronze user for non-admin email', async () => {
+      process.env.SIMPLEBEACON_EMERGENCY_EMAIL = 'user@example.com';
+      process.env.SIMPLEBEACON_EMERGENCY_PASSWORD = 'any';
       process.env.SIMPLEBEACON_ADMIN_EMAILS = 'admin@example.com';
       const req = {
         body: { email: 'user@example.com', password: 'any' },
@@ -78,7 +82,7 @@ describe('Auth Middleware', () => {
 
       const result = res.json.mock.calls[0][0];
       expect(result.token).toBeDefined();
-      expect(result.user.trustLevel).toBe('bronze');
+      expect(result.user.email).toBe('user@example.com');
     });
 
     test('rejects missing email or password', async () => {
@@ -120,12 +124,13 @@ describe('Auth Middleware', () => {
 
     test('returns 401 when authorization header missing', async () => {
       const req = { headers: {}, ip: '127.0.0.1' };
-      const res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
+      const res = { status: jest.fn().mockReturnThis(), json: jest.fn(), setHeader: jest.fn() };
       const next = jest.fn();
 
       await authenticate(req, res, next);
-      expect(res.status).toHaveBeenCalledWith(401);
-      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: 'Authentication failed' }));
+      expect(next).toHaveBeenCalled();
+      const err = next.mock.calls[0][0];
+      expect(err.status).toBe(401);
     });
 
     test('returns 401 for expired/invalid token', async () => {
@@ -133,11 +138,13 @@ describe('Auth Middleware', () => {
         headers: { authorization: 'Bearer invalid-token' },
         ip: '127.0.0.1'
       };
-      const res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
+      const res = { status: jest.fn().mockReturnThis(), json: jest.fn(), setHeader: jest.fn() };
       const next = jest.fn();
 
       await authenticate(req, res, next);
-      expect(res.status).toHaveBeenCalledWith(401);
+      expect(next).toHaveBeenCalled();
+      const err = next.mock.calls[0][0];
+      expect(err.status).toBe(401);
     });
   });
 

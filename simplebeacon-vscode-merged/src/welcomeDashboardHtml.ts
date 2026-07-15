@@ -3634,13 +3634,15 @@ if (vscode && typeof window.acquireVsCodeApi === 'function') {
 function addTab(label, paneId) {
   const bar = document.getElementById('tabBar');
   const barLeft = document.getElementById('tabBarLeft');
-  if (!bar) { console.warn('[SB addTab] tabBar not found'); return; }
+  if (!bar) { if (window.__SB_DEBUG__) console.warn('[SB addTab] tabBar not found'); return; }
   const container = barLeft || bar;
   const existing = container.querySelector('[data-pane="' + paneId + '"]');
-  if (existing) { // simplebeacon-ignore console-log — diagnostic
-    console.log('[SB addTab] existing tab, activating:', paneId); activateTab(paneId); return; }
-  // simplebeacon-ignore console-log — diagnostic
-  console.log('[SB addTab] creating tab:', label, paneId);
+  if (existing) {
+    if (window.__SB_DEBUG__) console.log('[SB addTab] existing tab, activating:', paneId);
+    activateTab(paneId);
+    return;
+  }
+  if (window.__SB_DEBUG__) console.log('[SB addTab] creating tab:', label, paneId);
   const tab = document.createElement('div');
   tab.className = 'tab';
   tab.dataset.pane = paneId;
@@ -3660,9 +3662,8 @@ function addTab(label, paneId) {
 }
 function activateTab(paneId) {
   const pane = document.getElementById(paneId);
-  if (!pane) { console.warn('[SB activateTab] pane not found:', paneId); return; }
-  // simplebeacon-ignore console-log — diagnostic
-  console.log('[SB activateTab] activating:', paneId, 'pane classList before:', pane.classList.toString());
+  if (!pane) { if (window.__SB_DEBUG__) console.warn('[SB activateTab] pane not found:', paneId); return; }
+  if (window.__SB_DEBUG__) console.log('[SB activateTab] activating:', paneId, 'pane classList before:', pane.classList.toString());
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.pane === paneId));
   document.querySelectorAll('.pane').forEach(p => {
     if (p.id === paneId) {
@@ -3681,7 +3682,7 @@ function activateTab(paneId) {
     }
   }
   // simplebeacon-ignore console-log — diagnostic
-  console.log('[SB activateTab] pane classList after:', pane.classList.toString(), 'display:', pane.style.display);
+  if (window.__SB_DEBUG__) console.log('[SB activateTab] pane classList after:', pane.classList.toString(), 'display:', pane.style.display);
 }
 function getTabList() { return Array.from(document.querySelectorAll('#tabBar .tab')); }
 function getActiveTabIndex() { return getTabList().findIndex(t => t.classList.contains('active')); }
@@ -3709,7 +3710,7 @@ function bindProfileToggle(id, command) {
 }
 function initWelcomeButtons() {
   // simplebeacon-ignore console-log — diagnostic
-  console.log('[SB] initWelcomeButtons start');
+  if (window.__SB_DEBUG__) console.log('[SB] initWelcomeButtons start');
   document.querySelectorAll('#tabBar .tab').forEach(t => { if (!t.dataset.bound) { t.dataset.bound = '1'; t.addEventListener('click', () => activateTab(t.dataset.pane)); } });
   const tabArrowLeft = document.getElementById('tabArrowLeft');
   if (tabArrowLeft) tabArrowLeft.addEventListener('click', () => {
@@ -3823,7 +3824,7 @@ function initWelcomeButtons() {
     });
   }
   // simplebeacon-ignore console-log — diagnostic
-  console.log('[SB] initWelcomeButtons done');
+  if (window.__SB_DEBUG__) console.log('[SB] initWelcomeButtons done');
 }
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initWelcomeButtons);
@@ -3837,7 +3838,7 @@ window.addEventListener('message', function(ev) {
   if (typeof window.__SB_BROWSER_MODE__ === 'undefined' || !window.__SB_BROWSER_MODE__) { return; }
   const cmd = ev.data.command;
   // simplebeacon-ignore console-log — diagnostic
-  console.log('[SB browser handler] command:', cmd);
+  if (window.__SB_DEBUG__) console.log('[SB browser handler] command:', cmd);
   const paneMap = {
     showDashboardPane: 'dashboardPane', showAnalyzePane: 'analyzePane', showReportPane: 'reportPane',
     showSettingsPane: 'settingsPane', showSecurityPane: 'securityPane', showTrustPane: 'trustPane',
@@ -5296,8 +5297,46 @@ window.addEventListener('message', (event) => {
   if (!msg || !msg.command) return;
   // This handler is for the VS Code: webview API. Browser preview uses the parent-message handler above.
   if (window.__SB_BROWSER_MODE__) { return; }
-  // simplebeacon-ignore console-log — diagnostic
-  console.log('[SB vscode handler] command:', msg.command);
+  if (msg.command === 'updateAllPanes') {
+    const panes = msg.panes || {};
+    const keyToCmd = {
+      dashboard: 'updateDashboard',
+      analyze: 'updateAnalyzePane',
+      report: 'updateReportPane',
+      certificate: 'updateCertificatePane',
+      roadmap: 'updateRoadmapPane',
+      aiContext: 'updateAiContextPane',
+      upload: 'updateUploadPane',
+      audit: 'updateAuditPane',
+      security: 'updateSecurityPane',
+      trust: 'updateTrustPane',
+      quality: 'updateQualityPane',
+      assessments: 'updateAssessmentsPane',
+      platform: 'updatePlatformPane',
+      profile: 'updateProfilePane',
+      compliance: 'updateCompliancePane',
+      repoHealth: 'updateRepoHealthPane',
+      team: 'updateTeamPane',
+      scan: 'updateScanPane',
+      analytics: 'updateAnalyticsPane',
+      settings: 'updateSettingsPane'
+    };
+    window.__SB_BATCH_DISPATCH__ = true;
+    try {
+      Object.keys(panes).forEach(function(key) {
+        const cmd = keyToCmd[key];
+        const data = panes[key];
+        if (!cmd || !data) return;
+        window.dispatchEvent(new MessageEvent('message', { data: Object.assign({ command: cmd }, data) }));
+      });
+    } finally {
+      window.__SB_BATCH_DISPATCH__ = false;
+    }
+    return;
+  }
+  if (!window.__SB_BATCH_DISPATCH__ && window.__SB_DEBUG__ && !/^update(?:AllPanes|Dashboard|Analyze|Report|Certificate|Roadmap|AiContext|Upload|Audit|Security|Trust|Quality|Assessments|Platform|Profile|Compliance|RepoHealth|Team|Scan|Analytics|Settings)Pane$/.test(String(msg.command || ''))) {
+    console.log('[SB vscode handler] command:', msg.command);
+  }
   if (msg.command === 'showDashboardPane') addTab('Dashboard','dashboardPane');
   if (msg.command === 'showAnalyzePane') {
     addTab('Analyze','analyzePane');

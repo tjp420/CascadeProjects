@@ -13,6 +13,8 @@ const http = require('http');
 const express = require('express');
 const cors = require('cors');
 
+const { resolveScanProgressPath, readScanProgress } = require('../../packages/simplebeacon-cli/src/lib/scan-progress.js');
+
 const PORT = Number(process.env.SIMPLEBEACON_AGENT_PORT || 55432);
 const HOST = process.env.SIMPLEBEACON_AGENT_HOST || '127.0.0.1';
 
@@ -125,6 +127,37 @@ function validateTargetPath(rawPath) {
     throw new Error('projectPath must be a directory');
   }
   return resolved;
+}
+
+const FULL_TREE_INVENTORY_SKIP_DIRS = [
+  '.git', 'github-cache', '.simplebeacon', '.vscode-test', 'simplebeacon-vscode-merged',
+  'ai-tools', 'ai-agent', 'node_modules', 'dist', 'build', 'out', 'coverage', '.next', '.cache'
+];
+
+/**
+ * Build inventory options aligned with the CLI full-tree walk skip list.
+ */
+function buildInventoryOptions(fullDirectoryScan) {
+  if (fullDirectoryScan) {
+    return {
+      profile: 'audit',
+      skipDirs: [...FULL_TREE_INVENTORY_SKIP_DIRS]
+    };
+  }
+  return {
+    profile: 'universal',
+    skipDirs: ['node_modules', '.git']
+  };
+}
+
+/**
+ * Run a lightweight repository inventory (no full gate scan).
+ */
+async function runLocalInventory(targetPath, scanOptions = {}) {
+  if (!scannerApi || typeof scannerApi.countRepositoryInventory !== 'function') {
+    throw new Error('SimpleBeacon inventory is not available; install dependencies and run from the monorepo root');
+  }
+  return scannerApi.countRepositoryInventory(targetPath, buildInventoryOptions(Boolean(scanOptions.fullDirectoryScan)));
 }
 
 /**
@@ -260,11 +293,29 @@ app.post('/scan', async (req, res) => {
   try {
     console.log('[agent] /scan received projectPath:', rawPath);
     const targetPath = validateTargetPath(rawPath);
-    const report = await runLocalScan(targetPath);
+    const fullDirectoryScan = req.body?.fullDirectoryScan === true || req.body?.fullDirectoryScan === 'true';
+    const report = await runLocalScan(targetPath, { fullDirectoryScan });
     res.json({ success: true, projectPath: targetPath, report });
   } catch (err) {
     console.error('[agent] /scan rejected projectPath:', rawPath, '-', err.message);
     res.status(400).json({ success: false, error: err.message, receivedPath: rawPath });
+  }
+});
+
+// Live scan progress for dashboard polling during local scans.
+app.get('/progress', (req, res) => {
+  try {
+    const rawPath = req.query?.projectPath;
+    if (!rawPath) {
+      return res.status(400).json({ success: false, error: 'projectPath is required' });
+    }
+    const targetPath = validateTargetPath(String(rawPath));
+    const progressPath = resolveScanProgressPath(targetPath);
+    const progress = readScanProgress(progressPath);
+    res.set('Cache-Control', 'no-store');
+    res.json({ success: true, progress });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message, progress: { active: false } });
   }
 });
 
@@ -274,8 +325,8 @@ app.post('/inventory', async (req, res) => {
   try {
     console.log('[agent] /inventory received projectPath:', rawPath);
     const targetPath = validateTargetPath(rawPath);
-    const report = await runLocalScan(targetPath, { inventoryOnly: true });
-    const inventory = report?.repositoryInventory || report?.inventory || null;
+    const fullDirectoryScan = req.body?.fullDirectoryScan === true || req.body?.fullDirectoryScan === 'true';
+    const inventory = await runLocalInventory(targetPath, { fullDirectoryScan });
     res.json({ success: true, projectPath: targetPath, inventory });
   } catch (err) {
     console.error('[agent] /inventory rejected projectPath:', rawPath, '-', err.message);

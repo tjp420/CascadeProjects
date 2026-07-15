@@ -10,7 +10,8 @@ const { getTierLimits } = require('./lib/tier-detector');
 const { ConfigError } = require('./lib/errors');
 const { normalizePathKey, assertPathWithinRoot, resolveSafeRelativePath } = require('./lib/path-utils');
 const { sanitizeFilePath } = require('./lib/input-sanitizer');
-const constants = require('../../../ai-platform/server/config/constants.cjs');
+
+const MS_PER_SECOND = 1000;
 
 const CASCADE_REJECTED_FICTION = {
     featureCounts: [47, 8, 9],
@@ -25,7 +26,7 @@ const CASCADE_REJECTED_FICTION = {
 const GENERIC_REJECTED_FICTION = {
     featureCounts: [47, 100, 156, 8, 9],
     completionRates: [74.17, 87, 94.3, 66, 62],
-    mockFileCounts: [1247, 999, constants.MS_PER_SECOND],
+    mockFileCounts: [1247, 999, MS_PER_SECOND],
     openIssueCounts: [156, 999],
     modelNames: ['unbreakable-oracle', 'gpt-5-oracle', 'demo-oracle'],
     throughputClaims: ['1559', '1,559', '9999'],

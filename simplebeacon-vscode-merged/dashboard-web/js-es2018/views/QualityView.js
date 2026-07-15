@@ -1,7 +1,7 @@
 import { escapeHtml } from '../utils/string.js';
 import { showToast } from '../utils/dom.js';
 import { formatNumber } from '../utils/number.js';
-import { apiUrl } from '../utils/url.js';
+import { apiUrl } from '../utils/url.js?v=20260713website1';
 import { resolveJestTestsLabel } from '../services/analyzeService.js';
 /**
  * Parse jest total.

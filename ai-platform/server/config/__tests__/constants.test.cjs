@@ -173,7 +173,6 @@ describe('Facade loads', () => {
     assert.ok(constants.exportNames.length > 50);
     assert.ok(constants.exportNames.includes('parseSize'));
     assert.ok(constants.exportNames.includes('getExportNames'));
-    assert.ok(constants.exportNames.includes('exportNames'));
     assert.strictEqual(constants.getExportNames(), constants.exportNames);
   });
 

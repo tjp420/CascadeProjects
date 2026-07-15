@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
 /**
  * Unit tests for audit-report sub-modules.
  * Run with: node --test __tests__.cjs

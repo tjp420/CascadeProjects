@@ -1,6 +1,6 @@
-import { apiUrl } from '../utils/url.js';
+import { apiUrl } from '../utils/url.js?v=20260713website1';
 import { showToast } from '../utils/dom.js';
-import { authService } from '../services/authService.js';
+import { authService } from '../services/authService.js?v=20260713sync5';
 /**
  * Stripe checkout metadata verifier.
  *

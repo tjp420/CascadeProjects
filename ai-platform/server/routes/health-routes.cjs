@@ -26,7 +26,7 @@ router.get('/status', (req, res) => {
     platform: 'Simplebeacon',
     status: 'operational',
     features: {
-      ai_system: 'ready',
+      ai_scan: 'ready',
       web_interface: 'active',
       api_endpoints: 'available',
       tools: 'integrated'

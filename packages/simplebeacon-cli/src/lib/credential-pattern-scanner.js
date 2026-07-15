@@ -63,7 +63,7 @@ const ALLOWLIST_SNIPPETS = [
 ];
 
 const SCANNABLE_EXTENSIONS = new Set(['.json', '.js', '.mjs', '.cjs', '.ts', '.tsx', '.env', '.yaml', '.yml', '.txt', '.md']);
-const SUPPRESS_PATTERN = /\/\/\s*simplebeacon-ignore\s+credentials/i;
+const SUPPRESS_PATTERN = /(?:\/\/|#)\s*simplebeacon-ignore\s+(?:credentials|credential-pattern)/i;
 const MAX_SCAN_BYTES = 256000;
 
 function lineNumberAt(content, index) {
@@ -172,12 +172,15 @@ function isCredentialScanExcludedPath(file) {
         || /packages\/simplebeacon-cli\/tests\//.test(rel)
         || /test-all-patterns\.js/.test(rel)
         || name === 'test-all-patterns.js'
-        || /-token\.txt$/.test(name)
+        || /-tokens?\.txt$/i.test(name)
         || /packages\/simplebeacon-cli\/src\/(?:lib|rules|reporters|analyzers|proxy)\//.test(rel)
         || /\/credential-pattern-scanner\.js$/.test(rel)
         || /\/report-sanitizer\.js$/.test(rel)
         || /pattern-documentation\.js$/.test(rel)
         || /quick-actions\.js$/.test(rel)
+        || /social-posts\.md$/i.test(rel)
+        || /scan-wasm-bridge\.test\.js$/i.test(rel)
+        || /coming-soon\//.test(rel)
         || /coming-soon\/public\/data\//.test(rel)
         || /\.env\.(example|sample|template|local\.example)$/.test(name);
 }

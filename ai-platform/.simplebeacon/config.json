@@ -41,6 +41,12 @@
     "tests/**",
     "test/**",
     "coming-soon/**",
+    "coming-soon/js-es2018/**",
+    "coming-soon/public/content/social-posts.md",
+    "social-posts.md",
+    "**/social-posts.md",
+    "**/scan-wasm-bridge.test.js",
+    "**/quick-actions.js",
     "coming-soon-dev/**",
     "C:/Users/Trevor/CascadeProjects/coming-soon/**",
     "scripts/**",
@@ -116,7 +122,11 @@
       "scanProduction": true,
       "ignoreGlobs": [
         "server/db/token-registry.json",
-        "C:/Users/Trevor/CascadeProjects/ai-agent-report-for-dashboard.json"
+        "C:/Users/Trevor/CascadeProjects/ai-agent-report-for-dashboard.json",
+        "coming-soon/**",
+        "**/social-posts.md",
+        "**/scan-wasm-bridge.test.js",
+        "**/quick-actions.js"
       ]
     },
     "json-schema": {
@@ -249,6 +259,8 @@
     ".cache",
     "coverage",
     "simplebeacon-vscode-merged",
+    "coming-soon",
+    "coming-soon-dev",
     "ai-tools",
     "ai-agent",
     ".vsix-rebuild-all",

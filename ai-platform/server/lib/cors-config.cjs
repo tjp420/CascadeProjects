@@ -21,39 +21,37 @@ function parseOriginList(raw) {
  */
 function resolveCorsOptions(overrides = {}) {
     const isProduction = String(process.env.NODE_ENV || '').toLowerCase() === 'production';
-    const raw = process.env.CORS_ORIGINS || process.env.CORS_ORIGIN || overrides.defaultOrigin || '';
+    const raw = process.env.CORS_ORIGINS || process.env.CORS_ORIGIN || overrides.devFallbackOrigin || overrides.defaultOrigin || '';
     const origins = parseOriginList(raw);
 
-    if (!isProduction) {
-        // Development: mirror any origin regardless of env vars
-        return {
-            origin: true,
-            credentials: true,
-            ...overrides
-        };
-    }
+    const pagesPreviewOriginRegex = /^https:\/\/[a-z0-9-]+\.simplebeacon\.pages\.dev$/;
+    const renderOriginRegex = /^https:\/\/[a-z0-9-]+\.onrender\.com$/;
 
-    if (origins.length === 0) {
-        return {
-            origin: false,
-            credentials: false,
-            ...overrides
-        };
-    }
-
-    if (origins.includes('*')) {
-        if (isProduction) {
-            throw new Error(
-                'CORS_ORIGIN(S) must not be "*" in production. Set explicit allowed origins.'
-            );
+    function isAllowedCorsOrigin(origin, callback) {
+        if (!isProduction) {
+            // Development: mirror any origin regardless of env vars
+            return callback(null, true);
         }
-        return { origin: true, credentials: true, ...overrides };
+        if (!origin) {
+            return callback(null, true);
+        }
+        if (origins.includes(origin)) {
+            return callback(null, true);
+        }
+        if (origins.includes('*')) {
+            return callback(null, false); // reject wide-open wildcard in production
+        }
+        if (pagesPreviewOriginRegex.test(origin) || renderOriginRegex.test(origin)) {
+            return callback(null, true);
+        }
+        return callback(null, false);
     }
 
+    const { devFallbackOrigin, defaultOrigin, ...restOverrides } = overrides;
     return {
-        origin: origins,
+        origin: isAllowedCorsOrigin,
         credentials: true,
-        ...overrides
+        ...restOverrides
     };
 }
 

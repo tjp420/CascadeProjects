@@ -11,8 +11,7 @@ const { requirePermission, requireWorkspaceMembership, setWorkspaceRlsContext } 
 
 const router = express.Router();
 
-// All workspace routes require authentication
-router.use(requireAuth);
+// Authentication is applied per route below; the invitation-accept route is token-based.
 
 // ── Workspace CRUD ─────────────────────────────────────────────────────────
 
@@ -20,7 +19,7 @@ router.use(requireAuth);
  * GET /api/v2/workspaces
  * List workspaces the current user is a member of.
  */
-router.get('/api/v2/workspaces', async (req, res) => {
+router.get('/api/v2/workspaces', requireAuth, async (req, res) => {
     try {
         const rows = await db.query(
             `SELECT w.id, w.name, w.slug, w.description, w.subscription_tier, w.max_members,
@@ -45,7 +44,7 @@ router.get('/api/v2/workspaces', async (req, res) => {
  * Create a new workspace (requires workspace.admin or higher).
  * Body: { name, slug, description?, orgId? }
  */
-router.post('/api/v2/workspaces', requirePermission('workspace.admin'), async (req, res) => {
+router.post('/api/v2/workspaces', requireAuth, requirePermission('workspace.admin'), async (req, res) => {
     const { name, slug, description, orgId } = req.body || {};
     if (!name || !slug) {
         return res.status(400).json({ error: 'name and slug required' });
@@ -101,7 +100,7 @@ router.post('/api/v2/workspaces', requirePermission('workspace.admin'), async (r
  * GET /api/v2/workspaces/:workspaceId
  * Get workspace details.
  */
-router.get('/api/v2/workspaces/:workspaceId', requireWorkspaceMembership, setWorkspaceRlsContext, async (req, res) => {
+router.get('/api/v2/workspaces/:workspaceId', requireAuth, requireWorkspaceMembership, setWorkspaceRlsContext, async (req, res) => {
     try {
         const workspace = await db.get(
             `SELECT id, name, slug, description, subscription_tier, max_members, max_projects,
@@ -124,6 +123,7 @@ router.get('/api/v2/workspaces/:workspaceId', requireWorkspaceMembership, setWor
  * Update workspace settings (admin only).
  */
 router.patch('/api/v2/workspaces/:workspaceId',
+    requireAuth,
     requireWorkspaceMembership,
     requirePermission('workspace.update'),
     async (req, res) => {
@@ -162,6 +162,7 @@ router.patch('/api/v2/workspaces/:workspaceId',
  * GET /api/v2/workspaces/:workspaceId/members
  */
 router.get('/api/v2/workspaces/:workspaceId/members',
+    requireAuth,
     requireWorkspaceMembership,
     requirePermission('member.read'),
     async (req, res) => {
@@ -189,6 +190,7 @@ router.get('/api/v2/workspaces/:workspaceId/members',
  * Body: { email, role }
  */
 router.post('/api/v2/workspaces/:workspaceId/invitations',
+    requireAuth,
     requireWorkspaceMembership,
     requirePermission('workspace.invite'),
     async (req, res) => {

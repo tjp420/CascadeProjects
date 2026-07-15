@@ -7,7 +7,7 @@ const { createNetworkGuard } = require('../lib/trust-guard');
 const { createScanHandlers } = require('./handlers/scan-handlers');
 const { createReportHandlers } = require('./handlers/report-handlers');
 const { createUtilityHandlers } = require('./handlers/utility-handlers');
-const constants = require('../../../../ai-platform/server/config/constants.cjs');
+const constants = require('../lib/constants');
 
 function resolveProjectRoot(override) {
     return path.resolve(override || process.env.SIMPLEBEACON_PROJECT_ROOT || process.cwd());

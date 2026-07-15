@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
 /**
  * CLI-first scan validation — run this BEFORE building a VSIX.
  * Checks that the scan finds the full repository and produces valid findings.

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
 /**
  * Orphan-file audit script.
  * Reads a codemap-analysis JSON export and checks Git history for each orphan.

@@ -1,6 +1,5 @@
-import { authService } from './authService.js';
+import { authService } from './authService.js?v=20260713sync6';
 import { readJsonResponseBody, logRecoverableDashboardError } from '../lib/recoverable-fetch.js';
-import { apiUrl } from '../utils.js';
 
 const RECENT_KEY = 'simplebeaconRecentAssessments';
 const MAX_RECENT = 20;
@@ -46,7 +45,7 @@ export class AssessmentService {
   }
 
   async runAssessment(payload) {
-    const res = await fetch(apiUrl('/api/assessment/scan'), {
+    const res = await fetch('/api/assessment/scan', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -76,7 +75,7 @@ export class AssessmentService {
   }
 
   async fetchReport(assessmentId) {
-    const res = await fetch(apiUrl(`/api/assessment/report/${encodeURIComponent(assessmentId)}`), {
+    const res = await fetch(`/api/assessment/report/${encodeURIComponent(assessmentId)}`, {
       headers: authService.getAuthHeaders()
     });
     const reportPayload = await readJsonResponseBody(res, {});
@@ -84,39 +83,6 @@ export class AssessmentService {
       throw new Error(reportPayload.error || `Report not found (${res.status})`);
     }
     return reportPayload;
-  }
-
-  /**
-   * Wraps service fetch methods to guarantee unauthenticated or unauthorized roles
-   * can never capture history payloads out of adjacent data matrices.
-   * @returns {Promise<Array>}
-   */
-  async fetchTenantIsolatedAssessments() {
-    const currentUser = authService.getUser?.() || null;
-    const rawDataFeed = await this.getRawHistoricalRegistry();
-
-    if (!currentUser) {
-      // Enforce anonymous guest sandbox scope constraints cleanly
-      return rawDataFeed.filter(item => item.userId === 'sandbox_local_guest');
-    }
-
-    // Administrators bypass verification gates to review cross-company release postures
-    if (currentUser.role === 'admin' || currentUser.role === 'auditor') {
-      return rawDataFeed;
-    }
-
-    // Standard Developers are locked to their explicit user_id mapping parameters
-    return rawDataFeed.filter(item => item.userId === currentUser.id);
-  }
-
-  /**
-   * Baseline database read utility — placeholder for historical registry fetch.
-   * Override or replace with actual backend integration.
-   * @returns {Promise<Array>}
-   */
-  async getRawHistoricalRegistry() {
-    // Default: read from localStorage; replace with server fetch as needed
-    return readRecentAssessmentsFromStorage();
   }
 
   downloadUrl(assessmentId) {

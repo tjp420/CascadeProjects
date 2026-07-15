@@ -1,6 +1,6 @@
 import { escapeHtml, apiUrl, showToast } from '../utils.js';
 import { pathInputListAttr, renderPathSuggestionsDatalistElement, collectPathSuggestions } from '../lib/analyzePathSuggestions.js';
-import { authService } from '../services/authService.js';
+import { authService } from '../services/authService.js?v=20260713sync5';
 
 /**
  * AnalyzeTargetConfig — Target selection, drag-and-drop, path input,

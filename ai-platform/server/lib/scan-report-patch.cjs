@@ -185,4 +185,80 @@ function patchRemediationPhases(report) {
     return patchedAny ? out : report;
 }
 
-module.exports = { patchRemediationPhases };
+/**
+ * Upgrade and align a scan report for dashboard consumption (reportVersion 2).
+ * @param {Object} report
+ * @param {string} [requestedPath]
+ * @returns {Object}
+ */
+function normalizeDashboardReport(report, requestedPath = '') {
+    if (!report || typeof report !== 'object') {
+        return report;
+    }
+
+    const requested = String(requestedPath || report.projectRoot || report.projectPath || '').trim();
+    const requestedForward = requested ? requested.replace(/\\/g, '/') : '';
+    const scanRoot = requestedForward
+        || String(report.projectRoot || report.projectPath || report.scanTargetRoot || '').replace(/\\/g, '/');
+    const platformRoot = scanRoot.includes('/')
+        ? scanRoot.replace(/\/[^/]+$/, '') || scanRoot
+        : scanRoot;
+
+    const summary = report.summary || {};
+    const repositoryInventory = report.repositoryInventory
+        || (report.inventory && typeof report.inventory === 'object'
+            ? {
+                totalFiles: report.inventory.totalFiles ?? report.inventory.scannedFiles ?? null,
+                totalFolders: report.inventory.totalFolders ?? null,
+                projectRoot: scanRoot
+            }
+            : null);
+
+    const repositoryFilesTotal = report.repositoryFilesTotal
+        ?? repositoryInventory?.totalFiles
+        ?? summary.repositoryFilesTotal
+        ?? null;
+    const repositoryFoldersTotal = report.repositoryFoldersTotal
+        ?? repositoryInventory?.totalFolders
+        ?? summary.repositoryFoldersTotal
+        ?? null;
+    const ruleScopedFilesAnalyzed = report.ruleScopedFilesAnalyzed
+        ?? summary.ruleScopedFilesAnalyzed
+        ?? report.filesAnalyzed
+        ?? null;
+
+    let filesAnalyzed = report.filesAnalyzed ?? null;
+    if (filesAnalyzed == null) {
+        filesAnalyzed = report.fullDirectoryScan
+            ? repositoryFilesTotal
+            : (ruleScopedFilesAnalyzed ?? summary.codeFilesAnalyzed ?? repositoryFilesTotal);
+    }
+
+    const reportVersion = Number(report.reportVersion) >= 2
+        ? Number(report.reportVersion)
+        : (report.version === '1.0.0' || report.type === 'simplebeacon-report' ? 2 : (report.reportVersion ?? 2));
+
+    const out = {
+        ...report,
+        reportVersion,
+        projectRoot: scanRoot || report.projectRoot,
+        projectPath: scanRoot || report.projectPath,
+        scanTargetRoot: scanRoot || report.scanTargetRoot,
+        platformRoot: report.platformRoot || platformRoot,
+        filesAnalyzed,
+        ruleScopedFilesAnalyzed: ruleScopedFilesAnalyzed ?? filesAnalyzed,
+        repositoryFilesTotal,
+        repositoryFoldersTotal,
+        repositoryInventory: repositoryInventory || (repositoryFilesTotal != null
+            ? {
+                totalFiles: repositoryFilesTotal,
+                totalFolders: repositoryFoldersTotal ?? 0,
+                projectRoot: scanRoot
+            }
+            : report.repositoryInventory ?? null)
+    };
+
+    return patchRemediationPhases(out);
+}
+
+module.exports = { patchRemediationPhases, normalizeDashboardReport };

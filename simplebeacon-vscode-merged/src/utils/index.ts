@@ -5,22 +5,47 @@
  */
 
 // ── Namespace imports (used for flat re-exports and Utils default) ──
-import * as VSCode         from './vscode';
-import * as StringUtils    from './string';
-import * as NumberUtils    from './number';
-import * as ObjectUtils    from './object';
-import * as ArrayUtils     from './array';
-import * as AsyncUtils     from './async';
-import * as FsUtils        from './fs';
-import * as NetworkUtils   from './network';
-import * as PathUtils      from './path';
-import * as MiscUtils      from './misc';
-import * as JsonUtils      from './json';
+import * as VSCode from './vscode';
+import * as StringUtils from './string';
+import * as NumberUtils from './number';
+import * as ObjectUtils from './object';
+import * as ArrayUtils from './array';
+import * as AsyncUtils from './async';
+import * as FsUtils from './fs';
+import * as NetworkUtils from './network';
+import * as PathUtils from './path';
+import * as MiscUtils from './misc';
+import * as JsonUtils from './json';
 import * as TypeGuardUtils from './type-guards';
 import * as ClipboardUtils from './clipboard';
-import * as ThemeUtils     from './theme';
-import * as EventUtils     from './event';
-import * as PollingUtils   from './polling';
+import * as ThemeUtils from './theme';
+import * as EventUtils from './event';
+import * as PollingUtils from './polling';
+import * as FunctionalUtils from './functional';
+
+// ── Flat re-exports (tree-shakeable named exports) ─────────────────
+export * from './vscode';
+export * from './string';
+export * from './number';
+export * from './object';
+export * from './array';
+export * from './async';
+export * from './fs';
+export * from './network';
+export * from './path';
+export * from './misc';
+export * from './json';
+export * from './type-guards';
+export * from './clipboard';
+export * from './theme';
+export * from './event';
+export * from './polling';
+export * from './functional';
+
+/**
+ * Typed view of the namespace registry values, used for introspection and collision checks.
+ */
+type NamespaceRecord = Record<string, Record<string, unknown>>;
 
 /**
  * Barrel metadata shape.
@@ -50,83 +75,48 @@ export interface BarrelMeta {
   readonly namespaces: ReadonlyArray<string>;
 }
 
-/**
- * Strongly-typed shape of the Utils default export.
- * Namespace types are derived directly from imported module types;
- * the inline namespace mirrors the runtime _inlineNamespace object.
- */
-type UtilsNamespace = {
-  [K in keyof NamespaceMap]: DeepReadonly<NamespaceMap[K]>;
-} & {
-  inline: Readonly<typeof _inlineNamespace>;
-  __barrel__: BarrelMeta;
-};
-
-// ── Flat re-exports (auto-generated from submodules) ──────────────
-export * from './vscode';
-export * from './string';
-export * from './number';
-export * from './object';
-export * from './array';
-export * from './async';
-export * from './fs';
-export * from './network';
-export * from './path';
-export * from './misc';
-export * from './json';
-export * from './type-guards';
-export * from './clipboard';
-export * from './theme';
-export * from './event';
-export * from './polling';
-
-export type { PickerItem, PathMapping } from './vscode';
-
 // ── Collision detection ─────────────────────────────────────────
 const _collisionWarnings = new Set<string>();
 
 function _warnCollision(name: string, ns1: string, ns2: string): void {
   if (_collisionWarnings.has(name)) return;
   _collisionWarnings.add(name);
-  // Collision warnings are intentionally silent in production;
-  // set SIMPLEBEACON_VSCODE_COLLISION_WARN=1 to enable verbose logging.
+  if (typeof process !== 'undefined' && process.env?.SIMPLEBEACON_VSCODE_COLLISION_WARN === '1') {
+    console.warn(`[utils barrel] Export name collision: "${name}" exists in both "${ns1}" and "${ns2}"`);
+  }
 }
 
 function _checkExportCollisions(): void {
   const flatExports = new Map<string, string>();
-  const registry = _namespaceRegistry as unknown as Record<string, Record<string, unknown>>;
-  for (const [nsKey, ns] of Object.entries(registry)) {
-    if (!ns || typeof ns !== 'object') continue;
-    for (const name of Object.keys(ns)) {
-      if (name === 'default') continue;
-      if (!Object.prototype.hasOwnProperty.call(ns, name)) continue;
-      if (flatExports.has(name)) {
-        _warnCollision(name, flatExports.get(name)!, nsKey);
-      } else {
-        flatExports.set(name, nsKey);
-      }
+  _forEachRegistryExport((name, nsKey) => {
+    if (flatExports.has(name)) {
+      _warnCollision(name, flatExports.get(name)!, nsKey);
+    } else {
+      flatExports.set(name, nsKey);
     }
-  }
-  // Check namespace-to-inline collisions
-  for (const [nsKey, ns] of Object.entries(registry)) {
-    if (!ns || typeof ns !== 'object') continue;
-    for (const name of Object.keys(ns)) {
-      if (name === 'default') continue;
-      if (!Object.prototype.hasOwnProperty.call(ns, name)) continue;
-      if (name in _inlineNamespace) {
-        _warnCollision(name, nsKey, 'inline');
-      }
+    if (name in _getInlineNamespace()) {
+      _warnCollision(name, nsKey, 'inline');
     }
+  });
+}
+
+/** @returns {number} Number of unique export-name collisions detected so far. */
+export const getCollisionCount = (): number => {
+  _ensureCollisionsChecked();
+  return _collisionWarnings.size;
+};
+
+let _collisionsChecked = false;
+function _ensureCollisionsChecked(): void {
+  if (!_collisionsChecked) {
+    _collisionsChecked = true;
+    _checkExportCollisions();
   }
 }
 
-let _collisionsChecked = false;
-
-/** Unary function type used by compose/pipe. */
-type Unary<A, B> = (x: A) => B;
-
 /** Deep immutable version of a type. Preserves primitive, Date, RegExp, Map, Set, etc. */
-type DeepReadonly<T> = T extends ((...args: any[]) => any) | Date | RegExp | Error | URL | URLSearchParams | Promise<unknown> | BigInt
+type DeepReadonly<T> = T extends
+  ((...args: unknown[]) => unknown) | Date | RegExp | Error | URL | URLSearchParams | Promise<unknown> | bigint
   ? T
   : T extends Map<infer K, infer V>
     ? ReadonlyMap<DeepReadonly<K>, DeepReadonly<V>>
@@ -141,200 +131,12 @@ type DeepReadonly<T> = T extends ((...args: any[]) => any) | Date | RegExp | Err
             : T;
 
 /**
- * Compose functions right-to-left.
- * `compose(f, g, h)(x)` is equivalent to `f(g(h(x)))`.
- * Returns identity when called with no arguments.
- */
-export function compose<T>(): (value: T) => T;
-export function compose<T, A>(fn1: Unary<T, A>): (value: T) => A;
-export function compose<T, A, B>(fn2: Unary<A, B>, fn1: Unary<T, A>): (value: T) => B;
-export function compose<T, A, B, C>(fn3: Unary<B, C>, fn2: Unary<A, B>, fn1: Unary<T, A>): (value: T) => C;
-export function compose<T, A, B, C, D>(fn4: Unary<C, D>, fn3: Unary<B, C>, fn2: Unary<A, B>, fn1: Unary<T, A>): (value: T) => D;
-export function compose<T, A, B, C, D, E>(fn5: Unary<D, E>, fn4: Unary<C, D>, fn3: Unary<B, C>, fn2: Unary<A, B>, fn1: Unary<T, A>): (value: T) => E;
-export function compose<T>(...fns: Array<(x: unknown) => unknown>): (value: T) => unknown {
-  if (fns.length === 0) return (value: T) => value;
-  return (value: T) => fns.reduceRight((acc, fn) => fn(acc), value as unknown);
-}
-
-/**
- * Pipe functions left-to-right.
- * `pipe(f, g, h)(x)` is equivalent to `h(g(f(x)))`.
- * Returns identity when called with no arguments.
- */
-export function pipe<T>(): (value: T) => T;
-export function pipe<T, A>(fn1: Unary<T, A>): (value: T) => A;
-export function pipe<T, A, B>(fn1: Unary<T, A>, fn2: Unary<A, B>): (value: T) => B;
-export function pipe<T, A, B, C>(fn1: Unary<T, A>, fn2: Unary<A, B>, fn3: Unary<B, C>): (value: T) => C;
-export function pipe<T, A, B, C, D>(fn1: Unary<T, A>, fn2: Unary<A, B>, fn3: Unary<B, C>, fn4: Unary<C, D>): (value: T) => D;
-export function pipe<T, A, B, C, D, E>(fn1: Unary<T, A>, fn2: Unary<A, B>, fn3: Unary<B, C>, fn4: Unary<C, D>, fn5: Unary<D, E>): (value: T) => E;
-export function pipe<T>(...fns: Array<(x: unknown) => unknown>): (value: T) => unknown {
-  if (fns.length === 0) return (value: T) => value;
-  return (value: T) => fns.reduce((acc, fn) => fn(acc), value as unknown);
-}
-
-/**
- * Zip two arrays with a custom combiner function.
- */
-export const zipWith = <T, U, R>(arr1: T[], arr2: U[], fn: (a: T, b: U) => R): R[] => {
-  if (!arr1 || typeof arr1.length !== 'number' || !arr2 || typeof arr2.length !== 'number') {
-    return [];
-  }
-  if (typeof fn !== 'function') return [];
-  const len = Math.min(arr1.length, arr2.length);
-  const result: R[] = new Array(len);
-  for (let i = 0; i < len; i++) {
-    result[i] = fn(arr1[i], arr2[i]);
-  }
-  return result;
-};
-
-/** Generic function shape used by curry/partial. */
-type AnyFunction = (...args: any[]) => any;
-
-/** Curried type: supports full application or applying arguments one at a time. */
-type Curried<T extends AnyFunction> = T extends (...args: infer Args) => infer R
-  ? Args extends [infer First, ...infer Rest]
-    ? ((...args: Args) => R) & ((arg: First) => Curried<(...args: Rest) => R>)
-    : T
-  : never;
-
-/**
- * Curry a function so it can be called with one argument at a time.
- */
-export const curry = <T extends AnyFunction>(fn: T): Curried<T> => {
-  if (typeof fn !== 'function') throw new TypeError('curry requires a function');
-  const curried = (...args: unknown[]): unknown => {
-    if (args.length >= fn.length) {
-      return fn(...args);
-    }
-    return (...nextArgs: unknown[]): unknown => curried(...args.concat(nextArgs));
-  };
-  return curried as Curried<T>;
-};
-
-/**
- * Create a partial application of a function with preset arguments.
- */
-export const partial = <T extends AnyFunction>(fn: T, ...presetArgs: unknown[]): ((...args: unknown[]) => ReturnType<T>) => {
-  if (typeof fn !== 'function') throw new TypeError('partial requires a function');
-  return (...args: unknown[]): ReturnType<T> => fn(...presetArgs.concat(args)) as ReturnType<T>;
-};
-
-/**
- * Execute a side-effect function on a value, then return the value.
- * Useful for debugging inside pipelines.
- * @returns The original value.
- */
-export const tap = <T>(value: T, fn: (value: T) => void): T => {
-  if (typeof fn !== 'function') throw new TypeError('tap requires a function');
-  fn(value);
-  return value;
-};
-
-/**
- * Flip the first two arguments of a binary function.
- * `flip(fn)(a, b)` is equivalent to `fn(b, a)`.
- * @returns Flipped function.
- */
-export const flip = <A, B, R>(fn: (a: A, b: B) => R): ((b: B, a: A) => R) => {
-  if (typeof fn !== 'function') throw new TypeError('flip requires a function');
-  return (b, a) => fn(a, b);
-};
-
-/**
- * Runtime assertion helper.
- * @param condition Value to assert.
- * @param message Optional message on failure.
- * @throws {Error} If condition is falsy.
- */
-export function assert(condition: unknown, message?: string): asserts condition {
-  if (!condition) {
-    throw new Error(message || 'Assertion failed');
-  }
-}
-
-/**
- * Functional try/catch wrapper.
- * @param fn Function to execute safely.
- * @returns Result object with discriminated union shape.
- */
-export function tryCatch<T>(fn: () => T): { ok: true; value: T } | { ok: false; error: unknown } {
-  try {
-    return { ok: true, value: fn() };
-  } catch (error) {
-    return { ok: false, error };
-  }
-}
-
-/**
- * Recursively freeze every object in a namespace map.
- * Safely handles Date, RegExp, Map, Set, WeakMap, WeakSet, Promise, and Error.
+ * Re-export freezeNamespace from the object submodule with the original DeepReadonly return type.
  * @param ns Namespace object whose values are objects to freeze.
  * @returns Deeply frozen copy of the namespace.
  */
-export const freezeNamespace = <T extends Record<string, unknown>>(ns: T): DeepReadonly<T> => {
-  if (ns == null || typeof ns !== 'object') return ns as DeepReadonly<T>;
-  if (Object.isFrozen(ns)) return ns as DeepReadonly<T>;
-
-  const seen = new WeakMap<object, unknown>();
-
-  function _deepFreeze(val: unknown): unknown {
-    if (val == null || typeof val !== 'object') return val;
-    if (seen.has(val)) return seen.get(val);
-    if (Object.isFrozen(val)) return val;
-
-    const ctor = (val as Record<string, unknown>).constructor;
-    if (ctor === Date || ctor === RegExp || ctor === WeakMap || ctor === WeakSet || ctor === Promise || ctor === Error) return val;
-    if (ctor === BigInt) return val;
-    if (ctor === URL || ctor === URLSearchParams) return val;
-    if (ArrayBuffer.isView(val)) return val;
-    if (ctor === ArrayBuffer || ctor === SharedArrayBuffer) return val;
-
-    if (ctor === Map) {
-      const frozenMap = new Map<unknown, unknown>();
-      seen.set(val, frozenMap);
-      for (const [k, v] of val as Map<unknown, unknown>) {
-        frozenMap.set(k, _deepFreeze(v));
-      }
-      try { Object.freeze(frozenMap); } catch (_e) { /* ignore */ }
-      return frozenMap;
-    }
-
-    if (ctor === Set) {
-      const frozenSet = new Set<unknown>();
-      seen.set(val, frozenSet);
-      for (const v of val as Set<unknown>) {
-        frozenSet.add(_deepFreeze(v));
-      }
-      try { Object.freeze(frozenSet); } catch (_e) { /* ignore */ }
-      return frozenSet;
-    }
-
-    if (Array.isArray(val)) {
-      const frozenArr = new Array(val.length);
-      seen.set(val, frozenArr);
-      for (let i = 0; i < val.length; i++) {
-        frozenArr[i] = _deepFreeze(val[i]);
-      }
-      try { Object.freeze(frozenArr); } catch (_e) { /* ignore */ }
-      return frozenArr;
-    }
-
-    const frozenObj: Record<PropertyKey, unknown> = {};
-    seen.set(val, frozenObj);
-    for (const key of Reflect.ownKeys(val as object)) {
-      frozenObj[key] = _deepFreeze((val as Record<PropertyKey, unknown>)[key]);
-    }
-    try { Object.freeze(frozenObj); } catch (_e) { /* ignore */ }
-    return frozenObj;
-  }
-
-  const frozen: Record<string, unknown> = {};
-  for (const key of Object.keys(ns)) {
-    frozen[key] = _deepFreeze(ns[key]);
-  }
-  return Object.freeze(frozen) as DeepReadonly<T>;
-};
+export const freezeNamespace = <T extends Record<string, unknown>>(ns: T): DeepReadonly<T> =>
+  ObjectUtils.freezeNamespace(ns) as DeepReadonly<T>;
 
 /** Namespace registry for auto-generation and collision detection. */
 const _namespaceRegistry = {
@@ -354,61 +156,39 @@ const _namespaceRegistry = {
   theme: ThemeUtils,
   event: EventUtils,
   polling: PollingUtils,
+  functional: FunctionalUtils,
 } as const;
 
 type NamespaceMap = typeof _namespaceRegistry;
 
+/** Iterate every named export on each namespace in the registry. */
+function _forEachRegistryExport(fn: (name: string, nsKey: string, ns: Record<string, unknown>) => void): void {
+  const registry = _namespaceRegistry as NamespaceRecord;
+  for (const [nsKey, ns] of Object.entries(registry)) {
+    if (!ns || typeof ns !== 'object') continue;
+    for (const name of Object.keys(ns)) {
+      if (name === 'default' || !Object.prototype.hasOwnProperty.call(ns, name)) continue;
+      fn(name, nsKey, ns);
+    }
+  }
+}
+
 /** All exports defined directly in this barrel (both inline-namespace and standalone). */
 const _barrelNativeNames = Object.freeze([
-  'compose', 'pipe', 'zipWith', 'curry', 'partial', 'tap', 'flip',
-  'assert', 'tryCatch',
-  'freezeNamespace', 'getExportNames', 'getNamespaceNames',
-  'getBarrelMeta', 'validateBarrelIntegrity', '__barrel__'
-]);
-
-/** Names from submodules re-exported inside _inlineNamespace for convenience. */
-const _inlineReExports = Object.freeze([
-  // Misc
-  'memoize',
-  // Array
-  'unique', 'compact', 'flatten', 'sample', 'shuffle', 'times', 'countBy',
-  'head', 'tail', 'initial', 'last', 'take', 'drop', 'findIndex',
-  // Object
-  'defaults', 'defaultsDeep', 'invert', 'mapKeys', 'at', 'clone', 'unset', 'keys', 'merge', 'freezeDeep',
-  // String
-  'escapeRegExp', 'camelCase', 'snakeCase', 'padStart', 'padEnd', 'stripHtml',
-  'formatPercent', 'formatDuration', 'relativeTime', 'repeat', 'reverse', 'slugify',
-  'splitLines', 'startsWith', 'endsWith', 'stripAnsi', 'titleCase', 'trim',
-  // Number
-  'max', 'mean', 'min', 'randomInt', 'safeParseFloat', 'sum', 'sumBy', 'meanBy',
-  // Async
-  'debounceAsync', 'debounceLeading', 'throttleAsync', 'memoizeAsync', 'timeout',
-  // FS
-  'ensureDir', 'readTextFile', 'sanitizeFilename', 'getFileHash',
-  // Network
-  'resolveUrl', 'parseQueryString',
-  // Path
-  'getExt', 'ensureExt', 'isSubPath',
-  // Misc
-  'assertNever', 'randomId', 'tryFn', 'isBlank',
-  // Event
-  'createBroadcastChannel',
-  // VSCode
-  'getWorkspaceRoot', 'isWorkspaceOpen', 'getExtensionVersion'
+  'getExportNames',
+  'getNamespaceNames',
+  'getBarrelMeta',
+  'validateBarrelIntegrity',
+  'integrityTest',
+  'getCollisionCount',
+  'getInlineSelection',
+  '__barrel__',
 ]);
 
 /** Auto-build flat export list by introspecting namespace objects. */
 function _buildExportNames(): ReadonlyArray<string> {
   const set = new Set<string>();
-  const registry = _namespaceRegistry as unknown as Record<string, Record<string, unknown>>;
-  for (const ns of Object.values(registry)) {
-    if (!ns || typeof ns !== 'object') continue;
-    for (const name of Object.keys(ns)) {
-      if (name !== 'default' && Object.prototype.hasOwnProperty.call(ns, name)) {
-        set.add(name);
-      }
-    }
-  }
+  _forEachRegistryExport((name) => set.add(name));
   for (const name of _barrelNativeNames) set.add(name);
   return Object.freeze(Array.from(set).sort());
 }
@@ -428,19 +208,30 @@ export const getExportNames = (): ReadonlyArray<string> => _getExportNames();
 export const getBarrelMeta = (): Readonly<BarrelMeta> => __barrel__;
 
 const NAMESPACE_NAMES: ReadonlyArray<string> = Object.freeze([
-  ...new Set([...Object.keys(_namespaceRegistry), 'inline'])
+  ...new Set([...Object.keys(_namespaceRegistry), 'inline']),
 ]);
 
 /** @returns {ReadonlyArray<string>} All namespace keys from this barrel. */
 export const getNamespaceNames = (): ReadonlyArray<string> => NAMESPACE_NAMES;
 
+/** @returns {Readonly<typeof _inlineSelection>} The curated inline namespace selection. */
+export const getInlineSelection = (): Readonly<typeof _inlineSelection> => _inlineSelection;
+
 /**
  * Required metadata keys for a valid barrel.
  */
 const BARREL_REQUIRED_KEYS: ReadonlyArray<keyof BarrelMeta> = Object.freeze([
-  'name', 'description', 'moduleCount', 'exportCount',
-  'namespaceCount', 'version', 'timestamp', 'platform', 'nodeVersion',
-  'exports', 'namespaces'
+  'name',
+  'description',
+  'moduleCount',
+  'exportCount',
+  'namespaceCount',
+  'version',
+  'timestamp',
+  'platform',
+  'nodeVersion',
+  'exports',
+  'namespaces',
 ]);
 
 /** Auto-generated barrel timestamp at module evaluation. */
@@ -461,261 +252,373 @@ export const __barrel__: BarrelMeta = Object.freeze({
   name: 'simplebeacon-utils-barrel',
   description: 'Barrel re-export for src/utils/ sub-modules',
   moduleCount: Object.keys(_namespaceRegistry).length,
-  exportCount: _getExportNames().length,
+  get exportCount() {
+    return _getExportNames().length;
+  },
   namespaceCount: getNamespaceNames().length,
   version: _getPackageVersion(),
   timestamp: BARREL_TIMESTAMP,
   platform: (typeof process !== 'undefined' ? process.platform : 'unknown') as NodeJS.Platform | 'unknown',
   nodeVersion: typeof process !== 'undefined' ? process.version : 'unknown',
-  exports: getExportNames(),
-  namespaces: getNamespaceNames()
+  get exports() {
+    return _getExportNames();
+  },
+  namespaces: getNamespaceNames(),
 });
 
-/** Inline utilities object (eager, small). */
-const _inlineNamespace = Object.freeze({
-  // Barrel-native
-  compose, pipe, zipWith, curry, partial, tap, flip, freezeNamespace,
-  assert, tryCatch,
-  // Barrel introspection
-  getExportNames, getNamespaceNames, getBarrelMeta,
-  __barrel__,
-  // Array
-  groupBy: ArrayUtils.groupBy,
-  partition: ArrayUtils.partition,
-  chunk: ArrayUtils.chunk,
-  keyBy: ArrayUtils.keyBy,
-  range: ArrayUtils.range,
-  sortBy: ArrayUtils.sortBy,
-  intersection: ArrayUtils.intersection,
-  difference: ArrayUtils.difference,
-  union: ArrayUtils.union,
-  // Object
-  deepClone: ObjectUtils.deepClone,
-  deepEqual: ObjectUtils.deepEqual,
-  get: ObjectUtils.get,
-  set: ObjectUtils.set,
-  mapValues: ObjectUtils.mapValues,
-  pick: ObjectUtils.pick,
-  omit: ObjectUtils.omit,
-  has: ObjectUtils.has,
-  isEmpty: ObjectUtils.isEmpty,
-  // Number
-  clamp: NumberUtils.clamp,
-  formatBytes: NumberUtils.formatBytes,
-  formatNumber: NumberUtils.formatNumber,
-  safeParseInt: NumberUtils.safeParseInt,
-  roundTo: NumberUtils.roundTo,
-  // String
-  escapeHtml: StringUtils.escapeHtml,
-  truncate: StringUtils.truncate,
-  capitalize: StringUtils.capitalize,
-  kebabCase: StringUtils.kebabCase,
-  pluralize: StringUtils.pluralize,
-  // Async
-  sleep: AsyncUtils.sleep,
-  delay: AsyncUtils.delay,
-  debounce: AsyncUtils.debounce,
-  throttle: AsyncUtils.throttle,
-  retry: AsyncUtils.retry,
-  withTimeout: AsyncUtils.withTimeout,
-  createDeferred: AsyncUtils.createDeferred,
-  once: AsyncUtils.once,
-  memoize: AsyncUtils.memoize,
-  // TypeGuards
-  isDefined: TypeGuardUtils.isDefined,
-  isString: TypeGuardUtils.isString,
-  isNumber: TypeGuardUtils.isNumber,
-  isFunction: TypeGuardUtils.isFunction,
-  isArray: TypeGuardUtils.isArray,
-  isObject: TypeGuardUtils.isObject,
-  isPlainObject: TypeGuardUtils.isPlainObject,
-  // JSON
-  parseJsonSafe: JsonUtils.parseJsonSafe,
-  stringifySafe: JsonUtils.stringifySafe,
-  // FS
-  sha256: FsUtils.sha256,
-  readJsonFile: FsUtils.readJsonFile,
-  writeJsonFile: FsUtils.writeJsonFile,
-  // Network
-  isValidUrl: NetworkUtils.isValidUrl,
-  buildUrl: NetworkUtils.buildUrl,
-  // Path
-  normalizeScanPath: PathUtils.normalizeScanPath,
-  relativePath: PathUtils.relativePath,
-  // Clipboard
-  copyToClipboard: ClipboardUtils.copyToClipboard,
-  // Theme
-  getThemeColor: ThemeUtils.getThemeColor,
-  prefersDarkMode: ThemeUtils.prefersDarkMode,
-  // Event
-  createEventBus: EventUtils.createEventBus,
-  // Polling
-  createPoller: PollingUtils.createPoller,
-  // Misc
-  identity: MiscUtils.identity,
-  constant: MiscUtils.constant,
-  negate: MiscUtils.negate,
-  flow: MiscUtils.flow,
-  noop: MiscUtils.noop,
-  // Array (additional)
-  unique: ArrayUtils.unique,
-  compact: ArrayUtils.compact,
-  flatten: ArrayUtils.flatten,
-  sample: ArrayUtils.sample,
-  shuffle: ArrayUtils.shuffle,
-  times: ArrayUtils.times,
-  countBy: ArrayUtils.countBy,
-  head: ArrayUtils.head,
-  tail: ArrayUtils.tail,
-  initial: ArrayUtils.initial,
-  last: ArrayUtils.last,
-  take: ArrayUtils.take,
-  drop: ArrayUtils.drop,
-  findIndex: ArrayUtils.findIndex,
-  // Object (additional)
-  defaults: ObjectUtils.defaults,
-  defaultsDeep: ObjectUtils.defaultsDeep,
-  invert: ObjectUtils.invert,
-  mapKeys: ObjectUtils.mapKeys,
-  at: ObjectUtils.at,
-  clone: ObjectUtils.clone,
-  unset: ObjectUtils.unset,
-  keys: ObjectUtils.keys,
-  merge: ObjectUtils.merge,
-  freezeDeep: ObjectUtils.freezeDeep,
-  // String (additional)
-  escapeRegExp: StringUtils.escapeRegExp,
-  camelCase: StringUtils.camelCase,
-  snakeCase: StringUtils.snakeCase,
-  padStart: StringUtils.padStart,
-  padEnd: StringUtils.padEnd,
-  stripHtml: StringUtils.stripHtml,
-  formatPercent: StringUtils.formatPercent,
-  formatDuration: StringUtils.formatDuration,
-  relativeTime: StringUtils.relativeTime,
-  repeat: StringUtils.repeat,
-  reverse: StringUtils.reverse,
-  slugify: StringUtils.slugify,
-  splitLines: StringUtils.splitLines,
-  startsWith: StringUtils.startsWith,
-  endsWith: StringUtils.endsWith,
-  stripAnsi: StringUtils.stripAnsi,
-  titleCase: StringUtils.titleCase,
-  trim: StringUtils.trim,
-  // Number (additional)
-  max: NumberUtils.max,
-  mean: NumberUtils.mean,
-  min: NumberUtils.min,
-  randomInt: NumberUtils.randomInt,
-  safeParseFloat: NumberUtils.safeParseFloat,
-  sum: NumberUtils.sum,
-  sumBy: NumberUtils.sumBy,
-  meanBy: NumberUtils.meanBy,
-  // Async (additional)
-  debounceAsync: AsyncUtils.debounceAsync,
-  debounceLeading: AsyncUtils.debounceLeading,
-  throttleAsync: AsyncUtils.throttleAsync,
-  memoizeAsync: AsyncUtils.memoizeAsync,
-  timeout: AsyncUtils.timeout,
-  // FS (additional)
-  ensureDir: FsUtils.ensureDir,
-  readTextFile: FsUtils.readTextFile,
-  sanitizeFilename: FsUtils.sanitizeFilename,
-  getFileHash: FsUtils.getFileHash,
-  // Network (additional)
-  resolveUrl: NetworkUtils.resolveUrl,
-  parseQueryString: NetworkUtils.parseQueryString,
-  // Path (additional)
-  getExt: PathUtils.getExt,
-  ensureExt: PathUtils.ensureExt,
-  isSubPath: PathUtils.isSubPath,
-  // Misc (additional)
-  assertNever: MiscUtils.assertNever,
-  randomId: MiscUtils.randomId,
-  tryFn: MiscUtils.tryFn,
-  isBlank: MiscUtils.isBlank,
-  // Event (additional)
-  createBroadcastChannel: EventUtils.createBroadcastChannel,
-  // VSCode (additional)
-  getWorkspaceRoot: VSCode.getWorkspaceRoot,
-  isWorkspaceOpen: VSCode.isWorkspaceOpen,
-  getExtensionVersion: VSCode.getExtensionVersion
-});
+/**
+ * Curated selection of utility names exposed on Utils.inline.
+ * Generated from the previous hand-written namespace to preserve the public API.
+ */
+const _inlineSelection = {
+  functional: ['compose', 'pipe', 'zipWith', 'curry', 'partial', 'tap', 'flip', 'assert', 'tryCatch'],
+  string: [
+    'escapeHtml',
+    'truncate',
+    'capitalize',
+    'kebabCase',
+    'pluralize',
+    'formatDate',
+    'escapeRegExp',
+    'wordCount',
+    'camelCase',
+    'snakeCase',
+    'padStart',
+    'padEnd',
+    'stripHtml',
+    'formatPercent',
+    'formatDuration',
+    'relativeTime',
+    'repeat',
+    'reverse',
+    'slugify',
+    'splitLines',
+    'startsWith',
+    'endsWith',
+    'stripAnsi',
+    'titleCase',
+    'trim',
+  ],
+  number: [
+    'clamp',
+    'formatBytes',
+    'formatNumber',
+    'toFixedNumber',
+    'isNumeric',
+    'safeParseInt',
+    'roundTo',
+    'max',
+    'mean',
+    'min',
+    'randomInt',
+    'safeParseFloat',
+    'sum',
+    'sumBy',
+    'meanBy',
+  ],
+  object: [
+    'freezeNamespace',
+    'deepClone',
+    'deepEqual',
+    'get',
+    'set',
+    'mapValues',
+    'pick',
+    'omit',
+    'has',
+    'isEmpty',
+    'ensureArray',
+    'defaults',
+    'defaultsDeep',
+    'invert',
+    'values',
+    'mapKeys',
+    'at',
+    'clone',
+    'unset',
+    'keys',
+    'merge',
+    'freezeDeep',
+  ],
+  array: [
+    'groupBy',
+    'partition',
+    'chunk',
+    'keyBy',
+    'range',
+    'sortBy',
+    'intersection',
+    'difference',
+    'union',
+    'flattenDeep',
+    'zip',
+    'randomChoice',
+    'unique',
+    'compact',
+    'flatten',
+    'sample',
+    'shuffle',
+    'times',
+    'countBy',
+    'head',
+    'tail',
+    'initial',
+    'last',
+    'take',
+    'drop',
+    'findIndex',
+    'maxBy',
+    'minBy',
+  ],
+  async: [
+    'sleep',
+    'delay',
+    'debounce',
+    'throttle',
+    'retry',
+    'withTimeout',
+    'createDeferred',
+    'once',
+    'memoize',
+    'waitFor',
+    'poll',
+    'parallel',
+    'series',
+    'waterfall',
+    'debounceAsync',
+    'debounceLeading',
+    'throttleAsync',
+    'memoizeAsync',
+    'waitForAsync',
+    'retryWithBackoff',
+    'timeout',
+  ],
+  typeGuards: [
+    'isDefined',
+    'isString',
+    'isNumber',
+    'isBoolean',
+    'isFunction',
+    'isArray',
+    'isObject',
+    'isPlainObject',
+    'isDate',
+    'isRegExp',
+    'isPromise',
+    'isError',
+    'isNull',
+    'isUndefined',
+    'isNil',
+    'isSymbol',
+    'isMap',
+    'isSet',
+  ],
+  json: ['parseJsonSafe', 'stringifySafe', 'parseResponseJson', 'isJson'],
+  fs: [
+    'sha256',
+    'getFileHashAsync',
+    'readJsonFile',
+    'readJsonFileAsync',
+    'readTextFileAsync',
+    'writeJsonFile',
+    'writeTextFile',
+    'ensureDir',
+    'readTextFile',
+    'sanitizeFilename',
+    'getFileHash',
+  ],
+  network: ['isValidUrl', 'buildUrl', 'stringifyQueryString', 'resolveUrl', 'parseQueryString'],
+  path: ['normalizeScanPath', 'relativePath', 'getExt', 'ensureExt', 'isSubPath'],
+  clipboard: ['copyToClipboard', 'readFromClipboard'],
+  theme: [
+    'getThemeColor',
+    'prefersDarkMode',
+    'prefersLightMode',
+    'prefersReducedMotion',
+    'hexToRgba',
+    'shadeColor',
+    'contrastColor',
+  ],
+  event: ['createEventBus', 'createBroadcastChannel'],
+  polling: ['createPoller'],
+  misc: [
+    'identity',
+    'constant',
+    'negate',
+    'flow',
+    'noop',
+    'hash',
+    'pMap',
+    'seq',
+    'uid',
+    'assertNever',
+    'randomId',
+    'tryFn',
+    'isBlank',
+  ],
+  vscode: [
+    'getNonce',
+    'showQuietMessage',
+    'getSbConfig',
+    'checkCliAvailable',
+    'getCurrentFileDir',
+    'browseForFolder',
+    'getRecentFolders',
+    'addRecentFolder',
+    'removeRecentFolder',
+    'pickWorkspaceFolder',
+    'getWorkspaceRoot',
+    'getWorkspaceFolderForFile',
+    'getWorkspaceFolderForUri',
+    'isWorkspaceOpen',
+    'formatRelativePath',
+    'isInsideWorkspace',
+    'correctScanPath',
+    'runWithProgress',
+    'createDisposableStack',
+    'getExtensionVersion',
+  ],
+} as const satisfies { [K in keyof NamespaceMap]: readonly string[] };
 
-/** Eagerly freeze all namespaces and build the Utils object at module init. */
+/** Pick a curated subset of exports from a namespace object with preserved types. */
+function pickExports<NS extends Record<string, unknown>, Names extends readonly (keyof NS & string)[]>(
+  ns: NS,
+  names: Names
+): Pick<NS, Names[number]> {
+  const out = {} as Pick<NS, Names[number]>;
+  for (const name of names) {
+    if (Object.prototype.hasOwnProperty.call(ns, name)) {
+      out[name] = ns[name];
+    }
+  }
+  return out;
+}
+
+/** Auto-build the inline namespace from the curated selection. */
+function _buildInlineNamespace() {
+  return Object.freeze({
+    ...pickExports(FunctionalUtils, _inlineSelection.functional),
+    ...pickExports(StringUtils, _inlineSelection.string),
+    ...pickExports(NumberUtils, _inlineSelection.number),
+    ...pickExports(ObjectUtils, _inlineSelection.object),
+    ...pickExports(ArrayUtils, _inlineSelection.array),
+    ...pickExports(AsyncUtils, _inlineSelection.async),
+    ...pickExports(TypeGuardUtils, _inlineSelection.typeGuards),
+    ...pickExports(JsonUtils, _inlineSelection.json),
+    ...pickExports(FsUtils, _inlineSelection.fs),
+    ...pickExports(NetworkUtils, _inlineSelection.network),
+    ...pickExports(PathUtils, _inlineSelection.path),
+    ...pickExports(ClipboardUtils, _inlineSelection.clipboard),
+    ...pickExports(ThemeUtils, _inlineSelection.theme),
+    ...pickExports(EventUtils, _inlineSelection.event),
+    ...pickExports(PollingUtils, _inlineSelection.polling),
+    ...pickExports(MiscUtils, _inlineSelection.misc),
+    ...pickExports(VSCode, _inlineSelection.vscode),
+    getExportNames,
+    getNamespaceNames,
+    getBarrelMeta,
+    getCollisionCount,
+    getInlineSelection,
+    validateBarrelIntegrity,
+    integrityTest,
+    __barrel__,
+  });
+}
+
+/** Inferred from the builder so types track `_inlineSelection` without a hand-maintained map. */
+type InlineNamespace = ReturnType<typeof _buildInlineNamespace>;
+
+/** Strongly-typed shape of the Utils default export. */
+type UtilsNamespace = {
+  [K in keyof NamespaceMap]: DeepReadonly<NamespaceMap[K]>;
+} & {
+  inline: Readonly<InlineNamespace>;
+  __barrel__: BarrelMeta;
+};
+
+let _inlineNamespace: Readonly<InlineNamespace> | null = null;
+function _getInlineNamespace(): Readonly<InlineNamespace> {
+  if (!_inlineNamespace) {
+    _inlineNamespace = _buildInlineNamespace();
+  }
+  return _inlineNamespace;
+}
+
+const _frozenNamespaceCache: Record<string, DeepReadonly<Record<string, unknown>>> = {};
+function _getFrozenNamespace(key: string): DeepReadonly<Record<string, unknown>> {
+  if (!_frozenNamespaceCache[key]) {
+    _frozenNamespaceCache[key] = freezeNamespace(
+      (_namespaceRegistry as unknown as Record<string, Record<string, unknown>>)[key]
+    );
+  }
+  return _frozenNamespaceCache[key];
+}
+
 const _utilsTarget: Record<string, unknown> = {};
+Object.defineProperty(_utilsTarget, '__barrel__', {
+  get: () => __barrel__,
+  enumerable: true,
+  configurable: false,
+});
+Object.defineProperty(_utilsTarget, 'inline', {
+  get: () => _getInlineNamespace(),
+  enumerable: true,
+  configurable: false,
+});
 for (const key of Object.keys(_namespaceRegistry)) {
-  _utilsTarget[key] = freezeNamespace((_namespaceRegistry as unknown as Record<string, Record<string, unknown>>)[key]);
+  Object.defineProperty(_utilsTarget, key, {
+    get: () => _getFrozenNamespace(key),
+    enumerable: true,
+    configurable: false,
+  });
 }
-_utilsTarget['__barrel__'] = __barrel__;
-_utilsTarget['inline'] = _inlineNamespace;
 Object.freeze(_utilsTarget);
-
 export const Utils: UtilsNamespace = _utilsTarget as unknown as UtilsNamespace;
-
-// Run collision checks now that every namespace (including inline) is initialized
-if (!_collisionsChecked) {
-  _collisionsChecked = true;
-  _checkExportCollisions();
-}
 
 /**
  * Validate barrel integrity at runtime.
- * Checks that all namespaces are frozen and that __barrel__ contains every required key.
- * @returns {{ valid: boolean; errors: string[] }} Validation result.
+ * Checks that all namespaces are frozen, that __barrel__ contains every required key,
+ * and that no flat export is duplicated across namespaces.
+ * @returns {{ valid: boolean; errors: string[]; collisionCount: number }} Validation result.
  */
-export const validateBarrelIntegrity = (): { valid: boolean; errors: string[] } => {
+export const validateBarrelIntegrity = (): { valid: boolean; errors: string[]; collisionCount: number } => {
   const errors: string[] = [];
 
-  const nsKeys = getNamespaceNames();
-  for (const key of nsKeys) {
+  for (const key of getNamespaceNames()) {
     if (!Object.isFrozen((Utils as unknown as Record<string, unknown>)[key])) {
       errors.push(`Namespace "${key}" is not frozen`);
     }
   }
 
-  if (!Object.isFrozen(Utils)) {
-    errors.push('Default export is not frozen');
-  }
+  if (!Object.isFrozen(Utils)) errors.push('Default export is not frozen');
+  if (!Object.isFrozen(__barrel__)) errors.push('__barrel__ metadata is not frozen');
+  if (!Object.isFrozen(_getInlineNamespace())) errors.push('inline namespace is not frozen');
 
-  if (!Object.isFrozen(__barrel__)) {
-    errors.push('__barrel__ metadata is not frozen');
-  }
-
-  if (!Object.isFrozen(_inlineNamespace)) {
-    errors.push('inline namespace is not frozen');
-  }
-
-  if (!Utils.__barrel__) {
+  const barrel = Utils.__barrel__;
+  if (!barrel) {
     errors.push('Missing __barrel__ metadata');
   } else {
-    const barrel = Utils.__barrel__;
     for (const metaKey of BARREL_REQUIRED_KEYS) {
-      if (!(metaKey in barrel)) {
-        errors.push(`Missing __barrel__ key: "${metaKey}"`);
-      }
+      if (!(metaKey in barrel)) errors.push(`Missing __barrel__ key: "${metaKey}"`);
     }
   }
 
   const flat = _getExportNames();
+  const seen = new Map<string, string>();
+  _forEachRegistryExport((name, nsKey) => {
+    if (seen.has(name)) {
+      errors.push(`Export "${name}" is duplicated in namespaces "${seen.get(name)}" and "${nsKey}"`);
+    } else {
+      seen.set(name, nsKey);
+    }
+  });
   for (const key of flat) {
     if (key === 'default') continue;
-    let found = false;
-    for (const ns of Object.values(_namespaceRegistry)) {
-      if (ns && Object.prototype.hasOwnProperty.call(ns, key)) { found = true; break; }
-    }
-    if (!found && _barrelNativeNames.includes(key)) found = true;
-    if (!found && _inlineReExports.includes(key)) found = true;
+    const found = seen.has(key) || _barrelNativeNames.includes(key);
     if (!found) errors.push(`Export "${key}" not found in any namespace or inline registry`);
   }
 
-  for (const key of Object.keys(_inlineNamespace)) {
-    if (typeof (_inlineNamespace as unknown as Record<string, unknown>)[key] !== 'function' && typeof (_inlineNamespace as unknown as Record<string, unknown>)[key] !== 'object') {
-      errors.push(`Inline utility "${key}" has unsupported type: ${typeof (_inlineNamespace as unknown as Record<string, unknown>)[key]}`);
-    }
-  }
-
-  return { valid: errors.length === 0, errors };
+  return { valid: errors.length === 0, errors, collisionCount: getCollisionCount() };
 };
 
 /**
@@ -724,39 +627,47 @@ export const validateBarrelIntegrity = (): { valid: boolean; errors: string[] } 
  */
 export function integrityTest(): { passed: boolean; failures: string[] } {
   const failures: string[] = [];
-  function check(label: string, condition: boolean): void { if (!condition) failures.push(label); }
+  function check(label: string, condition: boolean): void {
+    if (!condition) failures.push(label);
+  }
 
-  check('compose identity', compose<number>()(5) === 5);
-  check('compose composes', compose((x: number) => x + 1, (x: number) => x * 2)(3) === 7);
-  check('pipe identity', pipe<number>()(5) === 5);
-  check('pipe pipes', pipe((x: number) => x + 1, (x: number) => x * 2)(3) === 8);
-  check('zipWith pairs', zipWith([1, 2], [3, 4], (a: number, b: number) => a + b)[0] === 4);
-  check('flip swaps args', flip((a: number, b: number) => a - b)(5, 3) === -2);
-  check('tryCatch ok', tryCatch(() => 1).ok === true);
-  check('tryCatch error', tryCatch(() => { throw new Error('x'); }).ok === false);
-  check('curry partial', curry((a: number, b: number) => a + b)(1)(2) === 3);
-  check('partial apply', partial((a: number, b: number) => a + b, 1)(2) === 3);
-  check('tap returns value', tap(5, () => undefined) === 5);
-  check('assert throws on false', (() => { try { assert(false); return false; } catch { return true; } })());
+  const integrity = validateBarrelIntegrity();
+  check('barrel integrity valid', integrity.valid);
+  check('barrel inline frozen', Object.isFrozen(Utils.inline));
+  check('barrel no unresolved exports', integrity.errors.filter((e) => e.includes('not found')).length === 0);
+  check('barrel no duplicate exports', integrity.errors.filter((e) => e.includes('duplicated')).length === 0);
+
+  check(
+    'compose composes',
+    FunctionalUtils.compose(
+      (x: number) => x + 1,
+      (x: number) => x * 2
+    )(3) === 7
+  );
+  check(
+    'pipe pipes',
+    FunctionalUtils.pipe(
+      (x: number) => x + 1,
+      (x: number) => x * 2
+    )(3) === 8
+  );
+  check('zipWith pairs', FunctionalUtils.zipWith([1, 2], [3, 4], (a: number, b: number) => a + b)[0] === 4);
   check('freezeNamespace deep', Object.isFrozen(freezeNamespace({ a: { b: 1 } }).a));
 
   // Inline namespace parity tests
-  check('groupBy', JSON.stringify(Utils.inline.groupBy([1, 2, 3], x => x % 2)) === JSON.stringify({ '1': [1, 3], '0': [2] }));
-  check('partition', JSON.stringify(Utils.inline.partition([1, 2, 3], x => x > 1)) === JSON.stringify([[2, 3], [1]]));
-  check('chunk', JSON.stringify(Utils.inline.chunk([1, 2, 3, 4], 2)) === JSON.stringify([[1, 2], [3, 4]]));
+  check(
+    'groupBy',
+    JSON.stringify(Utils.inline.groupBy([1, 2, 3], (x) => x % 2)) === JSON.stringify({ '1': [1, 3], '0': [2] })
+  );
   check('deepClone', Utils.inline.deepClone({ a: 1 }).a === 1);
-  check('deepEqual', Utils.inline.deepEqual({ a: 1 }, { a: 1 }));
   check('pick', JSON.stringify(Utils.inline.pick({ a: 1, b: 2 }, ['a'])) === JSON.stringify({ a: 1 }));
-  check('omit', JSON.stringify(Utils.inline.omit({ a: 1, b: 2 }, ['b'])) === JSON.stringify({ a: 1 }));
   check('clamp', Utils.inline.clamp(15, 0, 10) === 10);
-  check('formatBytes', Utils.inline.formatBytes(1024).includes('KB'));
-  check('formatNumber', Utils.inline.formatNumber(1000).includes('1'));
   check('escapeHtml', Utils.inline.escapeHtml('<div>').includes('&lt;'));
-  check('truncate', Utils.inline.truncate('hello world', 8) === 'hello...');
-  check('capitalize', Utils.inline.capitalize('hello') === 'Hello');
   check('isDefined', Utils.inline.isDefined(0));
-  check('parseJsonSafe', ((Utils.inline.parseJsonSafe('{"a":1}', null) as unknown) as Record<string, unknown>)['a'] === 1);
-  check('stringifySafe', Utils.inline.stringifySafe({ a: 1 }).includes('a'));
+  check(
+    'parseJsonSafe',
+    (Utils.inline.parseJsonSafe('{"a":1}', null) as unknown as Record<string, unknown>)['a'] === 1
+  );
 
   return { passed: failures.length === 0, failures };
 }

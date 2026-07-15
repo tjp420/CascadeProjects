@@ -7,7 +7,7 @@ const {
   sentEntryId,
   sendOutreachEmail
 } = require('./outreach-mail.cjs');
-const { sendClientError, ERROR_CODES } = require('./client-error.cjs');
+const { sendClientError, ERROR_CODES } = require('../../shared-utils/index.cjs');
 const { setupOutreachResendWebhook } = require('./outreach-resend-webhook.cjs');
 
 /**

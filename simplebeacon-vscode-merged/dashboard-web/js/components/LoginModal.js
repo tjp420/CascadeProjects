@@ -1,5 +1,5 @@
-import { authService } from '../services/authService.js';
-import { showToast, apiUrl } from '../utils.js';
+import { authService } from '../services/authService.js?v=20260713sync6';
+import { showToast } from '../utils.js';
 
 /**
  * Show login modal.
@@ -99,7 +99,7 @@ export function showLoginModal({ onSuccess } = {}) {
         `This token is registered to an account${emailHint}. Redirecting to email sign-in.`,
         'info'
       );
-      if (window.__SB_DASHBOARD_APP__) { window.__SB_DASHBOARD_APP__.navigate('signin'); }
+      window.location.hash = '#/signin';
       return;
     }
 
@@ -207,7 +207,7 @@ export function showLoginModal({ onSuccess } = {}) {
       recoveryStatus.textContent = 'Sending recovery link…';
       recoveryStatus.style.color = 'var(--text-muted)';
       try {
-        const res = await fetch(apiUrl('/api/auth/recover'), {
+        const res = await fetch('/api/auth/recover', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email })

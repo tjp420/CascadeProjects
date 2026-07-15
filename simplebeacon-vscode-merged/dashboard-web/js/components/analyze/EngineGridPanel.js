@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
 /**
  * EngineGridPanel — Sub-component for AnalyzeView
  * Renders the selectable engine/analysis-type grid.

@@ -4,14 +4,17 @@
  * applies SimpleBeacon heuristic rules, and produces an A-F compliance certificate.
  */
 
+import { canUseDirectoryPicker } from '../utils-lib/dom.js';
+
 const DEFAULT_MAX_FILE_SIZE = 1500000;
-const DEFAULT_MAX_FILES = 10000;
+const DEFAULT_MAX_FILES = 100000;
+const MAX_FINDINGS = 100000;
 
 // Hidden/artifact directories that bloat scans with false positives (reports, caches, binaries).
 const SKIP_DIRS = new Set([
   'node_modules', '.git', 'dist', 'build', '.simplebeacon', '.github', '.vscode',
   '.vscode-test', 'coverage', 'lcov-report', '.husky', '.windsurf', '.wrangler',
-  'packages', 'vendor', 'bower_components'
+  'bower_components'
 ]);
 // Source/config file types only; skip .md and .html to avoid flagging documentation/coverage output.
 const ALLOWED_EXTENSIONS = new Set([
@@ -96,23 +99,7 @@ const RULES = [
 ];
 
 function isSupported() {
-  if (typeof window === 'undefined' || typeof window.showDirectoryPicker !== 'function')
-    return false;
-  // Cross-origin iframes (e.g. VS Code: webviews) expose showDirectoryPicker but calling it
-  // throws "Cross origin sub frames aren't allowed to show a file picker". Fall back to the
-  // legacy webkitdirectory input in those contexts.
-  try {
-    if (window.self !== window.top) {
-      const topOrigin = window.top.location.origin;
-      if (topOrigin !== window.location.origin)
-        return false;
-    }
-  }
-  catch (_a) {
-    // Accessing window.top.location throws in a cross-origin frame.
-    return false;
-  }
-  return true;
+  return canUseDirectoryPicker();
 }
 
 function logLine(logger, message, level) {
@@ -434,6 +421,7 @@ async function analyzeDirectory({ rootName, fileQueue }, { maxFileSize, onLog, o
     });
 
     for (const finding of result.fileFindings) {
+      if (globalIssuesQueue.length >= MAX_FINDINGS) break;
       globalIssuesQueue.push(finding);
       if (finding.severity === 'HIGH' || finding.severity === 'CRITICAL') highRiskCount += 1;
       if (finding.severity === 'MEDIUM') mediumRiskCount += 1;
@@ -442,6 +430,10 @@ async function analyzeDirectory({ rootName, fileQueue }, { maxFileSize, onLog, o
 
   const certificate = gradeFindings(highRiskCount, mediumRiskCount);
   certificate.logs = globalIssuesQueue;
+  if (globalIssuesQueue.length >= MAX_FINDINGS) {
+    certificate.findingsTruncated = true;
+    logLine(onLog, `Findings capped at ${MAX_FINDINGS.toLocaleString()} for browser memory. Use CLI export for full list.`, 'warning');
+  }
 
   logLine(onLog, `Sandboxed drive sweep complete. Grade ${certificate.letterGrade} | ${fileReport.length}/${fileQueue.length} files (${skippedLarge + skippedError} skipped).`, 'success');
 

@@ -63,6 +63,7 @@ function issuePaths(issue) {
     const paths = [
         issue === null || issue === void 0 ? void 0 : issue.filePath,
         issue === null || issue === void 0 ? void 0 : issue.file,
+        issue === null || issue === void 0 ? void 0 : issue.path,
         ...((issue === null || issue === void 0 ? void 0 : issue.filePaths) || []),
         ...((issue === null || issue === void 0 ? void 0 : issue.affectedFiles) || [])
     ].filter(Boolean).map(normalizeRelPath);

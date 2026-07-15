@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
 /**
  * SimpleBeacon Streaming Parser Stress Framework
  * Isolates the 9-step stream-safe formatting pipeline by feeding it

@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
 /**
  * TargetConfigPanel — Sub-component for AnalyzeView
  * Handles path input, provider selection, and scan configuration UI.

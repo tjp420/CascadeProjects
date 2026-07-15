@@ -2,7 +2,7 @@ import { escapeHtml } from '../utils/string.js';
 import { showToast, downloadJson, renderEmptyState } from '../utils/dom.js';
 import { redactPathForDisplay } from '../utils/format.js';
 import { formatNumber } from '../utils/number.js';
-import { apiUrl } from '../utils/url.js';
+import { apiUrl } from '../utils/url.js?v=20260713website1';
 import { extractSecurityFindings, buildSecuritySummary, buildSecurityExportPayload, fetchComplianceHeadline } from '../services/securityService.js';
 /**
  * Security view.

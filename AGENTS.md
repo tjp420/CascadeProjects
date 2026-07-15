@@ -157,6 +157,23 @@ If critical issues are found during monthly review:
 
 ---
 
+## QA Framework (Builder / Validator)
+
+Cursor rule: **`.cursor/rules/qa-framework.mdc`** (`alwaysApply: true`).
+
+| Phase | Role | Artifact |
+|-------|------|----------|
+| 1 Spec | Builder | `.simplebeacon/qa/test_plan.md` (from `templates/qa/test_plan.template.md`) |
+| 2 Build | Builder | Code — only after plan approval |
+| 3 Validate | Validator (separate chat) | Run Level 1 gates/tests; adversarial review |
+| 4 Report | Validator | `.simplebeacon/qa/software_health_report.md` |
+
+**Level 1 commands:** `node -c`, `npm test` (ai-platform), `npm run compile` (extension), `npx simplebeacon scan --full --gate`.
+
+Switch roles explicitly: *"Act as Validator only"* — Validator must not write feature code.
+
+---
+
 ## AI Agent Rules — The Broom Strategy (Quick Reference)
 
 > Read this first. It takes 10 seconds and prevents 90% of AI hallucinations.

@@ -36,8 +36,10 @@ import {
   DebugReporter
 } from './providers';
 import { CodeMapTreeProvider } from './codeMapTreeProvider';
-import { startDataServer, stopDataServer, updateServerState, getDataServerPort, clearBrowserSessionToken, recordBrowserSignOut, setSidebarHtmlProvider, setAiContextCallback, restartDataServer, isDataServerRunning, setModernSidebarProvider, buildAiContextMarkdown, setNotifyCallback } from './dataServer';
-import { getExtensionVersion, pickWorkspaceFolder, correctScanPath, showQuietMessage, escapeHtml, getSbConfig } from './utils';
+import { startDataServer, stopDataServer, updateServerState, getDataServerPort, clearBrowserSessionToken, setBrowserSessionToken, recordBrowserSignOut, setSidebarHtmlProvider, setAiContextCallback, restartDataServer, isDataServerRunning, setModernSidebarProvider, buildAiContextMarkdown, setNotifyCallback, drainNotificationQueue, setTheme } from './dataServer';
+import { getExtensionVersion, pickWorkspaceFolder, correctScanPath, showQuietMessage, getSbConfig } from './utils/vscode';
+import { escapeHtml } from './utils/string';
+import { openWebsiteDashboardPanel } from './sidebarMessenger';
 import {
   getAgentPort,
   getLocalAgentInstallDir,
@@ -243,6 +245,7 @@ let advancedAnalytics: AdvancedAnalytics;
 let teamDashboard: TeamDashboard;
 let currentReport: unknown = null;
 let hasEnhancedAnalysis = false;
+const pendingSidebarDownloads: { name: string; path: string }[] = [];
 let statusBarItem: vscode.StatusBarItem;
 let lastScannedProjectPath: string | null = null;
 let isGeneratingCertificate = false;
@@ -375,26 +378,64 @@ export function activate(context: vscode.ExtensionContext) {
   const version = pkg?.version || 'unknown';
   try {
   vscode.window.showInformationMessage(`SimpleBeacon v${version} is activating...`);
-  console.log('[SimpleBeacon] Extension activating... v' + version);
   _extensionUri = context.extensionUri;
   _extensionContext = context;
   outputChannel = vscode.window.createOutputChannel('SimpleBeacon');
   context.subscriptions.push(outputChannel);
-  console.log('[SimpleBeacon] Output channel created');
+  outputChannel.appendLine('[SimpleBeacon] Extension activating... v' + version);
+  outputChannel.appendLine('[SimpleBeacon] Output channel created');
   startDataServer(context, outputChannel);
-  console.log('[SimpleBeacon] Data server started');
+  outputChannel.appendLine('[SimpleBeacon] Data server started');
 
   // Wire up external-browser → VS Code notification bridge
-  setNotifyCallback((entry) => {
+  const onNotifyEntry = (entry: any): void => {
     if (entry.type === 'openFile' && entry.payload?.path) {
       const filePath = entry.payload.path;
       Promise.resolve(vscode.commands.executeCommand('vscode.open', vscode.Uri.file(filePath))).catch(() => {
         outputChannel.appendLine(`[NotifyBridge] Could not open file: ${filePath}`);
       });
     } else if (entry.type === 'downloadComplete' && entry.payload?.filename) {
-      modernSidebarProvider?.addDownloadedFile(entry.payload.filename, entry.payload.filePath || '');
+      if (modernSidebarProvider) {
+        outputChannel.appendLine(`[NotifyBridge] Received downloadComplete: ${entry.payload.filename}`);
+        modernSidebarProvider.addDownloadedFile(entry.payload.filename, entry.payload.filePath || '');
+      } else {
+        pendingSidebarDownloads.push({ name: entry.payload.filename, path: entry.payload.filePath || '' });
+        outputChannel.appendLine(`[NotifyBridge] Queued downloadComplete: ${entry.payload.filename}`);
+      }
+    } else if (entry.type === 'setAuthState') {
+      const signedIn = entry.payload?.signedIn === true;
+      const token = typeof entry.payload?.token === 'string' ? entry.payload.token : '';
+      const tier = typeof entry.payload?.tier === 'string' ? entry.payload.tier : '';
+      const isAdmin = entry.payload?.isAdmin === true;
+      outputChannel.appendLine(`[NotifyBridge] Received setAuthState signedIn=${signedIn} token=${token ? 'present(' + token.length + ')' : 'none'} tier=${tier} isAdmin=${isAdmin}`);
+      // Persist to AuthManager before refreshing so refreshAuthState sees the authoritative token.
+      void (async () => {
+        try {
+          const authManager = getAuthManager();
+          if (signedIn && token) {
+            setBrowserSessionToken(token);
+            await authManager.setToken(token);
+          } else if (!signedIn) {
+            if (token) { recordBrowserSignOut(token); }
+            clearBrowserSessionToken();
+            await authManager.clearToken();
+          }
+        } catch { /* auth manager may not be initialized */ }
+        ModernSidebarProvider.setSidebarAuthState(signedIn, tier, token, undefined, isAdmin);
+        // Ensure the auth manager and sidebar UI refresh with the browser-provided token
+        setTimeout(() => ModernSidebarProvider.refreshAuthState(), 50);
+        outputChannel.appendLine(`[NotifyBridge] Auth state synced from browser: signedIn=${signedIn} tier=${tier} isAdmin=${isAdmin}`);
+      })();
     }
-  });
+  };
+  setNotifyCallback(onNotifyEntry);
+
+  // Process notifications that arrived while the callback was not yet wired (e.g.
+  // a website sign-in that happened during extension activation).
+  for (const entry of drainNotificationQueue()) {
+    outputChannel.appendLine(`[NotifyBridge] Draining queued notification type=${entry.type}`);
+    onNotifyEntry(entry);
+  }
 
   // Register critical commands FIRST so they're available even if later setup fails
   const earlyCommands: vscode.Disposable[] = [];
@@ -424,7 +465,7 @@ export function activate(context: vscode.ExtensionContext) {
     if (panel) { panel.showReportPane(); }
   });
   context.subscriptions.push(...earlyCommands);
-  console.log('[SimpleBeacon] Early commands registered: ' + earlyCommands.length);
+  outputChannel.appendLine('[SimpleBeacon] Early commands registered: ' + earlyCommands.length);
 
   // Register the Slop Cop quick-fix provider for line-level ignore comments
   context.subscriptions.push(
@@ -439,9 +480,11 @@ export function activate(context: vscode.ExtensionContext) {
   registerReferralEngine(context);
 
   context.subscriptions.push(vscode.window.onDidChangeActiveColorTheme(() => {
+    const kind = getCurrentIdeTheme();
+    setTheme(kind);
     postThemeToPanel(activePreviewPanel);
     if (typeof ModernSidebarProvider.postThemeToTeamDashboard === 'function') {
-      ModernSidebarProvider.postThemeToTeamDashboard(getCurrentIdeTheme());
+      ModernSidebarProvider.postThemeToTeamDashboard(kind);
     }
   }));
 
@@ -544,6 +587,36 @@ export function activate(context: vscode.ExtensionContext) {
           }
           return;
         }
+        // Website → sidebar relay for auth state (fallback when /api/notify is unreachable)
+        if (uri.path === '/relay/auth' || uri.path === 'relay/auth') {
+          const params = new URLSearchParams(uri.query);
+          const token = params.get('token') || '';
+          const tier = params.get('tier') || '';
+          const isAdmin = params.get('isAdmin') === 'true';
+          const signedIn = params.get('signedIn') === 'true';
+          if (token && signedIn) {
+            outputChannel.appendLine(`[URI Relay] Received auth deep-link token present tier=${tier}`);
+            setBrowserSessionToken(token);
+            getAuthManager().setToken(token)
+              .then(() => context.secrets.store('simplebeacon.apiToken', token))
+              .then(() => {
+                try {
+                  const payload = decodeJwtPayload(token);
+                  const email = payload?.email || payload?.sub || '';
+                  if (email) { return getAuthManager().setUserEmail(email); }
+                } catch { /* ignore decode errors */ }
+              })
+              .then(() => ModernSidebarProvider.setSidebarAuthState(true, tier, token, 'signIn', isAdmin))
+              .then(() => ModernSidebarProvider.refreshAuthState('signIn'))
+              .then(() => vscode.window.showInformationMessage('Signed in via SimpleBeacon website.'))
+              .catch((e) => outputChannel.appendLine(`[URI Relay] Auth relay error: ${e instanceof Error ? e.message : String(e)}`));
+          } else if (!signedIn && token) {
+            recordBrowserSignOut(token);
+            clearBrowserSessionToken();
+            ModernSidebarProvider.setSidebarAuthState(false, tier, '', 'signOut', isAdmin);
+          }
+          return;
+        }
       }
     })
   );
@@ -554,6 +627,13 @@ export function activate(context: vscode.ExtensionContext) {
   modernSidebarProvider = new ModernSidebarProvider(context.extensionUri);
   codeMapTreeProvider = new CodeMapTreeProvider(context.extensionUri);
   setModernSidebarProvider(modernSidebarProvider);
+  while (pendingSidebarDownloads.length) {
+    const dl = pendingSidebarDownloads.shift();
+    if (dl) {
+      outputChannel.appendLine(`[NotifyBridge] Replaying queued downloadComplete: ${dl.name}`);
+      modernSidebarProvider.addDownloadedFile(dl.name, dl.path);
+    }
+  }
   ModernSidebarProvider.setAccountTracker(getAccountTracker(context));
   import('./sidebarBridge').then(({ setSidebarBridge }) => {
     setSidebarBridge({
@@ -643,13 +723,23 @@ export function activate(context: vscode.ExtensionContext) {
   }
   safeUpdateUIsRef = safeUpdateUIs;
 
-  // Wire live findings to dashboard
+  // Wire live findings to dashboard (debounced — each tick used to rebuild 20+ welcome panes)
+  let liveFindingsUiTimer: ReturnType<typeof setTimeout> | undefined;
   realtimeMonitor.onLiveFindings((issues) => {
     const report = (currentReport || enhancedAIProvider.getRawScanResult() || enhancedAIProvider.getScanResult()) as any;
     if (!report) return;
 
     mergeLiveIssues(report, convertRealtimeIssues(issues));
-    safeUpdateUIs(report, `${report.totalIssues || 0} issues found`);
+    try {
+      modernSidebarProvider.updateReport(report as Record<string, unknown>);
+    } catch { /* ignore */ }
+    if (liveFindingsUiTimer) {
+      clearTimeout(liveFindingsUiTimer);
+    }
+    liveFindingsUiTimer = setTimeout(() => {
+      liveFindingsUiTimer = undefined;
+      safeUpdateUIs(report, `${report.totalIssues || 0} issues found`);
+    }, 2000);
   });
 
   // Wire AI session events to update dashboard webview
@@ -1261,7 +1351,9 @@ export function activate(context: vscode.ExtensionContext) {
         try { await getAccountTracker(context).recordLogout(existing, 'extension', 'signOutCommand'); } catch {}
       }
       showQuietMessage('Signed out');
-      await (await import('./modernSidebarProvider')).ModernSidebarProvider.refreshAuthState('signOut');
+      const msp = await import('./modernSidebarProvider');
+      msp.ModernSidebarProvider.setSidebarAuthState(false, '', '', 'signOut');
+      await msp.ModernSidebarProvider.refreshAuthState('signOut');
       outputChannel.appendLine('[SimpleBeacon] signOut command completed');
     }),
     registerCmd('simplebeacon.viewAccountHistory', async () => {
@@ -1363,15 +1455,9 @@ export function activate(context: vscode.ExtensionContext) {
           await vscode.env.openExternal(vscode.Uri.parse(path));
           return;
         }
-        // Dashboard URLs must be served by the local data server so the auth API is same-origin.
-        if (path.includes('/dashboard')) {
-          const port = getDataServerPort();
-          const parsed = new URL(path);
-          const localPath = parsed.pathname + parsed.search + parsed.hash;
-          await vscode.env.openExternal(vscode.Uri.parse(`http://127.0.0.1:${port}${localPath}`));
-          return;
-        }
-        await openPreviewPanel(path, 'SimpleBeacon Preview');
+        // HTTPS URLs (including simplebeacon.ai) are loaded in the bridged website dashboard
+        // panel so setTheme/setAuthState postMessage sync with the sidebar works.
+        openWebsiteDashboardPanel(path, 'SimpleBeacon Preview');
         return;
       }
       WelcomeDashboard.createOrShow(context.extensionUri, true)?.showDashboardPane();
@@ -1563,7 +1649,7 @@ export function activate(context: vscode.ExtensionContext) {
       }
     }),
     registerCmd('simplebeacon.openPreview', async () => {
-      await vscode.commands.executeCommand('simpleBrowser.show', 'https://simplebeacon.ai/dashboard/#/dashboard');
+      ModernSidebarProvider.openDashboardRouteInBrowser('/dashboard');
     }),
     registerCmd('simplebeacon.openDashboardPreview', async () => {
       WelcomeDashboard.createOrShow(context.extensionUri, true)?.showDashboardPane();
@@ -1579,7 +1665,8 @@ export function activate(context: vscode.ExtensionContext) {
     }),
     registerCmd('simplebeacon.openUrlInPreview', async (url?: string, _title?: string) => {
       if (url && /^https?:\/\//.test(url)) {
-        await vscode.commands.executeCommand('simpleBrowser.show', url);
+        // Open through the bridged panel so setTheme/setAuthState postMessage sync works.
+        openWebsiteDashboardPanel(url, _title || 'SimpleBeacon Dashboard');
       } else {
         WelcomeDashboard.createOrShow(context.extensionUri);
       }
@@ -3107,9 +3194,9 @@ Timestamp: ${escapeHtml(new Date().toISOString())}</pre>
     }),
   ];
 
-  console.log('[SimpleBeacon] Registering ' + commands.length + ' commands...');
+  outputChannel.appendLine('[SimpleBeacon] Registering ' + commands.length + ' commands...');
   context.subscriptions.push(...commands);
-  console.log('[SimpleBeacon] Commands registered successfully');
+  outputChannel.appendLine('[SimpleBeacon] Commands registered successfully');
   vscode.window.showInformationMessage(`SimpleBeacon v${version} activated successfully.`);
 
   const folders = vscode.workspace.workspaceFolders;
@@ -3170,26 +3257,34 @@ Timestamp: ${escapeHtml(new Date().toISOString())}</pre>
  * Tries bundled, workspace-local, and npx global paths.
  */
 function resolveCliPath(): { cmd: string; args: string[] } | null {
-  // 1. Bundled CLI (development build)
-  const bundled = path.join(__dirname, '..', 'packages', 'simplebeacon-cli', 'bin', 'simplebeacon.js');
-  if (fs.existsSync(bundled)) {
-    return { cmd: 'node', args: [bundled] };
-  }
-
-  // 2. Workspace-local CLI (if user cloned the repo)
-  const workspaceFolders = vscode.workspace.workspaceFolders;
-  if (workspaceFolders && workspaceFolders.length > 0) {
-    const localCli = path.join(workspaceFolders[0].uri.fsPath, 'packages', 'simplebeacon-cli', 'bin', 'simplebeacon.js');
-    if (fs.existsSync(localCli)) {
-      return { cmd: 'node', args: [localCli] };
+  // Helper to locate the CLI from a set of root candidates.
+  const tryCli = (...roots: string[]) => {
+    for (const root of roots) {
+      if (!root) { continue; }
+      const candidate = path.join(root, 'packages', 'simplebeacon-cli', 'bin', 'simplebeacon.js');
+      if (fs.existsSync(candidate)) {
+        return { cmd: 'node', args: [candidate] };
+      }
     }
-  }
+    return undefined;
+  };
 
-  // 3. Global npx install (use npx.cmd on Windows so spawn(shell:false) works)
+  // 1. Bundled CLI (development build) and parent workspace (e.g. extension lives under a monorepo)
+  const workspaceFolders = vscode.workspace.workspaceFolders;
+  const firstWs = workspaceFolders && workspaceFolders[0]?.uri?.fsPath;
+  const resolved = tryCli(
+    path.join(__dirname, '..'), // extension root
+    path.join(__dirname, '..', '..'), // monorepo root
+    firstWs || '',
+    firstWs ? path.join(firstWs, '..') : ''
+  );
+  if (resolved) { return resolved; }
+
+  // 2. Global npx install (use npx.cmd on Windows so spawn(shell:false) works)
   const isWindows = process.platform === 'win32';
   const npxCmd = isWindows ? 'npx.cmd' : 'npx';
   try {
-    execSync(`${npxCmd} simplebeacon --version`, { stdio: 'ignore', timeout: 5000 });
+    execSync(`${npxCmd} simplebeacon --version`, { stdio: 'ignore', timeout: 30000 });
     return { cmd: npxCmd, args: ['simplebeacon'] };
   } catch {
     // CLI not available via npx
@@ -3271,6 +3366,14 @@ async function runScan(context: vscode.ExtensionContext, projectPath?: string, o
   }
 
   lastScannedProjectPath = projectPath;
+
+  updateServerState({
+    scanStatus: 'scanning',
+    scanMessage: 'Initializing scan…',
+    scanProgressProcessed: 0,
+    scanProgressTotal: 100,
+    scanProgressFile: '',
+  });
 
   // Ensure .simplebeacon directory exists so the CLI can write report.json
   try {
@@ -3461,10 +3564,10 @@ async function runScan(context: vscode.ExtensionContext, projectPath?: string, o
           );
           outputChannel.appendLine(`[SimpleBeacon] Local agent scan complete. Score: ${scanScore}/100 — Gate: ${scanGate}`);
           scanInProgress = false;
-          generateCodeMap(false)
+          generateCodeMap(false, projectPath)
             .then(() => outputChannel.appendLine('[SimpleBeacon] Code map generated in background'))
             .catch((e) => outputChannel.appendLine(`[SimpleBeacon] Code map generation failed: ${e}`));
-          return;
+          return report;
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
@@ -3534,6 +3637,12 @@ async function runScan(context: vscode.ExtensionContext, projectPath?: string, o
           visualSidebarProvider.setScanning(true, { phase: 'Scanning', progress: clamped, total: 100 });
           modernSidebarProvider.updateStatus('scanning', 'Scanning... ' + clamped + '%');
           modernSidebarProvider.updateScanProgress(clamped);
+          updateServerState({
+            scanStatus: 'scanning',
+            scanMessage: `Scanning… ${clamped}%`,
+            scanProgressProcessed: clamped,
+            scanProgressTotal: 100,
+          });
         }
         function _startSimulatedProgress() {
           if (progressInterval) return;
@@ -3798,7 +3907,7 @@ async function runScan(context: vscode.ExtensionContext, projectPath?: string, o
             _stopSimulatedProgress();
             _reportProgress(100);
             // Generate code map in the background after scan, but do not auto-open it
-            generateCodeMap(false)
+            generateCodeMap(false, projectPath)
               .then(() => outputChannel.appendLine('[SimpleBeacon] Code map generated in background'))
               .catch((e) => outputChannel.appendLine(`[SimpleBeacon] Code map generation failed: ${e}`));
             resolve(report);
@@ -3845,29 +3954,66 @@ function clearResults() {
   showQuietMessage('SimpleBeacon results cleared');
 }
 
-async function generateCodeMap(openPanel = true) {
+/** Resolve the directory tree root for codemap generation (matches last scan target, not always workspace root). */
+function resolveCodeMapScanRoot(override?: string | null): string {
+  const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
+  const candidates: string[] = [];
+  if (override) { candidates.push(override); }
+  if (lastScannedProjectPath) { candidates.push(lastScannedProjectPath); }
+  const report = currentReport as SidebarReport | null;
+  if (report?.projectRoot) { candidates.push(report.projectRoot); }
+  if (report?.projectPath) { candidates.push(report.projectPath); }
+  for (const candidate of candidates) {
+    const resolved = path.resolve(String(candidate));
+    try {
+      if (fs.existsSync(resolved) && fs.statSync(resolved).isDirectory()) {
+        return resolved;
+      }
+    } catch { /* try next candidate */ }
+  }
+  return workspaceRoot;
+}
+
+function loadGitignorePatterns(...roots: string[]): string[] {
+  const patterns: string[] = [];
+  const seen = new Set<string>();
+  for (const root of roots) {
+    if (!root) continue;
+    const gitignorePath = path.join(root, '.gitignore');
+    try {
+      if (!fs.existsSync(gitignorePath)) continue;
+      const key = path.resolve(gitignorePath);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const gitignoreContent = fs.readFileSync(gitignorePath, 'utf8');
+      patterns.push(...gitignoreContent.split(/\r?\n/).filter((line: string) => line.trim() && !line.startsWith('#')));
+    } catch { /* ignore unreadable gitignore */ }
+  }
+  return patterns;
+}
+
+async function generateCodeMap(openPanel = true, scanRootOverride?: string | null) {
   try {
     const workspaceFolders = vscode.workspace.workspaceFolders;
     if (!workspaceFolders || workspaceFolders.length === 0) {
       showQuietMessage('Open a workspace to generate a code map');
       return;
     }
-    const root = workspaceFolders[0].uri.fsPath;
-    const sbDir = path.join(root, '.simplebeacon');
+    const workspaceRoot = workspaceFolders[0].uri.fsPath;
+    const scanRoot = resolveCodeMapScanRoot(scanRootOverride);
+    if (!scanRoot || !fs.existsSync(scanRoot)) {
+      showQuietMessage('Scan path not found — run a scan or open a valid folder first');
+      return;
+    }
+    const sbDir = path.join(workspaceRoot, '.simplebeacon');
     const mapPath = path.join(sbDir, 'codemap.json');
     const mapHtmlPath = path.join(sbDir, 'codemap.html');
+    outputChannel.appendLine(`[SimpleBeacon] Code map scan root: ${scanRoot.replace(/\\/g, '/')} (artifacts → ${sbDir.replace(/\\/g, '/')})`);
     const exclude = new Set(['node_modules', '.git', '.simplebeacon', 'dist', 'build', 'out', '.vscode', 'coverage', '.husky']);
     const binaryExts = new Set(['.png', '.jpg', '.jpeg', '.gif', '.ico', '.woff', '.woff2', '.ttf', '.eot', '.pdf', '.zip', '.tar', '.gz', '.tgz', '.bz2', '.7z', '.exe', '.dll', '.so', '.dylib', '.bin', '.dat', '.mp3', '.mp4', '.avi', '.mov', '.webm', '.svg', '.webp', '.wav', '.ogg']);
 
-    // Parse .gitignore patterns
-    const gitignorePatterns: string[] = [];
-    const gitignorePath = path.join(root, '.gitignore');
-    try {
-      if (fs.existsSync(gitignorePath)) {
-        const gitignoreContent = fs.readFileSync(gitignorePath, 'utf8');
-        gitignorePatterns.push(...gitignoreContent.split(/\r?\n/).filter((line: string) => line.trim() && !line.startsWith('#')));
-      }
-    } catch { /* ignore */ }
+    // Parse .gitignore patterns from scan root and workspace (monorepo subfolder scans)
+    const gitignorePatterns = loadGitignorePatterns(scanRoot, workspaceRoot);
     function matchesGitignore(filePath: string): boolean {
       for (const pattern of gitignorePatterns) {
         const trimmed = pattern.trim();
@@ -3914,12 +4060,12 @@ async function generateCodeMap(openPanel = true) {
       }
     }
 
-    walk(root, '');
+    walk(scanRoot, '');
 
     // Detect architecture
     const has = (ext: string) => (counts[ext] || 0) > 0;
-    const hasPkg = fs.existsSync(path.join(root, 'package.json'));
-    const hasPy = fs.existsSync(path.join(root, 'requirements.txt')) || has('.py');
+    const hasPkg = fs.existsSync(path.join(scanRoot, 'package.json'));
+    const hasPy = fs.existsSync(path.join(scanRoot, 'requirements.txt')) || has('.py');
     const archParts: string[] = [];
     if (hasPkg) archParts.push('Node.js');
     if (hasPy) archParts.push('Python');
@@ -3946,7 +4092,7 @@ async function generateCodeMap(openPanel = true) {
       if (!importPath.startsWith('.')) return null;
       const dir = path.dirname(sourceFile);
       const base = path.resolve(dir, importPath).replace(/\\/g, '/');
-      const relBase = base.replace(root.replace(/\\/g, '/'), '').replace(/^\//, '');
+      const relBase = base.replace(scanRoot.replace(/\\/g, '/'), '').replace(/^\//, '');
       for (const f of files) {
         if (f.path === relBase || f.path === relBase + '.js' || f.path === relBase + '.ts' ||
             f.path === relBase + '.tsx' || f.path === relBase + '.jsx' || f.path === relBase + '.cjs' || f.path === relBase + '.mjs' ||
@@ -3968,6 +4114,12 @@ async function generateCodeMap(openPanel = true) {
         const target = resolveImport(f.full, imp);
         if (target && target !== f.path) depEdges.push({ source: f.path, target });
       }
+    }
+
+    if (Object.keys(depNodes).length === 0) {
+      const fallback = buildFolderStructureGraph(files);
+      for (const n of fallback.nodes) depNodes[n.id] = n;
+      depEdges.push(...fallback.edges);
     }
 
     // Detect circular dependencies
@@ -3994,7 +4146,8 @@ async function generateCodeMap(openPanel = true) {
 
     const codeMap = {
       generatedAt: new Date().toISOString(),
-      projectPath: root,
+      projectPath: scanRoot,
+      workspaceRoot,
       totalFiles: files.length,
       totalLines,
       languages: topExts.map(([ext, count]) => ({ extension: ext, count })),
@@ -4034,7 +4187,7 @@ async function generateCodeMap(openPanel = true) {
 
     // Build tree structure for sidebar
     interface TreeNode { name: string; path: string; type: 'dir' | 'file'; children: TreeNode[]; size?: number; lines?: number; ext?: string; viewable?: boolean; inGraph?: boolean; }
-    const tree: TreeNode = { name: path.basename(root), path: '', type: 'dir', children: [] };
+    const tree: TreeNode = { name: path.basename(scanRoot), path: '', type: 'dir', children: [] };
     const graphNodeIds = new Set(Object.keys(depNodes));
     for (const f of files) {
       const parts = f.path.split('/').filter(Boolean);
@@ -4124,12 +4277,12 @@ async function generateCodeMap(openPanel = true) {
       const connectedJson = JSON.stringify(mostConnected).replace(/</g, '\\u003c');
       const treeJson = JSON.stringify(serializeTreeNode(tree.children)).replace(/</g, '\\u003c');
 
-      const analysis = analyzeCodeMap({ files, depNodes, depEdges, cycles: uniqueCycles, root });
+      const analysis = analyzeCodeMap({ files, depNodes, depEdges, cycles: uniqueCycles, root: scanRoot });
       const analysisJson = JSON.stringify(analysis).replace(/</g, '\\u003c');
       fs.writeFileSync(path.join(sbDir, 'codemap-analysis.json'), JSON.stringify(analysis, null, 2));
 
       const html = buildCodeMapHtml({
-        root,
+        root: scanRoot,
         files,
         totalLines,
         archParts,
@@ -4170,7 +4323,8 @@ async function generateCodeMap(openPanel = true) {
     const treeJsonPath = path.join(sbDir, 'codemap-tree.json');
     try {
       fs.writeFileSync(treeJsonPath, JSON.stringify({
-        projectName: path.basename(root),
+        projectName: path.basename(scanRoot),
+        projectPath: scanRoot,
         generatedAt: new Date().toISOString(),
         tree: serializeTreeNode(tree.children)
       }, null, 2));
@@ -4194,6 +4348,13 @@ async function generateCodeMap(openPanel = true) {
 }
 
 let codeMapPanel: vscode.WebviewPanel | undefined;
+
+function resolveCodeMapFilePath(relativePath: string): string {
+  const workspace = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+  if (!workspace) return relativePath;
+  const scanRoot = resolveCodeMapScanRoot(null);
+  return path.isAbsolute(relativePath) ? relativePath : path.join(scanRoot, relativePath);
+}
 
 async function openCodeMapPanel() {
   const workspaceFolders = vscode.workspace.workspaceFolders;
@@ -4224,7 +4385,7 @@ async function openCodeMapPanel() {
   codeMapPanel.webview.onDidReceiveMessage(async (msg: any) => {
     if (msg.command === 'openFile' && msg.path) {
       const workspaceFolders = vscode.workspace.workspaceFolders;
-      const filePath = path.isAbsolute(msg.path) ? msg.path : (workspaceFolders ? path.join(workspaceFolders[0].uri.fsPath, msg.path) : msg.path);
+      const filePath = resolveCodeMapFilePath(msg.path);
       try {
         const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(filePath));
         await vscode.window.showTextDocument(doc, { preview: false });
@@ -5390,6 +5551,35 @@ function analyzeCodeMap(data: { files: { name: string; ext: string; size: number
   };
 }
 
+/** Folder-tree fallback when a project has no JS/TS import graph (ZScript, WAD defs, etc.). */
+function buildFolderStructureGraph(
+  files: { path: string; name: string; ext: string; lines: number }[]
+): { nodes: { id: string; label: string; group: string; size: number }[]; edges: { source: string; target: string }[] } {
+  const nodes: Record<string, { id: string; label: string; group: string; size: number }> = {};
+  const edges: { source: string; target: string }[] = [];
+  const edgeSeen = new Set<string>();
+  const addEdge = (source: string, target: string) => {
+    const key = `${source}\0${target}`;
+    if (source && target && source !== target && !edgeSeen.has(key)) {
+      edgeSeen.add(key);
+      edges.push({ source, target });
+    }
+  };
+  for (const f of files) {
+    if (/\.(bak\d?|back\d+|working|tmp|old)$/i.test(f.name)) continue;
+    nodes[f.path] = { id: f.path, label: f.name, group: f.ext || '.other', size: f.lines || 1 };
+    const parts = f.path.split('/').filter(Boolean);
+    if (parts.length <= 1) continue;
+    for (let i = 0; i < parts.length - 1; i++) {
+      const dirPath = parts.slice(0, i + 1).join('/');
+      nodes[dirPath] = nodes[dirPath] || { id: dirPath, label: parts[i], group: 'dir', size: 0 };
+      if (i > 0) addEdge(parts.slice(0, i).join('/'), dirPath);
+    }
+    addEdge(parts.slice(0, -1).join('/'), f.path);
+  }
+  return { nodes: Object.values(nodes), edges };
+}
+
 function buildCodeMapHtml(options: CodeMapHtmlOptions): string {
   const { root, files, totalLines, archParts, topExts, extColors, extIcons, treeHtml, treeJson, graphJson, cyclesJson, entryJson, leafJson, connectedJson, analysisJson } = options;
   const extBarHtml = topExts.map(([ext, count]) => {
@@ -5727,7 +5917,7 @@ body.theme-light .arch-svg line{stroke:#cbd5e1}
         <div class="graph-legend-item"><div class="graph-legend-dot" style="background:#64748b"></div>Other</div>
         <div style="margin-top:8px;padding-top:6px;border-top:1px solid #334155;font-size:10px;color:#94a3b8;line-height:1.4">
           <span style="color:#22c55e">&#9679;</span> In graph &nbsp; <span style="color:#64748b">&#9679;</span> Not in graph<br>
-          Graph shows JS/TS modules only.
+          JS/TS: import graph. Other stacks: folder tree.
         </div>
       </div>
       <div class="minimap" id="minimap"><canvas id="minimapCanvas"></canvas><div class="minimap-label">Map</div></div>
@@ -5783,8 +5973,44 @@ body.theme-light .arch-svg line{stroke:#cbd5e1}
 <script type="application/json" id="connectedData">${connectedJson}</script>
 <script type="application/json" id="analysisData">${analysisJson}</script>
 <script>
-const GRAPH = JSON.parse(document.getElementById('graphData').textContent);
+function buildGraphFromTree(items, parentPath) {
+  const nodes = [], edges = [];
+  const seenN = new Set(), seenE = new Set();
+  function addNode(id, label, group, size) {
+    if (!id || seenN.has(id)) return;
+    seenN.add(id);
+    nodes.push({ id, label, group, size: size || 1 });
+  }
+  function addEdge(source, target) {
+    const k = source + '->' + target;
+    if (source && target && source !== target && !seenE.has(k)) { seenE.add(k); edges.push({ source, target }); }
+  }
+  function walk(list, parent) {
+    for (const item of list || []) {
+      if (item.type === 'dir') {
+        addNode(item.path, item.name, 'dir', 0);
+        if (parent) addEdge(parent, item.path);
+        walk(item.children, item.path);
+      } else if (item.type === 'file') {
+        if (/\\.(bak\\d?|back\\d+|working)$/i.test(item.name)) continue;
+        addNode(item.path, item.name, item.ext || '.other', item.lines || 1);
+        if (parent) addEdge(parent, item.path);
+      }
+    }
+  }
+  walk(items, parentPath || null);
+  return { nodes, edges, mode: 'folder' };
+}
+function loadGraphPayload() {
+  const raw = JSON.parse(document.getElementById('graphData').textContent);
+  if (raw.nodes && raw.nodes.length) return { ...raw, mode: 'imports' };
+  const tree = JSON.parse(document.getElementById('treeData').textContent);
+  return buildGraphFromTree(tree, '');
+}
 const TREE = JSON.parse(document.getElementById('treeData').textContent);
+const GRAPH = loadGraphPayload();
+const GRAPH_MODE = GRAPH.mode || 'imports';
+delete GRAPH.mode;
 const CYCLES = JSON.parse(document.getElementById('cyclesData').textContent);
 const ENTRIES = JSON.parse(document.getElementById('entriesData').textContent);
 const LEAVES = JSON.parse(document.getElementById('leavesData').textContent);
@@ -6130,6 +6356,38 @@ if (statsEl) {
       return '';
     }
 
+    function appendDetailRow(container, label, value) {
+      const row = document.createElement('div');
+      row.className = 'detail-row';
+      const labelEl = document.createElement('span');
+      labelEl.className = 'detail-label';
+      labelEl.textContent = label;
+      const valueEl = document.createElement('span');
+      valueEl.className = 'detail-val';
+      valueEl.textContent = String(value);
+      row.appendChild(labelEl);
+      row.appendChild(valueEl);
+      container.appendChild(row);
+    }
+
+    function appendDetailSection(container, heading, items, renderItem) {
+      if (!items.length) return;
+      const hdr = document.createElement('div');
+      hdr.style.marginTop = '10px';
+      hdr.style.fontSize = '11px';
+      hdr.style.color = '#94a3b8';
+      hdr.textContent = heading;
+      container.appendChild(hdr);
+      items.forEach((item) => {
+        const row = document.createElement('div');
+        row.style.fontSize = '11px';
+        row.style.padding = '2px 0';
+        row.style.color = '#e2e8f0';
+        renderItem(row, item);
+        container.appendChild(row);
+      });
+    }
+
     function openFileDetail(fp) {
       const modal = document.getElementById('fileDetailModal');
       const title = document.getElementById('fileDetailTitle');
@@ -6142,27 +6400,25 @@ if (statsEl) {
       const cycles = (CYCLES || []).filter(c => c.includes(fp));
       const issuesForFile = [...(ANALYSIS.issues || []), ...(ANALYSIS.improvements || [])].filter(i => (i.files || []).includes(fp));
       const recsForFile = (ANALYSIS.recommendations || []).filter(r => (r.files || []).includes(fp));
-      let html = '';
-      html += '<div class="detail-row"><span class="detail-label">Lines</span><span class="detail-val">' + lines + '</span></div>';
-      html += '<div class="detail-row"><span class="detail-label">Size</span><span class="detail-val">' + (size ? (size / 1024).toFixed(1) + ' KB' : '-') + '</span></div>';
-      html += '<div class="detail-row"><span class="detail-label">Connections</span><span class="detail-val">' + connections + '</span></div>';
-      html += '<div class="detail-row"><span class="detail-label">Cycles</span><span class="detail-val">' + cycles.length + '</span></div>';
-      html += '<div class="detail-row"><span class="detail-label">Role</span><span class="detail-val">' + (isEntry.has(fp) ? 'Entry Point' : isLeaf.has(fp) ? 'Leaf' : isHub.has(fp) ? 'Hub' : '—') + '</span></div>';
-      if (issuesForFile.length) {
-        html += '<div style="margin-top:10px;font-size:11px;color:#94a3b8">Flagged Issues:</div>';
-        issuesForFile.forEach(i => {
-          html += '<div style="font-size:11px;padding:2px 0;color:#e2e8f0">• ' + i.title + ' <span class="file-metric">(' + i.severity + ')</span></div>';
-        });
-      }
-      if (recsForFile.length) {
-        html += '<div style="margin-top:10px;font-size:11px;color:#94a3b8">Recommendations:</div>';
-        recsForFile.forEach(r => {
-          html += '<div style="font-size:11px;padding:2px 0;color:#e2e8f0">• ' + r.title + '</div>';
-        });
-      }
-      title.textContent = fp.split('/').pop() || fp;
-      title.title = fp;
-      content.innerHTML = html;
+      content.replaceChildren();
+      appendDetailRow(content, 'Lines', lines);
+      appendDetailRow(content, 'Size', size ? (size / 1024).toFixed(1) + ' KB' : '-');
+      appendDetailRow(content, 'Connections', connections);
+      appendDetailRow(content, 'Cycles', cycles.length);
+      appendDetailRow(content, 'Role', isEntry.has(fp) ? 'Entry Point' : isLeaf.has(fp) ? 'Leaf' : isHub.has(fp) ? 'Hub' : '—');
+      appendDetailSection(content, 'Flagged Issues:', issuesForFile, (row, issue) => {
+        row.textContent = '• ' + (issue.title || '');
+        const metric = document.createElement('span');
+        metric.className = 'file-metric';
+        metric.textContent = '(' + (issue.severity || '') + ')';
+        row.appendChild(metric);
+      });
+      appendDetailSection(content, 'Recommendations:', recsForFile, (row, rec) => {
+        row.textContent = '• ' + (rec.title || '');
+      });
+      const displayName = fp.split('/').pop() || fp;
+      title.textContent = displayName;
+      title.title = displayName;
       modal.classList.add('active');
     }
 
@@ -6313,9 +6569,23 @@ if (statsEl) {
 // Force-directed graph with full interactivity
 (function(){
   const canvas = document.getElementById('graphCanvas');
-  if (!canvas || GRAPH.nodes.length === 0) return;
-  const ctx = canvas.getContext('2d');
+  if (!canvas) return;
   const wrap = canvas.parentElement;
+  if (GRAPH.nodes.length === 0) {
+    const msg = document.createElement('div');
+    msg.className = 'empty-state';
+    msg.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;color:#94a3b8;font-size:13px;line-height:1.5';
+    msg.textContent = 'No files to map — run a scan on a folder with source files.';
+    wrap.appendChild(msg);
+    return;
+  }
+  if (GRAPH_MODE === 'folder') {
+    const hint = document.createElement('div');
+    hint.style.cssText = 'position:absolute;top:48px;left:50%;transform:translateX(-50%);background:rgba(15,23,42,0.92);border:1px solid #334155;border-radius:8px;padding:8px 14px;font-size:11px;color:#94a3b8;z-index:12;pointer-events:none';
+    hint.textContent = 'Folder layout graph (no JS/TS imports detected)';
+    wrap.appendChild(hint);
+  }
+  const ctx = canvas.getContext('2d');
   const detailsPanel = document.getElementById('nodeDetailsPanel');
   const detailName = document.getElementById('nodeDetailName');
   const detailBody = document.getElementById('nodeDetailBody');
@@ -8245,6 +8515,36 @@ function loadExistingReport(context?: vscode.ExtensionContext) {
     }
   }
 
+  // Priority 5: Bundled report in extension root (simplebeacon-report.json)
+  if (context?.extensionUri) {
+    const rp = path.join(context.extensionUri.fsPath, 'simplebeacon-report.json');
+    try {
+      const stat = fs.statSync(rp);
+      const ageMs = Date.now() - stat.mtimeMs;
+      const maxAgeMs = 30 * 24 * 60 * 60 * 1000;
+      if (ageMs <= maxAgeMs) {
+        const report = JSON.parse(fs.readFileSync(rp, 'utf8'));
+        currentReport = report;
+        updateServerState({ currentReport: report, scanStatus: 'completed', scanMessage: 'Loaded bundled report', lastScanTime: Date.now() });
+        enhancedAIProvider.setScanResult(report);
+        scanProvider.updateReport(report);
+        enhancedScanProvider.updateReport(report);
+        visualSidebarProvider.updateReport(report);
+        summaryProvider.updateReport(report);
+        settingsProvider.updateReport(report);
+        modernSidebarProvider.updateReport(report);
+        dashboardPanel?.updateReport(report);
+        modernSidebarProvider.updateStatus('completed', 'Loaded bundled report');
+        vscode.commands.executeCommand('setContext', 'simplebeacon.hasResults', true);
+        updateStatusBar(report);
+        outputChannel?.appendLine(`[SimpleBeacon] Loaded bundled report: ${rp}`);
+        return;
+      }
+    } catch {
+      // ignore: bundled report not present or invalid
+    }
+  }
+
   // Fallback: search for most recent report.json backup
   for (const folder of workspaceFolders) {
     const sbDir = path.join(folder.uri.fsPath, '.simplebeacon');
@@ -8311,6 +8611,23 @@ async function openPreviewPanel(url: string, title: string) {
       }
       if (msg.command === 'scanComplete' && msg.stats) {
         dashboardPanel?.updateStats(msg.stats);
+        return;
+      }
+      if (msg.command === 'pickFolder') {
+        const picked = await vscode.window.showOpenDialog({
+          canSelectFiles: false,
+          canSelectFolders: true,
+          canSelectMany: false,
+          openLabel: 'Select Folder to Scan'
+        });
+        if (picked && picked[0]) {
+          const projectPath = picked[0].fsPath;
+          vscode.commands.executeCommand('simplebeacon.scanWorkspace', {
+            projectPath,
+            mode: 'full',
+            fullDirectory: true
+          });
+        }
         return;
       }
       if (msg.command === 'sendToAI' && msg.data) {
@@ -8429,6 +8746,16 @@ async function openPreviewPanel(url: string, title: string) {
         // Forward auth state from dashboard iframe to sidebar
         const tier = msg.tier || '';
         ModernSidebarProvider.setSidebarAuthState(msg.signedIn === true, tier, undefined, undefined, msg.isAdmin === true);
+      } else if (msg.command === 'addDownloadedFile' && msg.name) {
+        // Forward download notifications from dashboard iframe to sidebar when the /api/notify HTTP bridge fails
+        const name = String(msg.name);
+        const filePath = typeof msg.path === 'string' ? msg.path : '';
+        outputChannel.appendLine(`[PreviewPanel] Forwarding addDownloadedFile from iframe: ${name}`);
+        if (modernSidebarProvider) {
+          modernSidebarProvider.addDownloadedFile(name, filePath);
+        } else {
+          pendingSidebarDownloads.push({ name, path: filePath });
+        }
       } else if (msg.command === 'storeActiveLicenseToken' && msg.token) {
         // Store token and forward auth state to sidebar
         try {
@@ -8497,11 +8824,36 @@ async function openPreviewPanel(url: string, title: string) {
   };
 })();
 <\/script>`;
+    const dropFallbackScript = `<script>
+(function() {
+  if (typeof window === 'undefined' || typeof acquireVsCodeApi !== 'function') return;
+  const vscode = acquireVsCodeApi();
+  window.addEventListener('drop', function(e) {
+    try {
+      const dt = e.dataTransfer;
+      if (!dt) return;
+      const hasFiles = !!(dt.files && dt.files.length > 0);
+      let hasPath = hasFiles;
+      if (!hasPath) {
+        try { hasPath = !!(dt.getData('text/plain') || '').trim(); } catch {}
+      }
+      if (!hasPath) {
+        try { hasPath = !!(dt.getData('text/uri-list') || '').trim(); } catch {}
+      }
+      if (!hasPath) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        vscode.postMessage({ command: 'pickFolder' });
+      }
+    } catch (err) {}
+  }, true);
+})();
+<\/script>`;
     const headClose = rewritten.indexOf('</head>');
     if (headClose > 0) {
-      rewritten = rewritten.slice(0, headClose) + cspTag + apiHostScript + routeScript + projectPathScript + fetchInterceptorScript + rewritten.slice(headClose);
+      rewritten = rewritten.slice(0, headClose) + cspTag + apiHostScript + routeScript + projectPathScript + fetchInterceptorScript + dropFallbackScript + rewritten.slice(headClose);
     } else {
-      rewritten = cspTag + apiHostScript + routeScript + projectPathScript + fetchInterceptorScript + rewritten;
+      rewritten = cspTag + apiHostScript + routeScript + projectPathScript + fetchInterceptorScript + dropFallbackScript + rewritten;
     }
     panel!.title = title;
     panel!.webview.html = rewritten;

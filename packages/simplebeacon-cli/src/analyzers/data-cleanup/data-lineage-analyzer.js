@@ -6,7 +6,7 @@ const path = require('path');
 const { isDataFile } = require('./utils/data-file-utils');
 const { parseNonCodeReferences } = require('../file-reduction/utils/file-reference-tracker');
 const { parseImports, parseRuntimeReferences } = require('../file-reduction/utils/import-parser');
-const constants = require('../../../../../ai-platform/server/config/constants.cjs');
+const constants = require('../../lib/constants');
 
 const SOURCE_EXTENSIONS = new Set(['.js', '.mjs', '.cjs', '.ts', '.tsx', '.jsx', '.html', '.md']);
 

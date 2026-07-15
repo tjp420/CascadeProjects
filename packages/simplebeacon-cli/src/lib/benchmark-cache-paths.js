@@ -47,6 +47,12 @@ const EXCLUDED_CREDENTIAL_PATTERNS = [
     { type: 'benchmark', fn: isExternalBenchmarkCachePath },
     // Specific files
     { type: 'literal', test: 'credential-incident-triage.json' },
+    { type: 'literal', test: 'LICENSES.chromium.html' },
+    // Vendor / build artifacts
+    { type: 'regex', pattern: /\.vscode-test\// },
+    { type: 'regex', pattern: /\/node_modules\// },
+    { type: 'regex', pattern: /^node_modules\// },
+    { type: 'regex', pattern: /(?:^|\/)(dist|build|out)\// },
     // Test directories
     { type: 'regex', pattern: /^tests\// },
     { type: 'regex', pattern: /\/tests\// },

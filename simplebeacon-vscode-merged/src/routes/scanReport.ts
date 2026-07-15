@@ -1,6 +1,6 @@
 import * as http from 'http';
 import * as vscode from 'vscode';
-import { getSbConfig } from '../utils';
+import { getSbConfig } from '../utils/vscode';
 import { listDirectories, ServerState } from '../dataServer';
 
 /**

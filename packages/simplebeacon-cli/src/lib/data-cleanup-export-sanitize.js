@@ -8,7 +8,7 @@ const { aggregateCleanupFindings } = require('./result-aggregator');
 const { normalizeFileReductionReport } = require('./normalize-file-reduction-report');
 const { redactProjectPathForExport, projectLabelFromPath } = require('./assessment-export-sanitize');
 const { shouldSkipRuntimeLogFile } = require('../analyzers/file-reduction/build-artifact-scanner');
-const constants = require('../../../../ai-platform/server/config/constants.cjs');
+const constants = require('./constants');
 
 function resolveProductPlatformRoot(projectPath) {
     const normalized = String(projectPath || '').replace(/\\/g, '/');

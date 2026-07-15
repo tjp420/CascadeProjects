@@ -1,6 +1,6 @@
 const path = require('path');
 const { runEuAiActSprint } = require('./eu-ai-act-sprint-service.cjs');
-const { toClientError } = require('./client-error.cjs');
+const { toClientError } = require('../../shared-utils/index.cjs');
 const { resolveProjectPath } = require('./flexible-analyze-utils.cjs');
 
 /**

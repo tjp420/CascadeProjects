@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import * as crypto from 'crypto';
-import { getSbConfig } from './utils';
+import { getSbConfig } from './utils/vscode';
 
 interface DebugEntry {
   timestamp: string;

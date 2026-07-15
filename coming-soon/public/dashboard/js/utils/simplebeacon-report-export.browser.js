@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
 /**
 
  * Browser mirror of simplebeacon-report-export-sanitize.js — keep in sync.

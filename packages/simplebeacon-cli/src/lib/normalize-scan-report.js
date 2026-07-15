@@ -31,17 +31,113 @@ function recomputeQualityScore(issues, gateConfig = {}) {
     return computeQualityScoreFromIssues(issues, gateConfig);
 }
 
+/**
+ * SimpleBeacon Gate Status Reconciliation Matrix
+ * Ensures absolute alignment between summary state and blocking counts.
+ * @param {Object} report Scan report draft or normalized export.
+ * @returns {Object} Report with scan_summary, gate.pass, and metrics aligned to blockingCount.
+ */
+function reconcileScanReport(report) {
+    if (!report || typeof report !== 'object') return report;
+
+    const gate = report.gate && typeof report.gate === 'object' ? report.gate : {};
+    const blockingIssues = Array.isArray(gate.blockingIssues) ? gate.blockingIssues : [];
+    const blockingCount = gate.blockingCount != null
+        ? gate.blockingCount
+        : blockingIssues.reduce((sum, issue) => sum + (issue.count || 1), 0);
+    const hasBlockers = blockingCount > 0 || blockingIssues.length > 0;
+
+    if (!report.scan_summary || typeof report.scan_summary !== 'object') {
+        report.scan_summary = {};
+    }
+
+    const quotaBlocked = report.scan_summary.status === 'BLOCKED'
+        || report.scan_summary.reason === 'scan_quota_exceeded';
+
+    if (hasBlockers) {
+        report.scan_summary.status = 'FAILED';
+        report.scan_summary.block_merge = true;
+        report.gate = {
+            ...gate,
+            pass: false,
+            blockingCount: blockingCount || blockingIssues.reduce((sum, issue) => sum + (issue.count || 1), 0),
+            blockingIssues
+        };
+        if (report.metrics && typeof report.metrics === 'object') {
+            report.metrics.status = 'CRITICAL_BLOCK';
+        }
+        if (report.summary && typeof report.summary === 'object') {
+            report.summary.gatePass = false;
+        }
+    } else if (!quotaBlocked) {
+        report.scan_summary.status = 'PASSED';
+        report.scan_summary.block_merge = false;
+        report.gate = {
+            ...gate,
+            pass: true,
+            blockingCount: 0,
+            blockingIssues,
+            ...(Array.isArray(gate.warningIssues) ? { warningIssues: gate.warningIssues } : {})
+        };
+        if (report.metrics && typeof report.metrics === 'object' && report.metrics.status === 'CRITICAL_BLOCK') {
+            report.metrics.status = 'OK';
+        }
+        if (report.summary && typeof report.summary === 'object') {
+            report.summary.gatePass = true;
+        }
+    }
+
+    return report;
+}
+
+function normalizeReportFinding(finding) {
+    if (!finding || typeof finding !== 'object') return null;
+    const severity = String(finding.severity || finding.severityBand || 'medium').toLowerCase();
+    const type = finding.category || finding.type || 'finding';
+    return {
+        id: finding.id || null,
+        type,
+        severity,
+        severityBand: severity,
+        filePath: finding.file || finding.filePath || finding.path || null,
+        line: finding.line || null,
+        description: finding.message || finding.description || finding.snippet || `${type} finding`,
+        count: finding.count || 1,
+        affectedFiles: finding.file ? [finding.file] : (finding.affectedFiles || []),
+        filePaths: finding.file ? [finding.file] : (finding.filePaths || [])
+    };
+}
+
+function collectReportFindings(report) {
+    if (!report || typeof report !== 'object') return [];
+    if (Array.isArray(report.findings) && report.findings.length > 0) {
+        return report.findings.map(normalizeReportFinding).filter(Boolean);
+    }
+    if (report.categories && typeof report.categories === 'object') {
+        const all = [];
+        for (const cat of Object.values(report.categories)) {
+            if (cat && Array.isArray(cat.findings)) all.push(...cat.findings);
+            else if (Array.isArray(cat)) all.push(...cat);
+        }
+        return all.map(normalizeReportFinding).filter(Boolean);
+    }
+    return [];
+}
+
 function normalizePlatformScanReport(report, options = {}) {
     if (!report || report.type !== 'simplebeacon-report') return report;
 
-    const sourceIssues = (report.rawIssues && report.rawIssues.length)
+    let sourceIssues = (report.rawIssues && report.rawIssues.length)
         ? report.rawIssues
-        : (report.detectedIssues || []);
+        : [];
+    if (!sourceIssues.length) {
+        sourceIssues = collectReportFindings(report);
+    }
     const { platformIssues, benchmarkCacheIssues, excludedScanNoiseIssues } = partitionBenchmarkIssues(sourceIssues);
     const deduped = [];
     const seen = new Set();
     for (const issue of platformIssues) {
-        const key = issue.id || `${issue.severity}|${issue.type}|${issue.filePath}|${issue.description}`;
+        const key = issue.id || `${issue.severity}|${issue.type}|${issue.filePath}|${issue.line || ''}|${issue.description}`;
         if (seen.has(key)) continue;
         seen.add(key);
         deduped.push(issue);
@@ -121,11 +217,12 @@ function normalizePlatformScanReport(report, options = {}) {
         }];
     }
 
-    return normalized;
+    return reconcileScanReport(normalized);
 }
 
 module.exports = {
     normalizePlatformScanReport,
+    reconcileScanReport,
     isStaleFullTreeScan,
     recomputeQualityScore,
     isExternalBenchmarkCachePath

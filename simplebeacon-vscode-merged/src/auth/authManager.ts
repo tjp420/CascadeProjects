@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { getSbConfig } from '../utils';
+import { getSbConfig } from '../utils/vscode';
 import { getDataServerPort } from '../dataServer';
 import { AccountTracker } from '../accountTracker';
 

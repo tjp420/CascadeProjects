@@ -21,6 +21,8 @@ export interface RawIssue {
   severity?: string;
   /** Category tag. */
   category?: string;
+  /** Number of occurrences represented by this finding record. */
+  count?: number;
   /** Package name, for dependency vulnerabilities. */
   packageName?: string;
   /** Rule or finding identifier. */
@@ -46,10 +48,13 @@ export interface FindingItem {
 /** Complete scan report data structure from SimpleBeacon. */
 export interface ScanReport {
   [key: string]: unknown;
-  gate?: { pass?: boolean; blockingIssues?: RawIssue[] };
+  gate?: { pass?: boolean; blockingIssues?: RawIssue[]; blockingCount?: number; warningCount?: number };
+  scan_summary?: { status?: string; low_severity_count?: number; medium_severity_count?: number; high_severity_count?: number; total_risks_found?: number; block_merge?: boolean };
   qualityScore?: number;
   totalFiles?: number;
   filesAnalyzed?: number;
+  issueCount?: number;
+  severityCounts?: { critical?: number; high?: number; medium?: number; low?: number };
   rawIssues?: RawIssue[];
   findings?: RawIssue[];
   detectedIssues?: RawIssue[];
@@ -82,6 +87,54 @@ export interface ScanReport {
   maintainability?: { maintainabilityFindings?: RawIssue[] };
 }
 
+export function normalizeScanReport(report: ScanReport): ScanReport {
+  const source = Array.isArray(report.rawIssues) && report.rawIssues.length
+    ? report.rawIssues
+    : Array.isArray(report.detectedIssues) && report.detectedIssues.length
+      ? report.detectedIssues
+      : Array.isArray(report.findings) ? report.findings : [];
+  const summary = report.scan_summary || {};
+  const severityCounts = report.severityCounts || {};
+  const counted = (severity: string) => source.reduce((total, finding) => (
+    String(finding.severity || '').toLowerCase() === severity ? total + (finding.count || 1) : total
+  ), 0);
+  const normalizedSeverityCounts = {
+    critical: severityCounts.critical ?? counted('critical'),
+    high: severityCounts.high ?? summary.high_severity_count ?? counted('high'),
+    medium: severityCounts.medium ?? summary.medium_severity_count ?? counted('medium'),
+    low: severityCounts.low ?? summary.low_severity_count ?? counted('low'),
+  };
+  const issueCount = source.reduce((total, finding) => total + (finding.count || 1), 0);
+  const gate = { ...(report.gate || {}) };
+  if (gate.blockingCount == null) {
+    gate.blockingCount = normalizedSeverityCounts.critical + normalizedSeverityCounts.high;
+  }
+  if (gate.warningCount == null) {
+    gate.warningCount = normalizedSeverityCounts.medium + normalizedSeverityCounts.low;
+  }
+  const blockingIssues = Array.isArray(gate.blockingIssues) ? gate.blockingIssues : [];
+  const hasBlockers = (gate.blockingCount ?? 0) > 0 || blockingIssues.length > 0;
+  if (hasBlockers) {
+    gate.pass = false;
+    summary.status = 'FAILED';
+    summary.block_merge = true;
+  } else if (gate.pass == null && typeof summary.status === 'string') {
+    gate.pass = summary.status.toUpperCase() === 'PASSED';
+  } else if (gate.pass == null) {
+    gate.pass = true;
+  }
+  const categoryFindings = (type: string) => source.filter((finding) => finding.type === type);
+  return {
+    ...report,
+    gate,
+    scan_summary: summary,
+    issueCount: report.issueCount === 0 && issueCount > 0 ? issueCount : (report.issueCount ?? issueCount),
+    severityCounts: normalizedSeverityCounts,
+    testCoverage: report.testCoverage || { testCoverageFindings: categoryFindings('test-coverage') },
+    workspaceHealth: report.workspaceHealth || { workspaceFindings: categoryFindings('workspace-health') },
+  };
+}
+
 /**
  * Tree data provider for scan phases and findings in the sidebar.
  */
@@ -97,7 +150,7 @@ export class ScanPhaseProvider implements vscode.TreeDataProvider<TreeNode> {
    * @param {ScanReport | null} report New scan report, or null to clear.
    */
   updateReport(report: ScanReport | null) {
-    this.report = report;
+    this.report = report ? normalizeScanReport(report) : null;
     this._onDidChangeTreeData.fire();
   }
 

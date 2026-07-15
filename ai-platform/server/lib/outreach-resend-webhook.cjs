@@ -7,7 +7,7 @@ const fs = require('fs');
 const path = require('path');
 
 const express = require('express');
-const { sendClientError, ERROR_CODES } = require('./client-error.cjs');
+const { sendClientError, ERROR_CODES } = require('../../shared-utils/index.cjs');
 const { loadSentLog, writeSentLog } = require('./outreach-mail.cjs');
 
 const constants = require('../config/constants.cjs');

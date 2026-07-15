@@ -1,4 +1,4 @@
-jest.mock('../../lib/project-require.cjs', () => {
+jest.mock('../../shared-utils/index.cjs', () => {
   return jest.fn((path) => {
     if (path === 'sales/license/renewal-tracker.js') {
       return {

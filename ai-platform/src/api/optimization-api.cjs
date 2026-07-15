@@ -220,8 +220,6 @@ function setupOptimizationAPI(app, options = {}) {
  */
 function computeHealthFromReport(report) {
     const { computeRepositoryHealthScore } = require('../../server/lib/repository-health-payload.cjs');
-const { resolvePlatformRoot, sanitizeConsolidationExport } = require('../../server/lib/simplebeacon-proxy.cjs');
-
     return computeRepositoryHealthScore(report.summary || {});
 }
 

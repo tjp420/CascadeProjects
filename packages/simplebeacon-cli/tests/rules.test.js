@@ -176,7 +176,7 @@ test('credential scanner detects AWS key and allows demo placeholder', () => {
 });
 
 test('credential scanner detects JWT pattern', () => {
-    const token = 'eyJzzzzzzzzzzzzzzzz.eyJyyyyyyyyyyyyyyyyy.zzzzzzzzzzzzzzzzzzzz';
+    const token = 'eyJzzzzzzzzzzzzzzzz.eyJyyyyyyyyyyyyyyyyy.zzzzzzzzzzzzzzzzzzzz'; // simplebeacon-ignore credentials, token
     const findings = scanTextContent('token.txt', token);
     assert.ok(findings.some((f) => f.metadata.patternId === 'jwt-token'));
 });
@@ -197,7 +197,7 @@ test('formatGithubComment includes gate and severities', () => {
         severityCounts: { high: 0, medium: 1, low: 0 },
         rawIssues: [{ severity: 'medium', type: 'Test', description: 'example' }]
     }, { pass: true });
-    assert.match(body, /Simplebeacon/);
+    assert.match(body, /SimpleBeacon/);
     assert.match(body, /PASS/);
 });
 

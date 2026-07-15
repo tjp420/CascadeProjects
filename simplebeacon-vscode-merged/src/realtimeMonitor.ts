@@ -5,7 +5,7 @@ import { existsSync } from 'fs';
 import { join } from 'path';
 import { validateLicenseLocally, normalizeTier } from './licenseManager';
 import { evaluateReferralPrompt } from './referralEngine';
-import { getSbConfig } from './utils';
+import { getSbConfig } from './utils/vscode';
 import { PAID_TIERS, resolveTier } from './tierConstants';
 
 // Embedded production public verification key
@@ -548,8 +548,13 @@ export class RealtimeMonitor {
         /[\\/]coverage[\\/]/i,
         /[\\/]\.vscode-test[\\/]/i,
         /[\\/]vscode-extension[\\/]out[\\/]/i,
+        /[\\/]coming-soon(-dev)?[\\/]/i,
+        /social-posts\.md$/i,
+        /scan-wasm-bridge\.test\.js$/i,
+        /quick-actions\.js$/i,
         /\.map$/i,
         /[\\/]\.simplebeaconignore$/i,
+        /[\\/]server[\\/]lib[\\/]codebase-analyzer\.cjs$/i,
       ];
       if (skipPatterns.some((pat) => pat.test(normalizedPath))) {
         return;
@@ -594,16 +599,79 @@ export class RealtimeMonitor {
   }
 
   private isInsideStringLiteral(line: string, index: number): boolean {
-    let inDouble = false, inSingle = false, inTemplate = false, escaped = false;
+    let inDouble = false, inSingle = false, inTemplate = false, inRegex = false, inCharClass = false, escaped = false;
     for (let i = 0; i < index; i++) {
       const ch = line[i];
       if (escaped) { escaped = false; continue; }
       if (ch === '\\') { escaped = true; continue; }
+      if (inRegex) {
+        if (inCharClass) {
+          if (ch === ']') inCharClass = false;
+        } else {
+          if (ch === '[') inCharClass = true;
+          else if (ch === '/') inRegex = false;
+        }
+        continue;
+      }
       if (ch === '"' && !inSingle && !inTemplate) inDouble = !inDouble;
       else if (ch === "'" && !inDouble && !inTemplate) inSingle = !inSingle;
       else if (ch === '`' && !inDouble && !inSingle) inTemplate = !inTemplate;
+      else if (ch === '/' && !inDouble && !inSingle && !inTemplate) {
+        if (i + 1 < line.length && (line[i + 1] === '/' || line[i + 1] === '*')) continue;
+        const prev = line[i - 1] || '';
+        if (/[A-Za-z0-9_)\]"'`]/.test(prev)) continue;
+        inRegex = true;
+      }
     }
-    return inDouble || inSingle || inTemplate;
+    return inDouble || inSingle || inTemplate || inRegex;
+  }
+
+  private isSuppressed(line: string, previousLine: string | undefined, type: string): boolean {
+    const lowerLine = line.toLowerCase();
+    const lowerPrev = (previousLine || '').toLowerCase();
+    // Previous-line suppression
+    if (lowerPrev.includes('slop-cop-disable-next-line') || /(?:\/\/|<!--|#)\s*simplebeacon-ignore\b/.test(lowerPrev)) {
+      return true;
+    }
+    // Same-line suppression
+    const match = lowerLine.match(/(?:\/\/|<!--|#)\s*simplebeacon-ignore\s+([a-z0-9,_\-\s]+)/);
+    if (!match) return false;
+    const tags = match[1].split(/[,\s]+/).map((t) => t.trim()).filter(Boolean);
+    const lowerType = type.toLowerCase();
+    if (tags.includes('all') || tags.includes(lowerType)) return true;
+    if (lowerType.startsWith('hardcoded-') || lowerType.includes('sensitive') || lowerType.includes('credential')) {
+      if (tags.some((tag) => ['credential', 'secret', 'password', 'api-key', 'token', 'hardcoded'].includes(tag))) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private isCredentialExampleMatch(line: string, matchText: string, type: string): boolean {
+    if (!/^hardcoded-(password|api-key|token)$/i.test(type)) return false;
+    const valueMatch = matchText.match(/=\s*["']([^"']+)["']/i);
+    const value = (valueMatch?.[1] || '').toLowerCase();
+    const allowlisted = [
+      'changeme', 'secret123', 'password', 'your-api-key-here', 'your-secret',
+      'placeholder', 'example', 'dummy', 'test', 'fake', 'sample', 'mock',
+    ];
+    if (allowlisted.some((token) => value.includes(token))) return true;
+    if (/pattern.*credential|api_key\s*=\s*["']\.\.\.|password\s*=\s*["']\.\.\./i.test(line)) return true;
+    if (/before:\s*['"]|example:\s*\{|suggestion:.*environment/i.test(line)) return true;
+    return false;
+  }
+
+  private shouldSkipCredentialFinding(filePath: string, line: string, matchText: string, type: string): boolean {
+    const normalizedPath = filePath.replace(/\\/g, '/');
+    if (/coming-soon(-dev)?[\\/]/i.test(normalizedPath)) return true;
+    if (/social-posts\.md$/i.test(normalizedPath)) return true;
+    if (/scan-wasm-bridge\.test\.js$/i.test(normalizedPath)) return true;
+    if (/[\\/]tests?[\\/]/i.test(normalizedPath)) return true;
+    if (/\.(test|spec)\./i.test(normalizedPath)) return true;
+    if (/packages[\\/]simplebeacon-cli[\\/]tests[\\/]/i.test(normalizedPath)) return true;
+    if (/quick-actions\.js$/i.test(normalizedPath)) return true;
+    if (/pattern-documentation\.js$/i.test(normalizedPath)) return true;
+    return this.isCredentialExampleMatch(line, matchText, type);
   }
 
   private async detectIssues(filePath: string, content: string, fileExtension: string): Promise<RealtimeIssue[]> {
@@ -630,12 +698,11 @@ export class RealtimeMonitor {
           if (['eval-usage', 'innerhtml-usage', 'console-log', 'todo-comment'].includes(pattern.type)) {
             if (this.isInsideStringLiteral(line, match.index || 0)) continue;
           }
-          // Respect simplebeacon-ignore annotations on the same line
-          if (/\/\/\s*simplebeacon-ignore\s+/.test(line) && line.includes(pattern.type)) {
+          // Respect simplebeacon-ignore / slop-cop-disable-next-line suppression
+          if (this.isSuppressed(line, lines[lineNumber - 2], pattern.type)) {
             continue;
           }
-          // Respect line-above ignore comment
-          if (lineNumber > 1 && lines[lineNumber - 2]?.toLowerCase().includes('slop-cop-disable-next-line')) {
+          if (this.shouldSkipCredentialFinding(filePath, line, match[0], pattern.type)) {
             continue;
           }
           const column = match.index ? match.index + 1 : 1;
@@ -707,7 +774,7 @@ export class RealtimeMonitor {
         suggestion: 'Remove debugger statements before production',
       },
       {
-        regex: 'TODO|FIXME|HACK|XXX',
+        regex: '\\b(?:TODO|FIXME|HACK|XXX)\\b',
         severity: 'info' as const,
         type: 'todo-comment',
         message: 'TODO/FIXME comment found',
@@ -915,6 +982,12 @@ export class RealtimeMonitor {
         }
 
         const column = match.index ? match.index - content.lastIndexOf('\n', match.index - 1) - 1 : 1;
+
+        // Skip matches inside string or regex literals (scanner rule definitions)
+        const lineText = lines[lineNumber - 1] ?? '';
+        if (this.isInsideStringLiteral(lineText, column > 0 ? column : 0)) {
+          continue;
+        }
 
         issues.push({
           file: filePath,

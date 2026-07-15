@@ -31,7 +31,7 @@ jest.mock('../server/lib/path-safety.cjs', () => ({
   })
 }));
 
-jest.mock('../server/lib/client-error.cjs', () => ({
+jest.mock('../shared-utils/index.cjs', () => ({
   toClientError: jest.fn((err, fallback) => err.message || fallback)
 }));
 

@@ -1,5 +1,5 @@
 import { apiUrl, showToast } from '../utils.js';
-import { authService } from '../services/authService.js';
+import { authService } from '../services/authService.js?v=20260713sync5';
 
 /**
  * Stripe checkout metadata verifier.

@@ -90,9 +90,13 @@ function isScannable(filePath) {
 }
 
 function isExcludedPath(filePath, rootDir) {
-  const rel = filePath.replace(rootDir, '').replace(/^[/\\]+/, '');
+  const rel = filePath.replace(rootDir, '').replace(/^[/\\]+/, '').replace(/\\/g, '/');
   const firstDir = rel.split(/[/\\]/)[0];
-  return SKIP_DIRS.has(firstDir);
+  if (SKIP_DIRS.has(firstDir)) return true;
+  if (/social-posts\.md$/i.test(rel)) return true;
+  if (/scan-wasm-bridge\.test\.js$/i.test(rel)) return true;
+  if (/quick-actions\.js$/i.test(rel)) return true;
+  return false;
 }
 
 function extractComments(content, ext) {

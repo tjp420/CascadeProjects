@@ -196,7 +196,13 @@ class SimplebeaconDashboard {
       return;
     }
 
-    await authService.ensureAuthenticated();
+    const authed = await authService.ensureAuthenticated();
+    if (!authed && authService.authRequired) {
+      this.router.init();
+      this.router.navigate('signin');
+      this.updateAuthUi();
+      return;
+    }
     this.bootstrapAfterAuth();
   }
 
@@ -473,7 +479,7 @@ class SimplebeaconDashboard {
             </details>
           </div>
 
-          <p style="margin-top:var(--space-4);"><a href="/dashboard/dashboard" class="btn btn-secondary btn-block" onclick="document.getElementById('token-prompt-modal')?.remove();window.location.hash='#/dashboard';return false;">&#8592; Return to Dashboard</a></p>
+          <p style="margin-top:var(--space-4);"><a href="/dashboard/" class="btn btn-secondary btn-block" onclick="document.getElementById('token-prompt-modal')?.remove();return true;">&#8592; Return to Dashboard</a></p>
         </div>
       </div>
     `;

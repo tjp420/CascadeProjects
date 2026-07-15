@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
 /**
  * Simplebeacon CLI
  */
@@ -18,7 +19,9 @@ const {
     writeManagedFileSync,
 } = require('../src/index');
 const { validateFormat, selectPayload } = require('../src/lib/format-utils');
-const { formatGithubComment, postGithubComment } = require('../src/reporters/github-comment');
+const { formatGithubComment, formatGithubStepSummary, postGithubComment } = require('../src/reporters/github-comment');
+const { resolveCiLicense } = require('../src/lib/ci-license');
+const { collectGitDiffFiles } = require('../src/lib/git-diff-scope');
 const { buildAssessmentReport } = require('../src/assessment');
 const { sanitizeReportForCloudUpload } = require('../src/lib/report-sanitizer');
 const { buildAnonymizedExport, signAnonymizedExport } = require('../src/lib/anonymized-export');
@@ -181,7 +184,10 @@ function createDefaultOptions(command) {
         email: null,
         tier: null,
         forceNpmAudit: false,
-        debug: false
+        debug: false,
+        diff: false,
+        baseRef: null,
+        headRef: null
     };
 }
 
@@ -254,6 +260,9 @@ const FLAG_MAP = [
     { aliases: ['--mcp-mode'], key: 'mcpMode', type: 'string' },
     { aliases: ['--debug'], key: 'debug', type: 'boolean' },
     { aliases: ['--slop-cop'], key: 'slopCop', type: 'boolean' },
+    { aliases: ['--diff'], key: 'diff', type: 'boolean' },
+    { aliases: ['--base-ref'], key: 'baseRef', type: 'string' },
+    { aliases: ['--head-ref'], key: 'headRef', type: 'string' }
 ];
 
 // Auto-derive knownFlags from FLAG_MAP so it never drifts
@@ -606,7 +615,8 @@ async function executeOneScan(options, networkGuard) {
     if (!options || typeof options !== 'object') throw new TypeError('executeOneScan requires an options object');
     const scanRoot = options.path;
     const { platformRoot } = resolvePlatformRoot(scanRoot);
-    const config = loadSimplebeaconConfig(platformRoot, options.config);
+    const configPath = options.config ? path.resolve(scanRoot, options.config) : options.config;
+    const config = loadSimplebeaconConfig(platformRoot, configPath);
     if (options.complete || options.fullDirectoryScan) {
         config.fullDirectoryScan = true;
         if (options.verbose) console.error('[scan] --complete enabled: full directory scan + all analyzers');
@@ -628,6 +638,20 @@ async function executeOneScan(options, networkGuard) {
     spinner.start();
     try {
         const sanitizedScanRoot = sanitizePath(scanRoot);
+        if (options.diff) {
+            const diffFiles = collectGitDiffFiles(sanitizedScanRoot, {
+                baseRef: options.baseRef,
+                headRef: options.headRef
+            });
+            if (diffFiles && diffFiles.length) {
+                options.diffFiles = diffFiles;
+                if (options.verbose) {
+                    console.error(`[scan] Diff-only mode: ${diffFiles.length} changed file(s)`);
+                }
+            } else if (!options.quiet) {
+                console.error('[scan] --diff enabled but no changed files detected; scanning full configured scope.');
+            }
+        }
         // Deep scan: bypass docs/vendor/cache filters (but still respect .simplebeaconignore)
         if (options.deepScan) {
             config.fullDirectoryScan = true;
@@ -642,14 +666,19 @@ async function executeOneScan(options, networkGuard) {
             configPath: options.config,
             withJest: options.withJest,
             fullDirectoryScan: options.fullDirectoryScan || options.deepScan,
-            ci: options.withCi,
+            ci: options.withCi || Boolean(process.env.CI || process.env.GITHUB_ACTIONS),
             tier: options.tier || 'developer',
             tierLimits: options.tierLimits || undefined,
+            paidLicense: options.paidLicense,
+            sandboxMode: options.sandboxMode,
+            active: options.active,
+            upgradeUrl: options.upgradeUrl,
             exclude: options.exclude,
             deepScan: options.deepScan,
             includeDeps: options.includeDeps,
             minConfidence: options.minConfidence,
-            slopCop: options.slopCop
+            slopCop: options.slopCop,
+            diffFiles: options.diffFiles
         });
         networkGuard.assertOfflineClean();
         printTrustCompletion({
@@ -699,6 +728,23 @@ async function executeOneScan(options, networkGuard) {
             writeStdoutLine(payload);
         }
 
+        if (options.paidLicense) {
+            try {
+                const { postCiTelemetry } = require('../src/lib/ci-telemetry');
+                const telemetryResult = await postCiTelemetry(jsonReport, {
+                    paid: true,
+                    tier: options.tier || 'developer'
+                });
+                if (telemetryResult.ok && !options.quiet) {
+                    console.error('[simplebeacon] Team CI telemetry recorded.');
+                } else if (telemetryResult.networkError && !options.quiet) {
+                    console.error('[simplebeacon] Team telemetry skipped (license server unreachable).');
+                }
+            } catch (_telemetryErr) {
+                /* non-blocking */
+            }
+        }
+
         if (options.fix) {
             const fixableIssues = gateResult.blockingIssues?.length > 0
                 ? gateResult.blockingIssues
@@ -742,6 +788,21 @@ async function runScanCommand(options) {
     if (!options || typeof options !== 'object') throw new TypeError('runScanCommand requires an options object');
     const networkGuard = createNetworkGuard({ offline: options.offline });
     printTrustBanner({ quiet: options.noTrustBanner, offline: options.offline }, paint);
+
+    const license = await resolveCiLicense({ failOpenOnNetwork: true, allowRemote: true });
+    if (!license.ok) {
+        console.error(`[simplebeacon] ${license.message || 'Invalid SIMPLEBEACON_LICENSE_TOKEN'}`);
+        return 1;
+    }
+    if (license.warning && !options.quiet) {
+        console.error(`[simplebeacon] ${license.warning}`);
+    }
+    options.tier = license.tier;
+    options.tierLimits = license.limits;
+    options.paidLicense = license.paid;
+    options.sandboxMode = license.sandbox;
+    options.active = license.active;
+    options.upgradeUrl = license.upgradeUrl;
 
     try {
         if (options.watch) {

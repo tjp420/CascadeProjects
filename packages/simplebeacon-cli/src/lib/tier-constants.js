@@ -3,11 +3,12 @@
  * Used by CLI, VS Code extension, dashboard, and server.
  */
 
-const TIER_DEFINITIONS = Object.freeze({
+const _TIER_DEFINITIONS = {
     developer: {
         paid: false,
         label: 'Solo',
         quota: Infinity,
+        maxScansPerPeriod: 9999,
         engines: 'basic',
         websiteScans: false,
         websiteScanQuota: 0,
@@ -22,6 +23,7 @@ const TIER_DEFINITIONS = Object.freeze({
         paid: true,
         label: 'Pro',
         quota: 2500,
+        maxScansPerPeriod: 2500,
         engines: 'all',
         websiteScans: true,
         websiteScanQuota: 50,
@@ -36,6 +38,7 @@ const TIER_DEFINITIONS = Object.freeze({
         paid: true,
         label: 'Team',
         quota: 10000,
+        maxScansPerPeriod: 10000,
         engines: 'all',
         websiteScans: true,
         websiteScanQuota: 200,
@@ -50,6 +53,7 @@ const TIER_DEFINITIONS = Object.freeze({
         paid: true,
         label: 'Enterprise',
         quota: Infinity,
+        maxScansPerPeriod: Infinity,
         engines: 'all',
         websiteScans: true,
         websiteScanQuota: Infinity,
@@ -60,7 +64,7 @@ const TIER_DEFINITIONS = Object.freeze({
         customConfig: true,
         allowlist: true
     }
-});
+};
 
 const TIER_ALIASES = Object.freeze({
     free: 'developer',
@@ -86,16 +90,31 @@ const TIER_ALIASES = Object.freeze({
     paid: 'pro'
 });
 
+// Fill legacy alias entries with their canonical tier definitions
+for (const [alias, canonical] of Object.entries(TIER_ALIASES)) {
+    if (alias && !_TIER_DEFINITIONS[alias] && _TIER_DEFINITIONS[canonical]) {
+        _TIER_DEFINITIONS[alias] = _TIER_DEFINITIONS[canonical];
+    }
+}
+const TIER_DEFINITIONS = Object.freeze(_TIER_DEFINITIONS);
+
 const PAID_TIERS = Object.freeze(new Set(
     Object.entries(TIER_DEFINITIONS)
         .filter(([, def]) => def.paid)
         .map(([tier]) => tier)
+        .concat(Object.entries(TIER_ALIASES)
+            .filter(([, canonical]) => TIER_DEFINITIONS[canonical]?.paid)
+            .map(([alias]) => alias))
 ));
 
 const FREE_TIERS = Object.freeze(new Set(
     Object.entries(TIER_DEFINITIONS)
         .filter(([, def]) => !def.paid)
         .map(([tier]) => tier)
+        .concat(Object.entries(TIER_ALIASES)
+            .filter(([, canonical]) => !TIER_DEFINITIONS[canonical]?.paid)
+            .map(([alias]) => alias))
+        .filter(tier => tier !== '')
 ));
 
 function resolveTier(raw) {

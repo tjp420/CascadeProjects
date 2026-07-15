@@ -180,6 +180,10 @@ __*.js
 __*.mjs
 __*.tmp
 __tmp_*.js
+_check_*.js
+_find_*.js
+tmp_find_*.js
+**/__create_token.js
 
 # Root generated reports
 ts-prune-report*.txt
@@ -194,11 +198,15 @@ scan-help.txt
 backup-preview.txt
 report-preview.txt
 git-status.txt
+instructions.txt
 orig-dirs.txt
 dashboard-preview.html
 
 # ai-platform generated output
 ai-platform/test-output.txt
+ai-platform/auth-test-out.txt
+ai-platform/auth-test-output.txt
+ai-platform/*-test-out.txt
 ai-platform/server/config/err.txt
 ai-platform/server/config/test-out.txt
 ai-platform/web/simplebeacon-dashboard/js-es2018/__extract-error.txt
@@ -217,6 +225,7 @@ false-positive-audit/lodash/
 # Generated scan artifacts
 .simplebeacon/codemap.html
 **/knip-report.txt
+**/simplebeacon-codemap-tree.json
 
 # Unrelated project directories
 Mag Motor 3D Print Files/

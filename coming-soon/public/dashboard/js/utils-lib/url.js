@@ -10,6 +10,23 @@ function _normalizeApiBase(value) {
   return String(value).replace(/\/api\/?$/, '');
 }
 
+function _isLocalDevHost() {
+  if (typeof location === 'undefined') return false;
+  return /^(localhost|127\.0\.0\.1|\[::1\])$/i.test(location.hostname);
+}
+function _isAllowedApiBase(value) {
+  if (!value) return false;
+  try {
+    const url = new URL(value, location.href);
+    // HTTPS pages cannot call a local HTTP data server (mixed-content / LAN access).
+    if (location.protocol === 'https:' && url.protocol === 'http:') return false;
+    // Never bridge a localhost/loopback base from a remote production host.
+    if (!_isLocalDevHost() && /^(localhost|127\.0\.0\.1|\[::1\])$/i.test(url.hostname)) return false;
+    return true;
+  }
+  catch (_a) { return false; }
+}
+
 function _readStoredApiBase() {
   if (typeof sessionStorage !== 'undefined') {
     try {
@@ -43,7 +60,7 @@ function _readEmbedApiBaseFromQuery() {
   try {
     const params = new URLSearchParams(window.location.search);
     const override = params.get(SB_API_BASE_KEY) || params.get(SB_NOTIFY_BASE_KEY);
-    if (override) {
+    if (override && _isAllowedApiBase(override)) {
       const normalized = _normalizeApiBase(override);
       _storeApiBase(normalized);
       if (params.get(SB_NOTIFY_BASE_KEY)) {
@@ -66,7 +83,7 @@ export function apiBaseUrl() {
       return fromQuery;
     }
     const stored = _readStoredApiBase();
-    if (stored) return stored;
+    if (stored && _isAllowedApiBase(stored)) return stored;
     const meta = document.querySelector('meta[name="api-base-url"]');
     if (meta) return meta.getAttribute('content') || '';
   }

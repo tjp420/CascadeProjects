@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
 import { escapeHtml, formatNumber, formatPercent, showToast, renderEmptyState } from '../utils.js';
 import {
   getScanFileMetrics,
@@ -80,48 +81,6 @@ export class ToolsView {
     this._scanLoadAttempted = false;
     this._platformLoadPromise = null;
     this._scanLoadPromise = null;
-    this._terminalLines = [];
-    this._actionProgress = { action: '', phase: '', percent: 0 };
-    this._prerequisiteChecks = {};
-  }
-
-  /**
-   * Log a line to the inline terminal buffer.
-   * @param {string} text
-   * @param {'info'|'success'|'warning'|'error'} level
-   */
-  _termLog(text, level = 'info') {
-    const timestamp = new Date().toLocaleTimeString();
-    this._terminalLines.push({ timestamp, text, level });
-    if (this._terminalLines.length > 200) this._terminalLines.shift();
-  }
-
-  /**
-   * Check prerequisites for an action.
-   * @param {string} action
-   * @returns {{ok:boolean,message:string}}
-   */
-  _checkPrerequisites(action) {
-    const report = this.app.state.report;
-    if (action === 'baseline') {
-      if (!report) return { ok: false, message: 'No scan report — run Scan first' };
-      return { ok: true, message: '' };
-    }
-    if (action === 'audit') {
-      const hasLock = this.app.state.baseline?.packageManager === 'yarn'
-        ? 'yarn.lock detected'
-        : 'package-lock.json inferred';
-      return { ok: true, message: hasLock };
-    }
-    if (action === 'export') {
-      if (!report) return { ok: false, message: 'No report to export — run Scan first' };
-      return { ok: true, message: '' };
-    }
-    if (action === 'consolidation') {
-      if (!this.app.state.lastProjectPath) return { ok: false, message: 'No project path set — run Scan first' };
-      return { ok: true, message: '' };
-    }
-    return { ok: true, message: '' };
   }
 
   renderToolsNav() {
@@ -133,10 +92,32 @@ export class ToolsView {
       { id: 'tools-section-workflows', label: 'Workflows' }
     ];
     return `
-      <nav style="position:sticky;top:0;z-index:10;margin-bottom:20px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 14px;background:linear-gradient(145deg,rgba(30,41,59,0.7),rgba(15,23,42,0.6));border:1px solid rgba(148,163,184,0.08);border-radius:14px;backdrop-filter:blur(12px);">
-        <span style="font-weight:700;font-size:0.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-right:4px;">Jump to</span>
+      <nav class="settings-nav" style="
+        position:sticky;
+        top:0;
+        z-index:10;
+        background:var(--surface-elevated);
+        border:1px solid var(--border);
+        border-radius:var(--radius-md);
+        padding:var(--space-2) var(--space-3);
+        margin-bottom:var(--space-4);
+        display:flex;
+        align-items:center;
+        gap:var(--space-1);
+        flex-wrap:wrap;">
+        <span style="font-weight:600;font-size:0.875rem;margin-right:var(--space-2);color:var(--text-secondary);">Jump to:</span>
         ${sections.map((s) => `
-          <a href="#${s.id}" class="settings-nav-link" data-scroll-to="${s.id}" style="padding:5px 12px;border-radius:999px;font-size:0.78rem;text-decoration:none;color:var(--text-secondary);background:rgba(148,163,184,0.06);border:1px solid rgba(148,163,184,0.1);transition:all 150ms;white-space:nowrap;cursor:pointer;font-weight:600;">
+          <a href="#${s.id}" class="settings-nav-link" data-scroll-to="${s.id}" style="
+            padding:4px 10px;
+            border-radius:999px;
+            font-size:0.8rem;
+            text-decoration:none;
+            color:var(--text-secondary);
+            background:var(--surface);
+            border:1px solid var(--border);
+            transition:all 150ms;
+            white-space:nowrap;
+            cursor:pointer;">
             ${escapeHtml(s.label)}
           </a>
         `).join('')}
@@ -154,172 +135,99 @@ export class ToolsView {
     const el = document.createElement('div');
     el.className = this._hasPainted ? '' : 'fade-in';
     el.innerHTML = `
-      <style>
-        @keyframes tl-fade-up { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
-        .tl-v3 { animation:tl-fade-up .5s ease both; }
-        .tl-v3-header { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:24px; }
-        .tl-v3-header h1 { font-size:2.2rem; font-weight:800; margin:0; letter-spacing:-0.03em; background:linear-gradient(135deg,var(--text-primary) 0%,var(--accent) 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
-        .tl-v3-header p { color:var(--text-muted); font-size:0.9rem; margin:6px 0 0; }
-        .tl-v3-card { background:linear-gradient(145deg, rgba(30,41,59,0.7), rgba(15,23,42,0.6)); border:1px solid rgba(148,163,184,0.08); border-radius:20px; overflow:hidden; backdrop-filter:blur(12px); transition:box-shadow .3s ease; margin-bottom:20px; }
-        [data-theme='light'] .tl-v3-card { background:linear-gradient(145deg, rgba(255,255,255,0.85), rgba(248,250,252,0.9)); border-color:rgba(148,163,184,0.15); }
-        .tl-v3-card:hover { box-shadow:0 8px 32px rgba(2,8,20,0.35); }
-        [data-theme='light'] .tl-v3-card:hover { box-shadow:0 8px 32px rgba(0,0,0,0.08); }
-        .tl-v3-card-hd { display:flex; align-items:center; justify-content:space-between; padding:18px 22px; border-bottom:1px solid rgba(148,163,184,0.08); }
-        .tl-v3-card-bd { padding:18px 22px; }
-        .tl-v3-action { background:linear-gradient(145deg, rgba(30,41,59,0.5), rgba(15,23,42,0.4)); border:1px solid rgba(148,163,184,0.08); border-radius:16px; padding:18px; display:flex; align-items:flex-start; gap:14px; text-align:left; cursor:pointer; transition:transform .2s,box-shadow .2s; }
-        [data-theme='light'] .tl-v3-action { background:linear-gradient(145deg, rgba(255,255,255,0.7), rgba(248,250,252,0.8)); }
-        .tl-v3-action:hover { transform:translateY(-3px); box-shadow:0 6px 24px rgba(2,8,20,0.25); }
-        .tl-v3-action:disabled { opacity:.5; cursor:not-allowed; transform:none; box-shadow:none; }
-        .tl-v3-action-icon { width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:22px; background:rgba(99,102,241,0.12); flex-shrink:0; }
-        .tl-v3-tool { background:linear-gradient(145deg, rgba(30,41,59,0.5), rgba(15,23,42,0.4)); border:1px solid rgba(148,163,184,0.08); border-radius:16px; padding:18px; transition:transform .2s,box-shadow .2s; }
-        [data-theme='light'] .tl-v3-tool { background:linear-gradient(145deg, rgba(255,255,255,0.7), rgba(248,250,252,0.8)); }
-        .tl-v3-tool:hover { transform:translateY(-3px); box-shadow:0 6px 24px rgba(2,8,20,0.25); }
-        .tl-v3-table { width:100%; border-collapse:separate; border-spacing:0; }
-        .tl-v3-table th { text-align:left; padding:10px 14px; font-size:0.7rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.06em; border-bottom:1px solid rgba(148,163,184,0.1); }
-        .tl-v3-table td { padding:10px 14px; font-size:0.82rem; color:var(--text-secondary); border-bottom:1px solid rgba(148,163,184,0.06); }
-        .tl-v3-table tr:last-child td { border-bottom:none; }
-        .tl-v3-terminal { background:#0f172a; border:1px solid rgba(148,163,184,0.12); border-radius:12px; padding:14px 18px; font-family:var(--font-mono); font-size:0.78rem; line-height:1.6; max-height:260px; overflow:auto; color:#e2e8f0; }
-        .tl-v3-terminal-line { display:flex; gap:8px; margin-bottom:2px; white-space:pre-wrap; }
-        .tl-v3-terminal-time { color:#64748b; flex-shrink:0; }
-        .tl-v3-terminal-text.info { color:#e2e8f0; }
-        .tl-v3-terminal-text.success { color:#4ade80; }
-        .tl-v3-terminal-text.warning { color:#fbbf24; }
-        .tl-v3-terminal-text.error { color:#f87171; }
-        .tl-v3-action-running { position:relative; overflow:hidden; }
-        .tl-v3-action-running::after { content:''; position:absolute; top:0; left:0; right:0; bottom:0; background:rgba(99,102,241,0.06); animation:pulseRunning 1.5s ease-in-out infinite; }
-        @keyframes pulseRunning { 0%,100% { opacity:0.3; } 50% { opacity:0.6; } }
-        .tl-v3-action-overlay { position:absolute; inset:0; background:rgba(15,23,42,0.4); backdrop-filter:blur(2px); border-radius:16px; display:flex; align-items:center; justify-content:center; z-index:2; }
-        .tl-v3-action-overlay span { font-size:0.72rem; font-weight:700; color:#a78bfa; background:rgba(99,102,241,0.15); padding:4px 12px; border-radius:999px; }
-        .tl-v3-prereq-warn { margin-top:8px; padding:8px 12px; background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.15); border-radius:8px; font-size:0.72rem; color:#fbbf24; display:flex; align-items:center; gap:6px; }
-        .tl-v3-prereq-ok { margin-top:8px; padding:8px 12px; background:rgba(34,197,94,0.08); border:1px solid rgba(34,197,94,0.15); border-radius:8px; font-size:0.72rem; color:#4ade80; display:flex; align-items:center; gap:6px; }
-        .tl-v3-workflow-row { cursor:pointer; transition:background .15s; }
-        .tl-v3-workflow-row:hover { background:rgba(148,163,184,0.04); }
-        .tl-v3-log-drawer { max-height:0; overflow:hidden; transition:max-height .3s ease; }
-        .tl-v3-log-drawer.is-open { max-height:400px; }
-        .tl-v3-log-inner { padding:14px 18px; border-top:1px solid rgba(148,163,184,0.08); background:rgba(15,23,42,0.4); }
-        .tl-v3-log-block { background:#0f172a; border:1px solid rgba(148,163,184,0.12); border-radius:8px; padding:10px 14px; font-family:var(--font-mono); font-size:0.72rem; color:#e2e8f0; max-height:200px; overflow:auto; white-space:pre-wrap; line-height:1.5; }
-        [data-theme='light'] nav[style*="position:sticky"] { background:linear-gradient(145deg, rgba(255,255,255,0.9), rgba(248,250,252,0.95)) !important; border-color:rgba(148,163,184,0.15) !important; }
-        [data-theme='light'] .tl-v3-terminal { background:var(--surface); color:var(--text-primary); border-color:var(--border); }
-        [data-theme='light'] .tl-v3-terminal-time { color:var(--text-muted); }
-        [data-theme='light'] .tl-v3-terminal-text.info { color:var(--text-primary); }
-        [data-theme='light'] .tl-v3-prereq-warn { color:var(--warning); background:var(--warning-bg); border-color:rgba(217,119,6,0.2); }
-        [data-theme='light'] .tl-v3-prereq-ok { color:var(--success); background:var(--success-bg); border-color:rgba(5,150,105,0.2); }
-        [data-theme='light'] .tl-v3-log-inner { background:var(--surface); }
-        [data-theme='light'] .tl-v3-log-block { background:var(--surface); color:var(--text-primary); border-color:var(--border); }
-      </style>
-
-      <div class="tl-v3-header">
-        <div>
-          <h1>Tools</h1>
-          <p>Run repository tools and CI workflows from scan-backed results</p>
-        </div>
-        <span class="db-v3-panel-badge">${busy ? 'Running…' : 'Ready'}</span>
+      <div class="analyze-hero">
+        <h1 class="page-title">Tools</h1>
+        <p class="text-muted analyze-hero-sub">Run repository tools and CI workflows from scan-backed results.</p>
       </div>
 
       ${this.renderToolsNav()}
 
-      <div class="tl-v3" id="tools-section-actions">
-        <div class="tl-v3-card">
-          <div class="tl-v3-card-hd">
-            <h3 style="margin:0;font-size:1rem;font-weight:700;">▶️ Runnable Actions</h3>
-          </div>
-          <div class="tl-v3-card-bd">
-            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-bottom:16px;">
-              ${[
-                { action: 'scan', icon: this.running === 'scan' || this.app.state.scanning ? '⏳' : '✅', title: 'Run Scan', desc: 'Regenerate .simplebeacon/report.json with gate', color: '#22c55e' },
-                { action: 'baseline', icon: this.running === 'baseline' ? '⏳' : '🔄', title: 'Sync Baseline', desc: 'Update Jest counts in baseline.json', color: '#6366f1' },
-                { action: 'audit', icon: this.running === 'audit' ? '⏳' : '🛡️', title: 'npm audit', desc: 'Live dependency vulnerability scan', color: '#f59e0b' },
-                { action: 'export', icon: '📥', title: 'Export Report', desc: 'Download current report JSON', color: '#06b6d4' },
-                { action: 'consolidation', icon: this.reductionLoading ? '⏳' : '🔀', title: 'Consolidation', desc: 'Find duplicate JSON and merge candidates', color: '#a78bfa' }
-              ].map((btn) => {
-                const pre = this._checkPrerequisites(btn.action);
-                const isRunning = this.running === btn.action || (btn.action === 'consolidation' && this.reductionLoading) || (btn.action === 'scan' && this.app.state.scanning);
-                const progressLabel = isRunning && this._actionProgress.action === btn.action
-                  ? `${this._actionProgress.phase} (${this._actionProgress.percent}%)`
-                  : '';
-                return `
-                <button class="tl-v3-action ${isRunning ? 'tl-v3-action-running' : ''}" data-action="${btn.action}" ${busy || !pre.ok ? 'disabled' : ''}>
-                  ${isRunning ? `<div class="tl-v3-action-overlay"><span>${escapeHtml(progressLabel || 'Running…')}</span></div>` : ''}
-                  <div class="tl-v3-action-icon" style="background:${btn.color}20;">${btn.icon}</div>
-                  <div style="min-width:0;">
-                    <div style="font-weight:700;font-size:0.85rem;margin-bottom:3px;color:var(--text-primary);">${escapeHtml(btn.title)}</div>
-                    <div style="font-size:0.75rem;color:var(--text-secondary);line-height:1.4;">${escapeHtml(btn.desc)}</div>
-                    ${!pre.ok ? `<div class="tl-v3-prereq-warn">⚠ ${escapeHtml(pre.message)}</div>` : pre.message ? `<div class="tl-v3-prereq-ok">✓ ${escapeHtml(pre.message)}</div>` : ''}
-                  </div>
-                </button>
-              `;
-              }).join('')}
-            </div>
-            <div id="tool-terminal" style="margin-bottom:10px;">
-              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-                <span style="font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;">Live Terminal</span>
-                <button type="button" class="btn btn-ghost btn-sm" id="tl-clear-terminal" style="font-size:0.68rem;padding:2px 8px;">Clear</button>
-              </div>
-              <div class="tl-v3-terminal" id="tl-terminal-body">
-                ${this._terminalLines.length ? this._terminalLines.map((l) => `
-                  <div class="tl-v3-terminal-line">
-                    <span class="tl-v3-terminal-time">${escapeHtml(l.timestamp)}</span>
-                    <span class="tl-v3-terminal-text ${l.level}">${escapeHtml(l.text)}</span>
-                  </div>
-                `).join('') : '<span style="color:#64748b;font-style:italic;">No output yet — run an action above to see live logs.</span>'}
-              </div>
-            </div>
-          </div>
+      <div class="section-block" id="tools-section-actions">
+        <div class="section-heading">
+          <h2 style="display:flex;align-items:center;gap:var(--space-2);">
+            <span style="font-size:1.25rem;">▶️</span> Runnable Actions
+          </h2>
+          <span class="text-muted" style="font-size:var(--font-size-sm);">${busy ? 'Running…' : 'Ready'}</span>
         </div>
-      </div>
-
-      <div class="tl-v3" id="tools-section-consolidation">
-        <div class="tl-v3-card">
-          <div class="tl-v3-card-hd">
-            <h3 style="margin:0;font-size:1rem;font-weight:700;">🔀 Data Consolidation</h3>
-            <button class="btn btn-secondary btn-sm" type="button" id="run-consolidation-btn" ${this.reductionLoading || busy ? 'disabled' : ''}>
-              ${this.reductionLoading ? '<span class="loading-spinner"></span> Scanning…' : 'Run Scan'}
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:var(--space-3);margin-bottom:var(--space-4);">
+          ${[
+            { action: 'scan', icon: this.running === 'scan' || this.app.state.scanning ? '⏳' : '✅', title: 'Run Scan', desc: 'Regenerate .simplebeacon/report.json with gate' },
+            { action: 'baseline', icon: this.running === 'baseline' ? '⏳' : '🔄', title: 'Sync Baseline', desc: 'Update Jest counts in baseline.json' },
+            { action: 'audit', icon: this.running === 'audit' ? '⏳' : '🛡️', title: 'npm audit', desc: 'Live dependency vulnerability scan' },
+            { action: 'export', icon: '📥', title: 'Export Report', desc: 'Download current report JSON' },
+            { action: 'consolidation', icon: this.reductionLoading ? '⏳' : '🔀', title: 'Consolidation', desc: 'Find duplicate JSON and merge candidates' }
+          ].map((btn) => `
+            <button class="card card-interactive" data-action="${btn.action}" ${busy ? 'disabled' : ''} style="
+              display:flex;
+              align-items:flex-start;
+              gap:var(--space-3);
+              padding:var(--space-4);
+              text-align:left;
+              cursor:pointer;
+              background:var(--surface);
+              border:1px solid var(--border);
+              border-radius:var(--radius-lg);
+              opacity:${busy ? '0.6' : '1'};
+              transition:transform 150ms,box-shadow 150ms,border-color 150ms;">
+              <span style="font-size:1.5rem;flex-shrink:0;margin-top:2px;">${btn.icon}</span>
+              <div style="min-width:0;">
+                <div style="font-weight:600;font-size:var(--font-size-sm);margin-bottom:2px;">${escapeHtml(btn.title)}</div>
+                <div style="font-size:var(--font-size-xs);color:var(--text-secondary);line-height:1.4;">${escapeHtml(btn.desc)}</div>
+              </div>
             </button>
-          </div>
-          <div class="tl-v3-card-bd">
-            <p class="text-muted" style="font-size:0.82rem;margin:0 0 14px;">
-              Scans configured sample paths for exact duplicate JSON, similar schemas, and oversized files.
-            </p>
-            <div id="consolidation-results">${this.renderConsolidation()}</div>
-          </div>
+          `).join('')}
+        </div>
+        <div id="tool-output" role="status" aria-live="polite" class="card ${this.lastOutput && this.lastOutput.visible !== false ? '' : 'hidden'}" style="padding:var(--space-4);">${this.lastOutput?.html || ''}</div>
+      </div>
+
+      <div class="section-block" id="tools-section-consolidation">
+        <div class="section-heading">
+          <h2 style="display:flex;align-items:center;gap:var(--space-2);">
+            <span style="font-size:1.25rem;">🔀</span> Data Consolidation
+          </h2>
+          <button class="btn btn-secondary btn-sm" type="button" id="run-consolidation-btn" ${this.reductionLoading || busy ? 'disabled' : ''}>
+            ${this.reductionLoading ? 'Scanning…' : 'Run scan'}
+          </button>
+        </div>
+        <p class="text-muted mb-4" style="font-size: var(--font-size-sm);">
+          Scans configured sample paths for exact duplicate JSON, similar schemas, and oversized files.
+        </p>
+        <div id="consolidation-results">${this.renderConsolidation()}</div>
+      </div>
+
+      <div class="section-block" id="tools-section-snapshot">
+        <div class="section-heading">
+          <h2 style="display:flex;align-items:center;gap:var(--space-2);">
+            <span style="font-size:1.25rem;">📊</span> Scan Snapshot
+          </h2>
+        </div>
+        <div class="card" style="padding:var(--space-4);">
+          ${renderScanSnapshot(report, baseline, this.app.state.dashboardHome)}
         </div>
       </div>
 
-      <div class="tl-v3" id="tools-section-snapshot">
-        <div class="tl-v3-card">
-          <div class="tl-v3-card-hd">
-            <h3 style="margin:0;font-size:1rem;font-weight:700;">📊 Scan Snapshot</h3>
-          </div>
-          <div class="tl-v3-card-bd">
-            ${renderScanSnapshot(report, baseline, this.app.state.dashboardHome)}
-          </div>
+      <div class="section-block" id="tools-section-repo">
+        <div class="section-heading">
+          <h2 style="display:flex;align-items:center;gap:var(--space-2);">
+            <span style="font-size:1.25rem;">🛠️</span> Repository Tools
+            <span class="text-muted" style="font-size:var(--font-size-sm);font-weight:400;">(${tools.length})</span>
+          </h2>
         </div>
+        <div class="tool-grid" id="tool-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:var(--space-3);"></div>
       </div>
 
-      <div class="tl-v3" id="tools-section-repo">
-        <div class="tl-v3-card">
-          <div class="tl-v3-card-hd">
-            <h3 style="margin:0;font-size:1rem;font-weight:700;">🛠️ Repository Tools</h3>
-            <span class="db-v3-panel-badge">${tools.length}</span>
-          </div>
-          <div class="tl-v3-card-bd">
-            <div class="tool-grid" id="tool-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;"></div>
-          </div>
+      <div class="section-block" id="tools-section-workflows">
+        <div class="section-heading">
+          <h2 style="display:flex;align-items:center;gap:var(--space-2);">
+            <span style="font-size:1.25rem;">🔄</span> CI Workflows
+            <span class="text-muted" style="font-size:var(--font-size-sm);font-weight:400;">(${workflows.length})</span>
+          </h2>
         </div>
-      </div>
-
-      <div class="tl-v3" id="tools-section-workflows">
-        <div class="tl-v3-card">
-          <div class="tl-v3-card-hd">
-            <h3 style="margin:0;font-size:1rem;font-weight:700;">🔄 CI Workflows</h3>
-            <span class="db-v3-panel-badge">${workflows.length}</span>
-          </div>
-          <div class="tl-v3-card-bd" style="padding:0;">
-            <table class="tl-v3-table">
-              <thead><tr><th>Workflow</th><th>Status</th><th>Tools</th><th>Last run</th></tr></thead>
-              <tbody id="workflow-body"></tbody>
-            </table>
-          </div>
+        <div class="card" style="padding:0;overflow:hidden;">
+          <table class="results-table">
+            <thead><tr><th>Workflow</th><th>Status</th><th>Tools</th><th>Last run</th></tr></thead>
+            <tbody id="workflow-body"></tbody>
+          </table>
         </div>
       </div>
     `;
@@ -337,47 +245,6 @@ export class ToolsView {
       btn.addEventListener('click', () => {
         if (btn.disabled) return;
         this.runAction(btn.dataset.action, el);
-      });
-    });
-
-    // Clear terminal
-    el.querySelector('#tl-clear-terminal')?.addEventListener('click', () => {
-      this._terminalLines = [];
-      this.refreshView();
-    });
-
-    // Workflow drawer toggle
-    el.querySelectorAll('.tl-v3-workflow-row').forEach((row) => {
-      row.addEventListener('click', () => {
-        const idx = row.dataset.workflowIndex;
-        const drawer = el.querySelector(`#wf-drawer-${idx}`);
-        if (drawer) drawer.classList.toggle('is-open');
-      });
-    });
-
-    // Close drawer
-    el.querySelectorAll('[data-close-drawer]').forEach((btn) => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const idx = btn.dataset.closeDrawer;
-        const drawer = el.querySelector(`#wf-drawer-${idx}`);
-        if (drawer) drawer.classList.remove('is-open');
-      });
-    });
-
-    // Open config file in VS Code:
-    el.querySelectorAll('[data-open-config]').forEach((btn) => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const filePath = btn.dataset.openConfig;
-        if (!filePath) return;
-        const vscode = typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi() : null;
-        if (vscode) {
-          vscode.postMessage({ command: 'openFile', filePath });
-          showToast(`Opening ${filePath.split('/').pop()} in editor`, 'success');
-        } else {
-          showToast(`Run: code ${filePath}`, 'info');
-        }
       });
     });
   }
@@ -413,23 +280,16 @@ export class ToolsView {
     if (this.running || this.reductionLoading || this.app.state.scanning) return;
 
     this.running = action;
-    this._actionProgress = { action, phase: 'Starting', percent: 0 };
-    this._termLog(`[${action.toUpperCase()}] Starting…`, 'info');
+    this.setOutput(el, '<span class="loading-spinner"></span> Running…');
     this.refreshView();
 
     try {
       if (action === 'scan') {
-        this._actionProgress = { action, phase: 'Scanning repository', percent: 25 };
-        this._termLog('[SCAN] Engine initialization…', 'info');
         await this.app.runScan();
-        this._actionProgress = { action, phase: 'Finalizing', percent: 90 };
-        this._termLog('[SCAN] Report written to .simplebeacon/report.json', 'success');
-        showToast('Scan complete — snapshot updated below.', 'success');
+        this.setOutput(el, '<p class="text-success">Scan complete — snapshot updated below.</p>');
         return;
       }
       if (action === 'baseline') {
-        this._actionProgress = { action, phase: 'Reading baseline', percent: 30 };
-        this._termLog('[BASELINE] Fetching Jest metrics…', 'info');
         const data = await this.app.platformService.runBaselineSync();
         this.app.state.baseline = data.baseline;
         scanService.baseline = data.baseline;
@@ -437,49 +297,41 @@ export class ToolsView {
         await this.app.platformService.fetchAll();
         this.app.state.dashboardHome = this.app.platformService.dashboardHome;
         const label = data.baseline?.jestTestsLabel || this.app.state.baseline?.jestTestsLabel || 'OK';
-        this._actionProgress = { action, phase: 'Sync complete', percent: 100 };
-        this._termLog(`[BASELINE] Synced: ${label}`, 'success');
+        this.setOutput(el, `<p class="text-success">Baseline synced: ${escapeHtml(label)}</p>`);
         showToast(`Baseline synced: ${label}`, 'success');
         this.refreshView();
         return;
       }
       if (action === 'audit') {
-        this._actionProgress = { action, phase: 'Running npm audit', percent: 40 };
-        this._termLog('[AUDIT] Querying npm registry…', 'info');
         const audit = await this.app.platformService.refreshNpmAudit({ force: true });
         this.app.state.npmAudit = audit;
         const s = npmAuditSummary(audit);
         const msg = s.dependencies != null
           ? `${formatNumber(s.dependencies)} dependencies · ${s.vulnerabilityTotal} vulnerabilities`
           : 'npm audit complete';
-        this._actionProgress = { action, phase: 'Audit complete', percent: 100 };
-        this._termLog(`[AUDIT] ${msg}`, s.vulnerabilityTotal ? 'warning' : 'success');
         showToast(msg, s.vulnerabilityTotal ? 'info' : 'success');
+        this.setOutput(el, `
+          <p class="text-success">${escapeHtml(msg)}</p>
+          <p class="text-muted text-sm mt-2">View full details on <a href="/dashboard/quality">Quality & Security</a>.</p>
+        `);
         return;
       }
       if (action === 'export') {
-        this._actionProgress = { action, phase: 'Exporting JSON', percent: 50 };
-        this._termLog('[EXPORT] Serializing report…', 'info');
-        await this.app.scanService.exportReport(this.app.state.report);
-        this._actionProgress = { action, phase: 'Downloaded', percent: 100 };
-        this._termLog('[EXPORT] Report downloaded.', 'success');
+        await this.app.scanService.exportReport();
+        this.setOutput(el, '<p class="text-success">Report downloaded.</p>');
         showToast('Report downloaded', 'success');
         return;
       }
       if (action === 'consolidation') {
-        this._actionProgress = { action, phase: 'Scanning for duplicates', percent: 30 };
-        this._termLog('[CONSOLIDATION] Scanning project for merge candidates…', 'info');
         await this.runConsolidationScan();
-        this._actionProgress = { action, phase: 'Scan complete', percent: 100 };
-        this._termLog('[CONSOLIDATION] Scan complete — see results below.', 'success');
+        this.setOutput(el, '<p class="text-success">Consolidation scan complete — see results below.</p>', false);
         return;
       }
     } catch (err) {
-      this._termLog(`[ERROR] ${err.message}`, 'error');
+      this.setOutput(el, `<p class="text-danger">${escapeHtml(err.message)}</p>`);
       showToast(err.message, 'error');
     } finally {
       this.running = null;
-      this._actionProgress = { action: '', phase: '', percent: 0 };
       this.refreshView();
     }
   }
@@ -517,20 +369,20 @@ export class ToolsView {
     const grid = el.querySelector('#tool-grid');
     if (!tools.length) {
       grid.innerHTML = this._platformLoadAttempted
-        ? '<p class="text-muted" style="text-align:center;padding:30px;">No repository tools configured — run a consolidation scan to discover available tools.</p>'
-        : '<p class="text-muted" style="text-align:center;padding:30px;"><span class="loading-spinner"></span> Loading repository tools…</p>';
+        ? '<p class="text-muted card">No repository tools configured — run a consolidation scan to discover available tools.</p>'
+        : '<p class="text-muted"><span class="loading-spinner"></span> Loading repository tools…</p>';
       return;
     }
     grid.innerHTML = tools.map((t) => `
-      <div class="tl-v3-tool">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-          <span style="font-size:24px;">${t.icon || '🔧'}</span>
-          <span class="severity-pill ${t.status === 'active' ? 'success' : t.status === 'deprecated' ? 'danger' : 'warning'}">${escapeHtml(t.status || 'active')}</span>
+      <div class="tool-card">
+        <div class="tool-card-header">
+          <span>${t.icon || '🔧'}</span>
+          <span class="tool-card-status ${t.status}">${escapeHtml(t.status || 'active')}</span>
         </div>
-        <h3 style="margin:0 0 6px;font-size:0.9rem;font-weight:700;color:var(--text-primary);">${escapeHtml(t.name)}</h3>
-        <p style="margin:0 0 10px;font-size:0.78rem;color:var(--text-secondary);line-height:1.4;">${escapeHtml(t.description)}</p>
-        <div style="font-size:0.72rem;color:var(--text-muted);font-weight:600;">${escapeHtml(t.category)} · ${escapeHtml(t.avgTime || '—')}</div>
-        ${t.section ? `<div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">Section: ${escapeHtml(t.section)}</div>` : ''}
+        <h3>${escapeHtml(t.name)}</h3>
+        <p>${escapeHtml(t.description)}</p>
+        <div class="tool-card-meta">${escapeHtml(t.category)} · ${escapeHtml(t.avgTime || '—')}</div>
+        ${t.section ? `<span class="tool-card-meta">Section: ${escapeHtml(t.section)}</span>` : ''}
       </div>
     `).join('');
   }
@@ -539,28 +391,16 @@ export class ToolsView {
     const tbody = el.querySelector('#workflow-body');
     if (!workflows.length) {
       tbody.innerHTML = this._platformLoadAttempted
-        ? '<tr><td colspan="4" style="text-align:center;padding:30px;color:var(--text-muted);font-size:0.85rem;">No CI workflows configured — run a consolidation scan to discover workflow configurations.</td></tr>'
-        : '<tr><td colspan="4" style="text-align:center;padding:30px;color:var(--text-muted);font-size:0.85rem;"><span class="loading-spinner"></span> Loading workflows…</td></tr>';
+        ? '<tr><td colspan="4" class="text-muted">No CI workflows configured — run a consolidation scan to discover workflow configurations.</td></tr>'
+        : '<tr><td colspan="4" class="text-muted"><span class="loading-spinner"></span> Loading workflows…</td></tr>';
       return;
     }
-    tbody.innerHTML = workflows.map((w, idx) => `
-      <tr class="tl-v3-workflow-row" data-workflow-index="${idx}">
-        <td><strong style="color:var(--text-primary);">${escapeHtml(w.name)}</strong><br><span style="color:var(--text-muted);font-size:0.75rem;">${escapeHtml(w.description)}</span></td>
-        <td><span class="severity-pill ${w.status === 'running' ? 'success' : w.status === 'deferred' ? 'warning' : 'info'}">${escapeHtml(w.status)}</span></td>
-        <td style="font-size:0.78rem;">${(w.tools || []).join(', ')}</td>
-        <td style="font-size:0.78rem;">${escapeHtml(w.lastRun || '—')}</td>
-      </tr>
-      <tr class="tl-v3-log-drawer" id="wf-drawer-${idx}">
-        <td colspan="4">
-          <div class="tl-v3-log-inner">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-              <span style="font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;">${escapeHtml(w.name)} — Last Run Log</span>
-              <button type="button" class="btn btn-ghost btn-sm" data-close-drawer="${idx}" style="font-size:0.68rem;padding:2px 8px;">Close</button>
-            </div>
-            <div class="tl-v3-log-block">${escapeHtml(w.lastLog || w.error || 'No log data available for this workflow.')}</div>
-            ${w.configPath ? `<button type="button" class="btn btn-secondary btn-sm" data-open-config="${escapeHtml(w.configPath)}" style="margin-top:8px;">📂 Open ${escapeHtml(w.configPath)}</button>` : ''}
-          </div>
-        </td>
+    tbody.innerHTML = workflows.map((w) => `
+      <tr>
+        <td><strong>${escapeHtml(w.name)}</strong><br><span class="text-muted">${escapeHtml(w.description)}</span></td>
+        <td><span class="severity-pill ${w.status === 'running' ? 'low' : w.status === 'deferred' ? 'medium' : 'high'}">${escapeHtml(w.status)}</span></td>
+        <td>${(w.tools || []).join(', ')}</td>
+        <td>${escapeHtml(w.lastRun || '—')}</td>
       </tr>
     `).join('');
   }

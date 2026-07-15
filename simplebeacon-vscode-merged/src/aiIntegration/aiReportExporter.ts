@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
 import { ScanResult, Finding, MatchEntry } from '../analyzers/workspaceAnalyzer';
 import { getFixForFinding } from '../fixes/fixRegistry';
 

@@ -1,6 +1,53 @@
+import * as fs from 'fs';
+import * as path from 'path';
 import * as http from 'http';
-import { getSbConfig } from '../utils';
+import { getSbConfig } from '../utils/vscode';
 import { ServerState } from '../dataServer';
+
+function readProjectScanProgress(projectPath: string) {
+  if (!projectPath) return null;
+  try {
+    const progressPath = path.join(path.resolve(projectPath), '.simplebeacon', 'scan-progress.json');
+    if (!fs.existsSync(progressPath)) return null;
+    const raw = fs.readFileSync(progressPath, 'utf8');
+    const data = JSON.parse(raw);
+    if (!data || typeof data !== 'object') return null;
+    return { active: true, ...data };
+  } catch {
+    return null;
+  }
+}
+
+function buildScanProgressPayload(projectPath: string, serverState: ServerState) {
+  const fileProgress = readProjectScanProgress(projectPath);
+  if (fileProgress?.active) {
+    const processed = Number(fileProgress.processed ?? fileProgress.filesProcessed ?? 0);
+    const total = Number(fileProgress.total ?? fileProgress.filesTotal ?? 0);
+    const percent = total > 0 ? Math.round((processed / total) * 100) : undefined;
+    return {
+      active: true,
+      label: fileProgress.label || fileProgress.phase || 'Scanning…',
+      phase: fileProgress.phase || 'scanning',
+      processed,
+      total: total || undefined,
+      percent,
+      currentFile: fileProgress.currentFile || fileProgress.file || '',
+    };
+  }
+
+  const scanning = serverState.scanStatus === 'scanning';
+  const processed = serverState.scanProgressProcessed ?? (scanning ? 0 : 100);
+  const total = serverState.scanProgressTotal ?? 100;
+  return {
+    active: scanning,
+    label: serverState.scanMessage || (scanning ? 'Scanning…' : 'Idle'),
+    phase: scanning ? 'scanning' : 'idle',
+    processed,
+    total,
+    percent: total > 0 ? Math.round((processed / total) * 100) : undefined,
+    currentFile: serverState.scanProgressFile || '',
+  };
+}
 
 /**
  * Handle scan progress, SimpleBeacon config, presets, and AI-keys routes.
@@ -12,19 +59,16 @@ export function handleScanConfigRoutes(
   parsed: URL,
   serverState: ServerState
 ): boolean {
-  // Scan progress stub
-  if (parsed.pathname === '/api/simplebeacon/scan/progress') {
+  // Scan progress — reads .simplebeacon/scan-progress.json when available
+  if (parsed.pathname === '/api/simplebeacon/scan/progress' || parsed.pathname === '/api/progress') {
     const projectPath = parsed.searchParams.get('projectPath') || serverState.workspacePath || '';
+    const progress = buildScanProgressPayload(projectPath, serverState);
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
+      success: true,
       projectPath,
-      progress: {
-        active: serverState.scanStatus === 'scanning',
-        label: serverState.scanMessage || (serverState.scanStatus === 'scanning' ? 'Scanning…' : 'Idle'),
-        processed: serverState.scanStatus === 'scanning' ? 50 : 100,
-        total: 100,
-      },
-      completed: serverState.scanStatus !== 'scanning',
+      progress,
+      completed: !progress.active,
     }));
     return true;
   }
@@ -79,7 +123,7 @@ export function handleScanConfigRoutes(
   // Ollama model test stub
   if (parsed.pathname === '/api/models/test-ollama') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ reachable: false, error: 'Ollama not configured in VS Code: extension' }));
+    res.end(JSON.stringify({ reachable: false, error: 'Ollama not configured in VS Code extension' }));
     return true;
   }
 

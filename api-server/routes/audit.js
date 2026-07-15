@@ -11,8 +11,6 @@ const { requirePermission, requireWorkspaceMembership } = require('../lib/rbac.j
 
 const router = express.Router();
 
-router.use(requireAuth);
-
 /**
  * GET /api/v2/audit
  * Query parameters:
@@ -26,7 +24,7 @@ router.use(requireAuth);
  *
  * Access: audit_log.read permission (admin, manager, auditor)
  */
-router.get('/api/v2/audit', requirePermission('audit_log.read'), async (req, res) => {
+router.get('/api/v2/audit', requireAuth, requirePermission('audit_log.read'), async (req, res) => {
     const {
         workspaceId,
         action,
@@ -104,7 +102,7 @@ router.get('/api/v2/audit', requirePermission('audit_log.read'), async (req, res
  * Export audit trail as JSON or CSV.
  * Query params same as /audit plus `format` (json | csv, default json).
  */
-router.get('/api/v2/audit/export', requirePermission('audit_log.read'), async (req, res) => {
+router.get('/api/v2/audit/export', requireAuth, requirePermission('audit_log.read'), async (req, res) => {
     const format = (req.query.format || 'json').toLowerCase();
     const {
         workspaceId, action, resourceType, severity, from, to

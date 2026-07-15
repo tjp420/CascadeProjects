@@ -6,7 +6,7 @@
  * pure-JS fallback) instead of loading the entire file into memory at once.
  */
 
-import { analyzeFileChunks, findingsToIssues } from './scan-wasm-bridge.js?v=20260709noise3';
+import { analyzeFileChunks, findingsToIssues } from './scan-wasm-bridge.js?v=20260714blockerfix1';
 
 const MAX_DISCOVERED_FILES = 500000;
 const LARGE_FILE_THRESHOLD = 5 * 1024 * 1024; // 5 MB
@@ -34,7 +34,7 @@ const PATTERN_REGISTRY = {
   },
   credentials: {
     appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet'],
-    pattern: /(password|passwd|pwd|secret|token|api[_-]?key|private[_-]?key|client[_-]?secret)\s*[:=]\s*['"`][^'"`\s]{8,}/gi
+    pattern: /(?:^|[^a-zA-Z0-9_-])(password|passwd|pwd|secret|api[_-]?key|private[_-]?key|client[_-]?secret|access_token|auth_token|refresh_token|bearer_token)\s*[:=]\s*['"`][^'"`\s]{8,}/gi
   },
   euAiAct: {
     appliesTo: ['javascript'],
@@ -103,6 +103,39 @@ const SEVERITY_MAP = {
   euAiAct: 'high'
 };
 
+const CREDENTIAL_ALLOWLIST = /placeholder|changeme|example\.com|your-api-key|your-secret|dummy-token|test-secret|fake-api|mock-secret|not-a-real|hardcoded-secret-for-unit-test|secret-key-for-unit-test|sk_test_your|xxxxxxxx|replace_me|sample-token|template-secret|programmatically generated/i;
+const IGNORE_LINE_RE = /simplebeacon-ignore\s+(?:credentials|credential-pattern|sensitive-data)/i;
+const EU_AI_ACT_COMPLIANCE_LINE_RE = /EU AI Act Documentation Marker|Documentation Marker|Annex III|Article\s*50|Article\s*12|euaiactcompliance|transparency disclosure|human-in-the-loop|humanInTheLoop|human oversight|inference events logged|Risk Level:|Limited risk|not legal conformity|technical readiness|transparencyGaps|highRiskIndicators|aiSystemIndicators|documentationArtifacts|legal conformity|Disclaimer:/i;
+
+function isTestOrFixturePath(normalized) {
+  return /(?:^|\/)(__tests__|tests?|fixtures?|mocks?)(?:\/|$)/i.test(normalized)
+    || /\.(test|spec)\.[a-z0-9]+$/i.test(normalized);
+}
+
+function isComplianceToolingPath(normalized) {
+  return /(?:^|\/)packages\/simplebeacon-cli\/src\/(?:rules|lib|mcp|analyzers)\//i.test(normalized)
+    || /eu-ai-act|scanner-patterns|scanner-engine|compliance-mapper|credential-pattern-scanner|enterprise-guardrail|llm-slop-catalog/i.test(normalized);
+}
+
+function shouldSkipAnalyzerLine(name, filePath, line) {
+  const normalized = filePath.replace(/\\/g, '/');
+  if (IGNORE_LINE_RE.test(line)) return true;
+  if (name === 'credentials') {
+    if (isTestOrFixturePath(normalized) || CREDENTIAL_ALLOWLIST.test(line)) return true;
+  }
+  if (name === 'euAiAct') {
+    if (isComplianceToolingPath(normalized) || EU_AI_ACT_COMPLIANCE_LINE_RE.test(line)) return true;
+  }
+  return false;
+}
+
+function shouldSkipAnalyzerFile(name, filePath) {
+  const normalized = filePath.replace(/\\/g, '/');
+  if (name === 'credentials' && isTestOrFixturePath(normalized)) return true;
+  if (name === 'euAiAct' && isComplianceToolingPath(normalized)) return true;
+  return false;
+}
+
 function detectFileLanguage(path) {
   const ext = (path.match(/\.([^.]+)$/) || [null, ''])[1].toLowerCase();
   for (const [langKey, config] of Object.entries(LANGUAGE_REGISTRY)) {
@@ -117,11 +150,12 @@ function getAnalyzersForLanguage(langKey) {
     .map(([id]) => id);
 }
 
-function extractMatches(text, pattern, max = 3) {
+function extractMatches(text, pattern, max = 3, lineFilter = null) {
   const matches = [];
   const lines = text.split('\n');
   for (let i = 0; i < lines.length && matches.length < max; i++) {
     const line = lines[i];
+    if (lineFilter && lineFilter(line)) continue;
     pattern.lastIndex = 0;
     if (pattern.test(line)) {
       matches.push({ line: i + 1, snippet: line.trim().slice(0, 120) });
@@ -149,8 +183,10 @@ function isBinaryOrLarge(path, size) {
 function runAnalyzer(name, text, filePath) {
   const results = [];
   const reg = PATTERN_REGISTRY[name];
+  if (shouldSkipAnalyzerFile(name, filePath)) return results;
   if (reg && reg.pattern) {
-    const matches = extractMatches(text, reg.pattern, 5);
+    const lineFilter = (line) => shouldSkipAnalyzerLine(name, filePath, line);
+    const matches = extractMatches(text, reg.pattern, 5, lineFilter);
     if (matches.length > 0) {
       results.push({
         analyzer: name,

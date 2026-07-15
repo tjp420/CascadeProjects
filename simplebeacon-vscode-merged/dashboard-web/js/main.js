@@ -1,12 +1,12 @@
 import { scanService } from './services/scanService.js?v=20260709reportimport1';
 import { platformService } from './services/platformService.js?v=20260525jsonguard1';
 import { billingService } from './services/billingService.js?v=20260525jsonfixbilling1';
-import { authService } from './services/authService.js?v=20260709tokenfix1';
+import { authService } from './services/authService.js?v=20260713sync6';
 import { themeService } from './services/themeService.js';
 import { Router, PUBLIC_VIEWS } from './router.js';
 import { TrustView } from './views/TrustView.js?v=20260525statictrust2';
 import { RepositoryHealthView } from './views/RepositoryHealthView.js?v=20260525mergepreview1';
-import { DashboardView } from './views/DashboardView.js?v=20260711redesign2';
+import { DashboardView } from './views/DashboardView.js?v=20260713dashboard1';
 import { ResultsView } from './views/ResultsView.js';
 import { SettingsView } from './views/SettingsView.js?v=20260709ollama3';
 import { ToolsView } from './views/ToolsView.js';
@@ -14,7 +14,7 @@ import { PlatformView } from './views/PlatformView.js?v=20260601platformmetrics1
 import { QualityView } from './views/QualityView.js';
 import { HelpView, FeaturesView } from './views/HelpView.js';
 import { AuditView } from './views/AuditView.js?v=20260618renderfix1';
-import { AnalyzeView } from './views/AnalyzeView.js?v=20260713dropfix5';
+import { AnalyzeView } from './views/AnalyzeView.js?v=20260713dropfix6';
 import { SecurityView } from './views/SecurityView.js?v=20260611fixexport1';
 import { PricingView } from './views/PricingView.js';
 import { AboutView } from './views/AboutView.js';
@@ -172,6 +172,10 @@ class SimplebeaconDashboard {
     this.updateAuthUi();
 
     // simplebeacon-ignore memory-leak — single application-wide listener on the app singleton
+    window.addEventListener('auth-signed-in', () => {
+      this.updateAuthUi();
+      this.updateNavVisibility(true);
+    });
     window.addEventListener('auth-signed-out', () => {
       this.updateAuthUi();
       this.updateNavVisibility(false);
@@ -192,7 +196,13 @@ class SimplebeaconDashboard {
       return;
     }
 
-    await authService.ensureAuthenticated();
+    const authed = await authService.ensureAuthenticated();
+    if (!authed && authService.authRequired) {
+      this.router.init();
+      this.router.navigate('signin');
+      this.updateAuthUi();
+      return;
+    }
     this.bootstrapAfterAuth();
   }
 
@@ -206,13 +216,13 @@ class SimplebeaconDashboard {
     span.innerHTML = '<strong>Demo</strong> — read-only honey-pot fixture (gate FAIL). Not your workspace.';
     const a = document.createElement('a');
     a.className = 'demo-banner-link';
-    a.href = 'https://simplebeacon.pages.dev/pricing';
-    a.target = '_blank';
-    a.rel = 'noopener noreferrer';
+    a.dataset.pricingCta = '1';
+    a.href = '/dashboard/pricing';
     a.textContent = 'View pricing →';
     bar.appendChild(span);
     bar.appendChild(a);
     document.body.prepend(bar);
+    this.bindPricingCta(a);
   }
 
   showReadOnlyBanner() {
@@ -227,13 +237,13 @@ class SimplebeaconDashboard {
     span.innerHTML = '<strong>Demo Mode</strong> — You are viewing with a free token. Reports are read-only. Upgrade to unlock scans, exports, and full dashboard interaction.';
     const a = document.createElement('a');
     a.className = 'demo-banner-link';
-    a.href = 'pricing.html';
-    a.target = '_blank';
-    a.rel = 'noopener noreferrer';
+    a.dataset.pricingCta = '1';
+    a.href = '/dashboard/pricing';
     a.textContent = 'View pricing →';
     bar.appendChild(span);
     bar.appendChild(a);
     document.body.prepend(bar);
+    this.bindPricingCta(a);
   }
 
   showVaultBanner() {
@@ -469,7 +479,7 @@ class SimplebeaconDashboard {
             </details>
           </div>
 
-          <p style="margin-top:var(--space-4);"><a href="/dashboard/dashboard" class="btn btn-secondary btn-block" onclick="document.getElementById('token-prompt-modal')?.remove();window.location.hash='#/dashboard';return false;">&#8592; Return to Dashboard</a></p>
+          <p style="margin-top:var(--space-4);"><a href="/dashboard/" class="btn btn-secondary btn-block" onclick="document.getElementById('token-prompt-modal')?.remove();return true;">&#8592; Return to Dashboard</a></p>
         </div>
       </div>
     `;
@@ -762,7 +772,31 @@ class SimplebeaconDashboard {
     }
   }
 
+  /** In-app route for Team Pricing / Stripe checkout (path-based SPA, not pricing.html). */
+  bindPricingCta(anchor) {
+    if (!anchor || anchor.dataset.pricingBound === '1') return;
+    anchor.dataset.pricingBound = '1';
+    anchor.dataset.pricingCta = '1';
+    anchor.href = '/dashboard/pricing';
+    anchor.removeAttribute('target');
+    anchor.addEventListener('click', (event) => {
+      event.preventDefault();
+      this.navigate('pricing');
+    });
+  }
+
+  setupPricingCtas() {
+    this.bindPricingCta(document.querySelector('#sandbox-banner a'));
+    document.addEventListener('click', (event) => {
+      const link = event.target.closest('[data-pricing-cta]');
+      if (!link || link.dataset.pricingBound === '1') return;
+      event.preventDefault();
+      this.navigate('pricing');
+    });
+  }
+
   setupShell() {
+    this.setupPricingCtas();
     document.getElementById('theme-toggle')?.addEventListener('click', () => {
       themeService.toggle();
     });

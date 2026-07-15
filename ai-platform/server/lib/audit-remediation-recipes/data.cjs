@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
 /**
  * Static lookup tables for audit remediation recipes.
  * Separated from the main module to reduce bundle size and improve cacheability.

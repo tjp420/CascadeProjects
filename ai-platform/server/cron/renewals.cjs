@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const requireProject = require('../lib/project-require.cjs');
+const requireProject = require('../../shared-utils/index.cjs');
 const { checkExpiringLicenses } = requireProject('sales/license/renewal-tracker.js');
 
 /**

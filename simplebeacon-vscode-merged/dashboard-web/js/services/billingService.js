@@ -1,6 +1,5 @@
-import { authService } from './authService.js';
+import { authService } from './authService.js?v=20260713sync6';
 import { readJsonResponseBody, withRecoverableFallback } from '../lib/recoverable-fetch.js';
-import { apiUrl, showToast } from '../utils.js';
 
 /**
  * Open-source pivot: community CLI is the product. Billing API calls are stubbed;
@@ -87,7 +86,7 @@ export class BillingService {
 
   async resolveEntitlement(_email = this.getEmail() || '') {
     const entitlementPayload = await withRecoverableFallback('billing entitlements fetch', async () => {
-      const entitlementResponse = await fetch(apiUrl('/api/simplebeacon/entitlements'), {
+      const entitlementResponse = await fetch('/api/simplebeacon/entitlements', {
         headers: this.getRequestHeaders()
       });
       if (!entitlementResponse.ok) {
@@ -159,45 +158,6 @@ export class BillingService {
     const err = new Error('No billing portal — community CLI is open source.');
     err.code = 'billing_unavailable';
     throw err;
-  }
-
-  /**
-   * Polls the auth endpoint immediately post-checkout to reconcile permissions.
-   * Catches the background database update triggered by the Stripe webhook.
-   *
-   * @param {number} maxAttempts - default 5 attempts with exponential backoff
-   * @returns {Promise<boolean>}
-   */
-  async verifySessionEntitlementWithGrace(maxAttempts = 5) {
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      // Trigger a low-profile backend session profile query pass
-      const refreshed = await authService.validateSession();
-      if (!refreshed) {
-        await new Promise((resolve) => setTimeout(resolve, attempt * 1000));
-        continue;
-      }
-
-      const userProfile = authService.getUser() || {};
-      const tier = userProfile.tier || userProfile.plan || 'free';
-
-      if (tier !== 'free' && tier !== 'sandbox' && tier !== 'community') {
-        showToast(
-          `Success! License upgraded to ${String(tier).toUpperCase()} Tier. Unlocking premium scan engines.`,
-          'success'
-        );
-        return true;
-      }
-
-      // Exponential backoff before next attempt
-      await new Promise((resolve) => setTimeout(resolve, attempt * 1000));
-    }
-
-    // Fallback: webhook is slightly delayed or processing high traffic volumes
-    showToast(
-      'Subscription confirmed by Stripe. Your account will automatically activate in the background shortly.',
-      'info'
-    );
-    return false;
   }
 }
 

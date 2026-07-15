@@ -1,7 +1,7 @@
-import { fetchWithTimeout, downloadJson, downloadText, apiUrl } from '../utils.js';
+import { fetchWithTimeout, downloadJson, downloadText } from '../utils.js';
 import { billingService } from './billingService.js';
-import { authService } from './authService.js';
-import { isDemoMode, isLocalDevHost, DEMO_API_BASE } from '../demoMode.js';
+import { authService } from './authService.js?v=20260713sync6';
+import { isDemoMode, DEMO_API_BASE } from '../demoMode.js';
 import { readJsonResponseBody } from '../lib/recoverable-fetch.js';
 import { buildDashboardExportBundle } from '../utils/dashboard-export.browser.js?v=20260616demodashboard1';
 
@@ -119,6 +119,25 @@ export class ScanService {
     return this.report;
   }
 
+  async importReport(report, projectPath = null) {
+    if (!report || typeof report !== 'object') {
+      throw new Error('report is required');
+    }
+    const body = { report };
+    if (projectPath) body.projectPath = projectPath;
+    const res = await fetchSimplebeacon(`${simplebeaconApiBase()}/report/import`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    }, 60000);
+    const data = await readJsonResponseBody(res, null);
+    if (!res.ok || !data || !data.success) {
+      throw new Error(data?.error || `Report import failed (${res.status})`);
+    }
+    this.report = await this.fetchReport(data.projectPath || projectPath || undefined);
+    return { response: data, report: this.report };
+  }
+
   async fetchRepositoryInventory(projectPath) {
     const path = String(projectPath || '').trim();
     if (!path) return null;
@@ -126,7 +145,7 @@ export class ScanService {
       return null;
     }
     const params = new URLSearchParams({ projectPath: path, profile: 'explorer' });
-    const inventoryHttpResponse = await fetchWithTimeout(apiUrl(`/api/analyze/inventory?${params}`), { headers: mergeAuthHeaders() });
+    const inventoryHttpResponse = await fetchWithTimeout(`/api/analyze/inventory?${params}`, { headers: mergeAuthHeaders() });
     const inventoryPayload = await readJsonResponseBody(inventoryHttpResponse, {});
     if (!inventoryHttpResponse.ok || !inventoryPayload.success) return null;
     return inventoryPayload.inventory;
@@ -268,7 +287,7 @@ export class ScanService {
   }
 
   async runScan(projectPath, options = {}) {
-    if (isDemoMode() && !isLocalDevHost()) {
+    if (isDemoMode()) {
       const err = new Error('Demo mode is read-only');
       err.code = 'demo_readonly';
       throw err;
@@ -289,7 +308,11 @@ export class ScanService {
           gateFailed: true
         };
       }
-      throw new Error(data.error || data.message || 'Scan failed');
+      throw new Error(data.error || data.message || data.warning || 'Scan failed');
+    }
+    // Backend may return 200 with a warning/fallback but no real report
+    if (data.warning && !data.report) {
+      throw new Error(data.warning);
     }
     const resolvedPath = projectPath || data.projectPath || null;
     try {

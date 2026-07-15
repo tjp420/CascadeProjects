@@ -6,7 +6,7 @@ const { isExternalBenchmarkCachePath } = require('./benchmark-cache-paths');
 const { aggregateCleanupFindings } = require('./result-aggregator');
 const { globMatch } = require('../rules/production-leak');
 const { DEFAULT_SKIP_GLOBS } = require('../analyzers/file-reduction/unused-file-detector');
-const constants = require('../../../../ai-platform/server/config/constants.cjs');
+const constants = require('./constants');
 
 const STALE_INVENTORY_FILE_THRESHOLD = constants.TIMEOUT_5S;
 

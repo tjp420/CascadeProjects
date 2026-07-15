@@ -18,6 +18,7 @@ const constants = require('../config/constants.cjs');
 function t(str) { return str; }
 const { generateWithProvider } = require('../services/cloud-inference-service.cjs');
 const { DEFAULT_OLLAMA_URL, ollamaListModels } = require('../services/ollama-client.cjs');
+const { verifyToken } = require('../lib/auth/token-service.cjs');
 const fs = require('fs');
 const path = require('path');
 
@@ -165,6 +166,41 @@ async function probeOllama(baseUrl, timeoutMs = 2500) {
   }
 }
 
+/**
+ * Resolve the signed-in user email for chatbot credential lookup.
+ * Chatbot message/providers routes require auth when REQUIRE_AUTH=true, but this
+ * helper also accepts Bearer JWT and body.userId for resilience.
+ * @param {import('express').Request} req
+ * @returns {Promise<string|null>}
+ */
+async function resolveChatbotUserEmail(req) {
+  if (req.user?.email) {
+    return String(req.user.email).trim().toLowerCase();
+  }
+  const bodyUserId = String(req.body?.userId || '').trim();
+  if (bodyUserId.includes('@')) {
+    return bodyUserId.toLowerCase();
+  }
+  const authHeader = String(req.headers.authorization || '');
+  if (!authHeader.startsWith('Bearer ')) {
+    return null;
+  }
+  const token = authHeader.slice(7).trim();
+  if (!token) {
+    return null;
+  }
+  try {
+    const decoded = await verifyToken(token);
+    if (decoded?.email) {
+      return String(decoded.email).trim().toLowerCase();
+    }
+  }
+  catch {
+    // Not a platform session JWT.
+  }
+  return null;
+}
+
 function setupChatbotAPI(app) {
   app.post('/api/chatbot/message', async (req, res) => {
     try {
@@ -192,7 +228,8 @@ function setupChatbotAPI(app) {
       });
 
       // Get user credentials for AI providers
-      const userCredentials = await getUserAiCredentials(req.user?.email || null);
+      const userEmail = await resolveChatbotUserEmail(req);
+      const userCredentials = await getUserAiCredentials(userEmail);
 
       logger.info('[Chatbot API] User credentials:', {
         hasOllamaBaseUrl: !!userCredentials?.ollamaBaseUrl,
@@ -271,7 +308,6 @@ function setupChatbotAPI(app) {
 
       // Check for custom user prompt
       const svc = getPromptService();
-      const userEmail = req.user?.email || req.body.userId || null;
       if (svc && userEmail) {
         try {
           const custom = svc.loadPrompts()[userEmail];
@@ -343,7 +379,8 @@ function setupChatbotAPI(app) {
 
   app.get('/api/chatbot/providers', async (req, res) => {
     try {
-      const userCredentials = await getUserAiCredentials(req.user?.email || null);
+      const userEmail = await resolveChatbotUserEmail(req);
+      const userCredentials = await getUserAiCredentials(userEmail);
 
       // A configured Ollama URL is not enough — it must actually be reachable from the server.
       let ollamaConfigured = Boolean(userCredentials?.ollamaBaseUrl || process.env.OLLAMA_BASE_URL);
@@ -437,4 +474,4 @@ function setupChatbotAPI(app) {
   logger.info('[Chatbot API] Registered GET /api/chatbot/disclosure');
 }
 
-module.exports = { setupChatbotAPI };
+module.exports = { setupChatbotAPI, resolveChatbotUserEmail };

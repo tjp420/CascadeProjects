@@ -5,7 +5,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const constants = require('../../../../../../ai-platform/server/config/constants.cjs');
+const constants = require('../../../lib/constants');
 
 const DEFAULT_TTL_MS = 60 * 60 * constants.MS_PER_SECOND;
 

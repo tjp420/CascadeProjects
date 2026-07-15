@@ -1,11 +1,62 @@
-import { fetchWithTimeout } from '../utils-lib/fetch.js';
-import { downloadJson, downloadText } from '../utils/dom.js';
-import { apiUrl } from '../utils/url.js';
+import { fetchWithTimeout, downloadJson, downloadText, resolveDashboardProjectPath } from '../utils.js';
 import { billingService } from './billingService.js';
-import { authService } from './authService.js';
-import { isDemoMode, isLocalDevHost, DEMO_API_BASE } from '../demoMode.js';
+import { authService } from './authService.js?v=20260713sync6';
+import { isDemoMode, DEMO_API_BASE } from '../demoMode.js';
 import { readJsonResponseBody } from '../lib/recoverable-fetch.js';
 import { buildDashboardExportBundle } from '../utils/dashboard-export.browser.js?v=20260616demodashboard1';
+import { isLocalPath, fetchScanProgressViaAgent, fetchScanProgressViaExtensionBridge, hasExtensionBridgeConfigured, probeAgent } from './localAgentService.js?v=20260714hosted2';
+import { apiBaseUrl } from '../utils-lib/url.js';
+/**
+ * Upgrade a v1 ("version": "1.0.0" and no reportVersion) scan report so the
+ * dashboard treats it as current and can render aligned file-count metrics.
+ * @param {Object} rawReport
+ * @returns {Object}
+ */
+function normalizeScanReport(rawReport) {
+    if (!rawReport || typeof rawReport !== 'object') {
+        return rawReport;
+    }
+    if (rawReport.reportVersion && Number(rawReport.reportVersion) >= 2) {
+        return rawReport;
+    }
+    if (rawReport.version !== '1.0.0' && rawReport.reportVersion == null) {
+        return rawReport;
+    }
+    const summary = rawReport.summary || {};
+    const repositoryInventory = rawReport.repositoryInventory || null;
+    const repositoryFilesTotal = rawReport.repositoryFilesTotal
+        ?? repositoryInventory?.totalFiles
+        ?? summary.repositoryFilesTotal
+        ?? null;
+    const repositoryFoldersTotal = rawReport.repositoryFoldersTotal
+        ?? repositoryInventory?.totalFolders
+        ?? summary.repositoryFoldersTotal
+        ?? null;
+    const ruleScopedFilesAnalyzed = rawReport.ruleScopedFilesAnalyzed
+        ?? summary.ruleScopedFilesAnalyzed
+        ?? null;
+    const codeFilesAnalyzed = summary.codeFilesAnalyzed
+        ?? summary.codeFilesDiscovered
+        ?? rawReport.filesAnalyzed
+        ?? null;
+    let filesAnalyzed = rawReport.filesAnalyzed ?? null;
+    if (filesAnalyzed == null) {
+        filesAnalyzed = rawReport.fullDirectoryScan
+            ? repositoryFilesTotal
+            : (ruleScopedFilesAnalyzed ?? codeFilesAnalyzed ?? repositoryFilesTotal);
+    }
+    return {
+        ...rawReport,
+        reportVersion: 2,
+        filesAnalyzed,
+        ruleScopedFilesAnalyzed: ruleScopedFilesAnalyzed ?? filesAnalyzed,
+        repositoryFilesTotal,
+        repositoryFoldersTotal,
+        repositoryInventory: repositoryInventory || (repositoryFilesTotal != null
+            ? { totalFiles: repositoryFilesTotal, totalFolders: repositoryFoldersTotal }
+            : null)
+    };
+}
 /**
  * Simplebeacon api base.
  * @returns {any}
@@ -13,12 +64,30 @@ import { buildDashboardExportBundle } from '../utils/dashboard-export.browser.js
 function simplebeaconApiBase() {
     if (isDemoMode())
         return DEMO_API_BASE;
-    let stored = '';
-    try {
-        stored = localStorage.getItem('sb_api_host') || '';
-    } catch (e) { /* sandboxed iframe may block localStorage */ }
+    const stored = localStorage.getItem('sb_api_host');
     if (stored)
         return stored + '/api/simplebeacon';
+    // VS Code / Windsurf website mode: sb_api_base points at the extension data-server on localhost.
+    const embedBase = apiBaseUrl();
+    if (embedBase && embedBase !== '/') {
+        try {
+            const normalized = embedBase.startsWith('http') ? embedBase : `http://${embedBase}`;
+            const parsed = new URL(normalized);
+            const host = parsed.hostname.toLowerCase();
+            if (host === '127.0.0.1' || host === 'localhost') {
+                return `${parsed.origin}/api/simplebeacon`;
+            }
+        }
+        catch (_a) { /* fall through */ }
+    }
+    // On Cloudflare Pages / custom domains, the dashboard static files are served without the
+    // API backend. Route API calls to the Render backend instead.
+    if (typeof location !== 'undefined' && !/^(localhost|127\.0\.0\.1)$/i.test(location.hostname) && !location.hostname.endsWith('.onrender.com')) {
+        if (location.hostname === 'simplebeacon.ai' || location.hostname.endsWith('.simplebeacon.pages.dev')) {
+            return `${location.origin}/api/simplebeacon`;
+        }
+        return 'https://simplebeacon.ai/api/simplebeacon';
+    }
     return '/api/simplebeacon';
 }
 /**
@@ -80,6 +149,9 @@ export class ScanService {
         this.baseline = null;
         this.config = null;
         this.history = [];
+        this._pendingFetches = new Map();
+        this._ciMetricsInflight = null;
+        this._ciMetricsUnavailable = false;
     }
     async fetchAll(projectPath = null) {
         const [reportR, baselineR, configR, historyR] = await Promise.allSettled([
@@ -100,33 +172,67 @@ export class ScanService {
         };
     }
     async fetchReport(projectPath) {
-        if (projectPath && /^https?:\/\//i.test(projectPath)) {
+        const safePath = resolveDashboardProjectPath(projectPath);
+        if (safePath && /^https?:\/\//i.test(safePath)) {
             return null;
         }
-        const query = new URLSearchParams();
-        if (projectPath)
-            query.set('projectPath', projectPath);
-        query.set('_cb', Date.now().toString());
-        const params = query.toString() ? `?${query.toString()}` : '';
-        const res = await fetchSimplebeacon(`${simplebeaconApiBase()}/report${params}`);
-        if (!res.ok)
-            throw new Error('Failed to load scan report — is the dashboard server running?');
-        const report = await readJsonResponseBody(res, null);
-        if (!report || typeof report !== 'object') {
-            throw new Error('Scan report API unavailable on this host (received HTML instead of JSON).');
+        const key = `report:${safePath || ''}`;
+        if (this._pendingFetches.has(key)) {
+            return this._pendingFetches.get(key);
         }
-        this.report = await this.enrichReport(report);
-        return this.report;
+        const promise = (async () => {
+            try {
+                const query = new URLSearchParams();
+                if (safePath)
+                    query.set('projectPath', safePath);
+                query.set('_cb', Date.now().toString());
+                const params = query.toString() ? `?${query.toString()}` : '';
+                const res = await fetchSimplebeacon(`${simplebeaconApiBase()}/report${params}`);
+                if (!res.ok)
+                    throw new Error('Failed to load scan report — is the dashboard server running?');
+                const report = await readJsonResponseBody(res, null);
+                if (!report || typeof report !== 'object') {
+                    throw new Error('Scan report API unavailable on this host (received HTML instead of JSON).');
+                }
+                this.report = await this.enrichReport(normalizeScanReport(report));
+                return this.report;
+            }
+            finally {
+                this._pendingFetches.delete(key);
+            }
+        })();
+        this._pendingFetches.set(key, promise);
+        return promise;
+    }
+    async importReport(report, projectPath = null) {
+        if (!report || typeof report !== 'object') {
+            throw new Error('report is required');
+        }
+        const body = { report };
+        if (projectPath)
+            body.projectPath = projectPath;
+        const res = await fetchSimplebeacon(`${simplebeaconApiBase()}/report/import`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        }, 60000);
+        const data = await readJsonResponseBody(res, null);
+        if (!res.ok || !data || !data.success) {
+            throw new Error((data === null || data === void 0 ? void 0 : data.error) || `Report import failed (${res.status})`);
+        }
+        this.report = await this.fetchReport(data.projectPath || projectPath || undefined);
+        return { response: data, report: this.report };
     }
     async fetchRepositoryInventory(projectPath) {
-        const path = String(projectPath || '').trim();
+        const path = resolveDashboardProjectPath(projectPath);
         if (!path)
             return null;
         if (/^https?:\/\//i.test(path) && !/^(git@|ssh:\/\/|https:\/\/(github|gitlab|bitbucket|codeberg)\.)/i.test(path)) {
             return null;
         }
         const params = new URLSearchParams({ projectPath: path, profile: 'explorer' });
-        const inventoryHttpResponse = await fetchWithTimeout(apiUrl(`/api/analyze/inventory?${params}`), { headers: mergeAuthHeaders() });
+        const base = simplebeaconApiBase().replace(/\/api\/simplebeacon$/, '');
+        const inventoryHttpResponse = await fetchWithTimeout(`${base}/api/analyze/inventory?${params}`, { headers: mergeAuthHeaders() });
         const inventoryPayload = await readJsonResponseBody(inventoryHttpResponse, {});
         if (!inventoryHttpResponse.ok || !inventoryPayload.success)
             return null;
@@ -153,7 +259,8 @@ export class ScanService {
         return this.baseline;
     }
     async fetchConfig(projectPath = null) {
-        const qs = projectPath ? `?projectPath=${encodeURIComponent(projectPath)}` : '';
+        const safePath = resolveDashboardProjectPath(projectPath);
+        const qs = safePath ? `?projectPath=${encodeURIComponent(safePath)}` : '';
         const res = await fetchWithTimeout(`${simplebeaconApiBase()}/config${qs}`, { headers: mergeAuthHeaders() });
         if (!res.ok)
             throw new Error('Failed to load config');
@@ -186,12 +293,25 @@ export class ScanService {
         return data;
     }
     async fetchHistory() {
-        const res = await fetchSimplebeacon(`${simplebeaconApiBase()}/history`);
-        if (!res.ok)
-            return [];
-        const history = await readJsonResponseBody(res, []);
-        this.history = Array.isArray(history) ? history : [];
-        return this.history;
+        const key = 'history';
+        if (this._pendingFetches.has(key)) {
+            return this._pendingFetches.get(key);
+        }
+        const promise = (async () => {
+            try {
+                const res = await fetchSimplebeacon(`${simplebeaconApiBase()}/history`);
+                if (!res.ok)
+                    return [];
+                const history = await readJsonResponseBody(res, []);
+                this.history = Array.isArray(history) ? history : [];
+                return this.history;
+            }
+            finally {
+                this._pendingFetches.delete(key);
+            }
+        })();
+        this._pendingFetches.set(key, promise);
+        return promise;
     }
     async fetchDashboard() {
         const dashboardHttpResponse = await fetchSimplebeacon(`${simplebeaconApiBase()}/dashboard`);
@@ -249,11 +369,37 @@ export class ScanService {
         return assessmentPayload;
     }
     async fetchScanProgress(projectPath) {
-        if (!projectPath)
+        const safePath = resolveDashboardProjectPath(projectPath);
+        if (!safePath)
             return { active: false };
-        const params = new URLSearchParams({ projectPath });
+        if (hasExtensionBridgeConfigured()) {
+            try {
+                const bridgeProgress = await fetchScanProgressViaExtensionBridge(safePath);
+                if (bridgeProgress === null || bridgeProgress === void 0 ? void 0 : bridgeProgress.active) {
+                    return bridgeProgress;
+                }
+            }
+            catch (_bridgeErr) {
+                /* fall through */
+            }
+        }
+        if (isLocalPath(safePath)) {
+            try {
+                const agentStatus = await probeAgent();
+                if (agentStatus.available) {
+                    const agentProgress = await fetchScanProgressViaAgent(safePath);
+                    if (agentProgress === null || agentProgress === void 0 ? void 0 : agentProgress.active) {
+                        return agentProgress;
+                    }
+                }
+            }
+            catch (_a) {
+                /* fall through to server progress */
+            }
+        }
+        const params = new URLSearchParams({ projectPath: safePath });
         try {
-            const res = await fetchWithTimeout(`${simplebeaconApiBase()}/scan/progress?${params}`, { headers: mergeAuthHeaders() }, 5000);
+            const res = await fetchWithTimeout(`${simplebeaconApiBase()}/scan/progress?${params}`, { headers: mergeAuthHeaders() }, 15000);
             const data = await readJsonResponseBody(res, {});
             if (res.status === 404) {
                 return { active: false, endpointUnavailable: true };
@@ -267,15 +413,19 @@ export class ScanService {
         }
     }
     async runScan(projectPath, options = {}) {
-        if (isDemoMode() && !isLocalDevHost()) {
+        if (isDemoMode()) {
             const err = new Error('Demo mode is read-only');
             err.code = 'demo_readonly';
             throw err;
         }
+        const safePath = resolveDashboardProjectPath(projectPath) || undefined;
+        if (!safePath) {
+            throw new Error('No project path selected. Open a folder or set a project path before scanning.');
+        }
         const res = await fetchSimplebeacon(`${simplebeaconApiBase()}/scan`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ projectPath: projectPath || undefined, fullDirectoryScan: options.fullDirectoryScan !== false })
+            body: JSON.stringify({ projectPath: safePath, fullDirectoryScan: options.fullDirectoryScan !== false })
         }, 600000);
         const data = await readJsonResponseBody(res, {});
         if (!res.ok) {
@@ -288,21 +438,18 @@ export class ScanService {
                     gateFailed: true
                 };
             }
-            throw new Error(data.error || data.message || 'Scan failed');
+            throw new Error(data.error || data.message || data.warning || 'Scan failed');
+        }
+        // Backend may return 200 with a warning/fallback but no real report
+        if (data.warning && !data.report) {
+            throw new Error(data.warning);
         }
         const resolvedPath = projectPath || data.projectPath || null;
-        // Prefer the fresh report from the POST scan response;
-        // only fetch separately if the response didn't include one.
-        if (data.report && typeof data.report === 'object') {
-            this.report = await this.enrichReport(data.report);
+        try {
+            this.report = await this.fetchReport(resolvedPath);
         }
-        else {
-            try {
-                this.report = await this.fetchReport(resolvedPath);
-            }
-            catch (_a) {
-                this.report = null;
-            }
+        catch (_a) {
+            this.report = data.report ? await this.enrichReport(data.report) : null;
         }
         return {
             ...data,
@@ -381,28 +528,25 @@ export class ScanService {
         const fictionCount = countByType((t) => /fiction|consistency|kpi/i.test(t));
         const dupCount = countByType((t) => /duplicate/i.test(t));
         const typeSafetyCount = countByType((t) => /type-safety|prop-types|any-type|ts-ignore|ts-expect-error|unsafe-type-assertion/i.test(t));
-        const securityCount = countByType((t) => /security/i.test(t));
-        const qualityCount = countByType((t) => /quality/i.test(t));
-        const performanceCount = countByType((t) => /performance/i.test(t));
-        const categorizedCount = credCount + schemaCount + prodCount + fictionCount + dupCount + typeSafetyCount + securityCount + qualityCount + performanceCount;
+        const categorizedCount = credCount + schemaCount + prodCount + fictionCount + dupCount + typeSafetyCount;
         const totalRaw = raw.reduce((s, i) => s + (i.count || 1), 0);
         const otherCount = Math.max(0, totalRaw - categorizedCount);
         /**
-         * Max severity for a category.
+         * Max severity.
          * @param {number} count
-         * @param {Function} typeMatch
          * @param {any} defaultSev
          * @returns {any}
          */
-        const maxSeverity = (count, typeMatch, defaultSev) => {
+        const maxSeverity = (count, defaultSev) => {
             if (count === 0)
                 return 'none';
-            const issues = raw.filter((i) => typeMatch(i.type) && i.severity);
-            if (!issues.length)
+            const issues = raw.filter((i) => i.count > 0 || i.severity);
+            const relevant = issues.filter((i) => i.severity);
+            if (!relevant.length)
                 return defaultSev;
-            if (issues.some((i) => i.severity === 'high'))
+            if (relevant.some((i) => i.severity === 'high'))
                 return 'high';
-            if (issues.some((i) => i.severity === 'medium'))
+            if (relevant.some((i) => i.severity === 'medium'))
                 return 'medium';
             return 'low';
         };
@@ -436,7 +580,7 @@ export class ScanService {
                 icon: '📊',
                 title: 'Consistency Issues',
                 count: fictionCount,
-                severity: fictionCount ? maxSeverity(fictionCount, (t) => /fiction|consistency|kpi/i.test(t), 'medium') : 'none',
+                severity: fictionCount ? maxSeverity(fictionCount, 'medium') : 'none',
                 filter: (i) => /fiction|consistency|kpi/i.test(i.type)
             },
             {
@@ -444,7 +588,7 @@ export class ScanService {
                 icon: '🔀',
                 title: 'Duplicate Data',
                 count: dupCount,
-                severity: dupCount ? maxSeverity(dupCount, (t) => /duplicate/i.test(t), 'low') : 'none',
+                severity: dupCount ? 'low' : 'none',
                 filter: (i) => /duplicate/i.test(i.type)
             },
             {
@@ -452,32 +596,8 @@ export class ScanService {
                 icon: '🛡️',
                 title: 'Type Safety',
                 count: typeSafetyCount,
-                severity: typeSafetyCount ? maxSeverity(typeSafetyCount, (t) => /type-safety|prop-types|any-type|ts-ignore|ts-expect-error|unsafe-type-assertion/i.test(t), 'low') : 'none',
+                severity: typeSafetyCount ? maxSeverity(typeSafetyCount, 'low') : 'none',
                 filter: (i) => /type-safety|prop-types|any-type|ts-ignore|ts-expect-error|unsafe-type-assertion/i.test(i.type)
-            },
-            {
-                id: 'security',
-                icon: '🔒',
-                title: 'Security Issues',
-                count: securityCount,
-                severity: securityCount ? maxSeverity(securityCount, (t) => /security/i.test(t), 'high') : 'none',
-                filter: (i) => /security/i.test(i.type)
-            },
-            {
-                id: 'quality',
-                icon: '✅',
-                title: 'Code Quality',
-                count: qualityCount,
-                severity: qualityCount ? maxSeverity(qualityCount, (t) => /quality/i.test(t), 'low') : 'none',
-                filter: (i) => /quality/i.test(i.type)
-            },
-            {
-                id: 'performance',
-                icon: '⚡',
-                title: 'Performance',
-                count: performanceCount,
-                severity: performanceCount ? maxSeverity(performanceCount, (t) => /performance/i.test(t), 'medium') : 'none',
-                filter: (i) => /performance/i.test(i.type)
             },
             {
                 id: 'other',
@@ -485,7 +605,7 @@ export class ScanService {
                 title: 'Other Findings',
                 count: otherCount,
                 severity: otherCount ? 'low' : 'none',
-                filter: (i) => !/credential|schema|production leak|fiction|consistency|kpi|duplicate|type-safety|prop-types|any-type|ts-ignore|ts-expect-error|unsafe-type-assertion|security|quality|performance/i.test(i.type)
+                filter: (i) => !/credential|schema|production leak|fiction|consistency|kpi|duplicate|type-safety|prop-types|any-type|ts-ignore|ts-expect-error|unsafe-type-assertion/i.test(i.type)
             }
         ];
     }
@@ -509,6 +629,48 @@ export class ScanService {
             return '—';
         const parts = filePath.replace(/\\/g, '/').split('/');
         return parts[parts.length - 1];
+    }
+
+    /**
+     * Team CI telemetry summary (paid tier — merges blocked, gates tripped).
+     * @param {{ days?: number }} [options]
+     * @returns {Promise<Object|null>}
+     */
+    async fetchCiTeamMetrics(options = {}) {
+        if (this._ciMetricsUnavailable) {
+            return null;
+        }
+        if (this._ciMetricsInflight) {
+            return this._ciMetricsInflight;
+        }
+        this._ciMetricsInflight = this._fetchCiTeamMetricsImpl(options).finally(() => {
+            this._ciMetricsInflight = null;
+        });
+        return this._ciMetricsInflight;
+    }
+
+    async _fetchCiTeamMetricsImpl(options = {}) {
+        const days = options.days || 7;
+        try {
+            const res = await fetchWithTimeout(`${simplebeaconApiBase()}/ci/telemetry/summary?days=${days}`, {
+                headers: mergeAuthHeaders({ Accept: 'application/json' })
+            });
+            if (res.status === 404) {
+                this._ciMetricsUnavailable = true;
+                return null;
+            }
+            if (!res.ok) {
+                return null;
+            }
+            const data = await readJsonResponseBody(res);
+            if (!data || typeof data.total_scans !== 'number') {
+                return null;
+            }
+            return data;
+        }
+        catch {
+            return null;
+        }
     }
 }
 /**

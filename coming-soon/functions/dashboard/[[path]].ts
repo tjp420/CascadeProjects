@@ -18,8 +18,23 @@ export const onRequest = async (context: any) => {
   // Serve the dashboard SPA for every other /dashboard/* route.
   // Use the duplicated __entry file (no extension) so Cloudflare does not strip the
   // extension and redirect, and force the response Content-Type to text/html.
-  const assetUrl = new URL('/dashboard/__entry', url.origin);
-  const response = await env.ASSETS.fetch(new Request(assetUrl.toString(), request));
+  if (pathname === '/dashboard') {
+    return Response.redirect(new URL('/dashboard/', url.origin), 301);
+  }
+
+  const entryCandidates = ['/dashboard/__entry', '/dashboard/index.html'];
+  let response: Response | null = null;
+  for (const entryPath of entryCandidates) {
+    const assetUrl = new URL(entryPath, url.origin);
+    const candidate = await env.ASSETS.fetch(new Request(assetUrl.toString(), request));
+    if (candidate.ok) {
+      response = candidate;
+      break;
+    }
+  }
+  if (!response) {
+    return new Response('Dashboard entry not found', { status: 404 });
+  }
   const headers = new Headers(response.headers);
   headers.set('Content-Type', 'text/html; charset=utf-8');
   return new Response(response.body, { status: response.status, headers });

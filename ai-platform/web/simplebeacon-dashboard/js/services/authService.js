@@ -589,12 +589,21 @@ export class AuthService {
       if (body?.user) {
         this.user = body.user;
         localStorage.setItem(USER_KEY, JSON.stringify(body.user));
+        // Bind JWT token to the authenticated account
+        this.bindTokenToAccount(token, 'account');
+        return true;
       }
-      // Bind JWT token to the authenticated account
-      this.bindTokenToAccount(token, 'account');
-      return true;
+      // If the server explicitly says the token is not authenticated, treat it as invalid.
+      if (body && body.authenticated === false) {
+        this.clearSession();
+        return this.tryRotateVaultToken();
+      }
     }
-    // Server rejected — try client-side decode for unsigned/development tokens
+    // Server rejected or no user returned — try client-side decode for unsigned/development tokens only when auth is not required (local dev).
+    if (this.authRequired) {
+      this.clearSession();
+      return this.tryRotateVaultToken();
+    }
     const payload = this._decodeJwtPayload(token);
     if (!payload) {
       this.clearSession();

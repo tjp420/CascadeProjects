@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
 /**
  * Simplebeacon dashboard API — serves scan report, baseline, config, and scan trigger.
  */
@@ -15,7 +16,7 @@ const {
   resolveDefaultAllowedRoots,
   assertSafeProjectPath
 } = require('../../server/lib/path-safety.cjs');
-const { patchRemediationPhases } = require('../../server/lib/scan-report-patch.cjs');
+const { patchRemediationPhases, normalizeDashboardReport } = require('../../server/lib/scan-report-patch.cjs');
 const { createRequireSubscription } = require('../../server/middleware/simplebeacon-subscription.cjs');
 const { optionalAuthenticate, verifyToken } = require('../../server/middleware/auth.cjs');
 const {
@@ -441,17 +442,19 @@ async function runSimplebeaconScan(projectPath, opts = {}) {
       const analysis = await analyzeCodebase(scanRoot, { includeEslint: false, includeBrowserAnalyzers: opts.includeBrowserAnalyzers, includeAllFiles: opts.fullDirectoryScan, context: 'dashboard' });
       const analyzedCount = analysis.summary?.codeFilesAnalyzed ?? analysis.summary?.codeFilesDiscovered ?? 0;
       const healthScore = analysis.summary?.healthScore || 100;
-      const report = {
+      const report = normalizeDashboardReport({
         type: 'simplebeacon-report',
         version: '1.0.0',
         generatedAt: new Date().toISOString(),
         projectPath: scanRoot,
+        projectRoot: scanRoot,
         summary: analysis.summary || {},
         categories: analysis.categories || [],
         findings: analysis.findings || [],
+        rawIssues: analysis.findings || [],
         gate: { pass: analyzedCount > 0 && healthScore >= 80, score: analyzedCount > 0 ? healthScore : 0 }
-      };
-      const patchedReport = patchRemediationPhases(report);
+      }, scanRoot);
+      const patchedReport = report;
       await fs.promises.writeFile(reportOut, JSON.stringify(patchedReport, null, 2));
       const history = await appendHistory(patchedReport);
       isScanRunning = false;
@@ -549,7 +552,7 @@ async function runSimplebeaconScan(projectPath, opts = {}) {
       await fs.promises.mkdir(path.dirname(reportFilePath), { recursive: true });
       await fs.promises.writeFile(reportFilePath, JSON.stringify(report, null, 2));
     }
-    report = patchRemediationPhases(report);
+    report = normalizeDashboardReport(report, projectPath || report.projectRoot || report.projectPath || PROJECT_ROOT);
     const history = await appendHistory(report);
 
     return {
@@ -626,7 +629,10 @@ function setupSimplebeaconAPI(app, options = {}) {
           /* ignore stat failure */
         }
       }
-      const report = patchRemediationPhases(await readJson(reportPath));
+      const report = normalizeDashboardReport(
+        await readJson(reportPath),
+        projectPath || rawProjectPath || null
+      );
       return res.json(report);
     } catch (err) {
       const isAdmin = req.user?.role === 'admin' || (Array.isArray(req.user?.permissions) && req.user.permissions.includes('admin:all'));
@@ -636,7 +642,7 @@ function setupSimplebeaconAPI(app, options = {}) {
         `resolved: ${projectPath || '(default)'}, reportPath: ${reportPath || '(none)'}, ` +
         `exists: ${fileExists}, size: ${fileSize}, error: ${err.message || err}`
       );
-      const fallback = {
+      const fallback = normalizeDashboardReport({
         // Return a default empty report so the dashboard can render before the first scan
         type: 'simplebeacon-report',
         version: '1.0.0',
@@ -651,7 +657,7 @@ function setupSimplebeaconAPI(app, options = {}) {
         }],
         modules: [],
         gate: { pass: false, blockingCount: 1, warningCount: 0, failOn: ['high'] }
-      };
+      }, rawProjectPath || PROJECT_ROOT);
       if (isDebug) {
         fallback._debug = {
           rawProjectPath,
@@ -1098,7 +1104,12 @@ function setupSimplebeaconAPI(app, options = {}) {
             cliExitCode: err.code
           });
         } catch (recoverErr) {
-          const recoverDebug = process.env.DEBUG_CLIENT_ERRORS === '1' ? {
+          return res.status(recoverErr.killed ? 504 : 500).json({
+            error: 'Scan failed',
+            message: recoverErr.message,
+            stdout: recoverErr.stdout?.slice(-constants.MAX_RATE_LIMIT),
+            stderr: recoverErr.stderr?.slice(-500),
+            partialReport: null,
             _debug: {
               stack: recoverErr.stack,
               code: recoverErr.code,
@@ -1108,18 +1119,15 @@ function setupSimplebeaconAPI(app, options = {}) {
               reportOut,
               reportExists
             }
-          } : {};
-          return res.status(recoverErr.killed ? 504 : 500).json({
-            error: 'Scan failed',
-            message: recoverErr.message,
-            stdout: recoverErr.stdout?.slice(-constants.MAX_RATE_LIMIT),
-            stderr: recoverErr.stderr?.slice(-500),
-            partialReport: null,
-            ...recoverDebug
           });
         }
       }
-      const debugPayload = process.env.DEBUG_CLIENT_ERRORS === '1' ? {
+      res.status(err.killed ? 504 : 500).json({
+        error: 'Scan failed',
+        message: err.message,
+        stdout: err.stdout?.slice(-constants.MAX_RATE_LIMIT),
+        stderr: err.stderr?.slice(-500),
+        partialReport: reportExists ? await readJson(reportOut).catch(() => null) : null,
         _debug: {
           stack: err.stack,
           code: err.code,
@@ -1129,14 +1137,6 @@ function setupSimplebeaconAPI(app, options = {}) {
           reportOut,
           reportExists
         }
-      } : {};
-      res.status(err.killed ? 504 : 500).json({
-        error: 'Scan failed',
-        message: err.message,
-        stdout: err.stdout?.slice(-constants.MAX_RATE_LIMIT),
-        stderr: err.stderr?.slice(-500),
-        partialReport: reportExists ? await readJson(reportOut).catch(() => null) : null,
-        ...debugPayload
       });
     }
   });

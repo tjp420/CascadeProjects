@@ -1,202 +1,631 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
-  <meta charset="utf-8">
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="color-scheme" content="dark">
-  <title>Sample Report</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <meta name="description" content="SimpleBeacon executive code compliance report sample — browser-local, print-ready PDF export.">
+  <title>SimpleBeacon.ai — Code Compliance Report</title>
   <style>
-    @page { margin: 12mm 14mm; background: #0d1117; }
     :root {
-      color-scheme: dark;
-      --bg: #0d1117;
-      --bg-elevated: #161b22;
-      --border: #30363d;
-      --border-muted: #21262d;
-      --text: #e6edf3;
-      --muted: #8b949e;
-      --dim: #6e7681;
-      --accent: #58a6ff;
-      --pass: #3fb950;
-      --pass-bg: rgba(46, 164, 79, 0.14);
-      --warn: #d29922;
-      --warn-bg: rgba(210, 153, 34, 0.14);
+      --primary: #0f172a;
+      --success: #16a34a;
+      --warning: #ca8a04;
+      --danger: #dc2626;
+      --border: #e2e8f0;
+      --text-main: #334155;
     }
+
     * { box-sizing: border-box; }
-    html { background: var(--bg); }
+
     body {
-      font-family: "Inter", "Segoe UI", system-ui, sans-serif;
-      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text-main);
+      line-height: 1.5;
       margin: 0;
-      background: var(--bg);
-      font-size: 11pt;
-      line-height: 1.55;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
+      padding: 40px;
+      background-color: #f8fafc;
     }
-    .report {
-      min-height: 100vh;
-      padding: 48px 52px 40px;
-      max-width: 860px;
-      margin: 0 auto;
+
+    .print-bar {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      z-index: 10;
+      display: flex;
+      gap: 8px;
+    }
+
+    .print-bar button {
       border: 1px solid var(--border);
-      page-break-after: always;
+      background: #ffffff;
+      color: var(--primary);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 10px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgb(15 23 42 / 0.08);
     }
-    .header-row {
+
+    .print-bar button:hover {
+      background: #f1f5f9;
+    }
+
+    .print-bar button.primary {
+      background: var(--primary);
+      color: #ffffff;
+      border-color: var(--primary);
+    }
+
+    .report-container {
+      max-width: 850px;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 50px;
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    }
+
+    .header {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      margin-bottom: 36px;
-      padding-bottom: 24px;
-      border-bottom: 1px solid var(--border-muted);
+      border-bottom: 2px solid var(--primary);
+      padding-bottom: 20px;
+      margin-bottom: 30px;
+      gap: 16px;
     }
-    .co-brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
+
+    .brand h1 {
+      margin: 0;
+      font-size: 24px;
+      color: var(--primary);
+      letter-spacing: -0.5px;
     }
-    .co-brand .logo-box {
-      width: 40px; height: 40px; border-radius: 8px;
-      background: linear-gradient(135deg, var(--accent), #1f6feb);
-      display: flex; align-items: center; justify-content: center;
-      color: white; font-weight: 800; font-size: 14px;
+
+    .brand span {
+      color: #64748b;
+      font-size: 12px;
     }
-    .co-brand .company-name {
-      font-size: 16px; font-weight: 700; color: var(--text);
-    }
-    .co-brand .company-tag {
-      font-size: 10px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.08em;
-    }
-    .cert-label {
+
+    .crypto-stamp {
+      border: 1px dashed var(--success);
+      padding: 8px 12px;
+      border-radius: 6px;
+      background: #f0fdf4;
       text-align: right;
+      min-width: 180px;
     }
-    .cert-label .kicker {
-      font-size: 9px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--muted);
-      margin-bottom: 4px;
+
+    .crypto-stamp .status {
+      color: var(--success);
+      font-weight: bold;
+      font-size: 14px;
     }
-    .cert-label .title {
-      font-size: 13px; font-weight: 700; color: var(--accent);
+
+    .crypto-stamp .hash {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 11px;
+      color: #64748b;
+      word-break: break-all;
     }
-    .report-body {
-      text-align: center;
-      padding: 24px 0 32px;
-    }
-    .report-body h1 {
-      font-size: 28pt; font-weight: 800; margin: 0 0 8px;
-      letter-spacing: -0.02em;
-      color: var(--text);
-    }
-    .report-body .subtitle {
-      font-size: 12pt; color: var(--muted); margin-bottom: 32px;
-    }
-    .grade-ring {
-      width: 140px; height: 140px; border-radius: 50%;
-      border: 6px solid var(--pass);
-      display: inline-flex; align-items: center; justify-content: center;
-      margin-bottom: 12px;
-    }
-    .grade-ring .grade {
-      font-size: 56px; font-weight: 800; color: var(--pass);
-    }
-    .grade-label {
-      font-size: 16px; font-weight: 700; color: var(--pass);
-      margin-bottom: 4px;
-    }
-    .grade-meta {
-      font-size: 11px; color: var(--muted); margin-bottom: 24px;
-    }
-    .pillars {
+
+    .overview-grid {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
-      max-width: 560px;
-      margin: 0 auto 32px;
+      grid-template-columns: 1fr 2fr;
+      gap: 30px;
+      margin-bottom: 40px;
+    }
+
+    .score-card {
+      background: #f1f5f9;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .score-num {
+      font-size: 64px;
+      font-weight: 800;
+      color: var(--primary);
+      line-height: 1;
+    }
+
+    .score-label {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #64748b;
+      margin-top: 5px;
+    }
+
+    .summary-box h2 {
+      margin-top: 0;
+      font-size: 18px;
+      color: var(--primary);
+    }
+
+    .section-title {
+      font-size: 16px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--primary);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+      margin-top: 40px;
+      margin-bottom: 20px;
+    }
+
+    .risk-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 30px;
+    }
+
+    .risk-table th,
+    .risk-table td {
+      padding: 12px;
       text-align: left;
+      border-bottom: 1px solid var(--border);
     }
-    .pillar {
-      background: var(--bg-elevated);
-      border: 1px solid var(--border-muted);
-      border-radius: 10px;
-      padding: 14px 16px;
+
+    .risk-table th {
+      background: #f8fafc;
+      color: #64748b;
+      font-size: 13px;
     }
-    .pillar .status { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
-    .pillar .status.pass { color: var(--pass); }
-    .pillar .status.warn { color: var(--warn); }
-    .pillar .name { font-size: 12px; font-weight: 600; color: var(--text); }
-    .pillar .detail { font-size: 10px; color: var(--dim); margin-top: 2px; }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .badge.pass { background: #f0fdf4; color: var(--success); }
+    .badge.warning { background: #fefce8; color: var(--warning); }
+    .badge.fail { background: #fef2f2; color: var(--danger); }
+
+    .finding-item {
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      margin-bottom: 15px;
+      overflow: hidden;
+    }
+
+    .finding-header {
+      background: #f8fafc;
+      padding: 10px 15px;
+      font-size: 13px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .finding-body {
+      padding: 15px;
+      font-size: 14px;
+    }
+
+    .code-snippet {
+      background: #0f172a;
+      color: #94a3b8;
+      padding: 12px;
+      border-radius: 4px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      overflow-x: auto;
+      margin: 10px 0;
+      white-space: pre-wrap;
+    }
+
+    .highlight-slop {
+      color: #f43f5e;
+      background: rgba(244, 63, 94, 0.2);
+      padding: 2px 0;
+      font-weight: bold;
+    }
+
     .disclaimer {
-      margin-top: 32px; padding-top: 16px;
-      border-top: 1px solid var(--border-muted);
-      font-size: 9px; color: var(--dim); line-height: 1.6;
+      margin-top: 32px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      font-size: 11px;
+      color: #64748b;
+      line-height: 1.6;
     }
+
+    .summary-box .meta { font-size: 13px; color: #64748b; margin-bottom: 0; }
+
+    /* Dark mode */
+    html.dark {
+      color-scheme: dark;
+      --primary: #f8fafc;
+      --success: #4ade80;
+      --warning: #facc15;
+      --danger: #f87171;
+      --border: #334155;
+      --text-main: #e2e8f0;
+    }
+
+    html.dark body { background-color: #0b1120; color: #e2e8f0; }
+    html.dark .report-container { background: #111827; border-color: #334155; }
+    html.dark .brand h1 { color: #f8fafc; }
+    html.dark .brand span { color: #94a3b8; }
+    html.dark .crypto-stamp { background: rgba(74, 222, 128, 0.15); border: 1px dashed rgba(74, 222, 128, 0.5); }
+    html.dark .crypto-stamp .hash { color: #94a3b8; }
+    html.dark .score-card { background: #1e293b; }
+    html.dark .score-num { color: #f8fafc; }
+    html.dark .score-label { color: #94a3b8; }
+    html.dark .summary-box h2 { color: #f8fafc; }
+    html.dark .summary-box .meta { color: #94a3b8; }
+    html.dark .section-title { color: #f8fafc; border-color: #334155; }
+    html.dark .risk-table th { background: #1e293b; color: #94a3b8; }
+    html.dark .risk-table td { border-color: #334155; }
+    html.dark .badge.pass { background: rgba(74, 222, 128, 0.15); color: #4ade80; }
+    html.dark .badge.warning { background: rgba(250, 204, 21, 0.15); color: #facc15; }
+    html.dark .badge.fail { background: rgba(248, 113, 113, 0.15); color: #f87171; }
+    html.dark .finding-item { border-color: #334155; }
+    html.dark .finding-header { background: #1e293b; border-color: #334155; }
+    html.dark .finding-body { color: #e2e8f0; }
+    html.dark .code-snippet { background: #0f172a; color: #94a3b8; }
+    html.dark .highlight-slop { color: #fb7185; background: rgba(251, 113, 133, 0.2); }
+    html.dark .disclaimer { color: #94a3b8; border-color: #334155; }
+    html.dark .print-bar button { background: #1e293b; color: #f8fafc; border-color: #334155; }
+    html.dark .print-bar button:hover { background: #334155; }
+    html.dark .print-bar button.primary { background: #0ea5e9; color: #0f172a; border-color: #0ea5e9; }
+
+    @media (max-width: 720px) {
+      body { padding: 16px; }
+      .report-container { padding: 28px 22px; }
+      .overview-grid { grid-template-columns: 1fr; }
+      .header { flex-direction: column; }
+      .crypto-stamp { text-align: left; width: 100%; }
+    }
+
     @media print {
-      body { background: var(--bg); }
-      .report { border: none; }
-    }
-    @media (max-width: 600px) {
-      .report { padding: 28px 24px; }
-      .report-body h1 { font-size: 20pt; }
-      .pillars { grid-template-columns: 1fr; }
-      .header-row { flex-direction: column; gap: 12px; }
+      body { background: #ffffff; padding: 0; }
+      .no-print { display: none !important; }
+      .report-container {
+        border: none;
+        box-shadow: none;
+        padding: 0;
+        max-width: 100%;
+      }
+      .page-break { page-break-before: always; }
+      .code-snippet,
+      .badge,
+      .crypto-stamp {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="report">
-    <div class="header-row">
-      <div class="co-brand">
-        <div class="logo-box">FT</div>
-        <div>
-          <div class="company-name">Example Organization</div>
-          <div class="company-tag">Sample Report</div>
-        </div>
-      </div>
-      <div class="cert-label">
-        <div class="kicker">Code Review</div>
-        <div class="title">Ref. No. 2026-0442</div>
-      </div>
+
+<div class="print-bar no-print">
+  <button type="button" onclick="window.print()">Export Verified PDF</button>
+  <button type="button" class="primary" onclick="window.location.href='/dashboard/#/analyze'">Run Your Own Scan</button>
+  <button type="button" id="themeToggle">Light mode</button>
+</div>
+
+<div class="report-container">
+  <div class="header">
+    <div class="brand">
+      <h1>SimpleBeacon Certification</h1>
+      <span>Automated AI Asset &amp; Compliance Audit</span>
     </div>
-
-    <div class="report-body">
-      <h1>Sample Scan Report</h1>
-      <p class="subtitle">Generated for demonstration purposes</p>
-
-      <div class="grade-ring">
-        <div class="grade">B</div>
-      </div>
-      <div class="grade-label">Low-Medium Risk</div>
-      <div class="grade-meta">Score: 78% | Gate: PASS | 3 findings</div>
-
-      <div class="pillars">
-        <div class="pillar">
-          <div class="status pass">PASS</div>
-          <div class="name">Placeholder Detection</div>
-          <div class="detail">No unresolved placeholders or fake metrics</div>
-        </div>
-        <div class="pillar">
-          <div class="status warn">WARNING</div>
-          <div class="name">Credential Exposure</div>
-          <div class="detail">1 staging key in non-production file (low severity)</div>
-        </div>
-        <div class="pillar">
-          <div class="status pass">PASS</div>
-          <div class="name">Integration Audit</div>
-          <div class="detail">All integrations documented and approved</div>
-        </div>
-        <div class="pillar">
-          <div class="status pass">PASS</div>
-          <div class="name">Dependency Check</div>
-          <div class="detail">Dependencies verified against registries</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="disclaimer">
-      <strong>Note:</strong> This is a sample report for demonstration. Findings are based on automated pattern analysis of the submitted codebase at the time of scan.
+    <div class="crypto-stamp" id="cryptoStamp">
+      <div class="status" id="stampStatus">PASSED</div>
+      <div class="hash" id="reportHash">Attestation: computing…</div>
     </div>
   </div>
+
+  <div class="overview-grid">
+    <div class="score-card">
+      <div class="score-num" id="scoreNum">--</div>
+      <div class="score-label">Beacon Score</div>
+    </div>
+    <div class="summary-box">
+      <h2>Executive Summary</h2>
+      <p id="execSummary">Analyzing repository structure…</p>
+      <p class="meta">
+        <strong>Scan Date:</strong> <span id="scanDate"></span> |
+        <strong>Target Assets:</strong> <span id="fileCount">0 files</span> |
+        <strong>Quality Gate:</strong> <span id="gateStatus">—</span>
+      </p>
+    </div>
+  </div>
+
+  <div class="section-title">Compliance &amp; Risk Ledger</div>
+  <table class="risk-table">
+    <thead>
+      <tr>
+        <th>Audit Category</th>
+        <th>Evaluation Parameter</th>
+        <th>Risk Exposure</th>
+      </tr>
+    </thead>
+    <tbody id="riskTableBody"></tbody>
+  </table>
+
+  <div class="page-break"></div>
+  <div class="section-title">Actionable Heuristic Deviations</div>
+  <div id="auditLogContainer"></div>
+
+  <div class="disclaimer">
+    <strong>Sample document.</strong> This executive report demonstrates SimpleBeacon export layout and language.
+    Findings shown are representative examples for sales and onboarding — not a live scan of your repository.
+    Production scans run locally in your browser or IDE; source code is not uploaded unless you explicitly opt in.
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var DEFAULT_SAMPLE = {
+    score: 91,
+    gatePass: true,
+    totalFilesScanned: 142,
+    timestamp: new Date().toLocaleString(),
+    projectLabel: 'Acme Payments API (sample)',
+    findings: [
+      {
+        file: 'src/components/PaymentForm.js',
+        line: 42,
+        type: 'AI Scaffolding Syntax',
+        severity: 'Medium',
+        snippet: 'const handleSubscription = () => {\n  // TODO: <INSERT LLM GENERATED STRIPE WEBHOOK COMPLIANCE HERE>\n  return true;\n}',
+        fix: 'Replace placeholder comments with validated internal business endpoints before code execution.'
+      },
+      {
+        file: 'server/routes/auth.py',
+        line: 18,
+        type: 'Hallucinated Structure',
+        severity: 'High',
+        snippet: 'import pseudo_crypto_lib_secure_v4  # Heuristic flag: module not in dependency registry',
+        fix: 'Remove reference to non-existent library dependencies flagged by predictive import analysis.'
+      },
+      {
+        file: 'web/data/dashboard-home-sample.json',
+        line: 12,
+        type: 'Fiction KPI Pattern',
+        severity: 'Medium',
+        snippet: '"uptime": "99.99%",\n"confidence": "98.5%",',
+        fix: 'Replace hardcoded marketing metrics with measured runtime values or clearly label demo fixtures.'
+      }
+    ]
+  };
+
+  function escapeHtml(text) {
+    return String(text)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function highlightSlop(htmlSnippet) {
+    return htmlSnippet
+      .replace(/(\/\/\s*TODO[^\n]*)/gi, '<span class="highlight-slop">$1</span>')
+      .replace(/(INSERT LLM GENERATED[^<\n]*)/gi, '<span class="highlight-slop">$1</span>')
+      .replace(/(pseudo_[a-z0-9_]+)/gi, '<span class="highlight-slop">$1</span>')
+      .replace(/("99\.99%"|"98\.5%")/g, '<span class="highlight-slop">$1</span>');
+  }
+
+  function severityBadgeClass(severity) {
+    var s = String(severity || '').toLowerCase();
+    if (s === 'high' || s === 'critical') return 'fail';
+    if (s === 'medium' || s === 'warning') return 'warning';
+    return 'pass';
+  }
+
+  function countHigh(findings) {
+    return (findings || []).filter(function (f) {
+      return String(f.severity || '').toLowerCase() === 'high';
+    }).length;
+  }
+
+  function parseQuerySample() {
+    var params = new URLSearchParams(window.location.search);
+    var score = Number(params.get('score'));
+    if (!Number.isFinite(score)) return null;
+    return {
+      score: Math.max(0, Math.min(100, Math.round(score))),
+      gatePass: params.get('gate') !== 'fail',
+      totalFilesScanned: Number(params.get('files')) || DEFAULT_SAMPLE.totalFilesScanned,
+      timestamp: new Date().toLocaleString(),
+      projectLabel: params.get('project') || DEFAULT_SAMPLE.projectLabel,
+      findings: DEFAULT_SAMPLE.findings
+    };
+  }
+
+  function loadReportData() {
+    try {
+      if (window.SIMPLEBEACON_REPORT_DATA && typeof window.SIMPLEBEACON_REPORT_DATA === 'object') {
+        return window.SIMPLEBEACON_REPORT_DATA;
+      }
+      var stored = sessionStorage.getItem('simplebeaconExecutiveReport');
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    } catch (err) {
+      console.warn('[sample-report] Could not load stored report data', err);
+    }
+    return parseQuerySample() || DEFAULT_SAMPLE;
+  }
+
+  function canonicalPayload(data) {
+    return JSON.stringify({
+      score: data.score,
+      gatePass: data.gatePass,
+      totalFilesScanned: data.totalFilesScanned,
+      timestamp: data.timestamp,
+      projectLabel: data.projectLabel,
+      findings: (data.findings || []).map(function (f) {
+        return { file: f.file, line: f.line, type: f.type, severity: f.severity, snippet: f.snippet };
+      })
+    });
+  }
+
+  function fallbackHash(text) {
+    var h = 0;
+    for (var i = 0; i < text.length; i++) {
+      h = ((h << 5) - h) + text.charCodeAt(i);
+      h |= 0;
+    }
+    return Math.abs(h).toString(16).padStart(12, '0');
+  }
+
+  function setAttestationHash(data) {
+    var payload = canonicalPayload(data);
+    var hashEl = document.getElementById('reportHash');
+    if (window.crypto && window.crypto.subtle && window.TextEncoder) {
+      var bytes = new TextEncoder().encode(payload);
+      return window.crypto.subtle.digest('SHA-256', bytes).then(function (buf) {
+        var hex = Array.from(new Uint8Array(buf)).map(function (b) {
+          return b.toString(16).padStart(2, '0');
+        }).join('');
+        hashEl.textContent = 'SHA-256: sb_' + hex.slice(0, 16);
+      }).catch(function () {
+        hashEl.textContent = 'ID: sb_' + fallbackHash(payload);
+      });
+    }
+    hashEl.textContent = 'ID: sb_' + fallbackHash(payload);
+    return Promise.resolve();
+  }
+
+  function generateReport(data) {
+    document.getElementById('scoreNum').textContent = String(data.score);
+    document.getElementById('scanDate').textContent = data.timestamp;
+    document.getElementById('fileCount').textContent = data.totalFilesScanned + ' files';
+    document.getElementById('gateStatus').textContent = data.gatePass ? 'PASS' : 'FAIL';
+
+    var stamp = document.getElementById('stampStatus');
+    var stampBox = document.getElementById('cryptoStamp');
+    var highCount = countHigh(data.findings);
+
+    if (data.gatePass && data.score >= 90 && highCount === 0) {
+      stamp.textContent = 'VERIFIED CLEAN';
+      stampBox.style.borderColor = 'var(--success)';
+      stamp.style.color = 'var(--success)';
+    } else if (data.score >= 70 && highCount <= 1) {
+      stamp.textContent = 'ACTION REQUIRED';
+      stampBox.style.borderColor = 'var(--warning)';
+      stamp.style.color = 'var(--warning)';
+    } else {
+      stamp.textContent = 'NON-COMPLIANT';
+      stampBox.style.borderColor = 'var(--danger)';
+      stamp.style.color = 'var(--danger)';
+    }
+
+    var execSummary = document.getElementById('execSummary');
+    if (data.score >= 90 && highCount === 0) {
+      execSummary.textContent =
+        'This codebase shows strong structural hygiene with ' + data.findings.length +
+        ' isolated variances suitable for sprint remediation. Human-verified logic dominates production paths, ' +
+        'mitigating immediate credential and regulatory exposure. Suitable for client delivery after noted fixes.';
+    } else {
+      execSummary.textContent =
+        'Architectural anomalies detected in ' + (data.projectLabel || 'the target repository') + '. ' +
+        'AI scaffolding markers, unverified imports, or incomplete blocks may break integration parameters. ' +
+        'Remediate items in the audit log before compliance sign-off.';
+    }
+
+    var findingsJson = JSON.stringify(data.findings || []);
+    var categories = [
+      {
+        name: 'EU AI Act Alignment',
+        desc: 'Transparency, documentation integrity, and high-risk system markers',
+        passCond: data.score > 85 && !/eu-ai-act|transparency/i.test(findingsJson)
+      },
+      {
+        name: 'Structural Hygiene',
+        desc: 'Detection of AI debris, TODO scaffolding, and layout anomalies',
+        passCond: highCount === 0
+      },
+      {
+        name: 'Dependency Sanity',
+        desc: 'Exclusion of hallucinated packages and unknown import paths',
+        passCond: !/hallucinated|pseudo_|Module does not exist/i.test(findingsJson)
+      },
+      {
+        name: 'Credential & Token Safety',
+        desc: 'Hardcoded secrets, API keys, and production leak patterns',
+        passCond: !/credential|api[_-]?key|password\s*=/i.test(findingsJson)
+      }
+    ];
+
+    document.getElementById('riskTableBody').innerHTML = categories.map(function (cat) {
+      return '<tr>' +
+        '<td><strong>' + escapeHtml(cat.name) + '</strong></td>' +
+        '<td>' + escapeHtml(cat.desc) + '</td>' +
+        '<td><span class="badge ' + (cat.passCond ? 'pass' : 'fail') + '">' +
+        (cat.passCond ? 'LOW RISK' : 'ACTION REQ.') + '</span></td>' +
+        '</tr>';
+    }).join('');
+
+    var logContainer = document.getElementById('auditLogContainer');
+    if (!data.findings || data.findings.length === 0) {
+      logContainer.innerHTML = '<p style="color: var(--success);">No anomalies found. Perfect alignment profile reached.</p>';
+      return;
+    }
+
+    logContainer.innerHTML = data.findings.map(function (finding) {
+      var snippetHtml = highlightSlop(escapeHtml(finding.snippet || ''));
+      return '<div class="finding-item">' +
+        '<div class="finding-header">' +
+        '<span>' + escapeHtml(finding.file) + ' : Line ' + escapeHtml(String(finding.line || 1)) + '</span>' +
+        '<span class="badge ' + severityBadgeClass(finding.severity) + '">' + escapeHtml(finding.severity) + ' Risk</span>' +
+        '</div>' +
+        '<div class="finding-body">' +
+        '<strong>Issue Type:</strong> ' + escapeHtml(finding.type) + '<br>' +
+        '<div class="code-snippet">' + snippetHtml + '</div>' +
+        '<strong>Correction Roadmap:</strong> ' + escapeHtml(finding.fix || 'Review and remediate before release.') +
+        '</div></div>';
+    }).join('');
+  }
+
+  var reportData = loadReportData();
+  generateReport(reportData);
+  setAttestationHash(reportData);
+})();
+</script>
+
+<script>
+(function() {
+  'use strict';
+  const html = document.documentElement;
+  const toggle = document.getElementById('themeToggle');
+  function setDark(isDark) {
+    if (isDark) html.classList.add('dark');
+    else html.classList.remove('dark');
+    if (toggle) toggle.textContent = isDark ? 'Light mode' : 'Dark mode';
+    try { localStorage.setItem('sb-sample-report-theme', isDark ? 'dark' : 'light'); } catch(e) {}
+  }
+  try {
+    const saved = localStorage.getItem('sb-sample-report-theme');
+    if (saved === 'light') setDark(false);
+    else if (saved === 'dark') setDark(true);
+    else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) setDark(false);
+    else setDark(true);
+  } catch(e) { setDark(true); }
+  if (toggle) {
+    toggle.addEventListener('click', function() { setDark(!html.classList.contains('dark')); });
+  }
+  var wasDark = false;
+  window.addEventListener('beforeprint', function() { wasDark = html.classList.contains('dark'); setDark(false); });
+  window.addEventListener('afterprint', function() { if (wasDark) setDark(true); });
+})();
+</script>
 </body>
 </html>

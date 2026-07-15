@@ -1,4 +1,4 @@
-const constants = require('../../../ai-platform/server/config/constants.cjs');
+const constants = require('./lib/constants');
 const { isLegalReviewAttestation } = require('./eu-ai-act-legal-attestation.js');
 /**
  * EU AI Act export eligibility and sprint freshness checks.

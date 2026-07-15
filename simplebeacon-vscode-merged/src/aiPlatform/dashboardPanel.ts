@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as http from 'http';
-import { getSbConfig, getNonce } from '../utils';
+import { getSbConfig, getNonce } from '../utils/vscode';
 import { provider, diagnosticsManager } from '../extension';
 
 /**

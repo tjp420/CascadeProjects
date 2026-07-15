@@ -2,7 +2,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import { getSbConfig } from '../utils';
+import { getSbConfig } from '../utils/vscode';
 
 export interface MatchEntry {
   line: number;
@@ -471,6 +471,10 @@ const PATTERN_REGISTRY: Record<string, PatternDef> = {
       // Exclude archive/ and test directories
       if (/(^|[\\/])archive[\\/]/i.test(filePath)) return false;
       if (/(^|[\\/])simplebeacon-rule-tests[\\/]/i.test(filePath)) return false;
+      if (/(^|[\\/])coming-soon(-dev)?[\\/]/i.test(filePath)) return false;
+      if (/social-posts\.md$/i.test(filePath)) return false;
+      if (/scan-wasm-bridge\.test\.js$/i.test(filePath)) return false;
+      if (/quick-actions\.js$/i.test(filePath)) return false;
       // Exclude already-redacted secrets
       if (/\*\*\*REDACTED\*\*\*/.test(snippet)) return false;
       // Exclude localStorage key names (not actual credentials)

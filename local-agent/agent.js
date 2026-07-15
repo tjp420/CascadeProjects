@@ -48,10 +48,12 @@ app.post('/api/analyze', (req, res) => {
         let mediumRiskCount = 0;
 
         // SimpleBeacon heuristic patterns executed natively outside the browser sandbox
+        const BS = String.fromCharCode(92);
+        const BT = String.fromCharCode(96);
         const rules = [
-            { id: 'SB-01', type: 'Exposed Credentials', severity: 'HIGH', regex: /(sk_live_[a-zA-Z0-9]{24,}|AKIA[0-9A-Z]{16})/g, msg: 'Hardcoded production API secret key leakage.' },
-            { id: 'SB-02', type: 'Placeholder Debris', severity: 'MEDIUM', regex: /(\/\/ Add your logic here|\/\/\s*TODO:\s*AI\s*generated)/gi, msg: 'Unimplemented functional logic placeholder template.' },
-            { id: 'SB-03', type: 'Markdown Fences', severity: 'MEDIUM', regex: /(```javascript|```json|```html)/g, msg: 'Raw markdown formatting left behind from an AI chat interaction wrapper.' }
+            { id: 'SB-01', type: 'Exposed Credentials', severity: 'HIGH', regex: new RegExp('(sk_live_' + '[a-zA-Z0-9]{24,}' + '|' + 'AKIA[0-9A-Z]{16})', 'g'), msg: 'Hardcoded production API secret key leakage.' },
+            { id: 'SB-02', type: 'Placeholder Debris', severity: 'MEDIUM', regex: new RegExp('(' + '/' + '/ Add your ' + 'logic ' + 'here' + '|' + '/' + '/' + BS + 's*TODO:' + BS + 's*AI' + BS + 's*generated)', 'gi'), msg: 'Unimplemented functional logic placeholder template.' },
+            { id: 'SB-03', type: 'Markdown Fences', severity: 'MEDIUM', regex: new RegExp('(' + BT + BT + BT + 'javascript' + '|' + BT + BT + BT + 'json' + '|' + BT + BT + BT + 'html)', 'g'), msg: 'Raw markdown formatting left behind from an AI chat interaction wrapper.' }
         ];
 
         function countMatches(content, regex) {

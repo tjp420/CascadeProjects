@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
 /**
  * Deterministic structural intent scanner — Tier 1a.
  * Ports IntelligentIntentScanner logic without Python AST or native deps.

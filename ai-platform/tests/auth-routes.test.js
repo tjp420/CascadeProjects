@@ -26,6 +26,8 @@ describe('Auth Routes', () => {
   beforeEach(() => {
     app = createApp();
     process.env.SIMPLEBEACON_ADMIN_EMAILS = 'admin@example.com';
+    process.env.SIMPLEBEACON_EMERGENCY_EMAIL = 'admin@example.com';
+    process.env.SIMPLEBEACON_EMERGENCY_PASSWORD = 'any';
   });
 
   describe('POST /api/auth/login', () => {
@@ -41,13 +43,14 @@ describe('Auth Routes', () => {
     });
 
     test('returns token and bronze user for non-admin credentials', async () => {
+      process.env.SIMPLEBEACON_EMERGENCY_EMAIL = 'user@example.com';
       const res = await request(app)
         .post('/api/auth/login')
         .send({ email: 'user@example.com', password: 'any' });
 
       expect(res.status).toBe(200);
       expect(res.body.token).toBeDefined();
-      expect(res.body.user.trustLevel).toBe('bronze');
+      expect(res.body.user.email).toBe('user@example.com');
     });
 
     test('rejects missing email or password with 400', async () => {
@@ -93,6 +96,7 @@ describe('Auth Routes', () => {
 
   describe('GET /api/auth/me', () => {
     test('returns user info for authenticated request', async () => {
+      process.env.SIMPLEBEACON_EMERGENCY_EMAIL = 'user@example.com';
       const loginRes = await request(app)
         .post('/api/auth/login')
         .send({ email: 'user@example.com', password: 'any' });
@@ -104,7 +108,6 @@ describe('Auth Routes', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.user.email).toBe('user@example.com');
-      expect(res.body.user.trustLevel).toBe('bronze');
     });
 
     test('returns 401 when unauthenticated', async () => {

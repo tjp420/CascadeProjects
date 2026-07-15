@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { ScanReport } from './scanProvider';
-import { getSbConfig } from './utils';
+import { getSbConfig } from './utils/vscode';
 
 /**
  * Tree data provider for SimpleBeacon settings and configuration nodes.

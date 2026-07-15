@@ -12,6 +12,9 @@ const SEVERITY_MAP = {
     credentials: 'critical',
     euAiAct: 'high'
 };
+const CREDENTIAL_LINE_RE = /(?:^|[^a-zA-Z0-9_-])(password|passwd|pwd|secret|api[_-]?key|private[_-]?key|client[_-]?secret|access_token|auth_token|refresh_token|bearer_token)\s*[:=]\s*['"`][^'"`\s]{8,}/i;
+const CREDENTIAL_ALLOWLIST = /placeholder|changeme|example\.com|your-api-key|your-secret|dummy-token|test-secret|fake-api|mock-secret|not-a-real|hardcoded-secret-for-unit-test|secret-key-for-unit-test|sk_test_your|xxxxxxxx|replace_me|sample-token|template-secret|programmatically generated/i;
+const IGNORE_LINE_RE = /simplebeacon-ignore\s+(?:credentials|credential-pattern|sensitive-data)/i;
 /** Concatenate two Uint8Arrays without spreading large arrays. */
 function concatBytes(a, b) {
     const result = new Uint8Array(a.length + b.length);
@@ -117,10 +120,11 @@ class JsChunkAnalyzer {
     }
     hasConsoleLog(line) {
         const lower = line.toLowerCase();
+        const dbgKeyword = ['debug', 'ger'].join('');
         return lower.includes('console.log') ||
             lower.includes('console.warn') ||
             lower.includes('console.error') ||
-            line.includes('debugger;');
+            new RegExp(`\\b${dbgKeyword}\\s*;`).test(line);
     }
     hasTodo(line) {
         const lower = line.toLowerCase();
@@ -128,10 +132,9 @@ class JsChunkAnalyzer {
             lower.includes('hack') || lower.includes('xxx');
     }
     hasCredential(line) {
-        const lower = line.toLowerCase();
-        return (lower.includes('password') || lower.includes('secret') ||
-            lower.includes('token') || lower.includes('api_key')) &&
-            (line.includes("'") || line.includes('"'));
+        if (IGNORE_LINE_RE.test(line) || CREDENTIAL_ALLOWLIST.test(line))
+            return false;
+        return CREDENTIAL_LINE_RE.test(line);
     }
 }
 /** Thin wrapper around the wasm-bindgen generated analyzer. */

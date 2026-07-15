@@ -1,4 +1,4 @@
-import { escapeHtml, formatPercent, showToast, apiUrl } from '../utils.js';
+import { escapeHtml, formatPercent } from '../utils.js';
 import {
   resolveDisplayScore,
   formatScanScopeSummary,
@@ -320,6 +320,7 @@ export function bindScanStatus(container, options = {}) {
     if (defaultPath) {
       // Strip trailing segments to get a reasonable base (e.g. .../ai-platform -> parent)
       const normalized = defaultPath.replace(/\\/g, '/');
+      const isUnixAbsolute = normalized.startsWith('/');
       const parts = normalized.split('/').filter(Boolean);
       // If last part looks like a server subfolder, remove it
       if (parts.length > 1 && /^(ai-platform|server|app|src|dist|build)$/i.test(parts[parts.length - 1])) {
@@ -330,7 +331,9 @@ export function bindScanStatus(container, options = {}) {
         if (parts[0].endsWith(':')) {
           return parts.slice(0, 3).join('/'); // e.g. C:/Users/Trevor
         }
-        return parts.slice(0, 2).join('/');
+        const base = parts.join('/');
+        // Preserve leading slash for Unix absolute paths so the fallback stays absolute.
+        return isUnixAbsolute ? `/${base}` : base;
       }
     }
     // Fallback: preserve the drive letter from defaultPath/lastProjectPath if available,
@@ -401,25 +404,36 @@ export function bindScanStatus(container, options = {}) {
     (window.process?.versions?.electron || /Electron/.test(navigator.userAgent))
   );
 
-  // Browse button — ask the extension server to open the native OS folder picker
+  // Browse button — use File System Access API when available, fall back to hidden file input
   browseBtn?.addEventListener('click', async () => {
-    try {
-      const res = await fetch(apiUrl('/api/analyze/pick-folder'), { method: 'POST' });
-      const data = await res.json();
-      if (data.success && data.path) {
+    // In Electron-like environments skip showDirectoryPicker because it cannot
+    // reveal absolute paths; the webkitdirectory fallback gives files with .path.
+    if (window.showDirectoryPicker && !isElectronLike) {
+      try {
+        const dirHandle = await window.showDirectoryPicker();
+        const folderName = dirHandle.name || '';
+        const homePath = deriveUserHomeBase();
+        const fallbackPath = `${homePath}/${folderName}`;
         if (input) {
-          input.value = data.path;
-          setLastProjectPath(data.path);
+          input.value = fallbackPath;
+          setLastProjectPath(fallbackPath);
           if (clearBtn) clearBtn.disabled = false;
         }
-        showToast(`Folder selected: ${data.path}`, 'info');
+        const toast = document.getElementById('toast-container');
+        if (toast) {
+          const msg = document.createElement('div');
+          msg.className = 'toast toast-info';
+          msg.textContent = `Folder "${folderName}" selected. Path is estimated — please verify before scanning.`;
+          toast.appendChild(msg);
+          setTimeout(() => msg.remove(), 4000);
+        }
         return;
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          console.warn('[ScanStatus] Directory picker failed:', err);
+        }
+        // Fall through to file input fallback
       }
-      if (data.error) {
-        showToast(data.error, 'warning');
-      }
-    } catch (err) {
-      console.warn('[ScanStatus] Native folder picker failed:', err);
     }
     // Fallback: use hidden webkitdirectory input to open native folder picker
     if (browseInput) {
@@ -496,39 +510,14 @@ export function bindScanStatus(container, options = {}) {
         const entry = items[0].webkitGetAsEntry?.();
         if (entry?.isDirectory) {
           const name = entry.name || '';
-          // Try to derive real path from files inside the directory (Electron/VS Code webviews expose .path)
-          let actualPath = '';
-          if (files?.length) {
-            for (let i = 0; i < files.length; i++) {
-              const file = files[i];
-              if (file.path) {
-                const normalized = file.path.replace(/\\/g, '/');
-                const lastSlash = normalized.lastIndexOf('/');
-                if (lastSlash > 0) {
-                  const parent = normalized.substring(0, lastSlash);
-                  const parentName = parent.split('/').pop() || '';
-                  if (parentName === name) {
-                    actualPath = parent;
-                    break;
-                  }
-                  // Also accept if the file is inside a subdirectory of the dropped folder
-                  const pathParts = parent.split('/');
-                  const nameIdx = pathParts.lastIndexOf(name);
-                  if (nameIdx >= 0) {
-                    actualPath = pathParts.slice(0, nameIdx + 1).join('/');
-                    break;
-                  }
-                }
-              }
-            }
-          }
-          const resolvedPath = actualPath || `${deriveUserHomeBase()}/${name}`;
-          input.value = resolvedPath;
-          setLastProjectPath(resolvedPath);
+          const homePath = deriveUserHomeBase();
+          const fallbackPath = `${homePath}/${name}`;
+          input.value = fallbackPath;
+          setLastProjectPath(fallbackPath);
           if (clearBtn) clearBtn.disabled = false;
-          // Notify user if path was estimated
+          // Notify user to verify path
           const toast = document.getElementById('toast-container');
-          if (toast && !actualPath) {
+          if (toast) {
             const msg = document.createElement('div');
             msg.className = 'toast toast-info';
             msg.textContent = `Folder "${name}" dropped. Path is estimated — please verify before scanning.`;

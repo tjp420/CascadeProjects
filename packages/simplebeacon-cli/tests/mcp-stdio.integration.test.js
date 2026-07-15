@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
 /**
  * Integration test: spawn simplebeacon-mcp over stdio and exercise MCP JSON-RPC.
  */

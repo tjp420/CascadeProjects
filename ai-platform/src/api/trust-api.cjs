@@ -7,6 +7,7 @@ const path = require('path');
 const fs = require('fs');
 const {
     buildTrustVerificationPayload,
+    publishTrustVerification,
     buildTrustBadgeSvg,
     buildTrustVerifyHtml,
     buildTrustVerifyCompact,
@@ -287,6 +288,42 @@ function setupTrustAPI(app, options = {}) {
                 scope: buildScopeTransparency(payload),
                 trend
             });
+        } catch (error) {
+            return res.status(500).json({ success: false, error: error.message });
+        }
+    });
+
+    app.post('/api/trust/publish', (req, res) => {
+        try {
+            const result = publishTrustVerification({
+                platformRoot,
+                monorepoRoot,
+                publicDir: path.dirname(PUBLIC_TRUST_PATH),
+                source: 'api:publish'
+            });
+            res.set('Cache-Control', 'no-store');
+            return res.json({
+                success: true,
+                type: 'simplebeacon-trust-publish',
+                publishedAt: result.generatedAt,
+                publishPath: result.publishPath,
+                verificationId: result.payload.verificationId,
+                historyPath: result.history.historyPath,
+                historyCount: result.history.count
+            });
+        } catch (error) {
+            return res.status(500).json({ success: false, error: error.message });
+        }
+    });
+
+    app.get('/trust-verification.json', (req, res) => {
+        try {
+            if (!fs.existsSync(PUBLIC_TRUST_PATH)) {
+                return res.status(404).json({ success: false, error: 'No published trust verification found' });
+            }
+            res.set('Content-Type', 'application/json; charset=utf-8');
+            res.set('Cache-Control', 'public, max-age=300');
+            return res.sendFile(PUBLIC_TRUST_PATH);
         } catch (error) {
             return res.status(500).json({ success: false, error: error.message });
         }

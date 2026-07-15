@@ -1,6 +1,6 @@
-name: 'SimpleBeacon Guardrails'
-description: 'AI-generated code hygiene scanner — catch slop, leaks, and hallucinations in every PR'
-author: 'SimpleBeacon'
+name: 'SimpleBeacon AI Guardrails'
+description: 'The AI Circuit Breaker for PRs. Catch security leaks, compliance drift, and rogue logic in AI-generated code.'
+author: 'SimpleBeacon.ai'
 branding:
   icon: 'shield'
   color: 'blue'
@@ -11,16 +11,24 @@ inputs:
     required: true
     default: ${{ github.token }}
   license-token:
-    description: 'SimpleBeacon license token (optional, removes free-tier limits)'
+    description: 'Your SimpleBeacon.ai Team License Token (leave blank for free community sandbox mode)'
     required: false
   fail-on:
-    description: 'Fail the check if severity is critical or high'
+    description: 'Minimum severity level to trigger a non-zero exit code and block the merge (low, medium, high, critical)'
     required: false
     default: 'high'
   scan-args:
-    description: 'Extra arguments to pass to simplebeacon scan'
+    description: 'Extra arguments passed to simplebeacon scan (default includes --gate --diff)'
     required: false
-    default: '--gate'
+    default: '--gate --diff'
+  base-ref:
+    description: 'Git base ref for diff-only scans (defaults to PR base branch)'
+    required: false
+    default: ''
+  full-scan:
+    description: 'Set to true to scan the entire repository instead of just the git diff'
+    required: false
+    default: 'false'
 
 runs:
   using: 'composite'
@@ -34,54 +42,53 @@ runs:
       shell: bash
       run: npm install -g simplebeacon
 
+    - name: Resolve diff base ref
+      shell: bash
+      run: |
+        if [ -n "${{ inputs.base-ref }}" ]; then
+          echo "SIMPLEBEACON_BASE_REF=${{ inputs.base-ref }}" >> "$GITHUB_ENV"
+        elif [ -n "${{ github.event.pull_request.base.sha }}" ]; then
+          echo "SIMPLEBEACON_BASE_REF=${{ github.event.pull_request.base.sha }}" >> "$GITHUB_ENV"
+        elif [ -n "${{ github.event.pull_request.base.ref }}" ]; then
+          echo "SIMPLEBEACON_BASE_REF=origin/${{ github.event.pull_request.base.ref }}" >> "$GITHUB_ENV"
+        else
+          echo "SIMPLEBEACON_BASE_REF=origin/main" >> "$GITHUB_ENV"
+        fi
+        echo "SIMPLEBEACON_HEAD_REF=${{ github.sha }}" >> "$GITHUB_ENV"
+
     - name: Run SimpleBeacon Scan
       shell: bash
       env:
         SIMPLEBEACON_LICENSE_TOKEN: ${{ inputs.license-token }}
       run: |
-        npx simplebeacon scan ${{ inputs.scan-args }} --format json --output .simplebeacon/report.json
+        set -euo pipefail
+        SCAN_ARGS="${{ inputs.scan-args }}"
+        if [ "${{ inputs.full-scan }}" = "true" ]; then
+          SCAN_ARGS="${SCAN_ARGS//--diff/}"
+        fi
+        npx simplebeacon scan ${SCAN_ARGS} \
+          --fail-on "${{ inputs.fail-on }}" \
+          --format json \
+          --output .simplebeacon/report.json
 
-    - name: Post PR Comment
+    - name: Post PR comment
       if: github.event_name == 'pull_request'
       shell: bash
       env:
         GITHUB_TOKEN: ${{ inputs.token }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
+        GITHUB_EVENT_PULL_REQUEST_NUMBER: ${{ github.event.pull_request.number }}
+        GITHUB_SERVER_URL: ${{ github.server_url }}
+        GITHUB_HEAD_REF: ${{ github.head_ref }}
       run: |
         REPORT=.simplebeacon/report.json
         if [ ! -f "$REPORT" ]; then
           echo "No report found. Skipping PR comment."
           exit 0
         fi
-        BLOCKING=$(node -e "const r=require('./$REPORT'); console.log(r.gate?.blockingCount || 0)")
-        WARNINGS=$(node -e "const r=require('./$REPORT'); console.log(r.gate?.warningCount || 0)")
-        SCORE=$(node -e "const r=require('./$REPORT'); console.log(r.qualityScore || 'N/A')")
-        TIER=$(node -e "const r=require('./$REPORT'); console.log(r.tier || 'free')")
+        npx simplebeacon comment --report "$REPORT" --issue-number "${{ github.event.pull_request.number }}" --repo "${{ github.repository }}"
 
-        if [ "$BLOCKING" = "0" ] && [ "$WARNINGS" = "0" ]; then
-          BODY="## SimpleBeacon Gate Passed
-
-- Quality Score: **$SCORE**
-- Blocking issues: 0
-- No AI slop detected in this PR.
-"
-        else
-          BODY="## SimpleBeacon Gate Failed
-
-- Quality Score: **$SCORE**
-- Blocking issues: **$BLOCKING**
-- Warnings: **$WARNINGS**
-
-> Upgrade to [Continuous Shield Team](https://simplebeacon.ai/pricing) for full JSON exports, team dashboard, and CI gate.
-"
-        fi
-
-        curl -s -X POST \
-          -H "Authorization: Bearer $GITHUB_TOKEN" \
-          -H "Accept: application/vnd.github+json" \
-          https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments \
-          -d "{\"body\":$(echo "$BODY" | jq -R -s .)}"
-
-    - name: Annotate Changed Files
+    - name: Annotate changed files
       if: github.event_name == 'pull_request'
       shell: bash
       run: |
@@ -90,65 +97,37 @@ runs:
         node -e "
           const fs = require('fs');
           const report = JSON.parse(fs.readFileSync('./$REPORT', 'utf8'));
-          const issues = report.issues || report.detectedIssues || [];
+          const issues = report.rawIssues || report.detectedIssues || report.issues || [];
+          const blocking = new Set(['critical','high']);
           for (const issue of issues) {
+            const sev = String(issue.severity || 'medium').toLowerCase();
+            if (!blocking.has(sev)) continue;
             const file = issue.filePath || issue.file;
+            if (!file) continue;
             const line = issue.line || 1;
-            const sev = (issue.severity || 'medium').toLowerCase();
             const msg = issue.description || issue.message || 'Issue detected';
-            const type = sev === 'critical' ? 'error' : sev === 'high' ? 'warning' : 'notice';
-            console.log('::' + type + ' file=' + file + ',line=' + line + '::[' + issue.pattern + '] ' + msg);
+            const type = sev === 'critical' ? 'error' : 'warning';
+            console.log('::' + type + ' file=' + file + ',line=' + line + '::[' + (issue.pattern || issue.type) + '] ' + msg);
           }
         "
 
-    - name: Write Job Summary
+    - name: Write job summary
       shell: bash
       run: |
         REPORT=.simplebeacon/report.json
         if [ ! -f "$REPORT" ]; then
-          echo "# SimpleBeacon Scan" >> $GITHUB_STEP_SUMMARY
-          echo "Report not found." >> $GITHUB_STEP_SUMMARY
+          echo "# SimpleBeacon Scan" >> "$GITHUB_STEP_SUMMARY"
+          echo "Report not found." >> "$GITHUB_STEP_SUMMARY"
           exit 0
         fi
         node -e "
           const fs = require('fs');
-          const r = JSON.parse(fs.readFileSync('./$REPORT', 'utf8'));
-          const gate = r.gate || {};
-          const score = r.qualityScore || 'N/A';
-          const blocking = gate.blockingCount || 0;
-          const warnings = gate.warningCount || 0;
-          const pass = gate.pass || false;
-          const tier = r.tier || 'free';
-          const summary = [
-            '# 🔦 SimpleBeacon Scan Results',
-            '',
-            '| Metric | Value |',
-            '|--------|-------|',
-            '| Gate Status | ' + (pass ? '✅ Pass' : '❌ Fail') + ' |',
-            '| Quality Score | ' + score + ' |',
-            '| Blocking Issues | ' + blocking + ' |',
-            '| Warnings | ' + warnings + ' |',
-            '| Tier | ' + tier + ' |',
-            ''
-          ];
-          if (!pass && blocking > 0) {
-            summary.push('## Blocking Issues');
-            summary.push('');
-            const issues = (r.issues || r.detectedIssues || []).filter(i => (i.severity || '').toLowerCase() === 'critical' || (i.severity || '').toLowerCase() === 'high');
-            issues.slice(0, 20).forEach(i => {
-              const file = i.filePath || i.file || 'unknown';
-              const line = i.line || '';
-              summary.push('- **' + (i.pattern || i.type) + '** — `' + file + (line ? ':' + line : '') + '`  ');
-              summary.push('  ' + (i.description || i.message || ''));
-            });
-            summary.push('');
-          }
-          summary.push('---');
-          summary.push('> [View full report](https://simplebeacon.ai/audit) · [Team Dashboard](https://simplebeacon.ai/pricing)');
-          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary.join('\n') + '\n');
+          const { formatGithubStepSummary } = require('simplebeacon/src/reporters/github-comment');
+          const report = JSON.parse(fs.readFileSync('./$REPORT', 'utf8'));
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, formatGithubStepSummary(report, report.gate || null));
         "
 
-    - name: Evaluate Gate
+    - name: Evaluate gate
       shell: bash
       run: |
         REPORT=.simplebeacon/report.json
@@ -156,9 +135,21 @@ runs:
           echo "::error::Report not found. Scan may have failed."
           exit 1
         fi
-        BLOCKING=$(node -e "const r=require('./$REPORT'); console.log(r.gate?.blockingCount || 0)")
-        if [ "$BLOCKING" != "0" ]; then
-          echo "::error::SimpleBeacon gate failed. $BLOCKING blocking issue(s). See PR comment for details."
-          exit 1
-        fi
-        echo "SimpleBeacon gate passed."
+        node -e "
+          const fs = require('fs');
+          const report = JSON.parse(fs.readFileSync('./$REPORT', 'utf8'));
+          const gate = report.gate || {};
+          const failOn = new Set((gate.failOn || ['high']).map(s => String(s).toLowerCase()));
+          const issues = report.rawIssues || report.detectedIssues || report.issues || [];
+          let blocking = 0;
+          for (const issue of issues) {
+            const sev = String(issue.severity || 'medium').toLowerCase();
+            if (sev === 'critical' || failOn.has(sev)) blocking++;
+          }
+          if (gate.pass === false || blocking > 0 || (gate.blockingCount || 0) > 0) {
+            const count = gate.blockingCount || blocking;
+            console.error('::error::SimpleBeacon gate failed. ' + count + ' blocking issue(s). See PR comment for details.');
+            process.exit(1);
+          }
+          console.log('SimpleBeacon gate passed.');
+        "

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
 /**
  * Stop node processes listening on SimpleBeacon local dashboard ports.
  * Usage: node tools/kill-dashboard-ports.js

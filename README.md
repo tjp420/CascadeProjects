@@ -48,6 +48,10 @@ npx simplebeacon scan --gate --offline
 
 # 3. Check gate status
 npx simplebeacon gate-status
+
+# 4. Try it in a PR with no token required (Sandbox mode)
+#    Add .github/workflows/simplebeacon.yml with the action from the repo.
+#    Free runs show up to 5 findings and an upgrade banner.
 ```
 
 ---

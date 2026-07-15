@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { getSbConfig } from './utils';
+import { getSbConfig } from './utils/vscode';
 
 // In-memory runtime flag that persists only for the duration of this editor window session
 let hasPromptedReferralThisSession = false;

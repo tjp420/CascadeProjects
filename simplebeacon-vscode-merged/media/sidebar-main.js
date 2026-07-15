@@ -294,6 +294,8 @@
   _tdBindUrl('tdRoadmapSidebar','openRoadmapUrl','https://simplebeacon.ai/roadmap');
   _tdBindUrl('tdAuditSidebar','openAuditUrl','https://simplebeacon.ai/audit');
   _tdBindUrl('tdPricingSidebar','openPricingUrl','https://simplebeacon.ai/pricing');
+  _tdBind('tdTeamDashboardSidebar','openTeamDashboard');
+  _tdBind('tdSignInSidebar','signIn');
   _tdBind('tdDashboardSidebar','openDashboard');
   _tdBind('tdAnalyzeSidebar','openAnalyze');
   _tdBind('tdResultsSidebar','openReport');
@@ -469,16 +471,15 @@
   function _openSigninWithClear(){const base=window.__SB_DATA_SERVER_URL__||'';function _post(){if(window.vscode){try{window.vscode.postMessage({command:'openSigninPanel'});}catch(e){}}} if(base){fetch(base+'/api/auth/signout',{method:'POST',headers:{'Content-Type':'application/json'}}).finally(_post).catch(_post);}else{_post();}}
   _tdBind('tdOpenSiteSidebar','openTeamDashboard');
   _tdBind2('tdThemeToggleSidebar','toggleTheme');
-  _tdBind('tdSignInSidebar','openSigninScreen');
-  // Website / localhost mode switch (was offline toggle)
+  // Website / localhost mode toggle
   function _applyDashboardMode(mode) {
     const el = document.getElementById('tdOfflineToggleSidebar');
     if (!el) return;
     const nameSpan = el.querySelector('.tc-list-name');
     const iconSpan = el.querySelector('.icon');
     const activeMode = mode === 'localhost' ? 'localhost' : 'website';
-    if (nameSpan) { nameSpan.textContent = activeMode === 'website' ? 'Website' : 'Localhost'; }
-    if (iconSpan) { iconSpan.textContent = activeMode === 'website' ? '\u{1F310}' : '\u{1F4E1}'; }
+    if (nameSpan) { nameSpan.textContent = activeMode === 'website' ? 'Website' : 'Local host'; }
+    if (iconSpan) { iconSpan.textContent = activeMode === 'website' ? '\u{1F310}' : '\u{1F3E0}'; }
     try { localStorage.setItem('sb_dashboard_mode', activeMode); } catch (e) {}
   }
   function _setDashboardMode(mode) {
@@ -489,26 +490,28 @@
     }
   }
   function _toggleDashboardMode() {
-    const current = (function(){ try { return localStorage.getItem('sb_dashboard_mode'); } catch(e){ return null; } })() || 'website';
-    _setDashboardMode(current === 'website' ? 'localhost' : 'website');
+    const current = (function(){ try { return localStorage.getItem('sb_dashboard_mode'); } catch(e){ return null; } })() || 'localhost';
+    const next = current === 'website' ? 'localhost' : 'website';
+    _setDashboardMode(next);
   }
   const _offlineToggleEl = document.getElementById('tdOfflineToggleSidebar');
   if (_offlineToggleEl) {
     _offlineToggleEl.addEventListener('click', _toggleDashboardMode);
-    const stored = (function(){ try { return localStorage.getItem('sb_dashboard_mode'); } catch(e){ return null; } })() || 'website';
-    _setDashboardMode(stored);
+    const stored = (function(){ try { return localStorage.getItem('sb_dashboard_mode'); } catch(e){ return null; } })() || 'localhost';
+    _setDashboardMode(stored === 'website' ? 'website' : 'localhost');
   }
   window.addEventListener('message', function(ev) {
     if (ev && ev.data && ev.data.command === 'dashboardModeChanged') {
-      _applyDashboardMode(ev.data.mode || 'website');
+      _applyDashboardMode(ev.data.mode || 'localhost');
     }
   });
   _tdBind2('tdSignOutSidebar','signOut');
+  let _tdSignInSidebarEl=document.getElementById('tdSignInSidebar');if(_tdSignInSidebarEl){_tdSignInSidebarEl.addEventListener('click',function(){_openSigninWithClear();});}
   let _sidebarSignInLink=document.getElementById('sidebarSignInLink');if(_sidebarSignInLink){_sidebarSignInLink.addEventListener('click',function(){_openSigninWithClear();});}
-  let _sidebarSignOutLink=document.getElementById('sidebarSignOutLink');if(_sidebarSignOutLink){_sidebarSignOutLink.addEventListener('click',function(){_clearSidebarAuthLocally(); if(window.vscode){window.vscode.postMessage({command:'signOut'});try{window.vscode.postMessage({command:'sidebarError',message:'signOut sent from sidebarSignOutLink'});}catch(e){}} _callServerSignout();});}
+  let _sidebarSignOutLink=document.getElementById('sidebarSignOutLink');if(_sidebarSignOutLink){_sidebarSignOutLink.addEventListener('click',function(){_clearSidebarAuthLocally(); if(window.vscode){window.vscode.postMessage({command:'signOut'});} _callServerSignout();});}
   let _headerSignInBtn=document.getElementById('headerSignInBtn');if(_headerSignInBtn){_headerSignInBtn.addEventListener('click',function(){_openSigninWithClear();});}
-  let _headerSignOutBtn=document.getElementById('headerSignOutBtn');if(_headerSignOutBtn){_headerSignOutBtn.addEventListener('click',function(){_clearSidebarAuthLocally(); if(window.vscode){window.vscode.postMessage({command:'signOut'});try{window.vscode.postMessage({command:'sidebarError',message:'signOut sent from headerSignOutBtn'});}catch(e){}} _callServerSignout();});}
-  let _tdSignOutSidebarEl=document.getElementById('tdSignOutSidebar');if(_tdSignOutSidebarEl){_tdSignOutSidebarEl.addEventListener('click',function(){_clearSidebarAuthLocally();});}
+  let _headerSignOutBtn=document.getElementById('headerSignOutBtn');if(_headerSignOutBtn){_headerSignOutBtn.addEventListener('click',function(){_clearSidebarAuthLocally(); if(window.vscode){window.vscode.postMessage({command:'signOut'});} _callServerSignout();});}
+  let _tdSignOutSidebarEl=document.getElementById('tdSignOutSidebar');if(_tdSignOutSidebarEl){_tdSignOutSidebarEl.addEventListener('click',function(){_clearSidebarAuthLocally(); if(window.vscode){window.vscode.postMessage({command:'signOut'});} _callServerSignout();});}
   _tdBind2('tdGitHubSidebar','openGitHub');
   let _tokenManagementCard=document.getElementById('tokenManagementCard');if(_tokenManagementCard){_tokenManagementCard.addEventListener('click',function(){if(window.vscode)window.vscode.postMessage({command:'openTokenReplacementPanel'});});}
   _tdBind2('tdDocsSidebar','openDocs');
@@ -516,6 +519,8 @@
   _tdBindUrl('tdRoadmapSidebar','openRoadmapUrl','https://simplebeacon.ai/roadmap');
   _tdBindUrl('tdAuditSidebar','openAuditUrl','https://simplebeacon.ai/audit');
   _tdBindUrl('tdPricingSidebar','openPricingUrl','https://simplebeacon.ai/pricing');
+  _tdBind('tdTeamDashboardSidebar','openTeamDashboard');
+  _tdBind('tdSignInSidebar','signIn');
   // Navigation
   _tdBind('tdDashboardSidebar','openDashboard');
   _tdBind('tdAnalyzeSidebar','openAnalyze');
@@ -529,14 +534,14 @@
   _tdBind('tdRemediationSidebar','openRoadmap');
   _tdBind('tdPlatformSidebar','openPlatform');
   _tdBind('tdProfileSidebar','openProfile');
-  _tdBind('tdToolsSidebar','openSettings');
+  _tdBind('tdToolsSidebar','openTools');
   _tdBind('tdSettingsSidebar','openSettings');
   _tdBind('tdHelpSidebar','openHelp');
   _tdBind('tdChatbotSidebar','openChatbot');
   _tdBind('tdAboutSidebar','openAbout');
   let _dbExportBtn=document.getElementById('dbExportBtn');if(_dbExportBtn){_dbExportBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'exportReport'}); });}
   let _dbSigninBtn=document.getElementById('dbSigninBtn');if(_dbSigninBtn){_dbSigninBtn.addEventListener('click', function() { _openSigninWithClear(); });}
-  let _dbSignoutBtn=document.getElementById('dbSignoutBtn');if(_dbSignoutBtn){_dbSignoutBtn.addEventListener('click', function() { _clearSidebarAuthLocally(); if (window.vscode) { window.vscode.postMessage({command: 'signOut'}); try { window.vscode.postMessage({command: 'sidebarError', message: 'signOut sent from dbSignoutBtn'}); } catch(e) {} } _callServerSignout(); });}
+  let _dbSignoutBtn=document.getElementById('dbSignoutBtn');if(_dbSignoutBtn){_dbSignoutBtn.addEventListener('click', function() { _clearSidebarAuthLocally(); if (window.vscode) { window.vscode.postMessage({command: 'signOut'}); } _callServerSignout(); });}
   let _dashPreviewBtn=document.getElementById('dashPreviewBtn');if(_dashPreviewBtn){_dashPreviewBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openPreviewInBrowser'}); });}
   let _dashBrowserBtn=document.getElementById('dashBrowserBtn');if(_dashBrowserBtn){_dashBrowserBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openBrowser'}); });}
   let _dashExportReportBtn=document.getElementById('dashExportReportBtn');if(_dashExportReportBtn){_dashExportReportBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'exportReport'}); });}
@@ -866,8 +871,6 @@
     const isPaid = data.isPaidTier === true || !_isFreeTier();
     const detailSections = document.querySelectorAll('.code-map-detail-section');
     detailSections.forEach(function(s) { s.style.display = isPaid ? '' : 'none'; });
-    const upgradeMsg = document.getElementById('codeMapUpgradeMsg');
-    if (upgradeMsg) upgradeMsg.style.display = isPaid ? 'none' : 'block';
     if (!isPaid) return;
     const list = document.getElementById('codeMapLanguagesList');
     if (list && data.languages) {
@@ -1601,14 +1604,19 @@
       return JSON.parse(atob(base64 + pad));
     } catch { return null; }
   }
+  let _lastSidebarSignedIn = false;
   let _serverTier = '';
   function _getTokenTier() {
     if (_serverTier) return _serverTier;
-    let token = localStorage.getItem('cascadeAuthToken');
-    if (!token) { token = localStorage.getItem('access_token') || localStorage.getItem('token') || localStorage.getItem('authToken') || localStorage.getItem('simplebeacon_token'); }
-    if (!token) return null;
-    const payload = _decodeJwtPayload(token);
-    return payload?.tier || payload?.plan || payload?.product || null;
+    try {
+      let token = localStorage.getItem('cascadeAuthToken');
+      if (!token) { token = localStorage.getItem('access_token') || localStorage.getItem('token') || localStorage.getItem('authToken') || localStorage.getItem('simplebeacon_token'); }
+      if (!token) return null;
+      const payload = _decodeJwtPayload(token);
+      return payload?.tier || payload?.plan || payload?.product || null;
+    } catch (e) {
+      return null;
+    }
   }
   function _isFreeTier() {
     const tier = _getTokenTier();
@@ -1616,50 +1624,84 @@
     const freeTiers = ['guest', 'community', 'developer', 'sandbox', 'instant', 'free', 'solo', ''];
     return freeTiers.includes(String(tier).toLowerCase());
   }
+  function _applySbTheme(theme) {
+    if (!theme) return;
+    const isDark = theme === 'dark';
+    document.documentElement.setAttribute('data-theme', theme);
+    document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
+    const palette = isDark ? {
+      '--vscode-editor-background': '#252526',
+      '--vscode-sideBar-background': '#252526',
+      '--vscode-sideBar-foreground': '#cccccc',
+      '--vscode-foreground': '#cccccc',
+      '--vscode-descriptionForeground': '#858585',
+      '--vscode-panel-border': '#3c3c3c',
+      '--vscode-input-background': '#3c3c3c',
+      '--vscode-list-hoverBackground': '#2a2d2e',
+      '--vscode-button-secondaryBackground': '#3c3c3c'
+    } : {
+      '--vscode-editor-background': '#f3f3f3',
+      '--vscode-sideBar-background': '#f3f3f3',
+      '--vscode-sideBar-foreground': '#333333',
+      '--vscode-foreground': '#333333',
+      '--vscode-descriptionForeground': '#6c6c6c',
+      '--vscode-panel-border': '#e0e0e0',
+      '--vscode-input-background': '#ffffff',
+      '--vscode-list-hoverBackground': '#e8e8e8',
+      '--vscode-button-secondaryBackground': '#e8e8e8'
+    };
+    Object.keys(palette).forEach(function(k) {
+      document.documentElement.style.setProperty(k, palette[k]);
+    });
+  }
   function _updateSidebarAuthState(signedIn, tier) {
-    if (tier) _serverTier = tier;
-    const effectiveTier = tier || _getTokenTier() || 'Unknown';
-    let signIn = document.getElementById('tdSignInSidebar');
-    let signOut = document.getElementById('tdSignOutSidebar');
-    let signOutMenu = document.getElementById('tdSignOut');
-    let pricing = document.getElementById('tdPricingSidebar');
-    let pricingMenu = document.getElementById('tdPricing');
-    if (signIn) signIn.style.display = signedIn ? 'none' : 'flex';
-    if (signOut) signOut.style.display = signedIn ? 'flex' : 'none';
-    if (signOutMenu) signOutMenu.style.display = signedIn ? 'flex' : 'none';
-    const isPaid = signedIn && !_isFreeTier();
-    if (pricing) pricing.style.display = isPaid ? 'none' : 'flex';
-    if (pricingMenu) pricingMenu.style.display = isPaid ? 'none' : 'flex';
-    let tokenMgmt = document.getElementById('tokenManagementTier');
-    if (tokenMgmt) {
-      tokenMgmt.textContent = signedIn ? ('Tier: ' + effectiveTier) : 'No token — Sign In';
+    try {
+      if (_lastSidebarSignedIn === signedIn && !tier) return;
+      _lastSidebarSignedIn = signedIn;
+      if (tier) _serverTier = tier;
+      const effectiveTier = tier || _getTokenTier() || 'Unknown';
+      let signIn = document.getElementById('tdSignInSidebar');
+      let signOut = document.getElementById('tdSignOutSidebar');
+      let signOutMenu = document.getElementById('tdSignOut');
+      let pricing = document.getElementById('tdPricingSidebar');
+      let pricingMenu = document.getElementById('tdPricing');
+      let websiteToggle = document.getElementById('tdOfflineToggleSidebar');
+      if (signIn) signIn.style.display = signedIn ? 'none' : 'flex';
+      if (signOut) signOut.style.display = signedIn ? 'flex' : 'none';
+      if (signOutMenu) signOutMenu.style.display = signedIn ? 'flex' : 'none';
+      if (pricing) pricing.style.display = signedIn ? 'none' : 'flex';
+      if (pricingMenu) pricingMenu.style.display = signedIn ? 'none' : 'flex';
+      if (websiteToggle) websiteToggle.style.display = signedIn ? 'flex' : 'none';
+      let tokenMgmt = document.getElementById('tokenManagementTier');
+      if (tokenMgmt) {
+        tokenMgmt.textContent = signedIn ? ('Tier: ' + effectiveTier) : 'No token — Sign In';
+      }
+      let dbSigninBtn = document.getElementById('dbSigninBtn');
+      if (dbSigninBtn) dbSigninBtn.style.display = signedIn ? 'none' : 'inline-flex';
+      let dbSignoutBtn = document.getElementById('dbSignoutBtn');
+      if (dbSignoutBtn) dbSignoutBtn.style.display = signedIn ? 'inline-flex' : 'none';
+      let sidebarSignInLink = document.getElementById('sidebarSignInLink');
+      if (sidebarSignInLink) sidebarSignInLink.style.display = signedIn ? 'none' : 'flex';
+      let sidebarSignOutLink = document.getElementById('sidebarSignOutLink');
+      if (sidebarSignOutLink) sidebarSignOutLink.style.display = signedIn ? 'flex' : 'none';
+      let headerSignInBtn = document.getElementById('headerSignInBtn');
+      if (headerSignInBtn) headerSignInBtn.style.display = signedIn ? 'none' : 'inline-flex';
+      let headerSignOutBtn = document.getElementById('headerSignOutBtn');
+      if (headerSignOutBtn) headerSignOutBtn.style.display = signedIn ? 'inline-flex' : 'none';
+      // Website/Localhost buttons are toggled above based on signed-in state.
+    } catch (e) {
+      if (window.vscode) { try { window.vscode.postMessage({ command: 'sidebarError', message: String(e && e.message || e), stack: e && e.stack ? e.stack : '' }); } catch(_) {} }
     }
-    let dbSigninBtn = document.getElementById('dbSigninBtn');
-    if (dbSigninBtn) dbSigninBtn.style.display = signedIn ? 'none' : 'inline-flex';
-    let dbSignoutBtn = document.getElementById('dbSignoutBtn');
-    if (dbSignoutBtn) dbSignoutBtn.style.display = signedIn ? 'inline-flex' : 'none';
-    let sidebarSignInLink = document.getElementById('sidebarSignInLink');
-    if (sidebarSignInLink) sidebarSignInLink.style.display = signedIn ? 'none' : 'flex';
-    let sidebarSignOutLink = document.getElementById('sidebarSignOutLink');
-    if (sidebarSignOutLink) sidebarSignOutLink.style.display = signedIn ? 'flex' : 'none';
-    let headerSignInBtn = document.getElementById('headerSignInBtn');
-    if (headerSignInBtn) headerSignInBtn.style.display = signedIn ? 'none' : 'inline-flex';
-    let headerSignOutBtn = document.getElementById('headerSignOutBtn');
-    if (headerSignOutBtn) headerSignOutBtn.style.display = signedIn ? 'inline-flex' : 'none';
-    let websiteToggle = document.getElementById('tdOfflineToggleSidebar');
-    if (websiteToggle) websiteToggle.style.display = signedIn ? 'flex' : 'none';
   }
   window.addEventListener('message', function(e) {
     let msg = e.data; if (!msg) return;
     if (msg.command === 'setAuthState') {
-      const _authTokenCheck = !!(localStorage.getItem('cascadeAuthToken') || localStorage.getItem('access_token') || localStorage.getItem('token') || localStorage.getItem('authToken') || localStorage.getItem('simplebeacon_token'));
-      console.log('[SB auth] setAuthState signedIn=' + msg.signedIn + ' source=' + (msg.source || '') + ' hasToken=' + _authTokenCheck);
       if (!msg.signedIn) {
         // Only accept signed-out state if the webview has no independent token
         // and the extension hasn't recently confirmed sign-in (prevents race with
         // periodic auth polls that can't see web-app session tokens).
         // When the source is explicitly signOut, always accept it.
-        if (msg.source !== 'signOut') {
+        if (msg.source !== 'signOut' && msg.source !== 'websitePanel') {
           const hasToken = !!(localStorage.getItem('cascadeAuthToken') || localStorage.getItem('access_token') || localStorage.getItem('token') || localStorage.getItem('authToken') || localStorage.getItem('simplebeacon_token'));
           if (hasToken) {
             return;
@@ -1723,9 +1765,13 @@
       if (actionRow) { actionRow.style.display = isWorkspace ? 'none' : 'flex'; }
     }
     if (msg.command === 'setTheme' && msg.theme) {
-      document.documentElement.setAttribute('data-theme', msg.theme);
+      _applySbTheme(msg.theme);
+    }
+    if (msg.command === 'getAuthState') {
+      if (vscode) { try { vscode.postMessage({ command: 'getAuthState' }); } catch (e) {} }
     }
   });
+  _applySbTheme(document.documentElement.getAttribute('data-theme') || 'dark');
   // Check localStorage for existing token to set initial auth UI state before extension responds
   (function checkInitialAuth() {
     const hasToken = !!(localStorage.getItem('cascadeAuthToken') || localStorage.getItem('access_token') || localStorage.getItem('token') || localStorage.getItem('authToken') || localStorage.getItem('simplebeacon_token'));
@@ -1743,28 +1789,17 @@
   document.querySelectorAll('#mainTabBar .tab-item').forEach(function(t){
     t.addEventListener('click', function(){ _switchSidebarTab(t.getAttribute('data-tab')); });
   });
-  // Request auth state from extension; retry multiple times to handle race on boot
+  // Request auth state from extension once on boot, with a single retry if still unsigned-in.
   (function requestAuthState(attempt) {
     if (window.vscode) { window.vscode.postMessage({command: 'getAuthState'}); }
-    if (attempt < 10) {
+    if (attempt < 1) {
       setTimeout(function() {
-        let signIn = document.getElementById('tdSignInSidebar');
-        if (signIn && signIn.style.display !== 'none') {
+        let signOut = document.getElementById('tdSignOutSidebar');
+        if (signOut && signOut.style.display === 'none') {
           requestAuthState(attempt + 1);
         }
-      }, 500);
+      }, 1500);
     }
   })(0);
-  // Periodic auth state sync every 3 seconds for first 60 seconds, then every 10s
-  (function startAuthPoll() {
-    let pollCount = 0;
-    function poll() {
-      if (window.vscode) { window.vscode.postMessage({command: 'getAuthState'}); }
-      pollCount++;
-      let interval = pollCount < 20 ? 3000 : 10000;
-      setTimeout(poll, interval);
-    }
-    setTimeout(poll, 1000);
-  })();
 
 })();

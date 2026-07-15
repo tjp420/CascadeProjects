@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
 /**
  * LLM slop / placeholder detection (SB-FICTION-001–004).
  * Line-based regex scan on source, config, and UI layers — complements fiction-kpi-patterns.
@@ -93,6 +94,7 @@ function isFenceDetectorMetaLine(line, relativePath, ruleId) {
     if (ruleId !== 'SB-FICTION-002') return false;
     const normalized = relativePath.replace(/\\/g, '/').toLowerCase();
     if (normalized.endsWith('llm-slop-patterns.js')) return true;
+    if (normalized.endsWith('llm-slop-catalog.json')) return true;
     const trimmed = line.trim();
     if (/regex:\s*\/[`]{3}/.test(trimmed)) return true;
     if (/\.(?:match|replace|test|split)\(\s*\/[`]{3}/.test(trimmed)) return true;

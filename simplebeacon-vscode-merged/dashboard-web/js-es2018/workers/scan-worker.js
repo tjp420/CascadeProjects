@@ -7,7 +7,11 @@
  */
 import { analyzeFileChunks, findingsToIssues } from './scan-wasm-bridge.js?v=20260709noise3';
 const MAX_DISCOVERED_FILES = 500000;
+const MAX_ISSUES = 100000;
+const SCAN_BATCH_SIZE = 400;
 const LARGE_FILE_THRESHOLD = 5 * 1024 * 1024; // 5 MB
+const FILE_READ_TIMEOUT_MS = 30000;
+const CHUNK_ANALYZE_TIMEOUT_MS = 120000;
 const BINARY_EXTENSIONS = /\.(exe|dll|bin|so|dylib|wasm|zip|tar|gz|tgz|bz2|7z|rar|iso|img|dmg|pkg|deb|msi|apk|ipa|woff|woff2|ttf|otf|eot|png|jpg|jpeg|gif|bmp|ico|webp|avif|svg|mp3|mp4|wav|avi|mov|mkv|webm|pdf|doc|docx|xls|xlsx|ppt|pptx|sqlite|db|lock|scx|scm|sc2map|sc2data|chk|mix|vxl|shp|tmp|mpq|w3x|w3m|nif|bik|ogv|dat|vsix|pack|bundle|map)$/i;
 const LANGUAGE_REGISTRY = {
     javascript: { extensions: ['js', 'cjs', 'mjs', 'ts', 'tsx', 'jsx'] },
@@ -154,6 +158,21 @@ function runAnalyzer(name, text, filePath) {
     }
     return results;
 }
+async function withTimeout(promise, ms, label) {
+    let timer;
+    try {
+        return await Promise.race([
+            promise,
+            new Promise((_, reject) => {
+                timer = setTimeout(() => reject(new Error(`Timed out after ${Math.round(ms / 1000)}s: ${label}`)), ms);
+            })
+        ]);
+    }
+    finally {
+        if (timer)
+            clearTimeout(timer);
+    }
+}
 async function resolveFile(fileEntry) {
     const fileObj = fileEntry.fileObj || fileEntry;
     if (typeof fileObj.getFile === 'function') {
@@ -162,7 +181,7 @@ async function resolveFile(fileEntry) {
     return fileObj;
 }
 async function analyzeWithTextPatterns(file, filePath) {
-    const text = await file.text();
+    const text = await withTimeout(file.text(), FILE_READ_TIMEOUT_MS, filePath);
     const fileLang = detectFileLanguage(filePath);
     if (!fileLang)
         return [];
@@ -185,20 +204,28 @@ async function analyzeWithTextPatterns(file, filePath) {
     }
     return issues;
 }
-async function scanFiles(files, deepScan) {
-    const allResults = [];
-    const issues = [];
-    let processed = 0;
-    let textErrors = 0;
-    let chunkAnalyzed = 0;
-    let binarySkipped = 0;
+async function scanFiles(files, deepScan, state = null) {
+    const allResults = state?.allResults || [];
+    const issues = state?.issues || [];
+    let processed = state?.processed || 0;
+    let textErrors = state?.textErrors || 0;
+    let chunkAnalyzed = state?.chunkAnalyzed || 0;
+    let binarySkipped = state?.binarySkipped || 0;
+    let issuesTruncated = state?.issuesTruncated || false;
     for (const file of files) {
-        if (shouldSkipFile(file.path, deepScan))
+        if (issues.length >= MAX_ISSUES) {
+            issuesTruncated = true;
+            break;
+        }
+        if (shouldSkipFile(file.path, deepScan)) {
+            processed++;
             continue;
+        }
         try {
-            const fileObj = await resolveFile(file);
+            const fileObj = await withTimeout(resolveFile(file), FILE_READ_TIMEOUT_MS, file.path);
             if (!fileObj || typeof fileObj.slice !== 'function') {
                 textErrors++;
+                processed++;
                 continue;
             }
             const size = fileObj.size || 0;
@@ -208,11 +235,17 @@ async function scanFiles(files, deepScan) {
                 continue;
             }
             if (size > LARGE_FILE_THRESHOLD) {
-                const results = await analyzeFileChunks(fileObj, file.path);
+                const results = await withTimeout(analyzeFileChunks(fileObj, file.path), CHUNK_ANALYZE_TIMEOUT_MS, file.path);
                 chunkAnalyzed += 1;
                 const chunkIssues = findingsToIssues(results, file.path);
                 if (chunkIssues.length > 0) {
-                    issues.push(...chunkIssues);
+                    for (const issue of chunkIssues) {
+                        if (issues.length >= MAX_ISSUES) {
+                            issuesTruncated = true;
+                            break;
+                        }
+                        issues.push(issue);
+                    }
                     allResults.push({
                         analyzer: 'chunkAnalyzer',
                         filePath: file.path,
@@ -221,32 +254,118 @@ async function scanFiles(files, deepScan) {
                     });
                 }
             }
-            else {
+            else if (detectFileLanguage(file.path)) {
                 const textIssues = await analyzeWithTextPatterns(fileObj, file.path);
-                issues.push(...textIssues);
+                for (const issue of textIssues) {
+                    if (issues.length >= MAX_ISSUES) {
+                        issuesTruncated = true;
+                        break;
+                    }
+                    issues.push(issue);
+                }
             }
             processed++;
-            if (processed % 50 === 0) {
-                self.postMessage({ type: 'progress', processed, total: files.length });
+            const total = state?.totalFiles || files.length;
+            if (processed % 25 === 0) {
+                self.postMessage({ type: 'progress', processed, total, currentFile: file.path });
             }
         }
         catch (err) {
             textErrors++;
+            processed++;
         }
     }
-    self.postMessage({ type: 'progress', processed, total: files.length });
-    return { processed, totalFiles: files.length, findings: allResults, issues, issueCount: issues.length, chunkAnalyzed, binarySkipped };
+    const total = state?.totalFiles || files.length;
+    self.postMessage({ type: 'progress', processed, total, currentFile: files.length ? files[files.length - 1].path : '' });
+    return {
+        processed,
+        totalFiles: total,
+        findings: allResults,
+        issues,
+        issueCount: issues.length,
+        chunkAnalyzed,
+        binarySkipped,
+        issuesTruncated,
+        allResults,
+        textErrors
+    };
 }
 self.onmessage = async (e) => {
-    const { type, files, scanId } = e.data;
+    const { type, files, scanId, batchOffset, totalFiles, deepScan } = e.data;
     if (type === 'scan') {
         self.postMessage({ type: 'started', scanId, totalFiles: files.length });
         try {
-            const results = await scanFiles(files, e.data.deepScan);
+            const results = await scanFiles(files, deepScan);
             self.postMessage({ type: 'complete', scanId, ...results });
         }
         catch (err) {
             self.postMessage({ type: 'error', scanId, error: err.message });
         }
+        return;
+    }
+    if (type === 'scan-start') {
+        self.scanState = {
+            scanId,
+            totalFiles: totalFiles || 0,
+            allResults: [],
+            issues: [],
+            processed: 0,
+            textErrors: 0,
+            chunkAnalyzed: 0,
+            binarySkipped: 0,
+            issuesTruncated: false,
+            deepScan: Boolean(deepScan)
+        };
+        self.postMessage({ type: 'started', scanId, totalFiles: self.scanState.totalFiles });
+        return;
+    }
+    if (type === 'scan-batch') {
+        const state = self.scanState;
+        if (!state || state.scanId !== scanId) {
+            self.postMessage({ type: 'error', scanId, error: 'Scan batch received before scan-start' });
+            return;
+        }
+        try {
+            const batch = Array.isArray(files) ? files : [];
+            const results = await scanFiles(batch, state.deepScan, state);
+            state.allResults = results.allResults;
+            state.issues = results.issues;
+            state.processed = results.processed;
+            state.textErrors = results.textErrors;
+            state.chunkAnalyzed = results.chunkAnalyzed;
+            state.binarySkipped = results.binarySkipped;
+            state.issuesTruncated = results.issuesTruncated;
+            self.postMessage({
+                type: 'batch-complete',
+                scanId,
+                batchOffset: batchOffset || 0,
+                processed: state.processed,
+                total: state.totalFiles
+            });
+        }
+        catch (err) {
+            self.postMessage({ type: 'error', scanId, error: err.message });
+        }
+        return;
+    }
+    if (type === 'scan-finish') {
+        const state = self.scanState;
+        if (!state || state.scanId !== scanId) {
+            self.postMessage({ type: 'error', scanId, error: 'Scan finish received before scan-start' });
+            return;
+        }
+        self.postMessage({
+            type: 'complete',
+            scanId,
+            processed: state.processed,
+            totalFiles: state.totalFiles,
+            findings: state.allResults,
+            issues: state.issues,
+            issueCount: state.issues.length,
+            chunkAnalyzed: state.chunkAnalyzed,
+            binarySkipped: state.binarySkipped,
+            issuesTruncated: state.issuesTruncated
+        });
+        self.scanState = null;
     }
 };

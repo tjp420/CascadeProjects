@@ -1,7 +1,5 @@
 /** Security findings extracted from live Simplebeacon report (credential + production-leak rules). */
 
-import { apiUrl } from '../utils.js';
-
 export const SECURITY_ISSUE_PATTERN = /credential|production leak/i;
 
 /**
@@ -45,72 +43,6 @@ export function normalizeSecurityFinding(issue, index = 0) {
 export function extractSecurityFindings(report) {
   const raw = report?.rawIssues ?? report?.detectedIssues ?? [];
   return raw.filter(isSecurityIssue).map((issue, index) => normalizeSecurityFinding(issue, index));
-}
-
-/**
- * SimpleBeacon Tenant Isolation Enforcement Gateway
- * Secures report metadata, stripping out third-party cross-tenant scopes.
- */
-export class SecurityTenantIsolationEngine {
-  constructor(authProvider) {
-    this.auth = authProvider;
-  }
-
-  /**
-   * Secures and encapsulates report metadata, striping out third-party cross tenant scopes
-   * @param {object} rawReportPayload
-   * @returns {object}
-   */
-  enforceIsolationContext(rawReportPayload) {
-    const currentUser = this.auth.getUser?.() || this.auth?.user || null;
-
-    // 1. Fallback for offline sandbox operations
-    if (!currentUser) {
-      if (rawReportPayload.userId) {
-        throw new Error("Security Access Breach: Operation restricted. User session unauthenticated.");
-      }
-      // If it's a completely local guest trace, tag it safely to sandbox context
-      rawReportPayload.userId = 'sandbox_local_guest';
-      return this.sanitizeSystemEnvironmentalPaths(rawReportPayload);
-    }
-
-    // 2. Validate tenant identity ownership bounds
-    if (rawReportPayload.userId && rawReportPayload.userId !== currentUser.id && currentUser.role !== 'admin') {
-      throw new Error(`Security Exception: Tenant Cross-Contamination Blocked. Active ID '${currentUser.id}' requested ownership over resource bound to '${rawReportPayload.userId}'`);
-    }
-
-    // 3. Explicitly attach structural tenant anchor variables
-    rawReportPayload.userId = currentUser.id;
-    rawReportPayload.tenantGroup = currentUser.tenantGroup || `org_fallback_${currentUser.id}`;
-
-    return this.sanitizeSystemEnvironmentalPaths(rawReportPayload);
-  }
-
-  /**
-   * Sanitizes and strips absolute drive path footprints to prevent ambient infrastructure leaks
-   * @param {object} report
-   * @returns {object}
-   */
-  sanitizeSystemEnvironmentalPaths(report) {
-    if (!report.detectedIssues) return report;
-
-    report.detectedIssues = report.detectedIssues.map(category => {
-      if (!category.findings) return category;
-
-      category.findings = category.findings.map(finding => {
-        if (finding.file) {
-          // Replace windows/linux explicit path variables with low profile relative components
-          finding.file = finding.file
-            .replace(/^[A-Z]:\\Users\\[^\\]+\\/i, '~/')
-            .replace(/^\/home\/[^\/]+\//i, '~/');
-        }
-        return finding;
-      });
-      return category;
-    });
-
-    return report;
-  }
 }
 
 /**
@@ -176,7 +108,7 @@ export function buildSecurityExportPayload(report, findings, compliance = null) 
  * @returns {any}
  */
 export async function fetchComplianceHeadline() {
-  const complianceHttpResponse = await fetch(apiUrl('/api/optimization/compliance'), {
+  const complianceHttpResponse = await fetch('/api/optimization/compliance', {
     headers: { Accept: 'application/json' }
   });
   if (!complianceHttpResponse.ok) {
@@ -184,30 +116,4 @@ export async function fetchComplianceHeadline() {
   }
   const complianceHeadline = await complianceHttpResponse.json();
   return complianceHeadline.success === false ? null : complianceHeadline;
-}
-
-/**
- * Quick structural verification test routine for tenant boundary enforcement.
- * Call manually in console or wire into test suites:
- *   import { runTenantBoundaryStressTest } from './services/securityService.js';
- *   runTenantBoundaryStressTest();
- */
-export function runTenantBoundaryStressTest() {
-  const mockAuth = { getUser: () => ({ id: 'usr_dev_alex', role: 'developer' }) };
-  const guard = new SecurityTenantIsolationEngine(mockAuth);
-
-  const maliciousPayload = {
-    id: 'rep_client_009',
-    userId: 'usr_corp_target_trevor', // Malicious injection target profile
-    detectedIssues: []
-  };
-
-  try {
-    guard.enforceIsolationContext(maliciousPayload);
-    // eslint-disable-next-line no-console
-    console.error('❌ Test Failed: System failed to catch a cross-tenant manipulation vector!');
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.log('✔ Test Passed: System correctly rejected cross-tenant tampering attempts.', err.message);
-  }
 }

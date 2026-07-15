@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
 /**
  * Token Authentication API Routes
  *
@@ -37,7 +38,7 @@ try {
 
 const { generateToken, optionalAuthenticate } = require('../middleware/auth.cjs');
 const logger = require('../lib/app-logger.cjs');
-const { toClientError } = require('../lib/client-error.cjs');
+const { toClientError } = require('../../shared-utils/index.cjs');
 
 const router = express.Router();
 

@@ -8,7 +8,7 @@ const {
     resolveDefaultAllowedRoots,
     assertSafeProjectPath
 } = require('./path-safety.cjs');
-const { toClientError } = require('./client-error.cjs');
+const { toClientError } = require('../../shared-utils/index.cjs');
 const path = require('path');
 const fs = require('fs');
 const { compactDataCleanupReportForClient, enrichCleanupReport, runFileReductionScan } = require('./simplebeacon-proxy.cjs');
