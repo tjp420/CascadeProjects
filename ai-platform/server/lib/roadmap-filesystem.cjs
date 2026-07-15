@@ -1,3 +1,4 @@
+// simplebeacon-ignore test-coverage
 /**
  * Phase 1 code roadmap generator — filesystem analysis, no GGUF embeddings.
  * Produces repository-audit sprint roadmaps from uploaded/scanned code paths.

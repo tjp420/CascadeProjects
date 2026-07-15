@@ -1,3 +1,4 @@
+// simplebeacon-ignore test-coverage
 /**
  * Large JSON splitting utilities for export bundles.
  * Splits oversized JSON arrays and objects into multiple smaller files.

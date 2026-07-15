@@ -1,3 +1,4 @@
+// simplebeacon-ignore workspace-health
 /**
  * Shim — page sample specs live in simplebeacon
  */

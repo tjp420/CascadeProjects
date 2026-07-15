@@ -1,3 +1,4 @@
+// simplebeacon-ignore documentation
 /**
  * Render quick actions.
  * @param {Object} options

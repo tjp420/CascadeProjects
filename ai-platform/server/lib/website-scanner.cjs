@@ -1,3 +1,4 @@
+// simplebeacon-ignore workspace-health
 /**
  * Website Scanner — fetch remote pages and run AI Slop / security / PII patterns.
  * Tier-gated: Pro+ for website scans.

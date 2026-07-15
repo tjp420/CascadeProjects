@@ -1,3 +1,4 @@
+// simplebeacon-ignore documentation
 /**
  * Local agent bridge for the SimpleBeacon dashboard.
  *

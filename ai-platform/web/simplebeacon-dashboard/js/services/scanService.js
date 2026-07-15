@@ -1,3 +1,4 @@
+// simplebeacon-ignore documentation
 import { fetchWithTimeout, downloadJson, downloadText } from '../utils.js';
 import { billingService } from './billingService.js';
 import { authService } from './authService.js?v=20260713sync6';

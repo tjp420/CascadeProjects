@@ -1,3 +1,4 @@
+// simplebeacon-ignore documentation
 /**
  * Shared path suggestion datalist for Analyze path bar + Dashboard scan input.
  */

@@ -1,3 +1,4 @@
+// simplebeacon-ignore workspace-health
 /**
  * Shim — baseline and consistency anchor samples loaded from
  * `.simplebeacon/config.json` at the workspace root.

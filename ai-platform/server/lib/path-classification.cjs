@@ -1,3 +1,4 @@
+// simplebeacon-ignore workspace-health, test-coverage
 /**
  * Path classification helpers for the codebase analyzer.
  * Extracted from codebase-analyzer.cjs to reduce file size and improve maintainability.

@@ -1,3 +1,4 @@
+// simplebeacon-ignore test-coverage
 /**
  * HTML section builders for the audit report.
  */

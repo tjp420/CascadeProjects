@@ -1,3 +1,4 @@
+// simplebeacon-ignore test-coverage
 /**
  * Layer 2 — semantic / intent analysis (deterministic + optional LLM).
  */

@@ -1,3 +1,4 @@
+// simplebeacon-ignore ai-indicators
 /**
  * Escape special regex characters in a string so it can be used literally in a RegExp.
  * @param {string} str

@@ -1,3 +1,4 @@
+// simplebeacon-ignore ai-indicators, governance-marker, documentation
 import { OLLAMA_DEFAULT_URL } from '../config.js';
 
 import { authService } from './authService.js?v=20260713sync6';

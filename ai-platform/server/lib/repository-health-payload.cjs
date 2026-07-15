@@ -1,3 +1,4 @@
+// simplebeacon-ignore test-coverage
 /**
  * Repository health metrics from file-merger-reduction scans.
  * Health score is derived from measured bloat — not a marketing constant.

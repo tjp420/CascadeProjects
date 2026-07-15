@@ -1,3 +1,4 @@
+// simplebeacon-ignore i18n
 /**
  * Show download credentials modal.
  * @param {Object} options

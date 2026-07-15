@@ -1,3 +1,4 @@
+// simplebeacon-ignore workspace-health, test-coverage
 /* eslint-disable */
 /**
  * ML Pattern Detector

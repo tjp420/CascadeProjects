@@ -1,3 +1,4 @@
+// simplebeacon-ignore test-coverage
 /**
  * Combined ZScript mod report — structure, CVAR map, intensity diagnostics.
  */

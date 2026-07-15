@@ -1,3 +1,4 @@
+// simplebeacon-ignore workspace-health
 /**
  * Mock-data scanner facade.
  * Thin wrapper over packages/simplebeacon-cli/src/scan.

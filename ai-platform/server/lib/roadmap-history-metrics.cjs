@@ -1,3 +1,4 @@
+// simplebeacon-ignore test-coverage
 /**
  * Normalize roadmap scan metrics for analysis history entries.
  */

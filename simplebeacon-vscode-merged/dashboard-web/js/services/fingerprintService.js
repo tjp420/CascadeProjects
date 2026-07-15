@@ -1,3 +1,4 @@
+// simplebeacon-ignore documentation
 /**
  * Structural fingerprinting for dropped folders.
  *

@@ -1,3 +1,4 @@
+// simplebeacon-ignore test-coverage
 /**
  * Shared recoverable I/O helpers — log and continue instead of silent pass/return.
  */

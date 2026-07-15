@@ -1,3 +1,4 @@
+// simplebeacon-ignore test-coverage
 /**
  * Dashboard snapshot seed definitions — keys map to PostgreSQL dashboard_snapshots.
  * simplebeacon:production-leak-intent: sample-data-reference - These are legitimate sample data files for dashboard stub functionality

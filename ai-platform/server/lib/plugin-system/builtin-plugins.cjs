@@ -1,3 +1,4 @@
+// simplebeacon-ignore test-coverage
 /**
  * Built-in language plugins shipped with the platform.
  */

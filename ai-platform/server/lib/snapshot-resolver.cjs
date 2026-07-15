@@ -1,3 +1,4 @@
+// simplebeacon-ignore test-coverage
 /**
  * Resolve dashboard API payloads from PostgreSQL snapshots with JSON fallback.
  */

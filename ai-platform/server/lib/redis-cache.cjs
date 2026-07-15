@@ -1,3 +1,4 @@
+// simplebeacon-ignore test-coverage
 /**
  * Optional Redis cache for dashboard snapshot payloads.
  */

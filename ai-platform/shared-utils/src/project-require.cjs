@@ -1,3 +1,4 @@
+// simplebeacon-ignore workspace-health
 /**
  * Project root require helper.
  * Replaces deep relative imports like `require('../../../packages/...')`

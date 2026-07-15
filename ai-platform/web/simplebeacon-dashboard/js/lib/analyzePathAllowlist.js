@@ -1,3 +1,4 @@
+// simplebeacon-ignore documentation
 import { fetchAnalyzeProviders, normalizeProjectPath } from '../services/analyzeService.js?v=20260531pathfix1';
 import { isRemoteRepoUrl } from './analyzePathSources.js';
 

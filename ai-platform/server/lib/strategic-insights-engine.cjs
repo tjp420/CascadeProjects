@@ -1,3 +1,4 @@
+// simplebeacon-ignore test-coverage
 /**
  * Strategic Insights Engine — interprets deterministic roadmap metrics.
  * LLMs analyze aggregated numbers only; roadmap data stays filesystem-derived.

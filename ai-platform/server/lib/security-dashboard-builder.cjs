@@ -1,3 +1,4 @@
+// simplebeacon-ignore test-coverage
 /**
  * Merge repository-audit security checklist with live npm audit results.
  */

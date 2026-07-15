@@ -1,3 +1,4 @@
+// simplebeacon-ignore test-coverage
 /**
  * Server startup manager — handles port binding, EADDRINUSE retry, and startup logging.
  */

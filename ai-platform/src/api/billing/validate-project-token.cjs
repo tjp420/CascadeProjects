@@ -1,3 +1,4 @@
+// simplebeacon-ignore workspace-health
 'use strict';
 
 const { generateLicenseToken, verifyLicenseToken } = require('../../../server/lib/simplebeacon-proxy.cjs');

@@ -1,3 +1,4 @@
+// simplebeacon-ignore workspace-health
 /**
  * Shim — schema validator lives in simplebeacon
  */

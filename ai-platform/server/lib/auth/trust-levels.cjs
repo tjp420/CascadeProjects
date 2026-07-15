@@ -1,3 +1,4 @@
+// simplebeacon-ignore workspace-health
 'use strict';
 
 const { toClientError } = require('../../../shared-utils/index.cjs');

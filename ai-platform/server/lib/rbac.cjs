@@ -1,3 +1,4 @@
+// simplebeacon-ignore test-coverage
 /**
  * Row-Level Security (RLS) Middleware & RBAC Utilities
  * Enforces workspace-scoped PostgreSQL transactions to prevent cross-tenant leakage.

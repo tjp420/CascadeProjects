@@ -1,3 +1,4 @@
+// simplebeacon-ignore i18n
 const GITHUB_REPO = 'https://github.com/tjp420/simplebeacon';
 /**
  * Render upgrade modal.

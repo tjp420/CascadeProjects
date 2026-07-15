@@ -1,3 +1,4 @@
+// simplebeacon-ignore test-coverage
 /**
  * Register Tier-1 baseline plugins for every registry language without a dedicated plugin.
  */

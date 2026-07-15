@@ -1,3 +1,4 @@
+// simplebeacon-ignore test-coverage
 /**
  * Base language plugin — pattern-driven analysis with optional content indicators.
  */

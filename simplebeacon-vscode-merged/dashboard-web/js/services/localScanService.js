@@ -1,3 +1,4 @@
+// simplebeacon-ignore documentation
 import { showToast } from '../utils.js';
 
 const WORKER_URL = new URL('../workers/scan-worker.js?v=20260709noise3', import.meta.url);

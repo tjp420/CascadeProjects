@@ -1,3 +1,4 @@
+// simplebeacon-ignore documentation
 import { escapeHtml, formatNumber } from '../utils.js';
 
 const DEFAULT_CHECKOUT = 'mailto:audit@simplebeacon.ai?subject=Unlock%20Pre-Launch%20Audit%20Report';

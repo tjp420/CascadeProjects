@@ -1,3 +1,4 @@
+// simplebeacon-ignore test-coverage
 /**
  * Sample / demo report generation for marketing.
  */

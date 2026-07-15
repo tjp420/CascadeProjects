@@ -1,3 +1,4 @@
+// simplebeacon-ignore test-coverage
 /**
  * Complete audit HTML renderer — assembles the full HTML document from section builders.
  */

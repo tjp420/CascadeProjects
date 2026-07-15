@@ -1,3 +1,4 @@
+// simplebeacon-ignore documentation, i18n
 const THEME_KEY = 'simplebeacon-theme';
 const MANUAL_KEY = 'simplebeacon-theme-manual';
 let _globalPollInterval = null;

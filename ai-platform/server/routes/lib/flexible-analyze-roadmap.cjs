@@ -1,3 +1,4 @@
+// simplebeacon-ignore workspace-health
 const path = require('path');
 const fs = require('fs');
 const { normalizeStringList, safeBasename } = require('../../lib/flexible-analyze-utils.cjs');

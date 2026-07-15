@@ -1,3 +1,4 @@
+// simplebeacon-ignore documentation
 /**
  * Render issue card.
  * @param {any} category

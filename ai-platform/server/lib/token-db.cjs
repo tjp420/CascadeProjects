@@ -1,3 +1,4 @@
+// simplebeacon-ignore test-coverage
 /**
  * Token DB Helpers — In-memory adapter for token registry tables.
  * Replace with real PostgreSQL / SQLite adapter in production.

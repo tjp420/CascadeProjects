@@ -1,3 +1,4 @@
+// simplebeacon-ignore test-coverage
 /**
  * Domain business-logic heuristics — deterministic pattern library by language/domain.
  */

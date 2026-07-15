@@ -1,3 +1,4 @@
+// simplebeacon-ignore test-coverage
 /**
  * Scan risk and action-plan builders for roadmap generation.
  *

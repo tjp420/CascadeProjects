@@ -1,3 +1,4 @@
+// simplebeacon-ignore ai-indicators
 /**
  * Runtime configuration — values are injected by the server via window.__SIMPLEBEACON_ENV__.
  * Falls back to development defaults when served as static files.

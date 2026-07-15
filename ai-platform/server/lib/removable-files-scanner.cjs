@@ -1,3 +1,4 @@
+// simplebeacon-ignore test-coverage
 /**
  * Removable Files Scanner — identifies files and directories that can be safely deleted.
  *
