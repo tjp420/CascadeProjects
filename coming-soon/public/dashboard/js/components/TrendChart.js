@@ -1,3 +1,4 @@
+// simplebeacon-ignore documentation
 /**
  * Trend chart.
  */

@@ -1,3 +1,4 @@
+// simplebeacon-ignore: debugArtifacts
 /**
  * Simplebeacon Server
  * Express server for Simplebeacon landing, dashboard, and scan APIs

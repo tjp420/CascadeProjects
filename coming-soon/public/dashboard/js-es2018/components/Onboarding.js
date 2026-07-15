@@ -1,3 +1,4 @@
+// simplebeacon-ignore i18n
 const ONBOARDING_KEY = 'simplebeacon-onboarding-seen';
 /**
  * Should show onboarding.

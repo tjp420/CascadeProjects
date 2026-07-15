@@ -1,6 +1,6 @@
 import { escapeHtml, showToast, downloadJson, downloadBlob, downloadText, redactPathForDisplay, formatPathLabel, formatPathInputValue, formatAiSummarySkipMessage, isRedactedPathDisplay, formatNumber, formatPercent, renderEmptyState } from '../utils.js';
 import { canUseDirectoryPicker, isLikelyWebkitDirectoryFileCap, browserFolderCapMessage, filePickerBlockedMessage, isFilePickerBlockedError, isEmbeddedDashboardFrame } from '../utils-lib/dom.js?v=20260715iframefix3';
-import { evaluateFunnelMetrics, getFunnelCopy } from '../utils/funnelTrigger.js';
+import { evaluateFunnelMetrics, getFunnelCopy, shouldShowEnterpriseFunnel } from '../utils/funnelTrigger.js';
 import { LocalScanService } from '../services/localScanService.js?v=20260715iframefix3';
 import { fingerprintDirectory, formatFingerprint } from '../services/fingerprintService.js';
 import { probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus, getAgentDownloadUrl, detectPlatform, getPlatformLabel, getInstallInstructions, getAgentFallbackMessage, probeAgent4000, scanViaAgent4000, renderAgentCertificate, hasExtensionBridgeConfigured, pickFolderViaExtensionBridge as requestExtensionFolderPick, shouldProbeLocalAgent } from '../services/localAgentService.js?v=20260715hosted1';
@@ -2773,7 +2773,6 @@ export class AnalyzeView {
      */
     getUserTier() {
         const user = authService.getUser();
-        if (authService.isAdmin()) return 'enterprise';
         const plan = (user === null || user === void 0 ? void 0 : user.plan) || (user === null || user === void 0 ? void 0 : user.tier) || 'starter';
         if (plan === 'free')
             return 'starter';
@@ -4174,13 +4173,14 @@ export class AnalyzeView {
         // Cross-reference integrity checks
         const integrityWarnings = [];
         const sev = report.severityCounts || {};
-        const issues = report.detectedIssues || report.rawIssues || [];
+        const issueList = report.rawIssues || report.detectedIssues || report.findings || [];
         const counted = (sev.critical || 0) + (sev.high || 0) + (sev.medium || 0) + (sev.low || 0) + (sev.info || 0);
-        if (counted !== issues.length) {
-            integrityWarnings.push(`severityCounts sum (${counted}) ≠ issues.length (${issues.length})`);
+        const issueTotal = Array.isArray(issueList) ? issueList.reduce((sum, i) => sum + (Number(i && i.count) || 1), 0) : 0;
+        if (counted !== issueTotal) {
+            integrityWarnings.push(`severityCounts sum (${counted}) ≠ issues.count (${issueTotal})`);
         }
-        if (report.summary && typeof report.summary.totalIssues === 'number' && report.summary.totalIssues !== issues.length) {
-            integrityWarnings.push(`summary.totalIssues (${report.summary.totalIssues}) ≠ issues.length (${issues.length})`);
+        if (report.summary && typeof report.summary.totalIssues === 'number' && report.summary.totalIssues !== issueTotal) {
+            integrityWarnings.push(`summary.totalIssues (${report.summary.totalIssues}) ≠ issues.count (${issueTotal})`);
         }
         return `
       ${stale || integrityWarnings.length > 0 ? `
@@ -6405,7 +6405,7 @@ export class AnalyzeView {
         }
         const type = parsed.type || '';
         const sev = parsed.severityCounts || {};
-        const detected = parsed.detectedIssues || parsed.rawIssues || [];
+        const issueList = parsed.rawIssues || parsed.detectedIssues || parsed.findings || [];
         if (isSimplebeaconReport(parsed) || type === 'simplebeacon-complete-scan') {
             if (!parsed.projectRoot && !parsed.projectPath) {
                 warn('Missing projectRoot / projectPath');
@@ -6415,14 +6415,15 @@ export class AnalyzeView {
             }
             else {
                 const counted = (sev.critical || 0) + (sev.high || 0) + (sev.medium || 0) + (sev.low || 0) + (sev.info || 0);
-                if (Array.isArray(detected) && counted !== detected.length) {
-                    warn(`severityCounts sum (${counted}) != issues.length (${detected.length})`);
+                const issueTotal = Array.isArray(issueList) ? issueList.reduce((sum, i) => sum + (Number(i && i.count) || 1), 0) : 0;
+                if (Array.isArray(issueList) && counted !== issueTotal) {
+                    warn(`severityCounts sum (${counted}) != issues.count (${issueTotal})`);
                 }
             }
-            if (Array.isArray(detected)) {
-                const bad = detected.filter(i => !i.severity || !i.type).length;
+            if (Array.isArray(issueList)) {
+                const bad = issueList.filter(i => !i.severity || !i.type).length;
                 if (bad > 0)
-                    warn(`${bad}/${detected.length} issues missing severity or type`);
+                    warn(`${bad}/${issueList.length} issues missing severity or type`);
             }
         }
         if (type === 'simplebeacon-complete-scan' && parsed.results) {
@@ -8725,8 +8726,7 @@ export class AnalyzeView {
         return `${this.renderResultsExportBar()}${content || ''}${funnelHtml}`;
     }
     renderFunnelTrigger() {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
-        if (authService.isAdmin()) return '';
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l;
         const report = ((_a = this.lastResult) === null || _a === void 0 ? void 0 : _a.report) || ((_b = this.lastResult) === null || _b === void 0 ? void 0 : _b.scan);
         if (!report)
             return '';
@@ -8739,6 +8739,16 @@ export class AnalyzeView {
         const funnel = evaluateFunnelMetrics(metrics);
         if (!funnel.shouldPromptUpgrade)
             return '';
+        const auth = (_l = this.app.authService) === null || _l === void 0 ? void 0 : _l;
+        const sessionUser = (auth === null || auth === void 0 ? void 0 : auth.getUser) ? auth.getUser() : null;
+        if (!shouldShowEnterpriseFunnel({
+            isAdmin: auth === null || auth === void 0 ? void 0 : auth.isAdmin(),
+            isFreeTier: auth === null || auth === void 0 ? void 0 : auth.isFreeTier(),
+            tier: (sessionUser === null || sessionUser === void 0 ? void 0 : sessionUser.tier) || (sessionUser === null || sessionUser === void 0 ? void 0 : sessionUser.plan) || (auth === null || auth === void 0 ? void 0 : auth.getTokenTier()),
+            trustLevel: sessionUser === null || sessionUser === void 0 ? void 0 : sessionUser.trustLevel
+        })) {
+            return '';
+        }
         const copy = getFunnelCopy(funnel.reason);
         return `
       <div class="card mb-4" style="border-left: 4px solid var(--accent-primary);">
@@ -9833,7 +9843,6 @@ export class AnalyzeView {
         return this.wrapAnalyzeResults(`<pre class="audit-log card">${escapeHtml(JSON.stringify(this.lastResult, null, 2))}</pre>`);
     }
     isResultsLocked() {
-        if (authService.isAdmin()) return false;
         return isDeliverableLocked(this.app.state.entitlements, this.lastResult);
     }
     renderCompleteResults() {

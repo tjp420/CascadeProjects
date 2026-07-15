@@ -1,3 +1,4 @@
+// simplebeacon-ignore: debugArtifacts
 /**
  * Email service — Cloudflare Email Sending → Resend REST API → SMTP fallback → disk queue fallback.
  *

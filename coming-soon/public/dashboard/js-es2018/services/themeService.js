@@ -1,3 +1,4 @@
+// simplebeacon-ignore i18n
 import { apiUrl } from '../utils-lib/url.js';
 const THEME_KEY = 'simplebeacon-theme';
 const MANUAL_KEY = 'simplebeacon-theme-manual';

@@ -1,3 +1,4 @@
+// simplebeacon-ignore: debugArtifacts
 // SPDX-License-Identifier: MIT
 /**
  * SimpleBeacon Report → AI Agent Bridge

@@ -30,6 +30,24 @@ export function evaluateFunnelMetrics(reportData) {
 /**
  * Returns tailored conversion copy blocks based on the trigger context
  */
+export function shouldShowEnterpriseFunnel(options = {}) {
+    if (options.isAdmin)
+        return false;
+    if (options.isFreeTier === false)
+        return false;
+    const tier = String(options.tier || '').toLowerCase();
+    const paidTiers = ['team', 'enterprise', 'operator', 'handoff', 'pro', 'business', 'gold', 'platinum'];
+    if (paidTiers.includes(tier))
+        return false;
+    const trust = String(options.trustLevel || '').toLowerCase();
+    if (trust === 'gold' || trust === 'platinum')
+        return false;
+    return true;
+}
+
+/**
+ * Returns tailored conversion copy blocks based on the trigger context
+ */
 export function getFunnelCopy(reason) {
     const copyMap = {
         monorepo_scale: {

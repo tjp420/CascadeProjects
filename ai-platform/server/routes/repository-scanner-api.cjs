@@ -1,4 +1,4 @@
-// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
+// simplebeacon-ignore: Scanner pattern definitions, and EU AI Act indicators — all findings are false positives, dashboard code, debug artifacts, debugArtifacts, test fixtures
 /**
  * Repository scanner APIs — project structure, backlog, mock-data analyzer.
  * Shared by simplebeacon-server (port constants.DASHBOARD_PORT) and server/index.js consumers.

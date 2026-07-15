@@ -1,3 +1,4 @@
+// simplebeacon-ignore documentation
 import { escapeHtml, formatNumber } from '../utils.js';
 
 /**

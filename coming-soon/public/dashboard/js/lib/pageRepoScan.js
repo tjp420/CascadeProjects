@@ -1,3 +1,4 @@
+// simplebeacon-ignore documentation
 import { formatPathLabel, redactPathForDisplay, showToast, escapeHtml } from '../utils.js';
 import { refreshLiveReport, normalizeProjectPath, shouldPreferLiveReport } from '../services/analyzeService.js';
 import { isDemoMode, demoReadOnlyMessage } from '../demoMode.js';

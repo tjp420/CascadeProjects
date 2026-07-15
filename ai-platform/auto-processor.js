@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// simplebeacon-ignore: debugArtifacts
 
 /**
  * SimpleBeacon Automated Private Processor

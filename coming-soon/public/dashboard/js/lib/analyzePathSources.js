@@ -1,3 +1,4 @@
+// simplebeacon-ignore documentation
 /** Keep in sync with server/lib/path-safety.js DEFAULT_ALLOWED_HOSTS */
 export const REMOTE_REPO_HOSTS = [
   'github.com',

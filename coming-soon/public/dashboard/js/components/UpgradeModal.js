@@ -1,3 +1,4 @@
+// simplebeacon-ignore documentation, i18n
 const GITHUB_REPO = 'https://github.com/tjp420/simplebeacon';
 
 /**

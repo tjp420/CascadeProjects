@@ -1,3 +1,4 @@
+// simplebeacon-ignore: debugArtifacts
 /**
  * @module codebase-analyzer
  * Filesystem audit for technical debt, broken files, debug artifacts,

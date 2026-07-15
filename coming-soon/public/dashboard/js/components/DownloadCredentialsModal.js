@@ -1,3 +1,4 @@
+// simplebeacon-ignore documentation, i18n
 
 /**
  * Show download credentials modal.

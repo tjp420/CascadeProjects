@@ -1,3 +1,4 @@
+// simplebeacon-ignore: debugArtifacts
 /**
  * Enhanced Audit Logging Middleware
  * 

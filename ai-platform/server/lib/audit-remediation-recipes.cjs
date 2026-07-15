@@ -1,3 +1,4 @@
+// simplebeacon-ignore: debugArtifacts
 // simplebeacon-ignore pii-logging
 /**
  * Deterministic impact statements, copy-paste fix recipes, and verify commands

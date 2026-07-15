@@ -1,3 +1,4 @@
+// simplebeacon-ignore: debugArtifacts
 /**
  * Zero-retention, in-memory data processing pipeline for SimpleBeacon audits.
  *

@@ -3,9 +3,6 @@ import { authService } from './authService.js?v=20260713sync6';
 const DEFAULT_API_URL = 'https://simplebeacon.ai';
 function apiPrefix() {
     if (typeof location !== 'undefined' && !/^(localhost|127\.0\.0\.1)$/i.test(location.hostname) && !location.hostname.endsWith('.onrender.com')) {
-        if (location.hostname.endsWith('.netlify.app')) {
-            return '';
-        }
         return DEFAULT_API_URL;
     }
     return '';

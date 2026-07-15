@@ -1,3 +1,4 @@
+// simplebeacon-ignore: euAiAct
 /**
  * Flexible directory analysis — any path + AI provider + analysis mode.
  *

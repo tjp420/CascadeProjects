@@ -1,3 +1,4 @@
+// simplebeacon-ignore documentation
 import { authService } from './authService.js?v=20260713sync6';
 import { readJsonResponseBody } from '../lib/recoverable-fetch.js';
 import { DEMO_EMAIL } from '../demoMode.js';

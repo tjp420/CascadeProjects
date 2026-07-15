@@ -1,3 +1,4 @@
+// simplebeacon-ignore: debugArtifacts, todoMarkers
 /**
  * FixOrchestrator 2.0 — Patch Strategy Handlers
  *

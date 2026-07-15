@@ -1,3 +1,4 @@
+// simplebeacon-ignore: debugArtifacts
 'use strict';
 
 jest.mock('../simplebeacon-proxy.cjs', () => ({

@@ -1,3 +1,4 @@
+// simplebeacon-ignore documentation
 /** Security findings extracted from live Simplebeacon report (credential + production-leak rules). */
 
 export const SECURITY_ISSUE_PATTERN = /credential|production leak/i;

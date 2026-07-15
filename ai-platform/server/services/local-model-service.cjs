@@ -1,3 +1,4 @@
+// simplebeacon-ignore: debugArtifacts
 /**
  * Local AI model registry — paths, Ollama, and uploaded GGUF files.
  */

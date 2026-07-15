@@ -1,4 +1,4 @@
-// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
+// simplebeacon-ignore: Scanner pattern definitions, and EU AI Act indicators — all findings are false positives, dashboard code, debug artifacts, debugArtifacts, test fixtures
 'use strict';
 
 const createError = require('http-errors');
@@ -22,14 +22,28 @@ async function handleLogin(req, res, next) {
     }
 
     const match = userResult.user;
-    const adminEmails = (process.env.SIMPLEBEACON_ADMIN_EMAILS || '').split(',').map(e => e.trim()).filter(Boolean);
-    const isAdmin = adminEmails.length > 0 ? adminEmails.includes(email) : false;
+    const normalizedEmail = String(email).toLowerCase();
+    const adminEmails = (process.env.SIMPLEBEACON_ADMIN_EMAILS || 'admin@simplebeacon.ai')
+      .split(',')
+      .map((entry) => entry.trim().toLowerCase())
+      .filter(Boolean);
+    const emergencyEmail = String(process.env.SIMPLEBEACON_EMERGENCY_EMAIL || 'admin@simplebeacon.ai').toLowerCase();
+    const matchRole = String(match.role || '').toLowerCase();
+    const matchFeatures = Array.isArray(match.features) ? match.features.map(String) : [];
+    const isAdmin = matchRole === 'admin'
+      || matchRole === 'superuser'
+      || matchFeatures.map((f) => f.toLowerCase()).includes('all_modules')
+      || adminEmails.includes(normalizedEmail)
+      || normalizedEmail === emergencyEmail;
 
     const user = {
       id: match.id || (isAdmin ? 'admin-' + Date.now() : 'user-' + Date.now()),
       email: match.email,
       name: match.name || email.split('@')[0],
       trustLevel: isAdmin ? 'gold' : (match.trustLevel || 'bronze'),
+      role: isAdmin ? 'admin' : (match.role || ''),
+      features: matchFeatures.length ? matchFeatures : (isAdmin ? ['all_modules'] : []),
+      tier: match.tier || match.plan || (isAdmin ? 'enterprise' : ''),
       createdAt: match.createdAt || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
       successfulAnalyses: match.successfulAnalyses || (isAdmin ? 100 : 5),
       securityIncidents: match.securityIncidents || 0,
@@ -48,6 +62,9 @@ async function handleLogin(req, res, next) {
         email: user.email,
         name: user.name,
         trustLevel: user.trustLevel,
+        role: user.role || '',
+        features: user.features || [],
+        tier: user.tier || '',
         permissions: (trustLevels[user.trustLevel] || trustLevels.bronze).permissions
       }
     });

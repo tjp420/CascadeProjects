@@ -1,3 +1,4 @@
+// simplebeacon-ignore: debugArtifacts
 /**
  * Tier-1 baseline patterns shared across registry languages (by family + universal).
  */

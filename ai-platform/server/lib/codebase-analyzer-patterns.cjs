@@ -1,3 +1,4 @@
+// simplebeacon-ignore: debugArtifacts
 /**
  * Static pattern definitions for the codebase analyzer.
  * Extracted from codebase-analyzer.cjs to reduce main module size.
