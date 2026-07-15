@@ -27,6 +27,18 @@ export function isLocalDevHost() {
     const host = window.location.hostname;
     return host === 'localhost' || host === '127.0.0.1' || host === '[::1]';
 }
+/** Browser can talk directly to Ollama on loopback (HTTP localhost only). */
+export function canUseBrowserOllama() {
+    if (typeof window === 'undefined')
+        return false;
+    return isLocalDevHost() && window.location.protocol === 'http:';
+}
+/** Hosted SaaS dashboard (HTTPS or non-loopback) — local Ollama is not reachable. */
+export function isHostedDashboard() {
+    if (typeof window === 'undefined')
+        return false;
+    return window.location.protocol === 'https:' || !isLocalDevHost();
+}
 /**
  * D e m o  a p i  b a s e.
  */

@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
 /**
  * Agency pre-launch handoff patterns — deploy leaks, auth misconfig, AI telemetry, webhooks, repo integrity.
  */

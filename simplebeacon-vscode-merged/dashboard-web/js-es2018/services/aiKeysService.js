@@ -140,7 +140,7 @@ export async function clearUserAiKeys() {
  * @param {string} ollamaBaseUrl
  * @returns {any}
  */
-function isLocalOllamaUrl(url) {
+export function isLocalOllamaUrl(url) {
     try {
         const parsed = new URL(url);
         return parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1';
@@ -149,15 +149,46 @@ function isLocalOllamaUrl(url) {
     }
 }
 
-export async function fetchOllamaModels(ollamaBaseUrl = OLLAMA_DEFAULT_URL) {
+/** Skip Ollama model probes that cannot succeed (HTTPS dashboard → local Ollama). */
+export function shouldProbeOllamaModels(ollamaBaseUrl = OLLAMA_DEFAULT_URL) {
     const baseUrl = String(ollamaBaseUrl || OLLAMA_DEFAULT_URL).trim().replace(/\/$/, '') || OLLAMA_DEFAULT_URL;
     const isHttpsPage = typeof window !== 'undefined' && window.location.protocol === 'https:';
+    return !(isHttpsPage && isLocalOllamaUrl(baseUrl));
+}
 
-    if (isHttpsPage && isLocalOllamaUrl(baseUrl)) {
-        throw new Error(
-            'The hosted HTTPS dashboard cannot reach Ollama on your local machine. ' +
-            'Run the dashboard locally (npm run dashboard:v1-internal) or use a cloud/network-accessible Ollama instance.'
-        );
+function isValidOllamaBaseUrl(url) {
+    try {
+        const parsed = new URL(url);
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:')
+            return false;
+        if (parsed.port) {
+            const portNum = Number(parsed.port);
+            if (!portNum || portNum < 1 || portNum > 65535)
+                return false;
+        }
+        return !!parsed.hostname;
+    } catch {
+        return false;
+    }
+}
+
+export async function fetchOllamaModels(ollamaBaseUrl = OLLAMA_DEFAULT_URL) {
+    const baseUrl = String(ollamaBaseUrl || OLLAMA_DEFAULT_URL).trim().replace(/\/$/, '') || OLLAMA_DEFAULT_URL;
+    if (!baseUrl) {
+        return { ok: true, models: [], message: 'No Ollama base URL configured', source: 'none' };
+    }
+    if (!isValidOllamaBaseUrl(baseUrl)) {
+        throw new Error('Invalid Ollama base URL — use http(s)://host:port (e.g. http://127.0.0.1:11434)');
+    }
+    const isHttpsPage = typeof window !== 'undefined' && window.location.protocol === 'https:';
+
+    if (!shouldProbeOllamaModels(baseUrl)) {
+        return {
+            ok: false,
+            models: [],
+            message: 'Local Ollama is not available on the hosted dashboard. Add OpenAI or Anthropic keys in Settings → AI providers, or run the dashboard locally over http://localhost.',
+            source: 'blocked'
+        };
     }
 
     async function fetchDirect() {

@@ -80,15 +80,17 @@ function buildReport(projectName, findings, totalFiles, analyzedFiles, meta = {}
     for (const f of findings || []) {
         const rule = f.rule || f.analyzer || 'finding';
         const severity = String(f.severity || 'medium').toLowerCase();
+        const count = Number(f.count) || 1;
         if (severityCounts[severity] !== undefined)
-            severityCounts[severity] += 1;
+            severityCounts[severity] += count;
         if (!categories[rule])
             categories[rule] = { severity, findings: [] };
         const entry = {
             file: f.filePath,
             line: f.line || 1,
             message: f.impact || `${rule} finding`,
-            severity
+            severity,
+            count
         };
         categories[rule].findings.push(entry);
         findingsList.push({
@@ -96,7 +98,8 @@ function buildReport(projectName, findings, totalFiles, analyzedFiles, meta = {}
             file: f.filePath,
             line: f.line || 1,
             severity,
-            message: f.impact || `${rule} finding`
+            message: f.impact || `${rule} finding`,
+            count
         });
         rawIssues.push({
             type: rule,
@@ -104,9 +107,11 @@ function buildReport(projectName, findings, totalFiles, analyzedFiles, meta = {}
             line: f.line || 1,
             severity,
             description: f.impact || `${rule} finding`,
-            count: 1
+            count
         });
     }
+    const totalFindings = rawIssues.reduce((sum, i) => sum + (i.count || 1), 0);
+    const issueCount = totalFindings;
     return {
         type: 'simplebeacon-report',
         version: '1.0.0',
@@ -119,14 +124,14 @@ function buildReport(projectName, findings, totalFiles, analyzedFiles, meta = {}
             totalFiles,
             codeFilesAnalyzed: analyzedFiles,
             codeFilesDiscovered: totalFiles,
-            totalFindings: rawIssues.length,
+            totalFindings,
             severityCounts
         },
         categories,
         findings: findingsList,
         rawIssues,
         detectedIssues: rawIssues,
-        issueCount: rawIssues.length,
+        issueCount,
         severityCounts,
         repositoryFilesTotal: totalFiles,
         ruleScopedFilesAnalyzed: analyzedFiles,

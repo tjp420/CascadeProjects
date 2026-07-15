@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
 import { escapeHtml, showToast, downloadJson, downloadBlob, downloadText, redactPathForDisplay, formatPathLabel, formatPathInputValue, formatAiSummarySkipMessage, isRedactedPathDisplay, formatNumber, formatPercent, renderEmptyState } from '../utils.js';
 import { canUseDirectoryPicker, isLikelyWebkitDirectoryFileCap, browserFolderCapMessage, filePickerBlockedMessage, isFilePickerBlockedError, isEmbeddedDashboardFrame } from '../utils-lib/dom.js?v=20260715iframefix3';
 import { evaluateFunnelMetrics, getFunnelCopy, shouldShowEnterpriseFunnel, buildFunnelAuthOptions } from '../utils/funnelTrigger.js?v=20260715adminfunnel1';

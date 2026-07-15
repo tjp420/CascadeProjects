@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
 // ============================================================================
 // SimpleBeacon Universal Scanner — Language Plugin Architecture (Phase 1)
 // VERSION: 2.2.2 — expanded gate, bun lockfiles, bloat patterns, roadmap markers

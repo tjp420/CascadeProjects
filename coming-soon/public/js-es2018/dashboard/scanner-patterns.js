@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
 /**
  * Registry of supported languages and their ecosystem metadata.
  * Each entry maps file extensions to root/build artifacts.

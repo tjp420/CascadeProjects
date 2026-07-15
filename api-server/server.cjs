@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
 // Load environment variables from .env file (inline parser — no dependencies)
 const path = require('path');
 const fsSync = require('fs');

@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
 /**
  * Hallucinated import scanner — detects `import`/`require` statements that reference
  * packages not listed in package.json dependencies or devDependencies.

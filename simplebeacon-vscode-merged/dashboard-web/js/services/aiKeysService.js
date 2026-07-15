@@ -135,7 +135,7 @@ export async function clearUserAiKeys() {
  * @param {string} ollamaBaseUrl
  * @returns {any}
  */
-function isLocalOllamaUrl(url) {
+export function isLocalOllamaUrl(url) {
   try {
     const parsed = new URL(url);
     return parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1';
@@ -144,15 +144,23 @@ function isLocalOllamaUrl(url) {
   }
 }
 
+export function shouldProbeOllamaModels(ollamaBaseUrl = OLLAMA_DEFAULT_URL) {
+  const baseUrl = String(ollamaBaseUrl || OLLAMA_DEFAULT_URL).trim().replace(/\/$/, '') || OLLAMA_DEFAULT_URL;
+  const isHttpsPage = typeof window !== 'undefined' && window.location.protocol === 'https:';
+  return !(isHttpsPage && isLocalOllamaUrl(baseUrl));
+}
+
 export async function fetchOllamaModels(ollamaBaseUrl = OLLAMA_DEFAULT_URL) {
   const baseUrl = String(ollamaBaseUrl || OLLAMA_DEFAULT_URL).trim().replace(/\/$/, '') || OLLAMA_DEFAULT_URL;
   const isHttpsPage = typeof window !== 'undefined' && window.location.protocol === 'https:';
 
-  if (isHttpsPage && isLocalOllamaUrl(baseUrl)) {
-    throw new Error(
-      'The hosted HTTPS dashboard cannot reach Ollama on your local machine. ' +
-      'Run the dashboard locally (npm run dashboard:v1-internal) or use a cloud/network-accessible Ollama instance.'
-    );
+  if (!shouldProbeOllamaModels(baseUrl)) {
+    return {
+      ok: false,
+      models: [],
+      message: 'Local Ollama is not available on the hosted dashboard. Add OpenAI or Anthropic keys in Settings → AI providers, or run the dashboard locally over http://localhost.',
+      source: 'blocked'
+    };
   }
 
   async function fetchDirect() {

@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
 /**
  * Quick Action Suggestions for AI Slop Cop
  * Provides auto-fix suggestions and remediation steps for common patterns

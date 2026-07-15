@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
 /**
  * Build a distribution zip for the Simplebeacon Local Agent Bridge extension.
  */

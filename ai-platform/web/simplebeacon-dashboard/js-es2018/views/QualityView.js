@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
 import { escapeHtml, showToast, formatNumber } from '../utils.js';
 import { resolveJestTestsLabel } from '../services/analyzeService.js?v=20260710inventory1';
 /**

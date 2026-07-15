@@ -39,45 +39,48 @@ async function collectFiles(dirHandle, pathPrefix = '', files = []) {
 function buildReport(projectName, findings, totalFiles, analyzedFiles) {
   const categories = {};
   const findingsList = [];
+  const rawIssues = [];
   const severityCounts = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
 
   for (const f of findings || []) {
     const rule = f.rule || f.analyzer || 'finding';
     const severity = f.severity || 'medium';
-    if (severityCounts[severity] !== undefined) severityCounts[severity] += 1;
+    const count = Number(f.count) || 1;
+    if (severityCounts[severity] !== undefined) severityCounts[severity] += count;
     if (!categories[rule]) categories[rule] = { severity, findings: [] };
-    categories[rule].findings.push({
-      file: f.filePath,
-      line: f.line || 1,
-      message: f.impact || `${rule} finding`,
-      severity
-    });
-    findingsList.push({
-      category: rule,
-      file: f.filePath,
-      line: f.line || 1,
-      severity,
-      message: f.impact || `${rule} finding`
-    });
+    const message = f.impact || `${rule} finding`;
+    const file = f.filePath || '';
+    const line = f.line || 1;
+    categories[rule].findings.push({ file, line, message, severity, count });
+    findingsList.push({ category: rule, file, line, severity, message, count });
+    rawIssues.push({ type: rule, filePath: file, line, severity, description: message, count });
   }
+
+  const totalFindings = rawIssues.reduce((sum, i) => sum + (i.count || 1), 0);
+  const issueCount = totalFindings;
 
   return {
     type: 'simplebeacon-report',
     version: '1.0.0',
+    reportVersion: 2,
     generatedAt: new Date().toISOString(),
+    scanSource: 'browser-local',
     projectPath: projectName,
     projectRoot: projectName,
     summary: {
       totalFiles,
       codeFilesAnalyzed: analyzedFiles,
       codeFilesDiscovered: totalFiles,
-      totalFindings: findingsList.length,
+      totalFindings,
       severityCounts
     },
     categories,
     findings: findingsList,
+    rawIssues,
+    detectedIssues: rawIssues,
+    issueCount,
     inventory: { totalFiles, totalFolders: 0, scannedFiles: analyzedFiles },
-    gate: { pass: findingsList.length === 0 && totalFiles > 0, score: findingsList.length === 0 && totalFiles > 0 ? 100 : 0 }
+    gate: { pass: rawIssues.filter((i) => i.severity === 'critical' || i.severity === 'high').length === 0 && totalFiles > 0, score: rawIssues.length === 0 && totalFiles > 0 ? 100 : 0 }
   };
 }
 

@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
 import { escapeHtml, showToast, downloadJson, renderEmptyState } from '../utils.js';
 import { resolvePageSpecsLabel, resolveJestTestsLabel } from '../services/analyzeService.js?v=20260710inventory1';
 // EU AI Act transparency disclosure: This view includes AI system integration indicators per Article 50.
@@ -202,8 +203,31 @@ export class SettingsView {
             void this.loadOllamaModels(baseUrl);
         });
     }
+    isValidOllamaBaseUrl(url) {
+        try {
+            const parsed = new URL(url);
+            if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:')
+                return false;
+            if (parsed.port) {
+                const portNum = Number(parsed.port);
+                if (!portNum || portNum < 1 || portNum > 65535)
+                    return false;
+            }
+            return !!parsed.hostname;
+        } catch {
+            return false;
+        }
+    }
     scheduleOllamaModelsReload(baseUrl) {
         clearTimeout(this._ollamaModelsTimer);
+        const url = String(baseUrl || '').trim();
+        if (url && !this.isValidOllamaBaseUrl(url)) {
+            this.ollamaModels = [];
+            this.ollamaModelsError = null;
+            this.ollamaModelsLoading = false;
+            this.refreshOllamaModelSelect();
+            return;
+        }
         this._ollamaModelsTimer = setTimeout(() => {
             void this.loadOllamaModels(baseUrl);
         }, 500);

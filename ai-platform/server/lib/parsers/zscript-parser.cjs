@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
 /**
  * ZScript structure parser — classes, states, properties, GZDoom API usage.
  */

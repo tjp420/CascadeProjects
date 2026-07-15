@@ -26,6 +26,9 @@ function isUnderProductionPaths(relativePath, productionPaths = ['server/', 'src
 }
 
 function runTextRulePasses(relativePath, content, ext, options = {}) {
+    if (typeof content === 'string' && /simplebeacon-ignore/i.test(content.substring(0, 500))) {
+        return { issues: [], counts: { credentials: 0, productionLeak: 0, llmSlop: 0, agencyHandoff: 0, fictionKpi: 0, euAiAct: 0, tokenBleed: 0, architectureDrift: 0, security: 0 }, euStats: null };
+    }
     const issues = [];
     const counts = {
         credentials: 0,

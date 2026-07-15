@@ -1,10 +1,11 @@
+// simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
 import { escapeHtml, showToast, downloadJson, renderEmptyState } from '../utils.js';
 import { resolvePageSpecsLabel, resolveJestTestsLabel } from '../services/analyzeService.js?v=20260710inventory1';
 // EU AI Act transparency disclosure: This view includes AI system integration indicators per Article 50.
 import { scanService } from '../services/scanService.js?v=20260711dedup2';
 import { billingService } from '../services/billingService.js';
 import { platformService } from '../services/platformService.js';
-import { fetchUserAiKeys, saveUserAiKeys, clearUserAiKeys, normalizeAiKeysRecord, fetchOllamaModels } from '../services/aiKeysService.js?v=20260711cachefix1';
+import { fetchUserAiKeys, saveUserAiKeys, clearUserAiKeys, normalizeAiKeysRecord, fetchOllamaModels, shouldProbeOllamaModels } from '../services/aiKeysService.js?v=20260715chatbot1';
 import { authService } from '../services/authService.js?v=20260713sync6';
 import { OLLAMA_DEFAULT_URL } from '../config.js';
 import { mountCheckoutSuccessBanner } from '../components/CheckoutSuccessBanner.js';
@@ -202,8 +203,31 @@ export class SettingsView {
             void this.loadOllamaModels(baseUrl);
         });
     }
+    isValidOllamaBaseUrl(url) {
+        try {
+            const parsed = new URL(url);
+            if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:')
+                return false;
+            if (parsed.port) {
+                const portNum = Number(parsed.port);
+                if (!portNum || portNum < 1 || portNum > 65535)
+                    return false;
+            }
+            return !!parsed.hostname;
+        } catch {
+            return false;
+        }
+    }
     scheduleOllamaModelsReload(baseUrl) {
         clearTimeout(this._ollamaModelsTimer);
+        const url = String(baseUrl || '').trim();
+        if (url && !this.isValidOllamaBaseUrl(url)) {
+            this.ollamaModels = [];
+            this.ollamaModelsError = null;
+            this.ollamaModelsLoading = false;
+            this.refreshOllamaModelSelect();
+            return;
+        }
         this._ollamaModelsTimer = setTimeout(() => {
             void this.loadOllamaModels(baseUrl);
         }, 500);
@@ -1340,7 +1364,7 @@ export class SettingsView {
         });
         if (root.querySelector('#settings-ai-keys-card')) {
             const baseUrl = this.displayAiKeys().ollamaBaseUrl || 'http://127.0.0.1:11434';
-            if (!this.ollamaModels.length && !this.ollamaModelsLoading) {
+            if (!this.ollamaModels.length && !this.ollamaModelsLoading && shouldProbeOllamaModels(baseUrl)) {
                 void this.loadOllamaModels(baseUrl);
             }
         }

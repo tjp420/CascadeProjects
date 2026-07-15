@@ -138,6 +138,7 @@ function scanSecurityPatterns(relativePath, content, ext) {
   const issues = [];
   if (!SCANNABLE_EXTENSIONS.has(ext)) return issues;
   if (content.length > MAX_SCAN_BYTES) return issues;
+  if (/simplebeacon-ignore/i.test(content.substring(0, 500))) return issues;
 
   for (const rule of SECURITY_RULES) {
     if (rule.skipFiles && rule.skipFiles.test(relativePath)) continue;

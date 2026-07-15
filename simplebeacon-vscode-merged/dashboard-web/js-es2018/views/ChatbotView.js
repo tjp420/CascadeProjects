@@ -1,15 +1,9 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
 import { escapeHtml, sanitizePrivacyData } from '../utils.js';
 import { authService, apiBase } from '../services/authService.js?v=20260713sync6';
+import { canUseBrowserOllama, isHostedDashboard } from '../demoMode.js';
 
 const BROWSER_OLLAMA_URL = 'http://127.0.0.1:11434';
-
-function canUseBrowserOllama() {
-    if (typeof window === 'undefined')
-        return false;
-    const host = window.location.hostname;
-    return /^(localhost|127\.0\.0\.1)$/i.test(host) && window.location.protocol === 'http:';
-}
 
 async function probeBrowserOllama() {
     if (!canUseBrowserOllama())
@@ -32,6 +26,13 @@ const PERSONALITY_PROMPTS = {
     creative: 'You are a creative, exploratory code assistant for the SimpleBeacon platform.',
     oracle: 'You are The Unbreakable Oracle, an omniscient code assistant for the SimpleBeacon platform.'
 };
+
+function getNoProviderMessage() {
+    if (isHostedDashboard()) {
+        return 'On simplebeacon.ai, the chatbot uses cloud AI providers. Sign in and add an OpenAI or Anthropic API key in Settings → AI providers. Local Ollama only works when you run the dashboard on http://localhost.';
+    }
+    return 'No AI provider is configured. Add an OpenAI or Anthropic API key in Settings → AI providers. Ollama only works when the dashboard runs on localhost over HTTP.';
+}
 /**
  * Chatbot view.
  */
@@ -40,7 +41,7 @@ export class ChatbotView {
         this.app = app;
         this.conversationHistory = [];
         this.isLoading = false;
-        this.selectedProvider = 'ollama';
+        this.selectedProvider = '';
         this.STORAGE_KEY = 'simplebeacon_chatbot_history';
         this.SETTINGS_KEY = 'simplebeacon_chatbot_settings';
         this.personality = 'helpful';
@@ -83,9 +84,7 @@ export class ChatbotView {
             <div class="chatbot-toolbar">
               <label for="chatbot-provider" class="visually-hidden">AI Provider</label>
               <select id="chatbot-provider" class="chatbot-provider-select" aria-label="AI Provider">
-                <option value="ollama">Ollama</option>
-                <option value="openai">OpenAI</option>
-                <option value="anthropic">Anthropic</option>
+                <option value="" disabled selected>Loading providers…</option>
               </select>
               <button id="chatbot-prompt-toggle" class="chatbot-clear-btn" title="Toggle custom system prompt">📝 Custom Prompt</button>
               <button id="chatbot-settings-toggle" class="chatbot-clear-btn" title="Chatbot settings">⚙️ Settings</button>
@@ -196,7 +195,7 @@ export class ChatbotView {
                     input.disabled = true;
                 if (sendBtn)
                     sendBtn.disabled = true;
-                this.showErrorBanner('No AI provider is configured. Add an OpenAI or Anthropic API key in Settings → AI providers. Ollama only works when the dashboard runs on localhost over HTTP.', false, { showSettingsLink: true });
+                this.showErrorBanner(getNoProviderMessage(), false, { showSettingsLink: true });
                 return;
             }
         }
@@ -224,7 +223,7 @@ export class ChatbotView {
             input.disabled = true;
         if (sendBtn)
             sendBtn.disabled = true;
-        this.showErrorBanner('Could not reach the chatbot API. Add AI provider keys in Settings → AI providers, or run Ollama locally when using the dashboard on localhost.', true, { showSettingsLink: true });
+        this.showErrorBanner(getNoProviderMessage(), true, { showSettingsLink: true });
     }
     showErrorBanner(message, isRecoverable = true, options = {}) {
         const banner = document.getElementById('chatbot-error-banner');
@@ -387,11 +386,15 @@ export class ChatbotView {
     }
     async loadProviders() {
         const select = document.getElementById('chatbot-provider');
+        if (!select)
+            return;
         const hardcoded = [
-            { id: 'ollama', label: 'Ollama' },
             { id: 'openai', label: 'OpenAI' },
             { id: 'anthropic', label: 'Anthropic' }
         ];
+        if (!isHostedDashboard()) {
+            hardcoded.unshift({ id: 'ollama', label: 'Ollama' });
+        }
         let providers = [];
         try {
             const res = await fetch(apiBase() + '/api/chatbot/providers', { signal: AbortSignal.timeout(5000), headers: authService.getAuthHeaders() });
@@ -407,6 +410,9 @@ export class ChatbotView {
         }
         if (providers.length === 0) {
             providers = hardcoded.map(p => ({ ...p, available: false }));
+        }
+        if (isHostedDashboard()) {
+            providers = providers.filter(p => p.id !== 'ollama' || p.available);
         }
         if (await probeBrowserOllama()) {
             this.useBrowserOllama = true;
@@ -435,7 +441,15 @@ export class ChatbotView {
         }
         else {
             this.selectedProvider = '';
-            this.showErrorBanner('No AI provider is configured. Add an OpenAI or Anthropic API key in Settings → AI providers.', false, { showSettingsLink: true });
+            if (!select.querySelector('option[value=""]')) {
+                const placeholder = document.createElement('option');
+                placeholder.value = '';
+                placeholder.textContent = 'No provider configured';
+                placeholder.disabled = true;
+                placeholder.selected = true;
+                select.insertBefore(placeholder, select.firstChild);
+            }
+            select.value = '';
         }
     }
     async sendMessage() {

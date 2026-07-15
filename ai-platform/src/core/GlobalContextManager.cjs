@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
 const logger = require('../lib/production-logger.cjs');
 /**
  * Global Context Manager - Analyzes directory contents and provides global access

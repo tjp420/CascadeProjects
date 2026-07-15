@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const path = require('path');

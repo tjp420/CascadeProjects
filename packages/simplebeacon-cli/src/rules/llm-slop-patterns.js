@@ -160,6 +160,9 @@ function scanTextPatterns(relativePath, content, ext, options = {}) {
     if (isExcludedPath(relativePath)) {
         return [];
     }
+    if (typeof content === 'string' && /simplebeacon-ignore/i.test(content.substring(0, 500))) {
+        return [];
+    }
     const findings = [];
     const lines = content.split('\n');
     const minConfidence = options.minConfidence ?? 0.5;

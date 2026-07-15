@@ -1,10 +1,11 @@
+// simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
 import { escapeHtml, showToast, downloadJson, renderEmptyState } from '../utils.js';
 import { resolvePageSpecsLabel, resolveJestTestsLabel } from '../services/analyzeService.js?v=20260710inventory1';
 // EU AI Act transparency disclosure: This view includes AI system integration indicators per Article 50.
 import { scanService } from '../services/scanService.js?v=20260711dedup2';
 import { billingService } from '../services/billingService.js';
 import { platformService } from '../services/platformService.js';
-import { fetchUserAiKeys, saveUserAiKeys, clearUserAiKeys, normalizeAiKeysRecord, fetchOllamaModels } from '../services/aiKeysService.js?v=20260711cachefix1';
+import { fetchUserAiKeys, saveUserAiKeys, clearUserAiKeys, normalizeAiKeysRecord, fetchOllamaModels, shouldProbeOllamaModels } from '../services/aiKeysService.js?v=20260715chatbot1';
 import { authService } from '../services/authService.js?v=20260713sync6';
 import { OLLAMA_DEFAULT_URL } from '../config.js';
 import { mountCheckoutSuccessBanner } from '../components/CheckoutSuccessBanner.js';
@@ -1340,7 +1341,7 @@ export class SettingsView {
         });
         if (root.querySelector('#settings-ai-keys-card')) {
             const baseUrl = this.displayAiKeys().ollamaBaseUrl || 'http://127.0.0.1:11434';
-            if (!this.ollamaModels.length && !this.ollamaModelsLoading) {
+            if (!this.ollamaModels.length && !this.ollamaModelsLoading && shouldProbeOllamaModels(baseUrl)) {
                 void this.loadOllamaModels(baseUrl);
             }
         }

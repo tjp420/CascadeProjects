@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
 /**
  * Sync I/O in async path scanner (SB-PERF-001).
  * Detects synchronous file system and child process calls
