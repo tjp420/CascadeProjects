@@ -217,6 +217,10 @@ coming-soon/.token.txt
 # False-positive audit fixture repos (embedded git)
 false-positive-audit/express/
 false-positive-audit/lodash/
+guardrail-test-bench/
+
+# Generated roadmap data files
+ai-platform/web/data/roadmap-from-scan-*.json
 
 # SQLite WAL files
 *.db-shm

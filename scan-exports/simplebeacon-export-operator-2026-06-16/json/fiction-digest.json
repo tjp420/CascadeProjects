@@ -1,4 +1,0 @@
-{
-  "fictionIssues": [],
-  "conclusion": "No fiction KPI hits in 93 JSON files scanned (50 sample files among them). Gate passes on configured severities. Repository: 20,885 files; gate rules checked 20,885. Jest was not run as part of this scan. Fiction/KPI rules scan repository JSON (93) plus source code (0 files in configured paths)."
-}

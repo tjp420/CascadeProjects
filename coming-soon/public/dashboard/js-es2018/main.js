@@ -8,7 +8,7 @@ import { TrustView } from './views/TrustView.js?v=20260711admin1';
 import { RepositoryHealthView } from './views/RepositoryHealthView.js?v=20260711admin1';
 import { DashboardView } from './views/DashboardView.js?v=20260713dashboard1';
 import { ResultsView } from './views/ResultsView.js?v=20260714results1';
-import { SettingsView } from './views/SettingsView.js?v=20260709ollama3';
+import { SettingsView } from './views/SettingsView.js?v=20260715ollama1';
 import { ToolsView } from './views/ToolsView.js';
 import { PlatformView } from './views/PlatformView.js?v=20260601platformmetrics1';
 import { QualityView } from './views/QualityView.js?v=20260711admin1';
