@@ -1,5 +1,5 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
-import { escapeHtml } from '../utils/string.js';
+import { escapeHtml } from '../utils.js';
 // simplebeacon:production-leak-intent: mock-path - Legitimate documentation about mock data detection in About page
 const GITHUB_REPO = 'https://github.com/tjp420/simplebeacon';
 const MANIFESTO = 'https://github.com/tjp420/simplebeacon/blob/main/docs/ANTI-BLOAT-MANIFESTO.md';
@@ -129,9 +129,13 @@ export class AboutView {
         <p class="text-muted">Found a bug or want a new pattern? Open a PR — I review contributions regularly.</p>
       </section>
     `;
-        (_a = container.querySelector('#about-open-dashboard')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => {
-            this.app.navigate('dashboard');
-        });
+        this._aboutClickHandler = () => this.app.navigate('dashboard');
+        (_a = container.querySelector('#about-open-dashboard')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', this._aboutClickHandler);
     }
-    destroy() { }
+    destroy() {
+        const el = document.getElementById('about-open-dashboard');
+        if (el && this._aboutClickHandler) {
+            el.removeEventListener('click', this._aboutClickHandler);
+        }
+    }
 }

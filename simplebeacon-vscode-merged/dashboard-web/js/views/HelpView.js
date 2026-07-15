@@ -105,26 +105,11 @@ const STATIC_FAQ = [
 function renderLiveScanStrip(report, baseline, dashboardHome) {
   if (!report) {
     return `
-      <div class="card mb-6" style="padding: var(--space-4); border-left: 4px solid var(--accent);">
-        <h3 style="margin:0 0 var(--space-3); font-size:1rem; font-weight:700; color:var(--text-primary);">🚀 Getting Started Checklist</h3>
-        <div style="display:flex;flex-direction:column;gap:var(--space-2);">
-          <label class="help-check-row">
-            <input type="checkbox" disabled>
-            <span><strong>.simplebeacon/ directory initialized</strong> — run <code>npx simplebeacon init</code></span>
-          </label>
-          <label class="help-check-row">
-            <input type="checkbox" disabled>
-            <span><strong>Baseline scan generated</strong> — run <code>npx simplebeacon scan --gate --path .</code></span>
-          </label>
-          <label class="help-check-row">
-            <input type="checkbox" disabled>
-            <span><strong>VS Code: extension hook synchronized</strong> — check sidebar for scan status</span>
-          </label>
-        </div>
-        <p class="text-muted" style="margin:var(--space-3) 0 0; font-size:var(--font-size-sm);">
-          Complete these steps to unlock live metrics across all dashboard pages.
-        </p>
-      </div>
+      ${renderEmptyState({
+        icon: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>',
+        title: 'No scan report loaded yet',
+        body: 'Run a scan from Dashboard or Analyze to see live metrics here.'
+      })}
     `;
   }
 
@@ -157,8 +142,6 @@ function renderLiveScanStrip(report, baseline, dashboardHome) {
 export class HelpView {
   constructor(app) {
     this.app = app;
-    this._scaffoldPreset = 'standard';
-    this._expandedMode = null;
   }
 
   render() {
@@ -173,96 +156,20 @@ export class HelpView {
     const el = document.createElement('div');
     el.className = 'fade-in';
 
-    const SCAFFOLD_PRESETS = {
-      minimal: {
-        label: 'Minimal Config',
-        json: `{
-  "profile": "minimal",
-  "scanPaths": ["src/", "lib/"],
-  "productionPaths": ["src/"],
-  "sampleDir": "data/mock",
-  "fullDirectoryScan": false,
-  "rules": {
-    "credentials": { "enabled": true, "severity": "high" },
-    "json-schema": { "enabled": true, "severity": "medium" },
-    "sample-consistency": { "enabled": false },
-    "production-leak": { "enabled": true, "severity": "high" }
-  },
-  "gate": {
-    "failOn": ["high"],
-    "warnOn": ["medium"]
-  }
-}`
-      },
-      standard: {
-        label: 'Standard Config',
-        json: `{
-  "profile": "standard",
-  "scanPaths": ["web/data", "data/mock", "src/"],
-  "productionPaths": ["src/", "web/"],
-  "sampleDir": "data/mock",
-  "fullDirectoryScan": false,
-  "rules": {
-    "credentials": { "enabled": true, "severity": "high" },
-    "json-schema": { "enabled": true, "severity": "medium" },
-    "sample-consistency": { "enabled": true, "severity": "medium" },
-    "roadmap": { "enabled": true, "severity": "low" },
-    "production-leak": { "enabled": true, "severity": "high" },
-    "jest-baseline": { "enabled": true, "severity": "low" }
-  },
-  "gate": {
-    "failOn": ["high", "medium"],
-    "warnOn": ["low"]
-  }
-}`
-      },
-      monorepo: {
-        label: 'Monorepo Config',
-        json: `{
-  "profile": "cascade",
-  "scanPaths": [
-    "packages/*/web/data",
-    "packages/*/data/mock",
-    "packages/*/src/"
-  ],
-  "productionPaths": [
-    "packages/*/src/",
-    "packages/*/web/"
-  ],
-  "sampleDir": "packages/shared/data/mock",
-  "fullDirectoryScan": true,
-  "rules": {
-    "credentials": { "enabled": true, "severity": "high" },
-    "json-schema": { "enabled": true, "severity": "medium" },
-    "sample-consistency": { "enabled": true, "severity": "medium" },
-    "roadmap": { "enabled": true, "severity": "low" },
-    "production-leak": { "enabled": true, "severity": "high" },
-    "jest-baseline": { "enabled": true, "severity": "low" },
-    "javascript-ast-patterns": { "enabled": true, "severity": "medium" },
-    "python-ast-patterns": { "enabled": true, "severity": "medium" }
-  },
-  "gate": {
-    "failOn": ["high", "medium"],
-    "warnOn": ["low"]
-  }
-}`
-      }
-    };
-
     const scanModes = [
-      { mode: 'Complete', desc: 'Runs all core scans in sequence: gate, consolidation, fiction digest, roadmap, codebase analysis, file reduction, data quality, cleanup assistant, npm audit, and compliance checklist. Browser analyzers (security, AI/LLM, code quality, architecture) run inside the codebase step. Optional AI narrative attaches to consolidation and codebase results.', icon: '🔬', subEngines: ['Gate Scanner', 'Consolidation', 'Fiction Digest', 'Roadmap', 'Codebase Analysis', 'File Reduction', 'Data Quality', 'npm Audit', 'Compliance'] },
-      { mode: 'Simplebeacon', desc: 'Uses .simplebeacon/config.json scan paths, all rules, and gate policy. Primary mode for CI.', icon: '🛡️', subEngines: ['Credential Scanner', 'JSON Schema', 'Sample Consistency', 'Production Leak', 'Jest Baseline'] },
-      { mode: 'Mock data', desc: 'Fiction/KPI digest derived from the Simplebeacon gate report. Requires gate scan to complete first — filters fiction-type issues from the same results.', icon: '🧪', subEngines: ['Fiction KPI Detector', 'Mock Path Validator', 'Sample Drift Analyzer'] },
-      { mode: 'Roadmap', desc: 'Filesystem sprint scan for planning. Exports belong in reports/.', icon: '🗺️', subEngines: ['Sprint Planner', 'Milestone Tracker', 'Feature Dependency Map'] },
-      { mode: 'Consolidation', desc: 'Duplicate JSON groups and similar schemas across the full repository inventory. Pick canonical files.', icon: '📦', subEngines: ['JSON Duplicate Finder', 'Schema Matcher', 'Oversized Asset Walker'] },
-      { mode: 'Codebase', desc: 'File type breakdown, line counts, ESLint results, and structure. Feeds browser analyzers (security, AI/LLM, quality, architecture).', icon: '💻', subEngines: ['File Type Breakdown', 'Line Counter', 'ESLint Runner', 'Security Analyzer', 'AI/LLM Detector', 'Quality Analyzer', 'Architecture Analyzer'] },
-      { mode: 'File reduction', desc: 'Unused image assets and duplicate content detection.', icon: '🗑️', subEngines: ['Unused Image Finder', 'Duplicate Content Detector', 'Asset Size Auditor'] },
-      { mode: 'Data quality', desc: 'Empty or trivial JSON files and schema issues.', icon: '📋', subEngines: ['Empty File Detector', 'Schema Validator', 'Trivial JSON Checker'] },
-      { mode: 'Cleanup assistant', desc: 'Aggregates file reduction + data quality into an actionable cleanup brief.', icon: '🧹', subEngines: ['Reduction Aggregator', 'Quality Brief Generator', 'Action Planner'] },
-      { mode: 'npm audit', desc: 'Package.json dependency vulnerability check.', icon: '🔒', subEngines: ['Dependency Auditor', 'Vulnerability Scanner', 'CVE Matcher'] },
-      { mode: 'Compliance', desc: 'License, security, and governance checklist. Requires gate scan first.', icon: '✅', subEngines: ['License Checker', 'Security Gate', 'Governance Validator'] },
-      { mode: 'EU AI Act', desc: 'Regulatory sprint scan for EU AI Act compliance. Runs on product root.', icon: '🇪🇺', subEngines: ['Article 50 Checker', 'Transparency Auditor', 'Risk Classifier'] },
-      { mode: 'Auto', desc: 'Picks Simplebeacon when path contains web/data, ai-platform, /data/mock, or simplebeacon; otherwise picks Roadmap.', icon: '⚡', subEngines: ['Path Heuristic Matcher', 'Mode Selector', 'Auto Router'] }
+      { mode: 'Complete', desc: 'Runs all core scans in sequence: gate, consolidation, fiction digest, roadmap, codebase analysis, file reduction, data quality, cleanup assistant, npm audit, and compliance checklist. Browser analyzers (security, AI/LLM, code quality, architecture) run inside the codebase step. Optional AI narrative attaches to consolidation and codebase results.', icon: '🔬' },
+      { mode: 'Simplebeacon', desc: 'Uses .simplebeacon/config.json scan paths, all rules, and gate policy. Primary mode for CI.', icon: '🛡️' },
+      { mode: 'Mock data', desc: 'Fiction/KPI digest derived from the Simplebeacon gate report. Requires gate scan to complete first — filters fiction-type issues from the same results.', icon: '🧪' },
+      { mode: 'Roadmap', desc: 'Filesystem sprint scan for planning. Exports belong in reports/.', icon: '🗺️' },
+      { mode: 'Consolidation', desc: 'Duplicate JSON groups and similar schemas across the full repository inventory. Pick canonical files.', icon: '📦' },
+      { mode: 'Codebase', desc: 'File type breakdown, line counts, ESLint results, and structure. Feeds browser analyzers (security, AI/LLM, quality, architecture).', icon: '💻' },
+      { mode: 'File reduction', desc: 'Unused image assets and duplicate content detection.', icon: '🗑️' },
+      { mode: 'Data quality', desc: 'Empty or trivial JSON files and schema issues.', icon: '📋' },
+      { mode: 'Cleanup assistant', desc: 'Aggregates file reduction + data quality into an actionable cleanup brief.', icon: '🧹' },
+      { mode: 'npm audit', desc: 'Package.json dependency vulnerability check.', icon: '🔒' },
+      { mode: 'Compliance', desc: 'License, security, and governance checklist. Requires gate scan first.', icon: '✅' },
+      { mode: 'EU AI Act', desc: 'Regulatory sprint scan for EU AI Act compliance. Runs on product root.', icon: '🇪🇺' },
+      { mode: 'Auto', desc: 'Picks Simplebeacon when path contains web/data, ai-platform, /data/mock, or simplebeacon; otherwise picks Roadmap.', icon: '⚡' }
     ];
 
     const metricDefs = [
@@ -285,16 +192,14 @@ export class HelpView {
 
     el.innerHTML = `
       <style>
-        .help-hero { text-align:center; padding: var(--space-8) var(--space-6); background: linear-gradient(135deg, rgba(99,102,241,0.06), rgba(139,92,246,0.03)); border-bottom: 1px solid var(--border); margin-bottom: var(--space-6); }
-        .help-hero h1 { font-size: 1.75rem; font-weight: 800; margin: 0 0 var(--space-2); letter-spacing: -0.02em; }
-        .help-hero p { color: var(--text-muted); margin: 0 auto var(--space-5); max-width: 480px; font-size: 0.95rem; }
+        .help-hero { text-align:center; padding: var(--space-10) var(--space-6); }
+        .help-hero h1 { font-size: 2rem; font-weight: 700; margin: 0 0 var(--space-2); }
+        .help-hero p { color: var(--text-muted); margin: 0 0 var(--space-6); }
         .help-search { max-width: 480px; margin: 0 auto; position: relative; }
-        .help-search i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none; }
         .help-search input { width: 100%; padding: var(--space-3) var(--space-4); padding-left: 40px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); color: var(--text-primary); font-size: 0.875rem; }
-        .help-search input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
+        .help-search::before { content: '🔍'; position: absolute; left: 14px; top: 50%; transform: translateY(-50%); opacity: 0.6; }
         .help-section { margin-bottom: var(--space-8); }
-        .help-section-title { font-size: var(--font-size-base); font-weight: 700; margin: 0 0 var(--space-4); display: flex; align-items: center; gap: var(--space-2); color: var(--text-primary); }
-        .help-section-title i { color: var(--primary); }
+        .help-section-title { font-size: 1.125rem; font-weight: 600; margin: 0 0 var(--space-4); display: flex; align-items: center; gap: var(--space-2); }
         .help-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: var(--space-3); margin-bottom: var(--space-4); }
         .help-step { text-align: center; padding: var(--space-4); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); }
         .help-step-icon { font-size: 1.5rem; margin-bottom: var(--space-2); }
@@ -325,26 +230,12 @@ export class HelpView {
         .help-cli .copy-btn { position: absolute; top: var(--space-3); right: var(--space-3); padding: 4px 10px; font-size: 0.7rem; border-radius: var(--radius-md); background: var(--surface-elevated); border: 1px solid var(--border); color: var(--text-secondary); cursor: pointer; }
         .help-cli .copy-btn:hover { background: var(--surface-hover); }
         .help-cli pre { margin: 0; padding: var(--space-4); background: var(--background); border: 1px solid var(--border); border-radius: var(--radius-lg); font-family: var(--font-mono); font-size: 0.75rem; overflow-x: auto; }
-        .help-check-row { display:flex; align-items:center; gap:var(--space-2); padding:var(--space-2) 0; font-size:0.85rem; color:var(--text-secondary); cursor:default; }
-        .help-check-row input { width:18px; height:18px; accent-color:var(--accent); cursor:default; }
-        .help-check-row code { background:var(--background); padding:2px 6px; border-radius:4px; font-size:0.78rem; }
-        .help-scaffold-chips { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
-        .help-scaffold-chip { padding:6px 14px; border-radius:999px; font-size:0.78rem; font-weight:600; cursor:pointer; border:1px solid var(--border); background:var(--surface); color:var(--text-secondary); transition:all .15s; }
-        .help-scaffold-chip:hover { border-color:var(--accent); background:rgba(99,102,241,0.08); }
-        .help-scaffold-chip.active { background:var(--accent); color:#fff; border-color:var(--accent); }
-        .help-scaffold-block { position:relative; }
-        .help-scaffold-block pre { margin:0; padding:var(--space-4); background:var(--background); border:1px solid var(--border); border-radius:var(--radius-lg); font-family:var(--font-mono); font-size:0.72rem; overflow-x:auto; line-height:1.6; }
-        .help-card-highlight { animation: helpGlow 1.2s ease-in-out 2; }
-        @keyframes helpGlow { 0%,100% { box-shadow: 0 0 0 0 rgba(99,102,241,0); border-color: var(--border); } 50% { box-shadow: 0 0 0 6px rgba(99,102,241,0.15); border-color: var(--accent); } }
-        .help-mode-expanded { margin-top:10px; padding:10px 14px; background:rgba(99,102,241,0.04); border:1px solid rgba(99,102,241,0.1); border-radius:10px; }
-        .help-mode-expanded .sub-badge { display:inline-block; padding:3px 10px; border-radius:999px; font-size:0.68rem; font-weight:600; background:rgba(148,163,184,0.1); color:var(--text-secondary); margin:2px; }
       </style>
 
       <div class="help-hero">
         <h1>Help Center</h1>
-        <p>Scan modes, metrics, and troubleshooting.</p>
+        <p>Scan modes, metrics, and troubleshooting</p>
         <div class="help-search">
-          <i data-lucide="search" class="icon-16"></i>
           <input type="search" id="help-search" placeholder="Search help topics…" autocomplete="off">
         </div>
       </div>
@@ -352,7 +243,7 @@ export class HelpView {
       ${renderLiveScanStrip(report, baseline, dashboardHome)}
 
       <div class="help-section">
-        <h2 class="help-section-title"><i data-lucide="refresh-cw" class="icon-18"></i> How it works</h2>
+        <h2 class="help-section-title">🔄 How it works</h2>
         <div class="help-steps">
           ${steps.map(s => `
             <div class="help-step">
@@ -368,7 +259,7 @@ export class HelpView {
       </div>
 
       <div class="help-section">
-        <h2 class="help-section-title"><i data-lucide="bar-chart-3" class="icon-18"></i> Understanding metrics</h2>
+        <h2 class="help-section-title">📊 Understanding metrics</h2>
         <div class="help-metric-grid">
           ${metricDefs.map(m => `
             <div class="help-metric-card">
@@ -395,7 +286,7 @@ export class HelpView {
       </div>
 
       <div class="help-section">
-        <h2 class="help-section-title"><i data-lucide="layout-grid" class="icon-18"></i> Dashboard pages</h2>
+        <h2 class="help-section-title">📑 Dashboard pages</h2>
         <div class="help-page-grid">
           ${DASHBOARD_PAGES.map((page) => `
             <button type="button" class="help-page-card" data-route="${page.route}">
@@ -408,7 +299,7 @@ export class HelpView {
       </div>
 
       <div class="help-section">
-        <h2 class="help-section-title"><i data-lucide="help-circle" class="icon-18"></i> FAQ</h2>
+        <h2 class="help-section-title">❓ FAQ</h2>
         <div>
           ${faq.slice(0, 12).map((item) => `
             <details class="help-faq-item">
@@ -420,20 +311,14 @@ export class HelpView {
       </div>
 
       <div class="help-section">
-        <h2 class="help-section-title"><i data-lucide="microscope" class="icon-18"></i> Scan modes</h2>
+        <h2 class="help-section-title">🔬 Scan modes</h2>
         <div class="help-mode-grid">
-          ${scanModes.map((m, idx) => `
-            <div class="help-mode-card" data-mode-index="${idx}" style="cursor:pointer;">
+          ${scanModes.map((m) => `
+            <div class="help-mode-card">
               <span class="mode-icon">${m.icon}</span>
-              <div style="flex:1;min-width:0;">
+              <div>
                 <h4>${escapeHtml(m.mode)}</h4>
                 <p>${escapeHtml(m.desc)}</p>
-                ${this._expandedMode === idx && m.subEngines ? `
-                  <div class="help-mode-expanded">
-                    <div style="font-size:0.72rem;font-weight:700;color:var(--text-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em;">Sub-engines</div>
-                    ${m.subEngines.map((se) => `<span class="sub-badge">${escapeHtml(se)}</span>`).join('')}
-                  </div>
-                ` : ''}
               </div>
             </div>
           `).join('')}
@@ -441,19 +326,7 @@ export class HelpView {
       </div>
 
       <div class="help-section">
-        <h2 class="help-section-title"><i data-lucide="terminal" class="icon-18"></i> CLI & Config Scaffolder</h2>
-        <div style="margin-bottom:var(--space-4);">
-          <p class="text-muted" style="font-size:0.85rem;margin:0 0 var(--space-3);">Choose a preset to generate a copy-paste ready <code>.simplebeacon/config.json</code>:</p>
-          <div class="help-scaffold-chips" id="help-scaffold-chips">
-            ${Object.entries(SCAFFOLD_PRESETS).map(([key, preset]) => `
-              <button type="button" class="help-scaffold-chip ${this._scaffoldPreset === key ? 'active' : ''}" data-scaffold="${escapeHtml(key)}">${escapeHtml(preset.label)}</button>
-            `).join('')}
-          </div>
-          <div class="help-scaffold-block">
-            <button type="button" class="copy-btn" id="help-copy-scaffold">Copy JSON</button>
-            <pre id="help-scaffold-code">${escapeHtml(SCAFFOLD_PRESETS[this._scaffoldPreset].json)}</pre>
-          </div>
-        </div>
+        <h2 class="help-section-title">⌨️ CLI & server commands</h2>
         <div class="help-cli">
           <button type="button" class="copy-btn" id="help-copy-cli">Copy</button>
           <pre id="help-cli-code"># Simplebeacon CLI (npm: simplebeacon@1.0.0)
@@ -477,86 +350,20 @@ npm test -- --testPathPattern=page-samples</pre>
 
       <div class="help-section" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--space-3);">
         <div>
-          <h2 class="help-section-title" style="margin:0;"><i data-lucide="compass" class="icon-18"></i> All features</h2>
+          <h2 class="help-section-title" style="margin:0;">🧭 All features</h2>
           <p class="text-muted" style="font-size:0.875rem;margin:var(--space-1) 0 0;">Browse every in-app destination — no duplicate legacy HTML pages.</p>
         </div>
         <button type="button" class="btn btn-primary btn-sm" id="help-open-features">Browse catalog →</button>
       </div>
     `;
 
-    // Search filter with deep-link highlighting
-    const KEYWORD_ROUTE_MAP = {
-      secrets: ['audit', 'results'],
-      leak: ['audit', 'results'],
-      credential: ['audit', 'results'],
-      password: ['audit', 'results'],
-      security: ['audit', 'quality'],
-      vulnerability: ['quality', 'audit'],
-      npm: ['quality', 'tools'],
-      dependency: ['quality', 'tools'],
-      test: ['platform', 'quality'],
-      jest: ['platform', 'quality'],
-      coverage: ['quality'],
-      schema: ['audit', 'settings'],
-      config: ['settings'],
-      baseline: ['platform', 'settings'],
-      scan: ['dashboard', 'analyze'],
-      report: ['dashboard', 'results'],
-      fix: ['remediation'],
-      roadmap: ['remediation'],
-      task: ['remediation'],
-      assessment: ['assessments'],
-      compliance: ['audit', 'assessments']
-    };
+    // Search filter
     const searchInput = el.querySelector('#help-search');
     searchInput?.addEventListener('input', (e) => {
-      const q = e.target.value.toLowerCase().trim();
+      const q = e.target.value.toLowerCase();
       el.querySelectorAll('.help-page-card, .help-faq-item, .help-mode-card, .help-metric-card, .help-step').forEach((node) => {
         const text = node.textContent.toLowerCase();
         node.style.display = text.includes(q) ? '' : 'none';
-      });
-      // Highlight relevant destination cards
-      el.querySelectorAll('.help-page-card').forEach((card) => {
-        card.classList.remove('help-card-highlight');
-        const route = card.dataset.route;
-        if (!q || !route) return;
-        for (const [kw, routes] of Object.entries(KEYWORD_ROUTE_MAP)) {
-          if (q.includes(kw) && routes.includes(route)) {
-            card.classList.add('help-card-highlight');
-            card.style.display = '';
-            break;
-          }
-        }
-      });
-    });
-
-    // Scaffold preset switching
-    el.querySelectorAll('[data-scaffold]').forEach((chip) => {
-      chip.addEventListener('click', () => {
-        this._scaffoldPreset = chip.dataset.scaffold;
-        const container = el.parentElement;
-        if (container) this.mount(container);
-      });
-    });
-
-    // Copy scaffold JSON
-    el.querySelector('#help-copy-scaffold')?.addEventListener('click', async () => {
-      const code = el.querySelector('#help-scaffold-code')?.textContent || '';
-      try {
-        await navigator.clipboard.writeText(code);
-        showToast('Config JSON copied', 'success');
-      } catch {
-        showToast('Copy failed', 'error');
-      }
-    });
-
-    // Scan mode expand/collapse
-    el.querySelectorAll('[data-mode-index]').forEach((card) => {
-      card.addEventListener('click', () => {
-        const idx = parseInt(card.dataset.modeIndex, 10);
-        this._expandedMode = this._expandedMode === idx ? null : idx;
-        const container = el.parentElement;
-        if (container) this.mount(container);
       });
     });
 

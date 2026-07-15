@@ -1,4 +1,3 @@
-import { escapeHtml } from '../utils/string.js';
 /**
  * Render issue card.
  * @param {any} category

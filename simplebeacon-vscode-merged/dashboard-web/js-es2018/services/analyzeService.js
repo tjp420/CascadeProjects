@@ -8,7 +8,7 @@ import { isRemoteRepoUrl } from '../lib/analyzePathSources.js';
 import { isBenchmarkCachePath } from '../utils/complete-scan-artifact-profile.browser.js';
 import { DEMO_EMAIL } from '../demoMode.js';
 import { DASHBOARD_BASE_URL } from '../config.js';
-import { isLocalPath, fetchInventoryViaAgent, probeAgent } from './localAgentService.js';
+import { isLocalPath, fetchInventoryViaAgent, probeAgent, shouldProbeLocalAgent } from './localAgentService.js?v=20260715hosted1';
 /**
  * Upgrade a v1 ("version": "1.0.0" and no reportVersion) scan report so the
  * dashboard treats it as current and can render aligned file-count metrics.
@@ -92,6 +92,12 @@ function buildNetworkErrorMessage(target, error) {
     const detail = (error === null || error === void 0 ? void 0 : error.message) ? ` (${error.message})` : '';
     return `Network request failed for ${target}${detail}. Verify the dashboard API server is running and reachable, then retry.`;
 }
+function isHostedPagesDashboard() {
+    if (typeof window === 'undefined')
+        return false;
+    const host = window.location.hostname;
+    return host === 'simplebeacon.ai' || host.endsWith('.simplebeacon.pages.dev');
+}
 /** Fail fast before long scans when the API is down or vault session is missing. */
 export async function ensureDashboardApiReady() {
     const origin = typeof window !== 'undefined' ? window.location.origin : DASHBOARD_BASE_URL;
@@ -100,6 +106,10 @@ export async function ensureDashboardApiReady() {
         healthRes = await fetchWithTimeout('/api/health', {}, 8000);
     }
     catch (error) {
+        if (isHostedPagesDashboard()) {
+            throw new Error('Analysis API is temporarily unavailable on this preview. '
+                + 'Use Select Folder for a private in-browser scan (no server required), or retry in a few minutes.');
+        }
         throw new Error(`Dashboard API is not reachable at ${origin}. `
             + 'Start it from ai-platform with: npm run dashboard:kill-ports && npm run dashboard:v1-internal');
     }
@@ -1210,8 +1220,17 @@ export async function fetchRepositoryInventory(projectPath, options = {}) {
     if (cached !== undefined) {
         return cached;
     }
+    // Render default / Unix paths on hosted Windows are not the user's folder — skip server inventory.
+    if (shouldClearHostedServerDefaultPath(path)) {
+        setCachedInventory(path, options, null);
+        return null;
+    }
     // Local paths must be inventoried by the agent, not the remote server.
     if (isLocalPath(path)) {
+        if (!shouldProbeLocalAgent()) {
+            setCachedInventory(path, options, null);
+            return null;
+        }
         const agentStatus = await probeAgent();
         if (agentStatus.available && agentStatus.scannerAvailable) {
             const inventory = await fetchInventoryViaAgent(path, { fullDirectoryScan: options.fullDirectoryScan });
@@ -1263,7 +1282,7 @@ let _inventoryInflight = null;
  */
 export async function refreshPathInventory(app, projectPath, options = {}) {
     const path = String(projectPath || '').trim();
-    if (!path || isRemoteRepoUrl(path)) {
+    if (!path || isRemoteRepoUrl(path) || shouldClearHostedServerDefaultPath(path)) {
         if (app === null || app === void 0 ? void 0 : app.state)
             app.state.pathInventory = null;
         return null;
@@ -1940,6 +1959,45 @@ export function buildMonorepoScopeNote(report) {
  * @param {number} reportRoot
  * @returns {any}
  */
+export function isHostedServerDefaultPath(projectPath) {
+    const norm = normalizeProjectPath(projectPath);
+    if (!norm)
+        return false;
+    return norm.startsWith('opt/render/') || norm.includes('/render/project/');
+}
+/** True when the dashboard is served from Pages / production (not localhost). */
+export function isRemoteHostedDashboard() {
+    if (typeof window === 'undefined')
+        return false;
+    return !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
+}
+function isUnixAbsolutePath(projectPath) {
+    const raw = String(projectPath || '').trim();
+    return raw.startsWith('/') && !/^[a-zA-Z]:/.test(raw);
+}
+/**
+ * Hosted Pages must not treat the Render server default (/opt/render/...) or other
+ * Unix-only paths as scannable targets on Windows browsers — use in-browser folder scan.
+ */
+export function shouldClearHostedServerDefaultPath(projectPath) {
+    if (!isRemoteHostedDashboard())
+        return false;
+    const path = String(projectPath || '').trim();
+    if (!path || isRemoteRepoUrl(path))
+        return false;
+    if (isHostedServerDefaultPath(path))
+        return true;
+    return isUnixAbsolutePath(path);
+}
+/** Path must be scanned in the browser (folder picker), not via the remote server. */
+export function isHostedBrowserScanPath(projectPath) {
+    const path = String(projectPath || '').trim();
+    if (!path || isRemoteRepoUrl(path) || !isRemoteHostedDashboard())
+        return false;
+    if (isLocalPath(path))
+        return true;
+    return shouldClearHostedServerDefaultPath(path);
+}
 function projectPathMatchesReportRoot(projectPath, reportRoot) {
     const normPath = normalizeProjectPath(projectPath);
     const normRoot = normalizeProjectPath(reportRoot);
@@ -1991,6 +2049,25 @@ export function isLegacyScanReport(report, projectPath = '') {
     const normalized = normalizeScanReport(report);
     if (normalized.reportVersion == null || normalized.reportVersion < 2)
         return true;
+    // Browser-local scans are scoped to the picked folder; hosted UI may still show the server default path.
+    if (normalized.scanSource === 'browser-local' || normalized.scanSource === 'browser-sandbox') {
+        const root = normalized.projectRoot || normalized.projectPath || '';
+        if (!root || !projectPath || isHostedServerDefaultPath(projectPath))
+            return false;
+        if (isRemoteHostedDashboard()) {
+            if (shouldClearHostedServerDefaultPath(projectPath))
+                return false;
+            if (isLocalPath(projectPath) && !projectPathMatchesReportRoot(projectPath, root)) {
+                const pathBase = String(projectPath).split(/[/\\]/).pop() || '';
+                const rootBase = String(root).split(/[/\\]/).pop() || '';
+                if (pathBase && rootBase && pathBase.toLowerCase() === rootBase.toLowerCase())
+                    return false;
+            }
+        }
+        if (projectPathMatchesReportRoot(projectPath, root))
+            return false;
+        return !projectPathMatchesReportRoot(projectPath, root);
+    }
     if (!projectPath || !normalized.projectRoot)
         return false;
     if (projectPathMatchesReportRoot(projectPath, normalized.projectRoot))
@@ -2392,12 +2469,85 @@ export function resolveAutoAnalysisMode(projectPath) {
     return 'roadmap';
 }
 /**
+ * Normalize one dashboard issue row (severityBand, paths, count).
+ * @param {Object} issue
+ * @returns {Object|null}
+ */
+function normalizeDashboardIssue(issue) {
+    if (!issue || typeof issue !== 'object')
+        return null;
+    const severity = String(issue.severity || issue.severityBand || 'low').toLowerCase();
+    const filePath = issue.filePath || issue.file || issue.path
+        || (issue.filePaths && issue.filePaths[0])
+        || (issue.affectedFiles && issue.affectedFiles[0])
+        || '';
+    return {
+        ...issue,
+        severity,
+        severityBand: issue.severityBand || severity,
+        filePath,
+        type: issue.type || issue.category || 'finding',
+        description: issue.description || issue.message || issue.recommendedAction || issue.type || 'Finding',
+        count: issue.count || 1
+    };
+}
+/**
+ * Resolve all displayable issues from a scan report (handles stripped public-gate payloads).
+ * @param {Object} report
+ * @returns {Array}
+ */
+export function resolveReportIssues(report) {
+    if (!report || typeof report !== 'object')
+        return [];
+    let issues = [];
+    const primary = (report.rawIssues && report.rawIssues.length)
+        ? report.rawIssues
+        : (report.detectedIssues || []);
+    if (primary.length)
+        issues = primary.map(normalizeDashboardIssue).filter(Boolean);
+    if (!issues.length) {
+        const normalized = normalizeSimplebeaconReport(report);
+        const fromNorm = (normalized.rawIssues && normalized.rawIssues.length)
+            ? normalized.rawIssues
+            : (normalized.detectedIssues || []);
+        if (fromNorm.length)
+            issues = fromNorm.map(normalizeDashboardIssue).filter(Boolean);
+    }
+    if (!issues.length && Array.isArray(report.findings) && report.findings.length) {
+        issues = report.findings.map(normalizeDashboardIssue).filter(Boolean);
+    }
+    if (!issues.length && report.gate) {
+        const gateIssues = [
+            ...(report.gate.blockingIssues || []),
+            ...(report.gate.warningIssues || []),
+            ...(report.gate.allIssues || [])
+        ];
+        if (gateIssues.length)
+            issues = gateIssues.map(normalizeDashboardIssue).filter(Boolean);
+    }
+    if (!issues.length && report.severityCounts && typeof report.severityCounts === 'object') {
+        for (const [severity, count] of Object.entries(report.severityCounts)) {
+            const n = Number(count) || 0;
+            if (n <= 0)
+                continue;
+            issues.push(normalizeDashboardIssue({
+                type: 'scan-summary',
+                severity,
+                count: n,
+                description: `${n.toLocaleString()} ${severity} finding(s) — export JSON or upgrade for full file paths`,
+                filePath: ''
+            }));
+        }
+    }
+    return issues;
+}
+/**
  * Issue list.
  * @param {number} report
  * @returns {any}
  */
 function issueList(report) {
-    return (report === null || report === void 0 ? void 0 : report.rawIssues) || (report === null || report === void 0 ? void 0 : report.detectedIssues) || [];
+    return resolveReportIssues(report);
 }
 /**
  * Filter issues by kind.

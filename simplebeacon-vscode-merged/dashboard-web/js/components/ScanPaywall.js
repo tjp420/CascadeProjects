@@ -1,5 +1,4 @@
 import { escapeHtml, formatNumber } from '../utils.js';
-import { authService } from '../services/authService.js?v=20260713sync5';
 
 const DEFAULT_CHECKOUT = 'mailto:audit@simplebeacon.ai?subject=Unlock%20Pre-Launch%20Audit%20Report';
 
@@ -101,7 +100,6 @@ export function buildPublicSummaryFromScan(lastResult) {
  */
 export function isDeliverableLocked(entitlements, lastResult) {
   if (entitlements?.hasAuditDeliverableAccess || entitlements?.bypass) return false;
-  if (typeof authService !== 'undefined' && authService.isPaidTier && authService.isPaidTier()) return false;
   if (entitlements?.publicGateLocked) return true;
   return Boolean(lastResult?.publicGateLocked);
 }

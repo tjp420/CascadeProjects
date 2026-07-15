@@ -150,30 +150,6 @@
   transform: scale(0.96);
 }
 
-.sidebar-auth-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  margin: var(--space-2) var(--space-3);
-  border-radius: var(--radius-md);
-  background: var(--surface-hover);
-  border: 1px solid var(--border);
-  color: var(--text-secondary);
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: background var(--transition), color var(--transition);
-}
-
-.sidebar-auth-btn:hover {
-  background: var(--surface);
-  color: var(--text-primary);
-}
-
-.sidebar-auth-btn[hidden] {
-  display: none !important;
-}
-
 .offline-status-icon {
   display: flex;
   align-items: center;
@@ -187,6 +163,8 @@
 .app-body {
   display: flex;
   flex: 1;
+  min-width: 0;
+  min-height: 0;
 }
 
 /* Navigation Groups */
@@ -341,46 +319,17 @@
 /* Main Content */
 .app-main {
   flex: 1;
+  min-width: 0;
   padding: var(--space-6);
   overflow-x: hidden;
   background: var(--background);
 }
 
-.app-resizer {
-  flex-shrink: 0;
-  width: 6px;
-  cursor: col-resize;
-  background: transparent;
-  position: relative;
-  z-index: 10;
-  transition: background var(--transition);
-  user-select: none;
-  touch-action: none;
+@media (max-width: 640px) {
+  .app-main {
+    padding: var(--space-3);
+  }
 }
-
-.app-resizer::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 50%;
-  width: 2px;
-  height: 100%;
-  background: var(--border);
-  transform: translateX(-50%);
-  transition: background var(--transition), width var(--transition);
-}
-
-.app-resizer:hover::after,
-.app-resizer.resizing::after {
-  background: var(--primary);
-  width: 3px;
-}
-
-/* Hide resizer on mobile and when sidebar is hidden in IDE preview */
-@media (max-width: 768px) {
-  .app-resizer { display: none !important; }
-}
-html[data-ide-preview="true"] .app-resizer { display: none !important; }
 
 .page-title {
   font-size: var(--font-size-2xl);
@@ -390,12 +339,24 @@ html[data-ide-preview="true"] .app-resizer { display: none !important; }
   letter-spacing: -0.01em;
 }
 
+@media (max-width: 640px) {
+  .page-title {
+    font-size: var(--font-size-xl);
+  }
+}
+
 .page-subtitle {
   color: var(--text-muted);
   margin-bottom: var(--space-6);
   max-width: 52rem;
   font-size: var(--font-size-sm);
   line-height: var(--leading-relaxed);
+}
+
+@media (max-width: 640px) {
+  .page-subtitle {
+    margin-bottom: var(--space-4);
+  }
 }
 
 /* Icon utilities */

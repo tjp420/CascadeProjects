@@ -1,7 +1,7 @@
 /**
  * Dashboard page export bundle — browser mirror of server/lib/dashboard-export.js
  */
-import { getScanFileMetrics, resolveDisplayScore, resolveJestTestsLabel, buildScanConclusion } from '../services/analyzeService.js';
+import { getScanFileMetrics, resolveDisplayScore, resolveJestTestsLabel, buildScanConclusion } from '../services/analyzeService.js?v=20260710inventory1';
 import { sanitizeSimplebeaconReportExport } from './simplebeacon-report-export.browser.js?v=20260601gateexport17';
 import { stripInternalExportFields, resolveSectionProvenance, redactProjectPathForExport, buildQualitySummaryCsv, normalizeSimpleBeaconBranding } from './quality-export.browser.js?v=20260531qualityexport8';
 /**

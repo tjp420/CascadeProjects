@@ -5,7 +5,7 @@
  * applies SimpleBeacon heuristic rules, and produces an A-F compliance certificate.
  */
 
-import { canUseDirectoryPicker } from '../utils-lib/dom.js';
+import { canUseDirectoryPicker, filePickerBlockedMessage, isFilePickerBlockedError } from '../utils-lib/dom.js';
 import {
   createIgnoreContext,
   extractIgnorePatternsFromLegacyFiles,
@@ -217,7 +217,19 @@ function analyzeFile(content, virtualPath) {
 }
 
 async function pickFileSystemAccessDirectory({ maxFiles, onLog }) {
-  const directoryHandle = await window.showDirectoryPicker({ mode: 'read' });
+  if (!canUseDirectoryPicker()) {
+    throw new Error(filePickerBlockedMessage());
+  }
+  let directoryHandle;
+  try {
+    directoryHandle = await window.showDirectoryPicker({ mode: 'read' });
+  }
+  catch (err) {
+    if (isFilePickerBlockedError(err)) {
+      throw new Error(filePickerBlockedMessage());
+    }
+    throw err;
+  }
   const rootName = directoryHandle.name;
   logLine(onLog, `Access granted. Initializing scan over boundary: ${rootName}`, 'info');
   const ignoreLoad = await loadIgnorePatternsFromDirHandle(directoryHandle);
@@ -550,9 +562,24 @@ export async function isDroppedFolder(items) {
 export async function runSandboxedDirectoryScan(options = {}) {
   const { maxFileSize = DEFAULT_MAX_FILE_SIZE, maxFiles = DEFAULT_MAX_FILES, onLog, onProgress } = options;
 
-  const picked = isSupported()
-    ? await pickFileSystemAccessDirectory({ maxFiles, onLog })
-    : await pickLegacyDirectory({ maxFiles, onLog });
+  let picked;
+  if (isSupported()) {
+    try {
+      picked = await pickFileSystemAccessDirectory({ maxFiles, onLog });
+    }
+    catch (err) {
+      if (isFilePickerBlockedError(err)) {
+        logLine(onLog, 'Native folder picker blocked in embed — using legacy folder dialog.', 'warning');
+        picked = await pickLegacyDirectory({ maxFiles, onLog });
+      }
+      else {
+        throw err;
+      }
+    }
+  }
+  else {
+    picked = await pickLegacyDirectory({ maxFiles, onLog });
+  }
 
   logLine(onLog, `Discovered ${picked.fileQueue.length} text/code targets.`, 'info');
   return analyzeDirectory(picked, { maxFileSize, onLog, onProgress });

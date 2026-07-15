@@ -1,7 +1,7 @@
 /**
  * Build top-level complete scan analysis for dashboard display and export.
  */
-import { escapeHtml } from '../utils/string.js';
+import { escapeHtml } from '../utils.js';
 import { classifyRegenerableArtifacts, softenPriorityActions, partitionArtifactDirectoryEntries, isBenchmarkCachePath } from './complete-scan-artifact-profile.browser.js';
 import { sanitizeCleanupBriefExport } from './cleanup-brief-export.browser.js?v=20260601cleanupbrief9';
 import { sanitizeDataCleanupReportExport } from './data-cleanup-export.browser.js?v=20260601datacleanup8';

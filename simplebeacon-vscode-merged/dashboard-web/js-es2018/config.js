@@ -14,5 +14,5 @@ export const OLLAMA_DEFAULT_URL = env.OLLAMA_DEFAULT_URL || '';
 /**
  * C o m i n g  s o o n  u r l.
  */
-export const COMING_SOON_URL = env.COMING_SOON_URL || '/upload.html';
+export const COMING_SOON_URL = env.COMING_SOON_URL || '/';
 // DEMO_PASSWORD removed — token-based auth only, no hardcoded credentials

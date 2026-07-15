@@ -1,41 +1,34 @@
 /**
- * clipboard utilities.
+ * @module clipboard
  */
-
-
 /**
- * Copy text to the system clipboard.
- * Uses the modern Clipboard API when available; falls back to
- * a hidden `<textarea>` with `document.execCommand('copy')`.
- * @param {string} text Text to copy.
- * @returns {Promise<void>}
- * @throws {Error} If the clipboard is unavailable in this environment.
+ * Copy text to clipboard. Returns a promise resolving to true on success.
+ * @param {string} text
+ * @returns {Promise<boolean>}
  */
 export async function copyToClipboard(text) {
-  if (text == null) throw new Error('Cannot copy null or undefined to clipboard.');
-  const str = String(text);
-  if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+    const s = String(text !== null && text !== void 0 ? text : '');
+    if (!s)
+        return false;
     try {
-      return await navigator.clipboard.writeText(str);
-    } catch {
-      // Non-secure context or permission denied — fall through to execCommand
+        if (typeof navigator !== 'undefined' && navigator.clipboard) {
+            await navigator.clipboard.writeText(s);
+            return true;
+        }
+        if (typeof document !== 'undefined' && document.execCommand) {
+            const ta = document.createElement('textarea');
+            ta.value = s;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            const ok = document.execCommand('copy');
+            ta.remove();
+            return ok;
+        }
     }
-  }
-  if (typeof document === 'undefined' || !document.body) {
-    throw new Error('Clipboard unavailable in this environment.');
-  }
-  // Fallback for older browsers / restricted contexts
-  const ta = document.createElement('textarea');
-  ta.value = str;
-  ta.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0;';
-  document.body.appendChild(ta);
-  ta.focus();
-  ta.select();
-  try {
-    const ok = document.execCommand('copy');
-    if (!ok) throw new Error('execCommand(copy) returned false');
-  } finally {
-    ta.remove();
-  }
+    catch (_a) {
+        // fall through
+    }
+    return false;
 }
-

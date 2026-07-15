@@ -1,8 +1,4 @@
-import { escapeHtml } from '../utils/string.js';
-import { formatNumber, formatPercent } from '../utils/number.js';
-import { showToast, downloadJson, renderEmptyState } from '../utils/dom.js';
-import { apiUrl } from '../utils/url.js?v=20260713website1';
-import { renderComplianceBadges, renderComplianceSummary } from '../lib/complianceMapper.js';
+import { escapeHtml, formatNumber, formatPercent, showToast, downloadJson, renderEmptyState } from '../utils.js';
 const LAYER_LABELS = {
     credentials: 'Credential patterns',
     fictionKpis: 'Fiction & KPI drift',
@@ -68,26 +64,23 @@ function buildAuditMetrics(audit = {}) {
 function renderScanScope(metrics) {
     const parts = [];
     if (metrics.mockSampleFiles != null) {
-        parts.push(`<strong>${formatNumber(metrics.mockSampleFiles)}</strong> mock/sample files`);
+        parts.push(`${formatNumber(metrics.mockSampleFiles)} mock/sample files in scan paths`);
     }
     if (metrics.filesAnalyzed != null) {
-        parts.push(`<strong>${formatNumber(metrics.filesAnalyzed)}</strong> files analyzed`);
+        parts.push(`${formatNumber(metrics.filesAnalyzed)} files analyzed (credentials + leak rules)`);
     }
     if (metrics.inventoryFiles != null) {
-        parts.push(`<strong>${formatNumber(metrics.inventoryFiles)}</strong> repo files · <strong>${formatNumber(metrics.inventoryFolders)}</strong> folders`);
+        parts.push(`${formatNumber(metrics.inventoryFiles)} repo files · ${formatNumber(metrics.inventoryFolders)} folders`);
     }
     if (!parts.length)
         return '';
     const when = metrics.lastScan
-        ? `Last scan: ${new Date(metrics.lastScan).toLocaleString()}`
+        ? `Last scan ${new Date(metrics.lastScan).toLocaleString()}`
         : '';
     return `
-    <div class="au-v3-scope" style="margin-bottom:20px;">
-      <span style="font-size:1.1rem;">📂</span>
-      <div>
-        <span>${parts.join(' · ')}</span>
-        ${when ? `<span style="color:var(--text-muted);margin-left:8px;font-size:0.72rem;">· ${escapeHtml(when)}</span>` : ''}
-      </div>
+    <div class="card mb-6" style="padding:var(--space-4)">
+      <p class="text-muted mb-1">${parts.join(' · ')}</p>
+      ${when ? `<p class="text-muted">${escapeHtml(when)}</p>` : ''}
     </div>
   `;
 }
@@ -141,57 +134,44 @@ export class AuditView {
         const status = layer.status || (layer.findings > 0 ? 'fail' : 'pass');
         const findings = (_b = (_a = layer.findings) !== null && _a !== void 0 ? _a : layer.blockingCount) !== null && _b !== void 0 ? _b : '—';
         const scanned = (_e = (_d = (_c = layer.scanned) !== null && _c !== void 0 ? _c : layer.checked) !== null && _d !== void 0 ? _d : layer.label) !== null && _e !== void 0 ? _e : '—';
-        const statusClass = this.layerStatusClass(status);
-        const statusIcon = status === 'pass' ? '✅' : status === 'warn' || status === 'warning' ? '⚠️' : '❌';
-        const LAYER_ICONS = {
-            credentials: '🔑', fictionKpis: '🎭', schema: '📐',
-            productionLeaks: '🔓', roadmap: '🗺️', jestBaseline: '🧪'
-        };
         let extraRows = '';
         if (key === 'schema') {
             if (layer.pageSamplesChecked != null) {
-                extraRows += `<div class="au-v3-layer-item"><span>Page specs</span><strong>${(_f = layer.pageSamplesPassed) !== null && _f !== void 0 ? _f : 0}/${layer.pageSamplesChecked}</strong></div>`;
+                extraRows += `<div class="settings-row"><span class="settings-label">Page specs</span><span class="settings-value">${(_f = layer.pageSamplesPassed) !== null && _f !== void 0 ? _f : 0}/${layer.pageSamplesChecked}</span></div>`;
             }
             if (metrics.schemaChecked != null) {
-                extraRows += `<div class="au-v3-layer-item"><span>JSON schema</span><strong>${(_g = metrics.schemaPassed) !== null && _g !== void 0 ? _g : 0}/${metrics.schemaChecked}</strong></div>`;
+                extraRows += `<div class="settings-row"><span class="settings-label">JSON schema</span><span class="settings-value">${(_g = metrics.schemaPassed) !== null && _g !== void 0 ? _g : 0}/${metrics.schemaChecked}</span></div>`;
             }
         }
-        const complianceBadges = renderComplianceSummary(key);
         return `
-      <div class="au-v3-layer">
-        <div class="au-v3-layer-hd">
-          <div class="au-v3-layer-title">
-            <span>${LAYER_ICONS[key] || '🔍'}</span>
-            <span>${escapeHtml(LAYER_LABELS[key] || key)}</span>
-          </div>
-          <span class="severity-pill ${statusClass}">${statusIcon} ${escapeHtml(status)}</span>
+      <div class="card audit-layer-card">
+        <div class="card-header">
+          <span class="card-title">${escapeHtml(LAYER_LABELS[key] || key)}</span>
+          <span class="severity-pill ${this.layerStatusClass(status)}">${escapeHtml(status)}</span>
         </div>
-        <div class="au-v3-layer-grid">
-          <div class="au-v3-layer-item"><span>Checked</span><strong>${escapeHtml(String(scanned))}</strong></div>
-          <div class="au-v3-layer-item"><span>Findings</span><strong>${escapeHtml(String(findings))}</strong></div>
-          ${layer.compliance != null ? `<div class="au-v3-layer-item"><span>Compliance</span><strong>${formatPercent(layer.compliance)}</strong></div>` : ''}
-          ${layer.knownPatterns != null ? `<div class="au-v3-layer-item"><span>Patterns</span><strong>${layer.knownPatterns}</strong></div>` : ''}
+        <div class="settings-grid">
+          <div class="settings-row"><span class="settings-label">Checked</span><span class="settings-value">${escapeHtml(String(scanned))}</span></div>
+          <div class="settings-row"><span class="settings-label">Findings</span><span class="settings-value">${escapeHtml(String(findings))}</span></div>
+          ${layer.compliance != null ? `<div class="settings-row"><span class="settings-label">Compliance</span><span class="settings-value">${formatPercent(layer.compliance)}</span></div>` : ''}
+          ${layer.knownPatterns != null ? `<div class="settings-row"><span class="settings-label">Known patterns</span><span class="settings-value">${layer.knownPatterns}</span></div>` : ''}
           ${extraRows}
         </div>
-        ${complianceBadges ? `<div class="au-v3-compliance-bar"><span class="au-v3-compliance-label">Regulatory</span>${complianceBadges}</div>` : ''}
       </div>
     `;
     }
     renderFictionCatalog(catalog = [], activeFindings = 0) {
         if (!catalog.length) {
-            return '<p class="text-muted" style="text-align:center;padding:20px;">No fiction pattern catalog loaded.</p>';
+            return '<p class="text-muted">No fiction pattern catalog loaded.</p>';
         }
         const statusLine = activeFindings === 0
-            ? '✅ Latest scan: 0 active fiction findings in KPI fields — gate passes.'
-            : `⚠️ Latest scan: ${activeFindings} active fiction finding(s) — review Results for details.`;
-        const statusColor = activeFindings === 0 ? '#22c55e' : '#f59e0b';
+            ? 'Latest scan: 0 active fiction findings in KPI fields — gate passes.'
+            : `Latest scan: ${activeFindings} active fiction finding(s) — review Results for details.`;
         return `
-      <p style="font-size:0.82rem;color:var(--text-secondary);margin:0 0 14px;line-height:1.5;">
+      <p class="text-muted mb-3">
         These ${catalog.length} baseline patterns are banned KPI values Simplebeacon detects and rejects.
-        They are not scan failures by themselves.
+        They are not scan failures by themselves. ${statusLine}
       </p>
-      <p style="font-size:0.78rem;color:${statusColor};font-weight:600;margin:0 0 14px;">${statusLine}</p>
-      <table class="au-v3-table">
+      <table class="results-table">
         <thead><tr><th>Pattern</th><th>Type</th><th>Severity</th></tr></thead>
         <tbody>
           ${catalog.slice(0, 12).map((entry) => `
@@ -203,7 +183,7 @@ export class AuditView {
           `).join('')}
         </tbody>
       </table>
-      ${catalog.length > 12 ? `<p class="text-muted" style="font-size:0.75rem;margin-top:10px;">${catalog.length - 12} more baseline patterns documented in <code>.simplebeacon/baseline.json</code>.</p>` : ''}
+      ${catalog.length > 12 ? `<p class="text-muted mt-2">${catalog.length - 12} more baseline patterns documented in <code>.simplebeacon/baseline.json</code>.</p>` : ''}
     `;
     }
     renderAssessmentSummary(assessment, highlight = false) {
@@ -217,63 +197,47 @@ export class AuditView {
         const generatedAt = assessment.generatedAt
             ? new Date(assessment.generatedAt).toLocaleString()
             : null;
-        const gateResult = exec.gateResult || '—';
-        const gateResultClass = gateResult === 'PASS' ? 'pass' : 'warn';
-        const gateResultColor = gateResult === 'PASS' ? '#22c55e' : '#f59e0b';
         return `
-      <div class="au-v3-card ${highlight ? 'au-v3-highlight' : ''}" id="audit-assessment-summary">
-        <div class="au-v3-card-hd">
-          <h3 style="margin:0;font-size:1rem;font-weight:700;">📋 Assessment Summary</h3>
-          ${generatedAt ? `<span class="text-muted" style="font-size:0.72rem;">${escapeHtml(generatedAt)}</span>` : ''}
+      <div class="section-block" id="audit-assessment-summary">
+        <div class="section-heading">
+          <h2>Assessment summary</h2>
+          ${generatedAt ? `<span class="text-muted" style="font-size:var(--font-size-sm)">Updated ${escapeHtml(generatedAt)}</span>` : ''}
         </div>
-        <div class="au-v3-card-bd">
-          <p style="margin:0 0 16px;font-size:0.9rem;color:var(--text-secondary);line-height:1.6;">${escapeHtml(exec.headline || '—')}</p>
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px;">
-            <div class="au-v3-metric" style="margin-bottom:0;border-left:3px solid ${gateResultColor};">
-              <div><div class="au-v3-metric-val" style="color:${gateResultColor};">${escapeHtml(gateResult)}</div><div class="au-v3-metric-label">Gate Result</div></div>
-            </div>
-            <div class="au-v3-metric" style="margin-bottom:0;">
-              <div><div class="au-v3-metric-val">${(_a = exec.qualityScore) !== null && _a !== void 0 ? _a : '—'}</div><div class="au-v3-metric-label">Quality Score</div></div>
-            </div>
-            <div class="au-v3-metric" style="margin-bottom:0;">
-              <div><div class="au-v3-metric-val">${formatNumber(exec.filesScanned)}</div><div class="au-v3-metric-label">Files Scanned</div></div>
-            </div>
-            <div class="au-v3-metric" style="margin-bottom:0;">
-              <div><div class="au-v3-metric-val" style="color:#f87171;">${(_b = exec.highIssues) !== null && _b !== void 0 ? _b : 0}</div><div class="au-v3-metric-label">High Issues</div></div>
-            </div>
-            <div class="au-v3-metric" style="margin-bottom:0;">
-              <div><div class="au-v3-metric-val" style="color:#fbbf24;">${(_c = exec.mediumIssues) !== null && _c !== void 0 ? _c : 0}</div><div class="au-v3-metric-label">Medium Issues</div></div>
-            </div>
-            <div class="au-v3-metric" style="margin-bottom:0;">
-              <div><div class="au-v3-metric-val">${(_d = exec.lowIssues) !== null && _d !== void 0 ? _d : 0}</div><div class="au-v3-metric-label">Low Issues</div></div>
-            </div>
+        <div class="card ${highlight ? 'audit-assessment-highlight' : ''}">
+          <p class="mb-4">${escapeHtml(exec.headline || '—')}</p>
+          <div class="metrics-row mb-4">
+            <div class="metric-chip gate-badge ${exec.gateResult === 'PASS' ? 'pass' : 'warn'}">${escapeHtml(exec.gateResult || '—')}</div>
+            <div class="metric-chip"><strong>${(_a = exec.qualityScore) !== null && _a !== void 0 ? _a : '—'}</strong> quality</div>
+            <div class="metric-chip"><strong>${formatNumber(exec.filesScanned)}</strong> files</div>
+            <div class="metric-chip severity-high"><strong>${(_b = exec.highIssues) !== null && _b !== void 0 ? _b : 0}</strong> high</div>
+            <div class="metric-chip severity-medium"><strong>${(_c = exec.mediumIssues) !== null && _c !== void 0 ? _c : 0}</strong> medium</div>
+            <div class="metric-chip"><strong>${(_d = exec.lowIssues) !== null && _d !== void 0 ? _d : 0}</strong> low</div>
           </div>
           ${rules.length ? `
-            <p class="text-muted" style="font-size:0.78rem;margin:0 0 12px;">
-              Corporate safety checklist — <strong style="color:#22c55e;">${(_e = summary.passed) !== null && _e !== void 0 ? _e : 0} pass</strong> · <strong style="color:#f87171;">${(_f = summary.failed) !== null && _f !== void 0 ? _f : 0} fail</strong> · ${(_g = summary.skipped) !== null && _g !== void 0 ? _g : 0} skipped
+            <p class="text-muted mb-2" style="font-size:var(--font-size-sm)">
+              Corporate safety checklist — ${(_e = summary.passed) !== null && _e !== void 0 ? _e : 0} pass · ${(_f = summary.failed) !== null && _f !== void 0 ? _f : 0} fail · ${(_g = summary.skipped) !== null && _g !== void 0 ? _g : 0} skipped
             </p>
-            <table class="au-v3-table" style="margin-bottom:16px;">
+            <table class="results-table mb-4">
               <thead><tr><th>Rule</th><th>Title</th><th>Status</th></tr></thead>
               <tbody>
                 ${rules.slice(0, 8).map((rule) => {
             const icon = rule.status === 'pass' ? '✓' : rule.status === 'fail' ? '✗' : '○';
             const cls = rule.status === 'pass' ? 'success' : rule.status === 'fail' ? 'danger' : '';
-            const color = rule.status === 'pass' ? '#22c55e' : rule.status === 'fail' ? '#ef4444' : 'var(--text-muted)';
             return `
                     <tr>
                       <td><span class="severity-pill ${cls}">${icon} ${escapeHtml(rule.id)}</span></td>
                       <td>${escapeHtml(rule.title)}</td>
-                      <td><span style="color:${color};font-weight:600;">${escapeHtml(rule.status || '—')}</span></td>
+                      <td>${escapeHtml(rule.status || '—')}</td>
                     </tr>
                   `;
         }).join('')}
               </tbody>
             </table>
-            ${rules.length > 8 ? `<p class="text-muted" style="font-size:0.75rem;margin-bottom:16px;">${rules.length - 8} more rules in the full report.</p>` : ''}
+            ${rules.length > 8 ? `<p class="text-muted mb-4">${rules.length - 8} more rules in the full report.</p>` : ''}
           ` : ''}
           <div class="flex gap-2 flex-wrap">
-            <button type="button" class="btn btn-secondary btn-sm" id="audit-download-assessment">Download JSON</button>
-            <button type="button" class="btn btn-ghost btn-sm" id="audit-open-assessments">Open Portal</button>
+            <button type="button" class="btn btn-secondary btn-sm" id="audit-download-assessment">Download assessment JSON</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="audit-open-assessments">Open assessment portal</button>
           </div>
         </div>
       </div>
@@ -281,78 +245,29 @@ export class AuditView {
     }
     renderNpmAudit(audit) {
         if (!audit) {
-            return `<div style="text-align:center;padding:30px;"><div style="font-size:32px;margin-bottom:12px;">📦</div><p class="text-muted" style="margin:0;font-size:0.85rem;">Run npm audit to load dependency vulnerability results.</p></div>`;
+            return '<p class="text-muted">Run npm audit below to load dependency vulnerability results.</p>';
         }
         if (audit.error) {
             return `
-        <div style="padding:16px;border-radius:12px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.15);">
-          <p style="margin:0;color:#fbbf24;font-weight:600;font-size:0.85rem;">⚠ npm audit failed</p>
-          <p class="text-muted" style="margin-top:6px;font-size:0.78rem;">${escapeHtml(audit.error)}</p>
-        </div>
+        <p class="text-warning mb-2"><strong>npm audit failed</strong></p>
+        <p class="text-muted">${escapeHtml(audit.error)}</p>
       `;
         }
         const s = npmAuditSummary(audit);
-        const hasVulns = s.vulnerabilityTotal > 0;
         return `
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;">
-        <div class="au-v3-metric" style="margin-bottom:0;">
-          <div><div class="au-v3-metric-val">${formatNumber(s.dependencies) || '—'}</div><div class="au-v3-metric-label">Dependencies</div></div>
-        </div>
-        <div class="au-v3-metric" style="margin-bottom:0;border-left:3px solid ${s.critical > 0 ? '#ef4444' : 'transparent'};">
-          <div><div class="au-v3-metric-val" style="color:${s.critical > 0 ? '#f87171' : 'var(--text-primary)'};">${s.critical}</div><div class="au-v3-metric-label">Critical</div></div>
-        </div>
-        <div class="au-v3-metric" style="margin-bottom:0;border-left:3px solid ${s.high > 0 ? '#f97316' : 'transparent'};">
-          <div><div class="au-v3-metric-val" style="color:${s.high > 0 ? '#f97316' : 'var(--text-primary)'};">${s.high}</div><div class="au-v3-metric-label">High</div></div>
-        </div>
-        <div class="au-v3-metric" style="margin-bottom:0;border-left:3px solid ${hasVulns ? '#eab308' : 'transparent'};">
-          <div><div class="au-v3-metric-val" style="color:${hasVulns ? '#eab308' : 'var(--text-primary)'};">${s.vulnerabilityTotal}</div><div class="au-v3-metric-label">Total Vulns</div></div>
-        </div>
+      <div class="metrics-row mb-4">
+        <div class="metric-chip"><strong>${formatNumber(s.dependencies)}</strong> dependencies</div>
+        <div class="metric-chip severity-high"><strong>${s.critical}</strong> critical</div>
+        <div class="metric-chip severity-medium"><strong>${s.high}</strong> high</div>
+        <div class="metric-chip"><strong>${s.vulnerabilityTotal}</strong> total vulns</div>
       </div>
-      ${!hasVulns && s.dependencies
-            ? `<p style="text-align:center;margin:0;color:#22c55e;font-weight:600;font-size:0.85rem;">✅ Clean audit — ${formatNumber(s.dependencies)} dependencies, 0 known vulnerabilities.</p>`
+      ${s.vulnerabilityTotal === 0 && s.dependencies
+            ? `<p class="text-success">Clean audit — ${formatNumber(s.dependencies)} dependencies, 0 known vulnerabilities.</p>`
             : ''}
-      ${hasVulns ? `
-        <div style="margin-top:14px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-            <span style="font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;">Vulnerability Details</span>
-            <span class="au-v3-npm-meta">${renderComplianceBadges('dependency-vulns')}</span>
-          </div>
-          ${this.renderNpmVulnList(audit)}
-        </div>
-      ` : ''}
     `;
     }
-    renderNpmVulnList(audit) {
-        var _a, _b, _c, _d;
-        const rawVulns = (audit === null || audit === void 0 ? void 0 : audit.vulnerabilities) || (audit === null || audit === void 0 ? void 0 : audit.advisories) || {};
-        const vulnList = [];
-        if (typeof rawVulns === 'object' && rawVulns !== null) {
-            for (const [pkg, info] of Object.entries(rawVulns)) {
-                if (info && typeof info === 'object') {
-                    const sev = info.severity || ((_b = (_a = info.via) === null || _a === void 0 ? void 0 : _a[0]) === null || _b === void 0 ? void 0 : _b.severity) || 'unknown';
-                    const title = ((_d = (_c = info.via) === null || _c === void 0 ? void 0 : _c[0]) === null || _d === void 0 ? void 0 : _d.title) || info.title || info.overview || '';
-                    const fixAvailable = info.fixAvailable != null ? (info.fixAvailable ? '✅ Fix available' : '❌ No fix') : '';
-                    vulnList.push({ package: pkg, severity: sev, title, fixAvailable });
-                }
-            }
-        }
-        if (!vulnList.length)
-            return '';
-        return vulnList.map((v) => `
-      <div class="au-v3-npm-vuln severity-${v.severity}">
-        <div style="flex:1;min-width:0;">
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
-            <strong style="color:var(--text-primary);font-size:0.82rem;">${escapeHtml(v.package)}</strong>
-            <span class="severity-pill ${v.severity}">${escapeHtml(v.severity)}</span>
-            ${v.fixAvailable ? `<span style="font-size:0.72rem;color:var(--text-muted);">${escapeHtml(v.fixAvailable)}</span>` : ''}
-          </div>
-          <p style="margin:0;font-size:0.78rem;color:var(--text-secondary);line-height:1.4;">${escapeHtml(v.title)}</p>
-        </div>
-      </div>
-    `).join('');
-    }
     render() {
-        var _a, _b, _c, _d, _e, _f, _g, _h;
+        var _a, _b, _c, _d, _e, _f;
         const el = document.createElement('div');
         if (!this._animatedOnce) {
             el.className = 'fade-in';
@@ -387,192 +302,102 @@ export class AuditView {
         const gate = layers.gate || {};
         const metrics = buildAuditMetrics(audit);
         const assessment = audit.assessment;
-        const gatePass = Boolean(gate.pass);
-        const gateColor = gatePass ? '#22c55e' : '#ef4444';
-        const gateClass = gatePass ? 'success' : 'danger';
         el.innerHTML = `
-      <style>
-        @keyframes au-fade-up { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
-        .au-v3 { animation:au-fade-up .5s ease both; }
-        .au-v3-header { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:24px; }
-        .au-v3-header h1 { font-size:2.2rem; font-weight:800; margin:0; letter-spacing:-0.03em; background:linear-gradient(135deg,var(--text-primary) 0%,var(--accent) 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
-        .au-v3-header p { color:var(--text-muted); font-size:0.9rem; margin:6px 0 0; }
-        .au-v3-card { background:linear-gradient(145deg, rgba(30,41,59,0.7), rgba(15,23,42,0.6)); border:1px solid rgba(148,163,184,0.08); border-radius:20px; overflow:hidden; backdrop-filter:blur(12px); transition:box-shadow .3s ease; margin-bottom:20px; }
-        [data-theme='light'] .au-v3-card { background:linear-gradient(145deg, rgba(255,255,255,0.85), rgba(248,250,252,0.9)); border-color:rgba(148,163,184,0.15); }
-        .au-v3-card:hover { box-shadow:0 8px 32px rgba(2,8,20,0.35); }
-        [data-theme='light'] .au-v3-card:hover { box-shadow:0 8px 32px rgba(0,0,0,0.08); }
-        .au-v3-card-hd { display:flex; align-items:center; justify-content:space-between; padding:18px 22px; border-bottom:1px solid rgba(148,163,184,0.08); }
-        .au-v3-card-bd { padding:18px 22px; }
-        .au-v3-kpi { background:linear-gradient(145deg, rgba(30,41,59,0.7), rgba(15,23,42,0.6)); border:1px solid rgba(148,163,184,0.08); border-radius:20px; padding:22px; position:relative; overflow:hidden; backdrop-filter:blur(12px); transition:transform .3s ease, box-shadow .3s ease; animation:au-fade-up .5s ease both; }
-        [data-theme='light'] .au-v3-kpi { background:linear-gradient(145deg, rgba(255,255,255,0.85), rgba(248,250,252,0.9)); }
-        .au-v3-kpi:hover { transform:translateY(-6px); box-shadow:0 8px 32px rgba(2,8,20,0.35); }
-        .au-v3-kpi::after { content:''; position:absolute; top:0; left:0; right:0; height:4px; border-radius:20px 20px 0 0; opacity:.9; }
-        .au-v3-kpi.kpi-pass::after { background:linear-gradient(90deg,#22c55e,#4ade80); }
-        .au-v3-kpi.kpi-fail::after { background:linear-gradient(90deg,#ef4444,#f87171); }
-        .au-v3-kpi.kpi-info::after { background:linear-gradient(90deg,#6366f1,#a78bfa); }
-        .au-v3-kpi.kpi-warn::after { background:linear-gradient(90deg,#f59e0b,#fbbf24); }
-        .au-v3-kpi-icon { width:40px; height:40px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:20px; margin-bottom:14px; }
-        .au-v3-kpi-label { font-size:0.7rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.08em; }
-        .au-v3-kpi-value { font-size:1.8rem; font-weight:800; margin-bottom:6px; letter-spacing:-0.02em; }
-        .au-v3-kpi-meta { font-size:0.78rem; color:var(--text-muted); font-weight:500; }
-        .au-v3-layer { background:rgba(148,163,184,0.04); border:1px solid rgba(148,163,184,0.06); border-radius:14px; padding:16px; transition:background .2s; }
-        .au-v3-layer:hover { background:rgba(148,163,184,0.08); }
-        .au-v3-layer-hd { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
-        .au-v3-layer-title { font-size:0.88rem; font-weight:700; color:var(--text-primary); display:flex; align-items:center; gap:8px; }
-        .au-v3-layer-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; }
-        .au-v3-layer-item { display:flex; justify-content:space-between; font-size:0.78rem; color:var(--text-secondary); padding:6px 10px; background:rgba(148,163,184,0.04); border-radius:8px; }
-        .au-v3-layer-item strong { color:var(--text-primary); font-weight:600; }
-        .au-v3-scope { display:flex; align-items:center; gap:8px; padding:12px 16px; background:rgba(148,163,184,0.04); border-radius:12px; border:1px solid rgba(148,163,184,0.06); font-size:0.82rem; color:var(--text-secondary); }
-        .au-v3-scope strong { color:var(--text-primary); font-weight:600; }
-        .au-v3-table { width:100%; border-collapse:separate; border-spacing:0; }
-        .au-v3-table th { text-align:left; padding:10px 14px; font-size:0.7rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.06em; border-bottom:1px solid rgba(148,163,184,0.1); }
-        .au-v3-table td { padding:10px 14px; font-size:0.82rem; color:var(--text-secondary); border-bottom:1px solid rgba(148,163,184,0.06); }
-        .au-v3-table tr:last-child td { border-bottom:none; }
-        .au-v3-table code { background:rgba(148,163,184,0.08); padding:2px 6px; border-radius:4px; font-size:0.78rem; }
-        .au-v3-npm-vuln { display:flex; align-items:center; gap:10px; padding:10px 14px; border-radius:10px; background:rgba(148,163,184,0.04); border:1px solid rgba(148,163,184,0.06); margin-bottom:6px; }
-        .au-v3-npm-vuln.severity-critical { border-left:3px solid #ef4444; }
-        .au-v3-npm-vuln.severity-high { border-left:3px solid #f97316; }
-        .au-v3-npm-vuln.severity-moderate { border-left:3px solid #eab308; }
-        .au-v3-compliance-bar { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:8px; padding-top:8px; border-top:1px solid rgba(148,163,184,0.08); }
-        .au-v3-compliance-label { font-size:0.68rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.08em; }
-        .cm-badge { display:inline-flex; align-items:center; gap:4px; font-size:0.68rem; font-weight:700; padding:2px 8px; border-radius:6px; white-space:nowrap; transition:transform .15s; }
-        .cm-badge:hover { transform:translateY(-1px); }
-        .au-v3-npm-meta { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-      </style>
+      <div class="analyze-hero">
+        <h1 class="page-title">Compliance Audit</h1>
+        <p class="text-muted analyze-hero-sub">Credentials, fiction KPIs, schema, production leaks, roadmap, Jest baseline, and npm audit.</p>
+      </div>
 
-      <div class="au-v3-header">
-        <div>
-          <h1>Compliance Audit</h1>
-          <p>Credentials, fiction KPIs, schema, production leaks, roadmap, Jest baseline, and npm audit</p>
+      <div class="analyze-action-bar" style="position:static;margin:0 0 var(--space-6);">
+        <div class="analyze-action-info">
+          <span class="text-muted" style="font-size:var(--font-size-sm);">Gate: <strong class="${gate.pass ? 'success' : 'danger'}">${gate.pass ? 'PASS' : 'FAIL'}</strong> · ${formatPercent(metrics.consistencyScore)} consistency</span>
         </div>
-        <div class="flex gap-2" style="flex-wrap:wrap;justify-content:flex-end;">
+        <div class="flex gap-2">
           <button type="button" class="btn btn-primary btn-sm" data-action="scan" ${this.running === 'scan' ? 'disabled' : ''}>
-            ${this.running === 'scan' ? '<span class="loading-spinner"></span> Scanning…' : 'Run Perimeter Scan'}
+            ${this.running === 'scan' ? 'Scanning…' : 'Run perimeter scan'}
           </button>
           <button type="button" class="btn btn-secondary btn-sm" data-action="assess" ${this.running === 'assess' ? 'disabled' : ''}>
-            ${this.running === 'assess' ? 'Assessing…' : 'Run Assessment'}
+            ${this.running === 'assess' ? 'Assessing…' : 'Run assessment'}
           </button>
           <button type="button" class="btn btn-secondary btn-sm" data-action="npm" ${this.running === 'npm' ? 'disabled' : ''}>
             ${this.running === 'npm' ? 'Auditing…' : 'Run npm audit'}
           </button>
-          <button type="button" class="btn btn-ghost btn-sm" data-action="results">View Issues</button>
-          <button type="button" class="btn btn-ghost btn-sm" id="audit-export-btn" title="Export">Export</button>
-          <button type="button" class="btn btn-ghost btn-sm" id="audit-send-ai-btn" title="Send to AI">🤖 AI</button>
+          <button type="button" class="btn btn-ghost btn-sm" data-action="results">View issues</button>
+          ${this.app.isCurrentUserAdmin() ? '<button type="button" class="btn btn-ghost btn-sm" id="audit-send-ai-btn" title="Send audit data to AI coding agent">🤖 Send to AI Agent</button>' : ''}
         </div>
       </div>
 
-      ${this.refreshing ? '<div class="au-v3-scope" style="margin-bottom:16px;"><span class="loading-spinner" style="width:14px;height:14px;"></span>Refreshing audit data…</div>' : ''}
+      ${this.refreshing ? '<p class="text-muted mb-4" style="font-size:var(--font-size-sm)"><span class="loading-spinner" style="width:14px;height:14px;display:inline-block;vertical-align:middle;margin-right:6px"></span>Refreshing audit…</p>' : ''}
 
-      <div class="au-v3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;">
-        <div class="au-v3-kpi kpi-${gateClass}">
-          <div class="au-v3-kpi-icon" style="background:${gatePass ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)'}; color:${gateColor};">${gatePass ? '✅' : '❌'}</div>
-          <div class="au-v3-kpi-label">Gate Status</div>
-          <div class="au-v3-kpi-value" style="color:${gateColor};">${gatePass ? 'PASS' : 'FAIL'}</div>
-          <div class="au-v3-kpi-meta">${(_b = gate.blockingCount) !== null && _b !== void 0 ? _b : 0} blocking issues</div>
+      <div class="grid-3 mb-6">
+        <div class="card" style="padding:var(--space-5);display:flex;align-items:center;gap:var(--space-4);">
+          <div style="width:48px;height:48px;border-radius:50%;background:${gate.pass ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)'};display:flex;align-items:center;justify-content:center;font-size:1.5rem;">
+            ${gate.pass ? '✅' : '❌'}
+          </div>
+          <div>
+            <div style="font-size:var(--font-size-xs);color:var(--text-muted);margin-bottom:2px;">Gate Status</div>
+            <div style="font-size:var(--font-size-xl);font-weight:700;color:var(--${gate.pass ? 'success' : 'danger'});">${gate.pass ? 'PASS' : 'FAIL'}</div>
+          </div>
         </div>
-        <div class="au-v3-kpi kpi-info">
-          <div class="au-v3-kpi-icon" style="background:rgba(99,102,241,0.15); color:#a78bfa;">📊</div>
-          <div class="au-v3-kpi-label">Consistency</div>
-          <div class="au-v3-kpi-value">${formatPercent(metrics.consistencyScore)}</div>
-          <div class="au-v3-kpi-meta">Schema compliance rating</div>
+        <div class="card" style="padding:var(--space-5);display:flex;align-items:center;gap:var(--space-4);">
+          <div style="width:48px;height:48px;border-radius:50%;background:rgba(99,102,241,0.12);display:flex;align-items:center;justify-content:center;font-size:1.5rem;">�</div>
+          <div>
+            <div style="font-size:var(--font-size-xs);color:var(--text-muted);margin-bottom:2px;">Consistency</div>
+            <div style="font-size:var(--font-size-xl);font-weight:700;">${formatPercent(metrics.consistencyScore)}</div>
+          </div>
         </div>
-        <div class="au-v3-kpi kpi-warn">
-          <div class="au-v3-kpi-icon" style="background:rgba(245,158,11,0.15); color:#fbbf24;">🧪</div>
-          <div class="au-v3-kpi-label">Page Specs</div>
-          <div class="au-v3-kpi-value">${escapeHtml(String(metrics.pageSpecsLabel))}</div>
-          <div class="au-v3-kpi-meta">JSON schema checks</div>
+        <div class="card" style="padding:var(--space-5);display:flex;align-items:center;gap:var(--space-4);">
+          <div style="width:48px;height:48px;border-radius:50%;background:rgba(245,158,11,0.12);display:flex;align-items:center;justify-content:center;font-size:1.5rem;">🧪</div>
+          <div>
+            <div style="font-size:var(--font-size-xs);color:var(--text-muted);margin-bottom:2px;">Page Specs</div>
+            <div style="font-size:var(--font-size-xl);font-weight:700;">${escapeHtml(String(metrics.pageSpecsLabel))}</div>
+          </div>
         </div>
       </div>
 
       ${renderScanScope(metrics)}
 
       ${(assessment === null || assessment === void 0 ? void 0 : assessment.executiveSummary) ? this.renderAssessmentSummary(assessment, this.assessmentHighlight) : `
-        <div class="au-v3-card" id="audit-assessment-summary">
-          <div class="au-v3-card-hd">
-            <h3 style="margin:0;font-size:1rem;font-weight:700;">📋 Assessment Summary</h3>
-          </div>
-          <div class="au-v3-card-bd" style="text-align:center;padding:40px;">
-            <div style="font-size:48px;margin-bottom:16px;">📋</div>
-            <h3 style="margin:0 0 8px;font-size:1.1rem;color:var(--text-primary);">No assessment generated yet</h3>
-            <p class="text-muted" style="margin:0 0 20px;font-size:0.85rem;max-width:400px;margin-left:auto;margin-right:auto;">Run assessment to generate the executive summary and compliance checklist from the latest scan.</p>
-            <button type="button" class="btn btn-secondary btn-sm" data-action="assess">Run Assessment</button>
+        <div class="section-block" id="audit-assessment-summary">
+          <div class="section-heading"><h2>Assessment summary</h2></div>
+          <div class="card" style="padding:var(--space-6);text-align:center;">
+            <div style="font-size:2.5rem;margin-bottom:var(--space-3);">📋</div>
+            <p style="font-size:var(--font-size-lg);font-weight:600;margin-bottom:var(--space-2);">No assessment generated yet</p>
+            <p class="text-muted">Run assessment to generate the executive summary and compliance checklist from the latest scan.</p>
           </div>
         </div>
       `}
 
-      <div class="au-v3-card">
-        <div class="au-v3-card-hd">
-          <h3 style="margin:0;font-size:1rem;font-weight:700;">� Regulatory Framework Coverage</h3>
-          <span class="db-v3-panel-badge">3 frameworks</span>
-        </div>
-        <div class="au-v3-card-bd">
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
-            <div style="padding:14px;border-radius:12px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.12);">
-              <div style="font-size:0.72rem;font-weight:700;color:#ef4444;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">OWASP Top 10</div>
-              <div style="font-size:0.78rem;color:var(--text-secondary);line-height:1.5;">A01, A02, A03, A05, A06, A07, A08, A09, A11 mapped to credential leaks, XSS, vulnerable components, and logging failures.</div>
-            </div>
-            <div style="padding:14px;border-radius:12px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.12);">
-              <div style="font-size:0.72rem;font-weight:700;color:#3b82f6;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">EU AI Act</div>
-              <div style="font-size:0.78rem;color:var(--text-secondary);line-height:1.5;">Art. 10 (Data Governance), Art. 15 (Robustness), Art. 52 (Transparency) mapped to AI residue, fiction KPIs, and placeholder leakage.</div>
-            </div>
-            <div style="padding:14px;border-radius:12px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.12);">
-              <div style="font-size:0.72rem;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">NIST CSF</div>
-              <div style="font-size:0.78rem;color:var(--text-secondary);line-height:1.5;">PR.AC, PR.DS, PR.IP, PR.MA, PR.PT, ID.RA, RS.AN mapped to access control, data protection, and risk assessment.</div>
-            </div>
-          </div>
+      <div class="section-block">
+        <div class="section-heading" style="margin-bottom:var(--space-3);"><h2>Audit layers</h2></div>
+        <div class="grid-2">
+          ${Object.entries(layers).filter(([k]) => k !== 'gate').map(([k, v]) => this.renderLayerCard(k, v, metrics)).join('')}
         </div>
       </div>
 
-      <div class="au-v3-card">
-        <div class="au-v3-card-hd">
-          <h3 style="margin:0;font-size:1rem;font-weight:700;">�🔍 Audit Layers</h3>
-          <span class="db-v3-panel-badge">${Object.keys(layers).filter(k => k !== 'gate').length} layers</span>
+      <div class="section-block">
+        <div class="section-heading" style="margin-bottom:var(--space-3);">
+          <h2>Fiction detection catalog (${(audit.fictionCatalog || []).length} baseline patterns)</h2>
         </div>
-        <div class="au-v3-card-bd">
-          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;">
-            ${Object.entries(layers).filter(([k]) => k !== 'gate').map(([k, v]) => this.renderLayerCard(k, v, metrics)).join('')}
-          </div>
-        </div>
+        <div class="card">${this.renderFictionCatalog(audit.fictionCatalog, (_c = (_b = layers.fictionKpis) === null || _b === void 0 ? void 0 : _b.findings) !== null && _c !== void 0 ? _c : 0)}</div>
       </div>
 
-      <div class="au-v3-card">
-        <div class="au-v3-card-hd">
-          <h3 style="margin:0;font-size:1rem;font-weight:700;">🎭 Fiction Detection Catalog</h3>
-          <span class="db-v3-panel-badge">${(audit.fictionCatalog || []).length} patterns</span>
-        </div>
-        <div class="au-v3-card-bd">
-          ${this.renderFictionCatalog(audit.fictionCatalog, (_d = (_c = layers.fictionKpis) === null || _c === void 0 ? void 0 : _c.findings) !== null && _d !== void 0 ? _d : 0)}
-        </div>
-      </div>
-
-      <div class="au-v3-card">
-        <div class="au-v3-card-hd">
-          <h3 style="margin:0;font-size:1rem;font-weight:700;">📦 npm Audit</h3>
-        </div>
-        <div class="au-v3-card-bd">
-          ${this.renderNpmAudit(audit.npmAudit)}
-        </div>
+      <div class="section-block">
+        <div class="section-heading" style="margin-bottom:var(--space-3);"><h2>npm audit</h2></div>
+        <div class="card">${this.renderNpmAudit(audit.npmAudit)}</div>
       </div>
     `;
         el.querySelectorAll('[data-action]').forEach((btn) => {
+            if (btn._sbHasListener)
+                return;
+            btn._sbHasListener = true;
             btn.addEventListener('click', () => {
                 if (btn.disabled)
                     return;
                 this.handleAction(btn.dataset.action, el.parentElement);
             });
         });
-        (_e = el.querySelector('#audit-export-btn')) === null || _e === void 0 ? void 0 : _e.addEventListener('click', () => {
-            const audit = this.app.state.audit;
-            const report = this.app.state.report;
-            const payload = {
-                audit,
-                report,
-                exportedAt: new Date().toISOString()
-            };
-            downloadJson(payload, `simplebeacon-audit-${new Date().toISOString().slice(0, 10)}.json`);
-            showToast('Full audit data exported', 'success');
-        });
-        (_f = el.querySelector('#audit-download-assessment')) === null || _f === void 0 ? void 0 : _f.addEventListener('click', () => {
+        (_d = el.querySelector('#audit-download-assessment')) === null || _d === void 0 ? void 0 : _d.addEventListener('click', () => {
             if (!assessment) {
                 showToast('Run assessment first', 'info');
                 return;
@@ -580,10 +405,10 @@ export class AuditView {
             downloadJson(assessment, `simplebeacon-assessment-${new Date().toISOString().slice(0, 10)}.json`);
             showToast('Assessment JSON downloaded', 'success');
         });
-        (_g = el.querySelector('#audit-open-assessments')) === null || _g === void 0 ? void 0 : _g.addEventListener('click', () => {
+        (_e = el.querySelector('#audit-open-assessments')) === null || _e === void 0 ? void 0 : _e.addEventListener('click', () => {
             this.app.navigate('assessments');
         });
-        (_h = el.querySelector('#audit-send-ai-btn')) === null || _h === void 0 ? void 0 : _h.addEventListener('click', async () => {
+        (_f = el.querySelector('#audit-send-ai-btn')) === null || _f === void 0 ? void 0 : _f.addEventListener('click', async () => {
             var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q;
             const audit = this.app.state.audit;
             const report = this.app.state.report;
@@ -629,7 +454,7 @@ export class AuditView {
                 } // simplebeacon-ignore ai-residue — intentional error handling for VS Code API
             }
             try {
-                const res = await fetch(apiUrl('/api/ai-context'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                const res = await fetch('/api/ai-context', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
                 const json = await res.json();
                 if (json.success && json.content) {
                     await navigator.clipboard.writeText(json.content);

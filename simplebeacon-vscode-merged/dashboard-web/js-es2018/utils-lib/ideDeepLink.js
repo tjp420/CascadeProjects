@@ -1,7 +1,7 @@
 /**
  * IDE deep-link bridge — open findings in VS Code / Cursor without copy-paste.
  */
-import { getVSCodeApi } from './vscode.js';
+import { getVSCodeApi } from './type.js';
 
 function normalizeSlashes(filePath) {
     return String(filePath || '').replace(/\\/g, '/');

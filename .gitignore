@@ -234,3 +234,6 @@ ai-platform/web/data/roadmap-from-scan-*.json
 # Unrelated project directories
 Mag Motor 3D Print Files/
 google-earthenterprise/
+
+# Local Netlify folder
+.netlify

@@ -1,5 +1,4 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
-import { verifyCheckoutSession } from '../lib/stripe-checkout-verifier.js';
 /**
  * UploadView — Post-payment scan report upload for certificate generation.
  * Route: #/upload?token=<licenseToken>
@@ -86,7 +85,8 @@ export class UploadView {
         const tokenHelp = container.querySelector('#upload-token-help');
         // Auto-lookup license token from Stripe checkout session
         if (sessionId) {
-            verifyCheckoutSession(sessionId)
+            fetch(`/api/simplebeacon/billing/session?session_id=${encodeURIComponent(sessionId)}`)
+                .then((res) => res.json())
                 .then((data) => {
                 if (data.licenseToken && !licenseInput.value.trim()) {
                     licenseInput.value = data.licenseToken;
@@ -163,7 +163,7 @@ export class UploadView {
             submitBtn.disabled = true;
             this.showStatus(status, 'Uploading scan report and generating certificate...', 'loading');
             try {
-                const response = await fetch(apiUrl('/api/reports/upload'), {
+                const response = await fetch('/api/reports/upload', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

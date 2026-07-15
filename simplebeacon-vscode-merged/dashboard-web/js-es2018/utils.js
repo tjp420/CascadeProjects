@@ -69,7 +69,6 @@ import * as PrivacyUtils from './utils-lib/privacy.js';
 import * as VSCodeUtils from './utils-lib/vscode.js';
 import * as EventUtils from './utils-lib/event.js';
 import * as PollingUtils from './utils-lib/polling.js';
-import { parseResponseJson } from './utils/misc.js';
 /**
  * Barrel metadata shape.
  * @typedef {Object} BarrelMeta
@@ -86,70 +85,53 @@ import { parseResponseJson } from './utils/misc.js';
 // ── String helpers ───────────────────────────────────────────────
 export const escapeHtml = StringUtils.escapeHtml;
 export const escapeRegExp = StringUtils.escapeRegExp;
+export const normalizeSlashes = StringUtils.normalizeSlashes;
 export const truncate = StringUtils.truncate;
 export const capitalize = StringUtils.capitalize;
-export const words = StringUtils.words;
-export const repeat = StringUtils.repeat;
-export const titleCase = StringUtils.titleCase;
-export const slugify = StringUtils.slugify;
-export const isBlank = StringUtils.isBlank;
+export const hash = StringUtils.hash;
 export const kebabCase = StringUtils.kebabCase;
 export const camelCase = StringUtils.camelCase;
 export const snakeCase = StringUtils.snakeCase;
+export const padStart = StringUtils.padStart;
+export const padEnd = StringUtils.padEnd;
+export const stripHtml = StringUtils.stripHtml;
+export const pluralize = StringUtils.pluralize;
 // ── Path helpers ─────────────────────────────────────────────────
 export const resolveDashboardProjectPath = PathUtils.resolveDashboardProjectPath;
 // ── Number helpers ─────────────────────────────────────────────
+export const formatNumber = NumberUtils.formatNumber;
+export const formatPercent = NumberUtils.formatPercent;
+export const formatBytes = NumberUtils.formatBytes;
 export const clamp = NumberUtils.clamp;
 export const roundTo = NumberUtils.roundTo;
-export const inRange = NumberUtils.inRange;
+export const toFixedNumber = NumberUtils.toFixedNumber;
+export const formatDuration = NumberUtils.formatDuration;
+export const sum = NumberUtils.sum;
+export const mean = NumberUtils.mean;
+export const maxBy = NumberUtils.maxBy;
+export const minBy = NumberUtils.minBy;
 export const safeParseInt = NumberUtils.safeParseInt;
 export const safeParseFloat = NumberUtils.safeParseFloat;
-// ── Format helpers (re-exported alongside number helpers for legacy API parity) ──
-export const formatNumber = FormatUtils.formatNumber;
-export const formatPercent = FormatUtils.formatPercent;
-export const formatBytes = FormatUtils.formatBytes;
-export const formatDuration = FormatUtils.formatDuration;
-export const normalizeSlashes = FormatUtils.normalizeSlashes;
-export const redactPathForDisplay = FormatUtils.redactPathForDisplay;
-export const isRedactedPathDisplay = FormatUtils.isRedactedPathDisplay;
-export const formatPathInputValue = FormatUtils.formatPathInputValue;
-export const formatScanPathForDisplay = FormatUtils.formatScanPathForDisplay;
-export const formatPathLabel = FormatUtils.formatPathLabel;
-export const formatAiSummarySkipMessage = FormatUtils.formatAiSummarySkipMessage;
-// ── Array helpers (re-exported alongside number helpers for legacy API parity) ──
-export const sum = ArrayUtils.sum;
-export const mean = ArrayUtils.mean;
-export const maxBy = ArrayUtils.maxBy;
-export const minBy = ArrayUtils.minBy;
-// ── Crypto helpers (re-exported alongside number helpers for legacy API parity) ──
-export const random = CryptoUtils.random;
-export const randomId = CryptoUtils.randomId;
-export const uid = CryptoUtils.uid;
-export const hash = CryptoUtils.hash;
-export const getNonce = CryptoUtils.getNonce;
-const toFixedNumberImpl = (num, digits = 0) => {
-    const n = Number(num);
-    if (!Number.isFinite(n)) return NaN;
-    const d = Math.max(0, Math.min(20, Math.floor(Number(digits) || 0)));
-    return Number(n.toFixed(d));
-};
-export const toFixedNumber = toFixedNumberImpl;
+export const random = NumberUtils.random;
+export const randomId = NumberUtils.randomId;
+export const uid = NumberUtils.uid;
 // ── Async helpers ──────────────────────────────────────────────
 export const sleep = AsyncUtils.sleep;
-export const delay = (ms, value) => sleep(ms).then(() => value);
+export const delay = AsyncUtils.delay;
 export const debounce = AsyncUtils.debounce;
 export const debounceAsync = AsyncUtils.debounceAsync;
 export const debounceLeading = AsyncUtils.debounceLeading;
 export const throttle = AsyncUtils.throttle;
-export const throttleAsync = (fn, wait) => AsyncUtils.throttle(fn, wait);
+export const throttleAsync = AsyncUtils.throttleAsync;
 export const once = AsyncUtils.once;
 export const memoize = AsyncUtils.memoize;
 export const memoizeAsync = AsyncUtils.memoizeAsync;
 export const withTimeout = AsyncUtils.withTimeout;
+export const tryFn = AsyncUtils.tryFn;
+export const seq = AsyncUtils.seq;
+export const flow = AsyncUtils.flow;
+export const negate = AsyncUtils.negate;
 export const retry = AsyncUtils.retry;
-export const poll = AsyncUtils.poll;
-export const pMap = AsyncUtils.pMap;
-export const waitForAsync = AsyncUtils.waitForAsync;
 // ── Array helpers ────────────────────────────────────────────────
 export const unique = ArrayUtils.unique;
 export const compact = ArrayUtils.compact;
@@ -168,7 +150,7 @@ export const sortBy = ArrayUtils.sortBy;
 export const keyBy = ArrayUtils.keyBy;
 export const times = ArrayUtils.times;
 export const randomChoice = ArrayUtils.randomChoice;
-export const ensureArray = ObjectUtils.ensureArray;
+export const ensureArray = ArrayUtils.ensureArray;
 export const countBy = ArrayUtils.countBy;
 // ── Object helpers ─────────────────────────────────────────────
 export const deepClone = ObjectUtils.deepClone;
@@ -184,18 +166,12 @@ export const mapKeys = ObjectUtils.mapKeys;
 export const has = ObjectUtils.has;
 export const get = ObjectUtils.get;
 export const set = ObjectUtils.set;
-export const zipObject = (keys, values) => {
-    const out = {};
-    const len = Math.min(keys.length, values.length);
-    for (let i = 0; i < len; i++) out[keys[i]] = values[i];
-    return out;
-};
-export const identity = FunctionUtils.identity;
-export const constant = FunctionUtils.constant;
+export const zipObject = ObjectUtils.zipObject;
+export const identity = ObjectUtils.identity;
+export const constant = ObjectUtils.constant;
 export const at = ObjectUtils.at;
 export const unset = ObjectUtils.unset;
 export const defaultsDeep = ObjectUtils.defaultsDeep;
-export const isEmpty = ObjectUtils.isEmpty;
 // ── URL helpers ──────────────────────────────────────────────────
 export const apiBaseUrl = UrlUtils.apiBaseUrl;
 export const apiUrl = UrlUtils.apiUrl;
@@ -215,12 +191,7 @@ export const localStorageGetString = StorageUtils.localStorageGetString;
 export const localStorageSetString = StorageUtils.localStorageSetString;
 export const sessionStorageGet = StorageUtils.sessionStorageGet;
 export const sessionStorageSet = StorageUtils.sessionStorageSet;
-export const sessionStorageRemove = (key) => {
-    if (typeof sessionStorage !== 'undefined') {
-        try { sessionStorage.removeItem(key); }
-        catch (_a) { /* ignore */ }
-    }
-};
+export const sessionStorageRemove = StorageUtils.sessionStorageRemove;
 // ── Theme helpers ────────────────────────────────────────────────
 export const hexToRgba = ThemeUtils.hexToRgba;
 export const shadeColor = ThemeUtils.shadeColor;
@@ -254,45 +225,44 @@ export const renderEmptyState = DomUtils.renderEmptyState;
 // ── Format helpers ─────────────────────────────────────────────
 export const formatDate = FormatUtils.formatDate;
 export const relativeTime = FormatUtils.relativeTime;
+export const redactPathForDisplay = FormatUtils.redactPathForDisplay;
+export const isRedactedPathDisplay = FormatUtils.isRedactedPathDisplay;
+export const formatPathInputValue = FormatUtils.formatPathInputValue;
+export const formatScanPathForDisplay = FormatUtils.formatScanPathForDisplay;
+export const formatPathLabel = FormatUtils.formatPathLabel;
+export const formatAiSummarySkipMessage = FormatUtils.formatAiSummarySkipMessage;
+export const sanitizePrivacyData = FormatUtils.sanitizePrivacyData;
 // ── Type guards ─────────────────────────────────────────────────
+export const isBlank = TypeUtils.isBlank;
+export const isEmail = TypeUtils.isEmail;
+export const isNumeric = TypeUtils.isNumeric;
+export const isInteger = TypeUtils.isInteger;
+export const isHexColor = TypeUtils.isHexColor;
+export const isEmpty = TypeUtils.isEmpty;
 export const isDefined = TypeUtils.isDefined;
+export const noop = TypeUtils.noop;
+export const assertNever = TypeUtils.assertNever;
+export const parseJsonSafe = TypeUtils.parseJsonSafe;
+export const parseResponseJson = TypeUtils.parseResponseJson;
+export const isOnline = TypeUtils.isOnline;
+export const isVSCodeWebview = TypeUtils.isVSCodeWebview;
+export const isStandalone = TypeUtils.isStandalone;
+export const getVSCodeApi = TypeUtils.getVSCodeApi;
+export const getNonce = TypeUtils.getNonce;
 export const isNull = TypeUtils.isNull;
 export const isUndefined = TypeUtils.isUndefined;
 export const isNil = TypeUtils.isNil;
 export const isSymbol = TypeUtils.isSymbol;
 export const isMap = TypeUtils.isMap;
 export const isSet = TypeUtils.isSet;
-export const isBoolean = TypeUtils.isBoolean;
-export const isNumber = TypeUtils.isNumber;
-export const isString = TypeUtils.isString;
-export const isArray = TypeUtils.isArray;
-export const isFunction = TypeUtils.isFunction;
-export const isObject = TypeUtils.isObject;
-export const isDate = TypeUtils.isDate;
-export const isRegExp = TypeUtils.isRegExp;
-export const isError = TypeUtils.isError;
-export const parseJsonSafe = ObjectUtils.safeJSONParse;
-export { parseResponseJson };
 // ── Function helpers (additional) ────────────────────────────
-export const compose = FunctionUtils.flow;
-export const pipe = FunctionUtils.seq;
+export const compose = FunctionUtils.compose;
+export const pipe = FunctionUtils.pipe;
 export const zipWith = FunctionUtils.zipWith;
 export const curry = FunctionUtils.curry;
 export const partial = FunctionUtils.partial;
 export const tap = FunctionUtils.tap;
-export const negate = FunctionUtils.negate;
-export const tryFn = FunctionUtils.tryFn;
-export const noop = FunctionUtils.noop;
-export const assertNever = FunctionUtils.assertNever;
-export const deepFreeze = (obj) => {
-    if (obj == null || typeof obj !== 'object') return obj;
-    Object.freeze(obj);
-    for (const key of Object.keys(obj)) {
-        const value = obj[key];
-        if (value != null && typeof value === 'object') deepFreeze(value);
-    }
-    return obj;
-};
+export const deepFreeze = FunctionUtils.deepFreeze;
 // ── Inline utilities (API parity with js-es2018/utils.js) ───────
 export function tryCatch(fn, handler) {
     return (...args) => { try {
@@ -557,8 +527,6 @@ export function memoizeBy(fn, keyFn) {
         return result;
     };
 }
-// ── Privacy helpers ────────────────────────────────────────────
-export const sanitizePrivacyData = PrivacyUtils.sanitizePrivacyData;
 // ── Event helpers ──────────────────────────────────────────────
 export const createEventBus = EventUtils.createEventBus;
 export const createBroadcastChannel = EventUtils.createBroadcastChannel;

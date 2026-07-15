@@ -1,5 +1,5 @@
 import { fetchJsonWithGuidance } from './analyzeService.js';
-import { escapeHtml } from '../utils/string.js';
+import { escapeHtml } from '../utils.js';
 
 /**
  * Fetch AI Math Audit report for a project path.

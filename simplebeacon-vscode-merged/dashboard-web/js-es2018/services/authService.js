@@ -31,7 +31,12 @@ export function apiBase() {
             }
         }
         catch (_a) { /* ignore */ }
-        if (!/^(localhost|127\.0\.0\.1)$/i.test(location.hostname) && !location.hostname.endsWith('.onrender.com')) {
+        const host = location.hostname;
+        if (!/^(localhost|127\.0\.0\.1)$/i.test(host) && !host.endsWith('.onrender.com')) {
+            // Same-origin API proxy on Cloudflare Pages / production domain (matches scanService).
+            if (host === 'simplebeacon.ai' || host.endsWith('.simplebeacon.pages.dev')) {
+                return location.origin;
+            }
             return 'https://simplebeacon.ai';
         }
     }

@@ -1,4 +1,3 @@
-import { showToast } from '../utils.js';
 
 /**
  * Show download credentials modal.

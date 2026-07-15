@@ -106,28 +106,3 @@ export function downloadText(content, filename, mime = 'text/plain') {
     const blob = new Blob([content], { type: mime });
     downloadBlob(blob, filename);
 }
-/**
- * Convert an array of objects to CSV and download it as a file.
- * @param {Object[]} rows Array of plain objects.
- * @param {string} filename Download filename.
- * @param {string[]} [headers] Optional explicit column order; auto-detected from first row if omitted.
- */
-export function downloadCsv(rows, filename, headers) {
-    if (!Array.isArray(rows) || rows.length === 0) {
-        throw new Error('CSV download requires a non-empty array of rows.');
-    }
-    if (typeof filename !== 'string') {
-        throw new Error('Download requires a valid filename string.');
-    }
-    const cols = Array.isArray(headers) && headers.length > 0 ? headers : Object.keys(rows[0]);
-    const escape = (val) => {
-        const s = val == null ? '' : String(val);
-        if (s.includes(',') || s.includes('"') || s.includes('\n') || s.includes('\r')) {
-            return '"' + s.replace(/"/g, '""') + '"';
-        }
-        return s;
-    };
-    const lines = [cols.join(','), ...rows.map(row => cols.map(c => escape(row[c])).join(','))];
-    const csv = lines.join('\n');
-    downloadText(csv, filename, 'text/csv');
-}

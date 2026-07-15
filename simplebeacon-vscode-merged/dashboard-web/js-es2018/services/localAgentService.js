@@ -129,6 +129,9 @@ export function isLocalPath(value) {
  * @returns {Promise<{available:boolean, scannerAvailable:boolean, version?:string}>}
  */
 export async function probeAgent(origin = DEFAULT_AGENT_ORIGIN) {
+    if (!shouldProbeLocalAgent()) {
+        return HOSTED_AGENT_OFFLINE;
+    }
     const now = Date.now();
     if (cachedAgentStatus && cachedAt + CACHE_TTL_MS > now) {
         return cachedAgentStatus;
@@ -298,8 +301,11 @@ export async function fetchScanProgressViaExtensionBridge(projectPath) {
  * @param {string} [origin]
  */
 export async function probeAgent4000(origin = resolveBridgeOrigin()) {
-    const now = Date.now();
     const extensionBridge = isExtensionBridgeOrigin(origin);
+    if (isHostedHttpsDashboard() && !extensionBridge && !hasAgentBridge()) {
+        return { available: false, likelyBlocked: false, extensionBridge: false, origin, hostedSkipped: true };
+    }
+    const now = Date.now();
     if (cachedAgent4000Status && cachedAgent4000At + CACHE_TTL_MS > now && cachedAgent4000Status.origin === origin) {
         return cachedAgent4000Status;
     }
@@ -589,13 +595,24 @@ export function shouldUseAgent(projectPath, agentStatus) {
     return isLocalPath(projectPath);
 }
 /** True when the dashboard is served over HTTPS on a non-localhost host (Pages, production). */
-function isHostedHttpsDashboard() {
+export function isHostedHttpsDashboard() {
     if (typeof window === 'undefined')
         return false;
     if (/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname))
         return false;
     return window.location.protocol === 'https:';
 }
+/** Skip doomed localhost agent probes on hosted HTTPS unless an extension bridge is configured. */
+export function shouldProbeLocalAgent() {
+    if (!isHostedHttpsDashboard())
+        return true;
+    return hasAgentBridge() || hasExtensionBridgeConfigured();
+}
+const HOSTED_AGENT_OFFLINE = {
+    available: false,
+    scannerAvailable: false,
+    hostedSkipped: true
+};
 /**
  * Format a status message for the UI.
  */
@@ -603,10 +620,10 @@ export function formatAgentStatus(agentStatus) {
     if (!agentStatus)
         return '';
     // Hosted dashboard: in-browser folder scan is primary — suppress agent nag when offline.
-    if (isHostedHttpsDashboard() && !agentStatus.available)
+    if (isHostedHttpsDashboard() && (!agentStatus.available || agentStatus.hostedSkipped))
         return '';
     if (!agentStatus.available) {
-        if (agentStatus.likelyBlocked) {
+        if (agentStatus.likelyBlocked && !isHostedHttpsDashboard()) {
             return 'Local agent blocked by HTTPS mixed-content policy — use Chrome/Edge or download the Local Scan Agent below';
         }
         return 'Local agent offline — download the Local Scan Agent portable zip and run start-agent.bat';
@@ -648,6 +665,9 @@ export function getAgentDownloadUrl(platform) {
  */
 export function getAgentFallbackMessage(agentStatus) {
     var _a, _b, _c;
+    if (isHostedHttpsDashboard() && (!(agentStatus === null || agentStatus === void 0 ? void 0 : agentStatus.available) || (agentStatus === null || agentStatus === void 0 ? void 0 : agentStatus.hostedSkipped))) {
+        return 'Use Select Folder above to scan your project privately in this browser. Typed PC paths cannot be read from the hosted dashboard.';
+    }
     if ((_a = agentStatus) === null || _a === void 0 ? void 0 : _a.likelyBlocked) {
         return 'HTTPS blocks direct access to the Local Scan Agent. Install the Simplebeacon Browser Extension, open this page in Chrome/Edge, or run the local dashboard.';
     }

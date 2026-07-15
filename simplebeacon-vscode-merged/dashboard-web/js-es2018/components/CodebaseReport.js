@@ -1,5 +1,4 @@
-import { escapeHtml } from '../utils/string.js';
-import { formatNumber } from '../utils/number.js';
+import { escapeHtml, formatNumber } from '../utils.js';
 /**
  * Severity class.
  * @param {any} severity
@@ -28,21 +27,6 @@ export function renderCodebasePanel({ scan, loading, error } = {}) {
     }
     if (error) {
         return `<p class="text-danger">${escapeHtml(error)}</p>`;
-    }
-    // Normalize flat API responses (extension data-server stubs) into the nested shape this renderer expects
-    if (scan && !scan.summary && (Array.isArray(scan.findings) || scan.severityCounts || scan.qualityScore != null)) {
-        scan = {
-            ...scan,
-            summary: {
-                repositoryFilesTotal: scan.fileCount || scan.totalFiles || 0,
-                codeFilesAnalyzed: scan.filesAnalyzed || 0,
-                healthScore: scan.qualityScore ?? 100,
-                findingsTotal: (scan.findings || []).length,
-                severityCounts: scan.severityCounts || {},
-                eslintErrors: 0,
-                eslintWarnings: 0
-            }
-        };
     }
     if (!(scan === null || scan === void 0 ? void 0 : scan.summary)) {
         return '<p class="text-muted card">No codebase analysis yet — run the scan to find technical debt, broken files, and placeholder data.</p>';
@@ -191,20 +175,6 @@ export function renderCodebasePanel({ scan, loading, error } = {}) {
  */
 export function buildCodebaseConclusion(scan) {
     var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r;
-    if (scan && !scan.summary && (Array.isArray(scan.findings) || scan.severityCounts || scan.qualityScore != null)) {
-        scan = {
-            ...scan,
-            summary: {
-                repositoryFilesTotal: scan.fileCount || scan.totalFiles || 0,
-                codeFilesAnalyzed: scan.filesAnalyzed || 0,
-                healthScore: scan.qualityScore ?? 100,
-                findingsTotal: (scan.findings || []).length,
-                severityCounts: scan.severityCounts || {},
-                eslintErrors: 0,
-                eslintWarnings: 0
-            }
-        };
-    }
     if (!(scan === null || scan === void 0 ? void 0 : scan.summary))
         return 'No codebase analysis available.';
     const s = scan.summary;

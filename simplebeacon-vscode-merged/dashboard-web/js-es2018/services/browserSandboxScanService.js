@@ -5,7 +5,14 @@
  * applies SimpleBeacon heuristic rules, and produces an A-F compliance certificate.
  */
 
-import { canUseDirectoryPicker } from '../utils-lib/dom.js';
+import { canUseDirectoryPicker, filePickerBlockedMessage, isFilePickerBlockedError } from '../utils-lib/dom.js';
+import {
+  createIgnoreContext,
+  extractIgnorePatternsFromLegacyFiles,
+  filterQueueByIgnore,
+  isIgnoredVirtualPath,
+  loadIgnorePatternsFromDirHandle
+} from '../utils-lib/simplebeaconignore.browser.js?v=20260715ignore1';
 
 const DEFAULT_MAX_FILE_SIZE = 1500000;
 const DEFAULT_MAX_FILES = 100000;
@@ -110,9 +117,13 @@ function logLine(logger, message, level) {
 }
 
 async function crawlSandboxedTree(dirHandle, currentPath, queue, options) {
-  const { maxFiles, onLog } = options || {};
+  const { maxFiles, onLog, ignoreCtx } = options || {};
   if (SKIP_DIRS.has(dirHandle.name) || dirHandle.name.startsWith('.')) {
     logLine(onLog, `Skipping dependency/build directory: ${currentPath}`, 'info');
+    return;
+  }
+  if (ignoreCtx && isIgnoredVirtualPath(currentPath, ignoreCtx.scanRootName, ignoreCtx.patterns)) {
+    logLine(onLog, `Skipping ignored directory: ${currentPath}`, 'info');
     return;
   }
 
@@ -123,6 +134,9 @@ async function crawlSandboxedTree(dirHandle, currentPath, queue, options) {
     }
 
     const nextVirtualPath = `${currentPath}/${name}`;
+    if (ignoreCtx && isIgnoredVirtualPath(nextVirtualPath, ignoreCtx.scanRootName, ignoreCtx.patterns)) {
+      continue;
+    }
 
     if (handle.kind === 'directory') {
       await crawlSandboxedTree(handle, nextVirtualPath, queue, options);
@@ -130,6 +144,7 @@ async function crawlSandboxedTree(dirHandle, currentPath, queue, options) {
     }
 
     if (handle.kind !== 'file') continue;
+    if (name === '.simplebeaconignore') continue;
 
     const extIndex = name.lastIndexOf('.');
     const ext = extIndex >= 0 ? name.substring(extIndex).toLowerCase() : '';
@@ -202,12 +217,33 @@ function analyzeFile(content, virtualPath) {
 }
 
 async function pickFileSystemAccessDirectory({ maxFiles, onLog }) {
-  const directoryHandle = await window.showDirectoryPicker({ mode: 'read' });
+  if (!canUseDirectoryPicker()) {
+    throw new Error(filePickerBlockedMessage());
+  }
+  let directoryHandle;
+  try {
+    directoryHandle = await window.showDirectoryPicker({ mode: 'read' });
+  }
+  catch (err) {
+    if (isFilePickerBlockedError(err)) {
+      throw new Error(filePickerBlockedMessage());
+    }
+    throw err;
+  }
   const rootName = directoryHandle.name;
   logLine(onLog, `Access granted. Initializing scan over boundary: ${rootName}`, 'info');
+  const ignoreLoad = await loadIgnorePatternsFromDirHandle(directoryHandle);
+  const ignoreCtx = createIgnoreContext(ignoreLoad.patterns, rootName, ignoreLoad.source);
+  logLine(
+    onLog,
+    ignoreCtx.source === 'simplebeaconignore'
+      ? `Loaded ${ignoreLoad.patterns.length} .simplebeaconignore patterns.`
+      : `Using ${ignoreLoad.patterns.length} built-in browser ignore patterns (dotfile not in picker).`,
+    'info'
+  );
   const fileQueue = [];
-  await crawlSandboxedTree(directoryHandle, rootName, fileQueue, { maxFiles, onLog });
-  return { rootName, fileQueue };
+  await crawlSandboxedTree(directoryHandle, rootName, fileQueue, { maxFiles, onLog, ignoreCtx });
+  return { rootName, fileQueue, ignoreCtx };
 }
 
 function pickLegacyDirectory({ maxFiles, onLog }) {
@@ -221,7 +257,7 @@ function pickLegacyDirectory({ maxFiles, onLog }) {
     const cleanup = () => {
       if (input.parentNode) input.parentNode.removeChild(input);
     };
-    input.addEventListener('change', (e) => {
+    input.addEventListener('change', async (e) => {
       if (resolved) return;
       resolved = true;
       cleanup();
@@ -232,6 +268,15 @@ function pickLegacyDirectory({ maxFiles, onLog }) {
       }
       const rootName = (files[0].webkitRelativePath || files[0].name).split('/')[0] || 'selected-folder';
       logLine(onLog, `Legacy directory input selected. Streaming analysis over ${files.length} items...`, 'info');
+      const ignoreLoad = await extractIgnorePatternsFromLegacyFiles(files);
+      const ignoreCtx = createIgnoreContext(ignoreLoad.patterns, rootName, ignoreLoad.source);
+      logLine(
+        onLog,
+        ignoreCtx.source === 'simplebeaconignore'
+          ? `Loaded ${ignoreLoad.patterns.length} .simplebeaconignore patterns from picker.`
+          : `Using ${ignoreLoad.patterns.length} built-in browser ignore patterns (dotfile not in picker).`,
+        'info'
+      );
       const fileQueue = [];
       for (const file of files) {
         if (fileQueue.length >= maxFiles) {
@@ -239,14 +284,16 @@ function pickLegacyDirectory({ maxFiles, onLog }) {
           break;
         }
         const virtualPath = file.webkitRelativePath || file.name;
+        if (ignoreCtx && isIgnoredVirtualPath(virtualPath, ignoreCtx.scanRootName, ignoreCtx.patterns)) continue;
         const pathParts = virtualPath.split('/');
-        if (pathParts.some((part) => SKIP_DIRS.has(part) || part.startsWith('.'))) continue;
+        if (pathParts.some((part) => SKIP_DIRS.has(part) || (part.startsWith('.') && part !== '.simplebeaconignore'))) continue;
+        if (file.name === '.simplebeaconignore') continue;
         const extIndex = file.name.lastIndexOf('.');
         const ext = extIndex >= 0 ? file.name.substring(extIndex).toLowerCase() : '';
         if (!ALLOWED_EXTENSIONS.has(ext)) continue;
         fileQueue.push({ file, virtualPath });
       }
-      resolve({ rootName, fileQueue });
+      resolve({ rootName, fileQueue, ignoreCtx });
     });
     input.addEventListener('cancel', () => {
       if (!resolved) {
@@ -277,7 +324,11 @@ function createScanWorker() {
   }
 }
 
-async function analyzeDirectory({ rootName, fileQueue }, { maxFileSize, onLog, onProgress }) {
+async function analyzeDirectory({ rootName, fileQueue, ignoreCtx }, { maxFileSize, onLog, onProgress }) {
+  const filteredQueue = filterQueueByIgnore(fileQueue, ignoreCtx);
+  if (ignoreCtx && filteredQueue.length < fileQueue.length) {
+    logLine(onLog, `Excluded ${fileQueue.length - filteredQueue.length} paths via .simplebeaconignore.`, 'info');
+  }
   const results = new Map();
   let highRiskCount = 0;
   let mediumRiskCount = 0;
@@ -318,8 +369,8 @@ async function analyzeDirectory({ rootName, fileQueue }, { maxFileSize, onLog, o
       pending.clear();
     };
 
-    for (let i = 0; i < fileQueue.length; i++) {
-      const item = fileQueue[i];
+    for (let i = 0; i < filteredQueue.length; i++) {
+      const item = filteredQueue[i];
       try {
         const file = item.file || await item.handle.getFile();
         if (file.size > maxFileSize) {
@@ -353,7 +404,7 @@ async function analyzeDirectory({ rootName, fileQueue }, { maxFileSize, onLog, o
         results.set(item.virtualPath, result);
         processed += 1;
         if (typeof onProgress === 'function') {
-          onProgress({ processed, total: fileQueue.length });
+          onProgress({ processed, total: filteredQueue.length });
         }
         if (processed > 0 && processed % 50 === 0) {
           await yieldToBrowser();
@@ -370,8 +421,8 @@ async function analyzeDirectory({ rootName, fileQueue }, { maxFileSize, onLog, o
   else {
     // Fallback: scan directly on the main thread when Workers are unavailable.
     logLine(onLog, 'Scan worker not available; running scan on the main thread.', 'warning');
-    for (let i = 0; i < fileQueue.length; i++) {
-      const item = fileQueue[i];
+    for (let i = 0; i < filteredQueue.length; i++) {
+      const item = filteredQueue[i];
       try {
         const file = item.file || await item.handle.getFile();
         if (file.size > maxFileSize) {
@@ -392,7 +443,7 @@ async function analyzeDirectory({ rootName, fileQueue }, { maxFileSize, onLog, o
 
         processed += 1;
         if (typeof onProgress === 'function') {
-          onProgress({ processed, total: fileQueue.length });
+          onProgress({ processed, total: filteredQueue.length });
         }
         if (processed > 0 && processed % YIELD_EVERY === 0) {
           await yieldToBrowser();
@@ -409,8 +460,8 @@ async function analyzeDirectory({ rootName, fileQueue }, { maxFileSize, onLog, o
   // same report shape the dashboard expects.
   const fileReport = [];
   const globalIssuesQueue = [];
-  for (let i = 0; i < fileQueue.length; i++) {
-    const item = fileQueue[i];
+  for (let i = 0; i < filteredQueue.length; i++) {
+    const item = filteredQueue[i];
     const result = results.get(item.virtualPath);
     if (!result) continue;
 
@@ -436,14 +487,14 @@ async function analyzeDirectory({ rootName, fileQueue }, { maxFileSize, onLog, o
     logLine(onLog, `Findings capped at ${MAX_FINDINGS.toLocaleString()} for browser memory. Use CLI export for full list.`, 'warning');
   }
 
-  logLine(onLog, `Sandboxed drive sweep complete. Grade ${certificate.letterGrade} | ${fileReport.length}/${fileQueue.length} files (${skippedLarge + skippedError} skipped).`, 'success');
+  logLine(onLog, `Sandboxed drive sweep complete. Grade ${certificate.letterGrade} | ${fileReport.length}/${filteredQueue.length} files (${skippedLarge + skippedError} skipped).`, 'success');
 
   return {
     success: true,
     verifiedAddress: rootName,
     path: rootName,
     files: fileReport,
-    discoveredFiles: fileQueue.length,
+    discoveredFiles: filteredQueue.length,
     skippedFiles: skippedLarge + skippedError,
     skippedLarge,
     skippedError,
@@ -511,9 +562,24 @@ export async function isDroppedFolder(items) {
 export async function runSandboxedDirectoryScan(options = {}) {
   const { maxFileSize = DEFAULT_MAX_FILE_SIZE, maxFiles = DEFAULT_MAX_FILES, onLog, onProgress } = options;
 
-  const picked = isSupported()
-    ? await pickFileSystemAccessDirectory({ maxFiles, onLog })
-    : await pickLegacyDirectory({ maxFiles, onLog });
+  let picked;
+  if (isSupported()) {
+    try {
+      picked = await pickFileSystemAccessDirectory({ maxFiles, onLog });
+    }
+    catch (err) {
+      if (isFilePickerBlockedError(err)) {
+        logLine(onLog, 'Native folder picker blocked in embed — using legacy folder dialog.', 'warning');
+        picked = await pickLegacyDirectory({ maxFiles, onLog });
+      }
+      else {
+        throw err;
+      }
+    }
+  }
+  else {
+    picked = await pickLegacyDirectory({ maxFiles, onLog });
+  }
 
   logLine(onLog, `Discovered ${picked.fileQueue.length} text/code targets.`, 'info');
   return analyzeDirectory(picked, { maxFileSize, onLog, onProgress });
@@ -546,39 +612,43 @@ export async function scanDroppedItems(items, options = {}) {
   // Use a synchronously captured webkit entry first — async hops invalidate DataTransfer items.
   const entry = capturedEntry || captureDroppedEntry(items);
   if (entry && entry.isDirectory) {
+    const ignoreCtx = createIgnoreContext(null, entry.name);
     const fileQueue = [];
-    await crawlWebkitEntryTree(entry, entry.name, fileQueue, { maxFiles, onLog });
+    await crawlWebkitEntryTree(entry, entry.name, fileQueue, { maxFiles, onLog, ignoreCtx });
     if (fileQueue.length === 0) {
       throw new Error('No scannable files or folders detected.');
     }
     logLine(onLog, `Dropped directory "${entry.name}" — ${fileQueue.length} targets queued.`, 'info');
-    return analyzeDirectory({ rootName: entry.name, fileQueue }, { maxFileSize, onLog, onProgress });
+    return analyzeDirectory({ rootName: entry.name, fileQueue, ignoreCtx }, { maxFileSize, onLog, onProgress });
   }
 
   // Preferred: File System Access API handles.
   if (typeof first.getAsFileSystemHandle === 'function') {
     const handle = await first.getAsFileSystemHandle();
     if (handle && handle.kind === 'directory') {
+      const ignoreLoad = await loadIgnorePatternsFromDirHandle(handle);
+      const ignoreCtx = createIgnoreContext(ignoreLoad.patterns, handle.name, ignoreLoad.source);
       const fileQueue = [];
-      await crawlSandboxedTree(handle, handle.name, fileQueue, { maxFiles, onLog });
+      await crawlSandboxedTree(handle, handle.name, fileQueue, { maxFiles, onLog, ignoreCtx });
       if (fileQueue.length === 0) {
         throw new Error('No scannable files or folders detected.');
       }
       logLine(onLog, `Dropped directory "${handle.name}" — ${fileQueue.length} targets queued.`, 'info');
-      return analyzeDirectory({ rootName: handle.name, fileQueue }, { maxFileSize, onLog, onProgress });
+      return analyzeDirectory({ rootName: handle.name, fileQueue, ignoreCtx }, { maxFileSize, onLog, onProgress });
     }
   }
 
   // Fallback: webkitGetAsEntry traversal (may already be stale if not captured synchronously).
   const staleEntry = typeof first.webkitGetAsEntry === 'function' ? first.webkitGetAsEntry() : null;
   if (staleEntry && staleEntry.isDirectory) {
+    const ignoreCtx = createIgnoreContext(null, staleEntry.name);
     const fileQueue = [];
-    await crawlWebkitEntryTree(staleEntry, staleEntry.name, fileQueue, { maxFiles, onLog });
+    await crawlWebkitEntryTree(staleEntry, staleEntry.name, fileQueue, { maxFiles, onLog, ignoreCtx });
     if (fileQueue.length === 0) {
       throw new Error('No scannable files or folders detected.');
     }
     logLine(onLog, `Dropped directory "${staleEntry.name}" — ${fileQueue.length} targets queued.`, 'info');
-    return analyzeDirectory({ rootName: staleEntry.name, fileQueue }, { maxFileSize, onLog, onProgress });
+    return analyzeDirectory({ rootName: staleEntry.name, fileQueue, ignoreCtx }, { maxFileSize, onLog, onProgress });
   }
 
   // Not a folder drop: treat as ordinary files and scan each one.
@@ -601,9 +671,13 @@ export async function scanDroppedItems(items, options = {}) {
 }
 
 async function crawlWebkitEntryTree(entry, currentPath, queue, options) {
-  const { maxFiles, onLog } = options || {};
+  const { maxFiles, onLog, ignoreCtx } = options || {};
   if (!entry.isDirectory) {
+    if (ignoreCtx && isIgnoredVirtualPath(currentPath, ignoreCtx.scanRootName, ignoreCtx.patterns)) {
+      return;
+    }
     const file = await new Promise((resolve) => entry.file(resolve));
+    if (file.name === '.simplebeaconignore') return;
     const extIndex = file.name.lastIndexOf('.');
     const ext = extIndex >= 0 ? file.name.substring(extIndex).toLowerCase() : '';
     if (ALLOWED_EXTENSIONS.has(ext)) {
@@ -616,6 +690,10 @@ async function crawlWebkitEntryTree(entry, currentPath, queue, options) {
     logLine(onLog, `Skipping dependency/build directory: ${currentPath}`, 'info');
     return;
   }
+  if (ignoreCtx && isIgnoredVirtualPath(currentPath, ignoreCtx.scanRootName, ignoreCtx.patterns)) {
+    logLine(onLog, `Skipping ignored directory: ${currentPath}`, 'info');
+    return;
+  }
 
   const reader = entry.createReader();
   let batch;
@@ -626,7 +704,11 @@ async function crawlWebkitEntryTree(entry, currentPath, queue, options) {
         logLine(onLog, `Reached max file limit (${maxFiles}); stopping traversal.`, 'warning');
         break;
       }
-      await crawlWebkitEntryTree(child, `${currentPath}/${child.name}`, queue, options);
+      const childPath = `${currentPath}/${child.name}`;
+      if (ignoreCtx && isIgnoredVirtualPath(childPath, ignoreCtx.scanRootName, ignoreCtx.patterns)) {
+        continue;
+      }
+      await crawlWebkitEntryTree(child, childPath, queue, options);
     }
   } while (batch.length > 0 && queue.length < maxFiles);
 }

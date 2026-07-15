@@ -1,6 +1,6 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
 import { showToast } from '../utils.js';
-import { canUseDirectoryPicker, isLikelyWebkitDirectoryFileCap, browserFolderCapMessage } from '../utils-lib/dom.js';
+import { canUseDirectoryPicker, isLikelyWebkitDirectoryFileCap, browserFolderCapMessage, isEmbeddedDashboardFrame } from '../utils-lib/dom.js';
 import { normalizeSimplebeaconReport } from './analyzeService.js?v=20260714results1';
 import {
   createIgnoreContext,
@@ -272,11 +272,23 @@ export async function runLocalScan(options = {}) {
             .map((f) => ({ path: f.webkitRelativePath || f.name, handle: f }));
     }
     else {
-        const dirHandle = options.dirHandle || await window.showDirectoryPicker();
-        projectName = options.projectPath || dirHandle.name || 'local-project';
-        const ignoreLoad = await loadIgnorePatternsFromDirHandle(dirHandle);
-        ignoreCtx = createIgnoreContext(ignoreLoad.patterns, projectName, ignoreLoad.source);
-        files = await collectFiles(dirHandle, '', [], ignoreCtx);
+        const dirHandle = options.dirHandle;
+        if (!dirHandle) {
+            if (isEmbeddedDashboardFrame() || !canUseDirectoryPicker()) {
+                throw new Error('Folder picker is blocked in this embed. Use drag-and-drop, the legacy Browse dialog, or scan via the Local Agent with a typed path.');
+            }
+            const picked = await window.showDirectoryPicker();
+            projectName = options.projectPath || picked.name || 'local-project';
+            const ignoreLoad = await loadIgnorePatternsFromDirHandle(picked);
+            ignoreCtx = createIgnoreContext(ignoreLoad.patterns, projectName, ignoreLoad.source);
+            files = await collectFiles(picked, '', [], ignoreCtx);
+        }
+        else {
+            projectName = options.projectPath || dirHandle.name || 'local-project';
+            const ignoreLoad = await loadIgnorePatternsFromDirHandle(dirHandle);
+            ignoreCtx = createIgnoreContext(ignoreLoad.patterns, projectName, ignoreLoad.source);
+            files = await collectFiles(dirHandle, '', [], ignoreCtx);
+        }
     }
     files = filterQueueByIgnore(files.map((f) => ({ ...f, virtualPath: f.path })), ignoreCtx)
         .map((f) => ({ path: f.path || f.virtualPath, handle: f.handle }));

@@ -1,16 +1,56 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
-import { formatNumber } from '../utils/number.js';
-import { normalizeSlashes } from '../utils/string.js';
+import { formatNumber } from '../utils.js';
 /**
  * Browser mirror of cleanup-brief export sanitization (packages/simplebeacon-cli).
  */
+/**
+ * Redact project path for export.
+ * @param {string} rawPath
+ * @param {any} projectLabel
+ * @returns {any}
+ */
+function redactProjectPathForExport(rawPath, projectLabel = 'ai-platform') {
+    if (rawPath == null || rawPath === '')
+        return rawPath;
+    const normalized = String(rawPath).replace(/\\/g, '/');
+    if (/^[a-zA-Z]:\//.test(normalized) || normalized.startsWith('/Users/')
+        || normalized.startsWith('/home/') || normalized.includes('CascadeProjects')) {
+        return projectLabel;
+    }
+    return normalized;
+}
+/**
+ * Project label from path.
+ * @param {string} projectPath
+ * @returns {any}
+ */
+function projectLabelFromPath(projectPath) {
+    const normalized = String(projectPath || 'ai-platform').replace(/\\/g, '/');
+    const parts = normalized.split('/').filter(Boolean);
+    return parts[parts.length - 1] || 'ai-platform';
+}
+/**
+ * Resolve redacted brief project path.
+ * @param {any} brief
+ * @param {Object} options
+ * @returns {any}
+ */
+function resolveRedactedBriefProjectPath(brief, options = {}) {
+    var _a;
+    const rawPath = options.projectPath || brief.projectPath || ((_a = brief.scanAnalysis) === null || _a === void 0 ? void 0 : _a.projectPath) || '';
+    const label = projectLabelFromPath(rawPath);
+    return {
+        label,
+        projectPath: redactProjectPathForExport(rawPath, label)
+    };
+}
 /**
  * Is benchmark cache project path.
  * @param {string} projectPath
  * @returns {any}
  */
 function isBenchmarkCacheProjectPath(projectPath) {
-    const rel = normalizeSlashes(projectPath, { lowercase: true });
+    const rel = String(projectPath || '').replace(/\\/g, '/').toLowerCase();
     return rel.includes('/github-cache/') || rel.startsWith('github-cache/');
 }
 /**
@@ -19,13 +59,28 @@ function isBenchmarkCacheProjectPath(projectPath) {
  * @returns {any}
  */
 function resolveProductPlatformRoot(projectPath) {
-    const normalized = normalizeSlashes(projectPath);
+    const normalized = String(projectPath || '').replace(/\\/g, '/');
     const idx = normalized.toLowerCase().indexOf('/github-cache/');
     if (idx <= 0)
         return null;
     return normalized.slice(0, idx);
 }
 const BENCHMARK_PROTECTED_PATHS = ['.git', '.simplebeacon', 'docs', 'LICENSE'];
+/**
+ * Format bytes.
+ * @param {Array} bytes
+ * @returns {any}
+ */
+function formatBytes(bytes) {
+    const n = Number(bytes) || 0;
+    if (n < 1024)
+        return `${n} B`;
+    if (n < 1024 * 1024)
+        return `${(n / 1024).toFixed(1)} KB`;
+    if (n < 1024 * 1024 * 1024)
+        return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+    return `${(n / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+}
 /**
  * Resolve projected inventory note.
  * @param {any} next

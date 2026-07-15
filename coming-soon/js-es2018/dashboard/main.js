@@ -1563,6 +1563,9 @@ if (tryFreeBtn && !sandboxEmailModalEl) {
     });
 }
 // Wire up token input to both product detection AND button state
+if (typeof window.TokenEntryGuard !== 'undefined') {
+    window.TokenEntryGuard.bindLicenseTokenInput(licenseInput, document.getElementById('tokenError'));
+}
 licenseInput.addEventListener('input', () => {
     const tokenError = document.getElementById('tokenError');
     if (tokenError)
@@ -1640,21 +1643,8 @@ function hideTokenSection() {
         tokenSection.style.display = 'none';
     }
 }
-// Auto-restore sign-in on page load
-(function restoreTokenSignIn() {
-    const savedToken = localStorage.getItem('cascadeAuthToken');
-    if (savedToken && savedToken.length > 20 && savedToken.includes('.')) {
-        licenseInput.value = savedToken;
-        applyProductFromToken(savedToken);
-        updateDropzoneGate();
-        const payload = decodeJwtPayload(savedToken);
-        const tier = (payload === null || payload === void 0 ? void 0 : payload.tier) || (payload === null || payload === void 0 ? void 0 : payload.product) || '';
-        const freeTiers = ['community', 'starter', 'instant', 'free', 'developer', 'sandbox'];
-        if (!freeTiers.includes(tier)) {
-            hideTokenSection();
-        }
-    }
-})();
+// Auto-restore disabled on audit/certificate pages — only fresh (unused) tokens may be entered.
+// Users must paste a new token from email or request one via Try for Free / Send a Token.
 // Token gate — browser scan requires a valid token
 function hasValidToken() {
     const val = licenseInput.value.trim();
@@ -2083,14 +2073,7 @@ function triggerDirectoryPicker() {
     const isSecureContext = typeof window.isSecureContext !== 'undefined'
         ? window.isSecureContext
         : location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-    // Cross-origin iframes (e.g. VS Code embed) block showDirectoryPicker — skip to fallback
-    var isCrossOriginIframe = false;
-    try {
-        isCrossOriginIframe = window.self !== window.top && window.top.location.origin !== window.location.origin;
-    } catch (e) {
-        isCrossOriginIframe = true;
-    }
-    if (typeof showDirectoryPicker === 'function' && isSecureContext && !isCrossOriginIframe) {
+    if (typeof showDirectoryPicker === 'function' && isSecureContext) {
         console.log('[triggerDirectoryPicker] calling showDirectoryPicker synchronously');
         var pickerTimeout = setTimeout(function () {
             if (isPickerActive) {
@@ -3359,7 +3342,7 @@ async function probeLocalServer() {
                     link.href = `http://127.0.0.1:${port}/dashboard/analyze`;
             }
             if (vaultLink)
-                vaultLink.href = `http://127.0.0.1:${port}/dashboard/dashboard`;
+                vaultLink.href = `http://127.0.0.1:${port}/dashboard/`;
             return;
         }
         catch (_) {

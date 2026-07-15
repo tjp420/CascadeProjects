@@ -1,5 +1,5 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
-import { escapeHtml } from '../utils/string.js';
+import { escapeHtml } from '../utils.js';
 
 /**
  * AiMathAuditView — renders AI Math Audit findings with severity cards,

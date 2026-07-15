@@ -1,7 +1,5 @@
-import { formatPathLabel, redactPathForDisplay } from '../utils/format.js';
-import { showToast } from '../utils/dom.js';
-import { escapeHtml } from '../utils/string.js';
-import { refreshLiveReport, normalizeProjectPath, shouldPreferLiveReport } from '../services/analyzeService.js';
+import { formatPathLabel, redactPathForDisplay, showToast, escapeHtml } from '../utils.js';
+import { refreshLiveReport, normalizeProjectPath, shouldPreferLiveReport, shouldClearHostedServerDefaultPath } from '../services/analyzeService.js?v=20260715iframefix3';
 import { isDemoMode, demoReadOnlyMessage } from '../demoMode.js';
 import { isBenchmarkCachePath } from '../utils/complete-scan-artifact-profile.browser.js';
 import { isRemoteRepoUrl } from './analyzePathSources.js';
@@ -83,6 +81,36 @@ function isSuspiciousNestedPath(candidate, defaultPath) {
     return Boolean(candidateBasename && defaultBasename && candidateBasename === defaultBasename && c.startsWith(d + '/'));
 }
 /**
+ * Detects a client/server path mismatch: a saved local path (e.g., C:\Users\...) is being
+ * reused against a remote server whose default path is on a different OS (e.g., /opt/render/...).
+ * In that case the saved path cannot be scanned by the server, so we fall back to the default.
+ * @param {string} candidate
+ * @param {string} defaultPath
+ * @returns {boolean}
+ */
+function isClientServerPathMismatch(candidate, defaultPath) {
+    const c = String(candidate || '').trim();
+    const d = String(defaultPath || '').trim();
+    if (!c || !d)
+        return false;
+    const cIsWindows = /^[a-zA-Z]:[\\/]/.test(c);
+    const dIsWindows = /^[a-zA-Z]:[\\/]/.test(d);
+    const cIsUnix = c.startsWith('/');
+    const dIsUnix = d.startsWith('/');
+    return (cIsWindows && dIsUnix) || (cIsUnix && dIsWindows);
+}
+/** Truncated or server-leaked paths that cannot be scanned from a hosted browser. */
+function isLikelyCorruptedLocalPath(path) {
+    const n = String(path || '').replace(/\\/g, '/').trim();
+    if (!n)
+        return false;
+    if (/^s\/[^/]+\//i.test(n))
+        return true;
+    if (/^Users\/[^/]+\//i.test(n))
+        return true;
+    return false;
+}
+/**
  * Resolve page project path.
  * @param {any} inputValue
  * @param {any} app
@@ -91,6 +119,10 @@ function isSuspiciousNestedPath(candidate, defaultPath) {
 export function resolvePageProjectPath(inputValue, app) {
     const trimmed = stripArtifactSuffixes(String(inputValue || '').trim());
     const defaultPath = String(app.state.defaultProjectPath || '').trim();
+    // A bare filesystem root sentinel means "use the default project path".
+    if (trimmed === '/' || trimmed === '\\') {
+        return defaultPath || trimmed;
+    }
     // Resolve bare directory names (no drive letter or slash prefix) against default path
     if (trimmed && !trimmed.startsWith('…') && isPlausibleProjectPath(trimmed)) {
         const cleaned = stripArtifactSuffixes(trimmed);
@@ -104,13 +136,20 @@ export function resolvePageProjectPath(inputValue, app) {
         return trimmed;
     }
     const cleanedLast = stripArtifactSuffixes(app.state.lastProjectPath || '');
-    if (cleanedLast && isPlausibleProjectPath(cleanedLast) && !isSuspiciousNestedPath(cleanedLast, defaultPath)) {
+    if (cleanedLast && isPlausibleProjectPath(cleanedLast) && !isSuspiciousNestedPath(cleanedLast, defaultPath) && !isClientServerPathMismatch(cleanedLast, defaultPath)) {
         return cleanedLast;
     }
     if (trimmed.startsWith('…')) {
-        return defaultPath;
+        return shouldClearHostedServerDefaultPath(defaultPath) ? '' : defaultPath;
     }
-    return trimmed || defaultPath || '';
+    const safeDefault = shouldClearHostedServerDefaultPath(defaultPath) ? '' : defaultPath;
+    if (shouldClearHostedServerDefaultPath(trimmed)) {
+        return safeDefault || '';
+    }
+    if (isLikelyCorruptedLocalPath(trimmed)) {
+        return safeDefault || '';
+    }
+    return trimmed || safeDefault || '';
 }
 /** Value to show in path inputs — returns the current path so re-renders preserve it. */
 export function getPathInputDisplayValue(app) {
@@ -120,6 +159,18 @@ export function getPathInputDisplayValue(app) {
     const defaultPath = String(app.state.defaultProjectPath || '').trim();
     if (defaultPath && isSuspiciousNestedPath(candidate, defaultPath)) {
         return defaultPath;
+    }
+    if (isClientServerPathMismatch(candidate, defaultPath)) {
+        return shouldClearHostedServerDefaultPath(defaultPath) ? '' : defaultPath;
+    }
+    if (shouldClearHostedServerDefaultPath(candidate)) {
+        return '';
+    }
+    if (isLikelyCorruptedLocalPath(candidate)) {
+        return '';
+    }
+    if (!candidate && shouldClearHostedServerDefaultPath(defaultPath)) {
+        return '';
     }
     return stripArtifactSuffixes(candidate);
 }
@@ -187,7 +238,18 @@ export function reportMatchesPagePath(report, projectPath) {
         return false;
     const a = normalizeProjectPath(report.projectRoot);
     const b = normalizeProjectPath(projectPath);
-    return a === b || a.startsWith(`${b}/`) || b.startsWith(`${a}/`);
+    if (a === b || a.startsWith(`${b}/`) || b.startsWith(`${a}/`))
+        return true;
+    // In-browser scans often store the folder basename while the path bar shows a full OS path.
+    const baseA = a.split('/').filter(Boolean).pop() || '';
+    const baseB = b.split('/').filter(Boolean).pop() || '';
+    return baseA.length > 1 && baseA === baseB;
+}
+/** Same as reportMatchesPagePath but accepts bare scannedRoot strings (no report wrapper). */
+export function pathsLooselyMatch(scannedRoot, pagePath) {
+    if (!scannedRoot || !pagePath)
+        return true;
+    return reportMatchesPagePath({ projectRoot: scannedRoot }, pagePath);
 }
 /** Report artifact that matches the requested repo path (ignores stale global report). */
 export function reportForProjectPath(app, projectPath) {

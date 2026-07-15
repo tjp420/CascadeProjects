@@ -1,9 +1,9 @@
 import { escapeHtml, formatPercent, formatNumber, showToast } from '../utils.js';
-import { canUseDirectoryPicker } from '../utils-lib/dom.js';
-import { resolveDisplayScore, formatScanScopeSummary, formatScanInventoryNote, getScanFileMetrics } from '../services/analyzeService.js?v=20260710inventory1';
-import { runLocalScan } from '../services/localScanService.js';
+import { canUseDirectoryPicker, filePickerBlockedMessage, isFilePickerBlockedError } from '../utils-lib/dom.js?v=20260715iframefix3';
+import { resolveDisplayScore, formatScanScopeSummary, formatScanInventoryNote, getScanFileMetrics } from '../services/analyzeService.js?v=20260715iframefix3';
+import { runLocalScan } from '../services/localScanService.js?v=20260715iframefix3';
 import { isLocalPath, probeAgent, scanViaAgent, probeAgent4000, scanViaAgent4000, renderAgentCertificate, hasExtensionBridgeConfigured, pickFolderViaExtensionBridge as requestExtensionFolderPick, shouldProbeLocalAgent } from '../services/localAgentService.js?v=20260715hosted1';
-import { runSandboxedDirectoryScan, isDroppedFolder, scanDroppedItems, captureDroppedEntry } from '../services/browserSandboxScanService.js?v=20260713dropfix7';
+import { runSandboxedDirectoryScan, isDroppedFolder, scanDroppedItems, captureDroppedEntry } from '../services/browserSandboxScanService.js?v=20260715iframefix3';
 function isRemoteDashboardHost() {
     return typeof window !== 'undefined' && !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
 }
@@ -212,7 +212,7 @@ async function runSandboxedScanForDashboard(onLocalScanResult, container) {
         }
     }
     catch (err) {
-        const msg = err.message || 'Sandbox scan failed';
+        let msg = err.message || 'Sandbox scan failed';
         if (err && err.name === 'AbortError') {
             if (dropzone) {
                 dropzone.classList.remove('is-scanning');
@@ -220,7 +220,18 @@ async function runSandboxedScanForDashboard(onLocalScanResult, container) {
             }
             return;
         }
-        showToast(msg, 'error');
+        if (isFilePickerBlockedError(err)) {
+            msg = filePickerBlockedMessage();
+            showToast(msg, 'warning', { duration: 12000 });
+            const browseInput = root.querySelector('#scan-browse-input') || root.querySelector('#browse-dir-input');
+            if (browseInput) {
+                browseInput.value = '';
+                browseInput.click();
+            }
+        }
+        else {
+            showToast(msg, 'error');
+        }
         if (errorMessage)
             errorMessage.textContent = msg;
         if (dropzone) {
@@ -957,7 +968,12 @@ export function bindScanStatus(container, options = {}) {
             }
             catch (err) {
                 if (err.name !== 'AbortError') {
-                    console.warn('[ScanStatus] Directory picker failed:', err);
+                    if (isFilePickerBlockedError(err)) {
+                        showToast(filePickerBlockedMessage(), 'warning', { duration: 10000 });
+                    }
+                    else {
+                        console.warn('[ScanStatus] Directory picker failed:', err);
+                    }
                 }
                 // Fall through to file input fallback
             }
@@ -987,6 +1003,18 @@ export function bindScanStatus(container, options = {}) {
     });
     const sandboxPickerBtn = container.querySelector('#trigger-native-picker');
     sandboxPickerBtn === null || sandboxPickerBtn === void 0 ? void 0 : sandboxPickerBtn.addEventListener('click', () => {
+        if (!canUseDirectoryPicker()) {
+            const browseInput = container.querySelector('#scan-browse-input')
+                || container.querySelector('#browse-dir-input');
+            if (browseInput) {
+                showToast('Embedded dashboard — using legacy folder dialog.', 'info', { duration: 8000 });
+                browseInput.value = '';
+                browseInput.click();
+                return;
+            }
+            showToast(filePickerBlockedMessage(), 'warning', { duration: 12000 });
+            return;
+        }
         void runSandboxedScanForDashboard(onLocalScanResult, container);
     });
     input === null || input === void 0 ? void 0 : input.addEventListener('input', () => {

@@ -1,4 +1,4 @@
-import { fetchAnalyzeProviders, normalizeProjectPath } from '../services/analyzeService.js?v=20260531pathfix1';
+import { fetchAnalyzeProviders, normalizeProjectPath, shouldClearHostedServerDefaultPath } from '../services/analyzeService.js?v=20260714renderfix1';
 import { isRemoteRepoUrl } from './analyzePathSources.js';
 /**
  * Is path within allowed roots.
@@ -58,7 +58,7 @@ export async function ensureAllowedAnalysisRoots(app) {
         if (app === null || app === void 0 ? void 0 : app.state) {
             app.state.allowedAnalysisRoots = info.allowedAnalysisRoots || [];
             app.state.allowedAnalysisRootsSummary = info.allowedAnalysisRootsSummary || '';
-            if (info.defaultProjectPath && !app.state.defaultProjectPath) {
+            if (info.defaultProjectPath && !app.state.defaultProjectPath && !shouldClearHostedServerDefaultPath(info.defaultProjectPath)) {
                 app.state.defaultProjectPath = info.defaultProjectPath;
             }
         }

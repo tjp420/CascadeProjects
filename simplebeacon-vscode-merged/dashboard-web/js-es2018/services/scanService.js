@@ -4,7 +4,7 @@ import { authService } from './authService.js?v=20260713sync6';
 import { isDemoMode, DEMO_API_BASE } from '../demoMode.js';
 import { readJsonResponseBody } from '../lib/recoverable-fetch.js';
 import { buildDashboardExportBundle } from '../utils/dashboard-export.browser.js?v=20260616demodashboard1';
-import { isLocalPath, fetchScanProgressViaAgent, fetchScanProgressViaExtensionBridge, hasExtensionBridgeConfigured, probeAgent } from './localAgentService.js?v=20260714hosted2';
+import { isLocalPath, fetchScanProgressViaAgent, fetchScanProgressViaExtensionBridge, hasExtensionBridgeConfigured, probeAgent, shouldProbeLocalAgent } from './localAgentService.js?v=20260715hosted1';
 import { apiBaseUrl } from '../utils-lib/url.js';
 /**
  * Upgrade a v1 ("version": "1.0.0" and no reportVersion) scan report so the
@@ -383,7 +383,7 @@ export class ScanService {
                 /* fall through */
             }
         }
-        if (isLocalPath(safePath)) {
+        if (isLocalPath(safePath) && shouldProbeLocalAgent()) {
             try {
                 const agentStatus = await probeAgent();
                 if (agentStatus.available) {

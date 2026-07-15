@@ -11,8 +11,7 @@
     "sourceMap": false,
     "skipLibCheck": true,
     "esModuleInterop": false,
-    "resolveJsonModule": false,
-    "noEmit": true
+    "resolveJsonModule": false
   },
   "include": ["js/**/*"],
   "exclude": ["node_modules"]

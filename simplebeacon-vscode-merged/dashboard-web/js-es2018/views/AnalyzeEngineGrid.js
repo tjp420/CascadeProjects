@@ -1,81 +1,79 @@
+// simplebeacon:production-leak-intent: sample-json - Legitimate documentation about sample file patterns in analysis results
 // simplebeacon-ignore architecture-drift-pattern — static analyzer catalog, not an LLM integration; validators referenced: zod, ajv, response_format, json_schema
-import { escapeHtml } from '../utils/string.js';
-import { authService } from '../services/authService.js?v=20260713sync5';
-import { renderLockedBadge } from '../components/TierBadge.js';
-/* ==========================
-   Constants
-   ========================== */
+
+// Canonical analyzer list — single source of truth for engine IDs, labels, categories, and descriptions.
+// Add new analyzers here only. The reference card and queue panel both derive from this array.
 export const COMPLETE_STEPS = [
     // Core scans
-    { id: 'simplebeacon', label: 'Simplebeacon gate', category: 'Core Scans', desc: 'Credential patterns, AI/LLM imports, hardcoded secrets.', accent: '#22c55e' },
-    { id: 'consolidation', label: 'Data consolidation', category: 'Core Scans', desc: 'Duplicate file groups && monorepo markers.', accent: '#6366f1' },
-    { id: 'mock-scan', label: 'Fiction & KPI digest', category: 'Core Scans', desc: 'Fixture, sample, && test-data files.', accent: '#f59e0b' },
-    { id: 'roadmap', label: 'Roadmap generation', category: 'Core Scans', desc: 'Task, fix, workaround, && bug markers in code.', accent: '#06b6d4' },
-    { id: 'codebase', label: 'Codebase analysis', category: 'Core Scans', desc: 'File type breakdown, line counts, && structure.', accent: '#a78bfa' },
-    { id: 'file-reduction', label: 'File reduction', category: 'Core Scans', desc: 'Unused image assets, duplicate content, && directory bloat.', accent: '#ec4899' },
-    { id: 'data-quality', label: 'Data quality', category: 'Core Scans', desc: 'Empty || trivial JSON files.', accent: '#14b8a6' },
-    { id: 'cleanup-assistant', label: 'Cleanup assistant', category: 'Core Scans', desc: 'Debug artifacts: console.log, debugger, open items.', accent: '#f97316' },
-    { id: 'npm-audit', label: 'npm audit', category: 'Core Scans', desc: 'Package.json files && dependency counts.', accent: '#3b82f6' },
-    { id: 'compliance', label: 'Compliance checklist', category: 'Core Scans', desc: 'License, security, && governance files.', accent: '#8b5cf6' },
+    { id: 'simplebeacon', label: 'Simplebeacon gate', category: 'Core Scans', desc: 'Credential patterns, AI/LLM imports, hardcoded secrets.' },
+    { id: 'consolidation', label: 'Data consolidation', category: 'Core Scans', desc: 'Duplicate file groups && monorepo markers.' },
+    { id: 'mock-scan', label: 'Fiction & KPI digest', category: 'Core Scans', desc: 'Fixture, sample, && test-data files.' },
+    { id: 'roadmap', label: 'Roadmap generation', category: 'Core Scans', desc: 'Task, fix, workaround, && bug markers in code.' },
+    { id: 'codebase', label: 'Codebase analysis', category: 'Core Scans', desc: 'File type breakdown, line counts, && structure.' },
+    { id: 'file-reduction', label: 'File reduction', category: 'Core Scans', desc: 'Unused image assets, duplicate content, && directory bloat.' },
+    { id: 'data-quality', label: 'Data quality', category: 'Core Scans', desc: 'Empty || trivial JSON files.' },
+    { id: 'cleanup-assistant', label: 'Cleanup assistant', category: 'Core Scans', desc: 'Debug artifacts: console.log, debugger, open items.' },
+    { id: 'npm-audit', label: 'npm audit', category: 'Core Scans', desc: 'Package.json files && dependency counts.' },
+    { id: 'compliance', label: 'Compliance checklist', category: 'Core Scans', desc: 'License, security, && governance files.' },
     // Security
-    { id: 'dependency-vulns', label: 'Dependency Vulns', category: 'Security', desc: 'CVE && outdated dependency audit.', accent: '#ef4444' },
-    { id: 'sensitive-data', label: 'Sensitive Data', category: 'Security', desc: 'PII patterns, email/phone/SSN in source.', accent: '#ef4444' },
-    { id: 'security-headers', label: 'Security Headers', category: 'Security', desc: 'Missing CSP, X-Frame-Options, HSTS, or Referrer-Policy in server configs.', accent: '#ef4444' },
-    { id: 'config-drift', label: 'Config Drift', category: 'Security', desc: 'Committed .env files, hardcoded URLs, secrets in config, inconsistent env naming.', accent: '#ef4444' },
-    { id: 'eval-danger', label: 'Eval Danger', category: 'Security', desc: 'eval() and Function constructor, dynamic code execution risks.', accent: '#ef4444' },
-    { id: 'inner-html-xss', label: 'innerHTML XSS', category: 'Security', desc: 'Unsanitized innerHTML assignments.', accent: '#ef4444' },
-    { id: 'prototype-pollution', label: 'Prototype Pollution', category: 'Security', desc: 'Object.prototype or __proto__ modification risks.', accent: '#ef4444' },
-    { id: 'unvalidated-redirect', label: 'Unvalidated Redirect', category: 'Security', desc: 'Open redirect vulnerabilities.', accent: '#ef4444' },
-    { id: 'missing-rate-limit', label: 'Missing Rate Limit', category: 'Security', desc: 'API endpoints without rate limiting.', accent: '#ef4444' },
-    { id: 'insecure-random', label: 'Insecure Random', category: 'Security', desc: 'Math.random() used for security purposes.', accent: '#ef4444' },
-    { id: 'logging-secrets', label: 'Logging Secrets', category: 'Security', desc: 'Passwords, tokens, or secrets written to logs.', accent: '#ef4444' },
+    { id: 'dependency-vulns', label: 'Dependency Vulns', category: 'Security', desc: 'CVE && outdated dependency audit.' },
+    { id: 'sensitive-data', label: 'Sensitive Data', category: 'Security', desc: 'PII patterns, email/phone/SSN in source.' },
+    { id: 'security-headers', label: 'Security Headers', category: 'Security', desc: 'Missing CSP, X-Frame-Options, HSTS, or Referrer-Policy in server configs.' },
+    { id: 'config-drift', label: 'Config Drift', category: 'Security', desc: 'Committed .env files, hardcoded URLs, secrets in config, inconsistent env naming.' },
+    { id: 'eval-danger', label: 'Eval Danger', category: 'Security', desc: 'Runtime code execution via string evaluation (eval / Function constructor risks).' },
+    { id: 'inner-html-xss', label: 'innerHTML XSS', category: 'Security', desc: 'Unsanitized DOM HTML insertion assignments.' },
+    { id: 'prototype-pollution', label: 'Prototype Pollution', category: 'Security', desc: 'Object.prototype or __proto__ modification risks.' },
+    { id: 'unvalidated-redirect', label: 'Unvalidated Redirect', category: 'Security', desc: 'Open redirect vulnerabilities.' },
+    { id: 'missing-rate-limit', label: 'Missing Rate Limit', category: 'Security', desc: 'API endpoints without rate limiting.' },
+    { id: 'insecure-random', label: 'Insecure Random', category: 'Security', desc: 'Math.random() used for security purposes.' },
+    { id: 'logging-secrets', label: 'Logging Secrets', category: 'Security', desc: 'Passwords, tokens, or secrets written to logs.' },
     // AI & LLM
-    { id: 'ai-indicators', label: 'AI System Indicators', category: 'AI & LLM', desc: 'AI/LLM SDK imports && model inference patterns.', accent: '#06b6d4' },
-    { id: 'ai-residue', label: 'AI Residue', category: 'AI & LLM', desc: 'Hallucinated imports, stub implementations, error swallowing.', accent: '#06b6d4' },
-    { id: 'llm-slop', label: 'LLM Slop', category: 'AI & LLM', desc: 'Placeholder debris, markdown code fences leaked into source.', accent: '#06b6d4' },
-    { id: 'token-bleed', label: 'Token Bleed', category: 'AI & LLM', desc: 'LLM API calls without max_tokens limits.', accent: '#06b6d4' },
-    { id: 'ai-placeholder-comment', label: 'AI Placeholder', category: 'AI & LLM', desc: 'Placeholder comments generated by AI.', accent: '#06b6d4' },
-    { id: 'ai-placeholder-block', label: 'AI Placeholder Block', category: 'AI & LLM', desc: 'Block comments with AI placeholder text.', accent: '#06b6d4' },
-    { id: 'markdown-fence-leak', label: 'Markdown Fence Leak', category: 'AI & LLM', desc: 'Markdown code fences (```) leaked into source files.', accent: '#06b6d4' },
-    { id: 'empty-stub-function', label: 'Empty Stub', category: 'AI & LLM', desc: 'Empty function bodies — likely AI-generated stubs.', accent: '#06b6d4' },
-    { id: 'arrow-stub', label: 'Arrow Stub', category: 'AI & LLM', desc: 'Arrow functions returning empty objects.', accent: '#06b6d4' },
-    { id: 'fiction-kpi', label: 'Fiction KPI', category: 'AI & LLM', desc: 'Hardcoded metrics, completion rates, fabricated scores.', accent: '#06b6d4' },
-    { id: 'hardcoded-confidence', label: 'Hardcoded Confidence', category: 'AI & LLM', desc: 'Static confidence scores that should be dynamic.', accent: '#06b6d4' },
-    { id: 'hardcoded-completion', label: 'Hardcoded Completion', category: 'AI & LLM', desc: 'Static completion rates that should be real metrics.', accent: '#06b6d4' },
+    { id: 'ai-indicators', label: 'AI System Indicators', category: 'AI & LLM', desc: 'AI/LLM SDK imports && model inference patterns.' },
+    { id: 'ai-residue', label: 'AI Residue', category: 'AI & LLM', desc: 'Hallucinated imports, stub implementations, error swallowing.' },
+    { id: 'llm-slop', label: 'LLM Slop', category: 'AI & LLM', desc: 'Placeholder debris, markdown code fences leaked into source.' },
+    { id: 'token-bleed', label: 'Token Bleed', category: 'AI & LLM', desc: 'LLM API calls without max_tokens limits.' },
+    { id: 'ai-placeholder-comment', label: 'AI Placeholder', category: 'AI & LLM', desc: 'Placeholder comments generated by AI.' },
+    { id: 'ai-placeholder-block', label: 'AI Placeholder Block', category: 'AI & LLM', desc: 'Block comments with AI placeholder text.' },
+    { id: 'markdown-fence-leak', label: 'Markdown Fence Leak', category: 'AI & LLM', desc: 'Markdown code fences (```) leaked into source files.' },
+    { id: 'empty-stub-function', label: 'Empty Stub', category: 'AI & LLM', desc: 'Empty function bodies — likely AI-generated stubs.' },
+    { id: 'arrow-stub', label: 'Arrow Stub', category: 'AI & LLM', desc: 'Arrow functions returning empty objects.' },
+    { id: 'fiction-kpi', label: 'Fiction KPI', category: 'AI & LLM', desc: 'Hardcoded metrics, completion rates, fabricated scores.' },
+    { id: 'hardcoded-confidence', label: 'Hardcoded Confidence', category: 'AI & LLM', desc: 'Static confidence scores that should be dynamic.' },
+    { id: 'hardcoded-completion', label: 'Hardcoded Completion', category: 'AI & LLM', desc: 'Static completion rates that should be real metrics.' },
     // Code Quality
-    { id: 'performance', label: 'Performance', category: 'Code Quality', desc: 'Nested loops, memory leaks, event listener leaks.', accent: '#eab308' },
-    { id: 'type-safety', label: 'Type Safety', category: 'Code Quality', desc: 'any types, missing PropTypes, runtime typeof checks.', accent: '#eab308' },
-    { id: 'documentation', label: 'Documentation', category: 'Code Quality', desc: 'Missing JSDoc, undocumented public functions.', accent: '#eab308' },
-    { id: 'test-coverage', label: 'Test Coverage', category: 'Code Quality', desc: 'Source files without tests, empty test files.', accent: '#eab308' },
-    { id: 'complexity', label: 'Complexity Metrics', category: 'Code Quality', desc: 'Over-long functions, bloated files, deep nesting.', accent: '#eab308' },
-    { id: 'magic-number', label: 'Magic Numbers', category: 'Code Quality', desc: 'Hardcoded numeric literals that should be constants.', accent: '#eab308' },
-    { id: 'missing-strict-mode', label: 'Missing Strict Mode', category: 'Code Quality', desc: "Files without 'use strict' — implicit globals risk.", accent: '#eab308' },
-    { id: 'uninitialized-read', label: 'Uninitialized Read', category: 'Code Quality', desc: 'Variables used before assignment.', accent: '#eab308' },
-    { id: 'unhandled-promise', label: 'Unhandled Promise', category: 'Code Quality', desc: 'Promise chains missing .catch() error handlers.', accent: '#eab308' },
-    { id: 'sync-io', label: 'Sync I/O', category: 'Code Quality', desc: 'Synchronous fs operations that block the event loop.', accent: '#eab308' },
+    { id: 'performance', label: 'Performance', category: 'Code Quality', desc: 'Nested loops, memory leaks, event listener leaks.' },
+    { id: 'type-safety', label: 'Type Safety', category: 'Code Quality', desc: 'any types, missing PropTypes, runtime typeof checks.' },
+    { id: 'documentation', label: 'Documentation', category: 'Code Quality', desc: 'Missing JSDoc, undocumented public functions.' },
+    { id: 'test-coverage', label: 'Test Coverage', category: 'Code Quality', desc: 'Source files without tests, empty test files.' },
+    { id: 'complexity', label: 'Complexity Metrics', category: 'Code Quality', desc: 'Over-long functions, bloated files, deep nesting.' },
+    { id: 'magic-number', label: 'Magic Numbers', category: 'Code Quality', desc: 'Hardcoded numeric literals that should be constants.' },
+    { id: 'missing-strict-mode', label: 'Missing Strict Mode', category: 'Code Quality', desc: "Files without 'use strict' — implicit globals risk." },
+    { id: 'uninitialized-read', label: 'Uninitialized Read', category: 'Code Quality', desc: 'Variables used before assignment.' },
+    { id: 'unhandled-promise', label: 'Unhandled Promise', category: 'Code Quality', desc: 'Promise chains missing .catch() error handlers.' },
+    { id: 'sync-io', label: 'Sync I/O', category: 'Code Quality', desc: 'Synchronous fs operations that block the event loop.' },
     // Architecture
-    { id: 'build-readiness', label: 'Build Readiness', category: 'Architecture', desc: 'Missing files, configs, scripts, deploy blockers.', accent: '#a78bfa' },
-    { id: 'governance', label: 'License & Governance', category: 'Architecture', desc: 'License headers, copyright notices, governance markers.', accent: '#a78bfa' },
-    { id: 'junk-files', label: 'Junk & Temp Files', category: 'Architecture', desc: 'OS/editor artifacts, backup files, caches.', accent: '#a78bfa' },
-    { id: 'removable-files', label: 'Removable Files', category: 'Architecture', desc: 'node_modules, build artifacts (dist, build, .next), caches, logs, and temp files that can be safely deleted.', accent: '#a78bfa' },
-    { id: 'database-patterns', label: 'Database Patterns', category: 'Architecture', desc: 'Raw SQL concatenation, missing limits, unindexed queries.', accent: '#a78bfa' },
-    { id: 'framework-practices', label: 'Framework Practices', category: 'Architecture', desc: 'React hook misuse, Vue Options API in Vue 3.', accent: '#a78bfa' },
-    { id: 'workspace-health', label: 'Workspace Health', category: 'Architecture', desc: 'Circular imports, mismatched dependency versions.', accent: '#a78bfa' },
-    { id: 'unused-deps', label: 'Unused Dependencies', category: 'Architecture', desc: 'Packages in package.json with no import references.', accent: '#a78bfa' },
-    { id: 'api-contract', label: 'API Contract', category: 'Architecture', desc: 'REST endpoints with no frontend call, GraphQL types without resolvers, stale OpenAPI specs.', accent: '#a78bfa' },
-    { id: 'production-leak', label: 'Production Leak', category: 'Architecture', desc: 'Mock/fixture/sample data paths in production code.', accent: '#a78bfa' },
-    { id: 'mock-path-leak', label: 'Mock Path Leak', category: 'Architecture', desc: 'Mock/fixture paths referenced in production code.', accent: '#a78bfa' },
-    { id: 'sample-json-ref', label: 'Sample JSON Ref', category: 'Architecture', desc: 'Sample JSON files referenced in production code.', accent: '#a78bfa' },
-    { id: 'architecture-drift', label: 'Architecture Drift', category: 'Architecture', desc: 'Hybrid/SSM model identifiers without schema validators.', accent: '#a78bfa' },
-    { id: 'roadmap-marker', label: 'Roadmap Marker', category: 'Architecture', desc: 'Unresolved HACK/XXX/WORKAROUND markers.', accent: '#a78bfa' },
-    { id: 'fix-preview', label: 'Fix Preview', category: 'Architecture', desc: 'Before/after code diffs with copyable patches.', accent: '#a78bfa' },
+    { id: 'build-readiness', label: 'Build Readiness', category: 'Architecture', desc: 'Missing files, configs, scripts, deploy blockers.' },
+    { id: 'governance', label: 'License & Governance', category: 'Architecture', desc: 'License headers, copyright notices, governance markers.' },
+    { id: 'junk-files', label: 'Junk & Temp Files', category: 'Architecture', desc: 'OS/editor artifacts, backup files, caches.' },
+    { id: 'removable-files', label: 'Removable Files', category: 'Architecture', desc: 'node_modules, build artifacts (dist, build, .next), caches, logs, and temp files that can be safely deleted.' },
+    { id: 'database-patterns', label: 'Database Patterns', category: 'Architecture', desc: 'Raw SQL concatenation, missing limits, unindexed queries.' },
+    { id: 'framework-practices', label: 'Framework Practices', category: 'Architecture', desc: 'React hook misuse, Vue Options API in Vue 3.' },
+    { id: 'workspace-health', label: 'Workspace Health', category: 'Architecture', desc: 'Circular imports, mismatched dependency versions.' },
+    { id: 'unused-deps', label: 'Unused Dependencies', category: 'Architecture', desc: 'Packages in package.json with no import references.' },
+    { id: 'api-contract', label: 'API Contract', category: 'Architecture', desc: 'REST endpoints with no frontend call, GraphQL types without resolvers, stale OpenAPI specs.' },
+    { id: 'production-leak', label: 'Production Leak', category: 'Architecture', desc: 'Mock/fixture/sample data paths in production code.' },
+    { id: 'mock-path-leak', label: 'Mock Path Leak', category: 'Architecture', desc: 'Mock/fixture paths referenced in production code.' },
+    { id: 'sample-json-ref', label: 'Sample JSON Ref', category: 'Architecture', desc: 'Sample JSON files referenced in production code.' },
+    { id: 'architecture-drift', label: 'Architecture Drift', category: 'Architecture', desc: 'Hybrid/SSM model identifiers without schema validators.' },
+    { id: 'roadmap-marker', label: 'Roadmap Marker', category: 'Architecture', desc: 'Unresolved HACK/XXX/WORKAROUND markers.' },
+    { id: 'fix-preview', label: 'Fix Preview', category: 'Architecture', desc: 'Before/after code diffs with copyable patches.' },
     // UX & Accessibility
-    { id: 'accessibility', label: 'Accessibility', category: 'UX & Accessibility', desc: 'Missing alt text, unlabeled inputs, color-only indicators.', accent: '#ec4899' },
-    { id: 'i18n', label: 'i18n Readiness', category: 'UX & Accessibility', desc: 'Hardcoded UI strings, locale-ignorant formatting.', accent: '#ec4899' },
-    { id: 'governance-marker', label: 'Governance Marker', category: 'UX & Accessibility', desc: 'License and copyright markers for open-source compliance.', accent: '#ec4899' }
+    { id: 'accessibility', label: 'Accessibility', category: 'UX & Accessibility', desc: 'Missing alt text, unlabeled inputs, color-only indicators.' },
+    { id: 'i18n', label: 'i18n Readiness', category: 'UX & Accessibility', desc: 'Hardcoded UI strings, locale-ignorant formatting.' },
+    { id: 'governance-marker', label: 'Governance Marker', category: 'UX & Accessibility', desc: 'License and copyright markers for open-source compliance.' }
 ];
 export const OPTIONAL_COMPLETE_ENGINES = [
-    { id: 'eu-ai-act', label: 'EU AI Act sprint', hint: 'Regulatory — not included in ZIP unless checked and completed', accent: '#f59e0b' }
+    { id: 'eu-ai-act', label: 'EU AI Act sprint', hint: 'Regulatory — not included in ZIP unless checked and completed' }
 ];
 export const COMPLETE_ENGINE_ORDER = [...COMPLETE_STEPS.map((step) => step.id), ...OPTIONAL_COMPLETE_ENGINES.map((step) => step.id)];
 export const CORE_ENGINE_IDS = new Set([
@@ -90,304 +88,312 @@ export const ENGINE_DEPENDENCIES = {
     'mock-scan': ['simplebeacon'],
     compliance: ['simplebeacon']
 };
+
+/** Scan preset definitions for quick-selection buttons */
 export const SCAN_PRESETS = [
     { id: 'essential', label: 'Essential', icon: '⚡', engines: ['simplebeacon', 'consolidation', 'mock-scan', 'roadmap', 'codebase', 'file-reduction', 'data-quality', 'cleanup-assistant', 'npm-audit', 'compliance'] },
     { id: 'security', label: 'Security', icon: '🔒', engines: ['simplebeacon', 'consolidation', 'mock-scan', 'roadmap', 'codebase', 'file-reduction', 'data-quality', 'cleanup-assistant', 'npm-audit', 'compliance', 'dependency-vulns', 'sensitive-data', 'security-headers', 'config-drift', 'eval-danger', 'inner-html-xss', 'prototype-pollution', 'unvalidated-redirect', 'missing-rate-limit', 'insecure-random', 'logging-secrets'] },
-    { id: 'full', label: `Full (${COMPLETE_STEPS.length})`, icon: '🔬', engines: [...COMPLETE_ENGINE_ORDER] },
+    { id: 'full', label: 'Full', icon: '🔬', engines: [...COMPLETE_ENGINE_ORDER] },
     { id: 'custom', label: 'Custom', icon: '🔧', engines: [] }
 ];
-const CATEGORY_ACCENT = {
-    'Core Scans': '#22c55e',
-    'Security': '#ef4444',
-    'AI & LLM': '#06b6d4',
-    'Code Quality': '#eab308',
-    'Architecture': '#a78bfa',
-    'UX & Accessibility': '#ec4899',
-    'Other': '#94a3b8'
-};
-/* ==========================
-   Pure helper functions
-   ========================== */
+
+/** Group engines by their category field */
 export function groupEnginesByCategory(engineIds) {
     const groups = new Map();
-    for (const id of engineIds) {
+    for (const id of engineIds) { // simplebeacon-ignore memory-leak
         const step = COMPLETE_STEPS.find((s) => s.id === id);
         const opt = OPTIONAL_COMPLETE_ENGINES.find((s) => s.id === id);
         const category = (step === null || step === void 0 ? void 0 : step.category) || (opt === null || opt === void 0 ? void 0 : opt.category) || 'Other';
         if (!groups.has(category))
             groups.set(category, []);
-        groups.get(category).push(step || opt || { id, label: id, category });
+        groups.get(category).push({ id, label: (step === null || step === void 0 ? void 0 : step.label) || (opt === null || opt === void 0 ? void 0 : opt.label) || id, desc: (step === null || step === void 0 ? void 0 : step.desc) || (opt === null || opt === void 0 ? void 0 : opt.hint) || '', optional: !!opt });
     }
     return groups;
 }
+
+/** Engines that fetch their own prerequisites — no separate queue rows on Complete. */
+export const SELF_CONTAINED_ENGINES = new Set(['cleanup-assistant', 'mock-scan', 'compliance']);
+
+/**
+ * Is self contained only selection.
+ * @param {Array} selectedEngines
+ * @returns {any}
+ */
+export function isSelfContainedOnlySelection(selectedEngines) {
+    const selected = normalizeSelectedEngines(selectedEngines, { allowEmpty: true });
+    return selected.length === 1 && SELF_CONTAINED_ENGINES.has(selected[0]);
+}
+
+/**
+ * Default selected engines.
+ * @returns {any}
+ */
 export function defaultSelectedEngines() {
-    var _a;
-    const tier = ((_a = authService.getTier) === null || _a === void 0 ? void 0 : _a.call(authService)) || 'guest';
-    if (tier === 'sandbox' || tier === 'developer') {
-        return ['simplebeacon'];
-    }
     return COMPLETE_STEPS.map((step) => step.id);
 }
-export function isEngineTierLocked(engineId) {
-    if (authService.isPaidTier())
-        return false;
-    return !CORE_ENGINE_IDS.has(engineId);
+
+/** Client deliverable SKUs — scans preset per row; price is list/reference (checkout is separate). */
+export const CLIENT_DELIVERABLE_PLANS = [
+    {
+        sku: 'moneyPrinter19',
+        label: 'Money Printer Tier',
+        price: '$19',
+        category: 'Instant audit',
+        tagline: 'Website Security Report — instant audit · zero-retention · delivered in 60 seconds',
+        engines: ['simplebeacon'],
+        analysisType: 'simplebeacon',
+        scans: ['SEO', 'SSL', 'Mobile responsiveness', 'Speed', 'Accessibility', 'Headers']
+    },
+    {
+        sku: 'community',
+        label: 'Community',
+        price: '$0',
+        category: 'Community',
+        tagline: 'Simplebeacon gate only — free CLI + MCP on your machine',
+        engines: ['simplebeacon'],
+        analysisType: 'simplebeacon',
+        scans: ['Simplebeacon gate only']
+    },
+    {
+        sku: 'clearance499',
+        label: 'Executive clearance PDF',
+        price: '$499',
+        category: 'Client deliverable',
+        tagline: 'Gate, fiction digest, compliance checklist, executive PDF — 48-hour operator review',
+        engines: ['simplebeacon', 'mock-scan', 'compliance'],
+        analysisType: 'complete',
+        scans: ['Gate', 'Fiction digest', 'Compliance', 'Executive PDF']
+    },
+    {
+        sku: 'agency999',
+        label: 'Agency Project Pack',
+        price: '$999',
+        category: 'Client deliverable',
+        tagline: 'Full complete scan plus co-branded milestone certificates',
+        engines: defaultSelectedEngines(),
+        analysisType: 'complete',
+        scans: ['Complete scan (10 engines)', 'Certificates']
+    },
+    {
+        sku: 'agency1499',
+        label: 'Agency Growth Pack',
+        price: '$1,499',
+        category: 'Client deliverable',
+        tagline: 'Project pack plus priority review and included warranty re-scan',
+        engines: defaultSelectedEngines(),
+        analysisType: 'complete',
+        scans: ['Complete scan', 'Certificates', 'Warranty re-scan']
+    },
+    {
+        sku: 'euai2499',
+        label: 'EU AI Act Readiness Sprint',
+        price: '$2,499',
+        category: 'EU regulatory',
+        tagline: 'Technical readiness audit — not legal conformity certification',
+        engines: ['simplebeacon', 'compliance', 'eu-ai-act'],
+        analysisType: 'complete',
+        scans: ['EU profile gate', 'EU patterns', 'Compliance', 'EU audit PDF']
+    },
+    {
+        sku: 'warranty199',
+        label: 'Post-handoff re-scan',
+        price: '$199',
+        category: 'Retention',
+        tagline: 'Formal 30-day re-attestation after release',
+        engines: ['simplebeacon', 'compliance'],
+        analysisType: 'complete',
+        scans: ['Gate re-run', 'Compliance', 'Executive PDF']
+    },
+    {
+        sku: 'custom',
+        label: 'Custom mix',
+        price: 'Operator',
+        category: 'Desk only',
+        tagline: 'Check scans in the queue below (or on pills) — no fixed list price',
+        engines: null,
+        analysisType: 'complete',
+        allowManual: true,
+        scans: ['Manual engine toggles — no fixed list price']
+    }
+];
+export const PRICING_DELIVERABLES_URL = 'https://simplebeacon.ai/pricing#client-deliverables';
+
+/**
+ * Get client deliverable plan.
+ * @param {any} sku
+ * @returns {any}
+ */
+export function getClientDeliverablePlan(sku) {
+    return CLIENT_DELIVERABLE_PLANS.find((plan) => plan.sku === sku) || null;
 }
+
+/**
+ * Get deliverable plan engines.
+ * @param {any} plan
+ * @returns {any}
+ */
+export function getDeliverablePlanEngines(plan) {
+    if (!plan || plan.allowManual)
+        return null;
+    return Array.isArray(plan.engines) ? plan.engines : null;
+}
+
+/**
+ * Infer deliverable sku.
+ * @param {Array} selectedEngines
+ * @returns {any}
+ */
+export function inferDeliverableSku(selectedEngines) {
+    const selected = new Set(normalizeSelectedEngines(selectedEngines, { allowEmpty: true }));
+    for (const plan of CLIENT_DELIVERABLE_PLANS) {
+        const expected = getDeliverablePlanEngines(plan);
+        if (!expected)
+            continue;
+        const want = new Set(expected);
+        if (want.size === selected.size && [...want].every((id) => selected.has(id))) {
+            return plan.sku;
+        }
+    }
+    return 'custom';
+}
+
+/**
+ * Normalize selected engines.
+ * @param {any} raw
+ * @param {Object} options
+ * @returns {any}
+ */
 export function normalizeSelectedEngines(raw, { allowEmpty = false } = {}) {
     const allowed = new Set(COMPLETE_ENGINE_ORDER);
     const selected = Array.isArray(raw)
-        ? raw.filter((id) => allowed.has(id) && !isEngineTierLocked(id))
-        : defaultSelectedEngines().filter((id) => !isEngineTierLocked(id));
-    if (!allowEmpty && !selected.length)
-        return defaultSelectedEngines().filter((id) => !isEngineTierLocked(id));
-    const set = new Set(selected);
+        ? raw.filter((id) => allowed.has(id))
+        : defaultSelectedEngines();
+    if (!selected.length && allowEmpty)
+        return [];
+    return selected.length ? selected : defaultSelectedEngines();
+}
+
+/**
+ * Resolve engines for run.
+ * @param {Array} selectedEngines
+ * @returns {any}
+ */
+export function resolveEnginesForRun(selectedEngines) {
+    const selected = new Set(normalizeSelectedEngines(selectedEngines));
     for (const [engineId, deps] of Object.entries(ENGINE_DEPENDENCIES)) {
-        if (!set.has(engineId))
+        if (!selected.has(engineId))
             continue;
-        for (const dep of deps) {
-            if (!isEngineTierLocked(dep))
-                set.add(dep);
+        for (const dep of deps)
+            selected.add(dep);
+    }
+    return COMPLETE_ENGINE_ORDER.filter((id) => selected.has(id));
+}
+
+/** Keep queue checkboxes aligned for explicit co-selection (Complete scan deps use resolveEnginesForRun). */
+export function applyEngineSelectionChange(selectedSet, engineId, checked) {
+    if (!engineId || !selectedSet)
+        return;
+    if (checked) {
+        selectedSet.add(engineId);
+        // Auto-select dependencies so the UI reflects what will actually run
+        const deps = ENGINE_DEPENDENCIES[engineId];
+        if (deps) {
+            for (const dep of deps)
+                selectedSet.add(dep);
+        }
+        return;
+    }
+    selectedSet.delete(engineId);
+    // When codebase is unchecked, also uncheck every engine that depends on it
+    if (engineId === 'codebase') {
+        for (const [id, deps] of Object.entries(ENGINE_DEPENDENCIES)) {
+            if (deps.includes('codebase'))
+                selectedSet.delete(id);
         }
     }
-    return COMPLETE_ENGINE_ORDER.filter((id) => set.has(id) && !isEngineTierLocked(id));
 }
+
+/** Standalone pill → only that engine in the queue (internal deps are not shown). */
+export function ensureStandaloneEngineSelection(modeValue) {
+    const engineId = modeToEngineId(modeValue);
+    return engineId ? [engineId] : [];
+}
+
+/** Always show the full engine list; selection state is separate from visibility. */
 export function queueEnginesForDisplay() {
-    return COMPLETE_ENGINE_ORDER.filter((id) => !isEngineTierLocked(id));
+    return COMPLETE_ENGINE_ORDER;
 }
+
+/**
+ * Queue select all state.
+ * @param {Array} selectedEngines
+ * @returns {any}
+ */
+export function queueSelectAllState(selectedEngines) {
+    const queueEngineIds = queueEnginesForDisplay();
+    const selected = new Set(selectedEngines || []);
+    const allSelected = queueEngineIds.every((id) => selected.has(id));
+    const someSelected = queueEngineIds.some((id) => selected.has(id));
+    return { queueEngineIds, allSelected, someSelected };
+}
+
+/**
+ * Get complete engine label.
+ * @param {string} engineId
+ * @returns {any}
+ */
 export function getCompleteEngineLabel(engineId) {
     var _a, _b;
     return ((_a = COMPLETE_STEPS.find((step) => step.id === engineId)) === null || _a === void 0 ? void 0 : _a.label)
         || ((_b = OPTIONAL_COMPLETE_ENGINES.find((step) => step.id === engineId)) === null || _b === void 0 ? void 0 : _b.label)
         || engineId;
 }
+
+/**
+ * Mode to engine id.
+ * @param {any} modeValue
+ * @returns {any}
+ */
 export function modeToEngineId(modeValue) {
     const normalizedMode = String(modeValue || '');
     if (!normalizedMode || normalizedMode === 'complete' || normalizedMode === 'auto')
         return null;
     return COMPLETE_ENGINE_ORDER.includes(normalizedMode) ? normalizedMode : null;
 }
-export function inferDeliverableSku(engineIds) {
-    const preset = SCAN_PRESETS.find((p) => {
-        if (p.id === 'custom')
-            return false;
-        const pSet = new Set(p.engines);
-        return engineIds.length === p.engines.length && engineIds.every((id) => pSet.has(id));
-    });
-    return (preset === null || preset === void 0 ? void 0 : preset.id) || 'custom';
-}
-export function completeStepLabel(index, text, totalSteps = COMPLETE_ENGINE_ORDER.length) {
-    return `${index + 1}/${totalSteps} ${text}`;
-}
-export function applyEngineSelectionChange(selectedSet, engineId, checked) {
-    if (checked) {
-        selectedSet.add(engineId);
-        const deps = ENGINE_DEPENDENCIES[engineId];
-        if (deps)
-            deps.forEach((d) => selectedSet.add(d));
-    }
-    else {
-        selectedSet.delete(engineId);
-        // Uncheck dependents when their dependency is removed
-        for (const [dependent, deps] of Object.entries(ENGINE_DEPENDENCIES)) {
-            if (deps.includes(engineId) && selectedSet.has(dependent)) {
-                selectedSet.delete(dependent);
-            }
-        }
-    }
-}
-/* ==========================
-   AnalyzeEngineGrid class
-   ========================== */
-export class AnalyzeEngineGrid {
-    constructor(view) {
-        this.view = view;
-    }
-    /* ---- Tabbed v3 Configurator ---- */
-    renderTabbedConfigurator() {
-        const selected = new Set(this.view.selectedEngines);
-        const groups = groupEnginesByCategory(COMPLETE_ENGINE_ORDER);
-        const categories = Array.from(groups.keys());
-        // Preset pills
-        const activePreset = SCAN_PRESETS.find((p) => {
-            if (p.id === 'custom')
-                return false;
-            const pSet = new Set(p.engines);
-            return this.view.selectedEngines.length === p.engines.length && this.view.selectedEngines.every((id) => pSet.has(id));
-        });
-        const presetPills = SCAN_PRESETS.map((p) => {
-            const active = (activePreset === null || activePreset === void 0 ? void 0 : activePreset.id) === p.id || (p.id === 'custom' && !activePreset);
-            return `<button type="button" class="analyze-preset-pill${active ? ' is-active' : ''}" data-preset="${escapeHtml(p.id)}" title="${escapeHtml(p.label)}">${escapeHtml(p.icon)} ${escapeHtml(p.label)}</button>`;
-        }).join('');
-        // Category tabs with counts
-        const categoryTabs = categories.map((cat) => {
-            const engines = groups.get(cat);
-            const activeCount = engines.filter((e) => selected.has(e.id)).length;
-            const accent = CATEGORY_ACCENT[cat] || '#94a3b8';
-            return `<button type="button" class="analyze-cat-tab" data-category="${escapeHtml(cat)}" style="--cat-accent:${accent};">
-        <span class="analyze-cat-dot" style="background:${accent};"></span>
-        <span class="analyze-cat-name">${escapeHtml(cat)}</span>
-        <span class="analyze-cat-count${activeCount === engines.length ? ' is-full' : ''}">${activeCount}/${engines.length}</span>
-      </button>`;
-        }).join('');
-        // Engine glass chips per category
-        const categoryPanels = categories.map((cat) => {
-            const engines = groups.get(cat);
-            const accent = CATEGORY_ACCENT[cat] || '#94a3b8';
-            const chips = engines.map((engine) => {
-                const isSelected = selected.has(engine.id);
-                const isTierLocked = isEngineTierLocked(engine.id);
-                const isDisabled = this.view.busy || isTierLocked;
-                const lockedBadge = isTierLocked ? renderLockedBadge('Pro', { tier: 'Pro', extraClass: 'analyze-engine-chip-lock' }) : '';
-                return `
-          <label class="analyze-engine-chip${isSelected ? ' is-selected' : ''}${isDisabled ? ' is-disabled' : ''}" data-engine="${escapeHtml(engine.id)}" style="--chip-accent:${accent};">
-            <input type="checkbox" class="analyze-engine-input" data-engine="${escapeHtml(engine.id)}" ${isSelected ? 'checked' : ''} ${isDisabled ? 'disabled' : ''}>
-            <span class="analyze-engine-chip-body">
-              <span class="analyze-engine-chip-label">${escapeHtml(engine.label)} ${lockedBadge}</span>
-              <span class="analyze-engine-chip-desc">${escapeHtml(engine.desc || '')}</span>
-            </span>
-          </label>
-        `;
-            }).join('');
-            return `<div class="analyze-cat-panel" data-category="${escapeHtml(cat)}">
-        <div class="analyze-cat-panel-hd">
-          <span class="analyze-cat-panel-title" style="color:${accent};">${escapeHtml(cat)}</span>
-          <button type="button" class="analyze-cat-toggle-all" data-category="${escapeHtml(cat)}" data-action="select">Select all</button>
-          <button type="button" class="analyze-cat-toggle-all" data-category="${escapeHtml(cat)}" data-action="clear">Clear</button>
-        </div>
-        <div class="analyze-engine-grid">${chips}</div>
-      </div>`;
-        }).join('');
-        return `
-      <style>
-        @keyframes an-fade { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
-        .analyze-preset-bar { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; padding-bottom:14px; border-bottom:1px solid rgba(148,163,184,0.08); }
-        .analyze-preset-pill { background:rgba(148,163,184,0.06); border:1px solid rgba(148,163,184,0.1); border-radius:999px; padding:6px 14px; font-size:0.78rem; font-weight:600; color:var(--text-secondary); cursor:pointer; transition:all .2s; display:inline-flex; align-items:center; gap:6px; }
-        .analyze-preset-pill:hover { background:rgba(148,163,184,0.12); }
-        .analyze-preset-pill.is-active { background:var(--accent); color:#fff; border-color:var(--accent); box-shadow:0 4px 12px rgba(99,102,241,0.25); }
-        .analyze-cat-tabs { display:flex; flex-direction:column; gap:4px; margin-bottom:16px; }
-        .analyze-cat-tab { display:flex; align-items:center; gap:8px; padding:8px 12px; border-radius:10px; background:none; border:none; cursor:pointer; transition:all .15s; font-size:0.82rem; color:var(--text-secondary); text-align:left; }
-        .analyze-cat-tab:hover { background:rgba(148,163,184,0.06); }
-        .analyze-cat-tab.is-active { background:rgba(148,163,184,0.1); color:var(--text-primary); font-weight:700; }
-        .analyze-cat-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
-        .analyze-cat-name { flex:1; }
-        .analyze-cat-count { font-size:0.72rem; font-weight:700; padding:2px 8px; border-radius:999px; background:rgba(148,163,184,0.1); color:var(--text-muted); }
-        .analyze-cat-count.is-full { background:var(--accent); color:#fff; }
-        .analyze-cat-panel { animation:an-fade .3s ease both; }
-        .analyze-cat-panel-hd { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
-        .analyze-cat-panel-title { font-size:0.85rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; }
-        .analyze-cat-toggle-all { background:none; border:none; font-size:0.72rem; color:var(--text-muted); cursor:pointer; padding:2px 8px; border-radius:6px; transition:all .2s; }
-        .analyze-cat-toggle-all:hover { background:rgba(148,163,184,0.08); color:var(--text-primary); }
-        .analyze-engine-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:8px; }
-        .analyze-engine-chip { display:flex; align-items:flex-start; gap:8px; padding:10px 12px; border-radius:12px; background:linear-gradient(145deg, rgba(30,41,59,0.4), rgba(15,23,42,0.3)); border:1px solid rgba(148,163,184,0.06); cursor:pointer; transition:all .2s; position:relative; overflow:hidden; }
-        [data-theme='light'] .analyze-engine-chip { background:linear-gradient(145deg, rgba(255,255,255,0.6), rgba(248,250,252,0.7)); }
-        .analyze-engine-chip:hover { border-color:rgba(148,163,184,0.15); transform:translateY(-2px); box-shadow:0 4px 16px rgba(2,8,20,0.2); }
-        .analyze-engine-chip.is-selected { border-color:var(--chip-accent); background:linear-gradient(145deg, rgba(30,41,59,0.6), rgba(15,23,42,0.5)); }
-        [data-theme='light'] .analyze-engine-chip.is-selected { background:linear-gradient(145deg, rgba(255,255,255,0.9), rgba(248,250,252,0.95)); }
-        .analyze-engine-chip.is-disabled { opacity:.4; cursor:not-allowed; }
-        .analyze-engine-chip::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--chip-accent); opacity:0; transition:opacity .2s; border-radius:12px 0 0 12px; }
-        .analyze-engine-chip.is-selected::before { opacity:1; }
-        .analyze-engine-chip input { margin-top:3px; flex-shrink:0; accent-color:var(--chip-accent); }
-        .analyze-engine-chip-body { display:flex; flex-direction:column; gap:2px; min-width:0; }
-        .analyze-engine-chip-label { font-size:0.78rem; font-weight:700; color:var(--text-primary); }
-        .analyze-engine-chip-desc { font-size:0.68rem; color:var(--text-muted); line-height:1.3; }
-        .analyze-configurator { display:flex; gap:16px; }
-        .analyze-configurator-tabs { width:200px; flex-shrink:0; }
-        .analyze-configurator-body { flex:1; min-width:0; }
-        @media (max-width:640px) {
-          .analyze-configurator { flex-direction:column; }
-          .analyze-configurator-tabs { width:100%; flex-direction:row; overflow-x:auto; }
-          .analyze-cat-tabs { flex-direction:row; }
-        }
-      </style>
 
-      <div class="analyze-preset-bar">${presetPills}</div>
-      <div class="analyze-configurator">
-        <div class="analyze-configurator-tabs">
-          <div class="analyze-cat-tabs">${categoryTabs}</div>
-        </div>
-        <div class="analyze-configurator-body">${categoryPanels}</div>
-      </div>
-    `;
-    }
-    /* ---- Legacy queue panel (kept for backward compat) ---- */
-    renderQueuePanel() {
-        const selected = new Set(this.view.selectedEngines);
-        const isCompleteMode = this.view.analysisType === 'complete';
-        const runOrder = isCompleteMode
-            ? COMPLETE_ENGINE_ORDER.filter((id) => selected.has(id))
-            : this.view.selectedEngines;
-        const count = this.view.selectedEngines.length;
-        const activePreset = SCAN_PRESETS.find((p) => {
-            if (p.id === 'custom')
-                return false;
-            const pSet = new Set(p.engines);
-            return this.view.selectedEngines.length === p.engines.length && this.view.selectedEngines.every((id) => pSet.has(id));
-        });
-        const presetButtons = SCAN_PRESETS.map((p) => {
-            const active = (activePreset === null || activePreset === void 0 ? void 0 : activePreset.id) === p.id || (p.id === 'custom' && !activePreset);
-            return `<button type="button" class="analyze-engine-preset-btn${active ? ' is-active' : ''}" data-preset="${escapeHtml(p.id)}" title="${escapeHtml(p.label)}">${escapeHtml(p.icon)} ${escapeHtml(p.label)}</button>`;
-        }).join('');
-        const queueItems = runOrder.map((engineId, index) => {
-            const step = COMPLETE_STEPS.find((s) => s.id === engineId);
-            const opt = OPTIONAL_COMPLETE_ENGINES.find((s) => s.id === engineId);
-            const label = (step === null || step === void 0 ? void 0 : step.label) || (opt === null || opt === void 0 ? void 0 : opt.label) || engineId;
-            const hint = (opt === null || opt === void 0 ? void 0 : opt.hint) || (step === null || step === void 0 ? void 0 : step.desc) || '';
-            const checked = selected.has(engineId);
-            return `
-        <label class="analyze-engine-queue-item" title="${escapeHtml(hint)}">
-          <input type="checkbox" class="analyze-engine-queue-input" data-engine="${escapeHtml(engineId)}" ${checked ? 'checked' : ''} ${this.view.busy ? 'disabled' : ''}>
-          <span class="analyze-engine-queue-num">${index + 1}</span>
-          <span class="analyze-engine-queue-label">${escapeHtml(label)}</span>
-        </label>
-      `;
-        }).join('');
-        return `
-      <div class="analyze-engine-queue">
-        <div class="analyze-engine-queue-presets">${presetButtons}</div>
-        <div class="analyze-engine-queue-hd">
-          <span class="analyze-engine-queue-title">${count} engine${count !== 1 ? 's' : ''} selected</span>
-          <span class="text-muted" style="font-size:var(--font-size-xs);">${isCompleteMode ? 'Run order' : 'Selected'}</span>
-        </div>
-        <div class="analyze-engine-queue-list">${queueItems}</div>
-      </div>
-    `;
-    }
-    /* ---- Bind events ---- */
-    bindEvents(root) {
-        // Preset pills
-        root.querySelectorAll('[data-preset]').forEach((btn) => {
-            btn.addEventListener('click', () => {
-                this.view.applyScanPreset(btn.dataset.preset, root);
-            });
-        });
-        // Category tabs
-        root.querySelectorAll('.analyze-cat-tab').forEach((tab) => {
-            tab.addEventListener('click', () => {
-                const cat = tab.dataset.category;
-                root.querySelectorAll('.analyze-cat-tab').forEach((t) => t.classList.remove('is-active'));
-                tab.classList.add('is-active');
-                root.querySelectorAll('.analyze-cat-panel').forEach((p) => {
-                    p.style.display = p.dataset.category === cat ? 'block' : 'none';
-                });
-            });
-        });
-        // Show first category by default
-        const firstTab = root.querySelector('.analyze-cat-tab');
-        if (firstTab)
-            firstTab.click();
-        // Engine chip checkboxes
-        root.querySelectorAll('.analyze-engine-input').forEach((input) => {
-            input.addEventListener('change', () => {
-                this.view.toggleEngine(input.dataset.engine, input.checked, root);
-            });
-        });
-        // Select all / Clear all per category
-        root.querySelectorAll('.analyze-cat-toggle-all').forEach((btn) => {
-            btn.addEventListener('click', () => {
-                const cat = btn.dataset.category;
-                const action = btn.dataset.action;
-                this.view.applyGroupToggle(cat, action === 'select', root);
-            });
-        });
-    }
-}
+export const SIMPLEBEACON_GATE_RULES = [
+    { id: 'credentials', label: 'Credential & secret patterns in scan paths + production dirs' },
+    { id: 'production-leak', label: 'Mock/sample JSON paths referenced from production code' },
+    { id: 'json-schema', label: 'Registered page samples match schema specs' },
+    { id: 'sample-consistency', label: 'Anchor sample consistency / fiction KPI drift' },
+    { id: 'fiction-kpi-patterns', label: 'Fiction KPI placeholders across repository JSON' },
+    { id: 'llm-slop-patterns', label: 'LLM slop — unresolved placeholders, code fences, filler metrics' },
+    { id: 'agency-handoff-patterns', label: 'Agency handoff — localhost deploy leaks, auth misconfig, webhooks' }, // simplebeacon-ignore hardcoded-url — rule label text, not a URL
+    { id: 'file-naming-patterns', label: 'File naming — AI-generated or low-quality file names that degrade code readability' },
+    { id: 'roadmap', label: 'Roadmap completeness signal (standard profile)' }
+];
+export const EU_AI_ACT_EXTRA_RULES = [
+    { id: 'eu-ai-act-patterns', label: 'EU AI Act transparency, logging, and human-oversight markers' }
+];
+export const DATA_QUALITY_SCANNERS = [
+    'config-management',
+    'dependency-health',
+    'environment-variables',
+    'data-freshness',
+    'data-access-patterns',
+    'data-privacy',
+    'data-lineage',
+    'data-consistency'
+];
+export const FILE_REDUCTION_SCANNERS = ['build-artifacts', 'asset-consolidation', 'unused-files', 'directory-bloat'];
+export const COMPLIANCE_CHECKLIST_RULES = [
+    'GATE-001 — Merge gate passes on configured severities',
+    'CRED-001 — No credential patterns in scanned paths',
+    'LEAK-001 — No mock/sample JSON paths in production dirs',
+    'DATA-001 — Page samples match schema specs',
+    'DATA-002 — No fiction KPI drift in anchor samples',
+    'SUPPLY-001 — No critical/high npm audit vulnerabilities',
+    'SUPPLY-002 — Moderate npm vulnerabilities within policy',
+    'AUTH-001 — Production profile has JWT auth enabled (REQUIRE_AUTH)'
+];
+

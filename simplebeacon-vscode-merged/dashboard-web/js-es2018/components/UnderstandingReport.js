@@ -1,4 +1,4 @@
-import { escapeHtml } from '../utils/string.js';
+import { escapeHtml } from '../utils.js';
 /**
  * Render understanding panel.
  * @param {any} codeUnderstanding

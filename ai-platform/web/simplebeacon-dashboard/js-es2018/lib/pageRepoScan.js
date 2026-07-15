@@ -1,5 +1,5 @@
 import { formatPathLabel, redactPathForDisplay, showToast, escapeHtml } from '../utils.js';
-import { refreshLiveReport, normalizeProjectPath, shouldPreferLiveReport, shouldClearHostedServerDefaultPath } from '../services/analyzeService.js?v=20260714renderfix1';
+import { refreshLiveReport, normalizeProjectPath, shouldPreferLiveReport, shouldClearHostedServerDefaultPath } from '../services/analyzeService.js?v=20260715iframefix3';
 import { isDemoMode, demoReadOnlyMessage } from '../demoMode.js';
 import { isBenchmarkCachePath } from '../utils/complete-scan-artifact-profile.browser.js';
 import { isRemoteRepoUrl } from './analyzePathSources.js';

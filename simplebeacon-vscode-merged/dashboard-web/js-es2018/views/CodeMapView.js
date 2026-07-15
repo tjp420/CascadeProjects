@@ -1,9 +1,7 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
-import { escapeHtml } from '../utils/string.js';
-import { formatNumber } from '../utils/number.js';
-import { showToast } from '../utils/dom.js';
-import { scanService } from '../services/scanService.js';
-import { fetchRepositoryInventory, fetchUnderstandSnippet } from '../services/analyzeService.js';
+import { escapeHtml, formatNumber } from '../utils.js';
+import { scanService } from '../services/scanService.js?v=20260711dedup2';
+import { fetchRepositoryInventory } from '../services/analyzeService.js?v=20260710inventory1';
 /**
  * Build a nested tree object from an array of file paths.
  * @param {string[]} paths
@@ -104,7 +102,7 @@ export class CodeMapView {
     }
     async mount(container) {
         this.container = container;
-        container.innerHTML = '<div style="padding:24px;color:var(--text-muted);font-family:Inter,system-ui,sans-serif;">Loading code map…</div>';
+        container.innerHTML = '<div style="padding:24px;color:#888;font-family:Inter,system-ui,sans-serif;">Loading code map…</div>';
         try {
             const projectPath = this.app.state && this.app.state.lastProjectPath;
             const [report, inventory] = await Promise.allSettled([
@@ -116,7 +114,7 @@ export class CodeMapView {
             this.render(projectPath, reportData, inventoryData);
         }
         catch (err) {
-            container.innerHTML = `<div style="padding:24px;color:var(--danger);">Failed to load code map: ${escapeHtml(err.message)}</div>`;
+            container.innerHTML = `<div style="padding:24px;color:#ef4444;">Failed to load code map: ${escapeHtml(err.message)}</div>`;
         }
     }
     render(projectPath, report, inventory) {
@@ -125,76 +123,75 @@ export class CodeMapView {
         const tree = buildTreeFromPaths(filePaths);
         const extensions = countExtensions(filePaths);
         const extEntries = Object.entries(extensions).sort((a, b) => b[1] - a[1]);
-        var _b, _c, _d;
-        const totalFiles = (_b = inventory === null || inventory === void 0 ? void 0 : inventory.totalFiles) !== null && _b !== void 0 ? _b : (filePaths.length !== null && filePaths.length !== undefined ? filePaths.length : 0);
-        const totalFolders = (_c = inventory === null || inventory === void 0 ? void 0 : inventory.totalFolders) !== null && _c !== void 0 ? _c : 0;
-        const qualityScore = (_d = report === null || report === void 0 ? void 0 : report.qualityScore) !== null && _d !== void 0 ? _d : '—';
-        const gatePass = (report && report.gate && report.gate.pass) !== null && (report && report.gate && report.gate.pass) !== undefined ? report.gate.pass : null;
+        const totalFiles = inventory === null || inventory === void 0 ? void 0 : inventory(totalFiles !== null && totalFiles !== undefined ? totalFiles : (filePaths.length !== null && filePaths.length !== undefined ? filePaths.length : 0));
+        const totalFolders = inventory === null || inventory === void 0 ? void 0 : inventory(totalFolders !== null && totalFolders !== undefined ? totalFolders : 0);
+        const qualityScore = report === null || report === void 0 ? void 0 : report(qualityScore !== null && qualityScore !== undefined ? qualityScore : '—');
+        const gatePass = report && ((_a = report.gate) === null || _a === void 0 ? void 0 : _a.call(report, pass !== null && pass !== undefined ? pass : null));
         const hasTree = Object.keys(tree).length > 0;
         const langBars = extEntries.slice(0, 8).map(([ext, count]) => {
             const pct = totalFiles > 0 ? Math.round((count / totalFiles) * 100) : 0;
             return `
         <div style="display:flex;align-items:center;gap:8px;margin:4px 0;font-size:12px;">
-          <span style="width:60px;text-transform:uppercase;font-weight:600;color:var(--text-secondary);">${escapeHtml(ext)}</span>
-          <div style="flex:1;height:18px;background:var(--surface-hover);border-radius:4px;overflow:hidden;">
-            <div style="width:${pct}%;height:100%;background:var(--primary);border-radius:4px;"></div>
+          <span style="width:60px;text-transform:uppercase;font-weight:600;color:#94a3b8;">${escapeHtml(ext)}</span>
+          <div style="flex:1;height:18px;background:#1e293b;border-radius:4px;overflow:hidden;">
+            <div style="width:${pct}%;height:100%;background:#3b82f6;border-radius:4px;"></div>
           </div>
-          <span style="width:50px;text-align:right;color:var(--text-secondary);font-variant-numeric:tabular-nums;">${formatNumber(count)}</span>
+          <span style="width:50px;text-align:right;color:#cbd5e1;font-variant-numeric:tabular-nums;">${formatNumber(count)}</span>
         </div>
       `;
         }).join('');
         const treeHtml = hasTree
             ? Object.keys(tree).map(k => renderTreeHtml(tree[k], k, 0)).join('')
-            : '<p style="color:var(--text-muted);font-size:12px;">No file tree available. Run a scan to populate.</p>';
+            : '<p style="color:#64748b;font-size:12px;">No file tree available. Run a scan to populate.</p>';
         const gateBadge = gatePass === true
-            ? '<span style="background:var(--success-bg);color:var(--success);padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">PASS</span>'
+            ? '<span style="background:#10b98133;color:#34d399;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">PASS</span>'
             : gatePass === false
-                ? '<span style="background:var(--danger-bg);color:var(--danger);padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">FAIL</span>'
-                : '<span style="color:var(--text-muted);font-size:11px;">—</span>';
+                ? '<span style="background:#ef444433;color:#f87171;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">FAIL</span>'
+                : '<span style="color:#64748b;font-size:11px;">—</span>';
         this.container.innerHTML = `
-      <div class="codemap-layout" style="display:grid;grid-template-columns:300px 1fr;gap:16px;height:100%;padding:16px;box-sizing:border-box;font-family:Inter,system-ui,sans-serif;">
+      <div style="display:grid;grid-template-columns:300px 1fr;gap:16px;height:100%;padding:16px;box-sizing:border-box;font-family:Inter,system-ui,sans-serif;">
         <!-- Sidebar -->
         <div style="display:flex;flex-direction:column;gap:16px;overflow-y:auto;">
           <!-- Stats -->
-          <div style="background:var(--surface-elevated);border:1px solid var(--border);border-radius:8px;padding:16px;">
-            <h2 style="margin:0 0 12px;font-size:14px;font-weight:700;color:var(--text-primary);">Project</h2>
-            <div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;word-break:break-all;">${escapeHtml(projectPath || 'No project path set')}</div>
+          <div style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;padding:16px;">
+            <h2 style="margin:0 0 12px;font-size:14px;font-weight:700;color:#e2e8f0;">Project</h2>
+            <div style="font-size:12px;color:#94a3b8;margin-bottom:8px;word-break:break-all;">${escapeHtml(projectPath || 'No project path set')}</div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;">
-              <div style="background:var(--surface-hover);border-radius:6px;padding:8px;text-align:center;">
-                <div style="font-size:18px;font-weight:700;color:var(--text-primary);">${formatNumber(totalFiles)}</div>
-                <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;">Files</div>
+              <div style="background:#1e293b;border-radius:6px;padding:8px;text-align:center;">
+                <div style="font-size:18px;font-weight:700;color:#e2e8f0;">${formatNumber(totalFiles)}</div>
+                <div style="font-size:10px;color:#64748b;text-transform:uppercase;">Files</div>
               </div>
-              <div style="background:var(--surface-hover);border-radius:6px;padding:8px;text-align:center;">
-                <div style="font-size:18px;font-weight:700;color:var(--text-primary);">${formatNumber(totalFolders)}</div>
-                <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;">Folders</div>
+              <div style="background:#1e293b;border-radius:6px;padding:8px;text-align:center;">
+                <div style="font-size:18px;font-weight:700;color:#e2e8f0;">${formatNumber(totalFolders)}</div>
+                <div style="font-size:10px;color:#64748b;text-transform:uppercase;">Folders</div>
               </div>
-              <div style="background:var(--surface-hover);border-radius:6px;padding:8px;text-align:center;">
-                <div style="font-size:18px;font-weight:700;color:var(--text-primary);">${qualityScore}</div>
-                <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;">Quality</div>
+              <div style="background:#1e293b;border-radius:6px;padding:8px;text-align:center;">
+                <div style="font-size:18px;font-weight:700;color:#e2e8f0;">${qualityScore}</div>
+                <div style="font-size:10px;color:#64748b;text-transform:uppercase;">Quality</div>
               </div>
-              <div style="background:var(--surface-hover);border-radius:6px;padding:8px;text-align:center;">
-                <div style="font-size:18px;font-weight:700;color:var(--text-primary);">${gateBadge}</div>
-                <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;">Gate</div>
+              <div style="background:#1e293b;border-radius:6px;padding:8px;text-align:center;">
+                <div style="font-size:18px;font-weight:700;color:#e2e8f0;">${gateBadge}</div>
+                <div style="font-size:10px;color:#64748b;text-transform:uppercase;">Gate</div>
               </div>
             </div>
           </div>
 
           <!-- Languages -->
-          <div style="background:var(--surface-elevated);border:1px solid var(--border);border-radius:8px;padding:16px;">
-            <h2 style="margin:0 0 12px;font-size:14px;font-weight:700;color:var(--text-primary);">Languages</h2>
-            ${langBars || '<p style="color:var(--text-muted);font-size:12px;">No language data available.</p>'}
+          <div style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;padding:16px;">
+            <h2 style="margin:0 0 12px;font-size:14px;font-weight:700;color:#e2e8f0;">Languages</h2>
+            ${langBars || '<p style="color:#64748b;font-size:12px;">No language data available.</p>'}
           </div>
         </div>
 
         <!-- Main panel -->
         <div style="display:flex;flex-direction:column;gap:16px;overflow:hidden;">
           <!-- File Tree -->
-          <div style="background:var(--surface-elevated);border:1px solid var(--border);border-radius:8px;padding:16px;flex:1;overflow-y:auto;">
+          <div style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;padding:16px;flex:1;overflow-y:auto;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-              <h2 style="margin:0;font-size:14px;font-weight:700;color:var(--text-primary);">File Tree (${formatNumber(filePaths.length)} files)</h2>
+              <h2 style="margin:0;font-size:14px;font-weight:700;color:#e2e8f0;">File Tree (${formatNumber(filePaths.length)} files)</h2>
               <div style="display:flex;gap:8px;">
-                <button id="codemap-expand-all" style="background:var(--surface-hover);color:var(--text-secondary);border:1px solid var(--border);border-radius:4px;padding:4px 10px;font-size:11px;cursor:pointer;">Expand</button>
-                <button id="codemap-collapse-all" style="background:var(--surface-hover);color:var(--text-secondary);border:1px solid var(--border);border-radius:4px;padding:4px 10px;font-size:11px;cursor:pointer;">Collapse</button>
+                <button id="codemap-expand-all" style="background:#1e293b;color:#94a3b8;border:1px solid #334155;border-radius:4px;padding:4px 10px;font-size:11px;cursor:pointer;">Expand</button>
+                <button id="codemap-collapse-all" style="background:#1e293b;color:#94a3b8;border:1px solid #334155;border-radius:4px;padding:4px 10px;font-size:11px;cursor:pointer;">Collapse</button>
               </div>
             </div>
             <div id="codemap-tree" style="overflow-y:auto;max-height:calc(100% - 40px);">

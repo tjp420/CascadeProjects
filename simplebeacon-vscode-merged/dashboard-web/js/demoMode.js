@@ -5,7 +5,7 @@
 /**
  * D e m o  e m a i l.
  */
-export const DEMO_EMAIL = 'dev@simplebeacon.local';
+export const DEMO_EMAIL = 'dev@simplebeacon.ai';
 // DEMO_PASSWORD removed — token-based auth only, no hardcoded credentials
 
 /**

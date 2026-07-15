@@ -452,20 +452,28 @@ export function renderEmptyState(opts) {
 }
 
 /**
- * True when this page runs inside a cross-origin iframe (e.g. simplebeacon.ai embedded in VS Code).
- * Browsers block showDirectoryPicker in that context.
+ * True when the dashboard runs inside an iframe/embed (VS Code webview, coming-soon shell, etc.).
+ * Browsers block showDirectoryPicker in subframes even when same-origin.
  */
-export function isCrossOriginEmbeddedFrame() {
+export function isEmbeddedDashboardFrame() {
     if (typeof window === 'undefined')
         return false;
-    if (window.self === window.top)
-        return false;
-    try {
-        return window.top.location.origin !== window.location.origin;
-    }
-    catch (_a) {
+    if (window.__SB_PARENT_URL_BAR__)
         return true;
+    try {
+        const params = new URLSearchParams(window.location.search || '');
+        if (params.get('sb_parent_urlbar') === '1' || params.get('sb_website_mode') === '1')
+            return true;
     }
+    catch (_a) { /* ignore */ }
+    if (window.self !== window.top)
+        return true;
+    return false;
+}
+
+/** @deprecated Use isEmbeddedDashboardFrame */
+export function isCrossOriginEmbeddedFrame() {
+    return isEmbeddedDashboardFrame();
 }
 
 /**
@@ -474,5 +482,32 @@ export function isCrossOriginEmbeddedFrame() {
 export function canUseDirectoryPicker() {
     if (typeof window === 'undefined' || typeof window.showDirectoryPicker !== 'function')
         return false;
-    return !isCrossOriginEmbeddedFrame();
+    return !isEmbeddedDashboardFrame();
+}
+
+/** User-facing message when FSA folder picker is blocked in an embed. */
+export function filePickerBlockedMessage() {
+    return 'Folder picker is blocked inside an embedded dashboard. Use the legacy Browse dialog, drag a folder here, open /dashboard/analyze in a top-level tab, or scan via the Local Agent with a typed path.';
+}
+
+/** True when a thrown error indicates the browser blocked showDirectoryPicker in a subframe. */
+export function isFilePickerBlockedError(err) {
+    const msg = String((err && err.message) || err || '');
+    return /cross origin sub frames|file picker.*(?:not allowed|blocked|denied)|user activation|gesture required/i.test(msg);
+}
+
+/** True when a webkitdirectory FileList length matches a known browser cap (~3k on Chrome). */
+export function isLikelyWebkitDirectoryFileCap(fileCount) {
+    const n = Number(fileCount) || 0;
+    if (n < 2000)
+        return false;
+    const knownCaps = [2048, 2500, 3000, 3250, 4096, 8192, 10000];
+    return knownCaps.includes(n) || (n >= 2900 && n <= 3300);
+}
+
+/** User-facing note when folder selection may be truncated by the browser. */
+export function browserFolderCapMessage(fileCount) {
+    const n = Number(fileCount) || 0;
+    return `Your browser may have limited folder selection to ${n.toLocaleString()} files. `
+        + 'For repos above ~3,000 files use **Select Folder** (Chrome/Edge), the VS Code extension, local agent, or `npx simplebeacon scan`.';
 }

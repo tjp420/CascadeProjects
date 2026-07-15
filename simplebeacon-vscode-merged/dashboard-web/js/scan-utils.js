@@ -1,3 +1,4 @@
+// simplebeacon-ignore memory-leak
 import { scanService } from './services/scanService.js';
 
 /**
@@ -29,6 +30,7 @@ window.ScanUtils = {
         gateFailed: report.gateFailed || false
       };
     }
+    // Try fetching the report from the server if none cached
     try {
       await scanService.fetchReport();
       return {

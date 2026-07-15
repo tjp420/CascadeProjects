@@ -269,5 +269,6 @@
     ".vsix-team-verify2",
     ".vsix-team-verify3",
     ".vsix-team-verify4"
-  ]
+  ],
+  "fullDirectoryScanMaxFiles": 100000
 }

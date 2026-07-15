@@ -1,10 +1,10 @@
 import { escapeHtml, showToast, downloadJson, downloadBlob, downloadText, redactPathForDisplay, formatPathLabel, formatPathInputValue, formatAiSummarySkipMessage, isRedactedPathDisplay, formatNumber, formatPercent, renderEmptyState } from '../utils.js';
-import { canUseDirectoryPicker, isLikelyWebkitDirectoryFileCap, browserFolderCapMessage } from '../utils-lib/dom.js';
+import { canUseDirectoryPicker, isLikelyWebkitDirectoryFileCap, browserFolderCapMessage, filePickerBlockedMessage, isFilePickerBlockedError, isEmbeddedDashboardFrame } from '../utils-lib/dom.js?v=20260715iframefix3';
 import { evaluateFunnelMetrics, getFunnelCopy } from '../utils/funnelTrigger.js';
-import { LocalScanService } from '../services/localScanService.js?v=20260709noise3';
+import { LocalScanService } from '../services/localScanService.js?v=20260715iframefix3';
 import { fingerprintDirectory, formatFingerprint } from '../services/fingerprintService.js';
-import { probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus, getAgentDownloadUrl, detectPlatform, getPlatformLabel, getInstallInstructions, getAgentFallbackMessage, probeAgent4000, scanViaAgent4000, renderAgentCertificate, hasExtensionBridgeConfigured, pickFolderViaExtensionBridge as requestExtensionFolderPick } from '../services/localAgentService.js?v=20260714hosted1';
-import { runSandboxedDirectoryScan, scanDroppedItems, isDroppedFolder, captureDroppedEntry } from '../services/browserSandboxScanService.js?v=20260713dropfix7';
+import { probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus, getAgentDownloadUrl, detectPlatform, getPlatformLabel, getInstallInstructions, getAgentFallbackMessage, probeAgent4000, scanViaAgent4000, renderAgentCertificate, hasExtensionBridgeConfigured, pickFolderViaExtensionBridge as requestExtensionFolderPick, shouldProbeLocalAgent } from '../services/localAgentService.js?v=20260715hosted1';
+import { runSandboxedDirectoryScan, scanDroppedItems, isDroppedFolder, captureDroppedEntry } from '../services/browserSandboxScanService.js?v=20260715iframefix3';
 
 function isRemoteDashboardHost() {
     return typeof window !== 'undefined' && !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
@@ -29,7 +29,7 @@ function getHostedAnalyzeContext() {
 // simplebeacon:production-leak-intent: sample-json - Legitimate documentation about sample file patterns in analysis results
 import { analyzePath, scanPath, summarizeReport, fetchAnalyzeProviders, fetchRepositoryInventory, fetchCodebaseAnalysis, enrichScanReport, fetchZscriptModReport, shouldFetchZscriptReport, isLegacyScanReport, isHostedServerDefaultPath, isHostedBrowserScanPath, shouldClearHostedServerDefaultPath, buildMonorepoScopeNote, buildPathInventoryProvenance, renderInventoryProvenanceHtml, refreshPathInventory, liveInventoryForPath, renderScanScopePanel, isSimplebeaconReport, normalizeSimplebeaconReport, resolveReportIssues, aiProviderSupportsSummary, getScanFileMetrics, resolveAutoAnalysisMode, buildScanConclusion, buildConsolidationConclusion, buildFictionDigestPayload, sanitizeFictionDigestExport, resolveCompleteScanTargetPath, normalizeProjectPath, filterIssuesByKind, preparePlatformResultsReport, convertSandboxReportToSimplebeacon, fetchCompleteAuditReport, fetchAnalyzeExportBundleZip, fetchEuAiActAuditReport, openAuditReportPrintWindow, previewAuditExportTier, auditExportButtonLabel, fetchDataCleanupScan, ensureDashboardApiReady, assertCompleteScanComplianceFresh, assertCompleteScanFileReductionFresh, fetchUnderstandSnippet, isCodebaseReport, fetchComplianceChecklist, fetchProjectNpmAudit, prepareGithubRepo, fetchAnalyzeTestSources, isAnalyzeProviderConfigured, uploadDirectoryAndAnalyze } from '../services/analyzeService.js?v=20260714renderfix1';
 import { isRemoteRepoUrl, sourceChipTitle } from '../lib/analyzePathSources.js';
-import { reportMatchesPagePath, pathsLooselyMatch, resolvePageProjectPath, getPathInputDisplayValue } from '../lib/pageRepoScan.js';
+import { reportMatchesPagePath, pathsLooselyMatch, resolvePageProjectPath, getPathInputDisplayValue } from '../lib/pageRepoScan.js?v=20260715iframefix3';
 import { collectPathSuggestions, refreshPathSuggestionsDatalist, pathInputListAttr, renderPathSuggestionsDatalistElement, saveRecentPath, removeRecentPath, loadRecentPaths } from '../lib/analyzePathSuggestions.js';
 import { validateProjectPathAllowlist, ensureAllowedAnalysisRoots } from '../lib/analyzePathAllowlist.js';
 import { isBenchmarkCachePath } from '../utils/complete-scan-artifact-profile.browser.js';
@@ -1407,6 +1407,7 @@ export class AnalyzeView {
         this._cliUploadLastSeen = null;
         this._lastAgentReport = null;
         this._refreshReportLocks = new Map();
+        this._browserLocalScanActive = false;
         AnalyzeView._activeInstance = this;
         if (!AnalyzeView._ideDropListenerBound) {
             AnalyzeView._ideDropListenerBound = true;
@@ -3329,10 +3330,10 @@ export class AnalyzeView {
         const projectPath = this.resolveProgressScanPath();
         const explorerInventory = this.progressExplorerInventory();
         const progressDetails = formatScanProgressDetails(sp, {
-            explorerInventory,
+            explorerInventory: this._browserLocalScanActive ? null : explorerInventory,
             scanPathLabel: projectPath ? formatPathLabel(projectPath) : '',
             fullDirectoryScan: this.fullDirectoryScan,
-            localBrowserScan: (sp === null || sp === void 0 ? void 0 : sp.phase) === 'local-browser' || (this.localMode && !this._progressScanPath)
+            localBrowserScan: this._browserLocalScanActive || (sp === null || sp === void 0 ? void 0 : sp.phase) === 'local-browser' || (this.localMode && !this._progressScanPath)
         });
         let pct = 0;
         if (this.analysisType === 'complete' && steps.length) {
@@ -3354,7 +3355,7 @@ export class AnalyzeView {
         const elapsed = this.scanStartedAt ? formatElapsed(Date.now() - this.scanStartedAt) : '—';
         const label = this.completeStep || (sp === null || sp === void 0 ? void 0 : sp.label) || 'Running analysis…';
         let counter = progressDetails.counter;
-        if (!counter && (explorerInventory === null || explorerInventory === void 0 ? void 0 : explorerInventory.totalFiles) != null) {
+        if (!counter && !this._browserLocalScanActive && (explorerInventory === null || explorerInventory === void 0 ? void 0 : explorerInventory.totalFiles) != null) {
             counter = `Folder inventory · ${formatNumber(explorerInventory.totalFiles)} files${explorerInventory.totalFolders != null
                 ? `, ${formatNumber(explorerInventory.totalFolders)} folders`
                 : ''}`;
@@ -3487,6 +3488,9 @@ export class AnalyzeView {
     }
     resolveProgressScanPath() {
         var _a, _b;
+        if (this._browserLocalScanActive) {
+            return this.app.state.pathInputDraft || this.app.state.lastProjectPath || '';
+        }
         return this._progressScanPath
             || this.app.state.lastProjectPath
             || this.getActiveProjectPath((_b = (_a = this._root) === null || _a === void 0 ? void 0 : _a.querySelector('#project-path-input')) === null || _b === void 0 ? void 0 : _b.value)
@@ -3500,6 +3504,8 @@ export class AnalyzeView {
         return ((_a = liveInventoryForPath(this.app, projectPath)) === null || _a === void 0 ? void 0 : _a.inventory) || null;
     }
     startProgressPolling(projectPath) {
+        if (this._browserLocalScanActive)
+            return;
         this.stopProgressPolling();
         if (!projectPath)
             return;
@@ -3582,10 +3588,10 @@ export class AnalyzeView {
         const projectPath = this.resolveProgressScanPath();
         const explorerInventory = this.progressExplorerInventory();
         const progressDetails = formatScanProgressDetails(sp, {
-            explorerInventory,
+            explorerInventory: this._browserLocalScanActive ? null : explorerInventory,
             scanPathLabel: projectPath ? formatPathLabel(projectPath) : '',
             fullDirectoryScan: this.fullDirectoryScan,
-            localBrowserScan: (sp === null || sp === void 0 ? void 0 : sp.phase) === 'local-browser' || (this.localMode && !this._progressScanPath)
+            localBrowserScan: this._browserLocalScanActive || (sp === null || sp === void 0 ? void 0 : sp.phase) === 'local-browser' || (this.localMode && !this._progressScanPath)
         });
         let pct = 0;
         if (this.analysisType === 'complete' && steps.length) {
@@ -3605,7 +3611,7 @@ export class AnalyzeView {
             pct = 35;
         }
         let counter = progressDetails.counter;
-        if (!counter && (explorerInventory === null || explorerInventory === void 0 ? void 0 : explorerInventory.totalFiles) != null) {
+        if (!counter && !this._browserLocalScanActive && (explorerInventory === null || explorerInventory === void 0 ? void 0 : explorerInventory.totalFiles) != null) {
             counter = `Folder inventory · ${formatNumber(explorerInventory.totalFiles)} files${explorerInventory.totalFolders != null
                 ? `, ${formatNumber(explorerInventory.totalFolders)} folders`
                 : ''}`;
@@ -4415,8 +4421,14 @@ export class AnalyzeView {
     syncBrowserScanPathState(root, scannedLabel) {
         const label = String(scannedLabel || 'local-scan').trim();
         const basename = label.split(/[/\\]/).pop() || label;
-        this.app.state.lastProjectPath = label;
-        this.app.state.pathInputDraft = basename;
+        if (isRemoteDashboardHost()) {
+            this.app.state.lastProjectPath = basename;
+            this.app.state.pathInputDraft = '';
+        }
+        else {
+            this.app.state.lastProjectPath = label;
+            this.app.state.pathInputDraft = basename;
+        }
         const pathInput = (root || this._root)?.querySelector('#project-path-input');
         if (pathInput) {
             this.setPathInputDisplay(pathInput, basename);
@@ -4489,6 +4501,10 @@ export class AnalyzeView {
         const pathInput = root.querySelector('#project-path-input');
         const projectPath = this.getActiveProjectPath(pathInput === null || pathInput === void 0 ? void 0 : pathInput.value);
         this.clearStaleResultIfPathMismatch();
+        if (this._browserLocalScanActive || (this.busy && this._lastBrowserScanFiles?.length)) {
+            this.syncAnalyzeModeUi(root);
+            return;
+        }
         if (!projectPath) {
             this.app.state.pathInventory = null;
             this.syncAnalyzeModeUi(root);
@@ -4721,6 +4737,11 @@ export class AnalyzeView {
     async probeAndUpdateAgentStatus(root = this._root) {
         if (!root)
             return;
+        if (isRemoteDashboardHost() && !shouldProbeLocalAgent()) {
+            this.agentStatus = { available: false, scannerAvailable: false, hostedSkipped: true };
+            this.updateAgentStatusUI(root, '', false);
+            return;
+        }
         try {
             this.agentStatus = await probeAgent();
         }
@@ -4755,13 +4776,22 @@ export class AnalyzeView {
                 }
                 const pathInput = el.querySelector('#project-path-input');
                 if (pathInput) {
-                    this.setPathInputDisplay(pathInput, resolvedPath);
-                    this.app.state.lastProjectPath = resolvedPath;
+                    const displayLabel = isRemoteDashboardHost() ? (folderName || resolvedPath.split(/[/\\]/).pop()) : resolvedPath;
+                    this.setPathInputDisplay(pathInput, displayLabel);
+                    this.app.state.lastProjectPath = isRemoteDashboardHost() ? displayLabel : resolvedPath;
                     this.app.state.pathInputDraft = '';
                     this.syncAnalyzeModeUi(el);
-                    void this.refreshReportForActivePath(el);
+                    if (!isRemoteDashboardHost()) {
+                        void this.refreshReportForActivePath(el);
+                    }
                 }
                 if (isRemoteDashboardHost()) {
+                    if (!isEmbeddedDashboardFrame() && canUseDirectoryPicker() && !this.isElectronLike() && isLikelyWebkitDirectoryFileCap(files.length)) {
+                        showToast(browserFolderCapMessage(files.length).replace(/\*\*/g, ''), 'warning', { duration: 14000 });
+                        event.target.value = '';
+                        void this.pickFolderViaBrowser(el);
+                        return;
+                    }
                     showToast('Scanning selected folder locally — no upload…', 'info');
                     void this.runLocalScan(null, files, folderName || resolvedPath);
                 }
@@ -4775,6 +4805,11 @@ export class AnalyzeView {
         const folderName = relPath.split('/')[0] || firstFile.name || '';
         if (isLikelyWebkitDirectoryFileCap(files.length)) {
             showToast(browserFolderCapMessage(files.length).replace(/\*\*/g, ''), 'warning', { duration: 14000 });
+        }
+        if (isRemoteDashboardHost() && !isEmbeddedDashboardFrame() && canUseDirectoryPicker() && !this.isElectronLike() && isLikelyWebkitDirectoryFileCap(files.length)) {
+            event.target.value = '';
+            void this.pickFolderViaBrowser(el);
+            return;
         }
         showToast('Scanning selected folder locally — no upload…', 'info');
         void this.runLocalScan(null, files, folderName);
@@ -5062,39 +5097,20 @@ export class AnalyzeView {
             showToast(this.realtimeMonitorEnabled ? 'Real-time monitoring enabled' : 'Real-time monitoring disabled', 'info');
         });
         (_o = el.querySelector('#browse-dir-btn')) === null || _o === void 0 ? void 0 : _o.addEventListener('click', async () => {
-            const isRemoteDeployment = isRemoteDashboardHost();
-            const agentAvailable = !!(this.agentStatus && this.agentStatus.available);
             if (hasExtensionBridgeConfigured()) {
                 const picked = await this.pickFolderViaExtensionBridge(el);
                 if (picked)
                     return;
             }
-            if (!isRemoteDeployment || agentAvailable) {
-                // Local/standalone mode or local agent connected: prefer native directory picker when allowed.
-                if (canUseDirectoryPicker() && !this.isElectronLike()) {
-                    const picked = await this.pickFolderViaBrowser(el);
-                    if (picked)
-                        return;
-                }
-                const input = el.querySelector('#browse-dir-input');
-                if (input) {
-                    input.value = '';
-                    input.click();
-                    return;
-                }
-            }
-            // Hosted dashboard without a local agent: pick the user's local folder in-browser.
-            if (canUseDirectoryPicker() && !this.isElectronLike()) {
-                void this.runSandboxedDirectoryScan();
+            const agentAvailable = !!(this.agentStatus && this.agentStatus.available);
+            const pathInput = el.querySelector('#project-path-input');
+            const typedPath = this.resolveProjectPath(pathInput?.value);
+            if (agentAvailable && typedPath && isLocalPath(typedPath)) {
+                showToast('Local Agent connected — scanning your typed path.', 'info');
+                await this.runPathAnalysis(typedPath);
                 return;
             }
-            const input = el.querySelector('#browse-dir-input');
-            if (input) {
-                input.value = '';
-                input.click();
-                return;
-            }
-            showToast('Your browser cannot open a folder picker here. Type a path, drag a folder onto the page, or use Select Folder above.', 'error');
+            await this.promptHostedLocalFolderScan(el);
         });
         // Analyze drop zone — drag-and-drop for scan reports / source files
         const analyzeDropZone = el.querySelector('#analyze-drop-zone');
@@ -5435,6 +5451,10 @@ export class AnalyzeView {
         pathInput === null || pathInput === void 0 ? void 0 : pathInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
+                if (isRemoteDashboardHost() && !this.websiteMode) {
+                    void this.runHostedAnalyzeAction(pathInput.value, el);
+                    return;
+                }
                 const resolved = this.resolveProjectPath(pathInput.value);
                 if (!resolved)
                     return;
@@ -5901,26 +5921,42 @@ export class AnalyzeView {
     }
     /** Hosted dashboard: open the best available local folder scan path (no typed PC paths). */
     async promptHostedLocalFolderScan(el) {
+        const root = el || this._root;
         if (hasExtensionBridgeConfigured()) {
             const picked = await this.pickFolderViaExtensionBridge(el);
             if (picked)
                 return true;
+        }
+        const pathInput = root?.querySelector('#project-path-input');
+        const typedPath = this.resolveProjectPath(pathInput?.value);
+        const agentReady = !!(this.agentStatus && this.agentStatus.available);
+        if (agentReady && typedPath && isLocalPath(typedPath) && isEmbeddedDashboardFrame()) {
+            showToast('Local Agent connected — scanning your typed path.', 'info');
+            await this.runPathAnalysis(typedPath);
+            return true;
         }
         if (canUseDirectoryPicker() && !this.isElectronLike()) {
             const picked = await this.pickFolderViaBrowser(el);
             if (picked)
                 return true;
         }
-        const browseInput = (el || this._root)?.querySelector('#browse-dir-input')
-            || (el || this._root)?.querySelector('#analyze-dir-input');
+        const browseInput = root?.querySelector('#browse-dir-input')
+            || root?.querySelector('#analyze-dir-input');
         if (browseInput) {
-            showToast('Choose your project folder — Chrome/Edge can scan large repos via Select Folder.', 'info', { duration: 8000 });
+            const embedNote = isEmbeddedDashboardFrame()
+                ? 'Embedded dashboard — using legacy folder dialog.'
+                : 'Choose your project folder — Chrome/Edge can scan large repos via Select Folder.';
+            showToast(embedNote, 'info', { duration: 8000 });
             browseInput.value = '';
             browseInput.click();
             return true;
         }
-        await this.runSandboxedDirectoryScan();
-        return true;
+        if (agentReady && typedPath && isLocalPath(typedPath)) {
+            showToast('Local Agent connected — click Run Scan to analyze your typed path.', 'info', { duration: 9000 });
+            return false;
+        }
+        showToast(filePickerBlockedMessage(), 'warning', { duration: 12000 });
+        return false;
     }
     /** Try native directory picker; returns true if a folder was chosen. */
     async pickFolderViaBrowser(el) {
@@ -5962,9 +5998,8 @@ export class AnalyzeView {
         }
         catch (err) {
             if (err.name !== 'AbortError') {
-                const msg = String((err === null || err === void 0 ? void 0 : err.message) || err || '');
-                if (/cross origin sub frames/i.test(msg)) {
-                    showToast('Folder picker is blocked in the IDE embed. Use Browse Folder again (routes through the extension) or type a path.', 'warning');
+                if (isFilePickerBlockedError(err)) {
+                    showToast(filePickerBlockedMessage(), 'warning', { duration: 10000 });
                 }
                 else {
                     console.warn('Directory picker failed:', err);
@@ -6808,7 +6843,7 @@ export class AnalyzeView {
         }
         if (canUseDirectoryPicker()) {
             showToast(`Dropped folder "${folderName}" — browser cannot reveal its full path. Select it in the folder picker to scan locally.`, 'info');
-            await this.runLocalScan(null, null, fallbackPath);
+            await this.promptHostedLocalFolderScan(this._root);
             return;
         }
         const browseInput = (_b = this._root) === null || _b === void 0 ? void 0 : _b.querySelector('#browse-dir-input');
@@ -7070,6 +7105,9 @@ export class AnalyzeView {
             return;
         }
         this.busy = true;
+        this._browserLocalScanActive = true;
+        this.stopProgressPolling();
+        this._progressScanPath = '';
         this.scanStartedAt = Date.now();
         this._terminalLogLines = [];
         this._lastLoggedProgressKey = '';
@@ -7127,9 +7165,13 @@ export class AnalyzeView {
             showToast('Local scan complete — no data sent to server', 'success');
         }
         catch (err) {
-            showToast(err.message || 'Local scan failed', 'error');
+            const msg = isFilePickerBlockedError(err)
+                ? filePickerBlockedMessage()
+                : (err.message || 'Local scan failed');
+            showToast(msg, isFilePickerBlockedError(err) ? 'warning' : 'error', { duration: isFilePickerBlockedError(err) ? 12000 : undefined });
         }
         finally {
+            this._browserLocalScanActive = false;
             this.busy = false;
             this.scanProgress = null;
             this.refresh();
@@ -7376,8 +7418,19 @@ export class AnalyzeView {
                 setDropzoneState('idle');
                 return;
             }
-            const msg = err.message || 'Sandbox scan failed';
-            showToast(msg, 'error');
+            let msg = err.message || 'Sandbox scan failed';
+            if (isFilePickerBlockedError(err)) {
+                msg = filePickerBlockedMessage();
+                showToast(msg, 'warning', { duration: 12000 });
+                const browseInput = root?.querySelector('#browse-dir-input') || root?.querySelector('#analyze-dir-input');
+                if (browseInput) {
+                    browseInput.value = '';
+                    browseInput.click();
+                }
+            }
+            else {
+                showToast(msg, 'error');
+            }
             if (analyzeErrorMessage)
                 analyzeErrorMessage.textContent = msg;
             setDropzoneState('error');
@@ -7481,7 +7534,7 @@ export class AnalyzeView {
                 await this.runAgentScan(projectPath);
                 return;
             }
-            showToast('Local agent is not available. Use Select Folder to scan in your browser, or start the Local Scan Agent on your machine.', 'error', { duration: 12000 });
+            showToast(getAgentFallbackMessage(this.agentStatus), 'info', { duration: 10000 });
             const dropZone = this._root && this._root.querySelector('#analyze-path-dropzone');
             if (dropZone) {
                 dropZone.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -7837,7 +7890,7 @@ export class AnalyzeView {
             if (effectiveType === 'eu-ai-act') {
                 this.completeStep = 'EU AI Act sprint (eu-ai-act profile)…';
                 this.refresh();
-                const { resolveProductCompliancePath } = await import('../lib/pageRepoScan.js');
+                const { resolveProductCompliancePath } = await import('../lib/pageRepoScan.js?v=20260715iframefix3');
                 const euPath = resolveProductCompliancePath(projectPath, this.app);
                 if (euPath && euPath !== projectPath) {
                     showToast(`Benchmark clone — EU sprint runs on ${formatPathLabel(euPath)}`, 'warning');
@@ -8202,7 +8255,7 @@ export class AnalyzeView {
                 };
             },
             'eu-ai-act': async () => {
-                const { resolveProductCompliancePath } = await import('../lib/pageRepoScan.js');
+                const { resolveProductCompliancePath } = await import('../lib/pageRepoScan.js?v=20260715iframefix3');
                 let euScanPath = resolveProductCompliancePath(projectPath, this.app) || projectPath;
                 if (euScanPath !== projectPath) {
                     showToast(`Benchmark clone — EU sprint runs on ${formatPathLabel(euScanPath)}`, 'warning');
