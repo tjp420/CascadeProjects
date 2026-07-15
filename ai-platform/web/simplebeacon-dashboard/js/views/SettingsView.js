@@ -1190,7 +1190,7 @@ export class SettingsView {
         return JSON.stringify(this.buildConfigFromDom(this.draft, this._root)) !== this.savedSnapshot;
     }
     bindEvents(root) {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x;
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z;
         const container = root.parentElement;
         /**
          * Rerender.
