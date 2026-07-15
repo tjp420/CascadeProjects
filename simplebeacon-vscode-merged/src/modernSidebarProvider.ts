@@ -994,7 +994,7 @@ $('cancelBtn').addEventListener('click', () => {
             ModernSidebarProvider.relayCommand('clear');
             break;
           case 'showDashboard':
-            ModernSidebarProvider.showDashboardRoute(this._extensionUri, '/dashboard');
+            WelcomeDashboard.createOrShow(this._extensionUri, true)?.showDashboardPane();
             break;
           case 'openInIde': {
             vscode.commands.executeCommand('simplebeacon-modern.focus');
@@ -1006,7 +1006,7 @@ $('cancelBtn').addEventListener('click', () => {
             break;
           case 'openCloudInBrowser':
           case 'openCloudInPreview':
-            ModernSidebarProvider.showDashboardRoute(this._extensionUri, '/dashboard');
+            WelcomeDashboard.createOrShow(this._extensionUri, true)?.showDashboardPane();
             break;
           case 'openAiToolsInBrowser':
           case 'openAiToolsInPreview':
@@ -1082,7 +1082,7 @@ $('cancelBtn').addEventListener('click', () => {
             break;
           case 'dashboard':
           case 'openDashboard':
-            ModernSidebarProvider.openDashboardRouteInBrowser('/dashboard');
+            WelcomeDashboard.createOrShow(this._extensionUri, true)?.showDashboardPane();
             ModernSidebarProvider.relayCommand('dashboard');
             break;
           case 'openReport':
@@ -1542,7 +1542,7 @@ $('cancelBtn').addEventListener('click', () => {
             break;
           }
           case 'navDashboard':
-            ModernSidebarProvider.showDashboardRoute(this._extensionUri, '/dashboard');
+            WelcomeDashboard.createOrShow(this._extensionUri, true)?.showDashboardPane();
             ModernSidebarProvider.relayCommand('navDashboard');
             break;
           case 'navAnalyze':
@@ -5030,7 +5030,7 @@ ${sidebarMainJsContent}
           vscode.commands.executeCommand('simplebeacon.clearResults');
           break;
         case 'openDashboard':
-          ModernSidebarProvider.showDashboardRoute(this._extensionUri, '/dashboard');
+          WelcomeDashboard.createOrShow(this._extensionUri, true)?.showDashboardPane();
           break;
         case 'report':
           vscode.commands.executeCommand('simplebeacon.showReport');
@@ -5050,7 +5050,7 @@ ${sidebarMainJsContent}
           break;
         case 'openCloudInBrowser':
         case 'openCloudInPreview':
-          ModernSidebarProvider.showDashboardRoute(this._extensionUri, '/dashboard');
+          WelcomeDashboard.createOrShow(this._extensionUri, true)?.showDashboardPane();
           break;
         case 'openAiToolsInBrowser':
         case 'openAiToolsInPreview':
@@ -5058,7 +5058,7 @@ ${sidebarMainJsContent}
           break;
         case 'openAdvancedInBrowser':
         case 'openAdvancedInPreview':
-          ModernSidebarProvider.showDashboardRoute(this._extensionUri, '/dashboard');
+          WelcomeDashboard.createOrShow(this._extensionUri, true)?.showDashboardPane();
           break;
         case 'diagnose':
           vscode.commands.executeCommand('simplebeacon.diagnoseSidebar');
