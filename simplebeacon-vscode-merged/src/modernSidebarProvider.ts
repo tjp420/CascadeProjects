@@ -885,14 +885,10 @@ $('cancelBtn').addEventListener('click', () => {
       ModernSidebarProvider.refreshAuthState();
     }, 300);
 
-    // Auto-open welcome screen panel if showWelcomeOnLoad is enabled
-    const autoOpen = getSbConfig().get<boolean>('showWelcomeOnLoad', true);
-    if (autoOpen) {
-      // Defer panel creation so it doesn't race with webview view resolution
-      setTimeout(() => {
-        try { WelcomeDashboard.createOrShow(this._extensionUri, true); } catch(e) { ModernSidebarProvider.logRelay('Auto open dashboard error: ' + (e instanceof Error ? e.message : String(e))); }
-      }, 50);
-    }
+    // Auto-open main window panel on activation (welcome vs dashboard tab depends on showWelcomeOnLoad)
+    setTimeout(() => {
+      try { WelcomeDashboard.createOrShow(this._extensionUri, true); } catch(e) { ModernSidebarProvider.logRelay('Auto open dashboard error: ' + (e instanceof Error ? e.message : String(e))); }
+    }, 50);
 
     // Cache browser-ready sidebar HTML so external browser preview and diagnose can report it as loaded
     try {
@@ -5572,7 +5568,7 @@ body.tabs-open #browserTabBar{display:flex !important;}
   }
   function resolveUrlInput(raw) {
     if (!raw) return '';
-    var trimmed = raw.trim();
+    const trimmed = raw.trim();
     if (!trimmed) return '';
     if (/^https?:\\/\\//i.test(trimmed)) return trimmed;
     if (trimmed.charAt(0) === '/') {
@@ -5585,7 +5581,7 @@ body.tabs-open #browserTabBar{display:flex !important;}
   }
   function canEmbed(url) {
     try {
-      var host = new URL(url).hostname.toLowerCase();
+      const host = new URL(url).hostname.toLowerCase();
       if (host === 'simplebeacon.ai' || host.endsWith('.simplebeacon.ai')) return true;
       if (host === 'localhost' || host === '127.0.0.1') return true;
       if (host.endsWith('.onrender.com')) return true;
@@ -5595,7 +5591,7 @@ body.tabs-open #browserTabBar{display:flex !important;}
   function ensureEmbedParams(url) {
     if (!url || url.indexOf('sb_parent_urlbar=') !== -1) return url;
     try {
-      var parsed = new URL(url);
+      const parsed = new URL(url);
       parsed.searchParams.set('sb_parent_urlbar', '1');
       return parsed.toString();
     } catch (e) {
@@ -5605,8 +5601,8 @@ body.tabs-open #browserTabBar{display:flex !important;}
   function preferLocalDashboardUrl(url) {
     if (!url) return url;
     try {
-      var parsed = new URL(url);
-      var host = parsed.hostname.toLowerCase();
+      const parsed = new URL(url);
+      const host = parsed.hostname.toLowerCase();
       if ((host === 'simplebeacon.ai' || host.endsWith('.simplebeacon.ai')) && parsed.pathname.indexOf('/dashboard') === 0) {
         if (DASHBOARD_URL && (DASHBOARD_URL.indexOf('127.0.0.1') >= 0 || DASHBOARD_URL.indexOf('localhost') >= 0)) {
           return DASHBOARD_URL.replace(/\/$/, '') + parsed.pathname + parsed.search + parsed.hash;
@@ -5681,7 +5677,7 @@ body.tabs-open #browserTabBar{display:flex !important;}
   }
   function navigateToUrl(url, push) {
     if (!url || !mainIframe) return;
-    var resolved = preferLocalDashboardUrl(resolveUrlInput(url) || url);
+    let resolved = preferLocalDashboardUrl(resolveUrlInput(url) || url);
     if (!canEmbed(resolved)) {
       if (typeof acquireVsCodeApi === 'function') {
         try { acquireVsCodeApi().postMessage({ command: 'openInSimpleBrowser', url: resolved }); } catch (e) {}

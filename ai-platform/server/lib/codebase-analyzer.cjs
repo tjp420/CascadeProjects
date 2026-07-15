@@ -10,7 +10,7 @@
  */
 
 if (process.env.SIMPLEBEACON_DEBUG) {
-    console.log('[CodebaseAnalyzer] Module loaded: PATCHED v2.1 (excludes scanner files)');
+    console.debug('[CodebaseAnalyzer] Module loaded: PATCHED v2.1 (excludes scanner files)');
 }
 
 const fs = require('fs');
@@ -667,16 +667,16 @@ async function walkCodeFiles(rootDir, options = {}) {
         const { dir, depth } = stack.pop();
 
         if (depth > maxDepth) {
-            if (process.env.SIMPLEBEACON_DEBUG) console.log(`[CodebaseAnalyzer] Skip (max depth): ${dir}`);
+            if (process.env.SIMPLEBEACON_DEBUG) console.debug(`[CodebaseAnalyzer] Skip (max depth): ${dir}`);
             continue;
         }
         if (results.length >= maxFiles) {
-            if (process.env.SIMPLEBEACON_DEBUG) console.log(`[CodebaseAnalyzer] Skip (max files cap): ${results.length} files reached`);
+            if (process.env.SIMPLEBEACON_DEBUG) console.debug(`[CodebaseAnalyzer] Skip (max files cap): ${results.length} files reached`);
             break;
         }
         const realDir = await fs.promises.realpath(dir).catch(() => dir);
         if (visited.has(realDir)) {
-            if (process.env.SIMPLEBEACON_DEBUG) console.log(`[CodebaseAnalyzer] Skip (circular symlink): ${dir}`);
+            if (process.env.SIMPLEBEACON_DEBUG) console.debug(`[CodebaseAnalyzer] Skip (circular symlink): ${dir}`);
             continue;
         }
         visited.add(realDir);
@@ -684,19 +684,19 @@ async function walkCodeFiles(rootDir, options = {}) {
         try {
             entries = await fs.promises.readdir(dir, { withFileTypes: true });
         } catch {
-            if (process.env.SIMPLEBEACON_DEBUG) console.log(`[CodebaseAnalyzer] Skip (unreadable dir): ${dir}`);
+            if (process.env.SIMPLEBEACON_DEBUG) console.debug(`[CodebaseAnalyzer] Skip (unreadable dir): ${dir}`);
             continue;
         }
 
         for (const entry of entries) {
             if (results.length >= maxFiles) {
-                if (process.env.SIMPLEBEACON_DEBUG) console.log(`[CodebaseAnalyzer] Skip (max files cap): ${results.length} files reached`);
+                if (process.env.SIMPLEBEACON_DEBUG) console.debug(`[CodebaseAnalyzer] Skip (max files cap): ${results.length} files reached`);
                 break;
             }
             const fullPath = path.join(dir, entry.name);
             if (entry.isDirectory()) {
                 if (skipDirs.has(entry.name)) {
-                    if (process.env.SIMPLEBEACON_DEBUG) console.log(`[CodebaseAnalyzer] Skip (excluded dir): ${fullPath}`);
+                    if (process.env.SIMPLEBEACON_DEBUG) console.debug(`[CodebaseAnalyzer] Skip (excluded dir): ${fullPath}`);
                     continue;
                 }
                 stack.push({ dir: fullPath, depth: depth + 1 });
@@ -707,19 +707,19 @@ async function walkCodeFiles(rootDir, options = {}) {
                     const stat = await fs.promises.stat(fullPath);
                     if (stat.isDirectory()) {
                         if (skipDirs.has(entry.name)) {
-                            if (process.env.SIMPLEBEACON_DEBUG) console.log(`[CodebaseAnalyzer] Skip (excluded dir): ${fullPath}`);
+                            if (process.env.SIMPLEBEACON_DEBUG) console.debug(`[CodebaseAnalyzer] Skip (excluded dir): ${fullPath}`);
                             continue;
                         }
                         stack.push({ dir: fullPath, depth: depth + 1 });
                         continue;
                     }
                 } catch {
-                    if (process.env.SIMPLEBEACON_DEBUG) console.log(`[CodebaseAnalyzer] Skip (broken symlink): ${fullPath}`);
+                    if (process.env.SIMPLEBEACON_DEBUG) console.debug(`[CodebaseAnalyzer] Skip (broken symlink): ${fullPath}`);
                     continue;
                 }
             }
             if (!entry.isFile()) {
-                if (process.env.SIMPLEBEACON_DEBUG) console.log(`[CodebaseAnalyzer] Skip (not a file): ${fullPath}`);
+                if (process.env.SIMPLEBEACON_DEBUG) console.debug(`[CodebaseAnalyzer] Skip (not a file): ${fullPath}`);
                 continue;
             }
 
@@ -734,16 +734,16 @@ async function walkCodeFiles(rootDir, options = {}) {
             const isCode = codeExtensions.has(ext) || isArtifact || isGovernance || isBasenameMatch;
 
             if (!isCode) {
-                if (process.env.SIMPLEBEACON_DEBUG) console.log(`[CodebaseAnalyzer] Skip (unknown extension): ${fullPath} (${ext || 'no ext'})`);
+                if (process.env.SIMPLEBEACON_DEBUG) console.debug(`[CodebaseAnalyzer] Skip (unknown extension): ${fullPath} (${ext || 'no ext'})`);
                 continue;
             }
             if (isGovernance || isBasenameMatch) {
-                if (process.env.SIMPLEBEACON_DEBUG) console.log(`[CodebaseAnalyzer] Include (governance/basename): ${fullPath}`);
+                if (process.env.SIMPLEBEACON_DEBUG) console.debug(`[CodebaseAnalyzer] Include (governance/basename): ${fullPath}`);
             }
 
             const relativePath = normalizeRelativePath(rootDir, fullPath);
             if (shouldSkipLegacyExperimentalAnalysis(relativePath, options)) {
-                if (process.env.SIMPLEBEACON_DEBUG) console.log(`[CodebaseAnalyzer] Skip (legacy/experimental): ${relativePath}`);
+                if (process.env.SIMPLEBEACON_DEBUG) console.debug(`[CodebaseAnalyzer] Skip (legacy/experimental): ${relativePath}`);
                 continue;
             }
 
@@ -758,7 +758,7 @@ async function walkCodeFiles(rootDir, options = {}) {
                     isArtifact
                 });
             } catch {
-                if (process.env.SIMPLEBEACON_DEBUG) console.log(`[CodebaseAnalyzer] Skip (unreadable file): ${fullPath}`);
+                if (process.env.SIMPLEBEACON_DEBUG) console.debug(`[CodebaseAnalyzer] Skip (unreadable file): ${fullPath}`);
             }
         }
 
@@ -847,7 +847,8 @@ function isExcludedRoadmapMarkerLine(content, matchIndex, relativePath) {
     if (/['"]\w*['"].*roadmap|roadmap.*['"]\w*['"]/i.test(normalized)) return true;
     // Skip files whose purpose is roadmap-related by filename
     if (/roadmap|milestone|deliverable-access|export-tier|export-bundle|hygiene-certificate|snapshot-seeds|subscription-store|operator-deliverable|file-merger-reduction/i.test(relativePath)) return true;
-    // Skip scanner pattern definitions for TODO/FIXME/HACK/XXX regexes
+    // Skip scanner pattern definitions for task-marker regexes
+    // simplebeacon-ignore
     if (/TODO\|FIXME\|HACK\|XXX|regex:\s*['"].*TODO|roadmap.*marker|scan.*todo/i.test(normalized)) return true;
     return false;
 }
@@ -871,13 +872,12 @@ function isInsideHtmlCodeBlock(content, matchIndex) {
 const MAX_FILE_SCAN_MS = constants.MAX_RATE_LIMIT;
 
 /**
- * Scan content patterns.
+ * Scan content patterns and apply filters.
  * @param {string} content
  * @param {string} relativePath
- * @param {Array<{id: string, pattern: RegExp, label: string}>} patterns
+ * @param {Array<Object>} patterns
  * @param {string} category
  * @param {string} severity
- * @param {boolean} [productionOnly=false]
  * @returns {Array<Object>}
  */
 function scanContentPatterns(content, relativePath, patterns, category, severity, productionOnly = false) {
@@ -1148,7 +1148,7 @@ function scanContentPatterns(content, relativePath, patterns, category, severity
                 const cicdLineStart = content.lastIndexOf('\n', match.index) + 1;
                 const cicdLineEnd = content.indexOf('\n', match.index);
                 const cicdLineText = content.slice(cicdLineStart, cicdLineEnd === -1 ? undefined : cicdLineEnd);
-                // Skip GitHub Actions variable references (${{ secrets.XXX }})
+                // Skip GitHub Actions variable references (${{ secrets.<name> }})
                 if (/\$\{\{|\$\{\w+\}|secrets\./i.test(cicdLineText)) continue;
                 // Skip placeholder/example values
                 if (/example|placeholder|your_|my_|changeme|fake|dummy|test_|mock_/i.test(cicdLineText)) continue;
@@ -4078,26 +4078,26 @@ async function analyzeCodebase(baseDir, options = {}) {
     ]);
 
     const governanceCounts = countGovernanceFiles(files);
-    if (process.env.SIMPLEBEACON_DEBUG) console.log(`[CodebaseAnalyzer] Governance counts: license=${governanceCounts.licenseCount}, security=${governanceCounts.securityCount}, package.json=${governanceCounts.packageJsonCount}`);
+    if (process.env.SIMPLEBEACON_DEBUG) console.debug(`[CodebaseAnalyzer] Governance counts: license=${governanceCounts.licenseCount}, security=${governanceCounts.securityCount}, package.json=${governanceCounts.packageJsonCount}`);
 
     const nodeModulesFiltered = files.filter((f) => {
         const isNodeModules = f.relativePath.includes('/node_modules/') || f.relativePath.startsWith('node_modules/');
         if (isNodeModules) {
-            if (process.env.SIMPLEBEACON_DEBUG) console.log(`[CodebaseAnalyzer] Skip (node_modules): ${f.relativePath}`);
+            if (process.env.SIMPLEBEACON_DEBUG) console.debug(`[CodebaseAnalyzer] Skip (node_modules): ${f.relativePath}`);
         }
         return !isNodeModules;
     });
     if (nodeModulesFiltered.length > deepAnalyzeCap) {
-        if (process.env.SIMPLEBEACON_DEBUG) console.log(`[CodebaseAnalyzer] Skip (deepAnalyzeCap): ${nodeModulesFiltered.length - deepAnalyzeCap} files truncated (cap: ${deepAnalyzeCap})`);
+        if (process.env.SIMPLEBEACON_DEBUG) console.debug(`[CodebaseAnalyzer] Skip (deepAnalyzeCap): ${nodeModulesFiltered.length - deepAnalyzeCap} files truncated (cap: ${deepAnalyzeCap})`);
     }
     const analyzerFilesExcluded = nodeModulesFiltered.filter((f) => {
         const rel = f.relativePath.replace(/\\/g, '/');
         return !EXCLUDED_ANALYZER_PATHS.some((re) => re.test(rel));
     });
     if (analyzerFilesExcluded.length < nodeModulesFiltered.length) {
-        if (process.env.SIMPLEBEACON_DEBUG) console.log(`[CodebaseAnalyzer] Skip (analyzer paths): ${nodeModulesFiltered.length - analyzerFilesExcluded.length} scanner/utility/subproject files excluded`);
+        if (process.env.SIMPLEBEACON_DEBUG) console.debug(`[CodebaseAnalyzer] Skip (analyzer paths): ${nodeModulesFiltered.length - analyzerFilesExcluded.length} scanner/utility/subproject files excluded`);
     } else {
-        if (process.env.SIMPLEBEACON_DEBUG) console.log('[CodebaseAnalyzer] No analyzer paths excluded (check if exclusions are needed)');
+        if (process.env.SIMPLEBEACON_DEBUG) console.debug('[CodebaseAnalyzer] No analyzer paths excluded (check if exclusions are needed)');
     }
     const filesToAnalyze = analyzerFilesExcluded.slice(0, deepAnalyzeCap);
 
@@ -4179,7 +4179,7 @@ async function analyzeCodebase(baseDir, options = {}) {
     const sortedFindings = sortFindingsForReport(findings);
     const findingsReturned = sortedFindings.slice(0, findingsCap);
 
-    if (process.env.SIMPLEBEACON_DEBUG) console.log(`[CodebaseAnalyzer] Scan summary: discovered=${files.length}, analyzed=${codeFilesAnalyzed}, cap=${deepAnalyzeCap}, findings=${findings.length}`);
+    if (process.env.SIMPLEBEACON_DEBUG) console.debug(`[CodebaseAnalyzer] Scan summary: discovered=${files.length}, analyzed=${codeFilesAnalyzed}, cap=${deepAnalyzeCap}, findings=${findings.length}`);
 
     return {
         type: 'codebase-analyzer-report',

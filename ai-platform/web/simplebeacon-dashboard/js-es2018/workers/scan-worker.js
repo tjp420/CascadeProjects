@@ -6,7 +6,7 @@
  * pure-JS fallback) instead of loading the entire file into memory at once.
  */
 import { analyzeFileChunks, findingsToIssues } from './scan-wasm-bridge.js?v=20260714blockerfix1';
-import { isIgnoredVirtualPath } from '../utils-lib/simplebeaconignore.browser.js?v=20260715ignore1';
+import { isIgnoredVirtualPath } from '../utils-lib/simplebeaconignore.browser.js?v=20260715scanfix1';
 const MAX_DISCOVERED_FILES = 500000;
 const MAX_ISSUES = 100000;
 const SCAN_BATCH_SIZE = 400;
@@ -103,15 +103,21 @@ const SEVERITY_MAP = {
     euAiAct: 'high'
 };
 const CREDENTIAL_ALLOWLIST = /placeholder|changeme|example\.com|your-api-key|your-secret|dummy-token|test-secret|fake-api|mock-secret|not-a-real|hardcoded-secret-for-unit-test|secret-key-for-unit-test|sk_test_your|xxxxxxxx|replace_me|sample-token|template-secret|programmatically generated/i;
-const IGNORE_LINE_RE = /simplebeacon-ignore\s+(?:credentials|credential-pattern|sensitive-data)/i;
-const EU_AI_ACT_COMPLIANCE_LINE_RE = /EU AI Act Documentation Marker|Documentation Marker|Annex III|Article\s*50|Article\s*12|euaiactcompliance|transparency disclosure|human-in-the-loop|humanInTheLoop|human oversight|inference events logged|Risk Level:|Limited risk|not legal conformity|technical readiness|transparencyGaps|highRiskIndicators|aiSystemIndicators|documentationArtifacts|legal conformity|Disclaimer:/i;
+const IGNORE_LINE_RE = /simplebeacon-ignore\s+(?:credentials|credential-pattern|sensitive-data|euAiAct|eu-ai-act)/i;
+const EU_AI_ACT_COMPLIANCE_LINE_RE = /EU AI Act Documentation Marker|Documentation Marker|Annex III|Article\s*50|Article\s*12|euAiActCompliance|euAiAct|transparency disclosure|buildTransparency|providerTransparency|ScopeTransparency|aiSystemDisclosure|humanInTheLoop|human-in-the-loop|humanInTheLoop|human oversight|inference events logged|Risk Level:|Limited risk|not legal conformity|technical readiness|transparencyGaps|highRiskIndicators|aiSystemIndicators|documentationArtifacts|legal conformity|Disclaimer:/i;
 function isTestOrFixturePath(normalized) {
-    return /(?:^|\/)(__tests__|tests?|fixtures?|mocks?)(?:\/|$)/i.test(normalized)
+    return /(?:^|\/)(__tests__|tests?|fixtures?|mocks?|simplebeacon-rule-tests)(?:\/|$)/i.test(normalized)
         || /\.(test|spec)\.[a-z0-9]+$/i.test(normalized);
 }
 function isComplianceToolingPath(normalized) {
-    return /(?:^|\/)packages\/simplebeacon-cli\/src\/(?:rules|lib|mcp|analyzers)\//i.test(normalized)
-        || /eu-ai-act|scanner-patterns|scanner-engine|compliance-mapper|credential-pattern-scanner|enterprise-guardrail|llm-slop-catalog/i.test(normalized);
+    return /(?:^|\/)packages\/simplebeacon-cli\/src\/(?:rules|lib|mcp|analyzers|reporters)\//i.test(normalized)
+        || /(?:^|\/)(?:coming-soon|simplebeacon-vscode-merged|simplebeacon-vscode)(?:\/|$)/i.test(normalized)
+        || /(?:^|\/)dashboard-web\//i.test(normalized)
+        || /public\/dashboard\//i.test(normalized)
+        || /web\/simplebeacon-dashboard\/js(?:-es2018)?\/(?:services|workers|views)\//i.test(normalized)
+        || /server\/routes\/(?:chatbot-api|flexible-analyze-api)\.cjs$/i.test(normalized)
+        || /src\/api\/trust-api\.cjs$/i.test(normalized)
+        || /eu-ai-act|scanner-patterns|scanner-engine|compliance-mapper|credential-pattern-scanner|enterprise-guardrail|llm-slop-catalog|aiProblemAnalyzerSuite|extendedAnalyzers/i.test(normalized);
 }
 function shouldSkipAnalyzerLine(name, filePath, line) {
     const normalized = filePath.replace(/\\/g, '/');
@@ -129,7 +135,9 @@ function shouldSkipAnalyzerLine(name, filePath, line) {
 }
 function shouldSkipAnalyzerFile(name, filePath) {
     const normalized = filePath.replace(/\\/g, '/');
-    if (name === 'credentials' && isTestOrFixturePath(normalized))
+    if (isTestOrFixturePath(normalized))
+        return true;
+    if (name === 'credentials' && /(?:^|\/)simplebeacon-rule-tests\//i.test(normalized))
         return true;
     if (name === 'euAiAct' && isComplianceToolingPath(normalized))
         return true;

@@ -58,13 +58,17 @@ export function buildFunnelAuthOptions(authService) {
     const tokenFeatures = Array.isArray(tokenPayload === null || tokenPayload === void 0 ? void 0 : tokenPayload.features)
         ? tokenPayload.features.map(String).map((s) => s.toLowerCase())
         : [];
+    const sessionEmail = String((sessionUser === null || sessionUser === void 0 ? void 0 : sessionUser.email) || '').toLowerCase();
+    const tokenEmail = String((tokenPayload === null || tokenPayload === void 0 ? void 0 : tokenPayload.email) || '').toLowerCase();
     const isAdmin = Boolean((authService.isAdmin && authService.isAdmin())
         || tokenRole === 'admin'
         || tokenRole === 'superuser'
         || sessionRole === 'admin'
         || sessionRole === 'superuser'
         || sessionFeatures.includes('all_modules')
-        || tokenFeatures.includes('all_modules'));
+        || tokenFeatures.includes('all_modules')
+        || sessionEmail === 'admin@simplebeacon.ai'
+        || tokenEmail === 'admin@simplebeacon.ai');
     return {
         isAdmin,
         isSignedIn,
@@ -80,7 +84,7 @@ export function buildFunnelAuthOptions(authService) {
 export function shouldShowEnterpriseFunnel(options = {}) {
     if (options.isAdmin)
         return false;
-    if (options.isLocalScan)
+    if (options.isLocalScan || options.isClientScan || options.isPrivateScan)
         return false;
     if (options.isSignedIn && options.isFreeTier !== true)
         return false;

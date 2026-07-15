@@ -1094,7 +1094,38 @@ body{font-family:var(--vscode-font-family,'Segoe UI',sans-serif);background:var(
   <div style="max-width:960px;margin:0 auto;padding:16px">
   <div class="welcome" style="height:auto;padding:24px 0">
     <div class="welcome-map" style="font-size:120px;">&#x1F5FA;</div>
-    <h1>SimpleBeacon Dashboard</h1>
+    <h1>SimpleBeacon AI Slop Cop</h1>
+    <div class="db-kpi-grid welcome-kpi-grid" style="margin:16px 0 20px">
+      <div class="db-kpi-card">
+        <div class="db-kpi-icon">&#128200;</div>
+        <div class="db-kpi-value" id="welcomeStatScore" style="color:#89d185">--</div>
+        <div class="db-kpi-label">Quality Score</div>
+      </div>
+      <div class="db-kpi-card">
+        <div class="db-kpi-icon">&#128310;</div>
+        <div class="db-kpi-value" id="welcomeStatGate">--</div>
+        <div class="db-kpi-label">Gate Status</div>
+      </div>
+      <div class="db-kpi-card">
+        <div class="db-kpi-icon">&#128308;</div>
+        <div class="db-kpi-value" id="welcomeStatIssues" style="color:#f48771">0</div>
+        <div class="db-kpi-label">Total Issues</div>
+      </div>
+      <div class="db-kpi-card">
+        <div class="db-kpi-icon">&#128196;</div>
+        <div class="db-kpi-value" id="welcomeStatFiles">0</div>
+        <div class="db-kpi-label">Repository Files</div>
+      </div>
+    </div>
+    <div class="db-severity welcome-severity" style="max-width:640px;margin:0 auto 20px">
+      <div class="db-severity-title">Severity Breakdown</div>
+      <div class="db-severity-bar">
+        <div class="db-sev-segment db-sev-critical" id="welcomeSevCritical" style="width:0"></div>
+        <div class="db-sev-segment db-sev-high" id="welcomeSevHigh" style="width:0"></div>
+        <div class="db-sev-segment db-sev-medium" id="welcomeSevMedium" style="width:0"></div>
+        <div class="db-sev-segment db-sev-low" id="welcomeSevLow" style="width:0"></div>
+      </div>
+    </div>
     <div class="btn-grid">
       <button id="openDashboard"><span class="btn-icon">&#9776;</span><span class="btn-label">Dashboard</span></button>
       <button id="openAnalyze"><span class="btn-icon">&#128340;</span><span class="btn-label">Analyze</span></button>
@@ -3638,11 +3669,11 @@ function addTab(label, paneId) {
   const container = barLeft || bar;
   const existing = container.querySelector('[data-pane="' + paneId + '"]');
   if (existing) {
-    if (window.__SB_DEBUG__) console.log('[SB addTab] existing tab, activating:', paneId);
+    if (window.__SB_DEBUG__) console.debug('[SB addTab] existing tab, activating:', paneId);
     activateTab(paneId);
     return;
   }
-  if (window.__SB_DEBUG__) console.log('[SB addTab] creating tab:', label, paneId);
+  if (window.__SB_DEBUG__) console.debug('[SB addTab] creating tab:', label, paneId);
   const tab = document.createElement('div');
   tab.className = 'tab';
   tab.dataset.pane = paneId;
@@ -3663,7 +3694,7 @@ function addTab(label, paneId) {
 function activateTab(paneId) {
   const pane = document.getElementById(paneId);
   if (!pane) { if (window.__SB_DEBUG__) console.warn('[SB activateTab] pane not found:', paneId); return; }
-  if (window.__SB_DEBUG__) console.log('[SB activateTab] activating:', paneId, 'pane classList before:', pane.classList.toString());
+  if (window.__SB_DEBUG__) console.debug('[SB activateTab] activating:', paneId, 'pane classList before:', pane.classList.toString());
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.pane === paneId));
   document.querySelectorAll('.pane').forEach(p => {
     if (p.id === paneId) {
@@ -3682,7 +3713,7 @@ function activateTab(paneId) {
     }
   }
   // simplebeacon-ignore console-log — diagnostic
-  if (window.__SB_DEBUG__) console.log('[SB activateTab] pane classList after:', pane.classList.toString(), 'display:', pane.style.display);
+  if (window.__SB_DEBUG__) console.debug('[SB activateTab] pane classList after:', pane.classList.toString(), 'display:', pane.style.display);
 }
 function getTabList() { return Array.from(document.querySelectorAll('#tabBar .tab')); }
 function getActiveTabIndex() { return getTabList().findIndex(t => t.classList.contains('active')); }
@@ -3710,7 +3741,7 @@ function bindProfileToggle(id, command) {
 }
 function initWelcomeButtons() {
   // simplebeacon-ignore console-log — diagnostic
-  if (window.__SB_DEBUG__) console.log('[SB] initWelcomeButtons start');
+  if (window.__SB_DEBUG__) console.debug('[SB] initWelcomeButtons start');
   document.querySelectorAll('#tabBar .tab').forEach(t => { if (!t.dataset.bound) { t.dataset.bound = '1'; t.addEventListener('click', () => activateTab(t.dataset.pane)); } });
   const tabArrowLeft = document.getElementById('tabArrowLeft');
   if (tabArrowLeft) tabArrowLeft.addEventListener('click', () => {
@@ -3824,7 +3855,7 @@ function initWelcomeButtons() {
     });
   }
   // simplebeacon-ignore console-log — diagnostic
-  if (window.__SB_DEBUG__) console.log('[SB] initWelcomeButtons done');
+  if (window.__SB_DEBUG__) console.debug('[SB] initWelcomeButtons done');
 }
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initWelcomeButtons);
@@ -3838,7 +3869,7 @@ window.addEventListener('message', function(ev) {
   if (typeof window.__SB_BROWSER_MODE__ === 'undefined' || !window.__SB_BROWSER_MODE__) { return; }
   const cmd = ev.data.command;
   // simplebeacon-ignore console-log — diagnostic
-  if (window.__SB_DEBUG__) console.log('[SB browser handler] command:', cmd);
+  if (window.__SB_DEBUG__) console.debug('[SB browser handler] command:', cmd);
   const paneMap = {
     showDashboardPane: 'dashboardPane', showAnalyzePane: 'analyzePane', showReportPane: 'reportPane',
     showSettingsPane: 'settingsPane', showSecurityPane: 'securityPane', showTrustPane: 'trustPane',
@@ -5335,7 +5366,7 @@ window.addEventListener('message', (event) => {
     return;
   }
   if (!window.__SB_BATCH_DISPATCH__ && window.__SB_DEBUG__ && !/^update(?:AllPanes|Dashboard|Analyze|Report|Certificate|Roadmap|AiContext|Upload|Audit|Security|Trust|Quality|Assessments|Platform|Profile|Compliance|RepoHealth|Team|Scan|Analytics|Settings)Pane$/.test(String(msg.command || ''))) {
-    console.log('[SB vscode handler] command:', msg.command);
+    console.debug('[SB vscode handler] command:', msg.command);
   }
   if (msg.command === 'showDashboardPane') addTab('Dashboard','dashboardPane');
   if (msg.command === 'showAnalyzePane') {

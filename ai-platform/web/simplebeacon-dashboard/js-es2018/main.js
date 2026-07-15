@@ -15,7 +15,7 @@ import { PlatformView } from './views/PlatformView.js?v=20260601platformmetrics1
 import { QualityView } from './views/QualityView.js?v=20260711admin1';
 import { HelpView, FeaturesView } from './views/HelpView.js';
 import { AuditView } from './views/AuditView.js?v=20260711admin1';
-import { AnalyzeView } from './views/AnalyzeView.js?v=20260715funnel2';
+import { AnalyzeView } from './views/AnalyzeView.js?v=20260715scanfix1';
 import { SecurityView } from './views/SecurityView.js?v=20260711admin1';
 import { PricingView } from './views/PricingView.js?v=20260714importfix1';
 import { AboutView } from './views/AboutView.js';
@@ -32,7 +32,7 @@ import { showUpgradeModal } from './components/UpgradeModal.js';
 import { showLoginModal } from './components/LoginModal.js?v=20260609token4';
 import { isDemoMode, isSignedOffMode, isLocalDevHost, demoReadOnlyMessage } from './demoMode.js';
 import { showToast, resolveDashboardProjectPath } from './utils.js';
-import { fetchAnalyzeProviders, isClientScanReport, shouldClearHostedServerDefaultPath } from './services/analyzeService.js?v=20260715iframefix3';
+import { fetchAnalyzeProviders, isClientScanReport, shouldClearHostedServerDefaultPath } from './services/analyzeService.js?v=20260715scanfix1';
 /**
  * Vault unlock url.
  * @param {string} returnPath

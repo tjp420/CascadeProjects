@@ -1,15 +1,15 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
 import { showToast } from '../utils.js';
 import { canUseDirectoryPicker, isLikelyWebkitDirectoryFileCap, browserFolderCapMessage, isEmbeddedDashboardFrame } from '../utils-lib/dom.js';
-import { normalizeSimplebeaconReport } from './analyzeService.js?v=20260714results1';
+import { normalizeSimplebeaconReport } from './analyzeService.js?v=20260715scanfix1';
 import {
   createIgnoreContext,
   extractIgnorePatternsFromLegacyFiles,
   filterQueueByIgnore,
   isIgnoredVirtualPath,
   loadIgnorePatternsFromDirHandle
-} from '../utils-lib/simplebeaconignore.browser.js?v=20260715ignore1';
-const WORKER_URL = new URL('../workers/scan-worker.js?v=20260715ignore1', import.meta.url);
+} from '../utils-lib/simplebeaconignore.browser.js?v=20260715scanfix1';
+const WORKER_URL = new URL('../workers/scan-worker.js?v=20260715scanfix1', import.meta.url);
 const MAX_FILES = 100000;
 const SCAN_BATCH_SIZE = 400;
 const BATCH_TIMEOUT_MS = 10 * 60 * 1000;
@@ -112,6 +112,8 @@ function buildReport(projectName, findings, totalFiles, analyzedFiles, meta = {}
     }
     const totalFindings = rawIssues.reduce((sum, i) => sum + (i.count || 1), 0);
     const issueCount = totalFindings;
+    const blockingCount = rawIssues.filter((i) => i.severity === 'critical' || i.severity === 'high')
+        .reduce((sum, i) => sum + (Number(i.count) || 1), 0);
     return {
         type: 'simplebeacon-report',
         version: '1.0.0',
@@ -137,9 +139,14 @@ function buildReport(projectName, findings, totalFiles, analyzedFiles, meta = {}
         ruleScopedFilesAnalyzed: analyzedFiles,
         inventory: { totalFiles, totalFolders: 0, scannedFiles: analyzedFiles },
         repositoryInventory: { totalFiles, totalFolders: 0, projectRoot: projectName },
-        repositoryFilesTotal: totalFiles,
         repositoryFoldersTotal: 0,
-        gate: { pass: rawIssues.filter((i) => i.severity === 'critical' || i.severity === 'high').length === 0 && totalFiles > 0, score: rawIssues.length === 0 && totalFiles > 0 ? 100 : 0 },
+        ignoreMeta: meta.ignoreMeta || null,
+        gate: {
+            pass: blockingCount === 0 && totalFiles > 0,
+            blockingCount,
+            warningCount: totalFindings - blockingCount,
+            score: blockingCount === 0 && totalFiles > 0 ? 100 : 0
+        },
         issuesTruncated: Boolean(meta.issuesTruncated),
         scanLimitNote: meta.issuesTruncated
             ? `Findings capped at ${rawIssues.length.toLocaleString()} for browser memory. Download JSON or use the CLI for the full list.`
@@ -186,7 +193,16 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
                 cleanup();
                 const resolvedTotal = completeTotal || totalFiles;
                 const analyzedFiles = workerFiles.filter((f) => /\.(js|cjs|mjs|ts|tsx|jsx|py|java|go|rs|php|rb|cs|vb)$/i.test(f.path)).length;
-                resolve(buildReport(options.projectName || 'local-project', issues, resolvedTotal, analyzedFiles, { issuesTruncated }));
+                resolve(buildReport(options.projectName || 'local-project', issues, resolvedTotal, analyzedFiles, {
+                    issuesTruncated,
+                    ignoreMeta: options.ignoreCtx
+                        ? {
+                            source: options.ignoreCtx.source || 'builtin',
+                            patternCount: options.ignoreCtx.patterns?.length || 0,
+                            scanRootName: options.ignoreCtx.scanRootName || ''
+                        }
+                        : null
+                }));
             }
         };
         worker.postMessage({
@@ -295,8 +311,12 @@ export async function runLocalScan(options = {}) {
             files = await collectFiles(dirHandle, '', [], ignoreCtx);
         }
     }
+    const beforeIgnoreCount = files.length;
     files = filterQueueByIgnore(files.map((f) => ({ ...f, virtualPath: f.path })), ignoreCtx)
         .map((f) => ({ path: f.path || f.virtualPath, handle: f.handle }));
+    if (ignoreCtx && files.length < beforeIgnoreCount) {
+        showToast(`Excluded ${beforeIgnoreCount - files.length} paths via ${ignoreCtx.source || 'ignore'} rules.`, 'info', { duration: 5000 });
+    }
     if (files.length === 0) {
         throw new Error(`No files were found in "${projectName}". The folder may be empty, permission was denied, or all files were excluded. Try selecting the folder again or use the local agent.`);
     }

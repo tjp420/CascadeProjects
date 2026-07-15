@@ -1,7 +1,7 @@
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
 import { escapeHtml, showToast, downloadJson, downloadBlob, downloadText, redactPathForDisplay, formatPathLabel, formatPathInputValue, formatAiSummarySkipMessage, isRedactedPathDisplay, formatNumber, formatPercent, renderEmptyState } from '../utils.js';
 import { canUseDirectoryPicker, isLikelyWebkitDirectoryFileCap, browserFolderCapMessage, filePickerBlockedMessage, isFilePickerBlockedError, isEmbeddedDashboardFrame } from '../utils-lib/dom.js?v=20260715iframefix3';
-import { evaluateFunnelMetrics, getFunnelCopy, shouldShowEnterpriseFunnel, buildFunnelAuthOptions } from '../utils/funnelTrigger.js?v=20260715adminfunnel1';
+import { evaluateFunnelMetrics, getFunnelCopy, shouldShowEnterpriseFunnel, buildFunnelAuthOptions } from '../utils/funnelTrigger.js?v=20260715funnel2';
 import { LocalScanService } from '../services/localScanService.js?v=20260715iframefix3';
 import { fingerprintDirectory, formatFingerprint } from '../services/fingerprintService.js';
 import { probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus, getAgentDownloadUrl, detectPlatform, getPlatformLabel, getInstallInstructions, getAgentFallbackMessage, probeAgent4000, scanViaAgent4000, renderAgentCertificate, hasExtensionBridgeConfigured, pickFolderViaExtensionBridge as requestExtensionFolderPick, shouldProbeLocalAgent } from '../services/localAgentService.js?v=20260715hosted1';
@@ -1502,7 +1502,7 @@ export class AnalyzeView {
         });
         const el = document.createElement('div');
         el.className = 'fade-in';
-        el.innerHTML = `
+        el.insertAdjacentHTML('afterbegin', `
       <div class="analyze-page">
         ${renderAnalysisWorkflow(workflowStep, { pageLabel: 'Analysis workflow' })}
         ${this.renderTargetCard(defaultPath, displayPath)}
@@ -1538,7 +1538,7 @@ export class AnalyzeView {
           </div>
         </div>
       </div>
-    `;
+    `);
         this.bindEvents(el);
         this._root = el;
         refreshPathSuggestionsDatalist(el, this.app, this.testSources);
@@ -1665,7 +1665,7 @@ export class AnalyzeView {
     updateLastScanCard() {
         const slot = this._root && this._root.querySelector('#analyze-last-scan-card');
         if (!slot) return;
-        slot.innerHTML = this.renderLastScanCard();
+        slot.replaceChildren(); slot.insertAdjacentHTML('afterbegin', this.renderLastScanCard());
     }
     async initCliUploadPanel(view) {
         if (!authService.isAuthenticated()) return;
@@ -2037,7 +2037,7 @@ export class AnalyzeView {
                 this._testSourcesFailedAt = Date.now();
                 const el = container === null || container === void 0 ? void 0 : container.querySelector('#analyze-preset-paths');
                 if (el) {
-                    el.innerHTML = '<span class="text-muted" style="font-size:var(--font-size-xs)">Test sources unavailable — restart dashboard (npm run dashboard:kill-ports && npm run dashboard:v1-internal).</span>';
+                    el.replaceChildren(); el.insertAdjacentHTML('afterbegin', '<span class="text-muted" style="font-size:var(--font-size-xs)">Test sources unavailable — restart dashboard (npm run dashboard:kill-ports && npm run dashboard:v1-internal).</span>');
                 }
             }
         })();
@@ -3726,12 +3726,12 @@ export class AnalyzeView {
                     // Create the list container and populate it now.
                     const listEl = document.createElement('div');
                     listEl.className = 'analyze-step-list';
-                    listEl.innerHTML = steps.map((step) => `
+                    listEl.insertAdjacentHTML('afterbegin', steps.map((step) => `
             <div class="analyze-step-item ${step.status}">
               <span>${step.status === 'done' ? '✓' : step.status === 'error' ? '✕' : step.status === 'running' ? '◉' : step.status === 'skipped' ? '—' : '○'}</span>
               <span>${escapeHtml(formatCompleteStepLine(step))}</span>
             </div>
-          `).join('');
+          `).join(''));
                     root.appendChild(listEl);
                 }
                 else {
@@ -3923,7 +3923,7 @@ export class AnalyzeView {
             return;
         const id = String(this.aiProvider || 'demo').toLowerCase();
         if (id === 'demo') {
-            note.innerHTML = 'Deterministic scan only — no AI narrative will be added. Pick <strong>Ollama</strong> (with <code>ollama serve</code>) for an optional LLM summary after findings.';
+            note.replaceChildren(); note.insertAdjacentHTML('afterbegin', 'Deterministic scan only — no AI narrative will be added. Pick <strong>Ollama</strong> (with <code>ollama serve</code>) for an optional LLM summary after findings.');
             return;
         }
         const match = this.providers.find((p) => p.id === id);
@@ -3940,7 +3940,7 @@ export class AnalyzeView {
             note.textContent = match.statusMessage;
             return;
         }
-        note.innerHTML = 'Gate findings are always deterministic. This choice only adds an optional LLM summary after the scan.';
+        note.textContent = 'Gate findings are always deterministic. This choice only adds an optional LLM summary after the scan.';
     }
     attachDeterministicSummary(target, note) {
         const narrative = buildScanConclusion(target, { focus: 'all' });
@@ -4299,11 +4299,11 @@ export class AnalyzeView {
             return this.renderConclusionBanner(gateLine, 'Deterministic gate scan (AI narrative hidden for compliance integrity)');
         }
         if (entity === null || entity === void 0 ? void 0 : entity.aiSummary) {
-            const provider = entity.aiSummaryProvider || this.aiProvider || 'AI';
+            const summaryProvider = entity.aiSummaryProvider || this.aiProvider || 'AI';
             return `
         <div class="card mb-4 analyze-scan-summary">
           <p class="text-muted mb-2" style="font-size: var(--font-size-xs); margin-top: 0;">
-            <span style="opacity:0.7;">🤖 AI-generated summary (${escapeHtml(provider)}) — findings unchanged. Content may contain inaccuracies; verify against scan results.</span>
+            <span style="opacity:0.7;">🤖 AI-generated summary (${escapeHtml(summaryProvider)}) — findings unchanged. Content may contain inaccuracies; verify against scan results.</span>
           </p>
           ${gateLine ? `<p class="text-muted text-sm mb-3" style="margin-top:0;"><strong>Gate:</strong> ${escapeHtml(gateLine)}</p>` : ''}
           <div class="analyze-ai-summary-body">${escapeHtml(entity.aiSummary).replace(/\n/g, '<br>')}</div>
@@ -4320,11 +4320,11 @@ export class AnalyzeView {
             ? `<p class="text-muted text-sm mb-2">${escapeHtml(entity.aiSummaryNote)}</p>`
             : '';
         if (entity.aiSummary) {
-            const provider = entity.aiSummaryProvider || this.aiProvider || 'AI';
+            const summaryProvider = entity.aiSummaryProvider || this.aiProvider || 'AI';
             return `
         ${noteBlock}
         <div class="card mb-4 analyze-ai-summary">
-          <p class="text-muted mb-2" style="font-size: var(--font-size-xs); margin-top: 0;"><span style="opacity:0.7;">🤖 AI-generated summary (${escapeHtml(provider)}) — findings unchanged. Content may contain inaccuracies; verify against scan results.</span></p>
+          <p class="text-muted mb-2" style="font-size: var(--font-size-xs); margin-top: 0;"><span style="opacity:0.7;">🤖 AI-generated summary (${escapeHtml(summaryProvider)}) — findings unchanged. Content may contain inaccuracies; verify against scan results.</span></p>
           <div class="analyze-ai-summary-body">${escapeHtml(entity.aiSummary).replace(/\n/g, '<br>')}</div>
         </div>
       `;
@@ -4387,7 +4387,7 @@ export class AnalyzeView {
         if (!slot)
             return;
         const pathInput = root.querySelector('#project-path-input');
-        slot.innerHTML = this.renderInventoryProvenanceLine(pathInput === null || pathInput === void 0 ? void 0 : pathInput.value);
+        slot.replaceChildren(); slot.insertAdjacentHTML('afterbegin', this.renderInventoryProvenanceLine(pathInput === null || pathInput === void 0 ? void 0 : pathInput.value));
     }
     buildModeDetailContext() {
         var _a, _b, _c, _d;
@@ -5825,27 +5825,27 @@ export class AnalyzeView {
         const pathEl = el.querySelector('#dir-browser-current-path');
         if (!listEl || !pathEl)
             return;
-        listEl.innerHTML = '<div class="dir-browser-empty">Loading directories…</div>';
+        listEl.replaceChildren(); listEl.insertAdjacentHTML('afterbegin', '<div class="dir-browser-empty">Loading directories…</div>');
         const displayPath = dirPath || 'Computer';
         pathEl.textContent = displayPath;
         this._dirBrowserPath = dirPath;
         // Local paths cannot be browsed by the remote server; type them directly into the path input.
         if (isLocalPath(dirPath)) {
-            listEl.innerHTML = '<div class="dir-browser-empty">Local folders cannot be browsed from the server. Type the path above or run the Local Scan Agent.</div>';
+            listEl.replaceChildren(); listEl.insertAdjacentHTML('afterbegin', '<div class="dir-browser-empty">Local folders cannot be browsed from the server. Type the path above or run the Local Scan Agent.</div>');
             return;
         }
         try {
             const res = await fetch(`/api/analyze/list-directories?path=${encodeURIComponent(dirPath)}`, { cache: 'no-store' });
             const data = await res.json();
             if (!data.success) {
-                listEl.innerHTML = `<div class="dir-browser-empty">Error: ${escapeHtml(data.error || 'Failed to load directories')}</div>`;
+                listEl.replaceChildren(); listEl.insertAdjacentHTML('afterbegin', `<div class="dir-browser-empty">Error: ${escapeHtml(data.error || 'Failed to load directories')}</div>`);
                 return;
             }
             const current = data.current || dirPath;
             pathEl.textContent = current || 'Computer';
             this._dirBrowserPath = current;
             if (!data.directories || data.directories.length === 0) {
-                listEl.innerHTML = '<div class="dir-browser-empty">No subdirectories</div>';
+                listEl.replaceChildren(); listEl.insertAdjacentHTML('afterbegin', '<div class="dir-browser-empty">No subdirectories</div>');
                 return;
             }
             const parentItem = data.parent
@@ -5854,10 +5854,10 @@ export class AnalyzeView {
             const isDriveList = !current;
             const icon = isDriveList ? '💾' : '📁';
             const items = data.directories.map((dir) => `<div class="dir-browser-item" data-path="${escapeHtml(dir.path)}"><span class="dir-icon">${icon}</span> ${escapeHtml(dir.name)}</div>`).join('');
-            listEl.innerHTML = parentItem + items;
+            listEl.replaceChildren(); listEl.insertAdjacentHTML('afterbegin', parentItem + items);
         }
         catch (err) {
-            listEl.innerHTML = `<div class="dir-browser-empty">Error: ${escapeHtml(err.message)}</div>`;
+            listEl.replaceChildren(); listEl.insertAdjacentHTML('afterbegin', `<div class="dir-browser-empty">Error: ${escapeHtml(err.message)}</div>`);
         }
     }
     dirBrowserGoUp(el) {
@@ -6998,13 +6998,13 @@ export class AnalyzeView {
             const order = ['demo', 'ollama', 'openai', 'anthropic', 'active'];
             const sorted = [...data.providers].sort((a, b) => (order.indexOf(a.id) === -1 ? 99 : order.indexOf(a.id))
                 - (order.indexOf(b.id) === -1 ? 99 : order.indexOf(b.id)));
-            select.innerHTML = sorted.map((p) => {
+            select.replaceChildren(); select.insertAdjacentHTML('afterbegin', sorted.map((p) => {
                 const configured = isAnalyzeProviderConfigured(p);
                 const suffix = configured ? '' : ' (not configured)';
                 const title = [p.description, p.statusMessage].filter(Boolean).join(' · ');
                 const disabled = configured ? '' : 'disabled';
                 return `<option value="${escapeHtml(p.id)}" ${disabled} title="${escapeHtml(title)}">${escapeHtml(p.label || p.id)}${suffix}</option>`;
-            }).join('');
+            }).join(''));
             const preferred = this.aiProvider;
             const preferredOk = data.providers.some((p) => p.id === preferred && isAnalyzeProviderConfigured(p));
             const ollama = data.providers.find((p) => p.id === 'ollama' && isAnalyzeProviderConfigured(p));
@@ -7025,10 +7025,10 @@ export class AnalyzeView {
         }
         catch (err) {
             if (select) {
-                select.innerHTML = `
+                select.replaceChildren(); select.insertAdjacentHTML('afterbegin', `
           <option value="demo">Filesystem scan (no AI narrative)</option>
           <option value="ollama" disabled>Ollama — reload providers</option>
-        `;
+        `);
             }
             showToast((err === null || err === void 0 ? void 0 : err.message) || 'Could not load AI providers — restart dashboard (npm run dashboard:kill-ports && npm run dashboard:v1-internal)', 'error');
         }
@@ -7126,10 +7126,10 @@ export class AnalyzeView {
             showToast('Select a local folder to scan privately…', 'info');
         }
         try {
-            const service = new LocalScanService();
+            const scanService = new LocalScanService();
             this._lastBrowserScanHandle = dirHandle || null;
             this._lastBrowserScanFiles = files || null;
-            const report = await service.runScan({
+            const report = await scanService.runScan({
                 dirHandle,
                 files,
                 projectPath: projectPath && projectPath.trim() ? projectPath.trim() : undefined,
@@ -8741,9 +8741,15 @@ export class AnalyzeView {
         if (!funnel.shouldPromptUpgrade)
             return '';
         const scanLabel = String(((_l = this.lastResult) === null || _l === void 0 ? void 0 : _l.label) || '');
-        const isLocalScan = /^local scan:/i.test(scanLabel);
+        const projectPath = String(report.projectPath || report.projectRoot || ((_l = this.lastResult) === null || _l === void 0 ? void 0 : _l.projectPath) || '');
+        const isClientScan = isBrowserPrivateScanSource(report);
+        const isLocalScan = isClientScan
+            || /^local scan:/i.test(scanLabel)
+            || /^local browser scan/i.test(scanLabel)
+            || /^ide scan:/i.test(scanLabel)
+            || (isRemoteDashboardHost() && isAbsoluteLocalPath(projectPath));
         const auth = (_m = this.app.authService) === null || _m === void 0 ? void 0 : _m;
-        if (!shouldShowEnterpriseFunnel(Object.assign({}, buildFunnelAuthOptions(auth), { isLocalScan }))) {
+        if (!shouldShowEnterpriseFunnel(Object.assign({}, buildFunnelAuthOptions(auth), { isLocalScan, isClientScan, isPrivateScan: isLocalScan }))) {
             return '';
         }
         const copy = getFunnelCopy(funnel.reason);
@@ -8831,10 +8837,8 @@ export class AnalyzeView {
         var _a, _b, _c, _d, _e, _f, _g, _h, _j;
         if (((_a = this.lastResult) === null || _a === void 0 ? void 0 : _a.kind) === 'complete') {
             const exportFilename = this.resolveScanExportFilename();
-            console.log('[buildScanResultExport] kind=complete, calling buildCompleteScanExport');
             try {
                 const result = this.buildCompleteScanExport({ exportFilename });
-                console.log('[buildScanResultExport] buildCompleteScanExport returned:', result);
                 return result;
             }
             catch (err) {
@@ -9066,8 +9070,6 @@ export class AnalyzeView {
     buildRemediationExport() {
         var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o;
         const payload = this.resolveScanExportPayload();
-        console.log('[buildRemediationExport] raw payload:', payload);
-        console.log('[buildRemediationExport] scanExportHasPayload:', this.scanExportHasPayload(payload));
         if (!this.scanExportHasPayload(payload))
             return null;
         const issues = [];
@@ -10280,10 +10282,7 @@ export class AnalyzeView {
         (_s = view.querySelector('#export-for-remediation')) === null || _s === void 0 ? void 0 : _s.addEventListener('click', () => {
             var _a;
             try {
-                console.log('[export-for-remediation] clicked');
-                console.log('[export-for-remediation] lastResult:', this.lastResult);
                 const payload = this.buildRemediationExport();
-                console.log('[export-for-remediation] payload:', payload);
                 if (!payload) {
                     showToast('No scan results to export for remediation yet', 'error');
                     return;

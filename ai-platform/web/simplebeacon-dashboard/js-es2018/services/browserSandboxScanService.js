@@ -12,7 +12,7 @@ import {
   filterQueueByIgnore,
   isIgnoredVirtualPath,
   loadIgnorePatternsFromDirHandle
-} from '../utils-lib/simplebeaconignore.browser.js?v=20260715ignore1';
+} from '../utils-lib/simplebeaconignore.browser.js?v=20260715scanfix1';
 
 const DEFAULT_MAX_FILE_SIZE = 1500000;
 const DEFAULT_MAX_FILES = 100000;
@@ -612,7 +612,7 @@ export async function scanDroppedItems(items, options = {}) {
   // Use a synchronously captured webkit entry first — async hops invalidate DataTransfer items.
   const entry = capturedEntry || captureDroppedEntry(items);
   if (entry && entry.isDirectory) {
-    const ignoreCtx = createIgnoreContext(null, entry.name);
+    const ignoreCtx = createIgnoreContext(null, entry.name, 'builtin');
     const fileQueue = [];
     await crawlWebkitEntryTree(entry, entry.name, fileQueue, { maxFiles, onLog, ignoreCtx });
     if (fileQueue.length === 0) {
@@ -641,7 +641,7 @@ export async function scanDroppedItems(items, options = {}) {
   // Fallback: webkitGetAsEntry traversal (may already be stale if not captured synchronously).
   const staleEntry = typeof first.webkitGetAsEntry === 'function' ? first.webkitGetAsEntry() : null;
   if (staleEntry && staleEntry.isDirectory) {
-    const ignoreCtx = createIgnoreContext(null, staleEntry.name);
+    const ignoreCtx = createIgnoreContext(null, staleEntry.name, 'builtin');
     const fileQueue = [];
     await crawlWebkitEntryTree(staleEntry, staleEntry.name, fileQueue, { maxFiles, onLog, ignoreCtx });
     if (fileQueue.length === 0) {
@@ -667,7 +667,8 @@ export async function scanDroppedItems(items, options = {}) {
     throw new Error('No scannable files or folders detected.');
   }
   logLine(onLog, `Dropped ${fileQueue.length} file(s) — scanning locally.`, 'info');
-  return analyzeDirectory({ rootName: name, fileQueue }, { maxFileSize, onLog, onProgress });
+  const ignoreCtx = createIgnoreContext(null, name, 'builtin');
+  return analyzeDirectory({ rootName: name, fileQueue, ignoreCtx }, { maxFileSize, onLog, onProgress });
 }
 
 async function crawlWebkitEntryTree(entry, currentPath, queue, options) {

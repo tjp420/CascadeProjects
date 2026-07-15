@@ -68,7 +68,7 @@ export class WelcomeDashboard {
     if (workspace) { localRoots.push(vscode.Uri.joinPath(workspace.uri, '.simplebeacon')); }
     const panel = vscode.window.createWebviewPanel(
       'simplebeaconWelcomeV2',
-      'SimpleBeacon',
+      'SimpleBeacon AI Slop Cop',
       col || vscode.ViewColumn.One,
       {
         enableScripts: true,
@@ -669,6 +669,38 @@ export class WelcomeDashboard {
   /** Push many pane updates in one webview message to avoid extension-host stalls. */
   private static _pendingBatchPanes: Record<string, Record<string, unknown>> = {};
   private static _batchFlushTimer: ReturnType<typeof setTimeout> | undefined;
+  private static _hasAutoOpenedDashboard = false;
+
+  static hasLoadedScanGate(): boolean {
+    const gate = String(WelcomeDashboard._lastDashboardData?.gate || '').trim().toUpperCase();
+    return gate !== '' && gate !== 'PENDING' && gate !== '--';
+  }
+
+  static buildCachedPanesPayload(): Record<string, Record<string, unknown>> {
+    const panes: Record<string, Record<string, unknown>> = {};
+    if (WelcomeDashboard._lastDashboardData) { panes.dashboard = WelcomeDashboard._lastDashboardData; }
+    if (WelcomeDashboard._lastAnalyzeData) { panes.analyze = WelcomeDashboard._lastAnalyzeData; }
+    if (WelcomeDashboard._lastReportData) { panes.report = WelcomeDashboard._lastReportData; }
+    if (WelcomeDashboard._lastRoadmapData) { panes.roadmap = WelcomeDashboard._lastRoadmapData; }
+    if (WelcomeDashboard._lastSecurityData) { panes.security = WelcomeDashboard._lastSecurityData; }
+    if (WelcomeDashboard._lastTrustData) { panes.trust = WelcomeDashboard._lastTrustData; }
+    if (WelcomeDashboard._lastQualityData) { panes.quality = WelcomeDashboard._lastQualityData; }
+    if (WelcomeDashboard._lastComplianceData) { panes.compliance = WelcomeDashboard._lastComplianceData; }
+    if (WelcomeDashboard._lastAnalyticsData) { panes.analytics = WelcomeDashboard._lastAnalyticsData; }
+    if (WelcomeDashboard._lastTeamData) { panes.team = WelcomeDashboard._lastTeamData; }
+    if (WelcomeDashboard._lastRepoHealthData) { panes.repoHealth = WelcomeDashboard._lastRepoHealthData; }
+    if (WelcomeDashboard._lastScanData) { panes.scan = WelcomeDashboard._lastScanData; }
+    return panes;
+  }
+
+  static maybeAutoOpenDashboard(panel?: WelcomeDashboard) {
+    const active = panel || WelcomeDashboard.currentPanel;
+    if (!active || WelcomeDashboard._hasAutoOpenedDashboard) { return; }
+    const showWelcome = getSbConfig().get<boolean>('showWelcomeOnLoad', true);
+    if (showWelcome || !WelcomeDashboard.hasLoadedScanGate()) { return; }
+    WelcomeDashboard._hasAutoOpenedDashboard = true;
+    active.showDashboardPane();
+  }
 
   static batchUpdatePanesIfOpen(panes: Record<string, Record<string, unknown>>) {
     if (panes.dashboard) { WelcomeDashboard._lastDashboardData = panes.dashboard as typeof WelcomeDashboard._lastDashboardData; }
@@ -696,6 +728,7 @@ export class WelcomeDashboard {
       const active = WelcomeDashboard.currentPanel;
       if (!active || Object.keys(merged).length === 0) { return; }
       active.queueOrPostMessage({ command: 'updateAllPanes', panes: merged });
+      WelcomeDashboard.maybeAutoOpenDashboard(active);
     }, 400);
   }
 
@@ -748,7 +781,12 @@ export class WelcomeDashboard {
     this.panel.webview.onDidReceiveMessage(async (msg) => {
       if (msg.command === 'ready') {
         this.isReady = true;
+        const cached = WelcomeDashboard.buildCachedPanesPayload();
+        if (Object.keys(cached).length > 0) {
+          this.queueOrPostMessage({ command: 'updateAllPanes', panes: cached });
+        }
         this.flushMessageQueue();
+        WelcomeDashboard.maybeAutoOpenDashboard(this);
         return;
       }
       const config = getSbConfig();
