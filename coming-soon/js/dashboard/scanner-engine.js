@@ -1611,7 +1611,7 @@ async function processLocalCLIScan(files) {
         if (!reason && /(^|\/)stream-stress\.cjs$/i.test(path)) {
             reason = 'Stress test script';
         }
-        if (!reason && !deepScan && /(^|\/)(dashboard-web|simplebeacon-dashboard)\/js\/(services|utils|components)\//i.test(path)) {
+        if (!reason && !deepScan && /(^|\/)(dashboard-web|simplebeacon-dashboard)\/js\/(services|utils|components|controllers)\//i.test(path)) {
             reason = 'Dashboard service/component (legitimate patterns)';
         }
         if (!reason && !deepScan && /(^|\/)public\/dashboard\/js\/(main|services|utils|components)\//i.test(path)) {

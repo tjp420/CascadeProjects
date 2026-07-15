@@ -669,3 +669,65 @@ ai-tools/index.js
 # Export findings script
 scripts/export-findings.js
 
+# Remaining server-side pattern files and routes
+ai-platform/server/lib/code-understanding/zscript-structure-analyzer.cjs
+ai-platform/server/lib/code-understanding/contextual-analyzer.cjs
+ai-platform/server/lib/path-classification.cjs
+ai-platform/server/lib/roadmap-analysis.cjs
+ai-platform/server/lib/code-roadmap-phase2.cjs
+ai-platform/server/lib/npm-audit-runner.cjs
+ai-platform/server/lib/plugin-system/generic-structure-hints.cjs
+ai-platform/server/services/model-inference-service.cjs
+ai-platform/server/enterprise-patterns.cjs
+ai-platform/server/routes/ai-math-audit-route.cjs
+ai-platform/server/routes/flexible-analyze-api.cjs
+ai-platform/server/routes/token-auth.cjs
+ai-platform/server/utils/data-processor.cjs
+ai-platform/server/api/assessment/AssessmentController.cjs
+ai-platform/server/lib/__tests__/audit-remediation-classify.test.cjs
+ai-platform/server/lib/__tests__/audit-report-internal-tests.test.cjs
+ai-platform/server/lib/fix-orchestrator/patch-strategies.test.cjs
+
+# API server
+api-server/server.cjs
+
+# Coming-soon misc files
+coming-soon/contact.js
+coming-soon/public/contact.js
+coming-soon/js/terminal-simulation.js
+coming-soon/public/js/terminal-simulation.js
+coming-soon/public/dashboard/js/terminal-simulation.js
+coming-soon/server.cjs
+coming-soon/vscode-remediation-payload.json
+
+# Guardrail test bench (intentional security leak fixtures)
+guardrail-test-bench/
+
+# Sales support scripts
+sales/support/simulate-registration-flow.js
+
+# CI/verify scripts
+scripts/ci-stress-test.cjs
+scripts/verify-scan.js
+scripts/zero-upload-verify.js
+
+# Rule test negative fixtures
+simplebeacon-rule-tests/negative-test-1/
+
+# VS Code merged media
+simplebeacon-vscode-merged/media/sidebar-main.js
+
+# Temp debug scripts
+_find_codemap_syntax_error.js
+
+# Local agent build scripts
+ai-platform/local-agent/build-deb.cjs
+ai-platform/local-agent/build-portable.cjs
+
+# Server start log
+ai-platform/server-start-log2.txt
+
+# Integration tests
+ai-platform/tests/integration/server-integration.test.js
+ai-platform/tests/secret-config.test.js
+
