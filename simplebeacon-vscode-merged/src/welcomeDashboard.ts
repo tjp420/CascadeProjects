@@ -9,7 +9,7 @@ import { getDataServerPort } from './dataServer';
 import { ScanProfile } from './analyzers/workspaceAnalyzer';
 import { AuthManager } from './auth/authManager';
 import { buildDashboardHtml } from './welcomeDashboardHtml';
-import { showDashboardInSidebar, openSidebarInBrowserStatic, isSidebarReady } from './sidebarBridge';
+import { showDashboardInSidebar, isSidebarReady } from './sidebarBridge';
 import { postSidebarMessage, openTeamDashboardPanel } from './sidebarMessenger';
 import { ModernSidebarProvider } from './modernSidebarProvider';
 import { showQuietMessage, getSbConfig } from './utils/vscode';
@@ -795,7 +795,7 @@ export class WelcomeDashboard {
           this.showTeamPane();
           break;
         case 'openPreviewInBrowser': {
-          openSidebarInBrowserStatic('/');
+          ModernSidebarProvider.openSidebarPreview();
           break;
         }
         case 'openExternal': {

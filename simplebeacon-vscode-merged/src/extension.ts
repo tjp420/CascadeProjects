@@ -1649,7 +1649,7 @@ export function activate(context: vscode.ExtensionContext) {
       }
     }),
     registerCmd('simplebeacon.openPreview', async () => {
-      ModernSidebarProvider.openDashboardRouteInBrowser('/dashboard');
+      ModernSidebarProvider.openSidebarPreview();
     }),
     registerCmd('simplebeacon.openDashboardPreview', async () => {
       WelcomeDashboard.createOrShow(context.extensionUri, true)?.showDashboardPane();

@@ -155,6 +155,8 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
   private static openInBrowserIfRemote(route: string): boolean {
     const host = ModernSidebarProvider.resolveDashboardHost();
     if (!host && !ModernSidebarProvider.isRemoteMode()) return false;
+    const isRemote = host ? !/^(https?:\/\/)?(127\.0\.0\.1|localhost)(:\d+)?\/?$/i.test(host) : ModernSidebarProvider.isRemoteMode();
+    if (!isRemote) return false;
     ModernSidebarProvider._openRemoteRouteInBrowserAsync(route, host).catch(() => {});
     return true;
   }
@@ -690,7 +692,28 @@ $('cancelBtn').addEventListener('click', () => {
       : '/dashboard';
     const url = `http://127.0.0.1:${port}${safePath}`;
     const browserMode = getSbConfig().get<string>('browserOpenMode', 'externalBrowser');
+    if (browserMode === 'preview') {
+      ModernSidebarProvider.openDashboardRouteInBrowser(safePath);
+      return;
+    }
     if (browserMode === 'simpleBrowser' || browserMode === 'vscodeSimpleBrowser') {
+      vscode.commands.executeCommand('simpleBrowser.show', url);
+      return;
+    }
+    vscode.env.openExternal(vscode.Uri.parse(url));
+  }
+
+  /** Open the sidebar preview using the configured previewOpenMode. */
+  public static openSidebarPreview() {
+    const previewMode = getSbConfig().get<string>('previewOpenMode', 'externalBrowser');
+    if (previewMode === 'preview') {
+      ModernSidebarProvider.openDashboardRouteInBrowser('/dashboard');
+      return;
+    }
+    const port = getDataServerPort();
+    const host = ModernSidebarProvider.resolveDashboardHost() || `http://127.0.0.1:${port}`;
+    const url = buildDashboardUrl(host, '/dashboard');
+    if (previewMode === 'vscodeSimpleBrowser' || previewMode === 'simpleBrowser') {
       vscode.commands.executeCommand('simpleBrowser.show', url);
       return;
     }
@@ -1017,7 +1040,7 @@ $('cancelBtn').addEventListener('click', () => {
             ModernSidebarProvider.showDashboardRoute(this._extensionUri, '/dashboard');
             break;
           case 'openPreviewInBrowser':
-            ModernSidebarProvider.openSidebarInBrowserStatic('/');
+            ModernSidebarProvider.openSidebarPreview();
             break;
           case 'settings':
           case 'openSettings':
@@ -1164,7 +1187,7 @@ $('cancelBtn').addEventListener('click', () => {
             break;
           case 'preview':
           case 'openPreview':
-            ModernSidebarProvider.openSidebarInBrowserStatic('/');
+            ModernSidebarProvider.openSidebarPreview();
             break;
           case 'sendSidebarToAi':
             vscode.commands.executeCommand('simplebeacon.sendSidebarToAi', message.report);

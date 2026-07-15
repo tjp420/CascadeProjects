@@ -1,7 +1,7 @@
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
 import { escapeHtml, showToast, downloadJson, downloadBlob, downloadText, redactPathForDisplay, formatPathLabel, formatPathInputValue, formatAiSummarySkipMessage, isRedactedPathDisplay, formatNumber, formatPercent, renderEmptyState } from '../utils.js';
 import { canUseDirectoryPicker, isLikelyWebkitDirectoryFileCap, browserFolderCapMessage, filePickerBlockedMessage, isFilePickerBlockedError, isEmbeddedDashboardFrame } from '../utils-lib/dom.js?v=20260715iframefix3';
-import { evaluateFunnelMetrics, getFunnelCopy, shouldShowEnterpriseFunnel, buildFunnelAuthOptions } from '../utils/funnelTrigger.js?v=20260715adminfunnel1';
+import { evaluateFunnelMetrics, getFunnelCopy, shouldShowEnterpriseFunnel, buildFunnelAuthOptions } from '../utils/funnelTrigger.js?v=20260715funnel2';
 import { LocalScanService } from '../services/localScanService.js?v=20260715iframefix3';
 import { fingerprintDirectory, formatFingerprint } from '../services/fingerprintService.js';
 import { probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus, getAgentDownloadUrl, detectPlatform, getPlatformLabel, getInstallInstructions, getAgentFallbackMessage, probeAgent4000, scanViaAgent4000, renderAgentCertificate, hasExtensionBridgeConfigured, pickFolderViaExtensionBridge as requestExtensionFolderPick, shouldProbeLocalAgent } from '../services/localAgentService.js?v=20260715hosted1';
@@ -8741,9 +8741,15 @@ export class AnalyzeView {
         if (!funnel.shouldPromptUpgrade)
             return '';
         const scanLabel = String(((_l = this.lastResult) === null || _l === void 0 ? void 0 : _l.label) || '');
-        const isLocalScan = /^local scan:/i.test(scanLabel);
+        const projectPath = String(report.projectPath || report.projectRoot || ((_l = this.lastResult) === null || _l === void 0 ? void 0 : _l.projectPath) || '');
+        const isClientScan = isBrowserPrivateScanSource(report);
+        const isLocalScan = isClientScan
+            || /^local scan:/i.test(scanLabel)
+            || /^local browser scan/i.test(scanLabel)
+            || /^ide scan:/i.test(scanLabel)
+            || (isRemoteDashboardHost() && isAbsoluteLocalPath(projectPath));
         const auth = (_m = this.app.authService) === null || _m === void 0 ? void 0 : _m;
-        if (!shouldShowEnterpriseFunnel(Object.assign({}, buildFunnelAuthOptions(auth), { isLocalScan }))) {
+        if (!shouldShowEnterpriseFunnel(Object.assign({}, buildFunnelAuthOptions(auth), { isLocalScan, isClientScan, isPrivateScan: isLocalScan }))) {
             return '';
         }
         const copy = getFunnelCopy(funnel.reason);

@@ -1606,9 +1606,7 @@ function isDebugScanPath(relativePath) {
  */
 function hasFileLevelIgnore(content, category) {
     if (!content || typeof content !== 'string') return false;
-    const first5 = content.split('\n').slice(0, 5).join('\n');
-    const re = new RegExp('simplebeacon-ignore[:\\s].*' + category, 'i');
-    return re.test(first5) || re.test(content.substring(0, 500));
+    return /simplebeacon-ignore/i.test(content.substring(0, 500));
 }
 
 function detectDebugArtifacts(content, relativePath) {
