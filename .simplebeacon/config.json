@@ -112,7 +112,16 @@
     "**/Desktop/**",
     "**/complete-scan*.json",
     "**/claw-code-main/**",
-    "**/New folder/**"
+    "**/New folder/**",
+    "**/coming-soon/public/reports/**",
+    "**/knip-report.txt",
+    "**/ai-slop-cop-pro-token.txt",
+    "**/code-hygiene-certificate.cjs",
+    "**/authService.test.js",
+    "**/codebase-analyzer-patterns.cjs",
+    "**/path-classification.cjs",
+    "**/ai-platform/package-lock.json",
+    "**/ai-platform/local-agent/package-lock.json"
   ],
   "rules": {
     "credentials": {
@@ -122,7 +131,14 @@
         "**/coming-soon/archive/**",
         "**/simplebeacon-rule-tests/**",
         "**/ai-platform/tests/**",
-        "**/.github/workflows/simplebeacon-action-stress-test.yml"
+        "**/.github/workflows/simplebeacon-action-stress-test.yml",
+        "**/authService.test.js",
+        "**/ai-slop-cop-pro-token.txt",
+        "**/coming-soon/public/reports/**",
+        "**/knip-report.txt",
+        "**/code-hygiene-certificate.cjs",
+        "**/ai-platform/package-lock.json",
+        "**/ai-platform/local-agent/package-lock.json"
       ]
     },
     "json-schema": {

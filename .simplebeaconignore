@@ -741,3 +741,26 @@ complete-scan*.json
 claw-code-main/
 New folder/
 
+# Generated scan report exports in public/reports (hashed paths flagged as high-entropy secrets)
+coming-soon/public/reports/
+
+# Knip generated output (package names flagged as high-entropy secrets)
+ai-platform/knip-report.txt
+
+# Test token file
+coming-soon/ai-slop-cop-pro-token.txt
+
+# Certificate generator templates (template strings flagged as secrets)
+ai-platform/server/lib/code-hygiene-certificate.cjs
+
+# Auth test file with test JWTs
+ai-platform/tests/authService.test.js
+
+# Scanner pattern/rule definition files (regex patterns flagged as dangerous functions)
+ai-platform/server/lib/codebase-analyzer-patterns.cjs
+ai-platform/server/lib/path-classification.cjs
+
+# AI platform package-lock files (dependency hashes flagged as high-entropy secrets)
+ai-platform/package-lock.json
+ai-platform/local-agent/package-lock.json
+
