@@ -15,24 +15,24 @@ import { PlatformView } from './views/PlatformView.js?v=20260601platformmetrics1
 import { QualityView } from './views/QualityView.js?v=20260711admin1';
 import { HelpView, FeaturesView } from './views/HelpView.js';
 import { AuditView } from './views/AuditView.js?v=20260711admin1';
-import { AnalyzeView } from './views/AnalyzeView.js?v=20260715funnel2';
+import { AnalyzeView } from './views/AnalyzeView.js?v=20260715scanfix2';
 import { SecurityView } from './views/SecurityView.js?v=20260711admin1';
 import { PricingView } from './views/PricingView.js?v=20260714importfix1';
 import { AboutView } from './views/AboutView.js';
 import { AssessmentView } from './views/AssessmentView.js?v=20260711admin1';
 import { SignInView } from './views/SignInView.js?v=20260711signinfix1';
-import { ChatbotView } from './views/ChatbotView.js?v=20260715chatbot1';
+import { ChatbotView } from './views/ChatbotView.js?v=20260715chatbot3';
 import { UploadView } from './views/UploadView.js';
 import { RemediationRoadmapView } from './views/RemediationRoadmapView.js';
 import { ProfileView } from './views/ProfileView.js';
-import { AdminPanelView } from './views/AdminPanelView.js?v=20260709adminpanel1';
+import { AdminPanelView } from './views/AdminPanelView.js?v=20260715admin3';
 import { COMING_SOON_URL } from './config.js';
 import { shouldShowOnboarding, renderOnboarding, bindOnboarding } from './components/Onboarding.js';
 import { showUpgradeModal } from './components/UpgradeModal.js';
 import { showLoginModal } from './components/LoginModal.js?v=20260609token4';
 import { isDemoMode, isSignedOffMode, isLocalDevHost, demoReadOnlyMessage } from './demoMode.js';
 import { showToast, resolveDashboardProjectPath } from './utils.js';
-import { fetchAnalyzeProviders, isClientScanReport, shouldClearHostedServerDefaultPath } from './services/analyzeService.js?v=20260715iframefix3';
+import { fetchAnalyzeProviders, isClientScanReport, shouldClearHostedServerDefaultPath } from './services/analyzeService.js?v=20260715scanfix2';
 /**
  * Vault unlock url.
  * @param {string} returnPath
@@ -625,6 +625,12 @@ class SimplebeaconDashboard {
             const view = link.dataset.view;
             if (view === 'settings')
                 return;
+            if (view === 'admin') {
+                const showAdmin = authed && this.isCurrentUserAdmin();
+                link.hidden = !showAdmin;
+                link.style.display = showAdmin ? '' : 'none';
+                return;
+            }
             link.style.display = '';
         });
         document.querySelectorAll('.nav-group-toggle').forEach((toggle) => {
@@ -654,28 +660,7 @@ class SimplebeaconDashboard {
         }
     }
     isCurrentUserAdmin() {
-        const user = authService.getUser() || this.state.user || {};
-        const role = String(user.role || '').toLowerCase();
-        const tier = String(user.tier || '').toLowerCase();
-        if (role === 'admin' || role === 'superuser') return true;
-        if (tier === 'admin' || tier === 'superuser') return true;
-        if (Array.isArray(user.features) && user.features.map(String).map(s => s.toLowerCase()).includes('all_modules')) return true;
-        // Fallback: decode the JWT in case the stored user object lacks role/features
-        try {
-            const token = authService.getToken();
-            if (token) {
-                const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-                const tokenRole = String(payload.role || '').toLowerCase();
-                const tokenTier = String(payload.tier || payload.plan || '').toLowerCase();
-                if (tokenRole === 'admin' || tokenRole === 'superuser') return true;
-                if (tokenTier === 'admin' || tokenTier === 'superuser') return true;
-                if (Array.isArray(payload.features) && payload.features.map(String).map(s => s.toLowerCase()).includes('all_modules')) return true;
-            }
-        }
-        catch (_a) {
-            // ignore decode errors
-        }
-        return false;
+        return authService.isAdmin();
     }
     bootstrapAfterAuth() {
         this.updateAuthUi();
@@ -1165,6 +1150,11 @@ class SimplebeaconDashboard {
         }
         else {
             (_a = document.getElementById('readonly-banner')) === null || _a === void 0 ? void 0 : _a.remove();
+        }
+        if (!readOnlyPreview && view === 'admin' && !this.isCurrentUserAdmin()) {
+            showToast('Admin access required', 'info');
+            window.location.hash = '#/dashboard';
+            return;
         }
         if (!readOnlyPreview && CLOUD_TEAMS_VIEWS.has(view) && authService.isAuthenticated()) {
             const plan = this.state.billingPlan || billingService.plan;

@@ -6,6 +6,7 @@
 'use strict';
 
 const express = require('express');
+const jwt = require('jsonwebtoken');
 const router = express.Router();
 const {
     getAdminToken,
@@ -20,15 +21,86 @@ if (!secret) {
     // Fatal: SIMPLEBEACON_LICENSE_SECRET not configured — handled silently to avoid log exposure
 }
 
-// Middleware: require admin token
+// Middleware: require admin token or dashboard session for admin accounts
+function verifySessionToken(token) {
+    if (!secret || !token) return null;
+    try {
+        const payload = jwt.verify(token, secret, { clockTolerance: 60 });
+        return payload && payload.type === 'session' ? payload : null;
+    } catch {
+        return null;
+    }
+}
+
+function isDashboardAdmin(payload) {
+    if (!payload) return false;
+    const email = String(payload.email || '').toLowerCase();
+    const role = String(payload.role || '').toLowerCase();
+    const tier = String(payload.tier || '').toLowerCase();
+    if (email === 'admin@simplebeacon.ai') return true;
+    if (role === 'admin' || role === 'superuser') return true;
+    if (tier === 'admin' || tier === 'superuser') return true;
+    if (Array.isArray(payload.features) && payload.features.map(String).map(s => s.toLowerCase()).includes('all_modules')) return true;
+    return false;
+}
+
+function tierToTrustLevel(tier) {
+    const raw = String(tier || 'community').toLowerCase();
+    if (raw === 'admin' || raw === 'superuser') return 'gold';
+    if (raw === 'community') return 'bronze';
+    if (raw === 'silver' || raw === 'gold') return raw;
+    return 'bronze';
+}
+
+function trustLevelToTier(trustLevel) {
+    const map = { bronze: 'community', silver: 'silver', gold: 'gold' };
+    return map[String(trustLevel || '').toLowerCase()] || 'community';
+}
+
+function mapDashboardUser(row) {
+    const email = row.email || '';
+    let name = email.includes('@') ? email.split('@')[0] : email;
+    try {
+        const demoPath = require('path').join(__dirname, '../../ai-platform/server/db/demo-users.json');
+        const demoUsers = require(demoPath);
+        const match = Array.isArray(demoUsers) ? demoUsers.find(u => String(u.email).toLowerCase() === email.toLowerCase()) : null;
+        if (match?.name) name = match.name;
+    } catch {
+        // demo names optional
+    }
+    return {
+        id: String(row.id),
+        email,
+        name,
+        trustLevel: tierToTrustLevel(row.tier),
+        verificationStatus: 'verified',
+        successfulAnalyses: 0,
+        securityIncidents: 0,
+        communityContributions: 0,
+        createdAt: row.created_at || row.createdAt || null,
+        online: false,
+        lastSeen: null
+    };
+}
+
 function requireAdmin(req, res, next) {
     const auth = req.headers.authorization || '';
-    const token = auth.replace(/^Bearer\s+/i, '');
+    const token = auth.replace(/^Bearer\s+/i, '').trim();
     if (!token) return res.status(401).json({ error: 'Admin token required' });
-    const payload = verifyAdminToken(token, secret);
-    if (!payload) return res.status(403).json({ error: 'Invalid or expired admin token' });
-    req.adminPayload = payload;
-    next();
+
+    const adminPayload = verifyAdminToken(token, secret);
+    if (adminPayload) {
+        req.adminPayload = adminPayload;
+        return next();
+    }
+
+    const sessionPayload = verifySessionToken(token);
+    if (sessionPayload && isDashboardAdmin(sessionPayload)) {
+        req.adminPayload = sessionPayload;
+        return next();
+    }
+
+    return res.status(403).json({ error: 'Invalid or expired admin token' });
 }
 
 // POST /api/admin/token/create — create the personal admin token (one-time setup)
@@ -336,10 +408,53 @@ router.get('/api/admin/customers', requireAdmin, (req, res) => {
 router.get('/api/admin/users', requireAdmin, (req, res) => {
     try {
         const db = require('../lib/db.cjs');
-        const users = db.getAllUsers();
+        const users = db.getAllUsers().map(mapDashboardUser);
         res.json({ success: true, users, total: users.length });
     } catch (err) {
         res.status(500).json({ error: 'Failed to load users', detail: err.message });
+    }
+});
+
+// GET /api/admin/sessions — active dashboard sessions (admin only)
+router.get('/api/admin/sessions', requireAdmin, (_req, res) => {
+    res.json({ success: true, sessions: [] });
+});
+
+// POST /api/admin/users/:id/trust-level — update account trust tier (admin only)
+router.post('/api/admin/users/:id/trust-level', requireAdmin, express.json(), (req, res) => {
+    try {
+        const { id } = req.params;
+        const { trustLevel } = req.body || {};
+        const validLevels = ['bronze', 'silver', 'gold'];
+        if (!validLevels.includes(trustLevel)) {
+            return res.status(400).json({ success: false, error: 'Invalid trust level' });
+        }
+        const db = require('../lib/db.cjs');
+        const user = db.getUserById(id);
+        if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+        db.updateUserTierById(id, trustLevelToTier(trustLevel));
+        systemLogger.logTokenOp('user_trust_updated', { userId: id, trustLevel, admin: req.adminPayload.email });
+        res.json({ success: true, id, trustLevel });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// DELETE /api/admin/users/:id — delete account (admin only)
+router.delete('/api/admin/users/:id', requireAdmin, (req, res) => {
+    try {
+        const { id } = req.params;
+        const db = require('../lib/db.cjs');
+        const user = db.getUserById(id);
+        if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+        if (String(user.email || '').toLowerCase() === 'admin@simplebeacon.ai') {
+            return res.status(403).json({ success: false, error: 'Cannot delete the primary admin account' });
+        }
+        db.deleteUserById(id);
+        systemLogger.logTokenOp('user_deleted', { userId: id, email: user.email, admin: req.adminPayload.email });
+        res.json({ success: true, id, deleted: true });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
     }
 });
 

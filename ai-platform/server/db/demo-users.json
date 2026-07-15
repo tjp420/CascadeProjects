@@ -8,7 +8,8 @@
     "successfulAnalyses": 12,
     "securityIncidents": 0,
     "communityContributions": 3,
-    "verificationStatus": "email"
+    "verificationStatus": "email",
+    "createdAt": "2025-06-01T10:00:00.000Z"
   },
   {
     "id": "user-admin",
@@ -21,7 +22,8 @@
     "successfulAnalyses": 48,
     "securityIncidents": 0,
     "communityContributions": 15,
-    "verificationStatus": "enterprise"
+    "verificationStatus": "enterprise",
+    "createdAt": "2025-06-01T10:00:00.000Z"
   },
   {
     "id": "user-1781479110772",
@@ -32,7 +34,8 @@
     "successfulAnalyses": 0,
     "securityIncidents": 0,
     "communityContributions": 0,
-    "verificationStatus": "email"
+    "verificationStatus": "email",
+    "createdAt": "2026-03-15T14:30:00.000Z"
   },
   {
     "id": "user-license",
@@ -43,6 +46,7 @@
     "successfulAnalyses": 100,
     "securityIncidents": 0,
     "communityContributions": 50,
-    "verificationStatus": "verified"
+    "verificationStatus": "verified",
+    "createdAt": "2025-12-01T08:00:00.000Z"
   }
 ]
