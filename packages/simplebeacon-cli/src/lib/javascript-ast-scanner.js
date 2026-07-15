@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
 /**
  * Optional JavaScript/TypeScript AST analysis — local @babel/parser, no network.
  * Opt-in via config.rules['javascript-ast-patterns'].

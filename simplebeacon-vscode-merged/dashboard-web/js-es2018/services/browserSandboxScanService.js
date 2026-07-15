@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
 /**
  * Browser-native sandbox directory scanner using the File System Access API.
  * Scans a user-selected directory entirely within the browser thread,

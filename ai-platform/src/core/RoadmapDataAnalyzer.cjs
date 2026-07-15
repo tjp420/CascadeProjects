@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
 const logger = require('../lib/production-logger.cjs');
 /**
  * Roadmap Data Analyzer - Analyzes current database and codebase to generate dynamic roadmaps

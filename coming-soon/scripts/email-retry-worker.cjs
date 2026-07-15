@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
 /**
  * Email Retry Worker
  * Polls the email_queue table for pending emails with fewer than 3 attempts

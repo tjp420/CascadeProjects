@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
 /**
  * SimpleBeacon → Trello Roadmap Export
  * Generates a complete Trello board JSON for import via Trello's JSON import

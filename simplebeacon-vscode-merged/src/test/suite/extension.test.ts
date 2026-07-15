@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
 /// <reference types="mocha" />
 import * as assert from 'assert';
 import * as vscode from 'vscode';

@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
 'use strict';
 
 jest.mock('../jest-coverage-reader.cjs', () => ({

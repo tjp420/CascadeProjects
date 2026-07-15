@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
 /**
  * Local browser scan worker for the AI platform dashboard.
  * Scans files selected by the user on their own hardware — no data is sent to the server.

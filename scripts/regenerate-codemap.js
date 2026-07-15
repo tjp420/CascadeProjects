@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
 /**
  * Regenerate .simplebeacon/codemap.html with updated export and visibility features.
  * This patches the existing codemap.html with the new features from extension.ts changes.

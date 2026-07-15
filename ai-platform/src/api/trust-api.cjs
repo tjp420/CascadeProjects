@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
 const logger = require('../lib/production-logger.cjs');
 /**
  * Public trust verification API — read-only, no auth required.

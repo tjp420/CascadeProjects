@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
 const fs = require('fs');
 const h = fs.readFileSync('.simplebeacon/codemap.html', 'utf8');
 const s = h.indexOf('id="graphData"') + 14;

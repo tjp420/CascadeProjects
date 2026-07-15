@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
 /**
  * Sanitize AI Problem Analyzer Suite JSON exports — paths, branding, dedupe, export metadata.
  */

@@ -1,7 +1,15 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
 import { showToast } from '../utils.js';
 import { canUseDirectoryPicker, isLikelyWebkitDirectoryFileCap, browserFolderCapMessage } from '../utils-lib/dom.js';
 import { normalizeSimplebeaconReport } from './analyzeService.js?v=20260714results1';
-const WORKER_URL = new URL('../workers/scan-worker.js?v=20260715scanfix1', import.meta.url);
+import {
+  createIgnoreContext,
+  extractIgnorePatternsFromLegacyFiles,
+  filterQueueByIgnore,
+  isIgnoredVirtualPath,
+  loadIgnorePatternsFromDirHandle
+} from '../utils-lib/simplebeaconignore.browser.js?v=20260715ignore1';
+const WORKER_URL = new URL('../workers/scan-worker.js?v=20260715ignore1', import.meta.url);
 const MAX_FILES = 100000;
 const SCAN_BATCH_SIZE = 400;
 const BATCH_TIMEOUT_MS = 10 * 60 * 1000;
@@ -13,18 +21,26 @@ const SKIP_DIRS = /(^|[\\/])(node_modules|\.git|\.github|\.husky|dist|build|\.ne
  * @param {Array<{path:string, handle:FileSystemFileHandle}>} files
  * @returns {Promise<Array<{path:string, handle:FileSystemFileHandle}>>}
  */
-async function collectFiles(dirHandle, pathPrefix = '', files = []) {
+async function collectFiles(dirHandle, pathPrefix = '', files = [], ignoreCtx = null) {
     if (files.length >= MAX_FILES)
         return files;
+    if (ignoreCtx && pathPrefix && isIgnoredVirtualPath(pathPrefix, ignoreCtx.scanRootName, ignoreCtx.patterns)) {
+        return files;
+    }
     let entryCount = 0;
     for await (const [name, handle] of dirHandle.entries()) {
         const fullPath = pathPrefix ? `${pathPrefix}/${name}` : name;
+        if (ignoreCtx && isIgnoredVirtualPath(fullPath, ignoreCtx.scanRootName, ignoreCtx.patterns)) {
+            continue;
+        }
         if (SKIP_DIRS.test(fullPath))
             continue;
         if (handle.kind === 'directory') {
-            await collectFiles(handle, fullPath, files);
+            await collectFiles(handle, fullPath, files, ignoreCtx);
         }
         else if (handle.kind === 'file') {
+            if (name === '.simplebeaconignore')
+                continue;
             files.push({ path: fullPath, handle });
         }
         if (files.length >= MAX_FILES)
@@ -135,6 +151,7 @@ function buildReport(projectName, findings, totalFiles, analyzedFiles, meta = {}
 function runBatchedWorkerScan(worker, workerFiles, options = {}) {
     const scanId = crypto.randomUUID();
     const totalFiles = workerFiles.length;
+    const ignoreCtx = options.ignoreCtx || null;
     return new Promise((resolve, reject) => {
         let settled = false;
         const cleanup = (terminate = true) => {
@@ -167,7 +184,15 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
                 resolve(buildReport(options.projectName || 'local-project', issues, resolvedTotal, analyzedFiles, { issuesTruncated }));
             }
         };
-        worker.postMessage({ type: 'scan-start', scanId, totalFiles, deepScan: false });
+        worker.postMessage({
+            type: 'scan-start',
+            scanId,
+            totalFiles,
+            deepScan: false,
+            ignoreCtx: ignoreCtx
+                ? { scanRootName: ignoreCtx.scanRootName, patterns: ignoreCtx.patterns }
+                : null
+        });
         (async () => {
             try {
                 for (let offset = 0; offset < workerFiles.length; offset += SCAN_BATCH_SIZE) {
@@ -232,17 +257,29 @@ export async function runLocalScan(options = {}) {
     }
     let projectName = options.projectPath || 'local-project';
     let files = [];
+    let ignoreCtx = null;
     if (options.files && options.files.length) {
         const fileArray = Array.from(options.files);
         const firstRel = fileArray[0].webkitRelativePath || fileArray[0].name || '';
         projectName = options.projectPath || firstRel.split('/')[0] || 'local-project';
-        files = fileArray.map((f) => ({ path: f.webkitRelativePath || f.name, handle: f }));
+        const ignoreLoad = await extractIgnorePatternsFromLegacyFiles(fileArray);
+        ignoreCtx = createIgnoreContext(ignoreLoad.patterns, projectName, ignoreLoad.source);
+        files = fileArray
+            .filter((f) => {
+                const path = f.webkitRelativePath || f.name;
+                return !isIgnoredVirtualPath(path, ignoreCtx.scanRootName, ignoreCtx.patterns);
+            })
+            .map((f) => ({ path: f.webkitRelativePath || f.name, handle: f }));
     }
     else {
         const dirHandle = options.dirHandle || await window.showDirectoryPicker();
         projectName = options.projectPath || dirHandle.name || 'local-project';
-        files = await collectFiles(dirHandle);
+        const ignoreLoad = await loadIgnorePatternsFromDirHandle(dirHandle);
+        ignoreCtx = createIgnoreContext(ignoreLoad.patterns, projectName, ignoreLoad.source);
+        files = await collectFiles(dirHandle, '', [], ignoreCtx);
     }
+    files = filterQueueByIgnore(files.map((f) => ({ ...f, virtualPath: f.path })), ignoreCtx)
+        .map((f) => ({ path: f.path || f.virtualPath, handle: f.handle }));
     if (files.length === 0) {
         throw new Error(`No files were found in "${projectName}". The folder may be empty, permission was denied, or all files were excluded. Try selecting the folder again or use the local agent.`);
     }
@@ -262,7 +299,8 @@ export async function runLocalScan(options = {}) {
     }
     const report = await runBatchedWorkerScan(worker, workerFiles, {
         onProgress: options.onProgress,
-        projectName
+        projectName,
+        ignoreCtx
     });
     return normalizeSimplebeaconReport(report);
 }

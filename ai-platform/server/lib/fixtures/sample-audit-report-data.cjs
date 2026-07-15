@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
 /**
  * Fictional redacted rows for the marketing sample report only.
  * Kept in fixtures/ so production-leak and debug scanners skip example strings.

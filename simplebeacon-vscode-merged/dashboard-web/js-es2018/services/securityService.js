@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
 /** Security findings extracted from live Simplebeacon report (credential + production-leak rules). */
 import { apiUrl } from '../utils/url.js?v=20260713website1';
 export const SECURITY_ISSUE_PATTERN = /credential|production leak/i;

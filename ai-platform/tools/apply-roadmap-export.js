@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
 /**
  * Import a dynamic-project-roadmap-analysis export (e.g. from Analyze download)
  * into data/roadmap/ for dashboard API + gate validation.

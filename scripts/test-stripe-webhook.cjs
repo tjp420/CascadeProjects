@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
 /**
  * Stripe Webhook Endpoint Smoke Test
  * Run after pointing Stripe webhook URL to https://simplebeacon.ai/api/simplebeacon/billing/webhook

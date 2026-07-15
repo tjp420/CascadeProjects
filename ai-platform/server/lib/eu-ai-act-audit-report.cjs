@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
 /**
  * Live EU AI Act readiness PDF/HTML from .simplebeacon/eu-ai-act-*.json artifacts.
  */

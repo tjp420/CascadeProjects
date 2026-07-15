@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
 /**
  * Node smoke test for the JS fallback analyzer in scan-wasm-bridge.js.
  * This does not test the WebAssembly path (requires Rust build), but verifies

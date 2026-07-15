@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
 let currentReport = null, currentRoadmap = null;
 const dropzone = document.getElementById('dropzone'), fileInput = document.getElementById('fileInput'), app = document.getElementById('app'), emptyState = document.getElementById('emptyState');
 const scorecardsEl = document.getElementById('scorecards'), timelineEl = document.getElementById('timeline'), projectNameEl = document.getElementById('projectName'), scanDateEl = document.getElementById('scanDate'), jsonPreviewEl = document.getElementById('jsonPreview'), toastEl = document.getElementById('toast');

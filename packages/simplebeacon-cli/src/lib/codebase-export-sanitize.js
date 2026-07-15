@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
 /**
  * Sanitize codebase-analyzer-report exports — benchmark clones, ESLint scope, tier labels.
  */

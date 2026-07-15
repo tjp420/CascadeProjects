@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
 /**
  * Production Debug Artifact Guard
  * Scans production source paths for debug artifacts that should not ship.

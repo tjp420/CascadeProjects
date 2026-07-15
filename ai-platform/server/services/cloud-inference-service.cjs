@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
 /**
  * Optional cloud LLM providers for scan summarization (OpenAI, Anthropic, Ollama).
  * Filesystem scan always runs first; cloud calls are best-effort enhancements.

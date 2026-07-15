@@ -6,6 +6,7 @@
  * pure-JS fallback) instead of loading the entire file into memory at once.
  */
 import { analyzeFileChunks, findingsToIssues } from './scan-wasm-bridge.js?v=20260714blockerfix1';
+import { isIgnoredVirtualPath } from '../utils-lib/simplebeaconignore.browser.js?v=20260715ignore1';
 const MAX_DISCOVERED_FILES = 500000;
 const MAX_ISSUES = 100000;
 const SCAN_BATCH_SIZE = 400;
@@ -161,8 +162,11 @@ function extractMatches(text, pattern, max = 3, lineFilter = null) {
     }
     return matches;
 }
-function shouldSkipFile(path, deepScan) {
+function shouldSkipFile(path, deepScan, ignoreCtx) {
     const normalized = path.replace(/\\/g, '/');
+    if (ignoreCtx?.patterns?.length && isIgnoredVirtualPath(normalized, ignoreCtx.scanRootName, ignoreCtx.patterns)) {
+        return true;
+    }
     if (/(^|[\/])(node_modules|\.git|\.github|\.husky|dist|build|\.next|out|coverage|frontend-build|\.github-sync|github-cache|\.simplebeacon|\.cursor|\.windsurf|deployments|backups|\.vscode-test|\.vsix-patch-temp|logs|cache|\.cache|tmp|temp|target|\.wrangler|\.cargo\/registry|\.cargo\/git)([\/]|$)/i.test(normalized))
         return true;
     if (/complete-scan.*\.json$/i.test(normalized) || /simplebeacon-export.*\.json$/i.test(normalized))
@@ -252,12 +256,13 @@ async function scanFiles(files, deepScan, state = null) {
     let chunkAnalyzed = state?.chunkAnalyzed || 0;
     let binarySkipped = state?.binarySkipped || 0;
     let issuesTruncated = state?.issuesTruncated || false;
+    const ignoreCtx = state?.ignoreCtx || null;
     for (const file of files) {
         if (issues.length >= MAX_ISSUES) {
             issuesTruncated = true;
             break;
         }
-        if (shouldSkipFile(file.path, deepScan)) {
+        if (shouldSkipFile(file.path, deepScan, ignoreCtx)) {
             processed++;
             continue;
         }
@@ -354,7 +359,8 @@ self.onmessage = async (e) => {
             chunkAnalyzed: 0,
             binarySkipped: 0,
             issuesTruncated: false,
-            deepScan: Boolean(deepScan)
+            deepScan: Boolean(deepScan),
+            ignoreCtx: e.data.ignoreCtx || null
         };
         self.postMessage({ type: 'started', scanId, totalFiles: self.scanState.totalFiles });
         return;

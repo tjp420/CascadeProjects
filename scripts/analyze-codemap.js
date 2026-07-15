@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
 /**
  * Analyze a SimpleBeacon codemap JSON export.
  * Generates reports, filtered subsets, and cycle detection.

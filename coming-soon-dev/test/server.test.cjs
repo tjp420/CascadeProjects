@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
 const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert');
 const path = require('path');

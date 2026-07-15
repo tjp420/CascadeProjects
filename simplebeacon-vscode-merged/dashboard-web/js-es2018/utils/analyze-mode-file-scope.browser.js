@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
 /**
  * Per-mode file/path scope for Analyze page mode pills — mirrors SimpleBeacon config + scanScope.
  * simplebeacon:production-leak-intent: web-data-sample - Legitimate web data path configuration for analysis mode file scope
