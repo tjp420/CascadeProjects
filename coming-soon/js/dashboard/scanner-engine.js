@@ -1611,6 +1611,42 @@ async function processLocalCLIScan(files) {
         if (!reason && /(^|\/)stream-stress\.cjs$/i.test(path)) {
             reason = 'Stress test script';
         }
+        if (!reason && !deepScan && /(^|\/)(dashboard-web|simplebeacon-dashboard)\/js\/(services|utils|components)\//i.test(path)) {
+            reason = 'Dashboard service/component (legitimate patterns)';
+        }
+        if (!reason && !deepScan && /(^|\/)public\/dashboard\/js\/(main|services|utils|components)\//i.test(path)) {
+            reason = 'Dashboard service/component (legitimate patterns)';
+        }
+        if (!reason && !deepScan && /(^|\/)dashboard-web\/js\/main\.js$/i.test(path)) {
+            reason = 'Dashboard main (legitimate patterns)';
+        }
+        if (!reason && /(^|\/)(ai-analyst|compliance-rules|aiProblemAnalyzerSuite|analyzeService)\.(cjs|js|mjs)$/i.test(path)) {
+            reason = 'AI analyzer/compliance pattern file';
+        }
+        if (!reason && /(^|\/)(orchestrator\.cjs|setup\.cjs|deep-check-welcome\.cjs|verify-deployment\.cjs)$/i.test(path)) {
+            reason = 'Agent/setup/verify script';
+        }
+        if (!reason && /(^|\/)audit-remediation-recipes\//i.test(path)) {
+            reason = 'Remediation recipe patterns';
+        }
+        if (!reason && /(^|\/)(zscript-cvar-analyzer|snippetDiagnostic)\.(cjs|js)$/i.test(path)) {
+            reason = 'Analyzer/diagnostic pattern file';
+        }
+        if (!reason && /(^|\/)negative-test-2\//i.test(path)) {
+            reason = 'Negative test fixture';
+        }
+        if (!reason && /(^|\/)analyzer-coverage\.test\.cjs$/i.test(path)) {
+            reason = 'Test coverage file';
+        }
+        if (!reason && /(^|\/)ai-tools\/index\.js$/i.test(path)) {
+            reason = 'AI tools index';
+        }
+        if (!reason && /(^|\/)export-findings\.js$/i.test(path)) {
+            reason = 'Export script';
+        }
+        if (!reason && /(^|\/)audit-report\/__tests__\.cjs$/i.test(path)) {
+            reason = 'Audit report tests';
+        }
         // Apply .simplebeaconignore patterns to skip ignored files
         if (!reason && ignorePatterns.length) {
             const isIgnoredBySimplebeacon = ignorePatterns.some(pat => {

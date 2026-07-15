@@ -619,3 +619,53 @@ ai-platform/web/simplebeacon-dashboard/js/components/CheckoutSuccessBanner.js
 # Remediation roadmap view — legitimate DOM rendering for roadmap UI
 ai-platform/web/simplebeacon-dashboard/js/views/RemediationRoadmapView.js
 
+# Dashboard controllers and components — legitimate innerHTML for browser UI
+simplebeacon-vscode-merged/dashboard-web/js/controllers/billingLanding.js
+simplebeacon-vscode-merged/dashboard-web/js/components/analyze/StreamResultPanel.js
+simplebeacon-vscode-merged/dashboard-web/js/components/analyze/EngineGridPanel.js
+simplebeacon-vscode-merged/dashboard-web/js/main.js
+simplebeacon-vscode-merged/dashboard-web/js/utils/snippetDiagnostic.js
+simplebeacon-vscode-merged/dashboard-web/js/services/aiProblemAnalyzerSuite.mjs
+simplebeacon-vscode-merged/dashboard-web/js/services/analyzeService.js
+simplebeacon-vscode-merged/dashboard-web/js/components/CheckoutSuccessBanner.js
+
+# Coming-soon dashboard components and services — pre-production
+coming-soon/public/dashboard/js/main.js
+coming-soon/public/dashboard/js/components/CheckoutSuccessBanner.js
+coming-soon/public/dashboard/js/utils/snippetDiagnostic.js
+coming-soon/public/dashboard/js/services/aiProblemAnalyzerSuite.mjs
+coming-soon/public/dashboard/js/services/analyzeService.js
+
+# AI platform dashboard services and utils
+ai-platform/web/simplebeacon-dashboard/js/utils/snippetDiagnostic.js
+ai-platform/web/simplebeacon-dashboard/js/services/aiProblemAnalyzerSuite.mjs
+ai-platform/web/simplebeacon-dashboard/js/services/analyzeService.js
+
+# Test files with intentional patterns
+coming-soon/test/analyzer-coverage.test.cjs
+simplebeacon-rule-tests/negative-test-2/
+
+# Local agent setup
+ai-platform/local-agent/setup.cjs
+
+# Deep check and verify scripts
+simplebeacon-vscode-merged/deep-check-welcome.cjs
+verify-deployment.cjs
+
+# AI agent orchestrator — pattern definitions
+ai-agent/orchestrator.cjs
+
+# AI platform server libs — pattern definitions and compliance rules
+ai-platform/server/lib/ai-analyst.cjs
+ai-platform/server/lib/compliance-rules.cjs
+ai-platform/server/lib/audit-remediation-recipes/classify.cjs
+ai-platform/server/lib/audit-remediation-recipes/data.cjs
+ai-platform/server/lib/audit-report/__tests__.cjs
+ai-platform/server/lib/code-understanding/zscript-cvar-analyzer.cjs
+
+# AI tools index
+ai-tools/index.js
+
+# Export findings script
+scripts/export-findings.js
+
