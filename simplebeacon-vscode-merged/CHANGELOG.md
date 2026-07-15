@@ -1,5 +1,33 @@
 # SimpleBeacon VSCode Extension Changelog
 
+## [3.0.437] - 2026-07-14
+
+### Added
+- 38 analyzer engines: 24 real-time IDE rules + 14 batch CLI engines
+- SB-FICTION catalog for LLM placeholder and markdown fence detection
+- Dashboard 4.0 with compliance, repo health, and analytics panes
+- Real-time monitoring with AI session detection
+- WebSocket streaming analysis support
+- Analysis profiles: Quick, Balanced, Comprehensive, Real-time
+- Model health monitoring with circuit breaker pattern
+- Pattern detection using statistical analysis (no ML dependencies)
+
+### Fixed
+- CLI scanner binary extensions synced with browser-sandbox engine
+- Added .gguf, .rlib, .rmeta, .safetensors, .pt, .pth, .onnx, .bad, and more to BINARY_EXTENSIONS
+- Desktop/external project exclusions for Render deployments
+- Improved false positive filtering for scanner source files
+- .simplebeaconignore pattern matching now handles RegExp objects correctly
+- Hardcoded exclusions for generated files, dashboard views, and test fixtures
+
+## [3.0.400] - 2026-06-20
+
+### Added
+- Dashboard 3.0 with enhanced compliance and quality panes
+- Model health monitoring with circuit breaker pattern
+- Analysis profiles: Quick, Balanced, Comprehensive, Real-time
+- Pattern detection using statistical analysis (no ML dependencies)
+
 ## [1.1.0] - 2026-06-15
 
 ### 🚀 **Major Enhancement: Enhanced AI Analysis**

@@ -126,11 +126,11 @@ Customize rule severity:
 - **Audit Certificate:** $149 one-time — single board-ready certificate, valid 12 months
 - **Enterprise Air-Gapped:** Custom pricing — on-premise, SSO, unlimited seats, dedicated SLA
 
-Visit https://simplebeacon.com/pricing for details.
+Visit https://simplebeacon.ai/pricing for details.
 
 ## Privacy Policy
 
-Simplebeacon processes all code locally on your machine. Your source code is never transmitted to our servers. Only license validation involves minimal data transfer. See our full privacy policy at https://simplebeacon.com/privacy.
+Simplebeacon processes all code locally on your machine. Your source code is never transmitted to our servers. Only license validation involves minimal data transfer. See our full privacy policy at https://simplebeacon.ai/privacy.
 
 ## Support
 
@@ -143,6 +143,31 @@ Simplebeacon processes all code locally on your machine. Your source code is nev
 This extension is licensed under the MIT License. See LICENSE file for details.
 
 ## Changelog
+
+### Version 3.0.437
+- 38 analyzer engines: 24 real-time IDE rules + 14 batch CLI engines
+- Enhanced AI analysis with progressive multi-layer scanning
+- Real-time monitoring with AI session detection
+- WebSocket streaming analysis support
+- Dashboard 4.0 with compliance, repo health, and analytics panes
+- SB-FICTION catalog for LLM placeholder/markdown fence detection
+- Improved false positive filtering for scanner source files
+- Binary file extension coverage expanded (.gguf, .rlib, .rmeta, .safetensors, etc.)
+- Desktop/external project exclusions for Render deployments
+- CLI scanner binary extensions synced with browser-sandbox engine
+
+### Version 3.0.400
+- Dashboard 3.0 with enhanced compliance and quality panes
+- Model health monitoring with circuit breaker pattern
+- Analysis profiles: Quick, Balanced, Comprehensive, Real-time
+- Pattern detection using statistical analysis (no ML dependencies)
+
+### Version 1.1.0
+- Enhanced AI analysis with intelligent model selection
+- Real-time analysis streaming via WebSocket
+- ML-inspired pattern detection
+- New sidebar views for AI panel and model health
+- Configuration options for analysis profiles
 
 ### Version 0.5.9
 - Added full scan option for comprehensive directory scanning
@@ -190,7 +215,7 @@ Developed by SimpleBeacon - Professional AI code quality tools.
 
 ## Links
 
-- Website: https://simplebeacon.com
-- Documentation: https://simplebeacon.com/docs
+- Website: https://simplebeacon.ai
+- Documentation: https://simplebeacon.ai/community
 - GitHub: https://github.com/tjp420/simplebeacon
 - Twitter: @simplebeacon
