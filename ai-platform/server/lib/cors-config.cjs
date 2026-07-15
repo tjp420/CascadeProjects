@@ -26,6 +26,7 @@ function resolveCorsOptions(overrides = {}) {
 
     const pagesPreviewOriginRegex = /^https:\/\/[a-z0-9-]+\.simplebeacon\.pages\.dev$/;
     const renderOriginRegex = /^https:\/\/[a-z0-9-]+\.onrender\.com$/;
+    const netlifyOriginRegex = /^https:\/\/[a-z0-9-]+\.netlify\.app$/;
 
     function isAllowedCorsOrigin(origin, callback) {
         if (!isProduction) {
@@ -41,7 +42,7 @@ function resolveCorsOptions(overrides = {}) {
         if (origins.includes('*')) {
             return callback(null, false); // reject wide-open wildcard in production
         }
-        if (pagesPreviewOriginRegex.test(origin) || renderOriginRegex.test(origin)) {
+        if (pagesPreviewOriginRegex.test(origin) || renderOriginRegex.test(origin) || netlifyOriginRegex.test(origin)) {
             return callback(null, true);
         }
         return callback(null, false);

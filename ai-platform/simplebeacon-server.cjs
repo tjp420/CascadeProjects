@@ -145,6 +145,7 @@ const allowedOrigins = Array.isArray(rawAllowedOrigins) && rawAllowedOrigins.len
 
 const pagesPreviewOriginRegex = /^https:\/\/[a-z0-9-]+\.simplebeacon\.pages\.dev$/;
 const renderOriginRegex = /^https:\/\/[a-z0-9-]+\.onrender\.com$/;
+const netlifyOriginRegex = /^https:\/\/[a-z0-9-]+\.netlify\.app$/;
 function isAllowedCorsOrigin(origin) {
     if (allowedOrigins === true) { return true; }
     if (!origin) { return true; }
@@ -154,7 +155,7 @@ function isAllowedCorsOrigin(origin) {
             return origin.startsWith(allowed.replace(':*', ':'));
         }
         return false;
-    }) || pagesPreviewOriginRegex.test(origin) || renderOriginRegex.test(origin);
+    }) || pagesPreviewOriginRegex.test(origin) || renderOriginRegex.test(origin) || netlifyOriginRegex.test(origin);
 }
 
 app.use(cors({
