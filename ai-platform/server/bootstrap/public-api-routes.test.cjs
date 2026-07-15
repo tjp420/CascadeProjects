@@ -12,4 +12,10 @@ describe('public-api-routes', () => {
     assert.strictEqual(mod.isPublicApiRoute('tokens/sandbox', 'POST'), true);
     assert.strictEqual(mod.isPublicApiRoute('simplebeacon/billing/resend-token', 'POST'), true);
   });
+
+  it('allows chatbot provider discovery and messaging without auth gate', () => {
+    assert.strictEqual(mod.isPublicApiRoute('chatbot/providers', 'GET'), true);
+    assert.strictEqual(mod.isPublicApiRoute('chatbot/message', 'POST'), true);
+    assert.strictEqual(mod.isPublicApiRoute('chatbot/disclosure', 'GET'), true);
+  });
 });

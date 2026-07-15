@@ -7,6 +7,7 @@ const PUBLIC_API_PATHS = new Set([
     'health',
     'health/db',
     'auth/login',
+    'auth/register',
     'auth/refresh',
     'auth/logout',
     'auth/me',
@@ -51,6 +52,8 @@ const PUBLIC_API_PATHS = new Set([
     'analyze/upload-directory',
     'reports/download',
     'chatbot/disclosure',
+    'chatbot/providers',
+    'chatbot/message',
     // Legacy dashboard.html scanner wiring (read-only repository scans)
     'project-structure',
     'backlog',
@@ -109,6 +112,16 @@ function isPublicSimplebeaconDemoRoute(relativePath) {
 }
 
 /**
+ * Chatbot routes use optionalAuthenticate on handlers; bypass global REQUIRE_AUTH gate.
+ * @param {string} relativePath
+ * @returns {boolean}
+ */
+function isPublicChatbotRoute(relativePath) {
+    const pathKey = String(relativePath || '').replace(/^\/+/, '');
+    return pathKey === 'chatbot' || pathKey.startsWith('chatbot/');
+}
+
+/**
  * Resolve api relative path.
  * @param {any} req
  * @returns {any}
@@ -134,6 +147,7 @@ function isPublicApiRoute(relativePath, method) {
         || isPublicAssessmentRoute(pathKey, method)
         || isPublicOptimizationRoute(pathKey, method)
         || isPublicSimplebeaconDemoRoute(pathKey)
+        || isPublicChatbotRoute(pathKey)
     );
 }
 
@@ -153,5 +167,6 @@ module.exports = {
     resolveApiRelativePath,
     isPublicAssessmentRoute,
     isPublicOptimizationRoute,
-    isPublicSimplebeaconDemoRoute
+    isPublicSimplebeaconDemoRoute,
+    isPublicChatbotRoute
 };
