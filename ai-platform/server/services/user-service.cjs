@@ -3,12 +3,27 @@
  */
 
 const path = require('path');
+const fs = require('fs');
+const crypto = require('crypto');
 const { hashPassword, verifyPassword } = require('../lib/auth/password-service.cjs');
 const logger = require('../lib/app-logger.cjs');
 const { readJsonFileCached } = require('../lib/json-file-cache.cjs');
 
 const constants = require('../config/constants.cjs');
-const DEMO_USERS_PATH = path.join(__dirname, '..', 'db', 'demo-users.json');
+
+function resolveDemoUsersPath() {
+    const candidates = [
+        path.join(__dirname, '..', 'db', 'demo-users.json'),
+        path.join(__dirname, '..', '..', 'server', 'db', 'demo-users.json'),
+        path.join(process.cwd(), 'ai-platform', 'server', 'db', 'demo-users.json')
+    ];
+    for (const candidate of candidates) {
+        if (fs.existsSync(candidate)) return candidate;
+    }
+    return candidates[0];
+}
+
+const DEMO_USERS_PATH = resolveDemoUsersPath();
 
 /**
  * Should log runtime info.
@@ -16,6 +31,85 @@ const DEMO_USERS_PATH = path.join(__dirname, '..', 'db', 'demo-users.json');
  */
 function shouldLogRuntimeInfo() {
     return process.env.LOG_RUNTIME_INFO === 'true' || process.env.RUNTIME_DEBUG === 'true';
+}
+
+let sqliteDemoSeeded = false;
+
+function getSqliteDb() {
+    try {
+        return require('../../../coming-soon/lib/db.cjs');
+    } catch (error) {
+        logger.warn('[UserService] SQLite auth module unavailable:', error.message);
+        return null;
+    }
+}
+
+function ensureSqliteDemoUsers() {
+    if (sqliteDemoSeeded) return;
+    sqliteDemoSeeded = true;
+    const sqlite = getSqliteDb();
+    if (!sqlite) return;
+    const demoUsers = [
+        { email: 'dev@simplebeacon.ai', password: process.env.DEV_DEMO_PASSWORD || 'demo123', tier: 'silver' },
+        { email: 'admin@simplebeacon.ai', password: process.env.ADMIN_DEMO_PASSWORD || 'admin123', tier: 'admin' }
+    ];
+    for (const u of demoUsers) {
+        if (sqlite.getUserByEmail(u.email)) continue;
+        const salt = crypto.randomBytes(16).toString('hex');
+        const passwordHash = crypto.scryptSync(u.password, salt, 64).toString('hex');
+        try {
+            sqlite.createUser(u.email, passwordHash, salt, u.tier);
+        } catch (err) {
+            logger.warn('[UserService] SQLite demo seed failed for', u.email, err.message);
+        }
+    }
+    const adminUser = sqlite.getUserByEmail('admin@simplebeacon.ai');
+    if (adminUser && adminUser.tier !== 'admin') {
+        sqlite.updateUserTier('admin@simplebeacon.ai', 'admin');
+    }
+}
+
+function sqliteUserToAuthUser(user) {
+    const email = user.email || '';
+    const tier = user.tier || 'community';
+    return {
+        id: String(user.id != null ? user.id : email),
+        email,
+        name: email.includes('@') ? email.split('@')[0] : email,
+        trustLevel: tier === 'admin' ? 'gold' : (tier === 'silver' ? 'silver' : 'bronze'),
+        role: tier === 'admin' ? 'admin' : undefined,
+        tier,
+        features: tier === 'admin' ? ['all_modules'] : [],
+        createdAt: user.created_at || user.createdAt || new Date().toISOString(),
+        successfulAnalyses: 0,
+        securityIncidents: 0,
+        communityContributions: 0,
+        verificationStatus: tier === 'admin' ? 'verified' : 'email'
+    };
+}
+
+async function authenticateWithSqlite(email, password) {
+    const sqlite = getSqliteDb();
+    if (!sqlite) return null;
+    ensureSqliteDemoUsers();
+    const user = sqlite.getUserByEmail(email);
+    if (!user) return null;
+    const passwordHash = crypto.scryptSync(String(password), user.salt, 64).toString('hex');
+    if (passwordHash !== user.password_hash) return null;
+    return sqliteUserToAuthUser(user);
+}
+
+function registerUserSqlite(email, password, name) {
+    const sqlite = getSqliteDb();
+    if (!sqlite) return null;
+    ensureSqliteDemoUsers();
+    if (sqlite.getUserByEmail(email)) {
+        return { error: 'An account with this email already exists' };
+    }
+    const salt = crypto.randomBytes(16).toString('hex');
+    const passwordHash = crypto.scryptSync(String(password), salt, 64).toString('hex');
+    const user = sqlite.createUser(email, passwordHash, salt, 'community');
+    return { user: sqliteUserToAuthUser(user) };
 }
 
 /**
@@ -200,6 +294,9 @@ async function authenticateUser(db, email, password) {
         }
     }
 
+    const sqliteUser = await authenticateWithSqlite(email, password);
+    if (sqliteUser) return { user: sqliteUser, source: 'sqlite' };
+
     const demoUser = await authenticateWithDemoFile(email, password);
     if (demoUser) return { user: demoUser, source: 'demo-file' };
 
@@ -214,6 +311,12 @@ async function authenticateUser(db, email, password) {
  * @returns {any}
  */
 async function registerUser(email, password, name) {
+    const sqliteResult = registerUserSqlite(email, password, name);
+    if (sqliteResult) {
+        if (sqliteResult.error) return sqliteResult;
+        return sqliteResult;
+    }
+
     const demoUsers = loadDemoUsers();
     const existing = demoUsers.find((u) => u.email.toLowerCase() === email.toLowerCase());
     if (existing) {
