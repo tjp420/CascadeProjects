@@ -1,4 +1,3 @@
-// simplebeacon-ignore test-coverage
 /**
  * Engine resolution and filtering for export bundles.
  */

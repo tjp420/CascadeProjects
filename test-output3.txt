@@ -1,0 +1,566 @@
+
+> simplebeacon-vscode@3.0.434 test
+> jest
+
+PASS src/utils/__tests__/array.test.ts
+  array utilities
+    unique
+      ΓêÜ deduplicates primitives (8 ms)
+      ΓêÜ deduplicates by key function (1 ms)
+      ΓêÜ handles non-array (1 ms)
+    compact
+      ΓêÜ removes null/undefined (1 ms)
+    flatten
+      ΓêÜ flattens nested arrays (1 ms)
+    flattenDeep
+      ΓêÜ alias for flatten (1 ms)
+    range
+      ΓêÜ 0 to n
+      ΓêÜ start to end (1 ms)
+      ΓêÜ negative step
+    sortBy
+      ΓêÜ ascending sort
+      ΓêÜ descending sort (1 ms)
+    keyBy
+      ΓêÜ creates lookup object
+    chunk
+      ΓêÜ splits into chunks (1 ms)
+      ΓêÜ handles non-array
+    times
+      ΓêÜ calls function N times (1 ms)
+    randomChoice
+      ΓêÜ returns an element
+      ΓêÜ undefined for empty (1 ms)
+    intersection
+      ΓêÜ returns common elements
+    difference
+      ΓêÜ returns elements in a not in b
+    groupBy
+      ΓêÜ groups by key
+    partition
+      ΓêÜ splits by predicate (1 ms)
+    sample
+      ΓêÜ returns element
+      ΓêÜ undefined for empty
+    shuffle
+      ΓêÜ returns same length (1 ms)
+      ΓêÜ contains same elements
+    zip
+      ΓêÜ zips arrays (1 ms)
+    head
+      ΓêÜ returns first N
+    tail
+      ΓêÜ returns last N
+    take
+      ΓêÜ returns first N (1 ms)
+    drop
+      ΓêÜ drops first N
+    last
+      ΓêÜ returns last element (1 ms)
+      ΓêÜ undefined for empty
+    initial
+      ΓêÜ returns all but last (1 ms)
+    findIndex
+      ΓêÜ finds index
+      ΓêÜ returns -1 when not found
+
+PASS src/utils/__tests__/index.parity.test.ts
+  Utils export parity
+    ΓêÜ every flat export exists in the Utils namespace (7 ms)
+    ΓêÜ Utils namespace keys match barrel modules (2 ms)
+
+PASS src/utils/__tests__/functional.test.ts
+  functional helpers
+    ΓêÜ compose identity (7 ms)
+    ΓêÜ compose composes right-to-left (1 ms)
+    ΓêÜ pipe identity
+    ΓêÜ pipe pipes left-to-right (1 ms)
+    ΓêÜ zipWith pairs elements (1 ms)
+    ΓêÜ zipWith handles mismatched lengths (1 ms)
+    ΓêÜ zipWith returns empty array for invalid input
+    ΓêÜ curry allows partial application (1 ms)
+    ΓêÜ partial applies preset arguments
+    ΓêÜ tap returns original value after side effect (1 ms)
+    ΓêÜ flip swaps first two arguments
+    ΓêÜ assert throws on falsy values (20 ms)
+    ΓêÜ assert does not throw on truthy values (1 ms)
+    ΓêÜ tryCatch returns ok result
+    ΓêÜ tryCatch returns error result (3 ms)
+
+PASS src/utils/__tests__/type-guards.test.ts
+  type guards
+    isDefined
+      ΓêÜ true for string (7 ms)
+      ΓêÜ true for zero (1 ms)
+      ΓêÜ true for false
+      ΓêÜ false for null
+      ΓêÜ false for undefined (1 ms)
+    isNull
+      ΓêÜ true for null (1 ms)
+      ΓêÜ false for undefined
+      ΓêÜ false for string
+    isUndefined
+      ΓêÜ true for undefined
+      ΓêÜ false for null (1 ms)
+      ΓêÜ false for string (1 ms)
+    isNil
+      ΓêÜ true for null (1 ms)
+      ΓêÜ true for undefined
+      ΓêÜ false for zero
+      ΓêÜ false for empty string
+    isSymbol
+      ΓêÜ true for symbol
+      ΓêÜ false for string (1 ms)
+    isMap
+      ΓêÜ true for Map (1 ms)
+      ΓêÜ false for plain object
+    isSet
+      ΓêÜ true for Set (1 ms)
+      ΓêÜ false for array
+    isString
+      ΓêÜ true for string
+      ΓêÜ false for number
+    isNumber
+      ΓêÜ true for number
+      ΓêÜ false for NaN (1 ms)
+      ΓêÜ false for string
+    isBoolean
+      ΓêÜ true for boolean
+      ΓêÜ false for string (1 ms)
+    isFunction
+      ΓêÜ true for function
+      ΓêÜ false for object
+    isArray
+      ΓêÜ true for array
+      ΓêÜ false for object
+    isObject
+      ΓêÜ true for plain object (1 ms)
+      ΓêÜ false for array
+      ΓêÜ false for null
+    isPlainObject
+      ΓêÜ true for plain object (1 ms)
+      ΓêÜ true for object literal
+      ΓêÜ false for null
+      ΓêÜ false for array
+      ΓêÜ false for Date (1 ms)
+      ΓêÜ false for RegExp
+      ΓêÜ false for function
+      ΓêÜ true for object with null prototype (1 ms)
+    isDate
+      ΓêÜ true for Date
+      ΓêÜ false for string
+    isRegExp
+      ΓêÜ true for RegExp (1 ms)
+      ΓêÜ false for string
+    isPromise
+      ΓêÜ true for Promise
+      ΓêÜ true for thenable (1 ms)
+      ΓêÜ false for plain object
+    isError
+      ΓêÜ true for Error
+      ΓêÜ false for string (1 ms)
+
+PASS src/utils/__tests__/index.sync.test.ts
+  utils/index.ts sync with utils.ts
+    ΓêÜ every named export in utils.ts is also in index.ts (6 ms)
+    ΓêÜ index.ts does not export symbols absent from utils.ts (1 ms)
+
+PASS src/utils/__tests__/index.integrity.test.ts
+  Utils namespace integrity
+    ΓêÜ no export collisions across sub-modules (1 ms)
+    namespace "vscode"
+      ΓêÜ Utils namespace exists (8 ms)
+      ΓêÜ every submodule export is in Utils namespace (1 ms)
+      ΓêÜ every submodule export is a flat named export from index (2 ms)
+    namespace "string"
+      ΓêÜ Utils namespace exists
+      ΓêÜ every submodule export is in Utils namespace (1 ms)
+      ΓêÜ every submodule export is a flat named export from index (1 ms)
+    namespace "number"
+      ΓêÜ Utils namespace exists
+      ΓêÜ every submodule export is in Utils namespace (1 ms)
+      ΓêÜ every submodule export is a flat named export from index (2 ms)
+    namespace "object"
+      ΓêÜ Utils namespace exists
+      ΓêÜ every submodule export is in Utils namespace (3 ms)
+      ΓêÜ every submodule export is a flat named export from index (2 ms)
+    namespace "array"
+      ΓêÜ Utils namespace exists
+      ΓêÜ every submodule export is in Utils namespace (2 ms)
+      ΓêÜ every submodule export is a flat named export from index (1 ms)
+    namespace "async"
+      ΓêÜ Utils namespace exists (1 ms)
+      ΓêÜ every submodule export is in Utils namespace (2 ms)
+      ΓêÜ every submodule export is a flat named export from index (3 ms)
+    namespace "fs"
+      ΓêÜ Utils namespace exists
+      ΓêÜ every submodule export is in Utils namespace
+      ΓêÜ every submodule export is a flat named export from index
+    namespace "network"
+      ΓêÜ Utils namespace exists
+      ΓêÜ every submodule export is in Utils namespace
+      ΓêÜ every submodule export is a flat named export from index (1 ms)
+    namespace "path"
+      ΓêÜ Utils namespace exists
+      ΓêÜ every submodule export is in Utils namespace (1 ms)
+      ΓêÜ every submodule export is a flat named export from index
+    namespace "misc"
+      ΓêÜ Utils namespace exists
+      ΓêÜ every submodule export is in Utils namespace (1 ms)
+      ΓêÜ every submodule export is a flat named export from index (1 ms)
+    namespace "json"
+      ΓêÜ Utils namespace exists
+      ΓêÜ every submodule export is in Utils namespace (1 ms)
+      ΓêÜ every submodule export is a flat named export from index
+    namespace "typeGuards"
+      ΓêÜ Utils namespace exists
+      ΓêÜ every submodule export is in Utils namespace (1 ms)
+      ΓêÜ every submodule export is a flat named export from index (1 ms)
+    namespace "clipboard"
+      ΓêÜ Utils namespace exists
+      ΓêÜ every submodule export is in Utils namespace (1 ms)
+      ΓêÜ every submodule export is a flat named export from index
+    namespace "theme"
+      ΓêÜ Utils namespace exists
+      ΓêÜ every submodule export is in Utils namespace (1 ms)
+      ΓêÜ every submodule export is a flat named export from index (1 ms)
+    namespace "event"
+      ΓêÜ Utils namespace exists
+      ΓêÜ every submodule export is in Utils namespace
+      ΓêÜ every submodule export is a flat named export from index (1 ms)
+    namespace "polling"
+      ΓêÜ Utils namespace exists
+      ΓêÜ every submodule export is in Utils namespace
+      ΓêÜ every submodule export is a flat named export from index (1 ms)
+    namespace "functional"
+      ΓêÜ Utils namespace exists
+      ΓêÜ every submodule export is in Utils namespace (1 ms)
+      ΓêÜ every submodule export is a flat named export from index
+
+PASS src/utils/__tests__/index.inline.test.ts
+  Utils inline namespace parity
+    ΓêÜ every inline utility that exists in a submodule matches the submodule export (33 ms)
+    ΓêÜ inline namespace is frozen (2 ms)
+    ΓêÜ inline namespace contains newly exposed helpers (3 ms)
+
+PASS src/utils/__tests__/number.test.ts
+  number utilities
+    clamp
+      ΓêÜ within range (7 ms)
+      ΓêÜ below min (1 ms)
+      ΓêÜ above max
+    formatBytes
+      ΓêÜ formats bytes (1 ms)
+      ΓêÜ formats KB
+      ΓêÜ handles null (1 ms)
+    formatNumber
+      ΓêÜ adds locale separators (24 ms)
+    safeParseInt
+      ΓêÜ parses integer (1 ms)
+      ΓêÜ fallback on NaN
+    safeParseFloat
+      ΓêÜ parses float
+    roundTo
+      ΓêÜ rounds to decimals
+    toFixedNumber
+      ΓêÜ returns number not string
+    isNumeric
+      ΓêÜ true for number
+      ΓêÜ true for numeric string
+      ΓêÜ false for non-numeric
+    randomInt
+      ΓêÜ returns integer in range (1 ms)
+    sum
+      ΓêÜ sums array
+      ΓêÜ zero for empty (1 ms)
+    mean
+      ΓêÜ calculates mean
+      ΓêÜ NaN for empty
+    min
+      ΓêÜ finds minimum
+    max
+      ΓêÜ finds maximum
+    sumBy
+      ΓêÜ sums extracted values (1 ms)
+    meanBy
+      ΓêÜ calculates mean of extracted values
+
+PASS src/utils/__tests__/async.test.ts
+  async utilities
+    sleep
+      ΓêÜ waits at least N ms (43 ms)
+    delay
+      ΓêÜ is alias for sleep (38 ms)
+    debounce
+      ΓêÜ delays invocation (1 ms)
+      ΓêÜ fires once after wait (44 ms)
+      ΓêÜ cancel works (1 ms)
+      ΓêÜ flush works
+    debounceLeading
+      ΓêÜ fires on first call
+    once
+      ΓêÜ only runs first call (1 ms)
+    memoize
+      ΓêÜ caches results (2 ms)
+      ΓêÜ clear resets cache (1 ms)
+    throttle
+      ΓêÜ limits rate (3 ms)
+    withTimeout
+      ΓêÜ resolves before timeout
+      ΓêÜ rejects on timeout (45 ms)
+    waitFor
+      ΓêÜ resolves when predicate is true (34 ms)
+    poll
+      ΓêÜ returns when fn returns truthy (18 ms)
+    retry
+      ΓêÜ succeeds on first try
+      ΓêÜ retries then succeeds (35 ms)
+    parallel
+      ΓêÜ runs in parallel (2 ms)
+      ΓêÜ respects concurrency (67 ms)
+    series
+      ΓêÜ runs sequentially
+    waterfall
+      ΓêÜ chains async functions (1 ms)
+    timeout
+      ΓêÜ alias for withTimeout (1 ms)
+    retryWithBackoff
+      ΓêÜ succeeds eventually (12 ms)
+    createDeferred
+      ΓêÜ resolves via external resolve (1 ms)
+      ΓêÜ rejects via external reject (7 ms)
+      ΓêÜ can be resolved after awaiting (21 ms)
+
+PASS src/utils/__tests__/object.test.ts
+  object utilities
+    deepClone
+      ΓêÜ clones plain objects (6 ms)
+      ΓêÜ clones arrays (1 ms)
+      ΓêÜ handles circular refs
+    deepEqual
+      ΓêÜ equal objects (1 ms)
+      ΓêÜ different objects
+      ΓêÜ equal arrays
+      ΓêÜ equal dates
+    isEmpty
+      ΓêÜ null is empty
+      ΓêÜ empty string
+      ΓêÜ empty object
+      ΓêÜ non-empty (1 ms)
+    pick
+      ΓêÜ picks specified keys
+      ΓêÜ ignores missing keys (1 ms)
+    omit
+      ΓêÜ omits specified keys
+    ensureArray
+      ΓêÜ wraps scalar
+      ΓêÜ returns array as-is (1 ms)
+      ΓêÜ null becomes empty
+    defaults
+      ΓêÜ fills missing keys (1 ms)
+    merge
+      ΓêÜ deep merges objects
+    has
+      ΓêÜ true for own property (1 ms)
+      ΓêÜ false for inherited
+    get
+      ΓêÜ gets nested value (1 ms)
+      ΓêÜ returns fallback
+    set
+      ΓêÜ sets nested value
+    mapKeys
+      ΓêÜ transforms keys
+    invert
+      ΓêÜ swaps keys and values
+    values
+      ΓêÜ returns values array (1 ms)
+    keys
+      ΓêÜ returns keys array
+    freezeDeep
+      ΓêÜ freezes nested objects (1 ms)
+      ΓêÜ freezes Map values
+      ΓêÜ freezes Set members
+      ΓêÜ skips Date and RegExp (1 ms)
+      ΓêÜ handles circular references
+
+PASS src/utils/__tests__/json.test.ts
+  json utilities
+    parseJsonSafe
+      ΓêÜ parses valid JSON (6 ms)
+      ΓêÜ returns fallback on invalid
+      ΓêÜ returns fallback on null (1 ms)
+    stringifySafe
+      ΓêÜ stringifies object
+      ΓêÜ handles circular ref (1 ms)
+    isJson
+      ΓêÜ true for valid JSON string
+      ΓêÜ false for invalid
+    parseResponseJson
+      ΓêÜ parses JSON response
+      ΓêÜ returns fallback for non-JSON content type
+      ΓêÜ returns fallback on JSON parse error
+      ΓêÜ returns custom fallback when body empty (1 ms)
+
+PASS src/utils/__tests__/string.test.ts
+  string utilities
+    escapeHtml
+      ΓêÜ escapes special characters (5 ms)
+      ΓêÜ handles null/undefined (1 ms)
+    escapeRegExp
+      ΓêÜ escapes regex metacharacters (1 ms)
+    truncate
+      ΓêÜ truncates long strings
+      ΓêÜ returns short strings unchanged (1 ms)
+      ΓêÜ custom suffix (1 ms)
+    capitalize
+      ΓêÜ capitalizes first letter only
+      ΓêÜ only uppercases first char
+      ΓêÜ handles empty (1 ms)
+    camelCase
+      ΓêÜ converts kebab-case
+      ΓêÜ converts snake_case
+      ΓêÜ handles spaces
+    kebabCase
+      ΓêÜ converts camelCase
+      ΓêÜ handles spaces (1 ms)
+    snakeCase
+      ΓêÜ converts camelCase
+      ΓêÜ handles hyphens
+    padStart
+      ΓêÜ pads string to length
+      ΓêÜ no-op if already long enough (1 ms)
+    padEnd
+      ΓêÜ pads string to length
+    pluralize
+      ΓêÜ singular form for 1
+      ΓêÜ plural form for 0
+      ΓêÜ custom plural (1 ms)
+    formatPercent
+      ΓêÜ formats number with %
+      ΓêÜ handles string ending with %
+      ΓêÜ returns em-dash for null (1 ms)
+    formatDate
+      ΓêÜ formats Date object (20 ms)
+      ΓêÜ handles null
+    relativeTime
+      ΓêÜ returns just now for recent
+      ΓêÜ returns seconds ago (1 ms)
+    formatDuration
+      ΓêÜ formats milliseconds
+      ΓêÜ formats seconds
+      ΓêÜ formats minutes (1 ms)
+      ΓêÜ handles null
+    titleCase
+      ΓêÜ capitalizes each word
+    reverse
+      ΓêÜ reverses string (1 ms)
+    slugify
+      ΓêÜ creates URL-safe slug
+    repeat
+      ΓêÜ repeats string N times
+      ΓêÜ zero count returns empty (1 ms)
+    startsWith
+      ΓêÜ true for matching prefix
+      ΓêÜ false for non-matching
+    endsWith
+      ΓêÜ true for matching suffix (1 ms)
+      ΓêÜ false for non-matching
+    trim
+      ΓêÜ removes whitespace
+    splitLines
+      ΓêÜ splits on \n (1 ms)
+      ΓêÜ splits on \r\n
+      ΓêÜ returns empty for empty string
+    stripAnsi
+      ΓêÜ removes ANSI codes
+    wordCount
+      ΓêÜ counts words (1 ms)
+      ΓêÜ zero for empty
+
+PASS src/analyzers/__tests__/workspaceAnalyzer.test.ts
+  ANALYZER_PRESETS
+    ΓêÜ has essential, security, full, and custom presets (6 ms)
+    ΓêÜ full preset contains all pattern IDs (1 ms)
+    ΓêÜ essential preset excludes non-security patterns
+  isBuildArtifact
+    ΓêÜ excludes node_modules (1 ms)
+    ΓêÜ excludes .git directory (1 ms)
+    ΓêÜ excludes dist and build directories
+    ΓêÜ excludes .next and out directories (1 ms)
+    ΓêÜ excludes coverage directory (1 ms)
+    ΓêÜ excludes .map files
+    ΓêÜ excludes .lock files (1 ms)
+    ΓêÜ excludes minified files
+    ΓêÜ excludes bundle files (1 ms)
+    ΓêÜ excludes code-map.json generated artifact
+    ΓêÜ does NOT exclude regular source files (1 ms)
+    ΓêÜ respects custom patterns
+    ΓêÜ handles backslash paths
+  getBuildArtifactPatterns
+    ΓêÜ returns defaults when no user config (1 ms)
+  extractMatches
+    ΓêÜ should be covered by analyzeWorkspace integration tests
+  exportScanResultToJson
+    ΓêÜ exports a ScanResult as structured JSON with metadata (1 ms)
+  analyzeWorkspace integration
+    ΓêÜ finds files and reports at least one file analyzed (17 ms)
+    ΓêÜ reports zero files and zero findings when the target directory is empty (1 ms)
+
+PASS src/utils/__tests__/index.discovery.test.ts
+  getExportNames discovery helper
+    ΓêÜ returns an array of strings (4 ms)
+    ΓêÜ contains expected flat exports (1 ms)
+    ΓêÜ returned array is frozen
+    ΓêÜ auto-generation includes exports from every sub-module (1 ms)
+  freezeNamespace exported utility
+    ΓêÜ freezes every property of a namespace (1 ms)
+    ΓêÜ gracefully handles unfreezable objects (1 ms)
+  getNamespaceNames discovery helper
+    ΓêÜ returns an array of strings (1 ms)
+    ΓêÜ contains expected namespaces (1 ms)
+    ΓêÜ returns 18 namespaces including inline
+    ΓêÜ returned array is frozen
+  __barrel__ metadata
+    ΓêÜ __barrel__ is defined and frozen
+    ΓêÜ __barrel__ has all required metadata fields (2 ms)
+    ΓêÜ __barrel__ is attached to Utils default export
+  validateBarrelIntegrity
+    ΓêÜ passes for healthy barrel (5 ms)
+    ΓêÜ is exported as a function
+  inline namespace
+    ΓêÜ exists on Utils default export and is frozen
+    ΓêÜ contains all barrel-native utilities (1 ms)
+    ΓêÜ compose chains right-to-left
+    ΓêÜ pipe chains left-to-right
+    ΓêÜ zipWith applies function to paired elements (1 ms)
+    ΓêÜ tap runs side effects and returns original value
+    ΓêÜ parseResponseJson is exported as flat name
+
+PASS src/utils/__tests__/index.immutability.test.ts
+  Utils namespace immutability
+    ΓêÜ root Utils object is frozen (4 ms)
+    ΓêÜ nested category objects are frozen (2 ms)
+    ΓêÜ mutating frozen Utils throws in strict mode (7 ms)
+    ΓêÜ freezeNamespace recursively freezes nested objects (1 ms)
+    ΓêÜ freezeNamespace handles Map and Set (1 ms)
+    ΓêÜ freezeNamespace handles circular references
+
+PASS src/routes/__tests__/auth.test.ts (5.437 s)
+  Auth route fallback
+    ΓêÜ returns false for non-auth paths (4 ms)
+    ΓêÜ returns false for /api/auth/login (handled upstream)
+    ΓêÜ returns false for /api/auth/me (handled upstream) (1 ms)
+    ΓêÜ returns false for /api/auth/logout (handled upstream)
+    ΓêÜ returns false for /api/auth/check-token-password (handled upstream)
+    ΓêÜ returns false for /api/auth/set-token-password (handled upstream)
+
+PASS src/__tests__/architecture.test.ts (9.49 s)
+  Architecture rules
+    ΓêÜ should have zero dependency-cruiser errors (2722 ms)
+    ΓêÜ should report known circular dependencies as warnings only (2427 ms)
+
+Test Suites: 17 passed, 17 total
+Tests:       361 passed, 361 total
+Snapshots:   0 total
+Time:        10.795 s
+Ran all test suites.

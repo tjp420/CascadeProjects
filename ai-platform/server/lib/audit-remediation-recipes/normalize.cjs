@@ -1,4 +1,3 @@
-// simplebeacon-ignore test-coverage
 /**
  * Normalization helpers for scan findings and input extraction.
  */

@@ -2695,6 +2695,7 @@ export class AnalyzeView {
    */
   getUserTier() {
     const user = authService.getUser();
+    if (authService.isAdmin()) return 'enterprise';
     const plan = user?.plan || user?.tier || 'starter';
     if (plan === 'free') return 'starter';
     if (['pro', 'enterprise', 'team'].includes(plan)) return plan;
@@ -7567,6 +7568,7 @@ export class AnalyzeView {
   }
 
   renderFunnelTrigger() {
+    if (authService.isAdmin()) return '';
     const report = this.lastResult?.report || this.lastResult?.scan;
     if (!report) return '';
 
@@ -8646,6 +8648,7 @@ export class AnalyzeView {
   }
 
   isResultsLocked() {
+    if (authService.isAdmin()) return false;
     return isDeliverableLocked(this.app.state.entitlements, this.lastResult);
   }
 

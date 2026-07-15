@@ -34,7 +34,7 @@ export function apiBase() {
         const host = location.hostname;
         if (!/^(localhost|127\.0\.0\.1)$/i.test(host) && !host.endsWith('.onrender.com')) {
             // Same-origin API proxy on Cloudflare Pages / production domain (matches scanService).
-            if (host === 'simplebeacon.ai' || host.endsWith('.simplebeacon.pages.dev')) {
+            if (host === 'simplebeacon.ai' || host.endsWith('.simplebeacon.pages.dev') || host.endsWith('.netlify.app')) {
                 return location.origin;
             }
             return 'https://simplebeacon.ai';

@@ -3984,13 +3984,14 @@ export class AnalyzeView {
     // Cross-reference integrity checks
     const integrityWarnings = [];
     const sev = report.severityCounts || {};
-    const issues = report.detectedIssues || report.rawIssues || [];
+    const issueList = report.rawIssues || report.detectedIssues || report.findings || [];
     const counted = (sev.critical || 0) + (sev.high || 0) + (sev.medium || 0) + (sev.low || 0) + (sev.info || 0);
-    if (counted !== issues.length) {
-      integrityWarnings.push(`severityCounts sum (${counted}) ≠ issues.length (${issues.length})`);
+    const issueTotal = Array.isArray(issueList) ? issueList.reduce((sum, i) => sum + (Number(i && i.count) || 1), 0) : 0;
+    if (counted !== issueTotal) {
+      integrityWarnings.push(`severityCounts sum (${counted}) ≠ issues.count (${issueTotal})`);
     }
-    if (report.summary && typeof report.summary.totalIssues === 'number' && report.summary.totalIssues !== issues.length) {
-      integrityWarnings.push(`summary.totalIssues (${report.summary.totalIssues}) ≠ issues.length (${issues.length})`);
+    if (report.summary && typeof report.summary.totalIssues === 'number' && report.summary.totalIssues !== issueTotal) {
+      integrityWarnings.push(`summary.totalIssues (${report.summary.totalIssues}) ≠ issues.count (${issueTotal})`);
     }
 
     return `
@@ -5618,7 +5619,7 @@ export class AnalyzeView {
 
     const type = parsed.type || '';
     const sev = parsed.severityCounts || {};
-    const detected = parsed.detectedIssues || parsed.rawIssues || [];
+    const issueList = parsed.rawIssues || parsed.detectedIssues || parsed.findings || [];
 
     if (isSimplebeaconReport(parsed) || type === 'simplebeacon-complete-scan') {
       if (!parsed.projectRoot && !parsed.projectPath) {
@@ -5628,13 +5629,14 @@ export class AnalyzeView {
         warn('severityCounts is not an object');
       } else {
         const counted = (sev.critical||0) + (sev.high||0) + (sev.medium||0) + (sev.low||0) + (sev.info||0);
-        if (Array.isArray(detected) && counted !== detected.length) {
-          warn(`severityCounts sum (${counted}) != issues.length (${detected.length})`);
+        const issueTotal = Array.isArray(issueList) ? issueList.reduce((sum, i) => sum + (Number(i && i.count) || 1), 0) : 0;
+        if (Array.isArray(issueList) && counted !== issueTotal) {
+          warn(`severityCounts sum (${counted}) != issues.count (${issueTotal})`);
         }
       }
-      if (Array.isArray(detected)) {
-        const bad = detected.filter(i => !i.severity || !i.type).length;
-        if (bad > 0) warn(`${bad}/${detected.length} issues missing severity or type`);
+      if (Array.isArray(issueList)) {
+        const bad = issueList.filter(i => !i.severity || !i.type).length;
+        if (bad > 0) warn(`${bad}/${issueList.length} issues missing severity or type`);
       }
     }
 

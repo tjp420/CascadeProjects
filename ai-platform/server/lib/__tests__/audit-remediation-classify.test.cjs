@@ -36,6 +36,20 @@ describe('audit-remediation-recipes/classify', () => {
     expect(classifyRowKind({ rule: 'config-sprawl', snippet: '' })).toBe('config-sprawl');
   });
 
+  test('classifyRowKind detects orphaned-data and dev-dependency', () => {
+    expect(classifyRowKind({ rule: 'orphaned-data', snippet: '' })).toBe('orphaned-data');
+    expect(classifyRowKind({ rule: '', snippet: 'import pytest' })).toBe('dev-dependency');
+  });
+
+  test('classifyRowKind detects eslint and syntax kinds', () => {
+    expect(classifyRowKind({ rule: 'eslint', snippet: 'no-unused-vars' })).toBe('eslint');
+    expect(classifyRowKind({ rule: '', snippet: 'parse error syntax' })).toBe('syntax');
+  });
+
+  test('classifyRowKind detects schema findings', () => {
+    expect(classifyRowKind({ rule: 'page.spec', snippet: '' })).toBe('schema');
+  });
+
   test('classifyRowKind detects pii', () => {
     expect(classifyRowKind({ rule: 'data-privacy', snippet: 'pii pattern' })).toBe('pii');
   });

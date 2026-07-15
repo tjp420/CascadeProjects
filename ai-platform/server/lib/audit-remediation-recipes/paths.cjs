@@ -1,4 +1,3 @@
-// simplebeacon-ignore test-coverage
 /**
  * Path utilities, location parsing, and artifact-context inference.
  * Separated from the main module for easier unit testing.

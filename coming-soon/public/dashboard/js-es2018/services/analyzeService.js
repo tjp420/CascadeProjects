@@ -96,7 +96,7 @@ function isHostedPagesDashboard() {
     if (typeof window === 'undefined')
         return false;
     const host = window.location.hostname;
-    return host === 'simplebeacon.ai' || host.endsWith('.simplebeacon.pages.dev');
+    return host === 'simplebeacon.ai' || host.endsWith('.simplebeacon.pages.dev') || host.endsWith('.netlify.app');
 }
 /** Fail fast before long scans when the API is down or vault session is missing. */
 export async function ensureDashboardApiReady() {

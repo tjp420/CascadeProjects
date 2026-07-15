@@ -1,4 +1,4 @@
-2026-07-11T21:53:33.143Z  INFO: [token-service] JWT configuration loaded: {
+2026-07-12T19:46:24.287Z  INFO: [token-service] JWT configuration loaded: {
   algorithm: 'HS256',
   issuer: 'cascade-ai-platform',
   audience: 'cascade-ai-users',
@@ -8,7 +8,7 @@
   secretLength: 128,
   secretFromEnv: false
 }
-2026-07-11T21:53:33.822Z  INFO: [Simplebeacon] Registered POST and GET /api/analyze/eu-ai-act-audit-report
+2026-07-12T19:46:24.906Z  INFO: [Simplebeacon] Registered POST and GET /api/analyze/eu-ai-act-audit-report
 [Billing] Subscription billing routes mounted
 [API] Simplebeacon dashboard API mounted
 [Auth] Authentication routes mounted

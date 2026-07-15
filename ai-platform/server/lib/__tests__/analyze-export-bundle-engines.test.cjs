@@ -70,4 +70,39 @@ describe('analyze-export-bundle/engines', () => {
   test('shouldIncludeEuAiActArtifacts respects explicit true', () => {
     expect(shouldIncludeEuAiActArtifacts({}, { includeEuAiAct: true })).toBe(true);
   });
+
+  test('resolveSelectedEnginesForExport reads payload enginesRun', () => {
+    expect(resolveSelectedEnginesForExport({ enginesRun: ['simplebeacon', 'roadmap'] }))
+      .toEqual(['simplebeacon', 'roadmap']);
+  });
+
+  test('filterCompleteScanForEngines filters enginesRun and steps', () => {
+    const scan = {
+      enginesRun: ['simplebeacon', 'roadmap', 'npm-audit'],
+      steps: [{ id: 'simplebeacon' }, { id: 'roadmap' }, { id: 'npm-audit' }],
+      results: { simplebeacon: { gate: { pass: true } } }
+    };
+    const filtered = filterCompleteScanForEngines(scan, ['simplebeacon', 'roadmap']);
+    expect(filtered.enginesRun).toEqual(['simplebeacon', 'roadmap']);
+    expect(filtered.steps.map((s) => s.id)).toEqual(['simplebeacon', 'roadmap']);
+    expect(filtered.analysisConfig.selectedEngines).toEqual(['simplebeacon', 'roadmap']);
+  });
+
+  test('artifactAllowedForEngines gates EU AI Act artifacts', () => {
+    const engines = new Set(['simplebeacon']);
+    expect(artifactAllowedForEngines('eu-ai-act-sprint', engines, { includeEuAiAct: false })).toBe(false);
+    expect(artifactAllowedForEngines('eu-ai-act-sprint', engines, { includeEuAiAct: true })).toBe(false);
+    expect(artifactAllowedForEngines('eu-ai-act-sprint', new Set(['eu-ai-act']), { includeEuAiAct: true })).toBe(true);
+  });
+
+  test('artifactAllowedForEngines requires mapped engine for known artifacts', () => {
+    expect(artifactAllowedForEngines('roadmap', new Set(['simplebeacon']))).toBe(false);
+    expect(artifactAllowedForEngines('roadmap', new Set(['roadmap']))).toBe(true);
+  });
+
+  test('shouldIncludeEuAiActArtifacts detects sprint results and eu-ai-act kind', () => {
+    expect(shouldIncludeEuAiActArtifacts({ type: 'simplebeacon-eu-ai-act-sprint' })).toBe(true);
+    expect(shouldIncludeEuAiActArtifacts({ results: { sprint: { ok: true } } })).toBe(true);
+    expect(shouldIncludeEuAiActArtifacts({ enginesRun: ['eu-ai-act'] })).toBe(true);
+  });
 });

@@ -2773,6 +2773,7 @@ export class AnalyzeView {
      */
     getUserTier() {
         const user = authService.getUser();
+        if (authService.isAdmin()) return 'enterprise';
         const plan = (user === null || user === void 0 ? void 0 : user.plan) || (user === null || user === void 0 ? void 0 : user.tier) || 'starter';
         if (plan === 'free')
             return 'starter';
@@ -8725,6 +8726,7 @@ export class AnalyzeView {
     }
     renderFunnelTrigger() {
         var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
+        if (authService.isAdmin()) return '';
         const report = ((_a = this.lastResult) === null || _a === void 0 ? void 0 : _a.report) || ((_b = this.lastResult) === null || _b === void 0 ? void 0 : _b.scan);
         if (!report)
             return '';
@@ -9831,6 +9833,7 @@ export class AnalyzeView {
         return this.wrapAnalyzeResults(`<pre class="audit-log card">${escapeHtml(JSON.stringify(this.lastResult, null, 2))}</pre>`);
     }
     isResultsLocked() {
+        if (authService.isAdmin()) return false;
         return isDeliverableLocked(this.app.state.entitlements, this.lastResult);
     }
     renderCompleteResults() {

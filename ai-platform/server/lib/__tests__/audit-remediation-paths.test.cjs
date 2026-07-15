@@ -114,4 +114,36 @@ describe('audit-remediation-recipes/paths', () => {
     const findings = [{ filePath: 'a.js' }, { filePath: 'b.js' }];
     expect(filterFindingsByProjectScope(findings, { projectPath: '/project/src' })).toHaveLength(2);
   });
+
+  test('filterFindingsByProjectScope keeps only in-scope findings for github-cache', () => {
+    const projectPath = 'C:/repo/github-cache/my-project';
+    const findings = [
+      { filePath: 'C:/repo/github-cache/my-project/src/a.js' },
+      { filePath: 'C:/repo/other-project/src/b.js' }
+    ];
+    const scoped = filterFindingsByProjectScope(findings, { projectPath });
+    expect(scoped).toHaveLength(1);
+    expect(scoped[0].filePath).toContain('my-project');
+  });
+
+  test('inferArtifactContext identifies scanner rule sources', () => {
+    const ctx = inferArtifactContext({
+      location: 'packages/simplebeacon-cli/src/rules/security-pattern-scanner.js:10'
+    });
+    expect(ctx.artifactType).toBe('scanner-rule');
+    expect(ctx.blocksGate).toBe(false);
+  });
+
+  test('isFindingInProjectScope rejects out-of-scope paths when projectPath set', () => {
+    const inScope = isFindingInProjectScope(
+      { filePath: 'C:/repo/github-cache/pkg/src/index.js' },
+      { projectPath: 'C:/repo/github-cache/pkg' }
+    );
+    const outOfScope = isFindingInProjectScope(
+      { filePath: 'C:/repo/other/src/index.js' },
+      { projectPath: 'C:/repo/github-cache/pkg' }
+    );
+    expect(inScope).toBe(true);
+    expect(outOfScope).toBe(false);
+  });
 });

@@ -1,0 +1,32 @@
+{
+  "subscriptions": {
+    "team@example.com": {
+      "email": "team@example.com",
+      "subscriptionActive": false,
+      "stripeCustomerId": null,
+      "subscriptionId": null,
+      "product": null,
+      "tier": "team",
+      "apiToken": "sb_874610baedfcd15ed430101cfc06ebd1f072432b7ac7eb06",
+      "apiCallsThisPeriod": 0,
+      "scansThisPeriod": 9146,
+      "scanQuota": null,
+      "scanType": "local",
+      "periodStart": "2026-07-14T15:33:06.277Z",
+      "updatedAt": "2026-07-14T15:33:36.794Z",
+      "licenseToken": null,
+      "licenseTier": null,
+      "complianceCertsThisPeriod": 0,
+      "complianceCertLimit": 0,
+      "certClientName": null,
+      "certProjectName": null,
+      "certMilestone": "release",
+      "certOrgId": "default",
+      "customConfigEnabled": false,
+      "allowlistEnabled": false
+    }
+  },
+  "byApiToken": {
+    "sb_874610baedfcd15ed430101cfc06ebd1f072432b7ac7eb06": "team@example.com"
+  }
+}
