@@ -1,6 +1,6 @@
 import { escapeHtml, showToast, downloadJson, downloadBlob, downloadText, redactPathForDisplay, formatPathLabel, formatPathInputValue, formatAiSummarySkipMessage, isRedactedPathDisplay, formatNumber, formatPercent, renderEmptyState } from '../utils.js';
 import { canUseDirectoryPicker, isLikelyWebkitDirectoryFileCap, browserFolderCapMessage, filePickerBlockedMessage, isFilePickerBlockedError, isEmbeddedDashboardFrame } from '../utils-lib/dom.js?v=20260715iframefix3';
-import { evaluateFunnelMetrics, getFunnelCopy } from '../utils/funnelTrigger.js';
+import { evaluateFunnelMetrics, getFunnelCopy, shouldShowEnterpriseFunnel, buildFunnelAuthOptions } from '../utils/funnelTrigger.js?v=20260715adminfunnel1';
 import { LocalScanService } from '../services/localScanService.js?v=20260715iframefix3';
 import { fingerprintDirectory, formatFingerprint } from '../services/fingerprintService.js';
 import { probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus, getAgentDownloadUrl, detectPlatform, getPlatformLabel, getInstallInstructions, getAgentFallbackMessage, probeAgent4000, scanViaAgent4000, renderAgentCertificate, hasExtensionBridgeConfigured, pickFolderViaExtensionBridge as requestExtensionFolderPick, shouldProbeLocalAgent } from '../services/localAgentService.js?v=20260715hosted1';
@@ -8726,7 +8726,7 @@ export class AnalyzeView {
         return `${this.renderResultsExportBar()}${content || ''}${funnelHtml}`;
     }
     renderFunnelTrigger() {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m;
         const report = ((_a = this.lastResult) === null || _a === void 0 ? void 0 : _a.report) || ((_b = this.lastResult) === null || _b === void 0 ? void 0 : _b.scan);
         if (!report)
             return '';
@@ -8739,6 +8739,12 @@ export class AnalyzeView {
         const funnel = evaluateFunnelMetrics(metrics);
         if (!funnel.shouldPromptUpgrade)
             return '';
+        const scanLabel = String(((_l = this.lastResult) === null || _l === void 0 ? void 0 : _l.label) || '');
+        const isLocalScan = /^local scan:/i.test(scanLabel);
+        const auth = (_m = this.app.authService) === null || _m === void 0 ? void 0 : _m;
+        if (!shouldShowEnterpriseFunnel(Object.assign({}, buildFunnelAuthOptions(auth), { isLocalScan }))) {
+            return '';
+        }
         const copy = getFunnelCopy(funnel.reason);
         return `
       <div class="card mb-4" style="border-left: 4px solid var(--accent-primary);">

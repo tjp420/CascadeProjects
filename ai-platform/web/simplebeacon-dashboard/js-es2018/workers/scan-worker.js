@@ -234,14 +234,16 @@ async function analyzeWithTextPatterns(file, filePath) {
     for (const name of analyzers) {
         const results = runAnalyzer(name, text, filePath);
         for (const r of results) {
-            for (const m of r.matches) {
+            if (r.matches && r.matches.length > 0) {
                 issues.push({
                     severity: SEVERITY_MAP[name] || 'medium',
                     filePath: r.filePath,
                     rule: name,
-                    line: m.line,
+                    line: r.matches[0].line,
                     impact: `${r.count} ${name} finding(s) detected`,
-                    fix: 'Review and remediate before next release.'
+                    fix: 'Review and remediate before next release.',
+                    count: r.count,
+                    matches: r.matches
                 });
             }
         }

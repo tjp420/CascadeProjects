@@ -605,6 +605,8 @@ async function scanEuAiActPatterns(baseDir, options = {}) {
             continue;
         }
 
+        if (/simplebeacon-ignore[:\s].*euAiAct/i.test(content.substring(0, 500))) continue;
+
         scanned += 1;
         const ext = file.ext || path.extname(file.path).toLowerCase();
 

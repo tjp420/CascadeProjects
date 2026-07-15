@@ -1604,8 +1604,18 @@ function isDebugScanPath(relativePath) {
  * @param {string} relativePath
  * @returns {any}
  */
+function hasFileLevelIgnore(content, category) {
+    if (!content || typeof content !== 'string') return false;
+    const first5 = content.split('\n').slice(0, 5).join('\n');
+    const re = new RegExp('simplebeacon-ignore[:\\s].*' + category, 'i');
+    return re.test(first5) || re.test(content.substring(0, 500));
+}
+
 function detectDebugArtifacts(content, relativePath) {
     if (isCliToolingPath(relativePath)) {
+        return [];
+    }
+    if (hasFileLevelIgnore(content, 'debugArtifacts')) {
         return [];
     }
     const rel = normalizedAuditPath(relativePath);
@@ -3323,7 +3333,7 @@ async function analyzeFileContent(file, rootDir, options = {}) {
                 });
             }
         }
-        if (!isNonProductionAuditContentPath(rel) && !isTechnicalDebtReportArtifact(rel)) {
+        if (!isNonProductionAuditContentPath(rel) && !isTechnicalDebtReportArtifact(rel) && !hasFileLevelIgnore(content, 'todoMarkers')) {
             findings.push(...scanContentPatterns(content, rel, TECH_DEBT_PATTERNS, 'tech-debt', 'medium'));
         }
         // Skip scanner rule catalogs and server infrastructure files for architecture-drift
