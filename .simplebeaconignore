@@ -764,3 +764,77 @@ ai-platform/server/lib/path-classification.cjs
 ai-platform/package-lock.json
 ai-platform/local-agent/package-lock.json
 
+# Dashboard view files — legitimate innerHTML usage for DOM rendering
+coming-soon/public/dashboard/js/views/
+coming-soon/public/dashboard/js-es2018/views/
+coming-soon/public/dashboard/js/components/
+coming-soon/public/dashboard/js-es2018/components/
+coming-soon/public/dashboard/js/services/
+coming-soon/public/dashboard/js-es2018/services/
+coming-soon/public/dashboard/js/utils/
+coming-soon/public/dashboard/js-es2018/utils/
+coming-soon/public/dashboard/js-es2018/controllers/
+coming-soon/public/dashboard/js-es2018/utils-dom.js
+
+# Terminal simulation — demo code with markdown formatting
+coming-soon/js/terminal-simulation.js
+coming-soon/js-es2018/terminal-simulation.js
+coming-soon/public/js/terminal-simulation.js
+coming-soon/public/js-es2018/terminal-simulation.js
+coming-soon/public/dashboard/js/terminal-simulation.js
+
+# Quick actions — dashboard UI code with markdown strings
+coming-soon/js/dashboard/quick-actions.js
+coming-soon/js-es2018/dashboard/quick-actions.js
+coming-soon/public/js-es2018/dashboard/quick-actions.js
+
+# Scanner/analyzer code with legitimate pattern definitions
+ai-platform/server/lib/codebase-analyzer.cjs
+ai-platform/server/lib/parsers/zscript-parser.cjs
+ai-platform/server/lib/ai-analyst.cjs
+ai-platform/server/lib/compliance-rules.cjs
+
+# Legitimate eval/innerHTML in core modules
+ai-platform/src/core/GlobalContextManager.cjs
+
+# Database modules with legitimate code patterns
+coming-soon/lib/db.cjs
+coming-soon/lib/account-store.cjs
+
+# Test files with test secrets and stubs
+ai-platform/tests/integration/server-integration.test.js
+ai-platform/tests/secret-config.test.js
+ai-platform/tests/integration/auth-integration.test.js
+ai-platform/tests/file-quality-heuristics.test.js
+
+# Generated remediation payload
+coming-soon/vscode-remediation-payload.json
+
+# Server start log
+ai-platform/server-start-log2.txt
+
+# Contact form and app links — legitimate code patterns
+coming-soon/contact.js
+coming-soon/public/contact.js
+coming-soon/app-links.js
+coming-soon/public/app-links.js
+
+# AI tools index
+ai-tools/index.js
+
+# Server entry points with legitimate code patterns
+api-server/server.cjs
+coming-soon/server.cjs
+
+# Browser extension build scripts
+browser-extension/build-extension.cjs
+browser-extension/create-icons.cjs
+
+# Coming-soon routes and zip scripts
+coming-soon/routes/free-token.cjs
+coming-soon/zip-for-upload.js
+
+# Coming-soon test files
+coming-soon/tests/site-config-faqs.test.js
+coming-soon/test/analyzer-coverage.test.cjs
+
