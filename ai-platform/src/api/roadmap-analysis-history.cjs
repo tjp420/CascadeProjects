@@ -3,6 +3,7 @@
  * Roadmap scan analysis history — PostgreSQL dashboard_snapshots with client fallback.
  */
 
+const logger = require('../../server/lib/app-logger.cjs');
 const HISTORY_KEY = 'roadmap-analysis-history';
 const MAX_ENTRIES = 25;
 
@@ -96,7 +97,7 @@ function setupRoadmapAnalysisHistoryRoutes(app) {
                 timestamp: new Date().toISOString()
             });
         } catch (error) {
-            console.error('Failed to read roadmap analysis history:', error);
+            logger.error('Failed to read roadmap analysis history:', error);
             res.status(500).json({
                 success: false,
                 error: 'Failed to read analysis history',
@@ -136,7 +137,7 @@ function setupRoadmapAnalysisHistoryRoutes(app) {
                 timestamp: new Date().toISOString()
             });
         } catch (error) {
-            console.error('Failed to save roadmap analysis history:', error);
+            logger.error('Failed to save roadmap analysis history:', error);
             res.status(500).json({
                 success: false,
                 error: 'Failed to save analysis history',
@@ -165,7 +166,7 @@ function setupRoadmapAnalysisHistoryRoutes(app) {
                 timestamp: new Date().toISOString()
             });
         } catch (error) {
-            console.error('Failed to clear roadmap analysis history:', error);
+            logger.error('Failed to clear roadmap analysis history:', error);
             res.status(500).json({
                 success: false,
                 error: 'Failed to clear analysis history',

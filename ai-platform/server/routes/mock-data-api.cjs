@@ -1,4 +1,5 @@
 // simplebeacon-ignore: Scanner pattern definitions, and EU AI Act indicators — all findings are false positives, dashboard code, debug artifacts, debugArtifacts, test fixtures
+const logger = require('../lib/app-logger.cjs');
 const path = require('path');
 const { scanForMockFiles } = require('../lib/mock-data-file-scanner.cjs');
 const {
@@ -42,7 +43,7 @@ function setupMockDataAPI(app, options = {}) {
         issues
       });
     } catch (error) {
-      console.error('Mock analysis error:', error);
+      logger.error('Mock analysis error:', error);
       res.status(500).json({ error: 'Failed to analyze mock data' });
     }
   });
@@ -62,7 +63,7 @@ function setupMockDataAPI(app, options = {}) {
         conversions
       });
     } catch (error) {
-      console.error('Mock conversion error:', error);
+      logger.error('Mock conversion error:', error);
       res.status(500).json({ error: 'Failed to convert mock data' });
     }
   });
@@ -83,7 +84,7 @@ function setupMockDataAPI(app, options = {}) {
         results: validationResults
       });
     } catch (error) {
-      console.error('Mock validation error:', error);
+      logger.error('Mock validation error:', error);
       res.status(500).json({ error: 'Failed to validate mock data' });
     }
   });
@@ -101,7 +102,7 @@ function setupMockDataAPI(app, options = {}) {
         datasets
       });
     } catch (error) {
-      console.error('Mock generation error:', error);
+      logger.error('Mock generation error:', error);
       res.status(500).json({ error: 'Failed to generate mock data' });
     }
   });
@@ -130,7 +131,7 @@ function setupMockDataAPI(app, options = {}) {
         cleanedFiles
       });
     } catch (error) {
-      console.error('Mock cleaning error:', error);
+      logger.error('Mock cleaning error:', error);
       res.status(500).json({ error: 'Failed to clean mock data' });
     }
   });
@@ -150,7 +151,7 @@ function setupMockDataAPI(app, options = {}) {
         exportedFiles: exportFiles
       });
     } catch (error) {
-      console.error('Mock export error:', error);
+      logger.error('Mock export error:', error);
       res.status(500).json({ error: 'Failed to export mock data' });
     }
   });

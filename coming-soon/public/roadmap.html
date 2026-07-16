@@ -216,7 +216,7 @@
   </div>
   <script src="js/vendor/jszip.min.js"></script>
   <script src="https://unpkg.com/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
-  <script src="js/roadmap-app.js"></script>
+  <script src="js/roadmap-app.js?v=20260715roadmap1"></script>
 
   <!-- Sign-in Modal -->
   <div class="signin-overlay" id="signinOverlay">
@@ -387,13 +387,30 @@
         showSuccessToast('Security key authentication started (demo).');
       }
 
-      if (signinBtn) signinBtn.addEventListener('click', function() { window.location.href = '/dashboard/signin?returnTo=' + encodeURIComponent(window.location.pathname); });
+      function authDashboardUrl(route) {
+        return '/dashboard/' + route + '?returnTo=' + encodeURIComponent(window.location.pathname);
+      }
+      if (signinBtn) signinBtn.addEventListener('click', function() { window.location.href = authDashboardUrl('signin'); });
       if (signinCloseBtn) signinCloseBtn.addEventListener('click', closeSigninModal);
       if (signinOverlay) signinOverlay.addEventListener('click', function(e) { if (e.target === signinOverlay) closeSigninModal(); });
-      if (signinEmailBtn) signinEmailBtn.addEventListener('click', handleEmailSignin);
-      if (signinPassword) signinPassword.addEventListener('keydown', function(e) { if (e.key === 'Enter') handleEmailSignin(); });
+      if (signinEmailBtn) signinEmailBtn.addEventListener('click', function() {
+        if (emailMode === 'register') {
+          window.location.href = authDashboardUrl('register');
+          return;
+        }
+        handleEmailSignin();
+      });
+      if (signinPassword) signinPassword.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+          if (emailMode === 'register') {
+            window.location.href = authDashboardUrl('register');
+            return;
+          }
+          handleEmailSignin();
+        }
+      });
       if (subtabLogin) subtabLogin.addEventListener('click', function() { setEmailMode('login'); });
-      if (subtabRegister) subtabRegister.addEventListener('click', function() { setEmailMode('register'); });
+      if (subtabRegister) subtabRegister.addEventListener('click', function() { window.location.href = authDashboardUrl('register'); });
       if (forgotPasswordBtn) forgotPasswordBtn.addEventListener('click', handleForgotPassword);
       if (webauthnBtn) webauthnBtn.addEventListener('click', handleWebAuthn);
 

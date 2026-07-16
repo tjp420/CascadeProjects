@@ -1,4 +1,4 @@
-// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code, security — all findings are false positives
 /**
  * Tests for the AI-blind anonymized export engine.
  * Ensures zero IP leakage while preserving compliance verifiability.

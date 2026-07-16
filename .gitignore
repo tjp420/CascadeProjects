@@ -17,6 +17,7 @@ backups/
 .simplebeacon/*.bak
 .simplebeacon/*.simplebeacon-backup.*
 !ai-platform/.simplebeacon/config.json
+!ai-platform/.simplebeacon/jest-result.json
 
 # Simplebeacon test output
 test-output-*.txt
@@ -237,3 +238,19 @@ google-earthenterprise/
 
 # Local Netlify folder
 .netlify
+
+# Wrangler deployment cache
+coming-soon/.wrangler/tmp/
+
+# Generated root-level scan/status artifacts
+simplebeacon-c-users-*.json
+users-import.csv
+AUDIT-PRD.md
+WORKSPACE-STATUS-REPORT-*.md
+zzz_status.json
+
+# Temporary root files
+.tmp-*.js
+
+# Generated SimpleBeacon HTML reports
+.simplebeacon/*.html

@@ -2,6 +2,7 @@
 'use strict';
 
 const createError = require('http-errors');
+const logger = require('../app-logger.cjs');
 const { trustLevels } = require('./trust-levels.cjs');
 const { generateToken } = require('./token-service.cjs');
 const { auditAuth } = require('./audit-service.cjs');
@@ -15,10 +16,19 @@ async function handleLogin(req, res, next) {
       throw createError(400, 'Email and password required');
     }
 
-    const userResult = await authenticateUser(req.db || null, email, password);
+    const userResult = await authenticateUser(req.app?.locals?.db || req.db || null, email, password);
     if (!userResult) {
       auditAuth('login_failed', { email }, req);
       return res.status(401).json({ error: 'Authentication failed', message: 'Invalid email or password' });
+    }
+    if (String(userResult.user?.status || 'active').toLowerCase() === 'suspended') {
+      return res.status(403).json({ error: 'account_suspended', message: 'Account suspended. Contact support.' });
+    }
+    if (String(userResult.user?.status || 'active').toLowerCase() === 'pending') {
+      return res.status(403).json({
+        error: 'account_pending',
+        message: 'Account pending approval. You will receive access after an operator activates your account.'
+      });
     }
 
     const match = userResult.user;
@@ -70,7 +80,7 @@ async function handleLogin(req, res, next) {
     });
   } catch (error) {
     auditAuth('login_failed', { email: req.body?.email }, req);
-    console.error('[Login] Error during login:', error?.message, error?.stack);
+    logger.error('[Login] Error during login:', error?.message, error?.stack);
     // Let validation errors (4xx) pass through to the Express error handler
     if (error?.status && error.status < 500) {
       return next(error);

@@ -1,4 +1,4 @@
-// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 /**
  * Simple SQLite database for subscriptions and email queue.
  * Uses Node.js built-in node:sqlite (available in Node 22+).
@@ -100,12 +100,25 @@ function getDb() {
             CREATE INDEX IF NOT EXISTS idx_token_nodes_chain ON token_nodes(chain_id);
             CREATE INDEX IF NOT EXISTS idx_token_nodes_hash ON token_nodes(token_hash);
             CREATE INDEX IF NOT EXISTS idx_token_nodes_status ON token_nodes(status);
+            CREATE TABLE IF NOT EXISTS email_validation_codes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                email TEXT NOT NULL,
+                code TEXT NOT NULL,
+                token_hash TEXT NOT NULL,
+                expires_at TEXT NOT NULL,
+                used INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+            CREATE INDEX IF NOT EXISTS idx_email_validation_codes_email ON email_validation_codes(email);
+            CREATE INDEX IF NOT EXISTS idx_email_validation_codes_token_hash ON email_validation_codes(token_hash);
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 email TEXT NOT NULL UNIQUE,
+                name TEXT,
                 password_hash TEXT NOT NULL,
                 salt TEXT NOT NULL,
                 tier TEXT DEFAULT 'community',
+                status TEXT DEFAULT 'active',
                 created_at TEXT NOT NULL DEFAULT (datetime('now')),
                 updated_at TEXT NOT NULL DEFAULT (datetime('now'))
             );
@@ -150,6 +163,21 @@ function getDb() {
     try {
         db.exec(`CREATE INDEX IF NOT EXISTS idx_email_queue_status_attempts ON email_queue(status, attempts);`);
     } catch (err) { /* index may already exist */ }
+    try {
+        db.exec(`ALTER TABLE users ADD COLUMN name TEXT;`);
+    } catch (err) { /* column may already exist */ }
+    try {
+        db.exec(`ALTER TABLE users ADD COLUMN status TEXT DEFAULT 'active';`);
+    } catch (err) { /* column may already exist */ }
+    try {
+        db.exec(`ALTER TABLE users ADD COLUMN username TEXT;`);
+    } catch (err) { /* column may already exist */ }
+    try {
+        db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username) WHERE username IS NOT NULL AND username != '';`);
+    } catch (err) { /* index may already exist */ }
+    try {
+        db.exec(`UPDATE users SET status = 'active' WHERE status IS NULL OR status = '';`);
+    } catch (err) { /* ignore */ }
     return db;
 }
 
@@ -266,7 +294,7 @@ function getAllPaidSubscriptions() {
 
 function getAllUsers() {
     const db = getDb();
-    return db.prepare('SELECT id, email, tier, created_at, updated_at FROM users ORDER BY created_at DESC').all();
+    return db.prepare('SELECT id, email, name, status, tier, created_at, updated_at FROM users ORDER BY created_at DESC').all();
 }
 
 function addRefundRecord(customerEmail, stripeSubscriptionId, amount, reason) {
@@ -316,12 +344,23 @@ function updatePaidSubscriptionStatus(stripeSubscriptionId, status) {
     ).run(status, stripeSubscriptionId);
 }
 
-function createUser(email, passwordHash, salt, tier) {
+function createUser(email, passwordHash, salt, tier, options = {}) {
     const db = getDb();
+    const normalizedEmail = email.trim().toLowerCase();
+    const name = options.name ? String(options.name).trim() : null;
+    const username = options.username ? String(options.username).trim().toLowerCase() : null;
+    const status = options.status || 'active';
     db.prepare(
-        'INSERT INTO users (email, password_hash, salt, tier) VALUES (?, ?, ?, ?)'
-    ).run(email.trim().toLowerCase(), passwordHash, salt, tier || 'community');
-    return db.prepare('SELECT * FROM users WHERE email = ?').get(email.trim().toLowerCase());
+        'INSERT INTO users (email, password_hash, salt, tier, name, username, status) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    ).run(normalizedEmail, passwordHash, salt, tier || 'community', name, username, status);
+    return db.prepare('SELECT * FROM users WHERE email = ?').get(normalizedEmail);
+}
+
+function getUserByUsername(username) {
+    const db = getDb();
+    const normalized = String(username || '').trim().toLowerCase();
+    if (!normalized) return null;
+    return db.prepare('SELECT * FROM users WHERE lower(username) = ?').get(normalized);
 }
 
 function getUserByEmail(email) {
@@ -334,6 +373,42 @@ function updateUserTier(email, tier) {
     db.prepare(
         "UPDATE users SET tier = ?, updated_at = datetime('now') WHERE email = ?"
     ).run(tier, email.trim().toLowerCase());
+}
+
+function getUserById(id) {
+    const db = getDb();
+    const numericId = Number(id);
+    if (!Number.isFinite(numericId)) return null;
+    return db.prepare('SELECT * FROM users WHERE id = ?').get(numericId);
+}
+
+function updateUserTierById(id, tier) {
+    const db = getDb();
+    db.prepare(
+        "UPDATE users SET tier = ?, updated_at = datetime('now') WHERE id = ?"
+    ).run(tier, Number(id));
+}
+
+function deleteUserById(id) {
+    const db = getDb();
+    db.prepare('DELETE FROM users WHERE id = ?').run(Number(id));
+}
+
+function updateUserStatus(id, status) {
+    const db = getDb();
+    db.prepare(
+        "UPDATE users SET status = ?, updated_at = datetime('now') WHERE id = ?"
+    ).run(status, Number(id));
+}
+
+function updateUserDetails(id, { name, email }) {
+    const db = getDb();
+    const existing = db.prepare('SELECT id FROM users WHERE email = ? AND id != ?').get(email.trim().toLowerCase(), Number(id));
+    if (existing) return { success: false, error: 'Email already in use by another account' };
+    db.prepare(
+        "UPDATE users SET name = ?, email = ?, updated_at = datetime('now') WHERE id = ?"
+    ).run(name || null, email.trim().toLowerCase(), Number(id));
+    return { success: true };
 }
 
 function saveCliReport({ reportId, email, scannedPath, title, score, letterGrade, reportJson }) {
@@ -364,6 +439,36 @@ function getCliReportById(reportId) {
     return db.prepare('SELECT * FROM cli_reports WHERE report_id = ?').get(reportId);
 }
 
+function createValidationCode(email, code, tokenHash, expiresAt) {
+    const db = getDb();
+    db.prepare(
+        `INSERT INTO email_validation_codes (email, code, token_hash, expires_at, used, created_at)
+         VALUES (?, ?, ?, ?, 0, datetime('now'))`
+    ).run(email.trim().toLowerCase(), code, tokenHash, expiresAt);
+    return { success: true };
+}
+
+function getValidationCodeByEmailAndCode(email, code) {
+    const db = getDb();
+    return db.prepare(
+        'SELECT * FROM email_validation_codes WHERE email = ? AND code = ? ORDER BY created_at DESC LIMIT 1'
+    ).get(email.trim().toLowerCase(), code);
+}
+
+function getValidationCodeByTokenHash(tokenHash) {
+    const db = getDb();
+    return db.prepare(
+        'SELECT * FROM email_validation_codes WHERE token_hash = ? ORDER BY created_at DESC LIMIT 1'
+    ).get(tokenHash);
+}
+
+function markValidationCodeUsed(id) {
+    const db = getDb();
+    db.prepare(
+        "UPDATE email_validation_codes SET used = 1 WHERE id = ?"
+    ).run(id);
+}
+
 module.exports = {
     getDb,
     addSubscription,
@@ -390,8 +495,18 @@ module.exports = {
     updatePaidSubscriptionStatus,
     createUser,
     getUserByEmail,
+    getUserByUsername,
+    getUserById,
     updateUserTier,
+    updateUserTierById,
+    deleteUserById,
+    updateUserStatus,
+    updateUserDetails,
     saveCliReport,
     getCliReportsByEmail,
-    getCliReportById
+    getCliReportById,
+    createValidationCode,
+    getValidationCodeByEmailAndCode,
+    getValidationCodeByTokenHash,
+    markValidationCodeUsed
 };

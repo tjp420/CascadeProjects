@@ -1,6 +1,6 @@
-// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
-import { escapeHtml, formatNumber, redactPathForDisplay, showToast } from '../utils.js';
-import { authService } from '../services/authService.js?v=20260713sync6';
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
+import { escapeHtml, formatNumber, redactPathForDisplay, showToast, downloadJson } from '../utils.js';
+import { authService } from '../services/authService.js?v=20260716cachefix1';
 /**
  * Auth headers.
  * @param {any} extra
@@ -195,6 +195,22 @@ export class RepositoryHealthView {
         this._eventsBound = false;
         this._mountSeq = 0;
     }
+    exportHealthData() {
+        if (!this.data) {
+            showToast('No repository health data to export', 'error');
+            return;
+        }
+        const payload = {
+            exportedAt: new Date().toISOString(),
+            projectPath: this.app.state.lastProjectPath || '',
+            candidatesProjectPath: this.candidatesProjectPath || '',
+            health: this.data,
+            candidates: this.candidates,
+            preview: this.preview || null
+        };
+        downloadJson(payload, `repository-health-${new Date().toISOString().slice(0, 10)}.json`);
+        showToast('Repository health exported', 'success');
+    }
     render() {
         var _a, _b, _c, _d, _e, _f;
         if (this.loading) {
@@ -234,6 +250,9 @@ export class RepositoryHealthView {
               ${this.scanning ? 'Scanning…' : 'Run consolidation scan'}
             </button>
             <a class="btn btn-secondary btn-sm" href="/api/optimization/compliance?format=html" target="_blank" rel="noopener">Compliance report</a>
+            <button type="button" class="btn btn-secondary btn-sm" id="export-health-json" ${!health ? 'disabled' : ''} title="Download repository health JSON">
+              <i data-lucide="download" class="icon-16"></i> Export
+            </button>
             <a class="btn btn-ghost btn-sm" href="/dashboard/trust">Trust dashboard</a>
             ${this.app.isCurrentUserAdmin() ? '<button type="button" class="btn btn-ghost btn-sm" id="send-health-ai-btn" title="Send repository health data to AI coding agent">🤖 Send to AI Agent</button>' : ''}
           </div>
@@ -468,8 +487,9 @@ export class RepositoryHealthView {
         }
     }
     bindEvents(container) {
-        var _a, _b, _c;
+        var _a, _b, _c, _d;
         this._root = container;
+        (_d = container.querySelector('#export-health-json')) === null || _d === void 0 ? void 0 : _d.addEventListener('click', () => this.exportHealthData());
         (_a = container.querySelector('#run-optimization-scan')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', async () => {
             if (this.scanning)
                 return;

@@ -84,6 +84,13 @@ function _isLocalhost() {
   return /^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
 }
 
+function _notifyUrlFromBase(notifyBase) {
+  const base = String(notifyBase || '').replace(/\/+$/, '');
+  if (!base) return null;
+  const hostRoot = base.replace(/\/api\/?$/, '');
+  return `${hostRoot}/api/notify`;
+}
+
 function _postNotify(entry) {
   if (typeof window === 'undefined' || !window.fetch) {
     return;
@@ -93,8 +100,11 @@ function _postNotify(entry) {
   try {
     const params = new URLSearchParams(window.location.search);
     notifyBase = params.get('sb_notify_base');
+    if (!notifyBase && typeof sessionStorage !== 'undefined') {
+      notifyBase = sessionStorage.getItem('sb_notify_base');
+    }
     if (notifyBase) {
-      url = notifyBase.replace(/\/+$/, '') + '/notify';
+      url = _notifyUrlFromBase(notifyBase) || url;
     }
   } catch (_) { /* ignore malformed bridge URL */ }
   if (!notifyBase && apiBaseUrl() === '/') {
@@ -111,6 +121,16 @@ function _postNotify(entry) {
       }
     }).catch((err) => {
       console.warn('[notifyVSCode] /api/notify unreachable:', err && err.message ? err.message : err, url);
+      // HTTPS pages cannot fetch local HTTP endpoints due to mixed-content rules.
+      // Fall back to a tiny image beacon because passive mixed content is usually allowed.
+      try {
+        const payload = entry.payload || {};
+        const beaconUrl = url.replace(/\/api\/notify\/?$/, '/api/notify/beacon')
+          + '?type=' + encodeURIComponent(entry.type)
+          + '&payload=' + encodeURIComponent(JSON.stringify(payload));
+        const img = new Image();
+        img.src = beaconUrl;
+      } catch (beaconErr) { /* ignore */ }
     });
   }
   catch (_a) {

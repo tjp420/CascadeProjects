@@ -1,15 +1,15 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
 import { showToast } from '../utils.js';
 import { canUseDirectoryPicker, isLikelyWebkitDirectoryFileCap, browserFolderCapMessage, isEmbeddedDashboardFrame } from '../utils-lib/dom.js';
-import { normalizeSimplebeaconReport } from './analyzeService.js?v=20260715scanfix1';
+import { normalizeSimplebeaconReport } from './analyzeService.js?v=20260716cachefix1';
 import {
   createIgnoreContext,
   extractIgnorePatternsFromLegacyFiles,
   filterQueueByIgnore,
   isIgnoredVirtualPath,
   loadIgnorePatternsFromDirHandle
-} from '../utils-lib/simplebeaconignore.browser.js?v=20260715scanfix1';
-const WORKER_URL = new URL('../workers/scan-worker.js?v=20260715scanfix1', import.meta.url);
+} from '../utils-lib/simplebeaconignore.browser.js?v=20260716cachefix1';
+const WORKER_URL = new URL('../workers/scan-worker.js?v=20260716cachefix1', import.meta.url);
 const MAX_FILES = 100000;
 const SCAN_BATCH_SIZE = 400;
 const BATCH_TIMEOUT_MS = 10 * 60 * 1000;

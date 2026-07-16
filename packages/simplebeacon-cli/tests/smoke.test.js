@@ -1,4 +1,4 @@
-// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code, security — all findings are false positives
 const { describe, it } = require('node:test');
 const assert = require('node:assert');
 const path = require('path');

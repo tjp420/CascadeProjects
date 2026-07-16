@@ -8,7 +8,7 @@
  */
 const logger = require('../../src/lib/app-logger.cjs');
 const { getUserAiCredentials } = require('../lib/user-ai-keys-store.cjs');
-const { optionalAuthenticate } = require('../middleware/auth.cjs');
+const { resolveAuth } = require('../middleware/auth.cjs');
 
 const constants = require('../config/constants.cjs');
 // i18n stub — replace with real translation framework when available
@@ -171,12 +171,22 @@ async function probeOllama(baseUrl, timeoutMs = 2500) {
 }
 
 /**
- * Resolve the signed-in user email for chatbot credential lookup.
- * Chatbot message/providers routes require auth when REQUIRE_AUTH=true, but this
- * helper also accepts Bearer JWT and body.userId for resilience.
- * @param {import('express').Request} req
- * @returns {Promise<string|null>}
+ * Attach a signed-in user to the request when possible, but never block the route.
+ * Chatbot endpoints are intentionally public so they work for dashboard visitors
+ * using license tokens or no session at all (falling back to platform AI keys).
  */
+async function chatbotAuth(req, res, next) {
+  try {
+    const { user } = await resolveAuth(req, res);
+    if (user) {
+      req.user = user;
+    }
+  } catch (_) {
+    // Ignore auth errors; the route will fall back to anonymous/platform keys.
+  }
+  return next();
+}
+
 async function resolveChatbotUserEmail(req) {
   if (req.user?.email) {
     return String(req.user.email).trim().toLowerCase();
@@ -206,7 +216,7 @@ async function resolveChatbotUserEmail(req) {
 }
 
 function setupChatbotAPI(app) {
-  app.post('/api/chatbot/message', optionalAuthenticate, async (req, res) => {
+  app.post('/api/chatbot/message', chatbotAuth, async (req, res) => {
     try {
       const { message, conversationHistory = [], provider = 'ollama', projectPath } = req.body;
       const requestId = `chat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -381,7 +391,7 @@ function setupChatbotAPI(app) {
     }
   });
 
-  app.get('/api/chatbot/providers', optionalAuthenticate, async (req, res) => {
+  app.get('/api/chatbot/providers', chatbotAuth, async (req, res) => {
     try {
       const userEmail = await resolveChatbotUserEmail(req);
       const userCredentials = await getUserAiCredentials(userEmail);

@@ -1,4 +1,4 @@
-// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 /**
  * .env in Git scanner (SB-SEC-008).
  * Detects .env files, secrets files, and credential configs

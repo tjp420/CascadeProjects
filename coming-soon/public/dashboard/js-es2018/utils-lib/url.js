@@ -15,17 +15,103 @@ function _isLocalDevHost() {
     if (typeof location === 'undefined') return false;
     return /^(localhost|127\.0\.0\.1|\[::1\])$/i.test(location.hostname);
 }
+function _isLoopbackHost(hostname) {
+    return /^(localhost|127\.0\.0\.1|\[::1\])$/i.test(String(hostname || ''));
+}
 function _isAllowedApiBase(value) {
     if (!value) return false;
     try {
         const url = new URL(value, location.href);
+        const isLoopback = _isLoopbackHost(url.hostname);
         // HTTPS pages cannot call a local HTTP data server (mixed-content / LAN access).
-        if (location.protocol === 'https:' && url.protocol === 'http:') return false;
-        // Never bridge a localhost/loopback base from a remote production host.
-        if (!_isLocalDevHost() && /^(localhost|127\.0\.0\.1|\[::1\])$/i.test(url.hostname)) return false;
+        if (!isLoopback && location.protocol === 'https:' && url.protocol === 'http:') return false;
+        // Extension bridge: VS Code opens the hosted dashboard with loopback sb_api_base.
+        if (!_isLocalDevHost() && isLoopback) {
+            try {
+                const params = new URLSearchParams(location.search || '');
+                if (params.get(SB_API_BASE_KEY) || params.get(SB_NOTIFY_BASE_KEY))
+                    return true;
+            }
+            catch (_b) { /* ignore */ }
+            try {
+                if (typeof sessionStorage !== 'undefined'
+                    && (sessionStorage.getItem(SB_API_BASE_KEY) || sessionStorage.getItem(SB_NOTIFY_BASE_KEY))) {
+                    return true;
+                }
+            }
+            catch (_c) { /* ignore */ }
+            return false;
+        }
         return true;
     }
     catch (_a) { return false; }
+}
+
+/** Persist VS Code extension bridge params for hosted dashboard routes (Ollama proxy, notify). */
+export function persistExtensionBridge(apiBase, options = {}) {
+    if (typeof window === 'undefined' || !apiBase)
+        return false;
+    const raw = String(apiBase).replace(/\/+$/, '');
+    const apiUrl = raw.endsWith('/api') ? raw : `${raw}/api`;
+    if (!_isAllowedApiBase(apiUrl))
+        return false;
+    if (_isLocalDevHost() && typeof location !== 'undefined' && location.protocol === 'http:') {
+        try {
+            if (new URL(apiUrl).port === '4000')
+                return false;
+        }
+        catch (_port) { /* ignore */ }
+    }
+    _storeApiBase(apiUrl);
+    _storeNotifyBase(apiUrl);
+    const hostRoot = apiUrl.replace(/\/api\/?$/, '');
+    window.__SB_BRIDGE_HOST__ = hostRoot;
+    if (options.websiteMode !== false && typeof sessionStorage !== 'undefined') {
+        try {
+            sessionStorage.setItem('sb_website_mode', '1');
+        }
+        catch (_a) { /* ignore */ }
+    }
+    if (options.updateUrl !== false) {
+        try {
+            const url = new URL(window.location.href);
+            url.searchParams.set(SB_API_BASE_KEY, apiUrl);
+            url.searchParams.set(SB_NOTIFY_BASE_KEY, apiUrl);
+            url.searchParams.set('sb_website_mode', '1');
+            if (!url.searchParams.has('sb_parent_urlbar'))
+                url.searchParams.set('sb_parent_urlbar', '1');
+            window.history.replaceState({}, '', url.toString());
+        }
+        catch (_b) { /* ignore */ }
+    }
+    return true;
+}
+
+/** Drop stale extension bridge state when the local data server is unreachable. */
+export function clearExtensionBridge(options = {}) {
+    if (typeof sessionStorage !== 'undefined') {
+        try {
+            sessionStorage.removeItem(SB_API_BASE_KEY);
+            sessionStorage.removeItem(SB_NOTIFY_BASE_KEY);
+        }
+        catch (_a) { /* ignore */ }
+    }
+    if (typeof window !== 'undefined') {
+        try {
+            delete window.__SB_BRIDGE_HOST__;
+        }
+        catch (_b) { /* ignore */ }
+    }
+    if (options.updateUrl !== false && typeof window !== 'undefined') {
+        try {
+            const url = new URL(window.location.href);
+            [SB_API_BASE_KEY, SB_NOTIFY_BASE_KEY, 'sb_website_mode', 'sb_parent_urlbar'].forEach((key) => {
+                url.searchParams.delete(key);
+            });
+            window.history.replaceState({}, '', url.toString());
+        }
+        catch (_c) { /* ignore */ }
+    }
 }
 
 function _readStoredApiBase() {
@@ -66,7 +152,7 @@ function _readEmbedApiBaseFromQuery() {
             const normalized = _normalizeApiBase(override);
             _storeApiBase(normalized);
             if (params.get(SB_NOTIFY_BASE_KEY)) {
-                _storeNotifyBase(_normalizeApiBase(params.get(SB_NOTIFY_BASE_KEY)));
+                _storeNotifyBase(String(params.get(SB_NOTIFY_BASE_KEY)).replace(/\/+$/, ''));
             }
             return normalized;
         }

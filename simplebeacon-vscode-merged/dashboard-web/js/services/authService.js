@@ -6,7 +6,7 @@ import {
   logRecoverableDashboardError
 } from '../lib/recoverable-fetch.js';
 import { isLocalDevHost, DEMO_EMAIL } from '../demoMode.js';
-import { notifyAuthState } from '../utils-lib/notify.js?v=20260713sync6';
+import { notifyAuthState } from '../utils-lib/notify.js?v=20260716cachefix1';
 
 const TOKEN_KEY = 'cascadeAuthToken';
 const USER_KEY = 'cascadeAuthUser';

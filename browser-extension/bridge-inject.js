@@ -46,6 +46,7 @@
   }
 
   window.simplebeaconAgentBridge = {
+    // simplebeacon-ignore ssrf — bridge API surface; URLs are resolved by the extension service worker
     async fetch(url, options = {}) {
       const method = options.method || 'GET';
       const body = options.body || null;

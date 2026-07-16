@@ -2,7 +2,7 @@
  * Browser mirror of npm-audit-export-sanitize.js — keep in sync.
  */
 
-import { redactProjectPathForExport } from './quality-export.browser.js?v=20260531qualityexport8';
+import { redactProjectPathForExport } from './quality-export.browser.js?v=20260716cachefix1';
 
 /**
  * Normalize rel.

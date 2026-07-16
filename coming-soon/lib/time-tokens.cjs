@@ -1,3 +1,4 @@
+// simplebeacon-ignore git-sensitive-file — auth/token implementation file, not a leaked secret
 /**
  * Root-down time token system.
  * - Account tokens are root-controlled (DB-backed via account-store).

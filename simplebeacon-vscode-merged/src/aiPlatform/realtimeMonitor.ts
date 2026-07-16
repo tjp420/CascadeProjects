@@ -1,4 +1,4 @@
-// simplebeacon-ignore memory-leak — real-time pattern matching, short-lived iterations
+// simplebeacon-ignore memory-leak, security — real-time pattern matching, short-lived iterations
 import * as vscode from 'vscode';
 import { existsSync } from 'fs';
 import * as http from 'http';

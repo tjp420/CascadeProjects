@@ -2,6 +2,7 @@
 const crypto = require('crypto');
 const requireProject = require('../../shared-utils/index.cjs');
 const { checkExpiringLicenses } = requireProject('sales/license/renewal-tracker.js');
+const logger = require('../lib/app-logger.cjs');
 
 /**
  * Dispatch automated 30-day renewal alert emails via Resend.
@@ -10,7 +11,7 @@ const { checkExpiringLicenses } = requireProject('sales/license/renewal-tracker.
  */
 async function dispatchAutomatedRenewalEmails(databaseRecords) {
     if (!process.env.RESEND_API_KEY) {
-        console.error('[Renewal Alert] RESEND_API_KEY is not configured. Skipping dispatch.');
+        logger.error('[Renewal Alert] RESEND_API_KEY is not configured. Skipping dispatch.');
         return { sent: 0, failed: 0, skipped: 0 };
     }
     const lookaheadAlerts = checkExpiringLicenses(databaseRecords, 30);
@@ -50,7 +51,7 @@ async function dispatchAutomatedRenewalEmails(databaseRecords) {
             sent += 1;
         } catch (err) {
             const companyHash = crypto.createHash('sha256').update(alert.companyId).digest('hex').slice(0, 8);
-            console.error(`[Renewal Alert] Failed to send email for company ${companyHash}: ${err.message}`);
+            logger.error(`[Renewal Alert] Failed to send email for company ${companyHash}: ${err.message}`);
             failed += 1;
         }
     }
@@ -70,6 +71,6 @@ if (require.main === module) {
     ];
 
     dispatchAutomatedRenewalEmails(mockDbRows).then(() => {
-        console.log('[Renewal Alert] Dispatch cycle complete.');
+        logger.info('[Renewal Alert] Dispatch cycle complete.');
     });
 }

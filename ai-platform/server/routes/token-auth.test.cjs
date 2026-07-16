@@ -1,3 +1,4 @@
+// simplebeacon-ignore git-sensitive-file — auth/token implementation file, not a leaked secret
 const { describe, it } = require('node:test');
 const assert = require('node:assert');
 const mod = require('./token-auth.cjs');

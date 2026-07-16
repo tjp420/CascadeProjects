@@ -12,6 +12,7 @@
 const express = require('express');
 const Stripe = require('stripe');
 const rateLimit = require('express-rate-limit');
+const logger = require('../../server/lib/app-logger.cjs');
 
 const billingRateLimit = rateLimit({
     windowMs: 60 * 1000,
@@ -140,7 +141,7 @@ function setupSimplebeaconBillingWebhook(app) {
                 }
               }
             } catch (err) {
-              console.error('[Simplebeacon billing] Failed to fetch line items:', err.message);
+              logger.error('[Simplebeacon billing] Failed to fetch line items:', err.message);
             }
 
             // Fallback: resolve by metadata product if Price ID lookup missed
@@ -207,7 +208,7 @@ function setupSimplebeaconBillingWebhook(app) {
                   html: emailPayload.html,
                   text: emailPayload.text
                 }).catch((err) => {
-                  console.error('[Simplebeacon billing] Failed to send welcome email');
+                  logger.error('[Simplebeacon billing] Failed to send welcome email');
                 });
               } else {
                 // Fallback to plain text if template is missing
@@ -216,11 +217,11 @@ function setupSimplebeaconBillingWebhook(app) {
                   subject: 'Your SimpleBeacon Purchase — ' + product,
                   text: `Thank you for your purchase.\n\nLicense token: ${licenseToken}\n\nUpload URL: ${certUploadUrl}`
                 }).catch((err) => {
-                  console.error('[Simplebeacon billing] Failed to send fallback email');
+                  logger.error('[Simplebeacon billing] Failed to send fallback email');
                 });
               }
 
-              console.log('[Simplebeacon billing] Executive license generated');
+              logger.info('[Simplebeacon billing] Executive license generated');
             } else if (session.mode === 'subscription') {
               const isContinuousShield = product === 'continuous_shield';
               const isRuntimeShield = product === 'runtime_shield';
@@ -278,14 +279,14 @@ function setupSimplebeaconBillingWebhook(app) {
                   html: emailPayload.html,
                   text: emailPayload.text
                 }).catch((err) => {
-                  console.error('[Simplebeacon billing] Failed to send subscription welcome email');
+                  logger.error('[Simplebeacon billing] Failed to send subscription welcome email');
                 });
               }
 
               // Fire-and-forget post-payment scan (do not block webhook response)
               const scanPath = session.metadata?.projectPath || null;
               runSimplebeaconScan(scanPath).catch((err) => {
-                console.error('[Simplebeacon billing] Post-payment scan failed:', err.message);
+                logger.error('[Simplebeacon billing] Post-payment scan failed:', err.message);
               });
             }
             break;
@@ -319,7 +320,7 @@ function setupSimplebeaconBillingWebhook(app) {
             break;
         }
       } catch (err) {
-        console.error('[Simplebeacon billing] Webhook handler error:', err.message);
+        logger.error('[Simplebeacon billing] Webhook handler error:', err.message);
         return res.status(500).json({ error: 'Webhook processing failed' });
       }
 
@@ -688,7 +689,7 @@ function setupSimplebeaconBillingRoutes(app) {
           : 'Certificate generated. Email queued for delivery (SMTP not configured — check .simplebeacon/email-queue).'
       });
     } catch (err) {
-      console.error('[Reports] Upload processing error:', err.message);
+      logger.error('[Reports] Upload processing error:', err.message);
       const status = err.statusCode || 500;
       res.status(status).json({ success: false, error: err.message || 'Certificate generation failed' });
     }
@@ -720,7 +721,7 @@ function setupSimplebeaconBillingRoutes(app) {
       res.setHeader('Content-Length', bundle.zipBuffer.length);
       res.send(bundle.zipBuffer);
     } catch (err) {
-      console.error('[Reports] Download processing error:', err.message);
+      logger.error('[Reports] Download processing error:', err.message);
       const status = err.statusCode || 500;
       res.status(status).json({ success: false, error: err.message || 'Certificate generation failed' });
     }
@@ -778,7 +779,7 @@ function setupSimplebeaconBillingRoutes(app) {
 
       res.json({ success: true, message: 'Token resent to ' + email });
     } catch (err) {
-      console.error('[Simplebeacon billing] Resend token failed');
+      logger.error('[Simplebeacon billing] Resend token failed');
       res.status(500).json({ success: false, error: 'Failed to resend token' });
     }
   });

@@ -1,9 +1,9 @@
-// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 /**
  * Checkout success banner — instant token display after Stripe redirect.
  */
 import { billingService } from '../services/billingService.js';
-import { authService } from '../services/authService.js?v=20260713sync6';
+import { authService } from '../services/authService.js?v=20260716cachefix1';
 import { addToStockpile } from '../services/tokenStockpileService.js';
 import { showToast } from '../utils.js';
 

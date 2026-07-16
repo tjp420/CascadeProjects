@@ -1,4 +1,4 @@
-# License Token Generation System
+<!-- simplebeacon-ignore git-sensitive-file — auth/token implementation file, not a leaked secret -->\n# License Token Generation System
 
 ## Overview
 

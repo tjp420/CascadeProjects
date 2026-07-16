@@ -14,10 +14,8 @@ export async function onRequest(context) {
     return env.ASSETS.fetch(request);
   }
 
-  if (pathname === '/dashboard') {
-    return Response.redirect(new URL('/dashboard/', url.origin), 301);
-  }
-
+  // Serve SPA entry for /dashboard (no trailing slash) without a redirect so
+  // ?sb_api_base=…&sb_notify_base=… query params survive (VS Code embed bridge).
   const entryCandidates = ['/dashboard/__entry', '/dashboard/index.html'];
   let response = null;
   for (const entryPath of entryCandidates) {

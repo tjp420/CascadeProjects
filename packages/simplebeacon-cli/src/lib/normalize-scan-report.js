@@ -12,13 +12,11 @@ const INFORMATIONAL_ISSUE_TYPES = new Set([
 ]);
 
 function isStaleFullTreeScan(report) {
-    const mock = report.mockSampleFiles ?? report.totalFiles ?? 0;
-    const repoFiles = report.repositoryFilesTotal ?? 0;
-    const paths = (report.scanPaths || []).map((p) => String(p).replace(/\\/g, '/').toLowerCase());
-    const platformKey = String(report.projectRoot || '').replace(/\\/g, '/').toLowerCase();
-    const scanIsPlatformRootOnly = paths.length === 1 && (paths[0] === platformKey || paths[0] === '.');
-    const scanIncludesRoot = paths.some((p) => p === '.' || p === platformKey);
-    return scanIncludesRoot || mock > 500 || repoFiles > 15000;
+    const mock = report.mockSampleFiles ?? 0;
+    const repoFiles = report.repositoryFilesTotal ?? report.repositoryInventory?.totalFiles ?? 0;
+    const walkedFiles = report.ruleScopedFilesAnalyzed ?? report.totalFiles ?? 0;
+    const fullTree = Boolean(report.fullDirectoryScan || report.scanScope?.fullDirectoryScan);
+    return mock > 500 || repoFiles > 15000 || (fullTree && walkedFiles > 15000);
 }
 
 function countIssuesByType(issues, typePattern) {
@@ -166,12 +164,11 @@ function normalizePlatformScanReport(report, options = {}) {
         excludedPathsNote: benchmarkCacheIssues.length
             ? `${benchmarkCacheIssues.length} issue(s) from github-cache/ benchmark clones excluded from platform gate scores.`
             : report.scanScope?.excludedPathsNote || null,
-        reportHealth: staleFullTreeScan
-            ? 'stale-full-tree-scan'
-            : (report.scanScope?.reportHealth || 'platform-scoped'),
+        reportHealth: staleFullTreeScan ? 'stale-full-tree-scan' : 'platform-scoped',
         rescanRecommended: staleFullTreeScan
             || benchmarkCacheIssues.length > 0
-            || Boolean(report.scanScope?.rescanRecommended)
+            || (Boolean(report.scanScope?.rescanRecommended)
+                && report.scanScope?.reportHealth !== 'stale-full-tree-scan')
     };
 
     const staleLimitation = 'This report used a full-repo walk (69k+ files) — re-run scan after updating Simplebeacon to scope mock paths to web/data only.';
@@ -182,8 +179,13 @@ function normalizePlatformScanReport(report, options = {}) {
     if (staleFullTreeScan) {
         scanScope.limitations = [...new Set([...priorLimitations, staleLimitation, benchmarkNote])];
         scanScope.inventoryMetricsStale = true;
-    } else if (priorLimitations.length) {
-        scanScope.limitations = priorLimitations;
+    } else {
+        scanScope.inventoryMetricsStale = false;
+        if (priorLimitations.length) {
+            scanScope.limitations = priorLimitations;
+        } else {
+            delete scanScope.limitations;
+        }
     }
     if (excludedScanNoiseIssues.length) {
         scanScope.excludedScanNoiseIssues = excludedScanNoiseIssues.length;
@@ -215,6 +217,10 @@ function normalizePlatformScanReport(report, options = {}) {
             confidence: null,
             description: 'Re-run scan to refresh — current categories reflect an outdated full-repo walk, not web/data samples.'
         }];
+    } else if (Array.isArray(report.mockDataCategories)) {
+        normalized.mockDataCategories = report.mockDataCategories.filter(
+            (cat) => !/Stale inventory \(full-tree scan\)/i.test(String(cat?.category || ''))
+        );
     }
 
     return reconcileScanReport(normalized);

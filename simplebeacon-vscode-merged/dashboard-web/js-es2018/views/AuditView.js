@@ -1,5 +1,6 @@
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
 import { escapeHtml, formatNumber, formatPercent, showToast, downloadJson, renderEmptyState } from '../utils.js';
+import { buildComplianceAuditExportBundle, complianceAuditExportFilename } from '../utils/compliance-audit-export.browser.js?v=20260716cachefix1';
 const LAYER_LABELS = {
     credentials: 'Credential patterns',
     fictionKpis: 'Fiction & KPI drift',
@@ -118,6 +119,15 @@ export class AuditView {
         this.audit = null;
         this.app.state.audit = null;
         this._fetchPromise = null;
+    }
+    exportAuditData() {
+        if (!this.audit) {
+            showToast('No audit data to export — load the page first', 'error');
+            return;
+        }
+        const payload = buildComplianceAuditExportBundle(this.audit);
+        downloadJson(payload, complianceAuditExportFilename('json'));
+        showToast('Compliance audit exported', 'success');
     }
     layerStatusClass(status) {
         if (status === 'pass')
@@ -324,6 +334,9 @@ export class AuditView {
             ${this.running === 'npm' ? 'Auditing…' : 'Run npm audit'}
           </button>
           <button type="button" class="btn btn-ghost btn-sm" data-action="results">View issues</button>
+          <button type="button" class="btn btn-secondary btn-sm" id="audit-export-json" ${!this.audit ? 'disabled' : ''} title="Download compliance audit JSON">
+            <i data-lucide="download" class="icon-16"></i> Export
+          </button>
           ${this.app.isCurrentUserAdmin() ? '<button type="button" class="btn btn-ghost btn-sm" id="audit-send-ai-btn" title="Send audit data to AI coding agent">🤖 Send to AI Agent</button>' : ''}
         </div>
       </div>
@@ -398,6 +411,7 @@ export class AuditView {
                 this.handleAction(btn.dataset.action, el.parentElement);
             });
         });
+        (_d = el.querySelector('#audit-export-json')) === null || _d === void 0 ? void 0 : _d.addEventListener('click', () => this.exportAuditData());
         (_d = el.querySelector('#audit-download-assessment')) === null || _d === void 0 ? void 0 : _d.addEventListener('click', () => {
             if (!assessment) {
                 showToast('Run assessment first', 'info');

@@ -1,13 +1,13 @@
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
 import { escapeHtml, showToast, downloadJson, downloadBlob, downloadText, redactPathForDisplay, formatPathLabel, formatPathInputValue, formatAiSummarySkipMessage, isRedactedPathDisplay, formatNumber, renderEmptyState } from '../utils.js';
 import { evaluateFunnelMetrics, getFunnelCopy } from '../utils/funnelTrigger.js';
-import { LocalScanService } from '../services/localScanService.js?v=20260709noise2';
+import { LocalScanService } from '../services/localScanService.js?v=20260716cachefix1';
 import { fingerprintDirectory, formatFingerprint } from '../services/fingerprintService.js';
 import {
   probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus,
   getAgentDownloadUrl, detectPlatform, getPlatformLabel, getInstallInstructions,
   getAgentFallbackMessage
-} from '../services/localAgentService.js?v=20260709noise3';
+} from '../services/localAgentService.js?v=20260716cachefix1';
 
 // simplebeacon:production-leak-intent: sample-json - Legitimate documentation about sample file patterns in analysis results
 import {
@@ -57,7 +57,7 @@ import {
   fetchAnalyzeTestSources,
   isAnalyzeProviderConfigured,
   uploadDirectoryAndAnalyze
-} from '../services/analyzeService.js?v=20260713dropfix5';
+} from '../services/analyzeService.js?v=20260716cachefix1';
 import { isRemoteRepoUrl, sourceChipTitle } from '../lib/analyzePathSources.js';
 import { reportMatchesPagePath, resolvePageProjectPath, getPathInputDisplayValue } from '../lib/pageRepoScan.js';
 import {
@@ -71,9 +71,9 @@ import {
 } from '../lib/analyzePathSuggestions.js';
 import { validateProjectPathAllowlist, ensureAllowedAnalysisRoots } from '../lib/analyzePathAllowlist.js';
 import { isBenchmarkCachePath } from '../utils/complete-scan-artifact-profile.browser.js';
-import { runEuAiActSprint } from '../services/operatorService.js?v=20260531eupdf1';
-import { renderModeFileScopePanel, extractRoadmapFileMetrics } from '../utils/analyze-mode-file-scope.browser.js?v=20260601roadmapscope1';
-import { renderModeFileResultsPanel } from '../utils/analyze-mode-file-results.browser.js?v=20260601filereconcile1';
+import { runEuAiActSprint } from '../services/operatorService.js?v=20260716cachefix1';
+import { renderModeFileScopePanel, extractRoadmapFileMetrics } from '../utils/analyze-mode-file-scope.browser.js?v=20260716cachefix1';
+import { renderModeFileResultsPanel } from '../utils/analyze-mode-file-results.browser.js?v=20260716cachefix1';
 import { renderScanPaywall, buildPublicSummaryFromScan, isDeliverableLocked } from '../components/ScanPaywall.js';
 import {
   AI_SYSTEM_ISSUES,
@@ -84,7 +84,7 @@ import {
 import { renderIssueList } from '../components/IssueCard.js';
 import { showDownloadCredentialsModal } from '../components/DownloadCredentialsModal.js';
 import { renderConsolidationPanel } from '../components/ConsolidationReport.js';
-import { renderDataCleanupPanel, buildDataCleanupConclusion } from '../components/DataCleanupReport.js?v=20260527exec5';
+import { renderDataCleanupPanel, buildDataCleanupConclusion } from '../components/DataCleanupReport.js?v=20260716cachefix1';
 import {
   buildCompleteScanAnalysis,
   renderCompleteScanAnalysisPanel,
@@ -92,9 +92,9 @@ import {
   sanitizeCompleteScanBundle,
   sanitizeConsolidationExport,
   sanitizeRoadmapExport
-} from '../utils/completeScanAnalysis.js?v=20260601completescan1';
-import { sanitizeNpmAuditExport } from '../utils/npm-audit-export.browser.js?v=20260601npmaudit5';
-import { sanitizeComplianceBundleExport, reconcileComplianceWithGate, pickFreshGateReport } from '../utils/compliance-export.browser.js?v=20260601complianceexport7';
+} from '../utils/completeScanAnalysis.js?v=20260716cachefix1';
+import { sanitizeNpmAuditExport } from '../utils/npm-audit-export.browser.js?v=20260716cachefix1';
+import { sanitizeComplianceBundleExport, reconcileComplianceWithGate, pickFreshGateReport } from '../utils/compliance-export.browser.js?v=20260716cachefix1';
 import {
   buildCleanupAssistantBrief,
   buildCleanupBriefFromLastResult,
@@ -105,20 +105,20 @@ import {
   saveCleanupPolicy,
   readCleanupPolicyFromDom,
   renderCleanupAssistantPanel
-} from '../utils/cleanupAssistant.js?v=20260601cleanupbrief9';
-import { sanitizeCleanupBriefExport } from '../utils/cleanup-brief-export.browser.js?v=20260601cleanupbrief9';
-import { sanitizeDataCleanupReportExport } from '../utils/data-cleanup-export.browser.js?v=20260601datacleanup8';
-import { sanitizeCodebaseReportExport } from '../utils/codebase-export.browser.js?v=20260601codebase8';
+} from '../utils/cleanupAssistant.js?v=20260716cachefix1';
+import { sanitizeCleanupBriefExport } from '../utils/cleanup-brief-export.browser.js?v=20260716cachefix1';
+import { sanitizeDataCleanupReportExport } from '../utils/data-cleanup-export.browser.js?v=20260716cachefix1';
+import { sanitizeCodebaseReportExport } from '../utils/codebase-export.browser.js?v=20260716cachefix1';
 import {
   sanitizeAiProblemAnalyzerExport,
   aiProblemAnalyzerExportFilename,
   buildAiProblemAnalyzerCsv
-} from '../utils/ai-problem-analyzer-export.browser.js?v=20260531aianalyzerexport4';
+} from '../utils/ai-problem-analyzer-export.browser.js?v=20260716cachefix1';
 import { renderCodebasePanel, buildCodebaseConclusion } from '../components/CodebaseReport.js';
 import { renderUnderstandingPanel, buildUnderstandingConclusion } from '../components/UnderstandingReport.js';
 import { renderZscriptReportPanel, buildZscriptConclusion } from '../components/ZscriptReport.js';
 import { showLoginModal } from '../components/LoginModal.js';
-import { authService } from '../services/authService.js?v=20260713sync6';
+import { authService } from '../services/authService.js?v=20260716cachefix1';
 import {
   MAX_SNIPPET_BYTES,
   isSupportedSourceFile,
@@ -133,7 +133,7 @@ import {
   computeThreatScore,
   redactMatch,
   severityLabel
-} from '../utils/snippetDiagnostic.js?v=20260531analyzers1';
+} from '../utils/snippetDiagnostic.js?v=20260716cachefix1';
 
 const SNIPPET_ACCEPT = '.json,.js,.mjs,.cjs,.ts,.tsx,.jsx,.py,.env,.yaml,.yml,.txt,.md,.html,.css,.xml,.toml,.ini,.sh,.ps1,.bat';
 
@@ -3985,9 +3985,17 @@ export class AnalyzeView {
     // Cross-reference integrity checks
     const integrityWarnings = [];
     const sev = report.severityCounts || {};
-    const issueList = report.rawIssues || report.detectedIssues || report.findings || [];
+    const rawIssues = report.rawIssues || [];
+    const detectedIssues = report.detectedIssues || [];
+    const findings = report.findings || [];
+    const warningIssues = (report.gate && report.gate.warningIssues) || [];
+    const primaryIssues = rawIssues.length ? rawIssues : (detectedIssues.length ? detectedIssues : (findings.length ? findings : []));
     const counted = (sev.critical || 0) + (sev.high || 0) + (sev.medium || 0) + (sev.low || 0) + (sev.info || 0);
-    const issueTotal = Array.isArray(issueList) ? issueList.reduce((sum, i) => sum + (Number(i && i.count) || 1), 0) : 0;
+    const primaryTotal = Array.isArray(primaryIssues) ? primaryIssues.reduce((sum, i) => sum + (Number(i && i.count) || 1), 0) : 0;
+    const warningTotal = Array.isArray(warningIssues) ? warningIssues.reduce((sum, i) => sum + (Number(i && i.count) || 1), 0) : 0;
+    // Scanner splits non-blocking warning issues into gate.warningIssues while rawIssues holds blockers.
+    // Only add warnings when the primary list does not already account for the full severityCounts.
+    const issueTotal = counted === primaryTotal ? primaryTotal : primaryTotal + warningTotal;
     if (counted !== issueTotal) {
       integrityWarnings.push(`severityCounts sum (${counted}) ≠ issues.count (${issueTotal})`);
     }
@@ -5620,7 +5628,11 @@ export class AnalyzeView {
 
     const type = parsed.type || '';
     const sev = parsed.severityCounts || {};
-    const issueList = parsed.rawIssues || parsed.detectedIssues || parsed.findings || [];
+    const rawIssues = parsed.rawIssues || [];
+    const detectedIssues = parsed.detectedIssues || [];
+    const findings = parsed.findings || [];
+    const warningIssues = (parsed.gate && parsed.gate.warningIssues) || [];
+    const primaryIssues = rawIssues.length ? rawIssues : (detectedIssues.length ? detectedIssues : (findings.length ? findings : []));
 
     if (isSimplebeaconReport(parsed) || type === 'simplebeacon-complete-scan') {
       if (!parsed.projectRoot && !parsed.projectPath) {
@@ -5630,14 +5642,16 @@ export class AnalyzeView {
         warn('severityCounts is not an object');
       } else {
         const counted = (sev.critical||0) + (sev.high||0) + (sev.medium||0) + (sev.low||0) + (sev.info||0);
-        const issueTotal = Array.isArray(issueList) ? issueList.reduce((sum, i) => sum + (Number(i && i.count) || 1), 0) : 0;
-        if (Array.isArray(issueList) && counted !== issueTotal) {
+        const primaryTotal = Array.isArray(primaryIssues) ? primaryIssues.reduce((sum, i) => sum + (Number(i && i.count) || 1), 0) : 0;
+        const warningTotal = Array.isArray(warningIssues) ? warningIssues.reduce((sum, i) => sum + (Number(i && i.count) || 1), 0) : 0;
+        const issueTotal = counted === primaryTotal ? primaryTotal : primaryTotal + warningTotal;
+        if (Array.isArray(primaryIssues) && counted !== issueTotal) {
           warn(`severityCounts sum (${counted}) != issues.count (${issueTotal})`);
         }
       }
-      if (Array.isArray(issueList)) {
-        const bad = issueList.filter(i => !i.severity || !i.type).length;
-        if (bad > 0) warn(`${bad}/${issueList.length} issues missing severity or type`);
+      if (Array.isArray(primaryIssues)) {
+        const bad = primaryIssues.filter(i => !i.severity || !i.type).length;
+        if (bad > 0) warn(`${bad}/${primaryIssues.length} issues missing severity or type`);
       }
     }
 

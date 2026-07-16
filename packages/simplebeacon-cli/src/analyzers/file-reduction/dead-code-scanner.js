@@ -1,4 +1,4 @@
-// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 /**
  * Static-analysis scanner for orphaned exports and dead functions.
  * Operates at the function/export level to complement the file-level

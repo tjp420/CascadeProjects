@@ -1,24 +1,20 @@
 // simplebeacon-ignore: Scanner pattern definitions, and EU AI Act indicators — all findings are false positives, dashboard code, debug artifacts, debugArtifacts, test fixtures
-'use strict';
-
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
 const http = require('http');
 const { URL } = require('url');
+const logger = require('./app-logger.cjs');
 const { sendEmail } = require('./email-service.cjs');
 
 /**
  * Create a scan scheduler with injected dependencies.
- * @param {Object} deps
- * @param {Function} deps.runSimplebeaconScan
- * @param {string} deps.PROJECT_ROOT
- * @param {string} deps.REPORT_PATH
- * @param {string} deps.SIMPLEBEACON_DIR
- * @param {string} deps.SCHEDULE_PATH
- * @returns {{startScheduler: Function, runScheduledScanAndDeliver: Function, readScheduleConfig: Function, writeScheduleConfig: Function}}
+ * @param {Object} options
+ * @param {Function} options.runSimplebeaconScan
+ * @returns {Object}
  */
-function createScheduler({ runSimplebeaconScan, PROJECT_ROOT, REPORT_PATH, SIMPLEBEACON_DIR, SCHEDULE_PATH }) {
+function createScheduler(options) {
+  const { runSimplebeaconScan, PROJECT_ROOT, REPORT_PATH, SIMPLEBEACON_DIR, SCHEDULE_PATH } = options;
   let scheduleTimer = null;
   let scheduleConfigCache = null;
 
@@ -103,13 +99,13 @@ function createScheduler({ runSimplebeaconScan, PROJECT_ROOT, REPORT_PATH, SIMPL
     try {
       const result = await runSimplebeaconScan(cfg.projectPath || null);
       if (result.skipped) {
-        console.log('[Schedule] Scan skipped:', result.reason);
+        logger.info('[Schedule] Scan skipped:', result.reason);
         return;
       }
 
       const report = result.report;
       if (!report) {
-        console.log('[Schedule] No report generated');
+        logger.info('[Schedule] No report generated');
         return;
       }
 
@@ -129,7 +125,7 @@ function createScheduler({ runSimplebeaconScan, PROJECT_ROOT, REPORT_PATH, SIMPL
             subject: `Simplebeacon Scan Report — ${result.scanId || 'unknown'}`,
             text: summaryText,
             attachments
-          }).catch((err) => console.error('[Schedule] Email failed'));
+          }).catch((err) => logger.error('[Schedule] Email failed'));
         }
       }
 
@@ -144,7 +140,7 @@ function createScheduler({ runSimplebeaconScan, PROJECT_ROOT, REPORT_PATH, SIMPL
           report: cfg.includeCertificate ? report : undefined,
           timestamp: new Date().toISOString()
         });
-        console.log(
+        logger.info(
           `[Schedule] Webhook ${webhookResult.success ? 'delivered' : 'failed'} to ${cfg.webhookUrl}`
         );
       }
@@ -156,14 +152,14 @@ function createScheduler({ runSimplebeaconScan, PROJECT_ROOT, REPORT_PATH, SIMPL
         try {
           if (fs.existsSync(reportOut)) {
             fs.unlinkSync(reportOut);
-            console.log('[Schedule] Zero-retention: report file removed after delivery');
+            logger.info('[Schedule] Zero-retention: report file removed after delivery');
           }
         } catch (unlinkErr) {
-          console.warn('[Schedule] Zero-retention: failed to remove report file:', unlinkErr.message);
+          logger.warn('[Schedule] Zero-retention: failed to remove report file:', unlinkErr.message);
         }
       }
     } catch (err) {
-      console.error('[Schedule] Scheduled scan delivery failed:', err.message);
+      logger.error('[Schedule] Scheduled scan delivery failed:', err.message);
     }
   }
 
@@ -182,12 +178,12 @@ function createScheduler({ runSimplebeaconScan, PROJECT_ROOT, REPORT_PATH, SIMPL
         if (cfg.enabled && cfg.intervalMinutes > 0) {
           const ms = cfg.intervalMinutes * 60 * 1000;
           scheduleTimer = setInterval(runScheduledScanAndDeliver, ms);
-          console.log(
+          logger.info(
             `[Schedule] Started: every ${cfg.intervalMinutes} min, recipients: ${(cfg.recipients || []).join(', ') || 'none'}`
           );
         }
       })
-      .catch((err) => console.error('[Schedule] Failed to start scheduler:', err.message));
+      .catch((err) => logger.error('[Schedule] Failed to start scheduler:', err.message));
   }
 
   return { startScheduler, runScheduledScanAndDeliver, readScheduleConfig, writeScheduleConfig };

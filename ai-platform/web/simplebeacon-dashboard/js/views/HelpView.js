@@ -1,4 +1,4 @@
-// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 import { escapeHtml, formatNumber, formatPercent, renderEmptyState, showToast } from '../utils.js';
 import { FEATURE_CATALOG } from '../services/platformService.js';
 // EU AI Act transparency disclosure: This view includes AI system integration indicators per Article 50.

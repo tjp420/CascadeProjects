@@ -6,6 +6,7 @@
 'use strict';
 
 const express = require('express');
+const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const router = express.Router();
 const {
@@ -15,6 +16,10 @@ const {
     getAdminLogs
 } = require('../lib/admin-token.cjs');
 const systemLogger = require('../lib/system-logger.cjs');
+const db = require('../lib/db.cjs');
+
+let stripe = null;
+try { stripe = require('stripe')(process.env.STRIPE_SECRET_KEY || ''); } catch { stripe = null; }
 
 const secret = process.env.SIMPLEBEACON_LICENSE_SECRET;
 if (!secret) {
@@ -57,9 +62,46 @@ function trustLevelToTier(trustLevel) {
     return map[String(trustLevel || '').toLowerCase()] || 'community';
 }
 
+function hashPassword(password, salt) {
+    return new Promise((resolve, reject) => {
+        crypto.scrypt(password, salt, 64, (err, derivedKey) => {
+            if (err) reject(err);
+            else resolve(derivedKey.toString('hex'));
+        });
+    });
+}
+
+async function verifyAdminPassword(email, password) {
+    const user = db.getUserByEmail(email);
+    if (!user || !user.password_hash || !user.salt) return false;
+    const derived = await hashPassword(password, user.salt);
+    return derived === user.password_hash;
+}
+
+async function stripeRefundSubscription(stripeSubscriptionId, reason) {
+    if (!stripe || !stripeSubscriptionId) return { stripeUsed: false };
+    try {
+        const subscription = await stripe.subscriptions.retrieve(stripeSubscriptionId);
+        if (subscription && subscription.status !== 'canceled') {
+            await stripe.subscriptions.cancel(stripeSubscriptionId);
+        }
+        const latestInvoice = subscription?.latest_invoice
+            ? await stripe.invoices.retrieve(subscription.latest_invoice)
+            : null;
+        const paymentIntent = latestInvoice?.payment_intent;
+        let refund = null;
+        if (paymentIntent) {
+            refund = await stripe.refunds.create({ payment_intent: paymentIntent, reason: 'requested_by_customer' });
+        }
+        return { stripeUsed: true, refundId: refund?.id || null, canceled: true };
+    } catch (err) {
+        return { stripeUsed: false, stripeError: err.message };
+    }
+}
+
 function mapDashboardUser(row) {
     const email = row.email || '';
-    let name = email.includes('@') ? email.split('@')[0] : email;
+    let name = row.name || (email.includes('@') ? email.split('@')[0] : email);
     try {
         const demoPath = require('path').join(__dirname, '../../ai-platform/server/db/demo-users.json');
         const demoUsers = require(demoPath);
@@ -72,6 +114,7 @@ function mapDashboardUser(row) {
         id: String(row.id),
         email,
         name,
+        status: row.status || 'active',
         trustLevel: tierToTrustLevel(row.tier),
         verificationStatus: 'verified',
         successfulAnalyses: 0,
@@ -136,6 +179,24 @@ router.post('/api/admin/token/status', express.json(), (req, res) => {
     });
 });
 
+// POST /api/admin/verify-password — confirm the logged-in admin knows their password
+router.post('/api/admin/verify-password', requireAdmin, express.json(), async (req, res) => {
+    try {
+        const { password } = req.body || {};
+        const adminEmail = req.adminPayload?.email;
+        if (!password || !adminEmail) {
+            return res.status(400).json({ success: false, error: 'Password required' });
+        }
+        const valid = await verifyAdminPassword(adminEmail, password);
+        if (!valid) {
+            return res.status(401).json({ success: false, error: 'Invalid password' });
+        }
+        res.json({ success: true, valid: true });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
 // POST /api/admin/verify — check if a provided token is a valid admin token
 router.post('/api/admin/verify', express.json(), (req, res) => {
     const { token } = req.body || {};
@@ -172,7 +233,6 @@ router.get('/api/admin/tokens', requireAdmin, (req, res) => {
         // Since it's internal, we'll rely on system logs instead
 
         // 2. Chain registry tokens from DB
-        const db = require('../lib/db.cjs');
         const dbInstance = db.getDb();
         const chainTokens = dbInstance.prepare('SELECT * FROM token_nodes ORDER BY created_at DESC').all();
         for (const node of chainTokens) {
@@ -248,7 +308,6 @@ router.get('/api/admin/violations', requireAdmin, (req, res) => {
         const now = Date.now();
 
         // 1. Expired tokens still active in chain registry
-        const db = require('../lib/db.cjs');
         const dbInstance = db.getDb();
         const expiredActive = dbInstance.prepare(
             "SELECT * FROM token_nodes WHERE status = 'active' AND expires_at IS NOT NULL AND expires_at < ?"
@@ -337,7 +396,6 @@ router.get('/api/admin/violations', requireAdmin, (req, res) => {
 // GET /api/admin/stats — dashboard overview stats (admin only)
 router.get('/api/admin/stats', requireAdmin, (req, res) => {
     try {
-        const db = require('../lib/db.cjs');
         const dbInstance = db.getDb();
         const totalTokens = dbInstance.prepare('SELECT COUNT(*) as count FROM token_nodes').get();
         const activeTokens = dbInstance.prepare("SELECT COUNT(*) as count FROM token_nodes WHERE status = 'active'").get();
@@ -384,7 +442,6 @@ router.post('/api/admin/token/revoke', requireAdmin, express.json(), (req, res) 
 // GET /api/admin/customers — list all customers with subscription info (admin only)
 router.get('/api/admin/customers', requireAdmin, (req, res) => {
     try {
-        const db = require('../lib/db.cjs');
         const customers = db.getAllCustomers();
         const subscriptions = db.getAllPaidSubscriptions();
         const refunds = db.getAllRefunds();
@@ -407,7 +464,6 @@ router.get('/api/admin/customers', requireAdmin, (req, res) => {
 // GET /api/admin/users — list all registered users (admin only)
 router.get('/api/admin/users', requireAdmin, (req, res) => {
     try {
-        const db = require('../lib/db.cjs');
         const users = db.getAllUsers().map(mapDashboardUser);
         res.json({ success: true, users, total: users.length });
     } catch (err) {
@@ -420,39 +476,124 @@ router.get('/api/admin/sessions', requireAdmin, (_req, res) => {
     res.json({ success: true, sessions: [] });
 });
 
-// POST /api/admin/users/:id/trust-level — update account trust tier (admin only)
-router.post('/api/admin/users/:id/trust-level', requireAdmin, express.json(), (req, res) => {
+// POST /api/admin/users/:id/trust-level — update account trust tier and subscription (admin only)
+router.post('/api/admin/users/:id/trust-level', requireAdmin, express.json(), async (req, res) => {
     try {
         const { id } = req.params;
-        const { trustLevel } = req.body || {};
+        const { trustLevel, password, subscriptionTier, subscriptionStatus } = req.body || {};
+        if (!password) return res.status(400).json({ success: false, error: 'Admin password required' });
+        const adminEmail = req.adminPayload?.email;
+        const passwordValid = await verifyAdminPassword(adminEmail, password);
+        if (!passwordValid) return res.status(401).json({ success: false, error: 'Invalid admin password' });
         const validLevels = ['bronze', 'silver', 'gold'];
         if (!validLevels.includes(trustLevel)) {
             return res.status(400).json({ success: false, error: 'Invalid trust level' });
         }
-        const db = require('../lib/db.cjs');
         const user = db.getUserById(id);
         if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+        if (String(user.email || '').toLowerCase() === 'admin@simplebeacon.ai' && trustLevel !== 'gold') {
+            return res.status(403).json({ success: false, error: 'Cannot downgrade the primary admin account' });
+        }
         db.updateUserTierById(id, trustLevelToTier(trustLevel));
-        systemLogger.logTokenOp('user_trust_updated', { userId: id, trustLevel, admin: req.adminPayload.email });
-        res.json({ success: true, id, trustLevel });
+        const subTier = subscriptionTier || trustLevelToTier(trustLevel);
+        const subStatus = subscriptionStatus || 'active';
+        db.updateCustomerSubscription(user.email, subStatus, subTier);
+        systemLogger.logTokenOp('user_tier_updated', { userId: id, trustLevel, subscriptionTier: subTier, subscriptionStatus: subStatus, admin: req.adminPayload.email });
+        res.json({ success: true, id, trustLevel, subscriptionTier: subTier, subscriptionStatus: subStatus });
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
     }
 });
 
 // DELETE /api/admin/users/:id — delete account (admin only)
-router.delete('/api/admin/users/:id', requireAdmin, (req, res) => {
+router.delete('/api/admin/users/:id', requireAdmin, express.json(), async (req, res) => {
     try {
         const { id } = req.params;
-        const db = require('../lib/db.cjs');
+        const { password, confirmEmail } = req.body || {};
+        if (!password) return res.status(400).json({ success: false, error: 'Admin password required' });
+        const adminEmail = req.adminPayload?.email;
+        const passwordValid = await verifyAdminPassword(adminEmail, password);
+        if (!passwordValid) return res.status(401).json({ success: false, error: 'Invalid admin password' });
         const user = db.getUserById(id);
         if (!user) return res.status(404).json({ success: false, error: 'User not found' });
         if (String(user.email || '').toLowerCase() === 'admin@simplebeacon.ai') {
             return res.status(403).json({ success: false, error: 'Cannot delete the primary admin account' });
         }
+        if (!confirmEmail || String(confirmEmail).toLowerCase() !== String(user.email).toLowerCase()) {
+            return res.status(400).json({ success: false, error: 'Confirm the account email to delete' });
+        }
         db.deleteUserById(id);
         systemLogger.logTokenOp('user_deleted', { userId: id, email: user.email, admin: req.adminPayload.email });
         res.json({ success: true, id, deleted: true });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// POST /api/admin/users/:id/suspend — soft-suspend an account (admin only)
+router.post('/api/admin/users/:id/suspend', requireAdmin, express.json(), async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { password } = req.body || {};
+        if (!password) return res.status(400).json({ success: false, error: 'Admin password required' });
+        const adminEmail = req.adminPayload?.email;
+        const passwordValid = await verifyAdminPassword(adminEmail, password);
+        if (!passwordValid) return res.status(401).json({ success: false, error: 'Invalid admin password' });
+        const user = db.getUserById(id);
+        if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+        if (String(user.email || '').toLowerCase() === 'admin@simplebeacon.ai') {
+            return res.status(403).json({ success: false, error: 'Cannot suspend the primary admin account' });
+        }
+        db.updateUserStatus(id, 'suspended');
+        db.updateCustomerSubscription(user.email, 'suspended', user.tier || 'community');
+        systemLogger.logTokenOp('user_suspended', { userId: id, email: user.email, admin: req.adminPayload.email });
+        res.json({ success: true, id, status: 'suspended' });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// POST /api/admin/users/:id/unsuspend — reactivate a suspended account (admin only)
+router.post('/api/admin/users/:id/unsuspend', requireAdmin, express.json(), async (req, res) => {
+    try {
+        const { id } = req.params;
+        const user = db.getUserById(id);
+        if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+        db.updateUserStatus(id, 'active');
+        db.updateCustomerSubscription(user.email, 'active', user.tier || 'community');
+        systemLogger.logTokenOp('user_unsuspended', { userId: id, email: user.email, admin: req.adminPayload.email });
+        res.json({ success: true, id, status: 'active' });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// POST /api/admin/users/:id/details — update account name/email (admin only)
+router.post('/api/admin/users/:id/details', requireAdmin, express.json(), async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, email, password } = req.body || {};
+        if (!password) return res.status(400).json({ success: false, error: 'Admin password required to update email' });
+        const adminEmail = req.adminPayload?.email;
+        const passwordValid = await verifyAdminPassword(adminEmail, password);
+        if (!passwordValid) return res.status(401).json({ success: false, error: 'Invalid admin password' });
+        if (!email || !email.includes('@')) return res.status(400).json({ success: false, error: 'Valid email required' });
+        const user = db.getUserById(id);
+        if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+        if (String(user.email || '').toLowerCase() === 'admin@simplebeacon.ai' && String(email).toLowerCase() !== 'admin@simplebeacon.ai') {
+            return res.status(403).json({ success: false, error: 'Cannot change the primary admin email' });
+        }
+        const oldEmail = user.email;
+        const result = db.updateUserDetails(id, { name, email });
+        if (!result.success) return res.status(400).json({ success: false, error: result.error });
+        db.updateCustomerSubscription(email, 'active', user.tier || 'community');
+        if (oldEmail !== email.toLowerCase()) {
+            db.getDb().prepare('UPDATE customers SET email = ? WHERE email = ?').run(email.trim().toLowerCase(), oldEmail);
+            db.getDb().prepare('UPDATE paid_subscriptions SET customer_email = ? WHERE customer_email = ?').run(email.trim().toLowerCase(), oldEmail);
+            db.getDb().prepare('UPDATE refunds SET customer_email = ? WHERE customer_email = ?').run(email.trim().toLowerCase(), oldEmail);
+        }
+        systemLogger.logTokenOp('user_details_updated', { userId: id, oldEmail, newEmail: email, name, admin: req.adminPayload.email });
+        res.json({ success: true, id, name, email });
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
     }
@@ -464,7 +605,6 @@ router.post('/api/admin/customers/:email/update-tier', requireAdmin, express.jso
         const { email } = req.params;
         const { tier } = req.body || {};
         if (!email || !tier) return res.status(400).json({ error: 'Email and tier required' });
-        const db = require('../lib/db.cjs');
         db.updateCustomerSubscription(email, 'active', tier);
         systemLogger.logTokenOp('customer_tier_updated', { email, tier, admin: req.adminPayload.email });
         res.json({ success: true, message: 'Tier updated' });
@@ -474,27 +614,35 @@ router.post('/api/admin/customers/:email/update-tier', requireAdmin, express.jso
 });
 
 // POST /api/admin/customers/:email/refund — process refund for a customer (admin only)
-router.post('/api/admin/customers/:email/refund', requireAdmin, express.json(), (req, res) => {
+router.post('/api/admin/customers/:email/refund', requireAdmin, express.json(), async (req, res) => {
     try {
         const { email } = req.params;
-        const { stripeSubscriptionId, reason } = req.body || {};
-        if (!email) return res.status(400).json({ error: 'Email required' });
-        const db = require('../lib/db.cjs');
-        let result = { success: false };
+        const { stripeSubscriptionId, reason, password } = req.body || {};
+        if (!email) return res.status(400).json({ success: false, error: 'Email required' });
+        if (!password) return res.status(400).json({ success: false, error: 'Admin password required' });
+        const adminEmail = req.adminPayload?.email;
+        const passwordValid = await verifyAdminPassword(adminEmail, password);
+        if (!passwordValid) return res.status(401).json({ success: false, error: 'Invalid admin password' });
+        let refundedSubs = [];
+        let stripeResult = null;
         if (stripeSubscriptionId) {
-            result = db.updatePaidSubscriptionToRefunded(stripeSubscriptionId, reason || 'Manual admin refund');
+            stripeResult = await stripeRefundSubscription(stripeSubscriptionId, reason || 'Manual admin refund');
+            db.updatePaidSubscriptionToRefunded(stripeSubscriptionId, reason || 'Manual admin refund');
+            refundedSubs.push(stripeSubscriptionId);
         } else {
             const subs = db.getAllPaidSubscriptions().filter(s => s.customer_email === email.trim().toLowerCase() && s.status === 'active');
             for (const sub of subs) {
+                const sr = await stripeRefundSubscription(sub.stripe_subscription_id, reason || 'Manual admin refund');
+                if (!stripeResult) stripeResult = sr;
                 db.updatePaidSubscriptionToRefunded(sub.stripe_subscription_id, reason || 'Manual admin refund');
+                refundedSubs.push(sub.stripe_subscription_id);
             }
             db.updateCustomerSubscription(email, 'refunded', 'community');
-            result = { success: true, refundedCount: subs.length };
         }
-        systemLogger.logTokenOp('customer_refunded', { email, stripeSubscriptionId, reason, admin: req.adminPayload.email });
-        res.json({ success: true, message: 'Refund processed', ...result });
+        systemLogger.logTokenOp('customer_refunded', { email, stripeSubscriptionId, refundedCount: refundedSubs.length, stripeUsed: stripeResult?.stripeUsed, admin: req.adminPayload.email });
+        res.json({ success: true, message: 'Refund processed', refundedCount: refundedSubs.length, stripeResult });
     } catch (err) {
-        res.status(500).json({ error: 'Failed to process refund', detail: err.message });
+        res.status(500).json({ success: false, error: 'Failed to process refund', detail: err.message });
     }
 });
 

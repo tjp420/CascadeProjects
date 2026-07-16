@@ -5,8 +5,8 @@
  * This version streams large files through a Rust/WebAssembly chunk analyzer (with a
  * pure-JS fallback) instead of loading the entire file into memory at once.
  */
-import { analyzeFileChunks, findingsToIssues } from './scan-wasm-bridge.js?v=20260714blockerfix1';
-import { isIgnoredVirtualPath } from '../utils-lib/simplebeaconignore.browser.js?v=20260715scanfix1';
+import { analyzeFileChunks, findingsToIssues } from './scan-wasm-bridge.js?v=20260716cachefix1';
+import { isIgnoredVirtualPath } from '../utils-lib/simplebeaconignore.browser.js?v=20260716cachefix1';
 const MAX_DISCOVERED_FILES = 500000;
 const MAX_ISSUES = 100000;
 const SCAN_BATCH_SIZE = 400;
@@ -27,7 +27,7 @@ const LANGUAGE_REGISTRY = {
 const PATTERN_REGISTRY = {
     debugArtifacts: {
         appliesTo: ['javascript'],
-        pattern: /\bconsole\.(log|warn|error|info|debug|table|trace|dir|group)\s*\(|debugger\b|alert\s*\(|prompt\s*\(|confirm\s*\(/gi
+        pattern: /\bconsole\.(log|warn|error|info|debug|table|trace|dir|group)\s*\(|\bdebugger\b|\balert\s*\(|\bprompt\s*\(|\bconfirm\s*\(/gi
     },
     todoMarkers: {
         appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet'],

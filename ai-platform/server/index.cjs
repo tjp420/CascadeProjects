@@ -69,6 +69,8 @@ const { setupAiMathAuditRoute } = require('./routes/ai-math-audit-route.cjs');
 const tokenAuthRoutes = require('./routes/token-auth.cjs');
 const { setupMockDataAPI } = require('./routes/mock-data-api.cjs');
 const { setupChatbotAPI } = require('./routes/chatbot-api.cjs');
+const { setupWebAuthnAPI } = require('./routes/webauthn-api.cjs');
+const { setupAdminAPI } = require('./routes/admin-api.cjs');
 const setupLocalModelsAPI = require('./routes/local-models-api.cjs');
 const { setupSimplebeaconAPI } = require('../src/api/simplebeacon-api.cjs');
 const setupDashboardStubAPIs = require('../src/api/dashboard-stub-api.cjs');
@@ -95,7 +97,7 @@ let rawPort = process.env.PORT || constants.DEFAULT_PORT;
 let PORT = Number.isFinite(Number(rawPort)) && Number(rawPort) > 0 ? Number(rawPort) : constants.DEFAULT_PORT;
 
 // Initialize audit system
-initializeAudit().catch(console.error);
+initializeAudit().catch(err => logger.error('Audit init failed:', err));
 
 // HTTPS redirect for production — respect health checks and local development
 app.use((req, res, next) => {
@@ -317,6 +319,28 @@ app.get('/private-dashboard-vault', async (req, res) => {
   }
 });
 
+// Public dashboard route (standalone coming-soon/public/dashboard copy)
+// Injects runtime env so it can reach the ai-platform server proxy regardless of the serving port.
+app.get(['/public/dashboard', '/public/dashboard/', '/public/dashboard/index.html'], async (req, res) => {
+  const indexPath = path.join(comingSoonRoot, 'public', 'dashboard', 'index.html');
+  let html;
+  try {
+    html = await fs.promises.readFile(indexPath, 'utf8');
+  } catch {
+    return res.status(404).send('index.html not found');
+  }
+
+  const runtimeConfig = JSON.stringify({
+    DASHBOARD_BASE_URL: process.env.DASHBOARD_BASE_URL || `${req.protocol}://${req.get('host') || 'localhost:' + PORT}`,
+    OLLAMA_DEFAULT_URL: process.env.OLLAMA_DEFAULT_URL || `http://127.0.0.1:${constants.OLLAMA_PORT}`
+  });
+  const injectScript = `<script>window.__SIMPLEBEACON_ENV__=${runtimeConfig};</script>`;
+  html = html.replace('<head>', `<head>${injectScript}`);
+
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.send(html);
+});
+
 // Storefront static assets — serve marketing site from root
 app.use('/', express.static(comingSoonRoot, { index: false }));
 
@@ -381,7 +405,7 @@ app.get(['/simplebeacon-dashboard', '/simplebeacon-dashboard/', '/simplebeacon-d
   }
 
   const runtimeConfig = JSON.stringify({
-    DASHBOARD_BASE_URL: process.env.DASHBOARD_BASE_URL || `http://localhost:${PORT}`,
+    DASHBOARD_BASE_URL: process.env.DASHBOARD_BASE_URL || `${req.protocol}://${req.get('host') || 'localhost:' + PORT}`,
     OLLAMA_DEFAULT_URL: process.env.OLLAMA_DEFAULT_URL || `http://127.0.0.1:${constants.OLLAMA_PORT}` // simplebeacon-ignore hardcoded-url — default Ollama localhost URL for client-side settings
   });
   const injectScript = `<script>window.__SIMPLEBEACON_ENV__=${runtimeConfig};</script>`;
@@ -401,7 +425,7 @@ app.get('/simplebeacon-dashboard/*', async (req, res) => {
     return res.status(404).send('index.html not found');
   }
   const runtimeConfig = JSON.stringify({
-    DASHBOARD_BASE_URL: process.env.DASHBOARD_BASE_URL || `http://localhost:${PORT}`,
+    DASHBOARD_BASE_URL: process.env.DASHBOARD_BASE_URL || `${req.protocol}://${req.get('host') || 'localhost:' + PORT}`,
     OLLAMA_DEFAULT_URL: process.env.OLLAMA_DEFAULT_URL || `http://127.0.0.1:${constants.OLLAMA_PORT}`
   });
   const injectScript = `<script>window.__SIMPLEBEACON_ENV__=${runtimeConfig};</script>`;
@@ -420,7 +444,7 @@ app.get(['/dashboard', '/dashboard/'], async (req, res) => {
     return res.status(404).send('index.html not found');
   }
   const runtimeConfig = JSON.stringify({
-    DASHBOARD_BASE_URL: process.env.DASHBOARD_BASE_URL || `http://localhost:${PORT}`,
+    DASHBOARD_BASE_URL: process.env.DASHBOARD_BASE_URL || `${req.protocol}://${req.get('host') || 'localhost:' + PORT}`,
     OLLAMA_DEFAULT_URL: process.env.OLLAMA_DEFAULT_URL || `http://127.0.0.1:${constants.OLLAMA_PORT}`
   });
   const injectScript = `<script>window.__SIMPLEBEACON_ENV__=${runtimeConfig};</script>`;
@@ -439,7 +463,7 @@ app.get('/dashboard/*', async (req, res) => {
     return res.status(404).send('index.html not found');
   }
   const runtimeConfig = JSON.stringify({
-    DASHBOARD_BASE_URL: process.env.DASHBOARD_BASE_URL || `http://localhost:${PORT}`,
+    DASHBOARD_BASE_URL: process.env.DASHBOARD_BASE_URL || `${req.protocol}://${req.get('host') || 'localhost:' + PORT}`,
     OLLAMA_DEFAULT_URL: process.env.OLLAMA_DEFAULT_URL || `http://127.0.0.1:${constants.OLLAMA_PORT}`
   });
   const injectScript = `<script>window.__SIMPLEBEACON_ENV__=${runtimeConfig};</script>`;
@@ -547,6 +571,12 @@ app.get('/api/theme', (_req, res) => {
 // Chatbot API — AI-powered code assistance
 setupChatbotAPI(app);
 
+// WebAuthn passkey registration / authentication (dashboard Profile + Sign-in)
+setupWebAuthnAPI(app);
+
+// Admin dashboard stats, users, sessions (requires admin role)
+setupAdminAPI(app, { platformRoot: path.join(__dirname, '..') });
+
 // Stub endpoints for dashboard client features not available in local dev
 // Note: /api/chatbot/providers is handled by setupChatbotAPI using actual provider credentials.
 app.get('/api/prompts/get', (_req, res) => res.json({ prompts: [], userId: _req.query.userId || 'anonymous' }));
@@ -587,7 +617,7 @@ app.use('/api/simplebeacon/user', authenticate);
 try {
     setupSimplebeaconAPI(app);
 } catch (e) {
-    console.warn('[Simplebeacon] simplebeacon-api setup skipped:', e.message);
+    logger.warn('[Simplebeacon] simplebeacon-api setup skipped:', e.message);
 }
 
 // Audit log retrieval API — paginated, strict memory limits (default LIMIT 50, max 200)
@@ -604,14 +634,14 @@ logger.info('[SSO] Enterprise SSO routes mounted at /api/v2/auth/sso');
 try {
     setupDashboardStubAPIs(app, webRoot, { authMiddleware: optionalAuthenticate });
 } catch (e) {
-    console.warn('[Simplebeacon] dashboard-stub-api setup skipped:', e.message);
+    logger.warn('[Simplebeacon] dashboard-stub-api setup skipped:', e.message);
 }
 
 // Optimization API
 try {
     require('../src/api/optimization-api.cjs').setupOptimizationAPI(app, { platformRoot: path.join(__dirname, '..'), monorepoRoot: path.join(__dirname, '../..') });
 } catch (e) {
-    console.warn('[Simplebeacon] optimization-api setup skipped:', e.message);
+    logger.warn('[Simplebeacon] optimization-api setup skipped:', e.message);
 }
 
 // Trust verification API
@@ -620,35 +650,35 @@ try {
 try {
     setupTrustAPI(app, { platformRoot: path.join(__dirname, '..'), monorepoRoot: path.join(__dirname, '../..') });
 } catch (e) {
-    console.warn('[Simplebeacon] trust-api setup skipped:', e.message);
+    logger.warn('[Simplebeacon] trust-api setup skipped:', e.message);
 }
 
 // EU AI Act sprint route
 try {
     registerEuAiActSprintRoute(app, { projectRoot: path.join(__dirname, '..') });
 } catch (e) {
-    console.warn('[Simplebeacon] EU AI Act sprint route setup skipped:', e.message);
+    logger.warn('[Simplebeacon] EU AI Act sprint route setup skipped:', e.message);
 }
 
 // Simplebeacon billing — checkout, subscription status, license tokens
 try {
     setupSimplebeaconBillingRoutes(app);
 } catch (e) {
-    console.warn('[Simplebeacon] billing routes setup skipped:', e.message);
+    logger.warn('[Simplebeacon] billing routes setup skipped:', e.message);
 }
 
 // Public compliance schema endpoint — no auth, no project access, no code upload
 try {
     registerComplianceSchemaRoute(app);
 } catch (e) {
-    console.warn('[Simplebeacon] Compliance schema route setup skipped:', e.message);
+    logger.warn('[Simplebeacon] Compliance schema route setup skipped:', e.message);
 }
 
 // PR integration API — secure GitHub Action report ingestion
 try {
     setupPrIntegrationAPI(app);
 } catch (e) {
-    console.warn('[Simplebeacon] PR integration API setup skipped:', e.message);
+    logger.warn('[Simplebeacon] PR integration API setup skipped:', e.message);
 }
 
 // Free token routes — community/sandbox token generation from coming-soon
@@ -660,7 +690,7 @@ try {
         const freeTokenRoutes = require('../../coming-soon/routes/free-token.cjs');
         app.use(freeTokenRoutes);
     } catch (e) {
-        console.warn('[FreeToken] free-token routes not loaded');
+        logger.warn('[FreeToken] free-token routes not loaded');
     }
 }
 
@@ -680,7 +710,7 @@ try {
     const promptService = require('./services/prompt-service.cjs');
     app.use('/api/prompts', promptService);
 } catch (e) {
-    console.warn('[PromptService] prompt-service routes not loaded');
+    logger.warn('[PromptService] prompt-service routes not loaded');
 }
 
 // Upload API disabled — source code never leaves your machine per privacy promise.
@@ -707,7 +737,7 @@ app.use(securityErrorHandler);
 app.use((err, req, res, _next) => {
   const safeErr = constants.safeString(err);
   const stack = err && typeof err.stack === 'string' ? err.stack : safeErr;
-  console.error(stack);
+  logger.error(stack);
 
   // Log security-related errors
   const status = (err && typeof err.status === 'number' && Number.isFinite(err.status)) ? err.status : 500;

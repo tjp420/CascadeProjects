@@ -1,3 +1,4 @@
+// simplebeacon-ignore git-sensitive-file — auth/token implementation file, not a leaked secret
 /**
  * Client-side token stockpile — store purchased time tokens and load them when needed.
  * Backed by localStorage key sb-token-vault (compatible with Settings vault).

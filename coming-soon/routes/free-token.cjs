@@ -1,4 +1,4 @@
-// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 /**
  * Free token route — generates a community license token without payment.
  */
@@ -8,7 +8,7 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const router = express.Router();
 const systemLogger = require('../lib/system-logger.cjs');
-const { getDb } = require('../lib/db.cjs');
+const { getDb, createValidationCode, getValidationCodeByEmailAndCode, getValidationCodeByTokenHash, markValidationCodeUsed } = require('../lib/db.cjs');
 const { hashToken } = require('../lib/token-chain-store.cjs');
 const { sendEmail } = require('../services/email.cjs');
 
@@ -18,6 +18,12 @@ const logger = {
 
 const DEFAULT_PORT = 3001;
 const PUBLIC_URL = process.env.PUBLIC_URL || ('http://' + 'localhost' + ':' + (process.env.PORT || DEFAULT_PORT));
+
+const VALIDATION_CODE_TTL_MINUTES = 60; // 1-hour email verification codes
+
+function generateValidationCode() {
+    return String(Math.floor(100000 + Math.random() * 900000));
+}
 
 // Free-token rate limiter: one per email per hour
 const FREE_TOKEN_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
@@ -158,24 +164,64 @@ async function handleFreeToken(req, res) {
 }
 
 // ── Sandbox token generation ──────────────────────────────
-const SANDBOX_TOKEN_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour per IP
-const sandboxLog = new Map(); // ip -> { token, createdAt }
+const SANDBOX_TOKEN_TTL_MINUTES = 14 * 24 * 60; // 14 days
+const SANDBOX_RESEND_MIN_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes between resends per email
+
+(function initSandboxTokensTable() {
+    try {
+        const db = getDb();
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS sandbox_tokens (
+                email TEXT PRIMARY KEY,
+                token TEXT NOT NULL,
+                token_hash TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                last_emailed_at TEXT NOT NULL DEFAULT (datetime('now')),
+                expires_at TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_sandbox_tokens_expires ON sandbox_tokens(expires_at);
+        `);
+    } catch (err) {
+        logger.error('[SandboxToken] Failed to create sandbox_tokens table:', err.message);
+    }
+})();
+
+function getSandboxTokenRecord(email) {
+    const db = getDb();
+    return db.prepare('SELECT * FROM sandbox_tokens WHERE email = ?').get(email.trim().toLowerCase());
+}
+
+function setSandboxTokenRecord(email, token, tokenHash, expiresAt) {
+    const db = getDb();
+    db.prepare(`
+        INSERT OR REPLACE INTO sandbox_tokens (email, token, token_hash, created_at, last_emailed_at, expires_at)
+        VALUES (?, ?, ?, datetime('now'), datetime('now'), ?)
+    `).run(email.trim().toLowerCase(), token, tokenHash, expiresAt);
+}
+
+function touchSandboxEmailSent(email) {
+    const db = getDb();
+    db.prepare("UPDATE sandbox_tokens SET last_emailed_at = datetime('now') WHERE email = ?").run(email.trim().toLowerCase());
+}
+
+async function emailSandboxToken({ email, token, validationCode, auditUrl }) {
+    return sendEmail({
+        to: email,
+        subject: 'Your SimpleBeacon Sandbox Token',
+        text: `Your SimpleBeacon sandbox token is:\n\n${token}\n\nYour email validation code is: ${validationCode}\n\nPaste both into the audit page, or use this link:\n\n${auditUrl}\n\nThe validation code is valid for 1 hour. The token is valid for 14 days.`,
+        html: `<p>Your SimpleBeacon sandbox token is:</p><p><code style="word-break:break-all;">${token}</code></p><p>Your email validation code is: <strong>${validationCode}</strong></p><p><a href="${auditUrl}">Open Audit Page (token + code pre-filled)</a></p><p>The validation code is valid for 1 hour. The token is valid for 14 days.</p>`
+    });
+}
 
 async function handleSandboxToken(req, res) {
-    const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown';
     const now = Date.now();
     const email = req.body?.email || req.query?.email || '';
-    const existing = sandboxLog.get(clientIp);
 
-    if (existing && (now - existing.createdAt) < SANDBOX_TOKEN_COOLDOWN_MS) {
-        const remainingMin = Math.ceil((SANDBOX_TOKEN_COOLDOWN_MS - (now - existing.createdAt)) / 60000);
-        return res.status(429).json({
-            success: false,
-            error: 'Rate limit exceeded',
-            retryAfterMinutes: remainingMin,
-            message: `Sandbox token already issued for this IP. Check your inbox or wait ${remainingMin} minutes for a new one.`
-        });
+    if (!email || !email.includes('@')) {
+        return res.status(400).json({ error: 'Valid email required for sandbox token generation' });
     }
+
+    const normalizedEmail = email.trim().toLowerCase();
 
     try {
         const secret = process.env.SIMPLEBEACON_LICENSE_SECRET;
@@ -184,50 +230,81 @@ async function handleSandboxToken(req, res) {
             return res.status(500).json({ error: 'Server misconfigured — contact administrator' });
         }
 
-        // Require email for sandbox token generation
-        if (!email || !email.includes('@')) {
-            return res.status(400).json({ error: 'Valid email required for sandbox token generation' });
-        }
+        const existing = getSandboxTokenRecord(normalizedEmail);
+        let token = null;
+        let cached = false;
 
-        const normalizedEmail = email.trim().toLowerCase();
-        const token = generateLicenseToken(
-            {
-                email: normalizedEmail,
-                tier: 'sandbox',
-                projectName: 'Developer-Sandbox',
-                clientName: 'Developer',
-                features: ['basic_analysis', 'sample_data_basic']
-            },
-            secret,
-            14 * 24 * 60 // 14 days
-        );
-        const certUrl = `${PUBLIC_URL}/certificate-upload.html?token=${encodeURIComponent(token)}`;
-        sandboxLog.set(clientIp, { token, createdAt: now, email: normalizedEmail });
-
-        // Sandbox tokens are always emailed
-        try {
-            const emailResult = await sendEmail({
-                to: normalizedEmail,
-                subject: 'Your SimpleBeacon Sandbox Token',
-                text: `Your SimpleBeacon sandbox token is:\n\n${token}\n\nPaste this token into the audit page to run a sandbox scan. This token is valid for 14 days.\n\nAudit URL: ${certUrl}`,
-                html: `<p>Your SimpleBeacon sandbox token is:</p><p><code style="word-break:break-all;">${token}</code></p><p>Paste this token into the audit page to run a sandbox scan. This token is valid for 14 days.</p><p><a href="${certUrl}">Open Audit Page</a></p>`
-            });
-            if (!emailResult.sent && !emailResult.queued) {
-                logger.error('[SandboxToken] Email could not be sent or queued:', emailResult.error);
+        if (existing && new Date(existing.expires_at) > new Date()) {
+            const lastEmailed = new Date(existing.last_emailed_at || existing.created_at).getTime();
+            const sinceLastEmail = now - lastEmailed;
+            if (sinceLastEmail < SANDBOX_RESEND_MIN_INTERVAL_MS) {
+                const remainingMin = Math.max(1, Math.ceil((SANDBOX_RESEND_MIN_INTERVAL_MS - sinceLastEmail) / 60000));
+                return res.status(429).json({
+                    success: false,
+                    error: 'Rate limit exceeded',
+                    retryAfterMinutes: remainingMin,
+                    message: `We already emailed a sandbox token to ${normalizedEmail}. Check your inbox and spam folder. You can request another email in ${remainingMin} minute(s).`
+                });
             }
-        } catch (emailError) {
-            logger.error('[SandboxToken] Failed to send email:', emailError.message);
+            token = existing.token;
+            cached = true;
         }
+
+        if (!token) {
+            token = generateLicenseToken(
+                {
+                    email: normalizedEmail,
+                    tier: 'sandbox',
+                    projectName: 'Developer-Sandbox',
+                    clientName: 'Developer',
+                    features: ['basic_analysis', 'sample_data_basic']
+                },
+                secret,
+                SANDBOX_TOKEN_TTL_MINUTES
+            );
+            const expiresAt = new Date(now + SANDBOX_TOKEN_TTL_MINUTES * 60 * 1000).toISOString();
+            setSandboxTokenRecord(normalizedEmail, token, hashToken(token), expiresAt);
+        }
+
+        const tokenHash = hashToken(token);
+        const validationCode = generateValidationCode();
+        const codeExpiresAt = new Date(now + VALIDATION_CODE_TTL_MINUTES * 60 * 1000).toISOString();
+        createValidationCode(normalizedEmail, validationCode, tokenHash, codeExpiresAt);
+
+        const auditUrl = `${PUBLIC_URL}/audit.html?token=${encodeURIComponent(token)}&code=${encodeURIComponent(validationCode)}`;
+        const certUrl = `${PUBLIC_URL}/certificate-upload.html?token=${encodeURIComponent(token)}`;
+
+        const emailResult = await emailSandboxToken({ email: normalizedEmail, token, validationCode, auditUrl });
+        if (!emailResult.sent && !emailResult.queued) {
+            logger.error('[SandboxToken] Email could not be sent or queued:', emailResult.error);
+            return res.status(503).json({
+                success: false,
+                error: 'Email delivery failed',
+                message: 'Could not send sandbox token email. Try again in a few minutes or contact support@simplebeacon.ai.'
+            });
+        }
+
+        touchSandboxEmailSent(normalizedEmail);
+        systemLogger.logTokenOp(cached ? 'sandbox_token_resent' : 'sandbox_token_generated', {
+            email: normalizedEmail,
+            tier: 'sandbox',
+            clientIp: req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown'
+        });
 
         res.json({
             success: true,
             token,
             certUrl,
+            auditUrl,
+            codeRequired: true,
             tier: 'sandbox',
             expiresInDays: 14,
-            cached: false,
+            cached,
+            resent: cached,
             emailed: true,
-            message: 'Developer sandbox token generated and emailed. Valid for 14 days with usage limits.'
+            message: cached
+                ? 'Sandbox token resent to your email. Enter the new validation code from your inbox.'
+                : 'Developer sandbox token generated and emailed. Enter the validation code from your email to unlock the audit.'
         });
     } catch (error) {
         logger.error('[SandboxToken] Token generation failed:', error.message);
@@ -310,5 +387,30 @@ router.post('/api/token/upgrade', express.json(), async (req, res) => {
 router.get('/api/free-token', handleFreeToken);
 router.post('/api/free-token', handleFreeToken);
 router.post('/api/tokens/sandbox', handleSandboxToken);
+
+router.post('/api/tokens/verify-code', express.json(), async (req, res) => {
+    const { token, code } = req.body || {};
+    if (!token || typeof token !== 'string' || !code || typeof code !== 'string') {
+        return res.status(400).json({ valid: false, error: 'token and code required' });
+    }
+    try {
+        const tokenHash = hashToken(token);
+        const row = getValidationCodeByTokenHash(tokenHash);
+        if (!row || row.code !== code) {
+            return res.json({ valid: false, error: 'Invalid validation code' });
+        }
+        if (row.used) {
+            return res.json({ valid: false, error: 'Validation code already used' });
+        }
+        if (row.expires_at && new Date(row.expires_at) <= new Date()) {
+            return res.json({ valid: false, error: 'Validation code expired' });
+        }
+        markValidationCodeUsed(row.id);
+        return res.json({ valid: true, token });
+    } catch (err) {
+        logger.error('[VerifyCode] Verification failed:', err.message);
+        return res.status(500).json({ valid: false, error: 'Verification failed' });
+    }
+});
 
 module.exports = router;

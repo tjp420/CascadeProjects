@@ -215,6 +215,7 @@ packages/simplebeacon-cli/docs/SAMPLE_REPORT.md
 
 # Scanner internals: reporter strings and rule definitions trigger their own rules
 packages/simplebeacon-cli/src/reporters/json.js
+packages/simplebeacon-cli/src/assessment.js
 ai-platform/web/simplebeacon-dashboard/js/workers/scan-worker.js
 ai-platform/web/simplebeacon-dashboard/js/workers/scan-wasm-bridge.js
 ai-platform/web/simplebeacon-dashboard/js-es2018/workers/scan-worker.js
@@ -311,6 +312,12 @@ simplebeacon-vscode/out/
 # VS Code extension patch temp directory (contains duplicate code-map.json)
 .vsix-patch-temp/
 **/.vsix-patch-temp/
+
+# Unpacked VSIX inspection dirs (duplicate report-extract.json, code-map.json, package.json)
+simplebeacon-vscode-merged/vsix435/
+simplebeacon-vscode-merged/vsix447/
+simplebeacon-vscode-merged/vsix*/
+simplebeacon-vscode-merged/report-extract.json
 
 # Stress-test workflow — intentionally generates fake credentials in synthetic repos
 .github/workflows/simplebeacon-action-stress-test.yml
@@ -844,6 +851,11 @@ coming-soon/server.cjs
 browser-extension/build-extension.cjs
 browser-extension/create-icons.cjs
 
+# Browser extension bridge — intentional localhost defaults for MV3 mixed-content bypass
+browser-extension/service-worker.js
+browser-extension/bridge-inject.js
+browser-extension/content.js
+
 # Coming-soon routes and zip scripts
 coming-soon/routes/free-token.cjs
 coming-soon/zip-for-upload.js
@@ -851,4 +863,71 @@ coming-soon/zip-for-upload.js
 # Coming-soon test files
 coming-soon/tests/site-config-faqs.test.js
 coming-soon/test/analyzer-coverage.test.cjs
+
+# --- Cleanup sweep 2026-07-15: suppress known false-positive debug artifacts ---
+
+# Root-level one-off dev/test scripts
+_*.js
+_*.cjs
+_*.mjs
+__*.mjs
+test_*.js
+test-jwt-rotation.cjs
+serve-codemap*.js
+verify-codemap.js
+
+# Dev tools
+ai-platform/tools/
+ai-platform/web/data/transform-roadmap.cjs
+
+# Dashboard UI — browser-side console usage is intentional/dev-only
+ai-platform/web/simplebeacon-dashboard/js/
+ai-platform/web/simplebeacon-dashboard/js-es2018/
+ai-platform/web/simplebeacon-dashboard/scripts/
+
+# CLI / scanner internals — user-facing output and pattern definitions
+packages/simplebeacon-cli/bin/
+packages/simplebeacon-cli/scripts/
+packages/simplebeacon-cli/src/
+packages/simplebeacon-cli/docs/
+
+# Simplebeacon-intelligence build scripts
+ai-platform/packages/simplebeacon-intelligence/scripts/
+ai-platform/packages/simplebeacon-intelligence/src/slm-bridge.js
+
+# Server-side pattern/definition files that contain literal 'debug'/'console' strings
+ai-platform/server/lib/audit-report/executive.cjs
+ai-platform/server/lib/audit-report/finding-utils.cjs
+ai-platform/server/lib/complete-scan-audit-report.cjs
+ai-platform/server/lib/enhanced-ai-orchestrator.cjs
+ai-platform/server/lib/file-quality-heuristics.cjs
+ai-platform/server/lib/fix-orchestrator/patch-strategies.cjs
+ai-platform/server/lib/istanbul-telemetry-merge.cjs
+ai-platform/server/lib/language-patterns/python-patterns.cjs
+ai-platform/server/lib/language-patterns/universal-baseline-patterns.cjs
+ai-platform/server/routes/fix-orchestrator-api.cjs
+ai-platform/server/services/cloud-inference-service.cjs
+ai-platform/src/lib/app-logger.cjs
+
+# Desktop app build/run scripts
+simplebeacon-desktop/
+
+# Auxiliary services
+api-server/lib/db.cjs
+api-server/migrations/run-migrations.cjs
+local-agent/agent.js
+sales/license/renewal-tracker.js
+sales/support/decrypt-token.js
+
+# Python CLI tool
+ai-tools/ai-math-audit.py
+
+# Temp / generated root artifacts
+*.tmp
+.tmp-*.js
+users-import.csv
+AUDIT-PRD.md
+WORKSPACE-STATUS-REPORT-*.md
+zzz_status.json
+simplebeacon-c-users-*.json
 

@@ -1,4 +1,4 @@
-// simplebeacon-ignore: debugArtifacts
+// simplebeacon-ignore: debugArtifacts, security
 /**
  * Zero-retention, in-memory data processing pipeline for SimpleBeacon audits.
  *
@@ -174,7 +174,7 @@ async function executeSecureAuditPipeline(zipFileBuffer, projectContext = {}) {
         return reportJson;
 
     } catch (error) {
-        console.error(`[Pipeline Error] Session ${sandboxId}:`, error.message);
+        logger.error(`[Pipeline Error] Session ${sandboxId}:`, error.message);
         throw error;
     } finally {
         // 4. AUTOPILOT PRIVACY ENFORCER — purge everything no matter what
@@ -205,7 +205,7 @@ async function executeSecureAuditFromDir(sourceDir, projectContext = {}) {
         return reportJson;
 
     } catch (error) {
-        console.error(`[Pipeline Error] Session ${sandboxId}:`, error.message);
+        logger.error(`[Pipeline Error] Session ${sandboxId}:`, error.message);
         throw error;
     } finally {
         wipeDirectorySync(sandboxDir);

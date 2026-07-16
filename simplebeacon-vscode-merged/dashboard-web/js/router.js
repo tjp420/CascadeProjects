@@ -25,6 +25,15 @@ export class Router {
   }
 
   init() {
+    try {
+      const path = window.location.pathname || '';
+      if (/\/dashboard\/dashboard\/?$/.test(path)) {
+        const canonical = path.replace(/\/dashboard\/dashboard\/?$/, '/dashboard')
+          + (window.location.search || '')
+          + (window.location.hash || '');
+        window.history.replaceState({}, '', canonical);
+      }
+    } catch (_) { /* ignore */ }
     const forced = typeof window !== 'undefined' && window.__SB_INITIAL_ROUTE__;
     if (forced && ROUTES.includes(forced)) {
       delete window.__SB_INITIAL_ROUTE__;
@@ -115,14 +124,12 @@ export class Router {
           if (current.has(k)) searchParams.set(k, current.get(k));
         });
         if (typeof sessionStorage !== 'undefined') {
-          if (!searchParams.has('sb_notify_base')) {
-            const storedNotify = sessionStorage.getItem('sb_notify_base');
-            if (storedNotify) searchParams.set('sb_notify_base', storedNotify);
-          }
-          if (!searchParams.has('sb_api_base')) {
-            const storedApi = sessionStorage.getItem('sb_api_base');
-            if (storedApi) searchParams.set('sb_api_base', storedApi);
-          }
+          ['sb_notify_base', 'sb_api_base', 'sb_parent_urlbar', 'sb_website_mode'].forEach((k) => {
+            if (!searchParams.has(k)) {
+              const stored = sessionStorage.getItem(k);
+              if (stored) searchParams.set(k, stored);
+            }
+          });
         }
       } catch (e) { /* ignore */ }
       Object.entries(params).forEach(([k, v]) => { if (v != null && v !== '') searchParams.set(k, v); });
@@ -131,7 +138,8 @@ export class Router {
       }
       const search = searchParams.toString();
       const base = this.getDashboardBase();
-      const newUrl = `${base}/${view}${search ? '?' + search : ''}`;
+      const pathSegment = (view === 'dashboard' || !view) ? '' : `/${view}`;
+      const newUrl = `${base}${pathSegment}${search ? '?' + search : ''}`;
       if (window.location.pathname + window.location.search !== newUrl) {
         window.history.pushState({}, '', newUrl);
       }

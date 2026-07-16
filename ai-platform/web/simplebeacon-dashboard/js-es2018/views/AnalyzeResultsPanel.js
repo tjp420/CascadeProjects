@@ -1,6 +1,6 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
 import { escapeHtml, formatNumber, formatPathInputValue, redactPathForDisplay } from '../utils.js';
-import { getScanFileMetrics } from '../services/analyzeService.js?v=20260710inventory1';
+import { getScanFileMetrics } from '../services/analyzeService.js?v=20260716cachefix1';
 import { getCompleteEngineLabel } from './AnalyzeEngineGrid.js';
 
 /**

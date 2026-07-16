@@ -1,4 +1,4 @@
-// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 /**
  * Simplebeacon dashboard API — serves scan report, baseline, config, and scan trigger.
  */
@@ -8,6 +8,7 @@ const path = require('path');
 const fs = require('fs');
 const { exec } = require('child_process');
 const { promisify } = require('util');
+const logger = require('../../server/lib/app-logger.cjs');
 
 const constants = require('../../server/config/constants.cjs');
 const execAsync = promisify(exec);
@@ -435,7 +436,7 @@ async function runSimplebeaconScan(projectPath, opts = {}) {
 
   // Fallback to programmatic scan if CLI binary does not exist
   if (!fs.existsSync(cliBin)) {
-    console.warn('[runSimplebeaconScan] CLI binary not found at', cliBin, '— falling back to programmatic analyzeCodebase');
+    logger.warn('[runSimplebeaconScan] CLI binary not found at', cliBin, '— falling back to programmatic analyzeCodebase');
     try {
       const { analyzeCodebase } = require('../../server/lib/codebase-analyzer.cjs');
       const scanRoot = projectPath || PROJECT_ROOT;
@@ -470,7 +471,7 @@ async function runSimplebeaconScan(projectPath, opts = {}) {
       };
     } catch (fallbackErr) {
       isScanRunning = false;
-      console.error('[runSimplebeaconScan] Programmatic fallback failed:', fallbackErr.message);
+      logger.error('[runSimplebeaconScan] Programmatic fallback failed:', fallbackErr.message);
       throw fallbackErr;
     }
   }
@@ -491,7 +492,7 @@ async function runSimplebeaconScan(projectPath, opts = {}) {
       60 * 24 // 24 hours
     );
   } catch (tokenErr) {
-    console.warn('[runSimplebeaconScan] License generation failed:', tokenErr.message);
+    logger.warn('[runSimplebeaconScan] License generation failed:', tokenErr.message);
   }
 
   let scanCmd = '';
@@ -522,7 +523,7 @@ async function runSimplebeaconScan(projectPath, opts = {}) {
       cliExitCode = typeof err.code === 'number' ? err.code : 1;
       const reportExists = fs.existsSync(projectPath ? reportOut : REPORT_PATH);
       if (!reportExists) {
-        console.error('[runSimplebeaconScan] CLI failed — report missing:', err.message, 'stderr:', stderr.slice(0, 500));
+        logger.error('[runSimplebeaconScan] CLI failed — report missing:', err.message, 'stderr:', stderr.slice(0, 500));
         err.stdout = stdout;
         err.stderr = stderr;
         throw err;
@@ -534,10 +535,10 @@ async function runSimplebeaconScan(projectPath, opts = {}) {
     if (fs.existsSync(reportFilePath)) {
       report = await readJson(reportFilePath);
     } else {
-      console.warn('[runSimplebeaconScan] Report file missing — attempting stdout fallback');
+      logger.warn('[runSimplebeaconScan] Report file missing — attempting stdout fallback');
       report = tryExtractJsonFromStdout(stdout);
       if (!report) {
-        console.warn('[runSimplebeaconScan] No JSON in stdout — creating minimal fallback report');
+        logger.warn('[runSimplebeaconScan] No JSON in stdout — creating minimal fallback report');
         report = {
           type: 'simplebeacon-report',
           version: '1.0.0',
@@ -577,7 +578,7 @@ async function runSimplebeaconScan(projectPath, opts = {}) {
  * @returns {any}
  */
 function setupSimplebeaconAPI(app, options = {}) {
-  console.warn('[simplebeacon-api] default report path:', REPORT_PATH.replace(/\\/g, '/'), 'project root:', PROJECT_ROOT.replace(/\\/g, '/'));
+  logger.warn('[simplebeacon-api] default report path:', REPORT_PATH.replace(/\\/g, '/'), 'project root:', PROJECT_ROOT.replace(/\\/g, '/'));
   const requirePaidReadOnly = options.requirePaidReadOnly || createRequireSubscription({ allowFree: true });
   const requirePaid = options.requirePaid || createRequireSubscription();
   const requirePaidWithQuota = options.requirePaidWithQuota || createRequireSubscription({ consumeQuota: true });
@@ -593,7 +594,7 @@ function setupSimplebeaconAPI(app, options = {}) {
     if (!req.user?.email) {
       const debug = req.authError ? req.authError.message : undefined;
       if (debug) {
-        console.warn(`[simplebeacon-api] requireUserAccount 401 - ${req.method} ${req.originalUrl}: ${debug}`);
+        logger.warn(`[simplebeacon-api] requireUserAccount 401 - ${req.method} ${req.originalUrl}: ${debug}`);
       }
       const body = { success: false, error: 'Authentication required' };
       if (debug && process.env.DEBUG_CLIENT_ERRORS === '1') {
@@ -616,7 +617,7 @@ function setupSimplebeaconAPI(app, options = {}) {
           projectPath = resolveSafeAnalyzePath(rawProjectPath);
         } catch (err) {
           // Path outside allowed roots — fall back to default platform report
-          console.log('[simplebeacon-api] report path outside allowed roots:', rawProjectPath, '- falling back to default');
+          logger.info('[simplebeacon-api] report path outside allowed roots:', rawProjectPath, '- falling back to default');
           projectPath = null;
         }
       }
@@ -637,7 +638,7 @@ function setupSimplebeaconAPI(app, options = {}) {
     } catch (err) {
       const isAdmin = req.user?.role === 'admin' || (Array.isArray(req.user?.permissions) && req.user.permissions.includes('admin:all'));
       const isDebug = process.env.DEBUG_CLIENT_ERRORS === '1' || isAdmin;
-      console.warn(
+      logger.warn(
         `[simplebeacon-api] report fallback triggered — raw: ${rawProjectPath || '(none)'}, ` +
         `resolved: ${projectPath || '(default)'}, reportPath: ${reportPath || '(none)'}, ` +
         `exists: ${fileExists}, size: ${fileSize}, error: ${err.message || err}`
@@ -861,7 +862,7 @@ function setupSimplebeaconAPI(app, options = {}) {
             verifyError = err.message || String(err);
           }
         }
-        console.warn('[PUT /api/simplebeacon/user/ai-keys] Auth failed: missing req.user.email', {
+        logger.warn('[PUT /api/simplebeacon/user/ai-keys] Auth failed: missing req.user.email', {
           hasAuthorizationHeader: Boolean(authHeader),
           hasBearerPrefix: hasBearer,
           tokenLength: token.length,
@@ -907,7 +908,7 @@ function setupSimplebeaconAPI(app, options = {}) {
   const OLLAMA_ALLOWED_HOSTS = new Set(['127.0.0.1', 'localhost']);
   app.get('/api/simplebeacon/ollama/models', async (req, res) => {
     try {
-      const baseUrl = String(req.query.baseUrl || 'http://127.0.0.1:11434').trim();
+      const baseUrl = String(req.query.baseUrl || 'http://127.0.0.1:11434').trim().replace(/^["']+|["']+$/g, '').replace(/\/$/, '');
       let parsed;
       try {
         parsed = new URL(baseUrl);
@@ -935,7 +936,7 @@ function setupSimplebeaconAPI(app, options = {}) {
         .set('Content-Type', response.headers.get('content-type') || 'application/json')
         .send(data);
     } catch (err) {
-      console.warn('[GET /api/simplebeacon/ollama/models] Proxy failed:', err.message);
+      logger.warn('[GET /api/simplebeacon/ollama/models] Proxy failed:', err.message);
       res.status(502).json({ success: false, error: 'Ollama unreachable', message: err.message });
     }
   });
@@ -1009,7 +1010,7 @@ function setupSimplebeaconAPI(app, options = {}) {
         pageSamples: context.pageSamples
       }));
     } catch (err) {
-      console.error('[/api/simplebeacon/audit] Failed to load audit context:', err?.message || err);
+      logger.error('[/api/simplebeacon/audit] Failed to load audit context:', err?.message || err);
       res.status(404).json({ error: 'Audit not found', message: err.message });
     }
   });
@@ -1081,7 +1082,7 @@ function setupSimplebeaconAPI(app, options = {}) {
         ...result
       });
     } catch (err) {
-      console.error('[POST /api/simplebeacon/scan] Scan error:', err.message, 'code:', err.code, 'killed:', err.killed);
+      logger.error('[POST /api/simplebeacon/scan] Scan error:', err.message, 'code:', err.code, 'killed:', err.killed);
       const reportOut = projectPath
         ? path.join(projectPath, '.simplebeacon', 'report.json')
         : REPORT_PATH;
@@ -1194,7 +1195,7 @@ function setupSimplebeaconAPI(app, options = {}) {
 
   app.post('/api/simplebeacon/tools/baseline-sync', requirePaidWithQuota, async (_req, res) => {
     try {
-            const result = await syncMeasuredBaseline(PROJECT_ROOT);
+            const result = await syncMeasuredBaseline(PROJECT_ROOT, { fallbackToCache: true });
       res.json({
         success: true,
         baseline: result.baseline,
@@ -1357,7 +1358,7 @@ function setupSimplebeaconAPI(app, options = {}) {
         timestamp: new Date().toISOString()
       };
       const webhookResult = await scheduler.postWebhook(webhookUrl, payload);
-      console.log(`[WebhookScan] ${webhookResult.success ? 'delivered' : 'failed'} to ${webhookUrl}`);
+      logger.info(`[WebhookScan] ${webhookResult.success ? 'delivered' : 'failed'} to ${webhookUrl}`);
 
       // Zero-retention: wipe payload from memory after delivery
       if (req.body?.zeroRetention) {
@@ -1367,14 +1368,14 @@ function setupSimplebeaconAPI(app, options = {}) {
             : REPORT_PATH;
           if (fs.existsSync(reportOut)) {
             fs.unlinkSync(reportOut);
-            console.log('[WebhookScan] Zero-retention: report file removed after delivery');
+            logger.info('[WebhookScan] Zero-retention: report file removed after delivery');
           }
         } catch (unlinkErr) {
-          console.warn('[WebhookScan] Zero-retention: failed to remove report file:', unlinkErr.message);
+          logger.warn('[WebhookScan] Zero-retention: failed to remove report file:', unlinkErr.message);
         }
       }
     } catch (err) {
-      console.error('[WebhookScan] Scan or delivery failed:', err.message);
+      logger.error('[WebhookScan] Scan or delivery failed:', err.message);
       scheduler.postWebhook(webhookUrl, {
         event: 'simplebeacon.scan.failed',
         scanId,

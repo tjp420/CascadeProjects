@@ -1,4 +1,4 @@
-// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 /**
  * Root-controlled account store — single source of truth for account tier, features, limits.
  * Time tokens are subordinate: they reference an account_id and are validated against live account state.

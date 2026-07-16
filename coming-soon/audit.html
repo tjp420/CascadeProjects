@@ -31,7 +31,8 @@
     <script src="js-es2018/dashboard/scanner-engine.js?h=1781475000012" defer></script>
     <script src="js-es2018/dashboard/ui-renderer.js?h=1781475000000" defer></script>
     <script src="js/vendor/jszip.min.js?h=1781475000000" defer></script>
-    <script src="js-es2018/dashboard/certificate-module.js?h=20260715cert2" defer></script>
+    <script src="js-es2018/dashboard/vscode-notify-bridge.js?h=20260716beacon1" defer></script>
+    <script src="js-es2018/dashboard/certificate-module.js?h=20260715notify1" defer></script>
     <link rel="stylesheet" href="css/dashboard.css?h=1781475000013">
     <script src="js/auth.js" defer></script>
 </head>
@@ -49,8 +50,15 @@
         var route = hash.slice(2);
         var dashboardRoutes = ['analyze', 'dashboard', 'audit', 'assessments', 'results', 'remediation', 'security', 'tools', 'platform', 'quality', 'help', 'features', 'trust', 'repository-health', 'settings', 'pricing', 'about', 'signin', 'chatbot', 'upload', 'eu-ai-act', 'profile', 'billing-success', 'billing-cancel'];
         if (dashboardRoutes.indexOf(route) !== -1) {
-          var port = window.location.port || '54358';
-          window.location.replace('http://' + window.location.hostname + ':' + port + '/dashboard/' + route);
+          var isLocal = /^localhost$|^127\.0\.0\.1$/i.test(window.location.hostname);
+          var target;
+          if (isLocal) {
+            var port = window.location.port || '54358';
+            target = 'http://' + window.location.hostname + ':' + port + '/dashboard/' + route;
+          } else {
+            target = window.location.origin + '/dashboard/#' + route;
+          }
+          window.location.replace(target);
         }
       }
     })();
@@ -150,7 +158,10 @@
               .token-gate-input-wrap { position: relative; }
               .token-gate-input-wrap input#licenseToken { width: 100%; padding: 14px 16px 14px 42px; border: 2px solid var(--border); border-radius: 12px; background: var(--bg-input); color: var(--text-main); font-size: 0.95rem; transition: border-color 150ms, box-shadow 150ms; min-width: 0; box-sizing: border-box; }
               .token-gate-input-wrap input#licenseToken:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(99,102,241,0.12); }
+              .token-gate-input-wrap input#validationCode { width: 100%; padding: 12px 16px 12px 42px; border: 2px solid var(--border); border-radius: 12px; background: var(--bg-input); color: var(--text-main); font-size: 0.95rem; transition: border-color 150ms, box-shadow 150ms; min-width: 0; box-sizing: border-box; margin-top: 10px; }
+              .token-gate-input-wrap input#validationCode:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(99,102,241,0.12); }
               .token-gate-input-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 1rem; opacity: 0.55; pointer-events: none; }
+              .token-gate-input-wrap .code-icon { top: 65%; }
               .token-bar-help { font-size: 0.75rem; color: var(--text-muted); margin: 8px 0 0; line-height: 1.45; }
               .token-error-bar { color: var(--error); font-size: 0.8rem; margin-top: 8px; }
               .token-gate-divider { display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; }
@@ -212,7 +223,12 @@
                   <span class="token-gate-input-icon" aria-hidden="true">🔑</span>
                   <input id="licenseToken" type="text" autocomplete="off" spellcheck="false" placeholder="Paste a new token from email or checkout…" />
                 </div>
-                <p class="token-bar-help">Press <kbd>Enter</kbd> to unlock scan modules. Your token stays in this browser only.</p>
+                <label class="token-gate-label" for="validationCode" style="margin-top: 10px;">Email validation code</label>
+                <div class="token-gate-input-wrap">
+                  <span class="token-gate-input-icon code-icon" aria-hidden="true">🔢</span>
+                  <input id="validationCode" type="text" inputmode="numeric" autocomplete="off" spellcheck="false" maxlength="10" placeholder="Enter code from your email…" />
+                </div>
+                <p class="token-bar-help">Press <kbd>Enter</kbd> to unlock scan modules. Sandbox tokens also require the email validation code. Your token stays in this browser only.</p>
                 <p id="tokenError" class="token-error-bar hidden-display" role="alert"></p>
               </div>
               <div class="token-gate-divider" aria-hidden="true"><span>or</span></div>
@@ -714,7 +730,7 @@
                     <button class="btn btn-primary" id="certSubmitBtn" disabled style="white-space:nowrap;width:100%;margin-bottom:12px;">
                         <span>&#128229;</span> Generate Certificate
                     </button>
-                    <a href="roadmap.html?v=15" target="_blank" rel="noopener" class="btn btn-secondary" id="roadmapLink" style="display:block;text-align:center;text-decoration:none;width:100%;margin-bottom:12px;padding:10px 14px;background:rgba(99,102,241,0.1);border:1px solid var(--accent);color:var(--accent-hover);font-weight:600;border-radius:8px;transition:all 0.2s;">&#128739; View Remediation Roadmap</a>
+                    <a href="/roadmap?v=16" class="btn btn-secondary" id="roadmapLink" style="display:block;text-align:center;text-decoration:none;width:100%;margin-bottom:12px;padding:10px 14px;background:rgba(99,102,241,0.1);border:1px solid var(--accent);color:var(--accent-hover);font-weight:600;border-radius:8px;transition:all 0.2s;">&#128739; View Remediation Roadmap</a>
                     <button type="button" class="btn btn-primary" id="upload-send-ai-btn" title="Send scan data to AI Slopcop" style="white-space:nowrap;width:100%;margin-bottom:12px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;display:none;">&#129302; Send to AI Slopcop</button>
                     <button type="button" class="btn btn-primary btn-sm" id="analyze-send-ai-btn" title="Send scan data to AI Slop Cop" style="white-space:nowrap;width:100%;margin-bottom:12px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;display:none;">&#129302; Send to AI Slop Cop</button>
                 </div>
@@ -1147,13 +1163,30 @@
         showSuccessToast('Security key authentication started (demo).');
       }
 
-      if (signinBtn) signinBtn.addEventListener('click', function() { window.location.href = '/dashboard/signin?returnTo=' + encodeURIComponent(window.location.pathname); });
+      function authDashboardUrl(route) {
+        return '/dashboard/' + route + '?returnTo=' + encodeURIComponent(window.location.pathname);
+      }
+      if (signinBtn) signinBtn.addEventListener('click', function() { window.location.href = authDashboardUrl('signin'); });
       if (signinCloseBtn) signinCloseBtn.addEventListener('click', closeSigninModal);
       if (signinOverlay) signinOverlay.addEventListener('click', function(e) { if (e.target === signinOverlay) closeSigninModal(); });
-      if (signinEmailBtn) signinEmailBtn.addEventListener('click', handleEmailSignin);
-      if (signinPassword) signinPassword.addEventListener('keydown', function(e) { if (e.key === 'Enter') handleEmailSignin(); });
+      if (signinEmailBtn) signinEmailBtn.addEventListener('click', function() {
+        if (emailMode === 'register') {
+          window.location.href = authDashboardUrl('register');
+          return;
+        }
+        handleEmailSignin();
+      });
+      if (signinPassword) signinPassword.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+          if (emailMode === 'register') {
+            window.location.href = authDashboardUrl('register');
+            return;
+          }
+          handleEmailSignin();
+        }
+      });
       if (subtabLogin) subtabLogin.addEventListener('click', function() { setEmailMode('login'); });
-      if (subtabRegister) subtabRegister.addEventListener('click', function() { setEmailMode('register'); });
+      if (subtabRegister) subtabRegister.addEventListener('click', function() { window.location.href = authDashboardUrl('register'); });
       if (forgotPasswordBtn) forgotPasswordBtn.addEventListener('click', handleForgotPassword);
       if (webauthnBtn) webauthnBtn.addEventListener('click', handleWebAuthn);
 // Certificate Credentials Modal
@@ -1216,17 +1249,33 @@
                 const cookieVal = getCookie(k);
                 if (cookieVal && !localStorage.getItem(k)) localStorage.setItem(k, cookieVal);
             });
-            // Auto-populate token from URL query param and persist to storage
+            // Auto-populate token and validation code from URL query params and persist to storage
             try {
                 const urlParams = new URLSearchParams(window.location.search);
                 const urlToken = urlParams.get('token');
+                const urlCode = urlParams.get('code');
                 if (urlToken) {
                     const signinInput = document.getElementById('signinToken');
                     if (signinInput) signinInput.value = urlToken;
+                    const licenseInput = document.getElementById('licenseToken');
+                    if (licenseInput) {
+                        licenseInput.value = urlToken;
+                        licenseInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                    const validationInput = document.getElementById('validationCode');
+                    if (validationInput && urlCode) {
+                        validationInput.value = urlCode;
+                    }
                     // Persist token so auth nav and other pages see it
                     localStorage.setItem('simplebeacon_token', urlToken);
                     setCookie('simplebeacon_token', urlToken);
                     setCookie('cascadeAuthToken', urlToken);
+                    // Auto-unlock if both token and code were supplied by the email link
+                    if (licenseInput && urlCode) {
+                        setTimeout(() => {
+                            licenseInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+                        }, 300);
+                    }
                 }
             } catch(e) {}
             // ── Token File System Integration ─────────────────────────────
@@ -1317,6 +1366,7 @@
             // ── Auth Modal (redesigned token bar) ─────────────────────────
             (function() {
                 const tokenInput = document.getElementById('licenseToken');
+                const validationCodeInput = document.getElementById('validationCode');
                 const errorEl = document.getElementById('tokenError');
                 const overlay = document.getElementById('auth-modal-overlay');
                 const tokenDisplay = document.getElementById('auth-token-display');
@@ -1351,6 +1401,21 @@
                     if (typeof updateAuthNav === 'function') updateAuthNav();
                 };
 
+                async function verifyValidationCode(token, code) {
+                    const apiBase = (typeof window.resolveApiBase === 'function') ? window.resolveApiBase() : location.origin.replace(/\/$/, '');
+                    try {
+                        const res = await fetch(apiBase + '/api/tokens/verify-code', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ token, code })
+                        });
+                        if (!res.ok) return { valid: false, error: 'Network error' };
+                        return await res.json();
+                    } catch (err) {
+                        return { valid: false, error: 'Network error' };
+                    }
+                }
+
                 // ── Token Status Card ─────────────────────────────────────────
                 function updateTokenStatusCard(token, data) {
                     const card = document.getElementById('tokenStatusCard');
@@ -1379,18 +1444,28 @@
                     if (adminPanel) adminPanel.style.display = isAdmin ? 'block' : 'none';
                 }
 
-                // Enter key: check registration status, then either popup or direct unlock
+                // Enter key: verify validation code, check registration status, then either popup or direct unlock
                 if (tokenInput) {
                     tokenInput.addEventListener('keydown', async function(e) {
                         if (e.key !== 'Enter') return;
                         e.preventDefault();
                         const token = tokenInput.value.trim();
+                        const code = validationCodeInput ? validationCodeInput.value.trim() : '';
                         if (!token) { showError('Please enter a license token.'); return; }
                         if (window.TokenEntryGuard) {
                             const entryCheck = window.TokenEntryGuard.validateNewTokenEntry(token);
                             if (!entryCheck.ok) { showError(entryCheck.error); return; }
                         }
                         clearError();
+                        // If a validation code is present, verify it against the server first
+                        if (code) {
+                            const check = await verifyValidationCode(token, code);
+                            if (!check.valid) {
+                                showError(check.error || 'Invalid validation code.');
+                                return;
+                            }
+                            clearError();
+                        }
                         try {
                             const res = await fetch('/api/auth/token-status', {
                                 method: 'POST',
@@ -1417,6 +1492,15 @@
                             openTab('token');
                             openModal(token);
                         }
+                    });
+                }
+
+                // Pressing Enter in the validation code field also triggers unlock
+                if (validationCodeInput && tokenInput) {
+                    validationCodeInput.addEventListener('keydown', async function(e) {
+                        if (e.key !== 'Enter') return;
+                        e.preventDefault();
+                        tokenInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
                     });
                 }
 
@@ -1479,15 +1563,19 @@
                                         tokenInput.value = data.token;
                                         tokenInput.dispatchEvent(new Event('input'));
                                     }
-                                    const enterEvent = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true });
-                                    tokenInput.dispatchEvent(enterEvent);
                                 }
-                                if (sandboxModalSuccess) { sandboxModalSuccess.textContent = 'Sandbox token sent to ' + email + '! It\'s also pasted above.'; sandboxModalSuccess.style.display = 'block'; }
+                                if (validationCodeInput) {
+                                    validationCodeInput.value = '';
+                                    setTimeout(() => validationCodeInput.focus(), 100);
+                                }
+                                if (sandboxModalSuccess) { sandboxModalSuccess.textContent = 'Token emailed to ' + email + '. The token is pasted above — enter the validation code from your email to unlock.'; sandboxModalSuccess.style.display = 'block'; }
                                 if (sandboxModalError) { sandboxModalError.style.display = 'none'; }
-                                setTimeout(closeSandboxModal, 2000);
-                                if (typeof showToast === 'function') showToast(data.message || 'Sandbox token emailed and pasted — 14 days', 'success');
+                                setTimeout(closeSandboxModal, 3000);
+                                if (typeof showToast === 'function') showToast('Sandbox token pasted. Enter the validation code from your email.', 'success');
                             } else {
-                                if (sandboxModalError) { sandboxModalError.textContent = data.error || data.message || 'Failed to generate sandbox token.'; sandboxModalError.style.display = 'block'; }
+                                const errMsg = data.message || data.error || 'Failed to generate sandbox token.';
+                                const retryHint = data.retryAfterMinutes ? ` Try again in ${data.retryAfterMinutes} minute(s).` : '';
+                                if (sandboxModalError) { sandboxModalError.textContent = errMsg + retryHint; sandboxModalError.style.display = 'block'; }
                                 if (sandboxModalSuccess) { sandboxModalSuccess.style.display = 'none'; }
                             }
                         } catch (err) {
@@ -1800,7 +1888,7 @@
         }
     })();
     </script>
-    <script src="js-es2018/dashboard/main.js?h=1781475000200" defer></script>
+    <script src="js-es2018/dashboard/main.js?h=20260715roadmap1" defer></script>
     <script>
     // Diagnostic panel disabled by default. Add ?debug=1 to URL to enable.
     (function() {

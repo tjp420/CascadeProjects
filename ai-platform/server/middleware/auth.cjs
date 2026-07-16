@@ -25,7 +25,8 @@ const {
   getTrustLevelRateLimit,
   evaluateTrustLevel,
   authorize,
-  requireTrustLevel
+  requireTrustLevel,
+  canAccessDashboardWrite
 } = require('../lib/auth/trust-levels.cjs');
 
 const {
@@ -217,6 +218,27 @@ const authenticate = async (req, res, next) => {
   }
 };
 
+/**
+ * Middleware factory that requires the authenticated user to have write-heavy
+ * dashboard privileges (team/paid tier, admin, or team_dashboard feature).
+ * Use this on endpoints that trigger scans, mutate settings, exports, or billing.
+ * Read-only audit/roadmap endpoints should use optionalAuthenticate instead.
+ */
+function requireDashboardWrite(req, res, next) {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Unauthorized', message: 'Authentication required' });
+  }
+  if (!canAccessDashboardWrite(req.user)) {
+    return res.status(403).json({
+      error: 'Forbidden',
+      message: 'Paid or team dashboard access required',
+      requiredTier: 'silver',
+      current: req.user.tier || req.user.plan || req.user.trustLevel || 'community'
+    });
+  }
+  next();
+}
+
 const optionalAuthenticate = async (req, res, next) => {
   try {
     const { user, error } = await resolveAuth(req, res);
@@ -239,11 +261,13 @@ module.exports = Object.freeze({
   verifyToken,
   authenticate,
   optionalAuthenticate,
+  requireDashboardWrite,
   recordTokenFirstUse,
   isTokenExpiredByFirstUse,
   invalidateToken,
   authorize,
   requireTrustLevel,
+  canAccessDashboardWrite,
   getTrustLevelRateLimit,
   evaluateTrustLevel,
   auditAuth,

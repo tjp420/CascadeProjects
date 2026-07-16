@@ -3,14 +3,14 @@
  */
 import { escapeHtml } from '../utils.js';
 import { classifyRegenerableArtifacts, softenPriorityActions, partitionArtifactDirectoryEntries, isBenchmarkCachePath } from './complete-scan-artifact-profile.browser.js';
-import { sanitizeCleanupBriefExport } from './cleanup-brief-export.browser.js?v=20260601cleanupbrief9';
-import { sanitizeDataCleanupReportExport } from './data-cleanup-export.browser.js?v=20260601datacleanup8';
-import { sanitizeCodebaseReportExport } from './codebase-export.browser.js?v=20260601codebase8';
-import { sanitizeRoadmapExport as applyBenchmarkRoadmapSanitize } from './roadmap-export.browser.js?v=20260601roadmap10';
-import { sanitizeConsolidationExport as sanitizeConsolidationExportCore } from './consolidation-export.browser.js?v=20260601consolidation11';
-import { sanitizeNpmAuditExport } from './npm-audit-export.browser.js?v=20260601npmaudit5';
-import { sanitizeComplianceBundleExport } from './compliance-export.browser.js?v=20260601complianceexport7';
-import { sanitizeSimplebeaconReportExport } from './simplebeacon-report-export.browser.js?v=20260601gateexport17';
+import { sanitizeCleanupBriefExport } from './cleanup-brief-export.browser.js?v=20260716cachefix1';
+import { sanitizeDataCleanupReportExport } from './data-cleanup-export.browser.js?v=20260716cachefix1';
+import { sanitizeCodebaseReportExport } from './codebase-export.browser.js?v=20260716cachefix1';
+import { sanitizeRoadmapExport as applyBenchmarkRoadmapSanitize } from './roadmap-export.browser.js?v=20260716cachefix1';
+import { sanitizeConsolidationExport as sanitizeConsolidationExportCore } from './consolidation-export.browser.js?v=20260716cachefix1';
+import { sanitizeNpmAuditExport } from './npm-audit-export.browser.js?v=20260716cachefix1';
+import { sanitizeComplianceBundleExport } from './compliance-export.browser.js?v=20260716cachefix1';
+import { sanitizeSimplebeaconReportExport } from './simplebeacon-report-export.browser.js?v=20260716cachefix1';
 /**
  * Format bytes.
  * @param {Array} bytes

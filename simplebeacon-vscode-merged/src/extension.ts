@@ -1,4 +1,4 @@
-// simplebeacon-ignore memory-leak — HTTP response accumulation and report processing
+// simplebeacon-ignore memory-leak, security — HTTP response accumulation and report processing; high-entropy string is a public verification key, not a secret
 console.log('[SimpleBeacon] extension.ts module loading...');
 import * as vscode from 'vscode';
 import * as path from 'path';
@@ -565,6 +565,25 @@ export function activate(context: vscode.ExtensionContext) {
             });
             req.write(body);
             req.end();
+          });
+          return;
+        }
+        if (uri.path === '/connect' || uri.path === 'connect') {
+          const params = new URLSearchParams(uri.query);
+          let route = params.get('route') || 'chatbot';
+          if (!route.startsWith('/')) {
+            route = `/dashboard/${route.replace(/^dashboard\/?/, '')}`;
+          }
+          const notifyBase = `http://127.0.0.1:${getDataServerPort()}/api`;
+          import('./sidebarMessenger').then(({ buildDashboardUrl, appendDashboardEmbedParams }) => {
+            let url = buildDashboardUrl('https://simplebeacon.ai', route);
+            url = appendDashboardEmbedParams(url, notifyBase, true);
+            return vscode.env.openExternal(vscode.Uri.parse(url));
+          }).then(() => {
+            vscode.window.showInformationMessage('SimpleBeacon: opened bridged dashboard in your browser.');
+          }).catch((e) => {
+            outputChannel.appendLine(`[URI connect] ${e instanceof Error ? e.message : String(e)}`);
+            vscode.window.showWarningMessage('Could not open bridged dashboard — is the extension data server running?');
           });
           return;
         }
@@ -1551,7 +1570,7 @@ export function activate(context: vscode.ExtensionContext) {
     registerCmd('simplebeacon.openRoadmapHtml', async () => {
       const files = ensureRoadmapFiles();
       if (files) {
-        await vscode.commands.executeCommand('simpleBrowser.show', vscode.Uri.file(files.roadmapHtmlPath).toString());
+        await vscode.env.openExternal(vscode.Uri.file(files.roadmapHtmlPath));
       }
     }),
     registerCmd('simplebeacon.showAiContextPane', async () => {
@@ -4227,7 +4246,8 @@ async function generateCodeMap(openPanel = true, scanRootOverride?: string | nul
 
     // Push code map data to sidebar immediately so UI updates even if HTML build fails
     outputChannel.appendLine(`[SimpleBeacon] Pushing code map data to sidebar: ${files.length} files, ${totalLines} lines`);
-    const isPaidTier = !['guest', 'community', 'developer', 'sandbox', 'instant', 'free', 'solo', ''].includes((ModernSidebarProvider.getCachedTier() || '').toLowerCase());
+    const isPaidTier = ModernSidebarProvider.getCachedIsAdmin()
+      || !['guest', 'community', 'developer', 'sandbox', 'instant', 'free', 'solo', ''].includes((ModernSidebarProvider.getCachedTier() || '').toLowerCase());
     modernSidebarProvider?.updateCodeMap({
       totalFiles: files.length,
       filesScanned: files.length,
@@ -4675,10 +4695,18 @@ function buildRoadmapHtml(roadmap: any): string {
   const summary = roadmap.summary || {};
   const phases = roadmap.phases || [];
   let rows = '';
+  const statusLabels: Record<string, string> = {
+    completed: 'Completed',
+    blocked: 'Blocked',
+    inProgress: 'In Progress',
+    pending: 'Pending'
+  };
   phases.forEach((phase: any) => {
     const tasks = (phase.tasks || []).map((t: any) => `<li>${escapeHtml(t.description)} ${t.done ? '✅' : '⬜'}</li>`).join('');
+    const statusClass = String(phase.status || 'pending').replace(/\s+/g, '');
+    const statusLabel = statusLabels[phase.status] || phase.status || 'Pending';
     rows += `<div class="phase">
-      <h3>${escapeHtml(phase.title)} <span class="badge ${phase.status}">${phase.status}</span></h3>
+      <h3>${escapeHtml(phase.title)} <span class="badge ${statusClass}">${statusLabel}</span></h3>
       <p>${escapeHtml(phase.description)}</p>
       <div class="progress"><div class="progress-fill" style="width:${phase.progress}%"></div></div>
       <ul>${tasks}</ul>
@@ -4691,29 +4719,41 @@ function buildRoadmapHtml(roadmap: any): string {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SimpleBeacon Roadmap</title>
 <style>
-:root { --bg: #0f1117; --fg: #e2e8f0; --panel: #161b22; --border: #30363d; --muted: #8b949e; --good: #22c55e; --warn: #f59e0b; --bad: #ef4444; }
+:root { --bg: #0f1117; --fg: #e2e8f0; --panel: #161b22; --border: #30363d; --muted: #8b949e; --good: #22c55e; --warn: #f59e0b; --bad: #ef4444; --info: #60a5fa; }
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--fg);padding:40px 20px;line-height:1.6}
+html { color-scheme: dark; }
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--fg);padding:40px 20px;line-height:1.6;min-height:100vh}
 .container{max-width:900px;margin:0 auto}
 header{margin-bottom:32px}
-h1{font-size:22px;margin-bottom:8px}
+h1{font-size:22px;margin-bottom:8px;font-weight:700}
 .meta{color:var(--muted);font-size:13px}
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:32px}
-.stat{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:16px;text-align:center}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:32px}
+.stat{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:16px 12px;text-align:center;min-width:0}
 .stat .value{font-size:24px;font-weight:700}
-.stat .label{font-size:11px;color:var(--muted);margin-top:4px}
+.stat .label{font-size:11px;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:0.03em}
 .phase{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:16px}
-.phase h3{font-size:14px;display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
-.badge{font-size:10px;text-transform:uppercase;padding:3px 8px;border-radius:12px}
+.phase h3{font-size:14px;display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px;gap:8px;flex-wrap:wrap}
+.phase h3 > span { flex-shrink: 0; margin-top: 1px; }
+.badge{font-size:10px;text-transform:uppercase;padding:3px 8px;border-radius:12px;font-weight:600;letter-spacing:0.03em;white-space:nowrap}
 .badge.completed{background:rgba(34,197,94,0.15);color:var(--good)}
 .badge.blocked{background:rgba(239,68,68,0.15);color:var(--bad)}
-.badge.inProgress{background:rgba(59,130,246,0.15);color:#60a5fa}
+.badge.inProgress{background:rgba(59,130,246,0.15);color:var(--info)}
 .badge.pending{background:rgba(245,158,11,0.15);color:var(--warn)}
-.phase p{font-size:12px;color:var(--muted);margin-bottom:12px}
+.phase p{font-size:12px;color:var(--muted);margin-bottom:12px;word-break:break-word}
 .progress{height:6px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden;margin-bottom:12px}
 .progress-fill{height:100%;background:var(--good);border-radius:3px}
 .phase ul{margin-left:18px;font-size:12px;color:var(--fg)}
-.phase li{margin-bottom:4px}
+.phase li{margin-bottom:6px;word-break:break-word}
+@media (max-width: 560px) {
+  body { padding: 16px 12px; }
+  h1 { font-size: 18px; }
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 24px; }
+  .stat { padding: 12px 8px; }
+  .stat .value { font-size: 20px; }
+  .phase { padding: 12px; }
+  .phase h3 { font-size: 13px; }
+  .badge { font-size: 9px; padding: 2px 6px; }
+}
 </style>
 </head>
 <body>

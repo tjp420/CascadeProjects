@@ -12,6 +12,9 @@
  * a browser extension or an Electron wrapper for full compatibility.
  */
 import { openInIde } from '../utils-lib/ideDeepLink.js';
+import { persistExtensionBridge, clearExtensionBridge } from '../utils-lib/url.js?v=20260716cachefix1';
+import { EXTENSION_ID, VSIX_DOWNLOAD_URL } from '../config.js';
+import { shouldProbeOllamaModels } from './aiKeysService.js?v=20260716cachefix1';
 // simplebeacon:production-leak-intent: localhost-agent-origins - These hardcoded loopback origins are required by the local agent bridge; they are not deploy leaks.
 const DEFAULT_AGENT_ORIGIN = 'http://127.0.0.1:55432'; // simplebeacon-ignore hardcoded-url
 const AGENT_4000_ORIGIN = 'http://127.0.0.1:4000'; // simplebeacon-ignore hardcoded-url deploy-leak
@@ -26,15 +29,144 @@ const AGENT_DOWNLOAD_URLS = {
 let cachedAgentStatus = null;
 let cachedAt = 0;
 const CACHE_TTL_MS = 30000;
+const FAILED_PROBE_CACHE_MS = 120000;
+function probeCacheFresh(cachedAt, status) {
+    const ttl = status && status.available ? CACHE_TTL_MS : FAILED_PROBE_CACHE_MS;
+    return cachedAt + ttl > Date.now();
+}
 let pendingProbe = null;
 let cachedAgent4000Status = null;
 let cachedAgent4000At = 0;
 let pendingProbe4000 = null;
+/** Dashboard + API on the same localhost machine (e.g. coming-soon dev on :59150). */
+export function isIntegratedLocalDashboard() {
+    if (typeof window === 'undefined')
+        return false;
+    const host = window.location.hostname.toLowerCase();
+    if (host !== 'localhost' && host !== '127.0.0.1' && host !== '[::1]')
+        return false;
+    return window.location.protocol === 'http:';
+}
+function isAgentJs4000Origin(origin) {
+    if (!origin)
+        return false;
+    try {
+        return new URL(String(origin)).port === '4000';
+    }
+    catch (_a) {
+        return String(origin).includes(':4000');
+    }
+}
+/** Drop stale agent.js:4000 bridge params when the integrated dashboard already serves /api. */
+export function clearStaleIntegratedBridgeParams() {
+    if (!isIntegratedLocalDashboard())
+        return false;
+    const override = readSbApiBaseOverride();
+    let cleared = false;
+    if (override) {
+        try {
+            if (isAgentJs4000Origin(new URL(String(override).replace(/\/api\/?$/, '')).origin)) {
+                clearExtensionBridge({ updateUrl: true });
+                cleared = true;
+            }
+        }
+        catch (_a) { /* ignore */ }
+    }
+    if (typeof window !== 'undefined' && window.__SB_BRIDGE_HOST__ && isAgentJs4000Origin(window.__SB_BRIDGE_HOST__)) {
+        try {
+            delete window.__SB_BRIDGE_HOST__;
+        }
+        catch (_b) { /* ignore */ }
+        cleared = true;
+    }
+    return cleared;
+}
 function hasAgentBridge() {
     return typeof window !== 'undefined' && !!window.simplebeaconAgentBridge;
 }
 function getAgentFetch() {
-    return hasAgentBridge() ? window.simplebeaconAgentBridge.fetch.bind(window.simplebeaconAgentBridge) : fetch;
+    if (hasAgentBridge() && typeof window.simplebeaconAgentBridge.fetch === 'function') {
+        return window.simplebeaconAgentBridge.fetch.bind(window.simplebeaconAgentBridge);
+    }
+    return fetch;
+}
+/** True when the hosted dashboard can relay loopback fetches via the VS Code wrapper iframe. */
+export function canUseParentBridgeFetch() {
+    if (typeof window === 'undefined' || !hasExtensionBridgeConfigured())
+        return false;
+    try {
+        return !!(window.parent && window.parent !== window);
+    }
+    catch (_a) {
+        return false;
+    }
+}
+/**
+ * Relay a fetch to localhost through the VS Code dashboard wrapper (avoids LNA prompts).
+ * @param {string} url
+ * @param {RequestInit} [init]
+ * @param {number} [timeoutMs]
+ */
+export function bridgeFetchViaParent(url, init = {}, timeoutMs = 8000) {
+    return new Promise((resolve, reject) => {
+        if (!canUseParentBridgeFetch()) {
+            reject(new Error('Parent bridge unavailable'));
+            return;
+        }
+        const requestId = `pbf_${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`;
+        let settled = false;
+        const cleanup = () => {
+            settled = true;
+            clearTimeout(timer);
+            window.removeEventListener('message', onMsg);
+        };
+        const timer = setTimeout(() => {
+            if (settled)
+                return;
+            cleanup();
+            reject(new Error('Parent bridge fetch timeout'));
+        }, timeoutMs);
+        const onMsg = (event) => {
+            const data = event === null || event === void 0 ? void 0 : event.data;
+            if (!data || data.command !== 'bridgeFetchResponse' || data.requestId !== requestId)
+                return;
+            cleanup();
+            if (data.error) {
+                reject(new Error(String(data.error)));
+                return;
+            }
+            resolve(new Response(data.body ?? '', {
+                status: data.status || 200,
+                headers: { 'Content-Type': data.contentType || 'application/json' }
+            }));
+        };
+        window.addEventListener('message', onMsg);
+        try {
+            window.parent.postMessage({
+                command: 'bridgeFetch',
+                requestId,
+                url,
+                init: {
+                    method: init.method || 'GET',
+                    headers: init.headers || undefined,
+                    body: init.body || undefined
+                }
+            }, '*');
+        }
+        catch (err) {
+            cleanup();
+            reject(err);
+        }
+    });
+}
+/** Prefer browser extension bridge, then VS Code wrapper relay, then direct fetch. */
+export function getBridgeFetch() {
+    if (hasAgentBridge())
+        return getAgentFetch();
+    if (canUseParentBridgeFetch()) {
+        return (url, init) => bridgeFetchViaParent(url, init);
+    }
+    return fetch;
 }
 function readSbApiBaseOverride() {
     if (typeof window === 'undefined')
@@ -55,7 +187,7 @@ function readSbApiBaseOverride() {
     return null;
 }
 /** Extension IDE data-server origin (dynamic port), when sb_api_base is injected. */
-function getExtensionBridgeOrigin() {
+export function getExtensionBridgeOrigin() {
     const override = readSbApiBaseOverride();
     if (!override)
         return null;
@@ -65,6 +197,8 @@ function getExtensionBridgeOrigin() {
         const host = parsed.hostname.toLowerCase();
         if (host !== '127.0.0.1' && host !== 'localhost')
             return null;
+        if (isIntegratedLocalDashboard() && isAgentJs4000Origin(parsed.origin))
+            return null;
         return parsed.origin;
     }
     catch (_a) {
@@ -72,7 +206,12 @@ function getExtensionBridgeOrigin() {
     }
 }
 function resolveBridgeOrigin() {
-    return getExtensionBridgeOrigin() || AGENT_4000_ORIGIN;
+    const bridge = getExtensionBridgeOrigin();
+    if (bridge)
+        return bridge;
+    if (isIntegratedLocalDashboard())
+        return null;
+    return AGENT_4000_ORIGIN;
 }
 function isExtensionBridgeOrigin(origin) {
     const bridge = getExtensionBridgeOrigin();
@@ -81,6 +220,410 @@ function isExtensionBridgeOrigin(origin) {
 /** True when the dashboard was loaded with sb_api_base (VS Code / Windsurf extension). */
 export function hasExtensionBridgeConfigured() {
     return !!getExtensionBridgeOrigin();
+}
+
+/** Fetch that uses extension or VS Code wrapper bridge when available (bypasses HTTPS→localhost LNA). */
+export function getLocalBridgeFetch() {
+    return getBridgeFetch();
+}
+
+const DEFAULT_OLLAMA_ORIGIN = 'http://127.0.0.1:11434'; // simplebeacon-ignore hardcoded-url
+const EXTENSION_PROBE_PORTS = [54358, 54697, 58681];
+
+export function getVsixDownloadUrl() {
+    return VSIX_DOWNLOAD_URL || '/downloads/simplebeacon.vsix';
+}
+
+/** vscode:// or cursor:// deep link — extension opens simplebeacon.ai with bridge params in the system browser. */
+export function buildExtensionConnectDeepLink(route = 'chatbot') {
+    if (typeof window === 'undefined')
+        return '';
+    const scheme = /Cursor/i.test(navigator.userAgent || '') ? 'cursor' : 'vscode';
+    const segment = String(route || 'chatbot').replace(/^\//, '').replace(/^dashboard\/?/, '') || 'chatbot';
+    return `${scheme}://${EXTENSION_ID}/connect?route=${encodeURIComponent(segment)}`;
+}
+
+function canProbeLoopbackPorts() {
+    if (typeof window === 'undefined')
+        return false;
+    const host = window.location.hostname;
+    const isLoopback = /^(localhost|127\.0\.0\.1|\[::1\])$/i.test(host);
+    return isLoopback && window.location.protocol === 'http:';
+}
+
+function normalizeExtensionApiBase(value) {
+    const trimmed = String(value || '').trim().replace(/\/+$/, '');
+    if (!trimmed)
+        return null;
+    return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
+}
+
+/**
+ * Probe common SimpleBeacon data-server ports for /api/ping.
+ * Skips loopback probes on hosted HTTPS (mixed content / CORS) unless the browser
+ * extension bridge is active — use sb_api_base from VS Code or Connect button instead.
+ * @param {number[]} [ports]
+ * @param {{ userInitiated?: boolean }} [options]
+ * @returns {Promise<string|null>} API base e.g. http://127.0.0.1:54358/api
+ */
+export async function probeExtensionDataServer(ports = EXTENSION_PROBE_PORTS, _options = {}) {
+    if (typeof window === 'undefined')
+        return null;
+    if (!canProbeLoopbackPorts())
+        return null;
+    const doFetch = getLocalBridgeFetch();
+    for (const port of ports) {
+        const origin = `http://127.0.0.1:${port}`; // simplebeacon-ignore hardcoded-url
+        if (isMixedContent(origin) && !hasAgentBridge())
+            continue;
+        try {
+            const res = await doFetch(`${origin}/api/ping`, { signal: AbortSignal.timeout(2200) });
+            if (!res.ok)
+                continue;
+            const data = await res.json().catch(() => ({}));
+            if (data && (data.online === true || data.status === 'ok'))
+                return `${origin}/api`;
+        }
+        catch {
+            /* extension not on this port */
+        }
+    }
+    return null;
+}
+
+/** Discover a running VS Code extension data-server and persist bridge params in this tab. */
+export async function discoverAndApplyExtensionBridge(options = {}) {
+    const stored = readSbApiBaseOverride();
+    const normalizedStored = stored ? normalizeExtensionApiBase(stored) : null;
+    if (hasExtensionBridgeConfigured() && normalizedStored) {
+        if (!canProbeLoopbackPorts()) {
+            if (options.userInitiated) {
+                const health = await probeExtensionBridgeHealth();
+                if (health.ok) {
+                    return { ok: true, source: 'probe', apiBase: normalizedStored };
+                }
+            }
+            if (hasExplicitBridgeParam()) {
+                return { ok: true, source: 'existing', apiBase: normalizedStored, unverified: true };
+            }
+            clearExtensionBridge({ updateUrl: true });
+            return { ok: false, source: 'stale' };
+        }
+        let ports = EXTENSION_PROBE_PORTS;
+        try {
+            const port = Number(new URL(String(stored).replace(/\/api\/?$/, '')).port);
+            if (port)
+                ports = [port];
+        }
+        catch (_a) { /* use defaults */ }
+        const alive = await probeExtensionDataServer(ports);
+        if (!alive) {
+            if (hasExplicitBridgeParam()) {
+                return { ok: true, source: 'existing', apiBase: normalizedStored, unverified: true };
+            }
+            clearExtensionBridge({ updateUrl: true });
+            return { ok: false, source: 'stale' };
+        }
+        return { ok: true, source: 'existing', apiBase: alive };
+    }
+    if (!canProbeLoopbackPorts()) {
+        return {
+            ok: false,
+            source: isHostedHttpsDashboard() ? 'hosted-https' : 'none',
+            needsDeepLink: isHostedHttpsDashboard()
+        };
+    }
+    const apiBase = await probeExtensionDataServer();
+    if (!apiBase) {
+        return { ok: false, source: 'none' };
+    }
+    const applied = persistExtensionBridge(apiBase, { websiteMode: true, updateUrl: true });
+    return applied ? { ok: true, source: 'probe', apiBase } : { ok: false, source: 'denied' };
+}
+
+/** Validate stored bridge on page load. Only clear it if there was no explicit user/extension-provided param. */
+export async function validateExtensionBridgeOnLoad() {
+    if (typeof window === 'undefined')
+        return { ok: false };
+    const override = readSbApiBaseOverride();
+    if (!override)
+        return { ok: false, source: 'none' };
+    const normalized = normalizeExtensionApiBase(override);
+    if (!canProbeLoopbackPorts()) {
+        if (hasExplicitBridgeParam()) {
+            return { ok: true, apiBase: normalized, source: 'existing', unverified: true };
+        }
+        clearExtensionBridge({ updateUrl: true });
+        return { ok: false, source: 'stale' };
+    }
+    let port = 54358;
+    try {
+        port = Number(new URL(override.replace(/\/api\/?$/, '')).port) || 54358;
+    }
+    catch (_a) { /* default port */ }
+    const apiBase = await probeExtensionDataServer([port]);
+    if (apiBase)
+        return { ok: true, apiBase };
+    if (hasExplicitBridgeParam())
+        return { ok: true, apiBase: normalized, source: 'existing', unverified: true };
+    clearExtensionBridge({ updateUrl: true });
+    return { ok: false, source: 'stale' };
+}
+
+export function hasExplicitBridgeParam() {
+    if (typeof location === 'undefined') return false;
+    try {
+        const params = new URLSearchParams(location.search);
+        if (params.get('sb_api_base') || params.get('sb_notify_base')) return true;
+    }
+    catch (_a) { /* ignore */ }
+    try {
+        if (typeof sessionStorage !== 'undefined') {
+            if (sessionStorage.getItem('sb_api_base') || sessionStorage.getItem('sb_notify_base')) return true;
+        }
+    }
+    catch (_b) { /* ignore */ }
+    return false;
+}
+
+/**
+ * Resolve an Ollama API URL. When sb_api_base points at the extension data server,
+ * route through its proxy so https://simplebeacon.ai can reach local Ollama.
+ * @param {string} ollamaPath e.g. '/api/tags' or '/api/chat'
+ * @param {string} [baseUrl] Ollama origin, default 127.0.0.1:11434
+ * @returns {string}
+ */
+export function resolveOllamaProxyUrl(ollamaPath, baseUrl = DEFAULT_OLLAMA_ORIGIN) {
+    const normalized = String(baseUrl || DEFAULT_OLLAMA_ORIGIN).replace(/\/+$/, '');
+    const path = String(ollamaPath || '').startsWith('/') ? String(ollamaPath) : `/${ollamaPath || ''}`;
+    const bridge = getExtensionBridgeOrigin();
+    if (bridge) {
+        const qs = `baseUrl=${encodeURIComponent(normalized)}`;
+        if (path === '/api/tags') {
+            return `${bridge}/api/simplebeacon/ollama/models?${qs}`;
+        }
+        if (path === '/api/chat') {
+            return `${bridge}/api/simplebeacon/ollama/chat?${qs}`;
+        }
+        return `${bridge}/api/simplebeacon/ollama/proxy?${qs}&path=${encodeURIComponent(path)}`;
+    }
+    return `${normalized}${path}`;
+}
+
+async function parseOllamaProbeResponse(res) {
+    if (!res.ok) {
+        return { ok: false, corsBlocked: res.status === 403, status: res.status };
+    }
+    try {
+        const data = await res.json();
+        if (data && data.source === 'ollama-proxy') {
+            if (data.error && !(Array.isArray(data.models) && data.models.length)) {
+                return {
+                    ok: false,
+                    corsBlocked: false,
+                    status: res.status,
+                    error: data.error,
+                    bridgeReachable: true
+                };
+            }
+            return { ok: true, corsBlocked: false, status: res.status, bridgeReachable: true };
+        }
+        if (data && Array.isArray(data.models)) {
+            return { ok: true, corsBlocked: false, status: res.status };
+        }
+    }
+    catch (_a) {
+        // Direct Ollama /api/tags may not be JSON in edge cases — treat HTTP 200 as success.
+    }
+    return { ok: true, corsBlocked: false, status: res.status };
+}
+
+function buildBridgeOllamaProbeUrls(baseUrl = DEFAULT_OLLAMA_ORIGIN) {
+    const normalized = String(baseUrl || DEFAULT_OLLAMA_ORIGIN).replace(/\/+$/, '');
+    const bridge = getExtensionBridgeOrigin();
+    if (!bridge) {
+        return [`${normalized}/api/tags`];
+    }
+    const qs = `baseUrl=${encodeURIComponent(normalized)}`;
+    return [
+        `${bridge}/api/simplebeacon/ollama/models?${qs}`,
+        `${bridge}/api/tags?${qs}`,
+        `${bridge}/api/simplebeacon/ollama/proxy?${qs}&path=${encodeURIComponent('/api/tags')}`
+    ];
+}
+
+/** Probe URLs for Ollama chat through the extension data server (new + legacy paths). */
+export function buildBridgeOllamaChatUrls(baseUrl = DEFAULT_OLLAMA_ORIGIN) {
+    const normalized = String(baseUrl || DEFAULT_OLLAMA_ORIGIN).replace(/\/+$/, '');
+    const bridge = getExtensionBridgeOrigin();
+    if (!bridge) {
+        return [`${normalized}/api/chat`];
+    }
+    const qs = `baseUrl=${encodeURIComponent(normalized)}`;
+    return [
+        `${bridge}/api/simplebeacon/ollama/chat?${qs}`,
+        `${bridge}/api/simplebeacon/ollama/proxy?${qs}&path=${encodeURIComponent('/api/chat')}`
+    ];
+}
+
+export { buildBridgeOllamaProbeUrls };
+
+/** Lightweight health check for the VS Code extension data server on localhost. */
+export async function probeExtensionBridgeHealth() {
+    const bridge = getExtensionBridgeOrigin();
+    if (!bridge) {
+        return { ok: false, reason: 'no-bridge' };
+    }
+    const doFetch = getLocalBridgeFetch();
+    try {
+        const res = await doFetch(`${bridge}/api/ping`, { signal: AbortSignal.timeout(2500) });
+        if (!res.ok) {
+            return { ok: false, reason: 'ping-failed', status: res.status };
+        }
+        const data = await res.json().catch(() => ({}));
+        return { ok: data?.online !== false, reason: 'ping-ok' };
+    }
+    catch (err) {
+        return { ok: false, reason: 'unreachable', error: String(err?.message || err) };
+    }
+}
+
+/**
+ * Probe Ollama on the user's machine (127.0.0.1:11434).
+ * Works from HTTP localhost dashboards and from HTTPS hosted dashboards when the
+ * browser allows private-network requests or the extension bridge is active.
+ * @param {string} [baseUrl]
+ * @returns {Promise<boolean>}
+ */
+export async function probeLocalOllama(baseUrl = DEFAULT_OLLAMA_ORIGIN) {
+    if (typeof window === 'undefined')
+        return false;
+    const origin = String(baseUrl || DEFAULT_OLLAMA_ORIGIN).replace(/\/$/, '');
+    // Hosted dashboard: never auto-probe loopback — use Connect local Ollama (probeUserInitiatedOllama).
+    if (isHostedHttpsDashboard())
+        return false;
+    if (!shouldProbeOllamaModels(origin))
+        return false;
+    const doFetch = getLocalBridgeFetch();
+    const probeUrl = resolveOllamaProxyUrl('/api/tags', origin);
+    // On an HTTPS-hosted dashboard, probing an HTTP loopback URL will be blocked by the
+    // browser's mixed-content / Local Network Access policy unless a runtime agent bridge
+    // is actually present to intercept the fetch.
+    if (isHostedHttpsDashboard() && isMixedContent(probeUrl) && !hasAgentBridge()) {
+        return false;
+    }
+    try {
+        const res = await doFetch(probeUrl, { signal: AbortSignal.timeout(2500) });
+        const parsed = await parseOllamaProbeResponse(res);
+        return parsed.ok;
+    }
+    catch {
+        return false;
+    }
+}
+
+/** Single user-initiated probe (Connect local Ollama) — bypasses hosted auto-probe guard. */
+export async function probeUserInitiatedOllama(baseUrl = DEFAULT_OLLAMA_ORIGIN) {
+    if (typeof window === 'undefined')
+        return { ok: false, corsBlocked: false, status: 0 };
+    const origin = String(baseUrl || DEFAULT_OLLAMA_ORIGIN).replace(/\/$/, '');
+    const siteOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://simplebeacon.ai';
+    // Hosted HTTPS cannot read Ollama directly — only use an extension-injected bridge (no loopback port scan).
+    if (isHostedHttpsDashboard() && !hasExtensionBridgeConfigured()) {
+        return {
+            ok: false,
+            corsBlocked: true,
+            status: 403,
+            error: `Direct browser access to Ollama is blocked from ${siteOrigin}. Connect the VS Code extension (recommended), or quit the Ollama tray app and run: $env:OLLAMA_ORIGINS="${siteOrigin}"; ollama serve`
+        };
+    }
+    const doFetch = getLocalBridgeFetch();
+    const viaBridge = hasExtensionBridgeConfigured();
+    const bridgeHealth = viaBridge ? await probeExtensionBridgeHealth() : { ok: false };
+    const probeUrls = buildBridgeOllamaProbeUrls(origin);
+    let lastResult = { ok: false, corsBlocked: false, status: 0, error: '' };
+    for (const probeUrl of probeUrls) {
+        try {
+            const res = await doFetch(probeUrl, { signal: AbortSignal.timeout(4000) });
+            const parsed = await parseOllamaProbeResponse(res);
+            lastResult = { ...parsed, status: parsed.status || res.status };
+            if (parsed.ok) {
+                return { ok: true, corsBlocked: false, status: parsed.status };
+            }
+            if (res.status !== 404) {
+                break;
+            }
+        }
+        catch (err) {
+            const msg = String(err?.message || err).toLowerCase();
+            const isLocalNetworkAccessBlocked = msg.includes('local network access') ||
+                msg.includes('private network access') ||
+                msg.includes('permission required');
+            lastResult = {
+                ok: false,
+                corsBlocked: isLocalNetworkAccessBlocked,
+                status: 0,
+                error: String(err?.message || err)
+            };
+            if (!viaBridge) {
+                break;
+            }
+        }
+    }
+    if (viaBridge) {
+        if (bridgeHealth.ok && lastResult.status === 404) {
+            return {
+                ok: false,
+                corsBlocked: false,
+                status: 404,
+                error: 'Extension data server is running but Ollama proxy routes returned 404. Install the latest SimpleBeacon VSIX, reload VS Code, then run ollama serve locally.'
+            };
+        }
+        if (bridgeHealth.ok && lastResult.bridgeReachable && lastResult.error) {
+            return {
+                ok: false,
+                corsBlocked: false,
+                status: lastResult.status || 502,
+                error: `Extension bridge connected. ${lastResult.error}`
+            };
+        }
+        if (!bridgeHealth.ok) {
+            return {
+                ok: false,
+                corsBlocked: lastResult.corsBlocked,
+                status: lastResult.status,
+                error: lastResult.corsBlocked
+                    ? `Browser blocked access to the VS Code extension data server. Grant Local Network Access for ${siteOrigin}, or open this page from the SimpleBeacon sidebar in VS Code.`
+                    : 'Extension data server unreachable. Reload the VS Code extension and try again.'
+            };
+        }
+        return {
+            ok: false,
+            corsBlocked: false,
+            status: lastResult.status,
+            error: lastResult.error || 'Extension bridge could not reach Ollama. Run ollama serve locally.'
+        };
+    }
+    try {
+        const res = await doFetch(probeUrls[0], { signal: AbortSignal.timeout(4000) });
+        const parsed = await parseOllamaProbeResponse(res);
+        if (parsed.ok) {
+            return { ok: true, corsBlocked: false, status: parsed.status };
+        }
+        return { ok: false, corsBlocked: res.status === 403, status: res.status, error: parsed.error };
+    }
+    catch (err) {
+        const msg = String(err?.message || err).toLowerCase();
+        const isLocalNetworkAccessBlocked = msg.includes('local network access') ||
+            msg.includes('private network access') ||
+            msg.includes('permission required');
+        const corsBlocked = isLocalNetworkAccessBlocked ||
+            msg.includes('cors') ||
+            msg.includes('cross-origin') ||
+            msg.includes('networkerror') ||
+            msg.includes('failed to fetch');
+        return { ok: false, corsBlocked, status: 0 };
+    }
 }
 
 /**
@@ -130,10 +673,10 @@ export function isLocalPath(value) {
  */
 export async function probeAgent(origin = DEFAULT_AGENT_ORIGIN) {
     if (!shouldProbeLocalAgent()) {
-        return HOSTED_AGENT_OFFLINE;
+        return isIntegratedLocalDashboard() ? INTEGRATED_AGENT_SKIP : HOSTED_AGENT_OFFLINE;
     }
     const now = Date.now();
-    if (cachedAgentStatus && cachedAt + CACHE_TTL_MS > now) {
+    if (cachedAgentStatus && probeCacheFresh(cachedAt, cachedAgentStatus)) {
         return cachedAgentStatus;
     }
     if (pendingProbe) {
@@ -301,12 +844,31 @@ export async function fetchScanProgressViaExtensionBridge(projectPath) {
  * @param {string} [origin]
  */
 export async function probeAgent4000(origin = resolveBridgeOrigin()) {
+    if (!shouldProbeAgent4000()) {
+        return {
+            available: false,
+            likelyBlocked: false,
+            extensionBridge: false,
+            origin: resolveBridgeOrigin() || AGENT_4000_ORIGIN,
+            integratedSkipped: isIntegratedLocalDashboard()
+        };
+    }
+    if (!origin) {
+        return {
+            available: false,
+            likelyBlocked: false,
+            extensionBridge: false,
+            origin: AGENT_4000_ORIGIN,
+            integratedSkipped: true
+        };
+    }
     const extensionBridge = isExtensionBridgeOrigin(origin);
     if (isHostedHttpsDashboard() && !extensionBridge && !hasAgentBridge()) {
         return { available: false, likelyBlocked: false, extensionBridge: false, origin, hostedSkipped: true };
     }
     const now = Date.now();
-    if (cachedAgent4000Status && cachedAgent4000At + CACHE_TTL_MS > now && cachedAgent4000Status.origin === origin) {
+    if (cachedAgent4000Status && cachedAgent4000Status.origin === origin &&
+        probeCacheFresh(cachedAgent4000At, cachedAgent4000Status)) {
         return cachedAgent4000Status;
     }
     if (pendingProbe4000) {
@@ -602,16 +1164,38 @@ export function isHostedHttpsDashboard() {
         return false;
     return window.location.protocol === 'https:';
 }
+/** Skip standalone agent.js:4000 when the integrated dashboard already serves /api on this origin. */
+export function shouldProbeAgent4000() {
+    if (hasAgentBridge())
+        return true;
+    const bridge = getExtensionBridgeOrigin();
+    if (bridge)
+        return true;
+    if (isHostedHttpsDashboard())
+        return false;
+    if (isIntegratedLocalDashboard())
+        return false;
+    return canProbeLoopbackPorts();
+}
 /** Skip doomed localhost agent probes on hosted HTTPS unless an extension bridge is configured. */
 export function shouldProbeLocalAgent() {
-    if (!isHostedHttpsDashboard())
-        return true;
-    return hasAgentBridge() || hasExtensionBridgeConfigured();
+    if (isHostedHttpsDashboard()) {
+        return hasAgentBridge() || hasExtensionBridgeConfigured();
+    }
+    if (isIntegratedLocalDashboard() && !getExtensionBridgeOrigin() && !hasAgentBridge()) {
+        return false;
+    }
+    return true;
 }
 const HOSTED_AGENT_OFFLINE = {
     available: false,
     scannerAvailable: false,
     hostedSkipped: true
+};
+const INTEGRATED_AGENT_SKIP = {
+    available: false,
+    scannerAvailable: false,
+    integratedSkipped: true
 };
 /**
  * Format a status message for the UI.

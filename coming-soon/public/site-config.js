@@ -2,6 +2,7 @@
 window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
   env: 'production',
   githubUrl: 'https://github.com/tjp420/simplebeacon',
+  vsixDownloadUrl: 'https://simplebeacon.ai/downloads/simplebeacon.vsix',
   // Intentional demo content URLs — these are sample pages for the marketing site,
   // not mock/fixture data embedded in production application code. simplebeacon-ignore
   sampleReportUrl: 'sample-report.html', // simplebeacon:production-leak-intent: demo-content - sample URL for marketing site, not production fixture

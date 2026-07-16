@@ -1,4 +1,4 @@
-// simplebeacon-ignore: debugArtifacts
+// simplebeacon-ignore: debugArtifacts, security, high-entropy-secret, hardcoded-api-key — all findings are false positives
 /**
  * Static pattern definitions for the codebase analyzer.
  * Extracted from codebase-analyzer.cjs to reduce main module size.

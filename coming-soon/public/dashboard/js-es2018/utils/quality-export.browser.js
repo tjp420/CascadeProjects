@@ -3,7 +3,7 @@
  * Quality & Security page export bundle — browser mirror of server/lib/quality-export.js
 
  */
-import { sanitizeNpmAuditExport } from './npm-audit-export.browser.js?v=20260601npmaudit5';
+import { sanitizeNpmAuditExport } from './npm-audit-export.browser.js?v=20260716cachefix1';
 /**
  * Npm audit summary.
  * @param {any} audit

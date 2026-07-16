@@ -8,6 +8,7 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 
+const logger = require('./server/lib/app-logger.cjs');
 const constants = require('./server/config/constants.cjs');
 // Prefer v1-internal env when present (start script or direct node simplebeacon-server.js)
 const v1InternalEnvPath = path.join(__dirname, '.env.v1-internal');
@@ -23,7 +24,7 @@ if (fs.existsSync(envPath)) {
       applyLocalV1InternalDevProfile();
     }
   } catch (envErr) {
-    console.warn('[Simplebeacon] dotenv/secret-config load failed');
+    logger.warn('[Simplebeacon] dotenv/secret-config load failed');
   }
 }
 
@@ -51,6 +52,7 @@ const {
 const setupLocalModelsAPI = require('./server/routes/local-models-api.cjs');
 const { setupFlexibleAnalyzeAPI } = require('./server/routes/flexible-analyze-api.cjs');
 const { setupChatbotAPI } = require('./server/routes/chatbot-api.cjs');
+const { setupWebAuthnAPI } = require('./server/routes/webauthn-api.cjs');
 const { setupPhase2Integration } = require('./server/bootstrap/phase2-integration.cjs');
 const { setupRealtimeAnalysisAPI } = require('./server/routes/realtime-analysis-api.cjs');
 const pathHealthRouter = require('./server/api/metrics/path-health.cjs');
@@ -215,7 +217,7 @@ if (
   && process.env.NODE_ENV !== 'test'
 ) {
   process.env.SIMPLEBEACON_INTERNAL_DASHBOARD = 'true';
-  console.warn(
+  logger.warn(
     `[Simplebeacon] Auto-enabled SIMPLEBEACON_INTERNAL_DASHBOARD for local dev on port ${PORT}. `
     + 'Use npm run dashboard:v1-internal for the full v1.0-internal profile.'
   );
@@ -294,7 +296,7 @@ if (internalDashboard && !process.env.DASHBOARD_VAULT_PASSWORD && process.env.NO
 const verboseRuntimeLogs = process.env.DEBUG_LOGS === 'true' || process.env.NODE_ENV === 'development';
 const debugLog = (...args) => {
   if (verboseRuntimeLogs) {
-    console.log(...args);
+    logger.info(...args);
   }
 };
 /** Production: marketing at /. Local internal preview: dashboard at /, marketing at /landing */
@@ -317,7 +319,7 @@ function setVaultSessionCookie(res) {
 }
 
 if (process.env.NODE_ENV !== 'test') {
-  console.log(
+  logger.info(
     `[Simplebeacon] SIMPLEBEACON_LANDING=${process.env.SIMPLEBEACON_LANDING || '(unset)'}`
     + ` internalDashboard=${internalDashboard} → /=${landingAtRoot ? 'landing' : 'dashboard'}`
   );
@@ -395,7 +397,7 @@ app.post('/api/ai-context', express.json({ limit: '10mb' }), (req, res) => {
     res.json({ success: true, content });
   } catch (err) {
     const msg = safeErrorMessage(err);
-    console.error('[AI-Context] Error:', msg);
+    logger.error('[AI-Context] Error:', msg);
     res.status(500).json({ success: false, error: msg });
   }
 });
@@ -407,6 +409,20 @@ app.get('/health', (_req, res) => {
 app.get('/api/health', (_req, res) => {
   res.set('Content-Type', 'application/json');
   res.status(200).json({ status: 'healthy', timestamp: new Date().toISOString() });
+});
+
+app.get('/api/health/email', (_req, res) => {
+  try {
+    const { getEmailStatus } = require('../coming-soon/services/email.cjs');
+    const status = getEmailStatus();
+    res.json({
+      ok: status.configured,
+      ...status,
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
 });
 
 app.get('/api/ping', (_req, res) => {
@@ -423,7 +439,7 @@ app.get('/api/health/routes', (_req, res) => {
   });
 });
 if (process.env.NODE_ENV !== 'test') {
-  console.log('[Simplebeacon] Registered GET /api/analyze/data-cleanup');
+  logger.info('[Simplebeacon] Registered GET /api/analyze/data-cleanup');
 }
 
 const dashboardPath = path.join(webRoot, 'simplebeacon-dashboard/index.html');
@@ -752,7 +768,7 @@ if (landingRootExists) {
       if (!rows.some((r) => r && typeof r === 'object' && r.email === email)) rows.push(entry);
       await fs.promises.writeFile(waitlistFile, JSON.stringify(rows, null, 2));
     } catch (err) {
-      console.warn('[waitlist] persist failed:', safeErrorMessage(err));
+      logger.warn('[waitlist] persist failed:', safeErrorMessage(err));
     }
     return res.json({ ok: true, email });
   });
@@ -791,7 +807,7 @@ if (landingRootExists) {
       if (rows.length > MAX_WAITLIST_EVENTS) rows = rows.slice(-MAX_WAITLIST_EVENTS);
       await fs.promises.writeFile(eventsFile, JSON.stringify(rows, null, 2));
     } catch (err) {
-      console.warn('[waitlist] event persist failed:', safeErrorMessage(err));
+      logger.warn('[waitlist] event persist failed:', safeErrorMessage(err));
     }
     return res.json({ ok: true });
   });
@@ -1006,13 +1022,14 @@ async function bootstrapPhase2Routes() {
         { name: 'assessmentRoutes', fn: () => require('./server/api/assessment/routes.cjs').setupAssessmentRoutes(app) },
         { name: 'repositoryScanner', fn: () => setupRepositoryScannerAPIs(app, { platformRoot: __dirname }) },
         { name: 'chatbotAPI', fn: () => setupChatbotAPI(app) },
+        { name: 'webauthnAPI', fn: () => setupWebAuthnAPI(app) },
         { name: 'promptService', fn: () => {
             try {
                 const promptService = require('./server/services/prompt-service.cjs');
                 app.use('/api/prompts', promptService);
             }
             catch (e) {
-                console.error('[PromptService] prompt-service routes not loaded:', e?.message || e);
+                logger.error('[PromptService] prompt-service routes not loaded:', e?.message || e);
             }
         } },
         { name: 'aiMathAudit', fn: () => setupAiMathAuditRoute(app, __dirname) },
@@ -1024,8 +1041,8 @@ async function bootstrapPhase2Routes() {
         try {
             await setup.fn();
         } catch (error) {
-            console.error(`❌ ${setup.name} setup failed:`, safeErrorMessage(error)); // simplebeacon-ignore production-leak — error message text only
-            console.error('Stack:', error?.stack || '(no stack)');
+            logger.error(`❌ ${setup.name} setup failed:`, safeErrorMessage(error)); // simplebeacon-ignore production-leak — error message text only
+            logger.error('Stack:', error?.stack || '(no stack)');
         }
     }
 
@@ -1041,8 +1058,8 @@ async function bootstrapPhase2Routes() {
             authMiddleware: optionalAuthenticate
         });
     } catch (error) {
-        console.error('❌ Dashboard stub setup failed:', safeErrorMessage(error)); // simplebeacon-ignore production-leak — error message text only
-        console.error('Stack:', error?.stack || '(no stack)');
+        logger.error('❌ Dashboard stub setup failed:', safeErrorMessage(error)); // simplebeacon-ignore production-leak — error message text only
+        logger.error('Stack:', error?.stack || '(no stack)');
         setupDashboardStubAPIs(app, webRoot, { // simplebeacon-ignore production-leak — real production dashboard API module
             authMiddleware: optionalAuthenticate
         });
@@ -1096,11 +1113,11 @@ async function startServer() {
       if (needsCopy) {
         fs.mkdirSync(path.dirname(activeReportPath), { recursive: true });
         fs.copyFileSync(bundledReportPath, activeReportPath);
-        console.log('[Server] Copied bundled report to', activeReportPath.replace(/\\/g, '/'));
+        logger.info('[Server] Copied bundled report to', activeReportPath.replace(/\\/g, '/'));
       }
     }
   } catch (reportCopyErr) {
-    console.warn('[Server] Could not copy bundled report:', reportCopyErr.message);
+    logger.warn('[Server] Could not copy bundled report:', reportCopyErr.message);
   }
 
   // Fallback report endpoint for the dashboard when the real simplebeacon API is unavailable
@@ -1123,7 +1140,7 @@ async function startServer() {
         modules: []
       });
     } catch (err) {
-      console.warn('[ReportFallback] Could not serve report:', err.message);
+      logger.warn('[ReportFallback] Could not serve report:', err.message);
       return res.status(500).json({ error: 'report_unavailable', message: err.message });
     }
   });
@@ -1203,7 +1220,7 @@ async function startServer() {
           const inventorySource = fs.existsSync(importRoot) ? importRoot : safePath;
           report.repositoryInventory = await countRepositoryInventory(inventorySource, { profile: 'all' });
         } catch (invErr) {
-          console.warn('[ReportImport] inventory enrichment failed:', invErr.message);
+          logger.warn('[ReportImport] inventory enrichment failed:', invErr.message);
         }
       }
       const sbDir = path.join(safePath, '.simplebeacon');
@@ -1212,14 +1229,14 @@ async function startServer() {
       }
       const reportPath = path.join(sbDir, 'report.json');
       await fs.promises.writeFile(reportPath, JSON.stringify(report, null, 2), 'utf8');
-      console.warn('[ReportImport] persisted report to', reportPath.replace(/\\/g, '/'));
+      logger.info('[ReportImport] persisted report to', reportPath.replace(/\\/g, '/'));
       return res.json({
         success: true,
         projectPath: importRootForward,
         reportVersion: report.reportVersion || report.version || null
       });
     } catch (err) {
-      console.warn('[ReportImport] failed:', err.message);
+      logger.warn('[ReportImport] failed:', err.message);
       return res.status(400).json({ success: false, error: err.message });
     }
   });
@@ -1373,7 +1390,14 @@ async function startServer() {
     const freeTokenRoutes = require('../coming-soon/routes/free-token.cjs');
     app.use(freeTokenRoutes);
   } catch (e) {
-    console.warn('[FreeToken] free-token routes not loaded:', e.message);
+    logger.warn('[FreeToken] free-token routes not loaded:', e.message);
+  }
+
+  try {
+    const { startEmailRetryWorker } = require('../coming-soon/lib/email-retry-bootstrap.cjs');
+    startEmailRetryWorker({ logger });
+  } catch (e) {
+    logger.warn('[EmailRetry] Worker bootstrap skipped:', e.message);
   }
 
   // Global error handler — return JSON for API routes instead of the default HTML error page
@@ -1416,61 +1440,61 @@ async function startServer() {
   try {
     wss = setupWebSocketServer(server);
   } catch (err) {
-    console.error('❌ WebSocket server setup failed:', safeErrorMessage(err));
+    logger.error('❌ WebSocket server setup failed:', safeErrorMessage(err));
     wss = null;
   }
 
   server.on('error', (err) => {
     if (err.code === 'EADDRINUSE') {
-      console.error(`❌ Port ${PORT} is already in use. Run: npm run dashboard:kill-ports`);
+      logger.error(`❌ Port ${PORT} is already in use. Run: npm run dashboard:kill-ports`);
       process.exit(1);
     }
-    console.error('❌ Server error:', err);
+    logger.error('❌ Server error:', err);
     process.exit(1);
   });
 
   server.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Simplebeacon server running on http://localhost:${PORT}`);
-    console.log(`✉️ Outreach API at: http://localhost:${PORT}/api/simplebeacon/outreach/config`);
+    logger.info(`🚀 Simplebeacon server running on http://localhost:${PORT}`);
+    logger.info(`✉️ Outreach API at: http://localhost:${PORT}/api/simplebeacon/outreach/config`);
     try {
       const {
         resolveDefaultAllowedRoots,
         formatAllowedRootsSummary
       } = require('./server/lib/path-safety.cjs');
       const allowedRoots = resolveDefaultAllowedRoots(__dirname, { monorepoRoot: path.join(__dirname, '..') });
-      console.log(`📂 Allowed analysis roots: ${formatAllowedRootsSummary(allowedRoots, 8) || '(none)'}`);
+      logger.info(`📂 Allowed analysis roots: ${formatAllowedRootsSummary(allowedRoots, 8) || '(none)'}`);
     } catch (err) {
-      console.warn('[path-safety] Could not log allowed analysis roots:', safeErrorMessage(err));
+      logger.warn('[path-safety] Could not log allowed analysis roots:', safeErrorMessage(err));
     }
     if (landingAtRoot && fs.existsSync(path.join(landingRoot, 'index.html'))) {
-      console.log(`🌐 Landing page at: http://localhost:${PORT}/`);
-      console.log(`🛡️ Simplebeacon dashboard at: http://localhost:${PORT}/app`);
+      logger.info(`🌐 Landing page at: http://localhost:${PORT}/`);
+      logger.info(`🛡️ Simplebeacon dashboard at: http://localhost:${PORT}/app`);
     } else if (landingEnabled && internalDashboard && fs.existsSync(path.join(landingRoot, 'index.html'))) {
-      console.log(`🌐 Paywall at: http://localhost:${PORT}/`);
-      console.log(`🌐 Marketing preview at: http://localhost:${PORT}/landing`);
+      logger.info(`🌐 Paywall at: http://localhost:${PORT}/`);
+      logger.info(`🌐 Marketing preview at: http://localhost:${PORT}/landing`);
       if (process.env.NODE_ENV !== 'production' || process.env.SIMPLEBEACON_ENABLE_DEMO_REPORT) {
-        console.log(`📄 Demo report at: http://localhost:${PORT}/demo-report`);
+        logger.info(`📄 Demo report at: http://localhost:${PORT}/demo-report`);
       }
-      console.log(`📥 Operator booking inbox at: http://localhost:${PORT}/operator/bookings`);
+      logger.info(`📥 Operator booking inbox at: http://localhost:${PORT}/operator/bookings`);
       if (!String(process.env.RESEND_API_KEY || '').trim()) {
-        console.log(`✉️ Email alerts OFF — set RESEND_API_KEY in .env.v1-internal (bookings still save to operator inbox)`);
+        logger.info(`✉️ Email alerts OFF — set RESEND_API_KEY in .env.v1-internal (bookings still save to operator inbox)`);
       }
-      console.log(`🛡️ Vault unlock at: http://localhost:${PORT}/private-dashboard-vault?password=<DASHBOARD_VAULT_PASSWORD>`); // simplebeacon-ignore secret-in-comments — console URL with placeholder token, not a real secret
+      logger.info(`🛡️ Vault unlock at: http://localhost:${PORT}/private-dashboard-vault?password=<DASHBOARD_VAULT_PASSWORD>`); // simplebeacon-ignore secret-in-comments — console URL with placeholder token, not a real secret
       if (process.env.NODE_ENV !== 'production' || process.env.SIMPLEBEACON_ENABLE_DEMO_REPORT) {
-        console.log(`   → opens demo report (same layout as simplebeacon.ai/demo-report)`);
+        logger.info(`   → opens demo report (same layout as simplebeacon.ai/demo-report)`);
       }
     } else {
-      console.log(`🛡️ Simplebeacon dashboard at: http://localhost:${PORT}/`);
+      logger.info(`🛡️ Simplebeacon dashboard at: http://localhost:${PORT}/`);
     }
     if (internalDashboard) {
-      console.log(`🔒 /app and dashboard APIs require vault session (24h cookie after vault login)`);
-      console.log(`🧪 STAGING: see coming-soon/STAGING.md (payments flag in site-config.js)`);
+      logger.info(`🔒 /app and dashboard APIs require vault session (24h cookie after vault login)`);
+      logger.info(`🧪 STAGING: see coming-soon/STAGING.md (payments flag in site-config.js)`);
     }
-    console.log(`🔧 Simplebeacon API at: http://localhost:${PORT}/api/simplebeacon/`);
-    console.log(`🌐 WebSocket available at: ws://localhost:${PORT}/ws (legacy: ws://localhost:${WS_PORT})`);
-    console.log(`🔐 Phase 2 auth: ${process.env.REQUIRE_AUTH === 'true' ? 'required' : 'optional (set REQUIRE_AUTH=true)'}`);
-    console.log(`🗄️ Phase 2 database: ${app.locals.phase2?.database || 'pending'}`);
-    console.log(`⚡ Phase 2 redis: ${app.locals.phase2?.redis || 'pending'}`);
+    logger.info(`🔧 Simplebeacon API at: http://localhost:${PORT}/api/simplebeacon/`);
+    logger.info(`🌐 WebSocket available at: ws://localhost:${PORT}/ws (legacy: ws://localhost:${WS_PORT})`);
+    logger.info(`🔐 Phase 2 auth: ${process.env.REQUIRE_AUTH === 'true' ? 'required' : 'optional (set REQUIRE_AUTH=true)'}`);
+    logger.info(`🗄️ Phase 2 database: ${app.locals.phase2?.database || 'pending'}`);
+    logger.info(`⚡ Phase 2 redis: ${app.locals.phase2?.redis || 'pending'}`);
   });
 
   return { server, wss };
@@ -1498,7 +1522,7 @@ function setupWebSocketServer(httpServer) {
       wss.emit('connection', ws, request);
     });
     socket.on('error', (err) => {
-      console.warn('[WebSocket] Socket error during upgrade:', safeErrorMessage(err));
+      logger.warn('[WebSocket] Socket error during upgrade:', safeErrorMessage(err));
     });
   });
 
@@ -1533,7 +1557,7 @@ function setupWebSocketServer(httpServer) {
           timestamp: new Date().toISOString()
         }));
       } catch (error) {
-        console.error('❌ Error parsing WebSocket message:', error);
+        logger.error('❌ Error parsing WebSocket message:', error);
         if (ws.readyState === WebSocket.OPEN) {
           ws.send(JSON.stringify({
             type: 'error',
@@ -1551,7 +1575,7 @@ function setupWebSocketServer(httpServer) {
 
     ws.on('error', (error) => {
       ws.isAlive = false;
-      console.error('❌ WebSocket error:', safeErrorMessage(error));
+      logger.error('❌ WebSocket error:', safeErrorMessage(error));
     });
   });
 
@@ -1614,12 +1638,12 @@ function setupWebSocketServer(httpServer) {
 }
 
 process.on('unhandledRejection', (reason) => {
-  console.error('❌ Unhandled rejection:', reason);
+  logger.error('❌ Unhandled rejection:', reason);
   process.exit(1);
 });
 
 startServer().catch((error) => {
-  console.error('❌ Failed to start Simplebeacon server:', error);
+  logger.error('❌ Failed to start Simplebeacon server:', error);
   process.exit(1);
 });
 
@@ -1627,17 +1651,17 @@ startServer().catch((error) => {
 const legacyWss = new WebSocket.Server({ port: WS_PORT });
 legacyWss.on('error', (err) => {
   if (err?.code === 'EADDRINUSE') {
-    console.warn(`[Simplebeacon] Legacy WebSocket port ${WS_PORT} already in use — skipping duplicate bind`);
+    logger.warn(`[Simplebeacon] Legacy WebSocket port ${WS_PORT} already in use — skipping duplicate bind`);
     return;
   }
   if (err?.code === 'EACCES') {
-    console.warn(`[Simplebeacon] Legacy WebSocket port ${WS_PORT} requires elevated permissions`);
+    logger.warn(`[Simplebeacon] Legacy WebSocket port ${WS_PORT} requires elevated permissions`);
     return;
   }
-  console.warn('[Simplebeacon] Legacy WebSocket error:', safeErrorMessage(err));
+  logger.warn('[Simplebeacon] Legacy WebSocket error:', safeErrorMessage(err));
 });
 legacyWss.on('listening', () => {
-  console.log(`🌐 Legacy WebSocket server running on ws://localhost:${WS_PORT}`);
+  logger.info(`🌐 Legacy WebSocket server running on ws://localhost:${WS_PORT}`);
 });
 legacyWss.on('connection', (ws) => {
   ws.isAlive = true;

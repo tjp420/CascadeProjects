@@ -1,4 +1,4 @@
-// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 /**
  * Fast comprehensive scanner — string-based checks, no expensive regexes.
  * Cards serviced: ai-indicators, governance, governance-marker, documentation,

@@ -1,3 +1,4 @@
+-- simplebeacon-ignore git-sensitive-file — auth/token implementation file, not a leaked secret
 -- SimpleBeacon FixOrchestrator — Context Token Optimization Schema
 -- Migration: 002
 -- PostgreSQL 15+

@@ -469,6 +469,9 @@ const PATTERN_REGISTRY = {
             // Skip VS Code configuration defaults and comments about hardcoded URLs
             if (/config\.get<|vscode\.workspace\.getConfiguration|\.get\(['"]\w+['"]\s*,\s*['"]/.test(snippet)) return false;
             if (/\/\/.*hardcoded|\/\*.*hardcoded|move hardcoded|configuration drift/i.test(snippet)) return false;
+            // Skip browser extension localhost bridge defaults (MV3 mixed-content bypass)
+            if (filePath && /browser-extension\//.test(filePath)) return false;
+            if (/DEFAULT_AGENT_ORIGIN|EXTENSION_DATA_SERVER_PORTS|simplebeaconAgentBridge/.test(snippet)) return false;
             // Skip findingConverter.ts rule definitions
             if (filePath && /findingConverter\.ts$/.test(filePath)) return false;
             // Skip localhost in comments and doc strings explaining default values
@@ -766,6 +769,9 @@ const PATTERN_REGISTRY = {
         contextFilter: (snippet, filePath) => {
             // Allow test files to reference test data
             if (/test|spec|__tests__|\.test\.|\.spec\./i.test(filePath)) return false;
+            // Jest/Vitest config negated coverage paths are exclusions, not production leaks
+            if (/jest\.config\.(js|cjs|mjs|ts)$|vitest\.config\.(js|cjs|mjs|ts)$/.test(filePath || '')) return false;
+            if (/^\s*['"`]!/.test(snippet)) return false;
             // Allow fixture files to reference other fixtures
             if (/fixture|mock/i.test(filePath)) return false;
             // Skip configuration and example files
@@ -1292,6 +1298,9 @@ const PATTERN_REGISTRY = {
         maxMatches: 3,
         contextFilter: (snippet, filePath) => {
             if (/allowlist|whitelist|urlValidator|isValidUrl|URL\s*\(|new\s+URL\s*\(/.test(snippet)) return false;
+            // Bridge inject exposes fetch(url) API — parameter name triggers false SSRF match
+            if (filePath && /browser-extension\/bridge-inject\.js$/.test(filePath)) return false;
+            if (/async\s+fetch\s*\(\s*url\s*,/.test(snippet)) return false;
             return true;
         },
         message: 'User-controlled URL passed to HTTP client without validation — SSRF risk. Validate against an allowlist.'

@@ -192,7 +192,7 @@ router.post('/files', upload.array('files'), async (req, res) => {
         res.json(responsePayload);
 
     } catch (error) {
-        console.error('[Upload] File upload error:', error);
+        logger.error('[Upload] File upload error:', error);
         
         // Cleanup on error
         if (req.files && req.files.length > 0) {
@@ -284,7 +284,7 @@ router.post('/git', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('[Upload] Git clone error:', error);
+        logger.error('[Upload] Git clone error:', error);
         
         // Cleanup on error
         const tempDir = path.join(uploadConfig.tempDir, 'git', uploadId);
@@ -404,7 +404,7 @@ router.post('/watch', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('[Upload] Directory watch error:', error);
+        logger.error('[Upload] Directory watch error:', error);
         res.status(500).json({
             success: false,
             error: error.message
@@ -438,7 +438,7 @@ router.delete('/watch/:watchId', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('[Upload] Stop watch error:', error);
+        logger.error('[Upload] Stop watch error:', error);
         res.status(500).json({
             success: false,
             error: error.message
@@ -490,7 +490,7 @@ router.post('/api/:provider', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('[Upload] API integration error:', error);
+        logger.error('[Upload] API integration error:', error);
         res.status(500).json({
             success: false,
             error: error.message

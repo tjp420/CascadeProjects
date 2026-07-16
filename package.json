@@ -19,6 +19,8 @@
     "test:coverage": "npx jest --config jest.config.js --coverage --watchAll=false",
     "quality:monthly": "cd packages/simplebeacon-cli && node bin/simplebeacon.js scan --path ../.. --gate --full --format json --output .simplebeacon/monthly-quality-report.json && npm audit && cd ../../ai-platform && npm audit && cd ../coming-soon && npm audit",
     "ai:check": "node scripts/ai-check.js",
+    "audit:context": "node scripts/audit-context.cjs",
+    "audit:context:init": "node scripts/audit-context.cjs --init-prd",
     "sb:hook:pre-commit": "npx simplebeacon scan --gate --fail-on high"
   },
   "dependencies": {

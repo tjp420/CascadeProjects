@@ -117,10 +117,33 @@ function requireTrustLevel(minimumLevel) {
   };
 }
 
+/**
+ * Determine whether a user is allowed to use write-heavy dashboard features
+ * (team dashboard, scan triggers, exports, settings, admin actions).
+ * Read-only views (audit, roadmap, results, trust, security, platform, quality)
+ * do not require this.
+ */
+function canAccessDashboardWrite(user) {
+  if (!user || typeof user !== 'object') return false;
+  const levelOrder = { bronze: 1, silver: 2, gold: 3 };
+  const userLevel = levelOrder[user.trustLevel] || 0;
+  if (userLevel >= 2) return true;
+  const role = String(user.role || '').toLowerCase();
+  if (role === 'admin' || role === 'superuser') return true;
+  const features = Array.isArray(user.features) ? user.features : [];
+  if (features.map(String).map(s => s.toLowerCase()).includes('all_modules')) return true;
+  if (features.map(String).map(s => s.toLowerCase()).includes('team_dashboard')) return true;
+  const tier = String(user.tier || user.plan || '').toLowerCase();
+  const paidTiers = ['silver', 'gold', 'pro', 'startup', 'enterprise', 'compliance', 'team'];
+  if (paidTiers.includes(tier)) return true;
+  return false;
+}
+
 module.exports = {
   trustLevels,
   getTrustLevelRateLimit,
   evaluateTrustLevel,
   authorize,
-  requireTrustLevel
+  requireTrustLevel,
+  canAccessDashboardWrite
 };

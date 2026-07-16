@@ -2,6 +2,7 @@
 'use strict';
 
 const path = require('path');
+const logger = require('../../../server/lib/app-logger.cjs');
 
 function safeStringify(obj, space = 2) {
   const seen = new WeakSet();
@@ -119,7 +120,7 @@ function streamToBuffer(stream) {
 
 function logBilling(event, details = {}) {
   const safeDetails = safeStringify(details);
-  console.log(`[Simplebeacon billing] ${event} ${safeDetails}`);
+  logger.info(`[Simplebeacon billing] ${event} ${safeDetails}`);
 }
 
 module.exports = {

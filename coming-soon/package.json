@@ -13,6 +13,8 @@
     "analyze": "node analyze-directory.js",
     "analyze:full": "node analyze-directory.js --output .simplebeacon/analyzer-report.json",
     "quality:check": "npx simplebeacon scan . --gate --offline",
+    "email:setup": "node tools/setup-email.cjs",
+    "email:test": "node tools/setup-email.cjs --send",
     "deploy": "wrangler pages deploy public --project-name=simplebeacon"
   },
   "keywords": [],
@@ -30,6 +32,7 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20240701.0",
     "@types/node": "^22.15.21",
-    "vite": "^8.0.16"
+    "vite": "^8.0.16",
+    "wrangler": "^4.111.0"
   }
 }

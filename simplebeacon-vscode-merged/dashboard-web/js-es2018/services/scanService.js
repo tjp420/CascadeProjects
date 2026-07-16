@@ -1,10 +1,10 @@
 import { fetchWithTimeout, downloadJson, downloadText, resolveDashboardProjectPath } from '../utils.js';
 import { billingService } from './billingService.js';
-import { authService } from './authService.js?v=20260713sync6';
-import { isDemoMode, DEMO_API_BASE } from '../demoMode.js';
+import { authService } from './authService.js?v=20260716cachefix1';
+import { isDemoMode, DEMO_API_BASE, isLocalDevHost } from '../demoMode.js';
 import { readJsonResponseBody } from '../lib/recoverable-fetch.js';
-import { buildDashboardExportBundle } from '../utils/dashboard-export.browser.js?v=20260616demodashboard1';
-import { isLocalPath, fetchScanProgressViaAgent, fetchScanProgressViaExtensionBridge, hasExtensionBridgeConfigured, probeAgent, shouldProbeLocalAgent } from './localAgentService.js?v=20260715hosted1';
+import { buildDashboardExportBundle } from '../utils/dashboard-export.browser.js?v=20260716cachefix1';
+import { isLocalPath, fetchScanProgressViaAgent, fetchScanProgressViaExtensionBridge, hasExtensionBridgeConfigured, probeAgent, shouldProbeLocalAgent } from './localAgentService.js?v=20260716cachefix1';
 import { apiBaseUrl } from '../utils-lib/url.js';
 /**
  * Upgrade a v1 ("version": "1.0.0" and no reportVersion) scan report so the
@@ -58,6 +58,23 @@ function normalizeScanReport(rawReport) {
     };
 }
 /**
+ * True if a stored API host is a loopback/localhost server that cannot be reached
+ * from a remote / HTTPS dashboard origin.
+ */
+function _isUnreachableLoopbackHost(value) {
+    if (!value || typeof location === 'undefined')
+        return false;
+    try {
+        const url = new URL(value, location.href);
+        if (location.protocol === 'https:' && url.protocol === 'http:')
+            return true;
+        if (!isLocalDevHost() && /^(localhost|127\.0\.0\.1|\[::1\])$/i.test(url.hostname))
+            return true;
+    }
+    catch (_a) { /* ignore malformed */ }
+    return false;
+}
+/**
  * Simplebeacon api base.
  * @returns {any}
  */
@@ -65,7 +82,7 @@ function simplebeaconApiBase() {
     if (isDemoMode())
         return DEMO_API_BASE;
     const stored = localStorage.getItem('sb_api_host');
-    if (stored)
+    if (stored && !_isUnreachableLoopbackHost(stored))
         return stored + '/api/simplebeacon';
     // VS Code / Windsurf website mode: sb_api_base points at the extension data-server on localhost.
     const embedBase = apiBaseUrl();
@@ -74,7 +91,7 @@ function simplebeaconApiBase() {
             const normalized = embedBase.startsWith('http') ? embedBase : `http://${embedBase}`;
             const parsed = new URL(normalized);
             const host = parsed.hostname.toLowerCase();
-            if (host === '127.0.0.1' || host === 'localhost') {
+            if ((host === '127.0.0.1' || host === 'localhost') && !_isUnreachableLoopbackHost(parsed.origin)) {
                 return `${parsed.origin}/api/simplebeacon`;
             }
         }

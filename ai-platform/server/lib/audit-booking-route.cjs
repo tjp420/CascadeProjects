@@ -1,6 +1,7 @@
 // simplebeacon-ignore: Scanner pattern definitions, and EU AI Act indicators — all findings are false positives, dashboard code, debug artifacts, debugArtifacts, test fixtures
 const fs = require('fs');
 const path = require('path');
+const logger = require('./app-logger.cjs');
 
 const fsp = fs.promises;
 
@@ -27,7 +28,7 @@ async function loadBookings(options) {
     return Array.isArray(rows) ? rows : [];
   } catch (err) {
     if (err && err.code === 'ENOENT') return [];
-    console.warn('[audit-booking] load failed:', err.message);
+    logger.warn('[audit-booking] load failed:', err.message);
     return [];
   }
 }
@@ -115,7 +116,7 @@ async function handleAuditBooking(req, res, options = {}) {
   try {
     saved = await saveBooking(entry, options);
   } catch (err) {
-    console.warn('[audit-booking] persist failed:', err.message);
+    logger.warn('[audit-booking] persist failed:', err.message);
     return res.status(500).json({ error: 'save_failed', message: err.message });
   }
 
@@ -127,7 +128,7 @@ async function handleAuditBooking(req, res, options = {}) {
     }
     return res.json(bookingResponse(saved, result));
   } catch (err) {
-    console.warn('[audit-booking] email failed');
+    logger.warn('[audit-booking] email failed');
     return res.json({
       ...bookingResponse(saved, { sent: false }),
       emailError: err.message
@@ -192,13 +193,13 @@ function registerOperatorInboxPage(app, options = {}) {
 function registerAuditBookingRoute(app, options = {}) {
   app.post('/api/audit-booking', (req, res) => {
     handleAuditBooking(req, res, options).catch((err) => {
-      console.warn('[audit-booking] request failed:', err.message);
+      logger.warn('[audit-booking] request failed:', err.message);
       res.status(500).json({ error: 'request_failed', message: err.message });
     });
   });
   app.get('/api/audit-bookings', (req, res) => {
     handleListAuditBookings(req, res, options).catch((err) => {
-      console.warn('[audit-booking] list failed:', err.message);
+      logger.warn('[audit-booking] list failed:', err.message);
       res.status(500).json({ error: 'list_failed', message: err.message });
     });
   });

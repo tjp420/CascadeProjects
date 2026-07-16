@@ -75,7 +75,9 @@ function sqliteUserToAuthUser(user) {
     return {
         id: String(user.id != null ? user.id : email),
         email,
-        name: email.includes('@') ? email.split('@')[0] : email,
+        username: user.username || '',
+        name: user.name || (email.includes('@') ? email.split('@')[0] : email),
+        status: user.status || 'active',
         trustLevel: tier === 'admin' ? 'gold' : (tier === 'silver' ? 'silver' : 'bronze'),
         role: tier === 'admin' ? 'admin' : undefined,
         tier,
@@ -99,16 +101,24 @@ async function authenticateWithSqlite(email, password) {
     return sqliteUserToAuthUser(user);
 }
 
-function registerUserSqlite(email, password, name) {
+function registerUserSqlite(email, password, name, options = {}) {
     const sqlite = getSqliteDb();
     if (!sqlite) return null;
     ensureSqliteDemoUsers();
-    if (sqlite.getUserByEmail(email)) {
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const username = String(options.username || '').trim().toLowerCase();
+    const status = options.status || 'active';
+    if (sqlite.getUserByEmail(normalizedEmail)) {
         return { error: 'An account with this email already exists' };
+    }
+    if (username && typeof sqlite.getUserByUsername === 'function' && sqlite.getUserByUsername(username)) {
+        return { error: 'That username is already taken' };
     }
     const salt = crypto.randomBytes(16).toString('hex');
     const passwordHash = crypto.scryptSync(String(password), salt, 64).toString('hex');
-    const user = sqlite.createUser(email, passwordHash, salt, 'community');
+    const user = typeof sqlite.createUser === 'function'
+        ? sqlite.createUser(normalizedEmail, passwordHash, salt, 'community', { name, username, status })
+        : sqlite.createUser(normalizedEmail, passwordHash, salt, 'community');
     return { user: sqliteUserToAuthUser(user) };
 }
 
@@ -135,7 +145,9 @@ function toAuthUser(row) {
     return {
         id: row.id,
         email: row.email,
+        username: row.username || '',
         name: row.name,
+        status: row.status || 'active',
         trustLevel: row.trust_level || row.trustLevel || 'bronze',
         createdAt: row.created_at || row.createdAt || new Date().toISOString(),
         successfulAnalyses: row.successful_analyses ?? row.successfulAnalyses ?? 0,
@@ -153,7 +165,7 @@ function toAuthUser(row) {
  */
 async function findUserByEmail(db, email) {
     const emailLookupQuery = await db.query(
-        `SELECT id, email, password_hash, name, trust_level, successful_analyses,
+        `SELECT id, email, password_hash, name, trust_level, status, successful_analyses,
                 security_incidents, community_contributions, verification_status, created_at
          FROM users WHERE LOWER(email) = LOWER($1) LIMIT 1`,
         [email]
@@ -310,30 +322,37 @@ async function authenticateUser(db, email, password) {
  * @param {string} name
  * @returns {any}
  */
-async function registerUser(email, password, name) {
-    const sqliteResult = registerUserSqlite(email, password, name);
+async function registerUser(email, password, name, options = {}) {
+    const sqliteResult = registerUserSqlite(email, password, name, options);
     if (sqliteResult) {
         if (sqliteResult.error) return sqliteResult;
         return sqliteResult;
     }
 
     const demoUsers = loadDemoUsers();
-    const existing = demoUsers.find((u) => u.email.toLowerCase() === email.toLowerCase());
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const username = String(options.username || '').trim().toLowerCase();
+    const existing = demoUsers.find((u) => u.email.toLowerCase() === normalizedEmail);
     if (existing) {
         return { error: 'An account with this email already exists' };
+    }
+    if (username && demoUsers.some((u) => String(u.username || '').toLowerCase() === username)) {
+        return { error: 'That username is already taken' };
     }
 
     const passwordHash = await hashPassword(password);
     const userRecord = {
         id: 'user-' + Date.now(),
-        email,
+        email: normalizedEmail,
+        username: String(options.username || '').trim().toLowerCase(),
         passwordHash,
-        name: name || email.split('@')[0],
+        name: name || normalizedEmail.split('@')[0],
+        status: options.status || 'active',
         trustLevel: 'bronze',
         successfulAnalyses: 0,
         securityIncidents: 0,
         communityContributions: 0,
-        verificationStatus: 'email'
+        verificationStatus: options.status === 'pending' ? 'pending' : 'email'
     };
 
     demoUsers.push(userRecord);

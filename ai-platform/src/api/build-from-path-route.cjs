@@ -204,7 +204,7 @@ function setupBuildFromPathRoute(app) {
                 try {
                     await appendHistoryEntry(db, historyEntry);
                 } catch (historyError) {
-                    console.warn('Roadmap history persist skipped:', historyError.message);
+                    logger.warn('Roadmap history persist skipped:', historyError.message);
                 }
             }
 
@@ -219,7 +219,7 @@ function setupBuildFromPathRoute(app) {
 
             logger.debug('✅ Roadmap built from project path');
         } catch (error) {
-            console.error('❌ Failed to build roadmap from path:', error);
+            logger.error('❌ Failed to build roadmap from path:', error);
             res.status(500).json({
                 success: false,
                 error: 'Failed to build roadmap from path',

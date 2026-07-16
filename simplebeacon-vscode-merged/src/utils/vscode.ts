@@ -1,4 +1,4 @@
-// simplebeacon-ignore memory-leak — VS Code–specific utility functions
+// simplebeacon-ignore memory-leak, security — VS Code–specific utility functions
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';

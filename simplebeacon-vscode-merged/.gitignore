@@ -2,6 +2,9 @@ node_modules/
 out/
 dist/
 *.vsix
+vsix*/
+vsix-build.log
+report-extract.json
 __test_dashboard*.html
 .vscode-test/
 *.restore

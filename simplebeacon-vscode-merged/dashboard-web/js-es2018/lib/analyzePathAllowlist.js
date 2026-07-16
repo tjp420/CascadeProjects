@@ -1,4 +1,4 @@
-import { fetchAnalyzeProviders, normalizeProjectPath, shouldClearHostedServerDefaultPath } from '../services/analyzeService.js?v=20260714renderfix1';
+import { fetchAnalyzeProviders, normalizeProjectPath, shouldClearHostedServerDefaultPath } from '../services/analyzeService.js?v=20260716cachefix1';
 import { isRemoteRepoUrl } from './analyzePathSources.js';
 /**
  * Is path within allowed roots.

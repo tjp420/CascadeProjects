@@ -1,14 +1,14 @@
-// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
-import { authService } from './authService.js?v=20260713sync6';
-import { fetchUserAiKeys } from './aiKeysService.js?v=20260711cachefix1';
-import { scanService } from './scanService.js?v=20260711scanfix1';
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
+import { authService } from './authService.js?v=20260716cachefix1';
+import { fetchUserAiKeys } from './aiKeysService.js?v=20260716cachefix1';
+import { scanService } from './scanService.js?v=20260716cachefix1';
 import { formatNumber, escapeHtml, fetchWithTimeout } from '../utils.js';
-import { notifyDownloadComplete } from '../utils-lib/notify.js';
+import { notifyDownloadComplete } from '../utils-lib/notify.js?v=20260716cachefix1';
 import { isRemoteRepoUrl } from '../lib/analyzePathSources.js';
 import { isBenchmarkCachePath } from '../utils/complete-scan-artifact-profile.browser.js';
 import { DEMO_EMAIL } from '../demoMode.js';
 import { DASHBOARD_BASE_URL } from '../config.js';
-import { isLocalPath, fetchInventoryViaAgent, probeAgent, shouldProbeLocalAgent } from './localAgentService.js?v=20260715hosted1';
+import { isLocalPath, fetchInventoryViaAgent, probeAgent, shouldProbeLocalAgent } from './localAgentService.js?v=20260716cachefix1';
 /**
  * Upgrade a v1 ("version": "1.0.0" and no reportVersion) scan report so the
  * dashboard treats it as current and can render aligned file-count metrics.
@@ -1225,12 +1225,8 @@ export async function fetchRepositoryInventory(projectPath, options = {}) {
         setCachedInventory(path, options, null);
         return null;
     }
-    // Local paths must be inventoried by the agent, not the remote server.
-    if (isLocalPath(path)) {
-        if (!shouldProbeLocalAgent()) {
-            setCachedInventory(path, options, null);
-            return null;
-        }
+    // Hosted remote servers cannot read the user's PC — use the local agent when available.
+    if (isLocalPath(path) && shouldProbeLocalAgent()) {
         const agentStatus = await probeAgent();
         if (agentStatus.available && agentStatus.scannerAvailable) {
             const inventory = await fetchInventoryViaAgent(path, { fullDirectoryScan: options.fullDirectoryScan });
@@ -1476,6 +1472,27 @@ function isGateBlockingIssue(issue, gate = {}) {
  * @param {string} projectPath
  * @returns {Object}
  */
+/**
+ * Infer issue category from sandbox worker finding message/type.
+ * @param {Object} entry
+ * @returns {string}
+ */
+function inferSandboxIssueType(entry) {
+    if (entry.type && entry.type !== 'Security') return entry.type;
+    const msg = String(entry.message || entry.description || '').toLowerCase();
+    if (msg.includes('aws access') || msg.includes('api key') || msg.includes('credential')
+        || msg.includes('private key') || msg.includes('slack api') || msg.includes('secret/token')) {
+        return 'Exposed Credentials';
+    }
+    if (msg.includes('entropy')) return 'High-Entropy Secret';
+    if (msg.includes('markdown')) return 'Markdown Fences';
+    if (msg.includes('compliance controls')) return 'Compliance Drift';
+    if (msg.includes('placeholder') || msg.includes('stub')) return 'Placeholder Debris';
+    if (msg.includes('boilerplate')) return 'AI Slop / Repetitive Boilerplate';
+    if (msg.includes('swallows')) return 'Generic Error Swallowing';
+    return entry.type || 'Security';
+}
+
 export function convertSandboxReportToSimplebeacon(report, projectPath) {
     const cert = report.certificate || {};
     const logs = Array.isArray(cert.logs) ? cert.logs : [];
@@ -1486,7 +1503,7 @@ export function convertSandboxReportToSimplebeacon(report, projectPath) {
     const scannedFiles = (report.files && report.files.length) || totalFiles;
     const rawIssues = logs.map((entry) => ({
         severity: String(entry.severity || 'medium').toLowerCase(),
-        type: entry.type || 'Security',
+        type: inferSandboxIssueType(entry),
         filePath: entry.filePath || entry.file || '',
         description: entry.message || entry.type || '',
         count: 1
@@ -1658,7 +1675,10 @@ export function preparePlatformResultsReport(report) {
         .filter((issue) => (gateConfig.warnOn || []).includes(issue.severityBand || issue.severity))
         .reduce((sum, issue) => sum + (issue.count || 1), 0);
     const repoFiles = (_e = (_c = report.repositoryFilesTotal) !== null && _c !== void 0 ? _c : (_d = report.repositoryInventory) === null || _d === void 0 ? void 0 : _d.totalFiles) !== null && _e !== void 0 ? _e : 0;
-    const staleFullTreeScan = repoFiles > 15000 || ((_g = (_f = report.mockSampleFiles) !== null && _f !== void 0 ? _f : report.totalFiles) !== null && _g !== void 0 ? _g : 0) > 500;
+    const mockSamples = (_f = report.mockSampleFiles) !== null && _f !== void 0 ? _f : 0;
+    const walkedFiles = (_h = (_g = report.ruleScopedFilesAnalyzed) !== null && _g !== void 0 ? _g : report.totalFiles) !== null && _h !== void 0 ? _h : 0;
+    const fullTree = Boolean(report.fullDirectoryScan || ((_j = report.scanScope) === null || _j === void 0 ? void 0 : _j.fullDirectoryScan));
+    const staleFullTreeScan = mockSamples > 500 || repoFiles > 15000 || (fullTree && walkedFiles > 15000);
     const totalIssueGroups = platformIssues.reduce((sum, issue) => sum + (issue.count || 1), 0);
     const gatePass = blockingCount === 0;
     const highCount = platformIssues
@@ -2291,7 +2311,12 @@ export function formatScanScopeSummary(report) {
         parts.push(`${formatNumber(metrics.filesAnalyzed)} files analyzed`);
     }
     if (metrics.repositoryFiles != null && metrics.filesAnalyzed !== metrics.repositoryFiles) {
-        parts.push(`of ${formatNumber(metrics.repositoryFiles)} total`);
+        if (metrics.filesAnalyzed <= metrics.repositoryFiles) {
+            parts.push(`of ${formatNumber(metrics.repositoryFiles)} total`);
+        }
+        else {
+            parts.push(`${formatNumber(metrics.repositoryFiles)} in repo`);
+        }
     }
     if (metrics.ruleScopedFilesAnalyzed != null && metrics.ruleScopedFilesAnalyzed !== metrics.filesAnalyzed) {
         parts.push(`${formatNumber(metrics.ruleScopedFilesAnalyzed)} gate rules checked`);
@@ -2392,32 +2417,51 @@ export function isSimplebeaconReport(obj) {
  * @param {any} report
  * @returns {any}
  */
-export function normalizeSimplebeaconReport(report) {
-    if (!report || report.reportVersion === 2 || Array.isArray(report.rawIssues) || Array.isArray(report.detectedIssues)) {
-        return report;
-    }
-    const categories = report.categories || {};
+function flattenCategoryFindings(categories) {
     const detectedIssues = [];
-    for (const [category, data] of Object.entries(categories)) {
+    for (const [category, data] of Object.entries(categories || {})) {
         if (!data || !Array.isArray(data.findings))
             continue;
         for (const finding of data.findings) {
             detectedIssues.push({
                 type: category,
-                filePath: finding.file || '',
+                category,
+                filePath: finding.file || finding.filePath || '',
+                file: finding.file || finding.filePath || '',
                 line: finding.line || 0,
                 severity: String(finding.severity || data.severity || 'medium').toLowerCase(),
-                message: finding.message || ''
+                message: finding.message || '',
+                description: finding.message || '',
+                count: finding.count || 1
             });
         }
     }
-    const severityCounts = report.severityCounts || detectedIssues.reduce((acc, issue) => {
+    return detectedIssues;
+}
+
+export function normalizeSimplebeaconReport(report) {
+    if (!report || typeof report !== 'object')
+        return report;
+
+    const fromArrays = (report.rawIssues && report.rawIssues.length)
+        ? report.rawIssues
+        : ((report.detectedIssues && report.detectedIssues.length) ? report.detectedIssues : null);
+
+    let detectedIssues = fromArrays
+        ? fromArrays.map(normalizeDashboardIssue).filter(Boolean)
+        : flattenCategoryFindings(report.categories);
+
+    if (!detectedIssues.length)
+        return report;
+
+    const severityCounts = report.severityCounts || report.summary?.severityCounts || detectedIssues.reduce((acc, issue) => {
+        const weight = Number(issue.count) || 1;
         const sev = issue.severity || 'medium';
-        acc[sev] = (acc[sev] || 0) + 1;
+        acc[sev] = (acc[sev] || 0) + weight;
         return acc;
     }, { critical: 0, high: 0, medium: 0, low: 0, info: 0 });
-    const total = detectedIssues.length;
-    const scan_summary = {
+    const total = detectedIssues.reduce((sum, issue) => sum + (Number(issue.count) || 1), 0);
+    const scan_summary = report.scan_summary || {
         status: 'REVIEW',
         block_merge: false,
         total_risks_found: total,
@@ -2428,12 +2472,14 @@ export function normalizeSimplebeaconReport(report) {
     };
     return Object.assign({}, report, {
         reportVersion: 2,
+        rawIssues: detectedIssues,
         detectedIssues,
+        findings: (report.findings && report.findings.length) ? report.findings : detectedIssues,
         severityCounts,
         scan_summary,
-        issueCount: total,
-        filesAnalyzed: report.codeFilesAnalyzed || report.filesAnalyzed || 0,
-        totalFiles: report.codeFilesAnalyzed || report.filesAnalyzed || 0
+        issueCount: report.issueCount || total,
+        filesAnalyzed: report.codeFilesAnalyzed || report.filesAnalyzed || report.summary?.codeFilesAnalyzed || 0,
+        totalFiles: report.codeFilesAnalyzed || report.filesAnalyzed || report.summary?.totalFiles || 0
     });
 }
 /**
@@ -2459,6 +2505,7 @@ export function isDeterministicAnalysisMode(analysisType) {
  */
 export function resolveAutoAnalysisMode(projectPath) {
     const normalized = String(projectPath || '').replace(/\\/g, '/').toLowerCase();
+    // Simplebeacon's own repos or repos with .simplebeacon config → gate scan
     if (normalized.includes('web\/data')
         || normalized.endsWith('/ai-platform')
         || normalized.endsWith('ai-platform')
@@ -2466,6 +2513,13 @@ export function resolveAutoAnalysisMode(projectPath) {
         || normalized.includes('simplebeacon')) {
         return 'simplebeacon';
     }
+    // Large/unknown projects → complete audit gives the most value
+    // Check path depth as a proxy for project complexity
+    const depth = normalized.split('/').filter(Boolean).length;
+    if (depth > 4) {
+        return 'complete';
+    }
+    // Default → roadmap (lightweight, useful for any codebase)
     return 'roadmap';
 }
 /**
@@ -2499,19 +2553,17 @@ function normalizeDashboardIssue(issue) {
 export function resolveReportIssues(report) {
     if (!report || typeof report !== 'object')
         return [];
+    const normalized = normalizeSimplebeaconReport(report);
     let issues = [];
-    const primary = (report.rawIssues && report.rawIssues.length)
-        ? report.rawIssues
-        : (report.detectedIssues || []);
+    const primary = (normalized.rawIssues && normalized.rawIssues.length)
+        ? normalized.rawIssues
+        : (normalized.detectedIssues || []);
     if (primary.length)
         issues = primary.map(normalizeDashboardIssue).filter(Boolean);
     if (!issues.length) {
-        const normalized = normalizeSimplebeaconReport(report);
-        const fromNorm = (normalized.rawIssues && normalized.rawIssues.length)
-            ? normalized.rawIssues
-            : (normalized.detectedIssues || []);
-        if (fromNorm.length)
-            issues = fromNorm.map(normalizeDashboardIssue).filter(Boolean);
+        const fromCategories = flattenCategoryFindings(normalized.categories);
+        if (fromCategories.length)
+            issues = fromCategories.map(normalizeDashboardIssue).filter(Boolean);
     }
     if (!issues.length && Array.isArray(report.findings) && report.findings.length) {
         issues = report.findings.map(normalizeDashboardIssue).filter(Boolean);

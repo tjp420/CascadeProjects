@@ -1,6 +1,6 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
 import { escapeHtml } from './string.js';
-import { notifyDownloadComplete } from './notify.js';
+import { notifyDownloadComplete } from './notify.js?v=20260716cachefix1';
 let _toastId = 0;
 function _renderToast(container, message, type, duration) {
     const id = `toast-${++_toastId}`;
@@ -45,6 +45,55 @@ export function removeToastContainer() {
  * @param {string} [mimeType='text/plain']
  * @returns {void}
  */
+function isIdeEmbedDownloadBridge() {
+    if (typeof window === 'undefined')
+        return false;
+    try {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('sb_notify_base') || params.get('sb_api_base') || params.get('sb_parent_urlbar'))
+            return true;
+        if (sessionStorage.getItem('sb_notify_base') || sessionStorage.getItem('sb_api_base'))
+            return true;
+    }
+    catch (_a) { /* ignore */ }
+    try {
+        return window.self !== window.top;
+    }
+    catch (_b) {
+        return false;
+    }
+}
+function notifyExtensionDownload(blob, filename) {
+    if (!(blob instanceof Blob) || typeof window === 'undefined')
+        return;
+    const safeName = String(filename || 'download');
+    const reader = new FileReader();
+    reader.onload = () => {
+        const result = String(reader.result || '');
+        const commaIdx = result.indexOf(',');
+        const base64 = commaIdx >= 0 ? result.slice(commaIdx + 1) : result;
+        try {
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({
+                    command: 'downloadFile',
+                    filename: safeName,
+                    mimeType: blob.type || 'application/octet-stream',
+                    base64
+                }, '*');
+            }
+        }
+        catch (_a) { /* ignore */ }
+        try {
+            fetch('/api/download/notify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: safeName, content: base64 })
+            }).catch(() => { });
+        }
+        catch (_b) { /* ignore */ }
+    };
+    reader.readAsDataURL(blob);
+}
 export function downloadFile(content, filename, mimeType = 'text/plain') {
     if (typeof document === 'undefined')
         return;
@@ -145,7 +194,12 @@ function normalDownload(blob, filename) {
         // revoke on next tick — download starts synchronously from click()
         setTimeout(() => URL.revokeObjectURL(url), 0);
     }
-    notifyDownloadComplete(filename || 'download');
+    if (isIdeEmbedDownloadBridge()) {
+        notifyExtensionDownload(blob, filename || 'download');
+    }
+    else {
+        notifyDownloadComplete(filename || 'download');
+    }
 }
 /**
  * Download text.
@@ -468,6 +522,49 @@ export function isEmbeddedDashboardFrame() {
     catch (_a) { /* ignore */ }
     if (window.self !== window.top)
         return true;
+    return false;
+}
+
+/**
+ * True when the dashboard is opened from the VS Code / Cursor IDE (iframe or Simple Browser
+ * with sb_parent_urlbar + extension bridge params). Extension sidebar owns navigation.
+ */
+export function isIdeDashboardSurface() {
+    if (typeof window === 'undefined')
+        return false;
+    if (window.__SB_IDE_EMBED__)
+        return true;
+    try {
+        if (document.documentElement.hasAttribute('data-ide-embed'))
+            return true;
+    }
+    catch (_a) { /* ignore */ }
+    return window.self !== window.top;
+}
+
+/** True when opened from VS Code / Cursor with sb_* bridge or parent-urlbar params (Simple Browser or iframe). */
+export function isExtensionHostedTab() {
+    if (typeof window === 'undefined')
+        return false;
+    if (window.__SB_PARENT_URL_BAR__ || window.__SB_IDE_EMBED__)
+        return true;
+    try {
+        const params = new URLSearchParams(window.location.search || '');
+        if (params.get('sb_parent_urlbar') === '1')
+            return true;
+        if (params.get('sb_api_base') || params.get('sb_notify_base') || params.get('sb_website_mode'))
+            return true;
+    }
+    catch (_b) { /* ignore */ }
+    try {
+        if (typeof sessionStorage !== 'undefined') {
+            if (sessionStorage.getItem('sb_parent_urlbar') === '1')
+                return true;
+            if (sessionStorage.getItem('sb_api_base') || sessionStorage.getItem('sb_notify_base'))
+                return true;
+        }
+    }
+    catch (_c) { /* ignore */ }
     return false;
 }
 

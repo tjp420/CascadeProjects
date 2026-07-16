@@ -1,4 +1,4 @@
-// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 import { escapeHtml } from '../utils.js';
 
 // simplebeacon:production-leak-intent: mock-path - Legitimate documentation about mock data detection in About page

@@ -1090,11 +1090,16 @@ function renderExplorer() {
       btn.addEventListener('click', function(e) {
         e.stopPropagation();
         if (bi === 0) {
+          if (!f.path) {
+            try { window.vscode.postMessage({ command: 'showInfo', message: 'Browser downloads cannot be opened from the sidebar. Use your OS file manager.' }); } catch(e){ /* ignore postMessage failures */ }
+            return;
+          }
           try { window.vscode.postMessage({ command: 'openFile', file: f.path, line: 1 }); } catch(e){ /* ignore postMessage failures */ }
         } else if (bi === 1) {
           try { window.vscode.postMessage({ command: 'openFolder', file: f.path }); } catch(e){ /* ignore postMessage failures */ }
         } else if (bi === 2) {
-          try { window.vscode.postMessage({ command: 'copyPath', file: f.path }); } catch(e){ /* ignore postMessage failures */ }
+          const copyValue = f.path || f.name || '';
+          try { window.vscode.postMessage({ command: 'copyPath', path: copyValue }); } catch(e){ /* ignore postMessage failures */ }
         } else if (bi === 3) {
           downloadedFiles.splice(idx, 1);
           renderExplorer();

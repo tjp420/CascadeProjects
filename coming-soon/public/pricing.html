@@ -360,9 +360,9 @@
       </nav>
 
       <div class="pricing-hero" data-animate="fade-up">
-        <span class="hero-badge">AI Slop Cop — 60+ Analyzer Engines</span>
-        <h1>Catch AI slop before it ships. Pay per scan as you grow.</h1>
-        <p class="hero-sub">Free for solo devs. Pro for power users. Custom for Enterprise. No credit card to start.</p>
+        <span class="hero-badge">Risk-First Compliance Pricing</span>
+        <h1>Reduce AI compliance risk before your next release.</h1>
+        <p class="hero-sub">Board-ready certificates, EU AI Act evidence packs, and remediation roadmaps — all generated locally so your source code never leaves your machine.</p>
         <p style="font-size:0.85rem;color:var(--accent-hover);margin-top:12px;display:inline-flex;align-items:center;gap:6px;"><span style="font-size:1rem;">&#128274;</span> Zero source-code upload — scans run locally in your IDE or browser sandbox. <a href="faq.html" style="color:var(--accent-hover);text-decoration:underline;">How it works</a></p>
       </div>
 
@@ -502,8 +502,11 @@
 
       <p style="text-align:center;font-size:0.85rem;color:var(--text-secondary);margin:0 0 32px;">One license token works across VS Code, CLI, and Dashboard. No separate add-ons needed.</p>
 
-      <h2 class="section-title" data-animate="fade-up" data-delay="0">Need just one certificate?</h2>
-      <div class="pricing-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); max-width: 320px; margin: 0 auto 48px;">
+      <h2 class="section-title" data-animate="fade-up" data-delay="0">Need a one-time compliance package?</h2>
+      <div style="text-align:center;max-width:640px;margin:0 auto 24px;color:var(--text-secondary);font-size:0.9rem;" data-animate="fade-up" data-delay="50">
+        <p>One blocked launch or failed audit can cost more than these packages. Get board-ready evidence and a remediation roadmap in minutes.</p>
+      </div>
+      <div class="pricing-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); max-width: 900px; margin: 0 auto 48px;">
         <article class="price-card" data-animate="fade-up" data-delay="0">
           <div class="price-card-header">
             <span class="price-tag">One-Time</span>
@@ -520,6 +523,43 @@
           </ul>
           <p style="font-size:0.75rem;color:var(--text-muted);text-align:center;margin-top:-12px;margin-bottom:12px;">&#10003; Instant delivery &middot; No recurring bill</p>
           <button class="price-btn checkout-btn" data-tier="one_time_certificate" data-price-id="price_certificate_onetime">Buy $149 Pass</button>
+        </article>
+
+        <article class="price-card price-card-popular" data-animate="fade-up" data-delay="100">
+          <div class="popular-badge">Board Favorite</div>
+          <div class="price-card-header">
+            <span class="price-tag">One-Time</span>
+            <h3>Executive Risk Certificate</h3>
+            <div class="price-amount">$499</div>
+          </div>
+          <p class="price-desc">Instantly generate a compliance paper trail for your risk committee, investors, or procurement team before your next major release.</p>
+          <ul class="price-features">
+            <li><strong>Signed Executive Risk Certificate</strong></li>
+            <li>A–F hygiene grade + liability estimate</li>
+            <li>Remediation checklist + evidence pack</li>
+            <li>Valid for 90 days</li>
+            <li>Corporate card checkout</li>
+          </ul>
+          <p style="font-size:0.75rem;color:var(--text-muted);text-align:center;margin-top:-12px;margin-bottom:12px;">&#10003; Instant delivery &middot; No recurring bill</p>
+          <button class="price-btn checkout-btn" data-tier="executive_clearance" data-price-id="price_executive_onetime">Buy Executive Pass</button>
+        </article>
+
+        <article class="price-card price-card-premium" data-animate="fade-up" data-delay="200">
+          <div class="price-card-header">
+            <span class="price-tag">Sprint</span>
+            <h3>EU AI Act Sprint</h3>
+            <div class="price-amount">$2,499</div>
+          </div>
+          <p class="price-desc">The fastest path to compliance. Receive a comprehensive audit, remediation roadmap, and verified evidence pack tailored to strict regulatory frameworks.</p>
+          <ul class="price-features">
+            <li><strong>EU AI Act readiness audit</strong></li>
+            <li>Annex III + Article 14 + Article 50 checks</li>
+            <li>Verified evidence pack (PDF + JSON)</li>
+            <li>30-day analyst support</li>
+            <li>Corporate card checkout</li>
+          </ul>
+          <p style="font-size:0.75rem;color:var(--text-muted);text-align:center;margin-top:-12px;margin-bottom:12px;">&#10003; Instant delivery &middot; No recurring bill</p>
+          <button class="price-btn checkout-btn" data-tier="eu_ai_act_sprint" data-price-id="price_euai_onetime">Start EU AI Act Sprint</button>
         </article>
       </div>
 
@@ -762,7 +802,7 @@
         return false;
       }
 
-      var productMap = { pro: 'startup_shield', startup: 'startup_shield', compliance_suite: 'compliance_suite', enterprise: 'compliance_suite', custom: 'custom_plan', one_time_certificate: 'one_time_certificate' };
+      var productMap = { pro: 'startup_shield', startup: 'startup_shield', compliance_suite: 'compliance_suite', enterprise: 'compliance_suite', custom: 'custom_plan', one_time_certificate: 'one_time_certificate', executive_clearance: 'executive_clearance', eu_ai_act_sprint: 'eu_ai_act_sprint' };
       var product = productMap[tier] || (tier.indexOf('custom_') === 0 ? 'custom_plan' : null);
       if (!product) {
         errorEl.textContent = 'Unknown product tier.';
@@ -776,9 +816,10 @@
 
       var apiBase = 'https://cascadeprojects-yzzd.onrender.com';
 
-      // One-time certificate pass: fixed $149 payment
-      if (product === 'one_time_certificate') {
-        var certPayload = { email: email, projectName: projectName, clientName: clientName || email, scans: ['one_time_certificate'], total: 149, product: 'one_time_certificate' };
+      // One-time certificate passes: fixed-price payments
+      var oneTimeProducts = { one_time_certificate: 149, executive_clearance: 499, eu_ai_act_sprint: 2499 };
+      if (oneTimeProducts[product]) {
+        var certPayload = { email: email, projectName: projectName, clientName: clientName || email, scans: [product], total: oneTimeProducts[product], product: product };
         fetch(apiBase + '/api/create-checkout-session', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -913,6 +954,14 @@
         '  • 1 cryptographic, board-ready certificate\n' +
         '  • PDF + JSON + remediation roadmap\n' +
         '  • Valid for 12 months\n\n' +
+        'Executive Risk Certificate — $499 one-time\n' +
+        '  • Signed risk-certificate for committees, investors, or procurement\n' +
+        '  • A–F hygiene grade + liability estimate\n' +
+        '  • 90-day validity\n\n' +
+        'EU AI Act Sprint — $2,499 one-time\n' +
+        '  • Annex III + Article 14 + Article 50 checks\n' +
+        '  • Verified evidence pack (PDF + JSON)\n' +
+        '  • 30-day analyst support\n\n' +
         'Enterprise Air-Gapped — Custom pricing\n' +
         '  • Unlimited scans\n' +
         '  • Everything in Compliance Suite\n' +
@@ -1402,13 +1451,30 @@
         showSuccessToast('Security key authentication started (demo).');
       }
 
-      if (signinBtn) signinBtn.addEventListener('click', function() { window.location.href = '/dashboard/signin?returnTo=' + encodeURIComponent(window.location.pathname); });
+      function authDashboardUrl(route) {
+        return '/dashboard/' + route + '?returnTo=' + encodeURIComponent(window.location.pathname);
+      }
+      if (signinBtn) signinBtn.addEventListener('click', function() { window.location.href = authDashboardUrl('signin'); });
       if (signinCloseBtn) signinCloseBtn.addEventListener('click', closeSigninModal);
       if (signinOverlay) signinOverlay.addEventListener('click', function(e) { if (e.target === signinOverlay) closeSigninModal(); });
-      if (signinEmailBtn) signinEmailBtn.addEventListener('click', handleEmailSignin);
-      if (signinPassword) signinPassword.addEventListener('keydown', function(e) { if (e.key === 'Enter') handleEmailSignin(); });
+      if (signinEmailBtn) signinEmailBtn.addEventListener('click', function() {
+        if (emailMode === 'register') {
+          window.location.href = authDashboardUrl('register');
+          return;
+        }
+        handleEmailSignin();
+      });
+      if (signinPassword) signinPassword.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+          if (emailMode === 'register') {
+            window.location.href = authDashboardUrl('register');
+            return;
+          }
+          handleEmailSignin();
+        }
+      });
       if (subtabLogin) subtabLogin.addEventListener('click', function() { setEmailMode('login'); });
-      if (subtabRegister) subtabRegister.addEventListener('click', function() { setEmailMode('register'); });
+      if (subtabRegister) subtabRegister.addEventListener('click', function() { window.location.href = authDashboardUrl('register'); });
       if (forgotPasswordBtn) forgotPasswordBtn.addEventListener('click', handleForgotPassword);
       if (webauthnBtn) webauthnBtn.addEventListener('click', handleWebAuthn);
 updateAuthNav();

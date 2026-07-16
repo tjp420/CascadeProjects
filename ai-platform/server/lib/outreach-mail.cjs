@@ -5,6 +5,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const logger = require('./app-logger.cjs');
 
 const constants = require('../config/constants.cjs');
 const fsp = fs.promises;
@@ -83,7 +84,7 @@ async function loadSentLog(options) {
     }));
   } catch (err) {
     if (err && err.code === 'ENOENT') return [];
-    console.warn('[outreach] load log failed:', err.message);
+    logger.warn('[outreach] load log failed:', err.message);
     return [];
   }
 }
@@ -200,7 +201,7 @@ async function sendOutreachEmail(payload, options = {}) {
   try {
     await appendSentLog(entry, options);
   } catch (err) {
-    console.warn('[outreach] log persist failed:', err.message);
+    logger.warn('[outreach] log persist failed:', err.message);
   }
 
   return { ...result, entry };

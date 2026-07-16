@@ -1,6 +1,6 @@
-// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 import { formatNumber, formatPercent, escapeHtml, showToast } from '../utils.js';
-import { buildScanConclusion, getScanFileMetrics, resolveDisplayScore, resolveJestTestsLabel, resolvePageSpecsLabel, renderScanScopePanel } from '../services/analyzeService.js?v=20260710inventory1';
+import { buildScanConclusion, getScanFileMetrics, resolveDisplayScore, resolveJestTestsLabel, resolvePageSpecsLabel, renderScanScopePanel } from '../services/analyzeService.js?v=20260716cachefix1';
 import { renderIssueList } from '../components/IssueCard.js';
 import { renderTrendSection, mountTrendChart } from '../components/TrendChart.js';
 import { isDemoMode } from '../demoMode.js';

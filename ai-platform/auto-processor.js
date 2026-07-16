@@ -24,6 +24,7 @@ const require = createRequire(import.meta.url);
 
 // Import shared privacy utilities from server/lib
 const { sanitizePrivacyData } = require('./server/lib/privacy-utils.cjs');
+const logger = require('./server/lib/app-logger.cjs');
 
 // Configuration
 let fileWatcher = null; // simplebeacon-ignore memory-leak — chokidar watcher is intentionally long-lived for background file processing
@@ -36,8 +37,8 @@ const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'unbreakable-oracle:latest';
 const OFFLINE_MODE = process.env.SIMPLEBEACON_OFFLINE === 'true' || process.env.NODE_ENV === 'production';
 const PROCESSOR_DEBUG = process.env.PROCESSOR_DEBUG === 'true';
 const MAX_FILE_SIZE_MB = parseInt(process.env.PROCESSOR_MAX_FILE_SIZE_MB || '50', 10);
-const log = (...args) => { if (PROCESSOR_DEBUG) console.log(...args); }; // simplebeacon-ignore debug-artifact — gated by PROCESSOR_DEBUG env var
-const logError = (...args) => { if (PROCESSOR_DEBUG) console.error(...args); }; // simplebeacon-ignore debug-artifact — gated by PROCESSOR_DEBUG env var
+const log = (...args) => { if (PROCESSOR_DEBUG) logger.info(...args); }; // simplebeacon-ignore debug-artifact — gated by PROCESSOR_DEBUG env var
+const logError = (...args) => { if (PROCESSOR_DEBUG) logger.error(...args); }; // simplebeacon-ignore debug-artifact — gated by PROCESSOR_DEBUG env var
 const timestamp = () => new Date().toISOString();
 
 // Ensure directories exist

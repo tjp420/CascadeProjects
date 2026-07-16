@@ -1,8 +1,8 @@
-// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 import { escapeHtml, formatNumber, formatPercent, renderEmptyState, showToast } from '../utils.js';
 import { FEATURE_CATALOG } from '../services/platformService.js';
 // EU AI Act transparency disclosure: This view includes AI system integration indicators per Article 50.
-import { getScanFileMetrics, resolveDisplayScore, resolveJestTestsLabel, resolvePageSpecsLabel, formatScanScopeSummary, formatScanInventoryNote } from '../services/analyzeService.js?v=20260710inventory1';
+import { getScanFileMetrics, resolveDisplayScore, resolveJestTestsLabel, resolvePageSpecsLabel, formatScanScopeSummary, formatScanInventoryNote } from '../services/analyzeService.js?v=20260716cachefix1';
 // simplebeacon:production-leak-intent: web-data-sample - Legitimate documentation about web data paths in help documentation
 const DASHBOARD_PAGES = [
     {

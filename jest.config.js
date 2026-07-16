@@ -28,7 +28,7 @@ module.exports = {
     'simplebeacon-vscode-merged/dashboard-web/js/**/*.js',
     '!simplebeacon-vscode-merged/dashboard-web/js/**/*.test.js',
     '!simplebeacon-vscode-merged/dashboard-web/js/__tests__/**',
-    '!simplebeacon-vscode-merged/dashboard-web/js/fixtures/**',
+    '!simplebeacon-vscode-merged/dashboard-web/js/fixtures/**', // simplebeacon-ignore production-leak — Jest coverage exclusion, not a prod path
     '!simplebeacon-vscode-merged/dashboard-web/js/mocks/**'
   ],
 

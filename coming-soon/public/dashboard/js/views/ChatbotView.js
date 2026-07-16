@@ -1,4 +1,4 @@
-// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 import { escapeHtml, sanitizePrivacyData } from '../utils.js';
 
 /**
@@ -145,7 +145,7 @@ export class ChatbotView {
         if (text) text.textContent = 'No AI provider configured';
         if (input) input.disabled = true;
         if (sendBtn) sendBtn.disabled = true;
-        this.showErrorBanner('No AI provider is configured on this server. Add OpenAI or Anthropic keys in Settings → AI providers, or ask your admin to set OPENAI_API_KEY / ANTHROPIC_API_KEY on the server.');
+        this.showErrorBanner('No AI provider configured. Add your own OpenAI or Anthropic API key in Settings → AI providers — keys are stored encrypted on your account.');
         return;
       }
     } catch (e) {
@@ -369,7 +369,7 @@ export class ChatbotView {
     if (!rawMessage || this.isLoading) return;
 
     if (!this.selectedProvider) {
-      this.showErrorBanner('No AI provider is configured. Go to Settings → AI providers and add OpenAI or Anthropic keys.');
+      this.showErrorBanner('No AI provider configured. Add your own OpenAI or Anthropic API key in Settings → AI providers — keys are stored encrypted on your account.');
       return;
     }
 

@@ -2,6 +2,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as http from 'http';
+import * as https from 'https';
 import { getSbConfig } from '../utils/vscode';
 import { ServerState } from '../dataServer';
 
@@ -48,6 +49,33 @@ function buildScanProgressPayload(projectPath: string, serverState: ServerState)
     percent: total > 0 ? Math.round((processed / total) * 100) : undefined,
     currentFile: serverState.scanProgressFile || '',
   };
+}
+
+/** Proxy a request to the user's local Ollama instance. Used by the hosted dashboard via the VS Code extension data-server bridge. */
+function proxyToOllama(req: http.IncomingMessage, res: http.ServerResponse, targetUrl: string, method: string): void {
+  const target = new URL(targetUrl);
+  const client = target.protocol === 'https:' ? https : http;
+  const proxyReq = client.request(
+    {
+      hostname: target.hostname,
+      port: target.port || (target.protocol === 'https:' ? 443 : 80),
+      path: target.pathname + target.search,
+      method,
+      headers: {
+        'Content-Type': req.headers['content-type'] || 'application/json',
+        'Accept': req.headers.accept || 'application/json'
+      }
+    },
+    (proxyRes) => {
+      res.writeHead(proxyRes.statusCode || 502, { 'Content-Type': proxyRes.headers['content-type'] || 'application/json' });
+      proxyRes.pipe(res);
+    }
+  );
+  proxyReq.on('error', (err) => {
+    res.writeHead(502, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ source: 'ollama-proxy', error: String(err.message || err) }));
+  });
+  req.pipe(proxyReq);
 }
 
 /**
@@ -125,6 +153,31 @@ export function handleScanConfigRoutes(
   if (parsed.pathname === '/api/models/test-ollama') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ reachable: false, error: 'Ollama not configured in VS Code extension' }));
+    return true;
+  }
+
+  // Lightweight health-check used by the dashboard to verify the extension data server is reachable.
+  if (parsed.pathname === '/api/ping') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ online: true, source: 'extension-data-server' }));
+    return true;
+  }
+
+  // Ollama proxy routes — let the hosted dashboard reach local Ollama through the VS Code extension data server
+  if (parsed.pathname === '/api/simplebeacon/ollama/models' || parsed.pathname === '/api/tags') {
+    const baseUrl = parsed.searchParams.get('baseUrl') || 'http://127.0.0.1:11434';
+    proxyToOllama(req, res, `${baseUrl}/api/tags`, 'GET');
+    return true;
+  }
+  if (parsed.pathname === '/api/simplebeacon/ollama/chat') {
+    const baseUrl = parsed.searchParams.get('baseUrl') || 'http://127.0.0.1:11434';
+    proxyToOllama(req, res, `${baseUrl}/api/chat`, 'POST');
+    return true;
+  }
+  if (parsed.pathname === '/api/simplebeacon/ollama/proxy') {
+    const baseUrl = parsed.searchParams.get('baseUrl') || 'http://127.0.0.1:11434';
+    const proxyPath = parsed.searchParams.get('path') || '/api/tags';
+    proxyToOllama(req, res, `${baseUrl}${proxyPath}`, req.method || 'GET');
     return true;
   }
 

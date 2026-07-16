@@ -46,6 +46,59 @@ test('recomputes gate and quality from platform-only issues (stale full-tree met
     assert.equal(normalized.scanScope.benchmarkCacheIssuesExcluded, 1);
 });
 
+test('monorepo workspace scan at project root is not stale-full-tree-scan', () => {
+    const report = {
+        type: 'simplebeacon-report',
+        projectRoot: 'c:\\Users\\Trevor\\CascadeProjects',
+        platformRoot: 'c:\\Users\\Trevor\\CascadeProjects\\ai-platform',
+        scanPaths: ['c:\\Users\\Trevor\\CascadeProjects'],
+        mockSampleFiles: 66,
+        repositoryFilesTotal: 1904,
+        totalFiles: 1904,
+        ruleScopedFilesAnalyzed: 1904,
+        qualityScore: 100,
+        gate: { pass: true, blockingCount: 0, warningCount: 817, failOn: ['high'], warnOn: ['medium', 'low'] },
+        rawIssues: []
+    };
+    assert.equal(isStaleFullTreeScan(report), false);
+    const normalized = normalizePlatformScanReport(report);
+    assert.equal(normalized.scanScope.reportHealth, 'platform-scoped');
+    assert.notEqual(normalized.scanScope.inventoryMetricsStale, true);
+    assert.ok(!normalized.mockDataCategories || normalized.mockDataCategories.length === 0
+        || !String(normalized.mockDataCategories[0]?.category || '').includes('Stale inventory'));
+});
+
+test('intentional fullDirectoryScan with large walk remains stale-full-tree-scan', () => {
+    const report = {
+        type: 'simplebeacon-report',
+        projectRoot: '/repo/monorepo',
+        scanPaths: ['/repo/monorepo'],
+        fullDirectoryScan: true,
+        mockSampleFiles: 120,
+        repositoryFilesTotal: 12000,
+        totalFiles: 20000,
+        ruleScopedFilesAnalyzed: 20000,
+        gate: { pass: true, blockingCount: 0, failOn: ['high'], warnOn: ['medium', 'low'] },
+        rawIssues: []
+    };
+    assert.equal(isStaleFullTreeScan(report), true);
+    const normalized = normalizePlatformScanReport(report);
+    assert.equal(normalized.scanScope.reportHealth, 'stale-full-tree-scan');
+    assert.equal(normalized.scanScope.inventoryMetricsStale, true);
+});
+
+test('2026-07-16 CascadeProjects export normalizes without stale flag', () => {
+    const reportPath = 'j:/Downloads/simplebeacon-report-2026-07-16.json';
+    if (!require('fs').existsSync(reportPath)) {
+        return;
+    }
+    const report = require(reportPath);
+    assert.equal(isStaleFullTreeScan(report), false);
+    const normalized = normalizePlatformScanReport(report);
+    assert.equal(normalized.scanScope.reportHealth, 'platform-scoped');
+    assert.notEqual(normalized.scanScope.inventoryMetricsStale, true);
+});
+
 test('normalizes stale export (3) to zero actionable platform issues', () => {
     const reportPath = 'j:/Downloads/simplebeacon-report-2026-05-29(3).json';
     if (!require('fs').existsSync(reportPath)) {

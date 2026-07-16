@@ -1,5 +1,5 @@
 import { escapeHtml, formatPathLabel, formatNumber } from '../utils.js';
-import { severityLabel, redactMatch } from '../utils/snippetDiagnostic.js?v=20260531analyzers1';
+import { severityLabel, redactMatch } from '../utils/snippetDiagnostic.js?v=20260716cachefix1';
 import { loadRecentPaths } from '../lib/analyzePathSuggestions.js';
 import { sourceChipTitle } from '../lib/analyzePathSources.js';
 

@@ -49,9 +49,13 @@ async function openUrlInIdeBrowser(url: string): Promise<void> {
 /** Normalize a dashboard route to /dashboard/<view> form used by dashboard-web. */
 export function normalizeDashboardPath(route: string): string {
   let normalized = route.startsWith('/') ? route : `/${route}`;
+  if (normalized === '/dashboard/dashboard' || normalized === '/dashboard/dashboard/') {
+    normalized = '/dashboard';
+  }
   if (normalized === '/dashboard' || normalized === '/dashboard/') {
-    normalized = '/dashboard/dashboard';
-  } else if (!normalized.startsWith('/dashboard/')) {
+    return '/dashboard';
+  }
+  if (!normalized.startsWith('/dashboard/')) {
     normalized = `/dashboard${normalized}`;
   }
   return normalized;
@@ -100,7 +104,7 @@ export function rewriteRemotePreviewUrl(url: string, localBase: string): string 
     }
     let route = parsed.pathname;
     if (route === '/' || route === '' || route === '/dashboard' || route === '/dashboard/') {
-      route = '/dashboard/dashboard';
+      route = '/dashboard';
     } else if (!route.startsWith('/dashboard/')) {
       route = `/dashboard${route.startsWith('/') ? route : `/${route}`}`;
     }
@@ -124,12 +128,12 @@ export function rewriteIdePreviewUrl(url: string, localBase: string, websiteMode
     const parsed = new URL(url);
     const isRemote = parsed.protocol === 'https:' || (parsed.protocol === 'http:' && !/^(localhost|127\.0\.0\.1)(:\d+)?$/i.test(parsed.hostname));
     if (!isRemote) return url;
-    // Website mode: marketing pages on simplebeacon.ai; dashboard iframe via local data-server (no duplicate URL bar).
+    // Website mode: load marketing pages and dashboard routes on simplebeacon.ai (not localhost proxy).
     if (isMarketingSitePath(parsed.pathname)) {
       return url;
     }
     if (parsed.pathname === '/dashboard' || parsed.pathname.startsWith('/dashboard/')) {
-      return rewriteRemotePreviewUrl(url, localBase);
+      return url;
     }
     return url;
   } catch {
@@ -196,13 +200,18 @@ function isRemoteUrl(url: string): boolean {
 /** Append iframe embed params so the dashboard hides its duplicate URL bar. */
 export function appendDashboardEmbedParams(url: string, notifyBase?: string, websiteMode?: boolean): string {
   let result = url;
-  const needsApiBridge = (!websiteMode || isDashboardEmbedUrl(url)) && !isRemoteUrl(url);
+  const remote = isRemoteUrl(url);
+  // Only bridge the local data server API for local/localhost dashboards.
+  // Remote dashboards (e.g. simplebeacon.ai) must use their own backend API;
+  // injecting a local HTTP sb_api_base would be blocked by CORS/mixed-content.
+  const needsApiBridge = Boolean(notifyBase && isDashboardEmbedUrl(url) && !remote);
   if (notifyBase) {
     if (!result.includes('sb_notify_base=')) {
       const sep = result.includes('?') ? '&' : '?';
       result = `${result}${sep}sb_notify_base=${encodeURIComponent(notifyBase)}`;
     }
-    if (needsApiBridge && !result.includes('sb_api_base=')) {
+    const needsBridge = needsApiBridge || (websiteMode && isDashboardEmbedUrl(url));
+    if (needsBridge && !result.includes('sb_api_base=')) {
       const sep = result.includes('?') ? '&' : '?';
       result = `${result}${sep}sb_api_base=${encodeURIComponent(notifyBase)}`;
     }
@@ -404,6 +413,29 @@ export function openWebsiteDashboardPanel(url: string, title = 'SimpleBeacon Das
   // (e.g. an early setAuthState from the dashboard) are dropped between load and handler attachment.
   panel.webview.onDidReceiveMessage(async (message: any) => {
     if (!message || !message.command) return;
+    if (message.command === 'getAuthState') {
+      void (async () => {
+        try {
+          const port = getDataServerPort();
+          const res = await fetch(`http://127.0.0.1:${port}/api/auth/token`);
+          const data = await res.json() as { success?: boolean; token?: string; tier?: string; user?: { tier?: string } };
+          if (data?.success && data?.token) {
+            panel.webview.postMessage({
+              command: 'setAuthState',
+              signedIn: true,
+              token: data.token,
+              tier: data.tier || data.user?.tier || '',
+              isAdmin: false,
+              source: 'extensionBridge'
+            });
+          }
+        } catch { /* data server offline */ }
+        import('./modernSidebarProvider').then(({ ModernSidebarProvider }) => {
+          ModernSidebarProvider.refreshAuthState('websitePanel');
+        }).catch(() => {});
+      })();
+      return;
+    }
     if (message.command === 'setAuthState') {
       const signedIn = !!message.signedIn;
       const token = typeof message.token === 'string' ? message.token : '';
@@ -484,8 +516,8 @@ export function openTeamDashboardPanel(_extUri: vscode.Uri, route = '/dashboard'
   const isRemote = !!baseUrl && !/^(https?:\/\/)?(127\.0\.0\.1|localhost)(:\d+)?\/?$/i.test(baseUrl);
   let normalizedRoute = route;
   if (isRemote) {
-    normalizedRoute = normalizedRoute.replace(/^\/dashboard\/?$/, '/dashboard/dashboard');
-    if (!normalizedRoute.startsWith('/dashboard/')) {
+    normalizedRoute = normalizedRoute.replace(/^\/dashboard\/dashboard\/?$/, '/dashboard');
+    if (!normalizedRoute.startsWith('/dashboard/') && normalizedRoute !== '/dashboard') {
       normalizedRoute = '/dashboard' + (normalizedRoute.startsWith('/') ? normalizedRoute : '/' + normalizedRoute);
     }
   }

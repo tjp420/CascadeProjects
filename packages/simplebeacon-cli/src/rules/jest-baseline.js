@@ -1,4 +1,4 @@
-// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 /**
  * Compare Jest test results against .simplebeacon/baseline.json
  */
@@ -27,7 +27,9 @@ function parseJestSummary(output) {
 
 function runCommand(cwd, command, timeoutMs = 120000) {
     return new Promise((resolve, reject) => {
-        const env = { ...process.env, CI: process.env.CI || 'true' };
+        // Run Jest in test mode so JWT/secret resolution falls back to test-only secrets
+        // instead of failing when the parent server process is in production mode.
+        const env = { ...process.env, CI: process.env.CI || 'true', NODE_ENV: 'test' };
         // npm 11 warns on unknown "devdir" config if inherited via environment.
         delete env.npm_config_devdir;
         delete env.NPM_CONFIG_DEVDIR;

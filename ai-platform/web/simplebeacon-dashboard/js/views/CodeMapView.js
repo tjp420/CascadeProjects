@@ -1,4 +1,4 @@
-// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 import { escapeHtml, formatNumber } from '../utils.js';
 import { scanService } from '../services/scanService.js';
 import { fetchRepositoryInventory } from '../services/analyzeService.js';

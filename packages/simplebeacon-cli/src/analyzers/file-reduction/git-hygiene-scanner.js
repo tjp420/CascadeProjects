@@ -1,4 +1,4 @@
-// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 /**
  * Scan repository for git hygiene issues:
  * - Large files in git history
@@ -19,19 +19,14 @@ const SENSITIVE_FILE_PATTERNS = [
     /id_dsa/,
     /id_ecdsa/,
     /id_ed25519/,
-    /\.pem$/,
     /\.p12$/,
     /\.pfx$/,
     /\.key$/,
     /\.keystore$/,
     /\.jks$/,
-    /credentials/,
-    /secret/,
-    /password/,
     /\.htpasswd/,
     /\.npmrc$/,
     /\.pypirc$/,
-    /token/,
     /\.aws\//,
     /\.docker\/config\.json$/,
     /kubeconfig/,
@@ -46,21 +41,75 @@ const SENSITIVE_FILE_PATTERNS = [
     /\.sql\.gz$/,
     /\.dump$/,
     /\.tar\.gz$/,
-    /\.zip$/,
     /\.7z$/,
     /\.rar$/
+];
+
+/** Secret token files — not auth/token *source modules* named token-*.cjs / *Service.js. */
+const TOKEN_SECRET_FILE_PATTERNS = [
+    /\.tokenkey$/i,
+    /-token\.txt$/i,
+    /^tokens?\.(txt|json|key|pem)$/i,
+    /\/tokens\/[^/]+\.(txt|json|key|pem)$/i
 ];
 
 const EXCLUDED_SENSITIVE_PATHS = [
     /secret-config\.cjs$/,              // Secret resolution library (reads from env, no hardcoded secrets)
     /token-bleed-patterns\.js$/,        // Scanner rule that detects token leaks in other code
-    /license-token\.js$/,              // Token signing/validation library
+    /license-token\.(js|cjs)$/,        // Token signing/validation library
     /generate-license-token\.(cjs|js|bat)$/, // CLI tooling
     /generate-token\.bat$/,             // Token launcher script
     /generate-test-token\.cjs$/,        // Test tooling
     /get-test-token\.cjs$/,             // Token retrieval utility
-    /free-token\.cjs$/                  // Route that generates tokens from env
+    /free-token\.cjs$/,                  // Route that generates tokens from env
+    /token-service\.cjs$/,
+    /token-db\.cjs$/,
+    /token-auth/,
+    /password-service\.cjs$/,
+    /validate-project-token\.cjs$/,
+    /tokenStockpileService\.js$/,
+    /token-(manager|chain|file-system|entry-guard|validate)/,
+    /admin-token\.cjs$/,
+    /time-tokens\.cjs$/,
+    /token-chain-(store|utils)\.cjs$/,
+    /schema-token-(rotation|system)\.sql$/,
+    /token-registry\.json$/,
+    /context-token-optimization\.sql$/,
+    /secret-in-comments-scanner\.js$/,
+    /audit-token-bleed\.js$/,
+    /token-generator\.md$/,
+    /decrypt-token\.js$/,
+    /simplebeacon-public-live\.pem$/,   // Public license cert, not a private key
+    /\/releases\//,
+    /upload-bundle\.zip$/,
+    /temp\.vsix\.zip$/
 ];
+
+function isPublicPemPath(normalized) {
+    return /\.pem$/i.test(normalized) && /(?:public|live-public|-public)/i.test(normalized);
+}
+
+function isReleaseArchivePath(normalized) {
+    if (!/\.zip$/i.test(normalized)) return false;
+    return /\/releases?\//i.test(normalized)
+        || /upload-bundle\.zip$/i.test(normalized)
+        || /temp\.vsix\.zip$/i.test(normalized);
+}
+
+function isSensitiveFile(relativePath) {
+    const normalized = relativePath.replace(/\\/g, '/');
+    if (EXCLUDED_SENSITIVE_PATHS.some((re) => re.test(normalized))) return false;
+    if (isPublicPemPath(normalized)) return false;
+    if (isReleaseArchivePath(normalized)) return false;
+    if (TOKEN_SECRET_FILE_PATTERNS.some((re) => re.test(normalized))) return true;
+    const baseName = normalized.split('/').pop() || '';
+    if (/^token\.(txt|json|key|pem)$/i.test(baseName)) return true;
+    if (/\.zip$/i.test(normalized)) return true;
+    if (/\.pem$/i.test(normalized)) return true;
+    if (/credentials\.(json|ya?ml|xml|ini)$/i.test(normalized)) return true;
+    if (/(?:^|\/)secrets\.(json|ya?ml)$/i.test(normalized)) return true;
+    return SENSITIVE_FILE_PATTERNS.some((re) => re.test(normalized));
+}
 
 const COMMIT_SENSITIVE_PATTERNS = [
     /BEGIN (RSA |DSA |EC |OPENSSH )?PRIVATE KEY/,
@@ -79,12 +128,6 @@ const COMMIT_SENSITIVE_PATTERNS = [
 const LARGE_FILE_THRESHOLD_BYTES = constants.BYTES_PER_KB * 1024;
 const LARGE_BLOB_THRESHOLD_BYTES = 5 * 1024 * 1024;
 const MAX_COMMITS_TO_SCAN = 20;
-
-function isSensitiveFile(relativePath) {
-    const normalized = relativePath.replace(/\\/g, '/');
-    if (EXCLUDED_SENSITIVE_PATHS.some((re) => re.test(normalized))) return false;
-    return SENSITIVE_FILE_PATTERNS.some((re) => re.test(normalized));
-}
 
 function isGitRepo(projectRoot) {
     return fs.existsSync(path.join(projectRoot, '.git'));

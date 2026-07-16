@@ -3,9 +3,9 @@
  * EU AI Act compliance page export bundle — browser mirror of server/lib/eu-ai-act-export.js
  */
 
-import { sanitizeSimplebeaconReportExport } from './simplebeacon-report-export.browser.js?v=20260601gateexport17';
-import { sanitizeComplianceChecklistArtifactExport } from './compliance-export.browser.js?v=20260601complianceexport7';
-import { redactProjectPathForExport, normalizeSimpleBeaconBranding } from './quality-export.browser.js?v=20260531qualityexport8';
+import { sanitizeSimplebeaconReportExport } from './simplebeacon-report-export.browser.js?v=20260716cachefix1';
+import { sanitizeComplianceChecklistArtifactExport } from './compliance-export.browser.js?v=20260716cachefix1';
+import { redactProjectPathForExport, normalizeSimpleBeaconBranding } from './quality-export.browser.js?v=20260716cachefix1';
 
 // ── Small helpers to cut repetitive deep-path fallback chains ──
 

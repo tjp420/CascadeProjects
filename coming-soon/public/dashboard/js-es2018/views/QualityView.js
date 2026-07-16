@@ -1,6 +1,7 @@
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
-import { escapeHtml, showToast, formatNumber } from '../utils.js';
-import { resolveJestTestsLabel } from '../services/analyzeService.js?v=20260710inventory1';
+import { escapeHtml, showToast, formatNumber, downloadJson } from '../utils.js';
+import { resolveJestTestsLabel } from '../services/analyzeService.js?v=20260716cachefix1';
+import { buildQualityExportBundle, qualityExportFilename } from '../utils/quality-export.browser.js?v=20260716cachefix1';
 /**
  * Parse jest total.
  * @param {any} jestTestsLabel
@@ -87,6 +88,25 @@ export class QualityView {
             return null;
         }
     }
+    exportQualityData() {
+        const coverage = resolveCoverageSnapshot(this.app.state.coverage, this.app.state.baseline, this.app.state.dashboardHome);
+        const security = this.app.state.security || {};
+        const quality = this.app.state.quality || {};
+        const npmAudit = this.app.state.npmAudit;
+        if (!coverage && !security && !quality && !npmAudit) {
+            showToast('No quality data to export', 'error');
+            return;
+        }
+        const payload = buildQualityExportBundle({
+            coverage,
+            security,
+            quality,
+            npmAudit,
+            report: this.app.state.report || null
+        });
+        downloadJson(payload, qualityExportFilename('json'));
+        showToast('Quality & Security exported', 'success');
+    }
     render() {
         var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s;
         const security = this.app.state.security || {};
@@ -108,6 +128,9 @@ export class QualityView {
       <div class="analyze-action-bar" style="position:static;margin:0 0 var(--space-4);">
         <div class="analyze-action-info"></div>
         <div class="flex gap-2">
+          <button type="button" class="btn btn-secondary btn-sm" id="quality-export-json" title="Download quality and security JSON">
+            <i data-lucide="download" class="icon-16"></i> Export
+          </button>
           ${this.app.isCurrentUserAdmin() ? '<button class="btn btn-ghost btn-sm" id="quality-send-ai-btn" type="button" title="Send quality and security data to AI coding agent">🤖 Send to AI Agent</button>' : ''}
         </div>
       </div>
@@ -157,6 +180,7 @@ export class QualityView {
       </div>
     `;
         (_r = el.querySelector('#run-audit-btn')) === null || _r === void 0 ? void 0 : _r.addEventListener('click', () => this.runAudit());
+        (_r = el.querySelector('#quality-export-json')) === null || _r === void 0 ? void 0 : _r.addEventListener('click', () => this.exportQualityData());
         (_s = el.querySelector('#quality-send-ai-btn')) === null || _s === void 0 ? void 0 : _s.addEventListener('click', async () => {
             var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m;
             const security = this.app.state.security || {};

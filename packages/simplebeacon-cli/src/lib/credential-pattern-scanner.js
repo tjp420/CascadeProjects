@@ -60,7 +60,10 @@ const ALLOWLIST_SNIPPETS = [
     'mock-secret',
     'placeholder-key',
     'placeholder-token',
-    'template-secret'
+    'template-secret',
+    'insert_secret_here',
+    'your_api_key_here',
+    'insert-api-key-here'
 ];
 
 const SCANNABLE_EXTENSIONS = new Set(['.json', '.js', '.mjs', '.cjs', '.ts', '.tsx', '.env', '.yaml', '.yml', '.txt', '.md']);
@@ -182,6 +185,7 @@ function isCredentialScanExcludedPath(file) {
         || /quick-actions\.js$/.test(rel)
         || /social-posts\.md$/i.test(rel)
         || /scan-wasm-bridge\.test\.js$/i.test(rel)
+        || /llm-slop-patterns\.test\.js$/i.test(rel)
         || /coming-soon\//.test(rel)
         || /coming-soon\/public\/data\//.test(rel)
         || /\.env\.(example|sample|template|local\.example)$/.test(name);

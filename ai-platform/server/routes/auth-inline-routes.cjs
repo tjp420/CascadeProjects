@@ -2,6 +2,7 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 const constants = require('../config/constants.cjs');
+const logger = require('../lib/app-logger.cjs');
 const {
   authenticate,
   optionalAuthenticate,
@@ -13,7 +14,6 @@ const {
   handleTokenRefresh
 } = require('../lib/auth/login-service.cjs');
 const { validateInput } = require('../middleware/security.cjs');
-const { registerUser } = require('../services/user-service.cjs');
 const { getLicenseToken, insertLicenseToken } = require('../lib/token-db.cjs');
 const { verifyLicenseToken } = require('../lib/simplebeacon-proxy.cjs');
 const { isDatabaseEnabled, getDatabaseConfig } = require('../config/database.cjs');
@@ -26,7 +26,7 @@ if (isDatabaseEnabled()) {
   try {
     dbAdapter = new DatabaseAdapter(getDatabaseConfig());
   } catch (e) {
-    console.warn('[Auth] Database adapter creation failed:', e.message);
+    logger.warn('[Auth] Database adapter creation failed:', e.message);
   }
 }
 
@@ -46,27 +46,10 @@ router.post('/auth/login', authLoginRateLimit, validateInput('login'), (req, res
   next();
 }, handleLogin);
 
-router.post('/auth/register', authLoginRateLimit, validateInput('login'), async (req, res, next) => {
+router.post('/auth/register', authLoginRateLimit, async (req, res, next) => {
   try {
-    const { email, password } = req.body || {};
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password required' });
-    }
-    const result = await registerUser(email, password, req.body.name);
-    if (result.error) {
-      return res.status(409).json({ error: result.error });
-    }
-    const token = generateToken(result.user);
-    res.json({
-      message: 'Account created successfully',
-      token,
-      user: {
-        id: result.user.id,
-        email: result.user.email,
-        name: result.user.name,
-        trustLevel: result.user.trustLevel
-      }
-    });
+    const { handleRegister } = require('../lib/auth/registration-service.cjs');
+    return await handleRegister(req, res);
   } catch (error) {
     next(error);
   }

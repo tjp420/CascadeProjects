@@ -10,6 +10,8 @@ const router = express.Router();
 const db = require('../lib/db.cjs');
 
 const logger = {
+    info: (...a) => { const c = globalThis.console; c.info(...a); },
+    warn: (...a) => { const c = globalThis.console; c.warn(...a); },
     error: (...a) => { const c = globalThis.console; c.error(...a); }
 };
 
@@ -31,11 +33,10 @@ function hashPassword(password, salt) {
 function generateSessionToken(user) {
     const secret = process.env.SIMPLEBEACON_LICENSE_SECRET;
     if (!secret) throw new Error('SIMPLEBEACON_LICENSE_SECRET not configured');
-    return jwt.sign(
-        { email: user.email, tier: user.tier, type: 'session' },
-        secret,
-        { expiresIn: SESSION_EXPIRY_HOURS * 60 * 60 }
-    );
+    const tier = user.tier || 'community';
+    const payload = { email: user.email, tier, type: 'session' };
+    if (tier === 'admin') payload.role = 'admin';
+    return jwt.sign(payload, secret, { expiresIn: SESSION_EXPIRY_HOURS * 60 * 60 });
 }
 
 function verifySessionToken(token) {
@@ -52,7 +53,7 @@ function verifySessionToken(token) {
 function seedDemoUsers() {
     const demoUsers = [
         { email: 'dev@simplebeacon.ai', password: process.env.DEV_DEMO_PASSWORD || 'demo123', name: 'Dev User', tier: 'silver' }, // simplebeacon-ignore credential-pattern — demo seed user, password hashed via scrypt before storage
-        { email: 'admin@simplebeacon.ai', password: process.env.ADMIN_DEMO_PASSWORD || 'admin123', name: 'Admin User', tier: 'gold' } // simplebeacon-ignore credential-pattern — demo seed user, password hashed via scrypt before storage
+        { email: 'admin@simplebeacon.ai', password: process.env.ADMIN_DEMO_PASSWORD || 'admin123', name: 'Admin User', tier: 'admin' } // simplebeacon-ignore credential-pattern — demo seed user, password hashed via scrypt before storage
     ];
     for (const u of demoUsers) {
         if (db.getUserByEmail(u.email)) continue;
@@ -66,27 +67,36 @@ function seedDemoUsers() {
     }
 }
 seedDemoUsers();
+const seededAdmin = db.getUserByEmail('admin@simplebeacon.ai');
+if (seededAdmin && seededAdmin.tier !== 'admin') {
+    db.updateUserTier('admin@simplebeacon.ai', 'admin');
+}
 
 // POST /api/auth/register
 router.post('/api/auth/register', express.json(), async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { email, password, confirmPassword } = req.body;
         if (!email || !email.includes('@')) {
             return res.status(400).json({ error: 'Valid email required' });
         }
         if (!password || password.length < 8) {
             return res.status(400).json({ error: 'Password must be at least 8 characters' });
         }
+        if (confirmPassword && password !== confirmPassword) {
+            return res.status(400).json({ error: 'Passwords do not match' });
+        }
 
         const existing = db.getUserByEmail(email);
         if (existing) {
-            return res.status(409).json({ error: 'Email already registered' });
+            logger.warn('[Auth] Registration conflict:', email);
+            return res.status(409).json({ error: 'Email already registered', status: 409 });
         }
 
         const salt = generateSalt();
         const passwordHash = await hashPassword(password, salt);
         const user = db.createUser(email, passwordHash, salt, 'community');
         const token = generateSessionToken(user);
+        logger.info('[Auth] Registration success:', email);
 
         res.json({
             success: true,
@@ -120,14 +130,23 @@ router.post('/api/auth/login', express.json(), async (req, res) => {
         if (passwordHash !== user.password_hash) {
             return res.status(401).json({ error: 'Invalid email or password' });
         }
+        if (String(user.status || 'active').toLowerCase() === 'suspended') {
+            return res.status(403).json({ error: 'Account suspended. Contact support.' });
+        }
 
         const token = generateSessionToken(user);
         res.json({
             success: true,
             token,
-            user: { email: user.email, name: user.name, tier: user.tier },
+            user: {
+                email: user.email,
+                name: user.name,
+                tier: user.tier,
+                role: user.tier === 'admin' ? 'admin' : undefined
+            },
             email: user.email,
             tier: user.tier,
+            role: user.tier === 'admin' ? 'admin' : undefined,
             expiresInHours: SESSION_EXPIRY_HOURS,
             message: 'Login successful'
         });
@@ -156,9 +175,14 @@ router.get('/api/auth/me', (req, res) => {
         }
         res.json({
             authenticated: true,
-            user: { email: payload.email, tier: payload.tier },
+            user: {
+                email: payload.email,
+                tier: payload.tier,
+                role: payload.role || (payload.tier === 'admin' ? 'admin' : undefined)
+            },
             email: payload.email,
-            tier: payload.tier
+            tier: payload.tier,
+            role: payload.role || (payload.tier === 'admin' ? 'admin' : undefined)
         });
     } catch (error) {
         logger.error('[Auth] Me endpoint failed:', error.message);

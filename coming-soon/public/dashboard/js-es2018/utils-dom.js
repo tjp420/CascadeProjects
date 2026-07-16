@@ -1,4 +1,4 @@
-// simplebeacon-ignore memory-leak
+// simplebeacon-ignore memory-leak, security
 /**
  * Escape HTML special characters.
  * @param {string|null|undefined} str

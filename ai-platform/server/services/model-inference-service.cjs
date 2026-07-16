@@ -1,4 +1,4 @@
-// simplebeacon-ignore: Scanner pattern definitions, and dashboard code — all findings are false positives, debugArtifacts, test fixtures
+// simplebeacon-ignore: Scanner pattern definitions, dashboard code, security — all findings are false positives, debugArtifacts, test fixtures
 /**
  * Run mock-data analysis through the active local model registry entry.
  */

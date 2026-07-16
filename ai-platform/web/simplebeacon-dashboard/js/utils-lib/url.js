@@ -20,7 +20,7 @@ function _isAllowedApiBase(value) {
     const url = new URL(value, location.href);
     // HTTPS pages cannot call a local HTTP data server (mixed-content / LAN access).
     if (location.protocol === 'https:' && url.protocol === 'http:') return false;
-    // Never bridge a localhost/loopback base from a remote production host.
+    // Never bridge a localhost/loopback data server from a remote or non-local host.
     if (!_isLocalDevHost() && /^(localhost|127\.0\.0\.1|\[::1\])$/i.test(url.hostname)) return false;
     return true;
   }
@@ -64,7 +64,7 @@ function _readEmbedApiBaseFromQuery() {
       const normalized = _normalizeApiBase(override);
       _storeApiBase(normalized);
       if (params.get(SB_NOTIFY_BASE_KEY)) {
-        _storeNotifyBase(_normalizeApiBase(params.get(SB_NOTIFY_BASE_KEY)));
+        _storeNotifyBase(String(params.get(SB_NOTIFY_BASE_KEY)).replace(/\/+$/, ''));
       }
       return normalized;
     }

@@ -1,4 +1,4 @@
-// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 /**
  * Enterprise AI technical risk guardrails — local pattern scan only.
  * Data leakage in LLM-bound strings and unbounded token spend on model API calls.

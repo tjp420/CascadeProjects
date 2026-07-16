@@ -2,7 +2,7 @@
 /**
  * Browser mirror of compliance-export-sanitize.js — keep in sync.
  */
-import { sanitizeNpmAuditExport } from './npm-audit-export.browser.js?v=20260601npmaudit5';
+import { sanitizeNpmAuditExport } from './npm-audit-export.browser.js?v=20260716cachefix1';
 /**
  * Project label from path.
  * @param {string} projectPath

@@ -3,7 +3,7 @@
  * Cleanup assistant — tier scan results for safe deletion and agent handoff.
  */
 import { escapeHtml, formatNumber } from '../utils.js';
-import { buildCompleteScanAnalysis } from './completeScanAnalysis.js?v=20260527cleanup1';
+import { buildCompleteScanAnalysis } from './completeScanAnalysis.js?v=20260716cachefix1';
 /**
  * C l e a n u p  a s s i s t a n t  p r e f s  k e y.
  */

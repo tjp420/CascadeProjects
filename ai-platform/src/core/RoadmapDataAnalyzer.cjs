@@ -123,7 +123,7 @@ class RoadmapDataAnalyzer {
             return roadmapData;
 
         } catch (error) {
-            console.error('❌ Failed to analyze project for roadmap:', error);
+            logger.error('❌ Failed to analyze project for roadmap:', error);
             return this.generateFallbackRoadmapData();
         }
     }
@@ -169,7 +169,7 @@ class RoadmapDataAnalyzer {
 
             return structure;
         } catch (error) {
-            console.error('Failed to analyze project structure:', error);
+            logger.error('Failed to analyze project structure:', error);
             return { error: error.message };
         }
     }
@@ -327,7 +327,7 @@ class RoadmapDataAnalyzer {
 
             return metrics;
         } catch (error) {
-            console.error('Failed to analyze codebase metrics:', error);
+            logger.error('Failed to analyze codebase metrics:', error);
             return { error: error.message };
         }
     }
@@ -400,7 +400,7 @@ class RoadmapDataAnalyzer {
 
             return dbAnalysis;
         } catch (error) {
-            console.error('Failed to analyze database structure:', error);
+            logger.error('Failed to analyze database structure:', error);
             return { error: error.message };
         }
     }
@@ -487,7 +487,7 @@ class RoadmapDataAnalyzer {
 
             return features;
         } catch (error) {
-            console.error('Failed to analyze implemented features:', error);
+            logger.error('Failed to analyze implemented features:', error);
             return { error: error.message };
         }
     }
@@ -544,7 +544,7 @@ class RoadmapDataAnalyzer {
 
             return progress;
         } catch (error) {
-            console.error('Failed to calculate development progress:', error);
+            logger.error('Failed to calculate development progress:', error);
             return { error: error.message };
         }
     }
@@ -596,7 +596,7 @@ class RoadmapDataAnalyzer {
 
             return recommendations;
         } catch (error) {
-            console.error('Failed to generate recommendations:', error);
+            logger.error('Failed to generate recommendations:', error);
             return { error: error.message };
         }
     }
@@ -661,7 +661,7 @@ class RoadmapDataAnalyzer {
 
             return integration;
         } catch (error) {
-            console.error('Failed to analyze AI integration:', error);
+            logger.error('Failed to analyze AI integration:', error);
             return { error: error.message };
         }
     }

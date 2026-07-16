@@ -1,12 +1,12 @@
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
 import { escapeHtml, showToast, downloadJson, renderEmptyState } from '../utils.js';
-import { resolvePageSpecsLabel, resolveJestTestsLabel } from '../services/analyzeService.js?v=20260710inventory1';
+import { resolvePageSpecsLabel, resolveJestTestsLabel } from '../services/analyzeService.js?v=20260716cachefix1';
 // EU AI Act transparency disclosure: This view includes AI system integration indicators per Article 50.
-import { scanService } from '../services/scanService.js?v=20260711dedup2';
+import { scanService } from '../services/scanService.js?v=20260716cachefix1';
 import { billingService } from '../services/billingService.js';
 import { platformService } from '../services/platformService.js';
-import { fetchUserAiKeys, saveUserAiKeys, clearUserAiKeys, normalizeAiKeysRecord, fetchOllamaModels, shouldProbeOllamaModels } from '../services/aiKeysService.js?v=20260715chatbot1';
-import { authService } from '../services/authService.js?v=20260713sync6';
+import { fetchUserAiKeys, saveUserAiKeys, clearUserAiKeys, normalizeAiKeysRecord, fetchOllamaModels, shouldProbeOllamaModels } from '../services/aiKeysService.js?v=20260716cachefix1';
+import { authService } from '../services/authService.js?v=20260716cachefix1';
 import { OLLAMA_DEFAULT_URL } from '../config.js';
 import { mountCheckoutSuccessBanner } from '../components/CheckoutSuccessBanner.js';
 import { activateStockpileEntry, addToStockpile, BUY_TIME_TOKENS_URL, decodeTokenMeta, isStockpiledEntry, loadStockpileEntries, tokenHint, } from '../services/tokenStockpileService.js';
@@ -961,7 +961,7 @@ export class SettingsView {
             id="settings-ai-ollama"
             type="url"
             spellcheck="false"
-            placeholder="http://127.0.0.1:11434" <!-- simplebeacon-ignore hardcoded-url -->
+            placeholder="http://127.0.0.1:11434"
             value="${escapeHtml(keys.ollamaBaseUrl || '')}">
         </div>
         <div class="settings-field settings-field-stack">

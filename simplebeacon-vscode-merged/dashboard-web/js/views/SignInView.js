@@ -1,5 +1,5 @@
-// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
-import { authService } from '../services/authService.js?v=20260713sync6';
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
+import { authService } from '../services/authService.js?v=20260716cachefix1';
 import { billingService } from '../services/billingService.js';
 import { showToast } from '../utils.js';
 

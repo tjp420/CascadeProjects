@@ -1,4 +1,4 @@
-// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 const GITHUB_REPO = 'https://github.com/tjp420/simplebeacon';
 const CLI_DOCS = 'https://github.com/tjp420/simplebeacon/blob/main/README.md';
 

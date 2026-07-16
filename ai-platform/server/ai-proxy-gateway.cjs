@@ -100,7 +100,7 @@ class AIProxyGateway {
 
             await this.forwardRequest(req, res, body, hostname);
         } catch (error) {
-            console.error('Gateway error:', error);
+            logger.error('Gateway error:', error);
             this.sendErrorResponse(res, error);
         }
     }
@@ -192,7 +192,7 @@ class AIProxyGateway {
             try {
                 fs.appendFileSync(this.config.violationLogPath, `${JSON.stringify(violation)}\n`);
             } catch (error) {
-                console.error('Failed to log violation:', error);
+                logger.error('Failed to log violation:', error);
             }
         }
 
@@ -237,13 +237,13 @@ class AIProxyGateway {
             });
 
             req.on('error', (error) => {
-                console.error('Failed to send webhook alert:', error);
+                logger.error('Failed to send webhook alert:', error);
             });
 
             req.write(payload);
             req.end();
         } catch (error) {
-            console.error('Failed to send webhook alert:', error);
+            logger.error('Failed to send webhook alert:', error);
         }
     }
 

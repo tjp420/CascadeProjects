@@ -6,6 +6,7 @@
 
 const fs = require('fs').promises;
 const path = require('path');
+const logger = require('../lib/app-logger.cjs');
 const { calculateFileQuality, contentNeedsValidation } = require('../lib/file-quality-heuristics.cjs');
 
 const constants = require('../config/constants.cjs');
@@ -390,7 +391,7 @@ function setupRepositoryScannerAPIs(app, options = {}) {
             await scanProjectStructure(platformRoot, '', files);
             res.json({ files });
         } catch (error) {
-            console.error('Project structure scan error:', error);
+            logger.error('Project structure scan error:', error);
             res.status(500).json({ error: 'Failed to scan project structure' });
         }
     });
@@ -401,7 +402,7 @@ function setupRepositoryScannerAPIs(app, options = {}) {
             await scanForBacklogItems(platformRoot, backlog);
             res.json(backlog);
         } catch (error) {
-            console.error('Backlog scan error:', error);
+            logger.error('Backlog scan error:', error);
             res.status(500).json({ error: 'Failed to scan backlog' });
         }
     });
@@ -418,7 +419,7 @@ function setupRepositoryScannerAPIs(app, options = {}) {
                 issues
             });
         } catch (error) {
-            console.error('Mock analysis error:', error);
+            logger.error('Mock analysis error:', error);
             res.status(500).json({ error: 'Failed to analyze mock data' });
         }
     });
@@ -440,7 +441,7 @@ function setupRepositoryScannerAPIs(app, options = {}) {
                 conversions
             });
         } catch (error) {
-            console.error('Mock conversion error:', error);
+            logger.error('Mock conversion error:', error);
             res.status(500).json({ error: 'Failed to convert mock data' });
         }
     });
@@ -469,7 +470,7 @@ function setupRepositoryScannerAPIs(app, options = {}) {
                 results: validationResults
             });
         } catch (error) {
-            console.error('Mock validation error:', error);
+            logger.error('Mock validation error:', error);
             res.status(500).json({ error: 'Failed to validate mock data' });
         }
     });
@@ -490,7 +491,7 @@ function setupRepositoryScannerAPIs(app, options = {}) {
                 cleanedFiles
             });
         } catch (error) {
-            console.error('Mock cleaning error:', error);
+            logger.error('Mock cleaning error:', error);
             res.status(500).json({ error: 'Failed to clean mock data' });
         }
     });

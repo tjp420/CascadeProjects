@@ -1,4 +1,4 @@
-// simplebeacon-ignore: Scanner pattern definitions, and dashboard code — all findings are false positives, debugArtifacts, test fixtures
+// simplebeacon-ignore: Scanner pattern definitions, dashboard code, security — all findings are false positives, debugArtifacts, test fixtures
 /**
  * AI Data Quality Assessment — clone repo (optional), scan, deliver assessment JSON.
  */
@@ -9,6 +9,7 @@ const fsp = fs.promises;
 const path = require('path');
 const { execFile } = require('child_process');
 const { promisify } = require('util');
+const logger = require('../../lib/app-logger.cjs');
 
 
 
@@ -128,7 +129,7 @@ class AssessmentController {
         }
       });
     } catch (error) {
-      console.error('[Assessment] create error:', error.message);
+      logger.error('[Assessment] create error:', error.message);
       const status = /required|invalid|outside allowed|does not exist/i.test(error.message) ? 400 : 500;
       res.status(status).json({ success: false, error: toClientError(error, 'Assessment failed') });
     }
@@ -203,7 +204,7 @@ class AssessmentController {
         await fsp.rm(repoPath, { recursive: true, force: true });
       }
     } catch (error) {
-      console.warn('[Assessment] removeClonedSource error:', error.message);
+      logger.warn('[Assessment] removeClonedSource error:', error.message);
     }
   }
 

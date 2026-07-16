@@ -10,6 +10,7 @@ const express = require('express');
 const router = express.Router();
 const path = require('path');
 const fs = require('fs');
+const logger = require('../lib/app-logger.cjs');
 
 const PROMPT_DB_PATH = path.join(process.cwd(), 'data', 'custom-prompts.json');
 
@@ -41,7 +42,7 @@ async function loadPrompts() {
     return _cachedPrompts;
   } catch (e) {
     if (e.code !== 'ENOENT') {
-      console.warn('[PromptService] Could not load prompts:', e.message);
+      logger.warn('[PromptService] Could not load prompts:', e.message);
     }
   }
   return {};
@@ -58,7 +59,7 @@ async function savePrompts(prompts) {
     await fs.promises.writeFile(PROMPT_DB_PATH, JSON.stringify(prompts, null, 2), 'utf8');
     _cachedPrompts = null;
   } catch (e) {
-    console.error('[PromptService] Could not save prompts:', e.message);
+    logger.error('[PromptService] Could not save prompts:', e.message);
   }
 }
 

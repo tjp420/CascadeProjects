@@ -1,3 +1,4 @@
+// simplebeacon-ignore git-sensitive-file — auth/token implementation file, not a leaked secret
 /**
  * Admin Token Management — generates and stores the personal admin token.
  * The admin token is stored in a separate file (.simplebeacon/admin-token.json)

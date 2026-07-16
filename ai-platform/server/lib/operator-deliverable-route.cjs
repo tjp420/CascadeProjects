@@ -1,5 +1,6 @@
 // simplebeacon-ignore: Scanner pattern definitions, and EU AI Act indicators — all findings are false positives, dashboard code, debug artifacts, debugArtifacts, test fixtures
 const path = require('path');
+const logger = require('./app-logger.cjs');
 const {
   createDeliverableWorkspace,
   listProducts,
@@ -85,7 +86,7 @@ function registerOperatorDeliverableRoute(app, options = {}) {
         vaultSteps: result.product.vaultSteps
       });
     } catch (err) {
-      console.warn('[operator-deliverable] failed:', err.message);
+      logger.warn('[operator-deliverable] failed:', err.message);
       return res.status(500).json({ ok: false, error: 'workspace_failed', message: err.message });
     }
   });

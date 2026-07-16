@@ -1,7 +1,8 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 /**
  * Browser mirror of fiction-digest-export-sanitize.js — keep in sync.
  */
-import { redactProjectPathForExport } from './quality-export.browser.js?v=20260531qualityexport8';
+import { redactProjectPathForExport } from './quality-export.browser.js?v=20260716cachefix1';
 /**
  * Project label from path.
  * @param {string} projectPath

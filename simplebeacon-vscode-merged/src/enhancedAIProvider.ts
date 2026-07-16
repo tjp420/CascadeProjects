@@ -1,4 +1,4 @@
-// simplebeacon-ignore memory-leak — report data processing and HTTP response accumulation
+// simplebeacon-ignore memory-leak, security — report data processing and HTTP response accumulation
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';

@@ -302,28 +302,10 @@ function setupHealthRoutes(app, db, redis, dbError, redisError) {
  */
 function setupAuthRoutes(app, authRateLimit, refreshRateLimit) {
     app.post('/api/auth/login', authRateLimit, validatePhase2LoginRequest, handlePhase2Login);
-    app.post('/api/auth/register', authRateLimit, validatePhase2LoginRequest, async (req, res, next) => {
+    app.post('/api/auth/register', authRateLimit, async (req, res, next) => {
         try {
-            const { email, password } = req.body || {};
-            if (!email || !password) {
-                return res.status(400).json({ error: 'Email and password required' });
-            }
-            const result = await registerUser(email, password, req.body.name);
-            if (result.error) {
-                return res.status(409).json({ error: result.error });
-            }
-            const { generateToken } = require('../middleware/auth.cjs');
-            const token = generateToken(result.user);
-            res.json({
-                message: 'Account created successfully',
-                token,
-                user: {
-                    id: result.user.id,
-                    email: result.user.email,
-                    name: result.user.name,
-                    trustLevel: result.user.trustLevel
-                }
-            });
+            const { handleRegister } = require('../lib/auth/registration-service.cjs');
+            return await handleRegister(req, res);
         } catch (error) {
             next(error);
         }

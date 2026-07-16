@@ -1,13 +1,15 @@
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
 import { escapeHtml, showToast, downloadJson, renderEmptyState } from '../utils.js';
-import { resolvePageSpecsLabel, resolveJestTestsLabel } from '../services/analyzeService.js?v=20260710inventory1';
+import { resolvePageSpecsLabel, resolveJestTestsLabel } from '../services/analyzeService.js?v=20260716cachefix1';
 // EU AI Act transparency disclosure: This view includes AI system integration indicators per Article 50.
-import { scanService } from '../services/scanService.js?v=20260711dedup2';
+import { scanService } from '../services/scanService.js?v=20260716cachefix1';
 import { billingService } from '../services/billingService.js';
 import { platformService } from '../services/platformService.js';
-import { fetchUserAiKeys, saveUserAiKeys, clearUserAiKeys, normalizeAiKeysRecord, fetchOllamaModels } from '../services/aiKeysService.js?v=20260711cachefix1';
-import { authService } from '../services/authService.js?v=20260713sync6';
+import { fetchUserAiKeys, saveUserAiKeys, clearUserAiKeys, normalizeAiKeysRecord, fetchOllamaModels, shouldProbeOllamaModels, userHasJwtForAiKeys } from '../services/aiKeysService.js?v=20260716cachefix1';
+import { authService } from '../services/authService.js?v=20260716cachefix1';
 import { OLLAMA_DEFAULT_URL } from '../config.js';
+import { isHostedDashboard } from '../demoMode.js';
+import { hasExtensionBridgeConfigured } from '../services/localAgentService.js?v=20260716cachefix1';
 import { mountCheckoutSuccessBanner } from '../components/CheckoutSuccessBanner.js';
 import { activateStockpileEntry, addToStockpile, BUY_TIME_TOKENS_URL, decodeTokenMeta, isStockpiledEntry, loadStockpileEntries, tokenHint, } from '../services/tokenStockpileService.js';
 const AI_KEY_FIELDS = [
@@ -47,6 +49,53 @@ export class SettingsView {
         this.ollamaModelsError = null;
         this._ollamaModelsTimer = null;
         this.tokenVault = this.loadTokenVault();
+        this._mountToken = 0;
+        this._loadAndMountActive = false;
+    }
+    _resolveMountContainer(container) {
+        if (container && container.id === 'app-main')
+            return container;
+        return document.getElementById('app-main') || container;
+    }
+    _isSettingsRoot(el) {
+        return Boolean(el && el.classList && el.classList.contains('fade-in')
+            && el.querySelector('#settings-section-scan, .settings-nav'));
+    }
+    _removeOrphanSettingsRoots(container) {
+        document.querySelectorAll('body > .fade-in, .app-shell > .fade-in, .app-body > .fade-in').forEach((el) => {
+            if (!this._isSettingsRoot(el))
+                return;
+            if (container && container.contains(el))
+                return;
+            el.remove();
+        });
+    }
+    _paint(container) {
+        const target = this._resolveMountContainer(container);
+        if (!target)
+            return null;
+        this._removeOrphanSettingsRoots(target);
+        const root = this.render();
+        if (typeof target.replaceChildren === 'function') {
+            target.replaceChildren(root);
+        }
+        else {
+            target.innerHTML = '';
+            target.appendChild(root);
+        }
+        this._root = root;
+        this.bindEvents(root);
+        void mountCheckoutSuccessBanner(root, {
+            onTokenReady: (token, email) => {
+                this.addToVault(token, { email: email || billingService.getEmail(), tier: 'team' });
+                this.markTokenUsed(token);
+            }
+        });
+        if (!this.isDirty()) {
+            this.savedSnapshot = JSON.stringify(this.buildConfigFromDom(this.draft, this._root));
+        }
+        target.scrollTop = 0;
+        return root;
     }
     loadTokenVault() {
         return loadStockpileEntries();
@@ -197,15 +246,20 @@ export class SettingsView {
         });
         (_b = root.querySelector('#settings-ai-refresh-models')) === null || _b === void 0 ? void 0 : _b.addEventListener('click', () => {
             var _a, _b;
-            const baseUrl = ((_b = (_a = root.querySelector('#settings-ai-ollama')) === null || _a === void 0 ? void 0 : _a.value) === null || _b === void 0 ? void 0 : _b.trim())
+            const baseUrl = this.sanitizeOllamaBaseUrl((_b = (_a = root.querySelector('#settings-ai-ollama')) === null || _a === void 0 ? void 0 : _a.value) === null || _b === void 0 ? void 0 : _b.trim())
                 || this.displayAiKeys().ollamaBaseUrl
                 || OLLAMA_DEFAULT_URL;
             void this.loadOllamaModels(baseUrl);
         });
     }
+    sanitizeOllamaBaseUrl(url) {
+        return String(url || '').trim().replace(/^["']+|["']+$/g, '').replace(/\/$/, '');
+    }
     isValidOllamaBaseUrl(url) {
+        const clean = this.sanitizeOllamaBaseUrl(url);
+        if (!clean) return false;
         try {
-            const parsed = new URL(url);
+            const parsed = new URL(clean);
             if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:')
                 return false;
             if (parsed.port) {
@@ -220,7 +274,7 @@ export class SettingsView {
     }
     scheduleOllamaModelsReload(baseUrl) {
         clearTimeout(this._ollamaModelsTimer);
-        const url = String(baseUrl || '').trim();
+        const url = this.sanitizeOllamaBaseUrl(baseUrl);
         if (url && !this.isValidOllamaBaseUrl(url)) {
             this.ollamaModels = [];
             this.ollamaModelsError = null;
@@ -229,11 +283,11 @@ export class SettingsView {
             return;
         }
         this._ollamaModelsTimer = setTimeout(() => {
-            void this.loadOllamaModels(baseUrl);
+            void this.loadOllamaModels(url);
         }, 500);
     }
     async loadOllamaModels(baseUrl, options = {}) {
-        const url = String(baseUrl || OLLAMA_DEFAULT_URL).trim() || OLLAMA_DEFAULT_URL;
+        const url = this.sanitizeOllamaBaseUrl(baseUrl) || OLLAMA_DEFAULT_URL;
         this.ollamaModelsLoading = true;
         this.ollamaModelsError = null;
         this.refreshOllamaModelSelect();
@@ -276,7 +330,7 @@ export class SettingsView {
         if (!root)
             return;
         this.syncAiKeysFormDraft({
-            ollamaBaseUrl: (_c = (_b = (_a = root.querySelector('#settings-ai-ollama')) === null || _a === void 0 ? void 0 : _a.value) === null || _b === void 0 ? void 0 : _b.trim()) !== null && _c !== void 0 ? _c : '',
+            ollamaBaseUrl: this.sanitizeOllamaBaseUrl((_c = (_b = (_a = root.querySelector('#settings-ai-ollama')) === null || _a === void 0 ? void 0 : _a.value) === null || _b === void 0 ? void 0 : _b.trim()) !== null && _c !== void 0 ? _c : '') || '',
             ollamaModel: (_f = (_e = (_d = root.querySelector('#settings-ai-ollama-model')) === null || _d === void 0 ? void 0 : _d.value) === null || _e === void 0 ? void 0 : _e.trim()) !== null && _f !== void 0 ? _f : ''
         });
     }
@@ -984,8 +1038,9 @@ export class SettingsView {
             id="settings-ai-ollama"
             type="url"
             spellcheck="false"
-            placeholder="http://127.0.0.1:11434" <!-- simplebeacon-ignore hardcoded-url -->
+            placeholder="http://127.0.0.1:11434"
             value="${escapeHtml(keys.ollamaBaseUrl || '')}">
+          ${isHostedDashboard() && !hasExtensionBridgeConfigured() ? `<p class="text-muted settings-secret-hint">Local Ollama cannot be tested from this hosted site. Use OpenAI or Anthropic above, or run the dashboard at <code>http://localhost</code> with <code>ollama serve</code>.</p>` : ''}
         </div>
         <div class="settings-field settings-field-stack">
           <label class="settings-label" for="settings-ai-ollama-model">Ollama model</label>
@@ -1074,8 +1129,17 @@ export class SettingsView {
     async testOllamaConnection(root, rerender) {
         var _a, _b, _c, _d;
         const payloadRoot = root || this._root;
-        const baseUrl = ((_b = (_a = payloadRoot === null || payloadRoot === void 0 ? void 0 : payloadRoot.querySelector('#settings-ai-ollama')) === null || _a === void 0 ? void 0 : _a.value) === null || _b === void 0 ? void 0 : _b.trim()) || 'http://127.0.0.1:11434';
+        const baseUrl = this.sanitizeOllamaBaseUrl((_b = (_a = payloadRoot === null || payloadRoot === void 0 ? void 0 : payloadRoot.querySelector('#settings-ai-ollama')) === null || _a === void 0 ? void 0 : _a.value) === null || _b === void 0 ? void 0 : _b.trim()) || 'http://127.0.0.1:11434';
         const model = ((_d = (_c = payloadRoot === null || payloadRoot === void 0 ? void 0 : payloadRoot.querySelector('#settings-ai-ollama-model')) === null || _c === void 0 ? void 0 : _c.value) === null || _d === void 0 ? void 0 : _d.trim()) || '';
+        const hostedBlockedMsg = 'Local Ollama cannot be reached from the hosted dashboard. Use OpenAI or Anthropic keys here, or run the dashboard at http://localhost with ollama serve.';
+        if (!shouldProbeOllamaModels(baseUrl)) {
+            this.ollamaModels = [];
+            this.ollamaModelsLoading = false;
+            this.ollamaModelsError = hostedBlockedMsg;
+            this.refreshOllamaModelSelect();
+            showToast(hostedBlockedMsg, 'info');
+            return;
+        }
         this.aiKeysBusy = 'test-ollama';
         this.updateAiKeysBusyUi();
         try {
@@ -1144,10 +1208,14 @@ export class SettingsView {
         }
     }
     async loadAndMount(container) {
+        const target = this._resolveMountContainer(container);
+        if (!target)
+            return;
+        const token = ++this._mountToken;
+        this._loadAndMountActive = true;
         this.loading = true;
         this.error = null;
-        container.innerHTML = '';
-        container.appendChild(this.render());
+        this._paint(target);
         try {
             const projectPath = this.app.state.lastProjectPath || null;
             const [config, presets] = await Promise.all([
@@ -1155,25 +1223,36 @@ export class SettingsView {
                 this.presets ? Promise.resolve(this.presets) : scanService.fetchConfigPresets(),
                 this.loadAiKeys()
             ]);
+            if (token !== this._mountToken)
+                return;
             this.app.state.config = config;
             this.presets = presets;
             this.draft = cloneConfig(config);
             this.savedSnapshot = JSON.stringify(this.buildConfigFromDom(this.draft, null));
         }
         catch (err) {
+            if (token !== this._mountToken)
+                return;
             this.error = err.message;
             this.draft = this.draft || cloneConfig(this.app.state.config || {});
         }
         finally {
+            this._loadAndMountActive = false;
+            if (token !== this._mountToken)
+                return;
             this.loading = false;
-            this.mount(container);
+            this.mount(target);
         }
     }
     mount(container) {
+        const target = this._resolveMountContainer(container);
+        if (!target)
+            return;
         if (!this.draft && !this.loading && !this.error) {
-            this.loadAndMount(container);
+            void this.loadAndMount(target);
             return;
         }
+        const token = ++this._mountToken;
         const incoming = this.app.state.config;
         if (incoming && (!this.draft || !this.isDirty())) {
             this.draft = cloneConfig(incoming);
@@ -1183,25 +1262,15 @@ export class SettingsView {
             this.draft = cloneConfig(incoming || {});
             this.savedSnapshot = JSON.stringify(this.buildConfigFromDom(this.draft, null));
         }
-        container.innerHTML = '';
-        const root = this.render();
-        container.appendChild(root);
-        this._root = root;
-        this.bindEvents(root);
-        void mountCheckoutSuccessBanner(root, {
-            onTokenReady: (token, email) => {
-                this.addToVault(token, { email: email || billingService.getEmail(), tier: 'team' });
-                this.markTokenUsed(token);
-            }
-        });
-        if (!this.aiKeys) {
+        this._paint(target);
+        if (!this.aiKeys && !this._loadAndMountActive && !this.aiKeysBusy) {
             void this.loadAiKeys().then(() => {
-                if (container.contains(root))
-                    this.mount(container);
+                if (token !== this._mountToken)
+                    return;
+                const main = document.getElementById('app-main');
+                if (main && this._root && main.contains(this._root))
+                    this.mount(main);
             });
-        }
-        if (!this.isDirty()) {
-            this.savedSnapshot = JSON.stringify(this.buildConfigFromDom(this.draft, this._root));
         }
     }
     resetDraft() {
@@ -1215,19 +1284,23 @@ export class SettingsView {
     }
     bindEvents(root) {
         var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z;
-        const container = root.parentElement;
         /**
          * Rerender.
          * @returns {any}
          */
         const rerender = () => {
             this.captureAiKeysFormDraft(this._root);
-            if (container)
-                this.mount(container);
+            const main = document.getElementById('app-main');
+            if (main)
+                this.mount(main);
         };
         (_a = root.querySelector('#settings-ai-ollama')) === null || _a === void 0 ? void 0 : _a.addEventListener('input', (e) => {
-            this.aiKeysFormDraft.ollamaBaseUrl = e.target.value;
-            this.scheduleOllamaModelsReload(e.target.value);
+            const clean = this.sanitizeOllamaBaseUrl(e.target.value);
+            this.aiKeysFormDraft.ollamaBaseUrl = clean;
+            if (clean && e.target.value !== clean) {
+                e.target.value = clean;
+            }
+            this.scheduleOllamaModelsReload(clean);
         });
         this.bindOllamaModelEvents(root);
         root.querySelectorAll('.settings-nav-link[data-scroll-to]').forEach((link) => {
@@ -1364,7 +1437,7 @@ export class SettingsView {
         });
         if (root.querySelector('#settings-ai-keys-card')) {
             const baseUrl = this.displayAiKeys().ollamaBaseUrl || 'http://127.0.0.1:11434';
-            if (!this.ollamaModels.length && !this.ollamaModelsLoading) {
+            if (!this.ollamaModels.length && !this.ollamaModelsLoading && shouldProbeOllamaModels(baseUrl)) {
                 void this.loadOllamaModels(baseUrl);
             }
         }

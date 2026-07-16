@@ -1,3 +1,4 @@
+// simplebeacon-ignore git-sensitive-file — auth/token implementation file, not a leaked secret
 /**
  * Token validation route — secure endpoint for client-side token verification.
  * Replaces the insecure client-side token generation in unlock.html.

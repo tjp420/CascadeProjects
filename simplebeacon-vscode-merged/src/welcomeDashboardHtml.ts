@@ -1095,37 +1095,6 @@ body{font-family:var(--vscode-font-family,'Segoe UI',sans-serif);background:var(
   <div class="welcome" style="height:auto;padding:24px 0">
     <div class="welcome-map" style="font-size:120px;">&#x1F5FA;</div>
     <h1>SimpleBeacon AI Slop Cop</h1>
-    <div class="db-kpi-grid welcome-kpi-grid" style="margin:16px 0 20px">
-      <div class="db-kpi-card">
-        <div class="db-kpi-icon">&#128200;</div>
-        <div class="db-kpi-value" id="welcomeStatScore" style="color:#89d185">--</div>
-        <div class="db-kpi-label">Quality Score</div>
-      </div>
-      <div class="db-kpi-card">
-        <div class="db-kpi-icon">&#128310;</div>
-        <div class="db-kpi-value" id="welcomeStatGate">--</div>
-        <div class="db-kpi-label">Gate Status</div>
-      </div>
-      <div class="db-kpi-card">
-        <div class="db-kpi-icon">&#128308;</div>
-        <div class="db-kpi-value" id="welcomeStatIssues" style="color:#f48771">0</div>
-        <div class="db-kpi-label">Total Issues</div>
-      </div>
-      <div class="db-kpi-card">
-        <div class="db-kpi-icon">&#128196;</div>
-        <div class="db-kpi-value" id="welcomeStatFiles">0</div>
-        <div class="db-kpi-label">Repository Files</div>
-      </div>
-    </div>
-    <div class="db-severity welcome-severity" style="max-width:640px;margin:0 auto 20px">
-      <div class="db-severity-title">Severity Breakdown</div>
-      <div class="db-severity-bar">
-        <div class="db-sev-segment db-sev-critical" id="welcomeSevCritical" style="width:0"></div>
-        <div class="db-sev-segment db-sev-high" id="welcomeSevHigh" style="width:0"></div>
-        <div class="db-sev-segment db-sev-medium" id="welcomeSevMedium" style="width:0"></div>
-        <div class="db-sev-segment db-sev-low" id="welcomeSevLow" style="width:0"></div>
-      </div>
-    </div>
     <div class="btn-grid">
       <button id="openDashboard"><span class="btn-icon">&#9776;</span><span class="btn-label">Dashboard</span></button>
       <button id="openAnalyze"><span class="btn-icon">&#128340;</span><span class="btn-label">Analyze</span></button>
@@ -5624,24 +5593,8 @@ window.addEventListener('message', (event) => {
     if (tGate) { tGate.textContent = msg.gate ? 'Gate: ' + msg.gate : 'Run a scan'; }
     if (tIssues) { tIssues.textContent = msg.issues ? msg.issues + ' issues found' : 'Waiting...'; }
     if (tFiles) { tFiles.textContent = msg.files ? msg.files + ' files indexed' : 'Indexed'; }
-    const ws = document.getElementById('welcomeStatScore');
-    const wg = document.getElementById('welcomeStatGate');
-    const wi = document.getElementById('welcomeStatIssues');
-    const wf = document.getElementById('welcomeStatFiles');
-    if (ws) ws.textContent = msg.score || '--';
-    if (wg) wg.textContent = msg.gate || '--';
-    if (wi) wi.textContent = msg.issues || '0';
-    if (wf) wf.textContent = msg.files || '0';
     if (msg.severity) {
       updateSeverityBar(msg.severity);
-      const total = (msg.severity.critical || 0) + (msg.severity.high || 0) + (msg.severity.medium || 0) + (msg.severity.low || 0);
-      if (total > 0) {
-        const wc = document.getElementById('welcomeSevCritical'), wh = document.getElementById('welcomeSevHigh'), wm = document.getElementById('welcomeSevMedium'), wl = document.getElementById('welcomeSevLow');
-        if (wc) wc.style.width = ((msg.severity.critical || 0) / total * 100) + '%';
-        if (wh) wh.style.width = ((msg.severity.high || 0) / total * 100) + '%';
-        if (wm) wm.style.width = ((msg.severity.medium || 0) / total * 100) + '%';
-        if (wl) wl.style.width = ((msg.severity.low || 0) / total * 100) + '%';
-      }
     }
     if (msg.findings) renderFindings(msg.findings);
     updateRepoHealthPane(msg);

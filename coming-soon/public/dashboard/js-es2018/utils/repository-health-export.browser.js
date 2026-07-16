@@ -1,7 +1,7 @@
 /**
  * Repository health page export bundle — browser mirror of server/lib/repository-health-export.js
  */
-import { redactProjectPathForExport, normalizeSimpleBeaconBranding } from './quality-export.browser.js?v=20260531qualityexport8';
+import { redactProjectPathForExport, normalizeSimpleBeaconBranding } from './quality-export.browser.js?v=20260716cachefix1';
 /**
  * Dedupe export notes.
  * @param {Array} notes

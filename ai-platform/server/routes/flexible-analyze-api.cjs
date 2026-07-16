@@ -1,4 +1,4 @@
-// simplebeacon-ignore: euAiAct
+// simplebeacon-ignore: euAiAct, security
 /**
  * Flexible directory analysis — any path + AI provider + analysis mode.
  *
@@ -24,7 +24,7 @@ const multer = require('multer');
 const tmp = require('tmp');
 const rateLimit = require('express-rate-limit');
 const unzipper = require('unzipper');
-const { optionalAuthenticate } = require('../middleware/auth.cjs');
+const { optionalAuthenticate, authenticate, requireDashboardWrite } = require('../middleware/auth.cjs');
 // Dynamic reload wrapper: always load the latest codebase-analyzer.cjs to pick up patches without server restart
 function getAnalyzeCodebase() {
     const modulePath = require.resolve('../lib/codebase-analyzer.cjs');
@@ -256,10 +256,11 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
 
     if (process.env.REQUIRE_AUTH === 'true') {
         const { authenticate, optionalAuthenticate } = require('../middleware/auth.cjs');
+        const publicAnalyzePaths = new Set(['/upload-directory', '/progress', '/providers', '/test-sources']);
         app.use('/api/analyze/upload-directory', optionalAuthenticate);
         app.use('/api/analyze/progress', optionalAuthenticate);
         app.use('/api/analyze', (req, res, next) => {
-            if (req.path === '/upload-directory' || req.path === '/progress') return next();
+            if (publicAnalyzePaths.has(req.path)) return next();
             return authenticate(req, res, next);
         });
     }
@@ -364,7 +365,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
         }
     });
 
-    app.put('/api/simplebeacon/agency/branding', (req, res) => {
+    app.put('/api/simplebeacon/agency/branding', authenticate, requireDashboardWrite, (req, res) => {
         try {
             const body = req.body || {};
             const orgId = String(body.org_id || body.orgId || req.query.org_id || 'default').trim() || 'default';

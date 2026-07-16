@@ -79,7 +79,7 @@ class UploadSecurityMiddleware {
                 next();
 
             } catch (error) {
-                console.error('[Upload Security] Middleware error:', error);
+                logger.error('[Upload Security] Middleware error:', error);
                 res.status(500).json({
                     success: false,
                     error: 'Upload security validation failed'
@@ -121,7 +121,7 @@ class UploadSecurityMiddleware {
                 next();
 
             } catch (error) {
-                console.error('[Upload Security] Content validation error:', error);
+                logger.error('[Upload Security] Content validation error:', error);
                 res.status(500).json({
                     success: false,
                     error: 'File content validation failed'
@@ -153,7 +153,7 @@ class UploadSecurityMiddleware {
                 next();
 
             } catch (error) {
-                console.error('[Upload Security] Completion middleware error:', error);
+                logger.error('[Upload Security] Completion middleware error:', error);
                 next(error);
             }
         };

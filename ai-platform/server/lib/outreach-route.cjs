@@ -8,6 +8,7 @@ const {
   sentEntryId,
   sendOutreachEmail
 } = require('./outreach-mail.cjs');
+const logger = require('./app-logger.cjs');
 const { sendClientError, ERROR_CODES } = require('../../shared-utils/index.cjs');
 const { setupOutreachResendWebhook } = require('./outreach-resend-webhook.cjs');
 
@@ -145,7 +146,7 @@ async function handleOutreachSend(req, res, options = {}) {
         req
       });
     }
-    console.warn('[outreach] send failed:', err.message);
+    logger.warn('[outreach] send failed:', err.message);
     return sendClientError(res, 502, err, {
       errorLabel: ERROR_CODES.ERR_EMAIL_SEND_FAILED,
       fallback: 'Outreach email send failed',

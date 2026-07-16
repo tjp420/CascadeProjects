@@ -6,6 +6,7 @@
 const path = require('path');
 const archiver = require('archiver');
 const { PassThrough } = require('stream');
+const logger = require('../../../server/lib/app-logger.cjs');
 const {
     buildCertificateModel,
     renderCertificateHtml
@@ -117,7 +118,7 @@ async function buildReportBundle(licenseToken, reportJson) {
         auditReportHtml = auditResult.html;
         auditReportFilename = auditResult.filename;
     } catch (auditErr) {
-        console.warn('[Reports] Audit report generation skipped:', auditErr.message);
+        logger.warn('[Reports] Audit report generation skipped:', auditErr.message);
     }
 
     // Build full export ZIP with all JSON artifacts + HTML reports via analyze-export-bundle
@@ -202,8 +203,8 @@ async function buildReportBundle(licenseToken, reportJson) {
         enginesRun,
         analysisConfig: { selectedEngines: enginesRun }
     };
-    console.log('[buildReportBundle] results keys with data:', Object.keys(analysisResults).filter(k => !!analysisResults[k]));
-    console.log('[buildReportBundle] enginesRun:', enginesRun);
+    logger.info('[buildReportBundle] results keys with data:', Object.keys(analysisResults).filter(k => !!analysisResults[k]));
+    logger.info('[buildReportBundle] enginesRun:', enginesRun);
 
     let zipBuffer;
     let zipFilename;
@@ -221,7 +222,7 @@ async function buildReportBundle(licenseToken, reportJson) {
         zipBuffer = await streamToBuffer(stream);
         zipFilename = filename;
     } catch (zipErr) {
-        console.warn('[Reports] Full export ZIP failed, falling back to minimal:', zipErr.message, zipErr.code || '');
+        logger.warn('[Reports] Full export ZIP failed, falling back to minimal:', zipErr.message, zipErr.code || '');
         // Fallback: build a minimal ZIP that includes the correct analysis artifacts
         const pass = new PassThrough();
         const archive = archiver('zip', { zlib: { level: 9 } });
@@ -248,7 +249,7 @@ async function buildReportBundle(licenseToken, reportJson) {
                 });
                 archive.append(eu.html, { name: `${root}/reports/eu-ai-act-audit.html` });
             } catch (euErr) {
-                console.warn('[Reports] EU AI Act audit HTML generation skipped in fallback:', euErr.message);
+                logger.warn('[Reports] EU AI Act audit HTML generation skipped in fallback:', euErr.message);
             }
         }
 

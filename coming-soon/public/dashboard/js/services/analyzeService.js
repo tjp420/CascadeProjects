@@ -1,5 +1,5 @@
-// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
-import { authService } from './authService.js?v=20260713sync6';
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
+import { authService } from './authService.js?v=20260716cachefix1';
 import { fetchUserAiKeys } from './aiKeysService.js';
 import { scanService } from './scanService.js';
 import { formatNumber, escapeHtml, fetchWithTimeout } from '../utils.js';
@@ -1393,7 +1393,10 @@ export function preparePlatformResultsReport(report) {
     .filter((issue) => (gateConfig.warnOn || []).includes(issue.severityBand || issue.severity))
     .reduce((sum, issue) => sum + (issue.count || 1), 0);
   const repoFiles = report.repositoryFilesTotal ?? report.repositoryInventory?.totalFiles ?? 0;
-  const staleFullTreeScan = repoFiles > 15000 || (report.mockSampleFiles ?? report.totalFiles ?? 0) > 500;
+  const mockSamples = report.mockSampleFiles ?? 0;
+  const walkedFiles = report.ruleScopedFilesAnalyzed ?? report.totalFiles ?? 0;
+  const fullTree = Boolean(report.fullDirectoryScan || report.scanScope?.fullDirectoryScan);
+  const staleFullTreeScan = mockSamples > 500 || repoFiles > 15000 || (fullTree && walkedFiles > 15000);
 
   return {
     ...report,

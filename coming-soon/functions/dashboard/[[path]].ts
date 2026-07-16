@@ -18,10 +18,8 @@ export const onRequest = async (context: any) => {
   // Serve the dashboard SPA for every other /dashboard/* route.
   // Use the duplicated __entry file (no extension) so Cloudflare does not strip the
   // extension and redirect, and force the response Content-Type to text/html.
-  if (pathname === '/dashboard') {
-    return Response.redirect(new URL('/dashboard/', url.origin), 301);
-  }
-
+  // Serve SPA entry for /dashboard (no trailing slash) without a redirect so
+  // ?sb_api_base=…&sb_notify_base=… query params survive (VS Code embed bridge).
   const entryCandidates = ['/dashboard/__entry', '/dashboard/index.html'];
   let response: Response | null = null;
   for (const entryPath of entryCandidates) {

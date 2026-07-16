@@ -6,6 +6,13 @@ const https = require('https');
 const crypto = require('crypto');
 const path = require('path');
 const db = require('../lib/db.cjs');
+const {
+    getFromAddress,
+    getSmtpSettings,
+    hasResendApiKey,
+    getEmailStatus,
+    isEmailConfigured
+} = require('../lib/email-config.cjs');
 
 const EMAIL_QUEUE_DIR = path.join(__dirname, '..', '.simplebeacon', 'email-queue');
 
@@ -61,11 +68,17 @@ function sendViaResend({ to, from, subject, text, html }) {
 async function sendViaSmtp({ to, from, subject, text, html }) {
     let nodemailer;
     try { nodemailer = require('nodemailer'); } catch { throw new Error('nodemailer not installed'); }
-    const cfg = { host: process.env.SMTP_HOST, port: Number(process.env.SMTP_PORT) || 587, user: process.env.SMTP_USER, pass: process.env.SMTP_PASS, from: process.env.SMTP_FROM || from || 'certificates@simplebeacon.ai', secure: process.env.SMTP_SECURE === 'true' || Number(process.env.SMTP_PORT) === 465 };
-    if (!cfg.host || !cfg.user || !cfg.pass) throw new Error('SMTP not configured');
-    const transporter = nodemailer.createTransport({ host: cfg.host, port: cfg.port, secure: cfg.secure, auth: { user: cfg.user, pass: cfg.pass } });
-    await transporter.sendMail({ from: cfg.from, to, subject, text: text || '', html: html || undefined });
-    return { sent: true };
+    const smtp = getSmtpSettings();
+    if (!smtp) throw new Error('SMTP not configured');
+    const transporter = nodemailer.createTransport({
+        host: smtp.host,
+        port: smtp.port,
+        secure: smtp.secure,
+        auth: { user: smtp.user, pass: smtp.pass }
+    });
+    const fromAddr = smtp.from || from || getFromAddress();
+    await transporter.sendMail({ from: fromAddr, to, subject, text: text || '', html: html || undefined });
+    return { sent: true, provider: smtp.mode || 'smtp' };
 }
 
 async function sendEmail(options) {
@@ -79,7 +92,7 @@ async function sendEmail(options) {
     }
 
     try {
-        const result = await sendViaResend({ to, from: process.env.RESEND_FROM || 'certificates@simplebeacon.ai', subject, text, html });
+        const result = await sendViaResend({ to, from: getFromAddress(), subject, text, html });
         db.markEmailSent(queueId, 'resend', result.id);
         return { sent: true, queued: false, queueId, provider: 'resend', providerMessageId: result.id };
     } catch (err) {
@@ -87,19 +100,29 @@ async function sendEmail(options) {
     }
 
     try {
-        await sendViaSmtp({ to, subject, text, html });
-        db.markEmailSent(queueId, 'smtp', null);
-        return { sent: true, queued: false, queueId, provider: 'smtp' };
+        const smtpResult = await sendViaSmtp({ to, from: getFromAddress(), subject, text, html });
+        db.markEmailSent(queueId, smtpResult.provider || 'smtp', null);
+        return { sent: true, queued: false, queueId, provider: smtpResult.provider || 'smtp' };
     } catch (err) {
         db.updateEmailStatus(queueId, 'pending', err.message);
     }
 
-    return { sent: false, queued: true, queueId, error: 'Both Resend and SMTP failed. Email queued for retry.' };
+    return {
+        sent: false,
+        queued: true,
+        queueId,
+        error: isEmailConfigured()
+            ? 'Email delivery failed. Message queued for retry.'
+            : 'Email not configured. Set RESEND_API_KEY on the server (Render env vars).'
+    };
 }
 
 module.exports = {
     sendEmail,
     queueEmailToDisk,
     sendViaResend,
-    sendViaSmtp
+    sendViaSmtp,
+    getEmailStatus: () => getEmailStatus({ db }),
+    isEmailConfigured,
+    hasResendApiKey
 };

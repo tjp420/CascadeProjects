@@ -6,6 +6,7 @@
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const logger = require('./app-logger.cjs');
 
 const express = require('express');
 const { sendClientError, ERROR_CODES } = require('../../shared-utils/index.cjs');
@@ -327,7 +328,7 @@ function setupOutreachResendWebhook(app, options = {}) {
         const result = await processResendWebhookEvent(event, options);
         return res.json({ ok: true, received: event.type, ...result });
       } catch (err) {
-        console.warn('[outreach-webhook] process failed:', err.message);
+        logger.warn('[outreach-webhook] process failed:', err.message);
         return sendClientError(res, 500, err, {
           errorLabel: ERROR_CODES.ERR_OUTREACH_REQUEST_FAILED,
           fallback: 'Outreach webhook processing failed',

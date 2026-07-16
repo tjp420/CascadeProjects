@@ -14,17 +14,11 @@ const http = require('http');
 const express = require('express');
 const cors = require('cors');
 
-const { resolveScanProgressPath, readScanProgress } = require('../../packages/simplebeacon-cli/src/lib/scan-progress.js');
-
-const PORT = Number(process.env.SIMPLEBEACON_AGENT_PORT || 55432);
-const HOST = process.env.SIMPLEBEACON_AGENT_HOST || '127.0.0.1';
-
-const app = express();
-
 /**
  * Resolve the project root for the agent so it can locate the SimpleBeacon
- * scanner and config. The agent may be run from inside ai-platform/local-agent
- * or from a global install; try several sensible roots.
+ * scanner and config. The agent may be run from inside ai-platform/local-agent,
+ * from a packaged portable directory, or from a global install; try several
+ * sensible roots.
  */
 function resolveAgentRoot() {
   const candidates = [
@@ -46,6 +40,12 @@ function resolveAgentRoot() {
 }
 
 const AGENT_ROOT = resolveAgentRoot();
+const { resolveScanProgressPath, readScanProgress } = require(path.join(AGENT_ROOT, 'packages', 'simplebeacon-cli', 'src', 'lib', 'scan-progress.js'));
+
+const PORT = Number(process.env.SIMPLEBEACON_AGENT_PORT || 55432);
+const HOST = process.env.SIMPLEBEACON_AGENT_HOST || '127.0.0.1';
+
+const app = express();
 const SCANNER_MODULE = path.join(AGENT_ROOT, 'packages', 'simplebeacon-cli', 'src', 'index.js');
 
 /**
@@ -272,7 +272,7 @@ app.use(requireLoopback);
 
 // Request logger to help diagnose browser/agent issues.
 app.use((req, res, next) => {
-  console.log(`[agent] ${req.method} ${req.url} from ${req.headers.origin || 'no-origin'} (${req.socket.remoteAddress || 'unknown'})`);
+  console.debug(`[agent] ${req.method} ${req.url} from ${req.headers.origin || 'no-origin'} (${req.socket.remoteAddress || 'unknown'})`);
   next();
 });
 
@@ -292,7 +292,7 @@ app.get('/health', (req, res) => {
 app.post('/scan', async (req, res) => {
   const rawPath = req.body?.projectPath;
   try {
-    console.log('[agent] /scan received projectPath:', rawPath);
+    console.debug('[agent] /scan received projectPath:', rawPath);
     const targetPath = validateTargetPath(rawPath);
     const fullDirectoryScan = req.body?.fullDirectoryScan === true || req.body?.fullDirectoryScan === 'true';
     const report = await runLocalScan(targetPath, { fullDirectoryScan });
@@ -324,7 +324,7 @@ app.get('/progress', (req, res) => {
 app.post('/inventory', async (req, res) => {
   const rawPath = req.body?.projectPath;
   try {
-    console.log('[agent] /inventory received projectPath:', rawPath);
+    console.debug('[agent] /inventory received projectPath:', rawPath);
     const targetPath = validateTargetPath(rawPath);
     const fullDirectoryScan = req.body?.fullDirectoryScan === true || req.body?.fullDirectoryScan === 'true';
     const inventory = await runLocalInventory(targetPath, { fullDirectoryScan });
@@ -363,9 +363,9 @@ app.use((err, req, res, _next) => {
 function start() {
   const server = http.createServer(app);
   server.listen(PORT, HOST, () => {
-    console.log(`[agent] Listening on http://${HOST}:${PORT}`);
-    console.log(`[agent] Scanner root: ${AGENT_ROOT}`);
-    console.log(`[agent] Scanner available: ${Boolean(scannerApi && typeof scannerApi.runScan === 'function')}`);
+    console.debug(`[agent] Listening on http://${HOST}:${PORT}`);
+    console.debug(`[agent] Scanner root: ${AGENT_ROOT}`);
+    console.debug(`[agent] Scanner available: ${Boolean(scannerApi && typeof scannerApi.runScan === 'function')}`);
   });
 
   server.on('error', (err) => {

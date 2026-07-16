@@ -192,7 +192,7 @@ const writeToFile = async (entry) => {
     // Write to log file
     await fs.appendFile(auditConfig.logFile, logLine);
   } catch (error) {
-    console.error('[AUDIT] Failed to write to audit log:', error.message);
+    logger.error('[AUDIT] Failed to write to audit log:', error.message);
   }
 };
 
@@ -218,7 +218,7 @@ const rotateLogFile = async () => {
     // Move current log file
     await fs.rename(auditConfig.logFile, `${auditConfig.logFile}.1`);
   } catch (error) {
-    console.error('[AUDIT] Failed to rotate log file:', error.message);
+    logger.error('[AUDIT] Failed to rotate log file:', error.message);
   }
 };
 
@@ -245,7 +245,7 @@ const cleanupOldLogs = async () => {
       }
     }
   } catch (error) {
-    console.error('[AUDIT] Failed to cleanup old logs:', error.message);
+    logger.error('[AUDIT] Failed to cleanup old logs:', error.message);
   }
 };
 
@@ -268,7 +268,7 @@ const auditLog = (level, eventType, message, metadata = {}) => {
     switch (level) {
       case 'error':
       case 'critical':
-        console.error(consoleMessage, entry.metadata);
+        logger.error(consoleMessage, entry.metadata);
         break;
       case 'warn':
         logger.warn(consoleMessage, entry.metadata);
@@ -483,7 +483,7 @@ const initializeAudit = async () => {
     const logDir = path.dirname(auditConfig.logFile);
     await fs.mkdir(logDir, { recursive: true });
   } catch (error) {
-    console.error('[AUDIT] Failed to create log directory:', error.message);
+    logger.error('[AUDIT] Failed to create log directory:', error.message);
   }
   
   // Schedule cleanup of old logs
@@ -554,7 +554,7 @@ const queryAuditLogs = async (filters = {}) => {
 
     return { entries, total, limit, offset };
   } catch (error) {
-    console.error('[AUDIT] Failed to query audit logs:', error.message);
+    logger.error('[AUDIT] Failed to query audit logs:', error.message);
     return { entries: [], total: 0, limit: 50, offset: 0 };
   }
 };

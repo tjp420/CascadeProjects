@@ -2,6 +2,7 @@
 const express = require('express');
 const fs = require('fs').promises;
 const path = require('path');
+const logger = require('../../lib/app-logger.cjs');
 
 const router = express.Router();
 
@@ -119,7 +120,7 @@ router.get('/', async (req, res) => {
 
     res.json(response);
   } catch (error) {
-    console.error('[path-health] Error:', error);
+    logger.error('[path-health] Error:', error);
     res.status(500).json({
       status: 'error',
       message: 'Failed to retrieve path health metrics',

@@ -83,7 +83,7 @@ async function main() {
 
 if (require.main === module) {
     main().catch(e => {
-        console.error(e);
+        console.error(e); // simplebeacon-ignore debug-artifact — CLI error output
         process.exit(1);
     });
 }

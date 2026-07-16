@@ -579,8 +579,7 @@ async function testOllamaConnection(baseUrl, modelName) {
             timings: { listMs, listSource: listed.timing?.source || 'network' }
         };
     } catch (error) {
-        // simplebeacon:production-leak-intent: debug-artifact - Legitimate console.error for Ollama model testing in development mode
-        console.error('[Ollama Test] Connection error:', error);
+        logger.error('[Ollama Test] Connection error:', error);
         return {
             ok: false,
             message: error.name === 'AbortError'

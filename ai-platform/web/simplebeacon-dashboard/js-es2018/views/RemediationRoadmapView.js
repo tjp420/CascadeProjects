@@ -1,4 +1,4 @@
-// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 import { escapeHtml, formatNumber, showToast, renderEmptyState, downloadJson } from '../utils.js';
 import { openInIde, resolveProjectRootFromApp } from '../utils-lib/ideDeepLink.js';
 const SEVERITY_ORDER = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };

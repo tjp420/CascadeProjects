@@ -823,7 +823,7 @@ export class WelcomeDashboard {
           break;
         }
         case 'openTeamDashboard':
-          ModernSidebarProvider.openDashboardRouteInBrowser('/dashboard');
+          this.showTeamPane();
           vscode.commands.executeCommand('simplebeacon-modern.focus');
           setTimeout(() => {
             postSidebarMessage({ command: 'switchSidebarTab', tab: 'team' });

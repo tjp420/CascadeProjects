@@ -2,6 +2,7 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const logger = require('../lib/app-logger.cjs');
 
 const router = express.Router();
 
@@ -58,7 +59,7 @@ router.post('/ai-context', express.json({ limit: '10mb' }), async (req, res) => 
         await fs.promises.writeFile(contextPath, md, 'utf8');
         res.json({ success: true, path: contextPath, content: md, message: 'AI context saved. Mention @.simplebeacon/ai-context.md in chat.' });
     } catch (err) {
-        console.error('[AI-Context]', err);
+        logger.error('[AI-Context]', err);
         res.status(500).json({ success: false, error: err.message });
     }
 });

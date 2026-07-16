@@ -4,6 +4,7 @@
  */
 
 const constants = require('../config/constants.cjs');
+const logger = require('../lib/app-logger.cjs');
 
 const DEFAULT_OLLAMA_URL = process.env.OLLAMA_BASE_URL || `http://127.0.0.1:${constants.OLLAMA_PORT}`;
 const DEFAULT_TIMEOUT_MS = constants.TIMEOUT_2M;
@@ -215,7 +216,7 @@ async function ollamaListModels(baseUrl, options = {}) {
         if (isAbortError(error)) {
             throw new Error(`Ollama tags timed out after ${timeoutMs}ms`);
         }
-        console.error('[Ollama Client] Failed to list models:', error);
+        logger.error('[Ollama Client] Failed to list models:', error);
         throw error;
     } finally {
         clearTimeout(timeout);

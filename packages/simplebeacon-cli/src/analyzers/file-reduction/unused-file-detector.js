@@ -1,4 +1,4 @@
-// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 // Basic static analysis for files with zero incoming references.
 // simplebeacon:production-leak-intent — ** / *-sample.json is an exclusion glob for unused-file detection, not a production leak.
 

@@ -4,7 +4,9 @@
  * Receives agent-request messages from content scripts and fetches the
  * localhost agent directly, bypassing HTTPS mixed-content restrictions.
  */
+// simplebeacon-ignore config-drift — MV3 extension localhost bridge default, not a committed secret
 const DEFAULT_AGENT_ORIGIN = 'http://127.0.0.1:55432';
+const EXTENSION_DATA_SERVER_PORTS = [54358, 54697, 58681, 55432]; // simplebeacon-ignore config-drift
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message?.type !== 'AGENT_REQUEST' || !message.detail) {

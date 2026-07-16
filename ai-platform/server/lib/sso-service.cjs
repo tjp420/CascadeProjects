@@ -173,11 +173,7 @@ async function issueTokensForSsoUser(email, externalId, provider, organizationId
 }
 
 async function findOrCreateSsoUser(email, externalId, provider, organizationId, db) {
-  // TODO: wire to real DB adapter
-  // Example query:
-  //   SELECT * FROM users WHERE auth_provider = $1 AND external_id = $2
-  //   INSERT INTO users (email, auth_provider, external_id, organization_id, trust_level, permissions) ...
-  // Stub: return a synthetic user object for scaffolding
+  // Stub: return a synthetic user object for scaffolding until DB adapter is wired
   return {
     id: `sso-${provider}-${externalId}`,
     email,

@@ -2,8 +2,8 @@
 /**
  * Compliance Audit page export bundle — browser mirror of server/lib/compliance-audit-export.js
  */
-import { sanitizeSimplebeaconReportExport } from './simplebeacon-report-export.browser.js?v=20260601gateexport17';
-import { npmAuditSummary, redactProjectPathForExport, sanitizeNpmAuditForQualityExport, buildNpmAuditCsv, buildQualitySummaryCsv, normalizeSimpleBeaconBranding } from './quality-export.browser.js?v=20260531qualityexport8';
+import { sanitizeSimplebeaconReportExport } from './simplebeacon-report-export.browser.js?v=20260716cachefix1';
+import { npmAuditSummary, redactProjectPathForExport, sanitizeNpmAuditForQualityExport, buildNpmAuditCsv, buildQualitySummaryCsv, normalizeSimpleBeaconBranding } from './quality-export.browser.js?v=20260716cachefix1';
 /**
  * L a y e r  l a b e l s.
  */

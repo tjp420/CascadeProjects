@@ -2,8 +2,8 @@
  * Browser mirror of data-cleanup-report export sanitization.
  */
 
-import { normalizeDuplicateGroupForBrief } from './cleanup-brief-export.browser.js?v=20260601cleanupbrief9';
-import { redactProjectPathForExport } from './quality-export.browser.js?v=20260531qualityexport8';
+import { normalizeDuplicateGroupForBrief } from './cleanup-brief-export.browser.js?v=20260716cachefix1';
+import { redactProjectPathForExport } from './quality-export.browser.js?v=20260716cachefix1';
 
 /**
  * Project label from path.

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Simplebeacon Local Agent Bridge",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Lets the Simplebeacon dashboard scan your local files through the localhost agent.",
   "permissions": [
     "activeTab",
@@ -9,7 +9,15 @@
   ],
   "host_permissions": [
     "http://127.0.0.1:55432/*",
-    "http://localhost:55432/*"
+    "http://localhost:55432/*",
+    "http://127.0.0.1:53701/*",
+    "http://127.0.0.1:54358/*",
+    "http://127.0.0.1:54697/*",
+    "http://127.0.0.1:58681/*",
+    "http://localhost:53701/*",
+    "http://localhost:54358/*",
+    "http://localhost:54697/*",
+    "http://localhost:58681/*"
   ],
   "content_scripts": [
     {

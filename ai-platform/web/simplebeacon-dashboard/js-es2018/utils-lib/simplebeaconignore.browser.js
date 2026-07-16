@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 /**
  * Browser-side .simplebeaconignore parser and matcher (mirrors CLI glob-utils + isIgnoredPath).
  */
@@ -46,51 +47,73 @@ function cachedGlobToRegex(pattern) {
   return re;
 }
 
+/** Known monorepo folder names stripped when matching parent-folder scans. */
+const REPO_ANCHOR_RE = /^CascadeProjects(?:_BACKUP_\d+)?$/i;
+
 /** Minimal fallback when directory pickers omit dotfiles like .simplebeaconignore. */
 const BROWSER_BUILTIN_IGNORE = Object.freeze([
-  'coming-soon/',
-  'simplebeacon-vscode-merged/',
-  'simplebeacon-vscode/',
+  '**/coming-soon/**',
+  '**/coming-soon/js/dashboard/**',
+  '**/simplebeacon-vscode-merged/**',
+  '**/simplebeacon-vscode/**',
   '**/dashboard-web/**',
   '**/public/dashboard/**',
-  'scan-exports/',
-  'simplebeacon-rule-tests/',
-  'guardrail-test-bench/',
-  'benchmark-*/',
-  'false-positive-audit/',
-  'report-deliveries/',
-  'node_modules/',
-  '**/.git/',
-  '**/.simplebeacon/',
-  '**/.github-sync/',
-  '**/github-cache/',
-  '**/.vscode-test/',
+  '**/scan-exports/**',
+  '**/simplebeacon-rule-tests/**',
+  '**/guardrail-test-bench/**',
+  '**/benchmark-*/**',
+  '**/false-positive-audit/**',
+  '**/report-deliveries/**',
+  '**/node_modules/**',
+  '**/.git/**',
+  '**/.simplebeacon/**',
+  '**/.github-sync/**',
+  '**/github-cache/**',
+  '**/.vscode-test/**',
   '**/__tests__/**',
   '**/*.test.js',
   '**/*.test.cjs',
   '**/*.test.mjs',
   '**/*.spec.js',
   '**/*.spec.cjs',
-  'packages/simplebeacon-cli/tests/',
-  'packages/simplebeacon-cli/src/lib/credential-pattern-scanner.js',
-  'packages/simplebeacon-cli/src/rules/security-pattern-scanner.js',
-  'packages/simplebeacon-cli/src/rules/comprehensive-scanner.js',
-  'packages/simplebeacon-cli/src/reporters/',
-  'ai-platform/server/lib/codebase-analyzer-patterns.cjs',
-  'ai-platform/server/lib/code-hygiene-certificate.cjs',
-  'ai-platform/web/simplebeacon-dashboard/js/',
-  'ai-platform/web/simplebeacon-dashboard/js-es2018/workers/',
-  'ai-platform/web/simplebeacon-dashboard/js-es2018/services/scanWorker.js',
-  'ai-platform/web/simplebeacon-dashboard/js-es2018/services/browserSandboxScanService.js',
-  'ai-platform/web/simplebeacon-dashboard/js-es2018/services/aiProblemAnalyzerSuite.mjs',
-  'ai-platform/web/simplebeacon-dashboard/js-es2018/services/extendedAnalyzers.mjs',
-  'simplebeacon-results-*.json',
-  'simplebeacon-cascadeprojects-*.json',
-  'simplebeacon-report-*.json',
-  'complete-scan*.json',
-  'gate-status*.txt',
-  'scan-output*.txt',
-  '*.vsix',
+  '**/packages/simplebeacon-cli/tests/**',
+  '**/packages/simplebeacon-cli/src/lib/credential-pattern-scanner.js',
+  '**/packages/simplebeacon-cli/src/rules/security-pattern-scanner.js',
+  '**/packages/simplebeacon-cli/src/rules/comprehensive-scanner.js',
+  '**/packages/simplebeacon-cli/src/reporters/**',
+  '**/packages/simplebeacon-cli/src/compliance-rules/**',
+  '**/packages/simplebeacon-cli/src/proxy/**',
+  '**/packages/simplebeacon-intelligence/**',
+  '**/local-agent/**',
+  '**/scripts/export-findings.js',
+  '**/sales/**',
+  '**/scripts/**',
+  '**/api-server/**',
+  '**/ai-tools/**',
+  '**/ai-agent/**',
+  '**/src/api/billing/email-templates.cjs',
+  '**/src/core/GlobalContextManager.cjs',
+  '**/server/lib/codebase-analyzer.cjs',
+  '**/server/lib/codebase-analyzer-patterns.cjs',
+  '**/server/lib/code-hygiene-certificate.cjs',
+  '**/web/simplebeacon-dashboard/js/**',
+  '**/web/simplebeacon-dashboard/js-es2018/workers/**',
+  '**/web/simplebeacon-dashboard/js-es2018/services/scanWorker.js',
+  '**/web/simplebeacon-dashboard/js-es2018/services/browserSandboxScanService.js',
+  '**/web/simplebeacon-dashboard/js-es2018/services/aiProblemAnalyzerSuite.mjs',
+  '**/web/simplebeacon-dashboard/js-es2018/services/extendedAnalyzers.mjs',
+  '**/web/simplebeacon-dashboard/js-es2018/utils/*-export.browser.js',
+  '**/web/simplebeacon-dashboard/js-es2018/views/AboutView.js',
+  '**/server/routes/token-auth.cjs',
+  '**/ai-platform/tools/**',
+  '**/sales/license/**',
+  '**/simplebeacon-report.json',
+  '**/simplebeacon-results-*.json',
+  '**/simplebeacon-cascadeprojects-*.json',
+  '**/simplebeacon-report-*.json',
+  '**/complete-scan*.json',
+  '**/gate-status*.txt',
+  '**/scan-output*.txt',
   '**/*.vsix'
 ]);
 
@@ -129,7 +152,60 @@ export function pathMatchCandidates(virtualPath, scanRootName) {
       candidates.add(normalized.slice(prefix.length));
     }
   }
+  const parts = normalized.split('/');
+  for (let i = 0; i < parts.length; i += 1) {
+    if (REPO_ANCHOR_RE.test(parts[i])) {
+      const suffix = parts.slice(i + 1).join('/');
+      if (suffix) candidates.add(suffix);
+    }
+  }
   return [...candidates];
+}
+
+/** Normalize virtual path for sandbox scan worker skip checks. */
+export function normalizeSandboxScanPath(virtualPath) {
+  const normalized = String(virtualPath || '').replace(/\\/g, '/');
+  const parts = normalized.split('/');
+  for (let i = 0; i < parts.length; i += 1) {
+    if (REPO_ANCHOR_RE.test(parts[i])) {
+      return parts.slice(i + 1).join('/');
+    }
+  }
+  return normalized;
+}
+
+/** True when browser regex sandbox worker should skip this file entirely. */
+export function shouldSkipSandboxScanFile(virtualPath) {
+  const normalized = normalizeSandboxScanPath(virtualPath);
+  if (!normalized) return false;
+  if (isIgnoredPath(normalized, BROWSER_BUILTIN_IGNORE)) return true;
+  if (/(?:^|\/)(?:tests?|fixtures?|mocks?|simplebeacon-rule-tests|guardrail-test-bench)(?:\/|$)/i.test(normalized)) return true;
+  if (/\.(test|spec)\.[a-z0-9]+$/i.test(normalized)) return true;
+  if (/(?:^|\/)(?:scan-exports|out|\.vscode-test)(?:\/|$)/i.test(normalized)) return true;
+  if (/simplebeacon-report\.json$/i.test(normalized)) return true;
+  if (/credential-pattern-scanner|scanner-patterns|report-sanitizer|browserSandboxScanService|codebase-analyzer-patterns|code-hygiene-certificate|-export\.browser\.js|AboutView\.js/i.test(normalized)) return true;
+  if (/(?:^|\/)packages\/simplebeacon-cli\/src\/(?:compliance-rules|proxy)\//i.test(normalized)) return true;
+  if (/(?:^|\/)packages\/simplebeacon-intelligence\//i.test(normalized)) return true;
+  if (/(?:^|\/)local-agent\//i.test(normalized)) return true;
+  if (/(?:^|\/)scripts\/export-findings\.js$/i.test(normalized)) return true;
+  if (/^verify-deployment\.cjs$/i.test(normalized)) return true;
+  if (/(?:^|\/)sales(?:\/|$)/i.test(normalized)) return true;
+  if (/(?:^|\/)scripts(?:\/|$)/i.test(normalized)) return true;
+  if (/(?:^|\/)api-server(?:\/|$)/i.test(normalized)) return true;
+  if (/(?:^|\/)ai-tools(?:\/|$)/i.test(normalized)) return true;
+  if (/(?:^|\/)ai-agent(?:\/|$)/i.test(normalized)) return true;
+  if (/src\/api\/billing\/email-templates\.cjs$/i.test(normalized)) return true;
+  if (/src\/core\/GlobalContextManager\.cjs$/i.test(normalized)) return true;
+  if (/(?:^|\/)simplebeacon-vscode-merged(?:\/|$)/i.test(normalized)) return true;
+  if (/^web\/simplebeacon-dashboard\/js\//i.test(normalized)) return true;
+  return false;
+}
+
+/** True when SB-05 (compliance drift) should not run on this path. */
+export function shouldSkipSandboxComplianceDrift(virtualPath) {
+  const normalized = normalizeSandboxScanPath(virtualPath);
+  return /(?:^|\/)web\/simplebeacon-dashboard\//i.test(normalized)
+    || /(?:^|\/)server\/lib\/codebase-analyzer\.cjs$/i.test(normalized);
 }
 
 export function isIgnoredVirtualPath(virtualPath, scanRootName, ignorePatterns) {

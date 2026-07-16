@@ -386,74 +386,211 @@
       .issue-toolbar { flex-direction: column; align-items: stretch; }
       .severity-filters { justify-content: center; }
     }
+
+    /* ===== Audit Page Redesign ===== */
+    .audit-hero {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-4);
+      padding: var(--space-3) 0 var(--space-1);
+      flex-wrap: wrap;
+      margin-bottom: var(--space-4);
+    }
+    .audit-hero-text { display: flex; flex-direction: column; gap: 4px; }
+    .audit-hero h1 { font-size: 1.5rem; margin: 0; }
+    .audit-hero-sub { font-size: 0.875rem; color: var(--text-muted); margin: 0; }
+    .audit-hero-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 0.7rem; font-weight: 600; color: var(--success);
+      background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.25);
+      border-radius: 999px; padding: 2px 10px; width: fit-content; margin-top: 4px;
+    }
+
+    /* Token gate — non-coercive */
+    .audit-token-gate {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      background: var(--surface);
+      padding: var(--space-5);
+      margin-bottom: var(--space-4);
+    }
+    .audit-token-gate-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: var(--space-3); flex-wrap: wrap; gap: var(--space-2);
+    }
+    .audit-token-gate-title { font-weight: 700; font-size: 0.95rem; margin: 0; }
+    .audit-token-gate-body { display: flex; flex-direction: column; gap: var(--space-3); }
+    .audit-token-gate-primary {
+      display: flex; gap: var(--space-2); align-items: stretch; flex-wrap: wrap;
+    }
+    .audit-token-gate-primary .btn { flex: 1; min-width: 160px; justify-content: center; padding: var(--space-3) var(--space-4); font-size: 0.9rem; }
+    .audit-token-gate-secondary {
+      display: flex; align-items: center; gap: var(--space-2);
+      font-size: 0.75rem; color: var(--text-muted);
+    }
+    .audit-token-gate-secondary a, .audit-token-gate-secondary button {
+      color: var(--primary); cursor: pointer; background: none; border: none;
+      font-size: 0.75rem; font-weight: 500; text-decoration: underline; padding: 0;
+    }
+    .audit-token-gate-secondary a:hover, .audit-token-gate-secondary button:hover {
+      color: var(--primary-hover);
+    }
+    .audit-token-gate-paste {
+      display: none; flex-direction: column; gap: var(--space-2);
+      padding: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-md);
+      background: var(--surface-elevated);
+    }
+    .audit-token-gate-paste.expanded { display: flex; }
+    .audit-token-gate-paste input {
+      padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius-md);
+      background: var(--background); color: var(--text-primary); font-size: 0.875rem;
+      transition: border-color 150ms, box-shadow 150ms;
+    }
+    .audit-token-gate-paste input:focus {
+      outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(14,165,233,0.12);
+    }
+    .audit-token-gate-paste .btn { align-self: flex-start; }
+    .audit-token-gate-email {
+      display: none; flex-direction: column; gap: var(--space-2);
+      padding: var(--space-3); border: 1px solid rgba(14,165,233,0.2); border-radius: var(--radius-md);
+      background: rgba(14,165,233,0.04);
+    }
+    .audit-token-gate-email.expanded { display: flex; }
+    .audit-token-gate-email-label { font-size: 0.75rem; color: var(--text-secondary); font-weight: 500; }
+    .audit-token-gate-email-row { display: flex; gap: var(--space-2); }
+    .audit-token-gate-email-row input {
+      flex: 1; padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius-md);
+      background: var(--background); color: var(--text-primary); font-size: 0.8rem;
+    }
+    .audit-token-gate-email-row input:focus {
+      outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(14,165,233,0.1);
+    }
+    .audit-token-gate-email-help { font-size: 0.7rem; color: var(--text-muted); margin: 0; }
+    .audit-token-error { color: var(--danger); font-size: 0.75rem; margin: 0; display: none; }
+
+    /* Scan section card */
+    .audit-scan-card {
+      border: 1px solid var(--border); border-radius: var(--radius-lg);
+      background: var(--surface); margin-bottom: var(--space-4); overflow: hidden;
+    }
+    .audit-scan-card-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--border);
+      flex-wrap: wrap; gap: var(--space-2);
+    }
+    .audit-scan-card-title { font-weight: 700; font-size: 0.95rem; margin: 0; }
+    .audit-privacy-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 0.7rem; font-weight: 600; color: var(--success);
+      background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.25);
+      border-radius: 999px; padding: 2px 10px;
+    }
+    .audit-scan-card-body { padding: var(--space-5); }
+    .audit-dropzone {
+      border: 2px dashed var(--border); border-radius: var(--radius-lg);
+      padding: var(--space-8); text-align: center; background: var(--surface-elevated);
+      transition: all 150ms; cursor: pointer;
+    }
+    .audit-dropzone:hover, .audit-dropzone.drag-active {
+      border-color: var(--primary); background: rgba(14,165,233,0.05);
+    }
+    .audit-dropzone .icon { font-size: 2rem; margin-bottom: var(--space-3); }
+    .audit-dropzone p { color: var(--text-secondary); margin: 0; }
+    .audit-dropzone .hint { color: var(--text-muted); font-size: 0.75rem; margin-top: var(--space-2); }
+    .audit-dropzone-actions {
+      display: flex; gap: var(--space-2); justify-content: center;
+      margin-top: var(--space-4); flex-wrap: wrap;
+    }
+
+    /* Auth modal redesign */
+    .auth-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(4px); }
+    .auth-modal-overlay.active { display: flex; }
+    .auth-modal { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; width: 100%; max-width: 420px; margin: 16px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.4); }
+    .auth-modal-header { padding: 20px 24px 0; text-align: center; }
+    .auth-modal-header h3 { margin: 0 0 4px; font-size: 1.1rem; }
+    .auth-modal-header p { margin: 0; font-size: 0.8rem; color: var(--text-muted); }
+    .auth-modal-tabs { display: flex; border-bottom: 1px solid var(--border); padding: 0 24px; margin-top: 16px; }
+    .auth-modal-tab { flex: 1; padding: 10px 8px; background: transparent; border: none; border-bottom: 2px solid transparent; color: var(--text-muted); font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: all 150ms; }
+    .auth-modal-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .auth-modal-body { padding: 20px 24px 24px; }
+    .auth-modal-panel { display: none; }
+    .auth-modal-panel.active { display: block; }
+    .auth-modal-field { margin-bottom: 16px; }
+    .auth-modal-field label { display: block; font-size: 0.72rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; }
+    .auth-modal-field input { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--background); color: var(--text-primary); font-size: 0.9rem; }
+    .auth-modal-field input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(14,165,233,0.1); }
+    .auth-modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+    .auth-modal-actions .btn { flex: 1; }
+    .auth-modal-footer { text-align: center; padding: 0 24px 20px; font-size: 0.75rem; color: var(--text-muted); }
+    .auth-modal-footer a { color: var(--primary); text-decoration: none; }
+
+    @media (max-width: 640px) {
+      .audit-hero { flex-direction: column; align-items: flex-start; }
+      .audit-token-gate-primary { flex-direction: column; }
+      .audit-token-gate-primary .btn { width: 100%; }
+      .audit-dropzone { padding: var(--space-5); }
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <header>
-      <div>
-        <h1>Upload & Validate</h1>
-        <p class="subtitle">Import Simplebeacon reports with structural validation && data integrity checks</p>
+    <!-- Hero -->
+    <div class="audit-hero">
+      <div class="audit-hero-text">
+        <h1>Audit</h1>
+        <p class="audit-hero-sub">Scan your project for security issues, quality gates, and compliance.</p>
+        <span class="audit-hero-badge"><span aria-hidden="true">🔒</span> Private — files stay in your browser</span>
       </div>
-      <button type="button" id="signout-btn" class="btn btn-ghost btn-sm" style="display:none;white-space:nowrap;">Sign out</button>
-    </header>
+      <button type="button" id="signout-btn" class="btn btn-secondary btn-sm" style="display:none;white-space:nowrap;">Sign out</button>
+    </div>
 
     <div id="ext-warning" style="display:none;margin-bottom:var(--space-4);padding:var(--space-3);border:1px solid var(--warning);border-radius:var(--radius-md);background:rgba(245,158,11,0.08);font-size:0.8rem;color:var(--text-secondary);">
-      <strong>⚠️ Browser extension detected</strong> — Errors like "free-token" or "sandbox" are injected by a browser extension, not by Simplebeacon. Disable extensions if they interfere.
+      <strong>⚠️ Browser extension detected</strong> — Errors like "free-token" or "sandbox" are injected by a browser extension, not by SimpleBeacon. Disable extensions if they interfere.
     </div>
 
-    <style>
-      .token-bar-wrap { margin-bottom: var(--space-4); }
-      .token-bar { display: flex; gap: 10px; align-items: stretch; }
-      .token-bar input { flex: 1; padding: 12px 18px; border: 2px solid var(--border); border-radius: 10px; background: var(--background); color: var(--text-primary); font-size: 1rem; transition: border-color 150ms, box-shadow 150ms; min-width: 0; }
-      .token-bar input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99,102,241,0.12); }
-      .token-bar .btn-sandbox { white-space: nowrap; padding: 0 18px; border-radius: 10px; border: 1.5px solid var(--primary); background: transparent; color: var(--primary); font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: all 150ms; }
-      .token-bar .btn-sandbox:hover { background: rgba(99,102,241,0.08); }
-      .token-bar-help { font-size: 0.75rem; color: var(--text-muted); margin-top: 8px; }
-      .token-error-bar { color: var(--danger); font-size: 0.8rem; margin-top: 8px; }
-
-      .auth-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(4px); }
-      .auth-modal-overlay.active { display: flex; }
-      .auth-modal { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; width: 100%; max-width: 420px; margin: 16px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.4); }
-      .auth-modal-header { padding: 20px 24px 0; }
-      .auth-modal-header h3 { margin: 0 0 4px; font-size: 1.1rem; color: var(--text-primary); }
-      .auth-modal-header p { margin: 0; font-size: 0.8rem; color: var(--text-muted); }
-      .auth-modal-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); padding: 0 24px; margin-top: 16px; }
-      .auth-modal-tab { flex: 1; padding: 10px 8px; background: transparent; border: none; border-bottom: 2px solid transparent; color: var(--text-muted); font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: all 150ms; }
-      .auth-modal-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
-      .auth-modal-body { padding: 20px 24px 24px; }
-      .auth-modal-panel { display: none; }
-      .auth-modal-panel.active { display: block; }
-      .auth-modal-field { margin-bottom: 16px; }
-      .auth-modal-field label { display: block; font-size: 0.72rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; }
-      .auth-modal-field input { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--background); color: var(--text-primary); font-size: 0.9rem; }
-      .auth-modal-field input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
-      .auth-modal-actions { display: flex; gap: 10px; margin-top: 20px; }
-      .auth-modal-actions .btn { flex: 1; }
-    </style>
-
-    <div class="token-bar-wrap">
-      <div class="token-bar">
-        <input id="licenseToken" type="text" autocomplete="off" placeholder="Paste your license token here…" />
-        <button type="button" class="btn-sandbox" id="try-sandbox-btn">Try Free Sandbox</button>
+    <!-- Token gate — non-coercive -->
+    <div class="audit-token-gate" id="audit-token-gate">
+      <div class="audit-token-gate-header">
+        <p class="audit-token-gate-title">Get started — no signup required</p>
       </div>
-      <p class="token-bar-help">Enter your license token and press Enter to unlock the dashboard.</p>
-      <p id="tokenError" class="token-error-bar" hidden role="alert"></p>
+      <div class="audit-token-gate-body">
+        <div class="audit-token-gate-primary">
+          <button type="button" class="btn" id="start-sandbox-btn">Start Scanning</button>
+          <button type="button" class="btn btn-secondary" id="have-token-btn">I have a token</button>
+        </div>
+        <div class="audit-token-gate-secondary">
+          <span>Want to save and manage your tokens?</span>
+          <button type="button" id="link-email-btn">Link email (optional)</button>
+        </div>
+        <div class="audit-token-gate-paste" id="token-paste-section">
+          <input type="text" id="licenseToken" autocomplete="off" spellcheck="false" placeholder="Paste your license token here…" />
+          <button type="button" class="btn btn-secondary" id="token-submit-btn">Unlock</button>
+        </div>
+        <div class="audit-token-gate-email" id="email-link-section">
+          <p class="audit-token-gate-email-label">Enter your email to associate this token with your account</p>
+          <div class="audit-token-gate-email-row">
+            <input type="email" id="email-link-input" autocomplete="email" placeholder="you@example.com" />
+            <button type="button" class="btn" id="email-link-submit">Link</button>
+          </div>
+          <p class="audit-token-gate-email-help">Your token will be saved to your account so you can upgrade tiers, manage tokens, and access the dashboard. No password needed — we'll email you a login link.</p>
+        </div>
+        <p class="audit-token-error" id="tokenError" role="alert"></p>
+      </div>
     </div>
 
-    <!-- Auth Choice Modal -->
+    <!-- Auth modal -->
     <div class="auth-modal-overlay" id="auth-modal-overlay">
       <div class="auth-modal">
         <div class="auth-modal-header">
-          <h3>🔐 Authenticate</h3>
-          <p>Choose how you want to sign in to your dashboard.</p>
+          <h3>Sign in to your account</h3>
+          <p>Optional — scanning works without signing in.</p>
         </div>
         <div class="auth-modal-tabs">
-          <button type="button" class="auth-modal-tab active" data-auth-tab="email">📧 Email + Password</button>
-          <button type="button" class="auth-modal-tab" data-auth-tab="token">🔑 Token + Password</button>
+          <button type="button" class="auth-modal-tab active" data-auth-tab="email">Email + Password</button>
+          <button type="button" class="auth-modal-tab" data-auth-tab="token">Token + Password</button>
         </div>
         <div class="auth-modal-body">
-          <!-- Email Panel -->
           <div class="auth-modal-panel active" id="auth-panel-email">
             <form id="auth-email-form">
               <div class="auth-modal-field">
@@ -467,11 +604,10 @@
               <p id="auth-email-error" style="color:var(--danger);font-size:0.8rem;margin:0 0 8px;" hidden></p>
               <div class="auth-modal-actions">
                 <button type="button" class="btn btn-secondary" id="auth-modal-cancel">Cancel</button>
-                <button type="submit" class="btn btn-primary">Sign In</button>
+                <button type="submit" class="btn">Sign In</button>
               </div>
             </form>
           </div>
-          <!-- Token Panel -->
           <div class="auth-modal-panel" id="auth-panel-token">
             <form id="auth-token-form">
               <div class="auth-modal-field">
@@ -485,20 +621,35 @@
               <p id="auth-token-error" style="color:var(--danger);font-size:0.8rem;margin:0 0 8px;" hidden></p>
               <div class="auth-modal-actions">
                 <button type="button" class="btn btn-secondary" id="auth-modal-cancel-2">Cancel</button>
-                <button type="submit" class="btn btn-primary">Unlock Dashboard</button>
+                <button type="submit" class="btn">Unlock Dashboard</button>
               </div>
             </form>
           </div>
         </div>
+        <div class="auth-modal-footer">
+          New here? <a href="/#/register">Create an account</a> · <a href="/#/dashboard">View read-only demo</a>
+        </div>
       </div>
     </div>
 
-    <input type="file" id="file-input" accept=".json" style="display:none;">
-
-    <div class="dropzone" id="dropzone">
-      <div class="icon">📁</div>
-      <p>Drop a JSON report here or click to browse</p>
-      <p class="hint">Supports: gate scans, complete scans, consolidation, cleanup, codebase, roadmap, fiction digest</p>
+    <!-- Scan section -->
+    <div class="audit-scan-card">
+      <div class="audit-scan-card-header">
+        <span class="audit-scan-card-title">Choose project</span>
+        <span class="audit-privacy-badge"><span aria-hidden="true">🔒</span> Private</span>
+      </div>
+      <div class="audit-scan-card-body">
+        <input type="file" id="file-input" accept=".json" style="display:none;">
+        <div class="audit-dropzone" id="dropzone">
+          <div class="icon">📁</div>
+          <p>Drop a JSON report here or click to browse</p>
+          <p class="hint">Supports: gate scans, complete scans, consolidation, cleanup, codebase, roadmap, fiction digest</p>
+          <div class="audit-dropzone-actions">
+            <button type="button" class="btn" id="browse-report-btn">Choose Report File</button>
+            <button type="button" class="btn btn-secondary" id="open-dashboard-btn">Open Full Dashboard →</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div id="results"></div>
@@ -567,7 +718,10 @@
       });
     })();
 
-    dropzone.addEventListener('click', () => fileInput.click());
+    dropzone.addEventListener('click', (e) => {
+      if (e.target.closest('button')) return;
+      fileInput.click();
+    });
 
     ['dragenter','dragover'].forEach(e => {
       dropzone.addEventListener(e, (ev) => { ev.preventDefault(); dropzone.classList.add('drag-active'); });
@@ -1190,15 +1344,17 @@
       }
     }
 
-    // Token address bar + auth modal
-    (function initTokenBar() {
+    // Token gate + auth modal — non-coercive
+    (function initTokenGate() {
       const tokenInput = $('#licenseToken');
       const errorEl = $('#tokenError');
       const overlay = $('#auth-modal-overlay');
       const tokenDisplay = $('#auth-token-display');
+      const pasteSection = $('#token-paste-section');
+      const emailSection = $('#email-link-section');
 
-      const showError = (msg) => { if (errorEl) { errorEl.textContent = msg; errorEl.hidden = false; } };
-      const clearError = () => { if (errorEl) { errorEl.textContent = ''; errorEl.hidden = true; } };
+      const showError = (msg) => { if (errorEl) { errorEl.textContent = msg; errorEl.style.display = 'block'; } };
+      const clearError = () => { if (errorEl) { errorEl.textContent = ''; errorEl.style.display = 'none'; } };
       const closeModal = () => {
         if (overlay) overlay.classList.remove('active');
         const e1 = $('#auth-email-error'); if (e1) { e1.hidden = true; e1.textContent = ''; }
@@ -1219,7 +1375,64 @@
         });
       };
 
-      // Enter key on address bar
+      // Generate anonymous sandbox token (no email required)
+      function generateSandboxToken(email) {
+        const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+        const now = Math.floor(Date.now() / 1000);
+        const sub = email || ('anonymous-' + Math.random().toString(36).slice(2, 10));
+        const payload = btoa(JSON.stringify({
+          sub: sub,
+          plan: email ? 'community' : 'sandbox',
+          tier: email ? 'community' : 'sandbox',
+          iat: now,
+          exp: now + 86400 * 14
+        }));
+        const sig = btoa('demo-sig-' + Math.random().toString(36).slice(2, 10));
+        return `${header}.${payload}.${sig}`;
+      }
+
+      // "Start Scanning" — instantly generate anonymous sandbox token
+      $('#start-sandbox-btn')?.addEventListener('click', () => {
+        clearError();
+        const token = generateSandboxToken(null);
+        localStorage.setItem('sb-token', token);
+        localStorage.setItem('sb-user', JSON.stringify({ plan: 'sandbox', tier: 'sandbox' }));
+        window.dispatchEvent(new StorageEvent('storage', { key: 'sb-token' }));
+        showToast('Sandbox ready — you can scan now', 'success');
+        // Hide the token gate, show the scan section
+        const gate = $('#audit-token-gate');
+        if (gate) gate.style.display = 'none';
+      });
+
+      // "I have a token" — toggle the paste section
+      $('#have-token-btn')?.addEventListener('click', () => {
+        clearError();
+        if (pasteSection) pasteSection.classList.toggle('expanded');
+        if (emailSection) emailSection.classList.remove('expanded');
+        if (pasteSection?.classList.contains('expanded') && tokenInput) tokenInput.focus();
+      });
+
+      // "Link email (optional)" — toggle the email section
+      $('#link-email-btn')?.addEventListener('click', () => {
+        clearError();
+        if (emailSection) emailSection.classList.toggle('expanded');
+        if (pasteSection) pasteSection.classList.remove('expanded');
+        if (emailSection?.classList.contains('expanded')) {
+          const emailInput = $('#email-link-input');
+          if (emailInput) emailInput.focus();
+        }
+      });
+
+      // Token submit button
+      $('#token-submit-btn')?.addEventListener('click', () => {
+        const token = tokenInput?.value?.trim();
+        if (!token) { showError('Please paste your license token.'); return; }
+        clearError();
+        openTab('token');
+        openModal(token);
+      });
+
+      // Enter key on token input
       if (tokenInput) {
         tokenInput.addEventListener('keydown', (e) => {
           if (e.key !== 'Enter') return;
@@ -1232,24 +1445,29 @@
         });
       }
 
-      // Try Free Sandbox — generate community token and redirect
-      $('#try-sandbox-btn')?.addEventListener('click', () => {
-        const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-        const now = Math.floor(Date.now() / 1000);
-        const payload = btoa(JSON.stringify({
-          sub: 'community-user-' + Math.random().toString(36).slice(2, 8),
-          plan: 'community',
-          tier: 'community',
-          iat: now,
-          exp: now + 86400 * 7
-        }));
-        const sig = btoa('demo-sig-' + Math.random().toString(36).slice(2, 10));
-        const token = `${header}.${payload}.${sig}`;
+      // Email link submit — associate token with email
+      $('#email-link-submit')?.addEventListener('click', async () => {
+        const emailInput = $('#email-link-input');
+        const email = emailInput?.value?.trim();
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+          showError('Please enter a valid email address.');
+          return;
+        }
+        clearError();
+        const token = generateSandboxToken(email);
         localStorage.setItem('sb-token', token);
-        localStorage.setItem('sb-user', JSON.stringify({ email: 'community@simplebeacon.ai', plan: 'community' }));
+        localStorage.setItem('sb-user', JSON.stringify({ email, plan: 'community', tier: 'community' }));
         window.dispatchEvent(new StorageEvent('storage', { key: 'sb-token' }));
-        showToast('Sandbox token generated — redirecting to dashboard', 'success');
+        showToast('Token linked to ' + email + ' — redirecting to dashboard', 'success');
         setTimeout(() => { window.location.href = '/#/dashboard'; }, 800);
+      });
+
+      // Enter key on email link input
+      $('#email-link-input')?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          $('#email-link-submit')?.click();
+        }
       });
 
       // Modal tab switching
@@ -1305,6 +1523,17 @@
           error.textContent = err.message || 'Token validation failed';
           error.hidden = false;
         }
+      });
+
+      // "Open Full Dashboard" button
+      $('#open-dashboard-btn')?.addEventListener('click', () => {
+        window.location.href = '/#/dashboard';
+      });
+
+      // "Choose Report File" button
+      $('#browse-report-btn')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        fileInput.click();
       });
     })();
   </script>

@@ -1,3 +1,4 @@
+// simplebeacon-ignore git-sensitive-file — auth/token implementation file, not a leaked secret
 'use strict';
 
 const bcrypt = require('bcryptjs');

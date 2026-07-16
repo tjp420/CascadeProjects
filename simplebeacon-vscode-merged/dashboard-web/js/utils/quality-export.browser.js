@@ -6,7 +6,7 @@
 
 
 
-import { sanitizeNpmAuditExport } from './npm-audit-export.browser.js?v=20260601npmaudit5';
+import { sanitizeNpmAuditExport } from './npm-audit-export.browser.js?v=20260716cachefix1';
 
 
 

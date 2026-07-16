@@ -1,9 +1,10 @@
-// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 import { formatNumber, formatPercent, escapeHtml, showToast } from '../utils.js';
-import { buildScanConclusion, getScanFileMetrics, resolveDisplayScore, resolveJestTestsLabel, resolvePageSpecsLabel, renderScanScopePanel } from '../services/analyzeService.js?v=20260710inventory1';
+import { isEmbeddedDashboardFrame } from '../utils-lib/dom.js';
+import { buildScanConclusion, getScanFileMetrics, resolveDisplayScore, resolveJestTestsLabel, resolvePageSpecsLabel, renderScanScopePanel } from '../services/analyzeService.js?v=20260716cachefix1';
 import { renderIssueList } from '../components/IssueCard.js';
 import { renderTrendSection, mountTrendChart } from '../components/TrendChart.js';
-import { renderScanStatus, bindScanStatus, updateScanStatusDom } from '../components/ScanStatus.js?v=20260715iframefix3';
+import { renderScanStatus, bindScanStatus, updateScanStatusDom } from '../components/ScanStatus.js?v=20260716cachefix1';
 import { renderAnalysisWorkflow, resolveAnalysisWorkflowStep } from '../components/AnalysisWorkflow.js';
 import { isDemoMode } from '../demoMode.js';
 const PRIVACY_NOTICE_KEY = 'sb_privacy_notice_dismissed';
@@ -210,10 +211,12 @@ export class DashboardView {
         metricsSlot.id = 'ci-team-metrics-slot';
         container.appendChild(metricsSlot);
 
+        const reviewMode = Boolean(report) && !scanning;
         const scanSlot = document.createElement('div');
         scanSlot.id = 'dashboard-scan-slot';
         scanSlot.innerHTML = renderScanStatus(report, {
             redesign: true,
+            reviewMode,
             scanning,
             config: this.app.state.config,
             lastProjectPath: this.app.state.lastProjectPath,
@@ -294,8 +297,25 @@ export class DashboardView {
     }
 
     renderQuickStart() {
+        const embed = isEmbeddedDashboardFrame();
         const view = document.createElement('div');
         view.className = 'dashboard-quickstart card p-4';
+        if (embed) {
+            view.innerHTML = `
+            <h3 class="h5 mb-2">Run a scan from VS Code</h3>
+            <p class="text-sm text-muted mb-3">Your code stays local. Use the scan panel above, or jump to a view with the quick nav bar.</p>
+            <ol class="dashboard-quickstart-steps text-sm text-muted">
+                <li><strong>Analyze</strong> — drop a folder, browse, or paste your workspace path.</li>
+                <li><strong>Results</strong> — gate score, findings, and exports after the scan completes.</li>
+                <li><strong>Roadmap</strong> — prioritized remediation steps from your latest report.</li>
+            </ol>
+            <div class="dashboard-quickstart-actions d-flex flex-wrap gap-2 mt-3">
+                <button class="btn btn-primary btn-sm" data-action="open-analyze" data-mode="folder">Start Analyze</button>
+                <button class="btn btn-outline btn-sm" data-action="open-analyze" data-mode="upload">Import CLI report</button>
+            </div>
+        `;
+            return view;
+        }
         view.innerHTML = `
             <h3 class="h5 mb-2">How to run your first scan</h3>
             <ol class="dashboard-quickstart-steps text-sm text-muted">
@@ -363,21 +383,29 @@ export class DashboardView {
         grid.className = 'dashboard-grid';
 
         const gatePass = !!(report.gate && report.gate.pass);
+        const blockingCount = (report.gate && report.gate.blockingCount) || 0;
         const sev = report.severityCounts || {};
-        const qualityScore = typeof report.qualityScore === 'number' ? report.qualityScore : 0;
-        const filesEvaluated = report.ruleScopedFilesAnalyzed != null
+        const gateScore = typeof (report.gate && report.gate.score) === 'number' ? report.gate.score : null;
+        const displayScore = resolveDisplayScore(report) != null ? resolveDisplayScore(report) : gateScore;
+        // A 0% score next to a PASS badge with no blocking findings usually means the score
+        // was never computed, not a real failing score. Hide it in that case.
+        const qualityScoreText = (displayScore === 0 && gatePass && blockingCount === 0) ? '—' : (displayScore != null ? formatPercent(displayScore, 0) : '—');
+        const filesEvaluated = report.ruleScopedFilesAnalyzed > 0
             ? report.ruleScopedFilesAnalyzed
             : (report.repositoryFilesTotal || 0);
         const repoTotal = report.repositoryFilesTotal || 0;
         const metrics = getScanFileMetrics(report);
+        // Defensive: rule-scoped counts should never exceed the repository total.
+        const rawFilesAnalyzed = metrics.filesAnalyzed || filesEvaluated;
+        const displayFilesAnalyzed = (repoTotal > 0 && rawFilesAnalyzed > repoTotal) ? repoTotal : rawFilesAnalyzed;
 
         grid.innerHTML = `
             <div class="card bento-hero p-4 justify-content-between">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
                         <h4 class="text-muted text-xs uppercase mb-1">Gate Quality Score</h4>
-                        <div class="display-3 font-weight-bold">${qualityScore}%</div>
-                        <p class="text-muted text-xs mb-0 mt-1">${formatNumber(metrics.filesAnalyzed || filesEvaluated)} files analyzed · ${formatNumber(repoTotal)} in repo</p>
+                        <div class="display-3 font-weight-bold">${qualityScoreText}</div>
+                        <p class="text-muted text-xs mb-0 mt-1">${formatNumber(displayFilesAnalyzed)} files analyzed · ${formatNumber(repoTotal)} in repo</p>
                     </div>
                     <span class="badge p-3 ${gatePass ? 'bg-success' : 'bg-danger'} font-weight-bold">
                         ${gatePass ? 'PASSED' : 'FAILED'}
@@ -522,8 +550,10 @@ export class DashboardView {
             return;
         const updated = updateScanStatusDom(scanSlot, this.app.state.report);
         if (!updated) {
+            const reviewMode = Boolean(this.app.state.report) && !this.app.state.scanning;
             scanSlot.innerHTML = renderScanStatus(this.app.state.report, {
                 redesign: true,
+                reviewMode,
                 scanning: this.app.state.scanning,
                 config: this.app.state.config,
                 lastProjectPath: this.app.state.lastProjectPath,

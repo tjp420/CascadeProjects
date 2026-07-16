@@ -14,11 +14,67 @@
     html[data-parent-urlbar="1"] .sb-url-bar {
       display: none !important;
     }
-    html[data-parent-urlbar="1"] .app-header { display: none !important; }
-    html[data-parent-urlbar="1"] .app-nav { display: none !important; }
+    html[data-ide-embed="1"] .app-header,
+    html[data-ide-embed="1"] .app-nav,
+    html[data-ide-embed="1"] .embed-quick-nav,
+    html[data-ide-embed="1"] .bridge-notice-banner,
+    html[data-ide-embed="1"] .sandbox-banner { display: none !important; }
+    html[data-ide-embed="1"] .app-shell {
+      height: 100vh;
+      min-height: 0;
+      overflow: hidden;
+    }
+    html[data-ide-embed="1"] .app-body {
+      flex: 1;
+      flex-direction: column;
+      min-height: 0;
+      min-width: 0;
+    }
+    html[data-ide-embed="1"] #app-main {
+      flex: 1;
+      min-height: 0;
+      min-width: 0;
+      width: 100%;
+      overflow-y: auto;
+    }
+    html[data-embed-full-nav="1"] .app-shell {
+      height: 100vh;
+      min-height: 0;
+      overflow: hidden;
+    }
+    html[data-embed-full-nav="1"] .app-body {
+      flex: 1 1 auto;
+      flex-direction: row !important;
+      flex-wrap: nowrap;
+      min-height: 0;
+      align-items: stretch;
+    }
+    html[data-embed-full-nav="1"] .app-nav {
+      flex: 0 0 var(--nav-width, 200px);
+      align-self: stretch;
+      max-height: none;
+    }
+    html[data-embed-full-nav="1"] #app-main {
+      display: block !important;
+      flex: 1 1 auto;
+      min-height: 0;
+      min-width: 0;
+      overflow-x: hidden;
+      overflow-y: auto;
+      align-self: stretch;
+      align-items: flex-start;
+      justify-content: flex-start;
+    }
+    html[data-embed-full-nav="1"][data-auth-page="1"] #app-main:has(.signin-page) {
+      display: flex !important;
+      align-items: center;
+      justify-content: center;
+    }
+    html[data-parent-urlbar="1"]:not([data-embed-full-nav="1"]) .app-header { display: none !important; }
+    html[data-parent-urlbar="1"]:not([data-embed-full-nav="1"]) .app-nav { display: none !important; }
     html[data-parent-urlbar="1"] .mobile-nav-overlay { display: none !important; }
     html[data-parent-urlbar="1"] .mobile-nav-toggle { display: none !important; }
-    html[data-parent-urlbar="1"] .sandbox-banner { display: none !important; }
+    html[data-parent-urlbar="1"]:not([data-embed-full-nav="1"]) .sandbox-banner { display: none !important; }
     html[data-ide-preview="true"] #sb-embedded-url-bar {
       display: none !important;
     }
@@ -28,17 +84,17 @@
       min-height: 0;
       overflow: hidden;
     }
-    html[data-ide-preview="true"] .app-nav { display: none !important; }
+    html[data-ide-preview="true"]:not([data-embed-full-nav="1"]) .app-nav { display: none !important; }
     html[data-ide-preview="true"] .mobile-nav-overlay { display: none !important; }
     html[data-ide-preview="true"] .mobile-nav-toggle { display: none !important; }
-    html[data-ide-preview="true"] .sandbox-banner { display: none !important; }
-    html[data-ide-preview="true"] .app-header { display: none !important; }
-    html[data-ide-preview="true"] .app-body {
+    html[data-ide-preview="true"]:not([data-embed-full-nav="1"]) .sandbox-banner { display: none !important; }
+    html[data-ide-preview="true"]:not([data-embed-full-nav="1"]) .app-header { display: none !important; }
+    html[data-ide-preview="true"]:not([data-embed-full-nav="1"]) .app-body {
       flex: 1;
       min-height: 0;
       min-width: 0;
     }
-    html[data-ide-preview="true"] #app-main {
+    html[data-ide-preview="true"]:not([data-embed-full-nav="1"]) #app-main {
       flex: 1;
       height: auto;
       min-height: 0;
@@ -56,6 +112,106 @@
     html[data-ide-preview="true"] #action-send-ai,
     html[data-ide-preview="true"] #send-ai-btn,
     html[data-ide-preview="true"] #send-health-ai-btn { display: revert !important; }
+    /* Compact quick nav only when the full dashboard sidebar is hidden */
+    html[data-embed-mode="1"]:not([data-embed-full-nav="1"]) .embed-quick-nav { display: flex; }
+    html[data-embed-full-nav="1"] .embed-quick-nav { display: none !important; }
+    html[data-auth-page="1"] .embed-quick-nav { display: none !important; }
+    html[data-embed-mode="1"]:not([data-embed-full-nav="1"]):not([data-ide-embed="1"]) .app-body {
+      flex-direction: column;
+      flex-wrap: nowrap;
+      flex: 1;
+      min-height: 0;
+    }
+    html[data-embed-full-nav="1"] .app-body {
+      flex: 1;
+      flex-direction: row;
+      min-height: 0;
+    }
+    html[data-embed-full-nav="1"] .app-nav {
+      width: var(--nav-width, 200px);
+    }
+    html[data-embed-mode="1"]:not([data-embed-full-nav="1"]) #app-main {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+    }
+    html[data-embed-full-nav="1"] #app-main:has(.chatbot-page),
+    html[data-embed-full-nav="1"] #app-main:has(.chatbot-container) {
+      display: flex !important;
+      flex-direction: column;
+      flex: 1 1 auto;
+      width: 100%;
+      min-height: 0;
+      min-width: 0;
+      overflow: hidden !important;
+      overflow-y: hidden !important;
+    }
+    html[data-embed-full-nav="1"] .app-shell:has(.chatbot-page) {
+      height: 100vh;
+      max-height: 100dvh;
+      overflow: hidden;
+    }
+    html[data-embed-full-nav="1"] .app-body:has(.chatbot-page) {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: hidden;
+    }
+    html[data-embed-full-nav="1"]:not([data-auth-page="1"]) #app-main,
+    html[data-embed-full-nav="1"][data-auth-page="1"] #app-main:not(:has(.signin-page)) {
+      display: block !important;
+      align-items: flex-start !important;
+      justify-content: flex-start !important;
+    }
+    html[data-auth-page="1"] #app-main {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex: 1 1 auto;
+      width: 100%;
+      min-height: 0;
+      padding: var(--space-4);
+      box-sizing: border-box;
+      overflow-y: auto;
+    }
+    html[data-auth-page="1"] .signin-page {
+      min-height: 0;
+      height: auto;
+      width: 100%;
+      padding: var(--space-4);
+    }
+    html[data-embed-full-nav="1"] .lock-screen,
+    html[data-embed-full-nav="1"] .ide-auth-pending,
+    html[data-embed-mode="1"] .lock-screen,
+    html[data-embed-mode="1"] .ide-auth-pending {
+      min-height: 0 !important;
+      flex: 1 1 auto;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    html[data-embed-mode="1"] .sidebar-auth-btn { display: none !important; }
+    .bridge-notice-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 16px;
+      background: rgba(59, 130, 246, 0.12);
+      border-bottom: 1px solid rgba(59, 130, 246, 0.35);
+      color: var(--text-primary);
+      font-size: 0.85rem;
+      line-height: 1.4;
+    }
+    .bridge-notice-banner span { flex: 1; }
+    .bridge-notice-close {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1rem;
+      cursor: pointer;
+      padding: 0 4px;
+      line-height: 1;
+    }
+    .bridge-notice-close:hover { color: var(--text-primary); }
   </style>
   <style>
     /* Labeled action buttons */
@@ -82,11 +238,63 @@
     (function() {
       var search = window.location.search || '';
       var inIframe = window.self !== window.top;
-      var parentOwnsUrlBar = /[?&]sb_parent_urlbar=1(?:&|$)/i.test(search) || inIframe;
+      var embedKeys = ['sb_notify_base', 'sb_api_base', 'sb_parent_urlbar', 'sb_website_mode'];
+      try {
+        var params = new URLSearchParams(search);
+        embedKeys.forEach(function(key) {
+          var value = params.get(key) || sessionStorage.getItem(key);
+          if (value) {
+            if (key === 'sb_api_base' || key === 'sb_notify_base') {
+              value = String(value).replace(/\/+$/, '');
+              if (!/\/api$/i.test(value)) value += '/api';
+            }
+            sessionStorage.setItem(key, value);
+          }
+        });
+      } catch (e) { /* ignore */ }
+      var hasBridge = false;
+      try {
+        hasBridge = Boolean(sessionStorage.getItem('sb_api_base') || sessionStorage.getItem('sb_notify_base'))
+          || /[?&]sb_(notify_base|api_base)=/i.test(search);
+      } catch (_b) { /* ignore */ }
+      var explicitEmbedUrl = /[?&]sb_parent_urlbar=1(?:&|$)/i.test(search)
+        || /[?&]sb_website_mode=1(?:&|$)/i.test(search)
+        || /[?&]sb_(notify_base|api_base)=/i.test(search);
+      var websiteMode = /[?&]sb_website_mode=1(?:&|$)/i.test(search);
+      var parentOwnsUrlBar = false;
+      // Only apply compact embed chrome inside the IDE iframe or when embed params are on the URL.
+      // Stale sessionStorage from a prior VS Code session must not strip the header on a normal browser tab.
+      if (inIframe || explicitEmbedUrl) {
+        parentOwnsUrlBar = explicitEmbedUrl || hasBridge || inIframe;
+        try {
+          if (!/[?&]sb_parent_urlbar=1/i.test(search) && sessionStorage.getItem('sb_parent_urlbar') === '1') {
+            parentOwnsUrlBar = true;
+          }
+          if (!websiteMode && sessionStorage.getItem('sb_website_mode') === '1') {
+            websiteMode = true;
+            parentOwnsUrlBar = true;
+          }
+        } catch (_c) { /* ignore */ }
+      }
+      var ideSurface = inIframe;
+      window.__SB_STANDALONE_DASHBOARD__ = !inIframe && !explicitEmbedUrl;
+      window.__SB_IDE_EMBED__ = ideSurface;
       window.__SB_PARENT_URL_BAR__ = parentOwnsUrlBar;
+      if (ideSurface) {
+        document.documentElement.setAttribute('data-ide-embed', '1');
+        document.documentElement.removeAttribute('data-embed-full-nav');
+      } else if (!inIframe && (websiteMode || parentOwnsUrlBar)) {
+        // Simple Browser / IDE-hosted tab: keep header + sidebar beside content.
+        document.documentElement.setAttribute('data-embed-full-nav', '1');
+      }
       if (parentOwnsUrlBar) {
         document.documentElement.setAttribute('data-parent-urlbar', '1');
         document.documentElement.setAttribute('data-ide-preview', 'true');
+        document.documentElement.setAttribute('data-embed-mode', '1');
+      }
+      var path = window.location.pathname || '';
+      if (/\/dashboard\/(signin|register)\/?$/i.test(path)) {
+        document.documentElement.setAttribute('data-auth-page', '1');
       }
       function hideEmbeddedUrlBars() {
         if (!window.__SB_PARENT_URL_BAR__) return;
@@ -142,9 +350,9 @@
         document.documentElement.setAttribute('data-ide-preview', 'true');
         console.info('[Simplebeacon] IDE preview detected: sidebar hidden');
       }
-      if (detectIdePreview()) {
+      if (inIframe && detectIdePreview()) {
         setIdePreview();
-      } else {
+      } else if (inIframe) {
         try {
           if (localStorage && localStorage.getItem('sb_ide_preview') === '1') {
             setIdePreview();
@@ -157,37 +365,39 @@
           }
         }, 500);
         setTimeout(function() { clearInterval(lateCheck); }, 5000);
-        try {
-          var xhr = new XMLHttpRequest();
-          xhr.open('GET', 'api/simplebeacon/config', true);
-          xhr.onreadystatechange = function() {
-            if (xhr.readyState === 4 && xhr.status === 200) {
-              try {
-                var cfg = JSON.parse(xhr.responseText);
-                var serverPort = parseInt(cfg && (cfg.dataServerPort || cfg.relayPort || cfg.dataPort), 10);
-                var currentPort = parseInt(window.location.port, 10);
-              } catch (e) {}
-            }
-          };
-          xhr.send();
-        } catch (e) {}
       }
     })();
   </script>
   <script>
-    // Derive the API host from the embed params if the extension didn't inject it.
-    // This lets /api/* requests route to the local data server even when the iframe
-    // loads from a remote site.
+    // VS Code extension bridge host (loopback only) — does NOT replace cloud auth/platform API.
     (function() {
-      if (window.__SB_API_HOST__) return;
-      var search = window.location.search || '';
-      var m = search.match(/[?&]sb_api_base=([^&]+)/) || search.match(/[?&]sb_notify_base=([^&]+)/);
-      if (m && m[1]) {
+      function normalizeBridgeHost(raw) {
+        if (!raw) return '';
         try {
-          var base = decodeURIComponent(m[1]).replace(/\/$/, '');
-          window.__SB_API_HOST__ = base.replace(/\/api\/?$/, '');
-        } catch (e) {}
+          var base = String(raw).replace(/\/api\/?$/, '').replace(/\/$/, '');
+          var u = new URL(base, location.href);
+          if (!/^127\.0\.0\.1$|^localhost$/i.test(u.hostname)) return '';
+          // agent.js:4000 is not the VS Code extension data server — integrated dashboard serves /api on this origin.
+          if (u.port === '4000' && location.protocol === 'http:' && /^127\.0\.0\.1$|^localhost$/i.test(location.hostname)) return '';
+          return u.origin;
+        } catch (e) { return ''; }
       }
+      function readBridgeHostFromQuery() {
+        var search = window.location.search || '';
+        var m = search.match(/[?&]sb_api_base=([^&]+)/) || search.match(/[?&]sb_notify_base=([^&]+)/);
+        if (!m || !m[1]) return '';
+        try { return normalizeBridgeHost(decodeURIComponent(m[1])); } catch (e) { return ''; }
+      }
+      function readBridgeHostFromStorage() {
+        try {
+          var stored = sessionStorage.getItem('sb_api_base') || sessionStorage.getItem('sb_notify_base');
+          return normalizeBridgeHost(stored);
+        } catch (e) { return ''; }
+      }
+      function isHostedSite() {
+        return location.protocol === 'https:' || !/^127\.0\.0\.1$|^localhost$/i.test(location.hostname);
+      }
+      window.__SB_BRIDGE_HOST__ = window.__SB_BRIDGE_HOST__ || readBridgeHostFromQuery() || readBridgeHostFromStorage() || '';
     })();
   </script>
   <!-- Offline-ready: allow browser + SW caching -->
@@ -197,9 +407,9 @@
   <!-- System fonts only: VS Code webviews block external fonts.googleapis.com -->
   <link rel="stylesheet" href="css/variables.css">
   <link rel="stylesheet" href="css/reset.css">
-  <link rel="stylesheet" href="css/layout.css?v=20260712merge1">
-  <link rel="stylesheet" href="css/components.css?v=20260714hosted2">
-  <link rel="stylesheet" href="css/utilities.css?v=20260713dashboard1">
+  <link rel="stylesheet" href="css/layout.css?v=20260716cachefix1">
+  <link rel="stylesheet" href="css/components.css?v=20260716cachefix1">
+  <link rel="stylesheet" href="css/utilities.css?v=20260716cachefix1">
   <link rel="stylesheet" href="css/disable-elements.css">
   <script src="js/vendor/lucide.min.js" defer onerror="window._lucideFailed=true"></script>
   <script>
@@ -302,8 +512,6 @@
             <button class="profile-dropdown-item" id="profile-dropdown-signout" role="menuitem"><i data-lucide="log-out" class="icon-16"></i><span>Sign Out</span></button>
           </div>
         </div>
-        <button class="icon-btn" id="signin-btn" aria-label="Sign in" hidden><i data-lucide="log-in" class="icon-20"></i></button>
-        <button class="icon-btn" id="signout-btn" aria-label="Sign out" hidden><i data-lucide="log-out" class="icon-20"></i></button>
       </div>
     </header>
 
@@ -424,14 +632,6 @@
           </div>
         </div>
 
-        <button type="button" class="sidebar-auth-btn" id="sidebar-signin-btn" hidden>
-          <i data-lucide="log-in" class="icon-18"></i>
-          <span>Sign In</span>
-        </button>
-        <button type="button" class="sidebar-auth-btn" id="sidebar-signout-btn" hidden>
-          <i data-lucide="log-out" class="icon-18"></i>
-          <span>Sign Out</span>
-        </button>
         <div class="nav-footer">
           <a href="https://github.com/tjp420/simplebeacon" class="nav-footer-link" target="_blank" rel="noopener noreferrer" title="GitHub">
             <i data-lucide="code-2" class="icon-16"></i>
@@ -518,8 +718,9 @@
       });
     }
 
-    // Inject top navigation links (address bar) dynamically to avoid deploy-leak scanner flags
+    // Inject top navigation links only for standalone browser tabs (not IDE iframe).
     (function() {
+      if (window.self !== window.top || window.__SB_IDE_EMBED__ || document.documentElement.hasAttribute('data-ide-embed')) return;
       var actions = document.querySelector('.app-header-actions');
       if (!actions) return;
       var nav = document.createElement('nav');
@@ -587,32 +788,61 @@
       });
     });
   </script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" crossorigin="anonymous" referrerpolicy="no-referrer" onerror="console.warn('[Simplebeacon] JSZip CDN failed, ZIP features will be unavailable')"></script>
+  <script src="js/vendor/jszip.min.js" defer></script>
   <script>
-    // Dev-only API proxy: activates via injected config or localStorage (no hardcoded URLs)
+    // Extension bridge fetch rewrite — only local scan/notify/Ollama paths, not cloud auth.
     (function() {
-      var API_HOST = window.__SB_API_HOST__ || '';
-      if (!API_HOST && typeof Storage !== 'undefined') {
-        try { API_HOST = localStorage.getItem('__sb_api_host') || ''; } catch (e) {}
+      var BRIDGE_PREFIXES = [
+        '/api/simplebeacon/',
+        '/api/notify',
+        '/api/ping',
+        '/api/stream',
+        '/api/free-token'
+      ];
+      function isBridgeApiPath(path) {
+        if (!path || path.indexOf('/api/') !== 0) return false;
+        for (var i = 0; i < BRIDGE_PREFIXES.length; i++) {
+          var prefix = BRIDGE_PREFIXES[i];
+          if (path === prefix.replace(/\/$/, '') || path.indexOf(prefix) === 0) return true;
+        }
+        return false;
       }
-      if (!API_HOST) return;
-      var currentHost = location.protocol + '//' + location.host;
-      function rewriteUrl(url) {
-        if (typeof url !== 'string') return url;
-        if (url.startsWith('/api/')) return API_HOST + url;
-        if (url.startsWith('/ws')) return API_HOST.replace('http:', 'ws:') + url;
-        if (url.indexOf(currentHost + '/api/') === 0) return API_HOST + url.replace(currentHost, '');
-        if (url.indexOf(currentHost + '/ws') === 0) return API_HOST.replace('http:', 'ws:') + url.replace(currentHost, '');
+      function bridgeHost() {
+        return window.__SB_BRIDGE_HOST__ || '';
+      }
+      function isHostedSite() {
+        return location.protocol === 'https:' || !/^127\.0\.0\.1$|^localhost$/i.test(location.hostname);
+      }
+      function rewriteBridgeUrl(url) {
+        var host = bridgeHost();
+        if (!host || typeof url !== 'string') return url;
+        // Hosted dashboard cannot fetch loopback (CORS / mixed-content). Local bridge
+        // paths are resolved explicitly in localAgentService.js and notify.js.
+        if (isHostedSite()) return url;
+        try {
+          var u = new URL(url, location.href);
+          var path = u.pathname + u.search;
+          if (isBridgeApiPath(u.pathname)) {
+            return host + path;
+          }
+          var current = location.protocol + '//' + location.host;
+          if (url.indexOf(current + '/api/') === 0) {
+            var relPath = url.slice(current.length);
+            if (isBridgeApiPath(relPath.split('?')[0])) {
+              return host + relPath;
+            }
+          }
+        } catch (e) {}
         return url;
       }
       var origFetch = window.fetch;
       if (origFetch) {
         window.fetch = function(input, init) {
           var url = typeof input === 'string' ? input : (input && input.url ? input.url : String(input));
-          var rewritten = rewriteUrl(url);
+          var rewritten = rewriteBridgeUrl(url);
           if (rewritten !== url) {
             init = init || {};
-            init.credentials = init.credentials || 'include';
+            if (!init.credentials) init.credentials = 'omit';
           }
           return origFetch.call(this, rewritten, init);
         };
@@ -623,7 +853,7 @@
           var xhr = new origXHR();
           var origOpen = xhr.open;
           xhr.open = function(method, url) {
-            return origOpen.call(this, method, rewriteUrl(url));
+            return origOpen.call(this, method, rewriteBridgeUrl(String(url)));
           };
           return xhr;
         };
@@ -632,7 +862,7 @@
       }
     })();
   </script>
-  <script type="module" src="/dashboard/js-es2018/main.js?v=20260715admin3"></script>
+  <script type="module" src="/dashboard/js-es2018/main.js?v=20260716cachefix1"></script>
   <script>
     // Capture script errors so the fallback page can report them without DevTools.
     window.__SB_DASHBOARD_ERRORS__ = [];

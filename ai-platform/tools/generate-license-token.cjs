@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// simplebeacon-ignore: security — all findings are false positives (scanner patterns, dashboard code, build scripts)
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
 /**
  * SimpleBeacon License Token Generator

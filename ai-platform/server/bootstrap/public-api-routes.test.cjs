@@ -18,4 +18,24 @@ describe('public-api-routes', () => {
     assert.strictEqual(mod.isPublicApiRoute('chatbot/message', 'POST'), true);
     assert.strictEqual(mod.isPublicApiRoute('chatbot/disclosure', 'GET'), true);
   });
+
+  it('allows webauthn challenge and authenticate without auth gate', () => {
+    assert.strictEqual(mod.isPublicApiRoute('webauthn/challenge', 'POST'), true);
+    assert.strictEqual(mod.isPublicApiRoute('webauthn/authenticate', 'POST'), true);
+    assert.strictEqual(mod.isPublicApiRoute('webauthn/register', 'POST'), false);
+    assert.strictEqual(mod.isPublicApiRoute('webauthn/credentials', 'GET'), false);
+  });
+
+  it('allows read-only dashboard stub endpoints without auth', () => {
+    assert.strictEqual(mod.isPublicApiRoute('dashboard-home', 'GET'), true);
+    assert.strictEqual(mod.isPublicApiRoute('dev-tools/tools', 'GET'), true);
+    assert.strictEqual(mod.isPublicApiRoute('dev-tools/workflows', 'GET'), true);
+    assert.strictEqual(mod.isPublicApiRoute('security/overview', 'GET'), true);
+    assert.strictEqual(mod.isPublicApiRoute('quality/overview', 'GET'), true);
+    assert.strictEqual(mod.isPublicApiRoute('coverage-reports/overview', 'GET'), true);
+    assert.strictEqual(mod.isPublicApiRoute('help', 'GET'), true);
+    assert.strictEqual(mod.isPublicApiRoute('analytics/overview', 'GET'), true);
+    assert.strictEqual(mod.isPublicApiRoute('merger-tool/reduction-scan', 'GET'), false);
+    assert.strictEqual(mod.isPublicApiRoute('security/npm-audit', 'GET'), false);
+  });
 });

@@ -4,6 +4,7 @@
  */
 
 const createError = require('http-errors');
+const logger = require('../lib/app-logger.cjs');
 const {
     generateToken,
     trustLevels,
@@ -62,7 +63,7 @@ async function handlePhase2Login(req, res, next) {
         } catch (e) {
             // ignore demo file read errors
         }
-        console.warn(`[Phase2Login] failed for ${email} - demoUserFound: ${demoUserFound}`);
+        logger.warn(`[Phase2Login] failed for ${email} - demoUserFound: ${demoUserFound}`);
         auditAuth('login_failed', { email }, req);
         const debug = process.env.DEBUG_CLIENT_ERRORS === '1' ? { email, demoUserFound } : undefined;
         const body = {
@@ -73,14 +74,14 @@ async function handlePhase2Login(req, res, next) {
         return res.status(401).json(body);
     } catch (error) {
         auditAuth('login_failed', { email: req.body?.email }, req);
-        console.error('[Phase2Login] Error during login:', error?.message, error?.stack);
+        logger.error('[Phase2Login] Error during login:', error?.message, error?.stack);
         // Try legacy login handler as a fallback before returning the error
         try {
             if (process.env.ALLOW_LEGACY_LOGIN !== 'false') {
                 return await handleLogin(req, res, next);
             }
         } catch (legacyError) {
-            console.error('[Phase2Login] Legacy fallback also failed:', legacyError?.message);
+            logger.error('[Phase2Login] Legacy fallback also failed:', legacyError?.message);
         }
         return res.status(500).json({
             error: error?.name || 'login_error',

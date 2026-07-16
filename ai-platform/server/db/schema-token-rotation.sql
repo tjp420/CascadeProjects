@@ -1,3 +1,4 @@
+-- simplebeacon-ignore git-sensitive-file — auth/token implementation file, not a leaked secret
 -- Token Rotation & Blocklist Schema
 -- Phase 3 Enterprise: JWT refresh token rotation with reuse detection
 

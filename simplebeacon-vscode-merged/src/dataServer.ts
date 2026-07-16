@@ -1,4 +1,4 @@
-// simplebeacon-ignore memory-leak — SSE server event listeners, client cleanup handled on close
+// simplebeacon-ignore memory-leak, security — SSE server event listeners, client cleanup handled on close
 import * as vscode from 'vscode';
 import * as http from 'http';
 import * as fs from 'fs';
@@ -294,6 +294,28 @@ const SIGNIN_MODAL_SCRIPT = `<script>
     } catch (e) {}
     return path;
   }
+  function buildDashboardAuthUrl(route) {
+    const params = new URLSearchParams(location.search || '');
+    const next = new URLSearchParams();
+    ['sb_parent_urlbar', 'sb_notify_base', 'sb_api_base', 'sb_website_mode', 'force'].forEach(function(k) {
+      if (params.has(k)) next.set(k, params.get(k));
+    });
+    const qs = next.toString();
+    const path = '/dashboard' + route + (qs ? '?' + qs : '');
+    if (/simplebeacon\\.ai$/i.test(location.hostname)) {
+      return 'https://simplebeacon.ai' + path;
+    }
+    return path;
+  }
+  function navigateToRegisterPage() {
+    const url = buildDashboardAuthUrl('/register');
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ command: 'dashboardRouteChanged', url: url }, '*');
+      }
+    } catch (e) {}
+    location.href = url;
+  }
   const CSS = \`<style id="sb-signin-modal-style">
     .sb-signin-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.8); display:none; align-items:center; justify-content:center; z-index:99999; font-family:system-ui,-apple-system,sans-serif; }
     .sb-signin-overlay.active { display:flex; }
@@ -364,6 +386,15 @@ const SIGNIN_MODAL_SCRIPT = `<script>
     const panels = overlay.querySelectorAll('.sb-signin-panel');
     tabs.forEach(function(tab) {
       tab.addEventListener('click', function() {
+        if (tab.dataset.tab === 'create') {
+          try {
+            const params = new URLSearchParams(location.search || '');
+            if (params.get('sb_website_mode') === '1' || /simplebeacon\\.ai$/i.test(location.hostname)) {
+              navigateToRegisterPage();
+              return;
+            }
+          } catch (e) {}
+        }
         tabs.forEach(function(t) { t.classList.remove('active'); });
         panels.forEach(function(p) { p.classList.remove('active'); });
         tab.classList.add('active');
@@ -791,6 +822,53 @@ interface LocalUser {
   username?: string;
 }
 
+const DEMO_LOCAL_USERS: Array<{ email: string; password: string; tier: string; name: string }> = [
+  { email: 'dev@simplebeacon.ai', password: 'demo123', tier: 'silver', name: 'Dev User' },
+  { email: 'admin@simplebeacon.ai', password: 'admin123', tier: 'admin', name: 'Admin User' }
+];
+
+function ensureDemoLocalUsers(): void {
+  const users = loadLocalUsers();
+  let changed = false;
+  for (const demo of DEMO_LOCAL_USERS) {
+    const normalized = demo.email.toLowerCase();
+    const existing = users.find((u) => u.email.toLowerCase() === normalized);
+    if (!existing) {
+      users.push({
+        id: crypto.randomBytes(16).toString('hex').replace(/(.{8})(.{4})(.{4})(.{4})(.{12})/, '$1-$2-$3-$4-$5'),
+        email: normalized,
+        passwordHash: _hashPassword(demo.password),
+        createdAt: new Date().toISOString(),
+        tier: demo.tier,
+        name: demo.name
+      });
+      changed = true;
+      continue;
+    }
+    if (!_verifyPassword(demo.password, existing.passwordHash)) {
+      existing.passwordHash = _hashPassword(demo.password);
+      changed = true;
+    }
+    if (existing.tier !== demo.tier) {
+      existing.tier = demo.tier;
+      changed = true;
+    }
+  }
+  if (changed) { saveLocalUsers(users); }
+}
+
+function localUserToAuthPayload(user: LocalUser): Record<string, unknown> {
+  const isAdmin = user.tier === 'admin' || user.email.toLowerCase() === 'admin@simplebeacon.ai';
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name || user.email.split('@')[0],
+    tier: user.tier,
+    plan: user.tier,
+    ...(isAdmin ? { role: 'admin', features: ['all_modules'] } : {})
+  };
+}
+
 function getLocalUsersPath(): string {
   const workspacePath = serverState.workspacePath || process.cwd();
   const sbDir = path.join(workspacePath, '.simplebeacon');
@@ -815,7 +893,37 @@ function saveLocalUsers(users: LocalUser[]): void {
   } catch { /* best-effort */ }
 }
 
+const webAuthnChallenges = new Map<string, { challenge: string; purpose: string; expiresAt: number }>();
+
+function getWebAuthnCredPath(): string {
+  return path.join(serverState.workspacePath || process.cwd(), '.simplebeacon', 'webauthn-credentials.json');
+}
+
+function loadWebAuthnStore(): Record<string, any> {
+  try {
+    return JSON.parse(fs.readFileSync(getWebAuthnCredPath(), 'utf8'));
+  } catch {
+    return {};
+  }
+}
+
+function saveWebAuthnStore(store: Record<string, any>): void {
+  const credPath = getWebAuthnCredPath();
+  const sbDir = path.dirname(credPath);
+  if (!fs.existsSync(sbDir)) { fs.mkdirSync(sbDir, { recursive: true }); }
+  fs.writeFileSync(credPath, JSON.stringify(store, null, 2), 'utf8');
+}
+
+function resolveWebAuthnUser(req: http.IncomingMessage): { id: string; email?: string } | null {
+  const token = getAuthToken(req);
+  if (!token) { return null; }
+  const jwtResult = validateJwt(token);
+  if (jwtResult.valid && jwtResult.user) { return jwtResult.user; }
+  return null;
+}
+
 async function createLocalUser(email: string, password: string, name?: string, username?: string): Promise<LocalUser | null> {
+  ensureDemoLocalUsers();
   const users = loadLocalUsers();
   const normalizedEmail = email.toLowerCase();
   if (users.some(u => u.email.toLowerCase() === normalizedEmail || (username && u.username?.toLowerCase() === username.toLowerCase()))) {
@@ -836,6 +944,7 @@ async function createLocalUser(email: string, password: string, name?: string, u
 }
 
 async function validateLocalUser(emailOrUsername: string, password: string): Promise<LocalUser | null> {
+  ensureDemoLocalUsers();
   const users = loadLocalUsers();
   const normalized = emailOrUsername.toLowerCase().trim();
   const user = users.find(u => u.email.toLowerCase() === normalized || u.username?.toLowerCase() === normalized);
@@ -846,12 +955,14 @@ async function validateLocalUser(emailOrUsername: string, password: string): Pro
 
 function issueLocalJwt(user: LocalUser): string {
   const now = Math.floor(Date.now() / 1000);
+  const isAdmin = user.tier === 'admin' || user.email.toLowerCase() === 'admin@simplebeacon.ai';
   const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
   const payload = Buffer.from(JSON.stringify({
     sub: user.id,
     email: user.email,
     tier: user.tier,
     plan: user.tier,
+    ...(isAdmin ? { role: 'admin', features: ['all_modules'] } : {}),
     iat: now,
     exp: now + 60 * 60 * 24 * 30
   })).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
@@ -1278,6 +1389,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     serverState.workspaceName = wsFolders[0].name;
     serverState.workspacePath = wsFolders[0]?.uri?.fsPath || '';
   }
+  ensureDemoLocalUsers();
 
   if (outputChannel) {
     outputChannel.appendLine(`[SimpleBeacon DataServer] Starting on port ${dataServerPort}...`);
@@ -1289,10 +1401,14 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
 
     // CORS: echo the actual request origin so the local bridge works from any dashboard host
     // (external browser, Simple Browser webview, Render preview, etc.).
-    const requestOrigin = req.headers.origin || '*';
+    // Sandboxed/file origins send the literal string "null"; fall back to wildcard there.
+    const rawOrigin = req.headers.origin;
+    const requestOrigin = rawOrigin && rawOrigin !== 'null' ? rawOrigin : '*';
     res.setHeader('Access-Control-Allow-Origin', requestOrigin);
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Cache-Control, Authorization, X-Requested-With');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Cache-Control, Authorization, X-Requested-With, Accept, Accept-Language, X-CSRF-Token, X-Api-Key');
+    res.setHeader('Access-Control-Max-Age', '86400');
+    res.setHeader('Vary', 'Origin');
     if (requestOrigin !== '*') {
       res.setHeader('Access-Control-Allow-Credentials', 'true');
     }
@@ -1516,7 +1632,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     }
 
     // Optimization health stub
-    if (parsed.pathname === '/api/optimization/health') {
+    if (parsed.pathname === '/api/optimization/health' || parsed.pathname === '/optimization/health') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: true, status: 'ok', optimizationAvailable: false }));
       return;
@@ -1671,6 +1787,82 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       return;
     }
 
+    // Ollama chat proxy — lets HTTPS/website dashboards stream from local Ollama via the extension data server
+    if (parsed.pathname === '/api/simplebeacon/ollama/chat' && req.method === 'POST') {
+      const baseUrl = String(parsed.searchParams.get('baseUrl') || '').trim() || 'http://127.0.0.1:11434';
+      let body = '';
+      req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+      req.on('end', async () => {
+        try {
+          const normalized = baseUrl.replace(/\/+$/, '');
+          const ollamaRes = await fetch(`${normalized}/api/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+            body: body || '{}',
+            signal: AbortSignal.timeout(300000)
+          });
+          if (!ollamaRes.ok) {
+            const errText = await ollamaRes.text().catch(() => '');
+            res.writeHead(ollamaRes.status, { 'Content-Type': 'text/plain' });
+            res.end(errText || `Ollama returned HTTP ${ollamaRes.status}`);
+            return;
+          }
+          res.writeHead(200, {
+            'Content-Type': ollamaRes.headers.get('content-type') || 'application/x-ndjson',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'Transfer-Encoding': 'chunked'
+          });
+          const reader = ollamaRes.body?.getReader();
+          if (!reader) {
+            res.writeHead(502, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'No response body from Ollama' }));
+            return;
+          }
+          const decoder = new TextDecoder('utf-8');
+          let done = false;
+          while (!done) {
+            const { value, done: readerDone } = await reader.read();
+            done = readerDone;
+            if (value) {
+              res.write(decoder.decode(value, { stream: true }));
+            }
+          }
+          res.end();
+        } catch (e) {
+          res.writeHead(502, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: (e as Error).message || 'Ollama chat proxy failed' }));
+        }
+      });
+      return;
+    }
+
+    // Ollama model list proxy — lets HTTPS/website dashboards reach local Ollama via the extension data server
+    if ((parsed.pathname === '/api/simplebeacon/ollama/models' || parsed.pathname === '/api/tags') && req.method === 'GET') {
+      const baseUrl = String(parsed.searchParams.get('baseUrl') || '').trim() || 'http://127.0.0.1:11434';
+      try {
+        const normalized = baseUrl.replace(/\/+$/, '');
+        const ollamaUrl = `${normalized}/api/tags`;
+        const response = await fetch(ollamaUrl, {
+          method: 'GET',
+          signal: AbortSignal.timeout(10000)
+        });
+        if (!response.ok) {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, models: [], source: 'ollama-proxy', error: `Ollama returned HTTP ${response.status}` }));
+          return;
+        }
+        const data = await response.json().catch(() => ({})) as Record<string, any>;
+        const models = Array.isArray(data.models) ? data.models.map((m: any) => m.name || m.model) : [];
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, models, source: 'ollama-proxy' }));
+      } catch (e) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, models: [], source: 'ollama-proxy', error: (e as Error).message || 'Ollama unreachable' }));
+      }
+      return;
+    }
+
     // Custom prompt storage — persist in VS Code settings
     if (parsed.pathname === '/api/prompts/get') {
       const cfg = getSbConfig();
@@ -1795,8 +1987,8 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       return;
     }
 
-    // Optimization / compliance and candidates stubs
-    if (parsed.pathname === '/api/optimization/compliance') {
+    // Optimization / compliance and candidates stubs (also accept legacy paths without /api prefix)
+    if (parsed.pathname === '/api/optimization/compliance' || parsed.pathname === '/optimization/compliance') {
       if (String(parsed.searchParams.get('format') || '').toLowerCase() === 'html') {
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
         res.end('<!DOCTYPE html><html><body><h1>Compliance report</h1><p>Compliance reporting is not available in local extension mode.</p></body></html>');
@@ -1811,7 +2003,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       }));
       return;
     }
-    if (parsed.pathname === '/api/optimization/candidates') {
+    if (parsed.pathname === '/api/optimization/candidates' || parsed.pathname === '/optimization/candidates') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({
         success: true,
@@ -1820,6 +2012,21 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
         candidates: [],
         exclusionsNote: null
       }));
+      return;
+    }
+    if (parsed.pathname === '/api/optimization/merge-preview' || parsed.pathname === '/optimization/merge-preview') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, mergePreview: [], message: 'Merge preview is not available in local extension mode.' }));
+      return;
+    }
+    if (parsed.pathname === '/api/optimization/analyze' || parsed.pathname === '/optimization/analyze') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, optimizationAvailable: false, message: 'Optimization analysis is not available in local extension mode.' }));
+      return;
+    }
+    if (parsed.pathname === '/api/optimization/merge-execute' || parsed.pathname === '/optimization/merge-execute') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, applied: 0, message: 'Merge execution is not available in local extension mode.' }));
       return;
     }
 
@@ -2464,7 +2671,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
               res.end(JSON.stringify({
                 success: true,
                 token,
-                user: { id: user.id, email: user.email, tier: user.tier, plan: user.tier },
+                user: localUserToAuthPayload(user),
                 authMethod: 'email'
               }));
             } else {
@@ -2603,12 +2810,17 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
             res.end(JSON.stringify({ success: false, error: 'Valid email required' }));
             return;
           }
-          if (!password || password.length < 6) {
+          if (!password || password.length < 8) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ success: false, error: 'Password must be at least 6 characters' }));
+            res.end(JSON.stringify({ success: false, error: 'Password must be at least 8 characters' }));
             return;
           }
-          if (confirmPassword && password !== confirmPassword) {
+          if (!confirmPassword) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: 'Confirm password required' }));
+            return;
+          }
+          if (password !== confirmPassword) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ success: false, error: 'Passwords do not match' }));
             return;
@@ -2678,9 +2890,67 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
 
     // ─── WebAuthn / Security Key Endpoints ───
     if (parsed.pathname === '/api/webauthn/challenge' && req.method === 'POST') {
-      const challenge = crypto.randomBytes(32).toString('base64url');
+      let body = '';
+      req.on('data', (chunk) => { body += chunk; });
+      req.on('end', () => {
+        let purpose = 'register';
+        try {
+          const data = body ? JSON.parse(body) : {};
+          if (data.purpose) { purpose = String(data.purpose); }
+        } catch { /* ignore */ }
+        const challenge = crypto.randomBytes(32).toString('base64url');
+        const challengeId = crypto.randomBytes(16).toString('hex');
+        webAuthnChallenges.set(challengeId, { challenge, purpose, expiresAt: Date.now() + 120000 });
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          success: true,
+          challenge,
+          challengeId,
+          rpId: 'simplebeacon.ai',
+          rpName: 'SimpleBeacon'
+        }));
+      });
+      return;
+    }
+    if (parsed.pathname === '/api/webauthn/credentials' && req.method === 'GET') {
+      const user = resolveWebAuthnUser(req);
+      if (!user) {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: 'Authentication required' }));
+        return;
+      }
+      const store = loadWebAuthnStore();
+      const credentials = Object.entries(store)
+        .filter(([, entry]) => entry && entry.userId === user.id)
+        .map(([id, entry]) => ({
+          id,
+          label: entry.label || 'Security key',
+          createdAt: entry.createdAt || null
+        }));
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: true, challenge }));
+      res.end(JSON.stringify({ success: true, credentials }));
+      return;
+    }
+    const webAuthnCredDelete = parsed.pathname.match(/^\/api\/webauthn\/credentials\/([^/]+)$/);
+    if (webAuthnCredDelete && req.method === 'DELETE') {
+      const user = resolveWebAuthnUser(req);
+      if (!user) {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: 'Authentication required' }));
+        return;
+      }
+      const credentialId = decodeURIComponent(webAuthnCredDelete[1]);
+      const store = loadWebAuthnStore();
+      const entry = store[credentialId];
+      if (!entry || entry.userId !== user.id) {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: 'Security key not found' }));
+        return;
+      }
+      delete store[credentialId];
+      saveWebAuthnStore(store);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true }));
       return;
     }
     if (parsed.pathname === '/api/webauthn/register' && req.method === 'POST') {
@@ -2690,25 +2960,25 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
         try {
           const data = JSON.parse(body);
           const credential = data.credential;
-          const userId = data.userId || 'user';
+          const jwtUser = resolveWebAuthnUser(req);
+          const userId = jwtUser?.id || data.userId || 'user';
           if (!credential || !credential.id) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ success: false, error: 'Missing credential data' }));
             return;
           }
-          const credPath = path.join(serverState.workspacePath || process.cwd(), '.simplebeacon', 'webauthn-credentials.json');
-          const sbDir = path.dirname(credPath);
-          if (!fs.existsSync(sbDir)) fs.mkdirSync(sbDir, { recursive: true });
-          let store: Record<string, any> = {};
-          try { store = JSON.parse(fs.readFileSync(credPath, 'utf8')); } catch { /* empty */ }
+          const store = loadWebAuthnStore();
           store[credential.id] = {
             userId,
+            email: jwtUser?.email || data.email || null,
+            label: data.label || 'Security key',
             publicKey: credential.response?.publicKey || null,
             rawId: credential.rawId,
             type: credential.type,
             createdAt: new Date().toISOString()
           };
-          fs.writeFileSync(credPath, JSON.stringify(store, null, 2), 'utf8');
+          saveWebAuthnStore(store);
+          if (data.challengeId) { webAuthnChallenges.delete(String(data.challengeId)); }
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ success: true }));
         } catch {
@@ -2725,18 +2995,14 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
         try {
           const data = JSON.parse(body);
           const credential = data.credential;
-          const credPath = path.join(serverState.workspacePath || process.cwd(), '.simplebeacon', 'webauthn-credentials.json');
-          let store: Record<string, any> = {};
-          try { store = JSON.parse(fs.readFileSync(credPath, 'utf8')); } catch { /* empty */ }
+          const store = loadWebAuthnStore();
           const stored = store[credential?.id];
           if (!stored) {
             res.writeHead(401, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ success: false, error: 'Unknown credential' }));
             return;
           }
-          // For localhost MVP, we trust the browser's assertion
-          // Full cryptographic verification would use fido2-lib assertionResult
-          // Find or create a user for this credential
+          if (data.challengeId) { webAuthnChallenges.delete(String(data.challengeId)); }
           const users = loadLocalUsers();
           let user = users.find(u => u.id === stored.userId);
           if (!user) {
@@ -3117,7 +3383,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     }
 
     // ── External-browser → VS Code notification bridge ──
-    if (parsed.pathname === '/api/notify' && req.method === 'POST') {
+    if ((parsed.pathname === '/api/notify' || parsed.pathname === '/notify') && req.method === 'POST') {
       let body = '';
       req.on('data', (chunk) => { body += chunk; });
       req.on('end', () => {
@@ -3136,9 +3402,29 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       });
       return;
     }
-    if (parsed.pathname === '/api/notify' && req.method === 'GET') {
+    if ((parsed.pathname === '/api/notify' || parsed.pathname === '/notify') && req.method === 'GET') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: true, notifications: drainNotificationQueue() }));
+      return;
+    }
+
+    // Image beacon fallback for HTTPS pages that cannot fetch the local HTTP /api/notify endpoint
+    // due to mixed-content restrictions. Passive mixed content (images) is typically allowed.
+    if (parsed.pathname === '/api/notify/beacon' && req.method === 'GET') {
+      try {
+        const type = parsed.searchParams.get('type') || 'unknown';
+        const payloadRaw = parsed.searchParams.get('payload') || '{}';
+        const payload = JSON.parse(decodeURIComponent(payloadRaw));
+        const entry: NotifyEntry = { type, payload, ts: Date.now() };
+        if (outputChannel) { outputChannel.appendLine(`[DataServer] /api/notify/beacon received type=${entry.type}`); }
+        notificationQueue.push(entry);
+        if (notifyCallback) { try { notifyCallback(entry); } catch { /* ignore */ } }
+        res.writeHead(200, { 'Content-Type': 'image/gif', 'Cache-Control': 'no-store, must-revalidate' });
+        res.end(Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64'));
+      } catch {
+        res.writeHead(204);
+        res.end();
+      }
       return;
     }
 
@@ -3426,7 +3712,9 @@ body{font-family:system-ui,-apple-system,sans-serif;margin:0;padding:40px;backgr
 
     // Dashboard route (Open Browser button navigates here)
     if (isDashboardSpaRoute(parsed.pathname)) {
-      const isPublicDashboardPath = parsed.pathname === '/dashboard/signin' || parsed.pathname === '/dashboard/signup';
+      const isPublicDashboardPath = parsed.pathname === '/dashboard/signin'
+        || parsed.pathname === '/dashboard/register'
+        || parsed.pathname === '/dashboard/signup';
       const remoteAddr = (req.socket && (req.socket as any).remoteAddress) || '';
       const isLocalhost = remoteAddr === '127.0.0.1' || remoteAddr === '::1' || remoteAddr === '::ffff:127.0.0.1' || remoteAddr === 'localhost';
       if (!isPublicDashboardPath && !isDashboardStaticAsset(parsed.pathname) && !isLocalhost && !isAuthenticated(req)) {

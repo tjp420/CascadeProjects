@@ -1001,7 +1001,15 @@ function buildScanReport(opts) {
             config.profile === 'cascade'
                 ? 'Cascade profile scans server/ for production leaks — src/ stub API is excluded by design.'
                 : null
-        ].filter(Boolean)
+        ].filter(Boolean),
+        ...(config.fullDirectoryScan ? { fullDirectoryScan: true } : {}),
+        ...(!config.fullDirectoryScan && repositoryFilesTotal != null && ruleScopedFilesAnalyzed > 0
+            && (ruleScopedFilesAnalyzed / Math.max(1, repositoryFilesTotal) > 2
+                || repositoryFilesTotal / Math.max(1, ruleScopedFilesAnalyzed) > 2)
+            ? {
+                inventoryScopeNote: `Gate walk analyzed ${ruleScopedFilesAnalyzed.toLocaleString()} files; repository inventory counted ${repositoryFilesTotal.toLocaleString()} paths under the scan target.`
+            }
+            : {})
     };
 
     const draftReport = {
@@ -1143,7 +1151,8 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
     } catch {
         /* best-effort cache clear — file may not exist */
     }
-    const { platformRoot } = resolvePlatformRoot(scanRoot);
+    const { platformRoot: detectedPlatformRoot } = resolvePlatformRoot(scanRoot);
+    const platformRoot = detectedPlatformRoot;
     const root = scanRoot;
     const rawConfig = options.config || loadSimplebeaconConfig(root, options.configPath);
     // Deep-clone to avoid mutating the caller's config object on tier-sanitize / flag overrides
@@ -1209,7 +1218,8 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
     const scanPaths = resolveEffectiveScanPaths(scanRoot, root, config, sanitizedExtraPaths);
     const schemaEnabled = isRuleEnabled(config, 'json-schema');
     const FULL_TREE_MINIMAL_SKIP_DIRS = ['.git', 'github-cache', '.simplebeacon', '.vscode-test', 'simplebeacon-vscode-merged', 'ai-tools', 'ai-agent', 'node_modules', 'dist', 'build', 'out', 'coverage', '.next', '.cache'];
-    const inventoryPromise = countRepositoryInventory(platformRoot, {
+    const inventoryRoot = detectedPlatformRoot !== scanRoot ? scanRoot : detectedPlatformRoot;
+    const inventoryPromise = countRepositoryInventory(inventoryRoot, {
         profile: config.fullDirectoryScan ? 'all' : (options.inventoryProfile || 'universal'),
         skipDirs: config.fullDirectoryScan
             ? (config.fullDirectoryScanSkipDirs ? [...config.fullDirectoryScanSkipDirs] : FULL_TREE_MINIMAL_SKIP_DIRS)

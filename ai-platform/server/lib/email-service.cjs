@@ -13,6 +13,7 @@
 
 const https = require('https');
 const path = require('path');
+const logger = require('./app-logger.cjs');
 const fs = require('fs');
 
 let nodemailer = null;
@@ -237,7 +238,7 @@ async function sendEmail(options = {}) {
       const result = await sendViaCloudflare({ to, from: cfCfg.from, subject, text, html });
       return { sent: true, queued: false, id: result.id, provider: 'cloudflare' };
     } catch (err) {
-      console.error('[Email] Cloudflare failed:', err.message);
+      logger.error('[Email] Cloudflare failed:', err.message);
       // fall through to Resend
     }
   }
@@ -249,7 +250,7 @@ async function sendEmail(options = {}) {
       const result = await sendViaResend({ to, from: cfg.from, subject, text, html, attachments });
       return { sent: true, queued: false, id: result.id, provider: 'resend' };
     } catch (err) {
-      console.error('[Email] Resend API failed'); // simplebeacon-ignore pii-logging — error detail removed
+      logger.error('[Email] Resend API failed'); // simplebeacon-ignore pii-logging — error detail removed
       // fall through to SMTP
     }
   }
@@ -275,7 +276,7 @@ async function sendEmail(options = {}) {
       await transporter.sendMail(mailOptions);
       return { sent: true, queued: false, provider: 'smtp' };
     } catch (err) {
-      console.error('[Email] SMTP send failed:', err.message);
+      logger.error('[Email] SMTP send failed:', err.message);
       // fall through to queue
     }
   }

@@ -2,7 +2,7 @@
 /**
  * @module download
  */
-import { notifyDownloadComplete } from './notify.js';
+import { notifyDownloadComplete } from './notify.js?v=20260716cachefix1';
 /**
  * Download a Blob as a file.
  * Uses VS Code webview message passing when in a sandboxed webview,
@@ -32,7 +32,61 @@ export function normalDownload(blob, filename) {
         a.remove();
         setTimeout(() => URL.revokeObjectURL(url), 0);
     }
-    notifyDownloadComplete(filename || 'download');
+    if (isIdeEmbedDownloadBridge()) {
+        notifyExtensionDownload(blob, filename || 'download');
+    }
+    else {
+        notifyDownloadComplete(filename || 'download');
+    }
+}
+function isIdeEmbedDownloadBridge() {
+    if (typeof window === 'undefined')
+        return false;
+    try {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('sb_notify_base') || params.get('sb_api_base') || params.get('sb_parent_urlbar'))
+            return true;
+        if (sessionStorage.getItem('sb_notify_base') || sessionStorage.getItem('sb_api_base'))
+            return true;
+    }
+    catch (_a) { /* ignore */ }
+    try {
+        return window.self !== window.top;
+    }
+    catch (_b) {
+        return false;
+    }
+}
+function notifyExtensionDownload(blob, filename) {
+    if (!(blob instanceof Blob) || typeof window === 'undefined')
+        return;
+    const safeName = String(filename || 'download');
+    const reader = new FileReader();
+    reader.onload = () => {
+        const result = String(reader.result || '');
+        const commaIdx = result.indexOf(',');
+        const base64 = commaIdx >= 0 ? result.slice(commaIdx + 1) : result;
+        try {
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({
+                    command: 'downloadFile',
+                    filename: safeName,
+                    mimeType: blob.type || 'application/octet-stream',
+                    base64
+                }, '*');
+            }
+        }
+        catch (_a) { /* ignore */ }
+        try {
+            fetch('/api/download/notify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: safeName, content: base64 })
+            }).catch(() => { });
+        }
+        catch (_b) { /* ignore */ }
+    };
+    reader.readAsDataURL(blob);
 }
 export function downloadBlob(blob, filename) {
     if (!(blob instanceof Blob)) {

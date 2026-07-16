@@ -111,4 +111,20 @@ if (!fs.existsSync(dashboardMain)) {
   process.exit(1);
 }
 
+// Copy latest VSIX into public/downloads when packaged (gitignored at source).
+try {
+  const vsixDir = path.join(dst, 'downloads');
+  fs.mkdirSync(vsixDir, { recursive: true });
+  const extRoot = path.resolve(__dirname, '..', 'simplebeacon-vscode-merged');
+  const vsixFiles = fs.readdirSync(extRoot).filter((f) => /^simplebeacon-vscode-.*\.vsix$/i.test(f));
+  if (vsixFiles.length) {
+    vsixFiles.sort((a, b) => fs.statSync(path.join(extRoot, b)).mtimeMs - fs.statSync(path.join(extRoot, a)).mtimeMs);
+    const latest = path.join(extRoot, vsixFiles[0]);
+    fs.copyFileSync(latest, path.join(vsixDir, 'simplebeacon.vsix'));
+    process.stdout.write(`Copied VSIX ${vsixFiles[0]} → public/downloads/simplebeacon.vsix\n`);
+  }
+} catch (e) {
+  console.warn('VSIX copy skipped:', (e && e.message) || e);
+}
+
 process.stdout.write('Public build complete\n');

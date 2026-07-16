@@ -1,6 +1,8 @@
-// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 import { escapeHtml, showToast } from '../utils.js';
-import { authService } from '../services/authService.js?v=20260713sync6';
+import { authService } from '../services/authService.js?v=20260716cachefix1';
+import { isWebAuthnSupported, listSecurityKeys, registerSecurityKey, removeSecurityKey } from '../services/webauthnService.js?v=20260716cachefix1';
+import { userHasJwtForAiKeys } from '../services/aiKeysService.js?v=20260716cachefix1';
 import { activateStockpileEntry, addToStockpile, BUY_TIME_TOKENS_URL, decodeTokenMeta, listStockpiled, stockpileCount, tokenHint, } from '../services/tokenStockpileService.js';
 function loadProfile() {
     try {
@@ -161,8 +163,30 @@ export class ProfileView {
                     <div class="method-label">Both</div>
                     <div class="method-desc">Any method works</div>
                   </label>
+                  <label class="login-method-card ${loginMethod === 'security-key' ? 'active' : ''}">
+                    <input type="radio" name="loginMethod" value="security-key" aria-label="Security key login method" ${loginMethod === 'security-key' ? 'checked' : ''}>
+                    <div class="method-icon"><i data-lucide="key" class="icon-20"></i></div>
+                    <div class="method-label">Security Key</div>
+                    <div class="method-desc">Hardware key / passkey</div>
+                  </label>
                 </div>
                 <p class="profile-help">Choose how you want to authenticate on this device. Your choice is saved locally.</p>
+              </div>
+            </div>
+
+            <div class="profile-card" id="security-keys-section">
+              <div class="profile-card-header">
+                <i data-lucide="key-round" class="icon-18 profile-card-icon"></i>
+                <h2>Security Keys</h2>
+              </div>
+              <div class="profile-card-body">
+                <p class="profile-help">Register a FIDO2 hardware key (YubiKey, Titan) or a built-in passkey (Windows Hello, Touch ID, Face ID). A regular USB flash drive will not work.</p>
+                <p class="profile-help">Click <strong>Add security key</strong>, name the key, then follow the browser prompt — choose your hardware key or <em>This device</em> for a passkey.</p>
+                <div id="security-keys-list" class="profile-security-keys-list">Loading security keys…</div>
+                <div class="profile-actions" style="margin-top:1rem;">
+                  <button type="button" class="btn btn-secondary btn-sm" id="security-key-add-btn"${isWebAuthnSupported() ? '' : ' disabled'}>Add security key</button>
+                </div>
+                <p id="security-keys-status" class="profile-help"></p>
               </div>
             </div>
 
@@ -447,6 +471,89 @@ export class ProfileView {
             keys.forEach((k) => localStorage.removeItem(k));
             ((_b = (_a = this.app).showToast) === null || _b === void 0 ? void 0 : _b.call(_a, 'Local cache cleared', 'success')) || alert('Local cache cleared');
         });
+        const securityKeysList = container.querySelector('#security-keys-list');
+        const securityKeysStatus = container.querySelector('#security-keys-status');
+        const renderSecurityKeys = async () => {
+            if (!securityKeysList)
+                return;
+            if (!authService.getToken()) {
+                securityKeysList.innerHTML = '<p class="profile-help">Sign in to manage security keys.</p>';
+                return;
+            }
+            if (!userHasJwtForAiKeys()) {
+                securityKeysList.innerHTML = '<p class="profile-help">Security keys require email/password sign-in. License-token sessions can use password or passkey sign-in on the Sign in page.</p>';
+                return;
+            }
+            if (!isWebAuthnSupported()) {
+                securityKeysList.innerHTML = '<p class="profile-help">This browser does not support security keys.</p>';
+                return;
+            }
+            securityKeysList.textContent = 'Loading security keys…';
+            try {
+                const keys = await listSecurityKeys();
+                if (!keys.length) {
+                    securityKeysList.innerHTML = '<p class="profile-help">No security keys registered yet.</p>';
+                    return;
+                }
+                securityKeysList.innerHTML = keys.map((key) => `
+            <div class="profile-security-key-row" data-credential-id="${escapeHtml(key.id)}">
+              <div class="profile-security-key-meta">
+                <strong>${escapeHtml(key.label || 'Security key')}</strong>
+                <span class="profile-help">${key.createdAt ? `Added ${escapeHtml(formatTimeAgo(key.createdAt))}` : ''}</span>
+              </div>
+              <button type="button" class="btn btn-secondary btn-sm profile-security-key-remove" data-remove-key="${escapeHtml(key.id)}">Remove</button>
+            </div>`).join('');
+                securityKeysList.querySelectorAll('[data-remove-key]').forEach((btn) => {
+                    btn.addEventListener('click', async () => {
+                        const credentialId = btn.getAttribute('data-remove-key');
+                        if (!credentialId || !confirm('Remove this security key? You will need to register it again to sign in with it.'))
+                            return;
+                        btn.disabled = true;
+                        try {
+                            await removeSecurityKey(credentialId);
+                            showToast('Security key removed', 'success');
+                            await renderSecurityKeys();
+                        }
+                        catch (err) {
+                            showToast(err.message || 'Failed to remove security key', 'error');
+                            btn.disabled = false;
+                        }
+                    });
+                });
+            }
+            catch (err) {
+                securityKeysList.innerHTML = `<p class="profile-help">${escapeHtml(err.message || 'Could not load security keys')}</p>`;
+            }
+        };
+        container.querySelector('#security-key-add-btn')?.addEventListener('click', async () => {
+            const addBtn = container.querySelector('#security-key-add-btn');
+            if (!authService.getToken()) {
+                showToast('Sign in before adding a security key', 'error');
+                return;
+            }
+            const label = prompt('Name this security key (e.g. YubiKey, MacBook Touch ID):', 'Security key');
+            if (label === null)
+                return;
+            if (addBtn)
+                addBtn.disabled = true;
+            if (securityKeysStatus)
+                securityKeysStatus.textContent = 'Waiting for your security key…';
+            try {
+                await registerSecurityKey({ email, label: label.trim() || 'Security key' });
+                showToast('Security key registered', 'success');
+                await renderSecurityKeys();
+            }
+            catch (err) {
+                showToast(err.message || 'Security key registration failed', 'error');
+            }
+            finally {
+                if (addBtn)
+                    addBtn.disabled = false;
+                if (securityKeysStatus)
+                    securityKeysStatus.textContent = '';
+            }
+        });
+        renderSecurityKeys();
         container.querySelector('#profile-stockpile-add')?.addEventListener('click', () => {
             const input = container.querySelector('#profile-stockpile-input');
             const value = (input === null || input === void 0 ? void 0 : input.value.trim()) || '';

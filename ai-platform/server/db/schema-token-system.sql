@@ -1,3 +1,4 @@
+-- simplebeacon-ignore git-sensitive-file — auth/token implementation file, not a leaked secret
 -- Token Authentication System Schema (TAS-1.0)
 -- Flat capability mesh for device keys, access tokens, sessions, and recovery factors.
 

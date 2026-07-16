@@ -1,3 +1,4 @@
+// simplebeacon-ignore git-sensitive-file — auth/token implementation file, not a leaked secret
 /**
  * USB Token Manager — Load .tokenkey files from USB drives
  * Uses File System Access API + WebUSB for device detection

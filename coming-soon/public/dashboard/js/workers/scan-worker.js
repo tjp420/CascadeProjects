@@ -6,7 +6,7 @@
  * pure-JS fallback) instead of loading the entire file into memory at once.
  */
 
-import { analyzeFileChunks, findingsToIssues } from './scan-wasm-bridge.js?v=20260714blockerfix1';
+import { analyzeFileChunks, findingsToIssues } from './scan-wasm-bridge.js?v=20260716cachefix1';
 
 const MAX_DISCOVERED_FILES = 500000;
 const LARGE_FILE_THRESHOLD = 5 * 1024 * 1024; // 5 MB
@@ -26,7 +26,7 @@ const LANGUAGE_REGISTRY = {
 const PATTERN_REGISTRY = {
   debugArtifacts: {
     appliesTo: ['javascript'],
-    pattern: /\bconsole\.(log|warn|error|info|debug|table|trace|dir|group)\s*\(|debugger\b|alert\s*\(|prompt\s*\(|confirm\s*\(/gi
+    pattern: /\bconsole\.(log|warn|error|info|debug|table|trace|dir|group)\s*\(|\bdebugger\b|\balert\s*\(|\bprompt\s*\(|\bconfirm\s*\(/gi
   },
   todoMarkers: {
     appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet'],

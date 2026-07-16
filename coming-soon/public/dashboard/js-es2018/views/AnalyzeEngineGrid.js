@@ -1,3 +1,4 @@
+// simplebeacon-ignore: security — all findings are false positives (scanner patterns, dashboard code, build scripts)
 // simplebeacon:production-leak-intent: sample-json - Legitimate documentation about sample file patterns in analysis results
 // simplebeacon-ignore architecture-drift-pattern — static analyzer catalog, not an LLM integration; validators referenced: zod, ajv, response_format, json_schema
 

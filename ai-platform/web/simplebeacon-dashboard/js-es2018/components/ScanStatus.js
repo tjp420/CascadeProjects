@@ -1,9 +1,9 @@
 import { escapeHtml, formatPercent, formatNumber, showToast } from '../utils.js';
-import { canUseDirectoryPicker, filePickerBlockedMessage, isFilePickerBlockedError } from '../utils-lib/dom.js?v=20260715iframefix3';
-import { resolveDisplayScore, formatScanScopeSummary, formatScanInventoryNote, getScanFileMetrics } from '../services/analyzeService.js?v=20260715scanfix1';
-import { runLocalScan } from '../services/localScanService.js?v=20260715scanfix1';
-import { isLocalPath, probeAgent, scanViaAgent, probeAgent4000, scanViaAgent4000, renderAgentCertificate, hasExtensionBridgeConfigured, pickFolderViaExtensionBridge as requestExtensionFolderPick, shouldProbeLocalAgent } from '../services/localAgentService.js?v=20260715hosted1';
-import { runSandboxedDirectoryScan, isDroppedFolder, scanDroppedItems, captureDroppedEntry } from '../services/browserSandboxScanService.js?v=20260715scanfix1';
+import { canUseDirectoryPicker, filePickerBlockedMessage, isFilePickerBlockedError } from '../utils-lib/dom.js?v=20260716cachefix1';
+import { resolveDisplayScore, formatScanScopeSummary, formatScanInventoryNote, getScanFileMetrics } from '../services/analyzeService.js?v=20260716cachefix1';
+import { runLocalScan } from '../services/localScanService.js?v=20260716cachefix1';
+import { isLocalPath, probeAgent, scanViaAgent, probeAgent4000, scanViaAgent4000, renderAgentCertificate, hasExtensionBridgeConfigured, pickFolderViaExtensionBridge as requestExtensionFolderPick, shouldProbeLocalAgent, shouldProbeAgent4000 } from '../services/localAgentService.js?v=20260716cachefix1';
+import { runSandboxedDirectoryScan, isDroppedFolder, scanDroppedItems, captureDroppedEntry } from '../services/browserSandboxScanService.js?v=20260716cachefix1';
 function isRemoteDashboardHost() {
     return typeof window !== 'undefined' && !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
 }
@@ -287,6 +287,51 @@ function formatFreshnessWarning(report) {
  * @param {Object} options
  * @returns {any}
  */
+function renderCompactRescanBar(report, options = {}) {
+    const { config, lastProjectPath, scanning, defaultProjectPath } = options;
+    const scanPaths = (config === null || config === void 0 ? void 0 : config.scanPaths) || (report === null || report === void 0 ? void 0 : report.scanPaths) || [];
+    const pathCount = scanPaths.length;
+    const hasSaved = Boolean(lastProjectPath);
+    const hasDefault = Boolean(defaultProjectPath);
+    const resolvedPath = lastProjectPath || defaultProjectPath || '';
+    return `
+    <div class="scan-status-scope scan-status-review" id="scan-status-scope">
+      <div class="dashboard-scan-review-bar">
+        <p class="dashboard-scan-review-lead text-muted text-sm">Findings are below. Re-run the gate scan on the same target or start a new one.</p>
+        <div class="scan-status-path-row">
+          <div class="scan-status-path-input-wrap">
+            <i data-lucide="folder" class="icon-16 scan-status-path-icon"></i>
+            <input
+              type="text"
+              id="scan-root-input"
+              class="scan-status-path-input"
+              placeholder="e.g. C:\\dev\\my-app"
+              spellcheck="false"
+              autocomplete="off"
+              aria-label="Folder path on the dashboard server"
+              value="${escapeHtml(resolvedPath)}"
+              ${scanning ? 'disabled' : ''}
+            >
+          </div>
+          <button type="button" class="btn btn-ghost btn-sm" id="scan-set-default-btn" ${!hasDefault || scanning ? 'disabled' : ''} title="Reset to default path">
+            <i data-lucide="rotate-ccw" class="icon-16"></i> Reset
+          </button>
+          <button type="button" class="btn btn-ghost btn-sm" id="scan-clear-btn" ${!hasSaved || scanning ? 'disabled' : ''} title="Clear saved folder">
+            <i data-lucide="x" class="icon-16"></i> Clear
+          </button>
+          <button type="button" class="btn btn-primary" id="rescan-btn" ${scanning ? 'disabled' : ''} title="Run gate scan on this folder">
+            ${scanning ? '<span class="loading-spinner"></span> Scanning…' : '<i data-lucide="refresh-cw" class="icon-16"></i> Re-scan'}
+          </button>
+          <a href="/dashboard/analyze" class="btn btn-ghost btn-sm">New scan</a>
+        </div>
+      </div>
+      <p class="scan-status-scope-hint text-muted">
+        Deep analysis → <a href="/dashboard/analyze" class="scan-status-link">Analyze</a> ·
+        Mock folders → <a href="/dashboard/settings" class="scan-status-link">Settings → Scan paths</a>${pathCount ? ` (${pathCount})` : ''}
+      </p>
+    </div>
+  `;
+}
 function renderScanPathControls(report, options = {}) {
     const { config, lastProjectPath, scanning, defaultProjectPath } = options;
     const scanPaths = (config === null || config === void 0 ? void 0 : config.scanPaths) || (report === null || report === void 0 ? void 0 : report.scanPaths) || [];
@@ -384,7 +429,7 @@ function renderScanPathControls(report, options = {}) {
  * @returns {any}
  */
 export function renderScanStatus(report, options = {}) {
-    const { scanning = false, config, compact = false, redesign = false } = options;
+    const { scanning = false, config, compact = false, redesign = false, reviewMode = false } = options;
     const gate = (report === null || report === void 0 ? void 0 : report.gate) || {};
     const gateClass = gate.pass ? 'pass' : gate.blockingCount > 0 ? 'fail' : 'warn';
     const gateLabel = gate.pass ? 'PASS' : gate.blockingCount > 0 ? 'FAIL' : 'WARN';
@@ -393,24 +438,15 @@ export function renderScanStatus(report, options = {}) {
     const score = formatPercent(resolveDisplayScore(report));
     const freshness = formatFreshnessWarning(report);
     if (redesign) {
-        const metrics = getScanFileMetrics(report);
-        const analyzed = metrics.filesAnalyzed != null ? formatNumber(metrics.filesAnalyzed) : null;
-        const total = metrics.repositoryFiles != null ? formatNumber(metrics.repositoryFiles) : null;
-        const mock = metrics.mockSampleFiles != null ? formatNumber(metrics.mockSampleFiles) : null;
-        const fiction = (report && report.fictionKpiHits) != null ? formatNumber(report.fictionKpiHits) : null;
-        const sizeBytes = (report && report.totalBytes) != null ? Number(report.totalBytes) : null;
-        const sizeText = sizeBytes != null ? `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB` : null;
-        const statsParts = [
-            analyzed ? `<span><strong>${analyzed}</strong> files analyzed</span>` : '',
-            total ? `<span>of <strong>${total}</strong> total</span>` : '',
-            mock ? `<span><strong>${mock}</strong> mock/sample</span>` : '',
-            fiction ? `<span><strong>${fiction}</strong> JSON fiction-scanned</span>` : '',
-            sizeText ? `<span><strong>${sizeText}</strong></span>` : '',
-            score ? `<span>Consistency <strong>${score}</strong></span>` : ''
-        ].filter(Boolean);
-        const statsLine = statsParts.join(' · ');
+        const scopeSummary = report ? formatScanScopeSummary(report) : '';
+        const statsLine = scopeSummary
+            ? scopeSummary.split(' · ').map((part) => `<span>${escapeHtml(part)}</span>`).join(' · ')
+            : '';
+        const scanControls = reviewMode && report
+            ? renderCompactRescanBar(report, { ...options, config, scanning })
+            : renderScanPathControls(report, { ...options, config, scanning });
         return `
-    <div class="dashboard-scan-redesign">
+    <div class="dashboard-scan-redesign${reviewMode ? ' is-review' : ''}">
       <div class="dashboard-scan-redesign-header">
         <div>
           <div class="dashboard-scan-redesign-label">LAST SCAN</div>
@@ -421,10 +457,10 @@ export function renderScanStatus(report, options = {}) {
         </div>
         <span class="dashboard-scan-badge ${gateClass}">${gateLabel}</span>
       </div>
-      ${statsLine ? `<div class="dashboard-scan-redesign-stats">${statsLine}</div>` : ''}
+      ${statsLine ? `<div class="dashboard-scan-redesign-stats">${statsLine}${score ? ` · <span>Consistency <strong>${score}</strong></span>` : ''}</div>` : ''}
       ${inventoryNote ? `<div class="dashboard-scan-redesign-inventory">${escapeHtml(inventoryNote)}</div>` : ''}
       <div class="dashboard-scan-redesign-card">
-        ${renderScanPathControls(report, { ...options, config, scanning })}
+        ${scanControls}
       </div>
     </div>
   `;
@@ -1232,7 +1268,7 @@ export function bindScanStatus(container, options = {}) {
     const status4000 = container.querySelector('#agent-4000-status');
     if (status4000) {
         const update4000 = async () => {
-            if (isRemoteDashboardHost() && !hasExtensionBridgeConfigured()) {
+            if (!shouldProbeAgent4000()) {
                 status4000.hidden = true;
                 status4000.textContent = '';
                 return;
@@ -1264,6 +1300,6 @@ export function bindScanStatus(container, options = {}) {
             }
         };
         void update4000();
-        window.setInterval(update4000, 5000);
+        window.setInterval(update4000, 30000);
     }
 }

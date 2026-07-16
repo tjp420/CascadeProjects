@@ -3373,6 +3373,35 @@ function initLocalScannerUI() {
             roadmapLink.style.background = 'rgba(37,99,235,0.1)';
             roadmapLink.style.color = '#60A5FA';
         });
+        roadmapLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            const report = (typeof window.currentReport !== 'undefined' ? window.currentReport : null)
+                || (typeof window.lastScanReport !== 'undefined' ? window.lastScanReport : null)
+                || reportData;
+            if (!report) {
+                const statusEl = document.getElementById('status');
+                if (statusEl) {
+                    statusEl.textContent = 'Load or run a scan before opening the remediation roadmap.';
+                    statusEl.className = 'status error';
+                }
+                return;
+            }
+            if (typeof window.stashReportForRoadmap === 'function') {
+                window.stashReportForRoadmap(report);
+            } else {
+                try {
+                    sessionStorage.setItem('sb_audit_report', JSON.stringify(report));
+                } catch (err) { /* ignore */ }
+            }
+            const target = roadmapLink.getAttribute('href') || '/roadmap?v=16';
+            if (typeof window.navigateEmbeddedRoute === 'function') {
+                window.navigateEmbeddedRoute(target);
+            } else if (typeof window.buildEmbeddedUrl === 'function') {
+                window.location.href = window.buildEmbeddedUrl(target);
+            } else {
+                window.location.href = target;
+            }
+        });
     }
 
     const btn = document.getElementById('startLocalScanBtn');

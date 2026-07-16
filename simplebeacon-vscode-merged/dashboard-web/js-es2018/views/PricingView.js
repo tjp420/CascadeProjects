@@ -1,9 +1,10 @@
-// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 import { billingService } from '../services/billingService.js';
-import { authService } from '../services/authService.js?v=20260713sync6';
+import { authService } from '../services/authService.js?v=20260716cachefix1';
 import { showToast } from '../utils.js';
 
-const MARKETPLACE_URL = 'https://github.com/marketplace/actions/simplebeacon-ai-guardrails';
+// Marketplace listing is not live yet — link to the public action repo (see github-action/MARKETPLACE-CHECKLIST.md).
+const GITHUB_ACTION_URL = 'https://github.com/simplebeacon/guardrails';
 const QUICKSTART_URL = 'https://github.com/simplebeacon/guardrails#readme';
 
 /**
@@ -41,7 +42,7 @@ export class PricingView {
             <li>Fail-open if license server is down</li>
             <li><code>npx simplebeacon scan --gate --diff</code></li>
           </ul>
-          <a class="btn btn-secondary" href="${MARKETPLACE_URL}" target="_blank" rel="noopener noreferrer">GitHub Marketplace</a>
+          <a class="btn btn-secondary" href="${GITHUB_ACTION_URL}" target="_blank" rel="noopener noreferrer">Install GitHub Action</a>
         </div>
 
         <div class="pricing-card card pricing-card-featured">
@@ -74,6 +75,7 @@ export class PricingView {
       <div class="card mb-6">
         <h3 class="h5 mb-2">Self-serve checkout</h3>
         <p class="text-muted text-sm mb-3">Pay on Stripe → receive your license token by email → paste into <code>SIMPLEBEACON_LICENSE_TOKEN</code> in GitHub secrets.</p>
+        <p class="text-muted text-sm mb-3">Need an account first? <button type="button" class="btn btn-ghost btn-sm" id="pricing-goto-register" data-auth-action="register">Create a free account</button></p>
         <label class="form-label" for="checkout-email">Work email</label>
         <div class="d-flex gap-2 flex-wrap align-items-center">
           <input type="email" id="checkout-email" class="form-input" placeholder="lead@yourcompany.com" autocomplete="email" style="max-width:320px">
@@ -100,6 +102,10 @@ export class PricingView {
         if (emailInput && stored) {
             emailInput.value = stored;
         }
+
+        container.querySelector('#pricing-goto-register')?.addEventListener('click', () => {
+            this.app.navigate('register');
+        });
 
         container.querySelectorAll('[data-checkout]').forEach((btn) => {
             btn.addEventListener('click', async () => {

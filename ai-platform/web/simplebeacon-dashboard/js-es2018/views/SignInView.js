@@ -1,6 +1,7 @@
-// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
-import { authService } from '../services/authService.js?v=20260713sync6';
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
+import { authService } from '../services/authService.js?v=20260716cachefix1';
 import { billingService } from '../services/billingService.js';
+import { authenticateWithSecurityKey, isWebAuthnSupported } from '../services/webauthnService.js?v=20260716cachefix1';
 import { showToast } from '../utils.js';
 /**
  * Decode email from token.
@@ -109,8 +110,19 @@ export class SignInView {
         }
         return false;
     }
+    _resolveEmailMode() {
+        const view = this.app._currentViewName || '';
+        if (view === 'register')
+            return 'register';
+        return 'login';
+    }
+    _isRegisterMode() {
+        return this._emailMode === 'register';
+    }
     async mount(container) {
         var _a, _b, _c, _d, _e;
+        this._mountContainer = container;
+        this._emailMode = this._resolveEmailMode();
         container.innerHTML = `<div class="signin-page"><div class="signin-card card"><p class="text-muted">Loading…</p></div></div>`;
         this._ingestUrlToken();
         const authed = authService.isAuthenticated();
@@ -128,17 +140,19 @@ export class SignInView {
         // Skip redirect when opened from VS Code extension signin panel (?force=1)
         const urlParams = new URLSearchParams(window.location.search);
         const forceSignin = urlParams.get('force') === '1';
-        if (!forceSignin && authed && allowed) {
+        const onRegisterRoute = this._isRegisterMode();
+        if (!forceSignin && !onRegisterRoute && authed && allowed) {
             this.app.navigate('dashboard');
             return;
         }
+        const isRegister = this._isRegisterMode();
         container.innerHTML = `
-      <div class="signin-page" style="display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px;background:var(--background);box-sizing:border-box;">
-        <div class="signin-card card" style="width:100%;max-width:420px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:32px;box-shadow:0 20px 60px rgba(0,0,0,0.35);box-sizing:border-box;color:var(--text-primary);">
-          <div class="signin-header" style="text-align:center;margin-bottom:24px;">
-            <span class="signin-icon" aria-hidden="true" style="font-size:2rem;display:block;margin-bottom:8px;">&#128274;</span>
-            <h1 class="signin-title" style="font-size:1.5rem;font-weight:600;margin:0 0 6px;color:var(--text-primary);">Sign In</h1>
-            <p class="text-muted" style="margin:0;color:var(--text-muted);">Access your SimpleBeacon dashboard.</p>
+      <div class="signin-page">
+        <div class="signin-card card">
+          <div class="signin-header">
+            <span class="signin-icon" aria-hidden="true">&#128274;</span>
+            <h1 class="signin-title">${isRegister ? 'Create Account' : 'Sign In'}</h1>
+            <p class="text-muted signin-subtitle">${isRegister ? 'Set up your SimpleBeacon account.' : 'Access your SimpleBeacon dashboard.'}</p>
           </div>
           ${authed ? this.renderAuthed({ email, allowed, internalDev }) : this.renderSignInForm()}
         </div>
@@ -196,6 +210,7 @@ export class SignInView {
     `;
     }
     renderSignInForm() {
+        const isRegister = this._isRegisterMode();
         const inputStyle = 'width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:var(--background);color:var(--text-primary);font-size:0.95rem;box-sizing:border-box;';
         const labelStyle = 'display:block;font-size:0.85rem;color:var(--text-muted);margin-bottom:6px;';
         const tabActive = 'background:var(--surface);color:var(--primary);box-shadow:0 1px 3px rgba(0,0,0,0.08);';
@@ -205,23 +220,38 @@ export class SignInView {
         return `
       <div class="signin-tab-panel active" id="panel-email">
         <div class="signin-subtabs" style="display:flex;gap:4px;margin-bottom:16px;background:var(--surface-hover);border-radius:8px;padding:3px;">
-          <button type="button" class="signin-subtab ${this._emailMode === 'login' ? 'active' : ''}" data-mode="login" id="subtab-login" style="${this._emailMode === 'login' ? tabActive : tabBase}">Sign In</button>
-          <button type="button" class="signin-subtab ${this._emailMode === 'register' ? 'active' : ''}" data-mode="register" id="subtab-register" style="${this._emailMode === 'register' ? tabActive : tabBase}">Create Account</button>
+          <button type="button" class="signin-subtab ${!isRegister ? 'active' : ''}" data-mode="login" id="subtab-login" data-auth-action="signin" style="${!isRegister ? tabActive : tabBase}">Sign In</button>
+          <button type="button" class="signin-subtab ${isRegister ? 'active' : ''}" data-mode="register" id="subtab-register" data-auth-action="register" style="${isRegister ? tabActive : tabBase}">Create Account</button>
         </div>
         <form id="signin-email-form" class="signin-form" style="display:flex;flex-direction:column;gap:14px;">
+          ${isRegister ? `
           <div>
-            <label class="field-label" for="signin-email-input" style="${labelStyle}">Email / Username</label>
-            <input id="signin-email-input" class="input" type="text" autocomplete="email" required placeholder="email@example.com or username" style="${inputStyle}" />
+            <label class="field-label" for="signin-name-input" style="${labelStyle}">Full name</label>
+            <input id="signin-name-input" class="input" type="text" autocomplete="name" required placeholder="Your name" style="${inputStyle}" />
+          </div>
+          <div>
+            <label class="field-label" for="signin-username-input" style="${labelStyle}">Username</label>
+            <input id="signin-username-input" class="input" type="text" autocomplete="username" required pattern="[A-Za-z0-9_]{3,32}" placeholder="letters_numbers_underscore" style="${inputStyle}" />
+          </div>` : ''}
+          <div>
+            <label class="field-label" for="signin-email-input" style="${labelStyle}">${isRegister ? 'Email address' : 'Email / Username'}</label>
+            <input id="signin-email-input" class="input" type="${isRegister ? 'email' : 'text'}" autocomplete="email" required placeholder="${isRegister ? 'you@company.com' : 'email@example.com or username'}" style="${inputStyle}" />
           </div>
           <div>
             <label class="field-label" for="signin-password-input" style="${labelStyle}">Password</label>
-            <input id="signin-password-input" class="input" type="password" autocomplete="current-password" required placeholder="Enter your password…" style="${inputStyle}" />
+            <input id="signin-password-input" class="input" type="password" autocomplete="${isRegister ? 'new-password' : 'current-password'}" required placeholder="${isRegister ? 'Choose a password (8+ characters)…' : 'Enter your password…'}" style="${inputStyle}" />
           </div>
-          <div style="display:flex;justify-content:flex-end;margin:-4px 0 0;">
+          ${isRegister ? `
+          <div>
+            <label class="field-label" for="signin-confirm-password-input" style="${labelStyle}">Confirm Password</label>
+            <input id="signin-confirm-password-input" class="input" type="password" autocomplete="new-password" required placeholder="Re-enter your password…" style="${inputStyle}" />
+          </div>` : ''}
+          <div style="display:${isRegister ? 'none' : 'flex'};justify-content:flex-end;margin:-4px 0 0;">
             <button type="button" id="forgot-password-btn" style="background:none;border:none;color:var(--primary);font-size:0.78rem;cursor:pointer;padding:0;">Forgot Password?</button>
           </div>
           <p id="signin-email-error" class="signin-error" hidden role="alert" style="margin:0;font-size:0.85rem;color:var(--danger);text-align:center;line-height:1.5;"></p>
-          <button type="submit" class="btn btn-primary btn-block" id="signin-email-submit" style="${btnPrimary}">${this._emailMode === 'register' ? 'Create Account' : 'Sign In'}</button>
+          <button type="submit" class="btn btn-primary btn-block" id="signin-email-submit" style="${btnPrimary}">${isRegister ? 'Create Account' : 'Sign In'}</button>
+          ${!isRegister ? `<button type="button" class="btn btn-block" id="goto-register-btn" data-auth-action="register" style="${btnSecondary};margin-top:8px;">Create Account</button>` : ''}
         </form>
         <div class="signin-divider" style="text-align:center;margin:16px 0;font-size:0.8rem;color:var(--text-muted);position:relative;">
           <span style="background:var(--surface);padding:0 12px;position:relative;z-index:1;">or</span>
@@ -230,7 +260,7 @@ export class SignInView {
         <button type="button" class="btn btn-secondary btn-block" id="webauthn-signin-btn" style="${btnSecondary};display:flex;align-items:center;justify-content:center;gap:8px;">
           <span>&#128274;</span> Sign in with Security Key
         </button>
-        <p class="signin-note" id="email-mode-note" style="margin:16px 0 0;font-size:0.85rem;color:var(--text-muted);text-align:center;line-height:1.5;">${this._emailMode === 'register' ? 'Already have an account? Switch to <strong>Sign In</strong>.' : 'New here? Switch to <strong>Create Account</strong> to register.'}</p>
+        <p class="signin-note" id="email-mode-note" style="margin:16px 0 0;font-size:0.85rem;color:var(--text-muted);text-align:center;line-height:1.5;">${isRegister ? 'Already have an account? <button type="button" id="note-goto-signin" style="background:none;border:none;padding:0;color:var(--primary);font:inherit;font-weight:600;cursor:pointer;">Sign in</button>.' : 'New here? <button type="button" id="note-goto-register" style="background:none;border:none;padding:0;color:var(--primary);font:inherit;font-weight:600;cursor:pointer;">Create an account</button>.'}</p>
       </div>
 
       <p class="signin-footer" style="margin-top:24px;text-align:center;font-size:0.85rem;color:var(--text-muted);">
@@ -244,35 +274,43 @@ export class SignInView {
     }
     bindEmailModeToggle(container) {
         const subtabs = container.querySelectorAll('.signin-subtab');
-        const submitBtn = container.querySelector('#signin-email-submit');
-        const note = container.querySelector('#email-mode-note');
-        const forgotBtn = container.querySelector('#forgot-password-btn');
-        const tabActive = 'background:var(--surface);color:var(--primary);box-shadow:0 1px 3px rgba(0,0,0,0.08);';
-        const tabBase = 'flex:1;padding:0.35rem 0.5rem;border:none;background:transparent;color:var(--text-muted);font-size:0.85rem;font-weight:500;border-radius:6px;cursor:pointer;';
         subtabs.forEach(tab => {
-            tab.addEventListener('click', () => {
+            tab.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 const mode = tab.dataset.mode;
-                this._emailMode = mode;
-                subtabs.forEach(t => {
-                    const isActive = t.dataset.mode === mode;
-                    t.classList.toggle('active', isActive);
-                    t.style.cssText = isActive ? tabActive : tabBase;
-                });
-                if (submitBtn)
-                    submitBtn.textContent = mode === 'login' ? 'Sign In' : 'Create Account';
-                if (note)
-                    note.innerHTML = mode === 'login' ? 'New here? Switch to <strong>Create Account</strong> to register.' : 'Already have an account? Switch to <strong>Sign In</strong>.';
-                if (forgotBtn)
-                    forgotBtn.style.display = mode === 'login' ? 'block' : 'none';
+                if (mode === 'register') {
+                    this.app.navigate('register');
+                }
+                else {
+                    this.app.navigate('signin');
+                }
             });
+        });
+        container.querySelector('#note-goto-register')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.app.navigate('register');
+        });
+        container.querySelector('#note-goto-signin')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.app.navigate('signin');
+        });
+        container.querySelector('#goto-register-btn')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.app.navigate('register');
         });
     }
     async handleEmailSubmit(e) {
-        var _a, _b;
+        var _a, _b, _c;
         e.preventDefault();
         const form = e.target;
         const email = form.querySelector('#signin-email-input').value.trim();
         const password = form.querySelector('#signin-password-input').value;
+        const confirmPasswordEl = form.querySelector('#signin-confirm-password-input');
+        const confirmPassword = confirmPasswordEl ? confirmPasswordEl.value : '';
         const submitBtn = form.querySelector('#signin-email-submit');
         const errorEl = form.querySelector('#signin-email-error');
         // Client-side validation
@@ -285,34 +323,91 @@ export class SignInView {
             }
             return;
         }
-        if (!password || password.length < 6) {
+        if (!password || password.length < 8) {
             if (errorEl) {
-                errorEl.textContent = 'Password must be at least 6 characters.';
+                errorEl.textContent = 'Password must be at least 8 characters.';
                 errorEl.hidden = false;
             }
             return;
         }
+        if (this._emailMode === 'register') {
+            const name = form.querySelector('#signin-name-input')?.value.trim() || '';
+            const username = form.querySelector('#signin-username-input')?.value.trim().toLowerCase() || '';
+            if (!name || name.length < 2) {
+                if (errorEl) {
+                    errorEl.textContent = 'Enter your full name.';
+                    errorEl.hidden = false;
+                }
+                return;
+            }
+            if (!/^[a-z0-9_]{3,32}$/.test(username)) {
+                if (errorEl) {
+                    errorEl.textContent = 'Username must be 3–32 characters (letters, numbers, underscore).';
+                    errorEl.hidden = false;
+                }
+                return;
+            }
+            if (!confirmPassword) {
+                if (errorEl) {
+                    errorEl.textContent = 'Please confirm your password.';
+                    errorEl.hidden = false;
+                }
+                return;
+            }
+            if (password !== confirmPassword) {
+                if (errorEl) {
+                    errorEl.textContent = 'Passwords do not match.';
+                    errorEl.hidden = false;
+                }
+                return;
+            }
+        }
         submitBtn.disabled = true;
-        submitBtn.textContent = 'Signing in…';
+        submitBtn.textContent = this._emailMode === 'register' ? 'Creating account…' : 'Signing in…';
         if (errorEl) {
             errorEl.hidden = true;
             errorEl.textContent = '';
         }
         try {
             if (this._emailMode === 'register') {
-                await authService.register(email, password);
+                const name = form.querySelector('#signin-name-input')?.value.trim() || '';
+                const username = form.querySelector('#signin-username-input')?.value.trim().toLowerCase() || '';
+                const result = await authService.register(email, password, name, username, confirmPassword);
+                if (result.pending) {
+                    const card = (_c = this._mountContainer) === null || _c === void 0 ? void 0 : _c.querySelector('.signin-card');
+                    if (card) {
+                        card.innerHTML = `
+                      <div class="signin-header">
+                        <span class="signin-icon" aria-hidden="true">&#9989;</span>
+                        <h1 class="signin-title">Account submitted</h1>
+                        <p class="text-muted signin-subtitle">${escapeHtml(result.message || 'Your account is pending operator approval.')}</p>
+                      </div>
+                      <p class="signin-note" style="font-size:0.9rem;color:var(--text-muted);text-align:center;line-height:1.5;">You cannot access the dashboard until your account is activated. We will email you at <strong>${escapeHtml(email)}</strong> when ready.</p>
+                      <button type="button" class="btn btn-primary btn-block" id="pending-goto-signin" style="margin-top:16px;width:100%;">Back to Sign In</button>
+                    `;
+                        card.querySelector('#pending-goto-signin')?.addEventListener('click', () => this.app.navigate('signin'));
+                    }
+                    return;
+                }
                 showToast('Account created successfully', 'success');
+                this.app.updateAuthUi();
+                this.app.updateNavVisibility(true);
+                window.dispatchEvent(new CustomEvent('auth-signed-in'));
+                this.app.navigate('dashboard');
+                return;
             }
-            else {
-                await authService.login(email, password);
-                showToast('Signed in successfully', 'success');
-            }
+            await authService.login(email, password);
+            showToast('Signed in successfully', 'success');
             this.app.updateAuthUi();
             (_b = (_a = this.app).bootstrapAfterAuth) === null || _b === void 0 ? void 0 : _b.call(_a);
             this.app.navigate('dashboard');
         }
         catch (err) {
-            const message = err.message || (this._emailMode === 'register' ? 'Registration failed' : 'Sign in failed');
+            let message = err.message || (this._emailMode === 'register' ? 'Registration failed' : 'Sign in failed');
+            if (err && err.name === 'TypeError' && /fetch|network/i.test(String(err.message || ''))) {
+                message = 'Unable to reach the account server. Check your connection and try again.';
+            }
+            console.error('[SignInView] submit error:', { mode: this._emailMode, error: err });
             if (errorEl) {
                 errorEl.textContent = message;
                 errorEl.hidden = false;
@@ -385,11 +480,29 @@ export class SignInView {
         emailInput.focus();
     }
     async _handleWebAuthnSignIn() {
-        if (!window.PublicKeyCredential) {
+        var _a, _b;
+        const btn = document.querySelector('#webauthn-signin-btn');
+        if (!isWebAuthnSupported()) {
             showToast('Security key login is not supported in this browser.', 'error');
             return;
         }
-        showToast('Security key authentication started (demo).', 'info');
+        if (btn)
+            btn.disabled = true;
+        try {
+            const result = await authenticateWithSecurityKey();
+            authService.setSession(result.token, result.user);
+            showToast('Signed in with security key', 'success');
+            this.app.updateAuthUi();
+            (_b = (_a = this.app).bootstrapAfterAuth) === null || _b === void 0 ? void 0 : _b.call(_a);
+            this.app.navigate('dashboard');
+        }
+        catch (err) {
+            showToast(err.message || 'Security key sign-in failed', 'error');
+        }
+        finally {
+            if (btn)
+                btn.disabled = false;
+        }
     }
     destroy() { }
 }

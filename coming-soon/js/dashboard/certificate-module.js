@@ -1056,10 +1056,14 @@ Generated entirely in-browser. Zero data uploaded.
         const url = URL.createObjectURL(zipBlob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `simplebeacon-certificate-${isoDate.slice(0,10)}.zip`;
+        const certFilename = `simplebeacon-certificate-${isoDate.slice(0, 10)}.zip`;
+        a.download = certFilename;
         a.style.display = 'none';
         document.body.appendChild(a);
         try { a.click(); } catch (e) { window.open(url, '_blank'); }
+        if (typeof window.notifyDownloadComplete === 'function') {
+            window.notifyDownloadComplete(certFilename);
+        }
         // Revoke after 30s to ensure download completes
         setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 30000);
     } catch (zipErr) {

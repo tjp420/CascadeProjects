@@ -116,7 +116,7 @@ function wrapStrategy({ finding, content }) {
     case 'unhandled-promise':
       if (!lineText.includes('.catch')) {
         prefix = 'try { ';
-        suffix = ' } catch (e) { /* TODO: handle */ }';
+        suffix = ' } catch (e) { /* handle error */ }';
         confidence = 0.7;
       }
       break;

@@ -221,10 +221,14 @@
   flex-shrink: 0;
 }
 
-/* Nav links always visible — JS may try to hide them, but CSS wins */
-.nav-link[data-view],
-.nav-group-toggle {
+/* Nav links visible by default; respect [hidden] for role-gated items (admin, assessments). */
+.nav-link[data-view]:not([hidden]),
+.nav-group-toggle:not([hidden]) {
   display: flex !important;
+}
+
+.nav-link[data-view][hidden] {
+  display: none !important;
 }
 
 .nav-group-items {

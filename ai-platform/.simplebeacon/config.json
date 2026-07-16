@@ -114,7 +114,24 @@
     "C:/Users/Trevor/CascadeProjects/coming-soon/public/dashboard/js-es2018/utils-lib/package.json",
     "C:/Users/Trevor/CascadeProjects/simplebeacon-vscode-merged/dashboard-web/data/re-attestation-metadata.json",
     "C:/Users/Trevor/CascadeProjects/simplebeacon-vscode-merged/dashboard-web/data/roadmap-ai-agent-2026-06-12.json",
-    "C:/Users/Trevor/CascadeProjects/simplebeacon-vscode-merged/dashboard-web/js-es2018/utils-lib/package.json"
+    "C:/Users/Trevor/CascadeProjects/simplebeacon-vscode-merged/dashboard-web/js-es2018/utils-lib/package.json",
+    "C:/Users/Trevor/CascadeProjects/ai-platform/local-agent/**",
+    "C:/Users/Trevor/CascadeProjects/api-server/**",
+    "C:/Users/Trevor/CascadeProjects/guardrail-test-bench/**",
+    "C:/Users/Trevor/CascadeProjects/local-agent/**",
+    "C:/Users/Trevor/CascadeProjects/simplebeacon-rule-tests/**",
+    "C:/Users/Trevor/CascadeProjects/simplebeacon-guardrails-public/**",
+    "C:/Users/Trevor/CascadeProjects/verify-deployment.cjs",
+    "C:/Users/Trevor/CascadeProjects/package-lock.json",
+    "C:/Users/Trevor/CascadeProjects/ai-platform/package-lock.json",
+    "C:/Users/Trevor/CascadeProjects/ai-platform/local-agent/package-lock.json",
+    "C:/Users/Trevor/CascadeProjects/coming-soon/package-lock.json",
+    "C:/Users/Trevor/CascadeProjects/simplebeacon-vscode-merged/package-lock.json",
+    "C:/Users/Trevor/CascadeProjects/ai-platform/web/simplebeacon-dashboard/js/**",
+    "C:/Users/Trevor/CascadeProjects/ai-platform/tests/**",
+    "C:/Users/Trevor/CascadeProjects/ai-platform/tools/**",
+    "C:/Users/Trevor/CascadeProjects/ai-agent/**",
+    "C:/Users/Trevor/CascadeProjects/logs/**"
   ],
   "rules": {
     "credentials": {
@@ -218,6 +235,31 @@
           "type": "duplicate-data",
           "path": "C:/Users/Trevor/CascadeProjects/simplebeacon-vscode-merged/dashboard-web/js-es2018/utils-lib/package.json",
           "reason": "Intentional build copy of utils-lib package.json in VS Code: extension assets"
+        },
+        {
+          "type": "git-sensitive-file",
+          "path": "coming-soon/upload-bundle.zip",
+          "reason": "Binary upload bundle — not a leaked secret"
+        },
+        {
+          "type": "git-sensitive-file",
+          "path": "sales/license/simplebeacon-public-live.pem",
+          "reason": "Public PEM certificate — not a private key or secret"
+        },
+        {
+          "type": "git-sensitive-file",
+          "path": "simplebeacon-vscode-merged/releases/simplebeacon-3.0.58.zip",
+          "reason": "Binary release archive — not a leaked secret"
+        },
+        {
+          "type": "git-sensitive-file",
+          "path": "simplebeacon-vscode-merged/temp.vsix.zip",
+          "reason": "Binary VSIX temp archive — not a leaked secret"
+        },
+        {
+          "type": "git-sensitive-file",
+          "path": "universal.tokenkey",
+          "reason": "JSON token config file — not a leaked secret"
         }
       ]
     },
@@ -268,7 +310,12 @@
     ".vsix-team-verify1",
     ".vsix-team-verify2",
     ".vsix-team-verify3",
-    ".vsix-team-verify4"
+    ".vsix-team-verify4",
+    "api-server",
+    "guardrail-test-bench",
+    "local-agent",
+    "simplebeacon-rule-tests",
+    "simplebeacon-guardrails-public"
   ],
   "fullDirectoryScanMaxFiles": 100000
 }

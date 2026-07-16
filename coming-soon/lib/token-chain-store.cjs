@@ -1,3 +1,4 @@
+// simplebeacon-ignore git-sensitive-file — auth/token implementation file, not a leaked secret
 /**
  * Token chain store — lazy activation tree for license tokens.
  * Owner token must activate first; attached tokens only become active

@@ -94,6 +94,7 @@ interface SidebarMessage {
   file?: string;
   line?: number;
   col?: number;
+  name?: string;
   message?: string;
   stack?: string;
   report?: Record<string, unknown>;
@@ -120,6 +121,7 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
   private static _cachedTier = '';
   private static _cachedToken = '';
   private static _cachedIsAdmin = false;
+  private static _lastCodeMapData: Record<string, unknown> | null = null;
   private static _authRefreshTimer: ReturnType<typeof setTimeout> | undefined;
   private static _authRefreshPendingSource?: string;
   private static _lastAuthRefreshAt = 0;
@@ -167,7 +169,8 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
     const isRemote = !/^(https?:\/\/)?(127\.0\.0\.1|localhost)(:\d+)?\/?$/i.test(base);
     let normalizedRoute = route.startsWith('/') ? route : '/' + route;
     if (isRemote) {
-      normalizedRoute = normalizedRoute.replace(/^\/dashboard\/?$/, '/dashboard/dashboard');
+      normalizedRoute = normalizedRoute.replace(/^\/dashboard\/dashboard\/?$/, '/dashboard');
+      normalizedRoute = normalizedRoute.replace(/^\/dashboard\/?$/, '/dashboard');
       if (!normalizedRoute.startsWith('/dashboard/')) {
         normalizedRoute = '/dashboard' + normalizedRoute;
       }
@@ -179,7 +182,10 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
     const apiBaseQuery = !isRemote ? `sb_api_base=${encodeURIComponent(localBaseUrl + '/api')}` : '';
     const notifyBaseQuery = isRemote ? `sb_notify_base=${encodeURIComponent(localBaseUrl + '/api')}` : '';
     const query = [apiBaseQuery, notifyBaseQuery].filter(Boolean).join('&');
-    const url = `${base}${normalizedRoute}${query ? (normalizedRoute.includes('?') ? '&' : '?') + query : ''}`;
+    let url = `${base}${normalizedRoute}${query ? (normalizedRoute.includes('?') ? '&' : '?') + query : ''}`;
+    if (isRemote) {
+      url = appendDashboardEmbedParams(url, `${localBaseUrl}/api`, true);
+    }
     if (isWebsiteDashboardPanelOpen() && navigateWebsiteDashboardPanel(url)) {
       return;
     }
@@ -201,9 +207,42 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
     return undefined;
   }
 
-  /** Open a dashboard route in the active dashboard host (local webview panel or remote Simple Browser). */
+  /** Open a dashboard route in the native Welcome Dashboard main window (not the hosted website). */
   public static openDashboardRouteInBrowser(route: string): void {
+    const extUri = ModernSidebarProvider._extensionUri;
+    if (extUri) {
+      ModernSidebarProvider.openWelcomeDashboardRoute(extUri, route);
+      return;
+    }
     ModernSidebarProvider._openDashboardRouteInBrowserAsync(route).catch(() => {});
+  }
+
+  /** Open a dashboard route in the embedded main-window panel (local dashboard-web / simplebeacon.ai iframe). */
+  public static openEmbeddedDashboardRoute(route: string): void {
+    ModernSidebarProvider._openDashboardRouteInBrowserAsync(route).catch(() => {});
+  }
+
+  private static teamNavRoute(command: string): string | undefined {
+    const routes: Record<string, string> = {
+      navDashboard: '/dashboard',
+      navAnalyze: '/dashboard/analyze',
+      navResults: '/dashboard/results',
+      navRepoHealth: '/dashboard/repository-health',
+      navAudit: '/dashboard/audit',
+      navSecurity: '/dashboard/security',
+      navQuality: '/dashboard/quality',
+      navTrust: '/dashboard/trust',
+      navAssessments: '/dashboard/assessments',
+      navRoadmap: '/dashboard/remediation',
+      navPlatform: '/dashboard/platform',
+      navProfile: '/dashboard/profile',
+      navTools: '/dashboard/tools',
+      navSettings: '/dashboard/settings',
+      navHelp: '/dashboard/help',
+      navChatbot: '/dashboard/chatbot',
+      navAbout: '/dashboard/about',
+    };
+    return routes[command];
   }
 
   /** Async helper that opens a dashboard route in the configured host. */
@@ -219,14 +258,18 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
     const apiBaseQuery = !isRemote ? `sb_api_base=${encodeURIComponent(localBaseUrl + '/api')}&force=1` : '';
     const notifyBaseQuery = isRemote ? `sb_notify_base=${encodeURIComponent(localBaseUrl + '/api')}` : '';
     let normalizedRoute = route.startsWith('/') ? route : '/' + route;
-    normalizedRoute = normalizedRoute.replace(/^\/dashboard\/?$/, '/dashboard/dashboard');
-    if (!normalizedRoute.startsWith('/dashboard/')) {
+    normalizedRoute = normalizedRoute.replace(/^\/dashboard\/dashboard\/?$/, '/dashboard');
+    if (!normalizedRoute.startsWith('/dashboard/') && normalizedRoute !== '/dashboard') {
       normalizedRoute = '/dashboard' + normalizedRoute;
     }
     const remoteQuery = [apiBaseQuery, notifyBaseQuery].filter(Boolean).join('&');
-    const navigateUrl = isRemote
+    let navigateUrl = isRemote
       ? `${baseUrl.replace(/\/$/, '')}${normalizedRoute}${remoteQuery ? '?' + remoteQuery : ''}`
       : buildDashboardUrl(baseUrl, normalizedRoute, apiBaseQuery);
+
+    if (isRemote) {
+      navigateUrl = appendDashboardEmbedParams(navigateUrl, `${localBaseUrl}/api`, true);
+    }
 
     if (isWebsiteDashboardPanelOpen() && navigateWebsiteDashboardPanel(navigateUrl)) {
       return;
@@ -380,24 +423,31 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
   }
 
   /** Open sign-in in the IDE dashboard webview panel (same surface as Quick Links / Team Dashboard). */
-  private static _openSigninInPreview(): void {
-    const localBase = `http://127.0.0.1:${getDataServerPort()}`;
-    const notifyBase = `${localBase}/api`;
+  private static _openSigninInPreview(route: '/signin' | '/register' = '/signin'): void {
     const websiteMode = ModernSidebarProvider.getDashboardMode() === 'website';
+    const localBase = `http://127.0.0.1:${getDataServerPort()}`;
+    const dashboardBase = websiteMode ? 'https://simplebeacon.ai' : localBase;
+    const notifyBase = `${localBase}/api`;
     const callbackUri = `${vscode.env.uriScheme}://simplebeacon.simplebeacon-vscode/relay/auth`;
     const extraParts = [
       `redirect_uri=${encodeURIComponent(callbackUri)}`,
       `sb_notify_base=${encodeURIComponent(notifyBase)}`,
+      `sb_api_base=${encodeURIComponent(notifyBase)}`,
       'force=1',
       `_${Date.now()}`
     ];
-    // Sign-in always loads from the local data-server in the IDE (live site adds a 2nd URL bar).
-    let signinUrl = buildDashboardUrl(localBase, '/signin', extraParts.join('&'));
-    signinUrl = appendDashboardEmbedParams(signinUrl, notifyBase, websiteMode);
-    if (isWebsiteDashboardPanelOpen() && navigateWebsiteDashboardPanel(signinUrl)) {
+    let authUrl = buildDashboardUrl(dashboardBase, route, extraParts.join('&'));
+    authUrl = appendDashboardEmbedParams(authUrl, notifyBase, websiteMode);
+    const panelTitle = route === '/register' ? 'Create Account' : 'Sign In';
+    if (isWebsiteDashboardPanelOpen() && navigateWebsiteDashboardPanel(authUrl)) {
       return;
     }
-    openWebsiteDashboardPanel(signinUrl, 'Sign In');
+    openWebsiteDashboardPanel(authUrl, panelTitle);
+  }
+
+  /** Open account registration in the IDE dashboard webview panel. */
+  public static openRegisterPanel() {
+    ModernSidebarProvider._openSigninInPreview('/register');
   }
 
   /** Async helper that opens the sign-in page in the IDE preview panel. */
@@ -774,12 +824,17 @@ $('cancelBtn').addEventListener('click', () => {
     } catch (e) { ModernSidebarProvider.logRelay('Relay command error: ' + (e instanceof Error ? e.message : String(e))); }
   }
 
+  public static openWelcomeDashboardRoute(extUri: vscode.Uri, route: string) {
+    WelcomeDashboard.createOrShow(extUri, true);
+    WelcomeDashboard.showPaneIfOpen(route || '/dashboard');
+  }
+
   public static showDashboardRoute(extUri: vscode.Uri, route: string) {
-    ModernSidebarProvider.openTeamDashboardPanel(extUri, route);
+    ModernSidebarProvider.openWelcomeDashboardRoute(extUri, route);
   }
 
   public static async openTeamDashboardPanel(_extUri: vscode.Uri, route = '/dashboard', _panelTitle = 'Team Dashboard') {
-    ModernSidebarProvider.openDashboardRouteInBrowser(route);
+    ModernSidebarProvider.openEmbeddedDashboardRoute(route);
   }
 
   private resolveWorkspacePath(targetPath: string): string {
@@ -791,6 +846,57 @@ $('cancelBtn').addEventListener('click', () => {
       return path.join(workspace, targetPath);
     }
     return targetPath;
+  }
+
+  private resolveDownloadedFilePath(targetPath: string, fileName?: string): string | null {
+    if (targetPath && !targetPath.startsWith('browser://')) {
+      const resolved = this.resolveWorkspacePath(targetPath);
+      if (fs.existsSync(resolved)) {
+        return resolved;
+      }
+    }
+    const name = fileName || (targetPath ? path.basename(String(targetPath).replace(/^browser:\/\/[^?]+/, '')) : '');
+    if (!name || !this._extensionUri) {
+      return null;
+    }
+    const downloadsDir = path.join(this._extensionUri.fsPath, 'downloads');
+    if (!fs.existsSync(downloadsDir)) {
+      return null;
+    }
+    const safeSuffix = name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const matches = fs.readdirSync(downloadsDir).filter((f) =>
+      f === name || f.endsWith(`-${name}`) || f.endsWith(`-${safeSuffix}`) || f.includes(safeSuffix)
+    );
+    if (matches.length === 0) {
+      return null;
+    }
+    matches.sort((a, b) => {
+      const ma = fs.statSync(path.join(downloadsDir, a)).mtimeMs;
+      const mb = fs.statSync(path.join(downloadsDir, b)).mtimeMs;
+      return mb - ma;
+    });
+    return path.join(downloadsDir, matches[0]);
+  }
+
+  private openDownloadedFile(targetPath: string, fileName?: string, line = 1): void {
+    const resolved = this.resolveDownloadedFilePath(targetPath, fileName);
+    if (!resolved) {
+      vscode.window.showWarningMessage(
+        fileName
+          ? `Download not found: ${fileName}. It may still be in your OS Downloads folder.`
+          : `File not found: ${targetPath || '(empty path)'}`
+      );
+      return;
+    }
+    Promise.resolve(vscode.workspace.openTextDocument(resolved)).then((doc) => {
+      vscode.window.showTextDocument(doc, {
+        preview: true,
+        selection: new vscode.Range(line - 1, 0, line - 1, 0)
+      });
+    }).catch((err: unknown) => {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      vscode.window.showErrorMessage('Unable to open file: ' + errMsg);
+    });
   }
 
   /**
@@ -875,7 +981,13 @@ $('cancelBtn').addEventListener('click', () => {
 
     // Restore any previously tracked downloads into the new webview
     this._downloads.forEach((dl) => {
-      webviewView.webview.postMessage({ command: 'addDownloadedFile', name: dl.name, path: ModernSidebarProvider._displayDownloadPath(dl.path), time: dl.time });
+      webviewView.webview.postMessage({
+        command: 'addDownloadedFile',
+        name: dl.name,
+        path: ModernSidebarProvider._displayDownloadPath(dl.path),
+        fullPath: dl.path,
+        time: dl.time
+      });
     });
 
     // Phase 3: Rehydrate cached license token from secure storage into the webview on boot
@@ -884,6 +996,11 @@ $('cancelBtn').addEventListener('click', () => {
     setTimeout(() => {
       ModernSidebarProvider.refreshAuthState();
     }, 300);
+
+    // Restore cached code map stats after webview reload (audit data must not overwrite these)
+    setTimeout(() => {
+      ModernSidebarProvider.pushCodeMapToSidebar(webviewView.webview);
+    }, 400);
 
     // Auto-open main window panel on activation (welcome vs dashboard tab depends on showWelcomeOnLoad)
     setTimeout(() => {
@@ -1040,7 +1157,7 @@ $('cancelBtn').addEventListener('click', () => {
             break;
           case 'settings':
           case 'openSettings':
-            ModernSidebarProvider.openDashboardRouteInBrowser('/settings');
+            WelcomeDashboard.createOrShow(this._extensionUri, true)?.showSettingsPane();
             ModernSidebarProvider.relayCommand('openSettings');
             break;
           case 'setServerUrl':
@@ -1057,7 +1174,8 @@ $('cancelBtn').addEventListener('click', () => {
             if (!mode) { break; }
             ModernSidebarProvider._dashboardMode = mode;
             _postSidebarMessage({ command: 'dashboardModeChanged', mode });
-            ModernSidebarProvider.openDashboardRouteInBrowser('/dashboard/dashboard');
+            postWebsiteDashboardMessage({ command: 'dashboardModeChanged', mode });
+            ModernSidebarProvider.openEmbeddedDashboardRoute('/dashboard');
             break;
           }
           case 'getDashboardMode': {
@@ -1105,7 +1223,7 @@ $('cancelBtn').addEventListener('click', () => {
             ModernSidebarProvider.relayCommand('dashboard');
             break;
           case 'openReport':
-            ModernSidebarProvider.openDashboardRouteInBrowser('/results');
+            WelcomeDashboard.createOrShow(this._extensionUri, true)?.showReportPane();
             ModernSidebarProvider.relayCommand('report');
             break;
           case 'analytics':
@@ -1114,8 +1232,7 @@ $('cancelBtn').addEventListener('click', () => {
             break;
           case 'team':
           case 'openTeamDashboard': {
-            const teamRoute = (message.route && typeof message.route === 'string') ? message.route : '/dashboard';
-            ModernSidebarProvider.openDashboardRouteInBrowser(teamRoute);
+            WelcomeDashboard.createOrShow(this._extensionUri, true)?.showTeamPane();
             ModernSidebarProvider.relayCommand('showTeamDashboard');
             this._view?.webview.postMessage({ command: 'switchSidebarTab', tab: 'team' });
             break;
@@ -1132,12 +1249,12 @@ $('cancelBtn').addEventListener('click', () => {
           }
           case 'upload':
           case 'openUpload':
-            ModernSidebarProvider.showDashboardRoute(this._extensionUri, '/upload');
+            WelcomeDashboard.createOrShow(this._extensionUri, true)?.showUploadPane();
             ModernSidebarProvider.relayCommand('upload');
             break;
           case 'roadmap':
           case 'openRoadmap':
-            ModernSidebarProvider.openDashboardRouteInBrowser('/remediation');
+            WelcomeDashboard.createOrShow(this._extensionUri, true)?.showRoadmapPane();
             ModernSidebarProvider.relayCommand('showRemediationGuide');
             break;
           case 'generateRoadmap':
@@ -1189,41 +1306,56 @@ $('cancelBtn').addEventListener('click', () => {
             vscode.commands.executeCommand('simplebeacon.sendSidebarToAi', message.report);
             break;
           case 'openFile': {
-            const targetPath = message.file || message.path;
-            if (!targetPath) { break; }
+            const targetPath = (message.file || message.path || '') as string;
+            const fileName = typeof message.name === 'string' ? message.name : undefined;
+            if (!targetPath && !fileName) { break; }
             if (/^(https?:\/\/|blob:)/.test(targetPath)) {
               vscode.env.openExternal(vscode.Uri.parse(targetPath));
             } else {
-              const resolvedPath = this.resolveWorkspacePath(targetPath);
-              if (fs.existsSync(resolvedPath)) {
-                const line = typeof message.line === 'number' && message.line > 0 ? message.line : 1;
-                Promise.resolve(vscode.workspace.openTextDocument(resolvedPath)).then(doc => {
-                  vscode.window.showTextDocument(doc, {
-                    preview: true,
-                    selection: new vscode.Range(line - 1, 0, line - 1, 0)
-                  });
-                }).catch((err: unknown) => {
-                  const errMsg = err instanceof Error ? err.message : String(err);
-                  vscode.window.showErrorMessage('Unable to open file: ' + errMsg);
-                });
-              } else {
-                vscode.window.showWarningMessage('File not found: ' + targetPath);
-              }
+              const line = typeof message.line === 'number' && message.line > 0 ? message.line : 1;
+              this.openDownloadedFile(targetPath, fileName, line);
             }
             break;
           }
-          case 'copyPath':
-            if (message.path) {
-              vscode.env.clipboard.writeText(message.path);
+          case 'copyPath': {
+            let copyVal = typeof message.path === 'string' ? message.path : '';
+            const copyName = typeof message.name === 'string' ? message.name : undefined;
+            if (!copyVal || copyVal.startsWith('browser://')) {
+              const resolved = this.resolveDownloadedFilePath(copyVal, copyName);
+              copyVal = resolved || copyName || copyVal;
+            }
+            if (copyVal) {
+              vscode.env.clipboard.writeText(copyVal);
               showQuietMessage('Path copied to clipboard');
             }
             break;
+          }
+          case 'openFolder': {
+            const folderTarget = message.file || message.path;
+            if (!folderTarget) { break; }
+            const resolvedFolder = this.resolveWorkspacePath(folderTarget);
+            const dirPath = fs.existsSync(resolvedFolder) && fs.statSync(resolvedFolder).isFile()
+              ? path.dirname(resolvedFolder)
+              : resolvedFolder;
+            if (fs.existsSync(dirPath)) {
+              vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(dirPath));
+            } else {
+              vscode.window.showWarningMessage('Folder not found: ' + folderTarget);
+            }
+            break;
+          }
+          case 'showInfo':
+            if (message.message) {
+              vscode.window.showInformationMessage(message.message);
+            }
+            break;
           case 'loadReportFile': {
-            const reportPath = message.path;
-            if (!reportPath) { break; }
-            const resolvedPath = this.resolveWorkspacePath(reportPath);
-            if (!fs.existsSync(resolvedPath)) {
-              vscode.window.showWarningMessage('Report file not found: ' + reportPath);
+            const reportPath = (message.path || '') as string;
+            const reportName = typeof message.name === 'string' ? message.name : undefined;
+            if (!reportPath && !reportName) { break; }
+            const resolvedPath = this.resolveDownloadedFilePath(reportPath, reportName);
+            if (!resolvedPath) {
+              vscode.window.showWarningMessage('Report file not found: ' + (reportName || reportPath));
               break;
             }
             try {
@@ -1415,10 +1547,10 @@ $('cancelBtn').addEventListener('click', () => {
             break;
           }
           case 'openHelp':
-            ModernSidebarProvider.openDashboardRouteInBrowser('/help');
+            WelcomeDashboard.createOrShow(this._extensionUri, true)?.showDashboardPane();
             break;
           case 'openChatbot':
-            ModernSidebarProvider.openDashboardRouteInBrowser('/chatbot');
+            WelcomeDashboard.createOrShow(this._extensionUri, true)?.showDashboardPane();
             break;
           case 'openGitHub':
             vscode.commands.executeCommand('simpleBrowser.show', 'https://github.com/simplebeacon/simplebeacon-vscode');
@@ -1561,13 +1693,7 @@ $('cancelBtn').addEventListener('click', () => {
             break;
           }
           case 'navDashboard':
-            WelcomeDashboard.createOrShow(this._extensionUri, true)?.showDashboardPane();
-            ModernSidebarProvider.relayCommand('navDashboard');
-            break;
           case 'navAnalyze':
-            ModernSidebarProvider.showDashboardRoute(this._extensionUri, '/analyze');
-            ModernSidebarProvider.relayCommand('navAnalyze');
-            break;
           case 'navResults':
           case 'navRepoHealth':
           case 'navAudit':
@@ -1577,29 +1703,23 @@ $('cancelBtn').addEventListener('click', () => {
           case 'navAssessments':
           case 'navRoadmap':
           case 'navPlatform':
-          case 'navProfile': {
-            const navRouteMap: Record<string, string> = {
-              navResults: '/results',
-              navRepoHealth: '/repository-health',
-              navAudit: '/audit',
-              navSecurity: '/security',
-              navQuality: '/quality',
-              navTrust: '/trust',
-              navAssessments: '/assessments',
-              navRoadmap: '/remediation',
-              navPlatform: '/platform',
-              navProfile: '/profile'
-            };
-            const route = navRouteMap[message.command];
+          case 'navProfile':
+          case 'navTools':
+          case 'navSettings':
+          case 'navHelp':
+          case 'navChatbot':
+          case 'navAbout': {
+            const route = ModernSidebarProvider.teamNavRoute(message.command);
             if (route) {
-              ModernSidebarProvider.showDashboardRoute(this._extensionUri, route);
-              ModernSidebarProvider.relayCommand(message.command);
+              ModernSidebarProvider.openEmbeddedDashboardRoute(route);
             }
+            ModernSidebarProvider.relayCommand(message.command);
             break;
           }
           case 'openAnalyze':
           case 'openCertificate':
           case 'openAiContext':
+          case 'openContext':
           case 'openAudit':
           case 'openAuditReport':
           case 'openSecurity':
@@ -1620,6 +1740,7 @@ $('cancelBtn').addEventListener('click', () => {
               openAnalyze: 'showAnalyzePane',
               openCertificate: 'showCertificatePane',
               openAiContext: 'showAiContextPane',
+              openContext: 'showAiContextPane',
               openAudit: 'showAuditPane',
               openAuditReport: 'showReportPane',
               openSecurity: 'showSecurityPane',
@@ -1639,8 +1760,9 @@ $('cancelBtn').addEventListener('click', () => {
             };
             const routeMap: Record<string, string> = {
               openAnalyze: '/analyze',
-              openCertificate: '/dashboard',
-              openAiContext: '/dashboard',
+              openCertificate: '/certificate',
+              openAiContext: '/aicontext',
+              openContext: '/aicontext',
               openAudit: '/audit',
               openAuditReport: '/results',
               openSecurity: '/security',
@@ -1648,20 +1770,26 @@ $('cancelBtn').addEventListener('click', () => {
               openQuality: '/quality',
               openAssessments: '/assessments',
               openPlatform: '/platform',
-              openDiagnose: '/dashboard',
+              openDiagnose: '/scan',
               openProfile: '/profile',
               openAbout: '/about',
-              openAdmin: '/admin',
+              openAdmin: '/settings',
               openRepoHealth: '/repository-health',
-              openAnalytics: '/dashboard',
-              openTeam: '/dashboard',
-              openScan: '/dashboard',
+              openAnalytics: '/analytics',
+              openTeam: '/team',
+              openScan: '/scan',
               openTools: '/tools'
             };
-            {
-              const route = routeMap[message.command] || '/dashboard';
-              ModernSidebarProvider.openDashboardRouteInBrowser(route);
+            const panel = WelcomeDashboard.createOrShow(this._extensionUri, true);
+            if (panel) {
+              const method = paneMap[message.command];
+              if (method && typeof (panel as any)[method] === 'function') {
+                (panel as any)[method]();
+              } else {
+                WelcomeDashboard.showPaneIfOpen(routeMap[message.command] || '/dashboard');
+              }
             }
+            ModernSidebarProvider.relayCommand(message.command);
             break;
           }
           case 'openReportHtml':
@@ -1726,11 +1854,11 @@ $('cancelBtn').addEventListener('click', () => {
                 if (dashPath === '/dashboard' || dashPath.startsWith('/dashboard/')) {
                   let route = dashPath.replace(/^\/dashboard\/?/, '');
                   if (!route || route === '/') {
-                    route = '/dashboard/dashboard';
+                    route = '/dashboard';
                   } else {
                     route = '/dashboard' + (route.startsWith('/') ? route : '/' + route);
                   }
-                  ModernSidebarProvider.openDashboardRouteInBrowser(route);
+                  ModernSidebarProvider.openEmbeddedDashboardRoute(route);
                   break;
                 }
               } catch { /* not a dashboard URL — fall through to preview */ }
@@ -1743,8 +1871,8 @@ $('cancelBtn').addEventListener('click', () => {
                   'https://simplebeacon.ai/roadmap': `${localBase}/roadmap.html`,
                   'https://simplebeacon.ai/audit': `${localBase}/audit.html`,
                   'https://simplebeacon.ai/pricing': `${localBase}/pricing.html`,
-                  'https://simplebeacon.ai/dashboard': `${localBase}/dashboard/dashboard`,
-                  'https://simplebeacon.ai/dashboard/': `${localBase}/dashboard/dashboard`
+                  'https://simplebeacon.ai/dashboard': `${localBase}/dashboard`,
+                  'https://simplebeacon.ai/dashboard/': `${localBase}/dashboard`
                 };
                 const normalized = url.replace(/\/$/, '');
                 url = localMap[url] || localMap[normalized] || localMap[normalized + '/'] || url;
@@ -1768,18 +1896,17 @@ $('cancelBtn').addEventListener('click', () => {
               }
             }
             break;
-          case 'openSecurityAuditPage':
-          case 'openTrustPage': {
-            const cmdMap: Record<string, string> = {
-              openSecurityAuditPage: 'simplebeacon.openSecurityAuditPage',
-              openTrustPage: 'simplebeacon.openTrustPage'
-            };
-            const cmd = cmdMap[message.command];
-            if (cmd) { vscode.commands.executeCommand(cmd); }
+          case 'getCodeMap':
+            ModernSidebarProvider.pushCodeMapToSidebar(this._view?.webview);
             break;
-          }
+          case 'openSecurityAuditPage':
+            WelcomeDashboard.createOrShow(this._extensionUri, true)?.showSecurityPane();
+            break;
+          case 'openTrustPage':
+            WelcomeDashboard.createOrShow(this._extensionUri, true)?.showTrustPane();
+            break;
           case 'openCompliance':
-            ModernSidebarProvider.showDashboardRoute(this._extensionUri, '/compliance');
+            WelcomeDashboard.createOrShow(this._extensionUri, true)?.showCompliancePane();
             break;
           case 'openClear':
           case 'openToggleMonitor':
@@ -1962,6 +2089,8 @@ body::-webkit-scrollbar-thumb:hover { background: rgba(128,128,128,0.6); }
 .tab-pane{display:none;}
 .tab-pane.active{display:block;overflow-y:auto;max-height:calc(100vh - 90px);padding-bottom:12px;}
 .hidden{display:none !important;}
+.sidebar-kpi-view-report { padding: 0 12px 8px; }
+.sidebar-view-report-btn { width: 100%; justify-content: center; font-size: 12px; }
 /* Sidebar tab bar (compact, icon + label) */
 .sidebar-tab-bar{display:flex;align-items:center;gap:0;padding:0 8px;border-bottom:1px solid var(--vscode-panel-border, rgba(255,255,255,0.06));background:var(--vscode-sideBarSectionHeader-background, rgba(255,255,255,0.02));overflow-x:auto;scrollbar-width:thin;scrollbar-color:rgba(128,128,128,0.3) transparent;}
 .sidebar-tab-bar::-webkit-scrollbar{height:5px;}
@@ -2044,8 +2173,6 @@ body::-webkit-scrollbar-thumb:hover { background: rgba(128,128,128,0.6); }
 .tc-list{padding:0 12px 12px;display:flex;flex-direction:column;gap:6px;}
 .tc-list-item{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:6px;background:var(--vscode-input-background, rgba(255,255,255,0.03));border:1px solid var(--vscode-panel-border, rgba(255,255,255,0.06));font-size:12px;cursor:pointer;transition:all .15s;}
 .tc-list-item:hover{background:var(--vscode-list-hoverBackground, rgba(255,255,255,0.06));}
-#tdTeamDashboardSidebar{background:var(--vscode-input-background, rgba(255,255,255,0.03)) !important;border-color:var(--vscode-panel-border, rgba(255,255,255,0.06)) !important;}
-#tdTeamDashboardSidebar:hover{background:var(--vscode-list-hoverBackground, rgba(255,255,255,0.06)) !important;}
 #tdSignInSidebar{background:rgba(99,102,241,0.08) !important;border-color:rgba(99,102,241,0.25) !important;}
 #tdSignInSidebar:hover{background:rgba(99,102,241,0.14) !important;}
 .tc-list-item-left{display:flex;align-items:center;gap:8px;}
@@ -2824,6 +2951,9 @@ ${buildSidebarThemeStyles(ideTheme)}
       <div class="db-sev-name">Low</div>
     </div>
   </div>
+  <div class="sidebar-kpi-view-report">
+    <button type="button" id="dashboardViewReportBtn" class="menu-list-item sidebar-view-report-btn">View Report</button>
+  </div>
   <div class="db-info">
     <div class="db-info-row"><div class="db-info-label">Repository Files</div><div class="db-info-val" id="dbRepoFiles">--</div></div>
     <div class="db-info-row"><div class="db-info-label">Gate Checked</div><div class="db-info-val" id="dbGateChecked">--</div></div>
@@ -3203,9 +3333,8 @@ ${buildSidebarThemeStyles(ideTheme)}
 <div class="tc-list" style="gap:8px;">
   <div class="tc-list-item" id="tdRoadmapSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F5FA;</span><span class="tc-list-name">Roadmap</span></div></div>
   <div class="tc-list-item" id="tdAuditSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F4CB;</span><span class="tc-list-name">Audit</span></div></div>
+  <div class="tc-list-item" id="tdOfflineToggleSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F3E0;</span><span class="tc-list-name">Local host</span></div></div>
   <div class="tc-list-item" id="tdPricingSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F4B0;</span><span class="tc-list-name">Pricing</span></div></div>
-  <div class="tc-list-item" id="tdOfflineToggleSidebar" style="display:none;"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F3E0;</span><span class="tc-list-name">Local host</span></div></div>
-  <div class="tc-list-item" id="tdTeamDashboardSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F4CA;</span><span class="tc-list-name">Team Dashboard</span></div></div>
   <div class="tc-list-item" id="tdSignInSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F512;</span><span class="tc-list-name">Sign In</span></div></div>
   <div class="tc-list-item" id="tdSignOutSidebar" style="display:none;"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg></span><span class="tc-list-name">Sign Out</span></div></div>
 </div>
@@ -3502,6 +3631,9 @@ ${buildSidebarThemeStyles(ideTheme)}
       <div class="settings-kpi-label">Repository Files</div>
     </div>
   </div>
+  <div class="sidebar-kpi-view-report">
+    <button type="button" id="settingsViewReportBtn" class="menu-list-item sidebar-view-report-btn">View Report</button>
+  </div>
   <div class="settings-section-card">
     <div class="settings-section-title">General</div>
     <div class="settings-row">
@@ -3656,6 +3788,9 @@ ${buildSidebarThemeStyles(ideTheme)}
         <div class="settings-kpi-label">Files Scanned</div>
       </div>
     </div>
+    <div class="sidebar-kpi-view-report">
+      <button type="button" id="analyzeViewReportBtn" class="menu-list-item sidebar-view-report-btn">View Report</button>
+    </div>
   </div>
 
   <div class="settings-section-card">
@@ -3779,6 +3914,9 @@ ${buildSidebarThemeStyles(ideTheme)}
       <div class="settings-kpi-label">Last Scan</div>
     </div>
   </div>
+  <div class="sidebar-kpi-view-report">
+    <button type="button" id="codeMapViewReportBtn" class="menu-list-item sidebar-view-report-btn">View Report</button>
+  </div>
   <div class="code-map-detail-section">
     <div class="settings-section-card">
       <div class="settings-section-title">Languages</div>
@@ -3834,6 +3972,9 @@ ${buildSidebarThemeStyles(ideTheme)}
       <div class="settings-kpi-value" id="roadmapTargetDate">--</div>
       <div class="settings-kpi-label">Target Date</div>
     </div>
+  </div>
+  <div class="sidebar-kpi-view-report">
+    <button type="button" id="roadmapViewReportBtn" class="menu-list-item sidebar-view-report-btn">View Report</button>
   </div>
   <div class="severity-bar" id="roadmapSeverityBar">
     <div class="severity-item"><span class="severity-dot critical"></span><span id="roadmapCritical">0 Critical</span></div>
@@ -3957,6 +4098,9 @@ ${buildSidebarThemeStyles(ideTheme)}
       <div class="settings-kpi-value amber" id="uploadScore">--</div>
       <div class="settings-kpi-label">Quality Score</div>
     </div>
+  </div>
+  <div class="sidebar-kpi-view-report">
+    <button type="button" id="uploadViewReportBtn" class="menu-list-item sidebar-view-report-btn">View Report</button>
   </div>
   <div class="settings-section-card">
     <div class="settings-section-title">Actions</div>
@@ -4331,6 +4475,9 @@ ${buildSidebarThemeStyles(ideTheme)}
       <div class="settings-kpi-label">Status</div>
     </div>
   </div>
+  <div class="sidebar-kpi-view-report">
+    <button type="button" id="platformViewReportBtn" class="menu-list-item sidebar-view-report-btn">View Report</button>
+  </div>
   <div class="settings-section-card">
     <div class="settings-section-title">Actions</div>
     <div class="menu-list" style="display:flex;flex-direction:column;gap:6px;">
@@ -4401,6 +4548,9 @@ ${buildSidebarThemeStyles(ideTheme)}
       <div class="db-sev-count low" id="profileLowCount">0</div>
       <div class="db-sev-name">Low</div>
     </div>
+  </div>
+  <div class="sidebar-kpi-view-report">
+    <button type="button" id="profileViewReportBtn" class="menu-list-item sidebar-view-report-btn">View Report</button>
   </div>
   <div class="profile-summary-grid">
     <div class="profile-summary-row"><span class="profile-summary-key">Quality Score</span><span class="profile-summary-val" id="profileQualityScore">100</span></div>
@@ -4937,8 +5087,104 @@ ${sidebarMainJsContent}
     }
   }
 
+  private static resolveCodeMapPaidTier(): boolean {
+    const tier = (ModernSidebarProvider.getCachedTier() || '').toLowerCase();
+    const freeTiers = ['guest', 'community', 'developer', 'sandbox', 'instant', 'free', 'solo', ''];
+    return ModernSidebarProvider.getCachedIsAdmin() || !freeTiers.includes(tier);
+  }
+
+  private static mapWelcomeCodeMapToSidebar(data: Record<string, unknown>): Record<string, unknown> {
+    const files = parseInt(String(data.files ?? data.repoFiles ?? '0'), 10) || 0;
+    const modules = parseInt(String(data.modules ?? '0'), 10) || 0;
+    const lines = parseInt(String(data.totalLines ?? '0'), 10) || 0;
+    const langsRaw = data.languages;
+    let languages: Array<{ name: string; count: number }> = [];
+    if (Array.isArray(langsRaw)) {
+      languages = langsRaw.map((entry: any) => ({
+        name: String(entry?.name || entry?.extension || entry?.ext || ''),
+        count: Number(entry?.count || 0),
+      })).filter((entry) => entry.name);
+    } else if (typeof langsRaw === 'string' && langsRaw.trim()) {
+      languages = langsRaw.split(',').map((name) => ({ name: name.trim(), count: 0 })).filter((entry) => entry.name);
+    }
+    return {
+      totalFiles: files,
+      filesScanned: files,
+      totalModules: modules,
+      modules,
+      totalLines: lines,
+      lines,
+      lastScan: data.lastScan || '--',
+      codeMapGenerated: true,
+      generated: true,
+      languages,
+      isPaidTier: ModernSidebarProvider.resolveCodeMapPaidTier(),
+    };
+  }
+
+  private static loadCodeMapPayloadFromDisk(): Record<string, unknown> | null {
+    const folders = vscode.workspace.workspaceFolders;
+    if (!folders?.length) { return null; }
+    const mapPath = path.join(folders[0].uri.fsPath, '.simplebeacon', 'codemap.json');
+    if (!fs.existsSync(mapPath)) { return null; }
+    try {
+      const raw = JSON.parse(fs.readFileSync(mapPath, 'utf8')) as {
+        totalFiles?: number;
+        totalLines?: number;
+        generatedAt?: string;
+        languages?: Array<{ extension?: string; name?: string; count?: number }>;
+        dependencyGraph?: { nodes?: unknown[] };
+      };
+      const languages = Array.isArray(raw.languages)
+        ? raw.languages.map((entry) => ({
+          name: String(entry.extension || entry.name || ''),
+          count: Number(entry.count || 0),
+        })).filter((entry) => entry.name)
+        : [];
+      const moduleCount = Array.isArray(raw.dependencyGraph?.nodes) ? raw.dependencyGraph!.nodes!.length : 0;
+      const generatedAt = raw.generatedAt ? new Date(raw.generatedAt).toLocaleString() : new Date().toLocaleString();
+      return {
+        totalFiles: raw.totalFiles || 0,
+        filesScanned: raw.totalFiles || 0,
+        totalModules: moduleCount,
+        modules: moduleCount,
+        totalLines: raw.totalLines || 0,
+        lines: raw.totalLines || 0,
+        lastScan: generatedAt,
+        codeMapGenerated: true,
+        generated: true,
+        languages,
+        isPaidTier: ModernSidebarProvider.resolveCodeMapPaidTier(),
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  private static resolveCodeMapPayload(): Record<string, unknown> | null {
+    if (ModernSidebarProvider._lastCodeMapData) {
+      return ModernSidebarProvider._lastCodeMapData;
+    }
+    const welcomeData = WelcomeDashboard.getLastCodeMapData?.();
+    if (welcomeData) {
+      return ModernSidebarProvider.mapWelcomeCodeMapToSidebar(welcomeData as Record<string, unknown>);
+    }
+    return ModernSidebarProvider.loadCodeMapPayloadFromDisk();
+  }
+
+  public static pushCodeMapToSidebar(webview?: vscode.Webview) {
+    const payload = ModernSidebarProvider.resolveCodeMapPayload();
+    if (!payload) { return; }
+    ModernSidebarProvider._lastCodeMapData = payload;
+    webview?.postMessage({ command: 'updateCodeMap', ...payload });
+  }
+
   public updateCodeMap(data: Record<string, unknown>) {
-    this._view?.webview.postMessage({ command: 'updateCodeMap', ...data });
+    ModernSidebarProvider._lastCodeMapData = {
+      ...data,
+      isPaidTier: data.isPaidTier ?? ModernSidebarProvider.resolveCodeMapPaidTier(),
+    };
+    this._view?.webview.postMessage({ command: 'updateCodeMap', ...ModernSidebarProvider._lastCodeMapData });
   }
 
   public updateServerUrl(url: string) {
@@ -4950,7 +5196,13 @@ ${sidebarMainJsContent}
     // Avoid duplicate entries for the same path
     this._downloads = this._downloads.filter((d) => d.path !== path);
     this._downloads.unshift(dl);
-    this._view?.webview.postMessage({ command: 'addDownloadedFile', name: dl.name, path: ModernSidebarProvider._displayDownloadPath(dl.path), time: dl.time });
+    this._view?.webview.postMessage({
+      command: 'addDownloadedFile',
+      name: dl.name,
+      path: ModernSidebarProvider._displayDownloadPath(dl.path),
+      fullPath: dl.path,
+      time: dl.time
+    });
   }
 
   public static addDownloadedFile(name: string, path: string): void {
@@ -5084,57 +5336,43 @@ ${sidebarMainJsContent}
           break;
         case 'navDashboard':
         case 'dashboard':
-          vscode.commands.executeCommand('simplebeacon.openInternalDashboard');
-          break;
         case 'navAnalyze':
         case 'analyze':
-          vscode.commands.executeCommand('simplebeacon.enhancedAnalysis');
-          break;
         case 'navResults':
-          vscode.commands.executeCommand('simplebeacon.showReport');
-          break;
         case 'navRepoHealth':
-          vscode.commands.executeCommand('simplebeacon.openInternalDashboard');
-          break;
         case 'navAudit':
         case 'audit':
-          ModernSidebarProvider.showDashboardRoute(this._extensionUri, '/audit');
-          break;
         case 'navSecurity':
         case 'security':
-          vscode.commands.executeCommand('simplebeacon.showReport');
-          break;
         case 'navQuality':
         case 'quality':
-          vscode.commands.executeCommand('simplebeacon.showReport');
-          break;
         case 'navTrust':
         case 'trust':
-          vscode.commands.executeCommand('simplebeacon.showReport');
-          break;
         case 'navAssessments':
         case 'assessments':
-          vscode.commands.executeCommand('simplebeacon.runAdvancedAnalytics');
-          break;
         case 'navRoadmap':
         case 'roadmap':
-          ModernSidebarProvider.showDashboardRoute(this._extensionUri, '/remediation');
-          break;
         case 'navPlatform':
         case 'platform':
-          vscode.commands.executeCommand('simplebeacon.runAdvancedAnalytics');
-          break;
         case 'navProfile':
         case 'profile':
-          vscode.commands.executeCommand('simplebeacon.openSettings');
+        case 'navTools':
+        case 'navSettings':
+        case 'navHelp':
+        case 'navChatbot':
+        case 'navAbout': {
+          const route = ModernSidebarProvider.teamNavRoute(message.command.startsWith('nav') ? message.command : 'nav' + message.command.charAt(0).toUpperCase() + message.command.slice(1));
+          if (route) {
+            ModernSidebarProvider.openEmbeddedDashboardRoute(route);
+          } else if (message.command === 'dashboard') {
+            ModernSidebarProvider.openEmbeddedDashboardRoute('/dashboard');
+          }
           break;
+        }
         case 'navCodeMap':
         case 'codeMap':
         case 'codemap':
           vscode.commands.executeCommand('simplebeacon.showCodeMap');
-          break;
-        case 'navSettings':
-          vscode.commands.executeCommand('simplebeacon.openSettings');
           break;
         case 'navCertificate':
         case 'certificate':
@@ -5176,22 +5414,14 @@ ${sidebarMainJsContent}
           }
           break;
         case 'openFile': {
-          const targetPath = message.file || message.path;
-          if (!targetPath) { break; }
+          const targetPath = (message.file || message.path || '') as string;
+          const fileName = typeof message.name === 'string' ? message.name : undefined;
+          if (!targetPath && !fileName) { break; }
           if (/^(https?:\/\/|blob:)/.test(targetPath)) {
             vscode.env.openExternal(vscode.Uri.parse(targetPath));
           } else {
-            const resolvedPath = this.resolveWorkspacePath(targetPath);
-            if (fs.existsSync(resolvedPath)) {
-              const line = typeof message.line === 'number' && message.line > 0 ? message.line : 1;
-              vscode.workspace.openTextDocument(resolvedPath).then(doc => {
-                vscode.window.showTextDocument(doc, {
-                  selection: new vscode.Range(line - 1, 0, line - 1, 0)
-                });
-              });
-            } else {
-              vscode.window.showWarningMessage('File not found: ' + targetPath);
-            }
+            const line = typeof message.line === 'number' && message.line > 0 ? message.line : 1;
+            this.openDownloadedFile(targetPath, fileName, line);
           }
           break;
         }
@@ -5369,10 +5599,12 @@ if (!window.vscode || typeof window.vscode.postMessage !== 'function') {
       return;
     }
     const extUri = this._extensionUri;
-    // Always use the local IDE dashboard so auth relay and dropzone fixes apply.
     const localDashboardBase = `http://127.0.0.1:${getDataServerPort()}`;
-    const dashboardBaseUrl = localDashboardBase;
-    const initialDashboardSrc = `${dashboardBaseUrl}/dashboard/dashboard`;
+    const websiteMode = ModernSidebarProvider.getDashboardMode() === 'website';
+    const dashboardBaseUrl = websiteMode ? 'https://simplebeacon.ai' : localDashboardBase;
+    const initialDashboardSrc = websiteMode
+      ? `${dashboardBaseUrl}/dashboard`
+      : `${localDashboardBase}/dashboard`;
 
     // Generate the same browser-ready sidebar HTML used by the IDE preview
     let browserHtml = '';
@@ -5560,7 +5792,8 @@ body.tabs-open #browserTabBar{display:flex !important;}
   });
   const DASHBOARD_URL = ${JSON.stringify(dashboardBaseUrl)};
   const MARKETING_URL = 'https://simplebeacon.ai';
-  const IS_REMOTE_DASHBOARD = false;
+  const IS_REMOTE_DASHBOARD = ${websiteMode ? 'true' : 'false'};
+  const WEBSITE_MODE = ${websiteMode ? 'true' : 'false'};
   const SITE_PATHS = ['/roadmap', '/audit', '/pricing', '/contact', '/team', '/security', '/terms', '/privacy', '/refund', '/faq'];
   function isSitePath(path) {
     if (!path || path.charAt(0) !== '/') return false;
@@ -5600,6 +5833,7 @@ body.tabs-open #browserTabBar{display:flex !important;}
   }
   function preferLocalDashboardUrl(url) {
     if (!url) return url;
+    if (WEBSITE_MODE) return url;
     try {
       const parsed = new URL(url);
       const host = parsed.hostname.toLowerCase();
@@ -5800,7 +6034,7 @@ body.tabs-open #browserTabBar{display:flex !important;}
       const tdPricing = document.getElementById('tdPricingSidebar');
       const tdWebsiteToggle = document.getElementById('tdOfflineToggleSidebar');
       if (tdPricing) tdPricing.style.display = signedIn ? 'none' : 'flex';
-      if (tdWebsiteToggle) tdWebsiteToggle.style.display = signedIn ? 'flex' : 'none';
+      if (tdWebsiteToggle) tdWebsiteToggle.style.display = 'flex';
       if (sidebarSignIn) sidebarSignIn.style.display = signedIn ? 'none' : '';
       if (sidebarSignOut) sidebarSignOut.style.display = signedIn ? '' : 'none';
       const headerSignIn = document.getElementById('headerSignInBtn');

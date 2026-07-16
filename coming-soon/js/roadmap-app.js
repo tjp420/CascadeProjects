@@ -115,20 +115,50 @@
       });
     }
 
-    // Auto-load from extension data server when served in VS Code context
-    (async function autoLoadFromExtension(){
-      const env=window.__SIMPLEBEACON_ENV__;
-      if(!env||!env.API_BASE_URL)return;
+    // Persist VS Code embed params for cross-page handoff (audit -> roadmap)
+    (function persistRoadmapEmbedParams(){
       try{
-        const res=await fetch(env.API_BASE_URL+'/simplebeacon/report');
+        const params=new URLSearchParams(location.search);
+        ['sb_notify_base','sb_api_base','sb_website_mode','sb_parent_urlbar'].forEach(function(key){
+          const value=params.get(key);
+          if(value)sessionStorage.setItem(key,value);
+        });
+      }catch(_){}
+    })();
+
+    // Auto-load from audit handoff, extension data server, or VS Code notify bridge
+    (async function autoLoadFromExtension(){
+      try{
+        const handoffRaw=sessionStorage.getItem('sb_audit_report');
+        if(handoffRaw){
+          sessionStorage.removeItem('sb_audit_report');
+          const handoffReport=JSON.parse(handoffRaw);
+          if(handoffReport&&typeof handoffReport==='object'){
+            loadReport(handoffReport);
+            showToast('Loaded scan report from audit page','success');
+            return;
+          }
+        }
+      }catch(_){/* ignore bad handoff payload */}
+
+      const env=window.__SIMPLEBEACON_ENV__;
+      const notifyBase=(function(){
+        try{
+          const params=new URLSearchParams(location.search);
+          return params.get('sb_notify_base')||sessionStorage.getItem('sb_notify_base')||'';
+        }catch(_){return '';}
+      })();
+      const apiBase=(env&&env.API_BASE_URL)||(notifyBase?String(notifyBase).replace(/\/+$/,''):'');
+      if(!apiBase)return;
+      try{
+        const res=await fetch(apiBase+'/simplebeacon/report');
         if(!res.ok)return;
         const parsedJson=await res.json();
-        if(parsedJson&&parsedJson.type==='simplebeacon-report'&&parsedJson.rawIssues&&parsedJson.rawIssues.length>0){
-          loadReport(parsedJson);
-          showToast('Loaded scan report from extension','success');
-        }else if(parsedJson&&parsedJson.rawIssues&&parsedJson.rawIssues.length>0){
-          parsedJson.type='simplebeacon-report';
-          loadReport(parsedJson);
+        const report=parsedJson&&parsedJson.report&&parsedJson.success===true?parsedJson.report:parsedJson;
+        const issues=report&&(report.rawIssues||report.findings||report.detectedIssues||report.issues||[]);
+        if(report&&Array.isArray(issues)&&issues.length>0){
+          if(!report.type)report.type='simplebeacon-report';
+          loadReport(report);
           showToast('Loaded scan report from extension','success');
         }
       }catch(_){/* silent fail — user can still load manually */}

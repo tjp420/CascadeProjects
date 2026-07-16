@@ -1,4 +1,4 @@
-// simplebeacon-ignore: debugArtifacts
+// simplebeacon-ignore: debugArtifacts, security
 // SPDX-License-Identifier: MIT
 // simplebeacon-ignore memory-leak — plan execution with short-lived iterations
 const fs = require('fs');

@@ -1,38 +1,40 @@
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
-import { scanService } from './services/scanService.js?v=20260711dedup2';
-import { platformService } from './services/platformService.js?v=20260525jsonguard1';
-import { billingService } from './services/billingService.js?v=20260525jsonfixbilling1';
-import { authService, apiBase } from './services/authService.js?v=20260713sync6';
+import { scanService } from './services/scanService.js?v=20260716cachefix1';
+import { platformService } from './services/platformService.js?v=20260716cachefix1';
+import { billingService } from './services/billingService.js?v=20260716cachefix1';
+import { authService, apiBase } from './services/authService.js?v=20260716cachefix1';
 import { themeService } from './services/themeService.js';
-import { Router, PUBLIC_VIEWS } from './router.js?v=20260713authfix1';
-import { TrustView } from './views/TrustView.js?v=20260711admin1';
-import { RepositoryHealthView } from './views/RepositoryHealthView.js?v=20260711admin1';
-import { DashboardView } from './views/DashboardView.js?v=20260715iframefix3';
-import { ResultsView } from './views/ResultsView.js?v=20260714results1';
-import { SettingsView } from './views/SettingsView.js?v=20260715ollama1';
+import { Router, PUBLIC_VIEWS } from './router.js?v=20260716cachefix1';
+import { TrustView } from './views/TrustView.js?v=20260716cachefix1';
+import { RepositoryHealthView } from './views/RepositoryHealthView.js?v=20260716cachefix1';
+import { DashboardView } from './views/DashboardView.js?v=20260716cachefix1';
+import { ResultsView } from './views/ResultsView.js?v=20260716cachefix1';
+import { SettingsView } from './views/SettingsView.js?v=20260716cachefix1';
 import { ToolsView } from './views/ToolsView.js';
-import { PlatformView } from './views/PlatformView.js?v=20260601platformmetrics1';
-import { QualityView } from './views/QualityView.js?v=20260711admin1';
+import { PlatformView } from './views/PlatformView.js?v=20260716cachefix1';
+import { QualityView } from './views/QualityView.js?v=20260716cachefix1';
 import { HelpView, FeaturesView } from './views/HelpView.js';
-import { AuditView } from './views/AuditView.js?v=20260711admin1';
-import { AnalyzeView } from './views/AnalyzeView.js?v=20260715scanfix2';
-import { SecurityView } from './views/SecurityView.js?v=20260711admin1';
-import { PricingView } from './views/PricingView.js?v=20260714importfix1';
+import { AuditView } from './views/AuditView.js?v=20260716cachefix1';
+import { AnalyzeView } from './views/AnalyzeView.js?v=20260716cachefix1';
+import { SecurityView } from './views/SecurityView.js?v=20260716cachefix1';
+import { PricingView } from './views/PricingView.js?v=20260716cachefix1';
 import { AboutView } from './views/AboutView.js';
-import { AssessmentView } from './views/AssessmentView.js?v=20260711admin1';
-import { SignInView } from './views/SignInView.js?v=20260711signinfix1';
-import { ChatbotView } from './views/ChatbotView.js?v=20260715chatbot3';
+import { AssessmentView } from './views/AssessmentView.js?v=20260716cachefix1';
+import { SignInView } from './views/SignInView.js?v=20260716cachefix1';
+import { ChatbotView } from './views/ChatbotView.js?v=20260716cachefix1';
 import { UploadView } from './views/UploadView.js';
 import { RemediationRoadmapView } from './views/RemediationRoadmapView.js';
-import { ProfileView } from './views/ProfileView.js';
-import { AdminPanelView } from './views/AdminPanelView.js?v=20260715admin3';
+import { ProfileView } from './views/ProfileView.js?v=20260716cachefix1';
+import { AdminPanelView } from './views/AdminPanelView.js?v=20260716cachefix1';
 import { COMING_SOON_URL } from './config.js';
 import { shouldShowOnboarding, renderOnboarding, bindOnboarding } from './components/Onboarding.js';
 import { showUpgradeModal } from './components/UpgradeModal.js';
-import { showLoginModal } from './components/LoginModal.js?v=20260609token4';
-import { isDemoMode, isSignedOffMode, isLocalDevHost, demoReadOnlyMessage } from './demoMode.js';
+import { showLoginModal } from './components/LoginModal.js?v=20260716cachefix1';
+import { isDemoMode, isSignedOffMode, isLocalDevHost, isHostedDashboard, demoReadOnlyMessage } from './demoMode.js';
 import { showToast, resolveDashboardProjectPath } from './utils.js';
-import { fetchAnalyzeProviders, isClientScanReport, shouldClearHostedServerDefaultPath } from './services/analyzeService.js?v=20260715scanfix2';
+import { isEmbeddedDashboardFrame, isIdeDashboardSurface } from './utils-lib/dom.js?v=20260716cachefix1';
+import { hasExtensionBridgeConfigured } from './services/localAgentService.js?v=20260716cachefix1';
+import { fetchAnalyzeProviders, isClientScanReport, shouldClearHostedServerDefaultPath } from './services/analyzeService.js?v=20260716cachefix1';
 /**
  * Vault unlock url.
  * @param {string} returnPath
@@ -45,7 +47,6 @@ function vaultUnlockUrl(returnPath = '/app') {
         // Server should inject window.SIMPLEBEACON_VAULT_PASSWORD from process.env.VAULT_PASSWORD
         const vaultPassword = window.SIMPLEBEACON_VAULT_PASSWORD || '';
         if (!vaultPassword) {
-            console.warn('Vault password not configured. Set VAULT_PASSWORD environment variable on the server.');
             return `/private-dashboard-vault?returnTo=${returnTo}`;
         }
         return `/private-dashboard-vault?password=${encodeURIComponent(vaultPassword)}&returnTo=${returnTo}`;
@@ -55,6 +56,16 @@ function vaultUnlockUrl(returnPath = '/app') {
 const CLOUD_TEAMS_VIEWS = new Set([
     'dashboard', 'audit', 'results', 'analyze', 'security', 'tools', 'platform', 'quality', 'settings', 'assessments'
 ]);
+/**
+ * Views that trigger scans, mutate settings, or perform billing actions.
+ * Read-only views (audit, roadmap, results, trust, security, platform, quality)
+ * are intentionally excluded; they only need isAuthenticated()/isFreeTier().
+ */
+const WRITE_HEAVY_VIEWS = new Set([
+    'dashboard', 'analyze', 'upload', 'settings', 'admin', 'chatbot'
+]);
+/** Protected views that can load in IDE mode via the extension bridge without cloud sign-in. */
+const IDE_BRIDGE_ONLY_VIEWS = new Set(['chatbot']);
 /**
  * Requires auth gate.
  * @returns {any}
@@ -74,7 +85,13 @@ function isLocalSelfHosted() {
  * Handle subscription gate.
  * @returns {any}
  */
+function isAuthEntryView(view) {
+    return view === 'signin' || view === 'register';
+}
 function handleSubscriptionGate() {
+    if (isAuthEntryView(this._currentViewName)) {
+        return;
+    }
     if (isLocalSelfHosted() || requiresAuthGate()) {
         if (!authService.isAuthenticated()) {
             this.navigate('signin');
@@ -85,6 +102,9 @@ function handleSubscriptionGate() {
         return;
     }
     showUpgradeModal({ onDismiss: (action) => {
+            if (isAuthEntryView(this._currentViewName)) {
+                return;
+            }
             if (action === 'signin' || isLocalSelfHosted()) {
                 this.navigate('signin');
             }
@@ -143,6 +163,7 @@ class SimplebeaconDashboard {
             trust: new TrustView(this),
             'repository-health': new RepositoryHealthView(this),
             signin: new SignInView(this),
+            register: new SignInView(this),
             chatbot: new ChatbotView(this),
             upload: new UploadView(this),
             remediation: new RemediationRoadmapView(this),
@@ -157,12 +178,182 @@ class SimplebeaconDashboard {
         this._bgScanPollStart = 0;
         this._lastKnownScanId = null;
         this._currentViewName = 'dashboard';
+        this._embedQuickNavBar = null;
+    }
+    isEmbedWebsiteMode() {
+        if (isIdeDashboardSurface()) {
+            return false;
+        }
+        if (typeof window !== 'undefined' && window.self !== window.top) {
+            return false;
+        }
+        if (typeof document !== 'undefined' && document.documentElement.hasAttribute('data-embed-full-nav')) {
+            return true;
+        }
+        try {
+            const params = new URLSearchParams(window.location.search || '');
+            if (params.get('sb_website_mode') === '1')
+                return true;
+            return sessionStorage.getItem('sb_website_mode') === '1';
+        }
+        catch (_a) {
+            return false;
+        }
+    }
+    parseInitialView() {
+        try {
+            const pathname = window.location.pathname || '/dashboard';
+            const base = pathname.startsWith('/dashboard') ? '/dashboard' : '';
+            let relative = pathname;
+            if (base && relative.startsWith(base + '/')) {
+                relative = relative.slice(base.length + 1);
+            }
+            else if (relative === base) {
+                relative = '';
+            }
+            const view = relative.split('/').filter(Boolean)[0] || 'dashboard';
+            const known = ['dashboard', 'audit', 'assessments', 'analyze', 'results', 'remediation', 'roadmap',
+                'security', 'tools', 'platform', 'quality', 'help', 'features', 'trust', 'repository-health',
+                'settings', 'pricing', 'about', 'signin', 'register', 'chatbot', 'upload', 'eu-ai-act', 'profile', 'admin'];
+            return known.includes(view) ? view : 'dashboard';
+        }
+        catch (_a) {
+            return 'dashboard';
+        }
+    }
+    _createEmbedQuickNavBar() {
+        let bar = document.getElementById('embed-quick-nav');
+        if (bar) {
+            this._embedQuickNavBar = bar;
+            return bar;
+        }
+        bar = document.createElement('nav');
+        bar.id = 'embed-quick-nav';
+        bar.className = 'embed-quick-nav';
+        bar.setAttribute('aria-label', 'Quick navigation');
+        const main = document.getElementById('app-main');
+        if (main && main.parentNode) {
+            main.parentNode.insertBefore(bar, main);
+        }
+        const items = [
+            ['dashboard', 'Home'],
+            ['analyze', 'Analyze'],
+            ['results', 'Results'],
+            ['audit', 'Audit'],
+            ['remediation', 'Roadmap']
+        ];
+        bar.innerHTML = items.map(([view, label]) => `<button type="button" class="embed-quick-nav-btn" data-view="${view}">${label}</button>`).join('');
+        bar.querySelectorAll('[data-view]').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                try {
+                    this.navigate(btn.dataset.view);
+                }
+                catch (err) {
+                    console.error('Embed quick nav error:', err);
+                }
+            });
+        });
+        this._embedQuickNavBar = bar;
+        return bar;
+    }
+    setupEmbedQuickNav() {
+        if (!isEmbeddedDashboardFrame())
+            return;
+        document.documentElement.setAttribute('data-embed-mode', '1');
+        const initialView = this.parseInitialView();
+        this._currentViewName = initialView;
+        this.updateAuthPageShell(initialView);
+        // IDE surface: extension sidebar owns navigation — content pane only.
+        if (isIdeDashboardSurface()) {
+            document.documentElement.setAttribute('data-ide-embed', '1');
+            document.documentElement.removeAttribute('data-embed-full-nav');
+            return;
+        }
+        if (typeof window !== 'undefined' && window.self !== window.top) {
+            document.documentElement.setAttribute('data-ide-embed', '1');
+            document.documentElement.removeAttribute('data-embed-full-nav');
+            return;
+        }
+        if (document.documentElement.hasAttribute('data-embed-full-nav')
+            || this.isEmbedWebsiteMode()) {
+            document.documentElement.setAttribute('data-embed-full-nav', '1');
+            return;
+        }
+        if (initialView === 'signin' || initialView === 'register')
+            return;
+        this._createEmbedQuickNavBar();
+        this.updateEmbedQuickNav(initialView);
+    }
+    updateAuthPageShell(view) {
+        const authPage = view === 'signin' || view === 'register';
+        if (authPage) {
+            document.documentElement.setAttribute('data-auth-page', '1');
+        }
+        else {
+            document.documentElement.removeAttribute('data-auth-page');
+            const main = document.getElementById('app-main');
+            if (main) {
+                main.style.removeProperty('display');
+                main.style.removeProperty('align-items');
+                main.style.removeProperty('justify-content');
+            }
+        }
+    }
+    resetMainScroll(main) {
+        const el = main || document.getElementById('app-main');
+        if (!el)
+            return;
+        el.scrollTop = 0;
+        if (typeof window.scrollTo === 'function') {
+            window.scrollTo(0, 0);
+        }
+        if (typeof document !== 'undefined') {
+            document.documentElement.scrollTop = 0;
+            document.body.scrollTop = 0;
+        }
+    }
+    cleanupOrphanViewRoots(main) {
+        const keep = main || document.getElementById('app-main');
+        document.querySelectorAll('body > .fade-in, .app-shell > .fade-in, .app-body > .fade-in').forEach((el) => {
+            if (keep && (keep === el || keep.contains(el)))
+                return;
+            el.remove();
+        });
+    }
+    updateEmbedQuickNav(view) {
+        if (!isEmbeddedDashboardFrame() || this.isEmbedWebsiteMode())
+            return;
+        const authPage = view === 'signin' || view === 'register';
+        if (authPage) {
+            const bar = this._embedQuickNavBar || document.getElementById('embed-quick-nav');
+            if (bar) {
+                bar.remove();
+                this._embedQuickNavBar = null;
+            }
+            return;
+        }
+        if (!this._embedQuickNavBar)
+            this._createEmbedQuickNavBar();
+        this._embedQuickNavBar.hidden = false;
+        this._embedQuickNavBar.querySelectorAll('[data-view]').forEach((btn) => {
+            btn.classList.toggle('active', btn.dataset.view === view);
+        });
     }
     async init() {
         // Remove any stale full-page drag overlay that may have leaked from a previous session.
         document.querySelectorAll('.sb-global-drag-overlay').forEach(el => el.remove());
+        try {
+            const { clearStaleIntegratedBridgeParams, validateExtensionBridgeOnLoad } = await import('./services/localAgentService.js?v=20260716cachefix1');
+            clearStaleIntegratedBridgeParams();
+            if (isHostedDashboard()) {
+                await validateExtensionBridgeOnLoad();
+            }
+        }
+        catch (_bridgeInit) { /* non-fatal */ }
         themeService.init();
         this.setupShell();
+        this.setupEmbedQuickNav();
+        this.showBridgeNotice();
         this.setupKeyboard();
         this.setupMobileNav();
         this.cleanupDisabledElements();
@@ -175,7 +366,9 @@ class SimplebeaconDashboard {
         window.addEventListener('auth-signed-out', () => {
             this.updateAuthUi();
             this.updateNavVisibility(false);
-            window.location.hash = '#/signin';
+            if (this.router) {
+                this.router.navigate('signin');
+            }
         });
         if (isDemoMode()) {
             document.title = 'SimpleBeacon Demo — Honey-pot Gate';
@@ -191,12 +384,72 @@ class SimplebeaconDashboard {
         }
         const authed = await authService.ensureAuthenticated();
         if (!authed && authService.authRequired) {
+            if (isIdeDashboardSurface()) {
+                await this.waitForIdeAuthSync(3000);
+                if (authService.isAuthenticated()) {
+                    this.bootstrapAfterAuth();
+                    return;
+                }
+            }
             this.router.init();
-            this.router.navigate('signin');
+            const authEntry = this.parseInitialView();
+            if (!isAuthEntryView(authEntry)) {
+                this.router.navigate('signin');
+            }
             this.updateAuthUi();
             return;
         }
         this.bootstrapAfterAuth();
+    }
+    showBridgeNotice() {
+        if (isIdeDashboardSurface())
+            return;
+        if (typeof document !== 'undefined' && document.documentElement.hasAttribute('data-embed-full-nav'))
+            return;
+        if (typeof window !== 'undefined' && window.self !== window.top)
+            return;
+        if (document.documentElement.hasAttribute('data-ide-embed'))
+            return;
+        if (document.getElementById('bridge-notice-banner'))
+            return;
+        if (!this._isExtensionBridgeContext())
+            return;
+        try {
+            if (sessionStorage.getItem('sb_bridge_notice_dismissed') === '1')
+                return;
+        }
+        catch (_a) { /* ignore */ }
+        const bar = document.createElement('div');
+        bar.id = 'bridge-notice-banner';
+        bar.className = 'bridge-notice-banner';
+        const span = document.createElement('span');
+        span.textContent = 'Local extension connection: your browser may ask to let SimpleBeacon access apps on this device. This is only to connect to your VS Code: extension. No source code or credentials are sent.';
+        const close = document.createElement('button');
+        close.className = 'bridge-notice-close';
+        close.setAttribute('aria-label', 'Dismiss');
+        close.textContent = '✕';
+        close.addEventListener('click', () => {
+            bar.remove();
+            try {
+                sessionStorage.setItem('sb_bridge_notice_dismissed', '1');
+            }
+            catch (_b) { /* ignore */ }
+        });
+        bar.appendChild(span);
+        bar.appendChild(close);
+        document.body.prepend(bar);
+    }
+    _isExtensionBridgeContext() {
+        try {
+            const params = new URLSearchParams(window.location.search);
+            const keys = ['sb_notify_base', 'sb_api_base', 'sb_parent_urlbar', 'sb_website_mode'];
+            for (const key of keys) {
+                if (params.get(key) || sessionStorage.getItem(key))
+                    return true;
+            }
+        }
+        catch (_a) { /* ignore */ }
+        return false;
     }
     showDemoBanner() {
         if (document.getElementById('demo-banner'))
@@ -423,7 +676,11 @@ class SimplebeaconDashboard {
             });
         }
     }
-    showLockScreen(view) {
+    showLockScreen(view, options = {}) {
+        if (isIdeDashboardSurface() && !options.force) {
+            this.showIdeAuthPending(view);
+            return;
+        }
         const main = document.getElementById('app-main');
         if (!main)
             return;
@@ -445,7 +702,7 @@ class SimplebeaconDashboard {
         const title = titles[view] || view;
         // simplebeacon-ignore innerhtml-usage — static lock screen template, no user input
         main.innerHTML = `
-      <div class="lock-screen" style="display:flex;align-items:center;justify-content:center;min-height:60vh;padding:var(--space-8);">
+      <div class="lock-screen" style="display:flex;align-items:center;justify-content:center;padding:var(--space-8);">
         <div class="lock-screen-content" style="text-align:center;max-width:420px;">
           <div style="font-size:3rem;margin-bottom:var(--space-4);">🔒</div>
           <h2 style="font-size:1.5rem;margin-bottom:var(--space-2);">${title} is locked</h2>
@@ -465,6 +722,10 @@ class SimplebeaconDashboard {
               <p id="lock-email-error" class="text-danger" hidden role="alert" style="font-size:var(--font-size-sm);margin-bottom:var(--space-2);"></p>
               <button type="submit" class="btn btn-primary btn-block" id="lock-email-submit">Sign in with email</button>
             </form>
+            <p style="margin-top:var(--space-3);text-align:center;font-size:var(--font-size-sm);">
+              New here?
+              <button type="button" class="btn btn-ghost btn-sm" id="lock-goto-register" style="padding:0 4px;">Create an account</button>
+            </p>
           </div>
 
           <div id="lock-panel-token" class="lock-panel" style="display:none;text-align:left;">
@@ -584,6 +845,12 @@ class SimplebeaconDashboard {
         }
         // Email form
         const emailForm = main.querySelector('#lock-email-form');
+        const gotoRegisterBtn = main.querySelector('#lock-goto-register');
+        if (gotoRegisterBtn) {
+            gotoRegisterBtn.addEventListener('click', () => {
+                this.router.navigate('register');
+            });
+        }
         if (emailForm) {
             emailForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
@@ -616,6 +883,98 @@ class SimplebeaconDashboard {
                 }
             });
         }
+    }
+    showIdeAuthPending(view) {
+        const main = document.getElementById('app-main');
+        if (!main)
+            return;
+        main.innerHTML = `
+      <div class="ide-auth-pending" style="display:flex;align-items:center;justify-content:center;padding:var(--space-8);">
+        <div style="text-align:center;max-width:420px;">
+          <p class="text-muted" style="margin-bottom:var(--space-3);">Connecting to VS Code extension…</p>
+          <p style="font-size:0.9rem;color:var(--text-secondary);">Sign in from the SimpleBeacon sidebar, or use the button below.</p>
+          <button type="button" class="btn btn-primary" id="ide-auth-signin-btn" style="margin-top:var(--space-4);">Sign in on simplebeacon.ai</button>
+          <button type="button" class="btn btn-secondary" id="ide-auth-register-btn" style="margin-top:var(--space-2);">Create an account</button>
+        </div>
+      </div>`;
+        const btn = main.querySelector('#ide-auth-signin-btn');
+        if (btn) {
+            btn.addEventListener('click', () => {
+                this.showLockScreen(view, { force: true });
+            });
+        }
+        const regBtn = main.querySelector('#ide-auth-register-btn');
+        if (regBtn) {
+            regBtn.addEventListener('click', () => {
+                this.router.navigate('register');
+            });
+        }
+        void this.waitForIdeAuthSync(5000).then((ok) => {
+            if (ok && this._currentViewName === view) {
+                void this.onRoute(view, this.state.routeParams || {});
+            }
+        });
+    }
+    async waitForIdeAuthSync(timeoutMs = 2500) {
+        if (!isIdeDashboardSurface())
+            return authService.isAuthenticated();
+        if (authService.isAuthenticated())
+            return true;
+        try {
+            if (typeof authService.syncFromExtensionBridge === 'function') {
+                const synced = await authService.syncFromExtensionBridge();
+                if (synced)
+                    return true;
+            }
+        }
+        catch (_sync) { /* non-fatal */ }
+        return new Promise((resolve) => {
+            let settled = false;
+            const finish = (value) => {
+                if (settled)
+                    return;
+                settled = true;
+                cleanup();
+                resolve(!!value);
+            };
+            const timer = setTimeout(() => finish(authService.isAuthenticated()), timeoutMs);
+            const pollTimer = setInterval(() => {
+                if (authService.isAuthenticated())
+                    finish(true);
+            }, 250);
+            const onMsg = (event) => {
+                if (!(event === null || event === void 0 ? void 0 : event.data))
+                    return;
+                if (event.data.command === 'setAuthState' && event.data.signedIn === true && event.data.token) {
+                    finish(true);
+                }
+            };
+            const onSignedIn = () => finish(true);
+            const cleanup = () => {
+                clearTimeout(timer);
+                clearInterval(pollTimer);
+                window.removeEventListener('message', onMsg);
+                window.removeEventListener('auth-signed-in', onSignedIn);
+            };
+            window.addEventListener('message', onMsg);
+            window.addEventListener('auth-signed-in', onSignedIn);
+            const ping = () => {
+                try {
+                    window.parent.postMessage({ command: 'getAuthState' }, '*');
+                }
+                catch (_a) { /* ignore */ }
+            };
+            ping();
+            let pings = 0;
+            const pingTimer = setInterval(() => {
+                if (++pings > 6) {
+                    clearInterval(pingTimer);
+                    return;
+                }
+                ping();
+            }, 400);
+            setTimeout(() => clearInterval(pingTimer), timeoutMs);
+        });
     }
     updateNavVisibility(authed) {
         // Nav links are always visible; route gating in onRoute() shows lock screen
@@ -670,7 +1029,7 @@ class SimplebeaconDashboard {
         this.loadDataInBackground().then(() => {
             this.startBackgroundScanWatcher();
         });
-        if (!readOnlyPreview) {
+        if (!readOnlyPreview && authService.isAuthenticated()) {
             this.loadPlatformData();
             this.loadBillingContext();
         }
@@ -694,20 +1053,31 @@ class SimplebeaconDashboard {
         if (sidebarSigninBtn)
             sidebarSigninBtn.hidden = authed;
         const adminLink = document.getElementById('nav-admin-link');
-        if (adminLink)
-            adminLink.hidden = !authed || !this.isCurrentUserAdmin();
+        const showAdmin = authed && this.isCurrentUserAdmin();
+        if (adminLink) {
+            adminLink.hidden = !showAdmin;
+            adminLink.style.display = showAdmin ? '' : 'none';
+        }
         const assessmentsLink = document.getElementById('nav-assessments-link');
-        if (assessmentsLink)
-            assessmentsLink.hidden = !authed;
+        if (assessmentsLink) {
+            const showAssessments = authed && this.isCurrentUserAdmin();
+            assessmentsLink.hidden = !showAssessments;
+            assessmentsLink.style.display = showAssessments ? '' : 'none';
+        }
         const profileAdminItem = document.getElementById('profile-dropdown-admin');
         if (profileAdminItem)
-            profileAdminItem.hidden = !authed || !this.isCurrentUserAdmin();
+            profileAdminItem.hidden = !showAdmin;
+        this.updateNavVisibility(authed);
         const pricingLink = document.getElementById('header-pricing-link');
         if (pricingLink)
             pricingLink.hidden = authed;
         const token = authService.getToken();
         const sandboxBanner = document.getElementById('sandbox-banner');
         if (sandboxBanner) {
+            if (isEmbeddedDashboardFrame()) {
+                sandboxBanner.hidden = true;
+            }
+            else {
             /**
              * Is sandbox.
              * @param {any} (
@@ -729,7 +1099,8 @@ class SimplebeaconDashboard {
                     return false;
                 }
             })();
-            sandboxBanner.hidden = !isSandbox;
+                sandboxBanner.hidden = !isSandbox;
+            }
         }
     }
     async loadBillingContext() {
@@ -766,6 +1137,9 @@ class SimplebeaconDashboard {
         }
     }
     async loadDataInBackground() {
+        if (isAuthEntryView(this._currentViewName)) {
+            return;
+        }
         const now = Date.now();
         if (this._lastLoadDataTime && now - this._lastLoadDataTime < 2000) {
             return;
@@ -830,6 +1204,7 @@ class SimplebeaconDashboard {
     }
     setupShell() {
         var _a, _b, _c, _d;
+        this.setupAuthNavCapture();
         this.setupPricingCtas();
         (_a = document.getElementById('theme-toggle')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => {
             themeService.toggle();
@@ -885,6 +1260,26 @@ class SimplebeaconDashboard {
         });
         this.setupProfileDropdown();
     }
+    /** Capture-phase guard so Create Account never falls through to pricing CTAs. */
+    setupAuthNavCapture() {
+        const registerSelector = '[data-auth-action="register"], #subtab-register, #goto-register-btn, #note-goto-register, #pricing-goto-register, #lock-goto-register, #ide-auth-register-btn';
+        const signinSelector = '[data-auth-action="signin"], #subtab-login, #note-goto-signin';
+        document.addEventListener('click', (event) => {
+            const registerTarget = event.target.closest(registerSelector);
+            if (registerTarget) {
+                event.preventDefault();
+                event.stopPropagation();
+                this.router.navigate('register');
+                return;
+            }
+            const signinTarget = event.target.closest(signinSelector);
+            if (signinTarget) {
+                event.preventDefault();
+                event.stopPropagation();
+                this.router.navigate('signin');
+            }
+        }, true);
+    }
     /** In-app route for Team Pricing / Stripe checkout (path-based SPA, not pricing.html). */
     bindPricingCta(anchor) {
         if (!anchor || anchor.dataset.pricingBound === '1')
@@ -901,6 +1296,12 @@ class SimplebeaconDashboard {
     setupPricingCtas() {
         this.bindPricingCta(document.querySelector('#sandbox-banner a'));
         document.addEventListener('click', (event) => {
+            if (isAuthEntryView(this._currentViewName)) {
+                return;
+            }
+            if (event.target.closest('.signin-page, .signin-card, .lock-screen, [data-auth-action]')) {
+                return;
+            }
             const link = event.target.closest('[data-pricing-cta]');
             if (!link || link.dataset.pricingBound === '1')
                 return;
@@ -1119,9 +1520,15 @@ class SimplebeaconDashboard {
         var _a, _b;
         this._currentViewName = view;
         this.state.routeParams = params;
+        this.updateAuthPageShell(view);
+        this.updateEmbedQuickNav(view);
         const main = document.getElementById('app-main');
         if (!main)
             return;
+        // Preserve scroll position across routes leaves a black void above short pages
+        // (e.g. Settings after Chatbot). Reset the scroll container on every navigation.
+        this.resetMainScroll(main);
+        this.cleanupOrphanViewRoots(main);
         // Prevent stale loading state from persisting across navigation
         if (this.currentView && this.state.dataLoading) {
             this.state.dataLoading = false;
@@ -1139,8 +1546,18 @@ class SimplebeaconDashboard {
             this.updateAuthUi();
         }
         if (!readOnlyPreview && !PUBLIC_VIEWS.has(view) && !authService.isAuthenticated()) {
-            this.showLockScreen(view);
-            return;
+            if (isIdeDashboardSurface()) {
+                await this.waitForIdeAuthSync(3000);
+            }
+            if (!authService.isAuthenticated()) {
+                const bridgeBypass = isIdeDashboardSurface()
+                    && hasExtensionBridgeConfigured()
+                    && IDE_BRIDGE_ONLY_VIEWS.has(view);
+                if (!bridgeBypass) {
+                    this.showLockScreen(view);
+                    return;
+                }
+            }
         }
         // Free tier gets read-only dashboard access (view reports, no interaction)
         const isFreeTier = authService.isFreeTier();
@@ -1153,7 +1570,14 @@ class SimplebeaconDashboard {
         }
         if (!readOnlyPreview && view === 'admin' && !this.isCurrentUserAdmin()) {
             showToast('Admin access required', 'info');
-            window.location.hash = '#/dashboard';
+            this.navigate('dashboard');
+            return;
+        }
+        // Gate write-heavy views by token claims rather than by issuing separate tokens.
+        // Audit, roadmap, results, trust, security, platform, and quality remain read-only accessible.
+        if (!readOnlyPreview && WRITE_HEAVY_VIEWS.has(view) && !authService.isDashboardWriteAllowed()) {
+            showToast('This dashboard feature requires a paid or team license.', 'info');
+            this.navigate('pricing');
             return;
         }
         if (!readOnlyPreview && CLOUD_TEAMS_VIEWS.has(view) && authService.isAuthenticated()) {
@@ -1164,11 +1588,11 @@ class SimplebeaconDashboard {
                 if (!allowed && !isFreeTier) {
                     if (isLocalSelfHosted() || requiresAuthGate()) {
                         showToast('Sign in with a local account or use npm run dashboard:v1-internal', 'info');
-                        window.location.hash = '#/signin';
+                        this.navigate('signin');
                     }
                     else {
                         showToast('Use the free CLI — see About for install', 'info');
-                        window.location.hash = '#/about';
+                        this.navigate('about');
                     }
                     return;
                 }
@@ -1182,10 +1606,16 @@ class SimplebeaconDashboard {
                 console.error('View destroy error:', destroyErr);
             }
         }
+        document.querySelectorAll('body > .fade-in, .app-shell > .fade-in').forEach((el) => {
+            if (el.querySelector('#settings-section-scan, .settings-nav, .page-header, .page-title'))
+                el.remove();
+        });
+        this.cleanupOrphanViewRoots(main);
         const viewInstance = this.views[view];
         if (viewInstance) {
             this.currentView = viewInstance;
             viewInstance.mount(main);
+            requestAnimationFrame(() => this.resetMainScroll(main));
         }
         if (view === 'dashboard') {
             this.startBackgroundScanWatcher();
@@ -1289,6 +1719,7 @@ class SimplebeaconDashboard {
                 return;
             }
             this.currentView.mount(main);
+            requestAnimationFrame(() => this.resetMainScroll(main));
         });
     }
     stopBackgroundScanWatcher() {

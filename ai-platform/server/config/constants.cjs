@@ -28,6 +28,7 @@ const objects = require('./objects.cjs');
 const typeGuards = require('./type-guards.cjs');
 const paths = require('./paths.cjs');
 const { deepFreeze } = require('./deep-freeze.cjs');
+const logger = require('../lib/app-logger.cjs');
 
 /**
  * Namespace collision detection and source mapping.
@@ -104,7 +105,7 @@ function warnOnce(key) {
   if (warned.has(key)) return;
   warned.add(key);
   if (process.env.SIMPLEBEACON_DEBUG) {
-    console.warn(`[constants.cjs] DEPRECATED: flat access to "${key}" — use categories.* or require('./config/<module>.cjs') directly`);
+    logger.warn(`[constants.cjs] DEPRECATED: flat access to "${key}" — use categories.* or require('./config/<module>.cjs') directly`);
   }
 }
 

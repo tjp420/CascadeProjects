@@ -351,11 +351,17 @@ app.get('/api/analyze/wiring', async (_req, res) => {
         checks.database.detail = e.message;
     }
 
-    // 2. Email (Resend)
+    // 2. Email (Resend / SMTP)
     try {
-        const hasKey = !!(process.env.RESEND_API_KEY);
-        checks.email.ok = hasKey;
-        checks.email.detail = hasKey ? 'RESEND_API_KEY present' : 'RESEND_API_KEY missing';
+        const { getEmailStatus } = require('./services/email.cjs');
+        const emailStatus = getEmailStatus();
+        checks.email.ok = emailStatus.configured;
+        checks.email.detail = emailStatus.configured
+            ? `from ${emailStatus.from} via ${emailStatus.providers.resendApi ? 'resend-api' : emailStatus.providers.smtpMode || 'smtp'}`
+            : 'RESEND_API_KEY missing — set on Render and redeploy';
+        if (emailStatus.pendingQueueCount > 0) {
+            checks.email.detail += `; ${emailStatus.pendingQueueCount} pending in queue`;
+        }
     } catch (e) {
         checks.email.detail = e.message;
     }

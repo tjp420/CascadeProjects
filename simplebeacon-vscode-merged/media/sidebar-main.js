@@ -30,8 +30,16 @@
     } catch (e) {}
     try { _updateSidebarAuthState(false); } catch (e) {}
   }
+  function _bindViewReportBtn(id, command) {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('click', function() {
+      if (window.vscode) window.vscode.postMessage({ command: command });
+    });
+  }
   // Append a downloaded file entry to the sidebar Downloads list
-  function _appendDownloadedFile(name, filePath, time) {
+  function _appendDownloadedFile(name, filePath, time, fullPath) {
+    const actionPath = fullPath || filePath || '';
+    const displayPath = filePath || (actionPath.startsWith('browser://') ? '' : actionPath);
     const dlList = document.getElementById('dlList');
     if (!dlList) {
       if (vscode) { try { vscode.postMessage({ command: 'sidebarError', message: 'Downloads list (#dlList) missing from sidebar DOM' }); } catch(_) {} }
@@ -41,7 +49,8 @@
     if (dlEmpty) { dlEmpty.remove(); }
     const item = document.createElement('div');
     item.className = 'dl-item';
-    item.dataset.filePath = filePath || '';
+    item.dataset.filePath = actionPath;
+    item.dataset.fileName = name || '';
     const dlWrap = document.createElement('div');
     dlWrap.style.overflow = 'hidden';
     const dlName = document.createElement('div');
@@ -49,7 +58,7 @@
     dlName.textContent = name || 'File';
     const dlPath = document.createElement('div');
     dlPath.className = 'dl-item-path';
-    dlPath.textContent = filePath || '';
+    dlPath.textContent = displayPath || name || '';
     dlWrap.appendChild(dlName);
     dlWrap.appendChild(dlPath);
     const dlActs = document.createElement('div');
@@ -67,15 +76,19 @@
     dlList.insertBefore(item, dlList.firstChild);
     dlBtnOpen.addEventListener('click', function(e) {
       e.stopPropagation();
-      if (vscode) { vscode.postMessage({ command: 'openFile', path: filePath }); }
+      if (!vscode) return;
+      vscode.postMessage({ command: 'openFile', path: actionPath, file: actionPath, name: name || '' });
     });
     dlBtnCopy.addEventListener('click', function(e) {
       e.stopPropagation();
-      if (vscode) { vscode.postMessage({ command: 'copyPath', path: filePath }); }
+      if (!vscode) return;
+      const copyVal = (actionPath && !actionPath.startsWith('browser://')) ? actionPath : (name || '');
+      vscode.postMessage({ command: 'copyPath', path: copyVal, name: name || '' });
     });
     // Clicking the row itself asks the extension to load the report back into the dashboard
-    item.addEventListener('click', function() {
-      if (vscode) { vscode.postMessage({ command: 'loadReportFile', path: filePath }); }
+    item.addEventListener('click', function(e) {
+      if (e.target.closest('.dl-btn')) return;
+      if (vscode) { vscode.postMessage({ command: 'loadReportFile', path: actionPath, name: name || '' }); }
     });
   }
   // Generic dropdown toggle: works for every .settings-dropdown-header including duplicates
@@ -277,7 +290,12 @@
   let _openRoadmapInMainWindowBtn2=document.getElementById('openRoadmapInMainWindowBtn2');if(_openRoadmapInMainWindowBtn2){_openRoadmapInMainWindowBtn2.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openRoadmap'}); });}
   let _contextBackBtn=document.getElementById('contextBackBtn');if(_contextBackBtn){_contextBackBtn.addEventListener('click', function() { _switchSidebarTab('advanced'); });}
   let _openContextInMainWindowBtn=document.getElementById('openContextInMainWindowBtn');if(_openContextInMainWindowBtn){_openContextInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openContext'}); });}
+  let _openAiContextInMainWindowBtn=document.getElementById('openAiContextInMainWindowBtn');if(_openAiContextInMainWindowBtn){_openAiContextInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openAiContext'}); });}
+  let _openAiContextInMainWindowBtn2=document.getElementById('openAiContextInMainWindowBtn2');if(_openAiContextInMainWindowBtn2){_openAiContextInMainWindowBtn2.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openAiContext'}); });}
   let _openUploadTabInMainWindowBtn=document.getElementById('openUploadTabInMainWindowBtn');if(_openUploadTabInMainWindowBtn){_openUploadTabInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openUpload'}); });}
+  let _openCodeMapTabInMainWindowBtn=document.getElementById('openCodeMapTabInMainWindowBtn');if(_openCodeMapTabInMainWindowBtn){_openCodeMapTabInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openCodeMap'}); });}
+  let _openComplianceTabInMainWindowBtn=document.getElementById('openComplianceTabInMainWindowBtn');if(_openComplianceTabInMainWindowBtn){_openComplianceTabInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openCompliance'}); });}
+  let _openAuditTabInMainWindowBtn=document.getElementById('openAuditTabInMainWindowBtn');if(_openAuditTabInMainWindowBtn){_openAuditTabInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openAudit'}); });}
   let _openTrustTabInMainWindowBtn=document.getElementById('openTrustTabInMainWindowBtn');if(_openTrustTabInMainWindowBtn){_openTrustTabInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openTrust'}); });}
   let _openAssessmentsTabInMainWindowBtn=document.getElementById('openAssessmentsTabInMainWindowBtn');if(_openAssessmentsTabInMainWindowBtn){_openAssessmentsTabInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openAssessments'}); });}
   let _openPlatformTabInMainWindowBtn=document.getElementById('openPlatformTabInMainWindowBtn');if(_openPlatformTabInMainWindowBtn){_openPlatformTabInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openPlatform'}); });}
@@ -294,25 +312,24 @@
   _tdBindUrl('tdRoadmapSidebar','openRoadmapUrl','https://simplebeacon.ai/roadmap');
   _tdBindUrl('tdAuditSidebar','openAuditUrl','https://simplebeacon.ai/audit');
   _tdBindUrl('tdPricingSidebar','openPricingUrl','https://simplebeacon.ai/pricing');
-  _tdBind('tdTeamDashboardSidebar','openTeamDashboard');
   _tdBind('tdSignInSidebar','signIn');
-  _tdBind('tdDashboardSidebar','openDashboard');
-  _tdBind('tdAnalyzeSidebar','openAnalyze');
-  _tdBind('tdResultsSidebar','openReport');
-  _tdBind('tdRepoHealthSidebar','openRepoHealth');
-  _tdBind('tdSecuritySidebar','openSecurity');
-  _tdBind('tdQualitySidebar','openQuality');
-  _tdBind('tdTrustSidebar','openTrust');
-  _tdBind('tdAuditReportSidebar','openAuditReport');
-  _tdBind('tdAssessmentsSidebar','openAssessments');
-  _tdBind('tdRemediationSidebar','openRoadmap');
-  _tdBind('tdPlatformSidebar','openPlatform');
-  _tdBind('tdProfileSidebar','openProfile');
-  _tdBind('tdToolsSidebar','openTools');
-  _tdBind('tdSettingsSidebar','openSettings');
-  _tdBind('tdHelpSidebar','openHelp');
-  _tdBind('tdChatbotSidebar','openChatbot');
-  _tdBind('tdAboutSidebar','openAbout');
+  _tdBind('tdDashboardSidebar','navDashboard');
+  _tdBind('tdAnalyzeSidebar','navAnalyze');
+  _tdBind('tdResultsSidebar','navResults');
+  _tdBind('tdRepoHealthSidebar','navRepoHealth');
+  _tdBind('tdSecuritySidebar','navSecurity');
+  _tdBind('tdQualitySidebar','navQuality');
+  _tdBind('tdTrustSidebar','navTrust');
+  _tdBind('tdAuditReportSidebar','navAudit');
+  _tdBind('tdAssessmentsSidebar','navAssessments');
+  _tdBind('tdRemediationSidebar','navRoadmap');
+  _tdBind('tdPlatformSidebar','navPlatform');
+  _tdBind('tdProfileSidebar','navProfile');
+  _tdBind('tdToolsSidebar','navTools');
+  _tdBind('tdSettingsSidebar','navSettings');
+  _tdBind('tdHelpSidebar','navHelp');
+  _tdBind('tdChatbotSidebar','navChatbot');
+  _tdBind('tdAboutSidebar','navAbout');
   _tdBind('tdGitHubSidebar','openGitHub');
   _tdBind('tdDocsSidebar','openDocs');
   // Analyze, Roadmap, and AI Context buttons already send open* commands above; do not switch sidebar tabs.
@@ -359,6 +376,14 @@
   let _sidebarUploadClearBtn=document.getElementById('sidebarUploadClearBtn');if(_sidebarUploadClearBtn){_sidebarUploadClearBtn.addEventListener('click',function(){_sidebarUploadFiles=[];let box=document.getElementById('sidebarUploadResultBox');if(box)box.style.display='none';_sidebarUploadRender();});}
   let _sidebarUploadScanBtn=document.getElementById('sidebarUploadScanBtn');if(_sidebarUploadScanBtn){_sidebarUploadScanBtn.addEventListener('click',function(){if(window.vscode)window.vscode.postMessage({command:'scan'});});}
   _sidebarUploadRender();
+  _bindViewReportBtn('dashboardViewReportBtn', 'openDashboard');
+  _bindViewReportBtn('analyzeViewReportBtn', 'openAnalyze');
+  _bindViewReportBtn('codeMapViewReportBtn', 'openCodeMap');
+  _bindViewReportBtn('roadmapViewReportBtn', 'openRoadmap');
+  _bindViewReportBtn('uploadViewReportBtn', 'openUpload');
+  _bindViewReportBtn('platformViewReportBtn', 'openPlatform');
+  _bindViewReportBtn('profileViewReportBtn', 'openProfile');
+  _bindViewReportBtn('settingsViewReportBtn', 'openSettings');
   let _analyzeRunCard=document.getElementById('analyzeRunCard');if(_analyzeRunCard){_analyzeRunCard.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'scan', mode: 'workspace'}); });}
   let _analyzeScanWorkspaceCard=document.getElementById('analyzeScanWorkspaceCard');if(_analyzeScanWorkspaceCard){_analyzeScanWorkspaceCard.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openEnhancedAnalysis'}); });}
   let _analyzeExportJsonCard=document.getElementById('analyzeExportJsonCard');if(_analyzeExportJsonCard){_analyzeExportJsonCard.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'exportReport'}); });}
@@ -381,7 +406,7 @@
   let _exportCertificatePdfBtn=document.getElementById('exportCertificatePdfBtn');if(_exportCertificatePdfBtn){_exportCertificatePdfBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'exportCertificatePdf'}); });}
   let _viewCertificateReportBtn=document.getElementById('viewCertificateReportBtn');if(_viewCertificateReportBtn){_viewCertificateReportBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openCertificate'}); });}
   let _openCertificateInMainWindowBtn=document.getElementById('openCertificateInMainWindowBtn');if(_openCertificateInMainWindowBtn){_openCertificateInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openCertificateHtml'}); });}
-  let _codeMapDropdownHeader=document.getElementById('codeMapDropdownHeader');if(_codeMapDropdownHeader){_codeMapDropdownHeader.addEventListener('click', function() { const header=document.getElementById('codeMapDropdownHeader'); const detail=document.getElementById('codeMapDetailPanel'); _closeDetailPanels(); if(header){header.style.display='none';} if(detail){detail.classList.remove('hidden');detail.classList.add('detail-active');detail.style.display='block';} document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');p.classList.add('hidden');}); document.body.classList.add('detail-panel-open'); if (window.vscode) window.vscode.postMessage({command: 'getAuditData'}); });}
+  let _codeMapDropdownHeader=document.getElementById('codeMapDropdownHeader');if(_codeMapDropdownHeader){_codeMapDropdownHeader.addEventListener('click', function() { const header=document.getElementById('codeMapDropdownHeader'); const detail=document.getElementById('codeMapDetailPanel'); _closeDetailPanels(); if(header){header.style.display='none';} if(detail){detail.classList.remove('hidden');detail.classList.add('detail-active');detail.style.display='block';} document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');p.classList.add('hidden');}); document.body.classList.add('detail-panel-open'); if (window.vscode) window.vscode.postMessage({command: 'getCodeMap'}); });}
   let _codeMapDetailBackBtn=document.getElementById('codeMapDetailBackBtn');if(_codeMapDetailBackBtn){_codeMapDetailBackBtn.addEventListener('click', function() { _switchSidebarTab('advanced'); });}
   let _generateCodeMapBtn=document.getElementById('generateCodeMapBtn');if(_generateCodeMapBtn){_generateCodeMapBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'generateCodeMap'}); });}
   let _openCodeMapHtmlBtn=document.getElementById('openCodeMapHtmlBtn');if(_openCodeMapHtmlBtn){_openCodeMapHtmlBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openCodeMapHtml'}); });}
@@ -396,7 +421,7 @@
   let _aiContextDetailBackBtn=document.getElementById('aiContextDetailBackBtn');if(_aiContextDetailBackBtn){_aiContextDetailBackBtn.addEventListener('click', function() { _switchSidebarTab('advanced'); });}
   let _scanAiContextBtn=document.getElementById('scanAiContextBtn');if(_scanAiContextBtn){_scanAiContextBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'scan', mode: 'workspace'}); });}
   let _exportAiContextBtn=document.getElementById('exportAiContextBtn');if(_exportAiContextBtn){_exportAiContextBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'exportReport'}); });}
-  let _viewAiContextReportBtn=document.getElementById('viewAiContextReportBtn');if(_viewAiContextReportBtn){_viewAiContextReportBtn.addEventListener('click', function() { _switchSidebarTab('report'); });}
+  let _viewAiContextReportBtn=document.getElementById('viewAiContextReportBtn');if(_viewAiContextReportBtn){_viewAiContextReportBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openAiContext'}); });}
   let _openContextInMainWindowBtn2=document.getElementById('openContextInMainWindowBtn2');if(_openContextInMainWindowBtn2){_openContextInMainWindowBtn2.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openContext'}); });}
   let _uploadDropdownHeader=document.getElementById('uploadDropdownHeader');if(_uploadDropdownHeader){_uploadDropdownHeader.addEventListener('click', function() { const header=document.getElementById('uploadDropdownHeader'); const detail=document.getElementById('uploadDetailPanel'); _closeDetailPanels(); if(header){header.style.display='none';} if(detail){detail.classList.remove('hidden');detail.classList.add('detail-active');detail.style.display='block';} document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');p.classList.add('hidden');}); document.body.classList.add('detail-panel-open'); if (window.vscode) window.vscode.postMessage({command: 'getAuditData'}); });}
   let _uploadDetailBackBtn=document.getElementById('uploadDetailBackBtn');if(_uploadDetailBackBtn){_uploadDetailBackBtn.addEventListener('click', function() { _switchSidebarTab('advanced'); });}
@@ -409,23 +434,23 @@
   let _securityDetailBackBtn=document.getElementById('securityDetailBackBtn');if(_securityDetailBackBtn){_securityDetailBackBtn.addEventListener('click', function() { _switchSidebarTab('scan'); });}
   let _runSecurityScanBtn=document.getElementById('runSecurityScanBtn');if(_runSecurityScanBtn){_runSecurityScanBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'runSecurity'}); });}
   let _openSecurityReportBtn=document.getElementById('openSecurityReportBtn');if(_openSecurityReportBtn){_openSecurityReportBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openSecurity'}); });}
-  let _openSecurityInMainWindowBtn=document.getElementById('openSecurityInMainWindowBtn');if(_openSecurityInMainWindowBtn){_openSecurityInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openSecurityAuditPage'}); });}
+  let _openSecurityInMainWindowBtn=document.getElementById('openSecurityInMainWindowBtn');if(_openSecurityInMainWindowBtn){_openSecurityInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openSecurity'}); });}
   let _trustDropdownHeader=document.getElementById('trustDropdownHeader');if(_trustDropdownHeader){_trustDropdownHeader.addEventListener('click', function() { const header=document.getElementById('trustDropdownHeader'); const detail=document.getElementById('trustDetailPanel'); _closeDetailPanels(); if(header){header.style.display='none';} if(detail){detail.classList.remove('hidden');detail.classList.add('detail-active');detail.style.display='block';} document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');p.classList.add('hidden');}); document.body.classList.add('detail-panel-open'); if (window.vscode) window.vscode.postMessage({command: 'getAuditData'}); });}
   let _trustDetailBackBtn=document.getElementById('trustDetailBackBtn');if(_trustDetailBackBtn){_trustDetailBackBtn.addEventListener('click', function() { _switchSidebarTab('scan'); });}
   let _verifyTrustBtn=document.getElementById('verifyTrustBtn');if(_verifyTrustBtn){_verifyTrustBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'runTrust'}); });}
   let _openTrustReportBtn=document.getElementById('openTrustReportBtn');if(_openTrustReportBtn){_openTrustReportBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openTrust'}); });}
-  let _openTrustInMainWindowBtn=document.getElementById('openTrustInMainWindowBtn');if(_openTrustInMainWindowBtn){_openTrustInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openTrustPage'}); });}
+  let _openTrustInMainWindowBtn=document.getElementById('openTrustInMainWindowBtn');if(_openTrustInMainWindowBtn){_openTrustInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openTrust'}); });}
   let _qualityDropdownHeader=document.getElementById('qualityDropdownHeader');if(_qualityDropdownHeader){_qualityDropdownHeader.addEventListener('click', function() { const header=document.getElementById('qualityDropdownHeader'); const detail=document.getElementById('qualityDetailPanel'); _closeDetailPanels(); if(header){header.style.display='none';} if(detail){detail.classList.remove('hidden');detail.classList.add('detail-active');detail.style.display='block';} document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');p.classList.add('hidden');}); document.body.classList.add('detail-panel-open'); if (window.vscode) window.vscode.postMessage({command: 'getAuditData'}); });}
   let _qualityDetailBackBtn=document.getElementById('qualityDetailBackBtn');if(_qualityDetailBackBtn){_qualityDetailBackBtn.addEventListener('click', function() { _switchSidebarTab('scan'); });}
   let _runQualityBtn=document.getElementById('runQualityBtn');if(_runQualityBtn){_runQualityBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'runQuality'}); });}
   let _exportQualityBtn=document.getElementById('exportQualityBtn');if(_exportQualityBtn){_exportQualityBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'exportReport'}); });}
-  let _viewQualityReportBtn=document.getElementById('viewQualityReportBtn');if(_viewQualityReportBtn){_viewQualityReportBtn.addEventListener('click', function() { _switchSidebarTab('report'); });}
+  let _viewQualityReportBtn=document.getElementById('viewQualityReportBtn');if(_viewQualityReportBtn){_viewQualityReportBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openQuality'}); });}
   let _openQualityInMainWindowBtn=document.getElementById('openQualityInMainWindowBtn');if(_openQualityInMainWindowBtn){_openQualityInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openQuality'}); });}
   let _assessmentsDropdownHeader=document.getElementById('assessmentsDropdownHeader');if(_assessmentsDropdownHeader){_assessmentsDropdownHeader.addEventListener('click', function() { const header=document.getElementById('assessmentsDropdownHeader'); const detail=document.getElementById('assessmentsDetailPanel'); _closeDetailPanels(); if(header){header.style.display='none';} if(detail){detail.classList.remove('hidden');detail.classList.add('detail-active');detail.style.display='block';} document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');p.classList.add('hidden');}); document.body.classList.add('detail-panel-open'); if (window.vscode) window.vscode.postMessage({command: 'getAuditData'}); });}
   let _assessmentsDetailBackBtn=document.getElementById('assessmentsDetailBackBtn');if(_assessmentsDetailBackBtn){_assessmentsDetailBackBtn.addEventListener('click', function() { _switchSidebarTab('scan'); });}
   let _runAssessmentsBtn=document.getElementById('runAssessmentsBtn');if(_runAssessmentsBtn){_runAssessmentsBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openAssessments'}); });}
   let _exportAssessmentsBtn=document.getElementById('exportAssessmentsBtn');if(_exportAssessmentsBtn){_exportAssessmentsBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'exportReport'}); });}
-  let _viewAssessmentsReportBtn=document.getElementById('viewAssessmentsReportBtn');if(_viewAssessmentsReportBtn){_viewAssessmentsReportBtn.addEventListener('click', function() { _switchSidebarTab('report'); });}
+  let _viewAssessmentsReportBtn=document.getElementById('viewAssessmentsReportBtn');if(_viewAssessmentsReportBtn){_viewAssessmentsReportBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openAssessments'}); });}
   let _openAssessmentsInMainWindowBtn=document.getElementById('openAssessmentsInMainWindowBtn');if(_openAssessmentsInMainWindowBtn){_openAssessmentsInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openAssessments'}); });}
   let _platformDetailBackBtn=document.getElementById('platformDetailBackBtn');if(_platformDetailBackBtn){_platformDetailBackBtn.addEventListener('click', function() { _switchSidebarTab('settings'); });}
   let _diagnoseDetailBackBtn=document.getElementById('diagnoseDetailBackBtn');if(_diagnoseDetailBackBtn){_diagnoseDetailBackBtn.addEventListener('click', function() { _switchSidebarTab('settings'); });}
@@ -438,7 +463,7 @@
   let _complianceDetailBackBtn=document.getElementById('complianceDetailBackBtn');if(_complianceDetailBackBtn){_complianceDetailBackBtn.addEventListener('click', function() { _switchSidebarTab('scan'); });}
   let _runComplianceBtn=document.getElementById('runComplianceBtn');if(_runComplianceBtn){_runComplianceBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'scan', mode: 'workspace'}); });}
   let _exportComplianceBtn=document.getElementById('exportComplianceBtn');if(_exportComplianceBtn){_exportComplianceBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'exportReport'}); });}
-  let _viewComplianceReportBtn=document.getElementById('viewComplianceReportBtn');if(_viewComplianceReportBtn){_viewComplianceReportBtn.addEventListener('click', function() { _switchSidebarTab('report'); });}
+  let _viewComplianceReportBtn=document.getElementById('viewComplianceReportBtn');if(_viewComplianceReportBtn){_viewComplianceReportBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openCompliance'}); });}
   let _openComplianceInMainWindowBtn=document.getElementById('openComplianceInMainWindowBtn');if(_openComplianceInMainWindowBtn){_openComplianceInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openCompliance'}); });}
   let _repoHealthRunScanBtn=document.getElementById('repoHealthRunScanBtn');if(_repoHealthRunScanBtn){_repoHealthRunScanBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'runAudit'}); });}
   let _repoHealthExportBtn=document.getElementById('repoHealthExportBtn');if(_repoHealthExportBtn){_repoHealthExportBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'exportReport'}); });}
@@ -454,14 +479,14 @@
   let _teamDetailBackBtn=document.getElementById('teamDetailBackBtn');if(_teamDetailBackBtn){_teamDetailBackBtn.addEventListener('click', function() { _switchSidebarTab('advanced'); });}
   let _teamInviteBtn=document.getElementById('teamInviteBtn');if(_teamInviteBtn){_teamInviteBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openTeamDashboard'}); });}
   let _teamExportBtn2=document.getElementById('teamExportBtn');if(_teamExportBtn2){_teamExportBtn2.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'exportReport'}); });}
-  let _teamViewReportBtn2=document.getElementById('teamViewReportBtn');if(_teamViewReportBtn2){_teamViewReportBtn2.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openReport'}); });}
+  let _teamViewReportBtn2=document.getElementById('teamViewReportBtn');if(_teamViewReportBtn2){_teamViewReportBtn2.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openTeam'}); });}
   let _teamSettingsBtn2=document.getElementById('teamSettingsBtn');if(_teamSettingsBtn2){_teamSettingsBtn2.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openSettings'}); });}
   let _openTeamInMainWindowBtn=document.getElementById('openTeamInMainWindowBtn');if(_openTeamInMainWindowBtn){_openTeamInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openTeamDashboard'}); });}
   let _scanDropdownHeader=document.getElementById('scanDropdownHeader');if(_scanDropdownHeader){_scanDropdownHeader.addEventListener('click', function() { const header=document.getElementById('scanDropdownHeader'); const detail=document.getElementById('scanDetailPanel'); _closeDetailPanels(); if(header){header.style.display='none';} if(detail){detail.classList.remove('hidden');detail.classList.add('detail-active');detail.style.display='block';} document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');p.classList.add('hidden');}); document.body.classList.add('detail-panel-open'); if (window.vscode) window.vscode.postMessage({command: 'getAuditData'}); });}
   let _scanDetailBackBtn=document.getElementById('scanDetailBackBtn');if(_scanDetailBackBtn){_scanDetailBackBtn.addEventListener('click', function() { _switchSidebarTab('scan'); });}
   let _runScanBtn=document.getElementById('runScanBtn');if(_runScanBtn){_runScanBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'runAudit'}); });}
   let _exportScanBtn=document.getElementById('exportScanBtn');if(_exportScanBtn){_exportScanBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'exportReport'}); });}
-  let _viewScanReportBtn=document.getElementById('viewScanReportBtn');if(_viewScanReportBtn){_viewScanReportBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openReport'}); });}
+  let _viewScanReportBtn=document.getElementById('viewScanReportBtn');if(_viewScanReportBtn){_viewScanReportBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openScan'}); });}
   let _openScanInMainWindowBtn=document.getElementById('openScanInMainWindowBtn');if(_openScanInMainWindowBtn){_openScanInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openScan'}); });}
   let _previewDropdownHeader=document.getElementById('previewDropdownHeader');if(_previewDropdownHeader){_previewDropdownHeader.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openPreview'}); });}
   let _toggleMonitorSidebarBtn=document.getElementById('toggleMonitorSidebarBtn');if(_toggleMonitorSidebarBtn){_toggleMonitorSidebarBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openToggleMonitor'}); });}
@@ -519,26 +544,25 @@
   _tdBindUrl('tdRoadmapSidebar','openRoadmapUrl','https://simplebeacon.ai/roadmap');
   _tdBindUrl('tdAuditSidebar','openAuditUrl','https://simplebeacon.ai/audit');
   _tdBindUrl('tdPricingSidebar','openPricingUrl','https://simplebeacon.ai/pricing');
-  _tdBind('tdTeamDashboardSidebar','openTeamDashboard');
   _tdBind('tdSignInSidebar','signIn');
   // Navigation
-  _tdBind('tdDashboardSidebar','openDashboard');
-  _tdBind('tdAnalyzeSidebar','openAnalyze');
-  _tdBind('tdResultsSidebar','openReport');
-  _tdBind('tdRepoHealthSidebar','openRepoHealth');
-  _tdBind('tdSecuritySidebar','openSecurity');
-  _tdBind('tdQualitySidebar','openQuality');
-  _tdBind('tdTrustSidebar','openTrust');
-  _tdBind('tdAuditReportSidebar','openAuditReport');
-  _tdBind('tdAssessmentsSidebar','openAssessments');
-  _tdBind('tdRemediationSidebar','openRoadmap');
-  _tdBind('tdPlatformSidebar','openPlatform');
-  _tdBind('tdProfileSidebar','openProfile');
-  _tdBind('tdToolsSidebar','openTools');
-  _tdBind('tdSettingsSidebar','openSettings');
-  _tdBind('tdHelpSidebar','openHelp');
-  _tdBind('tdChatbotSidebar','openChatbot');
-  _tdBind('tdAboutSidebar','openAbout');
+  _tdBind('tdDashboardSidebar','navDashboard');
+  _tdBind('tdAnalyzeSidebar','navAnalyze');
+  _tdBind('tdResultsSidebar','navResults');
+  _tdBind('tdRepoHealthSidebar','navRepoHealth');
+  _tdBind('tdSecuritySidebar','navSecurity');
+  _tdBind('tdQualitySidebar','navQuality');
+  _tdBind('tdTrustSidebar','navTrust');
+  _tdBind('tdAuditReportSidebar','navAudit');
+  _tdBind('tdAssessmentsSidebar','navAssessments');
+  _tdBind('tdRemediationSidebar','navRoadmap');
+  _tdBind('tdPlatformSidebar','navPlatform');
+  _tdBind('tdProfileSidebar','navProfile');
+  _tdBind('tdToolsSidebar','navTools');
+  _tdBind('tdSettingsSidebar','navSettings');
+  _tdBind('tdHelpSidebar','navHelp');
+  _tdBind('tdChatbotSidebar','navChatbot');
+  _tdBind('tdAboutSidebar','navAbout');
   let _dbExportBtn=document.getElementById('dbExportBtn');if(_dbExportBtn){_dbExportBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'exportReport'}); });}
   let _dbSigninBtn=document.getElementById('dbSigninBtn');if(_dbSigninBtn){_dbSigninBtn.addEventListener('click', function() { _openSigninWithClear(); });}
   let _dbSignoutBtn=document.getElementById('dbSignoutBtn');if(_dbSignoutBtn){_dbSignoutBtn.addEventListener('click', function() { _clearSidebarAuthLocally(); if (window.vscode) { window.vscode.postMessage({command: 'signOut'}); } _callServerSignout(); });}
@@ -868,7 +892,7 @@
     const lastScanEl = document.getElementById('codeMapLastScan'); if (lastScanEl) lastScanEl.textContent = lastScan;
     const lastScanEl2 = document.getElementById('codeMapLastScan2'); if (lastScanEl2) lastScanEl2.textContent = lastScan;
     const repoFilesEl = document.getElementById('codeMapRepoFiles'); if (repoFilesEl) repoFilesEl.textContent = files;
-    const isPaid = data.isPaidTier === true || !_isFreeTier();
+    const isPaid = data.isPaidTier === true || _isAdminAccount() || !_isFreeTier();
     const detailSections = document.querySelectorAll('.code-map-detail-section');
     detailSections.forEach(function(s) { s.style.display = isPaid ? '' : 'none'; });
     if (!isPaid) return;
@@ -1223,7 +1247,6 @@
       _updateSidebarScanPanel(msg);
       _updateSidebarAiContextPanel(msg);
       _updateSidebarCertificatePanel(msg);
-      _updateSidebarCodeMapPanel(msg);
       _updateSidebarRoadmapPanel(msg);
       _updateSidebarProfilePanel(msg);
       _updateSidebarUploadPanel(msg);
@@ -1468,7 +1491,7 @@
     if (msg.command === 'addDownloadedFile') {
       // simplebeacon-ignore console-log — diagnostic visibility while debugging sidebar download relay
       console.log('[Sidebar] addDownloadedFile received:', msg.name, msg.path);
-      _appendDownloadedFile(msg.name, msg.path, msg.time);
+      _appendDownloadedFile(msg.name, msg.path, msg.time, msg.fullPath);
     }
     if (msg.command === 'clearDownloadedFiles') {
       const dlList = document.getElementById('dlList');
@@ -1606,6 +1629,7 @@
   }
   let _lastSidebarSignedIn = false;
   let _serverTier = '';
+  let _serverIsAdmin = false;
   function _getTokenTier() {
     if (_serverTier) return _serverTier;
     try {
@@ -1618,7 +1642,20 @@
       return null;
     }
   }
+  function _isAdminAccount() {
+    if (_serverIsAdmin) return true;
+    try {
+      let token = localStorage.getItem('cascadeAuthToken');
+      if (!token) { token = localStorage.getItem('access_token') || localStorage.getItem('token') || localStorage.getItem('authToken') || localStorage.getItem('simplebeacon_token'); }
+      const payload = token ? _decodeJwtPayload(token) : null;
+      const email = String(payload?.email || payload?.sub || payload?.username || '').toLowerCase();
+      return email === 'admin@simplebeacon.ai' || payload?.isAdmin === true || payload?.role === 'admin';
+    } catch (e) {
+      return false;
+    }
+  }
   function _isFreeTier() {
+    if (_isAdminAccount()) return false;
     const tier = _getTokenTier();
     if (!tier) return false;
     const freeTiers = ['guest', 'community', 'developer', 'sandbox', 'instant', 'free', 'solo', ''];
@@ -1671,7 +1708,7 @@
       if (signOutMenu) signOutMenu.style.display = signedIn ? 'flex' : 'none';
       if (pricing) pricing.style.display = signedIn ? 'none' : 'flex';
       if (pricingMenu) pricingMenu.style.display = signedIn ? 'none' : 'flex';
-      if (websiteToggle) websiteToggle.style.display = signedIn ? 'flex' : 'none';
+      if (websiteToggle) websiteToggle.style.display = 'flex';
       let tokenMgmt = document.getElementById('tokenManagementTier');
       if (tokenMgmt) {
         tokenMgmt.textContent = signedIn ? ('Tier: ' + effectiveTier) : 'No token — Sign In';
@@ -1723,6 +1760,7 @@
       if (msg.signedIn) {
         try { sessionStorage.setItem('sb_sidebar_auth_ts', String(Date.now())); } catch(e) {}
       }
+      if (typeof msg.isAdmin === 'boolean') { _serverIsAdmin = msg.isAdmin; }
       _updateSidebarAuthState(msg.signedIn, msg.tier);
       // Diagnostic log
       try {

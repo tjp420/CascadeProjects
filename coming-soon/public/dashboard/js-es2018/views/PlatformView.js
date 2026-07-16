@@ -1,6 +1,7 @@
-// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
-import { escapeHtml, formatScanPathForDisplay } from '../utils.js';
-import { resolveJestTestsLabel, resolvePageSpecsLabel, hydrateDashboardHome } from '../services/analyzeService.js?v=20260710inventory1';
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
+import { escapeHtml, formatScanPathForDisplay, showToast, downloadJson } from '../utils.js';
+import { resolveJestTestsLabel, resolvePageSpecsLabel, hydrateDashboardHome } from '../services/analyzeService.js?v=20260716cachefix1';
+import { buildPlatformExportBundle, platformExportFilename } from '../utils/platform-export.browser.js?v=20260716cachefix1';
 /**
  * Format percent.
  * @param {any} value
@@ -124,6 +125,30 @@ export class PlatformView {
     constructor(app) {
         this.app = app;
     }
+    exportPlatformData() {
+        const home = hydrateDashboardHome(this.app.state.dashboardHome, this.app.state.baseline);
+        const report = this.app.state.report;
+        const baseline = this.app.state.baseline;
+        const config = this.app.state.config;
+        const coverage = this.app.state.coverage;
+        const security = this.app.state.security;
+        const quality = this.app.state.quality;
+        if (!home && !report && !baseline) {
+            showToast('No platform data to export', 'error');
+            return;
+        }
+        const payload = buildPlatformExportBundle({
+            dashboardHome: home,
+            report,
+            baseline,
+            config,
+            coverage,
+            security,
+            quality
+        });
+        downloadJson(payload, platformExportFilename('json'));
+        showToast('Platform baseline exported', 'success');
+    }
     render() {
         var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q;
         const home = hydrateDashboardHome(this.app.state.dashboardHome, this.app.state.baseline);
@@ -139,6 +164,13 @@ export class PlatformView {
       <div class="analyze-hero">
         <h1 class="page-title">Platform</h1>
         <p class="text-muted analyze-hero-sub">${escapeHtml((home === null || home === void 0 ? void 0 : home.subtitle) || 'Engineering baseline from repository audit + Simplebeacon scan')}</p>
+      </div>
+
+      <div class="analyze-action-bar" style="position:static;margin:0 0 var(--space-4);">
+        <div class="analyze-action-info"></div>
+        <div class="flex gap-2">
+          <button type="button" class="btn btn-ghost btn-sm" id="platform-export-json">Export JSON</button>
+        </div>
       </div>
 
       <div class="grid-3 mb-6">
@@ -232,6 +264,7 @@ export class PlatformView {
         </div>
       ` : ''}
     `;
+        (_q = el.querySelector('#platform-export-json')) === null || _q === void 0 ? void 0 : _q.addEventListener('click', () => this.exportPlatformData());
         return el;
     }
     mount(container) {

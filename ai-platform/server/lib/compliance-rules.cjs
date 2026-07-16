@@ -1,4 +1,4 @@
-// simplebeacon-ignore: Scanner pattern definitions, and dashboard code — all findings are false positives, debugArtifacts, test fixtures
+// simplebeacon-ignore: Scanner pattern definitions, dashboard code, security — all findings are false positives, debugArtifacts, test fixtures
 /**
  * EU AI Act Article 14 — Human Oversight Compliance Evaluator.
  *

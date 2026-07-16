@@ -3,7 +3,7 @@
  */
 
 import { resolveJestTestsLabel } from '../services/analyzeService.js';
-import { sanitizeSimplebeaconReportExport } from './simplebeacon-report-export.browser.js?v=20260601gateexport17';
+import { sanitizeSimplebeaconReportExport } from './simplebeacon-report-export.browser.js?v=20260716cachefix1';
 import {
   stripInternalExportFields,
   resolveSectionProvenance,
@@ -12,7 +12,7 @@ import {
   sanitizeSecurityExport,
   sanitizeQualityExport,
   normalizeSimpleBeaconBranding
-} from './quality-export.browser.js?v=20260531qualityexport8';
+} from './quality-export.browser.js?v=20260716cachefix1';
 
 /**
  * Parse numeric.

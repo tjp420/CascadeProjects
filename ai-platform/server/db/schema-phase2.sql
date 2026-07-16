@@ -18,11 +18,13 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash TEXT NOT NULL,
     name TEXT NOT NULL,
     trust_level TEXT NOT NULL DEFAULT 'bronze',
+    status TEXT NOT NULL DEFAULT 'active',
     successful_analyses INT NOT NULL DEFAULT 0,
     security_incidents INT NOT NULL DEFAULT 0,
     community_contributions INT NOT NULL DEFAULT 0,
     verification_status TEXT NOT NULL DEFAULT 'email',
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);

@@ -2,7 +2,7 @@
  * Browser mirror of roadmap export sanitization (keep in sync with roadmap-export-sanitize.js).
  */
 
-import { redactProjectPathForExport } from './quality-export.browser.js?v=20260531qualityexport8';
+import { redactProjectPathForExport } from './quality-export.browser.js?v=20260716cachefix1';
 
 /**
  * Project label from path.

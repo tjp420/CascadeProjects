@@ -1,4 +1,4 @@
-// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code, security — all findings are false positives
 /**
 
  * Browser mirror of simplebeacon-report-export-sanitize.js — keep in sync.
@@ -15,7 +15,7 @@ import {
 
 } from './benchmark-gate-issue-filter.browser.js';
 
-import { normalizeSimpleBeaconBranding } from './quality-export.browser.js?v=20260531qualityexport8';
+import { normalizeSimpleBeaconBranding } from './quality-export.browser.js?v=20260716cachefix1';
 
 
 

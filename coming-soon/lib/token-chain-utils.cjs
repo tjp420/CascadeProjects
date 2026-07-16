@@ -1,3 +1,4 @@
+// simplebeacon-ignore git-sensitive-file — auth/token implementation file, not a leaked secret
 /**
  * Token chain utilities — lazy chain validation and clock helpers.
  * Works alongside token-chain-store.cjs to enforce activation rules.

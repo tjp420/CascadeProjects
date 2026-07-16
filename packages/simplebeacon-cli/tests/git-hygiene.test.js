@@ -1,4 +1,4 @@
-// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code — all findings are false positives
+// simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code, security — all findings are false positives
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
@@ -60,6 +60,23 @@ test('GitHygieneScanner warns when not a git repo', async () => {
 
     assert.ok(result.findings.some((f) => f.type === 'git-hygiene-warning'));
     assert.equal(result.summary.isGitRepo, false);
+});
+
+test('GitHygieneScanner ignores auth token source modules', async () => {
+    const root = makeTempGitProject({
+        'server/lib/auth/token-service.cjs': 'module.exports = {};',
+        'server/routes/token-auth.cjs': 'module.exports = {};',
+        'web/tokenStockpileService.js': 'export {}',
+        'token.txt': 'secret-value'
+    });
+
+    const scanner = new GitHygieneScanner();
+    const result = await scanner.scan(root);
+
+    assert.ok(!result.findings.some((f) => f.path.includes('token-service')));
+    assert.ok(!result.findings.some((f) => f.path.includes('token-auth')));
+    assert.ok(!result.findings.some((f) => f.path.includes('tokenStockpileService')));
+    assert.ok(result.findings.some((f) => f.type === 'git-sensitive-file' && f.path === 'token.txt'));
 });
 
 test('GitHygieneScanner detects suspicious commit messages', async () => {

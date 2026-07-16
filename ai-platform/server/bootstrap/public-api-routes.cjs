@@ -122,6 +122,54 @@ function isPublicChatbotRoute(relativePath) {
 }
 
 /**
+ * WebAuthn sign-in challenge + assertion are public; register/credentials require JWT.
+ * @param {string} relativePath
+ * @param {string} method
+ * @returns {boolean}
+ */
+function isPublicWebAuthnRoute(relativePath, method) {
+    const pathKey = String(relativePath || '').replace(/^\/+/, '');
+    return method === 'POST' && (pathKey === 'webauthn/challenge' || pathKey === 'webauthn/authenticate');
+}
+
+/**
+ * Dashboard stub routes are read-only sample/empty data and should bypass the
+ * global REQUIRE_AUTH gate (their own router already uses optionalAuthenticate).
+ * POST/mutation endpoints such as merger-tool/reduction-scan and npm-audit are excluded.
+ * @param {string} relativePath
+ * @param {string} method
+ * @returns {boolean}
+ */
+function isPublicDashboardRoute(relativePath, method) {
+    if (method !== 'GET') return false;
+    const pathKey = String(relativePath || '').replace(/^\/+/, '');
+    const publicExact = new Set(['dashboard-home', 'status']);
+    if (publicExact.has(pathKey)) return true;
+    const publicPrefixes = [
+        'dev-tools',
+        'analytics',
+        'merger-tool/merges',
+        'merger-tool/overview',
+        'merger-tool/activity',
+        'merger-tool/statistics',
+        'coverage-reports',
+        'settings',
+        'help',
+        'quality',
+        'security/overview',
+        'security/threats',
+        'security/vulnerabilities',
+        'security/incidents',
+        'security/compliance',
+        'support'
+    ];
+    for (const prefix of publicPrefixes) {
+        if (pathKey === prefix || pathKey.startsWith(prefix + '/')) return true;
+    }
+    return false;
+}
+
+/**
  * Resolve api relative path.
  * @param {any} req
  * @returns {any}
@@ -148,6 +196,8 @@ function isPublicApiRoute(relativePath, method) {
         || isPublicOptimizationRoute(pathKey, method)
         || isPublicSimplebeaconDemoRoute(pathKey)
         || isPublicChatbotRoute(pathKey)
+        || isPublicWebAuthnRoute(pathKey, method)
+        || isPublicDashboardRoute(pathKey, method)
     );
 }
 
@@ -168,5 +218,7 @@ module.exports = {
     isPublicAssessmentRoute,
     isPublicOptimizationRoute,
     isPublicSimplebeaconDemoRoute,
-    isPublicChatbotRoute
+    isPublicChatbotRoute,
+    isPublicWebAuthnRoute,
+    isPublicDashboardRoute
 };
