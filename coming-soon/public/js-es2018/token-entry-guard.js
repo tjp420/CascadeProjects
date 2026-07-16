@@ -1,3 +1,4 @@
+// simplebeacon-ignore git-sensitive-file — auth/token implementation file, not a leaked secret
 /**
  * Restrict audit/certificate token fields to unused (new) license tokens.
  * Tracks consumed tokens locally and rejects vault entries marked used.

@@ -1565,44 +1565,20 @@ export class AnalyzeView {
         return el;
     }
     renderAnalyzePageHero(workflowStep, displayPath, hostedCtx = getHostedAnalyzeContext()) {
-        const stepIndex = Math.max(0, ['target', 'scan', 'review', 'act'].indexOf(workflowStep));
-        const steps = [
-            { id: 'target', label: 'Pick project', hint: 'Folder, files, or GitHub URL' },
-            { id: 'scan', label: 'Run scan', hint: 'Gate or Complete audit' },
-            { id: 'review', label: 'Review', hint: 'Findings & quality score' },
-            { id: 'act', label: 'Export', hint: 'PDF, JSON, remediate' }
-        ];
         const pathLabel = displayPath
             ? formatPathLabel(displayPath) || redactPathForDisplay(displayPath)
             : '';
         const hostedNote = hostedCtx.isHosted
-            ? '<p class="analyze-hero-hosted-note"><strong>Private scan</strong> — files stay in your browser unless you paste a public GitHub URL.</p>'
+            ? '<span class="analyze-hero-badge"><span aria-hidden="true">🔒</span> Private — files stay in your browser</span>'
             : '';
         return `
-      <header class="analyze-page-hero">
+      <header class="analyze-page-hero analyze-page-hero-compact">
         <div class="analyze-page-hero-text">
           <h1 class="analyze-page-title">Analyze</h1>
-          <p class="analyze-page-subtitle">Scan a project for security issues, quality gates, and remediation steps.</p>
+          <p class="analyze-page-subtitle">Scan for security issues, quality gates, and remediation steps.</p>
           ${hostedNote}
-          ${pathLabel ? `<p class="analyze-hero-active-path"><span class="analyze-hero-path-label">Target:</span> <code>${escapeHtml(pathLabel)}</code></p>` : ''}
         </div>
-        <ol class="analyze-step-rail" aria-label="Analysis steps">
-          ${steps.map((step, index) => {
-            let cls = 'analyze-step-rail-item';
-            if (index < stepIndex)
-                cls += ' is-done';
-            else if (index === stepIndex)
-                cls += ' is-current';
-            return `
-            <li class="${cls}">
-              <span class="analyze-step-rail-num">${index + 1}</span>
-              <span class="analyze-step-rail-body">
-                <span class="analyze-step-rail-label">${escapeHtml(step.label)}</span>
-                <span class="analyze-step-rail-hint">${escapeHtml(step.hint)}</span>
-              </span>
-            </li>`;
-        }).join('')}
-        </ol>
+        ${pathLabel ? `<div class="analyze-hero-path-chip"><span class="analyze-hero-path-icon"><i data-lucide="folder" class="icon-16"></i></span><code>${escapeHtml(pathLabel)}</code></div>` : ''}
       </header>`;
     }
     renderQuickActionsCard() {
@@ -1855,7 +1831,7 @@ export class AnalyzeView {
         return `
       <fieldset class="card analyze-target-redesign${hostedClass}" id="analyze-target-card" ${this.busy ? 'disabled' : ''}>
         <div class="target-header">
-          <span class="target-title"><span>1</span> Choose project</span>
+          <span class="target-title">Choose project</span>
           <span class="analyze-privacy-badge" title="Privacy mode is on — nothing leaves your browser unless you turn it off"><span aria-hidden="true">🔒</span> Private</span>
           <div class="analyze-path-header-actions">
             <button type="button" class="btn btn-ghost btn-sm" id="use-default-path-btn" ${useDefaultHidden}>Use default</button>
@@ -2115,11 +2091,13 @@ export class AnalyzeView {
         }
     }
     renderRunAnalyzeButtonLabel() {
-        if (this.analysisType !== 'complete')
+        if (this.analysisType !== 'complete' && this.analysisType !== 'custom')
             return 'Run analysis';
         const count = this.selectedEngines.length;
         if (!count)
             return 'Select engines';
+        if (this.analysisType === 'custom')
+            return `Run custom (${count})`;
         return `Run complete (${count})`;
     }
     renderClientDeliverablePicker() {
@@ -2587,7 +2565,7 @@ export class AnalyzeView {
     }
     renderSelectedEnginesQueuePanel() {
         const selected = new Set(this.selectedEngines);
-        const isCompleteMode = this.analysisType === 'complete';
+        const isCompleteMode = this.analysisType === 'complete' || this.analysisType === 'custom';
         const runOrder = isCompleteMode
             ? resolveEnginesForRun(this.selectedEngines)
             : this.selectedEngines.filter((id) => selected.has(id));
@@ -2716,14 +2694,22 @@ export class AnalyzeView {
                 : '~30 sec'
             : '';
         const PRIMARY_SCAN_TYPES = ['auto', 'complete', 'custom'];
+        const scanFeatures = {
+            'auto': ['Auto-detect', 'Gate scan', '~30 sec'],
+            'complete': ['10+ engines', 'Full audit', '~2-5 min'],
+            'custom': ['Pick engines', 'Flexible', 'Variable']
+        };
         const primaryCards = PRIMARY_SCAN_TYPES.map((value) => {
             const m = getAnalysisMode(value);
-            const active = this.analysisType === value || (value === 'auto' && this.analysisType === 'auto');
+            const active = this.analysisType === value;
+            const features = scanFeatures[value] || [];
+            const featuresHtml = features.map(f => `<span class="analyze-scan-type-feature">${escapeHtml(f)}</span>`).join('');
             return `
             <button type="button" class="analyze-scan-type-card ${active ? 'is-active' : ''} analyze-mode-chip" data-mode="${escapeHtml(value)}" title="${escapeHtml(m.desc)}">
               <span class="analyze-scan-type-icon">${m.icon}</span>
               <span class="analyze-scan-type-label">${escapeHtml(m.label)}</span>
-              <span class="analyze-scan-type-desc">${escapeHtml(m.tag || m.deliverable || '')}</span>
+              <span class="analyze-scan-type-desc">${escapeHtml(m.desc)}</span>
+              <span class="analyze-scan-type-features">${featuresHtml}</span>
             </button>`;
         }).join('');
         const moreModes = ANALYSIS_MODES.filter((m) => !PRIMARY_SCAN_TYPES.includes(m.value));
@@ -2740,7 +2726,7 @@ export class AnalyzeView {
         return `
       <fieldset class="analyze-mode-detail card" id="analyze-mode-detail" ${this.busy ? 'disabled' : ''}>
         <div class="target-header analyze-mode-header">
-          <span class="target-title"><span>2</span> Choose scan & run</span>
+          <span class="target-title">Choose scan & run</span>
         </div>
         <div class="analyze-scan-type-grid">
           ${primaryCards}
@@ -3425,7 +3411,7 @@ export class AnalyzeView {
             localBrowserScan: this._browserLocalScanActive || (sp === null || sp === void 0 ? void 0 : sp.phase) === 'local-browser' || (this.localMode && !this._progressScanPath)
         });
         let pct = 0;
-        if (this.analysisType === 'complete' && steps.length) {
+        if ((this.analysisType === 'complete' || this.analysisType === 'custom') && steps.length) {
             const stepPct = (doneCount / total) * 100;
             if ((sp === null || sp === void 0 ? void 0 : sp.total) && sp.processed != null) {
                 const stepFraction = 1 / total;
@@ -3683,7 +3669,7 @@ export class AnalyzeView {
             localBrowserScan: this._browserLocalScanActive || (sp === null || sp === void 0 ? void 0 : sp.phase) === 'local-browser' || (this.localMode && !this._progressScanPath)
         });
         let pct = 0;
-        if (this.analysisType === 'complete' && steps.length) {
+        if ((this.analysisType === 'complete' || this.analysisType === 'custom') && steps.length) {
             const stepPct = (doneCount / totalSteps) * 100;
             if ((sp === null || sp === void 0 ? void 0 : sp.total) && sp.processed != null) {
                 const stepFraction = 1 / totalSteps;
@@ -3726,7 +3712,7 @@ export class AnalyzeView {
             }
             const headerLabel = root.querySelector('.analyze-progress-label');
             if (headerLabel) {
-                const t = this.analysisType === 'complete' && steps.length
+                const t = (this.analysisType === 'complete' || this.analysisType === 'custom') && steps.length
                     ? (runningStep
                         ? `Step ${doneCount + 1}/${totalSteps}: ${runningStep.label}…`
                         : `Complete scan — ${doneCount}/${totalSteps} steps`)
