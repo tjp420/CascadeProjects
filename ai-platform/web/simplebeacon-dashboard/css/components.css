@@ -9013,6 +9013,38 @@ fieldset.analyze-mode-detail {
 .admin-modal label { display: block; font-size: 0.8rem; color: var(--text-muted); margin: 0.75rem 0 0.25rem; }
 .admin-modal .settings-input { width: 100%; }
 .admin-modal-actions { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.25rem; }
+.admin-details-header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-2); }
+.admin-modal-close { background: none; border: none; color: var(--text-muted); font-size: 1.5rem; line-height: 1; cursor: pointer; }
+.admin-modal-close:hover { color: var(--text-primary); }
+.admin-tabs { display: flex; gap: 0.25rem; border-bottom: 1px solid var(--border, #3d4556); margin: 0 -1.5rem 1rem; padding: 0 1.5rem; }
+.admin-tab { background: none; border: none; border-bottom: 2px solid transparent; color: var(--text-muted); padding: 0.5rem 0.75rem; font-size: 0.85rem; cursor: pointer; }
+.admin-tab:hover { color: var(--text-primary); }
+.admin-tab.active { color: var(--primary, #6366f1); border-bottom-color: var(--primary, #6366f1); }
+.admin-tab-body { padding-bottom: 0.5rem; }
+.admin-details-tab { display: flex; flex-direction: column; gap: 0.75rem; }
+.admin-details-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 0.5rem 1rem; margin: 0; }
+.admin-details-row { display: flex; flex-direction: column; gap: 0.15rem; padding: 0.5rem; background: rgba(255,255,255,0.02); border-radius: 6px; }
+.admin-details-row dt { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); }
+.admin-details-row dd { margin: 0; font-size: 0.85rem; color: var(--text-primary); word-break: break-word; }
+.admin-details-subtitle { margin: 0.5rem 0 0.25rem; font-size: 0.85rem; color: var(--text-muted); }
+.admin-token-row { display: flex; align-items: center; gap: 0.5rem; }
+.admin-token-row code { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; background: rgba(0,0,0,0.2); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.78rem; }
+.admin-account-badges { display: flex; flex-wrap: wrap; gap: 0.25rem; margin-top: 0.35rem; }
+.admin-chip, .admin-badge { display: inline-flex; align-items: center; font-size: 0.68rem; text-transform: uppercase; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 999px; letter-spacing: 0.03em; }
+.admin-chip { border: 1px solid var(--border, #3d4556); color: var(--text-muted); }
+.admin-chip.valid { background: rgba(46, 204, 113, 0.12); border-color: rgba(46, 204, 113, 0.35); color: #2ecc71; }
+.admin-chip.invalid { background: rgba(255, 107, 107, 0.12); border-color: rgba(255, 107, 107, 0.35); color: #ff6b6b; }
+.admin-chip.expired { background: rgba(255, 165, 0, 0.12); border-color: rgba(255, 165, 0, 0.35); color: #ffa500; }
+.admin-chip.inactive { background: rgba(100, 100, 100, 0.12); border-color: rgba(100, 100, 100, 0.35); color: #999; }
+.admin-badge { background: rgba(99, 102, 241, 0.12); border: 1px solid rgba(99, 102, 241, 0.35); color: #818cf8; }
+.admin-badge.status-valid, .admin-badge.status-online { background: rgba(46, 204, 113, 0.12); border-color: rgba(46, 204, 113, 0.35); color: #2ecc71; }
+.admin-badge.status-invalid, .admin-badge.status-offline, .admin-badge.status-suspended, .admin-badge.status-expired { background: rgba(255, 107, 107, 0.12); border-color: rgba(255, 107, 107, 0.35); color: #ff6b6b; }
+.admin-badge.status-unregistered, .admin-badge.status-inactive { background: rgba(100, 100, 100, 0.12); border-color: rgba(100, 100, 100, 0.35); color: #999; }
+.admin-badge.status-pending { background: rgba(255, 165, 0, 0.12); border-color: rgba(255, 165, 0, 0.35); color: #ffa500; }
+.admin-badge.trust-bronze { background: #5a3a1a; color: #ffcc99; border-color: #5a3a1a; }
+.admin-badge.trust-silver { background: #3a4a5a; color: #cceeff; border-color: #3a4a5a; }
+.admin-badge.trust-gold { background: #4a4a1a; color: #ffff99; border-color: #4a4a1a; }
+.admin-details-loading { padding: 1rem 0; }
 @media (max-width: 960px) {
   .admin-layout { grid-template-columns: 1fr; }
   .admin-sidebar { position: static; }

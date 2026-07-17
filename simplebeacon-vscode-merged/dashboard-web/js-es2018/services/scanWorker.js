@@ -81,10 +81,52 @@ const SIGNATURE_ENGINE = [
     severity: 'HIGH',
     regex: /xox[bapr]-[0-9]{12}-[0-9]{12}-[a-zA-Z0-9]{24}/g,
     msg: 'Slack API token detected.'
+  },
+  {
+    id: 'SBD-CONNECTION-STRING',
+    name: 'Hardcoded Connection String',
+    severity: 'HIGH',
+    regex: /(mongodb|postgres|postgresql|mysql|redis|amqp):\/\/[^\s'"`]{3,}:[^\s'"`]{3,}@[^\s'"`]+/gi,
+    msg: 'Hardcoded database/message-broker connection string with credentials detected.'
+  },
+  {
+    id: 'SBD-JWT',
+    name: 'Hardcoded JWT',
+    severity: 'HIGH',
+    regex: /eyJ[A-Za-z0-9_\-]{10,}\.eyJ[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}/g,
+    msg: 'Hardcoded JWT token detected.'
+  },
+  {
+    id: 'SB-07',
+    name: 'TODO/FIXME Accumulation',
+    severity: 'LOW',
+    regex: /\b(TODO|FIXME|HACK|XXX|BUG)\b/gi,
+    msg: 'TODO/FIXME marker found — track technical debt.'
+  },
+  {
+    id: 'SB-08',
+    name: 'Debug Console Statements',
+    severity: 'LOW',
+    regex: /\bconsole\.(log|debug|info|warn|error|trace)\s*\(/g,
+    msg: 'Debug console statement found — remove before production.'
+  },
+  {
+    id: 'SB-09',
+    name: 'Hardcoded IP Address',
+    severity: 'MEDIUM',
+    regex: /\b(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)\b/g,
+    msg: 'Hardcoded IP address found — use environment variables for configuration.'
+  },
+  {
+    id: 'SB-10',
+    name: 'Disabled Security Control',
+    severity: 'HIGH',
+    regex: /(verifyTLS\s*[:=]\s*false|rejectUnauthorized\s*[:=]\s*false|disableSSL|sslVerify\s*[:=]\s*false|NODE_TLS_REJECT_UNAUTHORIZED\s*[:=]\s*['"`]?0)/gi,
+    msg: 'TLS/SSL verification disabled — security control bypassed.'
   }
 ];
 
-const CREDENTIAL_RULE_IDS = new Set(['SB-01', 'SBD-AWS', 'SBD-GENERIC-SECRET', 'SBD-PRIVATE-KEY', 'SBD-SLACK']);
+const CREDENTIAL_RULE_IDS = new Set(['SB-01', 'SBD-AWS', 'SBD-GENERIC-SECRET', 'SBD-PRIVATE-KEY', 'SBD-SLACK', 'SBD-CONNECTION-STRING', 'SBD-JWT']);
 
 function normalizeSandboxScanPath(virtualPath) {
   const normalized = String(virtualPath || '').replace(/\\/g, '/');

@@ -180,11 +180,68 @@ export class ProfileView {
                 <h2>Security Keys</h2>
               </div>
               <div class="profile-card-body">
-                <p class="profile-help">Register a FIDO2 hardware key (YubiKey, Titan) or a built-in passkey (Windows Hello, Touch ID, Face ID). A regular USB flash drive will not work.</p>
-                <p class="profile-help">Click <strong>Add security key</strong>, name the key, then follow the browser prompt — choose your hardware key or <em>This device</em> for a passkey.</p>
-                <div id="security-keys-list" class="profile-security-keys-list">Loading security keys…</div>
-                <div class="profile-actions" style="margin-top:1rem;">
-                  <button type="button" class="btn btn-secondary btn-sm" id="security-key-add-btn"${isWebAuthnSupported() ? '' : ' disabled'}>Add security key</button>
+                <div id="security-keys-content">
+                  <div class="security-key-intro">
+                    <p class="profile-help">Add a security key for passwordless sign-in. You can use a hardware key (YubiKey, Titan), a built-in passkey (Windows Hello, Touch ID, Face ID), or a USB drive enrolled as a security key.</p>
+                    <div class="security-key-status-banner" id="security-key-server-status" style="display:none;"></div>
+                  </div>
+
+                  <div class="security-key-step-cards" id="security-key-type-grid" role="radiogroup" aria-label="Choose your security key type">
+                    <button type="button" class="security-key-type-card" data-key-type="hardware" role="radio" aria-checked="false">
+                      <div class="security-key-type-icon"><i data-lucide="usb" class="icon-24"></i></div>
+                      <div class="security-key-type-label">Hardware Key</div>
+                      <div class="security-key-type-desc">YubiKey, Titan, Feitian — USB or NFC</div>
+                    </button>
+                    <button type="button" class="security-key-type-card" data-key-type="platform" role="radio" aria-checked="false">
+                      <div class="security-key-type-icon"><i data-lucide="fingerprint" class="icon-24"></i></div>
+                      <div class="security-key-type-label">This Device</div>
+                      <div class="security-key-type-desc">Windows Hello, Touch ID, Face ID</div>
+                    </button>
+                    <button type="button" class="security-key-type-card" data-key-type="usb" role="radio" aria-checked="false">
+                      <div class="security-key-type-icon"><i data-lucide="hard-drive" class="icon-24"></i></div>
+                      <div class="security-key-type-label">USB Drive</div>
+                      <div class="security-key-type-desc">Enroll a USB flash drive via Windows Security settings</div>
+                    </button>
+                  </div>
+
+                  <div class="security-key-enroll" id="security-key-enroll-panel" style="display:none;">
+                    <div class="security-key-enroll-step">
+                      <div class="security-key-step-badge">2</div>
+                      <label for="security-key-name-input" class="security-key-name-label">Name this key</label>
+                      <input type="text" id="security-key-name-input" class="security-key-name-input" placeholder="e.g. Work YubiKey, Laptop Touch ID…" maxlength="40" />
+                    </div>
+                    <div class="security-key-enroll-step">
+                      <div class="security-key-step-badge">3</div>
+                      <div class="security-key-enroll-instructions" id="security-key-enroll-instructions">
+                        <p class="profile-help">Click <strong>Activate</strong> below, then follow your browser's prompt to tap your key or confirm with your biometric.</p>
+                      </div>
+                      <div class="security-key-enroll-actions">
+                        <button type="button" class="btn btn-secondary btn-sm" id="security-key-cancel-btn">Cancel</button>
+                        <button type="button" class="btn btn-primary btn-sm" id="security-key-activate-btn">Activate</button>
+                      </div>
+                    </div>
+                    <div class="security-key-waiting" id="security-key-waiting" style="display:none;">
+                      <div class="security-key-pulse"></div>
+                      <p>Waiting for your security key…</p>
+                      <p class="profile-help">Tap your key or confirm the browser prompt.</p>
+                    </div>
+                  </div>
+
+                  <div class="security-key-usb-help" id="security-key-usb-help" style="display:none;">
+                    <details>
+                      <summary class="profile-help">How to enroll a USB drive as a security key</summary>
+                      <ol class="security-key-usb-steps">
+                        <li>Insert your USB drive</li>
+                        <li>Open <strong>Settings → Accounts → Sign-in options → Security Key</strong></li>
+                        <li>Click <strong>Manage</strong> and follow the enrollment wizard</li>
+                        <li>Set a PIN for the USB key when prompted</li>
+                        <li>Come back here and click <strong>Activate</strong> above</li>
+                      </ol>
+                      <p class="profile-help">Windows will treat the enrolled USB drive as a FIDO2 security key. You can use it to sign in to SimpleBeacon without a password.</p>
+                    </details>
+                  </div>
+
+                  <div class="security-key-registered" id="security-keys-list" aria-live="polite">Loading security keys…</div>
                 </div>
                 <p id="security-keys-status" class="profile-help"></p>
               </div>
@@ -471,8 +528,59 @@ export class ProfileView {
             keys.forEach((k) => localStorage.removeItem(k));
             ((_b = (_a = this.app).showToast) === null || _b === void 0 ? void 0 : _b.call(_a, 'Local cache cleared', 'success')) || alert('Local cache cleared');
         });
+        // ── Security Keys — guided flow ──
         const securityKeysList = container.querySelector('#security-keys-list');
         const securityKeysStatus = container.querySelector('#security-keys-status');
+        const typeGrid = container.querySelector('#security-key-type-grid');
+        const enrollPanel = container.querySelector('#security-key-enroll-panel');
+        const usbHelp = container.querySelector('#security-key-usb-help');
+        const waitingEl = container.querySelector('#security-key-waiting');
+        const nameInput = container.querySelector('#security-key-name-input');
+        const activateBtn = container.querySelector('#security-key-activate-btn');
+        const cancelBtn = container.querySelector('#security-key-cancel-btn');
+        const serverStatusBanner = container.querySelector('#security-key-server-status');
+        let selectedKeyType = null;
+
+        // Check server WebAuthn availability
+        (async () => {
+            try {
+                const { apiBase } = await import('../services/authService.js?v=20260716cachefix1');
+                const res = await fetch(`${apiBase()}/api/webauthn/status`, { credentials: 'same-origin' });
+                if (res.status === 404) {
+                    if (serverStatusBanner) {
+                        serverStatusBanner.style.display = 'block';
+                        serverStatusBanner.className = 'security-key-status-banner security-key-status--error';
+                        serverStatusBanner.textContent = 'Security keys are not enabled on this server yet. Contact support to enable WebAuthn.';
+                    }
+                    if (typeGrid) typeGrid.style.opacity = '0.5';
+                    return;
+                }
+                const data = await res.json().catch(() => ({}));
+                if (data.success && data.storeWritable === false) {
+                    if (serverStatusBanner) {
+                        serverStatusBanner.style.display = 'block';
+                        serverStatusBanner.className = 'security-key-status-banner security-key-status--warn';
+                        serverStatusBanner.textContent = 'Security keys are enabled but the credential store is read-only on this server. Registration may fail.';
+                    }
+                }
+            } catch { /* offline or local — silently continue */ }
+        })();
+
+        function describeWebAuthnError(err) {
+            const msg = String(err?.name || err?.message || err || '').toLowerCase();
+            if (msg.includes('notallowed') || msg.includes('cancelled') || msg.includes('aborted'))
+                return 'The security key prompt was cancelled or timed out. Try again when you are ready.';
+            if (msg.includes('security') && msg.includes('https'))
+                return 'Security keys require HTTPS. This page must be served over a secure connection.';
+            if (msg.includes('notsupported') || msg.includes('not supported'))
+                return 'This browser does not support security keys. Try Chrome, Edge, Firefox, or Safari with the latest updates.';
+            if (msg.includes('404') || msg.includes('not enabled'))
+                return 'Security keys are not enabled on this server yet. Contact support to enable WebAuthn.';
+            if (msg.includes('network'))
+                return 'Network error while contacting the server. Check your connection and try again.';
+            return err?.message || String(err || 'Security key operation failed');
+        }
+
         const renderSecurityKeys = async () => {
             if (!securityKeysList)
                 return;
@@ -485,14 +593,14 @@ export class ProfileView {
                 return;
             }
             if (!isWebAuthnSupported()) {
-                securityKeysList.innerHTML = '<p class="profile-help">This browser does not support security keys.</p>';
+                securityKeysList.innerHTML = '<p class="profile-help">This browser does not support security keys. Try Chrome, Edge, Firefox, or Safari with the latest updates.</p>';
                 return;
             }
             securityKeysList.textContent = 'Loading security keys…';
             try {
                 const keys = await listSecurityKeys();
                 if (!keys.length) {
-                    securityKeysList.innerHTML = '<p class="profile-help">No security keys registered yet.</p>';
+                    securityKeysList.innerHTML = '<p class="profile-help">No security keys registered yet. Choose a key type above to get started.</p>';
                     return;
                 }
                 securityKeysList.innerHTML = keys.map((key) => `
@@ -501,58 +609,158 @@ export class ProfileView {
                 <strong>${escapeHtml(key.label || 'Security key')}</strong>
                 <span class="profile-help">${key.createdAt ? `Added ${escapeHtml(formatTimeAgo(key.createdAt))}` : ''}</span>
               </div>
-              <button type="button" class="btn btn-secondary btn-sm profile-security-key-remove" data-remove-key="${escapeHtml(key.id)}">Remove</button>
+              <div class="profile-security-key-actions">
+                <button type="button" class="btn btn-secondary btn-sm profile-security-key-test" data-test-key="${escapeHtml(key.id)}">Test</button>
+                <button type="button" class="btn btn-secondary btn-sm profile-security-key-remove" data-remove-key="${escapeHtml(key.id)}">Remove</button>
+              </div>
             </div>`).join('');
                 securityKeysList.querySelectorAll('[data-remove-key]').forEach((btn) => {
                     btn.addEventListener('click', async () => {
                         const credentialId = btn.getAttribute('data-remove-key');
-                        if (!credentialId || !confirm('Remove this security key? You will need to register it again to sign in with it.'))
+                        if (!credentialId)
                             return;
-                        btn.disabled = true;
-                        try {
-                            await removeSecurityKey(credentialId);
-                            showToast('Security key removed', 'success');
-                            await renderSecurityKeys();
+                        const row = btn.closest('.profile-security-key-row');
+                        if (row) {
+                            if (row.dataset.confirming === 'true') {
+                                btn.disabled = true;
+                                try {
+                                    await removeSecurityKey(credentialId);
+                                    showToast('Security key removed', 'success');
+                                    await renderSecurityKeys();
+                                }
+                                catch (err) {
+                                    showToast(describeWebAuthnError(err), 'error');
+                                    btn.disabled = false;
+                                    row.dataset.confirming = 'false';
+                                    btn.textContent = 'Remove';
+                                }
+                            } else {
+                                row.dataset.confirming = 'true';
+                                btn.textContent = 'Confirm?';
+                                setTimeout(() => {
+                                    if (row.dataset.confirming === 'true') {
+                                        row.dataset.confirming = 'false';
+                                        btn.textContent = 'Remove';
+                                    }
+                                }, 3000);
+                            }
                         }
-                        catch (err) {
-                            showToast(err.message || 'Failed to remove security key', 'error');
+                    });
+                });
+                securityKeysList.querySelectorAll('[data-test-key]').forEach((btn) => {
+                    btn.addEventListener('click', async () => {
+                        btn.disabled = true;
+                        const original = btn.textContent;
+                        btn.textContent = 'Testing…';
+                        try {
+                            const { authenticateWithSecurityKey } = await import('../services/webauthnService.js?v=20260716cachefix1');
+                            await authenticateWithSecurityKey();
+                            showToast('Security key verified successfully', 'success');
+                        } catch (err) {
+                            showToast(describeWebAuthnError(err), 'error');
+                        } finally {
                             btn.disabled = false;
+                            btn.textContent = original;
                         }
                     });
                 });
             }
             catch (err) {
-                securityKeysList.innerHTML = `<p class="profile-help">${escapeHtml(err.message || 'Could not load security keys')}</p>`;
+                securityKeysList.innerHTML = `<p class="profile-help">${escapeHtml(describeWebAuthnError(err))}</p>`;
             }
         };
-        container.querySelector('#security-key-add-btn')?.addEventListener('click', async () => {
-            const addBtn = container.querySelector('#security-key-add-btn');
-            if (!authService.getToken()) {
-                showToast('Sign in before adding a security key', 'error');
-                return;
-            }
-            const label = prompt('Name this security key (e.g. YubiKey, MacBook Touch ID):', 'Security key');
-            if (label === null)
-                return;
-            if (addBtn)
-                addBtn.disabled = true;
-            if (securityKeysStatus)
-                securityKeysStatus.textContent = 'Waiting for your security key…';
-            try {
-                await registerSecurityKey({ email, label: label.trim() || 'Security key' });
-                showToast('Security key registered', 'success');
-                await renderSecurityKeys();
-            }
-            catch (err) {
-                showToast(err.message || 'Security key registration failed', 'error');
-            }
-            finally {
-                if (addBtn)
-                    addBtn.disabled = false;
-                if (securityKeysStatus)
-                    securityKeysStatus.textContent = '';
-            }
-        });
+
+        // Key type selection
+        if (typeGrid) {
+            typeGrid.querySelectorAll('.security-key-type-card').forEach((card) => {
+                card.addEventListener('click', () => {
+                    if (!authService.getToken()) {
+                        showToast('Sign in before adding a security key', 'error');
+                        return;
+                    }
+                    if (!userHasJwtForAiKeys()) {
+                        showToast('Security keys require email/password sign-in', 'error');
+                        return;
+                    }
+                    if (!isWebAuthnSupported()) {
+                        showToast('This browser does not support security keys', 'error');
+                        return;
+                    }
+                    // Deselect siblings
+                    typeGrid.querySelectorAll('.security-key-type-card').forEach((c) => {
+                        c.classList.remove('selected');
+                        c.setAttribute('aria-checked', 'false');
+                    });
+                    card.classList.add('selected');
+                    card.setAttribute('aria-checked', 'true');
+                    selectedKeyType = card.dataset.keyType || 'hardware';
+                    // Show enroll panel
+                    if (enrollPanel) enrollPanel.style.display = 'block';
+                    if (nameInput) { nameInput.value = ''; nameInput.focus(); }
+                    // Show USB help for USB type
+                    if (usbHelp) usbHelp.style.display = selectedKeyType === 'usb' ? 'block' : 'none';
+                    // Update instructions
+                    const instructions = container.querySelector('#security-key-enroll-instructions');
+                    if (instructions) {
+                        const labels = {
+                            hardware: 'Insert your hardware key (YubiKey, Titan, etc.), then click Activate. Tap the key when your browser prompts you.',
+                            platform: 'Click Activate, then confirm with Windows Hello, Touch ID, or Face ID when your browser prompts you.',
+                            usb: 'Make sure your USB drive is enrolled as a security key in Windows Settings first. Then click Activate and tap it when prompted.'
+                        };
+                        instructions.innerHTML = `<p class="profile-help">${labels[selectedKeyType] || labels.hardware}</p>`;
+                    }
+                });
+            });
+        }
+
+        // Cancel button
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', () => {
+                if (enrollPanel) enrollPanel.style.display = 'none';
+                if (waitingEl) waitingEl.style.display = 'none';
+                if (usbHelp) usbHelp.style.display = 'none';
+                if (typeGrid) typeGrid.querySelectorAll('.security-key-type-card').forEach((c) => {
+                    c.classList.remove('selected');
+                    c.setAttribute('aria-checked', 'false');
+                });
+                selectedKeyType = null;
+            });
+        }
+
+        // Activate button — triggers WebAuthn registration
+        if (activateBtn) {
+            activateBtn.addEventListener('click', async () => {
+                if (!authService.getToken()) {
+                    showToast('Sign in before adding a security key', 'error');
+                    return;
+                }
+                const label = (nameInput?.value?.trim()) || (selectedKeyType === 'platform' ? 'This device' : selectedKeyType === 'usb' ? 'USB drive' : 'Security key');
+                activateBtn.disabled = true;
+                if (waitingEl) waitingEl.style.display = 'flex';
+                if (securityKeysStatus) securityKeysStatus.textContent = '';
+                try {
+                    await registerSecurityKey({ email, label });
+                    showToast('Security key registered successfully', 'success');
+                    if (enrollPanel) enrollPanel.style.display = 'none';
+                    if (waitingEl) waitingEl.style.display = 'none';
+                    if (usbHelp) usbHelp.style.display = 'none';
+                    if (typeGrid) typeGrid.querySelectorAll('.security-key-type-card').forEach((c) => {
+                        c.classList.remove('selected');
+                        c.setAttribute('aria-checked', 'false');
+                    });
+                    selectedKeyType = null;
+                    await renderSecurityKeys();
+                }
+                catch (err) {
+                    showToast(describeWebAuthnError(err), 'error');
+                }
+                finally {
+                    activateBtn.disabled = false;
+                    if (waitingEl) waitingEl.style.display = 'none';
+                }
+            });
+        }
+
         renderSecurityKeys();
         container.querySelector('#profile-stockpile-add')?.addEventListener('click', () => {
             const input = container.querySelector('#profile-stockpile-input');

@@ -26,7 +26,15 @@ function normalizeUser(row) {
         communityContributions: row.communityContributions || 0,
         createdAt: row.createdAt || row.created_at || null,
         online: Boolean(row.online),
-        lastSeen: row.lastSeen || null
+        lastSeen: row.lastSeen || null,
+        hasLicenseToken: Boolean(row.hasLicenseToken),
+        hasActiveSubscription: Boolean(row.hasActiveSubscription),
+        tokenTier: row.tokenTier || '',
+        tokenValid: Boolean(row.tokenValid),
+        tokenRegistered: Boolean(row.tokenRegistered),
+        tokenExpired: Boolean(row.tokenExpired),
+        subscriptionStatus: row.subscriptionStatus || '',
+        plan: row.plan || ''
     };
 }
 
@@ -555,6 +563,189 @@ export class AdminPanelView {
         });
     }
 
+    openDetailsModal(id) {
+        const user = this.users.find(u => u.id === id);
+        if (!user) return;
+        const overlay = document.createElement('div');
+        overlay.className = 'admin-modal-overlay';
+        overlay.innerHTML = `
+            <div class="admin-modal admin-details-modal" role="dialog" aria-modal="true" style="max-width:720px;max-height:90vh;overflow:auto;">
+                <h3>Account details</h3>
+                <p class="text-muted">${escapeHtml(user.name || user.email)}</p>
+                <div class="admin-details-loading"><div class="skeleton-row" style="width:60%"></div><div class="skeleton-row" style="width:80%"></div></div>
+            </div>`;
+        document.body.appendChild(overlay);
+        const close = () => overlay.remove();
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+
+        this.adminFetch(`/api/admin/users/${encodeURIComponent(id)}/details`)
+            .then(async (res) => {
+                if (!res.ok) throw new Error(`Details API ${res.status}`);
+                const data = await res.json();
+                if (!data || !data.user) throw new Error('No details returned');
+                overlay.innerHTML = this.renderDetailsModal(user, data);
+                this.bindDetailsModal(overlay, data);
+            })
+            .catch((err) => {
+                overlay.innerHTML = `
+                    <div class="admin-modal admin-details-modal" role="dialog" aria-modal="true">
+                        <h3>Account details</h3>
+                        <p class="text-danger">${escapeHtml(err.message || 'Failed to load details')}</p>
+                        <button class="btn btn-secondary" id="admin-details-close" type="button">Close</button>
+                    </div>`;
+                overlay.querySelector('#admin-details-close')?.addEventListener('click', close);
+            });
+    }
+
+    renderDetailsModal(user, data) {
+        const u = data.user || {};
+        const token = data.token || {};
+        const billing = data.billing || {};
+        const sessions = data.sessions || [];
+        return `
+            <div class="admin-modal admin-details-modal" role="dialog" aria-modal="true" style="max-width:720px;max-height:90vh;overflow:auto;">
+                <div class="admin-details-header">
+                    <h3>Account details</h3>
+                    <button class="admin-modal-close" id="admin-details-close" type="button" aria-label="Close">&times;</button>
+                </div>
+                <div class="admin-tabs" id="admin-details-tabs">
+                    <button class="admin-tab active" data-tab="overview" type="button">Overview</button>
+                    <button class="admin-tab" data-tab="token" type="button">Token</button>
+                    <button class="admin-tab" data-tab="billing" type="button">Billing</button>
+                    <button class="admin-tab" data-tab="activity" type="button">Activity</button>
+                </div>
+                <div class="admin-tab-body active" data-tab-body="overview">
+                    ${this.renderOverviewTab(user, u)}
+                </div>
+                <div class="admin-tab-body" data-tab-body="token" style="display:none;">
+                    ${this.renderTokenTab(token)}
+                </div>
+                <div class="admin-tab-body" data-tab-body="billing" style="display:none;">
+                    ${this.renderBillingTab(billing)}
+                </div>
+                <div class="admin-tab-body" data-tab-body="activity" style="display:none;">
+                    ${this.renderActivityTab(sessions)}
+                </div>
+            </div>`;
+    }
+
+    renderOverviewTab(user, u) {
+        const statusClass = String(u.status || 'active').toLowerCase() === 'active' ? 'status-online' : 'status-offline';
+        const items = [
+            ['Account ID', u.id || '—'],
+            ['Email', u.email || '—'],
+            ['Display name', u.name || '—'],
+            ['Trust tier', this.badge(u.trustLevel, 'trust-' + (u.trustLevel || 'bronze'))],
+            ['Account status', this.badge(u.status, 'status-' + statusClass)],
+            ['Verification', this.badge(u.verificationStatus, 'status-' + statusClass)],
+            ['Online now', u.online ? 'Yes' : 'No'],
+            ['Last seen', this.formatDate(u.lastSeen) + (u.lastSeen ? ' (' + this.formatRelative(u.lastSeen) + ')' : '')],
+            ['Created', this.formatDate(u.createdAt)],
+            ['Successful analyses', u.successfulAnalyses || 0],
+            ['Security incidents', u.securityIncidents || 0],
+            ['Community contributions', u.communityContributions || 0]
+        ];
+        return `<div class="admin-details-tab">${this.renderKV(items)}</div>`;
+    }
+
+    renderTokenTab(token) {
+        if (!token || !token.hasLicenseToken) {
+            return `<div class="admin-details-tab"><p class="text-muted">No license token registered for this account.</p></div>`;
+        }
+        const status = token.tokenStatus || {};
+        const statusBadge = status.valid
+            ? this.badge('Valid', 'status-valid')
+            : status.registered
+                ? this.badge(status.expired ? 'Expired' : 'Invalid', 'status-' + (status.expired ? 'expired' : 'invalid'))
+                : this.badge('Unregistered', 'status-unregistered');
+        const tokenRow = token.licenseTokenFull
+            ? `<div class="admin-token-row"><code class="admin-token-value" data-masked="${escapeHtml(token.licenseToken || '')}" data-full="${escapeHtml(token.licenseTokenFull)}">${escapeHtml(token.licenseToken || '')}</code><button class="btn btn-ghost btn-sm" id="admin-reveal-token" type="button">Reveal</button></div>`
+            : `<code>${escapeHtml(token.licenseToken || '—')}</code>`;
+        const apiTokenRow = token.apiTokenFull
+            ? `<div class="admin-token-row"><code class="admin-token-value" data-masked="${escapeHtml(token.apiToken || '')}" data-full="${escapeHtml(token.apiTokenFull)}">${escapeHtml(token.apiToken || '')}</code><button class="btn btn-ghost btn-sm" id="admin-reveal-api" type="button">Reveal</button></div>`
+            : `<code>${escapeHtml(token.apiToken || '—')}</code>`;
+        const items = [
+            ['License token', tokenRow],
+            ['API token', apiTokenRow],
+            ['Token status', statusBadge],
+            ['Token tier', this.badge(token.tokenTier || 'community', 'tier')],
+            ['Registered', this.formatDate(token.registeredAt || status.registeredAt)],
+            ['Issued', this.formatDate(status.issuedAt)],
+            ['Expires', this.formatDate(status.expiresAt) + (status.expiringSoon ? ' <span class="status-badge expired">Expiring soon</span>' : '')],
+            ['Scan quota', token.scanQuota != null ? token.scanQuota : '—'],
+            ['Scans this period', token.scansThisPeriod != null ? token.scansThisPeriod : '—'],
+            ['API calls this period', token.apiCallsThisPeriod != null ? token.apiCallsThisPeriod : '—'],
+            ['Features', Array.isArray(status.features) && status.features.length ? status.features.map(f => `<span class="admin-chip">${escapeHtml(f)}</span>`).join(' ') : '—']
+        ];
+        return `<div class="admin-details-tab">${this.renderKV(items)}</div>`;
+    }
+
+    renderBillingTab(billing) {
+        if (!billing || !billing.hasCustomer) {
+            return `<div class="admin-details-tab"><p class="text-muted">No billing record found for this account.</p></div>`;
+        }
+        const statusClass = billing.subscriptionStatus || 'inactive';
+        const items = [
+            ['Subscription status', this.badge(billing.subscriptionStatus, 'status-' + statusClass)],
+            ['Plan / tier', billing.plan || '—'],
+            ['Stripe customer', `<code>${escapeHtml(billing.stripeCustomerId || '—')}</code>`],
+            ['Customer since', this.formatDate(billing.createdAt)],
+            ['Last updated', this.formatDate(billing.updatedAt)]
+        ];
+        const subs = (billing.subscriptions || []).length
+            ? `<table class="admin-table"><thead><tr><th>Subscription ID</th><th>Price</th><th>Status</th><th>Period</th></tr></thead><tbody>` +
+              billing.subscriptions.map((s) => `<tr><td><code>${escapeHtml(s.stripeSubscriptionId || '—')}</code></td><td><code>${escapeHtml(s.stripePriceId || '—')}</code></td><td>${this.badge(s.status, 'status-' + s.status)}</td><td>${this.formatDate(s.currentPeriodStart)} – ${this.formatDate(s.currentPeriodEnd)}</td></tr>`).join('') +
+              `</tbody></table>`
+            : '<p class="text-muted">No Stripe subscriptions.</p>';
+        const refunds = (billing.refunds || []).length
+            ? `<table class="admin-table"><thead><tr><th>Amount</th><th>Reason</th><th>Status</th><th>Date</th></tr></thead><tbody>` +
+              billing.refunds.map((r) => `<tr><td>${escapeHtml(r.amount || '—')}</td><td>${escapeHtml(r.reason || '—')}</td><td>${this.badge(r.status, 'status-' + (r.status || 'pending'))}</td><td>${this.formatDate(r.createdAt)}</td></tr>`).join('') +
+              `</tbody></table>`
+            : '<p class="text-muted">No refunds.</p>';
+        return `<div class="admin-details-tab">${this.renderKV(items)}<h4 class="admin-details-subtitle">Subscriptions</h4>${subs}<h4 class="admin-details-subtitle">Refunds</h4>${refunds}</div>`;
+    }
+
+    renderActivityTab(sessions) {
+        if (!sessions || !sessions.length) {
+            return `<div class="admin-details-tab"><p class="text-muted">No active sessions for this account.</p></div>`;
+        }
+        const rows = sessions.map((s) => `<tr><td><code>${escapeHtml(s.id || '—')}</code></td><td>${s.online ? 'Online' : 'Offline'}</td><td>${this.formatDate(s.lastSeen)}</td><td>${this.formatDate(s.createdAt)}</td></tr>`).join('');
+        return `<div class="admin-details-tab"><table class="admin-table"><thead><tr><th>Session ID</th><th>Status</th><th>Last seen</th><th>Created</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    }
+
+    renderKV(items) {
+        return `<dl class="admin-details-grid">${items.map(([k, v]) => `<div class="admin-details-row"><dt>${escapeHtml(k)}</dt><dd>${v != null ? v : '—'}</dd></div>`).join('')}</dl>`;
+    }
+
+    badge(value, type) {
+        return `<span class="admin-badge ${escapeHtml(type)}">${escapeHtml(value || '')}</span>`;
+    }
+
+    bindDetailsModal(overlay, data) {
+        const closeBtn = overlay.querySelector('#admin-details-close');
+        if (closeBtn) closeBtn.addEventListener('click', () => overlay.remove());
+        overlay.querySelectorAll('.admin-tab').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const tab = btn.dataset.tab;
+                overlay.querySelectorAll('.admin-tab').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                overlay.querySelectorAll('.admin-tab-body').forEach(b => {
+                    if (b.dataset.tabBody === tab) { b.classList.add('active'); b.style.display = 'block'; }
+                    else { b.classList.remove('active'); b.style.display = 'none'; }
+                });
+            });
+        });
+        overlay.querySelectorAll('#admin-reveal-token, #admin-reveal-api').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const code = btn.previousElementSibling;
+                if (!code) return;
+                const isMasked = code.textContent === code.dataset.masked;
+                code.textContent = isMasked ? code.dataset.full : code.dataset.masked;
+                btn.textContent = isMasked ? 'Hide' : 'Reveal';
+            });
+        });
+    }
+
     getFilteredUsers() {
         return this.users;
     }
@@ -832,6 +1023,12 @@ export class AdminPanelView {
             const accountStatus = String(u.status || 'active').toLowerCase();
             const pending = accountStatus === 'pending';
             const suspended = accountStatus === 'suspended';
+            const tokenBadge = u.hasLicenseToken
+                ? `<span class="admin-chip ${u.tokenExpired ? 'expired' : u.tokenValid ? 'valid' : 'invalid'}" title="Token: ${u.tokenRegistered ? (u.tokenValid ? 'valid' : (u.tokenExpired ? 'expired' : 'invalid')) : 'unregistered'}">Token ${u.tokenRegistered ? (u.tokenValid ? 'Valid' : (u.tokenExpired ? 'Expired' : 'Invalid')) : '—'}</span>`
+                : '';
+            const billingBadge = u.subscriptionStatus
+                ? `<span class="admin-chip ${u.hasActiveSubscription ? 'valid' : 'inactive'}">${escapeHtml(u.subscriptionStatus)}${u.plan ? ` · ${escapeHtml(u.plan)}` : ''}</span>`
+                : '';
             return `
                 <tr data-user-id="${escapeHtml(u.id)}" class="${suspended || pending ? 'admin-row-suspended' : ''}">
                     <td>
@@ -843,6 +1040,7 @@ export class AdminPanelView {
                         <span class="status-dot ${sc}">${st}</span>${lastMeta}
                         ${pending ? '<span class="admin-status-badge suspended">Pending approval</span>' : ''}
                         ${suspended ? '<span class="admin-status-badge suspended">Suspended</span>' : ''}
+                        <div class="admin-account-badges">${tokenBadge}${billingBadge}</div>
                     </td>
                     <td>${u.successfulAnalyses || 0}</td>
                     ${showIncidents ? `<td>${u.securityIncidents || 0}</td>` : ''}
@@ -851,6 +1049,7 @@ export class AdminPanelView {
                         <div class="admin-actions">
                             <button class="btn btn-secondary btn-sm admin-actions-toggle" type="button" data-id="${escapeHtml(u.id)}">Actions ▾</button>
                             <div class="admin-actions-menu" data-menu-id="${escapeHtml(u.id)}">
+                                <button class="admin-action-item" data-action="details" data-id="${escapeHtml(u.id)}">Details</button>
                                 <button class="admin-action-item" data-action="edit" data-id="${escapeHtml(u.id)}">Edit</button>
                                 <button class="admin-action-item" data-action="tier" data-id="${escapeHtml(u.id)}">Change tier</button>
                                 ${(suspended || pending)
@@ -980,6 +1179,7 @@ export class AdminPanelView {
                 else if (action === 'tier') this.openTierModal(id);
                 else if (action === 'edit') this.openEditModal(id);
                 else if (action === 'refund') this.openRefundModal(id);
+                else if (action === 'details') this.openDetailsModal(id);
             });
         });
         if (this._docClickHandler) {

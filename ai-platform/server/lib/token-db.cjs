@@ -208,6 +208,18 @@ function getLicenseToken(token) {
     return db.license_tokens.find((t) => t.token === token) || null;
 }
 
+function getLicenseTokensByEmail(email) {
+    const normalized = String(email || '').trim().toLowerCase();
+    if (!normalized) return [];
+    const db = loadDb();
+    return db.license_tokens.filter((t) => String(t.email || '').trim().toLowerCase() === normalized);
+}
+
+function getAllLicenseTokens() {
+    const db = loadDb();
+    return db.license_tokens || [];
+}
+
 function insertLicenseToken(entry) {
     return withDbQueued((db) => {
         db.license_tokens.push(entry);
@@ -252,6 +264,8 @@ module.exports = {
     insertRecoveryFactor,
     // License Tokens
     getLicenseToken,
+    getLicenseTokensByEmail,
+    getAllLicenseTokens,
     insertLicenseToken,
     updateLicenseToken,
     // Audit

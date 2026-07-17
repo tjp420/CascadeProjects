@@ -9,6 +9,9 @@ const { getActiveUsers } = require('../lib/session-activity.cjs');
 const { authenticate } = require('../middleware/auth.cjs');
 const { verifyPassword } = require('../lib/auth/password-service.cjs');
 const crypto = require('crypto');
+const tokenDb = require('../lib/token-db.cjs');
+const { getSubscriptionByEmail, readStore } = require('../lib/simplebeacon-subscription-store.cjs');
+const { validateLicenseToken, isTokenExpiringSoon } = require('../../../packages/simplebeacon-cli/src/lib/license-token.js');
 
 let stripe = null;
 try { stripe = require('stripe')(process.env.STRIPE_SECRET_KEY || ''); } catch { stripe = null; }
@@ -175,6 +178,239 @@ function mapPgAdminUser(row) {
     communityContributions: row.community_contributions,
     createdAt: row.created_at
   };
+}
+
+function maskToken(value) {
+  const s = String(value || '');
+  if (!s) return '';
+  if (s.length <= 12) return '*'.repeat(s.length);
+  return `${s.slice(0, 6)}...${s.slice(-6)}`;
+}
+
+function getLicenseSecret() {
+  return process.env.SIMPLEBEACON_LICENSE_SECRET || 'simplebeacon-dev-insecure';
+}
+
+function getLicenseTokenStatus(token) {
+  if (!token || typeof token !== 'string') {
+    return { present: false, valid: false, registered: false, expired: false, error: 'No token' };
+  }
+  const validation = validateLicenseToken(token, getLicenseSecret());
+  const nowSec = Math.floor(Date.now() / 1000);
+  const base = {
+    present: true,
+    tokenPreview: maskToken(token)
+  };
+  if (validation.valid) {
+    const claims = validation.claims || {};
+    const expired = claims.exp && nowSec > claims.exp;
+    return {
+      ...base,
+      valid: true,
+      registered: true,
+      expired,
+      expiringSoon: !expired && isTokenExpiringSoon(token, 1440),
+      expiresAt: claims.exp ? new Date(claims.exp * 1000).toISOString() : null,
+      issuedAt: claims.iat ? new Date(claims.iat * 1000).toISOString() : null,
+      tier: claims.tier || null,
+      email: claims.sub || claims.email || null,
+      features: Array.isArray(claims.features) ? claims.features : [],
+      scanQuota: Number.isFinite(claims.scanQuota) ? claims.scanQuota : null
+    };
+  }
+  const entry = tokenDb.getLicenseToken(token);
+  if (entry) {
+    const claims = validation.claims || {};
+    const expired = claims.exp && nowSec > claims.exp;
+    return {
+      ...base,
+      valid: false,
+      registered: true,
+      expired,
+      expiringSoon: false,
+      expiresAt: claims.exp ? new Date(claims.exp * 1000).toISOString() : null,
+      registeredAt: entry.registered_at || null,
+      tier: entry.tier || claims.tier || null,
+      email: entry.email || claims.sub || claims.email || null,
+      error: validation.error || 'Invalid signature'
+    };
+  }
+  return {
+    ...base,
+    valid: false,
+    registered: false,
+    expired: false,
+    error: validation.error || 'Invalid or unregistered token'
+  };
+}
+
+function normalizeStatusLabel(status) {
+  const s = String(status || '').toLowerCase();
+  if (s === 'active' || s === 'inactive' || s === 'past_due' || s === 'canceled' || s === 'refunded' || s === 'suspended' || s === 'pending') return s;
+  return 'inactive';
+}
+
+async function getTokenDetailsForUser(email) {
+  const normalized = String(email || '').trim().toLowerCase();
+  if (!normalized) return null;
+  const [subscription, registryTokens] = await Promise.all([
+    getSubscriptionByEmail(normalized).catch(() => null),
+    Promise.resolve(tokenDb.getLicenseTokensByEmail(normalized))
+  ]);
+  const licenseToken = subscription?.licenseToken || registryTokens[0]?.token || null;
+  const apiToken = subscription?.apiToken || null;
+  const tokenStatus = getLicenseTokenStatus(licenseToken);
+  return {
+    licenseToken: licenseToken ? maskToken(licenseToken) : null,
+    licenseTokenFull: licenseToken || null,
+    apiToken: apiToken ? maskToken(apiToken) : null,
+    apiTokenFull: apiToken || null,
+    hasLicenseToken: Boolean(licenseToken),
+    hasApiToken: Boolean(apiToken),
+    tokenTier: tokenStatus.tier || subscription?.licenseTier || subscription?.tier || registryTokens[0]?.tier || 'community',
+    tokenStatus: tokenStatus,
+    scanQuota: tokenStatus.scanQuota || subscription?.scanQuota || null,
+    scansThisPeriod: Number.isFinite(subscription?.scansThisPeriod) ? subscription.scansThisPeriod : null,
+    apiCallsThisPeriod: Number.isFinite(subscription?.apiCallsThisPeriod) ? subscription.apiCallsThisPeriod : null,
+    periodStart: subscription?.periodStart || null,
+    periodEnd: subscription?.periodEnd || null,
+    registeredAt: registryTokens[0]?.registered_at || subscription?.updatedAt || null
+  };
+}
+
+function getBillingDetailsForUser(email) {
+  const normalized = String(email || '').trim().toLowerCase();
+  if (!normalized) return null;
+  const sqlite = getSqliteDb();
+  let customer = null;
+  let subscriptions = [];
+  let refunds = [];
+  if (sqlite) {
+    try {
+      const allCustomers = sqlite.getAllCustomers ? sqlite.getAllCustomers() : [];
+      customer = allCustomers.find((c) => String(c.email || '').trim().toLowerCase() === normalized) || null;
+      const allSubs = sqlite.getAllPaidSubscriptions ? sqlite.getAllPaidSubscriptions() : [];
+      subscriptions = allSubs.filter((s) => String(s.customer_email || '').trim().toLowerCase() === normalized);
+      refunds = sqlite.getRefundsForCustomer ? sqlite.getRefundsForCustomer(normalized) : [];
+    } catch (err) {
+      logger.warn('[AdminAPI] billing lookup failed:', err.message);
+    }
+  }
+  const primary = subscriptions.find((s) => s.status === 'active') || subscriptions[0] || null;
+  return {
+    hasCustomer: Boolean(customer),
+    stripeCustomerId: customer?.stripe_customer_id || primary?.stripe_customer_id || null,
+    subscriptionStatus: normalizeStatusLabel(customer?.subscription_status || primary?.status),
+    plan: customer?.tier || primary?.stripe_price_id || 'community',
+    subscriptions: subscriptions.map((s) => ({
+      stripeSubscriptionId: s.stripe_subscription_id || null,
+      stripePriceId: s.stripe_price_id || null,
+      status: normalizeStatusLabel(s.status),
+      currentPeriodStart: s.current_period_start || null,
+      currentPeriodEnd: s.current_period_end || null,
+      createdAt: s.created_at || null
+    })),
+    refunds: (refunds || []).map((r) => ({
+      stripeSubscriptionId: r.stripe_subscription_id || null,
+      amount: r.amount || null,
+      reason: r.reason || null,
+      status: r.status || null,
+      createdAt: r.created_at || null
+    })),
+    createdAt: customer?.created_at || null,
+    updatedAt: customer?.updated_at || null
+  };
+}
+
+async function buildAccountDetails(user, db) {
+  const email = String(user.email || '').trim().toLowerCase();
+  const [tokenDetails, billingDetails] = await Promise.all([
+    getTokenDetailsForUser(email),
+    Promise.resolve(getBillingDetailsForUser(email))
+  ]);
+  const sessions = getActiveUsers().filter((s) => String(s.email || '').trim().toLowerCase() === email);
+  return {
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      status: user.status,
+      trustLevel: user.trustLevel,
+      verificationStatus: user.verificationStatus,
+      successfulAnalyses: user.successfulAnalyses,
+      securityIncidents: user.securityIncidents,
+      communityContributions: user.communityContributions,
+      createdAt: user.createdAt,
+      online: user.online,
+      lastSeen: user.lastSeen
+    },
+    token: tokenDetails,
+    billing: billingDetails,
+    sessions: sessions.map((s) => ({
+      id: s.id || s.sessionId || null,
+      email: s.email || s.userEmail || null,
+      online: Boolean(s.online),
+      lastSeen: s.lastSeen || s.last_seen || null,
+      createdAt: s.createdAt || s.created_at || null
+    }))
+  };
+}
+
+async function enrichUserHints(users, _db) {
+  const [store, licenseTokens] = await Promise.all([
+    readStore().catch(() => ({ subscriptions: {}, byApiToken: {} })),
+    Promise.resolve(tokenDb.getAllLicenseTokens())
+  ]);
+  const byEmail = new Map();
+  for (const [email, sub] of Object.entries(store.subscriptions || {})) {
+    byEmail.set(String(email).toLowerCase(), sub);
+  }
+  const tokensByEmail = new Map();
+  for (const t of licenseTokens) {
+    const key = String(t.email || '').trim().toLowerCase();
+    if (!key) continue;
+    if (!tokensByEmail.has(key)) tokensByEmail.set(key, t);
+  }
+  return users.map((u) => {
+    const email = String(u.email || '').trim().toLowerCase();
+    const sub = byEmail.get(email) || null;
+    const tokenEntry = tokensByEmail.get(email) || null;
+    const licenseToken = sub?.licenseToken || tokenEntry?.token || null;
+    const tokenStatus = licenseToken ? getLicenseTokenStatus(licenseToken) : { present: false, valid: false, registered: false, expired: false };
+    const sqlite = getSqliteDb();
+    let subscriptionStatus = 'inactive';
+    let plan = sub?.licenseTier || sub?.tier || tokenEntry?.tier || 'community';
+    if (sqlite) {
+      try {
+        const customers = sqlite.getAllCustomers ? sqlite.getAllCustomers() : [];
+        const customer = customers.find((c) => String(c.email || '').trim().toLowerCase() === email);
+        if (customer) {
+          subscriptionStatus = normalizeStatusLabel(customer.subscription_status);
+          plan = customer.tier || plan;
+        } else {
+          const subs = sqlite.getAllPaidSubscriptions ? sqlite.getAllPaidSubscriptions() : [];
+          const match = subs.find((s) => String(s.customer_email || '').trim().toLowerCase() === email);
+          if (match) {
+            subscriptionStatus = normalizeStatusLabel(match.status);
+            plan = match.stripe_price_id || plan;
+          }
+        }
+      } catch (err) {
+        logger.warn('[AdminAPI] enrich billing hint failed:', err.message);
+      }
+    }
+    return {
+      ...u,
+      hasLicenseToken: Boolean(licenseToken),
+      hasActiveSubscription: subscriptionStatus === 'active',
+      tokenTier: tokenStatus.tier || sub?.licenseTier || sub?.tier || tokenEntry?.tier || 'community',
+      subscriptionStatus,
+      plan,
+      tokenValid: tokenStatus.valid,
+      tokenRegistered: tokenStatus.registered,
+      tokenExpired: tokenStatus.expired
+    };
+  });
 }
 
 function parseAdminUserListQuery(req) {
@@ -442,10 +678,11 @@ function setupAdminAPI(app, options = {}) {
           lastSeen: activity ? activity.lastSeen : null
         };
       });
+      const usersWithHints = await enrichUserHints(enriched, db);
 
       return res.json({
         success: true,
-        users: enriched,
+        users: usersWithHints,
         total: page.total,
         limit: page.limit,
         hasMore: page.hasMore,
@@ -456,6 +693,49 @@ function setupAdminAPI(app, options = {}) {
       });
     } catch (err) {
       logger.warn('[AdminAPI] users failed:', err.message);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  router.get('/users/:id/details', async (req, res) => {
+    if (!isAdmin(req)) {
+      return res.status(403).json({ success: false, error: 'Forbidden' });
+    }
+    try {
+      const id = String(req.params.id || '');
+      if (!id) return res.status(400).json({ success: false, error: 'User id required' });
+
+      let user = null;
+      if (db) {
+        const result = await db.query(
+          `SELECT id, email, name, trust_level, status, verification_status,
+                  successful_analyses, security_incidents, community_contributions,
+                  created_at, updated_at
+           FROM users WHERE id = $1 LIMIT 1`,
+          [id]
+        );
+        if (result.rows[0]) user = mapPgAdminUser(result.rows[0]);
+      }
+      if (!user) {
+        const all = await loadAdminUsers(db);
+        user = all.find((u) => String(u.id) === id) || null;
+      }
+      if (!user) {
+        return res.status(404).json({ success: false, error: 'User not found' });
+      }
+
+      const active = getActiveUsers();
+      const activity = active.find((a) => a.userId === user.id || a.email === user.email) || null;
+      const userWithActivity = {
+        ...user,
+        online: activity ? activity.online : false,
+        lastSeen: activity ? activity.lastSeen : null
+      };
+
+      const details = await buildAccountDetails(userWithActivity, db);
+      return res.json({ success: true, ...details });
+    } catch (err) {
+      logger.warn('[AdminAPI] user details failed:', err.message);
       return res.status(500).json({ success: false, error: err.message });
     }
   });

@@ -29,7 +29,8 @@ const SKIP_DIRS = new Set([
 // Source/config file types only; skip .md and .html to avoid flagging documentation/coverage output.
 const ALLOWED_EXTENSIONS = new Set([
   '.js', '.json', '.txt', '.ini', '.cfg', '.log', '.py', '.cs', '.cjs', '.mjs',
-  '.ts', '.tsx', '.jsx', '.env', '.yml', '.yaml', '.xml', '.css'
+  '.ts', '.tsx', '.jsx', '.env', '.yml', '.yaml', '.xml', '.css',
+  '.sh', '.tf', '.sql', '.vue', '.svelte', '.go', '.rs', '.java', '.rb', '.php'
 ]);
 
 // Build rule patterns from split fragments so the scanner doesn't flag this file itself.
@@ -72,6 +73,48 @@ const RULES = [
     msg: 'Hardcoded API key, token, or private key detected.'
   },
   {
+    id: 'SBD-AWS',
+    type: 'AWS Access Key ID',
+    severity: 'CRITICAL',
+    regex: /(A3T[A-Z0-9]|AKIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ASIA)[A-Z0-9]{16}/g,
+    msg: 'AWS access key ID detected.'
+  },
+  {
+    id: 'SBD-GENERIC-SECRET',
+    type: 'Generic Secret/Token',
+    severity: 'HIGH',
+    regex: /(secret|token|password|passwd|api_key|apikey|auth_token)\s*[:=]\s*['"`][A-Za-z0-9_\-.~+=/]{16,}['"`]/gi,
+    msg: 'Generic secret/token assignment detected.'
+  },
+  {
+    id: 'SBD-PRIVATE-KEY',
+    type: 'Private Cryptographic Key',
+    severity: 'CRITICAL',
+    regex: /-----BEGIN\s+(RSA|EC|DSA|OPENSSH|PRIVATE)\s+KEY-----/g,
+    msg: 'Private cryptographic key detected.'
+  },
+  {
+    id: 'SBD-SLACK',
+    type: 'Slack API Token',
+    severity: 'HIGH',
+    regex: /xox[bapr]-[0-9]{12}-[0-9]{12}-[a-zA-Z0-9]{24}/g,
+    msg: 'Slack API token detected.'
+  },
+  {
+    id: 'SBD-CONNECTION-STRING',
+    type: 'Hardcoded Connection String',
+    severity: 'HIGH',
+    regex: /(mongodb|postgres|postgresql|mysql|redis|amqp):\/\/[^\s'"`]{3,}:[^\s'"`]{3,}@[^\s'"`]+/gi,
+    msg: 'Hardcoded database/message-broker connection string with credentials detected.'
+  },
+  {
+    id: 'SBD-JWT',
+    type: 'Hardcoded JWT',
+    severity: 'HIGH',
+    regex: /eyJ[A-Za-z0-9_\-]{10,}\.eyJ[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}/g,
+    msg: 'Hardcoded JWT token detected.'
+  },
+  {
     id: 'SB-02',
     type: 'Placeholder Debris',
     severity: 'MEDIUM',
@@ -105,6 +148,34 @@ const RULES = [
     severity: 'LOW',
     regex: new RegExp('(' + _SB06.join('|') + ')', 'g'),
     msg: 'Error handler silently swallows exceptions.'
+  },
+  {
+    id: 'SB-07',
+    type: 'TODO/FIXME Accumulation',
+    severity: 'LOW',
+    regex: /\b(TODO|FIXME|HACK|XXX|BUG)\b/gi,
+    msg: 'TODO/FIXME marker found — track technical debt.'
+  },
+  {
+    id: 'SB-08',
+    type: 'Debug Console Statements',
+    severity: 'LOW',
+    regex: /\bconsole\.(log|debug|info|warn|error|trace)\s*\(/g,
+    msg: 'Debug console statement found — remove before production.'
+  },
+  {
+    id: 'SB-09',
+    type: 'Hardcoded IP Address',
+    severity: 'MEDIUM',
+    regex: /\b(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)\b/g,
+    msg: 'Hardcoded IP address found — use environment variables for configuration.'
+  },
+  {
+    id: 'SB-10',
+    type: 'Disabled Security Control',
+    severity: 'HIGH',
+    regex: /(verifyTLS\s*[:=]\s*false|rejectUnauthorized\s*[:=]\s*false|disableSSL|sslVerify\s*[:=]\s*false|NODE_TLS_REJECT_UNAUTHORIZED\s*[:=]\s*['"`]?0)/gi,
+    msg: 'TLS/SSL verification disabled — security control bypassed.'
   }
 ];
 
@@ -170,10 +241,12 @@ function countMatches(content, regex) {
   return total;
 }
 
-function gradeFindings(highRiskCount, mediumRiskCount) {
-  let score = 100 - (highRiskCount * 15) - (mediumRiskCount * 4);
+function gradeFindings(highRiskCount, mediumRiskCount, criticalCount) {
+  const crit = criticalCount || 0;
+  let score = 100 - (crit * 25) - (highRiskCount * 15) - (mediumRiskCount * 4);
   if (score < 0) score = 0;
-  if (highRiskCount > 0) score = Math.min(score, 55);
+  if (crit > 0) score = Math.min(score, 30);
+  else if (highRiskCount > 0) score = Math.min(score, 55);
 
   let letterGrade = 'F';
   let badgeColor = '#dc3545';
@@ -182,7 +255,7 @@ function gradeFindings(highRiskCount, mediumRiskCount) {
   else if (score >= 70) { letterGrade = 'C'; badgeColor = '#ffc107'; }
   else if (score >= 60) { letterGrade = 'D'; badgeColor = '#fd7e14'; }
 
-  const estimatedLiability = (highRiskCount * 25000) + (mediumRiskCount * 1250);
+  const estimatedLiability = (crit * 100000) + (highRiskCount * 25000) + (mediumRiskCount * 1250);
 
   return {
     score,
@@ -190,6 +263,7 @@ function gradeFindings(highRiskCount, mediumRiskCount) {
     badgeColor,
     highRiskCount,
     mediumRiskCount,
+    criticalCount: crit,
     liabilityStr: `$${estimatedLiability.toLocaleString()}`,
     complianceStatus: letterGrade === 'F'
       ? 'NON-COMPLIANT (CRITICAL DEBT)'
@@ -340,6 +414,7 @@ async function analyzeDirectory({ rootName, fileQueue, ignoreCtx }, { maxFileSiz
   const results = new Map();
   let highRiskCount = 0;
   let mediumRiskCount = 0;
+  let criticalCount = 0;
   let processed = 0;
   let skippedLarge = 0;
   let skippedError = 0;
@@ -483,12 +558,13 @@ async function analyzeDirectory({ rootName, fileQueue, ignoreCtx }, { maxFileSiz
     for (const finding of result.fileFindings) {
       if (globalIssuesQueue.length >= MAX_FINDINGS) break;
       globalIssuesQueue.push(finding);
-      if (finding.severity === 'HIGH' || finding.severity === 'CRITICAL') highRiskCount += 1;
+      if (finding.severity === 'CRITICAL') { criticalCount += 1; highRiskCount += 1; }
+      else if (finding.severity === 'HIGH') highRiskCount += 1;
       if (finding.severity === 'MEDIUM') mediumRiskCount += 1;
     }
   }
 
-  const certificate = gradeFindings(highRiskCount, mediumRiskCount);
+  const certificate = gradeFindings(highRiskCount, mediumRiskCount, criticalCount);
   certificate.logs = globalIssuesQueue;
   if (globalIssuesQueue.length >= MAX_FINDINGS) {
     certificate.findingsTruncated = true;

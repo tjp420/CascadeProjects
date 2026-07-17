@@ -24,10 +24,12 @@ import { SignInView } from './views/SignInView.js?v=20260716cachefix1';
 import { ChatbotView } from './views/ChatbotView.js?v=20260716cachefix1';
 import { UploadView } from './views/UploadView.js';
 import { RemediationRoadmapView } from './views/RemediationRoadmapView.js';
-import { ProfileView } from './views/ProfileView.js?v=20260716cachefix1';
+import { ProfileView } from './views/ProfileView.js?v=20260717chatbot1';
 import { AdminPanelView } from './views/AdminPanelView.js?v=20260716cachefix1';
+import { GettingStartedView } from './views/GettingStartedView.js?v=20260718onboard1';
+import { GuidedTour } from './components/GuidedTour.js?v=20260718onboard1';
 import { COMING_SOON_URL } from './config.js';
-import { shouldShowOnboarding, renderOnboarding, bindOnboarding } from './components/Onboarding.js';
+import { shouldShowOnboarding, renderOnboarding, bindOnboarding } from './components/Onboarding.js?v=20260718onboard1';
 import { showUpgradeModal } from './components/UpgradeModal.js';
 import { showLoginModal } from './components/LoginModal.js?v=20260716cachefix1';
 import { isDemoMode, isSignedOffMode, isLocalDevHost, isHostedDashboard, demoReadOnlyMessage } from './demoMode.js';
@@ -169,9 +171,11 @@ class SimplebeaconDashboard {
             remediation: new RemediationRoadmapView(this),
             roadmap: new RemediationRoadmapView(this),
             profile: new ProfileView(this),
-            admin: new AdminPanelView(this)
+            admin: new AdminPanelView(this),
+            'getting-started': new GettingStartedView(this)
         };
         this.currentView = null;
+        this.guidedTour = new GuidedTour(this);
         this.router = new Router((view, params) => this.onRoute(view, params));
         this._refreshScheduled = false;
         this._bgScanPollTimer = null;
@@ -1774,6 +1778,7 @@ class SimplebeaconDashboard {
         document.body.appendChild(overlay);
         bindOnboarding(overlay, {
             onStart: () => this.runScan(),
+            onTour: () => this.guidedTour.start(0),
             onDismiss: () => { }
         });
     }

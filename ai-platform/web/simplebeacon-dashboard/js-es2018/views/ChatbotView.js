@@ -348,43 +348,6 @@ function renderOllamaSetupInstructions() {
           Open Chatbot from the SimpleBeacon sidebar in VS Code/Cursor (recommended), or use the button below.
           Your browser may ask to allow access to devices on your network — choose Allow.
         </div>` : ''}
-        <p class="chatbot-ollama-setup-lead">${hostedHttps && !bridgeActive
-        ? 'Fastest path: launch from the extension, then run ollama serve locally.'
-        : 'Choose one of the methods below based on your setup:'}</p>
-        <ol class="chatbot-ollama-setup-steps">
-          <li>
-            <strong>Method 1: VS Code extension bridge (recommended${hostedHttps ? '' : ' on simplebeacon.ai'})</strong>
-            <ul class="chatbot-ollama-substeps">
-              <li><a href="${vsixUrl}" download rel="noopener noreferrer">Download the SimpleBeacon VSIX</a> → VS Code / Cursor → Extensions → <strong>⋯</strong> → <strong>Install from VSIX…</strong></li>
-              <li>Reload the window, open a workspace, and ensure the SimpleBeacon sidebar is active.</li>
-              <li><a href="${deepLink}">Open in VS Code / Cursor</a> to launch this page with bridge params, or click <strong>Connect extension</strong> below if you already opened from the sidebar.</li>
-              <li>Run <code>ollama serve</code> locally, then click <strong>Connect local Ollama</strong>.</li>
-            </ul>
-          </li>
-          ${hostedHttps ? '' : `
-          <li>
-            <strong>Method 2: Local dashboard (http://localhost)</strong>
-            <ul class="chatbot-ollama-substeps">
-              <li>Start Ollama: <code>ollama serve</code></li>
-              <li>Run the SimpleBeacon dashboard at <code>http://localhost</code> — it connects to Ollama automatically.</li>
-            </ul>
-          </li>`}
-        </ol>
-        <details class="chatbot-ollama-advanced">
-          <summary>Advanced: OLLAMA_ORIGINS (direct browser → local Ollama)</summary>
-          <ol class="chatbot-ollama-setup-steps">
-            <li>
-              Quit the Ollama desktop app completely.</li>
-            <li>In the same terminal window, set the origin and start Ollama:</li>
-          </ol>
-          <pre class="chatbot-ollama-cmd" data-copy="export OLLAMA_ORIGINS=&quot;${origin}&quot;&#10;ollama serve">Mac / Linux:
-export OLLAMA_ORIGINS="${origin}"
-ollama serve</pre>
-          <pre class="chatbot-ollama-cmd" data-copy="$env:OLLAMA_ORIGINS=&quot;${origin}&quot;&#10;ollama serve">Windows PowerShell:
-$env:OLLAMA_ORIGINS="${origin}"
-ollama serve</pre>
-          <p class="chatbot-ollama-step-note">Then click <strong>Connect local Ollama</strong> below. See <a href="https://docs.ollama.com" target="_blank" rel="noopener noreferrer">Ollama docs</a> for CORS details.</p>
-        </details>
         <div class="chatbot-ollama-setup-actions">
           <a class="btn btn-primary btn-sm" href="${deepLink}">Open in VS Code / Cursor</a>
           <button type="button" class="btn btn-secondary btn-sm" id="chatbot-extension-connect">${bridgeActive ? 'Extension connected' : 'Connect extension'}</button>
@@ -394,6 +357,46 @@ ollama serve</pre>
         </div>
         <p class="chatbot-ollama-setup-status text-muted" id="chatbot-extension-bridge-status">${bridgeActive ? 'Extension bridge active — click Connect local Ollama after ollama serve is running.' : ''}</p>
         <p class="chatbot-ollama-setup-status text-muted" id="chatbot-ollama-connect-status"></p>
+        <details class="chatbot-ollama-setup-details">
+          <summary>Show setup guide</summary>
+          <p class="chatbot-ollama-setup-lead">${hostedHttps && !bridgeActive
+        ? 'Fastest path: launch from the extension, then run ollama serve locally.'
+        : 'Choose one of the methods below based on your setup:'}</p>
+          <ol class="chatbot-ollama-setup-steps">
+            <li>
+              <strong>Method 1: VS Code extension bridge (recommended${hostedHttps ? '' : ' on simplebeacon.ai'})</strong>
+              <ul class="chatbot-ollama-substeps">
+                <li><a href="${vsixUrl}" download rel="noopener noreferrer">Download the SimpleBeacon VSIX</a> → VS Code / Cursor → Extensions → <strong>⋯</strong> → <strong>Install from VSIX…</strong></li>
+                <li>Reload the window, open a workspace, and ensure the SimpleBeacon sidebar is active.</li>
+                <li><a href="${deepLink}">Open in VS Code / Cursor</a> to launch this page with bridge params, or click <strong>Connect extension</strong> below if you already opened from the sidebar.</li>
+                <li>Run <code>ollama serve</code> locally, then click <strong>Connect local Ollama</strong>.</li>
+              </ul>
+            </li>
+            ${hostedHttps ? '' : `
+            <li>
+              <strong>Method 2: Local dashboard (http://localhost)</strong>
+              <ul class="chatbot-ollama-substeps">
+                <li>Start Ollama: <code>ollama serve</code></li>
+                <li>Run the SimpleBeacon dashboard at <code>http://localhost</code> — it connects to Ollama automatically.</li>
+              </ul>
+            </li>`}
+          </ol>
+          <details class="chatbot-ollama-advanced">
+            <summary>Advanced: OLLAMA_ORIGINS (direct browser → local Ollama)</summary>
+            <ol class="chatbot-ollama-setup-steps">
+              <li>
+                Quit the Ollama desktop app completely.</li>
+              <li>In the same terminal window, set the origin and start Ollama:</li>
+            </ol>
+            <pre class="chatbot-ollama-cmd" data-copy="export OLLAMA_ORIGINS=&quot;${origin}&quot;&#10;ollama serve">Mac / Linux:
+export OLLAMA_ORIGINS="${origin}"
+ollama serve</pre>
+            <pre class="chatbot-ollama-cmd" data-copy="$env:OLLAMA_ORIGINS=&quot;${origin}&quot;&#10;ollama serve">Windows PowerShell:
+$env:OLLAMA_ORIGINS="${origin}"
+ollama serve</pre>
+            <p class="chatbot-ollama-step-note">Then click <strong>Connect local Ollama</strong> below. See <a href="https://docs.ollama.com" target="_blank" rel="noopener noreferrer">Ollama docs</a> for CORS details.</p>
+          </details>
+        </details>
       </div>`;
 }
 
