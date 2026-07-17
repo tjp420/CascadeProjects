@@ -261,3 +261,10 @@ zzz_status.json
 
 # Generated SimpleBeacon HTML reports
 .simplebeacon/*.html
+
+# Launch-prep generated artifacts
+test-output3.txt
+tsc-errors.txt
+dashboard.html
+sales/marketplace/screenshots/*.png
+simplebeacon-vscode-merged/resources/screenshots/*.png
