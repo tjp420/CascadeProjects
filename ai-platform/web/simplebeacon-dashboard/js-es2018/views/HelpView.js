@@ -222,6 +222,11 @@ export class HelpView {
         </div>
       </div>
 
+      <div class="help-onboarding-actions">
+        <button type="button" class="btn btn-primary" id="help-start-tour">🚀 Start Guided Tour</button>
+        <button type="button" class="btn btn-outline" id="help-getting-started">📋 Getting Started Checklist</button>
+      </div>
+
       ${renderLiveScanStrip(report, baseline, dashboardHome)}
 
       <div class="help-section">
@@ -467,6 +472,14 @@ export class FeaturesView {
                 }
                 this.app.navigate(route);
             });
+        });
+        el.querySelector('#help-start-tour')?.addEventListener('click', () => {
+            if (this.app.guidedTour) {
+                this.app.guidedTour.start(0);
+            }
+        });
+        el.querySelector('#help-getting-started')?.addEventListener('click', () => {
+            this.app.navigate('getting-started');
         });
         return el;
     }

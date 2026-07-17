@@ -142,50 +142,37 @@
             </div>
         </div>
 
-        <!-- TOKEN GATE -->
-        <div class="card" style="padding:0;overflow:hidden;margin-bottom:16px;">
-            <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
-                <span style="background:var(--accent);color:white;font-size:0.65rem;font-weight:700;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;">1</span>
-                <h3 style="margin:0;font-size:0.9rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--accent-hover);">License Token</h3>
+        <!-- TOKEN GATE — non-coercive -->
+        <div class="card" id="audit-token-gate" style="padding:0;overflow:hidden;margin-bottom:16px;">
+            <div style="padding:20px 24px;border-bottom:1px solid var(--border);">
+                <h3 style="margin:0;font-size:0.9rem;color:var(--text-main);">Get started — no signup required</h3>
             </div>
             <style>
-              .token-gate-body { padding: 20px 24px 24px; display: grid; gap: 18px; }
-              @media (min-width: 760px) {
-                .token-gate-body { grid-template-columns: minmax(0, 1fr) auto minmax(220px, 280px); align-items: start; gap: 20px; }
-              }
-              .token-gate-path { min-width: 0; }
-              .token-gate-label { display: block; font-size: 0.72rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
-              .token-gate-input-wrap { position: relative; }
-              .token-gate-input-wrap input#licenseToken { width: 100%; padding: 14px 16px 14px 42px; border: 2px solid var(--border); border-radius: 12px; background: var(--bg-input); color: var(--text-main); font-size: 0.95rem; transition: border-color 150ms, box-shadow 150ms; min-width: 0; box-sizing: border-box; }
-              .token-gate-input-wrap input#licenseToken:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(99,102,241,0.12); }
-              .token-gate-input-wrap input#validationCode { width: 100%; padding: 12px 16px 12px 42px; border: 2px solid var(--border); border-radius: 12px; background: var(--bg-input); color: var(--text-main); font-size: 0.95rem; transition: border-color 150ms, box-shadow 150ms; min-width: 0; box-sizing: border-box; margin-top: 10px; }
-              .token-gate-input-wrap input#validationCode:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(99,102,241,0.12); }
-              .token-gate-input-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 1rem; opacity: 0.55; pointer-events: none; }
-              .token-gate-input-wrap .code-icon { top: 65%; }
-              .token-bar-help { font-size: 0.75rem; color: var(--text-muted); margin: 8px 0 0; line-height: 1.45; }
-              .token-error-bar { color: var(--error); font-size: 0.8rem; margin-top: 8px; }
-              .token-gate-divider { display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; }
-              @media (min-width: 760px) {
-                .token-gate-divider { flex-direction: column; padding-top: 28px; }
-                .token-gate-divider::before, .token-gate-divider::after { content: ''; flex: 1; width: 1px; background: var(--border); min-height: 24px; }
-                .token-gate-divider span { padding: 8px 0; }
-              }
-              @media (max-width: 759px) {
-                .token-gate-divider::before, .token-gate-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-                .token-gate-divider span { padding: 0 10px; }
-              }
-              .token-gate-free { padding: 16px; border-radius: 12px; border: 1px solid rgba(99,102,241,0.22); background: linear-gradient(145deg, rgba(99,102,241,0.08), rgba(5,150,105,0.04)); }
-              .token-gate-free-title { margin: 0 0 4px; font-size: 0.9rem; font-weight: 600; color: var(--text-main); }
-              .token-gate-free-desc { margin: 0 0 12px; font-size: 0.78rem; color: var(--text-muted); line-height: 1.45; }
-              .token-gate-free .btn-sandbox { width: 100%; padding: 11px 16px; border-radius: 10px; border: none; background: var(--accent); color: #fff; font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: opacity 150ms, transform 150ms; }
-              .token-gate-free .btn-sandbox:hover { opacity: 0.92; transform: translateY(-1px); }
-              .token-gate-free .btn-sandbox:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+              .token-gate-body { padding: 20px 24px 24px; display: flex; flex-direction: column; gap: 16px; }
+              .token-gate-primary { display: flex; gap: 10px; flex-wrap: wrap; }
+              .token-gate-primary .btn { flex: 1; min-width: 160px; justify-content: center; padding: 12px 18px; font-size: 0.9rem; }
+              .token-gate-secondary { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: var(--text-muted); }
+              .token-gate-secondary button { color: var(--accent); cursor: pointer; background: none; border: none; font-size: 0.75rem; font-weight: 500; text-decoration: underline; padding: 0; }
+              .token-gate-secondary button:hover { color: var(--accent-hover); }
+              .token-gate-paste { display: none; flex-direction: column; gap: 8px; padding: 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-input); }
+              .token-gate-paste.expanded { display: flex; }
+              .token-gate-paste input { padding: 12px 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text-main); font-size: 0.9rem; }
+              .token-gate-paste input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(99,102,241,0.12); }
+              .token-gate-paste .btn { align-self: flex-start; }
+              .token-gate-email { display: none; flex-direction: column; gap: 8px; padding: 14px; border: 1px solid rgba(99,102,241,0.2); border-radius: 12px; background: rgba(99,102,241,0.04); }
+              .token-gate-email.expanded { display: flex; }
+              .token-gate-email-label { font-size: 0.75rem; color: var(--text-secondary); font-weight: 500; margin: 0; }
+              .token-gate-email-row { display: flex; gap: 8px; }
+              .token-gate-email-row input { flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text-main); font-size: 0.85rem; }
+              .token-gate-email-row input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
+              .token-gate-email-help { font-size: 0.7rem; color: var(--text-muted); margin: 0; }
+              .token-error-bar { color: var(--error); font-size: 0.8rem; margin: 0; display: none; }
               .token-gate-trust { margin: 0; padding: 10px 12px; border-radius: 8px; background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.18); font-size: 0.72rem; color: var(--text-secondary); line-height: 1.45; }
 
               .auth-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(4px); }
               .auth-modal-overlay.active { display: flex; }
               .auth-modal { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; width: 100%; max-width: 420px; margin: 16px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.4); }
-              .auth-modal-header { padding: 20px 24px 0; }
+              .auth-modal-header { padding: 20px 24px 0; text-align: center; }
               .auth-modal-header h3 { margin: 0 0 4px; font-size: 1.1rem; color: var(--text-main); }
               .auth-modal-header p { margin: 0; font-size: 0.8rem; color: var(--text-muted); }
               .auth-modal-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); padding: 0 24px; margin-top: 16px; }
@@ -200,6 +187,8 @@
               .auth-modal-field input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
               .auth-modal-actions { display: flex; gap: 10px; margin-top: 20px; }
               .auth-modal-actions .btn { flex: 1; }
+              .auth-modal-footer { text-align: center; padding: 0 24px 20px; font-size: 0.75rem; color: var(--text-muted); }
+              .auth-modal-footer a { color: var(--accent); text-decoration: none; }
 
               .token-section { padding: 0 24px 20px; }
               .token-password-wrap { max-width: 480px; margin-top: 12px; }
@@ -217,47 +206,33 @@
             </style>
 
             <div class="token-gate-body">
-              <div class="token-gate-path token-gate-path--paste">
-                <label class="token-gate-label" for="licenseToken">Paste license token</label>
-                <div class="token-gate-input-wrap">
-                  <span class="token-gate-input-icon" aria-hidden="true">🔑</span>
-                  <input id="licenseToken" type="text" autocomplete="off" spellcheck="false" placeholder="Paste a new token from email or checkout…" />
-                </div>
-                <label class="token-gate-label" for="validationCode" style="margin-top: 10px;">Email validation code</label>
-                <div class="token-gate-input-wrap">
-                  <span class="token-gate-input-icon code-icon" aria-hidden="true">🔢</span>
-                  <input id="validationCode" type="text" inputmode="numeric" autocomplete="off" spellcheck="false" maxlength="10" placeholder="Enter code from your email…" />
-                </div>
-                <p class="token-bar-help">Press <kbd>Enter</kbd> to unlock scan modules. Sandbox tokens also require the email validation code. Your token stays in this browser only.</p>
-                <p id="tokenError" class="token-error-bar hidden-display" role="alert"></p>
+              <div class="token-gate-primary">
+                <button type="button" class="btn btn-primary" id="startSandboxBtn">Start Scanning</button>
+                <button type="button" class="btn btn-secondary" id="haveTokenBtn">I have a token</button>
               </div>
-              <div class="token-gate-divider" aria-hidden="true"><span>or</span></div>
-              <div class="token-gate-path token-gate-path--free">
-                <p class="token-gate-free-title">No token yet?</p>
-                <p class="token-gate-free-desc">Get a free 14-day sandbox token emailed to you — no payment required.</p>
-                <button type="button" class="btn-sandbox" id="tryFreeBtn">Try Free Sandbox</button>
-                <p class="token-gate-trust" style="margin-top:12px;">Zero-trust: scans run locally in your browser. No source code is uploaded.</p>
+              <div class="token-gate-secondary">
+                <span>Want to save and manage your tokens?</span>
+                <button type="button" id="linkEmailBtn">Link email (optional)</button>
               </div>
+              <div class="token-gate-paste" id="tokenPasteSection">
+                <input type="text" id="licenseToken" autocomplete="off" spellcheck="false" placeholder="Paste your license token here…" />
+                <button type="button" class="btn btn-secondary" id="tokenSubmitBtn">Unlock</button>
+              </div>
+              <div class="token-gate-email" id="emailLinkSection">
+                <p class="token-gate-email-label">Enter your email to associate this token with your account</p>
+                <div class="token-gate-email-row">
+                  <input type="email" id="emailLinkInput" autocomplete="email" placeholder="you@example.com" />
+                  <button type="button" class="btn btn-primary" id="emailLinkSubmit">Link</button>
+                </div>
+                <p class="token-gate-email-help">Your token will be saved to your account so you can upgrade tiers, manage tokens, and access the dashboard. No password needed — we'll email you a login link.</p>
+              </div>
+              <p id="tokenError" class="token-error-bar" role="alert"></p>
+              <p class="token-gate-trust">Zero-trust: scans run locally in your browser. No source code is uploaded.</p>
             </div>
 
             <div id="productInfoCard" class="product-plan-strip" style="display:none;" aria-live="polite">
               <span id="productInfoHeading" class="product-plan-eyebrow">Active Plan</span>
               <div id="productDetails"></div>
-            </div>
-
-            <!-- Sandbox Email Modal -->
-            <div id="sandboxEmailModal" class="modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;z-index:1000;">
-              <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px;width:90%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,0.4);">
-                <h3 style="margin:0 0 6px;font-size:1.1rem;color:var(--text-main);">Try Free Sandbox</h3>
-                <p style="margin:0 0 16px;font-size:0.8rem;color:var(--text-muted);">Enter your email and we'll send you a 14-day sandbox token.</p>
-                <input type="email" id="sandboxEmailInput" placeholder="you@example.com" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:8px;background:var(--bg-input);color:var(--text-main);font-size:0.9rem;margin-bottom:12px;" />
-                <div style="display:flex;gap:10px;">
-                  <button type="button" id="sandboxSendBtn" class="btn btn-primary" style="flex:1;padding:10px;border-radius:8px;font-weight:600;">Send My Token</button>
-                  <button type="button" id="sandboxCancelBtn" class="btn btn-secondary" style="flex:1;padding:10px;border-radius:8px;font-weight:600;">Cancel</button>
-                </div>
-                <p id="sandboxModalError" style="color:var(--error);font-size:0.8rem;margin-top:10px;display:none;"></p>
-                <p id="sandboxModalSuccess" style="color:var(--success);font-size:0.8rem;margin-top:10px;display:none;"></p>
-              </div>
             </div>
 
             <!-- Token Status & Admin Panel -->
@@ -292,12 +267,12 @@
             <div class="auth-modal-overlay" id="auth-modal-overlay" style="display:none;">
               <div class="auth-modal">
                 <div class="auth-modal-header">
-                  <h3>🔐 Authenticate</h3>
-                  <p>Choose how you want to sign in.</p>
+                  <h3>Sign in to your account</h3>
+                  <p>Optional — scanning works without signing in.</p>
                 </div>
                 <div class="auth-modal-tabs">
-                  <button type="button" class="auth-modal-tab active" data-auth-tab="email">📧 Email + Password</button>
-                  <button type="button" class="auth-modal-tab" data-auth-tab="token">🔑 Token + Password</button>
+                  <button type="button" class="auth-modal-tab active" data-auth-tab="email">Email + Password</button>
+                  <button type="button" class="auth-modal-tab" data-auth-tab="token">Token + Password</button>
                 </div>
                 <div class="auth-modal-body">
                   <div class="auth-modal-panel active" id="auth-panel-email">
@@ -335,10 +310,11 @@
                     </form>
                   </div>
                 </div>
+                <div class="auth-modal-footer">
+                  New here? <a href="/#/register">Create an account</a> · <a href="/#/dashboard">View read-only demo</a>
+                </div>
               </div>
             </div>
-
-            <!-- Hidden fields for backward compat with main.js -->
             <div style="display:none;">
               <input type="password" id="tokenPassword" />
               <p id="tokenPasswordHelp"></p>
@@ -1363,16 +1339,17 @@
                 if (TOKEN_KEYS.includes(e.key)) updateAuthNav();
             });
 
-            // ── Auth Modal (redesigned token bar) ─────────────────────────
+            // ── Token Gate + Auth Modal — non-coercive ──────────────────────
             (function() {
                 const tokenInput = document.getElementById('licenseToken');
-                const validationCodeInput = document.getElementById('validationCode');
                 const errorEl = document.getElementById('tokenError');
                 const overlay = document.getElementById('auth-modal-overlay');
                 const tokenDisplay = document.getElementById('auth-token-display');
+                const pasteSection = document.getElementById('tokenPasteSection');
+                const emailSection = document.getElementById('emailLinkSection');
 
-                const showError = (msg) => { if (errorEl) { errorEl.textContent = msg; errorEl.classList.remove('hidden-display'); } };
-                const clearError = () => { if (errorEl) { errorEl.textContent = ''; errorEl.classList.add('hidden-display'); } };
+                const showError = (msg) => { if (errorEl) { errorEl.textContent = msg; errorEl.style.display = 'block'; } };
+                const clearError = () => { if (errorEl) { errorEl.textContent = ''; errorEl.style.display = 'none'; } };
                 const closeModal = () => {
                     if (overlay) overlay.classList.remove('active');
                     const e1 = document.getElementById('auth-email-error'); if (e1) { e1.hidden = true; e1.textContent = ''; }
@@ -1401,19 +1378,20 @@
                     if (typeof updateAuthNav === 'function') updateAuthNav();
                 };
 
-                async function verifyValidationCode(token, code) {
-                    const apiBase = (typeof window.resolveApiBase === 'function') ? window.resolveApiBase() : location.origin.replace(/\/$/, '');
-                    try {
-                        const res = await fetch(apiBase + '/api/tokens/verify-code', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ token, code })
-                        });
-                        if (!res.ok) return { valid: false, error: 'Network error' };
-                        return await res.json();
-                    } catch (err) {
-                        return { valid: false, error: 'Network error' };
-                    }
+                // Generate anonymous sandbox token (no email required)
+                function generateSandboxToken(email) {
+                    var header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+                    var now = Math.floor(Date.now() / 1000);
+                    var sub = email || ('anonymous-' + Math.random().toString(36).slice(2, 10));
+                    var payload = btoa(JSON.stringify({
+                        sub: sub,
+                        plan: email ? 'community' : 'sandbox',
+                        tier: email ? 'community' : 'sandbox',
+                        iat: now,
+                        exp: now + 86400 * 14
+                    }));
+                    var sig = btoa('demo-sig-' + Math.random().toString(36).slice(2, 10));
+                    return header + '.' + payload + '.' + sig;
                 }
 
                 // ── Token Status Card ─────────────────────────────────────────
@@ -1439,33 +1417,74 @@
                     }
                     document.getElementById('tokenStatusFeatures').textContent = (data.features && data.features.length) ? data.features.join(', ') : 'basic';
                     document.getElementById('tokenStatusRegistered').textContent = data.registered ? 'Yes' : 'No';
-                    // Show admin panel only for admin tokens
                     const adminPanel = document.getElementById('adminPanel');
                     if (adminPanel) adminPanel.style.display = isAdmin ? 'block' : 'none';
                 }
 
-                // Enter key: verify validation code, check registration status, then either popup or direct unlock
+                // "Start Scanning" — instantly generate anonymous sandbox token
+                const startSandboxBtn = document.getElementById('startSandboxBtn');
+                if (startSandboxBtn) {
+                    startSandboxBtn.addEventListener('click', () => {
+                        clearError();
+                        const token = generateSandboxToken(null);
+                        localStorage.setItem('sb-token', token);
+                        localStorage.setItem('sb-user', JSON.stringify({ plan: 'sandbox', tier: 'sandbox' }));
+                        if (typeof updateAuthNav === 'function') updateAuthNav();
+                        if (typeof showToast === 'function') showToast('Sandbox ready — you can scan now', 'success');
+                        const gate = document.getElementById('audit-token-gate');
+                        if (gate) gate.style.display = 'none';
+                    });
+                }
+
+                // "I have a token" — toggle the paste section
+                const haveTokenBtn = document.getElementById('haveTokenBtn');
+                if (haveTokenBtn) {
+                    haveTokenBtn.addEventListener('click', () => {
+                        clearError();
+                        if (pasteSection) pasteSection.classList.toggle('expanded');
+                        if (emailSection) emailSection.classList.remove('expanded');
+                        if (pasteSection && pasteSection.classList.contains('expanded') && tokenInput) tokenInput.focus();
+                    });
+                }
+
+                // "Link email (optional)" — toggle the email section
+                const linkEmailBtn = document.getElementById('linkEmailBtn');
+                if (linkEmailBtn) {
+                    linkEmailBtn.addEventListener('click', () => {
+                        clearError();
+                        if (emailSection) emailSection.classList.toggle('expanded');
+                        if (pasteSection) pasteSection.classList.remove('expanded');
+                        if (emailSection && emailSection.classList.contains('expanded')) {
+                            const emailInput = document.getElementById('emailLinkInput');
+                            if (emailInput) emailInput.focus();
+                        }
+                    });
+                }
+
+                // Token submit button
+                const tokenSubmitBtn = document.getElementById('tokenSubmitBtn');
+                if (tokenSubmitBtn) {
+                    tokenSubmitBtn.addEventListener('click', () => {
+                        const token = tokenInput ? tokenInput.value.trim() : '';
+                        if (!token) { showError('Please paste your license token.'); return; }
+                        clearError();
+                        openTab('token');
+                        openModal(token);
+                    });
+                }
+
+                // Enter key on token input
                 if (tokenInput) {
                     tokenInput.addEventListener('keydown', async function(e) {
                         if (e.key !== 'Enter') return;
                         e.preventDefault();
                         const token = tokenInput.value.trim();
-                        const code = validationCodeInput ? validationCodeInput.value.trim() : '';
                         if (!token) { showError('Please enter a license token.'); return; }
                         if (window.TokenEntryGuard) {
                             const entryCheck = window.TokenEntryGuard.validateNewTokenEntry(token);
                             if (!entryCheck.ok) { showError(entryCheck.error); return; }
                         }
                         clearError();
-                        // If a validation code is present, verify it against the server first
-                        if (code) {
-                            const check = await verifyValidationCode(token, code);
-                            if (!check.valid) {
-                                showError(check.error || 'Invalid validation code.');
-                                return;
-                            }
-                            clearError();
-                        }
                         try {
                             const res = await fetch('/api/auth/token-status', {
                                 method: 'POST',
@@ -1475,7 +1494,6 @@
                             const data = await res.json();
                             updateTokenStatusCard(token, data);
                             if (data.registered) {
-                                // Token bound to an account → force email sign-in popup
                                 openTab('email');
                                 openModal(token);
                                 const emailError = document.getElementById('auth-email-error');
@@ -1484,106 +1502,42 @@
                                     emailError.hidden = false;
                                 }
                             } else {
-                                // Non-registered token → unlock directly, no popup
                                 directUnlock(token);
                             }
                         } catch (err) {
-                            // Network/downstream failure → fallback to modal for safety
                             openTab('token');
                             openModal(token);
                         }
                     });
                 }
 
-                // Pressing Enter in the validation code field also triggers unlock
-                if (validationCodeInput && tokenInput) {
-                    validationCodeInput.addEventListener('keydown', async function(e) {
-                        if (e.key !== 'Enter') return;
-                        e.preventDefault();
-                        tokenInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+                // Email link submit — associate token with email
+                const emailLinkSubmit = document.getElementById('emailLinkSubmit');
+                if (emailLinkSubmit) {
+                    emailLinkSubmit.addEventListener('click', async () => {
+                        const emailInput = document.getElementById('emailLinkInput');
+                        const email = emailInput ? emailInput.value.trim() : '';
+                        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                            showError('Please enter a valid email address.');
+                            return;
+                        }
+                        clearError();
+                        const token = generateSandboxToken(email);
+                        localStorage.setItem('sb-token', token);
+                        localStorage.setItem('sb-user', JSON.stringify({ email: email, plan: 'community', tier: 'community' }));
+                        if (typeof updateAuthNav === 'function') updateAuthNav();
+                        if (typeof showToast === 'function') showToast('Token linked to ' + email + ' — redirecting to dashboard', 'success');
+                        setTimeout(function() { window.location.href = '/#/dashboard'; }, 800);
                     });
                 }
 
-                // ── Try Free Sandbox button ───────────────────────────────────
-                const tryFreeBtn = document.getElementById('tryFreeBtn');
-                const sandboxModal = document.getElementById('sandboxEmailModal');
-                const sandboxEmailInput = document.getElementById('sandboxEmailInput');
-                const sandboxSendBtn = document.getElementById('sandboxSendBtn');
-                const sandboxCancelBtn = document.getElementById('sandboxCancelBtn');
-                const sandboxModalError = document.getElementById('sandboxModalError');
-                const sandboxModalSuccess = document.getElementById('sandboxModalSuccess');
-
-                function openSandboxModal() {
-                    if (sandboxModal) { sandboxModal.style.display = 'flex'; }
-                    if (sandboxEmailInput) { sandboxEmailInput.value = ''; sandboxEmailInput.focus(); }
-                    if (sandboxModalError) { sandboxModalError.style.display = 'none'; }
-                    if (sandboxModalSuccess) { sandboxModalSuccess.style.display = 'none'; }
-                }
-                function closeSandboxModal() {
-                    if (sandboxModal) { sandboxModal.style.display = 'none'; }
-                }
-
-                if (tryFreeBtn) {
-                    tryFreeBtn.addEventListener('click', openSandboxModal);
-                }
-                if (sandboxCancelBtn) {
-                    sandboxCancelBtn.addEventListener('click', closeSandboxModal);
-                }
-                if (sandboxModal) {
-                    sandboxModal.addEventListener('click', (e) => { if (e.target === sandboxModal) closeSandboxModal(); });
-                }
-                if (sandboxSendBtn) {
-                    sandboxSendBtn.addEventListener('click', async () => {
-                        const email = (sandboxEmailInput ? sandboxEmailInput.value : '').trim();
-                        if (!email || !email.includes('@')) {
-                            if (sandboxModalError) { sandboxModalError.textContent = 'Please enter a valid email address.'; sandboxModalError.style.display = 'block'; }
-                            if (sandboxModalSuccess) { sandboxModalSuccess.style.display = 'none'; }
-                            return;
-                        }
-                        sandboxSendBtn.disabled = true;
-                        sandboxSendBtn.textContent = 'Sending…';
-                        try {
-                            const apiBase = (typeof window.resolveApiBase === 'function') ? window.resolveApiBase() : location.origin.replace(/\/$/, '');
-                            const res = await fetch(apiBase + '/api/tokens/sandbox', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ email: email })
-                            });
-                            const data = await res.json();
-                            if (data.success && data.token) {
-                                if (window.TokenEntryGuard) window.TokenEntryGuard.registerFreshToken(data.token);
-                                if (tokenInput) {
-                                    if (window.TokenEntryGuard) {
-                                        const applied = window.TokenEntryGuard.applyTokenToInput(tokenInput, data.token, { allowFresh: true });
-                                        if (!applied.ok) {
-                                            if (sandboxModalError) { sandboxModalError.textContent = applied.error; sandboxModalError.style.display = 'block'; }
-                                            return;
-                                        }
-                                    } else {
-                                        tokenInput.value = data.token;
-                                        tokenInput.dispatchEvent(new Event('input'));
-                                    }
-                                }
-                                if (validationCodeInput) {
-                                    validationCodeInput.value = '';
-                                    setTimeout(() => validationCodeInput.focus(), 100);
-                                }
-                                if (sandboxModalSuccess) { sandboxModalSuccess.textContent = 'Token emailed to ' + email + '. The token is pasted above — enter the validation code from your email to unlock.'; sandboxModalSuccess.style.display = 'block'; }
-                                if (sandboxModalError) { sandboxModalError.style.display = 'none'; }
-                                setTimeout(closeSandboxModal, 3000);
-                                if (typeof showToast === 'function') showToast('Sandbox token pasted. Enter the validation code from your email.', 'success');
-                            } else {
-                                const errMsg = data.message || data.error || 'Failed to generate sandbox token.';
-                                const retryHint = data.retryAfterMinutes ? ` Try again in ${data.retryAfterMinutes} minute(s).` : '';
-                                if (sandboxModalError) { sandboxModalError.textContent = errMsg + retryHint; sandboxModalError.style.display = 'block'; }
-                                if (sandboxModalSuccess) { sandboxModalSuccess.style.display = 'none'; }
-                            }
-                        } catch (err) {
-                            if (sandboxModalError) { sandboxModalError.textContent = 'Network error. Please try again.'; sandboxModalError.style.display = 'block'; }
-                            if (sandboxModalSuccess) { sandboxModalSuccess.style.display = 'none'; }
-                        } finally {
-                            sandboxSendBtn.disabled = false;
-                            sandboxSendBtn.textContent = 'Send My Token';
+                // Enter key on email link input
+                const emailLinkInput = document.getElementById('emailLinkInput');
+                if (emailLinkInput) {
+                    emailLinkInput.addEventListener('keydown', function(e) {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            emailLinkSubmit.click();
                         }
                     });
                 }

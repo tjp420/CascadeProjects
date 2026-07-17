@@ -143,8 +143,8 @@
       width: 100%;
       min-height: 0;
       min-width: 0;
-      overflow: hidden !important;
-      overflow-y: hidden !important;
+      overflow-y: auto;
+      overflow-x: hidden;
     }
     html[data-embed-full-nav="1"] .app-shell:has(.chatbot-page) {
       height: 100vh;
@@ -408,7 +408,7 @@
   <link rel="stylesheet" href="css/variables.css">
   <link rel="stylesheet" href="css/reset.css">
   <link rel="stylesheet" href="css/layout.css?v=20260716cachefix1">
-  <link rel="stylesheet" href="css/components.css?v=20260716cachefix1">
+  <link rel="stylesheet" href="css/components.css?v=20260718onboard1">
   <link rel="stylesheet" href="css/utilities.css?v=20260716cachefix1">
   <link rel="stylesheet" href="css/disable-elements.css">
   <script src="js/vendor/lucide.min.js" defer onerror="window._lucideFailed=true"></script>
@@ -620,6 +620,10 @@
             <a href="/dashboard/#/help" class="nav-link" data-view="help">
               <i data-lucide="help-circle" class="nav-link-icon icon-18"></i>
               <span>Help</span>
+            </a>
+            <a href="/dashboard/#/getting-started" class="nav-link" data-view="getting-started">
+              <i data-lucide="rocket" class="nav-link-icon icon-18"></i>
+              <span>Getting Started</span>
             </a>
             <a href="/dashboard/#/chatbot" class="nav-link" data-view="chatbot">
               <i data-lucide="bot" class="nav-link-icon icon-18"></i>
@@ -862,7 +866,7 @@
       }
     })();
   </script>
-  <script type="module" src="/dashboard/js-es2018/main.js?v=20260716cachefix1"></script>
+  <script type="module" src="/dashboard/js-es2018/main.js?v=20260718onboard1"></script>
   <script>
     // Capture script errors so the fallback page can report them without DevTools.
     window.__SB_DASHBOARD_ERRORS__ = [];

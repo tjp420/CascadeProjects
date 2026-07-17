@@ -1,9 +1,9 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
-const ROUTES = ['dashboard', 'audit', 'assessments', 'analyze', 'results', 'remediation', 'roadmap', 'security', 'tools', 'platform', 'quality', 'help', 'features', 'trust', 'repository-health', 'settings', 'pricing', 'about', 'signin', 'register', 'chatbot', 'upload', 'eu-ai-act', 'profile', 'admin'];
+const ROUTES = ['dashboard', 'audit', 'assessments', 'analyze', 'results', 'remediation', 'roadmap', 'security', 'tools', 'platform', 'quality', 'help', 'features', 'trust', 'repository-health', 'settings', 'pricing', 'about', 'signin', 'register', 'chatbot', 'upload', 'eu-ai-act', 'profile', 'admin', 'getting-started'];
 /**
  * P u b l i c  v i e w s.
  */
-export const PUBLIC_VIEWS = new Set(['signin', 'register', 'pricing', 'about', 'help', 'features', 'settings']);
+export const PUBLIC_VIEWS = new Set(['signin', 'register', 'pricing', 'about', 'help', 'features', 'settings', 'getting-started']);
 const DASHBOARD_BASE = '/dashboard';
 /**
  * Router.

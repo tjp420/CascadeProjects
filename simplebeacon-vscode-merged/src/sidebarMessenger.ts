@@ -210,7 +210,7 @@ export function appendDashboardEmbedParams(url: string, notifyBase?: string, web
       const sep = result.includes('?') ? '&' : '?';
       result = `${result}${sep}sb_notify_base=${encodeURIComponent(notifyBase)}`;
     }
-    const needsBridge = needsApiBridge || (websiteMode && isDashboardEmbedUrl(url));
+    const needsBridge = needsApiBridge || (websiteMode && isDashboardEmbedUrl(url) && !remote);
     if (needsBridge && !result.includes('sb_api_base=')) {
       const sep = result.includes('?') ? '&' : '?';
       result = `${result}${sep}sb_api_base=${encodeURIComponent(notifyBase)}`;

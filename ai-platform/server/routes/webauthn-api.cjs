@@ -33,8 +33,13 @@ function readStore() {
 }
 
 function writeStore(store) {
-  fs.mkdirSync(path.dirname(STORE_PATH), { recursive: true });
-  fs.writeFileSync(STORE_PATH, `${JSON.stringify(store, null, 2)}\n`, 'utf8');
+  try {
+    fs.mkdirSync(path.dirname(STORE_PATH), { recursive: true });
+    fs.writeFileSync(STORE_PATH, `${JSON.stringify(store, null, 2)}\n`, 'utf8');
+  } catch (err) {
+    logger.error('[WebAuthn] Failed to write credential store:', err.message);
+    throw err;
+  }
 }
 
 function newChallengeId() {
@@ -63,6 +68,22 @@ async function resolveUserForEmail(db, email) {
 }
 
 function setupWebAuthnAPI(app) {
+  app.get('/api/webauthn/status', (req, res) => {
+    let storeWritable = true;
+    try {
+      fs.mkdirSync(path.dirname(STORE_PATH), { recursive: true });
+      fs.accessSync(path.dirname(STORE_PATH), fs.constants.W_OK);
+    } catch {
+      storeWritable = false;
+    }
+    res.json({
+      success: true,
+      enabled: true,
+      storeWritable,
+      rpId: resolveRpId(req)
+    });
+  });
+
   app.post('/api/webauthn/challenge', (req, res) => {
     pruneChallenges();
     const purpose = req.body?.purpose === 'register' ? 'register' : 'authenticate';

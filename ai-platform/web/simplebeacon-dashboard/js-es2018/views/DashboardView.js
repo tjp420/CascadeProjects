@@ -230,15 +230,58 @@ export class DashboardView {
 
         if (!report && !scanning) {
             container.appendChild(this.renderQuickStart());
+            container.appendChild(this.renderFeatureDiscovery());
             return container;
         }
 
         if (report) {
             const categories = this.app.scanService.getIssueCategories(report);
             container.appendChild(this.renderResultsState(report, categories));
+            container.appendChild(this.renderFeatureDiscovery());
         }
 
         return container;
+    }
+
+    renderFeatureDiscovery() {
+        const DISMISS_KEY = 'sb_feature_discovery_dismissed';
+        let dismissed = false;
+        try { dismissed = localStorage.getItem(DISMISS_KEY) === '1'; } catch { /* ignore */ }
+        if (dismissed) return document.createElement('div');
+
+        const features = [
+            { icon: 'folder-search', title: 'Scan & Analyze', desc: 'Run scans, drop folders, import CLI reports', route: 'analyze', highlight: !this.app.state.report },
+            { icon: 'clipboard-check', title: 'Compliance Audit', desc: 'Credentials, fiction KPIs, schema drift, production leaks', route: 'audit' },
+            { icon: 'map', title: 'Remediation Roadmap', desc: 'Prioritized fix steps from your scan', route: 'roadmap' },
+            { icon: 'bot', title: 'AI Chatbot', desc: 'Ask about your codebase with local or cloud AI', route: 'chatbot' },
+            { icon: 'file-text', title: 'Assessments', desc: 'Client-facing M&A / diligence flow', route: 'assessments' },
+            { icon: 'shield-check', title: 'Security Keys', desc: 'Register FIDO2 hardware keys for 2FA', route: 'profile' },
+            { icon: 'bar-chart-3', title: 'Platform Metrics', desc: 'Engineering baseline, Jest health, schema compliance', route: 'platform' },
+            { icon: 'settings', title: 'Settings', desc: 'Scan paths, gate severities, AI provider keys', route: 'settings' }
+        ];
+
+        const section = document.createElement('div');
+        section.className = 'feature-discovery';
+        section.innerHTML = `
+            <div class="feature-discovery-header">
+                <h3 class="feature-discovery-title">Explore SimpleBeacon</h3>
+                <button class="feature-discovery-dismiss" id="fd-dismiss" aria-label="Dismiss">✕</button>
+            </div>
+            <div class="feature-discovery-grid">
+                ${features.map(f => `
+                    <div class="feature-discovery-card${f.highlight ? ' fd-recommended' : ''}" data-fd-route="${f.route}">
+                        <div class="feature-discovery-card-icon">
+                            <i data-lucide="${f.icon}"></i>
+                        </div>
+                        <div class="feature-discovery-card-body">
+                            <div class="feature-discovery-card-title">${f.title}${f.highlight ? ' <span class="fd-badge">Recommended</span>' : ''}</div>
+                            <div class="feature-discovery-card-desc">${f.desc}</div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+        return section;
     }
 
     renderHeader(report) {
@@ -510,6 +553,13 @@ export class DashboardView {
                     case 'system-health':
                         this.app.navigate('platform');
                         break;
+                    case 'fd-navigate':
+                        this.app.navigate(el.getAttribute('data-fd-route') || 'dashboard');
+                        break;
+                    case 'fd-dismiss-action':
+                        try { localStorage.setItem('sb_feature_discovery_dismissed', '1'); } catch { /* ignore */ }
+                        el.closest('.feature-discovery')?.remove();
+                        break;
                 }
             };
             el.addEventListener('click', handler);
@@ -704,6 +754,31 @@ export class DashboardView {
         }
     }
 
+    bindFeatureDiscovery(view) {
+        const fdSection = view.querySelector('.feature-discovery');
+        if (!fdSection) return;
+        fdSection.querySelectorAll('[data-fd-route]').forEach(card => {
+            card.setAttribute('role', 'button');
+            card.setAttribute('tabindex', '0');
+            card.addEventListener('click', () => {
+                this.app.navigate(card.getAttribute('data-fd-route') || 'dashboard');
+            });
+            card.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    this.app.navigate(card.getAttribute('data-fd-route') || 'dashboard');
+                }
+            });
+        });
+        const dismissBtn = fdSection.querySelector('#fd-dismiss');
+        if (dismissBtn) {
+            dismissBtn.addEventListener('click', () => {
+                try { localStorage.setItem('sb_feature_discovery_dismissed', '1'); } catch { /* ignore */ }
+                fdSection.remove();
+            });
+        }
+    }
+
     mount(container) {
         if (this._trendCleanup)
             this._trendCleanup();
@@ -712,6 +787,7 @@ export class DashboardView {
         const view = this.render();
         container.appendChild(view);
         this.bindEvents(view);
+        this.bindFeatureDiscovery(view);
         this.bindScanPanel(view);
         void this.loadCiTeamMetrics(view);
         if (this.app.state.scanning) {
