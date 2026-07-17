@@ -1511,7 +1511,7 @@
                     });
                 }
 
-                // Email link submit — associate token with email
+                // Email link submit — request a real token and have it emailed
                 const emailLinkSubmit = document.getElementById('emailLinkSubmit');
                 if (emailLinkSubmit) {
                     emailLinkSubmit.addEventListener('click', async () => {
@@ -1522,12 +1522,50 @@
                             return;
                         }
                         clearError();
-                        const token = generateSandboxToken(email);
-                        localStorage.setItem('sb-token', token);
-                        localStorage.setItem('sb-user', JSON.stringify({ email: email, plan: 'community', tier: 'community' }));
-                        if (typeof updateAuthNav === 'function') updateAuthNav();
-                        if (typeof showToast === 'function') showToast('Token linked to ' + email + ' — redirecting to dashboard', 'success');
-                        setTimeout(function() { window.location.href = '/#/dashboard'; }, 800);
+                        const btn = emailLinkSubmit;
+                        const originalText = btn.textContent;
+                        btn.disabled = true;
+                        btn.textContent = 'Sending…';
+                        try {
+                            const res = await fetch('/api/free-token', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ email: email, sendEmail: true, referrer: 'audit' })
+                            });
+                            const data = await res.json().catch(() => ({}));
+                            if (!res.ok || !data.success || !data.token) {
+                                showError(data.error || data.message || ('Server returned ' + res.status));
+                                btn.disabled = false;
+                                btn.textContent = originalText;
+                                return;
+                            }
+                            localStorage.setItem('sb-token', data.token);
+                            localStorage.setItem('sb-user', JSON.stringify({ email: email, plan: 'community', tier: 'community' }));
+                            if (typeof updateAuthNav === 'function') updateAuthNav();
+                            if (typeof showToast === 'function') {
+                                let toastMessage;
+                                let toastType;
+                                if (data.emailed) {
+                                    toastMessage = 'Token emailed to ' + email + ' — redirecting to dashboard';
+                                    toastType = 'success';
+                                } else if (data.emailError) {
+                                    toastMessage = 'Token generated, but email could not be sent: ' + data.emailError;
+                                    toastType = 'error';
+                                } else if (data.queued) {
+                                    toastMessage = 'Token generated. Email queued for delivery — redirecting to dashboard';
+                                    toastType = 'warning';
+                                } else {
+                                    toastMessage = 'Token generated — redirecting to dashboard';
+                                    toastType = 'success';
+                                }
+                                showToast(toastMessage, toastType);
+                            }
+                            setTimeout(function() { window.location.href = '/#/dashboard'; }, 800);
+                        } catch (err) {
+                            showError('Network error: ' + (err && err.message ? err.message : String(err)));
+                            btn.disabled = false;
+                            btn.textContent = originalText;
+                        }
                     });
                 }
 

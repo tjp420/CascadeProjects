@@ -57,6 +57,24 @@ function isIdeEmbedDownloadBridge() {
         return false;
     }
 }
+function getExtensionBridgeNotifyUrl() {
+    if (typeof window === 'undefined')
+        return '/api/download/notify';
+    try {
+        const params = new URLSearchParams(window.location.search);
+        let base = params.get('sb_api_base') || params.get('sb_notify_base');
+        if (!base && typeof sessionStorage !== 'undefined') {
+            base = sessionStorage.getItem('sb_api_base') || sessionStorage.getItem('sb_notify_base');
+        }
+        if (base) {
+            const clean = String(base).replace(/\/api\/?$/, '').trim();
+            if (clean)
+                return `${clean}/api/download/notify`;
+        }
+    }
+    catch (_a) { /* ignore */ }
+    return '/api/download/notify';
+}
 function notifyExtensionDownload(blob, filename) {
     if (!(blob instanceof Blob) || typeof window === 'undefined')
         return;
@@ -78,7 +96,7 @@ function notifyExtensionDownload(blob, filename) {
         }
         catch (_a) { /* ignore */ }
         try {
-            fetch('/api/download/notify', {
+            fetch(getExtensionBridgeNotifyUrl(), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name: safeName, content: base64 })

@@ -1460,7 +1460,7 @@ tryFreeBtn.addEventListener('click', async () => {
         const response = await fetch(getFreeTokenUrl(), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: email })
+            body: JSON.stringify({ email: email, sendEmail: true, referrer: 'certificate-upload' })
         });
         if (!response.ok) {
             const text = await response.text();
@@ -1484,7 +1484,10 @@ tryFreeBtn.addEventListener('click', async () => {
             btn.style.borderColor = 'var(--success)';
             btn.style.color = 'var(--success)';
             try { history.replaceState(null, '', '?token=' + encodeURIComponent(data.token)); } catch(e) {}
-            if (email) showToast('Token generated. Save your email to recover this token later.', 'success');
+            if (email) {
+                const emailMsg = data.emailed ? 'Token emailed to ' + email + '.' : (data.queued ? 'Token queued for email to ' + email + '.' : 'Token generated. Save your email to recover this token later.');
+                showToast(emailMsg, 'success');
+            }
         } else {
             console.error('[FreeToken] API error:', data);
             btn.textContent = originalText;

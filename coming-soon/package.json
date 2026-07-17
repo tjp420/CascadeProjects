@@ -23,7 +23,8 @@
   "type": "commonjs",
   "dependencies": {
     "express": "^4.22.2",
-    "jsonwebtoken": "^9.0.3"
+    "jsonwebtoken": "^9.0.3",
+    "nodemailer": "^6.10.1"
   },
   "engines": {
     "node": ">=18.0.0",

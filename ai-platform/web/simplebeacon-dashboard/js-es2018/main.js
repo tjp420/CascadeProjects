@@ -21,7 +21,7 @@ import { PricingView } from './views/PricingView.js?v=20260716cachefix1';
 import { AboutView } from './views/AboutView.js';
 import { AssessmentView } from './views/AssessmentView.js?v=20260716cachefix1';
 import { SignInView } from './views/SignInView.js?v=20260716cachefix1';
-import { ChatbotView } from './views/ChatbotView.js?v=20260716cachefix1';
+import { ChatbotView } from './views/ChatbotView.js?v=20260716chatfix1';
 import { UploadView } from './views/UploadView.js';
 import { RemediationRoadmapView } from './views/RemediationRoadmapView.js';
 import { ProfileView } from './views/ProfileView.js?v=20260717chatbot1';

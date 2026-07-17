@@ -5736,12 +5736,7 @@ export class AnalyzeView {
                 // IDE/webview drops often expose only an absolute path — route to server/agent scan when reachable.
                 if (snapshotPath && !(isRemoteDashboardHost() && isAbsoluteLocalPath(snapshotPath) && itemArray.length > 0)) {
                     if (isRemoteDashboardHost() && isAbsoluteLocalPath(snapshotPath)) {
-                        if (fileArray.length > 0) {
-                            void this.runLocalScan(null, fileArray, folderHint);
-                        }
-                        else {
-                            void this.promptHostedLocalFolderScan(el);
-                        }
+                        void this.handleDroppedFolderFallback(fileArray, folderHint, event, webkitEntry, null);
                         return;
                     }
                     setAnalyzeDropzoneState('scanning');
@@ -5838,12 +5833,7 @@ export class AnalyzeView {
                                 this.syncAnalyzeModeUi(el);
                             }
                             if (isRemoteDashboardHost() && isAbsoluteLocalPath(absolutePath)) {
-                                if (fileArray.length > 0) {
-                                    void this.handleDroppedFolderFallback(fileArray, folderName, event, webkitEntry, null);
-                                }
-                                else {
-                                    void this.promptHostedLocalFolderScan(el);
-                                }
+                                void this.handleDroppedFolderFallback(fileArray, folderName, event, webkitEntry, null);
                                 return;
                             }
                             void this.runPathAnalysis(absolutePath);
@@ -6982,6 +6972,11 @@ export class AnalyzeView {
                 if (files === null || files === void 0 ? void 0 : files.length) {
                     showToast('Scanning dropped folder locally — no upload…', 'info');
                     await this.runLocalScan(null, files, folderName || absolutePath);
+                    return;
+                }
+                if (hasExtensionBridgeConfigured()) {
+                    showToast(`Scanning "${folderName || absolutePath}" via IDE bridge…`, 'info');
+                    await this.runPathAnalysis(absolutePath);
                     return;
                 }
                 await this.promptHostedLocalFolderScan(this._root);

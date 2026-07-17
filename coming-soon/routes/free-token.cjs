@@ -128,9 +128,10 @@ async function handleFreeToken(req, res) {
         systemLogger.logTokenOp('free_token_generated', { email, tier: 'community', clientIp: req.ip || req.socket?.remoteAddress || 'unknown' });
 
         // Email the token when requested by the UI
+        let emailResult = { sent: false, queued: false, error: null };
         if (sendEmailFlag) {
             try {
-                const emailResult = await sendEmail({
+                emailResult = await sendEmail({
                     to: email,
                     subject: 'Your SimpleBeacon Free Token',
                     text: `Your free SimpleBeacon token is:\n\n${token}\n\nPaste this token into the audit page to run a Gate Scan. This token is valid for 24 hours.\n\nAudit URL: ${certUrl}`,
@@ -141,9 +142,11 @@ async function handleFreeToken(req, res) {
                 }
             } catch (emailError) {
                 logger.error('[FreeToken] Failed to send email:', emailError.message);
+                emailResult = { sent: false, queued: false, error: emailError.message };
             }
         }
 
+        const actuallyEmailed = emailResult.sent;
         res.json({
             success: true,
             token,
@@ -152,10 +155,14 @@ async function handleFreeToken(req, res) {
             label: 'AI Slop Audit',
             expiresInDays: 1,
             cached: false,
-            emailed: sendEmailFlag,
-            message: sendEmailFlag
+            emailed: actuallyEmailed,
+            queued: emailResult.queued,
+            emailError: emailResult.error || null,
+            message: actuallyEmailed
                 ? 'Free community token generated and emailed. Valid for 24 hours.'
-                : 'Free community token generated. Valid for 24 hours.'
+                : (emailResult.queued
+                    ? 'Free community token generated and email queued for delivery. Valid for 24 hours.'
+                    : 'Free community token generated. Valid for 24 hours.')
         });
     } catch (error) {
         logger.error('[FreeToken] Token generation failed:', error.message);

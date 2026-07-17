@@ -690,7 +690,11 @@ export async function scanDroppedItems(items, options = {}) {
   }
 
   const first = items[0];
-  const firstFile = first && typeof first.getAsFile === 'function' ? first.getAsFile() : null;
+  let firstFile = null;
+  try {
+    firstFile = first && typeof first.getAsFile === 'function' ? first.getAsFile() : null;
+  }
+  catch (_a) { firstFile = null; }
   const name = (firstFile && firstFile.name) || 'dropped-folder';
 
   // Use a synchronously captured webkit entry first — async hops invalidate DataTransfer items.
@@ -708,18 +712,21 @@ export async function scanDroppedItems(items, options = {}) {
 
   // Preferred: File System Access API handles.
   if (typeof first.getAsFileSystemHandle === 'function') {
-    const handle = await first.getAsFileSystemHandle();
-    if (handle && handle.kind === 'directory') {
-      const ignoreLoad = await loadIgnorePatternsFromDirHandle(handle);
-      const ignoreCtx = createIgnoreContext(ignoreLoad.patterns, handle.name, ignoreLoad.source);
-      const fileQueue = [];
-      await crawlSandboxedTree(handle, handle.name, fileQueue, { maxFiles, onLog, ignoreCtx });
-      if (fileQueue.length === 0) {
-        throw new Error('No scannable files or folders detected.');
+    try {
+      const handle = await first.getAsFileSystemHandle();
+      if (handle && handle.kind === 'directory') {
+        const ignoreLoad = await loadIgnorePatternsFromDirHandle(handle);
+        const ignoreCtx = createIgnoreContext(ignoreLoad.patterns, handle.name, ignoreLoad.source);
+        const fileQueue = [];
+        await crawlSandboxedTree(handle, handle.name, fileQueue, { maxFiles, onLog, ignoreCtx });
+        if (fileQueue.length === 0) {
+          throw new Error('No scannable files or folders detected.');
+        }
+        logLine(onLog, `Dropped directory "${handle.name}" — ${fileQueue.length} targets queued.`, 'info');
+        return analyzeDirectory({ rootName: handle.name, fileQueue, ignoreCtx }, { maxFileSize, onLog, onProgress });
       }
-      logLine(onLog, `Dropped directory "${handle.name}" — ${fileQueue.length} targets queued.`, 'info');
-      return analyzeDirectory({ rootName: handle.name, fileQueue, ignoreCtx }, { maxFileSize, onLog, onProgress });
     }
+    catch (_a) { /* fall through to stale webkit entry / file fallback */ }
   }
 
   // Fallback: webkitGetAsEntry traversal (may already be stale if not captured synchronously).

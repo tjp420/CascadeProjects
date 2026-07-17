@@ -97,23 +97,10 @@
       submitBtn.textContent = sendingText;
     }
 
-    // Check if Formspree is configured
-    var formAction = form.getAttribute('action');
-    if (!formAction || formAction.includes('YOUR_FORMSPREE_ID')) {
-      setTimeout(function() {
-        setStatus('Formspree is not configured. Please set up a Formspree account and add your Form ID to the contact form.', 'error');
-        if (submitBtn) {
-          submitBtn.disabled = false;
-          submitBtn.textContent = sendMessageText;
-        }
-      }, 500);
-      return;
-    }
-
-    // Submit to Formspree using AJAX
-    fetch(formAction, {
+    // Submit to server /api/contact endpoint (delivers via SMTP to Zoho inbox)
+    fetch('/api/contact', {
       method: 'POST',
-      headers: { 'Accept': 'application/json' },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     })
       .then(function (res) {
@@ -129,7 +116,7 @@
         });
       })
       .catch(function (error) {
-        setStatus('Could not send your message. Please try again or contact us directly at your email.', 'error');
+        setStatus('Could not send your message. ' + (error.message || 'Please try again or email us directly.'), 'error');
       })
       .finally(function () {
         if (submitBtn) {

@@ -4324,8 +4324,7 @@ button.tool-card.help-page-card:hover {
   min-height: 0;
   min-width: 0;
   height: auto;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
   box-sizing: border-box;
 }
 
@@ -4353,10 +4352,12 @@ button.tool-card.help-page-card:hover {
 .view-container:has(.chatbot-container) .ai-transparency-notice,
 .view-container:has(.chatbot-container) .chatbot-connection-status,
 .view-container:has(.chatbot-container) .chatbot-error-banner,
+.view-container:has(.chatbot-container) .chatbot-ollama-setup,
 .chatbot-page .analyze-hero,
 .chatbot-page .ai-transparency-notice,
 .chatbot-page .chatbot-connection-status,
-.chatbot-page .chatbot-error-banner {
+.chatbot-page .chatbot-error-banner,
+.chatbot-page .chatbot-ollama-setup {
   flex-shrink: 0;
   width: 100%;
   max-width: none;
@@ -4489,13 +4490,13 @@ html[data-embed-full-nav="1"] .chatbot-container {
 }
 
 .chatbot-messages {
-  flex: 1;
+  flex: 1 1 auto;
   overflow-y: auto;
   padding: var(--space-4);
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  min-height: 320px;
+  min-height: 0;
 }
 
 .chatbot-welcome {
@@ -4788,6 +4789,22 @@ html[data-embed-full-nav="1"] .chatbot-container {
   background: rgba(99, 102, 241, 0.08);
   border: 1px solid rgba(99, 102, 241, 0.35);
   font-size: var(--font-size-sm);
+}
+
+.chatbot-ollama-setup-details {
+  margin-top: var(--space-2);
+}
+
+.chatbot-ollama-setup-details > summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding: var(--space-1) 0;
+  list-style: revert;
+}
+
+.chatbot-ollama-setup-details[open] > summary {
+  margin-bottom: var(--space-2);
 }
 
 .chatbot-ollama-setup-header {

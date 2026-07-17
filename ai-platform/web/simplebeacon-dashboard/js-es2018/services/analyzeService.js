@@ -1656,6 +1656,36 @@ function partitionPlatformScanIssues(issues = []) {
     }
     return { platformIssues, benchmarkCacheIssues };
 }
+
+/**
+ * Backfill scanScope fields from top-level report fields.
+ */
+function buildScanScope(report, benchmarkCacheIssues, staleFullTreeScan) {
+    const scope = { ...(report.scanScope || {}) };
+    if (scope.profile == null) scope.profile = report.scanTargetProfile || report.profile || 'standard';
+    if (!scope.rulesEnabled || scope.rulesEnabled.length === 0) scope.rulesEnabled = report.rules || report.rulesEnabled || [];
+    if (scope.productionDirsScanned == null) scope.productionDirsScanned = report.productionLeakScanned ?? null;
+    if (!scope.productionPaths || scope.productionPaths.length === 0) scope.productionPaths = report.productionPaths || [];
+    if (scope.repositoryFilesTotal == null) scope.repositoryFilesTotal = report.repositoryFilesTotal;
+    if (scope.repositoryFoldersTotal == null) scope.repositoryFoldersTotal = report.repositoryFoldersTotal;
+    if (scope.ruleScopedFilesAnalyzed == null) scope.ruleScopedFilesAnalyzed = report.ruleScopedFilesAnalyzed;
+    if (scope.mockSampleFilesInScanPaths == null) scope.mockSampleFilesInScanPaths = report.mockSampleFiles;
+    if (scope.pageSpecCatalogSize == null) scope.pageSpecCatalogSize = report.pageSpecCatalogSize;
+    if (scope.pageSpecsValidated == null) scope.pageSpecsValidated = report.pageSampleSchemaChecked;
+    if (scope.pageSpecsFromScanPaths == null) scope.pageSpecsFromScanPaths = 0;
+    if (scope.pageSpecsFromAliasPaths == null) scope.pageSpecsFromAliasPaths = 0;
+    if (scope.fictionJsonFilesScanned == null) scope.fictionJsonFilesScanned = report.fictionJsonFilesScanned;
+    if (scope.fictionSampleFilesScanned == null) scope.fictionSampleFilesScanned = report.fictionSampleFilesScanned;
+    if (!scope.fictionScope) scope.fictionScope = report.fictionScope || 'repository-json';
+    if (scope.jestExecutedDuringScan == null) scope.jestExecutedDuringScan = report.jestBaselineChecked === true;
+    if (!scope.limitations) scope.limitations = report.limitations || [];
+    scope.resultsViewScope = 'platform-only';
+    scope.benchmarkCacheIssuesExcluded = benchmarkCacheIssues.length;
+    scope.reportHealth = staleFullTreeScan ? 'stale-full-tree-scan' : (scope.reportHealth || 'platform-scoped');
+    scope.rescanRecommended = staleFullTreeScan || benchmarkCacheIssues.length > 0 || Boolean(scope.rescanRecommended);
+    return scope;
+}
+
 /**
  * Prepare platform results report.
  * @param {number} report
@@ -1712,17 +1742,7 @@ export function preparePlatformResultsReport(report) {
             medium_severity_count: mediumCount,
             low_severity_count: lowCount
         },
-        scanScope: {
-            ...(report.scanScope || {}),
-            resultsViewScope: 'platform-only',
-            benchmarkCacheIssuesExcluded: benchmarkCacheIssues.length,
-            reportHealth: staleFullTreeScan
-                ? 'stale-full-tree-scan'
-                : (((_h = report.scanScope) === null || _h === void 0 ? void 0 : _h.reportHealth) || 'platform-scoped'),
-            rescanRecommended: staleFullTreeScan
-                || benchmarkCacheIssues.length > 0
-                || Boolean((_j = report.scanScope) === null || _j === void 0 ? void 0 : _j.rescanRecommended)
-        }
+        scanScope: buildScanScope(report, benchmarkCacheIssues, staleFullTreeScan)
     };
 }
 /**
