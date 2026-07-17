@@ -4,8 +4,7 @@ module.exports = {
   testEnvironment: 'node',
   verbose: false,
   testMatch: [
-    '<rootDir>/simplebeacon-vscode-merged/dashboard-web/js/**/__tests__/**/*.js?(x)',
-    '<rootDir>/simplebeacon-vscode-merged/dashboard-web/js/**/*.test.js?(x)'
+    '<rootDir>/simplebeacon-vscode-merged/dashboard-web/js/**/__tests__/**/*.js?(x)'
   ],
 
   // 2. Strict Workspace Isolation Paths

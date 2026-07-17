@@ -188,6 +188,8 @@ function buildCoverPresentation(model) {
     const gatePass = s.gatePass === true;
     const gateLabel = gatePass ? 'PASS' : s.gatePass === false ? 'FAIL' : 'NOT EVALUATED';
     const readiness = model.readiness;
+    const readinessScore = readiness && typeof readiness.score === 'number' ? Math.round(readiness.score) : 0;
+    const clientName = model.client || 'Client';
 
     let kicker;
     let subtitle;
@@ -202,7 +204,7 @@ function buildCoverPresentation(model) {
     let badges = '<span class="badge badge-gold">CONFIDENTIAL</span>';
     if (tier.tier === 'handoff') {
         badges += `<span class="badge ${gatePass ? 'badge-pass' : 'badge-blocked'}">GATE ${escapeHtml(gateLabel)}</span>`;
-        badges += `<span class="badge badge-gold">READINESS ${Math.round(readiness.score)}/100</span>`;
+        badges += `<span class="badge badge-gold">READINESS ${readinessScore}/100</span>`;
     } else if (tier.tier === 'gate-only') {
         badges += `<span class="badge ${gatePass ? 'badge-pass' : 'badge-blocked'}">GATE ${escapeHtml(gateLabel)}</span>`;
         badges += '<span class="badge badge-gold">SUPPLEMENTARY</span>';
@@ -218,8 +220,8 @@ function buildCoverPresentation(model) {
         : '';
 
     const pageTitle = tier.tier === 'handoff'
-        ? `Pre-Launch Code Audit — ${model.client}`
-        : `Supplementary Audit — ${tier.label} — ${model.client}`;
+        ? `Pre-Launch Code Audit — ${clientName}`
+        : `Supplementary Audit — ${tier.label} — ${clientName}`;
 
     return { kicker, subtitle, badges, supplementaryCallout, pageTitle, tier };
 }

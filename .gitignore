@@ -192,6 +192,13 @@ ai-platform-test-output.txt
 gate-status*.txt
 gate-help.txt
 gate-commit-check.json
+audit.json
+ai-audit.json
+cs-audit.json
+vs-audit.json
+**/*-audit.json
+*.tmp
+*.tmp.*
 scan-output*.txt
 tier-tokens.txt
 tier-accounts.txt

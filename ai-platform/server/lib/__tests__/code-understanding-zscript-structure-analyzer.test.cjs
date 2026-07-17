@@ -12,8 +12,8 @@ describe('code-understanding/zscript-structure-analyzer', () => {
     expect(typeof buildStructureReport).toBe('function');
   });
 
-  test('collectZscriptFiles returns array', () => {
-    const result = collectZscriptFiles('/nonexistent/path');
+  test('collectZscriptFiles returns array', async () => {
+    const result = await collectZscriptFiles('/nonexistent/path');
     expect(Array.isArray(result)).toBe(true);
   });
 

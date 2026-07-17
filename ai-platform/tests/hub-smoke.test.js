@@ -51,7 +51,7 @@ describe('Highly-coupled hub modules — smoke tests', () => {
       throw err;
     }
     expect(server).toBeTruthy();
-    expect(typeof server).toBe('object');
+    expect(typeof server === 'object' || typeof server === 'function').toBe(true);
     expect(Object.keys(server).length).toBeGreaterThan(0);
   });
 

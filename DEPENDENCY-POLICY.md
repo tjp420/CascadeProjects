@@ -24,22 +24,24 @@ This policy applies to all Node.js packages within the SimpleBeacon ecosystem:
 
 ---
 
-## 2. Audit Results (2026-06-11)
+## 2. Audit Results (2026-07-16)
 
 | Directory | Vulnerabilities | Severity |
 |---|---|---|
 | coming-soon | **0** | None |
-| ai-platform | **0** | None (vite bumped ^5.0.0 → ^8.0.16) |
+| ai-platform | **0** | None |
 | simplebeacon-cli | **0** | None |
 | simplebeacon-intelligence | **0** | None |
 | ai-agent | **0** | None |
 | ai-tools | **0** | None |
-| root | **0** | None (lockfile regenerated 2026-06-11) |
-| vscode-extension | **0** | None (lockfile generated 2026-06-10) |
+| root | **0** | None |
+| vscode-extension | **0** | None |
 | java-ai-vulnerable | **Skipped** | Intentionally vulnerable demo |
 
-**Total audited dependencies with lockfiles:** ~921  
+**Total audited dependencies with lockfiles:** ~1127  
 **Total known vulnerabilities:** **0**
+
+*Note:* Resolved `mocha`/`serialize-javascript`/`diff` advisories by updating `simplebeacon-vscode-merged` `mocha` to `^12.0.0-rc.1`.
 
 ### Deprecated Packages (non-security)
 | Package | Reason | Action | Status |
@@ -102,7 +104,8 @@ This policy applies to all Node.js packages within the SimpleBeacon ecosystem:
 | 2026-06-10 | npm Audit Phase | 0 vulnerabilities | vite bumped ^5.0.0 → ^8.0.16 (CVE GHSA-4w7w-66w2-5vf9 + GHSA-67mh-4wv8-2f99); all lockfiles regenerated and verified |
 | 2026-06-10 | npm Audit Phase | 0 vulnerabilities | Generated missing lockfiles for `vscode-extension` and `ai-platform/packages/simplebeacon-intelligence`; `npm audit` clean across all 9 active packages |
 | 2026-06-11 | npm Audit Phase | 0 vulnerabilities | Fixed root lockfile sync (express-rate-limit, stripe, ip-address); fixed ai-platform eslint peer dep conflict (`@eslint/js` ^10.0.1 → ^9.15.0); added `husky` to ai-platform devDependencies; `npm ci` verified across all active packages |
-| **2026-07-01** | **Scheduled** | — | Next monthly quality gate review (first business day of July) |
+| 2026-07-16 | npm Audit Phase | 0 vulnerabilities | `npm audit` clean across root and all active workspaces; resolved `mocha`/`serialize-javascript`/`diff` advisories by updating `simplebeacon-vscode-merged` `mocha` to `^12.0.0-rc.1` |
+| **2026-08-03** | **Scheduled** | — | Next monthly quality gate review (first business day of August) |
 
 ---
 

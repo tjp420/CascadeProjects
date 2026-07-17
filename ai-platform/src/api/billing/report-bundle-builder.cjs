@@ -115,8 +115,8 @@ async function buildReportBundle(licenseToken, reportJson) {
             assessor: 'SimpleBeacon',
             aiProvider: 'demo'
         });
-        auditReportHtml = auditResult.html;
-        auditReportFilename = auditResult.filename;
+        auditReportHtml = typeof auditResult === 'string' ? auditResult : (auditResult && auditResult.html) || null;
+        auditReportFilename = auditResult && auditResult.filename ? auditResult.filename : null;
     } catch (auditErr) {
         logger.warn('[Reports] Audit report generation skipped:', auditErr.message);
     }

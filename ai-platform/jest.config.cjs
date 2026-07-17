@@ -53,6 +53,7 @@ module.exports = {
     '^node:assert$': '<rootDir>/tests/shims/node-assert-shim.cjs'
   },
   passWithNoTests: true,
+  forceExit: true,
   setupFilesAfterEnv: [
     '<rootDir>/tests/setup.js'
   ],

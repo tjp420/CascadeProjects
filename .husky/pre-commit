@@ -1,7 +1,12 @@
 #!/usr/bin/env sh
-# Simplebeacon pre-commit — Community tier local gate
+# Simplebeacon pre-commit — syntax check + gate scan
 # https://www.npmjs.com/package/simplebeacon
 set -e
-echo "Simplebeacon pre-commit..."
+echo "[SimpleBeacon] Syntax-checking staged JS/CJS files..."
+for file in $(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(js|cjs)$'); do
+  [ -f "$file" ] || continue
+  node -c "$file" || { echo "[SimpleBeacon] Syntax error in $file"; exit 1; }
+done
+echo "[SimpleBeacon] Running gate scan..."
 npx simplebeacon scan --gate --fail-on high --config ai-platform/.simplebeacon/config.json
-echo "Simplebeacon pre-commit passed"
+echo "[SimpleBeacon] Pre-commit passed"

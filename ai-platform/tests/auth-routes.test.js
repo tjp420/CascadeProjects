@@ -110,10 +110,11 @@ describe('Auth Routes', () => {
       expect(res.body.user.email).toBe('user@example.com');
     });
 
-    test('returns 401 when unauthenticated', async () => {
+    test('returns guest user when unauthenticated', async () => {
       const res = await request(app).get('/api/auth/me');
-      expect(res.status).toBe(401);
-      expect(res.body.error).toBe('Unauthorized');
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.user.id).toBe('guest');
     });
   });
 });

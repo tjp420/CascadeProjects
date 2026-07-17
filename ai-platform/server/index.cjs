@@ -96,8 +96,10 @@ app.set('trust proxy', 1); // Trust first proxy hop for rate-limit IP accuracy
 let rawPort = process.env.PORT || constants.DEFAULT_PORT;
 let PORT = Number.isFinite(Number(rawPort)) && Number(rawPort) > 0 ? Number(rawPort) : constants.DEFAULT_PORT;
 
-// Initialize audit system
-initializeAudit().catch(err => logger.error('Audit init failed:', err));
+// Initialize audit system (skip in test to avoid open handles)
+if (process.env.NODE_ENV !== 'test') {
+  initializeAudit().catch(err => logger.error('Audit init failed:', err));
+}
 
 // HTTPS redirect for production — respect health checks and local development
 app.use((req, res, next) => {
@@ -774,6 +776,8 @@ app.use('*', (req, res) => {
 
 const { createStartupManager } = require('./lib/server-startup.cjs');
 const startup = createStartupManager({ app, logger, logSystemEvent, constants });
-startup.startServer(Number(PORT), constants.MAX_RETRIES, (port) => { PORT = port; });
+if (process.env.NODE_ENV !== 'test') {
+  startup.startServer(Number(PORT), constants.MAX_RETRIES, (port) => { PORT = port; });
+}
 
 module.exports = app;
