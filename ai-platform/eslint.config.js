@@ -36,6 +36,8 @@ export default [
       'no-unused-vars': 'off',
       'no-console': 'off',
       'no-control-regex': 'off',
+      'no-empty': 'off',
+      'no-unsafe-finally': 'off',
       'semi': 'off',
       'quotes': 'off',
       'indent': 'off',

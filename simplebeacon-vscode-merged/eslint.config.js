@@ -27,6 +27,7 @@ module.exports = [
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
       '@typescript-eslint/no-require-imports': 'warn',
+      '@typescript-eslint/no-this-alias': 'off',
       'no-console': 'off',
       'no-undef': 'off',
       'no-unused-vars': 'off',
