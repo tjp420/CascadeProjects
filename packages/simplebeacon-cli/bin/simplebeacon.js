@@ -20,7 +20,7 @@ const {
     writeManagedFileSync,
 } = require('../src/index');
 const { validateFormat, selectPayload } = require('../src/lib/format-utils');
-const { formatGithubComment, formatGithubStepSummary, postGithubComment } = require('../src/reporters/github-comment');
+const { formatGithubComment, postGithubComment } = require('../src/reporters/github-comment');
 const { resolveCiLicense } = require('../src/lib/ci-license');
 const { collectGitDiffFiles } = require('../src/lib/git-diff-scope');
 const { buildAssessmentReport } = require('../src/assessment');
@@ -47,7 +47,7 @@ const {
 } = require('../src/lib/path-utils');
 const { sanitizePath } = require('../src/lib/path-sanitizer');
 
-const { appendScanHistory, buildHistoryEntry } = require('../src/lib/scan-history');
+const { appendScanHistory } = require('../src/lib/scan-history');
 const { enhanceExecutiveSummary } = require('../src/reporters/report-enhance');
 const { runFileReductionScan } = require('../src/lib/file-reduction-orchestrator');
 const { generateFileReductionReport } = require('../src/reporters/file-reduction-report');
@@ -741,7 +741,7 @@ async function executeOneScan(options, networkGuard) {
                 } else if (telemetryResult.networkError && !options.quiet) {
                     console.error('[simplebeacon] Team telemetry skipped (license server unreachable).');
                 }
-            } catch (_telemetryErr) {
+            } catch {
                 /* non-blocking */
             }
         }

@@ -3,15 +3,12 @@
  */
 
 const {
-    loadComplianceChecklist,
     evaluateComplianceChecklist,
     evaluateRule,
-    detectNpmAuditSummary,
     detectProductionAuthProfile,
     resolveChecklistBase,
     DEFAULT_CHECKLIST,
-    EU_AI_ACT_CHECKLIST,
-    CHECKLIST_PROFILES
+    EU_AI_ACT_CHECKLIST
 } = require('../compliance-checklist');
 
 describe('compliance-checklist', () => {

@@ -107,26 +107,6 @@ function extractNamedImports(content) {
     return imports;
 }
 
-function resolveModuleRelative(fromFile, specifier, projectRoot) {
-    if (!specifier.startsWith('.')) return null;
-    const baseDir = path.dirname(fromFile);
-    const candidates = [
-        path.resolve(baseDir, specifier),
-        path.resolve(baseDir, `${specifier}.js`),
-        path.resolve(baseDir, `${specifier}.mjs`),
-        path.resolve(baseDir, `${specifier}.cjs`),
-        path.resolve(baseDir, `${specifier}.ts`),
-        path.resolve(baseDir, `${specifier}.tsx`),
-        path.resolve(baseDir, `${specifier}.jsx`),
-        path.resolve(baseDir, specifier, 'index.js'),
-        path.resolve(baseDir, specifier, 'index.ts')
-    ];
-    for (const candidate of candidates) {
-        if (fs.existsSync(candidate)) return candidate;
-    }
-    return null;
-}
-
 function findImportSourcesForFile(filePath, projectFiles) {
     const importSources = [];
     for (const otherFile of projectFiles) {

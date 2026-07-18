@@ -126,17 +126,6 @@ eagerlyLoaded.forEach(id => {
 });
 
 // Backward-compatible named exports (lazy via getters)
-const ANALYZER_IDS = [
-    'config-management',
-    'dependency-health',
-    'environment-variables',
-    'data-freshness',
-    'data-access-patterns',
-    'data-privacy',
-    'data-lineage',
-    'data-consistency'
-];
-
 const exportsMap = {
     getAll,
     getEnabled,

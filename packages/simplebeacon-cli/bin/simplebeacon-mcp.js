@@ -11,7 +11,6 @@
  *   node bin/simplebeacon-mcp.js --smoke-test
  */
 
-const path = require('path');
 const { createMcpStdioServer } = require('../src/mcp/stdio-server');
 const { createMcpToolHandlers } = require('../src/mcp/tools');
 

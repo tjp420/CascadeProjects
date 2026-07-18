@@ -58,7 +58,7 @@ class DataConsistencyAnalyzer {
                 confidence: 'high',
                 action: 'align-schemas-or-split-directories',
                 metadata: {
-                    groups: [...signatures.entries()].map(([_signature, entries]) => ({
+                    groups: [...signatures.entries()].map(([, entries]) => ({
                         keys: entries[0].keys,
                         files: entries.map((entry) => entry.file.relativePath)
                     }))
