@@ -504,7 +504,8 @@ function downloadSelectedModule(btn) {
         const data = window._scanPreviewData || {};
         if (select.value === '__full_report__') {
             const tier = window._tokenPayload?.tier || window._tokenPayload?.product || 'locked';
-            const isFree = tier === 'instant';
+            const FREE_TIERS = ['instant', 'sandbox', 'community', 'locked'];
+            const isFree = FREE_TIERS.includes(tier);
             const projectName = data.projectRoot || data.projectPath || data.projectName || 'local-scan';
             // Only include data for modules the user has activated
             const activatedModules = Array.from(selectedModules);

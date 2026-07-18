@@ -736,7 +736,7 @@ function renderPreview(data) {
             const paid = isModulePaidFor(mod.num);
             const lockLabel = paid ? '' : ' 🔒';
             return `<option value="${escapeHtml(mod.id)}" class="${paid ? '' : 'inactive'}">${escapeHtml(mod.optionLabel)}${lockLabel}</option>`;
-        }).join('') + `<option value="__full_report__">📥 Full Report — Export Complete Data</option>`;
+        }).join('') + `<option value="__full_report__" class="${PAID_TIERS.includes(window._tokenPayload?.tier || window._tokenPayload?.product || 'locked') ? '' : 'inactive'}">📥 Full Report — Export Complete Data${PAID_TIERS.includes(window._tokenPayload?.tier || window._tokenPayload?.product || 'locked') ? '' : ' 🔒'}</option>`;
         const panels = modules.map(mod => {
             const vals = mod.values.map(v => `<button class="detail-data-btn" onclick="copyReportData('${String(v.value).replace(/'/g, "\\'")}', this)"><strong style="color:${v.color || '#60A5FA'}">${v.value}</strong> <span style="color:var(--text-muted);font-weight:400;">${v.label}</span><span class="copy-icon">&#128203;</span></button>`).join('');
             const leftBorder = mod.statusColor ? `border-left:3px solid ${mod.statusColor};` : '';
