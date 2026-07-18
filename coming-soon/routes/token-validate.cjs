@@ -61,7 +61,7 @@ router.post('/api/tokens/validate', express.json(), (req, res) => {
                 return res.json({ valid: false, error: 'No active subscription found' });
             }
             const activeSub = dbInstance.prepare(
-                "SELECT * FROM paid_subscriptions WHERE email = ? AND status = 'active' ORDER BY period_end DESC LIMIT 1"
+                "SELECT * FROM paid_subscriptions WHERE customer_email = ? AND status = 'active' ORDER BY current_period_end DESC LIMIT 1"
             ).get(registryEmail);
             if (!activeSub) {
                 return res.json({ valid: false, error: 'No active paid subscription found' });
