@@ -1429,7 +1429,7 @@ $('cancelBtn').addEventListener('click', () => {
           }
           case 'testConnection': {
             const cfg = getSbConfig();
-            const url = cfg.get<string>('apiServerUrl') || 'http://127.0.0.1:55000';
+            const url = (cfg.get<string>('apiServerUrl') || 'http://127.0.0.1:55000').replace(/\/$/, '');
             fetch(url + '/api/health').then(() => {
               showQuietMessage('Connection successful: ' + url);
             }).catch(() => {

@@ -1355,10 +1355,15 @@ export class WelcomeDashboard {
           break;
         case 'testApiConnection':
           {
-            const url = (msg.value || config.get('apiServerUrl', DEFAULT_API_URL) as string).replace(/\/$/, '') + '/health';
+            const base = (msg.value || config.get('apiServerUrl', DEFAULT_API_URL) as string).replace(/\/$/, '');
             try {
-              const res = await fetch(url);
-              this.panel.webview.postMessage({ command: 'apiConnectionResult', ok: res.ok });
+              const resApi = await fetch(base + '/api/health');
+              if (resApi.ok) {
+                this.panel.webview.postMessage({ command: 'apiConnectionResult', ok: true });
+                break;
+              }
+              const resLegacy = await fetch(base + '/health');
+              this.panel.webview.postMessage({ command: 'apiConnectionResult', ok: resLegacy.ok });
             } catch (e) {
               this.panel.webview.postMessage({ command: 'apiConnectionResult', ok: false });
             }
