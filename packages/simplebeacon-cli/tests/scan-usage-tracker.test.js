@@ -70,10 +70,18 @@ describe('scan-usage-tracker', () => {
     });
 
     it('detects pipeline environment from CI vars', () => {
-        process.env.GITHUB_ACTIONS = 'true';
-        assert.strictEqual(isPipelineScan(), true);
-        delete process.env.GITHUB_ACTIONS;
-        assert.strictEqual(isPipelineScan(), false);
+        const ciVars = ['CI', 'GITHUB_ACTIONS', 'GITLAB_CI', 'CIRCLECI', 'TRAVIS', 'JENKINS_URL'];
+        const saved = {};
+        for (const v of ciVars) { saved[v] = process.env[v]; delete process.env[v]; }
+        try {
+            assert.strictEqual(isPipelineScan(), false);
+            process.env.GITHUB_ACTIONS = 'true';
+            assert.strictEqual(isPipelineScan(), true);
+            delete process.env.GITHUB_ACTIONS;
+            assert.strictEqual(isPipelineScan(), false);
+        } finally {
+            for (const v of ciVars) { if (saved[v] !== undefined) process.env[v] = saved[v]; }
+        }
     });
 
     it('resets period when older than 30 days', () => {

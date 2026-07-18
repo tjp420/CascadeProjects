@@ -127,12 +127,13 @@ async function retry(fn, opts = {}) {
  * @returns {Promise<any>}
  */
 function withTimeout(promise, ms, message = 'Operation timed out') {
+    let timer;
     return Promise.race([
         promise,
         new Promise((_, reject) => {
-            setTimeout(() => reject(new Error(message)), ms);
+            timer = setTimeout(() => reject(new Error(message)), ms);
         })
-    ]);
+    ]).finally(() => clearTimeout(timer));
 }
 
 /**

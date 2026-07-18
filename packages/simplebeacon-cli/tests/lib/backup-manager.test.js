@@ -51,6 +51,10 @@ test('cleanupOldBackups keeps newest backups only', () => {
     for (let i = 0; i < 4; i += 1) {
         backups.push(createBackup(testFile));
         fs.writeFileSync(testFile, `{"v":${i + 2}}`);
+        if (i < 3) {
+            const start = Date.now();
+            while (Date.now() - start < 15) { /* spin-wait for unique timestamp */ }
+        }
     }
 
     cleanupOldBackups(dir, 2);
