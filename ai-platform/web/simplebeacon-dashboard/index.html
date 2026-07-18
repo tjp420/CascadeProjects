@@ -2,6 +2,49 @@
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
+  <script>
+    // Neutralize any Cloudflare beacon / analytics script that may be injected at the edge.
+    // Brave and aggressive tracker blockers return an empty body for beacon.min.js, which
+    // triggers SRI console errors when the tag has an integrity attribute. Strip the
+    // integrity and remove the tag entirely in Brave; otherwise attach an onerror cleanup.
+    (function() {
+      function isBeacon(el) {
+        if (!el || el.tagName !== 'SCRIPT') return false;
+        var src = el.src || '';
+        var cf = el.getAttribute('data-cf-beacon');
+        return src.indexOf('static.cloudflareinsights.com/beacon.min.js') !== -1 || (cf && cf.length > 0);
+      }
+      function neutralize(el) {
+        if (!isBeacon(el)) return;
+        el.removeAttribute('integrity');
+        el.removeAttribute('crossorigin');
+        var isBrave = typeof navigator.brave !== 'undefined';
+        var ua = navigator.userAgent || '';
+        if (isBrave || /Brave/.test(ua)) {
+          if (el.parentNode) el.parentNode.removeChild(el);
+          return;
+        }
+        el.onerror = function() { if (el.parentNode) el.parentNode.removeChild(el); };
+      }
+      var scripts = document.querySelectorAll('script');
+      for (var i = 0; i < scripts.length; i++) neutralize(scripts[i]);
+      if (window.MutationObserver) {
+        var mo = new MutationObserver(function(records) {
+          records.forEach(function(record) {
+            Array.prototype.forEach.call(record.addedNodes || [], function(node) {
+              if (node.nodeType === 1) {
+                if (node.tagName === 'SCRIPT') neutralize(node);
+                if (node.querySelectorAll) {
+                  Array.prototype.forEach.call(node.querySelectorAll('script'), neutralize);
+                }
+              }
+            });
+          });
+        });
+        mo.observe(document.documentElement, { childList: true, subtree: true });
+      }
+    })();
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="referrer" content="no-referrer">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -407,9 +450,9 @@
   <!-- System fonts only: VS Code webviews block external fonts.googleapis.com -->
   <link rel="stylesheet" href="css/variables.css">
   <link rel="stylesheet" href="css/reset.css">
-  <link rel="stylesheet" href="css/layout.css?v=20260716cachefix1">
-  <link rel="stylesheet" href="css/components.css?v=20260716chatfix1">
-  <link rel="stylesheet" href="css/utilities.css?v=20260716cachefix1">
+  <link rel="stylesheet" href="css/layout.css?v=20260718pricing1">
+  <link rel="stylesheet" href="css/components.css?v=20260718pricing1">
+  <link rel="stylesheet" href="css/utilities.css?v=20260718pricing1">
   <link rel="stylesheet" href="css/disable-elements.css">
   <script src="js/vendor/lucide.min.js" defer onerror="window._lucideFailed=true"></script>
   <script>
@@ -517,7 +560,7 @@
 
     <div class="sandbox-banner" id="sandbox-banner" hidden>
       <i data-lucide="flask-conical" class="icon-16"></i>
-      <span><strong>Developer Sandbox</strong> — 100 requests/day limit. <a href="/dashboard/pricing" data-pricing-cta="1" id="sandbox-upgrade-link">Upgrade</a></span>
+      <span><strong>Developer Sandbox</strong> — 100 requests/day limit. <a href="/pricing" data-pricing-cta="1" id="sandbox-upgrade-link">Upgrade</a></span>
     </div>
 
     <div class="mobile-nav-overlay" id="mobile-nav-overlay"></div>
@@ -866,7 +909,7 @@
       }
     })();
   </script>
-  <script type="module" src="/dashboard/js-es2018/main.js?v=20260716chatfix1"></script>
+  <script type="module" src="/dashboard/js-es2018/main.js?v=20260718pricing1"></script>
   <script>
     // Capture script errors so the fallback page can report them without DevTools.
     window.__SB_DASHBOARD_ERRORS__ = [];

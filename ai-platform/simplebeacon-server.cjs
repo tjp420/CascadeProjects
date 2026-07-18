@@ -505,6 +505,7 @@ app.get(/^\/demo(\/.*)?$/, async (req, res) => redirectPublicToLanding(req, res)
 app.get(/^\/signin(\/.*)?$/, async (req, res) => redirectPublicToLanding(req, res));
 app.get(/^\/app(\/.*)?$/, async (req, res) => redirectPublicToLanding(req, res));
 app.get(/^\/upload(\.html)?(\/.*)?$/, (req, res) => res.redirect(302, '/#/upload'));
+app.get('/dashboard/pricing', (_req, res) => res.redirect(301, '/pricing'));
 app.get(/^\/trust(\/.*)?$/, (req, res) => {
   if (landingAtRoot) return res.redirect(302, '/');
   if (internalDashboard && !isVaultAuthenticated(req)) return res.redirect(302, '/');

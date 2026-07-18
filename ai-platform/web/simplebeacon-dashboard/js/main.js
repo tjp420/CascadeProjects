@@ -93,7 +93,7 @@ function handleSubscriptionGate() {
     if (action === 'signin' || isLocalSelfHosted()) {
       this.navigate('signin');
     } else {
-      this.navigate('pricing');
+      window.location.href = '/pricing';
     }
   } });
 }
@@ -773,16 +773,15 @@ class SimplebeaconDashboard {
     }
   }
 
-  /** In-app route for Team Pricing / Stripe checkout (path-based SPA, not pricing.html). */
+  /** Redirect pricing CTAs to the marketing pricing page. */
   bindPricingCta(anchor) {
     if (!anchor || anchor.dataset.pricingBound === '1') return;
     anchor.dataset.pricingBound = '1';
-    anchor.dataset.pricingCta = '1';
-    anchor.href = '/dashboard/pricing';
+    anchor.href = '/pricing';
     anchor.removeAttribute('target');
     anchor.addEventListener('click', (event) => {
       event.preventDefault();
-      this.navigate('pricing');
+      window.location.href = '/pricing';
     });
   }
 
@@ -792,7 +791,7 @@ class SimplebeaconDashboard {
       const link = event.target.closest('[data-pricing-cta]');
       if (!link || link.dataset.pricingBound === '1') return;
       event.preventDefault();
-      this.navigate('pricing');
+      window.location.href = '/pricing';
     });
   }
 

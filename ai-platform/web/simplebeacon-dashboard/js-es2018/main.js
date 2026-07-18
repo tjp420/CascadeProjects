@@ -111,7 +111,7 @@ function handleSubscriptionGate() {
                 this.navigate('signin');
             }
             else {
-                this.navigate('pricing');
+                window.location.href = '/pricing';
             }
         } });
 }
@@ -1284,17 +1284,16 @@ class SimplebeaconDashboard {
             }
         }, true);
     }
-    /** In-app route for Team Pricing / Stripe checkout (path-based SPA, not pricing.html). */
+    /** Redirect pricing CTAs to the marketing pricing page. */
     bindPricingCta(anchor) {
         if (!anchor || anchor.dataset.pricingBound === '1')
             return;
         anchor.dataset.pricingBound = '1';
-        anchor.dataset.pricingCta = '1';
-        anchor.href = '/dashboard/pricing';
+        anchor.href = '/pricing';
         anchor.removeAttribute('target');
         anchor.addEventListener('click', (event) => {
             event.preventDefault();
-            this.navigate('pricing');
+            window.location.href = '/pricing';
         });
     }
     setupPricingCtas() {
@@ -1310,7 +1309,7 @@ class SimplebeaconDashboard {
             if (!link || link.dataset.pricingBound === '1')
                 return;
             event.preventDefault();
-            this.navigate('pricing');
+            window.location.href = '/pricing';
         });
     }
     setupProfileDropdown() {
@@ -1581,7 +1580,7 @@ class SimplebeaconDashboard {
         // Audit, roadmap, results, trust, security, platform, and quality remain read-only accessible.
         if (!readOnlyPreview && WRITE_HEAVY_VIEWS.has(view) && !authService.isDashboardWriteAllowed()) {
             showToast('This dashboard feature requires a paid or team license.', 'info');
-            this.navigate('pricing');
+            window.location.href = '/pricing';
             return;
         }
         if (!readOnlyPreview && CLOUD_TEAMS_VIEWS.has(view) && authService.isAuthenticated()) {
