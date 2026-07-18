@@ -108,6 +108,7 @@ function generateLicenseToken(payload, secret, expiresInMinutes) {
 
 // Security headers (helmet-lite)
 app.use((req, res, next) => {
+    res.setHeader('Cache-Control', 'no-transform');
     res.setHeader('X-Content-Type-Options', 'nosniff');
     const isDev = process.env.NODE_ENV !== 'production';
     // Allow iframe embedding in dev (for IDE previews like Windsurf/Cursor)
