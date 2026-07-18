@@ -21,12 +21,21 @@ export default [
         escapeHtml: 'readonly',
         formatPercent: 'readonly',
         formatNumber: 'readonly',
-        pass: 'readonly'
+        pass: 'readonly',
+        path: 'readonly',
+        crypto: 'readonly',
+        define: 'readonly',
+        get: 'readonly',
+        projectPath: 'readonly',
+        resolveEslintTargets: 'readonly',
+        runNpmAudit: 'readonly',
+        scanCmd: 'readonly'
       }
     },
     rules: {
       'no-unused-vars': 'off',
       'no-console': 'off',
+      'no-control-regex': 'off',
       'semi': 'off',
       'quotes': 'off',
       'indent': 'off',
@@ -43,7 +52,10 @@ export default [
       'build/**',
       'packages/simplebeacon-cli/**',
       '.github-sync/**',
-      'github-cache/**'
+      'github-cache/**',
+      'web/simplebeacon-dashboard/js/vendor/**',
+      'web/simplebeacon-dashboard/js-es2018/vendor/**',
+      'local-agent/**'
     ]
   }
 ];

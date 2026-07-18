@@ -21,7 +21,8 @@ module.exports = [
         fetch: 'readonly',
         AbortController: 'readonly',
         URL: 'readonly',
-        URLSearchParams: 'readonly'
+        URLSearchParams: 'readonly',
+        crypto: 'readonly'
       }
     },
     rules: {
