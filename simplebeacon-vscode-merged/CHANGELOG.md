@@ -1,5 +1,20 @@
 # SimpleBeacon VSCode Extension Changelog
 
+## [Unreleased] - 2026-07-17
+
+### Added
+- Client-side cookie-session migration for the dashboard `AuthService` (`js` and `js-es2018` builds)
+- `AUTH_HINT_KEY` and `CLI_FALLBACK_TOKEN_KEY` constants plus `usesCookieSessions()` / `isHydrated()` / `hydrateSession()` helpers
+- Bootstrap hydration gate in `main.js` and `js-es2018/main.js` that waits for `/api/auth/me` before rendering protected UI
+- `authFetch()` helper for authenticated requests with `credentials: 'include'` and 401 redirect handling
+- Integration test for `/api/auth/me` response contract covering unauthenticated and authenticated flows
+
+### Changed
+- `getToken()`, `getUser()`, `setSession()`, `clearSession()`, `isAuthenticated()`, `getAuthHeaders()`, `isAdmin()`, `getTokenTier()`, and `isDashboardWriteAllowed()` are now cookie-session aware
+- `login()`, `logout()`, and `refreshToken()` include credentials and handle cookie-mode responses
+- Server `/api/auth/me` endpoint normalized to return `authenticated`, `user` with `role`, `features`, `tier`/`plan`, and `trustLevel`
+- `stopDataServer()` now closes active connections for clean shutdown
+
 ## [3.0.438] - 2026-07-15
 
 ### Fixed

@@ -729,7 +729,33 @@ function decodeJwtPayload(token: string): Record<string, any> | null {
   }
 }
 
-function validateJwt(token: string): { valid: boolean; user?: { id: string; email: string; tier?: string; plan?: string; trustLevel?: string } } {
+function trustLevelFromTier(tier?: string): string {
+  const t = String(tier || '').toLowerCase();
+  if (t === 'enterprise' || t === 'compliance' || t === 'gold') return 'gold';
+  if (t === 'pro' || t === 'silver' || t === 'team') return 'silver';
+  return 'bronze';
+}
+
+function normalizeAuthUser(user: any): any {
+  if (!user || typeof user !== 'object') return null;
+  const tier = user.tier || user.plan || 'free';
+  const isAdmin = user.role === 'admin' || user.role === 'superuser' ||
+    String(user.email || '').toLowerCase() === 'admin@simplebeacon.ai';
+  const features = Array.isArray(user.features) ? user.features : (isAdmin ? ['all_modules'] : []);
+  const trustLevel = user.trustLevel || (isAdmin ? 'gold' : trustLevelFromTier(tier));
+  return {
+    id: user.id || 'user',
+    email: user.email || '',
+    name: user.name || (user.email ? user.email.split('@')[0] : 'User'),
+    tier,
+    plan: tier,
+    role: isAdmin ? 'admin' : (user.role || 'user'),
+    features,
+    trustLevel
+  };
+}
+
+function validateJwt(token: string): { valid: boolean; user?: any } {
   const payload = decodeJwtPayload(token);
   if (!payload) return { valid: false };
   if (payload.exp && payload.exp * 1000 < Date.now()) return { valid: false };
@@ -739,15 +765,19 @@ function validateJwt(token: string): { valid: boolean; user?: { id: string; emai
     payload.account?.tier || payload.account?.plan ||
     payload.subscription?.tier || payload.subscription?.plan ||
     'free';
+  const isAdmin = payload.role === 'admin' || payload.role === 'superuser';
+  const features = Array.isArray(payload.features) ? payload.features : (isAdmin ? ['all_modules'] : []);
   return {
     valid: true,
-    user: {
+    user: normalizeAuthUser({
       id: payload.sub || 'jwt-user',
       email: payload.email || payload.sub || 'user@simplebeacon.ai',
+      name: payload.name,
       tier,
-      plan: tier,
-      trustLevel: tier === 'enterprise' || tier === 'compliance' ? 'gold' : tier === 'pro' ? 'silver' : 'bronze'
-    }
+      role: payload.role,
+      features,
+      trustLevel: payload.trustLevel
+    })
   };
 }
 
@@ -860,14 +890,15 @@ function ensureDemoLocalUsers(): void {
 
 function localUserToAuthPayload(user: LocalUser): Record<string, unknown> {
   const isAdmin = user.tier === 'admin' || user.email.toLowerCase() === 'admin@simplebeacon.ai';
-  return {
+  return normalizeAuthUser({
     id: user.id,
     email: user.email,
-    name: user.name || user.email.split('@')[0],
+    name: user.name,
     tier: user.tier,
-    plan: user.tier,
-    ...(isAdmin ? { role: 'admin', features: ['all_modules'] } : {})
-  };
+    role: isAdmin ? 'admin' : 'user',
+    features: isAdmin ? ['all_modules'] : [],
+    trustLevel: isAdmin ? 'gold' : trustLevelFromTier(user.tier)
+  });
 }
 
 function getLocalUsersPath(): string {
@@ -3092,13 +3123,13 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     // /api/auth/me — return real auth state from request headers or extension secret storage
     if (parsed.pathname === '/api/auth/me') {
       let token = getBearerToken(req);
-      // Fall back to VS Code secret storage if no bearer token
+      // Fall back to VS Code: secret storage if no bearer token
       if (!token && extensionContext) {
         try { token = await extensionContext.secrets.get('simplebeacon.apiToken'); } catch { /* ignore */ }
       }
       if (!token) {
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: true, user: null }));
+        res.end(JSON.stringify({ success: true, authenticated: false, user: null }));
         return;
       }
       // JWT tokens (3 parts)
@@ -3106,21 +3137,22 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
         const jwtResult = validateJwt(token);
         if (jwtResult.valid && jwtResult.user) {
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: true, user: jwtResult.user }));
+          res.end(JSON.stringify({ success: true, authenticated: true, user: jwtResult.user }));
           return;
         }
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: false, user: null }));
+        res.end(JSON.stringify({ success: false, authenticated: false, user: null }));
         return;
       }
       // License tokens (2 parts)
       const valid = validateLicenseLocally(token, PUBLIC_KEY_PEM);
       if (valid) {
+        const licenseUser = normalizeAuthUser({ id: 'licensed', email: 'user@simplebeacon.ai', tier: valid.tier || 'licensed', trustLevel: 'gold' });
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: true, user: { id: 'licensed', email: 'user@simplebeacon.ai', trustLevel: 'gold' } }));
+        res.end(JSON.stringify({ success: true, authenticated: true, user: licenseUser }));
       } else {
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: false, user: null }));
+        res.end(JSON.stringify({ success: false, authenticated: false, user: null }));
       }
       return;
     }
@@ -4412,6 +4444,7 @@ export function isDataServerRunning(): boolean {
 
 export function stopDataServer(): void {
   if (dataServer) {
+    try { (dataServer as any).closeAllConnections?.(); } catch { /* ignore */ }
     dataServer.close();
     dataServer = null;
     sseClients.forEach((c) => {
