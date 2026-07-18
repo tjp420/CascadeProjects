@@ -85,7 +85,10 @@ function createMcpToolHandlers(options = {}) {
     return {
         ...scanHandlers,
         ...reportHandlers,
-        ...utilityHandlers
+        ...utilityHandlers,
+        dispose() {
+            if (networkGuard) networkGuard.dispose();
+        }
     };
 }
 

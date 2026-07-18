@@ -46,6 +46,7 @@ test('get_action_plan returns action plan text', async () => {
         const text = planResult.content[0].text;
         assert.ok(text.includes('Simplebeacon Action Plan'));
         assert.ok(text.includes('Quality score:'));
+        handlers.dispose();
     } finally {
         fs.rmSync(root, { recursive: true, force: true });
     }
@@ -61,17 +62,24 @@ test('scanCache TTL expires after 10 minutes', async () => {
         const immediate = await handlers.get_action_plan({ projectRoot: root });
         assert.equal(immediate.content[0].type, 'text');
         assert.ok(immediate.content[0].text.includes('Simplebeacon Action Plan'));
+        handlers.dispose();
     } finally {
         fs.rmSync(root, { recursive: true, force: true });
     }
 });
 
 test('get_action_plan falls back to disk when cache is cold', async () => {
-    const handlers = createMcpToolHandlers({ offline: true });
-    // Don't run scan_project first — cache is empty
-    const result = await handlers.get_action_plan({ projectRoot: process.cwd() });
-    assert.equal(result.content[0].type, 'text');
-    // Either returns action plan (if report.json exists) or error message
-    const text = result.content[0].text;
-    assert.ok(text.includes('Simplebeacon Action Plan') || text.includes('No scan report found'));
+    const root = makeTempProject();
+    try {
+        const handlers = createMcpToolHandlers({ offline: true });
+        // Don't run scan_project first — cache is empty
+        const result = await handlers.get_action_plan({ projectRoot: root });
+        assert.equal(result.content[0].type, 'text');
+        // Either returns action plan (if report.json exists) or error message
+        const text = result.content[0].text;
+        assert.ok(text.includes('Simplebeacon Action Plan') || text.includes('No scan report found'));
+        handlers.dispose();
+    } finally {
+        fs.rmSync(root, { recursive: true, force: true });
+    }
 });
