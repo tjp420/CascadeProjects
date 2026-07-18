@@ -4,6 +4,8 @@
 
 const { describe, it } = require('node:test');
 const assert = require('node:assert');
+const path = require('path');
+const os = require('os');
 const {
     scanFileContent
 } = require('../src/rules/production-leak.js');
@@ -149,7 +151,9 @@ describe('globMatch', () => {
 
 describe('normalizeRel', () => {
     it('returns forward-slash relative paths', () => {
-        const result = normalizeRel('C:\\project', 'C:\\project\\src\\main.js');
+        const base = path.join(os.tmpdir(), 'project');
+        const file = path.join(base, 'src', 'main.js');
+        const result = normalizeRel(base, file);
         assert.strictEqual(result, 'src/main.js');
     });
 });

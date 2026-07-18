@@ -14,9 +14,10 @@ const { sanitizeFilePath, sanitizeString } = require('../../src/lib/input-saniti
 const { resolvePathFromBase, loadSimplebeaconConfig } = require('../../src/config');
 
 test('normalizePathKey lowercases and uses forward slashes', () => {
-    const normalized = normalizePathKey('C:\\Project\\Web\\Data');
-    assert.match(normalized, /^c:/);
-    assert.ok(!normalized.includes('\\'));
+    const testPath = path.join(os.tmpdir(), 'Project', 'Web', 'Data');
+    const normalized = normalizePathKey(testPath);
+    assert.ok(!normalized.includes('\\'), 'should not contain backslashes');
+    assert.ok(normalized.includes('project/web/data'), 'should lowercase and use forward slashes');
 });
 
 test('isPathWithinRoot detects containment', () => {

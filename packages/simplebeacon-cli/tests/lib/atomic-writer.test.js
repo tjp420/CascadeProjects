@@ -19,10 +19,15 @@ test('atomic write creates file successfully', () => {
 });
 
 test('atomic write handles failure gracefully', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sb-atomic-'));
+    const blocker = path.join(dir, 'blocker.txt');
+    fs.writeFileSync(blocker, 'block');
+    const invalidPath = path.join(blocker, 'nested', 'test.json');
     const content = '{"test": true}\n';
-    const invalidPath = path.join('\\\\?\\Z:\\invalid-simplebeacon-path', 'test.json');
 
     assert.throws(() => {
         atomicWriteFileSync(invalidPath, content);
     });
+
+    fs.rmSync(dir, { recursive: true, force: true });
 });
