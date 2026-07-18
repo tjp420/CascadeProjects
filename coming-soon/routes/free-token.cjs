@@ -10,6 +10,7 @@ const router = express.Router();
 const systemLogger = require('../lib/system-logger.cjs');
 const { getDb, createValidationCode, getValidationCodeByEmailAndCode, getValidationCodeByTokenHash, markValidationCodeUsed } = require('../lib/db.cjs');
 const { hashToken } = require('../lib/token-chain-store.cjs');
+const { createTokenChain, activateToken } = require('../lib/token-chain-store.cjs');
 const { sendEmail } = require('../services/email.cjs');
 
 const logger = {
@@ -135,6 +136,15 @@ async function handleFreeToken(req, res) {
         const expiresAt = new Date(now + FREE_TOKEN_TTL_MINUTES * 60 * 1000).toISOString();
         const certUrl = `${getPublicUrl(req)}/certificate-upload.html?token=${encodeURIComponent(token)}`;
         setFreeTokenRecord(email, token, hashToken(token), expiresAt);
+
+        // Register in token chain for auditability and upgrade lineage
+        try {
+            createTokenChain(email, { email, tier: 'community' }, token, FREE_TOKEN_TTL_MINUTES);
+            activateToken(hashToken(token), FREE_TOKEN_TTL_MINUTES);
+        } catch (chainErr) {
+            logger.error('[FreeToken] Failed to register token in chain:', chainErr.message);
+        }
+
         systemLogger.logTokenOp('free_token_generated', { email, tier: 'community', clientIp: req.ip || req.socket?.remoteAddress || 'unknown' });
 
         // Email the token when requested by the UI
@@ -281,6 +291,14 @@ async function handleSandboxToken(req, res) {
             );
             const expiresAt = new Date(now + SANDBOX_TOKEN_TTL_MINUTES * 60 * 1000).toISOString();
             setSandboxTokenRecord(normalizedEmail, token, hashToken(token), expiresAt);
+
+            // Register in token chain for auditability and upgrade lineage
+            try {
+                createTokenChain(normalizedEmail, { email: normalizedEmail, tier: 'sandbox', features: ['basic_analysis', 'sample_data_basic'] }, token, SANDBOX_TOKEN_TTL_MINUTES);
+                activateToken(hashToken(token), SANDBOX_TOKEN_TTL_MINUTES);
+            } catch (chainErr) {
+                logger.error('[SandboxToken] Failed to register token in chain:', chainErr.message);
+            }
         }
 
         const tokenHash = hashToken(token);
@@ -390,10 +408,21 @@ router.post('/api/token/upgrade', express.json(), async (req, res) => {
             30 * 24 * 60 // 30 days
         );
 
-        // Register in token chain and activate
-        const { createTokenChain, activateToken } = require('../lib/token-chain-store.cjs');
-        createTokenChain(reqEmail, { email: reqEmail, tier: paidTier }, paidToken, 30 * 24 * 60);
-        activateToken(hashToken(paidToken), 30 * 24 * 60);
+        // Attach paid token to the free-token's chain for lineage tracking
+        const { attachTokenToChain, revokeToken } = require('../lib/token-chain-store.cjs');
+        const freeTokenHash = hashToken(freeToken);
+        const paidTtlMinutes = 30 * 24 * 60;
+        const attachResult = attachTokenToChain(freeTokenHash, paidToken, { email: reqEmail, tier: paidTier }, paidTtlMinutes);
+
+        if (!attachResult.success) {
+            // Fallback: create a new owner chain if the free token wasn't in the chain
+            logger.error('[TokenUpgrade] attachTokenToChain failed, falling back to new chain:', attachResult.error);
+            createTokenChain(reqEmail, { email: reqEmail, tier: paidTier }, paidToken, paidTtlMinutes);
+            activateToken(hashToken(paidToken), paidTtlMinutes);
+        } else {
+            // Revoke the free token in the chain (keep node for audit trail)
+            revokeToken(freeTokenHash);
+        }
 
         res.json({
             success: true,

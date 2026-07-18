@@ -213,6 +213,49 @@ function getChainStatus(chainId) {
   };
 }
 
+/**
+ * Attach a paid (upgraded) token to an existing free-token's chain.
+ * The paid token becomes an attached node under the free token's owner node.
+ * @param {string} freeTokenHash — hash of the existing free token (owner node)
+ * @param {string} paidJwt — the new paid JWT string
+ * @param {Object} paidPayload — { email, tier, features }
+ * @param {number} ttlMinutes — lifetime from activation
+ * @returns {Object} { success, node, error }
+ */
+function attachTokenToChain(freeTokenHash, paidJwt, paidPayload, ttlMinutes) {
+  const db = getDb();
+  const parentNode = getTokenNode(freeTokenHash);
+  if (!parentNode) return { success: false, error: 'Free token not found in chain registry.' };
+  if (!parentNode.chain_id) return { success: false, error: 'Free token has no chain_id.' };
+
+  const paidHash = hashToken(paidJwt);
+  const nowIso = new Date().toISOString();
+  const expiresAt = new Date(Date.now() + ttlMinutes * 60 * 1000).toISOString();
+
+  // Insert as attached node under the free-token's owner node
+  db.prepare(
+    `INSERT INTO token_nodes
+     (chain_id, parent_id, token_hash, token_type, status, email, tier, created_at, activated_at, clock_started_at, expires_at, features)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(
+    parentNode.chain_id,
+    parentNode.id,
+    paidHash,
+    'attached',
+    'active',
+    (paidPayload.email || parentNode.email || '').trim().toLowerCase(),
+    paidPayload.tier || 'team',
+    nowIso,
+    nowIso,
+    nowIso,
+    expiresAt,
+    JSON.stringify(paidPayload.features || [])
+  );
+
+  const node = getTokenNode(paidHash);
+  return { success: true, node };
+}
+
 module.exports = {
   hashToken,
   createTokenChain,
@@ -222,5 +265,6 @@ module.exports = {
   expireStaleTokens,
   revokeToken,
   isChainFullyActive,
-  getChainStatus
+  getChainStatus,
+  attachTokenToChain
 };
