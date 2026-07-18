@@ -6342,7 +6342,7 @@ body.tabs-open #browserTabBar{display:flex !important;}
 
     const tryListen = (port: number) => {
       server.once('error', (err: any) => {
-        if (err.code === 'EADDRINUSE') {
+        if (err.code === 'EADDRINUSE' || err.code === 'EACCES') {
           const nextPort = port + 1;
           if (nextPort <= RELAY_PORT + 20) {
             tryListen(nextPort);

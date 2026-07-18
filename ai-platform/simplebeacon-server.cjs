@@ -71,7 +71,7 @@ const { safeString, safeErrorMessage } = constants;
 // ── Server-side utility helpers ───────────────────────────────
 
 function setNoCacheHeaders(res) {
-    res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, no-transform');
     res.set('Pragma', 'no-cache');
 }
 
@@ -261,7 +261,7 @@ function sendLandingFile(res, relativePath, type) {
   }
   if (!fs.existsSync(resolved)) return false;
   if (typeof type === 'string' && type) res.type(type);
-  res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, no-transform');
   res.sendFile(resolved);
   return true;
 }
@@ -466,7 +466,7 @@ async function loadDashboardHtml() {
 }
 
 async function sendSimplebeaconDashboard(res) {
-  res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, no-transform');
   // Path-traversal guard: ensure dashboard path resolves inside webRoot
   const resolved = path.resolve(dashboardPath);
   const rootResolved = path.resolve(webRoot);
@@ -485,7 +485,7 @@ async function sendSimplebeaconDashboard(res) {
 function sendLandingIndex(res) {
   const landingIndex = path.join(landingRoot, 'index.html');
   if (!fs.existsSync(landingIndex)) return false; // simplebeacon-ignore sync-io-async-path — synchronous file existence check for landing page fallback
-  res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, no-transform');
   res.sendFile(landingIndex);
   return true;
 }
@@ -823,6 +823,14 @@ if (landingRootExists) {
   });
 }
 
+// Prevent Cloudflare from auto-injecting stale beacon scripts with broken SRI hashes
+app.use((req, res, next) => {
+  if (req.path.endsWith('.html') || req.path === '/' || !path.extname(req.path)) {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, no-transform');
+  }
+  next();
+});
+
 // Serve landing pages from root
 app.use('/', express.static(landingRoot, { index: false }));
 
@@ -935,7 +943,7 @@ app.use((req, res, next) => {
     res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
   }
   if (/^\/(services|scripts|components|simplebeacon-dashboard)\/.*\.(js|css|html)$/i.test(req.path) || req.path.endsWith('.html')) {
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, no-transform');
     res.setHeader('Pragma', 'no-cache');
   }
   express.static(webRoot)(req, res, next);
