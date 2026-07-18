@@ -28,12 +28,15 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install SimpleBeacon scanner
-        run: npm install -g simplebeacon
+      - name: Build local SimpleBeacon CLI
+        run: |
+          cd packages/simplebeacon-cli
+          npm ci --ignore-scripts
+          npm run build
 
       - name: Run local scan
         run: |
-          npx simplebeacon scan --complete --gate --path . --format json --output .simplebeacon/report.json
+          node packages/simplebeacon-cli/bin/simplebeacon.js scan --complete --gate --path . --format json --output .simplebeacon/report.json
 
       - name: Redact absolute paths and hash metadata
         run: |
