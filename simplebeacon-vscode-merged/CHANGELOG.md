@@ -1,6 +1,6 @@
 # SimpleBeacon VSCode Extension Changelog
 
-## [Unreleased] - 2026-07-17
+## [3.0.461] - 2026-07-18
 
 ### Added
 - Client-side cookie-session migration for the dashboard `AuthService` (`js` and `js-es2018` builds)
