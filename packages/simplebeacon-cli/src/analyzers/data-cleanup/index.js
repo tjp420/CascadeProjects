@@ -9,15 +9,6 @@
  * environment variables, data freshness, access patterns, privacy, lineage,
  * and consistency. Includes runtime registration and query APIs.
  *
- * ```js
- * const { getEnabled, DataPrivacyAnalyzer } = require('./data-cleanup');
- * const scanner = new DataPrivacyAnalyzer();
- *
- * // Query available scanners
- * const enabled = getEnabled();
- * const byPriority = getByPriority({ min: 5, max: 9 });
- * ```
- *
  * @file packages/simplebeacon-cli/src/analyzers/data-cleanup/index.js
  */
 

@@ -37,7 +37,7 @@ import {
 } from './providers';
 import { CodeMapTreeProvider } from './codeMapTreeProvider';
 import { startDataServer, stopDataServer, updateServerState, getServerState, getDataServerPort, clearBrowserSessionToken, setBrowserSessionToken, recordBrowserSignOut, setSidebarHtmlProvider, setAiContextCallback, restartDataServer, isDataServerRunning, setModernSidebarProvider, buildAiContextMarkdown, setNotifyCallback, drainNotificationQueue, setTheme } from './dataServer';
-import { getExtensionVersion, pickWorkspaceFolder, correctScanPath, showQuietMessage, getSbConfig } from './utils/vscode';
+import { getExtensionVersion, pickWorkspaceFolder, correctScanPath, showQuietMessage, getSbConfig, normalizeApiServerUrl } from './utils/vscode';
 import { escapeHtml } from './utils/string';
 import { openWebsiteDashboardPanel } from './sidebarMessenger';
 import {
@@ -256,6 +256,7 @@ let _extensionUri: vscode.Uri | undefined;
 let _extensionContext: vscode.ExtensionContext | undefined;
 
 // aiPlatform globals (exported for aiPlatform panels)
+// simplebeacon-ignore: generic-naming — exported API name, renaming would break consumers
 /** Global SimpleBeacon provider instance. */
 export let provider: SimpleBeaconProvider;
 /** Global diagnostics manager instance. */
@@ -277,23 +278,13 @@ function postThemeToPanel(panel: vscode.WebviewPanel | undefined) {
   } catch (e) { /* ignore closed panels */ }
 }
 
-const BAD_PORTS = [':55444', ':54358', ':3000'];
-const DEFAULT_API_PORT = ':55000';
-
 function getConfiguredApiUrl(): string {
   const config = getSbConfig();
   let url = config.get<string>('apiServerUrl', '');
   if (!url) {
     url = config.get<string>('apiUrl', 'http://127.0.0.1:55000') || 'http://127.0.0.1:55000';
   }
-  // Auto-correct known bad ports to the actual SimpleBeacon server port
-  for (const bad of BAD_PORTS) {
-    if (url.includes(bad)) {
-      url = url.replace(bad, DEFAULT_API_PORT);
-      break;
-    }
-  }
-  return url.replace(/\/$/, '');
+  return normalizeApiServerUrl(url);
 }
 
 async function checkServerReachable(url: string, timeout = 3000): Promise<boolean> {
@@ -708,6 +699,7 @@ export function activate(context: vscode.ExtensionContext) {
               return;
             }
             const port = getDataServerPort();
+            // simplebeacon-ignore: generic-naming — JSON property name matches server API contract
             const body = JSON.stringify({ code, code_verifier: session.codeVerifier, provider: session.provider, state });
             const req = require('http').request(
               { hostname: '127.0.0.1', port, path: '/api/auth/oauth/token', method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) } },
@@ -3513,6 +3505,7 @@ export function deactivate() {
   stopDataServer();
 }
 
+// simplebeacon-ignore: mega-params — 3 params is reasonable for scan orchestration
 async function runScan(context: vscode.ExtensionContext, projectPath?: string, options?: { mode?: string; fullDirectory?: boolean }) {
   if (scanInProgress) {
     const choice = await vscode.window.showInformationMessage(
@@ -5524,8 +5517,8 @@ INSTRUCTIONS
     },
     async (_progress, token) => {
       try {
-        const controller = new AbortController();
-        token.onCancellationRequested(() => controller.abort());
+        const abortController = new AbortController();
+        token.onCancellationRequested(() => abortController.abort());
 
         const response = await fetch(`${ollamaUrl}/api/generate`, {
           method: 'POST',
@@ -5536,7 +5529,7 @@ INSTRUCTIONS
             stream: false,
             options: { temperature: 0.0 },
           }),
-          signal: controller.signal,
+          signal: abortController.signal,
         });
 
         if (!response.ok) {
@@ -5602,6 +5595,7 @@ interface CodeMapAnalysis {
   recommendations: { priority: number; title: string; effort: 'small' | 'medium' | 'large'; impact: 'high' | 'medium' | 'low'; description: string; files: string[] }[];
 }
 
+// simplebeacon-ignore: mega-params — single param with complex inline type definition
 function analyzeCodeMap(data: { files: { name: string; ext: string; size: number; lines: number; path: string; full: string; content?: string }[]; depNodes: Record<string, { id: string; label: string; group: string; size: number }>; depEdges: { source: string; target: string }[]; cycles: string[][]; root: string }): CodeMapAnalysis {
   const { files, depNodes, depEdges, cycles, root } = data;
   const recordedPaths = files.map(f => ({ path: f.path, type: f.ext, lines: f.lines, size: f.size }));

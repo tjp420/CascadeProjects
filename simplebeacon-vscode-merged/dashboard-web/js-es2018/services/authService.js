@@ -102,6 +102,8 @@ const TOKEN_REGISTRY_KEY = 'sb-token-registry';
 /** Legacy dashboards / upload clients read these keys */
 const LEGACY_TOKEN_KEYS = ['access_token', 'token', 'authToken', 'simplebeacon_token'];
 const ALL_TOKEN_KEYS = [TOKEN_KEY, ...LEGACY_TOKEN_KEYS];
+const AUTH_HINT_KEY = 'sb_auth_hint';
+const CLI_FALLBACK_TOKEN_KEY = 'sb_cli_fallback_token';
 /**
  * Get cookie.
  * @param {string} name
@@ -129,8 +131,14 @@ function setCookie(name, value, maxAge = 60 * 60 * 24 * 30) {
 function clearCookie(name) {
     document.cookie = name + '=;path=/;max-age=0;SameSite=Lax';
 }
+function usesCookieSessions() {
+    return !_hasExtensionBridgeParams();
+}
 // Sync cross-port auth cookies into localStorage on first load
 (function syncCrossPortAuth() {
+    if (usesCookieSessions()) {
+        return;
+    }
     for (const key of ALL_TOKEN_KEYS) {
         const cookieVal = getCookie(key);
         if (cookieVal && !localStorage.getItem(key)) {
@@ -175,6 +183,7 @@ export class AuthService {
     constructor() {
         this.authRequired = false;
         this.user = null;
+        this._isHydrated = false;
         this._onCrossTabSignout = this._onCrossTabSignout.bind(this);
         if (typeof window !== 'undefined') {
             window.addEventListener('storage', this._onCrossTabSignout);
@@ -215,17 +224,6 @@ export class AuthService {
             window.dispatchEvent(new CustomEvent('auth-signed-out', { detail: { key: event.key } }));
         }
     }
-    getToken() {
-        const primary = localStorage.getItem(TOKEN_KEY);
-        if (primary)
-            return primary;
-        for (const key of LEGACY_TOKEN_KEYS) {
-            const val = localStorage.getItem(key);
-            if (val)
-                return val;
-        }
-        return '';
-    }
     getUser() {
         if (this.user)
             return this.user;
@@ -238,15 +236,77 @@ export class AuthService {
             return null;
         }
     }
+
+    isHydrated() {
+        return this._isHydrated;
+    }
+
+    async hydrateSession() {
+        if (!usesCookieSessions()) {
+            this._isHydrated = true;
+            return this.getUser();
+        }
+
+        try {
+            const response = await fetch(`${apiBase()}/api/auth/me`, {
+                method: 'GET',
+                credentials: 'include'
+            });
+
+            const body = await response.json().catch(() => null);
+
+            if (!response.ok || !body?.authenticated || !body?.user) {
+                this.clearSession({ preserveCliToken: true, notify: false });
+                this._isHydrated = true;
+                return null;
+            }
+
+            this.user = body.user;
+            this._isHydrated = true;
+            localStorage.setItem(USER_KEY, JSON.stringify(body.user));
+            sessionStorage.setItem(AUTH_HINT_KEY, 'present');
+            return body.user;
+        }
+        catch (_error) {
+            this.clearSession({ preserveCliToken: true, notify: false });
+            this._isHydrated = true;
+            return null;
+        }
+    }
+
+    getToken() {
+        if (usesCookieSessions()) {
+            if (typeof window === 'undefined') {
+                return global._sb_cli_token || null;
+            }
+            return localStorage.getItem(CLI_FALLBACK_TOKEN_KEY) || '';
+        }
+
+        const primary = localStorage.getItem(TOKEN_KEY);
+        if (primary)
+            return primary;
+        for (const key of LEGACY_TOKEN_KEYS) {
+            const val = localStorage.getItem(key);
+            if (val)
+                return val;
+        }
+        return '';
+    }
+
     isAdmin() {
         const user = this.user || this.getUser() || {};
         const email = String(user.email || '').toLowerCase();
         if (email === 'admin@simplebeacon.ai') return true;
         const role = String(user.role || '').toLowerCase();
-        const tier = String(user.tier || '').toLowerCase();
+        const tier = String(user.tier || user.plan || '').toLowerCase();
         if (role === 'admin' || role === 'superuser') return true;
         if (tier === 'admin' || tier === 'superuser') return true;
-        if (Array.isArray(user.features) && user.features.map(String).map(s => s.toLowerCase()).includes('all_modules')) return true;
+        if (Array.isArray(user.features) && user.features.map(String).map((s) => s.toLowerCase()).includes('all_modules')) return true;
+
+        if (usesCookieSessions()) {
+            return false;
+        }
+
         try {
             const token = this.getToken();
             if (token) {
@@ -257,42 +317,61 @@ export class AuthService {
                 const tokenTier = String(payload.tier || payload.plan || '').toLowerCase();
                 if (tokenRole === 'admin' || tokenRole === 'superuser') return true;
                 if (tokenTier === 'admin' || tokenTier === 'superuser') return true;
-                if (Array.isArray(payload.features) && payload.features.map(String).map(s => s.toLowerCase()).includes('all_modules')) return true;
+                if (Array.isArray(payload.features) && payload.features.map(String).map((s) => s.toLowerCase()).includes('all_modules')) return true;
             }
         }
-        catch (_a) {
+        catch {
             // ignore decode errors
         }
         return false;
     }
     setSession(token, user, options = {}) {
-        localStorage.setItem(TOKEN_KEY, token);
-        setCookie(TOKEN_KEY, token);
-        for (const key of LEGACY_TOKEN_KEYS) {
-            localStorage.setItem(key, token);
-            setCookie(key, token);
+        if (!usesCookieSessions()) {
+            localStorage.setItem(TOKEN_KEY, token);
+            setCookie(TOKEN_KEY, token);
+            for (const key of LEGACY_TOKEN_KEYS) {
+                localStorage.setItem(key, token);
+                setCookie(key, token);
+            }
         }
+        else {
+            localStorage.removeItem(TOKEN_KEY);
+            clearCookie(TOKEN_KEY);
+            for (const key of LEGACY_TOKEN_KEYS) {
+                localStorage.removeItem(key);
+                clearCookie(key);
+            }
+            sessionStorage.setItem(AUTH_HINT_KEY, 'present');
+        }
+
         const userJson = JSON.stringify(user);
         localStorage.setItem(USER_KEY, userJson);
-        setCookie(USER_KEY, userJson);
         this.user = user;
+        this._isHydrated = true;
+
         if (options.notify === false)
             return;
         // Notify parent VS Code webview of auth state change
         const tier = (user && (user.tier || user.plan)) || this.getTokenTier() || '';
         const isAdmin = this.isAdmin();
         if (typeof window !== 'undefined' && window.parent !== window) {
-            window.parent.postMessage({ command: 'setAuthState', signedIn: true, tier, token, isAdmin }, '*');
+            window.parent.postMessage({
+                command: 'setAuthState',
+                signedIn: true,
+                tier,
+                token: usesCookieSessions() ? '' : token,
+                isAdmin
+            }, '*');
         }
         else if (/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname)) {
-            notifyAuthState(true, tier, token, isAdmin);
+            notifyAuthState(true, tier, usesCookieSessions() ? '' : token, isAdmin);
         }
         // If opened from the VS Code: "Sign In via Website" flow, redirect back to the extension.
         if (typeof window !== 'undefined' && window.parent === window) {
             try {
                 const redirectUri = new URLSearchParams(window.location.search).get('redirect_uri');
                 if (redirectUri && redirectUri.startsWith('vscode://simplebeacon.simplebeacon-vscode/relay/auth')) {
-                    const finalUri = `${redirectUri}?token=${encodeURIComponent(token)}&signedIn=true&tier=${encodeURIComponent(tier)}&isAdmin=${isAdmin}`;
+                    const finalUri = `${redirectUri}?token=${encodeURIComponent(usesCookieSessions() ? '' : token)}&signedIn=true&tier=${encodeURIComponent(tier)}&isAdmin=${isAdmin}`;
                     window.location.href = finalUri;
                 }
             }
@@ -300,8 +379,10 @@ export class AuthService {
         }
     }
     clearSession(options = {}) {
+        const preserveCliToken = options.preserveCliToken === true;
         const token = this.getToken();
-        if (token)
+
+        if (!usesCookieSessions() && token)
             this.unbindToken(token);
         localStorage.removeItem(TOKEN_KEY);
         clearCookie(TOKEN_KEY);
@@ -311,7 +392,15 @@ export class AuthService {
         }
         localStorage.removeItem(USER_KEY);
         clearCookie(USER_KEY);
+        sessionStorage.removeItem(AUTH_HINT_KEY);
+
+        if (!preserveCliToken) {
+            localStorage.removeItem(CLI_FALLBACK_TOKEN_KEY);
+        }
+
         this.user = null;
+        this._isHydrated = true;
+
         if (options.notify === false)
             return;
         // Notify parent VS Code webview of sign-out
@@ -340,7 +429,10 @@ export class AuthService {
         }
     }
     isAuthenticated() {
-        var _a;
+        if (usesCookieSessions()) {
+            return Boolean(this.user || this.getUser());
+        }
+
         const token = this.getToken();
         if (token) {
             // Raw/local license keys are only valid against local/self-hosted APIs, not the
@@ -365,9 +457,14 @@ export class AuthService {
             if (localStorage.getItem(key))
                 return !_isCloudApiBase();
         }
-        return Boolean((_a = this.user) === null || _a === void 0 ? void 0 : _a.vaultSession) && !_isCloudApiBase();
+        return Boolean(this.user?.vaultSession) && !_isCloudApiBase();
     }
     getAuthHeaders() {
+        if (usesCookieSessions()) {
+            const cliToken = localStorage.getItem(CLI_FALLBACK_TOKEN_KEY);
+            return cliToken ? { Authorization: `Bearer ${cliToken}` } : {};
+        }
+
         const token = this.getToken();
         if (!token)
             return {};
@@ -375,6 +472,27 @@ export class AuthService {
         if (!_isJwtToken(token) && _isCloudApiBase())
             return {};
         return { Authorization: `Bearer ${token}` };
+    }
+
+    async authFetch(url, options = {}) {
+        const response = await fetch(url, {
+            ...options,
+            credentials: 'include',
+            headers: {
+                ...(options.headers || {}),
+                ...this.getAuthHeaders()
+            }
+        });
+
+        if (response.status === 401) {
+            this.clearSession({ preserveCliToken: true, notify: false });
+            if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/signin')) {
+                const redirect = encodeURIComponent(window.location.pathname + window.location.search);
+                window.location.href = `/signin?session=expired&redirect=${redirect}`;
+            }
+        }
+
+        return response;
     }
     async fetchPlatformStatus() {
         const base = apiBase();
@@ -429,6 +547,7 @@ export class AuthService {
         try {
             loginHttpResponse = await fetch(`${apiBase()}/api/auth/login`, {
                 method: 'POST',
+                credentials: 'include',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password })
             });
@@ -440,12 +559,14 @@ export class AuthService {
         if (!loginHttpResponse.ok) {
             throw new Error(loginErrorMessage(loginHttpResponse, loginResponseBody));
         }
-        if (!(loginResponseBody === null || loginResponseBody === void 0 ? void 0 : loginResponseBody.token) || !(loginResponseBody === null || loginResponseBody === void 0 ? void 0 : loginResponseBody.user)) {
-            throw new Error(loginErrorMessage(loginHttpResponse, loginResponseBody, 'Login response missing token'));
+        if (!(loginResponseBody === null || loginResponseBody === void 0 ? void 0 : loginResponseBody.user)) {
+            throw new Error(loginErrorMessage(loginHttpResponse, loginResponseBody, 'Login response missing user'));
         }
-        this.setSession(loginResponseBody.token, loginResponseBody.user);
-        // Bind login token to the email account (enforces 1 account = 1 token)
-        this.bindTokenToAccount(loginResponseBody.token, 'account');
+        this.setSession((loginResponseBody === null || loginResponseBody === void 0 ? void 0 : loginResponseBody.token) || '', loginResponseBody.user);
+        if (loginResponseBody.token) {
+            // Bind login token to the email account (enforces 1 account = 1 token)
+            this.bindTokenToAccount(loginResponseBody.token, 'account');
+        }
         return loginResponseBody;
     }
     async register(email, password, name, username = '', confirmPassword = '', licenseToken = '') {
@@ -481,10 +602,11 @@ export class AuthService {
         await withRecoverableFallback('auth logout request', async () => {
             await fetch(`${apiBase()}/api/auth/logout`, {
                 method: 'POST',
+                credentials: 'include',
                 headers: this.getAuthHeaders()
             });
         }, null);
-        this.clearSession();
+        this.clearSession({ preserveCliToken: true });
     }
     async recoverPassword(email) {
         const res = await fetch(`${apiBase()}/api/auth/recover`, {
@@ -504,6 +626,7 @@ export class AuthService {
         }
         const res = await fetch(`${apiBase()}/api/auth/refresh`, {
             method: 'POST',
+            credentials: 'include',
             headers: { ...this.getAuthHeaders(), 'Content-Type': 'application/json' },
             body: JSON.stringify({ longLived: longLived === true })
         });
@@ -511,9 +634,21 @@ export class AuthService {
         if (!res.ok) {
             throw new Error(body.message || body.error || 'Token refresh failed');
         }
+
+        if (usesCookieSessions()) {
+            if (body.user) {
+                this.setSession('', body.user, { notify: false });
+            }
+            else {
+                await this.hydrateSession();
+            }
+            return '';
+        }
+
         if (!body.token) {
             throw new Error('Token refresh response missing token');
         }
+
         this.setSession(body.token, this.user || this.getUser());
         return body.token;
     }
@@ -538,9 +673,19 @@ export class AuthService {
         }
     }
     getTokenTier() {
+        const user = this.user || this.getUser();
+        if (user?.tier || user?.plan) {
+            return user.tier || user.plan || null;
+        }
+
+        if (usesCookieSessions()) {
+            return null;
+        }
+
         const token = this.getToken();
         if (!token)
             return null;
+
         try {
             const payload = this._decodeJwtPayload(token);
             return (payload === null || payload === void 0 ? void 0 : payload.tier) || (payload === null || payload === void 0 ? void 0 : payload.plan) || (payload === null || payload === void 0 ? void 0 : payload.product) || null;
@@ -581,7 +726,7 @@ export class AuthService {
         const featureSet = new Set(features.map(String).map(s => s.toLowerCase()));
         if (featureSet.has('all_modules') || featureSet.has('team_dashboard'))
             return true;
-        const tier = String(user.tier || user.plan || this.getTokenTier() || '').toLowerCase();
+        const tier = String(user.tier || user.plan || (!usesCookieSessions() && this.getTokenTier()) || '').toLowerCase();
         const paidTiers = ['silver', 'gold', 'pro', 'startup', 'enterprise', 'compliance', 'team'];
         if (paidTiers.includes(tier))
             return true;

@@ -67,6 +67,27 @@ export function getSbConfig(): vscode.WorkspaceConfiguration {
   return vscode.workspace.getConfiguration('simplebeacon');
 }
 
+const API_URL_BAD_PORTS = [':3000', ':3001', ':54358', ':55444'];
+const API_URL_DEFAULT_PORT = ':55000';
+
+/**
+ * Normalize a configured API server URL by remapping known stale/bad local ports
+ * (e.g. the old 3001 AI Quality Monitor preset, the data server port, or old
+ * relay port) to the actual SimpleBeacon dashboard server port 55000.
+ * @param {string} url
+ * @returns {string}
+ */
+export function normalizeApiServerUrl(url: string): string {
+  let normalized = String(url || '').replace(/\/+$/, '');
+  for (const bad of API_URL_BAD_PORTS) {
+    if (normalized.includes(bad)) {
+      normalized = normalized.replace(bad, API_URL_DEFAULT_PORT);
+      break;
+    }
+  }
+  return normalized;
+}
+
 /**
  * Retrieve the extension version from package.json, cached after first read.
  * @param {vscode.ExtensionContext} context

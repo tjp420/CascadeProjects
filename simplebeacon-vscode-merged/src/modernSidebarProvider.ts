@@ -12,7 +12,7 @@ import { getDataServerPort, getBrowserSessionToken, setBrowserSessionToken, clea
 import { registerSidebarView, postSidebarMessage as _postSidebarMessage, openTeamDashboardPanel as _openTeamDashboardPanel, openWebsiteDashboardPanel, postWebsiteDashboardMessage, navigateWebsiteDashboardPanel, isWebsiteDashboardPanelOpen, buildDashboardUrl, appendDashboardEmbedParams, getDashboardUrlBarStyles, getDashboardUrlBarHtml } from './sidebarMessenger';
 import { getAuthManager } from './auth/authContext';
 import type { AuthManager } from './auth/authManager';
-import { showQuietMessage, getSbConfig } from './utils/vscode';
+import { showQuietMessage, getSbConfig, normalizeApiServerUrl } from './utils/vscode';
 import { escapeHtml } from './utils/string';
 import { resolveTier } from './tierConstants';
 import { validateLicenseLocally } from './licenseManager';
@@ -1429,7 +1429,7 @@ $('cancelBtn').addEventListener('click', () => {
           }
           case 'testConnection': {
             const cfg = getSbConfig();
-            const url = (cfg.get<string>('apiServerUrl') || 'http://127.0.0.1:55000').replace(/\/$/, '');
+            const url = normalizeApiServerUrl(cfg.get<string>('apiServerUrl') || 'http://127.0.0.1:55000');
             fetch(url + '/api/health').then(() => {
               showQuietMessage('Connection successful: ' + url);
             }).catch(() => {

@@ -734,10 +734,10 @@
     const med = sev.medium || sev.Medium || sev.med || 0;
     const low = sev.low || sev.Low || 0;
     const totalIssues = crit + high + med + low;
-    var score = data.qualityScore != null ? data.qualityScore : (data.score != null ? data.score : '--');
+    let score = data.qualityScore != null ? data.qualityScore : (data.score != null ? data.score : '--');
     score = typeof score === 'string' ? parseInt(score, 10) : score;
     score = typeof score === 'number' && !isNaN(score) ? score : '--';
-    var files = data.totalFiles || data.filesScanned || data.filesAnalyzed || data.ruleScopedFilesAnalyzed || 0;
+    let files = data.totalFiles || data.filesScanned || data.filesAnalyzed || data.ruleScopedFilesAnalyzed || 0;
     files = typeof files === 'string' ? parseInt(files, 10) || 0 : files;
     const gate = data.gate;
     const gatePass = typeof gate === 'string' ? gate === 'PASS' || gate === 'Pass' : (gate && gate.pass != null ? gate.pass : true);
@@ -959,7 +959,7 @@
     const lowEl = document.getElementById('roadmapLow'); if (lowEl) lowEl.textContent = low + ' Low';
     const phaseList = document.getElementById('roadmapPhasesList');
     if (!phaseList) return;
-    var phases = data.phases;
+    let phases = data.phases;
     if (!phases || !Array.isArray(phases) || phases.length === 0) {
       phases = [
         { name: 'Phase 1: Triage & Assessment', completed: 0, total: 0 },
@@ -969,7 +969,7 @@
     }
     phaseList.textContent = '';
     phases.forEach(function(p) {
-      var completed = 0, total = 0, name = '';
+      let completed = 0, total = 0, name = '';
       if (p.taskSummary) {
         completed = p.taskSummary.done || 0;
         total = p.taskSummary.total || 0;
@@ -1233,7 +1233,7 @@
     const totalIssues = crit + high + med + low;
     const gateRaw = data.gate;
     const gate = typeof gateRaw === 'string' ? gateRaw : (gateRaw && gateRaw.pass != null ? (gateRaw.pass ? 'PASS' : 'FAIL') : 'Pending');
-    var score = data.qualityScore != null ? data.qualityScore : (data.score != null ? data.score : '--');
+    let score = data.qualityScore != null ? data.qualityScore : (data.score != null ? data.score : '--');
     score = typeof score === 'string' ? parseInt(score, 10) : score;
     score = typeof score === 'number' && !isNaN(score) ? score : '--';
     const badge = document.getElementById('securityPassBadge'); if (badge) { badge.textContent = gate === 'PASS' ? 'PASS' : gate === 'FAIL' ? 'FAIL' : 'PENDING'; badge.style.background = gate === 'PASS' ? 'rgba(34,197,94,0.18)' : gate === 'FAIL' ? 'rgba(239,68,68,0.18)' : 'rgba(245,158,11,0.18)'; badge.style.color = gate === 'PASS' ? '#4ade80' : gate === 'FAIL' ? '#f87171' : '#fbbf24'; }

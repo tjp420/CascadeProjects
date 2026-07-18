@@ -449,6 +449,7 @@ Scan options:
   --anonymize         Strip all file paths, descriptions, and code snippets from JSON output
                         Output contains only abstract error codes and compliance metrics.
   --fix               Run local remediation agent against blocking findings (requires Ollama)
+  // simplebeacon-ignore: generic-naming — CLI flag name is user-facing API
   --fix-provider <p>  Override remediation LLM: ollama (default) | openai | anthropic
   --fix-dry-run       Show diffs without applying patches
   --max-fixes <n>     Limit number of auto-fix attempts (default: 10)
@@ -566,8 +567,8 @@ async function uploadReportToCloud(uploadUrl, apiToken, report) {
         throw new ConfigError('report must be an object', { report });
     }
 
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 60000);
+    const abortController = new AbortController();
+    const timer = setTimeout(() => abortController.abort(), 60000);
     try {
         const response = await fetch(uploadUrl, {
             method: 'POST',
@@ -576,7 +577,7 @@ async function uploadReportToCloud(uploadUrl, apiToken, report) {
                 'X-Simplebeacon-Token': apiToken
             },
             body: JSON.stringify({ report: sanitizeReportForCloudUpload(report) }),
-            signal: controller.signal
+            signal: abortController.signal
         });
 
         /** @type {Record<string, any>} */
@@ -915,8 +916,8 @@ async function runUploadCommand(options) {
 async function uploadReportToDashboard(report, options) {
     const apiUrl = (options.apiUrl || process.env.SIMPLEBEACON_API_URL || 'https://cascadeprojects-yzzd.onrender.com').replace(/\/$/, '');
     const token = options.apiToken;
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 60000);
+    const abortController = new AbortController();
+    const timer = setTimeout(() => abortController.abort(), 60000);
     try {
         const response = await fetch(`${apiUrl}/api/simplebeacon/upload-report`, {
             method: 'POST',
@@ -928,7 +929,7 @@ async function uploadReportToDashboard(report, options) {
                 report: sanitizeReportForCloudUpload(report),
                 scannedPath: report.projectPath || report.projectRoot || options.path || options.report || ''
             }),
-            signal: controller.signal
+            signal: abortController.signal
         });
 
         const data = await response.json().catch(() => ({}));
@@ -1591,14 +1592,14 @@ async function main() {
 
     validateCommandOptions(options);
 
-    const handler = COMMAND_REGISTRY[options.command];
-    if (!handler) {
+    const commandHandler = COMMAND_REGISTRY[options.command];
+    if (!commandHandler) {
         console.error(`Command "${options.command}" is not yet implemented.`);
         return 2;
     }
 
-    const result = await handler(options);
-    return typeof result === 'number' ? result : 0;
+    const commandResult = await commandHandler(options);
+    return typeof commandResult === 'number' ? commandResult : 0;
 }
 
 /**

@@ -12,7 +12,7 @@ import { buildDashboardHtml } from './welcomeDashboardHtml';
 import { showDashboardInSidebar, isSidebarReady } from './sidebarBridge';
 import { postSidebarMessage, openTeamDashboardPanel } from './sidebarMessenger';
 import { ModernSidebarProvider } from './modernSidebarProvider';
-import { showQuietMessage, getSbConfig } from './utils/vscode';
+import { showQuietMessage, getSbConfig, normalizeApiServerUrl } from './utils/vscode';
 
 const DEFAULT_API_URL = 'https://simplebeacon.ai/';
 
@@ -1355,7 +1355,7 @@ export class WelcomeDashboard {
           break;
         case 'testApiConnection':
           {
-            const base = (msg.value || config.get('apiServerUrl', DEFAULT_API_URL) as string).replace(/\/$/, '');
+            const base = normalizeApiServerUrl(msg.value || config.get('apiServerUrl', DEFAULT_API_URL) as string);
             try {
               const resApi = await fetch(base + '/api/health');
               if (resApi.ok) {

@@ -1783,25 +1783,41 @@ class SimplebeaconDashboard {
         });
     }
 }
-document.addEventListener('DOMContentLoaded', () => {
-    try {
-        window.__SB_DASHBOARD_APP__ = true;
-        const app = new SimplebeaconDashboard();
-        window.simplebeaconApp = app;
-        app.init().catch((err) => {
-            console.error(err);
-            showToast(err.message || 'Dashboard failed to start', 'error');
-        });
-    }
-    catch (err) {
+function startDashboard() {
+    window.__SB_DASHBOARD_APP__ = true;
+    const app = new SimplebeaconDashboard();
+    window.simplebeaconApp = app;
+    return app.init().catch((err) => {
         console.error(err);
+        showToast(err.message || 'Dashboard failed to start', 'error');
+    });
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+    const loadingNode = document.getElementById('boot-loading-spinner');
+
+    try {
+        if (!authService.isHydrated()) {
+            await authService.hydrateSession();
+        }
+
+        if (isDemoMode() || isLocalDevHost() || authService.isAuthenticated()) {
+            if (loadingNode) loadingNode.remove();
+            return startDashboard();
+        }
+
+        const redirect = encodeURIComponent(window.location.pathname + window.location.search);
+        window.location.href = `/signin?redirect=${redirect}`;
+    }
+    catch (error) {
+        console.error(error);
         const main = document.getElementById('app-main');
         if (main) {
             main.textContent = '';
             const card = document.createElement('div');
             card.className = 'empty-state card';
             const p = document.createElement('p');
-            p.textContent = 'Failed to load dashboard: ' + (err.message || String(err));
+            p.textContent = 'Application Initialisation Error: ' + (error.message || String(error));
             card.appendChild(p);
             main.appendChild(card);
         }
