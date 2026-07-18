@@ -12,7 +12,7 @@ const { globMatch } = require('./production-leak');
 const DEFAULT_SOURCE_PATHS = ['server', 'src', 'web', 'lib', 'packages', 'app'];
 const MANIFEST_NAMES = new Set(['package.json', 'package-lock.json']);
 const SCANNABLE_EXTENSIONS = new Set([
-    '.js', '.mjs', '.cjs', '.ts', '.tsx', '.jsx', '.py', '.html', '.vue', '.svelte', '.json', '.env', '.yaml', '.yml'
+    '.js', '.mjs', '.cjs', '.ts', '.tsx', '.jsx', '.py', '.html', '.vue', '.svelte', '.json', '.env', '.yaml', '.yml', '.md'
 ]);
 const SKIP_DIRS = new Set([
     'node_modules', '.git', 'coverage', 'dist', 'build', 'archive',
@@ -64,7 +64,7 @@ function isExcludedPath(relativePath) {
     if (/\/tests?\//.test(normalized)) return true;
     if (/\/fixtures?\//.test(normalized)) return true;
     if (/\.example\.[a-z0-9]+$/i.test(normalized)) return true;
-    if (/\.md$/i.test(normalized)) return true;
+    if (/\.md$/i.test(normalized)) return false;
     if (/(?:^|\/)coming-soon\//.test(normalized)) return true;
     if (/(?:^|\/)reports\//.test(normalized)) return true;
     if (/(?:^|\/)security-reports\//.test(normalized)) return true;
@@ -201,7 +201,7 @@ function scanTextPatterns(relativePath, content, ext, options = {}) {
             if (isAllowlistedMatch(line, match[0])) continue;
             if (isFenceDetectorMetaLine(line, relativePath, rule.id)) continue;
             if (rule.id === 'SB-FICTION-002' && isJSDocLine(line)) continue;
-            if (isCommentLine(line, ext) && rule.id !== 'SB-FICTION-002') continue;
+            if (isCommentLine(line, ext) && rule.id !== 'SB-FICTION-002' && rule.id !== 'SB-FICTION-001') continue;
 
             const cardType = rule.id === 'SB-FICTION-002' ? 'markdown-fence-leak'
                 : rule.id === 'SB-FICTION-001' ? 'ai-placeholder-comment'

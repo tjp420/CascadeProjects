@@ -341,7 +341,7 @@ const PATTERN_REGISTRY = {
         name: 'Stub Implementation',
         appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet'],
         severity: 'low',
-        pattern: /function\s+\w+\s*\([^)]*\)\s*\{\s*\/\/\s*TODO|def\s+\w+\s*\([^)]*\):\s*pass\b|public\s+\w+\s+\w+\s*\([^)]*\)\s*\{\s*\/\/\s*implement|TODO\s*:\s*implement|TODO\s*:\s*AI|TODO\s*:\s*generated|\/\/\s*AI\s+generated|\/\/\s*Generated\s+by\s+(ChatGPT|GPT|Claude|Copilot|Gemini|LLM)/i,
+        pattern: /function\s+\w+\s*\([^)]*\)\s*\{\s*\/\/\s*TODO|def\s+\w+\s*\([^)]*\):\s*pass\b|public\s+\w+\s+\w+\s*\([^)]*\)\s*\{\s*\/\/\s*implement|TODO\s*:\s*implement|TODO\s*:\s*AI|TODO\s*:\s*generated|\/\/\s*AI\s+generated|\/\/\s*Generated\s+by\s+(ChatGPT|GPT|Claude[\w.-]*|Copilot|Gemini|LLM)/i,
         maxMatches: 3,
         message: 'Stub or AI-generated placeholder detected. Replace with actual implementation before production.'
     },
@@ -718,17 +718,17 @@ const PATTERN_REGISTRY = {
     llmSlop: {
         id: 'llmSlop',
         name: 'LLM Slop / Placeholder',
-        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet', 'html', 'json', 'yaml', 'yml'],
+        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet', 'html', 'json', 'yaml', 'yml', 'markdown'],
         severity: 'medium',
-        pattern: /YOUR_[A-Z0-9_]+_HERE|INSERT_[A-Z0-9_]+_HERE|\[Insert\s[^\]]+\]|\/\/\s*Handle\s+this\s+later|\/\/\s*AI\s+Generated\s+Placeholder|```(?:javascript|typescript|python|json)\s*$|```\s*$|99\.99\s*%?\s*Uptime|100\s*%?\s*Secure|Lorem\s+Ipsum\s+Dolor|9,999\s*Users/i,
+        pattern: /YOUR_[A-Z0-9_]+_HERE|INSERT_[A-Z0-9_]+_HERE|\[Insert\s[^\]]+\]|\/\/\s*Handle\s+this\s+later|\/\/\s*AI\s+Generated\s+Placeholder|```(?:javascript|typescript|python|json)\s*$|```\s*$|99\.99\s*%?\s*Uptime|100\s*%?\s*Secure|Lorem\s+Ipsum\s+Dolor|9,999\s*Users|I have (written|implemented|created|updated) the .* (above|below).* as requested|Let me know if you need me to (adjust|update|change|modify)|AI Assistant Note:/i,
         maxMatches: 5,
         selfReferenceFilter: /llm-slop-patterns|fiction-kpi|rejectedFiction|not model output|baseline false|scanner-patterns/i,
         // Enhanced context-aware filtering
         contextFilter: (snippet, filePath) => {
             // Skip template files and documentation
             if (/\.template\.|\.example\.|\.sample\.|_template\.|_example\./i.test(filePath)) return false;
-            // Skip README and documentation files
-            if (/readme|docs?|guide|tutorial|example/i.test(filePath)) return false;
+            // Skip README/docs for generic placeholders only, but still check for conversational AI sign-offs
+            if (/readme|docs?|guide|tutorial|example/i.test(filePath) && !/I have (written|implemented|created|updated)|as requested|Let me know if you need|AI Assistant Note/i.test(snippet)) return false;
             // Skip legitimate configuration placeholders
             if (/\.env\.example|config\.example|docker-compose\.example/i.test(filePath)) return false;
             // Skip test fixtures and mocks
@@ -995,7 +995,7 @@ const PATTERN_REGISTRY = {
         name: 'AI Placeholder Block Comment',
         appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet'],
         severity: 'medium',
-        pattern: /\/\*\s*(TODO|FIXME|HACK|AI).*?\*\//is,
+        pattern: /\/\*\s*(?:(TODO|FIXME|HACK|AI).*?|AI\s+Assistant\s+Note:).*?\*\//is,
         maxMatches: 3,
         message: 'Placeholder block comment. Remove or implement.'
     },
