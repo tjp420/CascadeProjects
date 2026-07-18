@@ -478,6 +478,7 @@ const _inlineSelection = {
     'runWithProgress',
     'createDisposableStack',
     'getExtensionVersion',
+    'normalizeApiServerUrl',
   ],
 } as const satisfies { [K in keyof NamespaceMap]: readonly string[] };
 

@@ -1511,7 +1511,7 @@ if (tryFreeBtn && !sandboxEmailModalEl) {
             const response = await fetch(getFreeTokenUrl(), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: email, sendEmail: true, referrer: 'audit' })
+                body: JSON.stringify({ email: email, sendEmail: true, referrer: 'certificate-upload' })
             });
             if (!response.ok) {
                 const text = await response.text();
@@ -1544,15 +1544,8 @@ if (tryFreeBtn && !sandboxEmailModalEl) {
                 }
                 catch (e) { }
                 if (email) {
-                    if (data.emailed) {
-                        showToast('Token emailed to ' + email + ' and pasted above. Check your inbox!', 'success');
-                    } else if (data.queued) {
-                        showToast('Token generated and email queued for delivery. Check your inbox shortly.', 'warning');
-                    } else if (data.emailError) {
-                        showToast('Token generated but email failed: ' + data.emailError, 'error');
-                    } else {
-                        showToast('Token generated. Save your email to recover this token later.', 'success');
-                    }
+                    const emailMsg = data.emailed ? 'Token emailed to ' + email + '.' : (data.queued ? 'Token queued for email to ' + email + '.' : 'Token generated. Save your email to recover this token later.');
+                    showToast(emailMsg, 'success');
                 }
             }
             else {

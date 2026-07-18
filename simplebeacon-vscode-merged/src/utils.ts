@@ -26,6 +26,7 @@ export {
   correctScanPath,
   runWithProgress,
   createDisposableStack,
+  normalizeApiServerUrl,
 } from './utils/vscode';
 
 // ── String helpers ───────────────────────────────────────────────
