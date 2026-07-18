@@ -1,0 +1,6 @@
+/*
+  Cache-Control: no-transform
+  Content-Security-Policy: default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data: blob: ws: wss:;
+
+/*.html
+  Cache-Control: no-cache, no-transform
