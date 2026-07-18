@@ -814,7 +814,7 @@
       btn.textContent = 'Redirecting to Stripe…';
       errorEl.style.display = 'none';
 
-      var apiBase = 'https://cascadeprojects-yzzd.onrender.com';
+      var apiBase = (window.SIMPLEBEACON_SITE && window.SIMPLEBEACON_SITE.apiBase) || '';
 
       // One-time certificate passes: fixed-price payments
       var oneTimeProducts = { one_time_certificate: 149, executive_clearance: 499, eu_ai_act_sprint: 2499 };
@@ -1174,7 +1174,7 @@
       var originalText = btn.textContent;
       btn.textContent = 'Generating…';
 
-      var apiBase = 'https://cascadeprojects-yzzd.onrender.com';
+      var apiBase = (window.SIMPLEBEACON_SITE && window.SIMPLEBEACON_SITE.apiBase) || '';
 
       var checkoutEmail = document.getElementById('modalEmail')?.value?.trim() || '';
       var checkoutProject = document.getElementById('modalProjectName')?.value?.trim() || '';
@@ -1320,7 +1320,7 @@
       if (!isProduction || !token) return;
       var script = document.createElement('script');
       script.defer = true;
-      script.src = 'https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496';
+      script.src = 'https://static.cloudflareinsights.com/beacon.min.js';
             script.crossOrigin = 'anonymous';
       script.setAttribute('data-cf-beacon', '{"version":"2024.11.0","token":"' + token + '","r":1}');
       document.body.appendChild(script);

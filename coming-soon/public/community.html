@@ -151,7 +151,7 @@
       if (!isProduction || !token) return;
       var script = document.createElement('script');
       script.defer = true;
-      script.src = 'https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496';
+      script.src = 'https://static.cloudflareinsights.com/beacon.min.js';
             script.crossOrigin = 'anonymous';
       script.setAttribute('data-cf-beacon', '{"version":"2024.11.0","token":"' + token + '","r":1}');
       document.body.appendChild(script);
