@@ -90,11 +90,14 @@ function sqliteUserToAuthUser(user) {
     };
 }
 
-async function authenticateWithSqlite(email, password) {
+async function authenticateWithSqlite(identifier, password) {
     const sqlite = getSqliteDb();
     if (!sqlite) return null;
     ensureSqliteDemoUsers();
-    const user = sqlite.getUserByEmail(email);
+    let user = sqlite.getUserByEmail(identifier);
+    if (!user && typeof sqlite.getUserByUsername === 'function') {
+        user = sqlite.getUserByUsername(identifier);
+    }
     if (!user) return null;
     const passwordHash = crypto.scryptSync(String(password), user.salt, 64).toString('hex');
     if (passwordHash !== user.password_hash) return null;
@@ -158,17 +161,18 @@ function toAuthUser(row) {
 }
 
 /**
- * Find user by email.
+ * Find user by email or username.
  * @param {any} db
- * @param {string} email
+ * @param {string} identifier
  * @returns {any}
  */
-async function findUserByEmail(db, email) {
+async function findUserByEmail(db, identifier) {
     const emailLookupQuery = await db.query(
         `SELECT id, email, password_hash, name, trust_level, status, successful_analyses,
                 security_incidents, community_contributions, verification_status, created_at
-         FROM users WHERE LOWER(email) = LOWER($1) LIMIT 1`,
-        [email]
+         FROM users WHERE LOWER(email) = LOWER($1)
+            OR LOWER(username) = LOWER($1) LIMIT 1`,
+        [identifier]
     );
     return emailLookupQuery.rows[0] || null;
 }
@@ -213,8 +217,8 @@ async function seedDemoUsers(db) {
  * @param {string} password
  * @returns {any}
  */
-async function authenticateWithDatabase(db, email, password) {
-    const row = await findUserByEmail(db, email);
+async function authenticateWithDatabase(db, identifier, password) {
+    const row = await findUserByEmail(db, identifier);
     if (!row) return null;
 
     const valid = await verifyPassword(password, row.password_hash);
@@ -224,7 +228,10 @@ async function authenticateWithDatabase(db, email, password) {
     // Demo file may carry role/features/tier overrides for seeded accounts; merge them in
     // so admin/superuser bypasses for paid deliverables work without a DB schema change.
     const demoUsers = loadDemoUsers();
-    const demoMatch = demoUsers.find((u) => u.email.toLowerCase() === String(email).toLowerCase());
+    const demoMatch = demoUsers.find((u) =>
+        u.email.toLowerCase() === String(identifier).toLowerCase() ||
+        String(u.username || '').toLowerCase() === String(identifier).toLowerCase()
+    );
     if (demoMatch) {
         if (demoMatch.role && !user.role) user.role = demoMatch.role;
         if (Array.isArray(demoMatch.features)) user.features = demoMatch.features;
@@ -239,9 +246,13 @@ async function authenticateWithDatabase(db, email, password) {
  * @param {string} password
  * @returns {any}
  */
-async function authenticateWithDemoFile(email, password) {
+async function authenticateWithDemoFile(identifier, password) {
     const demoUsers = loadDemoUsers();
-    const match = demoUsers.find((user) => user.email.toLowerCase() === email.toLowerCase());
+    const lower = String(identifier || '').toLowerCase();
+    const match = demoUsers.find((user) =>
+        user.email.toLowerCase() === lower ||
+        String(user.username || '').toLowerCase() === lower
+    );
     if (!match) return null;
 
     if (match.passwordHash) {
