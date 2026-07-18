@@ -19,7 +19,7 @@ services:
       - key: ALLOWED_ORIGIN
         value: "https://simplebeacon.ai,https://simplebeacon.onrender.com"
       - key: PUBLIC_URL
-        sync: false
+        value: "https://simplebeacon.ai"
       - key: PUBLIC_APP_URL
         sync: false
       - key: STRIPE_SECRET_KEY
@@ -59,7 +59,7 @@ services:
       - key: SIMPLEBEACON_APP_URL
         sync: false
       - key: SIMPLEBEACON_LANDING
-        value: "false"
+        value: "true"
       - key: REQUIRE_AUTH
         value: "true"
       - key: SEED_DEMO_USERS
