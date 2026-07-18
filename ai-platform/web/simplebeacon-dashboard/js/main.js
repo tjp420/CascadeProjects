@@ -17,7 +17,6 @@ import { HelpView, FeaturesView } from './views/HelpView.js';
 import { AuditView } from './views/AuditView.js?v=20260716cachefix1';
 import { AnalyzeView } from './views/AnalyzeView.js?v=20260716cachefix1';
 import { SecurityView } from './views/SecurityView.js?v=20260716cachefix1';
-import { PricingView } from './views/PricingView.js';
 import { AboutView } from './views/AboutView.js';
 import { AssessmentView } from './views/AssessmentView.js';
 import { SignInView } from './views/SignInView.js?v=20260716cachefix1';
@@ -144,7 +143,7 @@ class SimplebeaconDashboard {
       help: new HelpView(this),
       features: new FeaturesView(this),
       settings: new SettingsView(this),
-      pricing: new PricingView(this),
+      pricing: { mount: function() { window.location.href = '/pricing'; } },
       about: new AboutView(this),
       trust: new TrustView(this),
       'repository-health': new RepositoryHealthView(this),
@@ -218,7 +217,7 @@ class SimplebeaconDashboard {
     const a = document.createElement('a');
     a.className = 'demo-banner-link';
     a.dataset.pricingCta = '1';
-    a.href = '/dashboard/pricing';
+    a.href = '/pricing';
     a.textContent = 'View pricing →';
     bar.appendChild(span);
     bar.appendChild(a);
@@ -239,7 +238,7 @@ class SimplebeaconDashboard {
     const a = document.createElement('a');
     a.className = 'demo-banner-link';
     a.dataset.pricingCta = '1';
-    a.href = '/dashboard/pricing';
+    a.href = '/pricing';
     a.textContent = 'View pricing →';
     bar.appendChild(span);
     bar.appendChild(a);
