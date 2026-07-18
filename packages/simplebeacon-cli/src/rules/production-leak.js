@@ -53,10 +53,8 @@ const PLAIN_SAMPLE_JSON_PATTERN = Object.freeze({
 
 function getActiveLeakPatterns(options = {}) {
     const opts = (options && typeof options === 'object') ? options : {};
-    if (!opts.plainSampleJson) {
-        return LEAK_PATTERNS;
-    }
-    return [...LEAK_PATTERNS, PLAIN_SAMPLE_JSON_PATTERN];
+    const base = !opts.plainSampleJson ? LEAK_PATTERNS : [...LEAK_PATTERNS, PLAIN_SAMPLE_JSON_PATTERN];
+    return base.map(p => ({ id: p.id, regex: new RegExp(p.regex.source, p.regex.flags) }));
 }
 
 const SCANNABLE_EXTENSIONS = Object.freeze(new Set(['.js', '.mjs', '.cjs', '.ts', '.tsx']));

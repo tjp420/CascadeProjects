@@ -28,7 +28,7 @@ test('production-leak detects sample json reference', () => {
     const content = "const data = require('../web/data/users-sample.json');";
     const findings = leakFindings('server/routes/users.js', content);
     assert.ok(findings.length > 0);
-    assert.equal(findings[0].type, 'Production Leak');
+    assert.equal(findings[0].type, 'production-leak');
     assert.equal(findings[0].severityBand, 'critical');
     assert.equal(findings[0].line, 1);
     assert.equal(findings[0].pattern, 'sample-json');

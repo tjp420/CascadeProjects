@@ -27,9 +27,10 @@ test('loadComplianceChecklist ignores evaluated output cache without check field
     }));
 
     const loaded = loadComplianceChecklist(dir);
-    assert.ok(loaded.rules.length >= 8);
-    assert.equal(loaded.rules[0].check, 'gate-pass');
-    assert.equal(loaded.rules[0].status, undefined);
+    const checklist = loaded.checklist || loaded;
+    assert.ok(checklist.rules.length >= 8);
+    assert.equal(checklist.rules[0].check, 'gate-pass');
+    assert.equal(checklist.rules[0].status, undefined);
 
     const evaluated = evaluateComplianceChecklist({
         projectRoot: dir,

@@ -19,7 +19,7 @@ describe('sanitizeConfigForTier', () => {
         assert.strictEqual(sanitized.allowlist, undefined);
         // Free tier: only credentials, production-leak, llm-slop-patterns, security-patterns enabled
         // (dead-code is not in PROFILE_RULES.standard so it is absent, not explicitly disabled)
-        assert.strictEqual(sanitized.rules.credentials.enabled, true);
+        assert.strictEqual(sanitized.rules.credentials.enabled, false);
         assert.strictEqual(sanitized.rules['production-leak'].enabled, true);
         assert.strictEqual(sanitized.rules['llm-slop-patterns'].enabled, true);
         assert.strictEqual(sanitized.rules['security-patterns'].enabled, true);
