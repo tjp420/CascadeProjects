@@ -95,16 +95,20 @@
   </main>
 
   <script>
-    // Only load Cloudflare analytics in production, not on localhost or file:// protocol
-    if (window.location.protocol !== 'file:' && !window.location.hostname.match(/^(localhost|127\.0\.0\.1|0\.0\.0\.0|::1)$/)) {
-      (function() {
-        var script = document.createElement('script');
-        script.defer = true;
-        script.src = 'https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496';
-        script.setAttribute('data-cf-beacon', '{"version":"2024.11.0","token":"' + (window.CF_BEACON_TOKEN || '') + '","r":1}');
-        document.body.appendChild(script);
-      })();
-    }
+    // Only load Cloudflare analytics when a token is configured and on the production origin
+    (function() {
+      var host = window.location.hostname;
+      var isProduction = /^(www\.)?simplebeacon\.ai$/.test(host);
+      var token = window.CF_BEACON_TOKEN;
+      if (!isProduction || !token) return;
+      var script = document.createElement('script');
+      script.defer = true;
+      script.src = 'https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496';
+      script.integrity = 'sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==';
+      script.crossOrigin = 'anonymous';
+      script.setAttribute('data-cf-beacon', '{"version":"2024.11.0","token":"' + token + '","r":1}');
+      document.body.appendChild(script);
+    })();
   </script>
 </body>
 </html>

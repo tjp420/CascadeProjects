@@ -124,7 +124,7 @@ app.use((req, res, next) => {
     const renderOrigins = 'https://simplebeacon.onrender.com https://*.onrender.com';
     // frame-ancestors allows IDE preview iframes from localhost origins in dev
     const frameAncestors = isDev ? "*" : "'none'";
-    res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' https://js.stripe.com https://cdnjs.cloudflare.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' " + renderOrigins + " http://127.0.0.1:" + SCANNER_BRIDGE_PORT + " " + localConnectOrigins + " https://api.stripe.com; frame-src https://js.stripe.com; frame-ancestors " + frameAncestors + ";");
+    res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' https://js.stripe.com https://cdnjs.cloudflare.com https://unpkg.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' " + renderOrigins + " http://127.0.0.1:" + SCANNER_BRIDGE_PORT + " " + localConnectOrigins + " https://api.stripe.com https://*.cloudflareinsights.com; frame-src https://js.stripe.com; frame-ancestors " + frameAncestors + ";");
     if (req.headers['x-forwarded-proto'] === 'https' || req.secure) {
         const HSTS_MAX_AGE_SECONDS = 2 * 365 * 24 * 60 * 60;
         res.setHeader('Strict-Transport-Security', 'max-age=' + HSTS_MAX_AGE_SECONDS + '; includeSubDomains');
