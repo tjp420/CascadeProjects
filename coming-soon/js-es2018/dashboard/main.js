@@ -1511,7 +1511,7 @@ if (tryFreeBtn && !sandboxEmailModalEl) {
             const response = await fetch(getFreeTokenUrl(), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: email })
+                body: JSON.stringify({ email: email, sendEmail: true, referrer: 'audit' })
             });
             if (!response.ok) {
                 const text = await response.text();
@@ -1543,8 +1543,17 @@ if (tryFreeBtn && !sandboxEmailModalEl) {
                     history.replaceState(null, '', '?token=' + encodeURIComponent(data.token));
                 }
                 catch (e) { }
-                if (email)
-                    showToast('Token generated. Save your email to recover this token later.', 'success');
+                if (email) {
+                    if (data.emailed) {
+                        showToast('Token emailed to ' + email + ' and pasted above. Check your inbox!', 'success');
+                    } else if (data.queued) {
+                        showToast('Token generated and email queued for delivery. Check your inbox shortly.', 'warning');
+                    } else if (data.emailError) {
+                        showToast('Token generated but email failed: ' + data.emailError, 'error');
+                    } else {
+                        showToast('Token generated. Save your email to recover this token later.', 'success');
+                    }
+                }
             }
             else {
                 console.error('[FreeToken] API error:', data);

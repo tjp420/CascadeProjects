@@ -54,6 +54,7 @@ step('Renewal Tracker', () => {
   const now = new Date();
   const future = new Date(now.getTime() + 15 * 24 * 60 * 60 * 1000);
   const expires = future.toISOString().split('T')[0];
+  // simplebeacon-ignore sensitive-data — mock test data, not real credentials
   const alerts = checkExpiringLicenses([
     { companyId: 'test-corp', customerEmail: 'a@test.com', expiresAt: expires, tier: 'team' }
   ], 30);

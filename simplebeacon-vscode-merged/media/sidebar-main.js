@@ -413,7 +413,7 @@
   let _exportCodeMapBtn=document.getElementById('exportCodeMapBtn');if(_exportCodeMapBtn){_exportCodeMapBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'exportCodeMap'}); });}
   let _refreshCodeMapBtn=document.getElementById('refreshCodeMapBtn');if(_refreshCodeMapBtn){_refreshCodeMapBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'generateCodeMap'}); });}
   let _openCodeMapInMainWindowBtn=document.getElementById('openCodeMapInMainWindowBtn');if(_openCodeMapInMainWindowBtn){_openCodeMapInMainWindowBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'openCodeMap'}); });}
-  let _roadmapDropdownHeader=document.getElementById('roadmapDropdownHeader');if(_roadmapDropdownHeader){_roadmapDropdownHeader.addEventListener('click', function() { const header=document.getElementById('roadmapDropdownHeader'); const detail=document.getElementById('roadmapDetailPanel'); _closeDetailPanels(); if(header){header.style.display='none';} if(detail){detail.classList.remove('hidden');detail.classList.add('detail-active');detail.style.display='block';} document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');p.classList.add('hidden');}); document.body.classList.add('detail-panel-open'); if (window.vscode) window.vscode.postMessage({command: 'getAuditData'}); });}
+  let _roadmapDropdownHeader=document.getElementById('roadmapDropdownHeader');if(_roadmapDropdownHeader){_roadmapDropdownHeader.addEventListener('click', function() { const header=document.getElementById('roadmapDropdownHeader'); const detail=document.getElementById('roadmapDetailPanel'); _closeDetailPanels(); if(header){header.style.display='none';} if(detail){detail.classList.remove('hidden');detail.classList.add('detail-active');detail.style.display='block';} document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');p.classList.add('hidden');}); document.body.classList.add('detail-panel-open'); if (window.vscode) { window.vscode.postMessage({command: 'getAuditData'}); window.vscode.postMessage({command: 'getRoadmapData'}); } });}
   let _roadmapDetailBackBtn=document.getElementById('roadmapDetailBackBtn');if(_roadmapDetailBackBtn){_roadmapDetailBackBtn.addEventListener('click', function() { _switchSidebarTab('advanced'); });}
   let _generateRoadmapBtn=document.getElementById('generateRoadmapBtn');if(_generateRoadmapBtn){_generateRoadmapBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'generateRoadmap'}); });}
   let _exportRoadmapBtn=document.getElementById('exportRoadmapBtn');if(_exportRoadmapBtn){_exportRoadmapBtn.addEventListener('click', function() { if (window.vscode) window.vscode.postMessage({command: 'exportRoadmap'}); });}
@@ -694,7 +694,7 @@
     const issues = data.aiIssues || data.aiContextIssues || (crit + high + med + low);
     const models = data.modelsDetected || data.detectedModels || 0;
     const score = data.contextScore || data.qualityScore || data.score || 100;
-    const files = data.totalFiles || data.filesAnalyzed || data.filesScanned || 0;
+    const files = data.totalFiles || data.filesAnalyzed || data.filesScanned || data.ruleScopedFilesAnalyzed || 0;
     const badge = document.getElementById('aiContextBadge'); if (badge) { badge.textContent = issues === 0 ? 'CLEAR' : (crit > 0 || high > 0 ? 'ISSUES' : 'OK'); badge.style.background = issues === 0 ? 'rgba(34,197,94,0.18)' : (crit > 0 || high > 0 ? 'rgba(239,68,68,0.18)' : 'rgba(245,158,11,0.18)'); badge.style.color = issues === 0 ? '#4ade80' : (crit > 0 || high > 0 ? '#f87171' : '#fbbf24'); }
     const modelsEl = document.getElementById('aiContextModels'); if (modelsEl) modelsEl.textContent = models;
     const issuesEl = document.getElementById('aiContextIssues'); if (issuesEl) issuesEl.textContent = issues;
@@ -715,7 +715,7 @@
     const high = sev.high || sev.High || 0;
     const med = sev.medium || sev.Medium || sev.med || 0;
     const low = sev.low || sev.Low || 0;
-    const totalFiles = data.totalFiles || data.filesAnalyzed || data.filesScanned || 0;
+    const totalFiles = data.totalFiles || data.filesAnalyzed || data.filesScanned || data.ruleScopedFilesAnalyzed || 0;
     const errors = crit + high;
     const valid = Math.max(0, totalFiles - errors);
     const score = data.qualityScore != null ? data.qualityScore : (data.score != null ? data.score : '--');
@@ -734,10 +734,13 @@
     const med = sev.medium || sev.Medium || sev.med || 0;
     const low = sev.low || sev.Low || 0;
     const totalIssues = crit + high + med + low;
-    const score = data.qualityScore != null ? data.qualityScore : (data.score != null ? data.score : '--');
-    const files = data.totalFiles || data.filesScanned || data.filesAnalyzed || 0;
+    var score = data.qualityScore != null ? data.qualityScore : (data.score != null ? data.score : '--');
+    score = typeof score === 'string' ? parseInt(score, 10) : score;
+    score = typeof score === 'number' && !isNaN(score) ? score : '--';
+    var files = data.totalFiles || data.filesScanned || data.filesAnalyzed || data.ruleScopedFilesAnalyzed || 0;
+    files = typeof files === 'string' ? parseInt(files, 10) || 0 : files;
     const gate = data.gate;
-    const gatePass = typeof gate === 'string' ? gate === 'PASS' : (gate && gate.pass != null ? gate.pass : true);
+    const gatePass = typeof gate === 'string' ? gate === 'PASS' || gate === 'Pass' : (gate && gate.pass != null ? gate.pass : true);
     const scoreEl = document.getElementById('repoHealthScore'); if (scoreEl) { scoreEl.textContent = score; scoreEl.className = 'settings-kpi-value ' + (typeof score === 'number' && score >= 80 ? 'green' : typeof score === 'number' && score >= 50 ? 'amber' : 'red'); }
     const gateEl = document.getElementById('repoHealthGate'); if (gateEl) { gateEl.textContent = gatePass ? 'PASS' : 'FAIL'; gateEl.className = 'settings-kpi-value ' + (gatePass ? 'green' : 'red'); }
     const issuesEl = document.getElementById('repoHealthTotalIssues'); if (issuesEl) { issuesEl.textContent = totalIssues; issuesEl.className = 'settings-kpi-value ' + (totalIssues === 0 ? 'green' : totalIssues < 10 ? 'amber' : 'red'); }
@@ -747,42 +750,62 @@
     const medEl = document.getElementById('repoHealthMedium'); if (medEl) medEl.textContent = med + ' Med';
     const lowEl = document.getElementById('repoHealthLow'); if (lowEl) lowEl.textContent = low + ' Low';
     const badge = document.getElementById('repoHealthStatusBadge'); if (badge) { const ok = totalIssues === 0; badge.textContent = ok ? 'Ready' : (crit > 0 ? 'Critical' : 'Needs Attention'); badge.style.background = ok ? 'rgba(34,197,94,0.18)' : (crit > 0 ? 'rgba(239,68,68,0.18)' : 'rgba(245,158,11,0.18)'); badge.style.color = ok ? '#4ade80' : (crit > 0 ? '#f87171' : '#fbbf24'); }
-    const maintainabilityEl = document.getElementById('repoHealthMaintainability'); if (maintainabilityEl) { maintainabilityEl.textContent = typeof score === 'number' ? (score >= 80 ? 'Good' : score >= 50 ? 'Fair' : 'Poor') : '--'; maintainabilityEl.style.color = score >= 80 ? '#4ade80' : score >= 50 ? '#fbbf24' : '#f87171'; }
-    const reliabilityEl = document.getElementById('repoHealthReliability'); if (reliabilityEl) { reliabilityEl.textContent = typeof score === 'number' ? (score >= 80 ? 'Stable' : score >= 50 ? 'Moderate' : 'At Risk') : '--'; reliabilityEl.style.color = score >= 80 ? '#4ade80' : score >= 50 ? '#fbbf24' : '#f87171'; }
-    const complexityEl = document.getElementById('repoHealthComplexity'); if (complexityEl) { const dash = '--'; complexityEl.textContent = dash; }
-    const duplicationEl = document.getElementById('repoHealthDuplication'); if (duplicationEl) { const dash2 = '--'; duplicationEl.textContent = dash2; }
+    // Compute health metrics from score and severity counts
+    var maintainability, reliability, complexity, duplication;
+    if (typeof score === 'number') {
+      maintainability = Math.max(0, Math.min(100, score - crit * 5 - high * 2));
+      reliability = Math.max(0, Math.min(100, score - high * 3 - med));
+      complexity = Math.max(0, Math.min(100, score - (totalIssues > 50 ? 20 : totalIssues > 20 ? 10 : 0)));
+      duplication = Math.max(0, Math.min(100, score - low));
+    }
+    const maintainabilityEl = document.getElementById('repoHealthMaintainability'); if (maintainabilityEl) { maintainabilityEl.textContent = typeof maintainability === 'number' ? (maintainability >= 80 ? 'Good' : maintainability >= 50 ? 'Fair' : 'Poor') : '--'; maintainabilityEl.style.color = typeof maintainability === 'number' && maintainability >= 80 ? '#4ade80' : typeof maintainability === 'number' && maintainability >= 50 ? '#fbbf24' : '#f87171'; }
+    const reliabilityEl = document.getElementById('repoHealthReliability'); if (reliabilityEl) { reliabilityEl.textContent = typeof reliability === 'number' ? (reliability >= 80 ? 'Stable' : reliability >= 50 ? 'Moderate' : 'At Risk') : '--'; reliabilityEl.style.color = typeof reliability === 'number' && reliability >= 80 ? '#4ade80' : typeof reliability === 'number' && reliability >= 50 ? '#fbbf24' : '#f87171'; }
+    const complexityEl = document.getElementById('repoHealthComplexity'); if (complexityEl) { complexityEl.textContent = typeof complexity === 'number' ? (complexity >= 80 ? 'Low' : complexity >= 50 ? 'Moderate' : 'High') : '--'; complexityEl.style.color = typeof complexity === 'number' && complexity >= 80 ? '#4ade80' : typeof complexity === 'number' && complexity >= 50 ? '#fbbf24' : '#f87171'; }
+    const duplicationEl = document.getElementById('repoHealthDuplication'); if (duplicationEl) { duplicationEl.textContent = typeof duplication === 'number' ? (duplication >= 80 ? 'Low' : duplication >= 50 ? 'Moderate' : 'High') : '--'; duplicationEl.style.color = typeof duplication === 'number' && duplication >= 80 ? '#4ade80' : typeof duplication === 'number' && duplication >= 50 ? '#fbbf24' : '#f87171'; }
     const findingsEl = document.getElementById('repoHealthFindings'); if (findingsEl) { while (findingsEl.firstChild) { findingsEl.removeChild(findingsEl.firstChild); } const row = document.createElement('div'); row.className = 'tc-list-item'; const span = document.createElement('span'); span.className = 'tc-list-name'; const healthyMsg = 'No issues detected. Repository looks healthy.'; const issuesMsg = crit + ' Critical, ' + high + ' High, ' + med + ' Medium, ' + low + ' Low issues detected.'; if (totalIssues === 0) { span.style.color = 'var(--vscode-descriptionForeground)'; span.textContent = healthyMsg; } else { span.textContent = issuesMsg; } row.appendChild(span); findingsEl.appendChild(row); }
     const recEl = document.getElementById('repoHealthRecommendations'); if (recEl) { recEl.textContent = totalIssues === 0 ? 'No action needed. Keep monitoring repository health.' : 'Review ' + totalIssues + ' issue' + (totalIssues === 1 ? '' : 's') + ' to improve repository health.'; }
   }
   function _updateSidebarAnalyticsPanel(data) {
     const sev = data.severity || data.severityCounts || {};
-    const crit = sev.critical || sev.Critical || 0;
-    const high = sev.high || sev.High || 0;
-    const med = sev.medium || sev.Medium || sev.med || 0;
-    const low = sev.low || sev.Low || 0;
+    const crit = Number(sev.critical != null ? sev.critical : sev.Critical) || 0;
+    const high = Number(sev.high != null ? sev.high : sev.High) || 0;
+    const med = Number(sev.medium != null ? sev.medium : (sev.Medium != null ? sev.Medium : sev.med)) || 0;
+    const low = Number(sev.low != null ? sev.low : sev.Low) || 0;
     const totalIssues = crit + high + med + low;
-    const score = data.qualityScore != null ? data.qualityScore : (data.score != null ? data.score : '--');
-    const files = data.totalFiles || data.filesScanned || data.filesAnalyzed || 0;
-    const scans = data.scans != null ? data.scans : (data.scanCount != null ? data.scanCount : 1);
-    const last = data.lastScan || data.lastAudit || data.date || '--';
-    const avgScore = typeof score === 'number' ? score : '--';
-    const totalScansEl = document.getElementById('analyticsTotalScans'); if (totalScansEl) totalScansEl.textContent = scans;
-    const issuesFoundEl = document.getElementById('analyticsIssuesFound'); if (issuesFoundEl) { issuesFoundEl.textContent = totalIssues; issuesFoundEl.className = 'settings-kpi-value ' + (totalIssues === 0 ? 'green' : totalIssues < 10 ? 'amber' : 'red'); }
-    const avgScoreEl = document.getElementById('analyticsAvgScore'); if (avgScoreEl) { avgScoreEl.textContent = avgScore; avgScoreEl.className = 'settings-kpi-value ' + (typeof avgScore === 'number' && avgScore >= 80 ? 'green' : typeof avgScore === 'number' && avgScore >= 50 ? 'amber' : 'red'); }
-    const filesScannedEl = document.getElementById('analyticsFilesScanned'); if (filesScannedEl) { filesScannedEl.textContent = files; filesScannedEl.className = 'settings-kpi-value ' + (files > 0 ? 'amber' : ''); }
+    const rawScore = [data.qualityScore, data.score, data.summary && data.summary.qualityScore, data.summary && data.summary.score].find(function (v) {
+      return v != null && String(v).toLowerCase() !== '--' && !isNaN(Number(v));
+    });
+    const avgScore = rawScore !== undefined ? Number(rawScore) : '--';
+    const rawFiles = [data.totalFiles, data.filesScanned, data.filesAnalyzed, data.ruleScopedFilesAnalyzed, data.repositoryFilesTotal, data.repositoryInventory && data.repositoryInventory.totalFiles, Array.isArray(data.files) ? data.files.length : null].find(function (v) {
+      return v != null && String(v).toLowerCase() !== '--' && !isNaN(Number(v));
+    });
+    const files = Number(rawFiles) || 0;
+    const rawScans = [data.scans, data.scanCount, data.totalScans].find(function (v) {
+      return v != null && String(v).toLowerCase() !== '--' && !isNaN(Number(v));
+    });
+    const scans = Math.max(1, Number(rawScans) || 0);
+    let last = data.lastScan || data.lastAudit || data.date || '--';
+    if (last === '--' && data.generatedAt) {
+      try { last = new Date(data.generatedAt).toLocaleString(); } catch (e) { last = '--'; }
+    }
+    const issuesFound = totalIssues || Number(data.issues) || data.issueCount || data.totalIssues || 0;
+    const totalScansEl = document.getElementById('analyticsTotalScans'); if (totalScansEl) totalScansEl.textContent = String(scans);
+    const issuesFoundEl = document.getElementById('analyticsIssuesFound'); if (issuesFoundEl) { issuesFoundEl.textContent = String(issuesFound); issuesFoundEl.className = 'settings-kpi-value ' + (issuesFound === 0 ? 'green' : issuesFound < 10 ? 'amber' : 'red'); }
+    const avgScoreEl = document.getElementById('analyticsAvgScore'); if (avgScoreEl) { avgScoreEl.textContent = String(avgScore); avgScoreEl.className = 'settings-kpi-value ' + (typeof avgScore === 'number' && avgScore >= 80 ? 'green' : typeof avgScore === 'number' && avgScore >= 50 ? 'amber' : 'red'); }
+    const filesScannedEl = document.getElementById('analyticsFilesScanned'); if (filesScannedEl) { filesScannedEl.textContent = String(files); filesScannedEl.className = 'settings-kpi-value ' + (files > 0 ? 'amber' : ''); }
     const lastScanEl = document.getElementById('analyticsLastScan'); if (lastScanEl) lastScanEl.textContent = last;
     const badge = document.getElementById('analyticsStatusBadge'); if (badge) { badge.textContent = totalIssues === 0 ? 'Ready' : 'Needs Review'; badge.style.background = totalIssues === 0 ? 'rgba(34,197,94,0.18)' : 'rgba(239,68,68,0.18)'; badge.style.color = totalIssues === 0 ? '#4ade80' : '#f87171'; }
     const critEl = document.getElementById('analyticsCritical'); if (critEl) critEl.textContent = crit + ' Critical';
     const highEl = document.getElementById('analyticsHigh'); if (highEl) highEl.textContent = high + ' High';
     const medEl = document.getElementById('analyticsMedium'); if (medEl) medEl.textContent = med + ' Med';
     const lowEl = document.getElementById('analyticsLow'); if (lowEl) lowEl.textContent = low + ' Low';
-    const sevTotalEl = document.getElementById('analyticsSeverityTotal'); if (sevTotalEl) sevTotalEl.textContent = totalIssues;
+    const sevTotalEl = document.getElementById('analyticsSeverityTotal'); if (sevTotalEl) sevTotalEl.textContent = String(totalIssues);
     const stackCrit = document.getElementById('analyticsStackCritical'); if (stackCrit) stackCrit.style.width = totalIssues === 0 ? '0%' : ((crit / totalIssues) * 100) + '%';
     const stackHigh = document.getElementById('analyticsStackHigh'); if (stackHigh) stackHigh.style.width = totalIssues === 0 ? '0%' : ((high / totalIssues) * 100) + '%';
     const stackMed = document.getElementById('analyticsStackMedium'); if (stackMed) stackMed.style.width = totalIssues === 0 ? '0%' : ((med / totalIssues) * 100) + '%';
     const stackLow = document.getElementById('analyticsStackLow'); if (stackLow) stackLow.style.width = totalIssues === 0 ? '0%' : ((low / totalIssues) * 100) + '%';
-    const sumFiles = document.getElementById('analyticsSummaryFilesScanned'); if (sumFiles) sumFiles.textContent = files;
-    const sumAvg = document.getElementById('analyticsSummaryAvgScore'); if (sumAvg) sumAvg.textContent = avgScore;
+    const sumFiles = document.getElementById('analyticsSummaryFilesScanned'); if (sumFiles) sumFiles.textContent = String(files);
+    const sumAvg = document.getElementById('analyticsSummaryAvgScore'); if (sumAvg) sumAvg.textContent = String(avgScore);
   }
   function _updateSidebarTeamPanel(data) {
     const sev = data.severity || data.severityCounts || {};
@@ -856,7 +879,7 @@
     const gate = data.gate;
     const gatePass = typeof gate === 'string' ? gate === 'PASS' : (gate && gate.pass != null ? gate.pass : true);
     const score = data.qualityScore != null ? data.qualityScore : (data.score != null ? data.score : 100);
-    const files = data.totalFiles || data.filesScanned || data.filesAnalyzed || 0;
+    const files = data.totalFiles || data.filesScanned || data.filesAnalyzed || data.ruleScopedFilesAnalyzed || 0;
     const modules = data.modulesPassed || data.certModulesPassed || 0;
     const lastAudit = data.lastAudit || data.lastScan || data.date || '--';
     const expiry = data.expiryDate || data.certificateExpiry || '--';
@@ -878,7 +901,7 @@
     const lastScanEl = document.getElementById('certificateLastScan'); if (lastScanEl) lastScanEl.textContent = lastAudit;
   }
   function _updateSidebarCodeMapPanel(data) {
-    const files = data.totalFiles || data.filesScanned || data.filesAnalyzed || 0;
+    const files = data.totalFiles || data.filesScanned || data.filesAnalyzed || data.ruleScopedFilesAnalyzed || 0;
     const modules = data.totalModules || data.modules || 0;
     const lines = data.totalLines || data.lines || 0;
     const lastScan = data.lastScan || data.date || '--';
@@ -922,11 +945,10 @@
     const high = sev.high || sev.High || 0;
     const med = sev.medium || sev.Medium || sev.med || 0;
     const low = sev.low || sev.Low || 0;
-    const openVulns = data.openVulnerabilities || data.issues || (crit + high + med + low) || 0;
-    const riskScore = data.riskScore || data.risk || 0;
-    const completed = data.completedTasks || 0;
-    const targetDate = data.targetDate || '7/26/2026';
-    const phases = data.phases || [{ name: 'Phase 1: Triage & Assessment', completed: 0, total: 0 }, { name: 'Phase 2: Short-Term Fixes', completed: 0, total: 0 }, { name: 'Phase 3: Long-Term Architecture', completed: 0, total: 50 }];
+    const openVulns = data.openVulnerabilities != null ? data.openVulnerabilities : (data.issues != null ? data.issues : (crit + high + med + low)) || 0;
+    const riskScore = data.riskScore != null ? data.riskScore : (data.risk != null ? data.risk : (data.healthScore != null ? data.healthScore : 0));
+    const completed = data.completedTasks != null ? data.completedTasks : (data.completed != null ? data.completed : 0);
+    const targetDate = data.targetDate || data.target || '7/26/2026';
     const openVulnsEl = document.getElementById('roadmapOpenVulns'); if (openVulnsEl) openVulnsEl.textContent = openVulns;
     const riskScoreEl = document.getElementById('roadmapRiskScore'); if (riskScoreEl) riskScoreEl.textContent = riskScore;
     const completedEl = document.getElementById('roadmapCompleted'); if (completedEl) completedEl.textContent = completed;
@@ -935,9 +957,42 @@
     const highEl = document.getElementById('roadmapHigh'); if (highEl) highEl.textContent = high + ' High';
     const medEl = document.getElementById('roadmapMedium'); if (medEl) medEl.textContent = med + ' Med';
     const lowEl = document.getElementById('roadmapLow'); if (lowEl) lowEl.textContent = low + ' Low';
-    const phase1El = document.getElementById('roadmapPhase1Tasks'); if (phase1El && phases[0]) phase1El.textContent = phases[0].completed + ' / ' + phases[0].total + ' tasks';
-    const phase2El = document.getElementById('roadmapPhase2Tasks'); if (phase2El && phases[1]) phase2El.textContent = phases[1].completed + ' / ' + phases[1].total + ' tasks';
-    const phase3El = document.getElementById('roadmapPhase3Tasks'); if (phase3El && phases[2]) phase3El.textContent = phases[2].completed + ' / ' + phases[2].total + ' tasks';
+    const phaseList = document.getElementById('roadmapPhasesList');
+    if (!phaseList) return;
+    var phases = data.phases;
+    if (!phases || !Array.isArray(phases) || phases.length === 0) {
+      phases = [
+        { name: 'Phase 1: Triage & Assessment', completed: 0, total: 0 },
+        { name: 'Phase 2: Short-Term Fixes', completed: 0, total: 0 },
+        { name: 'Phase 3: Long-Term Architecture', completed: 0, total: 50 }
+      ];
+    }
+    phaseList.textContent = '';
+    phases.forEach(function(p) {
+      var completed = 0, total = 0, name = '';
+      if (p.taskSummary) {
+        completed = p.taskSummary.done || 0;
+        total = p.taskSummary.total || 0;
+      } else {
+        completed = p.completed != null ? p.completed : 0;
+        total = p.total != null ? p.total : 0;
+      }
+      name = p.name || p.title || p.label || 'Phase';
+      const row = document.createElement('div');
+      row.className = 'roadmap-phase-row';
+      const dot = document.createElement('span');
+      dot.className = 'roadmap-phase-dot';
+      const nameEl = document.createElement('span');
+      nameEl.className = 'roadmap-phase-name';
+      nameEl.textContent = name;
+      const tasksEl = document.createElement('span');
+      tasksEl.className = 'roadmap-phase-tasks';
+      tasksEl.textContent = completed + ' / ' + total + ' tasks';
+      row.appendChild(dot);
+      row.appendChild(nameEl);
+      row.appendChild(tasksEl);
+      phaseList.appendChild(row);
+    });
   }
   function _updateSidebarProfilePanel(data) {
     const sev = data.severity || data.severityCounts || {};
@@ -1105,7 +1160,7 @@
     const scoreEl = document.getElementById('qualityScore'); if (scoreEl) { scoreEl.textContent = score; scoreEl.style.color = score >= 80 ? '#4ade80' : score >= 50 ? '#fbbf24' : '#f87171'; }
     const progress = document.getElementById('qualityScoreProgress'); if (progress) { const color = score >= 80 ? '#4ade80' : score >= 50 ? '#fbbf24' : '#f87171'; const offset = 264 - ((score / 100) * 264); progress.style.stroke = color; progress.style.strokeDashoffset = offset; }
     const issuesEl = document.getElementById('qualityIssues'); if (issuesEl) { issuesEl.textContent = issues; issuesEl.className = 'settings-kpi-value ' + (issues === 0 ? 'green' : issues < 10 ? 'amber' : 'red'); }
-    const filesEl = document.getElementById('qualityFiles'); if (filesEl) { filesEl.textContent = data.totalFiles || data.filesAnalyzed || 0; filesEl.className = 'settings-kpi-value blue'; }
+    const filesEl = document.getElementById('qualityFiles'); if (filesEl) { filesEl.textContent = data.totalFiles || data.filesAnalyzed || data.ruleScopedFilesAnalyzed || 0; filesEl.className = 'settings-kpi-value blue'; }
     const sevTotalEl = document.getElementById('qualitySeverityTotal'); if (sevTotalEl) sevTotalEl.textContent = issues;
     const stackCrit = document.getElementById('qualityStackCritical'); if (stackCrit) stackCrit.style.width = issues === 0 ? '0%' : ((crit / issues) * 100) + '%';
     const stackHigh = document.getElementById('qualityStackHigh'); if (stackHigh) stackHigh.style.width = issues === 0 ? '0%' : ((high / issues) * 100) + '%';
@@ -1178,7 +1233,9 @@
     const totalIssues = crit + high + med + low;
     const gateRaw = data.gate;
     const gate = typeof gateRaw === 'string' ? gateRaw : (gateRaw && gateRaw.pass != null ? (gateRaw.pass ? 'PASS' : 'FAIL') : 'Pending');
-    const score = data.qualityScore != null ? data.qualityScore : (data.score != null ? data.score : '--');
+    var score = data.qualityScore != null ? data.qualityScore : (data.score != null ? data.score : '--');
+    score = typeof score === 'string' ? parseInt(score, 10) : score;
+    score = typeof score === 'number' && !isNaN(score) ? score : '--';
     const badge = document.getElementById('securityPassBadge'); if (badge) { badge.textContent = gate === 'PASS' ? 'PASS' : gate === 'FAIL' ? 'FAIL' : 'PENDING'; badge.style.background = gate === 'PASS' ? 'rgba(34,197,94,0.18)' : gate === 'FAIL' ? 'rgba(239,68,68,0.18)' : 'rgba(245,158,11,0.18)'; badge.style.color = gate === 'PASS' ? '#4ade80' : gate === 'FAIL' ? '#f87171' : '#fbbf24'; }
     const cEl = document.getElementById('securityCritical'); if (cEl) cEl.textContent = crit;
     const hEl = document.getElementById('securityHigh'); if (hEl) hEl.textContent = high;
@@ -1247,7 +1304,6 @@
       _updateSidebarScanPanel(msg);
       _updateSidebarAiContextPanel(msg);
       _updateSidebarCertificatePanel(msg);
-      _updateSidebarRoadmapPanel(msg);
       _updateSidebarProfilePanel(msg);
       _updateSidebarUploadPanel(msg);
       _updateSidebarRepoHealthPanel(msg);
@@ -1257,6 +1313,12 @@
     }
     if (msg.command === 'updateCodeMap') {
       _updateSidebarCodeMapPanel(msg);
+    }
+    if (msg.command === 'updateAnalytics') {
+      _updateSidebarAnalyticsPanel(msg);
+    }
+    if (msg.command === 'updateRoadmap') {
+      _updateSidebarRoadmapPanel(msg);
     }
     if (msg.command === 'updateServerUrl') { const el = document.getElementById('serverUrlText'); if (el) el.textContent = msg.url || 'http://127.0.0.1:55000'; const setEl = document.getElementById('settingsServerUrl'); if (setEl) setEl.textContent = msg.url || 'http://127.0.0.1:55000'; const settingsDropdownUrl = document.getElementById('settingsServerUrlText'); if (settingsDropdownUrl) settingsDropdownUrl.textContent = msg.url || 'http://127.0.0.1:55000'; const settingsApiInputTab = document.getElementById('settingsApiInputTab'); if (settingsApiInputTab) settingsApiInputTab.value = msg.url || 'http://127.0.0.1:55000'; } // simplebeacon-ignore config-drift — fallback to default if not set
     if (msg.command === 'updateDashboard') {
@@ -1367,8 +1429,8 @@
       if (dbHigh) { dbHigh.textContent = (sev.high || sev.High || 0) + ''; document.getElementById('dbHighLabel').textContent = (sev.high || sev.High || 0) + ' High'; }
       if (dbMed) { dbMed.textContent = (sev.medium || sev.Medium || sev.med || 0) + ''; document.getElementById('dbMedLabel').textContent = (sev.medium || sev.Medium || sev.med || 0) + ' Med'; }
       if (dbLow) { dbLow.textContent = (sev.low || sev.Low || 0) + ''; document.getElementById('dbLowLabel').textContent = (sev.low || sev.Low || 0) + ' Low'; }
-      if (dbRepo) dbRepo.textContent = (r.totalFiles || r.filesAnalyzed || '--') + '';
-      if (dbGateChk) dbGateChk.textContent = (r.totalFiles || r.filesAnalyzed || '--') + '';
+      if (dbRepo) dbRepo.textContent = (r.totalFiles || r.filesAnalyzed || r.ruleScopedFilesAnalyzed || '--') + '';
+      if (dbGateChk) dbGateChk.textContent = (r.totalFiles || r.filesAnalyzed || r.ruleScopedFilesAnalyzed || '--') + '';
       // Populate new tab panes
       const score = r.qualityScore != null ? r.qualityScore : r.score != null ? r.score : null;
       // Analyze tab KPI cards
@@ -1379,7 +1441,7 @@
       if (aScore) aScore.textContent = score != null ? score + '' : '--';
       if (aGate) aGate.textContent = typeof r.gate === 'string' ? r.gate : 'Pending';
       if (aIssues) aIssues.textContent = issueCount + '';
-      const files = r.totalFiles || r.filesAnalyzed || '--';
+      const files = r.totalFiles || r.filesAnalyzed || r.ruleScopedFilesAnalyzed || r.repositoryFilesTotal || '--';
       if (aFiles) aFiles.textContent = files + '';
       // Analyze sidebar detail panel KPI cards
       const saScore = document.getElementById('sidebarAnalyzeScore');
@@ -1463,6 +1525,14 @@
       if (prScore) prScore.textContent = score != null ? score + '' : '--';
       if (prScans) prScans.textContent='1';
       _updateSidebarAuditPanel(r);
+      _updateSidebarSecurityPanel(r);
+      _updateSidebarTrustPanel(r);
+      _updateSidebarQualityPanel(r);
+      _updateSidebarAssessmentsPanel(r);
+      _updateSidebarCompliancePanel(r);
+      _updateSidebarScanPanel(r);
+      _updateSidebarAiContextPanel(r);
+      _updateSidebarCertificatePanel(r);
       _updateSidebarProfilePanel(r);
       _updateSidebarUploadPanel(r);
       _updateSidebarRepoHealthPanel(r);

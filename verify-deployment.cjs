@@ -164,6 +164,7 @@ async function main() {
         const sandbox = await request('POST', '/api/license/validate', { token: '' });
         allOk = assert('License validate without token returns sandbox', sandbox.status === 200 && sandbox.body?.sandbox === true && sandbox.body?.active === false, JSON.stringify(sandbox.body)) && allOk;
 
+        // simplebeacon-ignore sensitive-data — test script with mock email and test secret
         const token = generateLicenseToken({ email: 'verify@example.com', tier: 'pro' }, TEST_SECRET, 60);
         const active = await request('POST', '/api/license/validate', { token });
         allOk = assert('License validate with valid token returns active', active.status === 200 && active.body?.active === true && active.body?.tier === 'pro', JSON.stringify(active.body)) && allOk;

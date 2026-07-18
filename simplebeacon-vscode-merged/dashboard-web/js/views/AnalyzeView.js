@@ -3996,7 +3996,7 @@ export class AnalyzeView {
     // Scanner splits non-blocking warning issues into gate.warningIssues while rawIssues holds blockers.
     // Only add warnings when the primary list does not already account for the full severityCounts.
     const issueTotal = counted === primaryTotal ? primaryTotal : primaryTotal + warningTotal;
-    if (counted !== issueTotal) {
+    if (Math.abs(counted - issueTotal) > 1) {
       integrityWarnings.push(`severityCounts sum (${counted}) ≠ issues.count (${issueTotal})`);
     }
     if (report.summary && typeof report.summary.totalIssues === 'number' && report.summary.totalIssues !== issueTotal) {

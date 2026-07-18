@@ -1,0 +1,6 @@
+FREE_USER=free_test_tok_74790588
+PRO_USER=pro_test_tok_81523648
+TEAM_ADMIN=team_admin_test_tok_81398058
+ENTERPRISE_ADMIN=enterprise_admin_test_tok_47380548
+AUDITOR=auditor_test_tok_11029457
+READ_ONLY=readonly_test_tok_21412722

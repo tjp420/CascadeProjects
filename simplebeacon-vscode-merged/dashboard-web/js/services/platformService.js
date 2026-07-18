@@ -1,5 +1,5 @@
 // simplebeacon-ignore documentation
-import { fetchWithTimeout } from '../utils.js';
+import { fetchWithTimeout, apiBaseUrl } from '../utils.js';
 import { authService } from './authService.js?v=20260716cachefix1';
 import { billingService } from './billingService.js';
 import { fetchDataCleanupScan as fetchDataCleanupAnalysis } from './analyzeService.js';
@@ -10,6 +10,21 @@ import { DEMO_EMAIL } from '../demoMode.js';
 // simplebeacon:production-leak-intent: web-data-sample - Legitimate web data path detection for platform service functionality
 
 export { spaUrl };
+
+/**
+ * Resolve a relative API URL against the local API base when in extension bridge mode.
+ */
+function resolveApiUrl(url) {
+  if (!url || typeof url !== 'string') return url;
+  if (/^https?:\/\//i.test(url)) return url;
+  try {
+    const base = apiBaseUrl();
+    if (base && base !== '/') {
+      return `${base}${url.startsWith('/') ? '' : '/'}${url}`;
+    }
+  } catch (_a) { /* fall back to relative */ }
+  return url;
+}
 
 const PLATFORM = {
   dashboardHome: '/api/dashboard-home',
@@ -74,13 +89,13 @@ export class PlatformService {
 
   async fetchAll() {
     const results = await Promise.allSettled([
-      fetchJson(PLATFORM.dashboardHome).then((d) => { this.dashboardHome = d.data || d; }),
-      fetchJson(PLATFORM.devTools).then((d) => { this.devTools = Array.isArray(d) ? d : d.tools || []; }),
-      fetchJson(PLATFORM.devWorkflows).then((d) => { this.devWorkflows = Array.isArray(d) ? d : d.workflows || []; }),
-      fetchJson(PLATFORM.coverageOverview).then((d) => { this.coverage = d; }),
-      fetchJson(PLATFORM.securityOverview).then((d) => { this.security = d; }),
-      fetchJson(PLATFORM.qualityOverview).then((d) => { this.quality = d; }),
-      fetchJson(PLATFORM.help).then((d) => { this.help = d.data || d; })
+      fetchJson(resolveApiUrl(PLATFORM.dashboardHome)).then((d) => { this.dashboardHome = d.data || d; }),
+      fetchJson(resolveApiUrl(PLATFORM.devTools)).then((d) => { this.devTools = Array.isArray(d) ? d : d.tools || []; }),
+      fetchJson(resolveApiUrl(PLATFORM.devWorkflows)).then((d) => { this.devWorkflows = Array.isArray(d) ? d : d.workflows || []; }),
+      fetchJson(resolveApiUrl(PLATFORM.coverageOverview)).then((d) => { this.coverage = d; }),
+      fetchJson(resolveApiUrl(PLATFORM.securityOverview)).then((d) => { this.security = d; }),
+      fetchJson(resolveApiUrl(PLATFORM.qualityOverview)).then((d) => { this.quality = d; }),
+      fetchJson(resolveApiUrl(PLATFORM.help)).then((d) => { this.help = d.data || d; })
     ]);
     return results;
   }
@@ -91,7 +106,7 @@ export class PlatformService {
       ...billingService.getAuthHeaders()
     };
     if (options.force) {
-      const npmAuditHttpResponse = await fetch(PLATFORM.securityNpmAudit, { method: 'POST', headers });
+      const npmAuditHttpResponse = await fetch(resolveApiUrl(PLATFORM.securityNpmAudit), { method: 'POST', headers });
       const npmAuditPayload = await readJsonResponseBody(npmAuditHttpResponse, {});
       if (!npmAuditHttpResponse.ok) {
         throw new Error(npmAuditPayload.message || npmAuditPayload.error || 'npm audit failed');
@@ -99,12 +114,12 @@ export class PlatformService {
       this.npmAudit = npmAuditPayload;
       return this.npmAudit;
     }
-    this.npmAudit = await fetchJson(PLATFORM.securityNpmAudit);
+    this.npmAudit = await fetchJson(resolveApiUrl(PLATFORM.securityNpmAudit));
     return this.npmAudit;
   }
 
   async runBaselineSync() {
-    const syncHttpResponse = await fetch('/api/simplebeacon/tools/baseline-sync', {
+    const syncHttpResponse = await fetch(resolveApiUrl('/api/simplebeacon/tools/baseline-sync'), {
       method: 'POST',
       headers: {
         ...authService.getAuthHeaders(),

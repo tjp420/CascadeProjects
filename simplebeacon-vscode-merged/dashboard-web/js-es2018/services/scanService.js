@@ -66,6 +66,24 @@ function _isUnreachableLoopbackHost(value) {
         return false;
     try {
         const url = new URL(value, location.href);
+        // Extension bridge mode: when sb_api_base or sb_notify_base is explicitly set,
+        // the user/extension intentionally wants to connect to the local server from the hosted dashboard.
+        // Modern browsers (Firefox 84+, Chrome 94+) allow HTTPS→HTTP localhost connections.
+        const hasExtensionBridge = (() => {
+            try {
+                const params = new URLSearchParams(location.search || '');
+                if (params.get('sb_api_base') || params.get('sb_notify_base'))
+                    return true;
+            } catch (_b) { /* ignore */ }
+            try {
+                if (typeof sessionStorage !== 'undefined'
+                    && (sessionStorage.getItem('sb_api_base') || sessionStorage.getItem('sb_notify_base')))
+                    return true;
+            } catch (_c) { /* ignore */ }
+            return false;
+        })();
+        if (hasExtensionBridge)
+            return false;
         if (location.protocol === 'https:' && url.protocol === 'http:')
             return true;
         if (!isLocalDevHost() && /^(localhost|127\.0\.0\.1|\[::1\])$/i.test(url.hostname))

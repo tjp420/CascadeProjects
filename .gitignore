@@ -267,4 +267,5 @@ test-output3.txt
 tsc-errors.txt
 dashboard.html
 sales/marketplace/screenshots/*.png
+temp-sample-project/
 simplebeacon-vscode-merged/resources/screenshots/*.png

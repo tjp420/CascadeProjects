@@ -36,7 +36,7 @@ import {
   DebugReporter
 } from './providers';
 import { CodeMapTreeProvider } from './codeMapTreeProvider';
-import { startDataServer, stopDataServer, updateServerState, getDataServerPort, clearBrowserSessionToken, setBrowserSessionToken, recordBrowserSignOut, setSidebarHtmlProvider, setAiContextCallback, restartDataServer, isDataServerRunning, setModernSidebarProvider, buildAiContextMarkdown, setNotifyCallback, drainNotificationQueue, setTheme } from './dataServer';
+import { startDataServer, stopDataServer, updateServerState, getServerState, getDataServerPort, clearBrowserSessionToken, setBrowserSessionToken, recordBrowserSignOut, setSidebarHtmlProvider, setAiContextCallback, restartDataServer, isDataServerRunning, setModernSidebarProvider, buildAiContextMarkdown, setNotifyCallback, drainNotificationQueue, setTheme } from './dataServer';
 import { getExtensionVersion, pickWorkspaceFolder, correctScanPath, showQuietMessage, getSbConfig } from './utils/vscode';
 import { escapeHtml } from './utils/string';
 import { openWebsiteDashboardPanel } from './sidebarMessenger';
@@ -239,6 +239,7 @@ let codeMapTreeProvider: CodeMapTreeProvider;
 let summaryProvider: SummaryProvider;
 let settingsProvider: SettingsProvider;
 let enhancedAIProvider: EnhancedAIProvider;
+let roadmapProvider: RoadmapProvider;
 let realtimeMonitor: RealtimeMonitor;
 let aiCodeAnalyzer: AICodeAnalyzer;
 let advancedAnalytics: AdvancedAnalytics;
@@ -369,6 +370,165 @@ function updateStatusBar(report?: unknown) {
   }
 }
 
+function pushRoadmapToSidebar(report: unknown) {
+  if (!report || !roadmapProvider || !modernSidebarProvider) return;
+  const r = report as Record<string, unknown>;
+  const sev = (r.severityCounts || r.severity || {}) as Record<string, number>;
+  const scanResult = {
+    summary: {
+      totalFindings: r.issueCount || r.totalIssues || 0,
+      filesAnalyzed: r.filesAnalyzed || r.totalFiles || 0,
+      severityCounts: sev,
+      categoryCounts: (r as any).categoryCounts || {},
+    },
+    gate: r.gate as any,
+    qualityScore: r.qualityScore as number | undefined,
+    categories: (r as any).categories || {},
+    findings: (r as any).detectedIssues || (r as any).rawIssues || (r as any).findings || [],
+  } as any;
+  roadmapProvider.updateFromReport(scanResult);
+  const roadmap = roadmapProvider.getRoadmap();
+  if (roadmap) {
+    const totalTasks = roadmap.phases.reduce((sum: number, p: any) => sum + (p.taskSummary?.total || 0), 0);
+    const doneTasks = roadmap.phases.reduce((sum: number, p: any) => sum + (p.taskSummary?.done || 0), 0);
+    modernSidebarProvider.updateRoadmap({
+      severity: sev,
+      openVulnerabilities: (sev.critical || 0) + (sev.high || 0) + (sev.medium || 0) + (sev.low || 0),
+      riskScore: roadmap.summary.healthScore,
+      completedTasks: doneTasks,
+      totalTasks: totalTasks,
+      targetDate: '7/26/2026',
+      phases: roadmap.phases.map((p: any) => ({
+        name: p.title,
+        completed: p.taskSummary?.done || 0,
+        total: p.taskSummary?.total || 0,
+      })),
+    });
+  }
+}
+
+function pushAllPanesToDashboard(report: unknown) {
+  if (!report) return;
+  const r = report as Record<string, unknown>;
+  const sev = (r.severityCounts || {}) as Record<string, number>;
+  const crit = sev.critical || 0;
+  const high = sev.high || 0;
+  const med = sev.medium || 0;
+  const low = sev.low || 0;
+  const totalIssues = (r.issueCount as number) || crit + high + med + low || 0;
+  const score = r.qualityScore != null ? Number(r.qualityScore) : 100;
+  const gatePass = (r.gate as any)?.pass !== false;
+  const gateStr = gatePass ? 'Pass' : 'Fail';
+  const files = String(r.totalFiles || r.filesAnalyzed || r.ruleScopedFilesAnalyzed || 0);
+  const findings = r.detectedIssues || r.rawIssues || r.findings || [];
+  const lastScan = new Date().toLocaleString();
+  const qMaint = Math.max(0, Math.min(100, score - crit * 5 - high * 2));
+  const qRel = Math.max(0, Math.min(100, score - high * 3 - med));
+  const qComplex = Math.max(0, Math.min(100, score - med * 2 - low));
+  const qDup = Math.max(0, Math.min(100, score - low * 2));
+
+  // Report pane
+  WelcomeDashboard.updateReportPaneIfOpen({
+    score: String(score), gate: gateStr, issues: String(totalIssues),
+    files, severity: sev, findings, lastAnalysis: lastScan,
+  });
+  // Analyze pane
+  WelcomeDashboard.updateAnalyzePaneIfOpen({
+    score: String(score), gate: gateStr, issues: String(totalIssues),
+    files, severity: sev, findings, lastAnalysis: lastScan,
+  });
+  // Quality pane
+  WelcomeDashboard.updateQualityPaneIfOpen({
+    qualityScore: String(score), issues: String(totalIssues), coverage: '--',
+    files, status: gateStr, maintainability: String(qMaint), reliability: String(qRel),
+    complexity: String(qComplex), duplication: String(qDup), gate: gateStr,
+  });
+  // Upload pane
+  WelcomeDashboard.updateUploadPaneIfOpen({
+    status: gateStr, files, gate: gateStr,
+  } as any);
+  // Audit pane
+  WelcomeDashboard.updateAuditPaneIfOpen({
+    vulnerabilities: String(high + crit), secrets: '0', passed: String(Math.max(0, Number(files) - totalIssues)),
+    score: String(score), status: gateStr, critical: String(crit), high: String(high),
+    medium: String(med), low: String(low), catSecrets: '0', catVulns: String(high + crit),
+    catSmells: String(med + low), catCompliance: '0', findings, gate: gateStr,
+  } as any);
+  // Security pane
+  WelcomeDashboard.updateSecurityPaneIfOpen({
+    critical: String(crit), high: String(high), medium: String(med), low: String(low),
+    score: String(score), status: gatePass ? 'PASS' : 'FAIL', findings, gate: gateStr,
+    repoFiles: files, gateChecked: gateStr, lastScan,
+  } as any);
+  // Trust pane
+  WelcomeDashboard.updateTrustPaneIfOpen({
+    trustScore: String(score), verified: gatePass ? 'Verified' : 'Issues Found',
+    warnings: String(totalIssues), lastAudit: lastScan, status: gateStr,
+    quality: String(score), security: String(score), compliance: String(score),
+    dependencies: '--', severity: sev, gate: gateStr,
+  } as any);
+  // Compliance pane
+  WelcomeDashboard.updateCompliancePaneIfOpen({
+    passed: String(gatePass ? 1 : 0), failed: String(gatePass ? 0 : 1),
+    progress: String(gatePass ? 100 : 0), total: '1', status: gateStr,
+    rules: [], severity: sev, qualityScore: String(score), issues: String(totalIssues), gate: gateStr,
+  } as any);
+  // Repo Health pane
+  WelcomeDashboard.updateRepoHealthPaneIfOpen({
+    score: String(score), qualityScore: String(score), gate: gateStr,
+    issues: String(totalIssues), files, status: gateStr,
+    critical: String(crit), high: String(high), medium: String(med), low: String(low),
+    maintainability: String(qMaint), reliability: String(qRel),
+    complexity: String(qComplex), duplication: String(qDup),
+    findings, recommendations: [],
+  } as any);
+  // AI Context pane
+  WelcomeDashboard.updateAiContextPaneIfOpen({
+    files, issues: String(totalIssues), score: String(score),
+    severity: sev, status: gateStr, models: '0', aiFindings: [], aiModels: [],
+  } as any);
+  // Assessments pane
+  WelcomeDashboard.updateAssessmentsPaneIfOpen({
+    completed: String(gatePass ? 1 : 0), pending: String(gatePass ? 0 : 1),
+    progress: String(gatePass ? 100 : 0), total: '1', status: gateStr,
+    security: String(score), quality: String(score), compliance: String(score),
+    documentation: '--', severity: sev, checklist: [], qualityScore: String(score),
+    issues: String(totalIssues), gate: gateStr,
+  } as any);
+  // Certificate pane
+  WelcomeDashboard.updateCertificatePaneIfOpen({
+    status: gateStr, score: String(score), modules: String(gatePass ? 1 : 0),
+    date: lastScan, expiry: '--', gate: gateStr, severity: sev, requirements: [], previewText: '',
+  } as any);
+  // Analytics pane
+  WelcomeDashboard.updateAnalyticsPaneIfOpen({
+    scans: '1', issues: String(totalIssues), avgScore: String(score),
+    lastScan, trend: 'stable', issueTrend: 'stable', status: gateStr,
+  } as any);
+  // Settings pane
+  WelcomeDashboard.updateSettingsPaneIfOpen({
+    severity: sev, qualityScore: String(score), issues: String(totalIssues), gate: gateStr,
+  } as any);
+  // Profile pane
+  WelcomeDashboard.updateProfilePaneIfOpen({
+    name: 'Developer', email: '--', role: 'Admin', org: '--',
+    scans: '1', reports: '1', issues: String(totalIssues), avgScore: String(score),
+    qualityScore: String(score), autoScan: false, notifications: true, darkMode: false,
+    severity: sev, activity: [], gate: gateStr,
+  } as any);
+  // Platform pane
+  WelcomeDashboard.updatePlatformPaneIfOpen({
+    version: '', engine: 'SimpleBeacon', uptime: '--', status: gateStr,
+    os: '', node: '', ext: '', workspace: '', badge: gateStr,
+    severity: sev, qualityScore: String(score), issues: String(totalIssues), gate: gateStr,
+  } as any);
+  // Roadmap pane
+  WelcomeDashboard.updateRoadmapPaneIfOpen({
+    open: String(totalIssues), risk: String(Math.max(0, 100 - score)),
+    done: '0', target: '7/26/2026', status: gateStr, severity: sev, findings: [],
+  } as any);
+}
+
 /**
  * Activate the SimpleBeacon extension.
  * @param context - VS Code extension context.
@@ -390,10 +550,22 @@ export function activate(context: vscode.ExtensionContext) {
   // Wire up external-browser → VS Code notification bridge
   const onNotifyEntry = (entry: any): void => {
     if (entry.type === 'openFile' && entry.payload?.path) {
-      const filePath = entry.payload.path;
-      Promise.resolve(vscode.commands.executeCommand('vscode.open', vscode.Uri.file(filePath))).catch(() => {
-        outputChannel.appendLine(`[NotifyBridge] Could not open file: ${filePath}`);
-      });
+      let filePath = entry.payload.path;
+      if (!path.isAbsolute(filePath)) {
+        const workspace = vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath;
+        if (workspace) {
+          filePath = path.join(workspace, filePath);
+        }
+      }
+      if (!fs.existsSync(filePath)) {
+        const message = `File not found: ${filePath}`;
+        outputChannel.appendLine(`[NotifyBridge] ${message}`);
+        vscode.window.showWarningMessage(message);
+      } else {
+        Promise.resolve(vscode.commands.executeCommand('vscode.open', vscode.Uri.file(filePath))).catch((err) => {
+          outputChannel.appendLine(`[NotifyBridge] Could not open file: ${filePath} — ${err}`);
+        });
+      }
     } else if (entry.type === 'downloadComplete' && entry.payload?.filename) {
       if (modernSidebarProvider) {
         outputChannel.appendLine(`[NotifyBridge] Received downloadComplete: ${entry.payload.filename}`);
@@ -665,6 +837,18 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(vscode.window.registerWebviewViewProvider('simplebeacon-modern-explorer', modernSidebarProvider));
   context.subscriptions.push(vscode.window.registerWebviewViewProvider(CodeMapTreeProvider.viewType, codeMapTreeProvider));
 
+  // Auto-open the welcome dashboard panel on launch if the user has not disabled it.
+  if (getSbConfig().get<boolean>('showWelcomeOnLoad', true)) {
+    setTimeout(() => {
+      try {
+        WelcomeDashboard.createOrShow(context.extensionUri, true);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        outputChannel.appendLine('[SimpleBeacon] Auto-open welcome dashboard failed: ' + msg);
+      }
+    }, 1000);
+  }
+
   // Auto-start relay server when remoteMode is enabled so the browser URL is always ready
   if (getSbConfig().get<boolean>('remoteMode', false)) {
     setTimeout(() => {
@@ -702,7 +886,7 @@ export function activate(context: vscode.ExtensionContext) {
     }
   });
   summaryProvider = new SummaryProvider();
-  const roadmapProvider = new RoadmapProvider();
+  roadmapProvider = new RoadmapProvider();
   settingsProvider = new SettingsProvider(getExtensionVersion(context));
   enhancedAIProvider = new EnhancedAIProvider();
   enhancedAIProvider.setSidebarProvider(modernSidebarProvider);
@@ -716,8 +900,8 @@ export function activate(context: vscode.ExtensionContext) {
     }
     updateStatusBar(currentReport);
     if (currentReport) {
-      roadmapProvider.updateFromReport(scanResult as ScanResult);
       modernSidebarProvider.updateReport(currentReport as Record<string, unknown>);
+      pushRoadmapToSidebar(currentReport);
     }
     updateServerState({ currentReport: currentReport as ScanReport | null, scanStatus: 'completed', scanMessage: 'Scan complete', lastScanTime: Date.now() });
   });
@@ -728,7 +912,8 @@ export function activate(context: vscode.ExtensionContext) {
     context,
     modernSidebarProvider,
     summaryProvider,
-    scanCountRef: { value: scanCount }
+    scanCountRef: { value: scanCount },
+    pushRoadmapToSidebar
   };
   function safeUpdateUIs(report: unknown, statusMessage?: string) {
     dashboardDeps.scanCountRef.value = scanCount;
@@ -1064,7 +1249,7 @@ export function activate(context: vscode.ExtensionContext) {
     registerCmd('simplebeacon.loadReport', async () => {
       const workspaceFolders = vscode.workspace.workspaceFolders;
       const defaultUri = workspaceFolders?.[0]
-        ? vscode.Uri.file(path.join(workspaceFolders[0].uri.fsPath, 'simplebeacon-report.json'))
+        ? vscode.Uri.file(path.join(workspaceFolders[0].uri.fsPath, '.simplebeacon', 'report.json'))
         : vscode.Uri.file('simplebeacon-report.json');
       const uri = await vscode.window.showOpenDialog({
         defaultUri,
@@ -1089,6 +1274,8 @@ export function activate(context: vscode.ExtensionContext) {
         summaryProvider.updateReport(report);
         settingsProvider.updateReport(report);
         modernSidebarProvider.updateReport(report);
+        pushRoadmapToSidebar(report);
+        pushAllPanesToDashboard(report);
         dashboardPanel?.updateReport(report);
         modernSidebarProvider.updateStatus('completed', 'Report loaded');
         vscode.commands.executeCommand('setContext', 'simplebeacon.hasResults', true);
@@ -1111,6 +1298,8 @@ export function activate(context: vscode.ExtensionContext) {
         currentReport = enhancedAIProvider.convertScanResultToReport(result);
         enhancedAIProvider.setScanResult(currentReport);
         modernSidebarProvider.updateReport(currentReport as Record<string, unknown>);
+        pushRoadmapToSidebar(currentReport);
+        pushAllPanesToDashboard(currentReport);
         updateServerState({ currentReport: currentReport as ScanReport | null, scanStatus: 'completed', scanMessage: 'Enhanced analysis complete', lastScanTime: Date.now() });
         const summary = result.summary || { totalFindings: 0, filesAnalyzed: 0, severityCounts: {} };
         const qScore = result.qualityScore ?? 100;
@@ -1181,6 +1370,9 @@ export function activate(context: vscode.ExtensionContext) {
       }
       if (qualityData) {
         WelcomeDashboard.updateQualityPaneIfOpen(qualityData);
+      }
+      if (currentReport) {
+        pushAllPanesToDashboard(currentReport);
       }
     }),
     registerCmd('simplebeacon.realtimeAnalysis', () => {
@@ -1482,12 +1674,13 @@ export function activate(context: vscode.ExtensionContext) {
       WelcomeDashboard.createOrShow(context.extensionUri, true)?.showDashboardPane();
     }),
     // aiPlatform commands
-    registerCmd('simplebeacon.scanFolder', (uri: vscode.Uri) => {
+    registerCmd('simplebeacon.scanFolder', async (uri: vscode.Uri) => {
       if (!uri) {
         vscode.window.showWarningMessage('No folder selected.');
         return;
       }
       WelcomeDashboard.createOrShow(context.extensionUri, true)?.showScanPane();
+      await vscode.commands.executeCommand('simplebeacon.scanWorkspace', { projectPath: uri.fsPath });
     }),
     registerCmd('simplebeacon.uploadReport', async () => {
       WelcomeDashboard.createOrShow(context.extensionUri);
@@ -2686,7 +2879,7 @@ input:focus,select:focus{border-color:var(--ac)}
     <div class="section active" id="section-account">
       <div class="section-title">Account Profile</div>
       <div class="setting-row"><div class="setting-info"><div class="setting-label">Display Name</div><div class="setting-desc">Shown in scan reports and certificates.</div></div><input type="text" value="SimpleBeacon User" /></div>
-      <div class="setting-row"><div class="setting-info"><div class="setting-label">Email</div><div class="setting-desc">Used for notifications and report delivery.</div></div><input type="text" value="user@example.com" /></div>
+      <div class="setting-row"><div class="setting-info"><div class="setting-label">Email</div><div class="setting-desc">Used for notifications and report delivery.</div></div><input type="text" value="user@example.com" /></div> <!-- simplebeacon-ignore sensitive-data — placeholder UI value, not real data -->
       <div class="setting-row"><div class="setting-info"><div class="setting-label">Timezone</div><div class="setting-desc">Local timezone for scan timestamps.</div></div><select><option>UTC-06:00 Central Time</option><option>UTC-05:00 Eastern Time</option><option>UTC-08:00 Pacific Time</option></select></div>
     </div>
 
@@ -3552,9 +3745,26 @@ async function runScan(context: vscode.ExtensionContext, projectPath?: string, o
 
     if (agentStatus.available && agentStatus.scannerAvailable) {
       outputChannel.appendLine('[SimpleBeacon] Scanning via local agent...');
+
+      let agentProgressVal = 5;
+      modernSidebarProvider.updateScanProgress(agentProgressVal);
+      modernSidebarProvider.updateStatus('scanning', `Scanning... ${agentProgressVal}%`);
+      const agentProgressInterval = setInterval(() => {
+        if (!scanInProgress || agentProgressVal >= 95) {
+          clearInterval(agentProgressInterval);
+          return;
+        }
+        agentProgressVal = Math.min(95, agentProgressVal + Math.random() * 3 + 1);
+        const floored = Math.floor(agentProgressVal);
+        modernSidebarProvider.updateScanProgress(floored);
+        modernSidebarProvider.updateStatus('scanning', `Scanning... ${floored}%`);
+      }, 800);
+
       try {
         const report = await scanViaLocalAgent({ projectPath, fullDirectory: options?.fullDirectory }, agentPort);
+        clearInterval(agentProgressInterval);
         if (report) {
+          modernSidebarProvider.updateScanProgress(100);
           const sbDir = path.join(projectPath, '.simplebeacon');
           await fs.promises.mkdir(sbDir, { recursive: true });
           await fs.promises.writeFile(path.join(sbDir, 'report.json'), JSON.stringify(report, null, 2), 'utf8');
@@ -3569,6 +3779,8 @@ async function runScan(context: vscode.ExtensionContext, projectPath?: string, o
           summaryProvider.updateReport(currentReport as Record<string, unknown>);
           settingsProvider.updateReport(currentReport as Record<string, unknown>);
           modernSidebarProvider.updateReport(currentReport as Record<string, unknown>);
+          pushRoadmapToSidebar(currentReport);
+          pushAllPanesToDashboard(currentReport);
           dashboardPanel?.updateReport(currentReport as Record<string, unknown>);
           Dashboard40.updateIfOpen(currentReport as any);
           modernSidebarProvider.updateStatus('completed', 'Scan complete — local agent');
@@ -3583,12 +3795,15 @@ async function runScan(context: vscode.ExtensionContext, projectPath?: string, o
           );
           outputChannel.appendLine(`[SimpleBeacon] Local agent scan complete. Score: ${scanScore}/100 — Gate: ${scanGate}`);
           scanInProgress = false;
+          setTimeout(() => modernSidebarProvider.updateScanProgress(0), 2000);
           generateCodeMap(false, projectPath)
             .then(() => outputChannel.appendLine('[SimpleBeacon] Code map generated in background'))
             .catch((e) => outputChannel.appendLine(`[SimpleBeacon] Code map generation failed: ${e}`));
           return report;
         }
       } catch (err) {
+        clearInterval(agentProgressInterval);
+        modernSidebarProvider.updateScanProgress(0);
         const msg = err instanceof Error ? err.message : String(err);
         outputChannel.appendLine(`[SimpleBeacon] Local agent scan failed: ${msg}`);
         vscode.window.showWarningMessage(`Local agent scan failed; falling back to CLI. ${msg}`);
@@ -3889,6 +4104,8 @@ async function runScan(context: vscode.ExtensionContext, projectPath?: string, o
             summaryProvider.updateReport(currentReport as Record<string, unknown>);
             settingsProvider.updateReport(currentReport as Record<string, unknown>);
             modernSidebarProvider.updateReport(currentReport as Record<string, unknown>);
+            pushRoadmapToSidebar(currentReport);
+            pushAllPanesToDashboard(currentReport);
             dashboardPanel?.updateReport(currentReport as Record<string, unknown>);
             Dashboard40.updateIfOpen(currentReport as any);
             modernSidebarProvider.updateStatus('completed', 'Scan complete — awaiting analysis');
@@ -3982,6 +4199,9 @@ function resolveCodeMapScanRoot(override?: string | null): string {
   const report = currentReport as SidebarReport | null;
   if (report?.projectRoot) { candidates.push(report.projectRoot); }
   if (report?.projectPath) { candidates.push(report.projectPath); }
+  const serverReport = (getServerState().currentReport as any);
+  if (serverReport?.projectRoot) { candidates.push(serverReport.projectRoot); }
+  if (serverReport?.projectPath) { candidates.push(serverReport.projectPath); }
   for (const candidate of candidates) {
     const resolved = path.resolve(String(candidate));
     try {
@@ -4550,12 +4770,21 @@ function generateCertificate(report?: unknown) {
   const certHtmlPath = path.join(certDir, 'certificate.html');
 
   // Support both CLI report shape and workspace analyzer ScanResult shape
+  const hasCliSummary = !!(source as any)?.scan_summary || !!(source as any)?.severityCounts || !!(source as any)?.scanPaths;
   const isWorkspaceScan = !!source.summary && !!source.findings;
-  const qualityScore = isWorkspaceScan ? computeWorkspaceScore(source) : source.qualityScore;
-  const sev = source.summary?.severityCounts ?? {};
+  const cliSummary = (source as any)?.scan_summary as Record<string, unknown> | undefined;
+  const cliSev = ((source as any)?.severityCounts as Record<string, number> | undefined) ?? {
+    critical: Number(cliSummary?.critical_severity_count ?? 0),
+    high: Number(cliSummary?.high_severity_count ?? 0),
+    medium: Number(cliSummary?.medium_severity_count ?? 0),
+    low: Number(cliSummary?.low_severity_count ?? 0),
+  };
+  const severityCounts = isWorkspaceScan ? (source.summary?.severityCounts ?? {}) : cliSev;
+  const qualityScore = isWorkspaceScan ? computeWorkspaceScore(source) : (source.qualityScore ?? Number((source as any)?.qualityScore ?? 100));
+  const cliStatus = String(cliSummary?.status ?? '').toUpperCase();
   const gatePass = isWorkspaceScan
-    ? sev.critical === 0 && sev.high === 0
-    : (source.gate?.pass ?? false);
+    ? (severityCounts.critical === 0 && severityCounts.high === 0)
+    : (source.gate?.pass ?? (cliStatus === 'PASS' || cliStatus === 'PASSED' || cliStatus === 'SUCCESS' || cliStatus === 'SUCCESSFUL' || cliStatus === 'OK' ? true : (cliStatus === 'FAIL' || cliStatus === 'FAILED' || cliStatus === 'ERROR' ? false : (severityCounts.critical === 0 && severityCounts.high === 0))));
   const certificate: CertificateData = {
     type: 'simplebeacon-certificate',
     version: '1.0.0',
@@ -4566,7 +4795,7 @@ function generateCertificate(report?: unknown) {
     summary: {
       filesAnalyzed: isWorkspaceScan ? (source.summary?.filesAnalyzed ?? 0) : (source.totalFiles ?? source.filesAnalyzed ?? 0),
       blockingIssues: isWorkspaceScan
-        ? ((sev.critical ?? 0) + (sev.high ?? 0))
+        ? ((severityCounts.critical ?? 0) + (severityCounts.high ?? 0))
         : (source.gate?.blockingIssues ?? []).length,
       secrets: isWorkspaceScan
         ? (source.categories?.security ?? []).length
@@ -4779,15 +5008,21 @@ async function fetchReportFromServer(): Promise<any | null> {
     const data = await res.json();
     if (data && typeof data === 'object') { return data; }
   } catch { /* fallback below */ }
-  // Fallback: read report from workspace root or .simplebeacon folder
+  // Fallback: read report from .simplebeacon folder first, then workspace root.
+  // Skip any report whose projectRoot points at a temp/sample directory.
   try {
     const ws = vscode.workspace.workspaceFolders;
     if (ws && ws.length > 0) {
       const root = ws[0].uri.fsPath;
-      for (const rel of ['simplebeacon-report.json', '.simplebeacon/report.json', '.simplebeacon/vscode-report.json']) {
+      for (const rel of ['.simplebeacon/report.json', '.simplebeacon/vscode-report.json', 'simplebeacon-report.json']) {
         const p = path.join(root, rel);
         if (fs.existsSync(p)) {
-          return JSON.parse(fs.readFileSync(p, 'utf8'));
+          const report = JSON.parse(fs.readFileSync(p, 'utf8'));
+          const prj = (report?.projectRoot as string) || '';
+          if (prj && (prj.includes('Temp') || prj.includes('AppData\\Local\\Temp') || prj.includes('simplebeacon-screenshot-sample'))) {
+            continue;
+          }
+          return report;
         }
       }
     }
@@ -8502,10 +8737,16 @@ function loadExistingReport(context?: vscode.ExtensionContext) {
         return false;
       }
       const report = JSON.parse(fs.readFileSync(rp, 'utf8'));
-      // Accept both CLI reports (rawIssues/detectedIssues) and workspace analyzer reports (findings)
+      const prj = (report?.projectRoot as string) || '';
+      if (prj && (prj.includes('Temp') || prj.includes('AppData\\Local\\Temp') || prj.includes('simplebeacon-screenshot-sample'))) {
+        outputChannel?.appendLine(`[SimpleBeacon] Skipping temp/sample report: ${rp}`);
+        return false;
+      }
+      // Accept both CLI reports (rawIssues/detectedIssues), workspace analyzer reports (findings), and clean gate reports
       const hasCliData = (report.rawIssues?.length > 0) || (report.detectedIssues?.length > 0);
       const hasFindings = (report.findings?.length > 0);
-      if (!hasCliData && !hasFindings) {
+      const scannedFiles = (report.totalFiles as number) || (report.filesAnalyzed as number) || (report.scan_summary as any)?.totalFiles || 0;
+      if (!hasCliData && !hasFindings && scannedFiles === 0) {
         outputChannel?.appendLine(`[SimpleBeacon] Skipping empty report: ${rp}`);
         return false;
       }
@@ -8518,6 +8759,8 @@ function loadExistingReport(context?: vscode.ExtensionContext) {
       summaryProvider.updateReport(report);
       settingsProvider.updateReport(report);
       modernSidebarProvider.updateReport(report);
+      pushRoadmapToSidebar(report);
+      pushAllPanesToDashboard(report);
       dashboardPanel?.updateReport(report);
       modernSidebarProvider.updateStatus('completed', 'Loaded previous scan');
       vscode.commands.executeCommand('setContext', 'simplebeacon.hasResults', true);
@@ -8573,6 +8816,8 @@ function loadExistingReport(context?: vscode.ExtensionContext) {
         summaryProvider.updateReport(report);
         settingsProvider.updateReport(report);
         modernSidebarProvider.updateReport(report);
+        pushRoadmapToSidebar(report);
+        pushAllPanesToDashboard(report);
         dashboardPanel?.updateReport(report);
         modernSidebarProvider.updateStatus('completed', 'Loaded bundled report');
         vscode.commands.executeCommand('setContext', 'simplebeacon.hasResults', true);
@@ -8606,6 +8851,8 @@ function loadExistingReport(context?: vscode.ExtensionContext) {
         summaryProvider.updateReport(report);
         settingsProvider.updateReport(report);
         modernSidebarProvider.updateReport(report);
+        pushRoadmapToSidebar(report);
+        pushAllPanesToDashboard(report);
         dashboardPanel?.updateReport(report);
         modernSidebarProvider.updateStatus('completed', 'Loaded previous scan');
         vscode.commands.executeCommand('setContext', 'simplebeacon.hasResults', true);
@@ -8709,6 +8956,8 @@ async function openPreviewPanel(url: string, title: string) {
         summaryProvider.updateReport(report);
         settingsProvider.updateReport(report);
         modernSidebarProvider.updateReport(report);
+        pushRoadmapToSidebar(report);
+        pushAllPanesToDashboard(report);
         dashboardPanel?.updateReport(report);
         EnhancedDashboard30.updateIfOpen(report);
         vscode.commands.executeCommand('setContext', 'simplebeacon.hasResults', true);

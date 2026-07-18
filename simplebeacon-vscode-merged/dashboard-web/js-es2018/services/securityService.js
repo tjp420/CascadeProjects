@@ -103,7 +103,15 @@ export function buildSecurityExportPayload(report, findings, compliance = null) 
  * @returns {any}
  */
 export async function fetchComplianceHeadline() {
-    const complianceHttpResponse = await fetch('/api/optimization/compliance', {
+    let complianceUrl = '/api/optimization/compliance';
+    try {
+        const { apiBaseUrl } = await import('../utils.js');
+        const base = apiBaseUrl();
+        if (base && base !== '/') {
+            complianceUrl = `${base}/api/optimization/compliance`;
+        }
+    } catch (_a) { /* fall back to relative */ }
+    const complianceHttpResponse = await fetch(complianceUrl, {
         headers: { Accept: 'application/json' }
     });
     if (!complianceHttpResponse.ok) {

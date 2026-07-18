@@ -1,6 +1,23 @@
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
-import { escapeHtml, formatNumber, redactPathForDisplay, showToast, downloadJson } from '../utils.js';
+import { escapeHtml, formatNumber, redactPathForDisplay, showToast, downloadJson, apiBaseUrl } from '../utils.js';
 import { renderRepositoryHealthSection } from './RepositoryHealthView.js';
+/**
+ * Resolve a relative API URL against the local API base when in extension bridge mode.
+ */
+function resolveApiUrl(url) {
+    if (!url || typeof url !== 'string')
+        return url;
+    if (/^https?:\/\//i.test(url))
+        return url;
+    try {
+        const base = apiBaseUrl();
+        if (base && base !== '/') {
+            return `${base}${url.startsWith('/') ? '' : '/'}${url}`;
+        }
+    }
+    catch (_a) { /* fall back to relative */ }
+    return url;
+}
 /**
  * Normalize static trust payload.
  * @param {any} data
@@ -28,7 +45,7 @@ function normalizeStaticTrustPayload(data) {
  * @returns {any}
  */
 async function fetchStaticTrustFallback() {
-    const trustHttpResponse = await fetch('/trust-verification.json', { cache: 'no-store' }).catch(() => null);
+    const trustHttpResponse = await fetch(resolveApiUrl('/trust-verification.json'), { cache: 'no-store' }).catch(() => null);
     if (!trustHttpResponse || !trustHttpResponse.ok)
         return null;
     const trustVerificationDocument = await trustHttpResponse.json().catch(() => null);
@@ -70,7 +87,7 @@ function normalizeTrustApiPayload(data) {
  * @returns {any}
  */
 export async function fetchTrustVerification() {
-    const res = await fetch('/api/trust/verification', { cache: 'no-store' });
+    const res = await fetch(resolveApiUrl('/api/trust/verification'), { cache: 'no-store' });
     const contentType = String(res.headers.get('content-type') || '').toLowerCase();
     if (!contentType.includes('application/json')) {
         const fallback = await fetchStaticTrustFallback();

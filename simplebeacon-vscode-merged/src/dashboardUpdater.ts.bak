@@ -108,8 +108,8 @@ export function safeUpdateUIs(
 
     const panes: Record<string, Record<string, unknown>> = {};
     panes.dashboard = { files, gate, issues, score, severity: sev, findings: dashboardFindings };
-    modernSidebarProvider.updateReport({ gate, issues, score, qualityScore: score, totalFiles: files, severityCounts: sev });
-    WelcomeDashboard.updateReportPaneIfOpen({ files, gate, issues, score, severity: sev });
+    modernSidebarProvider.updateReport({ gate, issues, score, qualityScore: score, totalFiles: files, severityCounts: sev, certificate: panes.certificate });
+    WelcomeDashboard.updateReportPaneIfOpen({ files, gate, issues, score, severity: sev, certificate: panes.certificate });
     outputChannel.appendLine(`[SimpleBeacon] Dashboard update: gate=${gate}, issues=${issues}, score=${score}, files=${files}, severity=${JSON.stringify(sev)}, findings=${dashboardFindings.length}`);
 
     const critical = sev.critical || 0;
@@ -128,12 +128,6 @@ export function safeUpdateUIs(
       { text: 'Repository files scanned', status: files !== '--' ? 'Pass' : 'Fail' }
     ];
     panes.certificate = { status: gate === 'PASS' ? 'Pass' : 'Fail', score: certScore, modules: certModules, date: certDate, expiry: certExpiry, gate, severity: sev, requirements: certRequirements };
-    try {
-      modernSidebarProvider.updateReport({ ...(r || {}), certificate: panes.certificate });
-    } catch (e) { /* ignore */ }
-    try {
-      WelcomeDashboard.updateCertificatePaneIfOpen(panes.certificate as any);
-    } catch (e) { /* ignore */ }
 
     // Roadmap pane
     const targetDate = new Date();
@@ -477,7 +471,6 @@ export function safeUpdateUIs(
     }
   }
 }
-
 
 
 

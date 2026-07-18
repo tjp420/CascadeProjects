@@ -1483,9 +1483,9 @@ class SimplebeaconDashboard {
             history: (_d = data.history) !== null && _d !== void 0 ? _d : this.state.history,
             reAttestation
         });
-        if (isRemote && isLocalWindowsPath && !this.state.lastProjectPath && !this.state.defaultProjectPath) {
+        if (!this.state.lastProjectPath && !this.state.defaultProjectPath) {
             const reportRoot = data.report && data.report.projectRoot;
-            if (reportRoot && !shouldClearHostedServerDefaultPath(reportRoot)) {
+            if (reportRoot && (!isRemote || hasExtensionBridgeConfigured()) && !shouldClearHostedServerDefaultPath(reportRoot)) {
                 this.state.defaultProjectPath = reportRoot;
             }
         }

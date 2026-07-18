@@ -1899,6 +1899,9 @@ $('cancelBtn').addEventListener('click', () => {
           case 'getCodeMap':
             ModernSidebarProvider.pushCodeMapToSidebar(this._view?.webview);
             break;
+          case 'getRoadmapData':
+            ModernSidebarProvider.pushRoadmapToSidebar(this._view?.webview);
+            break;
           case 'openSecurityAuditPage':
             WelcomeDashboard.createOrShow(this._extensionUri, true)?.showSecurityPane();
             break;
@@ -5068,6 +5071,12 @@ ${sidebarMainJsContent}
     }
   }
 
+  public updateAnalyticsPane(data: Record<string, unknown>) {
+    try {
+      this._view?.webview.postMessage({ command: 'updateAnalytics', ...data });
+    } catch { /* webview disposed */ }
+  }
+
   public updateScanProgress(percentage: number) {
     this._view?.webview.postMessage({ command: 'scanProgress', percentage });
   }
@@ -5163,11 +5172,20 @@ ${sidebarMainJsContent}
 
   private static resolveCodeMapPayload(): Record<string, unknown> | null {
     if (ModernSidebarProvider._lastCodeMapData) {
-      return ModernSidebarProvider._lastCodeMapData;
+      const cached = ModernSidebarProvider._lastCodeMapData;
+      const cachedFiles = Number(cached.totalFiles || cached.filesScanned || 0);
+      // If cache has real data (files > 0), use it; otherwise fall through to disk
+      if (cachedFiles > 0) {
+        return cached;
+      }
     }
     const welcomeData = WelcomeDashboard.getLastCodeMapData?.();
     if (welcomeData) {
-      return ModernSidebarProvider.mapWelcomeCodeMapToSidebar(welcomeData as Record<string, unknown>);
+      const mapped = ModernSidebarProvider.mapWelcomeCodeMapToSidebar(welcomeData as Record<string, unknown>);
+      const mappedFiles = Number(mapped.totalFiles || 0);
+      if (mappedFiles > 0) {
+        return mapped;
+      }
     }
     return ModernSidebarProvider.loadCodeMapPayloadFromDisk();
   }
@@ -5185,6 +5203,19 @@ ${sidebarMainJsContent}
       isPaidTier: data.isPaidTier ?? ModernSidebarProvider.resolveCodeMapPaidTier(),
     };
     this._view?.webview.postMessage({ command: 'updateCodeMap', ...ModernSidebarProvider._lastCodeMapData });
+  }
+
+  private static _lastRoadmapData: Record<string, unknown> | null = null;
+
+  public updateRoadmap(data: Record<string, unknown>) {
+    ModernSidebarProvider._lastRoadmapData = data;
+    this._view?.webview.postMessage({ command: 'updateRoadmap', ...data });
+  }
+
+  public static pushRoadmapToSidebar(webview?: vscode.Webview) {
+    if (ModernSidebarProvider._lastRoadmapData) {
+      webview?.postMessage({ command: 'updateRoadmap', ...ModernSidebarProvider._lastRoadmapData });
+    }
   }
 
   public updateServerUrl(url: string) {
@@ -6016,6 +6047,61 @@ body.tabs-open #browserTabBar{display:flex !important;}
       _openBrowserTab(ev.data.url, ev.data.label);
       return;
     }
+    if (ev.data.command === 'updateCodeMap') {
+      const d = ev.data;
+      const f = document.getElementById('codeMapFiles');
+      if (f) f.textContent = String(d.totalFiles || d.filesScanned || d.files || 0);
+      const m = document.getElementById('codeMapModules');
+      if (m) m.textContent = String(d.totalModules || d.modules || 0);
+      const tl = document.getElementById('codeMapTotalLines');
+      if (tl) tl.textContent = String(d.totalLines || d.lines || 0).toLocaleString();
+      const ls = document.getElementById('codeMapLastScan');
+      if (ls) ls.textContent = String(d.lastScan || '--');
+      const rf = document.getElementById('codeMapRepoFiles');
+      if (rf) rf.textContent = String(d.totalFiles || d.filesScanned || d.files || 0);
+      const tl2 = document.getElementById('codeMapTotalLines2');
+      if (tl2) tl2.textContent = String(d.totalLines || d.lines || 0).toLocaleString();
+      const ls2 = document.getElementById('codeMapLastScan2');
+      if (ls2) ls2.textContent = String(d.lastScan || '--');
+      const badge = document.getElementById('codeMapStatusBadge');
+      if (badge) {
+        const generated = d.codeMapGenerated === true || d.generated === true;
+        badge.textContent = generated ? 'GENERATED' : 'NOT GENERATED';
+        badge.style.background = generated ? 'rgba(34,197,94,0.18)' : 'rgba(239,68,68,0.18)';
+        badge.style.color = generated ? '#4ade80' : '#f87171';
+      }
+      const langList = document.getElementById('codeMapLanguagesList');
+      if (langList && Array.isArray(d.languages)) {
+        const max = Math.max(1, ...d.languages.map((l: any) => Number(l.count || 1)));
+        langList.textContent = '';
+        const colors = ['#4ade80', '#38bdf8', '#a78bfa', '#f48771', '#d7a24c', '#60a5fa', '#ec4899', '#10b981'];
+        d.languages.forEach((l: any, i: number) => {
+          const name = String(l.name || l.extension || '');
+          const count = Number(l.count || 0);
+          if (!name) return;
+          const row = document.createElement('div');
+          row.className = 'code-map-lang-row';
+          const nameEl = document.createElement('span');
+          nameEl.className = 'code-map-lang-name';
+          nameEl.textContent = name;
+          const barWrap = document.createElement('div');
+          barWrap.className = 'code-map-lang-bar';
+          const bar = document.createElement('div');
+          bar.className = 'code-map-lang-fill';
+          bar.style.width = Math.round((count / max) * 100) + '%';
+          bar.style.background = colors[i % colors.length];
+          barWrap.appendChild(bar);
+          const countEl = document.createElement('span');
+          countEl.className = 'code-map-lang-count';
+          countEl.textContent = String(count);
+          row.appendChild(nameEl);
+          row.appendChild(barWrap);
+          row.appendChild(countEl);
+          langList.appendChild(row);
+        });
+      }
+      return;
+    }
     const mainIframe = document.getElementById('mainIframe');
     const fromIframe = !!(mainIframe && mainIframe.contentWindow && ev.source === mainIframe.contentWindow);
     if (ev.data.command === 'setAuthState') {
@@ -6086,6 +6172,23 @@ body.tabs-open #browserTabBar{display:flex !important;}
   if (tdSignOut) {
     tdSignOut.addEventListener('click', function() { _postSidebarCmd('signOut'); });
   }
+  // Code map action buttons
+  const _codeMapBtn = document.getElementById('generateCodeMapBtn');
+  if (_codeMapBtn) _codeMapBtn.addEventListener('click', function() { _postSidebarCmd('generateCodeMap'); });
+  const _codeMapHtmlBtn = document.getElementById('openCodeMapHtmlBtn');
+  if (_codeMapHtmlBtn) _codeMapHtmlBtn.addEventListener('click', function() { _postSidebarCmd('openCodeMapHtml'); });
+  const _codeMapExportBtn = document.getElementById('exportCodeMapBtn');
+  if (_codeMapExportBtn) _codeMapExportBtn.addEventListener('click', function() { _postSidebarCmd('exportCodeMap'); });
+  const _codeMapRefreshBtn = document.getElementById('refreshCodeMapBtn');
+  if (_codeMapRefreshBtn) _codeMapRefreshBtn.addEventListener('click', function() { _postSidebarCmd('refreshCodeMap'); });
+  const _codeMapInMainBtn = document.getElementById('openCodeMapInMainWindowBtn');
+  if (_codeMapInMainBtn) _codeMapInMainBtn.addEventListener('click', function() { _postSidebarCmd('openCodeMap'); });
+  const _codeMapTabInMainBtn = document.getElementById('openCodeMapTabInMainWindowBtn');
+  if (_codeMapTabInMainBtn) _codeMapTabInMainBtn.addEventListener('click', function() { _postSidebarCmd('openCodeMap'); });
+  const _openCodeMapBtn = document.getElementById('openCodeMapBtn');
+  if (_openCodeMapBtn) _openCodeMapBtn.addEventListener('click', function() { _postSidebarCmd('openCodeMap'); });
+  const _openCertBtn = document.getElementById('openCertificateBtn');
+  if (_openCertBtn) _openCertBtn.addEventListener('click', function() { _postSidebarCmd('openCertificateHtml'); });
   // Parent-level tab bar management
   let _browserTabs = [];
   let _browserTabCounter = 0;

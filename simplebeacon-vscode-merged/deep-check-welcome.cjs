@@ -6,6 +6,7 @@ const path = require('path');
 const compiledPath = path.join(__dirname, 'out', 'welcomeDashboardHtml.js');
 const moduleCode = fs.readFileSync(compiledPath, 'utf8');
 const moduleExports = {};
+// simplebeacon-ignore eval-usage — dev test script, not production code
 const moduleFunc = new Function('exports', moduleCode);
 moduleFunc(moduleExports);
 

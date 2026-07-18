@@ -5,7 +5,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as http from 'http';
-import { getDataServerPort } from './dataServer';
+import { getDataServerPort, getServerState } from './dataServer';
 import { ScanProfile } from './analyzers/workspaceAnalyzer';
 import { AuthManager } from './auth/authManager';
 import { buildDashboardHtml } from './welcomeDashboardHtml';
@@ -100,7 +100,7 @@ export class WelcomeDashboard {
 
   private static _lastDashboardData: { files?: string; gate?: string; issues?: string; score?: string } | null = null;
   private static _lastAnalyzeData: { lastAnalysis?: string; findings?: string } | null = null;
-  private static _lastReportData: { files?: string; gate?: string; issues?: string; score?: string; severity?: any; findings?: any; filesList?: any } | null = null;
+  private static _lastReportData: { files?: string; gate?: string; issues?: string; score?: string; severity?: any; findings?: any; filesList?: any; lastAnalysis?: string } | null = null;
   private static _lastRoadmapData: { open?: string; risk?: string; done?: string; target?: string; status?: string; findings?: any } | null = null;
   private static _lastSecurityData: { critical?: string; high?: string; medium?: string; score?: string; status?: string; findings?: any } | null = null;
   private static _lastTrustData: { trustScore?: string; verified?: string; warnings?: string; lastAudit?: string; status?: string; quality?: string; security?: string; compliance?: string; dependencies?: string; severity?: any; factors?: any[]; badges?: any[]; gate?: string } | null = null;
@@ -110,7 +110,7 @@ export class WelcomeDashboard {
   private static _lastTeamData: { members?: string; scans?: string; resolved?: string; score?: string; status?: string; membersList?: any[] } | null = null;
   private static _lastRepoHealthData: { score?: string; qualityScore?: string; gate?: string; issues?: string; files?: string; status?: string; critical?: string; high?: string; medium?: string; low?: string; maintainability?: string; reliability?: string; complexity?: string; duplication?: string; findings?: any[]; recommendations?: any[] } | null = null;
   private static _lastScanData: { total?: string; issues?: string; fixed?: string; score?: string; qualityScore?: string; status?: string; scanning?: boolean; hasResults?: boolean; progress?: string; critical?: string; high?: string; medium?: string; low?: string; results?: any[]; history?: any[]; gate?: string } | null = null;
-  private static _lastCodeMapData: { status?: string; files?: string; languages?: string; modules?: string; arch?: string; repoFiles?: string; totalLines?: string; lastScan?: string; codeMapUri?: string; graph?: { nodes: any[]; edges: any[] } } | null = null;
+  private static _lastCodeMapData: { status?: string; files?: string; languages?: string; modules?: string; arch?: string; repoFiles?: string; totalLines?: string; lastScan?: string; codeMapUri?: string; graph?: { nodes: any[]; edges: any[] }; tree?: any[]; list?: any[]; severity?: any; cycles?: any[]; entryPoints?: string[]; leafModules?: string[]; mostConnected?: { name: string; count: number }[] } | null = null;
 
   static updateDashboardIfOpen(data: { files?: string; gate?: string; issues?: string; score?: string; severity?: any; findings?: any[] }) {
     WelcomeDashboard._lastDashboardData = data;
@@ -126,7 +126,7 @@ export class WelcomeDashboard {
     }
   }
 
-  static updateReportPaneIfOpen(data: { files?: string; gate?: string; issues?: string; score?: string; severity?: any; findings?: any; filesList?: any; totalScans?: string }) {
+  static updateReportPaneIfOpen(data: { files?: string; gate?: string; issues?: string; score?: string; severity?: any; findings?: any; filesList?: any; totalScans?: string; lastAnalysis?: string }) {
     WelcomeDashboard._lastReportData = data;
     if (WelcomeDashboard.currentPanel) {
       WelcomeDashboard.currentPanel.updateReportPane(data);
@@ -248,59 +248,111 @@ export class WelcomeDashboard {
     this.panel.reveal();
     WelcomeDashboard._lastPane = 'codemap';
     this.queueOrPostMessage({ command: 'showCodeMapPane' });
-    if (WelcomeDashboard._lastCodeMapData) {
-      this.queueOrPostMessage({ command: 'updateCodeMapPane', ...WelcomeDashboard._lastCodeMapData });
-    } else {
-      // Load previously generated code map from disk so the graph appears even after reload
-      const workspace = vscode.workspace.workspaceFolders?.[0];
-      if (workspace) {
+    this.sendCodeMapData();
+  }
+
+  private sendCodeMapData() {
+    // Build a list of candidate roots where a codemap might live.
+    const serverState = getServerState();
+    const report = serverState.currentReport as any;
+    const roots: string[] = [];
+    const workspace = vscode.workspace.workspaceFolders?.[0];
+    if (workspace) { roots.push(workspace.uri.fsPath); }
+    if (report?.projectRoot) { roots.push(report.projectRoot); }
+    if (report?.projectPath) { roots.push(report.projectPath); }
+
+    let chosenRoot: string | undefined;
+    let raw: any;
+    for (const root of roots) {
+      if (!root) continue;
+      const mapPath = path.join(root, '.simplebeacon', 'codemap.json');
+      if (fs.existsSync(mapPath)) {
         try {
-          const mapPath = path.join(workspace.uri.fsPath, '.simplebeacon', 'codemap.json');
-          if (fs.existsSync(mapPath)) {
-            const raw = JSON.parse(fs.readFileSync(mapPath, 'utf8'));
-            const languages = Array.isArray(raw.languages)
-              ? raw.languages.map((l: any) => l.extension || l.lang || l.name || '').filter(Boolean).join(', ')
-              : '--';
-            const graph = raw.dependencyGraph || { nodes: [], edges: [] };
-            const data = {
-              status: 'Generated',
-              files: String(raw.totalFiles || 0),
-              languages,
-              modules: String(graph.nodes?.length || 0),
-              arch: raw.architecture || '--',
-              graph,
-              tree: [],
-              list: [],
-              severity: { critical: 0, high: 0, medium: 0, low: 0 },
-              repoFiles: String(raw.totalFiles || 0),
-              totalLines: String(raw.totalLines || 0),
-              lastScan: raw.generatedAt || new Date().toLocaleString(),
-              cycles: raw.cycles || [],
-              entryPoints: raw.entryPoints || [],
-              leafModules: raw.leafModules || [],
-              mostConnected: raw.mostConnected || []
-            };
-            let codeMapUri: string | undefined;
-            const mapHtmlPath = path.join(workspace.uri.fsPath, '.simplebeacon', 'codemap.html');
-            if (fs.existsSync(mapHtmlPath)) {
-              const sbUri = vscode.Uri.joinPath(workspace.uri, '.simplebeacon');
-              const currentRoots = this.panel.webview.options.localResourceRoots || [];
-              const alreadyAllowed = currentRoots.some(r => r.fsPath === sbUri.fsPath);
-              if (!alreadyAllowed) {
-                this.panel.webview.options = {
-                  ...this.panel.webview.options,
-                  localResourceRoots: [...currentRoots, sbUri]
-                };
-              }
-              codeMapUri = this.panel.webview.asWebviewUri(vscode.Uri.file(mapHtmlPath)).toString();
-            }
-            const dataWithUri = { ...data, codeMapUri };
-            WelcomeDashboard._lastCodeMapData = dataWithUri;
-            this.queueOrPostMessage({ command: 'updateCodeMapPane', ...dataWithUri });
+          raw = JSON.parse(fs.readFileSync(mapPath, 'utf8'));
+          chosenRoot = root;
+          break;
+        } catch { /* try next root */ }
+      }
+    }
+
+    if (!raw || !chosenRoot) {
+      // Nothing on disk; fall back to any cached payload.
+      if (WelcomeDashboard._lastCodeMapData) {
+        this.queueOrPostMessage({ command: 'updateCodeMapPane', ...WelcomeDashboard._lastCodeMapData });
+      }
+      return;
+    }
+
+    try {
+      const languages = Array.isArray(raw.languages)
+        ? raw.languages.map((l: any) => l.extension || l.lang || l.name || '').filter(Boolean).join(', ')
+        : '--';
+      const graph = raw.dependencyGraph || { nodes: [], edges: [] };
+
+      // Load the saved tree if available; fall back to an empty tree.
+      let tree: any[] = [];
+      const treePath = path.join(chosenRoot, '.simplebeacon', 'codemap-tree.json');
+      if (fs.existsSync(treePath)) {
+        try {
+          const treeRaw = JSON.parse(fs.readFileSync(treePath, 'utf8'));
+          tree = Array.isArray(treeRaw.tree) ? treeRaw.tree : [];
+        } catch { /* ignore */ }
+      }
+
+      // Build a synthetic file list so the language bar chart can render.
+      const list: any[] = [];
+      if (Array.isArray(raw.languages)) {
+        for (const lang of raw.languages) {
+          const ext = String(lang.extension || lang.name || '');
+          const count = Number(lang.count || 1);
+          if (!ext || count <= 0) continue;
+          for (let i = 0; i < count; i++) {
+            list.push({ ext, name: ext + (i + 1), path: ext + (i + 1), lines: 0, size: 0, deps: 0 });
           }
-        } catch (e) {
-          // Ignore missing/stale codemap.json
         }
+      }
+
+      const data = {
+        status: 'Generated',
+        files: String(raw.totalFiles || 0),
+        languages,
+        modules: String(graph.nodes?.length || 0),
+        arch: raw.architecture || '--',
+        graph,
+        tree,
+        list,
+        severity: { critical: 0, high: 0, medium: 0, low: 0 },
+        repoFiles: String(raw.totalFiles || 0),
+        totalLines: String(raw.totalLines || 0),
+        lastScan: raw.generatedAt || new Date().toLocaleString(),
+        cycles: raw.cycles || [],
+        entryPoints: raw.entryPoints || [],
+        leafModules: raw.leafModules || [],
+        mostConnected: raw.mostConnected || []
+      };
+
+      let codeMapUri: string | undefined;
+      const mapHtmlPath = path.join(chosenRoot, '.simplebeacon', 'codemap.html');
+      if (fs.existsSync(mapHtmlPath)) {
+        const sbUri = vscode.Uri.file(path.join(chosenRoot, '.simplebeacon'));
+        const currentRoots = this.panel.webview.options.localResourceRoots || [];
+        const alreadyAllowed = currentRoots.some(r => r.fsPath === sbUri.fsPath);
+        if (!alreadyAllowed) {
+          this.panel.webview.options = {
+            ...this.panel.webview.options,
+            localResourceRoots: [...currentRoots, sbUri]
+          };
+        }
+        codeMapUri = this.panel.webview.asWebviewUri(vscode.Uri.file(mapHtmlPath)).toString();
+      }
+
+      const dataWithUri = { ...data, codeMapUri };
+      WelcomeDashboard._lastCodeMapData = dataWithUri;
+      this.queueOrPostMessage({ command: 'updateCodeMapPane', ...dataWithUri });
+    } catch (e) {
+      console.error('[SimpleBeacon] sendCodeMapData disk load error:', e);
+      if (WelcomeDashboard._lastCodeMapData) {
+        this.queueOrPostMessage({ command: 'updateCodeMapPane', ...WelcomeDashboard._lastCodeMapData });
       }
     }
   }
@@ -455,7 +507,7 @@ export class WelcomeDashboard {
     this.panel.webview.postMessage({ command: 'updateAnalyzePane', ...data });
   }
 
-  public updateReportPane(data: { files?: string; gate?: string; issues?: string; score?: string; severity?: any; findings?: any; filesList?: any; totalScans?: string }) {
+  public updateReportPane(data: { files?: string; gate?: string; issues?: string; score?: string; severity?: any; findings?: any; filesList?: any; totalScans?: string; lastAnalysis?: string }) {
     this.panel.webview.postMessage({ command: 'updateReportPane', ...data });
   }
 
@@ -690,6 +742,7 @@ export class WelcomeDashboard {
     if (WelcomeDashboard._lastTeamData) { panes.team = WelcomeDashboard._lastTeamData; }
     if (WelcomeDashboard._lastRepoHealthData) { panes.repoHealth = WelcomeDashboard._lastRepoHealthData; }
     if (WelcomeDashboard._lastScanData) { panes.scan = WelcomeDashboard._lastScanData; }
+    if (WelcomeDashboard._lastCodeMapData) { panes.codemap = WelcomeDashboard._lastCodeMapData as Record<string, unknown>; }
     return panes;
   }
 
@@ -715,6 +768,7 @@ export class WelcomeDashboard {
     if (panes.scan) { WelcomeDashboard._lastScanData = panes.scan as typeof WelcomeDashboard._lastScanData; }
     if (panes.analytics) { WelcomeDashboard._lastAnalyticsData = panes.analytics as typeof WelcomeDashboard._lastAnalyticsData; }
     if (panes.analyze) { WelcomeDashboard._lastAnalyzeData = panes.analyze as typeof WelcomeDashboard._lastAnalyzeData; }
+    if (panes.codemap) { WelcomeDashboard._lastCodeMapData = panes.codemap as typeof WelcomeDashboard._lastCodeMapData; }
     const panel = WelcomeDashboard.currentPanel;
     if (!panel || Object.keys(panes).length === 0) { return; }
     WelcomeDashboard._pendingBatchPanes = { ...WelcomeDashboard._pendingBatchPanes, ...panes };
@@ -782,6 +836,43 @@ export class WelcomeDashboard {
       if (msg.command === 'ready') {
         this.isReady = true;
         const cached = WelcomeDashboard.buildCachedPanesPayload();
+        // Proactively load code map from disk if not cached (e.g. after extension reload)
+        if (!WelcomeDashboard._lastCodeMapData) {
+          try {
+            const ws = vscode.workspace.workspaceFolders?.[0];
+            if (ws) {
+              const mapPath = path.join(ws.uri.fsPath, '.simplebeacon', 'codemap.json');
+              if (fs.existsSync(mapPath)) {
+                const raw = JSON.parse(fs.readFileSync(mapPath, 'utf8'));
+                const graph = raw.dependencyGraph || { nodes: [], edges: [] };
+                const languages = Array.isArray(raw.languages)
+                  ? raw.languages.map((l: any) => l.extension || l.lang || l.name || '').filter(Boolean).join(', ')
+                  : '--';
+                WelcomeDashboard._lastCodeMapData = {
+                  status: 'Generated',
+                  files: String(raw.totalFiles || 0),
+                  languages,
+                  modules: String(graph.nodes?.length || 0),
+                  arch: raw.architecture || '--',
+                  graph,
+                  tree: [],
+                  list: [],
+                  severity: { critical: 0, high: 0, medium: 0, low: 0 },
+                  repoFiles: String(raw.totalFiles || 0),
+                  totalLines: String(raw.totalLines || 0),
+                  lastScan: raw.generatedAt || new Date().toLocaleString(),
+                  cycles: raw.cycles || [],
+                  entryPoints: raw.entryPoints || [],
+                  leafModules: raw.leafModules || [],
+                  mostConnected: raw.mostConnected || []
+                };
+                cached.codemap = WelcomeDashboard._lastCodeMapData as Record<string, unknown>;
+              }
+            }
+          } catch (e) {
+            console.error('[SimpleBeacon] ready handler codemap load error:', e);
+          }
+        }
         if (Object.keys(cached).length > 0) {
           this.queueOrPostMessage({ command: 'updateAllPanes', panes: cached });
         }
@@ -867,6 +958,9 @@ export class WelcomeDashboard {
           break;
         case 'openCodeMap':
           this.showCodeMapPane();
+          break;
+        case 'getCodeMapData':
+          this.sendCodeMapData();
           break;
         case 'openRoadmap':
           this.showRoadmapPane();
@@ -1294,8 +1388,18 @@ export class WelcomeDashboard {
           vscode.commands.executeCommand('simplebeacon.openDashboard40');
           break;
         case 'openFileAtLine': {
-          const filePath = msg.file;
+          let filePath = msg.file;
           const lineNum = Math.max(0, (msg.line || 1) - 1);
+          if (!path.isAbsolute(filePath)) {
+            const workspace = vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath;
+            if (workspace) {
+              filePath = path.join(workspace, filePath);
+            }
+          }
+          if (!fs.existsSync(filePath)) {
+            vscode.window.showWarningMessage('File not found: ' + filePath);
+            break;
+          }
           try {
             const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(filePath));
             const editor = await vscode.window.showTextDocument(doc, { preview: true, viewColumn: vscode.ViewColumn.One });

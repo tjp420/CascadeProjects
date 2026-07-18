@@ -425,6 +425,10 @@ export class RoadmapProvider implements vscode.TreeDataProvider<vscode.TreeItem>
     this._onDidChangeTreeData.fire();
   }
 
+  getRoadmap(): RoadmapResult | null {
+    return this.roadmap;
+  }
+
   clear() {
     this.roadmap = null;
     this._onDidChangeTreeData.fire();

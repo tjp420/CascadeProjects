@@ -5319,7 +5319,8 @@ window.addEventListener('message', (event) => {
       team: 'updateTeamPane',
       scan: 'updateScanPane',
       analytics: 'updateAnalyticsPane',
-      settings: 'updateSettingsPane'
+      settings: 'updateSettingsPane',
+      codemap: 'updateCodeMapPane'
     };
     window.__SB_BATCH_DISPATCH__ = true;
     try {
@@ -5347,7 +5348,11 @@ window.addEventListener('message', (event) => {
   }
   if (msg.command === 'showReportPane') addTab('Report','reportPane');
   if (msg.command === 'showCertificatePane') addTab('Certificate','certificatePane');
-  if (msg.command === 'showCodeMapPane') addTab('Code Map','codeMapPane');
+  if (msg.command === 'showCodeMapPane') {
+    addTab('Code Map','codeMapPane');
+    // Request code map data from extension as a fallback in case updateCodeMapPane was not received
+    try { vscode.postMessage({ command: 'getCodeMapData' }); } catch (e) {}
+  }
   if (msg.command === 'showRoadmapPane') addTab('Roadmap','roadmapPane');
   if (msg.command === 'showAiContextPane') addTab('AI Context','aiContextPane');
   if (msg.command === 'showUploadPane') addTab('Upload','uploadPane');
@@ -5716,6 +5721,7 @@ window.addEventListener('message', (event) => {
     }
   }
   if (msg.command === 'updateCodeMapPane') {
+    console.debug('[SB CodeMap] updateCodeMapPane received, files:', msg.files, 'status:', msg.status, 'graph nodes:', msg.graph?.nodes?.length);
     const f = document.getElementById('mapFiles');
     const l = document.getElementById('mapLanguages');
     const m = document.getElementById('mapModules');

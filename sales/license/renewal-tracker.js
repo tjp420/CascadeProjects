@@ -52,6 +52,7 @@ module.exports = { checkExpiringLicenses };
 // Runnable entry script handler
 if (require.main === module) {
     // Mock dataset mimicking active database rows
+    // simplebeacon-ignore sensitive-data — mock test data, not real credentials
     const mockDbRows = [
         { companyId: 'alpha-labs', customerEmail: 'admin@alphalabs.io', expiresAt: '2026-07-15', tier: 'team' },
         { companyId: 'beta-finance', customerEmail: 'security@betafin.com', expiresAt: '2026-11-30', tier: 'enterprise' }

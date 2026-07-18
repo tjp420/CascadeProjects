@@ -557,7 +557,11 @@ function formatScanProgressDetails(sp, options = {}) {
     const fullTree = Boolean(!localBrowser && (options.fullDirectoryScan || phase === 'full-tree'));
     let unit = 'files';
     let phaseLabel = label || 'Scanning';
-    if (localBrowser) {
+    if (phase === 'rules') {
+        phaseLabel = label || 'Rule scan';
+        unit = 'rules';
+    }
+    else if (localBrowser) {
         phaseLabel = 'Local browser scan';
     }
     else if (fullTree || sp.fileKind === 'full-tree' || (sp.fileKind === 'scan-scoped' && options.fullDirectoryScan)) {
@@ -588,7 +592,7 @@ function formatScanProgressDetails(sp, options = {}) {
     if (localBrowser && total != null) {
         scopeParts.push(`Scanning ${formatNumber(total)} files in your browser — no data is sent to the server.`);
     }
-    else if (fullTree && total != null) {
+    else if (fullTree && total != null && phase !== 'rules') {
         const skipped = Array.isArray(sp.skipDirs) ? sp.skipDirs : [];
         const includesNodeModules = skipped.length > 0 && !skipped.includes('node_modules');
         scopeParts.push(includesNodeModules

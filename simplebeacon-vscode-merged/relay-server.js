@@ -3,7 +3,6 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const url = require('url');
 const crypto = require('crypto');
 
 const PORT = process.env.PORT || 3004;
@@ -232,7 +231,8 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  const parsed = url.parse(req.url || '', true);
+  const reqBase = `http://${req.headers.host || 'localhost'}`;
+  const parsed = new URL(req.url || '/', reqBase);
 
   // Serve layoutHtml at root for external browsers, sidebar.html at /sidebar for iframe
   if (parsed.pathname === '/' || parsed.pathname === '/index.html') {
@@ -276,7 +276,7 @@ const server = http.createServer((req, res) => {
 
   // Proxy all /api/* calls to the data server so the browser preview works identically to the IDE
   function proxyToDataServer(req, res, targetPath) {
-    const apiParsed = url.parse(API_URL);
+    const apiParsed = new URL(API_URL);
     const proxyPort = apiParsed.port || (apiParsed.protocol === 'https:' ? 443 : 80);
     const proxyClient = apiParsed.protocol === 'https:' ? https : http;
     const proxyReq = proxyClient.request({
@@ -324,7 +324,7 @@ const server = http.createServer((req, res) => {
 
   if (parsed.pathname === '/api/data') {
     try {
-      const apiParsed = url.parse(API_URL);
+      const apiParsed = new URL(API_URL);
       const proxyPort = apiParsed.port || (apiParsed.protocol === 'https:' ? 443 : 80);
       const proxyClient = apiParsed.protocol === 'https:' ? https : http;
       const reportPath = '/api/simplebeacon/report';
@@ -406,7 +406,7 @@ const server = http.createServer((req, res) => {
     parsed.pathname.startsWith('/dashboard/') || parsed.pathname === '/dashboard';
   if (isDashboardPath || parsed.pathname === '/certificate-upload.html' || parsed.pathname === '/audit.html') {
     try {
-      const apiParsed = url.parse(API_URL);
+      const apiParsed = new URL(API_URL);
       const proxyPort = apiParsed.port || (apiParsed.protocol === 'https:' ? 443 : 80);
       const proxyClient = apiParsed.protocol === 'https:' ? https : http;
       const proxyReq = proxyClient.request({

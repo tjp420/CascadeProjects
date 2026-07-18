@@ -80,6 +80,7 @@ async function _sendSandboxEmail(to: string, token: string, referrer: string): P
 }
 import { ScanReport } from './scanProvider';
 import { correctScanPath, getSbConfig } from './utils/vscode';
+import { escapeHtml } from './utils/string';
 import { validateLicenseLocally } from './licenseManager';
 import { PUBLIC_KEY_PEM } from './realtimeMonitor';
 import { handleAuthRoutes } from './routes/auth';
@@ -1399,17 +1400,32 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     const host = req.headers.host || `127.0.0.1:${dataServerPort}`;
     const parsed = new URL(req.url || '', `http://${host}`);
 
-    // CORS: echo the actual request origin so the local bridge works from any dashboard host
-    // (external browser, Simple Browser webview, Render preview, etc.).
-    // Sandboxed/file origins send the literal string "null"; fall back to wildcard there.
+    // CORS: restrict origins to local loopback, VS Code: webviews, and sandboxed file origins.
+    function isAllowedCorsOrigin(origin: string | undefined): boolean {
+      if (!origin || origin === 'null') { return true; }
+      const allowedLocal = [
+        `http://127.0.0.1:${dataServerPort}`,
+        `http://localhost:${dataServerPort}`,
+        `https://127.0.0.1:${dataServerPort}`,
+        `https://localhost:${dataServerPort}`,
+      ];
+      if (allowedLocal.includes(origin)) { return true; }
+      if (origin.startsWith('vscode-webview://')) { return true; }
+      if (origin.startsWith('vscode-file://')) { return true; }
+      // Allow the hosted dashboard (simplebeacon.ai) when in extension bridge mode
+      if (origin === 'https://simplebeacon.ai' || origin === 'https://www.simplebeacon.ai') { return true; }
+      if (origin.endsWith('.simplebeacon.pages.dev')) { return true; }
+      return false;
+    }
     const rawOrigin = req.headers.origin;
-    const requestOrigin = rawOrigin && rawOrigin !== 'null' ? rawOrigin : '*';
+    const isAllowedOrigin = isAllowedCorsOrigin(rawOrigin);
+    const requestOrigin = rawOrigin && rawOrigin !== 'null' && isAllowedOrigin ? rawOrigin : '*';
     res.setHeader('Access-Control-Allow-Origin', requestOrigin);
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Cache-Control, Authorization, X-Requested-With, Accept, Accept-Language, X-CSRF-Token, X-Api-Key');
     res.setHeader('Access-Control-Max-Age', '86400');
     res.setHeader('Vary', 'Origin');
-    if (requestOrigin !== '*') {
+    if (requestOrigin !== '*' && isAllowedOrigin) {
       res.setHeader('Access-Control-Allow-Credentials', 'true');
     }
     if (req.method === 'OPTIONS') {
@@ -1891,19 +1907,59 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
 
     // Trust verification — serve real scan data when available, fallback to stub
     if (parsed.pathname === '/api/trust/verification') {
+      const report = serverState.currentReport || {};
+      const gate = report.gate || {};
+      const sev = report.severityCounts || {};
+      const rawIssues = report.rawIssues || report.detectedIssues || [];
+      const issueCount = rawIssues.reduce((sum: number, i: any) => sum + (i.count || 1), 0);
+      const repoFilesTotal = report.repositoryFilesTotal ?? report.fileCount ?? null;
+      const ruleScopedFiles = report.ruleScopedFilesAnalyzed ?? (gate as any)?.ruleScopedFilesAnalyzed ?? null;
+      const mockSampleFiles = report.mockSampleFiles ?? null;
+      const fictionJsonFiles = report.fictionJsonFilesScanned ?? null;
+      const fictionSampleFiles = report.fictionSampleFilesScanned ?? mockSampleFiles;
+      const qualityScore = report.qualityScore ?? null;
+      const consistencyScore = report.consistencyScore ?? null;
+      const schemaPassed = report.schemaPassed ?? null;
+      const schemaChecked = report.schemaChecked ?? null;
+      const platformRoot = serverState.workspacePath || '';
+      const aiPlatformPath = path.join(platformRoot, 'ai-platform');
+      const generatedAt = report.generatedAt || report.timestamp || new Date().toISOString();
+      const gatePass = gate.pass !== false;
+      const platformSnapshot = (qualityScore != null || repoFilesTotal != null || issueCount > 0) ? {
+        gatePass,
+        projectRoot: platformRoot,
+        platformRoot: fs.existsSync(aiPlatformPath) ? aiPlatformPath : platformRoot,
+        generatedAt,
+        qualityScore,
+        issueCount,
+        schemaPassed,
+        schemaChecked,
+        consistencyScore,
+        repositoryFilesTotal: repoFilesTotal,
+        ruleScopedFilesAnalyzed: ruleScopedFiles,
+        mockSampleFiles,
+        fictionJsonFilesScanned: fictionJsonFiles,
+        fictionSampleFilesScanned: fictionSampleFiles,
+        scopeNote: 'Gate rules apply to configured scanPaths and production directories — not every file in the repository tree.'
+      } : null;
+      const fictionScope = (fictionJsonFiles != null || fictionSampleFiles != null) ? {
+        mode: 'repository-json',
+        fictionJsonFilesScanned: fictionJsonFiles,
+        fictionSampleFilesScanned: fictionSampleFiles,
+        walkRoot: fs.existsSync(aiPlatformPath) ? aiPlatformPath : 'ai-platform'
+      } : null;
       const realTrust = serverState.lastTrustData;
       if (realTrust && (realTrust.trustScore || realTrust.gate)) {
         const trustScoreNum = parseInt(String(realTrust.trustScore), 10) || 0;
-        const gatePass = realTrust.gate === 'PASS';
         res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300' });
         res.end(JSON.stringify({
           success: true,
           live: {
             verificationId: `sb-local-${realTrust.gate?.toLowerCase() || 'gate'}`,
             score: trustScoreNum,
-            gatePass,
+            gatePass: realTrust.gate === 'PASS',
             generatedAt: new Date().toISOString(),
-            platform: {
+            platform: platformSnapshot || {
               qualityScore: trustScoreNum,
               securityScore: parseInt(String(realTrust.security), 10) || trustScoreNum,
               complianceScore: parseInt(String(realTrust.compliance), 10) || trustScoreNum,
@@ -1921,9 +1977,9 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
                 ? `Scan passed with trust score ${trustScoreNum}.`
                 : `Scan failed with trust score ${trustScoreNum}. Review findings in the dashboard.`
             },
-            disclaimers: ['Trust snapshot generated from local VS Code: extension scan.'],
-            methodology: ['Run Simplebeacon scan from the VS Code: command palette to refresh.'],
-            fictionScope: null,
+            disclaimers: ['Trust snapshot generated from local VS Code extension scan.'],
+            methodology: ['Run Simplebeacon scan from the VS Code command palette to refresh.'],
+            fictionScope,
             factors: realTrust.factors || [],
             badges: realTrust.badges || []
           },
@@ -1936,15 +1992,15 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
         success: true,
         live: {
           verificationId: 'sb-local-gate',
-          score: 100,
-          gatePass: true,
-          generatedAt: new Date().toISOString(),
-          platform: null,
+          score: qualityScore ?? 100,
+          gatePass,
+          generatedAt,
+          platform: platformSnapshot,
           monorepo: null,
-          headline: { primary: null, source: null, reason: 'No trust snapshots available in local extension mode.' },
-          disclaimers: ['Local extension dashboard does not publish trust snapshots.'],
-          methodology: ['Run Simplebeacon scan from the VS Code: command palette to generate a real trust snapshot.'],
-          fictionScope: null
+          headline: { primary: null, source: null, reason: platformSnapshot ? 'Live scan data from local extension.' : 'No trust snapshots available in local extension mode.' },
+          disclaimers: platformSnapshot ? [] : ['Local extension dashboard does not publish trust snapshots.'],
+          methodology: ['Run Simplebeacon scan from the VS Code command palette to generate a real trust snapshot.'],
+          fictionScope
         },
         publishedAt: null
       }));
@@ -3141,6 +3197,20 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       return;
     }
 
+    // Admin users list stub — local server has no user database
+    if (parsed.pathname === '/api/admin/users' && req.method === 'GET') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, users: [], total: 0, limit: 50, page: 1 }));
+      return;
+    }
+
+    // Admin sessions list stub — local server has no session database
+    if (parsed.pathname === '/api/admin/sessions' && req.method === 'GET') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, sessions: [], total: 0 }));
+      return;
+    }
+
     // List tokens
     if (parsed.pathname === '/api/admin/tokens' && req.method === 'GET') {
       const token = getAdminTokenFromRequest(req);
@@ -3500,18 +3570,54 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       return;
     }
     if (parsed.pathname === '/api/coverage-reports/overview') {
+      const report = serverState.currentReport || {};
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: true, coverage: 0, reports: [] }));
+      res.end(JSON.stringify({
+        success: true,
+        overallCoverage: null,
+        lineCoverage: null,
+        branchCoverage: null,
+        functionCoverage: null,
+        statementCoverage: null,
+        passedTests: null,
+        totalTests: null,
+        notes: 'Run npm run test:coverage for Istanbul percentages. Sync Jest counts via Tools → Baseline sync.',
+        reports: []
+      }));
       return;
     }
     if (parsed.pathname === '/api/quality/overview') {
+      const report = serverState.currentReport || {};
+      const qScore = report.qualityScore ?? null;
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: true, score: 0, metrics: {} }));
+      res.end(JSON.stringify({
+        success: true,
+        overallScore: qScore,
+        qualityScore: qScore,
+        metrics: {}
+      }));
       return;
     }
     if (parsed.pathname === '/api/security/overview') {
+      const report = serverState.currentReport || {};
+      const sev = report.severityCounts || {};
+      const rawIssues = report.rawIssues || report.detectedIssues || [];
+      const securityIssues = rawIssues.filter((i: any) => /credential|production leak/i.test(String(i.type || '')));
+      const openEng = securityIssues.reduce((sum: number, i: any) => sum + (i.count || 1), 0);
+      const gate = report.gate || {};
+      const complianceRate = gate.pass ? 100 : (sev.critical || sev.high ? 0 : 100);
+      const secScore = report.qualityScore ?? null;
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: true, score: 0, findings: [] }));
+      res.end(JSON.stringify({
+        success: true,
+        score: secScore,
+        securityScore: secScore,
+        openEngineeringFindings: openEng,
+        openVulnerabilities: 0,
+        complianceRate,
+        npmAuditTotal: 0,
+        findings: securityIssues.slice(0, 50)
+      }));
       return;
     }
     if (parsed.pathname === '/api/help') {
@@ -3598,6 +3704,124 @@ body{font-family:system-ui,-apple-system,sans-serif;margin:0;padding:40px;backgr
     if (parsed.pathname === '/api/analyze/compliance-checklist') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: true, checklist: [] }));
+      return;
+    }
+    if ((parsed.pathname === '/api/analyze/complete-audit-report' || parsed.pathname === '/api/analyze/eu-ai-act-audit-report') && req.method === 'POST') {
+      let body = '';
+      req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+      req.on('end', () => {
+        try {
+          const data = body ? JSON.parse(body) : {};
+          const scan = data.completeScan || {};
+          const results = scan.results || {};
+          const sb = results.simplebeacon || {};
+          const sev = sb.severityCounts || {};
+          const gate = sb.gate || {};
+          const issueCount = sb.issueCount || 0;
+          const qualityScore = sb.qualityScore ?? '[HIDDEN]';
+          const projectPath = scan.projectPath || sb.projectRoot || 'project';
+          const projectName = path.basename(projectPath);
+          const generatedAt = scan.generatedAt || new Date().toISOString();
+          const client = data.client || projectName;
+          const tier = gate.pass ? 'PASS' : 'FAIL';
+          const rawIssues = sb.rawIssues || sb.detectedIssues || [];
+          const issueRows = rawIssues.slice(0, 200).map((issue: any, idx: number) => {
+            const sev = String(issue.severity || 'low').toUpperCase();
+            const file = escapeHtml(issue.filePath || issue.file || 'N/A');
+            const line = issue.line || '';
+            const desc = escapeHtml(issue.description || issue.message || '');
+            const type = escapeHtml(issue.type || issue.category || '');
+            return `<tr><td>${idx + 1}</td><td>${sev}</td><td>${type}</td><td>${file}${line ? ':' + line : ''}</td><td>${desc}</td></tr>`;
+          }).join('');
+          const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SimpleBeacon Audit Report — ${escapeHtml(projectName)}</title>
+<style>
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;margin:40px;color:#1a1a2e;background:#fff}
+h1{color:#4f46e5;border-bottom:2px solid #4f46e5;padding-bottom:8px}
+h2{color:#312e81;margin-top:32px}
+table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px}
+th,td{padding:8px 12px;border:1px solid #e2e8f0;text-align:left}
+th{background:#f1f5f9;font-weight:600}
+tr:nth-child(even){background:#f8fafc}
+.metric{display:inline-block;margin:0 24px 16px 0}
+.metric-label{font-size:12px;color:#64748b;text-transform:uppercase}
+.metric-value{font-size:28px;font-weight:700;color:#1e293b}
+.pass{color:#16a34a}.fail{color:#dc2626}
+.footer{margin-top:48px;padding-top:16px;border-top:1px solid #e2e8f0;font-size:12px;color:#64748b}
+</style>
+</head>
+<body>
+<h1>SimpleBeacon Audit Report</h1>
+<div style="margin-bottom:24px;">
+  <div class="metric"><div class="metric-label">Project</div><div class="metric-value" style="font-size:18px;">${escapeHtml(projectName)}</div></div>
+  <div class="metric"><div class="metric-label">Client</div><div class="metric-value" style="font-size:18px;">${escapeHtml(client)}</div></div>
+  <div class="metric"><div class="metric-label">Generated</div><div class="metric-value" style="font-size:18px;">${escapeHtml(generatedAt)}</div></div>
+</div>
+<h2>Scan Summary</h2>
+<div>
+  <div class="metric"><div class="metric-label">Quality Score</div><div class="metric-value">${qualityScore}</div></div>
+  <div class="metric"><div class="metric-label">Gate</div><div class="metric-value ${tier === 'PASS' ? 'pass' : 'fail'}">${tier}</div></div>
+  <div class="metric"><div class="metric-label">Total Issues</div><div class="metric-value">${issueCount}</div></div>
+</div>
+<div>
+  <div class="metric"><div class="metric-label">Critical</div><div class="metric-value fail">${sev.critical || 0}</div></div>
+  <div class="metric"><div class="metric-label">High</div><div class="metric-value fail">${sev.high || 0}</div></div>
+  <div class="metric"><div class="metric-label">Medium</div><div class="metric-value" style="color:#d97706;">${sev.medium || 0}</div></div>
+  <div class="metric"><div class="metric-label">Low</div><div class="metric-value" style="color:#64748b;">${sev.low || 0}</div></div>
+</div>
+${issueRows ? `<h2>Findings (${Math.min(rawIssues.length, 200)} of ${rawIssues.length})</h2>
+<table><thead><tr><th>#</th><th>Severity</th><th>Type</th><th>Location</th><th>Description</th></tr></thead>
+<tbody>${issueRows}</tbody></table>` : '<p>No findings to display.</p>'}
+<div class="footer">
+  <p>Generated by SimpleBeacon Local Server — This is a deterministic local report. No AI provider was used.</p>
+  <p>Project path: ${escapeHtml(projectPath)}</p>
+</div>
+</body>
+</html>`;
+          const filename = `simplebeacon-audit-${projectName}-${Date.now()}.html`;
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, html, filename, tier: 'local', exportTierLabel: 'Local audit report' }));
+        } catch {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: 'Invalid request body' }));
+        }
+      });
+      return;
+    }
+
+    // CI telemetry summary stub — local server has no CI data
+    if (parsed.pathname === '/api/simplebeacon/ci/telemetry/summary') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, summary: { days: 7, scans: [], totalScans: 0, passRate: 0, avgScore: null } }));
+      return;
+    }
+
+    // Assess endpoint stub — runs a local assessment from the current report
+    if (parsed.pathname === '/api/simplebeacon/assess' && req.method === 'POST') {
+      const report = serverState.currentReport || {};
+      const gate = report.gate || {};
+      const sev = report.severityCounts || {};
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        success: true,
+        assessmentId: 'local-' + Date.now(),
+        gatePass: gate.pass ?? false,
+        qualityScore: report.qualityScore ?? null,
+        issueCount: report.issueCount ?? 0,
+        severityCounts: sev,
+        summary: 'Local assessment completed from current scan report.',
+        reportUrl: '/api/report'
+      }));
+      return;
+    }
+
+    // WebAuthn status stub — local server does not support WebAuthn
+    if (parsed.pathname === '/api/webauthn/status') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ enabled: false, supported: false }));
       return;
     }
 
@@ -3973,6 +4197,11 @@ body{font-family:system-ui,-apple-system,sans-serif;margin:0;padding:40px;backgr
           '/api/analyze/data-cleanup',
           '/api/analyze/npm-audit',
           '/api/analyze/providers',
+          '/api/analyze/complete-audit-report (POST)',
+          '/api/analyze/eu-ai-act-audit-report (POST)',
+          '/api/simplebeacon/ci/telemetry/summary',
+          '/api/simplebeacon/assess (POST)',
+          '/api/webauthn/status',
           '/api/merger-tool/reduction-scan',
           '/api/platform/status',
           '/api/simplebeacon/config',
@@ -4114,7 +4343,7 @@ body{font-family:system-ui,-apple-system,sans-serif;margin:0;padding:40px;backgr
         }
         vscode.window.showInformationMessage(`SimpleBeacon data server running at http://127.0.0.1:${actualPort}`);
       });
-      fallbackServer.listen(0, process.env.NODE_ENV === 'production' ? '0.0.0.0' : '127.0.0.1');
+      fallbackServer.listen(0, '127.0.0.1');
     } else {
       if (outputChannel) {
         outputChannel.appendLine(`[SimpleBeacon DataServer] ERROR: ${err.message}`);
@@ -4137,7 +4366,7 @@ body{font-family:system-ui,-apple-system,sans-serif;margin:0;padding:40px;backgr
   });
 
   try {
-    const listenHost = process.env.NODE_ENV === 'production' ? '0.0.0.0' : '127.0.0.1';
+    const listenHost = '127.0.0.1';
   const listenPort = process.env.PORT ? parseInt(process.env.PORT, 10) : dataServerPort;
   dataServer.listen(listenPort, listenHost, () => {
       if (outputChannel) {

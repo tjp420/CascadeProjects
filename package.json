@@ -42,6 +42,7 @@
     "vite": "^8.0.16"
   },
   "overrides": {
-    "serialize-javascript": ">=7.0.5"
+    "serialize-javascript": ">=7.0.5",
+    "minimatch": "^10.2.2"
   }
 }
