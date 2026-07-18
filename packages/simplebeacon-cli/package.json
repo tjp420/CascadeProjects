@@ -37,7 +37,7 @@
     "samplebeacon": "./bin/simplebeacon.js"
   },
   "scripts": {
-    "test": "node --test --test-timeout=120000 \"tests/**/*.test.js\"",
+    "test": "node --test --test-concurrency=1 --test-timeout=120000 \"tests/**/*.test.js\"",
     "proxy": "node bin/simplebeacon-proxy.js",
     "mcp": "node bin/simplebeacon-mcp.js --offline",
     "mcp:smoke": "node bin/simplebeacon-mcp.js --smoke-test",
