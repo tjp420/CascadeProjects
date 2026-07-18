@@ -308,10 +308,16 @@ async function handleSandboxToken(req, res) {
             expiresInDays: 14,
             cached,
             resent: cached,
-            emailed: true,
-            message: cached
-                ? 'Sandbox token resent to your email. Enter the new validation code from your inbox.'
-                : 'Developer sandbox token generated and emailed. Enter the validation code from your email to unlock the audit.'
+            emailed: emailResult.sent,
+            queued: emailResult.queued,
+            emailError: emailResult.error || null,
+            message: emailResult.sent
+                ? (cached
+                    ? 'Sandbox token resent to your email. Enter the new validation code from your inbox.'
+                    : 'Developer sandbox token generated and emailed. Enter the validation code from your email to unlock the audit.')
+                : (emailResult.queued
+                    ? 'Sandbox token generated. Email queued for delivery — enter the validation code from your email when it arrives.'
+                    : 'Sandbox token generated, but email delivery failed. Try again or contact support@simplebeacon.ai.')
         });
     } catch (error) {
         logger.error('[SandboxToken] Token generation failed:', error.message);
