@@ -28,7 +28,7 @@
     <script src="js-es2018/dashboard/scanner-patterns.js?h=1781475000004" defer></script>
     <script src="js-es2018/dashboard/quick-actions.js?h=1781475000005" defer></script>
     <script src="js-es2018/dashboard/pattern-documentation.js?h=1781475000005" defer></script>
-    <script src="js-es2018/dashboard/scanner-engine.js?h=1781475000012" defer></script>
+    <script src="js-es2018/dashboard/scanner-engine.js?h=1781475000013" defer></script>
     <script src="js-es2018/dashboard/ui-renderer.js?h=1781475000000" defer></script>
     <script src="js/vendor/jszip.min.js?h=1781475000000" defer></script>
     <script src="js-es2018/dashboard/vscode-notify-bridge.js?h=20260716beacon1" defer></script>
@@ -91,7 +91,7 @@
                 <span id="productLabel">Certificate Generation</span>
             </div>
             <h1 id="pageTitle">Audit Your Scan Reports</h1>
-            <p id="pageSubtitle">100% private. Your source code never leaves your browser. <span style="color:var(--warning);font-weight:500;">Browser scans</span> use a lightweight heuristic engine (no npm audit, no AST). For full analysis, run the <a href="#" id="serverDashboardLinkTrigger" style="color:var(--accent-hover);">server dashboard</a>, <a href="http://127.0.0.1:54800/simplebeacon-dashboard/#/analyze" target="_blank" style="color:var(--accent-hover);">open analyzer (auto-detected port)</a>, or upload a CLI report JSON.</p>
+            <p id="pageSubtitle">100% private. Your source code never leaves your browser. <span style="color:var(--warning);font-weight:500;">Browser scans</span> use a lightweight heuristic engine (no npm audit, no AST). For full analysis, run the <a href="#" id="serverDashboardLinkTrigger" style="color:var(--accent-hover);">server dashboard</a>, <a href="http://127.0.0.1:58000/simplebeacon-dashboard/#/analyze" target="_blank" style="color:var(--accent-hover);">open analyzer (auto-detected port)</a>, or upload a CLI report JSON.</p>
         </header>
 
         <div id="serverDetectedBanner" style="display:none;background:linear-gradient(135deg,rgba(5,150,105,0.12),rgba(99,102,241,0.08));border:1px solid rgba(5,150,105,0.3);border-radius:12px;padding:14px 20px;margin-bottom:20px;text-align:center;font-size:0.85rem;color:var(--text-secondary);display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;">
@@ -1604,6 +1604,12 @@
                                 body: JSON.stringify({ token: pendingSandboxToken, code: code })
                             });
                             const data = await res.json().catch(() => ({}));
+                            if (!res.ok) {
+                                showError(data.error || ('Verification request failed (' + res.status + '). Please try again or contact support.'));
+                                btn.disabled = false;
+                                btn.textContent = 'Verify';
+                                return;
+                            }
                             if (!data.valid) {
                                 showError(data.error || 'Invalid or expired code.');
                                 btn.disabled = false;
@@ -1936,7 +1942,7 @@
         }
     })();
     </script>
-    <script src="js-es2018/dashboard/main.js?h=20260715roadmap1" defer></script>
+    <script src="js-es2018/dashboard/main.js?h=20260715roadmap2" defer></script>
     <script>
     // Diagnostic panel disabled by default. Add ?debug=1 to URL to enable.
     (function() {

@@ -88,7 +88,7 @@ const FILE_COUNT_HIGH = 65000;
 const FILE_COUNT_VERY_HIGH = 100000;
 
 // Local server ports to probe
-const LOCAL_SERVER_PORTS = [38000, 50559, 3002, 3001, 3000, 5000];
+const LOCAL_SERVER_PORTS = [58000, 38000, 50559, 3002, 3001, 3000, 5000];
 
 // API base URL — same-origin on marketing hosts (Cloudflare /api proxy); Render when embedded elsewhere
 const API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.hostname.endsWith('.onrender.com')) ? '' : 'https://cascadeprojects-yzzd.onrender.com';
@@ -2860,6 +2860,10 @@ function appendTerminalLine(text, type) {
     line.insertAdjacentHTML('beforeend', indicator + text);
     line.style.marginBottom = '2px';
     terminalConsole.appendChild(line);
+    // Avoid unbounded DOM growth on long scans (Brave/Zorin low-memory freeze)
+    while (terminalConsole.children.length > 1000) {
+        terminalConsole.removeChild(terminalConsole.firstChild);
+    }
     terminalConsole.scrollTop = terminalConsole.scrollHeight;
 }
 
@@ -3166,7 +3170,7 @@ async function probeLocalServer() {
             const vaultLink = document.getElementById('vaultLink');
             if (banner) {
                 banner.style.display = 'flex';
-                if (link) link.href = `http://127.0.0.1:${port}/dashboard/analyze`;
+                if (link) link.href = `http://127.0.0.1:${port}/simplebeacon-dashboard/#/analyze`;
             }
             if (vaultLink) vaultLink.href = `http://127.0.0.1:${port}/dashboard/`;
             return;

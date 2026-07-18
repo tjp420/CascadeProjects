@@ -88,7 +88,7 @@ const FILE_COUNT_HIGH = 65000;
 const FILE_COUNT_VERY_HIGH = 100000;
 
 // Local server ports to probe
-const LOCAL_SERVER_PORTS = [38000, 50559, 3002, 3001, 3000, 5000];
+const LOCAL_SERVER_PORTS = [58000, 38000, 50559, 3002, 3001, 3000, 5000];
 
 // API base URL — same-origin on marketing hosts (Cloudflare /api proxy); Render when embedded elsewhere
 const API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.hostname.endsWith('.onrender.com')) ? '' : 'https://cascadeprojects-yzzd.onrender.com';
@@ -504,8 +504,7 @@ function downloadSelectedModule(btn) {
         const data = window._scanPreviewData || {};
         if (select.value === '__full_report__') {
             const tier = window._tokenPayload?.tier || window._tokenPayload?.product || 'locked';
-            const FREE_TIERS = ['instant', 'sandbox', 'community', 'locked'];
-            const isFree = FREE_TIERS.includes(tier);
+            const isFree = tier === 'instant';
             const projectName = data.projectRoot || data.projectPath || data.projectName || 'local-scan';
             // Only include data for modules the user has activated
             const activatedModules = Array.from(selectedModules);
@@ -1281,16 +1280,11 @@ function applyProductFromToken(token) {
         // Reset product UI so user can enter a new token cleanly
         const infoCard = document.getElementById('productInfoCard');
         if (infoCard) infoCard.style.display = 'none';
-        const productLabelEl = document.getElementById('productLabel');
-        if (productLabelEl) productLabelEl.textContent = "";
-        const pageTitleEl = document.getElementById('pageTitle');
-        if (pageTitleEl) pageTitleEl.textContent = "Upload Your Scan Report";
-        const pageSubtitleEl = document.getElementById('pageSubtitle');
-        if (pageSubtitleEl) pageSubtitleEl.textContent = "Generate an Executive Risk Certificate from your local SimpleBeacon scan.";
-        const tokenHelpEl = document.getElementById('tokenHelp');
-        if (tokenHelpEl) tokenHelpEl.textContent = "Paste the license token from your payment confirmation email.";
-        const submitBtnEl = document.getElementById('submitBtn');
-        if (submitBtnEl) submitBtnEl.style.display = '';
+        document.getElementById('productLabel').textContent = "";
+        document.getElementById('pageTitle').textContent = "Upload Your Scan Report";
+        document.getElementById('pageSubtitle').textContent = "Generate an Executive Risk Certificate from your local SimpleBeacon scan.";
+        document.getElementById('tokenHelp').textContent = "Paste the license token from your payment confirmation email.";
+        document.getElementById('submitBtn').style.display = '';
         return;
     }
     try {
@@ -2866,6 +2860,10 @@ function appendTerminalLine(text, type) {
     line.insertAdjacentHTML('beforeend', indicator + text);
     line.style.marginBottom = '2px';
     terminalConsole.appendChild(line);
+    // Avoid unbounded DOM growth on long scans (Brave/Zorin low-memory freeze)
+    while (terminalConsole.children.length > 1000) {
+        terminalConsole.removeChild(terminalConsole.firstChild);
+    }
     terminalConsole.scrollTop = terminalConsole.scrollHeight;
 }
 
@@ -3172,7 +3170,7 @@ async function probeLocalServer() {
             const vaultLink = document.getElementById('vaultLink');
             if (banner) {
                 banner.style.display = 'flex';
-                if (link) link.href = `http://127.0.0.1:${port}/dashboard/analyze`;
+                if (link) link.href = `http://127.0.0.1:${port}/simplebeacon-dashboard/#/analyze`;
             }
             if (vaultLink) vaultLink.href = `http://127.0.0.1:${port}/dashboard/`;
             return;

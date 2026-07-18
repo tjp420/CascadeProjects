@@ -27,6 +27,22 @@ if (!process.env.SIMPLEBEACON_LICENSE_SECRET) {
     console.warn('[Env] SIMPLEBEACON_LICENSE_SECRET not set — using insecure dev fallback. DO NOT USE IN PRODUCTION.'); // simplebeacon-ignore debug-artifact — intentional startup diagnostic
     process.env.SIMPLEBEACON_LICENSE_SECRET = 'insecure-dev-secret-change-me'; // simplebeacon-ignore credential-pattern — dev-only fallback, exits in production
 }
+if (!process.env.JWT_SECRET) {
+    if (process.env.NODE_ENV === 'production') {
+        console.error('[Env] FATAL: JWT_SECRET not set. Server requires a secure secret.');
+        process.exit(1);
+    }
+    console.warn('[Env] JWT_SECRET not set — using insecure dev fallback. DO NOT USE IN PRODUCTION.');
+    process.env.JWT_SECRET = 'simplebeacon-insecure-dev-jwt-secret-do-not-use-in-production';
+}
+if (!process.env.JWT_REFRESH_SECRET) {
+    if (process.env.NODE_ENV === 'production') {
+        console.error('[Env] FATAL: JWT_REFRESH_SECRET not set. Server requires a secure secret.');
+        process.exit(1);
+    }
+    console.warn('[Env] JWT_REFRESH_SECRET not set — using insecure dev fallback. DO NOT USE IN PRODUCTION.');
+    process.env.JWT_REFRESH_SECRET = 'simplebeacon-insecure-dev-refresh-secret-do-not-use-in-production';
+}
 if (!process.env.PUBLIC_URL) {
     process.env.PUBLIC_URL = 'http://localhost:' + (process.env.PORT || 3000);
 }
@@ -108,7 +124,7 @@ function generateLicenseToken(payload, secret, expiresInMinutes) {
 
 // Security headers (helmet-lite)
 app.use((req, res, next) => {
-    res.setHeader('Cache-Control', 'no-transform');
+    res.setHeader('Cache-Control', 'public, no-transform');
     res.setHeader('X-Content-Type-Options', 'nosniff');
     const isDev = process.env.NODE_ENV !== 'production';
     // Allow iframe embedding in dev (for IDE previews like Windsurf/Cursor)
@@ -118,13 +134,21 @@ app.use((req, res, next) => {
     res.setHeader('X-XSS-Protection', '1; mode=block');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     const SCANNER_BRIDGE_PORT = 3456;
-    const LOCAL_PORTS = [DEFAULT_PORT, 3000, 3002, 4000, 8080, 5000, 54800, 54358, 38000, 50559, 11434];
+    const LOCAL_PORTS = [DEFAULT_PORT, 3000, 3002, 4000, 8080, 5000, 58000, 54358, 38000, 50559, 11434];
     const localConnectOrigins = LOCAL_PORTS.flatMap(p => ['http://127.0.0.1:' + p, 'http://localhost:' + p]).join(' ');
     // Render backend and any other Render service the dashboard may call
     const renderOrigins = 'https://simplebeacon.onrender.com https://*.onrender.com';
     // frame-ancestors allows IDE preview iframes from localhost origins in dev
     const frameAncestors = isDev ? "*" : "'none'";
-    res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' https://js.stripe.com https://cdnjs.cloudflare.com https://unpkg.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' " + renderOrigins + " http://127.0.0.1:" + SCANNER_BRIDGE_PORT + " " + localConnectOrigins + " https://api.stripe.com https://*.cloudflareinsights.com; frame-src https://js.stripe.com; frame-ancestors " + frameAncestors + ";");
+    // Only include Cloudflare Insights origins in production when CF_BEACON_TOKEN is provided.
+    // This prevents dev/preview environments and privacy-first browsers from attempting
+    // to load the vendor beacon and triggering SRI mismatch console errors.
+    const includeCf = !!(process.env.CF_BEACON_TOKEN && process.env.NODE_ENV === 'production');
+    const cfScript = includeCf ? ' https://static.cloudflareinsights.com' : '';
+    const cfConnect = includeCf ? ' https://*.cloudflareinsights.com' : '';
+    res.setHeader('Content-Security-Policy',
+        "default-src 'self'; script-src 'self' 'unsafe-inline' https://js.stripe.com https://cdnjs.cloudflare.com https://unpkg.com" + cfScript + "; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' "
+        + renderOrigins + " http://127.0.0.1:" + SCANNER_BRIDGE_PORT + " " + localConnectOrigins + " https://api.stripe.com" + cfConnect + "; frame-src https://js.stripe.com; frame-ancestors " + frameAncestors + ";");
     if (req.headers['x-forwarded-proto'] === 'https' || req.secure) {
         const HSTS_MAX_AGE_SECONDS = 2 * 365 * 24 * 60 * 60;
         res.setHeader('Strict-Transport-Security', 'max-age=' + HSTS_MAX_AGE_SECONDS + '; includeSubDomains');
@@ -223,6 +247,14 @@ app.use((req, res, next) => {
 });
 
 
+// Redirect old dashboard pricing route to canonical public pricing page
+app.use((req, res, next) => {
+    if (req.path === '/dashboard/pricing' || req.path === '/dashboard/pricing/') {
+        return res.redirect(301, '/pricing');
+    }
+    next();
+});
+
 // Static files: deny dotfiles and disable index auto-serve
 app.use('/', express.static(path.join(__dirname, 'public'), { dotfiles: 'deny', index: false }));
 
@@ -317,6 +349,15 @@ try {
     logger.warn('[API] Simplebeacon dashboard API not loaded:', err.message);
 }
 
+// Simplebeacon billing routes (checkout, session, status, license)
+try {
+    const { setupSimplebeaconBillingRoutes } = require('../ai-platform/src/api/simplebeacon-billing-api.cjs');
+    setupSimplebeaconBillingRoutes(app);
+    logger.info('[API] Simplebeacon billing routes mounted');
+} catch (err) {
+    logger.warn('[API] Simplebeacon billing routes not loaded:', err.message);
+}
+
 // Mount chatbot API (message, providers, disclosure)
 try {
     const { setupChatbotAPI } = require('../ai-platform/server/routes/chatbot-api.cjs');
@@ -324,6 +365,82 @@ try {
     logger.info('[API] Chatbot API mounted');
 } catch (err) {
     logger.warn('[API] Chatbot API not loaded:', err.message);
+}
+
+// Dashboard stub APIs — dashboard-home, dev-tools, coverage-reports, security, quality, help
+try {
+    const setupDashboardStubAPIs = require('../ai-platform/src/api/dashboard-stub-api.cjs');
+    setupDashboardStubAPIs(app, path.join(__dirname, 'public', 'dashboard'), {
+        authMiddleware: (req, res, next) => next()
+    });
+    logger.info('[API] Dashboard stub APIs mounted');
+} catch (err) {
+    logger.warn('[API] Dashboard stub APIs not loaded:', err.message);
+}
+
+// Optimization API
+try {
+    const { setupOptimizationAPI } = require('../ai-platform/src/api/optimization-api.cjs');
+    setupOptimizationAPI(app, {
+        platformRoot: path.join(__dirname, '..', 'ai-platform'),
+        monorepoRoot: path.join(__dirname, '..')
+    });
+    logger.info('[API] Optimization API mounted');
+} catch (err) {
+    logger.warn('[API] Optimization API not loaded:', err.message);
+}
+
+// Trust verification API
+try {
+    const { setupTrustAPI } = require('../ai-platform/src/api/trust-api.cjs');
+    setupTrustAPI(app, {
+        platformRoot: path.join(__dirname, '..', 'ai-platform'),
+        monorepoRoot: path.join(__dirname, '..')
+    });
+    logger.info('[API] Trust API mounted');
+} catch (err) {
+    logger.warn('[API] Trust API not loaded:', err.message);
+}
+
+// AI Context routes
+try {
+    const aiContextRoutes = require('../ai-platform/server/routes/ai-context-routes.cjs');
+    app.use('/api', aiContextRoutes);
+    logger.info('[API] AI Context routes mounted');
+} catch (err) {
+    logger.warn('[API] AI Context routes not loaded:', err.message);
+}
+
+// WebAuthn API
+try {
+    const { setupWebAuthnAPI } = require('../ai-platform/server/routes/webauthn-api.cjs');
+    setupWebAuthnAPI(app);
+    logger.info('[API] WebAuthn API mounted');
+} catch (err) {
+    logger.warn('[API] WebAuthn API not loaded:', err.message);
+}
+
+// Fallback WebAuthn status so the dashboard stops seeing 404s when the full module is unavailable
+app.get('/api/webauthn/status', (_req, res) => {
+    res.json({ enabled: false, supported: false });
+});
+
+// Prompt service (user-defined analysis prompts)
+try {
+    const promptService = require('../ai-platform/server/services/prompt-service.cjs');
+    app.use('/api/prompts', promptService);
+    logger.info('[API] Prompt service mounted');
+} catch (err) {
+    logger.warn('[API] Prompt service not loaded:', err.message);
+}
+
+// Health routes under /api
+try {
+    const healthRoutes = require('../ai-platform/server/routes/health-routes.cjs');
+    app.use('/api', healthRoutes);
+    logger.info('[API] Health routes mounted');
+} catch (err) {
+    logger.warn('[API] Health routes not loaded:', err.message);
 }
 
 // Health check for Render + load balancers

@@ -87,7 +87,7 @@ const TOAST_DURATION_LONG = 12000;
 const FILE_COUNT_HIGH = 65000;
 const FILE_COUNT_VERY_HIGH = 100000;
 // Local server ports to probe
-const LOCAL_SERVER_PORTS = [38000, 50559, 3002, 3001, 3000, 5000];
+const LOCAL_SERVER_PORTS = [58000, 38000, 50559, 3002, 3001, 3000, 5000];
 // API base URL — same-origin on marketing hosts (Cloudflare /api proxy); Render when embedded elsewhere
 const API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.hostname.endsWith('.onrender.com')) ? '' : 'https://cascadeprojects-yzzd.onrender.com';
 const IS_LOCAL_HOST = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
@@ -3347,7 +3347,7 @@ async function probeLocalServer() {
             if (banner) {
                 banner.style.display = 'flex';
                 if (link)
-                    link.href = `http://127.0.0.1:${port}/dashboard/analyze`;
+                    link.href = `http://127.0.0.1:${port}/simplebeacon-dashboard/#/analyze`;
             }
             if (vaultLink)
                 vaultLink.href = `http://127.0.0.1:${port}/dashboard/`;
