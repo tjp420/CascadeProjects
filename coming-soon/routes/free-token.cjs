@@ -17,7 +17,15 @@ const logger = {
 };
 
 const DEFAULT_PORT = 3001;
-const PUBLIC_URL = process.env.PUBLIC_URL || ('http://' + 'localhost' + ':' + (process.env.PORT || DEFAULT_PORT));
+
+function getPublicUrl(req) {
+    if (process.env.PUBLIC_URL) return process.env.PUBLIC_URL.replace(/\/$/, '');
+    if (req && req.headers && req.headers.host) {
+        const proto = req.headers['x-forwarded-proto'] || (req.secure ? 'https' : 'http');
+        return proto + '://' + req.headers.host;
+    }
+    return 'http://localhost:' + (process.env.PORT || DEFAULT_PORT);
+}
 
 const VALIDATION_CODE_TTL_MINUTES = 60; // 1-hour email verification codes
 
@@ -123,7 +131,7 @@ async function handleFreeToken(req, res) {
             FREE_TOKEN_TTL_MINUTES
         );
         const expiresAt = new Date(now + FREE_TOKEN_TTL_MINUTES * 60 * 1000).toISOString();
-        const certUrl = `${PUBLIC_URL}/certificate-upload.html?token=${encodeURIComponent(token)}`;
+        const certUrl = `${getPublicUrl(req)}/certificate-upload.html?token=${encodeURIComponent(token)}`;
         setFreeTokenRecord(email, token, hashToken(token), expiresAt);
         systemLogger.logTokenOp('free_token_generated', { email, tier: 'community', clientIp: req.ip || req.socket?.remoteAddress || 'unknown' });
 
@@ -278,8 +286,8 @@ async function handleSandboxToken(req, res) {
         const codeExpiresAt = new Date(now + VALIDATION_CODE_TTL_MINUTES * 60 * 1000).toISOString();
         createValidationCode(normalizedEmail, validationCode, tokenHash, codeExpiresAt);
 
-        const auditUrl = `${PUBLIC_URL}/audit.html?token=${encodeURIComponent(token)}&code=${encodeURIComponent(validationCode)}`;
-        const certUrl = `${PUBLIC_URL}/certificate-upload.html?token=${encodeURIComponent(token)}`;
+        const auditUrl = `${getPublicUrl(req)}/audit.html?token=${encodeURIComponent(token)}&code=${encodeURIComponent(validationCode)}`;
+        const certUrl = `${getPublicUrl(req)}/certificate-upload.html?token=${encodeURIComponent(token)}`;
 
         const emailResult = await emailSandboxToken({ email: normalizedEmail, token, validationCode, auditUrl });
         if (!emailResult.sent && !emailResult.queued) {
