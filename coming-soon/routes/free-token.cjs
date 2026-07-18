@@ -21,8 +21,10 @@ const DEFAULT_PORT = 3001;
 function getPublicUrl(req) {
     if (process.env.PUBLIC_URL) return process.env.PUBLIC_URL.replace(/\/$/, '');
     if (req && req.headers && req.headers.host) {
+        const host = req.headers.host;
+        if (/\.onrender\.com$/.test(host)) return 'https://simplebeacon.ai';
         const proto = req.headers['x-forwarded-proto'] || (req.secure ? 'https' : 'http');
-        return proto + '://' + req.headers.host;
+        return proto + '://' + host;
     }
     return 'http://localhost:' + (process.env.PORT || DEFAULT_PORT);
 }
