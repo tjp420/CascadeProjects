@@ -1,19 +1,19 @@
 {
   "type": "simplebeacon-assessment-report",
-  "title": "Simplebeacon Free Assessment — Test Corp",
-  "generatedAt": "2026-07-01T17:57:53.992Z",
+  "title": "Simplebeacon Free Assessment — test-init",
+  "generatedAt": "2026-07-18T22:34:09.675Z",
   "generatedBy": "Simplebeacon",
-  "assessor": "Tester",
-  "projectRoot": "c:\\Users\\Trevor\\CascadeProjects\\test-init",
+  "assessor": "",
+  "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\test-init",
   "executiveSummary": {
     "gateResult": "PASS",
-    "qualityScore": 100,
-    "filesScanned": 0,
+    "qualityScore": null,
+    "filesScanned": 2,
     "criticalIssues": 0,
     "highIssues": 0,
-    "mediumIssues": 17,
-    "lowIssues": 4,
-    "warningCount": 17,
+    "mediumIssues": 0,
+    "lowIssues": 7,
+    "warningCount": 0,
     "blockingCount": 0,
     "headline": "Clean scan — no blocking mock/fiction findings in configured paths.",
     "complianceScore": 100,
@@ -24,17 +24,17 @@
     "version": "1.0.0",
     "title": "Simplebeacon Corporate Safety Checklist",
     "description": "Automated guardrails for AI-generated code — maps scan signals to deploy readiness.",
-    "evaluatedAt": "2026-07-01T17:57:53.991Z",
-    "projectRoot": "c:\\Users\\Trevor\\CascadeProjects\\test-init",
+    "evaluatedAt": "2026-07-18T22:34:09.675Z",
+    "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\test-init",
     "summary": {
-      "passed": 6,
+      "passed": 10,
       "failed": 0,
-      "skipped": 5,
+      "skipped": 1,
       "total": 11,
       "score": 100,
       "readyForAutomation": true,
       "checklistProfile": "default",
-      "headline": "6/6 applicable rules pass — safe to enable automated AI deploy gates"
+      "headline": "10/10 applicable rules pass — safe to enable automated AI deploy gates"
     },
     "rules": [
       {
@@ -53,7 +53,7 @@
         "severity": "critical",
         "remediation": "Remove secrets from the repo, rotate exposed credentials, add patterns to .gitignore",
         "status": "pass",
-        "evidence": "Scanned 52 path(s) — no credential patterns"
+        "evidence": "Scanned 2 path(s) — no credential patterns"
       },
       {
         "id": "LEAK-001",
@@ -62,7 +62,7 @@
         "severity": "high",
         "remediation": "Replace hardcoded *-sample.json paths with repository-audit APIs or env-based config",
         "status": "pass",
-        "evidence": "Scanned 182 production file(s) — no sample-path leaks"
+        "evidence": "Scanned 0 production file(s) — no sample-path leaks"
       },
       {
         "id": "DATA-001",
@@ -70,8 +70,8 @@
         "category": "Data integrity",
         "severity": "high",
         "remediation": "Fix schema violations listed in the scan report",
-        "status": "skip",
-        "evidence": "No registered page samples in this project"
+        "status": "pass",
+        "evidence": "1/1 samples match schema specs"
       },
       {
         "id": "DATA-002",
@@ -79,8 +79,8 @@
         "category": "Data integrity",
         "severity": "high",
         "remediation": "Replace fiction metrics with repository-audit baseline values",
-        "status": "skip",
-        "evidence": "Consistency anchors not configured for this profile"
+        "status": "pass",
+        "evidence": "Consistency score 100% — no fiction KPI drift"
       },
       {
         "id": "SUPPLY-001",
@@ -88,8 +88,8 @@
         "category": "Supply chain",
         "severity": "critical",
         "remediation": "Run npm audit fix; upgrade transitive dependencies blocking CVEs",
-        "status": "skip",
-        "evidence": "No package.json — npm audit not applicable"
+        "status": "pass",
+        "evidence": "npm audit: 0 critical, 0 high (lockfile-heuristic)"
       },
       {
         "id": "SUPPLY-002",
@@ -97,8 +97,8 @@
         "category": "Supply chain",
         "severity": "medium",
         "remediation": "Upgrade dependencies flagged by npm audit (moderate severity)",
-        "status": "skip",
-        "evidence": "No package.json — npm audit not applicable"
+        "status": "pass",
+        "evidence": "0 moderate (limit 0)"
       },
       {
         "id": "AUTH-001",
@@ -140,140 +140,36 @@
   },
   "findings": {
     "credentials": {
-      "scanned": 52,
+      "scanned": 2,
       "findings": 0,
       "severity": "high",
       "items": [],
       "summary": "No credential patterns detected in scanned paths."
     },
     "fictionKpis": {
-      "scanned": 0,
+      "scanned": 2,
       "findings": 0,
       "severity": "high",
       "items": [],
       "summary": "No fiction KPI or consistency drift detected."
     },
     "productionLeaks": {
-      "scanned": 182,
+      "scanned": 0,
       "findings": 0,
       "severity": "medium",
       "items": [],
       "summary": "No mock/sample path references in production directories."
     },
     "schemaDrift": {
-      "checked": 0,
-      "passed": 0,
+      "checked": 1,
+      "passed": 1,
       "severity": "high",
       "items": [],
       "summary": "All registered page samples match schema specs."
     },
     "other": {
-      "items": [
-        {
-          "file": "packages/simplebeacon-cli/src/doctor.js",
-          "description": "packages/simplebeacon-cli/src/doctor.js:20 Unresolved LLM placeholder or conversational debris",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Replace placeholder copy with production-ready values before client handoff"
-        },
-        {
-          "file": "c:\\Users\\Trevor\\CascadeProjects\\test_server.js",
-          "description": "Port; console.log(`Listening on http://127.0.0.1:${actualPort}`); }); dataServer",
-          "severity": "low",
-          "count": 1
-        },
-        {
-          "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\dashboard-web\\js\\vendor\\lucide.min.js",
-          "description": "d:\"M17 13v-3h4\"}],[\"path\",{d:\"M17 17.7c.4.2.8.3 1.3.3 1.5 0 2.7-1.1 2.7-2.5S19.8 13 18.",
-          "severity": "medium",
-          "count": 1
-        },
-        {
-          "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\dashboard-web\\js\\utils.js",
-          "description": "const lo = min === undefined ? 0 : Number(min) || 0; const hi = max === undefined ? 1 : Number(max) || 1; const r = Math",
-          "severity": "medium",
-          "count": 1
-        },
-        {
-          "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\extension.ts",
-          "description": "if (fs.existsSync(usagePath)) {",
-          "severity": "medium",
-          "count": 1
-        },
-        {
-          "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\out\\dataServer.js",
-          "description": "const out = child_process.execSync('wmic logicaldisk get name', { encoding: 'utf8' });",
-          "severity": "medium",
-          "count": 1
-        },
-        {
-          "file": "c:\\Users\\Trevor\\CascadeProjects\\scan-exports\\simplebeacon-export-operator-2026-06-16\\steps\\logging-secrets.json",
-          "description": "scan-exports/simplebeacon-export-operator-2026-06-16/steps/logging-secrets.json is tracked by git — add to .gitignore and rotate any exposed secrets",
-          "severity": "medium",
-          "count": 1
-        },
-        {
-          "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\dashboard-web\\js-es2018\\utils\\snippetDiagnostic.js",
-          "description": "Regex: -----BEGIN (RSA |EC |OPENSSH )?P — Alternation groups with quantifiers can cause polynomial backtracking",
-          "severity": "medium",
-          "count": 1
-        },
-        {
-          "file": "c:\\Users\\Trevor\\CascadeProjects\\test-jwt-rotation.cjs",
-          "description": "console.log(` Status: ${r1.status} — ${r1.body.error || 'OK'}`);",
-          "severity": "medium",
-          "count": 1
-        },
-        {
-          "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\__create_token.js",
-          "description": "console.log('Token:', token);",
-          "severity": "medium",
-          "count": 1
-        },
-        {
-          "file": "c:\\Users\\Trevor\\CascadeProjects\\sales\\license\\renewal-tracker.js",
-          "description": "console.log(`\\nAutomated Email Triggers (${alerts.length}):`);",
-          "severity": "medium",
-          "count": 1
-        },
-        {
-          "file": "c:\\Users\\Trevor\\CascadeProjects\\test-jwt-rotation.cjs",
-          "description": "Code after return statement is unreachable",
-          "severity": "low",
-          "count": 1
-        },
-        {
-          "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\enhancedScanProvider.ts",
-          "description": "Import \"QuickActionNode\" from \"./enhancedSidebar\" is never referenced",
-          "severity": "low",
-          "count": 1
-        },
-        {
-          "file": "c:\\Users\\Trevor\\CascadeProjects\\inspect_vsix.js",
-          "description": "h); let offset = 0; const entries = []; while (offset < data.length - 30) { if (data[offset] === 0x50 && data[offset + 1",
-          "severity": "medium",
-          "count": 1
-        },
-        {
-          "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\_test_js.js",
-          "description": "ons document.getElementById('searchBox').addEventListener('input', (e) => { const q = e.target.value.to",
-          "severity": "medium",
-          "count": 1
-        },
-        {
-          "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\dashboard-web\\site-config.js",
-          "description": "SimpleBeacon dashboard site config stub window.__SB_SITE_CONFIG__ = { features: { scan: true, analyze: true",
-          "severity": "low",
-          "count": 1
-        },
-        {
-          "file": "c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\dashboard-web\\js-es2018\\services\\themeService.js",
-          "description": "catch(() => {}); }; poll(); setInterval(poll, 5000); } followIde() { co",
-          "severity": "medium",
-          "count": 1
-        }
-      ],
-      "summary": "packages/simplebeacon-cli/src/doctor.js: packages/simplebeacon-cli/src/doctor.js:20 Unresolved LLM placeholder or conversational debris; c:\\Users\\Trevor\\CascadeProjects\\test_server.js: Port; console.log(`Listening on http://127.0.0.1:${actualPort}`); }); dataServer; c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\dashboard-web\\js\\vendor\\lucide.min.js: d:\"M17 13v-3h4\"}],[\"path\",{d:\"M17 17.7c.4.2.8.3 1.3.3 1.5 0 2.7-1.1 2.7-2.5S19.8 13 18.; c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\dashboard-web\\js\\utils.js: const lo = min === undefined ? 0 : Number(min) || 0; const hi = max === undefined ? 1 : Number(max) || 1; const r = Math; c:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\src\\extension.ts: if (fs.existsSync(usagePath)) {"
+      "items": [],
+      "summary": "No other findings."
     }
   },
   "recommendedActions": {
@@ -303,15 +199,15 @@
   },
   "commandsRun": [
     "npx simplebeacon scan --format json --output .simplebeacon/report.json --gate",
-    "npx simplebeacon assess --company \"Test Corp\" --assessor \"Tester\""
+    "npx simplebeacon assess --company \"test-init\""
   ],
   "sourceReport": {
-    "generatedAt": "2026-07-01T17:50:35.307Z",
+    "generatedAt": "2026-07-18T22:27:17.908Z",
     "scanPaths": [
-      "c:\\Users\\Trevor\\CascadeProjects\\test-init"
+      "C:\\Users\\Trevor\\CascadeProjects\\test-init"
     ],
     "duplicateGroups": 0
   },
   "sanitized": true,
-  "sanitizedAt": "2026-07-01T17:57:53.994Z"
+  "sanitizedAt": "2026-07-18T22:34:09.677Z"
 }

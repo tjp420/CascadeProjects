@@ -20,8 +20,9 @@ export class ProgressNode extends vscode.TreeItem {
   }
 
   private createProgressBar(): string {
-    const percentage = this.total > 0 ? Math.round((this.progress / this.total) * 100) : 0;
-    const filled = Math.round(percentage / 10);
+    const raw = this.total > 0 ? (this.progress / this.total) * 100 : 0;
+    const percentage = Number.isFinite(raw) ? Math.max(0, Math.min(100, Math.round(raw))) : 0;
+    const filled = Math.max(0, Math.min(10, Math.round(percentage / 10)));
     const empty = 10 - filled;
     return `[${'█'.repeat(filled)}${'░'.repeat(empty)}] ${percentage}%`;
   }
@@ -218,11 +219,13 @@ export class ScanProgressNode extends vscode.TreeItem {
     super(label, vscode.TreeItemCollapsibleState.None);
     this.contextValue = 'scan-progress';
 
-    const percentage = Math.round((progress / total) * 100);
+    const raw = this.total > 0 ? (this.progress / this.total) * 100 : 0;
+    const percentage = Number.isFinite(raw) ? Math.max(0, Math.min(100, Math.round(raw))) : 0;
     this.description = `${percentage}%${currentFile ? ` • ${currentFile.split(/[\\/]/).pop()}` : ''}`;
-    this.tooltip = `${phase}: ${progress} of ${total} files${currentFile ? ` (${currentFile})` : ''}`;
+    this.tooltip = `${phase}: ${this.progress} of ${this.total} files${currentFile ? ` (${currentFile})` : ''}`;
 
-    if (progress < total) {
+    const isLoading = this.total > 0 ? this.progress < this.total : this.progress === 0;
+    if (isLoading) {
       this.iconPath = new vscode.ThemeIcon('loading~spin', new vscode.ThemeColor('editor.foreground'));
     } else {
       this.iconPath = new vscode.ThemeIcon('check', new vscode.ThemeColor('testing.iconPassed'));
@@ -242,7 +245,8 @@ export class HealthScoreNode extends vscode.TreeItem {
     super(label, vscode.TreeItemCollapsibleState.None);
     this.contextValue = 'health-score';
 
-    const percentage = Math.round((score / maxScore) * 100);
+    const rawPct = this.maxScore > 0 ? (score / this.maxScore) * 100 : 0;
+    const percentage = Number.isFinite(rawPct) ? Math.max(0, Math.min(100, Math.round(rawPct))) : 0;
     this.description = `${score}/${maxScore} (${percentage}%)`;
     this.tooltip = `Code health score: ${score}/${maxScore}`;
 

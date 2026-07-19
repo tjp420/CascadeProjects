@@ -323,9 +323,11 @@ export class SignInView {
             }
             return;
         }
-        if (!password || password.length < 8) {
+        if (this._emailMode === 'register' ? (!password || password.length < 8) : !password) {
             if (errorEl) {
-                errorEl.textContent = 'Password must be at least 8 characters.';
+                errorEl.textContent = this._emailMode === 'register'
+                    ? 'Password must be at least 8 characters.'
+                    : 'Please enter your password.';
                 errorEl.hidden = false;
             }
             return;

@@ -224,18 +224,37 @@ if (
 }
 const webRoot = path.join(__dirname, 'web');
 
-// Render may clone the repo into a directory named after the repository (e.g.
-// /opt/render/project/src/CascadeProjects), so try several candidate locations
+// Render may clone the repo into an arbitrary directory, so try several
+// candidate locations (env override, cwd, relative paths, and walking up)
 // for the marketing landing pages before giving up.
 function resolveLandingRoot() {
+  const envRoot = process.env.SIMPLEBEACON_LANDING_ROOT;
+  if (envRoot) {
+    const resolved = path.resolve(envRoot);
+    if (fs.existsSync(resolved)) return resolved;
+  }
   const candidates = [
     path.join(__dirname, '../coming-soon/public'),
     path.join(__dirname, '../../coming-soon/public'),
+    path.join(process.cwd(), 'coming-soon/public'),
     path.join(__dirname, '../CascadeProjects/coming-soon/public'),
-    path.join(__dirname, '../../CascadeProjects/coming-soon/public')
+    path.join(__dirname, '../../CascadeProjects/coming-soon/public'),
+    path.join(process.cwd(), 'CascadeProjects/coming-soon/public'),
+    path.join(process.cwd(), 'public')
   ];
   for (const candidate of candidates) {
     if (fs.existsSync(candidate)) return candidate;
+  }
+  // Walk up from __dirname in case the app is nested under an arbitrary parent
+  let current = __dirname;
+  for (let i = 0; i < 6; i++) {
+    const parent = path.dirname(current);
+    if (parent === current) break;
+    current = parent;
+    const upCandidate = path.join(current, 'coming-soon/public');
+    if (fs.existsSync(upCandidate)) return upCandidate;
+    const namedCandidate = path.join(current, 'CascadeProjects/coming-soon/public');
+    if (fs.existsSync(namedCandidate)) return namedCandidate;
   }
   return candidates[0];
 }
@@ -286,7 +305,7 @@ const internalDashboard = String(process.env.SIMPLEBEACON_INTERNAL_DASHBOARD || 
  * @returns {boolean}
  */
 function storefrontAssetsEnabled() {
-  return landingEnabled || internalDashboard;
+  return landingEnabled || internalDashboard || landingRootExists;
 }
 
 // Refuse to start internal dashboard without a vault password in non-dev environments
@@ -882,6 +901,7 @@ app.use((req, res, next) => {
   if (req.path === '/api/simplebeacon/config') return next();
   if (req.path === '/api/simplebeacon/history') return next();
   if (req.path === '/api/simplebeacon/baseline') return next();
+  if (req.path.startsWith('/api/simplebeacon/ollama/')) return next();
   if (req.path === '/api/dashboard-home') return next();
   if (req.path === '/api/dev-tools/tools') return next();
   if (req.path === '/api/dev-tools/workflows') return next();

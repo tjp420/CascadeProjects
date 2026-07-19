@@ -905,18 +905,34 @@ function setupSimplebeaconAPI(app, options = {}) {
 
   // Server-side proxy for Ollama so the HTTPS dashboard avoids mixed-content CORS issues
   // with direct http://127.0.0.1:11434 calls from the browser.
-  const OLLAMA_ALLOWED_HOSTS = new Set(['127.0.0.1', 'localhost']);
+  function isAllowedOllamaHost(hostname) {
+    if (hostname === 'localhost' || hostname === '::1' || hostname === '[::1]') return true;
+    // Allow all 127.0.0.0/8 loopback addresses (e.g. 127.0.0.1, 127.0.0.2).
+    if (/^127(?:\.[0-9]{1,3}){3}$/.test(hostname)) return true;
+    return false;
+  }
   app.get('/api/simplebeacon/ollama/models', async (req, res) => {
     try {
-      const baseUrl = String(req.query.baseUrl || 'http://127.0.0.1:11434').trim().replace(/^["']+|["']+$/g, '').replace(/\/$/, '');
+      let rawBaseUrl = String(req.query.baseUrl || 'http://127.0.0.1:11434').trim().replace(/^["']+|["']+$/g, '').replace(/\/$/, '');
+      // Defensive: some callers may still send a percent-encoded URL; decode once more.
+      if (/^https?%3A%2F%2F/i.test(rawBaseUrl)) {
+        try { rawBaseUrl = decodeURIComponent(rawBaseUrl); } catch { /* ignore */ }
+      }
       let parsed;
       try {
-        parsed = new URL(baseUrl);
+        parsed = new URL(rawBaseUrl);
       } catch {
-        return res.status(400).json({ success: false, error: 'Invalid Ollama base URL' });
+        // Allow bare host:port like "127.0.0.1:11434".
+        try {
+          parsed = new URL('http://' + rawBaseUrl);
+        } catch {
+          return res.status(400).json({ success: false, error: 'Invalid Ollama base URL' });
+        }
       }
-      if (!OLLAMA_ALLOWED_HOSTS.has(parsed.hostname)) {
-        return res.status(400).json({ success: false, error: 'Ollama base URL must be localhost or 127.0.0.1' });
+      const baseUrl = `${parsed.protocol}//${parsed.host}`;
+      if (!isAllowedOllamaHost(parsed.hostname)) {
+        logger.warn('[GET /api/simplebeacon/ollama/models] Rejected baseUrl:', rawBaseUrl, 'hostname:', parsed.hostname);
+        return res.status(400).json({ success: false, error: `Ollama base URL must be localhost or 127.0.0.1 (received: ${parsed.hostname})` });
       }
       const targetUrl = `${baseUrl.replace(/\/$/, '')}/api/tags`;
       const controller = new AbortController();

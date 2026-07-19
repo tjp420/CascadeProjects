@@ -4822,6 +4822,20 @@ function buildCertificateHtml(cert: CertificateData): string {
   const score = cert.qualityScore ?? 0;
   const scoreColor = score >= 80 ? '#10B981' : score >= 50 ? '#F59E0B' : '#EF4444';
   const passColor = cert.gatePass ? '#10B981' : '#EF4444';
+  const passIcon = cert.gatePass ? '✓' : '✗';
+  const passText = cert.gatePass ? 'PASS' : 'FAIL';
+  const summary = cert.summary || { filesAnalyzed: 0, blockingIssues: 0, secrets: 0, vulnerabilities: 0 };
+  const safeProject = escapeHtml(cert.projectPath || 'Unknown workspace');
+  const safeDate = escapeHtml(new Date(cert.generatedAt).toLocaleString());
+  const safeVersion = escapeHtml(cert.version);
+  const radius = 54;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (score / 100) * circumference;
+  const fileLabel = `${summary.filesAnalyzed.toLocaleString()} file${summary.filesAnalyzed === 1 ? '' : 's'}`;
+  const blockLabel = `${summary.blockingIssues} blocking issue${summary.blockingIssues === 1 ? '' : 's'}`;
+  const secretLabel = `${summary.secrets} secret${summary.secrets === 1 ? '' : 's'}`;
+  const vulnLabel = `${summary.vulnerabilities} vulnerability${summary.vulnerabilities === 1 ? '' : 's'}`;
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -4829,52 +4843,194 @@ function buildCertificateHtml(cert: CertificateData): string {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SimpleBeacon Certificate</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:system-ui,-apple-system,sans-serif;background:#0f172a;color:#e2e8f0;padding:40px 20px;line-height:1.6}
-.container{max-width:800px;margin:0 auto}
-.header{text-align:center;margin-bottom:48px}
-.badge{display:inline-flex;align-items:center;gap:12px;padding:16px 32px;border-radius:16px;background:linear-gradient(135deg,#1e293b,#334155);border:1px solid #475569;margin-bottom:24px}
-.badge-icon{width:48px;height:48px;border-radius:50%;background:${passColor};display:flex;align-items:center;justify-content:center;font-size:24px}
-.badge-text{text-align:left}
-.badge-label{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#94a3b8}
-.badge-value{font-size:20px;font-weight:700;color:#fff}
-.score{font-size:72px;font-weight:800;color:${scoreColor};text-shadow:0 4px 12px rgba(0,0,0,0.3)}
-.score-label{color:#64748b;font-size:16px;margin-top:8px}
-.card{background:#1e293b;border:1px solid #334155;border-radius:16px;padding:28px;margin-bottom:20px}
-.card-title{font-size:14px;text-transform:uppercase;letter-spacing:1px;color:#94a3b8;margin-bottom:16px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px}
-.stat{text-align:center;padding:20px;background:#0f172a;border-radius:12px;border:1px solid #334155}
-.stat-value{font-size:32px;font-weight:700;color:#fff}
-.stat-label{font-size:13px;color:#64748b;margin-top:4px}
-.footer{text-align:center;margin-top:40px;color:#475569;font-size:13px}
+:root {
+  --bg: #0b1120;
+  --card: #111827;
+  --text: #f8fafc;
+  --muted: #94a3b8;
+  --border: #1e293b;
+  --pass: #10b981;
+  --warn: #f59e0b;
+  --fail: #ef4444;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding: 40px 20px;
+  line-height: 1.6;
+}
+.sheet {
+  max-width: 900px;
+  margin: 0 auto;
+  background: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(16,185,129,0.08), transparent 60%), var(--card);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.35);
+}
+.header {
+  padding: 44px 48px 36px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.brand { display: flex; align-items: center; gap: 14px; }
+.brand-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #10b981, #059669);
+  display: grid;
+  place-items: center;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #fff;
+  box-shadow: 0 8px 22px rgba(16,185,129,0.25);
+}
+.brand-text h1 { font-size: 1.35rem; font-weight: 700; letter-spacing: -0.02em; }
+.brand-text p { color: var(--muted); font-size: 0.85rem; margin-top: 2px; }
+.gate-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  letter-spacing: 0.04em;
+  border: 1px solid;
+}
+.gate-icon { font-size: 1.15rem; font-weight: 700; }
+.hero { padding: 48px; text-align: center; }
+.score-ring-wrap {
+  width: 180px;
+  height: 180px;
+  margin: 0 auto 28px;
+  position: relative;
+}
+.score-ring-wrap svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.score-ring-bg { fill: none; stroke: var(--border); stroke-width: 10; }
+.score-ring-fg {
+  fill: none;
+  stroke: ${scoreColor};
+  stroke-width: 10;
+  stroke-linecap: round;
+  stroke-dasharray: ${circumference.toFixed(2)};
+  stroke-dashoffset: ${offset.toFixed(2)};
+  filter: drop-shadow(0 0 8px ${scoreColor});
+}
+.score-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.score-value { font-size: 3.2rem; font-weight: 800; letter-spacing: -0.04em; }
+.score-label { font-size: 0.85rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+.hero h2 { font-size: 1.6rem; font-weight: 700; margin-bottom: 8px; }
+.hero .subtitle { color: var(--muted); max-width: 560px; margin: 0 auto; font-size: 1rem; }
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
+  padding: 0 48px 48px;
+}
+.stat {
+  background: rgba(30,41,59,0.55);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+  text-align: center;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+.stat:hover { transform: translateY(-2px); border-color: #334155; }
+.stat-value { font-size: 2rem; font-weight: 800; color: var(--text); }
+.stat-label { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; margin-top: 6px; }
+.details { padding: 0 48px 48px; }
+.details-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: rgba(30,41,59,0.4);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.details-table td { padding: 14px 18px; border-bottom: 1px solid var(--border); font-size: 0.95rem; }
+.details-table tr:last-child td { border-bottom: none; }
+.details-table td:first-child { color: var(--muted); width: 35%; }
+.details-table code { background: #0f172a; color: #60a5fa; padding: 3px 8px; border-radius: 6px; font-size: 0.85rem; word-break: break-all; }
+.footer {
+  text-align: center;
+  padding: 28px 48px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.footer strong { color: #e2e8f0; }
+@media print {
+  body { --bg: #fff; --card: #fff; --text: #0f172a; --muted: #475569; --border: #e2e8f0; background: #fff; padding: 0; }
+  .sheet { box-shadow: none; border: none; }
+  .stat { background: #f8fafc; border-color: #e2e8f0; }
+  .details-table { background: #fff; }
+  .details-table code { background: #f1f5f9; color: #0f172a; }
+  .footer strong { color: #0f172a; }
+}
 </style>
 </head>
 <body>
-<div class="container">
-  <div class="header">
-    <div class="badge">
-      <div class="badge-icon">${cert.gatePass ? '✓' : '✗'}</div>
-      <div class="badge-text">
-        <div class="badge-label">Quality Gate</div>
-        <div class="badge-value">${cert.gatePass ? 'PASS' : 'FAIL'}</div>
+<div class="sheet">
+  <header class="header">
+    <div class="brand">
+      <div class="brand-icon">SB</div>
+      <div class="brand-text">
+        <h1>SimpleBeacon</h1>
+        <p>Quality Gate Certificate</p>
       </div>
     </div>
-    <div class="score">${score}</div>
-    <div class="score-label">Quality Score / 100</div>
-  </div>
-  <div class="card">
-    <div class="card-title">Scan Summary</div>
-    <div class="grid">
-      <div class="stat"><div class="stat-value">${cert.summary.filesAnalyzed}</div><div class="stat-label">Files Analyzed</div></div>
-      <div class="stat"><div class="stat-value">${cert.summary.blockingIssues}</div><div class="stat-label">Blocking Issues</div></div>
-      <div class="stat"><div class="stat-value">${cert.summary.secrets}</div><div class="stat-label">Secrets Found</div></div>
-      <div class="stat"><div class="stat-value">${cert.summary.vulnerabilities}</div><div class="stat-label">Vulnerabilities</div></div>
+    <div class="gate-badge" style="color:${passColor};background:${passColor}14;border-color:${passColor}44;">
+      <span class="gate-icon">${passIcon}</span>
+      <span>Quality Gate ${passText}</span>
     </div>
-  </div>
-  <div class="footer">
-    Generated on ${new Date(cert.generatedAt).toLocaleString()}<br>
-    SimpleBeacon Certificate v${cert.version}
-  </div>
+  </header>
+  <section class="hero">
+    <div class="score-ring-wrap">
+      <svg viewBox="0 0 120 120" aria-label="Quality score ${score} out of 100">
+        <circle class="score-ring-bg" cx="60" cy="60" r="54"></circle>
+        <circle class="score-ring-fg" cx="60" cy="60" r="54"></circle>
+      </svg>
+      <div class="score-text">
+        <div class="score-value">${score}</div>
+        <div class="score-label">Quality Score</div>
+      </div>
+    </div>
+    <h2>${passText === 'PASS' ? 'All clear — gate passed' : 'Gate failed — review required'}</h2>
+    <p class="subtitle">${fileLabel} analyzed. ${blockLabel}, ${secretLabel}, and ${vulnLabel} detected.</p>
+  </section>
+  <section class="stats">
+    <div class="stat"><div class="stat-value">${summary.filesAnalyzed.toLocaleString()}</div><div class="stat-label">Files Analyzed</div></div>
+    <div class="stat"><div class="stat-value">${summary.blockingIssues}</div><div class="stat-label">Blocking Issues</div></div>
+    <div class="stat"><div class="stat-value">${summary.secrets}</div><div class="stat-label">Secrets Found</div></div>
+    <div class="stat"><div class="stat-value">${summary.vulnerabilities}</div><div class="stat-label">Vulnerabilities</div></div>
+  </section>
+  <section class="details">
+    <table class="details-table">
+      <tr><td>Workspace</td><td><code>${safeProject}</code></td></tr>
+      <tr><td>Generated</td><td>${safeDate}</td></tr>
+      <tr><td>Certificate version</td><td>${safeVersion}</td></tr>
+    </table>
+  </section>
+  <footer class="footer">
+    <p><strong>SimpleBeacon Certificate</strong> · Generated ${safeDate} · Version ${safeVersion}</p>
+    <p>Print this page (Ctrl+P / Cmd+P) and choose <strong>Save as PDF</strong> to download.</p>
+  </footer>
 </div>
 </body>
 </html>`;

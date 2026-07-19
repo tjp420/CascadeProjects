@@ -1,0 +1,24 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "simplebeacon-dashboard",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-07-18",
+  "routes": [
+    {
+      "pattern": "simplebeacon.ai/*",
+      "zone_name": "simplebeacon.ai"
+    },
+    {
+      "pattern": "www.simplebeacon.ai/*",
+      "zone_name": "simplebeacon.ai"
+    }
+  ],
+  "assets": {
+    "directory": "../coming-soon/public",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application"
+  },
+  "vars": {
+    "API_BACKEND": "https://cascadeprojects-yzzd.onrender.com"
+  }
+}

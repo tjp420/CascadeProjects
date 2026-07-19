@@ -1,0 +1,7 @@
+{
+  "name": "test-init",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Minimal fixture project for Simplebeacon compliance checks",
+  "license": "MIT"
+}

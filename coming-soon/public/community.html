@@ -15,6 +15,14 @@
   <link rel="stylesheet" href="styles.css?v=20260530site">
   <script src="site-config.js?v=20260602contact"></script>
   <script src="app-links.js?v=20260602contact"></script>
+  <script>
+    (function(){
+      function isBeacon(el){ if(!el||el.tagName!=='SCRIPT') return false; var src=el.src||''; var cf=el.getAttribute('data-cf-beacon'); return src.indexOf('static.cloudflareinsights.com/beacon.min.js')!==-1 || (cf&&cf.length>0); }
+      function neutralize(el){ if(!isBeacon(el)) return; try{ el.removeAttribute('integrity'); el.removeAttribute('crossorigin'); }catch(e){} var isBrave=(typeof navigator.brave!=='undefined')||/Brave/.test(navigator.userAgent||''); if(isBrave){ if(el.parentNode) el.parentNode.removeChild(el); return; } el.onerror=function(){ if(el.parentNode) el.parentNode.removeChild(el); }; }
+      var s=document.querySelectorAll('script'); for(var i=0;i<s.length;i++) neutralize(s[i]);
+      if(window.MutationObserver){ var mo=new MutationObserver(function(records){ records.forEach(function(r){ Array.prototype.forEach.call(r.addedNodes||[], function(n){ if(n.nodeType===1){ if(n.tagName==='SCRIPT') neutralize(n); if(n.querySelectorAll) Array.prototype.forEach.call(n.querySelectorAll('script'), neutralize); } }); }); }); mo.observe(document.documentElement,{childList:true,subtree:true}); }
+    })();
+  </script>
 </head>
 <body>
     <div id="loader" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#0B0F19;z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;transition:opacity .6s ease,visibility .6s ease;">
@@ -149,11 +157,16 @@
       var isProduction = /^(www\.)?simplebeacon\.ai$/.test(host);
       var token = window.CF_BEACON_TOKEN;
       if (!isProduction || !token) return;
+      // Brave and aggressive tracker blockers return an empty body for beacon.min.js,
+      // which triggers SRI console errors. Skip loading in those environments.
+      var isBrave = typeof navigator.brave !== 'undefined';
+      var ua = navigator.userAgent || '';
+      if (isBrave || /Brave/.test(ua)) return;
       var script = document.createElement('script');
       script.defer = true;
       script.src = 'https://static.cloudflareinsights.com/beacon.min.js';
-            script.crossOrigin = 'anonymous';
-      script.setAttribute('data-cf-beacon', '{"version":"2024.11.0","token":"' + token + '","r":1}');
+      script.setAttribute('data-cf-beacon', '{"token":"' + token + '"}');
+      script.onerror = function() { if (script.parentNode) script.parentNode.removeChild(script); };
       document.body.appendChild(script);
     })();
   </script>

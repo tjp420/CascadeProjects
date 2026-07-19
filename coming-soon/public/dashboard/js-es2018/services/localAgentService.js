@@ -528,15 +528,9 @@ export async function probeUserInitiatedOllama(baseUrl = DEFAULT_OLLAMA_ORIGIN) 
         return { ok: false, corsBlocked: false, status: 0 };
     const origin = String(baseUrl || DEFAULT_OLLAMA_ORIGIN).replace(/\/$/, '');
     const siteOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://simplebeacon.ai';
-    // Hosted HTTPS cannot read Ollama directly — only use an extension-injected bridge (no loopback port scan).
-    if (isHostedHttpsDashboard() && !hasExtensionBridgeConfigured()) {
-        return {
-            ok: false,
-            corsBlocked: true,
-            status: 403,
-            error: `Direct browser access to Ollama is blocked from ${siteOrigin}. Connect the VS Code extension (recommended), or quit the Ollama tray app and run: $env:OLLAMA_ORIGINS="${siteOrigin}"; ollama serve`
-        };
-    }
+    // Hosted HTTPS can reach Ollama directly when OLLAMA_ORIGINS allows the site origin.
+    // Chrome will prompt for Local Network Access permission; Firefox/Safari may block silently.
+    // Fall through to the normal probe loop — if the fetch fails, report the error.
     const doFetch = getLocalBridgeFetch();
     const viaBridge = hasExtensionBridgeConfigured();
     const bridgeHealth = viaBridge ? await probeExtensionBridgeHealth() : { ok: false };

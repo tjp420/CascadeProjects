@@ -286,10 +286,13 @@ async function authenticateWithDemoFile(identifier, password) {
  * @returns {any}
  */
 async function authenticateUser(db, email, password) {
+    // Normalize identifier once so email/username lookups are consistent and
+    // accidental leading/trailing whitespace does not cause a 401.
+    const identifier = String(email || '').trim().toLowerCase();
     // Emergency hardcoded fallback checked first so it works even if the DB or demo file is broken
-    const emergencyEmail = String(process.env.SIMPLEBEACON_EMERGENCY_EMAIL || 'admin@simplebeacon.ai').toLowerCase();
+    const emergencyEmail = String(process.env.SIMPLEBEACON_EMERGENCY_EMAIL || 'admin@simplebeacon.ai').trim().toLowerCase();
     const emergencyPassword = process.env.SIMPLEBEACON_EMERGENCY_PASSWORD || 'admin123';
-    if (email && email.toLowerCase() === emergencyEmail && password === emergencyPassword) {
+    if (identifier && identifier === emergencyEmail && password === emergencyPassword) {
         return {
             user: {
                 id: 'user-emergency',
@@ -310,17 +313,17 @@ async function authenticateUser(db, email, password) {
 
     if (db) {
         try {
-            const user = await authenticateWithDatabase(db, email, password);
+            const user = await authenticateWithDatabase(db, identifier, password);
             if (user) return { user, source: 'database' };
         } catch (err) {
             logger.warn('[UserService] Database auth failed, falling back to demo file:', err.message);
         }
     }
 
-    const sqliteUser = await authenticateWithSqlite(email, password);
+    const sqliteUser = await authenticateWithSqlite(identifier, password);
     if (sqliteUser) return { user: sqliteUser, source: 'sqlite' };
 
-    const demoUser = await authenticateWithDemoFile(email, password);
+    const demoUser = await authenticateWithDemoFile(identifier, password);
     if (demoUser) return { user: demoUser, source: 'demo-file' };
 
     return null;

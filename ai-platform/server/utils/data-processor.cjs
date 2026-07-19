@@ -20,7 +20,7 @@ const { exec } = require('child_process');
 const util = require('util');
 const constants = require('../config/constants.cjs');
 const execAsync = util.promisify(exec);
-const AdmZip = require('adm-zip');
+const unzipper = require('unzipper');
 
 const SANDBOX_PREFIX = 'simplebeacon_sandbox';
 const MAX_UPLOAD_BYTES = 500 * constants.BYTES_PER_KB * constants.BYTES_PER_KB; // 500 MB
@@ -61,12 +61,66 @@ function wipeDirectorySync(dirPath) {
 /**
  * Extract a ZIP buffer into the given sandbox directory.
  */
-function extractZipBuffer(zipBuffer, targetDir) {
-    const zipPath = path.join(targetDir, `__upload_${Date.now()}.zip`);
-    fs.writeFileSync(zipPath, zipBuffer);
-    const zip = new AdmZip(zipPath);
-    zip.extractAllTo(targetDir, true);
-    fs.unlinkSync(zipPath);
+async function extractZipBuffer(zipBuffer, targetDir) {
+    // Safety limits to guard against zip bombs
+    const MAX_TOTAL_EXTRACT_BYTES = 200 * constants.BYTES_PER_KB * constants.BYTES_PER_KB; // 200 MB
+    const MAX_ENTRIES = 1000;
+
+    const directory = await unzipper.Open.buffer(zipBuffer);
+    if (directory.files.length > MAX_ENTRIES) {
+        throw new Error(`ZIP contains too many entries (${directory.files.length})`);
+    }
+
+    let totalExtracted = 0;
+
+    for (const file of directory.files) {
+        // sanitize path
+        const rawPath = String(file.path || '')
+            .replace(/^[\\/]+/, '')
+            .replace(/\.\.[\\/]/g, '');
+        const outPath = path.join(targetDir, rawPath);
+        if (!outPath.startsWith(targetDir)) {
+            throw new Error('Invalid ZIP entry path');
+        }
+
+        if (file.type === 'Directory') {
+            fs.mkdirSync(outPath, { recursive: true });
+            continue;
+        }
+
+        fs.mkdirSync(path.dirname(outPath), { recursive: true });
+
+        // stream the file with size checks
+        await new Promise((resolve, reject) => {
+            const readStream = file.stream();
+            const writeStream = fs.createWriteStream(outPath, { flags: 'wx' });
+            let fileBytes = 0;
+
+            readStream.on('data', (chunk) => {
+                fileBytes += chunk.length;
+                totalExtracted += chunk.length;
+                if (fileBytes > MAX_UPLOAD_BYTES || totalExtracted > MAX_TOTAL_EXTRACT_BYTES) {
+                    readStream.destroy(new Error('ZIP extract exceeds allowed size'));
+                }
+            });
+
+            readStream.on('error', (err) => {
+                try { writeStream.destroy(); } catch {};
+                try { fs.unlinkSync(outPath); } catch {};
+                reject(err);
+            });
+
+            writeStream.on('error', (err) => {
+                try { readStream.destroy(); } catch {};
+                try { fs.unlinkSync(outPath); } catch {};
+                reject(err);
+            });
+
+            writeStream.on('finish', () => resolve());
+            readStream.pipe(writeStream);
+        });
+    }
+
     return targetDir;
 }
 
@@ -162,8 +216,8 @@ async function executeSecureAuditPipeline(zipFileBuffer, projectContext = {}) {
         // 1. Ingest — write buffer to isolated temp location
         fs.mkdirSync(sandboxDir, { recursive: true });
 
-        // 2. Extract ZIP into sandbox
-        extractZipBuffer(zipFileBuffer, sandboxDir);
+        // 2. Extract ZIP into sandbox (await safe extractor)
+        await extractZipBuffer(zipFileBuffer, sandboxDir);
 
         // 3. Run local CLI scan (metadata extraction, no external API calls)
         reportJson = await runLocalScan(sandboxDir, {

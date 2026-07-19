@@ -209,7 +209,7 @@ function loadDashboardHtml() {
  * @returns {void}
  */
 function sendSimplebeaconDashboard(res) {
-  res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, no-transform');
   const html = loadDashboardHtml();
   if (html === null) {
     return res.status(404).send('Simplebeacon dashboard not found');
@@ -256,6 +256,7 @@ const VAULT_AUTH_PREFIX_PATHS = [
   '/api/simplebeacon/billing/webhook',
   '/api/simplebeacon/billing',
   '/api/simplebeacon/scan',
+  '/api/simplebeacon/ollama/',
   '/api/simplebeacon/report',
   '/api/simplebeacon/baseline',
   '/api/simplebeacon/config',
@@ -310,7 +311,7 @@ app.get('/private-dashboard-vault', async (req, res) => {
     const samplePath = path.join(comingSoonRoot, 'sample-report.html');
     try {
       await fs.promises.access(samplePath);
-      res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+      res.set('Cache-Control', 'no-store, no-cache, must-revalidate, no-transform');
       return res.sendFile(samplePath);
     } catch {
       return res.status(404).send('sample-report.html not found — run: cd ai-platform && npm run build:sample-report');
@@ -339,7 +340,7 @@ app.get(['/public/dashboard', '/public/dashboard/', '/public/dashboard/index.htm
   const injectScript = `<script>window.__SIMPLEBEACON_ENV__=${runtimeConfig};</script>`;
   html = html.replace('<head>', `<head>${injectScript}`);
 
-  res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, no-transform');
   res.send(html);
 });
 
@@ -350,7 +351,7 @@ app.use('/', express.static(comingSoonRoot, { index: false }));
 app.use((req, res, next) => {
   const ext = path.extname(req.path).toLowerCase();
   if (ext === '.html' || ext === '.js' || ext === '.mjs' || ext === '.cjs') {
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, no-transform');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
   }
@@ -364,7 +365,7 @@ const noStoreStatic = (dir) => express.static(dir, {
   etag: false,
   setHeaders: (res, path) => {
     if (path.endsWith('.js') || path.endsWith('.mjs')) {
-      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, no-transform');
       res.setHeader('Pragma', 'no-cache');
       res.setHeader('Expires', '0');
       res.setHeader('Vary', '*');
@@ -413,7 +414,7 @@ app.get(['/simplebeacon-dashboard', '/simplebeacon-dashboard/', '/simplebeacon-d
   const injectScript = `<script>window.__SIMPLEBEACON_ENV__=${runtimeConfig};</script>`;
   html = html.replace('<head>', `<head>${injectScript}`);
 
-  res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, no-transform');
   res.send(html);
 });
 
@@ -432,7 +433,7 @@ app.get('/simplebeacon-dashboard/*', async (req, res) => {
   });
   const injectScript = `<script>window.__SIMPLEBEACON_ENV__=${runtimeConfig};</script>`;
   html = html.replace('<head>', `<head>${injectScript}`);
-  res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, no-transform');
   res.send(html);
 });
 
@@ -451,7 +452,7 @@ app.get(['/dashboard', '/dashboard/'], async (req, res) => {
   });
   const injectScript = `<script>window.__SIMPLEBEACON_ENV__=${runtimeConfig};</script>`;
   html = html.replace('<head>', `<head>${injectScript}`);
-  res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, no-transform');
   res.send(html);
 });
 
@@ -470,7 +471,7 @@ app.get('/dashboard/*', async (req, res) => {
   });
   const injectScript = `<script>window.__SIMPLEBEACON_ENV__=${runtimeConfig};</script>`;
   html = html.replace('<head>', `<head>${injectScript}`);
-  res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, no-transform');
   res.send(html);
 });
 

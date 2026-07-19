@@ -4,7 +4,7 @@ import { authService, apiBase } from '../services/authService.js?v=20260716cache
 import { fetchUserAiKeys, userHasJwtForAiKeys, fetchOllamaModels, saveUserAiKeys } from '../services/aiKeysService.js?v=20260716cachefix1';
 import { canUseBrowserOllama, isHostedDashboard } from '../demoMode.js';
 import { isIdeDashboardSurface } from '../utils-lib/dom.js?v=20260716cachefix1';
-import { getLocalBridgeFetch, getExtensionBridgeOrigin, hasExtensionBridgeConfigured, hasExplicitBridgeParam, probeLocalOllama, probeUserInitiatedOllama, probeExtensionBridgeHealth, resolveOllamaProxyUrl, buildBridgeOllamaChatUrls, discoverAndApplyExtensionBridge, buildExtensionConnectDeepLink, getVsixDownloadUrl, isHostedHttpsDashboard } from '../services/localAgentService.js?v=20260716cachefix1';
+import { getLocalBridgeFetch, getExtensionBridgeOrigin, hasExtensionBridgeConfigured, hasExplicitBridgeParam, probeLocalOllama, probeUserInitiatedOllama, probeExtensionBridgeHealth, resolveOllamaProxyUrl, buildBridgeOllamaChatUrls, discoverAndApplyExtensionBridge, buildExtensionConnectDeepLink, getVsixDownloadUrl, isHostedHttpsDashboard } from '../services/localAgentService.js?v=20260718ollama1';
 
 function isExtensionHostedTab() {
     if (hasExtensionBridgeConfigured())
@@ -344,9 +344,8 @@ function renderOllamaSetupInstructions() {
         </div>
         ${hostedHttps && !bridgeActive ? `
         <div class="chatbot-ollama-setup-callout">
-          <strong>HTTPS cannot reach localhost directly.</strong>
-          Open Chatbot from the SimpleBeacon sidebar in VS Code/Cursor (recommended), or use the button below.
-          Your browser may ask to allow access to devices on your network — choose Allow.
+          <strong>Your browser can connect to local Ollama directly.</strong>
+          Set <code>OLLAMA_ORIGINS=https://simplebeacon.ai</code> and run <code>ollama serve</code>, then click Connect local Ollama below. Your browser may ask to allow access to devices on your network — choose Allow.
         </div>` : ''}
         <div class="chatbot-ollama-setup-actions">
           <a class="btn btn-primary btn-sm" href="${deepLink}">Open in VS Code / Cursor</a>
@@ -856,9 +855,7 @@ export class ChatbotView {
         if (statusEl) {
             statusEl.textContent = hasExtensionBridgeConfigured()
                 ? 'Probing Ollama via VS Code extension bridge …'
-                : (isHostedDashboard()
-                    ? 'Connect the VS Code extension first (localhost cannot be probed from HTTPS).'
-                    : 'Probing http://127.0.0.1:11434 …');
+                : 'Probing http://127.0.0.1:11434 … (allow local network access if prompted)';
         }
         let baseUrl = BROWSER_OLLAMA_URL;
         try {

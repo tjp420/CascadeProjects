@@ -85,9 +85,17 @@ html {
 }
 
 /* Firefox */
-* {
+html {
+  scrollbar-width: auto;
+  scrollbar-color: var(--text-muted) transparent;
+}
+
+.scrollable,
+.app-main,
+.results-table-scroll,
+.chatbot-messages {
   scrollbar-width: thin;
-  scrollbar-color: var(--border) transparent;
+  scrollbar-color: var(--text-muted) transparent;
 }
 
 /* Selection */

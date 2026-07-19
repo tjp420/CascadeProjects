@@ -462,10 +462,36 @@ router.get('/api/admin/customers', requireAdmin, (req, res) => {
 });
 
 // GET /api/admin/users — list all registered users (admin only)
+// Also include customers created via billing/checkout flows so admin sees all accounts
 router.get('/api/admin/users', requireAdmin, (req, res) => {
     try {
-        const users = db.getAllUsers().map(mapDashboardUser);
-        res.json({ success: true, users, total: users.length });
+        const users = db.getAllUsers();
+        const customers = db.getAllCustomers();
+
+        // Index existing users by email for quick lookup
+        const userEmails = new Set((users || []).map(u => String(u.email || '').toLowerCase()));
+
+        // Add customers that aren't present in users table (e.g., created via checkout)
+        const merged = [...(users || [])];
+        for (const c of (customers || [])) {
+            const email = String(c.email || '').toLowerCase();
+            if (!email) continue;
+            if (!userEmails.has(email)) {
+                // Create a user-like row from customer
+                merged.push({
+                    id: c.id || null,
+                    email: c.email,
+                    name: c.email && c.email.includes('@') ? c.email.split('@')[0] : c.email,
+                    status: c.subscription_status === 'suspended' ? 'suspended' : 'active',
+                    tier: c.tier || 'community',
+                    created_at: c.created_at || null,
+                    updated_at: c.updated_at || null
+                });
+            }
+        }
+
+        const mapped = (merged || []).map(mapDashboardUser);
+        res.json({ success: true, users: mapped, total: mapped.length });
     } catch (err) {
         res.status(500).json({ error: 'Failed to load users', detail: err.message });
     }

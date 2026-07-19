@@ -432,7 +432,9 @@ const FREE_RULE_ENGINES = new Set([
     'production-leak',
     'llm-slop-patterns',
     'dead-code',
-    'security-patterns'
+    'security-patterns',
+    'json-schema',
+    'sample-consistency'
 ]);
 
 function sanitizeConfigForTier(config, tier) {

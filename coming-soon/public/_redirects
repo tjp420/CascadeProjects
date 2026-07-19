@@ -1,20 +1,3 @@
-# API proxy — forward /api/* to Render backend (fallback when Pages Functions miss a route)
-/api/* https://cascadeprojects-yzzd.onrender.com/api/:splat 200
-
-# Dashboard static assets (must be served with correct MIME types, not SPA fallback)
-/dashboard/css/* /dashboard/css/:splat 200
-/dashboard/js/* /dashboard/js/:splat 200
-/dashboard/js-es2018/* /dashboard/js-es2018/:splat 200
-/dashboard/images/* /dashboard/images/:splat 200
-/dashboard/fonts/* /dashboard/fonts/:splat 200
-/dashboard/assets/* /dashboard/assets/:splat 200
-
-# Dashboard SPA fallback — serve index directly (no 301) so ?sb_api_base= embed params survive
-/dashboard /dashboard/index.html 200
-/dashboard/ /dashboard/index.html 200
-/dashboard/* /dashboard/index.html 200
-
-# Marketing pretty URLs (/audit, /pricing, etc.) are served natively by Cloudflare Pages
-# from *.html files — do NOT add /audit /audit.html 200 rules here; they cause 308 loops
-# with Pages' automatic .html → extensionless canonical redirects.
+# Routing is handled by the Cloudflare Worker code and not_found_handling SPA mode.
+# No _redirects rules needed.
 

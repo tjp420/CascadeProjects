@@ -95,11 +95,16 @@
       var isProduction = /^(www\.)?simplebeacon\.ai$/.test(host);
       var token = window.CF_BEACON_TOKEN;
       if (!isProduction || !token) return;
+      // Brave and aggressive tracker blockers return an empty body for beacon.min.js,
+      // which triggers SRI console errors. Skip loading in those environments.
+      var isBrave = typeof navigator.brave !== 'undefined';
+      var ua = navigator.userAgent || '';
+      if (isBrave || /Brave/.test(ua)) return;
       var script = document.createElement('script');
       script.defer = true;
       script.src = 'https://static.cloudflareinsights.com/beacon.min.js';
-            script.crossOrigin = 'anonymous';
-      script.setAttribute('data-cf-beacon', '{"version":"2024.11.0","token":"' + token + '","r":1}');
+      script.setAttribute('data-cf-beacon', '{"token":"' + token + '"}');
+      script.onerror = function() { if (script.parentNode) script.parentNode.removeChild(script); };
       document.body.appendChild(script);
     })();
   </script>

@@ -73,7 +73,8 @@ function loginErrorMessage(httpResponse, responseBody, fallback = 'Login failed'
   }
   const base = responseBody?.message || responseBody?.error || fallback;
   if (httpResponse.status === 401) {
-    return `${base} — use ${DEMO_EMAIL} for local demo login.`;
+    const hint = isLocalDevHost() ? ` — use ${DEMO_EMAIL} for local demo login.` : '';
+    return `${base}${hint}`;
   }
   if (httpResponse.status === 404) {
     return (

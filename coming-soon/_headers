@@ -1,5 +1,9 @@
 /*
-  Cache-Control: no-transform
+  Cache-Control: public, no-transform
+  Content-Security-Policy: default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data: blob: ws: wss:;
 
 /*.html
-  Cache-Control: no-cache, no-transform
+  Cache-Control: public, no-cache, no-transform
+
+/dashboard/*
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';

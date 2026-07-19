@@ -344,9 +344,8 @@ function renderOllamaSetupInstructions() {
         </div>
         ${hostedHttps && !bridgeActive ? `
         <div class="chatbot-ollama-setup-callout">
-          <strong>HTTPS cannot reach localhost directly.</strong>
-          Open Chatbot from the SimpleBeacon sidebar in VS Code/Cursor (recommended), or use the button below.
-          Your browser may ask to allow access to devices on your network — choose Allow.
+          <strong>Your browser can connect to local Ollama directly.</strong>
+          Set <code>OLLAMA_ORIGINS=https://simplebeacon.ai</code> and run <code>ollama serve</code>, then click Connect local Ollama below. Your browser may ask to allow access to devices on your network — choose Allow.
         </div>` : ''}
         <div class="chatbot-ollama-setup-actions">
           <a class="btn btn-primary btn-sm" href="${deepLink}">Open in VS Code / Cursor</a>

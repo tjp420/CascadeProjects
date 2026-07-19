@@ -28,7 +28,9 @@ const SCAN_OPTION_MAP = {
   'build-readiness': { name: 'Build Readiness', price: 19 },
   'ai-indicators': { name: 'AI System Indicators', price: 19 },
   governance: { name: 'License & Governance', price: 19 },
-  one_time_certificate: { name: 'Board-Ready Audit Certificate', price: 149 }
+  one_time_certificate: { name: 'Board-Ready Audit Certificate', price: 149 },
+  executive_clearance: { name: 'Executive Risk Certificate', price: 499 },
+  eu_ai_act_sprint: { name: 'EU AI Act Sprint', price: 2499 }
 };
 
 const logger = {

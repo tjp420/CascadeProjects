@@ -798,6 +798,14 @@ coming-soon/public/dashboard/js-es2018/controllers/
 coming-soon/public/dashboard/js-es2018/utils-dom.js
 
 # Terminal simulation — demo code with markdown formatting
+
+# Exclude large dataset and binary artifact files that can stall full-directory scans
+# These dataset files (TFRecord, large binaries) are not useful for static code scanning
+datasets/
+**/*.tfrecord
+**/*.tfrecord-*
+**/*.tfrecord.*
+**/*.tfrecord.gz
 coming-soon/js/terminal-simulation.js
 coming-soon/js-es2018/terminal-simulation.js
 coming-soon/public/js/terminal-simulation.js
@@ -930,4 +938,51 @@ AUDIT-PRD.md
 WORKSPACE-STATUS-REPORT-*.md
 zzz_status.json
 simplebeacon-c-users-*.json
+
+# Phase 11: Additional temp/junk file patterns
+svr*.log
+svr*.e.log
+start*.log
+start*.err.log
+server*.log
+server*.err.log
+dashboard-*.log
+audit-*.log
+team-*.log
+sc_tunnel_*.log
+local-dashboard.log
+gate-status-root.txt
+gate-commit-check.json
+consolidation-analysis.txt
+ts_out.txt
+tmp-compile-out.txt
+temp_codemap_js.js
+test-tokens.txt
+test-output*.txt
+ai-platform-test-output.txt
+top-issues-analysis-report*.md
+scan-full-coverage.log
+scan-website.sh
+orphan-audit-summary.json
+dashboard-preview.html
+simplebeacon-report.html
+simplebeacon-report.json
+universal.tokenkey
+*.tokenkey
+temp_*.js
+tmp-*.ps1
+tmp-find-*.ps1
+__ci_run_*.log
+__check_*.mjs
+__cs_*.mjs
+__fake_vscode.js
+_fix_*.cjs
+_fix_*.js
+_test_*.js
+_update_*.js
+_check_*.js
+_find_*.js
+vsix-*.log
+vsix-*.txt
+vsix-dirs*.txt
 

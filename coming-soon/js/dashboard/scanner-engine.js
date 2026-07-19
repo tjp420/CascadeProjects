@@ -1374,9 +1374,15 @@ async function processLocalCLIScan(files) {
     }
     if (includeDeps) appendTerminalLine('Note: node_modules/.git inclusion enabled — scan will be slower && noisier.', 'warn');
     if (deepScan) appendTerminalLine('DEEP SCAN MODE: All cache, docs, && scanner-page filters bypassed. Only secrets && 500MB+ files are excluded.', 'warn');
-    // Collapsible raw file list
-    const fileListHtml = files.map(f => f.webkitRelativePath || f.name).join('\n');
-    appendTerminalLine(`<details style="margin:4px 0;"><summary style="cursor:pointer;color:#60A5FA;font-size:0.75rem;">&#128451; Show all ${files.length.toLocaleString()} discovered files</summary>\n<pre style="max-height:400px;overflow:auto;background:#0B0F19;padding:8px;border-radius:6px;font-size:0.68rem;color:#94A3B8;margin-top:6px;line-height:1.4;">${fileListHtml.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre></details>`);
+    // Collapsible raw file list (capped to avoid huge DOM insertion / freeze)
+    const MAX_LISTED_FILES = 1000;
+    const fileListHtml = files.slice(0, MAX_LISTED_FILES)
+        .map(f => (f.webkitRelativePath || f.name)
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'))
+        .join('\n');
+    const omittedFiles = files.length - MAX_LISTED_FILES;
+    const omittedText = omittedFiles > 0 ? ` (${omittedFiles.toLocaleString()} more not shown)` : '';
+    appendTerminalLine(`<details style="margin:4px 0;"><summary style="cursor:pointer;color:#60A5FA;font-size:0.75rem;">&#128451; Show discovered files${omittedText}</summary>\n<pre style="max-height:400px;overflow:auto;background:#0B0F19;padding:8px;border-radius:6px;font-size:0.68rem;color:#94A3B8;margin-top:6px;line-height:1.4;">${fileListHtml}</pre></details>`);
 
     let scanned = 0;
     let totalLines = 0;
@@ -1760,7 +1766,9 @@ async function processLocalCLIScan(files) {
     let scanWorker = null;
     let workerScanActive = false;
     let workerPromise = null;
-    if (sourceFiles.length >= 1000 && typeof Worker !== 'undefined') { // simplebeacon-ignore: strict !== comparison
+    // Worker disabled: stale pattern registry and File-object transfer can hang/crash
+    // strict browsers (Brave/Zorin). Main-thread scan with cooperative yields is safer.
+    if (false && sourceFiles.length >= 1000 && typeof Worker !== 'undefined') { // simplebeacon-ignore: strict !== comparison
         try {
             scanWorker = new Worker('js/scan-worker.js?v=2.0.2');
             workerScanActive = true;
@@ -1850,7 +1858,11 @@ async function processLocalCLIScan(files) {
         scanWorker.postMessage({ type: 'scan', files: workerFiles, scanId: Date.now(), deepScan: deepScan });
     }
     // Robust file reader: File.text() with FileReader fallback for older browsers
+    const MAX_SCANNABLE_FILE_BYTES = 10 * 1024 * 1024; // 10 MB — avoid OOM on minified/model dumps
     async function readFileText(file) {
+        if (file.size > MAX_SCANNABLE_FILE_BYTES) {
+            throw new Error(`File exceeds ${MAX_SCANNABLE_FILE_BYTES} byte limit`);
+        }
         if (typeof file.text === 'function') {
             return await file.text();
         }
@@ -1862,6 +1874,7 @@ async function processLocalCLIScan(files) {
         });
     }
     let readErrors = 0;
+    let largeFileSkips = 0;
     const SCAN_BATCH_SIZE = 250; // Yield to event loop every N files to prevent freezing
     const MAX_DEEP_SCAN_FILES = 999999999; // No sampling cap — scan all files
     let sampledOut = 0;
@@ -1872,6 +1885,12 @@ async function processLocalCLIScan(files) {
     for (let i = 0; i < sourceFiles.length; i++) {
         if (i > 0 && i % SCAN_BATCH_SIZE === 0) {
             await new Promise(r => setTimeout(r, 0));
+            if (signal.aborted) {
+                appendTerminalLine('Scan aborted by user.', 'warn');
+                panelStatus.textContent = 'ABORTED';
+                panelStatus.style.color = '#F59E0B';
+                throw new Error('Scan aborted');
+            }
         }
         if (i > 0 && i % 1000 === 0) {
             appendTerminalLine(`Scanning progress: ${i.toLocaleString()}/${sourceFiles.length.toLocaleString()} files...`);
@@ -1890,11 +1909,19 @@ async function processLocalCLIScan(files) {
         let text = '';
         let lineCount = 0;
         try {
+            if (file.size > MAX_SCANNABLE_FILE_BYTES) {
+                throw new Error(`File exceeds ${MAX_SCANNABLE_FILE_BYTES} byte limit`);
+            }
             text = await readFileText(file);
             lineCount = text.split('\n').length;
             totalLines += lineCount;
         } catch (e) {
-            readErrors++;
+            if (e.message && e.message.includes('byte limit')) {
+                largeFileSkips++;
+                if (largeFileSkips <= 5) appendTerminalLine(`Skipping ${path}: file exceeds 10 MB read limit.`, 'warn');
+            } else {
+                readErrors++;
+            }
             continue;
         }
         const lower = text.toLowerCase();
@@ -2461,11 +2488,12 @@ async function processLocalCLIScan(files) {
     appendTerminalLine(`  After initial filter: <strong>${sourceFiles.length.toLocaleString()}</strong> (skipped ${skipped.toLocaleString()})`);
     appendTerminalLine(`  Main thread scanned: <strong>${scanned.toLocaleString()}</strong>`);
     appendTerminalLine(`  Read errors: <strong>${readErrors.toLocaleString()}</strong>`);
+    if (largeFileSkips > 0) appendTerminalLine(`  Large files skipped (>10 MB): <strong>${largeFileSkips.toLocaleString()}</strong>`, 'warn');
     if (scanWorker) {
         appendTerminalLine(`  Worker files posted: <strong>${Math.min(sourceFiles.length, 100000).toLocaleString()}</strong> (cap: 100000)`);
         appendTerminalLine(`  <span style="color:#F59E0B;">&#9888; Worker receives path objects only — file.text() will silently fail. Main thread does actual scanning.</span>`, 'warn');
     }
-    const unaccounted = sourceFiles.length - scanned - readErrors - sampledOut;
+    const unaccounted = sourceFiles.length - scanned - readErrors - largeFileSkips - sampledOut;
     if (unaccounted > 0) {
         appendTerminalLine(`  <span style="color:#EF4444;">&#9888; Unaccounted files: ${unaccounted.toLocaleString()}</span>`, 'warn');
     }

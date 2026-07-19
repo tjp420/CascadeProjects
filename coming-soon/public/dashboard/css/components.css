@@ -178,14 +178,13 @@ html[data-embed-full-nav="1"] #app-main {
   justify-content: flex-start;
 }
 
-/* Chatbot: allow scrolling when content overflows viewport */
+/* Chatbot: chat messages scroll; outer app-main stays fixed */
 html[data-embed-full-nav="1"] #app-main:has(.chatbot-container),
 html[data-embed-mode="1"] #app-main:has(.chatbot-container),
 html[data-ide-embed="1"] #app-main:has(.chatbot-container) {
   display: flex !important;
   flex-direction: column;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 html[data-embed-full-nav="1"] #app-main:has(.chatbot-container) .view-container,
@@ -4376,7 +4375,7 @@ button.tool-card.help-page-card:hover {
 .chatbot-page .view-content {
   display: flex;
   flex-direction: column;
-  flex: 1 1 auto;
+  flex: 1 1 0%;
   width: 100%;
   max-width: none;
   min-height: 0;
@@ -4387,7 +4386,7 @@ button.tool-card.help-page-card:hover {
 .chatbot-container {
   display: flex;
   flex-direction: column;
-  flex: 1 1 auto;
+  flex: 1 1 0%;
   width: 100%;
   max-width: none;
   min-height: 0;
@@ -4490,7 +4489,7 @@ html[data-embed-full-nav="1"] .chatbot-container {
 }
 
 .chatbot-messages {
-  flex: 1 1 auto;
+  flex: 1 1 0%;
   overflow-y: auto;
   padding: var(--space-4);
   display: flex;

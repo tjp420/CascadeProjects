@@ -225,6 +225,11 @@ function setupChatbotAPI(app) {
         return res.status(400).json({ error: 'Message is required and must be a string' });
       }
 
+      const ALLOWED_PROVIDERS = ['openai', 'anthropic', 'ollama'];
+      if (!ALLOWED_PROVIDERS.includes(provider)) {
+        return res.status(400).json({ success: false, error: `Unsupported provider: ${provider}` });
+      }
+
       // Defend against massive payload sizes
       if (message.length > constants.TIMEOUT_12S) {
         return res.status(400).json({ error: 'Message content length exceeds safe processing limit' });
@@ -376,15 +381,17 @@ function setupChatbotAPI(app) {
       logger.error('[Chatbot API] Error:', error);
       // Ollama is often unreachable from remote deployments; return a friendly demo response
       // rather than a 500 so the chatbot UI stays usable.
-      if (req.body?.provider === 'ollama') {
+      if (provider === 'ollama') {
         return res.json({
           success: true,
-          response: `Ollama inference failed (${error.message}). The service may be unreachable from this server.\n\nTo use the chatbot:\n• Configure OpenAI or Anthropic in Settings → AI providers, or\n• Run Ollama on a network-reachable host and set OLLAMA_BASE_URL.\n\nYour message: "${String(req.body?.message || '').substring(0, 200)}"`,
+          response: `Ollama inference failed (${error.message}). The service may be unreachable from this server.\n\nTo use the chatbot:\n• Configure OpenAI or Anthropic in Settings → AI providers, or\n• Run Ollama on a network-reachable host and set OLLAMA_BASE_URL.\n\nYour message: "${String(message || '').substring(0, 200)}"`,
           provider: 'demo',
           timing: null
         });
       }
-      res.status(500).json({
+      const statusCode = error.statusCode || 500;
+      res.status(statusCode).json({
+        success: false,
         error: 'Failed to generate response',
         message: error.message
       });

@@ -1,0 +1,26 @@
+{
+  "type": "ai-tools-model",
+  "overview": {
+    "totalTools": 3
+  },
+  "tools": [
+    { "name": "Analyzer", "category": "Static Analysis" },
+    { "name": "Formatter", "category": "Code Style" },
+    { "name": "Linter", "category": "Quality" }
+  ],
+  "usageByCategory": [
+    { "category": "Static Analysis", "count": 12 },
+    { "category": "Code Style", "count": 7 },
+    { "category": "Quality", "count": 9 }
+  ],
+  "performanceMetrics": [
+    { "metric": "averageScanTimeMs", "value": 120 },
+    { "metric": "falsePositiveRate", "value": 2 }
+  ],
+  "insights": [
+    { "title": "All tools operational", "description": "No issues detected" }
+  ],
+  "activity": [
+    { "event": "scan", "timestamp": "2026-07-18T00:00:00Z" }
+  ]
+}

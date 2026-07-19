@@ -156,7 +156,8 @@ function loginErrorMessage(httpResponse, responseBody, fallback = 'Login failed'
     }
     const base = (responseBody === null || responseBody === void 0 ? void 0 : responseBody.message) || (responseBody === null || responseBody === void 0 ? void 0 : responseBody.error) || fallback;
     if (httpResponse.status === 401) {
-        return `${base} — use ${DEMO_EMAIL} for local demo login.`;
+        const hint = isLocalDevHost() ? ` — use ${DEMO_EMAIL} for local demo login.` : '';
+        return `${base}${hint}`;
     }
     if (httpResponse.status === 404) {
         return ('Login route not found — Phase 2 auth did not start. '

@@ -1,3 +1,19 @@
+# Security Policy
+
+If you discover a security vulnerability in this project, please report it responsibly.
+
+Reporting
+- Email: security@yourdomain.example (replace with real contact)
+- PGP key: (not configured) — if you require encrypted communication, contact via the email above for details.
+
+Guidelines
+- Provide a clear description of the issue, reproduction steps, affected versions, and any proof-of-concept code.
+- Do NOT include sensitive data (secrets, passwords, or full database dumps) in public issue trackers.
+- We will acknowledge receipt within 72 hours and aim to provide a remediation timeline.
+
+Remediation
+- Rotate any leaked secrets immediately.
+- If a secret was committed to git history, we will remove it from history and recommend rotation steps.
 # Security Policy & Vulnerability Disclosure
 
 **Last Updated:** 2026-06-27

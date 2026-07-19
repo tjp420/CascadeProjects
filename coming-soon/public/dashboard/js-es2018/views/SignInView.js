@@ -1,5 +1,5 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
-import { authService } from '../services/authService.js?v=20260716cachefix1';
+import { authService } from '../services/authService.js?v=20260718username1';
 import { billingService } from '../services/billingService.js';
 import { authenticateWithSecurityKey, isWebAuthnSupported } from '../services/webauthnService.js?v=20260716cachefix1';
 import { showToast } from '../utils.js';
@@ -163,6 +163,7 @@ export class SignInView {
             (_b = container.querySelector('#signin-email-form')) === null || _b === void 0 ? void 0 : _b.addEventListener('submit', (e) => this.handleEmailSubmit(e));
             (_c = container.querySelector('#forgot-password-btn')) === null || _c === void 0 ? void 0 : _c.addEventListener('click', () => this._showRecoveryModal());
             (_d = container.querySelector('#webauthn-signin-btn')) === null || _d === void 0 ? void 0 : _d.addEventListener('click', () => this._handleWebAuthnSignIn());
+            this._bindTokenInput(container);
         }
         else {
             (_e = container.querySelector('#signin-signout-btn')) === null || _e === void 0 ? void 0 : _e.addEventListener('click', async () => {
@@ -260,6 +261,14 @@ export class SignInView {
         <button type="button" class="btn btn-secondary btn-block" id="webauthn-signin-btn" style="${btnSecondary};display:flex;align-items:center;justify-content:center;gap:8px;">
           <span>&#128274;</span> Sign in with Security Key
         </button>
+        <details style="margin-top:12px;">
+          <summary style="font-size:0.85rem;color:var(--text-muted);cursor:pointer;text-align:center;">Have a license or sandbox token?</summary>
+          <div style="margin-top:12px;">
+            <input id="signin-token-input" class="input" type="text" autocomplete="off" placeholder="Paste your token here…" style="${inputStyle}margin-bottom:10px;" />
+            <p id="signin-token-error" class="signin-error" hidden role="alert" style="margin:0 0 10px;font-size:0.85rem;color:var(--danger);text-align:center;"></p>
+            <button type="button" class="btn btn-primary btn-block" id="signin-token-submit" style="${btnPrimary}">Sign in with token</button>
+          </div>
+        </details>
         <p class="signin-note" id="email-mode-note" style="margin:16px 0 0;font-size:0.85rem;color:var(--text-muted);text-align:center;line-height:1.5;">${isRegister ? 'Already have an account? <button type="button" id="note-goto-signin" style="background:none;border:none;padding:0;color:var(--primary);font:inherit;font-weight:600;cursor:pointer;">Sign in</button>.' : 'New here? <button type="button" id="note-goto-register" style="background:none;border:none;padding:0;color:var(--primary);font:inherit;font-weight:600;cursor:pointer;">Create an account</button>.'}</p>
       </div>
 
@@ -323,9 +332,11 @@ export class SignInView {
             }
             return;
         }
-        if (!password || password.length < 8) {
+        if (this._emailMode === 'register' ? (!password || password.length < 8) : !password) {
             if (errorEl) {
-                errorEl.textContent = 'Password must be at least 8 characters.';
+                errorEl.textContent = this._emailMode === 'register'
+                    ? 'Password must be at least 8 characters.'
+                    : 'Please enter your password.';
                 errorEl.hidden = false;
             }
             return;
@@ -416,6 +427,54 @@ export class SignInView {
             submitBtn.disabled = false;
             submitBtn.textContent = this._emailMode === 'register' ? 'Create Account' : 'Sign In';
         }
+    }
+    _bindTokenInput(container) {
+        const tokenInput = container.querySelector('#signin-token-input');
+        const tokenSubmit = container.querySelector('#signin-token-submit');
+        const tokenError = container.querySelector('#signin-token-error');
+        if (!tokenInput || !tokenSubmit) return;
+        tokenSubmit.addEventListener('click', async () => {
+            const token = tokenInput.value.trim();
+            if (!token) {
+                if (tokenError) { tokenError.textContent = 'Please paste a token.'; tokenError.hidden = false; }
+                return;
+            }
+            tokenSubmit.disabled = true;
+            tokenSubmit.textContent = 'Signing in…';
+            if (tokenError) { tokenError.hidden = true; tokenError.textContent = ''; }
+            try {
+                if (token.split('.').length === 3) {
+                    var payload;
+                    try { payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))); } catch(e) { payload = null; }
+                    if (payload && payload.email && (!payload.exp || payload.exp * 1000 > Date.now())) {
+                        authService.setSession(token, {
+                            email: payload.email,
+                            tier: payload.tier || payload.product || payload.plan || 'community',
+                            role: payload.role || payload.tier || payload.product || payload.plan || 'community',
+                            features: payload.features || []
+                        });
+                        showToast('Signed in successfully', 'success');
+                        this.app.updateAuthUi();
+                        this.app.navigate('dashboard');
+                        return;
+                    }
+                }
+                authService.setSession(token, { token, source: 'signin-page' });
+                const valid = await authService.validateSession();
+                if (!valid) throw new Error('Invalid or expired token.');
+                showToast('Signed in successfully', 'success');
+                this.app.updateAuthUi();
+                this.app.navigate('dashboard');
+            }
+            catch (err) {
+                authService.clearSession();
+                const message = err.message || 'Token validation failed';
+                if (tokenError) { tokenError.textContent = message; tokenError.hidden = false; }
+                showToast(message, 'error');
+                tokenSubmit.disabled = false;
+                tokenSubmit.textContent = 'Sign in with token';
+            }
+        });
     }
     _showRecoveryModal() {
         const overlay = document.createElement('div');
