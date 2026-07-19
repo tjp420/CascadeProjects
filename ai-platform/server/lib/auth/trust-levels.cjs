@@ -139,11 +139,65 @@ function canAccessDashboardWrite(user) {
   return false;
 }
 
+/**
+ * Middleware factory that enforces per-resource ownership for read:own/write:own scopes.
+ * Accepts an async function that extracts the resource owner's ID from the request
+ * (e.g. via DB lookup or route param). Admin/superuser/all_modules users bypass.
+ *
+ * @param {(req: object) => Promise<string|undefined>} getOwnerId
+ * @returns {ExpressMiddleware}
+ */
+function requireOwnership(getOwnerId) {
+  return async (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Unauthorized', message: 'Authentication required' });
+    }
+    const role = String(req.user.role || '').toLowerCase();
+    if (role === 'admin' || role === 'superuser') return next();
+    const features = Array.isArray(req.user.features) ? req.user.features.map(String).map(s => s.toLowerCase()) : [];
+    if (features.includes('all_modules')) return next();
+    try {
+      const ownerId = await getOwnerId(req);
+      if (ownerId != null && String(ownerId) === String(req.user.id)) {
+        return next();
+      }
+      return res.status(403).json({ error: 'Forbidden', message: 'You do not own this resource' });
+    } catch (err) {
+      return res.status(500).json({ error: 'Ownership check failed', message: err.message });
+    }
+  };
+}
+
+/**
+ * Middleware that gates an endpoint to users with private analysis access.
+ * Use on enterprise/paid analyzer endpoints to prevent analyze:public-only
+ * users from accessing them. Admin/superuser/all_modules users bypass.
+ */
+function requirePrivateAnalysis(req, res, next) {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Unauthorized', message: 'Authentication required' });
+  }
+  const userPermissions = req.user.permissions || [];
+  if (userPermissions.includes('analyze:private')) return next();
+  const role = String(req.user.role || '').toLowerCase();
+  if (role === 'admin' || role === 'superuser') return next();
+  const features = Array.isArray(req.user.features) ? req.user.features.map(String).map(s => s.toLowerCase()) : [];
+  if (features.includes('all_modules')) return next();
+  return res.status(403).json({
+    error: 'upgrade_required',
+    message: 'This feature requires a paid plan with private analysis access',
+    current: req.user.tier || req.user.trustLevel || 'community',
+    required: 'analyze:private'
+  });
+}
+
 module.exports = {
   trustLevels,
   getTrustLevelRateLimit,
   evaluateTrustLevel,
   authorize,
   requireTrustLevel,
-  canAccessDashboardWrite
+  canAccessDashboardWrite,
+  requireOwnership,
+  requirePrivateAnalysis
 };

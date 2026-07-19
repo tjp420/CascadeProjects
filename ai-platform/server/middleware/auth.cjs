@@ -26,7 +26,9 @@ const {
   evaluateTrustLevel,
   authorize,
   requireTrustLevel,
-  canAccessDashboardWrite
+  canAccessDashboardWrite,
+  requireOwnership,
+  requirePrivateAnalysis
 } = require('../lib/auth/trust-levels.cjs');
 
 const {
@@ -268,6 +270,8 @@ module.exports = Object.freeze({
   authorize,
   requireTrustLevel,
   canAccessDashboardWrite,
+  requireOwnership,
+  requirePrivateAnalysis,
   getTrustLevelRateLimit,
   evaluateTrustLevel,
   auditAuth,

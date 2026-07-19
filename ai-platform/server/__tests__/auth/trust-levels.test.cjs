@@ -3,7 +3,9 @@ const {
   getTrustLevelRateLimit,
   evaluateTrustLevel,
   authorize,
-  requireTrustLevel
+  requireTrustLevel,
+  requireOwnership,
+  requirePrivateAnalysis
 } = require('../../lib/auth/trust-levels.cjs');
 
 describe('trust-levels', () => {
@@ -120,6 +122,110 @@ describe('trust-levels', () => {
       const res = mockRes();
       const next = jest.fn();
       requireTrustLevel('silver')(req, res, next);
+      expect(res.status).toHaveBeenCalledWith(401);
+    });
+  });
+
+  describe('requireOwnership middleware', () => {
+    const mockRes = () => ({ status: jest.fn().mockReturnThis(), json: jest.fn().mockReturnThis() });
+
+    test('allows when ownerId matches userId', async () => {
+      const req = { user: { id: 'u1', permissions: ['read:own'] } };
+      const res = mockRes();
+      const next = jest.fn();
+      const mw = requireOwnership(async () => 'u1');
+      await mw(req, res, next);
+      expect(next).toHaveBeenCalled();
+    });
+
+    test('rejects when ownerId does not match', async () => {
+      const req = { user: { id: 'u1', permissions: ['read:own'] } };
+      const res = mockRes();
+      const next = jest.fn();
+      const mw = requireOwnership(async () => 'u2');
+      await mw(req, res, next);
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    test('admin bypasses ownership check', async () => {
+      const req = { user: { id: 'u1', role: 'admin' } };
+      const res = mockRes();
+      const next = jest.fn();
+      const mw = requireOwnership(async () => 'someone-else');
+      await mw(req, res, next);
+      expect(next).toHaveBeenCalled();
+    });
+
+    test('all_modules feature bypasses ownership check', async () => {
+      const req = { user: { id: 'u1', features: ['all_modules'] } };
+      const res = mockRes();
+      const next = jest.fn();
+      const mw = requireOwnership(async () => 'someone-else');
+      await mw(req, res, next);
+      expect(next).toHaveBeenCalled();
+    });
+
+    test('rejects when no user', async () => {
+      const req = {};
+      const res = mockRes();
+      const next = jest.fn();
+      const mw = requireOwnership(async () => 'u1');
+      await mw(req, res, next);
+      expect(res.status).toHaveBeenCalledWith(401);
+    });
+
+    test('returns 500 when getOwnerId throws', async () => {
+      const req = { user: { id: 'u1' } };
+      const res = mockRes();
+      const next = jest.fn();
+      const mw = requireOwnership(async () => { throw new Error('DB error'); });
+      await mw(req, res, next);
+      expect(res.status).toHaveBeenCalledWith(500);
+    });
+  });
+
+  describe('requirePrivateAnalysis middleware', () => {
+    const mockRes = () => ({ status: jest.fn().mockReturnThis(), json: jest.fn().mockReturnThis() });
+
+    test('allows user with analyze:private permission', () => {
+      const req = { user: { id: 'u1', permissions: ['read:own', 'analyze:private'] } };
+      const res = mockRes();
+      const next = jest.fn();
+      requirePrivateAnalysis(req, res, next);
+      expect(next).toHaveBeenCalled();
+    });
+
+    test('rejects bronze user with only analyze:public', () => {
+      const req = { user: { id: 'u1', permissions: ['read:own', 'analyze:public'], trustLevel: 'bronze', tier: 'community' } };
+      const res = mockRes();
+      const next = jest.fn();
+      requirePrivateAnalysis(req, res, next);
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: 'upgrade_required' }));
+    });
+
+    test('admin bypasses', () => {
+      const req = { user: { id: 'u1', role: 'admin', permissions: ['read:own'] } };
+      const res = mockRes();
+      const next = jest.fn();
+      requirePrivateAnalysis(req, res, next);
+      expect(next).toHaveBeenCalled();
+    });
+
+    test('all_modules feature bypasses', () => {
+      const req = { user: { id: 'u1', features: ['all_modules'], permissions: ['read:own'] } };
+      const res = mockRes();
+      const next = jest.fn();
+      requirePrivateAnalysis(req, res, next);
+      expect(next).toHaveBeenCalled();
+    });
+
+    test('rejects when no user', () => {
+      const req = {};
+      const res = mockRes();
+      const next = jest.fn();
+      requirePrivateAnalysis(req, res, next);
       expect(res.status).toHaveBeenCalledWith(401);
     });
   });

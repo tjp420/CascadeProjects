@@ -48,6 +48,39 @@ describe('token-service', () => {
     await expect(verifyToken('invalid-token')).rejects.toMatchObject({ status: 401 });
   });
 
+  test('verifyToken rejects a token without iss/aud claims', async () => {
+    const jwt = require('jsonwebtoken');
+    const { jwtConfig } = require('../jwt-config.cjs');
+    const tokenWithoutClaims = jwt.sign(
+      { sub: 'user-1', email: 'test@example.com', name: 'Test' },
+      jwtConfig.secret,
+      { algorithm: 'HS256', expiresIn: '15m' }
+    );
+    await expect(verifyToken(tokenWithoutClaims)).rejects.toMatchObject({ status: 401 });
+  });
+
+  test('verifyToken rejects a token with wrong issuer', async () => {
+    const jwt = require('jsonwebtoken');
+    const { jwtConfig } = require('../jwt-config.cjs');
+    const wrongIssuerToken = jwt.sign(
+      { sub: 'user-1', email: 'test@example.com', name: 'Test' },
+      jwtConfig.secret,
+      { algorithm: 'HS256', issuer: 'wrong-issuer', audience: jwtConfig.audience, expiresIn: '15m' }
+    );
+    await expect(verifyToken(wrongIssuerToken)).rejects.toMatchObject({ status: 401 });
+  });
+
+  test('verifyToken rejects a token with wrong audience', async () => {
+    const jwt = require('jsonwebtoken');
+    const { jwtConfig } = require('../jwt-config.cjs');
+    const wrongAudienceToken = jwt.sign(
+      { sub: 'user-1', email: 'test@example.com', name: 'Test' },
+      jwtConfig.secret,
+      { algorithm: 'HS256', issuer: jwtConfig.issuer, audience: 'wrong-audience', expiresIn: '15m' }
+    );
+    await expect(verifyToken(wrongAudienceToken)).rejects.toMatchObject({ status: 401 });
+  });
+
   test('recordTokenFirstUse returns a timestamp', () => {
     const ts = recordTokenFirstUse('test-jti-1');
     expect(typeof ts).toBe('number');

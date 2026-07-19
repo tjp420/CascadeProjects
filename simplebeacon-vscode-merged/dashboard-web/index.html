@@ -2,6 +2,73 @@
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
+  <script>
+    // Neutralize any Cloudflare beacon / analytics script that may be injected at the edge.
+    // Brave and aggressive tracker blockers return an empty body for beacon.min.js, which
+    // triggers SRI console errors when the tag has an integrity attribute. Strip the
+    // integrity and remove the tag entirely in Brave; otherwise attach an onerror cleanup.
+    (function() {
+      function isBeacon(el) {
+        if (!el || el.tagName !== 'SCRIPT') return false;
+        var src = el.src || '';
+        var cf = el.getAttribute('data-cf-beacon');
+        return src.indexOf('static.cloudflareinsights.com/beacon.min.js') !== -1 || (cf && cf.length > 0);
+      }
+      function neutralize(el) {
+        if (!isBeacon(el)) return;
+        // Edge-injected beacon tags may carry an integrity hash that does not match
+        // the actual script body, which causes SRI console errors. Stop them before
+        // the browser fetches by stripping src and disabling execution.
+        if (el.hasAttribute && el.hasAttribute('integrity')) {
+          try { el.removeAttribute('src'); } catch (_) {}
+          try { el.type = 'text/plain'; } catch (_) {}
+        }
+        el.removeAttribute('integrity');
+        el.removeAttribute('crossorigin');
+        var isBrave = typeof navigator.brave !== 'undefined';
+        var ua = navigator.userAgent || '';
+        if (isBrave || /Brave/.test(ua)) {
+          if (el.parentNode) el.parentNode.removeChild(el);
+          return;
+        }
+        el.onerror = function() { if (el.parentNode) el.parentNode.removeChild(el); };
+      }
+      // Intercept createElement('script') to strip integrity from beacon scripts
+      // before they are inserted into the DOM and the browser starts fetching.
+      var origCreate = document.createElement.bind(document);
+      document.createElement = function(tag) {
+        var el = origCreate(tag);
+        if (typeof tag === 'string' && tag.toLowerCase() === 'script') {
+          var origSetAttr = el.setAttribute.bind(el);
+          el.setAttribute = function(name, value) {
+            if (name === 'src' && typeof value === 'string' && value.indexOf('static.cloudflareinsights.com/beacon.min.js') !== -1) {
+              // Strip integrity immediately when src is set to the beacon URL
+              try { el.removeAttribute('integrity'); } catch (_) {}
+            }
+            return origSetAttr(name, value);
+          };
+        }
+        return el;
+      };
+      var scripts = document.querySelectorAll('script');
+      for (var i = 0; i < scripts.length; i++) neutralize(scripts[i]);
+      if (window.MutationObserver) {
+        var mo = new MutationObserver(function(records) {
+          records.forEach(function(record) {
+            Array.prototype.forEach.call(record.addedNodes || [], function(node) {
+              if (node.nodeType === 1) {
+                if (node.tagName === 'SCRIPT') neutralize(node);
+                if (node.querySelectorAll) {
+                  Array.prototype.forEach.call(node.querySelectorAll('script'), neutralize);
+                }
+              }
+            });
+          });
+        });
+        mo.observe(document.documentElement, { childList: true, subtree: true });
+      }
+    })();
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="referrer" content="no-referrer">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">

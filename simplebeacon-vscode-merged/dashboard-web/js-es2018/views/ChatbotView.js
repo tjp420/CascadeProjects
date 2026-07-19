@@ -4,7 +4,7 @@ import { authService, apiBase } from '../services/authService.js?v=20260716cache
 import { fetchUserAiKeys, userHasJwtForAiKeys, fetchOllamaModels, saveUserAiKeys } from '../services/aiKeysService.js?v=20260716cachefix1';
 import { canUseBrowserOllama, isHostedDashboard } from '../demoMode.js';
 import { isIdeDashboardSurface } from '../utils-lib/dom.js?v=20260716cachefix1';
-import { getLocalBridgeFetch, getExtensionBridgeOrigin, hasExtensionBridgeConfigured, hasExplicitBridgeParam, probeLocalOllama, probeUserInitiatedOllama, probeExtensionBridgeHealth, resolveOllamaProxyUrl, buildBridgeOllamaChatUrls, discoverAndApplyExtensionBridge, buildExtensionConnectDeepLink, getVsixDownloadUrl, isHostedHttpsDashboard } from '../services/localAgentService.js?v=20260716cachefix1';
+import { getLocalBridgeFetch, getExtensionBridgeOrigin, hasExtensionBridgeConfigured, hasExplicitBridgeParam, probeLocalOllama, probeUserInitiatedOllama, probeExtensionBridgeHealth, resolveOllamaProxyUrl, buildBridgeOllamaChatUrls, discoverAndApplyExtensionBridge, buildExtensionConnectDeepLink, getVsixDownloadUrl, isHostedHttpsDashboard } from '../services/localAgentService.js?v=20260718ollama1';
 
 function isExtensionHostedTab() {
     if (hasExtensionBridgeConfigured())
@@ -856,9 +856,7 @@ export class ChatbotView {
         if (statusEl) {
             statusEl.textContent = hasExtensionBridgeConfigured()
                 ? 'Probing Ollama via VS Code extension bridge …'
-                : (isHostedDashboard()
-                    ? 'Connect the VS Code extension first (localhost cannot be probed from HTTPS).'
-                    : 'Probing http://127.0.0.1:11434 …');
+                : 'Probing http://127.0.0.1:11434 … (allow local network access if prompted)';
         }
         let baseUrl = BROWSER_OLLAMA_URL;
         try {
