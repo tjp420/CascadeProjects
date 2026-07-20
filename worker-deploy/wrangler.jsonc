@@ -17,7 +17,7 @@
     "directory": "../coming-soon/public",
     "binding": "ASSETS",
     "not_found_handling": "404-page",
-    "html_handling": "none"
+    "html_handling": "auto-trailing-slash"
   },
   "vars": {
     "API_BACKEND": "https://cascadeprojects-yzzd.onrender.com"
