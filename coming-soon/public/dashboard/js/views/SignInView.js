@@ -323,20 +323,11 @@ export class SignInView {
     submitBtn.disabled = true;
     submitBtn.textContent = 'Checking…';
     if (errorEl) { errorEl.hidden = true; errorEl.textContent = ''; }
-    const freeTiers = ['community', 'starter', 'instant', 'free', 'developer', 'sandbox'];
-    const payload = decodeJwtPayload(token);
-    const tier = (payload?.tier || payload?.product || '').toLowerCase();
-    if (!freeTiers.includes(tier)) {
-      sessionStorage.setItem('sb_pending_token', token);
-      sessionStorage.setItem('sb_pending_token_password', password);
-      this.app.navigate('dashboard');
-      return;
-    }
     try {
       authService.setSession(token, { token, source: 'signin-token', password });
       const valid = await authService.validateSession({ password });
       if (!valid) throw new Error('Invalid or expired token.');
-      showToast('Signed in with free token', 'success');
+      showToast('Signed in with license token', 'success');
       this.app.updateAuthUi();
       if (typeof this.app.bootstrapAfterAuth === 'function') this.app.bootstrapAfterAuth();
       this.app.navigate('dashboard');
