@@ -3,6 +3,7 @@ import { authService } from '../services/authService.js?v=20260718username1';
 import { billingService } from '../services/billingService.js';
 import { authenticateWithSecurityKey, isWebAuthnSupported } from '../services/webauthnService.js?v=20260716cachefix1';
 import { showToast } from '../utils.js';
+import { COMING_SOON_URL } from '../config.js';
 /**
  * Decode email from token.
  * @param {string} token
