@@ -379,6 +379,7 @@
         };
       } catch(e) {}
       // Periodic check for auth state changes
+      updateAuthNav();
       setInterval(updateAuthNav, 2000);
       var emailMode = 'login';
       var signinOverlay = document.getElementById('signinOverlay');
