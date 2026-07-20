@@ -957,6 +957,51 @@ function setupSimplebeaconAPI(app, options = {}) {
     }
   });
 
+  app.post('/api/simplebeacon/ollama/chat', async (req, res) => {
+    try {
+      let rawBaseUrl = String(req.query.baseUrl || 'http://127.0.0.1:11434').trim().replace(/^["']+|["']+$/g, '').replace(/\/$/, '');
+      if (/^https?%3A%2F%2F/i.test(rawBaseUrl)) {
+        try { rawBaseUrl = decodeURIComponent(rawBaseUrl); } catch { /* ignore */ }
+      }
+      let parsed;
+      try {
+        parsed = new URL(rawBaseUrl);
+      } catch {
+        try {
+          parsed = new URL('http://' + rawBaseUrl);
+        } catch {
+          return res.status(400).json({ success: false, error: 'Invalid Ollama base URL' });
+        }
+      }
+      const baseUrl = `${parsed.protocol}//${parsed.host}`;
+      if (!isAllowedOllamaHost(parsed.hostname)) {
+        logger.warn('[POST /api/simplebeacon/ollama/chat] Rejected baseUrl:', rawBaseUrl, 'hostname:', parsed.hostname);
+        return res.status(400).json({ success: false, error: `Ollama base URL must be localhost or 127.0.0.1 (received: ${parsed.hostname})` });
+      }
+      const targetUrl = `${baseUrl.replace(/\/$/, '')}/api/chat`;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 120000);
+      let response;
+      try {
+        response = await fetch(targetUrl, {
+          method: 'POST',
+          signal: controller.signal,
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify(req.body || {})
+        });
+      } finally {
+        clearTimeout(timeout);
+      }
+      const data = await response.text();
+      res.status(response.status)
+        .set('Content-Type', response.headers.get('content-type') || 'application/json')
+        .send(data);
+    } catch (err) {
+      logger.warn('[POST /api/simplebeacon/ollama/chat] Proxy failed:', err.message);
+      res.status(502).json({ success: false, error: 'Ollama unreachable', message: err.message });
+    }
+  });
+
   app.get('/api/simplebeacon/history', requirePaidReadOnly, async (_req, res) => {
     try {
       let history = await readJson(HISTORY_PATH, null);

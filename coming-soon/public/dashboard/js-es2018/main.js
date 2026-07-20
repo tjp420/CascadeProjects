@@ -34,7 +34,7 @@ import { showLoginModal } from './components/LoginModal.js?v=20260716cachefix1';
 import { isDemoMode, isSignedOffMode, isLocalDevHost, isHostedDashboard, demoReadOnlyMessage } from './demoMode.js';
 import { showToast, resolveDashboardProjectPath, setHtml } from './utils.js?v=20260720adminfix1';
 import { isEmbeddedDashboardFrame, isIdeDashboardSurface } from './utils-lib/dom.js?v=20260716cachefix1';
-import { hasExtensionBridgeConfigured } from './services/localAgentService.js?v=20260716cachefix1';
+import { hasExtensionBridgeConfigured } from './services/localAgentService.js?v=20260720ollama2';
 import { fetchAnalyzeProviders, isClientScanReport, shouldClearHostedServerDefaultPath } from './services/analyzeService.js?v=20260716cachefix1';
 /**
  * Vault unlock url.
@@ -346,7 +346,7 @@ class SimplebeaconDashboard {
         // Remove any stale full-page drag overlay that may have leaked from a previous session.
         document.querySelectorAll('.sb-global-drag-overlay').forEach(el => el.remove());
         try {
-            const { clearStaleIntegratedBridgeParams, validateExtensionBridgeOnLoad } = await import('./services/localAgentService.js?v=20260716cachefix1');
+            const { clearStaleIntegratedBridgeParams, validateExtensionBridgeOnLoad } = await import('./services/localAgentService.js?v=20260720ollama2');
             clearStaleIntegratedBridgeParams();
             if (isHostedDashboard()) {
                 await validateExtensionBridgeOnLoad();
