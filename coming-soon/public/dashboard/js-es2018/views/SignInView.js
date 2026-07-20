@@ -224,9 +224,18 @@ export class SignInView {
         const mainTabBase = 'background:var(--surface-hover);color:var(--text-muted);';
         const mainTabStyle = 'flex:1;padding:10px 16px;border:none;font-size:0.9rem;font-weight:600;border-radius:8px;cursor:pointer;transition:all 0.2s;';
         return `
+      <input type="radio" name="signin-main-tab" id="tab-radio-email" value="email" checked style="position:absolute;clip:rect(0,0,0,0);pointer-events:none;">
+      <input type="radio" name="signin-main-tab" id="tab-radio-token" value="token" style="position:absolute;clip:rect(0,0,0,0);pointer-events:none;">
+      <style>
+        .signin-tab-panel { display: none; }
+        #tab-radio-email:checked ~ #panel-email,
+        #tab-radio-token:checked ~ #panel-token { display: block !important; }
+        #tab-radio-email:checked ~ .signin-main-tabs label[for="tab-radio-email"],
+        #tab-radio-token:checked ~ .signin-main-tabs label[for="tab-radio-token"] { background: var(--primary); color: #fff; }
+      </style>
       <div class="signin-main-tabs" style="display:flex;gap:6px;margin-bottom:20px;">
-        <button type="button" class="signin-main-tab active" data-tab="email" id="maintab-email" style="${mainTabStyle}${mainTabActive}">Email &amp; Password</button>
-        <button type="button" class="signin-main-tab" data-tab="token" id="maintab-token" style="${mainTabStyle}${mainTabBase}">License Token</button>
+        <label class="signin-main-tab" for="tab-radio-email" data-tab="email" id="maintab-email" style="${mainTabStyle}${mainTabActive}text-align:center;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;">Email &amp; Password</label>
+        <label class="signin-main-tab" for="tab-radio-token" data-tab="token" id="maintab-token" style="${mainTabStyle}${mainTabBase}text-align:center;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;">License Token</label>
       </div>
       <div class="signin-tab-panel active" id="panel-email">
         <div class="signin-subtabs" style="display:flex;gap:4px;margin-bottom:16px;background:var(--surface-hover);border-radius:8px;padding:3px;">
@@ -273,7 +282,7 @@ export class SignInView {
         <p class="signin-note" id="email-mode-note" style="margin:16px 0 0;font-size:0.85rem;color:var(--text-muted);text-align:center;line-height:1.5;">${isRegister ? 'Already have an account? <button type="button" id="note-goto-signin" style="background:none;border:none;padding:0;color:var(--primary);font:inherit;font-weight:600;cursor:pointer;">Sign in</button>.' : 'New here? <button type="button" id="note-goto-register" style="background:none;border:none;padding:0;color:var(--primary);font:inherit;font-weight:600;cursor:pointer;">Create an account</button>.'}</p>
       </div>
 
-      <div class="signin-tab-panel" id="panel-token" style="display:none;">
+      <div class="signin-tab-panel" id="panel-token">
       <form id="signin-token-form" class="signin-form" style="display:flex;flex-direction:column;gap:14px;">
         <div>
           <label class="field-label" for="signin-token-input" style="${labelStyle}">License or Sandbox Token</label>
@@ -335,26 +344,22 @@ export class SignInView {
         });
     }
     bindMainTabs(container) {
-        const tabs = container.querySelectorAll('.signin-main-tab');
-        const emailPanel = container.querySelector('#panel-email');
-        const tokenPanel = container.querySelector('#panel-token');
+        const emailRadio = container.querySelector('#tab-radio-email');
+        const tokenRadio = container.querySelector('#tab-radio-token');
+        const emailLabel = container.querySelector('#maintab-email');
+        const tokenLabel = container.querySelector('#maintab-token');
         const activeStyle = 'background:var(--primary);color:#fff;';
         const inactiveStyle = 'background:var(--surface-hover);color:var(--text-muted);';
-        const baseStyle = 'flex:1;padding:10px 16px;border:none;font-size:0.9rem;font-weight:600;border-radius:8px;cursor:pointer;transition:all 0.2s;';
-        tabs.forEach(tab => {
-            tab.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                const target = tab.dataset.tab;
-                tabs.forEach(t => {
-                    const isActive = t.dataset.tab === target;
-                    t.style.cssText = baseStyle + (isActive ? activeStyle : inactiveStyle);
-                    t.classList.toggle('active', isActive);
-                });
-                if (emailPanel) { emailPanel.style.display = target === 'email' ? 'block' : 'none'; emailPanel.classList.toggle('active', target === 'email'); }
-                if (tokenPanel) { tokenPanel.style.display = target === 'token' ? 'block' : 'none'; tokenPanel.classList.toggle('active', target === 'token'); }
-            });
-        });
+        const baseStyle = 'flex:1;padding:10px 16px;border:none;font-size:0.9rem;font-weight:600;border-radius:8px;cursor:pointer;transition:all 0.2s;text-align:center;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;';
+        const sync = () => {
+            const isEmail = emailRadio && emailRadio.checked;
+            this._activeTab = isEmail ? 'email' : 'token';
+            if (emailLabel) { emailLabel.classList.toggle('active', isEmail); emailLabel.style.cssText = baseStyle + (isEmail ? activeStyle : inactiveStyle); }
+            if (tokenLabel) { tokenLabel.classList.toggle('active', !isEmail); tokenLabel.style.cssText = baseStyle + (!isEmail ? activeStyle : inactiveStyle); }
+        };
+        emailRadio?.addEventListener('change', sync);
+        tokenRadio?.addEventListener('change', sync);
+        sync();
     }
     async handleEmailSubmit(e) {
         var _a, _b, _c;
