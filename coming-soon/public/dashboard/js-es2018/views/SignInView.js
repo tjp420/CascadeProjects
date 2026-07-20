@@ -1,9 +1,8 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
-import { authService } from '../services/authService.js?v=20260720pages3';
+import { authService } from '../services/authService.js?v=20260721cspapi';
 import { billingService } from '../services/billingService.js';
 import { authenticateWithSecurityKey, isWebAuthnSupported } from '../services/webauthnService.js?v=20260716cachefix1';
 import { showToast } from '../utils.js';
-import { COMING_SOON_URL } from '../config.js';
 /**
  * Decode email from token.
  * @param {string} token
@@ -161,21 +160,10 @@ export class SignInView {
     `;
         if (!authed) {
             this.bindEmailModeToggle(container);
-            this.bindMainTabs(container);
             (_b = container.querySelector('#signin-email-form')) === null || _b === void 0 ? void 0 : _b.addEventListener('submit', (e) => this.handleEmailSubmit(e));
             (_c = container.querySelector('#forgot-password-btn')) === null || _c === void 0 ? void 0 : _c.addEventListener('click', () => this._showRecoveryModal());
             (_d = container.querySelector('#webauthn-signin-btn')) === null || _d === void 0 ? void 0 : _d.addEventListener('click', () => this._handleWebAuthnSignIn());
-            container.querySelector('#signin-token-form')?.addEventListener('submit', (e) => this.handleTokenSubmit(e));
-            const tokenPwInput = container.querySelector('#signin-token-password');
-            const tokenPwToggle = container.querySelector('#signin-token-toggle-password');
-            if (tokenPwInput && tokenPwToggle) {
-                tokenPwToggle.addEventListener('click', () => {
-                    const show = tokenPwInput.type === 'password';
-                    tokenPwInput.type = show ? 'text' : 'password';
-                    tokenPwToggle.textContent = show ? 'Hide' : 'Show';
-                    tokenPwToggle.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
-                });
-            }
+            this._bindTokenInput(container);
         }
         else {
             (_e = container.querySelector('#signin-signout-btn')) === null || _e === void 0 ? void 0 : _e.addEventListener('click', async () => {
@@ -230,23 +218,7 @@ export class SignInView {
         const tabBase = 'flex:1;padding:0.35rem 0.5rem;border:none;background:transparent;color:var(--text-muted);font-size:0.85rem;font-weight:500;border-radius:6px;cursor:pointer;';
         const btnPrimary = 'width:100%;padding:12px 16px;border-radius:8px;background:var(--primary);color:#fff;font-weight:600;border:none;cursor:pointer;text-align:center;';
         const btnSecondary = 'width:100%;padding:12px 16px;border-radius:8px;background:var(--surface);color:var(--text-primary);border:1px solid var(--border);cursor:pointer;text-align:center;';
-        const mainTabActive = 'background:var(--primary);color:#fff;';
-        const mainTabBase = 'background:var(--surface-hover);color:var(--text-muted);';
-        const mainTabStyle = 'flex:1;padding:10px 16px;border:none;font-size:0.9rem;font-weight:600;border-radius:8px;cursor:pointer;transition:all 0.2s;';
         return `
-      <input type="radio" name="signin-main-tab" id="tab-radio-email" value="email" checked style="position:absolute;clip:rect(0,0,0,0);pointer-events:none;">
-      <input type="radio" name="signin-main-tab" id="tab-radio-token" value="token" style="position:absolute;clip:rect(0,0,0,0);pointer-events:none;">
-      <style>
-        .signin-tab-panel { display: none; }
-        #tab-radio-email:checked ~ #panel-email,
-        #tab-radio-token:checked ~ #panel-token { display: block !important; }
-        #tab-radio-email:checked ~ .signin-main-tabs label[for="tab-radio-email"],
-        #tab-radio-token:checked ~ .signin-main-tabs label[for="tab-radio-token"] { background: var(--primary); color: #fff; }
-      </style>
-      <div class="signin-main-tabs" style="display:flex;gap:6px;margin-bottom:20px;">
-        <label class="signin-main-tab" for="tab-radio-email" data-tab="email" id="maintab-email" style="${mainTabStyle}${mainTabActive}text-align:center;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;">Email &amp; Password</label>
-        <label class="signin-main-tab" for="tab-radio-token" data-tab="token" id="maintab-token" style="${mainTabStyle}${mainTabBase}text-align:center;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;">License Token</label>
-      </div>
       <div class="signin-tab-panel active" id="panel-email">
         <div class="signin-subtabs" style="display:flex;gap:4px;margin-bottom:16px;background:var(--surface-hover);border-radius:8px;padding:3px;">
           <button type="button" class="signin-subtab ${!isRegister ? 'active' : ''}" data-mode="login" id="subtab-login" data-auth-action="signin" style="${!isRegister ? tabActive : tabBase}">Sign In</button>
@@ -289,33 +261,18 @@ export class SignInView {
         <button type="button" class="btn btn-secondary btn-block" id="webauthn-signin-btn" style="${btnSecondary};display:flex;align-items:center;justify-content:center;gap:8px;">
           <span>&#128274;</span> Sign in with Security Key
         </button>
+        ${!isRegister ? `
+        <div class="signin-divider" style="text-align:center;margin:16px 0;font-size:0.8rem;color:var(--text-muted);position:relative;">
+          <span style="background:var(--surface);padding:0 12px;position:relative;z-index:1;">or</span>
+          <div style="position:absolute;top:50%;left:0;right:0;height:1px;background:var(--border);z-index:0;"></div>
+        </div>
+        <button type="button" class="btn btn-block" id="toggle-token-input" style="${btnSecondary};">I have a license token</button>
+        <div id="token-input-section" style="display:none;flex-direction:column;gap:10px;">
+          <input id="signin-token-input" class="input" type="text" autocomplete="off" spellcheck="false" placeholder="Paste your license token here…" style="${inputStyle}" />
+          <p id="signin-token-error" class="signin-error" hidden role="alert" style="margin:0;font-size:0.85rem;color:var(--danger);text-align:center;line-height:1.5;"></p>
+          <button type="button" class="btn btn-primary btn-block" id="signin-token-submit" style="${btnPrimary};">Unlock Dashboard</button>
+        </div>` : ''}
         <p class="signin-note" id="email-mode-note" style="margin:16px 0 0;font-size:0.85rem;color:var(--text-muted);text-align:center;line-height:1.5;">${isRegister ? 'Already have an account? <button type="button" id="note-goto-signin" style="background:none;border:none;padding:0;color:var(--primary);font:inherit;font-weight:600;cursor:pointer;">Sign in</button>.' : 'New here? <button type="button" id="note-goto-register" style="background:none;border:none;padding:0;color:var(--primary);font:inherit;font-weight:600;cursor:pointer;">Create an account</button>.'}</p>
-      </div>
-
-      <div class="signin-tab-panel" id="panel-token">
-      <form id="signin-token-form" class="signin-form" style="display:flex;flex-direction:column;gap:14px;">
-        <div>
-          <label class="field-label" for="signin-token-input" style="${labelStyle}">License or Sandbox Token</label>
-          <input id="signin-token-input" class="input" type="text" autocomplete="off" placeholder="Paste your license or sandbox token…" style="${inputStyle}" />
-          <p style="margin:6px 0 0;font-size:0.75rem;color:var(--text-muted);line-height:1.4;">This is the token from your license email or the free community token page.</p>
-        </div>
-        <div>
-          <label class="field-label" for="signin-token-password" style="${labelStyle}">Token Password / Validation Code</label>
-          <div style="position:relative;">
-            <input id="signin-token-password" class="input" type="password" autocomplete="off" placeholder="Enter the password that came with your token…" style="${inputStyle};padding-right:44px;" />
-            <button type="button" id="signin-token-toggle-password" aria-label="Show password" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);background:transparent;border:none;color:var(--text-muted);cursor:pointer;padding:6px 8px;border-radius:6px;font-size:0.8rem;">Show</button>
-          </div>
-          <p style="margin:6px 0 0;font-size:0.75rem;color:var(--text-muted);line-height:1.4;">For paid licenses this is your account password. For free tokens this is the validation code emailed to you.</p>
-        </div>
-        <p id="signin-token-error" class="signin-error" hidden role="alert" style="margin:0;font-size:0.85rem;color:var(--danger);text-align:center;line-height:1.5;"></p>
-        <button type="submit" class="btn btn-primary btn-block" id="signin-token-submit" style="${btnPrimary}">Unlock with Token</button>
-      </form>
-      <details style="margin-top:12px;font-size:0.8rem;color:var(--text-muted);">
-        <summary style="cursor:pointer;text-align:center;list-style:none;padding:4px;">Where do I get a token?</summary>
-        <p style="margin:8px 0 0;text-align:center;line-height:1.5;">
-          <a href="${COMING_SOON_URL}" target="_blank">Get a free community token</a> or <a href="${COMING_SOON_URL}pricing.html" target="_blank">purchase a license</a>. Paid tokens are sent by email after checkout.
-        </p>
-      </details>
       </div>
 
       <p class="signin-footer" style="margin-top:24px;text-align:center;font-size:0.85rem;color:var(--text-muted);">
@@ -357,28 +314,6 @@ export class SignInView {
             e.stopPropagation();
             this.app.navigate('register');
         });
-    }
-    bindMainTabs(container) {
-        const emailRadio = container.querySelector('#tab-radio-email');
-        const tokenRadio = container.querySelector('#tab-radio-token');
-        const emailLabel = container.querySelector('#maintab-email');
-        const tokenLabel = container.querySelector('#maintab-token');
-        const emailPanel = container.querySelector('#panel-email');
-        const tokenPanel = container.querySelector('#panel-token');
-        const activeStyle = 'background:var(--primary);color:#fff;';
-        const inactiveStyle = 'background:var(--surface-hover);color:var(--text-muted);';
-        const baseStyle = 'flex:1;padding:10px 16px;border:none;font-size:0.9rem;font-weight:600;border-radius:8px;cursor:pointer;transition:all 0.2s;text-align:center;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;';
-        const sync = () => {
-            const isEmail = emailRadio && emailRadio.checked;
-            this._activeTab = isEmail ? 'email' : 'token';
-            if (emailLabel) { emailLabel.classList.toggle('active', isEmail); emailLabel.style.cssText = baseStyle + (isEmail ? activeStyle : inactiveStyle); }
-            if (tokenLabel) { tokenLabel.classList.toggle('active', !isEmail); tokenLabel.style.cssText = baseStyle + (!isEmail ? activeStyle : inactiveStyle); }
-            if (emailPanel) { emailPanel.classList.toggle('active', isEmail); emailPanel.style.setProperty('display', isEmail ? 'block' : 'none', 'important'); }
-            if (tokenPanel) { tokenPanel.classList.toggle('active', !isEmail); tokenPanel.style.setProperty('display', !isEmail ? 'block' : 'none', 'important'); }
-        };
-        emailRadio?.addEventListener('change', sync);
-        tokenRadio?.addEventListener('change', sync);
-        sync();
     }
     async handleEmailSubmit(e) {
         var _a, _b, _c;
@@ -486,7 +421,7 @@ export class SignInView {
             if (err && err.name === 'TypeError' && /fetch|network/i.test(String(err.message || ''))) {
                 message = 'Unable to reach the account server. Check your connection and try again.';
             }
-            console.error('[SignInView] submit error:', { mode: this._emailMode, error: err, message: err?.message, stack: err?.stack });
+            console.error('[SignInView] submit error:', { mode: this._emailMode, error: err });
             if (errorEl) {
                 errorEl.textContent = message;
                 errorEl.hidden = false;
@@ -494,56 +429,6 @@ export class SignInView {
             showToast(message, 'error');
             submitBtn.disabled = false;
             submitBtn.textContent = this._emailMode === 'register' ? 'Create Account' : 'Sign In';
-        }
-    }
-    async handleTokenSubmit(e) {
-        e.preventDefault();
-        const form = e.target;
-        const token = form.querySelector('#signin-token-input').value.trim();
-        const password = (form.querySelector('#signin-token-password')?.value || '').trim();
-        const submitBtn = form.querySelector('#signin-token-submit');
-        const errorEl = form.querySelector('#signin-token-error');
-        if (!token) {
-            if (errorEl) {
-                errorEl.textContent = 'Please enter a license token.';
-                errorEl.hidden = false;
-            }
-            return;
-        }
-        if (!password) {
-            if (errorEl) {
-                errorEl.textContent = 'Please enter your email validation code or profile password.';
-                errorEl.hidden = false;
-            }
-            return;
-        }
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Checking…';
-        if (errorEl) {
-            errorEl.hidden = true;
-            errorEl.textContent = '';
-        }
-        try {
-            authService.setSession(token, { token, source: 'signin-token', password });
-            const valid = await authService.validateSession({ password });
-            if (!valid)
-                throw new Error('Invalid or expired token.');
-            showToast('Signed in with license token', 'success');
-            this.app.updateAuthUi();
-            if (typeof this.app.bootstrapAfterAuth === 'function')
-                this.app.bootstrapAfterAuth();
-            this.app.navigate('dashboard');
-        }
-        catch (err) {
-            authService.clearSession();
-            const message = authService.lastValidationError || err.message || 'Token validation failed';
-            if (errorEl) {
-                errorEl.textContent = message;
-                errorEl.hidden = false;
-            }
-            showToast(message, 'error');
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Unlock with Token';
         }
     }
     _showRecoveryModal() {
@@ -607,6 +492,71 @@ export class SignInView {
             }
         });
         emailInput.focus();
+    }
+    _bindTokenInput(container) {
+        const toggleBtn = container.querySelector('#toggle-token-input');
+        const section = container.querySelector('#token-input-section');
+        const input = container.querySelector('#signin-token-input');
+        const submitBtn = container.querySelector('#signin-token-submit');
+        const errorEl = container.querySelector('#signin-token-error');
+        if (!toggleBtn || !section)
+            return;
+        toggleBtn.addEventListener('click', () => {
+            const isHidden = section.style.display === 'none';
+            section.style.display = isHidden ? 'flex' : 'none';
+            toggleBtn.textContent = isHidden ? 'Hide token input' : 'I have a license token';
+            if (isHidden && input)
+                input.focus();
+        });
+        if (submitBtn && input && errorEl) {
+            const submit = async () => {
+                const token = input.value.trim();
+                errorEl.hidden = true;
+                if (!token) {
+                    errorEl.textContent = 'Please paste your license token.';
+                    errorEl.hidden = false;
+                    return;
+                }
+                if (!this._looksLikeJwt(token)) {
+                    errorEl.textContent = 'That does not look like a valid token. Tokens are long alphanumeric strings with dots.';
+                    errorEl.hidden = false;
+                    return;
+                }
+                const payload = decodeJwtPayload(token);
+                if (!payload) {
+                    errorEl.textContent = 'Could not decode token. Please check you copied the entire token.';
+                    errorEl.hidden = false;
+                    return;
+                }
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Unlocking…';
+                try {
+                    const email = payload.email || '';
+                    const tier = payload.tier || payload.product || payload.plan || 'community';
+                    const role = payload.role || tier;
+                    authService.setSession(token, { email, tier, role });
+                    showToast('Token accepted — welcome!', 'success');
+                    this.app.updateAuthUi();
+                    this.app.bootstrapAfterAuth?.();
+                    this.app.navigate('dashboard');
+                }
+                catch (err) {
+                    errorEl.textContent = err.message || 'Failed to activate token.';
+                    errorEl.hidden = false;
+                }
+                finally {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Unlock Dashboard';
+                }
+            };
+            submitBtn.addEventListener('click', submit);
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    submit();
+                }
+            });
+        }
     }
     async _handleWebAuthnSignIn() {
         var _a, _b;

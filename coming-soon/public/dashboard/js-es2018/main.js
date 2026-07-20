@@ -19,7 +19,7 @@ import { AnalyzeView } from './views/AnalyzeView.js?v=20260720pages4';
 import { SecurityView } from './views/SecurityView.js?v=20260716cachefix1';
 import { AboutView } from './views/AboutView.js';
 import { AssessmentView } from './views/AssessmentView.js?v=20260716cachefix1';
-import { SignInView } from './views/SignInView.js?v=20260721cspapi';
+import { SignInView } from './views/SignInView.js?v=20260720pages4';
 import { ChatbotView } from './views/ChatbotView.js?v=20260718ollama1';
 import { UploadView } from './views/UploadView.js';
 import { RemediationRoadmapView } from './views/RemediationRoadmapView.js';
