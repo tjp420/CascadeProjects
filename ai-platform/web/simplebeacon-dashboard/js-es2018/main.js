@@ -24,7 +24,7 @@ import { ChatbotView } from './views/ChatbotView.js?v=20260718ollama1';
 import { UploadView } from './views/UploadView.js';
 import { RemediationRoadmapView } from './views/RemediationRoadmapView.js';
 import { ProfileView } from './views/ProfileView.js?v=20260722profile2';
-import { AdminPanelView } from './views/AdminPanelView.js?v=20260716cachefix1';
+import { AdminPanelView } from './views/AdminPanelView.js?v=20260720adminfix1';
 import { GettingStartedView } from './views/GettingStartedView.js?v=20260718onboard1';
 import { GuidedTour } from './components/GuidedTour.js?v=20260718onboard1';
 import { COMING_SOON_URL } from './config.js';

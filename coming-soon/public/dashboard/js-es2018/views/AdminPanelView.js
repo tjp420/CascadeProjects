@@ -1,7 +1,7 @@
 // @ts-nocheck
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 import { authService, apiBase } from '../services/authService.js?v=20260721cspapi';
-import { escapeHtml, showToast, downloadJson } from '../utils.js';
+import { escapeHtml, showToast, downloadJson, setHtml } from '../utils.js';
 
 function normalizeTrustLevel(value) {
     const raw = String(value || 'bronze').toLowerCase();
@@ -259,7 +259,7 @@ export class AdminPanelView {
         return new Promise((resolve) => {
             const overlay = document.createElement('div');
             overlay.className = 'admin-modal-overlay';
-            overlay.innerHTML = `
+            setHtml(overlay, `
                 <div class="admin-modal" role="dialog" aria-modal="true">
                     <h3>${escapeHtml(title)}</h3>
                     <p class="text-muted">Enter your admin password to continue.</p>
@@ -268,7 +268,7 @@ export class AdminPanelView {
                         <button class="btn btn-secondary" id="admin-password-cancel" type="button">Cancel</button>
                         <button class="btn btn-primary" id="admin-password-confirm" type="button">Confirm</button>
                     </div>
-                </div>`;
+                </div>`);
             document.body.appendChild(overlay);
             const input = overlay.querySelector('#admin-password-input');
             const confirm = overlay.querySelector('#admin-password-confirm');
@@ -294,7 +294,7 @@ export class AdminPanelView {
         return new Promise((resolve) => {
             const overlay = document.createElement('div');
             overlay.className = 'admin-modal-overlay';
-            overlay.innerHTML = `
+            setHtml(overlay, `
                 <div class="admin-modal" role="dialog" aria-modal="true">
                     <h3>Delete ${escapeHtml(user.name || user.email)}</h3>
                     <p class="text-danger">This action cannot be undone. Type the account email to confirm.</p>
@@ -303,7 +303,7 @@ export class AdminPanelView {
                         <button class="btn btn-secondary" id="admin-confirm-cancel" type="button">Cancel</button>
                         <button class="btn btn-danger" id="admin-confirm-ok" type="button">Delete account</button>
                     </div>
-                </div>`;
+                </div>`);
             document.body.appendChild(overlay);
             const input = overlay.querySelector('#admin-confirm-input');
             const ok = overlay.querySelector('#admin-confirm-ok');
@@ -402,7 +402,7 @@ export class AdminPanelView {
         if (!user) return;
         const overlay = document.createElement('div');
         overlay.className = 'admin-modal-overlay';
-        overlay.innerHTML = `
+        setHtml(overlay, `
             <div class="admin-modal" role="dialog" aria-modal="true">
                 <h3>Change tier for ${escapeHtml(user.name || user.email)}</h3>
                 <label>Trust level</label>
@@ -432,7 +432,7 @@ export class AdminPanelView {
                     <button class="btn btn-secondary" id="admin-tier-cancel" type="button">Cancel</button>
                     <button class="btn btn-primary" id="admin-tier-save" type="button">Save changes</button>
                 </div>
-            </div>`;
+            </div>`);
         document.body.appendChild(overlay);
         const finish = () => overlay.remove();
         overlay.querySelector('#admin-tier-cancel').addEventListener('click', finish);
@@ -469,7 +469,7 @@ export class AdminPanelView {
         if (!user) return;
         const overlay = document.createElement('div');
         overlay.className = 'admin-modal-overlay';
-        overlay.innerHTML = `
+        setHtml(overlay, `
             <div class="admin-modal" role="dialog" aria-modal="true">
                 <h3>Edit account details</h3>
                 <label>Display name</label>
@@ -482,7 +482,7 @@ export class AdminPanelView {
                     <button class="btn btn-secondary" id="admin-edit-cancel" type="button">Cancel</button>
                     <button class="btn btn-primary" id="admin-edit-save" type="button">Save</button>
                 </div>
-            </div>`;
+            </div>`);
         document.body.appendChild(overlay);
         const finish = () => overlay.remove();
         overlay.querySelector('#admin-edit-cancel').addEventListener('click', finish);
@@ -523,7 +523,7 @@ export class AdminPanelView {
         if (!user) return;
         const overlay = document.createElement('div');
         overlay.className = 'admin-modal-overlay';
-        overlay.innerHTML = `
+        setHtml(overlay, `
             <div class="admin-modal" role="dialog" aria-modal="true">
                 <h3>Refund ${escapeHtml(user.name || user.email)}</h3>
                 <p class="text-muted">Refunds all active paid subscriptions for this account. Stripe refund is attempted first when configured.</p>
@@ -535,7 +535,7 @@ export class AdminPanelView {
                     <button class="btn btn-secondary" id="admin-refund-cancel" type="button">Cancel</button>
                     <button class="btn btn-danger" id="admin-refund-confirm" type="button">Process refund</button>
                 </div>
-            </div>`;
+            </div>`);
         document.body.appendChild(overlay);
         const finish = () => overlay.remove();
         overlay.querySelector('#admin-refund-cancel').addEventListener('click', finish);
@@ -568,12 +568,12 @@ export class AdminPanelView {
         if (!user) return;
         const overlay = document.createElement('div');
         overlay.className = 'admin-modal-overlay';
-        overlay.innerHTML = `
+        setHtml(overlay, `
             <div class="admin-modal admin-details-modal" role="dialog" aria-modal="true" style="max-width:720px;max-height:90vh;overflow:auto;">
                 <h3>Account details</h3>
                 <p class="text-muted">${escapeHtml(user.name || user.email)}</p>
                 <div class="admin-details-loading"><div class="skeleton-row" style="width:60%"></div><div class="skeleton-row" style="width:80%"></div></div>
-            </div>`;
+            </div>`);
         document.body.appendChild(overlay);
         const close = () => overlay.remove();
         overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
@@ -583,16 +583,16 @@ export class AdminPanelView {
                 if (!res.ok) throw new Error(`Details API ${res.status}`);
                 const data = await res.json();
                 if (!data || !data.user) throw new Error('No details returned');
-                overlay.innerHTML = this.renderDetailsModal(user, data);
+                setHtml(overlay, this.renderDetailsModal(user, data));
                 this.bindDetailsModal(overlay, data);
             })
             .catch((err) => {
-                overlay.innerHTML = `
+                setHtml(overlay, `
                     <div class="admin-modal admin-details-modal" role="dialog" aria-modal="true">
                         <h3>Account details</h3>
                         <p class="text-danger">${escapeHtml(err.message || 'Failed to load details')}</p>
                         <button class="btn btn-secondary" id="admin-details-close" type="button">Close</button>
-                    </div>`;
+                    </div>`);
                 overlay.querySelector('#admin-details-close')?.addEventListener('click', close);
             });
     }
@@ -839,11 +839,11 @@ export class AdminPanelView {
     render() {
         if (!this.container) return;
         if (this.loading && !this.users.length) {
-            this.container.innerHTML = this.renderLoading();
+            setHtml(this.container, this.renderLoading());
             return;
         }
         if (this.error && !this.users.length) {
-            this.container.innerHTML = this.renderError();
+            setHtml(this.container, this.renderError());
             const retryBtn = this.container.querySelector('#admin-retry');
             if (retryBtn) retryBtn.addEventListener('click', () => this.loadData());
             return;
@@ -853,7 +853,7 @@ export class AdminPanelView {
         const showIncidents = filtered.some(u => (u.securityIncidents || 0) > 0) || this.users.some(u => (u.securityIncidents || 0) > 0);
         const tierCounts = this.getTierCounts();
         const statusCounts = this.getStatusCounts();
-        this.container.innerHTML = `
+        setHtml(this.container, `
             <div class="page-header admin-page-header">
                 <div>
                     <h1>Account Manager</h1>
@@ -922,7 +922,7 @@ export class AdminPanelView {
                     </div>
                 </section>
             </div>
-        `;
+        `);
         this.bindEvents();
     }
 
@@ -1198,7 +1198,7 @@ export class AdminPanelView {
         if (!tbody) return;
         const filtered = this.getFilteredUsers();
         const showIncidents = this.showIncidentsColumn();
-        tbody.innerHTML = this.renderUserRows(filtered, showIncidents);
+        setHtml(tbody, this.renderUserRows(filtered, showIncidents));
         const badge = this.container.querySelector('.admin-count-badge');
         if (badge) badge.textContent = this.getPageRangeLabel();
         this.bindRowActions();
