@@ -28,6 +28,18 @@ ai-platform/web/simplebeacon-dashboard/tsconfig.json
 .vscode-test/
 **/.vscode-test/
 
+# Ignore extracted VS Code test archives with broken JSON (third-party artifacts)
+.vscode-test/**/resources/**/.vscode/**
+.vscode-test/**/resources/**/app/**/.vscode/**
+
+# Ignore README.markdown files inside extracted test/extension archives that trigger LLM slop findings
+.vscode-test/**/resources/**/readme.markdown
+.vscode-test/**/resources/**/README.markdown
+
+# Ignore readme.markdown in other extracted archives under extension merges
+simplebeacon-vscode-merged/.vscode-test/**/resources/**/readme.markdown
+simplebeacon-vscode-merged/.vscode-test/**/resources/**/README.markdown
+
 # Ignore old backup files
 *.simplebeacon-backup.*
 backups/
