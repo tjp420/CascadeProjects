@@ -19,16 +19,6 @@ function applyCspHeaders(res) {
     newRes.headers.set('X-Content-Type-Options', 'nosniff');
     newRes.headers.set('Strict-Transport-Security', `max-age=${HSTS_MAX_AGE_SECONDS}; includeSubDomains; preload`);
     newRes.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-    // Prevent caching of HTML so new deploys are immediately visible
-    newRes.headers.delete('Cache-Control');
-    newRes.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate, no-transform');
-    return newRes;
-  }
-  // Also prevent caching of JS modules so cache-bust version changes take effect immediately
-  if (contentType.includes('javascript') || contentType.includes('module')) {
-    const newRes = new Response(res.body, res);
-    newRes.headers.delete('Cache-Control');
-    newRes.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate, no-transform');
     return newRes;
   }
   return res;
