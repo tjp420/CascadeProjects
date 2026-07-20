@@ -11,6 +11,7 @@
     "sourceMap": false,
     "skipLibCheck": true,
     "esModuleInterop": false,
+    "ignoreDeprecations": "6.0",
     "resolveJsonModule": false
   },
   "include": ["js/**/*"],
