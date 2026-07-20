@@ -16,7 +16,7 @@
   "assets": {
     "directory": "../coming-soon/public",
     "binding": "ASSETS",
-    "not_found_handling": "single-page-application"
+    "not_found_handling": "404-page"
   },
   "vars": {
     "API_BACKEND": "https://cascadeprojects-yzzd.onrender.com"

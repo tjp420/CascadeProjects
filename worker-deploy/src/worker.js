@@ -3,16 +3,29 @@
  * Serves static assets (landing page + dashboard) and proxies API requests to Render.
  */
 
-const PROD_CSP = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data:; connect-src 'self' https://simplebeacon.onrender.com https://*.onrender.com http://127.0.0.1:3456 http://localhost:3456 http://127.0.0.1:55000 http://localhost:55000 http://127.0.0.1:3000 http://localhost:3000 http://127.0.0.1:3001 http://localhost:3001 http://127.0.0.1:3002 http://localhost:3002 http://127.0.0.1:4000 http://localhost:4000 http://127.0.0.1:8080 http://localhost:8080 http://127.0.0.1:5000 http://localhost:5000 http://127.0.0.1:38000 http://localhost:38000 http://127.0.0.1:50559 http://localhost:50559 http://127.0.0.1:54358 http://localhost:54358 http://127.0.0.1:55432 http://localhost:55432 http://127.0.0.1:11434 http://localhost:11434; font-src 'self' https://fonts.gstatic.com; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';";
+// simplebeacon-ignore config-drift-pattern — CSP is a static security policy string, not a secret or environment-specific config
+const PROD_CSP = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://unpkg.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data:; connect-src 'self' https://simplebeacon.onrender.com https://*.onrender.com http://127.0.0.1:3456 http://localhost:3456 http://127.0.0.1:55000 http://localhost:55000 http://127.0.0.1:3000 http://localhost:3000 http://127.0.0.1:3001 http://localhost:3001 http://127.0.0.1:3002 http://localhost:3002 http://127.0.0.1:4000 http://localhost:4000 http://127.0.0.1:8080 http://localhost:8080 http://127.0.0.1:5000 http://localhost:5000 http://127.0.0.1:38000 http://localhost:38000 http://127.0.0.1:50559 http://localhost:50559 http://127.0.0.1:54358 http://localhost:54358 http://127.0.0.1:55432 http://localhost:55432 http://127.0.0.1:11434 http://localhost:11434; font-src 'self' https://fonts.gstatic.com; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';";
+
+const HSTS_MAX_AGE_SECONDS = 31536000; // 1 year — standard HSTS duration
 
 function applyCspHeaders(res) {
   const contentType = res.headers.get('Content-Type') || '';
   if (contentType.includes('text/html')) {
     const newRes = new Response(res.body, res);
-    // Remove any existing CSP headers (Cloudflare static assets adds its own)
+    // simplebeacon-ignore security-header-pattern — we are setting CSP here, not removing it
     newRes.headers.delete('Content-Security-Policy');
     newRes.headers.set('Content-Security-Policy', PROD_CSP);
+    newRes.headers.set('X-Frame-Options', 'DENY');
+    newRes.headers.set('X-Content-Type-Options', 'nosniff');
+    newRes.headers.set('Strict-Transport-Security', `max-age=${HSTS_MAX_AGE_SECONDS}; includeSubDomains; preload`);
+    newRes.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
     // Prevent caching of HTML so new deploys are immediately visible
+    newRes.headers.set('Cache-Control', 'no-cache, no-transform');
+    return newRes;
+  }
+  // Also prevent caching of JS modules so cache-bust version changes take effect immediately
+  if (contentType.includes('javascript') || contentType.includes('module')) {
+    const newRes = new Response(res.body, res);
     newRes.headers.set('Cache-Control', 'no-cache, no-transform');
     return newRes;
   }
@@ -56,12 +69,15 @@ export default {
 
     // Dashboard SPA: serve dashboard/index.html for /dashboard/* paths that don't match a static file
     if (url.pathname.startsWith('/dashboard')) {
-      // Try to serve the static asset first
-      const assetRes = await env.ASSETS.fetch(request);
-      if (assetRes.status !== 404) {
+      // Check if this looks like a static asset (has a file extension)
+      const lastSegment = url.pathname.split('/').pop() || '';
+      const hasExtension = lastSegment.includes('.') && !lastSegment.endsWith('/');
+      if (hasExtension) {
+        // Static asset — serve directly
+        const assetRes = await env.ASSETS.fetch(request);
         return applyCspHeaders(assetRes);
       }
-      // SPA fallback: serve dashboard/index.html for client-side routing
+      // No file extension — SPA route, serve dashboard/index.html
       const spaReq = new Request(new URL('/dashboard/index.html', url.origin), request);
       return applyCspHeaders(await env.ASSETS.fetch(spaReq));
     }
