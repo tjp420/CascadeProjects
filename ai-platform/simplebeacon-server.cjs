@@ -550,15 +550,12 @@ app.get('/', async (req, res) => {
 });
 
 // Redirect bare /dashboard to /dashboard/ so relative asset links resolve correctly.
-app.get('/dashboard', async (req, res) => {
+app.get(/^\/dashboard\/?$/, async (req, res) => {
   if (internalDashboard && !isVaultAuthenticated(req)) {
     return res.redirect(302, '/');
   }
-  return res.redirect(302, '/dashboard/' + (req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : ''));
-});
-app.get('/dashboard/', async (req, res) => {
-  if (internalDashboard && !isVaultAuthenticated(req)) {
-    return res.redirect(302, '/');
+  if (!req.path.endsWith('/')) {
+    return res.redirect(302, '/dashboard/' + (req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : ''));
   }
   return sendSimplebeaconDashboard(res);
 });
@@ -1420,6 +1417,15 @@ async function startServer() {
     app.use(freeTokenRoutes);
   } catch (e) {
     logger.warn('[FreeToken] free-token routes not loaded:', e.message);
+  }
+
+  // License token validation — used by dashboard License Token signin
+  try {
+    const tokenValidateRoutes = require('../coming-soon/routes/token-validate.cjs');
+    app.use(tokenValidateRoutes);
+    logger.info('[TokenValidate] Token validation route mounted');
+  } catch (e) {
+    logger.warn('[TokenValidate] Routes not loaded:', e.message);
   }
 
   try {
