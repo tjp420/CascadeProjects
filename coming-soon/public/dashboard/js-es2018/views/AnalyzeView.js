@@ -7683,21 +7683,6 @@ export class AnalyzeView {
                 await this.promptHostedLocalFolderScan(this._root);
                 return;
             case 'server':
-                // On hosted dashboard, server scans require authentication.
-                // Guide unauthenticated users to sign in or use browser sandbox scan.
-                if (isRemoteDashboardHost() && !authService.isAuthenticated()) {
-                    const isRepoUrl = isRemoteRepoUrl(strategy.path);
-                    showToast(isRepoUrl
-                        ? 'Sign in to scan a GitHub repo on the server, or use Select Folder for a private browser scan.'
-                        : 'Server-side scans require sign-in. Use Select Folder for a private browser scan (no account needed).',
-                        'info', { duration: 10000 });
-                    if (!isRepoUrl) {
-                        await this.promptHostedLocalFolderScan(this._root);
-                        return;
-                    }
-                    window.location.hash = '#/signin';
-                    return;
-                }
                 // falls through to server-side scan below
                 break;
         }

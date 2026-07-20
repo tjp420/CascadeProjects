@@ -1518,6 +1518,46 @@ async function processLocalCLIScan(files) {
         try { ignorePatterns.push(...parseIgnoreFile(await ignoreFile.text())); } catch (e) { /* ignore parse errors */ }
     }
 
+    // Detect if this is the SimpleBeacon monorepo to gate project-specific exclusions
+    const isSimplebeaconMonorepo = files.some(f => {
+        const p = (f.webkitRelativePath || f.name).replace(/\\/g, '/');
+        return /\/(coming-soon|ai-platform|simplebeacon-vscode-merged|packages\/simplebeacon-cli|simplebeacon-frameworkless)\//i.test(p)
+            || /^CascadeProjects(?:_BACKUP_\d+)?\//i.test(p);
+    });
+
+    // Detect the project root (first non-hidden directory in the path) so we can
+    // avoid applying parent .simplebeaconignore patterns that would exclude it entirely.
+    const HIDDEN_ROOT_EXCLUDE = /^(\..*|node_modules|__tests__|fixtures?|mocks?|backups)$/i;
+    let detectedProjectRoot = '';
+    for (const f of files) {
+        const rp = (f.webkitRelativePath || '').replace(/\\/g, '/');
+        if (rp.includes('/')) {
+            const firstDir = rp.split('/')[0];
+            if (firstDir && !HIDDEN_ROOT_EXCLUDE.test(firstDir)) {
+                detectedProjectRoot = firstDir;
+                break;
+            }
+        }
+    }
+
+    // Filter out ignore patterns that would exclude the detected project root itself.
+    // This prevents a parent .simplebeaconignore (e.g. at CascadeProjects root) from
+    // blanking out the very subdirectory the user selected to scan.
+    if (detectedProjectRoot && ignorePatterns.length) {
+        const rootRegex = new RegExp('^' + detectedProjectRoot.replace(/[-\/\\^$+?.()|[\]{}]/g, '\\$&') + '\\/', 'i');
+        ignorePatterns = ignorePatterns.filter(pat => {
+            if (pat instanceof RegExp) {
+                const src = pat.source;
+                // Skip patterns that match exactly "projectRoot/" or "projectRoot" at the start
+                if (rootRegex.test(src + '/') || pat.test(detectedProjectRoot + '/') && !pat.test(detectedProjectRoot + '/sub/')) {
+                    return false;
+                }
+                return true;
+            }
+            return true;
+        });
+    }
+
     appendTerminalLine(`<span style="color:#60A5FA;font-weight:700;">&#9654; Stage 2/3:</span> Filtering ${files.length.toLocaleString()} files (excluding dependencies, secrets, generated artifacts)...`);
 
     // 2. Filter loop — keep all files except absolute hard limits
@@ -1551,14 +1591,13 @@ async function processLocalCLIScan(files) {
             }
         }
         const includeVendorDirs = window._scanOptions?.includeVendorDirs || false;
-        if (skipDeps && !includeVendorDirs && !reason && /(^|\/)(node_modules|\.git|\.github-sync|github-cache|\.cursor|\.windsurf|\.cursor-tutor|\.vscode|\.idea|\.husky|\.simplebeacon|backups|java-ai-vulnerable|out)\//i.test(path)) {
+        if (skipDeps && !includeVendorDirs && !reason && (isSimplebeaconMonorepo
+            ? /(^|\/)(node_modules|\.git|\.github-sync|github-cache|\.cursor|\.windsurf|\.cursor-tutor|\.vscode|\.idea|\.husky|\.simplebeacon|backups|java-ai-vulnerable|out)\//i.test(path)
+            : /(^|\/)(node_modules|\.git|\.vscode|\.idea|\.husky|backups)\//i.test(path))) {
             reason = 'Vendor/cache directory';
         }
         if (!reason && !deepScan && /(^|\/)(docs\/|doc\/|third_party\/|thirdparty\/|geedocs\/|mapfiles\/|vendor\/|\.min\.js$|\.bundle\.min\.js$|\.pack\.js$)/i.test(path)) {
             reason = 'Vendor/docs/build artifact';
-        }
-        if (!reason && !deepScan && /(^|\/)vscode-extension\/out\//i.test(path)) {
-            reason = 'VS Code extension build output';
         }
         if (!reason && !deepScan && /\.map$/i.test(path)) {
             reason = 'Source map (build artifact)';
@@ -1568,104 +1607,110 @@ async function processLocalCLIScan(files) {
         if (!reason && /(^|\/)package-lock\.json$/i.test(path)) {
             reason = 'Lockfile (generated)';
         }
-        if (!reason && /(^|\/)(simplebeacon-report-|simplebeacon-cascadeprojects-|simplebeacon-latest-|simplebeacon-full-|simplebeacon-export-|complete-scan|report-export|simplebeacon-report-export).*\.json$/i.test(path)) {
-            reason = 'Generated scan report';
-        }
-        if (!reason && /(^|\/)codemap-tree\.json$/i.test(path)) {
-            reason = 'Generated codemap metadata';
-        }
-        if (!reason && /(^|\/)(knip-report|git-status|test-output-root|test-results|tier-accounts|tier-tokens|MASTER-TOKEN|ai-slop-cop-pro-token)\.txt$/i.test(path)) {
-            reason = 'Generated/sensitive text file';
-        }
-        if (!reason && !deepScan && /(^|\/)scan-exports\//i.test(path)) {
-            reason = 'Scan export directory';
-        }
-        if (!reason && !deepScan && /(^|\/)false-positive-audit\//i.test(path)) {
-            reason = 'False positive audit directory';
-        }
-        if (!reason && !deepScan && /(^|\/)js-es2018\//i.test(path)) {
-            reason = 'Compiled ES2018 output';
-        }
-        if (!reason && !deepScan && /(^|\/)public\/dashboard\/js-es2018\//i.test(path)) {
-            reason = 'Compiled ES2018 output';
-        }
-        if (!reason && !deepScan && /(^|\/)public\/reports\//i.test(path)) {
-            reason = 'Generated report directory';
-        }
-        if (!reason && !deepScan && /(^|\/)(dashboard-web|simplebeacon-dashboard)\/js\/views\//i.test(path)) {
-            reason = 'Dashboard view (legitimate innerHTML)';
-        }
-        if (!reason && !deepScan && /(^|\/)public\/dashboard\/js\/views\//i.test(path)) {
-            reason = 'Dashboard view (legitimate innerHTML)';
-        }
-        if (!reason && !deepScan && /(^|\/)(dashboard-web|simplebeacon-dashboard)\/js\/(main\.js|components\/)/i.test(path)) {
-            reason = 'Dashboard component (legitimate innerHTML)';
-        }
-        if (!reason && /(^|\/)(codebase-analyzer|code-hygiene-certificate|zscript-parser)\.(cjs|js)$/i.test(path)) {
-            reason = 'Scanner/analyzer pattern file';
-        }
-        if (!reason && /(^|\/)(generator|rotate-keys)\.js$/i.test(path) && /sales\/license\//i.test(path)) {
-            reason = 'License key generator (expected entropy)';
-        }
-        if (!reason && /(^|\/)GlobalContextManager\.cjs$/i.test(path)) {
-            reason = 'Context manager (pattern definitions)';
-        }
-        if (!reason && /(^|\/)(instructions|simplebeacon-report-export)\.(txt|json)$/i.test(path)) {
-            reason = 'Generated/documentation file';
-        }
-        if (!reason && /(^|\/)(__check_|__cs_)/i.test(path)) {
-            reason = 'Temp debug script';
-        }
-        if (!reason && /(^|\/)stream-stress\.cjs$/i.test(path)) {
-            reason = 'Stress test script';
-        }
-        if (!reason && !deepScan && /(^|\/)(dashboard-web|simplebeacon-dashboard)\/js\/(services|utils|components|controllers)\//i.test(path)) {
-            reason = 'Dashboard service/component (legitimate patterns)';
-        }
-        if (!reason && !deepScan && /(^|\/)public\/dashboard\/js\/(main|services|utils|components)\//i.test(path)) {
-            reason = 'Dashboard service/component (legitimate patterns)';
-        }
-        if (!reason && !deepScan && /(^|\/)dashboard-web\/js\/main\.js$/i.test(path)) {
-            reason = 'Dashboard main (legitimate patterns)';
-        }
-        if (!reason && /(^|\/)(ai-analyst|compliance-rules|aiProblemAnalyzerSuite|analyzeService)\.(cjs|js|mjs)$/i.test(path)) {
-            reason = 'AI analyzer/compliance pattern file';
-        }
-        if (!reason && /(^|\/)(orchestrator\.cjs|setup\.cjs|deep-check-welcome\.cjs|verify-deployment\.cjs)$/i.test(path)) {
-            reason = 'Agent/setup/verify script';
-        }
-        if (!reason && /(^|\/)audit-remediation-recipes\//i.test(path)) {
-            reason = 'Remediation recipe patterns';
-        }
-        if (!reason && /(^|\/)(zscript-cvar-analyzer|snippetDiagnostic)\.(cjs|js)$/i.test(path)) {
-            reason = 'Analyzer/diagnostic pattern file';
-        }
-        if (!reason && /(^|\/)negative-test-2\//i.test(path)) {
-            reason = 'Negative test fixture';
-        }
-        if (!reason && /(^|\/)analyzer-coverage\.test\.cjs$/i.test(path)) {
-            reason = 'Test coverage file';
-        }
-        if (!reason && /(^|\/)ai-tools\/index\.js$/i.test(path)) {
-            reason = 'AI tools index';
-        }
-        if (!reason && /(^|\/)export-findings\.js$/i.test(path)) {
-            reason = 'Export script';
-        }
-        if (!reason && /(^|\/)audit-report\/__tests__\.cjs$/i.test(path)) {
-            reason = 'Audit report tests';
-        }
-        if (!reason && !deepScan && /(^|\/)Desktop\//i.test(path)) {
-            reason = 'Desktop folder (external projects)';
-        }
-        if (!reason && /(^|\/)complete-scan.*\.json$/i.test(path)) {
-            reason = 'Generated scan export';
-        }
-        if (!reason && !deepScan && /(^|\/)claw-code-main\//i.test(path)) {
-            reason = 'External project (claw-code-main)';
-        }
-        if (!reason && !deepScan && /(^|\/)New folder\//i.test(path)) {
-            reason = 'External project (New folder)';
+        // SimpleBeacon-specific exclusions — only apply when scanning the SimpleBeacon monorepo
+        if (isSimplebeaconMonorepo) {
+            if (!reason && !deepScan && /(^|\/)vscode-extension\/out\//i.test(path)) {
+                reason = 'VS Code extension build output';
+            }
+            if (!reason && /(^|\/)(simplebeacon-report-|simplebeacon-cascadeprojects-|simplebeacon-latest-|simplebeacon-full-|simplebeacon-export-|complete-scan|report-export|simplebeacon-report-export).*\.json$/i.test(path)) {
+                reason = 'Generated scan report';
+            }
+            if (!reason && /(^|\/)codemap-tree\.json$/i.test(path)) {
+                reason = 'Generated codemap metadata';
+            }
+            if (!reason && /(^|\/)(knip-report|git-status|test-output-root|test-results|tier-accounts|tier-tokens|MASTER-TOKEN|ai-slop-cop-pro-token)\.txt$/i.test(path)) {
+                reason = 'Generated/sensitive text file';
+            }
+            if (!reason && !deepScan && /(^|\/)scan-exports\//i.test(path)) {
+                reason = 'Scan export directory';
+            }
+            if (!reason && !deepScan && /(^|\/)false-positive-audit\//i.test(path)) {
+                reason = 'False positive audit directory';
+            }
+            if (!reason && !deepScan && /(^|\/)js-es2018\//i.test(path)) {
+                reason = 'Compiled ES2018 output';
+            }
+            if (!reason && !deepScan && /(^|\/)public\/dashboard\/js-es2018\//i.test(path)) {
+                reason = 'Compiled ES2018 output';
+            }
+            if (!reason && !deepScan && /(^|\/)public\/reports\//i.test(path)) {
+                reason = 'Generated report directory';
+            }
+            if (!reason && !deepScan && /(^|\/)(dashboard-web|simplebeacon-dashboard)\/js\/views\//i.test(path)) {
+                reason = 'Dashboard view (legitimate innerHTML)';
+            }
+            if (!reason && !deepScan && /(^|\/)public\/dashboard\/js\/views\//i.test(path)) {
+                reason = 'Dashboard view (legitimate innerHTML)';
+            }
+            if (!reason && !deepScan && /(^|\/)(dashboard-web|simplebeacon-dashboard)\/js\/(main\.js|components\/)/i.test(path)) {
+                reason = 'Dashboard component (legitimate innerHTML)';
+            }
+            if (!reason && /(^|\/)(codebase-analyzer|code-hygiene-certificate|zscript-parser)\.(cjs|js)$/i.test(path)) {
+                reason = 'Scanner/analyzer pattern file';
+            }
+            if (!reason && /(^|\/)(generator|rotate-keys)\.js$/i.test(path) && /sales\/license\//i.test(path)) {
+                reason = 'License key generator (expected entropy)';
+            }
+            if (!reason && /(^|\/)GlobalContextManager\.cjs$/i.test(path)) {
+                reason = 'Context manager (pattern definitions)';
+            }
+            if (!reason && /(^|\/)(instructions|simplebeacon-report-export)\.(txt|json)$/i.test(path)) {
+                reason = 'Generated/documentation file';
+            }
+            if (!reason && /(^|\/)(__check_|__cs_)/i.test(path)) {
+                reason = 'Temp debug script';
+            }
+            if (!reason && /(^|\/)stream-stress\.cjs$/i.test(path)) {
+                reason = 'Stress test script';
+            }
+            if (!reason && !deepScan && /(^|\/)(dashboard-web|simplebeacon-dashboard)\/js\/(services|utils|components|controllers)\//i.test(path)) {
+                reason = 'Dashboard service/component (legitimate patterns)';
+            }
+            if (!reason && !deepScan && /(^|\/)public\/dashboard\/js\/(main|services|utils|components)\//i.test(path)) {
+                reason = 'Dashboard service/component (legitimate patterns)';
+            }
+            if (!reason && !deepScan && /(^|\/)dashboard-web\/js\/main\.js$/i.test(path)) {
+                reason = 'Dashboard main (legitimate patterns)';
+            }
+            if (!reason && /(^|\/)(ai-analyst|compliance-rules|aiProblemAnalyzerSuite|analyzeService)\.(cjs|js|mjs)$/i.test(path)) {
+                reason = 'AI analyzer/compliance pattern file';
+            }
+            if (!reason && /(^|\/)(orchestrator\.cjs|setup\.cjs|deep-check-welcome\.cjs|verify-deployment\.cjs)$/i.test(path)) {
+                reason = 'Agent/setup/verify script';
+            }
+            if (!reason && /(^|\/)audit-remediation-recipes\//i.test(path)) {
+                reason = 'Remediation recipe patterns';
+            }
+            if (!reason && /(^|\/)(zscript-cvar-analyzer|snippetDiagnostic)\.(cjs|js)$/i.test(path)) {
+                reason = 'Analyzer/diagnostic pattern file';
+            }
+            if (!reason && /(^|\/)negative-test-2\//i.test(path)) {
+                reason = 'Negative test fixture';
+            }
+            if (!reason && /(^|\/)analyzer-coverage\.test\.cjs$/i.test(path)) {
+                reason = 'Test coverage file';
+            }
+            if (!reason && /(^|\/)ai-tools\/index\.js$/i.test(path)) {
+                reason = 'AI tools index';
+            }
+            if (!reason && /(^|\/)export-findings\.js$/i.test(path)) {
+                reason = 'Export script';
+            }
+            if (!reason && /(^|\/)audit-report\/__tests__\.cjs$/i.test(path)) {
+                reason = 'Audit report tests';
+            }
+            if (!reason && !deepScan && /(^|\/)Desktop\//i.test(path)) {
+                reason = 'Desktop folder (external projects)';
+            }
+            if (!reason && /(^|\/)complete-scan.*\.json$/i.test(path)) {
+                reason = 'Generated scan export';
+            }
+            if (!reason && !deepScan && /(^|\/)claw-code-main\//i.test(path)) {
+                reason = 'External project (claw-code-main)';
+            }
+            if (!reason && !deepScan && /(^|\/)New folder\//i.test(path)) {
+                reason = 'External project (New folder)';
+            }
         }
         // Apply .simplebeaconignore patterns to skip ignored files
         if (!reason && ignorePatterns.length) {
@@ -2056,6 +2101,17 @@ async function processLocalCLIScan(files) {
                 : matches;
             if (reg.contextFilter && typeof reg.contextFilter === 'function') {
                 filteredMatches = filteredMatches.filter(m => reg.contextFilter(m.snippet || '', path, m.context || []));
+            }
+            // missingStrictMode regex scans per-line, so a file that starts with 'use strict' can still
+            // match a later non-strict line. Verify the first non-comment line is not a strict directive.
+            if (reg.id === 'missingStrictMode' && filteredMatches.length) {
+                const firstCodeLine = text.split('\n').find(l => {
+                    const t = l.trim();
+                    return t && !/^\/\/|^\/\*|^\*/.test(t);
+                });
+                if (firstCodeLine && /^["']use strict["'];?$/.test(firstCodeLine.trim())) {
+                    continue;
+                }
             }
             if (filteredMatches.length === 0) continue;
             // configDrift: lines using process.env are correct, not drift

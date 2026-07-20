@@ -398,24 +398,40 @@ export async function fetchOllamaModels(ollamaBaseUrl = OLLAMA_DEFAULT_URL) {
             }
         }
 
-        // Try direct browser fetch first (works when OLLAMA_ORIGINS is set).
-        // Fall back to server proxy if direct fails.
-        try {
-            return await fetchDirect();
-        } catch (browserErr) {
-            const cors = isCorsError(browserErr);
+        // For HTTPS-hosted dashboards, the server proxy cannot reach a user's local Ollama.
+        // The only viable path is a direct browser fetch, which requires OLLAMA_ORIGINS to be set.
+        const isLocalOllama = isLocalOllamaUrl(baseUrl);
+        if (isHttpsPage && isLocalOllama) {
             try {
-                return await fetchProxy();
-            } catch (proxyErr) {
-                if (proxyErr.name === 'AbortError') {
-                    throw new Error('Ollama connection timed out - is Ollama running?');
-                }
-                if (cors) {
-                    const origin = (typeof window !== 'undefined' && window.location.origin) || 'this origin';
+                return await fetchDirect();
+            } catch (browserErr) {
+                const origin = (typeof window !== 'undefined' && window.location.origin) || 'this origin';
+                throw new Error(
+                    `Ollama is reachable but its CORS policy blocks https://${window.location.host}. ` +
+                    `Start Ollama from your shell (not the browser console) with the dashboard origin allowed:\n\n` +
+                    `OLLAMA_ORIGINS='${origin}' ollama serve\n\n` +
+                    `Then reload the dashboard.`
+                );
+            }
+        }
+
+        // Local http dashboards: try server proxy first, then direct browser fetch.
+        try {
+            return await fetchProxy();
+        } catch (proxyErr) {
+            if (proxyErr.name === 'AbortError') {
+                throw new Error('Ollama connection timed out - is Ollama running?');
+            }
+            try {
+                return await fetchDirect();
+            } catch (browserErr) {
+                const origin = (typeof window !== 'undefined' && window.location.origin) || 'this origin';
+                if (isCorsError(browserErr)) {
                     throw new Error(
-                        `Ollama is reachable from the browser but the response is blocked by CORS. ` +
-                        `Start Ollama with the dashboard origin allowed: ` +
-                        `OLLAMA_ORIGINS='${origin}' ollama serve.`
+                        `Ollama is reachable but its CORS policy blocks ${origin}. ` +
+                        `Start Ollama from your shell with the dashboard origin allowed:\n\n` +
+                        `OLLAMA_ORIGINS='${origin}' ollama serve\n\n` +
+                        `Then reload the dashboard.`
                     );
                 }
                 throw new Error(

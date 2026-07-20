@@ -504,6 +504,8 @@ const PATTERN_REGISTRY = {
             if (/(missing security header|security header|content-security-policy)/i.test(snippet) && /return true|return false|\.test\(|\.match\(|contextFilter/i.test(snippet)) return false;
             // Skip explanation text in remediation provider fix descriptions
             if (/Add helmet middleware|reverse proxy with CSP|configure reverse proxy/i.test(snippet)) return false;
+            // Skip explicit header reads/writes — code is already managing these headers
+            if (/headers\.(get|set|append|has|delete)\s*\(\s*['"](Content-Security-Policy|X-Frame-Options|Strict-Transport-Security|Referrer-Policy)['"]/i.test(snippet)) return false;
             return true;
         },
         message: 'Review security header configuration. Ensure CSP, X-Frame-Options, HSTS, and Referrer-Policy are set.'

@@ -1329,16 +1329,11 @@ function applyProductFromToken(token) {
         const infoCard = document.getElementById('productInfoCard');
         if (infoCard)
             infoCard.style.display = 'none';
-        const productLabelEl = document.getElementById('productLabel');
-        if (productLabelEl) productLabelEl.textContent = "";
-        const pageTitleEl = document.getElementById('pageTitle');
-        if (pageTitleEl) pageTitleEl.textContent = "Upload Your Scan Report";
-        const pageSubtitleEl = document.getElementById('pageSubtitle');
-        if (pageSubtitleEl) pageSubtitleEl.textContent = "Generate an Executive Risk Certificate from your local SimpleBeacon scan.";
-        const tokenHelpEl = document.getElementById('tokenHelp');
-        if (tokenHelpEl) tokenHelpEl.textContent = "Paste the license token from your payment confirmation email.";
-        const submitBtnEl = document.getElementById('submitBtn');
-        if (submitBtnEl) submitBtnEl.style.display = '';
+        document.getElementById('productLabel').textContent = "";
+        document.getElementById('pageTitle').textContent = "Upload Your Scan Report";
+        document.getElementById('pageSubtitle').textContent = "Generate an Executive Risk Certificate from your local SimpleBeacon scan.";
+        document.getElementById('tokenHelp').textContent = "Paste the license token from your payment confirmation email.";
+        document.getElementById('submitBtn').style.display = '';
         return;
     }
     try {
@@ -3006,6 +3001,10 @@ function appendTerminalLine(text, type) {
     line.insertAdjacentHTML('beforeend', indicator + text);
     line.style.marginBottom = '2px';
     terminalConsole.appendChild(line);
+    // Avoid unbounded DOM growth on long scans (Brave/Zorin low-memory freeze)
+    while (terminalConsole.children.length > 1000) {
+        terminalConsole.removeChild(terminalConsole.firstChild);
+    }
     terminalConsole.scrollTop = terminalConsole.scrollHeight;
 }
 // Parse .simplebeaconignore contents into RegExp patterns (gitignore-style)

@@ -858,18 +858,18 @@
         if(debugDetail.length>0){
           debugDetail.forEach(f=>{t.push({ description: `Remove debug artifact in ${f.file}${f.line?':'+f.line:''}`, type: 'fix', location: f.file, isStructured: true });});
         }
-        if (qualityScore < 85) t.push({ description: 'Refactor low-quality modules (quality score < 85)', type: 'fix', done: false, isStructured: true });
+        if(qs<85) t.push({ description: 'Refactor low-quality modules (quality score < 85)', type: 'fix', done: false, isStructured: true });
         t.push(
-          { description: 'Add test coverage for uncovered modules', type: 'fix', codeSnippet: 'npm test -- --coverage', done: qualityScore >= 90, isStructured: true },
-          { description: 'Install pre-commit hooks for automated scanning', type: 'fix', codeSnippet: 'npx husky install', done: qualityScore >= 90, isStructured: true },
-          { description: 'Schedule monthly quality gate reviews', type: 'review', done: qualityScore >= 90, isStructured: true }
+          { description: 'Add test coverage for uncovered modules', type: 'fix', codeSnippet: 'npm test -- --coverage', done: qs>=90, isStructured: true },
+          { description: 'Install pre-commit hooks for automated scanning', type: 'fix', codeSnippet: 'npx husky install', done: qs>=90, isStructured: true },
+          { description: 'Schedule monthly quality gate reviews', type: 'review', done: qs>=90, isStructured: true }
         );
-        const penalty = (todoDetail.length > 0 ? Math.min(20, todoDetail.length * 2) : 0) + (debugDetail.length > 0 ? Math.min(20, debugDetail.length * 3) : 0);
-        const rawProgress = Math.round(qualityScore || 0);
-        const progress = Math.max(0, Math.min(100, rawProgress - penalty));
-        const status = progress >= 90 ? 'completed' : (progress > 0 ? 'in-progress' : 'pending');
-        const optDesc = qualityScore >= 90 ? `Maintain quality score at ${qualityScore}/100 (currently above 90+).` : `Drive quality score from ${qualityScore || 0}/100 toward 90+.`;
-        phases.push({ id: 'optimization', title: 'Quality Optimization', severity: qualityScore < 70 ? 'high' : 'low', effort: 'Ongoing', description: optDesc + `${todoDetail.length > 0 ? ' ' + todoDetail.length + ' TODO marker(s).' : ''}${debugDetail.length > 0 ? ' ' + debugDetail.length + ' debug artifact(s).' : ''}`, tasks: t, progress, status });
+        const penalty=(todoDetail.length>0?Math.min(20,todoDetail.length*2):0)+(debugDetail.length>0?Math.min(20,debugDetail.length*3):0);
+        const rawProgress=Math.round(qs||0);
+        const progress=Math.max(0,Math.min(100,rawProgress-penalty));
+        const status=progress>=90?'completed':(progress>0?'in-progress':'pending');
+        const optDesc=qs>=90?`Maintain quality score at ${qs}/100 (currently above 90+).`:`Drive quality score from ${qs||0}/100 toward 90+.`;
+        phases.push({id:'optimization',title:'Quality Optimization',severity:qs<70?'high':'low',effort:'Ongoing',description:optDesc+`${todoDetail.length>0?' '+todoDetail.length+' TODO marker(s).':''}${debugDetail.length>0?' '+debugDetail.length+' debug artifact(s).':''}`,tasks:t,progress,status});
       }
 
       // Phase 6: Junk & Temporary Files — always show
@@ -919,7 +919,7 @@
 
       // Fallback: if no quality metrics were present at all
       if(phases.length===0){
-        if (qualityScore == null && schemaComp == null && consistency == null && dupes == null && credFindings == null) {
+        if(qs==null&&schemaComp==null&&consistency==null&&dupes==null&&credFindings==null){
           phases.push({id:'no-metrics',title:'Scan Complete — Quality Metrics Not Present',severity:'low',effort:'Review scan config',description:'This scan report does not contain data-quality metrics. The scanner may have run in a lightweight mode (e.g., gate scan only). Re-run with --complete or check that the report includes qualityScore, schemaCompliance, and consistencyScore fields.',tasks:[
             { description: 'Re-run scan with full analysis enabled', type: 'verify', codeSnippet: 'npx simplebeacon scan --complete', isStructured: true },
             { description: 'Verify scanner configuration includes data-quality analyzers', type: 'verify', isStructured: true },

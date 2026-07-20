@@ -172,14 +172,17 @@ function isComplianceToolingPath(normalized) {
     || /src\/core\/GlobalContextManager\.cjs$/i.test(normalized);
 }
 
-function shouldSkipSandboxScanFile(virtualPath) {
+function shouldSkipSandboxScanFile(virtualPath, isSimplebeaconMonorepo) {
   const normalized = normalizeSandboxScanPath(virtualPath);
   if (!normalized) return false;
   if (isTestOrFixturePath(normalized)) return true;
-  if (isComplianceToolingPath(normalized)) return true;
-  if (/(?:^|\/)(?:scan-exports|out|\.vscode-test|node_modules|\.git|\.simplebeacon)(?:\/|$)/i.test(normalized)) return true;
-  if (/simplebeacon-report\.json$/i.test(normalized)) return true;
-  if (/^web\/simplebeacon-dashboard\/js\//i.test(normalized)) return true;
+  if (/(?:^|\/)(?:node_modules|\.git|\.simplebeacon)(?:\/|$)/i.test(normalized)) return true;
+  if (isSimplebeaconMonorepo) {
+    if (isComplianceToolingPath(normalized)) return true;
+    if (/(?:^|\/)(?:scan-exports|out|\.vscode-test)(?:\/|$)/i.test(normalized)) return true;
+    if (/simplebeacon-report\.json$/i.test(normalized)) return true;
+    if (/^web\/simplebeacon-dashboard\/js\//i.test(normalized)) return true;
+  }
   return false;
 }
 
@@ -266,11 +269,11 @@ self.onmessage = function (e) {
   const { action, fileData } = e.data;
   if (action !== 'SCAN_FILE') return;
 
-  const { name, virtualPath, content, size } = fileData;
+  const { name, virtualPath, content, size, isSimplebeaconMonorepo } = fileData;
   const fileIssues = [];
   const fileFindings = [];
 
-  if (/^\s*\/\/\s*simplebeacon-ignore:/m.test(content) || shouldSkipSandboxScanFile(virtualPath)) {
+  if (/^\s*\/\/\s*simplebeacon-ignore:/m.test(content) || shouldSkipSandboxScanFile(virtualPath, isSimplebeaconMonorepo)) {
     self.postMessage({
       status: 'FILE_COMPLETED',
       result: { name, virtualPath, size, fileIssues, fileFindings }
@@ -284,15 +287,15 @@ self.onmessage = function (e) {
     const matchCount = countMatches(content, rule.regex, rule.id, virtualPath);
     if (matchCount > 0) {
       fileIssues.push(`${rule.name} (${matchCount}x)`);
-      for (let i = 0; i < matchCount; i += 1) {
-        fileFindings.push({
-          severity: rule.severity,
-          filePath: virtualPath,
-          message: rule.msg,
-          type: rule.name,
-          ruleId: rule.id
-        });
-      }
+      // Cap at 1 finding per rule per file to prevent log files from generating thousands of duplicates
+      fileFindings.push({
+        severity: rule.severity,
+        filePath: virtualPath,
+        message: rule.msg,
+        type: rule.name,
+        ruleId: rule.id,
+        count: matchCount
+      });
     }
   }
 
