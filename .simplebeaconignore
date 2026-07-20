@@ -164,7 +164,6 @@ mock-data-*.txt
 sample-*
 **/*-sample.json
 **/sample-report*.json
-ai-platform/coming-soon/
 
 # Ignore generated test certificate fixtures
 **/test-cert/**
@@ -236,7 +235,6 @@ ai-platform/web/simplebeacon-dashboard/js/services/fingerprintService.js
 ai-platform/web/simplebeacon-dashboard/js/services/localAgentService.js
 ai-platform/web/simplebeacon-dashboard/js-es2018/services/fingerprintService.js
 ai-platform/web/simplebeacon-dashboard/js-es2018/services/localAgentService.js
-ai-platform/local-agent/agent.cjs
 ai-platform/local-agent/agent.test.cjs
 ai-platform/local-agent/build.cjs
 ai-platform/local-agent/build-portable.cjs
@@ -359,15 +357,11 @@ coming-soon/playwright.config.js
 # Env vars used by docker-compose (not statically imported by JS)
 ai-platform/.env.production
 
-# Monorepo package.json sprawl is intentional
-ai-agent/package.json
 
 # Dashboard documentation examples trigger credential false positives (example API keys in educational content)
 coming-soon/js/dashboard/pattern-documentation.js
 coming-soon/js/dashboard/quick-actions.js
 
-# Frameworkless scanner pattern definitions trigger production-leak false positives (regex patterns, not imports)
-simplebeacon-frameworkless/app.js
 
 # Dashboard browser export utilities contain legitimate path strings flagged as production leaks
 # (UI text, export templates, and scan-scope configuration — not actual sample data imports)
@@ -392,8 +386,6 @@ coming-soon/public/content/social-posts.md
 coming-soon/server.cjs
 coming-soon/public/data/report.json
 
-# AI platform config files contain business values (prices, tiers, etc.)
-ai-platform/server/config/stripe.cjs
 
 # AI platform middleware — standard Node.js deep relative imports
 ai-platform/server/middleware/simplebeacon-subscription.cjs
@@ -405,12 +397,6 @@ ai-platform/web/simplebeacon-dashboard/js/main.js
 ai-platform/web/simplebeacon-dashboard/serve.cjs
 **/report.json
 coming-soon-dev/
-
-# Simplebeacon frameworkless demo app (pattern definitions trigger false positives)
-simplebeacon-frameworkless/
-
-# AI agent tooling (orchestrator, report analyzer)
-ai-agent/
 
 # Test files across all packages
 **/*.test.js
@@ -671,9 +657,6 @@ ai-platform/local-agent/setup.cjs
 simplebeacon-vscode-merged/deep-check-welcome.cjs
 verify-deployment.cjs
 
-# AI agent orchestrator — pattern definitions
-ai-agent/orchestrator.cjs
-
 # AI platform server libs — pattern definitions and compliance rules
 ai-platform/server/lib/ai-analyst.cjs
 ai-platform/server/lib/compliance-rules.cjs
@@ -681,9 +664,6 @@ ai-platform/server/lib/audit-remediation-recipes/classify.cjs
 ai-platform/server/lib/audit-remediation-recipes/data.cjs
 ai-platform/server/lib/audit-report/__tests__.cjs
 ai-platform/server/lib/code-understanding/zscript-cvar-analyzer.cjs
-
-# AI tools index
-ai-tools/index.js
 
 # Export findings script
 scripts/export-findings.js
@@ -706,9 +686,6 @@ ai-platform/server/api/assessment/AssessmentController.cjs
 ai-platform/server/lib/__tests__/audit-remediation-classify.test.cjs
 ai-platform/server/lib/__tests__/audit-report-internal-tests.test.cjs
 ai-platform/server/lib/fix-orchestrator/patch-strategies.test.cjs
-
-# API server
-api-server/server.cjs
 
 # Coming-soon misc files
 coming-soon/contact.js
@@ -860,21 +837,9 @@ coming-soon/public/contact.js
 coming-soon/app-links.js
 coming-soon/public/app-links.js
 
-# AI tools index
-ai-tools/index.js
-
 # Server entry points with legitimate code patterns
-api-server/server.cjs
 coming-soon/server.cjs
 
-# Browser extension build scripts
-browser-extension/build-extension.cjs
-browser-extension/create-icons.cjs
-
-# Browser extension bridge — intentional localhost defaults for MV3 mixed-content bypass
-browser-extension/service-worker.js
-browser-extension/bridge-inject.js
-browser-extension/content.js
 
 # Coming-soon routes and zip scripts
 coming-soon/routes/free-token.cjs
@@ -896,14 +861,12 @@ test-jwt-rotation.cjs
 serve-codemap*.js
 verify-codemap.js
 
-# Dev tools
-ai-platform/tools/
 ai-platform/web/data/transform-roadmap.cjs
 
 # Dashboard UI — browser-side console usage is intentional/dev-only
-ai-platform/web/simplebeacon-dashboard/js/
-ai-platform/web/simplebeacon-dashboard/js-es2018/
-ai-platform/web/simplebeacon-dashboard/scripts/
+# (kept: only data JSON and tsconfig; source directories now scanned)
+ai-platform/web/simplebeacon-dashboard/data/
+ai-platform/web/simplebeacon-dashboard/tsconfig.json
 
 # CLI / scanner internals — user-facing output and pattern definitions
 packages/simplebeacon-cli/bin/
@@ -929,18 +892,10 @@ ai-platform/server/routes/fix-orchestrator-api.cjs
 ai-platform/server/services/cloud-inference-service.cjs
 ai-platform/src/lib/app-logger.cjs
 
-# Desktop app build/run scripts
-simplebeacon-desktop/
-
 # Auxiliary services
-api-server/lib/db.cjs
-api-server/migrations/run-migrations.cjs
-local-agent/agent.js
 sales/license/renewal-tracker.js
 sales/support/decrypt-token.js
 
-# Python CLI tool
-ai-tools/ai-math-audit.py
 
 # Temp / generated root artifacts
 *.tmp
