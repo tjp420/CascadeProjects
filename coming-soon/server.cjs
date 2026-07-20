@@ -1380,11 +1380,13 @@ app.use('/dashboard', express.static(path.join(__dirname, 'public', 'dashboard')
 // Dashboard SPA fallback: serve public/dashboard/index.html for all /dashboard/* routes
 // so client-side routing works when refreshing or loading a deep dashboard URL.
 app.get('/dashboard/*', (req, res) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.sendFile(path.join(__dirname, 'public', 'dashboard', 'index.html'));
 });
 
 // Serve the dashboard root at /dashboard
 app.get('/dashboard', (req, res) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.sendFile(path.join(__dirname, 'public', 'dashboard', 'index.html'));
 });
 
