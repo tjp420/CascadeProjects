@@ -620,6 +620,20 @@ export function isLikelyWebkitDirectoryFileCap(fileCount) {
     return knownCaps.includes(n) || (n >= 2900 && n <= 3300);
 }
 
+/**
+ * Safely set HTML content on an element using DOMParser instead of innerHTML.
+ * @param {HTMLElement} el
+ * @param {string} html
+ * @returns {void}
+ */
+export function setHtml(el, html) {
+    if (!el) return;
+    if (typeof html !== 'string') { el.replaceChildren(); return; }
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    el.replaceChildren(...doc.body.childNodes);
+}
+
 /** User-facing note when folder selection may be truncated by the browser. */
 export function browserFolderCapMessage(fileCount) {
     const n = Number(fileCount) || 0;

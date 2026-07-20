@@ -222,6 +222,7 @@ export const observeIntersection = DomUtils.observeIntersection;
 export const preloadImage = DomUtils.preloadImage;
 export const copyToClipboard = DomUtils.copyToClipboard;
 export const renderEmptyState = DomUtils.renderEmptyState;
+export const setHtml = DomUtils.setHtml;
 // ── Format helpers ─────────────────────────────────────────────
 export const formatDate = FormatUtils.formatDate;
 export const relativeTime = FormatUtils.relativeTime;
