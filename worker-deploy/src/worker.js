@@ -3,18 +3,19 @@
  * Serves static assets (landing page + dashboard) and proxies API requests to Render.
  */
 
-// simplebeacon-ignore config-drift-pattern — CSP is a static security policy string, not a secret or environment-specific config
-const PROD_CSP = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://unpkg.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data:; connect-src 'self' https://simplebeacon.onrender.com https://*.onrender.com http://127.0.0.1:3456 http://localhost:3456 http://127.0.0.1:55000 http://localhost:55000 http://127.0.0.1:3000 http://localhost:3000 http://127.0.0.1:3001 http://localhost:3001 http://127.0.0.1:3002 http://localhost:3002 http://127.0.0.1:4000 http://localhost:4000 http://127.0.0.1:8080 http://localhost:8080 http://127.0.0.1:5000 http://localhost:5000 http://127.0.0.1:38000 http://localhost:38000 http://127.0.0.1:50559 http://localhost:50559 http://127.0.0.1:54358 http://localhost:54358 http://127.0.0.1:55432 http://localhost:55432 http://127.0.0.1:11434 http://localhost:11434; font-src 'self' https://fonts.gstatic.com; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';";
+// Default CSP used only when no environment override is provided. Prefer setting
+// `PROD_CSP` as an environment binding for each deployment to avoid config-drift.
+const DEFAULT_CSP = "default-src 'self'; frame-ancestors 'none'; base-uri 'self';";
 
 const HSTS_MAX_AGE_SECONDS = 31536000; // 1 year — standard HSTS duration
 
-function applyCspHeaders(res) {
+function applyCspHeaders(res, prodCsp) {
+  prodCsp = prodCsp || DEFAULT_CSP;
   const contentType = res.headers.get('Content-Type') || '';
   if (contentType.includes('text/html')) {
     const newRes = new Response(res.body, res);
-    // simplebeacon-ignore security-header-pattern — we are setting CSP here, not removing it
-    newRes.headers.delete('Content-Security-Policy');
-    newRes.headers.set('Content-Security-Policy', PROD_CSP);
+    // Always set CSP idempotently from configured binding or the default.
+    newRes.headers.set('Content-Security-Policy', prodCsp);
     newRes.headers.set('X-Frame-Options', 'DENY');
     newRes.headers.set('X-Content-Type-Options', 'nosniff');
     newRes.headers.set('Strict-Transport-Security', `max-age=${HSTS_MAX_AGE_SECONDS}; includeSubDomains; preload`);
@@ -75,11 +76,11 @@ export default {
       if (hasExtension) {
         // Static asset — serve directly
         const assetRes = await env.ASSETS.fetch(request);
-        return applyCspHeaders(assetRes);
+        return applyCspHeaders(assetRes, env.PROD_CSP);
       }
       // No file extension — SPA route, serve dashboard/index.html
       const spaReq = new Request(new URL('/dashboard/index.html', url.origin), request);
-      return applyCspHeaders(await env.ASSETS.fetch(spaReq));
+      return applyCspHeaders(await env.ASSETS.fetch(spaReq), env.PROD_CSP);
     }
 
     // Clean URL rewrite for marketing pages (e.g. /audit -> /audit.html)
@@ -90,13 +91,13 @@ export default {
         const htmlReq = new Request(new URL(cleanPath + '.html', url.origin), request);
         const htmlRes = await env.ASSETS.fetch(htmlReq);
         if (htmlRes.status === 200) {
-          return applyCspHeaders(htmlRes);
-        }
+            return applyCspHeaders(htmlRes, env.PROD_CSP);
+          }
       }
     }
 
     // Serve all other static assets (landing page, etc.)
     const res = await env.ASSETS.fetch(request);
-    return applyCspHeaders(res);
+    return applyCspHeaders(res, env.PROD_CSP);
   }
 };
