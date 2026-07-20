@@ -1137,6 +1137,14 @@ try {
 }
 
 try {
+    const tokenValidateRoutes = require('./routes/token-validate.cjs');
+    app.use(tokenValidateRoutes);
+    logger.info('[TokenValidate] Token validation route mounted');
+} catch (err) {
+    logger.warn('[TokenValidate] Routes not loaded:', err.message);
+}
+
+try {
     const adminRoutes = require('./routes/admin.cjs');
     app.use(adminRoutes);
     logger.info('[Admin] Admin routes mounted');
