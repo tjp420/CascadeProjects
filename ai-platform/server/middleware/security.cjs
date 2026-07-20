@@ -140,7 +140,7 @@ const validateInput = (schemaName) => {
 
 // Build connectSrc dynamically from env — avoid hardcoding localhost in production
 const buildConnectSrc = () => {
-  const base = ["'self'", "ws:", "wss:"];
+  const base = ["'self'", "ws:", "wss:", "https://cloudflareinsights.com"];
   const isProd = process.env.NODE_ENV === 'production';
   const publicUrl = process.env.PUBLIC_APP_URL || process.env.SIMPLEBEACON_APP_URL;
   const dashUrl = process.env.OPERATOR_DASHBOARD_BASE_URL || process.env.DASHBOARD_BASE_URL;
@@ -169,7 +169,7 @@ const securityHeaders = helmet({
     directives: {
       defaultSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://fonts.googleapis.com"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://unpkg.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://unpkg.com", "https://static.cloudflareinsights.com"],
       scriptSrcAttr: null,
       imgSrc: ["'self'", "data:", "https:"],
       connectSrc: buildConnectSrc(),

@@ -15,6 +15,20 @@ const router = express.Router();
 const DEFAULT_PAGE_LIMIT = 50;
 const MAX_PAGE_LIMIT = 500;
 const EXPORT_LIMIT = 10000;
+const MAX_PARAM_LENGTH = 200;
+
+function sanitizeParam(v) {
+    if (!v || typeof v !== 'string') return v;
+    const s = v.trim();
+    return s.length > MAX_PARAM_LENGTH ? s.slice(0, MAX_PARAM_LENGTH) : s;
+}
+
+function parseIsoDate(value) {
+    if (!value) return null;
+    const t = Date.parse(value);
+    if (Number.isNaN(t)) return null;
+    return new Date(t).toISOString();
+}
 
 /**
  * GET /api/v2/audit
@@ -30,7 +44,7 @@ const EXPORT_LIMIT = 10000;
  * Access: audit_log.read permission (admin, manager, auditor)
  */
 router.get('/api/v2/audit', requireAuth, requirePermission('audit_log.read'), async (req, res) => {
-    const {
+    let {
         workspaceId,
         action,
         resourceType,
@@ -40,6 +54,16 @@ router.get('/api/v2/audit', requireAuth, requirePermission('audit_log.read'), as
         limit = DEFAULT_PAGE_LIMIT,
         offset = 0
     } = req.query;
+
+    // Basic sanitization
+    action = sanitizeParam(action);
+    resourceType = sanitizeParam(resourceType);
+    severity = sanitizeParam(severity);
+    workspaceId = sanitizeParam(workspaceId);
+
+    // Validate dates early
+    if (from && !parseIsoDate(from)) return res.status(400).json({ error: 'Invalid from date; use ISO format' });
+    if (to && !parseIsoDate(to)) return res.status(400).json({ error: 'Invalid to date; use ISO format' });
 
     const conditions = [];
     const params = [];
@@ -71,7 +95,7 @@ router.get('/api/v2/audit', requireAuth, requirePermission('audit_log.read'), as
     }
 
     const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
-    const pageLimit = Math.min(parseInt(limit, 10) || DEFAULT_PAGE_LIMIT, MAX_PAGE_LIMIT);
+    const pageLimit = Math.min(Math.max(parseInt(limit, 10) || DEFAULT_PAGE_LIMIT, 1), MAX_PAGE_LIMIT);
     const pageOffset = Math.max(parseInt(offset, 10) || 0, 0);
 
     try {
@@ -91,6 +115,14 @@ router.get('/api/v2/audit', requireAuth, requirePermission('audit_log.read'), as
             [...params, pageLimit, pageOffset]
         );
 
+        // Pagination helper headers for callers
+        res.setHeader('X-Total-Count', String(countResult?.total || 0));
+        res.setHeader('X-Limit', String(pageLimit));
+        res.setHeader('X-Offset', String(pageOffset));
+        res.setHeader('X-Next-Offset', String(pageOffset + pageLimit));
+        res.setHeader('X-Prev-Offset', String(Math.max(pageOffset - pageLimit, 0)));
+        res.setHeader('Cache-Control', 'no-store');
+
         res.json({
             total: countResult?.total || 0,
             limit: pageLimit,
@@ -109,9 +141,16 @@ router.get('/api/v2/audit', requireAuth, requirePermission('audit_log.read'), as
  */
 router.get('/api/v2/audit/export', requireAuth, requirePermission('audit_log.read'), async (req, res) => {
     const format = (req.query.format || 'json').toLowerCase();
-    const {
-        workspaceId, action, resourceType, severity, from, to
-    } = req.query;
+    let { workspaceId, action, resourceType, severity, from, to } = req.query;
+    action = sanitizeParam(action);
+    resourceType = sanitizeParam(resourceType);
+    severity = sanitizeParam(severity);
+    workspaceId = sanitizeParam(workspaceId);
+
+    if (from && !parseIsoDate(from)) return res.status(400).json({ error: 'Invalid from date; use ISO format' });
+    if (to && !parseIsoDate(to)) return res.status(400).json({ error: 'Invalid to date; use ISO format' });
+
+    if (!['json', 'csv'].includes(format)) return res.status(400).json({ error: 'Invalid format; supported: json, csv' });
 
     const conditions = [];
     const params = [];
@@ -137,6 +176,7 @@ router.get('/api/v2/audit/export', requireAuth, requirePermission('audit_log.rea
              LIMIT ${EXPORT_LIMIT}`,
             params
         );
+        res.setHeader('Cache-Control', 'no-store');
 
         if (format === 'csv') {
             const headers = ['id', 'workspace_id', 'user_id', 'api_key_id', 'action', 'resource_type',

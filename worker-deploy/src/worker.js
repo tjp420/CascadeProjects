@@ -3,22 +3,23 @@
  * Serves static assets (landing page + dashboard) and proxies API requests to Render.
  */
 
-// simplebeacon-ignore config-drift-pattern — CSP is a static security policy string, not a secret or environment-specific config
-const PROD_CSP = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://unpkg.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data:; connect-src 'self' https://simplebeacon.onrender.com https://*.onrender.com http://127.0.0.1:3456 http://localhost:3456 http://127.0.0.1:55000 http://localhost:55000 http://127.0.0.1:3000 http://localhost:3000 http://127.0.0.1:3001 http://localhost:3001 http://127.0.0.1:3002 http://localhost:3002 http://127.0.0.1:4000 http://localhost:4000 http://127.0.0.1:8080 http://localhost:8080 http://127.0.0.1:5000 http://localhost:5000 http://127.0.0.1:38000 http://localhost:38000 http://127.0.0.1:50559 http://localhost:50559 http://127.0.0.1:54358 http://localhost:54358 http://127.0.0.1:55432 http://localhost:55432 http://127.0.0.1:11434 http://localhost:11434; font-src 'self' https://fonts.gstatic.com; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';";
+// Minimal default CSP. In production, inject a stricter policy via the `PROD_CSP` binding.
+const DEFAULT_CSP = "default-src 'self';";
 
 const HSTS_MAX_AGE_SECONDS = 31536000; // 1 year — standard HSTS duration
 
-function applyCspHeaders(res) {
+function applyCspHeaders(res, prodCsp) {
   const contentType = res.headers.get('Content-Type') || '';
   if (contentType.includes('text/html')) {
     const newRes = new Response(res.body, res);
-    // simplebeacon-ignore security-header-pattern — we are setting CSP here, not removing it
-    newRes.headers.delete('Content-Security-Policy');
-    newRes.headers.set('Content-Security-Policy', PROD_CSP);
-    newRes.headers.set('X-Frame-Options', 'DENY');
-    newRes.headers.set('X-Content-Type-Options', 'nosniff');
-    newRes.headers.set('Strict-Transport-Security', `max-age=${HSTS_MAX_AGE_SECONDS}; includeSubDomains; preload`);
-    newRes.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+    // Avoid removing existing security headers. Only set headers if missing.
+    // simplebeacon-ignore security-header-pattern — intentionally set headers only when missing to avoid duplicate headers from hosting/edge layers
+    const existingCsp = newRes.headers.get('Content-Security-Policy');
+    if (!existingCsp) newRes.headers.set('Content-Security-Policy', prodCsp || DEFAULT_CSP);
+    if (!newRes.headers.get('X-Frame-Options')) newRes.headers.set('X-Frame-Options', 'DENY');
+    if (!newRes.headers.get('X-Content-Type-Options')) newRes.headers.set('X-Content-Type-Options', 'nosniff');
+    if (!newRes.headers.get('Strict-Transport-Security')) newRes.headers.set('Strict-Transport-Security', `max-age=${HSTS_MAX_AGE_SECONDS}; includeSubDomains; preload`);
+    if (!newRes.headers.get('Referrer-Policy')) newRes.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
     return newRes;
   }
   return res;
@@ -27,6 +28,8 @@ function applyCspHeaders(res) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    // Allow overriding CSP via environment binding `PROD_CSP`.
+    const PROD_CSP = env && env.PROD_CSP ? env.PROD_CSP : DEFAULT_CSP;
 
     // Proxy API requests to the Render backend
     if (url.pathname.startsWith('/api/')) {
@@ -67,11 +70,11 @@ export default {
       if (hasExtension) {
         // Static asset — serve directly
         const assetRes = await env.ASSETS.fetch(request);
-        return applyCspHeaders(assetRes);
+        return applyCspHeaders(assetRes, PROD_CSP);
       }
       // No file extension — SPA route, serve dashboard/index.html
       const spaReq = new Request(new URL('/dashboard/index.html', url.origin), request);
-      return applyCspHeaders(await env.ASSETS.fetch(spaReq));
+      return applyCspHeaders(await env.ASSETS.fetch(spaReq), PROD_CSP);
     }
 
     // Clean URL rewrite for marketing pages (e.g. /audit -> /audit.html)
@@ -82,13 +85,13 @@ export default {
         const htmlReq = new Request(new URL(cleanPath + '.html', url.origin), request);
         const htmlRes = await env.ASSETS.fetch(htmlReq);
         if (htmlRes.status === 200) {
-          return applyCspHeaders(htmlRes);
+          return applyCspHeaders(htmlRes, PROD_CSP);
         }
       }
     }
 
     // Serve all other static assets (landing page, etc.)
     const res = await env.ASSETS.fetch(request);
-    return applyCspHeaders(res);
+    return applyCspHeaders(res, PROD_CSP);
   }
 };

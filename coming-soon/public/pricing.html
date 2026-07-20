@@ -1436,11 +1436,6 @@
           setTimeout(function(){ toast.style.opacity='0'; setTimeout(function(){ toast.remove(); }, 300); }, 2000);
         });
       }
-      if (signinBtn) {
-        signinBtn.addEventListener('click', function() {
-          window.location.href = '/dashboard/signin';
-        });
-      }
       // BroadcastChannel for real-time cross-page auth sync
       try {
         var authBC = new BroadcastChannel('simplebeacon-auth');
@@ -1453,7 +1448,6 @@
         };
       } catch(e) {}
       // Periodic check for auth state changes
-      updateAuthNav();
       setInterval(updateAuthNav, 2000);
             var emailMode = 'login';
       var signinOverlay = document.getElementById('signinOverlay');

@@ -57,7 +57,7 @@ import { renderCodebasePanel, buildCodebaseConclusion } from '../components/Code
 import { renderUnderstandingPanel, buildUnderstandingConclusion } from '../components/UnderstandingReport.js';
 import { renderZscriptReportPanel, buildZscriptConclusion } from '../components/ZscriptReport.js';
 import { showLoginModal } from '../components/LoginModal.js';
-import { authService } from '../services/authService.js?v=20260716cachefix1';
+import { authService } from '../services/authService.js?v=20260721cspapi';
 import { fetchCliApiKey, fetchCliHistory, fetchCliReport, renderCliUploadCard, renderCliReport } from '../services/cliUploadService.js?v=20260716cachefix1';
 import { MAX_SNIPPET_BYTES, isSupportedSourceFile, isAnalyzerCacheJson, isCleanupExportJson, isFictionDigestJson, isLockfileName, isMarkdownFileName, isScannerMetaFileName, filterSnippetFindingsForFile, scanSnippetText, computeThreatScore, redactMatch, severityLabel } from '../utils/snippetDiagnostic.js?v=20260716cachefix1';
 const SNIPPET_ACCEPT = '.json,.js,.mjs,.cjs,.ts,.tsx,.jsx,.py,.env,.yaml,.yml,.txt,.md,.html,.css,.xml,.toml,.ini,.sh,.ps1,.bat';

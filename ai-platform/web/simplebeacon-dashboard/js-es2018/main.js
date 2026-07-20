@@ -2,7 +2,7 @@
 import { scanService } from './services/scanService.js?v=20260716cachefix1';
 import { platformService } from './services/platformService.js?v=20260716cachefix1';
 import { billingService } from './services/billingService.js?v=20260716cachefix1';
-import { authService, apiBase } from './services/authService.js?v=20260716cachefix1';
+import { authService, apiBase } from './services/authService.js?v=20260721cspapi';
 import { themeService } from './services/themeService.js';
 import { Router, PUBLIC_VIEWS } from './router.js?v=20260716cachefix1';
 import { TrustView } from './views/TrustView.js?v=20260716cachefix1';
@@ -19,7 +19,7 @@ import { AnalyzeView } from './views/AnalyzeView.js?v=20260716cachefix1';
 import { SecurityView } from './views/SecurityView.js?v=20260716cachefix1';
 import { AboutView } from './views/AboutView.js';
 import { AssessmentView } from './views/AssessmentView.js?v=20260716cachefix1';
-import { SignInView } from './views/SignInView.js?v=20260716cachefix1';
+import { SignInView } from './views/SignInView.js?v=20260721cspapi';
 import { ChatbotView } from './views/ChatbotView.js?v=20260718ollama1';
 import { UploadView } from './views/UploadView.js';
 import { RemediationRoadmapView } from './views/RemediationRoadmapView.js';
