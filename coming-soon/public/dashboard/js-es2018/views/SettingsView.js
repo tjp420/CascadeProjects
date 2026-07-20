@@ -5,11 +5,11 @@ import { resolvePageSpecsLabel, resolveJestTestsLabel } from '../services/analyz
 import { scanService } from '../services/scanService.js?v=20260716cachefix1';
 import { billingService } from '../services/billingService.js';
 import { platformService } from '../services/platformService.js';
-import { fetchUserAiKeys, saveUserAiKeys, clearUserAiKeys, normalizeAiKeysRecord, fetchOllamaModels, shouldProbeOllamaModels, userHasJwtForAiKeys } from '../services/aiKeysService.js?v=20260716cachefix1';
+import { fetchUserAiKeys, saveUserAiKeys, clearUserAiKeys, normalizeAiKeysRecord, fetchOllamaModels, shouldProbeOllamaModels, userHasJwtForAiKeys } from '../services/aiKeysService.js?v=20260720ollama3';
 import { authService } from '../services/authService.js?v=20260721cspapi';
 import { OLLAMA_DEFAULT_URL } from '../config.js';
 import { isHostedDashboard } from '../demoMode.js';
-import { hasExtensionBridgeConfigured } from '../services/localAgentService.js?v=20260716cachefix1';
+import { hasExtensionBridgeConfigured } from '../services/localAgentService.js?v=20260720ollama4';
 import { mountCheckoutSuccessBanner } from '../components/CheckoutSuccessBanner.js';
 import { activateStockpileEntry, addToStockpile, BUY_TIME_TOKENS_URL, decodeTokenMeta, isStockpiledEntry, loadStockpileEntries, tokenHint, } from '../services/tokenStockpileService.js';
 const AI_KEY_FIELDS = [

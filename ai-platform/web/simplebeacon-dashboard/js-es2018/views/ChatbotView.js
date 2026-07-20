@@ -1,10 +1,10 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 import { escapeHtml, sanitizePrivacyData, copyToClipboard } from '../utils.js';
 import { authService, apiBase } from '../services/authService.js?v=20260721cspapi';
-import { fetchUserAiKeys, userHasJwtForAiKeys, fetchOllamaModels, saveUserAiKeys } from '../services/aiKeysService.js?v=20260716cachefix1';
+import { fetchUserAiKeys, userHasJwtForAiKeys, fetchOllamaModels, saveUserAiKeys } from '../services/aiKeysService.js?v=20260720ollama3';
 import { canUseBrowserOllama, isHostedDashboard } from '../demoMode.js';
 import { isIdeDashboardSurface } from '../utils-lib/dom.js?v=20260716cachefix1';
-import { getLocalBridgeFetch, getExtensionBridgeOrigin, hasExtensionBridgeConfigured, hasExplicitBridgeParam, probeLocalOllama, probeUserInitiatedOllama, probeExtensionBridgeHealth, resolveOllamaProxyUrl, buildBridgeOllamaChatUrls, discoverAndApplyExtensionBridge, buildExtensionConnectDeepLink, getVsixDownloadUrl, isHostedHttpsDashboard } from '../services/localAgentService.js?v=20260718ollama1';
+import { getLocalBridgeFetch, getExtensionBridgeOrigin, hasExtensionBridgeConfigured, hasExplicitBridgeParam, probeLocalOllama, probeUserInitiatedOllama, probeExtensionBridgeHealth, resolveOllamaProxyUrl, buildBridgeOllamaChatUrls, discoverAndApplyExtensionBridge, buildExtensionConnectDeepLink, getVsixDownloadUrl, isHostedHttpsDashboard } from '../services/localAgentService.js?v=20260720ollama4';
 
 function isExtensionHostedTab() {
     if (hasExtensionBridgeConfigured())

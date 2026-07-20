@@ -14,7 +14,7 @@
 import { openInIde } from '../utils-lib/ideDeepLink.js';
 import { persistExtensionBridge, clearExtensionBridge } from '../utils-lib/url.js?v=20260716cachefix1';
 import { EXTENSION_ID, VSIX_DOWNLOAD_URL } from '../config.js';
-import { shouldProbeOllamaModels } from './aiKeysService.js?v=20260716cachefix1';
+import { shouldProbeOllamaModels } from './aiKeysService.js?v=20260720ollama3';
 // simplebeacon:production-leak-intent: localhost-agent-origins - These hardcoded loopback origins are required by the local agent bridge; they are not deploy leaks.
 const DEFAULT_AGENT_ORIGIN = 'http://127.0.0.1:55432'; // simplebeacon-ignore hardcoded-url
 const AGENT_4000_ORIGIN = 'http://127.0.0.1:4000'; // simplebeacon-ignore hardcoded-url deploy-leak

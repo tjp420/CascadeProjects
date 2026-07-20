@@ -3,7 +3,7 @@ import { DASHBOARD_BASE_URL, OLLAMA_DEFAULT_URL } from '../config.js';
 import { apiBaseUrl } from '../utils-lib/url.js';
 
 import { authService } from './authService.js?v=20260721cspapi';
-import { hasExtensionBridgeConfigured, getLocalBridgeFetch, getExtensionBridgeOrigin, buildBridgeOllamaProbeUrls } from './localAgentService.js?v=20260716cachefix1';
+import { hasExtensionBridgeConfigured, getLocalBridgeFetch, getExtensionBridgeOrigin, buildBridgeOllamaProbeUrls } from './localAgentService.js?v=20260720ollama4';
 /**
  * Is authenticated.
  * @returns {any}
@@ -168,15 +168,10 @@ export function isLocalOllamaUrl(url) {
     }
 }
 
-/** Skip automatic Ollama probes that cannot succeed (HTTPS dashboard → loopback).
- *  User-initiated "Connect local Ollama" bypasses this guard.
+/** Whether automatic Ollama probes should proceed.
+ *  On HTTPS dashboards, direct browser→Ollama works when OLLAMA_ORIGINS is set.
  */
 export function shouldProbeOllamaModels(ollamaBaseUrl = OLLAMA_DEFAULT_URL) {
-    const baseUrl = sanitizeOllamaBaseUrl(ollamaBaseUrl) || OLLAMA_DEFAULT_URL;
-    const isHttpsPage = typeof window !== 'undefined' && window.location.protocol === 'https:';
-    if (isHttpsPage && isLocalOllamaUrl(baseUrl)) {
-        return false;
-    }
     return true;
 }
 
@@ -403,47 +398,8 @@ export async function fetchOllamaModels(ollamaBaseUrl = OLLAMA_DEFAULT_URL) {
             }
         }
 
-        // HTTPS pages or dashboards with a configured API base should use the
-        // server proxy to avoid CORS/mixed-content issues.
-        if (preferProxy) {
-            try {
-                return await fetchProxy();
-            } catch (proxyErr) {
-                if (proxyErr.name === 'AbortError') {
-                    throw new Error('Ollama connection timed out - is Ollama running?');
-                }
-                // HTTPS pages cannot call a local HTTP Ollama, so do not try direct.
-                if (isHttpsPage) {
-                    throw new Error(`Ollama proxy failed: ${proxyErr.message}`);
-                }
-                // If the proxy is reachable and returned an HTTP error, skip direct and report it.
-                if (proxyErr.name !== 'TypeError') {
-                    throw new Error(`Ollama proxy failed: ${proxyErr.message}`);
-                }
-                // Proxy could not be reached (network/transport error). Try a direct browser call as a fallback.
-                try {
-                    return await fetchDirect();
-                } catch (browserErr) {
-                    const cors = isCorsError(browserErr);
-                    const origin = (typeof window !== 'undefined' && window.location.origin) || 'this origin';
-                    if (cors) {
-                        throw new Error(
-                            `Ollama is reachable from the browser but the response is blocked by CORS. ` +
-                            `Start Ollama with the dashboard origin allowed: ` +
-                            `OLLAMA_ORIGINS='${origin}' ollama serve. ` +
-                            `If the server proxy is configured, it also failed: ${proxyErr.message}`
-                        );
-                    }
-                    throw new Error(
-                        browserErr.message === proxyErr.message
-                            ? proxyErr.message
-                            : `${browserErr.message} (server proxy: ${proxyErr.message})`
-                    );
-                }
-            }
-        }
-
-        // HTTP page with no proxy configured: try direct browser fetch first, then fall back to the proxy.
+        // Try direct browser fetch first (works when OLLAMA_ORIGINS is set).
+        // Fall back to server proxy if direct fails.
         try {
             return await fetchDirect();
         } catch (browserErr) {
@@ -459,8 +415,7 @@ export async function fetchOllamaModels(ollamaBaseUrl = OLLAMA_DEFAULT_URL) {
                     throw new Error(
                         `Ollama is reachable from the browser but the response is blocked by CORS. ` +
                         `Start Ollama with the dashboard origin allowed: ` +
-                        `OLLAMA_ORIGINS='${origin}' ollama serve. ` +
-                        `If the server proxy is configured, it also failed: ${proxyErr.message}`
+                        `OLLAMA_ORIGINS='${origin}' ollama serve.`
                     );
                 }
                 throw new Error(

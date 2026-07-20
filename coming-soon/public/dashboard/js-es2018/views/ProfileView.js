@@ -2,7 +2,7 @@
 import { escapeHtml, showToast, setHtml } from '../utils.js?v=20260720adminfix1';
 import { authService } from '../services/authService.js?v=20260721cspapi';
 import { isWebAuthnSupported, listSecurityKeys, registerSecurityKey, removeSecurityKey } from '../services/webauthnService.js?v=20260716cachefix1';
-import { userHasJwtForAiKeys } from '../services/aiKeysService.js?v=20260716cachefix1';
+import { userHasJwtForAiKeys } from '../services/aiKeysService.js?v=20260720ollama3';
 import { activateStockpileEntry, addToStockpile, BUY_TIME_TOKENS_URL, decodeTokenMeta, listStockpiled, stockpileCount, tokenHint, } from '../services/tokenStockpileService.js';
 function loadProfile() {
     try {
