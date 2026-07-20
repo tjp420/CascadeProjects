@@ -78,8 +78,11 @@ export function apiBase() {
         const host = location.hostname;
         // Production / Cloudflare Pages: always use cloud API (sb_api_base is for local bridge only).
         if (!/^(localhost|127\.0\.0\.1)$/i.test(host) && !host.endsWith('.onrender.com')) {
-            if (host === 'simplebeacon.ai' || host.endsWith('.simplebeacon.pages.dev')) {
+            if (host === 'simplebeacon.ai') {
                 return location.origin;
+            }
+            if (host.endsWith('.simplebeacon.pages.dev')) {
+                return 'https://cascadeprojects-yzzd.onrender.com';
             }
             return 'https://simplebeacon.ai';
         }
