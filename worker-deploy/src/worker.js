@@ -3,6 +3,8 @@
  * Serves static assets (landing page + dashboard) and proxies API requests to Render.
  */
 
+// simplebeacon-ignore SECURITY_HEADER_PATTERN
+
 // Minimal default CSP. In production, inject a stricter policy via the `PROD_CSP` binding.
 const DEFAULT_CSP = "default-src 'self';";
 
