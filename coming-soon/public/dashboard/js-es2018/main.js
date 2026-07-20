@@ -32,7 +32,7 @@ import { shouldShowOnboarding, renderOnboarding, bindOnboarding } from './compon
 import { showUpgradeModal } from './components/UpgradeModal.js';
 import { showLoginModal } from './components/LoginModal.js?v=20260716cachefix1';
 import { isDemoMode, isSignedOffMode, isLocalDevHost, isHostedDashboard, demoReadOnlyMessage } from './demoMode.js';
-import { showToast, resolveDashboardProjectPath, setHtml } from './utils.js';
+import { showToast, resolveDashboardProjectPath, setHtml } from './utils.js?v=20260720adminfix1';
 import { isEmbeddedDashboardFrame, isIdeDashboardSurface } from './utils-lib/dom.js?v=20260716cachefix1';
 import { hasExtensionBridgeConfigured } from './services/localAgentService.js?v=20260716cachefix1';
 import { fetchAnalyzeProviders, isClientScanReport, shouldClearHostedServerDefaultPath } from './services/analyzeService.js?v=20260716cachefix1';
