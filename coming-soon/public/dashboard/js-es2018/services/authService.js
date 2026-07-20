@@ -176,6 +176,7 @@ export class AuthService {
     constructor() {
         this.authRequired = false;
         this.user = null;
+        this.lastValidationError = '';
         this._onCrossTabSignout = this._onCrossTabSignout.bind(this);
         if (typeof window !== 'undefined') {
             window.addEventListener('storage', this._onCrossTabSignout);
@@ -727,6 +728,7 @@ export class AuthService {
         }
     }
     async validateSession({ password } = {}) {
+        this.lastValidationError = '';
         const token = this.getToken();
         if (!token) {
             // No active token — try vault rotation
@@ -750,9 +752,11 @@ export class AuthService {
                     this.bindTokenToAccount(token, 'account');
                     return true;
                 }
+                this.lastValidationError = (body === null || body === void 0 ? void 0 : body.error) || 'Invalid or expired token.';
             }
-            catch (_a) {
+            catch (err) {
                 // Network error — fall through to clear
+                this.lastValidationError = err.message || 'Unable to reach the validation server.';
             }
             this.clearSession();
             return false;

@@ -166,6 +166,16 @@ export class SignInView {
             (_c = container.querySelector('#forgot-password-btn')) === null || _c === void 0 ? void 0 : _c.addEventListener('click', () => this._showRecoveryModal());
             (_d = container.querySelector('#webauthn-signin-btn')) === null || _d === void 0 ? void 0 : _d.addEventListener('click', () => this._handleWebAuthnSignIn());
             container.querySelector('#signin-token-form')?.addEventListener('submit', (e) => this.handleTokenSubmit(e));
+            const tokenPwInput = container.querySelector('#signin-token-password');
+            const tokenPwToggle = container.querySelector('#signin-token-toggle-password');
+            if (tokenPwInput && tokenPwToggle) {
+                tokenPwToggle.addEventListener('click', () => {
+                    const show = tokenPwInput.type === 'password';
+                    tokenPwInput.type = show ? 'text' : 'password';
+                    tokenPwToggle.textContent = show ? 'Hide' : 'Show';
+                    tokenPwToggle.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+                });
+            }
         }
         else {
             (_e = container.querySelector('#signin-signout-btn')) === null || _e === void 0 ? void 0 : _e.addEventListener('click', async () => {
@@ -286,11 +296,16 @@ export class SignInView {
       <form id="signin-token-form" class="signin-form" style="display:flex;flex-direction:column;gap:14px;">
         <div>
           <label class="field-label" for="signin-token-input" style="${labelStyle}">License or Sandbox Token</label>
-          <input id="signin-token-input" class="input" type="text" autocomplete="off" placeholder="sb-pro-XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX" style="${inputStyle}" />
+          <input id="signin-token-input" class="input" type="text" autocomplete="off" placeholder="Paste your license or sandbox token…" style="${inputStyle}" />
+          <p style="margin:6px 0 0;font-size:0.75rem;color:var(--text-muted);line-height:1.4;">This is the token from your license email or the free community token page.</p>
         </div>
         <div>
-          <label class="field-label" for="signin-token-password" style="${labelStyle}">Password</label>
-          <input id="signin-token-password" class="input" type="password" autocomplete="off" placeholder="Email validation code or profile password" style="${inputStyle}" />
+          <label class="field-label" for="signin-token-password" style="${labelStyle}">Token Password / Validation Code</label>
+          <div style="position:relative;">
+            <input id="signin-token-password" class="input" type="password" autocomplete="off" placeholder="Enter the password that came with your token…" style="${inputStyle};padding-right:44px;" />
+            <button type="button" id="signin-token-toggle-password" aria-label="Show password" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);background:transparent;border:none;color:var(--text-muted);cursor:pointer;padding:6px 8px;border-radius:6px;font-size:0.8rem;">Show</button>
+          </div>
+          <p style="margin:6px 0 0;font-size:0.75rem;color:var(--text-muted);line-height:1.4;">For paid licenses this is your account password. For free tokens this is the validation code emailed to you.</p>
         </div>
         <p id="signin-token-error" class="signin-error" hidden role="alert" style="margin:0;font-size:0.85rem;color:var(--danger);text-align:center;line-height:1.5;"></p>
         <button type="submit" class="btn btn-primary btn-block" id="signin-token-submit" style="${btnPrimary}">Unlock with Token</button>
@@ -298,7 +313,7 @@ export class SignInView {
       <details style="margin-top:12px;font-size:0.8rem;color:var(--text-muted);">
         <summary style="cursor:pointer;text-align:center;list-style:none;padding:4px;">Where do I get a token?</summary>
         <p style="margin:8px 0 0;text-align:center;line-height:1.5;">
-          <a href="${COMING_SOON_URL}" target="_blank">Get a free community token</a> or <a href="${COMING_SOON_URL}pricing.html" target="_blank">purchase a license</a>.
+          <a href="${COMING_SOON_URL}" target="_blank">Get a free community token</a> or <a href="${COMING_SOON_URL}pricing.html" target="_blank">purchase a license</a>. Paid tokens are sent by email after checkout.
         </p>
       </details>
       </div>
@@ -517,7 +532,7 @@ export class SignInView {
         }
         catch (err) {
             authService.clearSession();
-            const message = err.message || 'Token validation failed';
+            const message = authService.lastValidationError || err.message || 'Token validation failed';
             if (errorEl) {
                 errorEl.textContent = message;
                 errorEl.hidden = false;
