@@ -2,7 +2,7 @@
 import { scanService } from './services/scanService.js?v=20260716cachefix1';
 import { platformService } from './services/platformService.js?v=20260716cachefix1';
 import { billingService } from './services/billingService.js?v=20260716cachefix1';
-import { authService, apiBase } from './services/authService.js?v=20260721cspapi';
+import { authService, apiBase } from './services/authService.js?v=20260720lockfix1';
 import { themeService } from './services/themeService.js';
 import { Router, PUBLIC_VIEWS } from './router.js?v=20260716cachefix1';
 import { TrustView } from './views/TrustView.js?v=20260716cachefix1';
@@ -15,15 +15,15 @@ import { PlatformView } from './views/PlatformView.js?v=20260716cachefix1';
 import { QualityView } from './views/QualityView.js?v=20260716cachefix1';
 import { HelpView, FeaturesView } from './views/HelpView.js';
 import { AuditView } from './views/AuditView.js?v=20260716cachefix1';
-import { AnalyzeView } from './views/AnalyzeView.js?v=20260720pages4';
+import { AnalyzeView } from './views/AnalyzeView.js?v=20260716cachefix1';
 import { SecurityView } from './views/SecurityView.js?v=20260716cachefix1';
 import { AboutView } from './views/AboutView.js';
 import { AssessmentView } from './views/AssessmentView.js?v=20260716cachefix1';
-import { SignInView } from './views/SignInView.js?v=20260720pages4';
+import { SignInView } from './views/SignInView.js?v=20260722signin3';
 import { ChatbotView } from './views/ChatbotView.js?v=20260718ollama1';
 import { UploadView } from './views/UploadView.js';
 import { RemediationRoadmapView } from './views/RemediationRoadmapView.js';
-import { ProfileView } from './views/ProfileView.js?v=20260717chatbot1';
+import { ProfileView } from './views/ProfileView.js?v=20260722profile2';
 import { AdminPanelView } from './views/AdminPanelView.js?v=20260716cachefix1';
 import { GettingStartedView } from './views/GettingStartedView.js?v=20260718onboard1';
 import { GuidedTour } from './components/GuidedTour.js?v=20260718onboard1';
@@ -32,7 +32,7 @@ import { shouldShowOnboarding, renderOnboarding, bindOnboarding } from './compon
 import { showUpgradeModal } from './components/UpgradeModal.js';
 import { showLoginModal } from './components/LoginModal.js?v=20260716cachefix1';
 import { isDemoMode, isSignedOffMode, isLocalDevHost, isHostedDashboard, demoReadOnlyMessage } from './demoMode.js';
-import { showToast, resolveDashboardProjectPath } from './utils.js';
+import { showToast, resolveDashboardProjectPath, setHtml } from './utils.js';
 import { isEmbeddedDashboardFrame, isIdeDashboardSurface } from './utils-lib/dom.js?v=20260716cachefix1';
 import { hasExtensionBridgeConfigured } from './services/localAgentService.js?v=20260716cachefix1';
 import { fetchAnalyzeProviders, isClientScanReport, shouldClearHostedServerDefaultPath } from './services/analyzeService.js?v=20260716cachefix1';
@@ -245,7 +245,7 @@ class SimplebeaconDashboard {
             ['audit', 'Audit'],
             ['remediation', 'Roadmap']
         ];
-        bar.innerHTML = items.map(([view, label]) => `<button type="button" class="embed-quick-nav-btn" data-view="${view}">${label}</button>`).join('');
+        setHtml(bar, items.map(([view, label]) => `<button type="button" class="embed-quick-nav-btn" data-view="${view}">${label}</button>`).join(''));
         bar.querySelectorAll('[data-view]').forEach((btn) => {
             btn.addEventListener('click', () => {
                 try {
@@ -394,13 +394,6 @@ class SimplebeaconDashboard {
                     return;
                 }
             }
-            // On the hosted dashboard, data APIs are publicly readable (report, baseline,
-            // config, history all return 200 without auth). Bootstrap anyway so the user
-            // sees dashboard data — auth is only required for server-side scans.
-            if (isHostedDashboard()) {
-                this.bootstrapAfterAuth();
-                return;
-            }
             this.router.init();
             const authEntry = this.parseInitialView();
             if (!isAuthEntryView(authEntry)) {
@@ -468,8 +461,7 @@ class SimplebeaconDashboard {
         bar.id = 'demo-banner';
         bar.className = 'demo-banner';
         const span = document.createElement('span');
-        // simplebeacon-ignore innerhtml-usage — static demo banner markup
-        span.innerHTML = '<strong>Demo</strong> — read-only honey-pot fixture (gate FAIL). Not your workspace.';
+        setHtml(span, '<strong>Demo</strong> — read-only honey-pot fixture (gate FAIL). Not your workspace.');
         const a = document.createElement('a');
         a.className = 'demo-banner-link';
         a.dataset.pricingCta = '1';
@@ -489,8 +481,7 @@ class SimplebeaconDashboard {
         bar.style.background = 'linear-gradient(90deg, rgba(99,102,241,0.15), rgba(99,102,241,0.05))';
         bar.style.borderBottom = '1px solid rgba(99,102,241,0.3)';
         const span = document.createElement('span');
-        // simplebeacon-ignore innerhtml-usage — static demo banner markup
-        span.innerHTML = '<strong>Demo Mode</strong> — You are viewing with a free token. Reports are read-only. Upgrade to unlock scans, exports, and full dashboard interaction.';
+        setHtml(span, '<strong>Demo Mode</strong> — You are viewing with a free token. Reports are read-only. Upgrade to unlock scans, exports, and full dashboard interaction.');
         const a = document.createElement('a');
         a.className = 'demo-banner-link';
         a.dataset.pricingCta = '1';
@@ -509,8 +500,7 @@ class SimplebeaconDashboard {
         bar.id = 'vault-banner';
         bar.className = 'demo-banner';
         const span = document.createElement('span');
-        // simplebeacon-ignore innerhtml-usage — static vault banner markup
-        span.innerHTML = '<strong>Vault locked</strong> — unlock the internal dashboard before scan/API calls work.';
+        setHtml(span, '<strong>Vault locked</strong> — unlock the internal dashboard before scan/API calls work.');
         const a = document.createElement('a');
         a.className = 'demo-banner-link';
         a.href = vaultUnlockUrl(returnPath);
@@ -526,8 +516,7 @@ class SimplebeaconDashboard {
         overlay.id = 'token-prompt-modal';
         overlay.className = 'modal-overlay';
         overlay.style.zIndex = '300';
-        // simplebeacon-ignore innerhtml-usage — static modal template, no user input
-        overlay.innerHTML = `
+        setHtml(overlay, `
       <div class="modal-card" role="dialog" aria-labelledby="token-prompt-title" style="max-width:420px;">
         <div class="modal-header" style="text-align:center;">
           <h2 id="token-prompt-title" style="font-size:1.25rem;margin-bottom:var(--space-1);">🔐 Unlock Dashboard</h2>
@@ -569,7 +558,7 @@ class SimplebeaconDashboard {
           </div>
         </div>
       </div>
-    `;
+    `);
         document.body.appendChild(overlay);
         // Tab switching
         const tabs = overlay.querySelectorAll('.signin-tab');
@@ -710,8 +699,7 @@ class SimplebeaconDashboard {
             chatbot: 'Chatbot'
         };
         const title = titles[view] || view;
-        // simplebeacon-ignore innerhtml-usage — static lock screen template, no user input
-        main.innerHTML = `
+        setHtml(main, `
       <div class="lock-screen" style="display:flex;align-items:center;justify-content:center;padding:var(--space-8);">
         <div class="lock-screen-content" style="text-align:center;max-width:420px;">
           <div style="font-size:3rem;margin-bottom:var(--space-4);">🔒</div>
@@ -758,7 +746,7 @@ class SimplebeaconDashboard {
           <p style="margin-top:var(--space-4);"><a href="/dashboard/#/dashboard" class="btn btn-secondary btn-block" onclick="document.getElementById('token-prompt-modal')?.remove();window.location.hash='#/dashboard';return false;">&#8592; Return to Dashboard</a></p>
         </div>
       </div>
-    `;
+    `);
         // Tab switching
         const tabs = main.querySelectorAll('.lock-tab');
         const panels = {
@@ -833,8 +821,10 @@ class SimplebeaconDashboard {
                 try {
                     authService.setSession(token, { token, source: 'lock-screen', password });
                     const valid = await authService.validateSession(password ? { password } : undefined);
-                    if (!valid)
+                    if (!valid) {
+                        authService.clearSession();
                         throw new Error('Invalid or expired token.');
+                    }
                     showToast('Dashboard unlocked', 'success');
                     this.updateAuthUi();
                     this.bootstrapAfterAuth();
@@ -898,7 +888,7 @@ class SimplebeaconDashboard {
         const main = document.getElementById('app-main');
         if (!main)
             return;
-        main.innerHTML = `
+        setHtml(main, `
       <div class="ide-auth-pending" style="display:flex;align-items:center;justify-content:center;padding:var(--space-8);">
         <div style="text-align:center;max-width:420px;">
           <p class="text-muted" style="margin-bottom:var(--space-3);">Connecting to VS Code extension…</p>
@@ -906,7 +896,7 @@ class SimplebeaconDashboard {
           <button type="button" class="btn btn-primary" id="ide-auth-signin-btn" style="margin-top:var(--space-4);">Sign in on simplebeacon.ai</button>
           <button type="button" class="btn btn-secondary" id="ide-auth-register-btn" style="margin-top:var(--space-2);">Create an account</button>
         </div>
-      </div>`;
+      </div>`);
         const btn = main.querySelector('#ide-auth-signin-btn');
         if (btn) {
             btn.addEventListener('click', () => {

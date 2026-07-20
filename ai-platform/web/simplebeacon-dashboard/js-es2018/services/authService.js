@@ -352,6 +352,10 @@ export class AuthService {
         var _a;
         const token = this.getToken();
         if (token) {
+            // Never treat email addresses as valid tokens.
+            if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(token)) {
+                return false;
+            }
             // Raw/local license keys are only valid against local/self-hosted APIs, not the
             // cloud service. On the cloud dashboard they should not unlock authenticated UI.
             if (!_isJwtToken(token)) {
@@ -379,6 +383,9 @@ export class AuthService {
     getAuthHeaders() {
         const token = this.getToken();
         if (!token)
+            return {};
+        // Never send email addresses as bearer tokens.
+        if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(token))
             return {};
         // Never send local license keys to cloud API endpoints.
         if (!_isJwtToken(token) && _isCloudApiBase())
@@ -742,6 +749,11 @@ export class AuthService {
         }
         // If token looks like a raw license key (not JWT), accept it as valid
         // (upload.html sets simplebeacon_token which is not a JWT)
+        // But reject email addresses — those are not valid tokens.
+        if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(token)) {
+            this.clearSession();
+            return this.tryRotateVaultToken();
+        }
         if (!token.includes('.') || token.split('.').length !== 3) {
             this._setTokenSession({ sub: 'license-user', plan: 'pro', tokenSession: true });
             // Bind raw license token to current account (or anonymous if no user yet)

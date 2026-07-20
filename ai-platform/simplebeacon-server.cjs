@@ -534,10 +534,19 @@ app.get(/^\/trust(\/.*)?$/, (req, res) => {
 
 // Serve dashboard assets under the /dashboard prefix for clients using absolute dashboard paths
 const dashboardStaticDir = path.join(webRoot, 'simplebeacon-dashboard');
+const dashboardStaticOpts = {
+  fallthrough: false,
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.js')) res.set('Content-Type', 'application/javascript; charset=utf-8');
+    if (filePath.endsWith('.css')) res.set('Content-Type', 'text/css; charset=utf-8');
+    if (filePath.endsWith('.json')) res.set('Content-Type', 'application/json; charset=utf-8');
+    if (filePath.endsWith('.wasm')) res.set('Content-Type', 'application/wasm');
+  }
+};
 ['/dashboard/css', '/dashboard/js', '/dashboard/js-es2018', '/dashboard/images', '/dashboard/fonts', '/dashboard/assets'].forEach(p => {
-  app.use(p, express.static(path.join(dashboardStaticDir, p.substring('/dashboard/'.length))));
+  app.use(p, express.static(path.join(dashboardStaticDir, p.substring('/dashboard/'.length)), dashboardStaticOpts));
 });
-app.use('/dashboard/site-config.js', express.static(path.join(dashboardStaticDir, 'site-config.js')));
+app.use('/dashboard/site-config.js', express.static(path.join(dashboardStaticDir, 'site-config.js'), dashboardStaticOpts));
 
 app.get('/', async (req, res) => {
   // For internal dashboard, prioritize dashboard over landing page
