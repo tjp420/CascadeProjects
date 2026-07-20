@@ -394,6 +394,13 @@ class SimplebeaconDashboard {
                     return;
                 }
             }
+            // On the hosted dashboard, data APIs are publicly readable (report, baseline,
+            // config, history all return 200 without auth). Bootstrap anyway so the user
+            // sees dashboard data — auth is only required for server-side scans.
+            if (isHostedDashboard()) {
+                this.bootstrapAfterAuth();
+                return;
+            }
             this.router.init();
             const authEntry = this.parseInitialView();
             if (!isAuthEntryView(authEntry)) {
