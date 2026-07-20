@@ -31,7 +31,7 @@ function getHostedAnalyzeContext() {
 // simplebeacon:production-leak-intent: sample-json - Legitimate documentation about sample file patterns in analysis results
 import { analyzePath, scanPath, summarizeReport, fetchAnalyzeProviders, fetchRepositoryInventory, fetchCodebaseAnalysis, enrichScanReport, fetchZscriptModReport, shouldFetchZscriptReport, isLegacyScanReport, isHostedServerDefaultPath, isHostedBrowserScanPath, shouldClearHostedServerDefaultPath, buildMonorepoScopeNote, buildPathInventoryProvenance, renderInventoryProvenanceHtml, refreshPathInventory, liveInventoryForPath, renderScanScopePanel, isSimplebeaconReport, normalizeSimplebeaconReport, resolveReportIssues, aiProviderSupportsSummary, getScanFileMetrics, resolveAutoAnalysisMode, buildScanConclusion, buildConsolidationConclusion, buildFictionDigestPayload, sanitizeFictionDigestExport, resolveCompleteScanTargetPath, normalizeProjectPath, filterIssuesByKind, preparePlatformResultsReport, convertSandboxReportToSimplebeacon, fetchCompleteAuditReport, fetchAnalyzeExportBundleZip, fetchEuAiActAuditReport, openAuditReportPrintWindow, previewAuditExportTier, auditExportButtonLabel, fetchDataCleanupScan, ensureDashboardApiReady, assertCompleteScanComplianceFresh, assertCompleteScanFileReductionFresh, fetchUnderstandSnippet, isCodebaseReport, fetchComplianceChecklist, fetchProjectNpmAudit, prepareGithubRepo, fetchAnalyzeTestSources, isAnalyzeProviderConfigured, uploadDirectoryAndAnalyze } from '../services/analyzeService.js?v=20260716cachefix1';
 import { isRemoteRepoUrl, sourceChipTitle } from '../lib/analyzePathSources.js';
-import { reportMatchesPagePath, pathsLooselyMatch, resolvePageProjectPath, getPathInputDisplayValue } from '../lib/pageRepoScan.js?v=20260716cachefix1';
+import { reportMatchesPagePath, pathsLooselyMatch, resolvePageProjectPath, getPathInputDisplayValue } from '../lib/pageRepoScan.js?v=20260720analyze1';
 import { collectPathSuggestions, refreshPathSuggestionsDatalist, pathInputListAttr, renderPathSuggestionsDatalistElement, saveRecentPath, removeRecentPath, loadRecentPaths } from '../lib/analyzePathSuggestions.js';
 import { validateProjectPathAllowlist, ensureAllowedAnalysisRoots } from '../lib/analyzePathAllowlist.js';
 import { isBenchmarkCachePath } from '../utils/complete-scan-artifact-profile.browser.js';
@@ -1233,8 +1233,6 @@ function isPlausibleProjectPath(value) {
     if (/^[a-zA-Z]:[\\/]/.test(raw))
         return true;
     if (raw.startsWith('\\\\') || raw.startsWith('/'))
-        return true;
-    if (/^[\w.-]+([\\/]|$)/.test(raw))
         return true;
     return false;
 }
@@ -5724,8 +5722,10 @@ export class AnalyzeView {
                     setAnalyzeDropzoneState('idle');
                     return;
                 }
-                // Hosted: never route absolute local paths to the server — scan dropped files in-browser.
-                if (isRemoteDashboardHost() && isAbsoluteLocalPath(snapshotPath || '') && fileArray.length > 0) {
+                // When dropped files are available, scan them in-browser rather than routing
+                // the local OS path to a remote server. This also works for localhost previews
+                // and proxies where isRemoteDashboardHost() would be false.
+                if (isAbsoluteLocalPath(snapshotPath || '') && fileArray.length > 0) {
                     if (analyzeTerminal)
                         analyzeTerminal.textContent = `Scanning "${folderHint}" in your browser…`;
                     await this.runLocalScan(null, fileArray, folderHint);
@@ -5738,7 +5738,7 @@ export class AnalyzeView {
                     return;
                 }
                 // IDE/webview drops often expose only an absolute path — route to server/agent scan when reachable.
-                if (snapshotPath && !(isRemoteDashboardHost() && isAbsoluteLocalPath(snapshotPath) && itemArray.length > 0)) {
+                if (snapshotPath && !(isAbsoluteLocalPath(snapshotPath) && itemArray.length > 0)) {
                     if (isRemoteDashboardHost() && isAbsoluteLocalPath(snapshotPath)) {
                         void this.handleDroppedFolderFallback(fileArray, folderHint, event, webkitEntry, null);
                         return;
@@ -7693,7 +7693,7 @@ export class AnalyzeView {
         }
         const isRemoteDeployment = isRemoteDashboardHost();
         if (!isPlausibleProjectPath(projectPath)) {
-            showToast('Enter a folder path (not a file like .bat or .json) or a supported public repo URL', 'error');
+            showToast('Enter an absolute folder path (e.g. C:\\project\\my-app) or a supported public repo URL', 'error');
             if (this.app.state.lastProjectPath === projectPath) {
                 this.app.state.lastProjectPath = '';
             }

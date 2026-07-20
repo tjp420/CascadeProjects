@@ -49,8 +49,6 @@ function isPlausibleProjectPath(value) {
         return true;
     if (cleaned.startsWith('\\\\') || cleaned.startsWith('/'))
         return true;
-    if (/^[\w.-]+([\\/]|$)/.test(cleaned))
-        return true;
     return false;
 }
 /** Read typed path from the active page path bar (Analyze bar or Dashboard scan input). */
