@@ -11,6 +11,11 @@ const { requirePermission, requireWorkspaceMembership } = require('../lib/rbac.j
 
 const router = express.Router();
 
+// Pagination and export limits
+const DEFAULT_PAGE_LIMIT = 50;
+const MAX_PAGE_LIMIT = 500;
+const EXPORT_LIMIT = 10000;
+
 /**
  * GET /api/v2/audit
  * Query parameters:
@@ -32,7 +37,7 @@ router.get('/api/v2/audit', requireAuth, requirePermission('audit_log.read'), as
         severity,
         from,
         to,
-        limit = 50,
+        limit = DEFAULT_PAGE_LIMIT,
         offset = 0
     } = req.query;
 
@@ -66,7 +71,7 @@ router.get('/api/v2/audit', requireAuth, requirePermission('audit_log.read'), as
     }
 
     const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
-    const pageLimit = Math.min(parseInt(limit, 10) || 50, 500);
+    const pageLimit = Math.min(parseInt(limit, 10) || DEFAULT_PAGE_LIMIT, MAX_PAGE_LIMIT);
     const pageOffset = Math.max(parseInt(offset, 10) || 0, 0);
 
     try {
@@ -129,7 +134,7 @@ router.get('/api/v2/audit/export', requireAuth, requirePermission('audit_log.rea
              FROM audit_log
              ${whereClause}
              ORDER BY created_at DESC
-             LIMIT 10000`,
+             LIMIT ${EXPORT_LIMIT}`,
             params
         );
 
