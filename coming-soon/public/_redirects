@@ -1,3 +1,20 @@
-# Routing is handled by the Cloudflare Worker code and not_found_handling SPA mode.
-# No _redirects rules needed.
+# API proxy is handled by the Worker (worker.js routes /api/* to Render backend).
+# Pages Functions also handle /api/* — no proxy redirect needed here.
+
+# Dashboard static assets (must be served with correct MIME types, not SPA fallback)
+/dashboard/css/* /dashboard/css/:splat 200
+/dashboard/js/* /dashboard/js/:splat 200
+/dashboard/js-es2018/* /dashboard/js-es2018/:splat 200
+/dashboard/images/* /dashboard/images/:splat 200
+/dashboard/fonts/* /dashboard/fonts/:splat 200
+/dashboard/assets/* /dashboard/assets/:splat 200
+
+# Dashboard SPA fallback — Worker handles /dashboard/* SPA routing.
+# Pages uses /dashboard/ -> /dashboard/index.html for the base route only.
+/dashboard /dashboard/index.html 200
+/dashboard/ /dashboard/index.html 200
+
+# Marketing pretty URLs (/audit, /pricing, etc.) are served natively by Cloudflare Pages
+# from *.html files — do NOT add /audit /audit.html 200 rules here; they cause 308 loops
+# with Pages' automatic .html → extensionless canonical redirects.
 
