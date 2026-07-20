@@ -78,12 +78,23 @@ const API_URL_DEFAULT_PORT = ':55000';
  * @returns {string}
  */
 export function normalizeApiServerUrl(url: string): string {
-  let normalized = String(url || '').replace(/\/+$/, '');
+  let normalized = String(url || '').replace(/\/+$/, '').trim();
+  if (!normalized) {
+    normalized = 'http://127.0.0.1:55000';
+  }
+  if (!/^https?:\/\//i.test(normalized)) {
+    normalized = 'http://' + normalized;
+  }
   for (const bad of API_URL_BAD_PORTS) {
     if (normalized.includes(bad)) {
       normalized = normalized.replace(bad, API_URL_DEFAULT_PORT);
       break;
     }
+  }
+  try {
+    new URL(normalized);
+  } catch {
+    normalized = 'http://127.0.0.1:55000';
   }
   return normalized;
 }
