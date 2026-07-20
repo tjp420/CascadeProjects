@@ -2,7 +2,7 @@
 import { scanService } from './services/scanService.js?v=20260716cachefix1';
 import { platformService } from './services/platformService.js?v=20260716cachefix1';
 import { billingService } from './services/billingService.js?v=20260716cachefix1';
-import { authService } from './services/authService.js?v=20260716cachefix1';
+import { authService } from './services/authService.js?v=20260719tokenpw1';
 import { themeService } from './services/themeService.js';
 import { Router, PUBLIC_VIEWS } from './router.js';
 import { TrustView } from './views/TrustView.js?v=20260716cachefix1';

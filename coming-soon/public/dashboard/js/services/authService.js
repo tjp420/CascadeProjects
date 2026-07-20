@@ -572,13 +572,29 @@ export class AuthService {
       // No active token — try vault rotation
       return this.tryRotateVaultToken();
     }
-    // If token looks like a raw license key (not JWT), accept it as valid
-    // (upload.html sets simplebeacon_token which is not a JWT)
+    // If token looks like a raw license key (not JWT), validate via server
     if (!token.includes('.') || token.split('.').length !== 3) {
-      this._setTokenSession({ sub: 'license-user', plan: 'pro', tokenSession: true });
-      // Bind raw license token to current account (or anonymous if no user yet)
-      this.bindTokenToAccount(token, 'account');
-      return true;
+      if (!password) {
+        this.clearSession();
+        return false;
+      }
+      try {
+        const res = await fetch('/api/tokens/validate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, password })
+        });
+        const body = await readJsonResponseBody(res, null);
+        if (body?.valid) {
+          this._setTokenSession({ sub: body.email || 'license-user', plan: body.tier || 'pro', tokenSession: true });
+          this.bindTokenToAccount(token, 'account');
+          return true;
+        }
+      } catch (e) {
+        // Network error — fall through to clear
+      }
+      this.clearSession();
+      return false;
     }
     // Try server-side validation first
     const headers = this.getAuthHeaders();
