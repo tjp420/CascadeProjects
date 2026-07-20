@@ -363,6 +363,8 @@ export class SignInView {
         const tokenRadio = container.querySelector('#tab-radio-token');
         const emailLabel = container.querySelector('#maintab-email');
         const tokenLabel = container.querySelector('#maintab-token');
+        const emailPanel = container.querySelector('#panel-email');
+        const tokenPanel = container.querySelector('#panel-token');
         const activeStyle = 'background:var(--primary);color:#fff;';
         const inactiveStyle = 'background:var(--surface-hover);color:var(--text-muted);';
         const baseStyle = 'flex:1;padding:10px 16px;border:none;font-size:0.9rem;font-weight:600;border-radius:8px;cursor:pointer;transition:all 0.2s;text-align:center;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;';
@@ -371,6 +373,8 @@ export class SignInView {
             this._activeTab = isEmail ? 'email' : 'token';
             if (emailLabel) { emailLabel.classList.toggle('active', isEmail); emailLabel.style.cssText = baseStyle + (isEmail ? activeStyle : inactiveStyle); }
             if (tokenLabel) { tokenLabel.classList.toggle('active', !isEmail); tokenLabel.style.cssText = baseStyle + (!isEmail ? activeStyle : inactiveStyle); }
+            if (emailPanel) { emailPanel.classList.toggle('active', isEmail); emailPanel.style.setProperty('display', isEmail ? 'block' : 'none', 'important'); }
+            if (tokenPanel) { tokenPanel.classList.toggle('active', !isEmail); tokenPanel.style.setProperty('display', !isEmail ? 'block' : 'none', 'important'); }
         };
         emailRadio?.addEventListener('change', sync);
         tokenRadio?.addEventListener('change', sync);
