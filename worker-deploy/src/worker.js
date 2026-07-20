@@ -74,8 +74,8 @@ export default {
         const assetRes = await env.ASSETS.fetch(request);
         return applyCspHeaders(assetRes, PROD_CSP);
       }
-      // No file extension — SPA route, serve dashboard/index.html
-      const spaReq = new Request(new URL('/dashboard/index.html', url.origin), request);
+      // No file extension — SPA route, serve dashboard/__entry (avoids Pages 307 from /dashboard/index.html)
+      const spaReq = new Request(new URL('/dashboard/__entry', url.origin), request);
       return applyCspHeaders(await env.ASSETS.fetch(spaReq), PROD_CSP);
     }
 
