@@ -407,15 +407,6 @@ export function resolveOllamaProxyUrl(ollamaPath, baseUrl = DEFAULT_OLLAMA_ORIGI
         }
         return `${bridge}/api/simplebeacon/ollama/proxy?${qs}&path=${encodeURIComponent(path)}`;
     }
-    if (isHostedHttpsDashboard()) {
-        const qs = `baseUrl=${encodeURIComponent(normalized)}`;
-        if (path === '/api/tags') {
-            return `${window.location.origin}/api/simplebeacon/ollama/models?${qs}`;
-        }
-        if (path === '/api/chat') {
-            return `${window.location.origin}/api/simplebeacon/ollama/chat?${qs}`;
-        }
-    }
     return `${normalized}${path}`;
 }
 
@@ -451,10 +442,6 @@ function buildBridgeOllamaProbeUrls(baseUrl = DEFAULT_OLLAMA_ORIGIN) {
     const normalized = String(baseUrl || DEFAULT_OLLAMA_ORIGIN).replace(/\/+$/, '');
     const bridge = getExtensionBridgeOrigin();
     if (!bridge) {
-        if (isHostedHttpsDashboard()) {
-            const qs = `baseUrl=${encodeURIComponent(normalized)}`;
-            return [`${window.location.origin}/api/simplebeacon/ollama/models?${qs}`];
-        }
         return [`${normalized}/api/tags`];
     }
     const qs = `baseUrl=${encodeURIComponent(normalized)}`;
@@ -470,10 +457,6 @@ export function buildBridgeOllamaChatUrls(baseUrl = DEFAULT_OLLAMA_ORIGIN) {
     const normalized = String(baseUrl || DEFAULT_OLLAMA_ORIGIN).replace(/\/+$/, '');
     const bridge = getExtensionBridgeOrigin();
     if (!bridge) {
-        if (isHostedHttpsDashboard()) {
-            const qs = `baseUrl=${encodeURIComponent(normalized)}`;
-            return [`${window.location.origin}/api/simplebeacon/ollama/chat?${qs}`];
-        }
         return [`${normalized}/api/chat`];
     }
     const qs = `baseUrl=${encodeURIComponent(normalized)}`;

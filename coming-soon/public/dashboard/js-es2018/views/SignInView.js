@@ -123,7 +123,7 @@ export class SignInView {
         var _a, _b, _c, _d, _e, _f;
         this._mountContainer = container;
         this._emailMode = mode || this._resolveEmailMode();
-        container.innerHTML = `<div class="signin-page"><div class="signin-card card"><p class="text-muted">Loading…</p></div></div>`;
+        setHtml(container, `<div class="signin-page"><div class="signin-card card"><p class="text-muted">Loading…</p></div></div>`);
         this._ingestUrlToken();
         const authed = authService.isAuthenticated();
         const email = ((_a = authService.getUser()) === null || _a === void 0 ? void 0 : _a.email) || decodeEmailFromToken(authService.getToken()) || '';
@@ -147,7 +147,7 @@ export class SignInView {
         }
         const isRegister = this._isRegisterMode();
         const isToken = this._emailMode === 'token';
-        container.innerHTML = `
+        setHtml(container, `
       <div class="signin-page">
         <div class="signin-card card">
           <div class="signin-header">
@@ -158,7 +158,7 @@ export class SignInView {
           ${authed ? this.renderAuthed({ email, allowed, internalDev }) : this.renderSignInForm()}
         </div>
       </div>
-    `;
+    `);
         if (!authed) {
             this.bindEmailModeToggle(container);
             (_b = container.querySelector('#signin-email-form')) === null || _b === void 0 ? void 0 : _b.addEventListener('submit', (e) => this.handleEmailSubmit(e));
@@ -405,7 +405,7 @@ export class SignInView {
                 if (result.pending) {
                     const card = (_c = this._mountContainer) === null || _c === void 0 ? void 0 : _c.querySelector('.signin-card');
                     if (card) {
-                        card.innerHTML = `
+                        setHtml(card, `
                       <div class="signin-header">
                         <span class="signin-icon" aria-hidden="true">&#9989;</span>
                         <h1 class="signin-title">Account submitted</h1>
@@ -413,7 +413,7 @@ export class SignInView {
                       </div>
                       <p class="signin-note" style="font-size:0.9rem;color:var(--text-muted);text-align:center;line-height:1.5;">You cannot access the dashboard until your account is activated. We will email you at <strong>${escapeHtml(email)}</strong> when ready.</p>
                       <button type="button" class="btn btn-primary btn-block" id="pending-goto-signin" style="margin-top:16px;width:100%;">Back to Sign In</button>
-                    `;
+                    `);
                         card.querySelector('#pending-goto-signin')?.addEventListener('click', () => this.app.navigate('signin'));
                     }
                     return;
@@ -450,7 +450,7 @@ export class SignInView {
         const overlay = document.createElement('div');
         overlay.id = 'recovery-modal-overlay';
         overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);z-index:9999;display:flex;align-items:center;justify-content:center;';
-        overlay.innerHTML = `
+        setHtml(overlay, `
       <div style="position:relative;z-index:1;background:var(--surface);padding:28px 32px;border-radius:14px;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);border:1px solid var(--border);">
         <h3 style="margin:0 0 8px;font-size:1.15rem;color:var(--text-primary);">&#128273; Account Recovery</h3>
         <p style="margin:0 0 18px;font-size:0.85rem;color:var(--text-muted);line-height:1.5;">Enter your email address and we'll send you instructions to reset your password.</p>
@@ -463,7 +463,7 @@ export class SignInView {
           <button id="recovery-submit" style="padding:10px 18px;border-radius:8px;border:none;background:var(--primary);color:#fff;font-size:0.85rem;font-weight:600;cursor:pointer;">Send Instructions</button>
         </div>
       </div>
-    `;
+    `);
         document.body.appendChild(overlay);
         const emailInput = overlay.querySelector('#recovery-email-input');
         const errorEl = overlay.querySelector('#recovery-error');
