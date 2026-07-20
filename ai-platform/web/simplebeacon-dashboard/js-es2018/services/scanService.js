@@ -1,6 +1,6 @@
 import { fetchWithTimeout, downloadJson, downloadText, resolveDashboardProjectPath } from '../utils.js';
 import { billingService } from './billingService.js';
-import { authService } from './authService.js?v=20260716cachefix1';
+import { authService } from './authService.js?v=20260721cspapi';
 import { isDemoMode, DEMO_API_BASE, isLocalDevHost } from '../demoMode.js';
 import { readJsonResponseBody } from '../lib/recoverable-fetch.js';
 import { buildDashboardExportBundle } from '../utils/dashboard-export.browser.js?v=20260716cachefix1';
@@ -98,9 +98,9 @@ function simplebeaconApiBase() {
         catch (_a) { /* fall through */ }
     }
     // On Cloudflare Pages / custom domains, the dashboard static files are served without the
-    // API backend. Route API calls to the Render backend instead.
+    // API backend. Route API calls to the production API instead.
     if (typeof location !== 'undefined' && !/^(localhost|127\.0\.0\.1)$/i.test(location.hostname) && !location.hostname.endsWith('.onrender.com')) {
-        if (location.hostname === 'simplebeacon.ai' || location.hostname.endsWith('.simplebeacon.pages.dev')) {
+        if (location.hostname === 'simplebeacon.ai') {
             return `${location.origin}/api/simplebeacon`;
         }
         return 'https://simplebeacon.ai/api/simplebeacon';

@@ -118,7 +118,6 @@ export class SignInView {
       container.querySelector('#signin-email-form')?.addEventListener('submit', (e) => this.handleEmailSubmit(e));
       container.querySelector('#forgot-password-btn')?.addEventListener('click', () => this._showRecoveryModal());
       container.querySelector('#webauthn-signin-btn')?.addEventListener('click', () => this._handleWebAuthnSignIn());
-      container.querySelector('#signin-token-form')?.addEventListener('submit', (e) => this.handleTokenSubmit(e));
     } else {
       container.querySelector('#signin-signout-btn')?.addEventListener('click', async () => {
         try {
@@ -203,26 +202,6 @@ export class SignInView {
         <p class="signin-note" id="email-mode-note" style="margin:16px 0 0;font-size:0.85rem;color:var(--text-muted);text-align:center;line-height:1.5;">${this._emailMode === 'register' ? 'Already have an account? Switch to <strong>Sign In</strong>.' : 'New here? Switch to <strong>Create Account</strong> to register.'}</p>
       </div>
 
-      <div class="signin-divider" style="text-align:center;margin:16px 0;font-size:0.8rem;color:var(--text-muted);position:relative;">
-        <span style="background:var(--surface);padding:0 12px;position:relative;z-index:1;">or use a license token</span>
-        <div style="position:absolute;top:50%;left:0;right:0;height:1px;background:var(--border);z-index:0;"></div>
-      </div>
-            <form id="signin-token-form" class="signin-form" style="display:flex;flex-direction:column;gap:14px;">
-        <div>
-          <label class="field-label" for="signin-token-input" style="${labelStyle}">License or Sandbox Token</label>
-          <input id="signin-token-input" class="input" type="text" autocomplete="off" placeholder="sb-pro-XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX" style="${inputStyle}" />
-        </div>
-        <div>
-          <label class="field-label" for="signin-token-password" style="${labelStyle}">Password</label>
-          <input id="signin-token-password" class="input" type="password" autocomplete="off" placeholder="Email validation code or profile password" style="${inputStyle}" />
-        </div>
-        <p id="signin-token-error" class="signin-error" hidden role="alert" style="margin:0;font-size:0.85rem;color:var(--danger,#ef4444);text-align:center;line-height:1.5;"></p>
-        <button type="submit" class="btn btn-primary btn-block" id="signin-token-submit" style="${btnPrimary}">Unlock with Token</button>
-      </form>
-
-
-
-
       <p class="signin-footer" style="margin-top:24px;text-align:center;font-size:0.85rem;color:var(--text-muted);">
         <a href="/demo" style="color:var(--primary);text-decoration:none;">View read-only demo</a>
         <span class="signin-footer-sep" style="margin:0 6px;">·</span>
@@ -302,42 +281,6 @@ export class SignInView {
       showToast(message, 'error');
       submitBtn.disabled = false;
       submitBtn.textContent = this._emailMode === 'register' ? 'Create Account' : 'Sign In';
-    }
-  }
-
-  async handleTokenSubmit(e) {
-    e.preventDefault();
-    const form = e.target;
-    const token = form.querySelector('#signin-token-input').value.trim();
-    const password = (form.querySelector('#signin-token-password')?.value || '').trim();
-    const submitBtn = form.querySelector('#signin-token-submit');
-    const errorEl = form.querySelector('#signin-token-error');
-    if (!token) {
-      if (errorEl) { errorEl.textContent = 'Please enter a license token.'; errorEl.hidden = false; }
-      return;
-    }
-    if (!password) {
-      if (errorEl) { errorEl.textContent = 'Please enter your email validation code or profile password.'; errorEl.hidden = false; }
-      return;
-    }
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Checking…';
-    if (errorEl) { errorEl.hidden = true; errorEl.textContent = ''; }
-    try {
-      authService.setSession(token, { token, source: 'signin-token', password });
-      const valid = await authService.validateSession({ password });
-      if (!valid) throw new Error('Invalid or expired token.');
-      showToast('Signed in with license token', 'success');
-      this.app.updateAuthUi();
-      if (typeof this.app.bootstrapAfterAuth === 'function') this.app.bootstrapAfterAuth();
-      this.app.navigate('dashboard');
-    } catch (err) {
-      authService.clearSession();
-      const message = err.message || 'Token validation failed';
-      if (errorEl) { errorEl.textContent = message; errorEl.hidden = false; }
-      showToast(message, 'error');
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Unlock with Token';
     }
   }
 

@@ -3,7 +3,7 @@
  * Checkout success banner — instant token display after Stripe redirect.
  */
 import { billingService } from '../services/billingService.js';
-import { authService } from '../services/authService.js?v=20260720pages3';
+import { authService } from '../services/authService.js?v=20260721cspapi';
 import { addToStockpile } from '../services/tokenStockpileService.js';
 import { showToast } from '../utils.js';
 

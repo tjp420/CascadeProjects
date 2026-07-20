@@ -1,4 +1,4 @@
-import { authService } from './authService.js?v=20260716cachefix1';
+import { authService } from './authService.js?v=20260721cspapi';
 import { readJsonResponseBody, logRecoverableDashboardError } from '../lib/recoverable-fetch.js';
 const RECENT_KEY = 'simplebeaconRecentAssessments';
 const MAX_RECENT = 20;

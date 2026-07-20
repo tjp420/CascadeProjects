@@ -1,0 +1,28 @@
+HTTP/1.1 307 Temporary Redirect
+Date: Mon, 20 Jul 2026 07:41:11 GMT
+Content-Length: 0
+Connection: keep-alive
+Location: /dashboard/
+content-security-policy: default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data: blob: ws: wss:;
+content-security-policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';
+Report-To: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=0uvn2SVsNktY%2Fk1OWuJJ7JAZK6n2O1F0G%2F8FUmKEkKpS54P8J6ivvP3vbQRGUj8FZjyNz5pRE3BiuBVHyUMRSh2Z7zfBP8RaWCZu%2BoP8EEjDpxgdC2tDGSdNEGOYEYpAnvk%3D"}]}
+Nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+Server: cloudflare
+CF-RAY: a1e05274cc776367-LHR
+alt-svc: h3=":443"; ma=86400
+
+HTTP/1.1 200 OK
+Date: Mon, 20 Jul 2026 07:41:11 GMT
+Content-Type: text/html
+Content-Length: 54656
+Connection: keep-alive
+CF-Cache-Status: HIT
+ETag: "86bcf12099753d11cba1b985992ce79e"
+content-security-policy: default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data: blob: ws: wss:;
+content-security-policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';
+Report-To: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=exJAQBo%2BSoQQec4ZYHQClr1Ho%2F%2Bftj3w0MdB%2F8WGreVyI1NX14SY%2Fw%2Fi2RsX0RkRdP64D4yNJQj1cBCSIGG3GMYBserFM7ABxyku9WZRQG53jGoFDikFzYr%2Bc3QKth4so8w%3D"}]}
+Nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+Server: cloudflare
+CF-RAY: a1e05275bcea6367-LHR
+alt-svc: h3=":443"; ma=86400
+

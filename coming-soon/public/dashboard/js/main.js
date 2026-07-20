@@ -2,7 +2,7 @@
 import { scanService } from './services/scanService.js?v=20260716cachefix1';
 import { platformService } from './services/platformService.js?v=20260716cachefix1';
 import { billingService } from './services/billingService.js?v=20260716cachefix1';
-import { authService } from './services/authService.js?v=20260719tokenpw1';
+import { authService } from './services/authService.js?v=20260716cachefix1';
 import { themeService } from './services/themeService.js';
 import { Router, PUBLIC_VIEWS } from './router.js';
 import { TrustView } from './views/TrustView.js?v=20260716cachefix1';
@@ -19,7 +19,7 @@ import { AnalyzeView } from './views/AnalyzeView.js?v=20260716cachefix1';
 import { SecurityView } from './views/SecurityView.js?v=20260716cachefix1';
 import { AboutView } from './views/AboutView.js';
 import { AssessmentView } from './views/AssessmentView.js';
-import { SignInView } from './views/SignInView.js?v=20260719tokenpw1';
+import { SignInView } from './views/SignInView.js?v=20260716cachefix1';
 import { ChatbotView } from './views/ChatbotView.js';
 import { UploadView } from './views/UploadView.js';
 import { RemediationRoadmapView } from './views/RemediationRoadmapView.js';
@@ -484,25 +484,6 @@ class SimplebeaconDashboard {
       </div>
     `;
 
-    // Pre-fill token from signin page redirect
-    const pendingToken = sessionStorage.getItem('sb_pending_token');
-    const pendingPassword = sessionStorage.getItem('sb_pending_token_password');
-    if (pendingToken) {
-      sessionStorage.removeItem('sb_pending_token');
-      if (pendingPassword) sessionStorage.removeItem('sb_pending_token_password');
-      const tokenInput = main.querySelector('#lock-token');
-      if (tokenInput) {
-        tokenInput.value = pendingToken;
-        const tokenTab = main.querySelector('.lock-tab[data-tab="token"]');
-        if (tokenTab) tokenTab.click();
-        const pwInput = main.querySelector('#lock-token-password');
-        if (pwInput) {
-          if (pendingPassword) pwInput.value = pendingPassword;
-          pwInput.focus();
-        }
-      }
-    }
-
     // Tab switching
     const tabs = main.querySelectorAll('.lock-tab');
     const panels = {
@@ -563,27 +544,6 @@ class SimplebeaconDashboard {
               const emailInput = main.querySelector('#lock-email');
               if (emailInput) emailInput.value = binding.email;
             }
-          }
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Unlock with token';
-          return;
-        }
-
-        // Require password for non-free-tier tokens
-        const freeTiers = ['community', 'starter', 'instant', 'free', 'developer', 'sandbox'];
-        let isFreeTier = false;
-        if (token.includes('.') && token.split('.').length === 3) {
-          try {
-            const payloadB64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-            const payload = JSON.parse(atob(payloadB64 + '='.repeat((4 - payloadB64.length % 4) % 4)));
-            const tier = (payload.tier || payload.product || '').toLowerCase();
-            isFreeTier = freeTiers.includes(tier);
-          } catch (e) { /* treat as non-free if decode fails */ }
-        }
-        if (!isFreeTier && !password) {
-          if (errorEl) {
-            errorEl.textContent = 'A password is required for this token.';
-            errorEl.hidden = false;
           }
           submitBtn.disabled = false;
           submitBtn.textContent = 'Unlock with token';

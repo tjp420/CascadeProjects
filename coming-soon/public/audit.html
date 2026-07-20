@@ -162,10 +162,9 @@
               .token-gate-email { display: none; flex-direction: column; gap: 8px; padding: 14px; border: 1px solid rgba(99,102,241,0.2); border-radius: 12px; background: rgba(99,102,241,0.04); }
               .token-gate-email.expanded { display: flex; }
               .token-gate-email-label { font-size: 0.75rem; color: var(--text-secondary); font-weight: 500; margin: 0; }
-              .token-gate-email-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-              .token-gate-email-row input { flex: 1 1 200px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text-main); font-size: 0.85rem; min-width: 0; }
+              .token-gate-email-row { display: flex; gap: 8px; }
+              .token-gate-email-row input { flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text-main); font-size: 0.85rem; }
               .token-gate-email-row input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
-              .token-gate-email-row .btn { flex-shrink: 0; white-space: nowrap; }
               .token-gate-email-help { font-size: 0.7rem; color: var(--text-muted); margin: 0; }
               .token-gate-code-row { display: none; flex-direction: row; align-items: center; gap: 8px; flex-wrap: wrap; }
               .token-error-bar { color: var(--error); font-size: 0.8rem; margin: 0; display: none; }
@@ -231,7 +230,6 @@
                   <input type="text" id="sandboxCodeInput" maxlength="6" placeholder="123456" style="width:120px;padding:10px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text-main);font-size:0.85rem;" />
                   <button type="button" class="btn btn-primary" id="sandboxCodeSubmit">Verify</button>
                 </div>
-                <p id="sandboxSpamNote" style="display:none;font-size:0.78rem;color:var(--text-muted);margin-top:8px;">Didn't get the email? Check your <strong>spam</strong> or <strong>junk</strong> folder for the validation code and token.</p>
                 <p class="token-gate-email-help">We'll email you a sandbox token and a validation code. Enter the code to unlock the audit. The token is valid for 14 days.</p>
               </div>
               <p id="tokenError" class="token-error-bar" role="alert"></p>
@@ -1068,11 +1066,6 @@
                     setTimeout(function(){ toast.style.opacity='0'; setTimeout(function(){ toast.remove(); }, 300); }, 2000);
                 });
             }
-            if (signinBtn) {
-                signinBtn.addEventListener('click', function() {
-                    openSigninModal();
-                });
-            }
             // BroadcastChannel for real-time cross-page auth sync
             try {
                 const authBC = new BroadcastChannel('simplebeacon-auth');
@@ -1087,7 +1080,6 @@
                 };
             } catch(e) {}
             // Periodic check for auth state changes (storage events don't fire in same tab)
-            updateAuthNav();
             setInterval(updateAuthNav, 2000);
                   var emailMode = 'login';
       var signinOverlay = document.getElementById('signinOverlay');
@@ -1156,6 +1148,7 @@
       function authDashboardUrl(route) {
         return '/dashboard/' + route + '?returnTo=' + encodeURIComponent(window.location.pathname);
       }
+      if (signinBtn) signinBtn.addEventListener('click', function() { window.location.href = authDashboardUrl('signin'); });
       if (signinCloseBtn) signinCloseBtn.addEventListener('click', closeSigninModal);
       if (signinOverlay) signinOverlay.addEventListener('click', function(e) { if (e.target === signinOverlay) closeSigninModal(); });
       if (signinEmailBtn) signinEmailBtn.addEventListener('click', function() {
@@ -1234,8 +1227,6 @@
             if (signinPassword) signinPassword.addEventListener('keydown', function(e) { if (e.key === 'Enter') handleEmailSignin(); });
 
             // Sync cookies from other ports into localStorage on this page
-            var pendingSandboxToken = null;
-            var pendingSandboxEmail = null;
             TOKEN_KEYS.forEach(function(k) {
                 const cookieVal = getCookie(k);
                 if (cookieVal && !localStorage.getItem(k)) localStorage.setItem(k, cookieVal);
@@ -1261,24 +1252,10 @@
                     localStorage.setItem('simplebeacon_token', urlToken);
                     setCookie('simplebeacon_token', urlToken);
                     setCookie('cascadeAuthToken', urlToken);
-                    // Auto-verify if both token and code were supplied by the email link
-                    if (urlToken && urlCode) {
-                        pendingSandboxToken = urlToken;
-                        try {
-                            var jp = JSON.parse(atob(urlToken.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
-                            pendingSandboxEmail = jp.email || '';
-                        } catch(e) { pendingSandboxEmail = ''; }
-                        // Show the code section and fill it
-                        var codeSection = document.getElementById('sandboxCodeSection');
-                        if (codeSection) codeSection.style.display = 'flex';
-                        var spamNote = document.getElementById('sandboxSpamNote');
-                        if (spamNote) spamNote.style.display = 'block';
-                        var sCodeInput = document.getElementById('sandboxCodeInput');
-                        if (sCodeInput) sCodeInput.value = urlCode;
-                        // Auto-click verify after a short delay
-                        setTimeout(function() {
-                            var verifyBtn = document.getElementById('sandboxCodeSubmit');
-                            if (verifyBtn) verifyBtn.click();
+                    // Auto-unlock if both token and code were supplied by the email link
+                    if (licenseInput && urlCode) {
+                        setTimeout(() => {
+                            licenseInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
                         }, 300);
                     }
                 }
@@ -1549,6 +1526,8 @@
                 }
 
                 // Email link submit — request a 14-day sandbox token and have it emailed
+                let pendingSandboxToken = null;
+                let pendingSandboxEmail = null;
                 const emailLinkSubmit = document.getElementById('emailLinkSubmit');
                 if (emailLinkSubmit) {
                     emailLinkSubmit.addEventListener('click', async () => {
@@ -1584,8 +1563,6 @@
                             // Show the validation code section
                             const codeSection = document.getElementById('sandboxCodeSection');
                             if (codeSection) codeSection.style.display = 'flex';
-                            const spamNote = document.getElementById('sandboxSpamNote');
-                            if (spamNote) spamNote.style.display = 'block';
                             const codeInput = document.getElementById('sandboxCodeInput');
                             if (codeInput) codeInput.focus();
                             btn.textContent = 'Sent ✓';
@@ -1647,38 +1624,13 @@
                                 btn.textContent = 'Verify';
                                 return;
                             }
-                            // Set all auth keys so the dashboard's authService recognizes the session
-                            const TOKEN_KEYS = ['cascadeAuthToken', 'access_token', 'token', 'authToken', 'simplebeacon_token', 'sb-token'];
-                            const USER_KEYS = ['cascadeAuthUser', 'sb-user'];
-                            var jwtPayload = {};
-                            try { jwtPayload = JSON.parse(atob(pendingSandboxToken.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))); } catch(e) {}
-                            const userInfo = { email: pendingSandboxEmail, plan: 'sandbox', tier: 'sandbox', features: jwtPayload.features || ['basic_analysis', 'sample_data_basic'] };
-                            const userJson = JSON.stringify(userInfo);
-                            TOKEN_KEYS.forEach(function(k) {
-                                localStorage.setItem(k, pendingSandboxToken);
-                                document.cookie = k + '=' + encodeURIComponent(pendingSandboxToken) + ';path=/;max-age=2592000;SameSite=Lax';
-                            });
-                            USER_KEYS.forEach(function(k) {
-                                localStorage.setItem(k, userJson);
-                                document.cookie = k + '=' + encodeURIComponent(userJson) + ';path=/;max-age=2592000;SameSite=Lax';
-                            });
-                            // Store profile data for ProfileView
-                            var profile = {};
-                            try { profile = JSON.parse(localStorage.getItem('sb_profile') || '{}'); } catch(e) {}
-                            profile.email = pendingSandboxEmail;
-                            profile.tier = 'sandbox';
-                            profile.plan = 'sandbox';
-                            profile.loginMethod = 'token';
-                            profile.sandboxToken = pendingSandboxToken;
-                            profile.profileSetupNeeded = true;
-                            localStorage.setItem('sb_profile', JSON.stringify(profile));
-                            // Clear onboarding flag so the dashboard shows the welcome onboarding
-                            localStorage.removeItem('simplebeacon-onboarding-seen');
+                            localStorage.setItem('sb-token', pendingSandboxToken);
+                            localStorage.setItem('sb-user', JSON.stringify({ email: pendingSandboxEmail, plan: 'sandbox', tier: 'sandbox' }));
                             if (typeof updateAuthNav === 'function') updateAuthNav();
                             if (typeof showToast === 'function') {
                                 showToast('Sandbox token verified — redirecting to dashboard', 'success');
                             }
-                            setTimeout(function() { window.location.href = '/dashboard/'; }, 800);
+                            setTimeout(function() { window.location.href = '/#/dashboard'; }, 800);
                         } catch (err) {
                             showError('Network error: ' + (err && err.message ? err.message : String(err)));
                             btn.disabled = false;
@@ -1998,7 +1950,7 @@
         }
     })();
     </script>
-    <script src="js-es2018/dashboard/main.js?h=20260719api1" defer></script>
+    <script src="js-es2018/dashboard/main.js?h=20260715roadmap2" defer></script>
     <script>
     // Diagnostic panel disabled by default. Add ?debug=1 to URL to enable.
     (function() {

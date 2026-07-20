@@ -1,5 +1,5 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
-import { authService } from './authService.js?v=20260720pages3';
+import { authService } from './authService.js?v=20260721cspapi';
 import { fetchUserAiKeys } from './aiKeysService.js?v=20260716cachefix1';
 import { scanService } from './scanService.js?v=20260716cachefix1';
 import { formatNumber, escapeHtml, fetchWithTimeout } from '../utils.js';

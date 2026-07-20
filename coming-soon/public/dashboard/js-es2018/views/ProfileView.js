@@ -1,6 +1,6 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 import { escapeHtml, showToast } from '../utils.js';
-import { authService } from '../services/authService.js?v=20260720pages3';
+import { authService } from '../services/authService.js?v=20260721cspapi';
 import { isWebAuthnSupported, listSecurityKeys, registerSecurityKey, removeSecurityKey } from '../services/webauthnService.js?v=20260716cachefix1';
 import { userHasJwtForAiKeys } from '../services/aiKeysService.js?v=20260716cachefix1';
 import { activateStockpileEntry, addToStockpile, BUY_TIME_TOKENS_URL, decodeTokenMeta, listStockpiled, stockpileCount, tokenHint, } from '../services/tokenStockpileService.js';
@@ -544,7 +544,7 @@ export class ProfileView {
         // Check server WebAuthn availability
         (async () => {
             try {
-                const { apiBase } = await import('../services/authService.js?v=20260720pages3');
+                const { apiBase } = await import('../services/authService.js?v=20260721cspapi');
                 const res = await fetch(`${apiBase()}/api/webauthn/status`, { credentials: 'same-origin' });
                 if (res.status === 404) {
                     if (serverStatusBanner) {

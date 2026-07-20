@@ -146,9 +146,12 @@ app.use((req, res, next) => {
     const includeCf = !!(process.env.CF_BEACON_TOKEN && process.env.NODE_ENV === 'production');
     const cfScript = includeCf ? ' https://static.cloudflareinsights.com' : '';
     const cfConnect = includeCf ? ' https://*.cloudflareinsights.com' : '';
-    res.setHeader('Content-Security-Policy',
-        "default-src 'self'; script-src 'self' 'unsafe-inline' https://js.stripe.com https://cdnjs.cloudflare.com https://unpkg.com" + cfScript + "; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' "
-        + renderOrigins + " http://127.0.0.1:" + SCANNER_BRIDGE_PORT + " " + localConnectOrigins + " https://api.stripe.com" + cfConnect + "; frame-src https://js.stripe.com; frame-ancestors " + frameAncestors + ";");
+    // Only set CSP if a previous layer (hosting/static headers) hasn't set it already.
+    if (!res.getHeader || !res.getHeader('Content-Security-Policy')) {
+        res.setHeader('Content-Security-Policy',
+            "default-src 'self'; script-src 'self' 'unsafe-inline' https://js.stripe.com https://cdnjs.cloudflare.com https://unpkg.com" + cfScript + "; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' "
+            + renderOrigins + " http://127.0.0.1:" + SCANNER_BRIDGE_PORT + " " + localConnectOrigins + " https://api.stripe.com" + cfConnect + "; frame-src https://js.stripe.com; frame-ancestors " + frameAncestors + ";");
+    }
     if (req.headers['x-forwarded-proto'] === 'https' || req.secure) {
         const HSTS_MAX_AGE_SECONDS = 2 * 365 * 24 * 60 * 60;
         res.setHeader('Strict-Transport-Security', 'max-age=' + HSTS_MAX_AGE_SECONDS + '; includeSubDomains');

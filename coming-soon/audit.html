@@ -1433,8 +1433,16 @@
                     startSandboxBtn.addEventListener('click', () => {
                         clearError();
                         const token = generateSandboxToken(null);
+                        if (tokenInput) {
+                            tokenInput.value = token;
+                            tokenInput.dispatchEvent(new Event('input', { bubbles: true }));
+                        }
                         localStorage.setItem('sb-token', token);
+                        localStorage.setItem('simplebeacon_token', token);
+                        localStorage.setItem('cascadeAuthToken', token);
                         localStorage.setItem('sb-user', JSON.stringify({ plan: 'sandbox', tier: 'sandbox' }));
+                        if (typeof applyProductFromToken === 'function') applyProductFromToken(token);
+                        if (typeof updateDropzoneGate === 'function') updateDropzoneGate();
                         if (typeof updateAuthNav === 'function') updateAuthNav();
                         if (typeof showToast === 'function') showToast('Sandbox ready — you can scan now', 'success');
                         const gate = document.getElementById('audit-token-gate');

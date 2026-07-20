@@ -2,7 +2,7 @@
 import { DASHBOARD_BASE_URL, OLLAMA_DEFAULT_URL } from '../config.js';
 import { apiBaseUrl } from '../utils-lib/url.js';
 
-import { authService } from './authService.js?v=20260720pages3';
+import { authService } from './authService.js?v=20260721cspapi';
 import { hasExtensionBridgeConfigured, getLocalBridgeFetch, getExtensionBridgeOrigin, buildBridgeOllamaProbeUrls } from './localAgentService.js?v=20260716cachefix1';
 /**
  * Is authenticated.
@@ -204,9 +204,9 @@ let _ollamaModelsPromiseUrl = null;
 function getApiBaseUrl() {
     const fromUrl = apiBaseUrl();
     if (fromUrl && fromUrl !== '/') {
-        return String(fromUrl).replace(/\/api\/?$/, '');
+        return String(fromUrl).replace(/\/api\/?$/, '').replace(/\/+$/, '');
     }
-    return DASHBOARD_BASE_URL || (typeof window !== 'undefined' ? window.__SB_API_HOST__ : '') || '';
+    return (DASHBOARD_BASE_URL || (typeof window !== 'undefined' ? window.__SB_API_HOST__ : '') || '').replace(/\/+$/, '');
 }
 
 function isCorsError(err) {
@@ -277,7 +277,7 @@ export async function fetchOllamaModels(ollamaBaseUrl = OLLAMA_DEFAULT_URL) {
         try {
             const apiBase = getApiBaseUrl();
             const proxyPath = `/api/simplebeacon/ollama/models?baseUrl=${encodeURIComponent(baseUrl)}`;
-            const proxyUrl = apiBase ? `${apiBase.replace(/\/\$/, '')}${proxyPath}` : proxyPath;
+            const proxyUrl = apiBase ? `${apiBase}${proxyPath}` : proxyPath;
             const response = await fetch(proxyUrl, {
                 method: 'GET',
                 signal: controller.signal,
