@@ -1,5 +1,5 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
-import { authService } from '../services/authService.js?v=20260718username1';
+import { authService } from '../services/authService.js?v=20260716cachefix1';
 import { billingService } from '../services/billingService.js';
 import { authenticateWithSecurityKey, isWebAuthnSupported } from '../services/webauthnService.js?v=20260716cachefix1';
 import { showToast } from '../utils.js';
@@ -462,7 +462,7 @@ export class SignInView {
             if (err && err.name === 'TypeError' && /fetch|network/i.test(String(err.message || ''))) {
                 message = 'Unable to reach the account server. Check your connection and try again.';
             }
-            console.error('[SignInView] submit error:', { mode: this._emailMode, error: err });
+            console.error('[SignInView] submit error:', { mode: this._emailMode, error: err, message: err?.message, stack: err?.stack });
             if (errorEl) {
                 errorEl.textContent = message;
                 errorEl.hidden = false;
