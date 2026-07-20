@@ -2,7 +2,7 @@
 import { DASHBOARD_BASE_URL, OLLAMA_DEFAULT_URL } from '../config.js';
 import { apiBaseUrl } from '../utils-lib/url.js';
 
-import { authService } from './authService.js?v=20260716cachefix1';
+import { authService } from './authService.js?v=20260720pages3';
 import { hasExtensionBridgeConfigured, getLocalBridgeFetch, getExtensionBridgeOrigin, buildBridgeOllamaProbeUrls } from './localAgentService.js?v=20260716cachefix1';
 /**
  * Is authenticated.

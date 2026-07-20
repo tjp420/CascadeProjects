@@ -1,4 +1,4 @@
-import { authService } from './authService.js?v=20260716cachefix1';
+import { authService } from './authService.js?v=20260720pages3';
 import { readJsonResponseBody } from '../lib/recoverable-fetch.js';
 import { DEMO_EMAIL } from '../demoMode.js';
 const API = '/api/operator';

@@ -75,27 +75,30 @@ function _isJwtToken(token) {
 }
 export function apiBase() {
     if (typeof location !== 'undefined') {
-        const host = location.hostname;
-        // Production / Cloudflare Pages: always use cloud API (sb_api_base is for local bridge only).
-        if (!/^(localhost|127\.0\.0\.1)$/i.test(host) && !host.endsWith('.onrender.com')) {
-            if (host === 'simplebeacon.ai') {
-                return location.origin;
-            }
-            if (host.endsWith('.simplebeacon.pages.dev')) {
-                return 'https://cascadeprojects-yzzd.onrender.com';
-            }
-            return 'https://simplebeacon.ai';
+        // Runtime config injected by the API server, extension bridge, or Pages _headers/site-config.
+        const env = (typeof window !== 'undefined' && window.__SIMPLEBEACON_ENV__) || {};
+        const envBase = env.API_BASE_URL || env.DASHBOARD_BASE_URL || (typeof window !== 'undefined' && window.__SB_API_HOST__) || '';
+        if (envBase && _isAllowedApiBase(envBase)) {
+            return String(envBase).replace(/\/api\/?$/, '');
         }
+        // Extension / VS Code bridge query override.
         try {
             const params = new URLSearchParams(location.search);
             const override = params.get('sb_api_base');
             if (override && _isAllowedApiBase(override)) {
-                // Extension passes the full API base (e.g. http://127.0.0.1:PORT/api).
-                // This function is used with /api/... appended, so strip the trailing /api.
                 return override.replace(/\/api\/?$/, '');
             }
         }
         catch (_a) { /* ignore */ }
+        const host = location.hostname;
+        // Canonical production domain serves the API same-origin.
+        if (host === 'simplebeacon.ai') {
+            return location.origin;
+        }
+        // Cloudflare Pages previews (and any other non-local/custom domain) talk to the production API.
+        if (!/^(localhost|127\.0\.0\.1)$/i.test(host) && !host.endsWith('.onrender.com')) {
+            return 'https://simplebeacon.ai';
+        }
     }
     return '';
 }
@@ -154,8 +157,10 @@ function clearCookie(name) {
  */
 function loginErrorMessage(httpResponse, responseBody, fallback = 'Login failed') {
     if (!hasJsonContentType(httpResponse)) {
-        return ('Authentication API unavailable (server returned HTML instead of JSON). '
-            + 'Start with npm run dashboard:v1-internal on port 3002.');
+        const apiHost = apiBase() || location.origin;
+        return (`Authentication API unavailable (server returned HTML instead of JSON). `
+            + `Check that the API is running at ${apiHost}/api/auth/login. `
+            + 'For local development run npm run dashboard:v1-internal.');
     }
     const base = (responseBody === null || responseBody === void 0 ? void 0 : responseBody.message) || (responseBody === null || responseBody === void 0 ? void 0 : responseBody.error) || fallback;
     if (httpResponse.status === 401) {

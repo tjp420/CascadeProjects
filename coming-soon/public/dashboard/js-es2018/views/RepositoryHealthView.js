@@ -1,6 +1,6 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 import { escapeHtml, formatNumber, redactPathForDisplay, showToast, downloadJson } from '../utils.js';
-import { authService } from '../services/authService.js?v=20260716cachefix1';
+import { authService } from '../services/authService.js?v=20260720pages3';
 /**
  * Auth headers.
  * @param {any} extra
