@@ -351,8 +351,8 @@ export class SignInView {
                     t.style.cssText = baseStyle + (isActive ? activeStyle : inactiveStyle);
                     t.classList.toggle('active', isActive);
                 });
-                if (emailPanel) emailPanel.style.display = target === 'email' ? '' : 'none';
-                if (tokenPanel) tokenPanel.style.display = target === 'token' ? '' : 'none';
+                if (emailPanel) emailPanel.style.display = target === 'email' ? 'block' : 'none';
+                if (tokenPanel) tokenPanel.style.display = target === 'token' ? 'block' : 'none';
             });
         });
     }
