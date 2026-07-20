@@ -472,13 +472,13 @@
   <title>Simplebeacon Dashboard</title>
   <base href="/dashboard/">
   <!-- System fonts only: VS Code webviews block external fonts.googleapis.com -->
-  <link rel="stylesheet" href="css/variables.css">
-  <link rel="stylesheet" href="css/reset.css">
+  <link rel="stylesheet" href="css/variables.css?v=20260722clean1">
+  <link rel="stylesheet" href="css/reset.css?v=20260722clean1">
   <link rel="stylesheet" href="css/layout.css?v=20260718pricing1">
   <link rel="stylesheet" href="css/components.css?v=20260718pricing1">
   <link rel="stylesheet" href="css/utilities.css?v=20260718pricing1">
-  <link rel="stylesheet" href="css/disable-elements.css">
-  <script src="js/vendor/lucide.min.js" defer onerror="window._lucideFailed=true"></script>
+  <link rel="stylesheet" href="css/disable-elements.css?v=20260722clean1">
+  <script src="js/vendor/lucide.min.js?v=20260722clean1" defer onerror="window._lucideFailed=true"></script>
   <script>
     // API proxy: when served from a non-API port (e.g. 57622 static server), redirect /api/* to port 3000
     (function() {
@@ -859,7 +859,7 @@
       });
     });
   </script>
-  <script src="js/vendor/jszip.min.js" defer></script>
+  <script src="js/vendor/jszip.min.js?v=20260722clean1" defer></script>
   <script>
     // Extension bridge fetch rewrite — only local scan/notify/Ollama paths, not cloud auth.
     (function() {
@@ -933,7 +933,7 @@
       }
     })();
   </script>
-  <script type="module" src="/dashboard/js-es2018/main.js?v=20260721cspapi"></script>
+  <script type="module" src="/dashboard/js-es2018/main.js?v=20260720adminfix1"></script>
   <script>
     // Capture script errors so the fallback page can report them without DevTools.
     window.__SB_DASHBOARD_ERRORS__ = [];

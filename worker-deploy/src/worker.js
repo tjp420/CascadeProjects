@@ -41,7 +41,7 @@ export default {
           headers: {
             'Access-Control-Allow-Origin': '*',
             'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Token-Password',
             'Access-Control-Max-Age': '86400'
           }
         });
@@ -53,7 +53,7 @@ export default {
         const newRes = new Response(res.body, res);
         newRes.headers.set('Access-Control-Allow-Origin', '*');
         newRes.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-        newRes.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+        newRes.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Token-Password');
         newRes.headers.set('Cache-Control', 'no-store');
         return newRes;
       } catch (err) {
