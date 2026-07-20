@@ -2,7 +2,7 @@
 import { scanService } from './services/scanService.js?v=20260716cachefix1';
 import { platformService } from './services/platformService.js?v=20260716cachefix1';
 import { billingService } from './services/billingService.js?v=20260716cachefix1';
-import { authService, apiBase } from './services/authService.js?v=20260720pages3';
+import { authService, apiBase } from './services/authService.js?v=20260721cspapi';
 import { themeService } from './services/themeService.js';
 import { Router, PUBLIC_VIEWS } from './router.js?v=20260716cachefix1';
 import { TrustView } from './views/TrustView.js?v=20260716cachefix1';
@@ -15,12 +15,12 @@ import { PlatformView } from './views/PlatformView.js?v=20260716cachefix1';
 import { QualityView } from './views/QualityView.js?v=20260716cachefix1';
 import { HelpView, FeaturesView } from './views/HelpView.js';
 import { AuditView } from './views/AuditView.js?v=20260716cachefix1';
-import { AnalyzeView } from './views/AnalyzeView.js?v=20260720analyze1';
+import { AnalyzeView } from './views/AnalyzeView.js?v=20260720pages4';
 import { SecurityView } from './views/SecurityView.js?v=20260716cachefix1';
 import { AboutView } from './views/AboutView.js';
 import { AssessmentView } from './views/AssessmentView.js?v=20260716cachefix1';
-import { SignInView } from './views/SignInView.js?v=20260720tabs9';
-import { ChatbotView } from './views/ChatbotView.js?v=20260719tokenpw1';
+import { SignInView } from './views/SignInView.js?v=20260721cspapi';
+import { ChatbotView } from './views/ChatbotView.js?v=20260718ollama1';
 import { UploadView } from './views/UploadView.js';
 import { RemediationRoadmapView } from './views/RemediationRoadmapView.js';
 import { ProfileView } from './views/ProfileView.js?v=20260717chatbot1';
@@ -752,27 +752,6 @@ class SimplebeaconDashboard {
         </div>
       </div>
     `;
-        // Pre-fill token from signin page redirect
-        const pendingToken = sessionStorage.getItem('sb_pending_token');
-        const pendingPassword = sessionStorage.getItem('sb_pending_token_password');
-        if (pendingToken) {
-            sessionStorage.removeItem('sb_pending_token');
-            if (pendingPassword)
-                sessionStorage.removeItem('sb_pending_token_password');
-            const tokenInput = main.querySelector('#lock-token');
-            if (tokenInput) {
-                tokenInput.value = pendingToken;
-                const tokenTab = main.querySelector('.lock-tab[data-tab="token"]');
-                if (tokenTab)
-                    tokenTab.click();
-                const pwInput = main.querySelector('#lock-token-password');
-                if (pwInput) {
-                    if (pendingPassword)
-                        pwInput.value = pendingPassword;
-                    pwInput.focus();
-                }
-            }
-        }
         // Tab switching
         const tabs = main.querySelectorAll('.lock-tab');
         const panels = {
@@ -815,7 +794,7 @@ class SimplebeaconDashboard {
                     errorEl.hidden = true;
                     errorEl.textContent = '';
                 }
-                if (!password && authService.isTokenActivated(token)) {
+                if (authService.isTokenActivated(token)) {
                     const tabs = main.querySelectorAll('.lock-tab');
                     const emailPanel = main.querySelector('#lock-panel-email');
                     const tokenPanel = main.querySelector('#lock-panel-token');
@@ -832,34 +811,13 @@ class SimplebeaconDashboard {
                     if (emailErrorEl) {
                         const binding = authService.getTokenBinding(token);
                         const emailHint = (binding === null || binding === void 0 ? void 0 : binding.email) ? ` (${binding.email})` : '';
-                        emailErrorEl.textContent = `This token is registered to an account${emailHint}. Please sign in with your email and password, or provide a password with your token.`;
+                        emailErrorEl.textContent = `This token is registered to an account${emailHint}. Please sign in with your email and password.`;
                         emailErrorEl.hidden = false;
                         if (binding === null || binding === void 0 ? void 0 : binding.email) {
                             const emailInput = main.querySelector('#lock-email');
                             if (emailInput)
                                 emailInput.value = binding.email;
                         }
-                    }
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = 'Unlock with token';
-                    return;
-                }
-                // Require password for non-free-tier tokens
-                const freeTiers = ['community', 'starter', 'instant', 'free', 'developer', 'sandbox'];
-                let isFreeTier = false;
-                if (token.includes('.') && token.split('.').length === 3) {
-                    try {
-                        const payloadB64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-                        const payload = JSON.parse(atob(payloadB64 + '='.repeat((4 - payloadB64.length % 4) % 4)));
-                        const tier = (payload.tier || payload.product || '').toLowerCase();
-                        isFreeTier = freeTiers.includes(tier);
-                    }
-                    catch (_b) { /* treat as non-free if decode fails */ }
-                }
-                if (!isFreeTier && !password) {
-                    if (errorEl) {
-                        errorEl.textContent = 'A password is required for this token.';
-                        errorEl.hidden = false;
                     }
                     submitBtn.disabled = false;
                     submitBtn.textContent = 'Unlock with token';
@@ -1619,8 +1577,7 @@ class SimplebeaconDashboard {
         }
         // Gate write-heavy views by token claims rather than by issuing separate tokens.
         // Audit, roadmap, results, trust, security, platform, and quality remain read-only accessible.
-        // The main Dashboard is allowed for free-tier users in read-only mode.
-        if (!readOnlyPreview && WRITE_HEAVY_VIEWS.has(view) && !authService.isDashboardWriteAllowed() && !(view === 'dashboard' && isFreeTier)) {
+        if (!readOnlyPreview && WRITE_HEAVY_VIEWS.has(view) && !authService.isDashboardWriteAllowed()) {
             showToast('This dashboard feature requires a paid or team license.', 'info');
             window.location.href = '/pricing';
             return;
