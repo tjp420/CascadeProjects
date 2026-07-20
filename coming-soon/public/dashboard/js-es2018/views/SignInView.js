@@ -163,7 +163,7 @@ export class SignInView {
             (_b = container.querySelector('#signin-email-form')) === null || _b === void 0 ? void 0 : _b.addEventListener('submit', (e) => this.handleEmailSubmit(e));
             (_c = container.querySelector('#forgot-password-btn')) === null || _c === void 0 ? void 0 : _c.addEventListener('click', () => this._showRecoveryModal());
             (_d = container.querySelector('#webauthn-signin-btn')) === null || _d === void 0 ? void 0 : _d.addEventListener('click', () => this._handleWebAuthnSignIn());
-            this._bindTokenInput(container);
+            container.querySelector('#signin-token-form')?.addEventListener('submit', (e) => this.handleTokenSubmit(e));
         }
         else {
             (_e = container.querySelector('#signin-signout-btn')) === null || _e === void 0 ? void 0 : _e.addEventListener('click', async () => {
@@ -261,16 +261,25 @@ export class SignInView {
         <button type="button" class="btn btn-secondary btn-block" id="webauthn-signin-btn" style="${btnSecondary};display:flex;align-items:center;justify-content:center;gap:8px;">
           <span>&#128274;</span> Sign in with Security Key
         </button>
-        <details style="margin-top:12px;">
-          <summary style="font-size:0.85rem;color:var(--text-muted);cursor:pointer;text-align:center;">Have a license or sandbox token?</summary>
-          <div style="margin-top:12px;">
-            <input id="signin-token-input" class="input" type="text" autocomplete="off" placeholder="Paste your token here…" style="${inputStyle}margin-bottom:10px;" />
-            <p id="signin-token-error" class="signin-error" hidden role="alert" style="margin:0 0 10px;font-size:0.85rem;color:var(--danger);text-align:center;"></p>
-            <button type="button" class="btn btn-primary btn-block" id="signin-token-submit" style="${btnPrimary}">Sign in with token</button>
-          </div>
-        </details>
         <p class="signin-note" id="email-mode-note" style="margin:16px 0 0;font-size:0.85rem;color:var(--text-muted);text-align:center;line-height:1.5;">${isRegister ? 'Already have an account? <button type="button" id="note-goto-signin" style="background:none;border:none;padding:0;color:var(--primary);font:inherit;font-weight:600;cursor:pointer;">Sign in</button>.' : 'New here? <button type="button" id="note-goto-register" style="background:none;border:none;padding:0;color:var(--primary);font:inherit;font-weight:600;cursor:pointer;">Create an account</button>.'}</p>
       </div>
+
+      <div class="signin-divider" style="text-align:center;margin:16px 0;font-size:0.8rem;color:var(--text-muted);position:relative;">
+        <span style="background:var(--surface);padding:0 12px;position:relative;z-index:1;">or use a license token</span>
+        <div style="position:absolute;top:50%;left:0;right:0;height:1px;background:var(--border);z-index:0;"></div>
+      </div>
+      <form id="signin-token-form" class="signin-form" style="display:flex;flex-direction:column;gap:14px;">
+        <div>
+          <label class="field-label" for="signin-token-input" style="${labelStyle}">License or Sandbox Token</label>
+          <input id="signin-token-input" class="input" type="text" autocomplete="off" placeholder="sb-pro-XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX" style="${inputStyle}" />
+        </div>
+        <div>
+          <label class="field-label" for="signin-token-password" style="${labelStyle}">Password</label>
+          <input id="signin-token-password" class="input" type="password" autocomplete="off" placeholder="Email validation code or profile password" style="${inputStyle}" />
+        </div>
+        <p id="signin-token-error" class="signin-error" hidden role="alert" style="margin:0;font-size:0.85rem;color:var(--danger);text-align:center;line-height:1.5;"></p>
+        <button type="submit" class="btn btn-primary btn-block" id="signin-token-submit" style="${btnPrimary}">Unlock with Token</button>
+      </form>
 
       <p class="signin-footer" style="margin-top:24px;text-align:center;font-size:0.85rem;color:var(--text-muted);">
         <a href="/demo" style="color:var(--primary);text-decoration:none;">View read-only demo</a>
@@ -428,53 +437,64 @@ export class SignInView {
             submitBtn.textContent = this._emailMode === 'register' ? 'Create Account' : 'Sign In';
         }
     }
-    _bindTokenInput(container) {
-        const tokenInput = container.querySelector('#signin-token-input');
-        const tokenSubmit = container.querySelector('#signin-token-submit');
-        const tokenError = container.querySelector('#signin-token-error');
-        if (!tokenInput || !tokenSubmit) return;
-        tokenSubmit.addEventListener('click', async () => {
-            const token = tokenInput.value.trim();
-            if (!token) {
-                if (tokenError) { tokenError.textContent = 'Please paste a token.'; tokenError.hidden = false; }
-                return;
+    async handleTokenSubmit(e) {
+        e.preventDefault();
+        const form = e.target;
+        const token = form.querySelector('#signin-token-input').value.trim();
+        const password = (form.querySelector('#signin-token-password')?.value || '').trim();
+        const submitBtn = form.querySelector('#signin-token-submit');
+        const errorEl = form.querySelector('#signin-token-error');
+        if (!token) {
+            if (errorEl) {
+                errorEl.textContent = 'Please enter a license token.';
+                errorEl.hidden = false;
             }
-            tokenSubmit.disabled = true;
-            tokenSubmit.textContent = 'Signing in…';
-            if (tokenError) { tokenError.hidden = true; tokenError.textContent = ''; }
-            try {
-                if (token.split('.').length === 3) {
-                    var payload;
-                    try { payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))); } catch(e) { payload = null; }
-                    if (payload && payload.email && (!payload.exp || payload.exp * 1000 > Date.now())) {
-                        authService.setSession(token, {
-                            email: payload.email,
-                            tier: payload.tier || payload.product || payload.plan || 'community',
-                            role: payload.role || payload.tier || payload.product || payload.plan || 'community',
-                            features: payload.features || []
-                        });
-                        showToast('Signed in successfully', 'success');
-                        this.app.updateAuthUi();
-                        this.app.navigate('dashboard');
-                        return;
-                    }
-                }
-                authService.setSession(token, { token, source: 'signin-page' });
-                const valid = await authService.validateSession();
-                if (!valid) throw new Error('Invalid or expired token.');
-                showToast('Signed in successfully', 'success');
-                this.app.updateAuthUi();
-                this.app.navigate('dashboard');
+            return;
+        }
+        if (!password) {
+            if (errorEl) {
+                errorEl.textContent = 'Please enter your email validation code or profile password.';
+                errorEl.hidden = false;
             }
-            catch (err) {
-                authService.clearSession();
-                const message = err.message || 'Token validation failed';
-                if (tokenError) { tokenError.textContent = message; tokenError.hidden = false; }
-                showToast(message, 'error');
-                tokenSubmit.disabled = false;
-                tokenSubmit.textContent = 'Sign in with token';
+            return;
+        }
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Checking…';
+        if (errorEl) {
+            errorEl.hidden = true;
+            errorEl.textContent = '';
+        }
+        const freeTiers = ['community', 'starter', 'instant', 'free', 'developer', 'sandbox'];
+        const payload = decodeJwtPayload(token);
+        const tier = (payload?.tier || payload?.product || '').toLowerCase();
+        if (!freeTiers.includes(tier)) {
+            sessionStorage.setItem('sb_pending_token', token);
+            sessionStorage.setItem('sb_pending_token_password', password);
+            this.app.navigate('dashboard');
+            return;
+        }
+        try {
+            authService.setSession(token, { token, source: 'signin-token', password });
+            const valid = await authService.validateSession({ password });
+            if (!valid)
+                throw new Error('Invalid or expired token.');
+            showToast('Signed in with free token', 'success');
+            this.app.updateAuthUi();
+            if (typeof this.app.bootstrapAfterAuth === 'function')
+                this.app.bootstrapAfterAuth();
+            this.app.navigate('dashboard');
+        }
+        catch (err) {
+            authService.clearSession();
+            const message = err.message || 'Token validation failed';
+            if (errorEl) {
+                errorEl.textContent = message;
+                errorEl.hidden = false;
             }
-        });
+            showToast(message, 'error');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Unlock with Token';
+        }
     }
     _showRecoveryModal() {
         const overlay = document.createElement('div');

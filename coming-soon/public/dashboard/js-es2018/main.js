@@ -19,8 +19,8 @@ import { AnalyzeView } from './views/AnalyzeView.js?v=20260716cachefix1';
 import { SecurityView } from './views/SecurityView.js?v=20260716cachefix1';
 import { AboutView } from './views/AboutView.js';
 import { AssessmentView } from './views/AssessmentView.js?v=20260716cachefix1';
-import { SignInView } from './views/SignInView.js?v=20260719tokenfix2';
-import { ChatbotView } from './views/ChatbotView.js?v=20260719ollama2';
+import { SignInView } from './views/SignInView.js?v=20260719tokenpw1';
+import { ChatbotView } from './views/ChatbotView.js?v=20260719tokenpw1';
 import { UploadView } from './views/UploadView.js';
 import { RemediationRoadmapView } from './views/RemediationRoadmapView.js';
 import { ProfileView } from './views/ProfileView.js?v=20260717chatbot1';
@@ -55,7 +55,7 @@ function vaultUnlockUrl(returnPath = '/app') {
     return `/private-dashboard-vault?returnTo=${returnTo}`;
 }
 const CLOUD_TEAMS_VIEWS = new Set([
-    'audit', 'results', 'analyze', 'security', 'tools', 'platform', 'quality', 'settings', 'assessments'
+    'dashboard', 'audit', 'results', 'analyze', 'security', 'tools', 'platform', 'quality', 'settings', 'assessments'
 ]);
 /**
  * Views that trigger scans, mutate settings, or perform billing actions.
@@ -63,7 +63,7 @@ const CLOUD_TEAMS_VIEWS = new Set([
  * are intentionally excluded; they only need isAuthenticated()/isFreeTier().
  */
 const WRITE_HEAVY_VIEWS = new Set([
-    'analyze', 'upload', 'admin', 'chatbot'
+    'dashboard', 'analyze', 'upload', 'settings', 'admin', 'chatbot'
 ]);
 /** Protected views that can load in IDE mode via the extension bridge without cloud sign-in. */
 const IDE_BRIDGE_ONLY_VIEWS = new Set(['chatbot']);
@@ -752,6 +752,27 @@ class SimplebeaconDashboard {
         </div>
       </div>
     `;
+        // Pre-fill token from signin page redirect
+        const pendingToken = sessionStorage.getItem('sb_pending_token');
+        const pendingPassword = sessionStorage.getItem('sb_pending_token_password');
+        if (pendingToken) {
+            sessionStorage.removeItem('sb_pending_token');
+            if (pendingPassword)
+                sessionStorage.removeItem('sb_pending_token_password');
+            const tokenInput = main.querySelector('#lock-token');
+            if (tokenInput) {
+                tokenInput.value = pendingToken;
+                const tokenTab = main.querySelector('.lock-tab[data-tab="token"]');
+                if (tokenTab)
+                    tokenTab.click();
+                const pwInput = main.querySelector('#lock-token-password');
+                if (pwInput) {
+                    if (pendingPassword)
+                        pwInput.value = pendingPassword;
+                    pwInput.focus();
+                }
+            }
+        }
         // Tab switching
         const tabs = main.querySelectorAll('.lock-tab');
         const panels = {
@@ -823,25 +844,28 @@ class SimplebeaconDashboard {
                     submitBtn.textContent = 'Unlock with token';
                     return;
                 }
-                try {
-                    // For valid JWT tokens (e.g. sandbox), accept client-side without server validation
-                    if (token.split('.').length === 3) {
-                        var payload;
-                        try { payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))); } catch(e) { payload = null; }
-                        if (payload && payload.email && (!payload.exp || payload.exp * 1000 > Date.now())) {
-                            authService.setSession(token, {
-                                email: payload.email,
-                                tier: payload.tier || payload.product || payload.plan || 'community',
-                                role: payload.role || payload.tier || payload.product || payload.plan || 'community',
-                                features: payload.features || []
-                            });
-                            showToast('Dashboard unlocked', 'success');
-                            this.updateAuthUi();
-                            this.bootstrapAfterAuth();
-                            this.router.navigate(view);
-                            return;
-                        }
+                // Require password for non-free-tier tokens
+                const freeTiers = ['community', 'starter', 'instant', 'free', 'developer', 'sandbox'];
+                let isFreeTier = false;
+                if (token.includes('.') && token.split('.').length === 3) {
+                    try {
+                        const payloadB64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+                        const payload = JSON.parse(atob(payloadB64 + '='.repeat((4 - payloadB64.length % 4) % 4)));
+                        const tier = (payload.tier || payload.product || '').toLowerCase();
+                        isFreeTier = freeTiers.includes(tier);
                     }
+                    catch (_b) { /* treat as non-free if decode fails */ }
+                }
+                if (!isFreeTier && !password) {
+                    if (errorEl) {
+                        errorEl.textContent = 'A password is required for this token.';
+                        errorEl.hidden = false;
+                    }
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Unlock with token';
+                    return;
+                }
+                try {
                     authService.setSession(token, { token, source: 'lock-screen', password });
                     const valid = await authService.validateSession(password ? { password } : undefined);
                     if (!valid)
@@ -1056,7 +1080,6 @@ class SimplebeaconDashboard {
         }
         if (!readOnlyPreview) {
             this.maybeShowOnboarding();
-            this.maybeShowProfileSetup();
         }
     }
     updateAuthUi() {
@@ -1556,29 +1579,6 @@ class SimplebeaconDashboard {
         }
         const readOnlyPreview = isDemoMode();
         if (!readOnlyPreview) {
-            // Ingest ?token=... from URL before auth gate so sandbox users landing
-            // on /dashboard/?token=JWT get their session set without hitting signin.
-            if (!authService.isAuthenticated()) {
-                try {
-                    const urlParams = new URLSearchParams(window.location.search);
-                    const urlToken = urlParams.get('token');
-                    if (urlToken && urlToken.split('.').length === 3) {
-                        const parts = urlToken.split('.');
-                        const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
-                        if (payload && payload.email) {
-                            authService.setSession(urlToken, {
-                                email: payload.email,
-                                tier: payload.tier || payload.product || payload.plan || 'community',
-                                role: payload.role || payload.tier || payload.product || payload.plan || 'community',
-                                features: payload.features || []
-                            }, { notify: false });
-                            urlParams.delete('token');
-                            const cleanUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
-                            window.history.replaceState({}, '', cleanUrl);
-                        }
-                    }
-                } catch (_e) { /* ignore token ingestion errors */ }
-            }
             // Ensure auth state is resolved before gating routes. In local dev the
             // dashboard auto-probes the vault operator session; waiting here prevents
             // direct links to protected routes from flashing the sign-in screen.
@@ -1821,80 +1821,6 @@ class SimplebeaconDashboard {
             onTour: () => this.guidedTour.start(0),
             onDismiss: () => { }
         });
-    }
-    maybeShowProfileSetup() {
-        try {
-            const profile = JSON.parse(localStorage.getItem('sb_profile') || '{}');
-            if (!profile.profileSetupNeeded)
-                return;
-            const token = authService.getToken();
-            if (!token)
-                return;
-            const overlay = document.createElement('div');
-            overlay.className = 'modal-overlay';
-            overlay.id = 'profile-setup-modal';
-            overlay.style.display = 'flex';
-            const modal = document.createElement('div');
-            modal.className = 'modal';
-            modal.setAttribute('role', 'dialog');
-            modal.setAttribute('aria-labelledby', 'profile-setup-title');
-            modal.style.maxWidth = '460px';
-            const esc = (s) => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-            modal.innerHTML = `
-              <div style="text-align:center;padding:8px 0 4px;">
-                <div style="font-size:2rem;">🎉</div>
-                <h2 id="profile-setup-title" style="margin:8px 0 4px;font-size:1.2rem;">Welcome to your free account!</h2>
-                <p style="color:var(--text-muted);font-size:0.85rem;margin:0 0 16px;">Your sandbox token is active for 14 days. Complete your profile to get the most out of SimpleBeacon.</p>
-              </div>
-              <div style="padding:0 24px 24px;">
-                <div style="margin-bottom:16px;">
-                  <label style="display:block;font-size:0.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px;">Your Email</label>
-                  <input type="email" id="profile-setup-email" value="${esc(profile.email || '')}" disabled
-                    style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:8px;background:var(--bg-input);color:var(--text-muted);font-size:0.9rem;">
-                </div>
-                <div style="margin-bottom:16px;">
-                  <label style="display:block;font-size:0.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px;">Display Name</label>
-                  <input type="text" id="profile-setup-name" placeholder="Your name"
-                    style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text-main);font-size:0.9rem;">
-                </div>
-                <div style="margin-bottom:16px;">
-                  <label style="display:block;font-size:0.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px;">Your Token</label>
-                  <input type="text" id="profile-setup-token" value="${esc(token.slice(0, 32) + '…')}" disabled
-                    style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:8px;background:var(--bg-input);color:var(--text-muted);font-size:0.8rem;font-family:monospace;">
-                </div>
-                <div style="display:flex;gap:10px;margin-top:20px;">
-                  <button type="button" class="btn btn-primary" id="profile-setup-save" style="flex:1;">Save & Continue</button>
-                  <button type="button" class="btn btn-secondary" id="profile-setup-skip" style="flex:1;">Skip for now</button>
-                </div>
-              </div>`;
-            overlay.appendChild(modal);
-            document.body.appendChild(overlay);
-            const saveBtn = modal.querySelector('#profile-setup-save');
-            const skipBtn = modal.querySelector('#profile-setup-skip');
-            const nameInput = modal.querySelector('#profile-setup-name');
-            const close = () => {
-                profile.profileSetupNeeded = false;
-                localStorage.setItem('sb_profile', JSON.stringify(profile));
-                overlay.remove();
-            };
-            saveBtn.addEventListener('click', () => {
-                const name = (nameInput.value || '').trim();
-                if (name)
-                    profile.displayName = name;
-                profile.profileSetupNeeded = false;
-                profile.profileCompletedAt = new Date().toISOString();
-                localStorage.setItem('sb_profile', JSON.stringify(profile));
-                const user = authService.getUser() || {};
-                user.name = name || user.name;
-                authService.setSession(authService.getToken(), user, { notify: false });
-                overlay.remove();
-                showToast('Profile saved! Explore the dashboard to get started.', 'success');
-                this.navigate('profile');
-            });
-            skipBtn.addEventListener('click', close);
-            overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
-        }
-        catch (_a) { /* ignore */ }
     }
 }
 document.addEventListener('DOMContentLoaded', () => {
