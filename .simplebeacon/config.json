@@ -102,8 +102,6 @@
     "**/scanner-engine.js",
     "**/certificate-module.js",
     "**/pattern-documentation.js",
-    "**/ai-platform/web/simplebeacon-dashboard/js-es2018/**",
-    "**/ai-platform/web/simplebeacon-dashboard/js/**",
     "**/ai-platform/web/simplebeacon-dashboard/data/**",
     "**/logs/**",
     "**/test-output.log",
