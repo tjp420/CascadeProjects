@@ -1070,7 +1070,7 @@
             }
             if (signinBtn) {
                 signinBtn.addEventListener('click', function() {
-                    window.location.href = '/dashboard/signin';
+                    openSigninModal();
                 });
             }
             // BroadcastChannel for real-time cross-page auth sync
@@ -1156,7 +1156,6 @@
       function authDashboardUrl(route) {
         return '/dashboard/' + route + '?returnTo=' + encodeURIComponent(window.location.pathname);
       }
-      if (signinBtn) signinBtn.addEventListener('click', function() { window.location.href = authDashboardUrl('signin'); });
       if (signinCloseBtn) signinCloseBtn.addEventListener('click', closeSigninModal);
       if (signinOverlay) signinOverlay.addEventListener('click', function(e) { if (e.target === signinOverlay) closeSigninModal(); });
       if (signinEmailBtn) signinEmailBtn.addEventListener('click', function() {
