@@ -160,6 +160,7 @@ export class SignInView {
     `;
         if (!authed) {
             this.bindEmailModeToggle(container);
+            this.bindMainTabs(container);
             (_b = container.querySelector('#signin-email-form')) === null || _b === void 0 ? void 0 : _b.addEventListener('submit', (e) => this.handleEmailSubmit(e));
             (_c = container.querySelector('#forgot-password-btn')) === null || _c === void 0 ? void 0 : _c.addEventListener('click', () => this._showRecoveryModal());
             (_d = container.querySelector('#webauthn-signin-btn')) === null || _d === void 0 ? void 0 : _d.addEventListener('click', () => this._handleWebAuthnSignIn());
@@ -218,7 +219,14 @@ export class SignInView {
         const tabBase = 'flex:1;padding:0.35rem 0.5rem;border:none;background:transparent;color:var(--text-muted);font-size:0.85rem;font-weight:500;border-radius:6px;cursor:pointer;';
         const btnPrimary = 'width:100%;padding:12px 16px;border-radius:8px;background:var(--primary);color:#fff;font-weight:600;border:none;cursor:pointer;text-align:center;';
         const btnSecondary = 'width:100%;padding:12px 16px;border-radius:8px;background:var(--surface);color:var(--text-primary);border:1px solid var(--border);cursor:pointer;text-align:center;';
+        const mainTabActive = 'background:var(--primary);color:#fff;';
+        const mainTabBase = 'background:var(--surface-hover);color:var(--text-muted);';
+        const mainTabStyle = 'flex:1;padding:10px 16px;border:none;font-size:0.9rem;font-weight:600;border-radius:8px;cursor:pointer;transition:all 0.2s;';
         return `
+      <div class="signin-main-tabs" style="display:flex;gap:6px;margin-bottom:20px;">
+        <button type="button" class="signin-main-tab active" data-tab="email" id="maintab-email" style="${mainTabStyle}${mainTabActive}">Email &amp; Password</button>
+        <button type="button" class="signin-main-tab" data-tab="token" id="maintab-token" style="${mainTabStyle}${mainTabBase}">License Token</button>
+      </div>
       <div class="signin-tab-panel active" id="panel-email">
         <div class="signin-subtabs" style="display:flex;gap:4px;margin-bottom:16px;background:var(--surface-hover);border-radius:8px;padding:3px;">
           <button type="button" class="signin-subtab ${!isRegister ? 'active' : ''}" data-mode="login" id="subtab-login" data-auth-action="signin" style="${!isRegister ? tabActive : tabBase}">Sign In</button>
@@ -264,10 +272,7 @@ export class SignInView {
         <p class="signin-note" id="email-mode-note" style="margin:16px 0 0;font-size:0.85rem;color:var(--text-muted);text-align:center;line-height:1.5;">${isRegister ? 'Already have an account? <button type="button" id="note-goto-signin" style="background:none;border:none;padding:0;color:var(--primary);font:inherit;font-weight:600;cursor:pointer;">Sign in</button>.' : 'New here? <button type="button" id="note-goto-register" style="background:none;border:none;padding:0;color:var(--primary);font:inherit;font-weight:600;cursor:pointer;">Create an account</button>.'}</p>
       </div>
 
-      <div class="signin-divider" style="text-align:center;margin:16px 0;font-size:0.8rem;color:var(--text-muted);position:relative;">
-        <span style="background:var(--surface);padding:0 12px;position:relative;z-index:1;">or use a license token</span>
-        <div style="position:absolute;top:50%;left:0;right:0;height:1px;background:var(--border);z-index:0;"></div>
-      </div>
+      <div class="signin-tab-panel" id="panel-token" style="display:none;">
       <form id="signin-token-form" class="signin-form" style="display:flex;flex-direction:column;gap:14px;">
         <div>
           <label class="field-label" for="signin-token-input" style="${labelStyle}">License or Sandbox Token</label>
@@ -280,6 +285,13 @@ export class SignInView {
         <p id="signin-token-error" class="signin-error" hidden role="alert" style="margin:0;font-size:0.85rem;color:var(--danger);text-align:center;line-height:1.5;"></p>
         <button type="submit" class="btn btn-primary btn-block" id="signin-token-submit" style="${btnPrimary}">Unlock with Token</button>
       </form>
+      <details style="margin-top:12px;font-size:0.8rem;color:var(--text-muted);">
+        <summary style="cursor:pointer;text-align:center;list-style:none;padding:4px;">Where do I get a token?</summary>
+        <p style="margin:8px 0 0;text-align:center;line-height:1.5;">
+          <a href="${COMING_SOON_URL}" target="_blank">Get a free community token</a> or <a href="${COMING_SOON_URL}pricing.html" target="_blank">purchase a license</a>.
+        </p>
+      </details>
+      </div>
 
       <p class="signin-footer" style="margin-top:24px;text-align:center;font-size:0.85rem;color:var(--text-muted);">
         <a href="/demo" style="color:var(--primary);text-decoration:none;">View read-only demo</a>
@@ -319,6 +331,28 @@ export class SignInView {
             e.preventDefault();
             e.stopPropagation();
             this.app.navigate('register');
+        });
+    }
+    bindMainTabs(container) {
+        const tabs = container.querySelectorAll('.signin-main-tab');
+        const emailPanel = container.querySelector('#panel-email');
+        const tokenPanel = container.querySelector('#panel-token');
+        const activeStyle = 'background:var(--primary);color:#fff;';
+        const inactiveStyle = 'background:var(--surface-hover);color:var(--text-muted);';
+        const baseStyle = 'flex:1;padding:10px 16px;border:none;font-size:0.9rem;font-weight:600;border-radius:8px;cursor:pointer;transition:all 0.2s;';
+        tabs.forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const target = tab.dataset.tab;
+                tabs.forEach(t => {
+                    const isActive = t.dataset.tab === target;
+                    t.style.cssText = baseStyle + (isActive ? activeStyle : inactiveStyle);
+                    t.classList.toggle('active', isActive);
+                });
+                if (emailPanel) emailPanel.style.display = target === 'email' ? '' : 'none';
+                if (tokenPanel) tokenPanel.style.display = target === 'token' ? '' : 'none';
+            });
         });
     }
     async handleEmailSubmit(e) {
