@@ -534,8 +534,12 @@ app.get(/^\/trust(\/.*)?$/, (req, res) => {
 
 // Serve dashboard assets under the /dashboard prefix for clients using absolute dashboard paths
 const dashboardStaticDir = path.join(webRoot, 'simplebeacon-dashboard');
+// Fallback: also check coming-soon/public/dashboard for vendor files that may not be in ai-platform/web
+const dashboardFallbackDir = fs.existsSync(path.join(landingRoot, 'dashboard'))
+  ? path.join(landingRoot, 'dashboard')
+  : null;
 const dashboardStaticOpts = {
-  fallthrough: false,
+  fallthrough: true,
   setHeaders: (res, filePath) => {
     if (filePath.endsWith('.js')) res.set('Content-Type', 'application/javascript; charset=utf-8');
     if (filePath.endsWith('.css')) res.set('Content-Type', 'text/css; charset=utf-8');
@@ -543,10 +547,18 @@ const dashboardStaticOpts = {
     if (filePath.endsWith('.wasm')) res.set('Content-Type', 'application/wasm');
   }
 };
+const dashboardStaticOptsFinal = { ...dashboardStaticOpts, fallthrough: false };
 ['/dashboard/css', '/dashboard/js', '/dashboard/js-es2018', '/dashboard/images', '/dashboard/fonts', '/dashboard/assets'].forEach(p => {
-  app.use(p, express.static(path.join(dashboardStaticDir, p.substring('/dashboard/'.length)), dashboardStaticOpts));
+  const sub = p.substring('/dashboard/'.length);
+  app.use(p, express.static(path.join(dashboardStaticDir, sub), dashboardStaticOpts));
+  if (dashboardFallbackDir) {
+    app.use(p, express.static(path.join(dashboardFallbackDir, sub), dashboardStaticOptsFinal));
+  }
 });
 app.use('/dashboard/site-config.js', express.static(path.join(dashboardStaticDir, 'site-config.js'), dashboardStaticOpts));
+if (dashboardFallbackDir) {
+  app.use('/dashboard/site-config.js', express.static(path.join(dashboardFallbackDir, 'site-config.js'), dashboardStaticOptsFinal));
+}
 
 app.get('/', async (req, res) => {
   // For internal dashboard, prioritize dashboard over landing page
