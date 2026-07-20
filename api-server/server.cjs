@@ -211,6 +211,24 @@ try {
     logger.warn('[API] Simplebeacon dashboard API not loaded:', err.message);
 }
 
+// Lightweight notify bridge for hosted dashboards.
+// The client may POST to `/api/notify` when a local data-server is configured
+// via `sb_notify_base`. Hosted dashboards don't need to forward these events,
+// but accepting them prevents noisy 404s in browser consoles and lets external
+// tooling capture events if desired.
+app.post('/api/notify', express.json({ limit: '100kb' }), (req, res) => {
+    try {
+        const entry = req.body || {};
+        const type = entry.type || (entry.payload && entry.payload.type) || 'unknown';
+        logger.info('[notify] received', { ip: req.ip, type });
+        // Do not persist sensitive tokens — payloads are redacted at the client.
+        return res.json({ success: true });
+    } catch (err) {
+        logger.warn('[notify] handler error:', err && err.message ? err.message : err);
+        return res.status(500).json({ success: false, error: String(err) });
+    }
+});
+
 // Comprehensive wiring check — verifies all services are reachable
 app.get('/api/analyze/wiring', async (_req, res) => {
     const checks = {
