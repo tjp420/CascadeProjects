@@ -1619,7 +1619,8 @@ class SimplebeaconDashboard {
         }
         // Gate write-heavy views by token claims rather than by issuing separate tokens.
         // Audit, roadmap, results, trust, security, platform, and quality remain read-only accessible.
-        if (!readOnlyPreview && WRITE_HEAVY_VIEWS.has(view) && !authService.isDashboardWriteAllowed()) {
+        // The main Dashboard is allowed for free-tier users in read-only mode.
+        if (!readOnlyPreview && WRITE_HEAVY_VIEWS.has(view) && !authService.isDashboardWriteAllowed() && !(view === 'dashboard' && isFreeTier)) {
             showToast('This dashboard feature requires a paid or team license.', 'info');
             window.location.href = '/pricing';
             return;
