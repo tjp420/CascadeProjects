@@ -1,6 +1,6 @@
 "use strict";
 
-module.exports = [
+module.exports = [ // simplebeacon-ignore missing-strict-mode — "use strict" is declared above
   {
     files: ['src/**/*.js', 'bin/**/*.js', 'tests/**/*.js'],
     languageOptions: {

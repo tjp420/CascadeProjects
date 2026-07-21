@@ -33,7 +33,7 @@ async function run() {
     const applied = new Set(appliedRes.rows.map(r => r.filename));
 
     // Discover migration files
-    const files = fs.readdirSync(MIGRATIONS_DIR)
+    const files = (await fs.promises.readdir(MIGRATIONS_DIR))
         .filter(f => f.endsWith('.sql'))
         .sort();
 
@@ -43,7 +43,7 @@ async function run() {
             console.log(`  SKIP ${file}`); // simplebeacon-ignore debug-artifact — migration CLI output
             continue;
         }
-        const sql = fs.readFileSync(path.join(MIGRATIONS_DIR, file), 'utf8');
+        const sql = await fs.promises.readFile(path.join(MIGRATIONS_DIR, file), 'utf8');
         await client.query(sql);
         await client.query(
             'INSERT INTO schema_migrations (filename) VALUES ($1)',

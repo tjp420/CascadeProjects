@@ -7,30 +7,49 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 const ROOT = __dirname;
-const MANIFEST = JSON.parse(fs.readFileSync(path.join(ROOT, 'manifest.json'), 'utf8'));
-const VERSION = MANIFEST.version;
 const DIST_DIR = path.join(ROOT, 'dist');
-const ZIP_NAME = `simplebeacon-local-agent-bridge-${VERSION}.zip`;
-const ZIP_PATH = path.join(DIST_DIR, ZIP_NAME);
 
-function main() {
-  if (!fs.existsSync(DIST_DIR)) {
-    fs.mkdirSync(DIST_DIR, { recursive: true });
-  }
-
-  // Remove any previous zip with the same name.
-  if (fs.existsSync(ZIP_PATH)) {
-    fs.unlinkSync(ZIP_PATH);
-  }
-
-  // Use PowerShell Compress-Archive so no extra npm dependencies are required.
-  const source = path.join(ROOT, '*');
-  const command = `powershell -Command "Compress-Archive -Path '${source}' -DestinationPath '${ZIP_PATH}' -Force"`;
-  execSync(command, { cwd: ROOT, stdio: 'inherit' });
-
-  if (process.env.SB_DEBUG === '1') {
-    console.log(`Built extension zip: ${ZIP_PATH}`); // simplebeacon-ignore debug-artifact — gated by SB_DEBUG=1
-  }
+async function readManifest() {
+    const raw = await fs.promises.readFile(path.join(ROOT, 'manifest.json'), 'utf8');
+    return JSON.parse(raw);
 }
 
-main();
+async function ensureDistDir() {
+    try {
+        await fs.promises.access(DIST_DIR);
+    } catch {
+        await fs.promises.mkdir(DIST_DIR, { recursive: true });
+    }
+}
+
+async function removeExistingZip(zipPath) {
+    try {
+        await fs.promises.unlink(zipPath);
+    } catch {
+        // Ignore if it did not exist
+    }
+}
+
+async function main() {
+    const MANIFEST = await readManifest();
+    const VERSION = MANIFEST.version;
+    const ZIP_NAME = `simplebeacon-local-agent-bridge-${VERSION}.zip`;
+    const ZIP_PATH = path.join(DIST_DIR, ZIP_NAME);
+
+    await ensureDistDir();
+    await removeExistingZip(ZIP_PATH);
+
+    // Use PowerShell Compress-Archive so no extra npm dependencies are required.
+    const source = path.join(ROOT, '*');
+    const command = `powershell -Command "Compress-Archive -Path '${source}' -DestinationPath '${ZIP_PATH}' -Force"`;
+    execSync(command, { cwd: ROOT, stdio: 'inherit' }); // simplebeacon-ignore sync-io — build script one-shot shell command
+
+    if (process.env.SB_DEBUG === '1') {
+        console.log(`Built extension zip: ${ZIP_PATH}`); // simplebeacon-ignore debug-artifact — gated by SB_DEBUG=1
+    }
+}
+
+main().catch(err => {
+    console.error('Build failed:', err.message);
+    process.exit(1);
+});
