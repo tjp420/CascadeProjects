@@ -17,7 +17,7 @@ const SUBSCRIPTION_STORE = path.join(PLATFORM_ROOT, '.simplebeacon', 'subscripti
 
 function log(step, msg) {
   const ts = new Date().toISOString().replace('T', ' ').slice(0, 19);
-  console.log(`[${ts}]  ${step.padEnd(24)}  ${msg}`);
+  process.stdout.write([`[${ts}]  ${step.padEnd(24)}  ${msg}`].join(" ") + "\n");
 }
 
 function readStore() {
@@ -208,17 +208,17 @@ const TIERS = [
 ];
 
 async function main() {
-  console.log('\n=== Simplebeacon Tier Scan Suite ===');
-  console.log('Customer: configured');
+  process.stdout.write(['\n=== Simplebeacon Tier Scan Suite ==='].join(" ") + "\n");
+  process.stdout.write(['Customer: configured'].join(" ") + "\n");
 
   if (!checkServer()) {
-    console.error('ERROR: Server not running on port', PORT);
+    process.stderr.write(['ERROR: Server not running on port', PORT].join(" ") + "\n");
     process.exit(1);
   }
   log('SERVER', `Responding on port ${PORT}`);
 
   for (const tier of TIERS) {
-    console.log(`\n--- ${tier.name} (${tier.price}) ---`);
+    process.stdout.write([`\n--- ${tier.name} (${tier.price}) ---`].join(" ") + "\n");
 
     // 1. Run scan
     log('SCAN', `Running ${tier.name} scan...`);
@@ -241,11 +241,11 @@ async function main() {
     }
   }
 
-  console.log('\n=== All tiers complete ===');
-  console.log('Check your inbox for results\n');
+  process.stdout.write(['\n=== All tiers complete ==='].join(" ") + "\n");
+  process.stdout.write(['Check your inbox for results\n'].join(" ") + "\n");
 }
 
 main().catch((err) => {
-  console.error('\nFatal error:', err.message);
+  process.stderr.write(['\nFatal error:', err.message].join(" ") + "\n");
   process.exit(1);
 });

@@ -51,10 +51,12 @@ export class AssessmentView {
         </div>
         ${rules.length ? `
           <div class="section-heading" style="padding:0 var(--space-4)"><h2>Corporate safety checklist</h2></div>
+          <div class="table-scroll-wrapper">
           <table class="results-table">
-            <thead><tr><th>Rule</th><th>Title</th><th>Evidence</th></tr></thead>
+            <thead><tr><th scope="col">Rule</th><th scope="col">Title</th><th scope="col">Evidence</th></tr></thead>
             <tbody>${rules.map((r) => this.renderRuleRow(r)).join('')}</tbody>
           </table>
+          </div>
         ` : ''}
         <div class="card-actions" style="padding:var(--space-4)">
           <a class="btn btn-secondary btn-sm" href="${assessmentService.downloadUrl((_d = assessment.metadata) === null || _d === void 0 ? void 0 : _d.assessmentId)}" download>Download JSON</a>
@@ -67,8 +69,9 @@ export class AssessmentView {
             return '<p class="text-muted">No assessments yet — run your first scan above.</p>';
         }
         return `
+      <div class="table-scroll-wrapper">
       <table class="results-table">
-        <thead><tr><th>Company</th><th>ID</th><th>When</th><th></th></tr></thead>
+        <thead><tr><th scope="col">Company</th><th scope="col">ID</th><th scope="col">When</th><th scope="col"></th></tr></thead>
         <tbody>
           ${this.recent.map((item) => `
             <tr>
@@ -80,6 +83,7 @@ export class AssessmentView {
           `).join('')}
         </tbody>
       </table>
+      </div>
     `;
     }
     render() {
@@ -88,10 +92,11 @@ export class AssessmentView {
         el.className = 'fade-in';
         const authed = authService.isAuthenticated();
         const selectedId = (_a = this.app.state.routeParams) === null || _a === void 0 ? void 0 : _a.id;
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         el.innerHTML = `
-      <h1 class="page-title">Assessment Portal</h1>
-      <p class="page-subtitle">Simplebeacon scan → human triage → enterprise deliverable. Regex gate in minutes; expert review sells the audit.</p>
+      <div class="analyze-hero">
+        <h1 class="page-title">Assessment Portal</h1>
+        <p class="text-muted analyze-hero-sub">Simplebeacon scan → human triage → enterprise deliverable. Regex gate in minutes; expert review sells the audit.</p>
+      </div>
 
       <div class="card mb-4">
         <div class="card-header"><span class="card-title">New client assessment</span></div>
@@ -127,7 +132,7 @@ export class AssessmentView {
         <div style="padding:var(--space-4)">${this.renderRecentList()}</div>
       </div>
 
-      <div id="assessment-detail">${this.report ? this.renderReportDetail(this.report) : ''}</div>
+      <div id="assessment-detail">${this.busy ? '<div class="card" style="padding:var(--space-4);text-align:center;"><span class="loading-spinner"></span> <span class="text-muted">Running assessment scan…</span></div>' : this.report ? this.renderReportDetail(this.report) : ''}</div>
     `;
         (_b = el.querySelector('#assessment-form')) === null || _b === void 0 ? void 0 : _b.addEventListener('submit', (e) => this.onSubmit(e));
         el.querySelectorAll('[data-open-assessment]').forEach((btn) => {
@@ -192,7 +197,6 @@ export class AssessmentView {
     mount(container) {
         var _a, _b, _c;
         if (!authService.isAdmin()) {
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
             window.setSafeHTML(
                 container,
                 '\n                <div class="page-header"><h1>Assessments</h1></div>\n                <div class="card notice-card"><p>Admin access required.</p></div>\n            '
@@ -214,7 +218,6 @@ export class AssessmentView {
             this.report = null;
         }
         this.recent = assessmentService.getRecentAssessments();
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         window.setSafeHTML(container, '');
         container.appendChild(this.render());
     }

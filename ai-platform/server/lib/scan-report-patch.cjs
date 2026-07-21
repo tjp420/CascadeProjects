@@ -239,6 +239,45 @@ function normalizeDashboardReport(report, requestedPath = '') {
         ? Number(report.reportVersion)
         : (report.version === '1.0.0' || report.type === 'simplebeacon-report' ? 2 : (report.reportVersion ?? 2));
 
+    const mockSampleFiles = report.mockSampleFiles
+        ?? summary.totalFiles
+        ?? null;
+
+    let qualityScore = report.qualityScore ?? null;
+    if (qualityScore == null && !report.qualityScoreHidden) {
+        const gateScore = report.gate && typeof report.gate.score === 'number' ? report.gate.score : null;
+        if (gateScore != null) {
+            qualityScore = gateScore;
+        }
+    }
+
+    const scanScope = report.scanScope || {
+        profile: report.scanTargetProfile || report.profile || 'standard',
+        rulesEnabled: report.rules || report.rulesEnabled || [],
+        gatePolicy: (report.gate && { failOn: report.gate.failOn, warnOn: report.gate.warnOn }) || { failOn: ['high'], warnOn: ['medium', 'low'] },
+        mockSampleFilesInScanPaths: mockSampleFiles,
+        productionDirsScanned: report.productionLeakScanned ?? null,
+        productionPaths: report.productionPaths || [],
+        ruleScopedFilesAnalyzed,
+        repositoryFilesTotal,
+        repositoryFoldersTotal,
+        fictionJsonFilesScanned: report.fictionJsonFilesScanned ?? null,
+        fictionSampleFilesScanned: report.fictionSampleFilesScanned ?? null,
+        fictionScope: report.fictionScope || 'repository-json',
+        jestExecutedDuringScan: report.jestBaselineChecked === true,
+        pageSpecCatalogSize: report.pageSpecCatalogSize ?? null,
+        pageSpecsValidated: report.pageSampleSchemaChecked ?? null,
+        pageSpecsFromScanPaths: 0,
+        pageSpecsFromAliasPaths: 0,
+        limitations: report.limitations || [
+            repositoryFilesTotal != null
+                ? `Repository inventory: ${repositoryFilesTotal} files — gate rules checked ${ruleScopedFilesAnalyzed ?? 0} (mock paths, credentials, server/ leaks).`
+                : `Gate rules checked ${ruleScopedFilesAnalyzed ?? 0} files — mock paths, credentials, and production directories only.`,
+            'Pattern matching on JSON samples and server/ production paths — not LLM semantic review.',
+            'Jest not executed during scan — baseline from .simplebeacon/baseline.json / npm test separately.'
+        ]
+    };
+
     const out = {
         ...report,
         reportVersion,
@@ -250,6 +289,9 @@ function normalizeDashboardReport(report, requestedPath = '') {
         ruleScopedFilesAnalyzed: ruleScopedFilesAnalyzed ?? filesAnalyzed,
         repositoryFilesTotal,
         repositoryFoldersTotal,
+        mockSampleFiles,
+        qualityScore,
+        scanScope,
         repositoryInventory: repositoryInventory || (repositoryFilesTotal != null
             ? {
                 totalFiles: repositoryFilesTotal,

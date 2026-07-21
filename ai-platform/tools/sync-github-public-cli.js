@@ -114,11 +114,14 @@ function patchPublicReadme() {
 
 function main() {
     if (!fs.existsSync(SRC)) {
-        console.error('Source not found:', SRC);
+        process.stderr.write(['Source not found:', SRC].join(" ") + "\n");
         process.exit(1);
     }
     if (!fs.existsSync(DEST)) {
-        console.error('Destination not found (clone tjp420/simplebeacon into .github-sync/simplebeacon):', DEST);
+        process.stderr.write([
+            'Destination not found (clone tjp420/simplebeacon into .github-sync/simplebeacon):',
+            DEST
+        ].join(" ") + "\n");
         process.exit(1);
     }
 
@@ -129,7 +132,7 @@ function main() {
     }
     pruneOrphans();
     patchPublicReadme();
-    console.log(`Synced ${copied} files → ${DEST}`);
+    process.stdout.write([`Synced ${copied} files → ${DEST}`].join(" ") + "\n");
 }
 
 main();

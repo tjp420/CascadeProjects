@@ -16,7 +16,7 @@ const logger = require('../../lib/app-logger.cjs');
 
 const { startAssessmentRetentionJob, resolveAssessmentTtlMs } = require('../../lib/assessment-retention.cjs');
 const { validateRepoUrl, resolveDefaultAllowedRoots, assertSafeProjectPath } = require('../../lib/path-safety.cjs');
-const { toClientError } = require('../../shared-utils/index.cjs');
+const { toClientError } = require('../../../shared-utils/index.cjs');
 const { buildAssessmentReport, evaluateGate, formatJsonReport, loadSimplebeaconConfig, resolvePlatformRoot, runScan, sanitizeScanReport } = require('../../lib/simplebeacon-proxy.cjs');
 
 

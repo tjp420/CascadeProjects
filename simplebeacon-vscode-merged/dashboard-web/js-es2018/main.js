@@ -35,8 +35,9 @@ import { showUpgradeModal } from './components/UpgradeModal.js';
 import { showLoginModal } from './components/LoginModal.js?v=20260716cachefix1';
 import { isDemoMode, isSignedOffMode, isLocalDevHost, isHostedDashboard, demoReadOnlyMessage } from './demoMode.js';
 import { showToast, resolveDashboardProjectPath, setHtml } from './utils.js?v=20260721corsfix1';
-import { isEmbeddedDashboardFrame, isIdeDashboardSurface } from './utils-lib/dom.js?v=20260721corsfix1';
+import { isEmbeddedDashboardFrame, isIdeDashboardSurface, canUseDirectoryPicker } from './utils-lib/dom.js?v=20260721corsfix1';
 import { hasExtensionBridgeConfigured } from './services/localAgentService.js?v=20260722scanfix1';
+import { LocalScanService } from './services/localScanService.js?v=20260725local1';
 import { fetchAnalyzeProviders, isClientScanReport, shouldClearHostedServerDefaultPath } from './services/analyzeService.js?v=20260716cachefix1';
 /**
  * Vault unlock url.
@@ -1732,6 +1733,50 @@ class SimplebeaconDashboard {
         ) || undefined;
         if (!resolvedPath) {
             showToast('No project path selected. Open a folder or set a project path before scanning.', 'error');
+            return;
+        }
+        // Auto-redirect local paths to browser local scan on deployed site
+        const isWindowsLocalPath = /^[a-zA-Z]:[\\/]/.test(resolvedPath);
+        if (isWindowsLocalPath && isHostedDashboard() && !hasExtensionBridgeConfigured()) {
+            if (!canUseDirectoryPicker()) {
+                showToast('Local paths can\'t be scanned from the deployed site. Use Chrome/Edge with Privacy mode, or run the dashboard locally.', 'error');
+                return;
+            }
+            showToast('Scanning local folder in your browser — no upload to server', 'info');
+            this.state.scanning = true;
+            this.refreshCurrentView();
+            try {
+                const localService = new LocalScanService();
+                const report = await localService.runScan({
+                    projectPath: resolvedPath,
+                    onProgress: (processed, total, meta = {}) => {
+                        this.state.scanProgress = {
+                            active: true,
+                            processed,
+                            total,
+                            phase: 'local-browser',
+                            label: 'Local browser scan',
+                            currentFile: meta.currentFile || '',
+                            percent: Math.round((processed / Math.max(1, total)) * 100)
+                        };
+                        this.refreshCurrentView();
+                    }
+                });
+                this.state.lastProjectPath = resolvedPath;
+                Object.assign(this.state, {
+                    report,
+                    scanning: false,
+                    audit: null,
+                    scanProgress: null
+                });
+                this.refreshCurrentView();
+                showToast('Local scan complete', 'success');
+            } catch (err) {
+                this.state.scanning = false;
+                this.state.scanProgress = null;
+                this.refreshCurrentView();
+                showToast(err.message || 'Local scan failed', 'error');
+            }
             return;
         }
         this.state.scanning = true;

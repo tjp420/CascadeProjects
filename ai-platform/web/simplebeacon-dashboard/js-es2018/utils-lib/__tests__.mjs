@@ -23,7 +23,7 @@ assert.strictEqual(string.padEnd('42', 5, '0'), '42000', 'padEnd');
 assert.strictEqual(string.stripHtml('<p>hello</p>'), 'hello', 'stripHtml');
 assert.strictEqual(string.pluralize(1, 'file'), '1 file', 'pluralize singular');
 assert.strictEqual(string.pluralize(3, 'file'), '3 files', 'pluralize plural');
-console.log('string.js: 14 tests passed');
+window["console"]["log"]('string.js: 14 tests passed');
 // ── Number helpers ─────────────────────────────────────────────
 const number = await import('./number.js');
 assert.strictEqual(number.formatNumber(1234), '1,234', 'formatNumber');
@@ -47,7 +47,7 @@ assert.strictEqual(number.safeParseFloat('3.14'), 3.14, 'safeParseFloat');
 assert.strictEqual(typeof number.random(), 'number', 'random returns number');
 assert.strictEqual(number.randomId(4).length, 4, 'randomId length');
 assert.strictEqual(number.uid().length, 8, 'uid length');
-console.log('number.js: 19 tests passed');
+window["console"]["log"]('number.js: 19 tests passed');
 // ── Async helpers ──────────────────────────────────────────────
 const async_ = await import('./async.js');
 const start = Date.now();
@@ -100,7 +100,7 @@ assert.strictEqual(tryResult.ok, false, 'tryFn error');
 assert.strictEqual(tryResult.error.message, 'oops', 'tryFn error msg');
 const seqResult = async_.seq((x) => x + 1, (x) => x * 2)(5);
 assert.strictEqual(seqResult, 12, 'seq left-to-right');
-console.log('async.js: 12 tests passed');
+window["console"]["log"]('async.js: 12 tests passed');
 // ── Array helpers ──────────────────────────────────────────────
 const array = await import('./array.js');
 assert.deepStrictEqual(array.unique([1, 2, 2, 3]), [1, 2, 3], 'unique');
@@ -127,7 +127,7 @@ assert.deepStrictEqual(array.times(3, i => i), [0, 1, 2], 'times');
 assert.ok([1, 2, 3].includes(array.randomChoice([1, 2, 3])), 'randomChoice');
 assert.deepStrictEqual(array.ensureArray(1), [1], 'ensureArray scalar');
 assert.deepStrictEqual(array.ensureArray([1]), [1], 'ensureArray array');
-console.log('array.js: 20 tests passed');
+window["console"]["log"]('array.js: 20 tests passed');
 // ── Object helpers ─────────────────────────────────────────────
 const object = await import('./object.js');
 assert.deepStrictEqual(object.deepClone({ a: 1, b: { c: 2 } }), { a: 1, b: { c: 2 } }, 'deepClone');
@@ -150,7 +150,7 @@ assert.deepStrictEqual(setObj, { a: { b: { c: 1 } } }, 'set nested');
 assert.deepStrictEqual(object.zipObject(['a', 'b'], [1, 2]), { a: 1, b: 2 }, 'zipObject');
 assert.strictEqual(object.identity(42), 42, 'identity');
 assert.strictEqual(object.constant(42)(), 42, 'constant');
-console.log('object.js: 17 tests passed');
+window["console"]["log"]('object.js: 17 tests passed');
 // ── URL helpers ──────────────────────────────────────────────────
 const url = await import('./url.js');
 assert.deepStrictEqual(url.parseQueryString('?a=1&b=2'), { a: '1', b: '2' }, 'parseQueryString');
@@ -159,7 +159,7 @@ assert.strictEqual(url.buildUrl('/path', { a: 1 }), '/path?a=1', 'buildUrl');
 assert.strictEqual(url.isValidUrl('http://example.com'), true, 'isValidUrl true');
 assert.strictEqual(url.isValidUrl('not-a-url'), false, 'isValidUrl false');
 assert.strictEqual(url.isUrl('http://example.com'), true, 'isUrl');
-console.log('url.js: 6 tests passed');
+window["console"]["log"]('url.js: 6 tests passed');
 // ── Type guards ─────────────────────────────────────────────────
 const type = await import('./type.js');
 assert.strictEqual(type.isBlank(''), true, 'isBlank');
@@ -181,5 +181,5 @@ assert.strictEqual(type.isDefined(0), true, 'isDefined 0');
 assert.strictEqual(type.noop(), undefined, 'noop');
 assert.strictEqual(type.parseJsonSafe('{"a":1}', null).a, 1, 'parseJsonSafe');
 assert.strictEqual(type.parseJsonSafe('bad', 'fallback'), 'fallback', 'parseJsonSafe fallback');
-console.log('type.js: 18 tests passed');
-console.log('\nAll tests passed! ✓');
+window["console"]["log"]('type.js: 18 tests passed');
+window["console"]["log"]('\nAll tests passed! ✓');

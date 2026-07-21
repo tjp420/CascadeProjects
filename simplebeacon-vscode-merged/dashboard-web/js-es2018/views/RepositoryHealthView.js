@@ -1,6 +1,7 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 import { escapeHtml, formatNumber, redactPathForDisplay, showToast, downloadJson } from '../utils.js';
 import { authService } from '../services/authService.js?v=20260721cspapi';
+import { getVsCodeApi, renderSkeletonCard } from '../utils-lib/dom.js?v=20260725phase3';
 /**
  * Auth headers.
  * @param {any} extra
@@ -219,7 +220,12 @@ export class RepositoryHealthView {
           <h1 class="page-title">Repository Health</h1>
           <p class="text-muted analyze-hero-sub">Loading health metrics…</p>
         </div>
-        <p class="text-muted"><span class="loading-spinner"></span> Loading repository health…</p>
+        ${renderSkeletonCard(4)}
+        <div class="grid-3 mt-4">
+          ${renderSkeletonCard(2)}
+          ${renderSkeletonCard(2)}
+          ${renderSkeletonCard(2)}
+        </div>
       `;
         }
         if (this.error) {
@@ -228,7 +234,10 @@ export class RepositoryHealthView {
           <h1 class="page-title">Repository Health</h1>
           <p class="text-muted analyze-hero-sub">Health metrics unavailable</p>
         </div>
-        <p class="text-danger card">${escapeHtml(this.error)}</p>
+        <div class="card" style="padding:var(--space-4);border-color:var(--danger);">
+          <p class="text-danger" style="margin:0 0 var(--space-3);">${escapeHtml(this.error)}</p>
+          <button type="button" class="btn btn-secondary btn-sm" id="health-retry-btn">Retry</button>
+        </div>
       `;
         }
         const health = this.data;
@@ -417,7 +426,6 @@ export class RepositoryHealthView {
         }
     }
     paint(container) {
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         container.innerHTML = this.render();
         this.bindEvents(container);
     }
@@ -436,6 +444,10 @@ export class RepositoryHealthView {
         if (mountSeq !== this._mountSeq)
             return;
         this.paint(container);
+        const retryBtn = container.querySelector('#health-retry-btn');
+        if (retryBtn) {
+            retryBtn.addEventListener('click', () => this.mount(container));
+        }
     }
     async handlePreviewMerge(candidateId) {
         if (!candidateId || this.previewLoading)
@@ -472,19 +484,6 @@ export class RepositoryHealthView {
                 this.paint(this._root);
                 this.scrollPreviewIntoView(this._root);
             }
-        }
-    }
-    _getVscodeApi() {
-        if (this._vscodeApiCached)
-            return this._vscodeApiCached;
-        if (typeof window === 'undefined' || typeof window.acquireVsCodeApi !== 'function')
-            return null;
-        try {
-            this._vscodeApiCached = window.acquireVsCodeApi();
-            return this._vscodeApiCached;
-        }
-        catch (_a) {
-            return null;
         }
     }
     bindEvents(container) {
@@ -576,7 +575,7 @@ export class RepositoryHealthView {
                 },
                 notes: ''
             };
-            const vscode = this._getVscodeApi();
+            const vscode = getVsCodeApi();
             if (vscode) {
                 try {
                     vscode.postMessage({ command: 'sendToAI', data: payload });

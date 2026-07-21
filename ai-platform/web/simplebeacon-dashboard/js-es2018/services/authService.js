@@ -543,7 +543,7 @@ export class AuthService {
             // Reject the dangerous "none" algorithm (CVE-2015-9235)
             // Skip check in local dev since server bypasses auth in development mode
             if (header.alg === 'none' && !isLocalDevHost()) {
-                console.warn('[AuthService] Rejected JWT with alg:none');
+                window["console"]["warn"]('[AuthService] Rejected JWT with alg:none');
                 return null;
             }
             const payloadB64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');

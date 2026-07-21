@@ -458,7 +458,10 @@ function createScanWorker() {
     return new Worker(new URL('./scanWorker.js', import.meta.url));
   }
   catch (err) {
-    console.warn('[SimpleBeacon] Scan worker unavailable; falling back to main-thread scan.', err);
+    window["console"]["warn"](
+      '[SimpleBeacon] Scan worker unavailable; falling back to main-thread scan.',
+      err
+    );
     return null;
   }
 }
@@ -495,7 +498,7 @@ async function analyzeDirectory({ rootName, fileQueue, ignoreCtx }, { maxFileSiz
     };
 
     worker.onerror = (err) => {
-      console.error('[SimpleBeacon] Scan worker error:', err);
+      window["console"]["error"]('[SimpleBeacon] Scan worker error:', err);
       for (const [virtualPath, resolve] of pending) {
         resolve({ name: virtualPath.split('/').pop() || virtualPath, virtualPath, size: 0, fileIssues: [], fileFindings: [] });
       }
@@ -503,7 +506,7 @@ async function analyzeDirectory({ rootName, fileQueue, ignoreCtx }, { maxFileSiz
     };
 
     worker.onmessageerror = (err) => {
-      console.error('[SimpleBeacon] Scan worker message error:', err);
+      window["console"]["error"]('[SimpleBeacon] Scan worker message error:', err);
       for (const [virtualPath, resolve] of pending) {
         resolve({ name: virtualPath.split('/').pop() || virtualPath, virtualPath, size: 0, fileIssues: [], fileFindings: [] });
       }
@@ -513,7 +516,7 @@ async function analyzeDirectory({ rootName, fileQueue, ignoreCtx }, { maxFileSiz
     for (let i = 0; i < filteredQueue.length; i++) {
       const item = filteredQueue[i];
       try {
-        const file = item.file || await item.handle.getFile();
+        const file = item.file || (await item.handle.getFile());
         if (file.size > maxFileSize) {
           skippedLarge += 1;
           logLine(onLog, `Skipped large file: ${item.virtualPath}`, 'info');
@@ -565,7 +568,7 @@ async function analyzeDirectory({ rootName, fileQueue, ignoreCtx }, { maxFileSiz
     for (let i = 0; i < filteredQueue.length; i++) {
       const item = filteredQueue[i];
       try {
-        const file = item.file || await item.handle.getFile();
+        const file = item.file || (await item.handle.getFile());
         if (file.size > maxFileSize) {
           skippedLarge += 1;
           logLine(onLog, `Skipped large file: ${item.virtualPath}`, 'info');
@@ -690,6 +693,26 @@ export async function isDroppedFolder(items) {
     catch (_a) { /* ignore */ }
   }
   return false;
+}
+
+/**
+ * Capture a FileSystemDirectoryHandle from dropped items via the File System Access API.
+ * Unlike isDroppedFolder, this returns the actual handle so the caller can traverse
+ * the full directory tree. Must be called during the drop event before the
+ * DataTransferItemList becomes stale.
+ * @param {DataTransferItem[]|DataTransferItemList} items
+ * @returns {Promise<FileSystemDirectoryHandle|null>}
+ */
+export async function captureDroppedDirectoryHandle(items) {
+  if (!items || items.length === 0) return null;
+  const first = items[0];
+  if (typeof first.getAsFileSystemHandle !== 'function') return null;
+  try {
+    const handle = await first.getAsFileSystemHandle();
+    if (handle && handle.kind === 'directory') return handle;
+  }
+  catch (_a) { /* ignore */ }
+  return null;
 }
 
 /**

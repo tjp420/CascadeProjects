@@ -2,6 +2,8 @@
 import { escapeHtml, showToast, formatNumber, downloadJson } from '../utils.js';
 import { resolveJestTestsLabel } from '../services/analyzeService.js?v=20260716cachefix1';
 import { buildQualityExportBundle, qualityExportFilename } from '../utils/quality-export.browser.js?v=20260716cachefix1';
+import { npmAuditSummary } from '../utils-lib/audit-helpers.js?v=20260721audit1';
+import { getVsCodeApi, renderSkeletonCard, renderSkeletonChips } from '../utils-lib/dom.js?v=20260725phase3';
 /**
  * Parse jest total.
  * @param {any} jestTestsLabel
@@ -47,46 +49,12 @@ function coveragePendingMessage(coverage) {
         || 'Run npm run test:coverage for Istanbul percentages. Sync Jest counts via Tools → Baseline sync.';
 }
 /**
- * Npm audit summary.
- * @param {any} audit
- * @returns {any}
- */
-function npmAuditSummary(audit) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t;
-    const summary = (audit === null || audit === void 0 ? void 0 : audit.summary) || ((_a = audit === null || audit === void 0 ? void 0 : audit.metadata) === null || _a === void 0 ? void 0 : _a.vulnerabilities) || {};
-    const deps = (audit === null || audit === void 0 ? void 0 : audit.dependencies) || ((_b = audit === null || audit === void 0 ? void 0 : audit.metadata) === null || _b === void 0 ? void 0 : _b.dependencies) || {};
-    return {
-        dependencies: (_d = (_c = summary.dependencies) !== null && _c !== void 0 ? _c : deps.total) !== null && _d !== void 0 ? _d : null,
-        prod: (_f = (_e = summary.prodDependencies) !== null && _e !== void 0 ? _e : deps.prod) !== null && _f !== void 0 ? _f : null,
-        dev: (_h = (_g = summary.devDependencies) !== null && _g !== void 0 ? _g : deps.dev) !== null && _h !== void 0 ? _h : null,
-        critical: (_j = summary.critical) !== null && _j !== void 0 ? _j : 0,
-        high: (_k = summary.high) !== null && _k !== void 0 ? _k : 0,
-        moderate: (_m = (_l = summary.moderate) !== null && _l !== void 0 ? _l : summary.medium) !== null && _m !== void 0 ? _m : 0,
-        low: (_o = summary.low) !== null && _o !== void 0 ? _o : 0,
-        vulnerabilityTotal: (_q = (_p = summary.vulnerabilityTotal) !== null && _p !== void 0 ? _p : summary.total) !== null && _q !== void 0 ? _q : ((_s = (_r = audit === null || audit === void 0 ? void 0 : audit.vulnerabilities) === null || _r === void 0 ? void 0 : _r.length) !== null && _s !== void 0 ? _s : 0),
-        generatedAt: (_t = audit === null || audit === void 0 ? void 0 : audit.generatedAt) !== null && _t !== void 0 ? _t : null
-    };
-}
-/**
  * Quality view.
  */
 export class QualityView {
     constructor(app) {
         this.app = app;
         this.auditLoading = false;
-    }
-    _getVscodeApi() {
-        if (this._vscodeApiCached)
-            return this._vscodeApiCached;
-        if (typeof window === 'undefined' || typeof window.acquireVsCodeApi !== 'function')
-            return null;
-        try {
-            this._vscodeApiCached = window.acquireVsCodeApi();
-            return this._vscodeApiCached;
-        }
-        catch (_a) {
-            return null;
-        }
     }
     exportQualityData() {
         const coverage = resolveCoverageSnapshot(this.app.state.coverage, this.app.state.baseline, this.app.state.dashboardHome);
@@ -119,7 +87,22 @@ export class QualityView {
         const engineeringFindings = (_d = security.openEngineeringFindings) !== null && _d !== void 0 ? _d : '—';
         const el = document.createElement('div');
         el.className = 'fade-in';
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+        if (this.auditLoading) {
+            el.innerHTML = `
+      <div class="analyze-hero">
+        <h1 class="page-title">Quality & Security</h1>
+        <p class="text-muted analyze-hero-sub">Loading quality metrics…</p>
+      </div>
+      ${renderSkeletonChips(4)}
+      <div class="grid-3 mb-6">
+        ${renderSkeletonCard(2)}
+        ${renderSkeletonCard(2)}
+        ${renderSkeletonCard(2)}
+      </div>
+      ${renderSkeletonCard(5)}
+      `;
+            return el;
+        }
         el.innerHTML = `
       <div class="analyze-hero">
         <h1 class="page-title">Quality & Security</h1>
@@ -135,6 +118,11 @@ export class QualityView {
           ${this.app.isCurrentUserAdmin() ? '<button class="btn btn-ghost btn-sm" id="quality-send-ai-btn" type="button" title="Send quality and security data to AI coding agent">🤖 Send to AI Agent</button>' : ''}
         </div>
       </div>
+
+      ${(npmAudit === null || npmAudit === void 0 ? void 0 : npmAudit.error) ? `
+      <div class="card mb-4" style="padding:var(--space-3);border-color:var(--warning);background:var(--warning-bg);">
+        <p class="text-sm" style="margin:0;color:var(--warning);"><strong>⚠ npm audit unavailable:</strong> ${escapeHtml(npmAudit.error)}</p>
+      </div>` : ''}
 
       <div class="grid-3 mb-6">
         <div class="card insight-stat">
@@ -215,7 +203,7 @@ export class QualityView {
                 issues: vulnList.slice(0, 200),
                 notes: 'Quality & Security — coverage, security checklist, and npm audit'
             };
-            const vscode = this._getVscodeApi();
+            const vscode = getVsCodeApi();
             if (vscode) {
                 try {
                     vscode.postMessage({ command: 'sendToAI', data: payload });
@@ -278,8 +266,9 @@ export class QualityView {
           <p class="text-success">Clean audit — ${formatNumber(s.dependencies)} dependencies, 0 known vulnerabilities.</p>
         ` : ''}
         ${vulnerabilities.length ? `
+          <div class="table-scroll-wrapper">
           <table class="results-table">
-            <thead><tr><th>Severity</th><th>Package</th><th>Title</th></tr></thead>
+            <thead><tr><th scope="col">Severity</th><th scope="col">Package</th><th scope="col">Title</th></tr></thead>
             <tbody>
               ${vulnerabilities.slice(0, 20).map((v) => `
                 <tr>
@@ -290,6 +279,7 @@ export class QualityView {
               `).join('')}
             </tbody>
           </table>
+          </div>
         ` : (!clean ? `<p class="text-muted">No vulnerability details returned.</p>` : '')}
         ${s.generatedAt ? `<p class="text-muted text-sm mt-4">Generated ${escapeHtml(new Date(s.generatedAt).toLocaleString())}</p>` : ''}
       </div>
@@ -322,7 +312,6 @@ export class QualityView {
     updateAuditResults() {
         const slot = document.getElementById('audit-results');
         if (slot && this.app.currentView === this) {
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
             slot.innerHTML = this.renderAudit(this.app.state.npmAudit);
             this.refreshAuditButton();
             return;
@@ -338,7 +327,6 @@ export class QualityView {
         this._container = container;
         const needsPlatformData = this.app.state.coverage == null || this.app.state.security == null;
         if (needsPlatformData) {
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
             window.setSafeHTML(container, '<p class="text-muted card">Loading quality metrics…</p>');;
             try {
                 await this.app.loadPlatformData();
@@ -349,7 +337,6 @@ export class QualityView {
         }
         if (this._container !== container)
             return;
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         window.setSafeHTML(container, '');
         container.appendChild(this.render());
         if (!this.app.state.npmAudit && !this.auditLoading) {

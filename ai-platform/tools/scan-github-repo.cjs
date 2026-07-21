@@ -17,7 +17,7 @@ const SUBSCRIPTION_STORE = path.join(PLATFORM_ROOT, '.simplebeacon', 'subscripti
 
 function log(step, msg) {
   const ts = new Date().toISOString().replace('T', ' ').slice(0, 19);
-  console.log(`[${ts}]  ${step.padEnd(24)}  ${msg}`);
+  process.stdout.write([`[${ts}]  ${step.padEnd(24)}  ${msg}`].join(" ") + "\n");
 }
 
 function readStore() {
@@ -97,12 +97,12 @@ function checkServer() {
 
 async function main() {
   const repoName = path.basename(REPO_PATH);
-  console.log(`\n=== GitHub Repo Scan: ${repoName} ===`);
-  console.log(`Path:  ${REPO_PATH}`);
-  console.log('Customer: configured\n');
+  process.stdout.write([`\n=== GitHub Repo Scan: ${repoName} ===`].join(" ") + "\n");
+  process.stdout.write([`Path:  ${REPO_PATH}`].join(" ") + "\n");
+  process.stdout.write(['Customer: configured\n'].join(" ") + "\n");
 
   if (!checkServer()) {
-    console.error('ERROR: Server not running on port', PORT);
+    process.stderr.write(['ERROR: Server not running on port', PORT].join(" ") + "\n");
     process.exit(1);
   }
   log('SERVER', `Responding on port ${PORT}`);
@@ -124,11 +124,11 @@ async function main() {
     log('DELIVERY', `FAILED: ${uploadRes.error}`);
   }
 
-  console.log('\n=== Complete ===');
-  console.log('Check your inbox for results\n');
+  process.stdout.write(['\n=== Complete ==='].join(" ") + "\n");
+  process.stdout.write(['Check your inbox for results\n'].join(" ") + "\n");
 }
 
 main().catch((err) => {
-  console.error('\nFatal error:', err.message);
+  process.stderr.write(['\nFatal error:', err.message].join(" ") + "\n");
   process.exit(1);
 });

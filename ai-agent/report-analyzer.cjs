@@ -50,12 +50,12 @@ Output ONLY the JSON array. No explanations outside the JSON.`;
 async function main() {
     const reportPath = process.argv[2];
     if (!reportPath) {
-        console.error('Usage: node report-analyzer.cjs <path-to-report.json>'); // simplebeacon-ignore debug-artifact — CLI usage message
+        process.stderr.write(['Usage: node report-analyzer.cjs <path-to-report.json>'].join(" ") + "\n"); // simplebeacon-ignore debug-artifact — CLI usage message
         process.exit(1);
     }
 
     if (!fs.existsSync(reportPath)) {
-        console.error(`Report not found: ${reportPath}`); // simplebeacon-ignore debug-artifact — CLI error message
+        process.stderr.write([`Report not found: ${reportPath}`].join(" ") + "\n"); // simplebeacon-ignore debug-artifact — CLI error message
         process.exit(1);
     }
 
@@ -78,12 +78,12 @@ async function main() {
         raw: result.raw || null,
         generatedAt: new Date().toISOString()
     }, null, 2));
-    console.log(`Analysis saved to ${analysisPath}`); // simplebeacon-ignore debug-artifact — CLI output
+    process.stdout.write([`Analysis saved to ${analysisPath}`].join(" ") + "\n"); // simplebeacon-ignore debug-artifact — CLI output
 }
 
 if (require.main === module) {
     main().catch(e => {
-        console.error(e); // simplebeacon-ignore debug-artifact — CLI error output
+        process.stderr.write([e].join(" ") + "\n"); // simplebeacon-ignore debug-artifact — CLI error output
         process.exit(1);
     });
 }

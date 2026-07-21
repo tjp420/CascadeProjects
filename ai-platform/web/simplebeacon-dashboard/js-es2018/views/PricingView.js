@@ -16,7 +16,6 @@ export class PricingView {
     }
 
     mount(container) {
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         container.innerHTML = `
       <div class="page-header">
         <h1>Team Pricing</h1>

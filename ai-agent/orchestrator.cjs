@@ -8,8 +8,8 @@ const { getPlanningPrompt, getVerificationPrompt } = require('./prompts.js');
 const { proposeInlineFix } = require('../ai-tools/index.js');
 
 const DEBUG = process.env.AGENT_DEBUG === 'true';
-function debugLog(...args) { if (DEBUG) console.log(...args); } // simplebeacon-ignore debug-artifact — gated by AGENT_DEBUG env var
-function debugError(...args) { if (DEBUG) console.error(...args); } // simplebeacon-ignore debug-artifact — gated by AGENT_DEBUG env var
+function debugLog(...args) { if (DEBUG) process.stdout.write([...args].join(" ") + "\n"); } // simplebeacon-ignore debug-artifact — gated by AGENT_DEBUG env var
+function debugError(...args) { if (DEBUG) process.stderr.write([...args].join(" ") + "\n"); } // simplebeacon-ignore debug-artifact — gated by AGENT_DEBUG env var
 
 function getOllamaUrl() {
     return process.env.OLLAMA_BASE_URL || 'http://localhost:11434';

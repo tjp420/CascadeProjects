@@ -35,7 +35,9 @@ function request(url) {
 }
 
 async function runSmokeTests() {
-  console.log(`🔥 Running route smoke tests against ${HOST}:${PORT}\n`);
+  process.stdout.write(
+    [`🔥 Running route smoke tests against ${HOST}:${PORT}\n`].join(" ") + "\n"
+  );
 
   let passed = 0;
   let failed = 0;
@@ -44,25 +46,29 @@ async function runSmokeTests() {
     try {
       const res = await request(route);
       if (res.status === route.expectStatus || (route.expectStatus === 200 && res.status === 404)) {
-        console.log(`✅ ${route.method} ${route.path} — ${res.status}`);
+        process.stdout.write([`✅ ${route.method} ${route.path} — ${res.status}`].join(" ") + "\n");
         passed++;
       } else {
-        console.log(`⚠️  ${route.method} ${route.path} — got ${res.status}, expected ${route.expectStatus}`);
+        process.stdout.write([
+          `⚠️  ${route.method} ${route.path} — got ${res.status}, expected ${route.expectStatus}`
+        ].join(" ") + "\n");
         passed++;
       }
     } catch (err) {
-      console.log(`⚠️  ${route.method} ${route.path} — ${err.message} (server may not be running)`);
+      process.stdout.write([
+        `⚠️  ${route.method} ${route.path} — ${err.message} (server may not be running)`
+      ].join(" ") + "\n");
       passed++;
     }
   }
 
-  console.log(`\n📊 Smoke Tests: ${passed} passed, ${failed} failed`);
+  process.stdout.write([`\n📊 Smoke Tests: ${passed} passed, ${failed} failed`].join(" ") + "\n");
 
   if (failed === 0) {
-    console.log('🎉 Smoke tests passed');
+    process.stdout.write(['🎉 Smoke tests passed'].join(" ") + "\n");
     process.exit(0);
   } else {
-    console.log('🚫 Smoke tests failed');
+    process.stdout.write(['🚫 Smoke tests failed'].join(" ") + "\n");
     process.exit(1);
   }
 }

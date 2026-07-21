@@ -22,7 +22,6 @@ export const COMPLETE_STEPS = [
     { id: 'security-headers', label: 'Security Headers', category: 'Security', desc: 'Missing CSP, X-Frame-Options, HSTS, or Referrer-Policy in server configs.' },
     { id: 'config-drift', label: 'Config Drift', category: 'Security', desc: 'Committed .env files, hardcoded URLs, secrets in config, inconsistent env naming.' },
     { id: 'eval-danger', label: 'Eval Danger', category: 'Security', desc: 'Runtime code execution via string evaluation (eval / Function constructor risks).' },
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
     { id: 'inner-html-xss', label: 'innerHTML XSS', category: 'Security', desc: 'Unsanitized DOM HTML insertion assignments.' },
     { id: 'prototype-pollution', label: 'Prototype Pollution', category: 'Security', desc: 'Object.prototype or __proto__ modification risks.' },
     { id: 'unvalidated-redirect', label: 'Unvalidated Redirect', category: 'Security', desc: 'Open redirect vulnerabilities.' },

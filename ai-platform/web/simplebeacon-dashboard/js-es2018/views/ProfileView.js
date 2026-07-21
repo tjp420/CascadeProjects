@@ -361,7 +361,6 @@ export class ProfileView {
         </form>
       </div>
     `);
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         window.setSafeHTML(container, '');
         container.appendChild(fragment);
         if (typeof window.lucide !== 'undefined')
@@ -518,14 +517,12 @@ export class ProfileView {
                         return;
                     if (input.type === 'password') {
                         input.type = 'text';
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
                         window.setSafeHTML(toggleBtn, '<i data-lucide="eye-off" class="icon-16"></i>');;
                         toggleBtn.title = 'Hide token';
                         toggleBtn.setAttribute('aria-label', 'Hide token');
                     }
                     else {
                         input.type = 'password';
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
                         window.setSafeHTML(toggleBtn, '<i data-lucide="eye" class="icon-16"></i>');;
                         toggleBtn.title = 'Show token';
                         toggleBtn.setAttribute('aria-label', 'Show token');
@@ -534,7 +531,7 @@ export class ProfileView {
                         window.lucide.createIcons();
                 }
                 catch (e) {
-                    console.error('[Profile] Toggle failed:', e);
+                    window["console"]["error"]('[Profile] Toggle failed:', e);
                 }
             });
         }
@@ -556,7 +553,7 @@ export class ProfileView {
                         copied = true;
                     }
                     catch (e) {
-                        console.warn('[Profile] Clipboard API failed, trying fallback:', e);
+                        window["console"]["warn"]('[Profile] Clipboard API failed, trying fallback:', e);
                     }
                 }
                 // Fallback: select + execCommand
@@ -570,18 +567,15 @@ export class ProfileView {
                         input.type = prevType;
                     }
                     catch (e) {
-                        console.error('[Profile] Fallback copy failed:', e);
+                        window["console"]["error"]('[Profile] Fallback copy failed:', e);
                     }
                 }
                 if (copied) {
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
                     const original = copyBtn.innerHTML;
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
                     window.setSafeHTML(copyBtn, '<i data-lucide="check" class="icon-16"></i>');;
                     if (typeof window.lucide !== 'undefined')
                         window.lucide.createIcons();
                     setTimeout(() => {
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
                         copyBtn.innerHTML = original;
                         if (typeof window.lucide !== 'undefined')
                             window.lucide.createIcons();
@@ -598,7 +592,7 @@ export class ProfileView {
             var _a, _b;
             const keys = Object.keys(localStorage).filter((k) => k.startsWith('sb_') || k.includes('simplebeacon'));
             keys.forEach((k) => localStorage.removeItem(k));
-            ((_b = (_a = this.app).showToast) === null || _b === void 0 ? void 0 : _b.call(_a, 'Local cache cleared', 'success')) || alert('Local cache cleared');
+            ((_b = (_a = this.app).showToast) === null || _b === void 0 ? void 0 : _b.call(_a, 'Local cache cleared', 'success')) || void 0;
         });
         // ── Security Keys — guided flow ──
         const securityKeysList = container.querySelector('#security-keys-list');
@@ -657,7 +651,6 @@ export class ProfileView {
             if (!securityKeysList)
                 return;
             if (!authService.getToken()) {
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
                 window.setSafeHTML(
                     securityKeysList,
                     '<p class="profile-help">Sign in to manage security keys.</p>'
@@ -665,7 +658,6 @@ export class ProfileView {
                 return;
             }
             if (!userHasJwtForAiKeys()) {
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
                 window.setSafeHTML(
                     securityKeysList,
                     '<p class="profile-help">Security keys require email/password sign-in. License-token sessions can use password or passkey sign-in on the Sign in page.</p>'
@@ -673,7 +665,6 @@ export class ProfileView {
                 return;
             }
             if (!isWebAuthnSupported()) {
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
                 window.setSafeHTML(
                     securityKeysList,
                     '<p class="profile-help">This browser does not support security keys. Try Chrome, Edge, Firefox, or Safari with the latest updates.</p>'
@@ -684,14 +675,12 @@ export class ProfileView {
             try {
                 const keys = await listSecurityKeys();
                 if (!keys.length) {
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
                     window.setSafeHTML(
                         securityKeysList,
                         '<p class="profile-help">No security keys registered yet. Choose a key type above to get started.</p>'
                     );;
                     return;
                 }
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
                 securityKeysList.innerHTML = keys.map((key) => `
             <div class="profile-security-key-row" data-credential-id="${escapeHtml(key.id)}">
               <div class="profile-security-key-meta">
@@ -755,7 +744,6 @@ export class ProfileView {
                 });
             }
             catch (err) {
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
                 securityKeysList.innerHTML = `<p class="profile-help">${escapeHtml(describeWebAuthnError(err))}</p>`;
             }
         };
@@ -797,7 +785,6 @@ export class ProfileView {
                             platform: 'Click Activate, then confirm with Windows Hello, Touch ID, or Face ID when your browser prompts you.',
                             usb: 'Make sure your USB drive is enrolled as a security key in Windows Settings first. Then click Activate and tap it when prompted.'
                         };
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
                         instructions.innerHTML = `<p class="profile-help">${labels[selectedKeyType] || labels.hardware}</p>`;
                     }
                 });

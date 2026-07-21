@@ -32,13 +32,17 @@ function killPort(port) {
     for (const pid of pids) {
         try {
             execSync(`taskkill /F /PID ${pid}`, { stdio: 'ignore' });
-            console.log(`[kill-dashboard-ports] Stopped PID ${pid} on port ${port}`);
+            process.stdout.write(
+                [`[kill-dashboard-ports] Stopped PID ${pid} on port ${port}`].join(" ") + "\n"
+            );
         } catch (error) {
-            console.warn(`[kill-dashboard-ports] Could not stop PID ${pid} on port ${port}: ${error.message}`);
+            process.stderr.write([
+                `[kill-dashboard-ports] Could not stop PID ${pid} on port ${port}: ${error.message}`
+            ].join(" ") + "\n");
         }
     }
     if (!pids.length) {
-        console.log(`[kill-dashboard-ports] No listener on port ${port}`);
+        process.stdout.write([`[kill-dashboard-ports] No listener on port ${port}`].join(" ") + "\n");
     }
 }
 

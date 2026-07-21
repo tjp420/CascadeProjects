@@ -160,14 +160,16 @@ function computeConsistencyScore(report, projectRoot) {
 function main() {
     const reportPath = process.argv[2];
     if (!reportPath) {
-        console.error('Usage: node consistency-score.cjs <path-to-report.json>'); // simplebeacon-ignore debug-artifact — CLI usage message
+        process.stderr.write(
+            ['Usage: node consistency-score.cjs <path-to-report.json>'].join(" ") + "\n"
+        ); // simplebeacon-ignore debug-artifact — CLI usage message
         process.exit(1);
     }
 
     const report = loadReport(reportPath);
     const result = computeConsistencyScore(report);
 
-    console.log(JSON.stringify(result, null, 2)); // simplebeacon-ignore debug-artifact — CLI output
+    process.stdout.write([JSON.stringify(result, null, 2)].join(" ") + "\n"); // simplebeacon-ignore debug-artifact — CLI output
 }
 
 if (require.main === module) {

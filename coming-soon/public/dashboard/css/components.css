@@ -4599,12 +4599,29 @@ html[data-embed-full-nav="1"] .chatbot-container {
   background: var(--surface-elevated);
 }
 
+/* Also support alternate embed attribute forms used by IDE hosts */
+html[data-parent-urlbar="1"] .app-shell,
+html[data-ide-preview="true"] .app-shell,
+html[data-embed-mode="1"] .app-shell {
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
 .chatbot-prompt-label {
   display: block;
   font-size: var(--font-size-xs);
   color: var(--text-muted);
   margin-bottom: var(--space-1);
   font-weight: 500;
+html[data-parent-urlbar="1"] .app-body,
+html[data-ide-preview="true"] .app-body,
+html[data-embed-mode="1"] .app-body {
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
 }
 
 .chatbot-prompt-help {
@@ -4614,6 +4631,43 @@ html[data-embed-full-nav="1"] .chatbot-container {
   line-height: 1.5;
 }
 
+html[data-parent-urlbar="1"] #app-main,
+html[data-ide-preview="true"] #app-main,
+html[data-embed-mode="1"] #app-main {
+  flex: 1;
+  height: 100% !important;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+/* IDE embed shim — absolute inset + safe-area padding to avoid clipping by host chrome */
+html[data-ide-embed="1"], html[data-parent-urlbar="1"], html[data-ide-preview="true"], html[data-embed-mode="1"] {
+  height: 100% !important;
+  min-height: 0 !important;
+  box-sizing: border-box;
+}
+html[data-ide-embed="1"] body, html[data-parent-urlbar="1"] body, html[data-ide-preview="true"] body, html[data-embed-mode="1"] body {
+  position: absolute !important;
+  inset: 0 !important;
+  margin: 0 !important;
+  padding-top: env(safe-area-inset-top, 0px) !important;
+  height: 100% !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+html[data-ide-embed="1"] .app-shell, html[data-parent-urlbar="1"] .app-shell, html[data-ide-preview="true"] .app-shell, html[data-embed-mode="1"] .app-shell {
+  position: absolute !important;
+  inset: 0 !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+html[data-ide-embed="1"] #app-main, html[data-parent-urlbar="1"] #app-main, html[data-ide-preview="true"] #app-main, html[data-embed-mode="1"] #app-main {
+  padding-top: env(safe-area-inset-top, 0px) !important;
+}
 .chatbot-prompt-help em {
   color: var(--text-secondary);
   font-style: normal;

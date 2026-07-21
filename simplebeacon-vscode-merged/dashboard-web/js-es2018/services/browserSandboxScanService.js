@@ -693,6 +693,26 @@ export async function isDroppedFolder(items) {
 }
 
 /**
+ * Capture a FileSystemDirectoryHandle from dropped items via the File System Access API.
+ * Unlike isDroppedFolder, this returns the actual handle so the caller can traverse
+ * the full directory tree. Must be called during the drop event before the
+ * DataTransferItemList becomes stale.
+ * @param {DataTransferItem[]|DataTransferItemList} items
+ * @returns {Promise<FileSystemDirectoryHandle|null>}
+ */
+export async function captureDroppedDirectoryHandle(items) {
+  if (!items || items.length === 0) return null;
+  const first = items[0];
+  if (typeof first.getAsFileSystemHandle !== 'function') return null;
+  try {
+    const handle = await first.getAsFileSystemHandle();
+    if (handle && handle.kind === 'directory') return handle;
+  }
+  catch (_a) { /* ignore */ }
+  return null;
+}
+
+/**
  * Prompt the user to pick a directory, then scan it in-browser.
  * @param {Object} [options]
  * @param {number} [options.maxFileSize=1500000]

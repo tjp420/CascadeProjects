@@ -93,7 +93,12 @@ function loadScannerApi() {
       }
     } catch (err) {
       scannerLoadError = err.message;
-      console.warn('[agent] Failed to load SimpleBeacon scanner from', candidate, ':', err.message);
+      process.stderr.write([
+        '[agent] Failed to load SimpleBeacon scanner from',
+        candidate,
+        ':',
+        err.message
+      ].join(" ") + "\n");
     }
   }
   return null;
@@ -182,7 +187,7 @@ async function runLocalScan(targetPath, scanOptions = {}) {
     return report;
   }
   catch (scanErr) {
-    console.error('[agent] Scanner error:', scanErr?.message || scanErr);
+    process.stderr.write(['[agent] Scanner error:', scanErr?.message || scanErr].join(" ") + "\n");
     throw scanErr;
   }
 }
@@ -272,7 +277,9 @@ app.use(requireLoopback);
 
 // Request logger to help diagnose browser/agent issues.
 app.use((req, res, next) => {
-  console.debug(`[agent] ${req.method} ${req.url} from ${req.headers.origin || 'no-origin'} (${req.socket.remoteAddress || 'unknown'})`);
+  process.stderr.write([
+    `[agent] ${req.method} ${req.url} from ${req.headers.origin || 'no-origin'} (${req.socket.remoteAddress || 'unknown'})`
+  ].join(" ") + "\n");
   next();
 });
 
@@ -292,13 +299,15 @@ app.get('/health', (req, res) => {
 app.post('/scan', async (req, res) => {
   const rawPath = req.body?.projectPath;
   try {
-    console.debug('[agent] /scan received projectPath:', rawPath);
+    process.stderr.write(['[agent] /scan received projectPath:', rawPath].join(" ") + "\n");
     const targetPath = validateTargetPath(rawPath);
     const fullDirectoryScan = req.body?.fullDirectoryScan === true || req.body?.fullDirectoryScan === 'true';
     const report = await runLocalScan(targetPath, { fullDirectoryScan });
     res.json({ success: true, projectPath: targetPath, report });
   } catch (err) {
-    console.error('[agent] /scan rejected projectPath:', rawPath, '-', err.message);
+    process.stderr.write(
+      ['[agent] /scan rejected projectPath:', rawPath, '-', err.message].join(" ") + "\n"
+    );
     res.status(400).json({ success: false, error: err.message, receivedPath: rawPath });
   }
 });
@@ -324,13 +333,15 @@ app.get('/progress', (req, res) => {
 app.post('/inventory', async (req, res) => {
   const rawPath = req.body?.projectPath;
   try {
-    console.debug('[agent] /inventory received projectPath:', rawPath);
+    process.stderr.write(['[agent] /inventory received projectPath:', rawPath].join(" ") + "\n");
     const targetPath = validateTargetPath(rawPath);
     const fullDirectoryScan = req.body?.fullDirectoryScan === true || req.body?.fullDirectoryScan === 'true';
     const inventory = await runLocalInventory(targetPath, { fullDirectoryScan });
     res.json({ success: true, projectPath: targetPath, inventory });
   } catch (err) {
-    console.error('[agent] /inventory rejected projectPath:', rawPath, '-', err.message);
+    process.stderr.write(
+      ['[agent] /inventory rejected projectPath:', rawPath, '-', err.message].join(" ") + "\n"
+    );
     res.status(400).json({ success: false, error: err.message, receivedPath: rawPath });
   }
 });
@@ -351,7 +362,7 @@ app.post('/summary', async (req, res) => {
 // Error handler.
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, _next) => {
-  console.error('[agent] Unhandled error:', err);
+  process.stderr.write(['[agent] Unhandled error:', err].join(" ") + "\n");
   const origin = req.headers.origin;
   if (origin) {
     res.setHeader('Access-Control-Allow-Origin', origin);
@@ -363,16 +374,20 @@ app.use((err, req, res, _next) => {
 function start() {
   const server = http.createServer(app);
   server.listen(PORT, HOST, () => {
-    console.debug(`[agent] Listening on http://${HOST}:${PORT}`);
-    console.debug(`[agent] Scanner root: ${AGENT_ROOT}`);
-    console.debug(`[agent] Scanner available: ${Boolean(scannerApi && typeof scannerApi.runScan === 'function')}`);
+    process.stderr.write([`[agent] Listening on http://${HOST}:${PORT}`].join(" ") + "\n");
+    process.stderr.write([`[agent] Scanner root: ${AGENT_ROOT}`].join(" ") + "\n");
+    process.stderr.write([
+      `[agent] Scanner available: ${Boolean(scannerApi && typeof scannerApi.runScan === 'function')}`
+    ].join(" ") + "\n");
   });
 
   server.on('error', (err) => {
     if (err && 'code' in err && err.code === 'EADDRINUSE') {
-      console.error(`[agent] Port ${PORT} is already in use. Another agent may be running.`);
+      process.stderr.write(
+        [`[agent] Port ${PORT} is already in use. Another agent may be running.`].join(" ") + "\n"
+      );
     } else {
-      console.error('[agent] Server error:', err.message);
+      process.stderr.write(['[agent] Server error:', err.message].join(" ") + "\n");
     }
     process.exit(1);
   });

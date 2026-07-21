@@ -10,12 +10,12 @@ const fixFlag = args.includes('--fix') ? ' --fix' : '';
 const paths = args.filter(arg => arg !== '--fix').join(' ') || 'server src web';
 
 try {
-  console.log('Running ESLint...');
+  process.stdout.write(['Running ESLint...'].join(" ") + "\n");
   const cmd = `npx eslint${fixFlag} ${paths}`;
-  console.log(`Command: ${cmd}`);
+  process.stdout.write([`Command: ${cmd}`].join(" ") + "\n");
   execSync(cmd, { stdio: 'inherit', cwd: path.join(__dirname, '..') });
-  console.log('ESLint completed successfully');
+  process.stdout.write(['ESLint completed successfully'].join(" ") + "\n");
 } catch {
-  console.error('ESLint failed');
+  process.stderr.write(['ESLint failed'].join(" ") + "\n");
   process.exit(1);
 }

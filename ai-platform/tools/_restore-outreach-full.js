@@ -41,13 +41,13 @@ for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
 for (const suffix of targets) {
   const hit = found[suffix];
   if (!hit) {
-    console.error('MISSING', suffix);
+    process.stderr.write(['MISSING', suffix].join(" ") + "\n");
     continue;
   }
   const out = path.join(root, suffix);
   fs.mkdirSync(path.dirname(out), { recursive: true });
   fs.writeFileSync(out, hit.contents, 'utf8');
-  console.log('WROTE', suffix, hit.len, 'from', hit.transcript);
+  process.stdout.write(['WROTE', suffix, hit.len, 'from', hit.transcript].join(" ") + "\n");
 }
 
 // Find index.html nav snippets
@@ -59,9 +59,9 @@ for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
     if (!line.includes('outreach') || !line.includes('index.html')) continue;
     if (!line.includes('StrReplace') && !line.includes('Write')) continue;
     if (!line.includes('data-view')) continue;
-    console.log('\nNAV in', path.basename(jl));
+    process.stdout.write(['\nNAV in', path.basename(jl)].join(" ") + "\n");
     const m = line.match(/outreach[^"]{0,200}/);
-    if (m) console.log(m[0].slice(0, 200));
+    if (m) process.stdout.write([m[0].slice(0, 200)].join(" ") + "\n");
   }
 }
 
@@ -73,6 +73,6 @@ for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
   for (const line of fs.readFileSync(jl, 'utf8').split('\n')) {
     if (!line.includes('OutreachView') || !line.includes('main.js')) continue;
     if (!line.includes('StrReplace')) continue;
-    console.log('\nMAIN in', path.basename(jl), line.slice(0, 400));
+    process.stdout.write(['\nMAIN in', path.basename(jl), line.slice(0, 400)].join(" ") + "\n");
   }
 }

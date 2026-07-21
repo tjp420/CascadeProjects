@@ -60,17 +60,23 @@ if (!fs.existsSync(OUT_DIR)) fs.mkdirSync(OUT_DIR, { recursive: true });
  * Generate all AI-powered reports.
  */
 async function main() {
-  console.log('[AI Analyst] Starting report generation...');
-  console.log(`[AI Analyst] Scan date: ${scanData.generatedAt}`);
-  console.log(`[AI Analyst] Project: ${scanData.projectRoot || 'ai-platform'}`);
-  console.log(`[AI Analyst] Gate: ${scanData.gate?.pass ? 'PASS' : 'FAIL'} | Quality Score: ${scanData.qualityScore}`);
+  process.stdout.write(['[AI Analyst] Starting report generation...'].join(" ") + "\n");
+  process.stdout.write([`[AI Analyst] Scan date: ${scanData.generatedAt}`].join(" ") + "\n");
+  process.stdout.write(
+    [`[AI Analyst] Project: ${scanData.projectRoot || 'ai-platform'}`].join(" ") + "\n"
+  );
+  process.stdout.write([
+    `[AI Analyst] Gate: ${scanData.gate?.pass ? 'PASS' : 'FAIL'} | Quality Score: ${scanData.qualityScore}`
+  ].join(" ") + "\n");
 
   // 1. Core Compliance Verdict (via AI Analyst engine)
   const verdict = await generateAutomatedVerdict(scanData, {
     projectPath: 'ai-platform',
     provider: process.env.AI_ANALYST_PROVIDER || 'openai'
   });
-  console.log(`[AI Analyst] Verdict grade: ${verdict.complianceGrade}`);
+  process.stdout.write(
+    [`[AI Analyst] Verdict grade: ${verdict.complianceGrade}`].join(" ") + "\n"
+  );
 
   // 2. Build enriched report payloads for each document type
   const executivePayload = buildExecutivePayload(scanData, verdict);
@@ -87,8 +93,8 @@ async function main() {
   writeReport('05-quality-assurance-testing-ai.md', renderQa(qaPayload));
   writeReport('ai-verdict.json', JSON.stringify(verdict, null, 2));
 
-  console.log(`[AI Analyst] 6 files written to ${OUT_DIR}`);
-  console.log('[AI Analyst] Done.');
+  process.stdout.write([`[AI Analyst] 6 files written to ${OUT_DIR}`].join(" ") + "\n");
+  process.stdout.write(['[AI Analyst] Done.'].join(" ") + "\n");
 }
 
 // ─── Payload Builders ───
@@ -403,11 +409,11 @@ ${p.verdict.verdictSummary}
 function writeReport(filename, content) {
   const outPath = path.join(OUT_DIR, filename);
   fs.writeFileSync(outPath, content, 'utf8');
-  console.log(`  → ${filename}`);
+  process.stdout.write([`  → ${filename}`].join(" ") + "\n");
 }
 
 // Run
 main().catch(err => {
-  console.error('[AI Analyst] Fatal error:', err.message);
+  process.stderr.write(['[AI Analyst] Fatal error:', err.message].join(" ") + "\n");
   process.exit(1);
 });

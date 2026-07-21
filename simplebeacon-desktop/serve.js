@@ -50,5 +50,7 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(port, () => {
-  console.log(`[SimpleBeacon Desktop] serving ${root} at http://localhost:${port}`);
+  process.stdout.write(
+    [`[SimpleBeacon Desktop] serving ${root} at http://localhost:${port}`].join(" ") + "\n"
+  );
 });

@@ -399,6 +399,112 @@ export async function copyToClipboard(text) {
   }
 }
 
+/**
+ * True when the dashboard runs inside an iframe/embed (VS Code webview, coming-soon shell, etc.).
+ * Browsers block showDirectoryPicker in subframes even when same-origin.
+ */
+export function isEmbeddedDashboardFrame() {
+  if (typeof window === 'undefined') return false;
+  if (window.__SB_PARENT_URL_BAR__) return true;
+  try {
+    const params = new URLSearchParams(window.location.search || '');
+    if (params.get('sb_parent_urlbar') === '1' || params.get('sb_website_mode') === '1') return true;
+  } catch { /* ignore */ }
+  try { return window.self !== window.top; } catch { return true; }
+}
+
+export function isIdeDashboardSurface() {
+  if (typeof window === 'undefined') return false;
+  if (window.__SB_IDE_EMBED__) return true;
+  try { if (document.documentElement.hasAttribute('data-ide-embed')) return true; } catch { /* ignore */ }
+  return window.self !== window.top;
+}
+
+export function isExtensionHostedTab() {
+  if (typeof window === 'undefined') return false;
+  if (window.__SB_PARENT_URL_BAR__ || window.__SB_IDE_EMBED__) return true;
+  try {
+    const params = new URLSearchParams(window.location.search || '');
+    if (params.get('sb_parent_urlbar') === '1') return true;
+    if (params.get('sb_api_base') || params.get('sb_notify_base') || params.get('sb_website_mode')) return true;
+  } catch { /* ignore */ }
+  try {
+    if (typeof sessionStorage !== 'undefined') {
+      if (sessionStorage.getItem('sb_parent_urlbar') === '1') return true;
+      if (sessionStorage.getItem('sb_api_base') || sessionStorage.getItem('sb_notify_base')) return true;
+    }
+  } catch { /* ignore */ }
+  return false;
+}
+
+export function isCrossOriginEmbeddedFrame() { return isEmbeddedDashboardFrame(); }
+
+export function canUseDirectoryPicker() {
+  if (typeof window === 'undefined' || typeof window.showDirectoryPicker !== 'function') return false;
+  return !isEmbeddedDashboardFrame();
+}
+
+export function filePickerBlockedMessage() {
+  return 'Folder picker is blocked inside an embedded dashboard. Use the legacy Browse dialog, drag a folder here, open /dashboard/analyze in a top-level tab, or scan via the Local Agent with a typed path.';
+}
+
+export function isFilePickerBlockedError(err) {
+  const msg = String((err && err.message) || err || '');
+  return /cross origin sub frames|file picker.*(?:not allowed|blocked|denied)|user activation|gesture required/i.test(msg);
+}
+
+export function isLikelyWebkitDirectoryFileCap(fileCount) {
+  const n = Number(fileCount) || 0;
+  if (n < 2000) return false;
+  const knownCaps = [2048, 2500, 3000, 3250, 4096, 8192, 10000];
+  return knownCaps.includes(n) || (n >= 2900 && n <= 3300);
+}
+
+export function setHtml(el, html) {
+  if (!el) return;
+  if (typeof html !== 'string') { el.replaceChildren(); return; }
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+  el.replaceChildren(...doc.body.childNodes);
+}
+
+export function setSafeHTML(el, html) {
+  if (!el) return;
+  if (typeof html !== 'string') { el.replaceChildren(); return; }
+  try {
+    let purifier = null;
+    if (typeof window !== 'undefined' && window.DOMPurify && typeof window.DOMPurify.sanitize === 'function') {
+      purifier = window.DOMPurify;
+    } else {
+      try {
+        const dp = typeof require === 'function' ? require('dompurify') : null;
+        if (dp) {
+          if (typeof dp.sanitize === 'function') purifier = dp;
+          else if (typeof dp.default === 'function') { try { purifier = dp.default(window); } catch { purifier = dp.default; } }
+          else if (typeof dp === 'function') purifier = dp(window);
+        }
+      } catch { /* ignore */ }
+    }
+    if (purifier && typeof purifier.sanitize === 'function') {
+      const safe = purifier.sanitize(html);
+      el.innerHTML = safe;
+      return;
+    }
+  } catch { }
+  setHtml(el, html);
+}
+
+if (typeof window !== 'undefined') { try { window.setSafeHTML = setSafeHTML; } catch (e) { /* ignore */ } }
+
+let _vsCodeApiCache = null;
+export function getVsCodeApi() { if (_vsCodeApiCache) return _vsCodeApiCache; if (typeof window === 'undefined' || typeof window.acquireVsCodeApi !== 'function') return null; try { _vsCodeApiCache = window.acquireVsCodeApi(); return _vsCodeApiCache; } catch { return null; } }
+
+export function renderSkeletonCard(lines = 4) { const cls = ['short', 'medium', 'long', 'short', 'medium', 'long']; const rows = []; for (let i = 0; i < lines; i++) rows.push(`<div class="skeleton-line ${cls[i % cls.length]}"></div>`); return `<div class="skeleton-card">${rows.join('')}</div>`; }
+
+export function renderSkeletonChips(count = 5) { const chips = []; for (let i = 0; i < count; i++) chips.push('<div class="skeleton-chip"></div>'); return `<div class="skeleton-chip-row">${chips.join('')}</div>`; }
+
+export function browserFolderCapMessage(fileCount) { const n = Number(fileCount) || 0; return `Your browser may have limited folder selection to ${n.toLocaleString()} files. ` + 'For repos above ~3,000 files use **Select Folder** (Chrome/Edge), the VS Code extension, local agent, or `npx simplebeacon scan`.'; }
+
 /** @returns {string | {html:string, attach:(container:HTMLElement)=>void}} HTML string, or object with html + attach when actions have onClick handlers
  */
 export function renderEmptyState(opts) {

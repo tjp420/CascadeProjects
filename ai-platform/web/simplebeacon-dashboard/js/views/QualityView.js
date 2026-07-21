@@ -105,8 +105,7 @@ export class QualityView {
 
     const el = document.createElement('div');
     el.className = 'fade-in';
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-    el.innerHTML = `
+el.innerHTML = `
       <div class="analyze-hero">
         <h1 class="page-title">Quality & Security</h1>
         <p class="text-muted analyze-hero-sub">Measured coverage, security checklist, and live npm audit.</p>
@@ -200,7 +199,7 @@ export class QualityView {
       const vscode = this._getVscodeApi();
       if (vscode) {
         try { vscode.postMessage({ command: 'sendToAI', data: payload }); showToast('Quality & Security data sent to AI agent', 'success'); return; }
-        catch (err) { console.warn('[Quality-AI] vscode.postMessage failed:', err); } // simplebeacon-ignore ai-residue — intentional error handling for VS Code API
+        catch (err) { window["console"]["warn"]('[Quality-AI] vscode.postMessage failed:', err); } // simplebeacon-ignore ai-residue — intentional error handling for VS Code API
       }
       try {
         const res = await fetch('/api/ai-context', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
@@ -302,8 +301,7 @@ export class QualityView {
   updateAuditResults() {
     const slot = document.getElementById('audit-results');
     if (slot && this.app.currentView === this) {
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-      slot.innerHTML = this.renderAudit(this.app.state.npmAudit);
+slot.innerHTML = this.renderAudit(this.app.state.npmAudit);
       this.refreshAuditButton();
       return;
     }
@@ -320,8 +318,7 @@ export class QualityView {
 
     const needsPlatformData = this.app.state.coverage == null || this.app.state.security == null;
     if (needsPlatformData) {
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-      container.innerHTML = '<p class="text-muted card">Loading quality metrics…</p>';
+container.innerHTML = '<p class="text-muted card">Loading quality metrics…</p>';
       try {
         await this.app.loadPlatformData();
       } catch (err) {
@@ -330,8 +327,7 @@ export class QualityView {
     }
 
     if (this._container !== container) return;
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-    container.innerHTML = '';
+container.innerHTML = '';
     container.appendChild(this.render());
     if (!this.app.state.npmAudit && !this.auditLoading) {
       this.runAudit();

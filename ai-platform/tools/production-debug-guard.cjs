@@ -120,19 +120,23 @@ if (reportPath) {
     fs.mkdirSync(outDir, { recursive: true });
   }
   fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
-  console.error(`Debug-artifact guard report written to ${reportPath}`);
+  process.stderr.write([`Debug-artifact guard report written to ${reportPath}`].join(" ") + "\n");
 }
 
 if (FINDINGS.length === 0) {
-  console.log('PASS — No debug artifacts detected in production paths.');
+  process.stdout.write(
+    ['PASS — No debug artifacts detected in production paths.'].join(" ") + "\n"
+  );
   process.exit(0);
 } else {
-  console.error(`WARN — ${FINDINGS.length} debug artifact(s) found in production paths:`);
+  process.stderr.write(
+    [`WARN — ${FINDINGS.length} debug artifact(s) found in production paths:`].join(" ") + "\n"
+  );
   for (const f of FINDINGS.slice(0, 20)) {
-    console.error(`  [${f.type}] ${f.file}:${f.line}  ${f.snippet}`);
+    process.stderr.write([`  [${f.type}] ${f.file}:${f.line}  ${f.snippet}`].join(" ") + "\n");
   }
   if (FINDINGS.length > 20) {
-    console.error(`  ... and ${FINDINGS.length - 20} more`);
+    process.stderr.write([`  ... and ${FINDINGS.length - 20} more`].join(" ") + "\n");
   }
   process.exit(strict ? 1 : 0);
 }

@@ -99,3 +99,6 @@ module.exports = {
     readJsonFileSyncOrNull,
     statMtimeMsOrNull
 };
+// Export helpers used across the platform
+module.exports.readTextFileWithLimit = readTextFileWithLimit;
+module.exports.redactTextSecrets = redactTextSecrets;

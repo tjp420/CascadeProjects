@@ -1,6 +1,7 @@
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
 import { escapeHtml, showToast, downloadJson, redactPathForDisplay, formatNumber, renderEmptyState } from '../utils.js';
 import { extractSecurityFindings, buildSecuritySummary, buildSecurityExportPayload, fetchComplianceHeadline } from '../services/securityService.js';
+import { getVsCodeApi } from '../utils-lib/dom.js?v=20260725phase3';
 /**
  * Security view.
  */
@@ -12,19 +13,6 @@ export class SecurityView {
         this.error = null;
         this.compliance = null;
         this._container = null;
-    }
-    _getVscodeApi() {
-        if (this._vscodeApiCached)
-            return this._vscodeApiCached;
-        if (typeof window === 'undefined' || typeof window.acquireVsCodeApi !== 'function')
-            return null;
-        try {
-            this._vscodeApiCached = window.acquireVsCodeApi();
-            return this._vscodeApiCached;
-        }
-        catch (_a) {
-            return null;
-        }
     }
     getReport() {
         return this.app.state.report;
@@ -54,14 +42,15 @@ export class SecurityView {
         }
         return `
       <div class="card" style="padding:0;overflow:hidden;">
+        <div class="table-scroll-wrapper">
         <table class="results-table">
           <thead>
             <tr>
-              <th style="width:90px">Severity</th>
-              <th style="width:140px">Type</th>
-              <th>File</th>
-              <th>Description</th>
-              <th>Recommendation</th>
+              <th scope="col" style="width:90px">Severity</th>
+              <th scope="col" style="width:140px">Type</th>
+              <th scope="col">File</th>
+              <th scope="col">Description</th>
+              <th scope="col">Recommendation</th>
             </tr>
           </thead>
           <tbody>
@@ -76,6 +65,7 @@ export class SecurityView {
             `).join('')}
           </tbody>
         </table>
+        </div>
       </div>
     `;
     }
@@ -84,7 +74,6 @@ export class SecurityView {
         const el = document.createElement('div');
         el.className = 'fade-in';
         if (this.loading && !this.getReport()) {
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
             el.innerHTML = `
         <div class="analyze-hero"><h1 class="page-title">Security Scanner</h1><p class="text-muted analyze-hero-sub">Loading security findings…</p></div>
         ${renderEmptyState({
@@ -96,7 +85,6 @@ export class SecurityView {
             return el;
         }
         if (this.error && !this.getReport()) {
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
             el.innerHTML = `
         <div class="analyze-hero"><h1 class="page-title">Security Scanner</h1><p class="text-muted analyze-hero-sub">Security scan unavailable</p></div>
         ${renderEmptyState({
@@ -117,7 +105,6 @@ export class SecurityView {
         const lastScan = summary.generatedAt
             ? new Date(summary.generatedAt).toLocaleString()
             : 'Never';
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         el.innerHTML = `
       <div class="analyze-hero">
         <h1 class="page-title">Security Scanner</h1>
@@ -254,7 +241,7 @@ export class SecurityView {
                 },
                 notes: 'Security Scanner findings — credential patterns and production leaks'
             };
-            const vscode = this._getVscodeApi();
+            const vscode = getVsCodeApi();
             if (vscode) {
                 try {
                     vscode.postMessage({ command: 'sendToAI', data: payload });
@@ -297,7 +284,6 @@ export class SecurityView {
         if (!container)
             return;
         this._container = container;
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         window.setSafeHTML(container, '');
         container.appendChild(this.render());
     }

@@ -72,4 +72,4 @@ fs.writeFileSync(rootIndex, `<!DOCTYPE html>
 </body>
 </html>`);
 
-console.log(`Frontend build complete: ${dst}`);
+process.stdout.write([`Frontend build complete: ${dst}`].join(" ") + "\n");

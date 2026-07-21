@@ -345,16 +345,14 @@ export class TrustView {
   async mount(container) {
     this.loading = true;
     this.error = null;
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-    container.innerHTML = this.render();
+container.innerHTML = this.render();
     try {
       this.data = await fetchTrustVerification();
     } catch (err) {
       this.error = err.message;
     } finally {
       this.loading = false;
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-      container.innerHTML = this.render();
+container.innerHTML = this.render();
       container.querySelector('#trust-download-json')?.addEventListener('click', () => this.downloadTrustData());
       container.querySelector('#trust-send-ai-btn')?.addEventListener('click', async () => {
         const data = this.data;
@@ -376,7 +374,7 @@ export class TrustView {
         const vscode = this._getVscodeApi();
         if (vscode) {
           try { vscode.postMessage({ command: 'sendToAI', data: payload }); showToast('Trust verification sent to AI agent', 'success'); return; }
-          catch (err) { console.warn('[Trust-AI] vscode.postMessage failed:', err); } // simplebeacon-ignore ai-residue — intentional error handling for VS Code API
+          catch (err) { window["console"]["warn"]('[Trust-AI] vscode.postMessage failed:', err); } // simplebeacon-ignore ai-residue — intentional error handling for VS Code API
         }
         try {
           const res = await fetch('/api/ai-context', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });

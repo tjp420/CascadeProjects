@@ -1,0 +1,5 @@
+Applied roadmap export:
+  dynamic (full): data\roadmap\dynamic-roadmap-last-scan.json
+  canonical:      data\roadmap\ai-roadmap-report.json
+  sprints:        4 phases, 100% complete
+  profile:        product

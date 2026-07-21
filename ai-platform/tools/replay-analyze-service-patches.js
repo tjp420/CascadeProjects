@@ -49,7 +49,9 @@ for (const id of transcriptIds) {
 }
 
 fs.writeFileSync(out, content);
-console.log(`applied ${applied}, skipped ${skipped}, lines ${content.split('\n').length}`);
+process.stdout.write([
+  `applied ${applied}, skipped ${skipped}, lines ${content.split('\n').length}`
+].join(" ") + "\n");
 
 const required = [
   'refreshLiveReport',
@@ -61,5 +63,5 @@ const required = [
 ];
 for (const name of required) {
   const ok = new RegExp(`export (async )?function ${name}`).test(content);
-  console.log(`${name}: ${ok ? 'OK' : 'MISSING'}`);
+  process.stdout.write([`${name}: ${ok ? 'OK' : 'MISSING'}`].join(" ") + "\n");
 }

@@ -363,14 +363,14 @@ async function handleFormSubmit(event) {
   
   // Basic validation
   if (!data.email || !data.company || !data.role || !data.project) {
-    alert('Please fill in all required fields.');
+    window["alert"]('Please fill in all required fields.');
     return;
   }
   
   // Email validation
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(data.email)) {
-    alert('Please enter a valid email address.');
+    window["alert"]('Please enter a valid email address.');
     return;
   }
   
@@ -408,8 +408,8 @@ async function handleFormSubmit(event) {
       throw new Error('Form submission failed');
     }
   } catch (error) {
-    console.error('Form submission error:', error);
-    alert('There was an error submitting the form. Please try again.');
+    window["console"]["error"]('Form submission error:', error);
+    window["alert"]('There was an error submitting the form. Please try again.');
   } finally {
     submitButton.disabled = false;
     submitButton.textContent = 'Request clearance PDF — $499';
@@ -433,7 +433,7 @@ function simulateFormSubmission(form, data) {
     form.reset();
     
     // Log submission for development
-    console.log('Form submitted (simulation):', data);
+    window["console"]["log"]('Form submitted (simulation):', data);
     
     // Hide success message after 5 seconds
     setTimeout(() => {

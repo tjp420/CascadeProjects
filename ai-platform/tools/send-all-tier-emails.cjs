@@ -10,7 +10,7 @@ const templateHtml = fs.readFileSync(templatePath, 'utf8');
 
 const APP_URL = process.env.SIMPLEBEACON_APP_URL;
 if (!APP_URL) {
-  console.error('SIMPLEBEACON_APP_URL env var is required');
+  process.stderr.write(['SIMPLEBEACON_APP_URL env var is required'].join(" ") + "\n");
   process.exit(1);
 }
 const BASE_URL = `${APP_URL}/coming-soon/certificate-upload.html`;
@@ -235,7 +235,7 @@ const TIERS = {
 
 async function sendAll() {
   for (const [tier, config] of Object.entries(TIERS)) {
-    console.log(`\n--- Building tier message ---`);
+    process.stdout.write([`\n--- Building tier message ---`].join(" ") + "\n");
     const email = buildEmail(tier, config);
     
     try {
@@ -245,9 +245,13 @@ async function sendAll() {
         html: email.html,
         text: email.text
       });
-      console.log(`[${tier}]`, result.sent ? 'SENT' : (result.queued ? 'QUEUED' : 'FAILED'), result.id || result.queuePath || result.error);
+      process.stdout.write([
+        `[${tier}]`,
+        result.sent ? 'SENT' : (result.queued ? 'QUEUED' : 'FAILED'),
+        result.id || result.queuePath || result.error
+      ].join(" ") + "\n");
     } catch (err) {
-      console.error(`[${tier}] Error:`, err.message);
+      process.stderr.write([`[${tier}] Error:`, err.message].join(" ") + "\n");
     }
   }
 }

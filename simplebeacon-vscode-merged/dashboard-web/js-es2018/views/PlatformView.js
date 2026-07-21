@@ -1,23 +1,8 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
-import { escapeHtml, formatScanPathForDisplay, showToast, downloadJson } from '../utils.js';
+import { escapeHtml, formatScanPathForDisplay, showToast, downloadJson, formatPercent } from '../utils.js';
 import { resolveJestTestsLabel, resolvePageSpecsLabel, hydrateDashboardHome } from '../services/analyzeService.js?v=20260716cachefix1';
 import { buildPlatformExportBundle, platformExportFilename } from '../utils/platform-export.browser.js?v=20260716cachefix1';
-/**
- * Format percent.
- * @param {any} value
- * @returns {any}
- */
-function formatPercent(value) {
-    if (value == null || value === '')
-        return '—';
-    const str = String(value).trim();
-    if (str.endsWith('%'))
-        return str;
-    const num = Number(str);
-    if (Number.isFinite(num))
-        return `${num}%`;
-    return str;
-}
+import { renderSkeletonCard, renderSkeletonChips } from '../utils-lib/dom.js?v=20260725phase3';
 /**
  * Parse numeric.
  * @param {any} value
@@ -160,7 +145,22 @@ export class PlatformView {
         const scanPaths = (report === null || report === void 0 ? void 0 : report.scanPaths) || ((_b = this.app.state.config) === null || _b === void 0 ? void 0 : _b.scanPaths) || [];
         const el = document.createElement('div');
         el.className = 'fade-in';
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+        if (!home && !report && !baseline) {
+            el.innerHTML = `
+      <div class="analyze-hero">
+        <h1 class="page-title">Platform</h1>
+        <p class="text-muted analyze-hero-sub">Loading platform baseline…</p>
+      </div>
+      ${renderSkeletonChips(4)}
+      <div class="grid-3 mb-6">
+        ${renderSkeletonCard(2)}
+        ${renderSkeletonCard(2)}
+        ${renderSkeletonCard(2)}
+      </div>
+      ${renderSkeletonCard(6)}
+      `;
+            return el;
+        }
         el.innerHTML = `
       <div class="analyze-hero">
         <h1 class="page-title">Platform</h1>
@@ -269,7 +269,6 @@ export class PlatformView {
         return el;
     }
     mount(container) {
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         window.setSafeHTML(container, '');
         container.appendChild(this.render());
     }

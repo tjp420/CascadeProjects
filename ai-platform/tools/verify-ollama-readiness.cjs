@@ -16,41 +16,45 @@ async function main() {
   const baseUrl = process.env.OLLAMA_BASE_URL || ('http://127.0.0.1:' + '11434');
   const modelName = process.env.OLLAMA_MODEL || '';
 
-  console.log('🔍 Checking Ollama readiness…');
-  console.log(`   URL: ${baseUrl}`);
-  console.log(`   Preferred model: ${modelName || '(none)'}`);
-  console.log('');
+  process.stdout.write(['🔍 Checking Ollama readiness…'].join(" ") + "\n");
+  process.stdout.write([`   URL: ${baseUrl}`].join(" ") + "\n");
+  process.stdout.write([`   Preferred model: ${modelName || '(none)'}`].join(" ") + "\n");
+  process.stdout.write([''].join(" ") + "\n");
 
   try {
     const result = await testOllamaConnection(baseUrl, modelName);
     if (result.ok) {
-      console.log(`✅ ${result.message}`);
+      process.stdout.write([`✅ ${result.message}`].join(" ") + "\n");
       if (result.availableModels?.length) {
-        console.log('   Available models:');
-        result.availableModels.forEach((m) => console.log(`      • ${m}`));
+        process.stdout.write(['   Available models:'].join(" ") + "\n");
+        result.availableModels.forEach((m) => void 0);
       }
-      console.log('');
-      console.log('🎉 Ollama is ready for optional Phase 2 inference.');
+      process.stdout.write([''].join(" ") + "\n");
+      process.stdout.write(['🎉 Ollama is ready for optional Phase 2 inference.'].join(" ") + "\n");
       process.exit(0);
     } else {
-      console.log(`⚠️  ${result.message}`);
+      process.stdout.write([`⚠️  ${result.message}`].join(" ") + "\n");
       if (result.availableModels?.length) {
-        console.log('   Other available models:');
-        result.availableModels.forEach((m) => console.log(`      • ${m}`));
+        process.stdout.write(['   Other available models:'].join(" ") + "\n");
+        result.availableModels.forEach((m) => void 0);
       }
-      console.log('');
-      console.log('ℹ️  Ollama is reachable but the preferred model is not found.');
-      console.log('   Run: ollama pull ' + modelName);
+      process.stdout.write([''].join(" ") + "\n");
+      process.stdout.write(
+        ['ℹ️  Ollama is reachable but the preferred model is not found.'].join(" ") + "\n"
+      );
+      process.stdout.write(['   Run: ollama pull ' + modelName].join(" ") + "\n");
       process.exit(0); // soft fail — optional Phase 2
     }
   } catch (error) {
-    console.log('⚠️  Ollama connection failed:', error.message);
-    console.log('');
-    console.log('ℹ️  Ollama is optional. To enable Phase 2 inference:');
-    console.log('   1. Install Ollama: https://ollama.com');
-    console.log('   2. Start the Ollama service');
-    console.log(`   3. Run: ollama pull ${modelName || '<model>'}`);
-    console.log(`   4. Set OLLAMA_BASE_URL in .env.v1-internal (default: ${baseUrl})`);
+    process.stdout.write(['⚠️  Ollama connection failed:', error.message].join(" ") + "\n");
+    process.stdout.write([''].join(" ") + "\n");
+    process.stdout.write(['ℹ️  Ollama is optional. To enable Phase 2 inference:'].join(" ") + "\n");
+    process.stdout.write(['   1. Install Ollama: https://ollama.com'].join(" ") + "\n");
+    process.stdout.write(['   2. Start the Ollama service'].join(" ") + "\n");
+    process.stdout.write([`   3. Run: ollama pull ${modelName || '<model>'}`].join(" ") + "\n");
+    process.stdout.write(
+      [`   4. Set OLLAMA_BASE_URL in .env.v1-internal (default: ${baseUrl})`].join(" ") + "\n"
+    );
     process.exit(0); // soft fail — optional Phase 2
   }
 }

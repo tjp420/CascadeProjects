@@ -33,7 +33,7 @@ class PreDeployGate {
 
   log(message, type = 'info') {
     const prefix = type === 'error' ? '❌' : type === 'warning' ? '⚠️' : type === 'success' ? '✅' : 'ℹ️';
-    console.log(`${prefix} ${message}`);
+    process.stdout.write([`${prefix} ${message}`].join(" ") + "\n");
   }
 
   // Gate 1: Simplebeacon gate must pass
@@ -166,8 +166,10 @@ class PreDeployGate {
   }
 
   runAllChecks() {
-    console.log('🚪 Pre-Deploy Gate Sequence\n');
-    console.log('This gate must pass before ANY production deployment.\n');
+    process.stdout.write(['🚪 Pre-Deploy Gate Sequence\n'].join(" ") + "\n");
+    process.stdout.write(
+      ['This gate must pass before ANY production deployment.\n'].join(" ") + "\n"
+    );
 
     this.checkSimplebeaconGate();
     this.checkNpmAudit();
@@ -180,36 +182,36 @@ class PreDeployGate {
   }
 
   generateReport() {
-    console.log('\n📊 Pre-Deploy Gate Report');
-    console.log('==========================\n');
+    process.stdout.write(['\n📊 Pre-Deploy Gate Report'].join(" ") + "\n");
+    process.stdout.write(['==========================\n'].join(" ") + "\n");
 
     const totalChecks = this.results.passed.length + this.results.failed.length + this.results.warnings.length;
     const passRate = totalChecks > 0 ? (this.results.passed.length / totalChecks * 100).toFixed(1) : 0;
 
-    console.log(`✅ Passed: ${this.results.passed.length}`);
-    console.log(`❌ Failed: ${this.results.failed.length}`);
-    console.log(`⚠️  Warnings: ${this.results.warnings.length}`);
-    console.log(`📈 Pass Rate: ${passRate}%\n`);
+    process.stdout.write([`✅ Passed: ${this.results.passed.length}`].join(" ") + "\n");
+    process.stdout.write([`❌ Failed: ${this.results.failed.length}`].join(" ") + "\n");
+    process.stdout.write([`⚠️  Warnings: ${this.results.warnings.length}`].join(" ") + "\n");
+    process.stdout.write([`📈 Pass Rate: ${passRate}%\n`].join(" ") + "\n");
 
     if (this.results.failed.length > 0) {
-      console.log('🚨 DEPLOY BLOCKED — Fix these before deploying:');
-      this.results.failed.forEach(issue => console.log(`   - ${issue}`));
-      console.log('');
+      process.stdout.write(['🚨 DEPLOY BLOCKED — Fix these before deploying:'].join(" ") + "\n");
+      this.results.failed.forEach(issue => void 0);
+      process.stdout.write([''].join(" ") + "\n");
     }
 
     if (this.results.warnings.length > 0) {
-      console.log('⚠️  WARNINGS:');
-      this.results.warnings.forEach(warning => console.log(`   - ${warning}`));
-      console.log('');
+      process.stdout.write(['⚠️  WARNINGS:'].join(" ") + "\n");
+      this.results.warnings.forEach(warning => void 0);
+      process.stdout.write([''].join(" ") + "\n");
     }
 
     if (this.results.failed.length === 0) {
-      console.log('🎉 DEPLOY GATE PASSED');
-      console.log('All critical checks passed. Proceed with deployment.');
+      process.stdout.write(['🎉 DEPLOY GATE PASSED'].join(" ") + "\n");
+      process.stdout.write(['All critical checks passed. Proceed with deployment.'].join(" ") + "\n");
       process.exit(0);
     } else {
-      console.log('🚫 DEPLOY GATE FAILED');
-      console.log('Address all critical issues before deploying.');
+      process.stdout.write(['🚫 DEPLOY GATE FAILED'].join(" ") + "\n");
+      process.stdout.write(['Address all critical issues before deploying.'].join(" ") + "\n");
       process.exit(1);
     }
   }

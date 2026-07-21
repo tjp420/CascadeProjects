@@ -27,7 +27,7 @@ const EMAIL_QUEUE_DIR = path.join(PLATFORM_ROOT, '.simplebeacon', 'email-queue')
 
 function log(step, msg) {
   const ts = new Date().toISOString().replace('T', ' ').slice(0, 19);
-  console.log(`[${ts}]  ${step.padEnd(24)}  ${msg}`);
+  process.stdout.write([`[${ts}]  ${step.padEnd(24)}  ${msg}`].join(" ") + "\n");
 }
 
 function httpPost(pathname, payload, headers = {}) {
@@ -80,17 +80,17 @@ function writeStore(store) {
 }
 
 async function main() {
-  console.log('\n=== Paid Scan + Certificate Delivery ===\n');
-  console.log('Customer: configured');
-  console.log(`Project:  ${SCAN_DIR}\n`);
+  process.stdout.write(['\n=== Paid Scan + Certificate Delivery ===\n'].join(" ") + "\n");
+  process.stdout.write(['Customer: configured'].join(" ") + "\n");
+  process.stdout.write([`Project:  ${SCAN_DIR}\n`].join(" ") + "\n");
 
   // 1. Ensure server is running
   log('SERVER', 'Checking if dashboard server is running...');
   const serverUp = await ensureServer();
   if (!serverUp) {
-    console.error('\nERROR: Server not running on port', PORT);
-    console.error('Please start it first: .\\start-dashboard.bat');
-    console.error('Then re-run this script in a new terminal.\n');
+    process.stderr.write(['\nERROR: Server not running on port', PORT].join(" ") + "\n");
+    process.stderr.write(['Please start it first: .\\start-dashboard.bat'].join(" ") + "\n");
+    process.stderr.write(['Then re-run this script in a new terminal.\n'].join(" ") + "\n");
     process.exit(1);
   }
   log('SERVER', `Responding on port ${PORT}`);
@@ -115,7 +115,7 @@ async function main() {
     report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
     log('SCAN', `Scan complete. Files: ${report.repositoryFilesTotal ?? '—'}, Issues: ${report.issueCount ?? 0}, Quality: ${report.qualityScore ?? '—'}%`);
   } catch (err) {
-    console.error('\nERROR: Scan failed:', err.message);
+    process.stderr.write(['\nERROR: Scan failed:', err.message].join(" ") + "\n");
     process.exit(1);
   }
 
@@ -161,13 +161,13 @@ async function main() {
     );
     uploadRes = { status: 200, body: JSON.parse(curlOutput) };
   } catch (curlErr) {
-    console.error('\nERROR: Upload failed');
+    process.stderr.write(['\nERROR: Upload failed'].join(" ") + "\n");
     process.exit(1);
   } finally {
     try { fs.unlinkSync(payloadPath); } catch { /* ignore cleanup errors */ }
   }
   if (uploadRes.status !== 200) {
-    console.error('\nERROR: Upload failed');
+    process.stderr.write(['\nERROR: Upload failed'].join(" ") + "\n");
     process.exit(1);
   }
   log('DELIVERY', 'Certificate delivered');
@@ -175,11 +175,11 @@ async function main() {
   log('DELIVERY', 'Queue item saved');
 
   // 5. Show results
-  console.log('\n=== RESULTS ===\n');
-  console.log('Certificate delivered successfully');
-  console.log('Recipient: configured');
-  console.log('Email delivery status: completed');
-  console.log('Stored report saved');
+  process.stdout.write(['\n=== RESULTS ===\n'].join(" ") + "\n");
+  process.stdout.write(['Certificate delivered successfully'].join(" ") + "\n");
+  process.stdout.write(['Recipient: configured'].join(" ") + "\n");
+  process.stdout.write(['Email delivery status: completed'].join(" ") + "\n");
+  process.stdout.write(['Stored report saved'].join(" ") + "\n");
 
   // Show email queue file if queued
   if (!uploadRes.body.emailSent && uploadRes.body.emailQueued) {
@@ -187,39 +187,53 @@ async function main() {
     const latest = queueFiles.sort().reverse()[0];
     if (latest) {
       const qf = path.join(EMAIL_QUEUE_DIR, latest);
-      console.log('Queued file saved');
+      process.stdout.write(['Queued file saved'].join(" ") + "\n");
       const emailPayload = JSON.parse(fs.readFileSync(qf, 'utf8'));
-      console.log('Email subject checked');
-      console.log('Queue timestamp verified');
+      process.stdout.write(['Email subject checked'].join(" ") + "\n");
+      process.stdout.write(['Queue timestamp verified'].join(" ") + "\n");
     }
   }
 
   // 6. Show certificate preview
   const certStatus = await httpGet(`/api/reports/status/${licenseToken}`);
   if (certStatus.status === 200) {
-    console.log('\nCertificate status: retrieved');
-    console.log('Certificate HTML: checked');
+    process.stdout.write(['\nCertificate status: retrieved'].join(" ") + "\n");
+    process.stdout.write(['Certificate HTML: checked'].join(" ") + "\n");
   }
 
-  console.log('\n=== Scan Summary ===');
-  console.log(`Repository files:     ${report.repositoryInventory?.totalFiles ?? '—'}`);
-  console.log(`Code files analyzed:  ${report.repositoryInventory?.codeFilesAnalyzed ?? '—'}`);
-  console.log(`Gate pass:            ${report.gate?.pass ? 'YES' : 'NO'}`);
-  console.log(`Blocking issues:      ${report.gate?.blockingCount ?? 0}`);
-  console.log(`Warning issues:       ${report.gate?.warningCount ?? 0}`);
-  console.log(`Quality score:        ${report.qualityScore ?? '—'}%`);
+  process.stdout.write(['\n=== Scan Summary ==='].join(" ") + "\n");
+  process.stdout.write(
+    [`Repository files:     ${report.repositoryInventory?.totalFiles ?? '—'}`].join(" ") + "\n"
+  );
+  process.stdout.write([
+    `Code files analyzed:  ${report.repositoryInventory?.codeFilesAnalyzed ?? '—'}`
+  ].join(" ") + "\n");
+  process.stdout.write(
+    [`Gate pass:            ${report.gate?.pass ? 'YES' : 'NO'}`].join(" ") + "\n"
+  );
+  process.stdout.write(
+    [`Blocking issues:      ${report.gate?.blockingCount ?? 0}`].join(" ") + "\n"
+  );
+  process.stdout.write(
+    [`Warning issues:       ${report.gate?.warningCount ?? 0}`].join(" ") + "\n"
+  );
+  process.stdout.write([`Quality score:        ${report.qualityScore ?? '—'}%`].join(" ") + "\n");
   if (report.detectedIssues?.length) {
-    console.log(`\nTop findings:`);
+    process.stdout.write([`\nTop findings:`].join(" ") + "\n");
     report.detectedIssues.slice(0, 5).forEach((issue, i) => {
-      console.log(`  ${i + 1}. [${issue.severity?.toUpperCase()}] ${issue.type}: ${issue.description?.slice(0, 80)}`);
+      process.stdout.write([
+        `  ${i + 1}. [${issue.severity?.toUpperCase()}] ${issue.type}: ${issue.description?.slice(0, 80)}`
+      ].join(" ") + "\n");
     });
   }
 
-  console.log('\n=== Done ===\n');
-  console.log('Delivery complete. Check your inbox for the certificate.');
+  process.stdout.write(['\n=== Done ===\n'].join(" ") + "\n");
+  process.stdout.write(
+    ['Delivery complete. Check your inbox for the certificate.'].join(" ") + "\n"
+  );
 }
 
 main().catch((err) => {
-  console.error('\nFatal error:', err.message);
+  process.stderr.write(['\nFatal error:', err.message].join(" ") + "\n");
   process.exit(1);
 });

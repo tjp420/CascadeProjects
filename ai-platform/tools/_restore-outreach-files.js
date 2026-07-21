@@ -40,11 +40,11 @@ for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
 for (const spec of files) {
   const hit = found[spec.suffix];
   if (!hit) {
-    console.error('MISSING', spec.suffix);
+    process.stderr.write(['MISSING', spec.suffix].join(" ") + "\n");
     continue;
   }
   const out = path.join(root, spec.suffix);
   fs.mkdirSync(path.dirname(out), { recursive: true });
   fs.writeFileSync(out, hit.contents, 'utf8');
-  console.log('WROTE', spec.suffix, hit.len, 'from', hit.transcript);
+  process.stdout.write(['WROTE', spec.suffix, hit.len, 'from', hit.transcript].join(" ") + "\n");
 }

@@ -38,13 +38,13 @@ for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
 for (const suffix of targets) {
   const hit = found[suffix];
   if (!hit) {
-    console.error('MISSING', suffix);
+    process.stderr.write(['MISSING', suffix].join(" ") + "\n");
     continue;
   }
   const out = path.join(root, suffix);
   fs.mkdirSync(path.dirname(out), { recursive: true });
   fs.writeFileSync(out, hit.contents, 'utf8');
-  console.log('WROTE', suffix, hit.len, 'from', hit.transcript);
+  process.stdout.write(['WROTE', suffix, hit.len, 'from', hit.transcript].join(" ") + "\n");
 }
 
 // Extract route snippet
@@ -56,9 +56,9 @@ if (fs.existsSync(jl)) {
     try { obj = JSON.parse(line); } catch { continue; }
     for (const b of obj.message?.content || []) {
       if (b.name === 'StrReplace' && b.input?.new_string?.includes('eu-ai-act-audit-report')) {
-        console.log('\n--- ROUTE SNIPPET ---\n');
+        process.stdout.write(['\n--- ROUTE SNIPPET ---\n'].join(" ") + "\n");
         const m = b.input.new_string.match(/app\.post\('\/api\/analyze\/eu-ai-act-audit-report'[\s\S]{0,3500}/);
-        if (m) console.log(m[0]);
+        if (m) process.stdout.write([m[0]].join(" ") + "\n");
       }
     }
   }

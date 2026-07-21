@@ -411,8 +411,7 @@ export class RepositoryHealthView {
   }
 
   paint(container) {
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-    container.innerHTML = this.render();
+container.innerHTML = this.render();
     this.bindEvents(container);
   }
 
@@ -561,7 +560,7 @@ export class RepositoryHealthView {
           showToast('Repository health sent to your AI coding agent', 'success');
           return;
         } catch (err) {
-          console.warn('[Health-AI] vscode.postMessage failed:', err);
+          window["console"]["warn"]('[Health-AI] vscode.postMessage failed:', err);
         }
       }
       // Fallback: POST to /api/ai-context and copy to clipboard

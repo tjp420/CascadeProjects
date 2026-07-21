@@ -33,7 +33,7 @@ function main() {
     ].join('; ');
     execSync(`powershell -Command "${ps}"`, { cwd: ROOT });
     if (process.env.SB_DEBUG === '1') {
-      console.log(`Created ${outPath}`); // simplebeacon-ignore debug-artifact — gated by SB_DEBUG=1
+      process.stdout.write([`Created ${outPath}`].join(" ") + "\n"); // simplebeacon-ignore debug-artifact — gated by SB_DEBUG=1
     }
   }
 }

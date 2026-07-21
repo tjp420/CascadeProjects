@@ -1,0 +1,6 @@
+Files still matching debug artifact regex: 5
+C:\Users\Trevor\CascadeProjects\ai-platform\tools\production-debug-guard.cjs 40,50,51,55
+C:\Users\Trevor\CascadeProjects\ai-platform\web\simplebeacon-dashboard\js\utils-lib\__tests__.mjs 11
+C:\Users\Trevor\CascadeProjects\ai-platform\web\simplebeacon-dashboard\js-es2018\utils-lib\__tests__.mjs 9
+C:\Users\Trevor\CascadeProjects\ai-platform\web\simplebeacon-dashboard\js-es2018\views\AnalyzeEngineGrid.js 16
+C:\Users\Trevor\CascadeProjects\simplebeacon-frameworkless\app.js 223

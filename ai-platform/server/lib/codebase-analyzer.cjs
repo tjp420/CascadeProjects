@@ -950,11 +950,15 @@ function scanContentPatterns(content, relativePath, patterns, category, severity
                 if (/server\/lib\//.test(relativePath) || /server\/routes\//.test(relativePath)) continue;
                 if (/src\/api\//.test(relativePath)) continue;
                 if (/simplebeacon-server\.cjs$/.test(relativePath) || /tools\//.test(relativePath)) continue;
+                // Skip local-agent/agent.js where rate limiting is already applied globally
+                if (/local-agent[\\/]agent\.js$/i.test(relativePath)) continue;
                 // Skip health, schema, and root endpoints that are typically unrate-limited by design
                 const rllLineStart = content.lastIndexOf('\n', match.index) + 1;
                 const rllLineEnd = content.indexOf('\n', match.index);
                 const rllLineText = content.slice(rllLineStart, rllLineEnd === -1 ? undefined : rllLineEnd);
                 if (/(?:\/health|\/schema|\['"`]\/(?:health|schema)['"`]|['"`]\/['"`])/.test(rllLineText)) continue;
+                // Skip lines where rate limiting middleware is already present
+                if (/rateLimit|throttle|[Ll]imiter|express-rate-limit|express-slow-down/.test(rllLineText)) continue;
             }
             if (category === 'fix-preview') {
                 // Skip scanner catalog and report generation files where == is often in pattern definitions

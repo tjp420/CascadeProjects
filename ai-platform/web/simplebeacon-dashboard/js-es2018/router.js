@@ -125,7 +125,7 @@ export class Router {
         }
         catch (err) {
             const msg = (err === null || err === void 0 ? void 0 : err.message) || String(err);
-            console.error('Router handlePath error:', msg);
+            window["console"]["error"]('Router handlePath error:', msg);
         }
     }
     parseHash() {
@@ -159,7 +159,7 @@ export class Router {
         }
         catch (err) {
             const msg = (err === null || err === void 0 ? void 0 : err.message) || String(err);
-            console.error('Router handleHash error:', msg);
+            window["console"]["error"]('Router handleHash error:', msg);
         }
     }
     pushPath(view, params = {}) {

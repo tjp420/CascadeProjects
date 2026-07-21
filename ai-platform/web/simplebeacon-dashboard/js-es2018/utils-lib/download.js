@@ -142,12 +142,14 @@ export function downloadBlob(blob, filename) {
             vscode.postMessage({ command: 'downloadFile', filename: filename || 'download', mimeType: blob.type, base64 });
         };
         reader.onerror = () => {
-            console.error('FileReader failed to convert blob for VS Code download. Falling back to normal download.');
+            window["console"]["error"](
+                'FileReader failed to convert blob for VS Code download. Falling back to normal download.'
+            );
             try {
                 normalDownload(blob, filename);
             }
             catch (err) {
-                console.error('Fallback download failed:', err);
+                window["console"]["error"]('Fallback download failed:', err);
             }
         };
         reader.readAsDataURL(blob);

@@ -25,7 +25,7 @@ for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
 
 if (best) {
   fs.writeFileSync(path.join(__dirname, '..', suffix), best.contents, 'utf8');
-  console.log('WROTE', suffix, best.len, 'from', best.t);
+  process.stdout.write(['WROTE', suffix, best.len, 'from', best.t].join(" ") + "\n");
 } else {
-  console.error('not found');
+  process.stderr.write(['not found'].join(" ") + "\n");
 }

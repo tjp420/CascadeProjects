@@ -496,7 +496,7 @@
   <link rel="stylesheet" href="css/variables.css?v=20260722clean1">
   <link rel="stylesheet" href="css/reset.css?v=20260722clean1">
   <link rel="stylesheet" href="css/layout.css?v=20260718pricing1">
-  <link rel="stylesheet" href="css/components.css?v=20260725scrollfix2">
+  <link rel="stylesheet" href="css/components.css?v=20260725phase3to9">
   <link rel="stylesheet" href="css/utilities.css?v=20260718pricing1">
   <link rel="stylesheet" href="css/disable-elements.css?v=20260722clean1">
   <script src="js/vendor/lucide.min.js?v=20260722clean1" defer onerror="window._lucideFailed=true"></script>
@@ -954,8 +954,27 @@
       }
     })();
   </script>
+  <script>
+    // Detect file:// protocol — ES modules and <base href> require HTTP
+    if (location.protocol === 'file:') {
+      document.addEventListener('DOMContentLoaded', function() {
+        var main = document.getElementById('app-main');
+        if (main) {
+          main.innerHTML = '<div style="max-width:640px;margin:80px auto;padding:32px;text-align:center;font-family:system-ui,sans-serif;color:#e2e8f0;">' +
+            '<h1 style="font-size:24px;margin-bottom:12px;">Dashboard requires an HTTP server</h1>' +
+            '<p style="font-size:14px;color:#94a3b8;margin-bottom:16px;">This page uses ES modules and a base href that only work over HTTP. It cannot be opened directly via <code>file://</code>.</p>' +
+            '<p style="font-size:14px;color:#94a3b8;margin-bottom:16px;">To view the dashboard:</p>' +
+            '<ul style="font-size:14px;color:#94a3b8;text-align:left;max-width:400px;margin:0 auto 16px;list-style:disc;padding-left:20px;">' +
+            '<li style="margin-bottom:6px;">In VS Code: use the SimpleBeacon sidebar or run the extension</li>' +
+            '<li style="margin-bottom:6px;">In a browser: start the data server first (<code>node serve.cjs</code> or the extension)</li>' +
+            '<li style="margin-bottom:6px;">Then navigate to <code>http://127.0.0.1:57622/dashboard</code></li>' +
+            '</ul></div>';
+        }
+      });
+    }
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@2.5.9/dist/purify.min.js"></script>
-  <script type="module" src="/dashboard/js-es2018/main.js?v=20260725scroll5" defer></script>
+  <script type="module" src="/dashboard/js-es2018/main.js?v=20260725dropfix1" defer></script>
   <script>
     // Capture script errors so the fallback page can report them without DevTools.
     window.__SB_DASHBOARD_ERRORS__ = [];

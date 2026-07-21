@@ -1,5 +1,6 @@
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
 import { escapeHtml, showToast, downloadJson, downloadBlob, downloadText, redactPathForDisplay, formatPathLabel, formatPathInputValue, formatAiSummarySkipMessage, isRedactedPathDisplay, formatNumber, renderEmptyState } from '../utils.js';
+import { canUseDirectoryPicker, isFilePickerBlockedError, filePickerBlockedMessage } from '../utils-lib/dom.js';
 import { evaluateFunnelMetrics, getFunnelCopy } from '../utils/funnelTrigger.js';
 import { LocalScanService } from '../services/localScanService.js?v=20260716cachefix1';
 import { fingerprintDirectory, formatFingerprint } from '../services/fingerprintService.js';
@@ -5328,7 +5329,7 @@ export class AnalyzeView {
       typeof window !== 'undefined' &&
       (window.process?.versions?.electron || /Electron/.test(navigator.userAgent))
     );
-    if (!window.showDirectoryPicker || isElectronLike) return false;
+    if (!canUseDirectoryPicker() || isElectronLike) return false;
     try {
       const dirHandle = await window.showDirectoryPicker();
       const folderName = dirHandle.name || '';
@@ -5355,6 +5356,9 @@ export class AnalyzeView {
     } catch (err) {
       if (err.name !== 'AbortError') {
         console.warn('Directory picker failed:', err);
+        if (isFilePickerBlockedError(err)) {
+          showToast(filePickerBlockedMessage(), 'warning');
+        }
       }
       return false;
     }

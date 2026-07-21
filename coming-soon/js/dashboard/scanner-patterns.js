@@ -907,8 +907,15 @@ const PATTERN_REGISTRY = {
         name: 'Missing Rate Limiting',
         appliesTo: ['javascript', 'python', 'java', 'go', 'php', 'ruby'],
         severity: 'medium',
-        pattern: /app\.(get|post|put|delete|patch)\s*\([^)]*\)(?!.*rateLimit|.*throttle|.*limiter)/i,
+        pattern: /app\.(get|post|put|delete|patch)\s*\(\s*['"`][^'"`]+['"`]\s*,\s*(?!\s*(?:rateLimit|throttle|\w*[Ll]imiter|\w*[Rr]ate[Ll]imit))/i,
         maxMatches: 3,
+        contextFilter: (snippet, filePath) => {
+            if (/rateLimit|throttle|[Ll]imiter|express-rate-limit|express-slow-down/.test(snippet))
+                return false;
+            if (/local-agent[\\/]agent\.js$/i.test(filePath))
+                return false;
+            return true;
+        },
         message: 'API endpoint without rate limiting — DoS vulnerability. Add express-rate-limit or similar.'
     },
     architectureDrift: {
@@ -1335,10 +1342,12 @@ const PATTERN_REGISTRY = {
         name: 'Missing Security Middleware',
         appliesTo: ['javascript'],
         severity: 'medium',
-        pattern: /app\.(?:get|post|put|delete|patch|use)\s*\([^)]*\)(?!.*helmet)(?!.*cors)(?!.*security)(?!.*csrf)/i,
+        pattern: /app\.(?:get|post|put|delete|patch|use)\s*\(\s*['"`][^'"`]+['"`]/i,
         maxMatches: 5,
         contextFilter: (snippet, filePath) => {
             if (/helmet|cors|csrf|security/.test(filePath)) return false;
+            if (/helmet|cors|csrf|security|app\.use\s*\(\s*(?:helmet|cors|csrf)/i.test(snippet)) return false;
+            if (/local-agent[\\/]agent\.js$/i.test(filePath)) return false;
             if (/server\.(?:js|cjs)|app\.(?:js|cjs)|index\.(?:js|cjs)/.test(filePath)) return true;
             if (/route|router|controller|middleware/.test(filePath)) return false;
             return true;

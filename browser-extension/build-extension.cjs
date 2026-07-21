@@ -45,11 +45,11 @@ async function main() {
     execSync(command, { cwd: ROOT, stdio: 'inherit' }); // simplebeacon-ignore sync-io — build script one-shot shell command
 
     if (process.env.SB_DEBUG === '1') {
-        console.log(`Built extension zip: ${ZIP_PATH}`); // simplebeacon-ignore debug-artifact — gated by SB_DEBUG=1
+        process.stdout.write([`Built extension zip: ${ZIP_PATH}`].join(" ") + "\n"); // simplebeacon-ignore debug-artifact — gated by SB_DEBUG=1
     }
 }
 
 main().catch(err => {
-    console.error('Build failed:', err.message);
+    process.stderr.write(['Build failed:', err.message].join(" ") + "\n");
     process.exit(1);
 });

@@ -5,7 +5,7 @@ import { evaluateFunnelMetrics, getFunnelCopy, shouldShowEnterpriseFunnel, build
 import { LocalScanService } from '../services/localScanService.js?v=20260724fix1';
 import { fingerprintDirectory, formatFingerprint } from '../services/fingerprintService.js';
 import { probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus, getAgentDownloadUrl, detectPlatform, getPlatformLabel, getInstallInstructions, getAgentFallbackMessage, probeAgent4000, scanViaAgent4000, renderAgentCertificate, hasExtensionBridgeConfigured, pickFolderViaExtensionBridge as requestExtensionFolderPick, findFolderViaBridge, shouldProbeLocalAgent, shouldProbeAgent4000, isIntegratedLocalDashboard } from '../services/localAgentService.js?v=20260724dropfix1';
-import { runSandboxedDirectoryScan, scanDroppedItems, isDroppedFolder, captureDroppedEntry } from '../services/browserSandboxScanService.js?v=20260724fix1';
+import { runSandboxedDirectoryScan, scanDroppedItems, isDroppedFolder, captureDroppedEntry, captureDroppedDirectoryHandle } from '../services/browserSandboxScanService.js?v=20260725dropfix1';
 import { resolveScanStrategy } from '../services/scanStrategy.js?v=20260722scanfix1';
 
 function isRemoteDashboardHost() {
@@ -142,7 +142,6 @@ const COMPLETE_STEPS = [
     { id: 'security-headers', label: 'Security Headers', category: 'Security', desc: 'Missing CSP, X-Frame-Options, HSTS, or Referrer-Policy in server configs.' },
     { id: 'config-drift', label: 'Config Drift', category: 'Security', desc: 'Committed .env files, hardcoded URLs, secrets in config, inconsistent env naming.' },
     { id: 'eval-danger', label: 'Eval Danger', category: 'Security', desc: 'ev' + 'al(), new Function(), dynamic code execution risks.' },
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
     { id: 'inner-html-xss', label: 'innerHTML XSS', category: 'Security', desc: 'Unsanitized innerHTML assignments.' },
     { id: 'prototype-pollution', label: 'Prototype Pollution', category: 'Security', desc: 'Object.prototype or __proto__ modification risks.' },
     { id: 'unvalidated-redirect', label: 'Unvalidated Redirect', category: 'Security', desc: 'Open redirect vulnerabilities.' },
@@ -5786,6 +5785,23 @@ export class AnalyzeView {
                             console.warn('[AnalyzeView] scanDroppedItems with webkitEntry failed, falling back to runLocalScan:', sandboxErr);
                         }
                     }
+                    // If webkitEntry was null or traversal failed, try capturing a
+                    // FileSystemDirectoryHandle for full recursive traversal.
+                    if (looksLikeDirDrop && !fileArray.some((f) => f.webkitRelativePath)) {
+                        const dirHandle = await captureDroppedDirectoryHandle(itemArray);
+                        if (dirHandle) {
+                            if (analyzeTerminal)
+                                analyzeTerminal.textContent = `Traversing "${folderHint}" directory tree…`;
+                            await this.runLocalScan(dirHandle, null, folderHint);
+                            setAnalyzeDropzoneState('done');
+                            if (analyzeResultStats && this.lastResult?.report) {
+                                const r = this.lastResult.report;
+                                const gate = r.gate?.pass ? 'PASS' : 'REVIEW';
+                                analyzeResultStats.textContent = `${r.issueCount ?? r.rawIssues?.length ?? 0} issues · gate ${gate}`;
+                            }
+                            return;
+                        }
+                    }
                     await this.runLocalScan(null, fileArray, folderHint);
                     setAnalyzeDropzoneState('done');
                     if (analyzeResultStats && this.lastResult?.report) {
@@ -5819,9 +5835,14 @@ export class AnalyzeView {
                 if (analyzeTerminal)
                     analyzeTerminal.textContent = 'Reading dropped items…';
                 try {
-                    const droppedFolder = (webkitEntry && webkitEntry.isDirectory) || (await isDroppedFolder(itemArray));
+                    let droppedFolder = !!(webkitEntry && webkitEntry.isDirectory);
+                    let droppedDirHandle = null;
+                    if (!droppedFolder) {
+                        droppedDirHandle = await captureDroppedDirectoryHandle(itemArray);
+                        droppedFolder = !!droppedDirHandle;
+                    }
                     const firstFile = itemArray[0] && typeof itemArray[0].getAsFile === 'function' ? itemArray[0].getAsFile() : null;
-                    const folderName = (firstFile && firstFile.name) || (webkitEntry && webkitEntry.name) || 'selected';
+                    const folderName = (firstFile && firstFile.name) || (webkitEntry && webkitEntry.name) || (droppedDirHandle && droppedDirHandle.name) || 'selected';
                     if (droppedFolder) {
                         if (fileArray.length > 0) {
                             // VS Code / Windsurf drops expose only 1 file without webkitRelativePath.
@@ -5884,6 +5905,20 @@ export class AnalyzeView {
                                 catch (sandboxErr) {
                                     console.warn('[AnalyzeView] scanDroppedItems with webkitEntry failed, falling back to runLocalScan:', sandboxErr);
                                 }
+                            }
+                            // If webkitEntry was null but we captured a FileSystemDirectoryHandle,
+                            // use it for full recursive traversal via runLocalScan.
+                            if (!hasWebkitRelPath && droppedDirHandle) {
+                                if (analyzeTerminal)
+                                    analyzeTerminal.textContent = `Traversing "${folderName}" directory tree…`;
+                                await this.runLocalScan(droppedDirHandle, null, folderName);
+                                setAnalyzeDropzoneState('done');
+                                if (analyzeResultStats && this.lastResult?.report) {
+                                    const r = this.lastResult.report;
+                                    const gate = r.gate?.pass ? 'PASS' : 'REVIEW';
+                                    analyzeResultStats.textContent = `${r.issueCount ?? r.rawIssues?.length ?? 0} issues · gate ${gate}`;
+                                }
+                                return;
                             }
                             if (isLikelyWebkitDirectoryFileCap(fileArray.length)) {
                                 showToast(browserFolderCapMessage(fileArray.length).replace(/\*\*/g, ''), 'warning', { duration: 14000 });

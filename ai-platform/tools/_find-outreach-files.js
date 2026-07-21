@@ -21,7 +21,7 @@ for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
       if (b.name !== 'Write') continue;
       const fp = b.input?.path || '';
       if (needles.some((n) => fp.includes(n.replace('data-view="outreach"', 'outreach')) || fp.includes('Outreach') || fp.includes('outreach-prospects') || fp.includes('DeliverablesView'))) {
-        console.log(path.basename(jl), fp, (b.input.contents || '').length);
+        process.stdout.write([path.basename(jl), fp, (b.input.contents || '').length].join(" ") + "\n");
       }
     }
   }

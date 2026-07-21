@@ -9,7 +9,9 @@ const envPath = process.env.DOTENV_CONFIG_PATH
 if (fs.existsSync(envPath)) {
     require('dotenv').config({ path: envPath, override: true });
 } else {
-    console.warn(`[v1-internal] Missing ${envPath} — copy .env.v1-internal.example first`);
+    process.stderr.write(
+        [`[v1-internal] Missing ${envPath} — copy .env.v1-internal.example first`].join(" ") + "\n"
+    );
     process.env.REQUIRE_AUTH = process.env.REQUIRE_AUTH || 'true';
 }
 

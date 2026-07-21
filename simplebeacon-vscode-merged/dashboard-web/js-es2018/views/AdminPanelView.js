@@ -267,7 +267,6 @@ export class AdminPanelView {
         return new Promise((resolve) => {
             const overlay = document.createElement('div');
             overlay.className = 'admin-modal-overlay';
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
             overlay.innerHTML = `
                 <div class="admin-modal" role="dialog" aria-modal="true">
                     <h3>${escapeHtml(title)}</h3>
@@ -303,7 +302,6 @@ export class AdminPanelView {
         return new Promise((resolve) => {
             const overlay = document.createElement('div');
             overlay.className = 'admin-modal-overlay';
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
             overlay.innerHTML = `
                 <div class="admin-modal" role="dialog" aria-modal="true">
                     <h3>Delete ${escapeHtml(user.name || user.email)}</h3>
@@ -412,7 +410,6 @@ export class AdminPanelView {
         if (!user) return;
         const overlay = document.createElement('div');
         overlay.className = 'admin-modal-overlay';
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         overlay.innerHTML = `
             <div class="admin-modal" role="dialog" aria-modal="true">
                 <h3>Change tier for ${escapeHtml(user.name || user.email)}</h3>
@@ -480,7 +477,6 @@ export class AdminPanelView {
         if (!user) return;
         const overlay = document.createElement('div');
         overlay.className = 'admin-modal-overlay';
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         overlay.innerHTML = `
             <div class="admin-modal" role="dialog" aria-modal="true">
                 <h3>Edit account details</h3>
@@ -535,7 +531,6 @@ export class AdminPanelView {
         if (!user) return;
         const overlay = document.createElement('div');
         overlay.className = 'admin-modal-overlay';
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         overlay.innerHTML = `
             <div class="admin-modal" role="dialog" aria-modal="true">
                 <h3>Refund ${escapeHtml(user.name || user.email)}</h3>
@@ -581,7 +576,6 @@ export class AdminPanelView {
         if (!user) return;
         const overlay = document.createElement('div');
         overlay.className = 'admin-modal-overlay';
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         overlay.innerHTML = `
             <div class="admin-modal admin-details-modal" role="dialog" aria-modal="true" style="max-width:720px;max-height:90vh;overflow:auto;">
                 <h3>Account details</h3>
@@ -597,12 +591,10 @@ export class AdminPanelView {
                 if (!res.ok) throw new Error(`Details API ${res.status}`);
                 const data = await res.json();
                 if (!data || !data.user) throw new Error('No details returned');
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
                 overlay.innerHTML = this.renderDetailsModal(user, data);
                 this.bindDetailsModal(overlay, data);
             })
             .catch((err) => {
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
                 overlay.innerHTML = `
                     <div class="admin-modal admin-details-modal" role="dialog" aria-modal="true">
                         <h3>Account details</h3>

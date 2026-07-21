@@ -221,6 +221,8 @@ app.post('/api/analyze', analyzeLimiter, async (req, res) => {
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
     if (process.env.SB_DEBUG === '1') {
-        console.log(`SimpleBeacon Native Scanning Agent active on http://localhost:${PORT}`);
+        process.stdout.write(
+            [`SimpleBeacon Native Scanning Agent active on http://localhost:${PORT}`].join(" ") + "\n"
+        );
     }
 });

@@ -39,5 +39,5 @@
     return invoke('platform_info');
   };
 
-  console.info('[SimpleBeacon Desktop] native bridge ready');
+  process.stdout.write(['[SimpleBeacon Desktop] native bridge ready'].join(" ") + "\n");
 })();

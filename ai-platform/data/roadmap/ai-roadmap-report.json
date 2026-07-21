@@ -1,17 +1,17 @@
 {
   "type": "ai-roadmap-report-model",
   "dataSource": "repository-audit",
-  "generatedAt": "2026-06-01T11:01:04.868Z",
+  "generatedAt": "2026-06-12T04:12:05.737Z",
   "projectOverview": {
     "projectName": "simplebeacon-platform",
     "projectType": "Scanned Codebase",
     "totalFeatures": 4,
-    "completedFeatures": 3,
+    "completedFeatures": 4,
     "inProgressFeatures": 0,
-    "plannedFeatures": 1,
-    "completionRate": 67,
-    "overallProgress": "In Progress",
-    "projectHealth": "Fair",
+    "plannedFeatures": 0,
+    "completionRate": 100,
+    "overallProgress": "Complete",
+    "projectHealth": "Healthy",
     "developmentVelocity": "Measured",
     "teamProductivity": "Filesystem scan"
   },
@@ -34,25 +34,25 @@
       "phase": "Sprint 2: Stub APIs & Tests",
       "status": "completed",
       "progress": 100,
-      "description": "Stub API routes (64 detected) and null Jest tests (null suites)",
+      "description": "Stub API routes (48 detected) and undefined Jest tests (undefined suites)",
       "features": [
         "Tier-1 stub API routes",
-        "139 test files on disk (run Jest for live suite count)"
+        "17 test files on disk (run Jest for live suite count)"
       ],
       "milestones": [
         "dashboard-stub-api.js",
-        "139 tests"
+        "17 tests"
       ]
     },
     {
       "phase": "Sprint 3: Honest Dashboard Data",
       "status": "completed",
       "progress": 100,
-      "description": "9/50 page samples with repository-audit analyzers",
+      "description": "50/50 page samples with repository-audit analyzers",
       "features": [
-        "9/50 PAGE_SAMPLE_SPECS samples",
+        "50/50 PAGE_SAMPLE_SPECS samples",
         "SEC-004 npm audit wired to Security page",
-        "Mock-data scanner with schema validation",
+        "Mock scanner pending",
         "File merger reduction scanner"
       ],
       "milestones": [
@@ -62,12 +62,12 @@
     },
     {
       "phase": "Sprint 4: Production Profile",
-      "status": "planned",
-      "progress": 0,
+      "status": "completed",
+      "progress": 100,
       "description": "Docker Phase2, CI smoke test, Istanbul coverage, production profile",
       "features": [
-        "Docker compose pending",
-        "Istanbul pending",
+        "docker-compose.phase2.yml present",
+        "Istanbul collected in CI",
         "GGUF inference (LLAMA_CPP_BIN/Ollama) — optional",
         "REQUIRE_AUTH production profile ready"
       ],
@@ -79,88 +79,49 @@
   ],
   "recommendations": {
     "immediate": [
-      "Add docker-compose.phase2.yml smoke test to CI",
-      "Enable Istanbul coverage in CI (npm run test:coverage)"
+      "Complete local v1-internal verification (npm run verify:v1-internal-profile, npm run dashboard:v1-internal)"
     ],
     "shortTerm": [
-      "Complete remaining sprint deliverables",
-      "Wire null deploy gate before production profile",
-      "Configure LLAMA_CPP_BIN or Ollama for live GGUF roadmap enhancement (optional Phase 2)",
-      "Improve documentation coverage"
+      "Production deploy sign-off after local auth smoke test passes",
+      "Configure LLAMA_CPP_BIN or Ollama for optional semantic hints",
+      "Security posture to 80/100 — run npm audit fix on deploy host"
     ],
     "longTerm": [
       "Define enterprise scope only after v1.0-internal"
     ],
     "priorities": {
       "high": [
-        "Add docker-compose.phase2.yml smoke test to CI",
-        "Enable Istanbul coverage in CI (npm run test:coverage)"
+        "Complete local v1-internal verification (npm run verify:v1-internal-profile, npm run dashboard:v1-internal)"
       ],
       "medium": [
-        "Complete remaining sprint deliverables",
-        "Wire null deploy gate before production profile",
-        "Configure LLAMA_CPP_BIN or Ollama for live GGUF roadmap enhancement (optional Phase 2)"
+        "Production deploy sign-off after local auth smoke test passes",
+        "Configure LLAMA_CPP_BIN or Ollama for optional semantic hints",
+        "Security posture to 80/100 — run npm audit fix on deploy host"
       ],
       "low": [
         "Optional GGUF semantic feature extraction"
       ]
     }
   },
-  "predictions": [
-    { "metric": "sprintCompletion", "value": 67, "unit": "percent" }
-  ],
-  "risks": [
-    {
-      "category": "maintainability",
-      "severity": "medium",
-      "description": "Test coverage requires live Jest/Istanbul — not inferred by roadmap analysis engine."
-    }
-  ],
-  "actionPlan": [
-    {
-      "priority": "HIGH",
-      "action": "Add docker-compose.phase2.yml smoke test to CI",
-      "category": "delivery"
-    },
-    {
-      "priority": "HIGH",
-      "action": "Enable Istanbul coverage in CI (npm run test:coverage)",
-      "category": "delivery"
-    },
-    {
-      "priority": "MEDIUM",
-      "action": "Complete remaining sprint deliverables",
-      "category": "maintainability"
-    },
-    {
-      "priority": "MEDIUM",
-      "action": "Wire null deploy gate before production profile",
-      "category": "maintainability"
-    },
-    {
-      "priority": "MEDIUM",
-      "action": "Configure LLAMA_CPP_BIN or Ollama for live GGUF roadmap enhancement (optional Phase 2)",
-      "category": "maintainability"
-    }
-  ],
-  "performanceMetrics": [
-    { "sprintsComplete": 3, "sprintsPlanned": 4, "healthScore": 67 }
-  ],
+  "predictions": [],
+  "risks": [],
+  "actionPlan": [],
+  "performanceMetrics": [],
   "hygieneSummary": {
-    "roadmapAuditFiles": 756,
+    "roadmapAuditFiles": 438,
     "gateRepositoryFilesTotal": null,
-    "sprintCompletionRate": 67,
-    "coverageEvidenceSource": "omitted-stale-prior",
-    "apiRouteCount": 64,
-    "jestFilesOnDisk": 139,
+    "sprintCompletionRate": 100,
+    "coverageEvidenceSource": "none",
+    "apiRouteCount": 48,
+    "jestFilesOnDisk": 17,
     "roadmapHealthStatus": "product-advisory",
     "attestationNote": "Filesystem roadmap + LLM advisory — gate JSON is source of truth for vendor handoff."
   },
   "roadmapScanMeta": {
     "exportProfile": "filtered-v3.1",
-    "sprintCompletionRate": 67,
-    "apiRouteCount": 64,
-    "jestFilesOnDisk": 139,
-    "appliedAt": "2026-06-01T11:06:15.595Z"
+    "sprintCompletionRate": 100,
+    "apiRouteCount": 48,
+    "jestFilesOnDisk": 17,
+    "appliedAt": "2026-07-21T22:05:28.665Z"
   }
 }

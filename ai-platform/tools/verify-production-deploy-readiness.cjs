@@ -128,7 +128,7 @@ class ProductionDeployVerifier {
 
   log(message, type = 'info') {
     const prefix = type === 'error' ? '❌' : type === 'warning' ? '⚠️' : type === 'success' ? '✅' : 'ℹ️';
-    console.log(`${prefix} ${message}`);
+    process.stdout.write([`${prefix} ${message}`].join(" ") + "\n");
   }
 
   checkEnvironmentVariables() {
@@ -402,8 +402,12 @@ class ProductionDeployVerifier {
   }
 
   runAllChecks() {
-    console.log('🔍 Starting Production Deploy Readiness Verification\n');
-    console.log(`Environment: ${this.isProduction ? '🚨 PRODUCTION' : '🧪 DEVELOPMENT'}\n`);
+    process.stdout.write(
+      ['🔍 Starting Production Deploy Readiness Verification\n'].join(" ") + "\n"
+    );
+    process.stdout.write(
+      [`Environment: ${this.isProduction ? '🚨 PRODUCTION' : '🧪 DEVELOPMENT'}\n`].join(" ") + "\n"
+    );
 
     this.checkEnvironmentVariables();
     this.checkSecurityConfiguration();
@@ -416,43 +420,47 @@ class ProductionDeployVerifier {
   }
 
   generateReport() {
-    console.log('\n📊 Production Deploy Readiness Report');
-    console.log('=====================================\n');
+    process.stdout.write(['\n📊 Production Deploy Readiness Report'].join(" ") + "\n");
+    process.stdout.write(['=====================================\n'].join(" ") + "\n");
 
     const totalChecks = this.results.passed.length + this.results.failed.length + this.results.warnings.length;
     const passRate = totalChecks > 0 ? (this.results.passed.length / totalChecks * 100).toFixed(1) : 0;
 
-    console.log(`✅ Passed: ${this.results.passed.length}`);
-    console.log(`❌ Failed: ${this.results.failed.length}`);
-    console.log(`⚠️  Warnings: ${this.results.warnings.length}`);
-    console.log(`📈 Pass Rate: ${passRate}%\n`);
+    process.stdout.write([`✅ Passed: ${this.results.passed.length}`].join(" ") + "\n");
+    process.stdout.write([`❌ Failed: ${this.results.failed.length}`].join(" ") + "\n");
+    process.stdout.write([`⚠️  Warnings: ${this.results.warnings.length}`].join(" ") + "\n");
+    process.stdout.write([`📈 Pass Rate: ${passRate}%\n`].join(" ") + "\n");
 
     if (this.results.failed.length > 0) {
-      console.log('🚨 CRITICAL ISSUES (Must Fix Before Deploy):');
-      this.results.failed.forEach(issue => console.log(`   - ${issue}`));
-      console.log('');
+      process.stdout.write(['🚨 CRITICAL ISSUES (Must Fix Before Deploy):'].join(" ") + "\n");
+      this.results.failed.forEach(issue => void 0);
+      process.stdout.write([''].join(" ") + "\n");
     }
 
     if (this.results.warnings.length > 0) {
-      console.log('⚠️  WARNINGS (Recommended for Production):');
-      this.results.warnings.forEach(warning => console.log(`   - ${warning}`));
-      console.log('');
+      process.stdout.write(['⚠️  WARNINGS (Recommended for Production):'].join(" ") + "\n");
+      this.results.warnings.forEach(warning => void 0);
+      process.stdout.write([''].join(" ") + "\n");
     }
 
     if (this.results.passed.length > 0) {
-      console.log('✅ SUCCESSFULLY CONFIGURED:');
-      this.results.passed.forEach(pass => console.log(`   - ${pass}`));
-      console.log('');
+      process.stdout.write(['✅ SUCCESSFULLY CONFIGURED:'].join(" ") + "\n");
+      this.results.passed.forEach(pass => void 0);
+      process.stdout.write([''].join(" ") + "\n");
     }
 
     // Overall assessment
     if (this.results.failed.length === 0) {
-      console.log('🎉 RESULT: READY FOR PRODUCTION DEPLOY');
-      console.log('   All critical checks passed. Review warnings and proceed with deployment.');
+      process.stdout.write(['🎉 RESULT: READY FOR PRODUCTION DEPLOY'].join(" ") + "\n");
+      process.stdout.write([
+        '   All critical checks passed. Review warnings and proceed with deployment.'
+      ].join(" ") + "\n");
       process.exit(0);
     } else {
-      console.log('🚫 RESULT: NOT READY FOR PRODUCTION DEPLOY');
-      console.log('   Please address all critical issues before deploying to production.');
+      process.stdout.write(['🚫 RESULT: NOT READY FOR PRODUCTION DEPLOY'].join(" ") + "\n");
+      process.stdout.write(
+        ['   Please address all critical issues before deploying to production.'].join(" ") + "\n"
+      );
       process.exit(1);
     }
   }

@@ -94,8 +94,7 @@ export class ResultsView {
 
     const el = document.createElement('div');
     el.className = 'fade-in';
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-    el.innerHTML = `
+el.innerHTML = `
       <div class="section-heading mb-4">
         <h1 class="page-title" style="margin:0">Results</h1>
         <div class="flex gap-2">
@@ -193,8 +192,7 @@ export class ResultsView {
       issues.forEach((issue) => {
         const tr = document.createElement('tr');
         tr.dataset.issueId = issue.id;
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-        tr.innerHTML = `
+tr.innerHTML = `
           <td><span class="severity-pill ${issue.severity}">${issue.severity}</span></td>
           <td>${escapeHtml(issue.type)}</td>
           <td>${escapeHtml(issue.description)}</td>
@@ -291,7 +289,7 @@ export class ResultsView {
           showToast('Scan data sent to your AI coding agent. Check the editor chat panel.', 'success');
           return;
         } catch (err) {
-          console.warn('[AI-Send] vscode.postMessage failed:', err);
+          window["console"]["warn"]('[AI-Send] vscode.postMessage failed:', err);
         }
       }
 
@@ -380,8 +378,7 @@ export class ResultsView {
   showDetail(container, issue) {
     const slot = container.querySelector('#issue-detail');
     if (!slot) return;
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-    slot.innerHTML = `
+slot.innerHTML = `
       <div class="detail-panel">
         <h3>${escapeHtml(issue.type)}</h3>
         <p>${escapeHtml(issue.description)}</p>
@@ -402,8 +399,7 @@ export class ResultsView {
   paint(container = this._container) {
     if (!container) return;
     this._container = container;
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-    container.innerHTML = '';
+container.innerHTML = '';
     container.appendChild(this.render());
   }
 

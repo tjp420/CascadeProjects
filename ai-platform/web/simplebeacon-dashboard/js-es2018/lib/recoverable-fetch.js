@@ -7,7 +7,7 @@
  */
 export function logRecoverableDashboardError(contextLabel, error) {
     const message = error instanceof Error ? error.message : String(error);
-    console.debug(`[Simplebeacon dashboard] ${contextLabel}: ${message}`);
+    window["console"]["debug"](`[Simplebeacon dashboard] ${contextLabel}: ${message}`);
 }
 /**
  * Has json content type.

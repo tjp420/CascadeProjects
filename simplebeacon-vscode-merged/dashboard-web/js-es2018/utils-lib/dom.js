@@ -701,6 +701,38 @@ if (typeof window !== 'undefined') {
     try { window.setSafeHTML = setSafeHTML; } catch (e) { /* ignore */ }
 }
 
+let _vsCodeApiCache = null;
+export function getVsCodeApi() {
+    if (_vsCodeApiCache)
+        return _vsCodeApiCache;
+    if (typeof window === 'undefined' || typeof window.acquireVsCodeApi !== 'function')
+        return null;
+    try {
+        _vsCodeApiCache = window.acquireVsCodeApi();
+        return _vsCodeApiCache;
+    }
+    catch (_a) {
+        return null;
+    }
+}
+
+export function renderSkeletonCard(lines = 4) {
+    const cls = ['short', 'medium', 'long', 'short', 'medium', 'long'];
+    const rows = [];
+    for (let i = 0; i < lines; i++) {
+        rows.push(`<div class="skeleton-line ${cls[i % cls.length]}"></div>`);
+    }
+    return `<div class="skeleton-card">${rows.join('')}</div>`;
+}
+
+export function renderSkeletonChips(count = 5) {
+    const chips = [];
+    for (let i = 0; i < count; i++) {
+        chips.push('<div class="skeleton-chip"></div>');
+    }
+    return `<div class="skeleton-chip-row">${chips.join('')}</div>`;
+}
+
 /** User-facing note when folder selection may be truncated by the browser. */
 export function browserFolderCapMessage(fileCount) {
     const n = Number(fileCount) || 0;

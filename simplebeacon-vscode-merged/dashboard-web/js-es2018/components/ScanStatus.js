@@ -1,5 +1,5 @@
 import { escapeHtml, formatPercent, formatNumber, showToast } from '../utils.js';
-import { canUseDirectoryPicker, filePickerBlockedMessage, isFilePickerBlockedError } from '../utils-lib/dom.js?v=20260721corsfix1';
+import { canUseDirectoryPicker, filePickerBlockedMessage, isFilePickerBlockedError, isEmbeddedDashboardFrame } from '../utils-lib/dom.js?v=20260721corsfix1';
 import { resolveDisplayScore, formatScanScopeSummary, formatScanInventoryNote, getScanFileMetrics } from '../services/analyzeService.js?v=20260716cachefix1';
 import { runLocalScan } from '../services/localScanService.js?v=20260724fix1';
 import { isLocalPath, probeAgent, scanViaAgent, probeAgent4000, scanViaAgent4000, renderAgentCertificate, hasExtensionBridgeConfigured, pickFolderViaExtensionBridge as requestExtensionFolderPick, findFolderViaBridge, shouldProbeLocalAgent, shouldProbeAgent4000 } from '../services/localAgentService.js?v=20260722scanfix1';
@@ -339,88 +339,88 @@ function renderScanPathControls(report, options = {}) {
     const hasSaved = Boolean(lastProjectPath);
     const hasDefault = Boolean(defaultProjectPath);
     const resolvedPath = lastProjectPath || defaultProjectPath || '';
-    return `
-    <div class="scan-status-scope" id="scan-status-scope">
-      <div class="sb-dropzone is-idle" id="scan-dropzone" role="region" aria-label="Dashboard scan drop zone">
-        <input type="file" id="scan-browse-input" webkitdirectory directory hidden aria-label="Select folder to scan">
-        <div class="sb-dropzone-idle">
-          <div class="sb-dropzone-pitch">
-            <div class="sb-dropzone-icon"><i data-lucide="folder-up" class="icon-32"></i></div>
-            <div class="sb-dropzone-title">Drop a folder or files to scan</div>
-            <div class="sb-dropzone-sub">Drop a folder for a full scan, or files for a quick scan.</div>
-            <div class="sb-dropzone-privacy"><span aria-hidden="true">🔒</span> Scans run privately in your browser.</div>
-          </div>
-          <div class="sb-dropzone-form">
-            <div class="sb-dropzone-actions">
-              <button type="button" id="trigger-native-picker" class="btn btn-primary"><i data-lucide="folder-open" class="icon-16"></i> Select Folder</button>
-              <button type="button" id="trigger-file-picker" class="btn btn-ghost"><i data-lucide="upload" class="icon-16"></i> Select Files</button>
-            </div>
-            <div class="sb-dropzone-path">
-              <p class="sb-dropzone-path-label">Or type a server path / public repo URL (local PC paths require Select Folder above)</p>
-              <div class="scan-status-path-row">
-                <div class="scan-status-path-input-wrap">
-                  <i data-lucide="folder" class="icon-16 scan-status-path-icon"></i>
-                  <input
-                    type="text"
-                    id="scan-root-input"
-                    class="scan-status-path-input"
-                    placeholder="e.g. C:\\dev\\my-app"
-                    spellcheck="false"
-                    autocomplete="off"
-                    aria-label="Folder path on the dashboard server"
-                    value="${escapeHtml(resolvedPath)}"
-                    ${scanning ? 'disabled' : ''}
-                  >
+        return `
+        <div class="scan-status-scope" id="scan-status-scope">
+            <div class="sb-dropzone is-idle" id="scan-dropzone" role="region" aria-label="Dashboard scan drop zone">
+                <input type="file" id="scan-browse-input" webkitdirectory directory hidden aria-label="Select folder to scan">
+                <div class="sb-dropzone-idle">
+                    <div class="sb-dropzone-pitch">
+                        <div class="sb-dropzone-icon"><i data-lucide="folder-up" class="icon-32"></i></div>
+                        <div class="sb-dropzone-title">Drop a folder or files to scan</div>
+                        <div class="sb-dropzone-sub">Drop a folder for a full scan, or files for a quick scan.</div>
+                        <div class="sb-dropzone-privacy"><span aria-hidden="true">🔒</span> Scans run privately in your browser.</div>
+                    </div>
+                    <div class="sb-dropzone-form">
+                        <div class="sb-dropzone-actions">
+                            <button type="button" id="trigger-native-picker" class="btn btn-primary"><i data-lucide="folder-open" class="icon-16"></i> Select Folder</button>
+                            <button type="button" id="trigger-file-picker" class="btn btn-ghost"><i data-lucide="upload" class="icon-16"></i> Select Files</button>
+                        </div>
+                        <div class="sb-dropzone-path">
+                            <p class="sb-dropzone-path-label">Or type a server path / public repo URL (local PC paths require Select Folder above)</p>
+                            <div class="scan-status-path-row">
+                                <div class="scan-status-path-input-wrap">
+                                    <i data-lucide="folder" class="icon-16 scan-status-path-icon"></i>
+                                    <input
+                                        type="text"
+                                        id="scan-root-input"
+                                        class="scan-status-path-input"
+                                        placeholder="e.g. C:\\dev\\my-app"
+                                        spellcheck="false"
+                                        autocomplete="off"
+                                        aria-label="Folder path on the dashboard server"
+                                        value="${escapeHtml(resolvedPath)}"
+                                        ${scanning ? 'disabled' : ''}
+                                    >
+                                </div>
+                                <button type="button" class="btn btn-ghost btn-sm" id="scan-browse-btn" ${scanning ? 'disabled' : ''} title="Browse for folder" aria-label="Browse for folder to scan" aria-controls="scan-browse-input">
+                                    <i data-lucide="folder-open" class="icon-16"></i> Browse
+                                </button>
+                                <button type="button" class="btn btn-ghost btn-sm" id="scan-set-default-btn" ${!hasDefault || scanning ? 'disabled' : ''} title="Reset to default path">
+                                    <i data-lucide="rotate-ccw" class="icon-16"></i> Reset
+                                </button>
+                                <button type="button" class="btn btn-ghost btn-sm" id="scan-clear-btn" ${!hasSaved || scanning ? 'disabled' : ''} title="Clear saved folder">
+                                    <i data-lucide="x" class="icon-16"></i> Clear
+                                </button>
+                                <button type="button" class="btn btn-secondary" id="rescan-btn" ${scanning ? 'disabled' : ''} title="Run gate scan on this folder">
+                                    ${scanning ? '<span class="loading-spinner"></span> Scanning…' : '<i data-lucide="play" class="icon-16"></i> Scan'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <button type="button" class="btn btn-ghost btn-sm" id="scan-browse-btn" ${scanning ? 'disabled' : ''} title="Browse for folder" aria-label="Browse for folder to scan" aria-controls="scan-browse-input">
-                  <i data-lucide="folder-open" class="icon-16"></i> Browse
-                </button>
-                <button type="button" class="btn btn-ghost btn-sm" id="scan-set-default-btn" ${!hasDefault || scanning ? 'disabled' : ''} title="Reset to default path">
-                  <i data-lucide="rotate-ccw" class="icon-16"></i> Reset
-                </button>
-                <button type="button" class="btn btn-ghost btn-sm" id="scan-clear-btn" ${!hasSaved || scanning ? 'disabled' : ''} title="Clear saved folder">
-                  <i data-lucide="x" class="icon-16"></i> Clear
-                </button>
-                <button type="button" class="btn btn-secondary" id="rescan-btn" ${scanning ? 'disabled' : ''} title="Run gate scan on this folder">
-                  ${scanning ? '<span class="loading-spinner"></span> Scanning…' : '<i data-lucide="play" class="icon-16"></i> Scan'}
-                </button>
-              </div>
+                <div class="sb-dropzone-drag" aria-hidden="true">
+                    <div class="sb-dropzone-drag-icon">📂</div>
+                    <strong>Release to scan</strong>
+                    <span class="sb-dropzone-hint">Folder → full directory scan · Files → quick file scan</span>
+                </div>
+                <div class="sb-dropzone-progress" aria-live="polite">
+                    <div class="sb-dropzone-spinner"></div>
+                    <div class="sb-dropzone-progress-title">Scanning…</div>
+                    <div class="sb-dropzone-progress-detail" id="scan-dropzone-progress-detail">0 / 0 files</div>
+                    <pre id="sandbox-scan-terminal" class="sb-dropzone-terminal">Awaiting selection…</pre>
+                </div>
+                <div class="sb-dropzone-result" role="status" aria-live="polite">
+                    <div class="sb-dropzone-result-icon">✅</div>
+                    <div class="sb-dropzone-result-title">Scan complete</div>
+                    <div class="sb-dropzone-result-stats" id="scan-dropzone-result-stats"></div>
+                    <button type="button" class="btn btn-primary btn-sm" id="scan-dropzone-view-results">View Results</button>
+                </div>
+                <div class="sb-dropzone-error" role="alert" aria-live="assertive">
+                    <div class="sb-dropzone-error-icon">⚠️</div>
+                    <div class="sb-dropzone-error-title">Scan failed</div>
+                    <div class="sb-dropzone-error-message" id="scan-dropzone-error-message"></div>
+                    <button type="button" class="btn btn-secondary btn-sm" id="scan-dropzone-retry">Try again</button>
+                </div>
             </div>
-          </div>
-        </div>
-        <div class="sb-dropzone-drag" aria-hidden="true">
-          <div class="sb-dropzone-drag-icon">📂</div>
-          <strong>Release to scan</strong>
-          <span class="sb-dropzone-hint">Folder → full directory scan · Files → quick file scan</span>
-        </div>
-        <div class="sb-dropzone-progress" aria-live="polite">
-          <div class="sb-dropzone-spinner"></div>
-          <div class="sb-dropzone-progress-title">Scanning…</div>
-          <div class="sb-dropzone-progress-detail" id="scan-dropzone-progress-detail">0 / 0 files</div>
-          <pre id="sandbox-scan-terminal" class="sb-dropzone-terminal">Awaiting selection…</pre>
-        </div>
-        <div class="sb-dropzone-result" role="status" aria-live="polite">
-          <div class="sb-dropzone-result-icon">✅</div>
-          <div class="sb-dropzone-result-title">Scan complete</div>
-          <div class="sb-dropzone-result-stats" id="scan-dropzone-result-stats"></div>
-          <button type="button" class="btn btn-primary btn-sm" id="scan-dropzone-view-results">View Results</button>
-        </div>
-        <div class="sb-dropzone-error" role="alert" aria-live="assertive">
-          <div class="sb-dropzone-error-icon">⚠️</div>
-          <div class="sb-dropzone-error-title">Scan failed</div>
-          <div class="sb-dropzone-error-message" id="scan-dropzone-error-message"></div>
-          <button type="button" class="btn btn-secondary btn-sm" id="scan-dropzone-retry">Try again</button>
-        </div>
-      </div>
 
-      <p class="scan-status-scope-hint text-muted">
-        Deep analysis → <a href="/dashboard/analyze" class="scan-status-link">Analyze</a> ·
-        Mock folders → <a href="/dashboard/settings" class="scan-status-link">Settings → Scan paths</a>${pathCount ? ` (${pathCount})` : ''}
-      </p>
-      <p id="agent-4000-status" class="agent-status"></p>
-      <div id="agent-4000-results"></div>
-    </div>
-  `;
+            <p class="scan-status-scope-hint text-muted">
+                Deep analysis → <a href="/dashboard/analyze" class="scan-status-link">Analyze</a> ·
+                Mock folders → <a href="/dashboard/settings" class="scan-status-link">Settings → Scan paths</a>${pathCount ? ` (${pathCount})` : ''}
+            </p>
+            <p id="agent-4000-status" class="agent-status"></p>
+            <div id="agent-4000-results"></div>
+        </div>
+    `;
 }
 /**
  * Render scan status.
@@ -1039,9 +1039,11 @@ export function bindScanStatus(container, options = {}) {
     });
     const sandboxPickerBtn = container.querySelector('#trigger-native-picker');
     sandboxPickerBtn === null || sandboxPickerBtn === void 0 ? void 0 : sandboxPickerBtn.addEventListener('click', () => {
-        if (!canUseDirectoryPicker()) {
-            const browseInput = container.querySelector('#scan-browse-input')
-                || container.querySelector('#browse-dir-input');
+        const browseInput = container.querySelector('#scan-browse-input') || container.querySelector('#scan-dir-input');
+        // Prefer the legacy webkitdirectory input when running inside an IDE/embed
+        // because the File System Access API (`showDirectoryPicker`) is often
+        // blocked or unreliable in webviews.
+        if (isEmbeddedDashboardFrame()) {
             if (browseInput) {
                 showToast('Embedded dashboard — using legacy folder dialog.', 'info', { duration: 8000 });
                 browseInput.value = '';
@@ -1051,6 +1053,18 @@ export function bindScanStatus(container, options = {}) {
             showToast(filePickerBlockedMessage(), 'warning', { duration: 12000 });
             return;
         }
+
+        if (!canUseDirectoryPicker()) {
+            if (browseInput) {
+                showToast('Using legacy folder dialog.', 'info', { duration: 8000 });
+                browseInput.value = '';
+                browseInput.click();
+                return;
+            }
+            showToast(filePickerBlockedMessage(), 'warning', { duration: 12000 });
+            return;
+        }
+
         void runSandboxedScanForDashboard(onLocalScanResult, container);
     });
     input === null || input === void 0 ? void 0 : input.addEventListener('input', () => {

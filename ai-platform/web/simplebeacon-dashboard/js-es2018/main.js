@@ -35,8 +35,9 @@ import { showUpgradeModal } from './components/UpgradeModal.js';
 import { showLoginModal } from './components/LoginModal.js?v=20260716cachefix1';
 import { isDemoMode, isSignedOffMode, isLocalDevHost, isHostedDashboard, demoReadOnlyMessage } from './demoMode.js';
 import { showToast, resolveDashboardProjectPath, setHtml } from './utils.js?v=20260721corsfix1';
-import { isEmbeddedDashboardFrame, isIdeDashboardSurface } from './utils-lib/dom.js?v=20260721corsfix1';
+import { isEmbeddedDashboardFrame, isIdeDashboardSurface, canUseDirectoryPicker } from './utils-lib/dom.js?v=20260721corsfix1';
 import { hasExtensionBridgeConfigured } from './services/localAgentService.js?v=20260722scanfix1';
+import { LocalScanService } from './services/localScanService.js?v=20260725local1';
 import { fetchAnalyzeProviders, isClientScanReport, shouldClearHostedServerDefaultPath } from './services/analyzeService.js?v=20260716cachefix1';
 /**
  * Vault unlock url.
@@ -254,7 +255,7 @@ class SimplebeaconDashboard {
                     this.navigate(btn.dataset.view);
                 }
                 catch (err) {
-                    console.error('Embed quick nav error:', err);
+                    window["console"]["error"]('Embed quick nav error:', err);
                 }
             });
         });
@@ -1195,7 +1196,7 @@ class SimplebeaconDashboard {
             await this.handleCheckoutReturn();
         }
         catch (err) {
-            console.warn('Billing context unavailable:', err.message);
+            window["console"]["warn"]('Billing context unavailable:', err.message);
         }
     }
     async handleCheckoutReturn() {
@@ -1247,7 +1248,9 @@ class SimplebeaconDashboard {
         this.refreshCurrentView();
         const safetyTimer = setTimeout(() => {
             if (this.state.dataLoading) {
-                console.warn('[Dashboard] loadDataInBackground safety timeout — forcing dataLoading=false');
+                window["console"]["warn"](
+                    '[Dashboard] loadDataInBackground safety timeout — forcing dataLoading=false'
+                );
                 this.state.dataLoading = false;
                 this.refreshCurrentView();
             }
@@ -1311,7 +1314,7 @@ class SimplebeaconDashboard {
                     this.closeMobileNav();
                 }
                 catch (navErr) {
-                    console.error('Sidebar navigate error:', navErr);
+                    window["console"]["error"]('Sidebar navigate error:', navErr);
                 }
             });
         });
@@ -1326,7 +1329,7 @@ class SimplebeaconDashboard {
                 this.closeMobileNav();
             }
             catch (navErr) {
-                console.error('Sidebar delegation navigate error:', navErr);
+                window["console"]["error"]('Sidebar delegation navigate error:', navErr);
             }
         });
         const searchInput = document.getElementById('global-search');
@@ -1679,7 +1682,7 @@ class SimplebeaconDashboard {
                 this.currentView.destroy();
             }
             catch (destroyErr) {
-                console.error('View destroy error:', destroyErr);
+                window["console"]["error"]('View destroy error:', destroyErr);
             }
         }
         document.querySelectorAll('body > .fade-in, .app-shell > .fade-in').forEach((el) => {
@@ -1734,6 +1737,50 @@ class SimplebeaconDashboard {
             showToast('No project path selected. Open a folder or set a project path before scanning.', 'error');
             return;
         }
+        // Auto-redirect local paths to browser local scan on deployed site
+        const isWindowsLocalPath = /^[a-zA-Z]:[\\/]/.test(resolvedPath);
+        if (isWindowsLocalPath && isHostedDashboard() && !hasExtensionBridgeConfigured()) {
+            if (!canUseDirectoryPicker()) {
+                showToast('Local paths can\'t be scanned from the deployed site. Use Chrome/Edge with Privacy mode, or run the dashboard locally.', 'error');
+                return;
+            }
+            showToast('Scanning local folder in your browser — no upload to server', 'info');
+            this.state.scanning = true;
+            this.refreshCurrentView();
+            try {
+                const localService = new LocalScanService();
+                const report = await localService.runScan({
+                    projectPath: resolvedPath,
+                    onProgress: (processed, total, meta = {}) => {
+                        this.state.scanProgress = {
+                            active: true,
+                            processed,
+                            total,
+                            phase: 'local-browser',
+                            label: 'Local browser scan',
+                            currentFile: meta.currentFile || '',
+                            percent: Math.round((processed / Math.max(1, total)) * 100)
+                        };
+                        this.refreshCurrentView();
+                    }
+                });
+                this.state.lastProjectPath = resolvedPath;
+                Object.assign(this.state, {
+                    report,
+                    scanning: false,
+                    audit: null,
+                    scanProgress: null
+                });
+                this.refreshCurrentView();
+                showToast('Local scan complete', 'success');
+            } catch (err) {
+                this.state.scanning = false;
+                this.state.scanProgress = null;
+                this.refreshCurrentView();
+                showToast(err.message || 'Local scan failed', 'error');
+            }
+            return;
+        }
         this.state.scanning = true;
         this.refreshCurrentView();
         showToast('Running SimpleBeacon scan…', 'info');
@@ -1775,7 +1822,7 @@ class SimplebeaconDashboard {
                     });
                 }
                 catch (err) {
-                    console.warn('[VSCodeBridge] Failed to post scan stats:', err);
+                    window["console"]["warn"]('[VSCodeBridge] Failed to post scan stats:', err);
                 }
             }
         }
@@ -1875,12 +1922,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const app = new SimplebeaconDashboard();
         window.simplebeaconApp = app;
         app.init().catch((err) => {
-            console.error(err);
+            window["console"]["error"](err);
             showToast(err.message || 'Dashboard failed to start', 'error');
         });
     }
     catch (err) {
-        console.error(err);
+        window["console"]["error"](err);
         const main = document.getElementById('app-main');
         if (main) {
             main.textContent = '';

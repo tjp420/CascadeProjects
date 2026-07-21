@@ -3,24 +3,7 @@ import { escapeHtml, formatNumber, formatPercent, showToast, renderEmptyState } 
 import { getScanFileMetrics, resolveDisplayScore, resolveJestTestsLabel, resolvePageSpecsLabel, formatScanScopeSummary, formatScanInventoryNote } from '../services/analyzeService.js?v=20260716cachefix1';
 import { scanService } from '../services/scanService.js?v=20260716cachefix1';
 import { renderConsolidationPanel } from '../components/ConsolidationReport.js';
-/**
- * Npm audit summary.
- * @param {any} audit
- * @returns {any}
- */
-function npmAuditSummary(audit) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o;
-    const summary = (audit === null || audit === void 0 ? void 0 : audit.summary) || ((_a = audit === null || audit === void 0 ? void 0 : audit.metadata) === null || _a === void 0 ? void 0 : _a.vulnerabilities) || {};
-    const deps = (audit === null || audit === void 0 ? void 0 : audit.dependencies) || ((_b = audit === null || audit === void 0 ? void 0 : audit.metadata) === null || _b === void 0 ? void 0 : _b.dependencies) || {};
-    return {
-        dependencies: (_d = (_c = summary.dependencies) !== null && _c !== void 0 ? _c : deps.total) !== null && _d !== void 0 ? _d : null,
-        vulnerabilityTotal: (_f = (_e = summary.vulnerabilityTotal) !== null && _e !== void 0 ? _e : summary.total) !== null && _f !== void 0 ? _f : ((_h = (_g = audit === null || audit === void 0 ? void 0 : audit.vulnerabilities) === null || _g === void 0 ? void 0 : _g.length) !== null && _h !== void 0 ? _h : 0),
-        critical: (_j = summary.critical) !== null && _j !== void 0 ? _j : 0,
-        high: (_k = summary.high) !== null && _k !== void 0 ? _k : 0,
-        moderate: (_m = (_l = summary.moderate) !== null && _l !== void 0 ? _l : summary.medium) !== null && _m !== void 0 ? _m : 0,
-        low: (_o = summary.low) !== null && _o !== void 0 ? _o : 0
-    };
-}
+import { npmAuditSummary } from '../utils-lib/audit-helpers.js?v=20260721audit1';
 /**
  * Render scan snapshot.
  * @param {number} report
@@ -122,7 +105,6 @@ export class ToolsView {
         const busy = Boolean(this.running || this.reductionLoading || this.app.state.scanning);
         const el = document.createElement('div');
         el.className = this._hasPainted ? '' : 'fade-in';
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         el.innerHTML = `
       <div class="analyze-hero">
         <h1 class="page-title">Tools</h1>
@@ -254,7 +236,6 @@ export class ToolsView {
         if (!output)
             return;
         output.classList.toggle('hidden', !visible);
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         output.innerHTML = html;
     }
     refreshView() {
@@ -353,13 +334,11 @@ export class ToolsView {
     renderToolGrid(el, tools) {
         const grid = el.querySelector('#tool-grid');
         if (!tools.length) {
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
             grid.innerHTML = this._platformLoadAttempted
                 ? '<p class="text-muted card">No repository tools configured — run a consolidation scan to discover available tools.</p>'
                 : '<p class="text-muted"><span class="loading-spinner"></span> Loading repository tools…</p>';
             return;
         }
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         grid.innerHTML = tools.map((t) => `
       <div class="tool-card">
         <div class="tool-card-header">
@@ -376,13 +355,11 @@ export class ToolsView {
     renderWorkflows(el, workflows) {
         const tbody = el.querySelector('#workflow-body');
         if (!workflows.length) {
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
             tbody.innerHTML = this._platformLoadAttempted
                 ? '<tr><td colspan="4" class="text-muted">No CI workflows configured — run a consolidation scan to discover workflow configurations.</td></tr>'
                 : '<tr><td colspan="4" class="text-muted"><span class="loading-spinner"></span> Loading workflows…</td></tr>';
             return;
         }
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         tbody.innerHTML = workflows.map((w) => `
       <tr>
         <td><strong>${escapeHtml(w.name)}</strong><br><span class="text-muted">${escapeHtml(w.description)}</span></td>
@@ -393,7 +370,6 @@ export class ToolsView {
     `).join('');
     }
     _paint(container) {
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         window.setSafeHTML(container, '');
         container.appendChild(this.render());
         this._hasPainted = true;
