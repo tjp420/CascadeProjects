@@ -5,6 +5,7 @@
 
 const { evaluateComplianceChecklist } = require('./compliance-checklist');
 const { sanitizeAssessment } = require('./lib/report-sanitizer');
+const { countBySeverity, computeQualityScoreFromIssues } = require('./lib/issue-utils');
 
 function bucketIssues(rawIssues = []) {
     const buckets = {
@@ -42,7 +43,7 @@ function summarizeBucket(items, emptyText) {
     return items.slice(0, 5).map((i) => `${i.file}: ${i.description}`).join('; ');
 }
 
-function buildHeadline(report, gateResult, buckets) {
+function buildHeadline(report, gateResult, buckets, headlineOptions = {}) {
     const high = report.gate?.blockingCount ?? report.severityCounts?.high ?? 0;
     const medium = report.gate?.warningCount ?? report.severityCounts?.medium ?? 0;
     const prodLeaks = report.productionLeakFindings ?? buckets.productionLeaks.length;
@@ -54,10 +55,17 @@ function buildHeadline(report, gateResult, buckets) {
     if (buckets.credentials.length) parts.push(`${buckets.credentials.length} credential pattern(s)`);
     if (buckets.schemaDrift.length) parts.push(`${buckets.schemaDrift.length} schema issue(s)`);
 
+    const stalePrefix = headlineOptions.isStale
+        ? 'STALE REPORT — source scan is outdated, re-run scan for current results. '
+        : '';
+
     if (!parts.length) {
-        return gateResult?.pass
+        if (headlineOptions.filesScanned === 0) {
+            return `${stalePrefix}No files were scanned — run a scan to populate assessment data.`;
+        }
+        return `${stalePrefix}${gateResult?.pass
             ? 'Clean scan — no blocking mock/fiction findings in configured paths.'
-            : 'Gate failed but no categorized high-severity fiction/mock findings — review raw report.';
+            : 'Gate failed but no categorized high-severity fiction/mock findings — review raw report.'}`;
     }
 
     const gateNote = gateResult?.pass
@@ -66,13 +74,40 @@ function buildHeadline(report, gateResult, buckets) {
             : 'Gate would pass on current severities.')
         : 'Gate would fail — these issues block merge when --gate is enabled.';
 
-    return `${parts.join('; ')}. ${gateNote}`;
+    return `${stalePrefix}${parts.join('; ')}. ${gateNote}`;
 }
 
 function buildAssessmentReport(report, options = {}) {
     const gateResult = report.gate || options.gateResult || null;
-    const buckets = bucketIssues(report.rawIssues || []);
-    const sev = report.severityCounts || { high: 0, medium: 0, low: 0 };
+    const rawIssues = report.rawIssues || [];
+    const buckets = bucketIssues(rawIssues);
+
+    // Derive severityCounts from rawIssues if missing or empty
+    let sev = report.severityCounts;
+    if (!sev || typeof sev !== 'object' || Object.keys(sev).length === 0) {
+        sev = countBySeverity(rawIssues);
+    }
+
+    // Derive qualityScore from rawIssues if missing
+    let qualityScore = report.qualityScore;
+    if (qualityScore == null && rawIssues.length > 0) {
+        qualityScore = computeQualityScoreFromIssues(rawIssues, report.gate || {});
+    }
+
+    // Resolve filesScanned from multiple possible field names
+    const filesScanned = report.totalFiles
+        ?? report.filesAnalyzed
+        ?? report.repositoryFilesTotal
+        ?? report.summary?.filesAnalyzed
+        ?? report.summary?.repositoryFilesTotal
+        ?? 0;
+
+    // Detect stale report (source generatedAt older than 7 days)
+    const generatedAt = report.generatedAt || report.sourceReport?.generatedAt;
+    const isStale = generatedAt
+        ? (Date.now() - new Date(generatedAt).getTime()) > 7 * 24 * 60 * 60 * 1000
+        : false;
+
     const isEuAiAct = options.checklistProfile === 'eu-ai-act';
     const complianceChecklist = evaluateComplianceChecklist(report, {
         projectRoot: report.projectRoot || options.projectRoot || '',
@@ -98,15 +133,15 @@ function buildAssessmentReport(report, options = {}) {
         } : {}),
         executiveSummary: {
             gateResult: gateResult?.pass ? 'PASS' : 'FAIL',
-            qualityScore: report.qualityScore ?? null,
-            filesScanned: report.totalFiles ?? 0,
+            qualityScore: qualityScore ?? null,
+            filesScanned,
             criticalIssues: sev.critical || 0,
             highIssues: report.gate?.blockingCount ?? sev.high ?? 0,
             mediumIssues: report.gate?.warningCount ?? sev.medium ?? 0,
             lowIssues: sev.low || 0,
             warningCount: report.gate?.warningCount ?? 0,
             blockingCount: report.gate?.blockingCount ?? 0,
-            headline: buildHeadline(report, gateResult, buckets),
+            headline: buildHeadline(report, gateResult, buckets, { isStale, filesScanned }),
             complianceScore: complianceChecklist.summary.score,
             complianceReady: complianceChecklist.summary.readyForAutomation
         },
@@ -213,7 +248,8 @@ function buildAssessmentReport(report, options = {}) {
         sourceReport: {
             generatedAt: report.generatedAt,
             scanPaths: report.scanPaths,
-            duplicateGroups: report.duplicateGroups ?? 0
+            duplicateGroups: report.duplicateGroups ?? 0,
+            ...(isStale ? { staleReportWarning: `Source scan report is older than 7 days (generated ${generatedAt}). Re-run scan for current results.` } : {})
         }
     };
 

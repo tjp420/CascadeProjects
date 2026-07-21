@@ -364,7 +364,15 @@ async function loadDashboardContext() {
 async function loadAssessment(report) {
   const saved = await readSimplebeaconJson('assessment.json');
   if (saved) {
-    return saved;
+    const sourceGenerated = saved.sourceReport?.generatedAt || saved.generatedAt;
+    if (sourceGenerated) {
+      const ageMs = Date.now() - new Date(sourceGenerated).getTime();
+      if (ageMs <= 7 * 24 * 60 * 60 * 1000) {
+        return saved;
+      }
+    } else {
+      return saved;
+    }
   }
   const safeReport = report || createEmptyReport();
   return buildAssessmentReport(safeReport, {

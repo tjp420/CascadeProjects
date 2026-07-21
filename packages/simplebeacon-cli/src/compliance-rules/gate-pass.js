@@ -1,4 +1,16 @@
 module.exports = function evaluateGatePass(rule, { report }) {
+    const filesScanned = report.totalFiles ?? report.filesAnalyzed ?? report.repositoryFilesTotal ?? 0;
+    if (filesScanned === 0) {
+        return {
+            id: rule.id,
+            title: rule.title,
+            category: rule.category,
+            severity: rule.severity,
+            remediation: rule.remediation || null,
+            status: 'skip',
+            evidence: 'No files scanned — gate not evaluated'
+        };
+    }
     const pass = Boolean(report.gate?.pass);
     return {
         id: rule.id,

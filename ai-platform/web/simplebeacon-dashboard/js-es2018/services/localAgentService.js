@@ -628,17 +628,25 @@ export async function pickFolderViaExtensionBridge() {
     const origin = getExtensionBridgeOrigin();
     if (!origin)
         return null;
-    const doFetch = getAgentFetch();
-    const response = await doFetch(`${origin}/api/analyze/pick-folder`, {
-        method: 'POST',
-        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-        body: '{}',
-    }, AGENT_TIMEOUT_MS);
-    const body = await response.json().catch(() => ({}));
-    if (!response.ok || body.success !== true)
-        throw new Error(body.error || 'Extension folder picker failed');
-    const picked = String(body.path || '').trim();
-    return picked || null;
+    const health = await probeExtensionBridgeHealth();
+    if (!health.ok)
+        return null;
+    const doFetch = getLocalBridgeFetch();
+    try {
+        const response = await doFetch(`${origin}/api/analyze/pick-folder`, {
+            method: 'POST',
+            headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+            body: '{}',
+        }, AGENT_TIMEOUT_MS);
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok || body.success !== true)
+            return null;
+        const picked = String(body.path || '').trim();
+        return picked || null;
+    }
+    catch (_a) {
+        return null;
+    }
 }
 async function agentFetchWithTimeout(url, options = {}, timeoutMs = 300000) {
     const doFetch = getAgentFetch();
