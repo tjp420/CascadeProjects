@@ -159,14 +159,17 @@
               .token-gate-paste input { padding: 12px 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text-main); font-size: 0.9rem; }
               .token-gate-paste input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(99,102,241,0.12); }
               .token-gate-paste .btn { align-self: flex-start; }
-              .token-gate-email { display: none; flex-direction: column; gap: 8px; padding: 14px; border: 1px solid rgba(99,102,241,0.2); border-radius: 12px; background: rgba(99,102,241,0.04); }
+              .token-gate-email { display: none; flex-direction: column; gap: 12px; padding: 16px; border: 1px solid rgba(99,102,241,0.2); border-radius: 12px; background: rgba(99,102,241,0.04); }
               .token-gate-email.expanded { display: flex; }
-              .token-gate-email-label { font-size: 0.75rem; color: var(--text-secondary); font-weight: 500; margin: 0; }
+              .token-gate-email-label { font-size: 0.75rem; color: var(--text-secondary); font-weight: 500; margin: 0 0 4px; }
               .token-gate-email-row { display: flex; gap: 8px; }
               .token-gate-email-row input { flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text-main); font-size: 0.85rem; }
               .token-gate-email-row input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
-              .token-gate-email-help { font-size: 0.7rem; color: var(--text-muted); margin: 0; }
-              .token-gate-code-row { display: none; flex-direction: row; align-items: center; gap: 8px; flex-wrap: wrap; }
+              .token-gate-email-help { font-size: 0.7rem; color: var(--text-muted); margin: 0; line-height: 1.4; max-width: 520px; }
+              .token-gate-code-row { display: none; flex-direction: column; gap: 6px; }
+              .token-gate-code-inputs { display: flex; gap: 8px; align-items: center; }
+              .token-gate-code-inputs input { width: 140px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text-main); font-size: 0.85rem; }
+              .token-gate-code-inputs input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
               .token-error-bar { color: var(--error); font-size: 0.8rem; margin: 0; display: none; }
               .token-gate-trust { margin: 0; padding: 10px 12px; border-radius: 8px; background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.18); font-size: 0.72rem; color: var(--text-secondary); line-height: 1.45; }
 
@@ -227,8 +230,10 @@
                 </div>
                 <div class="token-gate-code-row" id="sandboxCodeSection" style="display:none;">
                   <p class="token-gate-email-label">Enter the 6-digit code from your email:</p>
-                  <input type="text" id="sandboxCodeInput" maxlength="6" placeholder="123456" style="width:120px;padding:10px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text-main);font-size:0.85rem;" />
-                  <button type="button" class="btn btn-primary" id="sandboxCodeSubmit">Verify</button>
+                  <div class="token-gate-code-inputs">
+                    <input type="text" id="sandboxCodeInput" maxlength="6" placeholder="123456" />
+                    <button type="button" class="btn btn-primary" id="sandboxCodeSubmit">Verify</button>
+                  </div>
                 </div>
                 <p class="token-gate-email-help">We'll email you a sandbox token and a validation code. Enter the code to unlock the audit. The token is valid for 14 days.</p>
               </div>
