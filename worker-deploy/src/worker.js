@@ -35,6 +35,24 @@ export default {
 
     // Proxy API requests to the Render backend
     if (url.pathname.startsWith('/api/')) {
+      // The VS Code: extension's local /api/notify bridge does not exist on the
+      // hosted dashboard. Swallow these requests to avoid 404/401 noise.
+      if (url.pathname === '/api/notify' || url.pathname.startsWith('/api/notify/')) {
+        if (request.method === 'OPTIONS') {
+          return new Response(null, {
+            headers: {
+              'Access-Control-Allow-Origin': '*',
+              'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+              'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Token-Password',
+              'Access-Control-Max-Age': '86400'
+            }
+          });
+        }
+        return new Response(JSON.stringify({ success: true, hosted: true }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }
+        });
+      }
       // Handle CORS preflight
       if (request.method === 'OPTIONS') {
         return new Response(null, {
