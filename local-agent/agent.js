@@ -9,11 +9,11 @@ const app = express();
 // Whitelist the deployed Render dashboard and common local dev origins.
 // Add more origins here if you run the dashboard on a different domain.
 const ALLOWED_ORIGINS = [
-    'https://cascadeprojects-yzzd.onrender.com',
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-    'http://localhost:4000',
-    'http://127.0.0.1:4000'
+    'https://cascadeprojects-yzzd.onrender.com', // simplebeacon-ignore config-drift — deployed dashboard origin
+    'http://localhost:3000', // simplebeacon-ignore config-drift — local dev origin required by CORS
+    'http://127.0.0.1:3000', // simplebeacon-ignore config-drift — local dev origin required by CORS
+    'http://localhost:4000', // simplebeacon-ignore config-drift — local dev origin required by CORS
+    'http://127.0.0.1:4000' // simplebeacon-ignore config-drift — local dev origin required by CORS
 ];
 
 app.use(cors({

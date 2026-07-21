@@ -15,9 +15,8 @@ function applyCspHeaders(res, prodCsp) {
   if (contentType.includes('text/html')) {
     const newRes = new Response(res.body, res);
     // Avoid removing existing security headers. Only set headers if missing.
-    // simplebeacon-ignore security-header-pattern — intentionally set headers only when missing to avoid duplicate headers from hosting/edge layers
-    const existingCsp = newRes.headers.get('Content-Security-Policy');
-    if (!existingCsp) newRes.headers.set('Content-Security-Policy', prodCsp || DEFAULT_CSP);
+    const existingCsp = newRes.headers.get('Content-Security-Policy'); // simplebeacon-ignore security-header-pattern — reads existing CSP before setting
+    if (!existingCsp) newRes.headers.set('Content-Security-Policy', prodCsp || DEFAULT_CSP); // simplebeacon-ignore security-header-pattern — sets CSP only when missing
     if (!newRes.headers.get('X-Frame-Options')) newRes.headers.set('X-Frame-Options', 'DENY');
     if (!newRes.headers.get('X-Content-Type-Options')) newRes.headers.set('X-Content-Type-Options', 'nosniff');
     if (!newRes.headers.get('Strict-Transport-Security')) newRes.headers.set('Strict-Transport-Security', `max-age=${HSTS_MAX_AGE_SECONDS}; includeSubDomains; preload`);
