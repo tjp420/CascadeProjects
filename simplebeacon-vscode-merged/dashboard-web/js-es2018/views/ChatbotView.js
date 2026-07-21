@@ -1,10 +1,10 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 import { escapeHtml, sanitizePrivacyData, copyToClipboard } from '../utils.js';
-import { authService, apiBase } from '../services/authService.js?v=20260716cachefix1';
-import { fetchUserAiKeys, userHasJwtForAiKeys, fetchOllamaModels, saveUserAiKeys } from '../services/aiKeysService.js?v=20260716cachefix1';
+import { authService, apiBase } from '../services/authService.js?v=20260721cspapi';
+import { fetchUserAiKeys, userHasJwtForAiKeys, fetchOllamaModels, saveUserAiKeys } from '../services/aiKeysService.js?v=20260720ollama6';
 import { canUseBrowserOllama, isHostedDashboard } from '../demoMode.js';
-import { isIdeDashboardSurface } from '../utils-lib/dom.js?v=20260716cachefix1';
-import { getLocalBridgeFetch, getExtensionBridgeOrigin, hasExtensionBridgeConfigured, hasExplicitBridgeParam, probeLocalOllama, probeUserInitiatedOllama, probeExtensionBridgeHealth, resolveOllamaProxyUrl, buildBridgeOllamaChatUrls, discoverAndApplyExtensionBridge, buildExtensionConnectDeepLink, getVsixDownloadUrl, isHostedHttpsDashboard } from '../services/localAgentService.js?v=20260718ollama1';
+import { isIdeDashboardSurface } from '../utils-lib/dom.js?v=20260721corsfix1';
+import { getLocalBridgeFetch, getExtensionBridgeOrigin, hasExtensionBridgeConfigured, hasExplicitBridgeParam, probeLocalOllama, probeUserInitiatedOllama, probeExtensionBridgeHealth, resolveOllamaProxyUrl, buildBridgeOllamaChatUrls, discoverAndApplyExtensionBridge, buildExtensionConnectDeepLink, getVsixDownloadUrl, isHostedHttpsDashboard } from '../services/localAgentService.js?v=20260720ollama4';
 
 function isExtensionHostedTab() {
     if (hasExtensionBridgeConfigured())
@@ -625,7 +625,7 @@ export class ChatbotView {
             if (connectStatus)
                 connectStatus.textContent = 'Connected — Ollama is reachable via the extension bridge.';
             await this.refreshProviders();
-            void this.loadChatbotOllamaModels();
+            void this.loadChatbotOllamaModels().catch(() => {});
             return;
         }
         const connectStatus = document.getElementById('chatbot-ollama-connect-status');
@@ -664,7 +664,7 @@ export class ChatbotView {
         this.updateOllamaModelGroupVisibility();
         if (resolved.available.some((provider) => provider.id === 'ollama') && !this.ollamaModels.length && !this.ollamaModelsLoading && !this._ollamaModelsLoadAttempted) {
             this._ollamaModelsLoadAttempted = true;
-            void this.syncOllamaModelFromKeys().then(() => this.loadChatbotOllamaModels());
+            void this.syncOllamaModelFromKeys().then(() => this.loadChatbotOllamaModels()).catch(() => {});
         }
     }
     updateOllamaSetupVisibility(resolved) {
@@ -719,7 +719,7 @@ export class ChatbotView {
         if (refreshBtn) {
             refreshBtn.addEventListener('click', () => {
                 this._ollamaModelsLoadAttempted = false;
-                void this.loadChatbotOllamaModels({ toastOnSuccess: true });
+                void this.loadChatbotOllamaModels({ toastOnSuccess: true }).catch(() => {});
             });
         }
     }
@@ -880,7 +880,7 @@ export class ChatbotView {
             if (statusEl)
                 statusEl.textContent = 'Connected — Ollama is reachable from this browser.';
             await this.refreshProviders();
-            void this.loadChatbotOllamaModels();
+            void this.loadChatbotOllamaModels().catch(() => {});
             return;
         }
         if (statusEl) {
@@ -914,7 +914,7 @@ export class ChatbotView {
         if (!select)
             return;
 // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-        window.setSafeHTML(select, '');;
+        window.setSafeHTML(select, '');
         resolved.providers.forEach((provider) => {
             const option = document.createElement('option');
             option.value = provider.id;
@@ -1205,7 +1205,7 @@ export class ChatbotView {
                 const opening = settingsPanel.style.display === 'none';
                 settingsPanel.style.display = opening ? 'block' : 'none';
                 if (opening && (this.useBrowserOllama || hasExtensionBridgeConfigured())) {
-                    void this.loadChatbotOllamaModels();
+                    void this.loadChatbotOllamaModels().catch(() => {});
                 }
             });
         }

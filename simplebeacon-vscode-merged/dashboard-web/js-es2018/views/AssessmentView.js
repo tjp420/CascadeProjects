@@ -1,7 +1,7 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 import { escapeHtml, showToast } from '../utils.js';
 import { assessmentService } from '../services/assessmentService.js';
-import { authService } from '../services/authService.js?v=20260716cachefix1';
+import { authService } from '../services/authService.js?v=20260721cspapi';
 import { showLoginModal } from '../components/LoginModal.js';
 /**
  * Assessment view.
@@ -215,7 +215,7 @@ export class AssessmentView {
         }
         this.recent = assessmentService.getRecentAssessments();
 // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-        window.setSafeHTML(container, '');;
+        window.setSafeHTML(container, '');
         container.appendChild(this.render());
     }
 }

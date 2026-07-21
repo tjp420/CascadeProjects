@@ -375,7 +375,7 @@ npm test -- --testPathPattern=page-samples</pre>
     }
     mount(container) {
 // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-        window.setSafeHTML(container, '');;
+        window.setSafeHTML(container, '');
         container.appendChild(this.render());
     }
 }
@@ -515,7 +515,7 @@ export class FeaturesView {
     }
     mount(container) {
 // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-        window.setSafeHTML(container, '');;
+        window.setSafeHTML(container, '');
         container.appendChild(this.render());
     }
 }

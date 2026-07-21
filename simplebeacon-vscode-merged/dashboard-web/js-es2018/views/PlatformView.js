@@ -270,7 +270,7 @@ export class PlatformView {
     }
     mount(container) {
 // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-        window.setSafeHTML(container, '');;
+        window.setSafeHTML(container, '');
         container.appendChild(this.render());
     }
 }

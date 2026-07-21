@@ -1139,6 +1139,22 @@ async function processLocalCLIScan(files) {
             });
         }
     }
+    // Deduplicate files by normalized path — Windows symlinks/junctions (pnpm node_modules)
+    // cause the same file to appear multiple times during recursive directory traversal.
+    const _seenPaths = new Set();
+    const _deduped = [];
+    for (const f of files) {
+        const raw = f.webkitRelativePath || f.name;
+        const normalized = raw.replace(/\\/g, '/').toLowerCase();
+        if (_seenPaths.has(normalized)) continue;
+        _seenPaths.add(normalized);
+        _deduped.push(f);
+    }
+    if (_deduped.length < files.length) {
+        const removed = files.length - _deduped.length;
+        appendTerminalLine(`<span style="color:#F59E0B;">&#9888; WARN:</span> Removed ${removed.toLocaleString()} duplicate file(s) from symlink/junction traversal.`, 'warn');
+        files = _deduped;
+    }
     // Auto-detect project root: find the directory with the most files
     // that contains package.json, .simplebeacon/, || server.cjs.
     const paths = files.map(f => f.webkitRelativePath || f.name).map(p => p.replace(/\\/g, '/'));

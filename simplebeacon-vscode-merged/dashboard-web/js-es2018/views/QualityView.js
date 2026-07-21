@@ -350,7 +350,7 @@ export class QualityView {
         if (this._container !== container)
             return;
 // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-        window.setSafeHTML(container, '');;
+        window.setSafeHTML(container, '');
         container.appendChild(this.render());
         if (!this.app.state.npmAudit && !this.auditLoading) {
             this.runAudit();

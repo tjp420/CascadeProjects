@@ -2758,7 +2758,7 @@ export class AnalyzeView {
     const upgradePrompt = isStarter && totalFindings > maxFindings
       ? `<div class="mb-4" style="padding:var(--space-3);background:var(--warning-bg, #fffbeb);border:1px solid var(--warning-border, #f59e0b);border-radius:8px;color:var(--warning-text, #92400e);font-size:var(--font-size-sm);">
           <strong>🔒 Pro feature</strong> — ${totalFindings} findings detected. Upgrade to Pro to see all findings and the quality score.
-          <a href="/dashboard/pricing" data-pricing-cta="1" style="color:var(--link-color, #2563eb);text-decoration:underline;font-weight:600;">Upgrade</a>
+          <a href="/pricing" data-pricing-cta="1" style="color:var(--link-color, #2563eb);text-decoration:underline;font-weight:600;">Upgrade</a>
          </div>`
       : '';
 
@@ -3990,14 +3990,18 @@ export class AnalyzeView {
     const detectedIssues = report.detectedIssues || [];
     const findings = report.findings || [];
     const warningIssues = (report.gate && report.gate.warningIssues) || [];
-    const primaryIssues = rawIssues.length ? rawIssues : (detectedIssues.length ? detectedIssues : (findings.length ? findings : []));
+    // Prefer the processed `detectedIssues` list (which may come from `findings`) so
+    // `severityCounts` and the primary issue list originate from the same source.
+    const primaryIssues = (detectedIssues && detectedIssues.length)
+      ? detectedIssues
+      : (rawIssues && rawIssues.length) ? rawIssues : (findings && findings.length ? findings : []);
     const counted = (sev.critical || 0) + (sev.high || 0) + (sev.medium || 0) + (sev.low || 0) + (sev.info || 0);
     const primaryTotal = Array.isArray(primaryIssues) ? primaryIssues.reduce((sum, i) => sum + (Number(i && i.count) || 1), 0) : 0;
     const warningTotal = Array.isArray(warningIssues) ? warningIssues.reduce((sum, i) => sum + (Number(i && i.count) || 1), 0) : 0;
     // Scanner splits non-blocking warning issues into gate.warningIssues while rawIssues holds blockers.
     // Only add warnings when the primary list does not already account for the full severityCounts.
     const issueTotal = counted === primaryTotal ? primaryTotal : primaryTotal + warningTotal;
-    if (Math.abs(counted - issueTotal) > 1) {
+    if (counted !== issueTotal) {
       integrityWarnings.push(`severityCounts sum (${counted}) ≠ issues.count (${issueTotal})`);
     }
     if (report.summary && typeof report.summary.totalIssues === 'number' && report.summary.totalIssues !== issueTotal) {
@@ -9000,7 +9004,14 @@ export class AnalyzeView {
       return;
     }
     const main = document.getElementById('app-main');
-    const savedScrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
+    let savedScrollY = 0;
+    const scrollContainerIsWindow = !main;
+    if (scrollContainerIsWindow) {
+      savedScrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
+    }
+    else {
+      savedScrollY = main.scrollTop || 0;
+    }
     try {
       this.mount(main);
     } catch (err) {
@@ -9009,11 +9020,17 @@ export class AnalyzeView {
       showToast('Scan UI failed to update. See console.', 'error');
       return;
     }
-    requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        window.scrollTo(0, savedScrollY);
+        requestAnimationFrame(() => {
+          if (scrollContainerIsWindow) {
+            window.scrollTo(0, savedScrollY);
+          }
+          else {
+            try { main.scrollTo(0, savedScrollY); }
+            catch (e) { main.scrollTop = savedScrollY; }
+          }
+        });
       });
-    });
   }
 
   async ensureDefaultProjectPath() {

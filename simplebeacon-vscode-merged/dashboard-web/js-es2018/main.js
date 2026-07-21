@@ -309,6 +309,9 @@ class SimplebeaconDashboard {
         if (!el)
             return;
         el.scrollTop = 0;
+        if (typeof el.scrollTo === 'function') {
+            el.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+        }
         if (typeof window.scrollTo === 'function') {
             window.scrollTo(0, 0);
         }
@@ -316,6 +319,33 @@ class SimplebeaconDashboard {
             document.documentElement.scrollTop = 0;
             document.body.scrollTop = 0;
         }
+    }
+    _setupIdeScrollBridge() {
+        if (!isEmbeddedDashboardFrame() && !isIdeDashboardSurface())
+            return;
+        const main = document.getElementById('app-main');
+        if (!main)
+            return;
+        const originalScrollTo = window.scrollTo.bind(window);
+        const originalScrollBy = window.scrollBy.bind(window);
+        window.scrollTo = (...args) => {
+            if (args.length === 2) {
+                try { main.scrollTo({ top: args[1], left: args[0], behavior: 'auto' }); } catch (_) { originalScrollTo(...args); }
+            } else if (args.length === 1 && typeof args[0] === 'object') {
+                try { main.scrollTo(args[0]); } catch (_) { originalScrollTo(...args); }
+            } else {
+                originalScrollTo(...args);
+            }
+        };
+        window.scrollBy = (...args) => {
+            if (args.length === 2) {
+                try { main.scrollBy({ top: args[1], left: args[0], behavior: 'auto' }); } catch (_) { originalScrollBy(...args); }
+            } else if (args.length === 1 && typeof args[0] === 'object') {
+                try { main.scrollBy(args[0]); } catch (_) { originalScrollBy(...args); }
+            } else {
+                originalScrollBy(...args);
+            }
+        };
     }
     cleanupOrphanViewRoots(main) {
         const keep = main || document.getElementById('app-main');
@@ -358,6 +388,7 @@ class SimplebeaconDashboard {
         themeService.init();
         this.setupShell();
         this.setupEmbedQuickNav();
+        this._setupIdeScrollBridge();
         this.showBridgeNotice();
         this.setupKeyboard();
         this.setupMobileNav();

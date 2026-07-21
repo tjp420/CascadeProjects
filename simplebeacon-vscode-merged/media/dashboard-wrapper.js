@@ -179,12 +179,9 @@
     return url;
   }
 
-  /** Website mode keeps simplebeacon.ai URLs; localhost mode rewrites remote dashboard routes to the data-server. */
+  /** Rewrite simplebeacon.ai dashboard routes to localhost (CSP blocks iframe embedding on the hosted site). */
   function preferLocalDashboardUrl(url) {
     if (!url) return url;
-    if (isWebsiteModeActive()) {
-      return url;
-    }
     var localBase = window.__SB_LOCAL_DASHBOARD_BASE__ || '';
     try {
       var parsed = new URL(url);

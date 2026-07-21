@@ -107,7 +107,7 @@ export function canUseParentBridgeFetch() {
  * @param {RequestInit} [init]
  * @param {number} [timeoutMs]
  */
-export function bridgeFetchViaParent(url, init = {}, timeoutMs = 8000) {
+export function bridgeFetchViaParent(url, init = {}, timeoutMs = 4000) {
     return new Promise((resolve, reject) => {
         if (!canUseParentBridgeFetch()) {
             reject(new Error('Parent bridge unavailable'));
@@ -164,7 +164,18 @@ export function getBridgeFetch() {
     if (hasAgentBridge())
         return getAgentFetch();
     if (canUseParentBridgeFetch()) {
-        return (url, init) => bridgeFetchViaParent(url, init);
+        return async (url, init) => {
+            try {
+                return await bridgeFetchViaParent(url, init);
+            }
+            catch (err) {
+                const msg = String(err?.message || err);
+                if (msg.includes('Parent bridge fetch timeout') || msg.includes('Parent bridge unavailable')) {
+                    return fetch(url, init);
+                }
+                throw err;
+            }
+        };
     }
     return fetch;
 }

@@ -212,12 +212,17 @@ export function handleScanConfigRoutes(
             ollamaModel: payload.ollamaModel || '',
             updatedAt: new Date().toISOString()
           };
-          await cfg.update('aiKeys', updated, true);
+          try {
+            await cfg.update('aiKeys', updated, true);
+          } catch {
+            await cfg.update('aiKeys', updated, false);
+          }
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ success: true, ...updated }));
         } catch (e) {
+          console.error('[scanConfig] PUT /api/simplebeacon/user/ai-keys failed:', e);
           res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: false, error: 'Invalid request' }));
+          res.end(JSON.stringify({ success: false, error: 'Invalid request: ' + ((e as Error)?.message || String(e)) }));
         }
       });
       return true;

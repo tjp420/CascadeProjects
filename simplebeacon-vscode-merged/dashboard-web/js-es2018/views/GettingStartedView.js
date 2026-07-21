@@ -88,7 +88,7 @@ export class GettingStartedView {
 
     mount(container) {
 // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-        window.setSafeHTML(container, '');;
+        window.setSafeHTML(container, '');
         const view = this.render();
         container.appendChild(view);
         this.bindEvents(view);

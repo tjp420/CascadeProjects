@@ -243,6 +243,8 @@ async function crawlSandboxedTree(dirHandle, currentPath, queue, options) {
     logLine(onLog, `Skipping ignored directory: ${currentPath}`, 'info');
     return;
   }
+  const seen = options._seenPaths || new Set();
+  options._seenPaths = seen;
 
   for await (const [name, handle] of dirHandle.entries()) {
     if (queue.length >= maxFiles) {
@@ -268,6 +270,9 @@ async function crawlSandboxedTree(dirHandle, currentPath, queue, options) {
     const ext = extIndex >= 0 ? name.substring(extIndex).toLowerCase() : '';
     if (!ALLOWED_EXTENSIONS.has(ext)) continue;
 
+    const normalizedPath = nextVirtualPath.replace(/\\/g, '/').toLowerCase();
+    if (seen.has(normalizedPath)) continue;
+    seen.add(normalizedPath);
     queue.push({ handle, virtualPath: nextVirtualPath });
   }
 }
@@ -407,6 +412,7 @@ function pickLegacyDirectory({ maxFiles, onLog }) {
         'info'
       );
       const fileQueue = [];
+      const _seenPaths = new Set();
       for (const file of files) {
         if (fileQueue.length >= maxFiles) {
           logLine(onLog, `Reached max file limit (${maxFiles}); stopping traversal.`, 'warning');
@@ -421,6 +427,9 @@ function pickLegacyDirectory({ maxFiles, onLog }) {
         const extIndex = file.name.lastIndexOf('.');
         const ext = extIndex >= 0 ? file.name.substring(extIndex).toLowerCase() : '';
         if (!ALLOWED_EXTENSIONS.has(ext)) continue;
+        const normalizedPath = virtualPath.replace(/\\/g, '/').toLowerCase();
+        if (_seenPaths.has(normalizedPath)) continue;
+        _seenPaths.add(normalizedPath);
         fileQueue.push({ file, virtualPath });
       }
       resolve({ rootName, fileQueue, ignoreCtx });
@@ -825,6 +834,10 @@ async function crawlWebkitEntryTree(entry, currentPath, queue, options) {
     const extIndex = file.name.lastIndexOf('.');
     const ext = extIndex >= 0 ? file.name.substring(extIndex).toLowerCase() : '';
     if (ALLOWED_EXTENSIONS.has(ext)) {
+      const seen = options._seenPaths || (options._seenPaths = new Set());
+      const normalizedPath = currentPath.replace(/\\/g, '/').toLowerCase();
+      if (seen.has(normalizedPath)) return;
+      seen.add(normalizedPath);
       queue.push({ file, virtualPath: currentPath });
     }
     return;

@@ -5,11 +5,11 @@ import { resolvePageSpecsLabel, resolveJestTestsLabel } from '../services/analyz
 import { scanService } from '../services/scanService.js?v=20260716cachefix1';
 import { billingService } from '../services/billingService.js';
 import { platformService } from '../services/platformService.js';
-import { fetchUserAiKeys, saveUserAiKeys, clearUserAiKeys, normalizeAiKeysRecord, fetchOllamaModels, shouldProbeOllamaModels, userHasJwtForAiKeys } from '../services/aiKeysService.js?v=20260716cachefix1';
-import { authService } from '../services/authService.js?v=20260716cachefix1';
+import { fetchUserAiKeys, saveUserAiKeys, clearUserAiKeys, normalizeAiKeysRecord, fetchOllamaModels, shouldProbeOllamaModels, userHasJwtForAiKeys } from '../services/aiKeysService.js?v=20260720ollama6';
+import { authService } from '../services/authService.js?v=20260721cspapi';
 import { OLLAMA_DEFAULT_URL } from '../config.js';
 import { isHostedDashboard } from '../demoMode.js';
-import { hasExtensionBridgeConfigured } from '../services/localAgentService.js?v=20260716cachefix1';
+import { hasExtensionBridgeConfigured } from '../services/localAgentService.js?v=20260720ollama3';
 import { mountCheckoutSuccessBanner } from '../components/CheckoutSuccessBanner.js';
 import { activateStockpileEntry, addToStockpile, BUY_TIME_TOKENS_URL, decodeTokenMeta, isStockpiledEntry, loadStockpileEntries, tokenHint, } from '../services/tokenStockpileService.js';
 const AI_KEY_FIELDS = [
@@ -81,7 +81,7 @@ export class SettingsView {
         }
         else {
 // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-            window.setSafeHTML(target, '');;
+            window.setSafeHTML(target, '');
             target.appendChild(root);
         }
         this._root = root;
@@ -251,7 +251,7 @@ export class SettingsView {
             const baseUrl = this.sanitizeOllamaBaseUrl((_b = (_a = root.querySelector('#settings-ai-ollama')) === null || _a === void 0 ? void 0 : _a.value) === null || _b === void 0 ? void 0 : _b.trim())
                 || this.displayAiKeys().ollamaBaseUrl
                 || OLLAMA_DEFAULT_URL;
-            void this.loadOllamaModels(baseUrl);
+            void this.loadOllamaModels(baseUrl).catch(() => {});
         });
     }
     sanitizeOllamaBaseUrl(url) {
@@ -285,7 +285,7 @@ export class SettingsView {
             return;
         }
         this._ollamaModelsTimer = setTimeout(() => {
-            void this.loadOllamaModels(url);
+            void this.loadOllamaModels(url).catch(() => {});
         }, 500);
     }
     async loadOllamaModels(baseUrl, options = {}) {
@@ -742,7 +742,11 @@ export class SettingsView {
         showToast('Clipboard unavailable — copy from Profile', 'error');
     }
     openBuyTimeTokens() {
-        window.open(BUY_TIME_TOKENS_URL, '_blank', 'noopener,noreferrer');
+        try {
+            window.open(BUY_TIME_TOKENS_URL(), '_blank', 'noopener,noreferrer');
+        } catch (e) {
+            window.open('/checkout/tokens?ref=dashboard', '_blank', 'noopener,noreferrer');
+        }
     }
     updateToken(root, rerender) {
         var _a, _b;
@@ -1443,7 +1447,7 @@ export class SettingsView {
         if (root.querySelector('#settings-ai-keys-card')) {
             const baseUrl = this.displayAiKeys().ollamaBaseUrl || 'http://127.0.0.1:11434';
             if (!this.ollamaModels.length && !this.ollamaModelsLoading && shouldProbeOllamaModels(baseUrl)) {
-                void this.loadOllamaModels(baseUrl);
+                void this.loadOllamaModels(baseUrl).catch(() => {});
             }
         }
     }

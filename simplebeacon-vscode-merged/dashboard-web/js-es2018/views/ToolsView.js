@@ -394,7 +394,7 @@ export class ToolsView {
     }
     _paint(container) {
 // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-        window.setSafeHTML(container, '');;
+        window.setSafeHTML(container, '');
         container.appendChild(this.render());
         this._hasPainted = true;
     }

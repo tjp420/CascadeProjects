@@ -133,7 +133,6 @@ export async function mountCheckoutSuccessBanner(container, options = {}) {
         billingService.setApiToken(token);
         if (email)
             billingService.setEmail(email);
-        // simplebeacon-ignore sensitive-data — hardcoded fallback email, not user data
         authService.setSession(token, { email: email || 'team@simplebeacon.ai', tier: 'team' });
         options.onTokenReady?.(token, email);
         showToast('Team license activated in dashboard', 'success');

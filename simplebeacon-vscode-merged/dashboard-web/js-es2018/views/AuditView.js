@@ -508,7 +508,7 @@ export class AuditView {
             return;
         this._container = container;
 // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-        window.setSafeHTML(container, '');;
+        window.setSafeHTML(container, '');
         try {
             container.appendChild(this.render());
         }

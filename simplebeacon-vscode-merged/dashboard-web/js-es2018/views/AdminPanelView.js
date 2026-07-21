@@ -1,7 +1,7 @@
 // @ts-nocheck
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
-import { authService, apiBase } from '../services/authService.js?v=20260716cachefix1';
-import { escapeHtml, showToast, downloadJson } from '../utils.js';
+import { authService, apiBase } from '../services/authService.js?v=20260721cspapi';
+import { escapeHtml, showToast, downloadJson, setHtml } from '../utils.js?v=20260720adminfix1';
 
 function normalizeTrustLevel(value) {
     const raw = String(value || 'bronze').toLowerCase();
@@ -70,6 +70,14 @@ export class AdminPanelView {
         this.searchTimer = null;
         this.passwordVerifiedUntil = 0;
         this.modals = [];
+        this._paginationDelegated = false;
+    }
+
+    refreshPaginationState() {
+        const totalPages = Math.max(1, Math.ceil((Number(this.totalUsers) || 0) / (this.pageLimit || PAGE_SIZE)));
+        if (this.pageIndex < 1) this.pageIndex = 1;
+        if (this.pageIndex > totalPages) this.pageIndex = totalPages;
+        return totalPages;
     }
 
     isAdmin() {
@@ -847,13 +855,11 @@ export class AdminPanelView {
     render() {
         if (!this.container) return;
         if (this.loading && !this.users.length) {
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-            this.container.innerHTML = this.renderLoading();
+            setHtml(this.container, this.renderLoading());
             return;
         }
         if (this.error && !this.users.length) {
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-            this.container.innerHTML = this.renderError();
+            setHtml(this.container, this.renderError());
             const retryBtn = this.container.querySelector('#admin-retry');
             if (retryBtn) retryBtn.addEventListener('click', () => this.loadData());
             return;
@@ -863,8 +869,7 @@ export class AdminPanelView {
         const showIncidents = filtered.some(u => (u.securityIncidents || 0) > 0) || this.users.some(u => (u.securityIncidents || 0) > 0);
         const tierCounts = this.getTierCounts();
         const statusCounts = this.getStatusCounts();
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-        this.container.innerHTML = `
+        setHtml(this.container, `
             <div class="page-header admin-page-header">
                 <div>
                     <h1>Account Manager</h1>
@@ -933,7 +938,7 @@ export class AdminPanelView {
                     </div>
                 </section>
             </div>
-        `;
+        `);
         this.bindEvents();
     }
 
@@ -1112,10 +1117,22 @@ export class AdminPanelView {
                 this.scheduleSearchReload();
             });
         }
-        const prevBtn = this.container.querySelector('#admin-prev-page');
-        if (prevBtn) prevBtn.addEventListener('click', () => this.goToPreviousPage());
-        const nextBtn = this.container.querySelector('#admin-next-page');
-        if (nextBtn) nextBtn.addEventListener('click', () => this.goToNextPage());
+        // Delegate Prev/Next clicks so handlers survive render reflows and avoid duplicate listeners
+        if (!this._paginationDelegated && this.container) {
+            this._paginationDelegated = true;
+            this.container.addEventListener('click', (e) => {
+                const prev = e.target.closest && e.target.closest('#admin-prev-page');
+                const next = e.target.closest && e.target.closest('#admin-next-page');
+                if (!prev && !next) return;
+                e.preventDefault();
+                if (prev) {
+                    this.goToPreviousPage().catch(() => { /* ignore */ });
+                }
+                else if (next) {
+                    this.goToNextPage().catch(() => { /* ignore */ });
+                }
+            });
+        }
         const refreshBtn = this.container.querySelector('#admin-refresh');
         if (refreshBtn) {
             refreshBtn.addEventListener('click', () => {
@@ -1209,8 +1226,7 @@ export class AdminPanelView {
         if (!tbody) return;
         const filtered = this.getFilteredUsers();
         const showIncidents = this.showIncidentsColumn();
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-        tbody.innerHTML = this.renderUserRows(filtered, showIncidents);
+        setHtml(tbody, this.renderUserRows(filtered, showIncidents));
         const badge = this.container.querySelector('.admin-count-badge');
         if (badge) badge.textContent = this.getPageRangeLabel();
         this.bindRowActions();

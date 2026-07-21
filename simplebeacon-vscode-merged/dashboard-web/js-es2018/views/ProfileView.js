@@ -1,8 +1,8 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
-import { escapeHtml, showToast } from '../utils.js';
-import { authService } from '../services/authService.js?v=20260716cachefix1';
+import { escapeHtml, showToast, setHtml } from '../utils.js?v=20260720adminfix1';
+import { authService } from '../services/authService.js?v=20260721cspapi';
 import { isWebAuthnSupported, listSecurityKeys, registerSecurityKey, removeSecurityKey } from '../services/webauthnService.js?v=20260716cachefix1';
-import { userHasJwtForAiKeys } from '../services/aiKeysService.js?v=20260716cachefix1';
+import { userHasJwtForAiKeys } from '../services/aiKeysService.js?v=20260720ollama3';
 import { activateStockpileEntry, addToStockpile, BUY_TIME_TOKENS_URL, decodeTokenMeta, listStockpiled, stockpileCount, tokenHint, } from '../services/tokenStockpileService.js';
 function loadProfile() {
     try {
@@ -329,7 +329,7 @@ export class ProfileView {
               <div class="profile-card-body">
                 <p class="profile-help" style="margin-top:0;">Buy time tokens now and stockpile them here. They stay inactive until you click Load — useful for renewing before your current token expires.</p>
                 <div class="profile-field">
-                  <label for="profile-stockpile-input">Paste token to stockpile</label>
+                  <label for="profile-stockpile-input">add time token</label>
                   <div class="profile-input-group">
                     <input type="password" id="profile-stockpile-input" placeholder="Paste purchased time token…" autocomplete="off">
                     <button type="button" class="btn btn-secondary btn-sm" id="profile-stockpile-add">Stockpile</button>
@@ -362,7 +362,7 @@ export class ProfileView {
       </div>
     `);
 // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-        window.setSafeHTML(container, '');;
+        window.setSafeHTML(container, '');
         container.appendChild(fragment);
         if (typeof window.lucide !== 'undefined')
             window.lucide.createIcons();
@@ -390,8 +390,74 @@ export class ProfileView {
             if (el)
                 el.addEventListener('input', () => { hasChanges = true; });
         });
+        // Password confirmation modal with show/hide toggle
+        function promptForConfirmPassword(message) {
+            return new Promise((resolve) => {
+                const overlay = document.createElement('div');
+                overlay.className = 'modal-overlay';
+                overlay.style.zIndex = '300';
+                setHtml(overlay, `
+          <div class="modal-card" role="dialog" aria-modal="true" style="max-width:360px;">
+            <div class="modal-header" style="text-align:center;">
+              <h2 style="font-size:1.25rem;margin-bottom:var(--space-1);">Confirm Password</h2>
+              <p class="text-muted" style="margin:0;">${escapeHtml(message || 'Enter your password to confirm changes.')}</p>
+            </div>
+            <div class="modal-body" style="padding:var(--space-3) var(--space-4);">
+              <div class="profile-field">
+                <label for="profile-confirm-password-input">Password</label>
+                <div class="profile-input-group">
+                  <input type="text" id="profile-confirm-password-input" autocomplete="off" placeholder="Enter your password…" style="flex:1;">
+                  <button type="button" class="input-action" id="profile-confirm-password-toggle" title="Hide password" aria-label="Hide password"><i data-lucide="eye-off" class="icon-16"></i></button>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer" style="display:flex;gap:var(--space-2);justify-content:flex-end;padding:var(--space-3) var(--space-4);">
+              <button type="button" class="btn btn-secondary" id="profile-confirm-password-cancel">Cancel</button>
+              <button type="button" class="btn btn-primary" id="profile-confirm-password-ok">Confirm</button>
+            </div>
+          </div>
+        `);
+                document.body.appendChild(overlay);
+                if (typeof window.lucide !== 'undefined')
+                    window.lucide.createIcons();
+                const input = overlay.querySelector('#profile-confirm-password-input');
+                const toggle = overlay.querySelector('#profile-confirm-password-toggle');
+                if (input)
+                    input.focus();
+                const cleanup = () => overlay.remove();
+                const finish = (value) => { cleanup(); resolve(value); };
+                overlay.querySelector('#profile-confirm-password-ok')?.addEventListener('click', () => finish(input ? input.value : ''));
+                overlay.querySelector('#profile-confirm-password-cancel')?.addEventListener('click', () => finish(null));
+                input?.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter')
+                        finish(input.value);
+                    if (e.key === 'Escape')
+                        finish(null);
+                });
+                if (toggle) {
+                    toggle.addEventListener('click', () => {
+                        if (!input)
+                            return;
+                        if (input.type === 'password') {
+                            input.type = 'text';
+                            toggle.title = 'Hide password';
+                            toggle.setAttribute('aria-label', 'Hide password');
+                            setHtml(toggle, '<i data-lucide="eye-off" class="icon-16"></i>');
+                        }
+                        else {
+                            input.type = 'password';
+                            toggle.title = 'Show password';
+                            toggle.setAttribute('aria-label', 'Show password');
+                            setHtml(toggle, '<i data-lucide="eye" class="icon-16"></i>');
+                        }
+                        if (typeof window.lucide !== 'undefined')
+                            window.lucide.createIcons();
+                    });
+                }
+            });
+        }
         // Save profile
-        (_b = container.querySelector('#profile-save-btn')) === null || _b === void 0 ? void 0 : _b.addEventListener('click', () => {
+        (_b = container.querySelector('#profile-save-btn')) === null || _b === void 0 ? void 0 : _b.addEventListener('click', async () => {
             var _a, _b, _c, _d, _e, _f, _g;
             const data = {
                 email: ((_b = (_a = container.querySelector('#profile-email')) === null || _a === void 0 ? void 0 : _a.value) === null || _b === void 0 ? void 0 : _b.trim()) || '',
@@ -403,15 +469,15 @@ export class ProfileView {
             if (hasChanges) {
                 const stored = loadProfile();
                 const currentPassword = data.emailPassword || data.tokenPassword || stored.emailPassword || stored.tokenPassword || '';
-                const confirmPassword = prompt('Changes detected. Enter your password to confirm save:');
-                if (confirmPassword === null) {
+                const confirmed = await promptForConfirmPassword('Changes detected. Enter your password to confirm save.');
+                if (confirmed === null) {
                     const status = container.querySelector('#profile-save-status');
                     status.textContent = 'Save cancelled.';
                     status.style.color = 'var(--warning)';
                     setTimeout(() => { status.textContent = ''; status.style.color = ''; }, 3000);
                     return;
                 }
-                if (confirmPassword !== currentPassword) {
+                if (confirmed !== currentPassword) {
                     const status = container.querySelector('#profile-save-status');
                     status.textContent = 'Password mismatch — changes not saved.';
                     status.style.color = 'var(--danger)';
@@ -550,7 +616,7 @@ export class ProfileView {
         // Check server WebAuthn availability
         (async () => {
             try {
-                const { apiBase } = await import('../services/authService.js?v=20260716cachefix1');
+                const { apiBase } = await import('../services/authService.js?v=20260721cspapi');
                 const res = await fetch(`${apiBase()}/api/webauthn/status`, { credentials: 'same-origin' });
                 if (res.status === 404) {
                     if (serverStatusBanner) {
@@ -806,7 +872,11 @@ export class ProfileView {
             }
         });
         container.querySelector('#profile-buy-tokens')?.addEventListener('click', () => {
-            window.open(BUY_TIME_TOKENS_URL, '_blank', 'noopener,noreferrer');
+          try {
+            window.open(BUY_TIME_TOKENS_URL(), '_blank', 'noopener,noreferrer');
+          } catch (e) {
+            window.open('/checkout/tokens?ref=dashboard', '_blank', 'noopener,noreferrer');
+          }
         });
         container.querySelectorAll('[data-stockpile-load]').forEach((btn) => {
             btn.addEventListener('click', () => {

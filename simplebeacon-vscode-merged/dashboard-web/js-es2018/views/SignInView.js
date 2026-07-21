@@ -1,8 +1,8 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
-import { authService } from '../services/authService.js?v=20260716cachefix1';
+import { authService } from '../services/authService.js?v=20260721cspapi';
 import { billingService } from '../services/billingService.js';
 import { authenticateWithSecurityKey, isWebAuthnSupported } from '../services/webauthnService.js?v=20260716cachefix1';
-import { showToast } from '../utils.js';
+import { showToast, setHtml } from '../utils.js?v=20260720adminfix1';
 /**
  * Decode email from token.
  * @param {string} token
@@ -119,15 +119,11 @@ export class SignInView {
     _isRegisterMode() {
         return this._emailMode === 'register';
     }
-    async mount(container) {
-        var _a, _b, _c, _d, _e;
+    async mount(container, mode = null) {
+        var _a, _b, _c, _d, _e, _f;
         this._mountContainer = container;
-        this._emailMode = this._resolveEmailMode();
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-        window.setSafeHTML(
-            container,
-            '<div class="signin-page"><div class="signin-card card"><p class="text-muted">Loading…</p></div></div>'
-        );;
+        this._emailMode = mode || this._resolveEmailMode();
+        setHtml(container, `<div class="signin-page"><div class="signin-card card"><p class="text-muted">Loading…</p></div></div>`);
         this._ingestUrlToken();
         const authed = authService.isAuthenticated();
         const email = ((_a = authService.getUser()) === null || _a === void 0 ? void 0 : _a.email) || decodeEmailFromToken(authService.getToken()) || '';
@@ -150,24 +146,25 @@ export class SignInView {
             return;
         }
         const isRegister = this._isRegisterMode();
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-        container.innerHTML = `
+        const isToken = this._emailMode === 'token';
+        setHtml(container, `
       <div class="signin-page">
         <div class="signin-card card">
           <div class="signin-header">
             <span class="signin-icon" aria-hidden="true">&#128274;</span>
-            <h1 class="signin-title">${isRegister ? 'Create Account' : 'Sign In'}</h1>
-            <p class="text-muted signin-subtitle">${isRegister ? 'Set up your SimpleBeacon account.' : 'Access your SimpleBeacon dashboard.'}</p>
+            <h1 class="signin-title">${isToken ? 'Token Sign In' : (isRegister ? 'Create Account' : 'Sign In')}</h1>
+            <p class="text-muted signin-subtitle">${isToken ? 'Sign in with your SimpleBeacon license or access token.' : (isRegister ? 'Set up your SimpleBeacon account.' : 'Access your SimpleBeacon dashboard.')}</p>
           </div>
           ${authed ? this.renderAuthed({ email, allowed, internalDev }) : this.renderSignInForm()}
         </div>
       </div>
-    `;
+    `);
         if (!authed) {
             this.bindEmailModeToggle(container);
             (_b = container.querySelector('#signin-email-form')) === null || _b === void 0 ? void 0 : _b.addEventListener('submit', (e) => this.handleEmailSubmit(e));
             (_c = container.querySelector('#forgot-password-btn')) === null || _c === void 0 ? void 0 : _c.addEventListener('click', () => this._showRecoveryModal());
             (_d = container.querySelector('#webauthn-signin-btn')) === null || _d === void 0 ? void 0 : _d.addEventListener('click', () => this._handleWebAuthnSignIn());
+            (_f = container.querySelector('#signin-token-form')) === null || _f === void 0 ? void 0 : _f.addEventListener('submit', (e) => this.handleTokenSubmit(e));
         }
         else {
             (_e = container.querySelector('#signin-signout-btn')) === null || _e === void 0 ? void 0 : _e.addEventListener('click', async () => {
@@ -216,6 +213,7 @@ export class SignInView {
     }
     renderSignInForm() {
         const isRegister = this._isRegisterMode();
+        const isToken = this._emailMode === 'token';
         const inputStyle = 'width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:var(--background);color:var(--text-primary);font-size:0.95rem;box-sizing:border-box;';
         const labelStyle = 'display:block;font-size:0.85rem;color:var(--text-muted);margin-bottom:6px;';
         const tabActive = 'background:var(--surface);color:var(--primary);box-shadow:0 1px 3px rgba(0,0,0,0.08);';
@@ -225,47 +223,67 @@ export class SignInView {
         return `
       <div class="signin-tab-panel active" id="panel-email">
         <div class="signin-subtabs" style="display:flex;gap:4px;margin-bottom:16px;background:var(--surface-hover);border-radius:8px;padding:3px;">
-          <button type="button" class="signin-subtab ${!isRegister ? 'active' : ''}" data-mode="login" id="subtab-login" data-auth-action="signin" style="${!isRegister ? tabActive : tabBase}">Sign In</button>
+          <button type="button" class="signin-subtab ${!isRegister && !isToken ? 'active' : ''}" data-mode="login" id="subtab-login" data-auth-action="signin" style="${!isRegister && !isToken ? tabActive : tabBase}">Sign In</button>
+          <button type="button" class="signin-subtab ${isToken ? 'active' : ''}" data-mode="token" id="subtab-token" data-auth-action="token" style="${isToken ? tabActive : tabBase}">Token Sign In</button>
           <button type="button" class="signin-subtab ${isRegister ? 'active' : ''}" data-mode="register" id="subtab-register" data-auth-action="register" style="${isRegister ? tabActive : tabBase}">Create Account</button>
         </div>
-        <form id="signin-email-form" class="signin-form" style="display:flex;flex-direction:column;gap:14px;">
-          ${isRegister ? `
-          <div>
-            <label class="field-label" for="signin-name-input" style="${labelStyle}">Full name</label>
-            <input id="signin-name-input" class="input" type="text" autocomplete="name" required placeholder="Your name" style="${inputStyle}" />
+        <div id="signin-email-panel" style="display:${isToken ? 'none' : 'block'};">
+          <form id="signin-email-form" class="signin-form" style="display:flex;flex-direction:column;gap:14px;">
+            ${isRegister ? `
+            <div>
+              <label class="field-label" for="signin-name-input" style="${labelStyle}">Full name</label>
+              <input id="signin-name-input" class="input" type="text" autocomplete="name" required placeholder="Your name" style="${inputStyle}" />
+            </div>
+            <div>
+              <label class="field-label" for="signin-username-input" style="${labelStyle}">Username</label>
+              <input id="signin-username-input" class="input" type="text" autocomplete="username" required pattern="[A-Za-z0-9_]{3,32}" placeholder="letters_numbers_underscore" style="${inputStyle}" />
+            </div>` : ''}
+            <div>
+              <label class="field-label" for="signin-email-input" style="${labelStyle}">${isRegister ? 'Email address' : 'Email / Username'}</label>
+              <input id="signin-email-input" class="input" type="${isRegister ? 'email' : 'text'}" autocomplete="email" required placeholder="${isRegister ? 'you@company.com' : 'email@example.com or username'}" style="${inputStyle}" />
+            </div>
+            <div>
+              <label class="field-label" for="signin-password-input" style="${labelStyle}">Password</label>
+              <input id="signin-password-input" class="input" type="password" autocomplete="${isRegister ? 'new-password' : 'current-password'}" required placeholder="${isRegister ? 'Choose a password (8+ characters)…' : 'Enter your password…'}" style="${inputStyle}" />
+            </div>
+            ${isRegister ? `
+            <div>
+              <label class="field-label" for="signin-confirm-password-input" style="${labelStyle}">Confirm Password</label>
+              <input id="signin-confirm-password-input" class="input" type="password" autocomplete="new-password" required placeholder="Re-enter your password…" style="${inputStyle}" />
+            </div>` : ''}
+            <div style="display:${isRegister ? 'none' : 'flex'};justify-content:flex-end;margin:-4px 0 0;">
+              <button type="button" id="forgot-password-btn" style="background:none;border:none;color:var(--primary);font-size:0.78rem;cursor:pointer;padding:0;">Forgot Password?</button>
+            </div>
+            <p id="signin-email-error" class="signin-error" hidden role="alert" style="margin:0;font-size:0.85rem;color:var(--danger);text-align:center;line-height:1.5;"></p>
+            <button type="submit" class="btn btn-primary btn-block" id="signin-email-submit" style="${btnPrimary}">${isRegister ? 'Create Account' : 'Sign In'}</button>
+            ${!isRegister ? `<button type="button" class="btn btn-block" id="goto-register-btn" data-auth-action="register" style="${btnSecondary};margin-top:8px;">Create Account</button>` : ''}
+          </form>
+          <div class="signin-divider" style="text-align:center;margin:16px 0;font-size:0.8rem;color:var(--text-muted);position:relative;">
+            <span style="background:var(--surface);padding:0 12px;position:relative;z-index:1;">or</span>
+            <div style="position:absolute;top:50%;left:0;right:0;height:1px;background:var(--border);z-index:0;"></div>
           </div>
-          <div>
-            <label class="field-label" for="signin-username-input" style="${labelStyle}">Username</label>
-            <input id="signin-username-input" class="input" type="text" autocomplete="username" required pattern="[A-Za-z0-9_]{3,32}" placeholder="letters_numbers_underscore" style="${inputStyle}" />
-          </div>` : ''}
-          <div>
-            <label class="field-label" for="signin-email-input" style="${labelStyle}">${isRegister ? 'Email address' : 'Email / Username'}</label>
-            <input id="signin-email-input" class="input" type="${isRegister ? 'email' : 'text'}" autocomplete="email" required placeholder="${isRegister ? 'you@company.com' : 'email@example.com or username'}" style="${inputStyle}" />
-          </div>
-          <div>
-            <label class="field-label" for="signin-password-input" style="${labelStyle}">Password</label>
-            <input id="signin-password-input" class="input" type="password" autocomplete="${isRegister ? 'new-password' : 'current-password'}" required placeholder="${isRegister ? 'Choose a password (8+ characters)…' : 'Enter your password…'}" style="${inputStyle}" />
-          </div>
-          ${isRegister ? `
-          <div>
-            <label class="field-label" for="signin-confirm-password-input" style="${labelStyle}">Confirm Password</label>
-            <input id="signin-confirm-password-input" class="input" type="password" autocomplete="new-password" required placeholder="Re-enter your password…" style="${inputStyle}" />
-          </div>` : ''}
-          <div style="display:${isRegister ? 'none' : 'flex'};justify-content:flex-end;margin:-4px 0 0;">
-            <button type="button" id="forgot-password-btn" style="background:none;border:none;color:var(--primary);font-size:0.78rem;cursor:pointer;padding:0;">Forgot Password?</button>
-          </div>
-          <p id="signin-email-error" class="signin-error" hidden role="alert" style="margin:0;font-size:0.85rem;color:var(--danger);text-align:center;line-height:1.5;"></p>
-          <button type="submit" class="btn btn-primary btn-block" id="signin-email-submit" style="${btnPrimary}">${isRegister ? 'Create Account' : 'Sign In'}</button>
-          ${!isRegister ? `<button type="button" class="btn btn-block" id="goto-register-btn" data-auth-action="register" style="${btnSecondary};margin-top:8px;">Create Account</button>` : ''}
-        </form>
-        <div class="signin-divider" style="text-align:center;margin:16px 0;font-size:0.8rem;color:var(--text-muted);position:relative;">
-          <span style="background:var(--surface);padding:0 12px;position:relative;z-index:1;">or</span>
-          <div style="position:absolute;top:50%;left:0;right:0;height:1px;background:var(--border);z-index:0;"></div>
+          <button type="button" class="btn btn-secondary btn-block" id="webauthn-signin-btn" style="${btnSecondary};display:flex;align-items:center;justify-content:center;gap:8px;">
+            <span>&#128274;</span> Sign in with Security Key
+          </button>
+          <p class="signin-note" id="email-mode-note" style="margin:16px 0 0;font-size:0.85rem;color:var(--text-muted);text-align:center;line-height:1.5;">${isRegister ? 'Already have an account? <button type="button" id="note-goto-signin" style="background:none;border:none;padding:0;color:var(--primary);font:inherit;font-weight:600;cursor:pointer;">Sign in</button>.' : 'New here? <button type="button" id="note-goto-register" style="background:none;border:none;padding:0;color:var(--primary);font:inherit;font-weight:600;cursor:pointer;">Create an account</button>.'}</p>
         </div>
-        <button type="button" class="btn btn-secondary btn-block" id="webauthn-signin-btn" style="${btnSecondary};display:flex;align-items:center;justify-content:center;gap:8px;">
-          <span>&#128274;</span> Sign in with Security Key
-        </button>
-        <p class="signin-note" id="email-mode-note" style="margin:16px 0 0;font-size:0.85rem;color:var(--text-muted);text-align:center;line-height:1.5;">${isRegister ? 'Already have an account? <button type="button" id="note-goto-signin" style="background:none;border:none;padding:0;color:var(--primary);font:inherit;font-weight:600;cursor:pointer;">Sign in</button>.' : 'New here? <button type="button" id="note-goto-register" style="background:none;border:none;padding:0;color:var(--primary);font:inherit;font-weight:600;cursor:pointer;">Create an account</button>.'}</p>
+        <div id="signin-token-panel" style="display:${isToken ? 'block' : 'none'};">
+          <form id="signin-token-form" class="signin-form" style="display:flex;flex-direction:column;gap:14px;">
+            <div>
+              <label class="field-label" for="signin-token-input" style="${labelStyle}">License or access token</label>
+              <textarea id="signin-token-input" class="input" rows="4" required placeholder="Paste your SimpleBeacon token…" autocomplete="off" style="${inputStyle};font-family:monospace;font-size:0.85rem;"></textarea>
+            </div>
+            <div>
+              <label class="field-label" for="signin-token-password" style="${labelStyle}">Token password or email code</label>
+              <input id="signin-token-password" class="input" type="password" autocomplete="off" placeholder="Optional password or email validation code" style="${inputStyle}" />
+            </div>
+            <p id="signin-token-error" class="signin-error" hidden role="alert" style="margin:0;font-size:0.85rem;color:var(--danger);text-align:center;line-height:1.5;"></p>
+            <button type="submit" class="btn btn-primary btn-block" id="signin-token-submit" style="${btnPrimary}">Sign in with Token</button>
+          </form>
+          <p class="signin-note" style="margin:16px 0 0;font-size:0.85rem;color:var(--text-muted);text-align:center;line-height:1.5;">
+            License tokens start with <code style="font-family:monospace;">sb_</code> or paste a JWT access token. Add a token password or email code if your token requires it.
+          </p>
+        </div>
       </div>
 
       <p class="signin-footer" style="margin-top:24px;text-align:center;font-size:0.85rem;color:var(--text-muted);">
@@ -284,6 +302,10 @@ export class SignInView {
                 e.preventDefault();
                 e.stopPropagation();
                 const mode = tab.dataset.mode;
+                if (mode === 'token') {
+                    this.mount(this._mountContainer, 'token');
+                    return;
+                }
                 if (mode === 'register') {
                     this.app.navigate('register');
                 }
@@ -383,8 +405,7 @@ export class SignInView {
                 if (result.pending) {
                     const card = (_c = this._mountContainer) === null || _c === void 0 ? void 0 : _c.querySelector('.signin-card');
                     if (card) {
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-                        card.innerHTML = `
+                        setHtml(card, `
                       <div class="signin-header">
                         <span class="signin-icon" aria-hidden="true">&#9989;</span>
                         <h1 class="signin-title">Account submitted</h1>
@@ -392,7 +413,7 @@ export class SignInView {
                       </div>
                       <p class="signin-note" style="font-size:0.9rem;color:var(--text-muted);text-align:center;line-height:1.5;">You cannot access the dashboard until your account is activated. We will email you at <strong>${escapeHtml(email)}</strong> when ready.</p>
                       <button type="button" class="btn btn-primary btn-block" id="pending-goto-signin" style="margin-top:16px;width:100%;">Back to Sign In</button>
-                    `;
+                    `);
                         card.querySelector('#pending-goto-signin')?.addEventListener('click', () => this.app.navigate('signin'));
                     }
                     return;
@@ -429,11 +450,20 @@ export class SignInView {
         const overlay = document.createElement('div');
         overlay.id = 'recovery-modal-overlay';
         overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);z-index:9999;display:flex;align-items:center;justify-content:center;';
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-        window.setSafeHTML(
-            overlay,
-            '\n      <div style="position:relative;z-index:1;background:var(--surface);padding:28px 32px;border-radius:14px;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);border:1px solid var(--border);">\n        <h3 style="margin:0 0 8px;font-size:1.15rem;color:var(--text-primary);">&#128273; Account Recovery</h3>\n        <p style="margin:0 0 18px;font-size:0.85rem;color:var(--text-muted);line-height:1.5;">Enter your email address and we\'ll send you instructions to reset your password.</p>\n        <label style="display:block;font-size:0.78rem;color:var(--text-muted);margin-bottom:6px;">Email</label>\n        <input id="recovery-email-input" type="email" placeholder="you@example.com" style="width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:var(--background);color:var(--text-primary);font-size:0.95rem;margin-bottom:10px;" />\n        <div id="recovery-error" style="color:var(--error);font-size:0.8rem;margin-bottom:12px;display:none;"></div>\n        <div id="recovery-success" style="color:var(--success);font-size:0.8rem;margin-bottom:12px;display:none;"></div>\n        <div style="display:flex;gap:10px;justify-content:flex-end;">\n          <button id="recovery-cancel" style="padding:10px 18px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text-primary);font-size:0.85rem;cursor:pointer;">Cancel</button>\n          <button id="recovery-submit" style="padding:10px 18px;border-radius:8px;border:none;background:var(--primary);color:#fff;font-size:0.85rem;font-weight:600;cursor:pointer;">Send Instructions</button>\n        </div>\n      </div>\n    '
-        );;
+        setHtml(overlay, `
+      <div style="position:relative;z-index:1;background:var(--surface);padding:28px 32px;border-radius:14px;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);border:1px solid var(--border);">
+        <h3 style="margin:0 0 8px;font-size:1.15rem;color:var(--text-primary);">&#128273; Account Recovery</h3>
+        <p style="margin:0 0 18px;font-size:0.85rem;color:var(--text-muted);line-height:1.5;">Enter your email address and we'll send you instructions to reset your password.</p>
+        <label style="display:block;font-size:0.78rem;color:var(--text-muted);margin-bottom:6px;">Email</label>
+        <input id="recovery-email-input" type="email" placeholder="you@example.com" style="width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:var(--background);color:var(--text-primary);font-size:0.95rem;margin-bottom:10px;" />
+        <div id="recovery-error" style="color:var(--error);font-size:0.8rem;margin-bottom:12px;display:none;"></div>
+        <div id="recovery-success" style="color:var(--success);font-size:0.8rem;margin-bottom:12px;display:none;"></div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;">
+          <button id="recovery-cancel" style="padding:10px 18px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text-primary);font-size:0.85rem;cursor:pointer;">Cancel</button>
+          <button id="recovery-submit" style="padding:10px 18px;border-radius:8px;border:none;background:var(--primary);color:#fff;font-size:0.85rem;font-weight:600;cursor:pointer;">Send Instructions</button>
+        </div>
+      </div>
+    `);
         document.body.appendChild(overlay);
         const emailInput = overlay.querySelector('#recovery-email-input');
         const errorEl = overlay.querySelector('#recovery-error');
@@ -477,6 +507,54 @@ export class SignInView {
             }
         });
         emailInput.focus();
+    }
+    async handleTokenSubmit(e) {
+        e.preventDefault();
+        const form = e.target;
+        const tokenInput = form.querySelector('#signin-token-input');
+        const passwordInput = form.querySelector('#signin-token-password');
+        const submitBtn = form.querySelector('#signin-token-submit');
+        const errorEl = form.querySelector('#signin-token-error');
+        const token = tokenInput.value.trim();
+        const password = passwordInput ? passwordInput.value.trim() : '';
+        if (!token) {
+            if (errorEl) {
+                errorEl.textContent = 'Please paste a token.';
+                errorEl.hidden = false;
+            }
+            return;
+        }
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Verifying…';
+        if (errorEl) {
+            errorEl.hidden = true;
+            errorEl.textContent = '';
+        }
+        try {
+            const email = decodeEmailFromToken(token);
+            authService.setSession(token, { email: email || 'license-user' });
+            const valid = await authService.validateSession(password ? { password } : undefined);
+            if (!valid) {
+                throw new Error('Token is invalid, expired, or not recognized.');
+            }
+            showToast('Signed in with token', 'success');
+            this.app.updateAuthUi();
+            if (this.app.bootstrapAfterAuth) {
+                this.app.bootstrapAfterAuth();
+            }
+            this.app.navigate('dashboard');
+        }
+        catch (err) {
+            authService.clearSession();
+            const message = err.message || 'Token sign-in failed';
+            if (errorEl) {
+                errorEl.textContent = message;
+                errorEl.hidden = false;
+            }
+            showToast(message, 'error');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Sign in with Token';
+        }
     }
     async _handleWebAuthnSignIn() {
         var _a, _b;

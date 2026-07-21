@@ -893,6 +893,11 @@
           "type": "boolean",
           "default": false,
           "description": "Run SimpleBeacon entirely in the browser. All panels and previews open in the browser preview window instead of VS Code: IDE panels."
+        },
+        "simplebeacon.aiKeys": {
+          "type": "object",
+          "default": {},
+          "description": "Stored AI provider keys and Ollama settings for the extension dashboard."
         }
       }
     }

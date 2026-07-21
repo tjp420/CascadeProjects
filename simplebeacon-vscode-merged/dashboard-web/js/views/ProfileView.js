@@ -472,7 +472,11 @@ export class ProfileView {
             }
         });
         container.querySelector('#profile-buy-tokens')?.addEventListener('click', () => {
-            window.open(BUY_TIME_TOKENS_URL, '_blank', 'noopener,noreferrer');
+          try {
+            window.open(BUY_TIME_TOKENS_URL(), '_blank', 'noopener,noreferrer');
+          } catch (e) {
+            window.open('/checkout/tokens?ref=dashboard', '_blank', 'noopener,noreferrer');
+          }
         });
         container.querySelectorAll('[data-stockpile-load]').forEach((btn) => {
             btn.addEventListener('click', () => {

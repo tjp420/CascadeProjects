@@ -9004,7 +9004,14 @@ export class AnalyzeView {
       return;
     }
     const main = document.getElementById('app-main');
-    const savedScrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
+    let savedScrollY = 0;
+    const scrollContainerIsWindow = !main;
+    if (scrollContainerIsWindow) {
+      savedScrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
+    }
+    else {
+      savedScrollY = main.scrollTop || 0;
+    }
     try {
       this.mount(main);
     } catch (err) {
@@ -9013,11 +9020,17 @@ export class AnalyzeView {
       showToast('Scan UI failed to update. See console.', 'error');
       return;
     }
-    requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        window.scrollTo(0, savedScrollY);
+        requestAnimationFrame(() => {
+          if (scrollContainerIsWindow) {
+            window.scrollTo(0, savedScrollY);
+          }
+          else {
+            try { main.scrollTo(0, savedScrollY); }
+            catch (e) { main.scrollTop = savedScrollY; }
+          }
+        });
       });
-    });
   }
 
   async ensureDefaultProjectPath() {

@@ -370,7 +370,6 @@ export function renderEuAiActSprintPanel(sprint, options = {}) {
 
     ${renderArticleCard('High-Risk System Indicators', 'Annex III — Employment, credit, biometric, education, insurance, law enforcement', highRiskStatus, [], ((_x = s.summary) === null || _x === void 0 ? void 0 : _x.highRiskIndicators) > 0 ? `${s.summary.highRiskIndicators} high-risk pattern(s) detected.` : 'No Annex III high-risk patterns detected.')}
 
-    // simplebeacon-ignore eval-usage — false positive: template literal text, not eval()
     ${renderArticleCard('AI System Detection', 'System inventory — LLM integrations, model inference, generative AI usage', aiSystemStatus, [], ((_y = s.summary) === null || _y === void 0 ? void 0 : _y.aiSystemIndicators) > 0 ? `${s.summary.aiSystemIndicators} AI system(s) detected in codebase.` : 'No AI systems detected.')}
 
     ${((_z = s.compliance) === null || _z === void 0 ? void 0 : _z.headline) ? `<p class="text-muted mb-3" style="font-size: var(--font-size-sm);">${escapeHtml(s.compliance.headline)}</p>` : ''}

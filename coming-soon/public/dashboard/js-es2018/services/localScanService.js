@@ -323,6 +323,15 @@ export async function runLocalScan(options = {}) {
                 return !isIgnoredVirtualPath(path, ignoreCtx.scanRootName, ignoreCtx.patterns);
             })
             .map((f) => ({ path: f.webkitRelativePath || f.name, handle: f }));
+        // Deduplicate by normalized path — Windows symlinks/junctions (pnpm node_modules)
+        // cause the same file to appear multiple times during recursive directory traversal.
+        const _seen = new Set();
+        files = files.filter((f) => {
+            const key = String(f.path).replace(/\\/g, '/').toLowerCase();
+            if (_seen.has(key)) return false;
+            _seen.add(key);
+            return true;
+        });
     }
     else {
         const dirHandle = options.dirHandle;

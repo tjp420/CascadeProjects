@@ -5756,6 +5756,41 @@ export class AnalyzeView {
                     }
                     if (analyzeTerminal)
                         analyzeTerminal.textContent = `Scanning "${folderHint}" in your browser…`;
+                    // IDE drops that lack webkitRelativePath expose only 1 file.
+                    // Try scanDroppedItems with the captured webkitEntry first — it can
+                    // traverse the full directory tree, recovering all files.
+                    if (looksLikeDirDrop && webkitEntry && webkitEntry.isDirectory &&
+                        !fileArray.some((f) => f.webkitRelativePath)) {
+                        try {
+                            const sandboxReport = await scanDroppedItems(itemArray, {
+                                webkitEntry,
+                                onLog: (entry) => {
+                                    if (analyzeTerminal)
+                                        analyzeTerminal.textContent += `\n[${entry.level.toUpperCase()}] ${entry.message}`;
+                                },
+                                onProgress: ({ processed, total }) => {
+                                    if (analyzeProgress)
+                                        analyzeProgress.textContent = `${processed} / ${total} files`;
+                                }
+                            });
+                            if (sandboxReport && sandboxReport.discoveredFiles > 1) {
+                                const cert = sandboxReport.certificate || {};
+                                if (analyzeResultStats)
+                                    analyzeResultStats.textContent = `${cert.letterGrade || 'N/A'} grade · ${sandboxReport.discoveredFiles || 0} files scanned · ${cert.highRiskCount || 0} high · ${cert.mediumRiskCount || 0} medium`;
+                                setAnalyzeDropzoneState('done');
+                                const certEl = el.querySelector('#sandbox-scanner');
+                                if (certEl) {
+                                    certEl.style.display = 'block';
+                                    renderAgentCertificate(sandboxReport, certEl);
+                                }
+                                this.applySandboxScanResult(sandboxReport);
+                                return;
+                            }
+                        }
+                        catch (sandboxErr) {
+                            console.warn('[AnalyzeView] scanDroppedItems with webkitEntry failed, falling back to runLocalScan:', sandboxErr);
+                        }
+                    }
                     await this.runLocalScan(null, fileArray, folderHint);
                     setAnalyzeDropzoneState('done');
                     if (analyzeResultStats && this.lastResult?.report) {
@@ -5816,6 +5851,43 @@ export class AnalyzeView {
                                         analyzeTerminal.textContent = `Scanning "${folderName}" via IDE bridge…`;
                                     void this.runPathAnalysis(bridgePath);
                                     return;
+                                }
+                            }
+                            // IDE drops that lack webkitRelativePath expose only 1 file.
+                            // Try scanDroppedItems with the captured webkitEntry first — it can
+                            // traverse the full directory tree via the File System Access API or
+                            // webkitGetAsEntry, recovering all 60K+ files instead of scanning 1.
+                            if (!hasWebkitRelPath && webkitEntry && webkitEntry.isDirectory) {
+                                if (analyzeTerminal)
+                                    analyzeTerminal.textContent = `Traversing "${folderName}" directory tree…`;
+                                try {
+                                    const sandboxReport = await scanDroppedItems(itemArray, {
+                                        webkitEntry,
+                                        onLog: (entry) => {
+                                            if (analyzeTerminal)
+                                                analyzeTerminal.textContent += `\n[${entry.level.toUpperCase()}] ${entry.message}`;
+                                        },
+                                        onProgress: ({ processed, total }) => {
+                                            if (analyzeProgress)
+                                                analyzeProgress.textContent = `${processed} / ${total} files`;
+                                        }
+                                    });
+                                    if (sandboxReport && sandboxReport.discoveredFiles > 1) {
+                                        const cert = sandboxReport.certificate || {};
+                                        if (analyzeResultStats)
+                                            analyzeResultStats.textContent = `${cert.letterGrade || 'N/A'} grade · ${sandboxReport.discoveredFiles || 0} files scanned · ${cert.highRiskCount || 0} high · ${cert.mediumRiskCount || 0} medium`;
+                                        setAnalyzeDropzoneState('done');
+                                        const certEl = el.querySelector('#sandbox-scanner');
+                                        if (certEl) {
+                                            certEl.style.display = 'block';
+                                            renderAgentCertificate(sandboxReport, certEl);
+                                        }
+                                        this.applySandboxScanResult(sandboxReport);
+                                        return;
+                                    }
+                                }
+                                catch (sandboxErr) {
+                                    console.warn('[AnalyzeView] scanDroppedItems with webkitEntry failed, falling back to runLocalScan:', sandboxErr);
                                 }
                             }
                             if (isLikelyWebkitDirectoryFileCap(fileArray.length)) {
@@ -10359,7 +10431,14 @@ export class AnalyzeView {
             return;
         }
         const main = document.getElementById('app-main');
-        const savedScrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
+        let savedScrollY = 0;
+        const scrollContainerIsWindow = !main;
+        if (scrollContainerIsWindow) {
+            savedScrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
+        }
+        else {
+            savedScrollY = main.scrollTop || 0;
+        }
         try {
             this.mount(main);
         }
@@ -10368,11 +10447,17 @@ export class AnalyzeView {
             showToast('Scan UI failed to update. See console.', 'error');
             return;
         }
-        requestAnimationFrame(() => {
             requestAnimationFrame(() => {
-                window.scrollTo(0, savedScrollY);
+                requestAnimationFrame(() => {
+                    if (scrollContainerIsWindow) {
+                        window.scrollTo(0, savedScrollY);
+                    }
+                    else {
+                        try { main.scrollTo(0, savedScrollY); }
+                        catch (e) { main.scrollTop = savedScrollY; }
+                    }
+                });
             });
-        });
     }
     async ensureDefaultProjectPath() {
         if (this.app.state.lastProjectPath || this.app.state.defaultProjectPath)

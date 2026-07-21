@@ -298,7 +298,7 @@ export class SecurityView {
             return;
         this._container = container;
 // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-        window.setSafeHTML(container, '');;
+        window.setSafeHTML(container, '');
         container.appendChild(this.render());
     }
     async runScan(container) {
