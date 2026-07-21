@@ -83,8 +83,11 @@ export async function resolveScanStrategy(rawPath, ctx = {}) {
         return { strategy: 'local-agent', path: typedPath, reason: 'Integrated dashboard with agent' };
     }
 
-    // 7. Server path → server-side scan
+    // 7. Server path → server-side scan (only on local/integrated dashboards)
     if (!isLocal && typedPath) {
+        if (isRemote) {
+            return { strategy: 'prompt-folder', path: typedPath, reason: 'Hosted site cannot read local paths — prompt for folder selection' };
+        }
         return { strategy: 'server', path: typedPath, reason: 'Server-side path' };
     }
 

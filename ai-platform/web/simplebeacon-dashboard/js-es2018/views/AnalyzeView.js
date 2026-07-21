@@ -6,7 +6,7 @@ import { LocalScanService } from '../services/localScanService.js?v=20260716cach
 import { fingerprintDirectory, formatFingerprint } from '../services/fingerprintService.js';
 import { probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus, getAgentDownloadUrl, detectPlatform, getPlatformLabel, getInstallInstructions, getAgentFallbackMessage, probeAgent4000, scanViaAgent4000, renderAgentCertificate, hasExtensionBridgeConfigured, pickFolderViaExtensionBridge as requestExtensionFolderPick, shouldProbeLocalAgent, shouldProbeAgent4000, isIntegratedLocalDashboard } from '../services/localAgentService.js?v=20260716cachefix1';
 import { runSandboxedDirectoryScan, scanDroppedItems, isDroppedFolder, captureDroppedEntry } from '../services/browserSandboxScanService.js?v=20260716cachefix1';
-import { resolveScanStrategy } from '../services/scanStrategy.js?v=20260716cachefix1';
+import { resolveScanStrategy } from '../services/scanStrategy.js?v=20260721hostedfix1';
 
 function isRemoteDashboardHost() {
     return typeof window !== 'undefined' && !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
@@ -4644,7 +4644,8 @@ export class AnalyzeView {
             await this.promptHostedLocalFolderScan(root);
             return;
         }
-        void this.runPathAnalysis(raw);
+        showToast('Local paths cannot be read from this site. Use Select Folder or drop your project.', 'info', { duration: 9000 });
+        await this.promptHostedLocalFolderScan(root);
     }
     schedulePathDependentUi(root = this._root) {
         clearTimeout(this._pathUiTimer);
