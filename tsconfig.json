@@ -30,6 +30,7 @@
     "**/.simplebeacon",
     "**/github-cache",
     "**/fixtures",
-    "**/__mocks__"
+    "**/__mocks__",
+    "**/__entry"
   ]
 }
