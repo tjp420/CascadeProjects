@@ -19,7 +19,7 @@ function isAbsolutePath(filePath) {
  * @returns {string}
  */
 export function resolveAbsoluteFilePath(filePath, projectRoot) {
-    const raw = String(filePath || '').trim();
+    let raw = String(filePath || '').trim();
     if (!raw)
         return '';
     if (isAbsolutePath(raw))
@@ -27,6 +27,17 @@ export function resolveAbsoluteFilePath(filePath, projectRoot) {
     const root = String(projectRoot || '').trim().replace(/[\\/]+$/, '');
     if (!root)
         return raw;
+    // If the provided filePath already begins with the project root folder name
+    // (e.g., "CascadeProjects/ai-platform/..."), strip the duplicated root
+    // segment so the joined path doesn't become ".../CascadeProjects/CascadeProjects/...".
+    try {
+        const rootName = root.split(/[\\/]/).pop();
+        if (rootName && (raw === rootName || raw.indexOf(rootName + '/') === 0 || raw.indexOf(rootName + '\\') === 0)) {
+            // remove the leading rootName and any following slash
+            raw = raw.slice(rootName.length).replace(/^[/\\]+/, '');
+        }
+    }
+    catch (_e) { /* ignore and fallback to normal join */ }
     const sep = root.includes('\\') ? '\\' : '/';
     const rel = raw.replace(/^[/\\]+/, '').replace(/\//g, sep);
     return `${root}${sep}${rel}`;
@@ -66,6 +77,12 @@ export function openInIde(filePath, line = 1, options = {}) {
     const payload = { command: 'openFile', file: absolute, path: absolute, line: lineNum };
 
     const vscode = getVSCodeApi();
+    // Debug: log resolved absolute path for troubleshooting deep-links
+    try {
+        // eslint-disable-next-line no-console
+        console.debug('[ideDeepLink] openInIde resolved', { filePath, absolute, line: lineNum, options });
+    }
+    catch (_d) { /* ignore */ }
     if (vscode) {
         try {
             vscode.postMessage(payload);
@@ -85,6 +102,11 @@ export function openInIde(filePath, line = 1, options = {}) {
     const url = buildIdeFileUrl(absolute, lineNum, options);
     if (url) {
         try {
+            try {
+                // eslint-disable-next-line no-console
+                console.debug('[ideDeepLink] opening URL', url);
+            }
+            catch (_e) { /* ignore */ }
             const anchor = document.createElement('a');
             anchor.href = url;
             anchor.rel = 'noopener';

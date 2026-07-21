@@ -5,6 +5,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { readTextFileWithLimit, redactTextSecrets } = require('../recoverable-io.cjs');
 
 const CVARINFO_NAMES = ['CVARINFO', 'cvarinfo'];
 
@@ -200,7 +201,9 @@ async function buildCvarReport(rootDir, zscriptFiles, _options = {}) {
     const cvarInfoPaths = await findCvarInfoFiles(rootDir);
         const definitions = [];
         for (const filePath of cvarInfoPaths) {
-            const content = await fs.promises.readFile(filePath, 'utf8');
+            const raw = await readTextFileWithLimit(filePath, 256 * 1024);
+            if (!raw) continue;
+            const content = redactTextSecrets(raw);
             const rel = path.relative(rootDir, filePath).replace(/\\/g, '/');
             definitions.push(...parseCvarInfoFile(content, rel));
         }

@@ -13,6 +13,7 @@ const logger = require('../../server/lib/app-logger.cjs');
 const constants = require('../../server/config/constants.cjs');
 const execAsync = promisify(exec);
 const { runNpmAuditAsync } = require('../../server/lib/npm-audit-runner.cjs');
+const { readTextFileWithLimit, redactTextSecrets } = require('../../server/lib/recoverable-io.cjs');
 const {
   resolveDefaultAllowedRoots,
   assertSafeProjectPath
@@ -86,9 +87,11 @@ const { setupSimplebeaconDemoAPI } = require('../../server/routes/demo-simplebea
  * @param {any} fallback
  * @returns {any}
  */
-async function readJson(filePath, fallback = null) {
+async function readJson(filePath, fallback = null, maxBytes = 5 * 1024 * 1024) {
   try {
-    const content = await fs.promises.readFile(filePath, 'utf8');
+    const raw = await readTextFileWithLimit(filePath, maxBytes);
+    if (!raw) return fallback;
+    const content = redactTextSecrets(raw);
     return JSON.parse(content);
   } catch (err) {
     if (fallback !== null) return fallback;
@@ -299,7 +302,9 @@ async function readSimplebeaconJson(fileName, fallback = null) {
   ];
   for (const candidate of candidates) {
     try {
-      const content = await fs.promises.readFile(candidate, 'utf8');
+      const raw = await readTextFileWithLimit(candidate, 10 * 1024 * 1024);
+      if (!raw) continue;
+      const content = redactTextSecrets(raw);
       return JSON.parse(content);
     }
     catch {

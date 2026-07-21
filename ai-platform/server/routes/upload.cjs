@@ -626,7 +626,15 @@ async function analyzeGitRepository(tempDir, repoInfo, _user) {
 async function analyzeFile(filePath, _user) {
     try {
         const stats = await fs.stat(filePath);
-        const content = await fs.readFile(filePath, 'utf8');
+        const { readTextFileWithLimit, redactTextSecrets } = require('../lib/recoverable-io.cjs');
+        let content = '';
+        try {
+            content = await readTextFileWithLimit(filePath, 256 * 1024); // 256 KB limit
+            content = redactTextSecrets(content);
+        } catch (err) {
+            // fall back to safe empty content on read error
+            content = '';
+        }
         
         return {
             file: filePath,

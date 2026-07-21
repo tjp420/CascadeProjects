@@ -407,8 +407,10 @@ async function loadJsonStructure(file) {
     if (!file || typeof file !== 'object') return null;
     if (file.ext !== '.json' || file.size > JSON_MAX_BYTES) return null;
     try {
-        const raw = await fs.promises.readFile(file.path, 'utf8');
-        const payload = JSON.parse(raw);
+        const { readTextFileWithLimit, redactTextSecrets } = require('./recoverable-io.cjs');
+        const raw = await readTextFileWithLimit(file.path, JSON_MAX_BYTES);
+        if (!raw) return null;
+        const payload = JSON.parse(redactTextSecrets(raw));
         const structure = extractJsonStructure(payload);
         return {
             raw,
@@ -596,8 +598,10 @@ async function buildHashEntries(jsonFiles) {
     for (const file of jsonFiles) {
         if (file.ext !== '.json' || file.size > JSON_MAX_BYTES) continue;
         try {
-            const raw = await fs.promises.readFile(file.path, 'utf8');
-            JSON.parse(raw);
+            const { readTextFileWithLimit, redactTextSecrets } = require('./recoverable-io.cjs');
+            const raw = await readTextFileWithLimit(file.path, JSON_MAX_BYTES);
+            if (!raw) continue;
+            JSON.parse(redactTextSecrets(raw));
             hashEntries.push({
                 name: file.name,
                 path: file.path,

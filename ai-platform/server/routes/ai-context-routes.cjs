@@ -73,7 +73,12 @@ router.get('/ai-context', async (req, res) => {
         const contextPath = path.join(safePath, '.simplebeacon', 'ai-context.md');
 
         try {
-            const content = await fs.promises.readFile(contextPath, 'utf8');
+            const { readTextFileWithLimit, redactTextSecrets } = require('../lib/recoverable-io.cjs');
+            const raw = await readTextFileWithLimit(contextPath, 256 * 1024);
+            if (!raw) {
+                return res.status(404).json({ success: false, error: 'No AI context file found. Upload a report and click "Send to AI Agent" first.' });
+            }
+            const content = redactTextSecrets(raw);
             res.json({ success: true, path: contextPath, content });
         } catch {
             res.status(404).json({ success: false, error: 'No AI context file found. Upload a report and click "Send to AI Agent" first.' });

@@ -508,6 +508,10 @@ function compileGateStatus(report, gateConfig = {}) {
     const allFindings = getReportFindings(report);
     const allIssues = allFindings.map(normalizeFinding).filter(Boolean);
 
+    // Filter out informational issues so rawIssues, totalFindings, and severityCounts
+    // all reflect the same set of actionable issues.
+    const scoringIssues = allIssues.filter(isBlockingIssue);
+
     const failOn = Array.isArray(gateConfig.failOn) ? gateConfig.failOn : (gateConfig.failOn ? [gateConfig.failOn] : ['high']);
     const warnOn = Array.isArray(gateConfig.warnOn) ? gateConfig.warnOn : (gateConfig.warnOn ? [gateConfig.warnOn] : ['medium', 'low']);
     const severityWeights = { critical: 4, high: 3, medium: 2, low: 1 };
@@ -516,8 +520,7 @@ function compileGateStatus(report, gateConfig = {}) {
 
     const blockingIssues = [];
     const warningIssues = [];
-    for (const issue of allIssues) {
-        if (!isBlockingIssue(issue)) continue;
+    for (const issue of scoringIssues) {
         const weight = severityWeights[issue.severity] || 1;
         if (weight >= targetWeight) {
             blockingIssues.push(issue);
@@ -528,8 +531,8 @@ function compileGateStatus(report, gateConfig = {}) {
 
     const blockingCount = blockingIssues.reduce((sum, i) => sum + (i.count || 1), 0);
     const warningCount = warningIssues.reduce((sum, i) => sum + (i.count || 1), 0);
-    const severityCounts = countBySeverity(allIssues);
-    const qualityScore = computeQualityScoreFromIssues(allIssues, gateConfig);
+    const severityCounts = countBySeverity(scoringIssues);
+    const qualityScore = computeQualityScoreFromIssues(scoringIssues, gateConfig);
 
     report.gate = {
         pass: blockingCount === 0,
@@ -553,13 +556,13 @@ function compileGateStatus(report, gateConfig = {}) {
     report.issueCount = blockingCount;
     report.severityCounts = severityCounts;
     if (report.summary && typeof report.summary === 'object') {
-        report.summary.totalFindings = allIssues.length;
+        report.summary.totalFindings = scoringIssues.length;
         report.summary.severityCounts = severityCounts;
     }
 
     report.qualityScore = qualityScore;
-    report.rawIssues = blockingIssues;
-    report.detectedIssues = groupIssues(blockingIssues).slice(0, 12);
+    report.rawIssues = scoringIssues;
+    report.detectedIssues = groupIssues(scoringIssues).slice(0, 12);
 
     return reconcileScanReport(report);
 }

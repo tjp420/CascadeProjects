@@ -2,19 +2,10 @@
   "profile": "eu-ai-act",
   "allowedAnalysisRoots": [
     "C:\\Users\\Trevor\\CascadeProjects",
-    "C:\\Users\\Trevor\\CascadeProjects\\google-earthenterprise",
-    "C:\\Users\\Trevor\\CascadeProjects_BACKUP_20260521",
-    "C:\\Users\\Trevor\\CascadeProjects_BACKUP_20260521\\google-earthenterprise",
-    "C:\\Users\\Trevor\\AI-Guardrail-system",
     "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
-    "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\web",
-    "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\web\\coming-soon",
-    "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\server",
-    "J:\\AI project backup",
-    "C:\\tmp",
-    "c:\\Users\\Trevor\\CascadeProjects",
-    "c:\\Users\\Trevor",
-    "c:\\Users\\Trevor\\CascadeProjects\\"
+    "C:\\Users\\Trevor\\CascadeProjects\\google-earthenterprise",
+    "C:\\Users\\Trevor\\AI-Guardrail-system",
+    "C:\\tmp"
   ],
   "scanPaths": [
     "."
@@ -364,6 +355,13 @@
     "marketing",
     "guardrail-test-bench",
     "github-action",
-    "New folder"
+    "New folder",
+    "ai-platform/local-agent/dist",
+    "ai-platform/local-agent/**/dist",
+    "ai-platform/local-agent/**/test-extract",
+    "ai-platform/local-agent/**/portable",
+    "ai-platform/local-agent/**/node_modules",
+    "ai-platform/local-agent/node_modules",
+    "ai-platform/web/simplebeacon-dashboard/data"
   ]
 }

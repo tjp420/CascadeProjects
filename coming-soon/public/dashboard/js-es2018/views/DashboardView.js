@@ -4,7 +4,7 @@ import { isEmbeddedDashboardFrame } from '../utils-lib/dom.js?v=20260721corsfix1
 import { buildScanConclusion, getScanFileMetrics, resolveDisplayScore, resolveJestTestsLabel, resolvePageSpecsLabel, renderScanScopePanel } from '../services/analyzeService.js?v=20260716cachefix1';
 import { renderIssueList } from '../components/IssueCard.js';
 import { renderTrendSection, mountTrendChart } from '../components/TrendChart.js';
-import { renderScanStatus, bindScanStatus, updateScanStatusDom } from '../components/ScanStatus.js?v=20260716cachefix1';
+import { renderScanStatus, bindScanStatus, updateScanStatusDom } from '../components/ScanStatus.js?v=20260722scanfix1';
 import { renderAnalysisWorkflow, resolveAnalysisWorkflowStep } from '../components/AnalysisWorkflow.js';
 import { isDemoMode } from '../demoMode.js';
 const PRIVACY_NOTICE_KEY = 'sb_privacy_notice_dismissed';

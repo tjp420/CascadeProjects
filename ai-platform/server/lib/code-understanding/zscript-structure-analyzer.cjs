@@ -5,6 +5,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { readTextFileWithLimit, redactTextSecrets } = require('../recoverable-io.cjs');
 
 const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', 'build', '.cache']);
 
@@ -58,7 +59,18 @@ async function collectZscriptFiles(rootDir, options = {}) {
                     });
                     continue;
                 }
-                const content = await fs.promises.readFile(full, 'utf8');
+                const raw = await readTextFileWithLimit(full, maxBytes);
+                if (!raw) {
+                    results.push({
+                        path: full,
+                        relativePath: path.relative(rootDir, full).replace(/\\/g, '/'),
+                        content: '',
+                        truncated: true,
+                        size: stat.size
+                    });
+                    continue;
+                }
+                const content = redactTextSecrets(raw);
                 results.push({
                     path: full,
                     relativePath: path.relative(rootDir, full).replace(/\\/g, '/'),

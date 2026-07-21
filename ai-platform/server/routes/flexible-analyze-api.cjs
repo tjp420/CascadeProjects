@@ -2527,8 +2527,12 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 for (const candidate of configCandidates) {
                     try {
                         await fs.promises.access(candidate);
-                        baseConfig = JSON.parse(await fs.promises.readFile(candidate, 'utf8'));
-                        break;
+                        const { readTextFileWithLimit, redactTextSecrets } = require('../lib/recoverable-io.cjs');
+                        const raw = await readTextFileWithLimit(candidate, 128 * 1024);
+                        if (raw) {
+                            try { baseConfig = JSON.parse(redactTextSecrets(raw)); } catch { baseConfig = {}; }
+                            break;
+                        }
                     } catch (readErr) {
                         logger.warn('[Flexible Analyze] Could not read config candidate:', candidate, readErr.message);
                     }
@@ -2576,7 +2580,13 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                     try { await fs.promises.access(reportOut); } catch { throw err; }
                 }
 
-                report = JSON.parse(await fs.promises.readFile(reportOut, 'utf8'));
+                const { readTextFileWithLimit, redactTextSecrets } = require('../lib/recoverable-io.cjs');
+                try {
+                    const raw = await readTextFileWithLimit(reportOut, 10 * 1024 * 1024);
+                    report = raw ? JSON.parse(redactTextSecrets(raw)) : {};
+                } catch (err) {
+                    throw err;
+                }
                 report = patchRemediationPhases(report);
                 logger.info(`[Upload Directory] Scan found: totalFiles=${report.totalFiles || report.repositoryFilesTotal || 'n/a'}, scanned=${report.ruleScopedFilesAnalyzed || 'n/a'}, issues=${report.issueCount || report.gate?.blockingCount || 'n/a'}`);
             }

@@ -188,8 +188,63 @@ async function runLocalScan(sandboxDir, options = {}) {
         try { await fs.promises.access(reportOut); } catch { throw err; }
     }
 
-    const raw = await fs.promises.readFile(reportOut, 'utf8');
-    return JSON.parse(raw);
+    // Read report with safety checks and redact sensitive values before returning
+    async function readJsonFileWithLimit(fp, maxBytes = 10 * 1024 * 1024) { // 10 MB
+        const st = await fs.promises.stat(fp);
+        if (st.size > maxBytes) {
+            throw new Error(`Report file too large to read safely (${st.size} bytes)`);
+        }
+        // stream-read into buffer
+        return new Promise((resolve, reject) => {
+            const chunks = [];
+            let received = 0;
+            const rs = fs.createReadStream(fp, { encoding: 'utf8', highWaterMark: 64 * 1024 });
+            rs.on('data', (c) => {
+                received += c.length;
+                if (received > maxBytes) {
+                    rs.destroy(new Error('Exceeded max read limit'));
+                    return;
+                }
+                chunks.push(c);
+            });
+            rs.on('error', (err) => reject(err));
+            rs.on('end', () => resolve(chunks.join('')));
+        });
+    }
+
+    function redactReportSecrets(obj) {
+        const tokenLike = /(?:api[_-]?key|openai[_-]?key|secret|token|access[_-]?key|aws[_-]?secret)["']?\s*[:=]?\s*["']?([A-Za-z0-9\-_.]{8,})/i;
+        const longSecret = /[A-Za-z0-9_\-]{32,}/;
+
+        function walk(value) {
+            if (value == null) return value;
+            if (Array.isArray(value)) return value.map(walk);
+            if (typeof value === 'object') {
+                const out = {};
+                for (const k of Object.keys(value)) {
+                    try {
+                        out[k] = walk(value[k]);
+                    } catch {
+                        out[k] = null;
+                    }
+                }
+                return out;
+            }
+            if (typeof value === 'string') {
+                if (tokenLike.test(value) || longSecret.test(value)) {
+                    return '[REDACTED]';
+                }
+                return value;
+            }
+            return value;
+        }
+
+        return walk(obj);
+    }
+
+    const raw = await readJsonFileWithLimit(reportOut, 10 * 1024 * 1024);
+    const parsed = JSON.parse(raw);
+    return redactReportSecrets(parsed);
 }
 
 /**

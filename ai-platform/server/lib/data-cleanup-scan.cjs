@@ -11,6 +11,7 @@ const {
 const { toClientError } = require('../../shared-utils/index.cjs');
 const path = require('path');
 const fs = require('fs');
+const { readTextFileWithLimit, redactTextSecrets } = require('./recoverable-io.cjs');
 const { compactDataCleanupReportForClient, enrichCleanupReport, runFileReductionScan } = require('./simplebeacon-proxy.cjs');
 const { scanDirectoryBloat } = require('./directory-bloat-scanner.cjs');
 
@@ -40,7 +41,9 @@ async function isCachedResultFresh(payload, projectPath) {
             if (!filePath) continue;
             const absPath = path.isAbsolute(filePath) ? filePath : path.join(projectPath, filePath);
             try {
-                const content = await fs.promises.readFile(absPath, 'utf8');
+                const raw = await readTextFileWithLimit(absPath, 64 * 1024);
+                if (!raw) return false;
+                const content = redactTextSecrets(raw);
                 const match = content.match(new RegExp(`^${key}=(.*)$`, 'm'));
                 currentValues.set(filePath, match ? match[1].trim() : undefined);
             } catch {

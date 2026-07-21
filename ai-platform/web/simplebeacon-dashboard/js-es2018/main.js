@@ -15,7 +15,7 @@ import { PlatformView } from './views/PlatformView.js?v=20260716cachefix1';
 import { QualityView } from './views/QualityView.js?v=20260716cachefix1';
 import { HelpView, FeaturesView } from './views/HelpView.js';
 import { AuditView } from './views/AuditView.js?v=20260716cachefix1';
-import { AnalyzeView } from './views/AnalyzeView.js?v=20260721hostedfix1';
+import { AnalyzeView } from './views/AnalyzeView.js?v=20260722scanfix1';
 import { SecurityView } from './views/SecurityView.js?v=20260716cachefix1';
 import { AboutView } from './views/AboutView.js';
 import { AssessmentView } from './views/AssessmentView.js?v=20260716cachefix1';
@@ -34,7 +34,7 @@ import { showLoginModal } from './components/LoginModal.js?v=20260716cachefix1';
 import { isDemoMode, isSignedOffMode, isLocalDevHost, isHostedDashboard, demoReadOnlyMessage } from './demoMode.js';
 import { showToast, resolveDashboardProjectPath, setHtml } from './utils.js?v=20260721corsfix1';
 import { isEmbeddedDashboardFrame, isIdeDashboardSurface } from './utils-lib/dom.js?v=20260721corsfix1';
-import { hasExtensionBridgeConfigured } from './services/localAgentService.js?v=20260720ollama4';
+import { hasExtensionBridgeConfigured } from './services/localAgentService.js?v=20260722scanfix1';
 import { fetchAnalyzeProviders, isClientScanReport, shouldClearHostedServerDefaultPath } from './services/analyzeService.js?v=20260716cachefix1';
 /**
  * Vault unlock url.

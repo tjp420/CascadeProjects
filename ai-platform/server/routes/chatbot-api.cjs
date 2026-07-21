@@ -23,6 +23,7 @@ const { DEFAULT_OLLAMA_URL, ollamaListModels } = require('../services/ollama-cli
 const { verifyToken } = require('../lib/auth/token-service.cjs');
 const fs = require('fs');
 const path = require('path');
+const { readTextFileWithLimit, redactTextSecrets } = require('../lib/recoverable-io.cjs');
 
 // Lazy-load prompt service for custom user prompts
 let promptService;
@@ -82,9 +83,10 @@ try {
 async function buildScanContext(projectPath) {
   if (!projectPath || typeof projectPath !== 'string') return '';
   try {
-    const reportPath = path.join(projectPath, '.simplebeacon', 'report.json');
-    const reportRaw = await fs.promises.readFile(reportPath, 'utf8');
-    const report = JSON.parse(reportRaw);
+  const reportPath = path.join(projectPath, '.simplebeacon', 'report.json');
+  const reportRaw = await readTextFileWithLimit(reportPath, 5 * 1024 * 1024);
+  if (!reportRaw) return '';
+  const report = JSON.parse(redactTextSecrets(reportRaw));
     const inv = report.repositoryInventory || {};
     const gate = report.gate || {};
     const lines = [
@@ -309,9 +311,11 @@ function setupChatbotAPI(app) {
         let pkgCtx = '';
         try {
           const pkgPath = path.join(cleanPath, 'package.json');
-          const pkgRaw = await fs.promises.readFile(pkgPath, 'utf8');
-          const pkg = JSON.parse(pkgRaw);
-          pkgCtx = `\nPackage: ${pkg.name || 'unknown'}@${pkg.version || '0.0.0'} | Type: ${pkg.type || 'commonjs'} | Main: ${pkg.main || 'none'} | Deps: ${Object.keys(pkg.dependencies || {}).length}`;
+          const pkgRaw = await readTextFileWithLimit(pkgPath, 64 * 1024); // 64KB
+          if (pkgRaw) {
+            const pkg = JSON.parse(redactTextSecrets(pkgRaw));
+            pkgCtx = `\nPackage: ${pkg.name || 'unknown'}@${pkg.version || '0.0.0'} | Type: ${pkg.type || 'commonjs'} | Main: ${pkg.main || 'none'} | Deps: ${Object.keys(pkg.dependencies || {}).length}`;
+          }
         } catch { /* ignore package.json errors */ }
         contextSuffix = `\n\n[Project Context]\nPath: ${cleanPath}${pkgCtx}${scanCtx}`;
       }

@@ -119,7 +119,7 @@ const REPO_SKIP_DIRS = new Set([
     'node_modules', '.git', 'uploads', 'coverage', 'archive', 'dist', 'build', '.next', '.cache',
     '.venv', 'htmlcov', '.simplebeacon', 'security-reports', '__pycache__',
     'github-cache', '.github-sync', 'deliverables', 'data-central', 'java-ai-vulnerable',
-    'New folder', 'out'
+    'New folder', 'out', '.vscode-test'
 ]);
 const CODE_EXTENSIONS = getCodeExtensions();
 const languagePluginManager = getBuiltinPluginManager();
@@ -141,7 +141,9 @@ const BINARY_EXTENSIONS = new Set([
     '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
     '.sqlite', '.db', '.lock',
     // Game asset / map binaries
-    '.scx', '.scm', '.sc2map', '.sc2data', '.chk', '.mix', '.vxl', '.shp', '.tmp'
+    '.scx', '.scm', '.sc2map', '.sc2data', '.chk', '.mix', '.vxl', '.shp', '.tmp',
+    // Binary data files (e.g. VS Code test archives icudtl.dat)
+    '.dat'
 ]);
 const WALK_MAX_DEPTH = 128;
 const MAX_FILE_BYTES = Number(process.env.CODEBASE_MAX_FILE_BYTES) || Number.POSITIVE_INFINITY;
@@ -3165,8 +3167,10 @@ async function loadEslintReportFromDisk(scanRoot, platformRoot) {
             const fullPath = path.join(root, relPath);
             if (!fs.existsSync(fullPath)) continue; // simplebeacon-ignore sync-io — existence check before async read
             try {
-                const raw = await fs.promises.readFile(fullPath, 'utf8');
-                const parsed = JSON.parse(raw);
+                const { readTextFileWithLimit, redactTextSecrets } = require('./recoverable-io.cjs');
+                const raw = await readTextFileWithLimit(fullPath, 512 * 1024);
+                if (!raw) continue;
+                const parsed = JSON.parse(redactTextSecrets(raw));
                 const reportItems = Array.isArray(parsed) ? parsed : parsed.results;
                 if (!Array.isArray(reportItems)) continue;
 
@@ -3264,7 +3268,9 @@ async function analyzeFileContent(file, rootDir, options = {}) {
 
     let content = '';
     try {
-        content = await fs.promises.readFile(file.path, 'utf8');
+        const { readTextFileWithLimit, redactTextSecrets } = require('./recoverable-io.cjs');
+        const raw = await readTextFileWithLimit(file.path, 512 * 1024);
+        content = raw ? redactTextSecrets(raw) : '';
     } catch (error) {
         pushFinding(findings, {
             category: 'broken',

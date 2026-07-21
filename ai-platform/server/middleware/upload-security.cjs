@@ -233,8 +233,14 @@ class UploadSecurityMiddleware {
         try {
             // Read file content (limit to first 10KB for security scanning)
             const SCAN_CONTENT_LIMIT = 10 * constants.BYTES_PER_KB;
-            const buffer = await fs.readFile(file.path);
-            const content = buffer.slice(0, SCAN_CONTENT_LIMIT).toString('utf8', 0, SCAN_CONTENT_LIMIT);
+            const { readTextFileWithLimit, redactTextSecrets } = require('../lib/recoverable-io.cjs');
+            let content = '';
+            try {
+                content = await readTextFileWithLimit(file.path, SCAN_CONTENT_LIMIT);
+                content = redactTextSecrets(content);
+            } catch (err) {
+                content = '';
+            }
             
             // Check for suspicious patterns
             const suspiciousCheck = this.checkSuspiciousContent(content);

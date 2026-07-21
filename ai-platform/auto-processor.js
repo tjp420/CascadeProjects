@@ -99,12 +99,19 @@ async function processFile(filePath) {
   try {
     log(`[${timestamp()}] Processing: ${filename}`);
 
-    // 1. Read input file (with size guard)
+    // 1. Read input file (with size guard) using streaming read to avoid large allocations
     const stats = fs.statSync(filePath);
     if (stats.size > MAX_FILE_SIZE_MB * constants.BYTES_PER_MB) {
       throw new Error(`File exceeds ${MAX_FILE_SIZE_MB}MB limit: ${filename} (${Math.round(stats.size / 1024 / 1024)}MB)`);
     }
-    const rawData = fs.readFileSync(filePath, 'utf8');
+    const { readTextFileWithLimit, redactTextSecrets } = require('./server/lib/recoverable-io.cjs');
+    let rawData = '';
+    try {
+      rawData = await readTextFileWithLimit(filePath, Math.min(stats.size, MAX_FILE_SIZE_MB * constants.BYTES_PER_MB));
+      rawData = redactTextSecrets(rawData);
+    } catch (err) {
+      throw new Error(`Failed to read input file safely: ${err.message}`);
+    }
 
     // 2. Absolute Privacy: Strip PII before AI processing
     const cleanData = sanitizePrivacyData(rawData);

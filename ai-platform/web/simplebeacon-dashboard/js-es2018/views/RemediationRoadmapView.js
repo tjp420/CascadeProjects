@@ -184,8 +184,33 @@ export class RemediationRoadmapView {
         this.completed = new Set(JSON.parse(localStorage.getItem('sb-remediation-completed') || '[]'));
         this.importedIssues = JSON.parse(localStorage.getItem('sb-remediation-imported') || '[]');
         this.importedAt = localStorage.getItem('sb-remediation-imported-at') || null;
+        this._paginationDelegated = false;
+    }
+    refreshPaginationState() {
+        const issues = this.getIssues();
+        let filtered = this.selectedCategory === 'all' ? issues : issues.filter(i => (i.category || '').toLowerCase() === (this.selectedCategory || '').toLowerCase());
+        if (this.searchQuery) {
+            const q = this.searchQuery.toLowerCase();
+            filtered = filtered.filter(i => (i.type || '').toLowerCase().includes(q) || (i.description || '').toLowerCase().includes(q) || (i.filePath || '').toLowerCase().includes(q) || (i.category || '').toLowerCase().includes(q));
+        }
+        if (!this.showCompleted) {
+            filtered = filtered.filter(i => !this.completed.has(i.id));
+        }
+        const totalPages = Math.max(1, Math.ceil(filtered.length / this.pageSize));
+        if (this.currentPage < 1) this.currentPage = 1;
+        if (this.currentPage > totalPages) this.currentPage = totalPages;
+        return totalPages;
     }
     getIssues() {
+        // Prefer an explicit remediation payload set by the Analyze page when available
+        const remediationPayload = this.app.state.remediationPayload;
+        if (remediationPayload && Array.isArray(remediationPayload.issues) && remediationPayload.issues.length) {
+            return remediationPayload.issues.map((issue, index) => ({
+                ...issue,
+                id: issue.id || `${issue.severity || 'info'}|${issue.type || 'Issue'}|${issue.description || ''}|${index}`,
+                filePath: issue.filePath || issue.file || (issue.filePaths && issue.filePaths[0]) || (issue.affectedFiles && issue.affectedFiles[0]) || '—'
+            }));
+        }
         const report = this.app.state.report;
         const raw = report === null || report === void 0 ? void 0 : report.rawIssues;
         const detected = report === null || report === void 0 ? void 0 : report.detectedIssues;
@@ -778,6 +803,8 @@ export class RemediationRoadmapView {
             this.currentPage = 1;
             this.refreshView();
         });
+        // Search input: update query, reset to page 1 and refresh (debounced)
+        
         el.querySelectorAll('.roadmap-check').forEach(cb => {
             cb.addEventListener('change', (e) => {
                 const id = cb.dataset.id;
@@ -799,18 +826,33 @@ export class RemediationRoadmapView {
                 openInIde(btn.dataset.file, Number(btn.dataset.line) || 1, { projectRoot });
             });
         });
-        const prevBtn = el.querySelector('#remediation-prev-page');
-        prevBtn === null || prevBtn === void 0 ? void 0 : prevBtn.addEventListener('click', () => {
-            if (this.currentPage > 1) {
-                this.currentPage -= 1;
-                this.refreshView();
-            }
-        });
-        const nextBtn = el.querySelector('#remediation-next-page');
-        nextBtn === null || nextBtn === void 0 ? void 0 : nextBtn.addEventListener('click', () => {
-            this.currentPage += 1;
-            this.refreshView();
-        });
+        // Ensure currentPage is within valid bounds before binding
+        const totalPages = this.refreshPaginationState();
+        // Delegate Prev/Next handling on the persistent mount root so handlers survive re-renders
+        const mount = this._mountRoot || el;
+        if (!this._paginationDelegated && mount) {
+            this._paginationDelegated = true;
+            mount.addEventListener('click', (event) => {
+                const prev = event.target.closest && event.target.closest('#remediation-prev-page');
+                const next = event.target.closest && event.target.closest('#remediation-next-page');
+                if (!prev && !next) return;
+                event.preventDefault();
+                if (prev) {
+                    if (this.currentPage > 1) {
+                        this.currentPage -= 1;
+                        this.refreshView();
+                    }
+                }
+                else if (next) {
+                    // compute latest totalPages and clamp
+                    const tp = this.refreshPaginationState();
+                    if (this.currentPage < tp) {
+                        this.currentPage += 1;
+                        this.refreshView();
+                    }
+                }
+            });
+        }
         const exportBtn = el.querySelector('#export-remediation-json');
         exportBtn === null || exportBtn === void 0 ? void 0 : exportBtn.addEventListener('click', async () => {
             await this.ensureReportFresh();

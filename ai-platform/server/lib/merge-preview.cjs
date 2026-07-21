@@ -5,6 +5,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { readTextFileWithLimit, redactTextSecrets } = require('./recoverable-io.cjs');
 const { hashFileContent } = require('./mock-data-schema-validator.cjs');
 const { readJsonIfExists } = require('./repository-health-payload.cjs');
 
@@ -50,20 +51,25 @@ async function readFileSnapshot(absPath) {
         return { exists: false, absPath };
     }
     const stat = await fs.promises.stat(absPath);
-    const raw = await fs.promises.readFile(absPath, 'utf8');
+    const raw = await readTextFileWithLimit(absPath, 2 * 1024 * 1024);
     let parsed = null;
-    try {
-        parsed = JSON.parse(raw);
-    } catch {
-        parsed = null;
+    let preview = '';
+    if (raw) {
+        try {
+            parsed = JSON.parse(raw);
+        } catch {
+            parsed = null;
+        }
+        const safe = redactTextSecrets(raw);
+        preview = raw.length > 1200 ? `${safe.slice(0, 1200)}\n…` : safe;
     }
     return {
         exists: true,
         absPath,
         sizeBytes: stat.size,
-        contentHash: hashFileContent(raw),
+        contentHash: raw ? hashFileContent(raw) : null,
         validJson: parsed !== null,
-        preview: raw.length > 1200 ? `${raw.slice(0, 1200)}\n…` : raw
+        preview
     };
 }
 

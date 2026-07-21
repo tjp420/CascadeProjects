@@ -4,8 +4,8 @@
  * Picks the right scanner based on environment, path type, and available bridges.
  */
 
-import { isLocalPath } from './localAgentService.js?v=20260716cachefix1';
-import { hasExtensionBridgeConfigured, shouldProbeAgent4000, probeAgent4000, shouldProbeLocalAgent, probeAgent, shouldUseAgent, isIntegratedLocalDashboard } from './localAgentService.js?v=20260716cachefix1';
+import { isLocalPath } from './localAgentService.js?v=20260722scanfix1';
+import { hasExtensionBridgeConfigured, shouldProbeAgent4000, probeAgent4000, shouldProbeLocalAgent, probeAgent, shouldUseAgent, isIntegratedLocalDashboard } from './localAgentService.js?v=20260722scanfix1';
 import { isRemoteRepoUrl } from '../lib/analyzePathSources.js';
 
 /**

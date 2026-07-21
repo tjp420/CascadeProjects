@@ -292,6 +292,53 @@ app.use((req, res, next) => {
   });
 });
 
+// Development-only: simple stub endpoints to facilitate local UI testing
+if (process.env.SIMPLEBEACON_DEV_STUBS === 'true') {
+  logger.info('[DevStubs] SIMPLEBEACON_DEV_STUBS=true — registering dev-only auth stubs');
+  app.post('/api/auth/token-status', express.json(), (req, res) => {
+    const { token } = req.body || {};
+    if (!token) return res.status(400).json({ error: 'Token required' });
+    // Accept any well-formed JWT-like string in dev stub mode
+    const parts = String(token).split('.');
+    if (parts.length !== 3) return res.status(400).json({ registered: false, valid: false });
+    try {
+      const payloadB64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+      const pad = payloadB64.length % 4; const padded = payloadB64 + (pad ? '='.repeat(4 - pad) : '');
+      const payload = JSON.parse(Buffer.from(padded, 'base64').toString('utf8'));
+      const now = Math.floor(Date.now() / 1000);
+      const exp = payload.exp || 0;
+      return res.json({ registered: true, valid: exp > now, email: payload.email || null, tier: payload.tier || 'dev', expiry: exp || null });
+    } catch (err) {
+      return res.status(400).json({ registered: false, valid: false });
+    }
+  });
+
+  // Also allow token check via Authorization header
+  app.post('/api/auth/session', (req, res, next) => {
+    const auth = req.get('authorization') || '';
+    const m = auth.match(/^Bearer\s+(.*)$/i);
+    if (!m) return res.status(401).json({ error: 'Authorization required' });
+    req.body = req.body || {};
+    req.body.token = m[1];
+    return next();
+  }, express.json(), (req, res) => {
+    const { token } = req.body || {};
+    if (!token) return res.status(400).json({ error: 'Token required' });
+    const parts = String(token).split('.');
+    if (parts.length !== 3) return res.status(400).json({ registered: false, valid: false });
+    try {
+      const payloadB64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+      const pad = payloadB64.length % 4; const padded = payloadB64 + (pad ? '='.repeat(4 - pad) : '');
+      const payload = JSON.parse(Buffer.from(padded, 'base64').toString('utf8'));
+      const now = Math.floor(Date.now() / 1000);
+      const exp = payload.exp || 0;
+      return res.json({ success: true, registered: true, valid: exp > now, email: payload.email || null, tier: payload.tier || 'dev', expiry: exp || null });
+    } catch (err) {
+      return res.status(400).json({ registered: false, valid: false });
+    }
+  });
+}
+
 app.use((req, res, next) => {
   if (process.env.NODE_ENV === 'development') return next();
   if (!process.env.DASHBOARD_VAULT_PASSWORD) return next();

@@ -1,0 +1,28 @@
+HTTP/1.1 307 Temporary Redirect
+Date: Tue, 21 Jul 2026 01:22:13 GMT
+Content-Length: 0
+Connection: keep-alive
+Location: /audit?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRyZXZvcl9wdW50QGxpdmUuY29tIiwidGllciI6InNhbmRib3giLCJmZWF0dXJlcyI6WyJiYXNpY19hbmFseXNpcyIsInNhbXBsZV9kYXRhX2Jhc2ljIl0sImNsaWVudE5hbWUiOiJEZXZlbG9wZXIiLCJwcm9qZWN0TmFtZSI6IkRldmVsb3Blci1TYW5kYm94IiwianRpIjoiYTdlMDg2MDgtZjdhMC00ZDQxLTg0MmUtYmRiNmZmZTEzNDhhIiwiaWF0IjoxNzg0NTk2NTMxLCJleHAiOjE3ODU4MDYxMzF9.qi_VlZsU4gADVVfmhoO8KflZr-0gboFttktBOHVqzBU&code=727657
+Cache-Control: public, max-age=0, must-revalidate, no-transform, public, no-cache, no-transform
+content-security-policy: default-src 'self' 'unsafe-inline' 'unsafe-eval' https: http://127.0.0.1:* http://localhost:* https://localhost:* data: blob: ws: wss:;
+Report-To: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=HxuRkpVNgRI4rbDFMYcAAEzgj2%2FhFTg9qzOkW3yZ84q1DkyawiM%2FGyfMkAP2OmFqaVmfvicFEs6shrO6xS3wchu3oDtUwZ9IVa5Rm%2F9YyQWt7cSUu7lvGKTorQsxi3SamlI%3D"}]}
+Nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+Server: cloudflare
+CF-RAY: a1e664b0d92079b7-LHR
+alt-svc: h3=":443"; ma=86400
+
+HTTP/1.1 200 OK
+Date: Tue, 21 Jul 2026 01:22:13 GMT
+Content-Type: text/html
+Content-Length: 139723
+Connection: keep-alive
+CF-Cache-Status: HIT
+Cache-Control: public, max-age=0, must-revalidate, no-transform
+ETag: "2b0adb4de997775aa7b81373723deffd"
+content-security-policy: default-src 'self' 'unsafe-inline' 'unsafe-eval' https: http://127.0.0.1:* http://localhost:* https://localhost:* data: blob: ws: wss:;
+Report-To: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=%2BLhHb9JytCZeq%2FX9SJbIEjwAxDv6Uxw1KarJJi5NMGXojlzxzBz%2BI%2BaFfRkmaxOW8z%2FOB%2Fume3w8bYuz3D6A%2F1mEBoBLYueHUq0eVnAvit58YiDtfNx3ZiZ1CLA8FF0PL%2Fo%3D"}]}
+Nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+Server: cloudflare
+CF-RAY: a1e664b1c96779b7-LHR
+alt-svc: h3=":443"; ma=86400
+

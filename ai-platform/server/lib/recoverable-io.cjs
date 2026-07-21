@@ -48,6 +48,52 @@ function statMtimeMsOrNull(filePath, contextLabel = filePath) {
     }
 }
 
+/**
+ * Read a text file via stream with a maximum byte limit to avoid large in-memory reads.
+ * Returns the joined string (may be truncated) or throws on stream error.
+ */
+function readTextFileWithLimit(filePath, maxBytes = 256 * 1024) {
+    return new Promise((resolve, reject) => {
+        try {
+            const chunks = [];
+            let received = 0;
+            const rs = fs.createReadStream(filePath, { encoding: 'utf8', highWaterMark: 64 * 1024 });
+            rs.on('data', (c) => {
+                received += c.length;
+                if (received > maxBytes) {
+                    rs.destroy();
+                    // Resolve with truncated content
+                    chunks.push(c.slice(0, Math.max(0, c.length - (received - maxBytes))));
+                    return resolve(chunks.join(''));
+                }
+                chunks.push(c);
+            });
+            rs.on('error', (err) => reject(err));
+            rs.on('end', () => resolve(chunks.join('')));
+        } catch (err) {
+            reject(err);
+        }
+    });
+}
+
+/**
+ * Redact token-like or long-secret strings from free-form text.
+ */
+function redactTextSecrets(text) {
+    if (!text || typeof text !== 'string') return text;
+    const tokenLike = /(?:api[_-]?key|openai[_-]?key|secret|token|access[_-]?key|aws[_-]?secret)["'`]?\s*[:=]?\s*["'`]?([A-Za-z0-9\-_.]{8,})/ig;
+    const longSecret = /[A-Za-z0-9_\-]{32,}/g;
+    try {
+        let out = text.replace(tokenLike, (m) => {
+            return m.replace(/([A-Za-z0-9\-_.]{8,})/, '[REDACTED]');
+        });
+        out = out.replace(longSecret, '[REDACTED]');
+        return out;
+    } catch (err) {
+        return text;
+    }
+}
+
 module.exports = {
     logRecoverableIoError,
     readJsonFileSyncOrNull,

@@ -9,6 +9,7 @@ const { execFile } = require('child_process');
 const { promisify } = require('util');
 
 const constants = require('../../config/constants.cjs');
+const { readTextFileWithLimit, redactTextSecrets } = require('../recoverable-io.cjs');
 const execFileAsync = promisify(execFile);
 
 /**
@@ -92,7 +93,9 @@ async function findAdjacentDocumentation(filePath, projectRoot) {
         try {
             const stat = await fs.promises.stat(docPath);
             if (!stat.isFile() || stat.size > constants.TIMEOUT_2M) continue;
-            const content = await fs.promises.readFile(docPath, 'utf8');
+            const raw = await readTextFileWithLimit(docPath, 256 * 1024);
+            if (!raw) continue;
+            const content = redactTextSecrets(raw);
             docs.push({
                 name,
                 relativePath: path.relative(projectRoot, docPath).replace(/\\/g, '/'),

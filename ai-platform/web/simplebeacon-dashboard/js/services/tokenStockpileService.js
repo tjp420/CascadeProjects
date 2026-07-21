@@ -5,7 +5,11 @@
  */
 
 const VAULT_KEY = 'sb-token-vault';
-export const BUY_TIME_TOKENS_URL = 'https://simplebeacon.ai/checkout/tokens?ref=dashboard';
+export function BUY_TIME_TOKENS_URL() {
+    const env = (typeof window !== 'undefined' && window.__SIMPLEBEACON_ENV__) || {};
+    const base = env.DASHBOARD_BASE_URL || (typeof location !== 'undefined' && location.origin) || 'https://simplebeacon.ai';
+    return `${String(base).replace(/\/$/, '')}/checkout/tokens?ref=dashboard`;
+}
 
 function decodeJwtPayload(token) {
     if (!token || typeof token !== 'string')

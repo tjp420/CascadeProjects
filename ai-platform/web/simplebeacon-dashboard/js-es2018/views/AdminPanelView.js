@@ -70,6 +70,14 @@ export class AdminPanelView {
         this.searchTimer = null;
         this.passwordVerifiedUntil = 0;
         this.modals = [];
+        this._paginationDelegated = false;
+    }
+
+    refreshPaginationState() {
+        const totalPages = Math.max(1, Math.ceil((Number(this.totalUsers) || 0) / (this.pageLimit || PAGE_SIZE)));
+        if (this.pageIndex < 1) this.pageIndex = 1;
+        if (this.pageIndex > totalPages) this.pageIndex = totalPages;
+        return totalPages;
     }
 
     isAdmin() {
@@ -1101,10 +1109,22 @@ export class AdminPanelView {
                 this.scheduleSearchReload();
             });
         }
-        const prevBtn = this.container.querySelector('#admin-prev-page');
-        if (prevBtn) prevBtn.addEventListener('click', () => this.goToPreviousPage());
-        const nextBtn = this.container.querySelector('#admin-next-page');
-        if (nextBtn) nextBtn.addEventListener('click', () => this.goToNextPage());
+        // Delegate Prev/Next clicks so handlers survive render reflows and avoid duplicate listeners
+        if (!this._paginationDelegated && this.container) {
+            this._paginationDelegated = true;
+            this.container.addEventListener('click', (e) => {
+                const prev = e.target.closest && e.target.closest('#admin-prev-page');
+                const next = e.target.closest && e.target.closest('#admin-next-page');
+                if (!prev && !next) return;
+                e.preventDefault();
+                if (prev) {
+                    this.goToPreviousPage().catch(() => { /* ignore */ });
+                }
+                else if (next) {
+                    this.goToNextPage().catch(() => { /* ignore */ });
+                }
+            });
+        }
         const refreshBtn = this.container.querySelector('#admin-refresh');
         if (refreshBtn) {
             refreshBtn.addEventListener('click', () => {

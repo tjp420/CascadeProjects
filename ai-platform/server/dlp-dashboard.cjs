@@ -13,6 +13,14 @@ const http = require('http');
 const logger = require('./lib/app-logger');
 
 const constants = require('./config/constants.cjs');
+
+// Catch unhandled rejections and log them to avoid crashing without trace
+process.on('unhandledRejection', (reason, promise) => {
+    logger.error('[DLPDashboard] Unhandled Rejection at:', { reason, promise });
+});
+process.on('uncaughtException', (err) => {
+    logger.error('[DLPDashboard] Uncaught Exception:', err);
+});
 // i18n stub — replace with real translation framework when available
 /**
  * T.
@@ -38,6 +46,11 @@ class DLPDashboard {
 
         this.server.listen(this.port, () => {
             logger.info(`DLP Dashboard running on port ${this.port}`);
+        });
+
+        // handle listen errors gracefully
+        this.server.on('error', (err) => {
+            logger.error('[DLPDashboard] Server error:', err);
         });
 
         return this.server;
@@ -370,24 +383,38 @@ class DLPDashboard {
  * Refresh.
  * @returns {any}
  */
-    async function refresh() {
-      const stats = await fetch('/api/stats').then(r => r.json());
-      document.getElementById('total').textContent = stats.total;
-      document.getElementById('critical').textContent = stats.bySeverity.critical;
-      document.getElementById('high').textContent = stats.bySeverity.high;
-      document.getElementById('risk').textContent = stats.riskScore;
+        async function refresh() {
+            try {
+                const statsRes = await fetch('/api/stats');
+                const stats = statsRes.ok ? await statsRes.json() : null;
+                if (stats) {
+                    document.getElementById('total').textContent = stats.total;
+                    document.getElementById('critical').textContent = stats.bySeverity.critical;
+                    document.getElementById('high').textContent = stats.bySeverity.high;
+                    document.getElementById('risk').textContent = stats.riskScore;
+                }
 
-      const compliance = await fetch('/api/compliance').then(r => r.json());
-      document.getElementById('score').textContent = compliance.complianceScore;
-      const statusEl = document.getElementById('status');
-      statusEl.textContent = statusEl.dataset.label + ': ' + compliance.overallRisk;
+                const complianceRes = await fetch('/api/compliance');
+                const compliance = complianceRes.ok ? await complianceRes.json() : null;
+                if (compliance) {
+                    document.getElementById('score').textContent = compliance.complianceScore;
+                    const statusEl = document.getElementById('status');
+                    statusEl.textContent = statusEl.dataset.label + ': ' + compliance.overallRisk;
+                }
 
-      const data = await loadViolations(currentPage);
-      renderViolations(data);
-    }
-    refresh();
-    const refreshInterval = setInterval(refresh, constants.TIMEOUT_30S);
-    window.addEventListener('beforeunload', () => clearInterval(refreshInterval));
+                const data = await loadViolations(currentPage).catch((err) => {
+                    console.error('[DLPDashboard] loadViolations failed', err);
+                    return { violations: [], pagination: { page: 1, limit: 20, total: 0, pages: 1 } };
+                });
+                renderViolations(data);
+            } catch (err) {
+                console.error('[DLPDashboard] refresh failed', err);
+            }
+        }
+        refresh();
+        const REFRESH_INTERVAL_MS = 30 * 1000;
+        const refreshInterval = setInterval(refresh, REFRESH_INTERVAL_MS);
+        window.addEventListener('beforeunload', () => clearInterval(refreshInterval));
   </script>
 </body>
 </html>`;

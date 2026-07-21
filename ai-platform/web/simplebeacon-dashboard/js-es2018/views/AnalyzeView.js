@@ -2,11 +2,11 @@
 import { escapeHtml, showToast, downloadJson, downloadBlob, downloadText, redactPathForDisplay, formatPathLabel, formatPathInputValue, formatAiSummarySkipMessage, isRedactedPathDisplay, formatNumber, formatPercent, renderEmptyState } from '../utils.js';
 import { canUseDirectoryPicker, isLikelyWebkitDirectoryFileCap, browserFolderCapMessage, filePickerBlockedMessage, isFilePickerBlockedError, isEmbeddedDashboardFrame } from '../utils-lib/dom.js?v=20260721corsfix1';
 import { evaluateFunnelMetrics, getFunnelCopy, shouldShowEnterpriseFunnel, buildFunnelAuthOptions } from '../utils/funnelTrigger.js?v=20260716cachefix1';
-import { LocalScanService } from '../services/localScanService.js?v=20260716cachefix1';
+import { LocalScanService } from '../services/localScanService.js?v=20260722scanfix1';
 import { fingerprintDirectory, formatFingerprint } from '../services/fingerprintService.js';
-import { probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus, getAgentDownloadUrl, detectPlatform, getPlatformLabel, getInstallInstructions, getAgentFallbackMessage, probeAgent4000, scanViaAgent4000, renderAgentCertificate, hasExtensionBridgeConfigured, pickFolderViaExtensionBridge as requestExtensionFolderPick, shouldProbeLocalAgent, shouldProbeAgent4000, isIntegratedLocalDashboard } from '../services/localAgentService.js?v=20260716cachefix1';
+import { probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus, getAgentDownloadUrl, detectPlatform, getPlatformLabel, getInstallInstructions, getAgentFallbackMessage, probeAgent4000, scanViaAgent4000, renderAgentCertificate, hasExtensionBridgeConfigured, pickFolderViaExtensionBridge as requestExtensionFolderPick, shouldProbeLocalAgent, shouldProbeAgent4000, isIntegratedLocalDashboard } from '../services/localAgentService.js?v=20260722scanfix1';
 import { runSandboxedDirectoryScan, scanDroppedItems, isDroppedFolder, captureDroppedEntry } from '../services/browserSandboxScanService.js?v=20260716cachefix1';
-import { resolveScanStrategy } from '../services/scanStrategy.js?v=20260721hostedfix1';
+import { resolveScanStrategy } from '../services/scanStrategy.js?v=20260722scanfix1';
 
 function isRemoteDashboardHost() {
     return typeof window !== 'undefined' && !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
@@ -4341,7 +4341,11 @@ export class AnalyzeView {
         const detectedIssues = report.detectedIssues || [];
         const findings = report.findings || [];
         const warningIssues = (report.gate && report.gate.warningIssues) || [];
-        const primaryIssues = rawIssues.length ? rawIssues : (detectedIssues.length ? detectedIssues : (findings.length ? findings : []));
+        // Prefer the processed `detectedIssues` list (which may originate from `findings`)
+        // so `severityCounts` and issue lists are derived from the same source.
+        const primaryIssues = (detectedIssues && detectedIssues.length)
+            ? detectedIssues
+            : (rawIssues && rawIssues.length) ? rawIssues : (findings && findings.length ? findings : []);
         const counted = (sev.critical || 0) + (sev.high || 0) + (sev.medium || 0) + (sev.low || 0) + (sev.info || 0);
         const primaryTotal = Array.isArray(primaryIssues) ? primaryIssues.reduce((sum, i) => sum + (Number(i && i.count) || 1), 0) : 0;
         const warningTotal = Array.isArray(warningIssues) ? warningIssues.reduce((sum, i) => sum + (Number(i && i.count) || 1), 0) : 0;

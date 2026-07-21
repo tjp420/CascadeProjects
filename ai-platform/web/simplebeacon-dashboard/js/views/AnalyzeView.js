@@ -3989,7 +3989,11 @@ export class AnalyzeView {
     const detectedIssues = report.detectedIssues || [];
     const findings = report.findings || [];
     const warningIssues = (report.gate && report.gate.warningIssues) || [];
-    const primaryIssues = rawIssues.length ? rawIssues : (detectedIssues.length ? detectedIssues : (findings.length ? findings : []));
+    // Prefer the processed `detectedIssues` list (which may come from `findings`) so
+    // `severityCounts` and the primary issue list originate from the same source.
+    const primaryIssues = (detectedIssues && detectedIssues.length)
+      ? detectedIssues
+      : (rawIssues && rawIssues.length) ? rawIssues : (findings && findings.length ? findings : []);
     const counted = (sev.critical || 0) + (sev.high || 0) + (sev.medium || 0) + (sev.low || 0) + (sev.info || 0);
     const primaryTotal = Array.isArray(primaryIssues) ? primaryIssues.reduce((sum, i) => sum + (Number(i && i.count) || 1), 0) : 0;
     const warningTotal = Array.isArray(warningIssues) ? warningIssues.reduce((sum, i) => sum + (Number(i && i.count) || 1), 0) : 0;

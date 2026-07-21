@@ -737,7 +737,11 @@ export class SettingsView {
         showToast('Clipboard unavailable — copy from Profile', 'error');
     }
     openBuyTimeTokens() {
-        window.open(BUY_TIME_TOKENS_URL, '_blank', 'noopener,noreferrer');
+        try {
+            window.open(BUY_TIME_TOKENS_URL(), '_blank', 'noopener,noreferrer');
+        } catch (e) {
+            window.open('/checkout/tokens?ref=dashboard', '_blank', 'noopener,noreferrer');
+        }
     }
     updateToken(root, rerender) {
         var _a, _b;

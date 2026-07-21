@@ -4,6 +4,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { readTextFileWithLimit, redactTextSecrets } = require('../recoverable-io.cjs');
 const { createLanguageDetector } = require('../universal-language-detector.cjs');
 const { getBuiltinPluginManager } = require('../plugin-system/index.cjs');
 const { analyzeSemanticLayer } = require('./semantic-analyzer.cjs');
@@ -140,7 +141,8 @@ async function understandCodeSnippet(content, context = {}, options = {}) {
  */
 async function understandFile(absolutePath, options = {}) {
     const resolved = path.resolve(absolutePath);
-    const content = await fs.promises.readFile(resolved, 'utf8');
+    const raw = await readTextFileWithLimit(resolved, 512 * 1024);
+    const content = raw ? redactTextSecrets(raw) : '';
     const projectPath = options.projectPath || path.dirname(resolved);
     return understandCodeSnippet(content, {
         filePath: options.relativePath || path.basename(resolved),
@@ -166,7 +168,9 @@ async function attachUnderstandingToCodebaseReport(report, projectPath, options 
     for (const rel of topFiles) {
         const abs = path.join(analysisRoot, rel);
         try {
-            const content = await fs.promises.readFile(abs, 'utf8');
+            const raw = await readTextFileWithLimit(abs, 512 * 1024);
+            if (!raw) continue;
+            const content = redactTextSecrets(raw);
             const understanding = await understandCodeSnippet(content, {
                 filePath: rel,
                 projectPath,

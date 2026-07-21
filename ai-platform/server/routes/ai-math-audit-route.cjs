@@ -109,7 +109,9 @@ function setupAiMathAuditRoute(app, baseDir) {
         return res.status(500).json({ success: false, error: 'Audit produced no report file' });
       }
 
-      const report = JSON.parse(await fs.promises.readFile(reportJson, 'utf-8'));
+      const { readTextFileWithLimit, redactTextSecrets } = require('../lib/recoverable-io.cjs');
+      const raw = await readTextFileWithLimit(reportJson, 5 * 1024 * 1024);
+      const report = raw ? JSON.parse(redactTextSecrets(raw)) : {};
 
       // Convert absolute viz paths to relative / serveable URLs
       const vizAssets = (report.visualizations || []).map(v => {
