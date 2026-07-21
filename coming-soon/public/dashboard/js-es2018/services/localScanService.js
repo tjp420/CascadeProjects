@@ -9,11 +9,11 @@ import {
   isIgnoredVirtualPath,
   loadIgnorePatternsFromDirHandle
 } from '../utils-lib/simplebeaconignore.browser.js?v=20260716cachefix1';
-const WORKER_URL = new URL('../workers/scan-worker.js?v=20260722scanfix1', import.meta.url);
+const WORKER_URL = new URL('../workers/scan-worker.js?v=20260723scanfix1', import.meta.url);
 const MAX_FILES = 100000;
 const SCAN_BATCH_SIZE = 400;
 const BATCH_TIMEOUT_MS = 10 * 60 * 1000;
-const SKIP_DIRS = /(^|[\\/])(node_modules|\.git|\.github|\.husky|dist|build|\.next|out|coverage|frontend-build|\.github-sync|github-cache|\.simplebeacon|\.cursor|\.windsurf|deployments|backups|\.vscode-test|\.vsix-patch-temp|logs|cache|\.cache|tmp|temp|target|\.wrangler|\.cargo[\\/]registry|\.cargo[\\/]git|SC2Data|Versions|Support|Editor|Maps|Campaigns|Base|Mods|Assets|TriggerLibs|LocalizedData)([\\/]|$)/i;
+const SKIP_DIRS = /(^|[\\/])(node_modules|\.git|\.github|\.husky|dist|build|\.next|out|coverage|frontend-build|\.github-sync|github-cache|\.simplebeacon|\.cursor|\.windsurf|deployments|backups|\.vscode-test|\.vsix-patch-temp|logs|cache|\.cache|tmp|temp|target|\.wrangler|\.cargo[\\/]registry|\.cargo[\\/]git)([\\/]|$)/i;
 const SCANABLE_EXTENSIONS = new Set([
     '.js', '.cjs', '.mjs', '.ts', '.tsx', '.jsx', '.json', '.txt', '.ini', '.cfg',
     '.conf', '.env', '.yml', '.yaml', '.xml', '.css', '.sh', '.bat', '.cmd', '.ps1',
@@ -76,11 +76,26 @@ async function collectFiles(dirHandle, pathPrefix = '', files = [], ignoreCtx = 
  * @param {Object} [meta]
  * @returns {Object}
  */
+function countFoldersFromPaths(paths) {
+    const folders = new Set();
+    for (const p of paths || []) {
+        const normalized = String(p).replace(/\\/g, '/');
+        const parts = normalized.split('/');
+        parts.pop();
+        let acc = '';
+        for (const part of parts) {
+            acc = acc ? `${acc}/${part}` : part;
+            if (acc) folders.add(acc);
+        }
+    }
+    return folders.size;
+}
 function buildReport(projectName, findings, totalFiles, analyzedFiles, meta = {}) {
     const categories = {};
     const findingsList = [];
     const rawIssues = [];
     const severityCounts = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
+    const totalFolders = meta.folderCount || 0;
     if (totalFiles === 0) {
         findingsList.push({
             category: 'scan-empty',
@@ -152,9 +167,9 @@ function buildReport(projectName, findings, totalFiles, analyzedFiles, meta = {}
         severityCounts,
         repositoryFilesTotal: totalFiles,
         ruleScopedFilesAnalyzed: analyzedFiles,
-        inventory: { totalFiles, totalFolders: 0, scannedFiles: analyzedFiles },
-        repositoryInventory: { totalFiles, totalFolders: 0, projectRoot: projectName },
-        repositoryFoldersTotal: 0,
+        inventory: { totalFiles, totalFolders, scannedFiles: analyzedFiles },
+        repositoryInventory: { totalFiles, totalFolders, projectRoot: projectName },
+        repositoryFoldersTotal: totalFolders,
         ignoreMeta: meta.ignoreMeta || null,
         gate: {
             pass: blockingCount === 0 && totalFiles > 0,
@@ -193,7 +208,7 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
             reject(new Error(err.message || 'Local scan worker failed'));
         };
         worker.onmessage = async (e) => {
-            const { type, processed, total, issues, error, issuesTruncated, totalFiles: completeTotal, currentFile } = e.data;
+            const { type, processed, total, issues, error, issuesTruncated, totalFiles: completeTotal, currentFile, binarySkipped, textErrors } = e.data;
             if (type === 'progress' && options.onProgress) {
                 options.onProgress(processed, total, { currentFile });
             }
@@ -207,9 +222,11 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
             if (type === 'complete') {
                 cleanup();
                 const resolvedTotal = completeTotal || totalFiles;
-                const analyzedFiles = workerFiles.filter((f) => /\.(js|cjs|mjs|ts|tsx|jsx|py|java|go|rs|php|rb|cs|vb)$/i.test(f.path)).length;
+                const analyzedFiles = Math.max(0, (processed || 0) - (binarySkipped || 0) - (textErrors || 0));
+                const folderCount = countFoldersFromPaths(workerFiles.map((f) => f.path));
                 resolve(buildReport(options.projectName || 'local-project', issues, resolvedTotal, analyzedFiles, {
                     issuesTruncated,
+                    folderCount,
                     ignoreMeta: options.ignoreCtx
                         ? {
                             source: options.ignoreCtx.source || 'builtin',
@@ -224,7 +241,7 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
             type: 'scan-start',
             scanId,
             totalFiles,
-            deepScan: false,
+            deepScan: true,
             ignoreCtx: ignoreCtx
                 ? { scanRootName: ignoreCtx.scanRootName, patterns: ignoreCtx.patterns }
                 : null
@@ -263,7 +280,7 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
                             scanId,
                             batchOffset: offset,
                             files: batch,
-                            deepScan: false
+                            deepScan: true
                         });
                     });
                 }

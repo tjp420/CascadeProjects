@@ -22,7 +22,8 @@ const LANGUAGE_REGISTRY = {
     rust: { extensions: ['rs'] },
     php: { extensions: ['php'] },
     ruby: { extensions: ['rb'] },
-    dotnet: { extensions: ['cs', 'vb'] }
+    dotnet: { extensions: ['cs', 'vb'] },
+    generic: { extensions: ['txt', 'ini', 'cfg', 'conf', 'env', 'json', 'xml', 'yaml', 'yml', 'md', 'log', 'properties', 'toml'] }
 };
 const PATTERN_REGISTRY = {
     debugArtifacts: {
@@ -30,16 +31,20 @@ const PATTERN_REGISTRY = {
         pattern: /\bconsole\.(log|warn|error|info|debug|table|trace|dir|group)\s*\(|\bdebugger\b|\balert\s*\(|\bprompt\s*\(|\bconfirm\s*\(/gi
     },
     todoMarkers: {
-        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet'],
+        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet', 'generic'],
         pattern: /(?:\/\/\s*|\/\*\s*|#\s*)\b(TODO|FIXME|HACK|XXX|BUG)\b/gi
     },
     credentials: {
-        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet'],
+        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet', 'generic'],
         pattern: /(?:^|[^a-zA-Z0-9_-])(password|passwd|pwd|secret|api[_-]?key|private[_-]?key|client[_-]?secret|access_token|auth_token|refresh_token|bearer_token)\s*[:=]\s*['"`][^'"`\s]{8,}/gi
     },
     euAiAct: {
-        appliesTo: ['javascript'],
+        appliesTo: ['javascript', 'generic'],
         pattern: /ai_system|high_risk|transparency|conformity|bias_audit|data_governance/gi
+    },
+    hardcodedIp: {
+        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet', 'generic'],
+        pattern: /\b(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)\b/g
     },
     pythonDebug: {
         appliesTo: ['python'],
@@ -129,6 +134,10 @@ function shouldSkipAnalyzerLine(name, filePath, line) {
     }
     if (name === 'euAiAct') {
         if (isComplianceToolingPath(normalized) || EU_AI_ACT_COMPLIANCE_LINE_RE.test(line))
+            return true;
+    }
+    if (name === 'hardcodedIp') {
+        if (/localhost|127\.0\.0\.1|0\.0\.0\.0|::1/i.test(line))
             return true;
     }
     return false;
@@ -420,6 +429,7 @@ self.onmessage = async (e) => {
             issueCount: state.issues.length,
             chunkAnalyzed: state.chunkAnalyzed,
             binarySkipped: state.binarySkipped,
+            textErrors: state.textErrors,
             issuesTruncated: state.issuesTruncated
         });
         self.scanState = null;

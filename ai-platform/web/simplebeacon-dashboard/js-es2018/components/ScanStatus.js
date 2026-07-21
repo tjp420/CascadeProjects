@@ -1,7 +1,7 @@
 import { escapeHtml, formatPercent, formatNumber, showToast } from '../utils.js';
 import { canUseDirectoryPicker, filePickerBlockedMessage, isFilePickerBlockedError } from '../utils-lib/dom.js?v=20260721corsfix1';
 import { resolveDisplayScore, formatScanScopeSummary, formatScanInventoryNote, getScanFileMetrics } from '../services/analyzeService.js?v=20260716cachefix1';
-import { runLocalScan } from '../services/localScanService.js?v=20260722scanfix1';
+import { runLocalScan } from '../services/localScanService.js?v=20260723scanfix1';
 import { isLocalPath, probeAgent, scanViaAgent, probeAgent4000, scanViaAgent4000, renderAgentCertificate, hasExtensionBridgeConfigured, pickFolderViaExtensionBridge as requestExtensionFolderPick, shouldProbeLocalAgent, shouldProbeAgent4000 } from '../services/localAgentService.js?v=20260722scanfix1';
 import { runSandboxedDirectoryScan, isDroppedFolder, scanDroppedItems, captureDroppedEntry } from '../services/browserSandboxScanService.js?v=20260716cachefix1';
 function isRemoteDashboardHost() {
