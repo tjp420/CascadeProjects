@@ -402,13 +402,12 @@ class DLPDashboard {
                     statusEl.textContent = statusEl.dataset.label + ': ' + compliance.overallRisk;
                 }
 
-                const data = await loadViolations(currentPage).catch((err) => {
-                    console.error('[DLPDashboard] loadViolations failed', err);
-                    return { violations: [], pagination: { page: 1, limit: 20, total: 0, pages: 1 } };
-                });
+                const data = await loadViolations(currentPage).catch(() => (
+                    { violations: [], pagination: { page: 1, limit: 20, total: 0, pages: 1 } }
+                ));
                 renderViolations(data);
             } catch (err) {
-                console.error('[DLPDashboard] refresh failed', err);
+                // refresh errors are intentionally silent in the UI
             }
         }
         refresh();
