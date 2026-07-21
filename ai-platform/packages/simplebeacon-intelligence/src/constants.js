@@ -7,7 +7,8 @@
 
 export const GENERIC_AI_MARKERS = new Set([
     'data', 'result', 'output', 'temp', 'holder', 'info', 'val',
-    'value', 'item', 'items', 'response', 'payload', 'obj', 'res'
+    'value', 'item', 'items', 'response', 'payload', 'obj', 'res',
+    'process', 'handle', 'request'
 ]);
 
 export const CREDENTIAL_KEY_FRAGMENTS = ['secret', 'token', 'pass', 'key', 'apikey', 'api_key'];

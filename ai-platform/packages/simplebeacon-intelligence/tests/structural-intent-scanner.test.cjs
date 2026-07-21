@@ -53,18 +53,16 @@ test('extractJsFunctions extracts function names', () => {
     assert.ok(fns.length >= 1);
 });
 
-test('scanStructuralIntent returns object with findings', () => {
+test('scanStructuralIntent returns array of findings', () => {
     const code = 'def process_data(data):\n    temp = data\n    return temp\n';
-    const result = scanStructuralIntent(code, { filePath: 'test.py', language: 'python' });
-    assert.ok(result);
-    assert.ok(Array.isArray(result.findings));
+    const findings = scanStructuralIntent(code, { filePath: 'test.py', language: 'python' });
+    assert.ok(Array.isArray(findings));
 });
 
 test('scanCredentialDictStubs detects credential stubs', () => {
     const code = 'const config = { api_key: "your_key_here", secret: "changeme" };';
-    const result = scanCredentialDictStubs(code, { filePath: 'config.js' });
-    assert.ok(result);
-    assert.ok(Array.isArray(result.findings));
+    const findings = scanCredentialDictStubs(code, { filePath: 'config.js' });
+    assert.ok(Array.isArray(findings));
 });
 
 test('analyzeFunctionBlock returns object', () => {

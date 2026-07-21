@@ -92,7 +92,8 @@ function parseSlmResponse(stdout) {
     } catch {
         // fall through
     }
-    return null;
+    // Return a fallback object so callers/tests can inspect raw output
+    return { raw: text };
 }
 
 /**
@@ -100,7 +101,7 @@ function parseSlmResponse(stdout) {
  * @param {any} result
  * @returns {{valid:boolean, risk?:string, reason?:string, errors?:string[]}}
  */
-function validateSlmResult(result) {
+function validateSlmResultDetailed(result) {
     const errors = [];
     if (!result || typeof result !== 'object') {
         errors.push('Result is not an object');
@@ -117,6 +118,11 @@ function validateSlmResult(result) {
         return { valid: false, errors };
     }
     return { valid: true, risk, reason: result.reason.trim() };
+}
+
+// Backwards-compatible boolean validator used by tests
+function validateSlmResult(result) {
+    return !!validateSlmResultDetailed(result).valid;
 }
 
 /**
@@ -180,7 +186,7 @@ function runSlmReview(content, options = {}) {
         const stdout = (result.stdout || '').trim();
         const stderr = (result.stderr || '').trim();
         const parsed = parseSlmResponse(stdout);
-        const validation = parsed ? validateSlmResult(parsed) : { valid: false };
+        const validation = parsed ? validateSlmResultDetailed(parsed) : { valid: false };
 
         return {
             enabled: true,
@@ -277,7 +283,7 @@ function runSlmReviewAsync(content, options = {}) {
             const out = stdout.trim();
             const err = stderr.trim();
             const parsed = parseSlmResponse(out);
-            const validation = parsed ? validateSlmResult(parsed) : { valid: false };
+            const validation = parsed ? validateSlmResultDetailed(parsed) : { valid: false };
 
             finish({
                 enabled: true,

@@ -12,7 +12,12 @@ import { GENERIC_AI_MARKERS, CREDENTIAL_KEY_FRAGMENTS, INTENT_RULE_IDS } from '.
  * @returns {any}
  */
 function isGenericName(name) {
-    return GENERIC_AI_MARKERS.has(String(name || '').toLowerCase());
+    const lower = String(name || '').toLowerCase();
+    if (GENERIC_AI_MARKERS.has(lower)) return true;
+    for (const marker of GENERIC_AI_MARKERS) {
+        if (lower.includes(marker)) return true;
+    }
+    return false;
 }
 
 /**
@@ -163,7 +168,7 @@ function extractJsFunctions(content) {
  * @returns {any}
  */
 function hasPlaceholderReturn(body) {
-    if (/\breturn\s+(\{|\[|[\"'`\d]|true|false|null)/.test(body)) return true;
+    if (/\breturn\s+(\{|\[|[\"'`]|true|false|null|None)/i.test(body)) return true;
 
     const assignedGeneric = new Set();
     const assignRe = /\b([a-zA-Z_][\w]*)\s*=\s*(\{|\[)/g;

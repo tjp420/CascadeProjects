@@ -10,6 +10,25 @@ export async function onRequest(context) {
   // NOTE: _redirects also proxies /api/* to the same backend; this function is a fallback
   // in case the redirect rule is bypassed or not applied in a specific Pages environment.
   const path = Array.isArray(params.path) ? params.path.join('/') : (params.path || '');
+
+  // The VS Code: extension's local data-server /api/notify bridge is not available on the
+  // hosted site. Swallow these requests so the dashboard does not log 404s/401s.
+  if (path === 'notify' || path.startsWith('notify/')) {
+    if (request.method === 'OPTIONS') {
+      return new Response(null, {
+        status: 204,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        },
+      });
+    }
+    return new Response(JSON.stringify({ success: true, hosted: true }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
   const target = new URL(`/api/${path}`, backendUrl.replace(/\/$/, ''));
   target.search = new URL(request.url).search;
 

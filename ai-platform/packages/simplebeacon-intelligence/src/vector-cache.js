@@ -70,18 +70,25 @@ function countMatches(content, pattern) {
     return (content.match(pattern) || []).length;
 }
 
-function extractFeatureVector(content, structuralFindings = []) {
-    const genericNames = 'data|result|output|temp|info|val|payload|obj|res';
-    const genericAssigns = (content.match(new RegExp(`\\b(${genericNames})\\s*=`, 'gi')) || []).length;
-    const tryBlocks = (content.match(/\btry\s*[\{:]/g) || []).length;
+function extractFeatureVector(content, structuralFindings = [], maybeLang) {
+    // Backwards compatibility: callers sometimes pass language as second arg
+    if (typeof structuralFindings === 'string') {
+        maybeLang = structuralFindings;
+        structuralFindings = [];
+    }
+        const text = String(content || '');
+        structuralFindings = Array.isArray(structuralFindings) ? structuralFindings : [];
+        const genericNames = 'data|result|output|temp|info|val|payload|obj|res';
+        const genericAssigns = (text.match(new RegExp(`\\b(${genericNames})\\s*=`, 'gi')) || []).length;
+        const tryBlocks = (text.match(/\\btry\\s*[\{:]/g) || []).length;
     const passHandlers = (content.match(/\bpass\b|\bcatch\s*\([^)]*\)\s*\{\s*\}/g) || []).length;
     const literalReturns = (content.match(/\breturn\s+(\{|\[|[\"'`\d])/g) || []).length;
     const genericReturns = (content.match(new RegExp(`\\breturn\\s+(${genericNames})\\b`, 'gi')) || []).length;
     const dictAssigns = (content.match(new RegExp(`\\b(${genericNames})\\s*=\\s*\\{`, 'gi')) || []).length;
     const credentialKeys = (content.match(/['"]?(secret|token|pass|key|api_key)['"]?\s*:/gi) || []).length;
     const placeholderVals = (content.match(/your_|changeme|placeholder/gi) || []).length;
-    const hollowFindings = structuralFindings.filter((f) => f.id === 'SB-INTENT-001').length;
-    const credFindings = structuralFindings.filter((f) => f.id === 'SB-INTENT-002').length;
+        const hollowFindings = structuralFindings.filter((f) => f && f.id === 'SB-INTENT-001').length;
+        const credFindings = structuralFindings.filter((f) => f && f.id === 'SB-INTENT-002').length;
 
     const total = Math.max(content.split('\n').length, 1);
     return [
