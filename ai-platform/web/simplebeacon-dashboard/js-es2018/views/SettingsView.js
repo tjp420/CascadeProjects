@@ -80,7 +80,8 @@ export class SettingsView {
             target.replaceChildren(root);
         }
         else {
-            target.innerHTML = '';
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+            window.setSafeHTML(target, '');
             target.appendChild(root);
         }
         this._root = root;
@@ -234,6 +235,7 @@ export class SettingsView {
         const wrap = (_a = this._root) === null || _a === void 0 ? void 0 : _a.querySelector('#settings-ai-ollama-model-wrap');
         if (!wrap)
             return;
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         wrap.innerHTML = this.renderOllamaModelSelect(this.displayAiKeys());
         this.bindOllamaModelEvents(this._root);
     }
@@ -351,6 +353,7 @@ export class SettingsView {
         const el = document.createElement('div');
         el.className = 'fade-in';
         if (this.loading && !this.draft) {
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
             el.innerHTML = `
         <div class="analyze-hero"><h1 class="page-title">Settings</h1><p class="text-muted analyze-hero-sub">Loading configuration…</p></div>
         ${renderEmptyState({
@@ -362,6 +365,7 @@ export class SettingsView {
             return el;
         }
         if (this.error && !this.draft) {
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
             el.innerHTML = `
         <div class="analyze-hero"><h1 class="page-title">Settings</h1><p class="text-muted analyze-hero-sub">Configuration unavailable</p></div>
         ${renderEmptyState({
@@ -378,6 +382,7 @@ export class SettingsView {
             });
             return el;
         }
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         el.innerHTML = `
       <div class="analyze-hero">
         <h1 class="page-title">Settings</h1>

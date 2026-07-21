@@ -172,6 +172,7 @@ export class HelpView {
             { icon: '🔧', title: 'Fix', desc: 'Developer fixes issues and re-scans until clean' },
             { icon: '🚀', title: 'Ship', desc: 'Gate green, code deploys to production' }
         ];
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         el.innerHTML = `
       <style>
         .help-hero { text-align:center; padding: var(--space-10) var(--space-6); }
@@ -373,7 +374,8 @@ npm test -- --testPathPattern=page-samples</pre>
         return el;
     }
     mount(container) {
-        container.innerHTML = '';
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+        window.setSafeHTML(container, '');
         container.appendChild(this.render());
     }
 }
@@ -405,6 +407,7 @@ export class FeaturesView {
         const catalog = this.getFilteredCatalog();
         const analyzeModes = allItems.filter((i) => i.analyzeMode).length;
         const routes = new Set(allItems.map((i) => i.route)).size;
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         el.innerHTML = `
       <h1 class="page-title">All Features</h1>
       <p class="text-muted mb-4">
@@ -511,7 +514,8 @@ export class FeaturesView {
     `;
     }
     mount(container) {
-        container.innerHTML = '';
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+        window.setSafeHTML(container, '');
         container.appendChild(this.render());
     }
 }

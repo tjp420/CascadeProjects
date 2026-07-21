@@ -63,6 +63,21 @@ function isIdeEmbedDownloadBridge() {
         return false;
     }
 }
+function wouldBeMixedOrLocalBridge(baseUrl) {
+    try {
+        const base = new URL(baseUrl);
+        // HTTPS page cannot fetch HTTP local endpoints (mixed content/CORS).
+        if (base.protocol === 'http:' && typeof window !== 'undefined' && window.location.protocol === 'https:')
+            return true;
+        // Remote hosted page should not call a localhost/loopback bridge.
+        if (typeof window !== 'undefined' &&
+            !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname) &&
+            /^(localhost|127\.0\.0\.1)$/i.test(base.hostname))
+            return true;
+    }
+    catch (_b) { /* ignore */ }
+    return false;
+}
 function getExtensionBridgeNotifyUrl() {
     if (typeof window === 'undefined')
         return '/api/download/notify';
@@ -74,7 +89,7 @@ function getExtensionBridgeNotifyUrl() {
         }
         if (base) {
             const clean = String(base).replace(/\/api\/?$/, '').trim();
-            if (clean)
+            if (clean && !wouldBeMixedOrLocalBridge(clean))
                 return `${clean}/api/download/notify`;
         }
     }
@@ -618,6 +633,72 @@ export function isLikelyWebkitDirectoryFileCap(fileCount) {
         return false;
     const knownCaps = [2048, 2500, 3000, 3250, 4096, 8192, 10000];
     return knownCaps.includes(n) || (n >= 2900 && n <= 3300);
+}
+
+/**
+ * Safely set HTML content on an element using DOMParser instead of innerHTML.
+ * @param {HTMLElement} el
+ * @param {string} html
+ * @returns {void}
+ */
+export function setHtml(el, html) {
+    if (!el) return;
+    if (typeof html !== 'string') { el.replaceChildren(); return; }
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    el.replaceChildren(...doc.body.childNodes);
+}
+
+/**
+ * Set HTML content safely using DOMPurify when available, falling back to
+ * `setHtml` (DOMParser) otherwise. This attaches `setSafeHTML` to `window`
+ * for backward-compatible call-sites.
+ * @param {HTMLElement} el
+ * @param {string} html
+ */
+export function setSafeHTML(el, html) {
+    if (!el) return;
+    if (typeof html !== 'string') { el.replaceChildren(); return; }
+    // Try to use a DOMPurify instance if available (window.DOMPurify or bundled).
+    try {
+        let purifier = null;
+        if (typeof window !== 'undefined' && window.DOMPurify && typeof window.DOMPurify.sanitize === 'function') {
+            purifier = window.DOMPurify;
+        }
+        else {
+            try {
+                // Try CommonJS/ESM resolution at build/runtime (bundlers will resolve this).
+                const dp = typeof require === 'function' ? require('dompurify') : null;
+                if (dp) {
+                    if (typeof dp.sanitize === 'function') {
+                        purifier = dp;
+                    }
+                    else if (typeof dp.default === 'function') {
+                        try { purifier = dp.default(window); } catch (e) { purifier = dp.default; }
+                    }
+                    else if (typeof dp === 'function') {
+                        purifier = dp(window);
+                    }
+                }
+            }
+            catch (_b) { /* ignore */ }
+        }
+
+        if (purifier && typeof purifier.sanitize === 'function') {
+            const safe = purifier.sanitize(html);
+            el.innerHTML = safe;
+            return;
+        }
+    }
+    catch (_a) {
+        // fall through to parser fallback
+    }
+    // Fallback: parse and replace children (no innerHTML used).
+    setHtml(el, html);
+}
+
+if (typeof window !== 'undefined') {
+    try { window.setSafeHTML = setSafeHTML; } catch (e) { /* ignore */ }
 }
 
 /** User-facing note when folder selection may be truncated by the browser. */

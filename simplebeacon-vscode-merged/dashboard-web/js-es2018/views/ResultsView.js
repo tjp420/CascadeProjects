@@ -95,6 +95,7 @@ export class ResultsView {
         const fromAudit = ((_d = this.app.state.routeParams) === null || _d === void 0 ? void 0 : _d.from) === 'audit';
         const el = document.createElement('div');
         el.className = 'fade-in';
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         el.innerHTML = `
       <div class="section-heading mb-4">
         <h1 class="page-title" style="margin:0">Results</h1>
@@ -221,6 +222,7 @@ export class ResultsView {
                 const tr = document.createElement('tr');
                 tr.dataset.issueId = issue.id;
                 const sevCell = document.createElement('td');
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
                 sevCell.innerHTML = `<span class="severity-pill ${issue.severity}">${issue.severity}</span>`;
                 const typeCell = document.createElement('td');
                 typeCell.textContent = issue.type;
@@ -234,7 +236,8 @@ export class ResultsView {
                     }));
                 }
                 else {
-                    fileCell.innerHTML = '<code>—</code>';
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+                    window.setSafeHTML(fileCell, '<code>—</code>');;
                 }
                 const countCell = document.createElement('td');
                 countCell.textContent = String((_a = issue.count) !== null && _a !== void 0 ? _a : 1);
@@ -450,6 +453,7 @@ export class ResultsView {
         desc.textContent = issue.description || '';
         panel.appendChild(desc);
         const rec = document.createElement('p');
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         rec.innerHTML = `<strong>Recommended:</strong> ${escapeHtml(issue.recommendedAction || 'Review and fix manually')}`;
         panel.appendChild(rec);
         const fileRow = document.createElement('p');
@@ -464,11 +468,13 @@ export class ResultsView {
             fileRow.appendChild(openBtn);
         }
         else {
-            fileRow.innerHTML += '<code>—</code>';
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+            window.setSafeHTML(fileRow, '<code>—</code>');;
         }
         panel.appendChild(fileRow);
         if ((_a = issue.affectedFiles) === null || _a === void 0 ? void 0 : _a.length) {
             const aff = document.createElement('p');
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
             aff.innerHTML = `<strong>Affected:</strong> ${issue.affectedFiles.map(escapeHtml).join(', ')}`;
             panel.appendChild(aff);
         }
@@ -487,7 +493,8 @@ export class ResultsView {
         if (!container)
             return;
         this._container = container;
-        container.innerHTML = '';
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+        window.setSafeHTML(container, '');;
         container.appendChild(this.render());
     }
     mount(container) {

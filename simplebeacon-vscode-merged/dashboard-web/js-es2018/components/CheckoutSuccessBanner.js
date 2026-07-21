@@ -3,9 +3,9 @@
  * Checkout success banner — instant token display after Stripe redirect.
  */
 import { billingService } from '../services/billingService.js';
-import { authService } from '../services/authService.js?v=20260716cachefix1';
+import { authService } from '../services/authService.js?v=20260721cspapi';
 import { addToStockpile } from '../services/tokenStockpileService.js';
-import { showToast } from '../utils.js';
+import { showToast, setHtml } from '../utils.js';
 
 const POLL_MS = 2000;
 const MAX_ATTEMPTS = 15;
@@ -35,17 +35,17 @@ function stripCheckoutQueryParams() {
 
 function renderLoading(banner) {
     banner.className = 'checkout-success-banner checkout-success-banner--loading';
-    banner.innerHTML = `
+    setHtml(banner, `
       <div class="checkout-success-banner-row">
         <span class="loading-spinner checkout-success-banner-spinner" aria-hidden="true"></span>
         <span>Provisioning your team license token from Stripe…</span>
       </div>
-    `;
+    `);
 }
 
 function renderSuccess(banner, { token, email }, onActivate, onStockpile) {
     banner.className = 'checkout-success-banner checkout-success-banner--success';
-    banner.innerHTML = `
+    setHtml(banner, `
       <div class="checkout-success-banner-title">Payment verified — time token ready</div>
       <p class="checkout-success-banner-copy">
         Load it now or stockpile it in your token loader for future use. Add to CI as <code>SIMPLEBEACON_LICENSE_TOKEN</code> when you activate.
@@ -59,7 +59,7 @@ function renderSuccess(banner, { token, email }, onActivate, onStockpile) {
       <p class="checkout-success-banner-footnote">
         A copy was also emailed to <strong>${email || 'your billing address'}</strong>.
       </p>
-    `;
+    `);
     const copyBtn = banner.querySelector('#sb-copy-token-btn');
     copyBtn?.addEventListener('click', async () => {
         try {
@@ -82,23 +82,23 @@ function renderSuccess(banner, { token, email }, onActivate, onStockpile) {
 
 function renderPending(banner, email) {
     banner.className = 'checkout-success-banner checkout-success-banner--pending';
-    banner.innerHTML = `
+    setHtml(banner, `
       <div class="checkout-success-banner-title">Payment received — token syncing</div>
       <p class="checkout-success-banner-copy">
         Your payment succeeded. The license token is still provisioning${email ? ` for <strong>${email}</strong>` : ''}.
         Check your inbox in a minute or refresh this page.
       </p>
       <button type="button" class="btn btn-secondary btn-sm" id="sb-retry-checkout-btn">Retry now</button>
-    `;
+    `);
     return banner.querySelector('#sb-retry-checkout-btn');
 }
 
 function renderError(banner, message) {
     banner.className = 'checkout-success-banner checkout-success-banner--error';
-    banner.innerHTML = `
+    setHtml(banner, `
       <div class="checkout-success-banner-title">Could not load license token</div>
       <p class="checkout-success-banner-copy">${message}</p>
-    `;
+    `);
 }
 
 async function fetchSessionToken(sessionId) {
@@ -133,7 +133,6 @@ export async function mountCheckoutSuccessBanner(container, options = {}) {
         billingService.setApiToken(token);
         if (email)
             billingService.setEmail(email);
-        // simplebeacon-ignore sensitive-data — hardcoded fallback email, not user data
         authService.setSession(token, { email: email || 'team@simplebeacon.ai', tier: 'team' });
         options.onTokenReady?.(token, email);
         showToast('Team license activated in dashboard', 'success');

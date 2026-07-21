@@ -280,6 +280,7 @@ export class ProfileView {
         </div>
       </div>
     `);
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         container.innerHTML = '';
         container.appendChild(fragment);
         if (typeof window.lucide !== 'undefined')
@@ -370,12 +371,14 @@ export class ProfileView {
                         return;
                     if (input.type === 'password') {
                         input.type = 'text';
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
                         toggleBtn.innerHTML = '<i data-lucide="eye-off" class="icon-16"></i>';
                         toggleBtn.title = 'Hide token';
                         toggleBtn.setAttribute('aria-label', 'Hide token');
                     }
                     else {
                         input.type = 'password';
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
                         toggleBtn.innerHTML = '<i data-lucide="eye" class="icon-16"></i>';
                         toggleBtn.title = 'Show token';
                         toggleBtn.setAttribute('aria-label', 'Show token');
@@ -424,11 +427,14 @@ export class ProfileView {
                     }
                 }
                 if (copied) {
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
                     const original = copyBtn.innerHTML;
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
                     copyBtn.innerHTML = '<i data-lucide="check" class="icon-16"></i>';
                     if (typeof window.lucide !== 'undefined')
                         window.lucide.createIcons();
                     setTimeout(() => {
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
                         copyBtn.innerHTML = original;
                         if (typeof window.lucide !== 'undefined')
                             window.lucide.createIcons();

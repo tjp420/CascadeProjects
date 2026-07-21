@@ -1,6 +1,6 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
 import { showToast } from '../utils.js';
-import { canUseDirectoryPicker, isLikelyWebkitDirectoryFileCap, browserFolderCapMessage, isEmbeddedDashboardFrame } from '../utils-lib/dom.js';
+import { canUseDirectoryPicker, isLikelyWebkitDirectoryFileCap, browserFolderCapMessage, isEmbeddedDashboardFrame } from '../utils-lib/dom.js?v=20260721corsfix1';
 import { normalizeSimplebeaconReport } from './analyzeService.js?v=20260716cachefix1';
 import {
   createIgnoreContext,
@@ -8,12 +8,23 @@ import {
   filterQueueByIgnore,
   isIgnoredVirtualPath,
   loadIgnorePatternsFromDirHandle
-} from '../utils-lib/simplebeaconignore.browser.js?v=20260716cachefix1';
-const WORKER_URL = new URL('../workers/scan-worker.js?v=20260716cachefix1', import.meta.url);
+} from '../utils-lib/simplebeaconignore.browser.js?v=20260724fix1';
+const WORKER_URL = new URL('../workers/scan-worker.js?v=20260724fix1', import.meta.url);
 const MAX_FILES = 100000;
 const SCAN_BATCH_SIZE = 400;
 const BATCH_TIMEOUT_MS = 10 * 60 * 1000;
 const SKIP_DIRS = /(^|[\\/])(node_modules|\.git|\.github|\.husky|dist|build|\.next|out|coverage|frontend-build|\.github-sync|github-cache|\.simplebeacon|\.cursor|\.windsurf|deployments|backups|\.vscode-test|\.vsix-patch-temp|logs|cache|\.cache|tmp|temp|target|\.wrangler|\.cargo[\\/]registry|\.cargo[\\/]git)([\\/]|$)/i;
+const SCANABLE_EXTENSIONS = new Set([
+    '.js', '.cjs', '.mjs', '.ts', '.tsx', '.jsx', '.json', '.txt', '.ini', '.cfg',
+    '.conf', '.env', '.yml', '.yaml', '.xml', '.css', '.sh', '.bat', '.cmd', '.ps1',
+    '.py', '.pyw', '.pyi', '.cs', '.vb', '.java', '.kt', '.scala', '.groovy',
+    '.go', '.rs', '.php', '.rb', '.c', '.h', '.cpp', '.cc', '.hpp', '.cxx', '.hxx',
+    '.swift', '.dart', '.lua', '.r', '.pl', '.pm', '.tcl', '.asm', '.s',
+    '.tf', '.sql', '.vue', '.svelte', '.html', '.htm', '.md', '.rst',
+    '.toml', '.properties', '.gradle', '.sbt', '.dockerfile', '.makefile', '.cmake',
+    '.gitignore', '.dockerignore', '.editorconfig', '.babelrc', '.eslintrc', '.prettierrc',
+    '.npmrc', '.nvmrc', '.lock', '.feature', '.story'
+]);
 /**
  * Recursively collect FileSystemFileHandle entries from a directory handle.
  * @param {FileSystemDirectoryHandle} dirHandle
@@ -41,6 +52,10 @@ async function collectFiles(dirHandle, pathPrefix = '', files = [], ignoreCtx = 
         else if (handle.kind === 'file') {
             if (name === '.simplebeaconignore')
                 continue;
+            const dotIdx = name.lastIndexOf('.');
+            const ext = dotIdx >= 0 ? name.substring(dotIdx).toLowerCase() : '';
+            if (ext && !SCANABLE_EXTENSIONS.has(ext))
+                continue;
             files.push({ path: fullPath, handle });
         }
         if (files.length >= MAX_FILES)
@@ -61,11 +76,26 @@ async function collectFiles(dirHandle, pathPrefix = '', files = [], ignoreCtx = 
  * @param {Object} [meta]
  * @returns {Object}
  */
+function countFoldersFromPaths(paths) {
+    const folders = new Set();
+    for (const p of paths || []) {
+        const normalized = String(p).replace(/\\/g, '/');
+        const parts = normalized.split('/');
+        parts.pop();
+        let acc = '';
+        for (const part of parts) {
+            acc = acc ? `${acc}/${part}` : part;
+            if (acc) folders.add(acc);
+        }
+    }
+    return folders.size;
+}
 function buildReport(projectName, findings, totalFiles, analyzedFiles, meta = {}) {
     const categories = {};
     const findingsList = [];
     const rawIssues = [];
     const severityCounts = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
+    const totalFolders = meta.folderCount || 0;
     if (totalFiles === 0) {
         findingsList.push({
             category: 'scan-empty',
@@ -137,9 +167,9 @@ function buildReport(projectName, findings, totalFiles, analyzedFiles, meta = {}
         severityCounts,
         repositoryFilesTotal: totalFiles,
         ruleScopedFilesAnalyzed: analyzedFiles,
-        inventory: { totalFiles, totalFolders: 0, scannedFiles: analyzedFiles },
-        repositoryInventory: { totalFiles, totalFolders: 0, projectRoot: projectName },
-        repositoryFoldersTotal: 0,
+        inventory: { totalFiles, totalFolders, scannedFiles: analyzedFiles },
+        repositoryInventory: { totalFiles, totalFolders, projectRoot: projectName },
+        repositoryFoldersTotal: totalFolders,
         ignoreMeta: meta.ignoreMeta || null,
         gate: {
             pass: blockingCount === 0 && totalFiles > 0,
@@ -178,7 +208,7 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
             reject(new Error(err.message || 'Local scan worker failed'));
         };
         worker.onmessage = async (e) => {
-            const { type, processed, total, issues, error, issuesTruncated, totalFiles: completeTotal, currentFile } = e.data;
+            const { type, processed, total, issues, error, issuesTruncated, totalFiles: completeTotal, currentFile, binarySkipped, textErrors } = e.data;
             if (type === 'progress' && options.onProgress) {
                 options.onProgress(processed, total, { currentFile });
             }
@@ -192,9 +222,11 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
             if (type === 'complete') {
                 cleanup();
                 const resolvedTotal = completeTotal || totalFiles;
-                const analyzedFiles = workerFiles.filter((f) => /\.(js|cjs|mjs|ts|tsx|jsx|py|java|go|rs|php|rb|cs|vb)$/i.test(f.path)).length;
+                const analyzedFiles = Math.max(0, (processed || 0) - (binarySkipped || 0) - (textErrors || 0));
+                const folderCount = countFoldersFromPaths(workerFiles.map((f) => f.path));
                 resolve(buildReport(options.projectName || 'local-project', issues, resolvedTotal, analyzedFiles, {
                     issuesTruncated,
+                    folderCount,
                     ignoreMeta: options.ignoreCtx
                         ? {
                             source: options.ignoreCtx.source || 'builtin',
@@ -209,7 +241,7 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
             type: 'scan-start',
             scanId,
             totalFiles,
-            deepScan: false,
+            deepScan: true,
             ignoreCtx: ignoreCtx
                 ? { scanRootName: ignoreCtx.scanRootName, patterns: ignoreCtx.patterns }
                 : null
@@ -248,7 +280,7 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
                             scanId,
                             batchOffset: offset,
                             files: batch,
-                            deepScan: false
+                            deepScan: true
                         });
                     });
                 }

@@ -185,6 +185,7 @@ export class SettingsView {
         const wrap = (_a = this._root) === null || _a === void 0 ? void 0 : _a.querySelector('#settings-ai-ollama-model-wrap');
         if (!wrap)
             return;
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         wrap.innerHTML = this.renderOllamaModelSelect(this.displayAiKeys());
         this.bindOllamaModelEvents(this._root);
     }
@@ -274,6 +275,7 @@ export class SettingsView {
         const el = document.createElement('div');
         el.className = 'fade-in';
         if (this.loading && !this.draft) {
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
             el.innerHTML = `
         <div class="analyze-hero"><h1 class="page-title">Settings</h1><p class="text-muted analyze-hero-sub">Loading configuration…</p></div>
         ${renderEmptyState({
@@ -285,6 +287,7 @@ export class SettingsView {
             return el;
         }
         if (this.error && !this.draft) {
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
             el.innerHTML = `
         <div class="analyze-hero"><h1 class="page-title">Settings</h1><p class="text-muted analyze-hero-sub">Configuration unavailable</p></div>
         ${renderEmptyState({
@@ -301,6 +304,7 @@ export class SettingsView {
             });
             return el;
         }
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         el.innerHTML = `
       <div class="analyze-hero">
         <h1 class="page-title">Settings</h1>
@@ -1123,6 +1127,7 @@ export class SettingsView {
     async loadAndMount(container) {
         this.loading = true;
         this.error = null;
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         container.innerHTML = '';
         container.appendChild(this.render());
         try {
@@ -1160,6 +1165,7 @@ export class SettingsView {
             this.draft = cloneConfig(incoming || {});
             this.savedSnapshot = JSON.stringify(this.buildConfigFromDom(this.draft, null));
         }
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         container.innerHTML = '';
         const root = this.render();
         container.appendChild(root);

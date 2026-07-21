@@ -128,12 +128,11 @@ export function rewriteIdePreviewUrl(url: string, localBase: string, websiteMode
     const parsed = new URL(url);
     const isRemote = parsed.protocol === 'https:' || (parsed.protocol === 'http:' && !/^(localhost|127\.0\.0\.1)(:\d+)?$/i.test(parsed.hostname));
     if (!isRemote) return url;
-    // Website mode: load marketing pages and dashboard routes on simplebeacon.ai (not localhost proxy).
-    if (isMarketingSitePath(parsed.pathname)) {
-      return url;
-    }
+    // Website mode: dashboard routes must be rewritten to localhost because the hosted
+    // site's CSP (frame-ancestors 'none') blocks iframe embedding. Marketing pages stay
+    // on simplebeacon.ai and are opened via simple browser when canEmbed returns false.
     if (parsed.pathname === '/dashboard' || parsed.pathname.startsWith('/dashboard/')) {
-      return url;
+      return rewriteRemotePreviewUrl(url, localBase);
     }
     return url;
   } catch {

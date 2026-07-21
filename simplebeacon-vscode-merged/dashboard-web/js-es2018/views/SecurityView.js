@@ -84,6 +84,7 @@ export class SecurityView {
         const el = document.createElement('div');
         el.className = 'fade-in';
         if (this.loading && !this.getReport()) {
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
             el.innerHTML = `
         <div class="analyze-hero"><h1 class="page-title">Security Scanner</h1><p class="text-muted analyze-hero-sub">Loading security findings…</p></div>
         ${renderEmptyState({
@@ -95,6 +96,7 @@ export class SecurityView {
             return el;
         }
         if (this.error && !this.getReport()) {
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
             el.innerHTML = `
         <div class="analyze-hero"><h1 class="page-title">Security Scanner</h1><p class="text-muted analyze-hero-sub">Security scan unavailable</p></div>
         ${renderEmptyState({
@@ -115,6 +117,7 @@ export class SecurityView {
         const lastScan = summary.generatedAt
             ? new Date(summary.generatedAt).toLocaleString()
             : 'Never';
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         el.innerHTML = `
       <div class="analyze-hero">
         <h1 class="page-title">Security Scanner</h1>
@@ -294,7 +297,8 @@ export class SecurityView {
         if (!container)
             return;
         this._container = container;
-        container.innerHTML = '';
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+        window.setSafeHTML(container, '');;
         container.appendChild(this.render());
     }
     async runScan(container) {

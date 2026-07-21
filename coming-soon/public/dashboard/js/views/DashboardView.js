@@ -222,6 +222,7 @@ export class DashboardView {
             ? `<span class="badge gate-badge ${report.gate.pass ? 'bg-success' : 'bg-danger'}">${report.gate.pass ? 'Healthy' : 'Attention Required'}</span>`
             : '';
 
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         header.innerHTML = `
             <div>
                 <h1 class="h2 mb-1">Dashboard</h1>
@@ -239,6 +240,7 @@ export class DashboardView {
         const card = document.createElement('div');
         card.className = 'card text-center p-5 mx-auto my-4';
         card.style.maxWidth = '480px';
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         card.innerHTML = `
             <div style="margin-bottom:var(--space-3);"><span class="loading-spinner" style="width:48px;height:48px;"></span></div>
             <h2 style="font-size:var(--font-size-xl); margin-bottom:var(--space-2);">Scanning…</h2>
@@ -253,6 +255,7 @@ export class DashboardView {
         view.className = 'card text-center p-5 mx-auto my-4';
         view.style.maxWidth = '680px';
 
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         view.innerHTML = `
             <div class="mb-4">
                 <i data-lucide="folder-search" class="text-muted" style="width:48px;height:48px;"></i>
@@ -299,6 +302,7 @@ export class DashboardView {
             : (report.repositoryFilesTotal || 0);
         const repoTotal = report.repositoryFilesTotal || 0;
 
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         grid.innerHTML = `
             <div class="card bento-hero p-4 justify-content-between">
                 <div class="d-flex justify-content-between align-items-start">
@@ -366,6 +370,7 @@ export class DashboardView {
         }));
 
         const trendSlot = grid.querySelector('#slot-trend');
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         trendSlot.innerHTML = renderTrendSection(this.app.state.history);
 
         return grid;
@@ -514,6 +519,7 @@ export class DashboardView {
     mount(container) {
         if (this._trendCleanup)
             this._trendCleanup();
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         container.innerHTML = '';
         const view = this.render();
         container.appendChild(view);

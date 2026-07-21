@@ -8,14 +8,34 @@
 import { canUseDirectoryPicker, filePickerBlockedMessage, isFilePickerBlockedError } from '../utils-lib/dom.js?v=20260721corsfix1';
 import {
   createIgnoreContext,
-  detectSimplebeaconMonorepo,
   extractIgnorePatternsFromLegacyFiles,
   filterQueueByIgnore,
   isIgnoredVirtualPath,
   loadIgnorePatternsFromDirHandle,
   shouldSkipSandboxComplianceDrift,
   shouldSkipSandboxScanFile
-} from '../utils-lib/simplebeaconignore.browser.js?v=20260720exclfix1';
+} from '../utils-lib/simplebeaconignore.browser.js?v=20260724fix1';
+
+/**
+ * Local copy of `detectSimplebeaconMonorepo` to avoid runtime mismatches
+ * when the served build artifact may not contain the named export.
+ */
+function detectSimplebeaconMonorepo(scanRootName, fileQueue) {
+  const root = String(scanRootName || '').replace(/\\/g, '/');
+  if (/^(coming-soon|ai-platform|simplebeacon-vscode-merged|CascadeProjects(?:_BACKUP_\d+)?)$/i.test(root)) {
+    return true;
+  }
+  if (Array.isArray(fileQueue)) {
+    for (let i = 0; i < Math.min(fileQueue.length, 500); i++) {
+      const p = String((fileQueue[i] && (fileQueue[i].virtualPath || fileQueue[i].path || fileQueue[i].webkitRelativePath || fileQueue[i].name)) || '').replace(/\\/g, '/');
+      if (/\/(coming-soon|ai-platform|simplebeacon-vscode-merged|packages\/simplebeacon-cli|simplebeacon-frameworkless)\//i.test(p)
+          || /^CascadeProjects(?:_BACKUP_\d+)?\//i.test(p)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
 
 const DEFAULT_MAX_FILE_SIZE = 1500000;
 const DEFAULT_MAX_FILES = 100000;

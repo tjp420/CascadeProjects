@@ -601,25 +601,11 @@ export class RemediationRoadmapView {
         overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:9999;display:flex;align-items:center;justify-content:center;';
         const panel = document.createElement('div');
         panel.style.cssText = 'width:90%;max-width:840px;max-height:90vh;overflow:auto;background:#161b22;border:1px solid #30363d;border-radius:12px;padding:30px;color:#e6edf3;font-family:sans-serif;font-size:16px;box-shadow:0 20px 60px rgba(0,0,0,0.5);';
-        panel.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-        <h3 style="margin:0;font-size:1.1rem;color:#e6edf3;">Import Remediation Data</h3>
-        <button id="sb-import-close" style="background:none;border:none;color:#8b949e;cursor:pointer;font-size:1.2rem;line-height:1;">&times;</button>
-      </div>
-      <label style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:#8b949e;margin-bottom:8px;display:block;">Paste JSON directly</label>
-      <textarea id="sb-import-json" placeholder='{"issues": [{"id":"1","severity":"high","type":"Credential leak","category":"Security","description":"...","filePath":"...","action":"...","effort":"30 min","completed":false}]}'
-        style="width:100%;min-height:180px;background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:10px;color:#e6edf3;font-family:monospace;font-size:12px;resize:vertical;box-sizing:border-box;"></textarea>
-      <div id="sb-import-dropzone" style="margin-top:12px;padding:16px;border:2px dashed #30363d;border-radius:8px;text-align:center;cursor:pointer;transition:border-color 0.2s;">
-        <strong>Drag &amp; drop</strong> a JSON or ZIP file here
-        <div style="color:#8b949e;font-size:12px;margin-top:4px;">Supports scan report JSON and export-bundle ZIP files</div>
-      </div>
-      <input type="file" id="sb-import-file" accept=".json,.zip" style="display:none;">
-      <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end;">
-        <button id="sb-import-choose" style="padding:6px 14px;border:1px solid #30363d;border-radius:8px;background:#0d1117;color:#e6edf3;cursor:pointer;font-size:13px;">Choose File</button>
-        <button id="sb-import-submit" style="padding:6px 14px;border:1px solid #58a6ff;border-radius:8px;background:#58a6ff;color:#fff;cursor:pointer;font-size:13px;">Import from JSON</button>
-      </div>
-      <p style="color:#8b949e;font-size:12px;margin-top:12px;">Tip: Use the <strong>Analyze</strong> page to run a scan, then drag the downloaded file here.</p>
-    `;
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+        window.setSafeHTML(
+            panel,
+            '\n      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">\n        <h3 style="margin:0;font-size:1.1rem;color:#e6edf3;">Import Remediation Data</h3>\n        <button id="sb-import-close" style="background:none;border:none;color:#8b949e;cursor:pointer;font-size:1.2rem;line-height:1;">&times;</button>\n      </div>\n      <label style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:#8b949e;margin-bottom:8px;display:block;">Paste JSON directly</label>\n      <textarea id="sb-import-json" placeholder=\'{"issues": [{"id":"1","severity":"high","type":"Credential leak","category":"Security","description":"...","filePath":"...","action":"...","effort":"30 min","completed":false}]}\'\n        style="width:100%;min-height:180px;background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:10px;color:#e6edf3;font-family:monospace;font-size:12px;resize:vertical;box-sizing:border-box;"></textarea>\n      <div id="sb-import-dropzone" style="margin-top:12px;padding:16px;border:2px dashed #30363d;border-radius:8px;text-align:center;cursor:pointer;transition:border-color 0.2s;">\n        <strong>Drag &amp; drop</strong> a JSON or ZIP file here\n        <div style="color:#8b949e;font-size:12px;margin-top:4px;">Supports scan report JSON and export-bundle ZIP files</div>\n      </div>\n      <input type="file" id="sb-import-file" accept=".json,.zip" style="display:none;">\n      <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end;">\n        <button id="sb-import-choose" style="padding:6px 14px;border:1px solid #30363d;border-radius:8px;background:#0d1117;color:#e6edf3;cursor:pointer;font-size:13px;">Choose File</button>\n        <button id="sb-import-submit" style="padding:6px 14px;border:1px solid #58a6ff;border-radius:8px;background:#58a6ff;color:#fff;cursor:pointer;font-size:13px;">Import from JSON</button>\n      </div>\n      <p style="color:#8b949e;font-size:12px;margin-top:12px;">Tip: Use the <strong>Analyze</strong> page to run a scan, then drag the downloaded file here.</p>\n    '
+        );;
         overlay.appendChild(panel);
         document.body.appendChild(overlay);
         const closeBtn = panel.querySelector('#sb-import-close');
@@ -775,6 +761,7 @@ export class RemediationRoadmapView {
         const issues = this.getIssues();
         const el = document.createElement('div');
         el.className = this._hasPainted ? '' : 'fade-in';
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         el.innerHTML = `
       <div class="analyze-hero">
         <h1 class="page-title">Remediation Roadmap</h1>
@@ -1003,7 +990,8 @@ export class RemediationRoadmapView {
         }
     }
     _paint(container) {
-        container.innerHTML = '';
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+        window.setSafeHTML(container, '');
         container.appendChild(this.render());
         this._hasPainted = true;
     }
@@ -1119,14 +1107,14 @@ export class RemediationRoadmapView {
                 if (!isLikelyDashboardServer)
                     return;
                 try {
-                    const loaded = await tryLoad('/data/complete-scan-ai-platform-2026-06-12.json')
-                        || await tryLoad('/data/roadmap-from-scan-ai-platform-2026-06-12.json')
-                        || await tryLoad('/data/roadmap-from-scan-cascadeprojects-2026-06-12-v2.json')
-                        || await tryLoad('/data/roadmap-from-scan-cascadeprojects-2026-06-12.json')
-                        || await tryLoad('/data/roadmap-from-scan-ai-agent-2026-06-12.json')
-                        || await tryLoad('/data/roadmap-from-scan-2026-06-11.json')
-                        || await tryLoad('/data/roadmap-ai-agent-complete-2026-06-11.json')
-                        || await tryLoad('/data/roadmap-ai_agent-merged-2026-06-11.json');
+                    const loaded = (await tryLoad('/data/complete-scan-ai-platform-2026-06-12.json'))
+                        || (await tryLoad('/data/roadmap-from-scan-ai-platform-2026-06-12.json'))
+                        || (await tryLoad('/data/roadmap-from-scan-cascadeprojects-2026-06-12-v2.json'))
+                        || (await tryLoad('/data/roadmap-from-scan-cascadeprojects-2026-06-12.json'))
+                        || (await tryLoad('/data/roadmap-from-scan-ai-agent-2026-06-12.json'))
+                        || (await tryLoad('/data/roadmap-from-scan-2026-06-11.json'))
+                        || (await tryLoad('/data/roadmap-ai-agent-complete-2026-06-11.json'))
+                        || (await tryLoad('/data/roadmap-ai_agent-merged-2026-06-11.json'));
                     if (!loaded) {
                         // Silent — user can import manually
                     }

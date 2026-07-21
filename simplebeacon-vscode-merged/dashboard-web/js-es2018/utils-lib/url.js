@@ -165,6 +165,14 @@ function _readEmbedApiBaseFromQuery() {
 
 export function apiBaseUrl() {
     if (typeof document !== 'undefined') {
+        // Runtime config injected by the API server or extension bridge.
+        if (typeof window !== 'undefined') {
+            const env = window.__SIMPLEBEACON_ENV__ || {};
+            const envBase = env.API_BASE_URL || env.DASHBOARD_BASE_URL || window.__SB_API_HOST__ || '';
+            if (envBase && _isAllowedApiBase(envBase)) {
+                return _normalizeApiBase(envBase);
+            }
+        }
         // Extension can pass a local API base when the dashboard is loaded from the static website.
         const fromQuery = _readEmbedApiBaseFromQuery();
         if (fromQuery) {
@@ -174,13 +182,21 @@ export function apiBaseUrl() {
         const stored = _readStoredApiBase();
         if (stored && _isAllowedApiBase(stored))
             return stored;
-        if (typeof window !== 'undefined' && window.__SIMPLEBEACON_ENV__ && window.__SIMPLEBEACON_ENV__.API_BASE_URL) {
-            const base = window.__SIMPLEBEACON_ENV__.API_BASE_URL.replace(/\/api\/?$/, '');
-            return base;
-        }
         const meta = document.querySelector('meta[name="api-base-url"]');
-        if (meta)
-            return meta.getAttribute('content') || '';
+        if (meta) {
+            const metaBase = meta.getAttribute('content') || '';
+            if (metaBase) return _normalizeApiBase(metaBase);
+        }
+    }
+    if (typeof location !== 'undefined') {
+        const host = location.hostname;
+        if (host === 'simplebeacon.ai') {
+            return location.origin;
+        }
+        // Cloudflare Pages previews and other non-local/custom domains talk to the production API.
+        if (!/^(localhost|127\.0\.0\.1|\[::1\])$/i.test(host) && !host.endsWith('.onrender.com')) {
+            return 'https://simplebeacon.ai';
+        }
     }
     return '/';
 }

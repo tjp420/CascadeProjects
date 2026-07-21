@@ -8,8 +8,8 @@ import {
   filterQueueByIgnore,
   isIgnoredVirtualPath,
   loadIgnorePatternsFromDirHandle
-} from '../utils-lib/simplebeaconignore.browser.js?v=20260716cachefix1';
-const WORKER_URL = new URL('../workers/scan-worker.js?v=20260723scanfix1', import.meta.url);
+} from '../utils-lib/simplebeaconignore.browser.js?v=20260724fix1';
+const WORKER_URL = new URL('../workers/scan-worker.js?v=20260724fix1', import.meta.url);
 const MAX_FILES = 100000;
 const SCAN_BATCH_SIZE = 400;
 const BATCH_TIMEOUT_MS = 10 * 60 * 1000;

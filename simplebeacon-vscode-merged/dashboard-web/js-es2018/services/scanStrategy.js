@@ -4,8 +4,8 @@
  * Picks the right scanner based on environment, path type, and available bridges.
  */
 
-import { isLocalPath } from './localAgentService.js?v=20260716cachefix1';
-import { hasExtensionBridgeConfigured, shouldProbeAgent4000, probeAgent4000, shouldProbeLocalAgent, probeAgent, shouldUseAgent, isIntegratedLocalDashboard } from './localAgentService.js?v=20260716cachefix1';
+import { isLocalPath } from './localAgentService.js?v=20260722scanfix1';
+import { hasExtensionBridgeConfigured, shouldProbeAgent4000, probeAgent4000, shouldProbeLocalAgent, probeAgent, shouldUseAgent, isIntegratedLocalDashboard } from './localAgentService.js?v=20260722scanfix1';
 import { isRemoteRepoUrl } from '../lib/analyzePathSources.js';
 
 /**
@@ -46,7 +46,16 @@ export async function resolveScanStrategy(rawPath, ctx = {}) {
     // 3. Hosted dashboard with local path → browser sandbox or extension bridge
     if (isRemote && isLocal) {
         if (hasBridge) {
-            return { strategy: 'agent-4000', path: typedPath, reason: 'Extension bridge configured for local path' };
+            // Bridge is configured but may be unreachable (extension not running).
+            // probeAgent4000 already ran at step 2 — if it returned available, we
+            // already returned. If we get here, the bridge probe failed.
+            if (ctx.agentStatus && shouldUseAgent(typedPath, ctx.agentStatus)) {
+                return { strategy: 'local-agent', path: typedPath, reason: 'Local agent available for local path' };
+            }
+            if (ctx.hasBrowserScanFiles) {
+                return { strategy: 'browser-sandbox', path: ctx.lastProjectPath || typedPath, reason: 'Re-scan cached browser files' };
+            }
+            return { strategy: 'prompt-folder', path: typedPath, reason: 'Extension bridge configured but unreachable — prompt for folder selection' };
         }
         if (ctx.agentStatus && shouldUseAgent(typedPath, ctx.agentStatus)) {
             return { strategy: 'local-agent', path: typedPath, reason: 'Local agent available for local path' };
@@ -83,8 +92,11 @@ export async function resolveScanStrategy(rawPath, ctx = {}) {
         return { strategy: 'local-agent', path: typedPath, reason: 'Integrated dashboard with agent' };
     }
 
-    // 7. Server path → server-side scan
+    // 7. Server path → server-side scan (only on local/integrated dashboards)
     if (!isLocal && typedPath) {
+        if (isRemote) {
+            return { strategy: 'prompt-folder', path: typedPath, reason: 'Hosted site cannot read local paths — prompt for folder selection' };
+        }
         return { strategy: 'server', path: typedPath, reason: 'Server-side path' };
     }
 

@@ -2,8 +2,8 @@
 import { DASHBOARD_BASE_URL, OLLAMA_DEFAULT_URL } from '../config.js';
 import { apiBaseUrl } from '../utils-lib/url.js';
 
-import { authService } from './authService.js?v=20260716cachefix1';
-import { hasExtensionBridgeConfigured, getLocalBridgeFetch, getExtensionBridgeOrigin, buildBridgeOllamaProbeUrls } from './localAgentService.js?v=20260716cachefix1';
+import { authService } from './authService.js?v=20260721cspapi';
+import { hasExtensionBridgeConfigured, getLocalBridgeFetch, getExtensionBridgeOrigin, buildBridgeOllamaProbeUrls } from './localAgentService.js?v=20260720ollama4';
 /**
  * Is authenticated.
  * @returns {any}
@@ -168,15 +168,10 @@ export function isLocalOllamaUrl(url) {
     }
 }
 
-/** Skip automatic Ollama probes that cannot succeed (HTTPS dashboard → loopback).
- *  User-initiated "Connect local Ollama" bypasses this guard.
+/** Whether automatic Ollama probes should proceed.
+ *  On HTTPS dashboards, direct browser→Ollama works when OLLAMA_ORIGINS is set.
  */
 export function shouldProbeOllamaModels(ollamaBaseUrl = OLLAMA_DEFAULT_URL) {
-    const baseUrl = sanitizeOllamaBaseUrl(ollamaBaseUrl) || OLLAMA_DEFAULT_URL;
-    const isHttpsPage = typeof window !== 'undefined' && window.location.protocol === 'https:';
-    if (isHttpsPage && isLocalOllamaUrl(baseUrl)) {
-        return false;
-    }
     return true;
 }
 
@@ -204,9 +199,9 @@ let _ollamaModelsPromiseUrl = null;
 function getApiBaseUrl() {
     const fromUrl = apiBaseUrl();
     if (fromUrl && fromUrl !== '/') {
-        return String(fromUrl).replace(/\/api\/?$/, '');
+        return String(fromUrl).replace(/\/api\/?$/, '').replace(/\/+$/, '');
     }
-    return DASHBOARD_BASE_URL || (typeof window !== 'undefined' ? window.__SB_API_HOST__ : '') || '';
+    return (DASHBOARD_BASE_URL || (typeof window !== 'undefined' ? window.__SB_API_HOST__ : '') || '').replace(/\/+$/, '');
 }
 
 function isCorsError(err) {
@@ -277,7 +272,7 @@ export async function fetchOllamaModels(ollamaBaseUrl = OLLAMA_DEFAULT_URL) {
         try {
             const apiBase = getApiBaseUrl();
             const proxyPath = `/api/simplebeacon/ollama/models?baseUrl=${encodeURIComponent(baseUrl)}`;
-            const proxyUrl = apiBase ? `${apiBase.replace(/\/\$/, '')}${proxyPath}` : proxyPath;
+            const proxyUrl = apiBase ? `${apiBase}${proxyPath}` : proxyPath;
             const response = await fetch(proxyUrl, {
                 method: 'GET',
                 signal: controller.signal,
@@ -389,7 +384,7 @@ export async function fetchOllamaModels(ollamaBaseUrl = OLLAMA_DEFAULT_URL) {
             }
             catch (bridgeErr) {
                 if (bridgeErr.name === 'AbortError') {
-                    throw new Error('Ollama connection timed out - is Ollama running?');
+                    return { ok: false, models: [], message: 'Ollama connection timed out - is Ollama running?', source: 'timeout' };
                 }
                 const userMessage = /not found/i.test(bridgeErr.message || '')
                     ? 'Extension data server has no Ollama proxy routes (404). Install the latest SimpleBeacon VSIX from Settings or reload VS Code/Cursor.'
@@ -403,71 +398,50 @@ export async function fetchOllamaModels(ollamaBaseUrl = OLLAMA_DEFAULT_URL) {
             }
         }
 
-        // HTTPS pages or dashboards with a configured API base should use the
-        // server proxy to avoid CORS/mixed-content issues.
-        if (preferProxy) {
+        // For HTTPS-hosted dashboards, the server proxy cannot reach a user's local Ollama.
+        // The only viable path is a direct browser fetch, which requires OLLAMA_ORIGINS to be set.
+        const isLocalOllama = isLocalOllamaUrl(baseUrl);
+        if (isHttpsPage && isLocalOllama) {
             try {
-                return await fetchProxy();
-            } catch (proxyErr) {
-                if (proxyErr.name === 'AbortError') {
-                    throw new Error('Ollama connection timed out - is Ollama running?');
-                }
-                // HTTPS pages cannot call a local HTTP Ollama, so do not try direct.
-                if (isHttpsPage) {
-                    throw new Error(`Ollama proxy failed: ${proxyErr.message}`);
-                }
-                // If the proxy is reachable and returned an HTTP error, skip direct and report it.
-                if (proxyErr.name !== 'TypeError') {
-                    throw new Error(`Ollama proxy failed: ${proxyErr.message}`);
-                }
-                // Proxy could not be reached (network/transport error). Try a direct browser call as a fallback.
-                try {
-                    return await fetchDirect();
-                } catch (browserErr) {
-                    const cors = isCorsError(browserErr);
-                    const origin = (typeof window !== 'undefined' && window.location.origin) || 'this origin';
-                    if (cors) {
-                        throw new Error(
-                            `Ollama is reachable from the browser but the response is blocked by CORS. ` +
-                            `Start Ollama with the dashboard origin allowed: ` +
-                            `OLLAMA_ORIGINS='${origin}' ollama serve. ` +
-                            `If the server proxy is configured, it also failed: ${proxyErr.message}`
-                        );
-                    }
-                    throw new Error(
-                        browserErr.message === proxyErr.message
-                            ? proxyErr.message
-                            : `${browserErr.message} (server proxy: ${proxyErr.message})`
-                    );
-                }
+                return await fetchDirect();
+            } catch (browserErr) {
+                const origin = (typeof window !== 'undefined' && window.location.origin) || 'this origin';
+                return {
+                    ok: false,
+                    models: [],
+                    message: `Ollama is reachable but its CORS policy blocks ${origin}. Start Ollama from your shell with: OLLAMA_ORIGINS='${origin}' ollama serve`,
+                    source: 'cors-blocked'
+                };
             }
         }
 
-        // HTTP page with no proxy configured: try direct browser fetch first, then fall back to the proxy.
+        // Local http dashboards: try server proxy first, then direct browser fetch.
         try {
-            return await fetchDirect();
-        } catch (browserErr) {
-            const cors = isCorsError(browserErr);
+            return await fetchProxy();
+        } catch (proxyErr) {
+            if (proxyErr.name === 'AbortError') {
+                return { ok: false, models: [], message: 'Ollama connection timed out - is Ollama running?', source: 'timeout' };
+            }
             try {
-                return await fetchProxy();
-            } catch (proxyErr) {
-                if (proxyErr.name === 'AbortError') {
-                    throw new Error('Ollama connection timed out - is Ollama running?');
+                return await fetchDirect();
+            } catch (browserErr) {
+                const origin = (typeof window !== 'undefined' && window.location.origin) || 'this origin';
+                if (isCorsError(browserErr)) {
+                    return {
+                        ok: false,
+                        models: [],
+                        message: `Ollama is reachable but its CORS policy blocks ${origin}. Start Ollama from your shell with: OLLAMA_ORIGINS='${origin}' ollama serve`,
+                        source: 'cors-blocked'
+                    };
                 }
-                if (cors) {
-                    const origin = (typeof window !== 'undefined' && window.location.origin) || 'this origin';
-                    throw new Error(
-                        `Ollama is reachable from the browser but the response is blocked by CORS. ` +
-                        `Start Ollama with the dashboard origin allowed: ` +
-                        `OLLAMA_ORIGINS='${origin}' ollama serve. ` +
-                        `If the server proxy is configured, it also failed: ${proxyErr.message}`
-                    );
-                }
-                throw new Error(
-                    browserErr.message === proxyErr.message
+                return {
+                    ok: false,
+                    models: [],
+                    message: browserErr.message === proxyErr.message
                         ? proxyErr.message
-                        : `${browserErr.message} (server proxy: ${proxyErr.message})`
-                );
+                        : `${browserErr.message} (server proxy: ${proxyErr.message})`,
+                    source: 'error'
+                };
             }
         }
     })();

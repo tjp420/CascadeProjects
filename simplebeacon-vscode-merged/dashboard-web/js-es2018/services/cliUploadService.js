@@ -1,11 +1,10 @@
-import { authService } from './authService.js?v=20260716cachefix1';
+import { authService } from './authService.js?v=20260721cspapi';
+import { apiBaseUrl } from '../utils-lib/url.js';
 
-const DEFAULT_API_URL = 'https://simplebeacon.ai';
 function apiPrefix() {
-    if (typeof location !== 'undefined' && !/^(localhost|127\.0\.0\.1)$/i.test(location.hostname) && !location.hostname.endsWith('.onrender.com')) {
-        return DEFAULT_API_URL;
-    }
-    return '';
+    const base = apiBaseUrl();
+    // apiBaseUrl returns '/' for relative root when running locally
+    return (base && base !== '/') ? base : '';
 }
 
 let _cliApiKeyPromise = null;

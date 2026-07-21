@@ -94,6 +94,7 @@ export class ResultsView {
 
     const el = document.createElement('div');
     el.className = 'fade-in';
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
     el.innerHTML = `
       <div class="section-heading mb-4">
         <h1 class="page-title" style="margin:0">Results</h1>
@@ -192,6 +193,7 @@ export class ResultsView {
       issues.forEach((issue) => {
         const tr = document.createElement('tr');
         tr.dataset.issueId = issue.id;
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         tr.innerHTML = `
           <td><span class="severity-pill ${issue.severity}">${issue.severity}</span></td>
           <td>${escapeHtml(issue.type)}</td>
@@ -378,6 +380,7 @@ export class ResultsView {
   showDetail(container, issue) {
     const slot = container.querySelector('#issue-detail');
     if (!slot) return;
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
     slot.innerHTML = `
       <div class="detail-panel">
         <h3>${escapeHtml(issue.type)}</h3>
@@ -399,6 +402,7 @@ export class ResultsView {
   paint(container = this._container) {
     if (!container) return;
     this._container = container;
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
     container.innerHTML = '';
     container.appendChild(this.render());
   }

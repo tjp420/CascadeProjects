@@ -1,4 +1,6 @@
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
+// DOMPurify is loaded via a script tag in the HTML (or provided by the bundler).
+// The HTML includes a CDN fallback so `window.DOMPurify` should be available.
 import { scanService } from './services/scanService.js?v=20260716cachefix1';
 import { platformService } from './services/platformService.js?v=20260716cachefix1';
 import { billingService } from './services/billingService.js?v=20260716cachefix1';
@@ -7,7 +9,7 @@ import { themeService } from './services/themeService.js';
 import { Router, PUBLIC_VIEWS } from './router.js?v=20260716cachefix1';
 import { TrustView } from './views/TrustView.js?v=20260716cachefix1';
 import { RepositoryHealthView } from './views/RepositoryHealthView.js?v=20260716cachefix1';
-import { DashboardView } from './views/DashboardView.js?v=20260716cachefix1';
+import { DashboardView } from './views/DashboardView.js?v=20260724fix1';
 import { ResultsView } from './views/ResultsView.js?v=20260716cachefix1';
 import { SettingsView } from './views/SettingsView.js?v=20260720ollama6';
 import { ToolsView } from './views/ToolsView.js';
@@ -15,7 +17,7 @@ import { PlatformView } from './views/PlatformView.js?v=20260716cachefix1';
 import { QualityView } from './views/QualityView.js?v=20260716cachefix1';
 import { HelpView, FeaturesView } from './views/HelpView.js';
 import { AuditView } from './views/AuditView.js?v=20260716cachefix1';
-import { AnalyzeView } from './views/AnalyzeView.js?v=20260723scanfix1';
+import { AnalyzeView } from './views/AnalyzeView.js?v=20260724fix1';
 import { SecurityView } from './views/SecurityView.js?v=20260716cachefix1';
 import { AboutView } from './views/AboutView.js';
 import { AssessmentView } from './views/AssessmentView.js?v=20260716cachefix1';

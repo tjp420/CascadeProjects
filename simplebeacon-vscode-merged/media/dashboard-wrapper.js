@@ -260,8 +260,14 @@
 
   function canEmbed(url) {
     try {
-      var host = new URL(url).hostname.toLowerCase();
-      if (host === 'simplebeacon.ai' || host.endsWith('.simplebeacon.ai')) return true;
+      var parsed = new URL(url);
+      var host = parsed.hostname.toLowerCase();
+      if (host === 'simplebeacon.ai' || host.endsWith('.simplebeacon.ai')) {
+        // Only dashboard routes can be embedded (they get rewritten to localhost).
+        // Marketing pages have CSP frame-ancestors 'none' and must use simple browser.
+        var p = parsed.pathname || '';
+        return p === '/dashboard' || p.indexOf('/dashboard/') === 0;
+      }
       if (host === 'localhost' || host === '127.0.0.1') return true;
       if (host.endsWith('.onrender.com')) return true;
       return false;
@@ -442,10 +448,40 @@
   }
 
   if (iframe) {
+    var iframeLoaded = false;
+    var iframeLoadTimer = null;
     iframe.addEventListener('load', function () {
+      iframeLoaded = true;
+      if (iframeLoadTimer) { clearTimeout(iframeLoadTimer); iframeLoadTimer = null; }
       notifyIframeHideUrlBar();
       requestDashboardAuthState();
     });
+    // Fallback: if iframe doesn't load within 3s (CSP frame-ancestors block), switch to localhost.
+    iframeLoadTimer = setTimeout(function () {
+      if (iframeLoaded) return;
+      var currentSrc = iframe.getAttribute('src') || iframe.src || '';
+      try {
+        var parsed = new URL(currentSrc);
+        if (parsed.hostname === 'simplebeacon.ai' || parsed.hostname.endsWith('.simplebeacon.ai')) {
+          var pagePath = parsed.pathname || '';
+          var isDashboard = pagePath === '/dashboard' || pagePath.indexOf('/dashboard/') === 0;
+          if (isDashboard) {
+            // Dashboard routes: fall back to local data server
+            var localBase = (window.__SB_LOCAL_DASHBOARD_BASE__ || '').replace(/\/$/, '');
+            if (localBase) {
+              var localUrl = localBase + pagePath + parsed.search + parsed.hash;
+              iframe.src = ensureEmbedParams(localUrl);
+              if (urlInput) urlInput.value = toWebsiteDisplayUrl(ensureEmbedParams(currentSrc));
+            }
+          } else {
+            // Non-dashboard pages (marketing, roadmap, etc.): open in simple browser
+            var cleanUrl = stripEmbedParams(currentSrc);
+            vscode.postMessage({ command: 'openInSimpleBrowser', url: cleanUrl });
+            if (urlInput) urlInput.value = cleanUrl;
+          }
+        }
+      } catch (e) { /* ignore */ }
+    }, 3000);
     notifyIframeHideUrlBar();
     setInterval(notifyIframeHideUrlBar, 2000);
   }

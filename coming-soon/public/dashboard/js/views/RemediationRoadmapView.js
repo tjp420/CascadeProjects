@@ -582,6 +582,7 @@ export class RemediationRoadmapView {
     const panel = document.createElement('div');
     panel.style.cssText = 'width:90%;max-width:840px;max-height:90vh;overflow:auto;background:#161b22;border:1px solid #30363d;border-radius:12px;padding:30px;color:#e6edf3;font-family:sans-serif;font-size:16px;box-shadow:0 20px 60px rgba(0,0,0,0.5);';
 
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
     panel.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
         <h3 style="margin:0;font-size:1.1rem;color:#e6edf3;">Import Remediation Data</h3>
@@ -760,6 +761,7 @@ export class RemediationRoadmapView {
     const issues = this.getIssues();
     const el = document.createElement('div');
     el.className = this._hasPainted ? '' : 'fade-in';
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
     el.innerHTML = `
       <div class="analyze-hero">
         <h1 class="page-title">Remediation Roadmap</h1>
@@ -974,6 +976,7 @@ export class RemediationRoadmapView {
   }
 
   _paint(container) {
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
     container.innerHTML = '';
     container.appendChild(this.render());
     this._hasPainted = true;

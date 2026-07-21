@@ -222,6 +222,7 @@ const COMPLETE_STEPS = [
   { id: 'security-headers', label: 'Security Headers', category: 'Security', desc: 'Missing CSP, X-Frame-Options, HSTS, or Referrer-Policy in server configs.' },
   { id: 'config-drift', label: 'Config Drift', category: 'Security', desc: 'Committed .env files, hardcoded URLs, secrets in config, inconsistent env naming.' },
   { id: 'eval-danger', label: 'Eval Danger', category: 'Security', desc: 'ev'+'al(), new Function(), dynamic code execution risks.' },
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
   { id: 'inner-html-xss', label: 'innerHTML XSS', category: 'Security', desc: 'Unsanitized innerHTML assignments.' },
   { id: 'prototype-pollution', label: 'Prototype Pollution', category: 'Security', desc: 'Object.prototype or __proto__ modification risks.' },
   { id: 'unvalidated-redirect', label: 'Unvalidated Redirect', category: 'Security', desc: 'Open redirect vulnerabilities.' },
@@ -3989,7 +3990,11 @@ export class AnalyzeView {
     const detectedIssues = report.detectedIssues || [];
     const findings = report.findings || [];
     const warningIssues = (report.gate && report.gate.warningIssues) || [];
-    const primaryIssues = rawIssues.length ? rawIssues : (detectedIssues.length ? detectedIssues : (findings.length ? findings : []));
+    // Prefer the processed `detectedIssues` list (which may come from `findings`) so
+    // `severityCounts` and the primary issue list originate from the same source.
+    const primaryIssues = (detectedIssues && detectedIssues.length)
+      ? detectedIssues
+      : (rawIssues && rawIssues.length) ? rawIssues : (findings && findings.length ? findings : []);
     const counted = (sev.critical || 0) + (sev.high || 0) + (sev.medium || 0) + (sev.low || 0) + (sev.info || 0);
     const primaryTotal = Array.isArray(primaryIssues) ? primaryIssues.reduce((sum, i) => sum + (Number(i && i.count) || 1), 0) : 0;
     const warningTotal = Array.isArray(warningIssues) ? warningIssues.reduce((sum, i) => sum + (Number(i && i.count) || 1), 0) : 0;
@@ -9055,6 +9060,7 @@ export class AnalyzeView {
       void this.tryAutoLoadCompleteScan();
     }
 
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
     container.innerHTML = '';
     const view = this.render();
     const el = view;

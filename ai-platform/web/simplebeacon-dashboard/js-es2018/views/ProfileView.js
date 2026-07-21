@@ -361,7 +361,8 @@ export class ProfileView {
         </div>
       </div>
     `);
-        container.innerHTML = '';
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+        window.setSafeHTML(container, '');
         container.appendChild(fragment);
         if (typeof window.lucide !== 'undefined')
             window.lucide.createIcons();
@@ -517,13 +518,15 @@ export class ProfileView {
                         return;
                     if (input.type === 'password') {
                         input.type = 'text';
-                        toggleBtn.innerHTML = '<i data-lucide="eye-off" class="icon-16"></i>';
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+                        window.setSafeHTML(toggleBtn, '<i data-lucide="eye-off" class="icon-16"></i>');;
                         toggleBtn.title = 'Hide token';
                         toggleBtn.setAttribute('aria-label', 'Hide token');
                     }
                     else {
                         input.type = 'password';
-                        toggleBtn.innerHTML = '<i data-lucide="eye" class="icon-16"></i>';
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+                        window.setSafeHTML(toggleBtn, '<i data-lucide="eye" class="icon-16"></i>');;
                         toggleBtn.title = 'Show token';
                         toggleBtn.setAttribute('aria-label', 'Show token');
                     }
@@ -571,11 +574,14 @@ export class ProfileView {
                     }
                 }
                 if (copied) {
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
                     const original = copyBtn.innerHTML;
-                    copyBtn.innerHTML = '<i data-lucide="check" class="icon-16"></i>';
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+                    window.setSafeHTML(copyBtn, '<i data-lucide="check" class="icon-16"></i>');;
                     if (typeof window.lucide !== 'undefined')
                         window.lucide.createIcons();
                     setTimeout(() => {
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
                         copyBtn.innerHTML = original;
                         if (typeof window.lucide !== 'undefined')
                             window.lucide.createIcons();
@@ -651,24 +657,41 @@ export class ProfileView {
             if (!securityKeysList)
                 return;
             if (!authService.getToken()) {
-                securityKeysList.innerHTML = '<p class="profile-help">Sign in to manage security keys.</p>';
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+                window.setSafeHTML(
+                    securityKeysList,
+                    '<p class="profile-help">Sign in to manage security keys.</p>'
+                );;
                 return;
             }
             if (!userHasJwtForAiKeys()) {
-                securityKeysList.innerHTML = '<p class="profile-help">Security keys require email/password sign-in. License-token sessions can use password or passkey sign-in on the Sign in page.</p>';
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+                window.setSafeHTML(
+                    securityKeysList,
+                    '<p class="profile-help">Security keys require email/password sign-in. License-token sessions can use password or passkey sign-in on the Sign in page.</p>'
+                );;
                 return;
             }
             if (!isWebAuthnSupported()) {
-                securityKeysList.innerHTML = '<p class="profile-help">This browser does not support security keys. Try Chrome, Edge, Firefox, or Safari with the latest updates.</p>';
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+                window.setSafeHTML(
+                    securityKeysList,
+                    '<p class="profile-help">This browser does not support security keys. Try Chrome, Edge, Firefox, or Safari with the latest updates.</p>'
+                );;
                 return;
             }
             securityKeysList.textContent = 'Loading security keys…';
             try {
                 const keys = await listSecurityKeys();
                 if (!keys.length) {
-                    securityKeysList.innerHTML = '<p class="profile-help">No security keys registered yet. Choose a key type above to get started.</p>';
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+                    window.setSafeHTML(
+                        securityKeysList,
+                        '<p class="profile-help">No security keys registered yet. Choose a key type above to get started.</p>'
+                    );;
                     return;
                 }
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
                 securityKeysList.innerHTML = keys.map((key) => `
             <div class="profile-security-key-row" data-credential-id="${escapeHtml(key.id)}">
               <div class="profile-security-key-meta">
@@ -732,6 +755,7 @@ export class ProfileView {
                 });
             }
             catch (err) {
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
                 securityKeysList.innerHTML = `<p class="profile-help">${escapeHtml(describeWebAuthnError(err))}</p>`;
             }
         };
@@ -773,6 +797,7 @@ export class ProfileView {
                             platform: 'Click Activate, then confirm with Windows Hello, Touch ID, or Face ID when your browser prompts you.',
                             usb: 'Make sure your USB drive is enrolled as a security key in Windows Settings first. Then click Activate and tap it when prompted.'
                         };
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
                         instructions.innerHTML = `<p class="profile-help">${labels[selectedKeyType] || labels.hardware}</p>`;
                     }
                 });

@@ -360,6 +360,7 @@ export class TrustView {
   async mount(container) {
     this.loading = true;
     this.error = null;
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
     container.innerHTML = this.render();
     try {
       this.data = await fetchTrustVerification();
@@ -367,6 +368,7 @@ export class TrustView {
       this.error = err.message;
     } finally {
       this.loading = false;
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
       container.innerHTML = this.render();
       container.querySelector('#trust-download-json')?.addEventListener('click', () => this.downloadTrustData());
       container.querySelector('#trust-send-ai-btn')?.addEventListener('click', async () => {

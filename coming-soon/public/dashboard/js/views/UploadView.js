@@ -18,6 +18,7 @@ export class UploadView {
     const sessionId = params.session_id || '';
     const autoLookup = Boolean(sessionId && !prefillToken);
 
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
     container.innerHTML = `
       <div class="analyze-hero">
         <h1 class="page-title">Upload Scan Report</h1>
@@ -233,6 +234,7 @@ export class UploadView {
     const issues = data.issueCount ?? gate.blockingCount ?? detectedIssues.length ?? rawIssues.length ?? '—';
     const project = data.projectRoot || data.scanTargetRoot || (Array.isArray(data.scanPaths) ? data.scanPaths[0] : null) || '—';
 
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
     scanMetaEl.innerHTML = `
       <div style="background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;">
         <div style="font-size:1.3rem;font-weight:700;color:${gatePass ? 'var(--success)' : 'var(--error)'};">${gatePass ? 'PASS' : 'REVIEW'}</div>

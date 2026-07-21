@@ -123,7 +123,11 @@ export class SignInView {
         var _a, _b, _c, _d, _e;
         this._mountContainer = container;
         this._emailMode = this._resolveEmailMode();
-        container.innerHTML = `<div class="signin-page"><div class="signin-card card"><p class="text-muted">Loading…</p></div></div>`;
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+        window.setSafeHTML(
+            container,
+            '<div class="signin-page"><div class="signin-card card"><p class="text-muted">Loading…</p></div></div>'
+        );;
         this._ingestUrlToken();
         const authed = authService.isAuthenticated();
         const email = ((_a = authService.getUser()) === null || _a === void 0 ? void 0 : _a.email) || decodeEmailFromToken(authService.getToken()) || '';
@@ -146,6 +150,7 @@ export class SignInView {
             return;
         }
         const isRegister = this._isRegisterMode();
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         container.innerHTML = `
       <div class="signin-page">
         <div class="signin-card card">
@@ -378,6 +383,7 @@ export class SignInView {
                 if (result.pending) {
                     const card = (_c = this._mountContainer) === null || _c === void 0 ? void 0 : _c.querySelector('.signin-card');
                     if (card) {
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
                         card.innerHTML = `
                       <div class="signin-header">
                         <span class="signin-icon" aria-hidden="true">&#9989;</span>
@@ -423,20 +429,11 @@ export class SignInView {
         const overlay = document.createElement('div');
         overlay.id = 'recovery-modal-overlay';
         overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);z-index:9999;display:flex;align-items:center;justify-content:center;';
-        overlay.innerHTML = `
-      <div style="position:relative;z-index:1;background:var(--surface);padding:28px 32px;border-radius:14px;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);border:1px solid var(--border);">
-        <h3 style="margin:0 0 8px;font-size:1.15rem;color:var(--text-primary);">&#128273; Account Recovery</h3>
-        <p style="margin:0 0 18px;font-size:0.85rem;color:var(--text-muted);line-height:1.5;">Enter your email address and we'll send you instructions to reset your password.</p>
-        <label style="display:block;font-size:0.78rem;color:var(--text-muted);margin-bottom:6px;">Email</label>
-        <input id="recovery-email-input" type="email" placeholder="you@example.com" style="width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:var(--background);color:var(--text-primary);font-size:0.95rem;margin-bottom:10px;" />
-        <div id="recovery-error" style="color:var(--error);font-size:0.8rem;margin-bottom:12px;display:none;"></div>
-        <div id="recovery-success" style="color:var(--success);font-size:0.8rem;margin-bottom:12px;display:none;"></div>
-        <div style="display:flex;gap:10px;justify-content:flex-end;">
-          <button id="recovery-cancel" style="padding:10px 18px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text-primary);font-size:0.85rem;cursor:pointer;">Cancel</button>
-          <button id="recovery-submit" style="padding:10px 18px;border-radius:8px;border:none;background:var(--primary);color:#fff;font-size:0.85rem;font-weight:600;cursor:pointer;">Send Instructions</button>
-        </div>
-      </div>
-    `;
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+        window.setSafeHTML(
+            overlay,
+            '\n      <div style="position:relative;z-index:1;background:var(--surface);padding:28px 32px;border-radius:14px;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);border:1px solid var(--border);">\n        <h3 style="margin:0 0 8px;font-size:1.15rem;color:var(--text-primary);">&#128273; Account Recovery</h3>\n        <p style="margin:0 0 18px;font-size:0.85rem;color:var(--text-muted);line-height:1.5;">Enter your email address and we\'ll send you instructions to reset your password.</p>\n        <label style="display:block;font-size:0.78rem;color:var(--text-muted);margin-bottom:6px;">Email</label>\n        <input id="recovery-email-input" type="email" placeholder="you@example.com" style="width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:var(--background);color:var(--text-primary);font-size:0.95rem;margin-bottom:10px;" />\n        <div id="recovery-error" style="color:var(--error);font-size:0.8rem;margin-bottom:12px;display:none;"></div>\n        <div id="recovery-success" style="color:var(--success);font-size:0.8rem;margin-bottom:12px;display:none;"></div>\n        <div style="display:flex;gap:10px;justify-content:flex-end;">\n          <button id="recovery-cancel" style="padding:10px 18px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text-primary);font-size:0.85rem;cursor:pointer;">Cancel</button>\n          <button id="recovery-submit" style="padding:10px 18px;border-radius:8px;border:none;background:var(--primary);color:#fff;font-size:0.85rem;font-weight:600;cursor:pointer;">Send Instructions</button>\n        </div>\n      </div>\n    '
+        );;
         document.body.appendChild(overlay);
         const emailInput = overlay.querySelector('#recovery-email-input');
         const errorEl = overlay.querySelector('#recovery-error');

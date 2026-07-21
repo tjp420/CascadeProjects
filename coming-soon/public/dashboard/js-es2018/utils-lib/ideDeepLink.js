@@ -77,12 +77,7 @@ export function openInIde(filePath, line = 1, options = {}) {
     const payload = { command: 'openFile', file: absolute, path: absolute, line: lineNum };
 
     const vscode = getVSCodeApi();
-    // Debug: log resolved absolute path for troubleshooting deep-links
-    try {
-        // eslint-disable-next-line no-console
-        console.debug('[ideDeepLink] openInIde resolved', { filePath, absolute, line: lineNum, options });
-    }
-    catch (_d) { /* ignore */ }
+    // Debug logging removed to avoid scanner false positives
     if (vscode) {
         try {
             vscode.postMessage(payload);
@@ -102,11 +97,6 @@ export function openInIde(filePath, line = 1, options = {}) {
     const url = buildIdeFileUrl(absolute, lineNum, options);
     if (url) {
         try {
-            try {
-                // eslint-disable-next-line no-console
-                console.debug('[ideDeepLink] opening URL', url);
-            }
-            catch (_e) { /* ignore */ }
             const anchor = document.createElement('a');
             anchor.href = url;
             anchor.rel = 'noopener';

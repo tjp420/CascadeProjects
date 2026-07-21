@@ -6,14 +6,14 @@
  * pure-JS fallback) instead of loading the entire file into memory at once.
  */
 import { analyzeFileChunks, findingsToIssues } from './scan-wasm-bridge.js?v=20260716cachefix1';
-import { isIgnoredVirtualPath } from '../utils-lib/simplebeaconignore.browser.js?v=20260716cachefix1';
+import { isIgnoredVirtualPath } from '../utils-lib/simplebeaconignore.browser.js?v=20260724fix1';
 const MAX_DISCOVERED_FILES = 500000;
 const MAX_ISSUES = 100000;
 const SCAN_BATCH_SIZE = 400;
 const LARGE_FILE_THRESHOLD = 5 * 1024 * 1024; // 5 MB
 const FILE_READ_TIMEOUT_MS = 30000;
 const CHUNK_ANALYZE_TIMEOUT_MS = 120000;
-const BINARY_EXTENSIONS = /\.(exe|dll|bin|so|dylib|wasm|zip|tar|gz|tgz|bz2|7z|rar|iso|img|dmg|pkg|deb|msi|apk|ipa|woff|woff2|ttf|otf|eot|png|jpg|jpeg|gif|bmp|ico|webp|avif|svg|mp3|mp4|wav|avi|mov|mkv|webm|pdf|doc|docx|xls|xlsx|ppt|pptx|sqlite|db|lock|scx|scm|sc2map|sc2data|chk|mix|vxl|shp|tmp|mpq|w3x|w3m|nif|bik|ogv|dat|vsix|pack|bundle|map|rlib|rmeta|gguf|cab|safetensors|onnx|pt|pth|bad|whl|pyc|pyo|class|jar|aar|nupkg|dmg|crx|xpi|snap|flatpak|AppImage)$/i;
+const BINARY_EXTENSIONS = /\.(exe|dll|bin|so|dylib|wasm|zip|tar|gz|tgz|bz2|7z|rar|iso|img|dmg|pkg|deb|msi|apk|ipa|woff|woff2|ttf|otf|eot|png|jpg|jpeg|gif|bmp|ico|webp|avif|svg|mp3|mp4|wav|avi|mov|mkv|webm|pdf|doc|docx|xls|xlsx|ppt|pptx|sqlite|db|lock|scx|scm|sc2map|sc2data|chk|mix|vxl|shp|tmp|mpq|w3x|w3m|nif|bik|ogv|dat|vsix|pack|bundle|map|rlib|rmeta|gguf|cab|safetensors|onnx|pt|pth|bad|whl|pyc|pyo|class|jar|aar|nupkg|dmg|crx|xpi|snap|flatpak|AppImage|idx|s2ma|s2ml|s2gs|s2vh|bank|stormmap|stormmod|replay|mng|snp|tga|dds|anim|model|fx|s2ga|s2ua|s2sa|s2ta|s2wa|s2ih|s2rh|s2ph|s2ch|s2nh|s2mh|s2dh|s2oh|s2ee|s2sb|s2gb|s2mb|s2ab|s2vb|s2lb|s2hb|s2cb|s2nb|s2pb|s2tb|s2wb|s2yb|s2zb|s2fb|s2qb|s2rb|s2xb|s2jb|s2kb|s2ib|s2eb|s2ob|s2ub)$/i;
 const LANGUAGE_REGISTRY = {
     javascript: { extensions: ['js', 'cjs', 'mjs', 'ts', 'tsx', 'jsx'] },
     python: { extensions: ['py', 'pyw', 'pyi'] },
@@ -22,7 +22,8 @@ const LANGUAGE_REGISTRY = {
     rust: { extensions: ['rs'] },
     php: { extensions: ['php'] },
     ruby: { extensions: ['rb'] },
-    dotnet: { extensions: ['cs', 'vb'] }
+    dotnet: { extensions: ['cs', 'vb'] },
+    generic: { extensions: ['txt', 'ini', 'cfg', 'conf', 'env', 'json', 'xml', 'yaml', 'yml', 'md', 'log', 'properties', 'toml'] }
 };
 const PATTERN_REGISTRY = {
     debugArtifacts: {
@@ -30,16 +31,20 @@ const PATTERN_REGISTRY = {
         pattern: /\bconsole\.(log|warn|error|info|debug|table|trace|dir|group)\s*\(|\bdebugger\b|\balert\s*\(|\bprompt\s*\(|\bconfirm\s*\(/gi
     },
     todoMarkers: {
-        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet'],
+        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet', 'generic'],
         pattern: /(?:\/\/\s*|\/\*\s*|#\s*)\b(TODO|FIXME|HACK|XXX|BUG)\b/gi
     },
     credentials: {
-        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet'],
+        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet', 'generic'],
         pattern: /(?:^|[^a-zA-Z0-9_-])(password|passwd|pwd|secret|api[_-]?key|private[_-]?key|client[_-]?secret|access_token|auth_token|refresh_token|bearer_token)\s*[:=]\s*['"`][^'"`\s]{8,}/gi
     },
     euAiAct: {
-        appliesTo: ['javascript'],
+        appliesTo: ['javascript', 'generic'],
         pattern: /ai_system|high_risk|transparency|conformity|bias_audit|data_governance/gi
+    },
+    hardcodedIp: {
+        appliesTo: ['javascript', 'python', 'java', 'go', 'rust', 'php', 'ruby', 'dotnet', 'generic'],
+        pattern: /\b(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)\b/g
     },
     pythonDebug: {
         appliesTo: ['python'],
@@ -129,6 +134,10 @@ function shouldSkipAnalyzerLine(name, filePath, line) {
     }
     if (name === 'euAiAct') {
         if (isComplianceToolingPath(normalized) || EU_AI_ACT_COMPLIANCE_LINE_RE.test(line))
+            return true;
+    }
+    if (name === 'hardcodedIp') {
+        if (/localhost|127\.0\.0\.1|0\.0\.0\.0|::1/i.test(line))
             return true;
     }
     return false;
@@ -420,6 +429,7 @@ self.onmessage = async (e) => {
             issueCount: state.issues.length,
             chunkAnalyzed: state.chunkAnalyzed,
             binarySkipped: state.binarySkipped,
+            textErrors: state.textErrors,
             issuesTruncated: state.issuesTruncated
         });
         self.scanState = null;

@@ -290,6 +290,7 @@ export class AuditView {
     }
 
     if (this.loading && !this.audit) {
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
       el.innerHTML = `
         <div class="analyze-hero"><h1 class="page-title">Compliance Audit</h1><p class="text-muted analyze-hero-sub">Loading audit layers…</p></div>
         ${renderEmptyState({
@@ -302,6 +303,7 @@ export class AuditView {
     }
 
     if (this.error && !this.audit) {
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
       el.innerHTML = `
         <div class="analyze-hero"><h1 class="page-title">Compliance Audit</h1><p class="text-muted analyze-hero-sub">Audit unavailable</p></div>
         ${renderEmptyState({
@@ -321,6 +323,7 @@ export class AuditView {
     const metrics = buildAuditMetrics(audit);
     const assessment = audit.assessment;
 
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
     el.innerHTML = `
       <div class="analyze-hero">
         <h1 class="page-title">Compliance Audit</h1>
@@ -492,11 +495,13 @@ export class AuditView {
   paint(container = this._container) {
     if (!container) return;
     this._container = container;
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
     container.innerHTML = '';
     try {
       container.appendChild(this.render());
     } catch (err) {
       console.error('[AuditView] Render error:', err);
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
       container.innerHTML = `<div class="analyze-hero"><h1 class="page-title">Compliance Audit</h1><p class="text-muted analyze-hero-sub">Render error</p></div>
         <div class="card" style="padding:var(--space-6);">
           <p class="text-danger mb-2"><strong>Failed to render audit page</strong></p>

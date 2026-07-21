@@ -1,6 +1,6 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
-import { authService } from './authService.js?v=20260716cachefix1';
-import { fetchUserAiKeys } from './aiKeysService.js?v=20260716cachefix1';
+import { authService } from './authService.js?v=20260721cspapi';
+import { fetchUserAiKeys } from './aiKeysService.js?v=20260720ollama3';
 import { scanService } from './scanService.js?v=20260716cachefix1';
 import { formatNumber, escapeHtml, fetchWithTimeout } from '../utils.js';
 import { notifyDownloadComplete } from '../utils-lib/notify.js?v=20260716cachefix1';
@@ -8,7 +8,7 @@ import { isRemoteRepoUrl } from '../lib/analyzePathSources.js';
 import { isBenchmarkCachePath } from '../utils/complete-scan-artifact-profile.browser.js';
 import { DEMO_EMAIL } from '../demoMode.js';
 import { DASHBOARD_BASE_URL } from '../config.js';
-import { isLocalPath, fetchInventoryViaAgent, probeAgent, shouldProbeLocalAgent } from './localAgentService.js?v=20260716cachefix1';
+import { isLocalPath, fetchInventoryViaAgent, probeAgent, shouldProbeLocalAgent } from './localAgentService.js?v=20260720ollama4';
 /**
  * Upgrade a v1 ("version": "1.0.0" and no reportVersion) scan report so the
  * dashboard treats it as current and can render aligned file-count metrics.
@@ -1720,18 +1720,26 @@ export function preparePlatformResultsReport(report) {
     const lowCount = platformIssues
         .filter((issue) => (issue.severityBand || issue.severity) === 'low')
         .reduce((sum, issue) => sum + (issue.count || 1), 0);
+    const severityWeight = { critical: 12, high: 6, medium: 2, low: 1 };
+    const weightedPenalty = platformIssues
+        .filter((issue) => { const sev = issue.severityBand || issue.severity; return sev === 'high' || sev === 'critical'; })
+        .reduce((sum, issue) => sum + (severityWeight[issue.severityBand || issue.severity] || 1) * (issue.count || 1), 0);
+    const computedQualityScore = Math.max(0, Math.min(100, Math.round(100 - Math.min(weightedPenalty, 85))));
+    const qualityScore = report.qualityScore ?? (platformIssues.length > 0 ? computedQualityScore : null);
     return {
         ...report,
         rawIssues: platformIssues,
         benchmarkCacheIssues,
         issueCount: totalIssueGroups,
         severityCounts: report.severityCounts || { critical: 0, high: highCount, medium: mediumCount, low: lowCount },
+        qualityScore,
         gate: {
             ...(report.gate || {}),
             ...gateConfig,
             pass: gatePass,
             blockingCount,
-            warningCount
+            warningCount,
+            score: qualityScore ?? 0
         },
         scan_summary: {
             ...(report.scan_summary || {}),
@@ -2481,14 +2489,38 @@ export function normalizeSimplebeaconReport(report) {
         return acc;
     }, { critical: 0, high: 0, medium: 0, low: 0, info: 0 });
     const total = detectedIssues.reduce((sum, issue) => sum + (Number(issue.count) || 1), 0);
-    const scan_summary = report.scan_summary || {
-        status: 'REVIEW',
-        block_merge: false,
-        total_risks_found: total,
+    const gate = report.gate || {};
+    const blockingCount = gate.blockingCount ?? detectedIssues.filter((i) => {
+        const sev = i.severityBand || i.severity;
+        return sev === 'high' || sev === 'critical';
+    }).reduce((sum, i) => sum + (Number(i.count) || 1), 0);
+    const warningCount = gate.warningCount ?? detectedIssues.filter((i) => {
+        const sev = i.severityBand || i.severity;
+        return sev === 'medium' || sev === 'low';
+    }).reduce((sum, i) => sum + (Number(i.count) || 1), 0);
+    const gatePass = gate.pass === true || (gate.pass == null && blockingCount === 0);
+    const scan_summary = {
+        ...(report.scan_summary || {}),
+        status: gatePass ? 'PASSED' : 'FAILED',
+        block_merge: !gatePass,
+        total_risks_found: report.scan_summary?.total_risks_found ?? total,
         high_severity_count: severityCounts.high || 0,
         medium_severity_count: severityCounts.medium || 0,
         low_severity_count: severityCounts.low || 0,
-        estimated_incident_cost_saved: '$0'
+        estimated_incident_cost_saved: report.scan_summary?.estimated_incident_cost_saved ?? '$0'
+    };
+    const severityWeight = { critical: 12, high: 6, medium: 2, low: 1 };
+    const weightedPenalty = detectedIssues
+        .filter((i) => { const sev = i.severityBand || i.severity; return sev === 'high' || sev === 'critical'; })
+        .reduce((sum, i) => sum + (severityWeight[i.severityBand || i.severity] || 1) * (Number(i.count) || 1), 0);
+    const computedQualityScore = Math.max(0, Math.min(100, Math.round(100 - Math.min(weightedPenalty, 85))));
+    const qualityScore = report.qualityScore ?? (detectedIssues.length > 0 ? computedQualityScore : null);
+    const reconciledGate = {
+        ...(report.gate || {}),
+        pass: gatePass,
+        blockingCount,
+        warningCount,
+        score: qualityScore ?? 0
     };
     return Object.assign({}, report, {
         reportVersion: 2,
@@ -2496,10 +2528,12 @@ export function normalizeSimplebeaconReport(report) {
         detectedIssues,
         findings: (report.findings && report.findings.length) ? report.findings : detectedIssues,
         severityCounts,
+        gate: reconciledGate,
         scan_summary,
         issueCount: report.issueCount || total,
+        qualityScore,
         filesAnalyzed: report.codeFilesAnalyzed || report.filesAnalyzed || report.summary?.codeFilesAnalyzed || 0,
-        totalFiles: report.codeFilesAnalyzed || report.filesAnalyzed || report.summary?.totalFiles || 0
+        totalFiles: report.repositoryFilesTotal || report.summary?.totalFiles || report.totalFiles || 0
     });
 }
 /**

@@ -17,7 +17,6 @@ import { HelpView, FeaturesView } from './views/HelpView.js';
 import { AuditView } from './views/AuditView.js?v=20260716cachefix1';
 import { AnalyzeView } from './views/AnalyzeView.js?v=20260716cachefix1';
 import { SecurityView } from './views/SecurityView.js?v=20260716cachefix1';
-import { PricingView } from './views/PricingView.js';
 import { AboutView } from './views/AboutView.js';
 import { AssessmentView } from './views/AssessmentView.js';
 import { SignInView } from './views/SignInView.js?v=20260716cachefix1';
@@ -93,7 +92,7 @@ function handleSubscriptionGate() {
     if (action === 'signin' || isLocalSelfHosted()) {
       this.navigate('signin');
     } else {
-      this.navigate('pricing');
+      window.location.href = '/pricing';
     }
   } });
 }
@@ -144,7 +143,7 @@ class SimplebeaconDashboard {
       help: new HelpView(this),
       features: new FeaturesView(this),
       settings: new SettingsView(this),
-      pricing: new PricingView(this),
+      pricing: { mount: function() { window.location.href = '/pricing'; } },
       about: new AboutView(this),
       trust: new TrustView(this),
       'repository-health': new RepositoryHealthView(this),
@@ -218,7 +217,7 @@ class SimplebeaconDashboard {
     const a = document.createElement('a');
     a.className = 'demo-banner-link';
     a.dataset.pricingCta = '1';
-    a.href = '/dashboard/pricing';
+    a.href = '/pricing';
     a.textContent = 'View pricing →';
     bar.appendChild(span);
     bar.appendChild(a);
@@ -239,7 +238,7 @@ class SimplebeaconDashboard {
     const a = document.createElement('a');
     a.className = 'demo-banner-link';
     a.dataset.pricingCta = '1';
-    a.href = '/dashboard/pricing';
+    a.href = '/pricing';
     a.textContent = 'View pricing →';
     bar.appendChild(span);
     bar.appendChild(a);
@@ -773,16 +772,15 @@ class SimplebeaconDashboard {
     }
   }
 
-  /** In-app route for Team Pricing / Stripe checkout (path-based SPA, not pricing.html). */
+  /** Redirect pricing CTAs to the marketing pricing page. */
   bindPricingCta(anchor) {
     if (!anchor || anchor.dataset.pricingBound === '1') return;
     anchor.dataset.pricingBound = '1';
-    anchor.dataset.pricingCta = '1';
-    anchor.href = '/dashboard/pricing';
+    anchor.href = '/pricing';
     anchor.removeAttribute('target');
     anchor.addEventListener('click', (event) => {
       event.preventDefault();
-      this.navigate('pricing');
+      window.location.href = '/pricing';
     });
   }
 
@@ -792,7 +790,7 @@ class SimplebeaconDashboard {
       const link = event.target.closest('[data-pricing-cta]');
       if (!link || link.dataset.pricingBound === '1') return;
       event.preventDefault();
-      this.navigate('pricing');
+      window.location.href = '/pricing';
     });
   }
 
@@ -1195,38 +1193,22 @@ class SimplebeaconDashboard {
   }
 }
 
-function startDashboard() {
-  const app = new SimplebeaconDashboard();
-  return app.init().catch((err) => {
-    console.error(err);
-    showToast(err.message || 'Dashboard failed to start', 'error');
-  });
-}
-
-document.addEventListener('DOMContentLoaded', async () => {
-  const loadingNode = document.getElementById('boot-loading-spinner');
-
+document.addEventListener('DOMContentLoaded', () => {
   try {
-    if (!authService.isHydrated()) {
-      await authService.hydrateSession();
-    }
-
-    if (isDemoMode() || isLocalDevHost() || authService.isAuthenticated()) {
-      if (loadingNode) loadingNode.remove();
-      return startDashboard();
-    }
-
-    const redirect = encodeURIComponent(window.location.pathname + window.location.search);
-    window.location.href = `/signin?redirect=${redirect}`;
-  } catch (error) {
-    console.error(error);
+    const app = new SimplebeaconDashboard();
+    app.init().catch((err) => {
+      console.error(err);
+      showToast(err.message || 'Dashboard failed to start', 'error');
+    });
+  } catch (err) {
+    console.error(err);
     const main = document.getElementById('app-main');
     if (main) {
       main.textContent = '';
       const card = document.createElement('div');
       card.className = 'empty-state card';
       const p = document.createElement('p');
-      p.textContent = 'Application Initialisation Error: ' + (error.message || String(error));
+      p.textContent = 'Failed to load dashboard: ' + (err.message || String(err));
       card.appendChild(p);
       main.appendChild(card);
     }

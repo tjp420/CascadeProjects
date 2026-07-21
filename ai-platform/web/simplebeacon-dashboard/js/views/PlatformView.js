@@ -140,6 +140,7 @@ export class PlatformView {
 
     const el = document.createElement('div');
     el.className = 'fade-in';
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
     el.innerHTML = `
       <div class="analyze-hero">
         <h1 class="page-title">Platform</h1>
@@ -241,6 +242,7 @@ export class PlatformView {
   }
 
   mount(container) {
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
     container.innerHTML = '';
     container.appendChild(this.render());
   }

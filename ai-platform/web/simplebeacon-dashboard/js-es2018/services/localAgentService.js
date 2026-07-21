@@ -621,6 +621,49 @@ export async function probeUserInitiatedOllama(baseUrl = DEFAULT_OLLAMA_ORIGIN) 
 }
 
 /**
+ * Locate a dropped folder by name via the extension bridge.
+ * Checks the workspace path first, then falls back to /api/find-folder.
+ * @param {string} folderName
+ * @returns {Promise<string|null>} Absolute path, or null if not found / unavailable.
+ */
+export async function findFolderViaBridge(folderName) {
+    const origin = getExtensionBridgeOrigin();
+    if (!origin)
+        return null;
+    const health = await probeExtensionBridgeHealth();
+    if (!health.ok)
+        return null;
+    const doFetch = getLocalBridgeFetch();
+    try {
+        const statusRes = await doFetch(`${origin}/api/status`, { headers: { Accept: 'application/json' } });
+        const status = await statusRes.json().catch(() => ({}));
+        if (status.workspace) {
+            const wsName = String(status.workspace).replace(/\\/g, '/').split('/').pop() || '';
+            if (wsName.toLowerCase() === String(folderName).toLowerCase()) {
+                return String(status.workspace);
+            }
+        }
+    } catch { /* fall through to find-folder */ }
+    try {
+        const response = await doFetch(`${origin}/api/find-folder`, {
+            method: 'POST',
+            headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+            body: JSON.stringify({ folderName }),
+        }, 25000);
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok)
+            return null;
+        const results = Array.isArray(body.results) ? body.results : [];
+        if (results.length > 0)
+            return String(results[0]);
+        return null;
+    }
+    catch (_a) {
+        return null;
+    }
+}
+
+/**
  * Open the native OS folder picker via the extension data server (works in cross-origin iframes).
  * @returns {Promise<string|null>} Absolute path, or null if cancelled / unavailable.
  */

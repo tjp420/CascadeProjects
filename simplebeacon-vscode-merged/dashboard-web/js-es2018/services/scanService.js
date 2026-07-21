@@ -1,6 +1,6 @@
 import { fetchWithTimeout, downloadJson, downloadText, resolveDashboardProjectPath } from '../utils.js';
 import { billingService } from './billingService.js';
-import { authService } from './authService.js?v=20260716cachefix1';
+import { authService } from './authService.js?v=20260721cspapi';
 import { isDemoMode, DEMO_API_BASE, isLocalDevHost } from '../demoMode.js';
 import { readJsonResponseBody } from '../lib/recoverable-fetch.js';
 import { buildDashboardExportBundle } from '../utils/dashboard-export.browser.js?v=20260716cachefix1';
@@ -66,24 +66,6 @@ function _isUnreachableLoopbackHost(value) {
         return false;
     try {
         const url = new URL(value, location.href);
-        // Extension bridge mode: when sb_api_base or sb_notify_base is explicitly set,
-        // the user/extension intentionally wants to connect to the local server from the hosted dashboard.
-        // Modern browsers (Firefox 84+, Chrome 94+) allow HTTPS→HTTP localhost connections.
-        const hasExtensionBridge = (() => {
-            try {
-                const params = new URLSearchParams(location.search || '');
-                if (params.get('sb_api_base') || params.get('sb_notify_base'))
-                    return true;
-            } catch (_b) { /* ignore */ }
-            try {
-                if (typeof sessionStorage !== 'undefined'
-                    && (sessionStorage.getItem('sb_api_base') || sessionStorage.getItem('sb_notify_base')))
-                    return true;
-            } catch (_c) { /* ignore */ }
-            return false;
-        })();
-        if (hasExtensionBridge)
-            return false;
         if (location.protocol === 'https:' && url.protocol === 'http:')
             return true;
         if (!isLocalDevHost() && /^(localhost|127\.0\.0\.1|\[::1\])$/i.test(url.hostname))
@@ -116,9 +98,9 @@ function simplebeaconApiBase() {
         catch (_a) { /* fall through */ }
     }
     // On Cloudflare Pages / custom domains, the dashboard static files are served without the
-    // API backend. Route API calls to the Render backend instead.
+    // API backend. Route API calls to the production API instead.
     if (typeof location !== 'undefined' && !/^(localhost|127\.0\.0\.1)$/i.test(location.hostname) && !location.hostname.endsWith('.onrender.com')) {
-        if (location.hostname === 'simplebeacon.ai' || location.hostname.endsWith('.simplebeacon.pages.dev')) {
+        if (location.hostname === 'simplebeacon.ai') {
             return `${location.origin}/api/simplebeacon`;
         }
         return 'https://simplebeacon.ai/api/simplebeacon';

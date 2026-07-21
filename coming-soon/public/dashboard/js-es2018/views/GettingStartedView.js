@@ -87,7 +87,8 @@ export class GettingStartedView {
     }
 
     mount(container) {
-        container.innerHTML = '';
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+        window.setSafeHTML(container, '');
         const view = this.render();
         container.appendChild(view);
         this.bindEvents(view);
@@ -106,6 +107,7 @@ export class GettingStartedView {
         const container = document.createElement('div');
         container.className = 'fade-in getting-started-page';
 
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         container.innerHTML = `
             <div class="gs-hero">
                 <div class="gs-hero-content">

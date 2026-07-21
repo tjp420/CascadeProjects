@@ -2,10 +2,10 @@
 import { escapeHtml, showToast, downloadJson, downloadBlob, downloadText, redactPathForDisplay, formatPathLabel, formatPathInputValue, formatAiSummarySkipMessage, isRedactedPathDisplay, formatNumber, formatPercent, renderEmptyState } from '../utils.js';
 import { canUseDirectoryPicker, isLikelyWebkitDirectoryFileCap, browserFolderCapMessage, filePickerBlockedMessage, isFilePickerBlockedError, isEmbeddedDashboardFrame } from '../utils-lib/dom.js?v=20260721corsfix1';
 import { evaluateFunnelMetrics, getFunnelCopy, shouldShowEnterpriseFunnel, buildFunnelAuthOptions } from '../utils/funnelTrigger.js?v=20260716cachefix1';
-import { LocalScanService } from '../services/localScanService.js?v=20260723scanfix1';
+import { LocalScanService } from '../services/localScanService.js?v=20260724fix1';
 import { fingerprintDirectory, formatFingerprint } from '../services/fingerprintService.js';
-import { probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus, getAgentDownloadUrl, detectPlatform, getPlatformLabel, getInstallInstructions, getAgentFallbackMessage, probeAgent4000, scanViaAgent4000, renderAgentCertificate, hasExtensionBridgeConfigured, pickFolderViaExtensionBridge as requestExtensionFolderPick, shouldProbeLocalAgent, shouldProbeAgent4000, isIntegratedLocalDashboard } from '../services/localAgentService.js?v=20260722scanfix1';
-import { runSandboxedDirectoryScan, scanDroppedItems, isDroppedFolder, captureDroppedEntry } from '../services/browserSandboxScanService.js?v=20260716cachefix1';
+import { probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus, getAgentDownloadUrl, detectPlatform, getPlatformLabel, getInstallInstructions, getAgentFallbackMessage, probeAgent4000, scanViaAgent4000, renderAgentCertificate, hasExtensionBridgeConfigured, pickFolderViaExtensionBridge as requestExtensionFolderPick, findFolderViaBridge, shouldProbeLocalAgent, shouldProbeAgent4000, isIntegratedLocalDashboard } from '../services/localAgentService.js?v=20260724dropfix1';
+import { runSandboxedDirectoryScan, scanDroppedItems, isDroppedFolder, captureDroppedEntry } from '../services/browserSandboxScanService.js?v=20260724fix1';
 import { resolveScanStrategy } from '../services/scanStrategy.js?v=20260722scanfix1';
 
 function isRemoteDashboardHost() {
@@ -142,6 +142,7 @@ const COMPLETE_STEPS = [
     { id: 'security-headers', label: 'Security Headers', category: 'Security', desc: 'Missing CSP, X-Frame-Options, HSTS, or Referrer-Policy in server configs.' },
     { id: 'config-drift', label: 'Config Drift', category: 'Security', desc: 'Committed .env files, hardcoded URLs, secrets in config, inconsistent env naming.' },
     { id: 'eval-danger', label: 'Eval Danger', category: 'Security', desc: 'ev' + 'al(), new Function(), dynamic code execution risks.' },
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
     { id: 'inner-html-xss', label: 'innerHTML XSS', category: 'Security', desc: 'Unsanitized innerHTML assignments.' },
     { id: 'prototype-pollution', label: 'Prototype Pollution', category: 'Security', desc: 'Object.prototype or __proto__ modification risks.' },
     { id: 'unvalidated-redirect', label: 'Unvalidated Redirect', category: 'Security', desc: 'Open redirect vulnerabilities.' },
@@ -5730,7 +5731,29 @@ export class AnalyzeView {
                     return;
                 }
                 // Hosted: never route absolute local paths to the server — scan dropped files in-browser.
+                // When the extension bridge is available and the drop looks like a directory
+                // (webkit entry is a directory, or files lack webkitRelativePath suggesting
+                // a VS Code drag that didn't expand the folder), prefer the bridge scan —
+                // it can read the full directory tree, unlike browser drops which may only
+                // expose 1 file.
                 if (isRemoteDashboardHost() && isAbsoluteLocalPath(snapshotPath || '') && fileArray.length > 0) {
+                    const looksLikeDirDrop = (webkitEntry && webkitEntry.isDirectory) ||
+                        !fileArray.some((f) => f.webkitRelativePath);
+                    if (hasExtensionBridgeConfigured() && looksLikeDirDrop) {
+                        setAnalyzeDropzoneState('scanning');
+                        if (analyzeTerminal)
+                            analyzeTerminal.textContent = `Scanning "${folderHint}" via IDE bridge…`;
+                        const pathInput = el.querySelector('#project-path-input');
+                        if (pathInput) {
+                            pathInput.value = snapshotPath;
+                            this.app.state.pathInputDraft = '';
+                            this.app.state.lastProjectPath = snapshotPath;
+                            this.setPathInputDisplay(pathInput, snapshotPath);
+                            this.syncAnalyzeModeUi(el);
+                        }
+                        void this.runPathAnalysis(snapshotPath);
+                        return;
+                    }
                     if (analyzeTerminal)
                         analyzeTerminal.textContent = `Scanning "${folderHint}" in your browser…`;
                     await this.runLocalScan(null, fileArray, folderHint);
@@ -5766,11 +5789,35 @@ export class AnalyzeView {
                 if (analyzeTerminal)
                     analyzeTerminal.textContent = 'Reading dropped items…';
                 try {
-                    const droppedFolder = (webkitEntry && webkitEntry.isDirectory) || await isDroppedFolder(itemArray);
+                    const droppedFolder = (webkitEntry && webkitEntry.isDirectory) || (await isDroppedFolder(itemArray));
                     const firstFile = itemArray[0] && typeof itemArray[0].getAsFile === 'function' ? itemArray[0].getAsFile() : null;
                     const folderName = (firstFile && firstFile.name) || (webkitEntry && webkitEntry.name) || 'selected';
                     if (droppedFolder) {
                         if (fileArray.length > 0) {
+                            // VS Code / Windsurf drops expose only 1 file without webkitRelativePath.
+                            // OS Explorer drops expose all recursive files with webkitRelativePath set.
+                            // When the bridge is available and files lack webkitRelativePath, locate
+                            // the folder by name via the bridge and scan through it for full coverage.
+                            const hasWebkitRelPath = fileArray.some((f) => f.webkitRelativePath);
+                            if (hasExtensionBridgeConfigured() && !hasWebkitRelPath) {
+                                if (analyzeTerminal)
+                                    analyzeTerminal.textContent = `Locating "${folderName}" via IDE bridge…`;
+                                const bridgePath = await findFolderViaBridge(folderName);
+                                if (bridgePath) {
+                                    const pathInput = el.querySelector('#project-path-input');
+                                    if (pathInput) {
+                                        pathInput.value = bridgePath;
+                                        this.app.state.pathInputDraft = '';
+                                        this.app.state.lastProjectPath = bridgePath;
+                                        this.setPathInputDisplay(pathInput, bridgePath);
+                                        this.syncAnalyzeModeUi(el);
+                                    }
+                                    if (analyzeTerminal)
+                                        analyzeTerminal.textContent = `Scanning "${folderName}" via IDE bridge…`;
+                                    void this.runPathAnalysis(bridgePath);
+                                    return;
+                                }
+                            }
                             if (isLikelyWebkitDirectoryFileCap(fileArray.length)) {
                                 showToast(browserFolderCapMessage(fileArray.length).replace(/\*\*/g, ''), 'warning', { duration: 14000 });
                             }
@@ -8233,7 +8280,7 @@ export class AnalyzeView {
                 }
                 const inventory = this.repositoryInventory
                     || ((_a = this.lastResult) === null || _a === void 0 ? void 0 : _a.repositoryInventory)
-                    || await fetchRepositoryInventory(projectPath, { fullDirectoryScan: this.fullDirectoryScan }).catch(() => null);
+                    || (await fetchRepositoryInventory(projectPath, { fullDirectoryScan: this.fullDirectoryScan }).catch(() => null));
                 if ((inventory === null || inventory === void 0 ? void 0 : inventory.totalFiles) && (scan === null || scan === void 0 ? void 0 : scan.summary)) {
                     scan = {
                         ...scan,

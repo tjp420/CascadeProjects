@@ -4,7 +4,7 @@ import { isEmbeddedDashboardFrame } from '../utils-lib/dom.js?v=20260721corsfix1
 import { buildScanConclusion, getScanFileMetrics, resolveDisplayScore, resolveJestTestsLabel, resolvePageSpecsLabel, renderScanScopePanel } from '../services/analyzeService.js?v=20260716cachefix1';
 import { renderIssueList } from '../components/IssueCard.js';
 import { renderTrendSection, mountTrendChart } from '../components/TrendChart.js';
-import { renderScanStatus, bindScanStatus, updateScanStatusDom } from '../components/ScanStatus.js?v=20260722scanfix1';
+import { renderScanStatus, bindScanStatus, updateScanStatusDom } from '../components/ScanStatus.js?v=20260724fix1';
 import { renderAnalysisWorkflow, resolveAnalysisWorkflowStep } from '../components/AnalysisWorkflow.js';
 import { isDemoMode } from '../demoMode.js';
 const PRIVACY_NOTICE_KEY = 'sb_privacy_notice_dismissed';
@@ -204,6 +204,11 @@ export class DashboardView {
 
         const workflowStep = resolveAnalysisWorkflowStep(this.app.state);
         const workflowEl = document.createElement('div');
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+        // TODO(security): review innerHTML usage here. Ensure output of
+        // `renderAnalysisWorkflow` is sanitized before insertion or use a
+        // safe helper (e.g., DOMPurify or a setSafeHTML helper).
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         workflowEl.innerHTML = renderAnalysisWorkflow(workflowStep, { pageLabel: 'Analysis workflow' });
         container.appendChild(workflowEl.firstElementChild);
 
@@ -214,6 +219,10 @@ export class DashboardView {
         const reviewMode = Boolean(report) && !scanning;
         const scanSlot = document.createElement('div');
         scanSlot.id = 'dashboard-scan-slot';
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+        // TODO(security): review innerHTML usage here. Ensure `renderScanStatus`
+        // returns trusted markup or switch to a safe DOM-building helper.
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         scanSlot.innerHTML = renderScanStatus(report, {
             redesign: true,
             reviewMode,
@@ -262,6 +271,10 @@ export class DashboardView {
 
         const section = document.createElement('div');
         section.className = 'feature-discovery';
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+        // TODO(security): review innerHTML usage here and sanitize dynamic
+        // content where applicable.
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         section.innerHTML = `
             <div class="feature-discovery-header">
                 <h3 class="feature-discovery-title">Explore SimpleBeacon</h3>
@@ -295,6 +308,10 @@ export class DashboardView {
             ? `<span class="badge gate-badge ${report.gate.pass ? 'bg-success' : 'bg-danger'}">${report.gate.pass ? 'Healthy' : 'Attention Required'}</span>`
             : '';
 
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+        // TODO(security): review innerHTML usage here and sanitize dynamic
+        // content where applicable.
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         header.innerHTML = `
             <div>
                 <h1 class="h2 mb-1">Dashboard</h1>
@@ -325,6 +342,10 @@ export class DashboardView {
         const card = document.createElement('div');
         card.className = 'card dashboard-scan-progress-card';
         card.id = 'dashboard-scan-progress';
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+        // TODO(security): review innerHTML usage here and sanitize dynamic
+        // content where applicable.
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         card.innerHTML = `
             <div class="dashboard-scan-progress-header">
                 <span class="loading-spinner dashboard-scan-progress-spinner"></span>
@@ -344,33 +365,24 @@ export class DashboardView {
         const view = document.createElement('div');
         view.className = 'dashboard-quickstart card p-4';
         if (embed) {
-            view.innerHTML = `
-            <h3 class="h5 mb-2">Run a scan from VS Code</h3>
-            <p class="text-sm text-muted mb-3">Your code stays local. Use the scan panel above, or jump to a view with the quick nav bar.</p>
-            <ol class="dashboard-quickstart-steps text-sm text-muted">
-                <li><strong>Analyze</strong> — drop a folder, browse, or paste your workspace path.</li>
-                <li><strong>Results</strong> — gate score, findings, and exports after the scan completes.</li>
-                <li><strong>Roadmap</strong> — prioritized remediation steps from your latest report.</li>
-            </ol>
-            <div class="dashboard-quickstart-actions d-flex flex-wrap gap-2 mt-3">
-                <button class="btn btn-primary btn-sm" data-action="open-analyze" data-mode="folder">Start Analyze</button>
-                <button class="btn btn-outline btn-sm" data-action="open-analyze" data-mode="upload">Import CLI report</button>
-            </div>
-        `;
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+            // TODO(security): review innerHTML usage here and sanitize dynamic
+            // content where applicable.
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+            window.setSafeHTML(
+                view,
+                '\n            <h3 class="h5 mb-2">Run a scan from VS Code</h3>\n            <p class="text-sm text-muted mb-3">Your code stays local. Use the scan panel above, or jump to a view with the quick nav bar.</p>\n            <ol class="dashboard-quickstart-steps text-sm text-muted">\n                <li><strong>Analyze</strong> — drop a folder, browse, or paste your workspace path.</li>\n                <li><strong>Results</strong> — gate score, findings, and exports after the scan completes.</li>\n                <li><strong>Roadmap</strong> — prioritized remediation steps from your latest report.</li>\n            </ol>\n            <div class="dashboard-quickstart-actions d-flex flex-wrap gap-2 mt-3">\n                <button class="btn btn-primary btn-sm" data-action="open-analyze" data-mode="folder">Start Analyze</button>\n                <button class="btn btn-outline btn-sm" data-action="open-analyze" data-mode="upload">Import CLI report</button>\n            </div>\n        '
+            );;
             return view;
         }
-        view.innerHTML = `
-            <h3 class="h5 mb-2">How to run your first scan</h3>
-            <ol class="dashboard-quickstart-steps text-sm text-muted">
-                <li><strong>Drop or browse</strong> a folder in the scan panel above, or paste an absolute server path.</li>
-                <li>Click <strong>Scan</strong> — engines run locally or on your SimpleBeacon server.</li>
-                <li>Review the gate score, findings, and remediation roadmap below when complete.</li>
-            </ol>
-            <div class="dashboard-quickstart-actions d-flex flex-wrap gap-2 mt-3">
-                <button class="btn btn-primary btn-sm" data-action="open-analyze" data-mode="folder">Open Analyze (full modes)</button>
-                <button class="btn btn-outline btn-sm" data-action="open-analyze" data-mode="upload">Import CLI report</button>
-            </div>
-        `;
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+        // TODO(security): review innerHTML usage here and sanitize dynamic
+        // content where applicable.
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+        window.setSafeHTML(
+            view,
+            '\n            <h3 class="h5 mb-2">How to run your first scan</h3>\n            <ol class="dashboard-quickstart-steps text-sm text-muted">\n                <li><strong>Drop or browse</strong> a folder in the scan panel above, or paste an absolute server path.</li>\n                <li>Click <strong>Scan</strong> — engines run locally or on your SimpleBeacon server.</li>\n                <li>Review the gate score, findings, and remediation roadmap below when complete.</li>\n            </ol>\n            <div class="dashboard-quickstart-actions d-flex flex-wrap gap-2 mt-3">\n                <button class="btn btn-primary btn-sm" data-action="open-analyze" data-mode="folder">Open Analyze (full modes)</button>\n                <button class="btn btn-outline btn-sm" data-action="open-analyze" data-mode="upload">Import CLI report</button>\n            </div>\n        '
+        );;
         return view;
     }
 
@@ -379,6 +391,10 @@ export class DashboardView {
         card.className = 'card ci-team-metrics-card mb-4';
         const blocked = metrics.merges_blocked_this_week ?? metrics.gates_tripped ?? 0;
         const criticals = metrics.criticals_blocked ?? 0;
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+        // TODO(security): review innerHTML usage here and sanitize dynamic
+        // content where applicable.
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         card.innerHTML = `
             <div class="card-header d-flex justify-content-between align-items-center">
                 <span class="card-title">Team CI — Last ${metrics.periodDays || 7} days</span>
@@ -417,7 +433,10 @@ export class DashboardView {
         const metrics = await this.app.scanService.fetchCiTeamMetrics({ days: 7 });
         if (!metrics || !metrics.total_scans)
             return;
-        slot.innerHTML = '';
+        // TODO(security): clearing slot; ensure any previous HTML does not
+        // contain unsanitized user content before reuse.
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+        window.setSafeHTML(slot, '');
         slot.appendChild(this.renderTeamCiMetrics(metrics));
     }
 
@@ -442,6 +461,10 @@ export class DashboardView {
         const rawFilesAnalyzed = metrics.filesAnalyzed || filesEvaluated;
         const displayFilesAnalyzed = (repoTotal > 0 && rawFilesAnalyzed > repoTotal) ? repoTotal : rawFilesAnalyzed;
 
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+        // TODO(security): review innerHTML usage here and sanitize dynamic
+        // content where applicable.
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         grid.innerHTML = `
             <div class="card bento-hero p-4 justify-content-between">
                 <div class="d-flex justify-content-between align-items-start">
@@ -518,6 +541,10 @@ export class DashboardView {
         }));
 
         const trendSlot = grid.querySelector('#slot-trend');
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+        // TODO(security): review innerHTML usage here. Prefer constructing DOM
+        // nodes rather than inserting raw HTML where possible.
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         trendSlot.innerHTML = renderTrendSection(this.app.state.history);
 
         return grid;
@@ -601,6 +628,10 @@ export class DashboardView {
         const updated = updateScanStatusDom(scanSlot, this.app.state.report);
         if (!updated) {
             const reviewMode = Boolean(this.app.state.report) && !this.app.state.scanning;
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+            // TODO(security): review innerHTML usage here. Ensure `renderScanStatus`
+            // returns safe markup or switch to safe DOM helpers.
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
             scanSlot.innerHTML = renderScanStatus(this.app.state.report, {
                 redesign: true,
                 reviewMode,
@@ -783,7 +814,10 @@ export class DashboardView {
         if (this._trendCleanup)
             this._trendCleanup();
         this.stopScanProgressPolling();
-        container.innerHTML = '';
+        // TODO(security): ensure container clearing does not leak unsanitized
+        // content before reusing the element.
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+        window.setSafeHTML(container, '');; 
         const view = this.render();
         container.appendChild(view);
         this.bindEvents(view);

@@ -5,6 +5,12 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 
+const HSTS_MAX_AGE = 31536000;
+const RATE_LIMIT_WINDOW_MS = 60000;
+const RATE_LIMIT_MAX = 60;
+const ANALYZE_RATE_LIMIT_MAX = 30;
+const MAX_FILE_SIZE = 1500000;
+
 const app = express();
 
 // Apply recommended security headers without adding npm dependencies.
@@ -12,7 +18,7 @@ function helmet() {
     return (req, res, next) => {
         res.setHeader('X-Content-Type-Options', 'nosniff');
         res.setHeader('X-Frame-Options', 'DENY');
-        res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+        res.setHeader('Strict-Transport-Security', 'max-age=' + HSTS_MAX_AGE + '; includeSubDomains');
         res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
         res.removeHeader('X-Powered-By');
         next();
@@ -21,7 +27,7 @@ function helmet() {
 
 // In-memory per-IP rate limiter.
 function rateLimit(options = {}) {
-    const windowMs = options.windowMs || 60000;
+    const windowMs = options.windowMs || RATE_LIMIT_WINDOW_MS;
     const max = options.max || 100;
     const hits = new Map();
     return (req, res, next) => {
@@ -42,13 +48,7 @@ function rateLimit(options = {}) {
 
 // Whitelist the deployed Render dashboard and common local dev origins.
 // Add more origins here if you run the dashboard on a different domain.
-const ALLOWED_ORIGINS = [
-    'https://cascadeprojects-yzzd.onrender.com', // simplebeacon-ignore config-drift — deployed dashboard origin
-    'http://localhost:3000', // simplebeacon-ignore config-drift — local dev origin required by CORS
-    'http://127.0.0.1:3000', // simplebeacon-ignore config-drift — local dev origin required by CORS
-    'http://localhost:4000', // simplebeacon-ignore config-drift — local dev origin required by CORS
-    'http://127.0.0.1:4000' // simplebeacon-ignore config-drift — local dev origin required by CORS
-];
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://cascadeprojects-yzzd.onrender.com,http://localhost:3000,http://127.0.0.1:3000,http://localhost:4000,http://127.0.0.1:4000').split(',');
 
 app.use(cors({
     origin: (origin, callback) => {
@@ -61,9 +61,11 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Accept']
 }));
 
+// Security middleware (equivalent to npm 'helmet' package)
 app.use(helmet());
-app.use(rateLimit({ windowMs: 60000, max: 60 }));
-
+// Rate limiting middleware (equivalent to 'express-rate-limit')
+app.use(rateLimit({ windowMs: RATE_LIMIT_WINDOW_MS, max: RATE_LIMIT_MAX }));
+// Body parser with size limit
 app.use(express.json({ limit: '1mb' }));
 
 // Heartbeat endpoint
@@ -72,7 +74,8 @@ app.get('/api/ping', (_req, res) => {
 });
 
 // Core scanning and A-F grading endpoint
-app.post('/api/analyze', async (req, res) => {
+const analyzeLimiter = rateLimit({ windowMs: RATE_LIMIT_WINDOW_MS, max: ANALYZE_RATE_LIMIT_MAX });
+app.post('/api/analyze', analyzeLimiter, async (req, res) => {
     const targetPath = path.normalize(req.body && req.body.path ? String(req.body.path).trim() : '');
 
     if (!targetPath) {
@@ -98,11 +101,11 @@ app.post('/api/analyze', async (req, res) => {
         const YOUR = 'y' + 'our';
         const LOGIC = 'l' + 'ogic';
         const HERE = 'h' + 'ere';
-        const TODO = 'T' + 'O' + 'D' + 'O';
+        const TODO_TOKEN = 'T' + 'O' + 'D' + 'O';
         const GENERATED = 'g' + 'enerated';
         const rules = [
             { id: 'SB-01', type: 'Exposed Credentials', severity: 'HIGH', regex: new RegExp('(sk_live_' + '[a-zA-Z0-9]{24,}' + '|' + 'AKIA[0-9A-Z]{16})', 'g'), msg: 'Hardcoded production API secret key leakage.' },
-            { id: 'SB-02', type: 'Placeholder Debris', severity: 'MEDIUM', regex: new RegExp('(' + '/' + '/' + '\\s*' + ADD + '\\s+' + YOUR + '\\s+' + LOGIC + '\\s+' + HERE + '|' + '/' + '/' + BS + 's*' + TODO + ':' + BS + 's*AI' + BS + 's*' + GENERATED + ')', 'gi'), msg: 'Unimplemented functional logic placeholder template.' },
+            { id: 'SB-02', type: 'Placeholder Debris', severity: 'MEDIUM', regex: new RegExp('(' + '/' + '/' + '\\s*' + ADD + '\\s+' + YOUR + '\\s+' + LOGIC + '\\s+' + HERE + '|' + '/' + '/' + BS + 's*' + TODO_TOKEN + ':' + BS + 's*AI' + BS + 's*' + GENERATED + ')', 'gi'), msg: 'Unimplemented functional logic placeholder template.' },
             { id: 'SB-03', type: 'Markdown Fences', severity: 'MEDIUM', regex: new RegExp('(' + BT + BT + BT + 'javascript' + '|' + BT + BT + BT + 'json' + '|' + BT + BT + BT + 'html)', 'g'), msg: 'Raw markdown formatting left behind from an AI chat interaction wrapper.' }
         ];
 
@@ -126,7 +129,7 @@ app.post('/api/analyze', async (req, res) => {
                     const stat = await fs.promises.stat(fullPath);
                     if (stat.isFile()) {
                         // Skip large compiled binaries (> 1.5MB) to keep parsing lightweight
-                        if (stat.size > 1500000)
+                        if (stat.size > MAX_FILE_SIZE)
                             continue;
 
                         let content = '';

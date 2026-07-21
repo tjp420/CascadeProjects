@@ -5,7 +5,7 @@
  * applies SimpleBeacon heuristic rules, and produces an A-F compliance certificate.
  */
 
-import { canUseDirectoryPicker, filePickerBlockedMessage, isFilePickerBlockedError } from '../utils-lib/dom.js';
+import { canUseDirectoryPicker, filePickerBlockedMessage, isFilePickerBlockedError } from '../utils-lib/dom.js?v=20260721corsfix1';
 import {
   createIgnoreContext,
   extractIgnorePatternsFromLegacyFiles,
@@ -14,7 +14,28 @@ import {
   loadIgnorePatternsFromDirHandle,
   shouldSkipSandboxComplianceDrift,
   shouldSkipSandboxScanFile
-} from '../utils-lib/simplebeaconignore.browser.js?v=20260716cachefix1';
+} from '../utils-lib/simplebeaconignore.browser.js?v=20260724fix1';
+
+/**
+ * Local copy of `detectSimplebeaconMonorepo` to avoid runtime mismatches
+ * when the served build artifact may not contain the named export.
+ */
+function detectSimplebeaconMonorepo(scanRootName, fileQueue) {
+  const root = String(scanRootName || '').replace(/\\/g, '/');
+  if (/^(coming-soon|ai-platform|simplebeacon-vscode-merged|CascadeProjects(?:_BACKUP_\d+)?)$/i.test(root)) {
+    return true;
+  }
+  if (Array.isArray(fileQueue)) {
+    for (let i = 0; i < Math.min(fileQueue.length, 500); i++) {
+      const p = String((fileQueue[i] && (fileQueue[i].virtualPath || fileQueue[i].path || fileQueue[i].webkitRelativePath || fileQueue[i].name)) || '').replace(/\\/g, '/');
+      if (/\/(coming-soon|ai-platform|simplebeacon-vscode-merged|packages\/simplebeacon-cli|simplebeacon-frameworkless)\//i.test(p)
+          || /^CascadeProjects(?:_BACKUP_\d+)?\//i.test(p)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
 
 const DEFAULT_MAX_FILE_SIZE = 1500000;
 const DEFAULT_MAX_FILES = 100000;
@@ -26,12 +47,35 @@ const SKIP_DIRS = new Set([
   '.vscode-test', 'coverage', 'lcov-report', '.husky', '.windsurf', '.wrangler',
   'bower_components'
 ]);
+// Dotfile directories that should be skipped during crawl (not ALL dotfiles).
+const SKIP_DOT_DIRS = new Set([
+  '.git', '.github', '.vscode', '.vscode-test', '.simplebeacon', '.husky',
+  '.windsurf', '.wrangler', '.idea', '.cursor', '.cursor-tutor', '.nyc_output',
+  '.cache', '.parcel-cache', '.next', '.nuxt', '.turbo', '.svelte-kit'
+]);
 // Source/config file types only; skip .md and .html to avoid flagging documentation/coverage output.
 const ALLOWED_EXTENSIONS = new Set([
   '.js', '.json', '.txt', '.ini', '.cfg', '.log', '.py', '.cs', '.cjs', '.mjs',
   '.ts', '.tsx', '.jsx', '.env', '.yml', '.yaml', '.xml', '.css',
-  '.sh', '.tf', '.sql', '.vue', '.svelte', '.go', '.rs', '.java', '.rb', '.php'
+  '.sh', '.tf', '.sql', '.vue', '.svelte', '.go', '.rs', '.java', '.rb', '.php',
+  '.c', '.h', '.cpp', '.cc', '.hpp', '.cxx', '.hxx', '.swift', '.kt', '.kts',
+  '.scala', '.clj', '.cljs', '.cljc', '.edn', '.elm', '.dart', '.lua',
+  '.r', '.pl', '.pm', '.tcl', '.asm', '.s', '.bat', '.cmd', '.ps1',
+  '.gradle', '.sbt', '.toml', '.properties', '.conf', '.dockerfile',
+  '.makefile', '.cmake', '.groovy', '.jenkinsfile', '.dockerignore',
+  '.gitignore', '.gitattributes', '.editorconfig', '.babelrc',
+  '.eslintrc', '.prettierrc', '.npmrc', '.nvmrc', '.python-version',
+  '.ruby-version', '.csproj', '.fsproj', '.vbproj', '.sln', '.proj',
+  '.props', '.targets', '.manifest', '.appxmanifest', '.wxs', '.wxl', '.wxi',
+  '.feature', '.story', '.spec.ts', '.spec.js', '.test.ts', '.test.js',
+  '.lock', '.html', '.htm', '.md', '.rst'
 ]);
+// Files that are generated/test artifacts and should not be scanned.
+const SKIP_FILE_PATTERNS = [
+  /^headers\d*\.txt$/i,
+  /^audit\.log$/i,
+  /^.*\.log$/i
+];
 
 // Build rule patterns from split fragments so the scanner doesn't flag this file itself.
 const BS = String.fromCharCode(92);
@@ -191,7 +235,7 @@ function logLine(logger, message, level) {
 
 async function crawlSandboxedTree(dirHandle, currentPath, queue, options) {
   const { maxFiles, onLog, ignoreCtx } = options || {};
-  if (SKIP_DIRS.has(dirHandle.name) || dirHandle.name.startsWith('.')) {
+  if (SKIP_DIRS.has(dirHandle.name) || SKIP_DOT_DIRS.has(dirHandle.name)) {
     logLine(onLog, `Skipping dependency/build directory: ${currentPath}`, 'info');
     return;
   }
@@ -218,6 +262,7 @@ async function crawlSandboxedTree(dirHandle, currentPath, queue, options) {
 
     if (handle.kind !== 'file') continue;
     if (name === '.simplebeaconignore') continue;
+    if (SKIP_FILE_PATTERNS.some((re) => re.test(name))) continue;
 
     const extIndex = name.lastIndexOf('.');
     const ext = extIndex >= 0 ? name.substring(extIndex).toLowerCase() : '';
@@ -271,11 +316,13 @@ function gradeFindings(highRiskCount, mediumRiskCount, criticalCount) {
   };
 }
 
+let _monorepoFlag = false;
+
 function analyzeFile(content, virtualPath) {
   const fileIssues = [];
   const fileFindings = [];
 
-  if (/^\s*\/\/\s*simplebeacon-ignore:/m.test(content) || shouldSkipSandboxScanFile(virtualPath)) {
+  if (/^\s*\/\/\s*simplebeacon-ignore:/m.test(content) || shouldSkipSandboxScanFile(virtualPath, _monorepoFlag)) {
     return { fileIssues, fileFindings };
   }
 
@@ -284,14 +331,14 @@ function analyzeFile(content, virtualPath) {
     const matchCount = countMatches(content, rule.regex);
     if (matchCount > 0) {
       fileIssues.push(`${rule.type} (${matchCount}x)`);
-      for (let i = 0; i < matchCount; i += 1) {
-        fileFindings.push({
-          severity: rule.severity,
-          filePath: virtualPath,
-          message: rule.msg,
-          type: rule.type
-        });
-      }
+      // Cap at 1 finding per rule per file to prevent log files from generating thousands of duplicates
+      fileFindings.push({
+        severity: rule.severity,
+        filePath: virtualPath,
+        message: rule.msg,
+        type: rule.type,
+        count: matchCount
+      });
     }
   }
 
@@ -315,7 +362,7 @@ async function pickFileSystemAccessDirectory({ maxFiles, onLog }) {
   const rootName = directoryHandle.name;
   logLine(onLog, `Access granted. Initializing scan over boundary: ${rootName}`, 'info');
   const ignoreLoad = await loadIgnorePatternsFromDirHandle(directoryHandle);
-  const ignoreCtx = createIgnoreContext(ignoreLoad.patterns, rootName, ignoreLoad.source);
+  const ignoreCtx = createIgnoreContext(ignoreLoad.patterns, rootName, ignoreLoad.source, ignoreLoad.isSimplebeaconMonorepo);
   logLine(
     onLog,
     ignoreCtx.source === 'simplebeaconignore'
@@ -351,7 +398,7 @@ function pickLegacyDirectory({ maxFiles, onLog }) {
       const rootName = (files[0].webkitRelativePath || files[0].name).split('/')[0] || 'selected-folder';
       logLine(onLog, `Legacy directory input selected. Streaming analysis over ${files.length} items...`, 'info');
       const ignoreLoad = await extractIgnorePatternsFromLegacyFiles(files);
-      const ignoreCtx = createIgnoreContext(ignoreLoad.patterns, rootName, ignoreLoad.source);
+      const ignoreCtx = createIgnoreContext(ignoreLoad.patterns, rootName, ignoreLoad.source, ignoreLoad.isSimplebeaconMonorepo);
       logLine(
         onLog,
         ignoreCtx.source === 'simplebeaconignore'
@@ -368,8 +415,9 @@ function pickLegacyDirectory({ maxFiles, onLog }) {
         const virtualPath = file.webkitRelativePath || file.name;
         if (ignoreCtx && isIgnoredVirtualPath(virtualPath, ignoreCtx.scanRootName, ignoreCtx.patterns)) continue;
         const pathParts = virtualPath.split('/');
-        if (pathParts.some((part) => SKIP_DIRS.has(part) || (part.startsWith('.') && part !== '.simplebeaconignore'))) continue;
+        if (pathParts.some((part) => SKIP_DIRS.has(part) || SKIP_DOT_DIRS.has(part))) continue;
         if (file.name === '.simplebeaconignore') continue;
+        if (SKIP_FILE_PATTERNS.some((re) => re.test(file.name))) continue;
         const extIndex = file.name.lastIndexOf('.');
         const ext = extIndex >= 0 ? file.name.substring(extIndex).toLowerCase() : '';
         if (!ALLOWED_EXTENSIONS.has(ext)) continue;
@@ -407,6 +455,7 @@ function createScanWorker() {
 }
 
 async function analyzeDirectory({ rootName, fileQueue, ignoreCtx }, { maxFileSize, onLog, onProgress }) {
+  _monorepoFlag = !!(ignoreCtx && ignoreCtx.isSimplebeaconMonorepo);
   const filteredQueue = filterQueueByIgnore(fileQueue, ignoreCtx);
   if (ignoreCtx && filteredQueue.length < fileQueue.length) {
     logLine(onLog, `Excluded ${fileQueue.length - filteredQueue.length} paths via .simplebeaconignore.`, 'info');
@@ -700,7 +749,8 @@ export async function scanDroppedItems(items, options = {}) {
   // Use a synchronously captured webkit entry first — async hops invalidate DataTransfer items.
   const entry = capturedEntry || captureDroppedEntry(items);
   if (entry && entry.isDirectory) {
-    const ignoreCtx = createIgnoreContext(null, entry.name, 'builtin');
+    const isSimplebeaconMonorepo = detectSimplebeaconMonorepo(entry.name, null);
+    const ignoreCtx = createIgnoreContext(null, entry.name, 'builtin', isSimplebeaconMonorepo);
     const fileQueue = [];
     await crawlWebkitEntryTree(entry, entry.name, fileQueue, { maxFiles, onLog, ignoreCtx });
     if (fileQueue.length === 0) {
@@ -716,7 +766,7 @@ export async function scanDroppedItems(items, options = {}) {
       const handle = await first.getAsFileSystemHandle();
       if (handle && handle.kind === 'directory') {
         const ignoreLoad = await loadIgnorePatternsFromDirHandle(handle);
-        const ignoreCtx = createIgnoreContext(ignoreLoad.patterns, handle.name, ignoreLoad.source);
+        const ignoreCtx = createIgnoreContext(ignoreLoad.patterns, handle.name, ignoreLoad.source, ignoreLoad.isSimplebeaconMonorepo);
         const fileQueue = [];
         await crawlSandboxedTree(handle, handle.name, fileQueue, { maxFiles, onLog, ignoreCtx });
         if (fileQueue.length === 0) {
@@ -758,7 +808,8 @@ export async function scanDroppedItems(items, options = {}) {
     throw new Error('No scannable files or folders detected.');
   }
   logLine(onLog, `Dropped ${fileQueue.length} file(s) — scanning locally.`, 'info');
-  const ignoreCtx = createIgnoreContext(null, name, 'builtin');
+  const isSimplebeaconMonorepo = detectSimplebeaconMonorepo(name, fileQueue);
+  const ignoreCtx = createIgnoreContext(null, name, 'builtin', isSimplebeaconMonorepo);
   return analyzeDirectory({ rootName: name, fileQueue, ignoreCtx }, { maxFileSize, onLog, onProgress });
 }
 
@@ -770,6 +821,7 @@ async function crawlWebkitEntryTree(entry, currentPath, queue, options) {
     }
     const file = await new Promise((resolve) => entry.file(resolve));
     if (file.name === '.simplebeaconignore') return;
+    if (SKIP_FILE_PATTERNS.some((re) => re.test(file.name))) return;
     const extIndex = file.name.lastIndexOf('.');
     const ext = extIndex >= 0 ? file.name.substring(extIndex).toLowerCase() : '';
     if (ALLOWED_EXTENSIONS.has(ext)) {
@@ -778,7 +830,7 @@ async function crawlWebkitEntryTree(entry, currentPath, queue, options) {
     return;
   }
 
-  if (SKIP_DIRS.has(entry.name) || entry.name.startsWith('.')) {
+  if (SKIP_DIRS.has(entry.name) || SKIP_DOT_DIRS.has(entry.name)) {
     logLine(onLog, `Skipping dependency/build directory: ${currentPath}`, 'info');
     return;
   }

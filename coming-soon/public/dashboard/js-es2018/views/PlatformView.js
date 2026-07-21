@@ -160,6 +160,7 @@ export class PlatformView {
         const scanPaths = (report === null || report === void 0 ? void 0 : report.scanPaths) || ((_b = this.app.state.config) === null || _b === void 0 ? void 0 : _b.scanPaths) || [];
         const el = document.createElement('div');
         el.className = 'fade-in';
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         el.innerHTML = `
       <div class="analyze-hero">
         <h1 class="page-title">Platform</h1>
@@ -268,7 +269,8 @@ export class PlatformView {
         return el;
     }
     mount(container) {
-        container.innerHTML = '';
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+        window.setSafeHTML(container, '');
         container.appendChild(this.render());
     }
 }

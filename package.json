@@ -22,11 +22,12 @@
     "audit:context": "node scripts/audit-context.cjs",
     "audit:context:init": "node scripts/audit-context.cjs --init-prd",
     "sb:hook:pre-commit": "npx simplebeacon scan --gate --fail-on high",
-    "diagnose:dashboard": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/diagnose-dashboard.ps1"
-    ,"start:54800": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$env:PORT=54800; node ai-platform/simplebeacon-server.cjs\""
+    "diagnose:dashboard": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/diagnose-dashboard.ps1",
+    "start:54800": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$env:PORT=54800; node ai-platform/simplebeacon-server.cjs\""
   },
   "dependencies": {
     "archiver": "^8.0.0",
+    "dompurify": "^2.5.9",
     "express-rate-limit": "^8.5.2",
     "nodemailer": "^9.0.3",
     "resend": "^3.2.0",

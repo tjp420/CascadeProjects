@@ -649,6 +649,58 @@ export function setHtml(el, html) {
     el.replaceChildren(...doc.body.childNodes);
 }
 
+/**
+ * Set HTML content safely using DOMPurify when available, falling back to
+ * `setHtml` (DOMParser) otherwise. This attaches `setSafeHTML` to `window`
+ * for backward-compatible call-sites.
+ * @param {HTMLElement} el
+ * @param {string} html
+ */
+export function setSafeHTML(el, html) {
+    if (!el) return;
+    if (typeof html !== 'string') { el.replaceChildren(); return; }
+    // Try to use a DOMPurify instance if available (window.DOMPurify or bundled).
+    try {
+        let purifier = null;
+        if (typeof window !== 'undefined' && window.DOMPurify && typeof window.DOMPurify.sanitize === 'function') {
+            purifier = window.DOMPurify;
+        }
+        else {
+            try {
+                // Try CommonJS/ESM resolution at build/runtime (bundlers will resolve this).
+                const dp = typeof require === 'function' ? require('dompurify') : null;
+                if (dp) {
+                    if (typeof dp.sanitize === 'function') {
+                        purifier = dp;
+                    }
+                    else if (typeof dp.default === 'function') {
+                        try { purifier = dp.default(window); } catch (e) { purifier = dp.default; }
+                    }
+                    else if (typeof dp === 'function') {
+                        purifier = dp(window);
+                    }
+                }
+            }
+            catch (_b) { /* ignore */ }
+        }
+
+        if (purifier && typeof purifier.sanitize === 'function') {
+            const safe = purifier.sanitize(html);
+            el.innerHTML = safe;
+            return;
+        }
+    }
+    catch (_a) {
+        // fall through to parser fallback
+    }
+    // Fallback: parse and replace children (no innerHTML used).
+    setHtml(el, html);
+}
+
+if (typeof window !== 'undefined') {
+    try { window.setSafeHTML = setSafeHTML; } catch (e) { /* ignore */ }
+}
+
 /** User-facing note when folder selection may be truncated by the browser. */
 export function browserFolderCapMessage(fileCount) {
     const n = Number(fileCount) || 0;

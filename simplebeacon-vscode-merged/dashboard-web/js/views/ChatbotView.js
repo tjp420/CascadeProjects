@@ -33,6 +33,7 @@ export class ChatbotView {
   }
 
   mount(container) {
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
     container.innerHTML = `
       <div class="view-container">
         <div class="analyze-hero" style="margin-bottom:var(--space-4);">
@@ -161,6 +162,7 @@ export class ChatbotView {
   showErrorBanner(message, isRecoverable = true) {
     const banner = document.getElementById('chatbot-error-banner');
     if (!banner) return;
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
     banner.innerHTML = `
       <div class="chatbot-error-content">
         <span class="chatbot-error-icon">⚠️</span>
@@ -333,6 +335,7 @@ export class ChatbotView {
         throw new Error('No providers returned');
       }
 
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
       select.innerHTML = '';
       data.providers.forEach(provider => {
         const option = document.createElement('option');
@@ -351,6 +354,7 @@ export class ChatbotView {
       }
     } catch (error) {
       // Fallback to hardcoded list with all disabled
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
       select.innerHTML = '';
       hardcoded.forEach(p => {
         const option = document.createElement('option');
@@ -481,6 +485,7 @@ export class ChatbotView {
       try {
         const parsed = JSON.parse(buffered);
         if (parsed.response) {
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
           targetBubble.innerHTML = this.formatStreamedMessage(parsed.response);
           const container = document.getElementById('chatbot-messages');
           if (container) {
@@ -501,6 +506,7 @@ export class ChatbotView {
           const parsed = JSON.parse(line);
           if (parsed.response) {
             accumulatedText += parsed.response;
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
             targetBubble.innerHTML = this.formatStreamedMessage(accumulatedText);
             const container = document.getElementById('chatbot-messages');
             if (container) {
@@ -513,6 +519,7 @@ export class ChatbotView {
       }
     } catch (error) {
       console.error('Streaming connection interrupted:', error);
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
       targetBubble.innerHTML += '<p class="error">[Stream Interrupted]</p>';
     } finally {
       reader.releaseLock();
@@ -524,6 +531,7 @@ export class ChatbotView {
     if (!container) return;
 
     if (this.conversationHistory.length === 0) {
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
       container.innerHTML = `
         <div class="chatbot-welcome">
           <div class="chatbot-welcome-icon">🤖</div>
@@ -534,6 +542,7 @@ export class ChatbotView {
       return;
     }
 
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
     container.innerHTML = this.conversationHistory.map((msg, index) => `
       <div class="chatbot-message chatbot-message-${msg.role}">
         <div class="chatbot-message-content">
@@ -682,6 +691,7 @@ export class ChatbotView {
     const indicator = document.createElement('div');
     indicator.id = 'chatbot-typing-indicator';
     indicator.className = 'chatbot-message chatbot-message-assistant';
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
     indicator.innerHTML = `
       <div class="chatbot-message-content">
         <div class="chatbot-message-role">AI</div>

@@ -88,6 +88,7 @@ export class AssessmentView {
         el.className = 'fade-in';
         const authed = authService.isAuthenticated();
         const selectedId = (_a = this.app.state.routeParams) === null || _a === void 0 ? void 0 : _a.id;
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         el.innerHTML = `
       <h1 class="page-title">Assessment Portal</h1>
       <p class="page-subtitle">Simplebeacon scan → human triage → enterprise deliverable. Regex gate in minutes; expert review sells the audit.</p>
@@ -191,10 +192,11 @@ export class AssessmentView {
     mount(container) {
         var _a, _b, _c;
         if (!authService.isAdmin()) {
-            container.innerHTML = `
-                <div class="page-header"><h1>Assessments</h1></div>
-                <div class="card notice-card"><p>Admin access required.</p></div>
-            `;
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+            window.setSafeHTML(
+                container,
+                '\n                <div class="page-header"><h1>Assessments</h1></div>\n                <div class="card notice-card"><p>Admin access required.</p></div>\n            '
+            );;
             return;
         }
         const selectedId = (_a = this.app.state.routeParams) === null || _a === void 0 ? void 0 : _a.id;
@@ -212,7 +214,8 @@ export class AssessmentView {
             this.report = null;
         }
         this.recent = assessmentService.getRecentAssessments();
-        container.innerHTML = '';
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+        window.setSafeHTML(container, '');;
         container.appendChild(this.render());
     }
 }

@@ -411,6 +411,7 @@ export class RepositoryHealthView {
   }
 
   paint(container) {
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
     container.innerHTML = this.render();
     this.bindEvents(container);
   }

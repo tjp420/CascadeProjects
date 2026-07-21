@@ -41,6 +41,7 @@ export class AboutView {
   }
 
   mount(container) {
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
     container.innerHTML = `
       <div class="analyze-hero">
         <h1 class="page-title">About</h1>

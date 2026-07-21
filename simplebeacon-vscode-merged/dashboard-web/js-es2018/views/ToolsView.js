@@ -122,6 +122,7 @@ export class ToolsView {
         const busy = Boolean(this.running || this.reductionLoading || this.app.state.scanning);
         const el = document.createElement('div');
         el.className = this._hasPainted ? '' : 'fade-in';
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         el.innerHTML = `
       <div class="analyze-hero">
         <h1 class="page-title">Tools</h1>
@@ -253,6 +254,7 @@ export class ToolsView {
         if (!output)
             return;
         output.classList.toggle('hidden', !visible);
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         output.innerHTML = html;
     }
     refreshView() {
@@ -351,11 +353,13 @@ export class ToolsView {
     renderToolGrid(el, tools) {
         const grid = el.querySelector('#tool-grid');
         if (!tools.length) {
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
             grid.innerHTML = this._platformLoadAttempted
                 ? '<p class="text-muted card">No repository tools configured — run a consolidation scan to discover available tools.</p>'
                 : '<p class="text-muted"><span class="loading-spinner"></span> Loading repository tools…</p>';
             return;
         }
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         grid.innerHTML = tools.map((t) => `
       <div class="tool-card">
         <div class="tool-card-header">
@@ -372,11 +376,13 @@ export class ToolsView {
     renderWorkflows(el, workflows) {
         const tbody = el.querySelector('#workflow-body');
         if (!workflows.length) {
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
             tbody.innerHTML = this._platformLoadAttempted
                 ? '<tr><td colspan="4" class="text-muted">No CI workflows configured — run a consolidation scan to discover workflow configurations.</td></tr>'
                 : '<tr><td colspan="4" class="text-muted"><span class="loading-spinner"></span> Loading workflows…</td></tr>';
             return;
         }
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         tbody.innerHTML = workflows.map((w) => `
       <tr>
         <td><strong>${escapeHtml(w.name)}</strong><br><span class="text-muted">${escapeHtml(w.description)}</span></td>
@@ -387,7 +393,8 @@ export class ToolsView {
     `).join('');
     }
     _paint(container) {
-        container.innerHTML = '';
+// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+        window.setSafeHTML(container, '');;
         container.appendChild(this.render());
         this._hasPainted = true;
     }

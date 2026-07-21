@@ -1716,12 +1716,17 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
     const timeoutMs = typeof options.timeoutMs === 'number' && options.timeoutMs > 0
         ? options.timeoutMs : 600000; // 10 minutes default
     let timeout;
-    const scanResults = await Promise.race([
-        Promise.all(trackedPromises),
-        new Promise((_resolve, reject) => {
-            timeout = setTimeout(() => reject(new Error(`Scan timed out after ${timeoutMs}ms`)), timeoutMs);
-        })
-    ]).finally(() => clearTimeout(timeout));
+    let scanResults;
+    try {
+        scanResults = await Promise.race([
+            Promise.all(trackedPromises),
+            new Promise((_resolve, reject) => {
+                timeout = setTimeout(() => reject(new Error(`Scan timed out after ${timeoutMs}ms`)), timeoutMs);
+            })
+        ]);
+    } finally {
+        clearTimeout(timeout);
+    }
 
     if (!quiet && process.stderr.isTTY && totalRules > 0) {
         process.stderr.write(`\rScanning: ${totalRules}/${totalRules} rules complete.          \n`);
