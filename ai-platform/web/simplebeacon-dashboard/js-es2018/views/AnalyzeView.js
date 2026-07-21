@@ -4616,7 +4616,7 @@ export class AnalyzeView {
         const raw = String(rawPath || '').trim();
         if (!raw) {
             showToast('Select Folder to scan locally, or paste a GitHub repo URL.', 'info');
-            void this.promptHostedLocalFolderScan(root);
+            await this.promptHostedLocalFolderScan(root);
             return;
         }
         if (isRemoteRepoUrl(raw) || /^https?:\/\//i.test(raw)) {
@@ -4641,7 +4641,7 @@ export class AnalyzeView {
                 return;
             }
             showToast('Local disk paths cannot be read from this site. Use Select Folder or drop your project.', 'info', { duration: 9000 });
-            void this.promptHostedLocalFolderScan(root);
+            await this.promptHostedLocalFolderScan(root);
             return;
         }
         void this.runPathAnalysis(raw);
@@ -4783,8 +4783,8 @@ export class AnalyzeView {
         action.type = 'button';
         action.className = 'btn btn-primary btn-sm';
         action.textContent = 'Open folder picker';
-        action.addEventListener('click', () => {
-            void this.promptHostedLocalFolderScan(root);
+        action.addEventListener('click', async () => {
+            await this.promptHostedLocalFolderScan(root);
         });
         guidance.appendChild(action);
         cta.appendChild(guidance);
@@ -5130,15 +5130,15 @@ export class AnalyzeView {
             this.syncAnalyzeModeUi(el);
         });
         // Quick action buttons
-        (_g = el.querySelector('#quick-action-run-btn')) === null || _g === void 0 ? void 0 : _g.addEventListener('click', () => {
+        (_g = el.querySelector('#quick-action-run-btn')) === null || _g === void 0 ? void 0 : _g.addEventListener('click', async () => {
             const pathInput = el.querySelector('#project-path-input');
             const resolvedPath = this.resolveProjectPath(pathInput === null || pathInput === void 0 ? void 0 : pathInput.value);
             if (isRemoteDashboardHost() && !this.websiteMode) {
-                void this.runHostedAnalyzeAction(resolvedPath || (pathInput === null || pathInput === void 0 ? void 0 : pathInput.value), el);
+                await this.runHostedAnalyzeAction(resolvedPath || (pathInput === null || pathInput === void 0 ? void 0 : pathInput.value), el);
                 return;
             }
             if (resolvedPath) {
-                void this.runPathAnalysis(resolvedPath);
+                await this.runPathAnalysis(resolvedPath);
             }
             else {
                 showToast('Enter a project path first', 'error');
@@ -5166,7 +5166,7 @@ export class AnalyzeView {
             this.app.navigate('remediation');
         });
         // Mode chip selector, upgrade chip, and config card Run button (delegated — mode detail re-renders on sync)
-        el.addEventListener('click', (event) => {
+        el.addEventListener('click', async (event) => {
             const upgradeChip = event.target.closest('.analyze-upgrade-chip');
             if (upgradeChip) {
                 this.applyScanPreset('essential', el);
@@ -5184,12 +5184,12 @@ export class AnalyzeView {
                 const raw = pathInput === null || pathInput === void 0 ? void 0 : pathInput.value;
                 if (raw) {
                     if (isRemoteDashboardHost() && !this.websiteMode) {
-                        void this.runHostedAnalyzeAction(raw.trim(), el);
+                        await this.runHostedAnalyzeAction(raw.trim(), el);
                         return;
                     }
                     const resolved = this.resolveProjectPath(raw.trim());
                     if (resolved)
-                        void this.runPathAnalysis(resolved);
+                        await this.runPathAnalysis(resolved);
                 }
             }
         });
@@ -5458,8 +5458,8 @@ export class AnalyzeView {
         });
         // Browser-native folder picker — prefer File System Access API (no ~3k webkit cap).
         const sandboxPickerBtn = el.querySelector('#trigger-native-picker');
-        sandboxPickerBtn === null || sandboxPickerBtn === void 0 ? void 0 : sandboxPickerBtn.addEventListener('click', () => {
-            void this.promptHostedLocalFolderScan(el);
+        sandboxPickerBtn === null || sandboxPickerBtn === void 0 ? void 0 : sandboxPickerBtn.addEventListener('click', async () => {
+            await this.promptHostedLocalFolderScan(el);
         });
         // Handle folder selection from hidden directory inputs
         const onFolderInputChange = (e) => this.onFolderInputSelected(el, e);
@@ -5627,11 +5627,11 @@ export class AnalyzeView {
             this.syncAnalyzeModeUi(el);
             void this.refreshReportForActivePath(el);
         });
-        pathInput === null || pathInput === void 0 ? void 0 : pathInput.addEventListener('keydown', (e) => {
+        pathInput === null || pathInput === void 0 ? void 0 : pathInput.addEventListener('keydown', async (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 if (isRemoteDashboardHost() && !this.websiteMode) {
-                    void this.runHostedAnalyzeAction(pathInput.value, el);
+                    await this.runHostedAnalyzeAction(pathInput.value, el);
                     return;
                 }
                 const resolved = this.resolveProjectPath(pathInput.value);
@@ -5642,7 +5642,7 @@ export class AnalyzeView {
                 this.setPathInputDisplay(pathInput, resolved);
                 this.savePreferredProjectBase(resolved);
                 void this.refreshReportForActivePath(el);
-                void this.runPathAnalysis(resolved);
+                await this.runPathAnalysis(resolved);
             }
         });
         (_5 = el.querySelector('#refresh-analyze-providers-btn')) === null || _5 === void 0 ? void 0 : _5.addEventListener('click', async () => {
@@ -6139,8 +6139,17 @@ export class AnalyzeView {
             const dirHandle = await window.showDirectoryPicker();
             const folderName = dirHandle.name || '';
             if (isRemoteDashboardHost()) {
-                showToast(`Scanning "${folderName}" in your browser…`, 'info');
-                await this.runLocalScan(dirHandle, null, folderName);
+                const resolvedPath = this.resolveFallbackFolderPath(folderName) || folderName;
+                const pathInput = el.querySelector('#project-path-input');
+                if (pathInput) {
+                    this.setPathInputDisplay(pathInput, resolvedPath);
+                    this.app.state.lastProjectPath = resolvedPath;
+                    this.app.state.pathInputDraft = '';
+                }
+                this.syncAnalyzeModeUi(el);
+                this.savePreferredProjectBase(resolvedPath);
+                showToast(`Scanning "${resolvedPath}" in your browser…`, 'info');
+                await this.runLocalScan(dirHandle, null, resolvedPath);
                 return true;
             }
             const currentInput = this.resolveProjectPath((_c = el.querySelector('#project-path-input')) === null || _c === void 0 ? void 0 : _c.value);

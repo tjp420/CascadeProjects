@@ -5,7 +5,7 @@ import { resolvePageSpecsLabel, resolveJestTestsLabel } from '../services/analyz
 import { scanService } from '../services/scanService.js?v=20260716cachefix1';
 import { billingService } from '../services/billingService.js';
 import { platformService } from '../services/platformService.js';
-import { fetchUserAiKeys, saveUserAiKeys, clearUserAiKeys, normalizeAiKeysRecord, fetchOllamaModels, shouldProbeOllamaModels, userHasJwtForAiKeys } from '../services/aiKeysService.js?v=20260720ollama5';
+import { fetchUserAiKeys, saveUserAiKeys, clearUserAiKeys, normalizeAiKeysRecord, fetchOllamaModels, shouldProbeOllamaModels, userHasJwtForAiKeys } from '../services/aiKeysService.js?v=20260720ollama6';
 import { authService } from '../services/authService.js?v=20260721cspapi';
 import { OLLAMA_DEFAULT_URL } from '../config.js';
 import { isHostedDashboard } from '../demoMode.js';
@@ -249,7 +249,7 @@ export class SettingsView {
             const baseUrl = this.sanitizeOllamaBaseUrl((_b = (_a = root.querySelector('#settings-ai-ollama')) === null || _a === void 0 ? void 0 : _a.value) === null || _b === void 0 ? void 0 : _b.trim())
                 || this.displayAiKeys().ollamaBaseUrl
                 || OLLAMA_DEFAULT_URL;
-            void this.loadOllamaModels(baseUrl);
+            void this.loadOllamaModels(baseUrl).catch(() => {});
         });
     }
     sanitizeOllamaBaseUrl(url) {
@@ -283,7 +283,7 @@ export class SettingsView {
             return;
         }
         this._ollamaModelsTimer = setTimeout(() => {
-            void this.loadOllamaModels(url);
+            void this.loadOllamaModels(url).catch(() => {});
         }, 500);
     }
     async loadOllamaModels(baseUrl, options = {}) {
@@ -1438,7 +1438,7 @@ export class SettingsView {
         if (root.querySelector('#settings-ai-keys-card')) {
             const baseUrl = this.displayAiKeys().ollamaBaseUrl || 'http://127.0.0.1:11434';
             if (!this.ollamaModels.length && !this.ollamaModelsLoading && shouldProbeOllamaModels(baseUrl)) {
-                void this.loadOllamaModels(baseUrl);
+                void this.loadOllamaModels(baseUrl).catch(() => {});
             }
         }
     }

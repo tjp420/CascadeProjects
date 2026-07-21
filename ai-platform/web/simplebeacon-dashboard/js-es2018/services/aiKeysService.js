@@ -384,7 +384,7 @@ export async function fetchOllamaModels(ollamaBaseUrl = OLLAMA_DEFAULT_URL) {
             }
             catch (bridgeErr) {
                 if (bridgeErr.name === 'AbortError') {
-                    throw new Error('Ollama connection timed out - is Ollama running?');
+                    return { ok: false, models: [], message: 'Ollama connection timed out - is Ollama running?', source: 'timeout' };
                 }
                 const userMessage = /not found/i.test(bridgeErr.message || '')
                     ? 'Extension data server has no Ollama proxy routes (404). Install the latest SimpleBeacon VSIX from Settings or reload VS Code/Cursor.'
@@ -406,12 +406,12 @@ export async function fetchOllamaModels(ollamaBaseUrl = OLLAMA_DEFAULT_URL) {
                 return await fetchDirect();
             } catch (browserErr) {
                 const origin = (typeof window !== 'undefined' && window.location.origin) || 'this origin';
-                throw new Error(
-                    `Ollama is reachable but its CORS policy blocks https://${window.location.host}. ` +
-                    `Start Ollama from your shell (not the browser console) with the dashboard origin allowed:\n\n` +
-                    `OLLAMA_ORIGINS='${origin}' ollama serve\n\n` +
-                    `Then reload the dashboard.`
-                );
+                return {
+                    ok: false,
+                    models: [],
+                    message: `Ollama is reachable but its CORS policy blocks ${origin}. Start Ollama from your shell with: OLLAMA_ORIGINS='${origin}' ollama serve`,
+                    source: 'cors-blocked'
+                };
             }
         }
 
@@ -420,25 +420,28 @@ export async function fetchOllamaModels(ollamaBaseUrl = OLLAMA_DEFAULT_URL) {
             return await fetchProxy();
         } catch (proxyErr) {
             if (proxyErr.name === 'AbortError') {
-                throw new Error('Ollama connection timed out - is Ollama running?');
+                return { ok: false, models: [], message: 'Ollama connection timed out - is Ollama running?', source: 'timeout' };
             }
             try {
                 return await fetchDirect();
             } catch (browserErr) {
                 const origin = (typeof window !== 'undefined' && window.location.origin) || 'this origin';
                 if (isCorsError(browserErr)) {
-                    throw new Error(
-                        `Ollama is reachable but its CORS policy blocks ${origin}. ` +
-                        `Start Ollama from your shell with the dashboard origin allowed:\n\n` +
-                        `OLLAMA_ORIGINS='${origin}' ollama serve\n\n` +
-                        `Then reload the dashboard.`
-                    );
+                    return {
+                        ok: false,
+                        models: [],
+                        message: `Ollama is reachable but its CORS policy blocks ${origin}. Start Ollama from your shell with: OLLAMA_ORIGINS='${origin}' ollama serve`,
+                        source: 'cors-blocked'
+                    };
                 }
-                throw new Error(
-                    browserErr.message === proxyErr.message
+                return {
+                    ok: false,
+                    models: [],
+                    message: browserErr.message === proxyErr.message
                         ? proxyErr.message
-                        : `${browserErr.message} (server proxy: ${proxyErr.message})`
-                );
+                        : `${browserErr.message} (server proxy: ${proxyErr.message})`,
+                    source: 'error'
+                };
             }
         }
     })();
