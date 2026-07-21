@@ -77,7 +77,7 @@ export class TrendChart {
         });
         // X labels (first, middle, last)
         this.ctx.fillStyle = text;
-        this.ctx.font = '11px Inter, system-ui, sans-serif';
+        this.ctx.font = '11px system-ui, sans-serif';
         const labelIdx = [0, Math.floor(points.length / 2), points.length - 1].filter((v, i, a) => a.indexOf(v) === i);
         labelIdx.forEach((i) => {
             var _a;

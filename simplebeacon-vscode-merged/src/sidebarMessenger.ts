@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import * as http from 'http';
 import { getDataServerPort, getTheme } from './dataServer';
 import { getAuthManager } from './auth/authContext';
 
@@ -476,6 +477,53 @@ export function openWebsiteDashboardPanel(url: string, title = 'SimpleBeacon Das
     if (message.command === 'openExternalUrl' && typeof message.url === 'string' && message.url) {
       const clean = stripSimplebeaconEmbedParams(message.url);
       Promise.resolve(vscode.env.openExternal(vscode.Uri.parse(clean))).catch(() => {});
+    }
+    if (message.command === 'bridgeFetch' && typeof message.url === 'string' && message.requestId) {
+      const bfUrl = message.url;
+      const bfReqId = message.requestId;
+      try {
+        const parsed = new URL(bfUrl);
+        if (parsed.hostname !== '127.0.0.1' && parsed.hostname !== 'localhost') {
+          panel.webview.postMessage({ command: 'bridgeFetchResponse', requestId: bfReqId, error: 'Only localhost URLs allowed' });
+          return;
+        }
+        const reqOpts: http.RequestOptions = {
+          hostname: parsed.hostname,
+          port: parsed.port || '80',
+          path: parsed.pathname + parsed.search,
+          method: message.init?.method || 'GET',
+          headers: message.init?.headers || {},
+          timeout: 20000,
+        };
+        const req = http.request(reqOpts, (res: http.IncomingMessage) => {
+          const chunks: Buffer[] = [];
+          res.on('data', (chunk: Buffer) => chunks.push(chunk));
+          res.on('end', () => {
+            const body = Buffer.concat(chunks).toString('utf8');
+            const contentType = res.headers['content-type'] || 'application/json';
+            panel.webview.postMessage({
+              command: 'bridgeFetchResponse',
+              requestId: bfReqId,
+              status: res.statusCode || 200,
+              contentType,
+              body,
+            });
+          });
+        });
+        req.on('error', (err: NodeJS.ErrnoException) => {
+          panel.webview.postMessage({ command: 'bridgeFetchResponse', requestId: bfReqId, error: err.message });
+        });
+        req.on('timeout', () => {
+          req.destroy();
+          panel.webview.postMessage({ command: 'bridgeFetchResponse', requestId: bfReqId, error: 'Request timeout' });
+        });
+        if (message.init?.body) {
+          req.write(message.init.body);
+        }
+        req.end();
+      } catch (err: unknown) {
+        panel.webview.postMessage({ command: 'bridgeFetchResponse', requestId: bfReqId, error: (err as Error).message });
+      }
     }
   });
 

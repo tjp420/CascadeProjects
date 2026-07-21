@@ -136,7 +136,7 @@ export class ProfileView {
           </div>
         </div>
 
-        <div class="profile-layout">
+        <form class="profile-layout" id="profile-form" onsubmit="event.preventDefault(); return false;">
           <div class="profile-main">
             <div class="profile-card">
               <div class="profile-card-header">
@@ -358,7 +358,7 @@ export class ProfileView {
               </div>
             </div>
           </aside>
-        </div>
+        </form>
       </div>
     `);
 // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.

@@ -98,6 +98,8 @@ interface SidebarMessage {
   message?: string;
   stack?: string;
   report?: Record<string, unknown>;
+  requestId?: string;
+  init?: { method?: string; headers?: Record<string, string>; body?: string };
 }
 
 /**
@@ -1911,6 +1913,56 @@ $('cancelBtn').addEventListener('click', () => {
           case 'openCompliance':
             WelcomeDashboard.createOrShow(this._extensionUri, true)?.showCompliancePane();
             break;
+          case 'bridgeFetch': {
+            const bfMsg = message as SidebarMessage & { url?: string; requestId?: string; init?: { method?: string; headers?: Record<string, string>; body?: string } };
+            const bfUrl = bfMsg.url || '';
+            const bfReqId = bfMsg.requestId || '';
+            if (!bfUrl || !bfReqId) break;
+            try {
+              const parsed = new URL(bfUrl);
+              if (parsed.hostname !== '127.0.0.1' && parsed.hostname !== 'localhost') {
+                webviewView.webview.postMessage({ command: 'bridgeFetchResponse', requestId: bfReqId, error: 'Only localhost URLs allowed' });
+                break;
+              }
+              const reqOpts: http.RequestOptions = {
+                hostname: parsed.hostname,
+                port: parsed.port || '80',
+                path: parsed.pathname + parsed.search,
+                method: (bfMsg.init?.method) || 'GET',
+                headers: bfMsg.init?.headers || {},
+                timeout: 20000,
+              };
+              const req = http.request(reqOpts, (res: http.IncomingMessage) => {
+                const chunks: Buffer[] = [];
+                res.on('data', (chunk: Buffer) => chunks.push(chunk));
+                res.on('end', () => {
+                  const body = Buffer.concat(chunks).toString('utf8');
+                  const contentType = res.headers['content-type'] || 'application/json';
+                  webviewView.webview.postMessage({
+                    command: 'bridgeFetchResponse',
+                    requestId: bfReqId,
+                    status: res.statusCode || 200,
+                    contentType,
+                    body,
+                  });
+                });
+              });
+              req.on('error', (err: NodeJS.ErrnoException) => {
+                webviewView.webview.postMessage({ command: 'bridgeFetchResponse', requestId: bfReqId, error: err.message });
+              });
+              req.on('timeout', () => {
+                req.destroy();
+                webviewView.webview.postMessage({ command: 'bridgeFetchResponse', requestId: bfReqId, error: 'Request timeout' });
+              });
+              if (bfMsg.init?.body) {
+                req.write(bfMsg.init.body);
+              }
+              req.end();
+            } catch (err: unknown) {
+              webviewView.webview.postMessage({ command: 'bridgeFetchResponse', requestId: bfReqId, error: (err as Error).message });
+            }
+            break;
+          }
           case 'openClear':
           case 'openToggleMonitor':
           case 'openSendToAIAgent':

@@ -2,7 +2,7 @@ import { escapeHtml, formatPercent, formatNumber, showToast } from '../utils.js'
 import { canUseDirectoryPicker, filePickerBlockedMessage, isFilePickerBlockedError } from '../utils-lib/dom.js?v=20260721corsfix1';
 import { resolveDisplayScore, formatScanScopeSummary, formatScanInventoryNote, getScanFileMetrics } from '../services/analyzeService.js?v=20260716cachefix1';
 import { runLocalScan } from '../services/localScanService.js?v=20260724fix1';
-import { isLocalPath, probeAgent, scanViaAgent, probeAgent4000, scanViaAgent4000, renderAgentCertificate, hasExtensionBridgeConfigured, pickFolderViaExtensionBridge as requestExtensionFolderPick, shouldProbeLocalAgent, shouldProbeAgent4000 } from '../services/localAgentService.js?v=20260722scanfix1';
+import { isLocalPath, probeAgent, scanViaAgent, probeAgent4000, scanViaAgent4000, renderAgentCertificate, hasExtensionBridgeConfigured, pickFolderViaExtensionBridge as requestExtensionFolderPick, findFolderViaBridge, shouldProbeLocalAgent, shouldProbeAgent4000 } from '../services/localAgentService.js?v=20260722scanfix1';
 import { runSandboxedDirectoryScan, isDroppedFolder, scanDroppedItems, captureDroppedEntry } from '../services/browserSandboxScanService.js?v=20260724fix1';
 function isRemoteDashboardHost() {
     return typeof window !== 'undefined' && !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
@@ -1173,6 +1173,31 @@ export function bindScanStatus(container, options = {}) {
                 else if (fileArray.length) {
                     const files = fileArray;
                     const resolvedPath = (files[0].path) || files[0].name || 'selected-files';
+                    const hasWebkitRelPath = files.some((f) => f.webkitRelativePath);
+                    if (isRemoteDashboardHost() && hasExtensionBridgeConfigured() && !hasWebkitRelPath && files.length <= 2) {
+                        const folderName = (files[0] && files[0].name) || 'selected';
+                        if (terminal)
+                            terminal.textContent = `Locating "${folderName}" via IDE bridge…`;
+                        try {
+                            const bridgePath = await findFolderViaBridge(folderName);
+                            if (bridgePath) {
+                                if (input) {
+                                    input.value = bridgePath;
+                                    input.dataset.userModified = 'true';
+                                    setLastProjectPath(bridgePath);
+                                    if (clearBtn)
+                                        clearBtn.disabled = false;
+                                }
+                                if (terminal)
+                                    terminal.textContent = `Scanning "${folderName}" via IDE bridge…`;
+                                runScan();
+                                return;
+                            }
+                        }
+                        catch (bridgeErr) {
+                            console.warn('[ScanStatus] findFolderViaBridge failed for non-folder drop:', bridgeErr);
+                        }
+                    }
                     if (progressDetail)
                         progressDetail.textContent = `${files.length} file(s) queued`;
                     const report = await runLocalScan({ files, projectPath: resolvedPath });

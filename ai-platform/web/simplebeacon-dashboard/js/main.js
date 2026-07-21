@@ -166,7 +166,17 @@ class SimplebeaconDashboard {
   async init() {
     themeService.init();
     this.setupShell();
-    this.setupKeyboard();
+              requestAnimationFrame(() => {
+                this.resetMainScroll(main);
+                try {
+                  requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                      try { if (typeof document !== 'undefined' && document.scrollingElement) document.scrollingElement.scrollTop = 0; } catch (_) { }
+                      try { if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') window.scrollTo(0,0); } catch (_) { }
+                    });
+                  });
+                } catch (e) { /* ignore */ }
+              });
     this.setupMobileNav();
     this.cleanupDisabledElements();
     this.updateAuthUi();
@@ -244,6 +254,53 @@ class SimplebeaconDashboard {
     bar.appendChild(a);
     document.body.prepend(bar);
     this.bindPricingCta(a);
+  }
+
+  resetMainScroll(main) {
+    const root = main || document.getElementById('app-main') || (typeof document !== 'undefined' && (document.scrollingElement || document.documentElement || document.body));
+    if (!root) return;
+    let container = root;
+    try {
+      for (let cur = root instanceof Element ? root : document.body; cur; cur = cur.parentElement) {
+        try {
+          const style = window.getComputedStyle ? window.getComputedStyle(cur) : { overflowY: '' };
+          if (cur.scrollHeight > cur.clientHeight && /(auto|scroll|overlay)/.test(style.overflowY || '')) {
+            container = cur;
+            break;
+          }
+        } catch (_inner) { /* ignore */ }
+      }
+    } catch (_a) { /* ignore */ }
+    try {
+      if ((typeof isEmbeddedDashboardFrame === 'function' && isEmbeddedDashboardFrame()) || (typeof isIdeDashboardSurface === 'function' && isIdeDashboardSurface())) {
+        if (container.style) container.style.overflowY = container.style.overflowY || 'auto';
+      }
+    } catch (e) { /* ignore */ }
+    try {
+      if (typeof container.scrollTo === 'function') {
+        container.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+      } else {
+        container.scrollTop = 0;
+      }
+    } catch (e) {
+      try { container.scrollTop = 0; } catch (_) { /* swallow */ }
+    }
+    try { if (typeof window.scrollTo === 'function') window.scrollTo(0, 0); } catch (e) { /* ignore */ }
+    // Delayed reset to clear any layout-driven scroll on document after frames settle
+    try {
+      requestAnimationFrame(() => {
+        try { requestAnimationFrame(() => {
+          try { if (typeof document !== 'undefined' && document.scrollingElement) document.scrollingElement.scrollTop = 0; } catch (_) { }
+          try { if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') window.scrollTo(0, 0); } catch (_) { }
+        }); } catch (_) { }
+      });
+    } catch (e) { /* ignore */ }
+    try {
+      if (typeof document !== 'undefined') {
+        if (document.documentElement) document.documentElement.scrollTop = 0;
+        if (document.body) document.body.scrollTop = 0;
+      }
+    } catch (e) { /* ignore */ }
   }
 
   showVaultBanner() {

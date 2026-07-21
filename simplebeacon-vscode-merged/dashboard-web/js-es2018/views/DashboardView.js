@@ -3,7 +3,7 @@ import { formatNumber, formatPercent, escapeHtml, showToast } from '../utils.js'
 import { isEmbeddedDashboardFrame } from '../utils-lib/dom.js?v=20260721corsfix1';
 import { buildScanConclusion, getScanFileMetrics, resolveDisplayScore, resolveJestTestsLabel, resolvePageSpecsLabel, renderScanScopePanel } from '../services/analyzeService.js?v=20260716cachefix1';
 import { renderIssueList } from '../components/IssueCard.js';
-import { renderTrendSection, mountTrendChart } from '../components/TrendChart.js';
+import { renderTrendSection, mountTrendChart } from '../components/TrendChart.js?v=20260724trend1';
 import { renderScanStatus, bindScanStatus, updateScanStatusDom } from '../components/ScanStatus.js?v=20260724fix1';
 import { renderAnalysisWorkflow, resolveAnalysisWorkflowStep } from '../components/AnalysisWorkflow.js';
 import { isDemoMode } from '../demoMode.js';

@@ -9,7 +9,7 @@ import { themeService } from './services/themeService.js';
 import { Router, PUBLIC_VIEWS } from './router.js?v=20260716cachefix1';
 import { TrustView } from './views/TrustView.js?v=20260716cachefix1';
 import { RepositoryHealthView } from './views/RepositoryHealthView.js?v=20260716cachefix1';
-import { DashboardView } from './views/DashboardView.js?v=20260724fix1';
+import { DashboardView } from './views/DashboardView.js?v=20260724trend1';
 import { ResultsView } from './views/ResultsView.js?v=20260716cachefix1';
 import { SettingsView } from './views/SettingsView.js?v=20260720ollama6';
 import { ToolsView } from './views/ToolsView.js';
@@ -17,7 +17,7 @@ import { PlatformView } from './views/PlatformView.js?v=20260716cachefix1';
 import { QualityView } from './views/QualityView.js?v=20260716cachefix1';
 import { HelpView, FeaturesView } from './views/HelpView.js';
 import { AuditView } from './views/AuditView.js?v=20260716cachefix1';
-import { AnalyzeView } from './views/AnalyzeView.js?v=20260724fix1';
+import { AnalyzeView } from './views/AnalyzeView.js?v=20260724analyze1';
 import { SecurityView } from './views/SecurityView.js?v=20260716cachefix1';
 import { AboutView } from './views/AboutView.js';
 import { AssessmentView } from './views/AssessmentView.js?v=20260716cachefix1';
@@ -25,7 +25,7 @@ import { SignInView } from './views/SignInView.js?v=20260722signin3';
 import { ChatbotView } from './views/ChatbotView.js?v=20260720ollama6';
 import { UploadView } from './views/UploadView.js';
 import { RemediationRoadmapView } from './views/RemediationRoadmapView.js';
-import { ProfileView } from './views/ProfileView.js?v=20260722profile2';
+import { ProfileView } from './views/ProfileView.js?v=20260724profile1';
 import { AdminPanelView } from './views/AdminPanelView.js?v=20260720adminfix1';
 import { GettingStartedView } from './views/GettingStartedView.js?v=20260718onboard1';
 import { GuidedTour } from './components/GuidedTour.js?v=20260718onboard1';
@@ -305,20 +305,65 @@ class SimplebeaconDashboard {
         }
     }
     resetMainScroll(main) {
-        const el = main || document.getElementById('app-main');
-        if (!el)
+        const root = main || document.getElementById('app-main') || (typeof document !== 'undefined' && (document.scrollingElement || document.documentElement || document.body));
+        if (!root)
             return;
-        el.scrollTop = 0;
-        if (typeof el.scrollTo === 'function') {
-            el.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+        let container = root;
+        try {
+            for (let cur = root instanceof Element ? root : document.body; cur; cur = cur.parentElement) {
+                try {
+                    const style = window.getComputedStyle ? window.getComputedStyle(cur) : { overflowY: '' };
+                    if (cur.scrollHeight > cur.clientHeight && /(auto|scroll|overlay)/.test(style.overflowY || '')) {
+                        container = cur;
+                        break;
+                    }
+                }
+                catch (_inner) { /* ignore */ }
+            }
         }
-        if (typeof window.scrollTo === 'function') {
-            window.scrollTo(0, 0);
+        catch (_a) { /* ignore */ }
+        try {
+            if ((isEmbeddedDashboardFrame() || isIdeDashboardSurface()) && container && container.style) {
+                container.style.overflowY = container.style.overflowY || 'auto';
+            }
         }
-        if (typeof document !== 'undefined') {
-            document.documentElement.scrollTop = 0;
-            document.body.scrollTop = 0;
+        catch (_b) { /* ignore */ }
+        try {
+            if (typeof container.scrollTo === 'function') {
+                container.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+            }
+            else {
+                container.scrollTop = 0;
+            }
         }
+        catch (_c) {
+            try { container.scrollTop = 0; } catch (_d) { /* swallow */ }
+        }
+        // Some embed hosts or subsequent layout changes may nudge the root scroll.
+        // Ensure we clear any residual document scroll after the frame settles.
+        try {
+            requestAnimationFrame(() => {
+                try { requestAnimationFrame(() => {
+                    try { if (typeof document !== 'undefined' && document.scrollingElement) document.scrollingElement.scrollTop = 0; } catch (_) { }
+                    try { if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') window.scrollTo(0, 0); } catch (_) { }
+                }); } catch (_) { }
+            });
+        }
+        catch (_e) { /* ignore */ }
+        try {
+            if (typeof window.scrollTo === 'function')
+                window.scrollTo(0, 0);
+        }
+        catch (_d) { /* ignore */ }
+        try {
+            if (typeof document !== 'undefined') {
+                if (document.documentElement)
+                    document.documentElement.scrollTop = 0;
+                if (document.body)
+                    document.body.scrollTop = 0;
+            }
+        }
+        catch (_e) { /* ignore */ }
     }
     _setupIdeScrollBridge() {
         if (!isEmbeddedDashboardFrame() && !isIdeDashboardSurface())
@@ -1648,6 +1693,20 @@ class SimplebeaconDashboard {
             this.currentView = viewInstance;
             viewInstance.mount(main);
             requestAnimationFrame(() => this.resetMainScroll(main));
+            // Ensure any residual document-level scroll is cleared after layout settles
+            try {
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        try {
+                            if (typeof document !== 'undefined' && document.scrollingElement)
+                                document.scrollingElement.scrollTop = 0;
+                        }
+                        catch (_a) { }
+                        try { if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') window.scrollTo(0, 0); } catch (_b) { }
+                    });
+                });
+            }
+            catch (_err) { /* ignore */ }
         }
         if (view === 'dashboard') {
             this.startBackgroundScanWatcher();

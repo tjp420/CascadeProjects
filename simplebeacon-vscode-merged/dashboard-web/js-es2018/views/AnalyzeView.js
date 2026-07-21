@@ -5282,11 +5282,6 @@ export class AnalyzeView {
             showToast(this.realtimeMonitorEnabled ? 'Real-time monitoring enabled' : 'Real-time monitoring disabled', 'info');
         });
         (_o = el.querySelector('#browse-dir-btn')) === null || _o === void 0 ? void 0 : _o.addEventListener('click', async () => {
-            if (hasExtensionBridgeConfigured()) {
-                const picked = await this.pickFolderViaExtensionBridge(el);
-                if (picked)
-                    return;
-            }
             const agentAvailable = !!(this.agentStatus && this.agentStatus.available);
             const pathInput = el.querySelector('#project-path-input');
             const typedPath = this.resolveProjectPath(pathInput?.value);
@@ -5928,6 +5923,32 @@ export class AnalyzeView {
                     }
                     else if (fileArray.length) {
                         const files = fileArray;
+                        const hasWebkitRelPath = files.some((f) => f.webkitRelativePath);
+                        if (isRemoteDashboardHost() && hasExtensionBridgeConfigured() && !hasWebkitRelPath && files.length <= 2) {
+                            const folderName = (files[0] && files[0].name) || 'selected';
+                            if (analyzeTerminal)
+                                analyzeTerminal.textContent = `Locating "${folderName}" via IDE bridge…`;
+                            try {
+                                const bridgePath = await findFolderViaBridge(folderName);
+                                if (bridgePath) {
+                                    const pathInput = el.querySelector('#project-path-input');
+                                    if (pathInput) {
+                                        pathInput.value = bridgePath;
+                                        this.app.state.pathInputDraft = '';
+                                        this.app.state.lastProjectPath = bridgePath;
+                                        this.setPathInputDisplay(pathInput, bridgePath);
+                                        this.syncAnalyzeModeUi(el);
+                                    }
+                                    if (analyzeTerminal)
+                                        analyzeTerminal.textContent = `Scanning "${folderName}" via IDE bridge…`;
+                                    void this.runPathAnalysis(bridgePath);
+                                    return;
+                                }
+                            }
+                            catch (bridgeErr) {
+                                console.warn('[AnalyzeView] findFolderViaBridge failed for non-folder drop:', bridgeErr);
+                            }
+                        }
                         if (analyzeProgress)
                             analyzeProgress.textContent = `${files.length} file(s) queued`;
                         await this.handleAnalyzeFiles(files);
@@ -5974,7 +5995,18 @@ export class AnalyzeView {
                         setAnalyzeDropzoneState('error');
                         const browseInput = el.querySelector('#browse-dir-input');
                         if (browseInput) {
-                            setTimeout(() => browseInput.click(), 100);
+                            try {
+                                browseInput.value = '';
+                                browseInput.click();
+                            }
+                            catch (err) {
+                                if (isFilePickerBlockedError(err)) {
+                                    showToast(filePickerBlockedMessage(), 'warning', { duration: 10000 });
+                                }
+                                else {
+                                    console.warn('Browse input click failed:', err);
+                                }
+                            }
                         }
                         return;
                     }
@@ -6215,34 +6247,54 @@ export class AnalyzeView {
     /** Hosted dashboard: open the best available local folder scan path (no typed PC paths). */
     async promptHostedLocalFolderScan(el) {
         const root = el || this._root;
-        if (hasExtensionBridgeConfigured()) {
-            const picked = await this.pickFolderViaExtensionBridge(el);
-            if (picked)
-                return true;
-        }
         const pathInput = root?.querySelector('#project-path-input');
         const typedPath = this.resolveProjectPath(pathInput?.value);
         const agentReady = !!(this.agentStatus && this.agentStatus.available);
-        if (agentReady && typedPath && isLocalPath(typedPath) && isEmbeddedDashboardFrame()) {
-            showToast('Local Agent connected — scanning your typed path.', 'info');
-            await this.runPathAnalysis(typedPath);
-            return true;
-        }
+        // 1. Browser-native picker (top-level Chrome/Edge). Must be first because
+        // it requires the current user gesture.
         if (canUseDirectoryPicker() && !this.isElectronLike()) {
             const picked = await this.pickFolderViaBrowser(el);
             if (picked)
                 return true;
         }
+        // 2. IDE/extension bridge picker. Does not need user activation; works in
+        // cross-origin iframes by asking the extension data server.
+        if (hasExtensionBridgeConfigured()) {
+            const picked = await this.pickFolderViaExtensionBridge(el);
+            if (picked)
+                return true;
+        }
+        // 3. If an agent is connected and the user already typed a local path,
+        // scan that path directly instead of asking for another picker.
+        if (agentReady && typedPath && isLocalPath(typedPath) && isEmbeddedDashboardFrame()) {
+            showToast('Local Agent connected — scanning your typed path.', 'info');
+            await this.runPathAnalysis(typedPath);
+            return true;
+        }
+        // 4. Legacy hidden file input. This also requires user activation. By the
+        // time we reach here the gesture may have been consumed by an earlier
+        // await, so catch the blocked error and show a helpful message instead of
+        // dumping an uncaught exception to the console.
         const browseInput = root?.querySelector('#browse-dir-input')
             || root?.querySelector('#analyze-dir-input');
         if (browseInput) {
-            const embedNote = isEmbeddedDashboardFrame()
-                ? 'Embedded dashboard — using legacy folder dialog.'
-                : 'Choose your project folder — Chrome/Edge can scan large repos via Select Folder.';
-            showToast(embedNote, 'info', { duration: 8000 });
-            browseInput.value = '';
-            browseInput.click();
-            return true;
+            try {
+                browseInput.value = '';
+                browseInput.click();
+                const embedNote = isEmbeddedDashboardFrame()
+                    ? 'Embedded dashboard — using legacy folder dialog.'
+                    : 'Choose your project folder — Chrome/Edge can scan large repos via Select Folder.';
+                showToast(embedNote, 'info', { duration: 8000 });
+                return true;
+            }
+            catch (err) {
+                if (isFilePickerBlockedError(err)) {
+                    showToast(filePickerBlockedMessage(), 'warning', { duration: 12000 });
+                    return false;
+                }
+                console.warn('Folder input click failed:', err);
+                throw err;
+            }
         }
         if (agentReady && typedPath && isLocalPath(typedPath)) {
             showToast('Local Agent connected — click Run Scan to analyze your typed path.', 'info', { duration: 9000 });
@@ -7165,8 +7217,18 @@ export class AnalyzeView {
         const browseInput = (_b = this._root) === null || _b === void 0 ? void 0 : _b.querySelector('#browse-dir-input');
         if (isRemoteDashboardHost() && browseInput) {
             showToast(`Dropped folder "${folderName}" — select it again to scan locally in your browser.`, 'info');
-            browseInput.value = '';
-            browseInput.click();
+            try {
+                browseInput.value = '';
+                browseInput.click();
+            }
+            catch (err) {
+                if (isFilePickerBlockedError(err)) {
+                    showToast(filePickerBlockedMessage(), 'warning', { duration: 10000 });
+                }
+                else {
+                    console.warn('Browse input click failed:', err);
+                }
+            }
             return;
         }
         showToast(`Dropped folder "${folderName}" — browser cannot reveal its full path. Use Select Folder above, or start the Local Scan Agent to scan by typed path.`, 'warning');
@@ -7413,8 +7475,18 @@ export class AnalyzeView {
             const browseInput = this._root?.querySelector('#browse-dir-input');
             if (browseInput) {
                 showToast('Opening folder picker…', 'info');
-                browseInput.value = '';
-                browseInput.click();
+                try {
+                    browseInput.value = '';
+                    browseInput.click();
+                }
+                catch (err) {
+                    if (isFilePickerBlockedError(err)) {
+                        showToast(filePickerBlockedMessage(), 'warning', { duration: 10000 });
+                    }
+                    else {
+                        console.warn('Browse input click failed:', err);
+                    }
+                }
                 return;
             }
             showToast('Local scan requires choosing a folder with Select Folder or drag-and-drop.', 'error');
@@ -7740,8 +7812,18 @@ export class AnalyzeView {
                 showToast(msg, 'warning', { duration: 12000 });
                 const browseInput = root?.querySelector('#browse-dir-input') || root?.querySelector('#analyze-dir-input');
                 if (browseInput) {
-                    browseInput.value = '';
-                    browseInput.click();
+                    try {
+                        browseInput.value = '';
+                        browseInput.click();
+                    }
+                    catch (clickErr) {
+                        if (isFilePickerBlockedError(clickErr)) {
+                            showToast(filePickerBlockedMessage(), 'warning', { duration: 12000 });
+                        }
+                        else {
+                            console.warn('Browse input click failed:', clickErr);
+                        }
+                    }
                 }
             }
             else {
@@ -7782,8 +7864,18 @@ export class AnalyzeView {
                     const browseInput = this._root?.querySelector('#browse-dir-input');
                     if (browseInput) {
                         showToast('Opening folder picker for privacy mode…', 'info');
-                        browseInput.value = '';
-                        browseInput.click();
+                        try {
+                            browseInput.value = '';
+                            browseInput.click();
+                        }
+                        catch (err) {
+                            if (isFilePickerBlockedError(err)) {
+                                showToast(filePickerBlockedMessage(), 'warning', { duration: 10000 });
+                            }
+                            else {
+                                console.warn('Browse input click failed:', err);
+                            }
+                        }
                         return;
                     }
                     showToast('Privacy mode requires a browser that supports directory selection (Chrome/Edge).', 'error');
@@ -7809,8 +7901,18 @@ export class AnalyzeView {
                     const browseInput = this._root?.querySelector('#browse-dir-input');
                     if (browseInput) {
                         showToast('Opening folder picker for privacy mode…', 'info');
-                        browseInput.value = '';
-                        browseInput.click();
+                        try {
+                            browseInput.value = '';
+                            browseInput.click();
+                        }
+                        catch (err) {
+                            if (isFilePickerBlockedError(err)) {
+                                showToast(filePickerBlockedMessage(), 'warning', { duration: 10000 });
+                            }
+                            else {
+                                console.warn('Browse input click failed:', err);
+                            }
+                        }
                         return;
                     }
                 }
