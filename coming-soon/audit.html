@@ -162,8 +162,9 @@
               .token-gate-email { display: none; flex-direction: column; gap: 12px; padding: 16px; border: 1px solid rgba(99,102,241,0.2); border-radius: 12px; background: rgba(99,102,241,0.04); }
               .token-gate-email.expanded { display: flex; }
               .token-gate-email-label { font-size: 0.75rem; color: var(--text-secondary); font-weight: 500; margin: 0 0 4px; }
-              .token-gate-email-row { display: flex; gap: 8px; }
-              .token-gate-email-row input { flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text-main); font-size: 0.85rem; }
+              .token-gate-email-row { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; }
+              .token-gate-email-row input { flex: 1 1 220px; min-width: 0; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text-main); font-size: 0.85rem; }
+              .token-gate-email-row .btn { flex: 0 0 auto; white-space: nowrap; }
               .token-gate-email-row input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
               .token-gate-email-help { font-size: 0.7rem; color: var(--text-muted); margin: 0; line-height: 1.4; max-width: 520px; }
               .token-gate-code-row { display: none; flex-direction: column; gap: 6px; }
