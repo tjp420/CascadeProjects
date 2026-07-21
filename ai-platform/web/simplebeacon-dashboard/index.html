@@ -368,11 +368,12 @@
       window.__SB_STANDALONE_DASHBOARD__ = !inIframe && !explicitEmbedUrl;
       window.__SB_IDE_EMBED__ = ideSurface;
       window.__SB_PARENT_URL_BAR__ = parentOwnsUrlBar;
-      if (ideSurface) {
+      if (ideSurface || parentOwnsUrlBar) {
+        // IDE surface or parent owns URL bar: extension/sidebar owns navigation.
         document.documentElement.setAttribute('data-ide-embed', '1');
         document.documentElement.removeAttribute('data-embed-full-nav');
-      } else if (!inIframe && (websiteMode || parentOwnsUrlBar)) {
-        // Simple Browser / IDE-hosted tab: keep header + sidebar beside content.
+      } else if (!inIframe && websiteMode) {
+        // Website mode without parent URL bar: keep header + sidebar beside content.
         document.documentElement.setAttribute('data-embed-full-nav', '1');
       }
       if (parentOwnsUrlBar) {

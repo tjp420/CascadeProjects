@@ -1,0 +1,20 @@
+Remaining TODO/FIXME line comments: 19
+C:\Users\Trevor\CascadeProjects\ai-platform\web\simplebeacon-dashboard\js\views\AboutView.js:44: // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+C:\Users\Trevor\CascadeProjects\ai-platform\web\simplebeacon-dashboard\js\views\AssessmentView.js:96: // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+C:\Users\Trevor\CascadeProjects\ai-platform\web\simplebeacon-dashboard\js\views\AssessmentView.js:219: // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+C:\Users\Trevor\CascadeProjects\ai-platform\web\simplebeacon-dashboard\js\views\CodeMapView.js:112: // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+C:\Users\Trevor\CascadeProjects\ai-platform\web\simplebeacon-dashboard\js\views\CodeMapView.js:127: // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+C:\Users\Trevor\CascadeProjects\ai-platform\web\simplebeacon-dashboard\js\views\CodeMapView.js:167: // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+C:\Users\Trevor\CascadeProjects\ai-platform\web\simplebeacon-dashboard\js\views\HelpView.js:193: // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+C:\Users\Trevor\CascadeProjects\ai-platform\web\simplebeacon-dashboard\js\views\HelpView.js:393: // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+C:\Users\Trevor\CascadeProjects\ai-platform\web\simplebeacon-dashboard\js\views\HelpView.js:434: // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+C:\Users\Trevor\CascadeProjects\ai-platform\web\simplebeacon-dashboard\js\views\HelpView.js:538: // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+C:\Users\Trevor\CascadeProjects\ai-platform\web\simplebeacon-dashboard\js\views\PlatformView.js:143: // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+C:\Users\Trevor\CascadeProjects\ai-platform\web\simplebeacon-dashboard\js\views\PlatformView.js:245: // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+C:\Users\Trevor\CascadeProjects\ai-platform\web\simplebeacon-dashboard\js\views\PricingView.js:12: // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+C:\Users\Trevor\CascadeProjects\ai-platform\web\simplebeacon-dashboard\js\views\SignInView.js:79: // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+C:\Users\Trevor\CascadeProjects\ai-platform\web\simplebeacon-dashboard\js\views\SignInView.js:104: // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+C:\Users\Trevor\CascadeProjects\ai-platform\web\simplebeacon-dashboard\js\views\SignInView.js:234: // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+C:\Users\Trevor\CascadeProjects\ai-platform\web\simplebeacon-dashboard\js\views\SignInView.js:294: // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+C:\Users\Trevor\CascadeProjects\ai-platform\web\simplebeacon-dashboard\js\views\UploadView.js:21: // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+C:\Users\Trevor\CascadeProjects\ai-platform\web\simplebeacon-dashboard\js\views\UploadView.js:237: // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.

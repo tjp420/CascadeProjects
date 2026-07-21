@@ -129,10 +129,11 @@ html[data-ide-embed="1"] .app-shell {
 }
 
 /* Also apply the same embed layout rules when other embed-related attributes are present
-   (some hosts set data-parent-urlbar, data-ide-preview or data-embed-mode). */
-html[data-parent-urlbar="1"] .app-shell,
-html[data-ide-preview="true"] .app-shell,
-html[data-embed-mode="1"] .app-shell {
+   (some hosts set data-parent-urlbar, data-ide-preview or data-embed-mode).
+   Skip when data-embed-full-nav is set — that mode keeps header + sidebar and has its own layout. */
+html[data-parent-urlbar="1"]:not([data-embed-full-nav="1"]) .app-shell,
+html[data-ide-preview="true"]:not([data-embed-full-nav="1"]) .app-shell,
+html[data-embed-mode="1"]:not([data-embed-full-nav="1"]) .app-shell {
   height: 100vh;
   height: 100dvh;
   min-height: 0;
@@ -146,9 +147,9 @@ html[data-ide-embed="1"] .app-body {
   min-width: 0;
 }
 
-html[data-parent-urlbar="1"] .app-body,
-html[data-ide-preview="true"] .app-body,
-html[data-embed-mode="1"] .app-body {
+html[data-parent-urlbar="1"]:not([data-embed-full-nav="1"]) .app-body,
+html[data-ide-preview="true"]:not([data-embed-full-nav="1"]) .app-body,
+html[data-embed-mode="1"]:not([data-embed-full-nav="1"]) .app-body {
   flex: 1;
   flex-direction: column;
   min-height: 0;
@@ -165,9 +166,9 @@ html[data-ide-embed="1"] #app-main {
   overflow-y: auto;
 }
 
-html[data-parent-urlbar="1"] #app-main,
-html[data-ide-preview="true"] #app-main,
-html[data-embed-mode="1"] #app-main {
+html[data-parent-urlbar="1"]:not([data-embed-full-nav="1"]) #app-main,
+html[data-ide-preview="true"]:not([data-embed-full-nav="1"]) #app-main,
+html[data-embed-mode="1"]:not([data-embed-full-nav="1"]) #app-main {
   flex: 1;
   height: 100% !important;
   min-width: 0;
@@ -178,31 +179,33 @@ html[data-embed-mode="1"] #app-main {
 }
 
 /* Shim for stubborn hosts that clip the top of embedded webviews. Uses inset positioning
-   and safe-area padding to avoid overlapping the host chrome. */
+   and safe-area padding plus a small configurable top shim to avoid overlapping the host chrome.
+   Only apply in compact embed mode (not data-embed-full-nav, which has its own layout). */
 html[data-ide-embed="1"],
-html[data-parent-urlbar="1"],
-html[data-ide-preview="true"],
-html[data-embed-mode="1"] {
+html[data-parent-urlbar="1"]:not([data-embed-full-nav="1"]),
+html[data-ide-preview="true"]:not([data-embed-full-nav="1"]),
+html[data-embed-mode="1"]:not([data-embed-full-nav="1"]) {
+  --embed-top-shim: 48px; /* tweakable shim for IDE titlebars */
   height: 100% !important;
   min-height: 0 !important;
   box-sizing: border-box;
 }
 html[data-ide-embed="1"] body,
-html[data-parent-urlbar="1"] body,
-html[data-ide-preview="true"] body,
-html[data-embed-mode="1"] body {
+html[data-parent-urlbar="1"]:not([data-embed-full-nav="1"]) body,
+html[data-ide-preview="true"]:not([data-embed-full-nav="1"]) body,
+html[data-embed-mode="1"]:not([data-embed-full-nav="1"]) body {
   position: absolute !important;
   inset: 0 !important;
   margin: 0 !important;
-  padding-top: env(safe-area-inset-top, 0px) !important;
+  padding-top: calc(env(safe-area-inset-top, 0px) + var(--embed-top-shim, 48px)) !important;
   height: 100% !important;
   box-sizing: border-box !important;
   overflow: hidden !important;
 }
 html[data-ide-embed="1"] .app-shell,
-html[data-parent-urlbar="1"] .app-shell,
-html[data-ide-preview="true"] .app-shell,
-html[data-embed-mode="1"] .app-shell {
+html[data-parent-urlbar="1"]:not([data-embed-full-nav="1"]) .app-shell,
+html[data-ide-preview="true"]:not([data-embed-full-nav="1"]) .app-shell,
+html[data-embed-mode="1"]:not([data-embed-full-nav="1"]) .app-shell {
   position: absolute !important;
   inset: 0 !important;
   height: 100% !important;
@@ -210,10 +213,10 @@ html[data-embed-mode="1"] .app-shell {
   overflow: hidden !important;
 }
 html[data-ide-embed="1"] #app-main,
-html[data-parent-urlbar="1"] #app-main,
-html[data-ide-preview="true"] #app-main,
-html[data-embed-mode="1"] #app-main {
-  padding-top: env(safe-area-inset-top, 0px) !important;
+html[data-parent-urlbar="1"]:not([data-embed-full-nav="1"]) #app-main,
+html[data-ide-preview="true"]:not([data-embed-full-nav="1"]) #app-main,
+html[data-embed-mode="1"]:not([data-embed-full-nav="1"]) #app-main {
+  padding-top: calc(env(safe-area-inset-top, 0px) + var(--embed-top-shim, 48px)) !important;
 }
 
 html[data-embed-full-nav="1"] .embed-quick-nav {

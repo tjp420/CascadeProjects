@@ -106,10 +106,32 @@ html[data-embed-full-nav="1"] body {
   overflow: hidden;
 }
 
+
 html[data-ide-embed="1"],
 html[data-ide-embed="1"] body {
+  --embed-top-shim: 48px;
   height: 100%;
   overflow: hidden;
+}
+
+/* Additional inset shim for hosts that clip webview tops. */
+html[data-ide-embed="1"] body,
+html[data-parent-urlbar="1"] body,
+html[data-ide-preview="true"] body,
+html[data-embed-mode="1"] body {
+  position: absolute !important;
+  inset: 0 !important;
+  margin: 0 !important;
+  padding-top: calc(env(safe-area-inset-top, 0px) + var(--embed-top-shim, 48px)) !important;
+  height: 100% !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+html[data-ide-embed="1"] #app-main,
+html[data-parent-urlbar="1"] #app-main,
+html[data-ide-preview="true"] #app-main,
+html[data-embed-mode="1"] #app-main {
+  padding-top: calc(env(safe-area-inset-top, 0px) + var(--embed-top-shim, 48px)) !important;
 }
 
 html[data-ide-embed="1"] .embed-quick-nav,
