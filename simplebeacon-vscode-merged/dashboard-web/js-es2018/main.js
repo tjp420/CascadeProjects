@@ -305,25 +305,15 @@ class SimplebeaconDashboard {
         }
     }
     resetMainScroll(main) {
-        const root = main || document.getElementById('app-main') || (typeof document !== 'undefined' && (document.scrollingElement || document.documentElement || document.body));
-        if (!root)
+        const root = main || document.getElementById('app-main');
+        const embedded = isEmbeddedDashboardFrame() || isIdeDashboardSurface();
+        // In embed/IDE mode the CSS makes #app-main the scroll container;
+        // in standalone mode the document scrolling element is the container.
+        let container = (embedded && root) || root || (typeof document !== 'undefined' && (document.scrollingElement || document.documentElement || document.body));
+        if (!container)
             return;
-        let container = root;
         try {
-            for (let cur = root instanceof Element ? root : document.body; cur; cur = cur.parentElement) {
-                try {
-                    const style = window.getComputedStyle ? window.getComputedStyle(cur) : { overflowY: '' };
-                    if (cur.scrollHeight > cur.clientHeight && /(auto|scroll|overlay)/.test(style.overflowY || '')) {
-                        container = cur;
-                        break;
-                    }
-                }
-                catch (_inner) { /* ignore */ }
-            }
-        }
-        catch (_a) { /* ignore */ }
-        try {
-            if ((isEmbeddedDashboardFrame() || isIdeDashboardSurface()) && container && container.style) {
+            if (embedded && container.style) {
                 container.style.overflowY = container.style.overflowY || 'auto';
             }
         }
@@ -460,6 +450,8 @@ class SimplebeaconDashboard {
         const vaultReady = await this.ensureVaultSession();
         if (!vaultReady) {
             this.router.init();
+            const _m = document.getElementById('app-main');
+            if (_m) { for (const d of [0, 50, 150, 300, 600]) setTimeout(() => this.resetMainScroll(_m), d); }
             this.updateAuthUi();
             return;
         }
@@ -473,6 +465,8 @@ class SimplebeaconDashboard {
                 }
             }
             this.router.init();
+            const _m2 = document.getElementById('app-main');
+            if (_m2) { for (const d of [0, 50, 150, 300, 600]) setTimeout(() => this.resetMainScroll(_m2), d); }
             const authEntry = this.parseInitialView();
             if (!isAuthEntryView(authEntry)) {
                 this.router.navigate('signin');
@@ -1102,6 +1096,11 @@ class SimplebeaconDashboard {
     bootstrapAfterAuth() {
         this.updateAuthUi();
         this.router.init();
+        const mainEl = document.getElementById('app-main');
+        if (mainEl) {
+            for (const delay of [0, 50, 150, 300, 600])
+                setTimeout(() => this.resetMainScroll(mainEl), delay);
+        }
         const readOnlyPreview = isDemoMode();
         this.updateNavVisibility(authService.isAuthenticated());
         this.loadDataInBackground().then(() => {

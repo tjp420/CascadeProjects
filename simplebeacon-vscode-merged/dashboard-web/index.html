@@ -90,6 +90,13 @@
     html[data-parent-urlbar="1"] .sb-url-bar {
       display: none !important;
     }
+    html[data-ide-embed="1"],
+    html[data-ide-embed="1"] body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
     html[data-ide-embed="1"] .app-header,
     html[data-ide-embed="1"] .app-nav,
     html[data-ide-embed="1"] .embed-quick-nav,
@@ -97,6 +104,7 @@
     html[data-ide-embed="1"] .sandbox-banner { display: none !important; }
     html[data-ide-embed="1"] .app-shell {
       height: 100vh;
+      height: 100dvh;
       min-height: 0;
       overflow: hidden;
     }
@@ -108,9 +116,11 @@
     }
     html[data-ide-embed="1"] #app-main {
       flex: 1;
+      height: 100% !important;
       min-height: 0;
       min-width: 0;
       width: 100%;
+      overflow-x: hidden;
       overflow-y: auto;
     }
     html[data-embed-full-nav="1"] .app-shell {
@@ -172,7 +182,6 @@
     }
     html[data-ide-preview="true"]:not([data-embed-full-nav="1"]) #app-main {
       flex: 1;
-      height: auto;
       min-height: 0;
       min-width: 0;
       overflow-x: hidden;
@@ -312,6 +321,9 @@
   </style>
   <script>
     (function() {
+      if (typeof history !== 'undefined' && 'scrollRestoration' in history) {
+        history.scrollRestoration = 'manual';
+      }
       var search = window.location.search || '';
       var inIframe = window.self !== window.top;
       var embedKeys = ['sb_notify_base', 'sb_api_base', 'sb_parent_urlbar', 'sb_website_mode'];
@@ -484,7 +496,7 @@
   <link rel="stylesheet" href="css/variables.css?v=20260722clean1">
   <link rel="stylesheet" href="css/reset.css?v=20260722clean1">
   <link rel="stylesheet" href="css/layout.css?v=20260718pricing1">
-  <link rel="stylesheet" href="css/components.css?v=20260721scrollfix1">
+  <link rel="stylesheet" href="css/components.css?v=20260725scrollfix2">
   <link rel="stylesheet" href="css/utilities.css?v=20260718pricing1">
   <link rel="stylesheet" href="css/disable-elements.css?v=20260722clean1">
   <script src="js/vendor/lucide.min.js?v=20260722clean1" defer onerror="window._lucideFailed=true"></script>
@@ -943,7 +955,7 @@
     })();
   </script>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@2.5.9/dist/purify.min.js"></script>
-  <script type="module" src="/dashboard/js-es2018/main.js?v=20260724scroll2" defer></script>
+  <script type="module" src="/dashboard/js-es2018/main.js?v=20260725scroll5" defer></script>
   <script>
     // Capture script errors so the fallback page can report them without DevTools.
     window.__SB_DASHBOARD_ERRORS__ = [];
