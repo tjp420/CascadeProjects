@@ -1704,36 +1704,54 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     }
 
     // Download notification endpoint — lets served pages (coming-soon, dashboard) report downloads to the sidebar
-    if (parsed.pathname === '/api/download/notify' && req.method === 'POST') {
-      let body = '';
-      req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
-      req.on('end', () => {
-        try {
-          const data = JSON.parse(body);
-          let resolvedPath: string | undefined;
-          if (data.name && (data.path || data.content)) {
-            resolvedPath = data.path;
-            if (data.content) {
-              const downloadsDir = path.join(context.extensionPath, 'downloads');
-              if (!fs.existsSync(downloadsDir)) {
-                fs.mkdirSync(downloadsDir, { recursive: true });
+    if (parsed.pathname === '/api/download/notify') {
+      // CORS preflight for hosted/iframe callers
+      if (req.method === 'OPTIONS') {
+        res.writeHead(204, {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type'
+        });
+        res.end();
+        return;
+      }
+      if (req.method === 'POST') {
+        let body = '';
+        req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+        req.on('end', () => {
+          try {
+            const data = JSON.parse(body);
+            let resolvedPath: string | undefined;
+            if (data.name && (data.path || data.content)) {
+              resolvedPath = data.path;
+              if (data.content) {
+                const downloadsDir = path.join(context.extensionPath, 'downloads');
+                if (!fs.existsSync(downloadsDir)) {
+                  fs.mkdirSync(downloadsDir, { recursive: true });
+                }
+                const safeName = String(data.name).replace(/[^a-zA-Z0-9._-]/g, '_');
+                resolvedPath = path.join(downloadsDir, `${Date.now()}-${safeName}`);
+                fs.writeFileSync(resolvedPath, Buffer.from(String(data.content), 'base64'));
+              } else {
+                resolvedPath = resolveDownloadPath(data.path, context);
               }
-              const safeName = String(data.name).replace(/[^a-zA-Z0-9._-]/g, '_');
-              resolvedPath = path.join(downloadsDir, `${Date.now()}-${safeName}`);
-              fs.writeFileSync(resolvedPath, Buffer.from(String(data.content), 'base64'));
-            } else {
-              resolvedPath = resolveDownloadPath(data.path, context);
+              modernSidebarProviderRef?.addDownloadedFile(data.name, resolvedPath);
             }
-            modernSidebarProviderRef?.addDownloadedFile(data.name, resolvedPath);
+            res.writeHead(200, {
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*'
+            });
+            res.end(JSON.stringify({ ok: true, path: resolvedPath }));
+          } catch (e) {
+            res.writeHead(400, {
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*'
+            });
+            res.end(JSON.stringify({ ok: false, error: 'Invalid JSON' }));
           }
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ ok: true, path: resolvedPath }));
-        } catch (e) {
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ ok: false, error: 'Invalid JSON' }));
-        }
-      });
-      return;
+        });
+        return;
+      }
     }
 
     // Scan progress, config, presets, model test, and AI-keys routes

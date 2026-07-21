@@ -1,6 +1,6 @@
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
 import { escapeHtml, showToast, downloadJson, downloadBlob, downloadText, redactPathForDisplay, formatPathLabel, formatPathInputValue, formatAiSummarySkipMessage, isRedactedPathDisplay, formatNumber, formatPercent, renderEmptyState } from '../utils.js';
-import { canUseDirectoryPicker, isLikelyWebkitDirectoryFileCap, browserFolderCapMessage, filePickerBlockedMessage, isFilePickerBlockedError, isEmbeddedDashboardFrame } from '../utils-lib/dom.js?v=20260716cachefix1';
+import { canUseDirectoryPicker, isLikelyWebkitDirectoryFileCap, browserFolderCapMessage, filePickerBlockedMessage, isFilePickerBlockedError, isEmbeddedDashboardFrame } from '../utils-lib/dom.js?v=20260721corsfix1';
 import { evaluateFunnelMetrics, getFunnelCopy, shouldShowEnterpriseFunnel, buildFunnelAuthOptions } from '../utils/funnelTrigger.js?v=20260716cachefix1';
 import { LocalScanService } from '../services/localScanService.js?v=20260716cachefix1';
 import { fingerprintDirectory, formatFingerprint } from '../services/fingerprintService.js';

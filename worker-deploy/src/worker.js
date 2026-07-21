@@ -34,9 +34,11 @@ export default {
 
     // Proxy API requests to the Render backend
     if (url.pathname.startsWith('/api/')) {
-      // The VS Code: extension's local /api/notify bridge does not exist on the
-      // hosted dashboard. Swallow these requests to avoid 404/401 noise.
-      if (url.pathname === '/api/notify' || url.pathname.startsWith('/api/notify/')) {
+      // The VS Code: extension's local /api/notify and /api/download/notify
+      // bridges do not exist on the hosted dashboard. Swallow these requests
+      // to avoid 404/401/CORS noise.
+      if (url.pathname === '/api/notify' || url.pathname.startsWith('/api/notify/') ||
+          url.pathname === '/api/download/notify' || url.pathname.startsWith('/api/download/notify/')) {
         if (request.method === 'OPTIONS') {
           return new Response(null, {
             headers: {

@@ -63,6 +63,21 @@ function isIdeEmbedDownloadBridge() {
         return false;
     }
 }
+function wouldBeMixedOrLocalBridge(baseUrl) {
+    try {
+        const base = new URL(baseUrl);
+        // HTTPS page cannot fetch HTTP local endpoints (mixed content/CORS).
+        if (base.protocol === 'http:' && typeof window !== 'undefined' && window.location.protocol === 'https:')
+            return true;
+        // Remote hosted page should not call a localhost/loopback bridge.
+        if (typeof window !== 'undefined' &&
+            !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname) &&
+            /^(localhost|127\.0\.0\.1)$/i.test(base.hostname))
+            return true;
+    }
+    catch (_b) { /* ignore */ }
+    return false;
+}
 function getExtensionBridgeNotifyUrl() {
     if (typeof window === 'undefined')
         return '/api/download/notify';
@@ -74,7 +89,7 @@ function getExtensionBridgeNotifyUrl() {
         }
         if (base) {
             const clean = String(base).replace(/\/api\/?$/, '').trim();
-            if (clean)
+            if (clean && !wouldBeMixedOrLocalBridge(clean))
                 return `${clean}/api/download/notify`;
         }
     }

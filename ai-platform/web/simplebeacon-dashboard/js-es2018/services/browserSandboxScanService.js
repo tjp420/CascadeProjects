@@ -5,7 +5,7 @@
  * applies SimpleBeacon heuristic rules, and produces an A-F compliance certificate.
  */
 
-import { canUseDirectoryPicker, filePickerBlockedMessage, isFilePickerBlockedError } from '../utils-lib/dom.js';
+import { canUseDirectoryPicker, filePickerBlockedMessage, isFilePickerBlockedError } from '../utils-lib/dom.js?v=20260721corsfix1';
 import {
   createIgnoreContext,
   detectSimplebeaconMonorepo,
