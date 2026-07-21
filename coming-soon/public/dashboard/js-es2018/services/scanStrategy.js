@@ -46,7 +46,16 @@ export async function resolveScanStrategy(rawPath, ctx = {}) {
     // 3. Hosted dashboard with local path → browser sandbox or extension bridge
     if (isRemote && isLocal) {
         if (hasBridge) {
-            return { strategy: 'agent-4000', path: typedPath, reason: 'Extension bridge configured for local path' };
+            // Bridge is configured but may be unreachable (extension not running).
+            // probeAgent4000 already ran at step 2 — if it returned available, we
+            // already returned. If we get here, the bridge probe failed.
+            if (ctx.agentStatus && shouldUseAgent(typedPath, ctx.agentStatus)) {
+                return { strategy: 'local-agent', path: typedPath, reason: 'Local agent available for local path' };
+            }
+            if (ctx.hasBrowserScanFiles) {
+                return { strategy: 'browser-sandbox', path: ctx.lastProjectPath || typedPath, reason: 'Re-scan cached browser files' };
+            }
+            return { strategy: 'prompt-folder', path: typedPath, reason: 'Extension bridge configured but unreachable — prompt for folder selection' };
         }
         if (ctx.agentStatus && shouldUseAgent(typedPath, ctx.agentStatus)) {
             return { strategy: 'local-agent', path: typedPath, reason: 'Local agent available for local path' };

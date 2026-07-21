@@ -919,7 +919,8 @@ export async function probeAgent4000(origin = resolveBridgeOrigin()) {
  */
 export async function scanViaAgent4000(projectPath, origin = resolveBridgeOrigin()) {
     if (isExtensionBridgeOrigin(origin)) {
-        const response = await agentFetchWithTimeout(`${origin}/api/scan`, {
+        const doFetch = getLocalBridgeFetch();
+        const response = await doFetch(`${origin}/api/scan`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
             body: JSON.stringify({ path: projectPath })
