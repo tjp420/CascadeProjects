@@ -13,7 +13,18 @@ const WORKER_URL = new URL('../workers/scan-worker.js?v=20260716cachefix1', impo
 const MAX_FILES = 100000;
 const SCAN_BATCH_SIZE = 400;
 const BATCH_TIMEOUT_MS = 10 * 60 * 1000;
-const SKIP_DIRS = /(^|[\\/])(node_modules|\.git|\.github|\.husky|dist|build|\.next|out|coverage|frontend-build|\.github-sync|github-cache|\.simplebeacon|\.cursor|\.windsurf|deployments|backups|\.vscode-test|\.vsix-patch-temp|logs|cache|\.cache|tmp|temp|target|\.wrangler|\.cargo[\\/]registry|\.cargo[\\/]git)([\\/]|$)/i;
+const SKIP_DIRS = /(^|[\\/])(node_modules|\.git|\.github|\.husky|dist|build|\.next|out|coverage|frontend-build|\.github-sync|github-cache|\.simplebeacon|\.cursor|\.windsurf|deployments|backups|\.vscode-test|\.vsix-patch-temp|logs|cache|\.cache|tmp|temp|target|\.wrangler|\.cargo[\\/]registry|\.cargo[\\/]git|SC2Data|Versions|Support|Editor|Maps|Campaigns|Base|Mods|Assets|TriggerLibs|LocalizedData)([\\/]|$)/i;
+const SCANABLE_EXTENSIONS = new Set([
+    '.js', '.cjs', '.mjs', '.ts', '.tsx', '.jsx', '.json', '.txt', '.ini', '.cfg',
+    '.conf', '.env', '.yml', '.yaml', '.xml', '.css', '.sh', '.bat', '.cmd', '.ps1',
+    '.py', '.pyw', '.pyi', '.cs', '.vb', '.java', '.kt', '.scala', '.groovy',
+    '.go', '.rs', '.php', '.rb', '.c', '.h', '.cpp', '.cc', '.hpp', '.cxx', '.hxx',
+    '.swift', '.dart', '.lua', '.r', '.pl', '.pm', '.tcl', '.asm', '.s',
+    '.tf', '.sql', '.vue', '.svelte', '.html', '.htm', '.md', '.rst',
+    '.toml', '.properties', '.gradle', '.sbt', '.dockerfile', '.makefile', '.cmake',
+    '.gitignore', '.dockerignore', '.editorconfig', '.babelrc', '.eslintrc', '.prettierrc',
+    '.npmrc', '.nvmrc', '.lock', '.feature', '.story'
+]);
 /**
  * Recursively collect FileSystemFileHandle entries from a directory handle.
  * @param {FileSystemDirectoryHandle} dirHandle
@@ -40,6 +51,10 @@ async function collectFiles(dirHandle, pathPrefix = '', files = [], ignoreCtx = 
         }
         else if (handle.kind === 'file') {
             if (name === '.simplebeaconignore')
+                continue;
+            const dotIdx = name.lastIndexOf('.');
+            const ext = dotIdx >= 0 ? name.substring(dotIdx).toLowerCase() : '';
+            if (ext && !SCANABLE_EXTENSIONS.has(ext))
                 continue;
             files.push({ path: fullPath, handle });
         }
