@@ -175,12 +175,14 @@ export class ProfileView {
             </div>
 
             <div class="profile-card" id="security-keys-section">
-              <div class="profile-card-header">
-                <i data-lucide="key-round" class="icon-18 profile-card-icon"></i>
-                <h2>Security Keys</h2>
-              </div>
-              <div class="profile-card-body">
-                <div id="security-keys-content">
+              <details class="profile-collapse">
+                <summary class="profile-card-header profile-collapse-header">
+                  <i data-lucide="key-round" class="icon-18 profile-card-icon"></i>
+                  <h2>Security Keys</h2>
+                  <i data-lucide="chevron-down" class="icon-16 profile-collapse-chevron"></i>
+                </summary>
+                <div class="profile-card-body">
+                  <div id="security-keys-content">
                   <div class="security-key-intro">
                     <p class="profile-help">Add a security key for passwordless sign-in. You can use a hardware key (YubiKey, Titan), a built-in passkey (Windows Hello, Touch ID, Face ID), or a USB drive enrolled as a security key.</p>
                     <div class="security-key-status-banner" id="security-key-server-status" style="display:none;"></div>
@@ -245,6 +247,38 @@ export class ProfileView {
                 </div>
                 <p id="security-keys-status" class="profile-help"></p>
               </div>
+              </details>
+            </div>
+
+            <div class="profile-card">
+              <div class="profile-card-header">
+                <i data-lucide="badge-check" class="icon-18 profile-card-icon"></i>
+                <h2>Account Status</h2>
+              </div>
+              <div class="profile-card-body">
+                <div class="profile-stat-grid">
+                  <div class="profile-stat">
+                    <div class="label">Token Type</div>
+                    <div class="value">${escapeHtml(tokenType)}</div>
+                  </div>
+                  <div class="profile-stat">
+                    <div class="label">Project</div>
+                    <div class="value">${escapeHtml(project)}</div>
+                  </div>
+                  <div class="profile-stat">
+                    <div class="label">Account Age</div>
+                    <div class="value">${escapeHtml(accountAge)}</div>
+                  </div>
+                  <div class="profile-stat">
+                    <div class="label">Expires In</div>
+                    <div class="value" style="color:${expiryInfo.color};">${escapeHtml(expiryInfo.label)}</div>
+                  </div>
+                  <div class="profile-stat">
+                    <div class="label">Subject</div>
+                    <div class="value" style="font-size:var(--font-size-xs);">${escapeHtml(subLabel)}</div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div class="profile-card">
@@ -287,39 +321,6 @@ export class ProfileView {
                 </div>
               </div>
             </div>
-          </div>
-
-          <aside class="profile-aside">
-            <div class="profile-card">
-              <div class="profile-card-header">
-                <i data-lucide="badge-check" class="icon-18 profile-card-icon"></i>
-                <h2>Account Status</h2>
-              </div>
-              <div class="profile-card-body">
-                <div class="profile-stat-grid">
-                  <div class="profile-stat">
-                    <div class="label">Token Type</div>
-                    <div class="value">${escapeHtml(tokenType)}</div>
-                  </div>
-                  <div class="profile-stat">
-                    <div class="label">Project</div>
-                    <div class="value">${escapeHtml(project)}</div>
-                  </div>
-                  <div class="profile-stat">
-                    <div class="label">Account Age</div>
-                    <div class="value">${escapeHtml(accountAge)}</div>
-                  </div>
-                  <div class="profile-stat">
-                    <div class="label">Expires In</div>
-                    <div class="value" style="color:${expiryInfo.color};">${escapeHtml(expiryInfo.label)}</div>
-                  </div>
-                  <div class="profile-stat">
-                    <div class="label">Subject</div>
-                    <div class="value" style="font-size:var(--font-size-xs);">${escapeHtml(subLabel)}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
 
             <div class="profile-card" id="profile-stockpile-card">
               <div class="profile-card-header">
@@ -327,7 +328,7 @@ export class ProfileView {
                 <h2>Token Loader (${reservedCount} reserved)</h2>
               </div>
               <div class="profile-card-body">
-                <p class="profile-help" style="margin-top:0;">Buy time tokens now and stockpile them here. They stay inactive until you click Load — useful for renewing before your current token expires.</p>
+                <p class="profile-help" style="margin-top:0;">Buy time tokens now and stockpile them here. They stay inactive until you click Load.</p>
                 <div class="profile-field">
                   <label for="profile-stockpile-input">add time token</label>
                   <div class="profile-input-group">
@@ -357,7 +358,7 @@ export class ProfileView {
                 <p class="profile-status-msg" id="profile-save-status"></p>
               </div>
             </div>
-          </aside>
+          </div>
         </form>
       </div>
     `);
@@ -681,7 +682,7 @@ export class ProfileView {
                     );;
                     return;
                 }
-                securityKeysList.innerHTML = keys.map((key) => `
+                setHtml(securityKeysList, keys.map((key) => `
             <div class="profile-security-key-row" data-credential-id="${escapeHtml(key.id)}">
               <div class="profile-security-key-meta">
                 <strong>${escapeHtml(key.label || 'Security key')}</strong>
@@ -691,7 +692,7 @@ export class ProfileView {
                 <button type="button" class="btn btn-secondary btn-sm profile-security-key-test" data-test-key="${escapeHtml(key.id)}">Test</button>
                 <button type="button" class="btn btn-secondary btn-sm profile-security-key-remove" data-remove-key="${escapeHtml(key.id)}">Remove</button>
               </div>
-            </div>`).join('');
+            </div>`).join(''));
                 securityKeysList.querySelectorAll('[data-remove-key]').forEach((btn) => {
                     btn.addEventListener('click', async () => {
                         const credentialId = btn.getAttribute('data-remove-key');
@@ -744,7 +745,7 @@ export class ProfileView {
                 });
             }
             catch (err) {
-                securityKeysList.innerHTML = `<p class="profile-help">${escapeHtml(describeWebAuthnError(err))}</p>`;
+              setHtml(securityKeysList, `<p class="profile-help">${escapeHtml(describeWebAuthnError(err))}</p>`);
             }
         };
 
@@ -780,12 +781,12 @@ export class ProfileView {
                     // Update instructions
                     const instructions = container.querySelector('#security-key-enroll-instructions');
                     if (instructions) {
-                        const labels = {
+                      const labels = {
                             hardware: 'Insert your hardware key (YubiKey, Titan, etc.), then click Activate. Tap the key when your browser prompts you.',
                             platform: 'Click Activate, then confirm with Windows Hello, Touch ID, or Face ID when your browser prompts you.',
                             usb: 'Make sure your USB drive is enrolled as a security key in Windows Settings first. Then click Activate and tap it when prompted.'
                         };
-                        instructions.innerHTML = `<p class="profile-help">${labels[selectedKeyType] || labels.hardware}</p>`;
+                      setHtml(instructions, `<p class="profile-help">${labels[selectedKeyType] || labels.hardware}</p>`);
                     }
                 });
             });
