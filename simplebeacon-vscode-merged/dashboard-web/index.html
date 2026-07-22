@@ -333,8 +333,9 @@
           var value = params.get(key) || sessionStorage.getItem(key);
           if (value) {
             if (key === 'sb_api_base' || key === 'sb_notify_base') {
+              // Store canonical host root (no trailing `/api`) to keep behavior consistent.
               value = String(value).replace(/\/+$/, '');
-              if (!/\/api$/i.test(value)) value += '/api';
+              value = value.replace(/\/api\/?$/i, '');
             }
             sessionStorage.setItem(key, value);
           }
@@ -1097,7 +1098,7 @@
             btn.id = 'sb-back-to-top';
             btn.title = 'Back to top';
             btn.setAttribute('aria-label','Back to top');
-            btn.innerHTML = '\u21E7';
+            btn.textContent = '\u21E7';
             document.body.appendChild(btn);
           }
           function scrollToTop(){
