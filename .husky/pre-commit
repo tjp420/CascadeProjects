@@ -1,4 +1,16 @@
 #!/usr/bin/env sh
+. "$(dirname "$0")/_/husky.sh"
+
+# Run SimpleBeacon gate scan as a pre-commit hook. Exits non-zero to block commit on high/critical findings.
+echo "Running SimpleBeacon pre-commit scan..."
+npm run sb:hook:pre-commit
+RESULT=$?
+if [ $RESULT -ne 0 ]; then
+  echo "SimpleBeacon pre-commit check failed (exit $RESULT). Commit aborted." >&2
+  exit $RESULT
+fi
+echo "SimpleBeacon pre-commit passed. Proceeding with commit."
+#!/usr/bin/env sh
 # Simplebeacon pre-commit — syntax check + gate scan
 # https://www.npmjs.com/package/simplebeacon
 set -e
