@@ -101,7 +101,7 @@ container.innerHTML = `<div class="signin-page"><div class="signin-card card"><p
     }
 
     container.innerHTML = `
-      <div class="signin-page" style="display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px;background:var(--background);box-sizing:border-box;">
+      <div class="signin-page" style="display:flex;align-items:center;justify-content:center;min-height:100%;padding:24px;background:var(--background);box-sizing:border-box;">
         <div class="signin-card card" style="width:100%;max-width:420px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:32px;box-shadow:0 20px 60px rgba(0,0,0,0.35);box-sizing:border-box;color:var(--text-primary);">
           <div class="signin-header" style="text-align:center;margin-bottom:24px;">
             <span class="signin-icon" aria-hidden="true" style="font-size:2rem;display:block;margin-bottom:8px;">&#128274;</span>

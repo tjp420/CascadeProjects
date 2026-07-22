@@ -66,7 +66,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: calc(100vh - 120px);
+  min-height: calc(100% - 120px);
   padding: var(--space-6);
   box-sizing: border-box;
 }
@@ -137,8 +137,7 @@ html[data-ide-embed="1"] .app-shell {
 html[data-parent-urlbar="1"]:not([data-embed-full-nav="1"]):not([data-ide-embed="1"]) .app-shell,
 html[data-ide-preview="true"]:not([data-embed-full-nav="1"]):not([data-ide-embed="1"]) .app-shell,
 html[data-embed-mode="1"]:not([data-embed-full-nav="1"]):not([data-ide-embed="1"]) .app-shell {
-  height: 100vh;
-  height: 100dvh;
+  height: 100%;
   min-height: 0;
   overflow: hidden;
 }
@@ -500,7 +499,7 @@ html[data-embed-full-nav="1"] .embed-quick-nav {
 }
 
 html[data-embed-full-nav="1"] .app-shell {
-  height: 100vh;
+  height: 100%;
   min-height: 0;
   overflow: hidden;
 }
@@ -570,8 +569,8 @@ html[data-embed-full-nav="1"][data-auth-page="1"] #app-main:has(.signin-page) {
 
 /* Embed / VS Code panel: stack quick nav above content when full sidebar is hidden */
 html[data-embed-mode="1"]:not([data-embed-full-nav="1"]) .app-shell {
-  height: 100vh;
-  min-height: 100vh;
+  height: 100%;
+  min-height: 100%;
 }
 
 html[data-embed-mode="1"]:not([data-embed-full-nav="1"]):not([data-ide-embed="1"]) .app-body {
@@ -1203,7 +1202,7 @@ html[data-ide-preview="true"][data-auth-page="1"] #app-main {
 }
 
 .results-sidebar {
-  max-height: calc(100vh - 8rem);
+  max-height: calc(100% - 8rem);
   overflow-y: auto;
 }
 
@@ -4746,8 +4745,8 @@ button.tool-card.help-page-card:hover {
 
 /* Chatbot Styles — fill app-main width and viewport height; keep input pinned visible */
 .app-shell:has(.chatbot-page) {
-  height: 100vh;
-  max-height: 100dvh;
+  height: 100%;
+  max-height: 100%;
   min-height: 0;
   overflow: hidden;
 }
@@ -7578,8 +7577,8 @@ html[data-ide-embed="1"] .chatbot-container {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
   z-index: 99999;
   display: none;
   align-items: center;

@@ -17,7 +17,14 @@ body {
   line-height: 1.5;
   color: var(--text-primary);
   background: var(--background);
-  min-height: 100vh;
+  min-height: 100%;
+}
+
+/* Ensure document root uses percentage heights so embedded iframes/webviews size correctly */
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 button,
